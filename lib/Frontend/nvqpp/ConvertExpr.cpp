@@ -114,12 +114,17 @@ negatedControlsAttribute(MLIRContext *ctx, ValueRange ctrls,
 // adding controls to case 3).
 template <typename A, typename P = void>
 bool buildOp(OpBuilder &builder, Location loc, ValueRange operands,
-             SmallVector<Value> &negations, bool isAdjoint = false) {
+             SmallVector<Value> &negations,
+             llvm::function_ref<void()> reportNegateError,
+             bool isAdjoint = false) {
   if constexpr (std::is_same_v<P, Param>) {
     assert(operands.size() >= 2 && "must be at least 2 operands");
     auto params = operands.take_front();
     auto [target, ctrls] =
         maybeUnpackOperands(builder, loc, operands.drop_front(1));
+    for (auto v : target)
+      if (std::find(negations.begin(), negations.end(), v) != negations.end())
+        reportNegateError();
     auto negs =
         negatedControlsAttribute(builder.getContext(), ctrls, negations);
     builder.create<A>(loc, isAdjoint, params, ctrls, target, negs);
@@ -128,6 +133,8 @@ bool buildOp(OpBuilder &builder, Location loc, ValueRange operands,
     if ((operands.size() == 1) &&
         operands[0].getType().isa<quake::QVecType>()) {
       auto target = operands[0];
+      if (!negations.empty())
+        reportNegateError();
       Type indexTy = builder.getIndexType();
       auto size = builder.create<quake::QVecSizeOp>(
           loc, builder.getIntegerType(64), target);
@@ -141,6 +148,9 @@ bool buildOp(OpBuilder &builder, Location loc, ValueRange operands,
       cudaq::opt::factory::createCountedLoop(builder, loc, rank, bodyBuilder);
     } else {
       auto [target, ctrls] = maybeUnpackOperands(builder, loc, operands);
+      for (auto v : target)
+        if (std::find(negations.begin(), negations.end(), v) != negations.end())
+          reportNegateError();
       auto negs =
           negatedControlsAttribute(builder.getContext(), ctrls, negations);
       builder.create<A>(loc, isAdjoint, ValueRange(), ctrls, target, negs);
@@ -1263,41 +1273,61 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     }
 
     // Handle the quantum gate set.
+    auto reportNegateError = [&]() {
+      reportClangError(x, mangler, "target qubit cannot be negated");
+    };
     if (funcName.equals("h") || funcName.equals("ch"))
-      return buildOp<quake::HOp>(builder, loc, args, negations);
+      return buildOp<quake::HOp>(builder, loc, args, negations,
+                                 reportNegateError);
     if (funcName.equals("x") || funcName.equals("cnot") ||
         funcName.equals("cx") || funcName.equals("ccx"))
-      return buildOp<quake::XOp>(builder, loc, args, negations);
+      return buildOp<quake::XOp>(builder, loc, args, negations,
+                                 reportNegateError);
     if (funcName.equals("y") || funcName.equals("cy"))
-      return buildOp<quake::YOp>(builder, loc, args, negations);
+      return buildOp<quake::YOp>(builder, loc, args, negations,
+                                 reportNegateError);
     if (funcName.equals("z") || funcName.equals("cz"))
-      return buildOp<quake::ZOp>(builder, loc, args, negations);
+      return buildOp<quake::ZOp>(builder, loc, args, negations,
+                                 reportNegateError);
     if (funcName.equals("s") || funcName.equals("cs"))
-      return buildOp<quake::SOp>(builder, loc, args, negations, isAdjoint);
+      return buildOp<quake::SOp>(builder, loc, args, negations,
+                                 reportNegateError, isAdjoint);
     if (funcName.equals("t") || funcName.equals("ct"))
-      return buildOp<quake::TOp>(builder, loc, args, negations, isAdjoint);
+      return buildOp<quake::TOp>(builder, loc, args, negations,
+                                 reportNegateError, isAdjoint);
 
-    if (funcName.equals("reset"))
+    if (funcName.equals("reset")) {
+      if (!negations.empty())
+        reportNegateError();
       return builder.create<quake::ResetOp>(loc, args[0]);
+    }
     if (funcName.equals("swap")) {
       const auto size = args.size();
       assert(size >= 2);
       SmallVector<Value> targets(args.begin() + size - 2, args.end());
+      for (auto v : targets)
+        if (std::find(negations.begin(), negations.end(), v) != negations.end())
+          reportNegateError();
       SmallVector<Value> ctrls(args.begin(), args.begin() + size - 2);
-      return builder.create<quake::SwapOp>(loc, ctrls, targets);
+      auto negs =
+          negatedControlsAttribute(builder.getContext(), ctrls, negations);
+      auto swap = builder.create<quake::SwapOp>(loc, ctrls, targets);
+      if (negs)
+        swap->setAttr("negated_qubit_controls", negs);
+      return swap;
     }
     if (funcName.equals("p") || funcName.equals("r1"))
       return buildOp<quake::R1Op, Param>(builder, loc, args, negations,
-                                         isAdjoint);
+                                         reportNegateError, isAdjoint);
     if (funcName.equals("rx"))
       return buildOp<quake::RxOp, Param>(builder, loc, args, negations,
-                                         isAdjoint);
+                                         reportNegateError, isAdjoint);
     if (funcName.equals("ry"))
       return buildOp<quake::RyOp, Param>(builder, loc, args, negations,
-                                         isAdjoint);
+                                         reportNegateError, isAdjoint);
     if (funcName.equals("rz"))
       return buildOp<quake::RzOp, Param>(builder, loc, args, negations,
-                                         isAdjoint);
+                                         reportNegateError, isAdjoint);
 
     if (funcName.equals("control")) {
       // Expect the first argument to be an instance of a Callable. Need to
