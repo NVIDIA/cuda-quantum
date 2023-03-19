@@ -1,0 +1,53 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt %s | FileCheck %s
+// CHECK: module {
+// CHECK:   func.func @apply_x(%arg0: !quake.qref) {
+// CHECK:     quake.x (%arg0)
+// CHECK:     return
+// CHECK:   }
+// CHECK:   func.func @ccnot() {
+// CHECK:     %[[C3:.*]] = arith.constant 3 : i32
+// CHECK:     %[[C1:.*]] = arith.constant 1 : i32
+// CHECK:     %0 = quake.alloca(%[[C3]] : i32) : !quake.qvec<?>
+// CHECK:     %1 = arith.index_cast %[[C3]] : i32 to index
+// CHECK:     affine.for %arg0 = 0 to %1 {
+// CHECK:       %3 = quake.qextract %0[%arg0] : !quake.qvec<?>[index] -> !quake.qref
+// CHECK:       quake.x (%3)
+// CHECK:     }
+// CHECK:     %2 = quake.qextract %0[%[[C1]]] : !quake.qvec<?>[i32] -> !quake.qref
+// CHECK:     call @apply_x(%2) : (!quake.qref) -> ()
+// CHECK:     return
+// CHECK:   }
+// CHECK: }
+
+module {
+    // Any function that takes quantum memory as input
+    // must return the same, e.g. (!quake.qref) -> (!quake.qref)
+    func.func @apply_x(%q : !quake.qref) -> () {
+        quake.x (%q)
+        return
+    }
+
+    func.func @ccnot() {
+        %c_3 = arith.constant 3 : i32
+        %c_1 = arith.constant 1 : i32
+        %qubits = quake.alloca ( %c_3 : i32 ) : !quake.qvec<?>
+        %c_3_idx = arith.index_cast %c_3 : i32 to index
+        affine.for %i = 0 to %c_3_idx {
+            %q0 = quake.qextract %qubits [%i] : !quake.qvec<?>[index] -> !quake.qref
+            quake.x (%q0)
+        }
+
+        %q1 = quake.qextract %qubits [%c_1] : !quake.qvec<?>[i32] -> !quake.qref
+        func.call @apply_x(%q1) : (!quake.qref) -> ()
+        
+        return
+    }
+}

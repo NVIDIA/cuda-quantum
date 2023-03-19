@@ -1,0 +1,26 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --load-pass-plugin %cudaq_lib_dir/HelloWorldQTXPass%cudaq_plugin_ext %s -cudaq-hello-world-qtx | FileCheck %s
+
+module attributes {qtx.mangled_name_map = {__nvqpp__mlirgen__lambda._ZTSZ4mainE3$_0 = "_ZZ4mainENK3$_0clEv"}} {
+  qtx.circuit @__nvqpp__mlirgen__lambda._ZTSZ4mainE3$_0() {
+    %0 = alloca : !qtx.wire
+    %1 = h %0 : !qtx.wire
+    %bits, %new_targets = mz %1 : !qtx.wire -> <i1> !qtx.wire
+    return
+  }
+}
+
+// CHECK-LABEL:   qtx.circuit @__nvqpp__mlirgen__lambda._ZTSZ4mainE3$_0() {
+// CHECK:           %[[VAL_0:.*]] = alloca : !qtx.wire
+// CHECK:           %[[VAL_1:.*]] = h %[[VAL_0]] : !qtx.wire
+// CHECK:           %[[VAL_2:.*]], %[[VAL_3:.*]] = mz %[[VAL_1]] : !qtx.wire -> <i1> !qtx.wire
+// CHECK:           return
+// CHECK:         }
+

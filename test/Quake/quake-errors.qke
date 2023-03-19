@@ -1,0 +1,340 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --canonicalize %s -split-input-file -verify-diagnostics 
+
+// expected-error @+1 {{expects parent op to be one of 'func.func, cc.create_lambda'}}
+cc.return
+
+// -----
+
+func.func @test() {
+  %0 = cc.create_lambda {
+    // expected-error @+1 {{has 0 operands, but enclosing function/lambda returns 1}}
+    cc.return
+  } : !cc.lambda<() -> i32>
+}
+
+// -----
+
+func.func @test() {
+  %0 = cc.create_lambda {
+    %1 = cc.undef f64
+    // expected-error @+1 {{return operand 0 ('f64') doesn't match function/lambda result type ('i32')}}
+    cc.return %1 : f64
+  } : !cc.lambda<() -> i32>
+}
+
+// -----
+
+func.func @test() {
+  %0 = cc.create_lambda {
+    %1 = cc.undef i1
+    cc.if (%1) {
+      %2 = cc.undef f64
+      // expected-error @+1 {{argument type mismatch with function/lambda result}}
+      cc.unwind_return %2 : f64
+    }
+    %2 = cc.undef i32
+    cc.return %2 : i32
+  } : !cc.lambda<() -> i32>
+}
+
+// -----
+
+%0 = cc.undef i32
+%b1 = cc.undef i1
+cc.if (%b1) {
+  // expected-error @+1 {{cannot find nearest enclosing function/lambda}}
+  cc.unwind_return %0 : i32
+}
+
+// -----
+
+func.func @test() -> i32 {
+  %b1 = cc.undef i1
+  cc.if (%b1) {
+    // expected-error @+1 {{arity of arguments and function/lambda result mismatch}}
+    cc.unwind_return
+  }
+  %1 = arith.constant 42 : i32
+  cc.return %1 : i32
+}
+
+// -----
+
+func.func @test() -> i32 {
+  %b1 = cc.undef i1
+  cc.if (%b1) {
+    %res = cc.undef f32
+    // expected-error @+1 {{argument type mismatch with function/lambda result}}
+    cc.unwind_return %res : f32
+  }
+  %1 = arith.constant 42 : i32
+  cc.return %1 : i32
+}
+
+// -----
+
+%0 = cc.undef i32
+%b1 = cc.undef i1
+cc.if (%b1) {
+  // expected-error @+1 {{cannot find nearest enclosing loop}}
+  cc.unwind_break %0 : i32
+}
+
+// -----
+
+func.func @test() -> i32 {
+  %w = cc.undef i16
+  cc.loop while ((%arg0 = %w) -> i16) {
+    %b2 = cc.undef i1
+    cc.condition %b2 (%arg0 : i16)
+  } do {
+   ^bb1(%arg1 : i16):
+    %b1 = cc.undef i1
+    cc.if (%b1) {
+      // expected-error @+1 {{arity of arguments and loop result mismatch}}
+      cc.unwind_break
+    }
+    cc.continue %arg1 : i16
+  } step {
+   ^bb2(%arg2 : i16):
+    %incr = cc.undef i32
+    cc.continue %arg2 : i16
+  }  
+  %1 = arith.constant 42 : i32
+  cc.return %1 : i32
+}
+
+// -----
+
+func.func @test() -> i32 {
+  %w = cc.undef i16
+  cc.loop while ((%arg0 = %w) -> i16) {
+    %b2 = cc.undef i1
+    cc.condition %b2 (%arg0 : i16)
+  } do {
+   ^bb1(%arg1 : i16):
+    %b1 = cc.undef i1
+    cc.if (%b1) {
+      %a = cc.undef f32
+      // expected-error @+1 {{op argument type mismatch with loop result}}
+      cc.unwind_break %a : f32
+    }
+    cc.continue %arg1 : i16
+  } step {
+   ^bb2(%arg2 : i16):
+    %incr = cc.undef i32
+    cc.continue %arg2 : i16
+  }  
+  %1 = arith.constant 42 : i32
+  cc.return %1 : i32
+}
+
+// -----
+
+%0 = cc.undef i32
+%b1 = cc.undef i1
+cc.if (%b1) {
+  // expected-error @+1 {{cannot find nearest enclosing loop}}
+  cc.unwind_continue %0 : i32
+}
+
+// -----
+
+func.func @test() -> i32 {
+  %w = cc.undef i16
+  cc.loop while ((%arg0 = %w) -> i16) {
+    %b2 = cc.undef i1
+    cc.condition %b2 (%arg0 : i16)
+  } do {
+   ^bb1(%arg1 : i16):
+    %b1 = cc.undef i1
+    cc.if (%b1) {
+      // expected-error @+1 {{arity of arguments and loop result mismatch}}
+      cc.unwind_continue
+    }
+    cc.continue %arg1 : i16
+  } step {
+   ^bb2(%arg2 : i16):
+    %incr = cc.undef i32
+    cc.continue %arg2 : i16
+  }  
+  %1 = arith.constant 42 : i32
+  cc.return %1 : i32
+}
+
+// -----
+
+func.func @test() -> i32 {
+  %w = cc.undef i16
+  cc.loop while ((%arg0 = %w) -> i16) {
+    %b2 = cc.undef i1
+    cc.condition %b2 (%arg0 : i16)
+  } do {
+   ^bb1(%arg1 : i16):
+    %b1 = cc.undef i1
+    cc.if (%b1) {
+      %a = cc.undef f32
+      // expected-error @+1 {{op argument type mismatch with loop result}}
+      cc.unwind_continue %a : f32
+    }
+    cc.continue %arg1 : i16
+  } step {
+   ^bb2(%arg2 : i16):
+    %incr = cc.undef i32
+    cc.continue %arg2 : i16
+  }  
+  %1 = arith.constant 42 : i32
+  cc.return %1 : i32
+}
+
+// -----
+
+func.func @test() {
+  cc.loop while {
+    %b1 = cc.undef i1
+    cc.condition %b1
+  } do {
+    %b1 = cc.undef i1
+    // expected-error @+1 {{only valid in the while region of a loop}}
+    cc.condition %b1
+  } step {
+    cc.continue
+  }
+  return
+}
+
+// -----
+
+func.func @test() {
+  // expected-error @+1 {{while region must end with condition op}}
+  cc.loop while {
+    cc.break
+  } do {
+    cc.continue
+  } step {
+    cc.continue
+  }
+  return
+}
+
+// -----
+
+func.func @test() {
+  %1 = cc.undef i32
+  // expected-error @+1 {{size of init args and body region args must be equal}}
+  cc.loop while ((%arg = %1) -> i32) {
+    %0 = arith.constant 1 : i1
+    cc.condition %0 (%arg : i32)
+  } do {
+   ^bb0(%arg : i32, %bad : f64):
+    cc.continue %arg : i32
+  } step {
+   ^bb0(%arg : i32):
+    cc.continue %arg : i32
+  }
+  return
+}
+
+// -----
+
+func.func @test() {
+  %1 = cc.undef i32
+  // expected-error @+1 {{size of init args and condition op must be equal}}
+  cc.loop while ((%arg = %1) -> i32) {
+    %0 = arith.constant 1 : i1
+    %bad = cc.undef f64
+    cc.condition %0 (%arg, %bad : i32, f64)
+  } do {
+   ^bb0(%arg : i32):
+    cc.continue %arg : i32
+  } step {
+   ^bb0(%arg : i32):
+    cc.continue %arg : i32
+  }
+  return
+}
+
+// -----
+
+func.func @test() {
+  %1 = cc.undef i32
+  // expected-error @+1 {{size of init args and step region args must be equal}}
+  cc.loop while ((%arg = %1) -> i32) {
+    %0 = arith.constant 1 : i1
+    cc.condition %0 (%arg : i32)
+  } do {
+   ^bb0(%arg : i32):
+    cc.continue %arg : i32
+  } step {
+   ^bb0(%arg : i32, %bad : f64):
+    cc.continue %arg : i32
+  }
+  return
+}
+
+// -----
+
+func.func @test() {
+  %0 = cc.undef i1
+  // expected-error @+1 {{must have an else block if defining values}}
+  %2 = cc.if (%0) -> i32 {
+    %1 = cc.undef i32
+    cc.continue %1 : i32
+  }
+  return
+}
+
+// -----
+
+func.func @test() {
+  %1 = cc.undef i32
+  %bad = cc.undef f64
+  // expected-error @+1 {{size of init args and continue op must be equal}}
+  cc.loop while ((%arg = %1) -> i32) {
+    %0 = arith.constant 1 : i1
+    cc.condition %0 (%arg : i32)
+  } do {
+   ^bb0(%arg : i32):
+    cc.continue %arg : i32
+  } step {
+   ^bb0(%arg : i32):
+    cc.continue %arg, %bad : i32, f64
+  }
+  return
+}
+
+// -----
+
+func.func @test() {
+  // expected-error @+1 {{step region must end with continue op}}
+  cc.loop while {
+    %b1 = cc.undef i1
+    cc.condition %b1
+  } do {
+    cc.continue
+  } step {
+    cc.break
+  }
+  return
+}
+
+// -----
+
+%neg = arith.constant -5 : i32
+// expected-error @+1 {{expected a non-negative integer size}}
+%0 = quake.alloca(%neg : i32) : !quake.qvec<?>
+
+// -----
+
+%two = arith.constant 2 : i32
+// expected-error @+1 {{expected operand size to match QVecType size}}
+%0 = quake.alloca(%two : i32) : !quake.qvec<4>
+     

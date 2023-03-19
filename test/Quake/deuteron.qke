@@ -1,0 +1,43 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt %s --canonicalize | FileCheck %s
+
+// CHECK-LABEL:  func.func @ansatz(
+// CHECK-SAME: %[[arg0:.*]]: f64) {
+// CHECK:    %[[C0:.*]] = arith.constant 0 : i32
+// CHECK:    %[[C1:.*]] = arith.constant 1 : i32
+// CHECK:    %[[a0:.*]] = quake.alloca : !quake.qvec<2>
+// CHECK:    %[[a1:.*]] = quake.qextract %[[a0]][%[[C0]]] : !quake.qvec<2>[i32] -> !quake.qref
+// CHECK:    %[[a2:.*]] = quake.qextract %[[a0]][%[[C1]]] : !quake.qvec<2>[i32] -> !quake.qref
+// CHECK:    quake.x (%[[a1]])
+// CHECK:    quake.ry |%[[arg0]] : f64|(%[[a2]])
+// CHECK:    quake.x [%[[a2]] : !quake.qref] (%[[a1]])
+// CHECK:    %[[a3:.*]] = quake.mz(%[[a1]] : !quake.qref) : i1
+// CHECK:    %[[a4:.*]] = quake.mz(%[[a2]] : !quake.qref) : i1
+// CHECK:    return
+// CHECK:  }
+
+module {
+    func.func @ansatz(%theta : f64) {
+        %0 = arith.constant 2 : i32
+        %c_0 = arith.constant 0 : i32
+        %c_1 = arith.constant 1 : i32
+        %c_angle = arith.constant 0.59 : f64
+        %qubits = quake.alloca ( %0 : i32 ) : !quake.qvec<?>
+        %q0 = quake.qextract %qubits [%c_0] : !quake.qvec<?>[i32] -> !quake.qref
+        %q1 = quake.qextract %qubits [%c_1] : !quake.qvec<?>[i32] -> !quake.qref
+
+        quake.x (%q0)
+        quake.ry |%theta : f64|(%q1)
+        quake.x [%q1 : !quake.qref] (%q0)
+        %measurements0 = quake.mz(%q0 : !quake.qref) : i1
+        %measurements1 = quake.mz(%q1 : !quake.qref) : i1
+        return
+    }
+}

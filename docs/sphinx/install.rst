@@ -1,0 +1,192 @@
+CUDA Quantum Open Beta Installation
+*******************************************
+
+Docker Image
+--------------------
+
+Install the Public Beta Docker Image
+++++++++++++++++++++++++++++++++++++
+This public beta release of CUDA Quantum is being deployed via 
+a provided Docker image. The name of the image is :code:`nvcr.io/nvidia/cuda-quantum:0.3`,
+and it has been built for :code:`x86_64,amd64` platforms. 
+
+.. code-block:: console
+
+    docker pull nvcr.io/nvidia/cuda-quantum:0.3
+
+The container can be run in :code:`headless` mode or with a VSCode instance 
+run through your local web-browser. :code:`headless` mode only gives 
+terminal access to the created container, but you are free to attach 
+an existing VSCode IDE to it.
+
+Create the Container in Headless Mode
++++++++++++++++++++++++++++++++++++++
+Run the container in :code:`headless` mode as follows: 
+
+.. code-block:: console
+
+    docker run -it --name cudaq --net=host nvcr.io/nvidia/cuda-quantum:0.3 --headless
+
+(what you'll see) 
+
+.. code-block:: console 
+    
+    user@host:~/$ docker run -it --rm --net=host --gpus all nvcr.io/nvidia/cuda-quantum:0.3 --headless
+
+    To run a command as administrator (user "root"), use "sudo <command>".
+    See "man sudo_root" for details.
+
+    cudaq@container:~$ ls examples/
+    cpp  python 
+
+.. note:: 
+
+    If you have NVIDIA GPUs available and NVIDIA Docker correctly configured, 
+    you can add :code:`--gpus all` to expose all available GPUs to the container,
+    or :code:`--gpus '"device=1"'` to select a specific GPU device.
+    Unless you specify this flag, you will not be able to compile to the :code:`--qpu cuquantum`
+    target. 
+
+.. note:: 
+
+    If you would like a temporary container, pass :code:`--rm`. This will delete your 
+    container upon exit. 
+
+.. note:: 
+
+    If you leave the container and did not specify :code:`--rm`, you
+    can always get back in with :code:`docker exec -it cudaq bash`.
+
+To manually stop and remove the container 
+
+.. code-block:: console 
+
+    docker stop cudaq && docker rm -v cudaq 
+
+Run the Container via VSCode in a Web Browser
++++++++++++++++++++++++++++++++++++++++++++++
+Run the container with VSCode in a web browser via the following command 
+
+.. code-block:: console 
+
+    docker run -it --name cudaq --init -p 3000:3000 nvcr.io/nvidia/cuda-quantum:0.3 
+
+This will load up the VSCode server and you can navigate to :code:`http://localhost:3000` in your browser. 
+
+You can do this from a remote machine as well. Just ensure that port 3000 is open 
+on the machine, and then from your local machine navigate to :code:`http://IP_ADDRESS:3000`, 
+providing the IP address of the remote machine. 
+
+Once started, you'll be presented with the following window in the browser. 
+
+.. image:: _static/startVscode.png 
+
+Start by clicking :code:`Open Folder`. 
+
+.. image:: _static/openFolder.png 
+
+Now you can view the files in the :code:`examples/` folder, and open one to 
+start exploring the CUDA Quantum programming model. 
+
+You can also open a terminal panel by navigating View menu and clicking Terminal. 
+
+.. image:: _static/openTerminal.png 
+
+With the terminal open, you can now get to work compiling the example 
+codes with the :code:`nvq++` compiler, which is installed in your :code:`PATH`. 
+
+.. image:: _static/getToWork.png 
+
+Build CUDA Quantum from Source
+------------------------------
+
+Here we will assume a Ubuntu 22.04 system. Adjust the package manager calls
+for your distribution. Make sure that recent versions `cmake` and `ninja` installed.
+The build also requires a recent version of `clang/clang++` or `gcc/g++`
+(must have C++20 support).
+
+Get the basic compilers you'll need via apt-get
++++++++++++++++++++++++++++++++++++++++++++++++
+.. code:: bash
+  
+    apt-get update && apt-get install -y --no-install-recommends gcc g++ 
+
+On Ubuntu 22.04 this will get you GCC 11. 
+
+Get cuQuantum (optional)
+++++++++++++++++++++++++
+
+.. code:: bash 
+    
+    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.0-1_all.deb \
+    dpkg -i cuda-keyring_1.0-1_all.deb
+    apt-get update && apt-get -y install cuquantum cuquantum-dev 
+
+Get LLVM / Clang / MLIR
+++++++++++++++++++++++++
+
+You will need the same version of LLVM as our submodule in `tpls/llvm`.
+
+.. code:: bash 
+
+    mkdir llvm-project && cd llvm-project
+    git init 
+    git remote add origin https://github.com/llvm/llvm-project 
+    # note this will change as the project evolves, 
+    # Must be == to the hash we use for the tpls/llvm submodule.
+    git fetch origin --depth=1 c0b45fef155fbe3f17f9a6f99074682c69545488
+    git reset --hard FETCH_HEAD
+    mkdir build && cd build
+    cmake .. -G Ninja  
+                -DLLVM_TARGETS_TO_BUILD="host" \
+                -DCMAKE_INSTALL_PREFIX=/opt/llvm/
+                -DLLVM_ENABLE_PROJECTS="clang;mlir" 
+                -DCMAKE_BUILD_TYPE=Release 
+                -DLLVM_ENABLE_ASSERTIONS=ON 
+                -DLLVM_INSTALL_UTILS=TRUE 
+    ninja install
+    # This is needed for FileCheck tests.
+    cp bin/llvm-lit /opt/llvm/bin/
+
+Build CUDA Quantum
+++++++++++++++++++
+You must use the same compiler that you compiled LLVM with to compile CUDA Quantum.
+
+.. code:: bash
+    
+    git clone https://github.com/NVIDIA/cuda-quantum && cd cuda-quantum
+    mkdir build && cd build
+    cmake .. -G -DCMAKE_INSTALL_PREFIX=$HOME/.cudaq 
+                -DLLVM_DIR=/path/to/llvm/lib/cmake/llvm 
+                -DCUDAQ_ENABLE_PYTHON=TRUE
+                \# (optional, if cuquantum is installed)
+                -DCUSTATEVEC=/opt/nvidia/cuquantum
+    ninja install
+    ctest 
+
+Next Steps
+----------
+With the CUDA Quantum Docker image installed and a container up and running, check out the
+Using CUDA Quantum page_. To run the examples codes in the container, checkout the Compiling
+and Executing section here_. 
+
+Once in the VSCode IDE or in the terminal for the container in headless mode, you'll 
+notice there is an :code:`examples/` folder. These examples are provided to 
+get you started with CUDA Quantum and understanding the programming and execution model. 
+Start of by trying to compile a simple one, like :code:`examples/cpp/basics/static_kernel.cpp`
+
+.. code-block:: console 
+
+    nvq++ examples/cpp/basics/static_kernel.cpp 
+    ./a.out
+
+If you have GPU support (e.g. you successfully provided :code:`--gpus` to your docker 
+run command), try out the 30 qubit version of this example.
+
+.. code-block:: console 
+
+    nvq++ examples/cpp/basics/cuquantum_backends.cpp --qpu cuquantum 
+    ./a.out 
+
+.. _page: using/cudaq.html
+.. _here: using/cudaq/compiling.html

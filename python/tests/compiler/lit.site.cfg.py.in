@@ -1,0 +1,33 @@
+@LIT_SITE_CFG_IN_HEADER@
+
+# ============================================================================ #
+# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+import sys
+
+config.llvm_tools_dir = lit_config.substitute("@LLVM_TOOLS_BINARY_DIR@")
+config.llvm_shlib_dir = lit_config.substitute(path(r"@SHLIBDIR@"))
+config.llvm_plugin_ext = "@LLVM_PLUGIN_EXT@"
+config.llvm_install = config.llvm_tools_dir + "/.."
+config.lit_tools_dir = "@LLVM_LIT_TOOLS_DIR@"
+config.errc_messages = "@LLVM_LIT_ERRC_MESSAGES@"
+config.cudaq_obj_root = "@CUDAQ_BINARY_DIR@"
+config.cudaq_src_dir = "@CUDAQ_SOURCE_DIR@"
+config.cudaq_tools_dir = lit_config.substitute("@CUDAQ_TOOLS_DIR@")
+config.cudaq_intrinsic_modules_dir = "@CUDAQ_INTRINSIC_MODULES_DIR@"
+config.cudaq_llvm_tools_dir = "@CMAKE_BINARY_DIR@/bin"
+config.cudaq_lib_dir = "@CMAKE_BINARY_DIR@/lib"
+config.python_executable = "@PYTHON_EXECUTABLE@"
+config.cc = "@CMAKE_C_COMPILER@"
+config.targets_to_build = "@TARGETS_TO_BUILD@"
+
+import lit.llvm
+lit.llvm.initialize(lit_config, config)
+
+# Let the main config do the real work.
+lit_config.load_config(config, "@CUDAQ_SOURCE_DIR@/python/tests/compiler/lit.cfg.py")

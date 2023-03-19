@@ -1,0 +1,76 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt %s | cudaq-opt | FileCheck %s
+
+module {
+  // CHECK-LABEL: func @alloc(
+  // CHECK-SAME: %[[SIZE:.*]]: i32
+  func.func @alloc(%size : i32) {
+    // CHECK: %[[QUBIT:.*]] = quake.alloca : !quake.qref
+    %qubit = quake.alloca : !quake.qref
+    // CHECK: %[[QREG0:.*]] = quake.alloca(%[[SIZE]] : i32) : !quake.qvec<?>
+    %qvec0 = quake.alloca(%size : i32) : !quake.qvec<?>
+    // CHECK: %[[QREG1:.*]] = quake.alloca : !quake.qvec<4>
+    %qvec1 = quake.alloca : !quake.qvec<4>
+    return
+  }
+
+  // CHECK-LABEL: func @alloc_qubit
+  func.func @alloc_qubit() {
+    // CHECK: %[[QUBIT:.*]] = quake.alloca : !quake.qref
+    %qubit = quake.alloca : !quake.qref
+    return
+  }
+
+  // CHECK-LABEL: func @alloc_qreg
+  func.func @alloc_qreg() {
+    // CHECK: %[[QREG1:.*]] = quake.alloca : !quake.qvec<2>
+    %qvec = quake.alloca : !quake.qvec<2>
+    return
+  }
+
+  // CHECK: func @args
+  func.func @args(%qubit: !quake.qref, %qvec: !quake.qvec<2>) {
+    return
+  }
+
+  // CHECK-LABEL: func @reset
+  func.func @reset() {
+    // CHECK: %[[QUBIT:.*]] = quake.alloca : !quake.qref
+    %qubit = quake.alloca : !quake.qref
+    // CHECK: quake.reset(%[[QUBIT]] : !quake.qref)
+    quake.reset(%qubit : !quake.qref)
+    // CHECK: %[[QREG:.*]] = quake.alloca : !quake.qvec<2>
+    %qreg = quake.alloca : !quake.qvec<2>
+    // CHECK: quake.reset(%[[QREG]] : !quake.qvec<2>)
+    quake.reset(%qreg : !quake.qvec<2>)
+    return
+  }
+
+  // CHECK-LABEL: func @apply_x
+  func.func @apply_x() {
+    // CHECK: %[[QUBIT:.*]] = quake.alloca : !quake.qref
+    %qubit = quake.alloca : !quake.qref
+    quake.x(%qubit)
+    return
+  }
+
+  // CHECK-LABEL: func @apply_cx
+  func.func @apply_cx() {
+    %c0 = arith.constant 0 : index
+    %c1 = arith.constant 1 : index
+    // CHECK: %[[QREG1:.*]] = quake.alloca : !quake.qvec<2>
+    %qvec = quake.alloca : !quake.qvec<2>
+    %q0 = quake.qextract %qvec[%c0] : !quake.qvec<2>[index] -> !quake.qref
+    %q1 = quake.qextract %qvec[%c1] : !quake.qvec<2>[index] -> !quake.qref
+    quake.x[%q0 : !quake.qref](%q1)
+    return
+  }
+}
+

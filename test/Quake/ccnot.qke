@@ -1,0 +1,52 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt %s --inline --canonicalize | FileCheck %s 
+
+module {
+
+    // CHECK-LABEL: func.func @apply_x(
+    // CHECK-SAME: %[[arg0:.*]]: !quake.qref) {
+    // CHECK:   quake.x (%[[arg0]])
+    // CHECK:   return
+    // CHECK: }
+    // CHECK-LABEL: func.func @ccnot() {
+    // CHECK:   %[[C1:.*]] = arith.constant 1 : i32
+    // CHECK:   %[[a0:.*]] = quake.alloca : !quake.qvec<3>
+    // CHECK:   affine.for %[[arg0:.*]] = 0 to 3 {
+    // CHECK:     %[[a2:.*]] = quake.qextract %[[a0]][%[[arg0]]] : !quake.qvec<3>[index] -> !quake.qref
+    // CHECK:     quake.x (%[[a2]])
+    // CHECK:   }
+    // CHECK:   %[[a1:.*]] = quake.qextract %[[a0]][%[[C1]]] : !quake.qvec<3>[i32] -> !quake.qref
+    // CHECK:   quake.x (%[[a1]])
+    // CHECK:   return
+    // CHECK: }
+    
+    func.func @apply_x(%q : !quake.qref) {
+        quake.x (%q)
+        return
+    }
+
+    func.func @ccnot() {
+        %c_3 = arith.constant 3 : i32
+        %c_0 = arith.constant 0 : i32
+        %c_1 = arith.constant 1 : i32
+        %c_2 = arith.constant 2 : i32
+        %qubits = quake.alloca ( %c_3 : i32 ) : !quake.qvec<?>
+        %c_3_idx = arith.index_cast %c_3 : i32 to index
+        affine.for %i = 0 to %c_3_idx {
+            %q0 = quake.qextract %qubits [%i] : !quake.qvec<?>[index] -> !quake.qref
+            quake.x (%q0)
+        }
+
+        %q1 = quake.qextract %qubits [%c_1] : !quake.qvec<?>[i32] -> !quake.qref
+        func.call @apply_x(%q1) : (!quake.qref) -> ()
+
+        return
+    }
+}

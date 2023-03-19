@@ -1,0 +1,93 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --convert-quake-to-qtx %s | FileCheck %s
+
+module {
+
+  // CHECK-LABEL: func.func @simple_loop
+  func.func @simple_loop() {
+    %c0_i64 = arith.constant 0 : i64
+    %c1_i64 = arith.constant 1 : i64
+    %c42_i64 = arith.constant 42 : i64
+
+    // CHECK: %[[Q0_W0:.*]] = qtx.alloca : !qtx.wire
+    %q0 = quake.alloca : !quake.qref
+
+    %alloca = memref.alloca() : memref<i64>
+    memref.store %c0_i64, %alloca[] : memref<i64>
+
+    // CHECK: %[[Q0_W5:.*]] = cc.loop while ((%[[Q0_W1:.*]] = %[[Q0_W0]])
+    cc.loop while {
+      %1 = memref.load %alloca[] : memref<i64>
+      %2 = arith.cmpi ult, %1, %c42_i64 : i64
+      // CHECK: cc.condition %{{.*}}(%[[Q0_W1]]
+      cc.condition %2
+    } do {
+      // CHECK: ^bb0(%[[Q0_W2:.*]]: !qtx.wire):
+      // CHECK: %[[Q0_W3:.*]] = qtx.x %[[Q0_W2]]
+      quake.x (%q0)
+      // CHECK: cc.continue %[[Q0_W3]]
+      cc.continue
+    } step {
+      // CHECK: ^bb0(%[[Q0_W4:.*]]: !qtx.wire):
+      %1 = memref.load %alloca[] : memref<i64>
+      %2 = arith.addi %1, %c1_i64 : i64
+      memref.store %2, %alloca[] : memref<i64>
+      // CHECK: cc.continue %[[Q0_W4]]
+    }
+    // CHECK: %[[Q0_W6:.*]] = qtx.z %[[Q0_W5]]
+    quake.z (%q0)
+    return
+  }
+
+  // CHECK-LABEL: func.func @floop_with_vector_and_qextract
+  func.func @floop_with_vector_and_qextract() {
+    %c0_i64 = arith.constant 0 : i64
+    %c1_i64 = arith.constant 1 : i64
+    %c2_i64 = arith.constant 2 : i64
+
+    // CHECK: %[[A_0:.*]] = qtx.alloca
+    %qvec = quake.alloca : !quake.qvec<2>
+
+    // CHECK: %[[Q0_W0:.*]], %[[A_1:.*]] = qtx.array_borrow %[[IDX_0:.*]] from %[[A_0]]
+    %q0 = quake.qextract %qvec[%c0_i64] : !quake.qvec<2>[i64] -> !quake.qref
+
+    %alloca = memref.alloca() : memref<i64>
+    memref.store %c0_i64, %alloca[] : memref<i64>
+
+    // CHECK: %[[A_7:.*]] = cc.loop while ((%[[A_2:.*]] = %[[A_1]])
+    cc.loop while {
+      %3 = memref.load %alloca[] : memref<i64>
+      %4 = arith.cmpi ult, %3, %c2_i64 : i64
+      // CHECK: cc.condition %{{.*}}(%[[A_2]]
+      cc.condition %4
+    } do {
+      // CHECK: ^bb0(%[[A_3:.*]]: !qtx.wire_array
+      %3 = memref.load %alloca[] : memref<i64>
+      // CHECK: %[[QX_W0:.*]], %[[A_4:.*]] = qtx.array_borrow %{{.*}} from %[[A_3]]
+      %4 = quake.qextract %qvec[%3] : !quake.qvec<2>[i64] -> !quake.qref
+
+      // CHECK: %[[A_5:.*]] = qtx.array_yield %[[QX_W0]] to %[[A_4]]
+      // CHECK: cc.continue %[[A_5]]
+      cc.continue
+    } step {
+      // CHECK: ^bb0(%[[A_6:.*]]: !qtx.wire_array
+      %3 = memref.load %alloca[] : memref<i64>
+      %4 = arith.addi %3, %c1_i64 : i64
+      memref.store %4, %alloca[] : memref<i64>
+      // CHECK: cc.continue %[[A_6]]
+    }
+    // CHECK: %[[A_8:.*]] = qtx.array_yield %[[Q0_W0]] to %[[A_7]]
+    // CHECK: %{{.*}}, %[[A_9:.*]] = qtx.mz %[[A_8]]
+    // CHECK: %{{.*}}, %{{.*}} = qtx.array_borrow %[[IDX_0]] from %[[A_9]]
+    %2 = quake.mz (%qvec : !quake.qvec<2>) : !cc.stdvec<i1>
+    return
+  }
+
+}

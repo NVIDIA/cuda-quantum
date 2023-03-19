@@ -1,0 +1,87 @@
+# Editor backup files
+*~
+
+# Patch files
+*.orig
+*.rej
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+*.x
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+**/Output/
+**/.lit*.txt
+
+# Executables
+*.exe
+*.out
+*.app
+**/out/
+/*build/
+/*Build/
+/plugins/
+/other_library_builds/
+/.cproject
+/.project
+/.settings/
+**/*.jar
+**/.ptp*
+*.ab
+/dist/
+/*egg*/
+/python/*egg*
+/*tmp*/
+/wheelhouse/
+**/.ipynb_checkpoints
+compile_commands.json
+**/*.dat
+**/.antlr
+__pycache__/
+
+# IDE files
+.vscode/*
+.theia/*
+
+# Container files
+**/.docker/*
+
+# LSP files
+.cache/*
+
+# LLVM/MLIR files
+*.ll 
+*.bc
+
+# Build results
+[Bb]in/
+[Oo]bj/
+*.bson
+*.csv
+*.bin
+docs/sphinx/_doxygen
+docs/sphinx/_mdgen
+**/_build/*
+
+# macOS
+.DS_Store

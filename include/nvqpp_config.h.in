@@ -1,0 +1,19 @@
+/*************************************************************** -*- C++ -*- ***
+ * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ *******************************************************************************/
+
+#pragma once
+#define PLATFORM_SHARED_LIBRARY_SUFFIX "${CMAKE_SHARED_LIBRARY_SUFFIX}"
+#define LLVM_INCLUDE_DIR "${LLVM_INCLUDE_DIRS}"
+#define LLVM_ROOT "${LLVM_BINARY_DIR}"
+#define LLVM_LIBCXX_INCLUDE_DIR "${LLVM_BINARY_DIR}/include/c++/v1"
+#define CUDAQ_LLVM_VERSION "${CUDAQ_LLVM_VERSION}"
+
+// This is used by cudaq-quake as a backup search location
+// for required cudaq headers. We will search this install 
+// directory first 
+#define FALLBACK_CUDAQ_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/runtime"

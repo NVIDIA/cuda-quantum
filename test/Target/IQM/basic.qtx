@@ -1,0 +1,123 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+
+// RUN: cudaq-translate --convert-to=iqm %s | FileCheck %s
+
+module attributes {qtx.mangled_name_map = {__nvqpp__mlirgen__bell = "_ZN4bellclEv"}} {
+  qtx.circuit @__nvqpp__mlirgen__bell() attributes {"cudaq-entrypoint"} {
+    %cst = arith.constant 0.000000e+00 : f64
+    %cst_0 = arith.constant 3.1415926535897931 : f64
+    %cst_1 = arith.constant 1.5707963267948966 : f64
+    %c1_i64 = arith.constant 1 : i64
+    %c0_i64 = arith.constant 0 : i64
+    %c2_i64 = arith.constant 2 : i64
+    %0 = alloca : !qtx.wire_array<2>
+    %wires, %new_array = array_borrow %c0_i64 from %0 : i64 from !qtx.wire_array<2> -> !qtx.wire, !qtx.wire_array<2, dead = 1>
+    %1 = phased_rx<%cst_1, %cst_1> %wires : <f64, f64> !qtx.wire
+    %2 = phased_rx<%cst_0, %cst> %1 : <f64, f64> !qtx.wire
+    %wires_2, %new_array_3 = array_borrow %c1_i64 from %new_array : i64 from !qtx.wire_array<2, dead = 1> -> !qtx.wire, !qtx.wire_array<2, dead = 2>
+    %3 = phased_rx<%cst_1, %cst_1> %wires_2 : <f64, f64> !qtx.wire
+    %4 = phased_rx<%cst_0, %cst> %3 : <f64, f64> !qtx.wire
+    %5 = z [%2] %4 : [!qtx.wire] !qtx.wire
+    %6 = phased_rx<%cst_1, %cst_1> %5 : <f64, f64> !qtx.wire
+    %7 = phased_rx<%cst_0, %cst> %6 : <f64, f64> !qtx.wire
+    %8 = llvm.alloca %c2_i64 x i1 : (i64) -> !llvm.ptr<i1>
+    %bits, %new_targets = mz %2 : !qtx.wire -> <i1> !qtx.wire
+    llvm.store %bits, %8 : !llvm.ptr<i1>
+    %bits_4, %new_targets_5 = mz %7 : !qtx.wire -> <i1> !qtx.wire
+    %9 = llvm.getelementptr %8[1] : (!llvm.ptr<i1>) -> !llvm.ptr<i1>
+    llvm.store %bits_4, %9 : !llvm.ptr<i1>
+    return
+  }
+}
+
+// CHECK: {
+// CHECK:     "instructions": [
+// CHECK:         {
+// CHECK:                   "args": {
+// CHECK:                       "angle_t": 1.5707963267948966,
+// CHECK:                       "phase_t": 1.5707963267948966
+// CHECK:                   },
+// CHECK:                   "name": "phased_rx",
+// CHECK:                   "qubits": [
+// CHECK:                       "QB0"
+// CHECK:                   ]
+// CHECK:               },
+// CHECK:         {
+// CHECK:                   "args": {
+// CHECK:                       "angle_t": 3.141592653589793,
+// CHECK:                       "phase_t": 0.0
+// CHECK:                   },
+// CHECK:                   "name": "phased_rx",
+// CHECK:                   "qubits": [
+// CHECK:                       "QB0"
+// CHECK:                   ]
+// CHECK:               },
+// CHECK:         {
+// CHECK:                   "args": {
+// CHECK:                       "angle_t": 1.5707963267948966,
+// CHECK:                       "phase_t": 1.5707963267948966
+// CHECK:                   },
+// CHECK:                   "name": "phased_rx",
+// CHECK:                   "qubits": [
+// CHECK:                       "QB1"
+// CHECK:                   ]
+// CHECK:               },
+// CHECK:         {
+// CHECK:                   "args": {
+// CHECK:                       "angle_t": 3.141592653589793,
+// CHECK:                       "phase_t": 0.0
+// CHECK:                   },
+// CHECK:                   "name": "phased_rx",
+// CHECK:                   "qubits": [
+// CHECK:                       "QB1"
+// CHECK:                   ]
+// CHECK:               },
+// CHECK:         {
+// CHECK:                   "args": {},
+// CHECK:                   "name": "z",
+// CHECK:                   "qubits": [
+// CHECK:                       "QB1"
+// CHECK:                   ]
+// CHECK:               },
+// CHECK:         {
+// CHECK:                   "args": {
+// CHECK:                       "angle_t": 1.5707963267948966,
+// CHECK:                       "phase_t": 1.5707963267948966
+// CHECK:                   },
+// CHECK:                   "name": "phased_rx",
+// CHECK:                   "qubits": [
+// CHECK:                       "QB1"
+// CHECK:                   ]
+// CHECK:               },
+// CHECK:         {
+// CHECK:                   "args": {
+// CHECK:                       "angle_t": 3.141592653589793,
+// CHECK:                       "phase_t": 0.0
+// CHECK:                   },
+// CHECK:                   "name": "phased_rx",
+// CHECK:                   "qubits": [
+// CHECK:                       "QB1"
+// CHECK:                   ]
+// CHECK:               },
+// CHECK:         {
+// CHECK:                   "name": "measurement",
+// CHECK:                   "qubits": [
+// CHECK:                       "QB0"
+// CHECK:                   ]
+// CHECK:               },
+// CHECK:         {
+// CHECK:                   "name": "measurement",
+// CHECK:                   "qubits": [
+// CHECK:                       "QB1"
+// CHECK:                   ]
+// CHECK:               }
+// CHECK:           ],
+// CHECK:           "name": "__nvqpp__mlirgen__bell"
+// CHECK: }

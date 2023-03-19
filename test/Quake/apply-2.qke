@@ -1,0 +1,44 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --apply-op-specialization --quake-to-qir %s | FileCheck %s
+
+// Test specialization of a user-defined kernel (@test) for both
+// adjoint and control forms.
+
+module {
+  func.func @test(%arg : !quake.qref) {
+    quake.t (%arg)
+    quake.h (%arg)
+    quake.x (%arg)
+    return
+  }
+  func.func @do_apply(%arg : !quake.qref, %brg : !quake.qref) {
+    quake.apply <adj> @test [%brg : !quake.qref] %arg : (!quake.qref) -> ()
+    return
+  }
+}
+
+// CHECK-LABEL:   llvm.func @test.adj.ctrl(
+// CHECK-SAME:          %[[VAL_0:.*]]: !llvm.ptr<struct<"Array", opaque>>,
+// CHECK-SAME:          %[[VAL_1:.*]]: !llvm.ptr<struct<"Qubit", opaque>>)
+
+// CHECK-LABEL:   llvm.func @do_apply(
+// CHECK-SAME:          %[[VAL_0:.*]]: !llvm.ptr<struct<"Qubit", opaque>>,
+// CHECK-SAME:          %[[VAL_1:.*]]: !llvm.ptr<struct<"Qubit", opaque>>) {
+// CHECK-DAG:       %[[VAL_2:.*]] = llvm.mlir.constant(0 : i64) : i64
+// CHECK-DAG:       %[[VAL_3:.*]] = llvm.mlir.constant(1 : i64) : i64
+// CHECK-DAG:       %[[VAL_4:.*]] = llvm.mlir.constant(8 : i32) : i32
+// CHECK:           %[[VAL_5:.*]] = llvm.call @__quantum__rt__array_create_1d(%[[VAL_4]], %[[VAL_3]]) : (i32, i64) -> !llvm.ptr<struct<"Array", opaque>>
+// CHECK:           %[[VAL_6:.*]] = llvm.call @__quantum__rt__array_get_element_ptr_1d(%[[VAL_5]], %[[VAL_2]]) : (!llvm.ptr<struct<"Array", opaque>>, i64) -> !llvm.ptr<i8>
+// CHECK:           %[[VAL_7:.*]] = llvm.bitcast %[[VAL_6]] : !llvm.ptr<i8> to !llvm.ptr<ptr<i8>>
+// CHECK:           %[[VAL_8:.*]] = llvm.bitcast %[[VAL_1]] : !llvm.ptr<struct<"Qubit", opaque>> to !llvm.ptr<i8>
+// CHECK:           llvm.store %[[VAL_8]], %[[VAL_7]] : !llvm.ptr<ptr<i8>>
+// CHECK:           llvm.call @test.adj.ctrl(%[[VAL_5]], %[[VAL_0]]) : (!llvm.ptr<struct<"Array", opaque>>, !llvm.ptr<struct<"Qubit", opaque>>) -> ()
+// CHECK:           llvm.return
+// CHECK:         }

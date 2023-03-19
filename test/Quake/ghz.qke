@@ -1,0 +1,46 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt %s --canonicalize | FileCheck %s
+module {
+    // CHECK: func.func @ghz(%arg0: i32) {
+    // CHECK: %[[C0:.*]] = arith.constant 0 : i32
+    // CHECK: %[[C1:.*]] = arith.constant 1 : i32
+    // CHECK: %0 = quake.alloca(%arg0 : i32) : !quake.qvec<?>
+    // CHECK: %1 = quake.qextract %0[%[[C0]]] : !quake.qvec<?>[i32] -> !quake.qref
+    // CHECK: quake.h (%1)
+    // CHECK: %2 = arith.subi %arg0, %[[C1]] : i32
+    // CHECK: %3 = arith.index_cast %2 : i32 to index
+    // CHECK: affine.for %arg1 = 0 to %3 {
+    // CHECK:   %4 = arith.index_cast %arg1 : index to i32
+    // CHECK:   %5 = arith.addi %4, %[[C1]] : i32
+    // CHECK:   %6 = quake.qextract %0[%arg1] : !quake.qvec<?>[index] -> !quake.qref
+    // CHECK:   %7 = quake.qextract %0[%5] : !quake.qvec<?>[i32] -> !quake.qref
+    // CHECK:   quake.x [%6 : !quake.qref] (%7)
+    // CHECK: }
+    // CHECK: return
+    // CHECK: }
+    func.func @ghz(%arg0 : i32) {
+        // %size = arith.constant 3 : i32
+        %c0 = arith.constant 0 : i32
+        %one = arith.constant 1 : i32
+        %q = quake.alloca(%arg0 : i32) : !quake.qvec<?>
+        %q0 = quake.qextract %q[%c0] : !quake.qvec<?>[i32] -> !quake.qref
+        quake.h (%q0) 
+        %size_m_1 = arith.subi %arg0, %one : i32
+        %upper = arith.index_cast %size_m_1 : i32 to index
+        affine.for %i = 0 to %upper {
+            %i_int = arith.index_cast %i : index to i32
+            %ip1 = arith.addi %i_int, %one : i32
+            %qi = quake.qextract %q[%i] : !quake.qvec<?>[index] -> !quake.qref
+            %qi1 = quake.qextract %q[%ip1] : !quake.qvec<?>[i32] -> !quake.qref
+            quake.x [%qi : !quake.qref] (%qi1)
+        }
+        return
+    }
+}
