@@ -4,10 +4,10 @@ This document contains guidelines for contributing to the code in this
 repository. This document is relevant primarily for contributions to the NVQ++
 compiler, the CUDA Quantum runtime, or to the integrated simulation backends. If
 you would like to contribute applications and examples that use the CUDA Quantum
-platform, please follow take a look at the contribution guide on our [CUDA
-Quantum Samples][cudaq_samples] repository instead.
+platform, please follow the instructions for [installing CUDA
+Quantum][official_install] instead.
 
-[cudaq_samples]: todo
+[official_install]: https://nvidia.github.io/cuda-quantum/install.html
 
 ## Quick start guide
 
@@ -65,7 +65,7 @@ rules to your code. Please ensure that your code includes comprehensive doc
 comments as well as a comment at the top of the file to indicating its purpose.
 
 [python_style]: https://google.github.io/styleguide/pyguide.html
-[cpp_style]: todo
+[cpp_style]: https://www.gnu.org/prep/standards/standards.html
 [llvm_style]: https://llvm.org/docs/CodingStandards.html
 
 ## Testing and debugging

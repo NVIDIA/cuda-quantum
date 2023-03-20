@@ -22,7 +22,8 @@ jobs:
       # cspell:words gaurav
       uses: gaurav-nelson/github-action-markdown-link-check@v1
       with:
-        use-verbose-mode: 'yes'
+        use-verbose-mode: "yes"
+        config_file: ".github/workflows/config/mlc_config.json"        
       if: ${{ success() || failure() }}
     - name: "Check spelling in changed files"
       # cspell:words streetsidesoftware

@@ -8,7 +8,7 @@ to common questions about this code of conduct, see the [FAQs][faqs].
 [homepage]: https://www.contributor-covenant.org
 [codeofconduct]:
     https://www.contributor-covenant.org/version/1/4/code-of-conduct.html
-[faqs]: https://www.contributor-covenant.org/faq>
+[faqs]: https://www.contributor-covenant.org/faq
 
 ## Our Pledge
 

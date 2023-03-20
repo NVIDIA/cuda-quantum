@@ -1,11 +1,11 @@
 # Building CUDA Quantum from Source
 
 To learn more about how to use CUDA Quantum, please take a look at the [CUDA
-Quantum Documentation][cudaq_docs]. The page also contains [installation
-instructions][official_install] for officially released packages.
+Quantum Documentation][cuda_quantum_docs]. The page also contains [installation
+instructions][official_install] for released packages.
 
-[cudaq_docs]: https://developer.nvidia.com/cudaq
-[official_install]: todo
+[cuda_quantum_docs]: https://nvidia.github.io/cuda-quantum/
+[official_install]: https://nvidia.github.io/cuda-quantum/install.html
 
 This document contains instructions for how to build CUDA Quantum from source.
 This is only needed if you would like to try out the latest (unreleased) version
@@ -30,7 +30,7 @@ export PYTHONPATH="${CUDAQ_INSTALL_PREFIX}:${PYTHONPATH}"
 Our dev container comes with a prebuilt version of LLVM which is used to build
 CUDA Quantum. If you are working outside our container, please see the
 instructions for [building CUDA Quantum with a custom LLVM
-version](#building-cudaq-with-a-custom-llvm-version).
+version](#building-cuda-quantum-with-a-custom-llvm-version).
 
 Once you have built CUDA Quantum, you should be able to run the tests and
 confirm that they pass by navigating to the `build` folder and entering the

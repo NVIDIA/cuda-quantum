@@ -1,0 +1,245 @@
+{
+	"name": "cuda-quantum-dev",
+	"workspaceFolder": "/workspaces/cuda-quantum",
+	"build": {
+		"dockerfile": "Dockerfile",
+		"args": {  }
+	},
+	// Unfortunately, it is not currently possible to have the same dev container definition for systems with and without a supported GPU.
+	// See also https://github.com/airo-ugent/airo-ros/issues/17.
+	// To enable the container to leverage GPU acceleration, add "--gpus=all" to the list of arguments below.	
+	"runArgs": [ "--net=host", "--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined" ],
+	"features": {
+		// "ghcr.io/devcontainers/features/desktop-lite:1": { "password": "cuda-quantum" } // uncomment if a gui is needed
+	},
+	"forwardPorts": [6080],
+	"customizations": {
+		"vscode": {
+		    "extensions": [
+				"ms-python.python",
+				"twxs.cmake",
+				"ms-vscode.cmake-tools",
+				"ms-vscode.cpptools",
+				"cschlosser.doxdocgen",
+				"psioniq.psi-header",
+				"streetsidesoftware.code-spell-checker",
+				"davidanson.vscode-markdownlint",
+				"takumii.markdowntable",
+				"stkb.rewrap",
+				"qiu.llvm-ir-language-support",
+				"llvm-vs-code-extensions.vscode-mlir",
+				"ms-azuretools.vscode-docker"
+			],			
+			"settings": {
+				"files.associations": {
+					"CMakeLists.txt": "cmake",
+					"*.cmake.in": "cmake",
+					"*.td": "tablegen",
+					"*.h.in": "cpp",
+					"*.sh.in": "shellscript",
+					"*.qke": "mlir",
+					"*.qtx": "mlir"
+				},
+				"mlir.server_path":"cudaq-lsp-server",
+				"mlir.onSettingsChanged": "restart",
+				"markdownlint.config": {
+					"MD013": { "tables" : false, "code_blocks" : false },
+					"MD033": { "allowed_elements": ["br"] }
+				},
+				"markdownlint.run": "onSave",
+				"[markdown]": {
+					"editor.formatOnSave": true,
+					"editor.formatOnPaste": true,
+					"files.trimTrailingWhitespace": true
+				},
+				"cSpell.userWords": [
+					"MLIR",
+					"LLVM",
+					"bitcode",
+					"Quake",
+					"QTX",
+					"CUDA",
+					"cuQuantum",
+					"qubit",
+					"qubits"
+				],
+				"[python]": {
+					"editor.formatOnType": true
+				},
+				"psi-header.config": {
+					"forceToTop": false,
+					"blankLinesAfter": 1,
+					"license": "Apache-2.0",
+					"company": "NVIDIA",
+					"copyrightHolder": "NVIDIA Corporation & Affiliates"
+				},
+				"psi-header.variables": [
+					["projectCreationYear", "2022"]
+				],
+				"psi-header.changes-tracking": {
+					"isActive": true,
+					"enforceHeader": true,
+					"autoHeader": "autoSave",
+					"include": [
+						"cpp",
+						"c",
+						"tablegen",
+						"mlir",
+						"rust",
+						"python",
+						"cuda-cpp",
+						"cmake",
+						"makefile",
+						"perl",
+						"shellscript",
+						"dockerfile",
+						"css"
+					],
+					"replace": [
+						"Copyright (c)",
+						"File",
+						"Last Modified"
+					],
+					// needs to be true to replace license related information
+					"updateLicenseVariables": false
+				},
+				"psi-header.lang-config": [
+					{
+						"language": "shellscript",
+						"forceToTop": true,
+						"begin": "# ============================================================================ #",
+						"prefix": "# ",
+						"suffix": " #",
+						"lineLength": 80,
+						"end": "# ============================================================================ #",
+						"ignoreLines": ["#!"]
+					},
+					{
+						"language": "perl",
+						"mapTo": "shellscript"
+					},
+					{
+						"language": "dockerfile",
+						"mapTo": "shellscript"
+					},
+					{
+						"language": "cmake",
+						"mapTo": "shellscript"
+					},
+					{
+						"language": "makefile",
+						"mapTo": "shellscript"
+					},
+					{
+						"language": "python",
+						"forceToTop": true,
+						"begin": "# ============================================================================ #",
+						"prefix": "# ",
+						"suffix": " #",
+						"lineLength": 80,
+						"end": "# ============================================================================ #",
+						"ignoreLines": []
+					},
+					{
+						"language": "rust",
+						"forceToTop": true,
+						"begin": "/*******************************************************************************",
+						"prefix": " * ",
+						"suffix": " *",
+						"lineLength": 80,
+						"end": " *******************************************************************************/",
+						"ignoreLines": []
+					},
+					{
+						"language": "css",
+						"mapTo": "rust"
+					},
+					{
+						"language": "c",
+						"forceToTop": true,
+						"begin": "/***************************************************************** -*- C -*- ***",
+						"prefix": " * ",
+						"suffix": " *",
+						"lineLength": 80,
+						"end": " *******************************************************************************/",
+						"ignoreLines": []
+					},
+					{
+						"language": "cpp",
+						"forceToTop": true,
+						"begin": "/*************************************************************** -*- C++ -*- ***",
+						"prefix": " * ",
+						"suffix": " *",
+						"lineLength": 80,
+						"end": " *******************************************************************************/",
+						"ignoreLines": []
+					},
+					{
+						"language": "cuda-cpp",
+						"mapTo": "cpp"
+					},
+					{
+						"language": "tablegen",
+						"forceToTop": true,
+						"begin": "/********************************************************** -*- tablegen -*- ***",
+						"prefix": " * ",
+						"suffix": " *",
+						"lineLength": 80,
+						"end": " *******************************************************************************/",
+						"ignoreLines": []
+					},
+					{
+						"language": "mlir",
+						"forceToTop": true,
+						"begin": "// ========================================================================== //",
+						"prefix": "// ",
+						"suffix": " //",
+						"lineLength": 80,
+						"end": "// ========================================================================== //",
+						"ignoreLines": []
+					},
+					{
+						"language": "*",
+						"forceToTop": false,
+						"begin": "# ============================================================================ #",
+						"prefix": "# ",
+						"suffix": " #",
+						"lineLength": 80,
+						"end": "# ============================================================================ #",
+						"ignoreLines": ["#", "@"]
+					}
+				],
+				"psi-header.templates": [
+					{
+						"language": "*",
+						"template": [
+							"Copyright (c) <<projectCreationYear>> - <<year>> <<copyrightholder>>.",
+							"All rights reserved.",
+							"",
+							"This source code and the accompanying materials are made available under",
+							"the terms of the <<licensename>> which accompanies this distribution."
+						]
+					}
+				],
+				"C_Cpp.inlayHints.autoDeclarationTypes.enabled": true,
+				"C_Cpp.inlayHints.referenceOperator.enabled": true,
+				"C_Cpp.doxygen.generateOnType": false,
+				"doxdocgen.c.triggerSequence": "///",
+				"doxdocgen.c.firstLine": "",
+				"doxdocgen.c.commentPrefix": "/// ",
+				"doxdocgen.c.lastLine": "",
+				"doxdocgen.file.fileOrder": [
+					"brief",
+					"date"
+				],
+				"doxdocgen.generic.order": [
+					"brief",
+					"tparam",
+					"param",
+					"return",
+					"exception"
+				]					  
+			}
+		}
+	}
+}
