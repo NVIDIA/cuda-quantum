@@ -62,8 +62,8 @@ namespace {
 constexpr char platformLoweringConfig[] = "PLATFORM_LOWERING_CONFIG";
 constexpr char codeEmissionType[] = "CODEGEN_EMISSION";
 
-/// @brief The RemoteRESTQPU is a subtype of QPU that enables
-/// the execution of CUDAQ kernels on remotely hosted quantum computing
+/// @brief The RemoteRESTQPU is a subtype of QPU that enables the
+/// execution of CUDA Quantum kernels on remotely hosted quantum computing
 /// services via a REST Client / Server interaction. This type is meant
 /// to be general enough to support any remotely hosted service. Specific
 /// details about JSON payloads are abstracted via an abstract type called
@@ -151,9 +151,9 @@ public:
     executionContext = nullptr;
   }
 
-  /// @brief This setTargetBackend override is in charge of reading
-  /// the specific target backend configuration file (bundled as part of
-  /// this CUDAQ installation) and extract MLIR lowering pipelines and
+  /// @brief This setTargetBackend override is in charge of reading the
+  /// specific target backend configuration file (bundled as part of this
+  /// CUDA Quantum installation) and extract MLIR lowering pipelines and
   /// specific code generation output required by this backend (QIR/QASM2).
   void setTargetBackend(const std::string &backend) override {
     cudaq::info("Remote REST platform is targeting {}.", backend);

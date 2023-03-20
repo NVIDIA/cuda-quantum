@@ -274,24 +274,24 @@ class kernel_builder : public details::kernel_builder_base {
 private:
   /// @brief Handle to the MLIR Context, stored
   /// as a pointer here to keep implementation details
-  /// out of CUDAQ code
+  /// out of CUDA Quantum code
   std::unique_ptr<MLIRContext, void (*)(MLIRContext *)> context;
 
   /// @brief Handle to the MLIR OpBuilder, stored
   /// as a pointer here to keep implementation details
-  /// out of CUDAQ code
+  /// out of CUDA Quantum code
   std::unique_ptr<ImplicitLocOpBuilder, void (*)(ImplicitLocOpBuilder *)>
       opBuilder;
 
   /// @brief Handle to the MLIR ExecutionEngine, stored
   /// as a pointer here to keep implementation details
-  /// out of CUDAQ code
+  /// out of CUDA Quantum code
   std::unique_ptr<ExecutionEngine, void (*)(ExecutionEngine *)> jitEngine;
 
-  /// @brief Name of the CUDAQ kernel quake function
+  /// @brief Name of the CUDA Quantum kernel quake function
   std::string kernelName = "__nvqpp__mlirgen____nvqppBuilderKernel";
 
-  /// @brief The CUDAQ quake function arguments stored
+  /// @brief The CUDA Quantum quake function arguments stored
   /// as QuakeValues.
   std::vector<QuakeValue> arguments;
 
