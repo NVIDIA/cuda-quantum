@@ -230,7 +230,7 @@ void LinkedLibraryHolder::setPlatform(
   if (name == "mqpu")
     setQPU("cuquantum");
 
-  cudaq::info("Setting CUDAQ platform to {}.", mutableName);
+  cudaq::info("Setting CUDA Quantum platform to {}.", mutableName);
   auto potentialPath = cudaqLibPath / fmt::format("libcudaq-platform-{}.{}",
                                                   mutableName, libSuffix);
   if (std::filesystem::exists(potentialPath)) {
