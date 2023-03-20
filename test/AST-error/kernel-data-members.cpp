@@ -12,7 +12,7 @@
 
 // Error for kernels with data members. Not supported (yet).
 
-struct C { // expected-error{{CUDA Quantum kernel with data members is not yet supported}}
+struct C { // expected-error{{CUDA Quantum kernel class with data members is not yet supported}}
   void operator()(cudaq::qubit &q) __qpu__ { h(q); }
 
   double unsupported;
