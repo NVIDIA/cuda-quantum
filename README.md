@@ -13,26 +13,24 @@ for rapid application development and testing.
 
 ## Getting Started
 
-To learn more about how to work with the CUDA Quantum, please take a look at the
-[CUDA Quantum Documentation][cudaq_docs]. The page also contains [installation
+To learn more about how to work with CUDA Quantum, please take a look at the
+[CUDA Quantum Documentation][cuda_quantum_docs]. The page also contains [installation
 instructions][official_install] for officially released packages.
 
 If you would like to install the latest iteration under development in this
 repository and/or add your own modifications, please build CUDA Quantum from
 source following [these instructions](./Building.md).
 
-[cudaq_docs]: https://developer.nvidia.com/cudaq
-[official_install]: todo
+[cuda_quantum_docs]: https://nvidia.github.io/cuda-quantum/
+[official_install]: https://nvidia.github.io/cuda-quantum/install.html
 
 ## Contributing
 
 There are many ways in which you can get involved with CUDA Quantum. If you are
-interested in developing quantum applications with CUDA Quantum, the [CUDA
-Quantum Samples][cudaq_samples] repository is a great place to get started! For
-more information about contributing to the CUDA Quantum platform, please take a
-look at [Contributing.md](./Contributing.md).
-
-[cudaq_samples]: todo
+interested in developing quantum applications with CUDA Quantum, this repository
+is a great place to get started! For more information about contributing to the
+CUDA Quantum platform, please take a look at
+[Contributing.md](./Contributing.md).
 
 ## License
 
@@ -48,7 +46,10 @@ this once.
 ## Feedback
 
 Please let us know your feedback and ideas for the CUDA Quantum platform in the
-[Discussions](https://github.com/NVIDIA/cudaq/discussions) tab of this
-repository, or file an [issue](https://github.com/NVIDIA/cudaq/issues). To
+[Discussions][cuda_quantum_discussions] tab of this
+repository, or file an [issue][cuda_quantum_issues]. To
 report security concerns or [Code of Conduct](./Code_of_Conduct.md) violations,
-please reach out to [cudaq@nvidia.com](mailto:cudaq@nvidia.com).
+please reach out to [cuda-quantum@nvidia.com](mailto:cuda-quantum@nvidia.com).
+
+[cuda_quantum_discussions]: https://github.com/NVIDIA/cuda-quantum/discussions
+[cuda_quantum_issues]: https://github.com/NVIDIA/cuda-quantum/issues

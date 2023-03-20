@@ -106,10 +106,10 @@ If you have followed the instructions for working inside the provided dev
 container (recommended) you are all set and can proceed to [Getting Started with
 Developing CUDA Quantum](./Building.md).
 
-If, on the other hand, you choose not to leverage the container definition
-provided in this repository, you will need to manually install all prerequisites
-for building the code on this repository, and configure your preferred IDE for
-working with Python, C++, MLIR, and LLVM components.
+If you do not leverage the container definition provided in this repository, you
+will need to manually install all prerequisites for building the code on this
+repository, and configure your preferred IDE for working with Python, C++, MLIR,
+and LLVM components.
 
 The CUDA Quantum codebase takes advantage of some of the most recent features of
 the LLVM toolchain. To build CUDA Quantum, you will need to build LLVM from
