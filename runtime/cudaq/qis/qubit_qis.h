@@ -468,7 +468,7 @@ void compute_dag_action(ComputeFunction &&c, ActionFunction &&a) {
 }
 
 /// Helper function to extract a subvector of a std::vector<T> to be used within
-/// CUDAQ kernels.
+/// CUDA Quantum kernels.
 template <typename T>
   requires(std::is_arithmetic_v<T>)
 std::vector<T> slice_vector(std::vector<T> &original, std::size_t start,

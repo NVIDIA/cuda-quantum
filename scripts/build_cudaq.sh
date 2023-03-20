@@ -46,7 +46,7 @@ while getopts ":c:" opt; do
 done
 OPTIND=$__optind__
 
-# Run the script from the top-level of the CUDAQ repo
+# Run the script from the top-level of the repo
 working_dir=`pwd`
 this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 repo_root=$(cd "$this_file_dir" && git rev-parse --show-toplevel)
@@ -108,7 +108,7 @@ mkdir -p logs && rm -rf logs/*
 # (utils are needed for custom testing tools, e.g. CircuitCheck)
 cmake_common_linker_flags_init=""
 llvm_dir="$llvm_lib_dir/cmake/llvm"
-echo "Preparing CUDAQ build with LLVM_DIR=$llvm_dir..."
+echo "Preparing CUDA Quantum build with LLVM_DIR=$llvm_dir..."
 cmake -G Ninja "$repo_root" \
   -DCMAKE_INSTALL_PREFIX="$CUDAQ_INSTALL_PREFIX" \
   -DLLVM_DIR="$llvm_dir" \
@@ -123,7 +123,7 @@ cmake -G Ninja "$repo_root" \
   $custatevec_flag 2> logs/cmake_error.txt 1> logs/cmake_output.txt
 
 # Build and install CUDAQ
-echo "Building CUDAQ with configuration $build_configuration..."
+echo "Building CUDA Quantum with configuration $build_configuration..."
 logs_dir=`pwd`/logs
 echo "The progress of the build is being logged to $logs_dir/ninja_output.txt."
 ninja install 2> "$logs_dir/ninja_error.txt" 1> "$logs_dir/ninja_output.txt"

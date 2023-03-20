@@ -365,7 +365,7 @@ int main(int argc, char **argv) {
   // One final check here, do we have this header,
   // if not we cannot proceed.
   if (!std::filesystem::exists(cudaqIncludeDir / "cudaq.h")) {
-    llvm::errs() << "Invalid CUDAQ install configuration, cannot find CUDAQ "
+    llvm::errs() << "Invalid CUDA Quantum install configuration, cannot find CUDA Quantum "
                     "include directory.\n";
     return 1;
   }
