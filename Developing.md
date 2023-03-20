@@ -65,7 +65,7 @@ rules to your code. Please ensure that your code includes comprehensive doc
 comments as well as a comment at the top of the file to indicating its purpose.
 
 [python_style]: https://google.github.io/styleguide/pyguide.html
-[cpp_style]: todo
+[cpp_style]: https://www.gnu.org/prep/standards/standards.html
 [llvm_style]: https://llvm.org/docs/CodingStandards.html
 
 ## Testing and debugging
