@@ -63,17 +63,10 @@ an existing VSCode IDE to it.
     If you would like a temporary container, pass :code:`--rm`. This will delete your 
     container upon exit. 
 
-.. note:: 
-
-    If you leave the container and did not specify :code:`--rm`, you
-    can always get back in with :code:`docker exec -it cuda-quantum bash`.
-
 You can stop and exit the container by typing the command :code:`exit`. If you did not specify
-:code:`--rm`, the container and any changes you made in it still exist. You can get back to it using
+:code:`--rm`, the container still exists as well as any changes you made in it. You can get back to it using
 the command :code:`docker start -i cuda-quantum`. 
-
-.. note::
-    You can delete an existing container and any changes you made using :code:`docker rm -v cuda-quantum`. 
+You can delete an existing container and any changes you made using :code:`docker rm -v cuda-quantum`. 
 
 Use CUDA Quantum in VS Code
 +++++++++++++++++++++++++++++++++++++
@@ -88,13 +81,14 @@ Open VS Code and navigate to the Remote Explorer. You should see the running cud
 
 .. image:: _static/attachToDevContainer.png 
 
-Click on :code:`Attach to Container`. A new VS Code instance will open in that container. To open a terminal, 
-go to the Terminal menu and select :code:`New Terminal`. 
+Click on :code:`Attach to Container`. A new VS Code instance will open in that container. Open the `/home/cudaq`
+folder to see the README and the CUDA Quantum examples that are included in the container. To run the examples, 
+open a terminal by going to the Terminal menu and select :code:`New Terminal`. 
 
 .. image:: _static/openTerminal.png 
 
-You can now get to work compiling the example 
-codes with the :code:`nvq++` compiler, which is installed in your :code:`PATH`. 
+You can now compile and run the C++ examples using the :code:`nvq++` compiler, which is installed in your :code:`PATH`, 
+or run the Python examples using the Python interpreter.
 
 .. image:: _static/getToWork.png 
 
