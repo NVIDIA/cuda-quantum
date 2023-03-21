@@ -29,7 +29,7 @@ The :code:`cuquantum` target QPU will configure the executable to run
 on GPU-enabled simulation resources accelerated by cuQuantum. 
 
 This simple compiler invocation orchestrates a complex workflow that incorporates
-a number of tools (available in your :code:`CUDAQ_INSTALL/bin` directory). 
+a number of tools (available in your :code:`$CUDA_QUANTUM_PATH/bin` directory). 
 
 1. Map CUDA Quantum C++ kernels to Quake MLIR code via Clang ASTConsumers
 2. Register all Quake kernel code with the runtime for quantum IR introspection

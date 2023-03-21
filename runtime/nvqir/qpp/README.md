@@ -5,14 +5,14 @@ registers, qubit states, and system state vectors. This can be seen with the
 following example. Given a register of 5 qubits, all initialized to the 0-state,
 the qubit indices are
 
-```txt
+```text
 -|---------|---------|---------|---------|
 [0]       [1]       [2]       [3]       [4]
 ```
 
 and its state is
 
-```txt
+```text
 |0>|0>|0>|0>|0> = |00000>
 collapses to: 00000
 ```
@@ -20,7 +20,7 @@ collapses to: 00000
 If we flip the 0th qubit to the 1-state, the state according to the CUDA Quantum
 schema is now
 
-```txt
+```text
 |1>|0>|0>|0>|0> = |10000>
 collapses to: 10000
 ```
@@ -30,14 +30,14 @@ collapses to: 10000
 This is opposed to a Most Significant Bit (MSB) scheme, often seen in simulators
 such as Qiskit Aer. Using the same example as above, the qubit indices become
 
-```txt
+```text
 -|---------|---------|---------|---------|
 [4]       [3]       [2]       [1]       [0]
 ```
 
 with the state
 
-```txt
+```text
 |0>|0>|0>|0>|0> = |00000>
 collapses to: 00000
 ```
@@ -45,7 +45,7 @@ collapses to: 00000
 If we flip the 0th qubit to the 1-state, the state according to the CUDA Quantum
 schema is now
 
-```txt
+```text
 |0>|0>|0>|0>|1> = |00001>
 collapses to: 00001
 ```
@@ -60,7 +60,7 @@ find different ordering schemes across the literature. Given the impact of the
 different orderings on the gate matrices, here are explicit definitions for a
 small subset of the gate matrices in CUDA Quantum.
 
-```txt
+```text
 X = ((0,1),
     (1,0))
 
@@ -84,7 +84,7 @@ different parameterized gates in CUDA Quantum. Note: where we call, e.g,
 `cos(theta/2)`, qiskit often uses `cos(theta)`. As with the gates above, the
 following matrices are ordered for MSB.
 
-```txt
+```text
 RX(theta) = ((cos(theta/2), -isin(theta/2)),
              (-isin(theta/2), cos(theta/2)))
 

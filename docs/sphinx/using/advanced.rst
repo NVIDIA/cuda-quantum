@@ -5,7 +5,6 @@ Advanced CUDA Quantum Topics
   :caption: CUDA Quantum Advanced
   :maxdepth: 1
 
-  Noise Modeling <advanced/noise.rst>
   Create a new NVQIR Simulator <advanced/nvqir_simulator.rst>
   Downstream CMake Integration <advanced/cmake_app.rst>
   Working with CUDA Quantum IR <advanced/cudaq_ir.rst>

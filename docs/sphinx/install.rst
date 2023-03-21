@@ -7,43 +7,54 @@ Docker Image
 Install the Public Beta Docker Image
 ++++++++++++++++++++++++++++++++++++
 This public beta release of CUDA Quantum is being deployed via 
-a provided Docker image. The name of the image is :code:`nvcr.io/nvidia/cuda-quantum:0.3`,
+a provided Docker image. The name of the image is :code:`nvcr.io/nvidia/cuda-quantum:0.3.0`,
 and it has been built for :code:`x86_64,amd64` platforms. 
 
 .. code-block:: console
 
-    docker pull nvcr.io/nvidia/cuda-quantum:0.3
+    docker pull nvcr.io/nvidia/cuda-quantum:0.3.0
 
-The container can be run in :code:`headless` mode or with a VSCode instance 
-run through your local web-browser. :code:`headless` mode only gives 
-terminal access to the created container, but you are free to attach 
-an existing VSCode IDE to it.
+.. _use-cuda-quantum-in-terminal:
 
-Create the Container in Headless Mode
+Use CUDA Quantum in a Terminal
 +++++++++++++++++++++++++++++++++++++
-Run the container in :code:`headless` mode as follows: 
+
+The container can be run using the following command
 
 .. code-block:: console
 
-    docker run -it --name cudaq --net=host nvcr.io/nvidia/cuda-quantum:0.3 --headless
+    docker run -it --name cuda-quantum nvcr.io/nvidia/cuda-quantum:0.3.0
+
+This will give you terminal access to the created container, but you are free to attach 
+an existing VSCode IDE to it.
 
 (what you'll see) 
 
 .. code-block:: console 
-    
-    user@host:~/$ docker run -it --rm --net=host --gpus all nvcr.io/nvidia/cuda-quantum:0.3 --headless
 
+    user@host:~$ docker run -it --name cuda-quantum nvcr.io/nvidia/cuda-quantum:0.3.0
     To run a command as administrator (user "root"), use "sudo <command>".
     See "man sudo_root" for details.
 
+    =========================
+    NVIDIA CUDA Quantum
+    =========================
+
+    CUDA Quantum Version 0.3.0
+
+    Copyright (c) 2023 NVIDIA Corporation & Affiliates
+    All rights reserved.
+
+    cudaq@container:~$ ls
+    README.md  examples
     cudaq@container:~$ ls examples/
-    cpp  python 
+    cpp  python
 
 .. note:: 
 
     If you have NVIDIA GPUs available and NVIDIA Docker correctly configured, 
-    you can add :code:`--gpus all` to expose all available GPUs to the container,
-    or :code:`--gpus '"device=1"'` to select a specific GPU device.
+    you can add :code:`--gpus all` to the :code:`docker run` command to expose all available GPUs 
+    to the container, or :code:`--gpus '"device=1"'` to select a specific GPU device.
     Unless you specify this flag, you will not be able to compile to the :code:`--qpu cuquantum`
     target. 
 
@@ -52,50 +63,45 @@ Run the container in :code:`headless` mode as follows:
     If you would like a temporary container, pass :code:`--rm`. This will delete your 
     container upon exit. 
 
-.. note:: 
+You can stop and exit the container by typing the command :code:`exit`. If you did not specify
+:code:`--rm`, the container still exists as well as any changes you made in it. You can get back to it using
+the command :code:`docker start -i cuda-quantum`. 
+You can delete an existing container and any changes you made using :code:`docker rm -v cuda-quantum`. 
 
-    If you leave the container and did not specify :code:`--rm`, you
-    can always get back in with :code:`docker exec -it cudaq bash`.
+Use CUDA Quantum in VS Code
++++++++++++++++++++++++++++++++++++++
 
-To manually stop and remove the container 
+If you have `VS Code`_ installed, you can use it to work inside your container.
+To do so, install the `Dev Containers extension`_:
 
-.. code-block:: console 
+.. image:: _static/devContainersExtension.png 
 
-    docker stop cudaq && docker rm -v cudaq 
+Follow the steps :ref:`above<use-cuda-quantum-in-terminal>` to start the container. 
+Open VS Code and navigate to the Remote Explorer. You should see the running cuda-quantum dev container listed there.
 
-Run the Container via VSCode in a Web Browser
-+++++++++++++++++++++++++++++++++++++++++++++
-Run the container with VSCode in a web browser via the following command 
+.. image:: _static/attachToDevContainer.png 
 
-.. code-block:: console 
-
-    docker run -it --name cudaq --init -p 3000:3000 nvcr.io/nvidia/cuda-quantum:0.3 
-
-This will load up the VSCode server and you can navigate to :code:`http://localhost:3000` in your browser. 
-
-You can do this from a remote machine as well. Just ensure that port 3000 is open 
-on the machine, and then from your local machine navigate to :code:`http://IP_ADDRESS:3000`, 
-providing the IP address of the remote machine. 
-
-Once started, you'll be presented with the following window in the browser. 
-
-.. image:: _static/startVscode.png 
-
-Start by clicking :code:`Open Folder`. 
-
-.. image:: _static/openFolder.png 
-
-Now you can view the files in the :code:`examples/` folder, and open one to 
-start exploring the CUDA Quantum programming model. 
-
-You can also open a terminal panel by navigating View menu and clicking Terminal. 
+Click on :code:`Attach to Container`. A new VS Code instance will open in that container. Open the `/home/cudaq`
+folder to see the README and the CUDA Quantum examples that are included in the container. To run the examples, 
+open a terminal by going to the Terminal menu and select :code:`New Terminal`. 
 
 .. image:: _static/openTerminal.png 
 
-With the terminal open, you can now get to work compiling the example 
-codes with the :code:`nvq++` compiler, which is installed in your :code:`PATH`. 
+You can now compile and run the C++ examples using the :code:`nvq++` compiler, which is installed in your :code:`PATH`, 
+or run the Python examples using the Python interpreter.
 
 .. image:: _static/getToWork.png 
+
+.. _VS Code: https://code.visualstudio.com/download
+.. _Dev Containers extension: https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers
+.. _command palette: https://code.visualstudio.com/docs/getstarted/userinterface#_command-palette
+
+.. note:: 
+
+    VS Code extensions that you have installed locally, such as e.g. an extension for Jupyter notebooks, 
+    may not be automatically active in the container environment. You may need to install your preferred 
+    extension in the container environment for all of your dev tools to be available.
+
 
 Build CUDA Quantum from Source
 ------------------------------

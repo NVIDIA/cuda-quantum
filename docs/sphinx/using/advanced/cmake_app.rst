@@ -31,7 +31,7 @@ the :code:`myCudaQApp` folder)
 .. code:: bash 
 
     mkdir build && cd build 
-    cmake .. -G Ninja -DCUDAQ_DIR=$CUDAQ_INSTALL/lib/cmake/cudaq
+    cmake .. -G Ninja -DCUDAQ_DIR="$CUDA_QUANTUM_PATH/lib/cmake/cudaq"
     ninja
     ./ghz_exe 
 

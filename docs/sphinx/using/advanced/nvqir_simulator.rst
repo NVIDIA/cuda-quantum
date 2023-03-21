@@ -86,8 +86,8 @@ contains the following contents
 
     NVQIR_SIMULATION_BACKEND="NAME"
 
-The library must be installed in :code:`CUDAQ_INSTALL/lib` and the configuration file 
-must be installed to :code:`CUDAQ_INSTALL/platforms`.
+The library must be installed in :code:`$CUDA_QUANTUM_PATH/lib` and the configuration file 
+must be installed to :code:`$CUDA_QUANTUM_PATH/platforms`.
 
 Let's see this in action 
 ------------------------
@@ -190,7 +190,7 @@ To build, install, and use this simulation backend, run the following from the t
 .. code:: bash 
 
     mkdir build && cd build 
-    cmake .. -G Ninja -DNVQIR_DIR=$CUDAQ_INSTALL/lib/cmake/nvqir 
+    cmake .. -G Ninja -DNVQIR_DIR="$CUDA_QUANTUM_PATH/lib/cmake/nvqir"
     ninja install 
 
 Then given any CUDA Quantum source file, you can compile and target your backend simulator with 
