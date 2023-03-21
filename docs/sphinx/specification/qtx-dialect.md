@@ -59,7 +59,7 @@ Now imagine we want to optimize this code by removing pair of adjacent
 adjoint operators, e.g., if we have a pair Hadamard operations next to each
 other on the same qubit---visually:
 
-```txt
+```text
     ┌───┐ ┌───┐         ┌───┐
    ─┤ H ├─┤ H ├─  =  ───┤ I ├───  =  ─────────────
     └───┘ └───┘         └───┘
@@ -83,7 +83,7 @@ In QTX operators consume values and returns new values:
 
 We can visualize the difference between Quake and QTX as:
 
-```txt
+```text
             Quake                                    QTX
 
         ┌──┐ ┌──┐     ┌──┐                  ┌──┐ %q0_1 ┌──┐     ┌──┐
@@ -128,7 +128,7 @@ cannot cancel each other.  One way of reasoning about this is as follows:
 In QTX we need to follow a chain of values to know the qubit operators are
 being applied to, in this example:
 
-```txt
+```text
 Quake                        QTX
     %q0      [%q0_0, %q0_1, ..., %q0_W, %q0_X, %q0_Y, %q0_Z]
 
