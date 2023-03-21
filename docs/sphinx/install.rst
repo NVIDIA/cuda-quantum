@@ -14,6 +14,8 @@ and it has been built for :code:`x86_64,amd64` platforms.
 
     docker pull nvcr.io/nvidia/cuda-quantum:0.3.0
 
+.. _use-cuda-quantum-in-terminal:
+
 Use CUDA Quantum in a Terminal
 +++++++++++++++++++++++++++++++++++++
 
@@ -81,7 +83,7 @@ To do so, install the `Dev Containers extension`_:
 
 .. image:: _static/devContainersExtension.png 
 
-Follow the steps :ref:`above<Use CUDA Quantum in a Terminal>` to start the container. 
+Follow the steps :ref:`above<use-cuda-quantum-in-terminal>` to start the container. 
 Open VS Code and navigate to the Remote Explorer. You should see the running cuda-quantum dev container listed there.
 
 .. image:: _static/attachToDevContainer.png 
