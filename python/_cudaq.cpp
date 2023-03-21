@@ -46,7 +46,10 @@ PYBIND11_MODULE(_pycudaq, mod) {
       "provides a mechanism for the programmer to change the backend simulator "
       "/ qpu and platform via the command line.");
   mod.def(
-      "list_qpus", [&]() { return holder.list_qpus(); }, "");
+      "list_qpus", 
+      [&]() { return holder.list_qpus(); }, 
+      "Lists all available backends. "
+      "Use set_qpu to execute code on one of these backends.");
   mod.def(
       "set_qpu",
       [&](const std::string &name, py::kwargs extraConfig) {

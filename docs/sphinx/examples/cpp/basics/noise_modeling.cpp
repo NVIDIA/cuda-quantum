@@ -1,7 +1,5 @@
 // Compile and run with:
-//
-// nvq++ --qpu dm noise_modeling.cpp -o noise.x
-// ./noise.x
+// nvq++ noise_modeling.cpp -o noise.x && ./noise.x
 
 #include "cudaq.h"
 

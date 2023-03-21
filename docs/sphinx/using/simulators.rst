@@ -88,26 +88,3 @@ options to :code:`nvq++`
 .. code:: bash 
 
     nvq++ --qpu tensornet src.cpp ...
-
-Density Matrix Simulators
-==================================
-
-OpenMP CPU-only
-++++++++++++++++++++++++++++++++++
-
-The :code:`dm` backend provides a mixed state density matrix simulator based on the CPU-only, OpenMP
-threaded `Q++ <https//github.com/softwareqinc/qpp>`_ library. This is currently the only 
-noise-enabled backend in the CUDA Quantum platform (this will change in the near future). 
-
-To specify the use of the :code:`dm` backend, pass the following command line 
-options to :code:`nvq++`
-
-.. code:: bash 
-
-    nvq++ --qpu dm src.cpp ...
-
-In python, this can be specified with 
-
-.. code:: python 
-
-    cudaq.set_qpu('dm')
