@@ -7,7 +7,6 @@
  *******************************************************************************/
 
 // RUN: cudaq-quake %s | cudaq-opt --canonicalize | FileCheck %s
-// XFAIL: *
 
 #include <cudaq.h>
 
