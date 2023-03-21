@@ -100,6 +100,13 @@ codes with the :code:`nvq++` compiler, which is installed in your :code:`PATH`.
 .. _Dev Containers extension: https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers
 .. _command palette: https://code.visualstudio.com/docs/getstarted/userinterface#_command-palette
 
+.. note:: 
+
+    VS Code extensions that you have installed locally, such as e.g. an extension for Jupyter notebooks, 
+    may not be automatically active in the container environment. You may need to install your preferred 
+    extension in the container environment for all of your dev tools to be available.
+
+
 Build CUDA Quantum from Source
 ------------------------------
 
