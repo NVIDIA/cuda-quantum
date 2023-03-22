@@ -51,9 +51,9 @@ jobs:
             type=ref,enable=true,event=tag
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
 
-      - name: Build Docker image and upload as artifacts
+      - name: Build Docker image
         uses: docker/build-push-action@v4
         with:
           context: .
@@ -66,7 +66,7 @@ jobs:
           platforms: linux/amd64
           outputs: type=docker,dest=/tmp/devdeps.tar
 
-      - name: Upload artifact
+      - name: Upload image as artifact
         uses: actions/upload-artifact@v3
         with:
           name: devdeps

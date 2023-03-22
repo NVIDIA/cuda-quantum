@@ -11,9 +11,9 @@
 # You may hence see a message along the lines of "no GPU detected" during the 
 # CUDA Quantum build. Please install CUDA to enable developing these components.
 FROM ghcr.io/nvidia/cuda-quantum-devdeps:gcc11
-ENV PATH="${HOME}/.qoda/bin:${PATH}"
-ENV PYTHONPATH="${HOME}/.qoda:${PYTHONPATH}"
-ENV QODA_REPO_ROOT=/workspaces/qoda
+ENV PATH="${HOME}/.cudaq/bin:${PATH}"
+ENV PYTHONPATH="${HOME}/.cudaq:${PYTHONPATH}"
+ENV CUDAQ_REPO_ROOT=/workspaces/cuda-quantum
 
 # Getting a browser to e.g. preview docs within the container
 # (seems to work more reliably/better than the extensions I've tried):
