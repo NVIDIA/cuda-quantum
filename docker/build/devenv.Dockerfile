@@ -65,7 +65,7 @@ RUN LLVM_INSTALL_PREFIX=/opt/llvm/ LLVM_SOURCE=/llvm-project \
         source scripts/install_toolchain.sh -e /opt/llvm/bootstrap -t ${toolchain}
 RUN source /opt/llvm/bootstrap/init_command.sh && \
     LLVM_INSTALL_PREFIX=/opt/llvm \
-        bash /scripts/build_llvm.sh -s /llvm-project -c Release
+        bash /scripts/build_llvm.sh -s /llvm-project -c Release \
     && rm -rf /llvm-project 
 
 FROM ubuntu:22.04
