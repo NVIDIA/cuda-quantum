@@ -61,10 +61,10 @@ jobs:
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: linux/amd64
-          outputs: type=docker,dest=/tmp/${{ env.IMAGE_NAME }}.tar
+          outputs: type=docker,dest=/tmp/devdeps.tar
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ env.IMAGE_NAME }}
-          path: /tmp/${{ env.IMAGE_NAME }}.tar
+          name: devdeps
+          path: /tmp/devdeps.tar
