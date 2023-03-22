@@ -1,0 +1,63 @@
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'main'
+      - 'releases/*'
+  pull_request:
+    branches:
+      - 'main'
+      - 'releases/*'
+
+name: Create and publish image for dev environment
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAMESPACE: ${{ github.repository_owner }}
+  IMAGE_NAME: ${{ github.repository }}-devdeps
+  TOOLCHAIN: gcc11
+
+jobs:
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Log in to the GitHub container registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for image
+        id: metadata
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ env.IMAGE_NAME }}
+          flavor: |
+            latest=false
+            prefix=${{ env.TOOLCHAIN }},onlatest=true
+          tags: |
+            type=schedule,enable=true,pattern=nightly
+            type=ref,enable=true,event=workflow_dispatch
+            type=ref,enable=true,event=branch
+            type=ref,enable=true,event=pr
+            type=ref,enable=true,event=tag
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./docker/build/devenv.Dockerfile
+          build-args: |
+              toolchain=${{ env.TOOLCHAIN }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
