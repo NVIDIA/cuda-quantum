@@ -15,7 +15,14 @@
         "cmake",
         "CMake",
         "CMAKE",
-        "REALPATH"
+        "REALPATH",
+        "LLVM",
+        "bitcode",
+        "Quake",
+        "QTX",
+        "CUDA",
+        "cuQuantum",
+        "qubits"
     ],
     "flagWords": []
 }
