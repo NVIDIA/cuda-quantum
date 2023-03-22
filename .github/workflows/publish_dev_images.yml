@@ -13,12 +13,11 @@ name: Create and publish image for dev environment
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAMESPACE: ${{ github.repository_owner }}
   IMAGE_NAME: ${{ github.repository }}-devdeps
   TOOLCHAIN: gcc11
 
 jobs:
-  build-and-push-image:
+  build-image:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -40,7 +39,7 @@ jobs:
         id: metadata
         uses: docker/metadata-action@v4
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           flavor: |
             latest=false
             prefix=${{ env.TOOLCHAIN }},onlatest=true
@@ -51,13 +50,24 @@ jobs:
             type=ref,enable=true,event=pr
             type=ref,enable=true,event=tag
 
-      - name: Build and push Docker image
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Build Docker image and upload as artifacts
         uses: docker/build-push-action@v4
         with:
           context: .
           file: ./docker/build/devenv.Dockerfile
           build-args: |
               toolchain=${{ env.TOOLCHAIN }}
-          push: ${{ github.event_name != 'pull_request' }}
+          #push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
+          platforms: linux/amd64
+          outputs: type=docker,dest=/tmp/${{ env.IMAGE_NAME }}.tar
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.IMAGE_NAME }}
+          path: /tmp/${{ env.IMAGE_NAME }}.tar
