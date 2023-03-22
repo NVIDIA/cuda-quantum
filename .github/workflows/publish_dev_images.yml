@@ -45,8 +45,8 @@ jobs:
             latest=false
             prefix=${{ env.TOOLCHAIN }},onlatest=true
           tags: |
+            # workflow dispatch is covered by these
             type=schedule,enable=true,pattern=nightly
-            type=ref,enable=true,event=workflow_dispatch
             type=ref,enable=true,event=branch
             type=ref,enable=true,event=pr
             type=ref,enable=true,event=tag
