@@ -1,0 +1,85 @@
+name: 🐛 Bug Report
+description: File an issue about a bug
+labels: [triage]
+
+body:
+  - type: markdown
+    attributes:
+      value: Thank you for helping us improve CUDA Quantum.
+
+  - type: checkboxes
+    attributes:
+      label: Required prerequisites
+      description: Make sure you've completed the following steps before submitting your issue -- thank you!
+      options:
+        - label: Make sure you've read the [documentation](https://nvidia.github.io/cuda-quantum). Your issue may be addressed there.
+          required: true
+        - label: Search the [issue tracker](https://github.com/NVIDIA/cuda-quantum/issues) to verify that this hasn't already been reported. +1 or comment there if it has.
+          required: true
+        - label: If possible, make a PR with a failing test to give us a starting point to work on!
+          required: false
+
+  - type: textarea
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is (in words, _not_ code).
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Steps to reproduce the bug
+      placeholder: |
+        Consider providing a _minimal_ code example: no external dependencies,
+        isolating the function(s) that cause the issue. It should also be
+        _complete_ C++ or Python snippets that can be easily compiled and
+        executed to diagnose the issue.
+      description: |
+        Give the steps to reproduce the bug. A [minimal working example](https://stackoverflow.com/help/minimal-reproducible-example)
+        of code with output is best. If you are copying in code, please remember to enclose it in triple backticks
+        (` ``` [multiline code goes here] ``` `) so that it [displays correctly](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#quoting-code).
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Expected behavior
+      description: A clear and concise description of what you expected to happen.
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: Is this a regression? If it is, put the last known working version (or commit) here.
+      description: Put the last known working version here if this is a regression.
+      value: Not a regression
+
+  - type: textarea
+    attributes:
+      label: Environment
+      description: |
+        For the CUDA Quantum version, please give the actual version number
+        (_e.g._ 0.1) if you are using a release version, or the first 7-8
+        characters of the commit hash if you have built from source. If you are
+        using the python interface _and_ have not built it from source, you can
+        remove the 'C++ compiler' entry. If you are using not using python, you
+        can remove 'Python version' entry. Feel free to add anything else that
+        is relevant to the list.
+      # Keep the trailing spaces on the following lines
+      value: |
+        - **CUDA Quantum version**: 
+        - **Python version**: 
+        - **C++ compiler**: 
+        - **Operating system**: 
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Suggestions
+      description: |
+        If you have suggestions for how a contributor should fix this, or any
+        problems we should be aware of, let us know.
+    validations:
+      required: false
+
