@@ -9,4 +9,4 @@
 add_llvm_pass_plugin(HelloWorldQTXPass HelloWorldQTXPass.cpp)
 get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
 get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
-target_link_libraries(HelloWorldQTXPass PRIVATE ${dialect_libs} ${conversion_libs})
+target_link_libraries(HelloWorldQTXPass PRIVATE QTXDialect)
