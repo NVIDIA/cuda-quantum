@@ -1,0 +1,21 @@
+{
+    "version": "0.2",
+    "language": "en",
+    "words": [
+        "mlir",
+        "MLIR",
+        "cudaq",
+        "qubit",
+        "Qubit",
+        "qvec",
+        "qref",
+        "canonicalizer",
+        "unsized",
+        "Unsized",
+        "cmake",
+        "CMake",
+        "CMAKE",
+        "REALPATH"
+    ],
+    "flagWords": []
+}
