@@ -74,9 +74,9 @@ cmake_args="-G Ninja ../llvm \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
   -DLLVM_INSTALL_UTILS=TRUE"
 if $verbose; then 
-  cmake "$cmake_args"
+  cmake $cmake_args
 else
-  cmake "$cmake_args" 2> logs/cmake_error.txt 1> logs/cmake_output.txt
+  cmake $cmake_args 2> logs/cmake_error.txt 1> logs/cmake_output.txt
 fi
 
 # Build and install clang in a folder

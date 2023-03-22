@@ -125,9 +125,9 @@ cmake_args="-G Ninja "$repo_root" \
   -DCMAKE_SHARED_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
   $custatevec_flag"
 if $verbose; then 
-  cmake "$cmake_args"
+  cmake $cmake_args
 else
-  cmake "$cmake_args" 2> logs/cmake_error.txt 1> logs/cmake_output.txt
+  cmake $cmake_args 2> logs/cmake_error.txt 1> logs/cmake_output.txt
 fi
 
 # Build and install CUDAQ
