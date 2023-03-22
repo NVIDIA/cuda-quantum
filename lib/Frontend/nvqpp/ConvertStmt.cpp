@@ -26,13 +26,15 @@ bool QuakeBridgeVisitor::hasTerminator(Block &block) {
 bool QuakeBridgeVisitor::VisitBreakStmt(clang::BreakStmt *x) {
   // It is a C++ syntax error if a break statement is not in a loop or switch
   // statement. The bridge does not currently support switch statements.
-  reportClangError(x, mangler, "break statement is not currently supported");
+  if (!typeMode)
+    builder.create<cc::UnwindBreakOp>(toLocation(x));
   return true;
 }
 
 bool QuakeBridgeVisitor::VisitContinueStmt(clang::ContinueStmt *x) {
   // It is a C++ syntax error if a continue statement is not in a loop.
-  reportClangError(x, mangler, "continue statement is not currently supported");
+  if (!typeMode)
+    builder.create<cc::UnwindContinueOp>(toLocation(x));
   return true;
 }
 
@@ -207,17 +209,13 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *stmt) {
     if (isFuncScope)
       builder.create<cc::ReturnOp>(loc, result);
     else
-      reportClangError(
-          stmt, mangler,
-          "return statement from an inner scope is not currently supported");
+      builder.create<cc::UnwindReturnOp>(loc, result);
     return true;
   }
   if (isFuncScope)
     builder.create<cc::ReturnOp>(loc);
   else
-    reportClangError(
-        stmt, mangler,
-        "return statement from an inner scope is not currently supported");
+    builder.create<cc::UnwindReturnOp>(loc);
   return true;
 }
 

@@ -7,7 +7,6 @@
  *******************************************************************************/
 
 // RUN: cudaq-quake %s | cudaq-opt --unwind-lowering --canonicalize | FileCheck %s
-// XFAIL: *
 
 #include <cudaq.h>
 
