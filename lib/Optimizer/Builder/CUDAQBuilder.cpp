@@ -43,9 +43,9 @@ inline bool operator<(const IntrinsicCode &icode, const IntrinsicCode &jcode) {
 }
 
 /// Table of intrinsics:
-/// This table contains CUDA Quantum MLIR code for our inlined intrinsics as well
-/// as prototypes for LLVM intrinsics and C library calls that are used by the
-/// compiler. The table should be kept in sorted order.
+/// This table contains CUDA Quantum MLIR code for our inlined intrinsics as
+/// well as prototypes for LLVM intrinsics and C library calls that are used by
+/// the compiler. The table should be kept in sorted order.
 static constexpr IntrinsicCode intrinsicTable[] = {
     {"__nvqpp_createDynamicResult",
      {llvmMemCopyIntrinsic, "malloc"},

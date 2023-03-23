@@ -197,8 +197,8 @@ void quake::QVecSizeOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
 
 // Common verification for measurement operations.
 static LogicalResult verifyMeasurements(Operation *const op,
-                                       TypeRange targetsType,
-                                       const Type bitsType) {
+                                        TypeRange targetsType,
+                                        const Type bitsType) {
   bool mustBeStdvec =
       targetsType.size() > 1 ||
       (targetsType.size() == 1 && targetsType[0].isa<quake::QVecType>());
@@ -216,17 +216,17 @@ static LogicalResult verifyMeasurements(Operation *const op,
 
 LogicalResult quake::MxOp::verify() {
   return verifyMeasurements(getOperation(), getTargets().getType(),
-                           getBits().getType());
+                            getBits().getType());
 }
 
 LogicalResult quake::MyOp::verify() {
   return verifyMeasurements(getOperation(), getTargets().getType(),
-                           getBits().getType());
+                            getBits().getType());
 }
 
 LogicalResult quake::MzOp::verify() {
   return verifyMeasurements(getOperation(), getTargets().getType(),
-                           getBits().getType());
+                            getBits().getType());
 }
 
 /// Never inline a `quake.apply` of a variant form of a kernel. The apply

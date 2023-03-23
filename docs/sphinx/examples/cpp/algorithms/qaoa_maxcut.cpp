@@ -7,10 +7,10 @@
 #include <cudaq/optimizers.h>
 #include <cudaq/spin_op.h>
 
-// Here we build up a CUDA Quantum kernel for QAOA with p layers, with each layer
-// containing the alternating set of unitaries corresponding to the problem
-// and the mixer Hamiltonians. The algorithm leverages the CUDA Quantum VQE support
-// to compute the maxcut of a rectangular graph illustrated below.
+// Here we build up a CUDA Quantum kernel for QAOA with p layers, with each
+// layer containing the alternating set of unitaries corresponding to the
+// problem and the mixer Hamiltonians. The algorithm leverages the CUDA Quantum
+// VQE support to compute the maxcut of a rectangular graph illustrated below.
 //
 //        v0  0---------------------0 v1
 //            |                     |

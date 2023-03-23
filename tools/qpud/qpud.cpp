@@ -238,8 +238,8 @@ observeKernel(const std::string &kernelName, std::vector<double> spin_op_data,
 
   auto f_iter = loadedThunkSymbols.find(kernelName);
   if (f_iter == loadedThunkSymbols.end())
-    returnWithError<double>("[qpud::observe] Invalid CUDA Quantum kernel name: " +
-                            kernelName);
+    returnWithError<double>(
+        "[qpud::observe] Invalid CUDA Quantum kernel name: " + kernelName);
 
   auto function = f_iter->second;
   auto raw_args = static_cast<void *>(args.data());
@@ -267,8 +267,8 @@ observeKernelDetach(const std::string &kernelName,
 
   auto f_iter = loadedThunkSymbols.find(kernelName);
   if (f_iter == loadedThunkSymbols.end())
-    returnWithError<double>("[qpud::observe] Invalid CUDA Quantum kernel name: " +
-                            kernelName);
+    returnWithError<double>(
+        "[qpud::observe] Invalid CUDA Quantum kernel name: " + kernelName);
 
   auto function = f_iter->second;
   auto raw_args = static_cast<void *>(args.data());
@@ -304,8 +304,8 @@ sampleKernelDetach(const std::string &kernelName, const std::size_t shots,
 
   auto f_iter = loadedThunkSymbols.find(kernelName);
   if (f_iter == loadedThunkSymbols.end())
-    returnWithError<double>("[qpud::sampleDetach] Invalid CUDA Quantum kernel name: " +
-                            kernelName);
+    returnWithError<double>(
+        "[qpud::sampleDetach] Invalid CUDA Quantum kernel name: " + kernelName);
 
   auto function = f_iter->second;
   auto raw_args = static_cast<void *>(args.data());

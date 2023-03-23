@@ -217,7 +217,7 @@ void bindMakeKernel(py::module &mod) {
           "  # Example:\n"                                                     \
           "  kernel = cudaq.make_kernel() \n"                                  \
           "  # Apply an " #NAME                                                \
-          " to the kernel at a concrete parameter value.\n"                   \
+          " to the kernel at a concrete parameter value.\n"                    \
           "  kernel." #NAME "(parameter=3.14, target=qubit)\n")
 
 void bindKernel(py::module &mod) {
