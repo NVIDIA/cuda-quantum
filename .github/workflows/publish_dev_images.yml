@@ -72,7 +72,7 @@ jobs:
           cache-from: |
             type=gha,scope=${{ env.GITHUB_REF_NAME  }}-${{ env.CACHE_NAME }}
             type=gha,scope=${{ env.CACHE_NAME }}
-            type=gha # FIXME: REMOVE
+            type=gha
           cache-to: |
             type=gha,mode=max,scope=${{ env.GITHUB_REF_NAME  }}-${{ env.CACHE_NAME }}
 
