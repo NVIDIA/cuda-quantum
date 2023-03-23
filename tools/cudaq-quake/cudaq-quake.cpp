@@ -13,11 +13,11 @@
 /// salient part of this tool.)
 #include <filesystem>
 
+#include "nvqpp_config.h"
 #include "cudaq/Frontend/nvqpp/ASTBridge.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Support/Verifier.h"
-#include "nvqpp_config.h"
 #include "clang/CodeGen/BackendUtil.h"
 #include "clang/CodeGen/CodeGenAction.h"
 #include "clang/Frontend/FrontendAction.h"

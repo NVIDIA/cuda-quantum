@@ -19,11 +19,11 @@ target_include_directories(nvqir-qpp-observe-test
   PUBLIC . ${CMAKE_SOURCE_DIR}/runtime 
            ${CMAKE_SOURCE_DIR}/runtime/common 
            ${CMAKE_SOURCE_DIR}/runtime/nvqir 
-           ${CMAKE_SOURCE_DIR}/tpls/eigen 
+           ${CMAKE_SOURCE_DIR}/tpls/eigen
            ${CMAKE_SOURCE_DIR}/tpls/qpp/include)
-target_link_libraries(nvqir-qpp-observe-test 
-  PRIVATE fmt::fmt-header-only 
-          cudaq-common 
+target_link_libraries(nvqir-qpp-observe-test
+  PUBLIC fmt::fmt-header-only
+          cudaq-common
           cudaq-spin ${QPP_DEPENDENCIES})
 
 add_executable(test_observe_backend QppObserveTester.cpp)

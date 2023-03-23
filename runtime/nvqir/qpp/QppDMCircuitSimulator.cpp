@@ -32,6 +32,8 @@ protected:
     if (!executionContext->noiseModel)
       return;
 
+    flushGateQueue();
+
     // Get the name as a string
     std::string gName(gateName);
 
@@ -83,6 +85,7 @@ public:
   std::string name() const override { return "dm"; }
 
   cudaq::State getStateData() override {
+    flushGateQueue();
     // There has to be at least one copy
     return cudaq::State{{stateDimension, stateDimension},
                         {state.data(), state.data() + state.size()}};

@@ -286,7 +286,7 @@ spin_op &spin_op::operator*=(const spin_op &v) noexcept {
   return *this;
 }
 
-bool spin_op::is_identity() {
+bool spin_op::is_identity() const {
   for (auto &row : data)
     for (auto e : row)
       if (e)

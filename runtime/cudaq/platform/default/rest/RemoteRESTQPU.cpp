@@ -10,8 +10,8 @@
 #include "common/ExecutionContext.h"
 #include "common/Logger.h"
 #include "common/RestClient.h"
-#include "cudaq/platform/qpu.h"
 #include "nvqpp_config.h"
+#include "cudaq/platform/qpu.h"
 
 #include "common/RuntimeMLIR.h"
 #include "cudaq/platform/quantum_platform.h"

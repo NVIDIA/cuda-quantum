@@ -6,11 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 
+#include "nlohmann/json.hpp"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Dialect/QTX/QTXOps.h"
 #include "cudaq/Target/Emitter.h"
 #include "cudaq/Target/IQM/IQMJsonEmitter.h"
-#include "nlohmann/json.hpp"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/FormatAdapters.h"

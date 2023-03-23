@@ -1,0 +1,56 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# RUN: PYTHONPATH=../../ pytest -rP  %s | FileCheck %s
+
+import os
+
+import pytest
+import numpy as np
+
+import cudaq
+
+def test_kernel_qalloc_qreg():
+    """
+    Test `cudaq.Kernel.qalloc()` when a handle to a register of
+    qubits is provided.
+    """
+    kernel = cudaq.make_kernel()
+    # Use `qalloc()` with 10 qubits allocated.
+    qubit = kernel.qalloc(10)
+    # Assert that 10 qubits have been allocated in the MLIR.
+    print(kernel)
+
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
+# CHECK:           %[[VAL_1:.*]] = quake.alloca : !quake.qvec<10>
+# CHECK:           return
+# CHECK:         }
+
+
+def test_kernel_qalloc_qreg_keyword():
+    """
+    Test `cudaq.Kernel.qalloc()` when a handle to a register of
+    qubits is provided with a keyword argument.
+    """
+    kernel = cudaq.make_kernel()
+    # Use `qalloc()` with 10 qubits allocated.
+    qubit = kernel.qalloc(qubit_count=10)
+    # Assert that 10 qubits have been allocated in the MLIR.
+    print(kernel)
+
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
+# CHECK:           %[[VAL_1:.*]] = quake.alloca : !quake.qvec<10>
+# CHECK:           return
+# CHECK:         }
+
+# leave for gdb debugging
+if __name__ == "__main__":
+    loc = os.path.abspath(__file__)
+    pytest.main([loc, "-rP"])

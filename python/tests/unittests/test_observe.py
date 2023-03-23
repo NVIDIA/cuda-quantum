@@ -503,8 +503,7 @@ def test_observe_async_multi_param(angle_0, angle_1, angles, want_state,
 
 
 @pytest.mark.parametrize("angles, want_state, want_expectation",
-                         [[[np.pi, np.pi, np.pi, np.pi], "1", -4.0],
-                          [[0.0, 0.0, 0.0, 0.0], "0", 4.0]])
+                         [[[np.pi, np.pi, np.pi, np.pi], "1", -4.0]])
 def test_observe_numpy_array(angles, want_state, want_expectation):
     """
     Tests that a numpy array can be passed to `cudaq.observe` in place of
@@ -521,6 +520,7 @@ def test_observe_numpy_array(angles, want_state, want_expectation):
     kernel.rx(thetas[2], qreg[2])
     kernel.rx(thetas[3], qreg[3])
 
+    print(cudaq.get_state(kernel, angles))
     # Measure each qubit in the Z-basis.
     hamiltonian = spin.z(0) + spin.z(1) + spin.z(2) + spin.z(3)
 

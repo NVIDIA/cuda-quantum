@@ -17,18 +17,15 @@ namespace nvqir {
 /// base class to provide a simulator delegating to the Q++ library from
 /// https://github.com/softwareqinc/qpp.
 template <typename StateType>
-class QppCircuitSimulator : public nvqir::CircuitSimulator {
+class QppCircuitSimulator : public nvqir::CircuitSimulatorBase<double> {
 protected:
   /// The QPP state representation (qpp::ket or qpp::cmat)
   StateType state;
 
-  /// @brief Provide a base-class method that can be invoked
-  /// after every gate application and will apply any noise
-  /// channels after the gate invocation based on a user-provided noise
-  /// model. Unimplemented on the base class, sub-types can implement noise
-  /// modeling.
-  virtual void applyNoiseChannel(const std::string_view gateName,
-                                 const std::vector<std::size_t> &qubits) {}
+  /// Convert from little endian to big endian.
+  std::size_t bigEndian(const int n_qubits, const int bit) {
+    return n_qubits - bit - 1;
+  }
 
   /// @brief Compute the expectation value <Z...Z> over the given qubit indices.
   /// @param qubit_indices
@@ -74,49 +71,16 @@ protected:
     return result;
   }
 
-  qpp::cmat toQppMatrix(std::vector<std::complex<double>> &&data) {
-    assert(data.size() == 4 &&
+  qpp::cmat toQppMatrix(const std::vector<std::complex<double>> &data,
+                        std::size_t nTargets) {
+    auto nRows = (1UL << nTargets);
+    assert(data.size() == nRows * nRows &&
            "Invalid number of gate matrix elements passed to toQppMatrix");
 
     // we represent row major, they represent column major
     return Eigen::Map<Eigen::Matrix<std::complex<double>, Eigen::Dynamic,
                                     Eigen::Dynamic, Eigen::RowMajor>>(
-        data.data(), 2, 2);
-  }
-
-  /// @brief Utility function for applying one-target-qubit operations with
-  /// optional control qubits
-  /// @tparam GateT The instruction type, must be QppInstruction derived
-  /// @param controls The control qubits, can be empty
-  /// @param qubitIdx The target qubit
-  template <typename GateT>
-  void oneQubitApply(const std::vector<std::size_t> &controls,
-                     const std::size_t qubitIdx) {
-    GateT gate;
-    cudaq::info(gateToString(gate.name(), controls, {}, {qubitIdx}));
-    auto matrix = toQppMatrix(gate.getGate());
-    state = qpp::applyCTRL(state, matrix, controls, {qubitIdx});
-    std::vector<std::size_t> noiseQubits{controls.begin(), controls.end()};
-    noiseQubits.push_back(qubitIdx);
-    applyNoiseChannel(gate.name(), noiseQubits);
-  }
-
-  /// @brief Utility function for applying one-target-qubit rotation operations
-  /// @tparam RotationGateT The instruction type, must be QppInstruction derived
-  /// @param angle The rotation angle
-  /// @param controls The control qubits, can be empty
-  /// @param qubitIdx The target qubit
-  template <typename RotationGateT>
-  void oneQubitOneParamApply(const double angle,
-                             const std::vector<std::size_t> &controls,
-                             const std::size_t qubitIdx) {
-    RotationGateT gate;
-    cudaq::info(gateToString(gate.name(), controls, {angle}, {qubitIdx}));
-    auto matrix = toQppMatrix(gate.getGate(angle));
-    state = qpp::applyCTRL(state, matrix, controls, {qubitIdx});
-    std::vector<std::size_t> noiseQubits{controls.begin(), controls.end()};
-    noiseQubits.push_back(qubitIdx);
-    applyNoiseChannel(gate.name(), noiseQubits);
+        const_cast<std::complex<double> *>(data.data()), nRows, nRows);
   }
 
   /// @brief Grow the state vector by one qubit.
@@ -142,88 +106,14 @@ protected:
     state = tmp;
   }
 
+  void applyGate(const GateApplicationTask &task) override {
+    auto matrix = toQppMatrix(task.matrix, task.targets.size());
+    state = qpp::applyCTRL(state, matrix, task.controls, task.targets);
+  }
+
 public:
   QppCircuitSimulator() = default;
   virtual ~QppCircuitSimulator() = default;
-
-/// The one-qubit overrides
-#define QPP_ONE_QUBIT_METHOD_OVERRIDE(NAME)                                    \
-  using CircuitSimulator::NAME;                                                \
-  virtual void NAME(const std::vector<std::size_t> &controls,                  \
-                    const std::size_t qubitIdx) override {                     \
-    oneQubitApply<nvqir::NAME<double>>(controls, qubitIdx);                    \
-  }
-
-  QPP_ONE_QUBIT_METHOD_OVERRIDE(x)
-  QPP_ONE_QUBIT_METHOD_OVERRIDE(y)
-  QPP_ONE_QUBIT_METHOD_OVERRIDE(z)
-  QPP_ONE_QUBIT_METHOD_OVERRIDE(h)
-  QPP_ONE_QUBIT_METHOD_OVERRIDE(s)
-  QPP_ONE_QUBIT_METHOD_OVERRIDE(t)
-  QPP_ONE_QUBIT_METHOD_OVERRIDE(sdg)
-  QPP_ONE_QUBIT_METHOD_OVERRIDE(tdg)
-
-/// The one-qubit parameterized overrides
-#define QPP_ONE_QUBIT_ONE_PARAM_METHOD_OVERRIDE(NAME)                          \
-  using CircuitSimulator::NAME;                                                \
-  virtual void NAME(const double angle,                                        \
-                    const std::vector<std::size_t> &controls,                  \
-                    const std::size_t qubitIdx) override {                     \
-    oneQubitOneParamApply<nvqir::NAME<double>>(angle, controls, qubitIdx);     \
-  }
-
-  QPP_ONE_QUBIT_ONE_PARAM_METHOD_OVERRIDE(rx)
-  QPP_ONE_QUBIT_ONE_PARAM_METHOD_OVERRIDE(ry)
-  QPP_ONE_QUBIT_ONE_PARAM_METHOD_OVERRIDE(rz)
-  QPP_ONE_QUBIT_ONE_PARAM_METHOD_OVERRIDE(r1)
-  QPP_ONE_QUBIT_ONE_PARAM_METHOD_OVERRIDE(u1)
-
-  /// @brief U2 operation
-  using CircuitSimulator::u2;
-  void u2(const double phi, const double lambda,
-          const std::vector<std::size_t> &controls,
-          const std::size_t qubitIdx) override {
-    cudaq::info(gateToString("u3", controls, {phi, lambda}, {qubitIdx}));
-    qpp::cmat matrix = qpp::cmat::Zero(2, 2);
-    matrix(0, 0) = 1.0;
-    matrix(0, 1) = -1.0 * std::exp(nvqir::im<> * lambda);
-    matrix(1, 0) = std::exp(nvqir::im<> * phi);
-    matrix(1, 1) = std::exp(nvqir::im<> * (phi + lambda));
-    state = qpp::applyCTRL(state, matrix, controls, {qubitIdx});
-    std::vector<std::size_t> noiseQubits{controls.begin(), controls.end()};
-    noiseQubits.push_back(qubitIdx);
-    applyNoiseChannel("u2", noiseQubits);
-  }
-
-  /// @brief U3 operation
-  using CircuitSimulator::u3;
-  void u3(const double theta, const double phi, const double lambda,
-          const std::vector<std::size_t> &controls,
-          const std::size_t qubitIdx) override {
-    cudaq::info(gateToString("u3", controls, {theta, phi, lambda}, {qubitIdx}));
-    qpp::cmat matrix = qpp::cmat::Zero(2, 2);
-    matrix(0, 0) = std::cos(theta / 2);
-    matrix(0, 1) = std::exp(nvqir::im<> * phi) * std::sin(theta / 2);
-    matrix(1, 0) = -1. * std::exp(nvqir::im<> * lambda) * std::sin(theta / 2);
-    matrix(1, 1) = std::exp(nvqir::im<> * (phi + lambda)) * std::cos(theta / 2);
-    state = qpp::applyCTRL(state, matrix, controls, {qubitIdx});
-    std::vector<std::size_t> noiseQubits{controls.begin(), controls.end()};
-    noiseQubits.push_back(qubitIdx);
-    applyNoiseChannel("u3", noiseQubits);
-  }
-
-  /// @brief Swap operation
-  using CircuitSimulator::swap;
-  void swap(const std::vector<std::size_t> &ctrlBits, const std::size_t srcIdx,
-            const std::size_t tgtIdx) override {
-    cudaq::info(gateToString("swap", ctrlBits, {}, {srcIdx, tgtIdx}));
-    state = qpp::applyCTRL(state, qpp::Gates::get_instance().SWAP, ctrlBits,
-                           {srcIdx, tgtIdx});
-    std::vector<std::size_t> noiseQubits{ctrlBits.begin(), ctrlBits.end()};
-    noiseQubits.push_back(srcIdx);
-    noiseQubits.push_back(tgtIdx);
-    applyNoiseChannel("swap", noiseQubits);
-  }
 
   /// @brief Measure the qubit and return the result. Collapse the
   /// state vector.
@@ -250,6 +140,7 @@ public:
   /// @brief Reset the qubit
   /// @param qubitIdx
   void resetQubit(const std::size_t qubitIdx) override {
+    flushGateQueue();
     state = qpp::reset(state, {qubitIdx});
   }
 
@@ -286,13 +177,17 @@ public:
   }
 
   cudaq::State getStateData() override {
+    flushGateQueue();
     // There has to be at least one copy
     return cudaq::State{{stateDimension},
                         {state.data(), state.data() + state.size()}};
   }
 
   /// @brief Primarily used for testing.
-  auto getStateVector() { return state; }
+  auto getStateVector() {
+    flushGateQueue();
+    return state;
+  }
   std::string name() const override { return "qpp"; }
   NVQIR_SIMULATOR_CLONE_IMPL(QppCircuitSimulator<StateType>)
 };

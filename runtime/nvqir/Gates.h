@@ -232,4 +232,5 @@ struct u3 {
   }
   const std::string name() const { return "u3"; }
 };
+
 } // namespace nvqir

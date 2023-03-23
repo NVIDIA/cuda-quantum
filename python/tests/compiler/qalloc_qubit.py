@@ -1,0 +1,57 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# RUN: PYTHONPATH=../../ pytest -rP  %s | FileCheck %s
+
+import os
+
+import pytest
+import numpy as np
+
+import cudaq
+
+def test_kernel_qalloc_qubit():
+    """
+    Test `cudaq.Kernel.qalloc()` when a handle to a single qubit
+    is provided.
+    """
+    kernel = cudaq.make_kernel()
+    # Use `qalloc()` with 1 qubit allocated.
+    qubit = kernel.qalloc(1)
+    # Assert that only 1 qubit is allocated in the MLIR.
+    print(kernel)
+
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
+# CHECK:           %[[VAL_0:.*]] = quake.alloca : !quake.qref
+# CHECK:           return
+# CHECK:         }
+
+
+def test_kernel_qalloc_qubit_keyword():
+    """
+    Test `cudaq.Kernel.qalloc()` when a handle to a single qubit
+    is provided with a keyword argument.
+    """
+    kernel = cudaq.make_kernel()
+    # Use `qalloc()` with 1 qubit allocated and `qubit_count` keyword used.
+    qubit = kernel.qalloc(qubit_count=1)
+    # Assert that only 1 qubit is allocated in the MLIR.
+    print(kernel)
+
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
+# CHECK:           %[[VAL_0:.*]] = quake.alloca : !quake.qref
+# CHECK:           return
+# CHECK:         }
+
+
+# leave for gdb debugging
+if __name__ == "__main__":
+    loc = os.path.abspath(__file__)
+    pytest.main([loc, "-rP"])

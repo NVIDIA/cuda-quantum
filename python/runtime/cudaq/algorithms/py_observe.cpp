@@ -40,7 +40,7 @@ observe_result pyObserve(kernel_builder<> &kernel, spin_op &spin_operator,
   // TODO: would like to handle errors in the case that
   // `kernel.num_qubits() >= spin_operator.num_qubits()`
   kernel.jitCode();
-
+  auto name = kernel.name();
   // Does this platform expose more than 1 QPU
   // If so, let's distribute the work amongst the QPUs
   if (auto nQpus = platform.num_qpus(); nQpus > 1)
@@ -57,7 +57,7 @@ observe_result pyObserve(kernel_builder<> &kernel, spin_op &spin_operator,
                packArgs(argData, validatedArgs);
                kernel.jitAndInvoke(argData.data());
              },
-             spin_operator, platform, shots)
+             spin_operator, platform, shots, name)
       .value();
 }
 
@@ -83,7 +83,7 @@ async_observe_result pyObserveAsync(kernel_builder<> &kernel,
   // TODO: would like to handle errors in the case that
   // `kernel.num_qubits() >= spin_operator.num_qubits()`
   kernel.jitCode();
-
+  auto name = kernel.name();
   // Get the platform, first check that the given qpu_id is valid
   auto &platform = cudaq::get_platform();
 
@@ -93,7 +93,7 @@ async_observe_result pyObserveAsync(kernel_builder<> &kernel,
         auto &argData = asyncArgsHolder.at(uniqueHash);
         kernel.jitAndInvoke(argData->data());
       },
-      spin_operator, platform, shots, qpu_id);
+      spin_operator, platform, shots, name, qpu_id);
 }
 
 void bindObserve(py::module &mod) {
