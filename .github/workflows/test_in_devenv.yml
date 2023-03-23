@@ -23,6 +23,9 @@ jobs:
       contents: read
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
       - uses: ./.github/workflows/load_devenv.yml
         with:
           toolchain: ${{ inputs.toolchain }}
