@@ -7,13 +7,17 @@ on:
 
 name: Run CI within the dev environment container
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   run_ci_gcc11:
-    uses: ./.github/workflows/dev_environment.yml
+    uses: ./.github/workflows/test_in_devenv.yml
     with:
       toolchain: gcc11
 
   run_ci_clang15:
-    uses: ./.github/workflows/dev_environment.yml
+    uses: ./.github/workflows/test_in_devenv.yml
     with:
       toolchain: clang15
