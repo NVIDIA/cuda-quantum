@@ -11,16 +11,16 @@
 module {
   func.func @__nvqpp__mlirgen__ghz() {
 // CHECK-LABEL: __nvqpp__mlirgen__ghz
-// CHECK: tail call void @__quantum__qis__h__body(%[[VAL_0:.*]]* null)
-// CHECK: tail call void @__quantum__qis__cnot__body(%Qubit* null, %Qubit* nonnull inttoptr (i64 1 to %Qubit*))
-// CHECK: tail call void @__quantum__qis__cnot__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Qubit* nonnull inttoptr (i64 2 to %Qubit*))
-// CHECK: tail call void @__quantum__qis__mz__body(%[[VAL_0]]* null, %[[VAL_1:.*]]* null)
-// CHECK: tail call void @__quantum__qis__mz__body(%[[VAL_0]]* nonnull inttoptr (i64 1 to %[[VAL_0]]*), %[[VAL_1]]* nonnull inttoptr (i64 1 to %[[VAL_1]]*))
-// CHECK: tail call void @__quantum__qis__mz__body(%[[VAL_0]]* nonnull inttoptr (i64 2 to %[[VAL_0]]*), %[[VAL_1]]* nonnull inttoptr (i64 2 to %[[VAL_1]]*))
+// CHECK: tail call void @__quantum__qis__h__body(ptr null)
+// CHECK: tail call void @__quantum__qis__cnot__body(ptr null, ptr nonnull inttoptr (i64 1 to ptr))
+// CHECK: tail call void @__quantum__qis__cnot__body(ptr nonnull inttoptr (i64 1 to ptr), ptr nonnull inttoptr (i64 2 to ptr))
+// CHECK: tail call void @__quantum__qis__mz__body(ptr null, ptr null)
+// CHECK: tail call void @__quantum__qis__mz__body(ptr nonnull inttoptr (i64 1 to ptr), ptr nonnull inttoptr (i64 1 to ptr))
+// CHECK: tail call void @__quantum__qis__mz__body(ptr nonnull inttoptr (i64 2 to ptr), ptr nonnull inttoptr (i64 2 to ptr))
 // CHECK: tail call void @__quantum__rt__array_start_record_output()
-// CHECK: tail call void @__quantum__rt__result_record_output(%Result* null, i8* null)
-// CHECK: tail call void @__quantum__rt__result_record_output(%Result* nonnull inttoptr (i64 1 to %Result*), i8* null)
-// CHECK: tail call void @__quantum__rt__result_record_output(%Result* nonnull inttoptr (i64 2 to %Result*), i8* null)
+// CHECK: tail call void @__quantum__rt__result_record_output(ptr null, ptr null)
+// CHECK: tail call void @__quantum__rt__result_record_output(ptr nonnull inttoptr (i64 1 to ptr), ptr null)
+// CHECK: tail call void @__quantum__rt__result_record_output(ptr nonnull inttoptr (i64 2 to ptr), ptr null)
 // CHECK: tail call void @__quantum__rt__array_end_record_output()
 // CHECK: ret void
     %c2_i32 = arith.constant 2 : i32

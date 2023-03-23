@@ -19,25 +19,20 @@ struct Stuart {
 };
 
 // CHECK-LABEL: define void @__nvqpp__mlirgen__Stuart()
-// CHECK:         %[[VAL_0:.*]] = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 5)
-// CHECK:         %[[VAL_2:.*]] = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 0)
-// CHECK:         %[[VAL_3:.*]] = bitcast i8* %[[VAL_2]] to %Qubit**
-// CHECK:         %[[VAL_5:.*]] = load %Qubit*, %Qubit** %[[VAL_3]], align 8
-// CHECK:         %[[VAL_6:.*]] = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 1)
-// CHECK:         %[[VAL_7:.*]] = bitcast i8* %[[VAL_6]] to %Qubit**
-// CHECK:         %[[VAL_8:.*]] = load %Qubit*, %Qubit** %[[VAL_7]], align 8
-// CHECK:         %[[VAL_9:.*]] = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 4)
-// CHECK:         %[[VAL_10:.*]] = bitcast i8* %[[VAL_9]] to %Qubit**
-// CHECK:         %[[VAL_11:.*]] = load %Qubit*, %Qubit** %[[VAL_10]], align 8
-// CHECK:         tail call void @__quantum__qis__x(%Qubit* %[[VAL_5]])
-// CHECK:         tail call void (i64, void (%Array*, %Qubit*)*, ...) @invokeWithControlQubits(i64 2, void (%Array*, %Qubit*)* nonnull @__quantum__qis__y__ctl, %Qubit* %[[VAL_5]], %Qubit* %[[VAL_8]], %Qubit* %[[VAL_11]])
-// CHECK:         tail call void @__quantum__qis__x(%Qubit* %[[VAL_5]])
-// CHECK:         %[[VAL_12:.*]] = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 2)
-// CHECK:         %[[VAL_13:.*]] = bitcast i8* %[[VAL_12]] to %Qubit**
-// CHECK:         %[[VAL_14:.*]] = load %Qubit*, %Qubit** %[[VAL_13]], align 8
-// CHECK:         %[[VAL_15:.*]] = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_0]], i64 3)
-// CHECK:         %[[VAL_16:.*]] = bitcast i8* %[[VAL_15]] to %Qubit**
-// CHECK:         %[[VAL_17:.*]] = load %Qubit*, %Qubit** %[[VAL_16]], align 8
-// CHECK:         tail call void @__quantum__qis__x(%Qubit* %[[VAL_17]])
-// CHECK:         tail call void (i64, void (%Array*, %Qubit*)*, ...) @invokeWithControlQubits(i64 2, void (%Array*, %Qubit*)* nonnull @__quantum__qis__z__ctl, %Qubit* %[[VAL_14]], %Qubit* %[[VAL_17]], %Qubit* %[[VAL_11]])
-// CHECK:         tail call void @__quantum__qis__x(%Qubit* %[[VAL_17]])
+// CHECK:         %[[VAL_0:.*]] = tail call ptr @__quantum__rt__qubit_allocate_array(i64 5)
+// CHECK:         %[[VAL_2:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_0]], i64 0)
+// CHECK:         %[[VAL_5:.*]] = load ptr, ptr %[[VAL_2]], align 8
+// CHECK:         %[[VAL_6:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_0]], i64 1)
+// CHECK:         %[[VAL_8:.*]] = load ptr, ptr %[[VAL_6]], align 8
+// CHECK:         %[[VAL_9:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_0]], i64 4)
+// CHECK:         %[[VAL_11:.*]] = load ptr, ptr %[[VAL_9]], align 8
+// CHECK:         tail call void @__quantum__qis__x(ptr %[[VAL_5]])
+// CHECK:         tail call void (i64, ptr, ...) @invokeWithControlQubits(i64 2, ptr nonnull @__quantum__qis__y__ctl, ptr %[[VAL_5]], ptr %[[VAL_8]], ptr %[[VAL_11]])
+// CHECK:         tail call void @__quantum__qis__x(ptr %[[VAL_5]])
+// CHECK:         %[[VAL_12:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_0]], i64 2)
+// CHECK:         %[[VAL_14:.*]] = load ptr, ptr %[[VAL_12]], align 8
+// CHECK:         %[[VAL_15:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_0]], i64 3)
+// CHECK:         %[[VAL_17:.*]] = load ptr, ptr %[[VAL_15]], align 8
+// CHECK:         tail call void @__quantum__qis__x(ptr %[[VAL_17]])
+// CHECK:         tail call void (i64, ptr, ...) @invokeWithControlQubits(i64 2, ptr nonnull @__quantum__qis__z__ctl, ptr %[[VAL_14]], ptr %[[VAL_17]], ptr %[[VAL_11]])
+// CHECK:         tail call void @__quantum__qis__x(ptr %[[VAL_17]])

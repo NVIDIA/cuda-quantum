@@ -56,11 +56,11 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     %2 = arith.addi %arg1, %1 : i64
     %3 = call @malloc(%2) : (i64) -> !llvm.ptr<i8>
     %false = arith.constant false
-    call @llvm.memcpy.p0i8.p0i8.i64(%3, %arg0, %arg1, %false) : (!llvm.ptr<i8>, !llvm.ptr<i8>, i64, i1) -> ()
+    call @llvm.memcpy.p0.p0.i64(%3, %arg0, %arg1, %false) : (!llvm.ptr<i8>, !llvm.ptr<i8>, i64, i1) -> ()
     %4 = llvm.getelementptr %arg2[0, 0] : (!llvm.ptr<struct<(ptr<i8>, i64)>>) -> !llvm.ptr<ptr<i8>>
     %5 = llvm.load %4 : !llvm.ptr<ptr<i8>>
     %6 = llvm.getelementptr %arg0[%arg1] : (!llvm.ptr<i8>, i64) -> !llvm.ptr<i8>
-    call @llvm.memcpy.p0i8.p0i8.i64(%6, %5, %1, %false) : (!llvm.ptr<i8>, !llvm.ptr<i8>, i64, i1) -> ()
+    call @llvm.memcpy.p0.p0.i64(%6, %5, %1, %false) : (!llvm.ptr<i8>, !llvm.ptr<i8>, i64, i1) -> ()
     %7 = llvm.mlir.undef : !llvm.struct<(ptr<i8>, i64)>
     %8 = llvm.insertvalue %3, %7[0] : !llvm.struct<(ptr<i8>, i64)> 
     %9 = llvm.insertvalue %2, %8[1] : !llvm.struct<(ptr<i8>, i64)> 
@@ -77,7 +77,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     %size = arith.muli %arg1, %arg2 : i64
     %0 = call @malloc(%size) : (i64) -> !llvm.ptr<i8>
     %false = arith.constant false
-    call @llvm.memcpy.p0i8.p0i8.i64(%0, %arg0, %arg1, %false) : (!llvm.ptr<i8>, !llvm.ptr<i8>, i64, i1) -> ()
+    call @llvm.memcpy.p0.p0.i64(%0, %arg0, %arg1, %false) : (!llvm.ptr<i8>, !llvm.ptr<i8>, i64, i1) -> ()
     return %0 : !llvm.ptr<i8>
   })#"},
 
@@ -96,10 +96,10 @@ static constexpr IntrinsicCode intrinsicTable[] = {
      R"#(
   func.func private @altLaunchKernel(!llvm.ptr<i8>, !llvm.ptr<i8>, !llvm.ptr<i8>, i64, i64) -> ())#"},
 
-    {llvmMemCopyIntrinsic, // llvm.memcpy.p0i8.p0i8.i64
+    {llvmMemCopyIntrinsic, // llvm.memcpy.p0.p0.i64
      {},
      R"#(
-  func.func private @llvm.memcpy.p0i8.p0i8.i64(!llvm.ptr<i8>, !llvm.ptr<i8>, i64, i1) -> ())#"},
+  func.func private @llvm.memcpy.p0.p0.i64(!llvm.ptr<i8>, !llvm.ptr<i8>, i64, i1) -> ())#"},
 
     {"malloc", {}, "func.func private @malloc(i64) -> !llvm.ptr<i8>"}};
 

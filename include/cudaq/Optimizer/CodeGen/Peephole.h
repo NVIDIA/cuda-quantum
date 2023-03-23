@@ -65,5 +65,8 @@ inline mlir::Value createReadResultCall(mlir::PatternRewriter &builder,
 }
 
 namespace {
+// Workaround for bug(s) in MLIR's tablegen.
+using AtomicOrdering = mlir::LLVM::AtomicOrdering;
+
 #include "cudaq/Optimizer/CodeGen/Peephole.inc"
 }

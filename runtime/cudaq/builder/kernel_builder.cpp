@@ -654,7 +654,7 @@ ExecutionEngine *jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   opts.llvmModuleBuilder =
       [](Operation *module,
          llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
-    llvmContext.setOpaquePointers(false);
+    llvmContext.setOpaquePointers(true);
     auto llvmModule = translateModuleToLLVMIR(module, llvmContext);
     if (!llvmModule) {
       llvm::errs() << "Failed to emit LLVM IR\n";

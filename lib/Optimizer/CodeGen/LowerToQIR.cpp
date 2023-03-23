@@ -1055,7 +1055,7 @@ public:
     populateAffineToStdConversionPatterns(patterns);
     arith::populateArithToLLVMConversionPatterns(typeConverter, patterns);
     populateMathToLLVMConversionPatterns(typeConverter, patterns);
-    populateMemRefToLLVMConversionPatterns(typeConverter, patterns);
+    populateFinalizeMemRefToLLVMConversionPatterns(typeConverter, patterns);
 
     populateSCFToControlFlowConversionPatterns(patterns);
     cf::populateControlFlowToLLVMConversionPatterns(typeConverter, patterns);
