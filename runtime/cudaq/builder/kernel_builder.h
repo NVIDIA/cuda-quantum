@@ -43,6 +43,10 @@ std::string get_quake_by_name(const std::string &);
 template <typename T>
 concept NumericType = requires(T param) { std::is_floating_point_v<T>; };
 
+/// @brief Define a floating point concept
+template <typename T>
+concept IntegralType = requires(T param) { std::is_integral_v<T>; };
+
 // Helper template type to check if type is in a variadic pack
 template <typename T, typename... Ts>
 concept KernelBuilderArgTypeIsValid =
@@ -206,6 +210,18 @@ void control(ImplicitLocOpBuilder &builder, std::string &name,
 void adjoint(ImplicitLocOpBuilder &builder, std::string &name,
              std::string &quakeCode, std::vector<QuakeValue> &values);
 
+void forLoop(ImplicitLocOpBuilder &builder, std::size_t start, std::size_t end,
+             std::function<void(QuakeValue &)> &body);
+
+void forLoop(ImplicitLocOpBuilder &builder, std::size_t start, QuakeValue &end,
+             std::function<void(QuakeValue &)> &body);
+
+void forLoop(ImplicitLocOpBuilder &builder, QuakeValue &start, std::size_t end,
+             std::function<void(QuakeValue &)> &body);
+
+void forLoop(ImplicitLocOpBuilder &builder, QuakeValue &start, QuakeValue &end,
+             std::function<void(QuakeValue &)> &body);
+
 /// @brief Return the quake representation as a string
 std::string to_quake(ImplicitLocOpBuilder &builder);
 
@@ -262,8 +278,8 @@ public:
 } // namespace details
 
 template <class... Ts>
-concept AllAreQuakeValues =
-    sizeof...(Ts) < 2 ||
+concept AllAreQuakeValues = sizeof
+...(Ts) < 2 ||
     (std::conjunction_v<
          std::is_same<std::tuple_element_t<0, std::tuple<Ts...>>, Ts>...> &&
      std::is_same_v<
@@ -544,6 +560,12 @@ public:
     adjoint(kernel, vecValues);
   }
 
+  template <typename StartType, typename EndType>
+  void for_loop(StartType &&start, EndType &&end,
+                std::function<void(QuakeValue &)> &&body) {
+    details::forLoop(*opBuilder, start, end, body);
+  }
+
   /// @brief Return the string representation of the quake code.
   std::string to_quake() const override {
     return details::to_quake(*opBuilder);
@@ -571,7 +593,7 @@ public:
   /// @brief The call operator for the kernel_builder,
   /// takes as input the constructed function arguments.
   void operator()(Args... args) {
-    std::size_t argCounter = 0;
+    [[maybe_unused]] std::size_t argCounter = 0;
     (details::ArgumentValidator<Args>::validate(argCounter, arguments, args),
      ...);
     void *argsArr[sizeof...(Args)] = {&args...};

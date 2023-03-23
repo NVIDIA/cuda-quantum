@@ -73,6 +73,8 @@ public:
   /// is indexed, specifically for QuakeValues of type StdVecType
   /// and QVecType.
   QuakeValue operator[](const std::size_t idx);
+  QuakeValue operator[](QuakeValue &idx);
+  QuakeValue operator[](QuakeValue &&idx) { return operator[](idx); }
 
   /// @brief Negate this QuakeValue
   QuakeValue operator-();
@@ -85,12 +87,14 @@ public:
 
   /// @brief Add this QuakeValue with the given double.
   QuakeValue operator+(const double);
+  QuakeValue operator+(const int);
 
   /// @brief Add this QuakeValue with the given QuakeValue
   QuakeValue operator+(QuakeValue other);
 
   /// @brief Subtract the given double from this QuakeValue
   QuakeValue operator-(const double);
+  QuakeValue operator-(const int);
 
   /// @brief Subtract the given QuakeValue from this QuakeValue
   QuakeValue operator-(QuakeValue other);
@@ -113,5 +117,7 @@ QuakeValue operator-(IsNumericType auto &&d, IsQuakeValue auto &&q) {
 QuakeValue operator+(IsNumericType auto &&d, IsQuakeValue auto &&q) {
   return q + d;
 }
-
+// QuakeValue operator+(IsQuakeValue auto &&q, IsNumericType auto &&d) {
+//   return q + d;
+// }
 } // namespace cudaq

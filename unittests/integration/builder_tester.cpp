@@ -354,3 +354,43 @@ CUDAQ_TEST(BuilderTester, checkReset) {
     EXPECT_EQ(counts.begin()->first, "00");
   }
 }
+
+CUDAQ_TEST(BuilderTester, checkForLoop) {
+
+  {
+    auto [circuit, inSize] = cudaq::make_kernel<std::size_t>();
+    auto qubits = circuit.qalloc(inSize);
+    circuit.h(qubits[0]);
+    circuit.for_loop(0, inSize - 1, [&](auto &index) {
+      circuit.x<cudaq::ctrl>(qubits[index], qubits[index + 1]);
+    });
+
+    printf("%s\n", circuit.to_quake().c_str());
+    auto counts = cudaq::sample(circuit, 5);
+    std::size_t counter = 0;
+    for (auto &[k, v] : counts) {
+      counter += v;
+      EXPECT_TRUE(k == "00000" || k == "11111");
+    }
+    EXPECT_EQ(counter, 1000);
+  }
+
+   {
+    auto [circuit, inSize] = cudaq::make_kernel<std::size_t>();
+    auto qubits = circuit.qalloc(inSize);
+    circuit.h(qubits[0]);
+    // can pass concrete integers for both
+    circuit.for_loop(0, 4, [&](auto &index) {
+      circuit.x<cudaq::ctrl>(qubits[index], qubits[index + 1]);
+    });
+
+    printf("%s\n", circuit.to_quake().c_str());
+    auto counts = cudaq::sample(circuit, 5);
+    std::size_t counter = 0;
+    for (auto &[k, v] : counts) {
+      counter += v;
+      EXPECT_TRUE(k == "00000" || k == "11111");
+    }
+    EXPECT_EQ(counter, 1000);
+  }
+}

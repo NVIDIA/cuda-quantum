@@ -573,7 +573,18 @@ void bindKernel(py::module &mod) {
           "  kernel.apply_call(target_kernel, qubit)\n"
           "  # The final measurement of `qubit` should return the 1-state.\n"
           "  kernel.mz(qubit)\n")
-
+      .def("for_loop",
+           [](kernel_builder<> &self, std::size_t start, std::size_t end,
+              py::function body) { self.for_loop(start, end, body); })
+      .def("for_loop",
+           [](kernel_builder<> &self, std::size_t start, QuakeValue &end,
+              py::function body) { self.for_loop(start, end, body); })
+      .def("for_loop",
+           [](kernel_builder<> &self, QuakeValue &start, std::size_t end,
+              py::function body) { self.for_loop(start, end, body); })
+      .def("for_loop",
+           [](kernel_builder<> &self, QuakeValue &start, QuakeValue &end,
+              py::function body) { self.for_loop(start, end, body); })
       /// @brief Convert kernel to a Quake string.
       .def("to_quake", &kernel_builder<>::to_quake, "See :func:`__str__`.")
       .def("__str__", &kernel_builder<>::to_quake,
