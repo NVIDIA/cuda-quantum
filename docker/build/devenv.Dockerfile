@@ -13,7 +13,7 @@
 #
 # Usage:
 # Must be built from the repo root with:
-#   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:$toolchain -f docker/build/devenv.Dockerfile --build-arg toolchain=$toolchain .
+#   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:${toolchain}-latest -f docker/build/devenv.Dockerfile --build-arg toolchain=$toolchain .
 #
 # The variable $toolchain indicates which compiler toolchain to build the llvm libraries with. 
 # The toolchain used to build the llvm binaries that CUDA Quantum depends on must be used to build
