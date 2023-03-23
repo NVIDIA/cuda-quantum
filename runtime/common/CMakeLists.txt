@@ -117,5 +117,4 @@ target_link_libraries(cudaq-mlir-runtime
 
 cudaq_library_set_rpath(cudaq-mlir-runtime)
 
-install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 install(TARGETS cudaq-mlir-runtime DESTINATION lib)
