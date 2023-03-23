@@ -439,13 +439,12 @@ SmallVector<Type> QuakeBridgeVisitor::lastTypes(unsigned n) {
 
 Type QuakeBridgeVisitor::genType(const clang::QualType &ty) {
   LLVM_DEBUG(llvm::dbgs() << "type to generate: " << ty << '\n');
-  bool saveTypeMode = typeMode;
-  typeMode = true;
-  bool res = TraverseType(ty);
+  QuakeBridgeVisitor vis(*this);
+  vis.typeMode = true;
+  bool res = vis.TraverseType(ty);
   if (!res)
     TODO("type conversion to MLIR type");
-  typeMode = saveTypeMode;
-  return popType();
+  return vis.popType();
 }
 
 std::optional<FunctionType>
