@@ -23,7 +23,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
 
     steps:
       - name: Checkout repository
@@ -75,6 +74,6 @@ jobs:
             image: cuda-quantum-devenv
             run: |
                 cd /workspaces/cuda-quantum
-                bash scripts/build_cudaq.sh
+                bash scripts/build_cudaq.sh -v
                 ctest --output-on-failure --test-dir build -E ctest-nvqpp
                 /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
