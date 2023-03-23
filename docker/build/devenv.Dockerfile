@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 # This file builds the development environment that contains the necessary development 
-# dependencies for building and testing QODA. This does not include the CUDA, OpenMPI 
+# dependencies for building and testing CUDA Quantum. This does not include the CUDA, OpenMPI 
 # and other dependencies that some of the simulator backends require. These backends
 # will be omitted from the build if this environment is used.
 #
@@ -73,7 +73,6 @@ FROM ubuntu:22.04 as doxygenbuild
 RUN apt update && apt install -y wget unzip make cmake flex bison gcc g++ python3 \
     && wget https://github.com/doxygen/doxygen/archive/9a5686aeebff882ebda518151bc5df9d757ea5f7.zip -q -O repo.zip \
     && unzip repo.zip && mv doxygen* repo && rm repo.zip \
-    && export CMAKE_BUILD_PARALLEL_LEVEL=1 \
     && cmake -G "Unix Makefiles" repo && cmake --build . --target install --config Release \
     && rm -rf repo && apt-get remove -y wget unzip make cmake flex bison gcc g++ python3 \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
