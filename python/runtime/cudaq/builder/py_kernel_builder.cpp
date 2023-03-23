@@ -292,6 +292,13 @@ void bindKernel(py::module &mod) {
           "  kernel, qubit_count = cudaq.make_kernel(int)\n"
           "  # Allocate the variable number of qubits.\n"
           "  qubits = kernel.qalloc(qubit_count)\n")
+      /// @brief Bind the qubit reset method.
+      .def(
+          "reset",
+          [](kernel_builder<> &self, QuakeValue &qubitOrQreg) {
+            self.reset(qubitOrQreg);
+          },
+          "Reset the provide qubit or qubits.")
       /// @brief Allow for JIT compilation of kernel in python via call to
       /// `builder(args)`.
       .def(

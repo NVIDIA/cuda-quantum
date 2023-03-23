@@ -170,6 +170,8 @@ CUDAQ_DETAILS_MEASURE_DECLARATION(mx)
 CUDAQ_DETAILS_MEASURE_DECLARATION(my)
 CUDAQ_DETAILS_MEASURE_DECLARATION(mz)
 
+void reset(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQreg);
+
 void c_if(ImplicitLocOpBuilder &builder, QuakeValue &conditional,
           std::function<void()> &thenFunctor);
 
@@ -450,6 +452,9 @@ public:
   CUDAQ_BUILDER_ADD_MEASURE(mx)
   CUDAQ_BUILDER_ADD_MEASURE(my)
   CUDAQ_BUILDER_ADD_MEASURE(mz)
+
+  /// @brief Reset the given qubit or qubits.
+  void reset(QuakeValue &qubit) { details::reset(*opBuilder, qubit); }
 
   /// @brief Apply a conditional statement on a
   /// measure result, if true apply the thenFunctor.

@@ -324,3 +324,33 @@ CUDAQ_TEST(BuilderTester, checkKernelAdjoint) {
   EXPECT_EQ(counts.size(), 1);
   EXPECT_EQ(counts.begin()->first, "1");
 }
+
+CUDAQ_TEST(BuilderTester, checkReset) {
+  {
+    auto entryPoint = cudaq::make_kernel();
+    auto q = entryPoint.qalloc();
+    entryPoint.x(q);
+    entryPoint.reset(q);
+    entryPoint.mz(q);
+    printf("%s\n", entryPoint.to_quake().c_str());
+
+    auto counts = cudaq::sample(entryPoint);
+    counts.dump();
+    EXPECT_EQ(counts.size(), 1);
+    EXPECT_EQ(counts.begin()->first, "0");
+  }
+  {
+    auto entryPoint = cudaq::make_kernel();
+    auto q = entryPoint.qalloc(2);
+    entryPoint.x(q);
+    // For now, don't allow reset on qvec.
+    entryPoint.reset(q);
+    entryPoint.mz(q);
+    printf("%s\n", entryPoint.to_quake().c_str());
+
+    auto counts = cudaq::sample(entryPoint);
+    counts.dump();
+    EXPECT_EQ(counts.size(), 1);
+    EXPECT_EQ(counts.begin()->first, "00");
+  }
+}
