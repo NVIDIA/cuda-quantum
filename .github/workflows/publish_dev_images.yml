@@ -20,7 +20,7 @@ env:
   # ${{ github.repository }} is causing issue because NVIDIA is capitalized
   IMAGE_NAME: nvidia/cuda-quantum-devdeps
   TOOLCHAIN: gcc11
-  CACHE_NAME: buildx # FIXME
+  CACHE_NAME: cuda-quantum-devdeps-gcc11
 
 jobs:
   build-image:
@@ -59,23 +59,22 @@ jobs:
       - name: Set up buildx runner
         uses: docker/setup-buildx-action@v2
 
-      - name: Build Docker image
+      - name: Build dev environment image
         uses: docker/build-push-action@v4
         with:
           context: .
           file: ./docker/build/devenv.Dockerfile
           build-args: |
               toolchain=${{ env.TOOLCHAIN }}
-          #push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.metadata.outputs.tags }}
-          labels: ${{ steps.metadata.outputs.labels }}
-          platforms: linux/amd64
-          #cache-from: type=registry,ref=user/app:buildcache
-          #cache-to: type=registry,ref=user/app:buildcache,mode=max
-          # The GitHub Cache API supports a maximum of 10 GB for the entire repository
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
           load: true
+          tags: ${{ env.TOOLCHAIN }}-latest
+          platforms: linux/amd64
+          cache-from: |
+            type=gha,scope=${{ env.GITHUB_REF_NAME  }}-${{ env.CACHE_NAME }}
+            type=gha,scope=${{ env.CACHE_NAME }}
+            type=gha # FIXME: REMOVE
+          cache-to: |
+            type=gha,mode=max,scope=${{ env.GITHUB_REF_NAME  }}-${{ env.CACHE_NAME }}
 
       - name: Create dev environment container
         run: |
@@ -85,9 +84,22 @@ jobs:
         uses: addnab/docker-run-action@v3
         with:
             image: cuda-quantum-devenv
-            options: -v ${{ github.workspace }}:/var/www
             run: |
                 cd /workspaces/cuda-quantum
                 bash scripts/build_cudaq.sh
                 ctest --output-on-failure --test-dir build -E ctest-nvqpp
                 /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
+
+      - name: Push dev environment image to registry
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./docker/build/devenv.Dockerfile
+          build-args: |
+              toolchain=${{ env.TOOLCHAIN }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
