@@ -23,10 +23,8 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - uses: ./.github/workflows/load_devenv.yml
+      - uses: nvidia/cuda-quantum/.github/workflows/load_devenv.yml@${{ env.GITHUB_SHA }}
+        # ./.github/workflows/load_devenv.yml
         with:
           toolchain: ${{ inputs.toolchain }}
           cache_name: ${{ env.GITHUB_REF_NAME  }}-cuda-quantum-devdeps-${{ inputs.toolchain }}
