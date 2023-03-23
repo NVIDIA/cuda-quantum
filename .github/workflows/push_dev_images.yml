@@ -14,12 +14,12 @@ env:
 
 jobs:
   update-devenv-cache:
+    if: github.event.pull_request.merged == true
     uses: ./.github/workflows/load_devenv.yml
     with:
       toolchain: ${{ inputs.toolchain }}
       cache_name: ${{ env.cache_name }}
       full_image_name: ${{ env.registry }}/${{ env.image_name }}
-    if: github.event.pull_request.merged == true
 
   push-devenv-image:
     if: github.event.pull_request.merged == true

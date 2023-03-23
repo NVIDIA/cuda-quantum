@@ -23,8 +23,7 @@ jobs:
       contents: read
 
     steps:
-      - name: Set up dev environment
-        uses: ./.github/workflows/load_devenv.yml
+      - uses: ./.github/workflows/load_devenv.yml
         with:
           toolchain: ${{ inputs.toolchain }}
           cache_name: ${{ env.GITHUB_REF_NAME  }}-cuda-quantum-devdeps-${{ inputs.toolchain }}
