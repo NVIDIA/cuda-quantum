@@ -13,34 +13,9 @@ env:
   registry: ghcr.io
 
 jobs:
-  load-devenv:
+  load_devenv:
     uses: ./.github/workflows/load_devenv.yml
     with:
       toolchain: ${{ inputs.toolchain }}
       cache_name: ${{ env.GITHUB_REF_NAME  }}-cuda-quantum-devdeps-${{ inputs.toolchain }}
       full_image_name: ${{ env.registry }}/${{ env.image_name }}
-
-  run_ci:
-    runs-on: ubuntu-latest
-    needs: load-devenv
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Create dev environment container
-        run: |
-          docker load --input ${{ needs.load-devenv.outputs.dev-dependencies }}
-          docker build -t cuda-quantum-devenv -f .devcontainer/Dockerfile . --build-arg environment=${{ env.registry }}/${{ env.image_name }}:${{ inputs.toolchain }}-latest --build-arg workspace=. --build-arg destination=workspaces/cuda-quantum
-
-      - name: Build CUDA Quantum and run tests
-        uses: addnab/docker-run-action@v3
-        with:
-            image: cuda-quantum-devenv
-            run: |
-                cd /workspaces/cuda-quantum
-                bash scripts/build_cudaq.sh -v
-                ctest --output-on-failure --test-dir build -E ctest-nvqpp
-                /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
