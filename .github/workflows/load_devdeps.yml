@@ -74,6 +74,12 @@ jobs:
             type=gha,mode=max,scope=${{ inputs.cache_name }}
           outputs: type=docker,dest=/tmp/devdeps.tar
 
+      - name: Cache dev environment image
+        uses: actions/cache/save@v3
+        with:
+          path: /tmp/devdeps.tar
+          key: ${{ inputs.cache_name }}-tar
+
       - name: Upload image as artifact
         uses: actions/upload-artifact@v3
         if: inputs.tar_artifact != ''
