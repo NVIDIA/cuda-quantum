@@ -27,12 +27,9 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
 
       - name: Create dev environment container
         run: |
-          docker load --input ${{ needs.load-devenv.outputs.dev-dependencies }}
           docker build -t cuda-quantum-devenv -f .devcontainer/Dockerfile . --build-arg environment=${{ env.registry }}/${{ env.image_name }}:${{ inputs.toolchain }}-latest --build-arg workspace=. --build-arg destination=workspaces/cuda-quantum
 
       - name: Build CUDA Quantum and run tests
