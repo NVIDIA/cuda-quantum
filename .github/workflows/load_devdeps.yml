@@ -72,7 +72,8 @@ jobs:
             type=gha,scope=cuda-quantum-devdeps-${{ inputs.toolchain }}
           cache-to: |
             type=gha,mode=max,scope=${{ inputs.cache_name }}
-          outputs: type=docker,dest=/tmp/devdeps.tar      - name: Cache dev environment image
+          outputs: type=docker,dest=/tmp/devdeps.tar      
+          
       - name: Cache dev environment image
         uses: actions/cache/save@v3
         with:
