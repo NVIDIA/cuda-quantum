@@ -10,6 +10,10 @@ on:
       full_image_name:
         required: true
         type: string
+    outputs:
+      devdeps:
+        description: "A tar file containing the dev environment image"
+        value: ${{ jobs.load_devenv.outputs.devdeps }}
 
 name: Load or build the dev environment image
 
@@ -61,4 +65,4 @@ jobs:
           cache-to: |
             type=gha,mode=max,scope=${{ inputs.cache_name }}
           outputs: 
-            dev-dependencies: type=docker,dest=/tmp/devdeps.tar
+            devdeps: type=docker,dest=/tmp/devdeps.tar
