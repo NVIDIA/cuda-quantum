@@ -9,9 +9,8 @@ name: Run CI within the dev environment container
 
 env:
   # ${{ github.repository }} is causing issue because NVIDIA is capitalized
-  image_name: nvidia/cuda-quantum-devdeps
-  cache_name: cuda-quantum-devdeps-${{ inputs.toolchain }}
-  registry: ghcr.io
+  full_image_name: ghcr.io/nvidia/cuda-quantum-devdeps
+  default_cache_name: cuda-quantum-devdeps-${{ inputs.toolchain }}
 
 jobs:
   run_ci:
@@ -30,7 +29,7 @@ jobs:
         id: metadata
         uses: docker/metadata-action@v4
         with:
-          images: ${{ env.registry }}/${{ env.image_name }}
+          images: ${{ env.full_image_name }}
           flavor: |
             latest=true
             prefix=${{ inputs.toolchain }}-,onlatest=true
@@ -48,8 +47,8 @@ jobs:
           file: ./docker/build/devenv.Dockerfile
           build-args: |
               toolchain=${{ inputs.toolchain }}
-          push: false
           load: true
+          push: false
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: linux/amd64
@@ -61,7 +60,7 @@ jobs:
 
       - name: Create dev environment container
         run: |
-          docker build -t cuda-quantum-devenv -f .devcontainer/Dockerfile . --build-arg environment=${{ env.registry }}/${{ env.image_name }}:${{ inputs.toolchain }}-latest --build-arg workspace=. --build-arg destination=workspaces/cuda-quantum
+          docker build -t cuda-quantum-devenv -f .devcontainer/Dockerfile . --build-arg environment=${{ env.full_image_name }}:${{ inputs.toolchain }}-latest --build-arg workspace=. --build-arg destination=workspaces/cuda-quantum
 
       - name: Build CUDA Quantum and run tests
         uses: addnab/docker-run-action@v3
