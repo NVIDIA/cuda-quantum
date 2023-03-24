@@ -7,20 +7,14 @@ on:
 
 name: Run CI within the dev environment container
 
-env:
-  image_name: nvidia/cuda-quantum-devdeps
-  cache_name: ${{ github.ref_name  }}-${{ env.image_name }}-${{ inputs.toolchain }}
-  tar_artifact: ${{ inputs.toolchain }}-devdeps.tar
-
 jobs:
   set_up:
     uses: ./.github/workflows/load_devdeps.yml
     with:
       toolchain: ${{ inputs.compiler }}
-      cache_name: ${{ env.cache_name }}
-      image_name: ${{ env.image_name }}
-      tar_artifact: ${{ env.tar_artifact }}
-
+      cache_name: ${{ github.ref_name  }}-cuda-quantum-devdeps-${{ inputs.compiler }}
+      image_name: nvidia/cuda-quantum-devdeps
+      tar_artifact: ${{ inputs.compiler }}-devdeps.tar
   run_ci:
     runs-on: ubuntu-latest
     needs: set_up
@@ -34,7 +28,7 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v3
         with:
-          name: ${{ env.tar_artifact }}
+          name: ${{ github.ref_name  }}-cuda-quantum-devdeps-${{ inputs.compiler }}
           path: /tmp
 
       - name: Create dev environment container

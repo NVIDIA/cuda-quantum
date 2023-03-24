@@ -16,7 +16,6 @@ concurrency:
 env:
   registry: ghcr.io
   image_name: nvidia/cuda-quantum-devdeps
-  cache_name: ${{ env.image_name }}-${{ inputs.toolchain }}
 
 jobs:
   devdeps_gcc11:
@@ -24,7 +23,7 @@ jobs:
     if: github.event.pull_request.merged == true
     with:
       toolchain: gcc11
-      cache_name: ${{ env.cache_name }}
+      cache_name: ${{ env.image_name }}-gcc11
       image_name: ${{ env.image_name }}
       container_registry: ${{ env.registry }}
 
@@ -33,6 +32,6 @@ jobs:
     if: github.event.pull_request.merged == true
     with:
       toolchain: clang15
-      cache_name: ${{ env.cache_name }}
+      cache_name: ${{ env.image_name }}-clang15
       image_name: ${{ env.image_name }}
       container_registry: ${{ env.registry }}
