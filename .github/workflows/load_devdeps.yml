@@ -72,12 +72,11 @@ jobs:
             type=gha,scope=cuda-quantum-devdeps-${{ inputs.toolchain }}
           cache-to: |
             type=gha,mode=max,scope=${{ inputs.cache_name }}
-          outputs: type=docker,dest=/tmp/devdeps-${{ inputs.toolchain }}.tar
-
+          outputs: type=docker,dest=/tmp/devdeps.tar      - name: Cache dev environment image
       - name: Cache dev environment image
         uses: actions/cache/save@v3
         with:
-          path: /tmp/devdeps-${{ inputs.toolchain }}.tar
+          path: /tmp/devdeps.tar
           key: ${{ github.sha }}-devdeps-${{ inputs.toolchain }}-tar
 
       - name: Upload image as artifact
