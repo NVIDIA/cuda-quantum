@@ -15,7 +15,7 @@ jobs:
   set_up:
     uses: ./.github/workflows/load_devenv.yml
     with:
-      toolchain: ${{ inputs.toolchain }}
+      compiler: ${{ inputs.toolchain }}
       full_image_name: ${{ env.full_image_name }}
 
   run_ci:

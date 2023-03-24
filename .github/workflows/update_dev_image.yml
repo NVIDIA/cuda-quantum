@@ -1,7 +1,7 @@
 on:
   workflow_call:
     inputs:
-      toolchain:
+      compiler:
         required: true
         type: string
 
