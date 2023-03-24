@@ -22,7 +22,7 @@ on:
 name: Load or build the dev environment image
 
 env:
-  default_cache_name: ${{ inputs.image_name }}-${{ inputs.toolchain }}
+  default_cache_name: cuda-quantum-devdeps-${{ inputs.toolchain }}
   tarball_name: devdeps.tar
 
 jobs:
