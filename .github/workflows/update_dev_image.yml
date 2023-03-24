@@ -15,7 +15,6 @@ jobs:
     uses: ./.github/workflows/load_devenv.yml
     with:
       toolchain: ${{ inputs.toolchain }}
-      cache_name: ${{ env.cache_name }}
       full_image_name: ${{ env.registry }}/${{ env.image_name }}
 
   push_devenv_image:

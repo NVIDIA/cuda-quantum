@@ -4,9 +4,6 @@ on:
       toolchain:
         required: true
         type: string
-      cache_name:
-        required: true
-        type: string
       full_image_name:
         required: true
         type: string
@@ -19,6 +16,7 @@ name: Load or build the dev environment image
 
 env:
   default_cache_name: cuda-quantum-devdeps-${{ inputs.toolchain }}
+  cache_name: ${{ github.ref_name  }}-cuda-quantum-devdeps-${{ inputs.toolchain }}
 
 jobs:
   load_devenv:
@@ -60,9 +58,9 @@ jobs:
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: linux/amd64
           cache-from: |
-            type=gha,scope=${{ inputs.cache_name }}
+            type=gha,scope=${{ env.cache_name }}
             type=gha,scope=${{ env.default_cache_name }}
           cache-to: |
-            type=gha,mode=max,scope=${{ inputs.cache_name }}
+            type=gha,mode=max,scope=${{ env.cache_name }}
           outputs: 
             devdeps: type=docker,dest=/tmp/devdeps.tar

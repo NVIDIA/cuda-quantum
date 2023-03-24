@@ -16,7 +16,6 @@ jobs:
     uses: ./.github/workflows/load_devenv.yml
     with:
       toolchain: ${{ inputs.toolchain }}
-      cache_name: ${{ github.ref_name  }}-cuda-quantum-devdeps-${{ inputs.toolchain }}
       full_image_name: ${{ env.full_image_name }}
 
   run_ci:
