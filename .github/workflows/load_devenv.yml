@@ -58,3 +58,11 @@ jobs:
             type=gha,scope=cuda-quantum-devdeps-${{ inputs.toolchain }}
           cache-to: |
             type=gha,mode=max,scope=${{ inputs.cache_name }}
+          outputs: type=docker,dest=/tmp/devdeps.tar
+
+      - name: Upload image as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ inputs.cache_name }}
+          path: /tmp/devdeps.tar
+          retention-days: 1
