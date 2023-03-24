@@ -35,7 +35,7 @@ jobs:
       - name: Create dev environment container
         run: |
           docker load --input /tmp/devdeps.tar
-          docker build -t cuda-quantum-devdeps -f .devcontainer/Dockerfile . --build-arg environment=nvidia/cuda-quantum-devdeps:${{ inputs.compiler }}-latest --build-arg workspace=. --build-arg destination=workspaces/cuda-quantum
+          docker build -t cuda-quantum-devdeps -f .devcontainer/Dockerfile . --build-arg tag=${{ inputs.compiler }}-latest --build-arg workspace=. --build-arg destination=workspaces/cuda-quantum
 
       - name: Build CUDA Quantum and run tests
         uses: addnab/docker-run-action@v3

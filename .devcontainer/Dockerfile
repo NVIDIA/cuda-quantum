@@ -10,8 +10,8 @@
 # CUDA dependencies to develop GPU-based components. 
 # You may hence see a message along the lines of "no GPU detected" during the 
 # CUDA Quantum build. Please install CUDA to enable developing these components.
-ARG environment=ghcr.io/nvidia/cuda-quantum-devdeps:llvm-latest
-FROM "$environment"
+ARG tag=llvm-latest
+FROM ghcr.io/nvidia/cuda-quantum-devdeps:$tag
 
 ARG workspace=.
 ARG destination=workspaces/host
