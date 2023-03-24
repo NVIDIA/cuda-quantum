@@ -15,13 +15,9 @@ jobs:
   run_ci_gcc11:
     uses: ./.github/workflows/test_in_devenv.yml
     with:
-      toolchain: gcc11
-      full_image_name: ghcr.io/nvidia/cuda-quantum-devdeps
-      cache_name: ${{ github.ref_name  }}-cuda-quantum-devdeps-${{ inputs.toolchain }}
+      compiler: gcc11
 
   run_ci_clang15:
     uses: ./.github/workflows/test_in_devenv.yml
     with:
-      toolchain: clang15
-      full_image_name: ghcr.io/nvidia/cuda-quantum-devdeps
-      cache_name: ${{ github.ref_name  }}-cuda-quantum-devdeps-${{ inputs.toolchain }}
+      compiler: clang15
