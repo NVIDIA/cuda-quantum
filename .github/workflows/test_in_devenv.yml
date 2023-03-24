@@ -7,13 +7,19 @@ on:
 
 name: Run CI within the dev environment container
 
+env:
+  image_name: nvidia/cuda-quantum-devdeps
+  cache_name: ${{ github.ref_name  }}-${{ env.image_name }}-${{ inputs.toolchain }}
+  tar_artifact: ${{ inputs.toolchain }}-devdeps.tar
+
 jobs:
   set_up:
-    uses: ./.github/workflows/load_devenv.yml
+    uses: ./.github/workflows/load_devdeps.yml
     with:
       toolchain: ${{ inputs.compiler }}
-      cache_name: ${{ github.ref_name  }}-cuda-quantum-devdeps-${{ inputs.compiler }}
-      full_image_name: ghcr.io/nvidia/cuda-quantum-devdeps
+      cache_name: ${{ env.cache_name }}
+      image_name: ${{ env.image_name }}
+      tar_artifact: ${{ env.tar_artifact }}
 
   run_ci:
     runs-on: ubuntu-latest
@@ -28,18 +34,18 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v3
         with:
-          name: ${{ github.ref_name  }}-cuda-quantum-devdeps-${{ inputs.compiler }}
+          name: ${{ env.tar_artifact }}
           path: /tmp
 
       - name: Create dev environment container
         run: |
           docker load --input /tmp/devdeps.tar
-          docker build -t cuda-quantum-devenv -f .devcontainer/Dockerfile . --build-arg environment=${{ env.full_image_name }}:${{ inputs.compiler }}-latest --build-arg workspace=. --build-arg destination=workspaces/cuda-quantum
+          docker build -t cuda-quantum-devdeps -f .devcontainer/Dockerfile . --build-arg environment=${{ env.full_image_name }}:${{ inputs.compiler }}-latest --build-arg workspace=. --build-arg destination=workspaces/cuda-quantum
 
       - name: Build CUDA Quantum and run tests
         uses: addnab/docker-run-action@v3
         with:
-            image: cuda-quantum-devenv
+            image: cuda-quantum-devdeps
             run: |
                 cd /workspaces/cuda-quantum
                 bash scripts/build_cudaq.sh -v

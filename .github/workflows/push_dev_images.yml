@@ -13,15 +13,26 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.base.ref }}
   cancel-in-progress: true
 
+env:
+  registry: ghcr.io
+  image_name: nvidia/cuda-quantum-devdeps
+  cache_name: ${{ env.image_name }}-${{ inputs.toolchain }}
+
 jobs:
-  devenv_gcc11:
-    uses: ./.github/workflows/update_dev_image.yml
+  devdeps_gcc11:
+    uses: ./.github/workflows/load_devdeps.yml
     if: github.event.pull_request.merged == true
     with:
       toolchain: gcc11
+      cache_name: ${{ env.cache_name }}
+      image_name: ${{ env.image_name }}
+      container_registry: ${{ env.registry }}
 
-  devenv_clang15:
-    uses: ./.github/workflows/update_dev_image.yml
+  devdeps_clang15:
+    uses: ./.github/workflows/load_devdeps.yml
     if: github.event.pull_request.merged == true
     with:
       toolchain: clang15
+      cache_name: ${{ env.cache_name }}
+      image_name: ${{ env.image_name }}
+      container_registry: ${{ env.registry }}
