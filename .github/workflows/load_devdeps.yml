@@ -49,7 +49,6 @@ jobs:
 
       - name: Log in to the GitHub container registry
         uses: docker/login-action@v2
-        if: inputs.container_registry == ghcr.io
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
