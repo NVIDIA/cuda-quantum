@@ -10,10 +10,6 @@ on:
       full_image_name:
         required: true
         type: string
-    outputs:
-      devdeps:
-        description: "A tar file containing the dev environment image"
-        value: ${{ jobs.load_devenv.outputs.devdeps }}
 
 name: Load or build the dev environment image
 
@@ -53,6 +49,7 @@ jobs:
           build-args: |
               toolchain=${{ inputs.toolchain }}
           push: false
+          load: false
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: linux/amd64
@@ -61,5 +58,3 @@ jobs:
             type=gha,scope=cuda-quantum-devdeps-${{ inputs.toolchain }}
           cache-to: |
             type=gha,mode=max,scope=${{ inputs.cache_name }}
-          outputs: 
-            devdeps: type=docker,dest=/tmp/devdeps.tar
