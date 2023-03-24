@@ -46,4 +46,4 @@ jobs:
               /repos/nvidia/cuda-quantum/actions/caches?key=$key
           done
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.CLA_BOT_ACCESS_TOKEN }}
