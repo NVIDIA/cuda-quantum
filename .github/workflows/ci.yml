@@ -21,3 +21,16 @@ jobs:
     uses: ./.github/workflows/test_in_devenv.yml
     with:
       compiler: clang15
+
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+        
+      - name: Cleanup
+        run: |
+          gh extension install actions/gh-actions-cache
+          gh actions-cache delete $cacheKey --key ${{ github.sha }} --confirm
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
