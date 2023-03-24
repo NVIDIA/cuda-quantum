@@ -52,7 +52,6 @@ jobs:
           build-args: |
               toolchain=${{ inputs.toolchain }}
           push: false
-          load: true
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: linux/amd64
@@ -61,3 +60,5 @@ jobs:
             type=gha,scope=${{ env.default_cache_name }}
           cache-to: |
             type=gha,mode=max,scope=${{ inputs.cache_name }}
+          outputs: 
+            dev-dependencies: type=docker,dest=/tmp/devdeps.tar
