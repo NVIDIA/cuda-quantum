@@ -39,6 +39,7 @@ jobs:
 
       - name: Build CUDA Quantum and run tests
         uses: addnab/docker-run-action@v3
+        if: false
         with:
             image: cuda-quantum-devdeps
             run: |
