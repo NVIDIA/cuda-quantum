@@ -136,8 +136,15 @@ LinkedLibraryHolder::~LinkedLibraryHolder() {
 
 std::vector<std::string> LinkedLibraryHolder::list_qpus() const {
   std::vector<std::string> ret;
-  for (auto &[name, ptr] : simulators)
-    ret.push_back(name);
+  for (auto &[name, ptr] : simulators) {
+    if (name.find("custatevec") != std::string::npos) {
+      auto tmp = name;
+      tmp = std::regex_replace(tmp, std::regex("custatevec"), "cuquantum");
+      ret.push_back(tmp);
+    } else if (name != "tensornet") {
+      ret.push_back(name);
+    }
+  }
   return ret;
 }
 
@@ -145,6 +152,8 @@ bool LinkedLibraryHolder::hasQPU(const std::string &name) const {
   std::string mutableName = name;
   if (name == "cuquantum")
     mutableName = "custatevec";
+  if (name == "cuquantum_f32")
+    mutableName = "custatevec_f32";
   return simulators.find(mutableName) != simulators.end();
 }
 
@@ -155,8 +164,9 @@ void LinkedLibraryHolder::setQPU(const std::string &name,
         "The tensornet simulator is not available in Python.");
 
   std::string mutableName = name;
-  if (name == "cuquantum")
-    mutableName = "custatevec";
+  if (name.find("cuquantum") != std::string::npos)
+    mutableName =
+        std::regex_replace(mutableName, std::regex("cuquantum"), "custatevec");
 
   // Set the simulator if we find it
   auto iter = simulators.find(mutableName);
