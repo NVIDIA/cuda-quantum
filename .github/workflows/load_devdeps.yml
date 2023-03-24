@@ -13,17 +13,24 @@ on:
       tar_artifact:
         required: false
         type: string
+        default: ''
       container_registry:
         required: false
         type: string
+        default: ''
 
 name: Load or build the dev environment image
+
+env:
+  default_cache_name: ${{ inputs.image_name }}-${{ inputs.toolchain }}
+  tarball_name: devdeps.tar
 
 jobs:
   devdeps:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      packages: write
 
     steps:
       - name: Checkout repository
@@ -36,7 +43,7 @@ jobs:
         id: metadata
         uses: docker/metadata-action@v4
         with:
-          images: ghcr.io/${{ inputs.image_name }}
+          images: ${{ inputs.container_registry || 'ghcr.io' }}/${{ inputs.image_name }}
           flavor: |
             latest=true
             prefix=${{ inputs.toolchain }}-,onlatest=true
@@ -47,10 +54,11 @@ jobs:
             type=ref,enable=true,prefix=${{ inputs.toolchain }}-pr-,event=pr
             type=ref,enable=true,event=tag
 
-      - name: Log in to the GitHub container registry
+      - name: Log in to the container registry
         uses: docker/login-action@v2
+        if: inputs.container_registry != ''
         with:
-          registry: ghcr.io
+          registry: ${{ inputs.container_registry }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
@@ -61,21 +69,21 @@ jobs:
           file: ./docker/build/devdeps.Dockerfile
           build-args: |
               toolchain=${{ inputs.toolchain }}
-          push: false
+          push: ${{ inputs.container_registry != '' }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: linux/amd64
           cache-from: |
             type=gha,scope=${{ inputs.cache_name }}
-            type=gha,scope=cuda-quantum-devdeps-${{ inputs.toolchain }}
+            type=gha,scope=${{ env.default_cache_name }}
           cache-to: |
             type=gha,mode=max,scope=${{ inputs.cache_name }}
-          outputs: type=docker,dest=/tmp/devdeps.tar
+          outputs: type=docker,dest=/tmp/${{ env.tarball_name }}
 
       - name: Upload image as artifact
         uses: actions/upload-artifact@v3
         if: inputs.tar_artifact != ''
         with:
           name: ${{ inputs.tar_artifact }}
-          path: /tmp/devdeps.tar
+          path: /tmp/${{ env.tarball_name }}
           retention-days: 1
