@@ -52,7 +52,7 @@ jobs:
         uses: docker/login-action@v2
         if: inputs.container_registry == ghcr.io
         with:
-          registry: ${{ env.registry }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
