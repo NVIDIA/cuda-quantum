@@ -13,17 +13,11 @@ on:
       tar_artifact:
         required: false
         type: string
-        default: ''
       container_registry:
         required: false
         type: string
-        default: ''
 
 name: Load or build the dev environment image
-
-env:
-  default_cache_name: cuda-quantum-devdeps-${{ inputs.toolchain }}
-  tarball_name: devdeps.tar
 
 jobs:
   devdeps:
@@ -75,15 +69,15 @@ jobs:
           platforms: linux/amd64
           cache-from: |
             type=gha,scope=${{ inputs.cache_name }}
-            type=gha,scope=${{ env.default_cache_name }}
+            type=gha,scope=cuda-quantum-devdeps-${{ inputs.toolchain }}
           cache-to: |
             type=gha,mode=max,scope=${{ inputs.cache_name }}
-          outputs: type=docker,dest=/tmp/${{ env.tarball_name }}
+          outputs: type=docker,dest=/tmp/devdeps.tar
 
       - name: Upload image as artifact
         uses: actions/upload-artifact@v3
         if: inputs.tar_artifact != ''
         with:
           name: ${{ inputs.tar_artifact }}
-          path: /tmp/${{ env.tarball_name }}
+          path: /tmp/devdeps.tar
           retention-days: 1
