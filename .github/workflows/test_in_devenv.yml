@@ -10,7 +10,7 @@ name: Run CI within the dev environment container
 env:
   # ${{ github.repository }} is causing issue because NVIDIA is capitalized
   full_image_name: ghcr.io/nvidia/cuda-quantum-devdeps
-  cache_name: ${{ env.GITHUB_REF_NAME  }}-cuda-quantum-devdeps-${{ inputs.toolchain }}
+  cache_name: ${{ github.ref_name  }}-cuda-quantum-devdeps-${{ inputs.toolchain }}
   default_cache_name: cuda-quantum-devdeps-${{ inputs.toolchain }}
 
 jobs:
