@@ -13,11 +13,9 @@ on:
       tar_artifact:
         required: false
         type: string
-        default: ''
       container_registry:
         required: false
         type: string
-        default: ''
 
 name: Load or build the dev environment image
 
@@ -39,7 +37,7 @@ jobs:
         id: metadata
         uses: docker/metadata-action@v4
         with:
-          images: ${{ inputs.container_registry || 'ghcr.io' }}/${{ inputs.image_name }}
+          images: ghcr.io/${{ inputs.image_name }}
           flavor: |
             latest=true
             prefix=${{ inputs.toolchain }}-,onlatest=true
@@ -65,7 +63,7 @@ jobs:
           file: ./docker/build/devdeps.Dockerfile
           build-args: |
               toolchain=${{ inputs.toolchain }}
-          push: ${{ inputs.container_registry != '' }}
+          push: false
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: linux/amd64
