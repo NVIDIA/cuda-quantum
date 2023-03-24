@@ -24,9 +24,7 @@ jobs:
 
   cleanup:
     runs-on: ubuntu-latest
-    needs: |
-      run_ci_gcc11
-      run_ci_clang15
+    needs: [run_ci_gcc11, run_ci_clang15]
     steps:
       - name: Check out code
         uses: actions/checkout@v3
