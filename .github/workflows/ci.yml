@@ -37,7 +37,7 @@ jobs:
           for key in $keys
           do
             echo "Deleting cache $key"
-            gh actions-cache delete $key --confirm
+            gh actions-cache delete $key -R ${{ github.repository }} --confirm
           done
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
