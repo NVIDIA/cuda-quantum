@@ -1,5 +1,9 @@
 on:
   workflow_dispatch:
+    inputs:
+      dump_build_environment:
+        type: boolean
+        description: Dump the build environment as tar artifact
   pull_request:
     branches:
       - 'main'
@@ -16,16 +20,22 @@ jobs:
     uses: ./.github/workflows/test_in_devenv.yml
     with:
       compiler: gcc11
+      dump_build_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.dump_build_environment }}
 
   run_ci_clang15:
     uses: ./.github/workflows/test_in_devenv.yml
     with:
       compiler: clang15
+      dump_build_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.dump_build_environment }}
 
   cleanup:
     permissions: write-all
     runs-on: ubuntu-latest
     needs: [run_ci_gcc11, run_ci_clang15]
+    # Unfortunately we need to skip this for PRs coming from 
+    # forks since these won't have permissions to delete caches.
+    # We rely on a scheduled job to clean up caches for these.
+    if: ${{ !github.event.pull_request.head.repo.fork }}
     steps:
       - name: Check out code
         uses: actions/checkout@v3
@@ -37,13 +47,7 @@ jobs:
           for key in $keys
           do
             echo "Deleting cache $key"
-            # gh actions-cache delete $key -R ${{ github.repository }} --confirm
-
-            gh api \
-              --method DELETE \
-              -H "Accept: application/vnd.github+json" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              /repos/nvidia/cuda-quantum/actions/caches?key=$key
+            gh actions-cache delete $key -R ${{ github.repository }} --confirm
           done
         env:
           GH_TOKEN: ${{ github.token }}

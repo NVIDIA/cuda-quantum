@@ -10,9 +10,6 @@ on:
       image_name:
         required: true
         type: string
-      tar_artifact:
-        required: false
-        type: string
       container_registry:
         required: false
         type: string
@@ -79,11 +76,3 @@ jobs:
         with:
           path: /tmp/devdeps.tar
           key: ${{ github.sha }}-devdeps-${{ inputs.toolchain }}-tar
-
-      - name: Upload image as artifact
-        uses: actions/upload-artifact@v3
-        if: inputs.tar_artifact != ''
-        with:
-          name: ${{ inputs.tar_artifact }}
-          path: /tmp/devdeps.tar
-          retention-days: 1

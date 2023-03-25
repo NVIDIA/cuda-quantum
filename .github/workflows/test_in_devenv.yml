@@ -4,6 +4,9 @@ on:
       compiler:
         required: true
         type: string
+      dump_build_environment:
+        required: false
+        type: boolean
 
 name: Run CI within the dev environment container
 
@@ -47,3 +50,11 @@ jobs:
                 bash scripts/build_cudaq.sh -v
                 ctest --output-on-failure --test-dir build -E ctest-nvqpp
                 /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
+
+      - name: Upload image as artifact
+        uses: actions/upload-artifact@v3
+        if: inputs.dump_build_environment
+        with:
+          name: ${{ inputs.compiler }}-build
+          path: /tmp/${{ inputs.compiler }}_build.tar
+          retention-days: 1
