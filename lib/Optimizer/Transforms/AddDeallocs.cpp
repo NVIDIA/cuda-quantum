@@ -11,6 +11,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Todo.h"
+#include "mlir/IR/Dominance.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"
 
@@ -118,10 +119,17 @@ private:
   bool hasErrors = false;
 };
 
+inline void generateDeallocsForSet(PatternRewriter &rewriter,
+                                   llvm::DenseSet<Operation *> &allocSet) {
+  for (Operation *a : allocSet)
+    rewriter.create<quake::DeallocOp>(a->getLoc(), cast<quake::AllocaOp>(a));
+}
+
 // The different rewrite cases involve the same work, but use different types.
 template <typename RET, typename OP>
 LogicalResult addDeallocations(OP wrapper, PatternRewriter &rewriter,
-                               const DeallocationAnalysisInfo &infoMap) {
+                               const DeallocationAnalysisInfo &infoMap,
+                               const DominanceInfo &domInfo) {
   rewriter.startRootUpdate(wrapper);
   llvm::DenseSet<Operation *> allocs;
   for (auto &[op, done] : infoMap.allocMap)
@@ -136,27 +144,45 @@ LogicalResult addDeallocations(OP wrapper, PatternRewriter &rewriter,
   LLVM_DEBUG(llvm::dbgs() << "adding deallocations to "
                           << wrapper.getOperation() << '\n');
 
-  // 1) Create an exit block to stick dealloc operation in.
+  // 1) Create an exit block to stick dealloc operations in.
   auto *exitBlock = new Block;
   exitBlock->addArguments(
       wrapper.getResultTypes(),
       SmallVector<Location>{wrapper.getNumResults(), wrapper.getLoc()});
   wrapper.getRegion().push_back(exitBlock);
 
-  // 2) Update all the RET ops (at top level) to branches to the exit block.
+  // 2) Update all the RET ops (at top level) to branches to the exit block
+  // when it is correct to do so. Otherwise, add the subset of deallocations
+  // inline before each RET op.
+  auto entireSetDominates = [&](RET ret) {
+    for (auto *alloc : allocs)
+      if (!domInfo.dominates(alloc, ret))
+        return false;
+    return true;
+  };
   for (Block &block : wrapper.getRegion())
     for (Operation &op : block)
       if (auto ret = dyn_cast<RET>(op)) {
-        rewriter.setInsertionPoint(ret);
-        rewriter.replaceOpWithNewOp<cf::BranchOp>(ret, exitBlock,
-                                                  ret.getOperands());
+        if (entireSetDominates(ret)) {
+          // Replace the RET op with a branch to the shared deallocation block.
+          rewriter.setInsertionPoint(ret);
+          rewriter.replaceOpWithNewOp<cf::BranchOp>(ret, exitBlock,
+                                                    ret.getOperands());
+        } else {
+          // Collect only the subset that dominates this RET op. Insert the
+          // deallocations directly in front of the RET op.
+          llvm::DenseSet<Operation *> subset;
+          for (auto *alloc : allocs)
+            if (domInfo.dominates(alloc, ret))
+              subset.insert(alloc);
+          rewriter.setInsertionPoint(ret);
+          generateDeallocsForSet(rewriter, subset);
+        }
       }
 
   // 3) Create the deallocations.
   rewriter.setInsertionPointToEnd(exitBlock);
-  for (auto *alloc : allocs)
-    rewriter.create<quake::DeallocOp>(alloc->getLoc(),
-                                      cast<quake::AllocaOp>(alloc));
+  generateDeallocsForSet(rewriter, allocs);
   rewriter.create<RET>(wrapper.getLoc(), exitBlock->getArguments());
 
   rewriter.finalizeRootUpdate(wrapper);
@@ -169,15 +195,17 @@ struct DeallocPattern : public OpRewritePattern<A> {
   using Base = OpRewritePattern<A>;
 
   explicit DeallocPattern(MLIRContext *ctx,
-                          const DeallocationAnalysisInfo &info)
-      : Base(ctx), infoMap(info) {}
+                          const DeallocationAnalysisInfo &info,
+                          const DominanceInfo &dom)
+      : Base(ctx), infoMap(info), domInfo(dom) {}
 
   LogicalResult matchAndRewrite(A op,
                                 PatternRewriter &rewriter) const override {
-    return addDeallocations<B>(op, rewriter, infoMap);
+    return addDeallocations<B>(op, rewriter, infoMap, domInfo);
   }
 
   const DeallocationAnalysisInfo &infoMap;
+  const DominanceInfo &domInfo;
 };
 
 using FuncDeallocPattern = DeallocPattern<func::FuncOp, func::ReturnOp>;
@@ -222,10 +250,11 @@ public:
       return;
     }
     auto *ctx = funcOp.getContext();
+    DominanceInfo dom(funcOp);
     RewritePatternSet patterns(ctx);
     patterns
         .insert<FuncDeallocPattern, ScopeDeallocPattern, LambdaDeallocPattern>(
-            ctx, allocInfo);
+            ctx, allocInfo, dom);
     ConversionTarget target(*ctx);
     target.addDynamicallyLegalOp<func::FuncOp, cudaq::cc::ScopeOp,
                                  cudaq::cc::CreateLambdaOp>(
