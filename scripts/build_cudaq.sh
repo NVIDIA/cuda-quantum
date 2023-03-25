@@ -83,7 +83,7 @@ fi
 cuda_version=`nvcc --version 2>/dev/null | grep -o 'release [0-9]*\.[0-9]*' | cut -d ' ' -f 2`
 cuda_major=`echo $cuda_version | cut -d '.' -f 1`
 cuda_minor=`echo $cuda_version | cut -d '.' -f 2`
-if [ ! -x "$(command -v nvidia-smi)" ] && [ "$COMPILE_GPU_BACKENDS" != "true" ] ; then # the second check here is to avoid having to use https://discuss.huggingface.co/t/how-to-deal-with-no-gpu-during-docker-build-time/28544 
+if [ ! -x "$(command -v nvidia-smi)" ] && [ "$FORCE_COMPILE_GPU_COMPONENTS" != "true" ] ; then # the second check here is to avoid having to use https://discuss.huggingface.co/t/how-to-deal-with-no-gpu-during-docker-build-time/28544 
   echo "No GPU detected - GPU backends will be omitted from the build."
   custatevec_flag=""
 elif [ "$cuda_version" = "" ] || [ "$cuda_major" -lt "11" ] || ([ "$cuda_minor" -lt "8" ] && [ "$cuda_major" -eq "11" ]); then

@@ -12,6 +12,7 @@ name: Run CI within the dev environment container
 
 jobs:
   set_up:
+    name: Load build dependencies
     uses: ./.github/workflows/load_devdeps.yml
     with:
       toolchain: ${{ inputs.compiler }}
@@ -19,6 +20,7 @@ jobs:
       cache_name: ${{ github.ref_name  }}-cuda-quantum-devdeps-${{ inputs.compiler }}
 
   run_ci:
+    name: Build and test CUDA Quantum
     runs-on: ubuntu-latest
     needs: set_up
     permissions:
@@ -40,18 +42,29 @@ jobs:
           docker load --input /tmp/devdeps.tar
           docker build -t cuda-quantum-devdeps -f .devcontainer/Dockerfile . --build-arg tag=${{ inputs.compiler }}-latest --build-arg workspace=. --build-arg destination=workspaces/cuda-quantum
 
-      - name: Build CUDA Quantum and run tests
+      - name: Build CUDA Quantum
         uses: addnab/docker-run-action@v3
-        if: false
         with:
             image: cuda-quantum-devdeps
             run: |
                 cd /workspaces/cuda-quantum
                 bash scripts/build_cudaq.sh -v
+
+      - name: Run tests in the dev environment
+        uses: addnab/docker-run-action@v3
+        with:
+            image: cuda-quantum-devdeps
+            run: |
+                cd /workspaces/cuda-quantum
                 ctest --output-on-failure --test-dir build -E ctest-nvqpp
                 /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
 
-      - name: Upload image as artifact
+      - name: Save the testing environment
+        if: inputs.dump_build_environment
+        run: |
+          docker export cuda-quantum-devdeps > /tmp/${{ inputs.compiler }}_build.tar
+
+      - name: Upload testing environment as artifact
         uses: actions/upload-artifact@v3
         if: inputs.dump_build_environment
         with:
