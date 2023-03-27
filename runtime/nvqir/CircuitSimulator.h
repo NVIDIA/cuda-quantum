@@ -241,13 +241,15 @@ protected:
   /// matrix describing the quantum operation, a set of
   /// possible control qubit indices, and a set of target indices.
   struct GateApplicationTask {
+    const std::string operationName;
     const std::vector<std::complex<ScalarType>> matrix;
     const std::vector<std::size_t> controls;
     const std::vector<std::size_t> targets;
-    GateApplicationTask(const std::vector<std::complex<ScalarType>> m,
+    GateApplicationTask(const std::string &name,
+                        const std::vector<std::complex<ScalarType>> m,
                         const std::vector<std::size_t> c,
                         const std::vector<std::size_t> t)
-        : matrix(m), controls(c), targets(t) {}
+        : operationName(name), matrix(m), controls(c), targets(t) {}
   };
 
   /// @brief The current queue of operations to execute
@@ -362,7 +364,7 @@ protected:
   /// quantum instruction, intended for logging purposes.
   std::string gateToString(const std::string_view gateName,
                            const std::vector<std::size_t> &controls,
-                           const std::vector<double> &parameters,
+                           const std::vector<ScalarType> &parameters,
                            const std::vector<std::size_t> &targets) {
     std::string angleStr = "";
     if (!parameters.empty()) {
@@ -447,10 +449,11 @@ protected:
   }
 
   /// @brief Enqueue a new gate application task
-  void enqueueGate(const std::vector<std::complex<ScalarType>> &matrix,
+  void enqueueGate(const std::string name,
+                   const std::vector<std::complex<ScalarType>> &matrix,
                    const std::vector<std::size_t> &controls,
                    const std::vector<std::size_t> &targets) {
-    gateQueue.emplace(matrix, controls, targets);
+    gateQueue.emplace(name, matrix, controls, targets);
   }
 
   /// @brief This pure virtual method is meant for subtypes
@@ -473,6 +476,13 @@ protected:
     while (!gateQueue.empty()) {
       auto &next = gateQueue.front();
       applyGate(next);
+      if (executionContext && executionContext->noiseModel) {
+        std::vector<std::size_t> noiseQubits{next.controls.begin(),
+                                             next.controls.end()};
+        noiseQubits.insert(noiseQubits.end(), next.targets.begin(),
+                           next.targets.end());
+        applyNoiseChannel(next.operationName, noiseQubits);
+      }
       gateQueue.pop();
     }
   }
@@ -661,34 +671,39 @@ public:
                                                        element.imag());
                      }
                    });
-    enqueueGate(actual, controls, targets);
+    enqueueGate("custom", actual, controls, targets);
+  }
+
+  template <typename QuantumOperation>
+  void enqueueQuantumOperation(const std::vector<ScalarType> &angles,
+                               const std::vector<std::size_t> &controls,
+                               const std::vector<std::size_t> &targets) {
+    flushAnySamplingTasks();
+    QuantumOperation gate;
+    cudaq::info(gateToString(gate.name(), controls, angles, targets));
+    enqueueGate(gate.name(), gate.getGate(angles), controls, targets);
+    if (executionContext && executionContext->noiseModel) {
+      std::vector<std::size_t> noiseQubits{controls.begin(), controls.end()};
+      noiseQubits.insert(noiseQubits.end(), targets.begin(), targets.end());
+      applyNoiseChannel(gate.name(), noiseQubits);
+    }
   }
 
 #define CIRCUIT_SIMULATOR_ONE_QUBIT(NAME)                                      \
   using CircuitSimulator::NAME;                                                \
   void NAME(const std::vector<std::size_t> &controls,                          \
             const std::size_t qubitIdx) override {                             \
-    flushAnySamplingTasks();                                                   \
-    nvqir::NAME<ScalarType> gate;                                              \
-    cudaq::info(gateToString(gate.name(), controls, {}, {qubitIdx}));          \
-    enqueueGate(gate.getGate(), controls, std::vector<std::size_t>{qubitIdx}); \
-    std::vector<std::size_t> noiseQubits{controls.begin(), controls.end()};    \
-    noiseQubits.push_back(qubitIdx);                                           \
-    applyNoiseChannel(gate.name(), noiseQubits);                               \
+    enqueueQuantumOperation<nvqir::NAME<ScalarType>>(                          \
+        {}, controls, std::vector<std::size_t>{qubitIdx});                     \
   }
 
 #define CIRCUIT_SIMULATOR_ONE_QUBIT_ONE_PARAM(NAME)                            \
   using CircuitSimulator::NAME;                                                \
   void NAME(const double angle, const std::vector<std::size_t> &controls,      \
             const std::size_t qubitIdx) override {                             \
-    flushAnySamplingTasks();                                                   \
-    nvqir::NAME<ScalarType> gate;                                              \
-    cudaq::info(gateToString(gate.name(), controls, {angle}, {qubitIdx}));     \
-    enqueueGate(gate.getGate(angle), controls,                                 \
-                std::vector<std::size_t>{qubitIdx});                           \
-    std::vector<std::size_t> noiseQubits{controls.begin(), controls.end()};    \
-    noiseQubits.push_back(qubitIdx);                                           \
-    applyNoiseChannel(gate.name(), noiseQubits);                               \
+    enqueueQuantumOperation<nvqir::NAME<ScalarType>>(                          \
+        {static_cast<ScalarType>(angle)}, controls,                            \
+        std::vector<std::size_t>{qubitIdx});                                   \
   }
 
   /// @brief The X gate
@@ -726,26 +741,22 @@ public:
   void u2(const double phi, const double lambda,
           const std::vector<std::size_t> &controls,
           const std::size_t qubitIdx) override {
-    flushAnySamplingTasks();
-    nvqir::u2<ScalarType> gate;
-    enqueueGate(gate.getGate(phi, lambda), controls,
-                std::vector<std::size_t>{qubitIdx});
-    std::vector<std::size_t> noiseQubits{controls.begin(), controls.end()};
-    noiseQubits.push_back(qubitIdx);
-    applyNoiseChannel(gate.name(), noiseQubits);
+    std::vector<ScalarType> tmp{static_cast<ScalarType>(phi),
+                                static_cast<ScalarType>(lambda)};
+
+    enqueueQuantumOperation<nvqir::u2<ScalarType>>(
+        tmp, controls, std::vector<std::size_t>{qubitIdx});
   }
 
   using CircuitSimulator::u3;
   void u3(const double theta, const double phi, const double lambda,
           const std::vector<std::size_t> &controls,
           const std::size_t qubitIdx) override {
-    flushAnySamplingTasks();
-    nvqir::u3<ScalarType> gate;
-    enqueueGate(gate.getGate(theta, phi, lambda), controls,
-                std::vector<std::size_t>{qubitIdx});
-    std::vector<std::size_t> noiseQubits{controls.begin(), controls.end()};
-    noiseQubits.push_back(qubitIdx);
-    applyNoiseChannel(gate.name(), noiseQubits);
+    std::vector<ScalarType> tmp{static_cast<ScalarType>(theta),
+                                static_cast<ScalarType>(phi),
+                                static_cast<ScalarType>(lambda)};
+    enqueueQuantumOperation<nvqir::u3<ScalarType>>(
+        tmp, controls, std::vector<std::size_t>{qubitIdx});
   }
 
   using CircuitSimulator::swap;
@@ -758,7 +769,7 @@ public:
         {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0},
         {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0},
         {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {1.0, 0.0}};
-    enqueueGate(matrix, ctrlBits, std::vector<std::size_t>{srcIdx, tgtIdx});
+    enqueueGate("swap", matrix, ctrlBits, std::vector<std::size_t>{srcIdx, tgtIdx});
   }
 
   bool mz(const std::size_t qubitIdx) override { return mz(qubitIdx, ""); }
@@ -791,7 +802,7 @@ public:
     // Return the result
     return measureResult;
   }
-};
+}; // namespace nvqir
 } // namespace nvqir
 
 #define CONCAT(a, b) CONCAT_INNER(a, b)
