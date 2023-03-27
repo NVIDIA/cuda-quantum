@@ -34,7 +34,7 @@ jobs:
         uses: actions/cache/restore@v3
         with:
           path: /tmp/devdeps.tar
-          key: ${{ github.sha }}-devdeps-${{ inputs.compiler }}-tar
+          key: tar-devdeps-${{ inputs.compiler }}-${{ github.sha }}
           fail-on-cache-miss: true
 
       - name: Create dev environment container
