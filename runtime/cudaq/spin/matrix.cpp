@@ -1,9 +1,11 @@
-/****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
- *
- * This program and the accompanying materials are made available under the
- * terms of the MIT License which accompanies this distribution.
- ******************************************************************************/
+/*************************************************************** -*- C++ -*- ***
+ * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ *******************************************************************************/
+
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 
 #include "cudaq/matrix.h"
@@ -20,10 +22,13 @@ complex_matrix::complex_matrix(complex_matrix::value_type *rawData,
                                const std::size_t rows, const std::size_t cols)
     : internalData(std::unique_ptr<complex_matrix::value_type>(rawData)),
       nRows(rows), nCols(cols) {}
-void complex_matrix::dump() {
+
+void complex_matrix::dump() { dump(std::cout); }
+void complex_matrix::dump(std::ostream &os) {
   Eigen::Map<Eigen::MatrixXcd> map(internalData.get(), nRows, nCols);
-  std::cout << map << "\n";
+  os << map << "\n";
 }
+
 void complex_matrix::set_zero() {
   Eigen::Map<Eigen::MatrixXcd> map(internalData.get(), nRows, nCols);
   map.setZero();
@@ -48,7 +53,7 @@ std::vector<complex_matrix::value_type> complex_matrix::eigenvalues() {
   Eigen::Map<Eigen::MatrixXcd> map(internalData.get(), nRows, nCols);
   Eigen::SelfAdjointEigenSolver<Eigen::MatrixXcd> tmp(map);
   auto eigs = tmp.eigenvalues();
-  
+
   std::vector<complex_matrix::value_type> ret(eigs.size());
   Eigen::VectorXcd::Map(&ret[0], eigs.size()) = eigs;
   return ret;

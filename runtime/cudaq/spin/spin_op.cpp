@@ -22,26 +22,10 @@
 
 namespace cudaq {
 
-// std::pair<std::string, std::complex<double>>
-// actionOnKet(spin_op &term, const std::string &bitConfiguration) {
-//   auto coeff = term.get_coefficients()[0];
-//   auto newConfiguration = bitConfiguration;
-//   std::complex<double> i(0, 1);
-
-//   term.for_each_pauli([&](pauli p, std::size_t idx) {
-//     if (p == pauli::Z) {
-//       coeff = newConfiguration[idx] == '1' ? -1 : 1;
-//     } else if (p == pauli::X) {
-//       newConfiguration[idx] = newConfiguration[idx] == '1' ? '0' : '1';
-//     } else if (p == pauli::Y) {
-//       coeff *= newConfiguration[idx] == '1' ? -i : i;
-//       newConfiguration[idx] = (newConfiguration[idx] == '1' ? '0' : '1');
-//     }
-//   });
-
-//   return std::make_pair(newConfiguration, coeff);
-// }
-
+/// @brief Compute the action 
+/// @param term 
+/// @param bitConfiguration 
+/// @return 
 std::pair<std::string, std::complex<double>>
 actionOnBra(spin_op &term, const std::string &bitConfiguration) {
   auto coeff = term.get_coefficients()[0];

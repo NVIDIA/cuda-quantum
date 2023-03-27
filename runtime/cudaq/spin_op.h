@@ -267,8 +267,9 @@ public:
   /// functor that takes the pauli type and the qubit index.
   void for_each_pauli(std::function<void(pauli, std::size_t)> &&) const;
 
+  /// @brief Return a dense matrix representation of this 
+  /// spin_op. 
   complex_matrix to_matrix() const;
-
 };
 
 /// @brief Add a double and a spin_op
