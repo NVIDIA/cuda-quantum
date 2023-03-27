@@ -11,13 +11,14 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
 set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 set(CUDAQ_SPIN_SRC
-  spin_op.cpp
+  spin_op.cpp matrix.cpp
 )
 
 add_library(${LIBRARY_NAME} SHARED ${CUDAQ_SPIN_SRC})
 target_include_directories(${LIBRARY_NAME} 
     PUBLIC 
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
+       $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
        $<INSTALL_INTERFACE:include>
     PRIVATE .)
 

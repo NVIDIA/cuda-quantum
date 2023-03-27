@@ -120,3 +120,31 @@ TEST(SpinOpTester, canBuildDeuteron) {
     H[i].dump();
   }
 }
+
+TEST(SpinOpTester, checkGetMatrix) {
+  auto H = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) + .21829 * z(0) -
+           6.125 * z(1);
+  auto matrix = H.to_matrix();
+  matrix.dump();
+  auto groundEnergy = matrix.minimal_eigenvalue();
+  EXPECT_NEAR(groundEnergy.real(), -1.74, 1e-2);
+
+  std::vector<double> expected{.00029,  0, 0, 0,       0,       12.2503,
+                               -4.2866, 0, 0, -4.2866, -.43619, 0,
+                               0,       0, 0, 11.8137};
+  for (std::size_t i = 0; i < 16; ++i)
+    EXPECT_NEAR(matrix.data()[i].real(), expected[i], 1e-3);
+
+  // Create the G=ground state for the above hamiltonian
+  cudaq::complex_matrix vec(4, 1);
+  vec.set_zero();
+  vec(1, 0) = .292786;
+  vec(2, 0) = .956178;
+
+  // Compute H |psi_g>
+  auto tmp = matrix * vec;
+ 
+  // Should have H |psi_g> = E |psi_g> (eigenvalue equation)
+  for (std::size_t i = 0; i < 4; i++)
+    EXPECT_NEAR(tmp(i, 0).real(), groundEnergy.real() * vec(i, 0).real(), 1e-2);
+}

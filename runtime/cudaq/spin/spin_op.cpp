@@ -9,10 +9,12 @@
 #include <cudaq/spin_op.h>
 #include <stdint.h>
 
+#include <Eigen/Dense>
 #include <algorithm>
 #include <cassert>
 #include <complex>
 #include <fstream>
+#include <iostream>
 #include <map>
 #include <random>
 #include <utility>
@@ -20,14 +22,77 @@
 
 namespace cudaq {
 
-void spin_op::for_each_term(std::function<void(spin_op &)> &&functor) {
+// std::pair<std::string, std::complex<double>>
+// actionOnKet(spin_op &term, const std::string &bitConfiguration) {
+//   auto coeff = term.get_coefficients()[0];
+//   auto newConfiguration = bitConfiguration;
+//   std::complex<double> i(0, 1);
+
+//   term.for_each_pauli([&](pauli p, std::size_t idx) {
+//     if (p == pauli::Z) {
+//       coeff = newConfiguration[idx] == '1' ? -1 : 1;
+//     } else if (p == pauli::X) {
+//       newConfiguration[idx] = newConfiguration[idx] == '1' ? '0' : '1';
+//     } else if (p == pauli::Y) {
+//       coeff *= newConfiguration[idx] == '1' ? -i : i;
+//       newConfiguration[idx] = (newConfiguration[idx] == '1' ? '0' : '1');
+//     }
+//   });
+
+//   return std::make_pair(newConfiguration, coeff);
+// }
+
+std::pair<std::string, std::complex<double>>
+actionOnBra(spin_op &term, const std::string &bitConfiguration) {
+  auto coeff = term.get_coefficients()[0];
+  auto newConfiguration = bitConfiguration;
+  std::complex<double> i(0, 1);
+
+  term.for_each_pauli([&](pauli p, std::size_t idx) {
+    if (p == pauli::Z) {
+      coeff *= (newConfiguration[idx] == '1' ? -1 : 1);
+    } else if (p == pauli::X) {
+      newConfiguration[idx] = newConfiguration[idx] == '1' ? '0' : '1';
+    } else if (p == pauli::Y) {
+      coeff *= (newConfiguration[idx] == '1' ? i : -i);
+      newConfiguration[idx] = (newConfiguration[idx] == '1' ? '0' : '1');
+    }
+  });
+
+  return std::make_pair(newConfiguration, coeff);
+}
+
+complex_matrix spin_op::to_matrix() const {
+  auto n = n_qubits();
+  auto dim = 1UL << n;
+  auto getBitStrForIdx = [&](std::size_t i) {
+    std::stringstream s;
+    for (int k = n - 1; k >= 0; k--)
+      s << ((i >> k) & 1);
+    return s.str();
+  };
+
+  complex_matrix A(dim, dim);
+  A.set_zero();
+  for (std::size_t rowIdx = 0; rowIdx < dim; rowIdx++) {
+    auto rowBitStr = getBitStrForIdx(rowIdx);
+    for_each_term([&](spin_op &term) {
+      auto [res, coeff] = actionOnBra(term, rowBitStr);
+      auto colIdx = std::stol(res, nullptr, 2);
+      A(rowIdx, colIdx) += coeff;
+    });
+  }
+  return A;
+}
+
+void spin_op::for_each_term(std::function<void(spin_op &)> &&functor) const {
   for (std::size_t i = 0; i < n_terms(); i++) {
     auto term = operator[](i);
     functor(term);
   }
 }
 void spin_op::for_each_pauli(
-    std::function<void(pauli, std::size_t)> &&functor) {
+    std::function<void(pauli, std::size_t)> &&functor) const {
   if (n_terms() != 1)
     throw std::runtime_error(
         "spin_op::for_each_pauli on valid for spin_op with n_terms == 1.");
