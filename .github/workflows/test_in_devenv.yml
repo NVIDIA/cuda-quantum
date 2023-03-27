@@ -42,20 +42,13 @@ jobs:
           docker load --input /tmp/devdeps.tar
           docker build -t cuda-quantum-devdeps -f .devcontainer/Dockerfile . --build-arg tag=${{ inputs.compiler }}-latest --build-arg workspace=. --build-arg destination=workspaces/cuda-quantum
 
-      - name: Build CUDA Quantum
+      - name: Build CUDA Quantum and run tests
         uses: addnab/docker-run-action@v3
         with:
             image: cuda-quantum-devdeps
             run: |
                 cd /workspaces/cuda-quantum
                 bash scripts/build_cudaq.sh -v
-
-      - name: Run tests in the dev environment
-        uses: addnab/docker-run-action@v3
-        with:
-            image: cuda-quantum-devdeps
-            run: |
-                cd /workspaces/cuda-quantum
                 ctest --output-on-failure --test-dir build -E ctest-nvqpp
                 /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
 

@@ -18,6 +18,7 @@ name: Load or build the dev environment image
 
 jobs:
   devdeps:
+    name: Create or load image
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -75,4 +76,4 @@ jobs:
         uses: actions/cache/save@v3
         with:
           path: /tmp/devdeps.tar
-          key: ${{ github.sha }}-devdeps-${{ inputs.toolchain }}-tar
+          key: tar-devdeps-${{ inputs.toolchain }}-${{ github.sha }}
