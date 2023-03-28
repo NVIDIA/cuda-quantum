@@ -6,4 +6,4 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_subdirectory(qir)
+add_subdirectory(simple_qudit)

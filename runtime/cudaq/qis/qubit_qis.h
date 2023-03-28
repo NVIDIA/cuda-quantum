@@ -35,7 +35,7 @@ ConcreteQubitOp(h) ConcreteQubitOp(x) ConcreteQubitOp(y) ConcreteQubitOp(z)
 } // namespace qubit_op
 
 // Convert a qubit to its unique id representation
-inline std::size_t qubitToId(qubit &q) { return q.id(); }
+inline auto qubitToId(qubit &q) { return std::make_pair(q.n_levels(), q.id()); }
 inline bool qubitIsNegative(qubit &q) { return q.is_negative(); }
 
 /// @brief This function will apply the specified QuantumOp. It will check the
@@ -54,14 +54,14 @@ void oneQubitApply(QubitArgs &...args) {
   // Get the number of input qubits
   constexpr std::size_t nArgs = sizeof...(QubitArgs);
   // Map the qubits to their unique ids and pack them into a std::array
-  std::array<std::size_t, nArgs> qubitIds{qubitToId(args)...};
+  std::array<QuditInfo, nArgs> qubitIds{qubitToId(args)...};
   std::array<bool, nArgs> qubitIsNegated{qubitIsNegative(args)...};
 
   // If there are more than one qubits and mod == base, then
   // we just want to apply the gate to all qubits provided
   if constexpr (nArgs > 1 && std::is_same_v<mod, base>) {
     for (auto &targetId : qubitIds) {
-      std::vector<std::size_t> qs{targetId};
+      std::vector<QuditInfo> qs{targetId};
       getExecutionManager()->apply(gateName, {}, {}, qs);
     }
     // Nothing left to do, return
@@ -70,8 +70,8 @@ void oneQubitApply(QubitArgs &...args) {
 
   // If we are here, then mod must be ctrl / adj
   // Extract the controls and the target
-  std::span<std::size_t> empty;
-  std::span<std::size_t, nArgs> qubitIdsSpan = qubitIds;
+  std::span<QuditInfo> empty;
+  std::span<QuditInfo, nArgs> qubitIdsSpan = qubitIds;
   std::span controls = qubitIdsSpan.first(nArgs - 1);
 
   // If we have controls, check if any of them
@@ -79,7 +79,7 @@ void oneQubitApply(QubitArgs &...args) {
   if (!controls.empty())
     for (std::size_t i = 0; i < controls.size(); i++)
       if (qubitIsNegated[i]) {
-        std::vector<std::size_t> tmpTarget{controls[i]};
+        std::vector<QuditInfo> tmpTarget{controls[i]};
         getExecutionManager()->apply("x", {}, empty, tmpTarget);
       }
 
@@ -96,7 +96,7 @@ void oneQubitApply(QubitArgs &...args) {
   if (!controls.empty())
     for (std::size_t i = 0; i < controls.size(); i++)
       if (qubitIsNegated[i]) {
-        std::vector<std::size_t> tmpTarget{controls[i]};
+        std::vector<QuditInfo> tmpTarget{controls[i]};
         getExecutionManager()->apply("x", {}, empty, tmpTarget);
         // fold expression which will reverse the negation
         (
@@ -122,13 +122,14 @@ void oneQubitApplyControlledRange(QubitRange &ctrls, qubit &target) {
   auto gateName = QuantumOp::name();
 
   // Map the input register to a vector ids
-  std::vector<std::size_t> controls;
-  std::transform(ctrls.begin(), ctrls.end(), std::back_inserter(controls),
-                 [](const auto &q) { return q.id(); });
+  std::vector<QuditInfo> controls;
+  std::transform(
+      ctrls.begin(), ctrls.end(), std::back_inserter(controls),
+      [](const auto &q) { return std::make_pair(q.n_levels(), q.id()); });
 
   // Separate the controls / targets, convert to spans
   std::span c_span = controls;
-  std::array<std::size_t, 1> t_arr{target.id()};
+  std::array<QuditInfo, 1> t_arr{std::make_pair(2,target.id())};
   std::span t_span = t_arr;
 
   // Apply the gate
@@ -183,13 +184,13 @@ void oneQubitSingleParameterApply(ScalarAngle angle, QubitArgs &...args) {
 
   // Map the qubits to their unique ids and pack them into a std::array
   constexpr std::size_t nArgs = sizeof...(QubitArgs);
-  std::array<std::size_t, nArgs> a{qubitToId(args)...};
+  std::array<QuditInfo, nArgs> a{qubitToId(args)...};
 
   // If there are more than one qubits and mod == base, then
   // we just want to apply the same gate to all qubits provided
   if constexpr (nArgs > 1 && std::is_same_v<mod, base>) {
     for (auto &targetId : a) {
-      std::vector<std::size_t> qs{targetId};
+      std::vector<QuditInfo> qs{targetId};
       getExecutionManager()->apply(gateName, {angle}, {}, qs);
     }
     // Nothing left to do, return
@@ -198,7 +199,7 @@ void oneQubitSingleParameterApply(ScalarAngle angle, QubitArgs &...args) {
 
   // If we are here, then mod must be ctrl / adj
   // Extract the controls and the target
-  std::span<std::size_t, nArgs> qs_span = a;
+  std::span<QuditInfo, nArgs> qs_span = a;
   std::span controls = qs_span.first(nArgs - 1);
   std::span targets = qs_span.last(1);
 
@@ -216,13 +217,14 @@ void oneQubitSingleParameterControlledRange(ScalarAngle angle,
   auto gateName = QuantumOp::name();
 
   // Map the input register to a vector ids
-  std::vector<std::size_t> controls;
-  std::transform(ctrls.begin(), ctrls.end(), std::back_inserter(controls),
-                 [](const auto &q) { return q.id(); });
+  std::vector<QuditInfo> controls;
+  std::transform(
+      ctrls.begin(), ctrls.end(), std::back_inserter(controls),
+      [](const auto &q) { return std::make_pair(q.n_levels(), q.id()); });
 
   // Separate the controls / targets, convert to spans
   std::span c_span = controls;
-  std::array<std::size_t, 1> t_arr{target.id()};
+  std::array<QuditInfo, 1> t_arr{std::make_pair(2,target.id())};
   std::span t_span = t_arr;
 
   // Apply the gate
@@ -264,8 +266,8 @@ void swap(QubitArgs &...args) {
   static_assert(std::conjunction<std::is_same<qubit, QubitArgs>...>::value,
                 "Cannot operate on a qudit with Levels != 2");
   constexpr std::size_t nArgs = sizeof...(QubitArgs);
-  std::array<std::size_t, nArgs> a{qubitToId(args)...};
-  std::span<std::size_t, nArgs> qs_span = a;
+  std::array<QuditInfo, nArgs> a{qubitToId(args)...};
+  std::span<QuditInfo, nArgs> qs_span = a;
   std::span controls = qs_span.first(nArgs - 2);
   std::span targets = qs_span.last(2);
   getExecutionManager()->apply("swap", {}, controls, targets);
@@ -273,11 +275,12 @@ void swap(QubitArgs &...args) {
 template <typename QuantumRegister>
   requires(std::ranges::range<QuantumRegister>)
 void swap(QuantumRegister &ctrls, qubit &src, qubit &target) {
-  std::vector<std::size_t> controls;
-  std::transform(ctrls.begin(), ctrls.end(), std::back_inserter(controls),
-                 [](const auto &q) { return q.id(); });
+  std::vector<QuditInfo> controls;
+  std::transform(
+      ctrls.begin(), ctrls.end(), std::back_inserter(controls),
+      [](const auto &q) { return std::make_pair(q.n_levels(), q.id()); });
   std::span c_span = controls;
-  std::array<std::size_t, 2> t_arr{src.id(), target.id()};
+  std::array<QuditInfo, 2> t_arr{std::make_pair(2,src.id()), std::make_pair(2, target.id())};
   std::span t_span = t_arr;
   getExecutionManager()->apply("swap", {}, c_span, t_span);
 }
@@ -294,39 +297,32 @@ inline void ccx(qubit &q, qubit &r, qubit &s) { x<cudaq::ctrl>(q, r, s); }
 
 template <typename ScalarAngle>
 inline void cphase(ScalarAngle angle, qubit &q, qubit &r) {
-  std::array<std::size_t, 2> arr{q.id(), r.id()};
+  std::array<QuditInfo, 2> arr{qubitToId(q), qubitToId(r)};
   std::span t = arr;
   getExecutionManager()->apply("cphase", {angle}, {}, t);
 }
 
-// Define the first order trotterization exp (i theta op)
-template <typename ScalarAngle, typename QuantumRegister>
-  requires(std::ranges::range<QuantumRegister>)
-void exp(QuantumRegister &qubits, ScalarAngle angle, cudaq::spin_op &&op) {
-  std::vector<std::size_t> qubitIds;
-  for (auto &q : qubits)
-    qubitIds.push_back(q.id());
-
-  getExecutionManager()->exp(std::move(qubitIds), angle, op);
-}
-
 // Measure an individual qubit, return 0,1 as bool
-inline bool mz(qubit &q) { return getExecutionManager()->measure({q.id()}); }
+inline bool mz(qubit &q) {
+  return getExecutionManager()->measure({q.n_levels(), q.id()});
+}
 
 // Measure an individual qubit in x basis, return 0,1 as bool
 inline bool mx(qubit &q) {
   h(q);
-  return getExecutionManager()->measure({q.id()});
+  return getExecutionManager()->measure({q.n_levels(), q.id()});
 }
 
 // Measure an individual qubit in y basis, return 0,1 as bool
 inline bool my(qubit &q) {
   s<adj>(q);
   h(q);
-  return getExecutionManager()->measure({q.id()});
+  return getExecutionManager()->measure({q.n_levels(), q.id()});
 }
 
-inline void reset(qubit &q) { getExecutionManager()->resetQubit(q.id()); }
+inline void reset(qubit &q) {
+  getExecutionManager()->resetQudit({q.n_levels(), q.id()});
+}
 
 // Measure all qubits in the range, return vector of 0,1
 template <typename QubitRange>
@@ -399,8 +395,8 @@ inline int64_t to_integer(std::string bitString) {
 // `Args`, and returns `void`.
 template <typename Kernel, typename... Args>
 concept isCallableVoidKernel = requires(Kernel &&k, Args &&...args) {
-  { k(args...) } -> std::same_as<void>;
-};
+                                 { k(args...) } -> std::same_as<void>;
+                               };
 
 template <typename T, typename Signature>
 concept signature = std::is_convertible_v<T, std::function<Signature>>;
