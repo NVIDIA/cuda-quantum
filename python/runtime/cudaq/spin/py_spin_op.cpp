@@ -16,6 +16,20 @@
 
 namespace cudaq {
 
+/// @brief Extract the array data from a buffer_info into our
+/// own allocated data pointer.
+void extractMatrixData(py::buffer_info &info, std::complex<double> *data) {
+  if (info.format != py::format_descriptor<std::complex<double>>::format())
+    throw std::runtime_error(
+        "Incompatible buffer format, must be np.complex128.");
+
+  if (info.ndim != 2)
+    throw std::runtime_error("Incompatible buffer shape.");
+
+  memcpy(data, info.ptr,
+         sizeof(std::complex<double>) * (info.shape[0] * info.shape[1]));
+}
+
 void bindSpinClass(py::module &mod) {
   // Binding the `cudaq::spin` class to `_pycudaq` as a submodule
   // so it's accessible directly in the cudaq namespace.
@@ -32,6 +46,38 @@ void bindSpinClass(py::module &mod) {
   spin_submodule.def(
       "z", &cudaq::spin::z, py::arg("target"),
       "Return a Z `cudaq.SpinOperator` on the given target qubit index.");
+}
+
+void bindComplexMatrix(py::module &mod) {
+  py::class_<complex_matrix>(mod, "ComplexMatrix", py::buffer_protocol(),
+                             "The ComplexMatrix is a thin wrapper around a "
+                             "matrix of complex<double> elements.")
+      /// The following makes this fully compatible with NumPy
+      .def_buffer([](complex_matrix &op) -> py::buffer_info {
+        return py::buffer_info(
+            op.data(), sizeof(std::complex<double>),
+            py::format_descriptor<std::complex<double>>::format(), 2,
+            {op.rows(), op.cols()},
+            {sizeof(std::complex<double>) * op.cols(),
+             sizeof(std::complex<double>)});
+      })
+      .def(py::init([](const py::buffer &b) {
+             py::buffer_info info = b.request();
+             complex_matrix m(info.shape[0], info.shape[1]);
+             extractMatrixData(info, m.data());
+             return m;
+           }),
+           "Create a ComplexMatrix from a buffer of data, like a numpy array.")
+      .def("__getitem__", &complex_matrix::operator(),
+           "Return the matrix element at i, j.")
+      .def(
+          "__str__",
+          [](complex_matrix &self) {
+            std::stringstream ss;
+            self.dump(ss);
+            return ss.str();
+          },
+          "Write this matrix to a string representation.");
 }
 
 void bindSpinOperator(py::module &mod) {
@@ -93,6 +139,7 @@ void bindSpinOperator(py::module &mod) {
           "`void(pauli, int)` signature where `pauli` is the Pauli matrix "
           "type and the `int` is the qubit index.")
 
+      .def("to_matrix", &spin_op::to_matrix, "Return a matrix representation for this `cudaq.SpinOperator`.")
       /// @brief Bind overloaded operators that are in-place on
       /// `cudaq.SpinOperator`.
       // `this_spin_op` += `cudaq.SpinOperator`
@@ -170,6 +217,7 @@ void bindSpinOperator(py::module &mod) {
 
 void bindSpinWrapper(py::module &mod) {
   bindSpinClass(mod);
+  bindComplexMatrix(mod);
   bindSpinOperator(mod);
 }
 
