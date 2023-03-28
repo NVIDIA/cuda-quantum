@@ -14,7 +14,6 @@ struct heisenbergU {
   void operator()(cudaq::qreg<> &q) __qpu__ {
     auto nQubits = q.size();
     for (int step = 0; step < 100; ++step) {
-      // Fixme need a way to apply ar Rn to all qubits
       for (int j = 0; j < nQubits; j++)
         rx(-.01, q[j]);
       for (int i = 0; i < nQubits - 1; i++) {
