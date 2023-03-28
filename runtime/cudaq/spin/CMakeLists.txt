@@ -22,6 +22,7 @@ target_include_directories(${LIBRARY_NAME}
        $<INSTALL_INTERFACE:include>
     PRIVATE .)
 
+target_link_libraries(${LIBRARY_NAME} PRIVATE fmt::fmt-header-only)
 cudaq_library_set_rpath(${LIBRARY_NAME})
 
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-spin-targets DESTINATION lib)

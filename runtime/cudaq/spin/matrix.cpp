@@ -10,32 +10,62 @@
 
 #include "cudaq/matrix.h"
 #include <Eigen/Dense>
+#include <fmt/core.h>
 #include <iostream>
 
 namespace cudaq {
+  
+/// @brief Hash function for an Eigen::MatrixXcd
+struct complex_matrix_hash : std::unary_function<Eigen::MatrixXcd, size_t> {
+  std::size_t operator()(const Eigen::MatrixXcd &matrix) const {
+    size_t seed = 0;
+    for (Eigen::Index i = 0; i < matrix.size(); ++i) {
+      auto elem = *(matrix.data() + i);
+      seed ^= std::hash<double>()(elem.real()) +
+              std::hash<double>()(elem.imag()) + 0x9e3779b9 + (seed << 6) +
+              (seed >> 2);
+    }
+    return seed;
+  }
+};
+
+/// @brief Store eigen solvers for the same matrix so that 
+/// we don't recompute every time. 
+std::unordered_map<Eigen::MatrixXcd,
+                   Eigen::SelfAdjointEigenSolver<Eigen::MatrixXcd>,
+                   complex_matrix_hash>
+    eigenSolvers;
+
 complex_matrix::complex_matrix(const std::size_t rows, const std::size_t cols)
-    : internalData(std::unique_ptr<complex_matrix::value_type>(
+    : internalOwnedData(std::unique_ptr<complex_matrix::value_type>(
           new complex_matrix::value_type[rows * cols])),
-      nRows(rows), nCols(cols) {}
+      nRows(rows), nCols(cols) {
+  internalData = internalOwnedData.get();
+}
 
 complex_matrix::complex_matrix(complex_matrix::value_type *rawData,
                                const std::size_t rows, const std::size_t cols)
-    : internalData(std::unique_ptr<complex_matrix::value_type>(rawData)),
-      nRows(rows), nCols(cols) {}
+    : nRows(rows), nCols(cols) {
+  internalData = rawData;
+}
+
+complex_matrix::value_type *complex_matrix::data() const {
+  return internalData;
+}
 
 void complex_matrix::dump() { dump(std::cout); }
 void complex_matrix::dump(std::ostream &os) {
-  Eigen::Map<Eigen::MatrixXcd> map(internalData.get(), nRows, nCols);
+  Eigen::Map<Eigen::MatrixXcd> map(internalData, nRows, nCols);
   os << map << "\n";
 }
 
 void complex_matrix::set_zero() {
-  Eigen::Map<Eigen::MatrixXcd> map(internalData.get(), nRows, nCols);
+  Eigen::Map<Eigen::MatrixXcd> map(internalData, nRows, nCols);
   map.setZero();
 }
 
-complex_matrix complex_matrix::operator*(complex_matrix &other) {
-  Eigen::Map<Eigen::MatrixXcd> map(internalData.get(), nRows, nCols);
+complex_matrix complex_matrix::operator*(complex_matrix &other) const {
+  Eigen::Map<Eigen::MatrixXcd> map(internalData, nRows, nCols);
   Eigen::Map<Eigen::MatrixXcd> otherMap(other.data(), other.nRows, other.nCols);
   Eigen::MatrixXcd ret = map * otherMap;
   complex_matrix copy(ret.rows(), ret.cols());
@@ -43,23 +73,55 @@ complex_matrix complex_matrix::operator*(complex_matrix &other) {
   return copy;
 }
 
+complex_matrix complex_matrix::operator*(std::vector<value_type> &other) const {
+  if (nCols != other.size())
+    throw std::runtime_error(
+        fmt::format("Invalid vector<T> size for complex_matrix matrix-vector "
+                    "product ({} != {}).",
+                    nCols, other.size()));
+
+  Eigen::Map<Eigen::MatrixXcd> map(internalData, nRows, nCols);
+  Eigen::Map<Eigen::VectorXcd> otherMap(other.data(), other.size());
+
+  Eigen::MatrixXcd ret = map * otherMap;
+  complex_matrix copy(ret.rows(), ret.cols());
+  std::memcpy(copy.data(), ret.data(), sizeof(value_type) * ret.size());
+  return copy;
+}
+
 complex_matrix::value_type &complex_matrix::operator()(std::size_t i,
-                                                       std::size_t j) {
-  Eigen::Map<Eigen::MatrixXcd> map(internalData.get(), nRows, nCols);
+                                                       std::size_t j) const {
+  Eigen::Map<Eigen::MatrixXcd> map(internalData, nRows, nCols);
   return map(i, j);
 }
 
-std::vector<complex_matrix::value_type> complex_matrix::eigenvalues() {
-  Eigen::Map<Eigen::MatrixXcd> map(internalData.get(), nRows, nCols);
-  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXcd> tmp(map);
-  auto eigs = tmp.eigenvalues();
+std::vector<complex_matrix::value_type> complex_matrix::eigenvalues() const {
+  Eigen::Map<Eigen::MatrixXcd> map(internalData, nRows, nCols);
+  auto iter = eigenSolvers.find(map);
+  if (iter == eigenSolvers.end())
+    eigenSolvers.emplace(map,
+                         Eigen::SelfAdjointEigenSolver<Eigen::MatrixXcd>(map));
 
+  auto eigs = eigenSolvers[map].eigenvalues();
   std::vector<complex_matrix::value_type> ret(eigs.size());
   Eigen::VectorXcd::Map(&ret[0], eigs.size()) = eigs;
   return ret;
 }
 
-complex_matrix::value_type complex_matrix::minimal_eigenvalue() {
+complex_matrix complex_matrix::eigenvectors() const {
+  Eigen::Map<Eigen::MatrixXcd> map(internalData, nRows, nCols);
+  auto iter = eigenSolvers.find(map);
+  if (iter == eigenSolvers.end())
+    eigenSolvers.emplace(map,
+                         Eigen::SelfAdjointEigenSolver<Eigen::MatrixXcd>(map));
+
+  auto eigv = eigenSolvers[map].eigenvectors();
+  complex_matrix copy(eigv.rows(), eigv.cols());
+  std::memcpy(copy.data(), eigv.data(), sizeof(value_type) * eigv.size());
+  return copy;
+}
+
+complex_matrix::value_type complex_matrix::minimal_eigenvalue() const {
   return eigenvalues()[0];
 }
 
