@@ -111,9 +111,9 @@ inline std::string getQodaKernelName(const std::string &tag) {
   return runtime::cudaqGenPrefixName + tag;
 }
 
-/// Creates the tag name for a quantum kernel. The tag name is a name by which one
-/// can lookup a kernel at runtime. This name does not include the nvq++ prefix
-/// nor the unique (C++ mangled) suffix.
+/// Creates the tag name for a quantum kernel. The tag name is a name by which
+/// one can lookup a kernel at runtime. This name does not include the nvq++
+/// prefix nor the unique (C++ mangled) suffix.
 std::string getTagNameOfFunctionDecl(const clang::FunctionDecl *func,
                                      clang::ItaniumMangleContext *mangler);
 
@@ -227,18 +227,21 @@ public:
   // Expr nodes to lower to Quake.
   //===--------------------------------------------------------------------===//
 
+  bool VisitArraySubscriptExpr(clang::ArraySubscriptExpr *x);
   bool TraverseBinaryOperator(clang::BinaryOperator *x,
                               DataRecursionQueue *q = nullptr);
-  bool VisitArraySubscriptExpr(clang::ArraySubscriptExpr *x);
   bool VisitBinaryOperator(clang::BinaryOperator *x);
-  bool VisitConditionalOperator(clang::ConditionalOperator *x);
   bool VisitCallExpr(clang::CallExpr *x);
+  bool VisitConditionalOperator(clang::ConditionalOperator *x);
   bool VisitCXXConstructExpr(clang::CXXConstructExpr *x);
+  bool VisitCXXTemporaryObjectExpr(clang::CXXTemporaryObjectExpr *x);
+  bool WalkUpFromCXXTemporaryObjectExpr(clang::CXXTemporaryObjectExpr *x);
   bool VisitCXXOperatorCallExpr(clang::CXXOperatorCallExpr *x);
   bool WalkUpFromCXXOperatorCallExpr(clang::CXXOperatorCallExpr *x);
   bool VisitDeclRefExpr(clang::DeclRefExpr *x);
   bool VisitFloatingLiteral(clang::FloatingLiteral *x);
   bool VisitImplicitCastExpr(clang::ImplicitCastExpr *x);
+  bool VisitInitListExpr(clang::InitListExpr *x);
   bool VisitIntegerLiteral(clang::IntegerLiteral *x);
   bool VisitCXXBoolLiteralExpr(clang::CXXBoolLiteralExpr *x);
   bool TraverseLambdaExpr(clang::LambdaExpr *x,
@@ -246,6 +249,8 @@ public:
   bool VisitMaterializeTemporaryExpr(clang::MaterializeTemporaryExpr *x);
   bool VisitUnaryOperator(clang::UnaryOperator *x);
   bool VisitStringLiteral(clang::StringLiteral *x);
+
+  bool isVectorOfQubitRefs(clang::CXXConstructExpr *x);
 
   //===--------------------------------------------------------------------===//
   // Type nodes to lower to Quake.
@@ -428,8 +433,8 @@ private:
   /// Get the ASTContext.
   clang::ASTContext *getContext() const { return astContext; }
 
-  /// Calls should be to C++ mangled names unless this is a known entry point. In
-  /// the latter case, use the entry point name.
+  /// Calls should be to C++ mangled names unless this is a known entry point.
+  /// In the latter case, use the entry point name.
   std::string genLoweredName(clang::FunctionDecl *x, mlir::FunctionType funcTy);
 
   /// Return a FuncOp for the specified function, given a name and signature. If
