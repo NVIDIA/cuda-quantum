@@ -94,7 +94,7 @@ jobs:
         if: inputs.build_cuda_quantum || inputs.test_cuda_quantum
         run: |
           docker run --rm -dit --name cuda-quantum cuda-quantum-devdeps-${{ inputs.toolchain }}-latest
-          docker exec -u root --workdir /workspaces/cuda-quantum cuda-quantum bash -c "scripts/build_cudaq.sh -v"
+          docker exec -u root --workdir /workspaces/cuda-quantum cuda-quantum bash scripts/build_cudaq.sh -v
           docker commit cuda-quantum nvidia/cuda-quantum-dev:${{ inputs.toolchain }}-latest
           docker stop cuda-quantum
 
@@ -109,7 +109,7 @@ jobs:
                 ctest --output-on-failure --test-dir build -E ctest-nvqpp
                 /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
 
-      - name: Save the testing environment
+      - name: Save the build/test environment
         if: inputs.export_environment
         run: |
           if ${{ ! inputs.build_cuda_quantum && ! inputs.test_cuda_quantum }}; then
