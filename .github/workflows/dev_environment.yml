@@ -79,7 +79,7 @@ jobs:
           cache-to: |
             type=gha,mode=max,scope=${{ inputs.cache_name }}
 
-      - name: Create dev environment container
+      - name: Create dev environment container(s)
         if: inputs.build_cuda_quantum || inputs.test_cuda_quantum
         run: |
           images=`echo '${{ steps.build_devdeps.outputs.metadata }}' | jq '."image.name"' | tr -d '"'`
@@ -94,7 +94,7 @@ jobs:
         if: inputs.build_cuda_quantum || inputs.test_cuda_quantum
         run: |
           docker run --rm -dit --name cuda-quantum cuda-quantum-devdeps-${{ inputs.toolchain }}-latest
-          docker exec --workdir /workspaces/cuda-quantum cuda-quantum bash -c "scripts/build_cudaq.sh -v"
+          docker exec -u root --workdir /workspaces/cuda-quantum cuda-quantum bash -c "scripts/build_cudaq.sh -v"
           docker commit cuda-quantum nvidia/cuda-quantum-dev:${{ inputs.toolchain }}-latest
           docker stop cuda-quantum
 
