@@ -43,7 +43,7 @@ jobs:
         with:
           images: ${{ inputs.container_registry || 'ghcr.io' }}/nvidia/cuda-quantum-devdeps
           flavor: |
-            latest=true
+            latest=false
             prefix=${{ inputs.toolchain }}-,onlatest=true
           tags: |
             # workflow dispatch is covered by these
@@ -84,17 +84,23 @@ jobs:
         run: |
           images=`echo '${{ steps.build_devdeps.outputs.metadata }}' | jq '."image.name"' | tr -d '"'`
           while IFS=',' read -ra created; do
+            container_built=false
             for image in "${created[@]}"; do
               tag=`echo $image | cut -d ":" -f 2`
-              docker build -t cuda-quantum-devdeps-$tag -f .devcontainer/Dockerfile . --build-arg tag=$tag --build-arg workspace=. --build-arg destination=workspaces/cuda-quantum
+              docker build -t cuda-quantum-devdeps -f .devcontainer/Dockerfile . \
+                --build-arg tag=$tag --build-arg workspace=. --build-arg destination=workspaces/cuda-quantum \
+                || container_built=true
+              if $container_built
+              then break
+              fi
             done
           done <<< "$images"
 
       - name: Build CUDA Quantum
         if: inputs.build_cuda_quantum || inputs.test_cuda_quantum
         run: |
-          docker run --rm -dit --name cuda-quantum cuda-quantum-devdeps-${{ inputs.toolchain }}-latest
-          docker exec -u root --workdir /workspaces/cuda-quantum cuda-quantum bash scripts/build_cudaq.sh -v
+          docker run --rm -dit --name cuda-quantum cuda-quantum-devdeps
+          docker exec --workdir /workspaces/cuda-quantum cuda-quantum bash scripts/build_cudaq.sh -v
           docker commit cuda-quantum nvidia/cuda-quantum-dev:${{ inputs.toolchain }}-latest
           docker stop cuda-quantum
 
