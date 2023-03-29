@@ -1,7 +1,7 @@
 on:
   workflow_dispatch:
     inputs:
-      dump_build_environment:
+      export_environment:
         type: boolean
         description: Export the build environment as tar artifact that can be imported with Docker.
   pull_request:
@@ -24,7 +24,7 @@ jobs:
       cache_name: ${{ github.ref_name  }}-cuda-quantum-devdeps-gcc11
       build_cuda_quantum: true
       test_cuda_quantum: true
-      export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.dump_build_environment }}
+      export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
   clang15_build:
     name: Build with clang15
@@ -34,7 +34,7 @@ jobs:
       cache_name: ${{ github.ref_name  }}-cuda-quantum-devdeps-clang15
       build_cuda_quantum: true
       test_cuda_quantum: true
-      export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.dump_build_environment }}
+      export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
   cleanup:
     permissions: write-all
