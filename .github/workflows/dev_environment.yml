@@ -81,7 +81,7 @@ jobs:
       - name: Create dev environment container
         if: inputs.build_cuda_quantum || inputs.test_cuda_quantum
         run: |
-          image_name = ${{ steps.build_devdeps.outputs.imageid }}
+          image_name=${{ steps.build_devdeps.outputs.imageid }}
           images=`echo ${{ steps.build_devdeps.outputs.metadata }} | jq '."image.name"' | tr -d '"'`
           while IFS=',' read -ra created; do
             for image in "${created[@]}"; do
