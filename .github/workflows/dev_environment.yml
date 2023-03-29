@@ -85,7 +85,7 @@ jobs:
           images=`echo '${{ steps.build_devdeps.outputs.metadata }}' | jq '."image.name"' | tr -d '"'`
           while IFS=',' read -ra created; do
             for image in "${created[@]}"; do
-              tag=`echo $image | cut -d ":" -f 1`
+              tag=`echo $image | cut -d ":" -f 2`
               docker build -t cuda-quantum-devdeps-$tag -f .devcontainer/Dockerfile . --build-arg tag=$tag --build-arg workspace=. --build-arg destination=workspaces/cuda-quantum
             done
           done <<< "$images"
