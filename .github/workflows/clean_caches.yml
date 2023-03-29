@@ -1,0 +1,27 @@
+on:
+  workflow_dispatch:
+  schedule:
+    # runs every 30min
+    - cron: "*/30 * * * *"
+
+name: Clean GitHub cache
+
+jobs:
+  cleanup:
+    permissions: write-all
+    runs-on: ubuntu-latest
+    steps:        
+      - name: Cleanup
+        run: |
+          gh extension install actions/gh-actions-cache
+          buildkit=$(gh actions-cache list --key buildkit-blob | cut -f 1 )
+          devdeps=$(gh actions-cache list --key tar-devdeps | cut -f 1 )
+
+          keys="${buildkit[@]} ${devdeps[@]}"
+          for key in $keys
+          do
+            echo "Deleting cache $key"
+            gh actions-cache delete $key -R ${{ github.repository }} --confirm
+          done
+        env:
+          GH_TOKEN: ${{ github.token }}

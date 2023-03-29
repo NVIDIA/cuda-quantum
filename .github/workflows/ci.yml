@@ -34,8 +34,8 @@ jobs:
     permissions: write-all
     runs-on: ubuntu-latest
     needs: [gcc11_build, clang15_build]
-    # Unfortunately we need to skip this for PRs coming from 
-    # forks since these won't have permissions to delete caches.
+    # We need to skip this for PRs coming from forks since 
+    # these won't have permissions to delete caches.
     # We rely on a scheduled job to clean up caches for these.
     if: ${{ !github.event.pull_request.head.repo.fork }}
     steps:
