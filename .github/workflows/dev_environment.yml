@@ -79,7 +79,7 @@ jobs:
           cache-to: |
             type=gha,mode=max,scope=${{ inputs.cache_name }}
 
-      - name: Create dev environment container(s)
+      - name: Create dev environment container
         if: inputs.build_cuda_quantum || inputs.test_cuda_quantum
         run: |
           images=`echo '${{ steps.build_devdeps.outputs.metadata }}' | jq '."image.name"' | tr -d '"'`
