@@ -32,8 +32,6 @@ struct ctrlHeisenberg {
   }
 };
 
-int main() { ctrlHeisenberg{}(5); }
-
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__heisenbergU(
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ctrlHeisenberg(
@@ -44,3 +42,32 @@ int main() { ctrlHeisenberg{}(5); }
 // CHECK:           quake.apply @__nvqpp__mlirgen__heisenbergU[%[[VAL_8]] : !quake.qvec<2>] %{{.*}} : (!quake.qvec<?>) -> ()
 // CHECK:           return
 
+
+struct givens {
+  void operator()(double lambda, cudaq::qubit &q, cudaq::qubit &r) __qpu__ {
+    ry(M_PI_2, q);
+    ry(M_PI_2, r);
+    z<cudaq::ctrl>(q, r);
+    ry(lambda, q);
+    ry(-lambda, r);
+    z<cudaq::ctrl>(q, r);
+    ry(-M_PI_2, q);
+    ry(-M_PI_2, r);
+  }
+};
+
+__qpu__ void qnppx(double theta, cudaq::qubit &q, cudaq::qubit &r,
+                   cudaq::qubit &s, cudaq::qubit &t) {
+  x<cudaq::ctrl>(r, q);
+  x<cudaq::ctrl>(s, t);
+  cudaq::control(givens{}, {q, t}, theta, r, s);
+  x<cudaq::ctrl>(r, q);
+  x<cudaq::ctrl>(s, t);
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__givens(
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_qnppx
+// CHECK:           %[[VAL_7:.*]] = quake.concat %{{.*}}, %{{.*}} : (!quake.qref, !quake.qref) -> !quake.qvec<2>
+// CHECK:           quake.apply @__nvqpp__mlirgen__givens[%[[VAL_7]] : !quake.qvec<2>] %{{.*}}, %{{.*}}, %{{.*}} : (f64, !quake.qref, !quake.qref) -> ()
+// CHECK:           return

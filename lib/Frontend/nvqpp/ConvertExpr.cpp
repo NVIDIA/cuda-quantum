@@ -1000,7 +1000,7 @@ bool QuakeBridgeVisitor::VisitMaterializeTemporaryExpr(
     return true;
   auto loc = toLocation(x->getSourceRange());
   auto ty = genType(x->getType());
-  
+
   // The following cases are λ expressions and quantum data. In those cases,
   // there is nothing to materialize, so we can just pass the Value on the top
   // of the stack.
@@ -1024,9 +1024,9 @@ bool QuakeBridgeVisitor::VisitMaterializeTemporaryExpr(
            isa<quake::QVecType>(peekValue().getType()));
     return true;
   }
-  
-  // Is the Value on the top of the stack is already materialized?
-  if (peekValue().getType() == ty)
+
+  // Is the Value on the top of the stack already materialized?
+  if (!valueStack.empty() && (peekValue().getType() == ty))
     return true;
 
   // FIXME: this implementation is a hack. The temporary should be some object
