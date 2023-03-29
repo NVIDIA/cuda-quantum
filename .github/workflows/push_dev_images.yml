@@ -19,7 +19,7 @@ env:
 
 jobs:
   devdeps_gcc11:
-    uses: ./.github/workflows/load_devdeps.yml
+    uses: ./.github/workflows/dev_environment.yml
     if: github.event.pull_request.merged == true
     with:
       toolchain: gcc11
@@ -28,7 +28,7 @@ jobs:
       container_registry: ${{ env.registry }}
 
   devdeps_clang15:
-    uses: ./.github/workflows/load_devdeps.yml
+    uses: ./.github/workflows/dev_environment.yml
     if: github.event.pull_request.merged == true
     with:
       toolchain: clang15
