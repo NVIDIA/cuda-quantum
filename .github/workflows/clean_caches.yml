@@ -3,21 +3,45 @@ on:
   schedule:
     # runs every 30min
     - cron: "*/30 * * * *"
+  pull_request:
+    branches:
+      - 'main'
+      - 'releases/*'
+    types:
+      - closed
 
-name: Clean GitHub cache
+name: Clean GitHub caches
 
 jobs:
-  cleanup:
+  scheduled_cleanup:
+    name: Clean up buildkit and tar caches
+    if: github.event_name != 'pull_request'
     permissions: write-all
     runs-on: ubuntu-latest
     steps:        
-      - name: Cleanup
-        run: |
+      - run: |
           gh extension install actions/gh-actions-cache
           buildkit=$(gh actions-cache list --key buildkit-blob | cut -f 1 )
           devdeps=$(gh actions-cache list --key tar-devdeps | cut -f 1 )
 
           keys="${buildkit[@]} ${devdeps[@]}"
+          for key in $keys
+          do
+            echo "Deleting cache $key"
+            gh actions-cache delete $key -R ${{ github.repository }} --confirm
+          done
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  pr_cleanup:
+    name: Clean up PR related build caches
+    if: github.event_name == 'pull_request'
+    permissions: write-all
+    runs-on: ubuntu-latest
+    steps:        
+      - run: |
+          gh extension install actions/gh-actions-cache
+          keys=$(gh actions-cache list --key index-${{ github.event.pull_request.number }}/merge | cut -f 1 )
           for key in $keys
           do
             echo "Deleting cache $key"

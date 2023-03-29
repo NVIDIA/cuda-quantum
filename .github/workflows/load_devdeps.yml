@@ -69,7 +69,7 @@ jobs:
             type=gha,scope=${{ inputs.cache_name }}
             type=gha,scope=cuda-quantum-devdeps-${{ inputs.toolchain }}
           cache-to: |
-            type=gha,mode=max,scope=cuda-quantum-devdeps-${{ inputs.toolchain }}
+            type=gha,mode=max,scope=${{ inputs.cache_name }}
           outputs: type=docker,dest=/tmp/devdeps.tar      
           
       - name: Cache dev environment image
