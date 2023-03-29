@@ -18,17 +18,23 @@ concurrency:
 jobs:
   gcc11_build:
     name: Build with gcc11
-    uses: ./.github/workflows/test_in_devenv.yml
+    uses: ./.github/workflows/dev_environment.yml
     with:
-      compiler: gcc11
-      dump_build_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.dump_build_environment }}
+      toolchain: gcc11
+      cache_name: ${{ github.ref_name  }}-cuda-quantum-devdeps-gcc11
+      build_cuda_quantum: true
+      test_cuda_quantum: true
+      export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.dump_build_environment }}
 
   clang15_build:
     name: Build with clang15
-    uses: ./.github/workflows/test_in_devenv.yml
+    uses: ./.github/workflows/dev_environment.yml
     with:
-      compiler: clang15
-      dump_build_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.dump_build_environment }}
+      toolchain: clang15
+      cache_name: ${{ github.ref_name  }}-cuda-quantum-devdeps-clang15
+      build_cuda_quantum: true
+      test_cuda_quantum: true
+      export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.dump_build_environment }}
 
   cleanup:
     permissions: write-all

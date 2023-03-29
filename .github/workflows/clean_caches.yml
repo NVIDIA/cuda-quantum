@@ -21,7 +21,9 @@ jobs:
     steps:        
       - run: |
           gh extension install actions/gh-actions-cache
-          buildkit=$(gh actions-cache list --key buildkit-blob | cut -f 1 )
+          # Even when we name the cache location explicitly, 
+          # Caches for the layers will be stored under buildkit-blobs
+          # buildkit=$(gh actions-cache list --key buildkit-blob | cut -f 1 )
           devdeps=$(gh actions-cache list --key tar-devdeps | cut -f 1 )
 
           keys="${buildkit[@]} ${devdeps[@]}"
