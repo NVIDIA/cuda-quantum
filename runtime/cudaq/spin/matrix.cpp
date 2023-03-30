@@ -14,7 +14,7 @@
 #include <iostream>
 
 namespace cudaq {
-  
+
 /// @brief Hash function for an Eigen::MatrixXcd
 struct complex_matrix_hash : std::unary_function<Eigen::MatrixXcd, size_t> {
   std::size_t operator()(const Eigen::MatrixXcd &matrix) const {
@@ -29,8 +29,8 @@ struct complex_matrix_hash : std::unary_function<Eigen::MatrixXcd, size_t> {
   }
 };
 
-/// @brief Store eigen solvers for the same matrix so that 
-/// we don't recompute every time. 
+/// @brief Store eigen solvers for the same matrix so that
+/// we don't recompute every time.
 std::unordered_map<Eigen::MatrixXcd,
                    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXcd>,
                    complex_matrix_hash>

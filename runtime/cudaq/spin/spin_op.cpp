@@ -8,6 +8,7 @@
 
 #include <cudaq/spin_op.h>
 #include <stdint.h>
+#include <omp.h>
 
 #include <Eigen/Dense>
 #include <algorithm>
@@ -58,12 +59,14 @@ complex_matrix spin_op::to_matrix() const {
 
   complex_matrix A(dim, dim);
   A.set_zero();
+  auto rawData = A.data();
+#pragma omp parallel for shared(rawData)
   for (std::size_t rowIdx = 0; rowIdx < dim; rowIdx++) {
     auto rowBitStr = getBitStrForIdx(rowIdx);
     for_each_term([&](spin_op &term) {
       auto [res, coeff] = actionOnBra(term, rowBitStr);
       auto colIdx = std::stol(res, nullptr, 2);
-      A(rowIdx, colIdx) += coeff;
+      rawData[rowIdx * dim + colIdx] += coeff;
     });
   }
   return A;

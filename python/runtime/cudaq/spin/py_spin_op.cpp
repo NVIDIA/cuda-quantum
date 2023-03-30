@@ -140,6 +140,17 @@ void bindSpinOperator(py::module &mod) {
           "type and the `int` is the qubit index.")
 
       .def("to_matrix", &spin_op::to_matrix, "Return a matrix representation for this `cudaq.SpinOperator`.")
+      .def("serialize", &spin_op::getDataRepresentation,
+           "Return a serialized representation of the `SpinOperator`. "
+           "Specifically, this encoding is via a vector of doubles. The "
+           "encoding is as follows: for each term, a list of doubles where the "
+           "ith element is a 3.0 for a Y, a 1.0 for a X, and a 2.0 for a Z on "
+           "qubit i, followed by the real and imag part of the coefficient. "
+           "Each term is appended to the array forming one large 1d array of "
+           "doubles. The array is ended with the total number of terms "
+           "represented as a double.")
+      .def("to_matrix", &spin_op::to_matrix,
+           "Return the matrix representation for this `SpinOperator`.")
       /// @brief Bind overloaded operators that are in-place on
       /// `cudaq.SpinOperator`.
       // `this_spin_op` += `cudaq.SpinOperator`
