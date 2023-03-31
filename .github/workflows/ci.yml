@@ -21,7 +21,6 @@ jobs:
     uses: ./.github/workflows/dev_environment.yml
     with:
       toolchain: gcc11
-      cache_name: ${{ github.ref_name  }}-cuda-quantum-devdeps-gcc11
       build_cuda_quantum: true
       test_cuda_quantum: true
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
@@ -31,7 +30,6 @@ jobs:
     uses: ./.github/workflows/dev_environment.yml
     with:
       toolchain: clang15
-      cache_name: ${{ github.ref_name  }}-cuda-quantum-devdeps-clang15
       build_cuda_quantum: true
       test_cuda_quantum: true
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
