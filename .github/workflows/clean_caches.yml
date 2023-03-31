@@ -37,15 +37,16 @@ jobs:
     steps:        
       - run: |
           gh extension install actions/gh-actions-cache
-          tarballs=$(gh actions-cache list -R ${{ github.repository }} --key tar- | cut -f 1 )
 
           # Even when we name the cache location explicitly, 
           # caches for the layers will be stored under buildkit-blobs.
-          # We sort them by size, with the largest ones first.          
-          buildkits=$(gh actions-cache list -R ${{ github.repository }} --key buildkit-blob --sort size --order desc | cut -f 1 )
+          # We sort them by size, with the largest ones first.        
+          buildkits=$(gh actions-cache list -R ${{ github.repository }} --key buildkit-blob --sort size --order desc | cut -f 1)
+          tarballs=$(gh actions-cache list -R ${{ github.repository }} --key tar- | cut -f 1)
 
-          # For now, we keep the 9 largest buildkit caches.
-          for key in "${buildkits[@:9]} ${tarballs[@]}"
+          # For now, we keep the 9 largest caches.
+          keys=`tail +9 <<< "${buildkits[@]} ${tarballs[@]}"`
+          for key in $keys
           do
             echo "Deleting cache $key"
             gh actions-cache delete $key -R ${{ github.repository }} --confirm
