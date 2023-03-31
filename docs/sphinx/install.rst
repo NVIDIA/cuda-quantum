@@ -7,8 +7,12 @@ Docker Image
 Install the Public Beta Docker Image
 ++++++++++++++++++++++++++++++++++++
 This public beta release of CUDA Quantum is being deployed via 
-a provided Docker image. The name of the image is :code:`nvcr.io/nvidia/cuda-quantum:0.3.0`,
-and it has been built for :code:`x86_64,amd64` platforms. 
+a provided Docker image. 
+The image :code:`nvcr.io/nvidia/cuda-quantum:0.3.0` is available on the 
+`NGC Container Registry`_.
+Currently, the image is available for :code:`x86_64,amd64` platforms only.
+
+.. _NGC Container Registry: https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum
 
 .. code-block:: console
 
