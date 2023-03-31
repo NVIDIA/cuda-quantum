@@ -10,10 +10,5 @@
           "Accept-Encoding": "zstd, br, gzip, deflate"
         }
       }
-    ],
-    "ignorePatterns": [
-      {
-        "pattern": "^https://www.gnu.org/prep/standards/standards.html"
-      }
     ]
 }
