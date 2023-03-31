@@ -35,27 +35,3 @@ jobs:
       build_cuda_quantum: true
       test_cuda_quantum: true
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
-
-  cleanup:
-    permissions: write-all
-    runs-on: ubuntu-latest
-    needs: [gcc11_build, clang15_build]
-    # We need to skip this for PRs coming from forks since 
-    # these won't have permissions to delete caches.
-    # We rely on a scheduled job to clean up caches for these.
-    if: ${{ !github.event.pull_request.head.repo.fork }}
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v3
-        
-      - name: Cleanup
-        run: |
-          gh extension install actions/gh-actions-cache
-          keys=$(gh actions-cache list --key ${{ github.sha }} | cut -f 1 )
-          for key in $keys
-          do
-            echo "Deleting cache $key"
-            gh actions-cache delete $key -R ${{ github.repository }} --confirm
-          done
-        env:
-          GH_TOKEN: ${{ github.token }}
