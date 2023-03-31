@@ -16,7 +16,7 @@ concurrency:
 jobs:
   devdeps_gcc11:
     uses: ./.github/workflows/dev_environment.yml
-    if: github.event.pull_request.merged == true
+    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
     with:
       toolchain: gcc11
       cache_location: ${{ github.event.pull_request.base.ref }}
@@ -24,7 +24,7 @@ jobs:
 
   devdeps_clang15:
     uses: ./.github/workflows/dev_environment.yml
-    if: github.event.pull_request.merged == true
+    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
     with:
       toolchain: clang15
       cache_location: ${{ github.event.pull_request.base.ref }}
