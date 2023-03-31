@@ -5,9 +5,6 @@ on:
     # runs every 30min
     - cron: "*/30 * * * *"
   pull_request:
-    branches:
-      - 'main'
-      - 'releases/*'
     types:
       - closed
 
@@ -34,18 +31,19 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     permissions: write-all
     runs-on: ubuntu-latest
-    steps:        
+    steps: 
       - run: |
           gh extension install actions/gh-actions-cache
-          tarballs=$(gh actions-cache list -R ${{ github.repository }} --key tar- | cut -f 1 )
 
           # Even when we name the cache location explicitly, 
           # caches for the layers will be stored under buildkit-blobs.
-          # We sort them by size, with the largest ones first.          
-          buildkits=$(gh actions-cache list -R ${{ github.repository }} --key buildkit-blob --sort size --order desc | cut -f 1 )
+          # We sort them by size, with the largest ones first.        
+          buildkits=$(gh actions-cache list -R ${{ github.repository }} --key buildkit-blob --sort size --order desc | cut -f 1)
+          tarballs=$(gh actions-cache list -R ${{ github.repository }} --key tar- | cut -f 1)
 
-          # For now, we keep the 9 largest buildkit caches.
-          for key in "${buildkits[@:9]} ${tarballs[@]}"
+          # For now, we keep the 9 largest caches.
+          keys=`tail +9 <<< "${buildkits[@]} ${tarballs[@]}"`
+          for key in $keys
           do
             echo "Deleting cache $key"
             gh actions-cache delete $key -R ${{ github.repository }} --confirm
@@ -58,7 +56,8 @@ jobs:
     if: github.event_name == 'pull_request'
     permissions: write-all
     runs-on: ubuntu-latest
-    steps:        
+    steps:
+      - uses: actions/checkout@v3
       - run: |
           gh extension install actions/gh-actions-cache
           pr_refs=$(gh actions-cache list -R ${{ github.repository }} -B refs/pull/${{ github.event.number }}/merge | cut -f 1 )
