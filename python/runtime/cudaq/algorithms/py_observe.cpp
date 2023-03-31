@@ -23,6 +23,12 @@ constexpr int defaultShotsValue = -1;
 /// @brief Default qpu id value set to 0
 constexpr int defaultQpuIdValue = 0;
 
+/// @brief For asynchronous execution, we need to construct OpaqueArguments 
+/// outside of the async lambda invocation. If we don't, then we will be 
+/// using Python types outside of the current GIL context. Bad things happen then.
+std::unordered_map<std::size_t, std::unique_ptr<OpaqueArguments>>
+    asyncArgsHolder;
+
 /// @brief Run `cudaq::observe` on the provided kernel and spin operator.
 observe_result pyObserve(kernel_builder<> &kernel, spin_op &spin_operator,
                          py::args args = {}, int shots = defaultShotsValue) {
@@ -63,6 +69,15 @@ async_observe_result pyObserveAsync(kernel_builder<> &kernel,
 
   // Ensure the user input is correct.
   auto validatedArgs = validateInputArguments(kernel, args);
+  std::hash<std::string> hasher;
+
+  // Create a unique integer key that combines the kernel name
+  // and the validated args.
+  std::size_t uniqueHash = hasher(kernel.name()) + hasher(py::str(args));
+
+  // Add the opaque args to the holder and pack the args into it
+  asyncArgsHolder.emplace(uniqueHash, std::make_unique<OpaqueArguments>());
+  packArgs(*asyncArgsHolder.at(uniqueHash).get(), validatedArgs);
 
   // TODO: would like to handle errors in the case that
   // `kernel.num_qubits() >= spin_operator.num_qubits()`
@@ -73,10 +88,9 @@ async_observe_result pyObserveAsync(kernel_builder<> &kernel,
 
   // Launch the asynchronous execution.
   return details::runObservationAsync(
-      [&, a = std::move(validatedArgs)]() mutable {
-        OpaqueArguments argData;
-        packArgs(argData, a);
-        kernel.jitAndInvoke(argData.data());
+      [&kernel, uniqueHash]() mutable {
+        auto &argData = asyncArgsHolder.at(uniqueHash);
+        kernel.jitAndInvoke(argData->data());
       },
       spin_operator, platform, shots, qpu_id);
 }

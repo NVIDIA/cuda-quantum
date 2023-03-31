@@ -36,6 +36,7 @@ private:
   std::vector<OpaqueArgDeleter> deleters;
 
 public:
+
   /// @brief Add an opaque argument and its deleter to this OpaqueArguments
   template <typename ArgPointer, typename Deleter>
   void emplace_back(ArgPointer &&pointer, Deleter &&deleter) {
@@ -69,7 +70,7 @@ inline py::args validateInputArguments(kernel_builder<> &kernel,
   if (nRequiredParams != nInputArgs)
     throw std::runtime_error(fmt::format(
         "Kernel requires {} input parameter{} but {} provided.",
-        nRequiredParams, nRequiredParams, nRequiredParams > 1 ? "s" : "",
+        nRequiredParams, nRequiredParams > 1 ? "s" : "",
         nInputArgs == 0 ? "none" : std::to_string(nInputArgs)));
 
   // Look at the input arguments, validate they are ok
