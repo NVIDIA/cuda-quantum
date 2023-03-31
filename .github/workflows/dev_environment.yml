@@ -60,6 +60,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Determine LLVM commit to use
+        id: submodule_info
+        run: |
+          echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
+
       - name: Build dev environment image and push if requested
         id: build_devdeps
         uses: docker/build-push-action@v4
@@ -67,7 +72,8 @@ jobs:
           context: .
           file: ./docker/build/devdeps.Dockerfile
           build-args: |
-              toolchain=${{ inputs.toolchain }}
+            llvm_commit=${{ steps.submodule_info.outputs.llvm_commit }}
+            toolchain=${{ inputs.toolchain }}
           push: ${{ inputs.container_registry != '' }}
           load: true
           tags: ${{ steps.metadata.outputs.tags }}

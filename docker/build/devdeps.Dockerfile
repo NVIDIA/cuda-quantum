@@ -25,6 +25,7 @@
 FROM ubuntu:22.04 as llvmbuild
 SHELL ["/bin/bash", "-c"]
 
+ARG llvm_commit
 ARG toolchain=llvm
 ADD ../../scripts /scripts
 
@@ -36,16 +37,16 @@ RUN apt update && apt-get install -y --no-install-recommends \
         ca-certificates openssl apt-utils \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
+# Install prerequisites for building LLVM
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ninja-build cmake python3 \
+    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
+
 # Clone the LLVM source code
 RUN apt-get update && apt-get install -y --no-install-recommends git \
     && mkdir /llvm-project && cd /llvm-project && git init \
     && git remote add origin https://github.com/llvm/llvm-project \
-    && git fetch origin --depth=1 c0b45fef155fbe3f17f9a6f99074682c69545488 && git reset --hard FETCH_HEAD \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
-
-# Install prerequisites for building LLVM
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        ninja-build cmake python3 \
+    && git fetch origin --depth=1 $llvm_commit && git reset --hard FETCH_HEAD \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # Build the the LLVM libraries and compiler toolchain needed to build CUDA Quantum;
