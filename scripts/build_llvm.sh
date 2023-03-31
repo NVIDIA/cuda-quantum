@@ -25,16 +25,19 @@ LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-$HOME/.llvm}
 (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
 build_configuration=Release
 llvm_projects="clang;lld;mlir"
+verbose=false
 
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":c:s:p:" opt; do
+while getopts ":c:s:p:v" opt; do
   case $opt in
     c) build_configuration="$OPTARG"
     ;;
     s) llvm_source="$OPTARG"
     ;;
     p) llvm_projects="$OPTARG"
+    ;;
+    v) verbose=true
     ;;
     \?) echo "Invalid command line option -$OPTARG" >&2
     if $is_sourced; then return 1; else exit 1; fi
@@ -62,19 +65,29 @@ mkdir -p logs && rm -rf logs/*
 
 # Generate CMake files
 echo "Preparing LLVM build..."
-cmake -G Ninja ../llvm \
+cmake_args="-G Ninja ../llvm \
   -DLLVM_TARGETS_TO_BUILD="host" \
   -DCMAKE_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
   -DLLVM_ENABLE_PROJECTS="$llvm_projects" \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DLLVM_ENABLE_ASSERTIONS=ON \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-  -DLLVM_INSTALL_UTILS=TRUE 2> logs/cmake_error.txt 1> logs/cmake_output.txt
+  -DLLVM_INSTALL_UTILS=TRUE"
+if $verbose; then 
+  cmake $cmake_args
+else
+  cmake $cmake_args 2> logs/cmake_error.txt 1> logs/cmake_output.txt
+fi
 
 # Build and install clang in a folder
 echo "Building LLVM with configuration $build_configuration..."
-echo "The progress of the build is being logged to `pwd`/logs/ninja_output.txt."
-ninja install 2> logs/ninja_error.txt 1> logs/ninja_output.txt
+if $verbose; then 
+  ninja install
+else
+  echo "The progress of the build is being logged to `pwd`/logs/ninja_output.txt."
+  ninja install 2> logs/ninja_error.txt 1> logs/ninja_output.txt
+fi
+
 status=$?
 if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
   echo "Build failed. Please check the files in the `pwd`/logs directory."
