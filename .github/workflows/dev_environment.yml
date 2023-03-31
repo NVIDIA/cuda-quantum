@@ -67,7 +67,7 @@ jobs:
         id: build_info
         run: |
           echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
-          echo "cache_base=${{ github.event.pull_request.base.ref || main }}" >> $GITHUB_OUTPUT
+          echo "cache_base=${{ github.event.pull_request.base.ref || 'main' }}" >> $GITHUB_OUTPUT
           echo "cache_target=${{ inputs.cache_location || github.ref_name  }}" >> $GITHUB_OUTPUT
 
       - name: Build dev environment image and push if requested
