@@ -13,9 +13,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.base.ref }}
   cancel-in-progress: true
 
-env:
-  registry: ghcr.io
-
 jobs:
   devdeps_gcc11:
     uses: ./.github/workflows/dev_environment.yml
@@ -23,7 +20,7 @@ jobs:
     with:
       toolchain: gcc11
       cache_location: ${{ github.event.pull_request.base.ref }}
-      container_registry: ${{ env.registry }}
+      container_registry: ghcr.io
 
   devdeps_clang15:
     uses: ./.github/workflows/dev_environment.yml
@@ -31,4 +28,4 @@ jobs:
     with:
       toolchain: clang15
       cache_location: ${{ github.event.pull_request.base.ref }}
-      container_registry: ${{ env.registry }}
+      container_registry: ghcr.io
