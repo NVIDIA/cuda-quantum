@@ -1,0 +1,35 @@
+on:
+  workflow_dispatch:
+    inputs:
+      export_environment:
+        type: boolean
+        description: Export the build environment as tar artifact that can be imported with Docker.
+  pull_request:
+    branches:
+      - 'main'
+      - 'releases/*'
+
+name: CI
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gcc11_build:
+    name: Build with gcc11
+    uses: ./.github/workflows/dev_environment.yml
+    with:
+      toolchain: gcc11
+      build_cuda_quantum: true
+      test_cuda_quantum: true
+      export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
+
+  clang15_build:
+    name: Build with clang15
+    uses: ./.github/workflows/dev_environment.yml
+    with:
+      toolchain: clang15
+      build_cuda_quantum: true
+      test_cuda_quantum: true
+      export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
