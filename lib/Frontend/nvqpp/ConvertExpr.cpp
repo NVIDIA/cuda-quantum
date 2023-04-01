@@ -1,4 +1,4 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -998,24 +998,40 @@ bool QuakeBridgeVisitor::VisitMaterializeTemporaryExpr(
     clang::MaterializeTemporaryExpr *x) {
   if (typeMode)
     return true;
-  // FIXME: this implementation is a hack. The temporary should be some object
-  // allocated on the stack, not an undefined value. Need to fix reference and
-  // pointer arguments first.
   auto loc = toLocation(x->getSourceRange());
   auto ty = genType(x->getType());
-  if (ty.isa<cc::LambdaType>()) {
-    assert(peekValue().getType().isa<cc::LambdaType>());
+
+  // The following cases are λ expressions and quantum data. In those cases,
+  // there is nothing to materialize, so we can just pass the Value on the top
+  // of the stack.
+  if (isa<cc::LambdaType>(ty)) {
+    assert(isa<cc::LambdaType>(peekValue().getType()));
     return true;
   }
-  if (ty.isa<quake::QVecType>()) {
-    assert(peekValue().getType().isa<quake::QVecType>());
+  if (isa<quake::QVecType>(ty)) {
+    assert(isa<quake::QVecType>(peekValue().getType()));
     return true;
   }
-  if (peekValue().getType() == ty) {
-    // emitWarning(loc, "assumed expression was materialized, passing value");
+  if (auto structTy = dyn_cast<LLVM::LLVMStructType>(ty);
+      structTy && structTy.getName().equals("reference_wrapper")) {
+    assert(isa<quake::QRefType>(peekValue().getType()) ||
+           isa<quake::QVecType>(peekValue().getType()));
+    return true;
+  }
+  if (auto stdvecTy = dyn_cast<cc::StdvecType>(ty);
+      stdvecTy && isa<quake::QRefType>(stdvecTy.getElementType())) {
+    assert(isa<quake::QRefType>(peekValue().getType()) ||
+           isa<quake::QVecType>(peekValue().getType()));
     return true;
   }
 
+  // Is the Value on the top of the stack already materialized?
+  if (!valueStack.empty() && (peekValue().getType() == ty))
+    return true;
+
+  // FIXME: this implementation is a hack. The temporary should be some object
+  // allocated on the stack, not an undefined value. Need to fix reference and
+  // pointer arguments first.
   // emitWarning(loc, "materialized expression as undefined");
   return pushValue(builder.create<cc::UndefOp>(loc, ty));
 }
@@ -1550,91 +1566,154 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
   return true;
 }
 
+bool QuakeBridgeVisitor::isVectorOfQubitRefs(clang::CXXConstructExpr *x) {
+  if (auto *ctor = x->getConstructor();
+      ctor && isInNamespace(ctor, "std") && ctor->getNameAsString() == "vector")
+    if (Value v = peekValue(); v && isa<quake::QVecType>(v.getType()))
+      return true;
+  return false;
+}
+
+bool QuakeBridgeVisitor::WalkUpFromCXXTemporaryObjectExpr(
+    clang::CXXTemporaryObjectExpr *x) {
+  if (isVectorOfQubitRefs(x))
+    VisitCXXTemporaryObjectExpr(x);
+  return WalkUpFromCXXConstructExpr(x) && VisitCXXTemporaryObjectExpr(x);
+}
+
+bool QuakeBridgeVisitor::VisitCXXTemporaryObjectExpr(
+    clang::CXXTemporaryObjectExpr *x) {
+  if (typeMode)
+    return true;
+  if (isVectorOfQubitRefs(x)) {
+    assert(isa<quake::QVecType>(peekValue().getType()));
+    return true;
+  }
+  return true;
+}
+
+bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
+  if (typeMode)
+    return true;
+  if (x->isSyntacticForm())
+    return true;
+  auto size = x->getNumInits();
+  if (size > 0) {
+    auto loc = toLocation(x);
+    auto last = lastValues(size);
+    bool allQRef = [&]() {
+      for (auto v : last)
+        if (!isa<quake::QRefType>(v.getType()))
+          return false;
+      return true;
+    }();
+    if (allQRef) {
+      if (size > 1) {
+        auto qVecTy = quake::QVecType::get(builder.getContext(), size);
+        return pushValue(builder.create<quake::ConcatOp>(loc, qVecTy, last));
+      }
+      // Pass a one member initialization list as a QRef.
+      return pushValue(last[0]);
+    }
+    TODO_x(loc, x, mangler, "list initialization (not qref)");
+  }
+  return true;
+}
+
 bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
   if (typeMode)
     return true;
   if (x->isElidable())
     return true;
+
   auto loc = toLocation(x);
   if (auto *ctor = x->getConstructor()) {
     auto ctorName = ctor->getNameAsString();
-    if (isInNamespace(ctor, "cudaq") &&
-        (ctorName == "qreg" || ctorName == "qspan")) {
-      // This is a qreg q(N);
-      auto regTy = genType(x->getType()).cast<quake::QVecType>();
-      if (x->getNumArgs() == 1) {
-        assert(!regTy.hasSpecifiedSize());
-        auto sizeVal = popValue();
-        if (sizeVal.getType().isa<quake::QVecType>())
-          return pushValue(sizeVal);
-        return pushValue(builder.create<quake::AllocaOp>(loc, regTy, sizeVal));
+    if (isInNamespace(ctor, "cudaq")) {
+      if (ctorName == "qreg" || ctorName == "qspan") {
+        // This is a qreg q(N);
+        auto regTy = genType(x->getType()).cast<quake::QVecType>();
+        if (x->getNumArgs() == 1) {
+          assert(!regTy.hasSpecifiedSize());
+          auto sizeVal = popValue();
+          if (isa<quake::QVecType>(sizeVal.getType()))
+            return pushValue(sizeVal);
+          return pushValue(
+              builder.create<quake::AllocaOp>(loc, regTy, sizeVal));
+        }
+        auto qregSizeVal = builder.create<arith::ConstantIntOp>(
+            loc, regTy.getSize(), builder.getIntegerType(64));
+        return pushValue(
+            builder.create<quake::AllocaOp>(loc, regTy, qregSizeVal));
       }
-      auto qregSizeVal = builder.create<arith::ConstantIntOp>(
-          loc, regTy.getSize(), builder.getIntegerType(64));
-      return pushValue(
-          builder.create<quake::AllocaOp>(loc, regTy, qregSizeVal));
-    }
-    if (isInNamespace(ctor, "cudaq") && ctorName == "qudit") {
-      // This is a "cudaq::qudit/qubit q;"
-      return pushValue(builder.create<quake::AllocaOp>(loc));
-    }
-    if (isInNamespace(ctor, "std") && ctorName == "function") {
-      // Are we converting a lambda expr to a std::function?
-      auto backTy = peekValue().getType();
-      if (backTy.isa<cc::LambdaType>()) {
-        // Skip this constructor (for now).
+      if (ctorName == "qudit") {
+        // This is a "cudaq::qudit/qubit q;"
+        return pushValue(builder.create<quake::AllocaOp>(loc));
+      }
+    } else if (isInNamespace(ctor, "std")) {
+      if (isVectorOfQubitRefs(x)) {
+        assert(isa<quake::QVecType>(peekValue().getType()));
         return true;
       }
-      if (auto stTy = backTy.dyn_cast_or_null<LLVM::LLVMStructType>()) {
-        if (!stTy.getBody().empty()) {
-          // TODO: We don't support a callable class with data members yet.
-          TODO_loc(loc, "callable class with data members");
-        }
-        // Constructor generated as degenerate reference to call operator.
-        auto *fromTy = x->getArg(0)->getType().getTypePtr();
-        // FIXME: May need to peel off more than one layer of sugar?
-        if (auto *elabTy = dyn_cast<clang::ElaboratedType>(fromTy))
-          fromTy = elabTy->desugar().getTypePtr();
-        auto *fromDecl = dyn_cast_or_null<clang::RecordType>(fromTy)->getDecl();
-        if (!fromDecl)
-          TODO_loc(loc, "recovering record type for a callable");
-        auto *objDecl = dyn_cast_or_null<clang::CXXRecordDecl>(fromDecl);
-        if (!objDecl)
-          TODO_loc(loc, "recovering C++ declaration for callable");
-        auto *callOperDecl = findCallOperator(objDecl);
-        if (!callOperDecl) {
-          auto &de = mangler->getASTContext().getDiagnostics();
-          auto id = de.getCustomDiagID(
-              clang::DiagnosticsEngine::Error,
-              "std::function initializer must be a callable");
-          de.Report(x->getBeginLoc(), id);
+      if (ctorName == "function") {
+        // Are we converting a lambda expr to a std::function?
+        auto backTy = peekValue().getType();
+        if (backTy.isa<cc::LambdaType>()) {
+          // Skip this constructor (for now).
           return true;
         }
-        auto kernelCallTy = getFunctionType(callOperDecl);
-        auto kernelName = generateQodaKernelName(callOperDecl);
-        return pushValue(builder.create<cc::CreateLambdaOp>(
-            loc, cc::LambdaType::get(kernelCallTy),
-            [&](OpBuilder &builder, Location loc) {
-              auto args = builder.getBlock()->getArguments();
-              auto call = builder.create<func::CallOp>(
-                  loc, kernelCallTy.getResults(), kernelName, args);
-              builder.create<cc::ReturnOp>(loc, call.getResults());
-            }));
+        if (auto stTy = backTy.dyn_cast_or_null<LLVM::LLVMStructType>()) {
+          if (!stTy.getBody().empty()) {
+            // TODO: We don't support a callable class with data members yet.
+            TODO_loc(loc, "callable class with data members");
+          }
+          // Constructor generated as degenerate reference to call operator.
+          auto *fromTy = x->getArg(0)->getType().getTypePtr();
+          // FIXME: May need to peel off more than one layer of sugar?
+          if (auto *elabTy = dyn_cast<clang::ElaboratedType>(fromTy))
+            fromTy = elabTy->desugar().getTypePtr();
+          auto *fromDecl =
+              dyn_cast_or_null<clang::RecordType>(fromTy)->getDecl();
+          if (!fromDecl)
+            TODO_loc(loc, "recovering record type for a callable");
+          auto *objDecl = dyn_cast_or_null<clang::CXXRecordDecl>(fromDecl);
+          if (!objDecl)
+            TODO_loc(loc, "recovering C++ declaration for callable");
+          auto *callOperDecl = findCallOperator(objDecl);
+          if (!callOperDecl) {
+            auto &de = mangler->getASTContext().getDiagnostics();
+            auto id = de.getCustomDiagID(
+                clang::DiagnosticsEngine::Error,
+                "std::function initializer must be a callable");
+            de.Report(x->getBeginLoc(), id);
+            return true;
+          }
+          auto kernelCallTy = getFunctionType(callOperDecl);
+          auto kernelName = generateQodaKernelName(callOperDecl);
+          return pushValue(builder.create<cc::CreateLambdaOp>(
+              loc, cc::LambdaType::get(kernelCallTy),
+              [&](OpBuilder &builder, Location loc) {
+                auto args = builder.getBlock()->getArguments();
+                auto call = builder.create<func::CallOp>(
+                    loc, kernelCallTy.getResults(), kernelName, args);
+                builder.create<cc::ReturnOp>(loc, call.getResults());
+              }));
+        }
       }
     }
 
     // TODO: remove this when we can handle ctors more generally.
     if (!ctor->isDefaultConstructor()) {
-      LLVM_DEBUG(llvm::dbgs() << "unhandled ctor: " << x << '\n');
+      LLVM_DEBUG(llvm::dbgs() << "unhandled ctor:\n"; x->dump());
       TODO_loc(loc, "C++ ctor (not-default)");
     }
 
     // A regular C++ class constructor lowers as:
-    //  1) A unique object must be created, so the type must have a minimum of
-    //     one byte.
-    //   2) Allocate a new object.
-    //   3) Call the constructor passing the address of the allocation as
-    //   `this`.
+    //
+    // 1) A unique object must be created, so the type must have a minimum of
+    //    one byte.
+    // 2) Allocate a new object.
+    // 3) Call the constructor passing the address of the allocation as `this`.
 
     // FIXME: As this is now, the stack space isn't correctly sized. The next
     // line should be something like:
