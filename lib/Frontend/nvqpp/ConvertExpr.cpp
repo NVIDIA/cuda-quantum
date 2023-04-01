@@ -974,7 +974,7 @@ std::string QuakeBridgeVisitor::genLoweredName(clang::FunctionDecl *x,
   std::string result = [&]() {
     for (auto &pair : functionsToEmit)
       if (x == pair.second)
-        return generateQodaKernelName(pair);
+        return generateCudaqKernelName(pair);
     return cxxMangledDeclName(x);
   }();
   // Add the called function to the module as needed.
@@ -1331,7 +1331,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           de.Report(x->getBeginLoc(), id);
           return {};
         }
-        auto calleeName = generateQodaKernelName(kernelCallOper);
+        auto calleeName = generateCudaqKernelName(kernelCallOper);
         calleeSymbol = SymbolRefAttr::get(ctx, calleeName);
         auto kernelTy = getFunctionType(kernelCallOper);
         auto kernelArgs =
@@ -1365,7 +1365,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         if (decl->isLambda()) {
           auto *lambdaClass = cast<clang::CXXRecordDecl>(decl);
           auto mangledName =
-              generateQodaKernelName(findCallOperator(lambdaClass));
+              generateCudaqKernelName(findCallOperator(lambdaClass));
           calleeSymbol = SymbolRefAttr::get(ctx, mangledName);
           auto funcTy = ty.getSignature();
           return builder.create<quake::ApplyOp>(
@@ -1413,7 +1413,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           de.Report(x->getBeginLoc(), id);
           return {};
         }
-        auto calleeName = generateQodaKernelName(kernelCallOper);
+        auto calleeName = generateCudaqKernelName(kernelCallOper);
         calleeSymbol = SymbolRefAttr::get(ctx, calleeName);
         auto kernelTy = getFunctionType(kernelCallOper);
         auto kernelArgs =
@@ -1689,7 +1689,7 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
             return true;
           }
           auto kernelCallTy = getFunctionType(callOperDecl);
-          auto kernelName = generateQodaKernelName(callOperDecl);
+          auto kernelName = generateCudaqKernelName(callOperDecl);
           return pushValue(builder.create<cc::CreateLambdaOp>(
               loc, cc::LambdaType::get(kernelCallTy),
               [&](OpBuilder &builder, Location loc) {

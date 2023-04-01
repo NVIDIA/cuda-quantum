@@ -24,7 +24,7 @@ bool QuakeBridgeVisitor::needToLowerFunction(const clang::FunctionDecl *decl) {
   for (auto fdPair : functionsToEmit) {
     if (decl == fdPair.second) {
       // This is an entry point.
-      std::string entryName = generateQodaKernelName(fdPair);
+      std::string entryName = generateCudaqKernelName(fdPair);
       setEntryName(entryName);
       // Extend the mangled kernel names map.
       auto mangledFuncName = cxxMangledDeclName(decl);

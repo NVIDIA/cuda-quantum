@@ -107,7 +107,7 @@ std::string getCxxMangledTypeName(clang::QualType ty,
                                   clang::ItaniumMangleContext *mangler);
 
 /// Use this helper to convert a tag name to a nvqpp mangled name.
-inline std::string getQodaKernelName(const std::string &tag) {
+inline std::string getCudaqKernelName(const std::string &tag) {
   return runtime::cudaqGenPrefixName + tag;
 }
 
@@ -144,14 +144,14 @@ public:
   /// nvq++ renames quantum kernels to differentiate them from classical C++
   /// code. This renaming is done on function names. \p tag makes it easier
   /// to identify the kernel class from which the function was extracted.
-  std::string generateQodaKernelName(const clang::FunctionDecl *func) {
-    return getQodaKernelName(
+  std::string generateCudaqKernelName(const clang::FunctionDecl *func) {
+    return getCudaqKernelName(
         cudaq::details::getTagNameOfFunctionDecl(func, mangler));
   }
-  std::string generateQodaKernelName(const EmittedFunctionPair &emittedFunc) {
+  std::string generateCudaqKernelName(const EmittedFunctionPair &emittedFunc) {
     if (emittedFunc.first.starts_with(runtime::cudaqGenPrefixName))
       return emittedFunc.first;
-    return generateQodaKernelName(emittedFunc.second);
+    return generateCudaqKernelName(emittedFunc.second);
   }
 
   //===--------------------------------------------------------------------===//
