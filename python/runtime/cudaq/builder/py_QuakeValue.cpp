@@ -54,6 +54,10 @@ void bindQuakeValue(py::module &mod) {
           "\nRaises:\n"
           "  RuntimeError: if `self` is a non-subscriptable "
           ":class:`QuakeValue`.\n")
+      .def("slice", &QuakeValue::slice,
+           "Return a slice of the given QuakeValue. The QuakeValue must be "
+           "list or qvec like. The first argument is the start index for the "
+           "slice, followed by the number of elements to extract.")
       /// @brief Bind the binary operators on `QuakeValue` class. Note:
       /// these are incompatible with the pybind11 built-in
       /// binary operators (see: cudaq::spin_op bindings). Instead,

@@ -61,15 +61,18 @@ void bindComplexMatrix(py::module &mod) {
             {sizeof(std::complex<double>) * op.cols(),
              sizeof(std::complex<double>)});
       })
-      .def(py::init([](const py::buffer &b) {
-             py::buffer_info info = b.request();
-             complex_matrix m(info.shape[0], info.shape[1]);
-             extractMatrixData(info, m.data());
-             return m;
-           }),
-           "Create a ComplexMatrix from a buffer of data, like a numpy array.")
+      .def(
+          py::init([](const py::buffer &b) {
+            py::buffer_info info = b.request();
+            complex_matrix m(info.shape[0], info.shape[1]);
+            extractMatrixData(info, m.data());
+            return m;
+          }),
+          "Create a `ComplexMatrix` from a buffer of data, like a numpy array.")
       .def("__getitem__", &complex_matrix::operator(),
            "Return the matrix element at i, j.")
+      .def("minimal_eigenvalue", &complex_matrix::minimal_eigenvalue,
+           "Return the lowest eigenvalue for this `ComplexMatrix`.")
       .def(
           "__str__",
           [](complex_matrix &self) {
@@ -91,6 +94,11 @@ void bindSpinOperator(py::module &mod) {
   py::class_<cudaq::spin_op>(mod, "SpinOperator")
       /// @brief Bind the constructors.
       .def(py::init<>(), "Empty constructor, creates the identity term.")
+      .def(py::init([](std::string fileName) {
+             cudaq::binary_spin_op_reader reader;
+             return reader.read(fileName);
+           }),
+           "Read in `SpinOperator` from file.")
       .def(py::init<const cudaq::spin_op>(), py::arg("spin_operator"),
            "Copy constructor, given another `cudaq.SpinOperator`.")
 
