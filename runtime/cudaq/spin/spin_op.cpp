@@ -8,7 +8,9 @@
 
 #include <cudaq/spin_op.h>
 #include <stdint.h>
+#ifdef CUDAQ_HAS_OPENMP
 #include <omp.h>
+#endif
 
 #include <Eigen/Dense>
 #include <algorithm>

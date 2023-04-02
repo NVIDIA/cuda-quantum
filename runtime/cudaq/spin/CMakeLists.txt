@@ -25,6 +25,7 @@ target_include_directories(${LIBRARY_NAME}
     PRIVATE .)
 
 if (OpenMP_CXX_FOUND)
+  target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_HAS_OPENMP)
   target_link_libraries(${LIBRARY_NAME} PRIVATE fmt::fmt-header-only OpenMP::OpenMP_CXX)
 else()
   target_link_libraries(${LIBRARY_NAME} PRIVATE fmt::fmt-header-only)
