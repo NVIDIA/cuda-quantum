@@ -367,7 +367,7 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
   // Lower each kernel entry function.
   for (auto fdPair : functionsToEmit) {
     SymbolTableScope var_scope(symbol_table);
-    std::string entryName = visitor.generateQodaKernelName(fdPair);
+    std::string entryName = visitor.generateCudaqKernelName(fdPair);
     visitor.setEntryName(entryName);
     // Extend the mangled kernel names map.
     auto mangledFuncName = visitor.cxxMangledDeclName(fdPair.second);

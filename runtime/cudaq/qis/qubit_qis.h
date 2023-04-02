@@ -433,6 +433,22 @@ void control(QuantumKernel &&kernel, QuantumRegister &&ctrl_qubits,
   getExecutionManager()->endCtrlRegion(ctrls.size());
 }
 
+// Control the given cudaq kernel on the given list of references to control
+// qubits.
+template <typename QuantumKernel, typename... Args>
+  requires isCallableVoidKernel<QuantumKernel, Args...>
+void control(QuantumKernel &&kernel,
+             std::vector<std::reference_wrapper<qubit>> &&ctrl_qubits,
+             Args &&...args) {
+  std::vector<std::size_t> ctrls;
+  for (auto &cq : ctrl_qubits) {
+    ctrls.push_back(cq.get().id());
+  }
+  getExecutionManager()->startCtrlRegion(ctrls);
+  kernel(std::forward<Args>(args)...);
+  getExecutionManager()->endCtrlRegion(ctrls.size());
+}
+
 // Apply the adjoint of the given cudaq kernel
 template <typename QuantumKernel, typename... Args>
   requires isCallableVoidKernel<QuantumKernel, Args...>

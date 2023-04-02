@@ -1,0 +1,31 @@
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - 'main'
+      - 'releases/*'
+    types:
+      - closed
+
+name: Push dev environment images and update caches
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.base.ref }}
+  cancel-in-progress: true
+
+jobs:
+  devdeps_gcc11:
+    uses: ./.github/workflows/dev_environment.yml
+    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
+    with:
+      toolchain: gcc11
+      cache_location: ${{ github.event.pull_request.base.ref }}
+      container_registry: ghcr.io
+
+  devdeps_clang15:
+    uses: ./.github/workflows/dev_environment.yml
+    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
+    with:
+      toolchain: clang15
+      cache_location: ${{ github.event.pull_request.base.ref }}
+      container_registry: ghcr.io

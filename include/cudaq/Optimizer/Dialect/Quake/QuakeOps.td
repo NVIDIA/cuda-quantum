@@ -113,10 +113,10 @@ def quake_ComputeActionOp : QuakeOp<"compute_action",
     [MemoryEffects<[MemRead, MemWrite]>]> {
   let summary = "Captures the compute/action/uncompute high-level idiom.";
   let description = [{
-    CUDA Quantum supports the high-level compute/action/uncompute idiom by providing
-    a custom template function (class) that takes pure kernels (a callable like
-    a λ) as arguments. This operation captures uses of the idiom and can
-    be systematically expanded into a quantum circuit via successive
+    CUDA Quantum supports the high-level compute/action/uncompute idiom by
+    providing a custom template function (class) that takes pure kernels (a
+    callable like a λ) as arguments. This operation captures uses of the idiom
+    and can be systematically expanded into a quantum circuit via successive
     transformations.
   }];
 
