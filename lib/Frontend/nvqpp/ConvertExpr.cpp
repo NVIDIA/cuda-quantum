@@ -42,25 +42,9 @@ static std::string getQubitSymbolTableName(StringRef qregName, Value idxVal) {
   return ss.str();
 }
 
-namespace {
-class GetQubitNameVisitor
-    : public clang::RecursiveASTVisitor<GetQubitNameVisitor> {
-public:
-  std::string name;
-  clang::NamedDecl *named_decl;
-  bool VisitDeclRefExpr(clang::DeclRefExpr *expr) {
-    named_decl = expr->getDecl()->getUnderlyingDecl();
-    return true;
-  }
-};
-} // namespace
-
-static clang::NamedDecl *getNamedDecl(const clang::Expr *expr) {
-  auto tmpcall0 = static_cast<const clang::DeclRefExpr *>(expr);
-  clang::DeclRefExpr *call0 = const_cast<clang::DeclRefExpr *>(tmpcall0);
-  GetQubitNameVisitor visitor;
-  visitor.VisitDeclRefExpr(call0);
-  return visitor.named_decl;
+static clang::NamedDecl *getNamedDecl(clang::Expr *expr) {
+  auto *call = cast<clang::DeclRefExpr>(expr);
+  return call->getDecl()->getUnderlyingDecl();
 }
 
 static std::pair<SmallVector<Value>, SmallVector<Value>>
@@ -1063,6 +1047,20 @@ bool QuakeBridgeVisitor::TraverseLambdaExpr(clang::LambdaExpr *x,
   return result;
 }
 
+bool QuakeBridgeVisitor::TraverseCallExpr(clang::CallExpr *x,
+                                          DataRecursionQueue *q) {
+  for (auto *arg : x->arguments())
+    if (auto *declExpr = dyn_cast<clang::DeclRefExpr>(arg))
+      if (isa<clang::FunctionDecl>(declExpr->getDecl())) {
+        // A function is being passed by reference as an argument.
+        declRefArgs.insert(declExpr);
+      }
+  for (auto *s : x->children())
+    if (!TraverseStmt(s))
+      return false;
+  return WalkUpFromCallExpr(x);
+}
+
 bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
   if (typeMode)
     return true;
@@ -1340,6 +1338,14 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
                                               /*isAdjoint=*/false, args[1],
                                               kernelArgs);
       }
+      if (auto func =
+              dyn_cast_or_null<func::ConstantOp>(calleeValue.getDefiningOp())) {
+        auto funcTy = cast<FunctionType>(func.getType());
+        auto callableSym = func.getValueAttr();
+        return builder.create<quake::ApplyOp>(loc, funcTy.getResults(),
+                                              callableSym, /*isAdjoint=*/false,
+                                              args[1], argRange.drop_front(2));
+      }
       if (auto ty = dyn_cast<cc::LambdaType>(calleeValue.getType())) {
         // In order to autogenerate the control form of the called kernel, we
         // have to be able to determine precisely which kernel is being called
@@ -1511,8 +1517,8 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
       auto idx_var = popValue();
       auto qreg_var = popValue();
 
-      // Get name of the qreg, e.g. qr, and use it to construct a name for
-      // the element, which is intended to be qr%n when n is the index of the
+      // Get name of the qreg, e.g. qr, and use it to construct a name for the
+      // element, which is intended to be qr%n when n is the index of the
       // accessed qubit.
       StringRef qregName = getNamedDecl(x->getArg(0))->getName();
       auto name = getQubitSymbolTableName(qregName, idx_var);
@@ -1522,9 +1528,9 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
       if (symbolTable.count(name))
         return pushValue(symbolTable.lookup(name));
 
-      // Otherwise create an operation to access the qubit, store that value
-      // in the symbol table, and return the AddressQubit operation's
-      // resulting value.
+      // Otherwise create an operation to access the qubit, store that value in
+      // the symbol table, and return the AddressQubit operation's resulting
+      // value.
       auto address_qubit =
           builder.create<quake::QExtractOp>(loc, qreg_var, idx_var);
 
@@ -1532,10 +1538,10 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
       return pushValue(address_qubit);
     }
     if (typeName == "vector") {
-      // Here we have something like vector<float> theta, and in the kernel,
-      // we are accessing it like theta[i]. Since vectors are converted to
-      // memrefs, this subscript operation needs to be converted to a memref
-      // load, which requires that the index operand be an index type.
+      // Here we have something like vector<float> theta, and in the kernel, we
+      // are accessing it like theta[i]. Since vectors are converted to memrefs,
+      // this subscript operation needs to be converted to a memref load, which
+      // requires that the index operand be an index type.
       auto indexVar = popValue();
       auto svec = popValue();
       assert(svec.getType().isa<cc::StdvecType>());
@@ -1715,8 +1721,8 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     // 2) Allocate a new object.
     // 3) Call the constructor passing the address of the allocation as `this`.
 
-    // FIXME: As this is now, the stack space isn't correctly sized. The next
-    // line should be something like:
+    // FIXME: As this is now, the stack space isn't correctly sized. The
+    // next line should be something like:
     //   auto ty = genType(x->getType());
     auto ty = LLVM::LLVMStructType::getLiteral(
         builder.getContext(), ArrayRef<Type>{builder.getIntegerType(8)});
@@ -1725,8 +1731,9 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     auto i64Ty = builder.getIntegerType(64);
     auto one = builder.create<LLVM::ConstantOp>(loc, i64Ty, oneAttr);
     auto mem = builder.create<LLVM::AllocaOp>(loc, ptrTy, ValueRange{one});
-    // FIXME: Using Ctor_Complete for mangled name generation blindly here. Is
-    // there a programmatic way of determining which enum to use from the AST?
+    // FIXME: Using Ctor_Complete for mangled name generation blindly here.
+    // Is there a programmatic way of determining which enum to use from the
+    // AST?
     auto mangledName =
         cxxMangledDeclName(clang::GlobalDecl{ctor, clang::Ctor_Complete});
     auto funcTy = FunctionType::get(builder.getContext(), TypeRange{ptrTy}, {});
@@ -1738,12 +1745,24 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
   TODO_loc(loc, "C++ ctor (NULL)");
 }
 
+bool QuakeBridgeVisitor::visitFunctionDeclAsCallArg(clang::FunctionDecl *x) {
+  auto loc = toLocation(x->getSourceRange());
+  auto funcTy = getFunctionType(x);
+  return pushValue(
+      builder.create<func::ConstantOp>(loc, funcTy, genLoweredName(x, funcTy)));
+}
+
 bool QuakeBridgeVisitor::VisitDeclRefExpr(clang::DeclRefExpr *x) {
   if (typeMode)
     return true;
   auto *decl = x->getDecl();
-  if (isa<clang::FunctionDecl>(decl))
+  if (auto *funcDecl = dyn_cast<clang::FunctionDecl>(decl)) {
+    if (declRefArgs.count(x)) {
+      declRefArgs.erase(x);
+      return visitFunctionDeclAsCallArg(funcDecl);
+    }
     return true;
+  }
   if (!symbolTable.count(decl->getName())) {
     // This is a catastrophic error. This symbol is unknown and probably came
     // from a context that is inaccessible from this kernel.

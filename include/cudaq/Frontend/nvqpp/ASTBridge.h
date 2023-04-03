@@ -228,8 +228,6 @@ public:
   //===--------------------------------------------------------------------===//
 
   bool VisitArraySubscriptExpr(clang::ArraySubscriptExpr *x);
-  bool TraverseBinaryOperator(clang::BinaryOperator *x,
-                              DataRecursionQueue *q = nullptr);
   bool VisitBinaryOperator(clang::BinaryOperator *x);
   bool VisitCallExpr(clang::CallExpr *x);
   bool VisitConditionalOperator(clang::ConditionalOperator *x);
@@ -244,13 +242,18 @@ public:
   bool VisitInitListExpr(clang::InitListExpr *x);
   bool VisitIntegerLiteral(clang::IntegerLiteral *x);
   bool VisitCXXBoolLiteralExpr(clang::CXXBoolLiteralExpr *x);
-  bool TraverseLambdaExpr(clang::LambdaExpr *x,
-                          DataRecursionQueue *q = nullptr);
   bool VisitMaterializeTemporaryExpr(clang::MaterializeTemporaryExpr *x);
   bool VisitUnaryOperator(clang::UnaryOperator *x);
   bool VisitStringLiteral(clang::StringLiteral *x);
 
+  bool TraverseBinaryOperator(clang::BinaryOperator *x,
+                              DataRecursionQueue *q = nullptr);
+  bool TraverseCallExpr(clang::CallExpr *x, DataRecursionQueue *q = nullptr);
+  bool TraverseLambdaExpr(clang::LambdaExpr *x,
+                          DataRecursionQueue *q = nullptr);
+
   bool isVectorOfQubitRefs(clang::CXXConstructExpr *x);
+  bool visitFunctionDeclAsCallArg(clang::FunctionDecl *x);
 
   //===--------------------------------------------------------------------===//
   // Type nodes to lower to Quake.
@@ -459,14 +462,15 @@ private:
   clang::ItaniumMangleContext *mangler;
   std::string loweredFuncName;
   llvm::SmallVector<mlir::Value> negations;
+  llvm::DenseSet<clang::DeclRefExpr *> declRefArgs;
   /// Should traversal be postorder or preorder?
-  bool postOrderTraversal = true;
-  bool skipCompoundScope = false;
-  bool isEntry = false;
+  bool postOrderTraversal : 1 = true;
+  bool skipCompoundScope : 1 = false;
+  bool isEntry : 1 = false;
   /// If there is a catastrophic error in the bridge (there is no rational way
   /// to proceed to emit correct code), emit an error using the diagnostic
   /// engine, set this flag, and return false.
-  bool raisedError = false;
+  bool raisedError : 1 = false;
 
   //===--------------------------------------------------------------------===//
   // Type traversals
@@ -484,10 +488,10 @@ private:
   /// Stack of Types built by the visitor. (right-to-left ordering)
   llvm::SmallVector<mlir::Type> typeStack;
   llvm::SmallVector<clang::RecordType *> records;
-  bool visitImplicitCode = false;
-  bool visitTemplateInstantiations = false;
-  bool typeMode = false;
-  bool codeGenMethodDecl = false;
+  bool visitImplicitCode : 1 = false;
+  bool visitTemplateInstantiations : 1 = false;
+  bool typeMode : 1 = false;
+  bool codeGenMethodDecl : 1 = false;
 };
 } // namespace details
 
