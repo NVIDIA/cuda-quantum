@@ -41,5 +41,6 @@ ENV CUDAQ_REPO_ROOT=/workspaces/cuda-quantum
 ARG installation=
 RUN if [ -n "$installation" ]; \
     then \
-        $installation bash "$CUDAQ_REPO_ROOT/scripts/build_cudaq.sh" -v; \
+        export $installation; \
+        bash "$CUDAQ_REPO_ROOT/scripts/build_cudaq.sh" -v; \
     fi
