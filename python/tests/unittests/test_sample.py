@@ -476,6 +476,33 @@ def test_sample_marginalize():
     marginal_result = sample_result.get_marginal_counts([1, 2, 3])
     assert marginal_result.most_probable() == "101"
 
+def test_qubit_reset():
+    """
+    Basic test that we can apply a qubit reset.
+    """
+    kernel = cudaq.make_kernel()
+    qubit = kernel.qalloc()
+    kernel.x(qubit)
+    kernel.reset(qubit)
+    kernel.mz(qubit)
+
+    counts = cudaq.sample(kernel)
+    assert (len(counts) == 1)
+    assert('0' in counts)
+
+def test_qreg_reset():
+    """
+    Basic test that we can apply a qreg reset.
+    """
+    kernel = cudaq.make_kernel()
+    qubits = kernel.qalloc(2)
+    kernel.x(qubits)
+    kernel.reset(qubits)
+    kernel.mz(qubits)
+
+    counts = cudaq.sample(kernel)
+    assert (len(counts) == 1)
+    assert('00' in counts)
 
 # leave for gdb debugging
 if __name__ == "__main__":

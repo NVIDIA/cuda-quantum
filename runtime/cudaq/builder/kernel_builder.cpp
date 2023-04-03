@@ -447,6 +447,36 @@ QuakeValue mz(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQreg,
   return applyMeasure<quake::MzOp>(builder, qubitOrQreg.getValue(), regName);
 }
 
+void reset(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQreg) {
+  auto value = qubitOrQreg.getValue();
+  if (isa<quake::QRefType>(value.getType())) {
+    builder.create<quake::ResetOp>(value);
+    return;
+  }
+
+  if (isa<quake::QVecType>(value.getType())) {
+    auto target = value;
+    Type indexTy = builder.getIndexType();
+    auto size =
+        builder.create<quake::QVecSizeOp>(builder.getIntegerType(64), target);
+    Value rank = builder.create<arith::IndexCastOp>(indexTy, size);
+    auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &,
+                           Block &block) {
+      Value qref =
+          builder.create<quake::QExtractOp>(loc, target, block.getArgument(0));
+      builder.create<quake::ResetOp>(loc, qref);
+    };
+    cudaq::opt::factory::createCountedLoop(builder, builder.getUnknownLoc(),
+                                           rank, bodyBuilder);
+    return;
+  }
+
+  llvm::errs() << "Invalid type:\n";
+  value.getType().dump();
+  llvm::errs() << '\n';
+  throw std::runtime_error("Invalid type passed to reset().");
+}
+
 void c_if(ImplicitLocOpBuilder &builder, QuakeValue &conditional,
           std::function<void()> &thenFunctor) {
   auto value = conditional.getValue();
