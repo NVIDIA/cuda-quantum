@@ -100,7 +100,7 @@ jobs:
             built_image=false
             for image in "${created[@]}"; do
               tag=`echo $image | cut -d ":" -f 2`
-              docker build -t nvidia/cuda-quantum-dev:${{ inputs.toolchain }}-latest -f docker/build/cudaq_dev.Dockerfile . \
+              docker build -t nvidia/cuda-quantum-dev:${{ inputs.toolchain }}-latest -f docker/build/cudaqdev.Dockerfile . \
                 --build-arg tag=$tag --build-arg workspace=. --build-arg destination=workspaces/cuda-quantum \
                 --build-arg installation="CMAKE_BUILD_TYPE=Debug" \
                 || built_image=true

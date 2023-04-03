@@ -8,7 +8,7 @@
 
 # Usage:
 # Build from the repo root with
-#   docker build -t nvidia/cuda-quantum-dev:$tag -f docker/build/cudaq_dev.Dockerfile . \
+#   docker build -t nvidia/cuda-quantum-dev:$tag -f docker/build/cudaqdev.Dockerfile . \
 #   --build-arg tag=$tag --build-arg workspace=. --build-arg destination=workspaces/cuda-quantum 
 #
 # If a custom build_environment is used, then the build environment must 
