@@ -298,7 +298,7 @@ void bindKernel(py::module &mod) {
           [](kernel_builder<> &self, QuakeValue &qubitOrQreg) {
             self.reset(qubitOrQreg);
           },
-          "Reset the provide qubit or qubits.")
+          "Reset the provided qubit or qubits.")
       /// @brief Allow for JIT compilation of kernel in python via call to
       /// `builder(args)`.
       .def(
