@@ -169,17 +169,17 @@ fi
 
 CUDAQ_IS_APPLE=@CUDAQ_IS_APPLE@
 INCLUDES=""
-LINKER_FLAGS=
+LINKER_PATH=
 NVQPP_LD_PATH=${NVQPP_LD_PATH:-"@NVQPP_LD_PATH@"}
 if [ -f "$NVQPP_LD_PATH" ]; then
-	LINKER_FLAGS="${LINKER_FLAGS} --ld-path=${NVQPP_LD_PATH}"
+	LINKER_PATH="--ld-path=${NVQPP_LD_PATH}"
 fi
-LINKER_FLAGS="${LINKER_FLAGS} -Wl,-rpath,${install_dir}/lib -Wl,-rpath,${PWD} -L${install_dir}/lib"
+LINKER_FLAGS="${LINKER_FLAGS} -Wl,-rpath,${install_dir}/lib -Wl,-rpath,${PWD}"
 
 LIBRARY_MODE_EXECUTION_MANAGER="qir"
 PLATFORM_LIBRARY="default"
 LLVM_QUANTUM_TARGET="qir"
-LINKDIRS="@CUDAQ_CXX_NVQPP_LINK_STR@"
+LINKDIRS="-L${install_dir}/lib @CUDAQ_CXX_NVQPP_LINK_STR@"
 LINKLIBS="-lcudaq -lcudaq-common -lcudaq-mlir-runtime -lcudaq-builder -lcudaq-ensmallen -lcudaq-nlopt -lcudaq-spin -lcudaq-qpud-client"
 
 # Provide a default backend, user can override
@@ -494,12 +494,12 @@ for i in ${SRCS}; do
 	fi
 
 	# If we had cudaq kernels, merge the quantum and classical object files.
-	run ${LINKER_CXX} ${LINKER_FLAGS} ${LINKDIRS} -r ${QUAKE_OBJ} ${file}.classic.o ${OBJS_TO_MERGE} -o ${file}.o
+	run ${LINKER_CXX} ${LINKER_PATH} ${LINKDIRS} -r ${QUAKE_OBJ} ${file}.classic.o ${OBJS_TO_MERGE} -o ${file}.o
 	OBJS="${OBJS} ${file}.o"
 done
 
 if ${DO_LINK}; then
-	run ${LINKER_CXX} ${LINKER_FLAGS} ${LINKDIRS} ${OBJS} ${LINKLIBS} ${OUTPUTOPTS}
+	run ${LINKER_CXX} ${LINKER_PATH} ${LINKER_FLAGS} ${LINKDIRS} ${OBJS} ${LINKLIBS} ${OUTPUTOPTS}
 else
 	# Save the object file to what the user specified
 	if [ ! -z "${OUTPUTFILE}" ] && [ $((${#OBJS[@]} == 0)) ]; then
