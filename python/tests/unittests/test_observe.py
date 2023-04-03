@@ -503,7 +503,8 @@ def test_observe_async_multi_param(angle_0, angle_1, angles, want_state,
 
 
 @pytest.mark.parametrize("angles, want_state, want_expectation",
-                         [[[np.pi, np.pi, np.pi, np.pi], "1", -4.0]])
+                         [[[np.pi, np.pi, np.pi, np.pi], "1", -4.0],
+                          [[0.0, 0.0, 0.0, 0.0], "0", 4.0]])
 def test_observe_numpy_array(angles, want_state, want_expectation):
     """
     Tests that a numpy array can be passed to `cudaq.observe` in place of
