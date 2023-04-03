@@ -49,9 +49,10 @@ void bindSpinClass(py::module &mod) {
 }
 
 void bindComplexMatrix(py::module &mod) {
-  py::class_<complex_matrix>(mod, "ComplexMatrix", py::buffer_protocol(),
-                             "The ComplexMatrix is a thin wrapper around a "
-                             "matrix of complex<double> elements.")
+  py::class_<complex_matrix>(
+      mod, "ComplexMatrix", py::buffer_protocol(),
+      "The `cudaq.ComplexMatrix` is a thin wrapper around a "
+      "matrix of complex<double> elements.")
       /// The following makes this fully compatible with NumPy
       .def_buffer([](complex_matrix &op) -> py::buffer_info {
         return py::buffer_info(
@@ -61,18 +62,18 @@ void bindComplexMatrix(py::module &mod) {
             {sizeof(std::complex<double>) * op.cols(),
              sizeof(std::complex<double>)});
       })
-      .def(
-          py::init([](const py::buffer &b) {
-            py::buffer_info info = b.request();
-            complex_matrix m(info.shape[0], info.shape[1]);
-            extractMatrixData(info, m.data());
-            return m;
-          }),
-          "Create a `ComplexMatrix` from a buffer of data, like a numpy array.")
+      .def(py::init([](const py::buffer &b) {
+             py::buffer_info info = b.request();
+             complex_matrix m(info.shape[0], info.shape[1]);
+             extractMatrixData(info, m.data());
+             return m;
+           }),
+           "Create a `cudaq.ComplexMatrix` from a buffer of data, like a numpy "
+           "array.")
       .def("__getitem__", &complex_matrix::operator(),
            "Return the matrix element at i, j.")
       .def("minimal_eigenvalue", &complex_matrix::minimal_eigenvalue,
-           "Return the lowest eigenvalue for this `ComplexMatrix`.")
+           "Return the lowest eigenvalue for this `cudaq.ComplexMatrix`.")
       .def(
           "__str__",
           [](complex_matrix &self) {

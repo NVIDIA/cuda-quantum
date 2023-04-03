@@ -53,7 +53,7 @@ public:
 
   /// @brief Return the number of rows
   std::size_t rows() const { return nRows; }
-  
+
   /// @brief Return the number of columns
   std::size_t cols() const { return nCols; }
 

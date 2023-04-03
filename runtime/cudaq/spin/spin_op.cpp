@@ -25,10 +25,10 @@
 
 namespace cudaq {
 
-/// @brief Compute the action 
-/// @param term 
-/// @param bitConfiguration 
-/// @return 
+/// @brief Compute the action
+/// @param term
+/// @param bitConfiguration
+/// @return
 std::pair<std::string, std::complex<double>>
 actionOnBra(spin_op &term, const std::string &bitConfiguration) {
   auto coeff = term.get_coefficients()[0];
@@ -58,6 +58,14 @@ complex_matrix spin_op::to_matrix() const {
       s << ((i >> k) & 1);
     return s.str();
   };
+
+  // To construct the matrix, we are looping over every
+  // row, computing the binary representation for that index,
+  // e.g <100110|, and then we will compute the action of
+  // each pauli term on that binary configuration, returning a new
+  // product state and coefficient. Call this new state <colState|,
+  // we then compute <rowState | Paulis | colState> and set it in the matrix
+  // data.
 
   complex_matrix A(dim, dim);
   A.set_zero();

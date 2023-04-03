@@ -9,8 +9,8 @@
 #pragma once
 #include <complex>
 
-#include "utils/cudaq_utils.h"
 #include "matrix.h"
+#include "utils/cudaq_utils.h"
 #include <functional>
 #include <map>
 
@@ -267,8 +267,8 @@ public:
   /// functor that takes the pauli type and the qubit index.
   void for_each_pauli(std::function<void(pauli, std::size_t)> &&) const;
 
-  /// @brief Return a dense matrix representation of this 
-  /// spin_op. 
+  /// @brief Return a dense matrix representation of this
+  /// spin_op.
   complex_matrix to_matrix() const;
 };
 

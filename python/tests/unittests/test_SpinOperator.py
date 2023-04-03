@@ -156,6 +156,10 @@ def test_spin_op_vqe():
     assert want_string == str(hamiltonian)
 
 def test_matrix():
+    """
+    Test that the `cudaq.SpinOperator` can produce its matrix representation 
+    and that we can use that matrix with standard python packages like numpy.
+    """
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
     mat = hamiltonian.to_matrix()
