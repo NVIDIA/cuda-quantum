@@ -33,7 +33,7 @@ ADD ../../scripts /scripts
 # Set here to avoid setting it for all install commands. 
 # Given as arg to make sure that this value is only set during build but not in the launched container.
 ARG DEBIAN_FRONTEND=noninteractive
-RUN apt update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates openssl apt-utils \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
@@ -71,7 +71,7 @@ RUN source /opt/llvm/bootstrap/init_command.sh && \
 
 # Build additional tools needed for CUDA Quantum documentation generation.
 FROM ubuntu:22.04 as doxygenbuild
-RUN apt update && apt install -y wget unzip make cmake flex bison gcc g++ python3 \
+RUN apt-get update && apt-get install -y wget unzip make cmake flex bison gcc g++ python3 \
     && wget https://github.com/doxygen/doxygen/archive/9a5686aeebff882ebda518151bc5df9d757ea5f7.zip -q -O repo.zip \
     && unzip repo.zip && mv doxygen* repo && rm repo.zip \
     && cmake -G "Unix Makefiles" repo && cmake --build . --target install --config Release \
