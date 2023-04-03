@@ -358,7 +358,9 @@ CUDAQ_TEST(BuilderTester, checkReset) {
 CUDAQ_TEST(BuilderTester, checkForLoop) {
 
   {
-    auto [circuit, inSize] = cudaq::make_kernel<std::size_t>();
+    auto ret = cudaq::make_kernel<std::size_t>();
+    auto &circuit = ret.get<0>();
+    auto &inSize = ret.get<1>();
     auto qubits = circuit.qalloc(inSize);
     circuit.h(qubits[0]);
     circuit.for_loop(0, inSize - 1, [&](auto &index) {
@@ -376,7 +378,9 @@ CUDAQ_TEST(BuilderTester, checkForLoop) {
   }
 
   {
-    auto [circuit, inSize] = cudaq::make_kernel<std::size_t>();
+    auto ret = cudaq::make_kernel<std::size_t>();
+    auto &circuit = ret.get<0>();
+    auto &inSize = ret.get<1>();
     auto qubits = circuit.qalloc(inSize);
     circuit.h(qubits[0]);
     // can pass concrete integers for both
