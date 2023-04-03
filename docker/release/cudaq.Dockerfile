@@ -20,7 +20,7 @@
 # CUDA_QUANTUM_VERSION, CUDAQ_INSTALL_PREFIX, LLVM_INSTALL_PREFIX
 #
 # Then build the image from the repo root with:
-#   docker build -t ghcr.io/nvidia/cuda-quantum:$CUDA_QUANTUM_VERSION -f docker/build/devdeps.Dockerfile . \
+#   docker build -t ghcr.io/nvidia/cuda-quantum:$CUDA_QUANTUM_VERSION -f docker/release/cudaq.Dockerfile . \
 #   --build-arg CUDA_QUANTUM_VERSION --build-arg CUDAQ_INSTALL_PREFIX --build-arg LLVM_INSTALL_PREFIX \
 #   --build-arg cuda_quantum_dev_image=$dev_image --build-arg dev_tag=$dev_tag
 # 
@@ -28,7 +28,7 @@
 # the tag of that image.
 
 ARG cuda_quantum_dev_image=nvidia/cuda-quantum-dev
-ARG dev_tag=llvm-latest
+ARG dev_tag=llvm-main
 FROM nvidia/cuda-quantum-dev:$dev_tag as cudaqbuild
 
 FROM ubuntu:22.04

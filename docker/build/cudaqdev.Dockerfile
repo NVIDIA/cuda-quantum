@@ -42,5 +42,6 @@ ARG installation=
 RUN if [ -n "$installation" ]; \
     then \
         export $installation; \
-        bash "$CUDAQ_REPO_ROOT/scripts/build_cudaq.sh" -v; \
+        cd "$CUDAQ_REPO_ROOT"; \
+        bash scripts/build_cudaq.sh -v; \
     fi
