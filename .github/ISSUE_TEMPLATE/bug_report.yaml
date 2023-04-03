@@ -59,10 +59,10 @@ body:
       label: Environment
       description: |
         For the CUDA Quantum version, please give the actual version number
-        (_e.g._ 0.1) if you are using a release version, or the first 7-8
+        (_e.g._ 0.3.0) if you are using a release version, or the first 7-8
         characters of the commit hash if you have built from source. If you are
         using the python interface _and_ have not built it from source, you can
-        remove the 'C++ compiler' entry. If you are using not using python, you
+        remove the 'C++ compiler' entry. If you are not using python, you
         can remove 'Python version' entry. Feel free to add anything else that
         is relevant to the list.
       # Keep the trailing spaces on the following lines
