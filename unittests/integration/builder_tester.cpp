@@ -397,4 +397,27 @@ CUDAQ_TEST(BuilderTester, checkForLoop) {
     }
     EXPECT_EQ(counter, 1000);
   }
+
+  {
+    // Test that we can iterate over existing QuakeValues
+    auto ret = cudaq::make_kernel<std::vector<double>>();
+    auto &circuit = ret.get<0>();
+    auto &params = ret.get<1>();
+
+    // Get the size of the input params
+    auto size = params.size();
+    auto qubits = circuit.qalloc(size);
+
+    // can pass concrete integers for both
+    circuit.for_loop(0, size, [&](auto &index) {
+      circuit.ry(params[index], qubits[index]);
+    });
+
+    printf("%s\n", circuit.to_quake().c_str());
+
+    auto counts = cudaq::sample(circuit, std::vector<double>{1., 2.});
+    counts.dump();
+    // Should have 2 qubit results since this is a 2 parameter input
+    EXPECT_EQ(counts.begin()->first.length(), 2);
+  }
 }

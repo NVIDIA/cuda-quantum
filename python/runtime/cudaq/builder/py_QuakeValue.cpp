@@ -101,7 +101,7 @@ void bindQuakeValue(py::module &mod) {
            "(float).\n"
            "\nRaises:\n"
            "  RuntimeError: if the underlying :class:`QuakeValue` type is not "
-           "a int.\n"
+           "a float.\n"
            "\n.. code-block:: python\n\n"
            "  # Example:\n"
            "  kernel, value = cudaq.make_kernel(float)\n"
