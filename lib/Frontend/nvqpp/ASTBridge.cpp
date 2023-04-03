@@ -180,9 +180,10 @@ public:
     for (auto *method : x->methods()) {
       if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(method)) {
         if (quantumCount++) {
-          auto id = de.getCustomDiagID(clang::DiagnosticsEngine::Error,
-                                       "CUDA Quantum kernel class with multiple "
-                                       "quantum methods not yet supported");
+          auto id =
+              de.getCustomDiagID(clang::DiagnosticsEngine::Error,
+                                 "CUDA Quantum kernel class with multiple "
+                                 "quantum methods not yet supported");
           de.Report(method->getBeginLoc(), id);
           break;
         }
