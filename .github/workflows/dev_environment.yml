@@ -92,30 +92,23 @@ jobs:
           cache-to: |
             type=gha,mode=max,scope=${{ steps.build_info.outputs.cache_target }}-cuda-quantum-devdeps-${{ inputs.toolchain }}
 
-      - name: Create dev environment container
+      - name: Build CUDA Quantum
         if: inputs.build_cuda_quantum || inputs.test_cuda_quantum
         run: |
           images=`echo '${{ steps.build_devdeps.outputs.metadata }}' | jq '."image.name"' | tr -d '"'`
           while IFS=',' read -ra created; do
-            container_built=false
+            built_image=false
             for image in "${created[@]}"; do
               tag=`echo $image | cut -d ":" -f 2`
-              docker build -t cuda-quantum-devdeps -f .devcontainer/Dockerfile . \
+              docker build -t nvidia/cuda-quantum-dev:${{ inputs.toolchain }}-latest -f .devcontainer/Dockerfile . \
                 --build-arg tag=$tag --build-arg workspace=. --build-arg destination=workspaces/cuda-quantum \
-                || container_built=true
-              if $container_built
+                --build-arg installation="CMAKE_BUILD_TYPE=Debug" \
+                || built_image=true
+              if $built_image
               then break
               fi
             done
           done <<< "$images"
-
-      - name: Build CUDA Quantum
-        if: inputs.build_cuda_quantum || inputs.test_cuda_quantum
-        run: |
-          docker run --rm -dit --name cuda-quantum cuda-quantum-devdeps
-          docker exec --workdir /workspaces/cuda-quantum cuda-quantum bash scripts/build_cudaq.sh -v
-          docker commit cuda-quantum nvidia/cuda-quantum-dev:${{ inputs.toolchain }}-latest
-          docker stop cuda-quantum
 
       - name: Test CUDA Quantum
         if: inputs.test_cuda_quantum
@@ -124,7 +117,7 @@ jobs:
             image: nvidia/cuda-quantum-dev:${{ inputs.toolchain }}-latest
             shell: bash
             run: |
-                cd /workspaces/cuda-quantum
+                cd $CUDAQ_REPO_ROOT
                 ctest --output-on-failure --test-dir build -E ctest-nvqpp
                 /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
 

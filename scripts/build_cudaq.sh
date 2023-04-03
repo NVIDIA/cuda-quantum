@@ -24,6 +24,15 @@
 # - LLVM binaries, libraries, and headers as built by scripts/build_llvm.sh.
 # - To include simulator backends that use cuQuantum the packages cuquantum and cuquantum-dev are needed. 
 # - Additional python dependencies for running and testing: lit pytest numpy (available via pip install)
+# - Additional dependencies for GPU-accelerated components: cuquantum, cutensor, cuda-11-8
+#
+# Note:
+# The CUDA Quantum build automatically detects whether GPUs are available and will 
+# only include any GPU based components if they are. It is possible to override this 
+# behavior and force building GPU components even if no GPU is detected by setting the
+# FORCE_COMPILE_GPU_COMPONENTS environment variable to true. This is useful primarily
+# when building docker images since GPUs may not be accessible during build.
+
 
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/opt/llvm}
 CUQUANTUM_INSTALL_PREFIX=${CUQUANTUM_INSTALL_PREFIX:-/opt/nvidia/cuquantum}
@@ -31,7 +40,7 @@ CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$HOME/.cudaq"}
 
 # Process command line arguments
 (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
-build_configuration=Release
+build_configuration=${CMAKE_BUILD_TYPE:-Release}
 verbose=false
 
 __optind__=$OPTIND

@@ -20,3 +20,9 @@ ADD "$workspace" "/$destination"
 ENV PATH="${HOME}/.cudaq/bin:${PATH}"
 ENV PYTHONPATH="${HOME}/.cudaq:${PYTHONPATH}"
 ENV CUDAQ_REPO_ROOT=/workspaces/cuda-quantum
+
+ARG installation=
+RUN if [ -z "$installation" ]; \
+    then \
+        $installation bash "$CUDAQ_REPO_ROOT/scripts/build_cudaq.sh" -v \
+    fi
