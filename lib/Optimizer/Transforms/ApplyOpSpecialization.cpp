@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
@@ -29,9 +29,23 @@ namespace {
 /// qubits, a call to a variant of a Callable in adjoint form, or a call to a
 /// Callable that is both adjoint and has control qubits.
 struct ApplyVariants {
-  bool needsControlVariant : 1;
-  bool needsAdjointVariant : 1;
-  bool needsAdjointControlVariant : 1;
+  bool needsControlVariant = false;
+  bool needsAdjointVariant = false;
+  bool needsAdjointControlVariant = false;
+
+  // Merge the variants from that set into this set of variants. Return true if
+  // any variants are added to this set.
+  bool merge(ApplyVariants that) {
+    bool rv = false;
+    auto checkAndSet = [&](bool &bit0, bool bit1) {
+      rv = !bit0 & bit1;
+      bit0 = bit0 | bit1;
+    };
+    checkAndSet(needsControlVariant, that.needsControlVariant);
+    checkAndSet(needsAdjointVariant, that.needsAdjointVariant);
+    checkAndSet(needsAdjointControlVariant, that.needsAdjointControlVariant);
+    return rv;
+  }
 };
 
 /// Map from `func::FuncOp` to the variants to be created.
@@ -48,24 +62,46 @@ struct ApplyOpAnalysis {
 
 private:
   void performAnalysis(Operation *op) {
-    op->walk([&](quake::ApplyOp appOp) {
-      if (!appOp.applyToVariant())
+    op->walk([&](quake::ApplyOp apply) {
+      if (!apply.applyToVariant())
         return;
-      auto callee = appOp.getCallee();
-      auto funcOp = module.lookupSymbol<func::FuncOp>(callee);
-      auto *fnOp = funcOp.getOperation();
       ApplyVariants variant;
-      auto it = infoMap.find(fnOp);
-      if (it != infoMap.end())
-        variant = it->second;
-      if (appOp.getIsAdj() && !appOp.getControls().empty())
+      auto callee = lookupCallee(apply);
+      auto iter = infoMap.find(callee);
+      if (iter != infoMap.end())
+        variant = iter->second;
+      if (apply.getIsAdj() && !apply.getControls().empty())
         variant.needsAdjointControlVariant = true;
-      else if (appOp.getIsAdj())
+      else if (apply.getIsAdj())
         variant.needsAdjointVariant = true;
-      else if (!appOp.getControls().empty())
+      else if (!apply.getControls().empty())
         variant.needsControlVariant = true;
-      infoMap.insert(std::make_pair(fnOp, variant));
+      infoMap.insert(std::make_pair(callee.getOperation(), variant));
     });
+
+    // Propagate the transitive closure over the call tree.
+    bool changed = true;
+    while (changed) {
+      changed = false;
+      ApplyOpAnalysisInfo cloneMap(infoMap);
+      for (auto [func, variant] : cloneMap) {
+        func->walk([&](quake::ApplyOp apply) {
+          auto callee = lookupCallee(apply);
+          auto iter = infoMap.find(callee);
+          if (iter == infoMap.end()) {
+            infoMap.insert(std::make_pair(callee.getOperation(), variant));
+            changed = true;
+          } else {
+            changed = infoMap[callee].merge(variant);
+          }
+        });
+      }
+    }
+  }
+
+  func::FuncOp lookupCallee(quake::ApplyOp apply) {
+    auto callee = apply.getCallee();
+    return module.lookupSymbol<func::FuncOp>(callee);
   }
 
   ModuleOp module;
@@ -85,13 +121,13 @@ static std::string getCtrlVariantFunctionName(const std::string &n) {
   return n + ".ctrl";
 }
 
-static std::string getVariantFunctionName(quake::ApplyOp appOp,
+static std::string getVariantFunctionName(quake::ApplyOp apply,
                                           const std::string &calleeName) {
-  if (appOp.getIsAdj() && !appOp.getControls().empty())
+  if (apply.getIsAdj() && !apply.getControls().empty())
     return getAdjCtrlVariantFunctionName(calleeName);
-  if (appOp.getIsAdj())
+  if (apply.getIsAdj())
     return getAdjVariantFunctionName(calleeName);
-  if (!appOp.getControls().empty())
+  if (!apply.getControls().empty())
     return getCtrlVariantFunctionName(calleeName);
   return calleeName;
 }
@@ -243,13 +279,14 @@ static bool hasMonotonicControlInduction(cudaq::cc::LoopOp loop) {
   return hasMonotonicLCV(loop) || hasMonotonicPHIControl(loop);
 }
 
-// A counted loop is defined to be a loop that will execute some bounded number
-// of iterations that can be predetermined before the loop, in fact, executes. A
-// loop such as `for(i = 0; i < n; ++i)` is a counted loop that must execute
+// A monotonic loop is defined to be a loop that will execute some bounded
+// number of iterations that can be predetermined before the loop, in fact,
+// executes. A loop such as `for(i = 0; i < n; ++i)` is a monotonic loop that
+// must execute
 //   n : if n > 0
 //   0 : if n <= 0
 // iterations. Early exits (break statements) are not permitted.
-static bool isaCountedLoop(Operation &op) {
+static bool isaMonotonicLoop(Operation &op) {
   if (auto loopOp = dyn_cast<cudaq::cc::LoopOp>(op)) {
     // Cannot be a `while` or `do while` loop.
     if (loopOp.isPostConditional() || !loopOp.hasStep())
@@ -280,7 +317,7 @@ static bool regionHasUnstructuredControlFlow(Region &region) {
   for (auto &op : block) {
     if (op.getNumRegions() == 0)
       continue;
-    if (!isa<cudaq::cc::IfOp>(op) && !isaCountedLoop(op) &&
+    if (!isa<cudaq::cc::IfOp>(op) && !isaMonotonicLoop(op) &&
         op.getNumRegions() > 1)
       return true; // Op has multiple regions but is not a known Op.
     for (auto &reg : op.getRegions())
@@ -296,20 +333,20 @@ struct ApplyOpPattern : public OpRewritePattern<quake::ApplyOp> {
   using Base = OpRewritePattern<quake::ApplyOp>;
   using Base::Base;
 
-  LogicalResult matchAndRewrite(quake::ApplyOp appOp,
+  LogicalResult matchAndRewrite(quake::ApplyOp apply,
                                 PatternRewriter &rewriter) const override {
     auto calleeName = getVariantFunctionName(
-        appOp, appOp.getCallee().getRootReference().str());
-    auto *ctx = appOp.getContext();
+        apply, apply.getCallee().getRootReference().str());
+    auto *ctx = apply.getContext();
     auto consTy = quake::QVecType::getUnsized(ctx);
     SmallVector<Value> newArgs;
-    if (!appOp.getControls().empty()) {
-      auto consOp = rewriter.create<quake::ConcatOp>(appOp.getLoc(), consTy,
-                                                     appOp.getControls());
+    if (!apply.getControls().empty()) {
+      auto consOp = rewriter.create<quake::ConcatOp>(apply.getLoc(), consTy,
+                                                     apply.getControls());
       newArgs.push_back(consOp);
     }
-    newArgs.append(appOp.getArgs().begin(), appOp.getArgs().end());
-    rewriter.replaceOpWithNewOp<func::CallOp>(appOp, appOp.getResultTypes(),
+    newArgs.append(apply.getArgs().begin(), apply.getArgs().end());
+    rewriter.replaceOpWithNewOp<func::CallOp>(apply, apply.getResultTypes(),
                                               calleeName, newArgs);
     return success();
   }
@@ -337,40 +374,88 @@ public:
         continue;
 
       // Found a FuncOp that needs to be specialized.
-      auto funcOp = dyn_cast<func::FuncOp>(global);
-      assert(funcOp && "global must be a FuncOp");
+      auto func = dyn_cast<func::FuncOp>(global);
+      assert(func && "global must be a FuncOp");
       auto &variant = variantIter->second;
 
       if (variant.needsControlVariant)
-        createControlVariantOf(funcOp);
-      if (variant.needsAdjointVariant)
-        createAdjointVariantOf(
-            funcOp, getAdjVariantFunctionName(funcOp.getName().str()));
+        createControlVariantOf(func);
+      if (variant.needsAdjointVariant) {
+        auto fnName = func.getName().str();
+        createAdjointVariantOf(func, getAdjVariantFunctionName(fnName));
+      }
       if (variant.needsAdjointControlVariant)
-        createAdjointControlVariantOf(funcOp);
+        createAdjointControlVariantOf(func);
     }
   }
 
-  func::FuncOp createControlVariantOf(func::FuncOp funcOp) {
+  /// Look for quake.compute_action operations or quake.apply triple patterns in
+  /// the FuncOp \p func. In these cases, we do not want to add the controls to
+  /// the compute and uncompute functions.
+  DenseSet<Operation *> computeActionAnalysis(func::FuncOp func) {
+    DenseSet<Operation *> controlNotNeeded;
+    func->walk([&](Operation *op) {
+      if (auto compAct = dyn_cast<quake::ComputeActionOp>(op)) {
+        // This is clearly a compute action. Mark the compute side.
+        if (auto *defOp = compAct.getCompute().getDefiningOp()) {
+          controlNotNeeded.insert(defOp);
+        } else {
+          compAct.emitError("compute value not determined");
+          signalPassFailure();
+        }
+      } else if (auto app0 = dyn_cast<quake::ApplyOp>(op)) {
+        auto next1 = ++app0->getIterator();
+        Operation &op1 = *next1;
+        if (auto app1 = dyn_cast<quake::ApplyOp>(op1)) {
+          auto next2 = ++next1;
+          Operation &op2 = *next2;
+          if (auto app2 = dyn_cast<quake::ApplyOp>(op2);
+              app2 && (app0.getCalleeAttr() == app2.getCalleeAttr()) &&
+              ((!app0.getIsAdj() && app2.getIsAdj()) ||
+               (app0.getIsAdj() && !app2.getIsAdj())) &&
+              !controlNotNeeded.count(app1)) {
+            // This is a compute_action lowered to 3 successive apply
+            // operations. We want to add the control to ONLY the action, the
+            // middle apply op, so mark the compute and uncompute applies.
+            controlNotNeeded.insert(app0);
+            controlNotNeeded.insert(app2);
+          }
+        }
+      }
+    });
+    return controlNotNeeded;
+  }
+
+  func::FuncOp createControlVariantOf(func::FuncOp func) {
     ModuleOp module = getOperation();
     auto *ctx = module.getContext();
-    auto funcName = getCtrlVariantFunctionName(funcOp.getName().str());
-    auto funcTy = funcOp.getFunctionType();
+    // Perform a pre-analysis to determine if func has any compute_action like
+    // ops. If it does, then there is an exception case. Instead of applying the
+    // controls to the compute kernel, just use the compute kernel (and
+    // uncompute kernel) without the controls added.
+    auto funcName = getCtrlVariantFunctionName(func.getName().str());
+    auto funcTy = func.getFunctionType();
     auto qvecTy = quake::QVecType::getUnsized(ctx);
-    auto loc = funcOp.getLoc();
+    auto loc = func.getLoc();
     SmallVector<Type> inTys = {qvecTy};
     inTys.append(funcTy.getInputs().begin(), funcTy.getInputs().end());
     auto newFunc = cudaq::opt::factory::createFunction(
         funcName, funcTy.getResults(), inTys, module);
     newFunc.setPrivate();
     IRMapping mapping;
-    funcOp.getBody().cloneInto(&newFunc.getBody(), mapping);
+    func.getBody().cloneInto(&newFunc.getBody(), mapping);
+    auto controlNotNeeded = computeActionAnalysis(newFunc);
     auto newCond = newFunc.getBody().front().insertArgument(0u, qvecTy, loc);
     newFunc.walk([&](Operation *op) {
+      OpBuilder builder(op);
       if (op->hasTrait<cudaq::QuantumGate>()) {
+        // If op is in a λ expr where the control is not needed, then skip it.
+        if (auto parent = op->getParentOfType<cudaq::cc::CreateLambdaOp>())
+          if (controlNotNeeded.count(parent))
+            return;
+
         // This is a quantum op. It should be updated with an additional control
         // argument, `newCond`.
-        OpBuilder builder(op);
         auto arrAttr = op->getAttr(segmentSizes).cast<DenseI32ArrayAttr>();
         SmallVector<Value> operands(op->getOperands().begin(),
                                     op->getOperands().begin() + arrAttr[0]);
@@ -385,6 +470,18 @@ public:
                            op->getResultTypes(), attrs);
         builder.create(res); // Quake quantum gates have no results
         op->erase();
+      } else if (auto apply = dyn_cast<quake::ApplyOp>(op)) {
+        // If op is an apply and in the set `controlNotNeeded`, then skip it.
+        if (controlNotNeeded.count(apply))
+          return;
+        SmallVector<Value> newControls = {newCond};
+        newControls.append(apply.getControls().begin(),
+                           apply.getControls().end());
+        auto newApply = builder.create<quake::ApplyOp>(
+            apply.getLoc(), apply.getResultTypes(), apply.getCallee(),
+            apply.getIsAdjAttr(), newControls, apply.getArgs());
+        apply->replaceAllUsesWith(newApply.getResults());
+        apply->erase();
       }
     });
     return newFunc;
@@ -392,11 +489,11 @@ public:
 
   /// The adjoint variant of the function is the "reverse" computation. We want
   /// to reverse the flow graph so the gates appear "upside down".
-  func::FuncOp createAdjointVariantOf(func::FuncOp funcOp,
+  func::FuncOp createAdjointVariantOf(func::FuncOp func,
                                       std::string &&funcName) {
     ModuleOp module = getOperation();
-    auto loc = funcOp.getLoc();
-    auto &funcBody = funcOp.getBody();
+    auto loc = func.getLoc();
+    auto &funcBody = func.getBody();
 
     // Check our restrictions.
     if (regionHasUnstructuredControlFlow(funcBody)) {
@@ -405,7 +502,7 @@ public:
       signalPassFailure();
       return {};
     }
-    if (cudaq::opt::hasCallOp(funcOp)) {
+    if (cudaq::opt::hasCallOp(func)) {
       emitError(loc, "cannot make adjoint of kernel with calls");
       signalPassFailure();
       return {};
@@ -415,18 +512,18 @@ public:
               return isa<cudaq::cc::CreateLambdaOp,
                          cudaq::cc::InstantiateCallableOp>(op);
             },
-            *funcOp.getOperation())) {
+            *func.getOperation())) {
       emitError(loc, "cannot make adjoint of kernel with callable expressions");
       signalPassFailure();
       return {};
     }
-    if (cudaq::opt::hasMeasureOp(funcOp)) {
+    if (cudaq::opt::hasMeasureOp(func)) {
       emitError(loc, "cannot make adjoint of kernel with a measurement");
       signalPassFailure();
       return {};
     }
 
-    auto funcTy = funcOp.getFunctionType();
+    auto funcTy = func.getFunctionType();
     auto newFunc = cudaq::opt::factory::createFunction(
         funcName, funcTy.getResults(), funcTy.getInputs(), module);
     newFunc.setPrivate();
@@ -464,8 +561,8 @@ public:
   }
 
   /// Clone the LoopOp, \p loop, and return a new LoopOp that runs the loop
-  /// backwards. The loop is assumed to be a simple counted loop (a generator of
-  /// a monotonic indexing function). The loop control could be in either the
+  /// backwards. The loop is assumed to be a simple monotonic loop (a generator
+  /// of a monotonic indexing function). The loop control could be in either the
   /// memory or value domain. The step and bounds of the original loop must be
   /// loop invariant.
   static cudaq::cc::LoopOp cloneReversedLoop(OpBuilder &builder,
@@ -752,13 +849,13 @@ public:
   /// This is the combination of adjoint and control transformations. We will
   /// create a control variant here, even if it wasn't needed to simplify
   /// things. The dead variant can be eliminated as unreferenced.
-  func::FuncOp createAdjointControlVariantOf(func::FuncOp funcOp) {
+  func::FuncOp createAdjointControlVariantOf(func::FuncOp func) {
     ModuleOp module = getOperation();
-    auto funcName = funcOp.getName().str();
+    auto funcName = func.getName().str();
     auto ctrlFuncName = getCtrlVariantFunctionName(funcName);
     auto ctrlFunc = module.lookupSymbol<func::FuncOp>(ctrlFuncName);
     if (!ctrlFunc)
-      ctrlFunc = createControlVariantOf(funcOp);
+      ctrlFunc = createControlVariantOf(func);
 
     auto newFuncName = getAdjCtrlVariantFunctionName(funcName);
     return createAdjointVariantOf(ctrlFunc, std::move(newFuncName));
