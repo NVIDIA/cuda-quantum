@@ -210,15 +210,31 @@ void control(ImplicitLocOpBuilder &builder, std::string &name,
 void adjoint(ImplicitLocOpBuilder &builder, std::string &name,
              std::string &quakeCode, std::vector<QuakeValue> &values);
 
+/// @brief Add a for loop that starts from the given `start` integer index, ends
+/// at the given `end` integer index, and applies the given `body` as a callable
+/// function. This callable function must take as input an index variable that
+/// can be used within the body.
 void forLoop(ImplicitLocOpBuilder &builder, std::size_t start, std::size_t end,
              std::function<void(QuakeValue &)> &body);
 
+/// @brief Add a for loop that starts from the given `start` integer index, ends
+/// at the given `end` QuakeValue index, and applies the given `body` as a
+/// callable function. This callable function must take as input an index
+/// variable that can be used within the body.
 void forLoop(ImplicitLocOpBuilder &builder, std::size_t start, QuakeValue &end,
              std::function<void(QuakeValue &)> &body);
 
+/// @brief Add a for loop that starts from the given `start` QuakeValue index,
+/// ends at the given `end` integer index, and applies the given `body` as a
+/// callable function. This callable function must take as input an index
+/// variable that can be used within the body.
 void forLoop(ImplicitLocOpBuilder &builder, QuakeValue &start, std::size_t end,
              std::function<void(QuakeValue &)> &body);
 
+/// @brief Add a for loop that starts from the given `start` QuakeValue index,
+/// ends at the given `end` QuakeValue index, and applies the given `body` as a
+/// callable function. This callable function must take as input an index
+/// variable that can be used within the body.
 void forLoop(ImplicitLocOpBuilder &builder, QuakeValue &start, QuakeValue &end,
              std::function<void(QuakeValue &)> &body);
 
@@ -278,8 +294,8 @@ public:
 } // namespace details
 
 template <class... Ts>
-concept AllAreQuakeValues = sizeof
-...(Ts) < 2 ||
+concept AllAreQuakeValues =
+    sizeof...(Ts) < 2 ||
     (std::conjunction_v<
          std::is_same<std::tuple_element_t<0, std::tuple<Ts...>>, Ts>...> &&
      std::is_same_v<
@@ -560,6 +576,8 @@ public:
     adjoint(kernel, vecValues);
   }
 
+  /// @brief Apply the for loop with given start and end indices that contains
+  /// the instructions provided via the given body callable.
   template <typename StartType, typename EndType>
   void for_loop(StartType &&start, EndType &&end,
                 std::function<void(QuakeValue &)> &&body) {

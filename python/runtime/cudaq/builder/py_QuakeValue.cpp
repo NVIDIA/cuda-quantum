@@ -37,15 +37,17 @@ void bindQuakeValue(py::module &mod) {
           "\nRaises:\n"
           "  RuntimeError: if `self` is a non-subscriptable "
           ":class:`QuakeValue`.\n")
-     .def("__getitem__",
-          [](QuakeValue &self, QuakeValue& idx) { return self[idx]; },
+      .def(
+          "__getitem__",
+          [](QuakeValue &self, QuakeValue &idx) { return self[idx]; },
           py::arg("index"),
           "Return the element of `self` at the provided `index`.\n"
           "\nNote:\n"
           "  Only `list` or :class:`qreg` type :class:`QuakeValue`'s "
           "may be indexed.\n"
           "\nArgs:\n"
-          "  index (QuakeValue): The element of `self` that you'd like to return.\n"
+          "  index (QuakeValue): The element of `self` that you'd like to "
+          "return.\n"
           "\nReturns:\n"
           "  :class:`QuakeValue` : Returns a new :class:`QuakeValue` for the "
           "`index`-th element of `self`."
@@ -115,7 +117,7 @@ void bindQuakeValue(py::module &mod) {
            "  # Example:\n"
            "  kernel, values = cudaq.make_kernel(list)\n"
            "  new_value: QuakeValue = values[0] + values[1]\n")
-     .def("__add__", py::overload_cast<int>(&QuakeValue::operator+),
+      .def("__add__", py::overload_cast<int>(&QuakeValue::operator+),
            py::arg("other"),
            "Return the sum of `self` (:class:`QuakeValue`) and `other` "
            "(int).\n"

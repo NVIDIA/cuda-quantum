@@ -375,7 +375,7 @@ CUDAQ_TEST(BuilderTester, checkForLoop) {
     EXPECT_EQ(counter, 1000);
   }
 
-   {
+  {
     auto [circuit, inSize] = cudaq::make_kernel<std::size_t>();
     auto qubits = circuit.qalloc(inSize);
     circuit.h(qubits[0]);
