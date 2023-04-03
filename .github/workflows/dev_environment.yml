@@ -100,7 +100,7 @@ jobs:
             built_image=false
             for image in "${created[@]}"; do
               tag=`echo $image | cut -d ":" -f 2`
-              docker build -t nvidia/cuda-quantum-dev:${{ inputs.toolchain }}-latest -f .devcontainer/Dockerfile . \
+              docker build -t nvidia/cuda-quantum-dev:${{ inputs.toolchain }}-latest -f docker/build/cudaq_dev.Dockerfile . \
                 --build-arg tag=$tag --build-arg workspace=. --build-arg destination=workspaces/cuda-quantum \
                 --build-arg installation="CMAKE_BUILD_TYPE=Debug" \
                 || built_image=true
@@ -127,8 +127,9 @@ jobs:
           if ${{ ! inputs.build_cuda_quantum && ! inputs.test_cuda_quantum }}; then
             docker tag ${{ steps.build_devdeps.outputs.imageid }} nvidia/cuda-quantum-dev:${{ inputs.toolchain }}-latest
           fi
-          docker run --rm --name cuda-quantum-dev nvidia/cuda-quantum-dev:${{ inputs.toolchain }}-latest
+          docker run --name cuda-quantum-dev nvidia/cuda-quantum-dev:${{ inputs.toolchain }}-latest
           docker export cuda-quantum-dev > /tmp/${{ inputs.toolchain }}_build.tar
+          docker rm -f cuda-quantum-dev
 
       - name: Upload testing environment as artifact
         uses: actions/upload-artifact@v3

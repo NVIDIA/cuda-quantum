@@ -2,7 +2,7 @@
 	"name": "cuda-quantum-dev",
 	"workspaceFolder": "/workspaces/cuda-quantum",
 	"build": {
-		"dockerfile": "Dockerfile",
+		"dockerfile": "../docker/build/cudaq_dev.Dockerfile",
 		"args": {  }
 	},
 	// Getting a browser to e.g. preview docs within the container (optional - uncomment if needed)
