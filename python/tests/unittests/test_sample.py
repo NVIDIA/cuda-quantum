@@ -503,8 +503,25 @@ def test_qreg_reset():
     counts = cudaq.sample(kernel)
     assert (len(counts) == 1)
     assert('00' in counts)
+    
+def test_for_loop():
+    """
+    Test that we can build a kernel expression with a for loop.
+    """
+    circuit, inSize = cudaq.make_kernel(int)
+    qubits = circuit.qalloc(inSize)
+    circuit.h(qubits[0])
+    # can pass concrete integers for both
+    circuit.for_loop(0, inSize-1, lambda index : circuit.cx(qubits[index], qubits[index+1]))
+    print(circuit)
+    counts = cudaq.sample(circuit, 5)
+    assert len(counts) == 2
+    assert '0'*5 in counts
+    assert '1'*5 in counts 
+
+    counts.dump()
 
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
-    pytest.main([loc, "-s"])
+    pytest.main([loc, "-s", "-k", "test_for_loop"])

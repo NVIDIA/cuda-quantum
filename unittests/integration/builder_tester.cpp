@@ -354,3 +354,70 @@ CUDAQ_TEST(BuilderTester, checkReset) {
     EXPECT_EQ(counts.begin()->first, "00");
   }
 }
+
+CUDAQ_TEST(BuilderTester, checkForLoop) {
+
+  {
+    auto ret = cudaq::make_kernel<std::size_t>();
+    auto &circuit = ret.get<0>();
+    auto &inSize = ret.get<1>();
+    auto qubits = circuit.qalloc(inSize);
+    circuit.h(qubits[0]);
+    circuit.for_loop(0, inSize - 1, [&](auto &index) {
+      circuit.x<cudaq::ctrl>(qubits[index], qubits[index + 1]);
+    });
+
+    printf("%s\n", circuit.to_quake().c_str());
+    auto counts = cudaq::sample(circuit, 5);
+    std::size_t counter = 0;
+    for (auto &[k, v] : counts) {
+      counter += v;
+      EXPECT_TRUE(k == "00000" || k == "11111");
+    }
+    EXPECT_EQ(counter, 1000);
+  }
+
+  {
+    auto ret = cudaq::make_kernel<std::size_t>();
+    auto &circuit = ret.get<0>();
+    auto &inSize = ret.get<1>();
+    auto qubits = circuit.qalloc(inSize);
+    circuit.h(qubits[0]);
+    // can pass concrete integers for both
+    circuit.for_loop(0, 4, [&](auto &index) {
+      circuit.x<cudaq::ctrl>(qubits[index], qubits[index + 1]);
+    });
+
+    printf("%s\n", circuit.to_quake().c_str());
+    auto counts = cudaq::sample(circuit, 5);
+    std::size_t counter = 0;
+    for (auto &[k, v] : counts) {
+      counter += v;
+      EXPECT_TRUE(k == "00000" || k == "11111");
+    }
+    EXPECT_EQ(counter, 1000);
+  }
+
+  {
+    // Test that we can iterate over existing QuakeValues
+    auto ret = cudaq::make_kernel<std::vector<double>>();
+    auto &circuit = ret.get<0>();
+    auto &params = ret.get<1>();
+
+    // Get the size of the input params
+    auto size = params.size();
+    auto qubits = circuit.qalloc(size);
+
+    // can pass concrete integers for both
+    circuit.for_loop(0, size, [&](auto &index) {
+      circuit.ry(params[index], qubits[index]);
+    });
+
+    printf("%s\n", circuit.to_quake().c_str());
+
+    auto counts = cudaq::sample(circuit, std::vector<double>{1., 2.});
+    counts.dump();
+    // Should have 2 qubit results since this is a 2 parameter input
+    EXPECT_EQ(counts.begin()->first.length(), 2);
+  }
+}
