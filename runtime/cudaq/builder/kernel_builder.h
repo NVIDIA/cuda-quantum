@@ -295,8 +295,8 @@ public:
 } // namespace details
 
 template <class... Ts>
-concept AllAreQuakeValues =
-    sizeof...(Ts) < 2 ||
+concept AllAreQuakeValues = sizeof
+...(Ts) < 2 ||
     (std::conjunction_v<
          std::is_same<std::tuple_element_t<0, std::tuple<Ts...>>, Ts>...> &&
      std::is_same_v<
@@ -577,8 +577,8 @@ public:
     adjoint(kernel, vecValues);
   }
 
-  /// @brief Apply the for loop with given start and end indices that contains
-  /// the instructions provided via the given body callable.
+  /// @brief Apply the for loop with given start and end (non inclusive) indices
+  /// that contains the instructions provided via the given body callable.
   template <typename StartType, typename EndType>
   void for_loop(StartType &&start, EndType &&end,
                 std::function<void(QuakeValue &)> &&body) {

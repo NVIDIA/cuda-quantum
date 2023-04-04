@@ -578,7 +578,8 @@ void bindKernel(py::module &mod) {
           [](kernel_builder<> &self, std::size_t start, std::size_t end,
              py::function body) { self.for_loop(start, end, body); },
           "Add a for loop that starts from the given `start` integer index, "
-          "ends at the given `end` integer index, and applies the given `body` "
+          "ends at the given `end` integer index (non inclusive), and applies "
+          "the given `body` "
           "as a callable function. This callable function must take as input "
           "an index variable that can be used within the body.")
       .def(
@@ -586,7 +587,8 @@ void bindKernel(py::module &mod) {
           [](kernel_builder<> &self, std::size_t start, QuakeValue &end,
              py::function body) { self.for_loop(start, end, body); },
           "Add a for loop that starts from the given `start` integer index, "
-          "ends at the given `end` QuakeValue index, and applies the given "
+          "ends at the given `end` QuakeValue index (non inclusive), and "
+          "applies the given "
           "`body` as a callable function. This callable function must take as "
           "input an index variable that can be used within the body.")
       .def(
@@ -594,7 +596,8 @@ void bindKernel(py::module &mod) {
           [](kernel_builder<> &self, QuakeValue &start, std::size_t end,
              py::function body) { self.for_loop(start, end, body); },
           "Add a for loop that starts from the given `start` QuakeValue index, "
-          "ends at the given `end` integer index, and applies the given `body` "
+          "ends at the given `end` integer index (non inclusive), and applies "
+          "the given `body` "
           "as a callable function. This callable function must take as input "
           "an index variable that can be used within the body.")
       .def(
@@ -602,7 +605,8 @@ void bindKernel(py::module &mod) {
           [](kernel_builder<> &self, QuakeValue &start, QuakeValue &end,
              py::function body) { self.for_loop(start, end, body); },
           "Add a for loop that starts from the given `start` QuakeValue index, "
-          "ends at the given `end` QuakeValue index, and applies the given "
+          "ends at the given `end` QuakeValue index (non inclusive), and "
+          "applies the given "
           "`body` as a callable function. This callable function must take as "
           "input an index variable that can be used within the body.")
       /// @brief Convert kernel to a Quake string.
