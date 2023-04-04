@@ -9,7 +9,7 @@ name: CUDA Quantum Packages
 
 jobs:
   release_build:
-    name: Release configuration
+    name: Release build
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -58,6 +58,9 @@ jobs:
       contents: read
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
       - name: Restore release build
         uses: actions/cache/restore@v3
         with:
@@ -79,6 +82,9 @@ jobs:
       contents: read
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
       - name: Restore release build
         uses: actions/cache/restore@v3
         with:

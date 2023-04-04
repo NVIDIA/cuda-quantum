@@ -12,7 +12,7 @@ name: Run CI within the dev environment container
 
 jobs:
   build_and_test:
-    name: Debug configuration
+    name: Dev environment (Debug)
     runs-on: ubuntu-latest
     permissions:
       contents: read
