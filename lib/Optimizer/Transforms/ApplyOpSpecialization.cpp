@@ -84,7 +84,9 @@ private:
     while (changed) {
       changed = false;
       ApplyOpAnalysisInfo cloneMap(infoMap);
-      for (auto [func, variant] : cloneMap) {
+      for (auto pr : cloneMap) {
+        auto &func = pr.first;
+        auto &variant = pr.second;
         func->walk([&](quake::ApplyOp apply) {
           auto callee = lookupCallee(apply);
           auto iter = infoMap.find(callee);

@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // RUN: cudaq-quake %s | cudaq-opt --canonicalize --apply-op-specialization | FileCheck %s
-// RUN: cudaq-quake %s | cudaq-opt --lambda-lifting --canonicalize --apply-op-specialization | FileCheck --check-prefixes=LAMBDA %s
+// RUN: cudaq-quake %s | cudaq-opt --lambda-lifting --canonicalize --apply-op-specialization -o %t && FileCheck --check-prefix=LAMBDA %s < %t && FileCheck --check-prefix=LAMBDA2 %s < %t
 
 #include <cudaq.h>
 
@@ -81,14 +81,14 @@ struct ctrlHeisenberg {
 //===----------------------------------------------------------------------===//
 
 // LAMBDA-LABEL:   func.func private @__nvqpp__lifted.lambda.0.adj(
-// LAMBDA-SAME:      %{{.*}}: memref<i32>, %{{.*}}: !quake.qvec<?>) {
+// LAMBDA-SAME:      %{{[^:]*}}: memref<i32>, %{{[^:]*}}: !quake.qvec<?>) {
 // LAMBDA:           quake.x [%{{.*}} : !quake.qref] (%{{.*}})
 // LAMBDA:           return
 
-// LAMBDA-LABEL:   func.func private @__nvqpp__lifted.lambda.1.ctrl(
-// LAMBDA-SAME:      %[[VAL_0:.*]]: !quake.qvec<?>, %{{.*}}: memref<i32>, %{{.*}}: !quake.qvec<?>) {
-// LAMBDA:           quake.rz [%[[VAL_0]] : !quake.qvec<?>] |%{{.*}} : f64|(%{{.*}})
-// LAMBDA:           return
+// LAMBDA2-LABEL:   func.func private @__nvqpp__lifted.lambda.1.ctrl(
+// LAMBDA2-SAME:      %[[VAL_0:.*]]: !quake.qvec<?>, %{{.*}}: memref<i32>, %{{.*}}: !quake.qvec<?>) {
+// LAMBDA2:           quake.rz [%[[VAL_0]] : !quake.qvec<?>] |%{{.*}} : f64|(%{{.*}})
+// LAMBDA2:           return
 
 // LAMBDA-LABEL:   func.func private @__nvqpp__mlirgen__function_magic_func.
 // LAMBDA-SAME:    .ctrl(%[[VAL_0:.*]]: !quake.qvec<?>, %[[VAL_1:.*]]: !quake.qvec<?>) {
