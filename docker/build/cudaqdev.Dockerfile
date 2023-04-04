@@ -8,8 +8,7 @@
 
 # Usage:
 # Build from the repo root with
-#   docker build -t nvidia/cuda-quantum-dev:$tag -f docker/build/cudaqdev.Dockerfile . \
-#   --build-arg tag=$tag --build-arg workspace=. --build-arg destination=workspaces/cuda-quantum 
+#   docker build -t nvidia/cuda-quantum-dev:latest -f docker/build/cudaqdev.Dockerfile .
 #
 # If a custom build_environment is used, then the build environment must 
 # 1) have all the necessary build dependendencies installed
@@ -24,24 +23,31 @@
 # Please install the necessary prerequisites listed in the CUDA Quantum build script,
 # or use a suitable build_environment, to enable developing these components.
 ARG build_environment=ghcr.io/nvidia/cuda-quantum-devdeps
-ARG tag=llvm-main
-FROM $build_environment:$tag
+ARG env_tag=llvm-main
+FROM $build_environment:$env_tag
 
-ARG workspace=.
-ARG destination=workspaces/host
-ADD "$workspace" "/$destination"
-
-ENV PATH="${HOME}/.cudaq/bin:${PATH}"
-ENV PYTHONPATH="${HOME}/.cudaq:${PYTHONPATH}"
 ENV CUDAQ_REPO_ROOT=/workspaces/cuda-quantum
+ADD ../../ "$CUDAQ_REPO_ROOT"
 
-# Passing a build argument 
-#   installation="CUDAQ_INSTALL_PREFIX=/opt/nvidia/cudaq CMAKE_BUILD_TYPE=Release FORCE_COMPILE_GPU_COMPONENTS=true"
-# creates a suitable build environment based on which the released cuda-quantum image can be created.
-ARG installation=
-RUN if [ -n "$installation" ]; \
+ENV CUDAQ_INSTALL_PREFIX=/usr/local/cudaq
+ENV PATH="$CUDAQ_INSTALL_PREFIX/bin:${PATH}"
+ENV PYTHONPATH="$CUDAQ_INSTALL_PREFIX:${PYTHONPATH}"
+
+# Configuring build_environment that contains the necessary dependencies for GPU
+# accelerated components and passing a build argument 
+#   install="CMAKE_BUILD_TYPE=Release FORCE_COMPILE_GPU_COMPONENTS=true"
+# creates a dev image that can be used as argument to docker/release/cudaq.Dockerfile
+# to create the released cuda-quantum image.
+ARG install=
+RUN if [ -n "$install" ]; \
     then \
-        export $installation; \
-        cd "$CUDAQ_REPO_ROOT"; \
+        expected_prefix=$CUDAQ_INSTALL_PREFIX; \
+        export $install; \
+        cd /workspaces/cuda-quantum; \
         bash scripts/build_cudaq.sh -v; \
+        if [ "$CUDAQ_INSTALL_PREFIX" != "$expected_prefix" ]; then \
+            mkdir -p "$expected_prefix"; \
+            mv "$CUDAQ_INSTALL_PREFIX"/* "$expected_prefix"; \
+            rmdir "$CUDAQ_INSTALL_PREFIX"; \
+        fi \
     fi

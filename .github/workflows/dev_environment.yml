@@ -94,6 +94,7 @@ jobs:
 
       - name: Build CUDA Quantum
         if: inputs.build_cuda_quantum || inputs.test_cuda_quantum
+        id: cudaq_build
         run: |
           images=`echo '${{ steps.build_devdeps.outputs.metadata }}' | jq '."image.name"' | tr -d '"'`
           while IFS=',' read -ra created; do
@@ -101,14 +102,28 @@ jobs:
             for image in "${created[@]}"; do
               tag=`echo $image | cut -d ":" -f 2`
               docker build -t nvidia/cuda-quantum-dev:${{ inputs.toolchain }}-latest -f docker/build/cudaqdev.Dockerfile . \
-                --build-arg tag=$tag --build-arg workspace=. --build-arg destination=workspaces/cuda-quantum \
-                --build-arg installation="CMAKE_BUILD_TYPE=Debug" \
+                --build-arg installation="CMAKE_BUILD_TYPE=Debug" --build-arg env_tag=$tag \
                 || built_image=true
               if $built_image
-              then break
+              then 
+                echo "devdeps_tag=$tag" >> $GITHUB_OUTPUT
+                break
               fi
             done
           done <<< "$images"
+
+      - name: Build CUDA Quantum release image
+        if: inputs.toolchain == 'gcc11'
+        run: |
+          devdeps_image=${{ steps.build_info.outputs.full_image_name  }}
+          devdeps_tag=${{ steps.cudaq_build.outputs.devdeps_tag  }}
+
+          docker build -t cuda-quantum-dev:local -f docker/build/cudaqdev.Dockerfile . \
+            --build-arg build_environment=$devdeps_image --build-arg env_tag=$devdeps_tag \
+            --build-arg install="CMAKE_BUILD_TYPE=Release" \
+
+          docker build -t ghcr.io/nvidia/cuda-quantum:latest -f docker/release/cudaq.Dockerfile . \
+            --build-arg dev_image=cuda-quantum-dev --build-arg dev_tag=local
 
       - name: Test CUDA Quantum
         if: inputs.test_cuda_quantum

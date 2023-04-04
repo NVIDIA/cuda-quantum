@@ -33,7 +33,6 @@
 # FORCE_COMPILE_GPU_COMPONENTS environment variable to true. This is useful primarily
 # when building docker images since GPUs may not be accessible during build.
 
-
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/opt/llvm}
 CUQUANTUM_INSTALL_PREFIX=${CUQUANTUM_INSTALL_PREFIX:-/opt/nvidia/cuquantum}
 CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$HOME/.cudaq"}
@@ -116,14 +115,19 @@ mkdir -p "$CUDAQ_INSTALL_PREFIX/bin"
 mkdir -p "$working_dir/build" && cd "$working_dir/build" && rm -rf * 
 mkdir -p logs && rm -rf logs/* 
 
+# Determine linker and linker flags
+cmake_common_linker_flags_init=""
+if [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
+  echo "Configuring nvq++ to use the lld linker by default."
+  NVQPP_LD_PATH="$LLVM_INSTALL_PREFIX/bin/ld.lld"
+fi
+
 # Generate CMake files 
 # (utils are needed for custom testing tools, e.g. CircuitCheck)
-cmake_common_linker_flags_init=""
-llvm_dir="$llvm_lib_dir/cmake/llvm"
-echo "Preparing CUDA Quantum build with LLVM_DIR=$llvm_dir..."
+echo "Preparing CUDA Quantum build with LLVM installation in $LLVM_INSTALL_PREFIX..."
 cmake_args="-G Ninja "$repo_root" \
   -DCMAKE_INSTALL_PREFIX="$CUDAQ_INSTALL_PREFIX" \
-  -DLLVM_DIR="$llvm_dir" \
+  -DLLVM_DIR="$llvm_lib_dir/cmake/llvm" \
   -DNVQPP_LD_PATH="$NVQPP_LD_PATH" \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
@@ -155,5 +159,14 @@ if [ ! "$?" -eq "0" ]; then
 else
   cp "$repo_root/LICENSE" "$CUDAQ_INSTALL_PREFIX/LICENSE"
   cp "$repo_root/NOTICE" "$CUDAQ_INSTALL_PREFIX/NOTICE"
+
+  # The CUDA Quantum installation as built above is not fully self-container;
+  # It will, in particular, break if the LLVM tools are not in the expected location.
+  # We save any system configurations that are assumed by the installation with the installation.
+  echo "<build_config>" > "$CUDAQ_INSTALL_PREFIX/build_config.xml"
+  echo "<LLVM_INSTALL_PREFIX>$LLVM_INSTALL_PREFIX</LLVM_INSTALL_PREFIX>" >> "$CUDAQ_INSTALL_PREFIX/build_config.xml"
+  echo "<CUQUANTUM_INSTALL_PREFIX>$CUQUANTUM_INSTALL_PREFIX</CUQUANTUM_INSTALL_PREFIX>" >> "$CUDAQ_INSTALL_PREFIX/build_config.xml"
+  echo "</build_config>" >> "$CUDAQ_INSTALL_PREFIX/build_config.xml"
+
   cd "$working_dir" && echo "Installed CUDA Quantum in directory: $CUDAQ_INSTALL_PREFIX"
 fi
