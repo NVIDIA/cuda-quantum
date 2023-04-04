@@ -28,6 +28,7 @@ FROM $build_environment:$env_tag
 
 ENV CUDAQ_REPO_ROOT=/workspaces/cuda-quantum
 ADD ../../ "$CUDAQ_REPO_ROOT"
+WORKDIR "$CUDAQ_REPO_ROOT"
 
 ENV CUDAQ_INSTALL_PREFIX=/usr/local/cudaq
 ENV PATH="$CUDAQ_INSTALL_PREFIX/bin:${PATH}"
@@ -43,7 +44,6 @@ RUN if [ -n "$install" ]; \
     then \
         expected_prefix=$CUDAQ_INSTALL_PREFIX; \
         export $install; \
-        cd /workspaces/cuda-quantum; \
         bash scripts/build_cudaq.sh -v; \
         if [ "$CUDAQ_INSTALL_PREFIX" != "$expected_prefix" ]; then \
             mkdir -p "$expected_prefix"; \

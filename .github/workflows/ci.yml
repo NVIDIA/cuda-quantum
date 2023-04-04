@@ -16,16 +16,37 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  gcc11_build:
-    name: Build with gcc11
-    uses: ./.github/workflows/test_in_devenv.yml
+  gcc11_setup:
+    name: Load gcc11 build dependencies
+    uses: ./.github/workflows/dev_environment.yml
     with:
       toolchain: gcc11
+
+  gcc11_build:
+    name: Build with gcc11
+    needs: gcc11_setup
+    uses: ./.github/workflows/test_in_devenv.yml
+    with:
+      devdeps_cache: tar-devdeps-gcc11-${{ github.sha }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
+
+  clang15_setup:
+    name: Load clang15 build dependencies
+    uses: ./.github/workflows/dev_environment.yml
+    with:
+      toolchain: clang15
 
   clang15_build:
     name: Build with clang15
+    needs: clang15_setup
     uses: ./.github/workflows/test_in_devenv.yml
     with:
-      toolchain: clang15
+      devdeps_cache: tar-devdeps-clang15-${{ github.sha }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
+
+  docker_image:
+    name: Build cuda-quantum image
+    needs: gcc11_setup
+    uses: ./.github/workflows/build_packages.yml
+    with:
+      devdeps_cache: tar-devdeps-gcc11-${{ github.sha }}
