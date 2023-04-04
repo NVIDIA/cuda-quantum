@@ -1,5 +1,5 @@
 <!--
-Thanks for helping us improve CODA Quantum!
+Thanks for helping us improve CUDA Quantum!
 
 ⚠️ The pull request title should be concise and understandable for all.
 ⚠️ If your pull request fixes an open issue, please link to the issue.

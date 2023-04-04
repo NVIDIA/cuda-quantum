@@ -321,6 +321,14 @@ def cc_CreateLambdaOp : CCOp<"create_lambda",
   let extraClassDeclaration = [{
     using BodyBuilderFn =
         llvm::function_ref<void(mlir::OpBuilder &, mlir::Location)>;
+
+    llvm::ArrayRef<mlir::Type> getResultTypes() {
+      return getType().getSignature().getResults();
+    }
+
+    unsigned getNumResults() {
+      return getType().getSignature().getNumResults();
+    }
   }];
 }
 
