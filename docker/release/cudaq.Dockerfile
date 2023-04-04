@@ -45,7 +45,7 @@ ENV SHELL=/bin/bash LANG=C.UTF-8 LC_ALL=C.UTF-8
 # Set here to avoid setting it for all install commands. 
 # Given as arg to make sure that this value is only set during build but not in the launched container.
 ARG DEBIAN_FRONTEND=noninteractive
-RUN apt update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates openssl wget git sudo vim \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
@@ -94,7 +94,7 @@ RUN rdom () { local IFS=\> ; read -d \< E C ;} && \
     while rdom; do \
         if [ "$E" = "LLVM_INSTALL_PREFIX" ]; then \
             mkdir -p "$C" && mv "$CUDA_QUANTUM_PATH/llvm"/* "$C"; \
-        elif [ "$E" = "CUQUANTUM_INSTALL_PREFIX" ]; then \
+        elif [ "$E" = "CUQUANTUM_INSTALL_PREFIX" ] && [ -n "$(ls -A $CUDA_QUANTUM_PATH/cuquantum)" ]; then \
             mkdir -p "$C" && mv "$CUDA_QUANTUM_PATH/cuquantum"/* "$C"; \
         fi \
     done < "$CUDA_QUANTUM_PATH/build_config.xml"
