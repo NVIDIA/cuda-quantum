@@ -68,7 +68,8 @@ LogicalResult qtx::ArraySplitOp::verify() {
   if (arrayType.getSize() != getWires().size())
     return emitOpError("must return a list with ")
            << arrayType.getSize() << " wires instead of " << getWires().size()
-           << ". Otherwise, there will be a mismatch between the array size and "
+           << ". Otherwise, there will be a mismatch between the array size "
+              "and "
               "the number of returned wires";
   return success();
 }
@@ -135,8 +136,8 @@ LogicalResult qtx::ArrayYieldOp::verify() {
 
 // Common verification for measurement operations.
 static LogicalResult verifyMeasurements(Operation *const op,
-                                       TypeRange targetsType,
-                                       const Type bitsType) {
+                                        TypeRange targetsType,
+                                        const Type bitsType) {
   unsigned size = 0u;
   for (Type type : targetsType) {
     if (auto arrayType = type.dyn_cast_or_null<qtx::WireArrayType>()) {
@@ -162,17 +163,17 @@ static LogicalResult verifyMeasurements(Operation *const op,
 
 LogicalResult qtx::MxOp::verify() {
   return verifyMeasurements(getOperation(), getTargets().getType(),
-                           getBits().getType());
+                            getBits().getType());
 }
 
 LogicalResult qtx::MyOp::verify() {
   return verifyMeasurements(getOperation(), getTargets().getType(),
-                           getBits().getType());
+                            getBits().getType());
 }
 
 LogicalResult qtx::MzOp::verify() {
   return verifyMeasurements(getOperation(), getTargets().getType(),
-                           getBits().getType());
+                            getBits().getType());
 }
 
 //===----------------------------------------------------------------------===//

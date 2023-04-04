@@ -217,7 +217,7 @@ void bindMakeKernel(py::module &mod) {
           "  # Example:\n"                                                     \
           "  kernel = cudaq.make_kernel() \n"                                  \
           "  # Apply an " #NAME                                                \
-          " to the kernel at a concrete parameter value.\n"                   \
+          " to the kernel at a concrete parameter value.\n"                    \
           "  kernel." #NAME "(parameter=3.14, target=qubit)\n")
 
 void bindKernel(py::module &mod) {
@@ -292,6 +292,13 @@ void bindKernel(py::module &mod) {
           "  kernel, qubit_count = cudaq.make_kernel(int)\n"
           "  # Allocate the variable number of qubits.\n"
           "  qubits = kernel.qalloc(qubit_count)\n")
+      /// @brief Bind the qubit reset method.
+      .def(
+          "reset",
+          [](kernel_builder<> &self, QuakeValue &qubitOrQreg) {
+            self.reset(qubitOrQreg);
+          },
+          "Reset the provided qubit or qubits.")
       /// @brief Allow for JIT compilation of kernel in python via call to
       /// `builder(args)`.
       .def(
