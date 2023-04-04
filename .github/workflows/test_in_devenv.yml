@@ -12,7 +12,7 @@ name: Run CI within the dev environment container
 
 jobs:
   build_and_test:
-    name: Build and test
+    name: Debug configuration
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -21,7 +21,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Restore dev environment
+      - name: Restore environment
         uses: actions/cache/restore@v3
         with:
           path: /tmp/devdeps.tar
@@ -52,7 +52,7 @@ jobs:
                 ctest --output-on-failure --test-dir build -E ctest-nvqpp
                 /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
 
-      - name: Save the build/test environment
+      - name: Save environment
         id: env_save
         if: inputs.export_environment
         run: |
@@ -66,7 +66,7 @@ jobs:
           echo "filename=$filename" >> $GITHUB_OUTPUT
           echo "output_directory=$output_directory" >> $GITHUB_OUTPUT
 
-      - name: Upload testing environment as artifact
+      - name: Upload environment
         uses: actions/upload-artifact@v3
         if: inputs.export_environment
         with:

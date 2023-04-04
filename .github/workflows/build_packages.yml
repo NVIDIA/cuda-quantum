@@ -9,7 +9,7 @@ name: CUDA Quantum Packages
 
 jobs:
   cudaq_release:
-    name: Build Docker image
+    name: Docker image and docs
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -18,14 +18,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Restore dev environment
+      - name: Restore environment
         uses: actions/cache/restore@v3
         with:
           path: /tmp/devdeps.tar
           key: ${{ inputs.devdeps_cache }}
           fail-on-cache-miss: true
 
-      - name: Build CUDA Quantum release image
+      - name: Build release configuration
         run: |
           loaded=`docker load --input /tmp/devdeps.tar | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
           devdeps_image=`echo $loaded | cut -d ":" -f 1`
@@ -35,17 +35,19 @@ jobs:
             --build-arg build_environment=$devdeps_image --build-arg env_tag=$devdeps_tag \
             --build-arg install="CMAKE_BUILD_TYPE=Release" \
 
+      - name: Build Docker image
+        run: |
           docker build -t ghcr.io/nvidia/cuda-quantum:latest -f docker/release/cudaq.Dockerfile . \
             --build-arg dev_image=cuda-quantum-dev --build-arg dev_tag=local
 
-      - name: Build CUDA Quantum docs
+      - name: Build documentation
         run: |
           docker run --rm -dit --name cuda-quantum-dev cuda-quantum-dev:local
           docker exec cuda-quantum-dev bash scripts/build_docs.sh
-          docker cp -r cuda-quantum-dev:"$CUDAQ_INSTALL_PREFIX/docs" /tmp/docs
+          docker cp cuda-quantum-dev:"$CUDAQ_INSTALL_PREFIX/docs/." /tmp/docs
           docker stop cuda-quantum-dev
 
-      - name: Upload docs as artifact
+      - name: Upload documentation
         uses: actions/upload-artifact@v3
         with:
           name: cuda_quantum_docs

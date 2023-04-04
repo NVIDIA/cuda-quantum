@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   setup:
-    name: Load build dependencies
+    name: Load dependencies
     strategy:
       matrix:
         toolchain: [gcc11, clang15]
@@ -37,7 +37,7 @@ jobs:
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
   docker_image:
-    name: Build cuda-quantum image
+    name: Create Packages
     needs: setup
     uses: ./.github/workflows/build_packages.yml
     with:
