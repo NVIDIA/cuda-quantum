@@ -7,24 +7,17 @@ on:
       cache_location:
         required: false
         type: string
-      build_cuda_quantum:
-        required: false
-        type: boolean
-      test_cuda_quantum:
-        required: false
-        type: boolean
       container_registry:
         required: false
         type: string
-      export_environment:
-        required: false
-        type: boolean
 
 name: CUDA Quantum dev environment
 
 jobs:
   devdeps:
     name: Dev environment
+    outputs:
+      metadata: ${{ steps.build_devdeps.outputs.metadata }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -81,7 +74,7 @@ jobs:
             llvm_commit=${{ steps.build_info.outputs.llvm_commit }}
             toolchain=${{ inputs.toolchain }}
           push: ${{ inputs.container_registry != '' }}
-          load: ${{ inputs.build_cuda_quantum || inputs.test_cuda_quantum || inputs.export_environment }}
+          load: false
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: linux/amd64
@@ -91,65 +84,10 @@ jobs:
             type=registry,ref=${{ steps.build_info.outputs.full_image_name  }}:${{ inputs.toolchain }}-${{ steps.build_info.outputs.cache_base }}
           cache-to: |
             type=gha,mode=max,scope=${{ steps.build_info.outputs.cache_target }}-cuda-quantum-devdeps-${{ inputs.toolchain }}
+          outputs: type=docker,dest=/tmp/devdeps.tar
 
-      - name: Build CUDA Quantum
-        if: inputs.build_cuda_quantum || inputs.test_cuda_quantum
-        id: cudaq_build
-        run: |
-          images=`echo '${{ steps.build_devdeps.outputs.metadata }}' | jq '."image.name"' | tr -d '"'`
-          while IFS=',' read -ra created; do
-            built_image=false
-            for image in "${created[@]}"; do
-              tag=`echo $image | cut -d ":" -f 2`
-              docker build -t nvidia/cuda-quantum-dev:${{ inputs.toolchain }}-latest -f docker/build/cudaqdev.Dockerfile . \
-                --build-arg installation="CMAKE_BUILD_TYPE=Debug" --build-arg env_tag=$tag \
-                || built_image=true
-              if $built_image
-              then 
-                echo "devdeps_tag=$tag" >> $GITHUB_OUTPUT
-                break
-              fi
-            done
-          done <<< "$images"
-
-      - name: Build CUDA Quantum release image
-        if: inputs.toolchain == 'gcc11'
-        run: |
-          devdeps_image=${{ steps.build_info.outputs.full_image_name  }}
-          devdeps_tag=${{ steps.cudaq_build.outputs.devdeps_tag  }}
-
-          docker build -t cuda-quantum-dev:local -f docker/build/cudaqdev.Dockerfile . \
-            --build-arg build_environment=$devdeps_image --build-arg env_tag=$devdeps_tag \
-            --build-arg install="CMAKE_BUILD_TYPE=Release" \
-
-          docker build -t ghcr.io/nvidia/cuda-quantum:latest -f docker/release/cudaq.Dockerfile . \
-            --build-arg dev_image=cuda-quantum-dev --build-arg dev_tag=local
-
-      - name: Test CUDA Quantum
-        if: inputs.test_cuda_quantum
-        uses: addnab/docker-run-action@v3
+      - name: Push dev environment image to cache
+        uses: actions/cache/save@v3
         with:
-            image: nvidia/cuda-quantum-dev:${{ inputs.toolchain }}-latest
-            shell: bash
-            run: |
-                cd $CUDAQ_REPO_ROOT
-                ctest --output-on-failure --test-dir build -E ctest-nvqpp
-                /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
-
-      - name: Save the build/test environment
-        if: inputs.export_environment
-        run: |
-          if ${{ ! inputs.build_cuda_quantum && ! inputs.test_cuda_quantum }}; then
-            docker tag ${{ steps.build_devdeps.outputs.imageid }} nvidia/cuda-quantum-dev:${{ inputs.toolchain }}-latest
-          fi
-          docker run --name cuda-quantum-dev nvidia/cuda-quantum-dev:${{ inputs.toolchain }}-latest
-          docker export cuda-quantum-dev > /tmp/${{ inputs.toolchain }}_build.tar
-          docker rm -f cuda-quantum-dev
-
-      - name: Upload testing environment as artifact
-        uses: actions/upload-artifact@v3
-        if: inputs.export_environment
-        with:
-          name: ${{ inputs.toolchain }}-build
-          path: /tmp/${{ inputs.toolchain }}_build.tar
-          retention-days: 1
+          path: /tmp/devdeps.tar
+          key: tar-devdeps-${{ inputs.toolchain }}-${{ github.sha }}

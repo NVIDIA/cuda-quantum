@@ -1,0 +1,81 @@
+on:
+  workflow_call:
+    inputs:
+      toolchain:
+        required: true
+        type: string
+      export_environment:
+        required: false
+        type: boolean
+
+name: Run CI within the dev environment container
+
+jobs:
+  set_up:
+    name: Load build dependencies
+    uses: ./.github/workflows/dev_environment.yml
+    with:
+      toolchain: ${{ inputs.toolchain }}
+
+  run_ci:
+    name: Build and test CUDA Quantum
+    runs-on: ubuntu-latest
+    needs: set_up
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Restore dev environment
+        uses: actions/cache/restore@v3
+        with:
+          path: /tmp/devdeps.tar
+          key: tar-devdeps-${{ inputs.toolchain }}-${{ github.sha }}
+          fail-on-cache-miss: true
+
+      - name: Build CUDA Quantum
+        id: cudaq_build
+        run: |
+          docker load --input /tmp/devdeps.tar
+          images=`echo '${{ needs.set_up.outputs.metadata }}' | jq '."image.name"' | tr -d '"'`
+          while IFS=',' read -ra created; do
+            built_image=false
+            for image in "${created[@]}"; do
+              tag=`echo $image | cut -d ":" -f 2`
+              docker build -t nvidia/cuda-quantum-dev:${{ inputs.toolchain }}-latest -f docker/build/cudaqdev.Dockerfile . \
+                --build-arg installation="CMAKE_BUILD_TYPE=Debug" --build-arg env_tag=$tag \
+                || built_image=true
+              if $built_image
+              then 
+                echo "devdeps_tag=$tag" >> $GITHUB_OUTPUT
+                break
+              fi
+            done
+          done <<< "$images"
+
+      - name: Test CUDA Quantum
+        uses: addnab/docker-run-action@v3
+        with:
+            image: nvidia/cuda-quantum-dev:${{ inputs.toolchain }}-latest
+            shell: bash
+            run: |
+                cd $CUDAQ_REPO_ROOT
+                ctest --output-on-failure --test-dir build -E ctest-nvqpp
+                /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
+
+      - name: Save the build/test environment
+        if: inputs.export_environment
+        run: |
+          docker run --name cuda-quantum-dev nvidia/cuda-quantum-dev:${{ inputs.toolchain }}-latest
+          docker export cuda-quantum-dev > /tmp/${{ inputs.toolchain }}_build.tar
+          docker rm -f cuda-quantum-dev
+
+      - name: Upload testing environment as artifact
+        uses: actions/upload-artifact@v3
+        if: inputs.export_environment
+        with:
+          name: ${{ inputs.toolchain }}-build
+          path: /tmp/${{ inputs.toolchain }}_build.tar
+          retention-days: 1
