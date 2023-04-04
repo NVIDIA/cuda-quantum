@@ -43,10 +43,3 @@ jobs:
     with:
       devdeps_cache: tar-devdeps-clang15-${{ github.sha }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
-
-  docker_image:
-    name: Build cuda-quantum image
-    needs: gcc11_setup
-    uses: ./.github/workflows/build_packages.yml
-    with:
-      devdeps_cache: tar-devdeps-gcc11-${{ github.sha }}
