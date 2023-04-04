@@ -81,7 +81,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build dev environment image and push if requested
+      - name: Build image and push if requested
         id: build_devdeps
         uses: docker/build-push-action@v4
         with:
@@ -103,7 +103,7 @@ jobs:
             type=gha,mode=max,scope=${{ needs.metadata.outputs.cache_target }}-cuda-quantum-devdeps-${{ inputs.toolchain }}
           outputs: type=docker,dest=/tmp/devdeps.tar
 
-      - name: Push dev environment image to cache
+      - name: Cache cuda-quantum-devdeps image
         uses: actions/cache/save@v3
         with:
           path: /tmp/devdeps.tar
