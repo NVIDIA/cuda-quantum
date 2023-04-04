@@ -101,8 +101,8 @@ RUN rdom () { local IFS=\> ; read -d \< E C ;} && \
 
 # Include additional readmes and samples that are distributed with the image.
 
-ADD ../../docs/sphinx/examples/ /home/cudaq/examples/
-ADD ../../docker/release/README.md /home/cudaq/README.md
+ADD ./docs/sphinx/examples/ /home/cudaq/examples/
+ADD ./docker/release/README.md /home/cudaq/README.md
 
 ARG COPYRIGHT_NOTICE="=========================\n\
    NVIDIA CUDA Quantum   \n\
