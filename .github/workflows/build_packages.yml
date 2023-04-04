@@ -65,7 +65,7 @@ jobs:
         uses: actions/cache/restore@v3
         with:
           path: /tmp/cudaqdev.tar
-          key: ${{ needs.release_build.outputs.cudaqdev_cache }}
+          key: tar-cudaqdev-gcc11-${{ github.sha }}
           fail-on-cache-miss: true
 
       - name: Build cuda-quantum image
@@ -89,7 +89,7 @@ jobs:
         uses: actions/cache/restore@v3
         with:
           path: /tmp/cudaqdev.tar
-          key: ${{ needs.release_build.outputs.cudaqdev_cache }}
+          key: tar-cudaqdev-gcc11-${{ github.sha }}
           fail-on-cache-miss: true
 
       - name: Build documentation
