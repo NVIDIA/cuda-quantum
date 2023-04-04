@@ -27,7 +27,7 @@ ARG env_tag=llvm-main
 FROM $build_environment:$env_tag
 
 ENV CUDAQ_REPO_ROOT=/workspaces/cuda-quantum
-ADD ../../ "$CUDAQ_REPO_ROOT"/
+ADD . "$CUDAQ_REPO_ROOT"
 WORKDIR "$CUDAQ_REPO_ROOT"
 
 ENV CUDAQ_INSTALL_PREFIX=/usr/local/cudaq
