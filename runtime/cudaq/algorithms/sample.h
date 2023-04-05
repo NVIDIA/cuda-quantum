@@ -300,4 +300,42 @@ auto sample_async(QuantumKernel &&kernel, Args &&...args) {
                       std::forward<Args>(args)...);
 }
 
+/// @brief Run the standard sample functionality over a set of N
+/// argument packs. For a kernel with signature void(Args...), this
+/// function takes as input a set of vector<Arg>..., a vector for
+/// each argument type in the kernel signature. The vectors must be of
+/// equal length, and the ith element of each vector is used ith
+/// execution of the standard sample function. Results are collected
+/// from the execution of every argument set and returned.
+template <typename QuantumKernel, typename... Args>
+  requires SampleCallValid<QuantumKernel, Args...>
+std::vector<sample_result> sample_n(QuantumKernel &&kernel,
+                                    ArgumentSet<Args...> &&params) {
+  return details::broadcastFunctionOverArguments(
+      [&](auto &&...args) -> sample_result {
+        return sample(std::forward<QuantumKernel>(kernel),
+                      std::forward<Args>(args)...);
+      },
+      params);
+}
+
+/// @brief Run the standard sample functionality over a set of N
+/// argument packs. For a kernel with signature void(Args...), this
+/// function takes as input a set of vector<Arg>..., a vector for
+/// each argument type in the kernel signature. The vectors must be of
+/// equal length, and the ith element of each vector is used ith
+/// execution of the standard sample function. Results are collected
+/// from the execution of every argument set and returned. This overload
+/// allows the number of circuit executions (shots) to be specified.
+template <typename QuantumKernel, typename... Args>
+  requires SampleCallValid<QuantumKernel, Args...>
+std::vector<sample_result> sample_n(std::size_t shots, QuantumKernel &&kernel,
+                                    ArgumentSet<Args...> &&params) {
+  return details::broadcastFunctionOverArguments(
+      [&](auto &&...args) -> sample_result {
+        return sample(shots, std::forward<QuantumKernel>(kernel),
+                      std::forward<Args>(args)...);
+      },
+      params);
+}
 } // namespace cudaq

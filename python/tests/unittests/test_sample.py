@@ -521,6 +521,46 @@ def test_for_loop():
 
     counts.dump()
 
+def test_sample_n():
+    """
+    Test that we can broadcast the sample call over a number of argument sets
+    """
+    circuit, inSize = cudaq.make_kernel(int)
+    qubits = circuit.qalloc(inSize)
+    circuit.h(qubits[0])
+    # can pass concrete integers for both
+    circuit.for_loop(0, inSize-1, lambda index : circuit.cx(qubits[index], qubits[index+1]))
+    print(circuit)
+
+    allCounts = cudaq.sample_n(circuit, [3,4,5,6,7])
+    first0 = '000'
+    first1 = '111'
+    for c in allCounts:
+        print(c)
+        assert first0 in c and first1 in c
+        first0 += '0'
+        first1 += '1'
+
+    testNpArray = np.random.randint(3, high=8, size=6)
+    print(testNpArray)
+    allCounts = cudaq.sample_n(circuit, testNpArray)
+    for i, c in enumerate(allCounts):
+        print(c)
+        assert '0'*testNpArray[i] in c and '1'*testNpArray[i] in c 
+
+    circuit, angles = cudaq.make_kernel(list) 
+    q = circuit.qalloc(2)
+    circuit.rx(angles[0], q[0])
+    circuit.ry(angles[1], q[0])
+    circuit.cx(q[0], q[1])
+
+    runtimeAngles = np.random.uniform(low=-np.pi, high=np.pi, size=(10,2))
+    print(runtimeAngles)
+    allCounts = cudaq.sample_n(circuit, runtimeAngles)
+    for i, c in enumerate(allCounts):
+        print(c)
+        assert len(c) == 2
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
