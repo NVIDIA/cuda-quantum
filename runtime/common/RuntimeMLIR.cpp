@@ -62,8 +62,7 @@ static llvm::StringMap<cudaq::Translation> &getTranslationRegistry() {
 cudaq::Translation &getTranslation(StringRef name) {
   auto &registry = getTranslationRegistry();
   if (!registry.count(name))
-    throw std::runtime_error("Invalid IR Translation (" + name.str() +
-                             ").");
+    throw std::runtime_error("Invalid IR Translation (" + name.str() + ").");
   return registry[name];
 }
 

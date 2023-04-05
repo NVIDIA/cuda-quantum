@@ -34,9 +34,14 @@ protected:
   /// @brief Pointer to the OpBuilder we are using
   mlir::ImplicitLocOpBuilder &opBuilder;
 
+  /// @brief For Values of StdVecType, we might be able
+  /// to validate that the number of required unique elements
+  /// is equal to the number provided as input at runtime.
+  bool canValidateVectorNumElements = true;
+
 public:
   /// @brief Return the actual MLIR Value
-  mlir::Value getValue();
+  mlir::Value getValue() const;
 
   // Let kernel_builder use getValue()
   // friend class kernel_builder;
@@ -53,12 +58,23 @@ public:
   QuakeValue(const QuakeValue &);
   ~QuakeValue();
 
+  /// @brief Dump the QuakeValue to standard out.
   void dump();
+
+  /// @brief Dump the QuakeValue to the given output stream.
   void dump(std::ostream &);
+
+  /// @brief Return true if this QuakeValue of StdVecType can
+  /// validate its number of unique elements. We cannot do this in the
+  /// case of QuakeValue extractions within for loops where we do not know
+  /// the bounds of the loop.
+  bool canValidateNumElements() { return canValidateVectorNumElements; }
 
   /// @brief For a subscriptable QuakeValue, extract a sub set of the elements
   /// starting at the given startIdx and including the following count elements.
   QuakeValue slice(const std::size_t startIdx, const std::size_t count);
+
+  QuakeValue size();
 
   /// @brief Return true if this QuakeValue is of type StdVec.
   /// @return
@@ -74,6 +90,11 @@ public:
   /// and QVecType.
   QuakeValue operator[](const std::size_t idx);
 
+  /// @brief Return a new QuakeValue when the current value
+  /// is indexed, specifically for QuakeValues of type StdVecType
+  /// and QVecType.
+  QuakeValue operator[](const QuakeValue &idx);
+
   /// @brief Negate this QuakeValue
   QuakeValue operator-();
 
@@ -85,12 +106,14 @@ public:
 
   /// @brief Add this QuakeValue with the given double.
   QuakeValue operator+(const double);
+  QuakeValue operator+(const int);
 
   /// @brief Add this QuakeValue with the given QuakeValue
   QuakeValue operator+(QuakeValue other);
 
   /// @brief Subtract the given double from this QuakeValue
   QuakeValue operator-(const double);
+  QuakeValue operator-(const int);
 
   /// @brief Subtract the given QuakeValue from this QuakeValue
   QuakeValue operator-(QuakeValue other);

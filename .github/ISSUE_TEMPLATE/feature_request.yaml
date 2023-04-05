@@ -1,0 +1,22 @@
+name: 🚀 Feature Request
+description: Suggest an idea for this project 💡!
+labels: [enhancement]
+
+body:
+  - type: markdown
+    attributes:
+      value: Thank you for helping us improve CUDA Quantum.
+
+  - type: checkboxes
+    attributes:
+      label: Required prerequisites
+      description: Make sure you've completed the following steps before submitting your feature request -- thank you!
+      options:
+        - label: Search the [issue tracker](https://github.com/NVIDIA/cuda-quantum/issues) to check if your feature has already been mentioned or rejected in other issues.
+          required: true
+
+  - type: textarea
+    attributes:
+      label: Describe the feature
+    validations:
+      required: true

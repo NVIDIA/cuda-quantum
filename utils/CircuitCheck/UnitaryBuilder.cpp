@@ -64,7 +64,9 @@ LogicalResult UnitaryBuilder::build(qtx::CircuitOp circuit) {
     if (auto optor = dyn_cast<qtx::OperatorInterface>(op)) {
       for (auto [i, target] : llvm::enumerate(optor.getTargets())) {
         Value value = optor.getNewTargets()[i];
-        qubitMap[value].assign(qubitMap[target]); // this doesn't work: qubitMap[value] = qubitMap[target];
+        qubitMap[value].assign(
+            qubitMap[target]); // this doesn't work: qubitMap[value] =
+                               // qubitMap[target];
         assert(qubitMap[value] == qubitMap[target]);
       }
       optor.getOperatorMatrix(matrix);

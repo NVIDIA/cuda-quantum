@@ -67,10 +67,10 @@ inline py::args validateInputArguments(kernel_builder<> &kernel,
   auto nInputArgs = args.size();
   auto nRequiredParams = kernel.getNumParams();
   if (nRequiredParams != nInputArgs)
-    throw std::runtime_error(fmt::format(
-        "Kernel requires {} input parameter{} but {} provided.",
-        nRequiredParams, nRequiredParams, nRequiredParams > 1 ? "s" : "",
-        nInputArgs == 0 ? "none" : std::to_string(nInputArgs)));
+    throw std::runtime_error(
+        fmt::format("Kernel requires {} input parameter{} but {} provided.",
+                    nRequiredParams, nRequiredParams > 1 ? "s" : "",
+                    nInputArgs == 0 ? "none" : std::to_string(nInputArgs)));
 
   // Look at the input arguments, validate they are ok
   // Specifically here we'll check if we've been given

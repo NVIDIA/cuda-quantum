@@ -21,19 +21,39 @@ void bindQuakeValue(py::module &mod) {
       ":class:`qubit`, or :class:`qreg`. The :class:`QuakeValue` can also hold "
       "kernel operations such as qubit allocations and measurements.\n")
       /// @brief Bind the indexing operator for cudaq::QuakeValue
-      .def("__getitem__", &QuakeValue::operator[], py::arg("index"),
-           "Return the element of `self` at the provided `index`.\n"
-           "\nNote:\n"
-           "  Only `list` or :class:`qreg` type :class:`QuakeValue`'s "
-           "may be indexed.\n"
-           "\nArgs:\n"
-           "  index (int): The element of `self` that you'd like to return.\n"
-           "\nReturns:\n"
-           "  :class:`QuakeValue` : Returns a new :class:`QuakeValue` for the "
-           "`index`-th element of `self`."
-           "\nRaises:\n"
-           "  RuntimeError: if `self` is a non-subscriptable "
-           ":class:`QuakeValue`.\n")
+      .def(
+          "__getitem__",
+          [](QuakeValue &self, std::size_t idx) { return self[idx]; },
+          py::arg("index"),
+          "Return the element of `self` at the provided `index`.\n"
+          "\nNote:\n"
+          "  Only `list` or :class:`qreg` type :class:`QuakeValue`'s "
+          "may be indexed.\n"
+          "\nArgs:\n"
+          "  index (int): The element of `self` that you'd like to return.\n"
+          "\nReturns:\n"
+          "  :class:`QuakeValue` : Returns a new :class:`QuakeValue` for the "
+          "`index`-th element of `self`."
+          "\nRaises:\n"
+          "  RuntimeError: if `self` is a non-subscriptable "
+          ":class:`QuakeValue`.\n")
+      .def(
+          "__getitem__",
+          [](QuakeValue &self, QuakeValue &idx) { return self[idx]; },
+          py::arg("index"),
+          "Return the element of `self` at the provided `index`.\n"
+          "\nNote:\n"
+          "  Only `list` or :class:`qreg` type :class:`QuakeValue`'s "
+          "may be indexed.\n"
+          "\nArgs:\n"
+          "  index (QuakeValue): The element of `self` that you'd like to "
+          "return.\n"
+          "\nReturns:\n"
+          "  :class:`QuakeValue` : Returns a new :class:`QuakeValue` for the "
+          "`index`-th element of `self`."
+          "\nRaises:\n"
+          "  RuntimeError: if `self` is a non-subscriptable "
+          ":class:`QuakeValue`.\n")
       /// @brief Bind the binary operators on `QuakeValue` class. Note:
       /// these are incompatible with the pybind11 built-in
       /// binary operators (see: cudaq::spin_op bindings). Instead,
@@ -92,11 +112,22 @@ void bindQuakeValue(py::module &mod) {
            "(:class:`QuakeValue`).\n"
            "\nRaises:\n"
            "  RuntimeError: if the underlying :class:`QuakeValue` type is not "
-           "a float.\n"
+           "the same type as `self`.\n"
            "\n.. code-block:: python\n\n"
            "  # Example:\n"
            "  kernel, values = cudaq.make_kernel(list)\n"
            "  new_value: QuakeValue = values[0] + values[1]\n")
+      .def("__add__", py::overload_cast<int>(&QuakeValue::operator+),
+           py::arg("other"),
+           "Return the sum of `self` (:class:`QuakeValue`) and `other` "
+           "(int).\n"
+           "\nRaises:\n"
+           "  RuntimeError: if the underlying :class:`QuakeValue` type is not "
+           "a int.\n"
+           "\n.. code-block:: python\n\n"
+           "  # Example:\n"
+           "  kernel, values = cudaq.make_kernel(list)\n"
+           "  new_value: QuakeValue = values[0] + 2\n")
       .def(
           "__radd__",
           [](QuakeValue &self, double other) { return other + self; },
@@ -128,11 +159,22 @@ void bindQuakeValue(py::module &mod) {
            "(:class:`QuakeValue`).\n"
            "\nRaises:\n"
            "  RuntimeError: if the underlying :class:`QuakeValue` type is not "
-           "a float.\n"
+           "the same type as `self`.\n"
            "\n.. code-block:: python\n\n"
            "  # Example:\n"
            "  kernel, values = cudaq.make_kernel(list)\n"
            "  new_value: QuakeValue = values[0] - values[1]\n")
+      .def("__sub__", py::overload_cast<int>(&QuakeValue::operator-),
+           py::arg("other"),
+           "Return the difference of `self` (:class:`QuakeValue`) and `other` "
+           "(int).\n"
+           "\nRaises:\n"
+           "  RuntimeError: if the underlying :class:`QuakeValue` type is not "
+           "a int.\n"
+           "\n.. code-block:: python\n\n"
+           "  # Example:\n"
+           "  kernel, values = cudaq.make_kernel(list)\n"
+           "  new_value: QuakeValue = values[0] - 2\n")
       .def(
           "__rsub__",
           [](QuakeValue &self, double other) { return other - self; },

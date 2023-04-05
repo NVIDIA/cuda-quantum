@@ -216,9 +216,8 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
     // Types from the `cudaq` namespace.
     if (name.equals("qudit") || name.equals("qubit"))
       return pushType(quake::QRefType::get(ctx));
-    // TODO: Add qreg. Need to lookup the size in the AST.
-    if (name.equals("qspan"))
-      return pushType(quake::QVecType::get(ctx, 0));
+    if (name.equals("qspan") || name.equals("qreg"))
+      return pushType(quake::QVecType::getUnsized(ctx));
     if (name.equals("ctrl"))
       return true;
     TODO("unhandled type, " + name + ", in cudaq namespace");
@@ -440,13 +439,12 @@ SmallVector<Type> QuakeBridgeVisitor::lastTypes(unsigned n) {
 
 Type QuakeBridgeVisitor::genType(const clang::QualType &ty) {
   LLVM_DEBUG(llvm::dbgs() << "type to generate: " << ty << '\n');
-  bool saveTypeMode = typeMode;
-  typeMode = true;
-  bool res = TraverseType(ty);
+  QuakeBridgeVisitor vis(*this);
+  vis.typeMode = true;
+  bool res = vis.TraverseType(ty);
   if (!res)
     TODO("type conversion to MLIR type");
-  typeMode = saveTypeMode;
-  return popType();
+  return vis.popType();
 }
 
 std::optional<FunctionType>
