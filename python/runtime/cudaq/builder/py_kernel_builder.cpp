@@ -39,7 +39,11 @@ void bindMakeKernel(py::module &mod) {
                      "  kernel, qreg = cudaq.make_kernel(cudaq.qreg)\n");
 
   mod.def(
-      "make_kernel", []() { return make_kernel(); },
+      "make_kernel",
+      []() {
+        std::vector<details::KernelBuilderType> empty;
+        return std::make_unique<kernel_builder<>>(empty);
+      },
       "Create and return a :class:`Kernel` that accepts no arguments.\n"
       "\nReturns:\n"
       "  :class:`Kernel` : An empty kernel function to be used for quantum "

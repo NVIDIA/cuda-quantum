@@ -8,6 +8,7 @@
 
 #pragma once
 #include <functional>
+#include <map>
 #include <memory>
 
 namespace mlir {
@@ -38,6 +39,9 @@ protected:
   /// to validate that the number of required unique elements
   /// is equal to the number provided as input at runtime.
   bool canValidateVectorNumElements = true;
+
+  std::map<std::size_t, QuakeValue> extractedFromIndex;
+  std::map<void *, QuakeValue> extractedFromValue;
 
 public:
   /// @brief Return the actual MLIR Value

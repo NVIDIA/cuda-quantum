@@ -739,31 +739,50 @@ void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
 }
 
 std::string to_quake(ImplicitLocOpBuilder &builder) {
-  // Add return if not there.
+  // Get the current ModuleOp
   auto *block = builder.getBlock();
-  if (block->getOperations().empty()) {
-    // If no ops, add a Return
-    builder.create<func::ReturnOp>(builder.getUnknownLoc());
-  } else if (!block->getOperations().back().hasTrait<OpTrait::IsTerminator>()) {
-    // if last op is not the terminator, add the return.
-    builder.create<func::ReturnOp>(builder.getUnknownLoc());
-  }
-
   auto parentFunc = block->getParentOp();
   auto module = parentFunc->getParentOfType<ModuleOp>();
 
-  PassManager pm(module.getContext());
+  // Strategy - we want to clone this ModuleOp because we have to
+  // add a valid terminator (func.return), but it is not gauranteed that
+  // the programmer is done building up the kernel even though they've asked to
+  // look at the quake code. So we'll clone here, and add the return op (we have
+  // to or the print out string will be invalid (verifier failed)).
+  auto clonedModule = module.clone();
+
+  // Look for the main block in the functions we have
+  // add a return if it does not have one.
+  clonedModule.walk([](func::FuncOp func) {
+    Block &block = *func.getBlocks().begin();
+
+    auto tmpBuilder = OpBuilder::atBlockEnd(&block);
+
+    if (block.getOperations().empty()) {
+      // If no ops, add a Return
+      tmpBuilder.create<func::ReturnOp>(tmpBuilder.getUnknownLoc());
+    } else if (!block.getOperations()
+                    .back()
+                    .hasTrait<OpTrait::IsTerminator>()) {
+      // if last op is not the terminator, add the return.
+      tmpBuilder.create<func::ReturnOp>(tmpBuilder.getUnknownLoc());
+    }
+  });
+
+  // Clean up the code for print out
+  PassManager pm(clonedModule.getContext());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
-  if (failed(pm.run(module)))
+  if (failed(pm.run(clonedModule)))
     throw std::runtime_error(
         "cudaq::builder failed to JIT compile the Quake representation.");
 
-  std::string s;
-  llvm::raw_string_ostream os(s);
-  module->print(os);
-  os.flush();
-  return s;
+  std::string printOut;
+  {
+    llvm::raw_string_ostream os(printOut);
+    clonedModule->print(os);
+  }
+  return printOut;
 }
 
 } // namespace cudaq::details
