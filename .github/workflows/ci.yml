@@ -20,7 +20,7 @@ jobs:
     name: Load dependencies
     strategy:
       matrix:
-        toolchain: [clang15, gcc11]
+        toolchain: [llvm, clang15, gcc11]
     uses: ./.github/workflows/dev_environment.yml
     with:
       toolchain: ${{ matrix.toolchain }}
@@ -30,7 +30,7 @@ jobs:
     needs: setup
     strategy:
       matrix:
-        toolchain: [clang15, gcc11]
+        toolchain: [llvm, clang15, gcc11]
     uses: ./.github/workflows/test_in_devenv.yml
     with:
       devdeps_cache: tar-devdeps-${{ matrix.toolchain }}-${{ github.sha }}

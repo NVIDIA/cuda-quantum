@@ -62,9 +62,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
 # - https://gcc.gnu.org/onlinedocs/gcc/Code-Gen-Options.html#Code%20Gen%20Options
 # - https://gcc.gnu.org/onlinedocs/gcc/C_002b_002b-Dialect-Options.html#C_002b_002b-Dialect-Options
 ADD ./scripts/install_toolchain.sh /scripts/install_toolchain.sh
+ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
 RUN LLVM_INSTALL_PREFIX=/opt/llvm/ LLVM_SOURCE=/llvm-project \
         source scripts/install_toolchain.sh -e /opt/llvm/bootstrap -t ${toolchain}
-ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
 RUN source /opt/llvm/bootstrap/init_command.sh && \
     LLVM_INSTALL_PREFIX=/opt/llvm \
         bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
