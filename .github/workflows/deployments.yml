@@ -19,7 +19,7 @@ jobs:
   devdeps:
     strategy:
       matrix:
-        toolchain: [llvm, clang15, gcc11]
+        toolchain: [clang15, gcc11]
     uses: ./.github/workflows/dev_environment.yml
     with:
       toolchain: ${{ matrix.toolchain }}
