@@ -18,9 +18,9 @@
 # The variable $toolchain indicates which compiler toolchain to build the LLVM libraries with. 
 # The toolchain used to build the LLVM binaries that CUDA Quantum depends on must be used to build
 # CUDA Quantum. This image sets the CC and CXX environment variables to use that toolchain. 
-# Currently, llvm (default), and gcc11 are supported. To use a different toolchain, add support 
-# for it to the install_toolchain.sh script. If the toolchain is set to llvm, then the toolchain 
-# will be built from source.
+# Currently, llvm (default), clang16, clang15, gcc12, and gcc11 are supported. To use a different 
+# toolchain, add support for it to the install_toolchain.sh script. If the toolchain is set to llvm, 
+# then the toolchain will be built from source.
 
 FROM ubuntu:22.04 as llvmbuild
 SHELL ["/bin/bash", "-c"]

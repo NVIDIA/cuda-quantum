@@ -16,14 +16,14 @@
 # -or-
 #   source scripts/install_toolchain.sh -t <toolchain> -e path/to/dir
 #
-# where <toolchain> cam be either gcc11, clang15, or llvm. 
+# where <toolchain> can be either llvm, clang16, clang15, gcc12, or gcc11. 
 # The -e option creates a init_command.sh file in the given directory that 
 # can be used to reinstall the same toolchain if needed.
 
 (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
 __optind__=$OPTIND
 OPTIND=1
-toolchain=gcc11
+toolchain=gcc12
 while getopts ":t:e:" opt; do
   case $opt in
     t) toolchain="$OPTARG"
@@ -46,8 +46,13 @@ function temp_install_if_command_unknown {
 
 if [ "$toolchain" = "gcc11" ] ; then
 
-    apt-get update && apt-get install -y --no-install-recommends gcc g++
+    apt-get update && apt-get install -y --no-install-recommends gcc-11 g++-11
     CC=/usr/bin/gcc-11 && CXX=/usr/bin/g++-11
+
+elif [ "$toolchain" = "gcc12" ] ; then
+
+    apt-get update && apt-get install -y --no-install-recommends gcc-12 g++-12
+    CC=/usr/bin/gcc-12 && CXX=/usr/bin/g++-12
 
 elif [ "$toolchain" = "clang15" ]; then
 
@@ -56,6 +61,14 @@ elif [ "$toolchain" = "clang15" ]; then
     add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-15 main"
     apt-get update && apt-get install -y --no-install-recommends llvm-15 clang-15 terminfo
     CC=/usr/lib/llvm-15/bin/clang && CXX=/usr/lib/llvm-15/bin/clang++
+
+elif [ "$toolchain" = "clang16" ]; then
+
+    apt-get update && apt-get install -y --no-install-recommends wget gnupg
+    wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
+    add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main"
+    apt-get update && apt-get install -y --no-install-recommends llvm-16 clang-16 terminfo
+    CC=/usr/lib/llvm-16/bin/clang && CXX=/usr/lib/llvm-16/bin/clang++
 
 elif [ "$toolchain" = "llvm" ]; then
 
@@ -104,7 +117,7 @@ elif [ "$toolchain" = "llvm" ]; then
 else
 
     echo "The requested toolchain cannot be installed by this script."
-    echo "Supported toolchains: llvm, clang15, gcc11."
+    echo "Supported toolchains: llvm, clang16, clang15, gcc12, gcc11."
     if $is_sourced; then return 1; else exit 1; fi
 
 fi
