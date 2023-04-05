@@ -7,6 +7,7 @@
  *******************************************************************************/
 
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#pragma GCC diagnostic ignored "-Wdeprecated-enum-enum-conversion"
 
 #include "cudaq/matrix.h"
 #include <Eigen/Dense>
@@ -34,7 +35,12 @@ struct complex_matrix_hash : std::unary_function<Eigen::MatrixXcd, size_t> {
 std::unordered_map<Eigen::MatrixXcd,
                    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXcd>,
                    complex_matrix_hash>
-    eigenSolvers;
+    selfAdjointEigenSolvers;
+
+std::unordered_map<Eigen::MatrixXcd,
+                   Eigen::ComplexEigenSolver<Eigen::MatrixXcd>,
+                   complex_matrix_hash>
+    generalEigenSolvers;
 
 complex_matrix::complex_matrix(const std::size_t rows, const std::size_t cols)
     : internalOwnedData(std::unique_ptr<complex_matrix::value_type>(
@@ -97,12 +103,25 @@ complex_matrix::value_type &complex_matrix::operator()(std::size_t i,
 
 std::vector<complex_matrix::value_type> complex_matrix::eigenvalues() const {
   Eigen::Map<Eigen::MatrixXcd> map(internalData, nRows, nCols);
-  auto iter = eigenSolvers.find(map);
-  if (iter == eigenSolvers.end())
-    eigenSolvers.emplace(map,
-                         Eigen::SelfAdjointEigenSolver<Eigen::MatrixXcd>(map));
+  if (map.isApprox(map.adjoint())) {
+    auto iter = selfAdjointEigenSolvers.find(map);
+    if (iter == selfAdjointEigenSolvers.end())
+      selfAdjointEigenSolvers.emplace(
+          map, Eigen::SelfAdjointEigenSolver<Eigen::MatrixXcd>(map));
 
-  auto eigs = eigenSolvers[map].eigenvalues();
+    auto eigs = selfAdjointEigenSolvers[map].eigenvalues();
+    std::vector<complex_matrix::value_type> ret(eigs.size());
+    Eigen::VectorXcd::Map(&ret[0], eigs.size()) = eigs;
+    return ret;
+  }
+
+  // This matrix is not self adjoint, use the ComplexEigenSolver
+  auto iter = generalEigenSolvers.find(map);
+  if (iter == generalEigenSolvers.end())
+    generalEigenSolvers.emplace(
+        map, Eigen::ComplexEigenSolver<Eigen::MatrixXcd>(map));
+
+  auto eigs = generalEigenSolvers[map].eigenvalues();
   std::vector<complex_matrix::value_type> ret(eigs.size());
   Eigen::VectorXcd::Map(&ret[0], eigs.size()) = eigs;
   return ret;
@@ -110,12 +129,26 @@ std::vector<complex_matrix::value_type> complex_matrix::eigenvalues() const {
 
 complex_matrix complex_matrix::eigenvectors() const {
   Eigen::Map<Eigen::MatrixXcd> map(internalData, nRows, nCols);
-  auto iter = eigenSolvers.find(map);
-  if (iter == eigenSolvers.end())
-    eigenSolvers.emplace(map,
-                         Eigen::SelfAdjointEigenSolver<Eigen::MatrixXcd>(map));
 
-  auto eigv = eigenSolvers[map].eigenvectors();
+  if (map.isApprox(map.adjoint())) {
+    auto iter = selfAdjointEigenSolvers.find(map);
+    if (iter == selfAdjointEigenSolvers.end())
+      selfAdjointEigenSolvers.emplace(
+          map, Eigen::SelfAdjointEigenSolver<Eigen::MatrixXcd>(map));
+
+    auto eigv = selfAdjointEigenSolvers[map].eigenvectors();
+    complex_matrix copy(eigv.rows(), eigv.cols());
+    std::memcpy(copy.data(), eigv.data(), sizeof(value_type) * eigv.size());
+    return copy;
+  }
+
+  // This matrix is not self adjoint, use the ComplexEigenSolver
+  auto iter = generalEigenSolvers.find(map);
+  if (iter == generalEigenSolvers.end())
+    generalEigenSolvers.emplace(
+        map, Eigen::ComplexEigenSolver<Eigen::MatrixXcd>(map));
+
+  auto eigv = generalEigenSolvers[map].eigenvectors();
   complex_matrix copy(eigv.rows(), eigv.cols());
   std::memcpy(copy.data(), eigv.data(), sizeof(value_type) * eigv.size());
   return copy;
