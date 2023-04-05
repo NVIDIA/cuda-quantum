@@ -1,6 +1,6 @@
 # Welcome to CUDA Quantum
 
-The [CUDA Quantum](https://developer.nvidia.com/cudaq) toolset for hybrid
+The [CUDA Quantum](https://developer.nvidia.com/cuda-quantum) toolset for hybrid
 quantum-classical computers enables integration and programming of quantum
 processing units (QPUs), GPUs, and CPUs in one system.
 
