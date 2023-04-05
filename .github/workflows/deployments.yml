@@ -9,19 +9,19 @@ name: Push dev images and update caches
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.base.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  devdeps_gcc11:
-    uses: ./.github/workflows/dev_environment.yml
-    with:
-      toolchain: gcc11
-      cache_location: ${{ github.event.pull_request.base.ref }}
-      container_registry: ghcr.io
+  environment:
+    name: ghcr
+    url: https://github.com/orgs/${{ github.repository_owner }}/packages?repo_name=${{ github.event.repository.name }}
 
-  devdeps_clang15:
+  devdeps:
+    strategy:
+      matrix:
+        toolchain: [gcc11, clang15]
     uses: ./.github/workflows/dev_environment.yml
     with:
-      toolchain: clang15
+      toolchain: ${{ matrix.toolchain }}
       cache_location: ${{ github.event.pull_request.base.ref }}
       container_registry: ghcr.io
