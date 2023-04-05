@@ -8,7 +8,7 @@ on:
 name: Push dev images and update caches
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.base.ref }}
+  group: ${{ github.workflow }}-${{ github.event.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -23,5 +23,4 @@ jobs:
     uses: ./.github/workflows/dev_environment.yml
     with:
       toolchain: ${{ matrix.toolchain }}
-      cache_location: ${{ github.event.pull_request.base.ref }}
       container_registry: ghcr.io
