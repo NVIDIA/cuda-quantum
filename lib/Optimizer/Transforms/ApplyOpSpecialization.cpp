@@ -358,6 +358,9 @@ struct ApplyOpPattern : public OpRewritePattern<quake::ApplyOp> {
 class ApplySpecializationPass
     : public cudaq::opt::ApplySpecializationBase<ApplySpecializationPass> {
 public:
+  ApplySpecializationPass() = default;
+  ApplySpecializationPass(bool b) : optComputeActionOptim(b) {}
+
   void runOnOperation() override {
     ApplyOpAnalysis analysis(getOperation());
     const auto &applyVariants = analysis.getAnalysisInfo();
@@ -397,35 +400,37 @@ public:
   /// the compute and uncompute functions.
   DenseSet<Operation *> computeActionAnalysis(func::FuncOp func) {
     DenseSet<Operation *> controlNotNeeded;
-    func->walk([&](Operation *op) {
-      if (auto compAct = dyn_cast<quake::ComputeActionOp>(op)) {
-        // This is clearly a compute action. Mark the compute side.
-        if (auto *defOp = compAct.getCompute().getDefiningOp()) {
-          controlNotNeeded.insert(defOp);
-        } else {
-          compAct.emitError("compute value not determined");
-          signalPassFailure();
-        }
-      } else if (auto app0 = dyn_cast<quake::ApplyOp>(op)) {
-        auto next1 = ++app0->getIterator();
-        Operation &op1 = *next1;
-        if (auto app1 = dyn_cast<quake::ApplyOp>(op1)) {
-          auto next2 = ++next1;
-          Operation &op2 = *next2;
-          if (auto app2 = dyn_cast<quake::ApplyOp>(op2);
-              app2 && (app0.getCalleeAttr() == app2.getCalleeAttr()) &&
-              ((!app0.getIsAdj() && app2.getIsAdj()) ||
-               (app0.getIsAdj() && !app2.getIsAdj())) &&
-              !controlNotNeeded.count(app1)) {
-            // This is a compute_action lowered to 3 successive apply
-            // operations. We want to add the control to ONLY the action, the
-            // middle apply op, so mark the compute and uncompute applies.
-            controlNotNeeded.insert(app0);
-            controlNotNeeded.insert(app2);
+    if (getComputeActionOptimization()) {
+      func->walk([&](Operation *op) {
+        if (auto compAct = dyn_cast<quake::ComputeActionOp>(op)) {
+          // This is clearly a compute action. Mark the compute side.
+          if (auto *defOp = compAct.getCompute().getDefiningOp()) {
+            controlNotNeeded.insert(defOp);
+          } else {
+            compAct.emitError("compute value not determined");
+            signalPassFailure();
+          }
+        } else if (auto app0 = dyn_cast<quake::ApplyOp>(op)) {
+          auto next1 = ++app0->getIterator();
+          Operation &op1 = *next1;
+          if (auto app1 = dyn_cast<quake::ApplyOp>(op1)) {
+            auto next2 = ++next1;
+            Operation &op2 = *next2;
+            if (auto app2 = dyn_cast<quake::ApplyOp>(op2);
+                app2 && (app0.getCalleeAttr() == app2.getCalleeAttr()) &&
+                ((!app0.getIsAdj() && app2.getIsAdj()) ||
+                 (app0.getIsAdj() && !app2.getIsAdj())) &&
+                !controlNotNeeded.count(app1)) {
+              // This is a compute_action lowered to 3 successive apply
+              // operations. We want to add the control to ONLY the action, the
+              // middle apply op, so mark the compute and uncompute applies.
+              controlNotNeeded.insert(app0);
+              controlNotNeeded.insert(app2);
+            }
           }
         }
-      }
-    });
+      });
+    }
     return controlNotNeeded;
   }
 
@@ -880,6 +885,13 @@ public:
     }
   }
 
+  bool getComputeActionOptimization() const {
+    if (optComputeActionOptim)
+      return *optComputeActionOptim;
+    return computeActionOptimization;
+  }
+  std::optional<bool> optComputeActionOptim;
+
   // MLIR dependency: internal name used by tablegen.
   static constexpr char segmentSizes[] = "operand_segment_sizes";
 };
@@ -887,4 +899,9 @@ public:
 
 std::unique_ptr<mlir::Pass> cudaq::opt::createApplyOpSpecializationPass() {
   return std::make_unique<ApplySpecializationPass>();
+}
+
+std::unique_ptr<mlir::Pass>
+cudaq::opt::createApplyOpSpecializationPass(bool computeActionOpt) {
+  return std::make_unique<ApplySpecializationPass>(computeActionOpt);
 }
