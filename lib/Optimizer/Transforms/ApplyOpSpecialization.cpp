@@ -94,7 +94,8 @@ private:
             infoMap.insert(std::make_pair(callee.getOperation(), variant));
             changed = true;
           } else {
-            changed = infoMap[callee].merge(variant);
+            if (infoMap[callee].merge(variant))
+              changed = true;
           }
         });
       }
