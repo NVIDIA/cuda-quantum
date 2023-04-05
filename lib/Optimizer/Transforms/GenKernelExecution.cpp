@@ -104,7 +104,8 @@ public:
     auto *ctx = funcTy.getContext();
     // In the default case, there is always a default "this" argument to the
     // kernel entry function. The CUDA Quantum language spec doesn't allow the
-    // kernel object to contain data members (yet), so we can ignore this pointer.
+    // kernel object to contain data members (yet), so we can ignore this
+    // pointer.
     auto ptrTy = cudaq::opt::factory::getPointerType(ctx);
     SmallVector<Type> inputTys = {ptrTy};
     bool hasSRet = false;

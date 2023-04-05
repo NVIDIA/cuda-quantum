@@ -132,6 +132,62 @@ QuakeValue QuakeValue::operator[](const std::size_t idx) {
   return QuakeValue(opBuilder, loaded);
 }
 
+QuakeValue QuakeValue::operator[](const QuakeValue &idx) {
+  Value vectorValue = value->asMLIR();
+  Type type = vectorValue.getType();
+  if (!type.isa<cc::StdvecType, quake::QVecType>()) {
+    std::string typeName;
+    {
+      llvm::raw_string_ostream os(typeName);
+      type.print(os);
+    }
+
+    throw std::runtime_error("This QuakeValue is not subscriptable (" +
+                             typeName + ").");
+  }
+
+  Value indexVar = idx.getValue();
+
+  if (type.isa<quake::QVecType>()) {
+    Value extractedQubit =
+        opBuilder.create<quake::QExtractOp>(vectorValue, indexVar);
+    return QuakeValue(opBuilder, extractedQubit);
+  }
+
+  if (indexVar.getType().isa<IndexType>())
+    indexVar =
+        opBuilder.create<arith::IndexCastOp>(opBuilder.getI64Type(), indexVar);
+
+  // We are unable to check that the number of elements have
+  // been passed in correctly.
+  canValidateVectorNumElements = false;
+
+  Type eleTy = vectorValue.getType().cast<cc::StdvecType>().getElementType();
+
+  Type elePtrTy = LLVM::LLVMPointerType::get(eleTy);
+  Value vecPtr = opBuilder.create<cc::StdvecDataOp>(elePtrTy, vectorValue);
+  Value eleAddr =
+      opBuilder.create<LLVM::GEPOp>(elePtrTy, vecPtr, ValueRange{indexVar});
+  Value loaded = opBuilder.create<LLVM::LoadOp>(eleAddr);
+  return QuakeValue(opBuilder, loaded);
+}
+
+QuakeValue QuakeValue::size() {
+  Value vectorValue = value->asMLIR();
+  Type type = vectorValue.getType();
+  if (!type.isa<cc::StdvecType, quake::QVecType>())
+    throw std::runtime_error("This QuakeValue does not expose .size().");
+
+  Type i64Ty = opBuilder.getI64Type();
+  Value ret;
+  if (type.isa<cc::StdvecType>())
+    ret = opBuilder.create<cc::StdvecSizeOp>(i64Ty, vectorValue);
+  else
+    ret = opBuilder.create<quake::QVecSizeOp>(i64Ty, vectorValue);
+
+  return QuakeValue(opBuilder, ret);
+}
+
 QuakeValue QuakeValue::slice(const std::size_t startIdx,
                              const std::size_t count) {
   Value vectorValue = value->asMLIR();
@@ -183,7 +239,7 @@ QuakeValue QuakeValue::slice(const std::size_t startIdx,
   return QuakeValue(opBuilder, subVecInit);
 }
 
-mlir::Value QuakeValue::getValue() { return value->asMLIR(); }
+mlir::Value QuakeValue::getValue() const { return value->asMLIR(); }
 
 QuakeValue QuakeValue::operator-() {
   auto v = value->asMLIR();
@@ -231,6 +287,21 @@ QuakeValue QuakeValue::operator+(const double constValue) {
   return QuakeValue(opBuilder, added);
 }
 
+QuakeValue QuakeValue::operator+(const int constValue) {
+  auto v = value->asMLIR();
+  if (!v.getType().isIntOrIndex())
+    throw std::runtime_error("Can only add int/index QuakeValues.");
+
+  Value constant;
+  if (isa<IndexType>(v.getType())) {
+    constant = opBuilder.create<arith::ConstantIndexOp>(constValue);
+  } else {
+    constant = opBuilder.create<arith::ConstantIntOp>(constValue, v.getType());
+  }
+  Value added = opBuilder.create<arith::AddIOp>(v.getType(), constant, v);
+  return QuakeValue(opBuilder, added);
+}
+
 QuakeValue QuakeValue::operator+(QuakeValue other) {
   auto v = value->asMLIR();
   if (!v.getType().isIntOrFloat())
@@ -253,6 +324,22 @@ QuakeValue QuakeValue::operator-(const double constValue) {
   Value constant =
       opBuilder.create<arith::ConstantFloatOp>(d, opBuilder.getF64Type());
   Value subtracted = opBuilder.create<arith::SubFOp>(v.getType(), v, constant);
+  return QuakeValue(opBuilder, subtracted);
+}
+
+QuakeValue QuakeValue::operator-(const int constValue) {
+  auto v = value->asMLIR();
+  if (!v.getType().isIntOrIndex())
+    throw std::runtime_error("Can only subtract double/float QuakeValues.");
+
+  Value constant;
+  if (isa<IndexType>(v.getType())) {
+    constant = opBuilder.create<arith::ConstantIndexOp>(constValue);
+  } else {
+    constant = opBuilder.create<arith::ConstantIntOp>(constValue, v.getType());
+  }
+
+  Value subtracted = opBuilder.create<arith::SubIOp>(v.getType(), v, constant);
   return QuakeValue(opBuilder, subtracted);
 }
 

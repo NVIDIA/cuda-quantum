@@ -126,6 +126,7 @@ def LowerToCFG : Pass<"lower-to-cfg", "mlir::func::FuncOp"> {
     Note that it may be the case that converting high-level control flow  Ops
     to CFG form will not be as amenable to lowering to QTX or QTX optimizations.
   }];
+
   let dependentDialects = [ "mlir::cf::ControlFlowDialect" ];
   let constructor = "cudaq::opt::createLowerToCFGPass()";
 }

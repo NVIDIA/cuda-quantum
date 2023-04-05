@@ -281,6 +281,53 @@ void adjoint(ImplicitLocOpBuilder &builder, std::string &name,
                         values);
 }
 
+void forLoop(ImplicitLocOpBuilder &builder, Value &startVal, Value &end,
+             std::function<void(QuakeValue &)> &body) {
+  Value subtracted =
+      builder.create<arith::SubIOp>(end.getType(), end, startVal);
+  Value totalIters =
+      builder.create<arith::IndexCastOp>(builder.getIndexType(), subtracted);
+  cudaq::opt::factory::createCountedLoop(
+      builder, builder.getLoc(), totalIters,
+      [&](OpBuilder &nestedBuilder, Location nestedLoc, Region &,
+          Block &block) {
+        Value iv = block.getArgument(0);
+        // shift iv -> iv + start
+        iv = builder.create<arith::AddIOp>(iv.getType(), iv, startVal);
+        OpBuilder::InsertionGuard guard(nestedBuilder);
+        QuakeValue idxQuakeVal(builder, iv);
+        body(idxQuakeVal);
+      });
+}
+
+void forLoop(ImplicitLocOpBuilder &builder, QuakeValue &startVal,
+             QuakeValue &end, std::function<void(QuakeValue &)> &body) {
+  auto s = startVal.getValue();
+  auto e = startVal.getValue();
+  forLoop(builder, s, e, body);
+}
+
+void forLoop(ImplicitLocOpBuilder &builder, std::size_t start, std::size_t end,
+             std::function<void(QuakeValue &)> &body) {
+  Value startVal = builder.create<arith::ConstantIndexOp>(start);
+  Value endVal = builder.create<arith::ConstantIndexOp>(end);
+  forLoop(builder, startVal, endVal, body);
+}
+
+void forLoop(ImplicitLocOpBuilder &builder, std::size_t start, QuakeValue &end,
+             std::function<void(QuakeValue &)> &body) {
+  Value startVal = builder.create<arith::ConstantIndexOp>(start);
+  auto e = end.getValue();
+  forLoop(builder, startVal, e, body);
+}
+
+void forLoop(ImplicitLocOpBuilder &builder, QuakeValue &start, std::size_t end,
+             std::function<void(QuakeValue &)> &body) {
+  Value e = builder.create<arith::ConstantIndexOp>(end);
+  auto s = start.getValue();
+  forLoop(builder, s, e, body);
+}
+
 KernelBuilderType::KernelBuilderType(
     std::function<mlir::Type(MLIRContext *ctx)> &&f)
     : creator(f) {}
@@ -445,6 +492,36 @@ QuakeValue my(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQreg,
 QuakeValue mz(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQreg,
               std::string regName) {
   return applyMeasure<quake::MzOp>(builder, qubitOrQreg.getValue(), regName);
+}
+
+void reset(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQreg) {
+  auto value = qubitOrQreg.getValue();
+  if (isa<quake::QRefType>(value.getType())) {
+    builder.create<quake::ResetOp>(value);
+    return;
+  }
+
+  if (isa<quake::QVecType>(value.getType())) {
+    auto target = value;
+    Type indexTy = builder.getIndexType();
+    auto size =
+        builder.create<quake::QVecSizeOp>(builder.getIntegerType(64), target);
+    Value rank = builder.create<arith::IndexCastOp>(indexTy, size);
+    auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &,
+                           Block &block) {
+      Value qref =
+          builder.create<quake::QExtractOp>(loc, target, block.getArgument(0));
+      builder.create<quake::ResetOp>(loc, qref);
+    };
+    cudaq::opt::factory::createCountedLoop(builder, builder.getUnknownLoc(),
+                                           rank, bodyBuilder);
+    return;
+  }
+
+  llvm::errs() << "Invalid type:\n";
+  value.getType().dump();
+  llvm::errs() << '\n';
+  throw std::runtime_error("Invalid type passed to reset().");
 }
 
 void c_if(ImplicitLocOpBuilder &builder, QuakeValue &conditional,

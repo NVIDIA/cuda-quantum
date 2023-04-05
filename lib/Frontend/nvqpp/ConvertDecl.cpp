@@ -93,7 +93,7 @@ bool QuakeBridgeVisitor::TraverseFunctionDecl(clang::FunctionDecl *x) {
   postOrderTraversal = false;
   if (!Base::TraverseFunctionDecl(x))
     return true;
-  if (!hasTerminator(builder.getBlock()))
+  if (!typeMode && !hasTerminator(builder.getBlock()))
     builder.create<func::ReturnOp>(toLocation(x));
   return true;
 }

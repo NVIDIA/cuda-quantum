@@ -98,9 +98,9 @@ public:
   void notifyBlockCreated(mlir::Block *block) override;
 
   /// PatternRewriter hook for moving blocks out of a region.  Moves the blocks
-  /// belonging to "region" before the given position in another region.  The two
-  /// regions must be different.  The caller is in charge to update create the
-  /// operation transferring the control flow to the region and pass it the
+  /// belonging to "region" before the given position in another region.  The
+  /// two regions must be different.  The caller is in charge to update create
+  /// the operation transferring the control flow to the region and pass it the
   /// correct block arguments.
   void inlineRegionBefore(mlir::Region &region, mlir::Region &parent,
                           mlir::Region::iterator before) override;
