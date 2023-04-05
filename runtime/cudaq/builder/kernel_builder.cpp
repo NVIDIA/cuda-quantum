@@ -778,10 +778,8 @@ std::string to_quake(ImplicitLocOpBuilder &builder) {
         "cudaq::builder failed to JIT compile the Quake representation.");
 
   std::string printOut;
-  {
-    llvm::raw_string_ostream os(printOut);
-    clonedModule->print(os);
-  }
+  llvm::raw_string_ostream os(printOut);
+  clonedModule->print(os);
   return printOut;
 }
 

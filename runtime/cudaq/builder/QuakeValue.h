@@ -17,6 +17,7 @@ class ImplicitLocOpBuilder;
 } // namespace mlir
 
 namespace cudaq {
+class QuakeValue;
 
 /// @brief A QuakeValue is meant to provide a thin
 /// wrapper around an mlir::Value instance. These QuakeValues
@@ -40,15 +41,17 @@ protected:
   /// is equal to the number provided as input at runtime.
   bool canValidateVectorNumElements = true;
 
+  /// @brief Keep track of previously extracted QuakeValues from
+  /// a concrete index value
   std::map<std::size_t, QuakeValue> extractedFromIndex;
+
+  /// @brief Keep track of previously extracted QuakeValues from
+  /// another QuakeValue (represented by its unique opaque pointer)
   std::map<void *, QuakeValue> extractedFromValue;
 
 public:
   /// @brief Return the actual MLIR Value
   mlir::Value getValue() const;
-
-  // Let kernel_builder use getValue()
-  // friend class kernel_builder;
 
   /// @brief The constructor, takes the builder and the value to wrap
   QuakeValue(mlir::ImplicitLocOpBuilder &builder, mlir::Value v);
@@ -78,6 +81,8 @@ public:
   /// starting at the given startIdx and including the following count elements.
   QuakeValue slice(const std::size_t startIdx, const std::size_t count);
 
+  /// @brief For a QuakeValue with type StdVec or QVec, return
+  /// the size QuakeValue.
   QuakeValue size();
 
   /// @brief Return true if this QuakeValue is of type StdVec.
@@ -110,6 +115,8 @@ public:
 
   /// @brief Add this QuakeValue with the given double.
   QuakeValue operator+(const double);
+
+  /// @brief Add this QuakeValue with the given int.
   QuakeValue operator+(const int);
 
   /// @brief Add this QuakeValue with the given QuakeValue
@@ -117,6 +124,8 @@ public:
 
   /// @brief Subtract the given double from this QuakeValue
   QuakeValue operator-(const double);
+
+  /// @brief Subtract the given int from this QuakeValue
   QuakeValue operator-(const int);
 
   /// @brief Subtract the given QuakeValue from this QuakeValue
