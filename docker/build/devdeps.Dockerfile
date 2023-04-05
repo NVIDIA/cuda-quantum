@@ -88,6 +88,14 @@ SHELL ["/bin/bash", "-c"]
 ARG DEBIAN_FRONTEND=noninteractive
 ENV HOME=/home SHELL=/bin/bash LANG=C.UTF-8 LC_ALL=C.UTF-8
 
+# Install tools for CUDA Quantum documentation generation.
+COPY --from=doxygenbuild /usr/local/bin/doxygen /usr/local/bin/doxygen
+ENV PATH="${PATH}:/usr/local/bin"
+RUN python3 -m pip install --no-cache-dir \
+    sphinx==5.3.* sphinx_rtd_theme \
+    enum-tools[sphinx] breathe==4.34.* myst-parser
+
+# Copy over the llvm build dependencies.
 COPY --from=llvmbuild /opt/llvm /opt/llvm
 ENV LLVM_INSTALL_PREFIX=/opt/llvm
 ENV PATH="$PATH:$LLVM_INSTALL_PREFIX/bin/"
@@ -118,10 +126,3 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libblas-dev \
     && python3 -m pip install --no-cache-dir lit pytest numpy \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Install tools for CUDA Quantum documentation generation.
-COPY --from=doxygenbuild /usr/local/bin/doxygen /usr/local/bin/doxygen
-ENV PATH="${PATH}:/usr/local/bin"
-RUN python3 -m pip install --no-cache-dir \
-    sphinx==5.3.* sphinx_rtd_theme \
-    enum-tools[sphinx] breathe==4.34.* myst-parser

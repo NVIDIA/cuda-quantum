@@ -74,6 +74,20 @@ jobs:
           docker build -t ghcr.io/nvidia/cuda-quantum:latest -f docker/release/cudaq.Dockerfile . \
             --build-arg dev_image=cuda-quantum-dev --build-arg dev_tag=local
 
+      - name: Validate cuda-quantum image
+        run: |
+          docker run --rm -dit --name cuda-quantum ghcr.io/nvidia/cuda-quantum:latest
+          docker cp scripts/validate_container.sh cuda-quantum:"/home/cudaq/validate_container.sh"
+          docker exec cuda-quantum bash validate_container.sh > validation.out
+          docker cp cuda-quantum:"/home/cudaq/validation.out" /tmp/validation.out
+          docker stop cuda-quantum
+
+      - name: Create job summary
+        run: |
+          echo "## Validation" >> $GITHUB_STEP_SUMMARY
+          echo "The validation for the image ghcr.io/nvidia/cuda-quantum:latest produced the following output:" >> $GITHUB_STEP_SUMMARY
+          cat /tmp/validation.out >> $GITHUB_STEP_SUMMARY
+
   documentation:
     name: Documentation
     runs-on: ubuntu-latest
