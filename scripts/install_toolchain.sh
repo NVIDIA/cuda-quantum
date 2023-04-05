@@ -61,7 +61,7 @@ elif [ "$toolchain" = "clang15" ]; then
     temp_install_if_command_unknown gpg gnupg
     temp_install_if_command_unknown add-apt-repository software-properties-common
 
-    wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
+    wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
     add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-15 main"
     apt-get update && apt-get install -y --no-install-recommends llvm-15 clang-15 terminfo
     CC=/usr/lib/llvm-15/bin/clang && CXX=/usr/lib/llvm-15/bin/clang++
@@ -73,7 +73,7 @@ elif [ "$toolchain" = "clang16" ]; then
     temp_install_if_command_unknown gpg gnupg
     temp_install_if_command_unknown add-apt-repository software-properties-common
 
-    wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
+    wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
     add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main"
     apt-get update && apt-get install -y --no-install-recommends llvm-16 clang-16 terminfo
     CC=/usr/lib/llvm-16/bin/clang && CXX=/usr/lib/llvm-16/bin/clang++
