@@ -7,7 +7,6 @@
  *******************************************************************************/
 
 #include "state.h"
-#include <Eigen/Dense>
 #include <iostream>
 
 namespace cudaq {
@@ -74,4 +73,18 @@ double state::overlap(state &other) {
   // return the overlap
   return sum;
 }
+
+// Eigen::MatrixXcd state::as_eigen() {
+//   auto &[shape, stateData] = data;
+//   if (shape.size() == 1) {
+//     // Build up a state vector.
+//     // TODO: FIXME
+//     return Eigen::Map<Eigen::MatrixXcd>(stateData.data(), shape[0], shape[1])[0];
+//   } else {
+//     // Build up a density matrix.
+//     return Eigen::Map<Eigen::MatrixXcd>(stateData.data(), shape[0], shape[1]);
+//   }
+// }
+
+
 } // namespace cudaq

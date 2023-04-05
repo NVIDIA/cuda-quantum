@@ -47,6 +47,7 @@ Kernel Execution
 .. autofunction:: cudaq::observe
 .. autofunction:: cudaq::observe_async
 .. autofunction:: cudaq::vqe
+.. autofunction:: cudaq::get_state
 
 Backend Configuration
 =============================
@@ -71,6 +72,14 @@ Data Types
     .. automethod:: __getitem__
     .. automethod:: slice
 
+.. autoclass:: cudaq::State
+
+    .. automethod:: __init__
+    .. automethod:: __str__
+    .. automethod:: __getitem__
+    .. automethod:: overlap 
+    .. automethod:: to_numpy
+
 .. autoclass:: cudaq::qubit
 .. autoclass:: cudaq::qreg
 
@@ -90,10 +99,10 @@ Data Types
     .. automethod:: __rmul__
     .. automethod:: __getitem__
 
-.. autofunction:: cudaq::spin.i
-.. autofunction:: cudaq::spin.x
-.. autofunction:: cudaq::spin.y
-.. autofunction:: cudaq::spin.z
+    .. autofunction:: cudaq::spin.i
+    .. autofunction:: cudaq::spin.x
+    .. autofunction:: cudaq::spin.y
+    .. autofunction:: cudaq::spin.z
 
 .. autoclass:: cudaq::SampleResult
     :members:

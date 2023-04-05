@@ -10,6 +10,7 @@
 
 #include "common/ExecutionContext.h"
 #include "cudaq/platform.h"
+#include <Eigen/Dense>
 #include <complex>
 #include <vector>
 
@@ -38,6 +39,21 @@ public:
   /// @brief Compute the overlap of this state
   /// with the other one.
   double overlap(state &other);
+
+  /// @brief Return the quantum state as an eigen matrix.
+  /// If state vector, ... TODO
+  template <typename QuantumState>
+  QuantumState as_eigen() {
+    auto &[shape, stateData] = data;
+    if (shape.size() == 1) {
+      // Build up a state vector.
+      // TODO: FIXME
+      return Eigen::Map<Eigen::VectorXcd>(stateData.data(), shape[0]);
+    } else {
+      // Build up a density matrix.
+      return Eigen::Map<Eigen::MatrixXcd>(stateData.data(), shape[0], shape[1]);
+    }
+  }
 };
 
 namespace details {
