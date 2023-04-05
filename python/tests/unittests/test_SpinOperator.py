@@ -153,6 +153,41 @@ def test_spin_op_vqe():
     assert want_string == str(hamiltonian)
 
 
+def test_spin_op_foreach():
+    """
+    Test the `cudaq.SpinOperator` for_each_term method
+    """
+    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
+        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+    print(hamiltonian)
+    
+    counter = 0
+    def doSomethingWithTerm(term):
+        nonlocal counter
+        print(term)
+        counter = counter+ 1
+    
+    hamiltonian.for_each_term(doSomethingWithTerm)
+
+    assert counter == 5
+
+    counter = 0
+    xSupports = []
+    def doSomethingWithTerm(term):
+        def doSomethingWithPauli(pauli : cudaq.Pauli, idx: int):
+            nonlocal counter, xSupports
+            if pauli == cudaq.Pauli.X:
+                counter = counter+1
+                xSupports.append(idx)
+        term.for_each_pauli(doSomethingWithPauli)
+    
+    hamiltonian.for_each_term(doSomethingWithTerm)
+
+    assert counter == 2
+    assert xSupports == [0,1]
+
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
