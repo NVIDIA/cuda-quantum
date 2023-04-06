@@ -62,10 +62,8 @@ void bindPyState(py::module &mod) {
           return py::buffer_info(
               vector.data(), sizeof(std::complex<double>), /*itemsize */
               py::format_descriptor<std::complex<double>>::format(),
-              1, /* ndim */
-              {
-                  vector.rows(),
-              },                                              /* shape */
+              1,                                              /* ndim */
+              {vector.rows()},                                /* shape */
               {sizeof(std::complex<double>) * vector.cols()}, /* strides */
               true                                            /* readonly */
           );

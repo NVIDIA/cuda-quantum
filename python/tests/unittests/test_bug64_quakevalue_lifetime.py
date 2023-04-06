@@ -12,10 +12,11 @@ import pytest
 
 import cudaq
 
-def test_QuakeValueLifetimeAndPrint(): 
+
+def test_QuakeValueLifetimeAndPrint():
     circuit = cudaq.make_kernel()
     qubitRegister = circuit.qalloc(2)
-    circuit.x(qubitRegister[0])  
+    circuit.x(qubitRegister[0])
     s = str(circuit)
     print(s)
 
@@ -25,6 +26,7 @@ def test_QuakeValueLifetimeAndPrint():
     s = str(circuit)
     print(s)
     assert s.count('quake.x') == 2
+
 
 # leave for gdb debugging
 if __name__ == "__main__":

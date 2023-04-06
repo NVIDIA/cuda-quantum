@@ -13,207 +13,242 @@ import numpy as np
 import cudaq
 
 
-def overlap(self, other, vector=False):
-    self_ = np.array(self)
-    other_ = np.array(other)
-    fidelity = 0.0
-    if vector:
-        for index in range(len(np.array(self_))):
-            # fidelity = |<self | other>| ^ 2
-            fidelity = np.abs(other_.conj().dot(self_))**2
-    else:
-
-        def svd_routine(density_matrix):
-            unitary_1, singular_values, unitary_2 = np.linalg.svd(
-                density_matrix)
-            diagonal = np.diag(np.sqrt(singular_values))
-            return unitary_1.dot(diagonal).dot(unitary_2)
-
-        term_1 = svd_routine(self_)
-        term_2 = svd_routine(other_)
-        fidelity = np.linalg.norm(term_1.dot(term_2), ord="nuc")**2
-
-    return fidelity
-
-
-def test_simple():
-    one_state = np.array([0.0, 1.0], dtype=np.complex128)
-    got_state = cudaq.State(one_state)
-
-    print(overlap(got_state, got_state, True))
-    print(got_state.overlap(got_state))
-
-
-def test_bug():
-    # Basis vectors.
-    one_state = np.array([0.0, 1.0], dtype=np.complex128)
-    zero_state = np.array([1.0, 0.0], dtype=np.complex128)
-
-    # |psi> = |1> <0|
-    psi = np.outer(one_state, np.conjugate(zero_state))
-
-    # Call `State` constructor twice.
-    got_state_a = cudaq.State(psi)
-    got_state_b = cudaq.State(psi)
-    assert np.allclose(np.asarray(got_state_a), np.asarray(got_state_b))
-
-    # They should have perfect overlap, but the overlap is
-    # returned as 0.0
-    # assert got_state_a.overlap(got_state_b) == 1.0
-    print(overlap(got_state_a, got_state_b, False))
-    # assert got_state_a.overlap(got_state_b) == 1.0
-
-    # # Check numpy functions between the numpy created object
-    # # and the vector returned from the state buffer.
-    # want_outer = np.outer(psi, psi)
-    # got_outer = np.outer(got_state_a, got_state_b)
-    # assert np.allclose(want_outer, got_outer)
-
-    # print(overlap(want_outer, got_outer, False))
-    # # assert want_outer.overlap(got_outer) == 1.0
-
-    # # Note: this test passes fine with `psi = |1> <1|` and
-    # # `psi = |0> <0|`, only fails when 1 0 or 0 1 -- mixed
-    # # states.
-
-
 @pytest.mark.parametrize("want_state", [
     np.array([0.0, 1.0], dtype=np.complex128),
-    np.array([[0.0, 1.0]], dtype=np.complex128),
+    np.array([1.0, 0.0], dtype=np.complex128),
+    np.array([1.0 / np.sqrt(2), 1.0 / np.sqrt(2)], dtype=np.complex128),
+    np.array([0.0, 0.0, 0.0, 1.0], dtype=np.complex128),
+    np.array([1.0, 0.0, 0.0, 0.0], dtype=np.complex128),
+    np.array([1.0 / np.sqrt(2), 0.0, 0.0, 1.0 / np.sqrt(2)],
+             dtype=np.complex128),
 ])
 def test_state_buffer_vector(want_state):
     """
     Tests writing to and returning from the :class:`State` buffer
     on different state vectors.
     """
-    got_state = cudaq.State(want_state)
+    got_state_a = cudaq.State(want_state)
+    got_state_b = cudaq.State(want_state)
 
-    other_state = cudaq.State(want_state)
-    print("overlap of itself = ", got_state.overlap(other_state), "\n\n")
+    # Check all of the `overlap` overloads.
+    assert np.isclose(got_state_a.overlap(want_state), 1.0)
+    assert np.isclose(got_state_b.overlap(want_state), 1.0)
+    assert np.isclose(got_state_a.overlap(got_state_b), 1.0)
 
-    print("want_state = ", want_state)
-    print("\n\ngot_state = ", got_state)
-
-    # Should have full overlap.
-    assert got_state.overlap(want_state) == 1.0
+    # Should be identical vectors.
+    got_vector_a = np.array(got_state_a, copy=False)
+    got_vector_b = np.array(got_state_b, copy=False)
+    assert np.allclose(got_vector_a, got_vector_b)
 
 
 @pytest.mark.parametrize("want_state", [
-    np.array([[0.0, 0.0], [1.0, 0.0]], dtype=np.complex128),
-    np.array(
-        [[.5, 0, 0, .5], [0., 0., 0., 0.], [0., 0., 0., 0.], [.5, 0., 0., .5]],
-        dtype=np.complex128),
-    np.array([[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [1.0, 0.0]],
-             dtype=np.complex128)
+    np.array([[0.0, 0.0], [0.0, 1.0]], dtype=np.complex128),
+    np.array([[1.0, 0.0], [0.0, 0.0]], dtype=np.complex128),
+    np.array([[0.5, 0.5], [0.5, 0.5]], dtype=np.complex128),
+    np.array([[0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0],
+              [0.0, 0.0, 0.0, 1.0]],
+             dtype=np.complex128),
+    np.array([[1.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0],
+              [0.0, 0.0, 0.0, 0.0]],
+             dtype=np.complex128),
+    np.array([[0.5, 0.0, 0.0, 0.5], [0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0],
+              [0.5, 0.0, 0.0, 0.5]],
+             dtype=np.complex128),
 ])
 def test_state_buffer_density_matrix(want_state):
     """
     Tests writing to and returning from the :class:`State` buffer
     on different density matrices.
     """
-    got_state = cudaq.State(want_state)
+    got_state_a = cudaq.State(want_state)
+    got_state_b = cudaq.State(want_state)
 
-    other_state = cudaq.State(want_state)
-    print("overlap of itself = ", got_state.overlap(other_state), "\n\n")
+    # Check all of the `overlap` overloads.
+    assert np.isclose(got_state_a.overlap(want_state), 1.0)
+    assert np.isclose(got_state_b.overlap(want_state), 1.0)
+    assert np.isclose(got_state_a.overlap(got_state_b), 1.0)
 
-    print("want_state = ", want_state)
-    print("\n\ngot_state = ", got_state)
+    # Should be identical matrices.
+    got_matrix_a = np.array(got_state_a, copy=False)
+    got_matrix_b = np.array(got_state_b, copy=False)
+    assert np.allclose(got_matrix_a, got_matrix_b)
 
-    # Should have full overlap.
-    assert got_state.overlap(want_state) == 1.0
 
-
-def test_state_integration_vector():
-    """Integration test of the `State` class on state vector backend."""
+def test_state_vector_simple():
+    """
+    A simple end-to-end test of the state class on a state vector
+    backend. Begins with a kernel, converts to state, then checks
+    its member functions.
+    """
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(2)
     kernel.h(qubits[0])
     kernel.cx(qubits[0], qubits[1])
 
-    # Get the state, this will be a state vector
+    # Get the quantum state, which should be a vector.
     got_state = cudaq.get_state(kernel)
-    got_state.dump()
 
     want_state = np.array([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)],
                           dtype=np.complex128)
 
-    assert np.allclose(want_state, np.array(got_state))
+    # Check the indexing operators on the State class
+    # while also checking their values
+    np.isclose(want_state[0], got_state[0].real)
+    np.isclose(want_state[1], got_state[1].real)
+    np.isclose(want_state[2], got_state[2].real)
+    np.isclose(want_state[3], got_state[3].real)
 
-    print('overlap = ', got_state.overlap(want_state))
-    np.isclose(1., got_state.overlap(want_state), 1e-3)
+    # Check the entire vector with numpy.
+    # FIXME:
+    rows, cols = want_state.shape
+    for i in range(rows):
+        for j in range(cols):
+            assert np.isclose(got_state[i, j], want_state[i, j])
+            if not np.isclose(got_state[i, j], want_state[i, j]):
+                print(f"want = {want_state[i,j]}")
+                print(f"got = {got_state[i,j]}")
+    # assert np.allclose(want_state, np.array(got_state))
 
-    # Make a general 2 qubit SO4 rotation
-    so4, parameters = cudaq.make_kernel(list)
-    q = so4.qalloc(2)
-    so4.ry(parameters[0], q[0])
-    so4.ry(parameters[1], q[1])
-    so4.cz(q[0], q[1])
-    so4.ry(parameters[2], q[0])
-    so4.ry(parameters[3], q[1])
-    so4.cz(q[0], q[1])
-    so4.ry(parameters[4], q[0])
-    so4.ry(parameters[5], q[1])
-    so4.cz(q[0], q[1])
+    # Check overlaps.
+    want_state_object = cudaq.State(want_state)
+    # Check the overlap overload with want numpy array.
+    assert np.isclose(got_state.overlap(want_state), 1.0)
+    # Check the overlap overload with want state object.
+    assert np.isclose(got_state.overlap(want_state_object), 1.0)
+    # Check the overlap overload with itself.
+    assert np.isclose(got_state.overlap(got_state), 1.0)
+
+
+def test_state_vector_integration():
+    """
+    An integration test on the state vector class. Uses a CUDA Quantum
+    optimizer to find the correct kernel parameters for a Bell state.
+    """
+    # Make a general 2 qubit SO4 rotation.
+    kernel, parameters = cudaq.make_kernel(list)
+    qubits = kernel.qalloc(2)
+    kernel.ry(parameters[0], qubits[0])
+    kernel.ry(parameters[1], qubits[1])
+    kernel.cz(qubits[0], qubits[1])
+    kernel.ry(parameters[2], qubits[0])
+    kernel.ry(parameters[3], qubits[1])
+    kernel.cz(qubits[0], qubits[1])
+    kernel.ry(parameters[4], qubits[0])
+    kernel.ry(parameters[5], qubits[1])
+    kernel.cz(qubits[0], qubits[1])
+
+    want_state = cudaq.State(
+        np.array([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)],
+                 dtype=np.complex128))
 
     def objective(x):
-        testState = cudaq.get_state(so4, x)
-        return 1. - got_state.overlap(testState)
+        got_state = cudaq.get_state(kernel, x)
+        return 1. - want_state.overlap(got_state)
 
-    # Compute the parameters that make this kernel == bell state
+    # Compute the parameters that make this kernel produce the
+    # Bell state.
     optimizer = cudaq.optimizers.COBYLA()
     optimizer.max_iterations = 50
-    opt_val, opt_params = optimizer.optimize(6, objective)
+    optimal_infidelity, optimal_parameters = optimizer.optimize(6, objective)
 
-    print(opt_val)
-    np.isclose(0.0, opt_val, 1e-3)
+    # Did we maximize the overlap (i.e, minimize the infidelity)?
+    assert np.isclose(optimal_infidelity, 0.0, atol=1e-3)
+
+    # Check the state from the kernel at the fixed parameters.
+    bell_state = cudaq.get_state(kernel, optimal_parameters)
+    assert np.allclose(want_state, bell_state)
 
 
-def test_state_integration_density_matrix():
-    """Integration test of the `State` class on density matrix backend."""
+def test_state_density_matrix_simple():
+    """
+    A simple end-to-end test of the state class on a density matrix
+    backend. Begins with a kernel, converts to state, then checks
+    its member functions.
+    """
     cudaq.set_qpu('dm')
 
     # Create the bell state
-    circuit = cudaq.make_kernel()
-    q = circuit.qalloc(2)
-    circuit.h(q[0])
-    circuit.cx(q[0], q[1])
+    kernel = cudaq.make_kernel()
+    qubits = kernel.qalloc(2)
+    kernel.h(qubits[0])
+    kernel.cx(qubits[0], qubits[1])
 
-    # Get the state, this will be a density matrix
-    state = cudaq.get_state(circuit)
-    state.dump()
-    np.isclose(.5, state[0, 0].real)
-    np.isclose(.5, state[0, 3].real)
-    np.isclose(.5, state[3, 0].real)
-    np.isclose(.5, state[3, 3].real)
+    got_state = cudaq.get_state(kernel)
+    print(got_state)
 
-    # Make a general 2 qubit SO4 rotation
-    so4, parameters = cudaq.make_kernel(list)
-    q = so4.qalloc(2)
-    so4.ry(parameters[0], q[0])
-    so4.ry(parameters[1], q[1])
-    so4.cz(q[0], q[1])
-    so4.ry(parameters[2], q[0])
-    so4.ry(parameters[3], q[1])
-    so4.cz(q[0], q[1])
-    so4.ry(parameters[4], q[0])
-    so4.ry(parameters[5], q[1])
-    so4.cz(q[0], q[1])
+    want_state = np.array([[0.5, 0.0, 0.0, 0.5], [0.0, 0.0, 0.0, 0.0],
+                           [0.0, 0.0, 0.0, 0.0], [0.5, 0.0, 0.0, 0.5]],
+                          dtype=np.complex128)
+
+    # Check the indexing operators on the State class
+    # while also checking their values
+    np.isclose(.5, got_state[0, 0].real)
+    np.isclose(.5, got_state[0, 3].real)
+    np.isclose(.5, got_state[3, 0].real)
+    np.isclose(.5, got_state[3, 3].real)
+
+    # Check the entire matrix with numpy.
+    # FIXME:
+    rows, cols = want_state.shape
+    for i in range(rows):
+        for j in range(cols):
+            assert np.isclose(got_state[i, j], want_state[i, j])
+            if not np.isclose(got_state[i, j], want_state[i, j]):
+                print(f"want = {want_state[i,j]}")
+                print(f"got = {got_state[i,j]}")
+    assert np.allclose(want_state, np.array(got_state))
+
+    # Check overlaps.
+    want_state_object = cudaq.State(want_state)
+    # Check the overlap overload with want numpy array.
+    assert np.isclose(got_state.overlap(want_state), 1.0)
+    # Check the overlap overload with want state object.
+    assert np.isclose(got_state.overlap(want_state_object), 1.0)
+    # Check the overlap overload with itself.
+    assert np.isclose(got_state.overlap(got_state), 1.0)
+
+
+def test_state_density_matrix_integration():
+    """
+    An integration test on the state density matrix class. Uses a CUDA Quantum
+    optimizer to find the correct kernel parameters for a Bell state.
+    """
+    cudaq.set_qpu('dm')
+
+    # Make a general 2 qubit SO4 rotation.
+    kernel, parameters = cudaq.make_kernel(list)
+    qubits = kernel.qalloc(2)
+    kernel.ry(parameters[0], qubits[0])
+    kernel.ry(parameters[1], qubits[1])
+    kernel.cz(qubits[0], qubits[1])
+    kernel.ry(parameters[2], qubits[0])
+    kernel.ry(parameters[3], qubits[1])
+    kernel.cz(qubits[0], qubits[1])
+    kernel.ry(parameters[4], qubits[0])
+    kernel.ry(parameters[5], qubits[1])
+    kernel.cz(qubits[0], qubits[1])
+
+    want_state = cudaq.State(
+        np.array([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)],
+                 dtype=np.complex128))
 
     def objective(x):
-        testState = cudaq.get_state(so4, x)
-        return 1. - state.overlap(testState)
+        got_state = cudaq.get_state(kernel, x)
+        return 1. - want_state.overlap(got_state)
 
-    # Compute the parameters that make this circuit == bell state
+    # Compute the parameters that make this kernel produce the
+    # Bell state.
     optimizer = cudaq.optimizers.COBYLA()
     optimizer.max_iterations = 50
-    opt_val, opt_params = optimizer.optimize(6, objective)
-    np.isclose(0.0, opt_val, 1e-3)
+    optimal_infidelity, optimal_parameters = optimizer.optimize(6, objective)
 
-    # Can test overlap with numpy arrau
-    test = np.array(
-        [[.5, 0, 0, .5], [0., 0., 0., 0.], [0., 0., 0., 0.], [.5, 0., 0., .5]],
-        dtype=np.complex128)
-    np.isclose(1., state.overlap(test))
+    # Did we maximize the overlap (i.e, minimize the infidelity)?
+    assert np.isclose(optimal_infidelity, 0.0, atol=1e-3)
+
+    # Check the state from the kernel at the fixed parameters.
+    bell_state = cudaq.get_state(kernel, optimal_parameters)
+    assert np.allclose(want_state, bell_state)
+
     cudaq.set_qpu('qpp')
 
 

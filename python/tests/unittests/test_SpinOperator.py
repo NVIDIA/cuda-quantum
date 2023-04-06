@@ -14,8 +14,10 @@ import cudaq
 from cudaq import spin
 import numpy as np
 
+
 def assert_close(want, got, tolerance=1.e-5) -> bool:
     return abs(want - got) < tolerance
+
 
 def test_spin_class():
     """
@@ -155,6 +157,7 @@ def test_spin_op_vqe():
     assert want_string == hamiltonian.to_string()
     assert want_string == str(hamiltonian)
 
+
 def test_matrix():
     """
     Test that the `cudaq.SpinOperator` can produce its matrix representation 
@@ -166,7 +169,8 @@ def test_matrix():
     assert_close(-1.74, np.linalg.eigvals(mat)[0], 1e-2)
 
     out = np.array(mat, copy=False)
-    assert assert_close(2.9e-4, out[0,0], 1e-3)
+    assert assert_close(2.9e-4, out[0, 0], 1e-3)
+
 
 def test_spin_op_foreach():
     """

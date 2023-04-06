@@ -81,11 +81,14 @@ CUDAQ_TEST(GetStateTester, checkGetState) {
   auto state_object = cudaq::get_state(kernel);
 
 #ifdef CUDAQ_BACKEND_DM
+  // Check that `is_density_matrix` is true.
+  assert(state_object.is_density_matrix() == true);
   // Can we return the density matrix as an eigen matrix?
   auto density_matrix = state_object.get_data<Eigen::MatrixXcd>();
-  bool error = false;
+
   // Is a runtime error thrown if we try to return the density
   // matrix as a vector?
+  bool error = false;
   try {
     auto density_vector = state_object.get_data<Eigen::VectorXcd>();
   } catch (std::runtime_error) {
@@ -93,6 +96,8 @@ CUDAQ_TEST(GetStateTester, checkGetState) {
   }
   assert(error == true);
 #else
+  // Check that `is_density_matrix` is false.
+  assert(state_object.is_density_matrix() == false);
   // Can we return the state vector as an eigen vector?
   auto state_vector = state_object.get_data<Eigen::VectorXcd>();
   // Can we return the state vector as an eigen matrix?
