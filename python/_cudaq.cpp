@@ -15,6 +15,7 @@
 #include "runtime/cudaq/algorithms/py_state.h"
 #include "runtime/cudaq/algorithms/py_vqe.h"
 #include "runtime/cudaq/builder/py_kernel_builder.h"
+#include "runtime/cudaq/spin/py_matrix.h"
 #include "runtime/cudaq/spin/py_spin_op.h"
 #include "utils/LinkedLibraryHolder.h"
 
@@ -93,6 +94,7 @@ PYBIND11_MODULE(_pycudaq, mod) {
   cudaq::bindNoiseModel(mod);
   cudaq::bindSample(mod);
   cudaq::bindMeasureCounts(mod);
+  cudaq::bindComplexMatrix(mod);
   cudaq::bindSpinWrapper(mod);
   cudaq::bindOptimizerWrapper(mod);
   cudaq::bindVQE(mod);
