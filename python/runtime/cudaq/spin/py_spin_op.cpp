@@ -35,6 +35,13 @@ void bindSpinClass(py::module &mod) {
 }
 
 void bindSpinOperator(py::module &mod) {
+  py::enum_<cudaq::pauli>(
+      mod, "Pauli", "An enumeration representing the types of Pauli matrices.")
+      .value("X", pauli::X)
+      .value("Y", pauli::Y)
+      .value("Z", pauli::Z)
+      .value("I", pauli::I);
+
   py::class_<cudaq::spin_op>(mod, "SpinOperator")
       /// @brief Bind the constructors.
       .def(py::init<>(), "Empty constructor, creates the identity term.")
@@ -69,6 +76,22 @@ void bindSpinOperator(py::module &mod) {
       .def_static("random", &cudaq::spin_op::random,
                   "Return a random spin_op on the given number of qubits and "
                   "composed of the given number of terms.")
+      .def(
+          "for_each_term",
+          [](spin_op &self, py::function functor) {
+            self.for_each_term([&](const spin_op &term) { functor(term); });
+          },
+          "Apply the given function to all terms in this `cudaq.SpinOperator`. "
+          "The input function must have `void(SpinOperator)` signature.")
+      .def(
+          "for_each_pauli",
+          [](spin_op &self, py::function functor) {
+            self.for_each_pauli(functor);
+          },
+          "For a single `cudaq.SpinOperator` term, apply the given function "
+          "to each pauli element in the term. The function must have "
+          "`void(pauli, int)` signature where `pauli` is the Pauli matrix "
+          "type and the `int` is the qubit index.")
 
       /// @brief Bind overloaded operators that are in-place on
       /// `cudaq.SpinOperator`.

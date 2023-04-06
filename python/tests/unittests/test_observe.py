@@ -584,4 +584,4 @@ def test_observe_numpy_array(angles, want_state, want_expectation):
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
-    pytest.main([loc, "-s", '-k', 'test_validate_list_number_elements'])
+    pytest.main([loc, "-s"])
