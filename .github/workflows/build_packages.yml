@@ -78,8 +78,7 @@ jobs:
         run: |
           docker run --rm -dit --name cuda-quantum ghcr.io/nvidia/cuda-quantum:latest
           docker cp scripts/validate_container.sh cuda-quantum:"/home/cudaq/validate_container.sh"
-          docker exec cuda-quantum bash validate_container.sh > validation.out
-          docker cp cuda-quantum:"/home/cudaq/validation.out" /tmp/validation.out
+          docker exec -e TERM=xterm cuda-quantum bash validate_container.sh > /tmp/validation.out
           docker stop cuda-quantum
 
       - name: Create job summary

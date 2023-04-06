@@ -18,6 +18,39 @@ failed=0
 skipped=0
 samples=0
 
+requested_backends="default $@" # e.g. "dm" "cuquantum" "cuquantum_mgpu" "tensornet"
+available_backends=`\
+    echo "default"
+    for file in $(ls $CUDA_QUANTUM_PATH/platforms/*.config); \
+    do basename $file | cut -d "." -f 1; \
+    done`
+
+missing_backend=false
+if [ $# -eq 0 ]
+then
+    requested_backends="$available_backends"
+else
+    for t in $requested_backends
+    do
+        echo $available_backends | grep -w -q $t
+        if [ ! $? -eq 0 ];
+        then
+            echo "No backend configuration found for $t."
+            missing_backend=true
+        fi
+    done    
+fi
+
+echo
+echo "Detected backends:"
+echo "$available_backends"
+echo
+echo "Testing backends:"
+echo "$requested_backends"
+echo
+
+if $missing_backend; then exit 1; fi
+
 echo "============================="
 echo "==      Python Tests       =="
 echo "============================="
@@ -51,28 +84,26 @@ do
     echo "Testing $filename:"
     echo "Source: $ex"
     let "samples+=1"
-    for t in "" "dm" "cuquantum" "cuquantum_mgpu" "tensornet";
+    for t in $requested_backends
     do
-        if [[ "$ex" == *"cuquantum"* ]] && [ "$t" = "" ];
+        if [[ "$ex" == *"cuquantum"* ]];
         then 
             let "skipped+=1"
-            if [ "$t" = "" ]; then 
-                echo "Skipping default target.";
-            else 
-                echo "Skipping target $t.";
-            fi
+            echo "Skipping $t target.";
+
         elif [[ "$ex" != *"nois"* ]] && [ "$t" = "dm" ];
         then
             let "skipped+=1"
-            echo "Skipping target dm."
+            echo "Skipping $t target."
+
         else
-            if [ "$t" = "" ]; then 
-                echo "Testing on default target..."
-            else 
-                echo "Testing on target $t..."
+            echo "Testing on $t target..."
+            if [ "$t" = "default" ]; then 
+                nvq++ $ex
+            else
+                nvq++ $ex -qpu $t
             fi
-            nvq++ $ex -qpu $t
-            ./a.out 1> /dev/null
+            ./a.out &> /dev/null
             status=$?
             echo "Exited with code $status"
             if [ "$status" -eq "0" ]; then 
@@ -80,7 +111,7 @@ do
             else
                 let "failed+=1"
             fi 
-            rm a.out
+            rm a.out &> /dev/null
         fi
     done
     echo "============================="
@@ -92,4 +123,4 @@ echo "Total passed: $passed"
 echo "Total failed: $failed"
 echo "Skipped: $skipped"
 echo "============================="
-if [ "$failed" -eq "0" ]; then exit 0; else exit 1; fi
+if [ "$failed" -eq "0" ]; then exit 0; else exit 10; fi
