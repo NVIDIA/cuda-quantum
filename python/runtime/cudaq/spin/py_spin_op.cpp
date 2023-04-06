@@ -45,6 +45,11 @@ void bindSpinOperator(py::module &mod) {
   py::class_<cudaq::spin_op>(mod, "SpinOperator")
       /// @brief Bind the constructors.
       .def(py::init<>(), "Empty constructor, creates the identity term.")
+      .def(py::init([](std::string fileName) {
+             cudaq::binary_spin_op_reader reader;
+             return reader.read(fileName);
+           }),
+           "Read in `SpinOperator` from file.")
       .def(py::init<const cudaq::spin_op>(), py::arg("spin_operator"),
            "Copy constructor, given another `cudaq.SpinOperator`.")
 
@@ -92,7 +97,17 @@ void bindSpinOperator(py::module &mod) {
           "to each pauli element in the term. The function must have "
           "`void(pauli, int)` signature where `pauli` is the Pauli matrix "
           "type and the `int` is the qubit index.")
-
+      .def("serialize", &spin_op::getDataRepresentation,
+           "Return a serialized representation of the `SpinOperator`. "
+           "Specifically, this encoding is via a vector of doubles. The "
+           "encoding is as follows: for each term, a list of doubles where the "
+           "ith element is a 3.0 for a Y, a 1.0 for a X, and a 2.0 for a Z on "
+           "qubit i, followed by the real and imag part of the coefficient. "
+           "Each term is appended to the array forming one large 1d array of "
+           "doubles. The array is ended with the total number of terms "
+           "represented as a double.")
+      .def("to_matrix", &spin_op::to_matrix,
+           "Return `self` as a :class:`ComplexMatrix`.")
       /// @brief Bind overloaded operators that are in-place on
       /// `cudaq.SpinOperator`.
       // `this_spin_op` += `cudaq.SpinOperator`

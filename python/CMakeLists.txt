@@ -36,6 +36,7 @@ pybind11_add_module(_pycudaq
                      runtime/cudaq/algorithms/py_optimizer.cpp
                      runtime/cudaq/algorithms/py_state.cpp
                      runtime/cudaq/algorithms/py_vqe.cpp
+                     runtime/cudaq/spin/py_matrix.cpp
                      runtime/cudaq/spin/py_spin_op.cpp
                      runtime/common/py_ObserveResult.cpp
                      runtime/common/py_SampleResult.cpp                     
