@@ -18,7 +18,12 @@ failed=0
 skipped=0
 samples=0
 
-requested_backends="default $@" # e.g. "dm" "cuquantum" "cuquantum_mgpu" "tensornet"
+requested_backends=`\
+    echo "default"
+    for target in $@; \
+    do echo "$target"; \
+    done`
+
 available_backends=`\
     echo "default"
     for file in $(ls $CUDA_QUANTUM_PATH/platforms/*.config); \
@@ -49,7 +54,11 @@ echo "Testing backends:"
 echo "$requested_backends"
 echo
 
-if $missing_backend; then exit 1; fi
+if $missing_backend; 
+then
+    echo "Abort due to missing backend configuration."
+    exit 1 
+fi
 
 echo "============================="
 echo "==      Python Tests       =="
