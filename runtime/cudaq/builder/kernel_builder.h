@@ -295,8 +295,8 @@ public:
 } // namespace details
 
 template <class... Ts>
-concept AllAreQuakeValues = sizeof
-...(Ts) < 2 ||
+concept AllAreQuakeValues =
+    sizeof...(Ts) < 2 ||
     (std::conjunction_v<
          std::is_same<std::tuple_element_t<0, std::tuple<Ts...>>, Ts>...> &&
      std::is_same_v<
