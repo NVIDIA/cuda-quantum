@@ -165,6 +165,9 @@ def test_matrix():
     mat = hamiltonian.to_matrix()
     assert_close(-1.74, np.linalg.eigvals(mat)[0], 1e-2)
 
+    out = np.array(mat, copy=False)
+    assert assert_close(2.9e-4, out[0,0], 1e-3)
+
 def test_spin_op_foreach():
     """
     Test the `cudaq.SpinOperator` for_each_term method

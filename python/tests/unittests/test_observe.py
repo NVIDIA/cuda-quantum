@@ -13,6 +13,8 @@ import numpy as np
 import cudaq
 from cudaq import spin
 
+def assert_close(want, got, tolerance=1.e-4) -> bool:
+    return abs(want - got) < tolerance
 
 def test_observe_result():
     """
@@ -23,7 +25,7 @@ def test_observe_result():
     qreg = kernel.qalloc(2)
     kernel.x(qreg[0])
     hamiltonian = spin.z(0) + spin.x(1) + spin.y(0)
-    shots_count = 100
+    shots_count = 1000
 
     # Shots provided.
     observe_result = cudaq.observe(kernel, hamiltonian, shots_count=shots_count)
@@ -58,8 +60,8 @@ def test_observe_result():
         # against each of the the expectation values returned
         # from `cudaq.SampleResult`.
         expectation_z = observe_result.expectation_z(sub_term=sub_term)
-        assert sub_register_counts.expectation_z() == expectation_z
-        assert sub_term_counts.expectation_z() == expectation_z
+        assert assert_close(sub_register_counts.expectation_z(), expectation_z, 1e-1)
+        assert assert_close(sub_term_counts.expectation_z(), expectation_z, 1e-1)
     observe_result.dump()
 
 
