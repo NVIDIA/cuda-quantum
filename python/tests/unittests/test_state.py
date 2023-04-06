@@ -13,66 +13,104 @@ import numpy as np
 import cudaq
 
 
-def overlap(self, other):
+def overlap(self, other, vector=False):
+    self_ = np.array(self)
+    other_ = np.array(other)
     fidelity = 0.0
+    if vector:
+        for index in range(len(np.array(self_))):
+            # fidelity = |<self | other>| ^ 2
+            fidelity = np.abs(other_.conj().dot(self_))**2
+    else:
 
-    # if size = 1 (state vector)
+        def svd_routine(density_matrix):
+            unitary_1, singular_values, unitary_2 = np.linalg.svd(
+                density_matrix)
+            diagonal = np.diag(np.sqrt(singular_values))
+            return unitary_1.dot(diagonal).dot(unitary_2)
 
-    # self is a matrix
-    # other is a matrix
-
-    determinant_product = np.linalg.det(self) * np.linalg.det(other)
-    fidlelity = (np.real(np.trace(np.matmul(
-        self, other)))) + 2 * np.sqrt(np.real(determinant_product))
+        term_1 = svd_routine(self_)
+        term_2 = svd_routine(other_)
+        fidelity = np.linalg.norm(term_1.dot(term_2), ord="nuc")**2
 
     return fidelity
 
 
+def test_simple():
+    one_state = np.array([0.0, 1.0], dtype=np.complex128)
+    got_state = cudaq.State(one_state)
+
+    print(overlap(got_state, got_state, True))
+    print(got_state.overlap(got_state))
+
+
 def test_bug():
     # Basis vectors.
-    one_state = np.array([[0.0, 1.0]], dtype=np.complex128)
-    zero_state = np.array([[1.0, 0.0]], dtype=np.complex128)
+    one_state = np.array([0.0, 1.0], dtype=np.complex128)
+    zero_state = np.array([1.0, 0.0], dtype=np.complex128)
 
     # |psi> = |1> <0|
     psi = np.outer(one_state, np.conjugate(zero_state))
 
-    # |rho> = |psi> <1|
-    rho = np.outer(psi,
-                   np.conjugate(np.outer(one_state, np.conjugate(one_state))))
-
     # Call `State` constructor twice.
-    got_state_a = cudaq.State(rho)
-    got_state_b = cudaq.State(rho)
+    got_state_a = cudaq.State(psi)
+    got_state_b = cudaq.State(psi)
+    assert np.allclose(np.asarray(got_state_a), np.asarray(got_state_b))
 
     # They should have perfect overlap, but the overlap is
     # returned as 0.0
     # assert got_state_a.overlap(got_state_b) == 1.0
+    print(overlap(got_state_a, got_state_b, False))
+    # assert got_state_a.overlap(got_state_b) == 1.0
 
-    print(type(got_state_a.to_numpy()))
-    print(got_state_a.to_numpy())
+    # # Check numpy functions between the numpy created object
+    # # and the vector returned from the state buffer.
+    # want_outer = np.outer(psi, psi)
+    # got_outer = np.outer(got_state_a, got_state_b)
+    # assert np.allclose(want_outer, got_outer)
 
-    print("\n\n", cudaq.State(one_state).to_numpy())
-    print("\n\n", cudaq.State(one_state).to_numpy()[0])
-    # print(overlap(got_state_a, got_state_b))
+    # print(overlap(want_outer, got_outer, False))
+    # # assert want_outer.overlap(got_outer) == 1.0
 
-    # Note: this test passes fine with `psi = |1> <1|` and
-    # `psi = |0> <0|`, only fails when 1 0 or 0 1
+    # # Note: this test passes fine with `psi = |1> <1|` and
+    # # `psi = |0> <0|`, only fails when 1 0 or 0 1 -- mixed
+    # # states.
 
 
-@pytest.mark.parametrize(
-    "want_state",
-    [
-        # np.array([0.0,1.0], dtype=np.complex128),
-        np.array([[0.0, 0.0], [1.0, 0.0]], dtype=np.complex128),
-        # np.array(
-        #     [[.5, 0, 0, .5], [0., 0., 0., 0.], [0., 0., 0., 0.], [.5, 0., 0., .5]],
-        #     dtype=np.complex128),
+@pytest.mark.parametrize("want_state", [
+    np.array([0.0, 1.0], dtype=np.complex128),
+    np.array([[0.0, 1.0]], dtype=np.complex128),
+])
+def test_state_buffer_vector(want_state):
+    """
+    Tests writing to and returning from the :class:`State` buffer
+    on different state vectors.
+    """
+    got_state = cudaq.State(want_state)
 
-        # np.array([[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [1.0, 0.0]],
-        #          dtype=np.complex128)
-    ])
-def test_state_constructor(want_state):
-    """Tests the :class:`State` class given a numpy array."""
+    other_state = cudaq.State(want_state)
+    print("overlap of itself = ", got_state.overlap(other_state), "\n\n")
+
+    print("want_state = ", want_state)
+    print("\n\ngot_state = ", got_state)
+
+    # Should have full overlap.
+    assert got_state.overlap(want_state) == 1.0
+
+
+@pytest.mark.parametrize("want_state", [
+    np.array([[0.0, 0.0], [1.0, 0.0]], dtype=np.complex128),
+    np.array(
+        [[.5, 0, 0, .5], [0., 0., 0., 0.], [0., 0., 0., 0.], [.5, 0., 0., .5]],
+        dtype=np.complex128),
+    np.array([[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [1.0, 0.0]],
+             dtype=np.complex128)
+])
+def test_state_buffer_density_matrix(want_state):
+    """
+    Tests writing to and returning from the :class:`State` buffer
+    on different density matrices.
+    """
     got_state = cudaq.State(want_state)
 
     other_state = cudaq.State(want_state)
@@ -99,14 +137,8 @@ def test_state_integration_vector():
     want_state = np.array([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)],
                           dtype=np.complex128)
 
-    assert np.allclose(want_state, got_state)
-    # np.isclose(1. / np.sqrt(2.), got_state[0].real)
-    # np.isclose(0., got_state[1].real)
-    # np.isclose(0., got_state[2].real)
-    # np.isclose(1. / np.sqrt(2.), got_state[3].real)
+    assert np.allclose(want_state, np.array(got_state))
 
-    # compare = np.array([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)],
-    #                    dtype=np.complex128)
     print('overlap = ', got_state.overlap(want_state))
     np.isclose(1., got_state.overlap(want_state), 1e-3)
 

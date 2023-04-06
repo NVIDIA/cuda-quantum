@@ -7,6 +7,7 @@
  *******************************************************************************/
 
 #include "state.h"
+#include <Eigen/Dense>
 #include <iostream>
 
 namespace cudaq {
@@ -27,6 +28,7 @@ void state::dump(std::ostream &os) {
     }
   }
 }
+
 std::complex<double> state::operator[](std::size_t idx) {
   auto &[shape, stateData] = data;
   if (shape.size() != 1)
@@ -74,17 +76,29 @@ double state::overlap(state &other) {
   return sum;
 }
 
-// Eigen::MatrixXcd state::as_eigen() {
-//   auto &[shape, stateData] = data;
-//   if (shape.size() == 1) {
-//     // Build up a state vector.
-//     // TODO: FIXME
-//     return Eigen::Map<Eigen::MatrixXcd>(stateData.data(), shape[0], shape[1])[0];
-//   } else {
-//     // Build up a density matrix.
-//     return Eigen::Map<Eigen::MatrixXcd>(stateData.data(), shape[0], shape[1]);
-//   }
-// }
+bool state::is_density_matrix() {
+  auto &[shape, stateData] = data;
+  if (shape.size() == 1) {
+    return false;
+  } else {
+    assert(shape.size() > 1);
+    return true;
+  }
+}
 
+template <>
+Eigen::VectorXcd state::get_data<Eigen::VectorXcd>() {
+  auto &[shape, stateData] = data;
+  if (shape.size() != 1) {
+    throw std::runtime_error("Cannot return a density matrix as a vector.");
+  }
+  return Eigen::Map<Eigen::VectorXcd>(stateData.data(), shape[0]);
+}
+
+template <>
+Eigen::MatrixXcd state::get_data<Eigen::MatrixXcd>() {
+  auto &[shape, stateData] = data;
+  return Eigen::Map<Eigen::MatrixXcd>(stateData.data(), shape[0], shape[1]);
+}
 
 } // namespace cudaq

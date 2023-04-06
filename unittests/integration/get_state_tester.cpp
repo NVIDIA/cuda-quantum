@@ -7,6 +7,7 @@
  *******************************************************************************/
 
 #include "CUDAQTestUtils.h"
+#include <Eigen/Dense>
 #include <cudaq/algorithm.h>
 #include <cudaq/optimizers.h>
 #include <fmt/core.h>
@@ -67,4 +68,34 @@ CUDAQ_TEST(GetStateTester, checkSimple) {
   });
 
   EXPECT_NEAR(opt_val, 0.0, 1e-3);
+}
+
+CUDAQ_TEST(GetStateTester, checkGetState) {
+
+  auto kernel = []() __qpu__ {
+    cudaq::qubit q, r;
+    h(q);
+    cx(q, r);
+  };
+
+  auto state_object = cudaq::get_state(kernel);
+
+#ifdef CUDAQ_BACKEND_DM
+  // Can we return the density matrix as an eigen matrix?
+  auto density_matrix = state_object.get_data<Eigen::MatrixXcd>();
+  bool error = false;
+  // Is a runtime error thrown if we try to return the density
+  // matrix as a vector?
+  try {
+    auto density_vector = state_object.get_data<Eigen::VectorXcd>();
+  } catch (std::runtime_error) {
+    error = true;
+  }
+  assert(error == true);
+#else
+  // Can we return the state vector as an eigen vector?
+  auto state_vector = state_object.get_data<Eigen::VectorXcd>();
+  // Can we return the state vector as an eigen matrix?
+  auto state_matrix = state_object.get_data<Eigen::MatrixXcd>();
+#endif
 }

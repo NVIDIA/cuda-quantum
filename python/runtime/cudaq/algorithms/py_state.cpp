@@ -5,8 +5,8 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
+#include "pybind11/numpy.h"
 #include <pybind11/complex.h>
-// #include "pybind11/numpy.h"
 #include <pybind11/eigen.h>
 #include <pybind11/stl.h>
 
@@ -15,6 +15,8 @@
 #include "utils/OpaqueArguments.h"
 
 #include "cudaq/algorithms/state.h"
+
+#include <Eigen/Dense>
 
 namespace cudaq {
 
@@ -48,10 +50,38 @@ state pyGetState(kernel_builder<> &kernel, py::args args) {
 void bindPyState(py::module &mod) {
 
   py::class_<state>(
-      mod, "State",
+      mod, "State", py::buffer_protocol(),
       "A data-type representing the quantum state of the interal simulator. "
       "Returns state vector by default. If qpu is set to `dm`, returns "
       "density matrix.\n")
+      // Define a buffer model for this class to make it fully
+      // compatible with numpy.
+      .def_buffer([](state &self) -> py::buffer_info {
+        if (!self.is_density_matrix()) {
+          auto vector = self.get_data<Eigen::VectorXcd>();
+          return py::buffer_info(
+              vector.data(), sizeof(std::complex<double>), /*itemsize */
+              py::format_descriptor<std::complex<double>>::format(),
+              1, /* ndim */
+              {
+                  vector.rows(),
+              },                                              /* shape */
+              {sizeof(std::complex<double>) * vector.cols()}, /* strides */
+              true                                            /* readonly */
+          );
+        } else {
+          auto matrix = self.get_data<Eigen::MatrixXcd>();
+          return py::buffer_info(
+              matrix.data(), sizeof(std::complex<double>), /*itemsize */
+              py::format_descriptor<std::complex<double>>::format(),
+              2,                              /* ndim */
+              {matrix.rows(), matrix.cols()}, /* shape */
+              {sizeof(std::complex<double>) * matrix.cols(),
+               sizeof(std::complex<double>)}, /* strides */
+              true                            /* readonly */
+          );
+        }
+      })
       .def(py::init([](const py::buffer &buffer) {
              py::buffer_info info = buffer.request();
              std::vector<std::size_t> shape;
@@ -68,13 +98,13 @@ void bindPyState(py::module &mod) {
            "Construct the :class:`State` from an existing array of data.\n")
       .def(
           "__getitem__", [](state &self, std::size_t idx) { return self[idx]; },
-          "Return an element of the state vector.")
+          "Return an element of the state vector -- TODO: raises.")
       .def(
           "__getitem__",
           [](state &self, std::vector<std::size_t> idx) {
             return self(idx[0], idx[1]);
           },
-          "Return a matrix element of the density matrix.")
+          "Return a matrix element of the density matrix -- TODO: raises.")
       .def(
           "dump",
           [](state &self) {
@@ -92,7 +122,7 @@ void bindPyState(py::module &mod) {
       .def(
           "overlap",
           [](state &self, state &other) { return self.overlap(other); },
-          "Compute the overlap of `self` with `other`.")
+          "Compute the overlap of `self` with the `other` :class:`State`.")
       .def(
           "overlap",
           [](state &self, py::buffer &other) {
@@ -109,19 +139,7 @@ void bindPyState(py::module &mod) {
             state ss(t);
             return self.overlap(ss);
           },
-          "Compute the overlap of `self` with `other`.")
-      .def(
-          "to_numpy",
-          [](state &self) {
-            // Call the `::to_eigen` method to get the state as an
-            // eigen matrix. By setting `reference_internal` in the
-            // binding, this sets `writeable = False` for the numpy
-            // array and ties the life of the `State` to the life of
-            // the returned numpy array.
-            return self.as_eigen();
-          },
-          py::return_value_policy::reference_internal,
-          "Return the quantum state as a `numpy.ndarray`.");
+          "Compute the overlap of `self` with `other`.");
 
   mod.def(
       "get_state",
