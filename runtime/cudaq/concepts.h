@@ -43,9 +43,16 @@ broadcastFunctionOverArguments(ApplyFunctor &&apply,
                                ArgumentSet<Args...> &params) {
   std::vector<ReturnType> results;
 
+  // Assert all arg vectors are the same size
+  auto N = std::get<0>(params).size();
+  cudaq::tuple_for_each(params, [&](auto &&element) {
+    if (element.size() != N)
+      throw std::runtime_error("Invalid argument set to broadcast function "
+                               "over - vector sizes not the same.");
+  });
+
   // Loop over all sets of arguments, the ith element of each vector
   // in the ArgumentSet tuple
-  // FIXME ASSERT ALL TUPLE ARGS ARE SAME SIZE
   for (std::size_t i = 0; i < std::get<0>(params).size(); i++) {
     // Construct the current set of arguments as a new tuple
     // We want a tuple so we can use std::apply with the

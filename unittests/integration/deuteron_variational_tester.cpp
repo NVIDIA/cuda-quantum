@@ -74,4 +74,11 @@ CUDAQ_TEST(D2VariationalTester, checkBroadcast) {
 
   for (std::size_t counter = 0; auto &el : expected)
     EXPECT_NEAR(results[counter++].exp_val_z(), el, 1e-3);
+
+  // Expect that providing the wrong number of args in the vector will
+  // throw an exception.
+  EXPECT_ANY_THROW({
+    auto results = cudaq::observe_n(
+        ansatz, h, make_argset(params, std::vector(params.size() + 1, 2)));
+  });
 }
