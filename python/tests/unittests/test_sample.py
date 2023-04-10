@@ -524,4 +524,4 @@ def test_for_loop():
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
-    pytest.main([loc, "-s", "-k", "test_for_loop"])
+    pytest.main([loc, "-s"])

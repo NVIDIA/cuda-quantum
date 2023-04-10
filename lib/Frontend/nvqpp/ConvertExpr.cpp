@@ -1097,8 +1097,11 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
 
     // Create the power op based on the types of the arguments.
     if (isa<IntegerType>(powerType)) {
-      if (isa<IntegerType>(baseType))
-        return pushValue(builder.create<math::IPowIOp>(loc, base, power));
+      if (isa<IntegerType>(baseType)) {
+        auto resTy = genType(func->getCallResultType());
+        auto castBase = builder.create<arith::SIToFPOp>(loc, resTy, base);
+        return pushValue(builder.create<math::FPowIOp>(loc, castBase, power));
+      }
       return pushValue(builder.create<math::FPowIOp>(loc, base, power));
     }
     return pushValue(builder.create<math::PowFOp>(loc, base, power));

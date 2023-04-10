@@ -9,6 +9,7 @@
 #pragma once
 #include <complex>
 
+#include "matrix.h"
 #include "utils/cudaq_utils.h"
 #include <functional>
 #include <map>
@@ -259,12 +260,16 @@ public:
 
   /// @brief Apply the give functor on each term of this spin_op. This method
   /// can enable general reductions via lambda capture variables.
-  void for_each_term(std::function<void(spin_op &)> &&);
+  void for_each_term(std::function<void(spin_op &)> &&) const;
 
   /// @brief Apply the functor on each pauli in this 1-term spin_op. An
   /// exception is thrown if there are more than 1 terms. Users should pass a
   /// functor that takes the pauli type and the qubit index.
-  void for_each_pauli(std::function<void(pauli, std::size_t)> &&);
+  void for_each_pauli(std::function<void(pauli, std::size_t)> &&) const;
+
+  /// @brief Return a dense matrix representation of this
+  /// spin_op.
+  complex_matrix to_matrix() const;
 };
 
 /// @brief Add a double and a spin_op
