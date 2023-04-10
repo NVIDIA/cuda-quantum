@@ -54,6 +54,13 @@ The :code:`cudaq::control(...)` function takes as input an instantiated pure
 device quantum kernel, an std::range of control qubits (:code:`cudaq::qreg`
 or :code:`cudaq::qspan`), and the remaining arguments for the kernel itself.
 Compiler implementations are free to synthesize multi-controlled operations
-using any pertinent synthesis strategy available. The :code:`cudaq::adjoint(...)`
-function takes as input an instantiated pure device quantum kernel
-(or specified template type) and the remaining arguments for the kernel. 
+using any pertinent synthesis strategy available. Qubits may be aggregated into
+a the range of control qubits with or without the use of the :code:`operator!`
+`negated polarity operator <operations.html>`_.
+
+.. code-block:: cpp
+   cudaq::control(kernel{}, {qubit0, !qubit1}, kernel_arg);
+
+The :code:`cudaq::adjoint(...)` function takes as input an
+instantiated pure device quantum kernel (or specified template type)
+and the remaining arguments for the kernel.
