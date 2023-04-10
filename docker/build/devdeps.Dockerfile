@@ -22,6 +22,15 @@
 # toolchain, add support for it to the install_toolchain.sh script. If the toolchain is set to llvm, 
 # then the toolchain will be built from source.
 
+# Build additional tools needed for CUDA Quantum documentation generation.
+FROM ubuntu:22.04 as doxygenbuild
+RUN apt-get update && apt-get install -y wget unzip make cmake flex bison gcc g++ python3 \
+    && wget https://github.com/doxygen/doxygen/archive/9a5686aeebff882ebda518151bc5df9d757ea5f7.zip -q -O repo.zip \
+    && unzip repo.zip && mv doxygen* repo && rm repo.zip \
+    && cmake -G "Unix Makefiles" repo && cmake --build . --target install --config Release \
+    && rm -rf repo && apt-get remove -y wget unzip make cmake flex bison gcc g++ python3 \
+    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 FROM ubuntu:22.04 as llvmbuild
 SHELL ["/bin/bash", "-c"]
 
@@ -69,15 +78,6 @@ RUN source /opt/llvm/bootstrap/init_command.sh && \
     LLVM_INSTALL_PREFIX=/opt/llvm \
         bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
     && rm -rf /llvm-project 
-
-# Build additional tools needed for CUDA Quantum documentation generation.
-FROM ubuntu:22.04 as doxygenbuild
-RUN apt-get update && apt-get install -y wget unzip make cmake flex bison gcc g++ python3 \
-    && wget https://github.com/doxygen/doxygen/archive/9a5686aeebff882ebda518151bc5df9d757ea5f7.zip -q -O repo.zip \
-    && unzip repo.zip && mv doxygen* repo && rm repo.zip \
-    && cmake -G "Unix Makefiles" repo && cmake --build . --target install --config Release \
-    && rm -rf repo && apt-get remove -y wget unzip make cmake flex bison gcc g++ python3 \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 FROM ubuntu:22.04
 SHELL ["/bin/bash", "-c"]
