@@ -164,7 +164,7 @@ inline std::vector<py::args> createArgumentSet(py::args &args) {
         if (shape.size() == 2) {
           auto list =
               arg.attr("__getitem__")(j).attr("tolist")().cast<py::list>();
-          currentArgs[i] = list; //[j];
+          currentArgs[i] = list;
         } else {
           auto list = arg.attr("tolist")().cast<py::list>();
           currentArgs[i] = list[j];

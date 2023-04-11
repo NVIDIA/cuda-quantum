@@ -200,7 +200,10 @@ public:
     zero_state(0) = 1.0;
     state = qpp::kron(state, zero_state);
 
-    executionContext->canHandleObserve = canHandleObserve();
+    // May be that the state grows enough that we
+    // want to handle observation via sampling
+    if (executionContext)
+      executionContext->canHandleObserve = canHandleObserve();
 
     return qubits;
   }

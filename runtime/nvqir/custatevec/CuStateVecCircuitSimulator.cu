@@ -431,12 +431,12 @@ public:
       return false;
     }
 
+    // FIXME Study the tradeoff for this as NQubits gets larger...
+    // Maybe the 14 qubit range
     if (nQubitsAllocated > 14) {
       return false;
     }
 
-    // FIXME Study the tradeoff for this as NQubits gets larger...
-    // Maybe the 14 qubit range
     return true;
   }
 
@@ -485,8 +485,6 @@ public:
           expectationValues, pauliArray, 1, basisBitsArray, nBasisBitsArray));
       expVal = expectationValues[0];
       cudaq::info("Computed expectation value = {}", expVal);
-      std::cout << executionContext->batchIteration
-                << ", Computed expectation value = " << expVal << "\n";
       return cudaq::ExecutionResult{expVal};
     }
 

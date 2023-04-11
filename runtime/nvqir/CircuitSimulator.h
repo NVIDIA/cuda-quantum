@@ -538,6 +538,8 @@ public:
     // Tell the subtype to grow the state representation
     addQubitToState();
 
+    // May be that the state grows enough that we
+    // want to handle observation via sampling
     if (executionContext)
       executionContext->canHandleObserve = canHandleObserve();
 
