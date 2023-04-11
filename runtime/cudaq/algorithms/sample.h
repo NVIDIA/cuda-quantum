@@ -311,6 +311,7 @@ template <typename QuantumKernel, typename... Args>
   requires SampleCallValid<QuantumKernel, Args...>
 std::vector<sample_result> sample_n(QuantumKernel &&kernel,
                                     ArgumentSet<Args...> &&params) {
+  // FIXME update for batch execution
   return details::broadcastFunctionOverArguments(
       [&](auto &&...args) -> sample_result {
         return sample(std::forward<QuantumKernel>(kernel),

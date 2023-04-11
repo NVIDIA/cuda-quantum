@@ -16,7 +16,7 @@ list(APPEND QPP_DEPENDENCIES OpenMP::OpenMP_CXX)
 endif()
 
 target_include_directories(nvqir-qpp-observe-test
-  PUBLIC . ${CMAKE_SOURCE_DIR}/runtime 
+  PUBLIC . ${CMAKE_SOURCE_DIR}/runtime  /root/.xtensor/include /root/.xtl/include
            ${CMAKE_SOURCE_DIR}/runtime/common 
            ${CMAKE_SOURCE_DIR}/runtime/nvqir 
            ${CMAKE_SOURCE_DIR}/tpls/eigen

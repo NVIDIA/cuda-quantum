@@ -68,6 +68,20 @@ public:
   /// @brief The name of the kernel being executed.
   std::string kernelName = "";
 
+  /// @brief The current iteration for a batch execution,
+  /// used by observe_n and sample_n.
+  std::size_t batchIteration = 0;
+
+  /// @brief For batch execution, the total number of
+  /// batch iterations.
+  std::size_t totalIterations = 0;
+
+  /// @brief Return true if this execution is
+  /// currently in batch mode.
+  bool inBatchMode() const {
+    return totalIterations > 0 && (batchIteration < totalIterations - 1);
+  }
+
   /// @brief The Constructor, takes the name of the context
   /// @param n The name of the context
   ExecutionContext(const std::string n) : name(n) {}

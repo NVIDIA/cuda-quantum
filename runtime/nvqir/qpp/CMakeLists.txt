@@ -22,7 +22,7 @@ macro (AddQppBackend LIBRARY_NAME SOURCE_FILE)
   endif()
 
   target_include_directories(${LIBRARY_NAME}
-                 PUBLIC . ..  
+                 PUBLIC . ..  /root/.xtensor/include /root/.xtl/include
                  ${CMAKE_SOURCE_DIR}/runtime/common 
                  ${CMAKE_SOURCE_DIR}/tpls/eigen 
                  ${CMAKE_SOURCE_DIR}/tpls/qpp/include)

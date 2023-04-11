@@ -40,12 +40,17 @@ template <typename KernelFunctor>
 std::optional<observe_result>
 runObservation(KernelFunctor &&k, cudaq::spin_op &h, quantum_platform &platform,
                int shots, const std::string &kernelName, std::size_t qpu_id = 0,
-               details::future *futureResult = nullptr) {
+               details::future *futureResult = nullptr,
+               std::size_t batchIteration = 0,
+               std::size_t totalBatchIters = 0) {
   auto ctx = std::make_unique<ExecutionContext>("observe", shots);
   ctx->kernelName = kernelName;
   ctx->spin = &h;
   if (shots > 0)
     ctx->shots = shots;
+
+  ctx->batchIteration = batchIteration;
+  ctx->totalIterations = totalBatchIters;
 
   // Indicate that this is an async exec
   ctx->asyncExec = futureResult != nullptr;
@@ -404,10 +409,20 @@ template <typename QuantumKernel, typename... Args>
   requires ObserveCallValid<QuantumKernel, Args...>
 std::vector<observe_result> observe_n(QuantumKernel &&kernel, spin_op H,
                                       ArgumentSet<Args...> &&params) {
+  std::size_t counter = 0;
+  auto N = std::get<0>(params).size();
   return details::broadcastFunctionOverArguments(
       [&](auto &&...args) -> observe_result {
-        return observe(std::forward<QuantumKernel>(kernel), H,
-                       std::forward<Args>(args)...);
+        auto &platform = cudaq::get_platform();
+        auto shots = platform.get_shots().value_or(-1);
+        auto kernelName = cudaq::getKernelName(kernel);
+        auto ret = details::runObservation(
+                       [&kernel, ... args2 = std::forward<decltype(args)>(
+                                     args)]() mutable { kernel(args2...); },
+                       H, platform, shots, kernelName, 0, nullptr, counter, N)
+                       .value();
+        counter++;
+        return ret;
       },
       params);
 }
@@ -425,10 +440,20 @@ template <typename QuantumKernel, typename... Args>
 std::vector<observe_result> observe_n(std::size_t shots, QuantumKernel &&kernel,
                                       spin_op H,
                                       ArgumentSet<Args...> &&params) {
+  std::size_t counter = 0;
+  auto N = std::get<0>(params).size();
   return details::broadcastFunctionOverArguments(
       [&](auto &&...args) -> observe_result {
-        return observe(shots, std::forward<QuantumKernel>(kernel), H,
-                       std::forward<Args>(args)...);
+        // Run this SHOTS times
+        auto &platform = cudaq::get_platform();
+        auto kernelName = cudaq::getKernelName(kernel);
+        auto ret = details::runObservation(
+                       [&kernel, ... args2 = std::forward<decltype(args)>(
+                                     args)]() mutable { kernel(args2...); },
+                       H, platform, shots, kernelName, 0, nullptr, counter, N)
+                       .value();
+        counter++;
+        return ret;
       },
       params);
 }

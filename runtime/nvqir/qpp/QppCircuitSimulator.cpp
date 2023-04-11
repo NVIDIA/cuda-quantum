@@ -10,6 +10,7 @@
 #include "Gates.h"
 #include "qpp.h"
 #include <iostream>
+#include <set>
 
 namespace nvqir {
 
@@ -111,9 +112,64 @@ protected:
     state = qpp::applyCTRL(state, matrix, task.controls, task.targets);
   }
 
+  /// @brief Set the current state back to the |0> state.
+  void setToZeroState() override {
+    state = qpp::ket::Zero(stateDimension);
+    state(0) = 1.0;
+  }
+
 public:
   QppCircuitSimulator() = default;
   virtual ~QppCircuitSimulator() = default;
+
+  bool canHandleObserve() override {
+    // Do not compute <H> from matrix if shots based sampling requested
+    if (executionContext &&
+        executionContext->shots != static_cast<std::size_t>(-1)) {
+      return false;
+    }
+
+    if (nQubitsAllocated > 14) {
+      return false;
+    }
+
+    // FIXME Study the tradeoff for this as NQubits gets larger...
+    // Maybe the 14 qubit range
+    return true;
+  }
+
+  cudaq::ExecutionResult observe(const cudaq::spin_op &op) override {
+
+    flushGateQueue();
+
+    // The op is on the following target bits.
+    std::set<std::size_t> targets;
+    op.for_each_term([&](cudaq::spin_op &term) {
+      term.for_each_pauli(
+          [&](cudaq::pauli p, std::size_t idx) { targets.insert(idx); });
+    });
+
+    std::vector<std::size_t> targetsVec(targets.begin(), targets.end());
+
+    // Get the matrix as an Eigen matrix
+    auto matrix = op.to_matrix();
+    qpp::cmat asEigen =
+        Eigen::Map<Eigen::Matrix<std::complex<double>, Eigen::Dynamic,
+                                 Eigen::Dynamic, Eigen::RowMajor>>(
+            matrix.data(), matrix.rows(), matrix.cols());
+
+    // Compute the expected value
+    double ee = 0.0;
+    if constexpr (std::is_same_v<StateType, qpp::ket>) {
+      qpp::ket k = qpp::apply(state, asEigen, targetsVec, 2);
+      ee = state.dot(k).real();
+    } else {
+      ee = (state * asEigen).trace().real();
+    }
+
+
+    return cudaq::ExecutionResult({}, ee);
+  }
 
   /// @brief Override the default sized allocation of qubits
   /// here to be a bit more efficient than the default implementation
@@ -121,6 +177,10 @@ public:
     std::vector<std::size_t> qubits;
     for (std::size_t i = 0; i < count; i++)
       qubits.emplace_back(tracker.getNextIndex());
+
+    if (executionContext && executionContext->inBatchMode() &&
+        executionContext->batchIteration != 0)
+      return qubits;
 
     if (state.size() == 0) {
       // If this is the first time, allocate the state
@@ -140,6 +200,8 @@ public:
     qpp::ket zero_state = qpp::ket::Zero((1UL << count));
     zero_state(0) = 1.0;
     state = qpp::kron(state, zero_state);
+
+    executionContext->canHandleObserve = canHandleObserve();
 
     return qubits;
   }

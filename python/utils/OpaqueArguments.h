@@ -119,6 +119,9 @@ inline py::args validateInputArguments(kernel_builder<> &kernel,
   return processed;
 }
 
+/// @brief For general function broadcasting over many argument 
+/// sets, this function will create those argument sets from 
+/// the input args. 
 inline std::vector<py::args> createArgumentSet(py::args &args) {
   // we accept float, int, list so we will check here for
   // list[float], list[int], list[list], or ndarray for any,
@@ -155,12 +158,20 @@ inline std::vector<py::args> createArgumentSet(py::args &args) {
         // get the shape and check its size
         auto shape = args[i].attr("shape").cast<py::tuple>();
         if (shape.size() > 2)
-          throw std::runtime_error("Invalid arg for sample_n.");
+          throw std::runtime_error("Invalid arg for sample_n / observe_n.");
 
-        auto list = arg.attr("tolist")().cast<py::list>();
-        currentArgs[i] = list[j];
+        // Can handle 1d array and 2d matrix of data
+        if (shape.size() == 2) {
+          auto list =
+              arg.attr("__getitem__")(j).attr("tolist")().cast<py::list>();
+          currentArgs[i] = list; //[j];
+        } else {
+          auto list = arg.attr("tolist")().cast<py::list>();
+          currentArgs[i] = list[j];
+        }
       }
     }
+
     argSet.push_back(currentArgs);
   }
 

@@ -65,11 +65,32 @@ observe_result pyObserve(kernel_builder<> &kernel, spin_op &spin_operator,
 /// @brief Broadcast the observe call over the list-like arguments provided.
 std::vector<observe_result> pyObserveN(kernel_builder<> &kernel, spin_op &op,
                                        py::args args = {},
-                                       std::size_t shots = 1000) {
+                                       std::size_t shots = defaultShotsValue) {
+
   auto argSet = createArgumentSet(args);
+  auto N = argSet.size();
+
+  // TODO: would like to handle errors in the case that
+  // `kernel.num_qubits() >= spin_operator.num_qubits()`
+  kernel.jitCode();
+  auto name = kernel.name();
   std::vector<observe_result> results;
-  for (auto &a : argSet) {
-    results.emplace_back(pyObserve(kernel, op, a, shots));
+  for (std::size_t currentIter = 0; auto &a : argSet) {
+
+    // Ensure the user input is correct.
+    auto validatedArgs = validateInputArguments(kernel, a);
+    auto &platform = cudaq::get_platform();
+    // Launch the observation task
+    auto ret = details::runObservation(
+                   [&]() mutable {
+                     OpaqueArguments argData;
+                     packArgs(argData, validatedArgs);
+                     kernel.jitAndInvoke(argData.data());
+                   },
+                   op, platform, shots, name, 0, nullptr, currentIter, N)
+                   .value();
+    currentIter++;
+    results.push_back(ret);
   }
 
   return results;
@@ -209,7 +230,7 @@ void bindObserve(py::module &mod) {
   mod.def(
       "observe_n",
       [](kernel_builder<> &self, spin_op &spin_operator, py::args args,
-         std::size_t shots, std::optional<noise_model> noise_model) {
+         int shots, std::optional<noise_model> noise_model) {
         if (!noise_model)
           return pyObserveN(self, spin_operator, args, shots);
         set_noise(*noise_model);
@@ -218,7 +239,7 @@ void bindObserve(py::module &mod) {
         return res;
       },
       py::arg("kernel"), py::arg("spin_operator"), py::kw_only(),
-      py::arg("shots_count") = 1000, py::arg("noise_model") = py::none(),
+      py::arg("shots_count") = defaultShotsValue, py::arg("noise_model") = py::none(),
       "Broadcast the sample function over the input argument set."
       "For each argument type in the kernel signature, you must provide a"
       "list of arguments of that type. "

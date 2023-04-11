@@ -244,11 +244,14 @@ protected:
     const std::vector<std::complex<ScalarType>> matrix;
     const std::vector<std::size_t> controls;
     const std::vector<std::size_t> targets;
+    const std::vector<ScalarType> parameters;
     GateApplicationTask(const std::string &name,
-                        const std::vector<std::complex<ScalarType>> &m,
-                        const std::vector<std::size_t> &c,
-                        const std::vector<std::size_t> &t)
-        : operationName(name), matrix(m), controls(c), targets(t) {}
+                        const std::vector<std::complex<ScalarType>>& m,
+                        const std::vector<std::size_t>& c,
+                        const std::vector<std::size_t>& t,
+                        const std::vector<ScalarType>& params)
+        : operationName(name), matrix(m), controls(c), targets(t),
+          parameters(params) {}
   };
 
   /// @brief The current queue of operations to execute
@@ -452,8 +455,9 @@ protected:
   void enqueueGate(const std::string name,
                    const std::vector<std::complex<ScalarType>> &matrix,
                    const std::vector<std::size_t> &controls,
-                   const std::vector<std::size_t> &targets) {
-    gateQueue.emplace(name, matrix, controls, targets);
+                   const std::vector<std::size_t> &targets,
+                   const std::vector<ScalarType> &params) {
+    gateQueue.emplace(name, matrix, controls, targets, params);
   }
 
   /// @brief This pure virtual method is meant for subtypes
@@ -487,6 +491,10 @@ protected:
     }
   }
 
+  /// @brief Set the current state to the |0> state,
+  /// retaining the current number of qubits.
+  virtual void setToZeroState() = 0;
+
 public:
   /// @brief The constructor
   CircuitSimulatorBase() = default;
@@ -514,6 +522,11 @@ public:
     // Get a new qubit index
     auto newIdx = tracker.getNextIndex();
 
+    if (executionContext && executionContext->inBatchMode() &&
+        executionContext->batchIteration != 0) {
+      return newIdx;
+    }
+
     cudaq::info("Allocating new qubit with idx {} (nQ={}, dim={})", newIdx,
                 nQubitsAllocated, stateDimension);
 
@@ -524,6 +537,9 @@ public:
 
     // Tell the subtype to grow the state representation
     addQubitToState();
+
+    if (executionContext)
+      executionContext->canHandleObserve = canHandleObserve();
 
     // return the new qubit index
     return newIdx;
@@ -626,18 +642,26 @@ public:
       executionContext->simulationData = getStateData();
     }
 
-    executionContext = nullptr;
-
     // Deallocate the deferred qubits, but do so
     // without explicit qubit reset.
     for (auto &deferred : deferredDeallocation)
       tracker.returnIndex(deferred);
 
+    auto isBatchMode = executionContext->inBatchMode();
+
+    executionContext = nullptr;
+
     // Reset the state if we've deallocated all qubits.
     if (tracker.numAvailable() == tracker.totalNumQubits()) {
-      cudaq::info("Deallocated all qubits, reseting state vector.");
-      // all qubits deallocated,
-      resetQubitState();
+      if (isBatchMode) {
+        cudaq::info("In batch mode currently, reset state to |0>");
+        // Do not deallocate the state, but reset it to |0>
+        setToZeroState();
+      } else {
+        cudaq::info("Deallocated all qubits, reseting state vector.");
+        // all qubits deallocated,
+        resetQubitState();
+      }
     }
 
     deferredDeallocation.clear();
@@ -671,7 +695,7 @@ public:
                                                        element.imag());
                      }
                    });
-    enqueueGate("custom", actual, controls, targets);
+    enqueueGate("custom", actual, controls, targets, {});
   }
 
   template <typename QuantumOperation>
@@ -681,7 +705,7 @@ public:
     flushAnySamplingTasks();
     QuantumOperation gate;
     cudaq::info(gateToString(gate.name(), controls, angles, targets));
-    enqueueGate(gate.name(), gate.getGate(angles), controls, targets);
+    enqueueGate(gate.name(), gate.getGate(angles), controls, targets, angles);
     if (executionContext && executionContext->noiseModel) {
       std::vector<std::size_t> noiseQubits{controls.begin(), controls.end()};
       noiseQubits.insert(noiseQubits.end(), targets.begin(), targets.end());
@@ -770,7 +794,7 @@ public:
         {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0},
         {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {1.0, 0.0}};
     enqueueGate("swap", matrix, ctrlBits,
-                std::vector<std::size_t>{srcIdx, tgtIdx});
+                std::vector<std::size_t>{srcIdx, tgtIdx}, {});
   }
 
   bool mz(const std::size_t qubitIdx) override { return mz(qubitIdx, ""); }
