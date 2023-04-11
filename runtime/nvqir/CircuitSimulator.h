@@ -246,9 +246,9 @@ protected:
     const std::vector<std::size_t> controls;
     const std::vector<std::size_t> targets;
     GateApplicationTask(const std::string &name,
-                        const std::vector<std::complex<ScalarType>> m,
-                        const std::vector<std::size_t> c,
-                        const std::vector<std::size_t> t)
+                        const std::vector<std::complex<ScalarType>> &m,
+                        const std::vector<std::size_t> &c,
+                        const std::vector<std::size_t> &t)
         : operationName(name), matrix(m), controls(c), targets(t) {}
   };
 
@@ -259,8 +259,9 @@ protected:
   std::string getCircuitName() const { return currentCircuitName; }
 
   /// @brief Return the current multi-qubit state dimension
-  std::size_t calculateStateDim(const std::size_t n_qubits) {
-    return 1UL << n_qubits;
+  std::size_t calculateStateDim(const std::size_t numQubits) {
+    assert(numQubits < 64);
+    return 1ULL << numQubits;
   }
 
   /// @brief Add a new qubit to the state representation.
@@ -405,8 +406,11 @@ protected:
       return;
 
     // Sort the qubit indices
-    std::set<std::size_t> tmpSet(sampleQubits.begin(), sampleQubits.end());
-    sampleQubits.assign(tmpSet.begin(), tmpSet.end());
+    std::sort(sampleQubits.begin(), sampleQubits.end());
+    std::unique(sampleQubits.begin(), sampleQubits.end());
+
+    // std::set<std::size_t> tmpSet(sampleQubits.begin(), sampleQubits.end());
+    // sampleQubits.assign(tmpSet.begin(), tmpSet.end());
 
     cudaq::info("Sampling the current state, with measure qubits = {}",
                 sampleQubits);
@@ -424,7 +428,7 @@ protected:
       for (auto &[regName, qubits] : registerNameToMeasuredQubit) {
         // Find the position of the qubits we have in the result bit string
         // Create a map of qubit to bit string location
-        std::map<std::size_t, std::size_t> qubitLocMap;
+        std::unordered_map<std::size_t, std::size_t> qubitLocMap;
         for (std::size_t i = 0; i < qubits.size(); i++) {
           auto iter =
               std::find(sampleQubits.begin(), sampleQubits.end(), qubits[i]);
@@ -769,7 +773,8 @@ public:
         {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0},
         {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0},
         {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {1.0, 0.0}};
-    enqueueGate("swap", matrix, ctrlBits, std::vector<std::size_t>{srcIdx, tgtIdx});
+    enqueueGate("swap", matrix, ctrlBits,
+                std::vector<std::size_t>{srcIdx, tgtIdx});
   }
 
   bool mz(const std::size_t qubitIdx) override { return mz(qubitIdx, ""); }

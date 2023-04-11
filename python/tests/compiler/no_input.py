@@ -32,8 +32,8 @@ def test_make_kernel_no_input():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
-# CHECK:           return
-# CHECK:         }
+# CHECK-NEXT:           return
+# CHECK-NEXT:         }
 
 # leave for gdb debugging
 if __name__ == "__main__":

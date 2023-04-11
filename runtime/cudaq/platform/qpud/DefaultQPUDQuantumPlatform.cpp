@@ -10,11 +10,11 @@
 #pragma GCC diagnostic ignored "-Wsuggest-override"
 #endif
 #include "common/ExecutionContext.h"
+#include "cudaq/platform/qpu.h"
+#include "cudaq/platform/quantum_platform.h"
 #include "nvqpp_config.h"
 #include "qpud_client.h"
 #include "rpc/client.h"
-#include "cudaq/platform/qpu.h"
-#include "cudaq/platform/quantum_platform.h"
 #include "llvm/Support/Program.h"
 #include <cudaq/spin_op.h>
 #include <fmt/core.h>

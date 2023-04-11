@@ -83,7 +83,6 @@ protected:
         const_cast<std::complex<double> *>(data.data()), nRows, nRows);
   }
 
-
   /// @brief Grow the state vector by one qubit.
   void addQubitToState() override {
     // Update the state vector

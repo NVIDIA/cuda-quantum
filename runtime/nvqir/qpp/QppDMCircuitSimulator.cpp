@@ -102,7 +102,7 @@ public:
     nQubitsAllocated += count;
     stateDimension = calculateStateDim(nQubitsAllocated);
 
-    auto prevDim = 1UL << oldNQ;
+    auto prevDim = 1ULL << oldNQ;
     state.conservativeResize(stateDimension, stateDimension);
     for (std::size_t i = prevDim; i < stateDimension; i++) {
       state.col(i).setZero();
