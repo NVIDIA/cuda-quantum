@@ -108,18 +108,17 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Build documentation
-        id: docs_build
         run: |
           docker load --input /tmp/cudaqdev.tar
           docker run --rm -dit --name cuda-quantum-dev cuda-quantum-dev:local
-          docker exec cuda-quantum-dev bash scripts/build_docs.sh
-          docker cp cuda-quantum-dev:"/usr/local/cudaq/docs/." /tmp/docs
-          docker cp cuda-quantum-dev:"/workspaces/cuda-quantum/build/." /tmp/build
+          (docker exec cuda-quantum-dev bash scripts/build_docs.sh && built=true) || built=false
+          if $built; then docker cp cuda-quantum-dev:"/usr/local/cudaq/docs/." /tmp/docs; \
+          else docker cp cuda-quantum-dev:"/workspaces/cuda-quantum/build/." /tmp/build; fi
           docker stop cuda-quantum-dev
-        continue-on-error: true
+          if $built; then `exit 0`; else `exit 1`; fi
 
       - name: Upload build artifacts
-        if: steps.docs_build.outcome != 'success'
+        if: failure()
         uses: actions/upload-artifact@v3
         with:
           name: build
@@ -127,6 +126,7 @@ jobs:
           retention-days: 1
 
       - name: Upload documentation
+        if: success()
         uses: actions/upload-artifact@v3
         with:
           name: cuda_quantum_docs
