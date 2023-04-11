@@ -27,6 +27,7 @@ jobs:
       llvm_commit: ${{ steps.build_info.outputs.llvm_commit }}
       cache_target: ${{ steps.build_info.outputs.cache_target }}
       cache_base: ${{ steps.build_info.outputs.cache_base }}
+      output: ${{ steps.build_info.outputs.output }}
 
     steps:
       - name: Checkout repository
@@ -35,10 +36,17 @@ jobs:
       - name: Determine build arguments
         id: build_info
         run: |
+          image_name="${{ inputs.container_registry || 'ghcr.io' }}/nvidia/cuda-quantum-devdeps"
+          if ${{ inputs.container_registry != '' }}; then
+            output="type=registry,name=$image_name"
+          else
+            output="type=docker,dest=/tmp/devdeps.tar"
+          fi
           echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
           echo "cache_base=${{ github.event.pull_request.base.ref || 'main' }}" >> $GITHUB_OUTPUT
           echo "cache_target=${{ inputs.cache_location || github.ref_name  }}" >> $GITHUB_OUTPUT
-          echo "image_name=${{ inputs.container_registry || 'ghcr.io' }}/nvidia/cuda-quantum-devdeps" >> $GITHUB_OUTPUT
+          echo "image_name=$image_name" >> $GITHUB_OUTPUT
+          echo "output=$output" >> $GITHUB_OUTPUT
 
       - name: Extract metadata for Docker image
         id: metadata
@@ -90,7 +98,6 @@ jobs:
           build-args: |
             llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
             toolchain=${{ inputs.toolchain }}
-          push: ${{ inputs.container_registry != '' }}
           load: false
           tags: ${{ needs.metadata.outputs.image_tags }}
           labels: ${{ needs.metadata.outputs.image_labels }}
@@ -101,9 +108,10 @@ jobs:
             type=registry,ref=${{ needs.metadata.outputs.image_name }}:${{ inputs.toolchain }}-${{ needs.metadata.outputs.cache_base }}
           cache-to: |
             type=gha,mode=max,scope=${{ needs.metadata.outputs.cache_target }}-cuda-quantum-devdeps-${{ inputs.toolchain }}
-          outputs: type=docker,dest=/tmp/devdeps.tar
+          outputs: ${{ steps.build_info.outputs.output }}
 
       - name: Cache cuda-quantum-devdeps image
+        if: inputs.container_registry == ''
         uses: actions/cache/save@v3
         with:
           path: /tmp/devdeps.tar
