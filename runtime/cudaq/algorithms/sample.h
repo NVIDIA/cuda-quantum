@@ -37,6 +37,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
             details::future *futureResult = nullptr) {
   // Create the execution context.
   auto ctx = std::make_unique<ExecutionContext>("sample", shots);
+  ctx->kernelName = kernelName;
 
   // Tell the context if this quantum kernel has
   // conditionals on measure results

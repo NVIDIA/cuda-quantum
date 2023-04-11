@@ -238,7 +238,7 @@ public:
   BinarySymplecticForm get_bsf() const;
 
   /// @brief Is this spin_op == to the identity
-  bool is_identity();
+  bool is_identity() const;
 
   /// @brief Dump a string representation of this spin_op to standard out.
   void dump() const;

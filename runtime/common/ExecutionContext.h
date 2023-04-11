@@ -65,6 +65,9 @@ public:
   /// simulation clients to extract the underlying simulation data.
   State simulationData;
 
+  /// @brief The name of the kernel being executed.
+  std::string kernelName = "";
+
   /// @brief The Constructor, takes the name of the context
   /// @param n The name of the context
   ExecutionContext(const std::string n) : name(n) {}
