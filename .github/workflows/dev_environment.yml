@@ -108,7 +108,7 @@ jobs:
             type=registry,ref=${{ needs.metadata.outputs.image_name }}:${{ inputs.toolchain }}-${{ needs.metadata.outputs.cache_base }}
           cache-to: |
             type=gha,mode=max,scope=${{ needs.metadata.outputs.cache_target }}-cuda-quantum-devdeps-${{ inputs.toolchain }}
-          outputs: ${{ steps.build_info.outputs.output }}
+          outputs: ${{ needs.metadata.outputs.output }}
 
       - name: Cache cuda-quantum-devdeps image
         if: inputs.container_registry == ''
