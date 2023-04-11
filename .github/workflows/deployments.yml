@@ -12,10 +12,6 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  environment:
-    name: ghcr
-    url: https://github.com/orgs/${{ github.repository_owner }}/packages?repo_name=${{ github.event.repository.name }}
-
   devdeps:
     strategy:
       matrix:
