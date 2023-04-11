@@ -66,8 +66,8 @@ mkdir -p logs && rm -rf logs/*
 # Specify which components we need to keep the size of the LLVM build down
 llvm_components="cmake-exports;llvm-headers;llvm-libraries;"
 llvm_components+="clang-cmake-exports;clang-headers;clang-libraries;clang-resource-headers;"
-llvm_components+="mlir-cmake-exports;mlir-headers;mlir-libraries;"
-llvm_components+="llvm-config;clang-format;llc;clang;mlir-tblgen;FileCheck;count;not"
+llvm_components+="mlir-cmake-exports;mlir-headers;mlir-libraries;mlir-tblgen;"
+llvm_components+="llvm-config;clang-format;llc;clang;FileCheck;count;not"
 
 # Generate CMake files
 echo "Preparing LLVM build..."
@@ -95,12 +95,13 @@ fi
 echo "Building LLVM with configuration $build_configuration..."
 if $verbose; then
   ninja install-distribution-stripped
+  status=$?
 else
   echo "The progress of the build is being logged to `pwd`/logs/ninja_output.txt."
   ninja install-distribution-stripped 2> logs/ninja_error.txt 1> logs/ninja_output.txt
+  status=$?
 fi
 
-status=$?
 if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
   echo "Build failed. Please check the files in the `pwd`/logs directory."
   cd "$working_dir" && if $is_sourced; then return 1; else exit 1; fi

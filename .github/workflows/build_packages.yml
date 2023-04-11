@@ -85,7 +85,9 @@ jobs:
         run: |
           echo "## Validation" >> $GITHUB_STEP_SUMMARY
           echo "The validation for the image ghcr.io/nvidia/cuda-quantum:latest produced the following output:" >> $GITHUB_STEP_SUMMARY
+          echo "```text" >> $GITHUB_STEP_SUMMARY
           cat /tmp/validation.out >> $GITHUB_STEP_SUMMARY
+          echo "```" >> $GITHUB_STEP_SUMMARY
 
   documentation:
     name: Documentation
@@ -111,7 +113,16 @@ jobs:
           docker run --rm -dit --name cuda-quantum-dev cuda-quantum-dev:local
           docker exec cuda-quantum-dev bash scripts/build_docs.sh
           docker cp cuda-quantum-dev:"/usr/local/cudaq/docs/." /tmp/docs
+          docker cp cuda-quantum-dev:"/workspaces/cuda-quantum/build/." /tmp/build
           docker stop cuda-quantum-dev
+
+      - name: Upload build artifacts
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: build
+          path: /tmp/build
+          retention-days: 3
 
       - name: Upload documentation
         uses: actions/upload-artifact@v3
