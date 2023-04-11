@@ -17,7 +17,6 @@
 #include <cstdarg>
 #include <cstddef>
 #include <queue>
-#include <set>
 #include <sstream>
 #include <string>
 
@@ -408,9 +407,6 @@ protected:
     // Sort the qubit indices
     std::sort(sampleQubits.begin(), sampleQubits.end());
     std::unique(sampleQubits.begin(), sampleQubits.end());
-
-    // std::set<std::size_t> tmpSet(sampleQubits.begin(), sampleQubits.end());
-    // sampleQubits.assign(tmpSet.begin(), tmpSet.end());
 
     cudaq::info("Sampling the current state, with measure qubits = {}",
                 sampleQubits);
