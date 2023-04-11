@@ -119,9 +119,9 @@ inline py::args validateInputArguments(kernel_builder<> &kernel,
   return processed;
 }
 
-/// @brief For general function broadcasting over many argument 
-/// sets, this function will create those argument sets from 
-/// the input args. 
+/// @brief For general function broadcasting over many argument
+/// sets, this function will create those argument sets from
+/// the input args.
 inline std::vector<py::args> createArgumentSet(py::args &args) {
   // we accept float, int, list so we will check here for
   // list[float], list[int], list[list], or ndarray for any,

@@ -239,7 +239,8 @@ void bindObserve(py::module &mod) {
         return res;
       },
       py::arg("kernel"), py::arg("spin_operator"), py::kw_only(),
-      py::arg("shots_count") = defaultShotsValue, py::arg("noise_model") = py::none(),
+      py::arg("shots_count") = defaultShotsValue,
+      py::arg("noise_model") = py::none(),
       "Broadcast the sample function over the input argument set."
       "For each argument type in the kernel signature, you must provide a"
       "list of arguments of that type. "

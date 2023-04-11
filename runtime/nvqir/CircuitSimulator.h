@@ -246,10 +246,10 @@ protected:
     const std::vector<std::size_t> targets;
     const std::vector<ScalarType> parameters;
     GateApplicationTask(const std::string &name,
-                        const std::vector<std::complex<ScalarType>>& m,
-                        const std::vector<std::size_t>& c,
-                        const std::vector<std::size_t>& t,
-                        const std::vector<ScalarType>& params)
+                        const std::vector<std::complex<ScalarType>> &m,
+                        const std::vector<std::size_t> &c,
+                        const std::vector<std::size_t> &t,
+                        const std::vector<ScalarType> &params)
         : operationName(name), matrix(m), controls(c), targets(t),
           parameters(params) {}
   };

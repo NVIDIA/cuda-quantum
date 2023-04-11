@@ -167,7 +167,6 @@ public:
       ee = (state * asEigen).trace().real();
     }
 
-
     return cudaq::ExecutionResult({}, ee);
   }
 
