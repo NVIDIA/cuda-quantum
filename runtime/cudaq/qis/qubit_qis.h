@@ -9,9 +9,9 @@
 #pragma once
 
 #include "common/MeasureCounts.h"
+#include "cudaq/spin_op.h"
 #include "modifiers.h"
 #include "qreg.h"
-#include "cudaq/spin_op.h"
 #include <functional>
 
 #define __qpu__ __attribute__((annotate("quantum")))

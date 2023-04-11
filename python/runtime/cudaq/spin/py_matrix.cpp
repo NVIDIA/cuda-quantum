@@ -9,8 +9,8 @@
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
 
-#include "py_spin_op.h"
 #include "cudaq/spin_op.h"
+#include "py_spin_op.h"
 
 #include <complex>
 
