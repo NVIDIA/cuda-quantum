@@ -67,7 +67,7 @@ mkdir -p logs && rm -rf logs/*
 llvm_components="cmake-exports;llvm-headers;llvm-libraries;"
 llvm_components+="clang-cmake-exports;clang-headers;clang-libraries;clang-resource-headers;"
 llvm_components+="mlir-cmake-exports;mlir-headers;mlir-libraries;mlir-tblgen;"
-llvm_components+="llvm-config;clang-format;llc;clang;FileCheck;count;not"
+llvm_components+="llvm-config;clang-format;lld;llc;clang;FileCheck;count;not"
 
 # Generate CMake files
 echo "Preparing LLVM build..."
