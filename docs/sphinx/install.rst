@@ -113,7 +113,7 @@ Build CUDA Quantum from Source
 For more information about building CUDA Quantum from source, 
 we refer to the `CUDA Quantum GitHub repository`_.
 
-.. _CUDA Quantum GitHub repository: https://github.com/NVIDIA/cuda-quantum
+.. _CUDA Quantum GitHub repository: https://github.com/NVIDIA/cuda-quantum/blob/main/Building.md
 
 Next Steps
 ----------
