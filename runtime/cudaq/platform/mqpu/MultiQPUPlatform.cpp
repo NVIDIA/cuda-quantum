@@ -91,7 +91,7 @@ public:
           else {
 
             auto [exp, data] = cudaq::measure(term);
-            results.emplace_back(data.to_map(), term.to_string());
+            results.emplace_back(data.to_map(), term.to_string(), exp);
             sum += term.get_term_coefficient(0).real() * exp;
           }
         });

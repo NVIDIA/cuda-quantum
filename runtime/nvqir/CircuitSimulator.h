@@ -19,7 +19,7 @@
 
 ///
 /// This file defines the CircuitSimulator, which is meant to be
-/// the base class for all simulators provided to CUDA Quantum via the 
+/// the base class for all simulators provided to CUDA Quantum via the
 /// NVQIR library.
 ///
 

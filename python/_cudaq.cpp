@@ -15,6 +15,7 @@
 #include "runtime/cudaq/algorithms/py_state.h"
 #include "runtime/cudaq/algorithms/py_vqe.h"
 #include "runtime/cudaq/builder/py_kernel_builder.h"
+#include "runtime/cudaq/spin/py_matrix.h"
 #include "runtime/cudaq/spin/py_spin_op.h"
 #include "utils/LinkedLibraryHolder.h"
 
@@ -46,8 +47,7 @@ PYBIND11_MODULE(_pycudaq, mod) {
       "provides a mechanism for the programmer to change the backend simulator "
       "/ qpu and platform via the command line.");
   mod.def(
-      "list_qpus", 
-      [&]() { return holder.list_qpus(); }, 
+      "list_qpus", [&]() { return holder.list_qpus(); },
       "Lists all available backends. "
       "Use set_qpu to execute code on one of these backends.");
   mod.def(
@@ -94,6 +94,7 @@ PYBIND11_MODULE(_pycudaq, mod) {
   cudaq::bindNoiseModel(mod);
   cudaq::bindSample(mod);
   cudaq::bindMeasureCounts(mod);
+  cudaq::bindComplexMatrix(mod);
   cudaq::bindSpinWrapper(mod);
   cudaq::bindOptimizerWrapper(mod);
   cudaq::bindVQE(mod);

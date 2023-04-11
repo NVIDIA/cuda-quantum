@@ -44,7 +44,7 @@ def test_quake_value_operators(type_):
     assert test != value_0
 
     # Subtraction.
-    test = value_0 - 1
+    test = value_0 - 1.
     assert type(test) == cudaq.QuakeValue
     assert test != value_0
     test = value_0 - value_1

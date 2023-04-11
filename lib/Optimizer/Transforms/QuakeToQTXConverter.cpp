@@ -427,8 +427,8 @@ struct ConvertToQTXRewriterImpl {
   ArrayRef<Value> yieldAllWires(Operation *op, Value qvec);
 
   /// Yield back all borrowed wires that dominate the current array value
-  /// corresponding to `qvec` but don't dominate the successors of op.  Returns a
-  /// new array value.
+  /// corresponding to `qvec` but don't dominate the successors of op.  Returns
+  /// a new array value.
   Value yieldPathWires(Operation *op, Value qvec);
 
   //===--------------------------------------------------------------------===//
@@ -678,8 +678,8 @@ Value ConvertToQTXRewriterImpl::lookupRecursive(
       br.getDestOperandsMutable().append(value);
     } else if (auto cond_br = dyn_cast<cf::CondBranchOp>(term)) {
       auto operands = currentBlock == cond_br.getTrueDest()
-                         ? cond_br.getTrueDestOperandsMutable()
-                         : cond_br.getFalseDestOperandsMutable();
+                          ? cond_br.getTrueDestOperandsMutable()
+                          : cond_br.getFalseDestOperandsMutable();
       operands.append(value);
     }
   }

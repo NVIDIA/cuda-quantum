@@ -1,9 +1,6 @@
 on:
   workflow_dispatch:
   delete:
-  schedule:
-    # runs every 30min
-    - cron: "*/30 * * * *"
   pull_request:
     types:
       - closed
@@ -25,31 +22,6 @@ jobs:
             echo "Deleting cache $key"
             gh actions-cache delete $key -R ${{ github.repository }} --confirm
           done
-
-  scheduled_cleanup:
-    name: Clean up buildkit and tar caches
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
-    permissions: write-all
-    runs-on: ubuntu-latest
-    steps: 
-      - run: |
-          gh extension install actions/gh-actions-cache
-
-          # Even when we name the cache location explicitly, 
-          # caches for the layers will be stored under buildkit-blobs.
-          # We sort them by size, with the largest ones first.        
-          buildkits=$(gh actions-cache list -R ${{ github.repository }} --key buildkit-blob --sort size --order desc | cut -f 1)
-          tarballs=$(gh actions-cache list -R ${{ github.repository }} --key tar- | cut -f 1)
-
-          # For now, we keep the 9 largest caches.
-          keys=`tail +9 <<< "${buildkits[@]} ${tarballs[@]}"`
-          for key in $keys
-          do
-            echo "Deleting cache $key"
-            gh actions-cache delete $key -R ${{ github.repository }} --confirm
-          done
-        env:
-          GH_TOKEN: ${{ github.token }}
 
   pr_cleanup:
     name: Clean up PR related build caches

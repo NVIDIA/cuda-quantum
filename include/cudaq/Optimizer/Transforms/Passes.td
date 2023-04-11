@@ -59,8 +59,8 @@ def GenerateDeviceCodeLoader : Pass<"device-code-loader", "mlir::ModuleOp"> {
   ];
 }
 
-// ApplyOpSpecialization is a module pass because it may modify the ModuleOp and add new
-// FuncOps.
+// ApplyOpSpecialization is a module pass because it may modify the ModuleOp
+// and add new FuncOps.
 def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
   let summary =
     "Replace quake.apply with conventional calls to specialized functions.";
@@ -70,9 +70,17 @@ def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
     can be called with an optional qvec of control qubits. These extra control
     qubits implicitly create a new and distinct function that threads these
     control qubits to each quantum op in the function.
+
+    The compute-action-opt command-line option is for debug and demonstration
+    purposes only.
   }];
 
   let constructor = "cudaq::opt::createApplyOpSpecializationPass()";
+
+  let options = [
+    Option<"computeActionOptimization", "compute-action-opt", "bool",
+      /*default=*/"true", "Enable the compute-action control optimization.">
+  ];
 }
 
 // LambdaLifting is a module pass because it may modify the ModuleOp and add
@@ -126,6 +134,7 @@ def LowerToCFG : Pass<"lower-to-cfg", "mlir::func::FuncOp"> {
     Note that it may be the case that converting high-level control flow  Ops
     to CFG form will not be as amenable to lowering to QTX or QTX optimizations.
   }];
+
   let dependentDialects = [ "mlir::cf::ControlFlowDialect" ];
   let constructor = "cudaq::opt::createLowerToCFGPass()";
 }
