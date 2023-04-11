@@ -18,16 +18,24 @@
 # The variable $toolchain indicates which compiler toolchain to build the LLVM libraries with. 
 # The toolchain used to build the LLVM binaries that CUDA Quantum depends on must be used to build
 # CUDA Quantum. This image sets the CC and CXX environment variables to use that toolchain. 
-# Currently, llvm (default), and gcc11 are supported. To use a different toolchain, add support 
-# for it to the install_toolchain.sh script. If the toolchain is set to llvm, then the toolchain 
-# will be built from source.
+# Currently, llvm (default), clang16, clang15, gcc12, and gcc11 are supported. To use a different 
+# toolchain, add support for it to the install_toolchain.sh script. If the toolchain is set to llvm, 
+# then the toolchain will be built from source.
+
+# Build additional tools needed for CUDA Quantum documentation generation.
+FROM ubuntu:22.04 as doxygenbuild
+RUN apt-get update && apt-get install -y wget unzip make cmake flex bison gcc g++ python3 \
+    && wget https://github.com/doxygen/doxygen/archive/9a5686aeebff882ebda518151bc5df9d757ea5f7.zip -q -O repo.zip \
+    && unzip repo.zip && mv doxygen* repo && rm repo.zip \
+    && cmake -G "Unix Makefiles" repo && cmake --build . --target install --config Release \
+    && rm -rf repo && apt-get remove -y wget unzip make cmake flex bison gcc g++ python3 \
+    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 FROM ubuntu:22.04 as llvmbuild
 SHELL ["/bin/bash", "-c"]
 
 ARG llvm_commit
 ARG toolchain=llvm
-ADD ../../scripts /scripts
 
 # When a dialogue box would be needed during install, assume default configurations.
 # Set here to avoid setting it for all install commands. 
@@ -62,21 +70,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
 # - https://gcc.gnu.org/onlinedocs/libstdc++/manual/abi.html
 # - https://gcc.gnu.org/onlinedocs/gcc/Code-Gen-Options.html#Code%20Gen%20Options
 # - https://gcc.gnu.org/onlinedocs/gcc/C_002b_002b-Dialect-Options.html#C_002b_002b-Dialect-Options
-RUN LLVM_INSTALL_PREFIX=/opt/llvm/ LLVM_SOURCE=/llvm-project \
+ADD ./scripts/install_toolchain.sh /scripts/install_toolchain.sh
+ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
+RUN LLVM_INSTALL_PREFIX=/opt/llvm LLVM_SOURCE=/llvm-project \
         source scripts/install_toolchain.sh -e /opt/llvm/bootstrap -t ${toolchain}
 RUN source /opt/llvm/bootstrap/init_command.sh && \
     LLVM_INSTALL_PREFIX=/opt/llvm \
         bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
     && rm -rf /llvm-project 
-
-# Build additional tools needed for CUDA Quantum documentation generation.
-FROM ubuntu:22.04 as doxygenbuild
-RUN apt-get update && apt-get install -y wget unzip make cmake flex bison gcc g++ python3 \
-    && wget https://github.com/doxygen/doxygen/archive/9a5686aeebff882ebda518151bc5df9d757ea5f7.zip -q -O repo.zip \
-    && unzip repo.zip && mv doxygen* repo && rm repo.zip \
-    && cmake -G "Unix Makefiles" repo && cmake --build . --target install --config Release \
-    && rm -rf repo && apt-get remove -y wget unzip make cmake flex bison gcc g++ python3 \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 FROM ubuntu:22.04
 SHELL ["/bin/bash", "-c"]
@@ -87,6 +88,11 @@ SHELL ["/bin/bash", "-c"]
 ARG DEBIAN_FRONTEND=noninteractive
 ENV HOME=/home SHELL=/bin/bash LANG=C.UTF-8 LC_ALL=C.UTF-8
 
+# Copy over doxygen.
+COPY --from=doxygenbuild /usr/local/bin/doxygen /usr/local/bin/doxygen
+ENV PATH="${PATH}:/usr/local/bin"
+
+# Copy over the llvm build dependencies.
 COPY --from=llvmbuild /opt/llvm /opt/llvm
 ENV LLVM_INSTALL_PREFIX=/opt/llvm
 ENV PATH="$PATH:$LLVM_INSTALL_PREFIX/bin/"
@@ -118,9 +124,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && python3 -m pip install --no-cache-dir lit pytest numpy \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install tools for CUDA Quantum documentation generation.
-COPY --from=doxygenbuild /usr/local/bin/doxygen /usr/local/bin/doxygen
-ENV PATH="${PATH}:/usr/local/bin"
+# Install additional tools for CUDA Quantum documentation generation.
 RUN python3 -m pip install --no-cache-dir \
     sphinx==5.3.* sphinx_rtd_theme \
     enum-tools[sphinx] breathe==4.34.* myst-parser

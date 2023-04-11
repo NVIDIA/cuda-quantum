@@ -1,13 +1,33 @@
 on:
   workflow_dispatch:
   delete:
-  pull_request:
+  schedule:
+    # runs every 30min
+    - cron: "*/30 * * * *"
+  pull_request_target:
     types:
       - closed
 
 name: Clean GitHub caches
 
 jobs:
+  scheduled_cleanup:
+    name: Clean up tar caches
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    permissions: write-all
+    runs-on: ubuntu-latest
+    steps:        
+      - run: |
+          gh extension install actions/gh-actions-cache
+          keys=$(gh actions-cache list -R ${{ github.repository }} --key tar- | cut -f 1 )
+          for key in $keys
+          do
+            echo "Deleting cache $key"
+            gh actions-cache delete $key -R ${{ github.repository }} --confirm
+          done
+        env:
+          GH_TOKEN: ${{ github.token }}
+
   branch_cleanup:
     name: Clean up branch specific caches
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'delete' && github.event.ref_type == 'branch')
@@ -22,10 +42,12 @@ jobs:
             echo "Deleting cache $key"
             gh actions-cache delete $key -R ${{ github.repository }} --confirm
           done
+        env:
+          GH_TOKEN: ${{ github.token }}
 
   pr_cleanup:
     name: Clean up PR related build caches
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request_target'
     permissions: write-all
     runs-on: ubuntu-latest
     steps:

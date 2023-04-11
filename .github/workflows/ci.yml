@@ -16,20 +16,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  gcc11_build:
-    name: Build with gcc11
+  setup:
+    name: Load dependencies
+    strategy:
+      matrix:
+        toolchain: [clang16, clang15, gcc12, gcc11]
     uses: ./.github/workflows/dev_environment.yml
     with:
-      toolchain: gcc11
-      build_cuda_quantum: true
-      test_cuda_quantum: true
+      toolchain: ${{ matrix.toolchain }}
+
+  build_and_test:
+    name: Build and test
+    needs: setup
+    strategy:
+      matrix:
+        toolchain: [clang16, clang15, gcc12, gcc11]
+    uses: ./.github/workflows/test_in_devenv.yml
+    with:
+      devdeps_cache: tar-devdeps-${{ matrix.toolchain }}-${{ github.sha }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
-  clang15_build:
-    name: Build with clang15
-    uses: ./.github/workflows/dev_environment.yml
+  docker_image:
+    name: Create Packages
+    needs: setup
+    uses: ./.github/workflows/build_packages.yml
     with:
-      toolchain: clang15
-      build_cuda_quantum: true
-      test_cuda_quantum: true
-      export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
+      devdeps_cache: tar-devdeps-gcc11-${{ github.sha }}

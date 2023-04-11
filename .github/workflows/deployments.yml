@@ -1,0 +1,26 @@
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'main'
+      - 'releases/*'
+
+name: Push dev images and update caches
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  environment:
+    name: ghcr
+    url: https://github.com/orgs/${{ github.repository_owner }}/packages?repo_name=${{ github.event.repository.name }}
+
+  devdeps:
+    strategy:
+      matrix:
+        toolchain: [clang16, clang15, gcc12, gcc11]
+    uses: ./.github/workflows/dev_environment.yml
+    with:
+      toolchain: ${{ matrix.toolchain }}
+      container_registry: ghcr.io
