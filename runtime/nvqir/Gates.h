@@ -103,14 +103,17 @@ getGateByName(GateName name, const std::vector<Scalar> angles = {}) {
 /// its matrix data.
 template <typename ScalarType = double>
 struct x {
-  auto getGate() { return getGateByName<ScalarType>(GateName::X); }
+  auto getGate(std::vector<ScalarType> angles = {}) {
+    return getGateByName<ScalarType>(GateName::X);
+  }
   const std::string name() const { return "x"; }
 };
 
 /// The Y Gate
 template <typename ScalarType = double>
 struct y {
-  std::vector<ComplexT<ScalarType>> getGate() {
+  std::vector<ComplexT<ScalarType>>
+  getGate(std::vector<ScalarType> angles = {}) {
     return getGateByName<ScalarType>(GateName::Y);
   }
   const std::string name() const { return "y"; }
@@ -119,7 +122,8 @@ struct y {
 /// The Z Gate
 template <typename ScalarType = double>
 struct z {
-  std::vector<ComplexT<ScalarType>> getGate() {
+  std::vector<ComplexT<ScalarType>>
+  getGate(std::vector<ScalarType> angles = {}) {
     return getGateByName<ScalarType>(GateName::Z);
   }
   const std::string name() const { return "z"; }
@@ -128,7 +132,8 @@ struct z {
 /// The Hadamard Gate
 template <typename ScalarType = double>
 struct h {
-  std::vector<ComplexT<ScalarType>> getGate() {
+  std::vector<ComplexT<ScalarType>>
+  getGate(std::vector<ScalarType> angles = {}) {
     return getGateByName<ScalarType>(GateName::H);
   }
   const std::string name() const { return "h"; }
@@ -137,7 +142,8 @@ struct h {
 /// The S Gate
 template <typename ScalarType = double>
 struct s {
-  std::vector<ComplexT<ScalarType>> getGate() {
+  std::vector<ComplexT<ScalarType>>
+  getGate(std::vector<ScalarType> angles = {}) {
     return getGateByName<ScalarType>(GateName::S);
   }
   const std::string name() const { return "s"; }
@@ -146,7 +152,8 @@ struct s {
 /// The T Gate
 template <typename ScalarType = double>
 struct t {
-  std::vector<ComplexT<ScalarType>> getGate() {
+  std::vector<ComplexT<ScalarType>>
+  getGate(std::vector<ScalarType> angles = {}) {
     return getGateByName<ScalarType>(GateName::T);
   }
   const std::string name() const { return "t"; }
@@ -155,7 +162,8 @@ struct t {
 /// The Sdg Gate
 template <typename ScalarType = double>
 struct sdg {
-  std::vector<ComplexT<ScalarType>> getGate() {
+  std::vector<ComplexT<ScalarType>>
+  getGate(std::vector<ScalarType> angles = {}) {
     return getGateByName<ScalarType>(GateName::Sdg);
   }
   const std::string name() const { return "sdg"; }
@@ -164,7 +172,8 @@ struct sdg {
 /// The Tdg Gate
 template <typename ScalarType = double>
 struct tdg {
-  std::vector<ComplexT<ScalarType>> getGate() {
+  std::vector<ComplexT<ScalarType>>
+  getGate(std::vector<ScalarType> angles = {}) {
     return getGateByName<ScalarType>(GateName::Tdg);
   }
   const std::string name() const { return "tdg"; }
@@ -173,8 +182,8 @@ struct tdg {
 /// The RX Rotation Gate
 template <typename ScalarType = double>
 struct rx {
-  std::vector<ComplexT<ScalarType>> getGate(ScalarType angle) {
-    return getGateByName<ScalarType>(GateName::Rx, {angle});
+  std::vector<ComplexT<ScalarType>> getGate(std::vector<ScalarType> angles) {
+    return getGateByName<ScalarType>(GateName::Rx, {angles[0]});
   }
   const std::string name() const { return "rx"; }
 };
@@ -182,8 +191,8 @@ struct rx {
 /// The RY Rotation Gate
 template <typename ScalarType = double>
 struct ry {
-  std::vector<ComplexT<ScalarType>> getGate(ScalarType angle) {
-    return getGateByName<ScalarType>(GateName::Ry, {angle});
+  std::vector<ComplexT<ScalarType>> getGate(std::vector<ScalarType> angles) {
+    return getGateByName<ScalarType>(GateName::Ry, {angles[0]});
   }
   const std::string name() const { return "ry"; }
 };
@@ -191,8 +200,8 @@ struct ry {
 /// The RZ Rotation Gate
 template <typename ScalarType = double>
 struct rz {
-  std::vector<ComplexT<ScalarType>> getGate(ScalarType angle) {
-    return getGateByName<ScalarType>(GateName::Rz, {angle});
+  std::vector<ComplexT<ScalarType>> getGate(std::vector<ScalarType> angles) {
+    return getGateByName<ScalarType>(GateName::Rz, {angles[0]});
   }
   const std::string name() const { return "rz"; }
 };
@@ -200,8 +209,8 @@ struct rz {
 /// @brief The R1 operation as a type. Arbitrary rotation about |1>
 template <typename ScalarType = double>
 struct r1 {
-  std::vector<ComplexT<ScalarType>> getGate(ScalarType angle) {
-    return getGateByName<ScalarType>(GateName::R1, {angle});
+  std::vector<ComplexT<ScalarType>> getGate(std::vector<ScalarType> angles) {
+    return getGateByName<ScalarType>(GateName::R1, {angles[0]});
   }
   const std::string name() const { return "r1"; }
 };
@@ -210,26 +219,27 @@ struct r1 {
 /// (IBMs version)
 template <typename ScalarType = double>
 struct u1 {
-  std::vector<ComplexT<ScalarType>> getGate(ScalarType angle) {
-    return getGateByName<ScalarType>(GateName::U1, {angle});
+  std::vector<ComplexT<ScalarType>> getGate(std::vector<ScalarType> angles) {
+    return getGateByName<ScalarType>(GateName::U1, {angles[0]});
   }
   const std::string name() const { return "u1"; }
 };
 
 template <typename ScalarType = double>
 struct u2 {
-  std::vector<ComplexT<ScalarType>> getGate(ScalarType phi, ScalarType lambda) {
-    return getGateByName<ScalarType>(GateName::U2, {phi, lambda});
+  std::vector<ComplexT<ScalarType>> getGate(std::vector<ScalarType> angles) {
+    return getGateByName<ScalarType>(GateName::U2, {angles[0], angles[1]});
   }
   const std::string name() const { return "u2"; }
 };
 
 template <typename ScalarType = double>
 struct u3 {
-  std::vector<ComplexT<ScalarType>> getGate(ScalarType theta, ScalarType phi,
-                                            ScalarType lambda) {
-    return getGateByName<ScalarType>(GateName::U3, {theta, phi, lambda});
+  std::vector<ComplexT<ScalarType>> getGate(std::vector<ScalarType> angles) {
+    return getGateByName<ScalarType>(GateName::U3,
+                                     {angles[0], angles[1], angles[2]});
   }
   const std::string name() const { return "u3"; }
 };
+
 } // namespace nvqir
