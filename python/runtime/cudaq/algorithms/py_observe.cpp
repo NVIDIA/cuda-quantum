@@ -241,10 +241,11 @@ void bindObserve(py::module &mod) {
       py::arg("kernel"), py::arg("spin_operator"), py::kw_only(),
       py::arg("shots_count") = defaultShotsValue,
       py::arg("noise_model") = py::none(),
-      "Broadcast the sample function over the input argument set."
+      "Broadcast the observe function over the input argument set."
       "For each argument type in the kernel signature, you must provide a"
       "list of arguments of that type. "
-      "This function samples the state of the provided `kernel` at each "
+      "This function computes the expected value of the given `spin_operator` "
+      "with respect to the `kernel` at each "
       "set of arguments provided for the specified number "
       "of circuit executions (`shots_count`).\n"
       "\nArgs:\n"
