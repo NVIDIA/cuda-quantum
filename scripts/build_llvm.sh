@@ -63,14 +63,23 @@ mkdir -p "$LLVM_INSTALL_PREFIX"
 mkdir -p "$llvm_source/build" && cd "$llvm_source/build" && rm -rf *
 mkdir -p logs && rm -rf logs/* 
 
+# Specify which components we need to keep the size of the LLVM build down
+llvm_components="cmake-exports;llvm-headers;llvm-libraries;"
+llvm_components+="clang-cmake-exports;clang-headers;clang-libraries;clang-resource-headers;"
+llvm_components+="mlir-cmake-exports;mlir-headers;mlir-libraries;"
+llvm_components+="llvm-config;clang-format;llc;clang;mlir-tblgen;FileCheck;count;not"
+
 # Generate CMake files
 echo "Preparing LLVM build..."
 cmake_args="-G Ninja ../llvm \
   -DLLVM_TARGETS_TO_BUILD="host" \
+  -DCMAKE_BUILD_TYPE=$build_configuration \
   -DCMAKE_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
   -DLLVM_ENABLE_PROJECTS="$llvm_projects" \
-  -DCMAKE_BUILD_TYPE=$build_configuration \
+  -DLLVM_DISTRIBUTION_COMPONENTS=$llvm_components \
+  -DLLVM_ENABLE_LLD=ON \
   -DLLVM_ENABLE_ASSERTIONS=ON \
+  -DLLVM_OPTIMIZED_TABLEGEN=ON \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
   -DLLVM_BUILD_EXAMPLES=OFF \
   -DLLVM_ENABLE_OCAMLDOC=OFF \
@@ -85,10 +94,10 @@ fi
 # Build and install clang in a folder
 echo "Building LLVM with configuration $build_configuration..."
 if $verbose; then
-  ninja install
+  ninja install-distribution-stripped
 else
   echo "The progress of the build is being logged to `pwd`/logs/ninja_output.txt."
-  ninja install 2> logs/ninja_error.txt 1> logs/ninja_output.txt
+  ninja install-distribution-stripped 2> logs/ninja_error.txt 1> logs/ninja_output.txt
 fi
 
 status=$?
