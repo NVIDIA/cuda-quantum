@@ -28,22 +28,22 @@ In python, this can be specified with
 cuQuantum multi-node multi-GPU
 ++++++++++++++++++++++++++++++++++
 
-The :code:`cuquantum_mgmn` backend provides a state vector simulator accelerated with 
+The :code:`cuquantum_mgpu` backend provides a state vector simulator accelerated with 
 the cuStateVec library but with support for Multi-Node, Multi-GPU distribution of the 
 state vector. 
 
-To specify the use of the :code:`cuquantum_mgmn` backend, pass the following command line 
+To specify the use of the :code:`cuquantum_mgpu` backend, pass the following command line 
 options to :code:`nvq++`
 
 .. code:: bash 
 
-    nvq++ --qpu cuquantum_mgmn src.cpp ...
+    nvq++ --qpu cuquantum_mgpu src.cpp ...
 
 In python, this can be specified with 
 
 .. code:: python 
 
-    cudaq.set_qpu('cuquantum_mgmn')
+    cudaq.set_qpu('cuquantum_mgpu')
 
 OpenMP CPU-only
 ++++++++++++++++++++++++++++++++++
