@@ -6,20 +6,27 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-set(LIBRARY_NAME cudaq-builder)
+import os
 
-add_library(cudaq-builder SHARED kernel_builder.cpp QuakeValue.cpp)
-target_include_directories(cudaq-builder PUBLIC 
-          $<INSTALL_INTERFACE:include> 
-          $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>)
-target_link_libraries(cudaq-builder
-  PRIVATE
-    cudaq
-    fmt::fmt-header-only
-    nvqir
-    cudaq-mlir-runtime
-)
+import pytest
 
-cudaq_library_set_rpath(${LIBRARY_NAME})
+import cudaq
 
-install(TARGETS cudaq-builder DESTINATION lib)
+def test_QuakeValueLifetimeAndPrint(): 
+    circuit = cudaq.make_kernel()
+    qubitRegister = circuit.qalloc(2)
+    circuit.x(qubitRegister[0])  
+    s = str(circuit)
+    print(s)
+
+    assert s.count('quake.x') == 1
+
+    circuit.x(qubitRegister[0])
+    s = str(circuit)
+    print(s)
+    assert s.count('quake.x') == 2
+
+# leave for gdb debugging
+if __name__ == "__main__":
+    loc = os.path.abspath(__file__)
+    pytest.main([loc, "-rP"])

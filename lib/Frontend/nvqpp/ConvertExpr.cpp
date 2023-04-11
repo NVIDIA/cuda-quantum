@@ -1094,26 +1094,23 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     Value power = args[1];
     Type baseType = base.getType();
     Type powerType = power.getType();
-    // Get the function result type
-    auto resTy = genType(func->getCallResultType());
 
-    // If any are integers, then map to a floats
-    if (isa<IntegerType>(baseType)) {
-      base = builder.create<arith::SIToFPOp>(loc, resTy, base);
-      baseType = base.getType();
+    // Create the power op based on the types of the arguments.
+    if (isa<IntegerType>(powerType)) {
+      if (isa<IntegerType>(baseType)) {
+        auto resTy = genType(func->getCallResultType());
+        auto castBase = builder.create<arith::SIToFPOp>(loc, resTy, base);
+        return pushValue(builder.create<math::FPowIOp>(loc, castBase, power));
+      }
+      return pushValue(builder.create<math::FPowIOp>(loc, base, power));
     }
-
-    if (isa<IntegerType>(powerType) && baseType.isa<FloatType>())
-      power = builder.create<arith::SIToFPOp>(loc, baseType, power);
-
-    // Create the power op.
     return pushValue(builder.create<math::PowFOp>(loc, base, power));
   }
 
-  // Dealing with our vector -> memref conversions
-  // If we have some std::vector<double/float/int> theta, and in the
-  // kernel, theta.size() is called, we need to convert that to memref.dim.
-  // For theta.empty(), we convert to memref.dim > 0.
+  // Dealing with our vector -> memref conversions.
+  // If we have some θ with the type `std::vector<double/float/int>`, and in the
+  // kernel, θ.size() is called, we need to convert that to memref.dim. For
+  // θ.empty(), we convert to memref.dim > 0.
   if (isInClassInNamespace(func, "vector", "std")) {
     // Get the size of the std::vector.
     auto svec = popValue();

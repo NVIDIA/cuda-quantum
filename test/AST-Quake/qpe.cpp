@@ -180,8 +180,7 @@ int main() {
 // CHECK:                       %[[VAL_47:.*]] = memref.load %[[VAL_37]][] : memref<i32>
 // CHECK:                       %[[VAL_48:.*]] = memref.load %[[VAL_39]][] : memref<i32>
 // CHECK:                       %[[VAL_49:.*]] = arith.subi %[[VAL_47]], %[[VAL_48]] : i32
-// CHECK:                       %[[VAL_50:.*]] = arith.sitofp %[[VAL_49]] : i32 to f64
-// CHECK:                       %[[VAL_51:.*]] = math.powf %[[VAL_46]], %[[VAL_50]] : f64
+// CHECK:                       %[[VAL_51:.*]] = math.fpowi %[[VAL_46]], %[[VAL_49]] : f64, i32
 // CHECK:                       %[[VAL_52:.*]] = arith.divf %[[VAL_45]], %[[VAL_51]] : f64
 // CHECK:                       %[[VAL_53:.*]] = memref.alloca() : memref<f64>
 // CHECK:                       memref.store %[[VAL_52]], %[[VAL_53]][] : memref<f64>
