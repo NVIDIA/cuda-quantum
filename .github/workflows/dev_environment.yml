@@ -40,6 +40,7 @@ jobs:
       dockerfile: ${{ steps.build_info.outputs.dockerfile }}
       image_name: ${{ steps.build_info.outputs.image_name }}
       image_title: ${{ steps.build_info.outputs.image_title }}
+      image_id: ${{ steps.build_info.outputs.image_id }}
       image_tags: ${{ steps.metadata.outputs.tags }}
       image_labels: ${{ steps.metadata.outputs.labels }}
       llvm_commit: ${{ steps.build_info.outputs.llvm_commit }}
@@ -63,6 +64,7 @@ jobs:
 
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
           echo "image_title=$image_title" >> $GITHUB_OUTPUT
+          echo "image_id=$image_id" >> $GITHUB_OUTPUT
           echo "tag_prefix=$tag_prefix" >> $GITHUB_OUTPUT
           echo "tag_suffix=$tag_suffix" >> $GITHUB_OUTPUT
           echo "dockerfile=${{ inputs.dockerfile }}" >> $GITHUB_OUTPUT
@@ -128,7 +130,7 @@ jobs:
             type=registry,ref=${{ needs.metadata.outputs.image_name }}:${{ steps.build_info.outputs.tag_prefix }}${{ needs.metadata.outputs.cache_base }}${{ steps.build_info.outputs.tag_suffix }}
           cache-to: |
             type=gha,mode=max,scope=${{ needs.metadata.outputs.cache_target }}-cuda-quantum-${{ needs.metadata.outputs.cache_id }}
-          outputs: type=docker,dest=/tmp/devdeps.tar
+          outputs: type=docker,dest=/tmp/${{ needs.metadata.outputs.image_id }}.tar
 
       - name: Create cache location
         id: cache
@@ -138,7 +140,7 @@ jobs:
       - name: Cache ${{ needs.metadata.outputs.image_title }} image
         uses: actions/cache/save@v3
         with:
-          path: /tmp/devdeps.tar
+          path: /tmp/${{ needs.metadata.outputs.image_id }}.tar
           key: ${{ steps.cache.outputs.tar_cache }}
 
   deployment:
@@ -156,7 +158,7 @@ jobs:
       - name: Load tar cache
         uses: actions/cache/restore@v3
         with:
-          path: /tmp/devdeps.tar
+          path: /tmp/${{ needs.metadata.outputs.image_id }}.tar
           key: ${{ needs.build.outputs.tar_cache }}
           fail-on-cache-miss: true
 
@@ -170,7 +172,7 @@ jobs:
 
       - name: Push ${{ needs.metadata.outputs.image_title }} image
         run: |
-          docker load --input /tmp/devdeps.tar
+          docker load --input /tmp/${{ needs.metadata.outputs.image_id }}.tar
           docker push ${{ needs.metadata.outputs.image_name }} --all-tags
 
       - name: Clean up
