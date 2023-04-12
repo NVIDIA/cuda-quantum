@@ -39,4 +39,6 @@ if (CURL_FOUND AND OPENSSL_FOUND)
   add_subdirectory(rest)
 endif()
 
-add_platform_config(cuquantum)
+if (CUSTATEVEC_ROOT AND CUDA_FOUND)
+  add_platform_config(cuquantum)
+endif()

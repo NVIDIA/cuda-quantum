@@ -168,6 +168,7 @@ rm -rf sphinx/_mdgen/
 mkdir -p "$DOCS_INSTALL_PREFIX"
 if [ "$docs_exit_code" -eq "0" ]; then
     cp -r "$sphinx_output_dir"/* "$DOCS_INSTALL_PREFIX"
+    touch "$DOCS_INSTALL_PREFIX/.nojekyll"
     echo "Documentation was generated in $DOCS_INSTALL_PREFIX."
     echo "To browse it, open this url in a browser: file://$DOCS_INSTALL_PREFIX/index.html"
 else

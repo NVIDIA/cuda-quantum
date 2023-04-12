@@ -75,9 +75,8 @@ Data Types
 .. autoclass:: cudaq::qreg
 
 .. autoclass:: cudaq::ComplexMatrix
-    .. automethod:: __getitem__ 
-    .. automethod:: minimal_eigenvalue
-    .. automethod:: __str__ 
+    :members:
+    :special-members: __getitem__, __str__
 
 .. autoclass:: cudaq::SpinOperator
     :members:
@@ -90,7 +89,6 @@ Data Types
     .. automethod:: __mul__
     .. automethod:: __rmul__
     .. automethod:: __getitem__
-    .. automethod:: to_matrix
 
 .. autofunction:: cudaq::spin.i
 .. autofunction:: cudaq::spin.x
