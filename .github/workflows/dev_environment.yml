@@ -1,6 +1,9 @@
 on:
   workflow_call:
     inputs:
+      dockerfile:
+        required: true
+        type: string
       toolchain:
         required: true
         type: string
@@ -11,7 +14,7 @@ on:
         required: false
         type: string
 
-name: CUDA Quantum dev environment
+name: CUDA Quantum cached dev images
 
 jobs:
   metadata:
@@ -21,12 +24,15 @@ jobs:
       contents: read
 
     outputs:
+      dockerfile: ${{ steps.build_info.outputs.dockerfile }}
       image_name: ${{ steps.build_info.outputs.image_name }}
+      image_title: ${{ steps.build_info.outputs.image_title }}
       image_tags: ${{ steps.metadata.outputs.tags }}
       image_labels: ${{ steps.metadata.outputs.labels }}
       llvm_commit: ${{ steps.build_info.outputs.llvm_commit }}
       cache_target: ${{ steps.build_info.outputs.cache_target }}
       cache_base: ${{ steps.build_info.outputs.cache_base }}
+      cache_id: ${{ steps.build_info.outputs.cache_id }}
 
     steps:
       - name: Checkout repository
@@ -35,10 +41,14 @@ jobs:
       - name: Determine build arguments
         id: build_info
         run: |
+          image_name=${{ vars.registry || 'ghcr.io' }}/nvidia/cuda-quantum-devdeps
+          echo "image_name=$image_name" >> $GITHUB_OUTPUT
+          echo "image_title=$(basename $image_name)" >> $GITHUB_OUTPUT
+          echo "dockerfile=${{ inputs.dockerfile }}" >> $GITHUB_OUTPUT
           echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
           echo "cache_base=${{ github.event.pull_request.base.ref || 'main' }}" >> $GITHUB_OUTPUT
           echo "cache_target=${{ inputs.cache_location || github.ref_name  }}" >> $GITHUB_OUTPUT
-          echo "image_name=${{ vars.registry || 'ghcr.io' }}/nvidia/cuda-quantum-devdeps" >> $GITHUB_OUTPUT
+          echo "cache_id=$(basename ${{ inputs.dockerfile }} .Dockerfile)" >> $GITHUB_OUTPUT
 
       - name: Extract metadata for Docker image
         id: metadata
@@ -55,11 +65,11 @@ jobs:
             type=ref,enable=true,prefix=${{ inputs.toolchain }}-pr-,event=pr
             type=ref,enable=true,event=tag
           labels: |
-            org.opencontainers.image.title=cuda-quantum-devdeps
-            org.opencontainers.image.description=Development dependencies for building and testing CUDA Quantum
+            org.opencontainers.image.title=${{ steps.build_info.outputs.image_title }}
+            org.opencontainers.image.description=Dev tools for building and testing CUDA Quantum
 
-  devdeps:
-    name: Dev environment
+  build:
+    name: Cached image
     runs-on: ubuntu-latest
     needs: metadata
     permissions:
@@ -72,12 +82,11 @@ jobs:
       - name: Set up buildx runner
         uses: docker/setup-buildx-action@v2
 
-      - name: Build cuda-quantum-devdeps image
-        id: build_devdeps
+      - name: Build ${{ needs.metadata.outputs.image_title }} image
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: ./docker/build/devdeps.Dockerfile
+          file: ./docker/${{ needs.metadata.outputs.dockerfile }}
           build-args: |
             llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
             toolchain=${{ inputs.toolchain }}
@@ -86,24 +95,24 @@ jobs:
           labels: ${{ needs.metadata.outputs.image_labels }}
           platforms: linux/amd64
           cache-from: |
-            type=gha,scope=${{ needs.metadata.outputs.cache_target }}-cuda-quantum-devdeps-${{ inputs.toolchain }}
-            type=gha,scope=${{ needs.metadata.outputs.cache_base }}-cuda-quantum-devdeps-${{ inputs.toolchain }}
+            type=gha,scope=${{ needs.metadata.outputs.cache_target }}-cuda-quantum-${{ needs.metadata.outputs.cache_id }}-${{ inputs.toolchain }}
+            type=gha,scope=${{ needs.metadata.outputs.cache_base }}-cuda-quantum-${{ needs.metadata.outputs.cache_id }}-${{ inputs.toolchain }}
             type=registry,ref=${{ needs.metadata.outputs.image_name }}:${{ inputs.toolchain }}-${{ needs.metadata.outputs.cache_base }}
           cache-to: |
-            type=gha,mode=max,scope=${{ needs.metadata.outputs.cache_target }}-cuda-quantum-devdeps-${{ inputs.toolchain }}
-          outputs: type=docker,dest=/tmp/devdeps.tar
+            type=gha,mode=max,scope=${{ needs.metadata.outputs.cache_target }}-cuda-quantum-${{ needs.metadata.outputs.cache_id }}-${{ inputs.toolchain }}
+          outputs: type=docker,dest=/tmp/${{ needs.metadata.outputs.cache_id }}.tar
 
-      - name: Cache cuda-quantum-devdeps image
+      - name: Cache ${{ needs.metadata.outputs.image_title }} image
         uses: actions/cache/save@v3
         with:
-          path: /tmp/devdeps.tar
-          key: tar-devdeps-${{ inputs.toolchain }}-${{ github.sha }}
+          path: /tmp/${{ needs.metadata.outputs.cache_id }}.tar
+          key: tar-${{ needs.metadata.outputs.cache_id }}-${{ inputs.toolchain }}-${{ github.sha }}
 
   deployment:
-    name: Deploy cuda-quantum-devdeps image
+    name: Deploy ${{ needs.metadata.outputs.image_title }} image
     if: inputs.environment
     runs-on: ubuntu-latest
-    needs: [metadata, devdeps]
+    needs: [metadata, build]
 
     permissions:
       contents: read
@@ -117,8 +126,8 @@ jobs:
       - name: Load tar cache
         uses: actions/cache/restore@v3
         with:
-          path: /tmp/devdeps.tar
-          key: tar-devdeps-${{ inputs.toolchain }}-${{ github.sha }}
+          path: /tmp/${{ needs.metadata.outputs.cache_id }}.tar
+          key: tar-${{ needs.metadata.outputs.cache_id }}-${{ inputs.toolchain }}-${{ github.sha }}
           fail-on-cache-miss: true
 
       - name: Log in to the container registry
@@ -131,5 +140,5 @@ jobs:
 
       - name: Push images
         run: |
-          docker load --input /tmp/devdeps.tar
+          docker load --input /tmp/${{ needs.metadata.outputs.cache_id }}.tar
           docker push ${{ needs.metadata.outputs.image_name }} --all-tags

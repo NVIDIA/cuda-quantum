@@ -18,5 +18,6 @@ jobs:
         toolchain: [clang16, clang15, gcc12, gcc11]
     uses: ./.github/workflows/dev_environment.yml
     with:
+      dockerfile: build/devdeps.Dockerfile
       toolchain: ${{ matrix.toolchain }}
       environment: ghcr-deployment
