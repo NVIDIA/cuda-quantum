@@ -521,6 +521,7 @@ def test_observe_numpy_array(angles, want_state, want_expectation):
     kernel.rx(thetas[2], qreg[2])
     kernel.rx(thetas[3], qreg[3])
 
+    print(cudaq.get_state(kernel, angles))
     # Measure each qubit in the Z-basis.
     hamiltonian = spin.z(0) + spin.z(1) + spin.z(2) + spin.z(3)
 

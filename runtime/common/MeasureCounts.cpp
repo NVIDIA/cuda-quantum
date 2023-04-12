@@ -436,16 +436,24 @@ void sample_result::dump(std::ostream &os) {
       os << "}\n" << (!isLast ? "   " : "");
     }
 
-  } else {
+  } else if (sampleResults.size() == 1) {
 
     CountsDictionary counts;
     auto iter = sampleResults.find(GlobalRegisterName);
     if (iter != sampleResults.end())
       counts = iter->second.counts;
+    else {
+      auto first = sampleResults.begin();
+      os << "\n   " << first->first << " : { ";
+      counts = sampleResults.begin()->second.counts;
+    }
 
     for (auto &kv : counts) {
       os << kv.first << ":" << kv.second << " ";
     }
+
+    if (iter == sampleResults.end())
+      os << "}\n";
   }
   os << "}\n";
 }

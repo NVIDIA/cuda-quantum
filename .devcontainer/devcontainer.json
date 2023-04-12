@@ -2,8 +2,8 @@
 	"name": "cuda-quantum-dev",
 	"workspaceFolder": "/workspaces/cuda-quantum",
 	"build": {
-		"dockerfile": "Dockerfile",
-		"args": {  }
+		"dockerfile": "../docker/build/cudaqdev.Dockerfile",
+		"args": { "env_tag": "gcc11-main" }
 	},
 	// Getting a browser to e.g. preview docs within the container (optional - uncomment if needed)
 	// "postCreateCommand": "apt update && apt install -y curl && curl -sSL https://dl.google.com/linux/direct/google-chrome-stable_current_$(dpkg --print-architecture).deb -o /tmp/chrome.deb && apt install -y /tmp/chrome.deb",

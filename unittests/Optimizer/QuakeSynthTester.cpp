@@ -102,7 +102,7 @@ cudaq::observe_result observeJitCode(ExecutionEngine *jit, cudaq::spin_op &h,
                                             kernelName);
                ASSERT_TRUE(!err);
              },
-             h, p, 1000)
+             h, p, 1000, "")
       .value();
 }
 
