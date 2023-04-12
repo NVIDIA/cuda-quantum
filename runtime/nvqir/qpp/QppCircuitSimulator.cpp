@@ -9,7 +9,6 @@
 #include "CircuitSimulator.h"
 #include "Gates.h"
 #include "qpp.h"
-#include <iostream>
 #include <set>
 
 namespace nvqir {
@@ -172,27 +171,16 @@ public:
 
   /// @brief Override the default sized allocation of qubits
   /// here to be a bit more efficient than the default implementation
-  std::vector<std::size_t> allocateQubits(const std::size_t count) override {
-    std::vector<std::size_t> qubits;
-    for (std::size_t i = 0; i < count; i++)
-      qubits.emplace_back(tracker.getNextIndex());
-
-    if (executionContext && executionContext->inBatchMode() &&
-        executionContext->batchIteration != 0 &&
-        qubits.back() < nQubitsAllocated)
-      return qubits;
+  void addQubitsToState(std::size_t count) override {
+    if (count == 0)
+      return;
 
     if (state.size() == 0) {
       // If this is the first time, allocate the state
-      nQubitsAllocated += count;
-      stateDimension = calculateStateDim(nQubitsAllocated);
       state = qpp::ket::Zero(stateDimension);
       state(0) = 1.0;
-      return qubits;
+      return;
     }
-
-    nQubitsAllocated += count;
-    stateDimension = calculateStateDim(nQubitsAllocated);
 
     // If we are resizing an existing, allocate
     // a zero state on a n qubit, and Kron-prod
@@ -201,12 +189,7 @@ public:
     zero_state(0) = 1.0;
     state = qpp::kron(state, zero_state);
 
-    // May be that the state grows enough that we
-    // want to handle observation via sampling
-    if (executionContext)
-      executionContext->canHandleObserve = canHandleObserve();
-
-    return qubits;
+    return;
   }
 
   /// @brief Measure the qubit and return the result. Collapse the

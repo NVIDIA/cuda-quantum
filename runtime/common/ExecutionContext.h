@@ -76,12 +76,6 @@ public:
   /// batch iterations.
   std::size_t totalIterations = 0;
 
-  /// @brief Return true if this execution is
-  /// currently in batch mode.
-  bool inBatchMode() const {
-    return totalIterations > 0 && (batchIteration < totalIterations - 1);
-  }
-
   /// @brief The Constructor, takes the name of the context
   /// @param n The name of the context
   ExecutionContext(const std::string n) : name(n) {}

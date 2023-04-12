@@ -116,6 +116,7 @@ protected:
   using nvqir::CircuitSimulatorBase<ScalarType>::gateToString;
   using nvqir::CircuitSimulatorBase<ScalarType>::x;
   using nvqir::CircuitSimulatorBase<ScalarType>::flushGateQueue;
+  using nvqir::CircuitSimulatorBase<ScalarType>::previousStateDimension;
 
   /// @brief The statevector that cuStateVec manipulates on the GPU
   void *deviceStateVector = nullptr;
@@ -204,28 +205,14 @@ protected:
                                  controls32.data(), nullptr, controls32.size());
   }
 
-  /// @brief It's more efficient for us to allocate the whole state vector
-  /// and if we are in sampling or observe contexts, we will likely allocate
-  /// a chunk of qubits at once. Override the base class here and allocate
-  /// the state vector on GPU.
-  std::vector<std::size_t> allocateQubits(const std::size_t count) override {
-    std::vector<std::size_t> qubits;
-    for (std::size_t i = 0; i < count; i++)
-      qubits.emplace_back(tracker.getNextIndex());
-
-    if (executionContext && executionContext->inBatchMode() &&
-        executionContext->batchIteration != 0)
-      return qubits;
-
+  /// @brief Increase the state size by the given number of qubits. 
+  void addQubitsToState(std::size_t count) override {
+    if (count == 0)
+      return;
+    
     int dev;
     cudaGetDevice(&dev);
     cudaq::info("GPU {} Allocating new qubit array of size {}.", dev, count);
-
-    // Increment the number of qubits and set
-    // the new state dimension
-    nQubitsAllocated += count;
-    auto oldStateDimension = stateDimension;
-    stateDimension = calculateStateDim(nQubitsAllocated);
 
     if (!deviceStateVector) {
       HANDLE_CUDA_ERROR(cudaMalloc((void **)&deviceStateVector,
@@ -247,18 +234,13 @@ protected:
       setFirstNElements<<<n_blocks, threads_per_block>>>(
           reinterpret_cast<CudaDataType *>(newDeviceStateVector),
           reinterpret_cast<CudaDataType *>(deviceStateVector),
-          oldStateDimension);
+          previousStateDimension);
       cudaFree(deviceStateVector);
       deviceStateVector = newDeviceStateVector;
     }
-
-    if (executionContext)
-      executionContext->canHandleObserve = canHandleObserve();
-
-    return qubits;
   }
 
-  /// @brief Grow the state vector by one qubit.
+  /// @brief Increase the state size by one qubit.
   void addQubitToState() override {
     // Update the state vector
     if (!deviceStateVector) {
@@ -271,7 +253,6 @@ protected:
           reinterpret_cast<CudaDataType *>(deviceStateVector), stateDimension);
       HANDLE_ERROR(custatevecCreate(&handle));
     } else {
-      int64_t oldDimension = calculateStateDim(std::log2(stateDimension) - 1);
       // Allocate new state..
       void *newDeviceStateVector;
       HANDLE_CUDA_ERROR(cudaMalloc((void **)&newDeviceStateVector,
@@ -281,7 +262,7 @@ protected:
           (stateDimension + threads_per_block - 1) / threads_per_block;
       setFirstNElements<<<n_blocks, threads_per_block>>>(
           reinterpret_cast<CudaDataType *>(newDeviceStateVector),
-          reinterpret_cast<CudaDataType *>(deviceStateVector), oldDimension);
+          reinterpret_cast<CudaDataType *>(deviceStateVector), previousStateDimension);
       cudaFree(deviceStateVector);
       deviceStateVector = newDeviceStateVector;
     }
@@ -298,6 +279,7 @@ protected:
     nResets = 0;
   }
 
+  /// @brief Apply the given GateApplicationTask
   void applyGate(const typename nvqir::CircuitSimulatorBase<
                  ScalarType>::GateApplicationTask &task) override {
     std::vector<int> controls, targets;
@@ -386,6 +368,9 @@ public:
     }
   }
 
+  /// @brief Compute the operator expectation value, with respect to 
+  /// the current state vector, directly on GPU with the 
+  /// given the operator matrix and target qubit indices. 
   auto getExpectationFromOperatorMatrix(const std::complex<double> *matrix,
                                         const std::vector<std::size_t> &tgts) {
     void *extraWorkspace = nullptr;
@@ -395,7 +380,7 @@ public:
     std::vector<int> tgtsInt(tgts.size());
     std::transform(tgts.begin(), tgts.end(), tgtsInt.begin(),
                    [&](std::size_t x) { return static_cast<int>(x); });
-    // our bit ordering is reversed. 
+    // our bit ordering is reversed.
     std::reverse(tgtsInt.begin(), tgtsInt.end());
     size_t nIndexBits = nQubitsAllocated;
 
@@ -458,7 +443,6 @@ public:
 
     // Get the matrix
     auto matrix = op.to_matrix();
-
     /// Compute the expectation value.
     auto ee = getExpectationFromOperatorMatrix(matrix.data(), targetsVec);
     return cudaq::ExecutionResult({}, ee);

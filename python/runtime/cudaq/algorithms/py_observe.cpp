@@ -69,9 +69,7 @@ std::vector<observe_result> pyObserveN(kernel_builder<> &kernel, spin_op &op,
 
   auto argSet = createArgumentSet(args);
   auto N = argSet.size();
-
-  // TODO: would like to handle errors in the case that
-  // `kernel.num_qubits() >= spin_operator.num_qubits()`
+  auto &platform = cudaq::get_platform();
   kernel.jitCode();
   auto name = kernel.name();
   std::vector<observe_result> results;
@@ -79,7 +77,6 @@ std::vector<observe_result> pyObserveN(kernel_builder<> &kernel, spin_op &op,
 
     // Ensure the user input is correct.
     auto validatedArgs = validateInputArguments(kernel, a);
-    auto &platform = cudaq::get_platform();
     // Launch the observation task
     auto ret = details::runObservation(
                    [&]() mutable {

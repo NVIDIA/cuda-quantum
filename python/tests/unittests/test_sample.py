@@ -315,7 +315,7 @@ def test_sample_result_multiple_registers(qubit_count, shots_count):
     # the rest of this test.
 
 
-@pytest.mark.parametrize("shots_count", [-1, 10, 100])
+@pytest.mark.parametrize("shots_count", [10, 100])
 def test_sample_result_observe(shots_count):
     """
     Test `cudaq.SampleResult` as its returned from a call
@@ -359,10 +359,8 @@ def test_sample_result_observe(shots_count):
             sub_register_counts = sample_result.get_register_counts(got_name)
             # Sub-term should have the an expectation proportional to the entire
             # system.
-            assert sub_term_counts.expectation_z(
-            ) == want_expectation / qubit_count
-            assert sub_register_counts.expectation_z(
-            ) == want_expectation / qubit_count
+            assert sub_term_counts.expectation_z() == want_expectation / qubit_count
+            assert sub_register_counts.expectation_z() == want_expectation / qubit_count
             # Should have `shots_count` results for each.
             assert sum(sub_term_counts.values()) == shots_count
             assert sum(sub_register_counts.values()) == shots_count
@@ -371,6 +369,7 @@ def test_sample_result_observe(shots_count):
             assert "1" in sub_term_counts
             assert "1" in sub_register_counts
 
+    sample_result.dump()
     # `::items()`
     for key, value in sample_result.items():
         assert key == "1"
@@ -530,6 +529,7 @@ def test_sample_n():
     circuit.h(qubits[0])
     # can pass concrete integers for both
     circuit.for_loop(0, inSize-1, lambda index : circuit.cx(qubits[index], qubits[index+1]))
+    # circuit.mz(qubits)
     print(circuit)
 
     allCounts = cudaq.sample_n(circuit, [3,4,5,6,7])

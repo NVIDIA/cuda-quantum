@@ -46,9 +46,24 @@ std::vector<sample_result> pySampleN(kernel_builder<> &kernel,
                                      py::args args = {},
                                      std::size_t shots = 1000) {
   auto argSet = createArgumentSet(args);
+  auto N = argSet.size();
+  auto &platform = cudaq::get_platform();
+  kernel.jitCode();
+  auto name = kernel.name();
+
   std::vector<sample_result> results;
-  for (auto &a : argSet) {
-    results.emplace_back(pySample(kernel, a, shots));
+  for (std::size_t currentIter = 0; auto &a : argSet) {
+    auto validatedArgs = validateInputArguments(kernel, a);
+    auto ret = details::runSampling(
+                   [&]() mutable {
+                     OpaqueArguments argData;
+                     packArgs(argData, validatedArgs);
+                     kernel.jitAndInvoke(argData.data());
+                   },
+                   platform, name, shots, 0, nullptr, currentIter, N)
+                   .value();
+    currentIter++;
+    results.push_back(ret);
   }
 
   return results;

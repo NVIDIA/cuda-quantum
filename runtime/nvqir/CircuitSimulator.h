@@ -211,6 +211,8 @@ protected:
   /// @brief The dimension of the multi-qubit state.
   std::size_t stateDimension = 0;
 
+  std::size_t previousStateDimension = 0;
+
   /// @brief Vector containing qubit ids that are to be sampled
   std::vector<std::size_t> sampleQubits;
 
@@ -235,6 +237,9 @@ protected:
   /// @brief Map bit register names to the qubits that make it up
   std::unordered_map<std::string, std::vector<std::size_t>>
       registerNameToMeasuredQubit;
+
+  /// @brief Keep track of the current number of qubits in batch mode
+  std::size_t batchModeCurrentNumQubits = 0;
 
   /// @brief A GateApplicationTask consists of a
   /// matrix describing the quantum operation, a set of
@@ -399,6 +404,31 @@ protected:
     return ret.str();
   }
 
+  /// @brief Return true if the current execution is in batch mode
+  bool isInBatchMode() {
+    if (!executionContext)
+      return false;
+
+    if (executionContext->totalIterations == 0)
+      return false;
+
+    return true;
+  }
+
+  /// @brief Return true if the current execution is the
+  /// last execution of batch mode.
+  bool isLastBatch() {
+    return executionContext && executionContext->batchIteration > 0 &&
+           executionContext->batchIteration ==
+               executionContext->totalIterations - 1;
+  }
+
+  /// @brief Add the given number of qubits to the state.
+  virtual void addQubitsToState(std::size_t count) {
+    for (std::size_t i = 0; i < count; i++)
+      addQubitToState();
+  }
+
   /// @brief Execute a sampling task with the current set of sample qubits.
   void flushAnySamplingTasks(bool force = false) {
     if (sampleQubits.empty())
@@ -522,9 +552,13 @@ public:
     // Get a new qubit index
     auto newIdx = tracker.getNextIndex();
 
-    if (executionContext && executionContext->inBatchMode() &&
-        executionContext->batchIteration != 0 && newIdx < nQubitsAllocated) {
-      return newIdx;
+    if (isInBatchMode()) {
+      batchModeCurrentNumQubits++;
+      // We have an allocated state, it has been set to |0>,
+      // we want to reuse it as is. If the state needs to grow, then
+      // we will ask the subtype to add more qubits.
+      if (newIdx < nQubitsAllocated)
+        return newIdx;
     }
 
     cudaq::info("Allocating new qubit with idx {} (nQ={}, dim={})", newIdx,
@@ -532,6 +566,7 @@ public:
 
     // Increment the number of qubits and set
     // the new state dimension
+    previousStateDimension = stateDimension;
     nQubitsAllocated++;
     stateDimension = calculateStateDim(nQubitsAllocated);
 
@@ -548,11 +583,36 @@ public:
   }
 
   /// @brief Allocate `count` qubits.
-  std::vector<std::size_t> allocateQubits(const std::size_t count) override {
+  std::vector<std::size_t> allocateQubits(std::size_t count) override {
     std::vector<std::size_t> qubits;
-    for (std::size_t i = 0; i < count; i++) {
-      qubits.push_back(allocateQubit());
+    for (std::size_t i = 0; i < count; i++)
+      qubits.emplace_back(tracker.getNextIndex());
+
+    if (isInBatchMode()) {
+      // Store the current number of qubits requested
+      batchModeCurrentNumQubits += count;
+
+      // We have an allocated state, it has been set to |0>,
+      // we want to reuse it as is. If the state needs to grow, then
+      // we will ask the subtype to add more qubits.
+      if (qubits.back() < nQubitsAllocated) {
+        count = 0;
+      } else
+        count = qubits.back() + 1 - nQubitsAllocated;
     }
+
+    previousStateDimension = stateDimension;
+    nQubitsAllocated += count;
+    stateDimension = calculateStateDim(nQubitsAllocated);
+
+    // Tell the subtype to allocate more qubits
+    addQubitsToState(count);
+
+    // May be that the state grows enough that we
+    // want to handle observation via sampling
+    if (executionContext)
+      executionContext->canHandleObserve = canHandleObserve();
+
     return qubits;
   }
 
@@ -596,7 +656,10 @@ public:
     if (execContextName.find("sample") != std::string::npos) {
       // Sample the state over the specified number of shots
       if (sampleQubits.empty()) {
-        sampleQubits.resize(nQubitsAllocated);
+        if (isInBatchMode())
+          sampleQubits.resize(batchModeCurrentNumQubits);
+        else
+          sampleQubits.resize(nQubitsAllocated);
         std::iota(sampleQubits.begin(), sampleQubits.end(), 0);
       }
 
@@ -649,13 +712,12 @@ public:
     for (auto &deferred : deferredDeallocation)
       tracker.returnIndex(deferred);
 
-    auto isBatchMode = executionContext->inBatchMode();
-
+    bool shouldSetToZero = isInBatchMode() && !isLastBatch();
     executionContext = nullptr;
 
     // Reset the state if we've deallocated all qubits.
     if (tracker.numAvailable() == tracker.totalNumQubits()) {
-      if (isBatchMode) {
+      if (shouldSetToZero) {
         cudaq::info("In batch mode currently, reset state to |0>");
         // Do not deallocate the state, but reset it to |0>
         setToZeroState();
@@ -666,6 +728,7 @@ public:
       }
     }
 
+    batchModeCurrentNumQubits = 0;
     deferredDeallocation.clear();
   }
 
@@ -805,10 +868,10 @@ public:
   /// context is. If the context is sample, then we do nothing but store the
   /// measure qubit, which we then use to do full state sampling when
   /// flushAnySamplingTask() is called. If the context is sample-conditional,
-  /// then we have a circuit that contains if (mz(q)) and we measure the qubit,
-  /// collapse the state, and then store the sample qubit for final full state
-  /// sampling. We also return the bit result. If no execution context, just
-  /// measure, collapse, and return the bit.
+  /// then we have a circuit that contains if (mz(q)) and we measure the
+  /// qubit, collapse the state, and then store the sample qubit for final
+  /// full state sampling. We also return the bit result. If no execution
+  /// context, just measure, collapse, and return the bit.
   bool mz(const std::size_t qubitIdx,
           const std::string &registerName) override {
     // Flush the Gate Queue
