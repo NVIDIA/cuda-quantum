@@ -211,6 +211,8 @@ protected:
   /// @brief The dimension of the multi-qubit state.
   std::size_t stateDimension = 0;
 
+  /// @brief Keep track of the previous state dimension
+  /// as we grow the state.
   std::size_t previousStateDimension = 0;
 
   /// @brief Vector containing qubit ids that are to be sampled

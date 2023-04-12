@@ -31,17 +31,6 @@ CUDAQ_TEST(D2VariationalTester, checkSimple) {
   EXPECT_NEAR(energy, -1.7487, 1e-3);
 }
 
-template <typename T>
-std::vector<T> all_same(T t, std::size_t size) {
-  return std::vector<T>(size, t);
-}
-
-template <typename... Args>
-// validate all are vector types.
-auto make_argset(Args &&...args) {
-  return std::make_tuple(args...);
-}
-
 CUDAQ_TEST(D2VariationalTester, checkBroadcast) {
 
   using namespace cudaq::spin;
@@ -59,7 +48,7 @@ CUDAQ_TEST(D2VariationalTester, checkBroadcast) {
   };
 
   auto results = cudaq::observe_n(
-      ansatz, h, make_argset(params, std::vector(params.size(), 2)));
+      ansatz, h, cudaq::make_argset(params, std::vector(params.size(), 2)));
 
   std::vector<double> expected{
       12.250290, 12.746370, 13.130148, 13.395321, 13.537537, 13.554460,
@@ -79,6 +68,7 @@ CUDAQ_TEST(D2VariationalTester, checkBroadcast) {
   // throw an exception.
   EXPECT_ANY_THROW({
     auto results = cudaq::observe_n(
-        ansatz, h, make_argset(params, std::vector(params.size() + 1, 2)));
+        ansatz, h,
+        cudaq::make_argset(params, std::vector(params.size() + 1, 2)));
   });
 }

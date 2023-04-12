@@ -22,13 +22,16 @@ concept ValidArgumentsPassed = std::is_invocable_v<QuantumKernel, Args...>;
 template <typename ReturnType>
 concept HasVoidReturnType = std::is_void_v<ReturnType>;
 
-template <typename TypeToCheck, typename TypeToCheckAgainst>
-concept type_is =
-    std::same_as<std::remove_cvref_t<TypeToCheck>, TypeToCheckAgainst>;
-
+/// @brief An ArgumentSet is a tuple of vectors of general
+/// arguments to a CUDA Quantum kernel. The ith vector of the tuple
+/// corresponds to the ith argument of the kernel. The jth element of
+/// the ith vector corresponds to the jth batch of arguments to evaluate
+/// the kernel at.
 template <typename... Args>
 using ArgumentSet = std::tuple<std::vector<Args>...>;
 
+/// @brief Create a new ArgumentSet from a variadic list of
+/// vectors of general args.
 template <typename... Args>
 auto make_argset(const std::vector<Args> &...args) {
   return std::make_tuple(args...);
@@ -36,6 +39,7 @@ auto make_argset(const std::vector<Args> &...args) {
 
 namespace details {
 
+/// @brief
 template <typename ApplyFunctor, typename... Args,
           typename ReturnType = std::invoke_result_t<ApplyFunctor>>
 std::vector<ReturnType>
