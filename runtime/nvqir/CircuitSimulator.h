@@ -523,7 +523,7 @@ public:
     auto newIdx = tracker.getNextIndex();
 
     if (executionContext && executionContext->inBatchMode() &&
-        executionContext->batchIteration != 0) {
+        executionContext->batchIteration != 0 && newIdx < nQubitsAllocated) {
       return newIdx;
     }
 

@@ -34,10 +34,14 @@ template <typename KernelFunctor>
 std::optional<sample_result>
 runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
             const std::string &kernelName, int shots, std::size_t qpu_id = 0,
-            details::future *futureResult = nullptr) {
+            details::future *futureResult = nullptr,
+            std::size_t batchIteration = 0, std::size_t totalBatchIters = 0) {
   // Create the execution context.
   auto ctx = std::make_unique<ExecutionContext>("sample", shots);
   ctx->kernelName = kernelName;
+
+  ctx->batchIteration = batchIteration;
+  ctx->totalIterations = totalBatchIters;
 
   // Tell the context if this quantum kernel has
   // conditionals on measure results
@@ -311,11 +315,20 @@ template <typename QuantumKernel, typename... Args>
   requires SampleCallValid<QuantumKernel, Args...>
 std::vector<sample_result> sample_n(QuantumKernel &&kernel,
                                     ArgumentSet<Args...> &&params) {
-  // FIXME update for batch execution
+  std::size_t counter = 0;
+  auto N = std::get<0>(params).size();
   return details::broadcastFunctionOverArguments(
       [&](auto &&...args) -> sample_result {
-        return sample(std::forward<QuantumKernel>(kernel),
-                      std::forward<Args>(args)...);
+        auto &platform = cudaq::get_platform();
+        auto shots = platform.get_shots().value_or(1000);
+        auto kernelName = cudaq::getKernelName(kernel);
+        auto ret = details::runSampling(
+                       [&kernel, ... args2 = std::forward<decltype(args)>(
+                                     args)]() mutable { kernel(args2...); },
+                       platform, kernelName, shots, 0, nullptr, counter, N)
+                       .value();
+        counter++;
+        return ret;
       },
       params);
 }
@@ -332,10 +345,19 @@ template <typename QuantumKernel, typename... Args>
   requires SampleCallValid<QuantumKernel, Args...>
 std::vector<sample_result> sample_n(std::size_t shots, QuantumKernel &&kernel,
                                     ArgumentSet<Args...> &&params) {
+  std::size_t counter = 0;
+  auto N = std::get<0>(params).size();
   return details::broadcastFunctionOverArguments(
       [&](auto &&...args) -> sample_result {
-        return sample(shots, std::forward<QuantumKernel>(kernel),
-                      std::forward<Args>(args)...);
+        auto &platform = cudaq::get_platform();
+        auto kernelName = cudaq::getKernelName(kernel);
+        auto ret = details::runSampling(
+                       [&kernel, ... args2 = std::forward<decltype(args)>(
+                                     args)]() mutable { kernel(args2...); },
+                       platform, kernelName, shots, 0, nullptr, counter, N)
+                       .value();
+        counter++;
+        return ret;
       },
       params);
 }

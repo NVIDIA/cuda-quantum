@@ -178,7 +178,8 @@ public:
       qubits.emplace_back(tracker.getNextIndex());
 
     if (executionContext && executionContext->inBatchMode() &&
-        executionContext->batchIteration != 0)
+        executionContext->batchIteration != 0 &&
+        qubits.back() < nQubitsAllocated)
       return qubits;
 
     if (state.size() == 0) {

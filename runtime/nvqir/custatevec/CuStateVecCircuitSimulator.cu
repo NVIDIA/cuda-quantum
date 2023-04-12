@@ -252,7 +252,8 @@ protected:
       deviceStateVector = newDeviceStateVector;
     }
 
-    executionContext->canHandleObserve = canHandleObserve();
+    if (executionContext)
+      executionContext->canHandleObserve = canHandleObserve();
 
     return qubits;
   }
@@ -394,7 +395,8 @@ public:
     std::vector<int> tgtsInt(tgts.size());
     std::transform(tgts.begin(), tgts.end(), tgtsInt.begin(),
                    [&](std::size_t x) { return static_cast<int>(x); });
-
+    // our bit ordering is reversed. 
+    std::reverse(tgtsInt.begin(), tgtsInt.end());
     size_t nIndexBits = nQubitsAllocated;
 
     // check the size of external workspace
