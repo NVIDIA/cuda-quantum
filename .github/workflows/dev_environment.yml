@@ -128,7 +128,7 @@ jobs:
             type=registry,ref=${{ needs.metadata.outputs.image_name }}:${{ steps.build_info.outputs.tag_prefix }}${{ needs.metadata.outputs.cache_base }}${{ steps.build_info.outputs.tag_suffix }}
           cache-to: |
             type=gha,mode=max,scope=${{ needs.metadata.outputs.cache_target }}-cuda-quantum-${{ needs.metadata.outputs.cache_id }}
-          outputs: type=docker,dest=/tmp/${{ needs.metadata.outputs.cache_id }}.tar
+          outputs: type=docker,dest=/tmp/devdeps.tar
 
       - name: Create cache location
         id: cache
@@ -138,7 +138,7 @@ jobs:
       - name: Cache ${{ needs.metadata.outputs.image_title }} image
         uses: actions/cache/save@v3
         with:
-          path: /tmp/${{ needs.metadata.outputs.cache_id }}.tar
+          path: /tmp/devdeps.tar
           key: ${{ steps.cache.outputs.tar_cache }}
 
   deployment:
@@ -156,7 +156,7 @@ jobs:
       - name: Load tar cache
         uses: actions/cache/restore@v3
         with:
-          path: /tmp/${{ needs.metadata.outputs.cache_id }}.tar
+          path: /tmp/devdeps.tar
           key: ${{ needs.build.outputs.tar_cache }}
           fail-on-cache-miss: true
 
@@ -170,7 +170,7 @@ jobs:
 
       - name: Push ${{ needs.metadata.outputs.image_title }} image
         run: |
-          docker load --input /tmp/${{ needs.metadata.outputs.cache_id }}.tar
+          docker load --input /tmp/devdeps.tar
           docker push ${{ needs.metadata.outputs.image_name }} --all-tags
 
       - name: Clean up
