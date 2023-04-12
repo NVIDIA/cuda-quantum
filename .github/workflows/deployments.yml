@@ -15,9 +15,28 @@ jobs:
   devdeps:
     strategy:
       matrix:
-        toolchain: [clang16, clang15, gcc12, gcc11]
+        toolchain: [clang16, clang15, gcc12]
+      fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.Dockerfile
       toolchain: ${{ matrix.toolchain }}
+      environment: ghcr-deployment
+
+  # FIXME: 
+  # use this instead: https://github.com/marketplace/actions/matrix-outputs-write
+  devdeps_gcc11:
+    uses: ./.github/workflows/dev_environment.yml
+    with:
+      dockerfile: build/devdeps.Dockerfile
+      toolchain: gcc11
+      environment: ghcr-deployment
+
+  extdevdeps:
+    uses: ./.github/workflows/dev_environment.yml
+    if: github.event_name == 'workflow_dispatch'
+    needs: devdeps_gcc11
+    with:
+      dockerfile: build/devdeps.ext.Dockerfile
+      base_image: ${{ needs.devdeps_gcc11.outputs.image_name }}@${{ needs.devdeps_gcc11.outputs.digest }}
       environment: ghcr-deployment

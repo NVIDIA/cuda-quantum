@@ -21,6 +21,7 @@ jobs:
     strategy:
       matrix:
         toolchain: [clang16, clang15, gcc12, gcc11]
+      fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.Dockerfile
@@ -32,8 +33,11 @@ jobs:
     strategy:
       matrix:
         toolchain: [clang16, clang15, gcc12, gcc11]
+      fail-fast: false
     uses: ./.github/workflows/test_in_devenv.yml
     with:
+      # It would be lovely to not hardcode this. 
+      # See if/when the work started here concludes: https://github.com/actions/runner/pull/2477
       devdeps_cache: tar-devdeps-${{ matrix.toolchain }}-${{ github.sha }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 

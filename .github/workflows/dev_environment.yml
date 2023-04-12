@@ -4,8 +4,11 @@ on:
       dockerfile:
         required: true
         type: string
+      base_image:
+        required: false
+        type: string
       toolchain:
-        required: true
+        required: false
         type: string
       cache_location:
         required: false
@@ -13,6 +16,16 @@ on:
       environment:
         required: false
         type: string
+    outputs:
+      image_name:
+        description: "The full name of the built docker image."
+        value: ${{ jobs.metadata.outputs.image_name }}
+      digest:
+        description: "The digest of the built docker image."
+        value: ${{ jobs.build.outputs.digest }}
+      cache_key:
+        description: "The cache key to retrieve a tar archive containing the built image(s)."
+        value: ${{ jobs.build.outputs.tar_cache }}
 
 name: CUDA Quantum cached dev images
 
@@ -41,39 +54,52 @@ jobs:
       - name: Determine build arguments
         id: build_info
         run: |
-          image_name=${{ vars.registry || 'ghcr.io' }}/nvidia/cuda-quantum-devdeps
+          image_id=`basename ${{ inputs.dockerfile }} .Dockerfile`
+          image_title=cuda-quantum-`echo $image_id | cut -d "." -f 1`
+          image_name=${{ vars.registry || 'ghcr.io' }}/nvidia/$image_title
+          toolchain=${{ inputs.toolchain }}
+          tag_prefix=${toolchain:+$toolchain-}
+          tag_suffix=`echo $image_id | cut -d "." -f 2- | xargs -I "%" echo .% | tr . -`
+
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
-          echo "image_title=$(basename $image_name)" >> $GITHUB_OUTPUT
+          echo "image_title=$image_title" >> $GITHUB_OUTPUT
+          echo "tag_prefix=$tag_prefix" >> $GITHUB_OUTPUT
+          echo "tag_suffix=$tag_suffix" >> $GITHUB_OUTPUT
           echo "dockerfile=${{ inputs.dockerfile }}" >> $GITHUB_OUTPUT
           echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
           echo "cache_base=${{ github.event.pull_request.base.ref || 'main' }}" >> $GITHUB_OUTPUT
-          echo "cache_target=${{ inputs.cache_location || github.ref_name  }}" >> $GITHUB_OUTPUT
-          echo "cache_id=$(basename ${{ inputs.dockerfile }} .Dockerfile)" >> $GITHUB_OUTPUT
+          echo "cache_target=${{ inputs.cache_location || github.ref_name }}" >> $GITHUB_OUTPUT
+          echo "cache_id=$(echo $image_id | tr . -)${toolchain:+-$toolchain}" >> $GITHUB_OUTPUT
 
       - name: Extract metadata for Docker image
         id: metadata
         uses: docker/metadata-action@v4
         with:
-          images: ${{ steps.build_info.outputs.image_name  }}
+          images: ${{ steps.build_info.outputs.image_name }}
           flavor: |
             latest=false
-            prefix=${{ inputs.toolchain }}-,onlatest=true
+            prefix=${{ steps.build_info.outputs.tag_prefix }},onlatest=true
+            suffix=${{ steps.build_info.outputs.tag_suffix }},onlatest=true
           tags: |
             # workflow dispatch is covered by these
             type=schedule,enable=true,pattern=nightly
             type=ref,enable=true,event=branch
-            type=ref,enable=true,prefix=${{ inputs.toolchain }}-pr-,event=pr
+            type=ref,enable=true,prefix=${{ steps.build_info.outputs.tag_prefix }}pr-,event=pr
             type=ref,enable=true,event=tag
           labels: |
             org.opencontainers.image.title=${{ steps.build_info.outputs.image_title }}
             org.opencontainers.image.description=Dev tools for building and testing CUDA Quantum
 
   build:
-    name: Cached image
+    name: Caching
     runs-on: ubuntu-latest
     needs: metadata
     permissions:
       contents: read
+
+    outputs:
+      digest: ${{ steps.build_image.outputs.digest }}
+      tar_cache: ${{ steps.cache.outputs.tar_cache }}
 
     steps:
       - name: Checkout repository
@@ -83,40 +109,44 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Build ${{ needs.metadata.outputs.image_title }} image
+        id: build_image
         uses: docker/build-push-action@v4
         with:
           context: .
           file: ./docker/${{ needs.metadata.outputs.dockerfile }}
           build-args: |
-            llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
+            base_image=${{ inputs.base_image }}
             toolchain=${{ inputs.toolchain }}
+            llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
           load: false
           tags: ${{ needs.metadata.outputs.image_tags }}
           labels: ${{ needs.metadata.outputs.image_labels }}
           platforms: linux/amd64
           cache-from: |
-            type=gha,scope=${{ needs.metadata.outputs.cache_target }}-cuda-quantum-${{ needs.metadata.outputs.cache_id }}-${{ inputs.toolchain }}
-            type=gha,scope=${{ needs.metadata.outputs.cache_base }}-cuda-quantum-${{ needs.metadata.outputs.cache_id }}-${{ inputs.toolchain }}
-            type=registry,ref=${{ needs.metadata.outputs.image_name }}:${{ inputs.toolchain }}-${{ needs.metadata.outputs.cache_base }}
+            type=gha,scope=${{ needs.metadata.outputs.cache_target }}-cuda-quantum-${{ needs.metadata.outputs.cache_id }}
+            type=gha,scope=${{ needs.metadata.outputs.cache_base }}-cuda-quantum-${{ needs.metadata.outputs.cache_id }}
+            type=registry,ref=${{ needs.metadata.outputs.image_name }}:${{ steps.build_info.outputs.tag_prefix }}${{ needs.metadata.outputs.cache_base }}${{ steps.build_info.outputs.tag_suffix }}
           cache-to: |
-            type=gha,mode=max,scope=${{ needs.metadata.outputs.cache_target }}-cuda-quantum-${{ needs.metadata.outputs.cache_id }}-${{ inputs.toolchain }}
+            type=gha,mode=max,scope=${{ needs.metadata.outputs.cache_target }}-cuda-quantum-${{ needs.metadata.outputs.cache_id }}
           outputs: type=docker,dest=/tmp/${{ needs.metadata.outputs.cache_id }}.tar
+
+      - name: Create cache location
+        id: cache
+        run: |
+          echo "tar_cache=tar-${{ needs.metadata.outputs.cache_id }}-${{ github.sha }}" >> $GITHUB_OUTPUT
 
       - name: Cache ${{ needs.metadata.outputs.image_title }} image
         uses: actions/cache/save@v3
         with:
           path: /tmp/${{ needs.metadata.outputs.cache_id }}.tar
-          key: tar-${{ needs.metadata.outputs.cache_id }}-${{ inputs.toolchain }}-${{ github.sha }}
+          key: ${{ steps.cache.outputs.tar_cache }}
 
   deployment:
-    name: Deploy ${{ needs.metadata.outputs.image_title }} image
+    name: Deployment
     if: inputs.environment
     runs-on: ubuntu-latest
     needs: [metadata, build]
-
-    permissions:
-      contents: read
-      packages: write
+    permissions: write-all
 
     environment:
       name: ${{ inputs.environment }}
@@ -127,7 +157,7 @@ jobs:
         uses: actions/cache/restore@v3
         with:
           path: /tmp/${{ needs.metadata.outputs.cache_id }}.tar
-          key: tar-${{ needs.metadata.outputs.cache_id }}-${{ inputs.toolchain }}-${{ github.sha }}
+          key: ${{ needs.build.outputs.tar_cache }}
           fail-on-cache-miss: true
 
       - name: Log in to the container registry
@@ -138,7 +168,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Push images
+      - name: Push ${{ needs.metadata.outputs.image_title }} image
         run: |
           docker load --input /tmp/${{ needs.metadata.outputs.cache_id }}.tar
           docker push ${{ needs.metadata.outputs.image_name }} --all-tags
+
+      - name: Clean up
+        run: |
+          gh extension install actions/gh-actions-cache
+          echo "Deleting cache $key"
+          gh actions-cache delete ${{ needs.build.outputs.tar_cache }} -R ${{ github.repository }} --confirm
+        env:
+          GH_TOKEN: ${{ github.token }}

@@ -12,13 +12,12 @@
 #
 # Usage:
 # Must be built from the repo root with:
-#   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:${toolchain}-ext-latest -f docker/build/extdevdeps.Dockerfile .
+#   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:${toolchain}-ext -f docker/build/devdeps.ext.Dockerfile .
 #
 # The variable $toolchain should indicate which compiler toolchain the development environment 
 # which this image extends is configure with; see also docker/build/devdeps.Dockerfile.
 
-ARG devdepsbase=ghcr.io/nvidia/cuda-quantum-devdeps
-ARG devdepsbase_tag=llvm-main
+ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:gcc11-main
 
 FROM nvidia/cuda:11.8.0-devel-ubuntu22.04 as ompibuild
 SHELL ["/bin/bash", "-c"]
@@ -164,7 +163,7 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
 
 # Build the final image that has CUDA Quantum and all its dev dependencies installed, as well as
 # OpenMPI, its dependencies, and additional tools for developing CUDA Quantum backends and extensions.
-FROM $devdepsbase:$devdepsbase_tag
+FROM $base_image
 SHELL ["/bin/bash", "-c"]
 
 # When a dialogue box would be needed during install, assume default configurations.

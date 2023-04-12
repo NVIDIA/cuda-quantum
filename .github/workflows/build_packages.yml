@@ -85,9 +85,9 @@ jobs:
         run: |
           echo "## Validation" >> $GITHUB_STEP_SUMMARY
           echo "The validation for the image ghcr.io/nvidia/cuda-quantum:latest produced the following output:" >> $GITHUB_STEP_SUMMARY
-          echo "```text" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
           cat /tmp/validation.out >> $GITHUB_STEP_SUMMARY
-          echo "```" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
   documentation:
     name: Documentation
