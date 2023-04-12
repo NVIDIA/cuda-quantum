@@ -24,6 +24,7 @@
 # or use a suitable build_environment, to enable developing these components.
 ARG build_environment=ghcr.io/nvidia/cuda-quantum-devdeps
 ARG env_tag=llvm-main
+
 FROM $build_environment:$env_tag
 
 ENV CUDAQ_REPO_ROOT=/workspaces/cuda-quantum
