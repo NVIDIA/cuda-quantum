@@ -39,7 +39,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # 2 - Install SLURM PMI2 version 21.08.8
 
 ENV PMI_INSTALL_PREFIX=/usr/local/pmi
-RUN mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://download.schedmd.com/slurm/slurm-21.08.8.tar.bz2 && \
+RUN mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://download.schedmd.com/slurm/slurm-21.08.8.tar.bz2 \
     && tar -x -f /var/tmp/slurm-21.08.8.tar.bz2 -C /var/tmp -j && cd /var/tmp/slurm-21.08.8 \
     &&  CC=gcc CFLAGS="$COMMON_COMPILER_FLAGS" \
         CXX=g++ CXXFLAGS="$COMMON_COMPILER_FLAGS" \
@@ -177,11 +177,13 @@ RUN apt update && apt-get install -y --no-install-recommends \
 
 # Install Mellanox OFED runtime dependencies.
 
-RUN wget -qO - https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox | apt-key add - \
+RUN apt-get update && apt-get install -y --no-install-recommends gnupg \
+    && wget -qO - https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox | apt-key add - \
     && mkdir -p /etc/apt/sources.list.d && wget -q -nc --no-check-certificate -P /etc/apt/sources.list.d https://linux.mellanox.com/public/repo/mlnx_ofed/5.3-1.0.0.1/ubuntu20.04/mellanox_mlnx_ofed.list \
     && apt-get update -y && apt-get install -y --no-install-recommends \
         ibverbs-providers ibverbs-utils \
         libibmad5 libibumad3 libibverbs1 librdmacm1 \
+    && apt-get remove -y gnupg \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # Copy over SLURM PMI2.
@@ -198,7 +200,7 @@ ENV CPATH="$GDRCOPY_INSTALL_PREFIX/include:$CPATH"
 ENV LIBRARY_PATH="$GDRCOPY_INSTALL_PREFIX/lib64:$LIBRARY_PATH"
 
 RUN echo "$GDRCOPY_INSTALL_PREFIX/lib64" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig \
-    apt-get update -y && apt-get install -y --no-install-recommends \
+    && apt-get update -y && apt-get install -y --no-install-recommends \
         libgcrypt20 libnuma1 \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
@@ -215,7 +217,7 @@ ENV MUNGE_INSTALL_PREFIX=/usr/local/munge
 
 # Copy over PMIX and install runtime dependencies.
 
-COPY --from=pmixbuild /usr/local/pmix /usr/local/pmix
+COPY --from=ompibuild /usr/local/pmix /usr/local/pmix
 ENV PMIX_INSTALL_PREFIX=/usr/local/pmix
 ENV PATH="$PMIX_INSTALL_PREFIX/bin:$PATH"
 ENV CPATH="$PMIX_INSTALL_PREFIX/include:$CPATH"
