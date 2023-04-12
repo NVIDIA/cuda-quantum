@@ -38,7 +38,13 @@ def test_state_buffer_vector(want_state):
     # Should be identical vectors.
     got_vector_a = np.array(got_state_a, copy=False)
     got_vector_b = np.array(got_state_b, copy=False)
-    assert np.allclose(got_vector_a, got_vector_b)
+
+    for i in range(len(got_vector_a)):
+        assert np.isclose(got_vector_a[i], got_vector_b[i])
+        # if not np.isclose(got_vector_a[i], got_vector_b[i]):
+        print(f"want = {got_vector_a[i]}")
+        print(f"got = {got_vector_b[i]}")
+    assert np.allclose(got_vector_a, got_vector_b, atol=1e-3)
 
 
 @pytest.mark.parametrize("want_state", [
@@ -99,15 +105,14 @@ def test_state_vector_simple():
     np.isclose(want_state[3], got_state[3].real)
 
     # Check the entire vector with numpy.
-    # FIXME:
-    rows, cols = want_state.shape
-    for i in range(rows):
-        for j in range(cols):
-            assert np.isclose(got_state[i, j], want_state[i, j])
-            if not np.isclose(got_state[i, j], want_state[i, j]):
-                print(f"want = {want_state[i,j]}")
-                print(f"got = {got_state[i,j]}")
-    # assert np.allclose(want_state, np.array(got_state))
+    # FIXME
+    got_vector = np.array(got_state, copy=False)
+    for i in range(len(want_state)):
+        assert np.isclose(want_state[i], got_vector[i])
+        # if not np.isclose(got_vector[i], got_vector_b[i]):
+        print(f"want = {want_state[i]}")
+        print(f"got = {got_vector[i]}")
+    assert np.allclose(want_state, np.array(got_state))
 
     # Check overlaps.
     want_state_object = cudaq.State(want_state)
@@ -188,14 +193,6 @@ def test_state_density_matrix_simple():
     np.isclose(.5, got_state[3, 3].real)
 
     # Check the entire matrix with numpy.
-    # FIXME:
-    rows, cols = want_state.shape
-    for i in range(rows):
-        for j in range(cols):
-            assert np.isclose(got_state[i, j], want_state[i, j])
-            if not np.isclose(got_state[i, j], want_state[i, j]):
-                print(f"want = {want_state[i,j]}")
-                print(f"got = {got_state[i,j]}")
     assert np.allclose(want_state, np.array(got_state))
 
     # Check overlaps.

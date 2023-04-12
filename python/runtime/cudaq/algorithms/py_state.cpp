@@ -5,9 +5,8 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
-#include "pybind11/numpy.h"
 #include <pybind11/complex.h>
-#include <pybind11/eigen.h>
+#include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 
 #include "py_observe.h"
@@ -15,8 +14,6 @@
 #include "utils/OpaqueArguments.h"
 
 #include "cudaq/algorithms/state.h"
-
-#include <Eigen/Dense>
 
 namespace cudaq {
 
@@ -57,24 +54,25 @@ void bindPyState(py::module &mod) {
       // Define a buffer model for this class to make it fully
       // compatible with numpy.
       .def_buffer([](state &self) -> py::buffer_info {
-        if (!self.is_density_matrix()) {
-          auto vector = self.get_data<Eigen::VectorXcd>();
+        auto shape = self.get_shape();
+        if (shape.size() == 1) {
+          auto vector = self.get_data();
           return py::buffer_info(
-              vector.data(), sizeof(std::complex<double>), /*itemsize */
+              vector->data(), sizeof(std::complex<double>), /*itemsize */
               py::format_descriptor<std::complex<double>>::format(),
-              1,                                              /* ndim */
-              {vector.rows()},                                /* shape */
-              {sizeof(std::complex<double>) * vector.cols()}, /* strides */
-              true                                            /* readonly */
+              1,                                               /* ndim */
+              {vector->size()},                                /* shape */
+              {sizeof(std::complex<double>) * vector->size()}, /* strides */
+              true                                             /* readonly */
           );
         } else {
-          auto matrix = self.get_data<Eigen::MatrixXcd>();
+          auto matrix = self.get_data();
           return py::buffer_info(
-              matrix.data(), sizeof(std::complex<double>), /*itemsize */
+              matrix->data(), sizeof(std::complex<double>), /*itemsize */
               py::format_descriptor<std::complex<double>>::format(),
-              2,                              /* ndim */
-              {matrix.rows(), matrix.cols()}, /* shape */
-              {sizeof(std::complex<double>) * matrix.cols(),
+              2,                    /* ndim */
+              {shape[0], shape[1]}, /* shape */
+              {sizeof(std::complex<double>) * shape[1],
                sizeof(std::complex<double>)}, /* strides */
               true                            /* readonly */
           );

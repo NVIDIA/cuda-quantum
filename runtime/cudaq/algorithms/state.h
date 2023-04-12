@@ -39,13 +39,12 @@ public:
   /// with the other one.
   double overlap(state &other);
 
-  /// @brief Returns true if the underlying quantum state is a
-  /// density matrix. False otherwise.
-  bool is_density_matrix();
+  /// @brief Return the dimensions of the state vector or density
+  /// matrix.
+  std::vector<std::size_t> get_shape();
 
   /// @brief Return the raw quantum state data.
-  template <typename QuantumState>
-  QuantumState get_data();
+  std::vector<std::complex<double>> *get_data();
 };
 
 namespace details {

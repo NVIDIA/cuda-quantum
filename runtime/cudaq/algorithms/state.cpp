@@ -76,29 +76,14 @@ double state::overlap(state &other) {
   return sum;
 }
 
-bool state::is_density_matrix() {
+std::vector<std::size_t> state::get_shape() {
   auto &[shape, stateData] = data;
-  if (shape.size() == 1) {
-    return false;
-  } else {
-    assert(shape.size() > 1);
-    return true;
-  }
+  return shape;
 }
 
-template <>
-Eigen::VectorXcd state::get_data<Eigen::VectorXcd>() {
+std::vector<std::complex<double>> *state::get_data() {
   auto &[shape, stateData] = data;
-  if (shape.size() != 1) {
-    throw std::runtime_error("Cannot return a density matrix as a vector.");
-  }
-  return Eigen::Map<Eigen::VectorXcd>(stateData.data(), shape[0]);
-}
-
-template <>
-Eigen::MatrixXcd state::get_data<Eigen::MatrixXcd>() {
-  auto &[shape, stateData] = data;
-  return Eigen::Map<Eigen::MatrixXcd>(stateData.data(), shape[0], shape[1]);
+  return &stateData;
 }
 
 } // namespace cudaq
