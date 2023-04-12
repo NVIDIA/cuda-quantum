@@ -12,8 +12,6 @@
 #include <fmt/core.h>
 #include <numeric>
 
-#include <iostream>
-
 using namespace cudaq;
 
 CUDAQ_TEST(GetStateTester, checkSimple) {
@@ -69,53 +67,4 @@ CUDAQ_TEST(GetStateTester, checkSimple) {
   });
 
   EXPECT_NEAR(opt_val, 0.0, 1e-3);
-}
-
-// CUDAQ_TEST(GetStateTester, checkGetState) {
-
-//   auto kernel = []() __qpu__ {
-//     cudaq::qubit q, r;
-//     h(q);
-//     cx(q, r);
-//   };
-
-//   auto state_object = cudaq::get_state(kernel);
-
-// #ifdef CUDAQ_BACKEND_DM
-//   // Check that `is_density_matrix` is true.
-//   assert(state_object.is_density_matrix() == true);
-//   // Can we return the density matrix as an eigen matrix?
-//   auto density_matrix = state_object.get_data<Eigen::MatrixXcd>();
-
-//   // Is a runtime error thrown if we try to return the density
-//   // matrix as a vector?
-//   bool error = false;
-//   try {
-//     auto density_vector = state_object.get_data<Eigen::VectorXcd>();
-//   } catch (std::runtime_error) {
-//     error = true;
-//   }
-//   assert(error == true);
-// #else
-//   // Check that `is_density_matrix` is false.
-//   assert(state_object.is_density_matrix() == false);
-//   // Can we return the state vector as an eigen vector?
-//   auto state_vector = state_object.get_data<Eigen::VectorXcd>();
-//   // Can we return the state vector as an eigen matrix?
-//   auto state_matrix = state_object.get_data<Eigen::MatrixXcd>();
-// #endif
-// }
-
-CUDAQ_TEST(GetStateTester, checkSimpleTest) {
-  std::vector<std::vector<double>> vec = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
-
-  auto outer_dim = vec.size();
-  auto inner_dim_0 = vec[0].size();
-  auto inner_dim_1 = vec[1].size();
-  auto inner_dim_2 = vec[2].size();
-
-  std::cout << "outer_dim = " << outer_dim << "\n";
-  std::cout << "inner_dim_0 = " << inner_dim_0 << "\n";
-  std::cout << "inner_dim_1 = " << inner_dim_1 << "\n";
-  std::cout << "inner_dim_2 = " << inner_dim_2 << "\n";
 }

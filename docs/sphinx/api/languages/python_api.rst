@@ -78,7 +78,6 @@ Data Types
     .. automethod:: __str__
     .. automethod:: __getitem__
     .. automethod:: overlap 
-    .. automethod:: to_numpy
 
 .. autoclass:: cudaq::qubit
 .. autoclass:: cudaq::qreg
