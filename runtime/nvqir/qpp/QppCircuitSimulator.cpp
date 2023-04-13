@@ -9,6 +9,7 @@
 #include "CircuitSimulator.h"
 #include "Gates.h"
 #include "qpp.h"
+#include <iostream>
 #include <set>
 
 namespace nvqir {
@@ -100,6 +101,29 @@ protected:
     }
   }
 
+  /// @brief Override the default sized allocation of qubits
+  /// here to be a bit more efficient than the default implementation
+  void addQubitsToState(std::size_t count) override {
+    if (count == 0)
+      return;
+
+    if (state.size() == 0) {
+      // If this is the first time, allocate the state
+      state = qpp::ket::Zero(stateDimension);
+      state(0) = 1.0;
+      return;
+    }
+
+    // If we are resizing an existing, allocate
+    // a zero state on a n qubit, and Kron-prod
+    // that with the existing state.
+    qpp::ket zero_state = qpp::ket::Zero((1UL << count));
+    zero_state(0) = 1.0;
+    state = qpp::kron(state, zero_state);
+
+    return;
+  }
+
   /// @brief Reset the qubit state.
   void resetQubitStateImpl() override {
     StateType tmp;
@@ -115,6 +139,28 @@ protected:
   void setToZeroState() override {
     state = qpp::ket::Zero(stateDimension);
     state(0) = 1.0;
+  }
+
+  /// @brief Measure the qubit and return the result. Collapse the
+  /// state vector.
+  bool measureQubit(const std::size_t qubitIdx) override {
+    // If here, then we care about the result bit, so compute it.
+    const auto measurement_tuple =
+        qpp::measure(state, qpp::cmat::Identity(2, 2), {qubitIdx},
+                     /*qudit dimension=*/2, /*destructive measmt=*/false);
+    const auto measurement_result = std::get<qpp::RES>(measurement_tuple);
+    const auto &post_meas_states = std::get<qpp::ST>(measurement_tuple);
+    const auto &collapsed_state = post_meas_states[measurement_result];
+    if constexpr (std::is_same_v<StateType, qpp::ket>) {
+      state = Eigen::Map<const StateType>(collapsed_state.data(),
+                                          collapsed_state.size());
+    } else {
+      state = Eigen::Map<const StateType>(collapsed_state.data(),
+                                          collapsed_state.rows(),
+                                          collapsed_state.cols());
+    }
+    cudaq::info("Measured qubit {} -> {}", qubitIdx, measurement_result);
+    return measurement_result == 1 ? true : false;
   }
 
 public:
@@ -163,55 +209,10 @@ public:
       qpp::ket k = qpp::apply(state, asEigen, targetsVec, 2);
       ee = state.dot(k).real();
     } else {
-      ee = (state * asEigen).trace().real();
+      ee = qpp::apply(asEigen, state, targetsVec).trace().real();
     }
 
     return cudaq::ExecutionResult({}, ee);
-  }
-
-  /// @brief Override the default sized allocation of qubits
-  /// here to be a bit more efficient than the default implementation
-  void addQubitsToState(std::size_t count) override {
-    if (count == 0)
-      return;
-
-    if (state.size() == 0) {
-      // If this is the first time, allocate the state
-      state = qpp::ket::Zero(stateDimension);
-      state(0) = 1.0;
-      return;
-    }
-
-    // If we are resizing an existing, allocate
-    // a zero state on a n qubit, and Kron-prod
-    // that with the existing state.
-    qpp::ket zero_state = qpp::ket::Zero((1UL << count));
-    zero_state(0) = 1.0;
-    state = qpp::kron(state, zero_state);
-
-    return;
-  }
-
-  /// @brief Measure the qubit and return the result. Collapse the
-  /// state vector.
-  bool measureQubit(const std::size_t qubitIdx) override {
-    // If here, then we care about the result bit, so compute it.
-    const auto measurement_tuple =
-        qpp::measure(state, qpp::cmat::Identity(2, 2), {qubitIdx},
-                     /*qudit dimension=*/2, /*destructive measmt=*/false);
-    const auto measurement_result = std::get<qpp::RES>(measurement_tuple);
-    const auto &post_meas_states = std::get<qpp::ST>(measurement_tuple);
-    const auto &collapsed_state = post_meas_states[measurement_result];
-    if constexpr (std::is_same_v<StateType, qpp::ket>) {
-      state = Eigen::Map<const StateType>(collapsed_state.data(),
-                                          collapsed_state.size());
-    } else {
-      state = Eigen::Map<const StateType>(collapsed_state.data(),
-                                          collapsed_state.rows(),
-                                          collapsed_state.cols());
-    }
-    cudaq::info("Measured qubit {} -> {}", qubitIdx, measurement_result);
-    return measurement_result == 1 ? true : false;
   }
 
   /// @brief Reset the qubit
