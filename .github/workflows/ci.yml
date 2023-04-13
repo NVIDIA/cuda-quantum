@@ -38,7 +38,7 @@ jobs:
       json: "${{ steps.read_json.outputs.result }}"
 
     steps:
-      - uses: cloudposse/github-action-matrix-outputs-read@0.3.1
+      - uses: cloudposse/github-action-matrix-outputs-read@0.1.1
         id: read_json
         with:
           matrix-step-name: setup # passed in as job_id above
