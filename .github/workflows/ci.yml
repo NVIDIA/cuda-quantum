@@ -20,7 +20,7 @@ jobs:
     name: Load dependencies
     strategy:
       matrix:
-        toolchain: [clang16, clang15, gcc12, gcc11]
+        toolchain: [llvm, clang16, clang15, gcc12, gcc11]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
@@ -52,7 +52,7 @@ jobs:
     needs: config
     strategy:
       matrix:
-        toolchain: [clang16, clang15, gcc12, gcc11]
+        toolchain: [llvm, clang16, clang15, gcc12, gcc11]
       fail-fast: false
     uses: ./.github/workflows/test_in_devenv.yml
     with:
