@@ -26,10 +26,26 @@ jobs:
     with:
       dockerfile: build/devdeps.Dockerfile
       toolchain: ${{ matrix.toolchain }}
+      #matrix-step-name: ${{ github.job }}
+      matrix_key: ${{ matrix.toolchain }}
+
+  config:
+    name: Configure build
+    runs-on: ubuntu-latest
+    needs: setup
+
+    outputs:
+      json: "${{ steps.read_json.outputs.result }}"
+
+    steps:
+      - uses: cloudposse/github-action-matrix-outputs-read@main
+        id: read_json
+        #with:
+        #  matrix-step-name: setup
 
   build_and_test:
     name: Build and test
-    needs: setup
+    needs: config
     strategy:
       matrix:
         toolchain: [clang16, clang15, gcc12, gcc11]
@@ -38,7 +54,8 @@ jobs:
     with:
       # It would be lovely to not hardcode this. 
       # See if/when the work started here concludes: https://github.com/actions/runner/pull/2477
-      devdeps_cache: tar-devdeps-${{ matrix.toolchain }}-${{ github.sha }}
+      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}', matrix.toolchain)] }}
+      # tar-devdeps-${{ matrix.toolchain }}-${{ github.sha }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
   docker_image:

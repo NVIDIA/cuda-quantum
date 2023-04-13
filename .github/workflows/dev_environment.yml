@@ -13,19 +13,22 @@ on:
       cache_location:
         required: false
         type: string
+      matrix_key:
+        required: false
+        type: string
       environment:
         required: false
         type: string
     outputs:
       image_name:
         description: "The full name of the built docker image."
-        value: ${{ jobs.metadata.outputs.image_name }}
+        value: ${{ jobs.finalize.outputs.image_name }}
       digest:
         description: "The digest of the docker image, if it was deployed to the registry."
-        value: ${{ jobs.deployment.outputs.digest }}
+        value: ${{ jobs.finalize.outputs.digest }}
       cache_key:
         description: "The cache key to retrieve a tar archive containing the built image(s)."
-        value: ${{ jobs.build.outputs.tar_cache }}
+        value: ${{ jobs.finalize.outputs.tar_cache }}
 
 name: CUDA Quantum cached dev images
 
@@ -190,3 +193,25 @@ jobs:
           gh actions-cache delete ${{ needs.build.outputs.tar_cache }} -R ${{ github.repository }} --confirm
         env:
           GH_TOKEN: ${{ github.token }}
+
+  finalize:
+    name: Finalize
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    needs: [metadata, build, deployment]
+
+    outputs:
+      image_name: ${{ fromJson(steps.write_json.outputs.result).image_name }}
+      digest: ${{ fromJson(steps.write_json.outputs.result).digest }}
+      cache_key: ${{ fromJson(steps.write_json.outputs.result).cache_key }}
+
+    steps:        
+      - uses: cloudposse/github-action-matrix-outputs-write@v0.3.1
+        id: write_json
+        with:
+          #matrix-step-name: ${{ inputs.matrix-step-name }}
+          matrix-key: ${{ inputs.matrix_key }}
+          outputs: |-
+            image_name: ${{ needs.metadata.outputs.image_name }}
+            digest: ${{ needs.deployment.outputs.digest }}
+            cache_key: ${{ needs.build.outputs.tar_cache }}
