@@ -207,7 +207,8 @@ int main(int argc, char **argv) {
   // Initialize LLVM targets.
   llvm::InitializeNativeTarget();
   llvm::InitializeNativeTargetAsmPrinter();
-  ExecutionEngine::setupTargetTriple(llvmModule.get());
+  ExecutionEngine::setupTargetTripleAndDataLayout(llvmModule.get(),
+                                                  /*TargetMachine=*/nullptr);
 
   // Optionally run an optimization pipeline over the llvm module.
   auto optPipeline = makeOptimizingTransformer(optLevel, sizeLevel,

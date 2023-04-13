@@ -660,7 +660,8 @@ ExecutionEngine *jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
       llvm::errs() << "Failed to emit LLVM IR\n";
       return nullptr;
     }
-    ExecutionEngine::setupTargetTriple(llvmModule.get());
+    ExecutionEngine::setupTargetTripleAndDataLayout(llvmModule.get(),
+                                                    /*TargetMachine=*/nullptr);
     return llvmModule;
   };
 
