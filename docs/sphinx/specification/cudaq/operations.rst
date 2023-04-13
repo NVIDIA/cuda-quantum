@@ -99,4 +99,8 @@ qubit state is a :code:`|0>` (positive polarity) or :code:`|1>` (negative polari
 By default all control qubits are assumed to convey positive polarity. 
 The syntax for negating the polarity is the not operator preceeding the
 control qubit (e.g., :code:`x<cudaq::ctrl>(!q, r)`, 
-for :code:`cudaq::qubits` :code:`q` and :code:`r`).
+for :code:`cudaq::qubits` :code:`q` and :code:`r`). Negating the polarity of
+control qubits is supported in :code:`swap` and the gates in sets :code:`NAME`
+or :code:`ROTATION_NAME`. The negate notation is only supported on control
+qubits and not target qubits. So negating either of the target qubits in the
+:code:`swap` operation is not allowed.
