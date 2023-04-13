@@ -21,8 +21,8 @@ on:
         description: "The full name of the built docker image."
         value: ${{ jobs.metadata.outputs.image_name }}
       digest:
-        description: "The digest of the built docker image."
-        value: ${{ jobs.build.outputs.digest }}
+        description: "The digest of the docker image, if it was deployed to the registry."
+        value: ${{ jobs.deployment.outputs.digest }}
       cache_key:
         description: "The cache key to retrieve a tar archive containing the built image(s)."
         value: ${{ jobs.build.outputs.tar_cache }}
@@ -101,7 +101,6 @@ jobs:
       contents: read
 
     outputs:
-      digest: ${{ steps.build_image.outputs.digest }}
       tar_cache: ${{ steps.cache.outputs.tar_cache }}
 
     steps:
@@ -151,6 +150,9 @@ jobs:
     needs: [metadata, build]
     permissions: write-all
 
+    outputs:
+      digest: ${{ steps.push_image.outputs.digest }}
+
     environment:
       name: ${{ inputs.environment }}
       url: ${{ vars.deployment_url }}
@@ -172,9 +174,14 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push ${{ needs.metadata.outputs.image_title }} image
+        id: push_image
         run: |
+          # Note that this may change the digest compared to the digest produced during build
+          # (the saved docker format has its own manifest that doesn't necessarily have the same bit-by-bit format...)
           docker load --input /tmp/${{ needs.metadata.outputs.image_id }}.tar
           docker push ${{ needs.metadata.outputs.image_name }} --all-tags
+          digests=`docker images ${{ needs.metadata.outputs.image_name }} --digests --format '{{.Digest}}'`
+          echo "digest=$digests" >> $GITHUB_OUTPUT
 
       - name: Clean up
         run: |
