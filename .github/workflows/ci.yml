@@ -26,9 +26,13 @@ jobs:
     with:
       dockerfile: build/devdeps.Dockerfile
       toolchain: ${{ matrix.toolchain }}
-      job_id: setup
+      # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.toolchain }}
 
+  # This job is needed only when using the cloudposse GitHub action to read
+  # the output of a matrix job. This is a workaround due to current GitHub
+  # limitations that may not be needed if the work started here concludes:
+  # https://github.com/actions/runner/pull/2477
   config:
     name: Configure build
     runs-on: ubuntu-latest
@@ -41,7 +45,7 @@ jobs:
       - uses: cloudposse/github-action-matrix-outputs-read@0.1.1
         id: read_json
         with:
-          matrix-step-name: setup # passed in as job_id above
+          matrix-step-name: dev_environment
 
   build_and_test:
     name: Build and test
@@ -52,10 +56,7 @@ jobs:
       fail-fast: false
     uses: ./.github/workflows/test_in_devenv.yml
     with:
-      # It would be lovely to not hardcode this. 
-      # See if/when the work started here concludes: https://github.com/actions/runner/pull/2477
       devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}', matrix.toolchain)] }}
-      # tar-devdeps-${{ matrix.toolchain }}-${{ github.sha }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
   docker_image:

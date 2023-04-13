@@ -13,9 +13,6 @@ on:
       cache_location:
         required: false
         type: string
-      job_id:
-        required: false
-        type: string
       matrix_key:
         required: false
         type: string
@@ -28,7 +25,7 @@ on:
         value: ${{ jobs.finalize.outputs.image_name }}
       digest:
         description: "The digest of the docker image, if it was deployed to the registry."
-        value: ${{ jobs.deployment.outputs.digest }}
+        value: ${{ jobs.finalize.outputs.digest }}
       cache_key:
         description: "The cache key to retrieve a tar archive containing the built image(s)."
         value: ${{ jobs.finalize.outputs.tar_cache }}
@@ -212,8 +209,9 @@ jobs:
       - uses: cloudposse/github-action-matrix-outputs-write@0.3.0
         id: write_json
         with:
-          matrix-step-name: ${{ inputs.job_id }}
+          matrix-step-name: ${{ inputs.matrix_key && 'dev_environment' }}
           matrix-key: ${{ inputs.matrix_key }}
           outputs: |
             image_name: ${{ needs.metadata.outputs.image_name }}
+            digest: ${{ needs.deployment.outputs.digest }}
             cache_key: ${{ needs.build.outputs.tar_cache }}
