@@ -55,20 +55,9 @@ void bindPyState(py::module &mod) {
       // compatible with numpy.
       .def_buffer([](state &self) -> py::buffer_info {
         auto shape = self.get_shape();
-        if (shape.size() == 1) {
-          auto vector = self.get_data();
+        if (shape.size() != 1) {
           return py::buffer_info(
-              vector->data(), sizeof(std::complex<double>), /*itemsize */
-              py::format_descriptor<std::complex<double>>::format(),
-              1,                                               /* ndim */
-              {vector->size()},                                /* shape */
-              {sizeof(std::complex<double>) * vector->size()}, /* strides */
-              true                                             /* readonly */
-          );
-        } else {
-          auto matrix = self.get_data();
-          return py::buffer_info(
-              matrix->data(), sizeof(std::complex<double>), /*itemsize */
+              self.get_data(), sizeof(std::complex<double>), /*itemsize */
               py::format_descriptor<std::complex<double>>::format(),
               2,                    /* ndim */
               {shape[0], shape[1]}, /* shape */
@@ -77,6 +66,14 @@ void bindPyState(py::module &mod) {
               true                            /* readonly */
           );
         }
+        // If 1-dimension, return the state vector.
+        return py::buffer_info(
+            self.get_data(), sizeof(std::complex<double>), /*itemsize */
+            py::format_descriptor<std::complex<double>>::format(), 1, /* ndim */
+            {shape[0]},                                /* shape */
+            {sizeof(std::complex<double>) * shape[0]}, /* strides */
+            true                                       /* readonly */
+        );
       })
       .def(py::init([](const py::buffer &buffer) {
              py::buffer_info info = buffer.request();
@@ -94,13 +91,13 @@ void bindPyState(py::module &mod) {
            "Construct the :class:`State` from an existing array of data.\n")
       .def(
           "__getitem__", [](state &self, std::size_t idx) { return self[idx]; },
-          "Return an element of the state vector -- TODO: raises.")
+          "Return the `index`-th element of the state vector.")
       .def(
           "__getitem__",
           [](state &self, std::vector<std::size_t> idx) {
             return self(idx[0], idx[1]);
           },
-          "Return a matrix element of the density matrix -- TODO: raises.")
+          "Return a matrix element of the density matrix.")
       .def(
           "dump",
           [](state &self) {
@@ -146,13 +143,10 @@ void bindPyState(py::module &mod) {
 
       Args:
         kernel (:class:`Kernel`) : The kernel to return the quantum state of.
-        *arguments (Optional[Any]) : The concrete arguments to the provided kernel. 
-                                     Leave empty if the kernel doesn't acccept arguments.
+        *arguments (Optional[Any]) : The concrete arguments to the provided kernel. Leave empty if the kernel doesn't acccept arguments.
 
       Returns:
-        :class:`State` : The quantum state represented as a :class:`State` data-type. 
-                         If the qpu is set to `dm`, this will be a density matrix. 
-                         By default, it will return a state vector.
+        :class:`State` : The quantum state represented as a :class:`State` data-type. If the qpu is set to `dm`, this will be a density matrix. By default, it will return a state vector.
       )");
 }
 

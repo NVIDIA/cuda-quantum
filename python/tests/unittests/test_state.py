@@ -13,7 +13,7 @@ import numpy as np
 import cudaq
 
 
-@pytest.mark.parametrize("want_state", [
+@pytest.mark.parametrize("want_vector", [
     np.array([0.0, 1.0], dtype=np.complex128),
     np.array([1.0, 0.0], dtype=np.complex128),
     np.array([1.0 / np.sqrt(2), 1.0 / np.sqrt(2)], dtype=np.complex128),
@@ -22,32 +22,43 @@ import cudaq
     np.array([1.0 / np.sqrt(2), 0.0, 0.0, 1.0 / np.sqrt(2)],
              dtype=np.complex128),
 ])
-def test_state_buffer_vector(want_state):
+def test_state_buffer_vector(want_vector):
     """
     Tests writing to and returning from the :class:`State` buffer
     on different state vectors.
     """
-    got_state_a = cudaq.State(want_state)
-    got_state_b = cudaq.State(want_state)
+    got_state_a = cudaq.State(want_vector)
+    got_state_b = cudaq.State(want_vector)
+
+    print("got_state_a = ", got_state_a)
+    print("got_state_b = ", got_state_b)
 
     # Check all of the `overlap` overloads.
-    assert np.isclose(got_state_a.overlap(want_state), 1.0)
-    assert np.isclose(got_state_b.overlap(want_state), 1.0)
+    assert np.isclose(got_state_a.overlap(want_vector), 1.0)
+    assert np.isclose(got_state_b.overlap(want_vector), 1.0)
     assert np.isclose(got_state_a.overlap(got_state_b), 1.0)
 
     # Should be identical vectors.
     got_vector_a = np.array(got_state_a, copy=False)
     got_vector_b = np.array(got_state_b, copy=False)
 
+    print(f"want_vector = {want_vector}\n")
+    print(f"got_vector_a = {got_vector_a}\n")
+    print(f"got_vector_b = {got_vector_b}\n")
     for i in range(len(got_vector_a)):
-        assert np.isclose(got_vector_a[i], got_vector_b[i])
-        # if not np.isclose(got_vector_a[i], got_vector_b[i]):
-        print(f"want = {got_vector_a[i]}")
-        print(f"got = {got_vector_b[i]}")
-    assert np.allclose(got_vector_a, got_vector_b, atol=1e-3)
+        a_same = np.isclose(want_vector[i], got_vector_a[i])
+        b_same = np.isclose(want_vector[i], got_vector_b[i])
+        print(f"{i}-th element. Passes? {a_same and b_same}:\n")
+        print(f"want = {want_vector[i]}")
+        print(f"got_a = {got_vector_a[i]}")
+        print(f"got_b = {got_vector_b[i]}\n")
+        assert a_same
+        assert b_same
+    # assert np.allclose(want_vector, got_vector_a)
+    # assert np.allclose(want_vector, got_vector_b)
 
 
-@pytest.mark.parametrize("want_state", [
+@pytest.mark.parametrize("want_matrix", [
     np.array([[0.0, 0.0], [0.0, 1.0]], dtype=np.complex128),
     np.array([[1.0, 0.0], [0.0, 0.0]], dtype=np.complex128),
     np.array([[0.5, 0.5], [0.5, 0.5]], dtype=np.complex128),
@@ -61,23 +72,24 @@ def test_state_buffer_vector(want_state):
               [0.5, 0.0, 0.0, 0.5]],
              dtype=np.complex128),
 ])
-def test_state_buffer_density_matrix(want_state):
+def test_state_buffer_density_matrix(want_matrix):
     """
     Tests writing to and returning from the :class:`State` buffer
     on different density matrices.
     """
-    got_state_a = cudaq.State(want_state)
-    got_state_b = cudaq.State(want_state)
+    got_state_a = cudaq.State(want_matrix)
+    got_state_b = cudaq.State(want_matrix)
 
     # Check all of the `overlap` overloads.
-    assert np.isclose(got_state_a.overlap(want_state), 1.0)
-    assert np.isclose(got_state_b.overlap(want_state), 1.0)
+    assert np.isclose(got_state_a.overlap(want_matrix), 1.0)
+    assert np.isclose(got_state_b.overlap(want_matrix), 1.0)
     assert np.isclose(got_state_a.overlap(got_state_b), 1.0)
 
     # Should be identical matrices.
     got_matrix_a = np.array(got_state_a, copy=False)
     got_matrix_b = np.array(got_state_b, copy=False)
-    assert np.allclose(got_matrix_a, got_matrix_b)
+    assert np.allclose(want_matrix, got_matrix_a)
+    assert np.allclose(want_matrix, got_matrix_b)
 
 
 def test_state_vector_simple():
@@ -236,7 +248,7 @@ def test_state_density_matrix_integration():
     # Compute the parameters that make this kernel produce the
     # Bell state.
     optimizer = cudaq.optimizers.COBYLA()
-    optimizer.max_iterations = 50
+    optimizer.max_iterations = 100
     optimal_infidelity, optimal_parameters = optimizer.optimize(6, objective)
 
     # Did we maximize the overlap (i.e, minimize the infidelity)?

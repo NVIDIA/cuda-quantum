@@ -44,7 +44,7 @@ public:
   std::vector<std::size_t> get_shape();
 
   /// @brief Return the raw quantum state data.
-  std::vector<std::complex<double>> *get_data();
+  std::complex<double> *get_data();
 };
 
 namespace details {

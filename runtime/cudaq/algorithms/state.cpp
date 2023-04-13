@@ -76,14 +76,8 @@ double state::overlap(state &other) {
   return sum;
 }
 
-std::vector<std::size_t> state::get_shape() {
-  auto &[shape, stateData] = data;
-  return shape;
-}
+std::vector<std::size_t> state::get_shape() { return std::get<0>(data); }
 
-std::vector<std::complex<double>> *state::get_data() {
-  auto &[shape, stateData] = data;
-  return &stateData;
-}
+std::complex<double> *state::get_data() { return std::get<1>(data).data(); }
 
 } // namespace cudaq
