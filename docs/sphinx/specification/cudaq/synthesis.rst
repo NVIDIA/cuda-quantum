@@ -55,7 +55,7 @@ device quantum kernel, an std::range of control qubits (:code:`cudaq::qreg`
 or :code:`cudaq::qspan`), and the remaining arguments for the kernel itself.
 Compiler implementations are free to synthesize multi-controlled operations
 using any pertinent synthesis strategy available. Qubits may be aggregated into
-a the range of control qubits with or without the use of the :code:`operator!`
+a range of control qubits with or without the use of the :code:`operator!`
 `negated polarity operator <operations.html>`_.
 
 .. code-block:: cpp
