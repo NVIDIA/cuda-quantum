@@ -28,7 +28,7 @@ on:
         value: ${{ jobs.finalize.outputs.image_name }}
       digest:
         description: "The digest of the docker image, if it was deployed to the registry."
-        value: ${{ jobs.finalize.outputs.digest }}
+        value: ${{ jobs.deployment.outputs.digest }}
       cache_key:
         description: "The cache key to retrieve a tar archive containing the built image(s)."
         value: ${{ jobs.finalize.outputs.tar_cache }}
@@ -214,7 +214,6 @@ jobs:
         with:
           matrix-step-name: ${{ inputs.job_id }}
           matrix-key: ${{ inputs.matrix_key }}
-          outputs: |-
+          outputs: |
             image_name: ${{ needs.metadata.outputs.image_name }}
-            digest: ${{ needs.deployment.outputs.digest }}
             cache_key: ${{ needs.build.outputs.tar_cache }}
