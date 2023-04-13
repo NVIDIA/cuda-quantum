@@ -26,7 +26,7 @@ jobs:
     with:
       dockerfile: build/devdeps.Dockerfile
       toolchain: ${{ matrix.toolchain }}
-      job_id: ${{ github.job }}
+      job_id: setup
       matrix_key: ${{ matrix.toolchain }}
 
   config:
