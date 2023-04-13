@@ -61,7 +61,7 @@ jobs:
           image_name=${{ vars.registry || 'ghcr.io' }}/${repo_owner,,}/$image_title
           toolchain=${{ inputs.toolchain }}
           tag_prefix=${toolchain:+$toolchain-}
-          tag_suffix=`echo $image_id | cut -d "." -f 2- | xargs -I "%" echo .% | tr . -`
+          tag_suffix=`echo $image_id | cut -s -d "." -f 2- | xargs -I "%" echo .% | tr . -`
 
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
           echo "image_title=$image_title" >> $GITHUB_OUTPUT
