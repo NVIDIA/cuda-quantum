@@ -59,6 +59,7 @@ a range of control qubits with or without the use of the :code:`operator!`
 `negated polarity operator <https://nvidia.github.io/cuda-quantum/specification/cudaq/operations.html>`_.
 
 .. code-block:: cpp
+
    cudaq::control(kernel{}, {qubit0, !qubit1}, kernel_arg);
 
 The :code:`cudaq::adjoint(...)` function takes as input an
