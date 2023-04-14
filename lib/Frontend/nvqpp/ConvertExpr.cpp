@@ -1311,7 +1311,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       auto swap = builder.create<quake::SwapOp>(loc, ctrls, targets);
       if (negs)
         swap->setAttr("negated_qubit_controls", negs);
-      return swap;
+      return true;
     }
     if (funcName.equals("p") || funcName.equals("r1"))
       return buildOp<quake::R1Op, Param>(builder, loc, args, negations,
@@ -1329,10 +1329,51 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     if (funcName.equals("control")) {
       // Expect the first argument to be an instance of a Callable. Need to
       // construct the name of the operator() call to make here.
-      auto calleeValue = args[0];
+      Value calleeValue = args[0];
+      Value ctrlValues = args[1];
       SymbolRefAttr calleeSymbol;
-      ValueRange argRange = args;
       auto *ctx = builder.getContext();
+
+      // Expand the negations inline around the quake.apply. This will result in
+      // less duplication of code than threading the negated sense of the
+      // control recursively through the callable.
+      auto inlinedStartControlNegations = [&]() {
+        if (!negations.empty()) {
+          // Loop over the ctrlValues and negate (apply an XOp) those in the
+          // negations list.
+          if (auto concat = ctrlValues.getDefiningOp<quake::ConcatOp>()) {
+            for (auto v : concat.getQbits())
+              if (std::find(negations.begin(), negations.end(), v) !=
+                  negations.end()) {
+                if (isa<quake::QVecType>(v.getType())) {
+                  reportClangError(
+                      x, mangler, "cannot negate an entire register of qubits");
+                } else {
+                  SmallVector<Value> dummy;
+                  buildOp<quake::XOp>(builder, loc, v, dummy, []() {});
+                }
+              }
+          } else if (isa<quake::QVecType>(ctrlValues.getType())) {
+            assert(negations.size() == 1 && negations[0] == ctrlValues);
+            reportClangError(x, mangler,
+                             "cannot negate an entire register of qubits");
+          } else {
+            assert(isa<quake::QRefType>(ctrlValues.getType()));
+            assert(negations.size() == 1 && negations[0] == ctrlValues);
+            SmallVector<Value> dummy;
+            buildOp<quake::XOp>(builder, loc, ctrlValues, dummy, []() {});
+          }
+        }
+      };
+      // Finish (uncompute) the inlined control negations. Generates the same
+      // code pattern as the starting negations. Specifically, we invoke an XOp
+      // on each negated control.
+      auto inlinedFinishControlNegations = [&]() {
+        inlinedStartControlNegations();
+        negations.clear();
+        return true;
+      };
+
       if (auto ty = dyn_cast<LLVM::LLVMStructType>(calleeValue.getType())) {
         auto *classDecl = classDeclFromTemplateArgument(*func, 0, *astContext);
         if (!classDecl) {
@@ -1343,7 +1384,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
               clang::DiagnosticsEngine::Error,
               "expected cudaq::control to be a specific template");
           de.Report(x->getBeginLoc(), id);
-          return {};
+          return false;
         }
         auto *kernelCallOper = findCallOperator(classDecl);
         if (!kernelCallOper) {
@@ -1354,24 +1395,29 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
               clang::DiagnosticsEngine::Error,
               "first argument to cudaq::control must be a callable");
           de.Report(x->getBeginLoc(), id);
-          return {};
+          return false;
         }
         auto calleeName = generateCudaqKernelName(kernelCallOper);
         calleeSymbol = SymbolRefAttr::get(ctx, calleeName);
         auto kernelTy = getFunctionType(kernelCallOper);
         auto kernelArgs =
             convertKernelArgs(builder, loc, 2, args, kernelTy.getInputs());
-        return builder.create<quake::ApplyOp>(loc, TypeRange{}, calleeSymbol,
-                                              /*isAdjoint=*/false, args[1],
-                                              kernelArgs);
+        inlinedStartControlNegations();
+        builder.create<quake::ApplyOp>(loc, TypeRange{}, calleeSymbol,
+                                       /*isAdjoint=*/false, ctrlValues,
+                                       kernelArgs);
+        return inlinedFinishControlNegations();
       }
+      ValueRange argRange = args;
       if (auto func =
               dyn_cast_or_null<func::ConstantOp>(calleeValue.getDefiningOp())) {
         auto funcTy = cast<FunctionType>(func.getType());
         auto callableSym = func.getValueAttr();
-        return builder.create<quake::ApplyOp>(loc, funcTy.getResults(),
-                                              callableSym, /*isAdjoint=*/false,
-                                              args[1], argRange.drop_front(2));
+        inlinedStartControlNegations();
+        builder.create<quake::ApplyOp>(loc, funcTy.getResults(), callableSym,
+                                       /*isAdjoint=*/false, ctrlValues,
+                                       argRange.drop_front(2));
+        return inlinedFinishControlNegations();
       }
       if (auto ty = dyn_cast<cc::LambdaType>(calleeValue.getType())) {
         // In order to autogenerate the control form of the called kernel, we
@@ -1401,9 +1447,11 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
               generateCudaqKernelName(findCallOperator(lambdaClass));
           calleeSymbol = SymbolRefAttr::get(ctx, mangledName);
           auto funcTy = ty.getSignature();
-          return builder.create<quake::ApplyOp>(
-              loc, funcTy.getResults(), calleeSymbol, /*isAdjoint=*/false,
-              args[1], argRange.drop_front(2));
+          inlinedStartControlNegations();
+          builder.create<quake::ApplyOp>(loc, funcTy.getResults(), calleeSymbol,
+                                         /*isAdjoint=*/false, ctrlValues,
+                                         argRange.drop_front(2));
+          return inlinedFinishControlNegations();
         }
         TODO_loc(loc, "value has !cc.lambda type but decl isn't a lambda");
       }
