@@ -155,7 +155,7 @@ int main(int argc, char **argv) {
 
   PassManager pm(&context);
   // Apply any generic pass manager command line options and run the pipeline.
-  applyPassManagerCLOptions(pm);
+  [[maybe_unused]] auto applyPassResult = applyPassManagerCLOptions(pm);
 
   // Some translations do not involve translation to LLVM IR. These translations
   // are done directly from the MLIR Module to an output file.
@@ -207,15 +207,22 @@ int main(int argc, char **argv) {
   // Initialize LLVM targets.
   llvm::InitializeNativeTarget();
   llvm::InitializeNativeTargetAsmPrinter();
+  auto tmBuilderOrError = llvm::orc::JITTargetMachineBuilder::detectHost();
+  if (!tmBuilderOrError)
+    cudaq::emitFatalError(module->getLoc(),
+                          "Could not create JITTargetMachineBuilder");
+  auto tmOrError = tmBuilderOrError->createTargetMachine();
+  if (!tmOrError)
+    cudaq::emitFatalError(module->getLoc(), "Could not create TargetMachine");
   ExecutionEngine::setupTargetTripleAndDataLayout(llvmModule.get(),
-                                                  /*TargetMachine=*/nullptr);
+                                                  tmOrError.get().get());
 
   // Optionally run an optimization pipeline over the llvm module.
-  auto optPipeline = makeOptimizingTransformer(optLevel, sizeLevel,
-                                               /*targetMachine=*/nullptr);
+  auto optPipeline =
+      makeOptimizingTransformer(optLevel, sizeLevel, tmOrError.get().get());
   if (auto err = optPipeline(llvmModule.get())) {
-    llvm::errs() << "Failed to optimize LLVM IR " << err << '\n';
-    std::exit(1);
+    llvm::errs() << "Pipeline returned: " << err << '\n';
+    cudaq::emitFatalError(module->getLoc(), "Failed to optimize LLVM IR");
   }
 
   // Output the LLVM IR to the output file.

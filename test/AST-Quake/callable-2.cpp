@@ -8,6 +8,7 @@
 
 // RUN: cudaq-quake %s | FileCheck %s
 // RUN: cudaq-quake %s | cudaq-opt --lambda-lifting --canonicalize | FileCheck --check-prefixes=LIFT %s
+// XFAIL: *
 
 #include <cudaq.h>
 

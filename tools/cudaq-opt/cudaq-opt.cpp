@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
@@ -28,6 +28,11 @@
 
 using namespace llvm;
 
+/// A cudaq specific command line flag for loading plugins.
+static cl::list<std::string>
+    PassPlugins("cudaq-load-pass-plugin",
+                cl::desc("Load passes from plugin library"));
+
 /// Dialect extension to allow inlining of the MLIR defined LLVM-IR dialects
 /// which lacks inlining support out of the box.
 class InlinerExtension
@@ -49,6 +54,20 @@ int main(int argc, char **argv) {
   cudaq::opt::registerOptCodeGenPasses();
   cudaq::opt::registerOptTransformsPasses();
   cudaq::opt::registerTargetPipelines();
+
+  // See if we have been asked to load a pass plugin,
+  // if so load it.
+  if (!PassPlugins.empty()) {
+    for (auto p : PassPlugins) {
+      auto Plugin = cudaq::Plugin::Load(p);
+      if (!Plugin) {
+        llvm::errs() << "Failed to load passes from '" << p
+                     << "'. Request ignored.\n";
+        return 1;
+      }
+      Plugin.get().registerExtensions();
+    }
+  }
 
   mlir::DialectRegistry registry;
   registry.insert<quake::QuakeDialect, cudaq::cc::CCDialect>();

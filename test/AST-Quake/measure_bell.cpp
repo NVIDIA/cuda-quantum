@@ -8,9 +8,6 @@
 
 // RUN: cudaq-quake %s | FileCheck %s
 
-// The == operator in libertybell is no longer visited. Why?
-// XFAIL: *
-
 #include <cudaq.h>
 
 struct bell {

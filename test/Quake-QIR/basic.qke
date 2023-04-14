@@ -19,16 +19,14 @@
 // CHECK:         %[[VAL_5:.*]] = tail call ptr @__quantum__rt__qubit_allocate_array(i64 2)
 // CHECK:         %[[VAL_7:.*]] = tail call ptr @__quantum__rt__qubit_allocate_array(i64 2)
 // CHECK:         %[[VAL_8:.*]] = tail call ptr @__quantum__rt__qubit_allocate_array(i64 1)
-// CHECK:         %[[VAL_9:.*]] = tail call i8* @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_5]], i64 0)
-// CHECK:         %[[VAL_10:.*]] = bitcast i8* %[[VAL_9]] to %[[VAL_11:.*]]**
-// CHECK:         %[[VAL_12:.*]] = load %[[VAL_11]]*, %[[VAL_11]]** %[[VAL_10]], align 8
-// CHECK:         %[[VAL_13:.*]] = tail call i8* @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_7]], i64 1)
-// CHECK:         %[[VAL_14:.*]] = bitcast i8* %[[VAL_13]] to %[[VAL_11]]**
-// CHECK:         %[[VAL_15:.*]] = load %[[VAL_11]]*, %[[VAL_11]]** %[[VAL_14]], align 8
-// CHECK:         tail call void @__quantum__qis__h(%[[VAL_11]]* %[[VAL_12]])
-// CHECK: tail call void (i64, void (%Array*, %Qubit*)*, ...) @invokeWithControlQubits(i64 1, void (%Array*, %Qubit*)* nonnull @__quantum__qis__x__ctl, %Qubit* %[[VAL_12]], %Qubit* %[[VAL_15]])
-// CHECK:         tail call void @__quantum__qis__rx(double 4.300000e-01, %[[VAL_11]]* %[[VAL_12]])
-// CHECK:         %[[VAL_16:.*]] = tail call %[[VAL_17:.*]]* @__quantum__qis__mz(%[[VAL_11]]* %[[VAL_12]])
+// CHECK:         %[[VAL_9:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_5]], i64 0)
+// CHECK:         %[[VAL_12:.*]] = load ptr, ptr %[[VAL_9]], align 8
+// CHECK:         %[[VAL_13:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_7]], i64 1)
+// CHECK:         %[[VAL_15:.*]] = load ptr, ptr %[[VAL_13]], align 8
+// CHECK:         tail call void @__quantum__qis__h(ptr %[[VAL_12]])
+// CHECK: tail call void (i64, ptr, ...) @invokeWithControlQubits(i64 1, ptr nonnull @__quantum__qis__x__ctl, ptr %[[VAL_12]], ptr %[[VAL_15]])
+// CHECK:         tail call void @__quantum__qis__rx(double 4.300000e-01, ptr %[[VAL_12]])
+// CHECK:         %[[VAL_16:.*]] = tail call ptr @__quantum__qis__mz(ptr %[[VAL_12]])
 // CHECK-DAG:     tail call void @__quantum__rt__qubit_release_array(ptr %[[VAL_5]])
 // CHECK-DAG:     tail call void @__quantum__rt__qubit_release_array(ptr %[[VAL_7]])
 // CHECK-DAG:     tail call void @__quantum__rt__qubit_release_array(ptr %[[VAL_8]])

@@ -660,8 +660,18 @@ ExecutionEngine *jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
       llvm::errs() << "Failed to emit LLVM IR\n";
       return nullptr;
     }
+    auto tmBuilderOrError = llvm::orc::JITTargetMachineBuilder::detectHost();
+    if (!tmBuilderOrError) {
+      llvm::errs() << "Could not create JITTargetMachineBuilder\n";
+      return nullptr;
+    }
+    auto tmOrError = tmBuilderOrError->createTargetMachine();
+    if (!tmOrError) {
+      llvm::errs() << "Could not create TargetMachine";
+      return nullptr;
+    }
     ExecutionEngine::setupTargetTripleAndDataLayout(llvmModule.get(),
-                                                    /*TargetMachine=*/nullptr);
+                                                    tmOrError.get().get());
     return llvmModule;
   };
 
