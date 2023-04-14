@@ -97,3 +97,22 @@ struct ctrlHeisenbergVersion2 {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ctrlHeisenbergVersion2(
 // CHECK:           quake.apply @__nvqpp__mlirgen__function_magic_func._Z[[mangle]]{{\[}}%{{.*}} : !quake.qref] %{{.*}} : (!quake.qvec<?>) -> ()
 // CHECK:           return
+
+__qpu__ void qnppx2(double theta, cudaq::qubit &q, cudaq::qubit &r,
+                    cudaq::qubit &s, cudaq::qubit &t) {
+  x<cudaq::ctrl>(r, q);
+  x<cudaq::ctrl>(s, t);
+  cudaq::control(givens{}, {q, !t}, theta, r, s);
+  x<cudaq::ctrl>(r, q);
+  x<cudaq::ctrl>(s, t);
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_qnppx2
+// CHECK-SAME:       %{{[^:]*}}: f64, %[[VAL_1:.*]]: !quake.qref, %[[VAL_2:.*]]: !quake.qref, %[[VAL_3:.*]]: !quake.qref, %[[VAL_4:.*]]: !quake.qref)
+// CHECK:           %[[VAL_7:.*]] = quake.concat %[[VAL_1]], %[[VAL_4]] : (!quake.qref, !quake.qref) -> !quake.qvec<2>
+// CHECK:           quake.x (%[[VAL_4]])
+// CHECK:           quake.apply @__nvqpp__mlirgen__givens[%[[VAL_7]] : !quake.qvec<2>] %{{.*}}, %[[VAL_2]], %[[VAL_3]] : (f64, !quake.qref, !quake.qref) -> ()
+// CHECK:           quake.x (%[[VAL_4]])
+// CHECK:           quake.x [%[[VAL_2]] : !quake.qref] (%[[VAL_1]])
+// CHECK:           quake.x [%[[VAL_3]] : !quake.qref] (%[[VAL_4]])
+// CHECK:           return
