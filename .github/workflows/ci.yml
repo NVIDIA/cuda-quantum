@@ -64,4 +64,4 @@ jobs:
     needs: config
     uses: ./.github/workflows/build_packages.yml
     with:
-      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key.gcc12
+      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key.gcc12 }}
