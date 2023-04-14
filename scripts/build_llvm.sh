@@ -51,7 +51,7 @@ working_dir=`pwd`
 if [ "$llvm_source" = "" ]; then
   cd $(git rev-parse --show-toplevel)
   echo "Cloning LLVM submodule..."
-  git submodule update --init --recursive --recommend-shallow tpls/llvm
+  git submodule update --init --recursive --recommend-shallow --single-branch tpls/llvm
   llvm_source=tpls/llvm
 fi
 
@@ -64,13 +64,37 @@ mkdir -p "$llvm_source/build" && cd "$llvm_source/build" && rm -rf *
 mkdir -p logs && rm -rf logs/* 
 
 # Specify which components we need to keep the size of the LLVM build down
-llvm_components="cmake-exports;llvm-headers;llvm-libraries;"
-llvm_components+="clang-cmake-exports;clang-headers;clang-libraries;clang-resource-headers;"
-llvm_components+="mlir-cmake-exports;mlir-headers;mlir-libraries;mlir-tblgen;"
-llvm_components+="llvm-config;clang-format;lld;llc;clang;FileCheck;count;not"
+echo "Preparing LLVM build..."
+projects=(`echo $llvm_projects | tr ';' ' '`)
+llvm_projects=`printf "%s;" "${projects[@]}"`
+if [ -z "${llvm_projects##*clang;*}" ]; then
+  echo "- including Clang components"
+  llvm_components+="clang;clang-format;clang-cmake-exports;clang-headers;clang-libraries;clang-resource-headers;"
+  projects=("${projects[@]/clang}")
+fi
+if [ -z "${llvm_projects##*mlir;*}" ]; then
+  echo "- including MLIR components"
+  llvm_components+="mlir-cmake-exports;mlir-headers;mlir-libraries;mlir-tblgen;"
+  projects=("${projects[@]/mlir}")
+fi
+if [ -z "${llvm_projects##*lld;*}" ]; then
+  echo "- including LLD components"
+  llvm_components+="lld;"
+  projects=("${projects[@]/lld}")
+fi
+echo "- including general tools and components"
+llvm_components+="cmake-exports;llvm-headers;llvm-libraries;"
+llvm_components+="llvm-config;llc;FileCheck;count;not;"
+
+if [ "$(echo ${projects[*]} | xargs)" != "" ]; then
+  echo "- including additional projects "$(echo "${projects[*]}" | xargs | tr ' ' ',')
+  unset llvm_components
+  install_target=install
+else 
+  install_target=install-distribution-stripped
+fi
 
 # Generate CMake files
-echo "Preparing LLVM build..."
 cmake_args="-G Ninja ../llvm \
   -DLLVM_TARGETS_TO_BUILD="host" \
   -DCMAKE_BUILD_TYPE=$build_configuration \
@@ -93,11 +117,11 @@ fi
 # Build and install clang in a folder
 echo "Building LLVM with configuration $build_configuration..."
 if $verbose; then
-  ninja install-distribution-stripped
+  ninja $install_target
   status=$?
 else
   echo "The progress of the build is being logged to `pwd`/logs/ninja_output.txt."
-  ninja install-distribution-stripped 2> logs/ninja_error.txt 1> logs/ninja_output.txt
+  ninja $install_target 2> logs/ninja_error.txt 1> logs/ninja_output.txt
   status=$?
 fi
 
