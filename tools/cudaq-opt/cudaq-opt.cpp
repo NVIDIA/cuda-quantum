@@ -44,32 +44,11 @@ static void registerInlinerExtension(mlir::DialectRegistry &registry) {
   registry.addExtensions<InlinerExtension>();
 }
 
-/// @brief Add a command line flag for loading plugins
-static cl::list<std::string>
-    PassPlugins("load-pass-plugin",
-                cl::desc("Load passes from plugin library"));
-
 int main(int argc, char **argv) {
   mlir::registerAllPasses();
   cudaq::opt::registerOptCodeGenPasses();
   cudaq::opt::registerOptTransformsPasses();
   cudaq::opt::registerTargetPipelines();
-
-  // See if we have been asked to load a pass plugin,
-  // if so load it.
-  std::vector<std::string> args(&argv[0], &argv[0] + argc);
-  for (std::size_t i = 0; i < args.size(); i++) {
-    if (args[i].find("-load-pass-plugin") != std::string::npos) {
-      auto Plugin = cudaq::Plugin::Load(args[i + 1]);
-      if (!Plugin) {
-        errs() << "Failed to load passes from '" << args[i + 1]
-               << "'. Request ignored.\n";
-        return 1;
-      }
-      Plugin.get().registerExtensions();
-      i++;
-    }
-  }
 
   mlir::DialectRegistry registry;
   registry.insert<quake::QuakeDialect, cudaq::cc::CCDialect>();
