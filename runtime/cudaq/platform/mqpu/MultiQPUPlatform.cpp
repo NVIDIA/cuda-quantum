@@ -43,6 +43,7 @@ public:
   void launchKernel(const std::string &name, void (*kernelFunc)(void *),
                     void *args, std::uint64_t, std::uint64_t) override {
     cudaq::info("QPU::launchKernel GPU {}", qpu_id);
+    cudaSetDevice(qpu_id);
     kernelFunc(args);
   }
 
@@ -136,7 +137,6 @@ public:
           auto warmUpSim = cudaq::getExecutionManager();
 
           cudaSetDevice(i);
-          cudaFree(0);
 
           // Warm up the GPUs via an allocation / deallocation.
           cudaq::info("Warm up Emulated QPU (GPU) {}.", i);

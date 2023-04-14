@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "cudaq/platform.h"
 #include <type_traits>
 
 namespace cudaq {
@@ -38,14 +39,17 @@ auto make_argset(const std::vector<Args> &...args) {
 }
 
 namespace details {
+template <typename ReturnType, typename... Args>
+using BroadcastFunctorType = const std::function<ReturnType(
+    std::size_t, std::size_t, std::size_t, Args &...)>;
 
 /// @brief
-template <typename ApplyFunctor, typename... Args,
-          typename ReturnType = std::invoke_result_t<ApplyFunctor>>
-std::vector<ReturnType>
-broadcastFunctionOverArguments(ApplyFunctor &&apply,
+template <typename R, typename... Args>
+std::vector<R>
+broadcastFunctionOverArguments(std::size_t numQpus, quantum_platform &pk,
+                               BroadcastFunctorType<R, Args...> &apply,
                                ArgumentSet<Args...> &params) {
-  std::vector<ReturnType> results;
+  // std::size_t numQpus = 1;
 
   // Assert all arg vectors are the same size
   auto N = std::get<0>(params).size();
@@ -55,27 +59,59 @@ broadcastFunctionOverArguments(ApplyFunctor &&apply,
                                "over - vector sizes not the same.");
   });
 
-  // Loop over all sets of arguments, the ith element of each vector
-  // in the ArgumentSet tuple
-  for (std::size_t i = 0; i < std::get<0>(params).size(); i++) {
-    // Construct the current set of arguments as a new tuple
-    // We want a tuple so we can use std::apply with the
-    // existing observe() functions.
-    std::tuple<Args...> currentArgs;
-    cudaq::tuple_for_each_with_idx(
-        params, [&]<typename IDX_TYPE>(auto &&element, IDX_TYPE &&idx) {
-          std::get<IDX_TYPE::value>(currentArgs) = element[i];
+  std::vector<std::future<std::vector<R>>> futures;
+  auto nExecsPerQpu = N / numQpus + (N % numQpus != 0);
+  for (std::size_t qpuId = 0; qpuId < numQpus; qpuId++) {
+    std::promise<std::vector<R>> promise;
+    futures.emplace_back(promise.get_future());
+    std::function<void()> functor = detail::make_copyable_function(
+        [&params, &apply, &pk, qpuId, nExecsPerQpu,
+         p = std::move(promise)]() mutable {
+          auto lowerBound = qpuId * nExecsPerQpu;
+          auto upperBound = lowerBound + nExecsPerQpu;
+          std::vector<R> results;
+
+          // Loop over all sets of arguments, the ith element of each vector
+          // in the ArgumentSet tuple
+          for (std::size_t i = lowerBound, counter = 0; i < upperBound; i++) {
+            // Construct the current set of arguments as a new tuple
+            // We want a tuple so we can use std::apply with the
+            // existing observe() functions.
+            std::tuple<std::size_t, std::size_t, std::size_t, Args...>
+                currentArgs;
+            std::get<0>(currentArgs) = qpuId;
+            std::get<1>(currentArgs) = counter;
+            std::get<2>(currentArgs) = nExecsPerQpu;
+            counter++;
+
+            cudaq::tuple_for_each_with_idx(
+                params, [&]<typename IDX_TYPE>(auto &&element, IDX_TYPE &&idx) {
+                  std::get<IDX_TYPE::value + 3>(currentArgs) = element[i];
+                });
+
+            // Call observe with the current set of arguments (provided as a
+            // tuple)
+            auto result = std::apply(apply, currentArgs);
+
+            // Store the result.
+            results.push_back(result);
+          }
+          // printf("Computed %lu results\n", results.size());
+          p.set_value(results);
         });
 
-    // Call observe with the current set of arguments (provided as a tuple)
-    auto result = std::apply(apply, currentArgs);
-
-    // Store the result.
-    results.push_back(result);
+    // printf("Enqueue on qpu %lu\n", qpuId);
+    pk.enqueueAsyncTask(qpuId, functor);
   }
 
-  return results;
+  std::vector<R> allResults;
+  for (auto &f : futures) {
+    auto res = f.get();
+    // printf("Get future of size %lu\n", res.size());
+    allResults.insert(allResults.end(), res.begin(), res.end());
+  }
+
+  return allResults;
 }
 } // namespace details
-
 } // namespace cudaq

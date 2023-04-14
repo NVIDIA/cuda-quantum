@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <cudaq/spin_op.h>
+#include "cudaq/spin_op.h"
 
 #include <functional>
 #include <type_traits>
@@ -17,7 +17,6 @@
 #include "common/ExecutionContext.h"
 #include "common/ObserveResult.h"
 #include "cudaq/concepts.h"
-#include "cudaq/platform.h"
 #include "cudaq/platform/quantum_platform.h"
 
 namespace cudaq {
@@ -410,22 +409,29 @@ template <typename QuantumKernel, typename... Args>
   requires ObserveCallValid<QuantumKernel, Args...>
 std::vector<observe_result> observe_n(QuantumKernel &&kernel, spin_op H,
                                       ArgumentSet<Args...> &&params) {
-  std::size_t counter = 0;
-  auto N = std::get<0>(params).size();
-  return details::broadcastFunctionOverArguments(
-      [&](auto &&...args) -> observe_result {
-        auto &platform = cudaq::get_platform();
-        auto shots = platform.get_shots().value_or(-1);
-        auto kernelName = cudaq::getKernelName(kernel);
-        auto ret = details::runObservation(
-                       [&kernel, ... args2 = std::forward<decltype(args)>(
-                                     args)]() mutable { kernel(args2...); },
-                       H, platform, shots, kernelName, 0, nullptr, counter, N)
-                       .value();
-        counter++;
-        return ret;
-      },
-      params);
+  // Get the platform and query the number of qpus
+  auto &platform = cudaq::get_platform();
+  auto numQpus = platform.num_qpus();
+
+  // Create the functor that will broadcast the observations across
+  // all requested argument sets provided.
+  details::BroadcastFunctorType<observe_result, Args...> functor =
+      [&](std::size_t qpuId, std::size_t counter, std::size_t N,
+          Args &...singleIterParameters) -> observe_result {
+    auto shots = platform.get_shots().value_or(-1);
+    auto kernelName = cudaq::getKernelName(kernel);
+    auto ret =
+        details::runObservation(
+            [&kernel, ... args = std::forward<decltype(singleIterParameters)>(
+                          singleIterParameters)]() mutable { kernel(args...); },
+            H, platform, shots, kernelName, qpuId, nullptr, counter, N)
+            .value();
+    return ret;
+  };
+
+  // Broadcast the executions and return the results.
+  return details::broadcastFunctionOverArguments<observe_result, Args...>(
+      numQpus, platform, functor, params);
 }
 
 /// @brief Run the standard observe functionality over a set of N
@@ -441,21 +447,27 @@ template <typename QuantumKernel, typename... Args>
 std::vector<observe_result> observe_n(std::size_t shots, QuantumKernel &&kernel,
                                       spin_op H,
                                       ArgumentSet<Args...> &&params) {
-  std::size_t counter = 0;
-  auto N = std::get<0>(params).size();
-  return details::broadcastFunctionOverArguments(
-      [&](auto &&...args) -> observe_result {
-        // Run this SHOTS times
-        auto &platform = cudaq::get_platform();
-        auto kernelName = cudaq::getKernelName(kernel);
-        auto ret = details::runObservation(
-                       [&kernel, ... args2 = std::forward<decltype(args)>(
-                                     args)]() mutable { kernel(args2...); },
-                       H, platform, shots, kernelName, 0, nullptr, counter, N)
-                       .value();
-        counter++;
-        return ret;
-      },
-      params);
+  // Get the platform and query the number of qpus
+  auto &platform = cudaq::get_platform();
+  auto numQpus = platform.num_qpus();
+
+  // Create the functor that will broadcast the observations across
+  // all requested argument sets provided.
+  details::BroadcastFunctorType<observe_result, Args...> functor =
+      [&](std::size_t qpuId, std::size_t counter, std::size_t N,
+          Args &...singleIterParameters) -> observe_result {
+    auto kernelName = cudaq::getKernelName(kernel);
+    auto ret =
+        details::runObservation(
+            [&kernel, ... args = std::forward<decltype(singleIterParameters)>(
+                          singleIterParameters)]() mutable { kernel(args...); },
+            H, platform, shots, kernelName, qpuId, nullptr, counter, N)
+            .value();
+    return ret;
+  };
+
+  // Broadcast the executions and return the results.
+  return details::broadcastFunctionOverArguments<observe_result, Args...>(
+      numQpus, platform, functor, params);
 }
 } // namespace cudaq

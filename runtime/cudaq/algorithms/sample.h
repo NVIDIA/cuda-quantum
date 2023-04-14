@@ -11,7 +11,6 @@
 #include "common/ExecutionContext.h"
 #include "common/MeasureCounts.h"
 #include "cudaq/concepts.h"
-#include "cudaq/platform.h"
 
 namespace cudaq {
 bool kernelHasConditionalFeedback(const std::string &);
@@ -315,22 +314,29 @@ template <typename QuantumKernel, typename... Args>
   requires SampleCallValid<QuantumKernel, Args...>
 std::vector<sample_result> sample_n(QuantumKernel &&kernel,
                                     ArgumentSet<Args...> &&params) {
-  std::size_t counter = 0;
-  auto N = std::get<0>(params).size();
-  return details::broadcastFunctionOverArguments(
-      [&](auto &&...args) -> sample_result {
-        auto &platform = cudaq::get_platform();
-        auto shots = platform.get_shots().value_or(1000);
-        auto kernelName = cudaq::getKernelName(kernel);
-        auto ret = details::runSampling(
-                       [&kernel, ... args2 = std::forward<decltype(args)>(
-                                     args)]() mutable { kernel(args2...); },
-                       platform, kernelName, shots, 0, nullptr, counter, N)
-                       .value();
-        counter++;
-        return ret;
-      },
-      params);
+  // Get the platform and query the number of qpus
+  auto &platform = cudaq::get_platform();
+  auto numQpus = platform.num_qpus();
+
+  // Create the functor that will broadcast the sampling tasks across
+  // all requested argument sets provided.
+  details::BroadcastFunctorType<sample_result, Args...> functor =
+      [&](std::size_t qpuId, std::size_t counter, std::size_t N,
+          Args &...singleIterParameters) -> sample_result {
+    auto shots = platform.get_shots().value_or(1000);
+    auto kernelName = cudaq::getKernelName(kernel);
+    auto ret =
+        details::runSampling(
+            [&kernel, ... args = std::forward<decltype(singleIterParameters)>(
+                          singleIterParameters)]() mutable { kernel(args...); },
+            platform, kernelName, shots, qpuId, nullptr, counter, N)
+            .value();
+    return ret;
+  };
+
+  // Broadcast the executions and return the results.
+  return details::broadcastFunctionOverArguments<sample_result, Args...>(
+      numQpus, platform, functor, params);
 }
 
 /// @brief Run the standard sample functionality over a set of N
@@ -345,20 +351,27 @@ template <typename QuantumKernel, typename... Args>
   requires SampleCallValid<QuantumKernel, Args...>
 std::vector<sample_result> sample_n(std::size_t shots, QuantumKernel &&kernel,
                                     ArgumentSet<Args...> &&params) {
-  std::size_t counter = 0;
-  auto N = std::get<0>(params).size();
-  return details::broadcastFunctionOverArguments(
-      [&](auto &&...args) -> sample_result {
-        auto &platform = cudaq::get_platform();
-        auto kernelName = cudaq::getKernelName(kernel);
-        auto ret = details::runSampling(
-                       [&kernel, ... args2 = std::forward<decltype(args)>(
-                                     args)]() mutable { kernel(args2...); },
-                       platform, kernelName, shots, 0, nullptr, counter, N)
-                       .value();
-        counter++;
-        return ret;
-      },
-      params);
+  // Get the platform and query the number of qpus
+  auto &platform = cudaq::get_platform();
+  auto numQpus = platform.num_qpus();
+
+  // Create the functor that will broadcast the sampling tasks across
+  // all requested argument sets provided.
+  details::BroadcastFunctorType<sample_result, Args...> functor =
+      [&](std::size_t qpuId, std::size_t counter, std::size_t N,
+          Args &...singleIterParameters) -> sample_result {
+    auto kernelName = cudaq::getKernelName(kernel);
+    auto ret =
+        details::runSampling(
+            [&kernel, ... args = std::forward<decltype(singleIterParameters)>(
+                          singleIterParameters)]() mutable { kernel(args...); },
+            platform, kernelName, shots, qpuId, nullptr, counter, N)
+            .value();
+    return ret;
+  };
+
+  // Broadcast the executions and return the results.
+  return details::broadcastFunctionOverArguments<sample_result, Args...>(
+      numQpus, platform, functor, params);
 }
 } // namespace cudaq
