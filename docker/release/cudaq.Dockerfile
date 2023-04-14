@@ -53,7 +53,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 python3-pip libpython3-dev \
-        libstdc++-11-dev \
+        libstdc++-12-dev \
         libcurl4-openssl-dev libssl-dev \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && python3 -m pip install --no-cache-dir numpy \
