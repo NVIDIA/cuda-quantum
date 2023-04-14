@@ -16,8 +16,8 @@
 
 #include "common/ExecutionContext.h"
 #include "common/ObserveResult.h"
+#include "cudaq/algorithms/broadcast.h"
 #include "cudaq/concepts.h"
-#include "cudaq/platform/quantum_platform.h"
 
 namespace cudaq {
 

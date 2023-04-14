@@ -10,6 +10,7 @@
 
 #include "common/ExecutionContext.h"
 #include "common/MeasureCounts.h"
+#include "cudaq/algorithms/broadcast.h"
 #include "cudaq/concepts.h"
 
 namespace cudaq {
