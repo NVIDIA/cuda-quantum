@@ -22,6 +22,12 @@ macro (nvqir_create_cusv_plugin LIBRARY_NAME SOURCE_FILENAME)
     set (CUSTATEVEC_LIBDIR lib64)
   endif()
 
+  if(CUDA_MAJOR)
+    if (EXISTS ${CUSTATEVEC_ROOT}/${CUSTATEVEC_LIBDIR}/${CUDA_MAJOR})
+      set (CUSTATEVEC_LIBDIR ${CUSTATEVEC_LIBDIR}/${CUDA_MAJOR})
+    endif()
+  endif()
+
   target_link_libraries(${LIBRARY_NAME} PRIVATE fmt::fmt-header-only cudaq-common
                 ${CUSTATEVEC_ROOT}/${CUSTATEVEC_LIBDIR}/libcustatevec_static.a
                 ${CUDA_LIBRARIES} cublas )
