@@ -21,19 +21,22 @@ might extend it for new types of simulation.
 CircuitSimulator
 ----------------
 
-The :code:`CircuitSimulator` type is defined in :code:`runtime/nvqir/CircuitSimulator.h`. 
-It handles a lot of the base functionality required for allocating and deallocated qubits, 
+The :code:`CircuitSimulator` type is defined in :code:`runtime/nvqir/CircuitSimulator.h`. It
+exposes a public API to `libnvqir` that is immediately subclassed in the :code:`CircuitSimulatorBase` 
+type. This type is templated on the floating point type used in the simulator's computations (e.g. :code:`double,float`).
+This templated type handles a lot of the base functionality required for allocating and deallocated qubits, 
 as well as measurement, sampling, and observation under a number of execution contexts. 
+This is the type that downstream simulation developers should extend. 
 
 Actual definition of the quantum state data structure, and its overall evolution are 
-left as tasks for subclasses. Examples of simulation subtypes can be found 
+left as tasks for :code:`CircuitSimulatorBase` subclasses. Examples of simulation subtypes can be found 
 in :code:`runtime/nvqir/qpp/QppCircuitSimulator.cpp` or :code:`runtime/nvqir/custatevec/CuStateVecCircuitSimulator.cpp`.
 The :code:`QppCircuitSimulator` models the state vector using the `Q++ <https://github.com/softwareqinc/qpp>`_ library, which 
-boils down to an :code:`Eigen::Matrix` type and leverages OpenMP threading for matrix-vector operations. 
+leverages the :code:`Eigen::Matrix` type and OpenMP threading for matrix-vector operations. 
 The :code:`CuStateVecCircuitSimulator` type models the state vector on an NVIDIA GPU device 
 by leveraging the cuQuantum library. 
 
-The key methods that need to be overridden by subtypes of :code:`CircuitSimulator` are as follows:
+The key methods that need to be overridden by subtypes of :code:`CircuitSimulatorBase` are as follows:
 
 .. list-table:: Required Circuit Simulator Subtype Method Overrides
 
@@ -43,15 +46,18 @@ The key methods that need to be overridden by subtypes of :code:`CircuitSimulato
     * - :code:`addQubitToState`
       - :code:`void` 
       - Add a qubit to the underlying state representation.
+    * - :code:`addQubitsToState`
+      - :code:`nQubits : std::size_t` 
+      - Add the specified number of qubits to the underlying state representation.
     * - :code:`resetQubit`
       - :code:`qubitIdx : std::size_t`
       - Reset the state of the qubit at the given index to :code:`|0>`
     * - :code:`resetQubitStateImpl`
       - :code:`void` 
       - Clear the entire state representation (reset to 0 qubits).
-    * - Quantum Operation Methods
-      - varies per overload - target qubit index, control qubit index (indices), rotation parameters
-      - Apply the unitary described by the operation with given method name. (e.g. h(qubitIdx), apply hadamard on qubit with index qubitIdx)  
+    * - :code:`applyGate`
+      - :code:`task : GateApplicationTask`
+      - Apply the specified gate described by the :code:`GateApplicationTask`. This type encodes the control and target qubit indices, optional rotational parameters, and the gate matrix data. 
     * - :code:`measureQubit`
       - :code:`qubitIdx : std::size_t -> bool` (returns bit result as bool)
       - Measure the qubit, produce a bit result, collapse the state.
@@ -63,7 +69,7 @@ The key methods that need to be overridden by subtypes of :code:`CircuitSimulato
       - Return the name of this CircuitSimulator, must be the same as the name used in :code:`nvq++ -qpu NAME ...`
 
 The strategy for extending this class is to create a new :code:`cpp` implementation file with the same name as your 
-subtype class name. In this file, you will subclass the :code:`CircuitSimulator` and implement the methods in 
+subtype class name. In this file, you will subclass the :code:`CircuitSimulatorBase<FloatType>` and implement the methods in 
 the above table. Finally, the subclass must be registered with the NVQIR library so that it 
 can be picked up and used when a user specifies :code:`nvq++ -qpu mySimulator ...` from the command line (or :code:`cudaq.set_qpu('mySimulator')` in Python.)
 Type registration can be performed with a provided NVQIR macro 
@@ -115,70 +121,35 @@ and then fill out your :code:`MySimulator.cpp` file with your subtype implementa
 
     namespace {
 
-      class MySimulator : public nvqir::CircuitSimulator {
+      class MySimulator : public nvqir::CircuitSimulatorBase<double> {
 
       protected:
         /// @brief Grow the state vector by one qubit.
         void addQubitToState() override { ... }
 
+        /// @brief Grow the state vector by `count` qubit.
+        void addQubitsToState(std::size_t count) override { ... }
+
         /// @brief Reset the qubit state.
         void resetQubitStateImpl() override { ... }
+
+        /// @brief Apply the given gate
+        void applyGate(const GateApplicationTask &task) override { ... }
 
       public:
         MySimulator() = default;
         virtual ~MySimulator() = default;
+        
+        bool measureQubit(std::size_t qubitIdx) override { ... }
 
-      /// The one-qubit overrides
-      #define ONE_QUBIT_METHOD_OVERRIDE(NAME)                                        \
-        using CircuitSimulator::NAME;                                                \
-        virtual void NAME(std::vector<std::size_t> &controls, std::size_t &qubitIdx) \
-            override { ... }
+        void resetQubit(std::size_t &qubitIdx) override { ... }
 
-      ONE_QUBIT_METHOD_OVERRIDE(x)
-      ONE_QUBIT_METHOD_OVERRIDE(y)
-      ONE_QUBIT_METHOD_OVERRIDE(z)
-      ONE_QUBIT_METHOD_OVERRIDE(h)
-      ONE_QUBIT_METHOD_OVERRIDE(s)
-      ONE_QUBIT_METHOD_OVERRIDE(t)
-      ONE_QUBIT_METHOD_OVERRIDE(sdg)
-      ONE_QUBIT_METHOD_OVERRIDE(tdg)
-
-      /// The one-qubit parameterized overrides
-      #define ONE_QUBIT_ONE_PARAM_METHOD_OVERRIDE(NAME)                         \
-      using CircuitSimulator::NAME;                                             \
-      virtual void NAME(double &angle, std::vector<std::size_t> &controls,      \
-                       std::size_t &qubitIdx) override { ... }
-
-      ONE_QUBIT_ONE_PARAM_METHOD_OVERRIDE(rx)
-      ONE_QUBIT_ONE_PARAM_METHOD_OVERRIDE(ry)
-      ONE_QUBIT_ONE_PARAM_METHOD_OVERRIDE(rz)
-      ONE_QUBIT_ONE_PARAM_METHOD_OVERRIDE(r1)
-      ONE_QUBIT_ONE_PARAM_METHOD_OVERRIDE(u1)
-
-      /// @brief U2 operation
-      using CircuitSimulator::u2;
-      void u2(double &phi, double &lambda, std::vector<std::size_t> &controls,
-          std::size_t &qubitIdx) override { ... }
-
-      /// @brief U3 operation
-      using CircuitSimulator::u3;
-      void u3(double &theta, double &phi, double &lambda,
-          std::vector<std::size_t> &controls, std::size_t &qubitIdx) override { ... }
-
-      /// @brief Swap operation
-      using CircuitSimulator::swap;
-      void swap(std::vector<std::size_t> &ctrlBits, std::size_t &srcIdx,
-            std::size_t &tgtIdx) override { ... }
-
-      bool measureQubit(std::size_t qubitIdx) override { ... }
-
-      void resetQubit(std::size_t &qubitIdx) override { ... }
-
-      cudaq::SampleResult sample(std::vector<std::size_t> &measuredBits,
+        cudaq::SampleResult sample(std::vector<std::size_t> &measuredBits,
                               int shots) override { ... }
 
-      const std::string_view name() const override { return "MySimulator"; }
-    };
+        const std::string_view name() const override { return "MySimulator"; }
+      
+      };
 
     } // namespace
 
@@ -189,6 +160,7 @@ To build, install, and use this simulation backend, run the following from the t
 
 .. code:: bash 
 
+    export CUDA_QUANTUM_PATH=/path/to/cuda_quantum/install
     mkdir build && cd build 
     cmake .. -G Ninja -DNVQIR_DIR="$CUDA_QUANTUM_PATH/lib/cmake/nvqir"
     ninja install 
