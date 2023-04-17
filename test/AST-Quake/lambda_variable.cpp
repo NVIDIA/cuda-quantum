@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 // RUN: cudaq-quake %s | FileCheck %s
-// XFAIL: *
 
 // Test lambdas that are created within kernels and passed to user-defined
 // kernels as an argument. Since the lambda is an argument, it is not possible

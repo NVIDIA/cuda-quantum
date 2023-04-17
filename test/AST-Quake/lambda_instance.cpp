@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 // RUN: cudaq-quake %s | FileCheck %s
-// XFAIL: *
 
 // Test lambdas that are created within kernels and passed to both predefined
 // kernels and user-defined kernels.
