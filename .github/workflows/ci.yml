@@ -57,6 +57,7 @@ jobs:
     uses: ./.github/workflows/test_in_devenv.yml
     with:
       devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}', matrix.toolchain)] }}
+      tar_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}', matrix.toolchain)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
   docker_image:
@@ -65,3 +66,4 @@ jobs:
     uses: ./.github/workflows/build_packages.yml
     with:
       devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key.gcc12 }}
+      tar_archive: ${{ fromJson(needs.config.outputs.json).tar_archive.gcc12 }}

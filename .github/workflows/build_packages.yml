@@ -4,6 +4,9 @@ on:
       devdeps_cache:
         required: true
         type: string
+      tar_archive:
+        required: true
+        type: string
 
 name: CUDA Quantum Packages
 
@@ -16,6 +19,7 @@ jobs:
 
     outputs:
       cudaqdev_cache: ${{ steps.cudaq_build.outputs.cudaqdev_cache }}
+      cudaqdev_tarfile: ${{ steps.cudaq_build.outputs.cudaqdev_tarfile }}
 
     steps:
       - name: Checkout repository
@@ -24,14 +28,14 @@ jobs:
       - name: Restore environment
         uses: actions/cache/restore@v3
         with:
-          path: /tmp/devdeps.tar
+          path: ${{ inputs.tar_archive }}
           key: ${{ inputs.devdeps_cache }}
           fail-on-cache-miss: true
 
       - name: Build CUDA Quantum
         id: cudaq_build
         run: |
-          loaded=`docker load --input /tmp/devdeps.tar | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+          loaded=`docker load --input ${{ inputs.tar_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
           devdeps_image=`echo $loaded | cut -d ":" -f 1`
           devdeps_tag=`echo $loaded | cut -d ":" -f 2`
 
@@ -39,15 +43,18 @@ jobs:
             --build-arg build_environment=$devdeps_image --build-arg env_tag=$devdeps_tag \
             --build-arg install="CMAKE_BUILD_TYPE=Release" \
 
-          docker save cuda-quantum-dev:local > /tmp/cudaqdev.tar
+          cudaqdev_tarfile=/images/cudaqdev.tar
+          docker save cuda-quantum-dev:local > $cudaqdev_tarfile
           tag_prefix=`echo $devdeps_tag | cut -d "_" -f 1`
           cudaqdev_cache=tar-cudaqdev-${tag_prefix}-${{ github.sha }}
+
           echo "cudaqdev_cache=$cudaqdev_cache" >> $GITHUB_OUTPUT
+          echo "cudaqdev_tarfile=$cudaqdev_tarfile" >> $GITHUB_OUTPUT
 
       - name: Cache cuda-quantum-dev image
         uses: actions/cache/save@v3
         with:
-          path: /tmp/cudaqdev.tar
+          path: ${{ steps.cudaq_build.outputs.cudaqdev_tarfile }}
           key: ${{ steps.cudaq_build.outputs.cudaqdev_cache }}
 
   docker_image:
@@ -64,13 +71,13 @@ jobs:
       - name: Restore release build
         uses: actions/cache/restore@v3
         with:
-          path: /tmp/cudaqdev.tar
+          path: ${{ needs.release_build.outputs.cudaqdev_tarfile }}
           key: ${{ needs.release_build.outputs.cudaqdev_cache }}
           fail-on-cache-miss: true
 
       - name: Build cuda-quantum image
         run: |
-          docker load --input /tmp/cudaqdev.tar
+          docker load --input ${{ needs.release_build.outputs.cudaqdev_tarfile }}
           docker build -t cuda-quantum:latest -f docker/release/cudaq.Dockerfile . \
             --build-arg dev_image=cuda-quantum-dev --build-arg dev_tag=local
 
@@ -103,13 +110,13 @@ jobs:
       - name: Restore release build
         uses: actions/cache/restore@v3
         with:
-          path: /tmp/cudaqdev.tar
+          path: ${{ needs.release_build.outputs.cudaqdev_tarfile }}
           key: ${{ needs.release_build.outputs.cudaqdev_cache }}
           fail-on-cache-miss: true
 
       - name: Build documentation
         run: |
-          docker load --input /tmp/cudaqdev.tar
+          docker load --input ${{ needs.release_build.outputs.cudaqdev_tarfile }}
           docker run --rm -dit --name cuda-quantum-dev cuda-quantum-dev:local
           (docker exec cuda-quantum-dev bash scripts/build_docs.sh && built=true) || built=false
           if $built; then docker cp cuda-quantum-dev:"/usr/local/cudaq/docs/." /tmp/docs; \

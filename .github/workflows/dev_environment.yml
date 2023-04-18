@@ -29,6 +29,9 @@ on:
       cache_key:
         description: "The cache key to retrieve a tar archive containing the built image(s)."
         value: ${{ jobs.finalize.outputs.tar_cache }}
+      tar_archive:
+        description: "The location of the tar archive in the cache."
+        value: ${{ jobs.finalize.outputs.tar_archive }}
 
 name: CUDA Quantum cached dev images
 
@@ -102,6 +105,7 @@ jobs:
 
     outputs:
       tar_cache: ${{ steps.cache.outputs.tar_cache }}
+      tar_archive: ${{ steps.cache.outputs.tar_archive }}
 
     steps:
       - name: Checkout repository
@@ -130,6 +134,7 @@ jobs:
           echo "cache_from_registry=$cache_from_registry" >> $GITHUB_OUTPUT
           echo "cache_to_destination=$cache_to_destination" >> $GITHUB_OUTPUT
           echo "tar_cache=tar-${cache_id}-${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "tar_archive=/images/${{ needs.metadata.outputs.image_id }}.tar >> $GITHUB_OUTPUT
 
       - name: Log in to GitHub CR
         uses: docker/login-action@v2
@@ -158,12 +163,12 @@ jobs:
             ${{ steps.cache.outputs.cache_from_registry }}
           cache-to: |
             ${{ steps.cache.outputs.cache_to_destination }}
-          outputs: type=docker,dest=/tmp/${{ needs.metadata.outputs.image_id }}.tar
+          outputs: type=docker,dest=${{ steps.cache.outputs.tar_archive }}
 
       - name: Cache ${{ needs.metadata.outputs.image_title }} image
         uses: actions/cache/save@v3
         with:
-          path: /tmp/${{ needs.metadata.outputs.image_id }}.tar
+          path: ${{ steps.cache.outputs.tar_archive }}
           key: ${{ steps.cache.outputs.tar_cache }}
 
   deployment:
@@ -184,7 +189,7 @@ jobs:
       - name: Load tar cache
         uses: actions/cache/restore@v3
         with:
-          path: /tmp/${{ needs.metadata.outputs.image_id }}.tar
+          path: ${{ needs.build.outputs.tar_archive }}
           key: ${{ needs.build.outputs.tar_cache }}
           fail-on-cache-miss: true
 
@@ -201,7 +206,7 @@ jobs:
         run: |
           # Note that this may change the digest compared to the digest produced during build
           # (the saved docker format has its own manifest that doesn't necessarily have the same bit-by-bit format...)
-          docker load --input /tmp/${{ needs.metadata.outputs.image_id }}.tar
+          docker load --input ${{ needs.build.outputs.tar_archive }}
           docker push ${{ needs.metadata.outputs.image_name }} --all-tags
           digests=`docker images ${{ needs.metadata.outputs.image_name }} --digests --format '{{.Digest}}'`
           echo "digest=$digests" >> $GITHUB_OUTPUT
@@ -235,3 +240,4 @@ jobs:
             image_name: ${{ needs.metadata.outputs.image_name }}
             digest: ${{ needs.deployment.outputs.digest }}
             cache_key: ${{ needs.build.outputs.tar_cache }}
+            tar_archive: ${{ needs.build.outputs.tar_archive }}
