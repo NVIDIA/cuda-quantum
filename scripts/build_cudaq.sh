@@ -131,7 +131,6 @@ cmake_args="-G Ninja "$repo_root" \
   -DNVQPP_LD_PATH="$NVQPP_LD_PATH" \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-  -DCUDA_MAJOR="$cuda_major" \
   -DCUDAQ_ENABLE_PYTHON=TRUE \
   -DLLVM_BUILD_UTILS=ON \
   -DCMAKE_EXE_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
