@@ -99,7 +99,7 @@ ENV PATH="$PATH:$LLVM_INSTALL_PREFIX/bin/"
 
 # Install the C++ standard library. We could alternatively build libc++ 
 # as part of the LLVM build and compile against that instead of libstdc++.
-RUN apt-get update && apt-get install -y --no-install-recommends libstdc++-11-dev \
+RUN apt-get update && apt-get install -y --no-install-recommends libstdc++-12-dev \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:/usr/include/c++/11/:/usr/include/x86_64-linux-gnu/c++/11"
 
