@@ -69,7 +69,8 @@ public:
   /// Return the next available qudit index
   virtual std::size_t getAvailableIndex(std::size_t quditLevels = 2) = 0;
 
-  /// QuditInfo has been deallocated, return the qudit / id to the pool of qudits.
+  /// QuditInfo has been deallocated, return the qudit / id to the pool of
+  /// qudits.
   virtual void returnQudit(const QuditInfo &q) = 0;
 
   /// Checker for qudits that were not deallocated
@@ -85,10 +86,9 @@ public:
   /// target qudits. Supports input of control qudits and rotational parameters.
   virtual void apply(const std::string_view gateName,
                      const std::vector<double> &&params,
-                     std::span<QuditInfo> controls,
-                     std::span<QuditInfo> targets,
+                     const std::vector<QuditInfo> &controls,
+                     const std::vector<QuditInfo> &targets,
                      bool isAdjoint = false) = 0;
-
 
   virtual void resetQudit(const QuditInfo &id) = 0;
 
@@ -99,9 +99,10 @@ public:
 
   /// Start a region of code where all operations will be
   /// controlled on the given qudits.
-  virtual void startCtrlRegion(std::vector<std::size_t> &control_qubits) = 0;
+  virtual void
+  startCtrlRegion(const std::vector<std::size_t> &control_qubits) = 0;
   /// End the control region
-  virtual void endCtrlRegion(const std::size_t n_controls) = 0;
+  virtual void endCtrlRegion(std::size_t n_controls) = 0;
 
   /// Measure the qudit and return the observed state (0,1,2,3,...)
   /// e.g. for qudits, this can return 0 or 1;

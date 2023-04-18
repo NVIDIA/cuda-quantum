@@ -163,9 +163,10 @@ protected:
     auto [gateName, p, c, q] = instruction;
 
     std::vector<Qubit *> qqs;
-    std::transform(
-        q.begin(), q.end(), std::back_inserter(qqs),
-        [&, qqs](const cudaq::QuditInfo &q) mutable { return qubits[q.second]; });
+    std::transform(q.begin(), q.end(), std::back_inserter(qqs),
+                   [&, qqs](const cudaq::QuditInfo &q) mutable {
+                     return qubits[q.second];
+                   });
 
     auto ctmp = vectorToArray(c);
 

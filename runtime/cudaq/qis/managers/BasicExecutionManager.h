@@ -180,7 +180,8 @@ public:
     }
   }
 
-  void startCtrlRegion(std::vector<std::size_t> &control_qubits) override {
+  void
+  startCtrlRegion(const std::vector<std::size_t> &control_qubits) override {
     for (auto &c : control_qubits) {
       extraControlIds.push_back(c);
     }
@@ -195,8 +196,8 @@ public:
   /// instruction queue (a tuple).
   void apply(const std::string_view gateName,
              const std::vector<double> &&params,
-             std::span<cudaq::QuditInfo> controls,
-             std::span<cudaq::QuditInfo> targets,
+             const std::vector<cudaq::QuditInfo> &controls,
+             const std::vector<cudaq::QuditInfo> &targets,
              bool isAdjoint = false) override {
     cudaq::ScopedTrace trace("BasicExecution::apply", gateName, params,
                              controls, targets, isAdjoint);

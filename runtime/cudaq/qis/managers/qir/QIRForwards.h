@@ -7,8 +7,8 @@
  *******************************************************************************/
 #pragma once
 
-#include <cstdint>
 #include "common/ExecutionContext.h"
+#include <cstdint>
 
 // Define some stubs for the QIR opaque types
 class Array;

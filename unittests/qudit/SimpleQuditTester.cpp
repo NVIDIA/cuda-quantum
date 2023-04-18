@@ -10,16 +10,15 @@
 
 #include "cudaq.h"
 
-/// This following functions form a primitive default 
-/// instruction set for this simple qudit execution manager. 
-/// You could imagine these in their own header file, like we do 
+/// This following functions form a primitive default
+/// instruction set for this simple qudit execution manager.
+/// You could imagine these in their own header file, like we do
 /// for qubit_qis.h
 
 // Plus Gate : U|0> -> |1>, U|1> -> |2>, and U|2> -> |0>
 void plusGate(cudaq::qudit<3> &q) {
   auto em = cudaq::getExecutionManager();
-  std::array<cudaq::QuditInfo, 1> tmp{std::make_pair(q.n_levels(), q.id())};
-  em->apply("plusGate", {}, {}, tmp);
+  em->apply("plusGate", {}, {}, {std::make_pair(q.n_levels(), q.id())});
 }
 
 int mz(cudaq::qudit<3> &q) {
@@ -59,7 +58,6 @@ TEST(SimpleQuditTester, checkSimple) {
   auto res = test{}();
   EXPECT_EQ(res[0], 1);
   EXPECT_EQ(res[1], 2);
- 
 
   cudaq::sample(test2{});
 }
