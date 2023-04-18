@@ -100,7 +100,6 @@ jobs:
     name: Caching
     runs-on: ubuntu-latest
     needs: metadata
-    timeout-minutes: 600
     permissions:
       contents: read
 
