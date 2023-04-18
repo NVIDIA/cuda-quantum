@@ -7,8 +7,9 @@
 # ============================================================================ #
 
 # This file extends the CUDA Quantum development dependencies to include the necessary 
-# dependencies for GPU components and backends. This image include a CUDA and OpenMPI
-# installation.
+# dependencies for GPU components and backends. This image include an OpenMPI
+# installation as well as the configured CUDA packages. Which CUDA packages are 
+# included is defined by the cuda_packages argument. 
 #
 # Usage:
 # Must be built from the repo root with:
@@ -278,9 +279,13 @@ ENV LD_LIBRARY_PATH="$CUTENSOR_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
 
 # Install CUDA 11.8.
 
+# cuda-compiler-11-8 cuda-cudart-11-8 cuda-cccl-11-8
+# cuda-cudart-dev-11-8
+# cuda-command-line-tools-11-8n
+ARG cuda_packages=cuda-cudart-11-8
 RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.0-1_all.deb \
     && dpkg -i cuda-keyring_1.0-1_all.deb \
-    && apt-get update && apt-get install -y --no-install-recommends cuda-11-8 \
+    && apt-get update && apt-get install -y --no-install-recommends $cuda_packages \
     && rm cuda-keyring_1.0-1_all.deb \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
