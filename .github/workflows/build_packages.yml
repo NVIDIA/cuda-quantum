@@ -4,8 +4,11 @@ on:
       devdeps_cache:
         required: true
         type: string
-      tar_archive:
+      devdeps_archive:
         required: true
+        type: string
+      environment:
+        required: false
         type: string
 
 name: CUDA Quantum Packages
@@ -28,14 +31,14 @@ jobs:
       - name: Restore environment
         uses: actions/cache/restore@v3
         with:
-          path: ${{ inputs.tar_archive }}
+          path: ${{ inputs.devdeps_archive }}
           key: ${{ inputs.devdeps_cache }}
           fail-on-cache-miss: true
 
       - name: Build CUDA Quantum
         id: cudaq_build
         run: |
-          loaded=`docker load --input ${{ inputs.tar_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+          loaded=`docker load --input ${{ inputs.devdeps_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
           devdeps_image=`echo $loaded | cut -d ":" -f 1`
           devdeps_tag=`echo $loaded | cut -d ":" -f 2`
 
@@ -64,6 +67,10 @@ jobs:
     permissions:
       contents: read
 
+    outputs:
+      tar_cache: ${{ steps.cudaq_image.outputs.tar_cache }}
+      tar_archive: ${{ steps.cudaq_image.outputs.tar_archive }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -76,14 +83,32 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Build cuda-quantum image
+        id: cudaq_image
         run: |
+          repo_owner=${{ github.repository_owner }}
+          image_name=${{ vars.registry || 'ghcr.io' }}/${repo_owner,,}/cuda-quantum
+          image_tag=${{ github.ref_name }}-latest
+          tar_archive=/images/cuda-quantum.tar
+
           docker load --input ${{ needs.release_build.outputs.cudaqdev_tarfile }}
-          docker build -t cuda-quantum:latest -f docker/release/cudaq.Dockerfile . \
+          docker build -t $image_name:$image_tag -f docker/release/cudaq.Dockerfile . \
             --build-arg dev_image=cuda-quantum-dev --build-arg dev_tag=local
+          docker save $image_name:$image_tag > $tar_archive
+
+          echo "image_name=$image_name" >> $GITHUB_OUTPUT
+          echo "image_tag=$image_tag" >> $GITHUB_OUTPUT
+          echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
+          echo "tar_cache=tar-cuda-quantum-${{ github.sha }}"
+
+      - name: Cache cuda-quantum image
+        uses: actions/cache/save@v3
+        with:
+          path: ${{ steps.cudaq_image.outputs.tar_archive }}
+          key: ${{ steps.cudaq_image.outputs.tar_cache }}
 
       - name: Validate cuda-quantum image
         run: |
-          docker run --rm -dit --name cuda-quantum cuda-quantum:latest
+          docker run --rm -dit --name cuda-quantum ${{ steps.cudaq_image.outputs.image_name }}:${{ steps.cudaq_image.outputs.image_tag }}
           docker cp scripts/validate_container.sh cuda-quantum:"/home/cudaq/validate_container.sh"
           docker exec -e TERM=xterm cuda-quantum bash validate_container.sh > /tmp/validation.out
           docker stop cuda-quantum
@@ -95,6 +120,16 @@ jobs:
           echo '```text' >> $GITHUB_STEP_SUMMARY
           cat /tmp/validation.out >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
+
+  deployment:
+    name: Deployment
+    if: inputs.environment
+    needs: docker_image
+    uses: ./.github/workflows/deploy_to_registry.yml
+    with:
+      environment: ${{ inputs.environment }}
+      cache_key: ${{ needs.docker_image.outputs.tar_cache }}
+      tar_archive: ${{ needs.docker_image.outputs.tar_archive }}
 
   documentation:
     name: Documentation

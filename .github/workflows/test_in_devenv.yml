@@ -4,7 +4,7 @@ on:
       devdeps_cache:
         required: true
         type: string
-      tar_archive:
+      devdeps_archive:
         required: true
         type: string
       export_environment:
@@ -27,14 +27,14 @@ jobs:
       - name: Restore environment
         uses: actions/cache/restore@v3
         with:
-          path: ${{ inputs.tar_archive }}
+          path: ${{ inputs.devdeps_archive }}
           key: ${{ inputs.devdeps_cache }}
           fail-on-cache-miss: true
 
       - name: Build CUDA Quantum
         id: cudaq_build
         run: |
-          loaded=`docker load --input ${{ inputs.tar_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+          loaded=`docker load --input ${{ inputs.devdeps_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
           devdeps_image=`echo $loaded | cut -d ":" -f 1`
           devdeps_tag=`echo $loaded | cut -d ":" -f 2`
 

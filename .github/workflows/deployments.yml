@@ -51,3 +51,12 @@ jobs:
       dockerfile: build/devdeps.ext.Dockerfile
       base_image: ${{ fromJson(needs.config.outputs.json).image_name.gcc12 }}@${{ fromJson(needs.config.outputs.json).digest.gcc12 }}
       environment: ghcr-deployment
+
+  docker_image:
+    name: Create Packages
+    needs: extdevdeps
+    uses: ./.github/workflows/build_packages.yml
+    with:
+      devdeps_cache: ${{ needs.extdevdeps.outputs.cache_key }}
+      devdeps_archive: ${{ needs.extdevdeps.outputs.tar_archive }}
+      environment: ghcr-deployment

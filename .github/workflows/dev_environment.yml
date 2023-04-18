@@ -174,50 +174,12 @@ jobs:
   deployment:
     name: Deployment
     if: inputs.environment
-    runs-on: ubuntu-latest
-    needs: [metadata, build]
-    permissions: write-all
-
-    outputs:
-      digest: ${{ steps.push_image.outputs.digest }}
-
-    environment:
-      name: ${{ inputs.environment }}
-      url: ${{ vars.deployment_url }}
-
-    steps:
-      - name: Load tar cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ needs.build.outputs.tar_archive }}
-          key: ${{ needs.build.outputs.tar_cache }}
-          fail-on-cache-miss: true
-
-      - name: Log in to the container registry
-        uses: docker/login-action@v2
-        if: vars.registry != ''
-        with:
-          registry: ${{ vars.registry }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Push ${{ needs.metadata.outputs.image_title }} image
-        id: push_image
-        run: |
-          # Note that this may change the digest compared to the digest produced during build
-          # (the saved docker format has its own manifest that doesn't necessarily have the same bit-by-bit format...)
-          docker load --input ${{ needs.build.outputs.tar_archive }}
-          docker push ${{ needs.metadata.outputs.image_name }} --all-tags
-          digests=`docker images ${{ needs.metadata.outputs.image_name }} --digests --format '{{.Digest}}'`
-          echo "digest=$digests" >> $GITHUB_OUTPUT
-
-      - name: Clean up
-        run: |
-          gh extension install actions/gh-actions-cache
-          echo "Deleting cache $key"
-          gh actions-cache delete ${{ needs.build.outputs.tar_cache }} -R ${{ github.repository }} --confirm
-        env:
-          GH_TOKEN: ${{ github.token }}
+    needs: build
+    uses: ./.github/workflows/deploy_to_registry.yml
+    with:
+      environment: ${{ inputs.environment }}
+      cache_key: ${{ needs.build.outputs.tar_cache }}
+      tar_archive: ${{ needs.build.outputs.tar_archive }}
 
   finalize:
     name: Finalize
