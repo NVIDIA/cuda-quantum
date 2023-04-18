@@ -41,15 +41,13 @@ jobs:
 
     outputs:
       dockerfile: ${{ steps.build_info.outputs.dockerfile }}
+      owner: ${{ steps.build_info.outputs.owner }}
       image_name: ${{ steps.build_info.outputs.image_name }}
       image_title: ${{ steps.build_info.outputs.image_title }}
       image_id: ${{ steps.build_info.outputs.image_id }}
       image_tags: ${{ steps.metadata.outputs.tags }}
       image_labels: ${{ steps.metadata.outputs.labels }}
       llvm_commit: ${{ steps.build_info.outputs.llvm_commit }}
-      cache_target: ${{ steps.build_info.outputs.cache_target }}
-      cache_base: ${{ steps.build_info.outputs.cache_base }}
-      cache_id: ${{ steps.build_info.outputs.cache_id }}
 
     steps:
       - name: Checkout repository
@@ -72,10 +70,8 @@ jobs:
           echo "tag_prefix=$tag_prefix" >> $GITHUB_OUTPUT
           echo "tag_suffix=$tag_suffix" >> $GITHUB_OUTPUT
           echo "dockerfile=${{ inputs.dockerfile }}" >> $GITHUB_OUTPUT
+          echo "owner=${repo_owner,,}" >> $GITHUB_OUTPUT
           echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
-          echo "cache_base=${{ github.event.pull_request.base.ref || 'main' }}" >> $GITHUB_OUTPUT
-          echo "cache_target=${{ inputs.cache_location || github.ref_name }}" >> $GITHUB_OUTPUT
-          echo "cache_id=$(echo $image_id | tr . -)${toolchain:+-$toolchain}" >> $GITHUB_OUTPUT
 
       - name: Extract metadata for Docker image
         id: metadata
@@ -102,6 +98,7 @@ jobs:
     needs: metadata
     permissions:
       contents: read
+      packages: write
 
     outputs:
       tar_cache: ${{ steps.cache.outputs.tar_cache }}
@@ -112,6 +109,35 @@ jobs:
 
       - name: Set up buildx runner
         uses: docker/setup-buildx-action@v2
+
+      - name: Create cache locations
+        id: cache
+        run: |
+          cache_id=$(echo ${{ needs.metadata.outputs.image_id }} | tr . -)${toolchain:+-$toolchain}
+          cache_target=${{ inputs.cache_location || github.ref_name }}
+          cache_base=${{ github.event.pull_request.base.ref || 'main' }}
+          registry_cache=ghcr.io/${{ needs.metadata.outputs.owner }}/buildcache-cuda-quantum
+
+          cache_from_gha="type=gha,scope=${cache_target}-cuda-quantum-${cache_id}"
+          cache_from_registry="type=registry,ref=${registry_cache}-${cache_id}:${cache_base}"
+          if ${{ inputs.environment == 'ghcr-deployment' }}; then
+            cache_to_destination="type=registry,mode=max,ref=${registry_cache}-${cache_id}:${cache_target}"
+          else
+            cache_to_destination="type=gha,mode=max,scope=${cache_target}-cuda-quantum-${cache_id}"
+          fi
+
+          echo "cache_from_gha=$cache_from_gha" >> $GITHUB_OUTPUT
+          echo "cache_from_registry=$cache_from_registry" >> $GITHUB_OUTPUT
+          echo "cache_to_destination=$cache_to_destination" >> $GITHUB_OUTPUT
+          echo "tar_cache=tar-${cache_id}-${{ github.sha }}" >> $GITHUB_OUTPUT
+
+      - name: Log in to GitHub CR
+        uses: docker/login-action@v2
+        if: inputs.environment == 'ghcr-deployment'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build ${{ needs.metadata.outputs.image_title }} image
         id: build_image
@@ -128,17 +154,11 @@ jobs:
           labels: ${{ needs.metadata.outputs.image_labels }}
           platforms: linux/amd64
           cache-from: |
-            type=gha,scope=${{ needs.metadata.outputs.cache_target }}-cuda-quantum-${{ needs.metadata.outputs.cache_id }}
-            type=gha,scope=${{ needs.metadata.outputs.cache_base }}-cuda-quantum-${{ needs.metadata.outputs.cache_id }}
-            type=registry,ref=${{ needs.metadata.outputs.image_name }}:${{ steps.build_info.outputs.tag_prefix }}${{ needs.metadata.outputs.cache_base }}${{ steps.build_info.outputs.tag_suffix }}
+            ${{ steps.cache.outputs.cache_from_gha }}
+            ${{ steps.cache.outputs.cache_from_registry }}
           cache-to: |
-            type=gha,mode=max,scope=${{ needs.metadata.outputs.cache_target }}-cuda-quantum-${{ needs.metadata.outputs.cache_id }}
+            ${{ steps.cache.outputs.cache_to_destination }}
           outputs: type=docker,dest=/tmp/${{ needs.metadata.outputs.image_id }}.tar
-
-      - name: Create cache location
-        id: cache
-        run: |
-          echo "tar_cache=tar-${{ needs.metadata.outputs.cache_id }}-${{ github.sha }}" >> $GITHUB_OUTPUT
 
       - name: Cache ${{ needs.metadata.outputs.image_title }} image
         uses: actions/cache/save@v3

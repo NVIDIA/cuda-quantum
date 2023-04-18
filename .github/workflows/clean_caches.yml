@@ -46,7 +46,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
   pr_cleanup:
-    name: Clean up PR related build caches
+    name: Clean up PR related GitHub caches
     if: github.event_name == 'pull_request_target'
     permissions: write-all
     runs-on: ubuntu-latest
