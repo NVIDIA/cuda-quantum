@@ -14,6 +14,7 @@ set(COMMON_RUNTIME_SRC
   MeasureCounts.cpp 
   NoiseModel.cpp 
   ServerHelper.cpp 
+  Resources.cpp
   Future.cpp
 )
 

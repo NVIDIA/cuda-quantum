@@ -11,6 +11,7 @@
 #include "Future.h"
 #include "MeasureCounts.h"
 #include "NoiseModel.h"
+#include "Resources.h"
 #include <optional>
 #include <string_view>
 
@@ -64,6 +65,10 @@ public:
   /// @brief simulationData provides a mechanism for
   /// simulation clients to extract the underlying simulation data.
   State simulationData;
+
+  /// @brief When run under the tracer context, persist the
+  /// traced quantum resources here.
+  resources kernelResources;
 
   /// @brief The name of the kernel being executed.
   std::string kernelName = "";

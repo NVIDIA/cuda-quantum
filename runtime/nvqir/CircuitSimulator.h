@@ -520,13 +520,19 @@ protected:
   void flushGateQueueImpl() override {
     while (!gateQueue.empty()) {
       auto &next = gateQueue.front();
-      applyGate(next);
-      if (executionContext && executionContext->noiseModel) {
-        std::vector<std::size_t> noiseQubits{next.controls.begin(),
-                                             next.controls.end()};
-        noiseQubits.insert(noiseQubits.end(), next.targets.begin(),
-                           next.targets.end());
-        applyNoiseChannel(next.operationName, noiseQubits);
+      if (executionContext && executionContext->name == "tracer") {
+        executionContext->kernelResources.appendInstruction(
+            cudaq::resources::Instruction(next.operationName, next.controls,
+                                          next.targets[0]));
+      } else {
+        applyGate(next);
+        if (executionContext && executionContext->noiseModel) {
+          std::vector<std::size_t> noiseQubits{next.controls.begin(),
+                                               next.controls.end()};
+          noiseQubits.insert(noiseQubits.end(), next.targets.begin(),
+                             next.targets.end());
+          applyNoiseChannel(next.operationName, noiseQubits);
+        }
       }
       gateQueue.pop();
     }
@@ -698,6 +704,9 @@ public:
 
     // Get the ExecutionContext name
     auto execContextName = executionContext->name;
+
+    if (execContextName == "tracer")
+      flushGateQueue();
 
     // If we are sampling...
     if (execContextName.find("sample") != std::string::npos) {
