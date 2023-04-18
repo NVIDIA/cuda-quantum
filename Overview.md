@@ -128,22 +128,6 @@ product terms.
 This library defines the `quantum_platform` architecture, enabling CUDA Quantum
 to target both simulated and physical quantum computing architectures.
 
-### `runtime/qpud_client`
-
-This folder contains a client library for interacting with the remote `qpud`
-process daemon.
-
-### `tools/qpud`
-
-This folder implements the `qpud` executable. `qpud` is meant to serve as a
-separate daemon process that emulates the true host, classical driver cpu,
-quantum register architectural separation. It implements a client/server model
-and accepts Quake code, JIT compiles it, and enables its execution on local
-emulators, or physical remote vendor quantum computers.
-
-This folder contains a TargetBackend type with specializations that target the
-nvqir, quantinuum, and rigetti backends.
-
 ### `tools/cudaq-quake`
 
 This folder contains the implementation of the `cudaq-quake` tool. This tool

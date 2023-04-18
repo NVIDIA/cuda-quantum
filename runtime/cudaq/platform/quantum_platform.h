@@ -104,7 +104,7 @@ public:
   // enqueueAsyncObserveTask(const std::size_t qpu_id, ObserveTask &t);
 
   // This method is the hook for the kernel rewrites to invoke
-  // quantum kernels on the asynchronously executing qpud daemon process.
+  // quantum kernels.
   void launchKernel(std::string kernelName, void (*kernelFunc)(void *),
                     void *args, std::uint64_t voidStarSize,
                     std::uint64_t resultOffset);
