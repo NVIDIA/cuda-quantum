@@ -29,7 +29,7 @@ jobs:
     needs: build_caches
     strategy:
       matrix:
-        toolchain: [llvm, clang16, gcc12]
+        toolchain: [clang16, gcc12]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
@@ -39,6 +39,17 @@ jobs:
       toolchain: ${{ matrix.toolchain }}
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.toolchain }}
+
+  # split out to make the llvm build optional for now
+  setup_llvm:
+    name: Load dependencies (llvm)
+    needs: build_caches
+    uses: ./.github/workflows/dev_environment.yml
+    with:
+      dockerfile: build/devdeps.Dockerfile
+      additional_build_caches: |
+        ${{ needs.build_caches.outputs.build_cache }}
+      toolchain: llvm
 
   # This job is needed only when using the cloudposse GitHub action to read
   # the output of a matrix job. This is a workaround due to current GitHub
@@ -63,11 +74,19 @@ jobs:
     needs: config
     strategy:
       matrix:
-        toolchain: [llvm, clang16, gcc12]
+        toolchain: [clang16, gcc12]
       fail-fast: false
     uses: ./.github/workflows/test_in_devenv.yml
     with:
       devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}', matrix.toolchain)] }}
+      export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
+
+  build_and_test_llvm:
+    name: Build and test (llvm)
+    needs: setup_llvm
+    uses: ./.github/workflows/test_in_devenv.yml
+    with:
+      devdeps_cache: ${{ needs.setup_llvm.outputs.cache_key }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
   docker_image:

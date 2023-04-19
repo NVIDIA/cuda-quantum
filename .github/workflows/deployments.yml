@@ -24,7 +24,7 @@ jobs:
     needs: doxygen
     strategy:
       matrix:
-        toolchain: [llvm, clang16, gcc12]
+        toolchain: [clang16, gcc12]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
@@ -33,6 +33,17 @@ jobs:
         ${{ needs.doxygen.outputs.build_cache }}
       toolchain: ${{ matrix.toolchain }}
       matrix_key: ${{ matrix.toolchain }}
+      environment: ghcr-deployment
+
+  # split out so that it is not required to finish to proceed with other jobs
+  devdeps_llvm:
+    needs: doxygen
+    uses: ./.github/workflows/dev_environment.yml
+    with:
+      dockerfile: build/devdeps.Dockerfile
+      additional_build_caches: |
+        ${{ needs.doxygen.outputs.build_cache }}
+      toolchain: llvm
       environment: ghcr-deployment
 
   # This job is needed only when using the cloudposse GitHub action to read
