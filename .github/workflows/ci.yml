@@ -20,25 +20,48 @@ jobs:
     name: Load dependencies
     strategy:
       matrix:
-        toolchain: [clang16, clang15, gcc12, gcc11]
+        toolchain: [llvm, clang16, gcc12]
+      fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
+      dockerfile: build/devdeps.Dockerfile
       toolchain: ${{ matrix.toolchain }}
+      # needed only for the cloudposse GitHub action
+      matrix_key: ${{ matrix.toolchain }}
+
+  # This job is needed only when using the cloudposse GitHub action to read
+  # the output of a matrix job. This is a workaround due to current GitHub
+  # limitations that may not be needed if the work started here concludes:
+  # https://github.com/actions/runner/pull/2477
+  config:
+    name: Configure build
+    runs-on: ubuntu-latest
+    needs: setup
+
+    outputs:
+      json: "${{ steps.read_json.outputs.result }}"
+
+    steps:
+      - uses: cloudposse/github-action-matrix-outputs-read@0.1.1
+        id: read_json
+        with:
+          matrix-step-name: dev_environment
 
   build_and_test:
     name: Build and test
-    needs: setup
+    needs: config
     strategy:
       matrix:
-        toolchain: [clang16, clang15, gcc12, gcc11]
+        toolchain: [llvm, clang16, gcc12]
+      fail-fast: false
     uses: ./.github/workflows/test_in_devenv.yml
     with:
-      devdeps_cache: tar-devdeps-${{ matrix.toolchain }}-${{ github.sha }}
+      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}', matrix.toolchain)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
   docker_image:
     name: Create Packages
-    needs: setup
+    needs: config
     uses: ./.github/workflows/build_packages.yml
     with:
-      devdeps_cache: tar-devdeps-gcc11-${{ github.sha }}
+      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key.gcc12 }}

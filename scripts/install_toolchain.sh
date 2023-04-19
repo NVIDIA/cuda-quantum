@@ -100,6 +100,8 @@ elif [ "$toolchain" = "llvm" ]; then
         temp_install_if_command_unknown g++ g++
         LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" bash "$this_file_dir/build_llvm.sh" -s "$LLVM_SOURCE" -c Release -p "clang;lld"
         if [ -d "$llvm_tmp_dir" ]; then
+            echo "The build logs have been moved to $LLVM_INSTALL_PREFIX/logs."
+            mkdir -p "$LLVM_INSTALL_PREFIX/logs" && mv "$llvm_tmp_dir/build/logs"/* "$LLVM_INSTALL_PREFIX/logs/"
             rm -rf "$llvm_tmp_dir"
         fi
     fi
@@ -144,5 +146,6 @@ if [ -x "$(command -v "$CC")" ] && [ -x "$(command -v "$CXX")" ]; then
     fi
 else
     echo "Failed to install $toolchain toolchain."
+    unset CC && unset CXX
     if $is_sourced; then return 10; else exit 10; fi
 fi
