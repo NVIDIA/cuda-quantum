@@ -7,9 +7,9 @@
  *******************************************************************************/
 
 #include "LinkedLibraryHolder.h"
-#include "CircuitSimulator.h"
 #include "common/PluginUtils.h"
 #include "cudaq/platform.h"
+#include "nvqir/CircuitSimulator.h"
 #include <fstream>
 #include <iostream>
 #include <pybind11/pybind11.h>

@@ -20,9 +20,7 @@ set(NVQIR_RUNTIME_SRC
 add_library(${LIBRARY_NAME} SHARED ${NVQIR_RUNTIME_SRC})
 target_include_directories(${LIBRARY_NAME}
   PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime> 
-         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime/nvqir> 
          $<INSTALL_INTERFACE:include> 
-         $<INSTALL_INTERFACE:include/nvqir> 
   PRIVATE .)
 
 # Private link to nvqir-qpp, it will always be here, 
