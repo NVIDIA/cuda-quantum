@@ -122,6 +122,7 @@ void bindOptimizers(py::module &mod) {
   addPyOptimizer<optimizers::cobyla>(optimizers_submodule, "COBYLA");
   addPyOptimizer<optimizers::neldermead>(optimizers_submodule, "NelderMead");
   addPyOptimizer<optimizers::lbfgs>(optimizers_submodule, "LBFGS");
+  addPyOptimizer<optimizers::slsqp>(optimizers_submodule, "SLSQP");
   addPyOptimizer<optimizers::gradient_descent>(optimizers_submodule,
                                                "GradientDescent");
 

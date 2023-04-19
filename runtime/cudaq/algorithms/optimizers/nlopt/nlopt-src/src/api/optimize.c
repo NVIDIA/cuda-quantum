@@ -36,6 +36,7 @@
 #include "mma.h"
 #include "cobyla.h"
 #include "neldermead.h"
+#include "slsqp.h"
 
 /*********************************************************************/
 /* wrapper functions, only for derivative-free methods, that
@@ -442,6 +443,8 @@ static nlopt_result nlopt_optimize_(nlopt_opt opt, double *x, double *minf)
             return ret;
         }
     
+    case NLOPT_LD_SLSQP:
+        return nlopt_slsqp(n, f, f_data, opt->m, opt->fc, opt->p, opt->h, lb, ub, x, minf, &stop);
 
     default:
         return NLOPT_INVALID_ARGS;
