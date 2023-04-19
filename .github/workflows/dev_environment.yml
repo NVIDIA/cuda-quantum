@@ -193,7 +193,7 @@ jobs:
 
   deployment:
     name: Deployment
-    if: inputs.environment && ${{ ! inputs.build_cache_only }}
+    if: ${{ inputs.environment && ! inputs.build_cache_only }}
     runs-on: ubuntu-latest
     needs: [metadata, build]
     permissions: write-all
