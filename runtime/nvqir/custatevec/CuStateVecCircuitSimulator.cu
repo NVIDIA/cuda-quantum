@@ -399,7 +399,7 @@ public:
     // compute expectation
     HANDLE_ERROR(custatevecComputeExpectation(
         handle, deviceStateVector, cuStateVecCudaDataType, nIndexBits, &expect,
-        cuStateVecCudaDataType, nullptr, matrix, cuStateVecCudaDataType,
+        CUDA_R_64F, nullptr, matrix, cuStateVecCudaDataType,
         CUSTATEVEC_MATRIX_LAYOUT_ROW, tgtsInt.data(), tgts.size(),
         cuStateVecComputeType, extraWorkspace, extraWorkspaceSizeInBytes));
     if (extraWorkspaceSizeInBytes)
@@ -415,6 +415,12 @@ public:
     // Do not compute <H> from matrix if shots based sampling requested
     if (executionContext &&
         executionContext->shots != static_cast<std::size_t>(-1)) {
+      return false;
+    }
+
+    /// Seems that FP32 is faster with 
+    /// custatevecComputeExpectationsOnPauliBasis
+    if constexpr (std::is_same_v<ScalarType, float>) {
       return false;
     }
 
