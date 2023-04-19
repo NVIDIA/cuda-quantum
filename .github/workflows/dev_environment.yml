@@ -186,14 +186,14 @@ jobs:
 
       - name: Cache ${{ needs.metadata.outputs.image_title }} image
         uses: actions/cache/save@v3
-        if: ! inputs.build_cache_only
+        if: ${{ ! inputs.build_cache_only }}
         with:
           path: /tmp/${{ needs.metadata.outputs.image_id }}.tar
           key: ${{ steps.cache.outputs.tar_cache }}
 
   deployment:
     name: Deployment
-    if: inputs.environment && ! inputs.build_cache_only
+    if: inputs.environment && ${{ ! inputs.build_cache_only }}
     runs-on: ubuntu-latest
     needs: [metadata, build]
     permissions: write-all
