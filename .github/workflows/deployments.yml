@@ -49,6 +49,7 @@ jobs:
     needs: config
     with:
       dockerfile: build/devdeps.ext.Dockerfile
+      toolchain: gcc12
       base_image: ${{ fromJson(needs.config.outputs.json).image_name.gcc12 }}@${{ fromJson(needs.config.outputs.json).digest.gcc12 }}
       environment: ghcr-deployment
 
