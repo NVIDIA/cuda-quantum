@@ -49,7 +49,7 @@ jobs:
             shell: bash
             run: |
                 cd $CUDAQ_REPO_ROOT
-                ctest --output-on-failure --test-dir build -E ctest-nvqpp
+                ctest --output-on-failure --stop-on-failure --test-dir build -E ctest-nvqpp
                 /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
 
       - name: Save environment
