@@ -4,6 +4,16 @@ on:
       dockerfile:
         required: true
         type: string
+      build_target:
+        required: false
+        type: string
+      additional_build_caches:
+        required: false
+        type: string
+      build_cache_only:
+        required: false
+        type: boolean
+        default: false
       base_image:
         required: false
         type: string
@@ -29,6 +39,9 @@ on:
       cache_key:
         description: "The cache key to retrieve a tar archive containing the built image(s)."
         value: ${{ jobs.finalize.outputs.tar_cache }}
+      build_cache:
+        description: "The location from which the build cache can be loaded in subsequent builds."
+        value: ${{ jobs.finalize.outputs.build_cache }}
 
 name: CUDA Quantum cached dev images
 
@@ -57,7 +70,8 @@ jobs:
         id: build_info
         run: |
           repo_owner=${{ github.repository_owner }}
-          image_id=`basename ${{ inputs.dockerfile }} .Dockerfile`
+          build_target=${{ inputs.build_target }}
+          image_id=`basename ${{ inputs.dockerfile }} .Dockerfile`${build_target:+.$build_target}
           image_title=cuda-quantum-`echo $image_id | cut -d "." -f 1`
           image_name=${{ vars.registry || 'ghcr.io' }}/${repo_owner,,}/$image_title
           toolchain=${{ inputs.toolchain }}
@@ -103,6 +117,7 @@ jobs:
 
     outputs:
       tar_cache: ${{ steps.cache.outputs.tar_cache }}
+      build_cache: ${{ steps.cache.outputs.cache_to_destination }}
 
     steps:
       - name: Checkout repository
@@ -124,16 +139,18 @@ jobs:
           cache_from_registry="type=registry,ref=${registry_cache}-${cache_id}:${cache_base}"
           cache_from_nvidia_registry="type=registry,ref=${nvidia_registry_cache}-${cache_id}:${cache_base}"
           if ${{ inputs.environment == 'ghcr-deployment' }}; then
-            cache_to_destination="type=registry,mode=max,ref=${registry_cache}-${cache_id}:${cache_target}"
+            cache_to_destination="type=registry,ref=${registry_cache}-${cache_id}:${cache_target}"
           else
-            cache_to_destination="type=gha,mode=max,scope=${cache_target}-cuda-quantum-${cache_id}"
+            cache_to_destination="type=gha,scope=${cache_target}-cuda-quantum-${cache_id}"
           fi
 
           echo "cache_from_gha=$cache_from_gha" >> $GITHUB_OUTPUT
           echo "cache_from_registry=$cache_from_registry" >> $GITHUB_OUTPUT
           echo "cache_from_nvidia_registry=$cache_from_nvidia_registry" >> $GITHUB_OUTPUT
           echo "cache_to_destination=$cache_to_destination" >> $GITHUB_OUTPUT
-          echo "tar_cache=tar-${cache_id}-${{ github.sha }}" >> $GITHUB_OUTPUT
+          if ${{ ! inputs.build_cache_only }}; then
+            echo "tar_cache=tar-${cache_id}-${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Log in to GitHub CR
         uses: docker/login-action@v2
@@ -149,6 +166,7 @@ jobs:
         with:
           context: .
           file: ./docker/${{ needs.metadata.outputs.dockerfile }}
+          target: ${{ inputs.build_target }}
           build-args: |
             base_image=${{ inputs.base_image }}
             toolchain=${{ inputs.toolchain }}
@@ -161,19 +179,21 @@ jobs:
             ${{ steps.cache.outputs.cache_from_gha }}
             ${{ steps.cache.outputs.cache_from_registry }}
             ${{ steps.cache.outputs.cache_from_nvidia_registry }}
+            ${{ inputs.additional_build_caches }}
           cache-to: |
-            ${{ steps.cache.outputs.cache_to_destination }}
+            ${{ steps.cache.outputs.cache_to_destination }},mode=max
           outputs: type=docker,dest=/tmp/${{ needs.metadata.outputs.image_id }}.tar
 
       - name: Cache ${{ needs.metadata.outputs.image_title }} image
         uses: actions/cache/save@v3
+        if: ! inputs.build_cache_only
         with:
           path: /tmp/${{ needs.metadata.outputs.image_id }}.tar
           key: ${{ steps.cache.outputs.tar_cache }}
 
   deployment:
     name: Deployment
-    if: inputs.environment
+    if: inputs.environment && ! inputs.build_cache_only
     runs-on: ubuntu-latest
     needs: [metadata, build]
     permissions: write-all
@@ -229,6 +249,7 @@ jobs:
       image_name: ${{ fromJson(steps.write_json.outputs.result).image_name }}
       digest: ${{ fromJson(steps.write_json.outputs.result).digest }}
       cache_key: ${{ fromJson(steps.write_json.outputs.result).cache_key }}
+      build_cache: ${{ fromJson(steps.write_json.outputs.result).build_cache }}
 
     steps:        
       - uses: cloudposse/github-action-matrix-outputs-write@0.3.0
@@ -240,3 +261,4 @@ jobs:
             image_name: ${{ needs.metadata.outputs.image_name }}
             digest: ${{ needs.deployment.outputs.digest }}
             cache_key: ${{ needs.build.outputs.tar_cache }}
+            build_cache: ${{ needs.build.outputs.build_cache }}
