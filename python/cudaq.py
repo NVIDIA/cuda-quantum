@@ -35,10 +35,6 @@ def quake_synth():
     command = os.path.join(os.path.dirname(__file__), "bin/quake-synth")
     subprocess.call([command] + sys.argv[1:])
 
-def qtx_translate(): 
-    command = os.path.join(os.path.dirname(__file__), "bin/qtx-translate")
-    subprocess.call([command] + sys.argv[1:])
-
 initKwargs = {'qpu': 'qpp', 'platform':'default'}
 
 if '-qpu' in sys.argv:
