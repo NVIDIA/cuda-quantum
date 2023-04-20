@@ -144,7 +144,7 @@ jobs:
             cache_to="type=registry,mode=max,ref=${registry_cache}-${cache_id}:${cache_target}"
           else
             cache_destination="type=gha,scope=${cache_target}-cuda-quantum-${cache_id}"
-            cache_to="type=gha,mode=max,scope=${cache_target}-cuda-quantum-${cache_id}"
+            cache_to=""
           fi
 
           echo "cache_from_gha=$cache_from_gha" >> $GITHUB_OUTPUT
@@ -183,8 +183,7 @@ jobs:
             ${{ steps.cache.outputs.cache_from_registry }}
             ${{ steps.cache.outputs.cache_from_nvidia_registry }}
             ${{ inputs.additional_build_caches }}
-          cache-to: |
-            ${{ steps.cache.outputs.cache_to }}
+          cache-to: ${{ steps.cache.outputs.cache_to }}
           outputs: type=docker,dest=/tmp/${{ needs.metadata.outputs.image_id }}.tar
 
       - name: Cache ${{ needs.metadata.outputs.image_title }} image
