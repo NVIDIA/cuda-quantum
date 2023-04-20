@@ -16,9 +16,25 @@ include "mlir/IR/AttrTypeBase.td"
 // BaseType
 //===----------------------------------------------------------------------===//
 
-class QuakeType<string name, string typeMnemonic, list<Trait> traits = []>
-    : TypeDef<QuakeDialect, name, traits> {
+class QuakeType<string name, string typeMnemonic, list<Trait> traits = [],
+        string baseCppClass = "mlir::Type">
+    : TypeDef<QuakeDialect, name, traits, baseCppClass> {
   let mnemonic = typeMnemonic;
+}
+
+//===----------------------------------------------------------------------===//
+// Quantum value type
+//===----------------------------------------------------------------------===//
+
+def WireType : QuakeType<"Wire", "wire"> {
+  let description = [{
+    A quantum "SSA-value" differs from a traditional SSA-value in that it can
+    and will be modified when read in a target position. That means quantum
+    "SSA-values" are not true SSA values. They can only be used once and have
+    somewhat similar properties to volatile memory.
+  }];
+
+  let genStorageClass = 0;
 }
 
 //===----------------------------------------------------------------------===//
@@ -81,8 +97,8 @@ def QVecType : QuakeType<"QVec", "qvec"> {
   }];
 }
 
-def AnyQTypeLike : TypeConstraint<Or<[QRefType.predicate, QVecType.predicate]>,
-    "quake.qref or quake.qvec">;
+def AnyQTypeLike : TypeConstraint<Or<[WireType.predicate, QVecType.predicate,
+        QRefType.predicate]>, "quake quantum types">;
 def AnyQType : Type<AnyQTypeLike.predicate, "quantum type">;
 
 def IsStdvecTypePred : CPred<"$_self.isa<::cudaq::cc::StdvecType>()">;

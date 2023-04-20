@@ -350,3 +350,13 @@ func.func @cc.scope_blocks() {
   }
   return
 }
+
+// CHECK-LABEL:   func.func @wire_type() -> !quake.wire {
+// CHECK:           %[[VAL_0:.*]] = cc.undef !quake.wire
+// CHECK:           return %[[VAL_0]] : !quake.wire
+// CHECK:         }
+
+func.func @wire_type() -> !quake.wire {
+  %0 = cc.undef !quake.wire
+  return %0 : !quake.wire
+}
