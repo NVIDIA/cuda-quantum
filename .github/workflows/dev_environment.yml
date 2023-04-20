@@ -129,6 +129,7 @@ jobs:
       - name: Create cache locations
         id: cache
         run: |
+          toolchain=${{ inputs.toolchain }}
           cache_id=$(echo ${{ needs.metadata.outputs.image_id }} | tr . -)${toolchain:+-$toolchain}
           cache_target=${{ inputs.cache_location || github.ref_name }}
           cache_base=${{ github.event.pull_request.base.ref || 'main' }}
