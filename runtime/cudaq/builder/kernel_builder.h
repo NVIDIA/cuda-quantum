@@ -408,6 +408,12 @@ public:
   void NAME(QuakeValue &qubit) {                                               \
     std::vector<QuakeValue> empty;                                             \
     details::NAME(*opBuilder, empty, qubit, true);                             \
+  }                                                                            \
+  template <typename mod,                                                      \
+            typename =                                                         \
+                typename std::enable_if_t<std::is_same_v<mod, cudaq::adj>>>    \
+  void NAME(QuakeValue &&qubit) {                                              \
+    NAME<mod>(qubit);                                                          \
   }
 
   CUDAQ_BUILDER_ADD_ONE_QUBIT_OP(h)

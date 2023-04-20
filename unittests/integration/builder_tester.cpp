@@ -308,6 +308,24 @@ CUDAQ_TEST(BuilderTester, checkAdjointOp) {
   cudaq::sample(kernel).dump();
 }
 
+CUDAQ_TEST(BuilderTester, checkAdjointOpRvalQuakeValue) {
+  auto kernel = cudaq::make_kernel();
+  // allocate more than 1 qubits so that we can use QuakeValue::operator[],
+  // which returns an r-val QuakeValue.
+  auto qubits = kernel.qalloc(2);
+  kernel.h(qubits[0]);
+  // T-dagger - T = I
+  kernel.t<cudaq::adj>(qubits[0]);
+  kernel.t(qubits[0]);
+  kernel.h(qubits[0]);
+  kernel.mz(qubits[0]);
+  printf("%s\n", kernel.to_quake().c_str());
+  auto counts = cudaq::sample(kernel);
+  counts.dump();
+  EXPECT_EQ(1, counts.size());
+  EXPECT_TRUE(counts.begin()->first == "0");
+}
+
 CUDAQ_TEST(BuilderTester, checkKernelAdjoint) {
   auto [kernel, qubit] = cudaq::make_kernel<cudaq::qubit>();
   kernel.h(qubit);
