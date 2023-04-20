@@ -155,7 +155,7 @@ jobs:
           echo "cache_to_destination=$cache_to_destination" >> $GITHUB_OUTPUT
           if ${{ ! inputs.build_cache_only }}; then
             echo "tar_cache=tar-${cache_id}-${{ github.sha }}" >> $GITHUB_OUTPUT
-            echo "tar_archive=/images/${{ needs.metadata.outputs.image_id }}.tar >> $GITHUB_OUTPUT
+            echo "tar_archive=/images/${{ needs.metadata.outputs.image_id }}.tar" >> $GITHUB_OUTPUT
           fi
 
       - name: Log in to GitHub CR
