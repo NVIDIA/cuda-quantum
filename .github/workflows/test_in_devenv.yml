@@ -59,7 +59,7 @@ jobs:
         id: env_save
         if: inputs.export_environment
         run: |
-          output_directory=/images
+          output_directory=/tmp
           filename=${{ steps.cudaq_build.outputs.tag_prefix }}_build
 
           docker run --name cuda-quantum-dev cuda-quantum-dev:local
