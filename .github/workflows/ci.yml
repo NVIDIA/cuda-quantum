@@ -88,6 +88,7 @@ jobs:
     uses: ./.github/workflows/test_in_devenv.yml
     with:
       devdeps_cache: ${{ needs.setup_llvm.outputs.cache_key }}
+      devdeps_archive: ${{ needs.setup_llvm.outputs.tar_archive }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
   docker_image:
