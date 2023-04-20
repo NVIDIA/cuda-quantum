@@ -32,12 +32,9 @@ jobs:
   # split out to make the llvm build optional for now
   setup_llvm:
     name: Load dependencies (llvm)
-    needs: build_caches
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.Dockerfile
-      additional_build_caches: |
-        ${{ needs.build_caches.outputs.build_cache }}
       toolchain: llvm
 
   # This job is needed only when using the cloudposse GitHub action to read
