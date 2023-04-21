@@ -7,9 +7,9 @@
  *******************************************************************************/
 
 #include "CircuitSimulator.h"
-#include "Logger.h"
-#include "PluginUtils.h"
 #include "QIRTypes.h"
+#include "common/Logger.h"
+#include "common/PluginUtils.h"
 #include "cudaq/spin_op.h"
 #include <cmath>
 #include <complex>
