@@ -180,7 +180,7 @@ LIBRARY_MODE_EXECUTION_MANAGER="qir"
 PLATFORM_LIBRARY="default"
 LLVM_QUANTUM_TARGET="qir"
 LINKDIRS="-L${install_dir}/lib @CUDAQ_CXX_NVQPP_LINK_STR@"
-LINKLIBS="-lcudaq -lcudaq-common -lcudaq-mlir-runtime -lcudaq-builder -lcudaq-ensmallen -lcudaq-nlopt -lcudaq-spin -lcudaq-qpud-client"
+LINKLIBS="-lcudaq -lcudaq-common -lcudaq-mlir-runtime -lcudaq-builder -lcudaq-ensmallen -lcudaq-nlopt -lcudaq-spin"
 
 # Provide a default backend, user can override
 NVQIR_SIMULATION_BACKEND="qpp"
@@ -346,10 +346,6 @@ done
 
 if ${SHOW_HELP}; then
 	show_help
-fi
-
-if [[ "qpud" == "$PLATFORM_LIBRARY" ]]; then
-	PLATFORM_LIBRARY="default-qpud"
 fi
 
 TMPFILES=

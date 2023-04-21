@@ -103,18 +103,6 @@ target_link_libraries(test_spin
   gtest_main)
 gtest_discover_tests(test_spin)
 
-add_executable(test_qpud_client main.cpp qpud_client/QPUDClientTester.cpp)
-# Need to force the link to nvqir-qpp here if gcc.
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_qpud_client PRIVATE -Wl,--no-as-needed)
-endif()
-target_link_libraries(test_qpud_client
-  PRIVATE 
-  cudaq-qpud-client
-  nvqir-qpp
-  gtest_main)
-gtest_discover_tests(test_qpud_client)
-
 add_subdirectory(backends)
 add_subdirectory(pass)
 add_subdirectory(Optimizer)

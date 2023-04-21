@@ -176,8 +176,7 @@ KernelArgsCreator getArgsCreator(const std::string &kernelName);
 /// @return
 bool kernelHasConditionalFeedback(const std::string &kernelName);
 
-/// @brief Provide a hook to set the remote qpud target backend.
-/// @param backend
+/// @brief Provide a hook to set the target backend.
 void set_qpu_backend(const char *backend);
 
 /// @brief Utility function for setting the shots on the platform
