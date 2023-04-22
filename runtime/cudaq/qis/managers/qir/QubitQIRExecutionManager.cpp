@@ -119,7 +119,7 @@ private:
     for (std::size_t i = 0; i < ctrls.size(); i++) {
       Qubit **qq = reinterpret_cast<Qubit **>(
           __quantum__rt__array_get_element_ptr_1d(a, i));
-      *qq = qubits[ctrls[i].second];
+      *qq = qubits[ctrls[i].id];
     }
 
     // Return
@@ -142,7 +142,7 @@ private:
 protected:
   void allocateQudit(const cudaq::QuditInfo &q) override {
     Qubit *qubit = __quantum__rt__qubit_allocate();
-    qubits.insert({q.second, qubit});
+    qubits.insert({q.id, qubit});
   }
 
   void deallocateQudit(std::size_t q) override {
@@ -163,10 +163,9 @@ protected:
     auto [gateName, p, c, q] = instruction;
 
     std::vector<Qubit *> qqs;
-    std::transform(q.begin(), q.end(), std::back_inserter(qqs),
-                   [&, qqs](const cudaq::QuditInfo &q) mutable {
-                     return qubits[q.second];
-                   });
+    std::transform(
+        q.begin(), q.end(), std::back_inserter(qqs),
+        [&, qqs](const cudaq::QuditInfo &q) mutable { return qubits[q.id]; });
 
     auto ctmp = vectorToArray(c);
 
@@ -179,7 +178,7 @@ protected:
   }
 
   int measureQudit(const cudaq::QuditInfo &q) override {
-    auto res_ptr = __quantum__qis__mz(qubits[q.second]);
+    auto res_ptr = __quantum__qis__mz(qubits[q.id]);
     auto res = *reinterpret_cast<bool *>(res_ptr);
     return res ? 1 : 0;
   }
@@ -200,7 +199,7 @@ public:
   }
 
   void resetQudit(const cudaq::QuditInfo &id) override {
-    __quantum__qis__reset(qubits[id.second]);
+    __quantum__qis__reset(qubits[id.id]);
   }
 };
 

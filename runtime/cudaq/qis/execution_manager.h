@@ -21,9 +21,12 @@ namespace cudaq {
 class ExecutionContext;
 using SpinMeasureResult = std::pair<double, sample_result>;
 
-// A QuditInfo, to the ExecutionManager, is a pair encoding
+// A QuditInfo, to the ExecutionManager, is a type encoding
 // the number of levels and the id of the qudit.
-using QuditInfo = std::pair<std::size_t, std::size_t>;
+struct QuditInfo {
+  std::size_t levels = 0;
+  std::size_t id = 0;
+};
 
 /// The ExecutionManager provides a base class describing a
 /// concrete sub-system for allocating qudits and executing quantum
@@ -105,7 +108,7 @@ public:
   virtual void endCtrlRegion(std::size_t n_controls) = 0;
 
   /// Measure the qudit and return the observed state (0,1,2,3,...)
-  /// e.g. for qudits, this can return 0 or 1;
+  /// e.g. for qubits, this can return 0 or 1;
   virtual int measure(const QuditInfo &target) = 0;
 
   /// Measure the current state in the given pauli basis, return

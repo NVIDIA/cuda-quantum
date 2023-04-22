@@ -18,7 +18,7 @@
 // Plus Gate : U|0> -> |1>, U|1> -> |2>, and U|2> -> |0>
 void plusGate(cudaq::qudit<3> &q) {
   auto em = cudaq::getExecutionManager();
-  em->apply("plusGate", {}, {}, {std::make_pair(q.n_levels(), q.id())});
+  em->apply("plusGate", {}, {}, {{q.n_levels(), q.id()}});
 }
 
 int mz(cudaq::qudit<3> &q) {

@@ -22,10 +22,3 @@ target_link_libraries(${LIBRARY_NAME}
 
 cudaq_library_set_rpath(${LIBRARY_NAME})
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
-
-# install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-em-qir-targets DESTINATION lib)
-
-# install(EXPORT cudaq-em-qir-targets
-#         FILE CUDAQEmQirTargets.cmake
-#         NAMESPACE cudaq::
-#         DESTINATION lib/cmake/cudaq)

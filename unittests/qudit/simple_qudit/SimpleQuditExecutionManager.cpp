@@ -38,12 +38,12 @@ protected:
   void allocateQudit(const cudaq::QuditInfo &q) override {
     if (state.size() == 0) {
       // qubit will give [1,0], qutrit will give [1,0,0]
-      state = qpp::ket::Zero(q.first);
+      state = qpp::ket::Zero(q.levels);
       state(0) = 1.0;
       return;
     }
 
-    qpp::ket zeroState = qpp::ket::Zero(q.first);
+    qpp::ket zeroState = qpp::ket::Zero(q.levels);
     zeroState(0) = 1.0;
     state = qpp::kron(state, zeroState);
   }
@@ -56,10 +56,10 @@ protected:
     if (executionContext && executionContext->name == "sample") {
       std::vector<std::size_t> ids;
       for (auto &s : sampleQudits) {
-        ids.push_back(s.second);
+        ids.push_back(s.id);
       }
       auto sampleResult =
-          qpp::sample(1000, state, ids, sampleQudits.begin()->first);
+          qpp::sample(1000, state, ids, sampleQudits.begin()->levels);
 
       for (auto [result, count] : sampleResult) {
         std::cout << fmt::format("Sample {} : {}", result, count) << "\n";
@@ -79,16 +79,16 @@ protected:
     }
 
     // If here, then we care about the result bit, so compute it.
-    const auto measurement_tuple =
-        qpp::measure(state, qpp::cmat::Identity(q.first, q.first), {q.second},
-                     /*qudit dimension=*/q.first, /*destructive measmt=*/false);
+    const auto measurement_tuple = qpp::measure(
+        state, qpp::cmat::Identity(q.levels, q.levels), {q.id},
+        /*qudit dimension=*/q.levels, /*destructive measmt=*/false);
     const auto measurement_result = std::get<qpp::RES>(measurement_tuple);
     const auto &post_meas_states = std::get<qpp::ST>(measurement_tuple);
     const auto &collapsed_state = post_meas_states[measurement_result];
     state = Eigen::Map<const qpp::ket>(collapsed_state.data(),
                                        collapsed_state.size());
 
-    cudaq::info("Measured qubit {} -> {}", q.second, measurement_result);
+    cudaq::info("Measured qubit {} -> {}", q.id, measurement_result);
     return measurement_result;
   }
 
@@ -99,8 +99,8 @@ public:
       u << 0, 0, 1, 1, 0, 0, 0, 1, 0;
       auto &[gateName, params, controls, qudits] = inst;
       auto target = qudits[0];
-      cudaq::info("Applying plusGate on {}<{}>", target.second, target.first);
-      state = qpp::applyCTRL(state, u, {}, {target.second}, target.first);
+      cudaq::info("Applying plusGate on {}<{}>", target.id, target.levels);
+      state = qpp::applyCTRL(state, u, {}, {target.id}, target.levels);
     });
   }
   virtual ~SimpleQuditExecutionManager() = default;

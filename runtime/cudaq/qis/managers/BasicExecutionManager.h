@@ -44,7 +44,7 @@ protected:
 
   /// @brief Store qubits for delayed deletion under
   /// certain execution contexts
-  std::vector<std::size_t> contextQubitIdsForDeletion;
+  std::vector<std::size_t> contextQuditIdsForDeletion;
 
   /// @brief The current queue of operations to execute
   InstructionQueue instructionQueue;
@@ -105,11 +105,11 @@ public:
 
     if (ctx_name == "observe" || ctx_name == "sample" ||
         ctx_name == "extract-state") {
-      for (auto &q : contextQubitIdsForDeletion) {
+      for (auto &q : contextQuditIdsForDeletion) {
         deallocateQudit(q);
         returnIndex(q);
       }
-      contextQubitIdsForDeletion.clear();
+      contextQuditIdsForDeletion.clear();
     }
     executionContext = nullptr;
   }
@@ -122,8 +122,8 @@ public:
 
   void returnQudit(const QuditInfo &qid) override {
     if (!executionContext) {
-      deallocateQudit(qid.second);
-      returnIndex(qid.second);
+      deallocateQudit(qid.id);
+      returnIndex(qid.id);
       return;
     }
 
@@ -135,12 +135,12 @@ public:
     // measure on the entire register.
     if (executionContext && (ctx_name == "observe" || ctx_name == "sample" ||
                              ctx_name == "extract-state")) {
-      contextQubitIdsForDeletion.push_back(qid.second);
+      contextQuditIdsForDeletion.push_back(qid.id);
       return;
     }
 
-    deallocateQudit(qid.second);
-    returnIndex(qid.second);
+    deallocateQudit(qid.id);
+    returnIndex(qid.id);
     if (numAvailable() == totalNumQudits()) {
       if (executionContext && ctx_name == "observe") {
         while (!instructionQueue.empty())
@@ -180,11 +180,9 @@ public:
     }
   }
 
-  void
-  startCtrlRegion(const std::vector<std::size_t> &control_qubits) override {
-    for (auto &c : control_qubits) {
+  void startCtrlRegion(const std::vector<std::size_t> &controls) override {
+    for (auto &c : controls)
       extraControlIds.push_back(c);
-    }
   }
 
   void endCtrlRegion(const std::size_t n_controls) override {
@@ -199,8 +197,6 @@ public:
              const std::vector<cudaq::QuditInfo> &controls,
              const std::vector<cudaq::QuditInfo> &targets,
              bool isAdjoint = false) override {
-    cudaq::ScopedTrace trace("BasicExecution::apply", gateName, params,
-                             controls, targets, isAdjoint);
 
     // Make a copy of the name that we can mutate if necessary
     std::string mutable_name(gateName);
