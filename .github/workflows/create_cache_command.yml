@@ -1,0 +1,53 @@
+on:
+  workflow_dispatch:
+    inputs:
+      pr_url:
+        required: true
+        type: string
+        description: 'The url of the pull_request json object that contains the information about the PR on which the slash command was triggered.'
+      comment_id:
+        required: false
+        type: string
+        description: 'The id of the comment that contains the slash command that triggered this workflow.'
+
+name: Create CI cache
+
+jobs:
+  config:
+    name: Configure build
+    runs-on: ubuntu-latest
+
+    output:
+      github_ref: steps.pr_info.outputs.source_sha
+
+    steps:
+      - name: Download PR info
+        id: pr_info
+        run: |
+          pr_info=`wget -O - ${{ inputs.pr_url }}`
+          pr_nr=`echo $pr_info | jq -r '.number'`
+          head_ref=`echo $pr_info | jq -r '.head.ref'`
+          head_label=`echo $pr_info | jq -r '.head.label'`
+          head_sha=`echo $pr_info | jq -r '.head.sha'`
+          base_ref=`echo $pr_info | jq -r '.base.ref'`
+
+          echo "source_label=$head_label" >> $GITHUB_OUTPUT
+          echo "source_sha=$head_sha" >> $GITHUB_OUTPUT
+
+      - name: Add reaction
+        if: inputs.comment_id
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          comment-id: ${{ inputs.comment_id }}
+          body: |
+            Running workflow from ${{ github.ref_type }} `${{ github.ref_name }}`. The created cache will be owned by that branch.
+            Checking out source code from head `${{ steps.pr_info.outputs.source_label }}` (sha: ${{ steps.pr_info.outputs.source_sha }}).
+          edit-mode: append
+
+  run_ci:
+    name: Create caches
+    needs: config
+    uses: ./.github/workflows/ci.yml
+    with:
+      create_local_cache: true
+      github_ref: ${{ needs.config.outputs.github_ref }}
