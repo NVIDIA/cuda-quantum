@@ -17,7 +17,7 @@ jobs:
     name: Configure build
     runs-on: ubuntu-latest
 
-    output:
+    outputs:
       github_ref: steps.pr_info.outputs.source_sha
 
     steps:
