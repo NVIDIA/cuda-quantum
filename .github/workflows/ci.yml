@@ -4,6 +4,8 @@ on:
       export_environment:
         type: boolean
         description: Export the build environment as tar artifact that can be imported with Docker.
+  workflow_call:
+    inputs:
       create_local_cache:
         type: boolean
         description: Create and store a local build cache for the current github reference.
