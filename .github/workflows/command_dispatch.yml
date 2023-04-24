@@ -1,0 +1,104 @@
+on:
+  issue_comment: # applies to PR and issue comments
+    types: [created, edited]
+
+name: Slash command dispatch
+
+jobs:
+  command_dispatch:
+    name: Process slash commands
+    runs-on: ubuntu-latest
+    steps:
+      # The setting allow_edits means that edited comments can trigger a dispatch to that command.
+      # To make sure that commands that edit the command do not cause an infinite loop, we respond to it here.
+      - name: Preprocessing
+        id: preprocessing
+        run: |
+          first_char=`echo "${{ github.event.comment.body }}" | head -n 1 | xargs -0 | cut -c 1`
+          if [ "$first_char" == "/" ]; then
+            echo "react=true" >> $GITHUB_OUTPUT
+            echo "command=$(echo "${{ github.event.comment.body }}" | head -n 1 | xargs -0 | cut -d " " -f 1)" >> $GITHUB_OUTPUT
+          fi
+          echo "command_suffix=_command" >> $GITHUB_OUTPUT
+
+      - name: React to comment
+        if: steps.preprocessing.outputs.react == 'true'
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          comment-id: ${{ github.event.comment.id }}
+          body: |
+            > ${{ github.event.comment.body }}
+  
+            **Command Bot:** Processing...
+          edit-mode: replace
+          reactions: eyes
+
+      - name: Dispatch
+        id: dispatch
+        uses: peter-evans/slash-command-dispatch@v3
+        with:
+          token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+          # The event_type_suffix must be set to the one saved in preprocessing 
+          # for the workflow link given at the end of this job to be correct.
+          config: >
+            [
+              {
+                "command": "show_context",
+                "event_type_suffix": "${{ steps.preprocessing.outputs.command_suffix }}",
+                "issue_type": "both",
+                "dispatch_type": "repository",
+                "permission": "write",
+                "allow_edits": true
+              },
+              {
+                "command": "create_cache",
+                "event_type_suffix": "${{ steps.preprocessing.outputs.command_suffix }}",
+                "issue_type": "pull-request",
+                "dispatch_type": "workflow",
+                "permission": "write",
+                "allow_edits": true,
+                "static_args": [
+                  "pr_url=${{ github.event.issue.pull_request.url }}",
+                  "comment_id=${{ github.event.comment.id }}"
+                ]
+              }
+            ]
+        continue-on-error: true
+
+      - name: Edit comment with error message
+        if: steps.dispatch.outputs.error-message
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          comment-id: ${{ github.event.comment.id }}
+          body: |
+            > ${{ github.event.comment.body }}
+  
+            **Command Bot:** Could not process command.
+            ${{ steps.dispatch.outputs.error-message }}
+          # We replace the original comment to avoid an infinite loop
+          edit-mode: replace
+          reactions-edit-mode: replace
+          reactions: |
+
+      - name: Indicate dispatch failure
+        if: ${{ steps.preprocessing.outputs.react == 'true' && steps.dispatch.outcome == 'failure' && ! steps.dispatch.outputs.error-message }}
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          comment-id: ${{ github.event.comment.id }}
+          body: |
+            > ${{ github.event.comment.body }}
+  
+            **Command Bot:** Failed to dispatch command.
+          # We replace the original comment to avoid an infinite loop
+          edit-mode: replace
+          reactions-edit-mode: replace
+          reactions: |
+
+      - name: Indicate successful dispatch
+        if: ${{ steps.preprocessing.outputs.command != '' && steps.dispatch.outcome == 'success' && ! steps.dispatch.outputs.error-message }}
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          comment-id: ${{ github.event.comment.id }}
+          body: |
+            The launched workflow can be found [here](https://github.com/${{ github.event.repository.full_name }}/actions/workflows/${{ steps.preprocessing.outputs.command }}_command.yml).
+          edit-mode: append
