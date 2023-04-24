@@ -29,7 +29,6 @@ target_link_libraries(test_quake_synth
   cudaq-mlir-runtime
   cudaq-builder
   cudaq-common
-  cudaq-qpud-client
   cudaq-platform-default
   nvqir-qpp 
   nvqir

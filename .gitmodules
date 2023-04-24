@@ -4,9 +4,6 @@
 [submodule "tpls/googletest-src"]
 	path = tpls/googletest-src
 	url = https://github.com/google/googletest
-[submodule "tpls/rpclib"]
-	path = tpls/rpclib
-	url = https://github.com/rpclib/rpclib
 [submodule "tpls/llvm"]
 	path = tpls/llvm
 	url = https://github.com/llvm/llvm-project.git
