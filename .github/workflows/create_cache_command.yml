@@ -51,3 +51,4 @@ jobs:
     with:
       create_local_cache: true
       github_ref: ${{ needs.config.outputs.github_ref }}
+      skip_tests: true
