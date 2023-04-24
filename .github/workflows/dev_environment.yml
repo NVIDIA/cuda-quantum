@@ -227,7 +227,7 @@ jobs:
           fi
 
       - name: Upload build cache
-        if: inputs.local_cache
+        if: inputs.create_local_cache
         uses: actions/cache/save@v3
         with:
           path: ${{ steps.cache.outputs.local_buildcache_path }}
