@@ -354,6 +354,68 @@ def quake_ApplyOp : QuakeOp<"apply",
 }
 
 //===----------------------------------------------------------------------===//
+// Memory and register conversion instructions: These operations are useful for
+// intermediate conversions between memory-SSA and value-SSA semantics and vice
+// versa of the IR. They mainly exist during the conversion process.
+//===----------------------------------------------------------------------===//
+
+def quake_UnwrapOp : QuakeOp<"unwrap"> {
+  let summary = "Unwrap a reference to a wire and return the wire value.";
+  let description = [{
+    A quantum reference is an SSA-value that is associated with a volatile
+    quantum wire. The unwrap operation allows conversion from the reference
+    value semantics (memory SSA) to the volatile quantum wire value semantics
+    when/as desired. The binding of a reference value corresponds to a
+    particular data flow of volatile quantum wire values.
+
+    Unwrap and wrap operations should (typically) form pairs as in the following
+    example.
+
+    ```mlir
+      %0 = ... : !quake.qref
+      %1 = quake.unwrap %0 : (!quake.qref) -> !quake.wire
+      %2 = quake.rx (%dbl) %1 : (f64, !quake.wire) -> !quake.wire
+      quake.wrap %2 to %0 : !quake.wire, !quake.qref
+    ```
+  }];
+
+  let arguments = (ins Arg<QRefType,"",[MemRead]>:$ref_value);
+  let results = (outs WireType);
+  let assemblyFormat = [{
+    $ref_value `:` functional-type(operands, results) attr-dict
+  }];
+}
+
+def quake_WrapOp : QuakeOp<"wrap"> {
+  let summary = "Wrap a wire value with its reference.";
+  let description = [{
+    Each data flow of a volatile wire in a quantum circuit may be associated
+    and identified with an invariant and unqiue quantum reference value of type
+    `!qref`. The wrap operation provides a means of returning a quantum value,
+    a wire, back to the reference value domain.
+  }];
+
+  let arguments = (ins
+    WireType:$wire_value,
+    Arg<QRefType,"",[MemWrite]>:$ref_value
+  );
+  let assemblyFormat = [{
+    $wire_value `to` $ref_value `:` qualified(type(operands)) attr-dict
+  }];
+}
+
+def quake_NullWireOp : QuakeOp<"null_wire", [Pure]> {
+  let summary = "Initial state of a wire.";
+  let description = [{
+    |0> - the initial state of a wire when first constructed. A wire is assumed
+    to be defined in this ket state as its initial state.
+  }];
+
+  let results = (outs WireType);
+  let assemblyFormat = "attr-dict";
+}
+
+//===----------------------------------------------------------------------===//
 // Base quantum instructions
 //===----------------------------------------------------------------------===//
 
