@@ -10,3 +10,4 @@
 
 #include "algorithms/gradients/central_difference.h"
 #include "algorithms/gradients/parameter_shift.h"
+#include "algorithms/gradients/forward_difference.h"

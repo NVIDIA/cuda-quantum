@@ -44,6 +44,22 @@ def gradient_central_difference(objective_function: Callable,
         parameters_copy[index] = parameter
     return gradient_vector
 
+def gradient_forward_difference(objective_function: Callable,
+                                parameter_vector: List[float],
+                                dx=1e-4) -> float:
+    gradient_vector = [0.0] * len(parameter_vector)
+    parameters_copy = parameter_vector.copy()
+    mid_value = objective_function(parameters_copy)
+    for index, parameter in enumerate(parameter_vector):
+        parameter_plus_dx = parameter + dx
+        # Change the value to `x_i + dx_i`.
+        parameters_copy[index] = parameter_plus_dx
+        high_value = objective_function(parameters_copy)
+        # Store the gradient df/dx = (f(x+dx) - f(x)) / dx
+        gradient_vector[index] = (high_value - mid_value) / dx
+        # Reset the value back in `parameters_copy`
+        parameters_copy[index] = parameter
+    return gradient_vector
 
 # Define functions for benchmarking our optimization suite:
 def ackley_function_no_grad(parameter_vector: List[float]) -> float:

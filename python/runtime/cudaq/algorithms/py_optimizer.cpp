@@ -11,6 +11,7 @@
 #include "py_optimizer.h"
 
 #include "cudaq/algorithms/gradients/central_difference.h"
+#include "cudaq/algorithms/gradients/forward_difference.h"
 #include "cudaq/algorithms/gradients/parameter_shift.h"
 #include "cudaq/algorithms/optimizers/ensmallen/ensmallen.h"
 #include "cudaq/algorithms/optimizers/nlopt/nlopt.h"
@@ -33,6 +34,18 @@ void bindGradientStrategies(py::module &mod) {
   // Gradient strategies derive from the `cudaq::gradient` class.
   py::class_<gradients::central_difference, gradient>(gradients_submodule,
                                                       "CentralDifference")
+      .def(py::init<>())
+      .def(
+          "compute",
+          [](cudaq::gradient &grad, const std::vector<double> &x,
+             py::function &func) {
+            auto function =
+                func.cast<std::function<double(std::vector<double>)>>();
+            return grad.compute(x, function);
+          },
+          py::arg("parameter_vector"), py::arg("function"), "");
+  py::class_<gradients::forward_difference, gradient>(gradients_submodule,
+                                                      "ForwardDifference")
       .def(py::init<>())
       .def(
           "compute",
