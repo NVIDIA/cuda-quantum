@@ -173,6 +173,9 @@ jobs:
             build_cache="$local_buildcache_key"
           fi
 
+          cache_from_registry=""
+          cache_from_nvidia_registry=""
+
           echo "local_buildcache_key=$local_buildcache_key" >> $GITHUB_OUTPUT
           echo "local_buildcache_path=$local_buildcache_path" >> $GITHUB_OUTPUT
           echo "cache_from_gh=$cache_from_gh" >> $GITHUB_OUTPUT
