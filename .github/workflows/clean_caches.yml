@@ -51,7 +51,6 @@ jobs:
     permissions: write-all
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
       - run: |
           gh extension install actions/gh-actions-cache
           pr_refs=$(gh actions-cache list -R ${{ github.repository }} -B refs/pull/${{ github.event.number }}/merge | cut -f 1 )

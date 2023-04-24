@@ -10,6 +10,13 @@ on:
       additional_build_caches:
         required: false
         type: string
+      additional_local_caches:
+        required: false
+        type: string
+      create_local_cache:
+        required: false
+        type: boolean
+        default: false
       build_cache_only:
         required: false
         type: boolean
@@ -20,13 +27,13 @@ on:
       toolchain:
         required: false
         type: string
-      cache_location:
-        required: false
-        type: string
       matrix_key:
         required: false
         type: string
       environment:
+        required: false
+        type: string
+      github_ref:
         required: false
         type: string
     outputs:
@@ -38,7 +45,7 @@ on:
         value: ${{ jobs.finalize.outputs.digest }}
       cache_key:
         description: "The cache key to retrieve a tar archive containing the built image(s)."
-        value: ${{ jobs.finalize.outputs.tar_cache }}
+        value: ${{ jobs.finalize.outputs.cache_key }}
       tar_archive:
         description: "The location of the tar archive in the cache."
         value: ${{ jobs.finalize.outputs.tar_archive }}
@@ -68,6 +75,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.github_ref || '' }}
 
       - name: Determine build arguments
         id: build_info
@@ -121,52 +130,69 @@ jobs:
     outputs:
       tar_cache: ${{ steps.cache.outputs.tar_cache }}
       tar_archive: ${{ steps.cache.outputs.tar_archive }}
-      build_cache: ${{ steps.cache.outputs.cache_destination }}
+      build_cache: ${{ steps.cache.outputs.build_cache }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.github_ref || '' }}
 
       - name: Set up buildx runner
         uses: docker/setup-buildx-action@v2
-
-      - name: Create cache locations
-        id: cache
-        run: |
-          toolchain=${{ inputs.toolchain }}
-          cache_id=$(echo ${{ needs.metadata.outputs.image_id }} | tr . -)${toolchain:+-$toolchain}
-          cache_target=${{ inputs.cache_location || github.ref_name }}
-          cache_base=${{ github.event.pull_request.base.ref || 'main' }}
-          registry_cache=ghcr.io/${{ needs.metadata.outputs.owner }}/buildcache-cuda-quantum
-          nvidia_registry_cache=ghcr.io/nvidia/buildcache-cuda-quantum
-
-          cache_from_gha="type=gha,scope=${cache_target}-cuda-quantum-${cache_id}"
-          cache_from_registry="type=registry,ref=${registry_cache}-${cache_id}:${cache_base}"
-          cache_from_nvidia_registry="type=registry,ref=${nvidia_registry_cache}-${cache_id}:${cache_base}"
-          if ${{ inputs.environment == 'ghcr-deployment' }}; then
-            cache_destination="type=registry,ref=${registry_cache}-${cache_id}:${cache_target}"
-            cache_to="type=registry,mode=max,ref=${registry_cache}-${cache_id}:${cache_target}"
-          else
-            cache_destination="type=gha,scope=${cache_target}-cuda-quantum-${cache_id}"
-            cache_to=""
-          fi
-
-          echo "cache_from_gha=$cache_from_gha" >> $GITHUB_OUTPUT
-          echo "cache_from_registry=$cache_from_registry" >> $GITHUB_OUTPUT
-          echo "cache_from_nvidia_registry=$cache_from_nvidia_registry" >> $GITHUB_OUTPUT
-          echo "cache_destination=$cache_destination" >> $GITHUB_OUTPUT
-          echo "cache_to=$cache_to" >> $GITHUB_OUTPUT
-          if ${{ ! inputs.build_cache_only }}; then
-            echo "tar_cache=tar-${cache_id}-${{ github.sha }}" >> $GITHUB_OUTPUT
-            echo "tar_archive=/tmp/${{ needs.metadata.outputs.image_id }}.tar" >> $GITHUB_OUTPUT
-          fi
 
       - name: Log in to GitHub CR
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ github.token }}
+
+      - name: Create cache locations
+        id: cache
+        run: |
+          toolchain=${{ inputs.toolchain }}
+          cache_id=$(echo ${{ needs.metadata.outputs.image_id }} | tr . -)${toolchain:+-$toolchain}
+          cache_target=${{ inputs.github_ref || github.ref_name }}
+          cache_base=${{ github.event.pull_request.base.ref || 'main' }}
+          registry_cache=ghcr.io/${{ needs.metadata.outputs.owner }}/buildcache-cuda-quantum
+          nvidia_registry_cache=ghcr.io/nvidia/buildcache-cuda-quantum
+
+          local_buildcache_path="/tmp/.buildcache-${cache_id}"
+          local_buildcache_key="${cache_target}-cuda-quantum-${cache_id}"
+          cache_from_gh="type=local,src=${local_buildcache_path}"
+          cache_from_registry="type=registry,ref=${registry_cache}-${cache_id}:${cache_base}"
+          cache_from_nvidia_registry="type=registry,ref=${nvidia_registry_cache}-${cache_id}:${cache_base}"
+          if ${{ inputs.environment == 'ghcr-deployment' }}; then
+            build_cache="type=registry,ref=${registry_cache}-${cache_id}:${cache_target}"
+            cache_to="${build_cache},mode=max,ignore-error=false"
+          elif ${{ inputs.create_local_cache }}; then
+            # In general, using the build cache from the registry/parent branch is the quickest.
+            # We hence create a build cache only upon request.
+            cache_to="type=local,dest=${local_buildcache_path}-new,mode=max,ignore-error=true"
+            build_cache="$local_buildcache_key"
+          fi
+
+          echo "local_buildcache_key=$local_buildcache_key" >> $GITHUB_OUTPUT
+          echo "local_buildcache_path=$local_buildcache_path" >> $GITHUB_OUTPUT
+          echo "cache_from_gh=$cache_from_gh" >> $GITHUB_OUTPUT
+          echo "cache_from_registry=$cache_from_registry" >> $GITHUB_OUTPUT
+          echo "cache_from_nvidia_registry=$cache_from_nvidia_registry" >> $GITHUB_OUTPUT
+          echo "cache_to=$cache_to" >> $GITHUB_OUTPUT
+          echo "build_cache=$build_cache" >> $GITHUB_OUTPUT
+          if ${{ ! inputs.build_cache_only }}; then
+            echo "tar_cache=tar-${cache_id}-${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "tar_archive=/tmp/${{ needs.metadata.outputs.image_id }}.tar" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check out local cache
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ steps.cache.outputs.local_buildcache_path }}
+          key: ${{ steps.cache.outputs.local_buildcache_key }}-${{ github.sha }}
+          restore-keys: |
+            ${{ inputs.additional_local_caches }}
+            ${{ steps.cache.outputs.local_buildcache_key }}
 
       - name: Build ${{ needs.metadata.outputs.image_title }} image
         id: build_image
@@ -184,12 +210,28 @@ jobs:
           labels: ${{ needs.metadata.outputs.image_labels }}
           platforms: linux/amd64
           cache-from: |
-            ${{ steps.cache.outputs.cache_from_gha }}
+            ${{ inputs.additional_build_caches }}
+            ${{ steps.cache.outputs.cache_from_gh }}
             ${{ steps.cache.outputs.cache_from_registry }}
             ${{ steps.cache.outputs.cache_from_nvidia_registry }}
-            ${{ inputs.additional_build_caches }}
           cache-to: ${{ steps.cache.outputs.cache_to }}
           outputs: type=docker,dest=${{ steps.cache.outputs.tar_archive }}
+
+      # See also https://github.com/moby/buildkit/issues/1896
+      - name: Clean up local cache
+        run: |
+          rm -rf "${{ steps.cache.outputs.local_buildcache_path }}"
+          build_cache="${{ steps.cache.outputs.local_buildcache_path }}-new"
+          if [ -d "$build_cache" ]; then
+            mv "$build_cache" "${{ steps.cache.outputs.local_buildcache_path }}"
+          fi
+
+      - name: Upload build cache
+        if: inputs.local_cache
+        uses: actions/cache/save@v3
+        with:
+          path: ${{ steps.cache.outputs.local_buildcache_path }}
+          key: ${{ steps.cache.outputs.local_buildcache_key }}-${{ github.sha }}
 
       - name: Cache ${{ needs.metadata.outputs.image_title }} image
         uses: actions/cache/save@v3
@@ -211,7 +253,7 @@ jobs:
   finalize:
     name: Finalize
     runs-on: ubuntu-latest
-    if: ${{ always() }}
+    if: always() && !cancelled()
     needs: [metadata, build, deployment]
 
     outputs:

@@ -10,6 +10,9 @@ on:
       export_environment:
         required: false
         type: boolean
+      github_ref:
+        required: false
+        type: string
 
 name: Run CI within the dev environment container
 
@@ -23,6 +26,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.github_ref || '' }}
 
       - name: Restore environment
         uses: actions/cache/restore@v3
