@@ -15,7 +15,7 @@ jobs:
       - name: Read config
         id: config
         run: |
-          json_config=`cat .github/workflows/config/command_dispatch_config.json | sed 's/${{.*}}//g'`
+          json_config=`cat .github/workflows/config/command_dispatch_config.json`
           entries=`echo "$json_config" | jq -c '.[]'`
           help_text="The following commands are available as slash commands: <br/><ul>"
           for entry in $entries; do
