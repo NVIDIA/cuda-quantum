@@ -15,12 +15,19 @@ jobs:
       - name: Preprocessing
         id: preprocessing
         run: |
+          pr_url=$(printf '%s\n' "${{ github.event.issue.pull_request.url }}" | sed -e 's/[\/&]/\\&/g')
+          github_repo=$(printf '%s\n' "${{ github.repository }}" | sed -e 's/[\/&]/\\&/g')
+          cat .github/workflows/config/command_dispatch_config.json \
+            | sed "s/.{{[ ]*github.event.issue.pull_request.url[ ]*}}/$pr_url/g" \
+            | sed "s/.{{[ ]*github.event.comment.id[ ]*}}/${{ github.event.comment.id }}/g" \
+            | sed "s/.{{[ ]*github.repository[ ]*}}/$github_repo/g" > /tmp/command_dispatch_config.json
+
           first_char=`echo "${{ github.event.comment.body }}" | head -n 1 | xargs | cut -c 1`
           if [ "$first_char" == "/" ]; then
             echo "react=true" >> $GITHUB_OUTPUT
             echo "command=$(echo "${{ github.event.comment.body }}" | head -n 1 | xargs | cut -d " " -f 1)" >> $GITHUB_OUTPUT
 
-            json_config=`cat .github/workflows/config/command_dispatch_config.json | sed 's/{{.*}}//g'`
+            json_config=`cat /tmp/command_dispatch_config.json | sed 's/{{.*}}//g'`
             entries=`echo "$json_config" | jq -c '.[]'`
             for entry in $entries; do
               command_name=`echo $entry | jq -r '.command'`
@@ -50,7 +57,7 @@ jobs:
           token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
           # The event_type_suffix must be set to the one saved in preprocessing 
           # for the workflow link given at the end of this job to be correct.
-          config-from-file: .github/workflows/config/command_dispatch_config.json
+          config-from-file: /tmp/command_dispatch_config.json
         continue-on-error: true
 
       - name: Edit comment with error message
