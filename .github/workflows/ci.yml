@@ -25,6 +25,7 @@ jobs:
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.Dockerfile
+      build_cache_tag: ${{ github.event.pull_request.base.ref || 'main' }}
       toolchain: ${{ matrix.toolchain }}
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.toolchain }}
@@ -35,6 +36,7 @@ jobs:
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.Dockerfile
+      build_cache_tag: ${{ github.event.pull_request.base.ref || 'main' }}
       toolchain: llvm
 
   # This job is needed only when using the cloudposse GitHub action to read
@@ -65,7 +67,7 @@ jobs:
     uses: ./.github/workflows/test_in_devenv.yml
     with:
       devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}', matrix.toolchain)] }}
-      export_environment: ${{ github.event_name == 'workflow_dispatch' && (inputs.export_environment || false) }}
+      export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
   build_and_test_llvm:
     name: Build and test (llvm)
@@ -73,7 +75,7 @@ jobs:
     uses: ./.github/workflows/test_in_devenv.yml
     with:
       devdeps_cache: ${{ needs.setup_llvm.outputs.cache_key }}
-      export_environment: ${{ github.event_name == 'workflow_dispatch' && (inputs.export_environment || false) }}
+      export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
   docker_image:
     name: Create Packages

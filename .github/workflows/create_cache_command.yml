@@ -28,7 +28,9 @@ jobs:
           pr_nr=`echo $pr_info | jq -r '.number'`
           head_label=`echo $pr_info | jq -r '.head.label'`
           head_sha=`echo $pr_info | jq -r '.head.sha'`
+          base_ref=`echo $pr_info | jq -r '.base.ref'`
 
+          echo "target_branch=$base_ref" >> $GITHUB_OUTPUT
           echo "source_label=$head_label" >> $GITHUB_OUTPUT
           echo "source_sha=$head_sha" >> $GITHUB_OUTPUT
           echo "pull_request_number=$pr_nr" >> $GITHUB_OUTPUT
@@ -55,4 +57,5 @@ jobs:
       dockerfile: build/devdeps.Dockerfile
       toolchain: ${{ matrix.toolchain }}
       create_local_cache: true
+      build_cache_tag: ${{ needs.config.outputs.target_branch }}
       pull_request_number: ${{ needs.config.outputs.pull_request_number }}

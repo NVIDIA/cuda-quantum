@@ -21,6 +21,9 @@ on:
         required: false
         type: boolean
         default: false
+      build_cache_tag:
+        required: false
+        type: string
       base_image:
         required: false
         type: string
@@ -166,28 +169,26 @@ jobs:
           registry_cache=ghcr.io/${{ needs.metadata.outputs.owner }}/buildcache-cuda-quantum
           nvidia_registry_cache=ghcr.io/nvidia/buildcache-cuda-quantum
           cache_id=$(echo ${{ needs.metadata.outputs.image_id }} | tr . -)${toolchain:+-$toolchain}
+          
+          local_buildcache_path="/tmp/.buildcache-${cache_id}"
+          local_buildcache_key_suffix="-$(git rev-parse HEAD)"
           if ${{ inputs.pull_request_number != '' }}; then
-            cache_target=${{ inputs.pull_request_number }}/merge
-            cache_base=${{ github.ref_name }}
+            local_buildcache_key="${{ inputs.pull_request_number }}/merge-cuda-quantum-${cache_id}"
           else
-            cache_target=${{ github.ref_name }}
-            cache_base=${{ github.event.pull_request.base.ref || 'main' }}
+            local_buildcache_key="${{ github.ref_name }}-cuda-quantum-${cache_id}"
           fi
 
-          local_buildcache_path="/tmp/.buildcache-${cache_id}"
-          local_buildcache_key="${cache_target}-cuda-quantum-${cache_id}"
-          local_buildcache_key_suffix="-$(git rev-parse HEAD)"
           cache_from_gh="type=local,src=${local_buildcache_path}"
-          cache_from_registry="type=registry,ref=${registry_cache}-${cache_id}:${cache_base}"
-          cache_from_nvidia_registry="type=registry,ref=${nvidia_registry_cache}-${cache_id}:${cache_base}"
+          cache_from_registry="type=registry,ref=${registry_cache}-${cache_id}:${{ inputs.build_cache_tag || 'main' }}"
+          cache_from_nvidia_registry="type=registry,ref=${nvidia_registry_cache}-${cache_id}:${{ inputs.build_cache_tag || 'main' }}"
           if ${{ inputs.environment == 'ghcr-deployment' }}; then
-            build_cache="type=registry,ref=${registry_cache}-${cache_id}:${cache_target}"
+            build_cache="type=registry,ref=${registry_cache}-${cache_id}:${{ inputs.build_cache_tag || github.ref_name }}"
             cache_to="${build_cache},mode=max,ignore-error=false"
           elif ${{ inputs.create_local_cache }}; then
             # In general, using the build cache from the registry/parent branch is the quickest.
             # We hence create a build cache only upon request.
-            cache_to="type=local,dest=${local_buildcache_path}-new,mode=max,ignore-error=true"
             build_cache="$local_buildcache_key"
+            cache_to="type=local,dest=${local_buildcache_path}-new,mode=max,ignore-error=true"
           fi
 
           echo "local_buildcache_key=$local_buildcache_key" >> $GITHUB_OUTPUT

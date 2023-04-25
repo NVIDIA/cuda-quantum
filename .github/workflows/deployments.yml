@@ -1,6 +1,8 @@
 on:
   workflow_dispatch:
-  push:
+  pull_request_target:
+    types:
+      - closed
     branches:
       - 'main'
       - 'releases/*'
@@ -8,19 +10,22 @@ on:
 name: Push dev images and update caches
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.ref_name }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request_target.base.ref || github.event.ref_name }}
   cancel-in-progress: false
 
 jobs:
   doxygen:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request_target.merged == true
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.Dockerfile
+      build_cache_tag: ${{ github.event.pull_request_target.base.ref || '' }}
       build_target: doxygenbuild
       build_cache_only: true
       environment: ghcr-deployment
 
   devdeps:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request_target.merged == true
     needs: doxygen
     strategy:
       matrix:
@@ -29,6 +34,7 @@ jobs:
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.Dockerfile
+      build_cache_tag: ${{ github.event.pull_request_target.base.ref || '' }}
       additional_build_caches: |
         ${{ needs.doxygen.outputs.build_cache }}
       toolchain: ${{ matrix.toolchain }}
@@ -37,10 +43,12 @@ jobs:
 
   # split out so that it is not required to finish to proceed with other jobs
   devdeps_llvm:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request_target.merged == true
     needs: doxygen
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.Dockerfile
+      build_cache_tag: ${{ github.event.pull_request_target.base.ref || '' }}
       additional_build_caches: |
         ${{ needs.doxygen.outputs.build_cache }}
       toolchain: llvm
@@ -51,9 +59,9 @@ jobs:
   # limitations that may not be needed if the work started here concludes:
   # https://github.com/actions/runner/pull/2477
   config:
+    if: github.event_name == 'workflow_dispatch'
     name: Configure build
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
     needs: devdeps
 
     outputs:
@@ -66,10 +74,11 @@ jobs:
           matrix-step-name: dev_environment
 
   extdevdeps:
-    uses: ./.github/workflows/dev_environment.yml
     if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/dev_environment.yml
     needs: config
     with:
       dockerfile: build/devdeps.ext.Dockerfile
+      build_cache_tag: ${{ github.event.pull_request_target.base.ref || '' }}
       base_image: ${{ fromJson(needs.config.outputs.json).image_name.gcc12 }}@${{ fromJson(needs.config.outputs.json).digest.gcc12 }}
       environment: ghcr-deployment
