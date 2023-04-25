@@ -15,12 +15,18 @@ jobs:
       - name: Preprocessing
         id: preprocessing
         run: |
+          config_file=.github/workflows/config/command_dispatch_config.json
+          cat $config_file \
+            | sed 's/.{{[ ]*github.event.issue.pull_request.url[ ]*}}/${{ github.event.issue.pull_request.url }}/g' \
+            | sed 's/.{{[ ]*github.event.comment.id[ ]*}}/${{ github.event.comment.id }}/g' \
+            | sed 's/.{{[ ]*github.repository[ ]*}}/${{ github.repository }}/g' > $config_file
+
           first_char=`echo "${{ github.event.comment.body }}" | head -n 1 | xargs | cut -c 1`
           if [ "$first_char" == "/" ]; then
             echo "react=true" >> $GITHUB_OUTPUT
             echo "command=$(echo "${{ github.event.comment.body }}" | head -n 1 | xargs | cut -d " " -f 1)" >> $GITHUB_OUTPUT
 
-            json_config=`cat .github/workflows/config/command_dispatch_config.json | sed 's/{{.*}}//g'`
+            json_config=`cat $config_file | sed 's/{{.*}}//g'`
             entries=`echo "$json_config" | jq -c '.[]'`
             for entry in $entries; do
               command_name=`echo $entry | jq -r '.command'`
