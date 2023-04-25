@@ -17,10 +17,11 @@ jobs:
         run: |
           config_file=.github/workflows/config/command_dispatch_config.json
           pr_url=$(printf '%s\n' "${{ github.event.issue.pull_request.url }}" | sed -e 's/[\/&]/\\&/g')
+          github_repo=$(printf '%s\n' "${{ github.repository }}" | sed -e 's/[\/&]/\\&/g')
           cat $config_file \
             | sed "s/.{{[ ]*github.event.issue.pull_request.url[ ]*}}/$pr_url/g" \
             | sed "s/.{{[ ]*github.event.comment.id[ ]*}}/${{ github.event.comment.id }}/g" \
-            | sed "s/.{{[ ]*github.repository[ ]*}}/${{ github.repository }}/g" > $config_file
+            | sed "s/.{{[ ]*github.repository[ ]*}}/$github_repo/g" > $config_file
 
           first_char=`echo "${{ github.event.comment.body }}" | head -n 1 | xargs | cut -c 1`
           if [ "$first_char" == "/" ]; then
