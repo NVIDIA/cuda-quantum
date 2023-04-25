@@ -390,7 +390,7 @@ def quake_WrapOp : QuakeOp<"wrap"> {
   let summary = "Wrap a wire value with its reference.";
   let description = [{
     Each data flow of a volatile wire in a quantum circuit may be associated
-    and identified with an invariant and unqiue quantum reference value of type
+    and identified with an invariant and unique quantum reference value of type
     `!qref`. The wrap operation provides a means of returning a quantum value,
     a wire, back to the reference value domain.
   }];
@@ -408,7 +408,7 @@ def quake_NullWireOp : QuakeOp<"null_wire", [Pure]> {
   let summary = "Initial state of a wire.";
   let description = [{
     |0> - the initial state of a wire when first constructed. A wire is assumed
-    to be defined in this ket state as its initial state.
+    to be defined in the |0> state as its initial state.
   }];
 
   let results = (outs WireType);
