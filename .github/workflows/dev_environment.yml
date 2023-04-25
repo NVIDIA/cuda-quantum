@@ -75,7 +75,7 @@ jobs:
         run: |
           git init
           git remote add origin https://github.com/${{ github.event.repository.full_name }}
-          if ${{ inputs.pull_request_number }}; then
+          if ${{ inputs.pull_request_number != '' }}; then
             gh pr -R ${{ github.event.repository.full_name }} checkout ${{ inputs.pull_request_number }}
           else
             git fetch origin --depth=1 ${{ github.sha }} && git reset --hard FETCH_HEAD
@@ -139,7 +139,7 @@ jobs:
         run: |
           git init
           git remote add origin https://github.com/${{ github.event.repository.full_name }}
-          if ${{ inputs.pull_request_number }}; then
+          if ${{ inputs.pull_request_number != '' }}; then
             gh pr -R ${{ github.event.repository.full_name }} checkout ${{ inputs.pull_request_number }}
           else
             git fetch origin --depth=1 ${{ github.sha }} && git reset --hard FETCH_HEAD
