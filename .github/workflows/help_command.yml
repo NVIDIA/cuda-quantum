@@ -15,12 +15,12 @@ jobs:
       - name: Read config
         id: config
         run: |
-          json_config=`cat .github/workflows/config/command_dispatch_config.json | sed 's/${{.*}}//g'`
+          json_config=`cat .github/workflows/config/command_dispatch_config.json | sed 's/{{.*}}//g'`
           entries=`echo "$json_config" | jq -c '.[]'`
           help_text="The following commands are available as slash commands: <br/><ul>"
           for entry in $entries; do
             command=`echo $entry | jq -r '.command'`
-            permission=`echo $entry | jq -r '.permissions'`
+            permission=`echo $entry | jq -r '.permission'`
             issue_type=`echo $entry | jq -r '.issue_type'`
             help_text+="**/$command**: <ul>"
             help_text+="required permissions: ${permissions:-write} <br/>"
