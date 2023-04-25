@@ -5,24 +5,8 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/plugins)
 
-import sys
-
-from _pycudaq import *
-from domains import chemistry
-
-initKwargs = {'qpu': 'qpp', 'platform': 'default'}
-
-if '-qpu' in sys.argv:
-    initKwargs['qpu'] = sys.argv[sys.argv.index('-qpu') + 1]
-
-if '--qpu' in sys.argv:
-    initKwargs['qpu'] = sys.argv[sys.argv.index('--qpu') + 1]
-
-if '-platform' in sys.argv:
-    initKwargs['platform'] = sys.argv[sys.argv.index('-platform') + 1]
-
-if '--platform' in sys.argv:
-    initKwargs['platform'] = sys.argv[sys.argv.index('--platform') + 1]
-
-initialize_cudaq(**initKwargs)
+add_library(cudaq-pyscf SHARED PySCFDriver.cpp)
+target_link_libraries(cudaq-pyscf PRIVATE pybind11::embed cudaq-chemistry cudaq-spin)
+install(TARGETS cudaq-pyscf DESTINATION lib/plugins)

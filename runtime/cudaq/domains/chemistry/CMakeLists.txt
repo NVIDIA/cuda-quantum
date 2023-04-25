@@ -6,23 +6,11 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import sys
+add_library(cudaq-chemistry SHARED molecule.cpp)
+target_link_libraries(cudaq-chemistry PRIVATE cudaq-spin)
+target_include_directories(cudaq-chemistry 
+   PRIVATE 
+     ${CMAKE_SOURCE_DIR}/tpls/xtl/include 
+     ${CMAKE_SOURCE_DIR}/tpls/xtensor/include)
 
-from _pycudaq import *
-from domains import chemistry
-
-initKwargs = {'qpu': 'qpp', 'platform': 'default'}
-
-if '-qpu' in sys.argv:
-    initKwargs['qpu'] = sys.argv[sys.argv.index('-qpu') + 1]
-
-if '--qpu' in sys.argv:
-    initKwargs['qpu'] = sys.argv[sys.argv.index('--qpu') + 1]
-
-if '-platform' in sys.argv:
-    initKwargs['platform'] = sys.argv[sys.argv.index('-platform') + 1]
-
-if '--platform' in sys.argv:
-    initKwargs['platform'] = sys.argv[sys.argv.index('--platform') + 1]
-
-initialize_cudaq(**initKwargs)
+install(TARGETS cudaq-chemistry DESTINATION lib)

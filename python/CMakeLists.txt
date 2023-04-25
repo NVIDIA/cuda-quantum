@@ -54,6 +54,7 @@ target_link_libraries(_pycudaq PUBLIC nvqir
 
 install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX})
 install(FILES cudaq.py DESTINATION ${CMAKE_INSTALL_PREFIX})
+install(FILES apps/chemistry.py DESTINATION ${CMAKE_INSTALL_PREFIX}/apps/)
 
 if(APPLE)
   set_target_properties(
@@ -65,6 +66,9 @@ endif()
 
 # Copy to the build dir for testing
 file(COPY cudaq.py DESTINATION ${CMAKE_BINARY_DIR}/python)
+file(COPY domains/chemistry.py DESTINATION ${CMAKE_BINARY_DIR}/python/domains)
+
+add_subdirectory(domains/plugins)
 
 # Do we have pytest and numpy? 
 execute_process(COMMAND ${Python_EXECUTABLE} -m pytest --version

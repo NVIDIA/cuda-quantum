@@ -35,6 +35,7 @@ add_subdirectory(qis/managers)
 add_subdirectory(algorithms)
 add_subdirectory(platform)
 add_subdirectory(builder)
+add_subdirectory(domains)
 
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-targets DESTINATION lib)
 
