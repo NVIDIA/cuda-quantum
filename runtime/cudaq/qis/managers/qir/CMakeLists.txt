@@ -7,8 +7,6 @@
 # ============================================================================ #
 
 set(LIBRARY_NAME cudaq-em-qir)
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
-set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 add_library(${LIBRARY_NAME} SHARED QubitQIRExecutionManager.cpp)
 target_include_directories(${LIBRARY_NAME} 

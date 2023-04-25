@@ -34,7 +34,7 @@ typedef std::size_t (*Creator)(void **, void **);
 /// Retrieve the kernel args creator function for the kernel name
 Creator getArgsCreator(const std::string &);
 
-/// @brief Utility function for mapping variadic args to qpud required void*,
+/// @brief Utility function for mapping variadic args to required void*,
 /// size_t. Note clients of this function own the allocated rawArgs.
 template <typename... Args>
 std::pair<void *, std::size_t> mapToRawArgs(const std::string &kernelName,
