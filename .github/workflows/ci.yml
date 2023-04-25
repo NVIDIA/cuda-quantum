@@ -4,18 +4,6 @@ on:
       export_environment:
         type: boolean
         description: Export the build environment as tar artifact that can be imported with Docker.
-  workflow_call:
-    inputs:
-      skip_tests:
-        type: boolean
-        description: Skip the general testing stage and only validate the final image.
-      create_local_cache:
-        type: boolean
-        description: Create and store a local build cache for the current github reference.
-      github_ref:
-        type: string
-        required: false
-        description: The branch, tag, or SHA to checkout. Permits to run the workflow from a different branch than the one the workflow applies to.
   pull_request:
     branches:
       - 'main'
@@ -40,8 +28,6 @@ jobs:
       toolchain: ${{ matrix.toolchain }}
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.toolchain }}
-      create_local_cache: ${{ inputs.create_local_cache || false }}
-      github_ref: ${{ inputs.github_ref || '' }}
 
   # split out to make the llvm build optional for now
   setup_llvm:
@@ -50,8 +36,6 @@ jobs:
     with:
       dockerfile: build/devdeps.Dockerfile
       toolchain: llvm
-      create_local_cache: ${{ inputs.create_local_cache || false }}
-      github_ref: ${{ inputs.github_ref || '' }}
 
   # This job is needed only when using the cloudposse GitHub action to read
   # the output of a matrix job. This is a workaround due to current GitHub
@@ -73,7 +57,6 @@ jobs:
 
   build_and_test:
     name: Build and test
-    if: ${{ ! (inputs.skip_tests || false) }}
     needs: config
     strategy:
       matrix:
@@ -83,17 +66,14 @@ jobs:
     with:
       devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}', matrix.toolchain)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && (inputs.export_environment || false) }}
-      github_ref: ${{ inputs.github_ref || '' }}
 
   build_and_test_llvm:
     name: Build and test (llvm)
-    if: ${{ ! (inputs.skip_tests || false) }}
     needs: setup_llvm
     uses: ./.github/workflows/test_in_devenv.yml
     with:
       devdeps_cache: ${{ needs.setup_llvm.outputs.cache_key }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && (inputs.export_environment || false) }}
-      github_ref: ${{ inputs.github_ref || '' }}
 
   docker_image:
     name: Create Packages
@@ -101,4 +81,3 @@ jobs:
     uses: ./.github/workflows/build_packages.yml
     with:
       devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key.gcc12 }}
-      github_ref: ${{ inputs.github_ref || '' }}

@@ -4,7 +4,7 @@ on:
       devdeps_cache:
         required: true
         type: string
-      github_ref:
+      pull_request_number:
         required: false
         type: string
 
@@ -23,8 +23,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-        with:
-          ref: ${{ inputs.github_ref || '' }}
 
       - name: Restore environment
         uses: actions/cache/restore@v3
@@ -65,8 +63,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-        with:
-          ref: ${{ inputs.github_ref || '' }}
 
       - name: Restore release build
         uses: actions/cache/restore@v3
@@ -106,8 +102,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-        with:
-          ref: ${{ inputs.github_ref || '' }}
 
       - name: Restore release build
         uses: actions/cache/restore@v3

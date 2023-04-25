@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
-      github_ref: ${{ steps.pr_info.outputs.source_sha }}
+      pull_request_number: ${{ steps.pr_info.outputs.pull_request_number }}
 
     steps:
       - name: Download PR info
@@ -26,13 +26,12 @@ jobs:
         run: |
           pr_info=`wget -O - ${{ inputs.pr_url }}`
           pr_nr=`echo $pr_info | jq -r '.number'`
-          head_ref=`echo $pr_info | jq -r '.head.ref'`
           head_label=`echo $pr_info | jq -r '.head.label'`
           head_sha=`echo $pr_info | jq -r '.head.sha'`
-          base_ref=`echo $pr_info | jq -r '.base.ref'`
 
           echo "source_label=$head_label" >> $GITHUB_OUTPUT
           echo "source_sha=$head_sha" >> $GITHUB_OUTPUT
+          echo "pull_request_number=$pr_nr" >> $GITHUB_OUTPUT
 
       - name: Add reaction
         if: inputs.comment_id
@@ -47,8 +46,13 @@ jobs:
   run_ci:
     name: Create caches
     needs: config
-    uses: ./.github/workflows/ci.yml
+    strategy:
+      matrix:
+        toolchain: [llvm, clang16, gcc12]
+      fail-fast: false
+    uses: ./.github/workflows/dev_environment.yml
     with:
+      dockerfile: build/devdeps.Dockerfile
+      toolchain: ${{ matrix.toolchain }}
       create_local_cache: true
-      github_ref: ${{ needs.config.outputs.github_ref }}
-      skip_tests: true
+      pull_request_number: ${{ needs.config.outputs.pull_request_number }}
