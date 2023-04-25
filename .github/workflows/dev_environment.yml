@@ -184,7 +184,7 @@ jobs:
           echo "cache_to=$cache_to" >> $GITHUB_OUTPUT
           echo "build_cache=$build_cache" >> $GITHUB_OUTPUT
           if ${{ ! inputs.build_cache_only }}; then
-            echo "tar_cache=tar-${cache_id}-${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "tar_cache=tar-${cache_id}-${{ inputs.github_ref || github.sha }}" >> $GITHUB_OUTPUT
             echo "tar_archive=/tmp/${{ needs.metadata.outputs.image_id }}.tar" >> $GITHUB_OUTPUT
           fi
 
@@ -192,7 +192,7 @@ jobs:
         uses: actions/cache/restore@v3
         with:
           path: ${{ steps.cache.outputs.local_buildcache_path }}
-          key: ${{ steps.cache.outputs.local_buildcache_key }}-${{ github.sha }}
+          key: ${{ steps.cache.outputs.local_buildcache_key }}-${{ inputs.github_ref || github.sha }}
           restore-keys: |
             ${{ inputs.additional_local_caches }}
             ${{ steps.cache.outputs.local_buildcache_key }}
@@ -234,7 +234,7 @@ jobs:
         uses: actions/cache/save@v3
         with:
           path: ${{ steps.cache.outputs.local_buildcache_path }}
-          key: ${{ steps.cache.outputs.local_buildcache_key }}-${{ github.sha }}
+          key: ${{ steps.cache.outputs.local_buildcache_key }}-${{ inputs.github_ref || github.sha }}
 
       - name: Cache ${{ needs.metadata.outputs.image_title }} image
         uses: actions/cache/save@v3
