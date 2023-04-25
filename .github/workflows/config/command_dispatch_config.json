@@ -1,7 +1,7 @@
 [
     {
       "command": "help",
-      "event_type_suffix": "${{ steps.preprocessing.outputs.command_suffix }}",
+      "event_type_suffix": "_command",
       "issue_type": "both",
       "dispatch_type": "repository",
       "permission": "read",
@@ -9,7 +9,7 @@
     },
     {
       "command": "show_context",
-      "event_type_suffix": "${{ steps.preprocessing.outputs.command_suffix }}",
+      "event_type_suffix": "_command",
       "issue_type": "both",
       "dispatch_type": "repository",
       "permission": "read",
@@ -17,7 +17,7 @@
     },
     {
       "command": "create_cache",
-      "event_type_suffix": "${{ steps.preprocessing.outputs.command_suffix }}",
+      "event_type_suffix": "_command",
       "issue_type": "pull-request",
       "dispatch_type": "workflow",
       "permission": "write",

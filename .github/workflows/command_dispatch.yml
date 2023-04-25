@@ -9,17 +9,26 @@ jobs:
     name: Process slash commands
     runs-on: ubuntu-latest
     steps:
-      # The setting allow_edits means that edited comments can trigger a dispatch to that command.
-      # To make sure that commands that edit the command do not cause an infinite loop, we respond to it here.
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
       - name: Preprocessing
         id: preprocessing
         run: |
-          first_char=`echo "${{ github.event.comment.body }}" | head -n 1 | xargs -0 | cut -c 1`
+          first_char=`echo "${{ github.event.comment.body }}" | head -n 1 | xargs | cut -c 1`
           if [ "$first_char" == "/" ]; then
             echo "react=true" >> $GITHUB_OUTPUT
-            echo "command=$(echo "${{ github.event.comment.body }}" | head -n 1 | xargs -0 | cut -d " " -f 1)" >> $GITHUB_OUTPUT
+            echo "command=$(echo "${{ github.event.comment.body }}" | head -n 1 | xargs | cut -d " " -f 1)" >> $GITHUB_OUTPUT
+
+            json_config=`cat .github/workflows/config/command_dispatch_config.json | sed 's/${{.*}}//g'`
+            entries=`echo "$json_config" | jq -c '.[]'`
+            for entry in $entries; do
+              command_name=`echo $entry | jq -r '.command'`
+              if [ "$command" == "$command_name" ]; then
+                command_suffix=`echo $entry | jq -r '.event_type_suffix'`
+                echo "command_suffix=${command_suffix:--command}" >> $GITHUB_OUTPUT
+              fi
           fi
-          echo "command_suffix=_command" >> $GITHUB_OUTPUT
 
       - name: React to comment
         if: steps.preprocessing.outputs.react == 'true'
@@ -32,9 +41,6 @@ jobs:
             **Command Bot:** Processing...
           edit-mode: replace
           reactions: eyes
-
-      - name: Checkout repository
-        uses: actions/checkout@v3
 
       - name: Dispatch
         id: dispatch
@@ -76,10 +82,10 @@ jobs:
           reactions: |
 
       - name: Indicate successful dispatch
-        if: ${{ steps.preprocessing.outputs.command != '' && steps.dispatch.outcome == 'success' && ! steps.dispatch.outputs.error-message }}
+        if: ${{ steps.preprocessing.outputs.command_suffix != '' && steps.dispatch.outcome == 'success' && ! steps.dispatch.outputs.error-message }}
         uses: peter-evans/create-or-update-comment@v3
         with:
           comment-id: ${{ github.event.comment.id }}
           body: |
-            The launched workflow can be found [here](https://github.com/${{ github.event.repository.full_name }}/actions/workflows/${{ steps.preprocessing.outputs.command }}_command.yml).
+            The launched workflow can be found [here](https://github.com/${{ github.event.repository.full_name }}/actions/workflows/${{ steps.preprocessing.outputs.command }}${{ steps.preprocessing.outputs.command_suffix }}.yml).
           edit-mode: append
