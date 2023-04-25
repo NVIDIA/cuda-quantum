@@ -20,7 +20,7 @@ jobs:
             echo "react=true" >> $GITHUB_OUTPUT
             echo "command=$(echo "${{ github.event.comment.body }}" | head -n 1 | xargs | cut -d " " -f 1)" >> $GITHUB_OUTPUT
 
-            json_config=`cat .github/workflows/config/command_dispatch_config.json`
+            json_config=`cat .github/workflows/config/command_dispatch_config.json | sed 's/{{.*}}//g'`
             entries=`echo "$json_config" | jq -c '.[]'`
             for entry in $entries; do
               command_name=`echo $entry | jq -r '.command'`
@@ -28,6 +28,7 @@ jobs:
                 command_suffix=`echo $entry | jq -r '.event_type_suffix'`
                 echo "command_suffix=${command_suffix:--command}" >> $GITHUB_OUTPUT
               fi
+            done
           fi
 
       - name: React to comment
