@@ -26,8 +26,6 @@ Excitations generateExitations(std::size_t nElectrons, std::size_t nOrbitals) {
   std::vector<SingleIndices> singles;
   for (auto &r : cudaq::range(nElectrons))
     for (std::size_t p = nElectrons; p < nOrbitals; p++) {
-      //   std::cout << "TEST: " << sz[p] << ", " << sz[r] << ", " << p << ", "
-      //   << r << "\n";
       if (sz[p] - sz[r] == 0)
         singles.emplace_back(SingleIndices{r, p});
     }
