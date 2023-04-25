@@ -4,9 +4,6 @@ on:
       devdeps_cache:
         required: true
         type: string
-      pull_request_number:
-        required: false
-        type: string
 
 name: CUDA Quantum Packages
 
