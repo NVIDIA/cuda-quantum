@@ -12,11 +12,15 @@
 
 namespace cudaq::gradients {
 
+/// @brief Compute the first order forward difference approximation, 
+/// \f$ \frac{f(x+dx) - f(x)}{dx} \f$,
+/// for the gradient
 class forward_difference : public gradient {
 public:
   using gradient::gradient;
   double step = 1e-4;
 
+  /// @brief Compute the `forward_difference` gradient
   void compute(const std::vector<double> &x, std::vector<double> &dx,
                spin_op &h, double exp_h) override {
     auto tmpX = x;
