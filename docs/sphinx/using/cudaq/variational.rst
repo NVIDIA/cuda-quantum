@@ -10,6 +10,8 @@ signature for gradient-based optimizers, where the arguments represent the
 function parameters at the current iteration and the modifiable gradient
 vector reference, respectively. For gradient-free optimizers, the second 
 argument, :code:`double(const std::vector<double>&)`, can be dropped.
+Optimizers are defined in the header :code:`<cudaq/optimizers.h>` and 
+gradients in :code:`<cudaq/gradints.h>`.
 
 .. code-block:: cpp 
  
@@ -94,7 +96,7 @@ Here is an example
         return cost;
       });
 
-CUDA Quantum packages the above up for the variational quantum eigensolver algorithm in 
+CUDA Quantum wraps the above code up for the variational quantum eigensolver algorithm in 
 a generic :code:`cudaq::` namespace function. The above snippets could be 
 replaced with 
 
