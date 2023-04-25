@@ -14,10 +14,10 @@ jobs:
       - name: Preprocessing
         id: preprocessing
         run: |
-          first_char=`echo "${{ github.event.comment.body }}" | head -n 1 | xargs -0 | cut -c 1`
+          first_char=`echo "${{ github.event.comment.body }}" | head -n 1 | xargs | cut -c 1`
           if [ "$first_char" == "/" ]; then
             echo "react=true" >> $GITHUB_OUTPUT
-            echo "command=$(echo "${{ github.event.comment.body }}" | head -n 1 | xargs -0 | cut -d " " -f 1)" >> $GITHUB_OUTPUT
+            echo "command=$(echo "${{ github.event.comment.body }}" | head -n 1 | xargs | cut -d " " -f 1)" >> $GITHUB_OUTPUT
           fi
           echo "command_suffix=_command" >> $GITHUB_OUTPUT
 
