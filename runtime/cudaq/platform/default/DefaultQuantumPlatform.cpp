@@ -23,7 +23,7 @@ LLVM_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType)
 
 namespace {
 /// The DefaultQPU models a simulated QPU by specifically
-/// targeting the QIS ExecutionManager. 
+/// targeting the QIS ExecutionManager.
 class DefaultQPU : public cudaq::QPU {
 public:
   DefaultQPU() = default;
