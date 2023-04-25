@@ -141,7 +141,7 @@ public:
           // Warm up the GPUs via an allocation / deallocation.
           cudaq::info("Warm up Emulated QPU (GPU) {}.", i);
           std::array<std::size_t, 1> qbits{warmUpSim->getAvailableIndex()};
-          warmUpSim->returnQubit(qbits[0]);
+          warmUpSim->returnQudit({2, qbits[0]});
         }));
       }
 
