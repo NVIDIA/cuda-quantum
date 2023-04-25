@@ -1,0 +1,47 @@
+on:
+  repository_dispatch:
+    types: [help_command]
+
+name: Show the slash commands help
+
+jobs:
+  example:
+    if: ${{ github.event.client_payload.github.job == 'command_dispatch' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Read config
+        id: config
+        run: |
+          json_config=`cat .github/workflows/config/command_dispatch_config.json | sed 's/${{.*}}//g'`
+          entries=`echo "$json_config" | jq -c '.[]'`
+          help_text="The following commands are available as slash commands: <br/><ul>"
+          for entry in $entries; do
+            command=`echo $entry | jq -r '.command'`
+            permission=`echo $entry | jq -r '.permissions'`
+            issue_type=`echo $entry | jq -r '.issue_type'`
+            help_text+="**/$command**: <ul>"
+            help_text+="required permissions: ${permissions:-write} <br/>"
+            help_text+="valid as comment on pull requests and/or issues: ${issue_type:-both}"
+            help_text+="</ul>"
+          done
+          help_text+="</ul>"
+          echo "help_text=$help_text" >> $GITHUB_OUTPUT
+
+      - name: Show help
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          repository: ${{ github.event.client_payload.github.payload.repository.full_name }}
+          comment-id: ${{ github.event.client_payload.github.payload.comment.id }}
+          body: |
+            ${{ steps.config.outputs.help_text }}
+            
+            Available command descriptions:
+            Command | Description
+            --- | ---
+            /help | Shows the slash commands that can be used by commenting on an issue or PR.
+            /show_context | Shows the context available to slash commands.
+            /create_cache [ref=...] | Creates a CI build cache for the PR owned by the specified ref (main by default).
+          edit-mode: append

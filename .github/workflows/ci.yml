@@ -15,7 +15,7 @@ on:
       github_ref:
         type: string
         required: false
-        description: The branch, tag or SHA to checkout. Permits to run the workflow from a different branch than the one the workflow applies to.
+        description: The branch, tag, or SHA to checkout. Permits to run the workflow from a different branch than the one the workflow applies to.
   pull_request:
     branches:
       - 'main'

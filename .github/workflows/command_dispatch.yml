@@ -40,29 +40,7 @@ jobs:
           token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
           # The event_type_suffix must be set to the one saved in preprocessing 
           # for the workflow link given at the end of this job to be correct.
-          config: >
-            [
-              {
-                "command": "show_context",
-                "event_type_suffix": "${{ steps.preprocessing.outputs.command_suffix }}",
-                "issue_type": "both",
-                "dispatch_type": "repository",
-                "permission": "write",
-                "allow_edits": true
-              },
-              {
-                "command": "create_cache",
-                "event_type_suffix": "${{ steps.preprocessing.outputs.command_suffix }}",
-                "issue_type": "pull-request",
-                "dispatch_type": "workflow",
-                "permission": "write",
-                "allow_edits": true,
-                "static_args": [
-                  "pr_url=${{ github.event.issue.pull_request.url }}",
-                  "comment_id=${{ github.event.comment.id }}"
-                ]
-              }
-            ]
+          config-from-file: .github/workflows/config/command_dispatch_config.json
         continue-on-error: true
 
       - name: Edit comment with error message
@@ -88,7 +66,7 @@ jobs:
           body: |
             > ${{ github.event.comment.body }}
   
-            **Command Bot:** Failed to dispatch command.
+            **Command Bot:** Failed to dispatch command. For more information about available commands, use the command /help.
           # We replace the original comment to avoid an infinite loop
           edit-mode: replace
           reactions-edit-mode: replace
