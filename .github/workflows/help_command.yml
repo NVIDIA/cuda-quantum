@@ -23,7 +23,7 @@ jobs:
             permission=`echo $entry | jq -r '.permission'`
             issue_type=`echo $entry | jq -r '.issue_type'`
             help_text+="**/$command**: <ul>"
-            help_text+="required permissions: ${permissions:-write} <br/>"
+            help_text+="required permissions: ${permission:-write} <br/>"
             help_text+="valid as comment on pull requests and/or issues: ${issue_type:-both}"
             help_text+="</ul>"
           done
