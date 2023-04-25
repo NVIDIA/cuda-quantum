@@ -33,6 +33,9 @@ jobs:
           edit-mode: replace
           reactions: eyes
 
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
       - name: Dispatch
         id: dispatch
         uses: peter-evans/slash-command-dispatch@v3
