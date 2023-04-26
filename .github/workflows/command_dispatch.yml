@@ -56,8 +56,6 @@ jobs:
         uses: peter-evans/slash-command-dispatch@v3
         with:
           token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
-          # The event_type_suffix must be set to the one saved in preprocessing 
-          # for the workflow link given at the end of this job to be correct.
           config-from-file: /tmp/command_dispatch_config.json
         continue-on-error: true
 

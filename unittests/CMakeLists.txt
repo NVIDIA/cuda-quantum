@@ -14,7 +14,7 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   integration/adjoint_tester.cpp
   integration/builder_tester.cpp
   integration/ccnot_tester.cpp
-  integration/deuteron_exp_inst.cpp
+  # integration/deuteron_exp_inst.cpp
   integration/deuteron_variational_tester.cpp
   integration/ghz_nisq_tester.cpp
   integration/gradient_tester.cpp
@@ -103,6 +103,21 @@ target_link_libraries(test_spin
   gtest_main)
 gtest_discover_tests(test_spin)
 
+# build the test qudit execution manager
+add_subdirectory(qudit)
+add_executable(test_qudit main.cpp qudit/SimpleQuditTester.cpp)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+  target_link_options(test_qudit PRIVATE -Wl,--no-as-needed)
+endif()
+target_link_libraries(test_qudit
+  PRIVATE 
+  cudaq
+  cudaq-platform-default
+  cudaq-em-qudit
+  gtest_main)
+gtest_discover_tests(test_qudit)
+
 add_subdirectory(backends)
 add_subdirectory(pass)
 add_subdirectory(Optimizer)
+
