@@ -10,22 +10,22 @@ on:
 name: Push dev images and update caches
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request_target.base.ref || github.event.ref_name }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.base.ref || github.event.ref_name }}
   cancel-in-progress: false
 
 jobs:
   doxygen:
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request_target.merged == true
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.Dockerfile
-      build_cache_tag: ${{ github.event.pull_request_target.base.ref || '' }}
+      build_cache_tag: ${{ github.event.pull_request.base.ref || '' }}
       build_target: doxygenbuild
       build_cache_only: true
       environment: ghcr-deployment
 
   devdeps:
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request_target.merged == true
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     needs: doxygen
     strategy:
       matrix:
@@ -34,7 +34,7 @@ jobs:
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.Dockerfile
-      build_cache_tag: ${{ github.event.pull_request_target.base.ref || '' }}
+      build_cache_tag: ${{ github.event.pull_request.base.ref || '' }}
       additional_build_caches: |
         ${{ needs.doxygen.outputs.build_cache }}
       toolchain: ${{ matrix.toolchain }}
@@ -43,12 +43,12 @@ jobs:
 
   # split out so that it is not required to finish to proceed with other jobs
   devdeps_llvm:
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request_target.merged == true
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     needs: doxygen
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.Dockerfile
-      build_cache_tag: ${{ github.event.pull_request_target.base.ref || '' }}
+      build_cache_tag: ${{ github.event.pull_request.base.ref || '' }}
       additional_build_caches: |
         ${{ needs.doxygen.outputs.build_cache }}
       toolchain: llvm
@@ -79,6 +79,6 @@ jobs:
     needs: config
     with:
       dockerfile: build/devdeps.ext.Dockerfile
-      build_cache_tag: ${{ github.event.pull_request_target.base.ref || '' }}
+      build_cache_tag: ${{ github.event.pull_request.base.ref || '' }}
       base_image: ${{ fromJson(needs.config.outputs.json).image_name.gcc12 }}@${{ fromJson(needs.config.outputs.json).digest.gcc12 }}
       environment: ghcr-deployment
