@@ -7,10 +7,10 @@ on:
       build_target:
         required: false
         type: string
-      additional_build_caches:
+      registry_cache_from:
         required: false
         type: string
-      additional_local_caches:
+      local_cache_from:
         required: false
         type: string
       create_local_cache:
@@ -21,6 +21,12 @@ on:
         required: false
         type: boolean
         default: false
+      additional_build_caches:
+        required: false
+        type: string
+      additional_local_caches:
+        required: false
+        type: string
       base_image:
         required: false
         type: string
@@ -30,19 +36,20 @@ on:
       matrix_key:
         required: false
         type: string
-      environment:
+      pull_request_number:
         required: false
         type: string
-      github_ref:
+        description: The issue number of the pull request to check out. Permits to run the workflow from a different branch than the PR branch.
+      environment:
         required: false
         type: string
     outputs:
       image_name:
         description: "The full name of the built docker image."
         value: ${{ jobs.finalize.outputs.image_name }}
-      digest:
-        description: "The digest of the docker image, if it was deployed to the registry."
-        value: ${{ jobs.finalize.outputs.digest }}
+      digests:
+        description: "The digests of the docker image(s) that were deployed to the registry."
+        value: ${{ jobs.finalize.outputs.digests }}
       cache_key:
         description: "The cache key to retrieve a tar archive containing the built image(s)."
         value: ${{ jobs.finalize.outputs.cache_key }}
@@ -74,9 +81,16 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ inputs.github_ref || '' }}
+        run: |
+          git init
+          git remote add origin https://github.com/${{ github.event.repository.full_name }}
+          if ${{ inputs.pull_request_number != '' }}; then
+            gh pr -R ${{ github.event.repository.full_name }} checkout ${{ inputs.pull_request_number }}
+          else
+            git fetch origin --depth=1 ${{ github.sha }} && git reset --hard FETCH_HEAD
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Determine build arguments
         id: build_info
@@ -90,11 +104,18 @@ jobs:
           tag_prefix=${toolchain:+$toolchain-}
           tag_suffix=`echo $image_id | cut -s -d "." -f 2- | xargs -I "%" echo .% | tr . -`
 
+          if ${{ inputs.pull_request_number != '' }}; then
+            custom_tags="type=raw,value=pr-${{ inputs.pull_request_number }}"
+          elif ${{ github.event.pull_request.merged == true }}; then
+            custom_tags="type=raw,value=${{ github.event.pull_request.base.ref }}"
+          fi
+
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
           echo "image_title=$image_title" >> $GITHUB_OUTPUT
           echo "image_id=$image_id" >> $GITHUB_OUTPUT
           echo "tag_prefix=$tag_prefix" >> $GITHUB_OUTPUT
           echo "tag_suffix=$tag_suffix" >> $GITHUB_OUTPUT
+          echo "custom_tags=$custom_tags" >> $GITHUB_OUTPUT
           echo "dockerfile=${{ inputs.dockerfile }}" >> $GITHUB_OUTPUT
           echo "owner=${repo_owner,,}" >> $GITHUB_OUTPUT
           echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
@@ -110,10 +131,11 @@ jobs:
             suffix=${{ steps.build_info.outputs.tag_suffix }},onlatest=true
           tags: |
             # workflow dispatch is covered by these
-            type=schedule,enable=true,pattern=nightly
-            type=ref,enable=true,event=branch
-            type=ref,enable=true,prefix=${{ steps.build_info.outputs.tag_prefix }}pr-,event=pr
-            type=ref,enable=true,event=tag
+            type=schedule,enable=${{ inputs.pull_request_number == '' }},pattern=nightly
+            type=ref,enable=${{ inputs.pull_request_number == '' }},event=branch
+            type=ref,enable=${{ inputs.pull_request_number == '' }},prefix=${{ steps.build_info.outputs.tag_prefix }}pr-,event=pr
+            type=ref,enable=${{ inputs.pull_request_number == '' }},event=tag
+            ${{ steps.build_info.outputs.custom_tags }}
           labels: |
             org.opencontainers.image.title=${{ steps.build_info.outputs.image_title }}
             org.opencontainers.image.description=Dev tools for building and testing CUDA Quantum
@@ -134,9 +156,16 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ inputs.github_ref || '' }}
+        run: |
+          git init
+          git remote add origin https://github.com/${{ github.event.repository.full_name }}
+          if ${{ inputs.pull_request_number != '' }}; then
+            gh pr -R ${{ github.event.repository.full_name }} checkout ${{ inputs.pull_request_number }}
+          else
+            git fetch origin --depth=1 ${{ github.sha }} && git reset --hard FETCH_HEAD
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Set up buildx runner
         uses: docker/setup-buildx-action@v2
@@ -152,31 +181,37 @@ jobs:
         id: cache
         run: |
           toolchain=${{ inputs.toolchain }}
-          cache_id=$(echo ${{ needs.metadata.outputs.image_id }} | tr . -)${toolchain:+-$toolchain}
-          cache_target=${{ inputs.github_ref || github.ref_name }}
-          cache_base=${{ github.event.pull_request.base.ref || 'main' }}
           registry_cache=ghcr.io/${{ needs.metadata.outputs.owner }}/buildcache-cuda-quantum
           nvidia_registry_cache=ghcr.io/nvidia/buildcache-cuda-quantum
+          registry_cache_base=${{ inputs.registry_cache_from || github.event.pull_request.base.ref || 'main' }}
+          cache_id=$(echo ${{ needs.metadata.outputs.image_id }} | tr . -)${toolchain:+-$toolchain}
 
           local_buildcache_path="/tmp/.buildcache-${cache_id}"
-          local_buildcache_key="${cache_target}-cuda-quantum-${cache_id}"
+          local_buildcache_key_suffix="-$(git rev-parse HEAD)"
+          if ${{ inputs.pull_request_number != '' }}; then
+            local_buildcache_key="${{ inputs.pull_request_number }}/merge-cuda-quantum-${cache_id}"
+          else
+            local_buildcache_key="${{ inputs.local_cache_from || github.ref_name }}-cuda-quantum-${cache_id}"
+          fi
+
           cache_from_gh="type=local,src=${local_buildcache_path}"
-          cache_from_registry="type=registry,ref=${registry_cache}-${cache_id}:${cache_base}"
-          cache_from_nvidia_registry="type=registry,ref=${nvidia_registry_cache}-${cache_id}:${cache_base}"
+          cache_from_registry="type=registry,ref=${registry_cache}-${cache_id}:${registry_cache_base}"
+          cache_from_nvidia_registry="type=registry,ref=${nvidia_registry_cache}-${cache_id}:${registry_cache_base}"
           if ${{ inputs.environment == 'ghcr-deployment' }}; then
-            build_cache="type=registry,ref=${registry_cache}-${cache_id}:${cache_target}"
+            build_cache="type=registry,ref=${registry_cache}-${cache_id}:${{ github.ref_name }}"
             cache_to="${build_cache},mode=max,ignore-error=false"
           elif ${{ inputs.create_local_cache }}; then
             # In general, using the build cache from the registry/parent branch is the quickest.
             # We hence create a build cache only upon request.
-            cache_to="type=local,dest=${local_buildcache_path}-new,mode=max,ignore-error=true"
             build_cache="$local_buildcache_key"
+            cache_to="type=local,dest=${local_buildcache_path}-new,mode=max,ignore-error=true"
           fi
 
           cache_from_registry=""
           cache_from_nvidia_registry=""
 
           echo "local_buildcache_key=$local_buildcache_key" >> $GITHUB_OUTPUT
+          echo "local_buildcache_key_suffix=$local_buildcache_key_suffix" >> $GITHUB_OUTPUT
           echo "local_buildcache_path=$local_buildcache_path" >> $GITHUB_OUTPUT
           echo "cache_from_gh=$cache_from_gh" >> $GITHUB_OUTPUT
           echo "cache_from_registry=$cache_from_registry" >> $GITHUB_OUTPUT
@@ -184,7 +219,7 @@ jobs:
           echo "cache_to=$cache_to" >> $GITHUB_OUTPUT
           echo "build_cache=$build_cache" >> $GITHUB_OUTPUT
           if ${{ ! inputs.build_cache_only }}; then
-            echo "tar_cache=tar-${cache_id}-${{ inputs.github_ref || github.sha }}" >> $GITHUB_OUTPUT
+            echo "tar_cache=tar-${cache_id}${local_buildcache_key_suffix}" >> $GITHUB_OUTPUT
             echo "tar_archive=/tmp/${{ needs.metadata.outputs.image_id }}.tar" >> $GITHUB_OUTPUT
           fi
 
@@ -192,7 +227,7 @@ jobs:
         uses: actions/cache/restore@v3
         with:
           path: ${{ steps.cache.outputs.local_buildcache_path }}
-          key: ${{ steps.cache.outputs.local_buildcache_key }}-${{ inputs.github_ref || github.sha }}
+          key: ${{ steps.cache.outputs.local_buildcache_key }}${{ steps.cache.outputs.local_buildcache_key_suffix }}
           restore-keys: |
             ${{ inputs.additional_local_caches }}
             ${{ steps.cache.outputs.local_buildcache_key }}
@@ -234,7 +269,7 @@ jobs:
         uses: actions/cache/save@v3
         with:
           path: ${{ steps.cache.outputs.local_buildcache_path }}
-          key: ${{ steps.cache.outputs.local_buildcache_key }}-${{ inputs.github_ref || github.sha }}
+          key: ${{ steps.cache.outputs.local_buildcache_key }}${{ steps.cache.outputs.local_buildcache_key_suffix }}
 
       - name: Cache ${{ needs.metadata.outputs.image_title }} image
         uses: actions/cache/save@v3
@@ -261,7 +296,7 @@ jobs:
 
     outputs:
       image_name: ${{ fromJson(steps.write_json.outputs.result).image_name }}
-      digest: ${{ fromJson(steps.write_json.outputs.result).digest }}
+      digests: ${{ fromJson(steps.write_json.outputs.result).digests }}
       cache_key: ${{ fromJson(steps.write_json.outputs.result).cache_key }}
       build_cache: ${{ fromJson(steps.write_json.outputs.result).build_cache }}
 
@@ -273,7 +308,7 @@ jobs:
           matrix-key: ${{ inputs.matrix_key }}
           outputs: |
             image_name: ${{ needs.metadata.outputs.image_name }}
-            digest: ${{ needs.deployment.outputs.digest }}
+            digests: ${{ needs.deployment.outputs.digests }}
             cache_key: ${{ needs.build.outputs.tar_cache }}
             tar_archive: ${{ needs.build.outputs.tar_archive }}
             build_cache: ${{ needs.build.outputs.build_cache }}

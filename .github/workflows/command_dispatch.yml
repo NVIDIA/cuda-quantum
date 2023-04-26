@@ -25,13 +25,14 @@ jobs:
           first_char=`echo "${{ github.event.comment.body }}" | head -n 1 | xargs | cut -c 1`
           if [ "$first_char" == "/" ]; then
             echo "react=true" >> $GITHUB_OUTPUT
-            echo "command=$(echo "${{ github.event.comment.body }}" | head -n 1 | xargs | cut -d " " -f 1)" >> $GITHUB_OUTPUT
+            command=$(echo "${{ github.event.comment.body }}" | head -n 1 | xargs | cut -d " " -f 1)
+            echo "command=${command:1}" >> $GITHUB_OUTPUT
 
             json_config=`cat /tmp/command_dispatch_config.json | sed 's/{{.*}}//g'`
             entries=`echo "$json_config" | jq -c '.[]'`
             for entry in $entries; do
               command_name=`echo $entry | jq -r '.command'`
-              if [ "$command" == "$command_name" ]; then
+              if [ "${command:1}" == "$command_name" ]; then
                 command_suffix=`echo $entry | jq -r '.event_type_suffix'`
                 echo "command_suffix=${command_suffix:--command}" >> $GITHUB_OUTPUT
               fi
@@ -55,8 +56,6 @@ jobs:
         uses: peter-evans/slash-command-dispatch@v3
         with:
           token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
-          # The event_type_suffix must be set to the one saved in preprocessing 
-          # for the workflow link given at the end of this job to be correct.
           config-from-file: /tmp/command_dispatch_config.json
         continue-on-error: true
 

@@ -27,7 +27,7 @@ class qudit {
 
 public:
   /// Construct a qudit, will allocated a new unique index
-  qudit() : idx(getExecutionManager()->getAvailableIndex()) {}
+  qudit() : idx(getExecutionManager()->getAvailableIndex(n_levels())) {}
 
   // Qudits cannot be copied
   qudit(const qudit &q) = delete;
@@ -56,7 +56,7 @@ public:
   qudit<Levels> &operator!() { return negate(); }
 
   // Destructor, return the qudit so it can be reused
-  ~qudit() { getExecutionManager()->returnQubit(idx); }
+  ~qudit() { getExecutionManager()->returnQudit({n_levels(), idx}); }
 };
 
 // A qubit is a qudit with 2 levels.
