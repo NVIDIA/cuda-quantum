@@ -37,8 +37,6 @@ CUDAQ_TEST(GHZSampleTester, checkSimple) {
     counter += count;
     EXPECT_TRUE(bits == "00000" || bits == "11111");
   }
-  // FIXME: Testing the CI build so purposefully replacing this to fail:
-  // EXPECT_EQ(counter, 1000);
-  EXPECT_EQ(counter, 0);
+  EXPECT_EQ(counter, 1000);
   printf("Exp: %lf\n", counts.exp_val_z());
 }
