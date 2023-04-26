@@ -70,6 +70,7 @@ jobs:
         id: dispatch
         uses: peter-evans/slash-command-dispatch@v3
         with:
+          token: ${{ github.token }}
           config-from-file: /tmp/command_dispatch_config.json
         continue-on-error: true
 
