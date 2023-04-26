@@ -83,7 +83,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          # This job should have read permissions only.
           ref: "${{ (inputs.pull_request_number != '' && format('refs/pull/{0}/merge', inputs.pull_request_number)) || '' }}"
 
       - name: Determine build arguments
@@ -149,21 +148,9 @@ jobs:
       build_cache: ${{ steps.cache.outputs.build_cache }}
 
     steps:
-      - name: Check permissions
-        run: |
-          gh auth status > /tmp/permissions.out
-
-          echo "## Permissions" >> $GITHUB_STEP_SUMMARY
-          echo '```text' >> $GITHUB_STEP_SUMMARY
-          cat /tmp/permissions.out >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-        env:
-          GH_TOKEN: ${{ github.token }}
-
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          # This job should have read permissions only if pull_request_number is defined.
           ref: "${{ (inputs.pull_request_number != '' && format('refs/pull/{0}/merge', inputs.pull_request_number)) || '' }}"
 
       - name: Set up buildx runner
@@ -190,7 +177,11 @@ jobs:
           if ${{ inputs.pull_request_number != '' }}; then
             local_buildcache_key="${{ inputs.pull_request_number }}/merge-cuda-quantum-${cache_id}"
           else
-            local_buildcache_key="${{ inputs.local_cache_from || github.ref_name }}-cuda-quantum-${cache_id}"
+            local_cache_from=${{ inputs.local_cache_from || github.ref_name }}
+            if ${{ inputs.local_cache_from == '' && github.event.pull_request.merged == true }}; then
+              local_cache_from=${{ github.event.pull_request.number }}/merge
+            fi
+            local_buildcache_key="${local_cache_from}-cuda-quantum-${cache_id}"
           fi
 
           cache_from_gh="type=local,src=${local_buildcache_path}"
