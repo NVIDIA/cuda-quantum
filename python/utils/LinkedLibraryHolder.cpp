@@ -7,9 +7,9 @@
  *******************************************************************************/
 
 #include "LinkedLibraryHolder.h"
-#include "CircuitSimulator.h"
 #include "common/PluginUtils.h"
 #include "cudaq/platform.h"
+#include "nvqir/CircuitSimulator.h"
 #include <fstream>
 #include <iostream>
 #include <pybind11/pybind11.h>
@@ -223,8 +223,6 @@ void LinkedLibraryHolder::setPlatform(
     const std::string &name, std::map<std::string, std::string> config) {
 
   std::string mutableName = name;
-  if (name == "qpud")
-    mutableName = "default-qpud";
 
   // need to set qpu to cuquantum for mqpu
   if (name == "mqpu")

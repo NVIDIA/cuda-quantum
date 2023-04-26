@@ -6,4 +6,4 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-target_sources(qpud PRIVATE DefaultBackend.cpp)
+add_subdirectory(simple_qudit)
