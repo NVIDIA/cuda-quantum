@@ -139,9 +139,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: metadata
     timeout-minutes: 600
-    permissions:
-      contents: read
-      packages: write
+    permissions: write-all
 
     outputs:
       tar_cache: ${{ steps.cache.outputs.tar_cache }}
