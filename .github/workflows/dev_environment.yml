@@ -141,7 +141,7 @@ jobs:
     timeout-minutes: 600
     permissions:
       contents: read
-      packages: ${{ (inputs.pull_request_number != '') && 'read' || 'write' }}
+      packages: write
 
     outputs:
       tar_cache: ${{ steps.cache.outputs.tar_cache }}
