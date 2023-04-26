@@ -84,7 +84,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           # This job should have read permissions only.
-          ref: "${{ (inputs.pull_request_number != '' && format('refs/pull/{0}/merge', inputs.pull_request_number)) }}"
+          ref: "${{ (inputs.pull_request_number != '' && format('refs/pull/{0}/merge', inputs.pull_request_number)) || '' }}"
 
       - name: Determine build arguments
         id: build_info
@@ -153,7 +153,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           # This job should have read permissions only if pull_request_number is defined.
-          ref: "${{ (inputs.pull_request_number != '' && format('refs/pull/{0}/merge', inputs.pull_request_number)) }}"
+          ref: "${{ (inputs.pull_request_number != '' && format('refs/pull/{0}/merge', inputs.pull_request_number)) || '' }}"
 
       - name: Set up buildx runner
         uses: docker/setup-buildx-action@v2
