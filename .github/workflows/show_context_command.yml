@@ -1,0 +1,22 @@
+on:
+  repository_dispatch:
+    types: [show_context_command]
+
+name: Show the context available to slash commands
+
+jobs:
+  example:
+    if: ${{ github.event.client_payload.github.job == 'command_dispatch' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Show context
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          repository: ${{ github.event.client_payload.github.payload.repository.full_name }}
+          comment-id: ${{ github.event.client_payload.github.payload.comment.id }}
+          body: |
+            Full context available to slash commands via github.event.client_payload:
+            ```json
+            ${{ toJson(github.event.client_payload) }}
+            ```
+          edit-mode: append

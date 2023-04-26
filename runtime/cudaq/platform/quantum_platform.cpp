@@ -35,7 +35,7 @@ namespace cudaq {
 std::string get_quake(const std::string &);
 
 thread_local static quantum_platform *platform;
-inline static constexpr std::string_view GetCircuitSymbol =
+inline static constexpr std::string_view GetQuantumPlatformSymbol =
     "getQuantumPlatform";
 
 void setQuantumPlatformInternal(quantum_platform *p) {
@@ -48,7 +48,7 @@ void setQuantumPlatformInternal(quantum_platform *p) {
 quantum_platform *getQuantumPlatformInternal() {
   if (platform)
     return platform;
-  platform = cudaq::getUniquePluginInstance<quantum_platform>(GetCircuitSymbol);
+  platform = cudaq::getUniquePluginInstance<quantum_platform>(GetQuantumPlatformSymbol);
   return platform;
 }
 

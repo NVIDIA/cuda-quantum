@@ -9,10 +9,10 @@
 #pragma once
 
 #include "Gates.h"
-#include "Logger.h"
-#include "MeasureCounts.h"
-#include "NoiseModel.h"
 #include "QIRTypes.h"
+#include "common/Logger.h"
+#include "common/MeasureCounts.h"
+#include "common/NoiseModel.h"
 
 #include <cstdarg>
 #include <cstddef>

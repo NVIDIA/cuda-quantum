@@ -70,15 +70,6 @@ License at <https://github.com/fmtlib/fmt/blob/master/LICENSE.rst>
 
 ----------------------------------------------------------------
 
-RPCLib - MIT License
-<https://github.com/rpclib/rpclib>
-
-Originally developed by Tamas Szelei.
-The incorporated source code and its license can be found as a submodule on the CUDA Quantum repository.
-License at <https://github.com/rpclib/rpclib/blob/master/LICENSE.md>
-
-----------------------------------------------------------------
-
 SPDLog - MIT License
 <https://github.com/gabime/spdlog>
 

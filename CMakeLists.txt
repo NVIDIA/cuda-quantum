@@ -312,14 +312,6 @@ add_subdirectory(tpls/spdlog)
 set_property(TARGET spdlog APPEND PROPERTY INTERFACE_SYSTEM_INCLUDE_DIRECTORIES)
 target_compile_options(spdlog PRIVATE -Wno-covered-switch-default)
 
-# May want to provide a hook to this
-if (CUDAQ_ENABLE_RPC_LOGGING)
-  set(RPCLIB_ENABLE_LOGGING TRUE)
-endif()
-set(RPCLIB_EXTRA_BUILD_FLAGS "-Wno-suggest-override;-Wno-documentation;-Wno-unused-variable;-Wno-unused-but-set-variable;-Wno-unsafe-buffer-usage")
-add_subdirectory(tpls/rpclib EXCLUDE_FROM_ALL)
-set_property(TARGET rpc APPEND PROPERTY INTERFACE_SYSTEM_INCLUDE_DIRECTORIES)
-
 # Check for CUDA Support
 # ==============================================================================
 include(CheckLanguage)

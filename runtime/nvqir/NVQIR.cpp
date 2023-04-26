@@ -7,9 +7,9 @@
  *******************************************************************************/
 
 #include "CircuitSimulator.h"
-#include "Logger.h"
-#include "PluginUtils.h"
 #include "QIRTypes.h"
+#include "common/Logger.h"
+#include "common/PluginUtils.h"
 #include "cudaq/spin_op.h"
 #include <cmath>
 #include <complex>
@@ -32,7 +32,7 @@
 // Is the library initialized?
 thread_local bool initialized = false;
 thread_local nvqir::CircuitSimulator *simulator;
-inline static constexpr std::string_view GetCircuitSymbol =
+inline static constexpr std::string_view GetCircuitSimulatorSymbol =
     "getCircuitSimulator";
 
 /// @brief Provide a holder for externally created
@@ -76,7 +76,7 @@ CircuitSimulator *getCircuitSimulatorInternal() {
   }
 
   simulator =
-      cudaq::getUniquePluginInstance<CircuitSimulator>(GetCircuitSymbol);
+      cudaq::getUniquePluginInstance<CircuitSimulator>(GetCircuitSimulatorSymbol);
   cudaq::info("Creating the {} backend.", simulator->name());
   return simulator;
 }

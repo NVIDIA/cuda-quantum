@@ -116,11 +116,11 @@ public:
     execution_queue->enqueue(task);
   }
 
-  /// @brief Ask qpud if the current backend is a simulator
+  /// @brief Return true if the current backend is a simulator
   /// @return
   bool isSimulator() override { return false; }
 
-  /// @brief Ask qpud if the current backend supports conditional feedback
+  /// @brief Return true if the current backend supports conditional feedback
   bool supportsConditionalFeedback() override { return false; }
 
   /// Provide the number of shots
