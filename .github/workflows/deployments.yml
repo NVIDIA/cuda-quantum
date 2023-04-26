@@ -19,7 +19,6 @@ jobs:
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.Dockerfile
-      build_cache_tag: ${{ github.event.pull_request.base.ref || '' }}
       build_target: doxygenbuild
       build_cache_only: true
       environment: ghcr-deployment
@@ -34,7 +33,6 @@ jobs:
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.Dockerfile
-      build_cache_tag: ${{ github.event.pull_request.base.ref || '' }}
       additional_build_caches: |
         ${{ needs.doxygen.outputs.build_cache }}
       toolchain: ${{ matrix.toolchain }}
@@ -48,7 +46,6 @@ jobs:
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.Dockerfile
-      build_cache_tag: ${{ github.event.pull_request.base.ref || '' }}
       additional_build_caches: |
         ${{ needs.doxygen.outputs.build_cache }}
       toolchain: llvm
@@ -79,6 +76,5 @@ jobs:
     needs: config
     with:
       dockerfile: build/devdeps.ext.Dockerfile
-      build_cache_tag: ${{ github.event.pull_request.base.ref || '' }}
       base_image: ${{ fromJson(needs.config.outputs.json).image_name.gcc12 }}@${{ fromJson(needs.config.outputs.json).digest.gcc12 }}
       environment: ghcr-deployment

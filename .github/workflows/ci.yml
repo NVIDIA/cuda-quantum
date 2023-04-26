@@ -25,7 +25,6 @@ jobs:
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.Dockerfile
-      build_cache_tag: ${{ github.event.pull_request.base.ref || 'main' }}
       toolchain: ${{ matrix.toolchain }}
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.toolchain }}
@@ -36,7 +35,6 @@ jobs:
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.Dockerfile
-      build_cache_tag: ${{ github.event.pull_request.base.ref || 'main' }}
       toolchain: llvm
 
   # This job is needed only when using the cloudposse GitHub action to read
