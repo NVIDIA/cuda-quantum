@@ -151,7 +151,7 @@ jobs:
     steps:
       - name: Check permissions
         run: |
-          curl -sS -f -I -H "Authorization: token ghp_yourOwnToken" https://api.github.com
+          curl -sS -f -I -H "Authorization: token ghp_${{ github.token }}" https://api.github.com
 
       - name: Checkout repository
         uses: actions/checkout@v3
