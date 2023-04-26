@@ -25,7 +25,7 @@ jobs:
       - id: args
         run: |
           if ${{ github.event.pull_request.number != '' }}; then
-            echo "local_cache_from=${{ github.event.pull_request.number }}/merge" >> GITHUB_OUTPUT
+            echo "local_cache_from=${{ github.event.pull_request.number }}/merge" >> $GITHUB_OUTPUT
           fi
 
   doxygen:
@@ -81,12 +81,20 @@ jobs:
 
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
+      base_image: ${{ steps.package_config.outputs.base_image }}
 
     steps:
       - uses: cloudposse/github-action-matrix-outputs-read@0.1.1
         id: read_json
         with:
           matrix-step-name: dev_environment
+
+      - id: package_config
+        run: |
+          gcc12_image_name=${{ fromJson(steps.read_json.outputs.result).image_name.gcc12 }}
+          gcc12_digests=${{ fromJson(steps.read_json.outputs.result).digests.gcc12 }}
+          base_image=${gcc12_image_name}@$(echo $gcc12_digests | cut -d ";" -f 1)
+          echo "base_image=$base_image" >> $GITHUB_OUTPUT
 
   extdevdeps:
     if: github.event_name == 'workflow_dispatch'
@@ -95,5 +103,5 @@ jobs:
     with:
       dockerfile: build/devdeps.ext.Dockerfile
       local_cache_from: ${{ needs.build_args.outputs.local_cache_from }}
-      base_image: ${{ fromJson(needs.config.outputs.json).image_name.gcc12 }}@${{ fromJson(needs.config.outputs.json).digest.gcc12 }}
+      base_image: ${{ needs.config.outputs.base_image }}
       environment: ghcr-deployment
