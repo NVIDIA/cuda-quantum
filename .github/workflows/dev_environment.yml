@@ -149,6 +149,10 @@ jobs:
       build_cache: ${{ steps.cache.outputs.build_cache }}
 
     steps:
+      - name: Check permissions
+        run: |
+          curl -sS -f -I -H "Authorization: token ghp_yourOwnToken" https://api.github.com
+
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
