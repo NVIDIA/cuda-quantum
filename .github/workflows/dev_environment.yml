@@ -149,8 +149,7 @@ jobs:
     steps:
       - name: Check permissions
         run: |
-          gh api --header 'Accept: application/vnd.github+json' \
-            --method GET repos/${{ github.repository }} --include > /tmp/permissions.out
+          gh auth status > /tmp/permissions.out
 
           echo "## Permissions" >> $GITHUB_STEP_SUMMARY
           echo '```text' >> $GITHUB_STEP_SUMMARY
