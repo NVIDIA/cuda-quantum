@@ -7,10 +7,10 @@ on:
       build_target:
         required: false
         type: string
-      additional_build_caches:
+      registry_cache_from:
         required: false
         type: string
-      additional_local_caches:
+      local_cache_from:
         required: false
         type: string
       create_local_cache:
@@ -21,6 +21,12 @@ on:
         required: false
         type: boolean
         default: false
+      additional_build_caches:
+        required: false
+        type: string
+      additional_local_caches:
+        required: false
+        type: string
       base_image:
         required: false
         type: string
@@ -95,11 +101,18 @@ jobs:
           tag_prefix=${toolchain:+$toolchain-}
           tag_suffix=`echo $image_id | cut -s -d "." -f 2- | xargs -I "%" echo .% | tr . -`
 
+          if ${{ inputs.pull_request_number != '' }}; then
+            custom_tags="type=raw,value=${tag_prefix}pr-${{ inputs.pull_request_number }}"
+          elif ${{ github.event.pull_request.merged == true }}; then
+            custom_tags="type=raw,value=${tag_prefix}${{ github.event.pull_request.base.ref }}"
+          fi
+
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
           echo "image_title=$image_title" >> $GITHUB_OUTPUT
           echo "image_id=$image_id" >> $GITHUB_OUTPUT
           echo "tag_prefix=$tag_prefix" >> $GITHUB_OUTPUT
           echo "tag_suffix=$tag_suffix" >> $GITHUB_OUTPUT
+          echo "custom_tags=$custom_tags" >> $GITHUB_OUTPUT
           echo "dockerfile=${{ inputs.dockerfile }}" >> $GITHUB_OUTPUT
           echo "owner=${repo_owner,,}" >> $GITHUB_OUTPUT
           echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
@@ -115,10 +128,11 @@ jobs:
             suffix=${{ steps.build_info.outputs.tag_suffix }},onlatest=true
           tags: |
             # workflow dispatch is covered by these
-            type=schedule,enable=true,pattern=nightly
-            type=ref,enable=true,event=branch
-            type=ref,enable=true,prefix=${{ steps.build_info.outputs.tag_prefix }}pr-,event=pr
-            type=ref,enable=true,event=tag
+            type=schedule,enable=${{ inputs.pull_request_number == '' }},pattern=nightly
+            type=ref,enable=${{ inputs.pull_request_number == '' }},event=branch
+            type=ref,enable=${{ inputs.pull_request_number == '' }},prefix=${{ steps.build_info.outputs.tag_prefix }}pr-,event=pr
+            type=ref,enable=${{ inputs.pull_request_number == '' }},event=tag
+            ${{ steps.build_info.outputs.custom_tags }}
           labels: |
             org.opencontainers.image.title=${{ steps.build_info.outputs.image_title }}
             org.opencontainers.image.description=Dev tools for building and testing CUDA Quantum
@@ -165,20 +179,20 @@ jobs:
           toolchain=${{ inputs.toolchain }}
           registry_cache=ghcr.io/${{ needs.metadata.outputs.owner }}/buildcache-cuda-quantum
           nvidia_registry_cache=ghcr.io/nvidia/buildcache-cuda-quantum
+          registry_cache_base=${{ inputs.registry_cache_from || github.event.pull_request.base.ref || 'main' }}
           cache_id=$(echo ${{ needs.metadata.outputs.image_id }} | tr . -)${toolchain:+-$toolchain}
-          cache_base=${{ github.event.pull_request.base.ref || 'main' }}
 
           local_buildcache_path="/tmp/.buildcache-${cache_id}"
           local_buildcache_key_suffix="-$(git rev-parse HEAD)"
           if ${{ inputs.pull_request_number != '' }}; then
             local_buildcache_key="${{ inputs.pull_request_number }}/merge-cuda-quantum-${cache_id}"
           else
-            local_buildcache_key="${{ github.ref_name }}-cuda-quantum-${cache_id}"
+            local_buildcache_key="${{ inputs.local_cache_from || github.ref_name }}-cuda-quantum-${cache_id}"
           fi
 
           cache_from_gh="type=local,src=${local_buildcache_path}"
-          cache_from_registry="type=registry,ref=${registry_cache}-${cache_id}:${cache_base}"
-          cache_from_nvidia_registry="type=registry,ref=${nvidia_registry_cache}-${cache_id}:${cache_base}"
+          cache_from_registry="type=registry,ref=${registry_cache}-${cache_id}:${registry_cache_base}"
+          cache_from_nvidia_registry="type=registry,ref=${nvidia_registry_cache}-${cache_id}:${registry_cache_base}"
           if ${{ inputs.environment == 'ghcr-deployment' }}; then
             build_cache="type=registry,ref=${registry_cache}-${cache_id}:${{ github.ref_name }}"
             cache_to="${build_cache},mode=max,ignore-error=false"

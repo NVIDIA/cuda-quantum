@@ -13,12 +13,16 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.base.ref || github.event.ref_name }}
   cancel-in-progress: false
 
+env:
+  local_cache_from: ${{ (github.event.pull_request && format('{0}/merge', github.event.pull_request.number)) || '' }}
+
 jobs:
   doxygen:
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.Dockerfile
+      local_cache_from: ${{ env.local_cache_from }}
       build_target: doxygenbuild
       build_cache_only: true
       environment: ghcr-deployment
@@ -33,6 +37,7 @@ jobs:
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.Dockerfile
+      local_cache_from: ${{ env.local_cache_from }}
       additional_build_caches: |
         ${{ needs.doxygen.outputs.build_cache }}
       toolchain: ${{ matrix.toolchain }}
@@ -46,6 +51,7 @@ jobs:
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.Dockerfile
+      local_cache_from: ${{ env.local_cache_from }}
       additional_build_caches: |
         ${{ needs.doxygen.outputs.build_cache }}
       toolchain: llvm
@@ -76,5 +82,6 @@ jobs:
     needs: config
     with:
       dockerfile: build/devdeps.ext.Dockerfile
+      local_cache_from: ${{ env.local_cache_from }}
       base_image: ${{ fromJson(needs.config.outputs.json).image_name.gcc12 }}@${{ fromJson(needs.config.outputs.json).digest.gcc12 }}
       environment: ghcr-deployment
