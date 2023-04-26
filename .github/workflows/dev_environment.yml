@@ -212,7 +212,7 @@ jobs:
           echo "cache_to=$cache_to" >> $GITHUB_OUTPUT
           echo "build_cache=$build_cache" >> $GITHUB_OUTPUT
           if ${{ ! inputs.build_cache_only }}; then
-            echo "tar_cache=tar-${cache_id}${{ steps.cache.outputs.local_buildcache_key_suffix }}" >> $GITHUB_OUTPUT
+            echo "tar_cache=tar-${cache_id}${local_buildcache_key_suffix}" >> $GITHUB_OUTPUT
           fi
 
       - name: Check out local cache
