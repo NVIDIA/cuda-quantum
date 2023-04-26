@@ -96,7 +96,7 @@ Here is an example
         return cost;
       });
 
-CUDA Quantum wraps the above code up for the variational quantum eigensolver algorithm in 
+CUDA Quantum provides the above code for the variational quantum eigensolver algorithm in 
 a generic :code:`cudaq::` namespace function. The above snippets could be 
 replaced with 
 
