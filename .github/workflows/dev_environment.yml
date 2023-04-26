@@ -104,7 +104,7 @@ jobs:
           if ${{ inputs.pull_request_number != '' }}; then
             custom_tags="type=raw,value=${tag_prefix}pr-${{ inputs.pull_request_number }}"
           elif ${{ github.event.pull_request.merged == true }}; then
-            custom_tags="type=raw,value=${tag_prefix}${{ github.event.pull_request.base.ref }}"
+            custom_tags="type=raw,value=${tag_prefix}${{ github.event.pull_request.base.ref }}${tag_suffix}"
           fi
 
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
