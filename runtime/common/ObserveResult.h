@@ -91,7 +91,7 @@ public:
   double id_coefficient() {
     for (std::size_t i = 0; i < spinOp.n_terms(); i++)
       if (spinOp[i].is_identity())
-        return spinOp[i].get_term_coefficient(0).real();
+        return spinOp[i].get_coefficient().real();
     return 0.0;
   }
 

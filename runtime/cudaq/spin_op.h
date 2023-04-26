@@ -121,7 +121,7 @@ private:
   std::unordered_map<std::vector<bool>, std::complex<double>> terms; 
   
   /// @brief The spin_op representation
-  BinarySymplecticForm data;
+  // BinarySymplecticForm data;
 
   /// @brief The coefficients for each term in the spin_op
   std::vector<std::complex<double>> coefficients;
@@ -141,6 +141,8 @@ private:
   /// term coefficient. Constructs a spin_op of one Pauli on one qubit.
   spin_op(pauli, const std::size_t id, std::complex<double> coeff = 1.0);
 
+  spin_op(std::pair<std::vector<bool>, std::complex<double>> term);
+
   /// @brief Internal constructor, constructs from existing binary symplectic
   /// form data and term coefficients.
   spin_op(BinarySymplecticForm bsf, std::vector<std::complex<double>> coeffs);
@@ -149,7 +151,7 @@ public:
   /// @brief Return a new spin_op from the user-provided binary symplectic data.
   static spin_op
   from_binary_symplectic(BinarySymplecticForm &data,
-                         std::vector<std::complex<double>> &coeffs) {
+                         const std::vector<std::complex<double>> &coeffs) {
     return spin_op(data, coeffs);
   }
 
@@ -159,6 +161,7 @@ public:
 
   /// @brief Constructor, creates the identity term
   spin_op();
+  spin_op(std::size_t numQubits);
 
   /// @brief Copy constructor
   spin_op(const spin_op &o);
@@ -235,12 +238,13 @@ public:
   /// @brief Return the number of terms in this spin_op
   std::size_t n_terms() const;
 
-  /// @brief Return the coefficient on the term at the given index `idx`
-  /// in this spin_op
-  std::complex<double> get_term_coefficient(const std::size_t idx) const;
+  /// @brief For a spin_op with 1 term, get that terms' coefficient. 
+  /// Throws an exception for spin_ops with > 1 terms.
+  /// @return 
+  std::complex<double> get_coefficient() const;
 
   /// @brief Return the binary symplectic form data
-  BinarySymplecticForm get_bsf() const;
+  std::pair<BinarySymplecticForm, std::vector<std::complex<double>>> get_bsf() const;
 
   /// @brief Is this spin_op == to the identity
   bool is_identity() const;
@@ -256,7 +260,7 @@ public:
   std::vector<double> getDataRepresentation();
 
   /// @brief Return all term coefficients in this spin_op
-  std::vector<std::complex<double>> get_coefficients() const;
+  // std::vector<std::complex<double>> get_coefficient2s() const;
 
   /// @brief Return a new spin_op made up of a sum of spin_op terms
   /// where the first term is the one at `startIdx`, and the remaining terms

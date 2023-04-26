@@ -281,14 +281,14 @@ public:
         tmpModuleOp.push_back(ansatz.clone());
 
         // Extract the binary symplectic encoding
-        auto binarySymplecticForm = term.get_bsf()[0];
+        auto [binarySymplecticForm, coeffs] = term.get_bsf();
 
         // Create the pass manager, add the quake observe ansatz pass
         // and run it followed by the canonicalizer
         PassManager pm(&context);
         OpPassManager &optPM = pm.nest<func::FuncOp>();
         optPM.addPass(
-            cudaq::opt::createQuakeObserveAnsatzPass(binarySymplecticForm));
+            cudaq::opt::createQuakeObserveAnsatzPass(binarySymplecticForm[0]));
         if (failed(pm.run(tmpModuleOp)))
           throw std::runtime_error("Could not apply measurements to ansatz.");
         runPassPipeline("canonicalize", tmpModuleOp);

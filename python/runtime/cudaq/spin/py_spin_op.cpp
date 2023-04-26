@@ -58,12 +58,12 @@ void bindSpinOperator(py::module &mod) {
            "Return the number of terms in this `SpinOperator`.")
       .def("get_qubit_count", &cudaq::spin_op::n_qubits,
            "Return the number of qubits this `SpinOperator` is on.")
-      .def("get_term_coefficient", &cudaq::spin_op::get_term_coefficient,
-           py::arg("term"),
-           "Return the coefficient of this `SpinOperator` at the given term "
-           "index.")
-      .def("get_coefficients", &cudaq::spin_op::get_coefficients,
-           "Return all term coefficients in this `SpinOperator`.")
+     //  .def("get_term_coefficient", &cudaq::spin_op::get_term_coefficient,
+     //       py::arg("term"),
+     //       "Return the coefficient of this `SpinOperator` at the given term "
+     //       "index.")
+     //  .def("get_coefficients", &cudaq::spin_op::get_coefficients,
+     //       "Return all term coefficients in this `SpinOperator`.")
       .def("is_identity", &cudaq::spin_op::is_identity,
            "Returns a bool indicating if this `SpinOperator` is equal to the "
            "identity.")

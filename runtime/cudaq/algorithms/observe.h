@@ -80,14 +80,14 @@ runObservation(KernelFunctor &&k, cudaq::spin_op &h, quantum_platform &platform,
   else {
     // If not, we have everything we need to compute it.
     double sum = 0.0;
-    for (std::size_t i = 0; i < h.n_terms(); i++) {
-      auto term = h[i];
+    h.for_each_term([&](spin_op &term) {
       if (term.is_identity())
-        sum += term.get_coefficients()[0].real();
+        sum += term.get_coefficient().real();
       else
         sum += data.exp_val_z(term.to_string(false)) *
-               term.get_coefficients()[0].real();
-    }
+               term.get_coefficient().real();
+    });
+
     expectationValue = sum;
   }
 

@@ -27,7 +27,6 @@ public:
     ::qpp::cmat Z = ::qpp::Gates::get_instance().Z;
 
     auto nQ = op.n_qubits();
-    auto bsf = op.get_bsf();
     double sum = 0.0;
 
     // Want to loop over all terms in op and
@@ -37,20 +36,20 @@ public:
       auto term = op[i];
       if (!term.is_identity()) {
         ::qpp::ket cached = state;
-        auto bsf = term.get_bsf()[0];
+        auto [bsf, coeffs] = term.get_bsf();
         for (std::size_t i = 0; i < nQ; i++) {
-          if (bsf[i] && bsf[i + nQ])
+          if (bsf[0][i] && bsf[0][i + nQ])
             cached = ::qpp::apply(cached, Y, {i});
-          else if (bsf[i])
+          else if (bsf[0][i])
             cached = ::qpp::apply(cached, X, {i});
-          else if (bsf[i + nQ])
+          else if (bsf[0][i + nQ])
             cached = ::qpp::apply(cached, Z, {i});
         }
 
-        sum += term.get_term_coefficient(0).real() *
+        sum += coeffs[0].real() *
                state.transpose().dot(cached).real();
       } else {
-        sum += term.get_term_coefficient(0).real();
+        sum += term.get_coefficient().real();
       }
     }
 
