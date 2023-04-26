@@ -295,6 +295,7 @@ jobs:
       image_name: ${{ fromJson(steps.write_json.outputs.result).image_name }}
       digests: ${{ fromJson(steps.write_json.outputs.result).digests }}
       cache_key: ${{ fromJson(steps.write_json.outputs.result).cache_key }}
+      tar_archive: ${{ fromJson(steps.write_json.outputs.result).tar_archive }}
       build_cache: ${{ fromJson(steps.write_json.outputs.result).build_cache }}
 
     steps:        
