@@ -102,7 +102,7 @@ jobs:
           tag_suffix=`echo $image_id | cut -s -d "." -f 2- | xargs -I "%" echo .% | tr . -`
 
           if ${{ inputs.pull_request_number != '' }}; then
-            custom_tags="type=raw,value=${tag_prefix}pr-${{ inputs.pull_request_number }}"
+            custom_tags="type=raw,value=${tag_prefix}pr-${{ inputs.pull_request_number }}${tag_suffix}"
           elif ${{ github.event.pull_request.merged == true }}; then
             custom_tags="type=raw,value=${tag_prefix}${{ github.event.pull_request.base.ref }}${tag_suffix}"
           fi
