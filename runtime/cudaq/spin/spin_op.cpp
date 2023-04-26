@@ -125,6 +125,20 @@ spin_op spin_op::random(std::size_t nQubits, std::size_t nTerms) {
 }
 
 void spin_op::expandToNQubits(const std::size_t n_q) {
+  // for (auto iter = terms.begin(); iter != terms.end(); ++iter) {
+  //   auto& term = iter->first;
+  //   std::vector<bool> tmp(n_q * 2);
+  //   for (std::size_t k = 0; k < m_n_qubits; k++)
+  //     if (term[k] && term[k + m_n_qubits]) {
+  //       tmp[k] = 1;
+  //       tmp[k + n_q] = 1;
+  //     } else if (term[k])
+  //       tmp[k] = term[k];
+  //     else if (term[k + m_n_qubits])
+  //       tmp[k + n_q] = true;
+  //   terms.at(term) = tmp;
+  // }
+
   for (auto &row : data) {
     std::vector<bool> tmp(n_q * 2);
     for (std::size_t k = 0; k < m_n_qubits; k++)
@@ -144,17 +158,32 @@ spin_op::spin_op() {
   coefficients.push_back(1.0);
   // Should initialize with 2 elements for a 1 qubit Identity.
   data.push_back(std::vector<bool>(2));
+  terms.emplace(data[0], 1.0);
 }
 
 spin_op::spin_op(BinarySymplecticForm d,
                  std::vector<std::complex<double>> coeffs)
     : data(d), coefficients(coeffs) {
   m_n_qubits = data[0].size() / 2.;
+  for (std::size_t i = 0; auto &t : d)
+    terms.emplace(t, coeffs[i++]);
 }
 
 spin_op::spin_op(pauli type, const std::size_t idx,
                  std::complex<double> coeff) {
   m_n_qubits = idx + 1;
+  std::vector<bool> d(2 * m_n_qubits);
+
+  if (type == pauli::X)
+    d[idx] = 1;
+  else if (type == pauli::Y) {
+    d[idx] = 1;
+    d[idx + m_n_qubits] = 1;
+  } else if (type == pauli::Z)
+    d[idx + m_n_qubits] = 1;
+
+  terms.emplace(d, coeff);
+
   [[maybe_unused]] int p = 0;
   data.push_back(std::vector<bool>(2 * m_n_qubits));
   if (type == pauli::X) {
@@ -171,43 +200,53 @@ spin_op::spin_op(pauli type, const std::size_t idx,
 }
 
 spin_op::spin_op(const spin_op &o)
-    : data(o.data), coefficients(o.coefficients), m_n_qubits(o.m_n_qubits) {}
+    : terms(o.terms), data(o.data), coefficients(o.coefficients),
+      m_n_qubits(o.m_n_qubits) {}
 
 spin_op &spin_op::operator+=(const spin_op &v) noexcept {
   spin_op tmpv = v;
-  if (v.m_n_qubits > m_n_qubits) {
-    // If we are adding a op that has more qubits than we do
-    // then we need to resize, making sure to ensure the
-    // correct 1/0 positions.
-    expandToNQubits(v.m_n_qubits);
-  } else if (v.m_n_qubits < m_n_qubits) {
-    tmpv.expandToNQubits(m_n_qubits);
+  // if (v.m_n_qubits > m_n_qubits) {
+  //   // If we are adding a op that has more qubits than we do
+  //   // then we need to resize, making sure to ensure the
+  //   // correct 1/0 positions.
+  //   expandToNQubits(v.m_n_qubits);
+  // } else if (v.m_n_qubits < m_n_qubits) {
+  //   tmpv.expandToNQubits(m_n_qubits);
+  // }
+
+  for (auto [term, coeff] : tmpv.terms) {
+    auto iter = terms.find(term);
+    if (iter != terms.end())
+      iter->second += coeff;
+    else {
+      terms.emplace(term, coeff);
+    }
   }
 
   // Add the rows from v to this, if
   // the row already exists, we should just add the coeffs
-  for (auto [i, row] : enumerate(tmpv.data)) {
-    auto it = std::find(data.begin(), data.end(), row);
-    if (it != data.end()) {
-      auto idx = std::distance(data.begin(), it);
-      coefficients[idx] += tmpv.coefficients[i];
-    } else {
-      data.push_back(row);
-      coefficients.push_back(tmpv.coefficients[i]);
-    }
-  }
+  // for (auto [i, row] : enumerate(tmpv.data)) {
+  //   auto it = std::find(data.begin(), data.end(), row);
+  //   if (it != data.end()) {
+  //     auto idx = std::distance(data.begin(), it);
+  //     coefficients[idx] += tmpv.coefficients[i];
+  //   } else {
+  //     data.push_back(row);
+  //     coefficients.push_back(tmpv.coefficients[i]);
+  //   }
+  // }
 
-  // mark any rows for deletion if coeff = (0,0)
-  std::vector<int> marked;
-  for (std::size_t i = 0; i < data.size(); i++)
-    if (std::abs(coefficients[i]) < 1e-12)
-      marked.push_back(i);
+  // // mark any rows for deletion if coeff = (0,0)
+  // std::vector<int> marked;
+  // for (std::size_t i = 0; i < data.size(); i++)
+  //   if (std::abs(coefficients[i]) < 1e-12)
+  //     marked.push_back(i);
 
-  std::sort(marked.begin(), marked.end(), std::greater<int>());
-  for (auto m : marked) {
-    data.erase(data.begin() + m);
-    coefficients.erase(coefficients.begin() + m);
-  }
+  // std::sort(marked.begin(), marked.end(), std::greater<int>());
+  // for (auto m : marked) {
+  //   data.erase(data.begin() + m);
+  //   coefficients.erase(coefficients.begin() + m);
+  // }
 
   return *this;
 }
@@ -217,6 +256,7 @@ std::vector<std::complex<double>> spin_op::get_coefficients() const {
 }
 
 spin_op spin_op::operator[](const std::size_t term_idx) const {
+  // what does this mean now?
   std::vector<bool> term_data = data[term_idx];
   auto term_coeff = coefficients[term_idx];
   BinarySymplecticForm f{term_data};
@@ -228,62 +268,171 @@ spin_op &spin_op::operator-=(const spin_op &v) noexcept {
   return operator+=(-1.0 * v);
 }
 
+std::pair<std::complex<double>, std::vector<bool>>
+mult(std::vector<bool> row, std::vector<bool> other_row,
+     std::complex<double> &rowCoeff, std::complex<double> &otherCoeff) {
+  if (row.size() < other_row.size()) {
+    auto s = other_row.size() - row.size();
+    for (std::size_t i = 0; i < s; i++) {
+      row.insert(row.begin() + row.size() / 2, 0);
+    }
+  } else if (other_row.size() < row.size()) {
+    auto s = row.size() - other_row.size();
+    for (std::size_t i = 0; i < s; i++) {
+      other_row.insert(other_row.begin() + other_row.size() / 2, 0);
+    }
+  }
+  
+  // This is term_i * otherTerm_j
+  std::vector<bool> tmp(row.size()), tmp2(row.size());
+  std::size_t m_n_qubits = row.size() / 2;
+
+  for (std::size_t i = 0; i < 2 * m_n_qubits; i++)
+    tmp[i] = row[i] ^ other_row[i];
+
+  for (std::size_t i = 0; i < m_n_qubits; i++)
+    tmp2[i] = row[i] && other_row[m_n_qubits + i];
+
+  int orig_phase = 0, other_phase = 0;
+  for (std::size_t i = 0; i < m_n_qubits; i++) {
+    if (row[i] && row[i + m_n_qubits])
+      orig_phase++;
+
+    if (other_row[i] && other_row[i + m_n_qubits])
+      other_phase++;
+  }
+
+  auto _phase = orig_phase + other_phase;
+  int sum = 0;
+  for (auto a : tmp2)
+    if (a)
+      sum++;
+
+  _phase += 2 * sum;
+  // Based on the phase, figure out an extra coeff to apply
+  for (std::size_t i = 0; i < m_n_qubits; i++)
+    if (tmp[i] && tmp[i + m_n_qubits])
+      _phase -= 1;
+
+  _phase %= 4;
+  std::complex<double> imaginary(0, 1);
+  std::map<int, std::complex<double>> phase_coeff_map{
+      {0, 1.0}, {1, -1. * imaginary}, {2, -1.0}, {3, imaginary}};
+  auto phase_coeff = phase_coeff_map[_phase];
+
+  auto coeff = rowCoeff;
+  coeff *= phase_coeff * otherCoeff;
+  return std::make_pair(coeff, tmp);
+}
+
 spin_op &spin_op::operator*=(const spin_op &v) noexcept {
   spin_op copy = v;
-  if (v.m_n_qubits > m_n_qubits) {
-    // If we are adding a op that has more qubits than we do
-    // then we need to resize, making sure to ensure the
-    // correct 1/0 positions.
-    expandToNQubits(v.m_n_qubits);
-  } else if (v.m_n_qubits < m_n_qubits) {
-    copy.expandToNQubits(m_n_qubits);
-  }
+  // if (v.m_n_qubits > m_n_qubits) {
+  //   // If we are adding a op that has more qubits than we do
+  //   // then we need to resize, making sure to ensure the
+  //   // correct 1/0 positions.
+  //   expandToNQubits(v.m_n_qubits);
+  // } else if (v.m_n_qubits < m_n_qubits) {
+  //   copy.expandToNQubits(m_n_qubits);
+  // }
 
-  int counter = 0;
-  for (auto &row : data) {
-    int inner_counter = 0;
-    for (auto &other_row : copy.data) {
-      // This is term * otherTerm
-      std::vector<bool> tmp(2 * m_n_qubits), tmp2(2 * m_n_qubits);
-      for (std::size_t i = 0; i < 2 * m_n_qubits; i++)
-        tmp[i] = row[i] ^ other_row[i];
-
-      for (std::size_t i = 0; i < m_n_qubits; i++)
-        tmp2[i] = row[i] && other_row[m_n_qubits + i];
-
-      int orig_phase = 0, other_phase = 0;
-      for (std::size_t i = 0; i < m_n_qubits; i++) {
-        if (row[i] && row[i + m_n_qubits])
-          orig_phase++;
-
-        if (other_row[i] && other_row[i + m_n_qubits])
-          other_phase++;
-      }
-
-      auto _phase = orig_phase + other_phase;
-      int sum = 0;
-      for (auto a : tmp2)
-        if (a)
-          sum++;
-
-      _phase += 2 * sum;
-      // Based on the phase, figure out an extra coeff to apply
-      for (std::size_t i = 0; i < m_n_qubits; i++)
-        if (tmp[i] && tmp[i + m_n_qubits])
-          _phase -= 1;
-
-      _phase %= 4;
-      std::complex<double> imaginary(0, 1);
-      std::map<int, std::complex<double>> phase_coeff_map{
-          {0, 1.0}, {1, -1. * imaginary}, {2, -1.0}, {3, imaginary}};
-      auto phase_coeff = phase_coeff_map[_phase];
-      coefficients[counter] *= phase_coeff * copy.coefficients[inner_counter];
-      inner_counter++;
-      row = tmp;
+  std::unordered_map<std::vector<bool>, std::complex<double>> newTerms;
+  for (auto &[ourTerm, ourCoeff] : terms) {
+    std::cout << "ours: " << ourCoeff << " ";
+    for (auto el : ourTerm) {
+      std::cout << el << " ";
     }
-    counter++;
+    std::cout << "\n";
+    for (auto &[theirTerm, theirCoeff] : copy.terms) {
+      std::cout << "theirs " << theirCoeff << " ";
+      for (auto el : theirTerm) {
+        std::cout << el << " ";
+      }
+      std::cout << "\n";
+      auto [newCoeff, multiplied] =
+          mult(ourTerm, theirTerm, ourCoeff, theirCoeff);
+
+      auto iter = newTerms.find(multiplied);
+      if (iter == newTerms.end())
+        newTerms.emplace(multiplied, newCoeff);
+      else
+        iter->second *= newCoeff;
+    }
   }
+  terms = newTerms;
   return *this;
+  // We have nRows, for each row in 'this', create nRows
+  // bit vectors, representing the multiplication of this
+  // ith row with those in 'other'. In general, this will
+  // produce nRows * other.nRows terms, then we just sum those up
+  //   std::size_t ourRow = 0, theirRow = 0;
+  //   std::vector<std::complex<double>> composedCoeffs(n_terms() *
+  //   copy.n_terms()); std::vector<std::vector<bool>> composition(n_terms() *
+  //   copy.n_terms()); std::map<std::size_t, std::pair<std::size_t,
+  //   std::size_t>> indexMap; auto nElements = composition.size(); for
+  //   (std::size_t i = 0; i < nElements; i++) {
+  //     indexMap.insert({i, {ourRow, theirRow}});
+  //     if (theirRow == copy.data.size() - 1) {
+  //       theirRow = 0;
+  //       ourRow++;
+  //     } else
+  //       theirRow++;
+  //   }
+
+  //   printf("Perform hard part\n");
+  // #pragma omp parallel for shared(composition)
+  //   for (std::size_t i = 0; i < nElements; i++) {
+  //     auto [j, k] = indexMap[i];
+  //     auto res =
+  //         mult(data[j], copy.data[k], coefficients[j], copy.coefficients[k]);
+  //     composition[i] = res.second;
+  //     composedCoeffs[i] = res.first;
+  //   }
+
+  //   int counter = 0;
+  //   for (auto &row : data) {
+  //     int inner_counter = 0;
+  //     for (auto &other_row : copy.data) {
+  //       // This is term * otherTerm
+  //       std::vector<bool> tmp(2 * m_n_qubits), tmp2(2 * m_n_qubits);
+  //       for (std::size_t i = 0; i < 2 * m_n_qubits; i++)
+  //         tmp[i] = row[i] ^ other_row[i];
+
+  //       for (std::size_t i = 0; i < m_n_qubits; i++)
+  //         tmp2[i] = row[i] && other_row[m_n_qubits + i];
+
+  //       int orig_phase = 0, other_phase = 0;
+  //       for (std::size_t i = 0; i < m_n_qubits; i++) {
+  //         if (row[i] && row[i + m_n_qubits])
+  //           orig_phase++;
+
+  //         if (other_row[i] && other_row[i + m_n_qubits])
+  //           other_phase++;
+  //       }
+
+  //       auto _phase = orig_phase + other_phase;
+  //       int sum = 0;
+  //       for (auto a : tmp2)
+  //         if (a)
+  //           sum++;
+
+  //       _phase += 2 * sum;
+  //       // Based on the phase, figure out an extra coeff to apply
+  //       for (std::size_t i = 0; i < m_n_qubits; i++)
+  //         if (tmp[i] && tmp[i + m_n_qubits])
+  //           _phase -= 1;
+
+  //       _phase %= 4;
+  //       std::complex<double> imaginary(0, 1);
+  //       std::map<int, std::complex<double>> phase_coeff_map{
+  //           {0, 1.0}, {1, -1. * imaginary}, {2, -1.0}, {3, imaginary}};
+  //       auto phase_coeff = phase_coeff_map[_phase];
+  //       coefficients[counter] *= phase_coeff *
+  //       copy.coefficients[inner_counter]; inner_counter++; row = tmp;
+  //     }
+  //     counter++;
+  //   }
+  //   return *this;
 }
 
 bool spin_op::is_identity() const {
@@ -298,14 +447,14 @@ bool spin_op::is_identity() const {
 bool spin_op::operator==(const spin_op &v) const noexcept {
   // Could be that the term is identity with all zeros
   bool isId1 = true, isId2 = true;
-  for (auto &row : data)
+  for (auto &[row, c] : terms)
     for (auto e : row)
       if (e) {
         isId1 = false;
         break;
       }
 
-  for (auto &row : v.data)
+  for (auto &[row,c] : v.terms)
     for (auto e : row)
       if (e) {
         isId2 = false;
@@ -315,7 +464,10 @@ bool spin_op::operator==(const spin_op &v) const noexcept {
   if (isId1 && isId2)
     return true;
 
-  return data == v.data;
+  for (auto& [k,c] : terms) {
+    if (v.terms.find(k) == v.terms.end()) return false;
+  }
+  return true;//data == v.data;
 }
 
 spin_op &spin_op::operator*=(const double v) noexcept {
@@ -335,7 +487,10 @@ std::size_t spin_op::n_qubits() const { return m_n_qubits; }
 std::size_t spin_op::n_terms() const { return data.size(); }
 std::complex<double>
 spin_op::get_term_coefficient(const std::size_t idx) const {
-  return coefficients[idx];
+  auto start = terms.begin();
+  std::advance(start, idx);
+  return start->second;
+  // return coefficients[idx];
 }
 
 spin_op spin_op::slice(const std::size_t startIdx, const std::size_t count) {
@@ -360,37 +515,56 @@ std::string spin_op::to_string(bool printCoeffs) const {
   if (data.empty())
     return "";
 
-  auto first = data[0];
   std::stringstream ss;
-  if (printCoeffs)
-    ss << coefficients[0] << " ";
-  for (std::size_t i = 0; i < m_n_qubits; i++) {
-    if (first[i] && first[i + m_n_qubits])
-      ss << "Y" << i;
-    else if (first[i])
-      ss << "X" << i;
-    else if (first[i + m_n_qubits])
-      ss << "Z" << i;
-    else
-      ss << "I" << i;
-  }
 
-  for (std::size_t j = 1; j < data.size(); j++) {
-    ss << " + ";
-    first = data[j];
-    if (printCoeffs)
-      ss << coefficients[j] << " ";
-    for (std::size_t i = 0; i < m_n_qubits; i++) {
-      if (first[i] && first[i + m_n_qubits])
+  for (auto &[term, coeff] : terms) {
+    std::cout << coeff << " ";
+    for (auto el : term) {
+      std::cout << el << " ";
+    }
+    std::cout << "\n";
+    for (std::size_t i = 0; i < term.size() / 2; i++) {
+      if (term[i] && term[i + term.size() / 2])
         ss << "Y" << i;
-      else if (first[i])
+      else if (term[i])
         ss << "X" << i;
-      else if (first[i + m_n_qubits])
+      else if (term[i + term.size() / 2])
         ss << "Z" << i;
       else
         ss << "I" << i;
     }
   }
+
+  // auto first = data[0];
+  // if (printCoeffs)
+  //   ss << coefficients[0] << " ";
+  // for (std::size_t i = 0; i < m_n_qubits; i++) {
+  //   if (first[i] && first[i + m_n_qubits])
+  //     ss << "Y" << i;
+  //   else if (first[i])
+  //     ss << "X" << i;
+  //   else if (first[i + m_n_qubits])
+  //     ss << "Z" << i;
+  //   else
+  //     ss << "I" << i;
+  // }
+
+  // for (std::size_t j = 1; j < data.size(); j++) {
+  //   ss << " + ";
+  //   first = data[j];
+  //   if (printCoeffs)
+  //     ss << coefficients[j] << " ";
+  //   for (std::size_t i = 0; i < m_n_qubits; i++) {
+  //     if (first[i] && first[i + m_n_qubits])
+  //       ss << "Y" << i;
+  //     else if (first[i])
+  //       ss << "X" << i;
+  //     else if (first[i + m_n_qubits])
+  //       ss << "Z" << i;
+  //     else
+  //       ss << "I" << i;
+  //   }
+  // }
 
   return ss.str();
 }

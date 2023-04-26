@@ -118,6 +118,8 @@ private:
   /// and X=0, Z=1 -> Z on site i.
   using BinarySymplecticForm = std::vector<std::vector<bool>>;
 
+  std::unordered_map<std::vector<bool>, std::complex<double>> terms; 
+  
   /// @brief The spin_op representation
   BinarySymplecticForm data;
 
