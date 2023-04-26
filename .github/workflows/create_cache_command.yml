@@ -57,5 +57,5 @@ jobs:
       dockerfile: build/devdeps.Dockerfile
       toolchain: ${{ matrix.toolchain }}
       create_local_cache: true
-      build_cache_tag: ${{ needs.config.outputs.target_branch }}
+      registry_cache_from: ${{ needs.config.outputs.target_branch }}
       pull_request_number: ${{ needs.config.outputs.pull_request_number }}
