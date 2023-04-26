@@ -152,9 +152,7 @@ jobs:
       - name: Check permissions
         run: |
           gh api --header 'Accept: application/vnd.github+json' \
-            --method GET repos/${{ github.repository }} --include \
-            | grep ^X-Oauth-Scopes: | cut -d' ' -f2- \
-            | tr -d "[:space:]" | tr ',' '\n' > /tmp/permissions.out
+            --method GET repos/${{ github.repository }} --include > /tmp/permissions.out
 
           echo "## Permissions" >> $GITHUB_STEP_SUMMARY
           echo '```text' >> $GITHUB_STEP_SUMMARY
