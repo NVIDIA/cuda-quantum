@@ -6,23 +6,19 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-set(LIBRARY_NAME cudaq-em-qir)
+set(LIBRARY_NAME cudaq-em-qudit)
 
-add_library(${LIBRARY_NAME} SHARED QubitQIRExecutionManager.cpp)
+add_library(${LIBRARY_NAME} SHARED SimpleQuditExecutionManager.cpp)
 target_include_directories(${LIBRARY_NAME} 
     PUBLIC 
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
+       $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/qpp/include>
+       $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
        $<INSTALL_INTERFACE:include>
     PRIVATE .)
 
 target_link_libraries(${LIBRARY_NAME}
-  PUBLIC cudaq-spin PRIVATE nvqir cudaq-common fmt::fmt-header-only)
+  PUBLIC cudaq-spin PRIVATE cudaq-common fmt::fmt-header-only)
 
 cudaq_library_set_rpath(${LIBRARY_NAME})
-
-install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-em-qir-targets DESTINATION lib)
-
-install(EXPORT cudaq-em-qir-targets
-        FILE CUDAQEmQirTargets.cmake
-        NAMESPACE cudaq::
-        DESTINATION lib/cmake/cudaq)
+install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
