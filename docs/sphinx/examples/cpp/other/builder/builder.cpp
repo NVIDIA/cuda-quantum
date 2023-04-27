@@ -16,7 +16,7 @@
 #include <cudaq/optimizers.h>
 
 // This example demonstrates various uses for the cudaq::builder
-// type. This type enables one to dynamically construct callable
+// type. This type enabes one to dynamically construct callable
 // CUDA Quantum kernels via just-in-time compilation. The typical workflow
 // starts by creating a cudaq::builder and any CUDA Quantum kernel runtime
 // arguments via the cudaq::make_kernel<ParameterTypes...>() function.
