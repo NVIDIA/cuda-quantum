@@ -24,6 +24,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
       - name: C++
         run: |
           patterns='*.cpp *.h :!:tpls/* :!:test'
