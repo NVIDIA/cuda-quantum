@@ -19,7 +19,7 @@ jobs:
           config: .licenserc.yaml
           token: '' # with the appropriate permission license eye can add comments on the PR
 
-  code_formatting:
+  formatting:
     name: Check code formatting
     runs-on: ubuntu-latest
 
@@ -62,3 +62,39 @@ jobs:
           else
             echo "All files are formatted as expected." >> $GITHUB_STEP_SUMMARY
           fi
+
+      - name: Markdown
+        uses: nosborn/github-action-markdown-cli@v3.2.0
+        with:
+          files: .
+          config_file: '.github/workflows/config/md_lint_config.yml'
+
+  links:
+    runs-on: ubuntu-latest
+    name: "Check links"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Markdown files
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          use-verbose-mode: "yes"
+          config-file: ".github/workflows/config/mlc_config.json"        
+
+  spelling:
+    name: Check spelling
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: "Check spelling in changed files"
+        uses: streetsidesoftware/cspell-action@v2
+        with:
+          config: '.github/workflows/config/spelling_allowlist.json'
+          inline: error
+          files: |
+            **/*.{md,txt,h,py,rst}
+            .github/ISSUE_TEMPLATE/*
+            !tpls/**/*
+          incremental_files_only: true
