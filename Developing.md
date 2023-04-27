@@ -7,7 +7,7 @@ you would like to contribute applications and examples that use the CUDA Quantum
 platform, please follow the instructions for [installing CUDA
 Quantum][official_install] instead.
 
-[official_install]: not_valid
+[official_install]: https://nvidia.github.io/cuda-quantum/install.html
 
 ## Quick start guide
 
