@@ -33,7 +33,8 @@ jobs:
           patterns='*.cpp *.h :!:tpls/* :!:test'
           if ${{ github.event_name == 'pull_request' }}; then
             diff_base=${{ github.event.pull_request.base.sha }}
-            files=`echo $patterns | xargs git diff --diff-filter=d --name-only $diff_base --`
+            #files=`echo $patterns | xargs git diff --diff-filter=d --name-only $diff_base --`
+            files=`echo $patterns | xargs git ls-files`
           else
             files=`echo $patterns | xargs git ls-files`
           fi
