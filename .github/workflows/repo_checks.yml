@@ -38,13 +38,18 @@ jobs:
             files=`echo $patterns | xargs git ls-files`
           fi
 
+          echo "## C++ Formatting" >> $GITHUB_STEP_SUMMARY
+          echo "Checking the following files:" >> $GITHUB_STEP_SUMMARY
+          for file in $files; do 
+            echo "$file" >> $GITHUB_STEP_SUMMARY
+          done
+
           if [ -n "$files" ]; then 
             sudo apt-get update && sudo apt-get install clang-format-16
             echo $files | xargs clang-format-16 -i
             echo $patterns | xargs git diff --diff-filter=d -- > /tmp/clang-format.patch
           fi
 
-          echo "## C++ Formatting" >> $GITHUB_STEP_SUMMARY
           if [ -s clang-format.patch ]; then
             echo "The following formatting changes need to be applied:" >> $GITHUB_STEP_SUMMARY
             echo '```text' >> $GITHUB_STEP_SUMMARY
