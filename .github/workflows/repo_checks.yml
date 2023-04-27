@@ -39,7 +39,7 @@ jobs:
           fi
 
           if [ -n "$files" ]; then 
-            sudo apt-get install clang-format-16
+            sudo apt-get update && sudo apt-get install clang-format-16
             echo $files | xargs clang-format-16 -i
             echo $patterns | xargs git diff --diff-filter=d -- > /tmp/clang-format.patch
           fi
