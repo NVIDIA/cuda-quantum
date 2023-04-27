@@ -211,8 +211,8 @@ Array *spinToArray(cudaq::spin_op &op) {
   // End the data array with the number of terms in the list
   // x0 y1 - y0 x1 would be
   // 1 3 coeff.real coeff.imag 3 1 coeff.real coeff.imag NTERMS
-  auto n_qubits = op.n_qubits(); // data[0].size() / 2.;
-  auto n_terms = op.n_terms();   // data.size();
+  auto n_qubits = op.num_qubits(); // data[0].size() / 2.;
+  auto n_terms = op.num_terms();   // data.size();
   auto [data, coeffs] = op.get_bsf();
 
   auto arr = __quantum__rt__array_create_1d(

@@ -143,7 +143,7 @@ inline auto distributeComputations(
     spin_op &H, std::size_t nQpus) {
 
   // Calculate how many terms we can equally divide amongst the qpus
-  auto nTermsPerQPU = H.n_terms() / nQpus + (H.n_terms() % nQpus != 0);
+  auto nTermsPerQPU = H.num_terms() / nQpus + (H.num_terms() % nQpus != 0);
 
   // Slice the given spin_op into subsets for each QPU
   std::vector<spin_op> spins;

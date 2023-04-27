@@ -80,7 +80,7 @@ public:
   sample_result counts(SpinOpType term) {
     static_assert(std::is_same_v<spin_op, std::remove_reference_t<SpinOpType>>,
                   "Must provide a one term spin_op");
-    assert(term.n_terms() == 1 && "Must provide a one term spin_op");
+    assert(term.num_terms() == 1 && "Must provide a one term spin_op");
     auto counts = data.to_map(term.to_string(false));
     ExecutionResult result(counts);
     return sample_result(result);
@@ -89,7 +89,7 @@ public:
   /// @brief Return the coefficient of the identity term.
   /// @return
   double id_coefficient() {
-    for (std::size_t i = 0; i < spinOp.n_terms(); i++)
+    for (std::size_t i = 0; i < spinOp.num_terms(); i++)
       if (spinOp[i].is_identity())
         return spinOp[i].get_coefficient().real();
     return 0.0;

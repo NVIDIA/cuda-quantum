@@ -35,7 +35,7 @@ TEST(MQPUTester, checkLarge) {
   int nTerms = 1000; /// Scale this on multiple gpus to see speed up
   auto H = cudaq::spin_op::random(nQubits, nTerms);
 
-  printf("Total Terms = %lu\n", H.n_terms());
+  printf("Total Terms = %lu\n", H.num_terms());
   auto kernel = [](const int n_qubits, const int layers,
                    std::vector<int> cnot_pairs,
                    std::vector<double> params) __qpu__ {

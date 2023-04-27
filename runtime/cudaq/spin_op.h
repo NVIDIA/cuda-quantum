@@ -118,16 +118,8 @@ private:
   /// and X=0, Z=1 -> Z on site i.
   using BinarySymplecticForm = std::vector<std::vector<bool>>;
 
-  std::unordered_map<std::vector<bool>, std::complex<double>> terms; 
-  
   /// @brief The spin_op representation
-  // BinarySymplecticForm data;
-
-  /// @brief The coefficients for each term in the spin_op
-  std::vector<std::complex<double>> coefficients;
-
-  /// @brief The number of qubits this spin_op is on
-  std::size_t m_n_qubits = 1;
+  std::unordered_map<std::vector<bool>, std::complex<double>> terms;
 
   /// @brief Utility map that takes the Pauli enum to a string representation
   std::map<pauli, std::string> pauli_to_str{
@@ -233,18 +225,18 @@ public:
   spin_op operator[](const std::size_t termIdx) const;
 
   /// @brief Return the number of qubits this spin_op is on
-  std::size_t n_qubits() const;
+  std::size_t num_qubits() const;
 
   /// @brief Return the number of terms in this spin_op
-  std::size_t n_terms() const;
+  std::size_t num_terms() const;
 
   /// @brief For a spin_op with 1 term, get that terms' coefficient. 
   /// Throws an exception for spin_ops with > 1 terms.
-  /// @return 
   std::complex<double> get_coefficient() const;
 
   /// @brief Return the binary symplectic form data
-  std::pair<BinarySymplecticForm, std::vector<std::complex<double>>> get_bsf() const;
+  std::pair<BinarySymplecticForm, std::vector<std::complex<double>>>
+  get_bsf() const;
 
   /// @brief Is this spin_op == to the identity
   bool is_identity() const;
@@ -258,9 +250,6 @@ public:
   /// @brief Return the vector<double> serialized representation of this
   /// spin_op. (see the constructor for the encoding)
   std::vector<double> getDataRepresentation();
-
-  /// @brief Return all term coefficients in this spin_op
-  // std::vector<std::complex<double>> get_coefficient2s() const;
 
   /// @brief Return a new spin_op made up of a sum of spin_op terms
   /// where the first term is the one at `startIdx`, and the remaining terms

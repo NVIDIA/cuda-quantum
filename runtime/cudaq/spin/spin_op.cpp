@@ -27,10 +27,8 @@
 
 namespace cudaq {
 
+namespace details {
 /// @brief Compute the action
-/// @param term
-/// @param bitConfiguration
-/// @return
 std::pair<std::string, std::complex<double>>
 actionOnBra(spin_op &term, const std::string &bitConfiguration) {
   auto coeff = term.get_coefficient();
@@ -51,8 +49,93 @@ actionOnBra(spin_op &term, const std::string &bitConfiguration) {
   return std::make_pair(newConfiguration, coeff);
 }
 
+std::pair<std::complex<double>, std::vector<bool>>
+mult(std::vector<bool> row, std::vector<bool> other_row,
+     std::complex<double> &rowCoeff, std::complex<double> &otherCoeff) {
+  // This is term_i * otherTerm_j
+  std::vector<bool> tmp(row.size()), tmp2(row.size());
+  std::size_t numQubits = row.size() / 2;
+
+  for (std::size_t i = 0; i < 2 * numQubits; i++)
+    tmp[i] = row[i] ^ other_row[i];
+
+  for (std::size_t i = 0; i < numQubits; i++)
+    tmp2[i] = row[i] && other_row[numQubits + i];
+
+  int orig_phase = 0, other_phase = 0;
+  for (std::size_t i = 0; i < numQubits; i++) {
+    if (row[i] && row[i + numQubits])
+      orig_phase++;
+
+    if (other_row[i] && other_row[i + numQubits])
+      other_phase++;
+  }
+
+  auto _phase = orig_phase + other_phase;
+  int sum = 0;
+  for (auto a : tmp2)
+    if (a)
+      sum++;
+
+  _phase += 2 * sum;
+  // Based on the phase, figure out an extra coeff to apply
+  for (std::size_t i = 0; i < numQubits; i++)
+    if (tmp[i] && tmp[i + numQubits])
+      _phase -= 1;
+
+  _phase %= 4;
+  std::complex<double> imaginary(0, 1);
+  std::map<int, std::complex<double>> phase_coeff_map{
+      {0, 1.0}, {1, -1. * imaginary}, {2, -1.0}, {3, imaginary}};
+  auto phase_coeff = phase_coeff_map[_phase];
+
+  auto coeff = rowCoeff;
+  coeff *= phase_coeff * otherCoeff;
+
+  return std::make_pair(coeff, tmp);
+}
+} // namespace details
+
+spin_op::spin_op() {
+  std::vector<bool> init(2);
+  terms.emplace(init, 1.0);
+}
+
+spin_op::spin_op(std::size_t numQubits) {
+  std::vector<bool> init(2 * numQubits);
+  terms.emplace(init, 1.0);
+}
+
+spin_op::spin_op(std::pair<std::vector<bool>, std::complex<double>> term) {
+  terms.emplace(term.first, term.second);
+}
+
+spin_op::spin_op(BinarySymplecticForm d,
+                 std::vector<std::complex<double>> coeffs) {
+  for (std::size_t i = 0; auto &t : d)
+    terms.emplace(t, coeffs[i++]);
+}
+
+spin_op::spin_op(pauli type, const std::size_t idx,
+                 std::complex<double> coeff) {
+  auto numQubits = idx + 1;
+  std::vector<bool> d(2 * numQubits);
+
+  if (type == pauli::X)
+    d[idx] = 1;
+  else if (type == pauli::Y) {
+    d[idx] = 1;
+    d[idx + numQubits] = 1;
+  } else if (type == pauli::Z)
+    d[idx + numQubits] = 1;
+
+  terms.emplace(d, coeff);
+}
+
+spin_op::spin_op(const spin_op &o) : terms(o.terms) {}
+
 complex_matrix spin_op::to_matrix() const {
-  auto n = n_qubits();
+  auto n = num_qubits();
   auto dim = 1UL << n;
   auto getBitStrForIdx = [&](std::size_t i) {
     std::stringstream s;
@@ -76,7 +159,7 @@ complex_matrix spin_op::to_matrix() const {
   for (std::size_t rowIdx = 0; rowIdx < dim; rowIdx++) {
     auto rowBitStr = getBitStrForIdx(rowIdx);
     for_each_term([&](spin_op &term) {
-      auto [res, coeff] = actionOnBra(term, rowBitStr);
+      auto [res, coeff] = details::actionOnBra(term, rowBitStr);
       auto colIdx = std::stol(res, nullptr, 2);
       rawData[rowIdx * dim + colIdx] += coeff;
     });
@@ -92,18 +175,18 @@ std::complex<double> spin_op::get_coefficient() const {
 }
 
 void spin_op::for_each_term(std::function<void(spin_op &)> &&functor) const {
-  for (std::size_t i = 0; i < n_terms(); i++) {
+  for (std::size_t i = 0; i < num_terms(); i++) {
     auto term = operator[](i);
     functor(term);
   }
 }
 void spin_op::for_each_pauli(
     std::function<void(pauli, std::size_t)> &&functor) const {
-  if (n_terms() != 1)
+  if (num_terms() != 1)
     throw std::runtime_error(
         "spin_op::for_each_pauli on valid for spin_op with n_terms == 1.");
 
-  auto nQ = n_qubits();
+  auto nQ = num_qubits();
   auto bsf = terms.begin()->first;
   for (std::size_t i = 0; i < nQ; i++) {
     if (bsf[i] && bsf[i + nQ]) {
@@ -154,49 +237,14 @@ void spin_op::expandToNQubits(const std::size_t numQubits) {
   }
 }
 
-spin_op::spin_op() {
-  std::vector<bool> init(2);
-  terms.emplace(init, 1.0);
-}
-
-spin_op::spin_op(std::size_t numQubits) {
-  std::vector<bool> init(2 * numQubits);
-  terms.emplace(init, 1.0);
-}
-
-spin_op::spin_op(BinarySymplecticForm d,
-                 std::vector<std::complex<double>> coeffs) {
-  m_n_qubits = d[0].size() / 2.;
-  for (std::size_t i = 0; auto &t : d)
-    terms.emplace(t, coeffs[i++]);
-}
-
-spin_op::spin_op(pauli type, const std::size_t idx,
-                 std::complex<double> coeff) {
-  m_n_qubits = idx + 1;
-  std::vector<bool> d(2 * m_n_qubits);
-
-  if (type == pauli::X)
-    d[idx] = 1;
-  else if (type == pauli::Y) {
-    d[idx] = 1;
-    d[idx + m_n_qubits] = 1;
-  } else if (type == pauli::Z)
-    d[idx + m_n_qubits] = 1;
-
-  terms.emplace(d, coeff);
-}
-
-spin_op::spin_op(const spin_op &o) : terms(o.terms) {}
-
 spin_op &spin_op::operator+=(const spin_op &v) noexcept {
-  auto otherNumQubits = v.n_qubits();
+  auto otherNumQubits = v.num_qubits();
 
   spin_op tmpv = v;
-  if (otherNumQubits > n_qubits())
+  if (otherNumQubits > num_qubits())
     expandToNQubits(otherNumQubits);
-  else if (otherNumQubits < n_qubits())
-    tmpv.expandToNQubits(n_qubits());
+  else if (otherNumQubits < num_qubits())
+    tmpv.expandToNQubits(num_qubits());
 
   for (auto [term, coeff] : tmpv.terms) {
     auto iter = terms.find(term);
@@ -219,72 +267,23 @@ spin_op &spin_op::operator-=(const spin_op &v) noexcept {
   return operator+=(-1.0 * v);
 }
 
-spin_op::spin_op(std::pair<std::vector<bool>, std::complex<double>> term) {
-  terms.emplace(term.first, term.second);
-}
-
-std::pair<std::complex<double>, std::vector<bool>>
-mult(std::vector<bool> row, std::vector<bool> other_row,
-     std::complex<double> &rowCoeff, std::complex<double> &otherCoeff) {
-  // This is term_i * otherTerm_j
-  std::vector<bool> tmp(row.size()), tmp2(row.size());
-  std::size_t m_n_qubits = row.size() / 2;
-
-  for (std::size_t i = 0; i < 2 * m_n_qubits; i++)
-    tmp[i] = row[i] ^ other_row[i];
-
-  for (std::size_t i = 0; i < m_n_qubits; i++)
-    tmp2[i] = row[i] && other_row[m_n_qubits + i];
-
-  int orig_phase = 0, other_phase = 0;
-  for (std::size_t i = 0; i < m_n_qubits; i++) {
-    if (row[i] && row[i + m_n_qubits])
-      orig_phase++;
-
-    if (other_row[i] && other_row[i + m_n_qubits])
-      other_phase++;
-  }
-
-  auto _phase = orig_phase + other_phase;
-  int sum = 0;
-  for (auto a : tmp2)
-    if (a)
-      sum++;
-
-  _phase += 2 * sum;
-  // Based on the phase, figure out an extra coeff to apply
-  for (std::size_t i = 0; i < m_n_qubits; i++)
-    if (tmp[i] && tmp[i + m_n_qubits])
-      _phase -= 1;
-
-  _phase %= 4;
-  std::complex<double> imaginary(0, 1);
-  std::map<int, std::complex<double>> phase_coeff_map{
-      {0, 1.0}, {1, -1. * imaginary}, {2, -1.0}, {3, imaginary}};
-  auto phase_coeff = phase_coeff_map[_phase];
-
-  auto coeff = rowCoeff;
-  coeff *= phase_coeff * otherCoeff;
-
-  return std::make_pair(coeff, tmp);
-}
-
 spin_op &spin_op::operator*=(const spin_op &v) noexcept {
   spin_op copy = v;
   // auto t1 = std::chrono::high_resolution_clock::now();
   // spin_op tmpv = v;
-  if (v.n_qubits() > n_qubits())
-    expandToNQubits(copy.n_qubits());
-  else if (v.n_qubits() < n_qubits())
-    copy.expandToNQubits(n_qubits());
+  if (v.num_qubits() > num_qubits())
+    expandToNQubits(copy.num_qubits());
+  else if (v.num_qubits() < num_qubits())
+    copy.expandToNQubits(num_qubits());
   // auto t2 = std::chrono::high_resolution_clock::now();
   // std::chrono::duration<double, std::milli> ms_double = t2 - t1;
   // std::cout << "Time block 0: " << ms_double.count() * 1e-3 << "\n";
 
   std::unordered_map<std::vector<bool>, std::complex<double>> newTerms;
   std::size_t ourRow = 0, theirRow = 0;
-  std::vector<std::complex<double>> composedCoeffs(n_terms() * copy.n_terms());
-  std::vector<std::vector<bool>> composition(n_terms() * copy.n_terms());
+  std::vector<std::complex<double>> composedCoeffs(num_terms() *
+                                                   copy.num_terms());
+  std::vector<std::vector<bool>> composition(num_terms() * copy.num_terms());
   std::map<std::size_t, std::pair<std::size_t, std::size_t>> indexMap;
   auto nElements = composition.size();
   // t1 = std::chrono::high_resolution_clock::now();
@@ -292,7 +291,7 @@ spin_op &spin_op::operator*=(const spin_op &v) noexcept {
   for (std::size_t i = 0; i < nElements; i++) {
     auto pair = std::make_pair(ourRow, theirRow);
     indexMap.emplace(i, pair);
-    if (theirRow == copy.n_terms() - 1) {
+    if (theirRow == copy.num_terms() - 1) {
       theirRow = 0;
       ourRow++;
     } else
@@ -311,7 +310,7 @@ spin_op &spin_op::operator*=(const spin_op &v) noexcept {
     auto t = copy.terms.begin();
     std::advance(s, j);
     std::advance(t, k);
-    auto res = mult(s->first, t->first, s->second, t->second);
+    auto res = details::mult(s->first, t->first, s->second, t->second);
     composition[i] = res.second;
     composedCoeffs[i] = res.first;
   }
@@ -393,22 +392,15 @@ spin_op &spin_op::operator*=(const std::complex<double> v) noexcept {
   return *this;
 }
 
-std::size_t spin_op::n_qubits() const {
+std::size_t spin_op::num_qubits() const {
   if (terms.empty())
     return 0;
   return terms.begin()->first.size() / 2;
 }
-std::size_t spin_op::n_terms() const { return terms.size(); }
-
-// std::complex<double>
-// spin_op::get_term_coefficieent(const std::size_t idx) const {
-//   auto start = terms.begin();
-//   std::advance(start, idx);
-//   return start->second;
-// }
+std::size_t spin_op::num_terms() const { return terms.size(); }
 
 spin_op spin_op::slice(const std::size_t startIdx, const std::size_t count) {
-  auto nTerms = n_terms();
+  auto nTerms = num_terms();
   if (nTerms <= count)
     throw std::runtime_error("Cannot request slice with " +
                              std::to_string(count) + " terms on spin_op with " +
@@ -448,9 +440,9 @@ std::string spin_op::to_string(bool printCoeffs) const {
       ss << fmt::format("[{}{}{}j]", coeff.real(),
                         coeff.imag() < 0.0 ? "-" : "+", std::fabs(coeff.imag()))
          << " ";
-    
+
     ss << fmt::format("{}", fmt::join(printOut, ""));
-    
+
     if (printCoeffs)
       ss << "\n";
     printOut.clear();
@@ -512,16 +504,16 @@ spin_op &spin_op::operator=(const spin_op &other) {
 }
 
 spin_op operator+(double coeff, spin_op op) {
-  return spin_op(op.n_qubits()) * coeff + op;
+  return spin_op(op.num_qubits()) * coeff + op;
 }
 spin_op operator+(spin_op op, double coeff) {
-  return op + spin_op(op.n_qubits()) * coeff;
+  return op + spin_op(op.num_qubits()) * coeff;
 }
 spin_op operator-(double coeff, spin_op op) {
-  return spin_op(op.n_qubits()) * coeff - op;
+  return spin_op(op.num_qubits()) * coeff - op;
 }
 spin_op operator-(spin_op op, double coeff) {
-  return op - spin_op(op.n_qubits()) * coeff;
+  return op - spin_op(op.num_qubits()) * coeff;
 }
 
 namespace spin {
@@ -549,7 +541,7 @@ std::vector<double> spin_op::getDataRepresentation() {
     dataVec.push_back(coeff.real());
     dataVec.push_back(coeff.imag());
   }
-  dataVec.push_back(n_terms());
+  dataVec.push_back(num_terms());
   return dataVec;
 }
 

@@ -267,7 +267,7 @@ public:
     if (executionContext && executionContext->name == "observe") {
 
       cudaq::spin_op &spin = *executionContext->spin.value();
-      for (std::size_t i = 0; i < spin.n_terms(); i++) {
+      for (std::size_t i = 0; i < spin.num_terms(); i++) {
         auto term = spin[i];
         if (term.is_identity())
           continue;

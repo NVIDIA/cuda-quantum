@@ -14,8 +14,8 @@ using namespace cudaq::spin;
 
 TEST(SpinOpTester, checkConstruction) {
   cudaq::spin_op op = x(10);
-  EXPECT_EQ(11, op.n_qubits());
-  EXPECT_EQ(1, op.n_terms());
+  EXPECT_EQ(11, op.num_qubits());
+  EXPECT_EQ(1, op.num_terms());
 }
 
 TEST(SpinOpTester, checkEquality) {
@@ -27,8 +27,8 @@ TEST(SpinOpTester, checkAddition) {
   cudaq::spin_op op = x(10);
 
   auto added = op + op;
-  EXPECT_EQ(11, added.n_qubits());
-  EXPECT_EQ(1, added.n_terms());
+  EXPECT_EQ(11, added.num_qubits());
+  EXPECT_EQ(1, added.num_terms());
   EXPECT_EQ(2.0, added.get_coefficient());
 
   op.dump();
@@ -36,8 +36,8 @@ TEST(SpinOpTester, checkAddition) {
 
   auto added2 = x(0) + y(1) + z(2);
   added2.dump();
-  EXPECT_EQ(3, added2.n_terms());
-  EXPECT_EQ(3, added2.n_qubits());
+  EXPECT_EQ(3, added2.num_terms());
+  EXPECT_EQ(3, added2.num_qubits());
   for (int i = 0; i < 3; i++) {
     EXPECT_EQ(1.0, added2[i].get_coefficient());
   }
@@ -115,7 +115,7 @@ TEST(SpinOpTester, checkMultiplication) {
   tmp2 = tmp2 * tmp2;
   tmp2.dump();
 
-  EXPECT_EQ(2, tmp2.n_terms());
+  EXPECT_EQ(2, tmp2.num_terms());
   auto expected =
       13 * i(0) * i(1) * i(2) * i(3) + 12 * z(0) * z(1) * z(2) * z(3);
   EXPECT_EQ(expected, tmp2);
@@ -127,10 +127,10 @@ TEST(SpinOpTester, canBuildDeuteron) {
 
   H.dump();
 
-  EXPECT_EQ(5, H.n_terms());
-  EXPECT_EQ(2, H.n_qubits());
+  EXPECT_EQ(5, H.num_terms());
+  EXPECT_EQ(2, H.num_qubits());
 
-  for (std::size_t i = 0; i < H.n_terms(); i++) {
+  for (std::size_t i = 0; i < H.num_terms(); i++) {
     H[i].dump();
   }
 }

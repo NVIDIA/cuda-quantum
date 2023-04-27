@@ -26,13 +26,13 @@ public:
     ::qpp::cmat Y = ::qpp::Gates::get_instance().Y;
     ::qpp::cmat Z = ::qpp::Gates::get_instance().Z;
 
-    auto nQ = op.n_qubits();
+    auto nQ = op.num_qubits();
     double sum = 0.0;
 
     // Want to loop over all terms in op and
     // compute E_i = coeff_i * < psi | Term | psi >
     // = coeff_i * sum_k <psi | Pauli_k psi>
-    for (std::size_t i = 0; i < op.n_terms(); i++) {
+    for (std::size_t i = 0; i < op.num_terms(); i++) {
       auto term = op[i];
       if (!term.is_identity()) {
         ::qpp::ket cached = state;
@@ -46,8 +46,7 @@ public:
             cached = ::qpp::apply(cached, Z, {i});
         }
 
-        sum += coeffs[0].real() *
-               state.transpose().dot(cached).real();
+        sum += coeffs[0].real() * state.transpose().dot(cached).real();
       } else {
         sum += term.get_coefficient().real();
       }
