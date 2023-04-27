@@ -44,7 +44,7 @@ jobs:
 
           docker build -t cuda-quantum-dev:local -f docker/build/cudaqdev.Dockerfile . \
             --build-arg build_environment=$devdeps_image --build-arg env_tag=$devdeps_tag \
-            --build-arg install="CMAKE_BUILD_TYPE=Release" \
+            --build-arg install="CMAKE_BUILD_TYPE=Release FORCE_COMPILE_GPU_COMPONENTS=true"
 
           cudaqdev_tarfile=/tmp/cudaqdev.tar
           docker save cuda-quantum-dev:local > $cudaqdev_tarfile
