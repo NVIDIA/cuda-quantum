@@ -93,6 +93,7 @@ jobs:
         with:
           config: '.github/workflows/config/spelling_allowlist.json'
           inline: error
+          strict: true
           files: |
             *.{md,txt,h,py,rst}
             **/*.{md,txt,h,py,rst}
@@ -100,3 +101,4 @@ jobs:
             .github/ISSUE_TEMPLATE/*
             !tpls/**/*
           incremental_files_only: true
+          verbose: true
