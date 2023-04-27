@@ -183,14 +183,18 @@ LINKDIRS="-L${install_dir}/lib -L${install_dir}/lib/plugins @CUDAQ_CXX_NVQPP_LIN
 LINKLIBS="-lcudaq -lcudaq-common -lcudaq-mlir-runtime -lcudaq-builder -lcudaq-ensmallen -lcudaq-nlopt -lcudaq-spin -lcudaq-chemistry"
 
 # Add any plugin libraries to the link stage
-CUDAQ_PLUGIN_LIBS=`ls ${install_dir}/lib/plugins/*` 
-for entry in $CUDAQ_PLUGIN_LIBS
-do 
-  PLUGIN_NAME=$(basename $entry)
-  PLUGIN_NAME=${PLUGIN_NAME#"lib"}
-  PLUGIN_NAME=${PLUGIN_NAME%".so"}
-  LINKLIBS="$LINKLIBS -l$PLUGIN_NAME"
-done 
+CUDAQ_PLUGIN_DIR=${install_dir}/lib/plugins
+if [ -d "$CUDAQ_PLUGIN_DIR" ] && [ -n "$(ls -A $CUDAQ_PLUGIN_DIR)" ]
+then 
+  CUDAQ_PLUGIN_LIBS=`ls ${install_dir}/lib/plugins/*` 
+  for entry in $CUDAQ_PLUGIN_LIBS
+  do 
+    PLUGIN_NAME=$(basename $entry)
+    PLUGIN_NAME=${PLUGIN_NAME#"lib"}
+    PLUGIN_NAME=${PLUGIN_NAME%".so"}
+    LINKLIBS="$LINKLIBS -l$PLUGIN_NAME"
+  done 
+fi
 
 # Provide a default backend, user can override
 NVQIR_SIMULATION_BACKEND="qpp"
