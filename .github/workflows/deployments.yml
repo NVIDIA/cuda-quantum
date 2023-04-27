@@ -9,7 +9,7 @@ on:
       - 'main'
       - 'releases/*'
   # We update the build caches during the pull_request_target event, 
-  # and deploy the images during pushes to main.
+  # and deploy the images during pushes to branches with deployment permissions.
   push:
     branches:
       - 'main'
