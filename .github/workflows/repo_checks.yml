@@ -27,12 +27,21 @@ jobs:
         with:
           fetch-depth: 2
 
+      - uses: jitterbit/get-changed-files@v1
+        if: github.event_name == 'pull_request'
+        id: file_changes
+
       - name: C++
         run: |
+
           patterns='*.cpp *.h :!:tpls/* :!:test'
           if ${{ github.event_name == 'pull_request' }}; then
-            diff_base=${{ github.event.pull_request.base.sha }}
-            files=`echo $patterns | xargs git diff --diff-filter=d --name-only $diff_base --`
+            files="${{ steps.files.outputs.all }}"
+            echo "# Summary" >> $GITHUB_STEP_SUMMARY
+            echo "Changed files:" >> $GITHUB_STEP_SUMMARY
+            echo "$files" >> $GITHUB_STEP_SUMMARY
+            #diff_base=${{ github.event.pull_request.base.sha }}
+            #files=`echo $patterns | xargs git diff --diff-filter=d --name-only $diff_base --`
           else
             files=`echo $patterns | xargs git ls-files`
           fi
