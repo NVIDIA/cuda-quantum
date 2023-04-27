@@ -2,7 +2,7 @@ on:
   workflow_dispatch:
   pull_request:
 
-name: "Basic checks of the repo content"
+name: "Basic content checks"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -92,7 +92,6 @@ jobs:
         uses: streetsidesoftware/cspell-action@v2
         with:
           config: '.github/workflows/config/spelling_allowlist.json'
-          inline: error
           strict: true
           incremental_files_only: true
           verbose: true
