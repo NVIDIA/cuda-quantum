@@ -1,0 +1,52 @@
+on:
+  workflow_dispatch:
+  pull_request:
+
+name: "Basic checks of the repo content"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  license_headers:
+    name: Check license headers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: apache/skywalking-eyes/dependency@0.4.0
+        with:
+            config: .licenserc.yaml
+
+  code_formatting:
+    name: Check code formatting
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: C++
+        run: |
+          patterns='*.cpp *.h :!:tpls/* :!:test'
+          if ${{ github.event_name == 'pull_request' }}; then
+            diff_base=${{ github.event.pull_request.base.sha }}
+            files=`echo $patterns | xargs git diff --diff-filter=d --name-only $diff_base --`
+          else
+            files=`echo $patterns | xargs git ls-files`
+          fi
+
+          if [ -n "$files" ]; then 
+            sudo apt-get install clang-format-16
+            echo $files | xargs clang-format-16 -i
+            echo $patterns | xargs git diff --diff-filter=d -- > /tmp/clang-format.patch
+          fi
+
+          echo "## C++ Formatting" >> $GITHUB_STEP_SUMMARY
+          if [ -s clang-format.patch ]; then
+            echo "The following formatting changes need to be applied:" >> $GITHUB_STEP_SUMMARY
+            echo '```text' >> $GITHUB_STEP_SUMMARY
+            cat /tmp/clang-format.patch >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "All files are formatted as expected." >> $GITHUB_STEP_SUMMARY
+          fi
