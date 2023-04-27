@@ -17,7 +17,7 @@ on:
         required: false
         type: boolean
         default: false
-      build_cache_only:
+      registry_cache_update_only:
         required: false
         type: boolean
         default: false
@@ -187,7 +187,7 @@ jobs:
           cache_from_gh="type=local,src=${local_buildcache_path}"
           cache_from_registry="type=registry,ref=${registry_cache}-${cache_id}:${registry_cache_base}"
           cache_from_nvidia_registry="type=registry,ref=${nvidia_registry_cache}-${cache_id}:${registry_cache_base}"
-          if ${{ inputs.environment == 'ghcr-deployment' }}; then
+          if ${{ inputs.registry_cache_update_only }}; then
             build_cache="type=registry,ref=${registry_cache}-${cache_id}:${{ github.ref_name }}"
             cache_to="${build_cache},mode=max,ignore-error=false"
           elif ${{ inputs.create_local_cache }}; then
@@ -205,7 +205,7 @@ jobs:
           echo "cache_from_nvidia_registry=$cache_from_nvidia_registry" >> $GITHUB_OUTPUT
           echo "cache_to=$cache_to" >> $GITHUB_OUTPUT
           echo "build_cache=$build_cache" >> $GITHUB_OUTPUT
-          if ${{ ! inputs.build_cache_only }}; then
+          if ${{ ! inputs.registry_cache_update_only }}; then
             echo "tar_cache=tar-${cache_id}${local_buildcache_key_suffix}" >> $GITHUB_OUTPUT
             echo "tar_archive=/tmp/${{ needs.metadata.outputs.image_id }}.tar" >> $GITHUB_OUTPUT
           fi
@@ -260,14 +260,14 @@ jobs:
 
       - name: Cache ${{ needs.metadata.outputs.image_title }} image
         uses: actions/cache/save@v3
-        if: ${{ ! inputs.build_cache_only }}
+        if: ${{ ! inputs.registry_cache_update_only }}
         with:
           path: ${{ steps.cache.outputs.tar_archive }}
           key: ${{ steps.cache.outputs.tar_cache }}
 
   deployment:
     name: Deployment
-    if: ${{ inputs.environment && ! inputs.build_cache_only }}
+    if: ${{ inputs.environment && ! inputs.registry_cache_update_only }}
     needs: build
     uses: ./.github/workflows/deploy_to_registry.yml
     with:
