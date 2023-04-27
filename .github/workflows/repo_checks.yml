@@ -94,7 +94,5 @@ jobs:
           config: '.github/workflows/config/spelling_allowlist.json'
           inline: error
           strict: true
-          files: |
-            **/*.{md,txt,h,py,rst}
           incremental_files_only: true
           verbose: true
