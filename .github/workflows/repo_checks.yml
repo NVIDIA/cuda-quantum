@@ -79,7 +79,7 @@ jobs:
           create_output python '*.py :!:tpls'
           create_output markdown '*.md :!:tpls'
           create_output textlike '*.rst *.txt .github/ISSUE_TEMPLATE/* :!:tpls'
-           echo "json='$(echo $json)'" >> $GITHUB_OUTPUT
+          echo "json='$(echo $json)'" >> $GITHUB_OUTPUT
 
   formatting:
     name: Check code formatting
