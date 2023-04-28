@@ -61,8 +61,8 @@ jobs:
             list_files="git ls-files"
           fi
 
-          function create_output { \
-            files=`echo $2 | xargs $list_files` \
+          function create_output {
+            files=`echo $2 | xargs $list_files`
             echo "$1_files=$(echo $files | tr ' ' ';')" >> $GITHUB_OUTPUT
 
             echo "$1 files:" >> $GITHUB_STEP_SUMMARY
