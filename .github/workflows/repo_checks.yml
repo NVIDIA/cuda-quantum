@@ -69,8 +69,8 @@ jobs:
 
           function create_output {
             files=`echo $2 | xargs $list_files`
-            echo "$1_patterns=$(echo \"$2\"")" >> $GITHUB_OUTPUT
-            echo "$1_files=$(echo \'$files\')" >> $GITHUB_OUTPUT
+            echo "$1_patterns=$(echo \'$2\'")" >> $GITHUB_OUTPUT
+            echo "$1_files=$(echo \"$files\")" >> $GITHUB_OUTPUT
           }
 
           create_output cxx '*.cpp *.h *.hpp :!:test :!:tpls :!:**/nlopt-src/*'
