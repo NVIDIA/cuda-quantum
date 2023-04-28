@@ -62,7 +62,7 @@ jobs:
 
           json="{\"files\":{}, \"patterns\":{}}"
           function create_output {
-            json=`echo $json | jq ".patterns |= . + {"$1"[]}"`
+            json=`echo $json | jq ".patterns |= . + {"$1":[]}"`
             for pattern in $2; do
               pattern=\'$pattern\'
               json=`echo $json | jq ".patterns.$1 |= . + [\"$pattern\"]"`
