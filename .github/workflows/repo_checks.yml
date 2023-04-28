@@ -37,6 +37,7 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
+      files: ${{ steps.files.outputs.files }}
       cxx_patterns: ${{ steps.files.outputs.cxx_patterns }}
       cxx_files: ${{ steps.files.outputs.cxx_files }}
       markdown_patterns: ${{ steps.files.outputs.markdown_patterns }}
@@ -77,6 +78,8 @@ jobs:
           create_output python '*.py :!:tpls'
           create_output markdown '*.md :!:tpls'
           create_output textlike '*.rst *.txt .github/ISSUE_TEMPLATE/* :!:tpls'
+
+          echo "files={\"markdown\":[\"Developing.md\", \"Overview.md\"]}" >> $GITHUB_OUTPUT
 
   formatting:
     name: Check code formatting
@@ -157,7 +160,7 @@ jobs:
           config_path: '.github/workflows/config/spellcheck_config.yml'
           output_file: /tmp/markdown_spellcheck.txt
           task_name: markdown
-          source_files: ${{ needs.files.outputs.markdown_files }}
+          source_files: ${{ fromJSON(needs.files.outputs.files).markdown }}
 
       - name: "Text and rst files"
         uses: rojopolis/spellcheck-github-actions@0.30.0
