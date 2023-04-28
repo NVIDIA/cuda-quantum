@@ -89,12 +89,22 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: "Check spelling in changed files"
+        uses: rojopolis/spellcheck-github-actions@0.30.0
+        with:
+          config_path: '.github/workflows/config/spellcheck_config.yml'
+          output_file: /tmp/spellcheck_output.txt
+  
+      - name: "Check spelling in changed files"
         uses: streetsidesoftware/cspell-action@v2
         with:
           config: '.github/workflows/config/spelling_allowlist.json'
           inline: error
           strict: true
           files: |
-            *.md
+            '*.{md,txt,h,py,rst}'
+            '**/*.{md,txt,h,py,rst}'
+            'docs/sphinx/examples/**/*.{md,txt,cpp,h,py,rst}'
+            '.github/ISSUE_TEMPLATE/*'
+            '!tpls/**/*'
           incremental_files_only: true
           verbose: true

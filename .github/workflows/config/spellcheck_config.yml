@@ -1,0 +1,17 @@
+spellchecker: aspell
+matrix:
+- name: markdown
+  aspell:
+    lang: en
+    d: en_US
+  sources:
+  - '**/*.md'
+  default_encoding: utf-8
+  expect_match: false
+- name: restructured_text
+  aspell:
+    lang: en
+    d: en_US
+  sources:
+  - '**/*.rst'
+  expect_match: false
