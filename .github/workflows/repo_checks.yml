@@ -9,31 +9,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  changes:
-    name: Filter files to check
+  links:
     runs-on: ubuntu-latest
-
-    outputs:
-      changed_files: ${{ steps.files.outputs.changed_files }}
-
+    name: "Check links"
     steps:
-      - uses: actions/checkout@v3
-        if: github.event_name == 'pull_request'
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Markdown files
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
         with:
-          fetch-depth: 0
-
-      - if: github.event_name == 'pull_request'
-        id: files
-        run: |
-          diff_base=${{ github.event.pull_request.base.sha }}
-          files=`echo $patterns | xargs git diff --diff-filter=d --name-only $diff_base --`
-          echo "changed_files=$(echo $files | tr ' ' ';')" >> $GITHUB_OUTPUT
-
-          echo "## Changed Files" >> $GITHUB_STEP_SUMMARY
-          echo "The following files contain changes:" >> $GITHUB_STEP_SUMMARY
-          for file in $files; do 
-            echo "$file" >> $GITHUB_STEP_SUMMARY
-          done
+          use-verbose-mode: "yes"
+          config-file: ".github/workflows/config/mlc_config.json"        
 
   license_headers:
     name: Check license headers
@@ -45,21 +32,52 @@ jobs:
           config: .licenserc.yaml
           token: '' # with the appropriate permission license eye can add comments on the PR
 
+  files:
+    name: Filter files to check
+    runs-on: ubuntu-latest
+
+    outputs:
+      cxx_files: ${{ steps.files.outputs.cxx_files }}
+      md_files: ${{ steps.files.outputs.md_files }}
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: ${{ (github.event_name == 'pull_request' && 0) || 1 }}
+
+      - id: files
+        run: |
+          if ${{ github.event_name == 'pull_request' }}; then
+            diff_base=${{ github.event.pull_request.base.sha }}
+            list_files="git diff --diff-filter=d --name-only $diff_base --"
+
+            echo "## Changed Files" >> $GITHUB_STEP_SUMMARY
+            echo "The following files contain changes:" >> $GITHUB_STEP_SUMMARY
+            for file in `$list_files`; do 
+              echo "$file" >> $GITHUB_STEP_SUMMARY
+            done
+          else
+            list_files="git ls-files"
+          fi
+
+          function create_output { \
+            files=`echo $2 | xargs $list_files` \
+            echo "$1_files=$(echo $files | tr ' ' ';')" >> $GITHUB_OUTPUT
+          }
+
+          create_output cxx '*.cpp *.h *.hpp :!:tpls'
+          create_output md '*.md :!:tpls'
+
   formatting:
     name: Check code formatting
     runs-on: ubuntu-latest
-    needs: changes
+    needs: files
 
     steps:
       - uses: actions/checkout@v3
       - name: C++
         run: |
-          patterns='*.cpp *.h :!:tpls/* :!:test'
-          if ${{ github.event_name == 'pull_request' }}; then
-            files=`echo ${{ needs.changes.outputs.changed_files }} | tr ';' ' '`
-          else
-            files=`echo $patterns | xargs git ls-files`
-          fi
+          files=(`echo ${{ needs.files.outputs.cxx_files }} | tr ';' ' '`)
 
           echo "## C++ Formatting" >> $GITHUB_STEP_SUMMARY
           echo "Checking the following files:" >> $GITHUB_STEP_SUMMARY
@@ -72,7 +90,7 @@ jobs:
             sudo add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main"
             sudo apt-get update && sudo apt-get install -y --no-install-recommends clang-format-16
             echo $files | xargs clang-format-16 -i
-            echo $patterns | xargs git diff --diff-filter=d -- > /tmp/clang-format.patch
+            git diff --diff-filter=d -- > /tmp/clang-format.patch
           fi
 
           if [ -s clang-format.patch ]; then
@@ -91,32 +109,25 @@ jobs:
           files: .
           config_file: '.github/workflows/config/md_lint_config.yml'
 
-  links:
-    runs-on: ubuntu-latest
-    name: "Check links"
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Markdown files
-        uses: gaurav-nelson/github-action-markdown-link-check@v1
-        with:
-          use-verbose-mode: "yes"
-          config-file: ".github/workflows/config/mlc_config.json"        
-
   spelling:
     name: Check spelling
     runs-on: ubuntu-latest
+    needs: changes
 
     steps:
       - uses: actions/checkout@v3
+
+      - name: "Determine files to check"
+        id: files
+        run: |
+          all_files=
+
       - name: "Markdown files"
         uses: rojopolis/spellcheck-github-actions@0.30.0
         with:
           config_path: '.github/workflows/config/spellcheck_config.yml'
           output_file: /tmp/spellcheck_output.txt
           task_name: markdown
-          sources:
   
       - name: "Check spelling in changed files"
         uses: streetsidesoftware/cspell-action@v2
