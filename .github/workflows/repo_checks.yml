@@ -112,7 +112,7 @@ jobs:
   spelling:
     name: Check spelling
     runs-on: ubuntu-latest
-    needs: changes
+    needs: files
 
     steps:
       - uses: actions/checkout@v3
