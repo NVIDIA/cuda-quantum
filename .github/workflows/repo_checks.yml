@@ -32,11 +32,13 @@ jobs:
           config: .licenserc.yaml
           token: '' # with the appropriate permission license eye can add comments on the PR
 
-  files:
+  filters:
     name: Filter files to check
     runs-on: ubuntu-latest
 
     outputs:
+      json: ${{ steps.files.outputs.json }}
+
       cxx_patterns: ${{ steps.files.outputs.cxx_patterns }}
       cxx_files: ${{ steps.files.outputs.cxx_files }}
       markdown_patterns: ${{ steps.files.outputs.markdown_patterns }}
@@ -67,10 +69,19 @@ jobs:
             list_files="git ls-files"
           fi
 
+          json="{\"files\":{}, \"patterns\":{}}"
           function create_output {
+            json=`echo $json | jq '.patterns |= . + {"$1":[]}'`
+            for pattern in $2; do
+              json=`echo $json | jq '.patterns.$1 |= . + ["$pattern"]'`
+
+            json=`echo $json | jq '.files |= . + {"$1":[]}'`
+            for file in `echo $2 | xargs $list_files`; do
+              json=`echo $json | jq '.files.$1 |= . + ["$file"]'`
+
             files=`echo $2 | xargs $list_files`
             echo "$1_patterns=$(echo \'$2\')" >> $GITHUB_OUTPUT
-            echo "$1_files=$(echo \'$files\')" >> $GITHUB_OUTPUT
+            echo "$1_files=$(echo \"$files\")" >> $GITHUB_OUTPUT
           }
 
           create_output cxx '*.cpp *.h *.hpp :!:test :!:tpls :!:**/nlopt-src/*'
@@ -78,10 +89,12 @@ jobs:
           create_output markdown '*.md :!:tpls'
           create_output textlike '*.rst *.txt .github/ISSUE_TEMPLATE/* :!:tpls'
 
+          echo "json=$json" >> $GITHUB_OUTPUT
+
   formatting:
     name: Check code formatting
     runs-on: ubuntu-latest
-    needs: files
+    needs: filters
 
     steps:
       - uses: actions/checkout@v3
@@ -89,7 +102,7 @@ jobs:
       - name: C++
         run: |
           echo "## C++ Formatting" >> $GITHUB_STEP_SUMMARY
-          files=(`echo ${{ needs.files.outputs.cxx_files }}`)
+          files=(`echo ${{ needs.filters.outputs.cxx_files }}`)
 
           if [ "${#files[@]}" -gt "0" ]; then
             wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
@@ -97,7 +110,7 @@ jobs:
             sudo apt-get update && sudo apt-get install -y --no-install-recommends clang-format-16
 
             echo ${files[@]} | xargs clang-format-16 -i
-            echo ${{ needs.files.outputs.cxx_patterns }} | xargs git diff --diff-filter=d -- > /tmp/clang-format.patch
+            echo ${{ needs.filters.outputs.cxx_patterns }} | xargs git diff --diff-filter=d -- > /tmp/clang-format.patch
           else
             echo "No files to check." >> $GITHUB_STEP_SUMMARY
             exit 0
@@ -116,12 +129,12 @@ jobs:
       - name: Python
         run: |
           echo "## Python Formatting" >> $GITHUB_STEP_SUMMARY
-          files=(`echo ${{ needs.files.outputs.python_files }}`)
+          files=(`echo ${{ needs.filters.outputs.python_files }}`)
 
           if [ "${#files[@]}" -gt "0" ]; then
             pip install yapf
-            echo ${files[@]} | xargs yapf --style pep8 --recursive -i
-            echo ${{ needs.files.outputs.python_patterns }} | xargs git diff --diff-filter=d -- > /tmp/yapf.patch
+            echo ${files[@]} | xargs yapf --style google --recursive -i
+            echo ${{ needs.filters.outputs.python_patterns }} | xargs git diff --diff-filter=d -- > /tmp/yapf.patch
           else
             echo "No files to check." >> $GITHUB_STEP_SUMMARY
             exit 0
@@ -146,7 +159,7 @@ jobs:
   spelling:
     name: Check spelling
     runs-on: ubuntu-latest
-    needs: files
+    needs: filters
 
     steps:
       - uses: actions/checkout@v3
@@ -157,7 +170,7 @@ jobs:
           config_path: '.github/workflows/config/spellcheck_config.yml'
           output_file: /tmp/markdown_spellcheck.txt
           task_name: markdown
-          source_files: ${{ format('{0}', needs.files.outputs.markdown_files) }}
+          source_files: ${{ join(fromJSON(needs.filters.outputs.json).files.markdown, ' ') }}
 
       - name: "Text and rst files"
         uses: rojopolis/spellcheck-github-actions@0.30.0
@@ -165,7 +178,7 @@ jobs:
           config_path: '.github/workflows/config/spellcheck_config.yml'
           output_file: /tmp/textlike_spellcheck.txt
           task_name: textlike
-          source_files: ${{ needs.files.outputs.textlike_files }}
+          source_files: ${{ needs.filters.outputs.textlike_files }}
 
       - name: Create summary
         run: |
