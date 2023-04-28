@@ -79,7 +79,7 @@ jobs:
           create_output python '*.py :!:tpls'
           create_output markdown '*.md :!:tpls'
           create_output textlike '*.rst *.txt .github/ISSUE_TEMPLATE/* :!:tpls'
-          echo "json='$(echo $json)'" >> $GITHUB_OUTPUT
+          echo "json=$(echo $json)" >> $GITHUB_OUTPUT
 
   formatting:
     name: Check code formatting
@@ -92,9 +92,6 @@ jobs:
       - name: C++
         run: |
           echo "## C++ Formatting" >> $GITHUB_STEP_SUMMARY
-          foo=${{ needs.filters.outputs.json }}
-          echo "FOO: $foo" >> $GITHUB_STEP_SUMMARY
-
           files=(${{ join(fromJSON(needs.filters.outputs.json).files.cxx, ' ') }})
 
           if [ "${#files[@]}" -gt "0" ]; then
