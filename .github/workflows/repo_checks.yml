@@ -117,7 +117,8 @@ jobs:
 
           if [ "${#files[@]}" -gt "0" ]; then
             pip install yapf
-            echo ${files[@]} | xargs yapf --style pep8 --recursive --diff > /tmp/yapf.patch
+            echo ${files[@]} | xargs yapf --style pep8 --recursive -i
+            echo ${{ needs.files.outputs.python_patterns }} | xargs git diff --diff-filter=d -- > /tmp/yapf.patch
           else
             echo "No files to check." >> $GITHUB_STEP_SUMMARY
             exit 0
