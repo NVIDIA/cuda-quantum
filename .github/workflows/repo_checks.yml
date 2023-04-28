@@ -66,7 +66,7 @@ jobs:
             echo "$1_files=$(echo $files | tr ' ' ';')" >> $GITHUB_OUTPUT
           }
 
-          create_output cxx '*.cpp *.h *.hpp :!:tpls'
+          create_output cxx '*.cpp *.h *.hpp :!:test :!:tpls :!:nlopt-src'
           create_output md '*.md :!:tpls'
 
   formatting:
@@ -78,7 +78,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: C++
         run: |
-          files=(`echo ${{ needs.files.outputs.cxx_files }} | tr ';' ' '`)
+          files=(`echo '${{ needs.files.outputs.cxx_files }}' | tr ';' ' '`)
 
           echo "## C++ Formatting" >> $GITHUB_STEP_SUMMARY
           echo "Checking the following files:" >> $GITHUB_STEP_SUMMARY
