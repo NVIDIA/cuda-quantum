@@ -11,7 +11,7 @@ function parameters at the current iteration and the modifiable gradient
 vector reference, respectively. For gradient-free optimizers, the second 
 argument, :code:`double(const std::vector<double>&)`, can be dropped.
 Optimizers are defined in the header :code:`<cudaq/optimizers.h>` and 
-gradients in :code:`<cudaq/gradints.h>`.
+gradients in :code:`<cudaq/gradients.h>`.
 
 .. code-block:: cpp 
  
