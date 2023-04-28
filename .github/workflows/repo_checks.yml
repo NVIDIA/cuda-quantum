@@ -66,7 +66,7 @@ jobs:
             echo "$1_files=$(echo $files | tr ' ' ';')" >> $GITHUB_OUTPUT
           }
 
-          create_output cxx '*.cpp *.h *.hpp :!:test :!:tpls :!:nlopt-src'
+          create_output cxx '*.cpp *.h *.hpp :!:test :!:tpls :!:**/nlopt-src/*'
           create_output md '*.md :!:tpls'
 
   formatting:
@@ -78,20 +78,24 @@ jobs:
       - uses: actions/checkout@v3
       - name: C++
         run: |
+          echo "## C++ Formatting" >> $GITHUB_STEP_SUMMARY
           files=(`echo '${{ needs.files.outputs.cxx_files }}' | tr ';' ' '`)
 
-          echo "## C++ Formatting" >> $GITHUB_STEP_SUMMARY
-          echo "Checking the following files:" >> $GITHUB_STEP_SUMMARY
-          for file in $files; do 
-            echo "$file" >> $GITHUB_STEP_SUMMARY
-          done
-
-          if [ -n "$files" ]; then 
+          if [ "${#files[@]}" -gt "0" ]; then
             wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
             sudo add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main"
             sudo apt-get update && sudo apt-get install -y --no-install-recommends clang-format-16
-            echo $files | xargs clang-format-16 -i
+
+            echo "Checking the following files:" >> $GITHUB_STEP_SUMMARY
+            for file in ${files[@]}; do 
+              echo "$file" >> $GITHUB_STEP_SUMMARY
+            done
+
+            echo ${files[@]} | xargs clang-format-16 -i
             git diff --diff-filter=d -- > /tmp/clang-format.patch
+          else
+            echo "No files to check." >> $GITHUB_STEP_SUMMARY
+            exit 0
           fi
 
           if [ -s clang-format.patch ]; then

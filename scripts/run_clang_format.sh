@@ -35,7 +35,7 @@ clang_format_executable=${clang_format_executable:-clang-format}
 cd $(git rev-parse --show-toplevel)
 
 # Run Clang Format
-git ls-files -- '*.cpp' '*.h' '*.hpp' ':!:test' ':!:tpls' ':!:nlopt-src' | xargs $clang_format_executable -i
+git ls-files -- '*.cpp' '*.h' '*.hpp' ':!:test' ':!:tpls' ':!:**/nlopt-src/*' | xargs $clang_format_executable -i
 
 # Take us back to where we were
 cd -
