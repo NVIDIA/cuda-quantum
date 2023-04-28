@@ -95,7 +95,6 @@ jobs:
           inline: error
           strict: true
           files: |
-            **/*.md
-            **/*.rst
+            *.md
           incremental_files_only: true
           verbose: true
