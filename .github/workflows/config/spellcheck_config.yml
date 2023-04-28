@@ -8,10 +8,12 @@ matrix:
   - '**/*.md'
   default_encoding: utf-8
   expect_match: false
-- name: restructured_text
+- name: textlike
   aspell:
     lang: en
     d: en_US
   sources:
+  - '**/*.txt'
   - '**/*.rst'
+  - '.github/ISSUE_TEMPLATE/*'
   expect_match: false
