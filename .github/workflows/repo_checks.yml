@@ -51,7 +51,7 @@ jobs:
 
       - id: files
         run: |
-          if false; then
+          if ${{ github.event_name == 'pull_request' }}; then
             diff_base=${{ github.event.pull_request.base.sha }}
             git rev-list HEAD..$diff_base # fails the step if something went wrong
             list_files="git diff --diff-filter=d --name-only $diff_base --"
