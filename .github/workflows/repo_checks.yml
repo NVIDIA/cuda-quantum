@@ -70,7 +70,8 @@ jobs:
           }
 
           create_output cxx '*.cpp *.h *.hpp :!:test :!:tpls :!:**/nlopt-src/*'
-          create_output md '*.md :!:tpls'
+          create_output python '*.py :!:tpls'
+          create_output markdown '*.md :!:tpls'
 
   formatting:
     name: Check code formatting
@@ -79,6 +80,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+
       - name: C++
         run: |
           echo "## C++ Formatting" >> $GITHUB_STEP_SUMMARY
@@ -103,8 +105,36 @@ jobs:
             echo '```' >> $GITHUB_STEP_SUMMARY
             exit 1
           else
-            echo "All files are formatted as expected." >> $GITHUB_STEP_SUMMARY
+            echo "Totally checked ${#files[@]} files. All files are formatted as expected." >> $GITHUB_STEP_SUMMARY
           fi
+
+      - name: Python
+        run: |
+          echo "## Python Formatting" >> $GITHUB_STEP_SUMMARY
+          files=(`echo ${{ needs.files.outputs.python_files }}`)
+
+          if [ "${#files[@]}" -gt "0" ]; then
+            pip install yapf
+            echo ${files[@]} | xargs yapf --style pep8 --recursive --diff > /tmp/yapf.patch
+          else
+            echo "No files to check." >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+
+          if [ -s /tmp/yapf.patch ]; then
+            echo "The following formatting changes need to be applied:" >> $GITHUB_STEP_SUMMARY
+            echo '```text' >> $GITHUB_STEP_SUMMARY
+            cat /tmp/yapf.patch >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "Totally checked ${#files[@]} files. All files are formatted as expected." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Python
+        uses: mritunjaysharma394/autoyapf@v2
+        with:
+          args: --style pep8 --recursive --in-place .
 
       - name: Markdown
         uses: nosborn/github-action-markdown-cli@v3.2.0
