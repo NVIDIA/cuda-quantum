@@ -47,7 +47,7 @@ jobs:
 
       - id: files
         run: |
-          if ${{ github.event_name == 'pull_request' }}; then
+          if false; then
             diff_base=${{ github.event.pull_request.base.sha }}
             git rev-list HEAD..$diff_base # fails the step if something went wrong
             list_files="git diff --diff-filter=d --name-only $diff_base --"
@@ -64,11 +64,6 @@ jobs:
           function create_output {
             files=`echo $2 | xargs $list_files`
             echo "$1_files=$(echo $files | tr ' ' ';')" >> $GITHUB_OUTPUT
-
-            echo "$1 files:" >> $GITHUB_STEP_SUMMARY
-            for file in $files; do 
-              echo "$file" >> $GITHUB_STEP_SUMMARY
-            done
           }
 
           create_output cxx '*.cpp *.h *.hpp :!:tpls'
