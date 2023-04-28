@@ -74,10 +74,12 @@ jobs:
             json=`echo $json | jq '.patterns |= . + {"$1":[]}'`
             for pattern in $2; do
               json=`echo $json | jq '.patterns.$1 |= . + ["$pattern"]'`
+            done
 
             json=`echo $json | jq '.files |= . + {"$1":[]}'`
             for file in `echo $2 | xargs $list_files`; do
               json=`echo $json | jq '.files.$1 |= . + ["$file"]'`
+            done
 
             files=`echo $2 | xargs $list_files`
             echo "$1_patterns=$(echo \'$2\')" >> $GITHUB_OUTPUT
