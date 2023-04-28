@@ -37,7 +37,9 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
+      cxx_patterns: ${{ steps.files.outputs.cxx_patterns }}
       cxx_files: ${{ steps.files.outputs.cxx_files }}
+      md_patterns: ${{ steps.files.outputs.md_patterns }}
       md_files: ${{ steps.files.outputs.md_files }}
 
     steps:
@@ -63,7 +65,8 @@ jobs:
 
           function create_output {
             files=`echo $2 | xargs $list_files`
-            echo "$1_files=$(echo $files | tr ' ' ';')" >> $GITHUB_OUTPUT
+            echo "$1_patterns=$(echo \'$2\')" >> $GITHUB_OUTPUT
+            echo "$1_files=$(echo \'$files\')" >> $GITHUB_OUTPUT
           }
 
           create_output cxx '*.cpp *.h *.hpp :!:test :!:tpls :!:**/nlopt-src/*'
@@ -79,7 +82,7 @@ jobs:
       - name: C++
         run: |
           echo "## C++ Formatting" >> $GITHUB_STEP_SUMMARY
-          files=(`echo '${{ needs.files.outputs.cxx_files }}' | tr ';' ' '`)
+          files=(`echo ${{ needs.files.outputs.cxx_files }}`)
 
           if [ "${#files[@]}" -gt "0" ]; then
             wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
@@ -92,13 +95,13 @@ jobs:
             done
 
             echo ${files[@]} | xargs clang-format-16 -i
-            git diff --diff-filter=d -- > /tmp/clang-format.patch
+            echo ${{ needs.files.outputs.cxx_patterns }} | xargs git diff --diff-filter=d -- > /tmp/clang-format.patch
           else
             echo "No files to check." >> $GITHUB_STEP_SUMMARY
             exit 0
           fi
 
-          if [ -s clang-format.patch ]; then
+          if [ -s /tmp/clang-format.patch ]; then
             echo "The following formatting changes need to be applied:" >> $GITHUB_STEP_SUMMARY
             echo '```text' >> $GITHUB_STEP_SUMMARY
             cat /tmp/clang-format.patch >> $GITHUB_STEP_SUMMARY
