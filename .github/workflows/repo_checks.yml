@@ -49,7 +49,7 @@ jobs:
 
       - id: files
         run: |
-          if false; then
+          if ${{ github.event_name == 'pull_request' }}; then
             diff_base=${{ github.event.pull_request.base.sha }}
             git rev-list HEAD..$diff_base # fails the step if something went wrong
             list_files="git diff --diff-filter=d --name-only $diff_base --"
@@ -88,11 +88,6 @@ jobs:
             wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
             sudo add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main"
             sudo apt-get update && sudo apt-get install -y --no-install-recommends clang-format-16
-
-            echo "Checking the following files:" >> $GITHUB_STEP_SUMMARY
-            for file in ${files[@]}; do 
-              echo "$file" >> $GITHUB_STEP_SUMMARY
-            done
 
             echo ${files[@]} | xargs clang-format-16 -i
             echo ${{ needs.files.outputs.cxx_patterns }} | xargs git diff --diff-filter=d -- > /tmp/clang-format.patch
