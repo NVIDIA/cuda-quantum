@@ -9,6 +9,32 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Filter files to check
+    runs-on: ubuntu-latest
+
+    outputs:
+      changed_files: ${{ steps.files.outputs.changed_files }}
+
+    steps:
+      - uses: actions/checkout@v3
+        if: github.event_name == 'pull_request'
+        with:
+          fetch-depth: 0
+
+      - if: github.event_name == 'pull_request'
+        id: files
+        run: |
+          diff_base=${{ github.event.pull_request.base.sha }}
+          files=`echo $patterns | xargs git diff --diff-filter=d --name-only $diff_base --`
+          echo "changed_files=$(echo $files | tr ' ' ';')" >> $GITHUB_OUTPUT
+
+          echo "## Changed Files" >> $GITHUB_STEP_SUMMARY
+          echo "The following files contain changes:" >> $GITHUB_STEP_SUMMARY
+          for file in $files; do 
+            echo "$file" >> $GITHUB_STEP_SUMMARY
+          done
+
   license_headers:
     name: Check license headers
     runs-on: ubuntu-latest
@@ -22,19 +48,15 @@ jobs:
   formatting:
     name: Check code formatting
     runs-on: ubuntu-latest
+    needs: changes
 
     steps:
       - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
       - name: C++
         run: |
           patterns='*.cpp *.h :!:tpls/* :!:test'
           if ${{ github.event_name == 'pull_request' }}; then
-            diff_base=${{ github.event.pull_request.base.sha }}
-            #files=`echo $patterns | xargs git diff --diff-filter=d --name-only $diff_base --`
-            files=`echo $patterns | xargs git ls-files`
+            files=`echo ${{ needs.changes.outputs.changed_files }} | tr ';' ' '`
           else
             files=`echo $patterns | xargs git ls-files`
           fi
@@ -88,11 +110,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - name: "Check spelling in changed files"
+      - name: "Markdown files"
         uses: rojopolis/spellcheck-github-actions@0.30.0
         with:
           config_path: '.github/workflows/config/spellcheck_config.yml'
           output_file: /tmp/spellcheck_output.txt
+          task_name: markdown
+          sources:
   
       - name: "Check spelling in changed files"
         uses: streetsidesoftware/cspell-action@v2
