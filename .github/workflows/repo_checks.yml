@@ -49,6 +49,7 @@ jobs:
         run: |
           if ${{ github.event_name == 'pull_request' }}; then
             diff_base=${{ github.event.pull_request.base.sha }}
+            git rev-list HEAD..$diff_base # fails the step if something went wrong
             list_files="git diff --diff-filter=d --name-only $diff_base --"
 
             echo "## Changed Files" >> $GITHUB_STEP_SUMMARY
