@@ -20,7 +20,7 @@ jobs:
         uses: gaurav-nelson/github-action-markdown-link-check@v1
         with:
           use-verbose-mode: "yes"
-          config-file: ".github/workflows/config/mlc_config.json"        
+          config-file: ".github/workflows/config/md_link_check_config.json"        
 
   license_headers:
     name: Check license headers
@@ -148,29 +148,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: "Determine files to check"
-        id: files
-        run: |
-          all_files=
-
       - name: "Markdown files"
         uses: rojopolis/spellcheck-github-actions@0.30.0
         with:
           config_path: '.github/workflows/config/spellcheck_config.yml'
           output_file: /tmp/spellcheck_output.txt
           task_name: markdown
-  
-      - name: "Check spelling in changed files"
-        uses: streetsidesoftware/cspell-action@v2
-        with:
-          config: '.github/workflows/config/spelling_allowlist.json'
-          inline: error
-          strict: true
-          files: |
-            '*.{md,txt,h,py,rst}'
-            '**/*.{md,txt,h,py,rst}'
-            'docs/sphinx/examples/**/*.{md,txt,cpp,h,py,rst}'
-            '.github/ISSUE_TEMPLATE/*'
-            '!tpls/**/*'
-          incremental_files_only: true
-          verbose: true
+          source_files: ${{ needs.files.outputs.markdown_files }}
