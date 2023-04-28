@@ -39,8 +39,10 @@ jobs:
     outputs:
       cxx_patterns: ${{ steps.files.outputs.cxx_patterns }}
       cxx_files: ${{ steps.files.outputs.cxx_files }}
-      md_patterns: ${{ steps.files.outputs.md_patterns }}
-      md_files: ${{ steps.files.outputs.md_files }}
+      markdown_patterns: ${{ steps.files.outputs.markdown_patterns }}
+      markdown_files: ${{ steps.files.outputs.markdown_files }}
+      python_patterns: ${{ steps.files.outputs.python_patterns }}
+      python_files: ${{ steps.files.outputs.python_files }}
 
     steps:
       - uses: actions/checkout@v3
@@ -130,11 +132,6 @@ jobs:
           else
             echo "Totally checked ${#files[@]} files. All files are formatted as expected." >> $GITHUB_STEP_SUMMARY
           fi
-
-      - name: Python
-        uses: mritunjaysharma394/autoyapf@v2
-        with:
-          args: --style pep8 --recursive --in-place .
 
       - name: Markdown
         uses: nosborn/github-action-markdown-cli@v3.2.0
