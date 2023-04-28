@@ -64,6 +64,11 @@ jobs:
           function create_output { \
             files=`echo $2 | xargs $list_files` \
             echo "$1_files=$(echo $files | tr ' ' ';')" >> $GITHUB_OUTPUT
+
+            echo "$1 files:" >> $GITHUB_STEP_SUMMARY
+            for file in $files; do 
+              echo "$file" >> $GITHUB_STEP_SUMMARY
+            done
           }
 
           create_output cxx '*.cpp *.h *.hpp :!:tpls'
