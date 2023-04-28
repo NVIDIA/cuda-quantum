@@ -154,4 +154,4 @@ jobs:
           config_path: '.github/workflows/config/spellcheck_config.yml'
           output_file: /tmp/spellcheck_output.txt
           task_name: markdown
-          source_files: ${{ needs.files.outputs.markdown_files }}
+          # source_files: ${{ needs.files.outputs.markdown_files }}
