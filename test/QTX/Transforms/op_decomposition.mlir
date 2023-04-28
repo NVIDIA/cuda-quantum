@@ -7,7 +7,6 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --qtx-op-decomposition %s | FileCheck %s
-// RUN: cudaq-opt --qtx-op-decomposition %s | CircuitCheck %s
 
 module {
 

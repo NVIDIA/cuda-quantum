@@ -38,7 +38,7 @@ class GenOperator<string mnemonic, list<Trait> traits = []>
     /// If the parameter is known at compilation-time, return its value as a
     /// double.
     llvm::Optional<double> getParameterAsDouble(unsigned i = 0u) {
-      auto param = getParameter();
+      auto param = getParameter(i);
       auto paramDefOp = param.getDefiningOp();
       if (!paramDefOp)
         return std::nullopt;
@@ -371,8 +371,8 @@ def RxOp : OneTargetParamOp<"rx"> {
   let description = [{
     Matrix representation:
     ```
-    Rx(t) =  exp(-(i * t/2) * X) |  cos(t/2)  -isin(t/2) |
-                                 | -isin(t/2)  cos(t/2)  |
+    Rx(t) =  exp(-(i * t/2) * X) = |  cos(t/2)  -isin(t/2) |
+                                   | -isin(t/2)  cos(t/2)  |
     ```
 
     Circuit symbol:
@@ -410,8 +410,8 @@ def PhasedRxOp : GenOperator<"phased_rx", [NumParameters<2>, NumTargets<1>]> {
     Matrix representation:
     ```
     PhasedRx(ϴ,φ) =
-               | cos(ϴ/2)                  -exp(i(pi/2-φ) * sin(ϴ/2)   |
-               | exp(i(φ-pi/2)) * sin(ϴ/2)          cos(ϴ/2)           |
+               |        cos(ϴ/2)        -iexp(-iφ) * sin(ϴ/2) |
+               | -iexp(iφ)) * sin(ϴ/2)         cos(ϴ/2)       |
     ```
 
     Circuit symbol:
@@ -430,19 +430,17 @@ def PhasedRxOp : GenOperator<"phased_rx", [NumParameters<2>, NumTargets<1>]> {
     void getOperatorMatrix(Matrix &matrix) {
       using namespace std::complex_literals;
       auto theta = getParameterAsDouble(0);
-      auto rxPhi = getParameterAsDouble(1);
-      if (!theta || !rxPhi)
+      auto phi = getParameterAsDouble(1);
+      if (!theta || !phi)
         return;
       if (getIsAdj()) {
         *theta *= -1;
       }
-      auto phi = *rxPhi - M_PI_2;
-      auto lambda = -(*rxPhi) + M_PI_2; 
       matrix.assign({
         std::cos(*theta / 2.),
-        std::exp(phi * 1i) * std::sin(*theta / 2.),
-        -std::exp(lambda * 1i) * std::sin(*theta / 2.),
-        std::exp(1i * (phi + lambda)) * std::cos(*theta / 2.)
+        -1i * std::exp(-(*phi) * 1i) * std::sin(*theta / 2.),
+        -1i * std::exp(1i * (*phi)) * std::sin(*theta / 2.),
+        std::cos(*theta / 2.)
       });
     }
   }];
@@ -453,8 +451,8 @@ def RyOp : OneTargetParamOp<"ry"> {
   let description = [{
     Matrix representation:
     ```
-    Ry(t) =  exp(-(i * t/2) * Y) | cos(t/2)  -sin(t/2) |
-                                 | sin(t/2)   cos(t/2) |
+    Ry(t) = exp(-(i * t/2) * Y) = | cos(t/2)  -sin(t/2) |
+                                  | sin(t/2)   cos(t/2) |
     ```
 
     Circuit symbol:
@@ -490,8 +488,8 @@ def RzOp : OneTargetParamOp<"rz"> {
   let description = [{
     Matrix representation:
     ```
-    Rz(t) =  exp(-(i * t/2) * Z) | exp(-i*t/2)      0      |
-                                 |     0       exp(i*t/2), |
+    Rz(t) = exp(-(i * t/2) * Z) = | exp(-i*t/2)      0      |
+                                  |     0       exp(i*t/2), |
     ```
 
     Circuit symbol:
@@ -534,8 +532,8 @@ def U2Op : GenOperator<"u2", [NumParameters<2>, NumTargets<1>]> {
 
     Matrix representation:
     ```
-    U2(φ,λ) = 1/sqrt(2) | 1        -exp(iλ)       |
-                        | exp(iφ)   exp(i(λ + φ)) |
+    U2(φ,λ) = 1/sqrt(2) * | 1        -exp(iλ)       |
+                          | exp(iφ)   exp(i(λ + φ)) |
     ```
 
     Circuit symbol:

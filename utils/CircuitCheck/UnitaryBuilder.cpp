@@ -38,46 +38,6 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
   return failure(result.wasInterrupted());
 }
 
-LogicalResult UnitaryBuilder::build(qtx::CircuitOp circuit) {
-  for (auto target : circuit.getTargets()) {
-    // Here we know that the targets can only be a quantum type
-    if (allocateQubits(target) == WalkResult::interrupt())
-      return failure();
-  }
-  SmallVector<Complex, 16> matrix;
-  auto result = circuit.walk([&](Operation *op) {
-    if (auto allocOp = dyn_cast<qtx::AllocaOp>(op)) {
-      return allocateQubits(allocOp.getResult());
-    }
-    if (auto arrayCreateOp = dyn_cast<qtx::ArrayCreateOp>(op)) {
-      return visitArrayCreateOp(arrayCreateOp);
-    }
-    if (auto arraySplitOp = dyn_cast<qtx::ArraySplitOp>(op)) {
-      return visitArraySplitOp(arraySplitOp);
-    }
-    if (auto arrayBorrowOp = dyn_cast<qtx::ArrayBorrowOp>(op)) {
-      return visitArrayBorrowOp(arrayBorrowOp);
-    }
-    if (auto arrayYieldOp = dyn_cast<qtx::ArrayYieldOp>(op)) {
-      qubitMap[arrayYieldOp.getNewArray()] = qubitMap[arrayYieldOp.getArray()];
-    }
-    if (auto optor = dyn_cast<qtx::OperatorInterface>(op)) {
-      for (auto [i, target] : llvm::enumerate(optor.getTargets())) {
-        Value value = optor.getNewTargets()[i];
-        qubitMap[value].assign(
-            qubitMap[target]); // this doesn't work: qubitMap[value] =
-                               // qubitMap[target];
-        assert(qubitMap[value] == qubitMap[target]);
-      }
-      optor.getOperatorMatrix(matrix);
-      applyOperator(matrix, optor.getControls(), optor.getTargets());
-      matrix.clear();
-    }
-    return WalkResult::advance();
-  });
-  return failure(result.wasInterrupted());
-}
-
 //===----------------------------------------------------------------------===//
 // Visitors
 //===----------------------------------------------------------------------===//
@@ -93,38 +53,6 @@ WalkResult UnitaryBuilder::visitExtractOp(quake::QExtractOp op) {
   return WalkResult::advance();
 }
 
-WalkResult UnitaryBuilder::visitArrayCreateOp(qtx::ArrayCreateOp op) {
-  auto qubits = getQubits(op.getWires());
-  auto [_, success] =
-      qubitMap.try_emplace(op.getResult(), qubits.begin(), qubits.end());
-  if (!success)
-    return WalkResult::interrupt();
-  return WalkResult::advance();
-}
-
-WalkResult UnitaryBuilder::visitArraySplitOp(qtx::ArraySplitOp op) {
-  auto qubits = qubitMap[op.getArray()];
-  for (auto [i, wire] : llvm::enumerate(op.getResults())) {
-    auto [entry, _] = qubitMap.try_emplace(wire);
-    entry->second.push_back(qubits[i]);
-  }
-  return WalkResult::advance();
-}
-
-WalkResult UnitaryBuilder::visitArrayBorrowOp(qtx::ArrayBorrowOp op) {
-  auto array = op.getArray();
-  auto qubits = qubitMap[array];
-  for (auto [i, indexValue] : llvm::enumerate(op.getIndices())) {
-    auto index = getValueAsInt(indexValue);
-    if (!index && *index < 0)
-      return WalkResult::interrupt();
-    auto [entry, _] = qubitMap.try_emplace(op.getWires()[i]);
-    entry->second.push_back(qubits[*index]);
-  }
-  qubitMap.try_emplace(op.getNewArray(), qubits.begin(), qubits.end());
-  return WalkResult::advance();
-}
-
 WalkResult UnitaryBuilder::allocateQubits(Value value) {
   auto [entry, success] = qubitMap.try_emplace(value);
   if (!success)
@@ -134,9 +62,6 @@ WalkResult UnitaryBuilder::allocateQubits(Value value) {
     if (!qvec.hasSpecifiedSize())
       return WalkResult::interrupt();
     qubits.resize(qvec.getSize());
-    std::iota(entry->second.begin(), entry->second.end(), getNextQubit());
-  } else if (auto array = value.getType().dyn_cast<qtx::WireArrayType>()) {
-    qubits.resize(array.getSize());
     std::iota(entry->second.begin(), entry->second.end(), getNextQubit());
   } else {
     qubits.push_back(getNextQubit());

@@ -7,7 +7,6 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --qtx-split-arrays %s | FileCheck %s
-// RUN: cudaq-opt --qtx-split-arrays %s | CircuitCheck %s
 
 module {
 
