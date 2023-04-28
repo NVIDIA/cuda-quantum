@@ -7,7 +7,7 @@
  *******************************************************************************/
 
 #pragma once
-#include "cudaq/Optimizer/Dialect/QTX/QTXOps.h"
+
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include <Eigen/Dense>
@@ -28,20 +28,12 @@ public:
 
   mlir::LogicalResult build(mlir::func::FuncOp func);
 
-  mlir::LogicalResult build(qtx::CircuitOp circuit);
-
 private:
   //===--------------------------------------------------------------------===//
   // Visitors
   //===--------------------------------------------------------------------===//
 
   mlir::WalkResult visitExtractOp(quake::QExtractOp op);
-
-  mlir::WalkResult visitArrayCreateOp(qtx::ArrayCreateOp op);
-
-  mlir::WalkResult visitArrayBorrowOp(qtx::ArrayBorrowOp op);
-
-  mlir::WalkResult visitArraySplitOp(qtx::ArraySplitOp op);
 
   mlir::WalkResult allocateQubits(mlir::Value value);
 
