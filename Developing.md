@@ -59,10 +59,9 @@ With regards to code format and style, we distinguish public APIs and CUDA
 Quantum internals. Public APIs should follow the style guide of the respective
 language, specifically [this guide][cpp_style] for C++, and the [this
 guide][python_style] for Python. The CUDA Quantum internals on the other hand
-follow the [MLIR/LLVM style guide][llvm_style]. [This
-script](./scripts/run_clang_format.sh) can be run to apply some basic formatting
-rules to your code. Please ensure that your code includes comprehensive doc
-comments as well as a comment at the top of the file to indicating its purpose.
+follow the [MLIR/LLVM style guide][llvm_style]. Please ensure that your code
+includes comprehensive doc comments as well as a comment at the top of the file
+to indicating its purpose.
 
 [python_style]: https://google.github.io/styleguide/pyguide.html
 [cpp_style]: https://www.gnu.org/prep/standards/standards.html
