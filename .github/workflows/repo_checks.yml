@@ -92,6 +92,9 @@ jobs:
       - name: C++
         run: |
           echo "## C++ Formatting" >> $GITHUB_STEP_SUMMARY
+          foo=${{ needs.filters.outputs.json }}
+          echo "FOO: $foo" >> $GITHUB_STEP_SUMMARY
+
           files=(${{ join(fromJSON(needs.filters.outputs.json).files.cxx, ' ') }})
 
           if [ "${#files[@]}" -gt "0" ]; then
