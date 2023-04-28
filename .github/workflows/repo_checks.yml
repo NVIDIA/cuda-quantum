@@ -43,7 +43,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          fetch-depth: ${{ (github.event_name == 'pull_request' && 0) || 1 }}
+          fetch-depth: ${{ (github.event_name == 'pull_request' && '0') || '1' }}
 
       - id: files
         run: |
