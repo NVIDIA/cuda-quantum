@@ -177,7 +177,7 @@ KernelArgsCreator getArgsCreator(const std::string &kernelName);
 bool kernelHasConditionalFeedback(const std::string &kernelName);
 
 /// @brief Provide a hook to set the target backend.
-void set_qpu_backend(const char *backend);
+void set_target_backend(const char *backend);
 
 /// @brief Utility function for setting the shots on the platform
 void set_shots(const std::size_t nShots);

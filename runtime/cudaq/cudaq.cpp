@@ -79,7 +79,7 @@ bool cudaq::__internal__::isLibraryMode(const std::string &kernelname) {
 //===----------------------------------------------------------------------===//
 
 namespace cudaq {
-void set_qpu_backend(const char *backend) {
+void set_target_backend(const char *backend) {
   std::string backendName(backend);
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendName);

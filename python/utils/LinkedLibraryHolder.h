@@ -21,6 +21,15 @@ class CircuitSimulator;
 
 namespace cudaq {
 
+class RuntimeTarget {
+
+ private:
+
+  std::string platformName;
+  std::string backendName;
+  
+};
+
 /// @brief The LinkedLibraryHolder provides a mechanism for
 /// dynamically loading and storing the required plugin libraries
 /// for the CUDA Quantum runtime within the Python runtime.
