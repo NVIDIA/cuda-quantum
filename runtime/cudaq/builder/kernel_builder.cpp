@@ -392,7 +392,7 @@ void applyOneQubitOp(ImplicitLocOpBuilder &builder, auto &&params, auto &&ctrls,
 
 #define CUDAQ_ONE_QUBIT_IMPL(NAME, QUAKENAME)                                  \
   void NAME(ImplicitLocOpBuilder &builder, std::vector<QuakeValue> &ctrls,     \
-            QuakeValue &target, bool adjoint) {                                \
+            const QuakeValue &target, bool adjoint) {                          \
     cudaq::info("kernel_builder apply {}", std::string(#NAME));                \
     auto value = target.getValue();                                            \
     auto type = value.getType();                                               \
