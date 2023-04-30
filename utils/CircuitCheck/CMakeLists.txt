@@ -17,7 +17,6 @@ target_include_directories(CircuitCheck
 
 target_link_libraries(CircuitCheck
   PRIVATE
-  QTXDialect
   QuakeDialect
   MLIRMemRefDialect
   MLIRParser

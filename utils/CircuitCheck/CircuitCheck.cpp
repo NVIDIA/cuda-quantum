@@ -7,8 +7,6 @@
  *******************************************************************************/
 
 #include "UnitaryBuilder.h"
-#include "cudaq/Optimizer/Dialect/QTX/QTXDialect.h"
-#include "cudaq/Optimizer/Dialect/QTX/QTXOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/SourceMgr.h"
@@ -43,9 +41,6 @@ static LogicalResult computeUnitary(mlir::Operation *op,
     auto a = builder.build(func);
     return a;
   }
-  if (auto circuit = dyn_cast_if_present<qtx::CircuitOp>(op)) {
-    return builder.build(circuit);
-  }
   return failure();
 }
 
@@ -53,24 +48,21 @@ int main(int argc, char **argv) {
   cl::ParseCommandLineOptions(argc, argv);
 
   MLIRContext context;
-  context.loadDialect<qtx::QTXDialect, quake::QuakeDialect, func::FuncDialect,
+  context.loadDialect<quake::QuakeDialect, func::FuncDialect,
                       memref::MemRefDialect>();
 
-  mlir::ParserConfig config(&context);
-  auto checkMod = mlir::parseSourceFile<mlir::ModuleOp>(checkFilename, config);
-  auto inputMod = mlir::parseSourceFile<mlir::ModuleOp>(inputFilename, config);
+  ParserConfig config(&context);
+  auto checkMod = parseSourceFile<mlir::ModuleOp>(checkFilename, config);
+  auto inputMod = parseSourceFile<mlir::ModuleOp>(inputFilename, config);
 
   cudaq::UnitaryBuilder::UMatrix checkUnitary;
   cudaq::UnitaryBuilder::UMatrix inputUnitary;
   for (auto &checkOp : checkMod->getBodyRegion().getOps()) {
-    mlir::StringAttr opName;
-    if (auto func = dyn_cast<func::FuncOp>(checkOp)) {
-      opName = func.getSymNameAttr();
-    } else if (auto circuit = dyn_cast_if_present<qtx::CircuitOp>(checkOp)) {
-      opName = circuit.getSymNameAttr();
-    } else {
+    auto func = dyn_cast<func::FuncOp>(checkOp);
+    if (!func)
       continue;
-    }
+
+    StringAttr opName = func.getSymNameAttr();
     checkUnitary.resize(0, 0);
     inputUnitary.resize(0, 0);
     // We need to check if input also has the same function
