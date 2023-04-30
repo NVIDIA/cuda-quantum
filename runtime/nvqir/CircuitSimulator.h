@@ -243,6 +243,12 @@ protected:
   /// @brief Keep track of the current number of qubits in batch mode
   std::size_t batchModeCurrentNumQubits = 0;
 
+  /// @brief Environment variable name that allows a programmer to
+  /// specify how expectation values should be computed. This
+  /// defaults to true.
+  constexpr static const char observeSamplingEnvVar[] =
+      "CUDAQ_OBSERVE_FROM_SAMPLING";
+
   /// @brief A GateApplicationTask consists of a
   /// matrix describing the quantum operation, a set of
   /// possible control qubit indices, and a set of target indices.
@@ -277,13 +283,13 @@ protected:
   /// This is subclass specific.
   virtual void addQubitToState() = 0;
 
-  /// @brief Subclass specific part of resetQubitState().
-  /// It will be invoked by resetQubitState()
-  virtual void resetQubitStateImpl() = 0;
+  /// @brief Subclass specific part of deallocateState().
+  /// It will be invoked by deallocateState()
+  virtual void deallocateStateImpl() = 0;
 
   /// @brief Reset the qubit state back to dim = 0.
-  void resetQubitState() {
-    resetQubitStateImpl();
+  void deallocateState() {
+    deallocateStateImpl();
     nQubitsAllocated = 0;
     stateDimension = 0;
   }
@@ -527,6 +533,20 @@ protected:
   /// retaining the current number of qubits.
   virtual void setToZeroState() = 0;
 
+  /// @brief Return true if expectation values should be computed from
+  /// sampling + parity of bit strings.
+  bool shouldObserveFromSampling() {
+    if (auto envVar = std::getenv(observeSamplingEnvVar); envVar) {
+      std::string asString = envVar;
+      std::transform(asString.begin(), asString.end(), asString.begin(),
+                     [](auto c) { return std::tolower(c); });
+      if (asString == "false" || asString == "off" || asString == "0")
+        return false;
+    }
+
+    return true;
+  }
+
 public:
   /// @brief The constructor
   CircuitSimulatorBase() = default;
@@ -556,9 +576,9 @@ public:
 
     if (isInBatchMode()) {
       batchModeCurrentNumQubits++;
-      // We have an allocated state, it has been set to |0>,
-      // we want to reuse it as is. If the state needs to grow, then
-      // we will ask the subtype to add more qubits.
+      // In batch mode, we might already have an allocated state that
+      // has been set to |0..0>. We can reuse it as is, if the next qubit
+      // index is smaller than number of qubits of this allocated state.
       if (newIdx < nQubitsAllocated)
         return newIdx;
     }
@@ -597,9 +617,9 @@ public:
       // We have an allocated state, it has been set to |0>,
       // we want to reuse it as is. If the state needs to grow, then
       // we will ask the subtype to add more qubits.
-      if (qubits.back() < nQubitsAllocated) {
+      if (qubits.back() < nQubitsAllocated)
         count = 0;
-      } else
+      else
         count = qubits.back() + 1 - nQubitsAllocated;
     }
 
@@ -639,7 +659,7 @@ public:
     if (tracker.numAvailable() == tracker.totalNumQubits()) {
       cudaq::info("Deallocated all qubits, reseting state vector.");
       // all qubits deallocated,
-      resetQubitState();
+      deallocateState();
       while (!gateQueue.empty())
         gateQueue.pop();
     }
@@ -726,7 +746,7 @@ public:
       } else {
         cudaq::info("Deallocated all qubits, reseting state vector.");
         // all qubits deallocated,
-        resetQubitState();
+        deallocateState();
       }
     }
 

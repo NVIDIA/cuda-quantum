@@ -158,7 +158,8 @@ inline std::vector<py::args> createArgumentSet(py::args &args) {
         // get the shape and check its size
         auto shape = args[i].attr("shape").cast<py::tuple>();
         if (shape.size() > 2)
-          throw std::runtime_error("Invalid arg for sample_n / observe_n.");
+          throw std::runtime_error(
+              "Invalid kernel arg for sample_n / observe_n, shape.size() > 2");
 
         // Can handle 1d array and 2d matrix of data
         if (shape.size() == 2) {

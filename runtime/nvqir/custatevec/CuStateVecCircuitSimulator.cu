@@ -117,7 +117,8 @@ protected:
   using nvqir::CircuitSimulatorBase<ScalarType>::x;
   using nvqir::CircuitSimulatorBase<ScalarType>::flushGateQueue;
   using nvqir::CircuitSimulatorBase<ScalarType>::previousStateDimension;
-
+  using nvqir::CircuitSimulatorBase<ScalarType>::shouldObserveFromSampling;
+  
   /// @brief The statevector that cuStateVec manipulates on the GPU
   void *deviceStateVector = nullptr;
 
@@ -269,7 +270,7 @@ protected:
   }
 
   /// @brief Reset the qubit state.
-  void resetQubitStateImpl() override {
+  void deallocateStateImpl() override {
     HANDLE_ERROR(custatevecDestroy(handle));
     HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
     if (extraWorkspaceSizeInBytes)
@@ -424,13 +425,7 @@ public:
       return false;
     }
 
-    // FIXME Study the tradeoff for this as NQubits gets larger...
-    // Maybe the 14 qubit range
-    if (nQubitsAllocated > 14) {
-      return false;
-    }
-
-    return true;
+    return !shouldObserveFromSampling();
   }
 
   /// @brief Compute the expected value from the observable matrix.

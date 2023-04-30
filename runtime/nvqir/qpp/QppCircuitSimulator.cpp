@@ -125,7 +125,7 @@ protected:
   }
 
   /// @brief Reset the qubit state.
-  void resetQubitStateImpl() override {
+  void deallocateStateImpl() override {
     StateType tmp;
     state = tmp;
   }
@@ -174,13 +174,7 @@ public:
       return false;
     }
 
-    if (nQubitsAllocated > 14) {
-      return false;
-    }
-
-    // FIXME Study the tradeoff for this as NQubits gets larger...
-    // Maybe the 14 qubit range
-    return true;
+    return !shouldObserveFromSampling();
   }
 
   cudaq::ExecutionResult observe(const cudaq::spin_op &op) override {
@@ -188,13 +182,14 @@ public:
     flushGateQueue();
 
     // The op is on the following target bits.
-    std::set<std::size_t> targets;
+    std::vector<std::size_t> targets;
     op.for_each_term([&](cudaq::spin_op &term) {
       term.for_each_pauli(
-          [&](cudaq::pauli p, std::size_t idx) { targets.insert(idx); });
+          [&](cudaq::pauli p, std::size_t idx) { targets.push_back(idx); });
     });
 
-    std::vector<std::size_t> targetsVec(targets.begin(), targets.end());
+    std::sort(targets.begin(), targets.end());
+    std::unique(targets.begin(), targets.end());
 
     // Get the matrix as an Eigen matrix
     auto matrix = op.to_matrix();
@@ -206,10 +201,10 @@ public:
     // Compute the expected value
     double ee = 0.0;
     if constexpr (std::is_same_v<StateType, qpp::ket>) {
-      qpp::ket k = qpp::apply(state, asEigen, targetsVec, 2);
+      qpp::ket k = qpp::apply(state, asEigen, targets, 2);
       ee = state.dot(k).real();
     } else {
-      ee = qpp::apply(asEigen, state, targetsVec).trace().real();
+      ee = qpp::apply(asEigen, state, targets).trace().real();
     }
 
     return cudaq::ExecutionResult({}, ee);
