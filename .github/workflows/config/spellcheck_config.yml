@@ -68,8 +68,8 @@ matrix:
   pipeline:
   - pyspelling.filters.cpp:
       block_comments: true
-      line_comments: false
-      strings: true
+      line_comments: true
+      strings: false
 
 - name: python
   sources:
