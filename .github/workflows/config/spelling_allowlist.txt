@@ -32,6 +32,7 @@ coprocessors
 codebase
 callable
 callables
+namespace
 executables
 subtype
 tablegen

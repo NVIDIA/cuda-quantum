@@ -48,6 +48,13 @@ matrix:
       - ':matches(code, pre)'
       - 'code'
       - 'pre'
+  - pyspelling.filters.context:
+      context_visible_first: true
+      escapes: '\\[\\`~]'
+      delimiters:
+      # Ignore lines that start with two dots
+      - open: '^\s*\.\..*$'
+        close: '^(?=\S)'
 
 - name: cxx
   sources:
