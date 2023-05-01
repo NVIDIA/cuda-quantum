@@ -17,18 +17,6 @@ instances must be passed by reference, and the no-cloning theorem is satisfied
 at compile-time. :code:`cudaq::qudit` instances can only be allocated within CUDA Quantum quantum
 kernel code and can never be allocated from classical host code.
 
-.. awefawf awfe
-spelking
-..awkas
-
-..commnt:
-
-  pinkaot
-
-..commnts:
-  pinkaots
-
-
 The :code:`cudaq::qudit` takes on the following structure
 
 .. code-block:: cpp
