@@ -25,11 +25,10 @@ matrix:
       - 'code'
       - 'pre'
 
-- name: textlike
+- name: rst
   sources:
   - '**/*.txt'
   - '**/*.rst'
-  - '.github/ISSUE_TEMPLATE/*'
   aspell:
     lang: en
     d: en_US
@@ -37,8 +36,18 @@ matrix:
     wordlists:
     - .github/workflows/config/spelling_allowlist.txt
   pipeline:
-  - pyspelling.filters.text:
-      errors: strict
+  - pyspelling.filters.markdown:
+      markdown_extensions:
+      - markdown.extensions.extra:
+  - pyspelling.filters.html:
+      comments: false
+      attributes:
+      - title
+      - alt
+      ignores:
+      - ':matches(code, pre)'
+      - 'code'
+      - 'pre'
 
 - name: cxx
   sources:
