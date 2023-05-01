@@ -43,8 +43,9 @@ def test_observe_result():
     # that our `SampleResult` is as expected.
     for index in range(hamiltonian.get_term_count()):
         sub_term = hamiltonian[index]
+        print(sub_term)
         # Extract the register name from the spin term.
-        name = str(sub_term).split(") ")[1]
+        name = str(sub_term).split(" ")[1].rstrip()
         # Does the register exist in the measurement results?
         assert name in register_names
         # Check `cudaq.ObserveResult::counts(sub_term)`
@@ -109,7 +110,7 @@ def test_observe_no_params(want_state, want_expectation, shots_count):
         for index in range(hamiltonian.get_term_count()):
             sub_term = hamiltonian[index]
             # Extract the register name from the spin term.
-            got_name = str(sub_term).split(") ")[1]
+            got_name = str(sub_term).split(" ")[1].rstrip()
             # Pull the counts for that hamiltonian sub term from the
             # `ObserveResult::counts` overload.
             sub_term_counts = observe_result.counts(sub_term=sub_term)
@@ -175,7 +176,7 @@ def test_observe_single_param(angle, want_state, want_expectation, shots_count):
         for index in range(hamiltonian.get_term_count()):
             sub_term = hamiltonian[index]
             # Extract the register name from the spin term.
-            got_name = str(sub_term).split(") ")[1]
+            got_name = str(sub_term).split(" ")[1].rstrip()
             # Pull the counts for that hamiltonian sub term from the
             # `ObserveResult::counts` overload.
             sub_term_counts = observe_result.counts(sub_term=sub_term)
@@ -255,7 +256,7 @@ def test_observe_multi_param(angle_0, angle_1, angles, want_state,
         for index in range(hamiltonian.get_term_count()):
             sub_term = hamiltonian[index]
             # Extract the register name from the spin term.
-            got_name = str(sub_term).split(") ")[1]
+            got_name = str(sub_term).split(" ")[1].rstrip()
             # Pull the counts for that hamiltonian sub term from the
             # `ObserveResult::counts` overload.
             sub_term_counts = observe_result.counts(sub_term=sub_term)
@@ -375,7 +376,7 @@ def test_observe_async_single_param(angle, want_state, want_expectation,
         for index in range(hamiltonian.get_term_count()):
             sub_term = hamiltonian[index]
             # Extract the register name from the spin term.
-            got_name = str(sub_term).split(") ")[1]
+            got_name = str(sub_term).split(" ")[1].rstrip()
             # Pull the counts for that hamiltonian sub term from the
             # `ObserveResult::counts` overload.
             sub_term_counts = observe_result.counts(sub_term=sub_term)
@@ -459,7 +460,7 @@ def test_observe_async_multi_param(angle_0, angle_1, angles, want_state,
         for index in range(hamiltonian.get_term_count()):
             sub_term = hamiltonian[index]
             # Extract the register name from the spin term.
-            got_name = str(sub_term).split(") ")[1]
+            got_name = str(sub_term).split(" ")[1].rstrip()
             # Pull the counts for that hamiltonian sub term from the
             # `ObserveResult::counts` overload.
             sub_term_counts = observe_result.counts(sub_term=sub_term)
@@ -547,7 +548,7 @@ def test_observe_numpy_array(angles, want_state, want_expectation):
     for index in range(hamiltonian.get_term_count()):
         sub_term = hamiltonian[index]
         # Extract the register name from the spin term.
-        got_name = str(sub_term).split(") ")[1]
+        got_name = str(sub_term).split(" ")[1].rstrip()
         # Pull the counts for that hamiltonian sub term from the
         # `ObserveResult::counts` overload.
         sub_term_counts = observe_result.counts(sub_term=sub_term)

@@ -36,7 +36,7 @@ public:
       auto term = op[i];
       if (!term.is_identity()) {
         ::qpp::ket cached = state;
-        auto [bsf, coeffs] = term.get_bsf();
+        auto [bsf, coeffs] = term.get_raw_data();
         for (std::size_t i = 0; i < nQ; i++) {
           if (bsf[0][i] && bsf[0][i + nQ])
             cached = ::qpp::apply(cached, Y, {i});

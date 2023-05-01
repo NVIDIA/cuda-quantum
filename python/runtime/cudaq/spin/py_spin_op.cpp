@@ -54,11 +54,12 @@ void bindSpinOperator(py::module &mod) {
            "Copy constructor, given another `cudaq.SpinOperator`.")
 
       /// @brief Bind the member functions.
+      .def("get_raw_data", &cudaq::spin_op::get_raw_data, "")
       .def("get_term_count", &cudaq::spin_op::num_terms,
            "Return the number of terms in this `SpinOperator`.")
       .def("get_qubit_count", &cudaq::spin_op::num_qubits,
            "Return the number of qubits this `SpinOperator` is on.")
-      .def("get_coefficient", &cudaq::spin_op::get_coefficient, py::arg("term"),
+      .def("get_coefficient", &cudaq::spin_op::get_coefficient,
            "Return the coefficient of this `SpinOperator`. Must be a "
            "`SpinOperator` with one term, otherwise an exception is thrown.")
       .def("is_identity", &cudaq::spin_op::is_identity,

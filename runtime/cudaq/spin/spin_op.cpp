@@ -101,18 +101,22 @@ spin_op::spin_op() {
   terms.emplace(init, 1.0);
 }
 
+spin_op::spin_op(
+    const std::unordered_map<spin_op_term, std::complex<double>> &_terms)
+    : terms(_terms) {}
+
 spin_op::spin_op(std::size_t numQubits) {
   std::vector<bool> init(2 * numQubits);
   terms.emplace(init, 1.0);
 }
 
-spin_op::spin_op(std::pair<std::vector<bool>, std::complex<double>> term) {
-  terms.emplace(term.first, term.second);
+spin_op::spin_op(const spin_op_term &term, const std::complex<double> &coeff) {
+  terms.emplace(term, coeff);
 }
 
-spin_op::spin_op(BinarySymplecticForm d,
-                 std::vector<std::complex<double>> coeffs) {
-  for (std::size_t i = 0; auto &t : d)
+spin_op::spin_op(const std::vector<spin_op_term> &bsf,
+                 const std::vector<std::complex<double>> &coeffs) {
+  for (std::size_t i = 0; auto &t : bsf)
     terms.emplace(t, coeffs[i++]);
 }
 
@@ -204,8 +208,8 @@ void spin_op::for_each_pauli(
 spin_op spin_op::random(std::size_t nQubits, std::size_t nTerms) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::vector<std::complex<double>> coeff(nTerms, 1.0);
-  std::vector<std::vector<bool>> randomTerms;
+  std::vector<std::complex<double>> coeffs(nTerms, 1.0);
+  std::vector<spin_op_term> randomTerms;
   for (std::size_t i = 0; i < nTerms; i++) {
     std::vector<bool> termData(2 * nQubits);
     std::fill_n(termData.begin(), termData.size() * (1 - .5), 1);
@@ -213,7 +217,7 @@ spin_op spin_op::random(std::size_t nQubits, std::size_t nTerms) {
     randomTerms.push_back(termData);
   }
 
-  return cudaq::spin_op::from_binary_symplectic(randomTerms, coeff);
+  return spin_op(randomTerms, coeffs);
 }
 
 void spin_op::expandToNQubits(const std::size_t numQubits) {
@@ -260,7 +264,7 @@ spin_op &spin_op::operator+=(const spin_op &v) noexcept {
 spin_op spin_op::operator[](const std::size_t term_idx) const {
   auto start = terms.begin();
   std::advance(start, term_idx);
-  return spin_op(*start);
+  return spin_op(start->first, start->second);
 }
 
 spin_op &spin_op::operator-=(const spin_op &v) noexcept {
@@ -405,20 +409,11 @@ spin_op spin_op::slice(const std::size_t startIdx, const std::size_t count) {
     throw std::runtime_error("Cannot request slice with " +
                              std::to_string(count) + " terms on spin_op with " +
                              std::to_string(nTerms) + " terms.");
-  // auto start = terms.begin();
-  //   std::advance(start, startIdx);
-
-  // for (auto iter = start; iter !=  )
-
-  std::vector<std::complex<double>> newCoeffs;
-  BinarySymplecticForm newData;
-  // for (std::size_t i = startIdx; i < startIdx + count; ++i) {
-  //   if (i == data.size())
-  //     break;
-  //   newData.push_back(data[i]);
-  //   newCoeffs.push_back(coefficients[i]);
-  // }
-  return spin_op(newData, newCoeffs);
+  auto start = terms.begin();
+  std::advance(start, startIdx);
+  std::unordered_map<spin_op_term, std::complex<double>> sliced;
+  std::copy_n(start, count, std::inserter(sliced, sliced.end()));
+  return spin_op(sliced);
 }
 
 std::string spin_op::to_string(bool printCoeffs) const {
@@ -486,9 +481,9 @@ spin_op::spin_op(std::vector<double> &input_vec, std::size_t nQubits) {
   }
 }
 
-std::pair<spin_op::BinarySymplecticForm, std::vector<std::complex<double>>>
-spin_op::get_bsf() const {
-  BinarySymplecticForm data;
+std::pair<std::vector<spin_op::spin_op_term>, std::vector<std::complex<double>>>
+spin_op::get_raw_data() const {
+  std::vector<spin_op_term> data;
   std::vector<std::complex<double>> coeffs;
   for (auto &[term, c] : terms) {
     data.push_back(term);

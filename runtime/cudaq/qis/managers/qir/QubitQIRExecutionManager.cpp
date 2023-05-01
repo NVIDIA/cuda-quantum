@@ -213,7 +213,7 @@ Array *spinToArray(cudaq::spin_op &op) {
   // 1 3 coeff.real coeff.imag 3 1 coeff.real coeff.imag NTERMS
   auto n_qubits = op.num_qubits(); // data[0].size() / 2.;
   auto n_terms = op.num_terms();   // data.size();
-  auto [data, coeffs] = op.get_bsf();
+  auto [data, coeffs] = op.get_raw_data();
 
   auto arr = __quantum__rt__array_create_1d(
       sizeof(double), n_qubits * n_terms + 2 * n_terms + 1);

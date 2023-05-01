@@ -50,11 +50,11 @@ TEST(SpinOpTester, checkBug178) {
 
   cudaq::spin_op op = 1.0 + 2.0 * x(0);
   op.dump();
-  auto [bsf, coeffs] = op.get_bsf();
+  auto [bsf, coeffs] = op.get_raw_data();
 
   std::vector<std::vector<bool>> expected{std::vector<bool>(2),
                                           std::vector<bool>{1, 0}};
-  auto exp = cudaq::spin_op::from_binary_symplectic(expected, {1., 2.});
+  cudaq::spin_op exp(expected, {1., 2.});
   EXPECT_EQ(op, exp);
 
   EXPECT_TRUE(std::find(expected.begin(), expected.end(), bsf[0]) !=

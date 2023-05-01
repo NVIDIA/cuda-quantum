@@ -103,6 +103,14 @@ spin_op z(const std::size_t idx);
 /// define primitive Pauli operators and use them to compose larger, more
 /// complex Pauli tensor products and sums thereof.
 class spin_op {
+public:
+  /// @brief We represent the spin_op terms in binary symplectic form,
+  /// i.e. each term is a vector of 1s and 0s of size 2 * nQubits,
+  /// where the first n elements represent X, the next n elements
+  /// represent Z, and X=Z=1 -> Y on site i, X=1, Z=0 -> X on site i,
+  /// and X=0, Z=1 -> Z on site i.
+  using spin_op_term = std::vector<bool>;
+
 private:
   /// We want these creation functions to have access to
   /// spin_op constructors that programmers don't need
@@ -111,15 +119,9 @@ private:
   friend spin_op spin::y(const std::size_t);
   friend spin_op spin::z(const std::size_t);
 
-  /// @brief We represent the spin_op in binary symplectic form,
-  /// i.e. each term is a vector of 1s and 0s of size 2 * nQubits,
-  /// where the first n elements represent X, the next n elements
-  /// represent Z, and X=Z=1 -> Y on site i, X=1, Z=0 -> X on site i,
-  /// and X=0, Z=1 -> Z on site i.
-  using BinarySymplecticForm = std::vector<std::vector<bool>>;
-
-  /// @brief The spin_op representation
-  std::unordered_map<std::vector<bool>, std::complex<double>> terms;
+  /// @brief The spin_op representation. The spin_op is equivalent
+  /// to a mapping of unique terms to their term coefficient.
+  std::unordered_map<spin_op_term, std::complex<double>> terms;
 
   /// @brief Utility map that takes the Pauli enum to a string representation
   std::map<pauli, std::string> pauli_to_str{
@@ -129,23 +131,22 @@ private:
   /// a larger number of qubits.
   void expandToNQubits(const std::size_t nQubits);
 
-  /// @brief Internal constructor, takes the Pauli type, the qubit site, and the
-  /// term coefficient. Constructs a spin_op of one Pauli on one qubit.
+public:
+  /// @brief Constructor, takes the Pauli type, the qubit site, and the
+  /// term coefficient. Constructs a spin_op of one pauli on one qubit.
   spin_op(pauli, const std::size_t id, std::complex<double> coeff = 1.0);
 
-  spin_op(std::pair<std::vector<bool>, std::complex<double>> term);
+  /// @brief Constructor, takes the binary representation of a single term and
+  /// its coefficient.
+  spin_op(const spin_op_term &term, const std::complex<double> &coeff);
 
-  /// @brief Internal constructor, constructs from existing binary symplectic
-  /// form data and term coefficients.
-  spin_op(BinarySymplecticForm bsf, std::vector<std::complex<double>> coeffs);
+  /// @brief Constructor, takes a full set of terms for the composite spin op
+  /// as an unordered_map mapping individual terms to their coefficient.
+  spin_op(const std::unordered_map<spin_op_term, std::complex<double>> &_terms);
 
-public:
-  /// @brief Return a new spin_op from the user-provided binary symplectic data.
-  static spin_op
-  from_binary_symplectic(BinarySymplecticForm &data,
-                         const std::vector<std::complex<double>> &coeffs) {
-    return spin_op(data, coeffs);
-  }
+  /// @brief Construct from a vector of term data.
+  spin_op(const std::vector<spin_op_term> &bsf,
+          const std::vector<std::complex<double>> &coeffs);
 
   /// @brief Return a random spin operator acting on the specified number of
   /// qubits and composed of the given number of terms.
@@ -153,6 +154,8 @@ public:
 
   /// @brief Constructor, creates the identity term
   spin_op();
+
+  /// @brief Construct the identity term on the given number of qubits.
   spin_op(std::size_t numQubits);
 
   /// @brief Copy constructor
@@ -235,8 +238,8 @@ public:
   std::complex<double> get_coefficient() const;
 
   /// @brief Return the binary symplectic form data
-  std::pair<BinarySymplecticForm, std::vector<std::complex<double>>>
-  get_bsf() const;
+  std::pair<std::vector<spin_op_term>, std::vector<std::complex<double>>>
+  get_raw_data() const;
 
   /// @brief Is this spin_op == to the identity
   bool is_identity() const;

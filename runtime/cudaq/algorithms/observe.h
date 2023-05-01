@@ -143,13 +143,16 @@ inline auto distributeComputations(
     spin_op &H, std::size_t nQpus) {
 
   // Calculate how many terms we can equally divide amongst the qpus
-  auto nTermsPerQPU = H.num_terms() / nQpus + (H.num_terms() % nQpus != 0);
+  auto nTermsPerQPU = H.num_terms() / nQpus;
 
   // Slice the given spin_op into subsets for each QPU
   std::vector<spin_op> spins;
   for (auto uniqueQpuId : cudaq::range(nQpus)) {
     auto lowerBound = uniqueQpuId * nTermsPerQPU;
-    spins.emplace_back(H.slice(lowerBound, nTermsPerQPU));
+    spins.emplace_back(
+        H.slice(lowerBound,
+                nTermsPerQPU +
+                    (uniqueQpuId == nQpus - 1 ? (H.num_terms() % nQpus) : 0)));
   }
 
   // Observe each sub-spin_op asynchronously

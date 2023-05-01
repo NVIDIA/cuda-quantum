@@ -281,7 +281,7 @@ public:
         tmpModuleOp.push_back(ansatz.clone());
 
         // Extract the binary symplectic encoding
-        auto [binarySymplecticForm, coeffs] = term.get_bsf();
+        auto [binarySymplecticForm, coeffs] = term.get_raw_data();
 
         // Create the pass manager, add the quake observe ansatz pass
         // and run it followed by the canonicalizer
