@@ -52,7 +52,7 @@ matrix:
       context_visible_first: true
       delimiters:
       # Ignore lines that start with two dots
-      - open: '(?=^\s*\.\..*$)'
+      - open: '^\s*\.\.'
         close: '(?=^\S)'
 
 - name: cxx
