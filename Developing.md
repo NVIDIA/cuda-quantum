@@ -16,9 +16,8 @@ if you haven't done so already and make sure to check out the latest version on
 the `main` branch. After following the instruction for [setting up your
 development environment](./Dev_Setup.md) and [building CUDA Quantum from
 source](Building.md), you should be able to confirm that you can run the tests
-and examples using your local build. If you edit the file
-[CircuitSimulator.h](./runtime/nvqir/CircuitSimulator.h) to add a print
-statement
+and examples using your local build. If you edit [this
+file](./runtime/nvqir/CircuitSimulator.h) to add a print statement
 
 ```c++
 std::cout << "Custom registration of " << #NAME << "\n" << std::endl;
@@ -36,9 +35,9 @@ nvq++ "$CUDAQ_REPO_ROOT/docs/sphinx/examples/cpp/algorithms/grover.cpp" -o grove
 When working on compiler internals, it can be useful to look at intermediate
 representations for CUDA Quantum kernels.
 
-To see how the kernels in the
-[grover.cpp](./docs/sphinx/examples/cpp/algorithms/grover.cpp) example are
-translated, you can run
+To see how the kernels in [this
+example](./docs/sphinx/examples/cpp/algorithms/grover.cpp) are translated, you
+can run
 
 ```bash
 cudaq-quake $CUDAQ_REPO_ROOT/docs/sphinx/examples/cpp/algorithms/grover.cpp
