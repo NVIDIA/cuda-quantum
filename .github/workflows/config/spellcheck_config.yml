@@ -1,19 +1,26 @@
 spellchecker: aspell
 matrix:
 - name: markdown
-  aspell:
-    lang: en
-    d: en_US
   sources:
   - '**/*.md'
-  default_encoding: utf-8
-  expect_match: false
-- name: textlike
   aspell:
     lang: en
     d: en_US
+  dictionary:
+    wordlists:
+    - .github/workflows/config/spelling_allowlist.txt
+  default_encoding: utf-8
+  expect_match: false
+
+- name: textlike
   sources:
   - '**/*.txt'
   - '**/*.rst'
   - '.github/ISSUE_TEMPLATE/*'
+  aspell:
+    lang: en
+    d: en_US
+  dictionary:
+    wordlists:
+    - .github/workflows/config/spelling_allowlist.txt
   expect_match: false
