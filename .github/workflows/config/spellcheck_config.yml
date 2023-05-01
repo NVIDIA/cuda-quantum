@@ -17,9 +17,6 @@ matrix:
           disable_indented_code_blocks: true
   - pyspelling.filters.html:
       comments: false
-      attributes:
-      - title
-      - alt
       ignores:
       - ':matches(code, pre)'
       - 'code'
