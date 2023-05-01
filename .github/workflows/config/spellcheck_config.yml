@@ -3,24 +3,68 @@ matrix:
 - name: markdown
   sources:
   - '**/*.md'
+  expect_match: true
   aspell:
     lang: en
     d: en_US
   dictionary:
     wordlists:
     - .github/workflows/config/spelling_allowlist.txt
-  default_encoding: utf-8
-  expect_match: false
+  pipeline:
+  - pyspelling.filters.markdown:
+      markdown_extensions:
+      - pymdownx.superfences
+  - pyspelling.filters.html:
+      comments: false
+      ignores:
+      - code
+      - pre
 
 - name: textlike
   sources:
   - '**/*.txt'
   - '**/*.rst'
   - '.github/ISSUE_TEMPLATE/*'
+  expect_match: true
   aspell:
     lang: en
     d: en_US
   dictionary:
     wordlists:
     - .github/workflows/config/spelling_allowlist.txt
-  expect_match: false
+  pipeline:
+  - pyspelling.filters.text:
+      errors: strict
+
+- name: cxx
+  sources:
+  - '**/*.h'
+  - docs/sphinx/examples/**/*.cpp
+  expect_match: true
+  aspell:
+    lang: en
+    d: en_US
+  dictionary:
+    wordlists:
+    - .github/workflows/config/spelling_allowlist.txt
+  pipeline:
+  - pyspelling.filters.cpp
+      block_comments: true
+      line_comments: true
+      strings: true
+
+- name: python
+  sources:
+  - '**/*.py'
+  expect_match: true
+  aspell:
+    lang: en
+    d: en_US
+  dictionary:
+    wordlists:
+    - .github/workflows/config/spelling_allowlist.txt
+  pipeline:
+  - pyspelling.filters.python:
+      docstrings: true
+      comments: true
+      strings: true
