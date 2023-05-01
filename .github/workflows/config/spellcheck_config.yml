@@ -53,7 +53,7 @@ matrix:
       delimiters:
       # Ignore lines that start with two dots
       - open: '^\s*\.\.'
-        close: '(?=^\S)'
+        close: '$'
 
 - name: cxx
   sources:

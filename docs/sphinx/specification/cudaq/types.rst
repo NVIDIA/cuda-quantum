@@ -21,7 +21,7 @@ kernel code and can never be allocated from classical host code.
 spelking
 ..awkas
 
-..comment:
+..commnt:
   pinkaot
 
 The :code:`cudaq::qudit` takes on the following structure
