@@ -20,6 +20,10 @@
 #include "mlir/Interfaces/ControlFlowInterfaces.h"
 #include "mlir/Interfaces/LoopLikeInterface.h"
 
+//===----------------------------------------------------------------------===//
+// Canonicalizer functions.
+//===----------------------------------------------------------------------===//
+
 namespace quake {
 mlir::Value createConstantAlloca(mlir::PatternRewriter &builder,
                                  mlir::Location loc, mlir::OpResult result,
@@ -29,11 +33,89 @@ mlir::Value createSizedSubVecOp(mlir::PatternRewriter &builder,
                                 mlir::Location loc, mlir::OpResult result,
                                 mlir::Value inVec, mlir::Value lo,
                                 mlir::Value hi);
+
+void getOperatorEffectsImpl(
+    mlir::SmallVectorImpl<
+        mlir::SideEffects::EffectInstance<mlir::MemoryEffects::Effect>>
+        &effects,
+    mlir::ValueRange controls, mlir::ValueRange targets);
+
+mlir::ParseResult genericOpParse(mlir::OpAsmParser &parser,
+                                 mlir::OperationState &result);
+void genericOpPrinter(mlir::OpAsmPrinter &_odsPrinter, mlir::Operation *op,
+                      bool isAdj, mlir::OperandRange params,
+                      mlir::OperandRange ctrls, mlir::OperandRange targs,
+                      mlir::DenseBoolArrayAttr negatedQubitControlsAttr);
 } // namespace quake
 
 //===----------------------------------------------------------------------===//
-// Generated logic
+// Tablegen generated logic.
 //===----------------------------------------------------------------------===//
 
 #define GET_OP_CLASSES
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h.inc"
+
+//===----------------------------------------------------------------------===//
+// Utility functions to test the form of an operation.
+//===----------------------------------------------------------------------===//
+
+namespace quake {
+/// Returns true if and only if any quantum operand has type `!quake.qref` or
+/// `!quake.qvec`.
+inline bool hasReference(mlir::Operation *op) {
+  for (mlir::Value opnd : op->getOperands())
+    if (isa<quake::QRefType, quake::QVecType>(opnd.getType()))
+      return true;
+  return false;
+}
+
+/// Returns true if and only if any quantum operand has type `!quake.qref`.
+inline bool hasNonVectorReference(mlir::Operation *op) {
+  for (mlir::Value opnd : op->getOperands())
+    if (isa<quake::QRefType>(opnd.getType()))
+      return true;
+  return false;
+}
+
+/// Returns true if and only if all quantum operands do not have type
+/// `!quake.wire` or `!quake.qcontrol`.
+inline bool isAllReferences(mlir::Operation *op) {
+  for (mlir::Value opnd : op->getOperands())
+    if (isa<quake::WireType, quake::QControlType>(opnd.getType()))
+      return false;
+  return true;
+}
+
+/// Returns true if and only if \p op is in the intermediate quantum load/store
+/// (QLS) form.
+inline bool isWrapped(mlir::Operation *op) {
+  for (mlir::Value val : op->getOperands())
+    if (isa<quake::WireType>(val.getType()) &&
+        !val.getDefiningOp<quake::UnwrapOp>())
+      return false;
+  for (mlir::Value val : op->getResults())
+    if (isa<quake::WireType>(val.getType()))
+      for (auto *u : val.getUsers())
+        if (!isa<quake::WrapOp>(u))
+          return false;
+  return true;
+}
+
+/// Returns true if and only if \p op is in value-SSA form. Value-SSA form is
+/// defined such that the Op, \p op, is neither fully in memory-SSA form nor in
+/// the intermediate QLS form.
+inline bool isValueSSAForm(mlir::Operation *op) {
+  return isa<quake::NullWireOp>(op) || (!isAllReferences(op) && !isWrapped(op));
+}
+inline bool isValueSSAForm(mlir::Value val) {
+  if (auto *op = val.getDefiningOp())
+    return isValueSSAForm(op);
+  return true;
+}
+
+template <typename OP>
+constexpr bool isMeasure =
+    std::is_same_v<OP, quake::MxOp> || std::is_same_v<OP, quake::MyOp> ||
+    std::is_same_v<OP, quake::MzOp>;
+
+} // namespace quake

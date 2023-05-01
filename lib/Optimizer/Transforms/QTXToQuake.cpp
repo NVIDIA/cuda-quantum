@@ -59,7 +59,7 @@ LogicalResult convertOperation(qtx::ResetOp qtxOp) {
   for (auto [operand, result] :
        llvm::zip(qtxOp.getOperands(), qtxOp.getResults())) {
     result.replaceAllUsesWith(operand);
-    builder.create<quake::ResetOp>(operand);
+    builder.create<quake::ResetOp>(TypeRange{}, operand);
   }
   qtxOp.erase();
   return success();

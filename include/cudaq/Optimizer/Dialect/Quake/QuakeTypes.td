@@ -1,10 +1,10 @@
-/********************************************************** -*- tablegen -*- ***
+/***********************************************************-*- tablegen -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #ifndef CUDAQ_OPTIMIZER_DIALECT_QUAKE_TYPES
 #define CUDAQ_OPTIMIZER_DIALECT_QUAKE_TYPES
@@ -47,6 +47,16 @@ def WireType : QuakeType<"Wire", "wire"> {
     See also the description of the `qref` type.
   }];
 
+  let genStorageClass = 0;
+}
+
+def QControlType : QuakeType<"QControl", "qcontrol"> {
+  let description = [{
+    A qubit of type qcontrol is a value of type wire used in a control position.
+    Using a qubit in a control position means the qubit is an SSA-value. It is
+    defined once and can be used multiple times (in multiple control positions)
+    without changing value.
+  }];
   let genStorageClass = 0;
 }
 
@@ -123,8 +133,14 @@ def QVecType : QuakeType<"QVec", "qvec"> {
 }
 
 def AnyQTypeLike : TypeConstraint<Or<[WireType.predicate, QVecType.predicate,
-        QRefType.predicate]>, "quake quantum types">;
+        QControlType.predicate, QRefType.predicate]>, "quake quantum types">;
 def AnyQType : Type<AnyQTypeLike.predicate, "quantum type">;
+def AnyQRefTypeLike : TypeConstraint<Or<[QVecType.predicate,
+        QRefType.predicate]>, "quake quantum reference types">;
+def AnyQRefType : Type<AnyQRefTypeLike.predicate, "quantum reference type">;
+def AnyQValueTypeLike : TypeConstraint<Or<[WireType.predicate,
+        QControlType.predicate]>, "quake quantum value types">;
+def AnyQValueType : Type<AnyQValueTypeLike.predicate, "quantum value type">;
 
 def IsStdvecTypePred : CPred<"$_self.isa<::cudaq::cc::StdvecType>()">;
 

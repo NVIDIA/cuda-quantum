@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 // RUN: cudaq-quake %s | cudaq-opt --unwind-lowering --canonicalize | FileCheck %s
 
@@ -123,7 +123,7 @@ struct F {
 // CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 1 : i32
 // CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 10 : i32
 // CHECK-DAG:       %[[VAL_7:.*]] = arith.constant 0 : i32
-// CHECK:           %[[VAL_8:.*]] = quake.alloca : !quake.qvec<2>
+// CHECK:           %[[VAL_8:.*]] = quake.alloca !quake.qvec<2>
 // CHECK:           call @_Z2g1v() : () -> ()
 // CHECK:           cc.scope {
 // CHECK:             %[[VAL_9:.*]] = memref.alloca() : memref<i32>
@@ -138,22 +138,22 @@ struct F {
 // CHECK:             %[[VAL_13:.*]] = func.call @_Z2f1i(%[[VAL_12]]) : (i32) -> i1
 // CHECK:             cf.cond_br %[[VAL_13]], ^bb3, ^bb4
 // CHECK:           ^bb3:
-// CHECK:             %[[VAL_14:.*]] = quake.alloca : !quake.qref
-// CHECK:             %[[VAL_15:.*]] = quake.qextract %[[VAL_8]]{{\[}}%[[VAL_2]]] : !quake.qvec<2>[i64] -> !quake.qref
-// CHECK:             quake.x {{\[}}%[[VAL_14]] : !quake.qref] (%[[VAL_15]])
-// CHECK:             quake.dealloc(%[[VAL_14]] : !quake.qref)
+// CHECK:             %[[VAL_14:.*]] = quake.alloca !quake.qref
+// CHECK:             %[[VAL_15:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_2]]] : (!quake.qvec<2>, i64) -> !quake.qref
+// CHECK:             quake.x [%[[VAL_14]]] %[[VAL_15]] : (!quake.qref, !quake.qref) -> ()
+// CHECK:             quake.dealloc %[[VAL_14]] : !quake.qref
 // CHECK:             cf.br ^bb8
 // CHECK:           ^bb4:
-// CHECK:             %[[VAL_16:.*]] = quake.qextract %[[VAL_8]]{{\[}}%[[VAL_2]]] : !quake.qvec<2>[i64] -> !quake.qref
-// CHECK:             %[[VAL_17:.*]] = quake.qextract %[[VAL_8]]{{\[}}%[[VAL_1]]] : !quake.qvec<2>[i64] -> !quake.qref
-// CHECK:             quake.x {{\[}}%[[VAL_16]] : !quake.qref] (%[[VAL_17]])
+// CHECK:             %[[VAL_16:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_2]]] : (!quake.qvec<2>, i64) -> !quake.qref
+// CHECK:             %[[VAL_17:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_1]]] : (!quake.qvec<2>, i64) -> !quake.qref
+// CHECK:             quake.x [%[[VAL_16]]] %[[VAL_17]] : (!quake.qref,
 // CHECK:             func.call @_Z2g2v() : () -> ()
 // CHECK:             %[[VAL_18:.*]] = memref.load %[[VAL_9]][] : memref<i32>
 // CHECK:             %[[VAL_19:.*]] = func.call @_Z2f2i(%[[VAL_18]]) : (i32) -> i1
 // CHECK:             cf.cond_br %[[VAL_19]], ^bb5, ^bb6
 // CHECK:           ^bb5:
-// CHECK:             %[[VAL_20:.*]] = quake.qextract %[[VAL_8]]{{\[}}%[[VAL_1]]] : !quake.qvec<2>[i64] -> !quake.qref
-// CHECK:             quake.y (%[[VAL_20]])
+// CHECK:             %[[VAL_20:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_1]]] : (!quake.qvec<2>, i64) -> !quake.qref
+// CHECK:             quake.y %[[VAL_20]] :
 // CHECK:             cf.br ^bb7
 // CHECK:           ^bb6:
 // CHECK:             func.call @_Z2g3v() : () -> ()
@@ -162,8 +162,8 @@ struct F {
 // CHECK:               cc.condition %[[VAL_23]](%[[VAL_22]] : index)
 // CHECK:             } do {
 // CHECK:             ^bb0(%[[VAL_24:.*]]: index):
-// CHECK:               %[[VAL_25:.*]] = quake.qextract %[[VAL_8]]{{\[}}%[[VAL_24]]] : !quake.qvec<2>[index] -> !quake.qref
-// CHECK:               quake.z (%[[VAL_25]])
+// CHECK:               %[[VAL_25:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_24]]] : (!quake.qvec<2>, index) -> !quake.qref
+// CHECK:               quake.z %[[VAL_25]] : (!quake.qref) -> ()
 // CHECK:               cc.continue %[[VAL_24]] : index
 // CHECK:             } step {
 // CHECK:             ^bb0(%[[VAL_26:.*]]: index):
@@ -180,7 +180,7 @@ struct F {
 // CHECK:             cc.continue
 // CHECK:           }
 // CHECK:           call @_Z2g4v() : () -> ()
-// CHECK:           %[[VAL_30:.*]] = quake.mz(%[[VAL_8]] : !quake.qvec<2>) : !cc.stdvec<i1>
+// CHECK:           %[[VAL_30:.*]] = quake.mz %[[VAL_8]] : (!quake.qvec<2>) -> !cc.stdvec<i1>
 // CHECK:           return
 // CHECK:         }
 
@@ -193,7 +193,7 @@ struct F {
 // CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 1 : i32
 // CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 10 : i32
 // CHECK-DAG:       %[[VAL_7:.*]] = arith.constant 0 : i32
-// CHECK:           %[[VAL_8:.*]] = quake.alloca : !quake.qvec<2>
+// CHECK:           %[[VAL_8:.*]] = quake.alloca !quake.qvec<2>
 // CHECK:           call @_Z2g1v() : () -> ()
 // CHECK:           cc.scope {
 // CHECK:             %[[VAL_9:.*]] = memref.alloca() : memref<i32>
@@ -208,22 +208,22 @@ struct F {
 // CHECK:             %[[VAL_13:.*]] = func.call @_Z2f1i(%[[VAL_12]]) : (i32) -> i1
 // CHECK:             cf.cond_br %[[VAL_13]], ^bb3, ^bb4
 // CHECK:           ^bb3:
-// CHECK:             %[[VAL_14:.*]] = quake.alloca : !quake.qref
-// CHECK:             %[[VAL_15:.*]] = quake.qextract %[[VAL_8]]{{\[}}%[[VAL_2]]] : !quake.qvec<2>[i64] -> !quake.qref
-// CHECK:             quake.x {{\[}}%[[VAL_14]] : !quake.qref] (%[[VAL_15]])
-// CHECK:             quake.dealloc(%[[VAL_14]] : !quake.qref)
+// CHECK:             %[[VAL_14:.*]] = quake.alloca !quake.qref
+// CHECK:             %[[VAL_15:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_2]]] : (!quake.qvec<2>, i64) -> !quake.qref
+// CHECK:             quake.x [%[[VAL_14]]] %[[VAL_15]] :
+// CHECK:             quake.dealloc %[[VAL_14]] : !quake.qref
 // CHECK:             cf.br ^bb7
 // CHECK:           ^bb4:
-// CHECK:             %[[VAL_16:.*]] = quake.qextract %[[VAL_8]]{{\[}}%[[VAL_2]]] : !quake.qvec<2>[i64] -> !quake.qref
-// CHECK:             %[[VAL_17:.*]] = quake.qextract %[[VAL_8]]{{\[}}%[[VAL_1]]] : !quake.qvec<2>[i64] -> !quake.qref
-// CHECK:             quake.x {{\[}}%[[VAL_16]] : !quake.qref] (%[[VAL_17]])
+// CHECK:             %[[VAL_16:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_2]]] : (!quake.qvec<2>, i64) -> !quake.qref
+// CHECK:             %[[VAL_17:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_1]]] : (!quake.qvec<2>, i64) -> !quake.qref
+// CHECK:             quake.x [%[[VAL_16]]] %[[VAL_17]] : (!quake.qref, !quake.qref) -> ()
 // CHECK:             func.call @_Z2g2v() : () -> ()
 // CHECK:             %[[VAL_18:.*]] = memref.load %[[VAL_9]][] : memref<i32>
 // CHECK:             %[[VAL_19:.*]] = func.call @_Z2f2i(%[[VAL_18]]) : (i32) -> i1
 // CHECK:             cf.cond_br %[[VAL_19]], ^bb5, ^bb6
 // CHECK:           ^bb5:
-// CHECK:             %[[VAL_20:.*]] = quake.qextract %[[VAL_8]]{{\[}}%[[VAL_1]]] : !quake.qvec<2>[i64] -> !quake.qref
-// CHECK:             quake.y (%[[VAL_20]])
+// CHECK:             %[[VAL_20:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_1]]] : (!quake.qvec<2>, i64) -> !quake.qref
+// CHECK:             quake.y %[[VAL_20]]
 // CHECK:             cf.br ^bb8
 // CHECK:           ^bb6:
 // CHECK:             func.call @_Z2g3v() : () -> ()
@@ -232,8 +232,8 @@ struct F {
 // CHECK:               cc.condition %[[VAL_23]](%[[VAL_22]] : index)
 // CHECK:             } do {
 // CHECK:             ^bb0(%[[VAL_24:.*]]: index):
-// CHECK:               %[[VAL_25:.*]] = quake.qextract %[[VAL_8]]{{\[}}%[[VAL_24]]] : !quake.qvec<2>[index] -> !quake.qref
-// CHECK:               quake.z (%[[VAL_25]])
+// CHECK:               %[[VAL_25:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_24]]] : (!quake.qvec<2>, index) -> !quake.qref
+// CHECK:               quake.z %[[VAL_25]] : (!quake.qref) -> ()
 // CHECK:               cc.continue %[[VAL_24]] : index
 // CHECK:             } step {
 // CHECK:             ^bb0(%[[VAL_26:.*]]: index):
@@ -250,7 +250,7 @@ struct F {
 // CHECK:             cc.continue
 // CHECK:           }
 // CHECK:           call @_Z2g4v() : () -> ()
-// CHECK:           %[[VAL_30:.*]] = quake.mz(%[[VAL_8]] : !quake.qvec<2>) : !cc.stdvec<i1>
+// CHECK:           %[[VAL_30:.*]] = quake.mz %[[VAL_8]] : (!quake.qvec<2>) -> !cc.stdvec<i1>
 // CHECK:           return
 // CHECK:         }
 
@@ -263,7 +263,7 @@ struct F {
 // CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 1 : i32
 // CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 10 : i32
 // CHECK-DAG:       %[[VAL_7:.*]] = arith.constant 0 : i32
-// CHECK:           %[[VAL_8:.*]] = quake.alloca : !quake.qvec<2>
+// CHECK:           %[[VAL_8:.*]] = quake.alloca !quake.qvec<2>
 // CHECK:           call @_Z2g1v() : () -> ()
 // CHECK:           %[[VAL_9:.*]] = memref.alloca() : memref<i32>
 // CHECK:           memref.store %[[VAL_7]], %[[VAL_9]][] : memref<i32>
@@ -277,22 +277,22 @@ struct F {
 // CHECK:           %[[VAL_13:.*]] = call @_Z2f1i(%[[VAL_12]]) : (i32) -> i1
 // CHECK:           cf.cond_br %[[VAL_13]], ^bb3, ^bb4
 // CHECK:         ^bb3:
-// CHECK:           %[[VAL_14:.*]] = quake.alloca : !quake.qref
-// CHECK:           %[[VAL_15:.*]] = quake.qextract %[[VAL_8]]{{\[}}%[[VAL_2]]] : !quake.qvec<2>[i64] -> !quake.qref
-// CHECK:           quake.x {{\[}}%[[VAL_14]] : !quake.qref] (%[[VAL_15]])
-// CHECK:           quake.dealloc(%[[VAL_14]] : !quake.qref)
+// CHECK:           %[[VAL_14:.*]] = quake.alloca !quake.qref
+// CHECK:           %[[VAL_15:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_2]]] : (!quake.qvec<2>, i64) -> !quake.qref
+// CHECK:           quake.x [%[[VAL_14]]] %[[VAL_15]] : (!quake.qref, !quake.qref)
+// CHECK:           quake.dealloc %[[VAL_14]] : !quake.qref
 // CHECK:           cf.br ^bb8
 // CHECK:         ^bb4:
-// CHECK:           %[[VAL_16:.*]] = quake.qextract %[[VAL_8]]{{\[}}%[[VAL_2]]] : !quake.qvec<2>[i64] -> !quake.qref
-// CHECK:           %[[VAL_17:.*]] = quake.qextract %[[VAL_8]]{{\[}}%[[VAL_1]]] : !quake.qvec<2>[i64] -> !quake.qref
-// CHECK:           quake.x {{\[}}%[[VAL_16]] : !quake.qref] (%[[VAL_17]])
+// CHECK:           %[[VAL_16:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_2]]] : (!quake.qvec<2>, i64) -> !quake.qref
+// CHECK:           %[[VAL_17:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_1]]] : (!quake.qvec<2>, i64) -> !quake.qref
+// CHECK:           quake.x [%[[VAL_16]]] %[[VAL_17]] : (!quake.qref, !quake.qref) -> ()
 // CHECK:           call @_Z2g2v() : () -> ()
 // CHECK:           %[[VAL_18:.*]] = memref.load %[[VAL_9]][] : memref<i32>
 // CHECK:           %[[VAL_19:.*]] = call @_Z2f2i(%[[VAL_18]]) : (i32) -> i1
 // CHECK:           cf.cond_br %[[VAL_19]], ^bb5, ^bb6
 // CHECK:         ^bb5:
-// CHECK:           %[[VAL_20:.*]] = quake.qextract %[[VAL_8]]{{\[}}%[[VAL_1]]] : !quake.qvec<2>[i64] -> !quake.qref
-// CHECK:           quake.y (%[[VAL_20]])
+// CHECK:           %[[VAL_20:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_1]]] : (!quake.qvec<2>, i64) -> !quake.qref
+// CHECK:           quake.y %[[VAL_20]]
 // CHECK:           cf.br ^bb7
 // CHECK:         ^bb6:
 // CHECK:           call @_Z2g3v() : () -> ()
@@ -301,8 +301,8 @@ struct F {
 // CHECK:             cc.condition %[[VAL_23]](%[[VAL_22]] : index)
 // CHECK:           } do {
 // CHECK:           ^bb0(%[[VAL_24:.*]]: index):
-// CHECK:             %[[VAL_25:.*]] = quake.qextract %[[VAL_8]]{{\[}}%[[VAL_24]]] : !quake.qvec<2>[index] -> !quake.qref
-// CHECK:             quake.z (%[[VAL_25]])
+// CHECK:             %[[VAL_25:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_24]]] : (!quake.qvec<2>, index) -> !quake.qref
+// CHECK:             quake.z %[[VAL_25]]
 // CHECK:             cc.continue %[[VAL_24]] : index
 // CHECK:           } step {
 // CHECK:           ^bb0(%[[VAL_26:.*]]: index):
@@ -315,10 +315,10 @@ struct F {
 // CHECK:           cf.br ^bb1
 // CHECK:         ^bb7:
 // CHECK:           call @_Z2g4v() : () -> ()
-// CHECK:           %[[VAL_30:.*]] = quake.mz(%[[VAL_8]] : !quake.qvec<2>) : !cc.stdvec<i1>
+// CHECK:           %[[VAL_30:.*]] = quake.mz %[[VAL_8]] : (!quake.qvec<2>) -> !cc.stdvec<i1>
 // CHECK:           cf.br ^bb8
 // CHECK:         ^bb8:
-// CHECK:           quake.dealloc(%[[VAL_8]] : !quake.qvec<2>)
+// CHECK:           quake.dealloc %[[VAL_8]] : !quake.qvec<2>
 // CHECK:           return
 // CHECK:         }
 
@@ -331,7 +331,7 @@ struct F {
 // CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 1 : i32
 // CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 10 : i32
 // CHECK-DAG:       %[[VAL_7:.*]] = arith.constant 0 : i32
-// CHECK:           %[[VAL_8:.*]] = quake.alloca : !quake.qvec<2>
+// CHECK:           %[[VAL_8:.*]] = quake.alloca !quake.qvec<2>
 // CHECK:           call @_Z2g1v() : () -> ()
 // CHECK:           %[[VAL_9:.*]] = memref.alloca() : memref<i32>
 // CHECK:           memref.store %[[VAL_7]], %[[VAL_9]][] : memref<i32>
@@ -345,22 +345,22 @@ struct F {
 // CHECK:           %[[VAL_13:.*]] = call @_Z2f1i(%[[VAL_12]]) : (i32) -> i1
 // CHECK:           cf.cond_br %[[VAL_13]], ^bb3, ^bb4
 // CHECK:         ^bb3:
-// CHECK:           %[[VAL_14:.*]] = quake.alloca : !quake.qref
-// CHECK:           %[[VAL_15:.*]] = quake.qextract %[[VAL_8]]{{\[}}%[[VAL_2]]] : !quake.qvec<2>[i64] -> !quake.qref
-// CHECK:           quake.x {{\[}}%[[VAL_14]] : !quake.qref] (%[[VAL_15]])
-// CHECK:           quake.dealloc(%[[VAL_14]] : !quake.qref)
+// CHECK:           %[[VAL_14:.*]] = quake.alloca !quake.qref
+// CHECK:           %[[VAL_15:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_2]]] : (!quake.qvec<2>, i64) -> !quake.qref
+// CHECK:           quake.x [%[[VAL_14]]] %[[VAL_15]]
+// CHECK:           quake.dealloc %[[VAL_14]] : !quake.qref
 // CHECK:           cf.br ^bb7
 // CHECK:         ^bb4:
-// CHECK:           %[[VAL_16:.*]] = quake.qextract %[[VAL_8]]{{\[}}%[[VAL_2]]] : !quake.qvec<2>[i64] -> !quake.qref
-// CHECK:           %[[VAL_17:.*]] = quake.qextract %[[VAL_8]]{{\[}}%[[VAL_1]]] : !quake.qvec<2>[i64] -> !quake.qref
-// CHECK:           quake.x {{\[}}%[[VAL_16]] : !quake.qref] (%[[VAL_17]])
+// CHECK:           %[[VAL_16:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_2]]] : (!quake.qvec<2>, i64) -> !quake.qref
+// CHECK:           %[[VAL_17:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_1]]] : (!quake.qvec<2>, i64) -> !quake.qref
+// CHECK:           quake.x [%[[VAL_16]]] %[[VAL_17]]
 // CHECK:           call @_Z2g2v() : () -> ()
 // CHECK:           %[[VAL_18:.*]] = memref.load %[[VAL_9]][] : memref<i32>
 // CHECK:           %[[VAL_19:.*]] = call @_Z2f2i(%[[VAL_18]]) : (i32) -> i1
 // CHECK:           cf.cond_br %[[VAL_19]], ^bb5, ^bb6
 // CHECK:         ^bb5:
-// CHECK:           %[[VAL_20:.*]] = quake.qextract %[[VAL_8]]{{\[}}%[[VAL_1]]] : !quake.qvec<2>[i64] -> !quake.qref
-// CHECK:           quake.y (%[[VAL_20]])
+// CHECK:           %[[VAL_20:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_1]]] : (!quake.qvec<2>, i64) -> !quake.qref
+// CHECK:           quake.y %[[VAL_20]] : (!quake.qref)
 // CHECK:           cf.br ^bb9
 // CHECK:         ^bb6:
 // CHECK:           call @_Z2g3v() : () -> ()
@@ -369,8 +369,8 @@ struct F {
 // CHECK:             cc.condition %[[VAL_23]](%[[VAL_22]] : index)
 // CHECK:           } do {
 // CHECK:           ^bb0(%[[VAL_24:.*]]: index):
-// CHECK:             %[[VAL_25:.*]] = quake.qextract %[[VAL_8]]{{\[}}%[[VAL_24]]] : !quake.qvec<2>[index] -> !quake.qref
-// CHECK:             quake.z (%[[VAL_25]])
+// CHECK:             %[[VAL_25:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_24]]] : (!quake.qvec<2>, index) -> !quake.qref
+// CHECK:             quake.z %[[VAL_25]]
 // CHECK:             cc.continue %[[VAL_24]] : index
 // CHECK:           } step {
 // CHECK:           ^bb0(%[[VAL_26:.*]]: index):
@@ -385,10 +385,10 @@ struct F {
 // CHECK:           cf.br ^bb1
 // CHECK:         ^bb8:
 // CHECK:           call @_Z2g4v() : () -> ()
-// CHECK:           %[[VAL_30:.*]] = quake.mz(%[[VAL_8]] : !quake.qvec<2>) : !cc.stdvec<i1>
+// CHECK:           %[[VAL_30:.*]] = quake.mz %[[VAL_8]] : (!quake.qvec<2>) -> !cc.stdvec<i1>
 // CHECK:           cf.br ^bb9
 // CHECK:         ^bb9:
-// CHECK:           quake.dealloc(%[[VAL_8]] : !quake.qvec<2>)
+// CHECK:           quake.dealloc %[[VAL_8]] : !quake.qvec<2>
 // CHECK:           return
 // CHECK:         }
 

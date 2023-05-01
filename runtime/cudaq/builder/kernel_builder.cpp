@@ -497,7 +497,7 @@ QuakeValue mz(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQreg,
 void reset(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQreg) {
   auto value = qubitOrQreg.getValue();
   if (isa<quake::QRefType>(value.getType())) {
-    builder.create<quake::ResetOp>(value);
+    builder.create<quake::ResetOp>(TypeRange{}, value);
     return;
   }
 
@@ -511,7 +511,7 @@ void reset(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQreg) {
                            Block &block) {
       Value qref =
           builder.create<quake::QExtractOp>(loc, target, block.getArgument(0));
-      builder.create<quake::ResetOp>(loc, qref);
+      builder.create<quake::ResetOp>(loc, TypeRange{}, qref);
     };
     cudaq::opt::factory::createCountedLoop(builder, builder.getUnknownLoc(),
                                            rank, bodyBuilder);
