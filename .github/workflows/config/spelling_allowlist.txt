@@ -1,9 +1,16 @@
+NVIDIA
+NGC
+GitHub
+GHCR
 MLIR
 QTX
 LLVM
 QIR
+QIS
 CUDA
 cuQuantum
 bitcode
 qubit
 qubits
+API
+APIs

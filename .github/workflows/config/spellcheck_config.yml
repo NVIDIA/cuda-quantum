@@ -1,9 +1,9 @@
 spellchecker: aspell
 matrix:
+
 - name: markdown
   sources:
   - '**/*.md'
-  expect_match: true
   aspell:
     lang: en
     d: en_US
@@ -13,19 +13,24 @@ matrix:
   pipeline:
   - pyspelling.filters.markdown:
       markdown_extensions:
-      - pymdownx.superfences
+      - pymdownx.superfences:
+          disable_indented_code_blocks: true
+      - markdown.extensions.extra:
   - pyspelling.filters.html:
       comments: false
+      attributes:
+      - title
+      - alt
       ignores:
-      - code
-      - pre
+      - ':matches(code, pre)'
+      - 'code'
+      - 'pre'
 
 - name: textlike
   sources:
   - '**/*.txt'
   - '**/*.rst'
   - '.github/ISSUE_TEMPLATE/*'
-  expect_match: true
   aspell:
     lang: en
     d: en_US
@@ -40,7 +45,6 @@ matrix:
   sources:
   - '**/*.h'
   - docs/sphinx/examples/**/*.cpp
-  expect_match: true
   aspell:
     lang: en
     d: en_US
@@ -56,7 +60,6 @@ matrix:
 - name: python
   sources:
   - '**/*.py'
-  expect_match: true
   aspell:
     lang: en
     d: en_US
