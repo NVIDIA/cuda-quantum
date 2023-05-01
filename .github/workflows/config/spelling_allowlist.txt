@@ -15,6 +15,12 @@ OpenQASM
 bitcode
 qubit
 qubits
+qudit
+qudits
+GPU
+GPUs
+QPU
+QPUs
 API
 APIs
 AST
@@ -29,3 +35,5 @@ callables
 executables
 subtype
 tablegen
+FileCheck
+copyable

@@ -1,7 +1,7 @@
 # Getting Started with Developing CUDA Quantum
 
 This document contains guidelines for contributing to the code in this
-repository. This document is relevant primarily for contributions to the NVQ++
+repository. This document is relevant primarily for contributions to the `nvq++`
 compiler, the CUDA Quantum runtime, or to the integrated simulation backends. If
 you would like to contribute applications and examples that use the CUDA Quantum
 platform, please follow the instructions for [installing CUDA
@@ -13,8 +13,8 @@ Quantum][official_install] instead.
 
 Before getting started with development, please create a fork of this repository
 if you haven't done so already and make sure to check out the latest version on
-the `main` branch. After following the instruction for [setting up your dev
-environment](./Dev_Setup.md) and [building CUDA Quantum from
+the `main` branch. After following the instruction for [setting up your
+development environment](./Dev_Setup.md) and [building CUDA Quantum from
 source](Building.md), you should be able to confirm that you can run the tests
 and examples using your local build. If you edit the file
 [CircuitSimulator.h](./runtime/nvqir/CircuitSimulator.h) to add a print

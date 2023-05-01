@@ -190,23 +190,26 @@ jobs:
 
       - name: Create summary
         run: |
+          function create_summary {
+            status=`cat $2_spellcheck.txt | grep "Spelling check" | cut -d ' ' -f 3 | tr -d '!'`
+            if [ "$status" == "passed" ]; then echo 0; else echo 1; fi
+
+            echo "## $1 Check" >> $GITHUB_STEP_SUMMARY
+            echo "Spell check ${status}." >> $GITHUB_STEP_SUMMARY
+
+            echo "Output for $1 files:" >> $GITHUB_STEP_SUMMARY
+            echo '```text' >> $GITHUB_STEP_SUMMARY
+            cat $2_spellcheck.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          }
+
           echo "## Spell Check" >> $GITHUB_STEP_SUMMARY
-          echo "Output for markdown files:" >> $GITHUB_STEP_SUMMARY
-          echo '```text' >> $GITHUB_STEP_SUMMARY
-          cat markdown_spellcheck.txt >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+          md_status=`create_summary Markdown markdown`
+          rst_status=`create_summary reStructuredText rst`
+          cxx_status=`create_summary C++ cxx`
+          py_status=`create_summary Python python`
 
-          echo "Output for text and reStructuredText files:" >> $GITHUB_STEP_SUMMARY
-          echo '```text' >> $GITHUB_STEP_SUMMARY
-          cat rst_spellcheck.txt >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-
-          echo "Output for C++ files:" >> $GITHUB_STEP_SUMMARY
-          echo '```text' >> $GITHUB_STEP_SUMMARY
-          cat cxx_spellcheck.txt >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-
-          echo "Output for Python files:" >> $GITHUB_STEP_SUMMARY
-          echo '```text' >> $GITHUB_STEP_SUMMARY
-          cat python_spellcheck.txt >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+          if [ ! "$md_status" -eq 0 ]; then exit 1; fi
+          if [ ! "$rst_status" -eq 0 ]; then exit 2; fi
+          if [ ! "$cxx_status" -eq 0 ]; then exit 3; fi
+          if [ ! "$py_status" -eq 0 ]; then exit 4; fi

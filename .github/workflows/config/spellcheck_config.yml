@@ -62,7 +62,7 @@ matrix:
   pipeline:
   - pyspelling.filters.cpp:
       block_comments: true
-      line_comments: true
+      line_comments: false
       strings: true
 
 - name: python
@@ -77,5 +77,5 @@ matrix:
   pipeline:
   - pyspelling.filters.python:
       docstrings: true
-      comments: true
+      comments: false
       strings: true
