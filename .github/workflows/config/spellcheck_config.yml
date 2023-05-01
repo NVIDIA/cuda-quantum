@@ -51,7 +51,7 @@ matrix:
     wordlists:
     - .github/workflows/config/spelling_allowlist.txt
   pipeline:
-  - pyspelling.filters.cpp
+  - pyspelling.filters.cpp:
       block_comments: true
       line_comments: true
       strings: true
