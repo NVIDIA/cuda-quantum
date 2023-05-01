@@ -15,7 +15,6 @@ matrix:
       markdown_extensions:
       - pymdownx.superfences:
           disable_indented_code_blocks: true
-      - markdown.extensions.extra:
   - pyspelling.filters.html:
       comments: false
       attributes:
