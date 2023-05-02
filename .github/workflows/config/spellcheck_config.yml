@@ -100,5 +100,5 @@ matrix:
   - pyspelling.filters.url:
   - pyspelling.filters.python:
       docstrings: true
-      comments: false
+      comments: true
       strings: true
