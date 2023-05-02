@@ -9,7 +9,7 @@ types in the :code:`cudaq` namespace.
 The :code:`cudaq::qudit` models a :math:`D`-level unit of quantum information. The state of
 this system (for :math:`N` qudits) can be described by a :math:`D`\ :sup:`N`\-dimensional vector in
 Hilbert space with the absolute square of all elements summing to 1. The
-:code:`cudaq::qudit` encapsulates a unque :code:`std::size_t` modeling the index of the
+:code:`cudaq::qudit` encapsulates a unique :code:`std::size_t` modeling the index of the
 qudit in the underlying quantum memory space (assuming an infinite register
 of available qudits). To adhere to the no-cloning theorem of quantum mechanics,
 the :code:`cudaq::qudit` is non-copyable and non-movable. Therefore, all :code:`cudaq::qudit` 
