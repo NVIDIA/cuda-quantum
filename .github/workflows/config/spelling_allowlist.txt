@@ -24,6 +24,7 @@ QPUs
 API
 APIs
 AST
+JIT
 runtime
 backend
 backends

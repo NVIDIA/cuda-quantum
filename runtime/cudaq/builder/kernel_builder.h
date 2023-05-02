@@ -218,13 +218,13 @@ void forLoop(ImplicitLocOpBuilder &builder, std::size_t start, std::size_t end,
              std::function<void(QuakeValue &)> &body);
 
 /// @brief Add a for loop that starts from the given `start` integer index, ends
-/// at the given `end` QuakeValue index, and applies the given `body` as a
+/// at the given `end` index, and applies the given `body` as a
 /// callable function. This callable function must take as input an index
 /// variable that can be used within the body.
 void forLoop(ImplicitLocOpBuilder &builder, std::size_t start, QuakeValue &end,
              std::function<void(QuakeValue &)> &body);
 
-/// @brief Add a for loop that starts from the given `start` QuakeValue index,
+/// @brief Add a for loop that starts from the given `start` index,
 /// ends at the given `end` integer index, and applies the given `body` as a
 /// callable function. This callable function must take as input an index
 /// variable that can be used within the body.
@@ -311,7 +311,7 @@ private:
   /// out of CUDA Quantum code
   std::unique_ptr<MLIRContext, void (*)(MLIRContext *)> context;
 
-  /// @brief Handle to the MLIR OpBuilder, stored
+  /// @brief Handle to the MLIR `OpBuilder`, stored
   /// as a pointer here to keep implementation details
   /// out of CUDA Quantum code
   std::unique_ptr<ImplicitLocOpBuilder, void (*)(ImplicitLocOpBuilder *)>
@@ -326,7 +326,7 @@ private:
   std::string kernelName = "__nvqpp__mlirgen____nvqppBuilderKernel";
 
   /// @brief The CUDA Quantum Quake function arguments stored
-  /// as `QuakeValues`.
+  /// as `QuakeValue`s.
   std::vector<QuakeValue> arguments;
 
 public:
@@ -489,12 +489,12 @@ public:
   void reset(QuakeValue &qubit) { details::reset(*opBuilder, qubit); }
 
   /// @brief Apply a conditional statement on a
-  /// measure result, if true apply the thenFunctor.
+  /// measure result, if true apply the `thenFunctor`.
   void c_if(QuakeValue result, std::function<void()> &&thenFunctor) {
     details::c_if(*opBuilder, result, thenFunctor);
   }
 
-  /// @brief Apply the given otherKernel with the provided QuakeValue arguments.
+  /// @brief Apply the given `otherKernel` with the provided `QuakeValue` arguments.
   template <typename OtherKernelBuilder>
   void call(OtherKernelBuilder &kernel, std::vector<QuakeValue> &values) {
     // This should work for regular c++ kernels too
@@ -511,7 +511,7 @@ public:
     details::call(*opBuilder, name, quake, values);
   }
 
-  /// @brief Apply the given otherKernel with the provided QuakeValue arguments.
+  /// @brief Apply the given `otherKernel` with the provided `QuakeValue` arguments.
   template <typename OtherKernelBuilder, typename... QuakeValues>
     requires(AllAreQuakeValues<QuakeValues...>)
   void call(OtherKernelBuilder &&kernel, QuakeValues &...values) {
@@ -521,7 +521,7 @@ public:
   }
 
   /// @brief Apply the given kernel controlled on the provided qubit value.
-  /// This overload takes a vector of QuakeValues and is primarily meant
+  /// This overload takes a vector of `QuakeValue`s and is primarily meant
   /// to be used internally.
   template <typename OtherKernelBuilder>
   void control(OtherKernelBuilder &kernel, QuakeValue &control,
@@ -590,7 +590,7 @@ public:
   }
 
   /// @brief Lower the Quake code to the LLVM Dialect, call
-  /// PassManager.
+  /// `PassManager`.
   void jitCode(std::vector<std::string> extraLibPaths = {}) override {
     auto *ptr = details::jitCode(*opBuilder, jitEngine.get(), kernelName,
                                  extraLibPaths);
@@ -600,7 +600,7 @@ public:
           ptr, details::deleteJitEngine);
   }
 
-  /// @brief Invoke jit compilation and extract a function pointer and execute.
+  /// @brief Invoke JIT compilation and extract a function pointer and execute.
   void jitAndInvoke(void **argsArray,
                     std::vector<std::string> extraLibPaths = {}) {
     jitCode(extraLibPaths);
@@ -660,7 +660,7 @@ inline auto make_kernel() {
   return kernel_builder<>(empty);
 }
 
-/// Factory function for creating a new kernel_builder with specified arg
+/// Factory function for creating a new `kernel_builder` with specified argument
 /// types. This requires programmers specify the concrete argument types of the
 /// kernel being built. The return type is meant to be acquired via C++17
 /// structured binding with the first element representing the builder, and the
