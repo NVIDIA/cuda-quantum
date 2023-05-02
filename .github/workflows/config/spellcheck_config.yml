@@ -67,16 +67,16 @@ matrix:
     - .github/workflows/config/spelling_allowlist.txt
   pipeline:
   - pyspelling.filters.url:
+  - pyspelling.filters.context:
+      context_visible_first: true
+      delimiters:
+      # Ignore everything after two slashes enclosed by whitespace
+      - open: '(^|\s)\/{2}\s'
+        close: '$'
   - pyspelling.filters.cpp:
       block_comments: true
       line_comments: true
       strings: false
-  - pyspelling.filters.context:
-      context_visible_first: true
-      delimiters:
-      # Ignore lines that start with two slashes only
-      - open: '^\s*\/{2}\s'
-        close: '$'
 
 - name: python
   sources:
