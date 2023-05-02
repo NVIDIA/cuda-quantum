@@ -102,3 +102,11 @@ matrix:
       docstrings: true
       comments: true
       strings: true
+  - pyspelling.filters.markdown:
+  - pyspelling.filters.html:
+      attributes:
+      - title
+      - alt
+      ignores:
+      - code
+      - pre

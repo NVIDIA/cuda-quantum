@@ -494,7 +494,8 @@ public:
     details::c_if(*opBuilder, result, thenFunctor);
   }
 
-  /// @brief Apply the given `otherKernel` with the provided `QuakeValue` arguments.
+  /// @brief Apply the given `otherKernel` with the provided `QuakeValue`
+  /// arguments.
   template <typename OtherKernelBuilder>
   void call(OtherKernelBuilder &kernel, std::vector<QuakeValue> &values) {
     // This should work for regular c++ kernels too
@@ -511,7 +512,8 @@ public:
     details::call(*opBuilder, name, quake, values);
   }
 
-  /// @brief Apply the given `otherKernel` with the provided `QuakeValue` arguments.
+  /// @brief Apply the given `otherKernel` with the provided `QuakeValue`
+  /// arguments.
   template <typename OtherKernelBuilder, typename... QuakeValues>
     requires(AllAreQuakeValues<QuakeValues...>)
   void call(OtherKernelBuilder &&kernel, QuakeValues &...values) {
