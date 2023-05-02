@@ -55,7 +55,7 @@ void bindComplexMatrix(py::module &mod) {
       .def("__getitem__", &complex_matrix::operator(),
            "Return the matrix element at i, j.")
       .def("minimal_eigenvalue", &complex_matrix::minimal_eigenvalue,
-           "Return the lowest eigenvalue for this :class:`ComplexMatrix`.")
+           "Return the lowst eigenvalue for this :class:`ComplexMatrix`.")
       .def(
           "__str__",
           [](complex_matrix &self) {

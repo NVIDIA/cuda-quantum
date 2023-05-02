@@ -55,6 +55,24 @@ matrix:
       - open: '^\s*\.\.'
         close: '$'
 
+- name: html
+  sources:
+  - '**/*.html'
+  aspell:
+    lang: en
+    d: en_US
+  dictionary:
+    wordlists:
+    - .github/workflows/config/spelling_allowlist.txt
+  pipeline:
+  - pyspelling.filters.html:
+      attributes:
+      - title
+      - alt
+      ignores:
+      - code
+      - pre
+
 - name: cxx
   sources:
   - '**/*.h'
