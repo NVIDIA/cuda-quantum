@@ -52,8 +52,8 @@ template <typename T, typename... Ts>
 concept KernelBuilderArgTypeIsValid =
     std::disjunction_v<std::is_same<T, Ts>...>;
 
-// If you want to add to the list of valid kernel arg types
-// first add it here, then add details::mapArgToType() function
+// If you want to add to the list of valid kernel argument types
+// first add it here, then add `details::mapArgToType()` function
 #define CUDAQ_VALID_BUILDER_ARGS_FOLD()                                        \
   requires(KernelBuilderArgTypeIsValid<                                        \
                Args, float, double, std::size_t, int, std::vector<int>,        \
@@ -63,7 +63,7 @@ concept KernelBuilderArgTypeIsValid =
 
 namespace details {
 
-// Define a mlir::Type generator in the cudaq namespace,
+// Define a `mlir::Type` generator in the `cudaq` namespace,
 // this helps us keep MLIR out of this public header
 
 /// @brief The kernel_builder::Type allows us to track
@@ -267,7 +267,7 @@ struct ArgumentValidator<std::vector<T>> {
       throw std::runtime_error("Error validating stdvec input to "
                                "kernel_builder. argCounter >= args.size()");
 
-    // Get the arg, increment the counter
+    // Get the argument, increment the counter
     auto &arg = args[argCounter];
     argCounter++;
 

@@ -15,11 +15,11 @@
 #include <cudaq/gradients.h>
 #include <cudaq/optimizers.h>
 
-// This example demonstrates various uses for the cudaq::builder
+// This example demonstrates various uses for the `cudaq::builder`
 // type. This type enabes one to dynamically construct callable
 // CUDA Quantum kernels via just-in-time compilation. The typical workflow
-// starts by creating a cudaq::builder and any CUDA Quantum kernel runtime
-// arguments via the cudaq::make_kernel<ParameterTypes...>() function.
+// starts by creating a `cudaq::builder` and any CUDA Quantum kernel runtime
+// arguments via the `cudaq::make_kernel<ParameterTypes...>()` function.
 // Programmers get reference to the builder and the concrete runtime
 // parameters for the kernel function, and can then begin building up
 // the CUDA Quantum kernel. Once done adding gates, the builder itself is
@@ -28,7 +28,7 @@
 int main() {
   {
 
-    // Create a Hamiltonian as a cudaq::spin_op.
+    // Create a Hamiltonian as a `cudaq::spin_op`.
     using namespace cudaq::spin;
     cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
                        .21829 * z(0) - 6.125 * z(1);
