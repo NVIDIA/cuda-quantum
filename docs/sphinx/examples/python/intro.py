@@ -18,7 +18,7 @@ kernel.z(qubit)
 kernel.t(qubit)
 kernel.s(qubit)
 
-# Next, we add a measurement to the kernel so that we can sample
+# Next, we add a measurment to the kernel so that we can sample
 # the measurement results on our simulator!
 kernel.mz(qubit)
 

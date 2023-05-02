@@ -75,7 +75,7 @@ jobs:
             done
           }
 
-          create_output cxx_headers '*.h *.hpp :!:test :!:tpls :!:**/nlopt-src/*'
+          create_output cxx_docs '*.h *.hpp docs/sphinx/examples/**/*.cpp :!:test :!:tpls :!:**/nlopt-src/*'
           create_output cxx '*.cpp *.h *.hpp :!:test :!:tpls :!:**/nlopt-src/*'
           create_output python '*.py :!:tpls'
           create_output markdown '*.md :!:tpls'
@@ -179,7 +179,7 @@ jobs:
           config_path: '.github/workflows/config/spellcheck_config.yml'
           output_file: cxx_spellcheck.txt
           task_name: cxx
-          source_files: ${{ join(fromJSON(needs.filters.outputs.json).files.cxx_headers, ' ') || '*.nonexistent' }}
+          source_files: ${{ join(fromJSON(needs.filters.outputs.json).files.cxx_docs, ' ') || '*.nonexistent' }}
 
       - name: "Python files"
         uses: rojopolis/spellcheck-github-actions@0.30.0
