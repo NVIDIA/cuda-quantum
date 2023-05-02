@@ -38,3 +38,8 @@ subtype
 tablegen
 FileCheck
 copyable
+adjoint
+controlled
+unitary
+unitaries
+templated
