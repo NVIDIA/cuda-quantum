@@ -11,7 +11,6 @@ matrix:
     wordlists:
     - .github/workflows/config/spelling_allowlist.txt
   pipeline:
-  - pyspelling.filters.url:
   - pyspelling.filters.markdown:
       markdown_extensions:
       - pymdownx.superfences:
@@ -37,7 +36,6 @@ matrix:
     wordlists:
     - .github/workflows/config/spelling_allowlist.txt
   pipeline:
-  - pyspelling.filters.url:
   - pyspelling.filters.markdown:
       markdown_extensions:
       - markdown.extensions.extra:
@@ -69,16 +67,16 @@ matrix:
     - .github/workflows/config/spelling_allowlist.txt
   pipeline:
   - pyspelling.filters.url:
+  - pyspelling.filters.cpp:
+      block_comments: true
+      line_comments: true
+      strings: false
   - pyspelling.filters.context:
       context_visible_first: true
       delimiters:
       # Ignore lines that start with two slashes only
       - open: '^\s*\/{2}\s'
         close: '$'
-  - pyspelling.filters.cpp:
-      block_comments: true
-      line_comments: true
-      strings: false
 
 - name: python
   sources:
