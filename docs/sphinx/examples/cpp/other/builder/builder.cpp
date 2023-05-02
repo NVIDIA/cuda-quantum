@@ -16,7 +16,7 @@
 #include <cudaq/optimizers.h>
 
 // This example demonstrates various uses for the `cudaq::builder`
-// type. This type enabes one to dynamically construct callable
+// type. This type enabes one to dynamcally construct callable
 // CUDA Quantum kernels via just-in-time compilation. The typical workflow
 // starts by creating a `cudaq::builder` and any CUDA Quantum kernel runtime
 // arguments via the `cudaq::make_kernel<ParameterTypes...>()` function.
@@ -35,7 +35,7 @@ int main() {
 
     // Build a quantum kernel dynamically
     // Start by creating the Builder, the kernel argument types
-    // should be provided here as template params.
+    // should be provided here as template parameters.
     auto [ansatz, theta] = cudaq::make_kernel<double>();
 
     // Allocate some qubits
@@ -46,7 +46,7 @@ int main() {
     ansatz.ry(theta, q[1]);
     ansatz.x<cudaq::ctrl>(q[1], q[0]); // Need to get rid of ::
 
-    // The buildable kernel can be passed to cudaq algorithms
+    // The buildable kernel can be passed to CUDA Quantum functions
     // just like a declared kernel type.
     ansatz(.59);
     double exp = cudaq::observe(ansatz, h, .59);
@@ -55,7 +55,7 @@ int main() {
 
   {
     // Build up a 2 parameter circuit using a vector<double> parameter
-    // Run the cudaq optimizer to find optimal value.
+    // Run the CUDA Quantum optimizer to find optimal value.
     using namespace cudaq::spin;
     cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
                        .21829 * z(0) - 6.125 * z(1);
@@ -76,9 +76,9 @@ int main() {
     ansatz.x<cudaq::ctrl>(q[0], q[1]);
     // Can do fancy arithmetic with Parameter types.
     ansatz.ry(-thetas[0], q[1]);
-    // -or- ansatz_builder.ry(-1.0 * thetas[0], q[1]);
-    // -or- ansatz_builder.ry(thetas[0] * -1.0, q[1]);
-    // -or- ansatz_builder.ry(-1 * thetas[0], q[1]);
+    // -or- `ansatz_builder.ry(-1.0 * thetas[0], q[1]);`
+    // -or- `ansatz_builder.ry(thetas[0] * -1.0, q[1]);`
+    // -or- `ansatz_builder.ry(-1 * thetas[0], q[1]);`
     ansatz.x<cudaq::ctrl>(q[0], q[1]);
     ansatz.x<cudaq::ctrl>(q[1], q[0]);
 
@@ -90,8 +90,7 @@ int main() {
   }
 
   {
-    // Make a kernel for sampling, here the GHZ state on
-    // 30 qubits (note lower this number if not on CuStateVec / GPUs)
+    // Make a kernel for sampling, here the GHZ state on 8 qubits
     int n_qubits = 8;
     auto ghz_builder = cudaq::make_kernel();
 

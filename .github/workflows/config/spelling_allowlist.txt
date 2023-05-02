@@ -48,3 +48,6 @@ variadic
 workflow
 instantiation
 instantiations
+buildable
+VQE
+Toffoli
