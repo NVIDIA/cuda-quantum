@@ -97,7 +97,6 @@ matrix:
   - pyspelling.filters.cpp:
       block_comments: true
       line_comments: true
-      group_comments: true
       strings: false
   - pyspelling.filters.markdown:
   - pyspelling.filters.html:
