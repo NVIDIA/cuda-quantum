@@ -185,4 +185,4 @@ jobs:
           config_path: '.github/workflows/config/spellcheck_config.yml'
           output_file: html_spellcheck.txt
           task_name: html
-          source_files: /tmp/docs/api/**/*.html
+          source_files: '/tmp/docs/**/*.html'
