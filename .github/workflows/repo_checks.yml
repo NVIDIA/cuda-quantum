@@ -163,15 +163,15 @@ jobs:
           config_path: '.github/workflows/config/spellcheck_config.yml'
           output_file: markdown_spellcheck.txt
           task_name: markdown
-          source_files: ${{ join(fromJSON(needs.filters.outputs.json).files.markdown, ' ') }}
+          source_files: ${{ join(fromJSON(needs.filters.outputs.json).files.markdown, ' ') || '*.nonexistent' }}
 
-      - name: "Text and rst files"
+      - name: "reStructuredText files"
         uses: rojopolis/spellcheck-github-actions@0.30.0
         with:
           config_path: '.github/workflows/config/spellcheck_config.yml'
           output_file: rst_spellcheck.txt
           task_name: rst
-          source_files: ${{ join(fromJSON(needs.filters.outputs.json).files.rst, ' ') }}
+          source_files: ${{ join(fromJSON(needs.filters.outputs.json).files.rst, ' ') || '*.nonexistent' }}
 
       - name: "C++ files"
         uses: rojopolis/spellcheck-github-actions@0.30.0
@@ -179,7 +179,7 @@ jobs:
           config_path: '.github/workflows/config/spellcheck_config.yml'
           output_file: cxx_spellcheck.txt
           task_name: cxx
-          source_files: ${{ join(fromJSON(needs.filters.outputs.json).files.cxx_headers, ' ') }}
+          source_files: ${{ join(fromJSON(needs.filters.outputs.json).files.cxx_headers, ' ') || '*.nonexistent' }}
 
       - name: "Python files"
         uses: rojopolis/spellcheck-github-actions@0.30.0
@@ -187,7 +187,7 @@ jobs:
           config_path: '.github/workflows/config/spellcheck_config.yml'
           output_file: python_spellcheck.txt
           task_name: python
-          source_files: ${{ join(fromJSON(needs.filters.outputs.json).files.python, ' ') }}
+          source_files: ${{ join(fromJSON(needs.filters.outputs.json).files.python, ' ') || '*.nonexistent' }}
 
       - name: Create summary
         run: |

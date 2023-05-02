@@ -27,7 +27,6 @@ matrix:
 
 - name: rst
   sources:
-  - '**/*.txt'
   - '**/*.rst'
   aspell:
     lang: en
