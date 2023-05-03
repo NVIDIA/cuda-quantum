@@ -30,6 +30,9 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
     }
     if (auto optor = dyn_cast<quake::OperatorInterface>(op)) {
       optor.getOperatorMatrix(matrix);
+      // If the operator couldn't produce a matrix, stop the walk.
+      if (matrix.empty())
+        return WalkResult::interrupt();
       applyOperator(matrix, optor.getControls(), optor.getTargets());
       matrix.clear();
     }

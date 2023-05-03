@@ -17,7 +17,12 @@ target_include_directories(CircuitCheck
 
 target_link_libraries(CircuitCheck
   PRIVATE
-  QuakeDialect
+  MLIRArithDialect
   MLIRMemRefDialect
   MLIRParser
+  MLIRPass
+  MLIRTransforms
+
+  CCDialect
+  QuakeDialect
 )
