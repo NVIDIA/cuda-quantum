@@ -101,13 +101,14 @@ matrix:
       strings: false
   - pyspelling.filters.context:
       context_visible_first: true
+      escapes: '\\[\\`~]'
       delimiters:
       # Ignore multiline content between three or more backticks
-      - open: '^(?<open>\s*\`{3,})\S*\s*$'
-        close: '^(\k<open>)$'
+      - open: '(?s)^(?P<open> *`{3,})$'
+        close: '^(?P=open)$'
       # Ignore content between inline backticks
-      - open: '(?<!\\)\`'
-        close: '(?<!\\)\`'
+      - open: '(?P<open>`+)'
+        close: '(?P=open)'
 
 - name: python
   sources:
@@ -127,11 +128,12 @@ matrix:
       strings: true
   - pyspelling.filters.context:
       context_visible_first: true
+      escapes: '\\[\\`~]'
       delimiters:
       # Ignore multiline content between three or more backticks
-      - open: '^(?<open>\s*\`{3,})\S*\s*$'
-        close: '^(\k<open>)$'
+      - open: '(?s)^(?P<open> *`{3,})$'
+        close: '^(?P=open)$'
       # Ignore content between inline backticks
-      - open: '(?<!\\)\`'
-        close: '(?<!\\)\`'
+      - open: '(?P<open>`+)'
+        close: '(?P=open)'
 
