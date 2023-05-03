@@ -92,18 +92,22 @@ matrix:
       context_visible_first: true
       escapes: '\\[\\`~]'
       delimiters:
+      # Ignore lines with include directives
+      - open: '^#include '
+        close: '($|\s)'
+        content: \S*?
       # Ignore comments of the form `// namespace ...` since they are used to annotate the closing namespace
       - open: '\/{2}\s*namespace\s+'
         close: '($|\s)'
       # Ignore comments of the form `/*...*/` since they are used to annotate argument names
       - open: '\/\*'
         close: '\*\/'
-        content: \S*?        
+        content: \S*?
   - pyspelling.filters.cpp:
       block_comments: true
       line_comments: true
       group_comments: true
-      strings: false
+      strings: true
   - pyspelling.filters.context:
       context_visible_first: true
       escapes: '\\[\\`~]'
