@@ -32,7 +32,6 @@ jobs:
       - run: |
           gh extension install actions/gh-actions-cache
           for key in ${{ inputs.cache_keys }}; do
-          do
             echo "Deleting cache $key"
             gh actions-cache delete $key -R ${{ github.repository }} --confirm
           done
@@ -48,8 +47,7 @@ jobs:
       - run: |
           gh extension install actions/gh-actions-cache
           keys=$(gh actions-cache list -R ${{ github.repository }} --key tar- | cut -f 1 )
-          for key in $keys
-          do
+          for key in $keys; do
             echo "Deleting cache $key"
             gh actions-cache delete $key -R ${{ github.repository }} --confirm
           done
@@ -80,9 +78,8 @@ jobs:
     steps:
       - run: |
           gh extension install actions/gh-actions-cache
-          pr_refs=$(gh actions-cache list -R ${{ github.repository }} -B refs/pull/${{ github.event.number }}/merge | cut -f 1 )
-          for key in $pr_refs
-          do
+          keys=$(gh actions-cache list -R ${{ github.repository }} -B refs/pull/${{ github.event.number }}/merge | cut -f 1 )
+          for key in $keys; do
             echo "Deleting cache $key"
             gh actions-cache delete $key -R ${{ github.repository }} --confirm
           done
