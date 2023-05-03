@@ -35,7 +35,7 @@ int main() {
 
     // Build a quantum kernel dynamically
     // Start by creating the Builder, the kernel argument types
-    // should be provided here as template parameters.
+    // should be provided here as templte parameters.
     auto [ansatz, theta] = cudaq::make_kernel<double>();
 
     // Allocate some qubits

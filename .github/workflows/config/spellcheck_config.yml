@@ -97,15 +97,17 @@ matrix:
   - pyspelling.filters.cpp:
       block_comments: true
       line_comments: true
+      group_comments: true
       strings: false
-  - pyspelling.filters.markdown:
-  - pyspelling.filters.html:
-      attributes:
-      - title
-      - alt
-      ignores:
-      - code
-      - pre
+  - pyspelling.filters.context:
+      context_visible_first: true
+      delimiters:
+      # Ignore multiline content between three or more backticks
+      - open: '^(?<open>\s*\`{3,})\S*\s*$'
+        close: '^(\k<open>)$'
+      # Ignore content between inline backticks
+      - open: '(?<!\\)\`'
+        close: '(?<!\\)\`'
 
 - name: python
   sources:
@@ -123,11 +125,13 @@ matrix:
       docstrings: true
       comments: true
       strings: true
-  - pyspelling.filters.markdown:
-  - pyspelling.filters.html:
-      attributes:
-      - title
-      - alt
-      ignores:
-      - code
-      - pre
+  - pyspelling.filters.context:
+      context_visible_first: true
+      delimiters:
+      # Ignore multiline content between three or more backticks
+      - open: '^(?<open>\s*\`{3,})\S*\s*$'
+        close: '^(\k<open>)$'
+      # Ignore content between inline backticks
+      - open: '(?<!\\)\`'
+        close: '(?<!\\)\`'
+
