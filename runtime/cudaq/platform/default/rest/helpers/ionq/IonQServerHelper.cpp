@@ -16,6 +16,9 @@
 namespace cudaq {
 
 class IonQServerHelper : public ServerHelper {
+protected:
+  /// @brief Base URL for ionq api
+  std::string url = "https://api.ionq.co/v0.3/"
 
 public:
   /// @brief Return the name of this server helper, must be the
@@ -59,20 +62,23 @@ IonQServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
 }
 
 std::string IonQServerHelper::extractJobId(ServerMessage &postResponse) {
-  return "JOB ID HERE, can extract from postResponse";
+  // return "JOB ID HERE, can extract from postResponse";
+  return postResponse["id"];
 }
 
 std::string IonQServerHelper::constructGetJobPath(ServerMessage &postResponse) {
-  return "Get Job URL";
+  // return "Get Job URL";
+  return postResponse["output"]["uri"];
 }
 
 std::string IonQServerHelper::constructGetJobPath(std::string &jobId) {
-  return "Get Job URL from JOB ID string";
+  // return "Get Job URL from JOB ID string";
+  return url + "jobs?id=" + jobId;
 }
 
 bool IonQServerHelper::jobIsDone(ServerMessage &getJobResponse) {
   // return true if job is done, false otherwise
-  return true;
+  return getJobResponse["status"] == "completed"; // todo: use status enum
 }
 
 cudaq::sample_result
