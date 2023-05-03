@@ -18,7 +18,7 @@
 # bash scripts/build_llvm.sh -c DEBUG
 # -or-
 # LLVM_INSTALL_PREFIX=/installation/path/ bash scripts/build_llvm.sh
-
+set -ex
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-$HOME/.llvm}
 
 # Process command line arguments
@@ -124,6 +124,8 @@ else
   ninja $install_target 2> logs/ninja_error.txt 1> logs/ninja_output.txt
   status=$?
 fi
+
+cat /llvm-project/build/logs/ninja_output.txt
 
 if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
   echo "Build failed. Please check the files in the `pwd`/logs directory."

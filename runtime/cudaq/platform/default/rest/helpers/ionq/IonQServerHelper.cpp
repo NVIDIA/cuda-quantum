@@ -16,10 +16,6 @@
 namespace cudaq {
 
 class IonQServerHelper : public ServerHelper {
-protected:
-  /// @brief Base URL for ionq api
-  std::string url = "https://api.ionq.co/v0.3/"
-
 public:
   /// @brief Return the name of this server helper, must be the
   /// same as the qpu config file.
@@ -29,7 +25,10 @@ public:
   void initialize(BackendConfig config) override {
     backendConfig = config;
 
-    // Set any other config you need..
+    // Set any other config you need...
+    backendConfig.insert({"url", "https://api.ionq.co/v0.3"});
+    backendConfig.insert({"user_agent", "cudaq/0.3.0"});
+    backendConfig.insert({"target", "simulator"});
   }
 
   /// @brief Create a job payload for the provided quantum codes
@@ -58,58 +57,77 @@ IonQServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   // REST headers, and a vector of json messages containing the jobs to execute
 
   // return the job payload
-  return ServerJobPayload{};
+
+  std::string jobPostURL = backendConfig["url"] + "/jobs";
+  RestHeaders headers = getHeaders();
+  std::vector<ServerMessage> jobMessages;
+
+  for (auto &circuitCode : circuitCodes) {
+    ServerMessage job;
+    job["name"] = circuitCode.name;
+    job["target"] = backendConfig["target"];
+    job["circuit"] = circuitCode.code;
+    job["shots"] = shots;
+
+    jobMessages.push_back(job);
+  }
+
+  // return the job payload
+  return ServerJobPayload{jobPostURL, headers, jobMessages};
 }
 
 std::string IonQServerHelper::extractJobId(ServerMessage &postResponse) {
   // return "JOB ID HERE, can extract from postResponse";
-  return postResponse["id"];
+  return postResponse.at("id");
 }
 
 std::string IonQServerHelper::constructGetJobPath(ServerMessage &postResponse) {
   // return "Get Job URL";
-  return postResponse["output"]["uri"];
+  return postResponse.at("output").at("uri"); // todo: use find to check keys
 }
 
 std::string IonQServerHelper::constructGetJobPath(std::string &jobId) {
   // return "Get Job URL from JOB ID string";
-  return url + "jobs?id=" + jobId;
+  return url + "/jobs?id=" + jobId;
 }
 
 bool IonQServerHelper::jobIsDone(ServerMessage &getJobResponse) {
   // return true if job is done, false otherwise
-  return getJobResponse["status"] == "completed"; // todo: use status enum
+  return getJobResponse.at("status") == "completed"; // todo: use status enum
 }
 
 cudaq::sample_result
 IonQServerHelper::processResults(ServerMessage &postJobResponse) {
   // results come back as results :{ "regName" : ['00','01',...], "regName2":
-  // [...]}
-  // Map results back to a sample_result,
-  // here's an example
-  //   auto results = postJobResponse["results"];
-  //   std::vector<ExecutionResult> srs;
-  //   for (auto &result : results.items()) {
-  //     cudaq::CountsDictionary counts;
-  //     auto regName = result.key();
-  //     auto bitResults = result.value().get<std::vector<std::string>>();
-  //     for (auto &bitResult : bitResults) {
-  //       if (counts.count(bitResult))
-  //         counts[bitResult]++;
-  //       else
-  //         counts.insert({bitResult, 1});
-  //     }
+  // [...]} Map results back to a sample_result,
 
-  //     srs.emplace_back(counts);
-  //   }
-  //   return sample_result(srs);
+  auto results = postJobResponse["results"];
+  std::vector<ExecutionResult> srs;
+  for (auto &result : results.items()) {
+    cudaq::CountsDictionary counts;
+    auto regName = result.key();
+    auto bitResults = result.value().get<std::vector<std::string>>();
+    for (auto &bitResult : bitResults) {
+      if (counts.count(bitResult))
+        counts[bitResult]++;
+      else
+        counts.insert({bitResult, 1});
+    }
 
-  return sample_result();
+    srs.emplace_back(counts);
+  }
+
+  return sample_result(srs);
 }
 
 RestHeaders IonQServerHelper::getHeaders() {
   //   return  generateRequestHeader();
-  return RestHeaders();
+  RestHeaders headers;
+  headers.insert({"Authorization", "apiKey " + backendConfig.at("token")});
+  headers.insert({"Content-Type", "application/json"});
+  headers.insert({"User-Agent", backendConfig.at("user_agent")});
+
+  return headers;
 }
 
 } // namespace cudaq
