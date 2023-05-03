@@ -7,12 +7,15 @@
  *******************************************************************************/
 
 #include "UnitaryBuilder.h"
+#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/SourceMgr.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Parser/Parser.h"
+#include "mlir/Pass/PassManager.h"
+#include "mlir/Transforms/Passes.h"
 
 #include <iostream>
 
@@ -30,48 +33,67 @@ static cl::opt<bool>
                     cl::desc("Check unitaries are equal up to global phase."),
                     cl::init(false));
 
+static cl::opt<bool>
+    dontCanonicalize("no-canonicalizer",
+                     cl::desc("Disable running the canonicalizer pass."),
+                     cl::init(false));
+
 static cl::opt<bool> printUnitary("print-unitary",
                                   cl::desc("Print the unitary of each circuit"),
                                   cl::init(false));
 
-static LogicalResult computeUnitary(mlir::Operation *op,
+static LogicalResult computeUnitary(func::FuncOp func,
                                     cudaq::UnitaryBuilder::UMatrix &unitary) {
   cudaq::UnitaryBuilder builder(unitary);
-  if (auto func = dyn_cast_if_present<func::FuncOp>(op)) {
-    auto a = builder.build(func);
-    return a;
-  }
-  return failure();
+  return builder.build(func);
 }
 
 int main(int argc, char **argv) {
   cl::ParseCommandLineOptions(argc, argv);
 
   MLIRContext context;
-  context.loadDialect<quake::QuakeDialect, func::FuncDialect,
-                      memref::MemRefDialect>();
+  context.loadDialect<cudaq::cc::CCDialect, quake::QuakeDialect,
+                      func::FuncDialect, memref::MemRefDialect>();
 
   ParserConfig config(&context);
   auto checkMod = parseSourceFile<mlir::ModuleOp>(checkFilename, config);
   auto inputMod = parseSourceFile<mlir::ModuleOp>(inputFilename, config);
 
+  // Run canonicalizer to make sure angles in parametrized quantum operations
+  // are taking constants as inputs.
+  if (!dontCanonicalize) {
+    PassManager pm(&context);
+    OpPassManager &nestedFuncPM = pm.nest<func::FuncOp>();
+    nestedFuncPM.addPass(createCanonicalizerPass());
+    if (failed(pm.run(*checkMod)) || failed(pm.run(*inputMod)))
+      return EXIT_FAILURE;
+  }
+
+  auto applyTolerance = [](cudaq::UnitaryBuilder::UMatrix &m) {
+    m = (1e-12 < m.array().abs()).select(m, 0.0f);
+  };
   cudaq::UnitaryBuilder::UMatrix checkUnitary;
   cudaq::UnitaryBuilder::UMatrix inputUnitary;
-  for (auto &checkOp : checkMod->getBodyRegion().getOps()) {
-    auto func = dyn_cast<func::FuncOp>(checkOp);
-    if (!func)
-      continue;
+  for (auto checkFunc : checkMod->getOps<func::FuncOp>()) {
 
-    StringAttr opName = func.getSymNameAttr();
+    StringAttr opName = checkFunc.getSymNameAttr();
     checkUnitary.resize(0, 0);
     inputUnitary.resize(0, 0);
     // We need to check if input also has the same function
     auto *inputOp = inputMod->lookupSymbol(opName);
-    if (failed(computeUnitary(&checkOp, checkUnitary)) ||
-        failed(computeUnitary(inputOp, inputUnitary)))
-      continue;
+    assert(inputOp && "Function not present in input");
 
+    auto inputFunc = dyn_cast<func::FuncOp>(inputOp);
+    if (failed(computeUnitary(checkFunc, checkUnitary)) ||
+        failed(computeUnitary(inputFunc, inputUnitary))) {
+      llvm::errs() << "Cannot compute unitary for " << opName.str() << ".\n";
+      continue;
+    }
+
+    // Here we use std streams because Eigen printers don't work with LLVM ones.
     if (!cudaq::isApproxEqual(checkUnitary, inputUnitary, upToGlobalPhase)) {
+      applyTolerance(checkUnitary);
+      applyTolerance(inputUnitary);
       std::cerr << "Circuit: " << opName.str() << '\n';
       std::cerr << "Expected:\n";
       std::cerr << checkUnitary << '\n';
@@ -80,13 +102,10 @@ int main(int argc, char **argv) {
     }
 
     if (printUnitary) {
+      applyTolerance(checkUnitary);
       std::cout << "Circuit: " << opName.str() << '\n'
                 << checkUnitary << "\n\n";
-      inputUnitary =
-          (1e-12 < inputUnitary.array().abs()).select(inputUnitary, 0.0f);
-
-      std::cout << "Unitary:\n" << inputUnitary << "\n\n";
     }
   }
-  return 0;
+  return EXIT_SUCCESS;
 }
