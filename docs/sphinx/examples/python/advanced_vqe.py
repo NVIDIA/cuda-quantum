@@ -34,7 +34,7 @@ def objective_function(parameter_vector: List[float],
                        gradient_strategy=gradient,
                        kernel=kernel) -> Tuple[float, List[float]]:
     """
-    Note: the objective function may also take extra arguments, provided they
+    Note: the objective function may also take exta arguments, provided they
     are passed into the function as default arguments in python.
     """
 

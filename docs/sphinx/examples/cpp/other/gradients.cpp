@@ -7,7 +7,9 @@
  *******************************************************************************/
 
 // Compile and run with:
+// ```
 // nvq++ gradients.cpp -o gs.x && ./gs.x
+// ```
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>

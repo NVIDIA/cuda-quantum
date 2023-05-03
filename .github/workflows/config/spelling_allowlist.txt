@@ -51,3 +51,4 @@ instantiations
 buildable
 VQE
 Toffoli
+ansatz

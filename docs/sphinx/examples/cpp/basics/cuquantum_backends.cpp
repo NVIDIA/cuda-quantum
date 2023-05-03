@@ -1,5 +1,7 @@
 // Compile and run with:
+// ```
 // nvq++ cuquantum_backends.cpp -o dyn.x -qpu cuquantum && ./dyn.x
+// ```
 
 // This example is meant to demonstrate the cuQuantum
 // target and its ability to easily handle a larger number

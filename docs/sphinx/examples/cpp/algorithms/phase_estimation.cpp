@@ -1,5 +1,7 @@
 // Compile and run with:
+// ```
 // nvq++ phase_estimation.cpp -o qpe.x && ./qpe.x
+// ```
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>

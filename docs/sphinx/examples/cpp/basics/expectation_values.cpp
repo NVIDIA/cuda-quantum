@@ -1,5 +1,7 @@
 // Compile and run with:
+// ```
 // nvq++ expectation_values.cpp -o d2.x && ./d2.x
+// ```
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>

@@ -7,7 +7,9 @@
  *******************************************************************************/
 
 // Compile and run with:
+// ```
 // nvq++ builder.cpp -o builder.x && ./builder.x
+// ```
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
@@ -16,7 +18,7 @@
 #include <cudaq/optimizers.h>
 
 // This example demonstrates various uses for the `cudaq::builder`
-// type. This type enabes one to dynamcally construct callable
+// type. This type enables one to dynamically construct callable
 // CUDA Quantum kernels via just-in-time compilation. The typical workflow
 // starts by creating a `cudaq::builder` and any CUDA Quantum kernel runtime
 // arguments via the `cudaq::make_kernel<ParameterTypes...>()` function.
@@ -35,7 +37,7 @@ int main() {
 
     // Build a quantum kernel dynamically
     // Start by creating the Builder, the kernel argument types
-    // should be provided here as templte parameters.
+    // should be provided here as template parameters.
     auto [ansatz, theta] = cudaq::make_kernel<double>();
 
     // Allocate some qubits

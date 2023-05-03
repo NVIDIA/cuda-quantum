@@ -7,7 +7,9 @@
  *******************************************************************************/
 
 // Compile and run with:
+// ```
 // nvq++ compute_actions.cpp -o gs.x && ./gs.x
+// ```
 
 // The algorithm leverages the VQE support to compute ground
 // state of the Hydrogen atom.

@@ -7,7 +7,9 @@
  *******************************************************************************/
 
 // Compile and run with:
+// ```
 // nvq++ vqe_h2_builder.cpp -o builder.x && ./builder.x
+// ```
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>

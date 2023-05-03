@@ -1,6 +1,8 @@
 
 // Compile and run with:
+// ```
 // nvq++ static_kernel.cpp -o ghz.x && ./ghz.x
+// ```
 
 #include <cudaq.h>
 

@@ -1,5 +1,7 @@
 // Compile and run with:
+// ```
 // nvq++ mid_circuit_measurement.cpp -o teleport.x && ./teleport.x
+// ```
 
 #include <cudaq.h>
 

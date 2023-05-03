@@ -1,5 +1,7 @@
 // Compile and run with:
+// ```
 // nvq++ qaoa_maxcut.cpp -o qaoa.x && ./qaoa.x
+// ```
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>

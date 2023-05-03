@@ -1,5 +1,7 @@
 // Compile and run with:
+// ```
 // nvq++ amplitude_estimation.cpp -o mlae.x && ./mlae.x
+// ```
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>

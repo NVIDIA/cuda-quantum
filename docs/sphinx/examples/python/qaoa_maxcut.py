@@ -3,7 +3,7 @@ from cudaq import spin
 
 import numpy as np
 
-# Here we build up a kernel for QAOA with p layers, with each layer
+# Here we build up a kernel for QAOA with `p` layers, with each layer
 # containing the alternating set of unitaries corresponding to the problem
 # and the mixer Hamiltonians. The algorithm leverages the VQE algorithm
 # to compute the maxcut of a rectangular graph illustrated below.

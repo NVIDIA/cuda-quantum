@@ -642,7 +642,7 @@ public:
 /// `auto [kernel, theta, phi] = std::make_kernel<double,double>();`
 namespace std {
 
-template <typename... Args> // std::size_t NArgs>
+template <typename... Args>
 struct tuple_size<cudaq::kernel_builder<Args...>>
     : std::integral_constant<std::size_t, sizeof...(Args) + 1> {};
 

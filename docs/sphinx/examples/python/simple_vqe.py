@@ -14,7 +14,7 @@ kernel, thetas = cudaq.make_kernel(list)
 # Allocate 2 qubits.
 qubits = kernel.qalloc(2)
 kernel.x(qubits[0])
-# Apply an `ry` gate that's parameterized by the first
+# Apply an `ry` gate that is parameterized by the first
 # `QuakeValue` entry of our list, `thetas`.
 kernel.ry(thetas[0], qubits[1])
 kernel.cx(qubits[1], qubits[0])

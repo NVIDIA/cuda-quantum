@@ -1,5 +1,7 @@
 // Compile and run with:
+// ```
 // nvq++ vqe_h2.cpp -o vqe.x && ./vqe.x
+// ```
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
