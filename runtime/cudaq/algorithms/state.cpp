@@ -28,6 +28,7 @@ void state::dump(std::ostream &os) {
     }
   }
 }
+
 std::complex<double> state::operator[](std::size_t idx) {
   auto &[shape, stateData] = data;
   if (shape.size() != 1)
@@ -74,4 +75,9 @@ double state::overlap(state &other) {
   // return the overlap
   return sum;
 }
+
+std::vector<std::size_t> state::get_shape() { return std::get<0>(data); }
+
+std::complex<double> *state::get_data() { return std::get<1>(data).data(); }
+
 } // namespace cudaq

@@ -13,8 +13,10 @@ import numpy as np
 import cudaq
 from cudaq import spin
 
+
 def assert_close(want, got, tolerance=1.e-4) -> bool:
     return abs(want - got) < tolerance
+
 
 def test_observe_result():
     """
@@ -60,8 +62,10 @@ def test_observe_result():
         # against each of the the expectation values returned
         # from `cudaq.SampleResult`.
         expectation_z = observe_result.expectation_z(sub_term=sub_term)
-        assert assert_close(sub_register_counts.expectation_z(), expectation_z, 1e-1)
-        assert assert_close(sub_term_counts.expectation_z(), expectation_z, 1e-1)
+        assert assert_close(sub_register_counts.expectation_z(), expectation_z,
+                            1e-1)
+        assert assert_close(sub_term_counts.expectation_z(), expectation_z,
+                            1e-1)
     observe_result.dump()
 
 
@@ -94,8 +98,8 @@ def test_observe_no_params(want_state, want_expectation, shots_count):
 
     # Call `cudaq.observe()` at the specified number of shots.
     observe_result = cudaq.observe(kernel=kernel,
-                                  spin_operator=hamiltonian,
-                                  shots_count=shots_count)
+                                   spin_operator=hamiltonian,
+                                   shots_count=shots_count)
     got_expectation = observe_result.expectation_z()
     assert want_expectation == got_expectation
 
@@ -159,9 +163,9 @@ def test_observe_single_param(angle, want_state, want_expectation, shots_count):
 
     # Call `cudaq.observe()` at the specified number of shots.
     observe_result = cudaq.observe(kernel,
-                                  hamiltonian,
-                                  angle,
-                                  shots_count=shots_count)
+                                   hamiltonian,
+                                   angle,
+                                   shots_count=shots_count)
     got_expectation = observe_result.expectation_z()
     assert want_expectation == got_expectation
 
@@ -237,11 +241,11 @@ def test_observe_multi_param(angle_0, angle_1, angles, want_state,
 
     # Call `cudaq.observe()` at the specified number of shots.
     observe_result = cudaq.observe(kernel,
-                                  hamiltonian,
-                                  angle_0,
-                                  angle_1,
-                                  angles,
-                                  shots_count=shots_count)
+                                   hamiltonian,
+                                   angle_0,
+                                   angle_1,
+                                   angles,
+                                   shots_count=shots_count)
     got_expectation = observe_result.expectation_z()
     assert want_expectation == got_expectation
 
@@ -316,9 +320,9 @@ def test_observe_async_no_params(want_state, want_expectation, shots_count):
 
     # Call `cudaq.observe()` at the specified number of shots.
     future = cudaq.observe_async(kernel=kernel,
-                                spin_operator=hamiltonian,
-                                qpu_id=0,
-                                shots_count=shots_count)
+                                 spin_operator=hamiltonian,
+                                 qpu_id=0,
+                                 shots_count=shots_count)
     observe_result = future.get()
     got_expectation = observe_result.expectation_z()
     assert want_expectation == got_expectation
@@ -358,9 +362,9 @@ def test_observe_async_single_param(angle, want_state, want_expectation,
 
     # Call `cudaq.observe()` at the specified number of shots.
     future = cudaq.observe_async(kernel,
-                                hamiltonian,
-                                angle,
-                                shots_count=shots_count)
+                                 hamiltonian,
+                                 angle,
+                                 shots_count=shots_count)
     observe_result = future.get()
     got_expectation = observe_result.expectation_z()
     assert want_expectation == got_expectation
@@ -440,11 +444,11 @@ def test_observe_async_multi_param(angle_0, angle_1, angles, want_state,
 
     # Call `cudaq.observe()` at the specified number of shots.
     future = cudaq.observe_async(kernel,
-                                hamiltonian,
-                                angle_0,
-                                angle_1,
-                                angles,
-                                shots_count=shots_count)
+                                 hamiltonian,
+                                 angle_0,
+                                 angle_1,
+                                 angles,
+                                 shots_count=shots_count)
     observe_result = future.get()
     got_expectation = observe_result.expectation_z()
     assert want_expectation == got_expectation
@@ -489,17 +493,17 @@ def test_observe_async_multi_param(angle_0, angle_1, angles, want_state,
     with pytest.raises(Exception) as error:
         # Too many list elements.
         future = cudaq.observe_async(kernel,
-                                    hamiltonian,
-                                    np.pi,
-                                    np.pi, [np.pi, np.pi, np.pi],
-                                    qpu_id=12)
+                                     hamiltonian,
+                                     np.pi,
+                                     np.pi, [np.pi, np.pi, np.pi],
+                                     qpu_id=12)
     with pytest.raises(Exception) as error:
         # Bad QPU id.
         future = cudaq.observe_async(kernel,
-                                    hamiltonian,
-                                    np.pi,
-                                    np.pi, [np.pi, np.pi],
-                                    qpu_id=12)
+                                     hamiltonian,
+                                     np.pi,
+                                     np.pi, [np.pi, np.pi],
+                                     qpu_id=12)
 
 
 @pytest.mark.parametrize("angles, want_state, want_expectation",
@@ -532,9 +536,9 @@ def test_observe_numpy_array(angles, want_state, want_expectation):
 
     # Call `cudaq.observe()` on the numpy array with 10 shots.
     observe_result = cudaq.observe(kernel,
-                                  hamiltonian,
-                                  numpy_angles,
-                                  shots_count=10)
+                                   hamiltonian,
+                                   numpy_angles,
+                                   shots_count=10)
     got_expectation = observe_result.expectation_z()
     assert want_expectation == got_expectation
 

@@ -38,6 +38,13 @@ public:
   /// @brief Compute the overlap of this state
   /// with the other one.
   double overlap(state &other);
+
+  /// @brief Return the dimensions of the state vector or density
+  /// matrix.
+  std::vector<std::size_t> get_shape();
+
+  /// @brief Return the raw quantum state data.
+  std::complex<double> *get_data();
 };
 
 namespace details {

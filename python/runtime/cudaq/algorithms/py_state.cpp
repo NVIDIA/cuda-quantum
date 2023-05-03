@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 #include <pybind11/complex.h>
+#include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 
 #include "py_observe.h"
@@ -45,11 +46,37 @@ state pyGetState(kernel_builder<> &kernel, py::args args) {
 /// @brief Bind the get_state cudaq function
 void bindPyState(py::module &mod) {
 
-  py::class_<state>(mod, "State",
-                    "A representation of the internal simulation quantum state "
-                    "vector or density matrix.")
-      .def(py::init([](const py::buffer &b) {
-             py::buffer_info info = b.request();
+  py::class_<state>(
+      mod, "State", py::buffer_protocol(),
+      "A data-type representing the quantum state of the interal simulator. "
+      "Returns state vector by default. If qpu is set to `dm`, returns "
+      "density matrix.\n")
+      // Define a buffer model for this class to make it fully
+      // compatible with numpy.
+      .def_buffer([](state &self) -> py::buffer_info {
+        auto shape = self.get_shape();
+        if (shape.size() != 1) {
+          return py::buffer_info(
+              self.get_data(), sizeof(std::complex<double>), /*itemsize */
+              py::format_descriptor<std::complex<double>>::format(),
+              2,                    /* ndim */
+              {shape[0], shape[1]}, /* shape */
+              {sizeof(std::complex<double>) * shape[1],
+               sizeof(std::complex<double>)}, /* strides */
+              true                            /* readonly */
+          );
+        }
+        // If 1-dimension, return the state vector.
+        return py::buffer_info(
+            self.get_data(), sizeof(std::complex<double>), /*itemsize */
+            py::format_descriptor<std::complex<double>>::format(), 1, /* ndim */
+            {shape[0]},                                /* shape */
+            {sizeof(std::complex<double>) * shape[0]}, /* strides */
+            true                                       /* readonly */
+        );
+      })
+      .def(py::init([](const py::buffer &buffer) {
+             py::buffer_info info = buffer.request();
              std::vector<std::size_t> shape;
              for (auto s : info.shape)
                shape.push_back(s);
@@ -61,36 +88,37 @@ void bindPyState(py::module &mod) {
              auto t = std::make_tuple(shape, v);
              return state(t);
            }),
-           "Construct the cudaq::state from an existing array of data.")
+           "Construct the :class:`State` from an existing array of data.\n")
       .def(
-          "__getitem__", [](state &s, std::size_t idx) { return s[idx]; },
-          "Return an element of the state vector.")
+          "__getitem__", [](state &self, std::size_t idx) { return self[idx]; },
+          "Return the `index`-th element of the state vector.")
       .def(
           "__getitem__",
-          [](state &s, std::vector<std::size_t> idx) {
-            return s(idx[0], idx[1]);
+          [](state &self, std::vector<std::size_t> idx) {
+            return self(idx[0], idx[1]);
           },
-          "Return a matrix element of the density matrix")
+          "Return a matrix element of the density matrix.")
       .def(
           "dump",
-          [](state &s) {
+          [](state &self) {
             std::stringstream ss;
-            s.dump(ss);
+            self.dump(ss);
             py::print(ss.str());
           },
-          "Print the state to standard out")
+          "Print the state to the terminal.")
       .def("__str__",
-           [](state &s) {
+           [](state &self) {
              std::stringstream ss;
-             s.dump(ss);
+             self.dump(ss);
              return ss.str();
            })
       .def(
-          "overlap", [](state &s, state &other) { return s.overlap(other); },
-          "Compute the overlap of this state with the other one.")
+          "overlap",
+          [](state &self, state &other) { return self.overlap(other); },
+          "Compute the overlap of `self` with the `other` :class:`State`.")
       .def(
           "overlap",
-          [](state &s, py::buffer &other) {
+          [](state &self, py::buffer &other) {
             py::buffer_info info = other.request();
             std::vector<std::size_t> shape;
             for (auto s : info.shape)
@@ -102,16 +130,24 @@ void bindPyState(py::module &mod) {
             extractStateData(info, v.data());
             auto t = std::make_tuple(shape, v);
             state ss(t);
-            return s.overlap(ss);
+            return self.overlap(ss);
           },
-          "Compute the overlap of this state with the other one.");
+          "Compute the overlap of `self` with `other`.");
 
   mod.def(
       "get_state",
-      [](kernel_builder<> &kernel, py::args args) {
-        return pyGetState(kernel, args);
+      [](kernel_builder<> &kernel, py::args arguments) {
+        return pyGetState(kernel, arguments);
       },
-      "Return the state generated by the given quantum kernel.");
+      R"(Simulate the given :class:`Kernel` and return its quantum state.
+
+      Args:
+        kernel (:class:`Kernel`) : The kernel to return the quantum state of.
+        *arguments (Optional[Any]) : The concrete arguments to the provided kernel. Leave empty if the kernel doesn't acccept arguments.
+
+      Returns:
+        :class:`State` : The quantum state represented as a :class:`State` data-type. If the qpu is set to `dm`, this will be a density matrix. By default, it will return a state vector.
+      )");
 }
 
 } // namespace cudaq

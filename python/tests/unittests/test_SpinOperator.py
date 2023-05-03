@@ -14,8 +14,10 @@ import cudaq
 from cudaq import spin
 import numpy as np
 
+
 def assert_close(want, got, tolerance=1.e-5) -> bool:
     return abs(want - got) < tolerance
+
 
 def test_spin_class():
     """
@@ -155,6 +157,7 @@ def test_spin_op_vqe():
     assert want_string == hamiltonian.to_string()
     assert want_string == str(hamiltonian)
 
+
 def test_matrix():
     """
     Test that the `cudaq.SpinOperator` can produce its matrix representation 
@@ -166,7 +169,8 @@ def test_matrix():
     assert_close(-1.74, np.linalg.eigvals(mat)[0], 1e-2)
 
     out = np.array(mat, copy=False)
-    assert assert_close(2.9e-4, out[0,0], 1e-3)
+    assert assert_close(2.9e-4, out[0, 0], 1e-3)
+
 
 def test_spin_op_foreach():
     """
@@ -175,32 +179,35 @@ def test_spin_op_foreach():
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
     print(hamiltonian)
-    
+
     counter = 0
+
     def doSomethingWithTerm(term):
         nonlocal counter
         print(term)
-        counter = counter+ 1
-    
+        counter = counter + 1
+
     hamiltonian.for_each_term(doSomethingWithTerm)
 
     assert counter == 5
 
     counter = 0
     xSupports = []
+
     def doSomethingWithTerm(term):
-        def doSomethingWithPauli(pauli : cudaq.Pauli, idx: int):
+
+        def doSomethingWithPauli(pauli: cudaq.Pauli, idx: int):
             nonlocal counter, xSupports
             if pauli == cudaq.Pauli.X:
-                counter = counter+1
+                counter = counter + 1
                 xSupports.append(idx)
+
         term.for_each_pauli(doSomethingWithPauli)
-    
+
     hamiltonian.for_each_term(doSomethingWithTerm)
 
     assert counter == 2
-    assert xSupports == [0,1]
-
+    assert xSupports == [0, 1]
 
 
 # leave for gdb debugging
