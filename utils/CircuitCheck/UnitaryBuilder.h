@@ -105,7 +105,7 @@ getGlobalPhaseConjugate(const UnitaryBuilder::UMatrix &matrix, double atol) {
   // Since the matrix uses a column-major storage scheme, it is faster to search
   // for the first nonzero element in the first column.
   for (auto &elt : matrix.col(0)) {
-    if (std::abs(elt) > atol)
+    if (std::abs(elt) < atol)
       continue;
     // Speed up the case for 1 + 0i
     return elt == 1. ? 1. : std::exp(std::complex<double>(0., -std::arg(elt)));

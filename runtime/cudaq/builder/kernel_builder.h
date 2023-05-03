@@ -148,7 +148,7 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &size);
 
 #define CUDAQ_DETAILS_QIS_DECLARATION(NAME)                                    \
   void NAME(ImplicitLocOpBuilder &builder, std::vector<QuakeValue> &ctrls,     \
-            QuakeValue &target, bool adjoint = false);
+            const QuakeValue &target, bool adjoint = false);
 
 CUDAQ_DETAILS_QIS_DECLARATION(h)
 CUDAQ_DETAILS_QIS_DECLARATION(s)
@@ -404,7 +404,7 @@ public:
   template <typename mod,                                                      \
             typename =                                                         \
                 typename std::enable_if_t<std::is_same_v<mod, cudaq::adj>>>    \
-  void NAME(QuakeValue &qubit) {                                               \
+  void NAME(const QuakeValue &qubit) {                                         \
     std::vector<QuakeValue> empty;                                             \
     details::NAME(*opBuilder, empty, qubit, true);                             \
   }
