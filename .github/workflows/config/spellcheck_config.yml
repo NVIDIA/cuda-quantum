@@ -92,9 +92,13 @@ matrix:
       context_visible_first: true
       escapes: '\\[\\`~]'
       delimiters:
-      # Ignore end of line comments
+      # Ignore comments of the form `// namespace ...` since they are used to annotate the closing namespace
       - open: '\/{2}\s*namespace\s+'
         close: '($|\s)'
+      # Ignore comments of the form `/*...*/` since they are used to annotate argument names
+      - open: '\/\*'
+        close: '\*\/'
+        content: \S*?        
   - pyspelling.filters.cpp:
       block_comments: true
       line_comments: true
@@ -110,10 +114,6 @@ matrix:
       # Ignore content between inline backticks
       - open: '(?P<open>`+)'
         close: '(?P=open)'
-      # Ignore comments of the form /*...*/ since they are used to annotate argument names
-      - open: '\/\*'
-        close: '\*\/'
-        content: \S*?
 
 - name: python
   sources:
