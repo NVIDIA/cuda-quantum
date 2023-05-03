@@ -12,7 +12,7 @@
 // Here we build up a CUDA Quantum kernel for QAOA with p layers, with each
 // layer containing the alternating set of unitaries corresponding to the
 // problem and the mixer Hamiltonians. The algorithm leverages the CUDA Quantum
-// VQE support to compute the maxcut of a rectangular graph illustrated below.
+// VQE support to compute the Max-Cut of a rectangular graph illustrated below.
 //
 //        v0  0---------------------0 v1
 //            |                     |
@@ -20,7 +20,7 @@
 //            |                     |
 //            |                     |
 //        v3  0---------------------0 v2
-// The maxcut for this problem is 0101 or 1010.
+// The Max-Cut for this problem is 0101 or 1010.
 
 struct ansatz {
   void operator()(std::vector<double> theta, const int N, const int p) __qpu__ {
@@ -78,7 +78,7 @@ int main() {
   printf("Optimal params = (%lf, %lf, %lf, %lf) \n", opt_params[0],
          opt_params[1], opt_params[2], opt_params[3]);
 
-  // Sample the circuit using optimized params
+  // Sample the circuit using optimized parameters
   auto counts = cudaq::sample(ansatz{}, opt_params, n_qubits, n_layers);
 
   // Dump the states and the counts

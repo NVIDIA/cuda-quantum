@@ -9,9 +9,9 @@
 
 // This file implements Quantum Monte Carlo integration using Amplitude
 // Estimation. To compute a definite integral of the form sin^2(x) from
-// 0 to bmax, we use the maximum likelihood estimation method (MLAE) [1].
+// `0` to `bmax`, we use the maximum likelihood estimation method [1].
 // The kernels have been given similar names as their corresponding
-// unitary operators from Eq.(1) in [1].
+// unitary operators from equation (1) in [1].
 //
 // [1] Amplitude estimation without phase estimation by Suzuki et al.
 // (https://arxiv.org/pdf/1904.10246.pdf)
@@ -61,7 +61,7 @@ struct statePrep_A {
   void operator()(cudaq::qreg<> &q, const double bmax) __qpu__ {
 
     int n = q.size();
-    // all qubits sans ancilla
+    // all qubits sans auxiliary
     auto qubit_subset = q.front(n - 1);
 
     h(qubit_subset);
@@ -93,7 +93,7 @@ struct run_circuit {
   auto operator()(const int n_qubits, const int n_itrs,
                   const double bmax) __qpu__ {
 
-    cudaq::qreg q(n_qubits + 1); // last is ancilla
+    cudaq::qreg q(n_qubits + 1); // last is auxiliary
     auto &last_qubit = q.back();
 
     // State preparation
@@ -107,20 +107,20 @@ struct run_circuit {
       S_0{}(q);
       statePrep_A{}(q, bmax);
     }
-    // Measure the last ancilla qubit
+    // Measure the last auxiliary qubit
     mz(last_qubit);
   }
 };
 
 int main() {
 
-  const int n = 10; // number of qubits (not including the ancilla qubit)
+  const int n = 10; // number of qubits (not including the auxiliary qubit)
   const double bmax = M_PI * 0.25; // upper bound of the integral
 
   // Specify your evaluation schedule
   std::vector<int> schedule{0, 1, 2, 4};
   std::vector<int> hits(schedule.size(),
-                        0); // #hits, input for mle post-processing
+                        0); // #hits, input for post-processing
 
   for (size_t i = 0; i < schedule.size(); i++) {
     auto counts = cudaq::sample(run_circuit{}, n, schedule[i], bmax);
@@ -137,14 +137,14 @@ int main() {
   cudaq::optimizers::cobyla optimizer;
 
   // Specify initial value of optimization parameters
-  std::vector<double> theta{0.8}; // cobyla is very sensitive to the start
+  std::vector<double> theta{0.8}; // COBYLA is very sensitive to the start
   optimizer.initial_parameters = theta;
 
   // Specify bounds for theta
   optimizer.lower_bounds = {0.0};
   optimizer.upper_bounds = {M_PI / 2.0};
 
-  // Using 1000 shots in loglikelihood, which is the default #shots
+  // Using 1000 shots in log-likelihood, which is the default #shots
   auto [opt_val, opt_params] =
       optimizer.optimize(1, [&](const std::vector<double> &theta) {
         auto f = mlae::loglikelihood(hits, schedule, 1000, theta[0]);

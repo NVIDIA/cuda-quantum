@@ -17,7 +17,7 @@ int main() {
   auto counts = cudaq::sample(xgate);
   counts.dump();
 
-  // Create a depolarizing kraus channel made up of 2 kraus_ops.
+  // Create a depolarizing Kraus channel made up of two Kraus operators.
   cudaq::kraus_channel depol({cudaq::complex{0.99498743710662, 0.0},
                               {0.0, 0.0},
                               {0.0, 0.0},

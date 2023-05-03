@@ -37,7 +37,7 @@ int main() {
   auto counts = cudaq::sample(/*shots*/ nShots, kernel{});
   counts.dump();
 
-  // Get the marginal counts on the 2nd qubit
+  // Get the marginal counts on the second qubit
   auto resultsOnZero = counts.get_marginal({0});
   resultsOnZero.dump();
 

@@ -17,6 +17,7 @@ qubit
 qubits
 qudit
 qudits
+eigenstate
 GPU
 GPUs
 QPU
@@ -49,6 +50,22 @@ workflow
 instantiation
 instantiations
 buildable
+discretized
+discretize
+discretized
+discretization
+variational
 VQE
+QAOA
+Max-Cut
 Toffoli
+Fourier
+Kraus
 ansatz
+COBYLA
+L-BFGS
+et al.
+Hamiltonian
+Hamiltonians
+entangler
+entanglers

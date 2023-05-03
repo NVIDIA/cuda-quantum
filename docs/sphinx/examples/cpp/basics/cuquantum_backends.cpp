@@ -17,7 +17,7 @@
 struct ghz {
   auto operator()(const int N) __qpu__ {
 
-    // Dynamic, vector-like qreg
+    // Dynamic, vector-like `qreg`
     cudaq::qreg q(N);
     h(q[0]);
     for (int i = 0; i < N - 1; i++) {

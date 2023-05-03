@@ -17,11 +17,11 @@
 #include <cudaq/optimizers.h>
 #include <cudaq/spin_op.h>
 
-// This example demonstrates the same code as in qaoa_kernel.cpp,
-// but with the use of dynamic kernels. Here we have QAOA with p layers,
+// This example demonstrates the same code as in `qaoa_maxcut.cpp`,
+// but with the use of dynamic kernels. Here we have QAOA with `p` layers,
 // with each layer containing the alternating set of unitaries corresponding
 // to the problem and the mixer Hamiltonians. The algorithm leverages the
-// CUDA Quantum VQE support to compute the maxcut of a rectangular graph
+// CUDA Quantum VQE support to compute the Max-Cut of a rectangular graph
 // illustrated below.
 //
 //        v0  0---------------------0 v1
@@ -63,7 +63,7 @@ int main() {
     }
 
     for (int j = 0; j < n_qubits; ++j) {
-      // Mixer Hamiltonian (rx rotations)
+      // Mixer Hamiltonian
       kernel.rx(2.0 * theta[i + n_layers], q[j]);
     }
   }
@@ -76,7 +76,7 @@ int main() {
   optimizer.initial_parameters =
       cudaq::random_vector(-M_PI / 8.0, M_PI / 8.0, n_params);
 
-  // Optimization using gradient-based lbfgs
+  // Optimization using gradient-based L-BFGS
   auto [opt_val, opt_params] =
       cudaq::vqe(kernel, gradient, Hp, optimizer, n_params);
 
@@ -85,7 +85,7 @@ int main() {
   printf("Optimal params = %lf %lf %lf %lf\n", opt_params[0], opt_params[1],
          opt_params[2], opt_params[3]);
 
-  // Sample the circuit using optimized params
+  // Sample the circuit using optimized parameters
   auto counts = cudaq::sample(kernel, opt_params);
 
   // Dump the states and the counts

@@ -105,7 +105,7 @@ matrix:
       escapes: '\\[\\`~]'
       delimiters:
       # Ignore multiline content between three or more backticks
-      - open: '(?s)^(?P<open>\s*\`{3,})\S*\s*$'
+      - open: '(?s)^(?P<open>\s*`{3,})\S*\s*$'
         close: '^(?P=open)$'
       # Ignore content between inline backticks
       - open: '(?P<open>`+)'
@@ -132,7 +132,7 @@ matrix:
       escapes: '\\[\\`~]'
       delimiters:
       # Ignore multiline content between three or more backticks
-      - open: '(?s)^(?P<open>\s*\`{3,})\S*\s*$'
+      - open: '(?s)^(?P<open>\s*`{3,})\S*\s*$'
         close: '^(?P=open)$'
       # Ignore content between inline backticks
       - open: '(?P<open>`+)'

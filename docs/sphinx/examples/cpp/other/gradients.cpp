@@ -38,7 +38,7 @@ int main() {
   cudaq::spin_op h3 = h + 9.625 - 9.625 * z(2) - 3.913119 * x(1) * x(2) -
                       3.913119 * y(1) * y(2);
 
-  // Default here is cobyla
+  // Default here is COBYLA
   // Should see many more iterations
   printf("Optimize with no gradients.\n");
   cudaq::optimizers::cobyla optimizer;
@@ -53,7 +53,7 @@ int main() {
     return std::make_tuple(x[0], x[1]);
   };
 
-  // Change the default to l-bfgs which requires gradient calc
+  // Change the default to L-BFGS which requires gradient calculation
   // Should see fewer iterations
   printf("\nOptimize with gradients.\n");
   cudaq::gradients::parameter_shift gradient(deuteron_n3_ansatz{}, argMapper);
