@@ -40,7 +40,7 @@ int main() {
 
   // Create the noise model
   cudaq::noise_model noise;
-  // Add the kraus_channel to the x operation on qubit 0.
+  // Add the Kraus channel to the x operation on qubit 0.
   noise.add_channel<cudaq::types::x>({0}, depol);
 
   // Set the noise model

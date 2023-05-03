@@ -30,7 +30,7 @@
 //            |                     |
 //            |                     |
 //        v3  0---------------------0 v2
-// The maxcut for this problem is 0101 or 1010.
+// The Max-Cut for this problem is 0101 or 1010.
 
 int main() {
 

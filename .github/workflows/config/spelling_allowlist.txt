@@ -63,9 +63,10 @@ Fourier
 Kraus
 ansatz
 COBYLA
-L-BFGS
-et al.
+BFGS
 Hamiltonian
 Hamiltonians
 entangler
 entanglers
+et
+al
