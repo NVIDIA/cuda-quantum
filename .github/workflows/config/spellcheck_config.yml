@@ -90,10 +90,11 @@ matrix:
   - pyspelling.filters.url:
   - pyspelling.filters.context:
       context_visible_first: true
+      escapes: '\\[\\`~]'
       delimiters:
       # Ignore end of line comments
-      - open: '\S\s\/{2}\s'
-        close: '$'
+      - open: '\/{2}\s*namespace\s+'
+        close: '($|\s)'
   - pyspelling.filters.cpp:
       block_comments: true
       line_comments: true
