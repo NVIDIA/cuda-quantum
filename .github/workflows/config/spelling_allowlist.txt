@@ -13,11 +13,14 @@ cuQuantum
 OpenMP
 OpenQASM
 bitcode
+bitstring
+bitstrings
 qubit
 qubits
 qudit
 qudits
 eigenstate
+auxillary
 GPU
 GPUs
 QPU
@@ -59,8 +62,11 @@ VQE
 QAOA
 Max-Cut
 Toffoli
+Hadamard
+Hadamards
 Fourier
 Kraus
+Vazirani
 ansatz
 COBYLA
 BFGS

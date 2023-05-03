@@ -24,7 +24,7 @@ kernel.cx(qubits[1], qubits[0])
 # We can optionally tune this optimizer through its initial parameters, iterations,
 # optimization bounds, etc. before passing it to `cudaq.vqe`.
 optimizer = cudaq.optimizers.COBYLA()
-# optimizer.max_iterations = XXXX
+# optimizer.max_iterations = ...
 # optimizer...
 
 # Finally, we can pass all of that into `cudaq.vqe` and it will automatically run our

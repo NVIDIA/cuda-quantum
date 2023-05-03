@@ -110,6 +110,10 @@ matrix:
       # Ignore content between inline backticks
       - open: '(?P<open>`+)'
         close: '(?P=open)'
+      # Ignore comments of the form /*...*/ since they are used to annotate argument names
+      - open: '\/\*'
+        close: '\*\/'
+        content: \S*?
 
 - name: python
   sources:
