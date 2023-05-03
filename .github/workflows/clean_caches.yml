@@ -1,9 +1,21 @@
 on:
   workflow_dispatch:
+    inputs:
+      cache_type:
+        type: choice
+        description: What kind of caches to delete. Note that *all* caches of that type will be deleted.
+        options:
+        - branch
+        - tar
+        - selective
+        required: false
+        default: selective
+      cache_keys:
+        type: string
+        description: Space separated string of cache keys to delete.
+        required: false
+
   delete:
-  schedule:
-    # runs every 30min
-    - cron: "*/30 * * * *"
   pull_request_target:
     types:
       - closed
@@ -11,9 +23,25 @@ on:
 name: Clean GitHub caches
 
 jobs:
-  scheduled_cleanup:
-    name: Clean up tar caches
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+  selective_cleanup:
+    name: Clean up selective GitHub caches
+    if: (github.event_name == 'workflow_dispatch' && inputs.cache_keys != '' )
+    permissions: write-all
+    runs-on: ubuntu-latest
+    steps:        
+      - run: |
+          gh extension install actions/gh-actions-cache
+          for key in ${{ inputs.cache_keys }}; do
+          do
+            echo "Deleting cache $key"
+            gh actions-cache delete $key -R ${{ github.repository }} --confirm
+          done
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  tar_cleanup:
+    name: Clean up Github caches with tar archives
+    if: (github.event_name == 'workflow_dispatch' && inputs.cache_type == 'tar' )
     permissions: write-all
     runs-on: ubuntu-latest
     steps:        
@@ -29,16 +57,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
   branch_cleanup:
-    name: Clean up branch specific caches
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'delete' && github.event.ref_type == 'branch')
+    name: Clean up branch specific GitHub caches
+    if: (github.event_name == 'workflow_dispatch' && inputs.cache_type == 'branch' ) || (github.event_name == 'delete' && github.event.ref_type == 'branch')
     permissions: write-all
     runs-on: ubuntu-latest
     steps:        
       - run: |
           gh extension install actions/gh-actions-cache
           keys=$(gh actions-cache list -R ${{ github.repository }} -B ${{ github.event.ref }} | cut -f 1 )
-          for key in $keys
-          do
+          for key in $keys; do
             echo "Deleting cache $key"
             gh actions-cache delete $key -R ${{ github.repository }} --confirm
           done
