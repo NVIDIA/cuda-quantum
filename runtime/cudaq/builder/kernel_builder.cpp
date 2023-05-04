@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "kernel_builder.h"
 #include "common/Logger.h"
@@ -377,7 +377,7 @@ void handleOneQubitBroadcast(ImplicitLocOpBuilder &builder, Value qvec,
   auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &,
                          Block &block) {
     Value qref =
-        builder.create<quake::QExtractOp>(loc, qvec, block.getArgument(0));
+        builder.create<quake::ExtractRefOp>(loc, qvec, block.getArgument(0));
 
     builder.create<QuakeOp>(loc, adjoint, ValueRange(), ValueRange(), qref);
   };
@@ -464,7 +464,7 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
         Value iv = block.getArgument(0);
         OpBuilder::InsertionGuard guard(nestedBuilder);
         Value qv =
-            nestedBuilder.create<quake::QExtractOp>(nestedLoc, value, iv);
+            nestedBuilder.create<quake::ExtractRefOp>(nestedLoc, value, iv);
         Value bit = nestedBuilder.create<QuakeMeasureOp>(nestedLoc, i1Ty, qv);
 
         auto i64Ty = nestedBuilder.getIntegerType(64);
@@ -509,8 +509,8 @@ void reset(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQreg) {
     Value rank = builder.create<arith::IndexCastOp>(indexTy, size);
     auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &,
                            Block &block) {
-      Value qref =
-          builder.create<quake::QExtractOp>(loc, target, block.getArgument(0));
+      Value qref = builder.create<quake::ExtractRefOp>(loc, target,
+                                                       block.getArgument(0));
       builder.create<quake::ResetOp>(loc, TypeRange{}, qref);
     };
     cudaq::opt::factory::createCountedLoop(builder, builder.getUnknownLoc(),
