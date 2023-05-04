@@ -11,7 +11,7 @@ on:
         required: false
         type: string
 
-name: CUDA Quantum Packages
+name: CUDA Quantum Packages # do not change name without updating workflow_run triggers
 
 jobs:
   release_build:
@@ -201,21 +201,19 @@ jobs:
     needs: [release_build, docker_image, documentation]
     if: always() # need to clean up even if the workflow is cancelled or fails
 
-    permissions:
-      actions: write
-
     steps:
-      - name: Trigger workflow
-        uses: actions/github-script@v6
+      - name: Save cache keys
+        id: workflow_inputs
+        run: |
+          keys=${{ needs.release_build.outputs.cudaqdev_cache }} 
+          if ${{ inputs.environment == '' }}; then
+            keys+=" ${{ needs.docker_image.outputs.tar_cache }}"
+          fi
+          echo "$keys" > cache_keys.txt
+
+      - uses: actions/upload-artifact@v3
         with:
-          retries: 3
-          script: |
-            github.rest.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: 'clean_caches.yml',
-              ref: 'main',
-              inputs: {
-                cache_keys: '${{ needs.release_build.outputs.cudaqdev_cache }} ${{ (inputs.environment != '' && '') || needs.docker_image.outputs.tar_cache }}'
-              },
-            })
+          name: cache_keys
+          path: cache_keys.txt
+          retention-days: 1
+          if-no-files-found: error

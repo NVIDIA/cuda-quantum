@@ -9,7 +9,7 @@ on:
       - 'main'
       - 'releases/*'
 
-name: CI
+name: CI # do not change name without updating workflow_run triggers
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -91,27 +91,18 @@ jobs:
     needs: [config, build_and_test, build_and_test_llvm, docker_image]
     if: always() # need to clean up even if the workflow is cancelled or fails
 
-    permissions:
-      actions: write
-
     steps:
-      - name: Get cache keys
+      - name: Save cache keys
         id: workflow_inputs
         run: |
           key_matrix=${{ fromJson(needs.config.outputs.json).cache_key }}
           keys=`jq -n "$key_matrix" | jq '. | to_entries | .[].value' --raw-output`
-          echo "keys='$keys ${{ needs.setup_llvm.outputs.cache_key }}'" >> $GITHUB_OUTPUT
+          keys+=" ${{ needs.setup_llvm.outputs.cache_key }}"
+          echo "$keys" > cache_keys.txt
 
-      - name: Trigger workflow
-        uses: actions/github-script@v6
+      - uses: actions/upload-artifact@v3
         with:
-          script: |
-            github.rest.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: 'clean_caches.yml',
-              ref: 'main',
-              inputs: {
-                cache_keys: '${{ steps.workflow_inputs.outputs.keys }}'
-              },
-            })
+          name: cache_keys
+          path: cache_keys.txt
+          retention-days: 1
+          if-no-files-found: error
