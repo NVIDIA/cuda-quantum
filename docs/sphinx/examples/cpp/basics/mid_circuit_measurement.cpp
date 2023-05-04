@@ -1,7 +1,5 @@
 // Compile and run with:
-// ```
 // nvq++ mid_circuit_measurement.cpp -o teleport.x && ./teleport.x
-// ```
 
 #include <cudaq.h>
 
@@ -37,7 +35,7 @@ int main() {
   auto counts = cudaq::sample(/*shots*/ nShots, kernel{});
   counts.dump();
 
-  // Get the marginal counts on the second qubit
+  // Get the marginal counts on the 2nd qubit
   auto resultsOnZero = counts.get_marginal({0});
   resultsOnZero.dump();
 

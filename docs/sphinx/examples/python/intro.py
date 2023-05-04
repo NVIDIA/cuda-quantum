@@ -22,7 +22,7 @@ kernel.s(qubit)
 # the measurement results on our simulator!
 kernel.mz(qubit)
 
-# Finally, we can execute this kernel on the state vector simulator
+# Finally, we can execute this kernel on the statevector simulator
 # by calling `cudaq.sample`. This will execute the provided kernel
 # `shots_count` number of times and return the sampled distribution
 # as a `cudaq.SampleResult` dictionary.

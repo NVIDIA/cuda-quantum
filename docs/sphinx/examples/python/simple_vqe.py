@@ -14,7 +14,7 @@ kernel, thetas = cudaq.make_kernel(list)
 # Allocate 2 qubits.
 qubits = kernel.qalloc(2)
 kernel.x(qubits[0])
-# Apply an `ry` gate that is parameterized by the first
+# Apply an `ry` gate that's parameterized by the first
 # `QuakeValue` entry of our list, `thetas`.
 kernel.ry(thetas[0], qubits[1])
 kernel.cx(qubits[1], qubits[0])
@@ -24,7 +24,7 @@ kernel.cx(qubits[1], qubits[0])
 # We can optionally tune this optimizer through its initial parameters, iterations,
 # optimization bounds, etc. before passing it to `cudaq.vqe`.
 optimizer = cudaq.optimizers.COBYLA()
-# optimizer.max_iterations = ...
+# optimizer.max_iterations = XXXX
 # optimizer...
 
 # Finally, we can pass all of that into `cudaq.vqe` and it will automatically run our
