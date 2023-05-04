@@ -95,14 +95,14 @@ jobs:
       - name: Save cache keys
         id: workflow_inputs
         run: |
-          key_matrix=${{ fromJson(needs.config.outputs.json).cache_key }}
-          keys=`jq -n "$key_matrix" | jq '. | to_entries | .[].value' --raw-output`
+          key_matrix=${{ needs.config.outputs.json }}
+          keys=`jq -n "$key_matrix" | jq '.cache_key | to_entries | .[].value' --raw-output`
           keys+=" ${{ needs.setup_llvm.outputs.cache_key }}"
           echo "$keys" >> cache_keys.txt
 
       - uses: actions/upload-artifact@v3
         with:
-          name: cache_keys
+          name: cache_keys_ci
           path: cache_keys.txt
           retention-days: 1
           if-no-files-found: error
