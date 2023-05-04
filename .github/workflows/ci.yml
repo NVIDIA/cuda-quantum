@@ -98,7 +98,7 @@ jobs:
           key_matrix=${{ fromJson(needs.config.outputs.json).cache_key }}
           keys=`jq -n "$key_matrix" | jq '. | to_entries | .[].value' --raw-output`
           keys+=" ${{ needs.setup_llvm.outputs.cache_key }}"
-          echo "$keys" > cache_keys.txt
+          echo "$keys" >> cache_keys.txt
 
       - uses: actions/upload-artifact@v3
         with:

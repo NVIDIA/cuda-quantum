@@ -11,7 +11,7 @@ on:
         required: false
         type: string
 
-name: CUDA Quantum Packages # do not change name without updating workflow_run triggers
+name: Packages # do not change name without updating workflow_run triggers
 
 jobs:
   release_build:
@@ -100,7 +100,7 @@ jobs:
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
           echo "image_tag=$image_tag" >> $GITHUB_OUTPUT
           echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
-          echo "tar_cache=tar-cuda-quantum-${{ github.sha }}"
+          echo "tar_cache=tar-cuda-quantum-${{ github.sha }}" >> $GITHUB_OUTPUT
 
       - name: Cache cuda-quantum image
         uses: actions/cache/save@v3
@@ -209,11 +209,11 @@ jobs:
           if ${{ inputs.environment == '' }}; then
             keys+=" ${{ needs.docker_image.outputs.tar_cache }}"
           fi
-          echo "$keys" > cache_keys.txt
+          echo "$keys" >> cache_keys.txt
 
       - uses: actions/upload-artifact@v3
         with:
-          name: cache_keys
+          name: cache_keys_packages
           path: cache_keys.txt
           retention-days: 1
           if-no-files-found: error
