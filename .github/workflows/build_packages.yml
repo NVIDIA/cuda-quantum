@@ -157,12 +157,12 @@ jobs:
           docker load --input ${{ needs.release_build.outputs.cudaqdev_tarfile }}
           docker run --rm -dit --name cuda-quantum-dev cuda-quantum-dev:local
           (docker exec cuda-quantum-dev bash scripts/build_docs.sh && built=true) || built=false
-          if $built; then docker cp cuda-quantum-dev:"/usr/local/cudaq/docs/." /tmp/docs; \
+          if $built; then docker cp cuda-quantum-dev:"/usr/local/cudaq/docs/." docs; \
           else docker cp cuda-quantum-dev:"/workspaces/cuda-quantum/build/." /tmp/build; fi
           docker stop cuda-quantum-dev
           if $built; then `exit 0`; else `exit 1`; fi
 
-          html_files=`ls /tmp/docs/**/*.html && ls /tmp/docs/*.html`
+          html_files=`find docs/ -type f -name "*.html"`
           json="{\"html_files\":[]}"
           for file in $html_files; do
             file=\'$file\'
@@ -183,7 +183,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: cuda_quantum_docs
-          path: /tmp/docs
+          path: docs
           retention-days: 30
           if-no-files-found: error
 
