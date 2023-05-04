@@ -88,21 +88,22 @@ jobs:
   clean_up:
     name: Delete tar caches
     runs-on: ubuntu-latest
-    needs: [config, build_and_test, build_and_test_llvm, docker_image]
+    needs: [config, setup_llvm, build_and_test, build_and_test_llvm, docker_image]
     if: always() # need to clean up even if the workflow is cancelled or fails
 
     steps:
       - name: Save cache keys
         id: workflow_inputs
         run: |
-          key_matrix=${{ needs.config.outputs.json }}
-          keys=`jq -n "$key_matrix" | jq '.cache_key | to_entries | .[].value' --raw-output`
+          set -e
+          key_matrix='${{ needs.config.outputs.json }}'
+          keys=`echo $key_matrix | jq '.cache_key | to_entries | .[].value' --raw-output`
           keys+=" ${{ needs.setup_llvm.outputs.cache_key }}"
           echo "$keys" >> cache_keys.txt
 
       - uses: actions/upload-artifact@v3
         with:
-          name: cache_keys_ci
+          name: cache_keys/ci
           path: cache_keys.txt
           retention-days: 1
           if-no-files-found: error
