@@ -78,10 +78,10 @@ inline bool hasNonVectorReference(mlir::Operation *op) {
 }
 
 /// Returns true if and only if all quantum operands do not have type
-/// `!quake.wire` or `!quake.qcontrol`.
+/// `!quake.wire` or `!quake.control`.
 inline bool isAllReferences(mlir::Operation *op) {
   for (mlir::Value opnd : op->getOperands())
-    if (isa<quake::WireType, quake::QControlType>(opnd.getType()))
+    if (isa<quake::WireType, quake::ControlType>(opnd.getType()))
       return false;
   return true;
 }

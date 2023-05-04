@@ -142,8 +142,26 @@ def quake_ComputeActionOp : QuakeOp<"compute_action"> {
 }
 
 def quake_ConvertControlOp : QuakeOp<"convert_ctrl"> {
+  let summary = "Convert a wire value to a control value.";
+  let description = [{
+    This operation should be considered experimental. It is currently not used.
+
+    This operation makes the conversion of a wire value to a control value
+    explicit in the quake IR. These values have different semantics in the IR.
+    Ensuring these semantics via the type system may (or may not) prove to be
+    advantageous.
+
+    A value of type control is (nearly) an SSA-value. Once defined, via the
+    `convert_ctrl` operation, it can be used as an argument to other operations.
+    These uses are qualified. They must be in control argument positions and
+    these operations must dominate any second use of the `qubit` argument to
+    the `convert_ctrl`. The operand value and result value of a `convert_ctrl`
+    may not be used as arguments to the exact same subsequent operation.
+  }];
+
   let arguments = (ins WireType:$qubit);
-  let results = (outs QControlType);
+  let results = (outs ControlType);
+
   let assemblyFormat = [{
     $qubit `:` functional-type(operands, results) attr-dict
   }];

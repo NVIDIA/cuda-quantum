@@ -50,9 +50,9 @@ def WireType : QuakeType<"Wire", "wire"> {
   let genStorageClass = 0;
 }
 
-def QControlType : QuakeType<"QControl", "qcontrol"> {
+def ControlType : QuakeType<"Control", "control"> {
   let description = [{
-    A qubit of type qcontrol is a value of type wire used in a control position.
+    A qubit of type control is a value of type wire used in a control position.
     Using a qubit in a control position means the qubit is an SSA-value. It is
     defined once and can be used multiple times (in multiple control positions)
     without changing value.
@@ -133,13 +133,13 @@ def QVecType : QuakeType<"QVec", "qvec"> {
 }
 
 def AnyQTypeLike : TypeConstraint<Or<[WireType.predicate, QVecType.predicate,
-        QControlType.predicate, QRefType.predicate]>, "quake quantum types">;
+        ControlType.predicate, QRefType.predicate]>, "quake quantum types">;
 def AnyQType : Type<AnyQTypeLike.predicate, "quantum type">;
 def AnyQRefTypeLike : TypeConstraint<Or<[QVecType.predicate,
         QRefType.predicate]>, "quake quantum reference types">;
 def AnyQRefType : Type<AnyQRefTypeLike.predicate, "quantum reference type">;
 def AnyQValueTypeLike : TypeConstraint<Or<[WireType.predicate,
-        QControlType.predicate]>, "quake quantum value types">;
+        ControlType.predicate]>, "quake quantum value types">;
 def AnyQValueType : Type<AnyQValueTypeLike.predicate, "quantum value type">;
 
 def IsStdvecTypePred : CPred<"$_self.isa<::cudaq::cc::StdvecType>()">;
