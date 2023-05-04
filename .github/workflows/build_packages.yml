@@ -199,6 +199,7 @@ jobs:
     name: Delete tar caches
     runs-on: ubuntu-latest
     needs: [release_build, docker_image, documentation]
+    if: always() # need to clean up even if the workflow is cancelled or fails
 
     steps:
       - name: Trigger workflow
