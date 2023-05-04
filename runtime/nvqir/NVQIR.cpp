@@ -75,8 +75,8 @@ CircuitSimulator *getCircuitSimulatorInternal() {
     return simulator;
   }
 
-  simulator =
-      cudaq::getUniquePluginInstance<CircuitSimulator>(GetCircuitSimulatorSymbol);
+  simulator = cudaq::getUniquePluginInstance<CircuitSimulator>(
+      GetCircuitSimulatorSymbol);
   cudaq::info("Creating the {} backend.", simulator->name());
   return simulator;
 }

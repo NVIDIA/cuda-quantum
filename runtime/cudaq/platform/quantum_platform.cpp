@@ -48,7 +48,8 @@ void setQuantumPlatformInternal(quantum_platform *p) {
 quantum_platform *getQuantumPlatformInternal() {
   if (platform)
     return platform;
-  platform = cudaq::getUniquePluginInstance<quantum_platform>(GetQuantumPlatformSymbol);
+  platform = cudaq::getUniquePluginInstance<quantum_platform>(
+      GetQuantumPlatformSymbol);
   return platform;
 }
 

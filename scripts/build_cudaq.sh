@@ -20,7 +20,7 @@
 # CUQUANTUM_INSTALL_PREFIX=/path/to/dir bash scripts/build_cudaq.sh
 #
 # Prerequisites:
-# - git, ninja-build, cmake, python3, libpython3-dev, libstdc++-11-dev, libblas-dev (all available via apt install)
+# - git, ninja-build, cmake, python3, libpython3-dev, libstdc++-12-dev, libblas-dev (all available via apt install)
 # - LLVM binaries, libraries, and headers as built by scripts/build_llvm.sh.
 # - To include simulator backends that use cuQuantum the packages cuquantum and cuquantum-dev are needed. 
 # - Additional python dependencies for running and testing: lit pytest numpy (available via pip install)

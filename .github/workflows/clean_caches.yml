@@ -21,9 +21,6 @@ on:
     types:
       - completed
   delete:
-  schedule:
-    # runs every 30min
-    - cron: "*/30 * * * *"
   pull_request_target:
     types:
       - closed
@@ -44,7 +41,7 @@ jobs:
           artifacts_url=${{ github.event.workflow_run.artifacts_url }}
           artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
 
-          for artifact in `echo "$artifacts" | jq -c '.[]'`; do
+          for artifact in `echo "$artifacts"`; do
             name=`echo $artifact | jq -r '.name'`
             if [ "${name#cache_key}" != "${name}" ]; then
               url=`echo $artifact | jq -r '.url'`
@@ -57,6 +54,8 @@ jobs:
             fi
           done
           echo "cache_keys='$keys'" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - run: |
           gh extension install actions/gh-actions-cache
@@ -70,8 +69,9 @@ jobs:
   selective_cleanup:
     name: Clean up selective GitHub caches
     if: (github.event_name == 'workflow_dispatch' && inputs.cache_keys != '' )
-    permissions: write-all
     runs-on: ubuntu-latest
+    permissions: write-all
+
     steps:        
       - run: |
           gh extension install actions/gh-actions-cache
@@ -84,9 +84,10 @@ jobs:
 
   tar_cleanup:
     name: Clean up Github caches with tar archives
-    if: (github.event_name == 'workflow_dispatch' && inputs.cache_type == 'tar' ) || github.event_name == 'schedule'
-    permissions: write-all
+    if: (github.event_name == 'workflow_dispatch' && inputs.cache_type == 'tar' )
     runs-on: ubuntu-latest
+    permissions: write-all
+
     steps:        
       - run: |
           gh extension install actions/gh-actions-cache
@@ -101,8 +102,9 @@ jobs:
   branch_cleanup:
     name: Clean up branch specific GitHub caches
     if: (github.event_name == 'workflow_dispatch' && inputs.cache_type == 'branch' ) || (github.event_name == 'delete' && github.event.ref_type == 'branch')
-    permissions: write-all
     runs-on: ubuntu-latest
+    permissions: write-all
+
     steps:        
       - run: |
           gh extension install actions/gh-actions-cache
@@ -117,8 +119,9 @@ jobs:
   pr_cleanup:
     name: Clean up PR related GitHub caches
     if: github.event_name == 'pull_request_target'
-    permissions: write-all
     runs-on: ubuntu-latest
+    permissions: write-all
+
     steps:
       - run: |
           gh extension install actions/gh-actions-cache
