@@ -14,10 +14,16 @@ on:
         type: string
         description: Space separated string of cache keys to delete.
         required: false
+  workflow_run:
+    workflows:
+      - CI
+      - Packages
+    types:
+      - completed
+  delete:
   schedule:
     # runs every 30min
     - cron: "*/30 * * * *"
-  delete:
   pull_request_target:
     types:
       - closed
@@ -25,6 +31,42 @@ on:
 name: Clean GitHub caches
 
 jobs:
+  automatic_cleanup:
+    name: Clean up GitHub caches produced by other workflows
+    if: github.event_name == 'workflow_run'
+    permissions: write-all
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download cache keys
+        id: artifacts
+        run: |
+          artifacts_url=${{ github.event.workflow_run.artifacts_url }}
+          artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
+
+          for artifact in `echo "$artifacts" | jq -c '.[]'`; do
+            name=`echo $artifact | jq -r '.name'`
+            if [ "${name#cache_key}" != "${name}" ]; then
+              url=`echo $artifact | jq -r '.url'`
+              gh api $url > cache_keys.zip
+              unzip -d cache_keys cache_keys.zip
+              for file in `find cache_keys/ -type f`; do
+                keys+=" `cat $file`"
+              done
+              rm -rf cache_keys cache_keys.zip
+            fi
+          done
+          echo "cache_keys='$keys'" >> $GITHUB_OUTPUT
+
+      - run: |
+          gh extension install actions/gh-actions-cache
+          for key in `echo ${{ needs.artifacts.outputs.cache_keys }}`; do
+            echo "Deleting cache $key"
+            gh actions-cache delete $key -R ${{ github.repository }} --confirm
+          done
+        env:
+          GH_TOKEN: ${{ github.token }}
+
   selective_cleanup:
     name: Clean up selective GitHub caches
     if: (github.event_name == 'workflow_dispatch' && inputs.cache_keys != '' )
