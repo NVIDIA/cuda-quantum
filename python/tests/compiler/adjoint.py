@@ -32,7 +32,7 @@ def test_kernel_adjoint_no_args():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
-# CHECK:           quake.apply<adj> @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}  : () -> ()
+# CHECK:           quake.apply<adj> @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}} : () -> ()
 # CHECK:           return
 # CHECK:         }
 
@@ -92,7 +92,7 @@ def test_kernel_adjoint_qreg_args():
 # CHECK-SAME:      %[[VAL_0:.*]]: !quake.qvec<?>) {
 # CHECK:           %[[VAL_1:.*]] = arith.constant 1 : index
 # CHECK:           %[[VAL_2:.*]] = arith.constant 0 : index
-# CHECK:           %[[VAL_3:.*]] = quake.qvec_size %[[VAL_0]] : (!quake.qvec<?>) -> i64
+# CHECK:           %[[VAL_3:.*]] = quake.vec_size %[[VAL_0]] : (!quake.qvec<?>) -> i64
 # CHECK:           %[[VAL_4:.*]] = arith.index_cast %[[VAL_3]] : i64 to index
 # CHECK:           %[[VAL_5:.*]] = cc.loop while ((%[[VAL_6:.*]] = %[[VAL_2]]) -> (index)) {
 # CHECK:             %[[VAL_7:.*]] = arith.cmpi slt, %[[VAL_6]], %[[VAL_4]] : index
@@ -243,7 +243,7 @@ def test_sample_adjoint_qubit():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
 # CHECK-SAME:      %[[VAL_0:.*]]: !quake.qref) {
-# CHECK:           quake.x %[[VAL_0]] : (!quake.ref) -> ()
+# CHECK:           quake.x %[[VAL_0]] : (!quake.qref) -> ()
 # CHECK:           return
 # CHECK:         }
 
@@ -281,7 +281,7 @@ def test_sample_adjoint_qreg():
 # CHECK:           %[[VAL_1:.*]] = arith.constant 1 : index
 # CHECK:           %[[VAL_2:.*]] = arith.constant 0 : index
 # CHECK:           %[[VAL_3:.*]] = quake.alloca[%[[VAL_0]] : i32] !quake.qvec<?>
-# CHECK:           %[[VAL_4:.*]] = quake.qvec_size %[[VAL_3]] : (!quake.qvec<?>) -> i64
+# CHECK:           %[[VAL_4:.*]] = quake.vec_size %[[VAL_3]] : (!quake.qvec<?>) -> i64
 # CHECK:           %[[VAL_5:.*]] = arith.index_cast %[[VAL_4]] : i64 to index
 # CHECK:           %[[VAL_6:.*]] = cc.loop while ((%[[VAL_7:.*]] = %[[VAL_2]]) -> (index)) {
 # CHECK:             %[[VAL_8:.*]] = arith.cmpi slt, %[[VAL_7]], %[[VAL_5]] : index
@@ -289,7 +289,7 @@ def test_sample_adjoint_qreg():
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_9:.*]]: index):
 # CHECK:             %[[VAL_10:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_9]]] : (!quake.qvec<?>, index) -> !quake.qref
-# CHECK:             quake.x %[[VAL_10]] : (!quake.ref) -> ()
+# CHECK:             quake.x %[[VAL_10]] : (!quake.qref) -> ()
 # CHECK:             cc.continue %[[VAL_9]] : index
 # CHECK:           } step {
 # CHECK:           ^bb0(%[[VAL_11:.*]]: index):
@@ -322,7 +322,7 @@ def test_sample_adjoint_qreg():
 # CHECK-SAME:                                                                   %[[VAL_0:.*]]: !quake.qvec<?>) {
 # CHECK:           %[[VAL_1:.*]] = arith.constant 1 : index
 # CHECK:           %[[VAL_2:.*]] = arith.constant 0 : index
-# CHECK:           %[[VAL_3:.*]] = quake.qvec_size %[[VAL_0]] : (!quake.qvec<?>) -> i64
+# CHECK:           %[[VAL_3:.*]] = quake.vec_size %[[VAL_0]] : (!quake.qvec<?>) -> i64
 # CHECK:           %[[VAL_4:.*]] = arith.index_cast %[[VAL_3]] : i64 to index
 # CHECK:           %[[VAL_5:.*]] = cc.loop while ((%[[VAL_6:.*]] = %[[VAL_2]]) -> (index)) {
 # CHECK:             %[[VAL_7:.*]] = arith.cmpi slt, %[[VAL_6]], %[[VAL_4]] : index
@@ -330,7 +330,7 @@ def test_sample_adjoint_qreg():
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_8:.*]]: index):
 # CHECK:             %[[VAL_9:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_8]]] : (!quake.qvec<?>, index) -> !quake.qref
-# CHECK:             quake.x %[[VAL_9]] : (!quake.ref) -> ()
+# CHECK:             quake.x %[[VAL_9]] : (!quake.qref) -> ()
 # CHECK:             cc.continue %[[VAL_8]] : index
 # CHECK:           } step {
 # CHECK:           ^bb0(%[[VAL_10:.*]]: index):
