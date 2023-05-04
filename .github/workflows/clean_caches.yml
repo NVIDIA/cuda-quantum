@@ -67,8 +67,9 @@ jobs:
   selective_cleanup:
     name: Clean up selective GitHub caches
     if: (github.event_name == 'workflow_dispatch' && inputs.cache_keys != '' )
-    permissions: write-all
     runs-on: ubuntu-latest
+    permissions: write-all
+
     steps:        
       - run: |
           gh extension install actions/gh-actions-cache
@@ -82,8 +83,9 @@ jobs:
   tar_cleanup:
     name: Clean up Github caches with tar archives
     if: (github.event_name == 'workflow_dispatch' && inputs.cache_type == 'tar' )
-    permissions: write-all
     runs-on: ubuntu-latest
+    permissions: write-all
+
     steps:        
       - run: |
           gh extension install actions/gh-actions-cache
@@ -98,8 +100,9 @@ jobs:
   branch_cleanup:
     name: Clean up branch specific GitHub caches
     if: (github.event_name == 'workflow_dispatch' && inputs.cache_type == 'branch' ) || (github.event_name == 'delete' && github.event.ref_type == 'branch')
-    permissions: write-all
     runs-on: ubuntu-latest
+    permissions: write-all
+
     steps:        
       - run: |
           gh extension install actions/gh-actions-cache
@@ -114,8 +117,9 @@ jobs:
   pr_cleanup:
     name: Clean up PR related GitHub caches
     if: github.event_name == 'pull_request_target'
-    permissions: write-all
     runs-on: ubuntu-latest
+    permissions: write-all
+
     steps:
       - run: |
           gh extension install actions/gh-actions-cache
