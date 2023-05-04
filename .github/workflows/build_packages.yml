@@ -152,6 +152,7 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Build documentation
+        id: docs_build
         run: |
           docker load --input ${{ needs.release_build.outputs.cudaqdev_tarfile }}
           docker run --rm -dit --name cuda-quantum-dev cuda-quantum-dev:local
@@ -160,6 +161,14 @@ jobs:
           else docker cp cuda-quantum-dev:"/workspaces/cuda-quantum/build/." /tmp/build; fi
           docker stop cuda-quantum-dev
           if $built; then `exit 0`; else `exit 1`; fi
+
+          html_files=`ls /tmp/docs/**/*.html && ls /tmp/docs/*.html`
+          json="{\"html_files\":[]}"
+          for file in $html_files; do
+            file=\'$file\'
+            json=`echo $json | jq ".html_files |= . + [\"$file\"]"`
+          done
+          echo "json=$(echo $json)" >> $GITHUB_OUTPUT
 
       - name: Upload build artifacts
         if: failure()
@@ -184,4 +193,25 @@ jobs:
         with:
           config_path: '.github/workflows/config/spellcheck_config.yml'
           task_name: html
-          source_files: \'/tmp/docs/**/*.html\'
+          source_files: ${{ join(fromJSON(steps.docs_build.outputs.json).html_files, ' ') }}
+
+  clean_up:
+    name: Delete tar caches
+    runs-on: ubuntu-latest
+    needs: [release_build, docker_image, documentation]
+    permissions: write-all
+
+    steps:
+      - name: Trigger workflow
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'clean_caches.yml',
+              ref: 'main',
+              inputs: {
+                cache_keys: '${{ needs.release_build.outputs.cudaqdev_cache }} ${{ (inputs.environment && '') || needs.docker_image.outputs.tar_cache }}'
+              },
+            })
