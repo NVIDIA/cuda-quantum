@@ -199,7 +199,6 @@ jobs:
     name: Delete tar caches
     runs-on: ubuntu-latest
     needs: [release_build, docker_image, documentation]
-    permissions: write-all
 
     steps:
       - name: Trigger workflow
