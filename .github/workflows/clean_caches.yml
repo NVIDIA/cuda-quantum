@@ -41,7 +41,7 @@ jobs:
           artifacts_url=${{ github.event.workflow_run.artifacts_url }}
           artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
 
-          for artifact in `echo "$artifacts" | jq -c '.[]'`; do
+          for artifact in `echo "$artifacts"`; do
             name=`echo $artifact | jq -r '.name'`
             if [ "${name#cache_key}" != "${name}" ]; then
               url=`echo $artifact | jq -r '.url'`
@@ -54,6 +54,8 @@ jobs:
             fi
           done
           echo "cache_keys='$keys'" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - run: |
           gh extension install actions/gh-actions-cache
