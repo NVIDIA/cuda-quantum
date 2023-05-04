@@ -58,7 +58,7 @@ def test_kernel_control_no_args(qubit_count):
 # CHECK:           %[[VAL_0:.*]] = arith.constant 5 : index
 # CHECK:           %[[VAL_1:.*]] = arith.constant 1 : index
 # CHECK:           %[[VAL_2:.*]] = arith.constant 0 : index
-# CHECK:           %[[VAL_3:.*]] = quake.alloca : !quake.qvec<5>
+# CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.qvec<5>
 # CHECK:           %[[VAL_4:.*]] = cc.loop while ((%[[VAL_5:.*]] = %[[VAL_2]]) -> (index)) {
 # CHECK:             %[[VAL_6:.*]] = arith.cmpi slt, %[[VAL_5]], %[[VAL_0]] : index
 # CHECK:             cc.condition %[[VAL_6]](%[[VAL_5]] : index)

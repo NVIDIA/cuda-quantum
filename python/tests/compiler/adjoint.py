@@ -233,7 +233,7 @@ def test_sample_adjoint_qubit():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
-# CHECK:           %[[VAL_0:.*]] = quake.alloca : !quake.qref
+# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.qref
 # CHECK:           quake.x %[[VAL_0]] : (!quake.qref) -> ()
 # CHECK:           call @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%[[VAL_0]]) : (!quake.qref) -> ()
 # CHECK:           quake.apply<adj> @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}} %[[VAL_0]] : (!quake.qref) -> ()
@@ -280,7 +280,7 @@ def test_sample_adjoint_qreg():
 # CHECK-SAME:      %[[VAL_0:.*]]: i32) {
 # CHECK:           %[[VAL_1:.*]] = arith.constant 1 : index
 # CHECK:           %[[VAL_2:.*]] = arith.constant 0 : index
-# CHECK:           %[[VAL_3:.*]] = quake.alloca(%[[VAL_0]] : i32) !quake.qvec<?>
+# CHECK:           %[[VAL_3:.*]] = quake.alloca[%[[VAL_0]] : i32] !quake.qvec<?>
 # CHECK:           %[[VAL_4:.*]] = quake.qvec_size %[[VAL_3]] : (!quake.qvec<?>) -> i64
 # CHECK:           %[[VAL_5:.*]] = arith.index_cast %[[VAL_4]] : i64 to index
 # CHECK:           %[[VAL_6:.*]] = cc.loop while ((%[[VAL_7:.*]] = %[[VAL_2]]) -> (index)) {
