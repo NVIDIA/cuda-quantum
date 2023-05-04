@@ -201,10 +201,14 @@ jobs:
     needs: [release_build, docker_image, documentation]
     if: always() # need to clean up even if the workflow is cancelled or fails
 
+    permissions:
+      actions: write
+
     steps:
       - name: Trigger workflow
         uses: actions/github-script@v6
         with:
+          retries: 3
           script: |
             github.rest.actions.createWorkflowDispatch({
               owner: context.repo.owner,
@@ -212,6 +216,6 @@ jobs:
               workflow_id: 'clean_caches.yml',
               ref: 'main',
               inputs: {
-                cache_keys: '${{ needs.release_build.outputs.cudaqdev_cache }} ${{ (inputs.environment && '') || needs.docker_image.outputs.tar_cache }}'
+                cache_keys: '${{ needs.release_build.outputs.cudaqdev_cache }} ${{ (inputs.environment != '' && '') || needs.docker_image.outputs.tar_cache }}'
               },
             })
