@@ -194,7 +194,7 @@ def test_kernel_apply_call_list_args():
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.qref
 # CHECK:           %[[VAL_2:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<f64>) -> !llvm.ptr<f64>
 # CHECK:           %[[VAL_3:.*]] = llvm.load %[[VAL_2]] : !llvm.ptr<f64>
-# CHECK:           quake.rx |%[[VAL_3]] : f64|(%[[VAL_1]])
+# CHECK:           quake.rx (%[[VAL_3]]) %[[VAL_1]] : (f64,
 # CHECK:           return
 # CHECK:         }
 

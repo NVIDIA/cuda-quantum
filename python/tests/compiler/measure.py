@@ -48,9 +48,7 @@ def test_kernel_measure_1q():
 # CHECK:           %[[VAL_7:.*]] = quake.my %[[VAL_3]] : (!quake.qref) -> i1 {registerName = ""}
 # CHECK:           %[[VAL_8:.*]] = quake.my %[[VAL_4]] : (!quake.qref) -> i1 {registerName = ""}
 # CHECK:           %[[VAL_9:.*]] = quake.mz %[[VAL_3]] : (!quake.qref) -> i1 {registerName = ""}
-# CHECK:        
 # CHECK:           %[[VAL_10:.*]] = quake.mz %[[VAL_4]] : (!quake.qref) -> i1 {registerName = ""}
-# CHECK:        
 # CHECK:           return
 # CHECK:         }
 
