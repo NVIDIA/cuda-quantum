@@ -1312,7 +1312,8 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         swap->setAttr("negated_qubit_controls", negs);
       return true;
     }
-    if (funcName.equals("p") || funcName.equals("r1"))
+    if (funcName.equals("p") || funcName.equals("r1") ||
+        funcName.equals("cphase"))
       return buildOp<quake::R1Op, Param>(builder, loc, args, negations,
                                          reportNegateError, isAdjoint);
     if (funcName.equals("rx"))
