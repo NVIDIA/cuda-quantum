@@ -397,7 +397,7 @@ def test_sample_apply_call_control():
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.qref
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.qref
 # CHECK:           call @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%[[VAL_0]]) : (!quake.qref) -> ()
-# CHECK:           quake.h (%[[VAL_1]])
+# CHECK:           quake.h %[[VAL_1]] : (!quake.qref) -> ()
 # CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}{{\[}}%[[VAL_1]]] %[[VAL_0]] : (!quake.qref, !quake.qref) -> ()
 # CHECK:           quake.h %[[VAL_1]] : (!quake.qref) -> ()
 # CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] : (!quake.qref) -> i1 {registerName = ""}
