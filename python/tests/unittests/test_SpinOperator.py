@@ -7,8 +7,10 @@
 # ============================================================================ #
 
 import os
-import collections
+
 import pytest
+
+import collections
 
 import cudaq
 from cudaq import spin
@@ -85,8 +87,6 @@ def test_spin_op_operators():
     spin_a *= (1.0 + 1.0j)
 
     # Other operators:
-    # this[idx]
-    # spin_e = spin_a[1]
     # SpinOperator + SpinOperator
     spin_f = spin_a + spin_b
     # SpinOperator - SpinOperator
@@ -259,13 +259,13 @@ def test_spin_op_vqe():
     assert hamiltonian == hamiltonian
     assert hamiltonian.get_term_count() == 5
 
-    data, coeffs = hamiltonian.get_raw_data()
-    assert (len(data) == 5)
-    assert (len(data[0]) == 4)
+    got_data, got_coefficients = hamiltonian.get_raw_data()
+    assert (len(got_data) == 5)
+    assert (len(got_data[0]) == 4)
     expected = [[0,0,0,0], [1, 1, 0, 0], [1,1,1,1], [0,0,0,1], [0,0,1,0]]
-    assert (all([d in expected for d in data]))
+    assert (all([d in expected for d in got_data]))
     expected = [5.907, -2.1433, -2.1433, .21829, -6.125]
-    assert (all([c in expected for c in coeffs]))
+    assert (all([c in expected for c in got_coefficients]))
 
 
 
@@ -277,10 +277,15 @@ def test_matrix():
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
     mat = hamiltonian.to_matrix()
-    assert_close(-1.74, np.linalg.eigvals(mat)[0], 1e-2)
+    assert assert_close(-1.74, np.linalg.eigvals(mat)[0], 1e-2)
+    print(mat)
+    want_matrix = np.array([[.00029, 0, 0, 0],
+                            [0, 12.2503, -4.2866, 0], 
+                            [0, -4.2866, -.43629, 0], 
+                            [0,0,0,11.8137]])
 
-    out = np.array(mat, copy=False)
-    assert assert_close(2.9e-4, out[0, 0], 1e-3)
+    got_matrix = np.array(mat, copy=False)
+    assert np.allclose(want_matrix, got_matrix, rtol=1e-3)
 
 
 def test_spin_op_foreach():
@@ -296,7 +301,7 @@ def test_spin_op_foreach():
     def doSomethingWithTerm(term):
         nonlocal counter
         print(term)
-        counter = counter + 1
+        counter += 1
 
     hamiltonian.for_each_term(doSomethingWithTerm)
 

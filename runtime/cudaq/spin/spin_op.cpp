@@ -15,7 +15,6 @@
 #include <Eigen/Dense>
 #include <algorithm>
 #include <cassert>
-#include <chrono>
 #include <complex>
 #include <fmt/core.h>
 #include <fstream>
@@ -273,15 +272,10 @@ spin_op &spin_op::operator-=(const spin_op &v) noexcept {
 
 spin_op &spin_op::operator*=(const spin_op &v) noexcept {
   spin_op copy = v;
-  // auto t1 = std::chrono::high_resolution_clock::now();
-  // spin_op tmpv = v;
   if (v.num_qubits() > num_qubits())
     expandToNQubits(copy.num_qubits());
   else if (v.num_qubits() < num_qubits())
     copy.expandToNQubits(num_qubits());
-  // auto t2 = std::chrono::high_resolution_clock::now();
-  // std::chrono::duration<double, std::milli> ms_double = t2 - t1;
-  // std::cout << "Time block 0: " << ms_double.count() * 1e-3 << "\n";
 
   std::unordered_map<std::vector<bool>, std::complex<double>> newTerms;
   std::size_t ourRow = 0, theirRow = 0;
@@ -290,8 +284,6 @@ spin_op &spin_op::operator*=(const spin_op &v) noexcept {
   std::vector<std::vector<bool>> composition(num_terms() * copy.num_terms());
   std::map<std::size_t, std::pair<std::size_t, std::size_t>> indexMap;
   auto nElements = composition.size();
-  // t1 = std::chrono::high_resolution_clock::now();
-
   for (std::size_t i = 0; i < nElements; i++) {
     auto pair = std::make_pair(ourRow, theirRow);
     indexMap.emplace(i, pair);
@@ -301,12 +293,7 @@ spin_op &spin_op::operator*=(const spin_op &v) noexcept {
     } else
       theirRow++;
   }
-  // t2 = std::chrono::high_resolution_clock::now();
-  // ms_double = t2 - t1;
-  // std::cout << "Time block 1: " << ms_double.count() * 1e-3 << "\n";
 
-  // t1 = std::chrono::high_resolution_clock::now();
-  // printf("Perform hard part\n");
 #pragma omp parallel for shared(composition)
   for (std::size_t i = 0; i < nElements; i++) {
     auto [j, k] = indexMap[i];
@@ -319,11 +306,6 @@ spin_op &spin_op::operator*=(const spin_op &v) noexcept {
     composedCoeffs[i] = res.first;
   }
 
-  // t2 = std::chrono::high_resolution_clock::now();
-  // ms_double = t2 - t1;
-  // std::cout << "Time block 2: " << ms_double.count() * 1e-3 << "\n";
-
-  // t1 = std::chrono::high_resolution_clock::now();
   for (std::size_t i = 0; i < nElements; i++) {
     auto iter = newTerms.find(composition[i]);
     if (iter == newTerms.end())
@@ -332,17 +314,8 @@ spin_op &spin_op::operator*=(const spin_op &v) noexcept {
       iter->second += composedCoeffs[i];
   }
 
-  // t2 = std::chrono::high_resolution_clock::now();
-  // ms_double = t2 - t1;
-  // std::cout << "Time block 3: " << ms_double.count() * 1e-3 << "\n";
-
-  // t1 = std::chrono::high_resolution_clock::now();
-
   terms = newTerms;
 
-  // t2 = std::chrono::high_resolution_clock::now();
-  // ms_double = t2 - t1;
-  // std::cout << "Time block 4: " << ms_double.count() * 1e-3 << "\n";
   return *this;
 }
 
@@ -379,7 +352,7 @@ bool spin_op::operator==(const spin_op &v) const noexcept {
     if (v.terms.find(k) == v.terms.end())
       return false;
   }
-  return true; // data == v.data;
+  return true; 
 }
 
 spin_op &spin_op::operator*=(const double v) noexcept {
