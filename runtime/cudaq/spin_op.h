@@ -111,6 +111,42 @@ public:
   /// and X=0, Z=1 -> Z on site i.
   using spin_op_term = std::vector<bool>;
 
+  struct iterator {
+    using iter_type =
+        std::unordered_map<spin_op_term, std::complex<double>>::iterator;
+
+    iterator(iter_type i) : iter(i) {}
+
+    // FIXME, not sure how to get spin_op& working
+    // this means programmers have to loop this as const auto 
+    // or by value.
+    // e.g.
+    // for (const auto& term : H)
+    // or
+    // for (auto term : H)
+    spin_op operator*() const { return spin_op(*iter); }
+
+    iterator &operator++() {
+      iter++;
+      return *this;
+    }
+    iterator operator++(int) {
+      iterator tmp = *this;
+      ++(*this);
+      return tmp;
+    }
+
+    friend bool operator==(const iterator &a, const iterator &b) {
+      return a.iter == b.iter;
+    };
+    friend bool operator!=(const iterator &a, const iterator &b) {
+      return a.iter != b.iter;
+    };
+
+  private:
+    iter_type iter;
+  };
+
 private:
   /// We want these creation functions to have access to
   /// spin_op constructors that programmers don't need
@@ -132,6 +168,13 @@ private:
   void expandToNQubits(const std::size_t nQubits);
 
 public:
+  iterator begin();
+  iterator end();
+
+  spin_op(std::pair<const spin_op_term, std::complex<double>> &termData);
+  // spin_op(const std::pair<const spin_op_term, std::complex<double>>
+  // &termData);
+
   /// @brief Constructor, takes the Pauli type, the qubit site, and the
   /// term coefficient. Constructs a spin_op of one pauli on one qubit.
   spin_op(pauli, const std::size_t id, std::complex<double> coeff = 1.0);

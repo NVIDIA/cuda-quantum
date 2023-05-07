@@ -14,6 +14,7 @@
 
 #include <Eigen/Dense>
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <complex>
 #include <fmt/core.h>
@@ -25,6 +26,21 @@
 #include <vector>
 
 namespace cudaq {
+
+spin_op::spin_op(
+    std::pair<const spin_op_term, std::complex<double>> &termData) {
+  terms.emplace(termData);
+}
+
+spin_op::iterator spin_op::begin() {
+  auto startIter = terms.begin();
+  return iterator(startIter);
+}
+
+spin_op::iterator spin_op::end() {
+  auto endIter = terms.end();
+  return iterator(endIter);
+}
 
 namespace details {
 /// @brief Compute the action
@@ -84,13 +100,11 @@ mult(std::vector<bool> row, std::vector<bool> other_row,
 
   _phase %= 4;
   std::complex<double> imaginary(0, 1);
-  std::map<int, std::complex<double>> phase_coeff_map{
-      {0, 1.0}, {1, -1. * imaginary}, {2, -1.0}, {3, imaginary}};
-  auto phase_coeff = phase_coeff_map[_phase];
-
+  std::array<std::complex<double>, 4> phaseCoeffArr{1.0, -1. * imaginary, -1.0,
+                                                    imaginary};
+  auto phase_coeff = phaseCoeffArr[_phase];
   auto coeff = rowCoeff;
   coeff *= phase_coeff * otherCoeff;
-
   return std::make_pair(coeff, tmp);
 }
 } // namespace details
@@ -352,7 +366,7 @@ bool spin_op::operator==(const spin_op &v) const noexcept {
     if (v.terms.find(k) == v.terms.end())
       return false;
   }
-  return true; 
+  return true;
 }
 
 spin_op &spin_op::operator*=(const double v) noexcept {
