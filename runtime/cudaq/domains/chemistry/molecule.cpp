@@ -29,7 +29,7 @@ std::complex<double> &one_body_integrals::operator()(std::size_t p,
 }
 
 void one_body_integrals::dump() {
-  std::cout << xt::adapt(data.get(), shape[0] * shape[1], xt::no_ownership(),
+  std::cerr << xt::adapt(data.get(), shape[0] * shape[1], xt::no_ownership(),
                          shape)
             << '\n';
 }
@@ -50,7 +50,7 @@ std::complex<double> &two_body_integals::operator()(std::size_t p,
 }
 
 void two_body_integals::dump() {
-  std::cout << xt::adapt(data.get(), shape[0] * shape[1] * shape[2] * shape[3],
+  std::cerr << xt::adapt(data.get(), shape[0] * shape[1] * shape[2] * shape[3],
                          xt::no_ownership(), shape)
             << '\n';
 }

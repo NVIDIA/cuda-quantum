@@ -31,15 +31,15 @@ def create_molecular_hamiltonian(geometry: list,
     number of active electrons and orbitals, thereby approximating the 
     molecular hamiltonian and freezing core orbitals. This function delegates 
     to the OpenFermion-PySCF package and will throw an error if that module is 
-    not available
+    not available.
 
     Args: 
       geometry: The geometry should be provided as a list of tuples, 
         where each tuple element contains the atom name and a tuple
         of atom coordinates, e.g. [('H', (0.,0.,0.)), ('H', (0.,0.,.7474))].
-      basis: The basis set as a string
-      multiplicity: The spin multiplicity as an int
-      charge: The total charge of the molecular system as an int
+      basis: The basis set as a string.
+      multiplicity: The spin multiplicity as an int.
+      charge: The total charge of the molecular system as an int.
       n_active_electrons: The number of electrons in the active space as an int.
       n_active_orbitals: The number of spatial orbitals in the active space. 
 
@@ -83,15 +83,15 @@ def __internal_cpp_create_molecular_hamiltonian(geometry: list,
     number of active electrons and orbitals, thereby approximating the 
     molecular hamiltonian and freezing core orbitals. This function delegates 
     to the OpenFermion-PySCF package and will throw an error if that module is 
-    not available
+    not available.
 
     Args: 
       geometry: The geometry should be provided as a list of tuples, 
         where each tuple element contains the atom name and a tuple
         of atom coordinates, e.g. [('H', (0.,0.,0.)), ('H', (0.,0.,.7474))].
-      basis: The basis set as a string
-      multiplicity: The spin multiplicity as an int
-      charge: The total charge of the molecular system as an int
+      basis: The basis set as a string.
+      multiplicity: The spin multiplicity as an int.
+      charge: The total charge of the molecular system as an int.
       n_active_electrons: The number of electrons in the active space as an int.
       n_active_orbitals: The number of spatial orbitals in the active space. 
 
