@@ -404,19 +404,39 @@ std::size_t spin_op::num_qubits() const {
     return 0;
   return terms.begin()->first.size() / 2;
 }
+
 std::size_t spin_op::num_terms() const { return terms.size(); }
 
-spin_op spin_op::slice(const std::size_t startIdx, const std::size_t count) {
-  auto nTerms = num_terms();
-  if (nTerms <= count)
-    throw std::runtime_error("Cannot request slice with " +
-                             std::to_string(count) + " terms on spin_op with " +
-                             std::to_string(nTerms) + " terms.");
-  auto start = terms.begin();
-  std::advance(start, startIdx);
-  std::unordered_map<spin_op_term, std::complex<double>> sliced;
-  std::copy_n(start, count, std::inserter(sliced, sliced.end()));
-  return spin_op(sliced);
+std::vector<spin_op> spin_op::distribute_terms(std::size_t numChunks) const {
+  // Calculate how many terms we can equally divide amongst the chunks
+  auto nTermsPerChunk = num_terms() / numChunks;
+
+  // Slice the given spin_op into subsets for each chunk
+  std::vector<spin_op> spins;
+  for (auto i : cudaq::range(numChunks)) {
+    // lowerBound here is the start index
+    auto lowerBound = i * nTermsPerChunk;
+
+    // Get the iterator and advance to lowerBound
+    auto start = terms.begin();
+    std::advance(start, lowerBound);
+
+    // The number of terms we want is nTermsPerChunk, but if
+    // this is the last iteration of this loop, we'll add
+    // any run-over terms to the final chunk
+    auto count =
+        nTermsPerChunk + (i == numChunks - 1 ? (num_terms() % numChunks) : 0);
+
+    // Get the chunk from the terms list.
+    std::unordered_map<spin_op_term, std::complex<double>> sliced;
+    std::copy_n(start, count, std::inserter(sliced, sliced.end()));
+
+    // Add to the return vector
+    spins.emplace_back(sliced);
+  }
+
+  // return the terms.
+  return spins;
 }
 
 std::string spin_op::to_string(bool printCoeffs) const {

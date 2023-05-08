@@ -331,10 +331,9 @@ public:
   /// spin_op. (see the constructor for the encoding)
   std::vector<double> getDataRepresentation();
 
-  /// @brief Return a new spin_op made up of a sum of spin_op terms
-  /// where the first term is the one at `startIdx`, and the remaining terms
-  /// are the next count terms.
-  spin_op slice(const std::size_t startIdx, const std::size_t count);
+  /// @brief Return a vector of spin_op representing a distribution of the
+  /// terms in this spin_op into equally sized chunks.
+  std::vector<spin_op> distribute_terms(std::size_t numChunks) const;
 
   /// @brief Apply the give functor on each term of this spin_op. This method
   /// can enable general reductions via lambda capture variables.
