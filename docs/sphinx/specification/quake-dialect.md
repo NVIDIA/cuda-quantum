@@ -25,13 +25,15 @@ greater, the extra qubits are considered controls.
 
 ## Motivation
 
-The main motivation behind Quake's value model is to directly expose quantum and classical
-data dependencies for optimization purposes, i.e., to represent the dataflow
-in quantum computations.  In contrast to Quake's memory model, which uses memory semantics
-(quantum operators act as side-effects on qubit references), the value model uses value
-semantics, that is quantum operators consume and produce values. These values
-are not truly SSA values, however, as operations still have side-effects on the
-value itself and the value cannot be copied.
+The main motivation behind Quake's value model is to directly expose
+quantum and classical data dependencies for optimization purposes,
+i.e., to represent the dataflow in quantum computations.  In contrast
+to Quake's memory model, which uses memory semantics (quantum
+operators act as side-effects on qubit references), the value model
+uses value semantics, that is quantum operators consume and produce
+values. These values are not truly SSA values, however, as operations
+still have side-effects on the value itself and the value cannot be
+copied.
 
 Let's see an example to clarify the distinction between the models.  Take the
 following Quake implementation of some toy quantum computation:
@@ -132,10 +134,10 @@ func.func @foo(%array : !quake.qvec<2>) {
 }
 ```
 
-In this code we can more straightforwardly see that the Hadamard operators
-cannot cancel each other.  One way of reasoning about this is as follows:
-In value form we need to follow a chain of values to know the qubit operators are
-being applied to, in this example:
+In this code we can more straightforwardly see that the Hadamard
+operators cannot cancel each other.  One way of reasoning about this
+is as follows: In value form we need to follow a chain of values to
+know the qubit operators are being applied to, in this example:
 
 ```text
 Mmeory                          Value
@@ -149,6 +151,6 @@ connection between them---which means they cannot cancel each other out.
 
 ## Quake Types
 
-In value form, we use the `!quake.wire` type to represent an intermediate "state" of
-a single qubit in time.  One can view the values of this type as line
-segments in a quantum circuit diagram.
+In value form, we use the `!quake.wire` type to represent an
+intermediate "state" of a single qubit in time.  One can view the
+values of this type as line segments in a quantum circuit diagram.
