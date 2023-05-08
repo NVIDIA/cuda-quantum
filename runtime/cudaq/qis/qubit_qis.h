@@ -233,17 +233,27 @@ struct swap {
   inline static const std::string name{"swap"};
 };
 } // namespace types
-template <typename... QubitArgs>
+template <typename mod = base, typename... QubitArgs>
 void swap(QubitArgs &...args) {
   static_assert(std::conjunction<std::is_same<qubit, QubitArgs>...>::value,
                 "Cannot operate on a qudit with Levels != 2");
   constexpr std::size_t nArgs = sizeof...(QubitArgs);
-  std::vector<QuditInfo> targetIds{qubitToQuditInfo(args)...};
-  std::vector<QuditInfo> controls(targetIds.begin(),
-                                  targetIds.begin() + nArgs - 1);
-  std::vector<QuditInfo> targets(targetIds.end() - 2, targetIds.end());
+  std::vector<QuditInfo> qubitIds{qubitToQuditInfo(args)...};
+  if constexpr (nArgs == 2) {
+    getExecutionManager()->apply("swap", {}, {}, qubitIds);
+    return;
+  } else {
+    static_assert(std::is_same_v<mod, ctrl>,
+                  "More than 2 qubits passed to swap but modifier != ctrl.");
+  }
+
+  // Controls are all qubits except the last 2
+  std::vector<QuditInfo> controls(qubitIds.begin(),
+                                  qubitIds.begin() + qubitIds.size() - 2);
+  std::vector<QuditInfo> targets(qubitIds.end() - 2, qubitIds.end());
   getExecutionManager()->apply("swap", {}, controls, targets);
 }
+
 template <typename QuantumRegister>
   requires(std::ranges::range<QuantumRegister>)
 void swap(QuantumRegister &ctrls, qubit &src, qubit &target) {

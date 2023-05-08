@@ -67,6 +67,7 @@ void __quantum__qis__r1(double, Qubit *q);
 void __quantum__qis__r1__ctl(double, Array *ctls, Qubit *q);
 
 void __quantum__qis__swap(Qubit *, Qubit *);
+void __quantum__qis__swap__ctl(Array *, Qubit *, Qubit *);
 void __quantum__qis__cphase(double x, Qubit *src, Qubit *tgt);
 
 Result *__quantum__qis__mz(Qubit *);
