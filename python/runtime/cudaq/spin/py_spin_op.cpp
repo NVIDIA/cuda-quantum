@@ -140,10 +140,7 @@ void bindSpinOperator(py::module &mod) {
 
       /// @brief Bind overloaded operators that return a new
       /// `cudaq.SpinOperator`.
-      // `this_spin_op[idx]`
-      //  .def("__getitem__", &cudaq::spin_op::operator[], py::arg("index"),
-      //       "Return the term of this `SpinOperator` at the provided index as
-      //       a " "new `cudaq.SpinOperator`.")
+      
       // `cudaq.SpinOperator` + `cudaq.SpinOperator`
       .def(py::self + py::self, "Add the given `SpinOperator` to this one and "
                                 "return result as a new `cudaq.SpinOperator`.")
