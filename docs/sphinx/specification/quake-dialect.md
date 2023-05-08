@@ -1,4 +1,4 @@
-# QTX Dialect
+# Quake Dialect
 
 ## General Introduction
 
@@ -25,13 +25,17 @@ greater, the extra qubits are considered controls.
 
 ## Motivation
 
-The main motivation behind QTX is to directly expose quantum and classical
-data dependencies for optimization purposes, i.e., to represent the dataflow
-in quantum computations.  In contrast to Quake, which uses memory semantics
-(quantum operators act as side-effects on qubit references), QTX uses value
-semantics, that is quantum operators consume and produce values.
+The main motivation behind Quake's value model is to directly expose
+quantum and classical data dependencies for optimization purposes,
+i.e., to represent the dataflow in quantum computations.  In contrast
+to Quake's memory model, which uses memory semantics (quantum
+operators act as side-effects on qubit references), the value model
+uses value semantics, that is quantum operators consume and produce
+values. These values are not truly SSA values, however, as operations
+still have side-effects on the value itself and the value cannot be
+copied.
 
-Let's see an example to clarify such an important difference.  Take the
+Let's see an example to clarify the distinction between the models.  Take the
 following Quake implementation of some toy quantum computation:
 
 ```cpp
@@ -73,76 +77,80 @@ that a measurement is being applied to the vector, `%qvec`, which contains
 
 Of course it is possible to correctly implement this optimization for Quake.
 However such an implementation would be quite error-prone and require
-complex analyses.  For this reason, we have QTX.
+complex analyses.  For this reason, Quake has overloaded gates.
 
-In QTX operators consume values and returns new values:
+In the value model operators consume values and return new values:
 
-```cpp
-%q0_1 = qtx.op %q0_0 : !qtx.wire
+```
+  %q0_1 = quake.op %q0_0 : (!quake.wire) -> !quake.wire
 ```
 
-We can visualize the difference between Quake and QTX as:
+We can visualize the difference between memory and value representation as:
 
 ```text
-            Quake                                    QTX
+            Memory                                   Value
 
         ┌──┐ ┌──┐     ┌──┐                  ┌──┐ %q0_1 ┌──┐     ┌──┐
    %q0 ─┤  ├─┤  ├─···─┤  ├─ %q0  vs  %q0_0 ─┤  ├───────┤  ├─···─┤  ├─ %q0_Z
         └──┘ └──┘     └──┘                  └──┘       └──┘     └──┘
 ```
 
-If we look at the Quake implementation again, we notice that the problem
+If we look at the implementation again, we notice that the problem
 with the naive optimization happens because the Hadamard operators are
-connected by the same value `%q0`.  Since QTX consumes values and return
-new values, we won't have this problem.  The following is the implementation
-in QTX (omitting some types to not clutter the code too much):
+implicitly connected by the same value `%q0`. In value form, all the gates
+are explicitly connected by distinct values, which eliminates the need
+to do further analysis via implicit side-effects.
+The following is the implementation in value form.
 
-```cpp
-qtx.circuit foo(%array : !qtx.wire_array<2>) -> (!qtx.wire_array<2>) {
-    // Boilerplate to extract each qubit from the array
+```
+func.func @foo(%array : !quake.qvec<2>) {
+    // Boilerplate to extract each qubit
     %c0 = arith.constant 0 : index
     %c1 = arith.constant 1 : index
-    %q0, %new_array = array_borrow %c0 from %array : ...
-    %q1, %new_array_1 = array_borrow %c1 from %new_array_1 : ...
+    %r0 = quake.extract_ref %array[%c0] : (!quake.qvec<2>, index) -> !quake.qref
+    %r1 = quake.extract_ref %array[%c1] : (!quake.qvec<2>, index) -> !quake.qref
 
-    ... bunch o operators ...
-    %q0_X = h %q0_W : !qtx.wire
+    // Unwrap the quantum references to expose the wires.
+    %q0 = quake.unwrap %r0 : (!quake.qref) -> !quake.wire
+    %q1 = quake.unwrap %r1 : (!quake.qref) -> !quake.wire
 
-    // We give the wire back to the array
-    %new_array_2 = array_yield %q0_X, %q1_W to %new_array_1 : ...
+    // Misc. operators applied
+    %q0_M = quake.h %q0_L : (!quake.wire) -> !quake.wire
 
-    // Measure the array
-    %result, %new_array_3 = mz %new_array_2 : !qtx.wire_array<2> -> vector<2xi1>, !qtx.wire_array<2>
+    // Re-wrap the wire to its original source
+    quake.wrap %q0_M to %r0 : !quake.wire, !quake.qref
+    quake.wrap %q1_X to %r1 : !quake.wire, !quake.qref
 
-    // Borrow the wire for qubit 0 again:
-    %q0_Y, %new_array_4 = array_borrow %c0 from %new_array_3 : ...
+    // Measure the entire vector of quantum references
+    %result = quake.mz %array : (!quake.qvec<2>) -> !cc.stdvec<i1>
 
-    %q0_Z = h %q0_Y : !qtx.wire
+    // Unwrap the wire for qubit 0 again
+    %q0_P = quake.unwrap %r0 : (!quake.qref) -> !quake.wire
     ...
-    return %new_array_Z : !qtx.wire_array<2>
+    %q0_Z = quake.h %q0_Y : (!quake.wire) -> !quake.wire
+    // Re-wrap the wire back to the original reference
+    quake.wrap %q0_Z to %r0 : !quake.wire, !quake.qref
+    return
 }
 ```
 
-In this code we can more straightforwardly see that the Hadamard operators
-cannot cancel each other.  One way of reasoning about this is as follows:
-In QTX we need to follow a chain of values to know the qubit operators are
-being applied to, in this example:
+In this code we can more straightforwardly see that the Hadamard
+operators cannot cancel each other.  One way of reasoning about this
+is as follows: In value form we need to follow a chain of values to
+know the qubit operators are being applied to, in this example:
 
 ```text
-Quake                        QTX
-    %q0      [%q0_0, %q0_1, ..., %q0_W, %q0_X, %q0_Y, %q0_Z]
+Mmeory                          Value
+    %q0         [%q0_0, %q0_1 ... %q0_L, %q0_M; %q0_P ... %q0_Y, %q0_Z]
 
 ```
 
-We know that one Hadamard is applied to `%q0_W` and generates `%q0_X`, and
+We know that one Hadamard is applied to `%q0_L` and generates `%q0_M`, and
 the other is applied `%q0_Y` and generates `%q0_Z`.  Hence, there is no
 connection between them---which means they cannot cancel each other out.
 
-## QTX Types
+## Quake Types
 
-In QTX, we use the `!qtx.wire` type to represent an intermediate "state" of
-a single qubit in time.  One can view the values of this type as line
-segments in a quantum circuit diagram.  The dialect also defines a aggregate
-type for wires, `!qtx.array<size>`, that has a fix size, known at
-compilation time. (For more information about those types look at their
-respective descriptions.)
+In value form, we use the `!quake.wire` type to represent an
+intermediate "state" of a single qubit in time.  One can view the
+values of this type as line segments in a quantum circuit diagram.

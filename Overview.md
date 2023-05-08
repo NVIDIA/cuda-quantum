@@ -17,24 +17,23 @@ MLIR dialects for quantum and classical computing. These dialects are further
 lowered to LLVM adherent to the Quantum Intermediate Representation (QIR)
 specification which can be readily lowered to object code.
 
-The quantum-specific dialects put forward by this repository are the Quantum
-Kernel Execution (Quake) and Quantum Thread Execution (QTX). Quake sits closer
+The quantum-specific dialect put forward by this repository is the Quantum
+Kernel Execution (Quake). Quake sits closer
 to the source language and provides a memory-semantics model of qubits and
 operations on those qubits. Quake can encode runtime-known information, and is
-therefore a generator of concrete quantum circuits. QTX is a value-semantics
+therefore a generator of concrete quantum circuits. Quake also supports
+a value-semantics
 model of quantum computing whereby quantum operations consume qubit values and
-produce a new qubit value. QTX is therefore well suited for optimizations and
-can only encode fully-known, concrete quantum circuits.
+produce a new qubit value. Quake is therefore well suited for optimizations and
+can encode fully-known, concrete quantum circuits.
 
 We also provide a dialect for classical computing abstractions, specifically
 modeling types and operations in C++ required to build Quake functions. This is
 the CC dialect.
 
-The dialects for Quake, QTX, and CC are defined in
+The dialects for Quake and CC are defined in
 
 [Quake](https://github.com/NVIDIA/cuda-quantum/blob/main/include/cudaq/Optimizer/Dialect/Quake/QuakeOps.td)
-
-[QTX](https://github.com/NVIDIA/cuda-quantum/blob/main/include/cudaq/Optimizer/Dialect/QTX/QTXOps.td)
 
 [CC](https://github.com/NVIDIA/cuda-quantum/blob/main/include/cudaq/Optimizer/Dialect/CC/CCOps.td)
 
@@ -57,16 +56,15 @@ build up with Quake and classical MLIR operations.
 
 This folder contains the header files defining the MLIR dialects and
 transformations used by CUDA Quantum. The `Dialect` folder contains the tablegen
-definitions for Quake, QTX, and CC. The `CodeGen` folder declares the tablegen
-required to define MLIR Passes that lower Quake / QTX to code, specifically LLVM
-IR. The `Conversion` folder declares the tablegen necessary for passes that
-convert Quake to QTX and QTX to Quake. The `Transforms` folder contains the
-tablegen necessary for transformations on Quake and QTX (e.g. things like lambda
+definitions for Quake and CC. The `CodeGen` folder declares the tablegen
+required to define MLIR Passes that lower Quake to code, specifically LLVM
+IR. The `Transforms` folder contains the
+tablegen necessary for transformations on Quake (e.g. things like lambda
 lifting, generating extra kernel glue code, etc.).
 
 ### `include/cudaq/Target`
 
-This folder contains the headers for taking Quake and QTX to other quantum
+This folder contains the headers for taking Quake to other quantum
 programming languages like OpenQASM.
 
 ### `lib/Frontend/nvqpp`
@@ -80,14 +78,14 @@ Clang `Expr`, `Stmt`, and `Decl` types.
 This folder contains the implementation code for the MLIR dialects and
 transformations used by the compiler. The structure here is pretty
 self-explanatory. The dialect implementation is in the `Dialect` folder (for
-QTX, Quake, and CC). All transformations on the IR are provided in the
+Quake and CC). All transformations on the IR are provided in the
 `Transforms` folder. Conversions between dialects are in the `Conversion`
 folder. The passes that lower MLIR to LLVM IR code are provided in the `CodeGen`
 folder.
 
 ### `lib/Target`
 
-This folder contains the implementation code for mapping Quake and QTX to other
+This folder contains the implementation code for mapping Quake to other
 quantum programming languages.
 
 ### `runtime/common`
@@ -140,13 +138,13 @@ specification of the `--emit-llvm-file` flag.
 ### `tools/cudaq-opt`
 
 This folder contains the implementation of the `cudaq-opt` tool. This tool takes
-as input a Quake (or QTX, MLIR) file, an apply MLIR passes specified by the user
+as input a Quake file, an apply MLIR passes specified by the user
 as another command line option (the `--pass-pipeline` flag).
 
 ### `tools/quake-translate`
 
 This folder contains the implementation of the `cudaq-translate` tool. This tool
-takes as input a Quake file and lowers that representation to QTX, QIR, or Base
+takes as input a Quake file and lowers that representation to QIR or Base
 Profile QIR.
 
 ### `tools/nvqpp`
