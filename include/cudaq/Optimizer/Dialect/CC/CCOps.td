@@ -190,6 +190,8 @@ def cc_LoopOp : CCOp<"loop",
 
     mlir::OperandRange
     getSuccessorEntryOperands(std::optional<unsigned> index);
+
+    bool hasBreakInBody();
   }];
 }
 

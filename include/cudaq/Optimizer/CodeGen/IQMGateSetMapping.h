@@ -23,7 +23,7 @@ inline mlir::Value createFloatConstant(mlir::PatternRewriter &builder,
                                                       ty);
 }
 
-inline mlir::Value createTripleR(mlir::PatternRewriter &builder,
+inline std::size_t createTripleR(mlir::PatternRewriter &builder,
                                  mlir::Location loc, mlir::UnitAttr adj,
                                  mlir::FloatType ty, mlir::ValueRange ctrl,
                                  mlir::ValueRange targ,
@@ -37,10 +37,10 @@ inline mlir::Value createTripleR(mlir::PatternRewriter &builder,
   builder.create<quake::PhasedRxOp>(loc, adj, middle, ctrl, targ, neg);
   builder.create<quake::PhasedRxOp>(
       loc, adj, mlir::ArrayRef<mlir::Value>{negHalfPi, zero}, ctrl, targ, neg);
-  return {};
+  return 0;
 }
 
-inline mlir::Value createRZ(mlir::PatternRewriter &builder, mlir::Location loc,
+inline std::size_t createRZ(mlir::PatternRewriter &builder, mlir::Location loc,
                             mlir::UnitAttr adj, mlir::Value theta,
                             mlir::ValueRange ctrl, mlir::ValueRange targ,
                             mlir::DenseBoolArrayAttr neg) {
@@ -52,14 +52,14 @@ inline mlir::Value createRZ(mlir::PatternRewriter &builder, mlir::Location loc,
                        mlir::ArrayRef<mlir::Value>{negTheta, halfPi});
 }
 
-inline mlir::Value createR1(mlir::PatternRewriter &builder, mlir::Location loc,
+inline std::size_t createR1(mlir::PatternRewriter &builder, mlir::Location loc,
                             mlir::UnitAttr adj, mlir::Value theta,
                             mlir::ValueRange ctrl, mlir::ValueRange targ,
                             mlir::DenseBoolArrayAttr neg) {
   return createRZ(builder, loc, adj, theta, ctrl, targ, neg);
 }
 
-inline mlir::Value createH(mlir::PatternRewriter &builder, mlir::Location loc,
+inline std::size_t createH(mlir::PatternRewriter &builder, mlir::Location loc,
                            mlir::UnitAttr adj, mlir::ValueRange parm,
                            mlir::ValueRange ctrl, mlir::ValueRange targ,
                            mlir::DenseBoolArrayAttr neg) {
@@ -71,10 +71,10 @@ inline mlir::Value createH(mlir::PatternRewriter &builder, mlir::Location loc,
       loc, adj, mlir::ArrayRef<mlir::Value>{halfPi, halfPi}, ctrl, targ, neg);
   builder.create<quake::PhasedRxOp>(
       loc, adj, mlir::ArrayRef<mlir::Value>{pi, zero}, ctrl, targ, neg);
-  return {};
+  return 0;
 }
 
-inline mlir::Value createX(mlir::PatternRewriter &builder, mlir::Location loc,
+inline std::size_t createX(mlir::PatternRewriter &builder, mlir::Location loc,
                            mlir::UnitAttr adj, mlir::ValueRange parm,
                            mlir::ValueRange ctrl, mlir::ValueRange targ,
                            mlir::DenseBoolArrayAttr neg) {
@@ -83,10 +83,10 @@ inline mlir::Value createX(mlir::PatternRewriter &builder, mlir::Location loc,
   auto zero = createFloatConstant(builder, loc, dubTy, 0.0);
   builder.create<quake::PhasedRxOp>(
       loc, adj, mlir::ArrayRef<mlir::Value>{pi, zero}, ctrl, targ, neg);
-  return {};
+  return 0;
 }
 
-inline mlir::Value createY(mlir::PatternRewriter &builder, mlir::Location loc,
+inline std::size_t createY(mlir::PatternRewriter &builder, mlir::Location loc,
                            mlir::UnitAttr adj, mlir::ValueRange parm,
                            mlir::ValueRange ctrl, mlir::ValueRange targ,
                            mlir::DenseBoolArrayAttr neg) {
@@ -95,10 +95,10 @@ inline mlir::Value createY(mlir::PatternRewriter &builder, mlir::Location loc,
   auto pi = createFloatConstant(builder, loc, dubTy, M_PI);
   builder.create<quake::PhasedRxOp>(
       loc, adj, mlir::ArrayRef<mlir::Value>{pi, halfPi}, ctrl, targ, neg);
-  return {};
+  return 0;
 }
 
-inline mlir::Value createZ(mlir::PatternRewriter &builder, mlir::Location loc,
+inline std::size_t createZ(mlir::PatternRewriter &builder, mlir::Location loc,
                            mlir::UnitAttr adj, mlir::ValueRange parm,
                            mlir::ValueRange ctrl, mlir::ValueRange targ,
                            mlir::DenseBoolArrayAttr neg) {
@@ -110,7 +110,7 @@ inline mlir::Value createZ(mlir::PatternRewriter &builder, mlir::Location loc,
                        mlir::ArrayRef<mlir::Value>{negPi, halfPi});
 }
 
-inline mlir::Value createS(mlir::PatternRewriter &builder, mlir::Location loc,
+inline std::size_t createS(mlir::PatternRewriter &builder, mlir::Location loc,
                            mlir::UnitAttr adj, mlir::ValueRange parm,
                            mlir::ValueRange ctrl, mlir::ValueRange targ,
                            mlir::DenseBoolArrayAttr neg) {
@@ -121,7 +121,7 @@ inline mlir::Value createS(mlir::PatternRewriter &builder, mlir::Location loc,
                        mlir::ArrayRef<mlir::Value>{negHalfPi, halfPi});
 }
 
-inline mlir::Value createT(mlir::PatternRewriter &builder, mlir::Location loc,
+inline std::size_t createT(mlir::PatternRewriter &builder, mlir::Location loc,
                            mlir::UnitAttr adj, mlir::ValueRange parm,
                            mlir::ValueRange ctrl, mlir::ValueRange targ,
                            mlir::DenseBoolArrayAttr neg) {

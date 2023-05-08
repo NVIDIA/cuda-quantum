@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 // RUN: cudaq-quake %s | FileCheck %s
 // RUN: cudaq-quake %s | cudaq-opt --lambda-lifting --canonicalize | FileCheck --check-prefixes=LIFT %s
@@ -39,19 +39,19 @@ struct test5_caller {
 // CHECK-LABEL: func.func @__nvqpp__mlirgen__test5_callee
 // CHECK-SAME:   (%[[VAL_0:.*]]: !cc.lambda<(!quake.qref) -> ()>,
 // CHECK-SAME:   %[[VAL_1:.*]]: !quake.qvec<?>)
-// CHECK:           %[[VAL_4:.*]] = quake.qextract %
+// CHECK:           %[[VAL_4:.*]] = quake.extract_ref %
 // CHECK:           cc.call_callable %[[VAL_0]], %[[VAL_4]] : (!cc.lambda<(!quake.qref) -> ()>, !quake.qref) -> ()
-// CHECK:           %[[VAL_7:.*]] = quake.qextract %
+// CHECK:           %[[VAL_7:.*]] = quake.extract_ref %
 // CHECK:           cc.call_callable %[[VAL_0]], %[[VAL_7]] : (!cc.lambda<(!quake.qref) -> ()>, !quake.qref) -> ()
-// CHECK:           %[[VAL_10:.*]] = quake.qextract %
+// CHECK:           %[[VAL_10:.*]] = quake.extract_ref %
 // CHECK:           cc.call_callable %[[VAL_0]], %[[VAL_10]] : (!cc.lambda<(!quake.qref) -> ()>, !quake.qref) -> ()
 // CHECK:           return
 
 // CHECK-LABEL: func.func @__nvqpp__mlirgen__test5_callable
 // CHECK-SAME:   (%[[VAL_0:.*]]: !quake.qref)
-// CHECK:           quake.h (%[[VAL_0]])
-// CHECK:           quake.x (%[[VAL_0]])
-// CHECK:           quake.z (%[[VAL_0]])
+// CHECK:           quake.h %[[VAL_0]]
+// CHECK:           quake.x %[[VAL_0]]
+// CHECK:           quake.z %[[VAL_0]]
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test5_caller
 // CHECK-SAME: () attributes

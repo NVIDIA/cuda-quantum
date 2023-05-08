@@ -18,15 +18,15 @@ module attributes {qtx.mangled_name_map = {__nvqpp__mlirgen__lambda.main.canHave
   func.func @__nvqpp__mlirgen__lambda.main.test() attributes {"cudaq-entrypoint"} {
     %c2_i32 = arith.constant 2 : i32
     %0 = arith.extsi %c2_i32 : i32 to i64
-    %1 = quake.alloca(%0 : i64) : !quake.qvec<?>
+    %1 = quake.alloca[%0 : i64]  !quake.qvec<?>
     %c0_i32 = arith.constant 0 : i32
     %2 = arith.extsi %c0_i32 : i32 to i64
-    %3 = quake.qextract %1[%2] : !quake.qvec<?>[i64] -> !quake.qref
-    quake.h (%3)
+    %3 = quake.extract_ref %1[%2] : (!quake.qvec<?>,i64) -> !quake.qref
+    quake.h %3 : (!quake.qref) -> ()
     %c0_i32_0 = arith.constant 0 : i32
     %4 = arith.extsi %c0_i32_0 : i32 to i64
-    %5 = quake.qextract %1[%4] : !quake.qvec<?>[i64] -> !quake.qref
-    %6 = quake.mz(%5 : !quake.qref) {registerName = "b"} : i1
+    %5 = quake.extract_ref %1[%4] : (!quake.qvec<?>, i64) -> !quake.qref
+    %6 = quake.mz %5 : (!quake.qref)->i1 {registerName = "b"} 
     %alloca = memref.alloca() : memref<i1>
     memref.store %6, %alloca[] : memref<i1>
     %7 = memref.load %alloca[] : memref<i1>
@@ -34,14 +34,14 @@ module attributes {qtx.mangled_name_map = {__nvqpp__mlirgen__lambda.main.canHave
       cc.scope {
         %c1_i32_1 = arith.constant 1 : i32
         %11 = arith.extsi %c1_i32_1 : i32 to i64
-        %12 = quake.qextract %1[%11] : !quake.qvec<?>[i64] -> !quake.qref
-        quake.x (%12)
+        %12 = quake.extract_ref %1[%11] : (!quake.qvec<?>,i64) -> !quake.qref
+        quake.x %12 : (!quake.qref) -> ()
       }
     }
     %c1_i32 = arith.constant 1 : i32
     %8 = arith.extsi %c1_i32 : i32 to i64
-    %9 = quake.qextract %1[%8] : !quake.qvec<?>[i64] -> !quake.qref
-    %10 = quake.mz(%9 : !quake.qref) : i1
+    %9 = quake.extract_ref %1[%8] : (!quake.qvec<?>,i64) -> !quake.qref
+    %10 = quake.mz %9 : (!quake.qref) -> i1
     return
   }
 
@@ -52,15 +52,15 @@ module attributes {qtx.mangled_name_map = {__nvqpp__mlirgen__lambda.main.canHave
   func.func @__nvqpp__mlirgen__lambda.main.canHaveMultiple() attributes {"cudaq-entrypoint"} {
     %c2_i32 = arith.constant 2 : i32
     %0 = arith.extsi %c2_i32 : i32 to i64
-    %1 = quake.alloca(%0 : i64) : !quake.qvec<?>
+    %1 = quake.alloca[%0 : i64] !quake.qvec<?>
     %c0_i32 = arith.constant 0 : i32
     %2 = arith.extsi %c0_i32 : i32 to i64
-    %3 = quake.qextract %1[%2] : !quake.qvec<?>[i64] -> !quake.qref
-    quake.h (%3)
+    %3 = quake.extract_ref %1[%2] : (!quake.qvec<?>,i64) -> !quake.qref
+    quake.h %3 : (!quake.qref) -> ()
     %c0_i32_0 = arith.constant 0 : i32
     %4 = arith.extsi %c0_i32_0 : i32 to i64
-    %5 = quake.qextract %1[%4] : !quake.qvec<?>[i64] -> !quake.qref
-    %6 = quake.mz(%5 : !quake.qref) {registerName = "b"} : i1
+    %5 = quake.extract_ref %1[%4] : (!quake.qvec<?>,i64) -> !quake.qref
+    %6 = quake.mz %5 : (!quake.qref) ->i1 {registerName = "b"} 
     %alloca = memref.alloca() : memref<i1>
     memref.store %6, %alloca[] : memref<i1>
     %7 = memref.load %alloca[] : memref<i1>
@@ -68,14 +68,14 @@ module attributes {qtx.mangled_name_map = {__nvqpp__mlirgen__lambda.main.canHave
       cc.scope {
         %c1_i32_1 = arith.constant 1 : i32
         %11 = arith.extsi %c1_i32_1 : i32 to i64
-        %12 = quake.qextract %1[%11] : !quake.qvec<?>[i64] -> !quake.qref
-        quake.x (%12)
+        %12 = quake.extract_ref %1[%11] : (!quake.qvec<?>, i64) -> !quake.qref
+        quake.x %12 : (!quake.qref) -> ()
       }
     }
     %c1_i32 = arith.constant 1 : i32
     %8 = arith.extsi %c1_i32 : i32 to i64
-    %9 = quake.qextract %1[%8] : !quake.qvec<?>[i64] -> !quake.qref
-    %10 = quake.mz(%9 : !quake.qref) : i1
+    %9 = quake.extract_ref %1[%8] : (!quake.qvec<?>,i64) -> !quake.qref
+    %10 = quake.mz %9 : (!quake.qref) -> i1
     return
   }
 }

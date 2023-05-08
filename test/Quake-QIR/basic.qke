@@ -36,9 +36,9 @@
 
 module {
      func.func @test_func(%p : i32) {
-          %qv = quake.alloca(%p : i32) : !quake.qvec<?>
+          %qv = quake.alloca [%p : i32] !quake.qvec<?>
           %t = arith.constant 2 : i32
-          %v = quake.alloca(%t : i32) : !quake.qvec<?>
+          %v = quake.alloca [%t : i32] !quake.qvec<?>
           return
      }
 
@@ -48,22 +48,22 @@ module {
       %one = arith.constant 1 : i32
       %neg = arith.constant -5 : i32
       %two = arith.constant 2 : i32
-      %0 = quake.alloca(%two : i32) : !quake.qvec<?>
+      %0 = quake.alloca [%two : i32] !quake.qvec<?>
      
-      %1 = quake.alloca(%two : i32) : !quake.qvec<2>
-      %2 = quake.alloca(%one : i32) : !quake.qvec<?>
+      %1 = quake.alloca [%two : i32] !quake.qvec<2>
+      %2 = quake.alloca [%one : i32] !quake.qvec<?>
       
-      %qr1 = quake.qextract %0[%zero] : !quake.qvec<?>[i32] -> !quake.qref
-      %qr2 = quake.qextract %1[%one] : !quake.qvec<2>[i32] -> !quake.qref
+      %qr1 = quake.extract_ref %0[%zero] : (!quake.qvec<?>,i32) -> !quake.qref
+      %qr2 = quake.extract_ref %1[%one]  : (!quake.qvec<2>,i32) -> !quake.qref
 
       %fl = arith.constant 0.43 : f64
       %fl2 = arith.constant 0.33 : f64
       %fl3 = arith.constant 0.73 : f64
-      quake.h (%qr1)  
-      quake.x [%qr1 : !quake.qref] (%qr2)
-      quake.rx |%fl : f64|(%qr1)
+      quake.h %qr1 : (!quake.qref) -> ()  
+      quake.x [%qr1] %qr2 : (!quake.qref, !quake.qref) -> ()
+      quake.rx (%fl) %qr1 : (f64, !quake.qref) -> ()
 
-      quake.mz(%qr1 : !quake.qref) : i1
+      quake.mz %qr1 : (!quake.qref) -> i1
       return 
     }
 }

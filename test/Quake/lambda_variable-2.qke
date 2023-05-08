@@ -15,9 +15,8 @@
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_a()
-// CHECK:           %[[VAL_0:.*]] = quake.alloca : !quake.qvec<4>
-// CHECK:           %[[VAL_1:.*]] = quake.relax_size %[[VAL_0]] : (!quake.qvec<4>) -> !quake.qvec<?>
-// CHECK:           %[[VAL_2:.*]] = cc.instantiate_callable @__nvqpp__callable.thunk.lambda.0(%[[VAL_1]]) : (!quake.qvec<?>) -> !cc.lambda<() -> ()>
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.qvec<4>
+// CHECK:           %[[VAL_2:.*]] = cc.instantiate_callable @__nvqpp__callable.thunk.lambda.0(%[[VAL_0]]) : (!quake.qvec<4>) -> !cc.lambda<() -> ()>
 // CHECK:           call @__nvqpp__mlirgen__kernel_b(%[[VAL_2]]) : (!cc.lambda<() -> ()>) -> ()
 // CHECK:           return
 // CHECK:         }
@@ -44,8 +43,8 @@
 // CHECK:             } do {
 // CHECK:               %[[VAL_7:.*]] = memref.load %[[VAL_4]][] : memref<i32>
 // CHECK:               %[[VAL_8:.*]] = arith.extsi %[[VAL_7]] : i32 to i64
-// CHECK:               %[[VAL_9:.*]] = quake.qextract %[[VAL_0]]{{\[}}%[[VAL_8]]] : !quake.qvec<4>[i64] -> !quake.qref
-// CHECK:               quake.h (%[[VAL_9]])
+// CHECK:               %[[VAL_9:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_8]]] : (!quake.qvec<4>, i64) -> !quake.qref
+// CHECK:               quake.h %[[VAL_9]] :
 // CHECK:               cc.continue
 // CHECK:             } step {
 // CHECK:               %[[VAL_10:.*]] = memref.load %[[VAL_4]][] : memref<i32>
@@ -77,8 +76,7 @@ module attributes {qtx.mangled_name_map = {__nvqpp__mlirgen__kernel_a = "_ZN8ker
     return
   }
   func.func @__nvqpp__mlirgen__kernel_a() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-    %c4_i64 = arith.constant 4 : i64
-    %1 = quake.alloca(%c4_i64 : i64) : !quake.qvec<4>
+    %1 = quake.alloca !quake.qvec<4>
     %5 = cc.create_lambda {
       cc.scope {
         %alloca = memref.alloca() : memref<i32>
@@ -93,8 +91,8 @@ module attributes {qtx.mangled_name_map = {__nvqpp__mlirgen__kernel_a = "_ZN8ker
           } do {
             %6 = memref.load %alloca[] : memref<i32>
             %7 = arith.extsi %6 : i32 to i64
-            %8 = quake.qextract %1[%7] : !quake.qvec<4>[i64] -> !quake.qref
-            quake.h (%8)
+            %8 = quake.extract_ref %1[%7] : (!quake.qvec<4>, i64) -> !quake.qref
+            quake.h %8 : (!quake.qref) -> ()
             cc.continue
           } step {
             %6 = memref.load %alloca[] : memref<i32>

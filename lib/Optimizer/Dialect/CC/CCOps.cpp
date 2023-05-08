@@ -207,6 +207,16 @@ ParseResult cudaq::cc::LoopOp::parse(OpAsmParser &parser,
   return success();
 }
 
+bool cudaq::cc::LoopOp::hasBreakInBody() {
+  // Note: the lowering of unwinds should've taken place for this to be
+  // accurate. Add an assertion?
+  for (Block &block : getBodyRegion())
+    for (Operation &op : block)
+      if (isa<BreakOp>(op))
+        return true;
+  return false;
+}
+
 void cudaq::cc::LoopOp::getSuccessorRegions(
     std::optional<unsigned> index, ArrayRef<Attribute> operands,
     SmallVectorImpl<RegionSuccessor> &regions) {
@@ -223,18 +233,21 @@ void cudaq::cc::LoopOp::getSuccessorRegions(
   }
   switch (index.value()) {
   case 0:
-    // while region = successors are the owning loop op and the do region.
+    // While region = successors are the owning loop op and the do region.
     regions.push_back(RegionSuccessor(&getBodyRegion(), getDoEntryArguments()));
     regions.push_back(RegionSuccessor(getResults()));
     break;
   case 1:
-    // do region - successor is step if present or while if step is absent.
-    // TODO: if the body contains a break, then the loop op is also a successor.
+    // do region - Successor is step region (2) if present or while region (0)
+    // if step is absent.
     if (hasStep())
       regions.push_back(RegionSuccessor(&getStepRegion(), getStepArguments()));
     else
       regions.push_back(
           RegionSuccessor(&getWhileRegion(), getWhileArguments()));
+    // If the body contains a break, then the loop op is also a successor.
+    if (hasBreakInBody())
+      regions.push_back(RegionSuccessor(getResults()));
     break;
   case 2:
     // step region - if present, while region is always successor.
