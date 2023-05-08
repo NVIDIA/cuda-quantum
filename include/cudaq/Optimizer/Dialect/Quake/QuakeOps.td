@@ -531,20 +531,19 @@ class QuakeOperator<string mnemonic, list<Trait> traits = []>
 
     mlir::Value getParameter(unsigned i = 0u) { return getParameters()[i]; }
 
-    /// If the parameter is known at compilation-time, return its value as a
-    /// double.
-    std::optional<double> getParameterAsDouble(unsigned i = 0u) {
-      auto param = getParameter();
-      auto paramDefOp = param.getDefiningOp();
+    /// If the parameter is known at compilation-time, set the result value and
+    /// returns success. Otherwise, returns failure.
+    mlir::LogicalResult getParameterAsDouble(double& result, unsigned i = 0) {
+      auto paramDefOp = getParameter(i).getDefiningOp();
       if (!paramDefOp)
-        return std::nullopt;
-      auto constOp = mlir::dyn_cast<mlir::arith::ConstantOp>(paramDefOp);
-      if (!constOp)
-        return std::nullopt;
-      if (auto value = dyn_cast<mlir::FloatAttr>(constOp.getValue())) {
-        return value.getValueAsDouble();
+        return mlir::failure();
+      if (auto constOp = mlir::dyn_cast<mlir::arith::ConstantOp>(paramDefOp)) {
+        if (auto value = dyn_cast<mlir::FloatAttr>(constOp.getValue())) {
+          result = value.getValueAsDouble();
+          return mlir::success();
+        }
       }
-      return std::nullopt;
+      return mlir::failure();
     }
 
     mlir::Value getTarget(unsigned i = 0u) { return getTargets()[i]; }
@@ -579,7 +578,7 @@ def XOp : OneTargetOp<"x", [Hermitian]> {
     Circuit symbol:
     ```
         ┌───┐
-    q0: ┤ X ├
+    q: ─┤ X ├─
         └───┘
     ```
   }];
@@ -612,7 +611,7 @@ def YOp : OneTargetOp<"y", [Hermitian]> {
     Circuit symbol:
     ```
         ┌───┐
-    q0: ┤ Y ├
+    q: ─┤ Y ├─
         └───┘
     ```
   }];
@@ -646,7 +645,7 @@ def ZOp : OneTargetOp<"z", [Hermitian]> {
     Circuit symbol:
     ```
         ┌───┐
-    q0: ┤ Z ├
+    q: ─┤ Z ├─
         └───┘
     ```
   }];
@@ -687,7 +686,7 @@ def HOp : OneTargetOp<"h", [Hermitian]> {
     Circuit symbol:
     ```
         ┌───┐
-    q0: ┤ H ├
+    q: ─┤ H ├─
         └───┘
     ```
   }];
@@ -723,7 +722,7 @@ def SOp : OneTargetOp<"s"> {
     Circuit symbol:
     ```
         ┌───┐
-    q0: ┤ S ├
+    q: ─┤ S ├─
         └───┘
     ```
   }];
@@ -752,18 +751,18 @@ def SOp : OneTargetOp<"s"> {
 def TOp : OneTargetOp<"t"> {
   let summary = "T operation";
   let description = [{
-    This operation applies to its target a pi/4 rotation about the Z axis.
+    This operation applies to its target a π/4 rotation about the Z axis.
 
     Matrix representation:
     ```
-    T = | 1   0 |
-        | 0  exp(i pi / 4) |
+    T = | 1      0     |
+        | 0  exp(iπ/4) |
     ```
 
     Circuit symbol:
     ```
         ┌───┐
-    q0: ┤ T ├
+    q: ─┤ T ├─
         └───┘
     ```
   }];
@@ -799,9 +798,9 @@ def SwapOp : TwoTargetOp<"swap", [Hermitian]> {
 
     Circuit symbol:
     ```
-    q0: ─X─
-         │
-    q1: ─X─
+    q: ─X─
+        │
+    q: ─X─
     ```
   }];
   let extraClassDeclaration = OpBaseDeclaration # [{
@@ -833,15 +832,15 @@ def R1Op : OneTargetParamOp<"r1", [Rotation]> {
   let description = [{
     Matrix representation:
     ```
-    R1(t) = | 1  0 |
-            | 0  exp(i * t)|
+    R1(λ) = | 1     0    |
+            | 0  exp(iλ) |
     ```
 
     Circuit symbol:
     ```
-        ┌────┐
-    q0: ┤ R1 ├
-        └────┘
+        ┌───────┐
+    q: ─┤ R1(λ) ├─
+        └───────┘
     ```
   }];
   let extraClassDeclaration = OpBaseDeclaration # [{
@@ -855,12 +854,12 @@ def R1Op : OneTargetParamOp<"r1", [Rotation]> {
     /// compile-time constant.
     void getOperatorMatrix(Matrix &matrix) {
       using namespace std::complex_literals;
-      auto theta = getParameterAsDouble();
-      if (!theta)
+      double theta;
+      if (failed(getParameterAsDouble(theta)))
         return;
       if (getIsAdj())
-        *theta *= -1;
-      matrix.assign({1, 0, 0, std::exp(*theta * 1i)});
+        theta *= -1;
+      matrix.assign({1, 0, 0, std::exp(theta * 1i)});
     }
   }];
 }
@@ -870,15 +869,15 @@ def RxOp : OneTargetParamOp<"rx", [Rotation]> {
   let description = [{
     Matrix representation:
     ```
-    Rx(t) =  exp(-(i * t/2) * X) |  cos(t/2)  -isin(t/2) |
-                                 | -isin(t/2)  cos(t/2)  |
+    Rx(ϴ) =  exp(-(i * ϴ/2) * X) = |  cos(ϴ/2)  -isin(ϴ/2) |
+                                   | -isin(ϴ/2)  cos(ϴ/2)  |
     ```
 
     Circuit symbol:
     ```
-        ┌────┐
-    q0: ┤ Rx ├
-        └────┘
+        ┌───────┐
+    q: ─┤ Rx(ϴ) ├─
+        └───────┘
     ```
   }];
   let extraClassDeclaration = OpBaseDeclaration # [{
@@ -892,13 +891,13 @@ def RxOp : OneTargetParamOp<"rx", [Rotation]> {
     /// compile-time constant.
     void getOperatorMatrix(Matrix &matrix) {
       using namespace std::complex_literals;
-      auto theta = getParameterAsDouble();
-      if (!theta)
+      double theta;
+      if (failed(getParameterAsDouble(theta)))
         return;
       if (getIsAdj())
-        *theta *= -1;
-      matrix.assign({      std::cos(*theta / 2.), -1i * std::sin(*theta / 2.),
-                     -1i * std::sin(*theta / 2.), std::cos(*theta / 2.)});
+        theta *= -1;
+      matrix.assign({      std::cos(theta / 2.), -1i * std::sin(theta / 2.),
+                     -1i * std::sin(theta / 2.), std::cos(theta / 2.)});
     }
   }];
 }
@@ -909,16 +908,15 @@ def PhasedRxOp : QuakeOperator<"phased_rx",
   let description = [{
     Matrix representation:
     ```
-    PhasedRx(ϴ,φ) =
-               | cos(ϴ/2)                  -exp(i(pi/2-φ) * sin(ϴ/2)   |
-               | exp(i(φ-pi/2)) * sin(ϴ/2)          cos(ϴ/2)           |
+    PhasedRx(ϴ,φ) = |        cos(ϴ/2)        -iexp(-iφ) * sin(ϴ/2) |
+                    | -iexp(iφ)) * sin(ϴ/2)         cos(ϴ/2)       |
     ```
 
     Circuit symbol:
     ```
-        ┌──────────┐
-    q0: ┤ PhasedRx ├
-        └──────────┘
+        ┌───────────────┐
+    q: ─┤ PhasedRx(ϴ,φ) ├─
+        └───────────────┘
     ```
   }];
   let extraClassDeclaration = OpBaseDeclaration # [{
@@ -927,22 +925,27 @@ def PhasedRxOp : QuakeOperator<"phased_rx",
     //===------------------------------------------------------------------===//
     using Matrix = mlir::SmallVectorImpl<std::complex<double>>;
 
+    /// Set `matrix` to the operator's unitary matrix as a column-major array if
+    /// it can be computed at compilation time, i.e., if the parameter is a
+    /// compile-time constant.
     void getOperatorMatrix(Matrix &matrix) {
       using namespace std::complex_literals;
-      auto theta = getParameterAsDouble(0);
-      auto rxPhi = getParameterAsDouble(1);
-      if (!theta || !rxPhi)
+
+      // Get parameters
+      double theta;
+      double phi;
+      if (failed(getParameterAsDouble(theta)) ||
+          failed(getParameterAsDouble(phi, /*i =*/1)))
         return;
-      if (getIsAdj()) {
-        *theta *= -1;
-      }
-      auto phi = *rxPhi - M_PI_2;
-      auto lambda = -(*rxPhi) + M_PI_2;
+
+      if (getIsAdj())
+        theta *= -1;
+
       matrix.assign({
-        std::cos(*theta / 2.),
-        std::exp(phi * 1i) * std::sin(*theta / 2.),
-        -std::exp(lambda * 1i) * std::sin(*theta / 2.),
-        std::exp(1i * (phi + lambda)) * std::cos(*theta / 2.)
+        std::cos(theta / 2.),
+        -1i * std::exp(1i * phi ) * std::sin(theta / 2.),
+        -1i * std::exp(-1i * phi) * std::sin(theta / 2.),
+        std::cos(theta / 2.)
       });
     }
   }];
@@ -953,15 +956,15 @@ def RyOp : OneTargetParamOp<"ry", [Rotation]> {
   let description = [{
     Matrix representation:
     ```
-    Ry(t) =  exp(-(i * t/2) * Y) | cos(t/2)  -sin(t/2) |
-                                 | sin(t/2)   cos(t/2) |
+    Ry(ϴ) = exp(-(i * ϴ/2) * Y) = | cos(ϴ/2)  -sin(ϴ/2) |
+                                  | sin(ϴ/2)   cos(ϴ/2) |
     ```
 
     Circuit symbol:
     ```
-        ┌────┐
-    q0: ┤ Ry ├
-        └────┘
+        ┌───────┐
+    q: ─┤ Ry(ϴ) ├─
+        └───────┘
     ```
   }];
   let extraClassDeclaration = OpBaseDeclaration # [{
@@ -974,13 +977,16 @@ def RyOp : OneTargetParamOp<"ry", [Rotation]> {
     /// it can be computed at compilation time, i.e., if the parameter is a
     /// compile-time constant.
     void getOperatorMatrix(Matrix &matrix) {
-      auto theta = getParameterAsDouble();
-      if (!theta)
+      // Get parameter
+      double theta;
+      if (failed(getParameterAsDouble(theta)))
         return;
+
       if (getIsAdj())
-        *theta *= -1;
-      matrix.assign({std::cos(*theta / 2.), -std::sin(*theta / 2.),
-                     std::sin(*theta / 2.), std::cos(*theta / 2.)});
+        theta *= -1;
+
+      matrix.assign({std::cos(theta / 2.), std::sin(theta / 2.),
+                     -std::sin(theta / 2.), std::cos(theta / 2.)});
     }
   }];
 }
@@ -990,15 +996,15 @@ def RzOp : OneTargetParamOp<"rz", [Rotation]> {
   let description = [{
     Matrix representation:
     ```
-    Rz(t) =  exp(-(i * t/2) * Z) | exp(-i*t/2)      0      |
-                                 |     0       exp(i*t/2), |
+    Rz(λ) = exp(-iλ/2 * Z) = | exp(-iλ/2)      0     |
+                             |     0       exp(iλ/2) |
     ```
 
     Circuit symbol:
     ```
-        ┌────┐
-    q0: ┤ Rz ├
-        └────┘
+        ┌───────┐
+    q: ─┤ Rz(λ) ├─
+        └───────┘
     ```
   }];
   let extraClassDeclaration = OpBaseDeclaration # [{
@@ -1012,13 +1018,17 @@ def RzOp : OneTargetParamOp<"rz", [Rotation]> {
     /// compile-time constant.
     void getOperatorMatrix(Matrix &matrix) {
       using namespace std::complex_literals;
-      auto theta = getParameterAsDouble();
-      if (!theta)
+
+      // Get parameter
+      double theta;
+      if (failed(getParameterAsDouble(theta)))
         return;
+
       if (getIsAdj())
-        *theta *= -1;
-      matrix.assign({std::exp( -1i * (*theta) / 2.), 0,
-                     0, std::exp(1i * (*theta) / 2.)});
+        theta *= -1;
+
+      matrix.assign({std::exp(-1i * theta / 2.), 0,
+                     0, std::exp(1i * theta / 2.)});
     }
   }];
 }
@@ -1034,15 +1044,15 @@ def U2Op : QuakeOperator<"u2", [NumParameters<2>, NumTargets<1>, Rotation]> {
 
     Matrix representation:
     ```
-    U2(φ,λ) = 1/sqrt(2) | 1        -exp(iλ)       |
-                        | exp(iφ)   exp(i(λ + φ)) |
+    U2(φ,λ) = 1/sqrt(2) * | 1        -exp(iλ)       |
+                          | exp(iφ)   exp(i(λ + φ)) |
     ```
 
     Circuit symbol:
     ```
-        ┌────┐
-    q0: ┤ U2 ├
-        └────┘
+        ┌─────────┐
+    q: ─┤ U2(φ,λ) ├─
+        └─────────┘
     ```
   }];
   let extraClassDeclaration = OpBaseDeclaration # [{
@@ -1057,19 +1067,24 @@ def U2Op : QuakeOperator<"u2", [NumParameters<2>, NumTargets<1>, Rotation]> {
     void getOperatorMatrix(Matrix &matrix) {
       using namespace llvm::numbers;
       using namespace std::complex_literals;
-      auto phi = getParameterAsDouble(0);
-      auto lambda = getParameterAsDouble(1);
-      if (!phi || lambda)
+
+      // Get parameters
+      double phi;
+      double lambda;
+      if (failed(getParameterAsDouble(phi)) ||
+          failed(getParameterAsDouble(lambda, /*i =*/1)))
         return;
+
       if (getIsAdj()) {
-        *phi *= -1;
-        *lambda *= -1;
+        phi *= -1;
+        lambda *= -1;
       }
+
       matrix.assign({
         inv_sqrt2,
-        inv_sqrt2 * std::exp(*phi * 1i),
-        -inv_sqrt2 * std::exp(*lambda * 1i),
-        inv_sqrt2 * std::exp(1i * (*phi + *lambda))
+        inv_sqrt2 * std::exp(phi * 1i),
+        -inv_sqrt2 * std::exp(lambda * 1i),
+        inv_sqrt2 * std::exp(1i * (phi + lambda))
       });
     }
   }];
@@ -1090,9 +1105,9 @@ def U3Op : QuakeOperator<"u3", [NumParameters<3>, NumTargets<1>, Rotation]> {
 
     Circuit symbol:
     ```
-        ┌────┐
-    q0: ┤ U3 ├
-        └────┘
+        ┌───────────┐
+    q: ─┤ U3(ϴ,φ,λ) ├─
+        └───────────┘
     ```
   }];
   let extraClassDeclaration = OpBaseDeclaration # [{
@@ -1106,21 +1121,27 @@ def U3Op : QuakeOperator<"u3", [NumParameters<3>, NumTargets<1>, Rotation]> {
     /// compile-time constant.
     void getOperatorMatrix(Matrix &matrix) {
       using namespace std::complex_literals;
-      auto theta = getParameterAsDouble(0);
-      auto phi = getParameterAsDouble(1);
-      auto lambda = getParameterAsDouble(2);
-      if (!theta || !phi || lambda)
+
+      // Get parameters
+      double theta;
+      double phi;
+      double lambda;
+      if (failed(getParameterAsDouble(theta)) ||
+          failed(getParameterAsDouble(phi, /*i =*/1)) ||
+          failed(getParameterAsDouble(lambda, /*i =*/2)))
         return;
+
       if (getIsAdj()) {
-        *theta *= -1;
-        *phi *= -1;
-        *lambda *= -1;
+        theta *= -1;
+        phi *= -1;
+        lambda *= -1;
       }
+
       matrix.assign({
-        std::cos(*theta / 2.),
-        std::exp(*phi * 1i) * std::sin(*theta / 2.),
-        -std::exp(*lambda * 1i) * std::sin(*theta / 2.),
-        std::exp(1i * (*phi + *lambda)) * std::cos(*theta / 2.)
+        std::cos(theta / 2.),
+        std::exp(phi * 1i) * std::sin(theta / 2.),
+        -std::exp(lambda * 1i) * std::sin(theta / 2.),
+        std::exp(1i * (phi + lambda)) * std::cos(theta / 2.)
       });
     }
   }];
