@@ -66,8 +66,8 @@ CUDAQ_TEST(H2MoleculeTester, checkUCCSD) {
 
     cudaq::optimizers::cobyla optimizer;
     auto res = cudaq::vqe(ansatz, molecule.hamiltonian, optimizer,
-                          cudaq::uccsd_num_parameters(2 * molecule.n_orbitals,
-                                                      molecule.n_electrons));
+                          cudaq::uccsd_num_parameters(molecule.n_electrons,
+                                                      2 * molecule.n_orbitals));
     EXPECT_NEAR(-1.137, std::get<0>(res), 1e-3);
 
     // Get the true ground state eigenvector

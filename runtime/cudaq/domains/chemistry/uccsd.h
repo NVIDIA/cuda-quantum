@@ -472,7 +472,7 @@ __qpu__ void doubletExcitation(cudaq::qspan<> qubits, double theta,
   rx(M_PI_2, qubits[p]);
 }
 
-std::size_t uccsd_num_parameters(std::size_t nQubits, std::size_t nElectrons) {
+std::size_t uccsd_num_parameters(std::size_t nElectrons, std::size_t nQubits) {
   auto [singles, doubles] = generateExcitations(nElectrons, nQubits);
   auto ns = nQubits / 2;
   auto no = std::ceil(nElectrons / 2);
@@ -481,6 +481,10 @@ std::size_t uccsd_num_parameters(std::size_t nQubits, std::size_t nElectrons) {
   return doubles.size() + ns2;
 }
 
+/// @brief Generate the unitary coupled cluster singlet doublet ansatz on the
+/// given number of qubits and electrons. This function creates the ansatz on an
+/// existing kernel_builder instance. It takes a vector of rotation
+/// parameters as input as a QuakeValue.
 template <typename KernelBuilder>
 void uccsd(KernelBuilder &kernel, QuakeValue &qubits, QuakeValue &thetas,
            std::size_t nElectrons, std::size_t nOrbitals) {
@@ -523,6 +527,10 @@ void uccsd(KernelBuilder &kernel, QuakeValue &qubits, QuakeValue &thetas,
   }
 }
 
+/// @brief Generate the unitary coupled cluster singlet doublet ansatz on the
+/// given number of qubits and electrons. Takes a vector of rotation
+/// parameters as input, the size of which must correspond to the output of
+/// the `uccsd_num_parameters` function.
 __qpu__ void uccsd(cudaq::qspan<> qubits, std::vector<double> thetas,
                    std::size_t nElectrons) {
   auto nOrbitals = qubits.size();

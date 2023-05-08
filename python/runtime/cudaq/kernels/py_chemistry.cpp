@@ -13,6 +13,9 @@
 namespace cudaq {
 
 void bindChemistry(py::module &mod) {
+  mod.def("uccsd_num_parameters", &cudaq::uccsd_num_parameters,
+          "For the given number of electrons and qubits, return the required "
+          "number of uccsd parameters.");
   mod.def("uccsd", &cudaq::uccsd<kernel_builder<>>,
           "Generate the unitary coupled cluster singlet doublet CUDA Quantum "
           "kernel. This function takes as input the existing `cudaq.Kernel` to "

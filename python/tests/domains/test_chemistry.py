@@ -45,9 +45,11 @@ def testUCCSD():
     kernel.x(qubits[1])
     cudaq.kernels.uccsd(kernel, qubits, thetas, numElectrons, numQubits)
 
+    num_parameters = cudaq.kernels.uccsd_num_parameters(numElectrons, numQubits)
+
     # Run VQE
     optimizer = cudaq.optimizers.COBYLA()
-    energy, params = cudaq.vqe(kernel, molecule, optimizer, parameter_count=2)
+    energy, params = cudaq.vqe(kernel, molecule, optimizer, parameter_count=num_parameters)
     print(energy, params)
     assert np.isclose(-1.137, energy, rtol=1e-3)
 
