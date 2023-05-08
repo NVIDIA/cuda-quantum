@@ -12,28 +12,44 @@ import numpy as np
 
 import cudaq
 
-def assert_close(want, got, tolerance=1.e-5) -> bool:
-    return abs(want - got) < tolerance
-
+openfermion_pyscf = pytest.importorskip('openfermionpyscf')
 
 def test_HamiltonianGenH2Sto3g():
+
     geometry = [('H', (0.,0.,0.)), ('H', (0.,0.,.7474))]
     molecule, data = cudaq.chemistry.create_molecular_hamiltonian(geometry, 'sto-3g', 1, 0)
     energy = molecule.to_matrix().minimal_eigenvalue()
-    assert_close(energy, -1.137, 1e-3)
+    assert np.isclose(energy, -1.137, rtol=1e-3)
 
 
 def test_HamiltonianGenH2631g():
     geometry = [('H', (0.,0.,0.)), ('H', (0.,0.,.7474))]
     molecule, data = cudaq.chemistry.create_molecular_hamiltonian(geometry, '6-31g', 1, 0)
     energy = molecule.to_matrix().minimal_eigenvalue()
-    assert_close(energy, -1.1516, 1e-3)  
+    assert np.isclose(energy, -1.1516, rtol=1e-3)  
 
-# FIXME implement uccsd in python 
-# def testUCCSD():
-#     geometry = [('H', (0.,0.,0.)), ('H', (0.,0.,.7474))]
-#     molecule, data = cudaq.chemistry.create_molecular_hamiltonian(geometry, 'sto-3g', 1, 0)
+def testUCCSD():
+    geometry = [('H', (0., 0., 0.)), ('H', (0., 0., .7474))]
+    molecule, data = cudaq.chemistry.create_molecular_hamiltonian(
+        geometry, 'sto-3g', 1, 0)
 
+    # Get the number of fermions and orbitals / qubits
+    numElectrons = data.n_electrons
+    numQubits = 2 * data.n_orbitals
+
+    # create the ansatz
+    kernel, thetas = cudaq.make_kernel(list)
+    qubits = kernel.qalloc(4)
+    # hartree fock
+    kernel.x(qubits[0])
+    kernel.x(qubits[1])
+    cudaq.kernels.uccsd(kernel, qubits, thetas, numElectrons, numQubits)
+
+    # Run VQE
+    optimizer = cudaq.optimizers.COBYLA()
+    energy, params = cudaq.vqe(kernel, molecule, optimizer, parameter_count=2)
+    print(energy, params)
+    assert np.isclose(-1.137, energy, rtol=1e-3)
 
 # leave for gdb debugging
 if __name__ == "__main__":

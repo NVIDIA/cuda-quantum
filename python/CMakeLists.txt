@@ -38,11 +38,12 @@ pybind11_add_module(_pycudaq
                      runtime/cudaq/algorithms/py_vqe.cpp
                      runtime/cudaq/spin/py_matrix.cpp
                      runtime/cudaq/spin/py_spin_op.cpp
+                     runtime/cudaq/kernels/py_chemistry.cpp
                      runtime/common/py_ObserveResult.cpp
                      runtime/common/py_SampleResult.cpp                     
                      runtime/common/py_NoiseModel.cpp)
 
-                     
+target_compile_options(_pycudaq PRIVATE -Wno-attributes)                     
 target_include_directories(_pycudaq PRIVATE .)
 target_link_libraries(_pycudaq PUBLIC nvqir
     PRIVATE 

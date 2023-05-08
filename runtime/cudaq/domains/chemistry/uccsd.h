@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "cudaq/builder/kernel_builder.h"
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <iostream>
@@ -18,7 +19,7 @@ using DoubleIndices = std::vector<std::size_t>;
 using Excitations =
     std::tuple<std::vector<SingleIndices>, std::vector<DoubleIndices>>;
 
-Excitations generateExitations(std::size_t nElectrons, std::size_t nOrbitals) {
+Excitations generateExcitations(std::size_t nElectrons, std::size_t nOrbitals) {
   std::vector<double> sz(nOrbitals);
   for (auto &i : cudaq::range(nOrbitals))
     sz[i] = (i % 2 == 0) ? 0.5 : -0.5;
@@ -39,6 +40,49 @@ Excitations generateExitations(std::size_t nElectrons, std::size_t nOrbitals) {
             doubles.emplace_back(DoubleIndices{s, r, q, p});
 
   return std::make_tuple(singles, doubles);
+}
+
+template <typename KernelBuilder>
+void singletExcitation(KernelBuilder &&kernel, QuakeValue &qubits,
+                       QuakeValue &theta, const SingleIndices &indices) {
+  auto r = indices.front();
+  auto p = indices.back();
+
+  kernel.rx(-M_PI_2, qubits[r]);
+  kernel.h(qubits[p]);
+
+  std::vector<std::pair<std::size_t, std::size_t>> cnots;
+
+  for (std::size_t i = r; i < p; i++)
+    cnots.emplace_back(i, i + 1);
+
+  auto reversed = cnots;
+  std::reverse(reversed.begin(), reversed.end());
+
+  for (auto &[i, j] : cnots)
+    kernel.template x<cudaq::ctrl>(qubits[i], qubits[j]);
+
+  kernel.rz(0.5 * theta, qubits[p]);
+
+  for (auto &[i, j] : reversed)
+    kernel.template x<cudaq::ctrl>(qubits[i], qubits[j]);
+
+  kernel.rx(M_PI_2, qubits[r]);
+  kernel.h(qubits[p]);
+
+  kernel.h(qubits[r]);
+  kernel.rx(-M_PI_2, qubits[p]);
+
+  for (auto &[i, j] : cnots)
+    kernel.template x<cudaq::ctrl>(qubits[i], qubits[j]);
+
+  kernel.rz(-0.5 * theta, qubits[p]);
+
+  for (auto &[i, j] : reversed)
+    kernel.template x<cudaq::ctrl>(qubits[i], qubits[j]);
+
+  kernel.h(qubits[r]);
+  kernel.rx(M_PI_2, qubits[p]);
 }
 
 __qpu__ void singletExcitation(cudaq::qspan<> qubits, double theta,
@@ -81,6 +125,179 @@ __qpu__ void singletExcitation(cudaq::qspan<> qubits, double theta,
 
   h(qubits[r]);
   rx(M_PI_2, qubits[p]);
+}
+
+template <typename KernelBuilder>
+void doubletExcitation(KernelBuilder &kernel, QuakeValue &qubits,
+                       QuakeValue &theta, const DoubleIndices &d1,
+                       const DoubleIndices &d2) {
+  auto s = d1.front();
+  auto r = d1.back();
+  auto q = d2.front();
+  auto p = d2.back();
+
+  std::vector<std::pair<std::size_t, std::size_t>> cnots;
+  for (auto &i : cudaq::range(d1.size() - 1))
+    cnots.emplace_back(d1[i], d1[i + 1]);
+
+  cnots.emplace_back(r, q);
+
+  for (auto &i : cudaq::range(d2.size() - 1))
+    cnots.emplace_back(d2[i], d2[i + 1]);
+
+  auto reversed_cnots = cnots;
+  std::reverse(reversed_cnots.begin(), reversed_cnots.end());
+
+  kernel.h(qubits[s]);
+  kernel.h(qubits[r]);
+  kernel.rx(-M_PI_2, qubits[q]);
+  kernel.h(qubits[p]);
+
+  for (auto &[i, j] : cnots)
+    kernel.template x<cudaq::ctrl>(qubits[i], qubits[j]);
+
+  kernel.rz((1. / 8.0) * theta, qubits[p]);
+
+  for (auto &[i, j] : reversed_cnots)
+    kernel.template x<cudaq::ctrl>(qubits[i], qubits[j]);
+
+  kernel.h(qubits[s]);
+  kernel.h(qubits[r]);
+  kernel.rx(M_PI_2, qubits[q]);
+  kernel.h(qubits[p]);
+
+  // layer 2
+  kernel.rx(-M_PI_2, qubits[s]);
+  kernel.h(qubits[r]);
+  kernel.rx(-M_PI_2, qubits[q]);
+  kernel.rx(-M_PI_2, qubits[p]);
+
+  for (auto &[i, j] : cnots)
+    kernel.template x<cudaq::ctrl>(qubits[i], qubits[j]);
+
+  kernel.rz((1. / 8.0) * theta, qubits[p]);
+
+  for (auto &[i, j] : reversed_cnots)
+    kernel.template x<cudaq::ctrl>(qubits[i], qubits[j]);
+
+  kernel.rx(M_PI_2, qubits[s]);
+  kernel.h(qubits[r]);
+  kernel.rx(M_PI_2, qubits[q]);
+  kernel.rx(M_PI_2, qubits[p]);
+
+  // layer 3
+  kernel.h(qubits[s]);
+  kernel.rx(-M_PI_2, qubits[r]);
+  kernel.rx(-M_PI_2, qubits[q]);
+  kernel.rx(-M_PI_2, qubits[p]);
+
+  for (auto &[i, j] : cnots)
+    kernel.template x<cudaq::ctrl>(qubits[i], qubits[j]);
+
+  kernel.rz((1. / 8.0) * theta, qubits[p]);
+
+  for (auto &[i, j] : reversed_cnots)
+    kernel.template x<cudaq::ctrl>(qubits[i], qubits[j]);
+
+  kernel.h(qubits[s]);
+  kernel.rx(M_PI_2, qubits[r]);
+  kernel.rx(M_PI_2, qubits[q]);
+  kernel.rx(M_PI_2, qubits[p]);
+
+  // layer 4
+  kernel.h(qubits[s]);
+  kernel.h(qubits[r]);
+  kernel.h(qubits[q]);
+  kernel.rx(-M_PI_2, qubits[p]);
+
+  for (auto &[i, j] : cnots)
+    kernel.template x<cudaq::ctrl>(qubits[i], qubits[j]);
+
+  kernel.rz((1. / 8.0) * theta, qubits[p]);
+
+  for (auto &[i, j] : reversed_cnots)
+    kernel.template x<cudaq::ctrl>(qubits[i], qubits[j]);
+
+  kernel.h(qubits[s]);
+  kernel.h(qubits[r]);
+  kernel.h(qubits[q]);
+  kernel.rx(M_PI_2, qubits[p]);
+
+  // layer 5
+  kernel.rx(-M_PI_2, qubits[s]);
+  kernel.h(qubits[r]);
+  kernel.h(qubits[q]);
+  kernel.h(qubits[p]);
+
+  for (auto &[i, j] : cnots)
+    kernel.template x<cudaq::ctrl>(qubits[i], qubits[j]);
+
+  kernel.rz((-1. / 8.0) * theta, qubits[p]);
+
+  for (auto &[i, j] : reversed_cnots)
+    kernel.template x<cudaq::ctrl>(qubits[i], qubits[j]);
+
+  kernel.rx(M_PI_2, qubits[s]);
+  kernel.h(qubits[r]);
+  kernel.h(qubits[q]);
+  kernel.h(qubits[p]);
+
+  // layer 6
+  kernel.h(qubits[s]);
+  kernel.rx(-M_PI_2, qubits[r]);
+  kernel.h(qubits[q]);
+  kernel.h(qubits[p]);
+
+  for (auto &[i, j] : cnots)
+    kernel.template x<cudaq::ctrl>(qubits[i], qubits[j]);
+
+  kernel.rz((-1. / 8.0) * theta, qubits[p]);
+
+  for (auto &[i, j] : reversed_cnots)
+    kernel.template x<cudaq::ctrl>(qubits[i], qubits[j]);
+
+  kernel.h(qubits[s]);
+  kernel.rx(M_PI_2, qubits[r]);
+  kernel.h(qubits[q]);
+  kernel.h(qubits[p]);
+
+  // layer 7
+  kernel.rx(-M_PI_2, qubits[s]);
+  kernel.rx(-M_PI_2, qubits[r]);
+  kernel.rx(-M_PI_2, qubits[q]);
+  kernel.h(qubits[p]);
+
+  for (auto &[i, j] : cnots)
+    kernel.template x<cudaq::ctrl>(qubits[i], qubits[j]);
+
+  kernel.rz((-1. / 8.0) * theta, qubits[p]);
+
+  for (auto &[i, j] : reversed_cnots)
+    kernel.template x<cudaq::ctrl>(qubits[i], qubits[j]);
+
+  kernel.rx(M_PI_2, qubits[s]);
+  kernel.rx(M_PI_2, qubits[r]);
+  kernel.rx(M_PI_2, qubits[q]);
+  kernel.h(qubits[p]);
+
+  // layer 8
+  kernel.rx(-M_PI_2, qubits[s]);
+  kernel.rx(-M_PI_2, qubits[r]);
+  kernel.h(qubits[q]);
+  kernel.rx(-M_PI_2, qubits[p]);
+
+  for (auto &[i, j] : cnots)
+    kernel.template x<cudaq::ctrl>(qubits[i], qubits[j]);
+
+  kernel.rz((-1. / 8.0) * theta, qubits[p]);
+
+  for (auto &[i, j] : reversed_cnots)
+    kernel.template x<cudaq::ctrl>(qubits[i], qubits[j]);
+
+  kernel.rx(M_PI_2, qubits[s]);
+  kernel.rx(M_PI_2, qubits[r]);
+  kernel.h(qubits[q]);
+  kernel.rx(M_PI_2, qubits[p]);
 }
 
 __qpu__ void doubletExcitation(cudaq::qspan<> qubits, double theta,
@@ -256,7 +473,7 @@ __qpu__ void doubletExcitation(cudaq::qspan<> qubits, double theta,
 }
 
 std::size_t uccsd_num_parameters(std::size_t nQubits, std::size_t nElectrons) {
-  auto [singles, doubles] = generateExitations(nElectrons, nQubits);
+  auto [singles, doubles] = generateExcitations(nElectrons, nQubits);
   auto ns = nQubits / 2;
   auto no = std::ceil(nElectrons / 2);
   auto nv = ns - no;
@@ -264,10 +481,52 @@ std::size_t uccsd_num_parameters(std::size_t nQubits, std::size_t nElectrons) {
   return doubles.size() + ns2;
 }
 
+template <typename KernelBuilder>
+void uccsd(KernelBuilder &kernel, QuakeValue &qubits, QuakeValue &thetas,
+           std::size_t nElectrons, std::size_t nOrbitals) {
+  // auto nOrbitals = qubits.size();
+  auto [singles, doubles] = generateExcitations(nElectrons, nOrbitals);
+  std::size_t thetaCounter = 0;
+  auto ns = nOrbitals / 2;
+  auto no = std::ceil(nElectrons / 2);
+  auto nv = ns - no;
+  auto ns2 = no * nv;
+
+  // doubles
+  std::vector<std::pair<std::vector<std::size_t>, std::vector<std::size_t>>>
+      double_processed;
+  for (auto &el : doubles) {
+    auto s = el[0];
+    auto r = el[1];
+    auto q = el[2];
+    auto p = el[3];
+    std::vector<std::size_t> d1, d2;
+    for (std::size_t i = s; i < r + 1; i++)
+      d1.emplace_back(i);
+    for (std::size_t i = q; i < p + 1; i++)
+      d2.emplace_back(i);
+    double_processed.emplace_back(d1, d2);
+  }
+
+  for (auto &el : double_processed) {
+    auto t = thetas[thetaCounter++];
+    doubletExcitation(kernel, qubits, t, el.first, el.second);
+  }
+
+  // singles
+  for (std::size_t i = 0; auto &single : singles) {
+    if (i++ == ns2)
+      break;
+
+    auto t = thetas[thetaCounter++];
+    singletExcitation(kernel, qubits, t, single);
+  }
+}
+
 __qpu__ void uccsd(cudaq::qspan<> qubits, std::vector<double> thetas,
                    std::size_t nElectrons) {
   auto nOrbitals = qubits.size();
-  auto [singles, doubles] = generateExitations(nElectrons, nOrbitals);
+  auto [singles, doubles] = generateExcitations(nElectrons, nOrbitals);
   std::size_t thetaCounter = 0;
   auto ns = nOrbitals / 2;
   auto no = std::ceil(nElectrons / 2);

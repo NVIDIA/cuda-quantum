@@ -14,7 +14,7 @@
 
 CUDAQ_TEST(GenerateExcitationsTester, checkSimple) {
 
-  auto [singles, doubles] = cudaq::generateExitations(2, 4);
+  auto [singles, doubles] = cudaq::generateExcitations(2, 4);
 
   EXPECT_EQ(2, singles.size());
   EXPECT_EQ(1, doubles.size());

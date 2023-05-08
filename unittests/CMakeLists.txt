@@ -123,21 +123,22 @@ add_subdirectory(Optimizer)
 
 if (CUDAQ_ENABLE_PYTHON)
   find_package(Python COMPONENTS Interpreter)
-  execute_process(COMMAND ${Python_EXECUTABLE} -c "import pyscf"
+  execute_process(COMMAND ${Python_EXECUTABLE} -c "import openfermionpyscf"
     OUTPUT_VARIABLE PYSCF_output
     ERROR_VARIABLE  PYSCF_error
     RESULT_VARIABLE PYSCF_result)
 
   if(NOT ${PYSCF_result} EQUAL 0)
-    message(STATUS "PySCF not available for chemistry tests.")
+    message(STATUS "OpenFermion PySCF not available for chemistry tests.")
     return()
   endif()
 
-  message(STATUS "PySCF found, enabling chemistry tests.")
+  message(STATUS "OpenFermion PySCF found, enabling chemistry tests.")
   add_executable(test_domains main.cpp domains/ChemistryTester.cpp)
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
     target_link_options(test_domains PRIVATE -Wl,--no-as-needed)
   endif()
+  target_compile_definitions(test_domains PRIVATE -DNVQIR_BACKEND_NAME=qpp)
   target_include_directories(test_domains PRIVATE .)
   target_link_libraries(test_domains
     PRIVATE 
