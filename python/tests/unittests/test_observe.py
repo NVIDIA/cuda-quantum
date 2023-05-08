@@ -41,8 +41,7 @@ def test_observe_result():
     # so this must be a bounded loop.
     # Extract the register name from the spin term and check
     # that our `SampleResult` is as expected.
-    for index in range(hamiltonian.get_term_count()):
-        sub_term = hamiltonian[index]
+    for index, sub_term in enumerate(hamiltonian):
         print(sub_term)
         # Extract the register name from the spin term.
         name = str(sub_term).split(" ")[1].rstrip()
@@ -107,8 +106,7 @@ def test_observe_no_params(want_state, want_expectation, shots_count):
         if '__global__' in register_names:
             register_names.remove('__global__')
         # Check that each register is in the proper state.
-        for index in range(hamiltonian.get_term_count()):
-            sub_term = hamiltonian[index]
+        for index, sub_term in enumerate(hamiltonian):
             # Extract the register name from the spin term.
             got_name = str(sub_term).split(" ")[1].rstrip()
             # Pull the counts for that hamiltonian sub term from the
@@ -173,8 +171,7 @@ def test_observe_single_param(angle, want_state, want_expectation, shots_count):
         if '__global__' in register_names:
             register_names.remove('__global__')
         # Check that each register is in the proper state.
-        for index in range(hamiltonian.get_term_count()):
-            sub_term = hamiltonian[index]
+        for index, sub_term in enumerate(hamiltonian):
             # Extract the register name from the spin term.
             got_name = str(sub_term).split(" ")[1].rstrip()
             # Pull the counts for that hamiltonian sub term from the
@@ -253,8 +250,7 @@ def test_observe_multi_param(angle_0, angle_1, angles, want_state,
         if '__global__' in register_names:
             register_names.remove('__global__')
         # Check that each register is in the proper state.
-        for index in range(hamiltonian.get_term_count()):
-            sub_term = hamiltonian[index]
+        for index, sub_term in enumerate(hamiltonian):
             # Extract the register name from the spin term.
             got_name = str(sub_term).split(" ")[1].rstrip()
             # Pull the counts for that hamiltonian sub term from the
@@ -373,8 +369,7 @@ def test_observe_async_single_param(angle, want_state, want_expectation,
         if '__global__' in register_names:
             register_names.remove('__global__')
         # Check that each register is in the proper state.
-        for index in range(hamiltonian.get_term_count()):
-            sub_term = hamiltonian[index]
+        for index, sub_term in enumerate(hamiltonian):
             # Extract the register name from the spin term.
             got_name = str(sub_term).split(" ")[1].rstrip()
             # Pull the counts for that hamiltonian sub term from the
@@ -457,8 +452,7 @@ def test_observe_async_multi_param(angle_0, angle_1, angles, want_state,
         if '__global__' in register_names:
             register_names.remove('__global__')
         # Check that each register is in the proper state.
-        for index in range(hamiltonian.get_term_count()):
-            sub_term = hamiltonian[index]
+        for index, sub_term in enumerate(hamiltonian):
             # Extract the register name from the spin term.
             got_name = str(sub_term).split(" ")[1].rstrip()
             # Pull the counts for that hamiltonian sub term from the
@@ -545,8 +539,7 @@ def test_observe_numpy_array(angles, want_state, want_expectation):
     if '__global__' in register_names:
         register_names.remove('__global__')
         # Check that each register is in the proper state.
-    for index in range(hamiltonian.get_term_count()):
-        sub_term = hamiltonian[index]
+    for index, sub_term in enumerate(hamiltonian):
         # Extract the register name from the spin term.
         got_name = str(sub_term).split(" ")[1].rstrip()
         # Pull the counts for that hamiltonian sub term from the

@@ -52,7 +52,7 @@ CUDAQ_TEST(ObserveResult, checkSimple) {
   printf("Energy from observe_result with shots %lf\n", obs_res2.exp_val_z());
   obs_res2.dump();
 
-  for (const auto& term : h) //td::size_t i = 0; i < h.num_terms(); i++)
+  for (const auto &term : h) // td::size_t i = 0; i < h.num_terms(); i++)
     if (!term.is_identity())
       printf("Fine-grain data access: %s = %lf\n", term.to_string().data(),
              obs_res2.exp_val_z(term));

@@ -113,7 +113,7 @@ public:
   using key_type = spin_op_term;
   using mapped_type = std::complex<double>;
 
-  bool empty() const {return terms.empty(); }
+  bool empty() const { return terms.empty(); }
 
   template <typename QualifiedSpinOp>
   struct iterator {
@@ -125,8 +125,8 @@ public:
     using iter_type =
         std::conditional_t<std::is_same_v<QualifiedSpinOp, spin_op>, _iter_type,
                            _const_iter_type>;
-    iterator(iterator&&) = default;
-    
+    iterator(iterator &&) = default;
+
     iterator(iter_type i) : iter(i) {}
     ~iterator() {
       for (auto &c : created) {
@@ -137,9 +137,9 @@ public:
     }
 
     QualifiedSpinOp &operator*() {
-      // We have to store pointers to spin_op terms here 
-      // so that we can return references or pointers to them 
-      // based on the current state of the unordered_map iterator. 
+      // We have to store pointers to spin_op terms here
+      // so that we can return references or pointers to them
+      // based on the current state of the unordered_map iterator.
       created.emplace_back(std::make_unique<spin_op>(*iter));
       return *created.back();
     }

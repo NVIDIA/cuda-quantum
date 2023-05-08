@@ -129,7 +129,6 @@ TEST(SpinOpTester, canBuildDeuteron) {
 
   EXPECT_EQ(5, H.num_terms());
   EXPECT_EQ(2, H.num_qubits());
-
 }
 
 TEST(SpinOpTester, checkGetMatrix) {

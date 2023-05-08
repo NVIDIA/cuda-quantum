@@ -156,7 +156,6 @@ spin_op::iterator<spin_op> spin_op::end() {
   return iterator<spin_op>(endIter);
 }
 
-
 spin_op::iterator<const spin_op> spin_op::begin() const {
   auto startIter = terms.cbegin();
   return iterator<const spin_op>(startIter);
