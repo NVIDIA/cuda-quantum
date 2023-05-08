@@ -10,6 +10,7 @@
 #include "Gates.h"
 #include "qpp.h"
 #include <iostream>
+#include <set>
 
 namespace nvqir {
 
@@ -100,8 +101,31 @@ protected:
     }
   }
 
+  /// @brief Override the default sized allocation of qubits
+  /// here to be a bit more efficient than the default implementation
+  void addQubitsToState(std::size_t count) override {
+    if (count == 0)
+      return;
+
+    if (state.size() == 0) {
+      // If this is the first time, allocate the state
+      state = qpp::ket::Zero(stateDimension);
+      state(0) = 1.0;
+      return;
+    }
+
+    // If we are resizing an existing, allocate
+    // a zero state on a n qubit, and Kron-prod
+    // that with the existing state.
+    qpp::ket zero_state = qpp::ket::Zero((1UL << count));
+    zero_state(0) = 1.0;
+    state = qpp::kron(state, zero_state);
+
+    return;
+  }
+
   /// @brief Reset the qubit state.
-  void resetQubitStateImpl() override {
+  void deallocateStateImpl() override {
     StateType tmp;
     state = tmp;
   }
@@ -111,37 +135,10 @@ protected:
     state = qpp::applyCTRL(state, matrix, task.controls, task.targets);
   }
 
-public:
-  QppCircuitSimulator() = default;
-  virtual ~QppCircuitSimulator() = default;
-
-  /// @brief Override the default sized allocation of qubits
-  /// here to be a bit more efficient than the default implementation
-  std::vector<std::size_t> allocateQubits(const std::size_t count) override {
-    std::vector<std::size_t> qubits;
-    for (std::size_t i = 0; i < count; i++)
-      qubits.emplace_back(tracker.getNextIndex());
-
-    if (state.size() == 0) {
-      // If this is the first time, allocate the state
-      nQubitsAllocated += count;
-      stateDimension = calculateStateDim(nQubitsAllocated);
-      state = qpp::ket::Zero(stateDimension);
-      state(0) = 1.0;
-      return qubits;
-    }
-
-    nQubitsAllocated += count;
-    stateDimension = calculateStateDim(nQubitsAllocated);
-
-    // If we are resizing an existing, allocate
-    // a zero state on a n qubit, and Kron-prod
-    // that with the existing state.
-    qpp::ket zero_state = qpp::ket::Zero((1UL << count));
-    zero_state(0) = 1.0;
-    state = qpp::kron(state, zero_state);
-
-    return qubits;
+  /// @brief Set the current state back to the |0> state.
+  void setToZeroState() override {
+    state = qpp::ket::Zero(stateDimension);
+    state(0) = 1.0;
   }
 
   /// @brief Measure the qubit and return the result. Collapse the
@@ -164,6 +161,53 @@ public:
     }
     cudaq::info("Measured qubit {} -> {}", qubitIdx, measurement_result);
     return measurement_result == 1 ? true : false;
+  }
+
+public:
+  QppCircuitSimulator() = default;
+  virtual ~QppCircuitSimulator() = default;
+
+  bool canHandleObserve() override {
+    // Do not compute <H> from matrix if shots based sampling requested
+    if (executionContext &&
+        executionContext->shots != static_cast<std::size_t>(-1)) {
+      return false;
+    }
+
+    return !shouldObserveFromSampling();
+  }
+
+  cudaq::ExecutionResult observe(const cudaq::spin_op &op) override {
+
+    flushGateQueue();
+
+    // The op is on the following target bits.
+    std::vector<std::size_t> targets;
+    op.for_each_term([&](cudaq::spin_op &term) {
+      term.for_each_pauli(
+          [&](cudaq::pauli p, std::size_t idx) { targets.push_back(idx); });
+    });
+
+    std::sort(targets.begin(), targets.end());
+    std::unique(targets.begin(), targets.end());
+
+    // Get the matrix as an Eigen matrix
+    auto matrix = op.to_matrix();
+    qpp::cmat asEigen =
+        Eigen::Map<Eigen::Matrix<std::complex<double>, Eigen::Dynamic,
+                                 Eigen::Dynamic, Eigen::RowMajor>>(
+            matrix.data(), matrix.rows(), matrix.cols());
+
+    // Compute the expected value
+    double ee = 0.0;
+    if constexpr (std::is_same_v<StateType, qpp::ket>) {
+      qpp::ket k = qpp::apply(state, asEigen, targets, 2);
+      ee = state.dot(k).real();
+    } else {
+      ee = qpp::apply(asEigen, state, targets).trace().real();
+    }
+
+    return cudaq::ExecutionResult({}, ee);
   }
 
   /// @brief Reset the qubit
