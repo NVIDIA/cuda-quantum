@@ -137,6 +137,7 @@ void deleteBuilder(ImplicitLocOpBuilder *builder);
 /// also given to the `unique_ptr`
 void deleteJitEngine(ExecutionEngine *jit);
 
+/// @brief Allocate a single qubit
 QuakeValue qalloc(ImplicitLocOpBuilder &builder);
 
 /// @brief Allocate a `qubit` or a `qreg`.
@@ -363,10 +364,8 @@ public:
   /// @return
   std::size_t getNumParams() { return arguments.size(); }
 
-  /// @brief Return a `QuakeValue` representing the allocated `QVec`.
-  QuakeValue qalloc() {
-    return details::qalloc(*opBuilder.get());
-  }
+  /// @brief Return a `QuakeValue` representing the allocated qubit.
+  QuakeValue qalloc() { return details::qalloc(*opBuilder.get()); }
 
   /// @brief Return a `QuakeValue` representing the allocated `QVec`.
   QuakeValue qalloc(const std::size_t nQubits) {
