@@ -26,9 +26,10 @@ public:
     backendConfig = config;
 
     // Set any other config you need...
-    backendConfig.insert({"url", "https://api.ionq.co/v0.3"});
-    backendConfig.insert({"user_agent", "cudaq/0.3.0"});
-    backendConfig.insert({"target", "simulator"});
+    backendConfig["url"] = "https://api.ionq.co/v0.3";
+    backendConfig["user_agent"] = "cudaq/0.3.0";
+    backendConfig["target"] = "simulator";
+    backendConfig["qubits"] = 29;
   }
 
   /// @brief Create a job payload for the provided quantum codes
@@ -58,22 +59,20 @@ IonQServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
 
   // return the job payload
 
-  std::string jobPostURL = backendConfig["url"] + "/jobs";
-  RestHeaders headers = getHeaders();
-  std::vector<ServerMessage> jobMessages;
-
-  for (auto &circuitCode : circuitCodes) {
+  std::vector<ServerMessage> jobs;
+  for (const auto &circuitCode : circuitCodes) {
     ServerMessage job;
-    job["name"] = circuitCode.name;
     job["target"] = backendConfig["target"];
-    job["circuit"] = circuitCode.code;
-    job["shots"] = shots;
-
-    jobMessages.push_back(job);
+    job["shots"] = static_cast<int>(shots);
+    job["input"] = {{"format", "quil"}, {"quil", circuitCode.code}};
+    jobs.push_back(job);
   }
-
-  // return the job payload
-  return ServerJobPayload{jobPostURL, headers, jobMessages};
+  ServerMessage request;
+  request["qubits"] = backendConfig["qubits"];
+  request["shots"] = static_cast<int>(shots);
+  request["job"] = jobs;
+  return std::make_tuple("/jobs", getHeaders(),
+                         std::vector<ServerMessage>{request});
 }
 
 std::string IonQServerHelper::extractJobId(ServerMessage &postResponse) {
@@ -99,25 +98,18 @@ bool IonQServerHelper::jobIsDone(ServerMessage &getJobResponse) {
 cudaq::sample_result
 IonQServerHelper::processResults(ServerMessage &postJobResponse) {
   // results come back as results :{ "regName" : ['00','01',...], "regName2":
-  // [...]} Map results back to a sample_result,
-
-  auto results = postJobResponse["results"];
-  std::vector<ExecutionResult> srs;
-  for (auto &result : results.items()) {
-    cudaq::CountsDictionary counts;
-    auto regName = result.key();
-    auto bitResults = result.value().get<std::vector<std::string>>();
-    for (auto &bitResult : bitResults) {
-      if (counts.count(bitResult))
-        counts[bitResult]++;
-      else
-        counts.insert({bitResult, 1});
+  // [...]} Map results back to a sample_result
+  cudaq::sample_result result;
+  auto data = postJobResponse.at("output").at("result");
+  for (const auto &pair : data.items()) {
+    std::vector<std::string> bits = pair.value();
+    std::vector<double> probabilities;
+    for (const auto &bit : bits) {
+      probabilities.push_back(std::stod(bit) * std::stod(bit));
     }
-
-    srs.emplace_back(counts);
+    result[pair.key()] = {probabilities};
   }
-
-  return sample_result(srs);
+  return result;
 }
 
 RestHeaders IonQServerHelper::getHeaders() {

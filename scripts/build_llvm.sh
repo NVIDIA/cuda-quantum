@@ -125,8 +125,6 @@ else
   status=$?
 fi
 
-cat /llvm-project/build/logs/ninja_output.txt
-
 if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
   echo "Build failed. Please check the files in the `pwd`/logs directory."
   cd "$working_dir" && if $is_sourced; then return 1; else exit 1; fi
