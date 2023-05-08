@@ -107,6 +107,11 @@ void bindSpinOperator(py::module &mod) {
            "represented as a double.")
       .def("to_matrix", &spin_op::to_matrix,
            "Return `self` as a :class:`ComplexMatrix`.")
+
+      .def("__iter__",
+           [](spin_op &self) {
+             return py::make_iterator(self.begin(), self.end());
+           }, py::keep_alive<0,1>())
       /// @brief Bind overloaded operators that are in-place on
       /// `cudaq.SpinOperator`.
       // `this_spin_op` += `cudaq.SpinOperator`
@@ -136,9 +141,9 @@ void bindSpinOperator(py::module &mod) {
       /// @brief Bind overloaded operators that return a new
       /// `cudaq.SpinOperator`.
       // `this_spin_op[idx]`
-      .def("__getitem__", &cudaq::spin_op::operator[], py::arg("index"),
-           "Return the term of this `SpinOperator` at the provided index as a "
-           "new `cudaq.SpinOperator`.")
+      //  .def("__getitem__", &cudaq::spin_op::operator[], py::arg("index"),
+      //       "Return the term of this `SpinOperator` at the provided index as
+      //       a " "new `cudaq.SpinOperator`.")
       // `cudaq.SpinOperator` + `cudaq.SpinOperator`
       .def(py::self + py::self, "Add the given `SpinOperator` to this one and "
                                 "return result as a new `cudaq.SpinOperator`.")

@@ -27,22 +27,8 @@
 
 namespace cudaq {
 
-spin_op::spin_op(
-    std::pair<const spin_op_term, std::complex<double>> &termData) {
-  terms.emplace(termData);
-}
-
-spin_op::iterator spin_op::begin() {
-  auto startIter = terms.begin();
-  return iterator(startIter);
-}
-
-spin_op::iterator spin_op::end() {
-  auto endIter = terms.end();
-  return iterator(endIter);
-}
-
 namespace details {
+
 /// @brief Compute the action
 std::pair<std::string, std::complex<double>>
 actionOnBra(spin_op &term, const std::string &bitConfiguration) {
@@ -151,6 +137,36 @@ spin_op::spin_op(pauli type, const std::size_t idx,
 
 spin_op::spin_op(const spin_op &o) : terms(o.terms) {}
 
+spin_op::spin_op(
+    std::pair<const spin_op_term, std::complex<double>> &termData) {
+  terms.emplace(termData);
+}
+spin_op::spin_op(
+    const std::pair<const spin_op_term, std::complex<double>> &termData) {
+  terms.emplace(termData);
+}
+
+spin_op::iterator<spin_op> spin_op::begin() {
+  auto startIter = terms.begin();
+  return iterator<spin_op>(startIter);
+}
+
+spin_op::iterator<spin_op> spin_op::end() {
+  auto endIter = terms.end();
+  return iterator<spin_op>(endIter);
+}
+
+
+spin_op::iterator<const spin_op> spin_op::begin() const {
+  auto startIter = terms.cbegin();
+  return iterator<const spin_op>(startIter);
+}
+
+spin_op::iterator<const spin_op> spin_op::end() const {
+  auto endIter = terms.cend();
+  return iterator<const spin_op>(endIter);
+}
+
 complex_matrix spin_op::to_matrix() const {
   auto n = num_qubits();
   auto dim = 1UL << n;
@@ -192,9 +208,10 @@ std::complex<double> spin_op::get_coefficient() const {
 }
 
 void spin_op::for_each_term(std::function<void(spin_op &)> &&functor) const {
-  for (std::size_t i = 0; i < num_terms(); i++) {
-    auto term = operator[](i);
-    functor(term);
+  for (auto iter = terms.begin(), e = terms.end(); iter != e; ++iter) {
+    const auto &pair = *iter;
+    spin_op tmp(pair);
+    functor(tmp);
   }
 }
 void spin_op::for_each_pauli(
@@ -274,11 +291,11 @@ spin_op &spin_op::operator+=(const spin_op &v) noexcept {
   return *this;
 }
 
-spin_op spin_op::operator[](const std::size_t term_idx) const {
-  auto start = terms.begin();
-  std::advance(start, term_idx);
-  return spin_op(start->first, start->second);
-}
+// spin_op spin_op::operator[](const std::size_t term_idx) const {
+//   auto start = terms.begin();
+//   std::advance(start, term_idx);
+//   return spin_op(start->first, start->second);
+// }
 
 spin_op &spin_op::operator-=(const spin_op &v) noexcept {
   return operator+=(-1.0 * v);

@@ -89,9 +89,9 @@ public:
   /// @brief Return the coefficient of the identity term.
   /// @return
   double id_coefficient() {
-    for (std::size_t i = 0; i < spinOp.num_terms(); i++)
-      if (spinOp[i].is_identity())
-        return spinOp[i].get_coefficient().real();
+    for (const auto &term : spinOp)
+      if (term.is_identity())
+        return term.get_coefficient().real();
     return 0.0;
   }
 

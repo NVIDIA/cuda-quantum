@@ -32,8 +32,7 @@ public:
     // Want to loop over all terms in op and
     // compute E_i = coeff_i * < psi | Term | psi >
     // = coeff_i * sum_k <psi | Pauli_k psi>
-    for (std::size_t i = 0; i < op.num_terms(); i++) {
-      auto term = op[i];
+    for (const auto& term : op) {
       if (!term.is_identity()) {
         ::qpp::ket cached = state;
         auto [bsf, coeffs] = term.get_raw_data();

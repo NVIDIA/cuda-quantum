@@ -240,11 +240,12 @@ def test_spin_op_members():
     assert spin_operator.get_qubit_count() == 2
     # No longer identity.
     assert not spin_operator.is_identity()
-    # Second term should have a coefficient of -1.0
-    assert spin_operator[0].get_coefficient(
-    ) == -1.0 or spin_operator[0].get_coefficient() == 1.0
-    assert spin_operator[1].get_coefficient(
-    ) == -1.0 or spin_operator[1].get_coefficient() == 1.0
+    for term in spin_operator:
+        # Second term should have a coefficient of -1.0
+        assert term.get_coefficient(
+        ) == -1.0 or term.get_coefficient() == 1.0
+        assert term.get_coefficient(
+        ) == -1.0 or term.get_coefficient() == 1.0
 
 
 def test_spin_op_vqe():
@@ -323,6 +324,14 @@ def test_spin_op_foreach():
     assert counter == 2
     assert xSupports == [0, 1]
 
+def test_spin_op_iter():
+    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
+        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+    count = 0
+    for term in hamiltonian:
+        print('hi, ', term)
+        count += 1
+    assert count == 5
 
 # leave for gdb debugging
 if __name__ == "__main__":

@@ -39,7 +39,7 @@ TEST(SpinOpTester, checkAddition) {
   EXPECT_EQ(3, added2.num_terms());
   EXPECT_EQ(3, added2.num_qubits());
   for (int i = 0; i < 3; i++) {
-    EXPECT_EQ(1.0, added2[i].get_coefficient());
+    EXPECT_EQ(1.0, added2.begin()->get_coefficient());
   }
 
   auto subtracted = x(0) - y(2);
@@ -130,9 +130,6 @@ TEST(SpinOpTester, canBuildDeuteron) {
   EXPECT_EQ(5, H.num_terms());
   EXPECT_EQ(2, H.num_qubits());
 
-  for (std::size_t i = 0; i < H.num_terms(); i++) {
-    H[i].dump();
-  }
 }
 
 TEST(SpinOpTester, checkGetMatrix) {
@@ -198,7 +195,7 @@ TEST(SpinOpTester, checkIterator) {
            6.125 * z(1);
 
   std::size_t count = 0;
-  for (const auto& term : H) {
+  for (auto term : H) {
     std::cout << "TEST: " << term.to_string();
     count++;
   }

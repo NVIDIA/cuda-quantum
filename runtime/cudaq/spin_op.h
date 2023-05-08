@@ -110,21 +110,44 @@ public:
   /// represent Z, and X=Z=1 -> Y on site i, X=1, Z=0 -> X on site i,
   /// and X=0, Z=1 -> Z on site i.
   using spin_op_term = std::vector<bool>;
+  using key_type = spin_op_term;
+  using mapped_type = std::complex<double>;
 
+  bool empty() const {return terms.empty(); }
+
+  template <typename QualifiedSpinOp>
   struct iterator {
-    using iter_type =
+
+    using _iter_type =
         std::unordered_map<spin_op_term, std::complex<double>>::iterator;
-
+    using _const_iter_type =
+        std::unordered_map<spin_op_term, std::complex<double>>::const_iterator;
+    using iter_type =
+        std::conditional_t<std::is_same_v<QualifiedSpinOp, spin_op>, _iter_type,
+                           _const_iter_type>;
+    iterator(iterator&&) = default;
+    
     iterator(iter_type i) : iter(i) {}
+    ~iterator() {
+      for (auto &c : created) {
+        auto *ptr = c.release();
+        delete ptr;
+      }
+      created.clear();
+    }
 
-    // FIXME, not sure how to get spin_op& working
-    // this means programmers have to loop this as const auto 
-    // or by value.
-    // e.g.
-    // for (const auto& term : H)
-    // or
-    // for (auto term : H)
-    spin_op operator*() const { return spin_op(*iter); }
+    QualifiedSpinOp &operator*() {
+      // We have to store pointers to spin_op terms here 
+      // so that we can return references or pointers to them 
+      // based on the current state of the unordered_map iterator. 
+      created.emplace_back(std::make_unique<spin_op>(*iter));
+      return *created.back();
+    }
+
+    QualifiedSpinOp *operator->() {
+      created.emplace_back(std::make_unique<spin_op>(*iter));
+      return created.back().get();
+    }
 
     iterator &operator++() {
       iter++;
@@ -145,6 +168,7 @@ public:
 
   private:
     iter_type iter;
+    std::vector<std::unique_ptr<spin_op>> created;
   };
 
 private:
@@ -168,12 +192,11 @@ private:
   void expandToNQubits(const std::size_t nQubits);
 
 public:
-  iterator begin();
-  iterator end();
-
+  /// @brief The constructor, takes a single term / coeff pair
   spin_op(std::pair<const spin_op_term, std::complex<double>> &termData);
-  // spin_op(const std::pair<const spin_op_term, std::complex<double>>
-  // &termData);
+
+  /// @brief The constructor, takes a single term / coeff const pair
+  spin_op(const std::pair<const spin_op_term, std::complex<double>> &termData);
 
   /// @brief Constructor, takes the Pauli type, the qubit site, and the
   /// term coefficient. Constructs a spin_op of one pauli on one qubit.
@@ -215,6 +238,18 @@ public:
 
   /// The destructor
   ~spin_op() = default;
+
+  /// @brief Return iterator to start of spin_op terms.
+  iterator<spin_op> begin();
+
+  /// @brief Return iterator to end of spin_op terms.
+  iterator<spin_op> end();
+
+  /// @brief Return const iterator to start of spin_op terms.
+  iterator<const spin_op> begin() const;
+
+  /// @brief Return const iterator to end of spin_op terms.
+  iterator<const spin_op> end() const;
 
   /// @brief Set the provided spin_op equal to this one and return *this.
   spin_op &operator=(const spin_op &);
@@ -266,9 +301,8 @@ public:
     return std::move(lhs);
   }
 
-  /// @brief Return the term at the given index of this spin_op
-  /// (by value).
-  spin_op operator[](const std::size_t termIdx) const;
+  /// @brief Return the ith term of this spin_op (by value).
+  // spin_op operator[](const std::size_t termIdx) const;
 
   /// @brief Return the number of qubits this spin_op is on
   std::size_t num_qubits() const;
