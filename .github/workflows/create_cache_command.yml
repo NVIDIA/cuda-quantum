@@ -59,3 +59,15 @@ jobs:
       create_local_cache: true
       registry_cache_from: ${{ needs.config.outputs.target_branch }}
       pull_request_number: ${{ needs.config.outputs.pull_request_number }}
+
+  finalize:
+    name: Indicate completion
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add reaction to comment
+        if: inputs.comment_id
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          comment-id: ${{ inputs.comment_id }}
+          reactions-edit-mode: append
+          reactions: hooray

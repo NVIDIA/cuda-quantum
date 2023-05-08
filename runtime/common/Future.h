@@ -111,9 +111,9 @@ public:
       return data;
 
     if constexpr (std::is_same_v<T, observe_result>) {
-
-      if (data.has_expectation())
-        return observe_result(data.exp_val_z(), *spinOp, data);
+      auto checkRegName = spinOp->to_string(false);
+      if (data.has_expectation(checkRegName))
+        return observe_result(data.exp_val_z(checkRegName), *spinOp, data);
 
       if (!spinOp)
         throw std::runtime_error(

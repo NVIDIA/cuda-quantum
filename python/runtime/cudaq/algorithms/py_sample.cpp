@@ -41,6 +41,34 @@ sample_result pySample(kernel_builder<> &builder, py::args args = {},
       .value();
 }
 
+/// @brief Broadcast the sample call over the list-like arguments provided.
+std::vector<sample_result> pySampleN(kernel_builder<> &kernel,
+                                     py::args args = {},
+                                     std::size_t shots = 1000) {
+  auto argSet = createArgumentSet(args);
+  auto N = argSet.size();
+  auto &platform = cudaq::get_platform();
+  kernel.jitCode();
+  auto name = kernel.name();
+
+  std::vector<sample_result> results;
+  for (std::size_t currentIter = 0; auto &a : argSet) {
+    auto validatedArgs = validateInputArguments(kernel, a);
+    auto ret = details::runSampling(
+                   [&]() mutable {
+                     OpaqueArguments argData;
+                     packArgs(argData, validatedArgs);
+                     kernel.jitAndInvoke(argData.data());
+                   },
+                   platform, name, shots, 0, nullptr, currentIter, N)
+                   .value();
+    currentIter++;
+    results.push_back(ret);
+  }
+
+  return results;
+}
+
 /// @brief Asynchronously sample the state produced by the provided builder.
 /// Return a future-like result.
 async_sample_result pySampleAsync(kernel_builder<> &builder,
@@ -150,10 +178,51 @@ void bindSample(py::module &mod) {
       "  shots_count (Optional[int]): The number of kernel executions on the "
       "QPU. Defaults "
       "to 1000. Key-word only.\n"
-      "  qpu_id (Optional[int]): The optional identification for which QPU on "
+      "  qpu_id (Optional[int]): The optional identification for which QPU "
+      "on "
       "the platform to target. Defaults to zero. Key-word only.\n"
       "\nReturns:\n"
-      "  :class:`AsyncSampleResult` : A dictionary containing the measurement "
+      "  :class:`AsyncSampleResult` : A dictionary containing the "
+      "measurement "
+      "count results "
+      "for the :class:`Kernel`.\n");
+
+  mod.def(
+      "sample_n",
+      [](kernel_builder<> &self, py::args args, std::size_t shots,
+         std::optional<noise_model> noise) {
+        if (!noise)
+          return pySampleN(self, args, shots);
+        set_noise(*noise);
+        auto res = pySampleN(self, args, shots);
+        unset_noise();
+        return res;
+      },
+      py::arg("kernel"), py::kw_only(), py::arg("shots_count") = 1000,
+      py::arg("noise_model") = py::none(),
+      "Broadcast the sample function over the input argument set."
+      "For each argument type in the kernel signature, you must provide a"
+      "list of arguments of that type. "
+      "This function samples the state of the provided `kernel` at each "
+      "set of arguments provided for the specified number "
+      "of circuit executions (`shots_count`).\n"
+      "\nArgs:\n"
+      "  kernel (:class:`Kernel`): The :class:`Kernel` to execute "
+      "`shots_count` "
+      "times on the QPU.\n"
+      "  *arguments (Optional[Any]): The concrete values to evaluate the "
+      "kernel. Each argument must be a list of instances of the type specified "
+      "by the kernel signature."
+      "function at. Leave empty if the kernel doesn't accept any arguments.\n"
+      "  shots_count (Optional[int]): The number of kernel executions on the "
+      "QPU. Defaults "
+      "to 1000. Key-word only.\n"
+      "  noise_model (Optional[`NoiseModel`]): The optional "
+      ":class:`NoiseModel` to add "
+      "noise to the kernel execution on the simulator. Defaults to an empty "
+      "noise model.\n"
+      "\nReturns:\n"
+      "  :class:`SampleResult` : A dictionary containing the measurement "
       "count results "
       "for the :class:`Kernel`.\n");
 }

@@ -34,7 +34,7 @@ namespace cudaq {
 // we are going to use them here.
 std::string get_quake(const std::string &);
 
-thread_local static quantum_platform *platform;
+static quantum_platform *platform;
 inline static constexpr std::string_view GetQuantumPlatformSymbol =
     "getQuantumPlatform";
 
@@ -48,7 +48,8 @@ void setQuantumPlatformInternal(quantum_platform *p) {
 quantum_platform *getQuantumPlatformInternal() {
   if (platform)
     return platform;
-  platform = cudaq::getUniquePluginInstance<quantum_platform>(GetQuantumPlatformSymbol);
+  platform = cudaq::getUniquePluginInstance<quantum_platform>(
+      GetQuantumPlatformSymbol);
   return platform;
 }
 
@@ -60,8 +61,6 @@ void quantum_platform::set_noise(noise_model *model) {
 std::future<sample_result>
 quantum_platform::enqueueAsyncTask(const std::size_t qpu_id,
                                    KernelExecutionTask &task) {
-  set_current_qpu(qpu_id);
-
   std::promise<sample_result> promise;
   auto f = promise.get_future();
   QuantumTask wrapped = detail::make_copyable_function(
@@ -70,8 +69,14 @@ quantum_platform::enqueueAsyncTask(const std::size_t qpu_id,
         p.set_value(counts);
       });
 
-  platformQPUs[platformCurrentQPU]->enqueue(wrapped);
+  platformQPUs[qpu_id]->enqueue(wrapped);
   return f;
+}
+
+void quantum_platform::enqueueAsyncTask(const std::size_t qpu_id,
+                                        std::function<void()> &f) {
+  set_current_qpu(qpu_id);
+  platformQPUs[qpu_id]->enqueue(f);
 }
 
 void quantum_platform::set_current_qpu(const std::size_t device_id) {
@@ -81,6 +86,8 @@ void quantum_platform::set_current_qpu(const std::size_t device_id) {
   }
 
   platformCurrentQPU = device_id;
+  threadToQpuId.emplace(
+      std::hash<std::thread::id>{}(std::this_thread::get_id()), device_id);
 }
 
 std::size_t quantum_platform::get_current_qpu() { return platformCurrentQPU; }
@@ -122,7 +129,14 @@ void quantum_platform::launchKernel(std::string kernelName,
                                     void (*kernelFunc)(void *), void *args,
                                     std::uint64_t voidStarSize,
                                     std::uint64_t resultOffset) {
-  auto &qpu = platformQPUs[platformCurrentQPU];
+  std::size_t qpu_id = 0;
+
+  auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
+  auto iter = threadToQpuId.find(tid);
+  if (iter != threadToQpuId.end())
+    qpu_id = iter->second;
+
+  auto &qpu = platformQPUs[qpu_id];
   qpu->launchKernel(kernelName, kernelFunc, args, voidStarSize, resultOffset);
 }
 

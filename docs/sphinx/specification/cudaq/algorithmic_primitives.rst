@@ -4,8 +4,8 @@ The CUDA Quantum model provides the implementation of common quantum algorithmic
 primitives within the :code:`cudaq::` namespace. Here we enumerate available
 function calls:
 
-cudaq::sample
--------------
+:code:`cudaq::sample`
+-------------------------
 A common task for near-term quantum execution is to sample the state
 of a given quantum circuit for a specified number of shots (circuit
 executions). The result of this task is typically a mapping of observed
@@ -154,8 +154,8 @@ information and can be persisted to file and loaded from file at a later time. A
 and when remote queue jobs are completed, one can invoke :code:`get()` and the results will 
 be retrieved and returned. 
 
-cudaq::observe
---------------
+:code:`cudaq::observe`
+-------------------------
 A common task in variational algorithms is the computation of the expected
 value of a given observable with respect to a parameterized quantum circuit
 (:math:`\langle H \rangle(𝚹) = \langle \psi(𝚹)|H|\psi(𝚹) \rangle`). 
@@ -268,8 +268,8 @@ information for each execution and can be persisted to file and loaded from file
 and when remote queue jobs are completed, one can invoke :code:`get()` and the results will 
 be retrieved and returned. 
 
-cudaq::optimizer
-----------------
+:code:`cudaq::optimizer`
+-------------------------
 The primary use case for :code:`cudaq::observe` is to leverage it as
 the core of a broader objective function optimization workflow. 
 :code:`cudaq::observe` produces the expected value of a specified 
@@ -339,8 +339,8 @@ Here is an example of how the :code:`cudaq::optimizer` is intended to be used:
           return cudaq::observe(ansatz, H, x[0], x[1]);
         });
 
-cudaq::gradient 
----------------
+:code:`cudaq::gradient`
+-------------------------
 Typical optimization use cases will require the computation of gradients for the specified
 objective function. The gradient is a vector over all ansatz circuit
 parameters :math:`∂H(𝚹) / ∂𝚹_i`. There are a number of potential strategies for
