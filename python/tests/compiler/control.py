@@ -24,11 +24,17 @@ def test_kernel_control_no_args(qubit_count):
     of qubits as the controls.
     """
     other_kernel = cudaq.make_kernel()
-    other_qubit = other_kernel.qalloc(qubit_count)
+    if qubit_count == 1:
+        other_qubit = other_kernel.qalloc()
+    else:
+        other_qubit = other_kernel.qalloc(qubit_count)
     other_kernel.x(other_qubit)
 
     kernel = cudaq.make_kernel()
-    control_qubit = kernel.qalloc(qubit_count)
+    if qubit_count == 1:
+        control_qubit = kernel.qalloc()
+    else:
+        control_qubit = kernel.qalloc(qubit_count)
     # Call `kernel.control()`.
     kernel.control(target=other_kernel, control=control_qubit)
 
@@ -88,7 +94,10 @@ def test_kernel_control_float_args(qubit_count):
     other_kernel.rx(other_float, other_qubit)
 
     kernel, float_ = cudaq.make_kernel(float)
-    control_qubit = kernel.qalloc(qubit_count)
+    if qubit_count == 1:
+        control_qubit = kernel.qalloc()
+    else:
+        control_qubit = kernel.qalloc(qubit_count)
     # Call `kernel.control()`.
     kernel.control(other_kernel, control_qubit, float_)
 
@@ -133,13 +142,19 @@ def test_kernel_control_int_args(qubit_count):
     and a register of qubits as the controls.
     """
     other_kernel, other_int = cudaq.make_kernel(int)
-    other_qubit = other_kernel.qalloc(qubit_count)
+    if qubit_count == 1:
+        other_qubit = other_kernel.qalloc()
+    else:
+        other_qubit = other_kernel.qalloc(qubit_count)
     # TODO:
     # Would like to be able to test kernel operations that
     # can accept an int.
 
     kernel, _int = cudaq.make_kernel(int)
-    control_qubit = kernel.qalloc(qubit_count)
+    if qubit_count == 1:
+        control_qubit = kernel.qalloc()
+    else:
+        control_qubit = kernel.qalloc(qubit_count)
     kernel.control(other_kernel, control_qubit, _int)
     print(kernel)
 
@@ -183,7 +198,10 @@ def test_kernel_control_list_args(qubit_count):
     other_kernel.rx(other_list[0], other_qubit)
 
     kernel, _list = cudaq.make_kernel(list)
-    control_qubit = kernel.qalloc(qubit_count)
+    if qubit_count == 1:
+        control_qubit = kernel.qalloc()
+    else:
+        control_qubit = kernel.qalloc(qubit_count)
     # Call `kernel.control()`.
     kernel.control(other_kernel, control_qubit, _list)
 

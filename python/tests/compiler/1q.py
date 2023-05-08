@@ -25,12 +25,12 @@ def test_kernel_non_param_1q():
     # Allocating a register of size 1 returns just a qubit.
     qubit = kernel.qalloc(1)
     # Apply each gate to the qubit.
-    kernel.h(target=qubit)
-    kernel.x(target=qubit)
-    kernel.y(target=qubit)
-    kernel.z(qubit)
-    kernel.t(qubit)
-    kernel.s(qubit)
+    kernel.h(target=qubit[0])
+    kernel.x(target=qubit[0])
+    kernel.y(target=qubit[0])
+    kernel.z(qubit[0])
+    kernel.t(qubit[0])
+    kernel.s(qubit[0])
     kernel()
     # Kernel arguments should still be an empty list.
     assert kernel.arguments == []
@@ -41,7 +41,9 @@ def test_kernel_non_param_1q():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
-# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+# CHECK:           %c0_i32 = arith.constant 0 : i32
+# CHECK:           %0 = quake.alloca !quake.qvec<1>
+# CHECK:           %[[VAL_0:.*]] = quake.extract_ref %0[%c0_i32] : (!quake.qvec<1>, i32) -> !quake.ref
 # CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
 # CHECK:           quake.x %[[VAL_0]] : (!quake.ref) -> ()
 # CHECK:           quake.y %[[VAL_0]] : (!quake.ref) -> ()
@@ -65,9 +67,9 @@ def test_kernel_param_1q():
     qubit = kernel.qalloc(1)
     # Apply each parameterized gate to the qubit.
     # Test both with and without keyword arguments.
-    kernel.rx(parameter=parameter, target=qubit)
-    kernel.ry(parameter, qubit)
-    kernel.rz(parameter, qubit)
+    kernel.rx(parameter=parameter, target=qubit[0])
+    kernel.ry(parameter, qubit[0])
+    kernel.rz(parameter, qubit[0])
     kernel(3.14)
     # Should have 1 argument and parameter.
     got_arguments = kernel.arguments
@@ -79,7 +81,9 @@ def test_kernel_param_1q():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
 # CHECK-SAME:                                                                   %[[VAL_0:.*]]: f64) {
-# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
+# CHECK:           %c0_i32 = arith.constant 0 : i32
+# CHECK:           %0 = quake.alloca !quake.qvec<1>
+# CHECK:           %[[VAL_1:.*]] = quake.extract_ref %0[%c0_i32] : (!quake.qvec<1>, i32) -> !quake.ref
 # CHECK:           quake.rx (%[[VAL_0]]) %[[VAL_1]] : (f64, !quake.ref) -> ()
 # CHECK:           quake.ry (%[[VAL_0]]) %[[VAL_1]] : (f64, !quake.ref) -> ()
 # CHECK:           quake.rz (%[[VAL_0]]) %[[VAL_1]] : (f64, !quake.ref) -> ()
