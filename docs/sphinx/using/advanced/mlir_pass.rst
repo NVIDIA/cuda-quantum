@@ -24,7 +24,7 @@ a pass, start with the following template
     namespace {
 
       class HelloWorldQuakePass
-        : public PassWrapper<HelloWorldQuakePass, OperationPass<quake::CircuitOp>> {
+        : public PassWrapper<HelloWorldQuakePass, OperationPass<func::FuncOp>> {
       public:
         MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(HelloWorldQuakePass)
 
