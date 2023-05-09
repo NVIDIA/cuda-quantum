@@ -21,27 +21,29 @@ if (${Python_VERSION} VERSION_LESS 3.0.0)
   return()
 endif()
 
+add_subdirectory(src)
+
 message(STATUS "Found Python version ${Python_VERSION}. Building CUDA Quantum Python API with ${Python_INCLUDE_DIRS}")
 
 if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
   set(CMAKE_BUILD_TYPE "Debug")
 endif()
 pybind11_add_module(_pycudaq 
-                     _cudaq.cpp 
                      utils/LinkedLibraryHolder.cpp 
-                     runtime/cudaq/builder/py_kernel_builder.cpp
-                     runtime/cudaq/builder/py_QuakeValue.cpp
-                     runtime/cudaq/algorithms/py_observe.cpp
-                     runtime/cudaq/algorithms/py_sample.cpp
-                     runtime/cudaq/algorithms/py_optimizer.cpp
-                     runtime/cudaq/algorithms/py_state.cpp
-                     runtime/cudaq/algorithms/py_vqe.cpp
-                     runtime/cudaq/spin/py_matrix.cpp
-                     runtime/cudaq/spin/py_spin_op.cpp
-                     runtime/cudaq/kernels/py_chemistry.cpp
-                     runtime/common/py_ObserveResult.cpp
-                     runtime/common/py_SampleResult.cpp                     
-                     runtime/common/py_NoiseModel.cpp)
+                     src/_cudaq.cpp 
+                     src/runtime/cudaq/builder/py_kernel_builder.cpp
+                     src/runtime/cudaq/builder/py_QuakeValue.cpp
+                     src/runtime/cudaq/algorithms/py_observe.cpp
+                     src/runtime/cudaq/algorithms/py_sample.cpp
+                     src/runtime/cudaq/algorithms/py_optimizer.cpp
+                     src/runtime/cudaq/algorithms/py_state.cpp
+                     src/runtime/cudaq/algorithms/py_vqe.cpp
+                     src/runtime/cudaq/spin/py_matrix.cpp
+                     src/runtime/cudaq/spin/py_spin_op.cpp
+                     src/runtime/cudaq/kernels/py_chemistry.cpp
+                     src/runtime/common/py_ObserveResult.cpp
+                     src/runtime/common/py_SampleResult.cpp                     
+                     src/runtime/common/py_NoiseModel.cpp)
 
 target_compile_options(_pycudaq PRIVATE -Wno-attributes)                     
 target_include_directories(_pycudaq PRIVATE .)
@@ -60,7 +62,7 @@ install(FILES domains/chemistry.py DESTINATION ${CMAKE_INSTALL_PREFIX}/domains/)
 
 if(APPLE)
   set_target_properties(
-     _pycudaq PROPERTIES INSTALL_RPATH "@loader_path/${CMAKE_INSTALL_LIBDIR}")
+    _pycudaq PROPERTIES INSTALL_RPATH "@loader_path/${CMAKE_INSTALL_LIBDIR}")
 else()
   set_target_properties(_pycudaq PROPERTIES INSTALL_RPATH
                                           "$ORIGIN/${CMAKE_INSTALL_LIBDIR}")

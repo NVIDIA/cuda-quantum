@@ -26,3 +26,5 @@ if '--platform' in sys.argv:
     initKwargs['platform'] = sys.argv[sys.argv.index('--platform') + 1]
 
 initialize_cudaq(**initKwargs)
+
+__all__ = [""]
