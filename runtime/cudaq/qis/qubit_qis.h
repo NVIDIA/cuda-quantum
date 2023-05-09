@@ -274,12 +274,6 @@ inline void cs(qubit &q, qubit &r) { s<cudaq::ctrl>(q, r); }
 inline void ct(qubit &q, qubit &r) { t<cudaq::ctrl>(q, r); }
 inline void ccx(qubit &q, qubit &r, qubit &s) { x<cudaq::ctrl>(q, r, s); }
 
-template <typename ScalarAngle>
-inline void cphase(ScalarAngle angle, qubit &q, qubit &r) {
-  std::vector<QuditInfo> arr{qubitToQuditInfo(q), qubitToQuditInfo(r)};
-  getExecutionManager()->apply("cphase", {angle}, {}, arr);
-}
-
 /// @brief Measure an individual qubit, return 0,1 as `bool`
 inline bool mz(qubit &q) {
   return getExecutionManager()->measure({q.n_levels(), q.id()});
