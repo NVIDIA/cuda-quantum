@@ -118,7 +118,7 @@ protected:
   using nvqir::CircuitSimulatorBase<ScalarType>::flushGateQueue;
   using nvqir::CircuitSimulatorBase<ScalarType>::previousStateDimension;
   using nvqir::CircuitSimulatorBase<ScalarType>::shouldObserveFromSampling;
-  
+
   /// @brief The statevector that cuStateVec manipulates on the GPU
   void *deviceStateVector = nullptr;
 
@@ -206,11 +206,11 @@ protected:
                                  controls32.data(), nullptr, controls32.size());
   }
 
-  /// @brief Increase the state size by the given number of qubits. 
+  /// @brief Increase the state size by the given number of qubits.
   void addQubitsToState(std::size_t count) override {
     if (count == 0)
       return;
-    
+
     int dev;
     cudaGetDevice(&dev);
     cudaq::info("GPU {} Allocating new qubit array of size {}.", dev, count);
@@ -263,7 +263,8 @@ protected:
           (stateDimension + threads_per_block - 1) / threads_per_block;
       setFirstNElements<<<n_blocks, threads_per_block>>>(
           reinterpret_cast<CudaDataType *>(newDeviceStateVector),
-          reinterpret_cast<CudaDataType *>(deviceStateVector), previousStateDimension);
+          reinterpret_cast<CudaDataType *>(deviceStateVector),
+          previousStateDimension);
       cudaFree(deviceStateVector);
       deviceStateVector = newDeviceStateVector;
     }
@@ -369,9 +370,9 @@ public:
     }
   }
 
-  /// @brief Compute the operator expectation value, with respect to 
-  /// the current state vector, directly on GPU with the 
-  /// given the operator matrix and target qubit indices. 
+  /// @brief Compute the operator expectation value, with respect to
+  /// the current state vector, directly on GPU with the
+  /// given the operator matrix and target qubit indices.
   auto getExpectationFromOperatorMatrix(const std::complex<double> *matrix,
                                         const std::vector<std::size_t> &tgts) {
     void *extraWorkspace = nullptr;
@@ -419,7 +420,7 @@ public:
       return false;
     }
 
-    /// Seems that FP32 is faster with 
+    /// Seems that FP32 is faster with
     /// custatevecComputeExpectationsOnPauliBasis
     if constexpr (std::is_same_v<ScalarType, float>) {
       return false;
@@ -526,14 +527,19 @@ public:
   }
 
   cudaq::State getStateData() override {
+    std::vector<std::complex<ScalarType>> tmp(stateDimension);
+    cudaMemcpy(tmp.data(), deviceStateVector,
+               stateDimension * sizeof(CudaDataType), cudaMemcpyDeviceToHost);
     if constexpr (std::is_same_v<ScalarType, float>) {
-      throw std::runtime_error(
-          "CustateVec F32 does not support getStateData().");
-    } else {
-      std::vector<std::complex<ScalarType>> data(stateDimension);
-      cudaMemcpy(data.data(), deviceStateVector,
-                 stateDimension * sizeof(CudaDataType), cudaMemcpyDeviceToHost);
+      std::vector<std::complex<double>> data;
+      std::transform(tmp.begin(), tmp.end(), std::back_inserter(data),
+                     [](std::complex<float> &el) -> std::complex<double> {
+                       return {static_cast<double>(el.real()),
+                               static_cast<double>(el.imag())};
+                     });
       return cudaq::State{{stateDimension}, data};
+    } else {
+      return cudaq::State{{stateDimension}, tmp};
     }
   }
 
@@ -545,8 +551,8 @@ public:
 #ifndef __NVQIR_CUSTATEVEC_TOGGLE_CREATE
 template <>
 std::string CuStateVecCircuitSimulator<double>::name() const {
-  return "custatevec";
+  return "custatevec-fp64";
 }
 /// Register this Simulator with NVQIR.
-NVQIR_REGISTER_SIMULATOR(CuStateVecCircuitSimulator<>, custatevec)
+NVQIR_REGISTER_SIMULATOR(CuStateVecCircuitSimulator<>, custatevec_fp64)
 #endif

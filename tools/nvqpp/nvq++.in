@@ -38,6 +38,11 @@ function add_pass_to_pipeline {
 	fi
 }
 
+function list_targets {
+	ls -1 ${install_dir}/targets/ | sed -e 's/\.config$//'
+	exit 0
+}
+
 function show_help {
 	cat - <<HELP
 --llvm-version=<vers>
@@ -48,6 +53,9 @@ function show_help {
 	
 --target=<target> | -target=<target>
 	Set the Target name to <target>.
+
+--list-targets 
+    List the available targets NVQ++ can compile to. 
 
 --emit-qir=<file> | -emit-qir=<file>
 	Emit the QIR output to <file>.
@@ -217,12 +225,17 @@ ENABLE_LOWER_TO_CFG=true
 ENABLE_APPLY_SPECIALIZATION=true
 ENABLE_LAMBDA_LIFTING=true
 DELETE_TEMPS=true
-LIBRARY_MODE=false
 TARGET_CONFIG=
 EMIT_QIR=false
 PREPROCESSOR_DEFINES=
 CUDAQ_QUAKE_DEBUG=
 SHOW_HELP=false
+LIST_TARGETS=false 
+
+# We default to LIBRARY_MODE, physical 
+# Quantum Targets can override this to turn on 
+# our MLIR compilation workflow.
+LIBRARY_MODE=true
 
 CXX=${LLVMBIN}clang++${llvm_suffix}
 LINKER_CXX=${CXX}
@@ -251,6 +264,10 @@ while [ $# -ne 0 ]; do
 		EMIT_QIR="$2"
 		shift
 		;;
+	--list-targets)
+		LIST_TARGETS=true
+		shift
+		;;
 	--platform | -platform)
 		PLATFORM_LIBRARY="$2"
 		shift
@@ -273,9 +290,6 @@ while [ $# -ne 0 ]; do
 		;;
 	--clang-verbose | -clang-verbose)
 		CLANG_VERBOSE="-v"
-		;;
-	--library-mode)
-		LIBRARY_MODE=true
 		;;
 	--no-device-code-loading)
 		ENABLE_DEVICE_CODE_LOADERS=false
@@ -367,6 +381,10 @@ done
 
 if ${SHOW_HELP}; then
 	show_help
+fi
+
+if ${LIST_TARGETS}; then
+	list_targets
 fi
 
 TMPFILES=

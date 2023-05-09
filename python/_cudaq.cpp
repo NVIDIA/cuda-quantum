@@ -27,6 +27,34 @@ PYBIND11_MODULE(_pycudaq, mod) {
 
   mod.doc() = "Python bindings for CUDA Quantum.";
 
+  py::class_<cudaq::RuntimeTarget>(
+      mod, "Target",
+      "The `cudaq.Target` represents the underlying infrastructure that CUDA "
+      "Quantum kernels will execute on. Instances of `cudaq.Target` describe "
+      "what simulator they may leverage, the quantum_platform required for "
+      "execution, and a description for the target.")
+      .def_readonly("name", &cudaq::RuntimeTarget::name,
+                    "The name of the `cudaq.Target`.")
+      .def_readonly("simulator", &cudaq::RuntimeTarget::simulatorName,
+                    "The name of the simulator this `cudaq.Target` leverages. "
+                    "This will be empty for physical QPUs.")
+      .def_readonly("platform", &cudaq::RuntimeTarget::simulatorName,
+                    "The name of the quantum_platform implementation this "
+                    "`cudaq.Target` leverages.")
+      .def_readonly("description", &cudaq::RuntimeTarget::simulatorName,
+                    "A string describing the features for this `cudaq.Target`.")
+      .def("num_qpus", &cudaq::RuntimeTarget::num_qpus,
+           "Return the number of QPUs available in this `cudaq.Target`.")
+      .def(
+          "__str__",
+          [](cudaq::RuntimeTarget &self) {
+            return fmt::format("Target {}\n\tsimulator={}\n\tplatform={}"
+                               "\n\tdescription={}\n",
+                               self.name, self.simulatorName, self.platformName,
+                               self.description);
+          },
+          "Persist the information in this `cudaq.Target` to a string.");
+
   mod.def(
       "initialize_cudaq",
       [&](py::kwargs kwargs) {
@@ -38,21 +66,48 @@ PYBIND11_MODULE(_pycudaq, mod) {
           std::string key = py::str(keyPy);
           std::string value = py::str(valuePy);
           cudaq::info("Processing Python Arg: {} - {}", key, value);
-          if (key == "qpu")
-            holder.setQPU(value);
-          else if (key == "platform")
-            holder.setPlatform(value);
+          if (key == "target")
+            holder.setTarget(value);
         }
       },
-      "This function is meant to be called when the cudaq module is loaded and "
-      "provides a mechanism for the programmer to change the backend simulator "
-      "/ qpu and platform via the command line.");
+      "");
   mod.def(
-      "list_qpus", [&]() { return holder.list_qpus(); },
-      "Lists all available backends. "
-      "Use set_qpu to execute code on one of these backends.");
+      "has_target",
+      [&](const std::string &name) { return holder.hasTarget(name); },
+      "Return true if the `cudaq.Target` with the given name exists.");
   mod.def(
-      "set_qpu",
+      "reset_target", [&]() { return holder.resetTarget(); },
+      "Reset the current `cudaq.Target` to the default.");
+  mod.def(
+      "get_target",
+      [&](const std::string &name) { return holder.getTarget(name); },
+      "Return the `cudaq.Target` with the given name. Will raise an exception "
+      "if the name is not valid.");
+  mod.def(
+      "get_target", [&]() { return holder.getTarget(); },
+      "Return the `cudaq.Target` with the given name. Will raise an exception "
+      "if the name is not valid.");
+  mod.def(
+      "get_targets", [&]() { return holder.getTargets(); },
+      "Return all available `cudaq.Target` instances on the current system.");
+  mod.def(
+      "set_target",
+      [&](const cudaq::RuntimeTarget &target, py::kwargs extraConfig) {
+        std::map<std::string, std::string> config;
+        for (auto &[key, value] : extraConfig) {
+          if (!py::isinstance<py::str>(value))
+            throw std::runtime_error(
+                "QPU kwargs config value must be a string.");
+
+          config.emplace(key.cast<std::string>(), value.cast<std::string>());
+        }
+        holder.setTarget(target.name, config);
+      },
+      "Set the `cudaq.Target` to be used for CUDA Quantum kernel execution. "
+      "Can provide optional, target-specific configuration data via Python "
+      "kwargs.");
+  mod.def(
+      "set_target",
       [&](const std::string &name, py::kwargs extraConfig) {
         std::map<std::string, std::string> config;
         for (auto &[key, value] : extraConfig) {
@@ -62,31 +117,11 @@ PYBIND11_MODULE(_pycudaq, mod) {
 
           config.emplace(key.cast<std::string>(), value.cast<std::string>());
         }
-        holder.setQPU(name, config);
+        holder.setTarget(name, config);
       },
-      "Specifies which backend quantum kernels will be executed on. "
-      "Possible values can be queried using the list_qpus. "
-      "You may also specify the name of an external simulation plugin. "
-      "Can specify str:str key value pairs as kwargs to configure the "
-      "backend.");
-  mod.def(
-      "set_platform",
-      [&](const std::string &platformName, py::kwargs extraConfig) {
-        std::map<std::string, std::string> config;
-        for (auto &[key, value] : extraConfig) {
-          if (!py::isinstance<py::str>(value))
-            throw std::runtime_error(
-                "Platform kwargs config value must be a string.");
-
-          config.emplace(key.cast<std::string>(), value.cast<std::string>());
-        }
-        holder.setPlatform(platformName, config);
-      },
-      "Set the quantum_platform to use. Can specify str:str key value "
-      "pair as kwargs to configure the platform.");
-  mod.def(
-      "has_qpu", [](const std::string &name) { return holder.hasQPU(name); },
-      "Return true if there is a backend simulator with the given name.");
+      "Set the `cudaq.Target` with given name to be used for CUDA Quantum "
+      "kernel execution. Can provide optional, target-specific configuration "
+      "data via Python kwargs.");
 
   cudaq::bindBuilder(mod);
   cudaq::bindQuakeValue(mod);

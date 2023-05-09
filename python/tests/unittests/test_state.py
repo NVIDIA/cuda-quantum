@@ -65,7 +65,7 @@ def test_simple_statevector():
 
 
 def test_simple_density_matrix():
-    cudaq.set_qpu('dm')
+    cudaq.set_target('density-matrix-cpu')
 
     # Create the bell state
     circuit = cudaq.make_kernel()
@@ -109,7 +109,7 @@ def test_simple_density_matrix():
         [[.5, 0, 0, .5], [0., 0., 0., 0.], [0., 0., 0., 0.], [.5, 0., 0., .5]],
         dtype=np.complex128)
     assert_close(1., state.overlap(test))
-    cudaq.set_qpu('qpp')
+    cudaq.reset_target()
 
 
 # leave for gdb debugging
