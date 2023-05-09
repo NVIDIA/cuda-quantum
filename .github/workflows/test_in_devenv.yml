@@ -46,24 +46,11 @@ jobs:
           echo "tag_prefix=$tag_prefix" >> $GITHUB_OUTPUT
 
       - name: Test CUDA Quantum
-        uses: addnab/docker-run-action@v3
-        with:
-            image: cuda-quantum-dev:local
-            shell: bash
-            run: |
-                cd $CUDAQ_REPO_ROOT
-                ctest --output-on-failure --test-dir build -E ctest-nvqpp
-                RESULT_A=$?
-                /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
-                RESULT_B=$?
-                if [ $RESULT_A -eq 0 ] && [ $RESULT_B -eq 0 ]
-                then
-                  exit 0
-                else 
-                  echo "ctest failure status = " $RESULT_A
-                  echo "llvm-lit failure status = " $RESULT_B
-                  exit 1
-                fi 
+        run: |
+          docker run --rm -dit --name cuda-quantum-dev cuda-quantum-dev:local
+          (docker exec cuda-quantum-dev bash scripts/run_tests.sh && succeeded=true) || succeeded=false
+          docker stop cuda-quantum-dev
+          if $succeeded; then `exit 0`; else `exit 1`; fi
 
       - name: Save environment
         id: env_save
