@@ -25,7 +25,10 @@ concept ValidQregSize = N > 0;
 /// template parameters.
 template <std::size_t N = dyn, std::size_t Levels = 2>
   requires(details::ValidQregSize<N>)
-class qreg {
+class
+    // [[deprecated(
+    // "qreg deprecated and will be removed. use qvector or qarray.")]]
+    qreg {
 public:
   /// @brief Useful typedef indicating the underlying qudit type
   using value_type = qudit<Levels>;
