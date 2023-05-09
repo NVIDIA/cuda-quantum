@@ -24,17 +24,11 @@ def test_kernel_control_no_args(qubit_count):
     of qubits as the controls.
     """
     other_kernel = cudaq.make_kernel()
-    if qubit_count == 1:
-        other_qubit = other_kernel.qalloc()
-    else:
-        other_qubit = other_kernel.qalloc(qubit_count)
+    other_qubit = other_kernel.qalloc(qubit_count)
     other_kernel.x(other_qubit)
 
     kernel = cudaq.make_kernel()
-    if qubit_count == 1:
-        control_qubit = kernel.qalloc()
-    else:
-        control_qubit = kernel.qalloc(qubit_count)
+    control_qubit = kernel.qalloc(qubit_count)
     # Call `kernel.control()`.
     kernel.control(target=other_kernel, control=control_qubit)
 
@@ -43,14 +37,28 @@ def test_kernel_control_no_args(qubit_count):
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
-# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
-# CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}{{\[}}%[[VAL_0]]] : (!quake.ref) -> ()
+# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.qvec<1>
+# CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}{{\[}}%[[VAL_0]]]  : (!quake.qvec<1>) -> ()
 # CHECK:           return
 # CHECK:         }
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
-# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
-# CHECK:           quake.x %[[VAL_0]] : (!quake.ref) -> ()
+# CHECK:           %[[VAL_0:.*]] = arith.constant 1 : index
+# CHECK:           %[[VAL_1:.*]] = arith.constant 0 : index
+# CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.qvec<1>
+# CHECK:           %[[VAL_3:.*]] = cc.loop while ((%[[VAL_4:.*]] = %[[VAL_1]]) -> (index)) {
+# CHECK:             %[[VAL_5:.*]] = arith.cmpi slt, %[[VAL_4]], %[[VAL_0]] : index
+# CHECK:             cc.condition %[[VAL_5]](%[[VAL_4]] : index)
+# CHECK:           } do {
+# CHECK:           ^bb0(%[[VAL_6:.*]]: index):
+# CHECK:             %[[VAL_7:.*]] = quake.extract_ref %[[VAL_2]]{{\[}}%[[VAL_6]]] : (!quake.qvec<1>, index) -> !quake.ref
+# CHECK:             quake.x %[[VAL_7]] : (!quake.ref) -> ()
+# CHECK:             cc.continue %[[VAL_6]] : index
+# CHECK:           } step {
+# CHECK:           ^bb0(%[[VAL_8:.*]]: index):
+# CHECK:             %[[VAL_9:.*]] = arith.addi %[[VAL_8]], %[[VAL_0]] : index
+# CHECK:             cc.continue %[[VAL_9]] : index
+# CHECK:           } {counted}
 # CHECK:           return
 # CHECK:         }
 
@@ -94,10 +102,7 @@ def test_kernel_control_float_args(qubit_count):
     other_kernel.rx(other_float, other_qubit)
 
     kernel, float_ = cudaq.make_kernel(float)
-    if qubit_count == 1:
-        control_qubit = kernel.qalloc()
-    else:
-        control_qubit = kernel.qalloc(qubit_count)
+    control_qubit = kernel.qalloc(qubit_count)
     # Call `kernel.control()`.
     kernel.control(other_kernel, control_qubit, float_)
 
@@ -106,14 +111,14 @@ def test_kernel_control_float_args(qubit_count):
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
-# CHECK-SAME:      %[[VAL_0:.*]]: f64) {
-# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
-# CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}{{\[}}%[[VAL_1]]] %[[VAL_0]] : (!quake.ref, f64) -> ()
+# CHECK-SAME:                                                                   %[[VAL_0:.*]]: f64) {
+# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.qvec<1>
+# CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}{{\[}}%[[VAL_1]]] %[[VAL_0]] : (!quake.qvec<1>, f64) -> ()
 # CHECK:           return
 # CHECK:         }
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
-# CHECK-SAME:      %[[VAL_0:.*]]: f64) {
+# CHECK-SAME:                                                                   %[[VAL_0:.*]]: f64) {
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
 # CHECK:           quake.rx (%[[VAL_0]]) %[[VAL_1]] : (f64, !quake.ref) -> ()
 # CHECK:           return
@@ -142,33 +147,37 @@ def test_kernel_control_int_args(qubit_count):
     and a register of qubits as the controls.
     """
     other_kernel, other_int = cudaq.make_kernel(int)
-    if qubit_count == 1:
-        other_qubit = other_kernel.qalloc()
-    else:
-        other_qubit = other_kernel.qalloc(qubit_count)
+    other_qubit = other_kernel.qalloc(qubit_count)
     # TODO:
     # Would like to be able to test kernel operations that
     # can accept an int.
 
     kernel, _int = cudaq.make_kernel(int)
-    if qubit_count == 1:
-        control_qubit = kernel.qalloc()
-    else:
-        control_qubit = kernel.qalloc(qubit_count)
+    control_qubit = kernel.qalloc(qubit_count)
     kernel.control(other_kernel, control_qubit, _int)
     print(kernel)
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
+<<<<<<< HEAD
 # CHECK-SAME:      %[[VAL_0:.*]]: i32) {
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
 # CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}{{\[}}%[[VAL_1]]] %[[VAL_0]] : (!quake.ref, i32) -> ()
+=======
+# CHECK-SAME:                                                                   %[[VAL_0:.*]]: i32) {
+# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.qvec<1>
+# CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}{{\[}}%[[VAL_1]]] %[[VAL_0]] : (!quake.qvec<1>, i32) -> ()
+>>>>>>> 0e16209 (address pr comments)
 # CHECK:           return
 # CHECK:         }
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
 # CHECK-SAME:                                                                   %[[VAL_0:.*]]: i32) {
+<<<<<<< HEAD
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
+=======
+# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.qvec<1>
+>>>>>>> 0e16209 (address pr comments)
 # CHECK:           return
 # CHECK:         }
 
@@ -198,10 +207,7 @@ def test_kernel_control_list_args(qubit_count):
     other_kernel.rx(other_list[0], other_qubit)
 
     kernel, _list = cudaq.make_kernel(list)
-    if qubit_count == 1:
-        control_qubit = kernel.qalloc()
-    else:
-        control_qubit = kernel.qalloc(qubit_count)
+    control_qubit = kernel.qalloc(qubit_count)
     # Call `kernel.control()`.
     kernel.control(other_kernel, control_qubit, _list)
 
@@ -210,14 +216,14 @@ def test_kernel_control_list_args(qubit_count):
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
-# CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<f64>) {
-# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
-# CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}{{\[}}%[[VAL_1]]] %[[VAL_0]] : (!quake.ref, !cc.stdvec<f64>) -> ()
+# CHECK-SAME:                                                                   %[[VAL_0:.*]]: !cc.stdvec<f64>) {
+# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.qvec<1>
+# CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}{{\[}}%[[VAL_1]]] %[[VAL_0]] : (!quake.qvec<1>, !cc.stdvec<f64>) -> ()
 # CHECK:           return
 # CHECK:         }
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
-# CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<f64>) {
+# CHECK-SAME:                                                                   %[[VAL_0:.*]]: !cc.stdvec<f64>) {
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
 # CHECK:           %[[VAL_2:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<f64>) -> !llvm.ptr<f64>
 # CHECK:           %[[VAL_3:.*]] = llvm.load %[[VAL_2]] : !llvm.ptr<f64>
@@ -437,4 +443,4 @@ def test_sample_apply_call_control():
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
-    pytest.main([loc, "-rP", "-k", "test_sample_control_qubit_args" ])
+    pytest.main([loc, "-rP" ])
