@@ -616,3 +616,21 @@ func.func @unwrap_wrap(%0 : !quake.qref) {
   quake.wrap %2 to %0 : !quake.wire, !quake.qref
   return
 }
+
+// CHECK-LABEL:   func.func @cc_struct() {
+// CHECK:           %[[VAL_0:.*]] = cc.undef !cc.struct<"foo" {i32, i8}>
+// CHECK:           %[[VAL_1:.*]] = cc.undef !cc.struct<"foo">
+// CHECK:           %[[VAL_2:.*]] = cc.undef !cc.struct<"bar" {}>
+// CHECK:           %[[VAL_3:.*]] = cc.undef !cc.struct<{!cc.array<f64 x 10>}>
+// CHECK:           %[[VAL_9:.*]] = cc.undef !cc.struct<"foo6" {f32, i8} packed>
+// CHECK:           return
+// CHECK:         }
+
+func.func @cc_struct() {
+  %0 = cc.undef !cc.struct<"foo"{i32, i8}>
+  %1 = cc.undef !cc.struct<"foo">
+  %2 = cc.undef !cc.struct<"bar" {}>
+  %3 = cc.undef !cc.struct<{!cc.array<f64 x 10>}>
+  %9 = cc.undef !cc.struct<"foo6"{f32, i8} packed>
+  return
+}

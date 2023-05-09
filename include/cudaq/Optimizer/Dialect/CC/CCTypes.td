@@ -10,6 +10,7 @@
 #define CUDAQ_DIALECT_CC_TYPES
 
 include "cudaq/Optimizer/Dialect/CC/CCDialect.td"
+include "mlir/Interfaces/DataLayoutInterfaces.td"
 include "mlir/IR/AttrTypeBase.td"
 
 //===----------------------------------------------------------------------===//
@@ -47,6 +48,63 @@ def cc_PointerType : CCType<"Pointer", "ptr"> {
     }]>,
   ];
 }
+
+//===----------------------------------------------------------------------===//
+// StructType
+//===----------------------------------------------------------------------===//
+
+def cc_StructType : CCType<"Struct", "struct",
+    [DeclareTypeInterfaceMethods<DataLayoutTypeInterface>]> {
+
+  let summary = "Primitive aggregate C/C++ type.";
+  let description = [{
+    A struct is first-class type for an aggregate tuple value composed of
+    multiple ordered subvalues of any type. A value of type struct need not be
+    a memory object like an array.
+
+    A subobject is indexed by position from `0` to `N-1`, where `N` is the
+    number of members in the struct.
+  }];
+
+  let parameters = (ins
+    "mlir::StringAttr":$name,
+    ArrayRefParameter<"mlir::Type">:$members,
+    "bool":$opaque,
+    "bool":$packed
+  );
+
+  let hasCustomAssemblyFormat = 1;
+}
+
+//===----------------------------------------------------------------------===//
+// ArrayType
+//===----------------------------------------------------------------------===//
+
+def cc_ArrayType : CCType<"Array", "array"> {
+  let summary = "Primitive C-like, one-dimensional sequential type.";
+  let description = [{
+    A value in memory of type `!cc.array` is similar to a `!cc.pointer` but
+    allows 0-based indexing into a sequence of values. A `!cc.pointer` by
+    contrast points to a single object.
+
+    A value of type `!cc.array` should ordinarily be an object in memory. This
+    is transitive in nature, so any aggregate that recursively has a member of
+    `!cc.array` should itself reside in memory. More precisely, loading an array
+    into a register is not portable.
+
+    See also the StdVectorType type as another aggregate sequence of values.
+  }];
+
+  let parameters = (ins
+    "mlir::Type":$elementType,
+    "std::size_t":$size
+  );
+
+  let assemblyFormat = [{
+    `<` qualified($elementType) `x` $size `>`
+  }];
+}
+
 
 //===----------------------------------------------------------------------===//
 // LambdaType
