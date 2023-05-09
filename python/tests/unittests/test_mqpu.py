@@ -18,60 +18,60 @@ def assert_close(want, got, tolerance=1.e-5) -> bool:
     return abs(want - got) < tolerance
 
 
-# def testLargeProblem():
-#     if not cudaq.has_qpu('cuquantum'):
-#         return
+def testLargeProblem():
+    if not cudaq.has_qpu('cuquantum'):
+        return
 
-#     cudaq.set_qpu('cuquantum')
-#     # This is not large, but we don't want our CI testing
-#     # to take up too much time, if you want to see more
-#     # of the speedup increase the number of terms. I usually
-#     # set it to 12 and 100000
-#     nQubits = 4
-#     nTerms = 1000
-#     nLayers = 2
-#     cnotPairs = random.sample(range(nQubits), nQubits)
+    cudaq.set_qpu('cuquantum')
+    # This is not large, but we don't want our CI testing
+    # to take up too much time, if you want to see more
+    # of the speedup increase the number of terms. I usually
+    # set it to 12 and 100000
+    nQubits = 4
+    nTerms = 1000
+    nLayers = 2
+    cnotPairs = random.sample(range(nQubits), nQubits)
 
-#     H = cudaq.SpinOperator.random(nQubits, nTerms)
-#     kernel, params = cudaq.make_kernel(list)
+    H = cudaq.SpinOperator.random(nQubits, nTerms)
+    kernel, params = cudaq.make_kernel(list)
 
-#     q = kernel.qalloc(nQubits)
-#     paramCounter = 0
-#     for i in range(nQubits):
-#         kernel.rx(params[paramCounter], q[i])
-#         kernel.rz(params[paramCounter + 1], q[i])
-#         paramCounter = paramCounter + 2
+    q = kernel.qalloc(nQubits)
+    paramCounter = 0
+    for i in range(nQubits):
+        kernel.rx(params[paramCounter], q[i])
+        kernel.rz(params[paramCounter + 1], q[i])
+        paramCounter = paramCounter + 2
 
-#     for i in range(0, len(cnotPairs), 2):
-#         kernel.cx(q[cnotPairs[i]], q[cnotPairs[i + 1]])
+    for i in range(0, len(cnotPairs), 2):
+        kernel.cx(q[cnotPairs[i]], q[cnotPairs[i + 1]])
 
-#     for i in range(nLayers):
-#         for j in range(nQubits):
-#             kernel.rz(params[paramCounter], q[j])
-#             kernel.rz(params[paramCounter + 1], q[j])
-#             kernel.rz(params[paramCounter + 2], q[j])
-#             paramCounter = paramCounter + 3
+    for i in range(nLayers):
+        for j in range(nQubits):
+            kernel.rz(params[paramCounter], q[j])
+            kernel.rz(params[paramCounter + 1], q[j])
+            kernel.rz(params[paramCounter + 2], q[j])
+            paramCounter = paramCounter + 3
 
-#     for i in range(0, len(cnotPairs), 2):
-#         kernel.cx(q[cnotPairs[i]], q[cnotPairs[i + 1]])
+    for i in range(0, len(cnotPairs), 2):
+        kernel.cx(q[cnotPairs[i]], q[cnotPairs[i + 1]])
 
-#     execParams = np.random.uniform(low=-np.pi,
-#                                    high=np.pi,
-#                                    size=(nQubits *
-#                                          (3 * nLayers + 2),)).tolist()
+    execParams = np.random.uniform(low=-np.pi,
+                                   high=np.pi,
+                                   size=(nQubits *
+                                         (3 * nLayers + 2),)).tolist()
 
-#     start = timeit.default_timer()
-#     e = cudaq.observe(kernel, H, execParams)
-#     stop = timeit.default_timer()
-#     print("serial time = ", (stop - start))
-#     cudaq.set_platform('mqpu')
-#     start = timeit.default_timer()
-#     e = cudaq.observe(kernel, H, execParams)
-#     stop = timeit.default_timer()
-#     print("mqpu time = ", (stop - start))
-#     assert assert_close(e.expectation_z(), e.expectation_z())
-#     cudaq.set_qpu('qpp')
-#     cudaq.set_platform('default')
+    start = timeit.default_timer()
+    e = cudaq.observe(kernel, H, execParams)
+    stop = timeit.default_timer()
+    print("serial time = ", (stop - start))
+    cudaq.set_platform('mqpu')
+    start = timeit.default_timer()
+    e = cudaq.observe(kernel, H, execParams)
+    stop = timeit.default_timer()
+    print("mqpu time = ", (stop - start))
+    assert assert_close(e.expectation_z(), e.expectation_z())
+    cudaq.set_qpu('qpp')
+    cudaq.set_platform('default')
 
 
 def testAccuracy():
