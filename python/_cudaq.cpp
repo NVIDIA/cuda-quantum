@@ -20,8 +20,6 @@
 #include "runtime/cudaq/spin/py_spin_op.h"
 #include "utils/LinkedLibraryHolder.h"
 
-#include <pybind11/stl.h>
-
 PYBIND11_MODULE(_pycudaq, mod) {
   static cudaq::LinkedLibraryHolder holder;
 
