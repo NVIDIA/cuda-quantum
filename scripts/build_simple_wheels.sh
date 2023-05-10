@@ -11,6 +11,10 @@
 # NOTE: This file is expected to be executed from the outermost
 # directory, `cuda-quantum/`.
 
+# NOTE: As-is, the paths are hard-coded to the docker image I've been
+# using on my machine. These may need to be modified if you're looking
+# to run this script -- until I can abstract the paths in setup.py away.
+
 # Remove previous build outputs. 
 rm -rf python/_skbuild/
 rm -rf python/cuda_quantum.egg-info/

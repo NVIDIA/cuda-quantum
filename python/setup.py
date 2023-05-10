@@ -18,7 +18,7 @@ except ImportError:
 # try:
 #     import pybind11
 # except:
-#     # NOTE: May have an issue with our git installation not containing a 
+#     # NOTE: We may have an issue with our git installation not containing a 
 #     # pybind11Config.cmake file. Hopefully this sorts it out, but a conda
 #     # installation may be required otherwise.
 #     # See: https://github.com/pybind/pybind11/issues/1379
@@ -54,11 +54,13 @@ skbuild.setup(
     cmake_args=[
         "-DCUDAQ_ENABLE_PYTHON=TRUE",
         "-DLLVM_DIR=/root/../opt/llvm/clang-16/lib/cmake/llvm"
-        # FIXME: May need to go one layer lower to the include directory:
         "-DCUSTATEVEC_ROOT=/opt/nvidia/cuquantum",
         "-DCMAKE_EXE_LINKER_FLAGS_INIT=$/opt/llvm/bin/ld.lld"
         "-DCMAKE_MODULE_LINKER_FLAGS_INIT=$/opt/llvm/bin/ld.lld"
         "-DCMAKE_SHARED_LINKER_FLAGS_INIT=$/opt/llvm/bin/ld.lld",
+        "-DOPENSSL_ROOT_DIR=/usr/local/ssl",
+        "-DCUDAQ_CPR_INSTALL=/lib/x86_64-linux-gnu/libz.so.1.2.11",
+        "-DOPENSSL_USE_STATIC_LIBS=TRUE",
         "-DCUDAQ_BUILD_RELOCATABLE_PACKAGE=TRUE",
 
         # First attempt at disabling the front-end build to minimize
@@ -77,9 +79,5 @@ skbuild.setup(
         "-DCMAKE_EXE_LINKER_FLAGS='-static-libgcc -static-libstdc++'",
         "-DCMAKE_SHARED_LINKER_FLAGS='-static-libgcc -static-libstdc++'",
 
-        # NOTE: Potentially don't need these first two.
-        "-DOPENSSL_ROOT_DIR=/usr/local/ssl",
-        "-DCUDAQ_CPR_INSTALL=/lib/x86_64-linux-gnu/libz.so.1.2.11",
-        "-DOPENSSL_USE_STATIC_LIBS=TRUE",
     ],
     setup_requires=["numpy", "pytest", "scikit-build"])
