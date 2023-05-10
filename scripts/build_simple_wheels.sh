@@ -15,12 +15,20 @@
 # using on my machine. These may need to be modified if you're looking
 # to run this script -- until I can abstract the paths in setup.py away.
 
-# Remove previous build outputs. 
+# # Remove previous build outputs. 
 rm -rf python/_skbuild/
 rm -rf python/cuda_quantum.egg-info/
 rm -rf python/dist/ 
 rm -rf python/MANIFEST.in 
 
-# Build wheel and sdist files out of the python directory,
-# as controlled by `python/setup.py`.
+# # Build wheel and sdist files out of the python directory,
+# # as controlled by `python/setup.py`.
 python3 -m build python/.
+
+# TODO: auditwheel
+
+# Pip install the wheel.
+python3 -m pip install python/dist/*.whl
+
+# Test if we can import the package.
+python3 -c "import cudaq"
