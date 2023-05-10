@@ -71,27 +71,31 @@ std::size_t RuntimeTarget::num_qpus() {
   return platform.num_qpus();
 }
 
+/// @brief Search the targets folder in the install for available targets.
 void findAvailableTargets(
-    const std::filesystem::path &platformPath,
+    const std::filesystem::path &targetPath,
     std::unordered_map<std::string, RuntimeTarget> &targets) {
+
+  // Loop over all target files
   for (const auto &configFile :
-       std::filesystem::directory_iterator{platformPath}) {
+       std::filesystem::directory_iterator{targetPath}) {
     auto path = configFile.path();
-    auto fileName = path.filename().string();
-    if (fileName.find(".config") != std::string::npos) {
+    // They must have a .config suffix
+    if (path.extension().string() == ".config") {
 
+      // Extract the target name from the file name
+      auto fileName = path.filename().string();
       auto targetName = std::regex_replace(fileName, std::regex(".config"), "");
-      std::string platformName = "default";
-      std::string simulatorName = "qpp";
-      std::string description = "";
-
-      std::string line;
+      std::string platformName = "default", simulatorName = "qpp",
+                  description = "", line;
       {
+        // Open the file and look for the platform, simulator, and description
         std::ifstream inFile(path.string());
         while (std::getline(inFile, line)) {
           if (line.find(PLATFORM_LIBRARY) != std::string::npos) {
             cudaq::trim(line);
             platformName = cudaq::split(line, '=')[1];
+            // Post-process the string
             platformName.erase(
                 std::remove(platformName.begin(), platformName.end(), '\"'),
                 platformName.end());
@@ -101,6 +105,7 @@ void findAvailableTargets(
           } else if (line.find(NVQIR_SIMULATION_BACKEND) != std::string::npos) {
             cudaq::trim(line);
             simulatorName = cudaq::split(line, '=')[1];
+            // Post-process the string
             simulatorName.erase(
                 std::remove(simulatorName.begin(), simulatorName.end(), '\"'),
                 simulatorName.end());
@@ -109,6 +114,7 @@ void findAvailableTargets(
           } else if (line.find(TARGET_DESCRIPTION) != std::string::npos) {
             cudaq::trim(line);
             description = cudaq::split(line, '=')[1];
+            // Post-process the string
             description.erase(
                 std::remove(description.begin(), description.end(), '\"'),
                 description.end());
@@ -118,6 +124,7 @@ void findAvailableTargets(
 
       cudaq::info("Found Target: {} -> (sim={}, platform={})", targetName,
                   simulatorName, platformName);
+      // Add the target.
       targets.emplace(targetName, RuntimeTarget{targetName, simulatorName,
                                                 platformName, description});
     }
@@ -149,19 +156,17 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
 
   cudaq::info("Init: Library Path is {}.", cudaqLibPath.string());
 
-  // Start of with just lib nvqir and cudaq, the others are plugins
-  // and will be loaded next in setQPU and setPlatform
+  // We have to ensure that nvqir and cudaq are loaded
   std::vector<std::filesystem::path> libPaths{
       cudaqLibPath / fmt::format("libnvqir.{}", libSuffix),
       cudaqLibPath / fmt::format("libcudaq.{}", libSuffix)};
 
   // Load all the defaults
-  for (auto &p : libPaths) {
+  for (auto &p : libPaths)
     libHandles.emplace(p.string(),
                        dlopen(p.string().c_str(), RTLD_GLOBAL | RTLD_NOW));
-  }
 
-  // Load all simulators here when we start up.
+  // Search for all simulators and create / store them
   for (const auto &library :
        std::filesystem::directory_iterator{cudaqLibPath}) {
     auto path = library.path();
@@ -175,11 +180,14 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
       auto idx = simName.find_last_of(".");
       simName = simName.substr(0, idx);
 
+      // FIXME until we have a better handle on MPI init / finalize
+      // we can't load these
       if (simName == "tensornet" || simName == "cuquantum_mgpu") {
         simulators.emplace(simName, nullptr);
         continue;
       }
 
+      // Store the dlopen handles
       auto iter = libHandles.find(path.string());
       if (iter == libHandles.end())
         libHandles.emplace(path.string(), dlopen(path.string().c_str(),
@@ -192,6 +200,7 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
 
       cudaq::info("Found simulator plugin {}.", simName);
       simulators.emplace(simName, simulator);
+
     } else if (fileName.find("cudaq-platform-") != std::string::npos) {
       // store all available platforms.
       // Extract and process the platform name
@@ -216,6 +225,8 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
       cudaq::info("Found platform plugin {}.", platformName);
     }
   }
+
+  // We'll always start off with the default platform and the QPP simulator
   __nvqir__setCircuitSimulator(simulators["qpp"]);
   setQuantumPlatformInternal(platforms["default"]);
   targets.emplace("default",

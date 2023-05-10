@@ -65,6 +65,7 @@ protected:
   /// @brief Map of available targets.
   std::unordered_map<std::string, RuntimeTarget> targets;
 
+  /// @brief Store the name of the current target
   std::string currentTarget = "default";
 
 public:
