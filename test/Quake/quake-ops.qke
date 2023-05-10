@@ -590,10 +590,21 @@ func.func @cc.scope_blocks() {
   return
 }
 
+// CHECK-LABEL:   func.func @load_store(
+// CHECK-SAME:      %[[ARG0:.*]]: !cc.ptr<i32>) {
+// CHECK:           %[[VAL_0:.*]] = cc.load %[[ARG0]] : !cc.ptr<i32>
+// CHECK:           cc.store %{{.*}}, %[[ARG0]] : !cc.ptr<i32>
+
+func.func @load_store(%arg0: !cc.ptr<i32>) {
+  %1 = cc.load %arg0 : !cc.ptr<i32>
+  %2 = arith.addi %1, %1 : i32
+  cc.store %2, %arg0 : !cc.ptr<i32>
+  return
+}
+
 // CHECK-LABEL:   func.func @wire_type() -> !quake.wire {
 // CHECK:           %[[VAL_0:.*]] = cc.undef !quake.wire
 // CHECK:           return %[[VAL_0]] : !quake.wire
-// CHECK:         }
 
 func.func @wire_type() -> !quake.wire {
   %0 = cc.undef !quake.wire
@@ -606,8 +617,6 @@ func.func @wire_type() -> !quake.wire {
 // CHECK:           %[[VAL_2:.*]] = quake.null_wire
 // CHECK:           %[[VAL_3:.*]] = quake.x [%[[VAL_2]]] %[[VAL_1]] : (!quake.wire, !quake.wire) -> !quake.wire
 // CHECK:           quake.wrap %[[VAL_3]] to %[[VAL_0]] : !quake.wire, !quake.qref
-// CHECK:           return
-// CHECK:         }
 
 func.func @unwrap_wrap(%0 : !quake.qref) {
   %1 = quake.unwrap %0 : (!quake.qref) -> !quake.wire
