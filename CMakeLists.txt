@@ -107,6 +107,7 @@ option(CUDAQ_ENABLE_RPC_LOGGING "Enable verbose printout for client/server qpud 
 option(CUDAQ_BUILD_RELOCATABLE_PACKAGE "Make CUDA Quantum install tree relocatable, system headers included." OFF)
 option(CUDAQ_TEST_MOCK_SERVERS "Enable Remote QPU Tests via Mock Servers." OFF)
 option(CUDAQ_DISABLE_RUNTIME "Build without the CUDA Quantum runtime, just the compiler toolchain." OFF)
+option(CUDAQ_DISABLE_FRONTEND "Build without the CUDA Quantum frontend." OFF)
 
 if (CUDAQ_BUILD_RELOCATABLE_PACKAGE) 
   if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -348,7 +349,9 @@ endif()
 
 add_subdirectory(cmake)
 add_subdirectory(include)
-add_subdirectory(lib)
+if (NOT CUDAQ_DISABLE_FRONTEND)  
+  add_subdirectory(lib)
+endif()
 if (NOT CUDAQ_DISABLE_RUNTIME)
   add_subdirectory(runtime)
 endif()

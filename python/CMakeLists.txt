@@ -5,7 +5,6 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-
 set(LIBRARY_NAME _pycudaq)
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
@@ -28,6 +27,9 @@ message(STATUS "Found Python version ${Python_VERSION}. Building CUDA Quantum Py
 if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
   set(CMAKE_BUILD_TYPE "Debug")
 endif()
+
+# set(pybind11_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../tpls/pybind11/tools/)
+find_package(pybind11 REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/../tpls/pybind11/)
 pybind11_add_module(_pycudaq 
                      utils/LinkedLibraryHolder.cpp 
                      src/_cudaq.cpp 
