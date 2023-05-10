@@ -11,7 +11,7 @@
 
 struct deuteron_n3_ansatz {
   void operator()(double x0, double x1) __qpu__ {
-    cudaq::qreg q(3);
+    cudaq::qvector q(3);
     x(q[0]);
     ry(x0, q[1]);
     ry(x1, q[2]);

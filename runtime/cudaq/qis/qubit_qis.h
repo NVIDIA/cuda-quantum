@@ -11,9 +11,9 @@
 #include "common/MeasureCounts.h"
 #include "cudaq/spin_op.h"
 #include "modifiers.h"
+#include "qarray.h"
 #include "qreg.h"
 #include "qvector.h"
-#include "qarray.h"
 #include <functional>
 
 #define __qpu__ __attribute__((annotate("quantum")))
@@ -302,7 +302,7 @@ inline void reset(qubit &q) {
 template <typename QubitRange>
   requires(std::ranges::range<QubitRange>)
 std::vector<bool> mz(QubitRange &q) {
-  std::vector<bool> b; //(q.size());
+  std::vector<bool> b;
   for (auto &qq : q) {
     b.push_back(mz(qq));
   }

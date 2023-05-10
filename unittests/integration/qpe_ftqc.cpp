@@ -12,7 +12,7 @@
 #include <cmath>
 
 struct iqft {
-  void operator()(cudaq::qspan<> &q) __qpu__ {
+  void operator()(cudaq::qview<> &q) __qpu__ {
     int N = q.size();
     // Swap qubits
     for (int i = 0; i < N / 2; ++i) {
@@ -35,7 +35,7 @@ struct iqft {
 struct qpe {
   double operator()(const int n_c, const int n_q) __qpu__ {
     // Allocate a register of qubits
-    cudaq::qreg q(n_c + n_q);
+    cudaq::qvector q(n_c + n_q);
 
     // Extract sub-registers, one for the counting qubits
     // another for the eigenstate register

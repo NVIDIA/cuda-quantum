@@ -97,6 +97,12 @@ KernelBuilderType mapArgToType(cudaq::qreg<> &e) {
       [](MLIRContext *ctx) mutable { return quake::VeqType::getUnsized(ctx); });
 }
 
+KernelBuilderType mapArgToType(cudaq::qvector<> &e) {
+  return KernelBuilderType([](MLIRContext *ctx) mutable {
+    return quake::QVecType::getUnsized(ctx);
+  });
+}
+
 MLIRContext *initializeContext() {
   cudaq::info("Initializing the MLIR infrastructure.");
   return cudaq::initializeMLIR().release();
@@ -368,7 +374,7 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &size) {
 template <typename QuakeOp>
 void handleOneQubitBroadcast(ImplicitLocOpBuilder &builder, Value veq,
                              bool adjoint = false) {
-  cudaq::info("kernel_builder handling operation broadcast on qreg.");
+  cudaq::info("kernel_builder handling operation broadcast on qvector.");
 
   auto loc = builder.getLoc();
   auto indexTy = builder.getIndexType();
@@ -479,23 +485,23 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
   return QuakeValue(builder, ret);
 }
 
-QuakeValue mx(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQreg,
+QuakeValue mx(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec,
               std::string regName) {
-  return applyMeasure<quake::MxOp>(builder, qubitOrQreg.getValue(), regName);
+  return applyMeasure<quake::MxOp>(builder, qubitOrQvec.getValue(), regName);
 }
 
-QuakeValue my(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQreg,
+QuakeValue my(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec,
               std::string regName) {
-  return applyMeasure<quake::MyOp>(builder, qubitOrQreg.getValue(), regName);
+  return applyMeasure<quake::MyOp>(builder, qubitOrQvec.getValue(), regName);
 }
 
-QuakeValue mz(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQreg,
+QuakeValue mz(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec,
               std::string regName) {
-  return applyMeasure<quake::MzOp>(builder, qubitOrQreg.getValue(), regName);
+  return applyMeasure<quake::MzOp>(builder, qubitOrQvec.getValue(), regName);
 }
 
-void reset(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQreg) {
-  auto value = qubitOrQreg.getValue();
+void reset(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec) {
+  auto value = qubitOrQvec.getValue();
   if (isa<quake::RefType>(value.getType())) {
     builder.create<quake::ResetOp>(TypeRange{}, value);
     return;

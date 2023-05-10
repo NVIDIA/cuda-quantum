@@ -26,7 +26,7 @@ int mz(cudaq::qudit<3> &q) {
   return em->measure({q.n_levels(), q.id()});
 }
 
-std::vector<int> mz(cudaq::qreg<cudaq::dyn, 3> &q) {
+std::vector<int> mz(cudaq::qvector<3> &q) {
   std::vector<int> ret;
   for (auto &qq : q)
     ret.emplace_back(mz(qq));
@@ -37,7 +37,7 @@ TEST(SimpleQuditTester, checkSimple) {
 
   struct test {
     auto operator()() __qpu__ {
-      cudaq::qreg<cudaq::dyn, 3> qutrits(2);
+      cudaq::qvector<3> qutrits(2);
       plusGate(qutrits[0]);
       plusGate(qutrits[1]);
       plusGate(qutrits[1]);
@@ -47,7 +47,7 @@ TEST(SimpleQuditTester, checkSimple) {
 
   struct test2 {
     void operator()() __qpu__ {
-      cudaq::qreg<cudaq::dyn, 3> qutrits(2);
+      cudaq::qvector<3> qutrits(2);
       plusGate(qutrits[0]);
       plusGate(qutrits[1]);
       plusGate(qutrits[1]);

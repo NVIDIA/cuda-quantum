@@ -12,11 +12,9 @@
 
 namespace cudaq {
 
-/// @brief A qreg is a container for qudits. This container can be
-/// dynamic or compile-time-size specified. By default,
-/// the qreg is constructed as a dynamic register (vector-like)
-/// of qubits (2-level). This can be changed via the qreg type
-/// template parameters.
+/// @brief A qvector is an owning, dynamically sized container for qudits.
+/// The semantics of the qvector follows that of a std::vector for qudits. It
+/// is templated on the number of levels for the held qudits.
 template <std::size_t Levels = 2>
 class qvector {
 public:
@@ -24,53 +22,51 @@ public:
   using value_type = qudit<Levels>;
 
 private:
-  /// @brief If the size is dynamic, then we use vector of qudits,
-  /// if not dynamic, use an array.
+  /// @brief Reference to the held / owned vector of qudits.
   std::vector<value_type> qudits;
 
 public:
-  /// @brief Construct a qreg with `size` qudits in the |0> state.
-  /// Can only be used for dyn sized qregs
-  qvector(std::size_t size)
-      : qudits(size) {}
+  /// @brief Construct a qvector with `size` qudits in the |0> state.
+  qvector(std::size_t size) : qudits(size) {}
 
   /// @cond
   /// Nullary constructor
-  /// meant to be used with kernel_builder<cudaq::qreg<>>
-  qvector()
-      : qudits(1) {}
-
+  /// meant to be used with kernel_builder<cudaq::qvector<>>
+  qvector() : qudits(1) {}
   /// @endcond
 
-  /// @brief qregs cannot be copied
+  /// @brief qvectors cannot be copied
   qvector(qvector const &) = delete;
-  /// @brief qregs cannot be moved
+
+  /// @brief qvectors cannot be moved
   qvector(qvector &&) = delete;
 
   /// @brief Iterator interface, begin.
   auto begin() { return qudits.begin(); }
+
+  /// @brief Iterator interface, end.
   auto end() { return qudits.end(); }
 
   /// @brief Returns the qudit at `idx`.
   value_type &operator[](const std::size_t idx) { return qudits[idx]; }
 
-  /// @brief Returns the `[0, count)` qudits.
-  qview< Levels> front(std::size_t count) {
+  /// @brief Returns the `[0, count)` qudits as a non-owning qview.
+  qview<Levels> front(std::size_t count) {
     return std::span(qudits).subspan(0, count);
   }
 
-  /// @brief  Returns the first qudit.
+  /// @brief Returns the first qudit.
   value_type &front() { return qudits.front(); }
 
-  /// @brief Returns the `[count, size())` qudits.
-  qview< Levels> back(std::size_t count) {
+  /// @brief Returns the `[count, size())` qudits as a non-owning qview
+  qview<Levels> back(std::size_t count) {
     return std::span(qudits).subspan(size() - count, count);
   }
 
   /// @brief Returns the last qudit.
   value_type &back() { return qudits.back(); }
 
-  /// @brief Returns the `[start, start+size)` qudits.
+  /// @brief Returns the `[start, start+size)` qudits as a non-owning qview
   qview<Levels> slice(std::size_t start, std::size_t size) {
     return std::span(qudits).subspan(start, size);
   }
@@ -82,6 +78,4 @@ public:
   void clear() { qudits.clear(); }
 };
 
-// Provide the default qreg q(SIZE) deduction guide
-// qreg(std::size_t) -> qreg<dyn, 2>;
 } // namespace cudaq

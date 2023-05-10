@@ -17,7 +17,7 @@
 
 struct ansatz_compute_action {
   void operator()(std::vector<double> theta) __qpu__ {
-    cudaq::qreg q(4);
+    cudaq::qvector q(4);
     x(q[0]);
     x(q[2]);
 
@@ -37,7 +37,7 @@ struct ansatz_compute_action {
 
 struct ansatz_compute_action_double {
   void operator()(double theta) __qpu__ {
-    cudaq::qreg q(4);
+    cudaq::qvector q(4);
     x(q[0]);
     x(q[2]);
 
@@ -188,7 +188,7 @@ CUDAQ_TEST_F(VQETester, checkArgMapper) {
                       3.913119 * y(1) * y(2);
 
   auto ansatz = [](double theta, double phi) __qpu__ {
-    cudaq::qreg q(3);
+    cudaq::qvector q(3);
     x(q[0]);
     ry(theta, q[1]);
     ry(phi, q[2]);

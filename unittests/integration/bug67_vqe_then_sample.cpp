@@ -21,7 +21,7 @@ CUDAQ_TEST(VqeThenSample, checkBug67) {
     const int n_layers;
     void operator()(std::vector<double> theta) __qpu__ {
       using namespace cudaq::spin;
-      cudaq::qreg q(n_qubits);
+      cudaq::qvector q(n_qubits);
 
       // Prepare the initial state by superposition
       h(q);

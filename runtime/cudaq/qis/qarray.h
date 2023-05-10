@@ -13,16 +13,15 @@
 namespace cudaq {
 
 namespace details {
-/// qreg<N> for N < 1 should be a compile error
+/// qarray<N> for N < 1 should be a compile error
 template <std::size_t N>
 concept ValidQArraySize = N > 0;
 } // namespace details
 
-/// @brief A qreg is a container for qudits. This container can be
-/// dynamic or compile-time-size specified. By default,
-/// the qreg is constructed as a dynamic register (vector-like)
-/// of qubits (2-level). This can be changed via the qreg type
-/// template parameters.
+/// @brief A qarray is an owning, compile-time sized container for qudits.
+/// The semantics of the qarray follows that of a std::array for qudits. It
+/// is templated on the number of qudits contained and the number of levels for
+/// the held qudits.
 template <std::size_t N, std::size_t Levels = 2>
   requires(details::ValidQArraySize<N>)
 class qarray {
@@ -31,47 +30,46 @@ public:
   using value_type = qudit<Levels>;
 
 private:
-  /// @brief If the size is dynamic, then we use vector of qudits,
-  /// if not dynamic, use an array.
+  /// @brief Reference to the held / owned array of qudits
   std::array<value_type, N> qudits;
 
 public:
-
   /// Nullary constructor
-  /// can only be used for qreg<N> q;
-  qarray()
-  {}
+  qarray() {}
 
-  /// @brief qregs cannot be copied
+  /// @brief qarray cannot be copied
   qarray(qarray const &) = delete;
-  /// @brief qregs cannot be moved
+
+  /// @brief qarray cannot be moved
   qarray(qarray &&) = delete;
 
   /// @brief Iterator interface, begin.
   auto begin() { return qudits.begin(); }
+
+  /// @brief Iterator interface, end.
   auto end() { return qudits.end(); }
 
   /// @brief Returns the qudit at `idx`.
   value_type &operator[](const std::size_t idx) { return qudits[idx]; }
 
-  /// @brief Returns the `[0, count)` qudits.
-  qview< Levels> front(std::size_t count) {
+  /// @brief Returns the `[0, count)` qudits as a non-owning qview.
+  qview<Levels> front(std::size_t count) {
     return std::span(qudits).subspan(0, count);
   }
 
-  /// @brief  Returns the first qudit.
+  /// @brief Returns the first qudit.
   value_type &front() { return qudits.front(); }
 
-  /// @brief Returns the `[count, size())` qudits.
-  qview< Levels> back(std::size_t count) {
+  /// @brief Returns the `[count, size())` qudits as a non-owning qview
+  qview<Levels> back(std::size_t count) {
     return std::span(qudits).subspan(size() - count, count);
   }
 
   /// @brief Returns the last qudit.
   value_type &back() { return qudits.back(); }
 
-  /// @brief Returns the `[start, start+size)` qudits.
-  qview< Levels> slice(std::size_t start, std::size_t size) {
+  /// @brief Returns the `[start, start+size)` qudits as a non-owning qview
+  qview<Levels> slice(std::size_t start, std::size_t size) {
     return std::span(qudits).subspan(start, size);
   }
 
