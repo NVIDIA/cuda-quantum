@@ -15,6 +15,10 @@
 #include <unordered_map>
 #include <vector>
 
+#include <pybind11/pybind11.h>
+
+namespace py = pybind11;
+
 namespace nvqir {
 class CircuitSimulator;
 }
@@ -32,6 +36,7 @@ struct RuntimeTarget {
   std::string platformName;
   std::string description;
 
+  /// @brief Return the number of QPUs this target exposes.
   std::size_t num_qpus();
 };
 
@@ -86,4 +91,7 @@ public:
   /// @brief Reset the target back to the default.
   void resetTarget();
 };
+
+void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder);
+
 } // namespace cudaq

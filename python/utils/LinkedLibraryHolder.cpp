@@ -282,6 +282,13 @@ void LinkedLibraryHolder::setTarget(
   setQuantumPlatformInternal(platform);
 
   currentTarget = targetName;
+
+  // May also need to load a plugin library
+  //     auto potentialPath =
+  //         cudaqLibPath / fmt::format("libcudaq-rest-qpu.{}", libSuffix);
+  //     libHandles.emplace(
+  //         potentialPath.string(),
+  //         dlopen(potentialPath.string().c_str(), RTLD_GLOBAL | RTLD_NOW));
 }
 
 std::vector<RuntimeTarget> LinkedLibraryHolder::getTargets() const {
@@ -291,117 +298,87 @@ std::vector<RuntimeTarget> LinkedLibraryHolder::getTargets() const {
   return ret;
 }
 
-// bool LinkedLibraryHolder::hasQPU(const std::string &name) const {
-//   std::string mutableName = name;
-//   if (name == "cuquantum")
-//     mutableName = "custatevec";
-//   return simulators.find(mutableName) != simulators.end();
-// }
+void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
 
-// void LinkedLibraryHolder::setQPU(const std::string &name,
-//                                  std::map<std::string, std::string> config) {
-//   if (name == "tensornet")
-//     throw std::runtime_error(
-//         "The tensornet simulator is not available in Python.");
+  py::class_<cudaq::RuntimeTarget>(
+      mod, "Target",
+      "The `cudaq.Target` represents the underlying infrastructure that CUDA "
+      "Quantum kernels will execute on. Instances of `cudaq.Target` describe "
+      "what simulator they may leverage, the quantum_platform required for "
+      "execution, and a description for the target.")
+      .def_readonly("name", &cudaq::RuntimeTarget::name,
+                    "The name of the `cudaq.Target`.")
+      .def_readonly("simulator", &cudaq::RuntimeTarget::simulatorName,
+                    "The name of the simulator this `cudaq.Target` leverages. "
+                    "This will be empty for physical QPUs.")
+      .def_readonly("platform", &cudaq::RuntimeTarget::simulatorName,
+                    "The name of the quantum_platform implementation this "
+                    "`cudaq.Target` leverages.")
+      .def_readonly("description", &cudaq::RuntimeTarget::simulatorName,
+                    "A string describing the features for this `cudaq.Target`.")
+      .def("num_qpus", &cudaq::RuntimeTarget::num_qpus,
+           "Return the number of QPUs available in this `cudaq.Target`.")
+      .def(
+          "__str__",
+          [](cudaq::RuntimeTarget &self) {
+            return fmt::format("Target {}\n\tsimulator={}\n\tplatform={}"
+                               "\n\tdescription={}\n",
+                               self.name, self.simulatorName, self.platformName,
+                               self.description);
+          },
+          "Persist the information in this `cudaq.Target` to a string.");
 
-//   std::string mutableName = name;
-//   if (name == "cuquantum")
-//     mutableName = "custatevec";
+  mod.def(
+      "has_target",
+      [&](const std::string &name) { return holder.hasTarget(name); },
+      "Return true if the `cudaq.Target` with the given name exists.");
+  mod.def(
+      "reset_target", [&]() { return holder.resetTarget(); },
+      "Reset the current `cudaq.Target` to the default.");
+  mod.def(
+      "get_target",
+      [&](const std::string &name) { return holder.getTarget(name); },
+      "Return the `cudaq.Target` with the given name. Will raise an exception "
+      "if the name is not valid.");
+  mod.def(
+      "get_target", [&]() { return holder.getTarget(); },
+      "Return the `cudaq.Target` with the given name. Will raise an exception "
+      "if the name is not valid.");
+  mod.def(
+      "get_targets", [&]() { return holder.getTargets(); },
+      "Return all available `cudaq.Target` instances on the current system.");
+  mod.def(
+      "set_target",
+      [&](const cudaq::RuntimeTarget &target, py::kwargs extraConfig) {
+        std::map<std::string, std::string> config;
+        for (auto &[key, value] : extraConfig) {
+          if (!py::isinstance<py::str>(value))
+            throw std::runtime_error(
+                "QPU kwargs config value must be a string.");
 
-//   // Set the simulator if we find it
-//   auto iter = simulators.find(mutableName);
-//   if (iter != simulators.end()) {
-//     if (iter->second) {
-//       __nvqir__setCircuitSimulator(iter->second);
-//       return;
-//     }
+          config.emplace(key.cast<std::string>(), value.cast<std::string>());
+        }
+        holder.setTarget(target.name, config);
+      },
+      "Set the `cudaq.Target` to be used for CUDA Quantum kernel execution. "
+      "Can provide optional, target-specific configuration data via Python "
+      "kwargs.");
+  mod.def(
+      "set_target",
+      [&](const std::string &name, py::kwargs extraConfig) {
+        std::map<std::string, std::string> config;
+        for (auto &[key, value] : extraConfig) {
+          if (!py::isinstance<py::str>(value))
+            throw std::runtime_error(
+                "QPU kwargs config value must be a string.");
 
-//     // If this is one of mpi backends then we need to load it first.
-//     // Note we can only load one of these in a single python execution
-//     context if (mutableName == "cuquantum_mgpu") {
-//       cudaq::info("Requested MPI QPU = {}", mutableName);
-//       auto path =
-//           cudaqLibPath / fmt::format("libnvqir-{}.{}", mutableName,
-//           libSuffix);
-//       cudaq::info("Path is {}", path.string());
+          config.emplace(key.cast<std::string>(), value.cast<std::string>());
+        }
+        holder.setTarget(name, config);
+      },
+      "Set the `cudaq.Target` with given name to be used for CUDA Quantum "
+      "kernel execution. Can provide optional, target-specific configuration "
+      "data via Python kwargs.");
+}
 
-//       if (!std::filesystem::exists(path))
-//         throw std::runtime_error(
-//             fmt::format("Invalid path for simulation plugin: {}, {}",
-//                         mutableName, path.string()));
-
-//       auto iter = libHandles.find(path.string());
-//       if (iter == libHandles.end())
-//         libHandles.emplace(path.string(), dlopen(path.string().c_str(),
-//                                                  RTLD_GLOBAL | RTLD_NOW));
-//       // Load the plugin and get the CircuitSimulator.
-//       std::string symbolName =
-//           fmt::format("getCircuitSimulator_{}", mutableName);
-
-//       // Load the simulator
-//       auto *simulator =
-//           getUniquePluginInstance<nvqir::CircuitSimulator>(symbolName);
-//       simulators.erase(mutableName);
-//       simulators.emplace(mutableName, simulator);
-//       __nvqir__setCircuitSimulator(simulator);
-//     }
-//   }
-
-//   // Check if this name is one of our NAME.config files
-//   auto platformPath = cudaqLibPath / ".." / "platforms";
-//   if (std::filesystem::exists(platformPath / fmt::format("{}.config", name)))
-//   {
-//     // Want to setTargetBackend on the platform
-//     // May also need to load a plugin library
-//     auto potentialPath =
-//         cudaqLibPath / fmt::format("libcudaq-rest-qpu.{}", libSuffix);
-//     libHandles.emplace(
-//         potentialPath.string(),
-//         dlopen(potentialPath.string().c_str(), RTLD_GLOBAL | RTLD_NOW));
-
-//     // Pack the config into the backend string name
-//     for (auto &[key, value] : config)
-//       mutableName += fmt::format(";{};{}", key, value);
-
-//     cudaq::get_platform().setTargetBackend(mutableName);
-//     return;
-//   }
-
-//   // Invalid qpu name.
-//   throw std::runtime_error("Invalid qpu name: " + name);
-// }
-
-// void LinkedLibraryHolder::setPlatform(
-//     const std::string &name, std::map<std::string, std::string> config) {
-
-//   std::string mutableName = name;
-
-//   // need to set qpu to cuquantum for mqpu
-//   if (name == "mqpu")
-//     setQPU("cuquantum");
-
-//   cudaq::info("Setting CUDA Quantum platform to {}.", mutableName);
-//   auto potentialPath = cudaqLibPath / fmt::format("libcudaq-platform-{}.{}",
-//                                                   mutableName, libSuffix);
-//   if (std::filesystem::exists(potentialPath)) {
-//     libHandles.emplace(
-//         potentialPath.string(),
-//         dlopen(potentialPath.string().c_str(), RTLD_GLOBAL | RTLD_NOW));
-
-//     // Extract the desired quantum_platform subtype and set it on the
-//     runtime. std::string symbolName = fmt::format("getQuantumPlatform_{}",
-//     mutableName); auto *platform =
-//         getUniquePluginInstance<cudaq::quantum_platform>(symbolName);
-//     setQuantumPlatformInternal(platform);
-
-//     // Pack the config into the backend string name
-//     for (auto &[key, value] : config)
-//       mutableName += fmt::format(";{};{}", key, value);
-
-//     platform->setTargetBackend(mutableName);
-//     return;
-//   }
-
-//   throw std::runtime_error("Invalid platform name: " + name);
-// }
 } // namespace cudaq
