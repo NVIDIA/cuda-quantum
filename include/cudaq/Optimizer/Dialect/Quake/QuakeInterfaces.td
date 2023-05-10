@@ -49,6 +49,13 @@ def OperatorInterface : OpInterface<"OperatorInterface"> {
       /*methodBody=*/ "return $_op.getControls();"
     >,
     InterfaceMethod<
+      /*desc=*/ "Returns an array indicating whether controls are negated",
+      /*retType=*/ "std::optional<mlir::ArrayRef<bool>>",
+      /*methodName=*/ "getNegatedControls",
+      /*args=*/ (ins),
+      /*methodBody=*/ "return $_op.getNegatedQubitControls();"
+    >,
+    InterfaceMethod<
       /*desc=*/ "Returns the targets (input) of this operator",
       /*retType=*/ "mlir::Operation::operand_range",
       /*methodName=*/ "getTargets",
