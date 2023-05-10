@@ -8,7 +8,7 @@
 
 // RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(canonicalize,cse,quake-observe-ansatz{term-bsf=1,1,0,0}),canonicalize)' %s | FileCheck %s
 
-module attributes {qtx.mangled_name_map = {__nvqpp__mlirgen__ansatz = "_ZN6ansatzclEd"}} {
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__ansatz = "_ZN6ansatzclEd"}} {
   func.func @__nvqpp__mlirgen__ansatz(%arg0: f64) {
     %c0_i64 = arith.constant 0 : i64
     %c1_i64 = arith.constant 1 : i64

@@ -14,8 +14,9 @@
 
 namespace cudaq {
 
-/// Translates the given operation to OpenQASM code. The operation or operations
-/// in the region of 'op' need almost all be in QTX dialect.
+/// Translates the given operation to OpenQASM code. The operation, `op`,  or
+/// operations in its region must be in Quake memory reference form. Also,
+/// vectors of qubit references cannot be of unknown size.
 mlir::LogicalResult translateToOpenQASM(mlir::Operation *op,
                                         llvm::raw_ostream &os);
 

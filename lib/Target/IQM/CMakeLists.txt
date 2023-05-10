@@ -10,7 +10,6 @@ add_cudaq_translation_library(CUDAQTargetIQM
   TranslateToIQMJson.cpp
 
   LINK_LIBS PUBLIC
-  QTXDialect
   MLIRIR
   MLIRTranslateLib
 )

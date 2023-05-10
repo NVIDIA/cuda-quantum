@@ -52,8 +52,7 @@ static bool isQubitType(Type ty) {
 }
 
 // Check the builtin type FunctionType to see if it has any references to Quake
-// qubit types in its arguments and/or results. It does not check QTX types as
-// the bridge should be lowering to Quake.
+// qubit types in its arguments and/or results.
 static bool hasAnyQubitTypes(FunctionType funcTy) {
   for (auto ty : funcTy.getInputs())
     if (isQubitType(ty))

@@ -71,7 +71,7 @@
 // QIR:         call i8* @__quantum__rt__array_get_element_ptr_1d(
 // QIR:         call void @__quantum__qis__h(
 
-module attributes {qtx.mangled_name_map = {__nvqpp__mlirgen__kernel_a = "_ZN8kernel_aclEv", __nvqpp__mlirgen__kernel_b = "_ZN8kernel_bclEOSt8functionIFvvEE"}} {
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel_a = "_ZN8kernel_aclEv", __nvqpp__mlirgen__kernel_b = "_ZN8kernel_bclEOSt8functionIFvvEE"}} {
   func.func @__nvqpp__mlirgen__kernel_b(%arg0: !cc.lambda<() -> ()>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     return
   }
