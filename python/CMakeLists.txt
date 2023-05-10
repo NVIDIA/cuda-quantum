@@ -55,7 +55,7 @@ target_link_libraries(_pycudaq PUBLIC nvqir
 
 install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX})
 install(FILES cudaq.py DESTINATION ${CMAKE_INSTALL_PREFIX})
-install(FILES apps/chemistry.py DESTINATION ${CMAKE_INSTALL_PREFIX}/apps/)
+install(FILES domains/chemistry.py DESTINATION ${CMAKE_INSTALL_PREFIX}/domains/)
 
 if(APPLE)
   set_target_properties(
