@@ -80,9 +80,7 @@ def testAccuracy():
     if not cudaq.has_target('nvidia'):
         return
 
-    # Need a way to get current number of QPUs
     cudaq.set_target('nvidia-mqpu')
-
     target = cudaq.get_target()
     numQpus = target.num_qpus()
     assert numQpus > 0
