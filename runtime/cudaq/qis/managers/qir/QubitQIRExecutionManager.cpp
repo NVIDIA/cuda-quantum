@@ -21,7 +21,7 @@
 #include <stack>
 
 namespace {
-Array *spinToArray(cudaq::spin_op &);
+Array *spinToArray(const cudaq::spin_op &);
 
 /// The QIRQubitQISManager will implement allocation, deallocation, and
 /// quantum instruction application via calls to the extern declared QIR
@@ -184,27 +184,22 @@ protected:
     return res ? 1 : 0;
   }
 
+  void measureSpinOp(const cudaq::spin_op &op) override {
+    Array *term_arr = spinToArray(op);
+    __quantum__qis__measure__body(term_arr, nullptr);
+    return;
+  }
+
 public:
   QIRExecutionManager() = default;
   virtual ~QIRExecutionManager() {}
-
-  cudaq::SpinMeasureResult measure(cudaq::spin_op &op) override {
-    synchronize();
-    // FIXME need to remove QIR things from spin_op
-    Array *term_arr = spinToArray(op);
-    __quantum__qis__measure__body(term_arr, nullptr);
-    // auto counts_raw = ctx->extract_results();
-    auto exp = executionContext->expectationValue;
-    auto data = executionContext->result;
-    return std::make_pair(exp.value(), data);
-  }
 
   void resetQudit(const cudaq::QuditInfo &id) override {
     __quantum__qis__reset(qubits[id.id]);
   }
 };
 
-Array *spinToArray(cudaq::spin_op &op) {
+Array *spinToArray(const cudaq::spin_op &op) {
   // How to pack the data???
   // add all term data as correct pointer to double for x,y,z,or I.
   // After each term add a pointer to real part of term coeff,

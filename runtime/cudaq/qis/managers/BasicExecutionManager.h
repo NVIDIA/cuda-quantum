@@ -81,6 +81,8 @@ protected:
   /// @brief Subtype-specific method for performing qudit measurement.
   virtual int measureQudit(const cudaq::QuditInfo &q) = 0;
 
+  virtual void measureSpinOp(const cudaq::spin_op &op) = 0;
+
 public:
   BasicExecutionManager() = default;
   virtual ~BasicExecutionManager() = default;
@@ -256,6 +258,13 @@ public:
 
     // Instruction executed, run the measure call
     return measureQudit(target);
+  }
+
+  cudaq::SpinMeasureResult measure(cudaq::spin_op &op) override {
+    synchronize();
+    measureSpinOp(op);
+    return std::make_pair(executionContext->expectationValue.value(),
+                          executionContext->result);
   }
 };
 
