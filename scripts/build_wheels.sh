@@ -15,7 +15,7 @@
 rm -rf python/_skbuild/
 rm -rf python/cuda_quantum.egg-info/
 rm -rf python/dist/ 
-rm -rf ../python/MANIFEST.in 
+rm -rf python/MANIFEST.in 
 
 # Build wheel and sdist files out of the python directory,
 # as controlled by `python/setup.py`.
