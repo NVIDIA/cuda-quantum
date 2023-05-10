@@ -71,7 +71,7 @@ public:
       // and computing <ZZ..ZZZ>
       if (executionContext->canHandleObserve) {
         auto [exp, data] = cudaq::measure(H);
-        results.emplace_back(data.to_map(), H.to_string());
+        results.emplace_back(data.to_map(), H.to_string(false), exp);
         ctx->expectationValue = exp;
         ctx->result = cudaq::sample_result(results);
       } else {

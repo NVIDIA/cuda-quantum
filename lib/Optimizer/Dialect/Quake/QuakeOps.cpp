@@ -124,7 +124,7 @@ OpFoldResult quake::QExtractOp::fold(FoldAdaptor adaptor) {
 //===----------------------------------------------------------------------===//
 
 LogicalResult quake::RelaxSizeOp::verify() {
-  if (getType().cast<quake::QVecType>().hasSpecifiedSize())
+  if (cast<quake::QVecType>(getType()).hasSpecifiedSize())
     emitOpError("return qvec type must not specify a size");
   return success();
 }
@@ -192,6 +192,30 @@ void quake::QVecSizeOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
 }
 
 //===----------------------------------------------------------------------===//
+// WrapOp
+//===----------------------------------------------------------------------===//
+
+namespace {
+// If there is no operation that modifies the wire after it gets unwrapped and
+// before it is wrapped, then the wrap operation is a nop and can be eliminated.
+struct KillDeadWrapPattern : public OpRewritePattern<quake::WrapOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::WrapOp wrap,
+                                PatternRewriter &rewriter) const override {
+    if (auto unwrap = wrap.getWireValue().getDefiningOp<quake::UnwrapOp>())
+      rewriter.eraseOp(wrap);
+    return success();
+  }
+};
+} // namespace
+
+void quake::WrapOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
+                                                MLIRContext *context) {
+  patterns.add<KillDeadWrapPattern>(context);
+}
+
+//===----------------------------------------------------------------------===//
 // Measurements (MxOp, MyOp, MzOp)
 //===----------------------------------------------------------------------===//
 
@@ -240,6 +264,41 @@ bool cudaq::EnableInlinerInterface::isLegalToInline(Operation *call,
       return false;
   return !(callable->hasAttr(cudaq::entryPointAttrName));
 }
+
+void quake::getOperatorEffectsImpl(
+    SmallVectorImpl<SideEffects::EffectInstance<MemoryEffects::Effect>>
+        &effects,
+    ValueRange controls, ValueRange targets) {
+  for (auto v : controls)
+    if (isa<quake::QRefType, quake::QVecType>(v.getType()))
+      effects.emplace_back(MemoryEffects::Read::get(), v,
+                           SideEffects::DefaultResource::get());
+  for (auto v : targets)
+    if (isa<quake::QRefType, quake::QVecType>(v.getType())) {
+      effects.emplace_back(MemoryEffects::Read::get(), v,
+                           SideEffects::DefaultResource::get());
+      effects.emplace_back(MemoryEffects::Write::get(), v,
+                           SideEffects::DefaultResource::get());
+    }
+}
+
+// This is a workaround for ODS generating these member function declarations
+// but not having a way to define them in the ODS.
+// clang-format off
+#define GATE_OPS(MACRO) MACRO(XOp) MACRO(YOp) MACRO(ZOp) MACRO(HOp) MACRO(SOp) \
+  MACRO(TOp) MACRO(SwapOp) MACRO(U2Op) MACRO(U3Op)                             \
+  MACRO(R1Op) MACRO(RxOp) MACRO(RyOp) MACRO(RzOp) MACRO(PhasedRxOp)
+#define MEASURE_OPS(MACRO) MACRO(MxOp) MACRO(MyOp) MACRO(MzOp)
+#define QUANTUM_OPS(MACRO) MACRO(ResetOp) GATE_OPS(MACRO) MEASURE_OPS(MACRO)
+// clang-format on
+#define INSTANTIATE_CALLBACKS(Op)                                              \
+  void quake::Op::getEffects(                                                  \
+      SmallVectorImpl<SideEffects::EffectInstance<MemoryEffects::Effect>>      \
+          &effects) {                                                          \
+    getEffectsImpl(effects);                                                   \
+  }
+
+QUANTUM_OPS(INSTANTIATE_CALLBACKS)
 
 //===----------------------------------------------------------------------===//
 // Generated logic

@@ -13,13 +13,13 @@
 
 module {
   func.func @test(%arg : !quake.qref) {
-    quake.t (%arg)
-    quake.h (%arg)
-    quake.x (%arg)
+    quake.t %arg : (!quake.qref) -> ()
+    quake.h %arg : (!quake.qref) -> ()
+    quake.x %arg : (!quake.qref) -> ()
     return
   }
   func.func @do_apply(%arg : !quake.qref, %brg : !quake.qref) {
-    quake.apply <adj> @test [%brg : !quake.qref] %arg : (!quake.qref) -> ()
+    quake.apply <adj> @test [%brg] %arg : (!quake.qref, !quake.qref) -> ()
     return
   }
 }

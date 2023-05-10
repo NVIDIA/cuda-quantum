@@ -31,12 +31,12 @@ def IsNotNull : Constraint<CPred<"$0 ? true : false">>;
 // phased_r(θ, 0, ...)
 
 def CreateRX : NativeCodeCall<
-    "[&]() -> mlir::Value {"
+    "[&]() -> std::size_t {"
     "  auto zero = cudaq::iqm::createFloatConstant($_builder, $_loc,"
     "    $1.front().getType().cast<mlir::FloatType>(), 0.0);"
     "  $_builder.create<quake::PhasedRxOp>($_loc, $0,"
     "    mlir::ArrayRef<mlir::Value>{$1.front(), zero}, $2, $3, $4);"
-    "  return {}; }()">;
+    "  return 0; }()">;
 
 def IQMRxPattern : Pat<
       (RxOp $adj, $parm, $ctrl, $targ, $neg),
@@ -48,12 +48,12 @@ def IQMRxPattern : Pat<
 // phased_r(θ, π / 2, ...)
 
 def CreateRY : NativeCodeCall<
-    "[&]() -> mlir::Value {"
+    "[&]() -> std::size_t {"
     "  auto halfPi = cudaq::iqm::createFloatConstant($_builder, $_loc, "
     "    $1.front().getType().cast<mlir::FloatType>(), M_PI_2);"
     "  $_builder.create<quake::PhasedRxOp>($_loc, $0,"
     "    mlir::ArrayRef<mlir::Value>{$1.front(), halfPi}, $2, $3, $4);"
-    "  return {}; }()">;
+    "  return 0; }()">;
 
 def IQMRyPattern : Pat<
       (RyOp $adj, $parm, $ctrl, $targ, $neg),
@@ -182,11 +182,11 @@ def IQMR1Pattern : Pat<
 // quake.h j
 
 def CreateXctrl : NativeCodeCall<
-    "[&]() -> mlir::Value {"
+    "[&]() -> std::size_t {"
     "  $_builder.create<quake::HOp>($_loc, mlir::ValueRange{}, $3);"
     "  $_builder.create<quake::ZOp>($_loc, $2, $3);"
     "  $_builder.create<quake::HOp>($_loc, mlir::ValueRange{}, $3);"
-    "  return {}; }()">;
+    "  return 0; }()">;
 
 def IQMXctrlPattern : Pat<
       (XOp $adj, $parm, $ctrl, $targ, $neg),

@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 // RUN: cudaq-quake %s | FileCheck %s
 
@@ -32,15 +32,15 @@ int main() {
 // CHECK-SAME:        (%[[VAL_0:.*]]: !quake.qvec<?>) attributes {"cudaq-kernel"} {
 // CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_2:.*]] = arith.extsi %[[VAL_1]] : i32 to i64
-// CHECK:           %[[VAL_3:.*]] = quake.qextract %[[VAL_0]][%[[VAL_2]]] : !quake.qvec<?>[i64] -> !quake.qref
-// CHECK:           quake.h (%[[VAL_3]])
+// CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][%[[VAL_2]]] : (!quake.qvec<?>, i64) -> !quake.qref
+// CHECK:           quake.h %[[VAL_3]] : (!quake.qref) -> ()
 // CHECK:           %[[VAL_4:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_5:.*]] = arith.extsi %[[VAL_4]] : i32 to i64
-// CHECK:           %[[VAL_6:.*]] = quake.qextract %[[VAL_0]][%[[VAL_5]]] : !quake.qvec<?>[i64] -> !quake.qref
+// CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_0]][%[[VAL_5]]] : (!quake.qvec<?>, i64) -> !quake.qref
 // CHECK:           %[[VAL_7:.*]] = arith.constant 1 : i32
 // CHECK:           %[[VAL_8:.*]] = arith.extsi %[[VAL_7]] : i32 to i64
-// CHECK:           %[[VAL_9:.*]] = quake.qextract %[[VAL_0]][%[[VAL_8]]] : !quake.qvec<?>[i64] -> !quake.qref
-// CHECK:           quake.x [%[[VAL_6]] : !quake.qref] (%[[VAL_9]])
+// CHECK:           %[[VAL_9:.*]] = quake.extract_ref %[[VAL_0]][%[[VAL_8]]] : (!quake.qvec<?>, i64) -> !quake.qref
+// CHECK:           quake.x [%[[VAL_6]]] %[[VAL_9]] : (!quake.qref, !quake.qref) -> ()
 // CHECK:           return
 // CHECK:         }
 
@@ -48,7 +48,7 @@ int main() {
 // CHECK-SAME:        (%[[VAL_0:.*]]: !cc.lambda<(!quake.qvec<?>) -> ()>) attributes {{{.*}}"cudaq-entrypoint"{{.*}}} {
 // CHECK:           %[[VAL_1:.*]] = arith.constant 2 : i32
 // CHECK:           %[[VAL_2:.*]] = arith.extsi %[[VAL_1]] : i32 to i64
-// CHECK:           %[[VAL_3:.*]] = quake.alloca(%[[VAL_2]] : i64) : !quake.qvec<?>
+// CHECK:           %[[VAL_3:.*]] = quake.alloca[%[[VAL_2]] : i64] !quake.qvec<?>
 // CHECK:           call @__nvqpp__mlirgen__Z4mainE3$_0(%[[VAL_3]]) : (!quake.qvec<?>) -> ()
 // CHECK:           return
 // CHECK:         }

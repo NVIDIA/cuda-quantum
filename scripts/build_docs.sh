@@ -159,6 +159,9 @@ sphinx_exit_code=$?
 if [ ! "$sphinx_exit_code" -eq "0" ]; then
     echo "Failed to generate documentation using sphinx-build."
     echo "Sphinx exit code: $sphinx_exit_code"
+    echo "======== logs ========"
+    cat "$logs_dir/sphinx_output.txt" "$logs_dir/sphinx_error.txt"
+    echo "======================"
     docs_exit_code=12
 fi
 

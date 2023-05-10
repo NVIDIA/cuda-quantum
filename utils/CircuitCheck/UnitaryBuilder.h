@@ -37,7 +37,7 @@ private:
 
   mlir::WalkResult allocateQubits(mlir::Value value);
 
-  mlir::Optional<int64_t> getValueAsInt(mlir::Value value);
+  std::optional<int64_t> getValueAsInt(mlir::Value value);
 
   //===--------------------------------------------------------------------===//
   // Helpers
@@ -45,16 +45,8 @@ private:
 
   unsigned getNextQubit() { return std::log2(matrix.rows()); }
 
-  std::vector<Qubit> getQubits(mlir::ValueRange controls,
-                               mlir::ValueRange targets = {}) {
-    std::vector<Qubit> qubits;
-    qubits.reserve(controls.size() + targets.size());
-    for (auto value : controls)
-      qubits.push_back(qubitMap[value][0]);
-    for (auto value : targets)
-      qubits.push_back(qubitMap[value][0]);
-    return qubits;
-  }
+  mlir::LogicalResult getQubits(mlir::ValueRange values,
+                                mlir::SmallVectorImpl<Qubit> &qubits);
 
   //===--------------------------------------------------------------------===//
   // Unitary
@@ -62,19 +54,19 @@ private:
 
   void growMatrix(unsigned numQubits = 1u);
 
-  void applyOperator(mlir::ArrayRef<Complex> m, mlir::OperandRange controls,
-                     mlir::OperandRange targets);
+  void applyOperator(mlir::ArrayRef<Complex> m, unsigned numTargets,
+                     mlir::ArrayRef<Qubit> qubits);
 
   /// Applies a general single-qubit unitary matrix
-  void applyMatrix(mlir::ArrayRef<Complex> m, const std::vector<Qubit> &qubits);
+  void applyMatrix(mlir::ArrayRef<Complex> m, mlir::ArrayRef<Qubit> qubits);
 
   /// Applies a general multiple-control, multiple-target unitary matrix
   void applyMatrix(mlir::ArrayRef<Complex> m, unsigned numTargets,
-                   const std::vector<Qubit> &qubits);
+                   mlir::ArrayRef<Qubit> qubits);
 
   /// Applies a general multiple-control, single-target unitary matrix
   void applyControlledMatrix(mlir::ArrayRef<Complex> m,
-                             const std::vector<Qubit> &qubits);
+                             mlir::ArrayRef<Qubit> qubits);
 
   //===--------------------------------------------------------------------===//
 

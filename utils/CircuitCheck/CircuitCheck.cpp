@@ -74,8 +74,8 @@ int main(int argc, char **argv) {
   };
   cudaq::UnitaryBuilder::UMatrix checkUnitary;
   cudaq::UnitaryBuilder::UMatrix inputUnitary;
+  auto exitStatus = EXIT_SUCCESS;
   for (auto checkFunc : checkMod->getOps<func::FuncOp>()) {
-
     StringAttr opName = checkFunc.getSymNameAttr();
     checkUnitary.resize(0, 0);
     inputUnitary.resize(0, 0);
@@ -99,6 +99,7 @@ int main(int argc, char **argv) {
       std::cerr << checkUnitary << '\n';
       std::cerr << "Got:\n";
       std::cerr << inputUnitary << '\n';
+      exitStatus = EXIT_FAILURE;
     }
 
     if (printUnitary) {
@@ -107,5 +108,5 @@ int main(int argc, char **argv) {
                 << checkUnitary << "\n\n";
     }
   }
-  return EXIT_SUCCESS;
+  return exitStatus;
 }

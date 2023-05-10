@@ -1296,7 +1296,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     if (funcName.equals("reset")) {
       if (!negations.empty())
         reportNegateError();
-      return builder.create<quake::ResetOp>(loc, args[0]);
+      return builder.create<quake::ResetOp>(loc, TypeRange{}, args[0]);
     }
     if (funcName.equals("swap")) {
       const auto size = args.size();
