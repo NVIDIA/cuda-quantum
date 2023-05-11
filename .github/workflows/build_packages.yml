@@ -196,7 +196,7 @@ jobs:
           source_files: ${{ join(fromJSON(steps.docs_build.outputs.json).html_files, ' ') }}
 
   clean_up:
-    name: Delete tar caches
+    name: Prepare cache clean-up
     runs-on: ubuntu-latest
     needs: [release_build, docker_image, documentation]
     if: always() # need to clean up even if the workflow is cancelled or fails

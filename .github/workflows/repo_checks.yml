@@ -157,6 +157,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Check spelling allowlist
+        run: |
+          sorted_allowlist=`cat .github/workflows/config/spelling_allowlist.txt | sort`
+          if [ "$sorted_allowlist" != "$(cat .github/workflows/config/spelling_allowlist.txt)" ]; then
+            echo "Spelling allowlist is not sorted." 
+            echo "Spelling allowlist is not sorted." >> $GITHUB_STEP_SUMMARY
+          fi
+
       - name: "Markdown files"
         uses: rojopolis/spellcheck-github-actions@0.30.0
         with:
