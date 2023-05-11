@@ -59,7 +59,7 @@ jobs:
 
       - run: |
           gh extension install actions/gh-actions-cache
-          for key in `echo ${{ needs.artifacts.outputs.cache_keys }}`; do
+          for key in `echo ${{ steps.artifacts.outputs.cache_keys }}`; do
             echo "Deleting cache $key"
             gh actions-cache delete $key -R ${{ github.repository }} --confirm
           done
