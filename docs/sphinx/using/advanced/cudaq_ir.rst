@@ -328,7 +328,7 @@ which prints
     !0 = !{i32 2, !"Debug Info Version", i32 3}
 
 
-Note that the results of each tool can be piped to futher tools, creating a
+Note that the results of each tool can be piped to further tools, creating a
 composable pipeline of compiler lowering tools. 
 
 
