@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #ifndef CUDAQ_DIALECT_CC_TYPES
 #define CUDAQ_DIALECT_CC_TYPES
@@ -97,11 +97,16 @@ def cc_ArrayType : CCType<"Array", "array"> {
 
   let parameters = (ins
     "mlir::Type":$elementType,
-    "std::size_t":$size
+    "ArrayType::SizeType":$size
   );
 
-  let assemblyFormat = [{
-    `<` qualified($elementType) `x` $size `>`
+  let hasCustomAssemblyFormat = 1;
+
+  let extraClassDeclaration = [{
+    using SizeType = std::int64_t;
+    static constexpr SizeType unknownSize = mlir::ShapedType::kDynamic;
+
+    bool isUnknownSize() const { return getSize() == unknownSize; }
   }];
 }
 

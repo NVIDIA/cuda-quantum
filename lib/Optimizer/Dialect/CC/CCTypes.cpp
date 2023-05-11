@@ -88,6 +88,42 @@ cc::StructType::getPreferredAlignment(const DataLayout &dataLayout,
   return 0;
 }
 
+//===----------------------------------------------------------------------===//
+// ArrayType
+//===----------------------------------------------------------------------===//
+
+Type cc::ArrayType::parse(AsmParser &parser) {
+  if (parser.parseLess())
+    return {};
+  Type element;
+  auto optTy = parser.parseOptionalType(element);
+  if (optTy.has_value()) {
+    if (!succeeded(*optTy))
+      return {};
+  }
+  if (parser.parseKeyword("x"))
+    return {};
+  SizeType size;
+  if (succeeded(parser.parseOptionalQuestion())) {
+    size = unknownSize;
+  } else {
+    if (parser.parseInteger(size))
+      return {};
+  }
+  if (parser.parseGreater())
+    return {};
+  return cc::ArrayType::get(parser.getContext(), element, size);
+}
+
+void cc::ArrayType::print(AsmPrinter &printer) const {
+  printer << '<' << getElementType() << " x ";
+  if (isUnknownSize())
+    printer << '?';
+  else
+    printer << getSize();
+  printer << '>';
+}
+
 } // namespace cudaq
 
 //===----------------------------------------------------------------------===//
