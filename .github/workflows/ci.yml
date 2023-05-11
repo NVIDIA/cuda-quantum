@@ -79,11 +79,11 @@ jobs:
 
   docker_image:
     name: Create Packages
-    needs: config
+    needs: setup_llvm
     uses: ./.github/workflows/build_packages.yml
     with:
-      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key.gcc12 }}
-      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive.gcc12 }}
+      devdeps_cache: ${{ needs.setup_llvm.outputs.cache_key }}
+      devdeps_archive: ${{ needs.setup_llvm.outputs.tar_archive }}
 
   clean_up:
     name: Prepare cache clean-up
