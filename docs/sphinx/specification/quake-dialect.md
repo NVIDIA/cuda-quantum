@@ -81,7 +81,7 @@ complex analyses.  For this reason, Quake has overloaded gates.
 
 In the value model operators consume values and return new values:
 
-```
+```text
   %q0_1 = quake.op %q0_0 : (!quake.wire) -> !quake.wire
 ```
 
@@ -102,7 +102,7 @@ are explicitly connected by distinct values, which eliminates the need
 to do further analysis via implicit side-effects.
 The following is the implementation in value form.
 
-```
+```text
 func.func @foo(%array : !quake.qvec<2>) {
     // Boilerplate to extract each qubit
     %c0 = arith.constant 0 : index
