@@ -69,7 +69,9 @@ set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
 # Set warnings as errors by default. 
 # Individual targets and the command line invocation can override this behavior.
-set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
+if(NOT CMAKE_COMPILE_WARNING_AS_ERROR)
+  set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
+endif()
 
 # Generate a CompilationDatabase (compile_commands.json file) for our build,
 # for use by clang_complete, YouCompleteMe, etc.
