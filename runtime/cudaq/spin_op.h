@@ -151,7 +151,7 @@ public:
     return spin_op(data, coeffs);
   }
 
-  /// @brief Return a random spin operator acting on the specified number of 
+  /// @brief Return a random spin operator acting on the specified number of
   /// qubits and composed of the given number of terms.
   static spin_op random(std::size_t nQubits, std::size_t nTerms);
 

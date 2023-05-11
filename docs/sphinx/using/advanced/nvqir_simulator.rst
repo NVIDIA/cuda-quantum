@@ -18,8 +18,8 @@ subtypes are free to implement simulators that leverage classical accelerated co
 In this document, we'll detail this simulator interface and walk through how one 
 might extend it for new types of simulation. 
 
-CircuitSimulator
-----------------
+:code:`CircuitSimulator`
+------------------------
 
 The :code:`CircuitSimulator` type is defined in :code:`runtime/nvqir/CircuitSimulator.h`. It
 exposes a public API to `libnvqir` that is immediately subclassed in the :code:`CircuitSimulatorBase` 
@@ -100,7 +100,7 @@ Let's see this in action
 
 CUDA Quantum provides some CMake utilities to make the creation of your new simulation library 
 easier. Specifically, but using :code:`find_package(NVQIR)`, you'll get access to a :code:`nvqir_add_backend` function
-that will automate a lot of the boilerplate for creating your library and config file.
+that will automate a lot of the boilerplate for creating your library and configuration file.
 
 Let's assume you want a simulation subtype named :code:`MySimulator`. You can create a folder or 
 repository for this code called :code:`my-simulator` and add :code:`MySimulator.cpp` and 
