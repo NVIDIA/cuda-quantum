@@ -70,6 +70,10 @@ matrix:
   - pyspelling.filters.html:
       comments: false
       attributes: []
+      ignores:
+      - nav
+      - code
+      - pre
 
 - name: cxx
   sources:

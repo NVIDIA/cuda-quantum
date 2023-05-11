@@ -212,7 +212,6 @@ jobs:
             echo '```' >> $GITHUB_STEP_SUMMARY
           }
 
-          echo "## Spell Check" >> $GITHUB_STEP_SUMMARY
           md_status=`create_summary Markdown markdown`
           rst_status=`create_summary reStructuredText rst`
           cxx_status=`create_summary C++ cxx`
