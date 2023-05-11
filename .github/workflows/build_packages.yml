@@ -162,6 +162,14 @@ jobs:
           docker stop cuda-quantum-dev
           if $built; then `exit 0`; else `exit 1`; fi
 
+          html_files=`find docs/api/ -type f -name "*.html"`
+          json="{\"html_files\":[]}"
+          for file in $html_files; do
+            file=\'$file\'
+            json=`echo $json | jq ".html_files |= . + [\"$file\"]"`
+          done
+          echo "json=$(echo $json)" >> $GITHUB_OUTPUT
+
       - name: Upload build artifacts
         if: failure()
         uses: actions/upload-artifact@v3
@@ -179,8 +187,17 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
+      - name: Spell check HTML documentation
+        if: success()
+        continue-on-error: true # to be removed once we update all docs for this check to pass
+        uses: rojopolis/spellcheck-github-actions@0.30.0
+        with:
+          config_path: '.github/workflows/config/spellcheck_config.yml'
+          task_name: html
+          source_files: ${{ join(fromJSON(steps.docs_build.outputs.json).html_files, ' ') }}
+
   clean_up:
-    name: Delete tar caches
+    name: Prepare cache clean-up
     runs-on: ubuntu-latest
     needs: [release_build, docker_image, documentation]
     if: always() # need to clean up even if the workflow is cancelled or fails

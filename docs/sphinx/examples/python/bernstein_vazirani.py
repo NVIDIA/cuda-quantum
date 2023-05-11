@@ -56,8 +56,8 @@ def bernstein_vazirani(qubit_count: int):
     # Apply another set of Hadamards to the register.
     kernel.h(qubits)
 
-    # Apply measurement gates to just the `qubits` (excludes the
-    # auxillary qubit).
+    # Apply measurement gates to just the `qubits`
+    # (excludes the auxillary qubit).
     kernel.mz(qubits)
     return kernel, hidden_bitstring
 

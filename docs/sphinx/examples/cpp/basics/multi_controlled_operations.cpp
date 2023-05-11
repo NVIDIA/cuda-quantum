@@ -1,5 +1,7 @@
 // Compile and run with:
+// ```
 // nvq++ multi_controlled_operations.cpp -o ccnot.x && ./ccnot.x
+// ```
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
