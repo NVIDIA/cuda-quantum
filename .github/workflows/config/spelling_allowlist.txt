@@ -78,4 +78,3 @@ unitary
 variadic
 variational
 workflow
-foo
