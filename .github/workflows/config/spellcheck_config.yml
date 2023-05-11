@@ -114,6 +114,12 @@ matrix:
       # Ignore content between inline backticks
       - open: '(?P<open>`+)'
         close: '(?P=open)'
+      # Ignore words that start with an @, e.g. @param used in doc comments
+      - open: '@\S'
+        close: '(\s|$)'
+      # Ignore words that contain any underscores, numbers, or uppercase letters
+      - open: '[a-zA-Z0-9]+([A-Z0-9]|_)'
+        close: '([^a-zA-Z0-9]|\s|$)'
 
 - name: python
   sources:

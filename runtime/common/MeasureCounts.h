@@ -33,7 +33,7 @@ struct ExecutionResult {
   // <Z...Z> expected value
   std::optional<double> expectationValue = std::nullopt;
 
-  /// Register name for the classicla bits
+  /// Register name for the classical bits
   std::string registerName = GlobalRegisterName;
 
   /// @brief Sequential bit strings observed (not collated into a map)
@@ -42,13 +42,14 @@ struct ExecutionResult {
   /// @brief Serialize this sample result to a vector of integers.
   /// Encoding: 1st element is size of the register name N, then next N
   /// represent register name, next is the number of bitstrings M,
-  /// then for each bit string a triple {stringMappedToLong, bit string
+  /// then for each bit string a triple {string mapped to long, bit string
   /// length, count}
   /// @return
   std::vector<std::size_t> serialize();
 
   /// @brief Deserialize a vector of integers to a `ExecutionResult`
-  /// @param data The data with encoding discussed in the serialize() brief.
+  /// @param data The data with encoding discussed in the brief for
+  /// `serialize`.
   void deserialize(std::vector<std::size_t> &data);
 
   /// @brief Constructor
@@ -65,15 +66,15 @@ struct ExecutionResult {
   /// @brief Construct from a precomputed expectation value
   ExecutionResult(double expVal);
 
-  /// @brief Construct from a CountsDictionary, specify the register name
+  /// @brief Construct from a `CountsDictionary`, specify the register name
   /// @param c the counts
   /// @param name the register name
   ExecutionResult(CountsDictionary c, std::string name);
   ExecutionResult(CountsDictionary c, std::string name, double exp);
 
-  /// @brief Construct from a CountsDictionary and expected value
+  /// @brief Construct from a `CountsDictionary` and expected value
   /// @param c The counts
-  /// @param e The pre-computed expected value
+  /// @param e The precomputed expected value
   ExecutionResult(CountsDictionary c, double e);
 
   /// @brief Copy constructor
@@ -100,7 +101,7 @@ struct ExecutionResult {
 
 /// @brief The sample_result abstraction wraps a set of `ExecutionResult`s for
 /// a single quantum kernel execution under the sampling or observation
-/// ExecutionContext. Each `ExecutionResult` is mapped to a register name,
+/// `ExecutionContext`. Each `ExecutionResult` is mapped to a register name,
 /// with a default `ExecutionResult` with name __global__ representing the
 /// observed measurement results holistically for the quantum kernel.
 class sample_result {
@@ -123,7 +124,7 @@ public:
   /// @brief The constructor, appends all provided `ExecutionResult`s
   sample_result(std::vector<ExecutionResult> &results);
 
-  /// @brief The constructor, takes a pre-computed expectation value and
+  /// @brief The constructor, takes a precomputed expectation value and
   /// stores it with the `__global__` `ExecutionResult`.
   sample_result(double preComputedExp, std::vector<ExecutionResult> &results);
 
@@ -133,12 +134,12 @@ public:
   /// @brief The destructor
   ~sample_result() = default;
 
-  /// @brief Return true if the given `ExecutionResult` with registerName has
-  /// a pre-computed expectation value.
+  /// @brief Return true if the `ExecutionResult` with the specified register 
+  /// name has a precomputed expectation value.
   bool
   has_expectation(const std::string_view registerName = GlobalRegisterName);
 
-  /// @brief Add another ExecutionResult to this pre-constructed sample_result
+  /// @brief Add another `ExecutionResult` to this preconstructed `sample_result`
   /// @param result
   void append(ExecutionResult &result);
 
@@ -160,10 +161,9 @@ public:
   /// @return
   sample_result &operator+=(sample_result &other);
 
-  /// @brief Serialize this sample_result. Encoding is
-  /// [(ExecutionResult0_Encoding)
-  /// (ExecutionResult1_Encoding)...(ExecutionResultN_Encoding)] (see
-  /// ExecutionResult::serialize() docs for encoding).
+  /// @brief Serialize this sample_result. See
+  /// `ExecutionResult::serialize()` documentation for information
+  //. about the encoding.
   /// @return
   std::vector<std::size_t> serialize();
 

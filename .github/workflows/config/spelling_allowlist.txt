@@ -26,6 +26,7 @@ NVQIR
 OpenMP
 OpenQASM
 Pauli
+Paulis
 QAOA
 QIR
 QIS
@@ -72,6 +73,7 @@ instantiation
 instantiations
 namespace
 natively
+nullary
 qubit
 qubits
 qudit
