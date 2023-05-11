@@ -85,22 +85,22 @@ enum class pauli { I, X, Y, Z };
 
 namespace spin {
 
-/// @brief Return a spin_op == to I on the idx qubit
+/// @brief Return a spin_op == to I on the `idx` qubit
 spin_op i(const std::size_t idx);
 
-/// @brief Return a spin_op == X on the idx qubit
+/// @brief Return a spin_op == X on the `idx` qubit
 spin_op x(const std::size_t idx);
 
-/// @brief Return a spin_op == Y on the idx qubit
+/// @brief Return a spin_op == Y on the `idx` qubit
 spin_op y(const std::size_t idx);
 
-/// @brief Return a spin_op == Z on the idx qubit
+/// @brief Return a spin_op == Z on the `idx` qubit
 spin_op z(const std::size_t idx);
 } // namespace spin
 
 /// @brief The spin_op represents a general sum of Pauli tensor products.
 /// It exposes the typical algebraic operations that allow programmers to
-/// define primitive pauli operators and use them to compose larger, more
+/// define primitive Pauli operators and use them to compose larger, more
 /// complex Pauli tensor products and sums thereof.
 class spin_op {
 private:
@@ -127,7 +127,7 @@ private:
   /// @brief The number of qubits this spin_op is on
   std::size_t m_n_qubits = 1;
 
-  /// @brief Utility map that takes the pauli enum to a string representation
+  /// @brief Utility map that takes the Pauli enum to a string representation
   std::map<pauli, std::string> pauli_to_str{
       {pauli::I, "I"}, {pauli::X, "X"}, {pauli::Y, "Y"}, {pauli::Z, "Z"}};
 
@@ -136,7 +136,7 @@ private:
   void expandToNQubits(const std::size_t nQubits);
 
   /// @brief Internal constructor, takes the Pauli type, the qubit site, and the
-  /// term coefficient. Constructs a spin_op of one pauli on one qubit.
+  /// term coefficient. Constructs a spin_op of one Pauli on one qubit.
   spin_op(pauli, const std::size_t id, std::complex<double> coeff = 1.0);
 
   /// @brief Internal constructor, constructs from existing binary symplectic
@@ -163,11 +163,11 @@ public:
 
   /// @brief Construct this spin_op from a serialized representation.
   /// Specifically, this encoding is via a vector of doubles. The encoding is
-  /// as follows: for each term, a list of doubles where the ith element is
+  /// as follows: for each term, a list of doubles where element `i` is
   /// a 3.0 for a Y, a 1.0 for a X, and a 2.0 for a Z on qubit i, followed by
-  /// the real and imag part of the coefficient. Each term is appended to the
-  /// array forming one large 1d array of doubles. The array is ended with the
-  /// total number of terms represented as a double.
+  /// the real and imaginary part of the coefficient. Each term is appended to
+  /// the array forming one large 1d array of doubles. The array is ended with
+  /// the total number of terms represented as a double.
   spin_op(std::vector<double> &data_rep, std::size_t nQubits);
 
   /// The destructor
@@ -223,7 +223,8 @@ public:
     return std::move(lhs);
   }
 
-  /// @brief Return the ith term of this spin_op (by value).
+  /// @brief Return the term at the given index of this spin_op
+  /// (by value).
   spin_op operator[](const std::size_t termIdx) const;
 
   /// @brief Return the number of qubits this spin_op is on
@@ -232,7 +233,8 @@ public:
   /// @brief Return the number of terms in this spin_op
   std::size_t n_terms() const;
 
-  /// @brief Return the coefficient on the ith term in this spin_op
+  /// @brief Return the coefficient on the term at the given index `idx`
+  /// in this spin_op
   std::complex<double> get_term_coefficient(const std::size_t idx) const;
 
   /// @brief Return the binary symplectic form data
@@ -255,7 +257,7 @@ public:
   std::vector<std::complex<double>> get_coefficients() const;
 
   /// @brief Return a new spin_op made up of a sum of spin_op terms
-  /// where the first term is the one at startIdx, and the remaining terms
+  /// where the first term is the one at `startIdx`, and the remaining terms
   /// are the next count terms.
   spin_op slice(const std::size_t startIdx, const std::size_t count);
 
@@ -263,9 +265,9 @@ public:
   /// can enable general reductions via lambda capture variables.
   void for_each_term(std::function<void(spin_op &)> &&) const;
 
-  /// @brief Apply the functor on each pauli in this 1-term spin_op. An
+  /// @brief Apply the functor on each Pauli in this 1-term spin_op. An
   /// exception is thrown if there are more than 1 terms. Users should pass a
-  /// functor that takes the pauli type and the qubit index.
+  /// functor that takes the `pauli` type and the qubit index.
   void for_each_pauli(std::function<void(pauli, std::size_t)> &&) const;
 
   /// @brief Return a dense matrix representation of this

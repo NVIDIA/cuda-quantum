@@ -134,12 +134,12 @@ public:
   /// @brief The destructor
   ~sample_result() = default;
 
-  /// @brief Return true if the `ExecutionResult` with the specified register 
+  /// @brief Return true if the `ExecutionResult` with the specified register
   /// name has a precomputed expectation value.
   bool
   has_expectation(const std::string_view registerName = GlobalRegisterName);
 
-  /// @brief Add another `ExecutionResult` to this preconstructed `sample_result`
+  /// @brief Add another `ExecutionResult` to this `sample_result`.
   /// @param result
   void append(ExecutionResult &result);
 
@@ -222,9 +222,9 @@ public:
   CountsDictionary
   to_map(const std::string_view registerName = GlobalRegisterName);
 
-  /// @brief Extract marginal counts, ie those counts for a subset of measured
-  /// qubits
-  /// @param marginalIndices The qubit indices as an rvalue
+  /// @brief Extract marginal counts, that is those counts for a subset
+  /// of measured qubits
+  /// @param marginalIndices The qubit indices as an `rvalue`
   /// @param registerName
   /// @return
   sample_result
@@ -233,8 +233,8 @@ public:
     return get_marginal(marginalIndices);
   }
 
-  /// @brief Extract marginal counts, ie those counts for a subset of measured
-  /// qubits
+  /// @brief Extract marginal counts, that is those counts for a subset
+  /// of measured qubits
   /// @param marginalIndices The qubit indices as an reference
   /// @param registerName
   /// @return

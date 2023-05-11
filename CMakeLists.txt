@@ -69,7 +69,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
 # Set warnings as errors by default. 
 # Individual targets and the command line invocation can override this behavior.
-if(NOT CMAKE_COMPILE_WARNING_AS_ERROR)
+if(NOT DEFINED CMAKE_COMPILE_WARNING_AS_ERROR)
   set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 endif()
 
