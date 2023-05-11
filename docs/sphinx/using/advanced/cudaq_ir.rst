@@ -122,8 +122,8 @@ via the :code:`--platform` and :code:`--qpu` compiler flags.
 The above figure demonstrate the MLIR dialects involved and the overall workflow mapping 
 high-level language constructs to lower-level MLIR dialect code, and ultimately LLVM IR. 
 
-CUDA Quantum also provides value-semantics dialect for static circuit representation 
-called Quantum Thread Execution (QTX). This dialect directly enables robust circuit 
+CUDA Quantum also provides value-semantics form of Quake for static circuit
+representation. This dialect directly enables robust circuit 
 optimizations via data-flow analysis of the representative circuit. This dialect 
 is typically produced just-in-time when the structure of the circuit is fully known. 
 
@@ -133,20 +133,20 @@ processing, optimization, and lowering of the core NVQ++ compiler representation
 The tools available are 
 
 1. :code:`cudaq-quake` - Lower C++ to Quake, can also output classical LLVM IR file
-2. :code:`cudaq-opt` - Process Quake with various MLIR Passes, convert to QTX
-3. :code:`cudaq-translate` - Lower Quake or QTX to external representations like QIR (or Base Profile QIR)
+2. :code:`cudaq-opt` - Process Quake with various MLIR Passes
+3. :code:`cudaq-translate` - Lower Quake to external representations like QIR (or Base Profile QIR)
 
-CUDA Quantum and NVQ++ rely on Quake and QTX for the core quantum intermediate representation. 
+CUDA Quantum and NVQ++ rely on Quake for the core quantum intermediate representation. 
 Quake represents an IR closer to the CUDA Quantum source language and models qubits and
 quantum instructions via memory semantics. Quake can be fully dynamic and in
 that sense represents a quantum circuit template or generator. With runtime 
-arguments fully specified, Quake code generates or synthesizes
-a fully-known quantum circuit. QTX is a dialect that sits below Quake and does 
-not allow any dynamic or runtime parameterization. It is a representation for fully-known
+arguments fully specified, Quake code can be used to generate or synthesize
+a fully-known quantum circuit. The value semantics form of Quake can thus be
+used as a representation for fully-known
 or synthesized quantum circuits. Its utility, therefore, lies in its ability to 
 optimize quantum code. It departs from the memory semantics model of Quake and 
-relies fully on the SSA-nature of the MLIR, a value-semantics model. This approach 
-makes it easier for finding circuit patterns and leveraging it for common 
+expresses the flow of quantum information explicitly as MLIR values.
+This approach makes it easier for finding circuit patterns and leveraging it for common 
 optimization tasks. 
 
 To demonstrate how these tools work together, let's take the simple GHZ CUDA Quantum 
@@ -328,7 +328,7 @@ which prints
     !0 = !{i32 2, !"Debug Info Version", i32 3}
 
 
-Note that the results of each tool can be piped to futher tools, creating a
+Note that the results of each tool can be piped to further tools, creating a
 composable pipeline of compiler lowering tools. 
 
 
