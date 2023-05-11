@@ -187,7 +187,6 @@ protected:
   void measureSpinOp(const cudaq::spin_op &op) override {
     Array *term_arr = spinToArray(op);
     __quantum__qis__measure__body(term_arr, nullptr);
-    return;
   }
 
 public:
