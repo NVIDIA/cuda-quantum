@@ -24,6 +24,7 @@ NVIDIA
 OpenMP
 OpenQASM
 QAOA
+Pauli
 QIR
 QIS
 QPU
@@ -69,6 +70,7 @@ qudit
 qudits
 runtime
 subtype
+symplectic
 tablegen
 templated
 unitaries

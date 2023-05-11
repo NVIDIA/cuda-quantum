@@ -98,10 +98,10 @@ spin_op y(const std::size_t idx);
 spin_op z(const std::size_t idx);
 } // namespace spin
 
-/// @brief The spin_op represents a general sum of pauli tensor products.
+/// @brief The spin_op represents a general sum of Pauli tensor products.
 /// It exposes the typical algebraic operations that allow programmers to
 /// define primitive pauli operators and use them to compose larger, more
-/// complex pauli tensor products and sums thereof.
+/// complex Pauli tensor products and sums thereof.
 class spin_op {
 private:
   /// We want these creation functions to have access to
@@ -151,7 +151,8 @@ public:
     return spin_op(data, coeffs);
   }
 
-  /// @brief Return a random spin_op on nQubits composed of nTerms.
+  /// @brief Return a random spin operator acting on the specified number of 
+  /// qubits and composed of the given number of terms.
   static spin_op random(std::size_t nQubits, std::size_t nTerms);
 
   /// @brief Constructor, creates the identity term

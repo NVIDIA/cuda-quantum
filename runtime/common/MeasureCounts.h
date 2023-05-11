@@ -250,19 +250,19 @@ public:
   /// @return
   CountsDictionary::iterator end();
 
-  /// @brief Range-based const iterator begin function
+  /// @brief Range-based constant iterator begin function
   /// @return
   CountsDictionary::const_iterator cbegin() const;
 
-  /// @brief Range-based const iterator end function
+  /// @brief Range-based constant iterator end function
   /// @return
   CountsDictionary::const_iterator cend() const;
 
-  /// @brief Range-based const iterator begin function
+  /// @brief Range-based constant iterator begin function
   /// @return
   CountsDictionary::const_iterator begin() const { return cbegin(); }
 
-  /// @brief Range-based const iterator end function
+  /// @brief Range-based constant iterator end function
   /// @return
   CountsDictionary::const_iterator end() const { return cend(); }
 };
