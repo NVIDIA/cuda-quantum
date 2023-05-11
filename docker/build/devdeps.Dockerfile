@@ -79,6 +79,16 @@ RUN source /opt/llvm/bootstrap/init_command.sh && \
         bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
     && rm -rf /llvm-project 
 
+# We use a newer version of cmake that is only available via the Kitware apt repository.
+FROM ubuntu:22.04 as cmakebuild
+RUN apt-get update && apt-get install -y wget unzip make gcc g++ libssl-dev \
+    && wget https://github.com/Kitware/CMake/releases/download/v3.26.3/cmake-3.26.3.zip -q \
+    && unzip cmake-3.26.3.zip && rm cmake-3.26.3.zip \
+    && cd cmake-3.26.3 && ./bootstrap --prefix=/usr/local/cmake-3.26/ \
+    && make -j$(nproc) && make -j$(nproc) install && cd .. \
+    && rm -rf cmake-3.26.3 && apt-get remove -y wget unzip make gcc g++ libssl-dev \
+    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 FROM ubuntu:22.04
 SHELL ["/bin/bash", "-c"]
 
@@ -117,8 +127,10 @@ ENV CC="$LLVM_INSTALL_PREFIX/bootstrap/cc"
 ENV CXX="$LLVM_INSTALL_PREFIX/bootstrap/cxx"
 
 # Install additional dependencies required to build and test CUDA Quantum.
+COPY --from=cmakebuild /usr/local/cmake-3.26/ /usr/local/cmake-3.26/
+ENV PATH="${PATH}:/usr/local/cmake-3.26/bin"
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        git ninja-build cmake \
+        git ninja-build \
         python3 python3-pip libpython3-dev \
         libblas-dev \
     && python3 -m pip install --no-cache-dir lit pytest numpy \

@@ -66,6 +66,9 @@ endif()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
+
+# Set warnings as errors by default. 
+# Individual targets and the command line invocation can override this behavior.
 set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 
 # Generate a CompilationDatabase (compile_commands.json file) for our build,
