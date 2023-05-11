@@ -45,6 +45,7 @@ Wl
 adjoint
 al
 ansatz
+atol
 auxillary
 backend
 backends
@@ -117,6 +118,7 @@ qubits
 qudit
 qudits
 rpath
+rtol
 runtime
 struct
 structs
