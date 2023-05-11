@@ -52,8 +52,8 @@ template <typename T, typename... Ts>
 concept KernelBuilderArgTypeIsValid =
     std::disjunction_v<std::is_same<T, Ts>...>;
 
-/// If you want to add to the list of valid kernel arg types
-/// first add it here, then add details::mapArgToType() function
+// If you want to add to the list of valid kernel argument types
+// first add it here, then add `details::mapArgToType()` function
 #define CUDAQ_VALID_BUILDER_ARGS_FOLD()                                        \
   requires(KernelBuilderArgTypeIsValid<                                        \
                Args, float, double, std::size_t, int, std::vector<int>,        \
@@ -63,10 +63,10 @@ concept KernelBuilderArgTypeIsValid =
 
 namespace details {
 
-// Define a mlir::Type generator in the cudaq namespace,
+// Define a `mlir::Type` generator in the `cudaq` namespace,
 // this helps us keep MLIR out of this public header
 
-/// @brief The kernel_builder::Type allows us to track
+/// @brief The `kernel_builder::Type` allows us to track
 /// input C++ types representing the quake function argument types
 /// in a way that does not expose MLIR Type to the CUDA Quantum code.
 /// This type keeps track of a functor that generates the MLIR Type
@@ -84,71 +84,71 @@ public:
   mlir::Type create(mlir::MLIRContext *ctx);
 };
 
-/// Map a double to a KernelBuilderType
+/// Map a `double` to a `KernelBuilderType`
 KernelBuilderType mapArgToType(double &e);
 
-/// Map a float to a KernelBuilderType
+/// Map a `float` to a `KernelBuilderType`
 KernelBuilderType mapArgToType(float &e);
 
-/// Map a int to a KernelBuilderType
+/// Map a `int` to a `KernelBuilderType`
 KernelBuilderType mapArgToType(int &e);
 
-/// Map a size_t to a KernelBuilderType
+/// Map a `size_t` to a `KernelBuilderType`
 KernelBuilderType mapArgToType(std::size_t &e);
 
-/// Map a std::vector<int> to a KernelBuilderType
+/// Map a `std::vector<int>` to a `KernelBuilderType`
 KernelBuilderType mapArgToType(std::vector<int> &e);
 
-/// Map a std::vector<std::size_t> to a KernelBuilderType
+/// Map a `std::vector<std::size_t>` to a `KernelBuilderType`
 KernelBuilderType mapArgToType(std::vector<std::size_t> &e);
 
-/// Map a std::vector<float> to a KernelBuilderType
+/// Map a `std::vector<float>` to a `KernelBuilderType`
 KernelBuilderType mapArgToType(std::vector<float> &e);
 
-/// Map a vector<double> to a KernelBuilderType
+/// Map a `vector<double>` to a `KernelBuilderType`
 KernelBuilderType mapArgToType(std::vector<double> &e);
 
-/// Map a qubit to a KernelBuilderType
+/// Map a `qubit` to a `KernelBuilderType`
 KernelBuilderType mapArgToType(cudaq::qubit &e);
 
-/// @brief  Map a qreg to a KernelBuilderType
+/// @brief  Map a `qreg` to a `KernelBuilderType`
 KernelBuilderType mapArgToType(cudaq::qreg<> &e);
 
-/// @brief Initialize the MLIRContext, return the raw
-/// pointer which we'll wrap in an unique_ptr.
+/// @brief Initialize the `MLIRContext`, return the raw
+/// pointer which we'll wrap in an `unique_ptr`.
 MLIRContext *initializeContext();
 
 /// @brief Delete function for the context pointer,
-/// also given to the unique_ptr
+/// also given to the `unique_ptr`
 void deleteContext(MLIRContext *);
 
-/// @brief Initialize the OpBuilder, return the raw
-/// pointer which we'll wrap in an unique_ptr.
+/// @brief Initialize the `OpBuilder`, return the raw
+/// pointer which we'll wrap in an `unique_ptr`.
 ImplicitLocOpBuilder *initializeBuilder(MLIRContext *,
                                         std::vector<KernelBuilderType> &,
                                         std::vector<QuakeValue> &,
                                         std::string &kernelName);
 
 /// @brief Delete function for the builder pointer,
-/// also given to the unique_ptr
+/// also given to the `unique_ptr`
 void deleteBuilder(ImplicitLocOpBuilder *builder);
 
 /// @brief Delete function for the JIT pointer,
-/// also given to the unique_ptr
+/// also given to the `unique_ptr`
 void deleteJitEngine(ExecutionEngine *jit);
 
-/// @brief Allocate a qubit or a qreg.
+/// @brief Allocate a `qubit` or a `qreg`.
 QuakeValue qalloc(ImplicitLocOpBuilder &builder, const std::size_t nQubits = 1);
 
-/// @brief Allocate a qreg from existing QuakeValue size
+/// @brief Allocate a `qreg` from existing `QuakeValue` size
 QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &size);
 
-/// In the following macros + instantiations, we define the functions
-/// that create Quake Quantum Ops + Measures
+// In the following macros + instantiations, we define the functions
+// that create Quake Quantum Ops + Measures
 
 #define CUDAQ_DETAILS_QIS_DECLARATION(NAME)                                    \
   void NAME(ImplicitLocOpBuilder &builder, std::vector<QuakeValue> &ctrls,     \
-            QuakeValue &target, bool adjoint = false);
+            const QuakeValue &target, bool adjoint = false);
 
 CUDAQ_DETAILS_QIS_DECLARATION(h)
 CUDAQ_DETAILS_QIS_DECLARATION(s)
@@ -179,15 +179,15 @@ void reset(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQreg);
 void c_if(ImplicitLocOpBuilder &builder, QuakeValue &conditional,
           std::function<void()> &thenFunctor);
 
-/// @brief Return the name of this kernel_builder,
+/// @brief Return the name of this `kernel_builder`,
 /// it is also the name of the function
 std::string name(std::string_view kernelName);
 
 /// @brief Apply our MLIR passes before JIT execution
 void applyPasses(PassManager &);
 
-/// @brief Create the ExecutionEngine and return a raw
-/// pointer, which we will wrap in a unique_ptr
+/// @brief Create the `ExecutionEngine` and return a raw
+/// pointer, which we will wrap in a `unique_ptr`
 ExecutionEngine *jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
                          std::string kernelName,
                          std::vector<std::string> extraLibPaths);
@@ -218,21 +218,21 @@ void forLoop(ImplicitLocOpBuilder &builder, std::size_t start, std::size_t end,
              std::function<void(QuakeValue &)> &body);
 
 /// @brief Add a for loop that starts from the given `start` integer index, ends
-/// at the given `end` QuakeValue index, and applies the given `body` as a
+/// at the given `end` index, and applies the given `body` as a
 /// callable function. This callable function must take as input an index
 /// variable that can be used within the body.
 void forLoop(ImplicitLocOpBuilder &builder, std::size_t start, QuakeValue &end,
              std::function<void(QuakeValue &)> &body);
 
-/// @brief Add a for loop that starts from the given `start` QuakeValue index,
+/// @brief Add a for loop that starts from the given `start` index,
 /// ends at the given `end` integer index, and applies the given `body` as a
 /// callable function. This callable function must take as input an index
 /// variable that can be used within the body.
 void forLoop(ImplicitLocOpBuilder &builder, QuakeValue &start, std::size_t end,
              std::function<void(QuakeValue &)> &body);
 
-/// @brief Add a for loop that starts from the given `start` QuakeValue index,
-/// ends at the given `end` QuakeValue index, and applies the given `body` as a
+/// @brief Add a for loop that starts from the given `start` index,
+/// ends at the given `end` index, and applies the given `body` as a
 /// callable function. This callable function must take as input an index
 /// variable that can be used within the body.
 void forLoop(ImplicitLocOpBuilder &builder, QuakeValue &start, QuakeValue &end,
@@ -245,8 +245,8 @@ std::string to_quake(ImplicitLocOpBuilder &builder);
 /// is a `cc::StdvecType`. Returns `false` otherwise.
 bool isArgStdVec(std::vector<QuakeValue> &args, std::size_t idx);
 
-/// @brief The ArgumentValidator provides a way validate the input
-/// Args... when the kernel is invoked (via a fold expression).
+/// @brief The `ArgumentValidator` provides a way validate the input
+/// arguments when the kernel is invoked (via a fold expression).
 template <typename T>
 struct ArgumentValidator {
   static void validate(std::size_t &argCounter, std::vector<QuakeValue> &args,
@@ -256,9 +256,9 @@ struct ArgumentValidator {
   }
 };
 
-/// @brief The ArgumentValidator provides a way validate the input
-/// Args... when the kernel is invoked (via a fold expression). Here
-/// we explicitly validate std::vector<T> and its size.
+/// @brief The `ArgumentValidator` provides a way validate the input
+/// arguments when the kernel is invoked (via a fold expression). Here
+/// we explicitly validate `std::vector<T>` and its size.
 template <typename T>
 struct ArgumentValidator<std::vector<T>> {
   static void validate(std::size_t &argCounter, std::vector<QuakeValue> &args,
@@ -267,7 +267,7 @@ struct ArgumentValidator<std::vector<T>> {
       throw std::runtime_error("Error validating stdvec input to "
                                "kernel_builder. argCounter >= args.size()");
 
-    // Get the arg, increment the counter
+    // Get the argument, increment the counter
     auto &arg = args[argCounter];
     argCounter++;
 
@@ -282,7 +282,7 @@ struct ArgumentValidator<std::vector<T>> {
   }
 };
 
-/// @brief The kernel_builder_base provides a
+/// @brief The `kernel_builder_base` provides a
 /// base type for the templated kernel builder so that
 /// we can get a single handle on an instance within the runtime.
 class kernel_builder_base {
@@ -303,7 +303,6 @@ concept AllAreQuakeValues =
          std::remove_reference_t<std::tuple_element<0, std::tuple<Ts...>>>,
          QuakeValue>);
 
-/// @brief The kernel_builder
 template <typename... Args>
 class kernel_builder : public details::kernel_builder_base {
 private:
@@ -312,28 +311,28 @@ private:
   /// out of CUDA Quantum code
   std::unique_ptr<MLIRContext, void (*)(MLIRContext *)> context;
 
-  /// @brief Handle to the MLIR OpBuilder, stored
+  /// @brief Handle to the MLIR `OpBuilder`, stored
   /// as a pointer here to keep implementation details
   /// out of CUDA Quantum code
   std::unique_ptr<ImplicitLocOpBuilder, void (*)(ImplicitLocOpBuilder *)>
       opBuilder;
 
-  /// @brief Handle to the MLIR ExecutionEngine, stored
+  /// @brief Handle to the MLIR `ExecutionEngine`, stored
   /// as a pointer here to keep implementation details
   /// out of CUDA Quantum code
   std::unique_ptr<ExecutionEngine, void (*)(ExecutionEngine *)> jitEngine;
 
-  /// @brief Name of the CUDA Quantum kernel quake function
+  /// @brief Name of the CUDA Quantum kernel Quake function
   std::string kernelName = "__nvqpp__mlirgen____nvqppBuilderKernel";
 
-  /// @brief The CUDA Quantum quake function arguments stored
-  /// as QuakeValues.
+  /// @brief The CUDA Quantum Quake function arguments stored
+  /// as `QuakeValue`s.
   std::vector<QuakeValue> arguments;
 
 public:
   /// @brief The constructor, takes the input
-  /// KernelBuilderTypes which is used to create the MLIR
-  /// Function Type
+  /// `KernelBuilderType`s which is used to create the MLIR
+  /// function type
   kernel_builder(std::vector<details::KernelBuilderType> &types)
       : context(details::initializeContext(), details::deleteContext),
         opBuilder(nullptr, [](ImplicitLocOpBuilder *) {}),
@@ -345,7 +344,7 @@ public:
             ptr, details::deleteBuilder);
   }
 
-  /// @brief Return the QuakeValue arguments
+  /// @brief Return the `QuakeValue` arguments
   /// @return
   auto &getArguments() { return arguments; }
 
@@ -362,19 +361,19 @@ public:
   /// @return
   std::size_t getNumParams() { return arguments.size(); }
 
-  /// @brief Return a QuakeValue representing the allocated QVec.
+  /// @brief Return a `QuakeValue` representing the allocated `QVec`.
   QuakeValue qalloc(const std::size_t nQubits = 1) {
     return details::qalloc(*opBuilder.get(), nQubits);
   }
 
-  /// @brief Return a QuakeValue representing the allocated QVec,
-  /// size is from a pre-allocated size QuakeValue or BlockArgument.
+  /// @brief Return a `QuakeValue` representing the allocated `QVec`,
+  /// size is either defined by `QuakeValue` or a `BlockArgument`.
   QuakeValue qalloc(QuakeValue size) {
     return details::qalloc(*opBuilder.get(), size);
   }
 
-  /// In the following macros + instantiations, we define the kernel_builder
-  /// methods that create Quake Quantum Ops + Measures
+  // In the following macros + instantiations, we define the kernel_builder
+  // methods that create Quake Quantum Ops + Measures
 
 #define CUDAQ_BUILDER_ADD_ONE_QUBIT_OP(NAME)                                   \
   void NAME(QuakeValue &qubit) {                                               \
@@ -405,7 +404,7 @@ public:
   template <typename mod,                                                      \
             typename =                                                         \
                 typename std::enable_if_t<std::is_same_v<mod, cudaq::adj>>>    \
-  void NAME(QuakeValue &qubit) {                                               \
+  void NAME(const QuakeValue &qubit) {                                         \
     std::vector<QuakeValue> empty;                                             \
     details::NAME(*opBuilder, empty, qubit, true);                             \
   }
@@ -490,12 +489,13 @@ public:
   void reset(QuakeValue &qubit) { details::reset(*opBuilder, qubit); }
 
   /// @brief Apply a conditional statement on a
-  /// measure result, if true apply the thenFunctor.
+  /// measure result, if true apply the `thenFunctor`.
   void c_if(QuakeValue result, std::function<void()> &&thenFunctor) {
     details::c_if(*opBuilder, result, thenFunctor);
   }
 
-  /// @brief Apply the given otherKernel with the provided QuakeValue arguments.
+  /// @brief Apply the given `otherKernel` with the provided `QuakeValue`
+  /// arguments.
   template <typename OtherKernelBuilder>
   void call(OtherKernelBuilder &kernel, std::vector<QuakeValue> &values) {
     // This should work for regular c++ kernels too
@@ -512,7 +512,8 @@ public:
     details::call(*opBuilder, name, quake, values);
   }
 
-  /// @brief Apply the given otherKernel with the provided QuakeValue arguments.
+  /// @brief Apply the given `otherKernel` with the provided `QuakeValue`
+  /// arguments.
   template <typename OtherKernelBuilder, typename... QuakeValues>
     requires(AllAreQuakeValues<QuakeValues...>)
   void call(OtherKernelBuilder &&kernel, QuakeValues &...values) {
@@ -522,7 +523,7 @@ public:
   }
 
   /// @brief Apply the given kernel controlled on the provided qubit value.
-  /// This overload takes a vector of QuakeValues and is primarily meant
+  /// This overload takes a vector of `QuakeValue`s and is primarily meant
   /// to be used internally.
   template <typename OtherKernelBuilder>
   void control(OtherKernelBuilder &kernel, QuakeValue &control,
@@ -551,7 +552,7 @@ public:
   }
 
   /// @brief Apply the adjoint of the given kernel.
-  /// This overload takes a vector of QuakeValues and is primarily meant
+  /// This overload takes a vector of `QuakeValue`s and is primarily meant
   /// to be used internally.
   template <typename OtherKernelBuilder>
   void adjoint(OtherKernelBuilder &kernel, std::vector<QuakeValue> &args) {
@@ -591,7 +592,7 @@ public:
   }
 
   /// @brief Lower the Quake code to the LLVM Dialect, call
-  /// PassManager.
+  /// `PassManager`.
   void jitCode(std::vector<std::string> extraLibPaths = {}) override {
     auto *ptr = details::jitCode(*opBuilder, jitEngine.get(), kernelName,
                                  extraLibPaths);
@@ -601,7 +602,7 @@ public:
           ptr, details::deleteJitEngine);
   }
 
-  /// @brief Invoke jitCode and extract a function pointer and execute.
+  /// @brief Invoke JIT compilation and extract a function pointer and execute.
   void jitAndInvoke(void **argsArray,
                     std::vector<std::string> extraLibPaths = {}) {
     jitCode(extraLibPaths);
@@ -623,7 +624,7 @@ public:
   /// for the function arguments
   void operator()(void **argsArray) { jitAndInvoke(argsArray); }
 
-  /// Expose the get<N>() method necessary for
+  /// Expose the `get<N>()` method necessary for
   /// enabling structured bindings on a custom type
   template <std::size_t N>
   decltype(auto) get() {
@@ -636,12 +637,12 @@ public:
 } // namespace cudaq
 
 /// The following std functions are necessary to enable
-/// structured bindings on the kernel_builder type.
+/// structured bindings on the `kernel_builder` type.
 /// e.g.
-/// auto [kernel, theta, phi] = std::make_kernel<double,double>();
+/// `auto [kernel, theta, phi] = std::make_kernel<double,double>();`
 namespace std {
 
-template <typename... Args> // std::size_t NArgs>
+template <typename... Args>
 struct tuple_size<cudaq::kernel_builder<Args...>>
     : std::integral_constant<std::size_t, sizeof...(Args) + 1> {};
 
@@ -661,7 +662,7 @@ inline auto make_kernel() {
   return kernel_builder<>(empty);
 }
 
-/// Factory function for creating a new kernel_builder with specified arg
+/// Factory function for creating a new `kernel_builder` with specified argument
 /// types. This requires programmers specify the concrete argument types of the
 /// kernel being built. The return type is meant to be acquired via C++17
 /// structured binding with the first element representing the builder, and the

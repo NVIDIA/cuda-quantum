@@ -1,7 +1,7 @@
 # Architecture Overview
 
 This document give a high-level overview of the CUDA Quantum codebase. If you
-want to familiarize yourself with the code on this repo, this is the document
+want to familiarize yourself with the code on this repository, this is the document
 for you.
 
 ## Bird's Eye View
@@ -109,7 +109,7 @@ is handled implicitly by `nvq++`.
 
 This folder contains the CUDA Quantum runtime library. The headers in this
 folder directly implement the CUDA Quantum specification, and in doing so,
-enables the nvq++ compiler to generate a full, valid Clang AST that can be
+enables the `nvq++` compiler to generate a full, valid Clang AST that can be
 processed and lowered the the MLIR. Moreover, by implementing the specification
 types and functions, we are able to use this library to enforce aspects of the
 specification at compile time. For example, the specification says that qubits

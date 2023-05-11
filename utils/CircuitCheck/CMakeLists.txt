@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_llvm_utility(CircuitCheck
+add_llvm_executable(CircuitCheck
   CircuitCheck.cpp
   UnitaryBuilder.cpp
 )
@@ -17,9 +17,12 @@ target_include_directories(CircuitCheck
 
 target_link_libraries(CircuitCheck
   PRIVATE
-  QTXDialect
-  QuakeDialect
+  MLIRArithDialect
   MLIRMemRefDialect
   MLIRParser
-)
+  MLIRPass
+  MLIRTransforms
 
+  CCDialect
+  QuakeDialect
+)

@@ -7,35 +7,34 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt %s | FileCheck %s
-module {
+
 // CHECK: func.func @bar() {
-// CHECK:     %[[C0:.*]] = arith.constant 0 : i32
-// CHECK:     %[[C2:.*]] = arith.constant 2 : i32
-// CHECK:     %[[C1:.*]] = arith.constant 1 : i32
-// CHECK:     %[[C22:.*]] = arith.constant 22 : i64
-// CHECK:     %0 = quake.alloca(%[[C2]] : i32) : !quake.qvec<?>
-// CHECK:     %1 = quake.alloca(%[[C22]] : i64) : !quake.qvec<?>
-// CHECK:     %2 = quake.alloca(%[[C1]] : i32) : !quake.qvec<?>
-// CHECK:     %3 = quake.qextract %0[%[[C0]]] : !quake.qvec<?>[i32] -> !quake.qref
-// CHECK:     %4 = quake.qextract %1[%[[C1]]] : !quake.qvec<?>[i32] -> !quake.qref
-// CHECK:     quake.h (%3)
-// CHECK:     quake.x [%3 : !quake.qref] (%4)
+// CHECK-DAG:     %[[C0:.*]] = arith.constant 0 : i32
+// CHECK-DAG:     %[[C2:.*]] = arith.constant 2 : i32
+// CHECK-DAG:     %[[C1:.*]] = arith.constant 1 : i32
+// CHECK-DAG:     %[[C22:.*]] = arith.constant 22 : i64
+// CHECK:     %0 = quake.alloca[%[[C2]] : i32] !quake.qvec<?>
+// CHECK:     %1 = quake.alloca[%[[C22]] : i64] !quake.qvec<?>
+// CHECK:     %2 = quake.alloca[%[[C1]] : i32] !quake.qvec<?>
+// CHECK:     %3 = quake.extract_ref %0[%[[C0]]] : (!quake.qvec<?>, i32) -> !quake.qref
+// CHECK:     %4 = quake.extract_ref %1[%[[C1]]] : (!quake.qvec<?>, i32) -> !quake.qref
+// CHECK:     quake.h %3 :
+// CHECK:     quake.x [%3] %4 :
 // CHECK:     return
 // CHECK: }
-    func.func @bar() {
-        %3 = arith.constant 0 : i32
-        %0 = arith.constant 2 : i32
-        %one = arith.constant 1 : i32
-        %1 = arith.constant 22 : i64
-        %qr2 = quake.alloca ( %0 : i32 ) : !quake.qvec<?>
-        %qr22 = quake.alloca ( %1 : i64 ) : !quake.qvec<?>
-        %q = quake.alloca (%one : i32) : !quake.qvec<?>
+func.func @bar() {
+  %3 = arith.constant 0 : i32
+  %0 = arith.constant 2 : i32
+  %one = arith.constant 1 : i32
+  %1 = arith.constant 22 : i64
+  %qr2 = quake.alloca [ %0 : i32 ]  !quake.qvec<?>
+  %qr22 = quake.alloca[ %1 : i64 ]  !quake.qvec<?>
+  %q = quake.alloca [%one : i32]  !quake.qvec<?>
 
-        %r = quake.qextract %qr2[%3] : !quake.qvec<?>[i32] -> !quake.qref
-        %q1 = quake.qextract %qr22[%one] : !quake.qvec<?>[i32] -> !quake.qref
+  %r = quake.extract_ref %qr2[%3] : (!quake.qvec<?>,i32) -> !quake.qref
+  %q1 = quake.extract_ref %qr22[%one] : (!quake.qvec<?> ,i32) -> !quake.qref
 
-        quake.h (%r)
-        quake.x[%r : !quake.qref] (%q1)
-        return
-    }
+  quake.h %r : (!quake.qref) -> ()
+  quake.x[%r] %q1 : (!quake.qref,!quake.qref) -> ()
+  return
 }

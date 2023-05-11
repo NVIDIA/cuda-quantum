@@ -21,6 +21,7 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
         return failure();
   }
   SmallVector<Complex, 16> matrix;
+  SmallVector<Qubit, 16> qubits;
   auto result = func.walk([&](Operation *op) {
     if (auto allocOp = dyn_cast<quake::AllocaOp>(op)) {
       return allocateQubits(allocOp.getResult());
@@ -30,48 +31,16 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
     }
     if (auto optor = dyn_cast<quake::OperatorInterface>(op)) {
       optor.getOperatorMatrix(matrix);
-      applyOperator(matrix, optor.getControls(), optor.getTargets());
+      // If the operator couldn't produce a matrix, stop the walk.
+      if (matrix.empty())
+        return WalkResult::interrupt();
+      // If we can't get the qubits involved in this operation, stop the walk
+      if (failed(getQubits(optor.getControls(), qubits)) ||
+          failed(getQubits(optor.getTargets(), qubits)))
+        return WalkResult::interrupt();
+      applyOperator(matrix, optor.getTargets().size(), qubits);
       matrix.clear();
-    }
-    return WalkResult::advance();
-  });
-  return failure(result.wasInterrupted());
-}
-
-LogicalResult UnitaryBuilder::build(qtx::CircuitOp circuit) {
-  for (auto target : circuit.getTargets()) {
-    // Here we know that the targets can only be a quantum type
-    if (allocateQubits(target) == WalkResult::interrupt())
-      return failure();
-  }
-  SmallVector<Complex, 16> matrix;
-  auto result = circuit.walk([&](Operation *op) {
-    if (auto allocOp = dyn_cast<qtx::AllocaOp>(op)) {
-      return allocateQubits(allocOp.getResult());
-    }
-    if (auto arrayCreateOp = dyn_cast<qtx::ArrayCreateOp>(op)) {
-      return visitArrayCreateOp(arrayCreateOp);
-    }
-    if (auto arraySplitOp = dyn_cast<qtx::ArraySplitOp>(op)) {
-      return visitArraySplitOp(arraySplitOp);
-    }
-    if (auto arrayBorrowOp = dyn_cast<qtx::ArrayBorrowOp>(op)) {
-      return visitArrayBorrowOp(arrayBorrowOp);
-    }
-    if (auto arrayYieldOp = dyn_cast<qtx::ArrayYieldOp>(op)) {
-      qubitMap[arrayYieldOp.getNewArray()] = qubitMap[arrayYieldOp.getArray()];
-    }
-    if (auto optor = dyn_cast<qtx::OperatorInterface>(op)) {
-      for (auto [i, target] : llvm::enumerate(optor.getTargets())) {
-        Value value = optor.getNewTargets()[i];
-        qubitMap[value].assign(
-            qubitMap[target]); // this doesn't work: qubitMap[value] =
-                               // qubitMap[target];
-        assert(qubitMap[value] == qubitMap[target]);
-      }
-      optor.getOperatorMatrix(matrix);
-      applyOperator(matrix, optor.getControls(), optor.getTargets());
-      matrix.clear();
+      qubits.clear();
     }
     return WalkResult::advance();
   });
@@ -93,50 +62,15 @@ WalkResult UnitaryBuilder::visitExtractOp(quake::QExtractOp op) {
   return WalkResult::advance();
 }
 
-WalkResult UnitaryBuilder::visitArrayCreateOp(qtx::ArrayCreateOp op) {
-  auto qubits = getQubits(op.getWires());
-  auto [_, success] =
-      qubitMap.try_emplace(op.getResult(), qubits.begin(), qubits.end());
-  if (!success)
-    return WalkResult::interrupt();
-  return WalkResult::advance();
-}
-
-WalkResult UnitaryBuilder::visitArraySplitOp(qtx::ArraySplitOp op) {
-  auto qubits = qubitMap[op.getArray()];
-  for (auto [i, wire] : llvm::enumerate(op.getResults())) {
-    auto [entry, _] = qubitMap.try_emplace(wire);
-    entry->second.push_back(qubits[i]);
-  }
-  return WalkResult::advance();
-}
-
-WalkResult UnitaryBuilder::visitArrayBorrowOp(qtx::ArrayBorrowOp op) {
-  auto array = op.getArray();
-  auto qubits = qubitMap[array];
-  for (auto [i, indexValue] : llvm::enumerate(op.getIndices())) {
-    auto index = getValueAsInt(indexValue);
-    if (!index && *index < 0)
-      return WalkResult::interrupt();
-    auto [entry, _] = qubitMap.try_emplace(op.getWires()[i]);
-    entry->second.push_back(qubits[*index]);
-  }
-  qubitMap.try_emplace(op.getNewArray(), qubits.begin(), qubits.end());
-  return WalkResult::advance();
-}
-
 WalkResult UnitaryBuilder::allocateQubits(Value value) {
   auto [entry, success] = qubitMap.try_emplace(value);
   if (!success)
     return WalkResult::interrupt();
   auto &qubits = entry->second;
-  if (auto qvec = value.getType().dyn_cast<quake::QVecType>()) {
+  if (auto qvec = dyn_cast<quake::QVecType>(value.getType())) {
     if (!qvec.hasSpecifiedSize())
       return WalkResult::interrupt();
     qubits.resize(qvec.getSize());
-    std::iota(entry->second.begin(), entry->second.end(), getNextQubit());
-  } else if (auto array = value.getType().dyn_cast<qtx::WireArrayType>()) {
-    qubits.resize(array.getSize());
     std::iota(entry->second.begin(), entry->second.end(), getNextQubit());
   } else {
     qubits.push_back(getNextQubit());
@@ -145,32 +79,46 @@ WalkResult UnitaryBuilder::allocateQubits(Value value) {
   return WalkResult::advance();
 }
 
-Optional<int64_t> UnitaryBuilder::getValueAsInt(Value value) {
+std::optional<int64_t> UnitaryBuilder::getValueAsInt(Value value) {
   if (auto constOp =
-          dyn_cast_if_present<arith::ConstantOp>(value.getDefiningOp())) {
-    if (auto index = constOp.getValue().dyn_cast<IntegerAttr>()) {
+          dyn_cast_if_present<arith::ConstantOp>(value.getDefiningOp()))
+    if (auto index = dyn_cast<IntegerAttr>(constOp.getValue()))
       return index.getInt();
-    }
-  }
-  return {};
+  return std::nullopt;
 }
 
 //===----------------------------------------------------------------------===//
 // Matrices
 //===----------------------------------------------------------------------===//
 
-void UnitaryBuilder::applyOperator(ArrayRef<Complex> m, OperandRange controls,
-                                   OperandRange targets) {
-  auto qubits = getQubits(controls, targets);
+LogicalResult UnitaryBuilder::getQubits(ValueRange values,
+                                        SmallVectorImpl<Qubit> &qubits) {
+  for (Value value : values) {
+    if (dyn_cast<quake::WireType>(value.getType()))
+      return failure();
+
+    if (auto qvec = dyn_cast<quake::QVecType>(value.getType())) {
+      if (!qvec.hasSpecifiedSize())
+        return failure();
+      llvm::copy(qubitMap[value], std::back_inserter(qubits));
+    } else {
+      qubits.push_back(qubitMap[value][0]);
+    }
+  }
+  return success();
+}
+
+void UnitaryBuilder::applyOperator(ArrayRef<Complex> m, unsigned numTargets,
+                                   ArrayRef<Qubit> qubits) {
   if (qubits.size() == 1u) {
     applyMatrix(m, qubits);
     return;
   }
-  if (targets.size() == 1) {
+  if (numTargets == 1) {
     applyControlledMatrix(m, qubits);
     return;
   }
-  applyMatrix(m, targets.size(), qubits);
+  applyMatrix(m, numTargets, qubits);
 }
 
 void UnitaryBuilder::growMatrix(unsigned numQubits) {
@@ -241,27 +189,26 @@ void UnitaryBuilder::growMatrix(unsigned numQubits) {
 //         | i j k l |                         c, g, k, o,
 //         | m n o p |                         d, h, l, p ]
 
-static unsigned first_idx(const std::vector<UnitaryBuilder::Qubit> &qubits,
-                          unsigned k) {
+static unsigned first_idx(ArrayRef<UnitaryBuilder::Qubit> qubits, unsigned k) {
   unsigned lowBits;
   unsigned result = k;
   for (unsigned j = 0u, end = qubits.size(); j < end; ++j) {
-    lowBits = result & ((1 << qubits.at(j)) - 1);
-    result >>= qubits.at(j);
-    result <<= qubits.at(j) + 1;
+    lowBits = result & ((1 << qubits[j]) - 1);
+    result >>= qubits[j];
+    result <<= qubits[j] + 1;
     result |= lowBits;
   }
   return result;
 }
 
 static std::vector<unsigned>
-indicies(const std::vector<UnitaryBuilder::Qubit> &qubits,
-         const std::vector<UnitaryBuilder::Qubit> &qubitsSorted, unsigned k) {
+indicies(ArrayRef<UnitaryBuilder::Qubit> qubits,
+         ArrayRef<UnitaryBuilder::Qubit> qubitsSorted, unsigned k) {
   std::vector<unsigned> result((1 << qubits.size()), 0u);
   result.at(0) = first_idx(qubitsSorted, k);
   for (unsigned i = 0u, end = qubits.size(); i < end; ++i) {
     const unsigned n = (1u << i);
-    const unsigned bit = (1u << qubits.at(i));
+    const unsigned bit = (1u << qubits[i]);
     for (size_t j = 0; j < n; j++) {
       result.at(n + j) = result.at(j) | bit;
     }
@@ -271,8 +218,7 @@ indicies(const std::vector<UnitaryBuilder::Qubit> &qubits,
 
 // TODO:  Optimize!  There are ways to specialize for diagonal and anti-diagonal
 // matrices.
-void UnitaryBuilder::applyMatrix(ArrayRef<Complex> u,
-                                 const std::vector<Qubit> &qubits) {
+void UnitaryBuilder::applyMatrix(ArrayRef<Complex> u, ArrayRef<Qubit> qubits) {
   auto *m = matrix.data();
   for (unsigned k = 0u, end = (matrix.size() >> 1u); k < end; ++k) {
     const auto idx = indicies(qubits, qubits, k);
@@ -283,9 +229,9 @@ void UnitaryBuilder::applyMatrix(ArrayRef<Complex> u,
 }
 
 void UnitaryBuilder::applyMatrix(ArrayRef<Complex> u, unsigned numTargets,
-                                 const std::vector<Qubit> &qubits) {
-  auto qubitsSorted = qubits;
-  std::sort(qubitsSorted.begin(), qubitsSorted.end());
+                                 ArrayRef<Qubit> qubits) {
+  SmallVector<Qubit, 16> qubitsSorted(qubits);
+  llvm::sort(qubitsSorted);
 
   auto *m = matrix.data();
   const size_t dim = (1u << numTargets);
@@ -305,9 +251,9 @@ void UnitaryBuilder::applyMatrix(ArrayRef<Complex> u, unsigned numTargets,
 }
 
 void UnitaryBuilder::applyControlledMatrix(ArrayRef<Complex> u,
-                                           const std::vector<Qubit> &qubits) {
-  auto qubitsSorted = qubits;
-  std::sort(qubitsSorted.begin(), qubitsSorted.end());
+                                           ArrayRef<Qubit> qubits) {
+  SmallVector<Qubit, 16> qubitsSorted(qubits);
+  llvm::sort(qubitsSorted);
   const unsigned p0 = (1 << (qubits.size() - 1)) - 1;
   const unsigned p1 = (1 << qubits.size()) - 1;
 

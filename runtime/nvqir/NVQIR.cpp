@@ -32,7 +32,7 @@
 // Is the library initialized?
 thread_local bool initialized = false;
 thread_local nvqir::CircuitSimulator *simulator;
-inline static constexpr std::string_view GetCircuitSymbol =
+inline static constexpr std::string_view GetCircuitSimulatorSymbol =
     "getCircuitSimulator";
 
 /// @brief Provide a holder for externally created
@@ -75,8 +75,8 @@ CircuitSimulator *getCircuitSimulatorInternal() {
     return simulator;
   }
 
-  simulator =
-      cudaq::getUniquePluginInstance<CircuitSimulator>(GetCircuitSymbol);
+  simulator = cudaq::getUniquePluginInstance<CircuitSimulator>(
+      GetCircuitSimulatorSymbol);
   cudaq::info("Creating the {} backend.", simulator->name());
   return simulator;
 }

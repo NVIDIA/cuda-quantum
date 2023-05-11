@@ -43,6 +43,7 @@ public:
   void launchKernel(const std::string &name, void (*kernelFunc)(void *),
                     void *args, std::uint64_t, std::uint64_t) override {
     cudaq::info("QPU::launchKernel GPU {}", qpu_id);
+    cudaSetDevice(qpu_id);
     kernelFunc(args);
   }
 
@@ -81,7 +82,7 @@ public:
       // and computing <ZZ..ZZZ>
       if (ctx->canHandleObserve) {
         auto [exp, data] = cudaq::measure(H);
-        results.emplace_back(data.to_map(), H.to_string());
+        results.emplace_back(data.to_map(), H.to_string(false), exp);
         ctx->expectationValue = exp;
         ctx->result = cudaq::sample_result(results);
       } else {
@@ -136,12 +137,11 @@ public:
           auto warmUpSim = cudaq::getExecutionManager();
 
           cudaSetDevice(i);
-          cudaFree(0);
 
           // Warm up the GPUs via an allocation / deallocation.
           cudaq::info("Warm up Emulated QPU (GPU) {}.", i);
           std::array<std::size_t, 1> qbits{warmUpSim->getAvailableIndex()};
-          warmUpSim->returnQubit(qbits[0]);
+          warmUpSim->returnQudit({2, qbits[0]});
         }));
       }
 

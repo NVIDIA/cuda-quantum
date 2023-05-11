@@ -29,7 +29,7 @@ def test_kernel_qalloc_empty():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
-# CHECK:           %[[VAL_0:.*]] = quake.alloca : !quake.qref
+# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.qref
 # CHECK:           return
 # CHECK:         }
 
@@ -47,7 +47,7 @@ def test_kernel_qalloc_qreg():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
-# CHECK:           %[[VAL_1:.*]] = quake.alloca : !quake.qvec<10>
+# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.qvec<10>
 # CHECK:           return
 # CHECK:         }
 
@@ -65,7 +65,7 @@ def test_kernel_qalloc_qreg_keyword():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
-# CHECK:           %[[VAL_1:.*]] = quake.alloca : !quake.qvec<10>
+# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.qvec<10>
 # CHECK:           return
 # CHECK:         }
 
@@ -83,7 +83,7 @@ def test_kernel_qalloc_quake_val():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
 # CHECK-SAME:      %[[VAL_0:.*]]: i32) {
-# CHECK:           %[[VAL_1:.*]] = quake.alloca(%[[VAL_0]] : i32) : !quake.qvec<?>
+# CHECK:           %[[VAL_1:.*]] = quake.alloca[%[[VAL_0]] : i32] !quake.qvec<?>
 # CHECK:           return
 # CHECK:         }
 
@@ -101,7 +101,7 @@ def test_kernel_qalloc_qubit():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
-# CHECK:           %[[VAL_0:.*]] = quake.alloca : !quake.qref
+# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.qref
 # CHECK:           return
 # CHECK:         }
 
@@ -119,7 +119,7 @@ def test_kernel_qalloc_qubit_keyword():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
-# CHECK:           %[[VAL_0:.*]] = quake.alloca : !quake.qref
+# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.qref
 # CHECK:           return
 # CHECK:         }
 

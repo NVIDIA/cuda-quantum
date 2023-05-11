@@ -88,3 +88,6 @@ simulators/
 
 # macOS
 .DS_Store
+
+# JetBrains IDE files
+.idea
