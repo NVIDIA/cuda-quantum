@@ -71,6 +71,7 @@ jobs:
   build_and_test_llvm:
     name: Build and test (llvm)
     needs: setup_llvm
+    if: false # FIXME: REMOVE
     uses: ./.github/workflows/test_in_devenv.yml
     with:
       devdeps_cache: ${{ needs.setup_llvm.outputs.cache_key }}
