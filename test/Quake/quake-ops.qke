@@ -250,31 +250,30 @@ func.func @quantum_ops() {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @quake_op1(
-// CHECK-SAME:        %[[VAL_0:.*]]: !llvm.ptr<f64>, %[[VAL_1:.*]]: i64) -> i64 {
-// CHECK:           %[[VAL_2:.*]] = cc.stdvec_init %[[VAL_0]], %[[VAL_1]] : (!llvm.ptr<f64>, i64) -> !cc.stdvec<f64>
-// CHECK:           %[[VAL_3:.*]] = cc.stdvec_data %[[VAL_2]] : (!cc.stdvec<f64>) -> !llvm.ptr<f64>
+// CHECK-SAME:        %[[VAL_0:.*]]: !cc.ptr<f64>, %[[VAL_1:.*]]: i64) -> i64 {
+// CHECK:           %[[VAL_2:.*]] = cc.stdvec_init %[[VAL_0]], %[[VAL_1]] : (!cc.ptr<f64>, i64) -> !cc.stdvec<f64>
+// CHECK:           %[[VAL_3:.*]] = cc.stdvec_data %[[VAL_2]] : (!cc.stdvec<f64>) -> !cc.ptr<f64>
 // CHECK:           %[[VAL_4:.*]] = cc.stdvec_size %[[VAL_2]] : (!cc.stdvec<f64>) -> i64
 // CHECK:           return %[[VAL_4]] : i64
 // CHECK:         }
 
-
-func.func @quake_op1(%a : !llvm.ptr<f64>, %b : i64) -> i64 {
-  %svec = cc.stdvec_init %a, %b : (!llvm.ptr<f64>, i64) -> !cc.stdvec<f64>
-  %dp = cc.stdvec_data %svec : (!cc.stdvec<f64>) -> !llvm.ptr<f64>
+func.func @quake_op1(%a : !cc.ptr<f64>, %b : i64) -> i64 {
+  %svec = cc.stdvec_init %a, %b : (!cc.ptr<f64>, i64) -> !cc.stdvec<f64>
+  %dp = cc.stdvec_data %svec : (!cc.stdvec<f64>) -> !cc.ptr<f64>
   %len = cc.stdvec_size %svec : (!cc.stdvec<f64>) -> i64
   return %len : i64
 }
 
-// CHECK-LABEL:   func.func @quake_op2() -> !llvm.ptr<i8> {
-// CHECK:           %[[VAL_0:.*]] = constant @quake_op1 : (!llvm.ptr<f64>, i64) -> i64
-// CHECK:           %[[VAL_1:.*]] = cc.func_ptr %[[VAL_0]] : ((!llvm.ptr<f64>, i64) -> i64) -> !llvm.ptr<i8>
-// CHECK:           return %[[VAL_1]] : !llvm.ptr<i8>
+// CHECK-LABEL:   func.func @quake_op2() -> !cc.ptr<i8> {
+// CHECK:           %[[VAL_0:.*]] = constant @quake_op1 : (!cc.ptr<f64>, i64) -> i64
+// CHECK:           %[[VAL_1:.*]] = cc.func_ptr %[[VAL_0]] : ((!cc.ptr<f64>, i64) -> i64) -> !cc.ptr<i8>
+// CHECK:           return %[[VAL_1]] : !cc.ptr<i8>
 // CHECK:         }
 
-func.func @quake_op2() -> !llvm.ptr<i8> {
-  %cp = constant @quake_op1 : (!llvm.ptr<f64>, i64) -> i64
-  %ptr = cc.func_ptr %cp : ((!llvm.ptr<f64>, i64) -> i64) -> !llvm.ptr<i8>
-  return %ptr : !llvm.ptr<i8>
+func.func @quake_op2() -> !cc.ptr<i8> {
+  %cp = constant @quake_op1 : (!cc.ptr<f64>, i64) -> i64
+  %ptr = cc.func_ptr %cp : ((!cc.ptr<f64>, i64) -> i64) -> !cc.ptr<i8>
+  return %ptr : !cc.ptr<i8>
 }
 
 // CHECK-LABEL:   func.func @quake_op3(
