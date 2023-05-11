@@ -68,12 +68,8 @@ matrix:
     - .github/workflows/config/spelling_allowlist.txt
   pipeline:
   - pyspelling.filters.html:
-      attributes:
-      - title
-      - alt
-      ignores:
-      - code
-      - pre
+      comments: false
+      attributes: []
 
 - name: cxx
   sources:
