@@ -79,6 +79,7 @@ qudits
 runtime
 subclass
 subclassed
+subclasses
 subclassing
 subtype
 subtypes

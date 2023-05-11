@@ -15,13 +15,13 @@
 #include <vector>
 
 namespace cudaq {
-/// Typedef for the mapping of observed qubit measurement bit strings
+/// Type definition for the mapping of observed qubit measurement bit strings
 /// to the number of times they were observed.
 using CountsDictionary = std::unordered_map<std::string, std::size_t>;
 
 inline static const std::string GlobalRegisterName = "__global__";
 
-/// The ExecutionResult models the result of a typical
+/// The `ExecutionResult` models the result of a typical
 /// quantum state sampling task. It will contain the
 /// observed measurement bit strings and corresponding number
 /// of times observed, as well as an expected value with
@@ -41,13 +41,13 @@ struct ExecutionResult {
 
   /// @brief Serialize this sample result to a vector of integers.
   /// Encoding: 1st element is size of the register name N, then next N
-  /// represent register name, next is the number of Bitstrings M,
+  /// represent register name, next is the number of bitstrings M,
   /// then for each bit string a triple {stringMappedToLong, bit string
   /// length, count}
   /// @return
   std::vector<std::size_t> serialize();
 
-  /// @brief Deserialize a vector of integers to a ExecutionResult
+  /// @brief Deserialize a vector of integers to a `ExecutionResult`
   /// @param data The data with encoding discussed in the serialize() brief.
   void deserialize(std::vector<std::size_t> &data);
 
@@ -85,12 +85,12 @@ struct ExecutionResult {
   /// @return
   ExecutionResult &operator=(ExecutionResult &other);
 
-  /// @brief Return true if the given ExecutionResult is the same as this one.
+  /// @brief Return true if the given `ExecutionResult` is the same as this one.
   /// @param result
   /// @return
   bool operator==(const ExecutionResult &result) const;
 
-  /// @brief Append the bitstring and count to this ExecutionResult
+  /// @brief Append the bitstring and count to this `ExecutionResult`
   /// @param bitString
   /// @param count
   void appendResult(std::string bitString, std::size_t count);
@@ -98,14 +98,14 @@ struct ExecutionResult {
   std::vector<std::string> getSequentialData() { return sequentialData; }
 };
 
-/// @brief The sample_result abstraction wraps a set of ExecutionResults for
+/// @brief The sample_result abstraction wraps a set of `ExecutionResult`s for
 /// a single quantum kernel execution under the sampling or observation
-/// ExecutionContext. Each ExecutionResult is mapped to a register name,
-/// with a default ExecutionResult with name __global__ representing the
+/// ExecutionContext. Each `ExecutionResult` is mapped to a register name,
+/// with a default `ExecutionResult` with name __global__ representing the
 /// observed measurement results holistically for the quantum kernel.
 class sample_result {
 private:
-  /// @brief A mapping of register names to ExecutionResults
+  /// @brief A mapping of register names to `ExecutionResult`s
   std::unordered_map<std::string, ExecutionResult> sampleResults;
 
   /// @brief Keep track of the total number of shots. We keep this
@@ -120,11 +120,11 @@ public:
   /// @param result
   sample_result(ExecutionResult &result);
 
-  /// @brief The constructor, appends all provided ExecutionResults
+  /// @brief The constructor, appends all provided `ExecutionResult`s
   sample_result(std::vector<ExecutionResult> &results);
 
   /// @brief The constructor, takes a pre-computed expectation value and
-  /// stores it with the __global__ ExecutionResult.
+  /// stores it with the `__global__` `ExecutionResult`.
   sample_result(double preComputedExp, std::vector<ExecutionResult> &results);
 
   /// @brief Copy Constructor
@@ -133,7 +133,7 @@ public:
   /// @brief The destructor
   ~sample_result() = default;
 
-  /// @brief Return true if the given ExecutionResult with registerName has
+  /// @brief Return true if the given `ExecutionResult` with registerName has
   /// a pre-computed expectation value.
   bool
   has_expectation(const std::string_view registerName = GlobalRegisterName);
