@@ -261,7 +261,7 @@ CUDAQ_TEST(BuilderTester, checkKernelControl) {
   hadamardTest.mz(ancilla);
 
   printf("%s\n", hadamardTest.to_quake().c_str());
-  auto counts = cudaq::sample(hadamardTest);
+  auto counts = cudaq::sample(10000, hadamardTest);
   counts.dump();
   printf("< 1 | X | 1 > = %lf\n", counts.exp_val_z());
   EXPECT_NEAR(counts.exp_val_z(), 0.0, 1e-1);
@@ -277,7 +277,7 @@ CUDAQ_TEST(BuilderTester, checkKernelControl) {
   hadamardTest2.mz(ancilla2);
 
   printf("%s\n", hadamardTest2.to_quake().c_str());
-  counts = cudaq::sample(hadamardTest2);
+  counts = cudaq::sample(10000, hadamardTest2);
   printf("< 1 | H | 1 > = %lf\n", counts.exp_val_z());
   EXPECT_NEAR(counts.exp_val_z(), -1.0 / std::sqrt(2.0), 1e-1);
 
