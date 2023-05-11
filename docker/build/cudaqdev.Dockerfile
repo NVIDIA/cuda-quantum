@@ -48,7 +48,9 @@ RUN if [ -n "$install" ]; \
         expected_prefix=$CUDAQ_INSTALL_PREFIX; \
         export $install; \
         bash scripts/build_cudaq.sh -v; \
-        if [ "$CUDAQ_INSTALL_PREFIX" != "$expected_prefix" ]; then \
+        if [ ! "$?" -eq "0" ]; then \
+            exit 1; \
+        elif [ "$CUDAQ_INSTALL_PREFIX" != "$expected_prefix" ]; then \
             mkdir -p "$expected_prefix"; \
             mv "$CUDAQ_INSTALL_PREFIX"/* "$expected_prefix"; \
             rmdir "$CUDAQ_INSTALL_PREFIX"; \

@@ -102,7 +102,8 @@ void bindSpinOperator(py::module &mod) {
            "Specifically, this encoding is via a vector of doubles. The "
            "encoding is as follows: for each term, a list of doubles where the "
            "ith element is a 3.0 for a Y, a 1.0 for a X, and a 2.0 for a Z on "
-           "qubit i, followed by the real and imaginary part of the coefficient. "
+           "qubit i, followed by the real and imaginary part of the "
+           "coefficient. "
            "Each term is appended to the array forming one large 1d array of "
            "doubles. The array is ended with the total number of terms "
            "represented as a double.")

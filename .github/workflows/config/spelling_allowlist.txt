@@ -23,8 +23,8 @@ NGC
 NVIDIA
 OpenMP
 OpenQASM
-QAOA
 Pauli
+QAOA
 QIR
 QIS
 QPU
