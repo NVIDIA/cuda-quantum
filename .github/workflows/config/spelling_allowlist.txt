@@ -78,6 +78,7 @@ namespace
 natively
 nullary
 precompute
+precomputed
 qubit
 qubits
 qudit
