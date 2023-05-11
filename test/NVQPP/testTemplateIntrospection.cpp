@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 
-// RUN: nvq++ %s -o out_testTemplateI.x && ./out_testTemplateI.x | FileCheck %s
+// RUN: nvq++ --enable-mlir %s -o out_testTemplateI.x && ./out_testTemplateI.x | FileCheck %s
 
 #include <cudaq.h>
 
