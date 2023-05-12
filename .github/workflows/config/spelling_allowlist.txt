@@ -33,6 +33,7 @@ OpenQASM
 Optimizers
 Pauli
 Paulis
+Pimpl
 QAOA
 QIR
 QIS
@@ -43,10 +44,13 @@ Quake
 Toffoli
 VQE
 Vazirani
+Veq
 Wl
 adjoint
 al
 ansatz
+args
+arith
 atol
 auxillary
 backend
@@ -113,6 +117,7 @@ natively
 nlopt
 nullary
 nvq
+pre
 precompute
 precomputed
 qir
@@ -136,6 +141,7 @@ subclass
 subclassed
 subclasses
 subclassing
+subscriptable
 subtype
 subtypes
 subtyping
