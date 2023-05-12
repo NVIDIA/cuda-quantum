@@ -52,7 +52,7 @@ void so4(cudaq::kernel_builder<std::vector<double>> &builder, QuakeValue &&q,
   builder.h(r);
 }
 
-} /// namespace cudaq
+} // namespace cudaq
 
 int main() {
 
