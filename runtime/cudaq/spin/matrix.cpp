@@ -6,11 +6,13 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #pragma GCC diagnostic ignored "-Wdeprecated-enum-enum-conversion"
 
 #include "cudaq/matrix.h"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-anon-enum-enum-conversion"
 #include <Eigen/Dense>
+#pragma clang diagnostic pop
 #include <fmt/core.h>
 #include <iostream>
 

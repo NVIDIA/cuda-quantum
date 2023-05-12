@@ -133,7 +133,6 @@ cmake_args="-G Ninja "$repo_root" \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
   -DCUDAQ_ENABLE_PYTHON=TRUE \
-  -DLLVM_BUILD_UTILS=ON \
   -DCMAKE_EXE_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
   -DCMAKE_MODULE_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
   -DCMAKE_SHARED_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \

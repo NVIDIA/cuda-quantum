@@ -10,7 +10,10 @@
 
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-anon-enum-enum-conversion"
 #include <Eigen/Dense>
+#pragma clang diagnostic pop
 #include <complex>
 #include <vector>
 
