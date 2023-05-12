@@ -25,6 +25,7 @@ NVIDIA
 NVQIR
 OpenMP
 OpenQASM
+Optimizers
 Pauli
 Paulis
 QAOA
@@ -88,6 +89,7 @@ qubits
 qudit
 qudits
 runtime
+str
 struct
 structs
 subclass

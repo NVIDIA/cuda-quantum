@@ -121,16 +121,13 @@ public:
 
       // this assumes we ran in shots mode.
       double sum = 0.0;
-      for (std::size_t i = 0; i < spinOp->n_terms(); i++) {
-        auto term = (*spinOp)[i];
-        if (term.is_identity()) {
-          sum += term.get_coefficients()[0].real();
-          continue;
-        }
-
-        sum += data.exp_val_z(term.to_string(false)) *
-               term.get_coefficients()[0].real();
-      }
+      spinOp->for_each_term([&](spin_op &term) {
+        if (term.is_identity())
+          sum += term.get_coefficient().real();
+        else
+          sum += data.exp_val_z(term.to_string(false)) *
+                 term.get_coefficient().real();
+      });
 
       return observe_result(sum, *spinOp, data);
     }
