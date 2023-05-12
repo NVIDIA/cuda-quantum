@@ -67,6 +67,9 @@ function show_help {
 --clang-verbose | -clang-verbose
 	Enable the verbose option (-v) to the C++ compiler.
 
+--load=<domain>
+    Load the domain-specific library, e.g. chemistry.
+
 --library-mode
 	Execute the CUDA Quantum program in library mode. (C++ emulation.)
 
@@ -180,7 +183,7 @@ LIBRARY_MODE_EXECUTION_MANAGER="qir"
 PLATFORM_LIBRARY="default"
 LLVM_QUANTUM_TARGET="qir"
 LINKDIRS="-L${install_dir}/lib -L${install_dir}/lib/plugins @CUDAQ_CXX_NVQPP_LINK_STR@"
-LINKLIBS="-lcudaq -lcudaq-common -lcudaq-mlir-runtime -lcudaq-builder -lcudaq-ensmallen -lcudaq-nlopt -lcudaq-spin -lcudaq-chemistry"
+LINKLIBS="-lcudaq -lcudaq-common -lcudaq-mlir-runtime -lcudaq-builder -lcudaq-ensmallen -lcudaq-nlopt -lcudaq-spin"
 
 # Add any plugin libraries to the link stage
 CUDAQ_PLUGIN_DIR=${install_dir}/lib/plugins
@@ -251,6 +254,10 @@ while [ $# -ne 0 ]; do
 	--platform | -platform)
 		PLATFORM_LIBRARY="$2"
 		shift
+		;;
+	--load | -load)
+	    LINKLIBS="${LINKLIBS} -lcudaq-$2"
+		shift 
 		;;
 	--cmake-host-compiler)
 		CMAKE_FALLBACK_HOST_CXX="$2"

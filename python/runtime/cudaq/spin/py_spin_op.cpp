@@ -36,7 +36,7 @@ spin_op fromOpenFermionQubitOperator(py::object &op) {
     }
     H += terms[term].cast<double>() * localTerm;
   }
-  H -= spin::i(H.n_qubits() - 1);
+  H -= spin::i(H.num_qubits() - 1);
   return H;
 }
 

@@ -153,8 +153,8 @@ public:
       iter++;
       return *this;
     }
-    iterator operator++(int) {
-      iterator tmp = *this;
+    iterator &operator++(int) {
+      iterator &tmp = *this;
       ++(*this);
       return tmp;
     }
