@@ -126,7 +126,7 @@ fi
 # (utils are needed for custom testing tools, e.g. CircuitCheck)
 echo "Preparing CUDA Quantum build with LLVM installation in $LLVM_INSTALL_PREFIX..."
 cmake_args="-G Ninja "$repo_root" \
-  -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF \
+  -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
   -DCMAKE_INSTALL_PREFIX="$CUDAQ_INSTALL_PREFIX" \
   -DLLVM_DIR="$llvm_lib_dir/cmake/llvm" \
   -DNVQPP_LD_PATH="$NVQPP_LD_PATH" \
@@ -138,7 +138,6 @@ cmake_args="-G Ninja "$repo_root" \
   -DCMAKE_MODULE_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
   -DCMAKE_SHARED_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
   $custatevec_flag"
-# TODO: enable warnings as errors above. 
 if $verbose; then 
   cmake $cmake_args
 else
