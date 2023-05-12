@@ -25,6 +25,12 @@ matrix:
       - ':matches(code, pre)'
       - 'code'
       - 'pre'
+  - pyspelling.filters.context:
+      context_visible_first: true
+      delimiters:
+      # Ignore word prefixes, e.g. "pre-" in pre-computed
+      - open: '(^|\s)[a-z]+-'
+        close: '(?=.)'
 
 - name: rst
   sources:
@@ -55,6 +61,9 @@ matrix:
       # Ignore lines that start with two dots
       - open: '^\s*\.\.'
         close: '$'
+      # Ignore word prefixes, e.g. "pre-" in pre-computed
+      - open: '(^|\s)[a-z]+-'
+        close: '(?=.)'
 
 - name: html
   sources:
@@ -74,6 +83,12 @@ matrix:
       - nav
       - code
       - pre
+  - pyspelling.filters.context:
+      context_visible_first: true
+      delimiters:
+      # Ignore word prefixes, e.g. "pre-" in pre-computed
+      - open: '(^|\s)[a-z]+-'
+        close: '(?=.)'
 
 - name: cxx
   sources:
@@ -130,7 +145,7 @@ matrix:
       # Ignore words that start with uppercase letters or an underscore
       - open: '(^|\s)([A-Z]|_)'
         close: '($|\s|-)'
-      # Ignore word prefix, e.g. "pre-" in pre-computed
+      # Ignore word prefixes, e.g. "pre-" in pre-computed
       - open: '(^|\s)[a-z]+-'
         close: '(?=.)'
 
@@ -160,4 +175,9 @@ matrix:
       # Ignore content between inline backticks
       - open: '(?P<open>`+)'
         close: '(?P=open)'
-
+      # Ignore words that start with uppercase letters or an underscore
+      - open: '(^|\s)([A-Z]|_)'
+        close: '($|\s|-)'
+      # Ignore word prefixes, e.g. "pre-" in pre-computed
+      - open: '(^|\s)[a-z]+-'
+        close: '(?=.)'
