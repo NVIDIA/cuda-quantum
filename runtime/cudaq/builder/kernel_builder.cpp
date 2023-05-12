@@ -510,7 +510,7 @@ void reset(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQreg) {
     auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &,
                            Block &block) {
       Value ref = builder.create<quake::ExtractRefOp>(loc, target,
-                                                       block.getArgument(0));
+                                                      block.getArgument(0));
       builder.create<quake::ResetOp>(loc, TypeRange{}, ref);
     };
     cudaq::opt::factory::createCountedLoop(builder, builder.getUnknownLoc(),

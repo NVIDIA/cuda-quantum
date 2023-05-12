@@ -142,7 +142,7 @@ bool buildOp(OpBuilder &builder, Location loc, ValueRange operands,
       auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &,
                              Block &block) {
         Value ref = builder.create<quake::ExtractRefOp>(loc, target,
-                                                         block.getArgument(0));
+                                                        block.getArgument(0));
         builder.create<A>(loc, ValueRange(), ref);
       };
       cudaq::opt::factory::createCountedLoop(builder, loc, rank, bodyBuilder);

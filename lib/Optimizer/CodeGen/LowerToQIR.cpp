@@ -1038,9 +1038,8 @@ public:
     typeConverter.addConversion([&](quake::QVecType type) {
       return cudaq::opt::getArrayType(context);
     });
-    typeConverter.addConversion([&](quake::RefType type) {
-      return cudaq::opt::getQubitType(context);
-    });
+    typeConverter.addConversion(
+        [&](quake::RefType type) { return cudaq::opt::getQubitType(context); });
     typeConverter.addConversion([&](cudaq::cc::LambdaType type) {
       return lambdaAsPairOfPointers(type.getContext());
     });
