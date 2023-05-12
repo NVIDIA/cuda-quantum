@@ -16,7 +16,14 @@
 #include "common/RuntimeMLIR.h"
 #include "cudaq/platform/quantum_platform.h"
 #include <cudaq/spin_op.h>
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 #include <fmt/core.h>
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 #include <fstream>
 #include <iostream>
 #include <netinet/in.h>

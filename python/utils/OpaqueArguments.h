@@ -9,7 +9,14 @@
 #pragma once
 
 #include "cudaq/builder/kernel_builder.h"
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 #include <fmt/core.h>
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 #include <functional>
 #include <pybind11/pybind11.h>
 #include <vector>

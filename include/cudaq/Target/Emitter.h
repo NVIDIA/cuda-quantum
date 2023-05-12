@@ -9,7 +9,14 @@
 #pragma once
 
 #include "llvm/ADT/ScopedHashTable.h"
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
 #include "llvm/Support/FormatVariadic.h"
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 #include "mlir/IR/ValueRange.h"
 #include "mlir/Support/IndentedOstream.h"
 #include <stack>

@@ -11,7 +11,14 @@
 #include <filesystem>
 
 // Be careful about Logger.h getting into public headers
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 #include <fmt/core.h>
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 #include <fmt/ranges.h>
 
 namespace cudaq {

@@ -6,9 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 
-#ifdef __GNUC__
-#pragma GCC diagnostic ignored "-Wsuggest-override"
-#endif
 #include "cudaq/platform/quantum_platform.h"
 #include "common/Logger.h"
 #include "common/PluginUtils.h"

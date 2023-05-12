@@ -8,7 +8,14 @@
 
 #include "CUDAQTestUtils.h"
 #include "common/MeasureCounts.h"
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 #include <fmt/core.h>
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 using namespace cudaq;
 

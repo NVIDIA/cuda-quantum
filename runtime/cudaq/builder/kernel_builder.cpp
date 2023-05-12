@@ -1,10 +1,10 @@
-/*******************************************************************************
+/*************************************************************** -*- C++ -*- ***
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- ******************************************************************************/
+ *******************************************************************************/
 
 #include "kernel_builder.h"
 #include "common/Logger.h"
@@ -129,7 +129,16 @@ initializeBuilder(MLIRContext *context,
     int digit = rand() % 10;
     os << digit;
   }
+
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#pragma GCC diagnostic ignored "-Wrestrict"
+#endif
   kernelName += "_" + os.str();
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
   cudaq::info("kernel_builder name set to {}", kernelName);
 

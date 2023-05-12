@@ -10,7 +10,14 @@
 
 #include "common/Logger.h"
 #include <filesystem>
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 #include <fmt/core.h>
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 #include <map>
 #include <unordered_map>
 #include <vector>

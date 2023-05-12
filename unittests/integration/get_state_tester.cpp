@@ -9,7 +9,14 @@
 #include "CUDAQTestUtils.h"
 #include <cudaq/algorithm.h>
 #include <cudaq/optimizers.h>
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 #include <fmt/core.h>
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 #include <numeric>
 
 using namespace cudaq;

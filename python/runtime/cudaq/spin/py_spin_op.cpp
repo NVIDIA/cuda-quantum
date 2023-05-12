@@ -115,12 +115,15 @@ void bindSpinOperator(py::module &mod) {
       .def(py::self += py::self,
            "Add the given `SpinOperator` to this one and return *this.")
       // `this_spin_op` -= `cudaq.SpinOperator`
+#ifdef __clang__
 #pragma clang diagnostic push
-// FIXME: Why does this only pop up for -=?
 #pragma clang diagnostic ignored "-Wself-assign-overloaded"
+#endif
       .def(py::self -= py::self,
            "Subtract the given `SpinOperator` from this one and return *this.")
+#ifdef __clang__
 #pragma clang diagnostic pop
+#endif
       // `this_spin_op` *= `cudaq.SpinOperator`
       .def(py::self *= py::self,
            "Multiply the given `SpinOperator` with this one and return *this.")
