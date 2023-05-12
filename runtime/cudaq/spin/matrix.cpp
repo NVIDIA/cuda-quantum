@@ -9,10 +9,14 @@
 #pragma GCC diagnostic ignored "-Wdeprecated-enum-enum-conversion"
 
 #include "cudaq/matrix.h"
+#ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-anon-enum-enum-conversion"
+#endif
 #include <Eigen/Dense>
+#ifdef __clang__
 #pragma clang diagnostic pop
+#endif
 #include <fmt/core.h>
 #include <iostream>
 

@@ -7,7 +7,9 @@
  *******************************************************************************/
 
 // FIXME: this should be removed
+#ifdef __clang__
 #pragma clang diagnostic ignored "-Woverloaded-virtual"
+#endif
 
 #include "QIRForwards.h"
 #include "common/Logger.h"

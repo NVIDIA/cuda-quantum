@@ -7,10 +7,14 @@
  *******************************************************************************/
 
 #include "state.h"
+#ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-anon-enum-enum-conversion"
+#endif
 #include <Eigen/Dense>
+#ifdef __clang__
 #pragma clang diagnostic pop
+#endif
 #include <iostream>
 
 namespace cudaq {
