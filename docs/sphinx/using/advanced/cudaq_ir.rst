@@ -46,16 +46,16 @@ we can look at the IR code that was produced. :code:`simple.qke` contains
 
     module attributes {qtx.mangled_name_map = {__nvqpp__mlirgen__ghz = "_ZN3ghzclEi"}} {
         func.func @__nvqpp__mlirgen__ghz(%arg0: i32) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-            %alloca = memref.alloca() : memref<i32>
-            memref.store %arg0, %alloca[] : memref<i32>
-            %0 = memref.load %alloca[] : memref<i32>
-            %1 = arith.extsi %0 : i32 to i64
-            %2 = quake.alloca(%1 : i64) : !quake.qvec<?>
-            %c0_i32 = arith.constant 0 : i32
-            %3 = arith.extsi %c0_i32 : i32 to i64
-            %4 = quake.qextract %2[%3] : !quake.qvec<?>[i64] -> !quake.qref
-            quake.h (%4)
-            cc.scope {
+           %alloca = memref.alloca() : memref<i32>
+           memref.store %arg0, %alloca[] : memref<i32>
+           %0 = memref.load %alloca[] : memref<i32>
+           %1 = arith.extsi %0 : i32 to i64
+           %2 = quake.alloca(%1 : i64) !quake.qvec<?>
+           %c0_i32 = arith.constant 0 : i32
+           %3 = arith.extsi %c0_i32 : i32 to i64
+           %4 = quake.extract_ref %2[%3] : (!quake.qvec<?>, i64) -> !quake.qref
+           quake.h %4 : (!quake.ref) -> ()
+           cc.scope {
             %c0_i32_0 = arith.constant 0 : i32
             %alloca_1 = memref.alloca() : memref<i32>
             memref.store %c0_i32_0, %alloca_1[] : memref<i32>
@@ -67,18 +67,18 @@ we can look at the IR code that was produced. :code:`simple.qke` contains
                 %9 = arith.cmpi slt, %6, %8 : i32
                 cc.condition %9
             } do {
-                cc.scope {
+              cc.scope {
                 %6 = memref.load %alloca_1[] : memref<i32>
                 %7 = arith.extsi %6 : i32 to i64
-                %8 = quake.qextract %2[%7] : !quake.qvec<?>[i64] -> !quake.qref
+                %8 = quake.extract_ref %2[%7] : (!quake.qvec<?>, i64) -> !quake.qref
                 %9 = memref.load %alloca_1[] : memref<i32>
                 %c1_i32 = arith.constant 1 : i32
                 %10 = arith.addi %9, %c1_i32 : i32
                 %11 = arith.extsi %10 : i32 to i64
-                %12 = quake.qextract %2[%11] : !quake.qvec<?>[i64] -> !quake.qref
-                quake.x [%8 : !quake.qref] (%12)
-                }
-                cc.continue
+                %12 = quake.extract_ref %2[%11] : (!quake.qvec<?>, i64) -> !quake.qref
+                quake.x [%8] %12 : (!quake.qref, !quake.qref) -> ()
+              }
+              cc.continue
             } step {
                 %6 = memref.load %alloca_1[] : memref<i32>
                 %c1_i32 = arith.constant 1 : i32
@@ -86,7 +86,7 @@ we can look at the IR code that was produced. :code:`simple.qke` contains
                 memref.store %7, %alloca_1[] : memref<i32>
             }
             }
-            %5 = quake.mz(%2 : !quake.qvec<?>) : !cc.stdvec<i1>
+            %5 = quake.mz %2 : (!quake.qvec<?>) -> !cc.stdvec<i1>
             return
         }
     }
@@ -122,8 +122,8 @@ via the :code:`--platform` and :code:`--qpu` compiler flags.
 The above figure demonstrate the MLIR dialects involved and the overall workflow mapping 
 high-level language constructs to lower-level MLIR dialect code, and ultimately LLVM IR. 
 
-CUDA Quantum also provides value-semantics dialect for static circuit representation 
-called Quantum Thread Execution (QTX). This dialect directly enables robust circuit 
+CUDA Quantum also provides value-semantics form of Quake for static circuit
+representation. This dialect directly enables robust circuit 
 optimizations via data-flow analysis of the representative circuit. This dialect 
 is typically produced just-in-time when the structure of the circuit is fully known. 
 
@@ -133,20 +133,20 @@ processing, optimization, and lowering of the core NVQ++ compiler representation
 The tools available are 
 
 1. :code:`cudaq-quake` - Lower C++ to Quake, can also output classical LLVM IR file
-2. :code:`cudaq-opt` - Process Quake with various MLIR Passes, convert to QTX
-3. :code:`cudaq-translate` - Lower Quake or QTX to external representations like QIR (or Base Profile QIR)
+2. :code:`cudaq-opt` - Process Quake with various MLIR Passes
+3. :code:`cudaq-translate` - Lower Quake to external representations like QIR (or Base Profile QIR)
 
-CUDA Quantum and NVQ++ rely on Quake and QTX for the core quantum intermediate representation. 
+CUDA Quantum and NVQ++ rely on Quake for the core quantum intermediate representation. 
 Quake represents an IR closer to the CUDA Quantum source language and models qubits and
 quantum instructions via memory semantics. Quake can be fully dynamic and in
 that sense represents a quantum circuit template or generator. With runtime 
-arguments fully specified, Quake code generates or synthesizes
-a fully-known quantum circuit. QTX is a dialect that sits below Quake and does 
-not allow any dynamic or runtime parameterization. It is a representation for fully-known
+arguments fully specified, Quake code can be used to generate or synthesize
+a fully-known quantum circuit. The value semantics form of Quake can thus be
+used as a representation for fully-known
 or synthesized quantum circuits. Its utility, therefore, lies in its ability to 
 optimize quantum code. It departs from the memory semantics model of Quake and 
-relies fully on the SSA-nature of the MLIR, a value-semantics model. This approach 
-makes it easier for finding circuit patterns and leveraging it for common 
+expresses the flow of quantum information explicitly as MLIR values.
+This approach makes it easier for finding circuit patterns and leveraging it for common 
 optimization tasks. 
 
 To demonstrate how these tools work together, let's take the simple GHZ CUDA Quantum 
@@ -328,7 +328,7 @@ which prints
     !0 = !{i32 2, !"Debug Info Version", i32 3}
 
 
-Note that the results of each tool can be piped to futher tools, creating a
+Note that the results of each tool can be piped to further tools, creating a
 composable pipeline of compiler lowering tools. 
 
 

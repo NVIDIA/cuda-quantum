@@ -205,7 +205,7 @@ def quake_DeallocOp : QuakeOp<"dealloc"> {
 // QVec, QRef manipulation
 //===----------------------------------------------------------------------===//
 
-def quake_QExtractOp : QuakeOp<"extract_ref", [Pure]> {
+def quake_ExtractRefOp : QuakeOp<"extract_ref", [Pure]> {
   let summary = "Get a reference to a single wire.";
   let description = [{
     The `extract_ref` operation extracts a quantum reference from a vector of
@@ -217,7 +217,7 @@ def quake_QExtractOp : QuakeOp<"extract_ref", [Pure]> {
     Example:
     ```mlir
       %zero = arith.constant 0 : i32
-      %qr = quake.qextract %qv[%zero] : (!quake.qvec<?>, i32) -> !quake.qref
+      %qr = quake.extract_ref %qv[%zero] : (!quake.qvec<?>, i32) -> !quake.qref
     ```
   }];
 

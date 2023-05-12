@@ -1,10 +1,11 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
+
 #include "QuakeValue.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
@@ -120,7 +121,7 @@ QuakeValue QuakeValue::operator[](const std::size_t idx) {
 
   if (type.isa<quake::QVecType>()) {
     Value extractedQubit =
-        opBuilder.create<quake::QExtractOp>(vectorValue, indexVar);
+        opBuilder.create<quake::ExtractRefOp>(vectorValue, indexVar);
     auto ret = extractedFromIndex.emplace(
         std::make_pair(idx, QuakeValue(opBuilder, extractedQubit)));
     return ret.first->second;
@@ -164,7 +165,7 @@ QuakeValue QuakeValue::operator[](const QuakeValue &idx) {
 
   if (type.isa<quake::QVecType>()) {
     Value extractedQubit =
-        opBuilder.create<quake::QExtractOp>(vectorValue, indexVar);
+        opBuilder.create<quake::ExtractRefOp>(vectorValue, indexVar);
     auto ret = extractedFromValue.emplace(
         std::make_pair(opaquePtr, QuakeValue(opBuilder, extractedQubit)));
     return ret.first->second;

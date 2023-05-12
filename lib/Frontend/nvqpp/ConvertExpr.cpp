@@ -62,7 +62,7 @@ maybeUnpackOperands(OpBuilder &builder, Location loc, ValueRange operands) {
     auto one = builder.create<arith::ConstantIndexOp>(loc, 1);
     auto offset = builder.create<arith::SubIOp>(loc, size, one);
     // Get the last qubit in the qvec: the target.
-    Value qTarg = builder.create<quake::QExtractOp>(loc, target, offset);
+    Value qTarg = builder.create<quake::ExtractRefOp>(loc, target, offset);
     auto zero = builder.create<arith::ConstantIndexOp>(loc, 0);
     auto last = builder.create<arith::SubIOp>(loc, offset, one);
     // The canonicalizer will compute a constant size, if possible.
@@ -141,8 +141,8 @@ bool buildOp(OpBuilder &builder, Location loc, ValueRange operands,
       Value rank = builder.create<arith::IndexCastOp>(loc, indexTy, size);
       auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &,
                              Block &block) {
-        Value qref = builder.create<quake::QExtractOp>(loc, target,
-                                                       block.getArgument(0));
+        Value qref = builder.create<quake::ExtractRefOp>(loc, target,
+                                                         block.getArgument(0));
         builder.create<A>(loc, ValueRange(), qref);
       };
       cudaq::opt::factory::createCountedLoop(builder, loc, rank, bodyBuilder);
@@ -1181,7 +1181,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           }
           assert(actArgs.size() == 0);
           return pushValue(
-              builder.create<quake::QExtractOp>(loc, qregArg, zero));
+              builder.create<quake::ExtractRefOp>(loc, qregArg, zero));
         }
 
     if (funcName.equals("back"))
@@ -1203,7 +1203,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           }
           assert(actArgs.size() == 0);
           return pushValue(
-              builder.create<quake::QExtractOp>(loc, qregArg, endOff));
+              builder.create<quake::ExtractRefOp>(loc, qregArg, endOff));
         }
 
     if (funcName.equals("slice")) {
@@ -1607,7 +1607,7 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
       // the symbol table, and return the AddressQubit operation's resulting
       // value.
       auto address_qubit =
-          builder.create<quake::QExtractOp>(loc, qreg_var, idx_var);
+          builder.create<quake::ExtractRefOp>(loc, qreg_var, idx_var);
 
       symbolTable.insert(StringRef(varName), address_qubit);
       return pushValue(address_qubit);

@@ -1,10 +1,11 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
+
 ///
 /// This file is the internal implementation of "QuakeToQTXConverter."  Most of
 /// the heavy lifting required to successfully apply the conversion patterns is
@@ -875,7 +876,7 @@ struct WireReborrower {
            "Cannot re-borrow wires after a terminator");
     SmallVector<Value, 4> indices;
     for (auto qref : extracted) {
-      auto extractOp = dyn_cast<quake::QExtractOp>(qref.getDefiningOp());
+      auto extractOp = dyn_cast<quake::ExtractRefOp>(qref.getDefiningOp());
       indices.push_back(extractOp.getIndex());
     }
     Value array = rewriter.getRemapped(op, qvec);
@@ -965,7 +966,7 @@ cudaq::ConvertToQTXPattern::matchAndRewrite(Operation *op,
 
   // Handle special cases of using quantum vector as operands
   SmallVector<WireReborrower, 4> borrowers;
-  if (auto qextract = dyn_cast<quake::QExtractOp>(op)) {
+  if (auto qextract = dyn_cast<quake::ExtractRefOp>(op)) {
     auto &extracted = rewriterImpl.extractedQrefs[qextract.getQvec()];
     extracted.push_back(qextract.getQref());
   } else if (auto dealloc = dyn_cast<quake::DeallocOp>(op)) {
