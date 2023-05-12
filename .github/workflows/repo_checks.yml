@@ -159,11 +159,13 @@ jobs:
 
       - name: Check spelling allowlist
         run: |
-          sorted_allowlist=`cat .github/workflows/config/spelling_allowlist.txt | sort`
-          if [ "$sorted_allowlist" != "$(cat .github/workflows/config/spelling_allowlist.txt)" ]; then
-            echo "Expecting spelling allowlist to be sorted."
-            exit 1
-          fi
+          for file in `ls .github/workflows/config/spelling_allowlist*.txt`; do
+            sorted_allowlist=`cat $file | sort`
+            if [ "$sorted_allowlist" != "$(cat $file)" ]; then
+              echo "Expecting spelling allowlist in $file to be sorted."
+              exit 1
+            fi
+          done
 
       - name: "Markdown files"
         uses: rojopolis/spellcheck-github-actions@0.30.0

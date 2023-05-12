@@ -86,6 +86,7 @@ matrix:
   dictionary:
     wordlists:
     - .github/workflows/config/spelling_allowlist.txt
+    - .github/workflows/config/spelling_allowlist_cxx.txt
   pipeline:
   - pyspelling.filters.url:
   - pyspelling.filters.context:
@@ -98,7 +99,10 @@ matrix:
       # Ignore comments of the form `/*...*/` since they are used to annotate argument names
       - open: '\/\*'
         close: '\*\/'
-        content: \S*?        
+        content: \S*?
+      # Ignore end of line comments
+      - open: '(^|\s)\/\/\s'
+        close: '$'
   - pyspelling.filters.cpp:
       block_comments: true
       line_comments: true
@@ -117,9 +121,18 @@ matrix:
       # Ignore words that start with an @, e.g. @param used in doc comments
       - open: '@\S'
         close: '(\s|$)'
+      # Ignore words before and after double columns
+      - open: '([a-zA-Z0-9_])*::'
+        close: '([^a-zA-Z0-9_:]|$)'
       # Ignore words that contain any underscores, numbers, or uppercase letters
-      - open: '[a-zA-Z0-9]+([A-Z0-9]|_)'
-        close: '([^a-zA-Z0-9]|\s|$)'
+      - open: '[a-zA-Z0-9]+([A-Z0-9_])'
+        close: '([^a-zA-Z0-9_]|$)'
+      # Ignore words that start with uppercase letters or an underscore
+      - open: '(^|\s)([A-Z]|_)'
+        close: '($|\s|-)'
+      # Ignore word prefix, e.g. "pre-" in pre-computed
+      - open: '(^|\s)[a-z]+-'
+        close: '(?=.)'
 
 - name: python
   sources:
