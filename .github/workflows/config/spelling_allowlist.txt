@@ -97,8 +97,8 @@ init
 instantiation
 instantiations
 lcudaq
-linux
 len
+linux
 llc
 llvm
 lnvqir
