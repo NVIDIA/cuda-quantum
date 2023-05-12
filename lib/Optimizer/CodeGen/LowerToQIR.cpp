@@ -72,10 +72,10 @@ public:
         {rewriter.getIntegerType(64)}, parentModule);
 
     // AllocaOp could have a size operand, or the size could
-    // be compile time known and encoded in the qvec return type.
+    // be compile time known and encoded in the veq return type.
     Value sizeOperand;
     if (adaptor.getOperands().empty()) {
-      auto type = alloca.getResult().getType().cast<quake::QVecType>();
+      auto type = alloca.getResult().getType().cast<quake::VeqType>();
       auto constantSize = type.getSize();
       sizeOperand =
           rewriter.create<arith::ConstantIntOp>(loc, constantSize, 64);
@@ -107,10 +107,10 @@ public:
 
     auto retType = LLVM::LLVMVoidType::get(context);
 
-    // Could be a dealloc on a ref or a qvec
+    // Could be a dealloc on a ref or a veq
     StringRef qirQuantumDeallocateFunc;
     Type operandType, qType = dealloc.getOperand().getType();
-    if (qType.isa<quake::QVecType>()) {
+    if (qType.isa<quake::VeqType>()) {
       qirQuantumDeallocateFunc = cudaq::opt::QIRArrayQubitReleaseArray;
       operandType = cudaq::opt::getArrayType(context);
     } else {
@@ -135,7 +135,7 @@ public:
 // example, if the size (in qubits) for all the arguments is constant, then the
 // result Array could be allocated and each qubit written into it with no need
 // for further reallocations, etc. (These opportunities are left as TODOs.) In
-// general, quake.concat does not guarantee that the sizes of the input QVec is
+// general, quake.concat does not guarantee that the sizes of the input Veq is
 // a compile-time constant however.
 class ConcatOpLowering : public ConvertOpToLLVMPattern<quake::ConcatOp> {
 public:
@@ -385,7 +385,7 @@ public:
     auto control = *instOp.getControls().begin();
     Type type = control.getType();
     auto instOperands = adaptor.getOperands();
-    if (numControls == 1 && type.isa<quake::QVecType>()) {
+    if (numControls == 1 && type.isa<quake::VeqType>()) {
       if (negatedQubitCtrls)
         return instOp.emitError("unsupported controlled op " + instName +
                                 " with vector of ctrl qubits");
@@ -503,16 +503,16 @@ public:
       return success();
     }
 
-    // We have 1 control, is it a qvec or a ref?
+    // We have 1 control, is it a veq or a ref?
     auto control = *instOp.getControls().begin();
     qirFunctionName += "__ctl";
 
     // All signatures will take an Array* for the controls
     tmpArgTypes.push_back(qubitArrayType);
 
-    // If type is a QVecType, then we're good, just forward to the call op
+    // If type is a VeqType, then we're good, just forward to the call op
     Type type = control.getType();
-    if (type.isa<quake::QVecType>()) {
+    if (type.isa<quake::VeqType>()) {
 
       // Add the control array to the args.
       funcArgs.push_back(adaptor.getControls().front());
@@ -798,12 +798,12 @@ public:
   }
 };
 
-class GetQVecSizeOpLowering : public OpConversionPattern<quake::QVecSizeOp> {
+class GetVeqSizeOpLowering : public OpConversionPattern<quake::VeqSizeOp> {
 public:
   using OpConversionPattern::OpConversionPattern;
 
   LogicalResult
-  matchAndRewrite(quake::QVecSizeOp vecsize, OpAdaptor adaptor,
+  matchAndRewrite(quake::VeqSizeOp vecsize, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = vecsize->getLoc();
     auto parentModule = vecsize->getParentOfType<ModuleOp>();
@@ -1035,7 +1035,7 @@ public:
     auto *context = getModule().getContext();
     LLVMConversionTarget target{*context};
     LLVMTypeConverter typeConverter(&getContext());
-    typeConverter.addConversion([&](quake::QVecType type) {
+    typeConverter.addConversion([&](quake::VeqType type) {
       return cudaq::opt::getArrayType(context);
     });
     typeConverter.addConversion(
@@ -1057,7 +1057,7 @@ public:
     cf::populateControlFlowToLLVMConversionPatterns(typeConverter, patterns);
     populateFuncToLLVMConversionPatterns(typeConverter, patterns);
 
-    patterns.insert<GetQVecSizeOpLowering, MxToMz, MyToMz, ReturnBitRewrite>(
+    patterns.insert<GetVeqSizeOpLowering, MxToMz, MyToMz, ReturnBitRewrite>(
         context);
     patterns.insert<
         AllocaOpLowering, CallableClosureOpLowering, CallableFuncOpLowering,

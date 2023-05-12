@@ -41,13 +41,13 @@ def test_kernel_qreg():
 # CHECK:           %[[VAL_0:.*]] = arith.constant 2 : index
 # CHECK:           %[[VAL_1:.*]] = arith.constant 1 : index
 # CHECK:           %[[VAL_2:.*]] = arith.constant 0 : index
-# CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.qvec<2>
+# CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<2>
 # CHECK:           %[[VAL_4:.*]] = cc.loop while ((%[[VAL_5:.*]] = %[[VAL_2]]) -> (index)) {
 # CHECK:             %[[VAL_6:.*]] = arith.cmpi slt, %[[VAL_5]], %[[VAL_0]] : index
 # CHECK:             cc.condition %[[VAL_6]](%[[VAL_5]] : index)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_7:.*]]: index):
-# CHECK:             %[[VAL_8:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_7]]] : (!quake.qvec<2>, index) -> !quake.ref
+# CHECK:             %[[VAL_8:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_7]]] : (!quake.veq<2>, index) -> !quake.ref
 # CHECK:             quake.h %[[VAL_8]] : (!quake.ref) -> ()
 # CHECK:             cc.continue %[[VAL_7]] : index
 # CHECK:           } step {
@@ -60,7 +60,7 @@ def test_kernel_qreg():
 # CHECK:             cc.condition %[[VAL_13]](%[[VAL_12]] : index)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_14:.*]]: index):
-# CHECK:             %[[VAL_15:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_14]]] : (!quake.qvec<2>, index) -> !quake.ref
+# CHECK:             %[[VAL_15:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_14]]] : (!quake.veq<2>, index) -> !quake.ref
 # CHECK:             quake.x %[[VAL_15]] : (!quake.ref) -> ()
 # CHECK:             cc.continue %[[VAL_14]] : index
 # CHECK:           } step {
@@ -73,7 +73,7 @@ def test_kernel_qreg():
 # CHECK:             cc.condition %[[VAL_20]](%[[VAL_19]] : index)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_21:.*]]: index):
-# CHECK:             %[[VAL_22:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_21]]] : (!quake.qvec<2>, index) -> !quake.ref
+# CHECK:             %[[VAL_22:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_21]]] : (!quake.veq<2>, index) -> !quake.ref
 # CHECK:             quake.y %[[VAL_22]] : (!quake.ref) -> ()
 # CHECK:             cc.continue %[[VAL_21]] : index
 # CHECK:           } step {
@@ -86,7 +86,7 @@ def test_kernel_qreg():
 # CHECK:             cc.condition %[[VAL_27]](%[[VAL_26]] : index)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_28:.*]]: index):
-# CHECK:             %[[VAL_29:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_28]]] : (!quake.qvec<2>, index) -> !quake.ref
+# CHECK:             %[[VAL_29:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_28]]] : (!quake.veq<2>, index) -> !quake.ref
 # CHECK:             quake.z %[[VAL_29]] : (!quake.ref) -> ()
 # CHECK:             cc.continue %[[VAL_28]] : index
 # CHECK:           } step {
@@ -99,7 +99,7 @@ def test_kernel_qreg():
 # CHECK:             cc.condition %[[VAL_34]](%[[VAL_33]] : index)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_35:.*]]: index):
-# CHECK:             %[[VAL_36:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_35]]] : (!quake.qvec<2>, index) -> !quake.ref
+# CHECK:             %[[VAL_36:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_35]]] : (!quake.veq<2>, index) -> !quake.ref
 # CHECK:             quake.t %[[VAL_36]] : (!quake.ref) -> ()
 # CHECK:             cc.continue %[[VAL_35]] : index
 # CHECK:           } step {
@@ -112,7 +112,7 @@ def test_kernel_qreg():
 # CHECK:             cc.condition %[[VAL_41]](%[[VAL_40]] : index)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_42:.*]]: index):
-# CHECK:             %[[VAL_43:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_42]]] : (!quake.qvec<2>, index) -> !quake.ref
+# CHECK:             %[[VAL_43:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_42]]] : (!quake.veq<2>, index) -> !quake.ref
 # CHECK:             quake.s %[[VAL_43]] : (!quake.ref) -> ()
 # CHECK:             cc.continue %[[VAL_42]] : index
 # CHECK:           } step {

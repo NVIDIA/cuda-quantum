@@ -59,7 +59,7 @@ void bindQuakeValue(py::module &mod) {
           R"(Return a slice of the given :class:`QuakeValue` as a new :class:`QuakeValue`. 
           
                Note:
-                 The underlying :class:`QuakeValue` must be a `list` or `qvec`.
+                 The underlying :class:`QuakeValue` must be a `list` or `veq`.
                  
                Args:
                  start (int) : The index to begin the slice from.

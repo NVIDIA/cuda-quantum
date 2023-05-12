@@ -32,7 +32,7 @@ struct ctrlHeisenberg {
 };
 
 // CHECK-LABEL:   func.func private @__nvqpp__mlirgen__function_magic_func.
-// CHECK-SAME: .ctrl(%[[VAL_0:.*]]: !quake.qvec<?>, %{{.*}}: !quake.qvec<?>) {
+// CHECK-SAME: .ctrl(%[[VAL_0:.*]]: !quake.veq<?>, %{{.*}}: !quake.veq<?>) {
 // CHECK:           cc.scope {
 // CHECK:             cc.loop while {
 // CHECK:             } do {
@@ -40,7 +40,7 @@ struct ctrlHeisenberg {
 // CHECK:                 cc.scope {
 // CHECK:                   cc.loop while {
 // CHECK:                   } do {
-// CHECK:                     quake.rx (%{{.*}}) [%[[VAL_0]]] %{{.*}} : (f64, !quake.qvec<?>, !quake.ref) -> ()
+// CHECK:                     quake.rx (%{{.*}}) [%[[VAL_0]]] %{{.*}} : (f64, !quake.veq<?>, !quake.ref) -> ()
 // CHECK:                   } step {
 // CHECK:                   }
 // CHECK:                 }
@@ -51,7 +51,7 @@ struct ctrlHeisenberg {
 // CHECK:                       quake.x [%{{.*}}] %{{.*}} : (!quake.ref, !quake.ref) -> ()
 // CHECK:                     } : !cc.lambda<() -> ()>
 // CHECK:                     %[[VAL_36:.*]] = cc.create_lambda {
-// CHECK:                       quake.rz (%{{.*}}) [%[[VAL_0]]] %{{.*}} : (f64, !quake.qvec<?>, !quake.ref) -> ()
+// CHECK:                       quake.rz (%{{.*}}) [%[[VAL_0]]] %{{.*}} : (f64, !quake.veq<?>, !quake.ref) -> ()
 // CHECK:                     } : !cc.lambda<() -> ()>
 // CHECK:                     quake.compute_action %[[VAL_28]], %[[VAL_36]] : !cc.lambda<() -> ()>, !cc.lambda<() -> ()>
 // CHECK:                     cc.continue
@@ -72,26 +72,26 @@ struct ctrlHeisenberg {
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_3:.*]] = memref.load %[[VAL_1]][] : memref<i32>
 // CHECK:           %[[VAL_4:.*]] = arith.extsi %[[VAL_3]] : i32 to i64
-// CHECK:           %[[VAL_5:.*]] = quake.alloca[%[[VAL_4]] : i64] !quake.qvec<?>
-// CHECK:           %[[VAL_6:.*]] = quake.concat %[[VAL_2]] : (!quake.ref) -> !quake.qvec<?>
-// CHECK:           call @__nvqpp__mlirgen__function_magic_func.{{.*}}.ctrl(%[[VAL_6]], %[[VAL_5]]) : (!quake.qvec<?>, !quake.qvec<?>) -> ()
+// CHECK:           %[[VAL_5:.*]] = quake.alloca[%[[VAL_4]] : i64] !quake.veq<?>
+// CHECK:           %[[VAL_6:.*]] = quake.concat %[[VAL_2]] : (!quake.ref) -> !quake.veq<?>
+// CHECK:           call @__nvqpp__mlirgen__function_magic_func.{{.*}}.ctrl(%[[VAL_6]], %[[VAL_5]]) : (!quake.veq<?>, !quake.veq<?>) -> ()
 // CHECK:           return
 // CHECK:         }
 
 //===----------------------------------------------------------------------===//
 
 // LAMBDA-LABEL:   func.func private @__nvqpp__lifted.lambda.0.adj(
-// LAMBDA-SAME:      %{{[^:]*}}: memref<i32>, %{{[^:]*}}: !quake.qvec<?>) {
+// LAMBDA-SAME:      %{{[^:]*}}: memref<i32>, %{{[^:]*}}: !quake.veq<?>) {
 // LAMBDA:           quake.x [%{{.*}}] %{{.*}} : (!quake.ref, !quake.ref) -> ()
 // LAMBDA:           return
 
 // LAMBDA2-LABEL:   func.func private @__nvqpp__lifted.lambda.1.ctrl(
-// LAMBDA2-SAME:      %[[VAL_0:.*]]: !quake.qvec<?>, %{{.*}}: memref<i32>, %{{.*}}: !quake.qvec<?>) {
-// LAMBDA2:           quake.rz (%{{.*}}) [%[[VAL_0]]] %{{.*}} : (f64, !quake.qvec<?>, !quake.ref) -> ()
+// LAMBDA2-SAME:      %[[VAL_0:.*]]: !quake.veq<?>, %{{.*}}: memref<i32>, %{{.*}}: !quake.veq<?>) {
+// LAMBDA2:           quake.rz (%{{.*}}) [%[[VAL_0]]] %{{.*}} : (f64, !quake.veq<?>, !quake.ref) -> ()
 // LAMBDA2:           return
 
 // LAMBDA-LABEL:   func.func private @__nvqpp__mlirgen__function_magic_func.
-// LAMBDA-SAME:    .ctrl(%[[VAL_0:.*]]: !quake.qvec<?>, %[[VAL_1:.*]]: !quake.qvec<?>) {
+// LAMBDA-SAME:    .ctrl(%[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: !quake.veq<?>) {
 // LAMBDA:           cc.scope {
 // LAMBDA:             cc.loop while {
 // LAMBDA:             } do {
@@ -99,7 +99,7 @@ struct ctrlHeisenberg {
 // LAMBDA:                 cc.scope {
 // LAMBDA:                   cc.loop while {
 // LAMBDA:                   } do {
-// LAMBDA:                     quake.rx (%{{.*}}) [%[[VAL_0]]] %{{.*}} : (f64, !quake.qvec<?>, !quake.ref) -> ()
+// LAMBDA:                     quake.rx (%{{.*}}) [%[[VAL_0]]] %{{.*}} : (f64, !quake.veq<?>, !quake.ref) -> ()
 // LAMBDA:                     cc.continue
 // LAMBDA:                   } step {
 // LAMBDA:                   }
@@ -107,10 +107,10 @@ struct ctrlHeisenberg {
 // LAMBDA:                 cc.scope {
 // LAMBDA:                   cc.loop while {
 // LAMBDA:                   } do {
-// LAMBDA:                     func.call @__nvqpp__lifted.lambda.0(%{{.*}}, %[[VAL_1]]) : (memref<i32>, !quake.qvec<?>) -> ()
-// LAMBDA:                     %[[VAL_28:.*]] = quake.concat %[[VAL_0]] : (!quake.qvec<?>) -> !quake.qvec<?>
-// LAMBDA:                     func.call @__nvqpp__lifted.lambda.1.ctrl(%[[VAL_28]], %{{.*}}, %[[VAL_1]]) : (!quake.qvec<?>, memref<i32>, !quake.qvec<?>) -> ()
-// LAMBDA:                     func.call @__nvqpp__lifted.lambda.0.adj(%{{.*}}, %[[VAL_1]]) : (memref<i32>, !quake.qvec<?>) -> ()
+// LAMBDA:                     func.call @__nvqpp__lifted.lambda.0(%{{.*}}, %[[VAL_1]]) : (memref<i32>, !quake.veq<?>) -> ()
+// LAMBDA:                     %[[VAL_28:.*]] = quake.concat %[[VAL_0]] : (!quake.veq<?>) -> !quake.veq<?>
+// LAMBDA:                     func.call @__nvqpp__lifted.lambda.1.ctrl(%[[VAL_28]], %{{.*}}, %[[VAL_1]]) : (!quake.veq<?>, memref<i32>, !quake.veq<?>) -> ()
+// LAMBDA:                     func.call @__nvqpp__lifted.lambda.0.adj(%{{.*}}, %[[VAL_1]]) : (memref<i32>, !quake.veq<?>) -> ()
 // LAMBDA:                   } step {
 // LAMBDA:                   }
 // LAMBDA:                 }
@@ -124,13 +124,13 @@ struct ctrlHeisenberg {
 // LAMBDA-LABEL:   func.func @__nvqpp__mlirgen__ctrlHeisenberg(
 // LAMBDA-SAME:      %{{.*}}: i32)
 // LAMBDA:           %[[VAL_2:.*]] = quake.alloca !quake.ref
-// LAMBDA:           %[[VAL_6:.*]] = quake.concat %[[VAL_2]] : (!quake.ref) -> !quake.qvec<?>
-// LAMBDA:           call @__nvqpp__mlirgen__function_magic_func.{{.*}}.ctrl(%[[VAL_6]], %{{.*}}) : (!quake.qvec<?>, !quake.qvec<?>) -> ()
+// LAMBDA:           %[[VAL_6:.*]] = quake.concat %[[VAL_2]] : (!quake.ref) -> !quake.veq<?>
+// LAMBDA:           call @__nvqpp__mlirgen__function_magic_func.{{.*}}.ctrl(%[[VAL_6]], %{{.*}}) : (!quake.veq<?>, !quake.veq<?>) -> ()
 // LAMBDA:           return
 // LAMBDA:         }
 
 // LAMBDA-LABEL:   func.func private @__nvqpp__lifted.lambda.0(
-// LAMBDA-SAME:      %[[VAL_0:.*]]: memref<i32>, %[[VAL_1:.*]]: !quake.qvec<?>) {
+// LAMBDA-SAME:      %[[VAL_0:.*]]: memref<i32>, %[[VAL_1:.*]]: !quake.veq<?>) {
 // LAMBDA:           quake.x [%{{.*}}] %{{.*}} : (!quake.ref, !quake.ref) -> ()
 // LAMBDA:           return
 // LAMBDA:         }

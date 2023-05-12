@@ -40,9 +40,9 @@ def test_kernel_measure_1q():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
 # CHECK:           %[[VAL_0:.*]] = arith.constant 1 : i32
 # CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
-# CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.qvec<2>
-# CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_2]]{{\[}}%[[VAL_1]]] : (!quake.qvec<2>, i32) -> !quake.ref
-# CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_2]]{{\[}}%[[VAL_0]]] : (!quake.qvec<2>, i32) -> !quake.ref
+# CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<2>
+# CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_2]]{{\[}}%[[VAL_1]]] : (!quake.veq<2>, i32) -> !quake.ref
+# CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_2]]{{\[}}%[[VAL_0]]] : (!quake.veq<2>, i32) -> !quake.ref
 # CHECK:           %[[VAL_5:.*]] = quake.mx %[[VAL_3]] : (!quake.ref) -> i1 {registerName = ""}
 # CHECK:           %[[VAL_6:.*]] = quake.mx %[[VAL_4]] : (!quake.ref) -> i1 {registerName = ""}
 # CHECK:           %[[VAL_7:.*]] = quake.my %[[VAL_3]] : (!quake.ref) -> i1 {registerName = ""}
@@ -75,14 +75,14 @@ def test_kernel_measure_qreg():
 # CHECK:           %[[VAL_1:.*]] = arith.constant 3 : i64
 # CHECK:           %[[VAL_2:.*]] = arith.constant 1 : index
 # CHECK:           %[[VAL_3:.*]] = arith.constant 0 : index
-# CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.qvec<3>
+# CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.veq<3>
 # CHECK:           %[[VAL_5:.*]] = llvm.alloca %[[VAL_1]] x i1 : (i64) -> !llvm.ptr<i1>
 # CHECK:           %[[VAL_6:.*]] = cc.loop while ((%[[VAL_7:.*]] = %[[VAL_3]]) -> (index)) {
 # CHECK:             %[[VAL_8:.*]] = arith.cmpi slt, %[[VAL_7]], %[[VAL_0]] : index
 # CHECK:             cc.condition %[[VAL_8]](%[[VAL_7]] : index)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_9:.*]]: index):
-# CHECK:             %[[VAL_10:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_9]]] : (!quake.qvec<3>, index) -> !quake.ref
+# CHECK:             %[[VAL_10:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_9]]] : (!quake.veq<3>, index) -> !quake.ref
 # CHECK:             %[[VAL_11:.*]] = quake.mx %[[VAL_10]] : (!quake.ref) -> i1
 # CHECK:             %[[VAL_12:.*]] = arith.index_cast %[[VAL_9]] : index to i64
 # CHECK:             %[[VAL_13:.*]] = llvm.getelementptr %[[VAL_5]]{{\[}}%[[VAL_12]]] : (!llvm.ptr<i1>, i64) -> !llvm.ptr<i1>
@@ -99,7 +99,7 @@ def test_kernel_measure_qreg():
 # CHECK:             cc.condition %[[VAL_19]](%[[VAL_18]] : index)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_20:.*]]: index):
-# CHECK:             %[[VAL_21:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_20]]] : (!quake.qvec<3>, index) -> !quake.ref
+# CHECK:             %[[VAL_21:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_20]]] : (!quake.veq<3>, index) -> !quake.ref
 # CHECK:             %[[VAL_22:.*]] = quake.my %[[VAL_21]] : (!quake.ref) -> i1
 # CHECK:             %[[VAL_23:.*]] = arith.index_cast %[[VAL_20]] : index to i64
 # CHECK:             %[[VAL_24:.*]] = llvm.getelementptr %[[VAL_16]]{{\[}}%[[VAL_23]]] : (!llvm.ptr<i1>, i64) -> !llvm.ptr<i1>
@@ -116,7 +116,7 @@ def test_kernel_measure_qreg():
 # CHECK:             cc.condition %[[VAL_30]](%[[VAL_29]] : index)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_31:.*]]: index):
-# CHECK:             %[[VAL_32:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_31]]] : (!quake.qvec<3>, index) -> !quake.ref
+# CHECK:             %[[VAL_32:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_31]]] : (!quake.veq<3>, index) -> !quake.ref
 # CHECK:             %[[VAL_33:.*]] = quake.mz %[[VAL_32]] : (!quake.ref) -> i1
 # CHECK:             %[[VAL_34:.*]] = arith.index_cast %[[VAL_31]] : index to i64
 # CHECK:             %[[VAL_35:.*]] = llvm.getelementptr %[[VAL_27]]{{\[}}%[[VAL_34]]] : (!llvm.ptr<i1>, i64) -> !llvm.ptr<i1>

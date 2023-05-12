@@ -8,34 +8,34 @@
 
 // RUN: cudaq-opt -canonicalize %s | FileCheck %s
 
-  func.func @__nvqpp__mlirgen__reflect_about_uniform(%arg0: !quake.qvec<?>) attributes {"cudaq-kernel"} {
-    %0 = quake.vec_size %arg0 : (!quake.qvec<?>) -> i64
+  func.func @__nvqpp__mlirgen__reflect_about_uniform(%arg0: !quake.veq<?>) attributes {"cudaq-kernel"} {
+    %0 = quake.vec_size %arg0 : (!quake.veq<?>) -> i64
     %c1_i32 = arith.constant 1 : i32
     %1 = arith.extsi %c1_i32 : i32 to i64
     %2 = arith.subi %0, %1 : i64
     %c0_i64 = arith.constant 0 : i64
     %c1_i64 = arith.constant 1 : i64
     %3 = arith.subi %2, %c1_i64 : i64
-    %4 = quake.subvec %arg0, %c0_i64, %3 : (!quake.qvec<?>, i64, i64) -> !quake.qvec<?>
-    %5 = quake.vec_size %arg0 : (!quake.qvec<?>) -> i64
+    %4 = quake.subvec %arg0, %c0_i64, %3 : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
+    %5 = quake.vec_size %arg0 : (!quake.veq<?>) -> i64
     %c1_i64_0 = arith.constant 1 : i64
     %6 = arith.subi %5, %c1_i64_0 : i64
-    %7 = quake.extract_ref %arg0[%6] : (!quake.qvec<?>,i64) -> !quake.ref
+    %7 = quake.extract_ref %arg0[%6] : (!quake.veq<?>,i64) -> !quake.ref
     %8 = cc.create_lambda {
       cc.scope {
         %c0 = arith.constant 0 : index
         %c1 = arith.constant 1 : index
-        %10 = quake.vec_size %arg0 : (!quake.qvec<?>) -> i64
+        %10 = quake.vec_size %arg0 : (!quake.veq<?>) -> i64
         %11 = arith.index_cast %10 : i64 to index
         scf.for %arg1 = %c0 to %11 step %c1 {
-          %12 = quake.extract_ref %arg0[%arg1] : (!quake.qvec<?>,index) -> !quake.ref
+          %12 = quake.extract_ref %arg0[%arg1] : (!quake.veq<?>,index) -> !quake.ref
           quake.h %12 : (!quake.ref) -> ()
         }
       }
     } : !cc.lambda<() -> ()>
     %9 = cc.create_lambda {
       cc.scope {
-        quake.z [%4] %7 : (!quake.qvec<?>, !quake.ref) -> ()
+        quake.z [%4] %7 : (!quake.veq<?>, !quake.ref) -> ()
       }
     } : !cc.lambda<() -> ()>
     quake.compute_action %8, %9 : !cc.lambda<() -> ()>, !cc.lambda<() -> ()>
@@ -45,7 +45,7 @@
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__reflect_about_uniform(
 // CHECK:           %[[VAL_12:.*]] = cc.create_lambda {
 // CHECK-NOT:       cc.scope
-// CHECK:             %[[VAL_13:.*]] = quake.vec_size %{{.*}} : (!quake.qvec<?>) -> i64
+// CHECK:             %[[VAL_13:.*]] = quake.vec_size %{{.*}} : (!quake.veq<?>) -> i64
 // CHECK:             %[[VAL_14:.*]] = arith.index_cast %[[VAL_13]] : i64 to index
 // CHECK:             scf.for %[[VAL_15:.*]] = %{{.*}} to %[[VAL_14]] step %
 // CHECK:               %[[VAL_16:.*]] = quake.extract_ref

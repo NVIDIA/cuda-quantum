@@ -16,7 +16,7 @@ using namespace mlir;
 LogicalResult UnitaryBuilder::build(func::FuncOp func) {
   for (auto arg : func.getArguments()) {
     auto type = arg.getType();
-    if (type.isa<quake::RefType>() || type.isa<quake::QVecType>())
+    if (type.isa<quake::RefType>() || type.isa<quake::VeqType>())
       if (allocateQubits(arg) == WalkResult::interrupt())
         return failure();
   }
@@ -52,8 +52,8 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
 //===----------------------------------------------------------------------===//
 
 WalkResult UnitaryBuilder::visitExtractOp(quake::ExtractRefOp op) {
-  auto qvec = op.getQvec();
-  auto qubits = qubitMap[qvec];
+  auto veq = op.getVeq();
+  auto qubits = qubitMap[veq];
   auto index = getValueAsInt(op.getIndex());
   if (!index && *index < 0)
     return WalkResult::interrupt();
@@ -67,10 +67,10 @@ WalkResult UnitaryBuilder::allocateQubits(Value value) {
   if (!success)
     return WalkResult::interrupt();
   auto &qubits = entry->second;
-  if (auto qvec = dyn_cast<quake::QVecType>(value.getType())) {
-    if (!qvec.hasSpecifiedSize())
+  if (auto veq = value.getType().dyn_cast<quake::VeqType>()) {
+    if (!veq.hasSpecifiedSize())
       return WalkResult::interrupt();
-    qubits.resize(qvec.getSize());
+    qubits.resize(veq.getSize());
     std::iota(entry->second.begin(), entry->second.end(), getNextQubit());
   } else {
     qubits.push_back(getNextQubit());
@@ -97,8 +97,8 @@ LogicalResult UnitaryBuilder::getQubits(ValueRange values,
     if (dyn_cast<quake::WireType>(value.getType()))
       return failure();
 
-    if (auto qvec = dyn_cast<quake::QVecType>(value.getType())) {
-      if (!qvec.hasSpecifiedSize())
+    if (auto veq = dyn_cast<quake::VeqType>(value.getType())) {
+      if (!veq.hasSpecifiedSize())
         return failure();
       llvm::copy(qubitMap[value], std::back_inserter(qubits));
     } else {

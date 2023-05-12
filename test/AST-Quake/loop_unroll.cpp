@@ -21,12 +21,12 @@ struct C {
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : i64
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : index
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : index
-// CHECK-DAG:       %[[VAL_3:.*]] = quake.alloca !quake.qvec<2>
+// CHECK-DAG:       %[[VAL_3:.*]] = quake.alloca !quake.veq<2>
 // CHECK-DAG:       %[[VAL_4:.*]] = llvm.alloca %[[VAL_0]] x i1 : (i64) -> !llvm.ptr<i1>
-// CHECK:           %[[VAL_5:.*]] = quake.extract_ref %[[VAL_3]][%[[VAL_2]]] : (!quake.qvec<2>, index) -> !quake.ref
+// CHECK:           %[[VAL_5:.*]] = quake.extract_ref %[[VAL_3]][%[[VAL_2]]] : (!quake.veq<2>, index) -> !quake.ref
 // CHECK:           %[[VAL_6:.*]] = quake.mz %[[VAL_5]] : (!quake.ref) -> i1
 // CHECK:           llvm.store %[[VAL_6]], %[[VAL_4]] : !llvm.ptr<i1>
-// CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_3]][%[[VAL_1]]] : (!quake.qvec<2>, index) -> !quake.ref
+// CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_3]][%[[VAL_1]]] : (!quake.veq<2>, index) -> !quake.ref
 // CHECK:           %[[VAL_8:.*]] = quake.mz %[[VAL_7]] : (!quake.ref) -> i1
 // CHECK:           %[[VAL_9:.*]] = llvm.getelementptr %[[VAL_4]][1] : (!llvm.ptr<i1>) -> !llvm.ptr<i1>
 // CHECK:           llvm.store %[[VAL_8]], %[[VAL_9]] : !llvm.ptr<i1>

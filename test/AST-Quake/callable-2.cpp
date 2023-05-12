@@ -38,7 +38,7 @@ struct test5_caller {
 
 // CHECK-LABEL: func.func @__nvqpp__mlirgen__test5_callee
 // CHECK-SAME:   (%[[VAL_0:.*]]: !cc.lambda<(!quake.ref) -> ()>,
-// CHECK-SAME:   %[[VAL_1:.*]]: !quake.qvec<?>)
+// CHECK-SAME:   %[[VAL_1:.*]]: !quake.veq<?>)
 // CHECK:           %[[VAL_4:.*]] = quake.extract_ref %
 // CHECK:           cc.call_callable %[[VAL_0]], %[[VAL_4]] : (!cc.lambda<(!quake.ref) -> ()>, !quake.ref) -> ()
 // CHECK:           %[[VAL_7:.*]] = quake.extract_ref %
@@ -59,7 +59,7 @@ struct test5_caller {
 // CHECK:           ^bb0(%[[VAL_6:.*]]: !quake.ref):
 // CHECK:             func.call @__nvqpp__mlirgen__test5_callable{{.*}}(%[[VAL_6]]) : (!quake.ref) -> ()
 // CHECK:           } : !cc.lambda<(!quake.ref) -> ()>
-// CHECK:           call @__nvqpp__mlirgen__test5_callee{{.*}}(%[[VAL_5]], %{{.*}}) : (!cc.lambda<(!quake.ref) -> ()>, !quake.qvec<?>) -> ()
+// CHECK:           call @__nvqpp__mlirgen__test5_callee{{.*}}(%[[VAL_5]], %{{.*}}) : (!cc.lambda<(!quake.ref) -> ()>, !quake.veq<?>) -> ()
 
 // LIFT-LABEL:   func.func @__nvqpp__mlirgen__test5_callee
 // LIFT:           %[[VAL_6:.*]] = cc.callable_func %{{.*}} : (!cc.lambda<(!quake.ref) -> ()>) -> ((!cc.lambda<(!quake.ref) -> ()>, !quake.ref) -> ())

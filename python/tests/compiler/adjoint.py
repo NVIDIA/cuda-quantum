@@ -83,23 +83,23 @@ def test_kernel_adjoint_qreg_args():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
-# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.qvec<5>
-# CHECK:           quake.apply<adj> @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}} %[[VAL_0]] : (!quake.qvec<5>) -> ()
+# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<5>
+# CHECK:           quake.apply<adj> @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}} %[[VAL_0]] : (!quake.veq<5>) -> ()
 # CHECK:           return
 # CHECK:         }
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
-# CHECK-SAME:      %[[VAL_0:.*]]: !quake.qvec<?>) {
+# CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>) {
 # CHECK:           %[[VAL_1:.*]] = arith.constant 1 : index
 # CHECK:           %[[VAL_2:.*]] = arith.constant 0 : index
-# CHECK:           %[[VAL_3:.*]] = quake.vec_size %[[VAL_0]] : (!quake.qvec<?>) -> i64
+# CHECK:           %[[VAL_3:.*]] = quake.vec_size %[[VAL_0]] : (!quake.veq<?>) -> i64
 # CHECK:           %[[VAL_4:.*]] = arith.index_cast %[[VAL_3]] : i64 to index
 # CHECK:           %[[VAL_5:.*]] = cc.loop while ((%[[VAL_6:.*]] = %[[VAL_2]]) -> (index)) {
 # CHECK:             %[[VAL_7:.*]] = arith.cmpi slt, %[[VAL_6]], %[[VAL_4]] : index
 # CHECK:             cc.condition %[[VAL_7]](%[[VAL_6]] : index)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_8:.*]]: index):
-# CHECK:             %[[VAL_9:.*]] = quake.extract_ref %[[VAL_0]][%[[VAL_8]]] : (!quake.qvec<?>, index) -> !quake.ref
+# CHECK:             %[[VAL_9:.*]] = quake.extract_ref %[[VAL_0]][%[[VAL_8]]] : (!quake.veq<?>, index) -> !quake.ref
 # CHECK:             quake.h %[[VAL_9]] : (!quake.ref) -> ()
 # CHECK:             cc.continue %[[VAL_8]] : index
 # CHECK:           } step {
@@ -280,15 +280,15 @@ def test_sample_adjoint_qreg():
 # CHECK-SAME:      %[[VAL_0:.*]]: i32) {
 # CHECK:           %[[VAL_1:.*]] = arith.constant 1 : index
 # CHECK:           %[[VAL_2:.*]] = arith.constant 0 : index
-# CHECK:           %[[VAL_3:.*]] = quake.alloca[%[[VAL_0]] : i32] !quake.qvec<?>
-# CHECK:           %[[VAL_4:.*]] = quake.vec_size %[[VAL_3]] : (!quake.qvec<?>) -> i64
+# CHECK:           %[[VAL_3:.*]] = quake.alloca[%[[VAL_0]] : i32] !quake.veq<?>
+# CHECK:           %[[VAL_4:.*]] = quake.vec_size %[[VAL_3]] : (!quake.veq<?>) -> i64
 # CHECK:           %[[VAL_5:.*]] = arith.index_cast %[[VAL_4]] : i64 to index
 # CHECK:           %[[VAL_6:.*]] = cc.loop while ((%[[VAL_7:.*]] = %[[VAL_2]]) -> (index)) {
 # CHECK:             %[[VAL_8:.*]] = arith.cmpi slt, %[[VAL_7]], %[[VAL_5]] : index
 # CHECK:             cc.condition %[[VAL_8]](%[[VAL_7]] : index)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_9:.*]]: index):
-# CHECK:             %[[VAL_10:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_9]]] : (!quake.qvec<?>, index) -> !quake.ref
+# CHECK:             %[[VAL_10:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_9]]] : (!quake.veq<?>, index) -> !quake.ref
 # CHECK:             quake.x %[[VAL_10]] : (!quake.ref) -> ()
 # CHECK:             cc.continue %[[VAL_9]] : index
 # CHECK:           } step {
@@ -296,15 +296,15 @@ def test_sample_adjoint_qreg():
 # CHECK:             %[[VAL_12:.*]] = arith.addi %[[VAL_11]], %[[VAL_1]] : index
 # CHECK:             cc.continue %[[VAL_12]] : index
 # CHECK:           } {counted}
-# CHECK:           call @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%[[VAL_3]]) : (!quake.qvec<?>) -> ()
-# CHECK:           quake.apply<adj> @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}} %[[VAL_3]] : (!quake.qvec<?>) -> ()
+# CHECK:           call @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%[[VAL_3]]) : (!quake.veq<?>) -> ()
+# CHECK:           quake.apply<adj> @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}} %[[VAL_3]] : (!quake.veq<?>) -> ()
 # CHECK:           %[[VAL_13:.*]] = llvm.alloca %[[VAL_4]] x i1 : (i64) -> !llvm.ptr<i1>
 # CHECK:           %[[VAL_14:.*]] = cc.loop while ((%[[VAL_15:.*]] = %[[VAL_2]]) -> (index)) {
 # CHECK:             %[[VAL_16:.*]] = arith.cmpi slt, %[[VAL_15]], %[[VAL_5]] : index
 # CHECK:             cc.condition %[[VAL_16]](%[[VAL_15]] : index)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_17:.*]]: index):
-# CHECK:             %[[VAL_18:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_17]]] : (!quake.qvec<?>, index) -> !quake.ref
+# CHECK:             %[[VAL_18:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_17]]] : (!quake.veq<?>, index) -> !quake.ref
 # CHECK:             %[[VAL_19:.*]] = quake.mz %[[VAL_18]] : (!quake.ref) -> i1
 # CHECK:             %[[VAL_20:.*]] = arith.index_cast %[[VAL_17]] : index to i64
 # CHECK:             %[[VAL_21:.*]] = llvm.getelementptr %[[VAL_13]]{{\[}}%[[VAL_20]]] : (!llvm.ptr<i1>, i64) -> !llvm.ptr<i1>
@@ -319,17 +319,17 @@ def test_sample_adjoint_qreg():
 # CHECK:         }
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
-# CHECK-SAME:                                                                   %[[VAL_0:.*]]: !quake.qvec<?>) {
+# CHECK-SAME:                                                                   %[[VAL_0:.*]]: !quake.veq<?>) {
 # CHECK:           %[[VAL_1:.*]] = arith.constant 1 : index
 # CHECK:           %[[VAL_2:.*]] = arith.constant 0 : index
-# CHECK:           %[[VAL_3:.*]] = quake.vec_size %[[VAL_0]] : (!quake.qvec<?>) -> i64
+# CHECK:           %[[VAL_3:.*]] = quake.vec_size %[[VAL_0]] : (!quake.veq<?>) -> i64
 # CHECK:           %[[VAL_4:.*]] = arith.index_cast %[[VAL_3]] : i64 to index
 # CHECK:           %[[VAL_5:.*]] = cc.loop while ((%[[VAL_6:.*]] = %[[VAL_2]]) -> (index)) {
 # CHECK:             %[[VAL_7:.*]] = arith.cmpi slt, %[[VAL_6]], %[[VAL_4]] : index
 # CHECK:             cc.condition %[[VAL_7]](%[[VAL_6]] : index)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_8:.*]]: index):
-# CHECK:             %[[VAL_9:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_8]]] : (!quake.qvec<?>, index) -> !quake.ref
+# CHECK:             %[[VAL_9:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_8]]] : (!quake.veq<?>, index) -> !quake.ref
 # CHECK:             quake.x %[[VAL_9]] : (!quake.ref) -> ()
 # CHECK:             cc.continue %[[VAL_8]] : index
 # CHECK:           } step {

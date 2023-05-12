@@ -15,24 +15,24 @@ include "mlir/Dialect/Arith/IR/ArithOps.td"
 include "cudaq/Optimizer/Dialect/Quake/QuakeOps.td"
 
 def KnownSizePred : Constraint<
-      CPred<"$0.getType().isa<quake::QVecType>() && "
-            "$0.getType().cast<quake::QVecType>().hasSpecifiedSize()">>;
+      CPred<"$0.getType().isa<quake::VeqType>() && "
+            "$0.getType().cast<quake::VeqType>().hasSpecifiedSize()">>;
 
 def UnknownSizePred : Constraint<
-      CPred<"$0.getType().isa<quake::QVecType>() && "
-            "!$0.getType().cast<quake::QVecType>().hasSpecifiedSize()">>;
+      CPred<"$0.getType().isa<quake::VeqType>() && "
+            "!$0.getType().cast<quake::VeqType>().hasSpecifiedSize()">>;
 
 def createConstantOp : NativeCodeCall<
       "$_builder.create<mlir::arith::ConstantOp>($_loc, $0.getType(),"
       "  $_builder.getIntegerAttr($0.getType(),"
-      "   $1.getType().cast<quake::QVecType>().getSize()))">;
+      "   $1.getType().cast<quake::VeqType>().getSize()))">;
 
-// %4 = quake.qvec_size(%3 : !quake.qvec<10>) : 164
+// %4 = quake.veq_size(%3 : !quake.veq<10>) : 164
 // ────────────────────────────────────────────────
 // %4 = constant 10 : i64
-def ForwardConstantQVecSizePattern : Pat<
-      (quake_QVecSizeOp:$res $qvec), (createConstantOp $res, $qvec),
-      [(KnownSizePred $qvec)]>;
+def ForwardConstantVeqSizePattern : Pat<
+      (quake_VeqSizeOp:$res $veq), (createConstantOp $res, $veq),
+      [(KnownSizePred $veq)]>;
 
 def SizeIsPresentPred : Constraint<CPred<
       "$0.size() == 1 &&"

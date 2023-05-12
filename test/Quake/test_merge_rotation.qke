@@ -11,8 +11,8 @@
 // CHECK: func.func @duplicate_rotation_check() {
 // CHECK:     %[[C2:.*]] = arith.constant 2 : i32
 // CHECK:     %[[C0:.*]] = arith.constant 0 : i32
-// CHECK:     %0 = quake.alloca[%[[C2]] : i32] !quake.qvec<?>
-// CHECK:     %1 = quake.extract_ref %0[%[[C0]]] : (!quake.qvec<?>, i32) -> !quake.ref
+// CHECK:     %0 = quake.alloca[%[[C2]] : i32] !quake.veq<?>
+// CHECK:     %1 = quake.extract_ref %0[%[[C0]]] : (!quake.veq<?>, i32) -> !quake.ref
 // CHECK:     %[[CF:.*]] = arith.constant 5.900000e-01 : f64
 // CHECK:     quake.rx (%[[CF]]) %1 : (f64,
 // CHECK:     quake.rx (%[[CF]]) %1 : (f64,
@@ -23,8 +23,8 @@
 func.func @duplicate_rotation_check() {
   %0 = arith.constant 2 : i32
   %c_0 = arith.constant 0 : i32
-  %qubits = quake.alloca [ %0 : i32 ] !quake.qvec<?>
-  %q0 = quake.extract_ref %qubits[%c_0] : (!quake.qvec<?>,i32) -> !quake.ref
+  %qubits = quake.alloca [ %0 : i32 ] !quake.veq<?>
+  %q0 = quake.extract_ref %qubits[%c_0] : (!quake.veq<?>,i32) -> !quake.ref
   %c_angle = arith.constant 0.59 : f64
   quake.rx (%c_angle) %q0: (f64, !quake.ref) -> ()
   quake.rx (%c_angle) %q0 : (f64, !quake.ref) -> ()
@@ -35,8 +35,8 @@ func.func @duplicate_rotation_check() {
 // CHECK: func.func @duplicate_rotation_check2() {
 // CHECK:     %[[C2]] = arith.constant 2 : i32
 // CHECK:     %[[C0]] = arith.constant 0 : i32
-// CHECK:     %0 = quake.alloca[%[[C2]] : i32] !quake.qvec<?>
-// CHECK:     %1 = quake.extract_ref %0[%[[C0]]] : (!quake.qvec<?>, i32) -> !quake.ref
+// CHECK:     %0 = quake.alloca[%[[C2]] : i32] !quake.veq<?>
+// CHECK:     %1 = quake.extract_ref %0[%[[C0]]] : (!quake.veq<?>, i32) -> !quake.ref
 // CHECK:     %[[CF:.*]] = arith.constant 5.900000e-01 : f64
 // CHECK:     %[[CF2:.*]] = arith.constant 2.300000e-01 : f64
 // CHECK:     quake.rx (%[[CF]]) %1 : (f64,
@@ -48,8 +48,8 @@ func.func @duplicate_rotation_check() {
 func.func @duplicate_rotation_check2() {
   %0 = arith.constant 2 : i32
   %c_0 = arith.constant 0 : i32
-  %qubits = quake.alloca [ %0 : i32] !quake.qvec<?>
-  %q0 = quake.extract_ref %qubits[%c_0] : (!quake.qvec<?>, i32) -> !quake.ref
+  %qubits = quake.alloca [ %0 : i32] !quake.veq<?>
+  %q0 = quake.extract_ref %qubits[%c_0] : (!quake.veq<?>, i32) -> !quake.ref
   %c_angle = arith.constant 0.59 : f64
   %c_angle2 = arith.constant 0.23 : f64
   quake.rx (%c_angle) %q0 : (f64, !quake.ref) -> ()
@@ -71,8 +71,8 @@ func.func @returns_angle(%arg0 : f64, %arg1 : f64) -> (f64) {
 // CHECK: func.func @duplicate_rotation_check3() {
 // CHECK:     %[[C2:.*]] = arith.constant 2 : i32
 // CHECK:     %[[C0:.*]] = arith.constant 0 : i32
-// CHECK:     %0 = quake.alloca[%[[C2]] : i32] !quake.qvec<?>
-// CHECK:     %1 = quake.extract_ref %0[%[[C0]]] : (!quake.qvec<?>, i32) -> !quake.ref
+// CHECK:     %0 = quake.alloca[%[[C2]] : i32] !quake.veq<?>
+// CHECK:     %1 = quake.extract_ref %0[%[[C0]]] : (!quake.veq<?>, i32) -> !quake.ref
 // CHECK:     %[[CF:.*]] = arith.constant 5.900000e-01 : f64
 // CHECK:     %[[CF2:.*]] = arith.constant 2.300000e-01 : f64
 // CHECK:     %[[CF3:.*]] = arith.constant 6.400000e-01 : f64
@@ -87,8 +87,8 @@ func.func @returns_angle(%arg0 : f64, %arg1 : f64) -> (f64) {
 func.func @duplicate_rotation_check3() {
   %0 = arith.constant 2 : i32
   %c_0 = arith.constant 0 : i32
-  %qubits = quake.alloca [ %0 : i32 ] !quake.qvec<?>
-  %q0 = quake.extract_ref %qubits[%c_0] : (!quake.qvec<?>, i32) -> !quake.ref
+  %qubits = quake.alloca [ %0 : i32 ] !quake.veq<?>
+  %q0 = quake.extract_ref %qubits[%c_0] : (!quake.veq<?>, i32) -> !quake.ref
   %c_angle = arith.constant 0.59 : f64
   %c_angle2 = arith.constant 0.23 : f64
   %c_angle3 = arith.constant 0.64 : f64

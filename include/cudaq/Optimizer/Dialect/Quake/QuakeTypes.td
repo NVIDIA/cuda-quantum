@@ -107,16 +107,16 @@ def RefType : QuakeType<"Ref", "ref"> {
 }
 
 //===----------------------------------------------------------------------===//
-// QVecType
+// VeqType
 //===----------------------------------------------------------------------===//
 
-def QVecType : QuakeType<"QVec", "qvec"> {
+def VeqType : QuakeType<"Veq", "veq"> {
   let summary = "a aggregate of wire references";
   let description = [{
-    A value of type `qvec` is a (linear) collection of values of type `ref`.
+    A value of type `veq` is a (linear) collection of values of type `ref`.
     These aggregates are a convenience for referring to an entire group of
-    references to wires. A `qvec` value is a proper SSA-value. `ref` values
-    in a `qvec` are not volatile.
+    references to wires. A `veq` value is a proper SSA-value. `ref` values
+    in a `veq` are not volatile.
   }];
 
   let parameters = (ins "std::size_t":$size);
@@ -126,16 +126,16 @@ def QVecType : QuakeType<"QVec", "qvec"> {
   
   let extraClassDeclaration = [{
     bool hasSpecifiedSize() const { return getSize(); }
-    static QVecType getUnsized(mlir::MLIRContext *ctx) {
-      return QVecType::get(ctx, 0);
+    static VeqType getUnsized(mlir::MLIRContext *ctx) {
+      return VeqType::get(ctx, 0);
     }
   }];
 }
 
-def AnyQTypeLike : TypeConstraint<Or<[WireType.predicate, QVecType.predicate,
+def AnyQTypeLike : TypeConstraint<Or<[WireType.predicate, VeqType.predicate,
         ControlType.predicate, RefType.predicate]>, "quake quantum types">;
 def AnyQType : Type<AnyQTypeLike.predicate, "quantum type">;
-def AnyRefTypeLike : TypeConstraint<Or<[QVecType.predicate,
+def AnyRefTypeLike : TypeConstraint<Or<[VeqType.predicate,
         RefType.predicate]>, "quake quantum reference types">;
 def AnyRefType : Type<AnyRefTypeLike.predicate, "quantum reference type">;
 def AnyQValueTypeLike : TypeConstraint<Or<[WireType.predicate,

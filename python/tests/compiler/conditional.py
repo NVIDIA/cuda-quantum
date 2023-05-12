@@ -51,9 +51,9 @@ def test_kernel_conditional():
 # CHECK:           %[[VAL_2:.*]] = arith.constant 0 : index
 # CHECK:           %[[VAL_3:.*]] = arith.constant 1 : i32
 # CHECK:           %[[VAL_4:.*]] = arith.constant 0 : i32
-# CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.qvec<2>
-# CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_5]]{{\[}}%[[VAL_4]]] : (!quake.qvec<2>, i32) -> !quake.ref
-# CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_5]]{{\[}}%[[VAL_3]]] : (!quake.qvec<2>, i32) -> !quake.ref
+# CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<2>
+# CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_5]]{{\[}}%[[VAL_4]]] : (!quake.veq<2>, i32) -> !quake.ref
+# CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_5]]{{\[}}%[[VAL_3]]] : (!quake.veq<2>, i32) -> !quake.ref
 # CHECK:           quake.x %[[VAL_6]] : (!quake.ref) -> ()
 # CHECK:           %[[VAL_8:.*]] = quake.mz %[[VAL_6]] : (!quake.ref) -> i1 {registerName = "measurement_"}
 # CHECK:           cc.if(%[[VAL_8]]) {
@@ -65,7 +65,7 @@ def test_kernel_conditional():
 # CHECK:             cc.condition %[[VAL_12]](%[[VAL_11]] : index)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_13:.*]]: index):
-# CHECK:             %[[VAL_14:.*]] = quake.extract_ref %[[VAL_5]]{{\[}}%[[VAL_13]]] : (!quake.qvec<2>, index) -> !quake.ref
+# CHECK:             %[[VAL_14:.*]] = quake.extract_ref %[[VAL_5]]{{\[}}%[[VAL_13]]] : (!quake.veq<2>, index) -> !quake.ref
 # CHECK:             quake.x %[[VAL_14]] : (!quake.ref) -> ()
 # CHECK:             cc.continue %[[VAL_13]] : index
 # CHECK:           } step {

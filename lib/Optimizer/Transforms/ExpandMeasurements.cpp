@@ -45,9 +45,9 @@ public:
         rewriter.template create<arith::ConstantIndexOp>(loc, numQubits);
     auto idxTy = rewriter.getIndexType();
     for (auto v : measureOp.getTargets())
-      if (v.getType().template isa<quake::QVecType>()) {
+      if (v.getType().template isa<quake::VeqType>()) {
         Value vecSz =
-            rewriter.template create<quake::QVecSizeOp>(loc, idxTy, v);
+            rewriter.template create<quake::VeqSizeOp>(loc, idxTy, v);
         totalToRead =
             rewriter.template create<arith::AddIOp>(loc, totalToRead, vecSz);
       }
@@ -76,7 +76,7 @@ public:
         buffOff = rewriter.template create<arith::AddIOp>(loc, buffOff, one);
       } else {
         Value vecSz =
-            rewriter.template create<quake::QVecSizeOp>(loc, idxTy, v);
+            rewriter.template create<quake::VeqSizeOp>(loc, idxTy, v);
         cudaq::opt::factory::createCountedLoop(
             rewriter, loc, vecSz,
             [&](OpBuilder &builder, Location loc, Region &, Block &block) {

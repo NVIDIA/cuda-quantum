@@ -26,13 +26,13 @@
   }
 
 // CHECK-LABEL: func.func private @test.adj.ctrl(
-// CHECK-SAME:     %[[VAL_0:.*]]: !quake.qvec<?>, %[[VAL_1:.*]]: !quake.ref) {
+// CHECK-SAME:     %[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: !quake.ref) {
 // CHECK:         %[[VAL_2:.*]] = arith.constant 1.0{{.*}} : f32
 // CHECK-DAG:     quake.x [%[[VAL_0]]] %[[VAL_1]] :
 // CHECK-DAG:     %[[VAL_3:.*]] = arith.negf %[[VAL_2]] : f32
 // CHECK:         quake.rx (%[[VAL_3]]) [%[[VAL_0]]] %[[VAL_1]] :
 // CHECK:         quake.h [%[[VAL_0]]] %[[VAL_1]] :
-// CHECK:         quake.t<adj> [%[[VAL_0]]] %[[VAL_1]] : (!quake.qvec<?>,
+// CHECK:         quake.t<adj> [%[[VAL_0]]] %[[VAL_1]] : (!quake.veq<?>,
 // CHECK:         return
 // CHECK:       }
 
@@ -40,7 +40,7 @@
 // testing it is not strictly required here.
 
 // CHECK-LABEL:   func.func private @test.ctrl(
-// CHECK-SAME:       %[[VAL_0:.*]]: !quake.qvec<?>, %[[VAL_1:.*]]: !quake.ref) {
+// CHECK-SAME:       %[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: !quake.ref) {
 // CHECK:           quake.t [%[[VAL_0]]] %[[VAL_1]]
 // CHECK:           quake.h [%[[VAL_0]]] %[[VAL_1]]
 // CHECK:           %[[VAL_2:.*]] = arith.constant 1.000000e+00 : f32
@@ -61,8 +61,8 @@
 
 // CHECK-LABEL: func.func @do_apply(
 // CHECK-SAME:     %[[VAL_0:.*]]: !quake.ref, %[[VAL_1:.*]]: !quake.ref) {
-// CHECK:         %[[VAL_2:.*]] = quake.concat %[[VAL_1]] : (!quake.ref) -> !quake.qvec<?>
-// CHECK:         call @test.adj.ctrl(%[[VAL_2]], %[[VAL_0]]) : (!quake.qvec<?>, !quake.ref) -> ()
+// CHECK:         %[[VAL_2:.*]] = quake.concat %[[VAL_1]] : (!quake.ref) -> !quake.veq<?>
+// CHECK:         call @test.adj.ctrl(%[[VAL_2]], %[[VAL_0]]) : (!quake.veq<?>, !quake.ref) -> ()
 // CHECK:         return
 // CHECK:       }
 

@@ -19,17 +19,17 @@ module {
     %c1_i64 = arith.constant 1 : i64
     %c2_i64 = arith.constant 2 : i64
     %cst = arith.constant -1.000000e+00 : f64
-    %0 = quake.alloca  !quake.qvec<3>
-    %1 = quake.extract_ref %0[%c0_i64] : (!quake.qvec<3>,i64) -> !quake.ref
+    %0 = quake.alloca  !quake.veq<3>
+    %1 = quake.extract_ref %0[%c0_i64] : (!quake.veq<3>,i64) -> !quake.ref
     quake.x %1 : (!quake.ref) -> ()
     %2 = cc.stdvec_data %arg0 : (!cc.stdvec<f64>) -> !llvm.ptr<f64>
     %3 = llvm.load %2 : !llvm.ptr<f64>
-    %4 = quake.extract_ref %0[%c1_i64] : (!quake.qvec<3>,i64) -> !quake.ref
+    %4 = quake.extract_ref %0[%c1_i64] : (!quake.veq<3>,i64) -> !quake.ref
     quake.ry (%3) %4 : (f64, !quake.ref) -> ()
     %5 = cc.stdvec_data %arg0 : (!cc.stdvec<f64>) -> !llvm.ptr<f64>
     %6 = llvm.getelementptr %5[1] : (!llvm.ptr<f64>) -> !llvm.ptr<f64>
     %7 = llvm.load %6 : !llvm.ptr<f64>
-    %8 = quake.extract_ref %0[%c2_i64] : (!quake.qvec<3>, i64) -> !quake.ref
+    %8 = quake.extract_ref %0[%c2_i64] : (!quake.veq<3>, i64) -> !quake.ref
     quake.ry (%7) %8 : (f64, !quake.ref) -> ()
     quake.x [%8] %1 : (!quake.ref, !quake.ref) -> ()
     quake.x [%1] %4 : (!quake.ref, !quake.ref) -> ()

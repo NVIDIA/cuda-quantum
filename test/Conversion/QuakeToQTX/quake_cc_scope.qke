@@ -83,17 +83,17 @@ module {
 
 
   // CHECK-LABEL: func.func @scope_local_extract_and_vec_measurement
-  func.func @scope_local_extract_and_vec_measurement(%qvec : !quake.qvec<2>) {
+  func.func @scope_local_extract_and_vec_measurement(%veq : !quake.veq<2>) {
     %c_0 = arith.constant 0 : i32
     %c_1 = arith.constant 1 : i32
 
     // CHECK: %[[Q0_W0:.*]], %[[A_0:.*]] = qtx.array_borrow %[[IDX_0:.*]] from %{{.*}}
-    %q0 = quake.extract_ref %qvec[%c_0] : (!quake.qvec<2>, i32) -> !quake.ref
+    %q0 = quake.extract_ref %veq[%c_0] : (!quake.veq<2>, i32) -> !quake.ref
 
     // CHECK: %[[A_3:.*]] = cc.scope
     cc.scope {
       // CHECK: %[[Q1_W0:.*]], %[[A_1:.*]] = qtx.array_borrow %{{.*}} from %[[A_0]]
-      %q1 = quake.extract_ref %qvec[%c_1] : (!quake.qvec<2>,i32) -> !quake.ref
+      %q1 = quake.extract_ref %veq[%c_1] : (!quake.veq<2>,i32) -> !quake.ref
 
       // CHECK:  %[[Q1_W1:.*]] = qtx.y %[[Q1_W0]]
       quake.y %q1 : (!quake.ref) -> ()
@@ -105,16 +105,16 @@ module {
     // CHECK: %[[A_4:.*]] = qtx.array_yield %[[Q0_W0]] to %[[A_3]]
     // CHECK: %{{.*}}, %[[A_5:.*]] = qtx.mz %[[A_4]]
     // CHECK: %{{.*}}, %{{.*}} = qtx.array_borrow %[[IDX_0]] from %[[A_5]]
-    %reg = quake.mz %qvec : (!quake.qvec<2>) -> !cc.stdvec<i1>
+    %reg = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<i1>
     return
   }
 
   // CHECK-LABEL: func.func @vec_op_in_nested_scope
-  func.func @vec_op_in_nested_scope(%qvec : !quake.qvec<2>) {
+  func.func @vec_op_in_nested_scope(%veq : !quake.veq<2>) {
     %c_0 = arith.constant 0 : i32
 
     // CHECK: %[[Q0_W0:.*]], %[[A_0:.*]] = qtx.array_borrow %[[IDX_0:.*]] from %{{.*}}
-    %q0 = quake.extract_ref %qvec[%c_0] : (!quake.qvec<2>,i32) -> !quake.ref
+    %q0 = quake.extract_ref %veq[%c_0] : (!quake.veq<2>,i32) -> !quake.ref
 
     // CHECK: %[[A_Q0_1:.*]]:2 = cc.scope
     cc.scope {
@@ -124,7 +124,7 @@ module {
         // CHECK: %[[A_1:.*]] = qtx.array_yield %[[Q0_W0]] to %[[A_0]]
         // CHECK: %[[A_2:.*]] = qtx.reset %[[A_1]]
         // CHECK: %[[Q0_W1:.*]], %[[A_3:.*]] = qtx.array_borrow %[[IDX_0]] from %[[A_2]]
-        quake.reset %qvec : (!quake.qvec<2>)-> ()
+        quake.reset %veq : (!quake.veq<2>)-> ()
 
         // CHECK: cc.continue %[[A_3]], %[[Q0_W1]]
       }
@@ -134,17 +134,17 @@ module {
     // CHECK: %[[A_4:.*]] = qtx.array_yield %[[A_Q0_1]]#1 to %[[A_Q0_1]]#0
     // CHECK: %{{.*}}, %[[A_5:.*]] = qtx.mz %[[A_4]]
     // CHECK: %{{.*}}, %[[A_6:.*]] = qtx.array_borrow %[[IDX_0]] from %[[A_5]]
-    %reg = quake.mz %qvec : (!quake.qvec<2>) -> !cc.stdvec<i1>
+    %reg = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<i1>
     return
   }
 
   // CHECK-LABEL: func.func @vec_op_in_nested_scope_and_local_extraction
-  func.func @vec_op_in_nested_scope_and_local_extraction(%qvec : !quake.qvec<2>) {
+  func.func @vec_op_in_nested_scope_and_local_extraction(%veq : !quake.veq<2>) {
     %c_0 = arith.constant 0 : i32
     %c_1 = arith.constant 1 : i32
 
     // CHECK: %[[Q0_W0:.*]], %[[A_0:.*]] = qtx.array_borrow %[[IDX_0:.*]] from %{{.*}}
-    %q0 = quake.extract_ref %qvec[%c_0] : (!quake.qvec<2>,i32) -> !quake.ref
+    %q0 = quake.extract_ref %veq[%c_0] : (!quake.veq<2>,i32) -> !quake.ref
 
     // CHECK: %[[A_Q0_1:.*]]:2 = cc.scope
     cc.scope {
@@ -152,12 +152,12 @@ module {
       // CHECK: %[[A_Q0:.*]]:2 = cc.scope
       cc.scope {
         // CHECK: %[[Q1_W0:.*]], %[[A_1:.*]] = qtx.array_borrow %[[IDX_1:.*]] from %[[A_0]]
-        %q1 = quake.extract_ref %qvec[%c_1] : (!quake.qvec<2>,i32) -> !quake.ref
+        %q1 = quake.extract_ref %veq[%c_1] : (!quake.veq<2>,i32) -> !quake.ref
 
         // CHECK: %[[A_2:.*]] = qtx.array_yield %[[Q0_W0]], %[[Q1_W0]] to %[[A_1]]
         // CHECK: %[[A_3:.*]] = qtx.reset %[[A_2]]
         // CHECK: %[[Q0_Q1:.*]]:2, %[[A_4:.*]] = qtx.array_borrow %[[IDX_0]], %[[IDX_1]] from %[[A_3]]
-        quake.reset %qvec : (!quake.qvec<2>) -> ()
+        quake.reset %veq : (!quake.veq<2>) -> ()
 
         // CHECK: %[[A_5:.*]] = qtx.array_yield %[[Q0_Q1]]#1 to %[[A_4]]
         // CHECK: cc.continue %[[A_5]], %[[Q0_Q1]]#0
@@ -168,7 +168,7 @@ module {
     // CHECK: %[[A_6:.*]] = qtx.array_yield %[[A_Q0_1]]#1 to %[[A_Q0_1]]#0
     // CHECK: %{{.*}}, %[[A_7:.*]] = qtx.mz %[[A_6]]
     // CHECK: %{{.*}}, %[[A_8:.*]] = qtx.array_borrow %[[IDX_0]] from %[[A_7]]
-    %reg = quake.mz %qvec : (!quake.qvec<2>) -> !cc.stdvec<i1>
+    %reg = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<i1>
     return
   }
 }

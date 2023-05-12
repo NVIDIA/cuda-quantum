@@ -83,24 +83,24 @@ def test_kernel_apply_call_qreg_args():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
-# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.qvec<5>
-# CHECK:           %[[VAL_1:.*]] = quake.relax_size %[[VAL_0]] : (!quake.qvec<5>) -> !quake.qvec<?>
-# CHECK:           call @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%[[VAL_1]]) : (!quake.qvec<?>) -> ()
+# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<5>
+# CHECK:           %[[VAL_1:.*]] = quake.relax_size %[[VAL_0]] : (!quake.veq<5>) -> !quake.veq<?>
+# CHECK:           call @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%[[VAL_1]]) : (!quake.veq<?>) -> ()
 # CHECK:           return
 # CHECK:         }
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
-# CHECK-SAME:                                                                   %[[VAL_0:.*]]: !quake.qvec<?>) {
+# CHECK-SAME:                                                                   %[[VAL_0:.*]]: !quake.veq<?>) {
 # CHECK:           %[[VAL_1:.*]] = arith.constant 1 : index
 # CHECK:           %[[VAL_2:.*]] = arith.constant 0 : index
-# CHECK:           %[[VAL_3:.*]] = quake.vec_size %[[VAL_0]] : (!quake.qvec<?>) -> i64
+# CHECK:           %[[VAL_3:.*]] = quake.vec_size %[[VAL_0]] : (!quake.veq<?>) -> i64
 # CHECK:           %[[VAL_4:.*]] = arith.index_cast %[[VAL_3]] : i64 to index
 # CHECK:           %[[VAL_5:.*]] = cc.loop while ((%[[VAL_6:.*]] = %[[VAL_2]]) -> (index)) {
 # CHECK:             %[[VAL_7:.*]] = arith.cmpi slt, %[[VAL_6]], %[[VAL_4]] : index
 # CHECK:             cc.condition %[[VAL_7]](%[[VAL_6]] : index)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_8:.*]]: index):
-# CHECK:             %[[VAL_9:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_8]]] : (!quake.qvec<?>, index) -> !quake.ref
+# CHECK:             %[[VAL_9:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_8]]] : (!quake.veq<?>, index) -> !quake.ref
 # CHECK:             quake.h %[[VAL_9]] : (!quake.ref) -> ()
 # CHECK:             cc.continue %[[VAL_8]] : index
 # CHECK:           } step {

@@ -13,10 +13,10 @@
 func.func @alloc(%size : i32) {
   // CHECK: %[[QUBIT:.*]] = quake.alloca !quake.ref
   %qubit = quake.alloca !quake.ref
-  // CHECK: %[[QREG0:.*]] = quake.alloca[%[[SIZE]] : i32] !quake.qvec<?>
-  %qvec0 = quake.alloca [%size : i32] !quake.qvec<?>
-  // CHECK: %[[QREG1:.*]] = quake.alloca !quake.qvec<4>
-  %qvec1 = quake.alloca !quake.qvec<4>
+  // CHECK: %[[QREG0:.*]] = quake.alloca[%[[SIZE]] : i32] !quake.veq<?>
+  %veq0 = quake.alloca [%size : i32] !quake.veq<?>
+  // CHECK: %[[QREG1:.*]] = quake.alloca !quake.veq<4>
+  %veq1 = quake.alloca !quake.veq<4>
   return
 }
 
@@ -29,14 +29,14 @@ func.func @alloc_qubit() {
 
 // CHECK-LABEL: func @alloc_qreg
 func.func @alloc_qreg() {
-  // CHECK: %[[QREG1:.*]] = quake.alloca !quake.qvec<2>
-  %qvec = quake.alloca !quake.qvec<2>
+  // CHECK: %[[QREG1:.*]] = quake.alloca !quake.veq<2>
+  %veq = quake.alloca !quake.veq<2>
   return
 }
 
 // CHECK-LABEL: func @args(
-// CHECK-SAME: %{{.*}}: !quake.ref, %{{.*}}: !quake.qvec<2>)
-func.func @args(%qubit: !quake.ref, %qvec: !quake.qvec<2>) {
+// CHECK-SAME: %{{.*}}: !quake.ref, %{{.*}}: !quake.veq<2>)
+func.func @args(%qubit: !quake.ref, %veq: !quake.veq<2>) {
   return
 }
 
@@ -46,10 +46,10 @@ func.func @reset() {
   %qubit = quake.alloca !quake.ref
   // CHECK: quake.reset %[[QUBIT]] : (!quake.ref) -> ()
   quake.reset %qubit : (!quake.ref) -> ()
-  // CHECK: %[[QREG:.*]] = quake.alloca !quake.qvec<2>
-  %qreg = quake.alloca !quake.qvec<2>
-  // CHECK: quake.reset %[[QREG]] : (!quake.qvec<2>) -> ()
-  quake.reset %qreg : (!quake.qvec<2>) -> ()
+  // CHECK: %[[QREG:.*]] = quake.alloca !quake.veq<2>
+  %qreg = quake.alloca !quake.veq<2>
+  // CHECK: quake.reset %[[QREG]] : (!quake.veq<2>) -> ()
+  quake.reset %qreg : (!quake.veq<2>) -> ()
   return
 }
 
@@ -65,10 +65,10 @@ func.func @apply_x() {
 func.func @apply_cx() {
   %c0 = arith.constant 0 : index
   %c1 = arith.constant 1 : index
-  // CHECK: %[[QREG1:.*]] = quake.alloca !quake.qvec<2>
-  %qvec = quake.alloca  !quake.qvec<2>
-  %q0 = quake.extract_ref %qvec[%c0] : (!quake.qvec<2>,index) -> !quake.ref
-  %q1 = quake.extract_ref %qvec[%c1] : (!quake.qvec<2>,index) -> !quake.ref
+  // CHECK: %[[QREG1:.*]] = quake.alloca !quake.veq<2>
+  %veq = quake.alloca  !quake.veq<2>
+  %q0 = quake.extract_ref %veq[%c0] : (!quake.veq<2>,index) -> !quake.ref
+  %q1 = quake.extract_ref %veq[%c1] : (!quake.veq<2>,index) -> !quake.ref
   quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
   return
 }
@@ -76,10 +76,10 @@ func.func @apply_cx() {
 func.func @apply_cx_v() {
   %c0 = arith.constant 0 : index
   %c1 = arith.constant 1 : index
-  // CHECK: %[[QREG1:.*]] = quake.alloca !quake.qvec<2>
-  %qvec = quake.alloca  !quake.qvec<2>
-  %q0 = quake.extract_ref %qvec[%c0] : (!quake.qvec<2>,index) -> !quake.ref
-  %q1 = quake.extract_ref %qvec[%c1] : (!quake.qvec<2>,index) -> !quake.ref
+  // CHECK: %[[QREG1:.*]] = quake.alloca !quake.veq<2>
+  %veq = quake.alloca  !quake.veq<2>
+  %q0 = quake.extract_ref %veq[%c0] : (!quake.veq<2>,index) -> !quake.ref
+  %q1 = quake.extract_ref %veq[%c1] : (!quake.veq<2>,index) -> !quake.ref
   %q2 = quake.unwrap %q0 : (!quake.ref) -> !quake.wire
   %q3 = quake.unwrap %q1 : (!quake.ref) -> !quake.wire
   // CHECK: %{{.*}} = quake.x [%{{.*}}] %{{.*}} : (!quake.wire, !quake.wire) -> !quake.wire
