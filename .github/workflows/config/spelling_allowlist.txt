@@ -29,6 +29,7 @@ NVQ
 NVQIR
 OpenMP
 OpenQASM
+Optimizers
 Pauli
 Paulis
 QAOA
@@ -90,11 +91,14 @@ filetype
 fixup
 func
 gcc
+getitem
 ghz
+init
 instantiation
 instantiations
 lcudaq
 linux
+len
 llc
 llvm
 lnvqir
@@ -120,6 +124,7 @@ qudits
 rpath
 rtol
 runtime
+str
 struct
 structs
 subclass
