@@ -25,7 +25,7 @@ extern bool globalFalse;
 std::string get_quake_by_name(const std::string &kernelName);
 
 // Simple test to see if the QuantumKernel template
-// type is a cudaq::builder with operator()(Args...)
+// type is a `cudaq::builder` with `operator()(Args...)`
 template <class T, class = void>
 struct hasToQuakeMethod : std::false_type {};
 template <class T>
@@ -46,7 +46,7 @@ namespace internal {
 template <typename T>
 struct KernelCallArgs;
 
-/// @brief Deduce the Args... for operator()(Args...)
+/// @brief Deduce the `Args...` for `operator()(Args...)`
 template <typename RT, typename Owner, typename... Args>
 struct KernelCallArgs<RT (Owner::*)(Args...)> {
   static constexpr std::size_t ArgCount = sizeof...(Args);
@@ -54,7 +54,7 @@ struct KernelCallArgs<RT (Owner::*)(Args...)> {
   using ArgsTuple = std::tuple<std::remove_reference_t<Args>...>;
 };
 
-/// @brief Deduce the Args... for operator()(Args...), for const lambda
+/// @brief Deduce the `Args...` for `operator()(Args...)`, for constant lambda
 template <typename RT, typename Owner, typename... Args>
 struct KernelCallArgs<RT (Owner::*)(Args...) const> {
   static constexpr std::size_t ArgCount = sizeof...(Args);
@@ -87,8 +87,8 @@ std::string get_kernel_name() {
   return internal::get_kernel_name_from_type<QuantumKernel>();
 }
 
-/// Get the name of the kernel when the kernel has a template operator()
-/// function. The resolved template arguments must be provided as Args.
+/// Get the name of the kernel when the kernel has a template `operator()`
+/// function. The resolved template arguments must be provided as `Args`.
 template <typename QuantumKernel, typename... Args>
 std::string get_kernel_template_member_name() {
   return "instance_" + internal::get_kernel_name_from_type<QuantumKernel>() +
@@ -104,7 +104,7 @@ inline std::string get_kernel_function_name(const std::string &name) {
 }
 
 /// Get the name of a template function (not a class member) that is marked as a
-/// quantum kernel. The template arguments must be supplied as Args.
+/// quantum kernel. The template arguments must be supplied as `Args`.
 template <typename... Args>
 std::string get_kernel_template_function_name(std::string &&funcName) {
   std::string name = internal::expand_parameter_pack<Args...>();
