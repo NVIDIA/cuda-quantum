@@ -86,7 +86,7 @@ molecular_hamiltonian create_molecule(const molecular_geometry &geometry,
                                       std::string driver = "pyscf");
 
 /// @brief Given a molecular structure and other metadata,
-/// construct the hamiltonian for the molecule as a `cudaq::spin_op`.
+/// construct the Hamiltonian for the molecule as a `cudaq::spin_op`.
 /// Describe the active space via `n_active_electrons` and `n_active_orbitals`.
 molecular_hamiltonian
 create_molecule(const molecular_geometry &geometry, const std::string &basis,

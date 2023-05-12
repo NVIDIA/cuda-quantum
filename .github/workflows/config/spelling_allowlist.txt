@@ -126,6 +126,7 @@ qpp
 qpu
 qreg
 qtx
+quantized
 qubit
 qubits
 qudit
