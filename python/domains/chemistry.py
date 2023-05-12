@@ -8,29 +8,29 @@
 
 import numpy as np
 
+
 def tryImport():
-    """Import openfermion and openfermionpyscf."""
+    """Import `openfermion` and `openfermionpyscf`."""
     try:
         import openfermion, openfermionpyscf
     except ImportError as Error:
-        raise ImportError(
-            "This feature requires openfermionpyscf. "
-        ) from Error
+        raise ImportError("This feature requires openfermionpyscf. ") from Error
 
     return openfermion, openfermionpyscf
 
+
 def create_molecular_hamiltonian(geometry: list,
-                                  basis='sto-3g',
-                                  multiplicity=1,
-                                  charge=0,
-                                  n_active_electrons=None,
-                                  n_active_orbitals=None):
+                                 basis='sto-3g',
+                                 multiplicity=1,
+                                 charge=0,
+                                 n_active_electrons=None,
+                                 n_active_orbitals=None):
     '''
     Create the molecular hamiltonian corresponding to the provided 
     geometry, basis set, multiplicity, and charge.  One can also specify the 
     number of active electrons and orbitals, thereby approximating the 
     molecular hamiltonian and freezing core orbitals. This function delegates 
-    to the OpenFermion-PySCF package and will throw an error if that module is 
+    to the `OpenFermion-PySCF` package and will throw an error if that module is 
     not available.
 
     Args: 
@@ -48,8 +48,9 @@ def create_molecular_hamiltonian(geometry: list,
       Hamiltonian and the raw molecular data. 
     '''
     of, ofpyscf = tryImport()
-    molecule = ofpyscf.run_pyscf(
-        of.MolecularData(geometry, basis, multiplicity, charge), run_fci=True)
+    molecule = ofpyscf.run_pyscf(of.MolecularData(geometry, basis, multiplicity,
+                                                  charge),
+                                 run_fci=True)
     if n_active_electrons is None:
         n_core_orbitals = 0
         occupied_indices = None
@@ -60,20 +61,21 @@ def create_molecular_hamiltonian(geometry: list,
     if n_active_orbitals is None:
         active_indices = None
     else:
-        active_indices = list(range(n_core_orbitals,
-                                    n_core_orbitals + n_active_orbitals))
+        active_indices = list(
+            range(n_core_orbitals, n_core_orbitals + n_active_orbitals))
     hamiltonian = molecule.get_molecular_hamiltonian(
         occupied_indices=occupied_indices, active_indices=active_indices)
     spin_op = of.jordan_wigner(hamiltonian)
     from cudaq import SpinOperator
     return SpinOperator(spin_op), molecule
 
+
 def __internal_cpp_create_molecular_hamiltonian(geometry: list,
-                                  basis='sto-3g',
-                                  multiplicity=1,
-                                  charge=0,
-                                  n_active_electrons=None,
-                                  n_active_orbitals=None):
+                                                basis='sto-3g',
+                                                multiplicity=1,
+                                                charge=0,
+                                                n_active_electrons=None,
+                                                n_active_orbitals=None):
     '''
     Internal function meant for integration with CUDA Quantum C++. 
     (Does not require `import cudaq`)
@@ -100,8 +102,9 @@ def __internal_cpp_create_molecular_hamiltonian(geometry: list,
       Hamiltonian and the raw molecular data. 
     '''
     of, ofpyscf = tryImport()
-    molecule = ofpyscf.run_pyscf(
-        of.MolecularData(geometry, basis, multiplicity, charge), run_fci=True)
+    molecule = ofpyscf.run_pyscf(of.MolecularData(geometry, basis, multiplicity,
+                                                  charge),
+                                 run_fci=True)
     if n_active_electrons is None:
         n_core_orbitals = 0
         occupied_indices = None
@@ -112,8 +115,8 @@ def __internal_cpp_create_molecular_hamiltonian(geometry: list,
     if n_active_orbitals is None:
         active_indices = None
     else:
-        active_indices = list(range(n_core_orbitals,
-                                    n_core_orbitals + n_active_orbitals))
+        active_indices = list(
+            range(n_core_orbitals, n_core_orbitals + n_active_orbitals))
     hamiltonian = molecule.get_molecular_hamiltonian(
         occupied_indices=occupied_indices, active_indices=active_indices)
     spin_op = of.jordan_wigner(hamiltonian)

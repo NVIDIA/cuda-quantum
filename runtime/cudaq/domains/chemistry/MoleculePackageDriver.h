@@ -14,11 +14,11 @@
 namespace cudaq {
 
 /// @brief MoleculePackageDriver provides an extensible interface for
-/// generating molecular hamiltonians and associated metadta.
+/// generating molecular Hamiltonians and associated metadata.
 class MoleculePackageDriver
     : public registry::RegisteredType<MoleculePackageDriver> {
 public:
-  /// @brief Return a molecular_hamiltonian described by the given
+  /// @brief Return a `molecular_hamiltonian` described by the given
   /// geometry, basis set, multiplicity, and charge. Optionally
   /// restrict the active space.
   virtual molecular_hamiltonian

@@ -36,8 +36,8 @@ public:
   auto end() const { return atoms.cend(); }
 };
 
-/// @brief The one_body_integrals provide simple holder type
-/// for the h_pq coefficients for the second quantized molecular hamiltonian.
+/// @brief The `one_body_integrals` provide simple holder type
+/// for the `h_pq` coefficients for the second quantized molecular Hamiltonian.
 class one_body_integrals {
 private:
   std::unique_ptr<std::complex<double>> data;
@@ -49,8 +49,9 @@ public:
   void dump();
 };
 
-/// @brief The two_body_integrals provide simple holder type
-/// for the h_pqrs coefficients for the second quantized molecular hamiltonian.
+/// @brief The `two_body_integrals` provide simple holder type
+/// for the `h_pqrs` coefficients for the second quantized molecular
+/// Hamiltonian.
 class two_body_integals {
 private:
   std::unique_ptr<std::complex<double>> data;
@@ -63,7 +64,7 @@ public:
   void dump();
 };
 
-/// @brief The molecular_hamiltonian type holds all the pertinent
+/// @brief The `molecular_hamiltonian` type holds all the pertinent
 /// data for a molecule created by CUDA Quantum from its geometry and
 /// other metadata.
 struct molecular_hamiltonian {
@@ -78,15 +79,15 @@ struct molecular_hamiltonian {
 };
 
 /// @brief Given a molecular structure and other metadata,
-/// construct the hamiltonian for the molecule as a cudaq::spin_op
+/// construct the Hamiltonian for the molecule as a `cudaq::spin_op`
 molecular_hamiltonian create_molecule(const molecular_geometry &geometry,
                                       const std::string &basis,
                                       int multiplicity, int charge,
                                       std::string driver = "pyscf");
 
 /// @brief Given a molecular structure and other metadata,
-/// construct the hamiltonian for the molecule as a cudaq::spin_op.
-/// Describe the active space via n_active_electrons and n_active_orbitals.
+/// construct the hamiltonian for the molecule as a `cudaq::spin_op`.
+/// Describe the active space via `n_active_electrons` and `n_active_orbitals`.
 molecular_hamiltonian
 create_molecule(const molecular_geometry &geometry, const std::string &basis,
                 int multiplicity, int charge, std::size_t n_active_electrons,

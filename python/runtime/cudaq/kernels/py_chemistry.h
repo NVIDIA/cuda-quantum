@@ -11,6 +11,6 @@
 namespace py = pybind11;
 
 namespace cudaq {
-/// @brief Bind any chemistry-related pre-defined kernels.
+/// @brief Bind any chemistry-related kernels.
 void bindChemistry(py::module &mod);
 } // namespace cudaq
