@@ -92,7 +92,7 @@ int main() {
                               0, 0, 0, 2, -0.22004130022499999, 0.0,
                               15};
   cudaq::spin_op H(h2_data, /*nQubits*/ 4);
-  // For 8 qubits, 36 params per layer
+  // For 8 qubits, 36 parameters per layer
   int n_layers = 2, n_qubits = H.num_qubits(), block_size = 2, p_counter = 0;
   int n_blocks_per_layer = 2 * (n_qubits / block_size) - 1;
   int n_params = n_layers * 6 * n_blocks_per_layer;

@@ -192,14 +192,14 @@ private:
   void expandToNQubits(const std::size_t nQubits);
 
 public:
-  /// @brief The constructor, takes a single term / coeff pair
+  /// @brief The constructor, takes a single term / coefficient pair
   spin_op(std::pair<const spin_op_term, std::complex<double>> &termData);
 
-  /// @brief The constructor, takes a single term / coeff const pair
+  /// @brief The constructor, takes a single term / coefficient const pair
   spin_op(const std::pair<const spin_op_term, std::complex<double>> &termData);
 
   /// @brief Constructor, takes the Pauli type, the qubit site, and the
-  /// term coefficient. Constructs a spin_op of one pauli on one qubit.
+  /// term coefficient. Constructs a `spin_op` of one Pauli on one qubit.
   spin_op(pauli, const std::size_t id, std::complex<double> coeff = 1.0);
 
   /// @brief Constructor, takes the binary representation of a single term and
@@ -245,10 +245,10 @@ public:
   /// @brief Return iterator to end of spin_op terms.
   iterator<spin_op> end();
 
-  /// @brief Return const iterator to start of spin_op terms.
+  /// @brief Return constant iterator to start of `spin_op` terms.
   iterator<const spin_op> begin() const;
 
-  /// @brief Return const iterator to end of spin_op terms.
+  /// @brief Return constant iterator to end of `spin_op` terms.
   iterator<const spin_op> end() const;
 
   /// @brief Set the provided spin_op equal to this one and return *this.
@@ -300,10 +300,7 @@ public:
     lhs -= std::move(rhs);
     return std::move(lhs);
   }
-
-  /// @brief Return the ith term of this spin_op (by value).
-  // spin_op operator[](const std::size_t termIdx) const;
-
+  
   /// @brief Return the number of qubits this spin_op is on
   std::size_t num_qubits() const;
 

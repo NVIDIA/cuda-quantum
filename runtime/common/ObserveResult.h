@@ -33,11 +33,11 @@ protected:
 public:
   observe_result() = default;
 
-  /// @brief Constructor, takes the pre-computed exp val for
+  /// @brief Constructor, takes the precomputed expectation value for
   /// <psi(x) | H | psi(x)> for the given spin_op.
   observe_result(double &e, spin_op &H) : expValZ(e), spinOp(H) {}
 
-  /// @brief Constructor, takes the pre-computed exp val for
+  /// @brief Constructor, takes the precomputed expectation value for
   /// <psi(x) | H | psi(x)> for the given spin_op. If this execution
   /// was shots based, also provide the sample_result data containing counts
   /// for each term in H.
@@ -51,12 +51,11 @@ public:
   /// @return
   sample_result raw_data() { return data; };
 
-  /// @brief Conversion operator for this observe_result to double. Simply
-  /// returns the pre-computed expectation value for the given spin_op. This
-  // enables one to ignore the fine-grain sample_result data, and explicitly
-  // request
-  /// the expected value: double exp = cudaq"::"observe(...); as opposed to
-  /// cudaq"::"observe_data data = cudaq::observe(...); auto exp =
+  /// @brief Conversion operator for this `observe_result` to `double`. Simply
+  /// returns the precomputed expectation value for the given spin_op. This
+  /// enables one to ignore the fine-grain sample_result data, and explicitly
+  /// request the expected value: double exp = cudaq"::"observe(...); as opposed
+  /// to cudaq"::"observe_data data = cudaq::observe(...); auto exp =
   /// data.exp_val_z();
   operator double() { return expValZ; }
 
