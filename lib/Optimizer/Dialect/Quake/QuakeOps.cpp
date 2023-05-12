@@ -187,7 +187,7 @@ void quake::SubVecOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
 //===----------------------------------------------------------------------===//
 
 void quake::VeqSizeOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
-                                                    MLIRContext *context) {
+                                                   MLIRContext *context) {
   patterns.add<ForwardConstantVeqSizePattern>(context);
 }
 

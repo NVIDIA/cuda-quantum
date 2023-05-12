@@ -1035,9 +1035,8 @@ public:
     auto *context = getModule().getContext();
     LLVMConversionTarget target{*context};
     LLVMTypeConverter typeConverter(&getContext());
-    typeConverter.addConversion([&](quake::VeqType type) {
-      return cudaq::opt::getArrayType(context);
-    });
+    typeConverter.addConversion(
+        [&](quake::VeqType type) { return cudaq::opt::getArrayType(context); });
     typeConverter.addConversion(
         [&](quake::RefType type) { return cudaq::opt::getQubitType(context); });
     typeConverter.addConversion([&](cudaq::cc::LambdaType type) {

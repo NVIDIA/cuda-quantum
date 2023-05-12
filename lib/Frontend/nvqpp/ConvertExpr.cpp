@@ -130,8 +130,7 @@ bool buildOp(OpBuilder &builder, Location loc, ValueRange operands,
     builder.create<A>(loc, isAdjoint, params, ctrls, target, negs);
   } else {
     assert(operands.size() >= 1 && "must be at least 1 operand");
-    if ((operands.size() == 1) &&
-        operands[0].getType().isa<quake::VeqType>()) {
+    if ((operands.size() == 1) && operands[0].getType().isa<quake::VeqType>()) {
       auto target = operands[0];
       if (!negations.empty())
         reportNegateError();

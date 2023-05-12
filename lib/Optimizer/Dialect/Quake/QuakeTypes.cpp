@@ -51,7 +51,7 @@ Type quake::VeqType::parse(AsmParser &parser) {
 
 LogicalResult
 quake::VeqType::verify(llvm::function_ref<InFlightDiagnostic()> emitError,
-                        std::size_t size) {
+                       std::size_t size) {
   // FIXME: Do we want to check the size of the veq for some bound?
   return success();
 }

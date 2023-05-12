@@ -46,8 +46,7 @@ public:
     auto idxTy = rewriter.getIndexType();
     for (auto v : measureOp.getTargets())
       if (v.getType().template isa<quake::VeqType>()) {
-        Value vecSz =
-            rewriter.template create<quake::VeqSizeOp>(loc, idxTy, v);
+        Value vecSz = rewriter.template create<quake::VeqSizeOp>(loc, idxTy, v);
         totalToRead =
             rewriter.template create<arith::AddIOp>(loc, totalToRead, vecSz);
       }
@@ -75,8 +74,7 @@ public:
         rewriter.template create<LLVM::StoreOp>(loc, bit, addr);
         buffOff = rewriter.template create<arith::AddIOp>(loc, buffOff, one);
       } else {
-        Value vecSz =
-            rewriter.template create<quake::VeqSizeOp>(loc, idxTy, v);
+        Value vecSz = rewriter.template create<quake::VeqSizeOp>(loc, idxTy, v);
         cudaq::opt::factory::createCountedLoop(
             rewriter, loc, vecSz,
             [&](OpBuilder &builder, Location loc, Region &, Block &block) {

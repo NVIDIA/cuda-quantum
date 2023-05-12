@@ -93,9 +93,8 @@ KernelBuilderType mapArgToType(cudaq::qubit &e) {
 }
 
 KernelBuilderType mapArgToType(cudaq::qreg<> &e) {
-  return KernelBuilderType([](MLIRContext *ctx) mutable {
-    return quake::VeqType::getUnsized(ctx);
-  });
+  return KernelBuilderType(
+      [](MLIRContext *ctx) mutable { return quake::VeqType::getUnsized(ctx); });
 }
 
 MLIRContext *initializeContext() {
@@ -371,8 +370,7 @@ void handleOneQubitBroadcast(ImplicitLocOpBuilder &builder, Value veq,
 
   auto loc = builder.getLoc();
   auto indexTy = builder.getIndexType();
-  auto size =
-      builder.create<quake::VeqSizeOp>(builder.getIntegerType(64), veq);
+  auto size = builder.create<quake::VeqSizeOp>(builder.getIntegerType(64), veq);
   Value rank = builder.create<arith::IndexCastOp>(indexTy, size);
   auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &,
                          Block &block) {
@@ -396,10 +394,10 @@ void applyOneQubitOp(ImplicitLocOpBuilder &builder, auto &&params, auto &&ctrls,
     cudaq::info("kernel_builder apply {}", std::string(#NAME));                \
     auto value = target.getValue();                                            \
     auto type = value.getType();                                               \
-    if (type.isa<quake::VeqType>()) {                                         \
+    if (type.isa<quake::VeqType>()) {                                          \
       if (!ctrls.empty())                                                      \
         throw std::runtime_error(                                              \
-            "Cannot specify controls for a veq broadcast.");                  \
+            "Cannot specify controls for a veq broadcast.");                   \
       handleOneQubitBroadcast<quake::QUAKENAME>(builder, target.getValue());   \
       return;                                                                  \
     }                                                                          \
