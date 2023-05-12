@@ -53,17 +53,17 @@ module {
       %1 = quake.alloca [%two : i32] !quake.qvec<2>
       %2 = quake.alloca [%one : i32] !quake.qvec<?>
       
-      %qr1 = quake.extract_ref %0[%zero] : (!quake.qvec<?>,i32) -> !quake.qref
-      %qr2 = quake.extract_ref %1[%one]  : (!quake.qvec<2>,i32) -> !quake.qref
+      %qr1 = quake.extract_ref %0[%zero] : (!quake.qvec<?>,i32) -> !quake.ref
+      %qr2 = quake.extract_ref %1[%one]  : (!quake.qvec<2>,i32) -> !quake.ref
 
       %fl = arith.constant 0.43 : f64
       %fl2 = arith.constant 0.33 : f64
       %fl3 = arith.constant 0.73 : f64
-      quake.h %qr1 : (!quake.qref) -> ()  
-      quake.x [%qr1] %qr2 : (!quake.qref, !quake.qref) -> ()
-      quake.rx (%fl) %qr1 : (f64, !quake.qref) -> ()
+      quake.h %qr1 : (!quake.ref) -> ()  
+      quake.x [%qr1] %qr2 : (!quake.ref, !quake.ref) -> ()
+      quake.rx (%fl) %qr1 : (f64, !quake.ref) -> ()
 
-      quake.mz %qr1 : (!quake.qref) -> i1
+      quake.mz %qr1 : (!quake.ref) -> i1
       return 
     }
 }

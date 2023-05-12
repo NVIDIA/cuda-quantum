@@ -14,75 +14,75 @@ module {
   func.func @test01() {
     // CHECK:  %[[Q0_W0:.*]] = qtx.alloca
     // CHECK:  %[[Q1_W0:.*]] = qtx.alloca
-    %q0 = quake.alloca !quake.qref
-    %q1 = quake.alloca !quake.qref
+    %q0 = quake.alloca !quake.ref
+    %q1 = quake.alloca !quake.ref
 
     // CHECK:  %[[Q1_W1:.*]] = qtx.x [%[[Q0_W0]]] %[[Q1_W0]]
-    quake.x [%q0] %q1 : (!quake.qref, !quake.qref) -> ()
+    quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
     cf.br ^bb1
 
   ^bb1:
     // CHECK:  %[[Q1_W2:.*]] = qtx.y [%[[Q0_W0]]] %[[Q1_W1]]
-    quake.y [%q0] %q1 : (!quake.qref, !quake.qref) -> ()
+    quake.y [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
     cf.br ^bb2
 
   ^bb2:
     // CHECK:  %[[Q1_W3:.*]] = qtx.z [%[[Q0_W0]]] %[[Q1_W2]]
-    quake.z [%q0] %q1 : (!quake.qref, !quake.qref) -> ()
+    quake.z [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
     return
   }
 
   // CHECK-LABEL: func.func @test02
-  func.func @test02(%q0: !quake.qref, %q1: !quake.qref, %c1: i1) {
+  func.func @test02(%q0: !quake.ref, %q1: !quake.ref, %c1: i1) {
     cf.cond_br %c1, ^bb1, ^bb2
 
   ^bb1:
     // CHECK: %[[Q1_W1:.*]] = qtx.x [%[[Q0_W0:.*]]] %[[Q1_W0:.*]] :
-    quake.x [%q0] %q1 : (!quake.qref, !quake.qref) -> ()
+    quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
     // CHECK: cf.br ^bb3(%[[Q1_W1]] : !qtx.wire)
     cf.br ^bb3
 
   ^bb2:
     // CHECK: %[[Q1_W2:.*]] = qtx.y [%[[Q0_W0]]] %[[Q1_W0]]
-    quake.y [%q0] %q1 : (!quake.qref, !quake.qref) -> ()
+    quake.y [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
     // CHECK: cf.br ^bb3(%[[Q1_W2]] : !qtx.wire)
     cf.br ^bb3
 
   // CHECK: ^bb3(%[[Q1_W3:.*]]: !qtx.wire):
   ^bb3:
     // CHECK: %[[Q1_W4:.*]] = qtx.z [%[[Q0_W0]]] %[[Q1_W3]]
-    quake.z [%q0] %q1 : (!quake.qref, !quake.qref) -> ()
+    quake.z [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
     return
   }
 
   // CHECK-LABEL: func.func @test03
-  func.func @test03(%q0: !quake.qref, %q1: !quake.qref, %c1: i1) {
+  func.func @test03(%q0: !quake.ref, %q1: !quake.ref, %c1: i1) {
     // TODO: do the checks, I'm unsure about this one.
-    quake.x [%q0] %q1 : (!quake.qref, !quake.qref) -> ()
+    quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
     cf.br ^bb1
 
   ^bb1:
-    quake.y [%q0] %q1 : (!quake.qref, !quake.qref) -> ()
+    quake.y [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
     cf.cond_br %c1, ^bb1, ^bb2
 
   ^bb2:
-    quake.z [%q0] %q1 : (!quake.qref, !quake.qref) -> ()
+    quake.z [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
     return
   }
 
   // CHECK-LABEL: func.func @test04
-  func.func @test04(%q0: !quake.qref, %q1: !quake.qref, %c1: i1) {
+  func.func @test04(%q0: !quake.ref, %q1: !quake.ref, %c1: i1) {
     cf.cond_br %c1, ^bb1, ^bb2
 
   ^bb1:
     // CHECK: %[[Q1_W1:.*]] = qtx.x [%[[Q0_W0:.*]]] %[[Q1_W0:.*]] :
-    quake.x [%q0] %q1 : (!quake.qref, !quake.qref) -> ()
+    quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
     // CHECK: qtx.unrealized_return %[[Q0_W0]], %[[Q1_W1]]
     return
 
   ^bb2:
     // CHECK: %[[Q1_W2:.*]] = qtx.y [%[[Q0_W0]]] %[[Q1_W0]]
-    quake.y [%q0] %q1 : (!quake.qref, !quake.qref) -> ()
+    quake.y [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
     // CHECK: qtx.unrealized_return %[[Q0_W0]], %[[Q1_W2]]
     return
   }
@@ -96,7 +96,7 @@ module {
 
   ^bb1:
     // CHECK: %[[Q0_W0:.*]], %[[A_1:.*]] = qtx.array_borrow %[[IDX_0:.*]] from %[[A_0]]
-    %q0 = quake.extract_ref %qvec[%c0_i64] : (!quake.qvec<2>, i64) -> !quake.qref
+    %q0 = quake.extract_ref %qvec[%c0_i64] : (!quake.qvec<2>, i64) -> !quake.ref
     // CHECK: %[[A_2:.*]] = qtx.array_yield %[[Q0_W0]] to %[[A_1]]
     // CHECK: cf.br ^bb3(%[[A_2]] : !qtx.wire_array<2>)
     cf.br ^bb3
@@ -120,13 +120,13 @@ module {
     // CHECK: %[[A_0:.*]] = qtx.alloc
     %qvec = quake.alloca !quake.qvec<2>
     // CHECK: %[[Q0_W0:.*]], %[[A_1:.*]] = qtx.array_borrow %[[IDX_0:.*]] from %[[A_0]]
-    %q0 = quake.extract_ref %qvec[%c0_i64] : (!quake.qvec<2>, i64) -> !quake.qref
+    %q0 = quake.extract_ref %qvec[%c0_i64] : (!quake.qvec<2>, i64) -> !quake.ref
 
     cf.cond_br %c1, ^bb1, ^bb4
 
   ^bb1:
     // CHECK: %[[Q1_W0:.*]], %[[A_2:.*]] = qtx.array_borrow %[[IDX_1:.*]] from %[[A_1]]
-    %q1 = quake.extract_ref %qvec[%c1_i64] : (!quake.qvec<2>, i64) -> !quake.qref
+    %q1 = quake.extract_ref %qvec[%c1_i64] : (!quake.qvec<2>, i64) -> !quake.ref
     cf.cond_br %c1, ^bb2, ^bb3
 
   ^bb2:
@@ -141,7 +141,7 @@ module {
 
   ^bb4:
     // CHECK: %[[Q1_W1:.*]], %[[A_5:.*]] = qtx.array_borrow %[[IDX_1]] from %[[A_1]]
-    %q2 = quake.extract_ref %qvec[%c1_i64] : (!quake.qvec<2>, i64) -> !quake.qref
+    %q2 = quake.extract_ref %qvec[%c1_i64] : (!quake.qvec<2>, i64) -> !quake.ref
     // CHECK: %[[A_6:.*]] = qtx.array_yield %[[Q1_W1]] to %[[A_5]]
     // CHECK: cf.br ^bb5(%[[A_6]] : !qtx.wire_array<2, dead = 1>)
     cf.br ^bb5
@@ -162,13 +162,13 @@ module {
     // CHECK: %[[A_0:.*]] = qtx.alloc
     %qvec = quake.alloca !quake.qvec<2>
     // CHECK: %[[Q0_W0:.*]], %[[A_1:.*]] = qtx.array_borrow %[[IDX_0:.*]] from %[[A_0]]
-    %q0 = quake.extract_ref %qvec[%c0_i64] : (!quake.qvec<2>, i64) -> !quake.qref
+    %q0 = quake.extract_ref %qvec[%c0_i64] : (!quake.qvec<2>, i64) -> !quake.ref
 
     cf.cond_br %c1, ^bb1, ^bb2
 
   ^bb1:
     // CHECK: %[[Q1_W0:.*]], %[[A_2:.*]] = qtx.array_borrow %[[IDX_1:.*]] from %[[A_1]]
-    %q1 = quake.extract_ref %qvec[%c0_i64] : (!quake.qvec<2>, i64) -> !quake.qref
+    %q1 = quake.extract_ref %qvec[%c0_i64] : (!quake.qvec<2>, i64) -> !quake.ref
     // CHECK: %[[A_3:.*]] = qtx.array_yield %[[Q1_W0]] to %[[A_2]]
     // CHECK: cf.br ^bb3(%[[A_3]], %[[Q0_W0]] : !qtx.wire_array<2, dead = 1>, !qtx.wire)
     cf.br ^bb3

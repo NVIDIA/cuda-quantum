@@ -14,41 +14,41 @@ module {
   func.func @one_scope() {
     // CHECK: %[[Q0_W0:.*]] = qtx.alloca
     // CHECK: %[[Q1_W0:.*]] = qtx.alloca
-    %q0 = quake.alloca !quake.qref
-    %q1 = quake.alloca !quake.qref
+    %q0 = quake.alloca !quake.ref
+    %q1 = quake.alloca !quake.ref
 
     // CHECK: %[[Q1_W2:.*]] = cc.scope
     cc.scope {
       // CHECK: %[[Q1_W1:.*]] = qtx.x [%[[Q0_W0]]] %[[Q1_W0]]
-      quake.x [%q0] %q1 : (!quake.qref, !quake.qref) -> ()
+      quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
 
       // CHECK: cc.continue %[[Q1_W1]]
     }
     // CHECK:  %[[Q1_W3:.*]] = qtx.z [%[[Q0_W0]]] %[[Q1_W2:.*]]
-    quake.z [%q0] %q1 : (!quake.qref, !quake.qref) -> ()
+    quake.z [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
     return
   }
 
   // CHECK-LABEL: func.func @scope_local_wire
   func.func @scope_local_wire() {
     // CHECK: %[[Q0_W0:.*]] = qtx.alloca
-    %q0 = quake.alloca !quake.qref
+    %q0 = quake.alloca !quake.ref
 
     // CHECK: %[[Q0_W2:.*]] = cc.scope
     cc.scope {
       // CHECK: %[[Q1_W0:.*]] = qtx.alloca
-      %q1 = quake.alloca !quake.qref
+      %q1 = quake.alloca !quake.ref
 
       // CHECK: %[[Q1_W1:.*]] = qtx.x [%[[Q0_W0]]] %[[Q1_W0]]
-      quake.x [%q0] %q1 : (!quake.qref, !quake.qref) -> ()
+      quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
 
       // CHECK: %[[Q0_W1:.*]] = qtx.y [%[[Q1_W1]]] %[[Q0_W0]]
-      quake.y [%q1] %q0 : (!quake.qref, !quake.qref) -> ()
+      quake.y [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
 
       // TODO: cc.continue %[[Q0_W1]]
     }
     // CHECK: %[[Q0_W3:.*]] = qtx.z %[[Q0_W2]]
-    quake.z %q0 : (!quake.qref) -> ()
+    quake.z %q0 : (!quake.ref) -> ()
     return
   }
 
@@ -57,19 +57,19 @@ module {
     // CHECK: %[[Q0_W0:.*]] = qtx.alloca
     // CHECK: %[[Q1_W0:.*]] = qtx.alloca
     // CHECK: %[[Q2_W0:.*]] = qtx.alloca
-    %q0 = quake.alloca  !quake.qref
-    %q1 = quake.alloca  !quake.qref
-    %q2 = quake.alloca  !quake.qref
+    %q0 = quake.alloca  !quake.ref
+    %q1 = quake.alloca  !quake.ref
+    %q2 = quake.alloca  !quake.ref
 
     // CHECK: %[[Q1_Q2:.*]]:2 = cc.scope
     cc.scope {
       // CHECK: %[[Q1_W1:.*]] = qtx.h [%[[Q0_W0]]] %[[Q1_W0]]
-      quake.h [%q0] %q1 : (!quake.qref, !quake.qref) -> ()
+      quake.h [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
 
       // CHECK: %[[Q2_W2:.*]] = cc.scope
       cc.scope {
         // CHECK: %[[Q2_W1:.*]] = qtx.x [%[[Q0_W0]]] %[[Q2_W0]]
-        quake.x [%q0] %q2 : (!quake.qref, !quake.qref) -> ()
+        quake.x [%q0] %q2 : (!quake.ref, !quake.ref) -> ()
         // CHECK: cc.continue %[[Q2_W1]]
       }
 
@@ -77,7 +77,7 @@ module {
     }
 
     // CHECK: %[[Q2_W1:.*]] = qtx.y [%[[Q0_W0]]] %[[Q1_Q2]]#0
-    quake.y [%q0] %q1 : (!quake.qref, !quake.qref) -> ()
+    quake.y [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
     return
   }
 
@@ -88,15 +88,15 @@ module {
     %c_1 = arith.constant 1 : i32
 
     // CHECK: %[[Q0_W0:.*]], %[[A_0:.*]] = qtx.array_borrow %[[IDX_0:.*]] from %{{.*}}
-    %q0 = quake.extract_ref %qvec[%c_0] : (!quake.qvec<2>, i32) -> !quake.qref
+    %q0 = quake.extract_ref %qvec[%c_0] : (!quake.qvec<2>, i32) -> !quake.ref
 
     // CHECK: %[[A_3:.*]] = cc.scope
     cc.scope {
       // CHECK: %[[Q1_W0:.*]], %[[A_1:.*]] = qtx.array_borrow %{{.*}} from %[[A_0]]
-      %q1 = quake.extract_ref %qvec[%c_1] : (!quake.qvec<2>,i32) -> !quake.qref
+      %q1 = quake.extract_ref %qvec[%c_1] : (!quake.qvec<2>,i32) -> !quake.ref
 
       // CHECK:  %[[Q1_W1:.*]] = qtx.y %[[Q1_W0]]
-      quake.y %q1 : (!quake.qref) -> ()
+      quake.y %q1 : (!quake.ref) -> ()
 
       // CHECK: %[[A_2:.*]] = qtx.array_yield %[[Q1_W1]] to %[[A_1]]
       // CHECK: cc.continue %[[A_2]]
@@ -114,7 +114,7 @@ module {
     %c_0 = arith.constant 0 : i32
 
     // CHECK: %[[Q0_W0:.*]], %[[A_0:.*]] = qtx.array_borrow %[[IDX_0:.*]] from %{{.*}}
-    %q0 = quake.extract_ref %qvec[%c_0] : (!quake.qvec<2>,i32) -> !quake.qref
+    %q0 = quake.extract_ref %qvec[%c_0] : (!quake.qvec<2>,i32) -> !quake.ref
 
     // CHECK: %[[A_Q0_1:.*]]:2 = cc.scope
     cc.scope {
@@ -144,7 +144,7 @@ module {
     %c_1 = arith.constant 1 : i32
 
     // CHECK: %[[Q0_W0:.*]], %[[A_0:.*]] = qtx.array_borrow %[[IDX_0:.*]] from %{{.*}}
-    %q0 = quake.extract_ref %qvec[%c_0] : (!quake.qvec<2>,i32) -> !quake.qref
+    %q0 = quake.extract_ref %qvec[%c_0] : (!quake.qvec<2>,i32) -> !quake.ref
 
     // CHECK: %[[A_Q0_1:.*]]:2 = cc.scope
     cc.scope {
@@ -152,7 +152,7 @@ module {
       // CHECK: %[[A_Q0:.*]]:2 = cc.scope
       cc.scope {
         // CHECK: %[[Q1_W0:.*]], %[[A_1:.*]] = qtx.array_borrow %[[IDX_1:.*]] from %[[A_0]]
-        %q1 = quake.extract_ref %qvec[%c_1] : (!quake.qvec<2>,i32) -> !quake.qref
+        %q1 = quake.extract_ref %qvec[%c_1] : (!quake.qvec<2>,i32) -> !quake.ref
 
         // CHECK: %[[A_2:.*]] = qtx.array_yield %[[Q0_W0]], %[[Q1_W0]] to %[[A_1]]
         // CHECK: %[[A_3:.*]] = qtx.reset %[[A_2]]

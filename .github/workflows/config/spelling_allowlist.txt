@@ -5,6 +5,7 @@ BFGS
 CMake
 COBYLA
 CUDA
+Canonicalizer
 De
 FileCheck
 Fourier
@@ -50,6 +51,7 @@ atol
 auxillary
 backend
 backends
+baz
 bitcode
 bitstring
 bitstrings
@@ -118,10 +120,12 @@ qke
 qpp
 qpu
 qreg
+qtx
 qubit
 qubits
 qudit
 qudits
+rewriter
 rpath
 rtol
 runtime

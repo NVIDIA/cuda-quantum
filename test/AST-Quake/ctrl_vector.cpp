@@ -30,10 +30,10 @@ struct lower_ctrl_as_qreg {
 // CHECK:  %[[VAL_3:.*]] = arith.constant 2 : i32
 // CHECK:  %[[VAL_5:.*]] = quake.alloca[%{{.*}} : i64] !quake.qvec<?>
 // CHECK:  %[[VAL_6:.*]] = arith.constant 0 : i32
-// CHECK:  %[[VAL_8:.*]] = quake.extract_ref %[[VAL_5]][%{{.*}}] : (!quake.qvec<?>, i64) -> !quake.qref
-// CHECK:  quake.h [%[[VAL_2]]] %[[VAL_8]] : (!quake.qvec<?>, !quake.qref) -> ()
+// CHECK:  %[[VAL_8:.*]] = quake.extract_ref %[[VAL_5]][%{{.*}}] : (!quake.qvec<?>, i64) -> !quake.ref
+// CHECK:  quake.h [%[[VAL_2]]] %[[VAL_8]] : (!quake.qvec<?>, !quake.ref) -> ()
 // CHECK:  %[[VAL_9:.*]] = arith.constant 1 : i32
-// CHECK:  %[[VAL_11:.*]] = quake.extract_ref %[[VAL_5]][%{{.*}}] : (!quake.qvec<?>, i64) -> !quake.qref
+// CHECK:  %[[VAL_11:.*]] = quake.extract_ref %[[VAL_5]][%{{.*}}] : (!quake.qvec<?>, i64) -> !quake.ref
 // CHECK:  quake.x [%[[VAL_2]]] %[[VAL_11]] : (
 // clang-format on
 
@@ -53,17 +53,17 @@ struct test_two_control_call {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test_two
 // CHECK-SAME: () attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = cc.create_lambda {
-// CHECK:           ^bb0(%[[VAL_1:.*]]: !quake.qref):
+// CHECK:           ^bb0(%[[VAL_1:.*]]: !quake.ref):
 // CHECK:             cc.scope {
 // CHECK:               quake.h %[[VAL_1]]
 // CHECK:               quake.x %[[VAL_1]]
 // CHECK:             }
-// CHECK:           } : !cc.lambda<(!quake.qref) -> ()>
+// CHECK:           } : !cc.lambda<(!quake.ref) -> ()>
 // CHECK:           %[[VAL_4:.*]] = arith.constant 4 : i64
 // CHECK:           %[[VAL_5:.*]] = quake.alloca[%[[VAL_4]] : i64] !quake.qvec<4>
-// CHECK:           %[[VAL_6:.*]] = quake.alloca !quake.qref
-// CHECK:           quake.apply @__nvqpp__mlirgen__{{.*}}test_two_control_call{{.*}}[%[[VAL_5]]] %[[VAL_6]] : (!quake.qvec<4>, !quake.qref) -> ()
-// CHECK:           %[[VAL_7:.*]] = quake.mz %[[VAL_6]] : (!quake.qref) -> i1
+// CHECK:           %[[VAL_6:.*]] = quake.alloca !quake.ref
+// CHECK:           quake.apply @__nvqpp__mlirgen__{{.*}}test_two_control_call{{.*}}[%[[VAL_5]]] %[[VAL_6]] : (!quake.qvec<4>, !quake.ref) -> ()
+// CHECK:           %[[VAL_7:.*]] = quake.mz %[[VAL_6]] : (!quake.ref) -> i1
 // CHECK:           return
 // CHECK:         }
 

@@ -141,9 +141,9 @@ bool buildOp(OpBuilder &builder, Location loc, ValueRange operands,
       Value rank = builder.create<arith::IndexCastOp>(loc, indexTy, size);
       auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &,
                              Block &block) {
-        Value qref = builder.create<quake::ExtractRefOp>(loc, target,
-                                                         block.getArgument(0));
-        builder.create<A>(loc, ValueRange(), qref);
+        Value ref = builder.create<quake::ExtractRefOp>(loc, target,
+                                                        block.getArgument(0));
+        builder.create<A>(loc, ValueRange(), ref);
       };
       cudaq::opt::factory::createCountedLoop(builder, loc, rank, bodyBuilder);
     } else {
@@ -1008,13 +1008,13 @@ bool QuakeBridgeVisitor::VisitMaterializeTemporaryExpr(
   }
   if (auto structTy = dyn_cast<LLVM::LLVMStructType>(ty);
       structTy && structTy.getName().equals("reference_wrapper")) {
-    assert(isa<quake::QRefType>(peekValue().getType()) ||
+    assert(isa<quake::RefType>(peekValue().getType()) ||
            isa<quake::QVecType>(peekValue().getType()));
     return true;
   }
   if (auto stdvecTy = dyn_cast<cc::StdvecType>(ty);
-      stdvecTy && isa<quake::QRefType>(stdvecTy.getElementType())) {
-    assert(isa<quake::QRefType>(peekValue().getType()) ||
+      stdvecTy && isa<quake::RefType>(stdvecTy.getElementType())) {
+    assert(isa<quake::RefType>(peekValue().getType()) ||
            isa<quake::QVecType>(peekValue().getType()));
     return true;
   }
@@ -1358,7 +1358,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
             reportClangError(x, mangler,
                              "cannot negate an entire register of qubits");
           } else {
-            assert(isa<quake::QRefType>(ctrlValues.getType()));
+            assert(isa<quake::RefType>(ctrlValues.getType()));
             assert(negations.size() == 1 && negations[0] == ctrlValues);
             SmallVector<Value> dummy;
             buildOp<quake::XOp>(builder, loc, ctrlValues, dummy, []() {});
@@ -1682,21 +1682,21 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
   if (size > 0) {
     auto loc = toLocation(x);
     auto last = lastValues(size);
-    bool allQRef = [&]() {
+    bool allRef = [&]() {
       for (auto v : last)
-        if (!isa<quake::QRefType>(v.getType()))
+        if (!isa<quake::RefType>(v.getType()))
           return false;
       return true;
     }();
-    if (allQRef) {
+    if (allRef) {
       if (size > 1) {
         auto qVecTy = quake::QVecType::get(builder.getContext(), size);
         return pushValue(builder.create<quake::ConcatOp>(loc, qVecTy, last));
       }
-      // Pass a one member initialization list as a QRef.
+      // Pass a one member initialization list as a Ref.
       return pushValue(last[0]);
     }
-    TODO_x(loc, x, mangler, "list initialization (not qref)");
+    TODO_x(loc, x, mangler, "list initialization (not ref)");
   }
   return true;
 }

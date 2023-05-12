@@ -51,15 +51,15 @@ int main() { bell{}(100); }
 // CHECK:               cc.scope {
 // CHECK:                 %[[VAL_12:.*]] = arith.constant 0 : i32
 // CHECK:                 %[[VAL_13:.*]] = arith.extsi %[[VAL_12]] : i32 to i64
-// CHECK:                 %[[VAL_14:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_13]]] : (!quake.qvec<?>, i64) -> !quake.qref
+// CHECK:                 %[[VAL_14:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_13]]] : (!quake.qvec<?>, i64) -> !quake.ref
 // CHECK:                 quake.h %[[VAL_14]] :
 // CHECK:                 %[[VAL_15:.*]] = arith.constant 0 : i32
 // CHECK:                 %[[VAL_16:.*]] = arith.extsi %[[VAL_15]] : i32 to i64
-// CHECK:                 %[[VAL_17:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_16]]] : (!quake.qvec<?>, i64) -> !quake.qref
+// CHECK:                 %[[VAL_17:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_16]]] : (!quake.qvec<?>, i64) -> !quake.ref
 // CHECK:                 %[[VAL_18:.*]] = arith.constant 1 : i32
 // CHECK:                 %[[VAL_19:.*]] = arith.extsi %[[VAL_18]] : i32 to i64
-// CHECK:                 %[[VAL_20:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_19]]] : (!quake.qvec<?>, i64) -> !quake.qref
-// CHECK:                 quake.x [%[[VAL_17]]] %[[VAL_20]] : (!quake.qref, !quake.qref) -> ()
+// CHECK:                 %[[VAL_20:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_19]]] : (!quake.qvec<?>, i64) -> !quake.ref
+// CHECK:                 quake.x [%[[VAL_17]]] %[[VAL_20]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:                 %[[VAL_21:.*]] = quake.mz %[[VAL_4]] : (!quake.qvec<?>) -> !cc.stdvec<i1>
 // CHECK:                 %[[VAL_22:.*]] = arith.constant 0 : i32
 // CHECK:                 %[[VAL_23:.*]] = arith.extsi %[[VAL_22]] : i32 to i64
@@ -152,14 +152,14 @@ struct tinkerbell {
 // CHECK:               cc.scope {
 // CHECK:                 %[[VAL_12:.*]] = arith.constant 0 : i32
 // CHECK:                 %[[VAL_13:.*]] = arith.extsi %[[VAL_12]] : i32 to i64
-// CHECK:                 %[[VAL_14:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_13]]] : (!quake.qvec<?>, i64) -> !quake.qref
+// CHECK:                 %[[VAL_14:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_13]]] : (!quake.qvec<?>, i64) -> !quake.ref
 // CHECK:                 quake.h %[[VAL_14]] :
 // CHECK:                 %[[VAL_15:.*]] = arith.constant 0 : i32
 // CHECK:                 %[[VAL_16:.*]] = arith.extsi %[[VAL_15]] : i32 to i64
-// CHECK:                 %[[VAL_17:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_16]]] : (!quake.qvec<?>, i64) -> !quake.qref
+// CHECK:                 %[[VAL_17:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_16]]] : (!quake.qvec<?>, i64) -> !quake.ref
 // CHECK:                 %[[VAL_18:.*]] = arith.constant 1 : i32
 // CHECK:                 %[[VAL_19:.*]] = arith.extsi %[[VAL_18]] : i32 to i64
-// CHECK:                 %[[VAL_20:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_19]]] : (!quake.qvec<?>, i64) -> !quake.qref
+// CHECK:                 %[[VAL_20:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_19]]] : (!quake.qvec<?>, i64) -> !quake.ref
 // CHECK:                 quake.x [%[[VAL_17]]] %[[VAL_20]] : (
 // CHECK:                 %[[VAL_21:.*]] = quake.mz %[[VAL_4]] : (!quake.qvec<?>) -> !cc.stdvec<i1>
 // CHECK:                 %[[VAL_22:.*]] = arith.constant 0 : i32
@@ -216,14 +216,14 @@ struct tinkerbell {
 // CHECK:               cc.scope {
 // CHECK:                 %[[VAL_12:.*]] = arith.constant 0 : i32
 // CHECK:                 %[[VAL_13:.*]] = arith.extsi %[[VAL_12]] : i32 to i64
-// CHECK:                 %[[VAL_14:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_13]]] : (!quake.qvec<?>, i64) -> !quake.qref
+// CHECK:                 %[[VAL_14:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_13]]] : (!quake.qvec<?>, i64) -> !quake.ref
 // CHECK:                 quake.h %[[VAL_14]]
 // CHECK:                 %[[VAL_15:.*]] = arith.constant 0 : i32
 // CHECK:                 %[[VAL_16:.*]] = arith.extsi %[[VAL_15]] : i32 to i64
-// CHECK:                 %[[VAL_17:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_16]]] : (!quake.qvec<?>, i64) -> !quake.qref
+// CHECK:                 %[[VAL_17:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_16]]] : (!quake.qvec<?>, i64) -> !quake.ref
 // CHECK:                 %[[VAL_18:.*]] = arith.constant 1 : i32
 // CHECK:                 %[[VAL_19:.*]] = arith.extsi %[[VAL_18]] : i32 to i64
-// CHECK:                 %[[VAL_20:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_19]]] : (!quake.qvec<?>, i64) -> !quake.qref
+// CHECK:                 %[[VAL_20:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_19]]] : (!quake.qvec<?>, i64) -> !quake.ref
 // CHECK:                 quake.x {{\[}}%[[VAL_17]]] %[[VAL_20]] :
 // CHECK:                 %[[VAL_21:.*]] = quake.mz %[[VAL_4]] : (!quake.qvec<?>) -> !cc.stdvec<i1>
 // CHECK:                 %[[VAL_22:.*]] = arith.constant 0 : i32

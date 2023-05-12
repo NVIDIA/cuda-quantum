@@ -101,7 +101,7 @@ static bool matchTypeName(std::string nsPrefix, std::string match,
 static bool isArithmeticType(Type t) { return isa<IntegerType, FloatType>(t); }
 
 static bool isQuantumType(Type t) {
-  return isa<quake::QVecType, quake::QRefType>(t);
+  return isa<quake::QVecType, quake::RefType>(t);
 }
 
 static bool isArithmeticSequenceType(Type t) {
@@ -215,7 +215,7 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
   if (cudaq::isInNamespace(x, "cudaq")) {
     // Types from the `cudaq` namespace.
     if (name.equals("qudit") || name.equals("qubit"))
-      return pushType(quake::QRefType::get(ctx));
+      return pushType(quake::RefType::get(ctx));
     if (name.equals("qspan") || name.equals("qreg"))
       return pushType(quake::QVecType::getUnsized(ctx));
     if (name.equals("ctrl"))
@@ -295,7 +295,7 @@ bool QuakeBridgeVisitor::VisitElaboratedType(clang::ElaboratedType *t) {
   }
   if (matchTypeName("cudaq", "qubit", name, /*toEnd=*/true) ||
       matchTypeName("cudaq", "qudit<2UL>", name, /*toEnd=*/true))
-    return pushType(quake::QRefType::get(context));
+    return pushType(quake::RefType::get(context));
   if (matchTypeName("cudaq", "qreg", name))
     return pushType(
         quake::QVecType::get(context, getQregArraySize(t->getNamedType())));
@@ -396,7 +396,7 @@ bool QuakeBridgeVisitor::VisitPointerType(clang::PointerType *t) {
 bool QuakeBridgeVisitor::VisitLValueReferenceType(
     clang::LValueReferenceType *t) {
   auto eleTy = popType();
-  if (isa<cc::LambdaType, cc::StdvecType, quake::QVecType, quake::QRefType>(
+  if (isa<cc::LambdaType, cc::StdvecType, quake::QVecType, quake::RefType>(
           eleTy))
     return pushType(eleTy);
   return pushType(cc::PointerType::get(eleTy));
@@ -406,7 +406,7 @@ bool QuakeBridgeVisitor::VisitRValueReferenceType(
     clang::RValueReferenceType *t) {
   auto eleTy = popType();
   // FIXME: LLVMStructType is promoted as a temporary workaround.
-  if (isa<cc::LambdaType, cc::StdvecType, quake::QVecType, quake::QRefType,
+  if (isa<cc::LambdaType, cc::StdvecType, quake::QVecType, quake::RefType,
           LLVM::LLVMStructType>(eleTy))
     return pushType(eleTy);
   return pushType(cc::PointerType::get(eleTy));
@@ -467,7 +467,7 @@ QuakeBridgeVisitor::getFunctionType(const clang::FunctionDecl *x,
     }
     for (auto [t, p] : llvm::zip(funcTy.getInputs(), x->parameters())) {
       // Structs, lambdas, functions are valid callable objects. Also pure
-      // device kernels may take qvec and/or qref arguments.
+      // device kernels may take qvec and/or ref arguments.
       if (isArithmeticType(t) || isArithmeticSequenceType(t) ||
           isQuantumType(t) || isKernelCallable(t) || isFunctionCallable(t) ||
           isReferenceToCallableRecord(t, p))

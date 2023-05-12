@@ -8,7 +8,7 @@
 
 // RUN: cudaq-opt %s | FileCheck %s
 // CHECK: module {
-// CHECK:   func.func @apply_x(%arg0: !quake.qref) {
+// CHECK:   func.func @apply_x(%arg0: !quake.ref) {
 // CHECK:     quake.x %arg0 :
 // CHECK:     return
 // CHECK:   }
@@ -18,20 +18,20 @@
 // CHECK:     %0 = quake.alloca[%[[C3]] : i32] !quake.qvec<?>
 // CHECK:     %1 = arith.index_cast %[[C3]] : i32 to index
 // CHECK:     affine.for %arg0 = 0 to %1 {
-// CHECK:       %3 = quake.extract_ref %0[%arg0] : (!quake.qvec<?>, index) -> !quake.qref
+// CHECK:       %3 = quake.extract_ref %0[%arg0] : (!quake.qvec<?>, index) -> !quake.ref
 // CHECK:       quake.x %3 :
 // CHECK:     }
-// CHECK:     %2 = quake.extract_ref %0[%[[C1]]] : (!quake.qvec<?>, i32) -> !quake.qref
-// CHECK:     call @apply_x(%2) : (!quake.qref) -> ()
+// CHECK:     %2 = quake.extract_ref %0[%[[C1]]] : (!quake.qvec<?>, i32) -> !quake.ref
+// CHECK:     call @apply_x(%2) : (!quake.ref) -> ()
 // CHECK:     return
 // CHECK:   }
 // CHECK: }
 
 module {
     // Any function that takes quantum memory as input
-    // must return the same, e.g. (!quake.qref) -> (!quake.qref)
-    func.func @apply_x(%q : !quake.qref) -> () {
-        quake.x %q : (!quake.qref) -> ()
+    // must return the same, e.g. (!quake.ref) -> (!quake.ref)
+    func.func @apply_x(%q : !quake.ref) -> () {
+        quake.x %q : (!quake.ref) -> ()
         return
     }
 
@@ -41,12 +41,12 @@ module {
         %qubits = quake.alloca [%c_3 : i32 ] !quake.qvec<?>
         %c_3_idx = arith.index_cast %c_3 : i32 to index
         affine.for %i = 0 to %c_3_idx {
-            %q0 = quake.extract_ref %qubits [%i] :( !quake.qvec<?>,index) -> !quake.qref
-            quake.x %q0 : (!quake.qref) -> ()
+            %q0 = quake.extract_ref %qubits [%i] :( !quake.qvec<?>,index) -> !quake.ref
+            quake.x %q0 : (!quake.ref) -> ()
         }
 
-        %q1 = quake.extract_ref %qubits [%c_1] : (!quake.qvec<?>, i32) -> !quake.qref
-        func.call @apply_x(%q1) : (!quake.qref) -> ()
+        %q1 = quake.extract_ref %qubits [%c_1] : (!quake.qvec<?>, i32) -> !quake.ref
+        func.call @apply_x(%q1) : (!quake.ref) -> ()
         
         return
     }

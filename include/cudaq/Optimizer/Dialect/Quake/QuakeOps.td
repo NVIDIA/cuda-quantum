@@ -42,7 +42,7 @@ def quake_AllocaOp : QuakeOp<"alloca", [MemoryEffects<[MemAlloc, MemWrite]>]> {
     The `alloca` operation allocates either a single wire reference or a vector
     of references to wires. The size of the vector may be provided either
     statically as part of the type or dynamically as an integer-like argument,
-    `size`. The return value will be a quantum reference, type `!quake.qref`,
+    `size`. The return value will be a quantum reference, type `!quake.ref`,
     or a vector of such, type `!quake.qvec<N>`.
 
     All wires are assumed to be initialized to the value `|0>` initially. See
@@ -56,7 +56,7 @@ def quake_AllocaOp : QuakeOp<"alloca", [MemoryEffects<[MemAlloc, MemWrite]>]> {
     Examples:
     ```mlir
       // Allocate a single qubit
-      %qubit = quake.alloca !quake.qref
+      %qubit = quake.alloca !quake.ref
 
       // Allocate a qubit register with a size known at compilation time
       %qvec = quake.alloca !quake.qvec<4> {name = "quantum"}
@@ -72,11 +72,11 @@ def quake_AllocaOp : QuakeOp<"alloca", [MemoryEffects<[MemAlloc, MemWrite]>]> {
   }];
 
   let arguments = (ins Optional<AnySignlessInteger>:$size);
-  let results = (outs AnyQRefType:$qref_or_vec);
+  let results = (outs AnyRefType:$ref_or_vec);
 
   let builders = [
     OpBuilder<(ins ), [{
-      return build($_builder, $_state, $_builder.getType<QRefType>(), {});
+      return build($_builder, $_state, $_builder.getType<RefType>(), {});
     }]>,
     OpBuilder<(ins "size_t":$size), [{
       return build($_builder, $_state, $_builder.getType<QVecType>(size), {});
@@ -84,7 +84,7 @@ def quake_AllocaOp : QuakeOp<"alloca", [MemoryEffects<[MemAlloc, MemWrite]>]> {
   ];
 
   let assemblyFormat = [{
-    (`[` $size^ `:` type($size)`]`)? qualified(type($qref_or_vec)) attr-dict
+    (`[` $size^ `:` type($size)`]`)? qualified(type($ref_or_vec)) attr-dict
   }];
 
   let hasCanonicalizer = 1;
@@ -92,19 +92,19 @@ def quake_AllocaOp : QuakeOp<"alloca", [MemoryEffects<[MemAlloc, MemWrite]>]> {
 }
 
 def quake_ConcatOp : QuakeOp<"concat", [Pure]> {
-  let summary = "Construct a qvec from a list of other qref/qvec values.";
+  let summary = "Construct a qvec from a list of other ref/qvec values.";
   let description = [{
     The `concat` operation allows one to concatenate a list of SSA-values of
-    either type QRef or QVec into a new QVec vector.
+    either type Ref or QVec into a new QVec vector.
 
     Example:
     ```mlir
-      %veq = quake.concat %r1, %v1, %r2 : (!quake.qref, !quake.qvec<?>,
-                                           !quake.qref) -> !quake.qvec<?>
+      %veq = quake.concat %r1, %v1, %r2 : (!quake.ref, !quake.qvec<?>,
+                                           !quake.ref) -> !quake.qvec<?>
     ```
   }];
 
-  let arguments = (ins Variadic<AnyQRefType>:$qbits);
+  let arguments = (ins Variadic<AnyRefType>:$qbits);
   let results = (outs QVecType);
 
   let assemblyFormat = [{
@@ -175,7 +175,7 @@ def quake_DeallocOp : QuakeOp<"dealloc"> {
   let summary = "Deallocates a collection of qubits.";
   let description = [{
     The `dealloc` operation deallocates a references to wires. The deallocation
-    can be a single wire, type `!quake.qref`, or a vector of references, type
+    can be a single wire, type `!quake.ref`, or a vector of references, type
     `!quake.qvec<N>`.
 
     Deallocations are automatically inserted by the `QuakeAddDeallocs` and
@@ -192,7 +192,7 @@ def quake_DeallocOp : QuakeOp<"dealloc"> {
   }];
 
   let arguments = (ins
-    Arg<AnyQRefType, "qubit reference (or vector) to deallocate",
+    Arg<AnyRefType, "qubit reference (or vector) to deallocate",
     [MemFree]>:$qreg_or_vec
   );
 
@@ -202,7 +202,7 @@ def quake_DeallocOp : QuakeOp<"dealloc"> {
 }
 
 //===----------------------------------------------------------------------===//
-// QVec, QRef manipulation
+// QVec, Ref manipulation
 //===----------------------------------------------------------------------===//
 
 def quake_ExtractRefOp : QuakeOp<"extract_ref", [Pure]> {
@@ -217,7 +217,7 @@ def quake_ExtractRefOp : QuakeOp<"extract_ref", [Pure]> {
     Example:
     ```mlir
       %zero = arith.constant 0 : i32
-      %qr = quake.extract_ref %qv[%zero] : (!quake.qvec<?>, i32) -> !quake.qref
+      %qr = quake.extract_ref %qv[%zero] : (!quake.qvec<?>, i32) -> !quake.ref
     ```
   }];
 
@@ -225,7 +225,7 @@ def quake_ExtractRefOp : QuakeOp<"extract_ref", [Pure]> {
     QVecType:$qvec,
     AnySignlessIntegerOrIndex:$index
   );
-  let results = (outs QRefType:$qref);
+  let results = (outs RefType:$ref);
 
   let assemblyFormat = [{
     $qvec `[` $index `]` `:`  functional-type(operands, results) attr-dict
@@ -233,7 +233,7 @@ def quake_ExtractRefOp : QuakeOp<"extract_ref", [Pure]> {
 
   let builders = [
     OpBuilder<(ins "mlir::Value":$qvec, "mlir::Value":$index), [{
-      return build($_builder, $_state, $_builder.getType<QRefType>(), qvec,
+      return build($_builder, $_state, $_builder.getType<RefType>(), qvec,
                    index);
     }]>,
   ];
@@ -405,14 +405,14 @@ def quake_UnwrapOp : QuakeOp<"unwrap"> {
     example.
 
     ```mlir
-      %0 = ... : !quake.qref
-      %1 = quake.unwrap %0 : (!quake.qref) -> !quake.wire
+      %0 = ... : !quake.ref
+      %1 = quake.unwrap %0 : (!quake.ref) -> !quake.wire
       %2 = quake.rx (%dbl) %1 : (f64, !quake.wire) -> !quake.wire
-      quake.wrap %2 to %0 : !quake.wire, !quake.qref
+      quake.wrap %2 to %0 : !quake.wire, !quake.ref
     ```
   }];
 
-  let arguments = (ins Arg<QRefType,"",[MemRead]>:$ref_value);
+  let arguments = (ins Arg<RefType,"",[MemRead]>:$ref_value);
   let results = (outs WireType);
   let assemblyFormat = [{
     $ref_value `:` functional-type(operands, results) attr-dict
@@ -424,13 +424,13 @@ def quake_WrapOp : QuakeOp<"wrap"> {
   let description = [{
     Each data flow of a volatile wire in a quantum circuit may be associated
     and identified with an invariant and unique quantum reference value of type
-    `!qref`. The wrap operation provides a means of returning a quantum value,
+    `!ref`. The wrap operation provides a means of returning a quantum value,
     a wire, back to the reference value domain.
   }];
 
   let arguments = (ins
     WireType:$wire_value,
-    Arg<QRefType,"",[MemWrite]>:$ref_value
+    Arg<RefType,"",[MemWrite]>:$ref_value
   );
   let assemblyFormat = [{
     $wire_value `to` $ref_value `:` qualified(type(operands)) attr-dict
@@ -1156,12 +1156,12 @@ def quake_ResetOp : QuakeOp<"reset", [QuantumGate,
   let summary = "Reset the wire to the |0> (|0..0>) state.";
   let description = [{
     The `quake.reset` operation resets a wire to the |0> (|0..0>) state. It
-    may take an argument that is either a reference to a wire, type `!qref`,
+    may take an argument that is either a reference to a wire, type `!ref`,
     or a wire, type `!wire`.
 
     Example:
     ```mlir
-      quake.reset %0 : (!quake.qref) -> ()
+      quake.reset %0 : (!quake.ref) -> ()
       %2 = quake.reset %1 : (!quake.wire) -> !quake.wire
     ```
   }];

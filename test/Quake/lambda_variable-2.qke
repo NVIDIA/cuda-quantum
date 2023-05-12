@@ -43,7 +43,7 @@
 // CHECK:             } do {
 // CHECK:               %[[VAL_7:.*]] = memref.load %[[VAL_4]][] : memref<i32>
 // CHECK:               %[[VAL_8:.*]] = arith.extsi %[[VAL_7]] : i32 to i64
-// CHECK:               %[[VAL_9:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_8]]] : (!quake.qvec<4>, i64) -> !quake.qref
+// CHECK:               %[[VAL_9:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_8]]] : (!quake.qvec<4>, i64) -> !quake.ref
 // CHECK:               quake.h %[[VAL_9]] :
 // CHECK:               cc.continue
 // CHECK:             } step {
@@ -91,8 +91,8 @@ module attributes {qtx.mangled_name_map = {__nvqpp__mlirgen__kernel_a = "_ZN8ker
           } do {
             %6 = memref.load %alloca[] : memref<i32>
             %7 = arith.extsi %6 : i32 to i64
-            %8 = quake.extract_ref %1[%7] : (!quake.qvec<4>, i64) -> !quake.qref
-            quake.h %8 : (!quake.qref) -> ()
+            %8 = quake.extract_ref %1[%7] : (!quake.qvec<4>, i64) -> !quake.ref
+            quake.h %8 : (!quake.ref) -> ()
             cc.continue
           } step {
             %6 = memref.load %alloca[] : memref<i32>

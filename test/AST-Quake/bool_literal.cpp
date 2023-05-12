@@ -11,7 +11,7 @@
 
 #include <cudaq.h>
 
-// CHECK: quake.h %[[VAL_0:.*]] : (!quake.qref) -> ()
+// CHECK: quake.h %[[VAL_0:.*]] : (!quake.ref) -> ()
 // CHECK: %false = arith.constant false
 // CHECK: %[[VAL_1:.*]] = memref.alloca() : memref<i1>
 // CHECK: memref.store %false, %[[VAL_1]][] : memref<i1>

@@ -42,9 +42,9 @@ def createAllocaOp : NativeCodeCall<
       "quake::createConstantAlloca($_builder, $_loc, $0, $1)">;
 
 // %2 = constant 10 : i32
-// %3 = quake.alloca (%2 : i32) : !quake.qref<?>
+// %3 = quake.alloca (%2 : i32) : !quake.ref<?>
 // ───────────────────────────────────────────
-// %3 = quake.alloca : !quake.qref<10>
+// %3 = quake.alloca : !quake.ref<10>
 def FuseConstantToAllocaPattern : Pat<
       (quake_AllocaOp:$alloca $optSize), (createAllocaOp $alloca, $optSize),
       [(SizeIsPresentPred $optSize)]>;
@@ -60,13 +60,13 @@ def IsUnknownVec : Constraint<CPred<
 
 // %1 = constant 4 : i64
 // %2 = constant 10 : i64
-// %3 = quake.subvec (%0 : !quake.qref<12>, %1 : i64, %2 : i64) : !quake.qref<?>
+// %3 = quake.subvec (%0 : !quake.ref<12>, %1 : i64, %2 : i64) : !quake.ref<?>
 // ─────────────────────────────────────────────────────────────────────────────
 // %1 = constant 4 : i64
 // %2 = constant 10 : i64
-// %new3 = quake.subvec (%0 : !quake.qref<12>, %1 : i64, %2 : i64) :
-//     !quake.qref<7>
-// %3 = quake.relax_size %new3 : (!quake.qref<7>) -> !quake.qref<?>
+// %new3 = quake.subvec (%0 : !quake.ref<12>, %1 : i64, %2 : i64) :
+//     !quake.ref<7>
+// %3 = quake.relax_size %new3 : (!quake.ref<7>) -> !quake.ref<?>
 def FuseConstantToSubvecPattern : Pat<
       (quake_SubVecOp:$subvec $v, $lo, $hi),
       (createSizedSubVecOp $subvec, $v, $lo, $hi),

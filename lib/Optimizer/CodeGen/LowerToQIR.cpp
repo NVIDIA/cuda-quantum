@@ -51,7 +51,7 @@ public:
 
     // If this alloc is just returning a qubit
     if (auto resultType =
-            alloca.getResult().getType().dyn_cast_or_null<quake::QRefType>()) {
+            alloca.getResult().getType().dyn_cast_or_null<quake::RefType>()) {
 
       StringRef qirQubitAllocate = cudaq::opt::QIRQubitAllocate;
       auto qubitType = cudaq::opt::getQubitType(context);
@@ -107,7 +107,7 @@ public:
 
     auto retType = LLVM::LLVMVoidType::get(context);
 
-    // Could be a dealloc on a qref or a qvec
+    // Could be a dealloc on a ref or a qvec
     StringRef qirQuantumDeallocateFunc;
     Type operandType, qType = dealloc.getOperand().getType();
     if (qType.isa<quake::QVecType>()) {
@@ -503,7 +503,7 @@ public:
       return success();
     }
 
-    // We have 1 control, is it a qvec or a qref?
+    // We have 1 control, is it a qvec or a ref?
     auto control = *instOp.getControls().begin();
     qirFunctionName += "__ctl";
 
@@ -1038,9 +1038,8 @@ public:
     typeConverter.addConversion([&](quake::QVecType type) {
       return cudaq::opt::getArrayType(context);
     });
-    typeConverter.addConversion([&](quake::QRefType type) {
-      return cudaq::opt::getQubitType(context);
-    });
+    typeConverter.addConversion(
+        [&](quake::RefType type) { return cudaq::opt::getQubitType(context); });
     typeConverter.addConversion([&](cudaq::cc::LambdaType type) {
       return lambdaAsPairOfPointers(type.getContext());
     });

@@ -678,10 +678,10 @@ public:
   // code.
   bool hasLegalType(FunctionType funTy) {
     for (auto ty : funTy.getInputs())
-      if (ty.isa<quake::QRefType, quake::QVecType>())
+      if (ty.isa<quake::RefType, quake::QVecType>())
         return false;
     for (auto ty : funTy.getResults())
-      if (ty.isa<quake::QRefType, quake::QVecType>())
+      if (ty.isa<quake::RefType, quake::QVecType>())
         return false;
     return true;
   }

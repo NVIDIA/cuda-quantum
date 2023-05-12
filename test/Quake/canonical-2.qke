@@ -20,7 +20,7 @@
     %5 = quake.vec_size %arg0 : (!quake.qvec<?>) -> i64
     %c1_i64_0 = arith.constant 1 : i64
     %6 = arith.subi %5, %c1_i64_0 : i64
-    %7 = quake.extract_ref %arg0[%6] : (!quake.qvec<?>,i64) -> !quake.qref
+    %7 = quake.extract_ref %arg0[%6] : (!quake.qvec<?>,i64) -> !quake.ref
     %8 = cc.create_lambda {
       cc.scope {
         %c0 = arith.constant 0 : index
@@ -28,14 +28,14 @@
         %10 = quake.vec_size %arg0 : (!quake.qvec<?>) -> i64
         %11 = arith.index_cast %10 : i64 to index
         scf.for %arg1 = %c0 to %11 step %c1 {
-          %12 = quake.extract_ref %arg0[%arg1] : (!quake.qvec<?>,index) -> !quake.qref
-          quake.h %12 : (!quake.qref) -> ()
+          %12 = quake.extract_ref %arg0[%arg1] : (!quake.qvec<?>,index) -> !quake.ref
+          quake.h %12 : (!quake.ref) -> ()
         }
       }
     } : !cc.lambda<() -> ()>
     %9 = cc.create_lambda {
       cc.scope {
-        quake.z [%4] %7 : (!quake.qvec<?>, !quake.qref) -> ()
+        quake.z [%4] %7 : (!quake.qvec<?>, !quake.ref) -> ()
       }
     } : !cc.lambda<() -> ()>
     quake.compute_action %8, %9 : !cc.lambda<() -> ()>, !cc.lambda<() -> ()>

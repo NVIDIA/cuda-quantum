@@ -56,46 +56,46 @@ module {
     %0 = quake.alloca !quake.qvec<4>
     %1 = memref.alloc() : memref<4xi1>
     %c0 = arith.constant 0 : index
-    %2 = quake.extract_ref %0[%c0] : (!quake.qvec<4>, index) -> !quake.qref
-    quake.x %2 : (!quake.qref) -> ()
+    %2 = quake.extract_ref %0[%c0] : (!quake.qvec<4>, index) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
     %c1 = arith.constant 1 : index
-    %3 = quake.extract_ref %0[%c1] : (!quake.qvec<4>, index) -> !quake.qref
-    quake.x %3 : (!quake.qref) -> ()
+    %3 = quake.extract_ref %0[%c1] : (!quake.qvec<4>, index) -> !quake.ref
+    quake.x %3 : (!quake.ref) -> ()
     %c3 = arith.constant 3 : index
-    %4 = quake.extract_ref %0[%c3] : (!quake.qvec<4>, index) -> !quake.qref
-    quake.h %4 : (!quake.qref) -> ()
+    %4 = quake.extract_ref %0[%c3] : (!quake.qvec<4>, index) -> !quake.ref
+    quake.h %4 : (!quake.ref) -> ()
     %c2 = arith.constant 2 : index
-    %5 = quake.extract_ref %0[%c2] : (!quake.qvec<4>, index) -> !quake.qref
-    quake.x [%5] %4 : (!quake.qref, !quake.qref) -> ()
-    quake.t %2 : (!quake.qref) -> ()
-    quake.t %3 : (!quake.qref) -> ()
-    quake.t %5 : (!quake.qref) -> ()
-    quake.t<adj> %4 : (!quake.qref) -> ()
-    quake.x [%2] %3 : (!quake.qref, !quake.qref) -> ()
-    quake.x [%5] %4 : (!quake.qref, !quake.qref) -> ()
-    quake.x [%4] %2 : (!quake.qref, !quake.qref) -> ()
-    quake.x [%3] %5 : (!quake.qref, !quake.qref) -> ()
-    quake.x [%2] %3 : (!quake.qref, !quake.qref) -> ()
-    quake.x [%5] %4 : (!quake.qref, !quake.qref) -> ()
-    quake.t<adj> %2 : (!quake.qref) -> ()
-    quake.t<adj> %3 : (!quake.qref) -> ()
-    quake.t<adj> %5 : (!quake.qref) -> ()
-    quake.t %4 : (!quake.qref) -> ()
-    quake.x [%2] %3 : (!quake.qref, !quake.qref) -> ()
-    quake.x [%5] %4 : (!quake.qref, !quake.qref) -> ()
-    quake.s %4 : (!quake.qref) -> ()
-    quake.x [%4] %2 : (!quake.qref, !quake.qref) -> ()
-    quake.h %4 : (!quake.qref) -> ()
-    %6 = quake.mz %2 : (!quake.qref) -> i1
+    %5 = quake.extract_ref %0[%c2] : (!quake.qvec<4>, index) -> !quake.ref
+    quake.x [%5] %4 : (!quake.ref, !quake.ref) -> ()
+    quake.t %2 : (!quake.ref) -> ()
+    quake.t %3 : (!quake.ref) -> ()
+    quake.t %5 : (!quake.ref) -> ()
+    quake.t<adj> %4 : (!quake.ref) -> ()
+    quake.x [%2] %3 : (!quake.ref, !quake.ref) -> ()
+    quake.x [%5] %4 : (!quake.ref, !quake.ref) -> ()
+    quake.x [%4] %2 : (!quake.ref, !quake.ref) -> ()
+    quake.x [%3] %5 : (!quake.ref, !quake.ref) -> ()
+    quake.x [%2] %3 : (!quake.ref, !quake.ref) -> ()
+    quake.x [%5] %4 : (!quake.ref, !quake.ref) -> ()
+    quake.t<adj> %2 : (!quake.ref) -> ()
+    quake.t<adj> %3 : (!quake.ref) -> ()
+    quake.t<adj> %5 : (!quake.ref) -> ()
+    quake.t %4 : (!quake.ref) -> ()
+    quake.x [%2] %3 : (!quake.ref, !quake.ref) -> ()
+    quake.x [%5] %4 : (!quake.ref, !quake.ref) -> ()
+    quake.s %4 : (!quake.ref) -> ()
+    quake.x [%4] %2 : (!quake.ref, !quake.ref) -> ()
+    quake.h %4 : (!quake.ref) -> ()
+    %6 = quake.mz %2 : (!quake.ref) -> i1
     %c0_0 = arith.constant 0 : index
     memref.store %6, %1[%c0_0] : memref<4xi1>
-    %7 = quake.mz %3 : (!quake.qref) -> i1
+    %7 = quake.mz %3 : (!quake.ref) -> i1
     %c1_1 = arith.constant 1 : index
     memref.store %7, %1[%c1_1] : memref<4xi1>
-    %8 = quake.mz %5 : (!quake.qref) -> i1
+    %8 = quake.mz %5 : (!quake.ref) -> i1
     %c2_2 = arith.constant 2 : index
     memref.store %8, %1[%c2_2] : memref<4xi1>
-    %9 = quake.mz %4 : (!quake.qref) -> i1
+    %9 = quake.mz %4 : (!quake.ref) -> i1
     %c3_3 = arith.constant 3 : index
     memref.store %9, %1[%c3_3] : memref<4xi1>
     return
