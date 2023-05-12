@@ -6,10 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 
-#ifdef __clang__
-#pragma clang diagnostic ignored "-Wcovered-switch-default"
-#pragma clang diagnostic ignored "-Wsuggest-override"
-#endif
 #ifdef __GNUC__
 #pragma GCC diagnostic ignored "-Wsuggest-override"
 #endif
