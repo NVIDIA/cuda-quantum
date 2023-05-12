@@ -6,25 +6,25 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 
-// Compile and run with:
-// ```
-// nvq++ random_walk_qpe.cpp -o qpe.x && ./qpe.x
-// ```
+/// Compile and run with:
+/// ```
+/// nvq++ random_walk_qpe.cpp -o qpe.x && ./qpe.x
+/// ```
 
 #include <cudaq.h>
 
-// Here we demonstrate an algorithm expressed as a CUDA Quantum kernel
-// that incorporates non-trivial control flow and conditional
-// quantum instruction invocation.
+/// Here we demonstrate an algorithm expressed as a CUDA Quantum kernel
+/// that incorporates non-trivial control flow and conditional
+/// quantum instruction invocation.
 
 struct rwpe {
   double operator()(const int n_iter, double mu, double sigma) __qpu__ {
     int iteration = 0;
 
-    // Allocate the qubits
+    /// Allocate the qubits
     cudaq::qreg q(2);
 
-    // Alias them
+    /// Alias them
     auto &aux = q.front();
     auto &target = q.back();
 

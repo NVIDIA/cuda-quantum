@@ -1,7 +1,7 @@
-// Compile and run with:
-// ```
-// nvq++ grover.cpp -o grover.x && ./grover.x
-// ```
+/// Compile and run with:
+/// ```
+/// nvq++ grover.cpp -o grover.x && ./grover.x
+/// ```
 
 #include <cudaq.h>
 

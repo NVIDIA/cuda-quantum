@@ -6,10 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 
-// Compile and run with:
-// ```
-// nvq++ gradients.cpp -o gs.x && ./gs.x
-// ```
+/// Compile and run with:
+/// ```
+/// nvq++ gradients.cpp -o gs.x && ./gs.x
+/// ```
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
@@ -38,8 +38,8 @@ int main() {
   cudaq::spin_op h3 = h + 9.625 - 9.625 * z(2) - 3.913119 * x(1) * x(2) -
                       3.913119 * y(1) * y(2);
 
-  // Default here is COBYLA
-  // Should see many more iterations
+  /// Default here is COBYLA
+  /// Should see many more iterations
   printf("Optimize with no gradients.\n");
   cudaq::optimizers::cobyla optimizer;
   auto [opt_val, opt_params] = optimizer.optimize(
@@ -53,8 +53,8 @@ int main() {
     return std::make_tuple(x[0], x[1]);
   };
 
-  // Change the default to L-BFGS which requires gradient calculation
-  // Should see fewer iterations
+  /// Change the default to L-BFGS which requires gradient calculation
+  /// Should see fewer iterations
   printf("\nOptimize with gradients.\n");
   cudaq::gradients::parameter_shift gradient(deuteron_n3_ansatz{}, argMapper);
   gradient.shiftScalar = 1e-1;
