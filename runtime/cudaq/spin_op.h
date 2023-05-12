@@ -195,7 +195,7 @@ public:
   /// @brief The constructor, takes a single term / coefficient pair
   spin_op(std::pair<const spin_op_term, std::complex<double>> &termData);
 
-  /// @brief The constructor, takes a single term / coefficient const pair
+  /// @brief The constructor, takes a single term / coefficient constant pair
   spin_op(const std::pair<const spin_op_term, std::complex<double>> &termData);
 
   /// @brief Constructor, takes the Pauli type, the qubit site, and the

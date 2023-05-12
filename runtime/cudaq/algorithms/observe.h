@@ -170,15 +170,7 @@ inline auto distributeComputations(
 
 } // namespace details
 
-/// \brief Compute the expected value of \p H with respect to `kernel(Args...)`.
-///
-/// \tparam `Args` The variadic list of argument types for this kernel. Usually
-///         can be deduced by the compiler.
-/// \param `kernel` The instantiated ansatz callable, a CUDA Quantum kernel,
-///         cannot contain measure statements.
-/// \param `H` The hermitian `cudaq::spin_op` to compute the expected value for.
-/// \param `args` The variadic concrete arguments for evaluation of the kernel.
-/// \returns `exp` The expected value `<ansatz(args...)|H|ansatz<args...)>`.
+/// \brief Compute the expected value of `H` with respect to `kernel(Args...)`.
 template <typename QuantumKernel, typename... Args>
   requires ObserveCallValid<QuantumKernel, Args...>
 observe_result observe(QuantumKernel &&kernel, spin_op H, Args &&...args) {
@@ -207,15 +199,7 @@ observe_result observe(QuantumKernel &&kernel, spin_op H, Args &&...args) {
 }
 
 /// \brief Compute the expected value of `H` with respect to `kernel(Args...)`.
-///
-/// \tparam `Args` The variadic list of argument types for this kernel. Usually
-///         can be deduced by the compiler.
-/// \param `shots` The number of samples to collect
-/// \param `kernel` The instantiated ansatz callable, a CUDA Quantum kernel,
-///         cannot contain measure statements.
-/// \param `H` The hermitian `cudaq::spin_op` to compute the expected value for.
-/// \param `args` The variadic concrete arguments for evaluation of the kernel.
-/// \returns `exp` The expected value `<ansatz(args...)|H|ansatz<args...)>`.
+/// Specify the number of shots.
 template <typename QuantumKernel, typename... Args>
   requires ObserveCallValid<QuantumKernel, Args...>
 observe_result observe(std::size_t shots, QuantumKernel &&kernel, spin_op H,
@@ -245,16 +229,6 @@ observe_result observe(std::size_t shots, QuantumKernel &&kernel, spin_op H,
 
 /// \brief Asynchronously compute the expected value of `H` with respect to
 /// `kernel(Args...)`.
-///
-/// \tparam `Args` The variadic list of argument types for this kernel. Usually
-///         can be deduced by the compiler.
-/// \param `qpu_id` The QPU id to run asynchronously on.
-/// \param `kernel` The instantiated ansatz callable, a CUDA Quantum kernel,
-///         cannot contain measure statements.
-/// \param `H` The hermitian `cudaq::spin_op` to compute the expected value for.
-/// \param `args` The variadic concrete arguments for evaluation of the kernel.
-/// \returns exp The expected value `<ansatz(args...)|H|ansatz<args...)>` as a
-/// `std::future`.
 template <typename QuantumKernel, typename... Args>
   requires ObserveCallValid<QuantumKernel, Args...>
 auto observe_async(const std::size_t qpu_id, QuantumKernel &&kernel, spin_op &H,
@@ -272,17 +246,7 @@ auto observe_async(const std::size_t qpu_id, QuantumKernel &&kernel, spin_op &H,
 }
 
 /// \brief Asynchronously compute the expected value of `H` with respect to
-/// `kernel(Args...)`.
-///
-/// \tparam `Args` The variadic list of argument types for this kernel. Usually
-///         can be deduced by the compiler.
-/// \param `qpu_id` The QPU id to run asynchronously on.
-/// \param `kernel` The instantiated ansatz callable, a CUDA Quantum kernel,
-///         cannot contain measure statements.
-/// \param `H` The hermitian `cudaq::spin_op` to compute the expected value for.
-/// \param `args` The variadic concrete arguments for evaluation of the kernel.
-/// \returns `exp` The expected value `<ansatz(args...)|H|ansatz<args...)>` as a
-/// `std::future`.
+/// `kernel(Args...)`. Specify the shots.
 template <typename QuantumKernel, typename... Args>
   requires ObserveCallValid<QuantumKernel, Args...>
 auto observe_async(std::size_t shots, std::size_t qpu_id,
@@ -297,18 +261,8 @@ auto observe_async(std::size_t shots, std::size_t qpu_id,
       H, platform, shots, qpu_id);
 }
 
-///
 /// \brief Asynchronously compute the expected value of \p H with respect to
-/// `kernel(Args...)`. Default to the `0-th` QPU
-///
-/// \tparam `Args` The variadic list of argument types for this kernel. Usually
-///         can be deduced by the compiler.
-/// \param `kernel` The instantiated ansatz callable, a CUDA Quantum kernel,
-///         cannot contain measure statements.
-/// \param `H` The hermitian `cudaq::spin_op` to compute the expected value for.
-/// \param `args` The variadic concrete arguments for evaluation of the kernel.
-/// \returns `exp` The expected value `<ansatz(args...)|H|ansatz<args...)>` as a
-/// `std::future`.
+/// `kernel(Args...)`. Default to the `0-th` QPU.
 template <typename QuantumKernel, typename... Args>
   requires ObserveCallValid<QuantumKernel, Args...>
 auto observe_async(QuantumKernel &&kernel, spin_op &H, Args &&...args) {
@@ -356,7 +310,7 @@ std::vector<observe_result> observe_n(QuantumKernel &&kernel, spin_op H,
 /// argument packs. For a kernel with signature void(Args...), this
 /// function takes as input a set of vector<Arg>..., a vector for
 /// each argument type in the kernel signature. The vectors must be of
-/// equal length, and the ith element of each vector is used ith
+/// equal length, and the `i-th` element of each vector is used `i-th`
 /// execution of the standard observe function. Results are collected
 /// from the execution of every argument set and returned. This overload
 /// allows the number of circuit executions (shots) to be specified.
