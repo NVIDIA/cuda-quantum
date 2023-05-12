@@ -114,11 +114,11 @@ void bindSpinOperator(py::module &mod) {
       // `this_spin_op` += `cudaq.SpinOperator`
       .def(py::self += py::self,
            "Add the given `SpinOperator` to this one and return *this.")
-      // `this_spin_op` -= `cudaq.SpinOperator`
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wself-assign-overloaded"
 #endif
+      // `this_spin_op` -= `cudaq.SpinOperator`
       .def(py::self -= py::self,
            "Subtract the given `SpinOperator` from this one and return *this.")
 #ifdef __clang__
