@@ -8,12 +8,12 @@
 
 #pragma once
 
-#ifdef __GNUC__
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
 #include "llvm/ADT/SmallVector.h"
-#ifdef __GNUC__
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
 #pragma GCC diagnostic pop
 #endif
 #include "mlir/IR/BuiltinAttributes.h"

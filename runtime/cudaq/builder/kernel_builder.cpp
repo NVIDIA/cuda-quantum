@@ -130,13 +130,13 @@ initializeBuilder(MLIRContext *context,
     os << digit;
   }
 
-#ifdef __GNUC__
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstringop-overflow"
 #pragma GCC diagnostic ignored "-Wrestrict"
 #endif
   kernelName += "_" + os.str();
-#ifdef __GNUC__
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
 #pragma GCC diagnostic pop
 #endif
 

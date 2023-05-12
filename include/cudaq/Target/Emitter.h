@@ -9,12 +9,12 @@
 #pragma once
 
 #include "llvm/ADT/ScopedHashTable.h"
-#ifdef __GNUC__
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
 #include "llvm/Support/FormatVariadic.h"
-#ifdef __GNUC__
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
 #pragma GCC diagnostic pop
 #endif
 #include "mlir/IR/ValueRange.h"
