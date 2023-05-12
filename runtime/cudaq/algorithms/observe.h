@@ -33,8 +33,9 @@ concept ObserveCallValid =
 
 namespace details {
 
-/// @brief Take the input KernelFunctor (a lambda that captures runtime arguments and
-/// invokes the quantum kernel) and invoke the `spin_op` observation process.
+/// @brief Take the input KernelFunctor (a lambda that captures runtime
+/// arguments and invokes the quantum kernel) and invoke the `spin_op`
+/// observation process.
 template <typename KernelFunctor>
 std::optional<observe_result>
 runObservation(KernelFunctor &&k, cudaq::spin_op &h, quantum_platform &platform,
@@ -51,7 +52,7 @@ runObservation(KernelFunctor &&k, cudaq::spin_op &h, quantum_platform &platform,
   ctx->batchIteration = batchIteration;
   ctx->totalIterations = totalBatchIters;
 
-  // Indicate that this is an asynchronous execution 
+  // Indicate that this is an asynchronous execution
   ctx->asyncExec = futureResult != nullptr;
 
   platform.set_current_qpu(qpu_id);
@@ -94,9 +95,9 @@ runObservation(KernelFunctor &&k, cudaq::spin_op &h, quantum_platform &platform,
   return observe_result(expectationValue, h, data);
 }
 
-/// @brief Take the input KernelFunctor (a lambda that captures runtime arguments and
-/// invokes the quantum kernel) and invoke the `spin_op` observation process
-/// asynchronously
+/// @brief Take the input KernelFunctor (a lambda that captures runtime
+/// arguments and invokes the quantum kernel) and invoke the `spin_op`
+/// observation process asynchronously
 template <typename KernelFunctor>
 auto runObservationAsync(KernelFunctor &&wrappedKernel, spin_op &H,
                          quantum_platform &platform, int shots,
@@ -120,8 +121,8 @@ auto runObservationAsync(KernelFunctor &&wrappedKernel, spin_op &H,
     return async_observe_result(std::move(futureResult), &H);
   }
 
-  // If the platform is not remote, then we can handle asynchronous execution via
-  // a new worker thread.
+  // If the platform is not remote, then we can handle asynchronous execution
+  // via a new worker thread.
   KernelExecutionTask task(
       [&, qpu_id, shots, kernelName,
        kernel = std::forward<KernelFunctor>(wrappedKernel)]() mutable {

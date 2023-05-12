@@ -300,14 +300,14 @@ public:
     lhs -= std::move(rhs);
     return std::move(lhs);
   }
-  
+
   /// @brief Return the number of qubits this spin_op is on
   std::size_t num_qubits() const;
 
   /// @brief Return the number of terms in this spin_op
   std::size_t num_terms() const;
 
-  /// @brief For a spin_op with 1 term, get that terms' coefficient. 
+  /// @brief For a spin_op with 1 term, get that terms' coefficient.
   /// Throws an exception for spin_ops with > 1 terms.
   std::complex<double> get_coefficient() const;
 
