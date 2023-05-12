@@ -51,7 +51,7 @@ int main() {
 // CHECK:           %[[VAL_3:.*]] = quake.alloca[%[[VAL_2]] : i64] !quake.qvec<5>
 // CHECK:           %[[VAL_6:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_7:.*]] = arith.extsi %[[VAL_6]] : i32 to i64
-// CHECK:           %[[VAL_8:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_7]]] : (!quake.qvec<5>, i64) -> !quake.qref
+// CHECK:           %[[VAL_8:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_7]]] : (!quake.qvec<5>, i64) -> !quake.ref
 // CHECK:           quake.h %[[VAL_8]] :
 // CHECK:           cc.scope {
 // CHECK:             %[[VAL_9:.*]] = arith.constant 0 : i32
@@ -66,12 +66,12 @@ int main() {
 // CHECK:               cc.scope {
 // CHECK:                 %[[VAL_14:.*]] = memref.load %[[VAL_10]][] : memref<i32>
 // CHECK:                 %[[VAL_15:.*]] = arith.extsi %[[VAL_14]] : i32 to i64
-// CHECK:                 %[[VAL_16:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_15]]] : (!quake.qvec<5>, i64) -> !quake.qref
+// CHECK:                 %[[VAL_16:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_15]]] : (!quake.qvec<5>, i64) -> !quake.ref
 // CHECK:                 %[[VAL_17:.*]] = memref.load %[[VAL_10]][] : memref<i32>
 // CHECK:                 %[[VAL_18:.*]] = arith.constant 1 : i32
 // CHECK:                 %[[VAL_19:.*]] = arith.addi %[[VAL_17]], %[[VAL_18]] : i32
 // CHECK:                 %[[VAL_20:.*]] = arith.extsi %[[VAL_19]] : i32 to i64
-// CHECK:                 %[[VAL_21:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_20]]] : (!quake.qvec<5>, i64) -> !quake.qref
+// CHECK:                 %[[VAL_21:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_20]]] : (!quake.qvec<5>, i64) -> !quake.ref
 // CHECK:                 quake.x [%[[VAL_16]]] %[[VAL_21]] :
 // CHECK:               }
 // CHECK:               cc.continue

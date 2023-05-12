@@ -89,8 +89,8 @@ LogicalResult convertOperation(qtx::ArrayBorrowOp qtxOp) {
                                       qtxOp->getAttrDictionary());
 
   for (auto [index, wire] : llvm::zip(adaptor.getIndices(), qtxOp.getWires())) {
-    Value qref = builder.create<quake::ExtractRefOp>(adaptor.getArray(), index);
-    wire.replaceAllUsesWith(qref);
+    Value ref = builder.create<quake::ExtractRefOp>(adaptor.getArray(), index);
+    wire.replaceAllUsesWith(ref);
   }
   qtxOp.getNewArray().replaceAllUsesWith(adaptor.getArray());
   qtxOp.erase();
@@ -210,15 +210,15 @@ LogicalResult convertOperation(Operation &op) {
 //===----------------------------------------------------------------------===//
 
 /// Convert the types of the arguments. Add returns to the function for each
-/// quantum input. Currently this handles only Qrefs and not Qvecs.
+/// quantum input. Currently this handles only Refs and not Qvecs.
 void fixArgumentsAndAddReturns(qtx::CircuitOp circuitOp) {
   auto context = circuitOp->getContext();
-  auto qrefType = quake::QRefType::get(context);
+  auto refType = quake::RefType::get(context);
 
   // Iterate over the target arguments while converting types
   for (auto arg : circuitOp.getTargets()) {
     if (arg.getType().isa<qtx::WireType>()) {
-      arg.setType(qrefType);
+      arg.setType(refType);
       continue;
     }
     auto type = dyn_cast<qtx::WireArrayType>(arg.getType());

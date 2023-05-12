@@ -18,10 +18,10 @@
 ///
 /// Example: Take the following Quake operations.
 /// ```
-///   %q0 = quake.alloca : !quake.qref
-///   %q1 = quake.alloca : !quake.qref
-///   quake.x [%q0] %q1 : [!quake.qref] !quake.qref
-///   quake.z [%q1] %q0 : !quake.qref
+///   %q0 = quake.alloca : !quake.ref
+///   %q1 = quake.alloca : !quake.ref
+///   quake.x [%q0] %q1 : [!quake.ref] !quake.ref
+///   quake.z [%q1] %q0 : !quake.ref
 /// ```
 ///
 /// Both operations use `%q0` and `%q1`, but each only modifies one of them.
@@ -67,12 +67,12 @@
 ///
 /// Example: An operation with a region.
 /// ```
-///   %q0 = quake.alloca : !quake.qref
-///   %q1 = quake.alloca : !quake.qref
+///   %q0 = quake.alloca : !quake.ref
+///   %q1 = quake.alloca : !quake.ref
 ///   foo.bar {
-///     quake.x [%q0] %q1 : [!quake.qref] !quake.qref
+///     quake.x [%q0] %q1 : [!quake.ref] !quake.ref
 ///   }
-///   quake.z [%q1] %q0 : !quake.qref
+///   quake.z [%q1] %q0 : !quake.ref
 /// ```
 ///
 /// The conversion, in this case, follows the same principle as before.  The
@@ -156,7 +156,7 @@ using namespace cudaq;
 //===----------------------------------------------------------------------===//
 
 static bool hasQuantumType(Value value) {
-  return value.getType().isa<quake::QRefType>() ||
+  return value.getType().isa<quake::RefType>() ||
          value.getType().isa<quake::QVecType>();
 };
 
@@ -468,7 +468,7 @@ struct ConvertToQTXRewriterImpl {
   DenseMap<Value, SmallVector<std::pair<Block *, Value>, 4>> mappings;
 
   /// Mapping of Quake values to QTX values
-  DenseMap<Value, SmallVector<Value, 4>> extractedQrefs;
+  DenseMap<Value, SmallVector<Value, 4>> extractedRefs;
 
   /// Ordered list of block operations (creations, splits, motions).
   SmallVector<BlockAction, 4> blockActions;
@@ -491,7 +491,7 @@ struct ConvertToQTXRewriterImpl {
 ConvertToQTXRewriterImpl::ConvertToQTXRewriterImpl(
     ConvertToQTXRewriter &rewriter)
     : rewriter(rewriter), notifyCallback(nullptr) {
-  typeConverter.addConversion([](quake::QRefType type) -> Type {
+  typeConverter.addConversion([](quake::RefType type) -> Type {
     return qtx::WireType::get(type.getContext());
   });
   typeConverter.addConversion([](quake::QVecType type) -> Type {
@@ -540,14 +540,14 @@ void ConvertToQTXRewriterImpl::getRemapped(Operation *op, ValueRange oldValues,
                   [&](Value value) { return getRemapped(op, value); });
 }
 
-static Value yieldWires(Operation *op, Value qvec, ArrayRef<Value> qrefs,
+static Value yieldWires(Operation *op, Value qvec, ArrayRef<Value> refs,
                         ConvertToQTXRewriter &rewriter) {
   // Get the corresponding array
   Value array = rewriter.getRemapped(op, qvec);
 
   // Get the corresponding wires
   SmallVector<Value, 4> wires;
-  rewriter.getRemapped(op, qrefs, wires);
+  rewriter.getRemapped(op, refs, wires);
 
   // Yield the wires back and update the vector mapping to the new array
   OpBuilder::InsertionGuard guard(rewriter);
@@ -562,34 +562,34 @@ ArrayRef<Value> ConvertToQTXRewriterImpl::yieldAllWires(Operation *op,
                                                         Value qvec) {
   using Iterator = SmallVector<Value>::iterator;
 
-  auto &extractedQrefs = rewriter.getImpl().extractedQrefs[qvec];
-  if (extractedQrefs.empty())
+  auto &extractedRefs = rewriter.getImpl().extractedRefs[qvec];
+  if (extractedRefs.empty())
     return {};
 
-  Iterator it = llvm::partition(extractedQrefs, [&](Value qref) {
-    return rewriter.getImpl().dominanceInfo.dominates(qref, op);
+  Iterator it = llvm::partition(extractedRefs, [&](Value ref) {
+    return rewriter.getImpl().dominanceInfo.dominates(ref, op);
   });
 
-  if (it == extractedQrefs.begin())
+  if (it == extractedRefs.begin())
     return {};
 
-  ArrayRef<Value> qrefs(extractedQrefs.begin(), it);
-  yieldWires(op, qvec, qrefs, rewriter);
-  return qrefs;
+  ArrayRef<Value> refs(extractedRefs.begin(), it);
+  yieldWires(op, qvec, refs, rewriter);
+  return refs;
 }
 
 Value ConvertToQTXRewriterImpl::yieldPathWires(Operation *op, Value qvec) {
   using Iterator = SmallVector<Value>::iterator;
 
-  auto &extractedQrefs = rewriter.getImpl().extractedQrefs[qvec];
-  if (extractedQrefs.empty())
+  auto &extractedRefs = rewriter.getImpl().extractedRefs[qvec];
+  if (extractedRefs.empty())
     return nullptr;
 
-  Iterator it = llvm::partition(extractedQrefs, [&](Value qref) {
-    auto parentBlock = qref.getParentBlock();
-    if (!rewriter.getImpl().dominanceInfo.dominates(qref, op))
+  Iterator it = llvm::partition(extractedRefs, [&](Value ref) {
+    auto parentBlock = ref.getParentBlock();
+    if (!rewriter.getImpl().dominanceInfo.dominates(ref, op))
       return true;
-    if (!op->hasSuccessors() && op->getParentRegion() == qref.getParentRegion())
+    if (!op->hasSuccessors() && op->getParentRegion() == ref.getParentRegion())
       return false;
     for (auto succ : op->getSuccessors())
       if (!rewriter.getImpl().dominanceInfo.dominates(parentBlock, succ))
@@ -597,11 +597,11 @@ Value ConvertToQTXRewriterImpl::yieldPathWires(Operation *op, Value qvec) {
     return true;
   });
 
-  if (it == extractedQrefs.end())
+  if (it == extractedRefs.end())
     return nullptr;
 
-  ArrayRef<Value> qrefs(it, extractedQrefs.end());
-  return yieldWires(op, qvec, qrefs, rewriter);
+  ArrayRef<Value> refs(it, extractedRefs.end());
+  return yieldWires(op, qvec, refs, rewriter);
 }
 
 Value ConvertToQTXRewriterImpl::lookupRecursive(
@@ -649,7 +649,7 @@ Value ConvertToQTXRewriterImpl::lookupRecursive(
 
   // The predecessor mappings are not the same, and thus we will need to add
   // a new argument to the block.  First, we need to figure out its type.
-  Type type = oldValue.getType().isa<quake::QRefType>()
+  Type type = oldValue.getType().isa<quake::RefType>()
                   ? qtx::WireType::get(oldValue.getContext())
                   : nullptr;
 
@@ -875,15 +875,15 @@ struct WireReborrower {
     assert(!op->hasTrait<OpTrait::IsTerminator>() &&
            "Cannot re-borrow wires after a terminator");
     SmallVector<Value, 4> indices;
-    for (auto qref : extracted) {
-      auto extractOp = dyn_cast<quake::ExtractRefOp>(qref.getDefiningOp());
+    for (auto ref : extracted) {
+      auto extractOp = dyn_cast<quake::ExtractRefOp>(ref.getDefiningOp());
       indices.push_back(extractOp.getIndex());
     }
     Value array = rewriter.getRemapped(op, qvec);
     auto borrow =
         rewriter.create<qtx::ArrayBorrowOp>(op->getLoc(), indices, array);
-    for (auto [qref, wire] : llvm::zip_equal(extracted, borrow.getWires()))
-      rewriter.mapOrRemap(qref, wire);
+    for (auto [ref, wire] : llvm::zip_equal(extracted, borrow.getWires()))
+      rewriter.mapOrRemap(ref, wire);
     rewriter.mapOrRemap(qvec, borrow.getNewArray());
   }
 
@@ -908,10 +908,10 @@ computeTerminatorUsedQuantumValues(Operation *op,
       continue;
     rewriterImpl.yieldPathWires(op, value);
     if (useInfo.hasWriteEffect)
-      llvm::copy_if(rewriterImpl.extractedQrefs[value],
-                    std::back_inserter(usedQuantumValues), [&](Value qref) {
-                      return rewriterImpl.dominanceInfo.dominates(qref, op) &&
-                             qref.getParentRegion() != op->getParentRegion();
+      llvm::copy_if(rewriterImpl.extractedRefs[value],
+                    std::back_inserter(usedQuantumValues), [&](Value ref) {
+                      return rewriterImpl.dominanceInfo.dominates(ref, op) &&
+                             ref.getParentRegion() != op->getParentRegion();
                     });
   }
   return success();
@@ -930,9 +930,9 @@ computeOpRegionUsedQuantumValues(Operation *op,
     auto value = useInfo.value;
     usedQuantumValues.push_back(value);
     if (value.getType().isa<quake::QVecType>() && useInfo.hasWriteEffect) {
-      llvm::copy_if(rewriterImpl.extractedQrefs[value],
-                    std::back_inserter(usedQuantumValues), [&](Value qref) {
-                      return rewriterImpl.dominanceInfo.dominates(qref, op);
+      llvm::copy_if(rewriterImpl.extractedRefs[value],
+                    std::back_inserter(usedQuantumValues), [&](Value ref) {
+                      return rewriterImpl.dominanceInfo.dominates(ref, op);
                     });
     }
   }
@@ -967,13 +967,13 @@ cudaq::ConvertToQTXPattern::matchAndRewrite(Operation *op,
   // Handle special cases of using quantum vector as operands
   SmallVector<WireReborrower, 4> borrowers;
   if (auto qextract = dyn_cast<quake::ExtractRefOp>(op)) {
-    auto &extracted = rewriterImpl.extractedQrefs[qextract.getQvec()];
-    extracted.push_back(qextract.getQref());
+    auto &extracted = rewriterImpl.extractedRefs[qextract.getQvec()];
+    extracted.push_back(qextract.getRef());
   } else if (auto dealloc = dyn_cast<quake::DeallocOp>(op)) {
-    auto qrefOrQvec = dealloc.getQregOrVec();
-    if (qrefOrQvec.getType().isa<quake::QVecType>())
+    auto refOrQvec = dealloc.getQregOrVec();
+    if (refOrQvec.getType().isa<quake::QVecType>())
       // Okay to discard as we don't need to borrow wires again.
-      (void)rewriterImpl.yieldAllWires(op, qrefOrQvec);
+      (void)rewriterImpl.yieldAllWires(op, refOrQvec);
   } else {
     for (auto operand : op->getOperands()) {
       if (operand.getType().isa<quake::QVecType>()) {

@@ -17,7 +17,7 @@ module {
     %c42_i64 = arith.constant 42 : i64
 
     // CHECK: %[[Q0_W0:.*]] = qtx.alloca : !qtx.wire
-    %q0 = quake.alloca !quake.qref
+    %q0 = quake.alloca !quake.ref
 
     %alloca = memref.alloca() : memref<i64>
     memref.store %c0_i64, %alloca[] : memref<i64>
@@ -31,7 +31,7 @@ module {
     } do {
       // CHECK: ^bb0(%[[Q0_W2:.*]]: !qtx.wire):
       // CHECK: %[[Q0_W3:.*]] = qtx.x %[[Q0_W2]]
-      quake.x %q0 : (!quake.qref) -> ()
+      quake.x %q0 : (!quake.ref) -> ()
       // CHECK: cc.continue %[[Q0_W3]]
       cc.continue
     } step {
@@ -42,7 +42,7 @@ module {
       // CHECK: cc.continue %[[Q0_W4]]
     }
     // CHECK: %[[Q0_W6:.*]] = qtx.z %[[Q0_W5]]
-    quake.z %q0 : (!quake.qref) -> ()
+    quake.z %q0 : (!quake.ref) -> ()
     return
   }
 
@@ -56,7 +56,7 @@ module {
     %qvec = quake.alloca  !quake.qvec<2>
 
     // CHECK: %[[Q0_W0:.*]], %[[A_1:.*]] = qtx.array_borrow %[[IDX_0:.*]] from %[[A_0]]
-    %q0 = quake.extract_ref %qvec[%c0_i64] : (!quake.qvec<2> ,i64) -> !quake.qref
+    %q0 = quake.extract_ref %qvec[%c0_i64] : (!quake.qvec<2> ,i64) -> !quake.ref
 
     %alloca = memref.alloca() : memref<i64>
     memref.store %c0_i64, %alloca[] : memref<i64>
@@ -71,7 +71,7 @@ module {
       // CHECK: ^bb0(%[[A_3:.*]]: !qtx.wire_array
       %3 = memref.load %alloca[] : memref<i64>
       // CHECK: %[[QX_W0:.*]], %[[A_4:.*]] = qtx.array_borrow %{{.*}} from %[[A_3]]
-      %4 = quake.extract_ref %qvec[%3] : (!quake.qvec<2> ,i64) -> !quake.qref
+      %4 = quake.extract_ref %qvec[%3] : (!quake.qvec<2> ,i64) -> !quake.ref
 
       // CHECK: %[[A_5:.*]] = qtx.array_yield %[[QX_W0]] to %[[A_4]]
       // CHECK: cc.continue %[[A_5]]

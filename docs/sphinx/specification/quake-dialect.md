@@ -43,8 +43,8 @@ func.func foo(%qvec : !quake.qvec<2>) {
     // Boilerplate to extract each qubit from the vector
     %c0 = arith.constant 0 : index
     %c1 = arith.constant 1 : index
-    %q0 = quake.qextract %qvec[%c0 : index] : !quake.qvec<2> -> !quake.qref
-    %q1 = quake.qextract %qvec[%c1 : index] : !quake.qvec<2> -> !quake.qref
+    %q0 = quake.qextract %qvec[%c0 : index] : !quake.qvec<2> -> !quake.ref
+    %q1 = quake.qextract %qvec[%c1 : index] : !quake.qvec<2> -> !quake.ref
 
     // We apply some operators to those extracted qubits
     ... bunch of operators using %q0 and %q1 ...

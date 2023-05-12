@@ -15,19 +15,19 @@ module attributes {qtx.mangled_name_map = {__nvqpp__mlirgen__ansatz = "_ZN6ansat
     %0 = memref.alloca() : memref<f64>
     memref.store %arg0, %0[] : memref<f64>
     %1 = quake.alloca  !quake.qvec<2>
-    %2 = quake.extract_ref %1[%c0_i64] : (!quake.qvec<2>,i64) -> !quake.qref
-    quake.x %2 : (!quake.qref) -> ()
+    %2 = quake.extract_ref %1[%c0_i64] : (!quake.qvec<2>,i64) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
     %3 = memref.load %0[] : memref<f64>
-    %4 = quake.extract_ref %1[%c1_i64] : (!quake.qvec<2>,i64) -> !quake.qref
-    quake.ry (%3) %4 : (f64, !quake.qref) -> ()
-    %5 = quake.extract_ref %1[%c1_i64] : (!quake.qvec<2>,i64) -> !quake.qref
-    %6 = quake.extract_ref %1[%c0_i64] : (!quake.qvec<2>,i64) -> !quake.qref
-    quake.x [%5] %6 : (!quake.qref,!quake.qref) -> ()
+    %4 = quake.extract_ref %1[%c1_i64] : (!quake.qvec<2>,i64) -> !quake.ref
+    quake.ry (%3) %4 : (f64, !quake.ref) -> ()
+    %5 = quake.extract_ref %1[%c1_i64] : (!quake.qvec<2>,i64) -> !quake.ref
+    %6 = quake.extract_ref %1[%c0_i64] : (!quake.qvec<2>,i64) -> !quake.ref
+    quake.x [%5] %6 : (!quake.ref,!quake.ref) -> ()
     return
   }
 }
 
 // CHECK: quake.h %[[VAL_4:.*]]
 // CHECK: quake.h %[[VAL_5:.*]]
-// CHECK: %[[VAL_0:.*]] = quake.mz %[[VAL_1:.*]] : (!quake.qref) -> i1
-// CHECK: %[[VAL_2:.*]] = quake.mz %[[VAL_3:.*]] : (!quake.qref) -> i1
+// CHECK: %[[VAL_0:.*]] = quake.mz %[[VAL_1:.*]] : (!quake.ref) -> i1
+// CHECK: %[[VAL_2:.*]] = quake.mz %[[VAL_3:.*]] : (!quake.ref) -> i1

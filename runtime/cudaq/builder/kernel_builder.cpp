@@ -89,7 +89,7 @@ KernelBuilderType mapArgToType(std::vector<float> &e) {
 
 KernelBuilderType mapArgToType(cudaq::qubit &e) {
   return KernelBuilderType(
-      [](MLIRContext *ctx) mutable { return quake::QRefType::get(ctx); });
+      [](MLIRContext *ctx) mutable { return quake::RefType::get(ctx); });
 }
 
 KernelBuilderType mapArgToType(cudaq::qreg<> &e) {
@@ -376,10 +376,10 @@ void handleOneQubitBroadcast(ImplicitLocOpBuilder &builder, Value qvec,
   Value rank = builder.create<arith::IndexCastOp>(indexTy, size);
   auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &,
                          Block &block) {
-    Value qref =
+    Value ref =
         builder.create<quake::ExtractRefOp>(loc, qvec, block.getArgument(0));
 
-    builder.create<QuakeOp>(loc, adjoint, ValueRange(), ValueRange(), qref);
+    builder.create<QuakeOp>(loc, adjoint, ValueRange(), ValueRange(), ref);
   };
   cudaq::opt::factory::createCountedLoop(builder, loc, rank, bodyBuilder);
 }
@@ -438,13 +438,13 @@ template <typename QuakeMeasureOp>
 QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
                         std::string regName) {
   auto type = value.getType();
-  if (!type.isa<quake::QRefType, quake::QVecType>())
+  if (!type.isa<quake::RefType, quake::QVecType>())
     throw std::runtime_error("Invalid parameter passed to mz.");
 
   cudaq::info("kernel_builder apply measurement");
 
   auto i1Ty = builder.getI1Type();
-  if (type.isa<quake::QRefType>()) {
+  if (type.isa<quake::RefType>()) {
     Value measureResult = builder.template create<QuakeMeasureOp>(
         i1Ty, value, builder.getStringAttr(regName));
     return QuakeValue(builder, measureResult);
@@ -496,7 +496,7 @@ QuakeValue mz(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQreg,
 
 void reset(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQreg) {
   auto value = qubitOrQreg.getValue();
-  if (isa<quake::QRefType>(value.getType())) {
+  if (isa<quake::RefType>(value.getType())) {
     builder.create<quake::ResetOp>(TypeRange{}, value);
     return;
   }
@@ -509,9 +509,9 @@ void reset(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQreg) {
     Value rank = builder.create<arith::IndexCastOp>(indexTy, size);
     auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &,
                            Block &block) {
-      Value qref = builder.create<quake::ExtractRefOp>(loc, target,
+      Value ref = builder.create<quake::ExtractRefOp>(loc, target,
                                                        block.getArgument(0));
-      builder.create<quake::ResetOp>(loc, TypeRange{}, qref);
+      builder.create<quake::ResetOp>(loc, TypeRange{}, ref);
     };
     cudaq::opt::factory::createCountedLoop(builder, builder.getUnknownLoc(),
                                            rank, bodyBuilder);
@@ -554,7 +554,7 @@ std::string name(std::string_view kernelName) {
 }
 
 bool isQubitType(Type ty) {
-  if (ty.isa<quake::QRefType, quake::QVecType>())
+  if (ty.isa<quake::RefType, quake::QVecType>())
     return true;
   if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(ty))
     return isQubitType(vecTy.getElementType());

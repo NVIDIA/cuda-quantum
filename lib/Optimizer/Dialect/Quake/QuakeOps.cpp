@@ -270,11 +270,11 @@ void quake::getOperatorEffectsImpl(
         &effects,
     ValueRange controls, ValueRange targets) {
   for (auto v : controls)
-    if (isa<quake::QRefType, quake::QVecType>(v.getType()))
+    if (isa<quake::RefType, quake::QVecType>(v.getType()))
       effects.emplace_back(MemoryEffects::Read::get(), v,
                            SideEffects::DefaultResource::get());
   for (auto v : targets)
-    if (isa<quake::QRefType, quake::QVecType>(v.getType())) {
+    if (isa<quake::RefType, quake::QVecType>(v.getType())) {
       effects.emplace_back(MemoryEffects::Read::get(), v,
                            SideEffects::DefaultResource::get());
       effects.emplace_back(MemoryEffects::Write::get(), v,

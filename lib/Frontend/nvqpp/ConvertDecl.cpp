@@ -124,7 +124,7 @@ void QuakeBridgeVisitor::addArgumentSymbols(
       auto loc = toLocation(argVal);
       auto parmTy = entryBlock->getArgument(index).getType();
       if (parmTy.isa<cc::LambdaType, cc::StdvecType, LLVM::LLVMStructType,
-                     FunctionType, quake::QRefType, quake::QVecType>()) {
+                     FunctionType, quake::RefType, quake::QVecType>()) {
         symbolTable.insert(name, entryBlock->getArgument(index));
       } else {
         auto memRefTy = MemRefType::get(std::nullopt, parmTy);
@@ -260,8 +260,8 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
     return pushValue(qreg);
   }
 
-  if (auto qType = dyn_cast<quake::QRefType>(type)) {
-    // Variable is of !quake.qref type.
+  if (auto qType = dyn_cast<quake::RefType>(type)) {
+    // Variable is of !quake.ref type.
     if (x->hasInit() && !valueStack.empty()) {
       auto val = popValue();
       symbolTable.insert(name, val);

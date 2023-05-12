@@ -22,7 +22,7 @@
 ///
 /// Example: Take the following Quake operation.
 /// ```
-///   quake.x [%q0] %q1 : [!quake.qref] !quake.qref
+///   quake.x [%q0] %q1 : [!quake.ref] !quake.ref
 /// ```
 ///
 /// In QTX, this operation has the form:

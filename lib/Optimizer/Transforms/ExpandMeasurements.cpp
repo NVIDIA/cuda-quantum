@@ -39,7 +39,7 @@ public:
     // in.
     unsigned numQubits = 0u;
     for (auto v : measureOp.getTargets())
-      if (v.getType().template isa<quake::QRefType>())
+      if (v.getType().template isa<quake::RefType>())
         ++numQubits;
     Value totalToRead =
         rewriter.template create<arith::ConstantIndexOp>(loc, numQubits);
@@ -66,7 +66,7 @@ public:
     Value buffOff = rewriter.template create<arith::ConstantIndexOp>(loc, 0);
     Value one = rewriter.template create<arith::ConstantIndexOp>(loc, 1);
     for (auto v : measureOp.getTargets()) {
-      if (v.getType().template isa<quake::QRefType>()) {
+      if (v.getType().template isa<quake::RefType>()) {
         auto bit = rewriter.template create<A>(loc, i1Ty, v);
         Value offCast =
             rewriter.template create<arith::IndexCastOp>(loc, i64Ty, buffOff);

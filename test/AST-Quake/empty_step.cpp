@@ -41,16 +41,16 @@ __qpu__ void test(cudaq::qspan<> a, cudaq::qspan<> b) {
 // CHECK:                 %[[VAL_12:.*]] = arith.extui %[[VAL_11]] : i32 to i64
 // CHECK:                 %[[VAL_13:.*]] = arith.constant 1 : i64
 // CHECK:                 %[[VAL_14:.*]] = arith.subi %[[VAL_12]], %[[VAL_13]] : i64
-// CHECK:                 %[[VAL_15:.*]] = quake.extract_ref %[[VAL_0]][%[[VAL_14]]] : (!quake.qvec<?>, i64) -> !quake.qref
+// CHECK:                 %[[VAL_15:.*]] = quake.extract_ref %[[VAL_0]][%[[VAL_14]]] : (!quake.qvec<?>, i64) -> !quake.ref
 // CHECK:                 %[[VAL_16:.*]] = memref.load %[[VAL_4]][] : memref<i32>
 // CHECK:                 %[[VAL_17:.*]] = arith.extui %[[VAL_16]] : i32 to i64
 // CHECK:                 %[[VAL_18:.*]] = arith.constant 1 : i64
 // CHECK:                 %[[VAL_19:.*]] = arith.subi %[[VAL_17]], %[[VAL_18]] : i64
-// CHECK:                 %[[VAL_20:.*]] = quake.extract_ref %[[VAL_1]][%[[VAL_19]]] : (!quake.qvec<?>, i64) -> !quake.qref
+// CHECK:                 %[[VAL_20:.*]] = quake.extract_ref %[[VAL_1]][%[[VAL_19]]] : (!quake.qvec<?>, i64) -> !quake.ref
 // CHECK:                 %[[VAL_21:.*]] = memref.load %[[VAL_4]][] : memref<i32>
 // CHECK:                 %[[VAL_22:.*]] = arith.extui %[[VAL_21]] : i32 to i64
-// CHECK:                 %[[VAL_23:.*]] = quake.extract_ref %[[VAL_0]][%[[VAL_22]]] : (!quake.qvec<?>, i64) -> !quake.qref
-// CHECK:                 func.call @__nvqpp__mlirgen__function_uma._Z3umaRN5cudaq5quditILm2EEES2_S2_(%[[VAL_15]], %[[VAL_20]], %[[VAL_23]]) : (!quake.qref, !quake.qref, !quake.qref) -> ()
+// CHECK:                 %[[VAL_23:.*]] = quake.extract_ref %[[VAL_0]][%[[VAL_22]]] : (!quake.qvec<?>, i64) -> !quake.ref
+// CHECK:                 func.call @__nvqpp__mlirgen__function_uma._Z3umaRN5cudaq5quditILm2EEES2_S2_(%[[VAL_15]], %[[VAL_20]], %[[VAL_23]]) : (!quake.ref, !quake.ref, !quake.ref) -> ()
 // CHECK:               }
 // CHECK:               cc.continue
 // CHECK:             } step {
