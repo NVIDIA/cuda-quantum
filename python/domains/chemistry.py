@@ -26,14 +26,14 @@ def create_molecular_hamiltonian(geometry: list,
                                  n_active_electrons=None,
                                  n_active_orbitals=None):
     '''
-    Create the molecular hamiltonian corresponding to the provided 
+    Create the molecular Hamiltonian corresponding to the provided 
     geometry, basis set, multiplicity, and charge.  One can also specify the 
     number of active electrons and orbitals, thereby approximating the 
-    molecular hamiltonian and freezing core orbitals. This function delegates 
+    molecular Hamiltonian and freezing core orbitals. This function delegates 
     to the `OpenFermion-PySCF` package and will throw an error if that module is 
     not available.
 
-    Args: 
+    Arguments: 
       geometry: The geometry should be provided as a list of tuples, 
         where each tuple element contains the atom name and a tuple
         of atom coordinates, e.g. [('H', (0.,0.,0.)), ('H', (0.,0.,.7474))].
@@ -44,7 +44,7 @@ def create_molecular_hamiltonian(geometry: list,
       n_active_orbitals: The number of spatial orbitals in the active space. 
 
     Returns: 
-      A tuple containing the cudaq.SpinOperator representation for the molecular 
+      A tuple containing the `cudaq.SpinOperator` representation for the molecular 
       Hamiltonian and the raw molecular data. 
     '''
     of, ofpyscf = tryImport()
@@ -80,14 +80,14 @@ def __internal_cpp_create_molecular_hamiltonian(geometry: list,
     Internal function meant for integration with CUDA Quantum C++. 
     (Does not require `import cudaq`)
     
-    Create the molecular hamiltonian corresponding to the provided 
+    Create the molecular Hamiltonian corresponding to the provided 
     geometry, basis set, multiplicity, and charge.  One can also specify the 
     number of active electrons and orbitals, thereby approximating the 
-    molecular hamiltonian and freezing core orbitals. This function delegates 
-    to the OpenFermion-PySCF package and will throw an error if that module is 
+    molecular Hamiltonian and freezing core orbitals. This function delegates 
+    to the `OpenFermion-PySCF` package and will throw an error if that module is 
     not available.
 
-    Args: 
+    Arguments: 
       geometry: The geometry should be provided as a list of tuples, 
         where each tuple element contains the atom name and a tuple
         of atom coordinates, e.g. [('H', (0.,0.,0.)), ('H', (0.,0.,.7474))].
@@ -98,7 +98,7 @@ def __internal_cpp_create_molecular_hamiltonian(geometry: list,
       n_active_orbitals: The number of spatial orbitals in the active space. 
 
     Returns: 
-      A tuple containing the hamiltonian representation for the molecular 
+      A tuple containing the Hamiltonian representation for the molecular 
       Hamiltonian and the raw molecular data. 
     '''
     of, ofpyscf = tryImport()
