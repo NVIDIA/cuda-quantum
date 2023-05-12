@@ -307,8 +307,8 @@ std::vector<observe_result> observe_n(QuantumKernel &&kernel, spin_op H,
 }
 
 /// @brief Run the standard observe functionality over a set of N
-/// argument packs. For a kernel with signature void(Args...), this
-/// function takes as input a set of vector<Arg>..., a vector for
+/// argument packs. For a kernel with signature `void(Args...)`, this
+/// function takes as input a set of `vector<Arg>...`, a vector for
 /// each argument type in the kernel signature. The vectors must be of
 /// equal length, and the `i-th` element of each vector is used `i-th`
 /// execution of the standard observe function. Results are collected
