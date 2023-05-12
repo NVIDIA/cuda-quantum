@@ -205,14 +205,14 @@ public:
   }
 };
 
-/// Convert a QExtractOp to the respective QIR.
+/// Convert a ExtractRefOp to the respective QIR.
 class ExtractQubitOpLowering
-    : public ConvertOpToLLVMPattern<quake::QExtractOp> {
+    : public ConvertOpToLLVMPattern<quake::ExtractRefOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
   LogicalResult
-  matchAndRewrite(quake::QExtractOp extract, OpAdaptor adaptor,
+  matchAndRewrite(quake::ExtractRefOp extract, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = extract->getLoc();
     auto parentModule = extract->getParentOfType<ModuleOp>();

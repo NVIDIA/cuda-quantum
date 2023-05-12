@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "PassDetails.h"
 #include "QuakeToQTXConverter.h"
@@ -75,12 +75,12 @@ public:
   }
 };
 
-class QExtractConverter final
-    : public ConvertOpToQTXPattern<quake::QExtractOp> {
+class ExtractRefConverter final
+    : public ConvertOpToQTXPattern<quake::ExtractRefOp> {
 public:
   using ConvertOpToQTXPattern::ConvertOpToQTXPattern;
 
-  LogicalResult matchAndRewrite(quake::QExtractOp op,
+  LogicalResult matchAndRewrite(quake::ExtractRefOp op,
                                 ArrayRef<Value> implicitUsedQuantumValues,
                                 OpAdaptor adaptor,
                                 ConvertToQTXRewriter &rewriter) const override {
@@ -352,7 +352,7 @@ public:
       AllocaConverter,
       DeallocConverter,
       ResetConverter,
-      QExtractConverter,
+      ExtractRefConverter,
       OperatorConverter<quake::HOp, qtx::HOp>,
       OperatorConverter<quake::SOp, qtx::SOp>,
       OperatorConverter<quake::TOp, qtx::TOp>,

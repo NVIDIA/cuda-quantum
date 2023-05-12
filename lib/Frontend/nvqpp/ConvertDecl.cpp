@@ -274,7 +274,7 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
     auto qregSizeOne = builder.create<quake::AllocaOp>(
         loc, quake::QVecType::get(builder.getContext(), 1), qregSizeVal);
     Value addressTheQubit =
-        builder.create<quake::QExtractOp>(loc, qregSizeOne, zero);
+        builder.create<quake::ExtractRefOp>(loc, qregSizeOne, zero);
     symbolTable.insert(name, addressTheQubit);
     return pushValue(addressTheQubit);
   }

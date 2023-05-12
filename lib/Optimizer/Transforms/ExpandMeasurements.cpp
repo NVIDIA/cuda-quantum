@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
@@ -81,7 +81,8 @@ public:
             rewriter, loc, vecSz,
             [&](OpBuilder &builder, Location loc, Region &, Block &block) {
               Value iv = block.getArgument(0);
-              Value qv = builder.template create<quake::QExtractOp>(loc, v, iv);
+              Value qv =
+                  builder.template create<quake::ExtractRefOp>(loc, v, iv);
               auto bit = builder.template create<A>(loc, i1Ty, qv);
               auto offset =
                   builder.template create<arith::AddIOp>(loc, iv, buffOff);

@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
@@ -80,20 +80,20 @@ LogicalResult quake::AllocaOp::verify() {
 }
 
 //===----------------------------------------------------------------------===//
-// QExtract
+// ExtractRef
 //===----------------------------------------------------------------------===//
 
-OpFoldResult quake::QExtractOp::fold(FoldAdaptor adaptor) {
+OpFoldResult quake::ExtractRefOp::fold(FoldAdaptor adaptor) {
   auto qvec = getQvec();
   auto op = getOperation();
   for (auto user : qvec.getUsers()) {
     if (user == op || op->getBlock() != user->getBlock() ||
         op->isBeforeInBlock(user))
       continue;
-    if (auto qextractOp = dyn_cast<quake::QExtractOp>(user)) {
+    if (auto extractRefOp = dyn_cast<quake::ExtractRefOp>(user)) {
       // Compare the constant extract index values
       // Get the first index and its defining op
-      auto first = qextractOp.getIndex();
+      auto first = extractRefOp.getIndex();
       auto defFirst = first.getDefiningOp();
 
       // Get the second index and its defining op
@@ -113,7 +113,7 @@ OpFoldResult quake::QExtractOp::fold(FoldAdaptor adaptor) {
 
       if (firstIdx.has_value() && secondIdx.has_value() &&
           firstIdx.value() == secondIdx.value())
-        return qextractOp.getResult();
+        return extractRefOp.getResult();
     }
   }
   return {};

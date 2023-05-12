@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "UnitaryBuilder.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.h"
@@ -26,7 +26,7 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
     if (auto allocOp = dyn_cast<quake::AllocaOp>(op)) {
       return allocateQubits(allocOp.getResult());
     }
-    if (auto extractOp = dyn_cast<quake::QExtractOp>(op)) {
+    if (auto extractOp = dyn_cast<quake::ExtractRefOp>(op)) {
       return visitExtractOp(extractOp);
     }
     if (auto optor = dyn_cast<quake::OperatorInterface>(op)) {
@@ -51,7 +51,7 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
 // Visitors
 //===----------------------------------------------------------------------===//
 
-WalkResult UnitaryBuilder::visitExtractOp(quake::QExtractOp op) {
+WalkResult UnitaryBuilder::visitExtractOp(quake::ExtractRefOp op) {
   auto qvec = op.getQvec();
   auto qubits = qubitMap[qvec];
   auto index = getValueAsInt(op.getIndex());

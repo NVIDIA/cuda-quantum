@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
@@ -89,7 +89,7 @@ LogicalResult convertOperation(qtx::ArrayBorrowOp qtxOp) {
                                       qtxOp->getAttrDictionary());
 
   for (auto [index, wire] : llvm::zip(adaptor.getIndices(), qtxOp.getWires())) {
-    Value qref = builder.create<quake::QExtractOp>(adaptor.getArray(), index);
+    Value qref = builder.create<quake::ExtractRefOp>(adaptor.getArray(), index);
     wire.replaceAllUsesWith(qref);
   }
   qtxOp.getNewArray().replaceAllUsesWith(adaptor.getArray());
