@@ -64,7 +64,7 @@ def test_kernel_control_no_args(qubit_count):
 # CHECK:             cc.condition %[[VAL_6]](%[[VAL_5]] : index)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_7:.*]]: index):
-# CHECK:             %[[VAL_8:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_7]]] : (!quake.veq<5>, index) -> !quake.ref
+# CHECK:             %[[VAL_8:.*]] = quake.extract_ref %[[VAL_3]][%[[VAL_7]]] : (!quake.veq<5>, index) -> !quake.ref
 # CHECK:             quake.x %[[VAL_8]] : (!quake.ref) -> ()
 # CHECK:             cc.continue %[[VAL_7]] : index
 # CHECK:           } step {
@@ -320,10 +320,9 @@ def test_sample_control_qreg_args():
 # CHECK:           %[[VAL_1:.*]] = arith.constant 2 : i64
 # CHECK:           %[[VAL_2:.*]] = arith.constant 1 : index
 # CHECK:           %[[VAL_3:.*]] = arith.constant 0 : index
-# CHECK:           %[[VAL_4:.*]] = arith.constant 0 : i32
 # CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<2>
 # CHECK:           %[[VAL_6:.*]] = quake.alloca !quake.ref
-# CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_5]]{{\[}}%[[VAL_4]]] : (!quake.veq<2>, i32) -> !quake.ref
+# CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_5]][0] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           quake.x %[[VAL_7]] : (!quake.ref) -> ()
 # CHECK:           quake.x %[[VAL_6]] : (!quake.ref) -> ()
 # CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}{{\[}}%[[VAL_5]]] %[[VAL_6]] : (!quake.veq<2>, !quake.ref) -> ()
@@ -333,7 +332,7 @@ def test_sample_control_qreg_args():
 # CHECK:             cc.condition %[[VAL_11]](%[[VAL_10]] : index)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_12:.*]]: index):
-# CHECK:             %[[VAL_13:.*]] = quake.extract_ref %[[VAL_5]]{{\[}}%[[VAL_12]]] : (!quake.veq<2>, index) -> !quake.ref
+# CHECK:             %[[VAL_13:.*]] = quake.extract_ref %[[VAL_5]][%[[VAL_12]]] : (!quake.veq<2>, index) -> !quake.ref
 # CHECK:             %[[VAL_14:.*]] = quake.mz %[[VAL_13]] : (!quake.ref) -> i1
 # CHECK:             %[[VAL_15:.*]] = arith.index_cast %[[VAL_12]] : index to i64
 # CHECK:             %[[VAL_16:.*]] = llvm.getelementptr %[[VAL_8]]{{\[}}%[[VAL_15]]] : (!llvm.ptr<i1>, i64) -> !llvm.ptr<i1>
