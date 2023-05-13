@@ -36,18 +36,32 @@ def ForwardConstantVeqSizePattern : Pat<
 
 def SizeIsPresentPred : Constraint<CPred<
       "$0.size() == 1 &&"
-      " dyn_cast_or_null<mlir::arith::ConstantOp>($0[0].getDefiningOp())">>;
+      " dyn_cast_or_null<mlir::arith::ConstantIntOp>($0[0].getDefiningOp())">>;
 
 def createAllocaOp : NativeCodeCall<
       "quake::createConstantAlloca($_builder, $_loc, $0, $1)">;
 
 // %2 = constant 10 : i32
-// %3 = quake.alloca (%2 : i32) : !quake.ref<?>
+// %3 = quake.alloca [%2 : i32] !quake.veq<?>
 // ───────────────────────────────────────────
-// %3 = quake.alloca : !quake.ref<10>
+// %3 = quake.alloca !quake.veq<10>
 def FuseConstantToAllocaPattern : Pat<
       (quake_AllocaOp:$alloca $optSize), (createAllocaOp $alloca, $optSize),
       [(SizeIsPresentPred $optSize)]>;
+
+def createExtractRefOp : NativeCodeCall<
+      "$_builder.create<quake::ExtractRefOp>($_loc, $0,"
+      " cast<mlir::arith::ConstantIntOp>($1[0].getDefiningOp()).getValue()."
+      " cast<mlir::IntegerAttr>().getInt())">;
+
+// %2 = constant 10 : i32
+// %3 = quake.extract_ref %1[%2] : (!quake.veq<?>, i32) -> !quake.ref
+// ───────────────────────────────────────────
+// %3 = quake.extract_ref %1[10] : (!quake.veq<?>) -> !quake.ref
+def FuseConstantToExtractRefPattern : Pat<
+      (quake_ExtractRefOp $veq, $index, $rawIndex),
+      (createExtractRefOp $veq, $index),
+      [(SizeIsPresentPred $index)]>;
 
 def createSizedSubVecOp : NativeCodeCall<
       "quake::createSizedSubVecOp($_builder, $_loc, $0, $1, $2, $3)">;

@@ -228,18 +228,23 @@ public:
         qir_array_get_element_ptr_1d, qbit_element_ptr_type,
         {array_qbit_type, rewriter.getIntegerType(64)}, parentModule);
 
-    auto idx_operand = adaptor.getOperands()[1];
+    Value idx_operand;
+    auto i64Ty = rewriter.getI64Type();
+    if (extract.hasConstantIndex()) {
+      idx_operand = rewriter.create<arith::ConstantIntOp>(
+          loc, extract.getConstantIndex(), i64Ty);
+    } else {
+      idx_operand = adaptor.getOperands()[1];
 
-    if (idx_operand.getType().isIntOrFloat() &&
-        idx_operand.getType().cast<IntegerType>().getWidth() < 64) {
-      idx_operand = rewriter.create<LLVM::ZExtOp>(loc, rewriter.getI64Type(),
-                                                  idx_operand);
-    }
-    if (idx_operand.getType().isa<IndexType>()) {
-      idx_operand = rewriter
-                        .create<arith::IndexCastOp>(loc, rewriter.getI64Type(),
-                                                    idx_operand)
-                        .getResult();
+      if (idx_operand.getType().isIntOrFloat() &&
+          idx_operand.getType().cast<IntegerType>().getWidth() < 64) {
+        idx_operand = rewriter.create<LLVM::ZExtOp>(loc, i64Ty, idx_operand);
+      }
+      if (idx_operand.getType().isa<IndexType>()) {
+        idx_operand =
+            rewriter.create<arith::IndexCastOp>(loc, i64Ty, idx_operand)
+                .getResult();
+      }
     }
 
     auto get_qbit_qir_call = rewriter.create<LLVM::CallOp>(

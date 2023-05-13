@@ -47,23 +47,19 @@ module attributes {qtx.mangled_name_map = {__nvqpp__mlirgen__t = "_Z1tv"}} {
 }
 
 // CHECK-LABEL:   func.func private @__nvqpp__lifted.lambda.{{[01]}}.adj(
-// CHECK-SAME:            %[[VAL_0:.*]]: !quake.veq<5>,
-// CHECK-SAME:            %[[VAL_1:.*]]: i64, %[[VAL_2:.*]]: i64) {
-// CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][%[[VAL_1]]] : (!quake.veq<5>, i64) -> !quake.ref
-// CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_0]][%[[VAL_2]]] : (!quake.veq<5>, i64) -> !quake.ref
+// CHECK-SAME:            %[[VAL_0:.*]]: !quake.veq<5>) {
+// CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<5>) -> !quake.ref
+// CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<5>) -> !quake.ref
 // CHECK:           quake.x %[[VAL_4]] : (!quake.ref) -> ()
 // CHECK:           quake.t<adj> %[[VAL_3]] : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__t() attributes {"cudaq-entrypoint"} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 2 : i64
-// CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
-// CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<5>
-// CHECK:           call @__nvqpp__lifted.lambda.{{[01]}}(%[[VAL_3]], %[[VAL_2]], %[[VAL_1]]) : (!quake.veq<5>, i64, i64) -> ()
-// CHECK:           call @__nvqpp__lifted.lambda.{{[01]}}(%[[VAL_3]], %[[VAL_0]]) : (!quake.veq<5>, i64) -> ()
-// CHECK:           call @__nvqpp__lifted.lambda.{{[01]}}.adj(%[[VAL_3]], %[[VAL_2]], %[[VAL_1]]) : (!quake.veq<5>, i64, i64) -> ()
+// CHECK:           call @__nvqpp__lifted.lambda.{{[01]}}(%[[VAL_3]]) : (!quake.veq<5>) -> ()
+// CHECK:           call @__nvqpp__lifted.lambda.{{[01]}}(%[[VAL_3]]) : (!quake.veq<5>) -> ()
+// CHECK:           call @__nvqpp__lifted.lambda.{{[01]}}.adj(%[[VAL_3]]) : (!quake.veq<5>) -> ()
 // CHECK:           return
 // CHECK:         }
 
