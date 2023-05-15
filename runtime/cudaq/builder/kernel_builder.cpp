@@ -98,9 +98,8 @@ KernelBuilderType mapArgToType(cudaq::qreg<> &e) {
 }
 
 KernelBuilderType mapArgToType(cudaq::qvector<> &e) {
-  return KernelBuilderType([](MLIRContext *ctx) mutable {
-    return quake::QVecType::getUnsized(ctx);
-  });
+  return KernelBuilderType(
+      [](MLIRContext *ctx) mutable { return quake::VeqType::getUnsized(ctx); });
 }
 
 MLIRContext *initializeContext() {
