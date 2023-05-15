@@ -18,11 +18,11 @@
 
 namespace cudaq {
 
-/// @brief The BasicExecutionManager provides a common base class for
-/// specializations that implements the ExecutionManager type. Most of the
-/// required ExecutionManager functionality is implemented here, with
+/// @brief The `BasicExecutionManager` provides a common base class for
+/// specializations that implement the `ExecutionManager` type. Most of the
+/// required `ExecutionManager` functionality is implemented here, with
 /// backend-execution-specific details left for further subtypes. This type
-/// enqueues all quantum operations and flush them at specific synchronization
+/// enqueues all quantum operations and flushes them at specific synchronization
 /// points. Subtypes should implement concrete operation execution, qudit
 /// measurement, allocation, and deallocation, and execution context handling
 /// (e.g. sampling)
@@ -35,7 +35,7 @@ protected:
       std::tuple<std::string, std::vector<double>,
                  std::vector<cudaq::QuditInfo>, std::vector<cudaq::QuditInfo>>;
 
-  /// @brief Typedef for a queue of instructions
+  /// @brief `typedef` for a queue of instructions
   using InstructionQueue = std::queue<Instruction>;
 
   /// @brief The current execution context, e.g. sampling
@@ -203,7 +203,7 @@ public:
     // Make a copy of the name that we can mutate if necessary
     std::string mutable_name(gateName);
 
-    // Make a copy of the params that we can mutate
+    // Make a copy of the parameters that we can mutate
     std::vector<double> mutable_params = params;
 
     // Create an array of controls, we will
