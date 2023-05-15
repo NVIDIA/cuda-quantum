@@ -12,14 +12,14 @@
 // adjoint and control forms.
 
 module {
-  func.func @test(%arg : !quake.qref) {
-    quake.t %arg : (!quake.qref) -> ()
-    quake.h %arg : (!quake.qref) -> ()
-    quake.x %arg : (!quake.qref) -> ()
+  func.func @test(%arg : !quake.ref) {
+    quake.t %arg : (!quake.ref) -> ()
+    quake.h %arg : (!quake.ref) -> ()
+    quake.x %arg : (!quake.ref) -> ()
     return
   }
-  func.func @do_apply(%arg : !quake.qref, %brg : !quake.qref) {
-    quake.apply <adj> @test [%brg] %arg : (!quake.qref, !quake.qref) -> ()
+  func.func @do_apply(%arg : !quake.ref, %brg : !quake.ref) {
+    quake.apply <adj> @test [%brg] %arg : (!quake.ref, !quake.ref) -> ()
     return
   }
 }

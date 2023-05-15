@@ -10,65 +10,65 @@
 
 // RUN: cudaq-opt %s | cudaq-opt | FileCheck %s
 
-func.func private @apply_kernel(%0 : i32, %1 : !quake.qvec<?>)
+func.func private @apply_kernel(%0 : i32, %1 : !quake.veq<?>)
 
 // Test roundtripping on the various quake ops.
 func.func @quantum_ops() {
   // Allocations
-  %0 = quake.alloca !quake.qref
-  quake.dealloc %0 : !quake.qref
-  %v0 = quake.alloca !quake.qvec<5>
-  quake.dealloc %v0 : !quake.qvec<5>
-  %1 = quake.alloca !quake.qvec<4>
+  %0 = quake.alloca !quake.ref
+  quake.dealloc %0 : !quake.ref
+  %v0 = quake.alloca !quake.veq<5>
+  quake.dealloc %v0 : !quake.veq<5>
+  %1 = quake.alloca !quake.veq<4>
   %2 = arith.constant 2 : i32
-  %3 = quake.alloca[%2 : i32] !quake.qvec<?>
-  %4 = quake.alloca !quake.qref
+  %3 = quake.alloca[%2 : i32] !quake.veq<?>
+  %4 = quake.alloca !quake.ref
 
   // Vectors of references
   %zero = arith.constant 0 : i32
   %i = arith.constant 3    : i64
-  %5 = quake.concat %3, %4 : (!quake.qvec<?>, !quake.qref) -> !quake.qvec<?>
-  %6 = quake.concat %4, %1 : (!quake.qref, !quake.qvec<4>) -> !quake.qvec<5>
-  %7 = quake.extract_ref %5[%zero] : (!quake.qvec<?>, i32) -> !quake.qref
-  %8 = quake.extract_ref %6[%i]    : (!quake.qvec<5>, i64) -> !quake.qref
-  %9 = quake.relax_size %6         : (!quake.qvec<5>) -> !quake.qvec<?>
+  %5 = quake.concat %3, %4 : (!quake.veq<?>, !quake.ref) -> !quake.veq<?>
+  %6 = quake.concat %4, %1 : (!quake.ref, !quake.veq<4>) -> !quake.veq<5>
+  %7 = quake.extract_ref %5[%zero] : (!quake.veq<?>, i32) -> !quake.ref
+  %8 = quake.extract_ref %6[%i]    : (!quake.veq<5>, i64) -> !quake.ref
+  %9 = quake.relax_size %6         : (!quake.veq<5>) -> !quake.veq<?>
   %z = arith.constant 0 : index
-  %10 = quake.subvec %5, %z, %i : (!quake.qvec<?>, index, i64) -> !quake.qvec<?>
-  %11 = quake.vec_size %5 : (!quake.qvec<?>) -> index
+  %10 = quake.subvec %5, %z, %i : (!quake.veq<?>, index, i64) -> !quake.veq<?>
+  %11 = quake.vec_size %5 : (!quake.veq<?>) -> index
 
   // Reference/dereference
-  quake.reset %4 : (!quake.qref) -> ()
+  quake.reset %4 : (!quake.ref) -> ()
   %12 = quake.null_wire
-  %13 = quake.unwrap %4 : (!quake.qref) -> !quake.wire
+  %13 = quake.unwrap %4 : (!quake.ref) -> !quake.wire
   %18 = quake.reset %13 : (!quake.wire) -> !quake.wire
-  quake.wrap %18 to %4 : !quake.wire, !quake.qref
+  quake.wrap %18 to %4 : !quake.wire, !quake.ref
 
   // Control type conversion
   %14 = quake.convert_ctrl %12 : (!quake.wire) -> !quake.control
 
   // Quantum operations, reference form
-  quake.x %4 : (!quake.qref) -> ()
-  quake.y %4 : (!quake.qref) -> ()
-  quake.z %4 : (!quake.qref) -> ()
-  quake.h %4 : (!quake.qref) -> ()
-  quake.s %4 : (!quake.qref) -> ()
-  quake.t %4 : (!quake.qref) -> ()
-  quake.swap %4, %7 : (!quake.qref, !quake.qref) -> ()
+  quake.x %4 : (!quake.ref) -> ()
+  quake.y %4 : (!quake.ref) -> ()
+  quake.z %4 : (!quake.ref) -> ()
+  quake.h %4 : (!quake.ref) -> ()
+  quake.s %4 : (!quake.ref) -> ()
+  quake.t %4 : (!quake.ref) -> ()
+  quake.swap %4, %7 : (!quake.ref, !quake.ref) -> ()
 
   %f = arith.constant 12.0 : f32
-  quake.r1 (%f) %7 : (f32, !quake.qref) -> ()
-  quake.rx (%f) %7 : (f32, !quake.qref) -> ()
+  quake.r1 (%f) %7 : (f32, !quake.ref) -> ()
+  quake.rx (%f) %7 : (f32, !quake.ref) -> ()
   %g = arith.constant 23.0 : f32
-  quake.phased_rx (%f, %g) %7 : (f32, f32, !quake.qref) -> ()
-  quake.ry (%f) %7 : (f32, !quake.qref) -> ()
-  quake.rz (%f) %7 : (f32, !quake.qref) -> ()
-  quake.u2 (%f, %g) %7 : (f32, f32, !quake.qref) -> ()
+  quake.phased_rx (%f, %g) %7 : (f32, f32, !quake.ref) -> ()
+  quake.ry (%f) %7 : (f32, !quake.ref) -> ()
+  quake.rz (%f) %7 : (f32, !quake.ref) -> ()
+  quake.u2 (%f, %g) %7 : (f32, f32, !quake.ref) -> ()
   %h = arith.constant 34.0 : f32
-  quake.u3 (%f, %g, %h) %7 : (f32, f32, f32, !quake.qref) -> ()
+  quake.u3 (%f, %g, %h) %7 : (f32, f32, f32, !quake.ref) -> ()
 
-  %15 = quake.mx %4 : (!quake.qref) -> i1
-  %16 = quake.my %5 : (!quake.qvec<?>) -> !cc.stdvec<i1>
-  %17 = quake.mz %6 : (!quake.qvec<5>) -> !cc.stdvec<i1>
+  %15 = quake.mx %4 : (!quake.ref) -> i1
+  %16 = quake.my %5 : (!quake.veq<?>) -> !cc.stdvec<i1>
+  %17 = quake.mz %6 : (!quake.veq<5>) -> !cc.stdvec<i1>
 
   // Quantum operations, wire form
   %19 = cc.undef i32 {wires = true}
@@ -97,13 +97,13 @@ func.func @quantum_ops() {
   %39 = quake.mz %36 : (!quake.wire) -> i1
 
   // CUDA Quantum model support
-  %40 = quake.alloca !quake.qref { apply_variants = true }
-  %41 = quake.alloca !quake.qvec<2>
+  %40 = quake.alloca !quake.ref { apply_variants = true }
+  %41 = quake.alloca !quake.veq<2>
   %42 = arith.constant 0 : i32
-  %43 = quake.alloca !quake.qref
-  quake.apply @apply_kernel %42, %43 : (i32, !quake.qref) -> ()
-  quake.apply @apply_kernel [%40, %41] %42, %43 : (!quake.qref, !quake.qvec<2>, i32, !quake.qref) -> ()
-  quake.apply<adj> @apply_kernel [%40, %41] %42, %43 : (!quake.qref, !quake.qvec<2>, i32, !quake.qref) -> ()
+  %43 = quake.alloca !quake.ref
+  quake.apply @apply_kernel %42, %43 : (i32, !quake.ref) -> ()
+  quake.apply @apply_kernel [%40, %41] %42, %43 : (!quake.ref, !quake.veq<2>, i32, !quake.ref) -> ()
+  quake.apply<adj> @apply_kernel [%40, %41] %42, %43 : (!quake.ref, !quake.veq<2>, i32, !quake.ref) -> ()
 
   %44 = cc.undef !cc.lambda<() -> ()> { compute_action = true }
   %45 = cc.undef !cc.lambda<() -> ()>
@@ -112,83 +112,83 @@ func.func @quantum_ops() {
 
   // Adjoint modifier
   %47 = cc.undef f64 { adjoint = true }
-  quake.s<adj> %4 : (!quake.qref) -> ()
-  quake.t<adj> %4 : (!quake.qref) -> ()
+  quake.s<adj> %4 : (!quake.ref) -> ()
+  quake.t<adj> %4 : (!quake.ref) -> ()
 
-  quake.r1<adj> (%f) %7 : (f32, !quake.qref) -> ()
-  quake.rx<adj> (%f) %7 : (f32, !quake.qref) -> ()
-  quake.phased_rx<adj> (%f, %g) %7 : (f32, f32, !quake.qref) -> ()
-  quake.ry<adj> (%f) %7 : (f32, !quake.qref) -> ()
-  quake.rz<adj> (%f) %7 : (f32, !quake.qref) -> ()
-  quake.u2<adj> (%f, %g) %7 : (f32, f32, !quake.qref) -> ()
-  quake.u3<adj> (%f, %g, %h) %7 : (f32, f32, f32, !quake.qref) -> ()
+  quake.r1<adj> (%f) %7 : (f32, !quake.ref) -> ()
+  quake.rx<adj> (%f) %7 : (f32, !quake.ref) -> ()
+  quake.phased_rx<adj> (%f, %g) %7 : (f32, f32, !quake.ref) -> ()
+  quake.ry<adj> (%f) %7 : (f32, !quake.ref) -> ()
+  quake.rz<adj> (%f) %7 : (f32, !quake.ref) -> ()
+  quake.u2<adj> (%f, %g) %7 : (f32, f32, !quake.ref) -> ()
+  quake.u3<adj> (%f, %g, %h) %7 : (f32, f32, f32, !quake.ref) -> ()
 
   // Control modifier
-  %46 = quake.alloca !quake.qvec<3> {control = true}
-  quake.x [%46] %4 : (!quake.qvec<3>, !quake.qref) -> ()
-  quake.y [%46] %4 : (!quake.qvec<3>, !quake.qref) -> ()
-  quake.z [%7] %4 : (!quake.qref, !quake.qref) -> ()
-  quake.h [%46] %4 : (!quake.qvec<3>, !quake.qref) -> ()
-  quake.s [%46] %4 : (!quake.qvec<3>, !quake.qref) -> ()
-  quake.t [%46] %4 : (!quake.qvec<3>, !quake.qref) -> ()
-  quake.swap [%46] %4, %7 : (!quake.qvec<3>, !quake.qref, !quake.qref) -> ()
+  %46 = quake.alloca !quake.veq<3> {control = true}
+  quake.x [%46] %4 : (!quake.veq<3>, !quake.ref) -> ()
+  quake.y [%46] %4 : (!quake.veq<3>, !quake.ref) -> ()
+  quake.z [%7] %4 : (!quake.ref, !quake.ref) -> ()
+  quake.h [%46] %4 : (!quake.veq<3>, !quake.ref) -> ()
+  quake.s [%46] %4 : (!quake.veq<3>, !quake.ref) -> ()
+  quake.t [%46] %4 : (!quake.veq<3>, !quake.ref) -> ()
+  quake.swap [%46] %4, %7 : (!quake.veq<3>, !quake.ref, !quake.ref) -> ()
 
-  quake.r1 (%f) [%46] %7 : (f32, !quake.qvec<3>, !quake.qref) -> ()
-  quake.rx (%f) [%46] %7 : (f32, !quake.qvec<3>, !quake.qref) -> ()
-  quake.phased_rx (%f, %g) [%46] %7 : (f32, f32, !quake.qvec<3>, !quake.qref) -> ()
-  quake.ry (%f) [%46] %7 : (f32, !quake.qvec<3>, !quake.qref) -> ()
-  quake.rz (%f) [%46] %7 : (f32, !quake.qvec<3>, !quake.qref) -> ()
-  quake.u2 (%f, %g) [%46] %7 : (f32, f32, !quake.qvec<3>, !quake.qref) -> ()
-  quake.u3 (%f, %g, %47) [%46] %7 : (f32, f32, f64, !quake.qvec<3>, !quake.qref) -> ()
+  quake.r1 (%f) [%46] %7 : (f32, !quake.veq<3>, !quake.ref) -> ()
+  quake.rx (%f) [%46] %7 : (f32, !quake.veq<3>, !quake.ref) -> ()
+  quake.phased_rx (%f, %g) [%46] %7 : (f32, f32, !quake.veq<3>, !quake.ref) -> ()
+  quake.ry (%f) [%46] %7 : (f32, !quake.veq<3>, !quake.ref) -> ()
+  quake.rz (%f) [%46] %7 : (f32, !quake.veq<3>, !quake.ref) -> ()
+  quake.u2 (%f, %g) [%46] %7 : (f32, f32, !quake.veq<3>, !quake.ref) -> ()
+  quake.u3 (%f, %g, %47) [%46] %7 : (f32, f32, f64, !quake.veq<3>, !quake.ref) -> ()
 
   return
 }
 
 // CHECK-LABEL:   func.func @quantum_ops() {
-// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.qref
-// CHECK:           quake.dealloc %[[VAL_0]] : !quake.qref
-// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.qvec<5>
-// CHECK:           quake.dealloc %[[VAL_1]] : !quake.qvec<5>
-// CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.qvec<4>
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:           quake.dealloc %[[VAL_0]] : !quake.ref
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<5>
+// CHECK:           quake.dealloc %[[VAL_1]] : !quake.veq<5>
+// CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<4>
 // CHECK:           %[[VAL_3:.*]] = arith.constant 2 : i32
-// CHECK:           %[[VAL_4:.*]] = quake.alloca{{\[}}%[[VAL_3]] : i32] !quake.qvec<?>
-// CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.qref
+// CHECK:           %[[VAL_4:.*]] = quake.alloca{{\[}}%[[VAL_3]] : i32] !quake.veq<?>
+// CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_6:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_7:.*]] = arith.constant 3 : i64
-// CHECK:           %[[VAL_8:.*]] = quake.concat %[[VAL_4]], %[[VAL_5]] : (!quake.qvec<?>, !quake.qref) -> !quake.qvec<?>
-// CHECK:           %[[VAL_9:.*]] = quake.concat %[[VAL_5]], %[[VAL_2]] : (!quake.qref, !quake.qvec<4>) -> !quake.qvec<5>
-// CHECK:           %[[VAL_10:.*]] = quake.extract_ref %[[VAL_8]]{{\[}}%[[VAL_6]]] : (!quake.qvec<?>, i32) -> !quake.qref
-// CHECK:           %[[VAL_11:.*]] = quake.extract_ref %[[VAL_9]]{{\[}}%[[VAL_7]]] : (!quake.qvec<5>, i64) -> !quake.qref
-// CHECK:           %[[VAL_12:.*]] = quake.relax_size %[[VAL_9]] : (!quake.qvec<5>) -> !quake.qvec<?>
+// CHECK:           %[[VAL_8:.*]] = quake.concat %[[VAL_4]], %[[VAL_5]] : (!quake.veq<?>, !quake.ref) -> !quake.veq<?>
+// CHECK:           %[[VAL_9:.*]] = quake.concat %[[VAL_5]], %[[VAL_2]] : (!quake.ref, !quake.veq<4>) -> !quake.veq<5>
+// CHECK:           %[[VAL_10:.*]] = quake.extract_ref %[[VAL_8]]{{\[}}%[[VAL_6]]] : (!quake.veq<?>, i32) -> !quake.ref
+// CHECK:           %[[VAL_11:.*]] = quake.extract_ref %[[VAL_9]]{{\[}}%[[VAL_7]]] : (!quake.veq<5>, i64) -> !quake.ref
+// CHECK:           %[[VAL_12:.*]] = quake.relax_size %[[VAL_9]] : (!quake.veq<5>) -> !quake.veq<?>
 // CHECK:           %[[VAL_13:.*]] = arith.constant 0 : index
-// CHECK:           %[[VAL_14:.*]] = quake.subvec %[[VAL_8]], %[[VAL_13]], %[[VAL_7]] : (!quake.qvec<?>, index, i64) -> !quake.qvec<?>
-// CHECK:           %[[VAL_15:.*]] = quake.vec_size %[[VAL_8]] : (!quake.qvec<?>) -> index
-// CHECK:           quake.reset %[[VAL_5]] : (!quake.qref) -> ()
+// CHECK:           %[[VAL_14:.*]] = quake.subvec %[[VAL_8]], %[[VAL_13]], %[[VAL_7]] : (!quake.veq<?>, index, i64) -> !quake.veq<?>
+// CHECK:           %[[VAL_15:.*]] = quake.vec_size %[[VAL_8]] : (!quake.veq<?>) -> index
+// CHECK:           quake.reset %[[VAL_5]] : (!quake.ref) -> ()
 // CHECK:           %[[VAL_16:.*]] = quake.null_wire
-// CHECK:           %[[VAL_17:.*]] = quake.unwrap %[[VAL_5]] : (!quake.qref) -> !quake.wire
+// CHECK:           %[[VAL_17:.*]] = quake.unwrap %[[VAL_5]] : (!quake.ref) -> !quake.wire
 // CHECK:           %[[VAL_18:.*]] = quake.reset %[[VAL_17]] : (!quake.wire) -> !quake.wire
-// CHECK:           quake.wrap %[[VAL_18]] to %[[VAL_5]] : !quake.wire, !quake.qref
+// CHECK:           quake.wrap %[[VAL_18]] to %[[VAL_5]] : !quake.wire, !quake.ref
 // CHECK:           %[[VAL_19:.*]] = quake.convert_ctrl %[[VAL_16]] : (!quake.wire) -> !quake.control
-// CHECK:           quake.x %[[VAL_5]] : (!quake.qref) -> ()
-// CHECK:           quake.y %[[VAL_5]] : (!quake.qref) -> ()
-// CHECK:           quake.z %[[VAL_5]] : (!quake.qref) -> ()
-// CHECK:           quake.h %[[VAL_5]] : (!quake.qref) -> ()
-// CHECK:           quake.s %[[VAL_5]] : (!quake.qref) -> ()
-// CHECK:           quake.t %[[VAL_5]] : (!quake.qref) -> ()
-// CHECK:           quake.swap %[[VAL_5]], %[[VAL_10]] : (!quake.qref, !quake.qref) -> ()
+// CHECK:           quake.x %[[VAL_5]] : (!quake.ref) -> ()
+// CHECK:           quake.y %[[VAL_5]] : (!quake.ref) -> ()
+// CHECK:           quake.z %[[VAL_5]] : (!quake.ref) -> ()
+// CHECK:           quake.h %[[VAL_5]] : (!quake.ref) -> ()
+// CHECK:           quake.s %[[VAL_5]] : (!quake.ref) -> ()
+// CHECK:           quake.t %[[VAL_5]] : (!quake.ref) -> ()
+// CHECK:           quake.swap %[[VAL_5]], %[[VAL_10]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           %[[VAL_20:.*]] = arith.constant 1.200000e+01 : f32
-// CHECK:           quake.r1 (%[[VAL_20]]) %[[VAL_10]] : (f32, !quake.qref) -> ()
-// CHECK:           quake.rx (%[[VAL_20]]) %[[VAL_10]] : (f32, !quake.qref) -> ()
+// CHECK:           quake.r1 (%[[VAL_20]]) %[[VAL_10]] : (f32, !quake.ref) -> ()
+// CHECK:           quake.rx (%[[VAL_20]]) %[[VAL_10]] : (f32, !quake.ref) -> ()
 // CHECK:           %[[VAL_21:.*]] = arith.constant 2.300000e+01 : f32
-// CHECK:           quake.phased_rx (%[[VAL_20]], %[[VAL_21]]) %[[VAL_10]] : (f32, f32, !quake.qref) -> ()
-// CHECK:           quake.ry (%[[VAL_20]]) %[[VAL_10]] : (f32, !quake.qref) -> ()
-// CHECK:           quake.rz (%[[VAL_20]]) %[[VAL_10]] : (f32, !quake.qref) -> ()
-// CHECK:           quake.u2 (%[[VAL_20]], %[[VAL_21]]) %[[VAL_10]] : (f32, f32, !quake.qref) -> ()
+// CHECK:           quake.phased_rx (%[[VAL_20]], %[[VAL_21]]) %[[VAL_10]] : (f32, f32, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[VAL_20]]) %[[VAL_10]] : (f32, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_20]]) %[[VAL_10]] : (f32, !quake.ref) -> ()
+// CHECK:           quake.u2 (%[[VAL_20]], %[[VAL_21]]) %[[VAL_10]] : (f32, f32, !quake.ref) -> ()
 // CHECK:           %[[VAL_22:.*]] = arith.constant 3.400000e+01 : f32
-// CHECK:           quake.u3 (%[[VAL_20]], %[[VAL_21]], %[[VAL_22]]) %[[VAL_10]] : (f32, f32, f32, !quake.qref) -> ()
-// CHECK:           %[[VAL_23:.*]] = quake.mx %[[VAL_5]] : (!quake.qref) -> i1
-// CHECK:           %[[VAL_24:.*]] = quake.my %[[VAL_8]] : (!quake.qvec<?>) -> !cc.stdvec<i1>
-// CHECK:           %[[VAL_25:.*]] = quake.mz %[[VAL_9]] : (!quake.qvec<5>) -> !cc.stdvec<i1>
+// CHECK:           quake.u3 (%[[VAL_20]], %[[VAL_21]], %[[VAL_22]]) %[[VAL_10]] : (f32, f32, f32, !quake.ref) -> ()
+// CHECK:           %[[VAL_23:.*]] = quake.mx %[[VAL_5]] : (!quake.ref) -> i1
+// CHECK:           %[[VAL_24:.*]] = quake.my %[[VAL_8]] : (!quake.veq<?>) -> !cc.stdvec<i1>
+// CHECK:           %[[VAL_25:.*]] = quake.mz %[[VAL_9]] : (!quake.veq<5>) -> !cc.stdvec<i1>
 // CHECK:           %[[VAL_26:.*]] = cc.undef i32 {wires = true}
 // CHECK:           %[[VAL_27:.*]] = quake.null_wire
 // CHECK:           %[[VAL_28:.*]] = quake.null_wire
@@ -210,42 +210,42 @@ func.func @quantum_ops() {
 // CHECK:           %[[VAL_44:.*]] = quake.mx %[[VAL_36]]#0 : (!quake.wire) -> i1
 // CHECK:           %[[VAL_45:.*]] = quake.my %[[VAL_27]] : (!quake.wire) -> i1
 // CHECK:           %[[VAL_46:.*]] = quake.mz %[[VAL_43]] : (!quake.wire) -> i1
-// CHECK:           %[[VAL_47:.*]] = quake.alloca !quake.qref {apply_variants = true}
-// CHECK:           %[[VAL_48:.*]] = quake.alloca !quake.qvec<2>
+// CHECK:           %[[VAL_47:.*]] = quake.alloca !quake.ref {apply_variants = true}
+// CHECK:           %[[VAL_48:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           %[[VAL_49:.*]] = arith.constant 0 : i32
-// CHECK:           %[[VAL_50:.*]] = quake.alloca !quake.qref
-// CHECK:           quake.apply @apply_kernel %[[VAL_49]], %[[VAL_50]] : (i32, !quake.qref) -> ()
-// CHECK:           quake.apply @apply_kernel{{\[}}%[[VAL_47]], %[[VAL_48]]] %[[VAL_49]], %[[VAL_50]] : (!quake.qref, !quake.qvec<2>, i32, !quake.qref) -> ()
-// CHECK:           quake.apply<adj> @apply_kernel{{\[}}%[[VAL_47]], %[[VAL_48]]] %[[VAL_49]], %[[VAL_50]] : (!quake.qref, !quake.qvec<2>, i32, !quake.qref) -> ()
+// CHECK:           %[[VAL_50:.*]] = quake.alloca !quake.ref
+// CHECK:           quake.apply @apply_kernel %[[VAL_49]], %[[VAL_50]] : (i32, !quake.ref) -> ()
+// CHECK:           quake.apply @apply_kernel{{\[}}%[[VAL_47]], %[[VAL_48]]] %[[VAL_49]], %[[VAL_50]] : (!quake.ref, !quake.veq<2>, i32, !quake.ref) -> ()
+// CHECK:           quake.apply<adj> @apply_kernel{{\[}}%[[VAL_47]], %[[VAL_48]]] %[[VAL_49]], %[[VAL_50]] : (!quake.ref, !quake.veq<2>, i32, !quake.ref) -> ()
 // CHECK:           %[[VAL_51:.*]] = cc.undef !cc.lambda<() -> ()> {compute_action = true}
 // CHECK:           %[[VAL_52:.*]] = cc.undef !cc.lambda<() -> ()>
 // CHECK:           quake.compute_action %[[VAL_51]], %[[VAL_52]] : !cc.lambda<() -> ()>, !cc.lambda<() -> ()>
 // CHECK:           quake.compute_action<dag> %[[VAL_51]], %[[VAL_52]] : !cc.lambda<() -> ()>, !cc.lambda<() -> ()>
 // CHECK:           %[[VAL_53:.*]] = cc.undef f64 {adjoint = true}
-// CHECK:           quake.s<adj> %[[VAL_5]] : (!quake.qref) -> ()
-// CHECK:           quake.t<adj> %[[VAL_5]] : (!quake.qref) -> ()
-// CHECK:           quake.r1<adj> (%[[VAL_20]]) %[[VAL_10]] : (f32, !quake.qref) -> ()
-// CHECK:           quake.rx<adj> (%[[VAL_20]]) %[[VAL_10]] : (f32, !quake.qref) -> ()
-// CHECK:           quake.phased_rx<adj> (%[[VAL_20]], %[[VAL_21]]) %[[VAL_10]] : (f32, f32, !quake.qref) -> ()
-// CHECK:           quake.ry<adj> (%[[VAL_20]]) %[[VAL_10]] : (f32, !quake.qref) -> ()
-// CHECK:           quake.rz<adj> (%[[VAL_20]]) %[[VAL_10]] : (f32, !quake.qref) -> ()
-// CHECK:           quake.u2<adj> (%[[VAL_20]], %[[VAL_21]]) %[[VAL_10]] : (f32, f32, !quake.qref) -> ()
-// CHECK:           quake.u3<adj> (%[[VAL_20]], %[[VAL_21]], %[[VAL_22]]) %[[VAL_10]] : (f32, f32, f32, !quake.qref) -> ()
-// CHECK:           %[[VAL_54:.*]] = quake.alloca !quake.qvec<3> {control = true}
-// CHECK:           quake.x {{\[}}%[[VAL_54]]] %[[VAL_5]] : (!quake.qvec<3>, !quake.qref) -> ()
-// CHECK:           quake.y {{\[}}%[[VAL_54]]] %[[VAL_5]] : (!quake.qvec<3>, !quake.qref) -> ()
-// CHECK:           quake.z {{\[}}%[[VAL_10]]] %[[VAL_5]] : (!quake.qref, !quake.qref) -> ()
-// CHECK:           quake.h {{\[}}%[[VAL_54]]] %[[VAL_5]] : (!quake.qvec<3>, !quake.qref) -> ()
-// CHECK:           quake.s {{\[}}%[[VAL_54]]] %[[VAL_5]] : (!quake.qvec<3>, !quake.qref) -> ()
-// CHECK:           quake.t {{\[}}%[[VAL_54]]] %[[VAL_5]] : (!quake.qvec<3>, !quake.qref) -> ()
-// CHECK:           quake.swap {{\[}}%[[VAL_54]]] %[[VAL_5]], %[[VAL_10]] : (!quake.qvec<3>, !quake.qref, !quake.qref) -> ()
-// CHECK:           quake.r1 (%[[VAL_20]]) {{\[}}%[[VAL_54]]] %[[VAL_10]] : (f32, !quake.qvec<3>, !quake.qref) -> ()
-// CHECK:           quake.rx (%[[VAL_20]]) {{\[}}%[[VAL_54]]] %[[VAL_10]] : (f32, !quake.qvec<3>, !quake.qref) -> ()
-// CHECK:           quake.phased_rx (%[[VAL_20]], %[[VAL_21]]) {{\[}}%[[VAL_54]]] %[[VAL_10]] : (f32, f32, !quake.qvec<3>, !quake.qref) -> ()
-// CHECK:           quake.ry (%[[VAL_20]]) {{\[}}%[[VAL_54]]] %[[VAL_10]] : (f32, !quake.qvec<3>, !quake.qref) -> ()
-// CHECK:           quake.rz (%[[VAL_20]]) {{\[}}%[[VAL_54]]] %[[VAL_10]] : (f32, !quake.qvec<3>, !quake.qref) -> ()
-// CHECK:           quake.u2 (%[[VAL_20]], %[[VAL_21]]) {{\[}}%[[VAL_54]]] %[[VAL_10]] : (f32, f32, !quake.qvec<3>, !quake.qref) -> ()
-// CHECK:           quake.u3 (%[[VAL_20]], %[[VAL_21]], %[[VAL_53]]) {{\[}}%[[VAL_54]]] %[[VAL_10]] : (f32, f32, f64, !quake.qvec<3>, !quake.qref) -> ()
+// CHECK:           quake.s<adj> %[[VAL_5]] : (!quake.ref) -> ()
+// CHECK:           quake.t<adj> %[[VAL_5]] : (!quake.ref) -> ()
+// CHECK:           quake.r1<adj> (%[[VAL_20]]) %[[VAL_10]] : (f32, !quake.ref) -> ()
+// CHECK:           quake.rx<adj> (%[[VAL_20]]) %[[VAL_10]] : (f32, !quake.ref) -> ()
+// CHECK:           quake.phased_rx<adj> (%[[VAL_20]], %[[VAL_21]]) %[[VAL_10]] : (f32, f32, !quake.ref) -> ()
+// CHECK:           quake.ry<adj> (%[[VAL_20]]) %[[VAL_10]] : (f32, !quake.ref) -> ()
+// CHECK:           quake.rz<adj> (%[[VAL_20]]) %[[VAL_10]] : (f32, !quake.ref) -> ()
+// CHECK:           quake.u2<adj> (%[[VAL_20]], %[[VAL_21]]) %[[VAL_10]] : (f32, f32, !quake.ref) -> ()
+// CHECK:           quake.u3<adj> (%[[VAL_20]], %[[VAL_21]], %[[VAL_22]]) %[[VAL_10]] : (f32, f32, f32, !quake.ref) -> ()
+// CHECK:           %[[VAL_54:.*]] = quake.alloca !quake.veq<3> {control = true}
+// CHECK:           quake.x {{\[}}%[[VAL_54]]] %[[VAL_5]] : (!quake.veq<3>, !quake.ref) -> ()
+// CHECK:           quake.y {{\[}}%[[VAL_54]]] %[[VAL_5]] : (!quake.veq<3>, !quake.ref) -> ()
+// CHECK:           quake.z {{\[}}%[[VAL_10]]] %[[VAL_5]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.h {{\[}}%[[VAL_54]]] %[[VAL_5]] : (!quake.veq<3>, !quake.ref) -> ()
+// CHECK:           quake.s {{\[}}%[[VAL_54]]] %[[VAL_5]] : (!quake.veq<3>, !quake.ref) -> ()
+// CHECK:           quake.t {{\[}}%[[VAL_54]]] %[[VAL_5]] : (!quake.veq<3>, !quake.ref) -> ()
+// CHECK:           quake.swap {{\[}}%[[VAL_54]]] %[[VAL_5]], %[[VAL_10]] : (!quake.veq<3>, !quake.ref, !quake.ref) -> ()
+// CHECK:           quake.r1 (%[[VAL_20]]) {{\[}}%[[VAL_54]]] %[[VAL_10]] : (f32, !quake.veq<3>, !quake.ref) -> ()
+// CHECK:           quake.rx (%[[VAL_20]]) {{\[}}%[[VAL_54]]] %[[VAL_10]] : (f32, !quake.veq<3>, !quake.ref) -> ()
+// CHECK:           quake.phased_rx (%[[VAL_20]], %[[VAL_21]]) {{\[}}%[[VAL_54]]] %[[VAL_10]] : (f32, f32, !quake.veq<3>, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[VAL_20]]) {{\[}}%[[VAL_54]]] %[[VAL_10]] : (f32, !quake.veq<3>, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[VAL_20]]) {{\[}}%[[VAL_54]]] %[[VAL_10]] : (f32, !quake.veq<3>, !quake.ref) -> ()
+// CHECK:           quake.u2 (%[[VAL_20]], %[[VAL_21]]) {{\[}}%[[VAL_54]]] %[[VAL_10]] : (f32, f32, !quake.veq<3>, !quake.ref) -> ()
+// CHECK:           quake.u3 (%[[VAL_20]], %[[VAL_21]], %[[VAL_53]]) {{\[}}%[[VAL_54]]] %[[VAL_10]] : (f32, f32, f64, !quake.veq<3>, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
 
@@ -277,14 +277,14 @@ func.func @quake_op2() -> !cc.ptr<i8> {
 }
 
 // CHECK-LABEL:   func.func @quake_op3(
-// CHECK-SAME:        %[[VAL_0:.*]]: !quake.qvec<?>,
+// CHECK-SAME:        %[[VAL_0:.*]]: !quake.veq<?>,
 // CHECK-SAME:        %[[VAL_1:.*]]: i32, %[[VAL_2:.*]]: i32) {
-// CHECK:           %[[VAL_3:.*]] = quake.subvec %[[VAL_0]], %[[VAL_1]], %[[VAL_2]] : (!quake.qvec<?>, i32, i32) -> !quake.qvec<?>
+// CHECK:           %[[VAL_3:.*]] = quake.subvec %[[VAL_0]], %[[VAL_1]], %[[VAL_2]] : (!quake.veq<?>, i32, i32) -> !quake.veq<?>
 // CHECK:           return
 // CHECK:         }
 
-func.func @quake_op3(%vec : !quake.qvec<?>, %a : i32, %b : i32) {
-  %sub = quake.subvec %vec, %a, %b : (!quake.qvec<?>, i32, i32) -> !quake.qvec<?>
+func.func @quake_op3(%vec : !quake.veq<?>, %a : i32, %b : i32) {
+  %sub = quake.subvec %vec, %a, %b : (!quake.veq<?>, i32, i32) -> !quake.veq<?>
   return
 }
 
@@ -611,17 +611,19 @@ func.func @wire_type() -> !quake.wire {
 }
 
 // CHECK-LABEL:   func.func @unwrap_wrap(
-// CHECK-SAME:      %[[VAL_0:.*]]: !quake.qref) {
-// CHECK:           %[[VAL_1:.*]] = quake.unwrap %[[VAL_0]] : (!quake.qref) -> !quake.wire
+// CHECK-SAME:      %[[VAL_0:.*]]: !quake.ref) {
+// CHECK:           %[[VAL_1:.*]] = quake.unwrap %[[VAL_0]] : (!quake.ref) -> !quake.wire
 // CHECK:           %[[VAL_2:.*]] = quake.null_wire
 // CHECK:           %[[VAL_3:.*]] = quake.x [%[[VAL_2]]] %[[VAL_1]] : (!quake.wire, !quake.wire) -> !quake.wire
-// CHECK:           quake.wrap %[[VAL_3]] to %[[VAL_0]] : !quake.wire, !quake.qref
+// CHECK:           quake.wrap %[[VAL_3]] to %[[VAL_0]] : !quake.wire, !quake.ref
+// CHECK:           return
+// CHECK:         }
 
-func.func @unwrap_wrap(%0 : !quake.qref) {
-  %1 = quake.unwrap %0 : (!quake.qref) -> !quake.wire
+func.func @unwrap_wrap(%0 : !quake.ref) {
+  %1 = quake.unwrap %0 : (!quake.ref) -> !quake.wire
   %3 = quake.null_wire
   %2 = quake.x [%3] %1 : (!quake.wire, !quake.wire) -> !quake.wire
-  quake.wrap %2 to %0 : !quake.wire, !quake.qref
+  quake.wrap %2 to %0 : !quake.wire, !quake.ref
   return
 }
 

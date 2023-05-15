@@ -19,10 +19,10 @@ __qpu__ void test(cudaq::qspan<> a, cudaq::qspan<> b) {
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test.
-// CHECK-SAME:        (%[[VAL_0:.*]]: !quake.qvec<?>,
-// CHECK-SAME:         %[[VAL_1:.*]]: !quake.qvec<?>) attributes {"cudaq-kernel"} {
+// CHECK-SAME:        (%[[VAL_0:.*]]: !quake.veq<?>,
+// CHECK-SAME:         %[[VAL_1:.*]]: !quake.veq<?>) attributes {"cudaq-kernel"} {
 // CHECK:           cc.scope {
-// CHECK:             %[[VAL_2:.*]] = quake.vec_size %[[VAL_0]] : (!quake.qvec<?>) -> i64
+// CHECK:             %[[VAL_2:.*]] = quake.vec_size %[[VAL_0]] : (!quake.veq<?>) -> i64
 // CHECK:             %[[VAL_3:.*]] = arith.trunci %[[VAL_2]] : i64 to i32
 // CHECK:             %[[VAL_4:.*]] = memref.alloca() : memref<i32>
 // CHECK:             memref.store %[[VAL_3]], %[[VAL_4]][] : memref<i32>
@@ -41,15 +41,15 @@ __qpu__ void test(cudaq::qspan<> a, cudaq::qspan<> b) {
 // CHECK:                 %[[VAL_12:.*]] = arith.extui %[[VAL_11]] : i32 to i64
 // CHECK:                 %[[VAL_13:.*]] = arith.constant 1 : i64
 // CHECK:                 %[[VAL_14:.*]] = arith.subi %[[VAL_12]], %[[VAL_13]] : i64
-// CHECK:                 %[[VAL_15:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_14]]] : (!quake.qvec<?>, i64) -> !quake.qref
+// CHECK:                 %[[VAL_15:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_14]]] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:                 %[[VAL_16:.*]] = memref.load %[[VAL_4]][] : memref<i32>
 // CHECK:                 %[[VAL_17:.*]] = arith.extui %[[VAL_16]] : i32 to i64
 // CHECK:                 %[[VAL_18:.*]] = arith.constant 1 : i64
 // CHECK:                 %[[VAL_19:.*]] = arith.subi %[[VAL_17]], %[[VAL_18]] : i64
-// CHECK:                 %[[VAL_20:.*]] = quake.extract_ref %[[VAL_1]]{{\[}}%[[VAL_19]]] : (!quake.qvec<?>, i64) -> !quake.qref
+// CHECK:                 %[[VAL_20:.*]] = quake.extract_ref %[[VAL_1]]{{\[}}%[[VAL_19]]] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:                 %[[VAL_21:.*]] = memref.load %[[VAL_4]][] : memref<i32>
 // CHECK:                 %[[VAL_22:.*]] = arith.extui %[[VAL_21]] : i32 to i64
-// CHECK:                 %[[VAL_23:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_22]]] : (!quake.qvec<?>, i64) -> !quake.qref
+// CHECK:                 %[[VAL_23:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_22]]] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:               }
 // CHECK:               cc.continue
 // CHECK:             } step {

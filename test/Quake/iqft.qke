@@ -32,7 +32,7 @@
 
 // CHECK: #map = affine_map<(d0) -> (-d0)>
 // CHECK: module {
-// CHECK:   func.func @iqft(%arg0: !quake.qvec<?>) {
+// CHECK:   func.func @iqft(%arg0: !quake.veq<?>) {
 // CHECK:     %[[CF0:.*]] = arith.constant 2.000000e+00 : f64
 // CHECK:     %[[CF1:.*]] = arith.constant -3.1415926535897931 : f64
 // CHECK:     %[[CI1:.*]] = arith.constant 1 : index
@@ -40,7 +40,7 @@
 // CHECK:     %[[C1:.*]] = arith.constant 1 : i32
 // CHECK:     %[[C2:.*]] = arith.constant 2 : i32
 // CHECK:     %c-1_i32 = arith.constant -1 : i32
-// CHECK:     %0 = quake.vec_size %arg0 : (!quake.qvec<?>) -> i64
+// CHECK:     %0 = quake.vec_size %arg0 : (!quake.veq<?>) -> i64
 // CHECK:     %1 = arith.trunci %0 : i64 to i32
 // CHECK:     %2 = arith.subi %1, %[[C1]] : i32
 // CHECK:     %3 = arith.index_cast %2 : i32 to index
@@ -50,14 +50,14 @@
 // CHECK:       %7 = arith.index_cast %arg1 : index to i32
 // CHECK:       %8 = arith.subi %1, %7 : i32
 // CHECK:       %9 = arith.subi %8, %[[C1]] : i32
-// CHECK:       %10 = quake.extract_ref %arg0[%7] : (!quake.qvec<?>, i32) -> !quake.qref
-// CHECK:       %11 = quake.extract_ref %arg0[%9] : (!quake.qvec<?>, i32) -> !quake.qref
-// CHECK:       quake.swap %10, %11 : (!quake.qref, !quake.qref) -> ()
+// CHECK:       %10 = quake.extract_ref %arg0[%7] : (!quake.veq<?>, i32) -> !quake.ref
+// CHECK:       %11 = quake.extract_ref %arg0[%9] : (!quake.veq<?>, i32) -> !quake.ref
+// CHECK:       quake.swap %10, %11 : (!quake.ref, !quake.ref) -> ()
 // CHECK:     }
 // CHECK:     affine.for %arg1 = 0 to %3 {
 // CHECK:       %7 = arith.index_cast %arg1 : index to i32
-// CHECK:       %8 = quake.extract_ref %arg0[%7] : (!quake.qvec<?>, i32) -> !quake.qref
-// CHECK:       quake.h %8 : (!quake.qref) -> ()
+// CHECK:       %8 = quake.extract_ref %arg0[%7] : (!quake.veq<?>, i32) -> !quake.ref
+// CHECK:       quake.h %8 : (!quake.ref) -> ()
 // CHECK:       %9 = arith.addi %7, %[[C1]] : i32
 // CHECK:       affine.for %arg2 = #map(%arg1) to 1 {
 // CHECK:         %10 = arith.index_cast %arg2 : index to i32
@@ -66,13 +66,13 @@
 // CHECK:         %13 = arith.sitofp %12 : i32 to f64
 // CHECK:         %14 = math.powf %[[CF0]], %13 : f64
 // CHECK:         %15 = arith.divf %[[CF1]], %14 : f64
-// CHECK:         %16 = quake.extract_ref %arg0[%9] : (!quake.qvec<?>, i32) -> !quake.qref
-// CHECK:         %17 = quake.extract_ref %arg0[%11] : (!quake.qvec<?>, i32) -> !quake.qref
-// CHECK:         quake.r1 (%15) [%16] %17 : (f64, !quake.qref, !quake.qref) -> ()
+// CHECK:         %16 = quake.extract_ref %arg0[%9] : (!quake.veq<?>, i32) -> !quake.ref
+// CHECK:         %17 = quake.extract_ref %arg0[%11] : (!quake.veq<?>, i32) -> !quake.ref
+// CHECK:         quake.r1 (%15) [%16] %17 : (f64, !quake.ref, !quake.ref) -> ()
 // CHECK:       }
 // CHECK:     }
-// CHECK:     %6 = quake.extract_ref %arg0[%2] : (!quake.qvec<?>, i32) -> !quake.qref
-// CHECK:     quake.h %6 : (!quake.qref) -> ()
+// CHECK:     %6 = quake.extract_ref %arg0[%2] : (!quake.veq<?>, i32) -> !quake.ref
+// CHECK:     quake.h %6 : (!quake.ref) -> ()
 // CHECK:     return
 // CHECK:   }
 // CHECK: }
@@ -81,12 +81,12 @@
 #lb = affine_map<(d0) -> (-1*d0)>
 
 module {
-    func.func @iqft(%arg0 : !quake.qvec<?>) {
+    func.func @iqft(%arg0 : !quake.veq<?>) {
         %c1 = arith.constant 1 : i32
         %c0 = arith.constant 0 : i32
         %c2 = arith.constant 2 : i32
         %cn1 = arith.constant -1 : i32
-        %nn = quake.vec_size %arg0 : (!quake.qvec<?>) -> i64
+        %nn = quake.vec_size %arg0 : (!quake.veq<?>) -> i64
         %n = arith.trunci %nn : i64 to i32
         %nm1 = arith.subi %n, %c1 : i32
         %nm1idx = arith.index_cast %nm1 : i32 to index
@@ -99,15 +99,15 @@ module {
             %7 = arith.index_cast %arg2 : index to i32
             %9 = arith.subi %n, %7 : i32
             %10 = arith.subi %9, %c1 : i32
-            %qi = quake.extract_ref %arg0 [%7] : (!quake.qvec<?>,i32) -> !quake.qref
-            %qi1 = quake.extract_ref %arg0 [%10] : (!quake.qvec<?>,i32) -> !quake.qref
-            quake.swap %qi, %qi1 : (!quake.qref, !quake.qref) -> ()
+            %qi = quake.extract_ref %arg0 [%7] : (!quake.veq<?>,i32) -> !quake.ref
+            %qi1 = quake.extract_ref %arg0 [%10] : (!quake.veq<?>,i32) -> !quake.ref
+            quake.swap %qi, %qi1 : (!quake.ref, !quake.ref) -> ()
         }
 
         affine.for %arg3 = 0 to %nm1idx {
             %11 = arith.index_cast %arg3 : index to i32
-            %qi = quake.extract_ref %arg0[%11] : (!quake.qvec<?>, i32) -> !quake.qref
-            quake.h %qi : (!quake.qref) -> ()
+            %qi = quake.extract_ref %arg0[%11] : (!quake.veq<?>, i32) -> !quake.ref
+            quake.h %qi : (!quake.ref) -> ()
             %13 = arith.addi %11, %c1 : i32
             %12 = memref.alloca() : memref<i32>
             memref.store %13, %12[] : memref<i32>
@@ -125,13 +125,13 @@ module {
                 %s2f = arith.sitofp %jmy : i32 to f64
                 %denom = math.powf %c2f, %s2f : f64
                 %24 = arith.divf %16, %denom : f64
-                %qj = quake.extract_ref %arg0[%13] : (!quake.qvec<?>, i32) -> !quake.qref
-                %qy = quake.extract_ref %arg0[%15] : (!quake.qvec<?>, i32) -> !quake.qref
-                quake.r1 (%24)[%qj] %qy : (f64,!quake.qref,!quake.qref) -> ()
+                %qj = quake.extract_ref %arg0[%13] : (!quake.veq<?>, i32) -> !quake.ref
+                %qy = quake.extract_ref %arg0[%15] : (!quake.veq<?>, i32) -> !quake.ref
+                quake.r1 (%24)[%qj] %qy : (f64,!quake.ref,!quake.ref) -> ()
             }
         }
-        %qnm1 = quake.extract_ref %arg0[%nm1] : (!quake.qvec<?>,i32) -> !quake.qref
-        quake.h %qnm1 : (!quake.qref) -> ()
+        %qnm1 = quake.extract_ref %arg0[%nm1] : (!quake.veq<?>,i32) -> !quake.ref
+        quake.h %qnm1 : (!quake.ref) -> ()
         return
     }
 }

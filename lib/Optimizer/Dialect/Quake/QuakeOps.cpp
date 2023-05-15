@@ -36,10 +36,10 @@ class QuantumTrait : public OpTrait::TraitBase<ConcreteType, QuantumTrait> {};
 Value quake::createConstantAlloca(PatternRewriter &builder, Location loc,
                                   OpResult result, ValueRange args) {
   auto newAlloca = [&]() {
-    if (result.getType().isa<quake::QVecType>() &&
-        result.getType().cast<quake::QVecType>().hasSpecifiedSize()) {
+    if (result.getType().isa<quake::VeqType>() &&
+        result.getType().cast<quake::VeqType>().hasSpecifiedSize()) {
       return builder.create<quake::AllocaOp>(
-          loc, result.getType().cast<quake::QVecType>().getSize());
+          loc, result.getType().cast<quake::VeqType>().getSize());
     }
     auto constOp = cast<arith::ConstantOp>(args[0].getDefiningOp());
     return builder.create<quake::AllocaOp>(
@@ -47,7 +47,7 @@ Value quake::createConstantAlloca(PatternRewriter &builder, Location loc,
                  constOp.getValue().cast<IntegerAttr>().getInt()));
   }();
   return builder.create<quake::RelaxSizeOp>(
-      loc, quake::QVecType::getUnsized(builder.getContext()), newAlloca);
+      loc, quake::VeqType::getUnsized(builder.getContext()), newAlloca);
 }
 
 void quake::AllocaOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
@@ -56,7 +56,7 @@ void quake::AllocaOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
 }
 
 LogicalResult quake::AllocaOp::verify() {
-  auto resultType = dyn_cast<QVecType>(getResult().getType());
+  auto resultType = dyn_cast<VeqType>(getResult().getType());
   if (auto size = getSize()) {
     std::int64_t argSize = 0;
     if (auto cnt = dyn_cast_or_null<arith::ConstantOp>(size.getDefiningOp())) {
@@ -72,9 +72,9 @@ LogicalResult quake::AllocaOp::verify() {
           "must return a vector of qubits since a size was provided.");
     if (resultType.hasSpecifiedSize() &&
         (static_cast<std::size_t>(argSize) != resultType.getSize()))
-      return emitOpError("expected operand size to match QVecType size.");
+      return emitOpError("expected operand size to match VeqType size.");
   } else if (resultType && !resultType.hasSpecifiedSize()) {
-    return emitOpError("must return a qvec with known size.");
+    return emitOpError("must return a veq with known size.");
   }
   return success();
 }
@@ -84,9 +84,9 @@ LogicalResult quake::AllocaOp::verify() {
 //===----------------------------------------------------------------------===//
 
 OpFoldResult quake::ExtractRefOp::fold(FoldAdaptor adaptor) {
-  auto qvec = getQvec();
+  auto veq = getVeq();
   auto op = getOperation();
-  for (auto user : qvec.getUsers()) {
+  for (auto user : veq.getUsers()) {
     if (user == op || op->getBlock() != user->getBlock() ||
         op->isBeforeInBlock(user))
       continue;
@@ -124,14 +124,14 @@ OpFoldResult quake::ExtractRefOp::fold(FoldAdaptor adaptor) {
 //===----------------------------------------------------------------------===//
 
 LogicalResult quake::RelaxSizeOp::verify() {
-  if (cast<quake::QVecType>(getType()).hasSpecifiedSize())
-    emitOpError("return qvec type must not specify a size");
+  if (cast<quake::VeqType>(getType()).hasSpecifiedSize())
+    emitOpError("return veq type must not specify a size");
   return success();
 }
 
 // Forward the argument to a relax_size to the users for all users that are
-// quake operations. All quake ops that take a sized qvec argument are
-// polymorphic on all qvec types. If the op is not a quake op, then maintain
+// quake operations. All quake ops that take a sized veq argument are
+// polymorphic on all veq types. If the op is not a quake op, then maintain
 // strong typing.
 struct ForwardRelaxedSizePattern : public RewritePattern {
   ForwardRelaxedSizePattern(MLIRContext *context)
@@ -164,7 +164,7 @@ void quake::RelaxSizeOp::getCanonicalizationPatterns(
 Value quake::createSizedSubVecOp(PatternRewriter &builder, Location loc,
                                  OpResult result, Value inVec, Value lo,
                                  Value hi) {
-  auto vecTy = result.getType().cast<quake::QVecType>();
+  auto vecTy = result.getType().cast<quake::VeqType>();
   auto *ctx = builder.getContext();
   auto getVal = [&](Value v) {
     auto vCon = cast<arith::ConstantOp>(v.getDefiningOp());
@@ -172,7 +172,7 @@ Value quake::createSizedSubVecOp(PatternRewriter &builder, Location loc,
         vCon.getValue().cast<IntegerAttr>().getInt());
   };
   std::size_t size = getVal(hi) - getVal(lo) + 1u;
-  auto szVecTy = quake::QVecType::get(ctx, size);
+  auto szVecTy = quake::VeqType::get(ctx, size);
   auto subvec = builder.create<quake::SubVecOp>(loc, szVecTy, inVec, lo, hi);
   return builder.create<quake::RelaxSizeOp>(loc, vecTy, subvec);
 }
@@ -183,12 +183,12 @@ void quake::SubVecOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
 }
 
 //===----------------------------------------------------------------------===//
-// QVecSizeOp
+// VeqSizeOp
 //===----------------------------------------------------------------------===//
 
-void quake::QVecSizeOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
-                                                    MLIRContext *context) {
-  patterns.add<ForwardConstantQVecSizePattern>(context);
+void quake::VeqSizeOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
+                                                   MLIRContext *context) {
+  patterns.add<ForwardConstantVeqSizePattern>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -225,7 +225,7 @@ static LogicalResult verifyMeasurements(Operation *const op,
                                         const Type bitsType) {
   bool mustBeStdvec =
       targetsType.size() > 1 ||
-      (targetsType.size() == 1 && targetsType[0].isa<quake::QVecType>());
+      (targetsType.size() == 1 && targetsType[0].isa<quake::VeqType>());
   if (mustBeStdvec) {
     if (!op->getResult(0).getType().isa<cudaq::cc::StdvecType>())
       return op->emitOpError("must return `!cc.stdvec<i1>`, when measuring a "
@@ -270,11 +270,11 @@ void quake::getOperatorEffectsImpl(
         &effects,
     ValueRange controls, ValueRange targets) {
   for (auto v : controls)
-    if (isa<quake::QRefType, quake::QVecType>(v.getType()))
+    if (isa<quake::RefType, quake::VeqType>(v.getType()))
       effects.emplace_back(MemoryEffects::Read::get(), v,
                            SideEffects::DefaultResource::get());
   for (auto v : targets)
-    if (isa<quake::QRefType, quake::QVecType>(v.getType())) {
+    if (isa<quake::RefType, quake::VeqType>(v.getType())) {
       effects.emplace_back(MemoryEffects::Read::get(), v,
                            SideEffects::DefaultResource::get());
       effects.emplace_back(MemoryEffects::Write::get(), v,
