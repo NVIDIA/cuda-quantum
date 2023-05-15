@@ -77,7 +77,7 @@ jobs:
 
           create_output cxx_docs '*.h *.hpp docs/sphinx/examples/**/*.cpp :!:test :!:tpls :!:**/nlopt-src/*'
           create_output cxx '*.cpp *.h *.hpp :!:test :!:tpls :!:**/nlopt-src/*'
-          create_output python '*.py :!:python/tests :!:tpls'
+          create_output python '*.py :!:python/tests :!:test :!:tpls'
           create_output markdown '*.md :!:tpls'
           create_output rst '*.rst :!:tpls'
           echo "json=$(echo $json)" >> $GITHUB_OUTPUT
