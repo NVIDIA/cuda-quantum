@@ -52,10 +52,10 @@ bitstrings
 buildable
 callable
 callables
+canonicalization
 canonicalize
 canonicalizer
 canonicalizes
-canonicalization
 codebase
 composable
 controlled
