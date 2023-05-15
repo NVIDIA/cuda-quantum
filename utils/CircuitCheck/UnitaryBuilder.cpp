@@ -38,7 +38,15 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
       if (failed(getQubits(optor.getControls(), qubits)) ||
           failed(getQubits(optor.getTargets(), qubits)))
         return WalkResult::interrupt();
+
+      if (optor.getNegatedControls())
+        negatedControls(*optor.getNegatedControls(), qubits);
+
       applyOperator(matrix, optor.getTargets().size(), qubits);
+
+      if (optor.getNegatedControls())
+        negatedControls(*optor.getNegatedControls(), qubits);
+
       matrix.clear();
       qubits.clear();
     }
@@ -88,7 +96,7 @@ std::optional<int64_t> UnitaryBuilder::getValueAsInt(Value value) {
 }
 
 //===----------------------------------------------------------------------===//
-// Matrices
+// Helpers
 //===----------------------------------------------------------------------===//
 
 LogicalResult UnitaryBuilder::getQubits(ValueRange values,
@@ -107,6 +115,17 @@ LogicalResult UnitaryBuilder::getQubits(ValueRange values,
   }
   return success();
 }
+
+void UnitaryBuilder::negatedControls(ArrayRef<bool> negatedControls,
+                                     ArrayRef<Qubit> qubits) {
+  for (auto [isNegated, qubit] : llvm::zip(negatedControls, qubits))
+    if (isNegated)
+      applyMatrix({0, 1, 1, 0}, qubit); // Apply pauli-x to the qubit
+}
+
+//===----------------------------------------------------------------------===//
+// Matrices
+//===----------------------------------------------------------------------===//
 
 void UnitaryBuilder::applyOperator(ArrayRef<Complex> m, unsigned numTargets,
                                    ArrayRef<Qubit> qubits) {
@@ -192,10 +211,10 @@ void UnitaryBuilder::growMatrix(unsigned numQubits) {
 static unsigned first_idx(ArrayRef<UnitaryBuilder::Qubit> qubits, unsigned k) {
   unsigned lowBits;
   unsigned result = k;
-  for (unsigned j = 0u, end = qubits.size(); j < end; ++j) {
-    lowBits = result & ((1 << qubits[j]) - 1);
-    result >>= qubits[j];
-    result <<= qubits[j] + 1;
+  for (auto qubit : qubits) {
+    lowBits = result & ((1 << qubit) - 1);
+    result >>= qubit;
+    result <<= qubit + 1;
     result |= lowBits;
   }
   return result;
@@ -207,11 +226,10 @@ indicies(ArrayRef<UnitaryBuilder::Qubit> qubits,
   std::vector<unsigned> result((1 << qubits.size()), 0u);
   result.at(0) = first_idx(qubitsSorted, k);
   for (unsigned i = 0u, end = qubits.size(); i < end; ++i) {
-    const unsigned n = (1u << i);
-    const unsigned bit = (1u << qubits[i]);
-    for (size_t j = 0; j < n; j++) {
+    unsigned n = (1u << i);
+    unsigned bit = (1u << qubits[i]);
+    for (size_t j = 0; j < n; j++)
       result.at(n + j) = result.at(j) | bit;
-    }
   }
   return result;
 }
@@ -221,8 +239,8 @@ indicies(ArrayRef<UnitaryBuilder::Qubit> qubits,
 void UnitaryBuilder::applyMatrix(ArrayRef<Complex> u, ArrayRef<Qubit> qubits) {
   auto *m = matrix.data();
   for (unsigned k = 0u, end = (matrix.size() >> 1u); k < end; ++k) {
-    const auto idx = indicies(qubits, qubits, k);
-    const auto cache = m[idx.at(0)];
+    auto idx = indicies(qubits, qubits, k);
+    auto cache = m[idx.at(0)];
     m[idx.at(0)] = u[0] * cache + u[2] * m[idx.at(1)];
     m[idx.at(1)] = u[1] * cache + u[3] * m[idx.at(1)];
   }
@@ -236,17 +254,15 @@ void UnitaryBuilder::applyMatrix(ArrayRef<Complex> u, unsigned numTargets,
   auto *m = matrix.data();
   const size_t dim = (1u << numTargets);
   for (size_t k = 0u, end = (matrix.size() >> qubits.size()); k < end; ++k) {
-    const auto idx = indicies(qubits, qubitsSorted, k);
+    auto idx = indicies(qubits, qubitsSorted, k);
     SmallVector<Complex, 8> cache(dim, 0);
     for (size_t i = 0; i < dim; i++) {
       cache[i] = m[idx.at(i)];
       m[idx.at(i)] = 0.;
     }
-    for (size_t i = 0; i < dim; i++) {
-      for (size_t j = 0; j < dim; j++) {
+    for (size_t i = 0; i < dim; i++)
+      for (size_t j = 0; j < dim; j++)
         m[idx.at(i)] += u[i + dim * j] * cache[j];
-      }
-    }
   }
 }
 
@@ -254,13 +270,13 @@ void UnitaryBuilder::applyControlledMatrix(ArrayRef<Complex> u,
                                            ArrayRef<Qubit> qubits) {
   SmallVector<Qubit, 16> qubitsSorted(qubits);
   llvm::sort(qubitsSorted);
-  const unsigned p0 = (1 << (qubits.size() - 1)) - 1;
-  const unsigned p1 = (1 << qubits.size()) - 1;
+  unsigned p0 = (1 << (qubits.size() - 1)) - 1;
+  unsigned p1 = (1 << qubits.size()) - 1;
 
   auto *m = matrix.data();
   for (unsigned k = 0u, end = (matrix.size() >> qubits.size()); k < end; ++k) {
-    const auto idx = indicies(qubits, qubitsSorted, k);
-    const auto cache = m[idx.at(p0)];
+    auto idx = indicies(qubits, qubitsSorted, k);
+    auto cache = m[idx.at(p0)];
     m[idx.at(p0)] = u[0] * cache + u[2] * m[idx.at(p1)];
     m[idx.at(p1)] = u[1] * cache + u[3] * m[idx.at(p1)];
   }
