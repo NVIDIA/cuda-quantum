@@ -295,7 +295,7 @@ void LinkedLibraryHolder::setTarget(
 
   currentTarget = targetName;
 
-  // May also need to load a plugin library
+  // FIXME May also need to load a plugin library
   //     auto potentialPath =
   //         cudaqLibPath / fmt::format("libcudaq-rest-qpu.{}", libSuffix);
   //     libHandles.emplace(

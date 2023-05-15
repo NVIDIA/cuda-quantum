@@ -26,7 +26,7 @@ requested_backends=`\
 
 available_backends=`\
     echo "default"
-    for file in $(ls $CUDA_QUANTUM_PATH/platforms/*.config); \
+    for file in $(ls $CUDA_QUANTUM_PATH/targets/*.config); \
     do basename $file | cut -d "." -f 1; \
     done`
 
