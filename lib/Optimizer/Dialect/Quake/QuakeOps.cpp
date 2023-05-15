@@ -114,38 +114,6 @@ static void printRawIndex(OpAsmPrinter &printer, quake::ExtractRefOp refOp,
     printer << rawIndex.getValue();
 }
 
-#if 0
-OpFoldResult quake::ExtractRefOp::fold(FoldAdaptor adaptor) {
-  auto veq = getVeq();
-  auto op = getOperation();
-  for (auto user : veq.getUsers()) {
-    if (user == op || op->getBlock() != user->getBlock() ||
-        op->isBeforeInBlock(user))
-      continue;
-    if (auto extractRefOp = dyn_cast<quake::ExtractRefOp>(user)) {
-      // Compare any constant extract_ref index values.
-      auto getOffset =
-          [&](quake::ExtractRefOp extract) -> std::optional<std::size_t> {
-        if (static_cast<std::size_t>(extract.getRawIndex()) == kDynamicIndex) {
-          if (auto val = extract.getIndex())
-            if (auto defv = cast<arith::ConstantOp>(val.getDefiningOp()))
-              if (auto intv = dyn_cast_or_null<IntegerAttr>(defv.getValue()))
-                return intv.getValue().getLimitedValue();
-          return {};
-        }
-        return extract.getRawIndex();
-      };
-      auto firstIdx = getOffset(extractRefOp);
-      auto secondIdx = getOffset(*this);
-      // Merge the two extract_ref ops if the indices are the same.
-      if (firstIdx && secondIdx && firstIdx == secondIdx)
-        return extractRefOp.getResult();
-    }
-  }
-  return {};
-}
-#endif
-
 void quake::ExtractRefOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
   patterns.add<FuseConstantToExtractRefPattern>(context);

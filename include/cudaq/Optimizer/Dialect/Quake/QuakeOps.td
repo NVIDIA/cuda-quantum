@@ -250,7 +250,6 @@ def quake_ExtractRefOp : QuakeOp<"extract_ref", [Pure]> {
       functional-type(operands, results) attr-dict
   }];
 
-  //let hasFolder = 1;
   let hasCanonicalizer = 1;
   let hasVerifier = 1;
 
