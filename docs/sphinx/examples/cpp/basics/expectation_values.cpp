@@ -7,7 +7,7 @@
 #include <cudaq/algorithm.h>
 
 // The example here shows a simple use case for the `cudaq::observe`
-// function in computng expected values of provided spin_ops.
+// function in computing expected values of provided spin_ops.
 
 struct ansatz {
   auto operator()(double theta) __qpu__ {
