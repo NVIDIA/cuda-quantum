@@ -37,21 +37,21 @@ def test_kernel_control_no_args(qubit_count):
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
-# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.qvec<1>
-# CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}{{\[}}%[[VAL_0]]]  : (!quake.qvec<1>) -> ()
+# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<1>
+# CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}{{\[}}%[[VAL_0]]]  : (!quake.veq<1>) -> ()
 # CHECK:           return
 # CHECK:         }
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
 # CHECK:           %[[VAL_0:.*]] = arith.constant 1 : index
 # CHECK:           %[[VAL_1:.*]] = arith.constant 0 : index
-# CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.qvec<1>
+# CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<1>
 # CHECK:           %[[VAL_3:.*]] = cc.loop while ((%[[VAL_4:.*]] = %[[VAL_1]]) -> (index)) {
 # CHECK:             %[[VAL_5:.*]] = arith.cmpi slt, %[[VAL_4]], %[[VAL_0]] : index
 # CHECK:             cc.condition %[[VAL_5]](%[[VAL_4]] : index)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_6:.*]]: index):
-# CHECK:             %[[VAL_7:.*]] = quake.extract_ref %[[VAL_2]]{{\[}}%[[VAL_6]]] : (!quake.qvec<1>, index) -> !quake.ref
+# CHECK:             %[[VAL_7:.*]] = quake.extract_ref %[[VAL_2]]{{\[}}%[[VAL_6]]] : (!quake.veq<1>, index) -> !quake.ref
 # CHECK:             quake.x %[[VAL_7]] : (!quake.ref) -> ()
 # CHECK:             cc.continue %[[VAL_6]] : index
 # CHECK:           } step {
@@ -112,8 +112,8 @@ def test_kernel_control_float_args(qubit_count):
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
 # CHECK-SAME:                                                                   %[[VAL_0:.*]]: f64) {
-# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.qvec<1>
-# CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}{{\[}}%[[VAL_1]]] %[[VAL_0]] : (!quake.qvec<1>, f64) -> ()
+# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<1>
+# CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}{{\[}}%[[VAL_1]]] %[[VAL_0]] : (!quake.veq<1>, f64) -> ()
 # CHECK:           return
 # CHECK:         }
 
@@ -159,25 +159,15 @@ def test_kernel_control_int_args(qubit_count):
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
-<<<<<<< HEAD
-# CHECK-SAME:      %[[VAL_0:.*]]: i32) {
-# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
-# CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}{{\[}}%[[VAL_1]]] %[[VAL_0]] : (!quake.ref, i32) -> ()
-=======
 # CHECK-SAME:                                                                   %[[VAL_0:.*]]: i32) {
-# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.qvec<1>
-# CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}{{\[}}%[[VAL_1]]] %[[VAL_0]] : (!quake.qvec<1>, i32) -> ()
->>>>>>> 0e16209 (address pr comments)
+# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<1>
+# CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}{{\[}}%[[VAL_1]]] %[[VAL_0]] : (!quake.veq<1>, i32) -> ()
 # CHECK:           return
 # CHECK:         }
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
 # CHECK-SAME:                                                                   %[[VAL_0:.*]]: i32) {
-<<<<<<< HEAD
-# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
-=======
-# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.qvec<1>
->>>>>>> 0e16209 (address pr comments)
+# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<1>
 # CHECK:           return
 # CHECK:         }
 
@@ -217,8 +207,8 @@ def test_kernel_control_list_args(qubit_count):
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
 # CHECK-SAME:                                                                   %[[VAL_0:.*]]: !cc.stdvec<f64>) {
-# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.qvec<1>
-# CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}{{\[}}%[[VAL_1]]] %[[VAL_0]] : (!quake.qvec<1>, !cc.stdvec<f64>) -> ()
+# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<1>
+# CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}{{\[}}%[[VAL_1]]] %[[VAL_0]] : (!quake.veq<1>, !cc.stdvec<f64>) -> ()
 # CHECK:           return
 # CHECK:         }
 
