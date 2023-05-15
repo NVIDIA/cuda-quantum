@@ -87,7 +87,7 @@ static ParseResult
 parseRawIndex(OpAsmParser &parser,
               std::optional<OpAsmParser::UnresolvedOperand> &index,
               IntegerAttr &rawIndex) {
-  std::size_t constantIndex;
+  std::size_t constantIndex = 0;
   OptionalParseResult parsedInteger =
       parser.parseOptionalInteger(constantIndex);
   if (parsedInteger.has_value()) {
