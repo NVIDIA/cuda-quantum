@@ -16,6 +16,30 @@
 
 namespace cudaq {
 
+/// @brief Map an OpenFermion QubitOperator to our own internal SpinOperator
+spin_op fromOpenFermionQubitOperator(py::object &op) {
+  if (!py::hasattr(op, "terms"))
+    throw std::runtime_error(
+        "This is not an openfermion operator, must have 'terms' attribute.");
+  std::map<std::string, std::function<spin_op(std::size_t)>> creatorMap{
+      {"X", [](std::size_t i) { return spin::x(i); }},
+      {"Y", [](std::size_t i) { return spin::y(i); }},
+      {"Z", [](std::size_t i) { return spin::z(i); }}};
+  auto terms = op.attr("terms");
+  spin_op H;
+  for (auto term : terms) {
+    auto termTuple = term.cast<py::tuple>();
+    spin_op localTerm;
+    for (auto &element : termTuple) {
+      auto casted = element.cast<std::pair<std::size_t, std::string>>();
+      localTerm *= creatorMap[casted.second](casted.first);
+    }
+    H += terms[term].cast<double>() * localTerm;
+  }
+  H -= spin::i(H.num_qubits() - 1);
+  return H;
+}
+
 void bindSpinClass(py::module &mod) {
   // Binding the `cudaq::spin` class to `_pycudaq` as a submodule
   // so it's accessible directly in the cudaq namespace.
@@ -52,6 +76,9 @@ void bindSpinOperator(py::module &mod) {
            "Read in `SpinOperator` from file.")
       .def(py::init<const cudaq::spin_op>(), py::arg("spin_operator"),
            "Copy constructor, given another `cudaq.SpinOperator`.")
+      .def(py::init(
+               [](py::object o) { return fromOpenFermionQubitOperator(o); }),
+           "Create from OpenFermion QubitOperator.")
 
       /// @brief Bind the member functions.
       .def("get_raw_data", &cudaq::spin_op::get_raw_data, "")

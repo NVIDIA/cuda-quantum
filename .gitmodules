@@ -20,3 +20,9 @@
 [submodule "tpls/spdlog"]
 	path = tpls/spdlog
 	url = https://github.com/gabime/spdlog
+[submodule "tpls/xtl"]
+	path = tpls/xtl
+	url = https://github.com/xtensor-stack/xtl
+[submodule "tpls/xtensor"]
+	path = tpls/xtensor
+	url = https://github.com/xtensor-stack/xtensor
