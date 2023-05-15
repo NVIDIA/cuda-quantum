@@ -31,6 +31,10 @@ matrix:
       # Ignore word prefixes, e.g. "pre-" in pre-computed
       - open: '(^|\s)[a-z]+-'
         close: '(?=.)'
+      # Ignore paths of files (recognized by them having a file extension)
+      - open: '(^|\s)([A-Za-z_\\\/]+\.)+'
+        close: '($|(?=[^a-z]))'
+        content: '\S+?'
 
 - name: rst
   sources:
@@ -170,7 +174,7 @@ matrix:
       # Ignore comments of the form `/*...*/` since they are used to annotate argument names
       - open: '\/\*'
         close: '\*\/'
-        content: \S*?
+        content: '\S*?'
   - pyspelling.filters.cpp:
       block_comments: true
       line_comments: true
@@ -191,7 +195,7 @@ matrix:
         close: '(\s|$)'
       # Ignore word prefixes, e.g. "pre-" in pre-computed
       - open: '(^|\s)[a-z]+-'
-        close: '(?=.)'      
+        close: '(?=.)'
 
 - name: python
   sources:
