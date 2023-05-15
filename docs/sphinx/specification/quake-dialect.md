@@ -43,19 +43,19 @@ func.func foo(%veq : !quake.veq<2>) {
     // Boilerplate to extract each qubit from the vector
     %c0 = arith.constant 0 : index
     %c1 = arith.constant 1 : index
-    %q0 = quake.qextract %veq[%c0 : index] : !quake.veq<2> -> !quake.ref
-    %q1 = quake.qextract %veq[%c1 : index] : !quake.veq<2> -> !quake.ref
+    %q0 = quake.extract_ref %veq[%c0] : (!quake.veq<2>, index) -> !quake.ref
+    %q1 = quake.extract_ref %veq[%c1] : (!quake.veq<2>, index) -> !quake.ref
 
     // We apply some operators to those extracted qubits
-    ... bunch of operators using %q0 and %q1 ...
-    quake.h (%q0)
+    // ... bunch of operators using %q0 and %q1 ...
+    quake.h %q0 : (!quake.ref) -> ()
 
     // We decide to measure the vector
-    %result = quake.mz (%veq) : vector<2xi1>
+    %result = quake.mz %veq : (!quake.veq<2>) -> cc.stdvec<i1>
 
     // And then apply another Hadamard to %q0
-    quake.h (%q0)
-    ...
+    quake.h %q0 : (!quake.ref) -> ()
+    // ...
 }
 ```
 
