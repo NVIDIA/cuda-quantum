@@ -39,17 +39,17 @@ module {
     func.func @ghz(%arg0 : i32) {
         %c0 = arith.constant 0 : i32
         %one = arith.constant 1 : i32
-        %q = quake.alloca [%arg0 : i32] !quake.qvec<?>
-        %q0 = quake.extract_ref %q [%c0] : (!quake.qvec<?>,i32) -> !quake.qref
-        quake.h %q0 : (!quake.qref) -> ()
+        %q = quake.alloca [%arg0 : i32] !quake.veq<?>
+        %q0 = quake.extract_ref %q [%c0] : (!quake.veq<?>,i32) -> !quake.ref
+        quake.h %q0 : (!quake.ref) -> ()
         %size_m_1 = arith.subi %arg0, %one : i32
         %upper = arith.index_cast %size_m_1 : i32 to index
         affine.for %i = 0 to %upper {
             %i_int = arith.index_cast %i : index to i32
             %ip1 = arith.addi %i_int, %one : i32
-            %qi = quake.extract_ref %q [%i] : (!quake.qvec<?>,index) -> !quake.qref
-            %qi1 = quake.extract_ref %q [%ip1] : (!quake.qvec<?>,i32) -> !quake.qref
-            quake.x [%qi] %qi1 : (!quake.qref,!quake.qref) -> ()
+            %qi = quake.extract_ref %q [%i] : (!quake.veq<?>,index) -> !quake.ref
+            %qi1 = quake.extract_ref %q [%ip1] : (!quake.veq<?>,i32) -> !quake.ref
+            quake.x [%qi] %qi1 : (!quake.ref,!quake.ref) -> ()
         }
         return
     }

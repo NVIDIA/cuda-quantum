@@ -361,13 +361,13 @@ public:
   /// @return
   std::size_t getNumParams() { return arguments.size(); }
 
-  /// @brief Return a `QuakeValue` representing the allocated `QVec`.
+  /// @brief Return a `QuakeValue` representing the allocated `Veq`.
   QuakeValue qalloc(const std::size_t nQubits = 1) {
     return details::qalloc(*opBuilder.get(), nQubits);
   }
 
-  /// @brief Return a `QuakeValue` representing the allocated `QVec`,
-  /// size is either defined by `QuakeValue` or a `BlockArgument`.
+  /// @brief Return a `QuakeValue` representing the allocated `Veq`,
+  /// size is from a pre-allocated size `QuakeValue` or `BlockArgument`.
   QuakeValue qalloc(QuakeValue size) {
     return details::qalloc(*opBuilder.get(), size);
   }

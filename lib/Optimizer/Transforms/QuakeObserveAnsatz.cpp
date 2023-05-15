@@ -82,8 +82,7 @@ private:
 
     // walk and find all quantum allocations
     funcOp->walk([&](quake::AllocaOp op) {
-      data.nQubits +=
-          op.getResult().getType().cast<quake::QVecType>().getSize();
+      data.nQubits += op.getResult().getType().cast<quake::VeqType>().getSize();
     });
 
     // NOTE this assumes canonicalization has run.

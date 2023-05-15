@@ -15,14 +15,14 @@
 // CHECK-SAME: (%[[arg0:.*]]: f64) -> i1
 // CHECK:     %[[V0:.*]] = memref.alloca() : memref<f64>
 // CHECK:     memref.store %[[arg0]], %[[V0]][] : memref<f64>
-// CHECK:     %[[V1:.*]] = quake.alloca !quake.qref
+// CHECK:     %[[V1:.*]] = quake.alloca !quake.ref
 // CHECK:     %[[V2:.*]] = memref.load %[[V0]][] : memref<f64>
 // CHECK:     quake.rx (%[[V2]]) %[[V1]] : (f64,
 // CHECK:     %[[V3:.*]] = memref.load %[[V0]][] : memref<f64>
 // CHECK:     %[[cst:.*]] = arith.constant 2.0{{.*}} : f64
 // CHECK:     %[[V4:.*]] = arith.divf %[[V3]], %[[cst]] : f64
 // CHECK:     quake.ry (%[[V4]]) %[[V1]] : (f64,
-// CHECK:     %[[V5:.*]] = quake.mz %[[V1]] : (!quake.qref) -> i1
+// CHECK:     %[[V5:.*]] = quake.mz %[[V1]] : (!quake.ref) -> i1
 // CHECK:     return %[[V5]] : i1
 // CHECK:   }
 // CHECK: }

@@ -24,11 +24,11 @@ struct SliceTest {
 // CHECK-SAME:      (%[[VAL_0:.*]]: i32, %[[VAL_1:.*]]: i32) attributes {
 // CHECK:           %[[VAL_4:.*]] = arith.constant 10 : i32
 // CHECK:           %[[VAL_5:.*]] = arith.extsi %[[VAL_4]] : i32 to i64
-// CHECK:           %[[VAL_6:.*]] = quake.alloca[%[[VAL_5]] : i64] !quake.qvec<?>
+// CHECK:           %[[VAL_6:.*]] = quake.alloca[%[[VAL_5]] : i64] !quake.veq<?>
 // CHECK:           %[[VAL_11:.*]] = arith.constant 1 : i64
 // CHECK:           %[[VAL_12:.*]] = arith.addi %{{.*}}, %{{.*}} : i64
 // CHECK:           %[[VAL_13:.*]] = arith.subi %[[VAL_12]], %[[VAL_11]] : i64
-// CHECK:           %[[VAL_14:.*]] = quake.subvec %[[VAL_6]], %{{.*}}, %[[VAL_13]] : (!quake.qvec<?>, i64, i64) -> !quake.qvec<?>
-// CHECK:           call @{{.*}}other{{.*}}(%[[VAL_14]]) : (!quake.qvec<?>) -> ()
+// CHECK:           %[[VAL_14:.*]] = quake.subvec %[[VAL_6]], %{{.*}}, %[[VAL_13]] : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
+// CHECK:           call @{{.*}}other{{.*}}(%[[VAL_14]]) : (!quake.veq<?>) -> ()
 // CHECK:           return
 // CHECK:         }

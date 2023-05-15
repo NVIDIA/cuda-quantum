@@ -28,6 +28,7 @@ OpenQASM
 Optimizers
 Pauli
 Paulis
+Pimpl
 QAOA
 QIR
 QIS
@@ -44,6 +45,7 @@ ansatz
 auxillary
 backend
 backends
+baz
 bitcode
 bitstring
 bitstrings
@@ -51,7 +53,9 @@ buildable
 callable
 callables
 canonicalize
+canonicalizer
 canonicalizes
+canonicalization
 codebase
 composable
 controlled
@@ -96,6 +100,7 @@ subclass
 subclassed
 subclasses
 subclassing
+subscriptable
 subtype
 subtypes
 subtyping
