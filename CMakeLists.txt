@@ -342,6 +342,10 @@ find_package(OpenSSL QUIET)
 
 # Directory setup
 # ==============================================================================
+if (CUDAQ_ENABLE_PYTHON)
+  add_subdirectory(tpls/pybind11)
+endif()
+
 add_subdirectory(cmake)
 add_subdirectory(include)
 add_subdirectory(lib)
@@ -369,7 +373,6 @@ endif()
 # Users may specify  `-DCUDAQ_ENABLE_PYTHON=TRUE`, otherwise the python bindings
 # will not be built.
 if (CUDAQ_ENABLE_PYTHON)
-  add_subdirectory(tpls/pybind11)
   add_subdirectory(python)
 endif()
 
