@@ -11,7 +11,7 @@ struct kernel {
     // Initial state preparation
     x(q[0]);
 
-    // create Bell pair
+    // Create Bell pair
     h(q[1]);
     x<cudaq::ctrl>(q[1], q[2]);
 
