@@ -6,10 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 
-/// Compile and run with:
-/// ```
-/// nvq++ iterative_qpe.cpp -o qpe.x && ./qpe.x
-/// ```
+// Compile and run with:
+// ```
+// nvq++ iterative_qpe.cpp -o qpe.x && ./qpe.x
+// ```
 
 #include <cudaq.h>
 

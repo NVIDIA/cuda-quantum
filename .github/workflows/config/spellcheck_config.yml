@@ -90,10 +90,9 @@ matrix:
       - open: '(^|\s)[a-z]+-'
         close: '(?=.)'
 
-- name: cxx
+- name: cxx_headers
   sources:
   - '**/*.h'
-  - 'docs/sphinx/examples/**/*.cpp'
   expect_match: false
   aspell:
     lang: en
@@ -148,6 +147,51 @@ matrix:
       # Ignore word prefixes, e.g. "pre-" in pre-computed
       - open: '(^|\s)[a-z]+-'
         close: '(?=.)'
+
+- name: cxx_examples
+  sources:
+  - 'docs/sphinx/examples/**/*.cpp'
+  expect_match: false
+  aspell:
+    lang: en
+    d: en_US
+  dictionary:
+    wordlists:
+    - .github/workflows/config/spelling_allowlist.txt
+  pipeline:
+  - pyspelling.filters.url:
+  - pyspelling.filters.context:
+      context_visible_first: true
+      escapes: '\\[\\`~]'
+      delimiters:
+      # Ignore comments of the form `// namespace ...` since they are used to annotate the closing namespace
+      - open: '\/{2}\s*namespace\s+'
+        close: '($|\s)'
+      # Ignore comments of the form `/*...*/` since they are used to annotate argument names
+      - open: '\/\*'
+        close: '\*\/'
+        content: \S*?
+  - pyspelling.filters.cpp:
+      block_comments: true
+      line_comments: true
+      group_comments: true
+      strings: false
+  - pyspelling.filters.context:
+      context_visible_first: true
+      escapes: '\\[\\`~]'
+      delimiters:
+      # Ignore multiline content between three or more backticks
+      - open: '(?s)(?P<open>\s*`{3,})\S*\s*$'
+        close: '(?P=open)$'
+      # Ignore content between inline backticks
+      - open: '(?P<open>`+)'
+        close: '(?P=open)'
+      # Ignore words that start with an @, e.g. @param used in doc comments
+      - open: '@\S'
+        close: '(\s|$)'
+      # Ignore word prefixes, e.g. "pre-" in pre-computed
+      - open: '(^|\s)[a-z]+-'
+        close: '(?=.)'      
 
 - name: python
   sources:

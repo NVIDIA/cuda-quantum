@@ -75,8 +75,9 @@ jobs:
             done
           }
 
-          create_output cxx_docs '*.h *.hpp docs/sphinx/examples/**/*.cpp :!:test :!:tpls :!:**/nlopt-src/*'
           create_output cxx '*.cpp *.h *.hpp :!:test :!:tpls :!:**/nlopt-src/*'
+          create_output cxx_headers '*.h *.hpp :!:test :!:tpls :!:**/nlopt-src/*'
+          create_output cxx_examples 'docs/sphinx/examples/**/*.cpp'
           create_output python '*.py :!:python/tests :!:test :!:tpls'
           create_output markdown '*.md :!:tpls'
           create_output rst '*.rst :!:tpls'
@@ -183,14 +184,22 @@ jobs:
           task_name: rst
           source_files: ${{ join(fromJSON(needs.filters.outputs.json).files.rst, ' ') || '*.nonexistent' }}
 
-      - name: "C++ files"
+      - name: "C++ files (headers)"
         uses: rojopolis/spellcheck-github-actions@0.30.0
         with:
           config_path: '.github/workflows/config/spellcheck_config.yml'
-          output_file: cxx_spellcheck.txt
-          task_name: cxx
-          source_files: ${{ join(fromJSON(needs.filters.outputs.json).files.cxx_docs, ' ') || '*.nonexistent' }}
+          output_file: cxx_headers_spellcheck.txt
+          task_name: cxx_headers
+          source_files: ${{ join(fromJSON(needs.filters.outputs.json).files.cxx_headers, ' ') || '*.nonexistent' }}
 
+      - name: "C++ files (examples)"
+        uses: rojopolis/spellcheck-github-actions@0.30.0
+        with:
+          config_path: '.github/workflows/config/spellcheck_config.yml'
+          output_file: cxx_examples_spellcheck.txt
+          task_name: cxx_examples
+          source_files: ${{ join(fromJSON(needs.filters.outputs.json).files.cxx_examples, ' ') || '*.nonexistent' }}
+  
       - name: "Python files"
         uses: rojopolis/spellcheck-github-actions@0.30.0
         with:
@@ -216,7 +225,8 @@ jobs:
 
           md_status=`create_summary Markdown markdown`
           rst_status=`create_summary reStructuredText rst`
-          cxx_status=`create_summary C++ cxx`
+          cxx_status=`create_summary "C++ Headers" cxx_headers`
+          cxx_status=`create_summary "C++ Examples" cxx_examples`
           py_status=`create_summary Python python`
 
           if [ ! "$md_status" -eq 0 ]; then exit 1; fi

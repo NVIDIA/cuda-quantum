@@ -6,28 +6,28 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 
-/// Compile and run with:
-/// ```
-/// nvq++ vqe_h2_builder.cpp -o builder.x && ./builder.x
-/// ```
+// Compile and run with:
+// ```
+// nvq++ vqe_h2_builder.cpp -o builder.x && ./builder.x
+// ```
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
 #include <cudaq/gradients.h>
 #include <cudaq/optimizers.h>
 
-/// This example demonstrates the utility of the builder pattern
-/// for a common chemistry example. Here we build up a CUDA Quantum kernel
-/// with N layers and each layer containing an arrangement of
-/// random SO(4) rotations. The algorithm leverages the CUDA Quantum
-/// VQE support to compute the ground state of the Hydrogen atom.
+// This example demonstrates the utility of the builder pattern
+// for a common chemistry example. Here we build up a CUDA Quantum kernel
+// with N layers and each layer containing an arrangement of
+// random SO(4) rotations. The algorithm leverages the CUDA Quantum
+// VQE support to compute the ground state of the Hydrogen atom.
 
 namespace cudaq {
 
-/// Define a function that applies a general SO(4) rotation to
-/// the builder on the provided qubits with the provided parameters.
-/// Note we keep this qubit and parameter arguments as auto as these
-/// will default to taking the qubits and variational parameters (`QuakeValue`s)
+// Define a function that applies a general SO(4) rotation to
+// the builder on the provided qubits with the provided parameters.
+// Note we keep this qubit and parameter arguments as auto as these
+// will default to taking the qubits and variational parameters (`QuakeValue`s)
 void so4(cudaq::kernel_builder<std::vector<double>> &builder, QuakeValue &&q,
          QuakeValue &&r, QuakeValue &parameters) {
   builder.ry(parameters[0], q);
@@ -56,7 +56,7 @@ void so4(cudaq::kernel_builder<std::vector<double>> &builder, QuakeValue &&q,
 
 int main() {
 
-  /// Read in the spin op from file
+  // Read in the spin op from file
   std::vector<double> h2_data{0, 0, 0, 0, -0.10647701149499994, 0.0,
                               1, 1, 1, 1, 0.0454063328691,      0.0,
                               1, 1, 3, 3, 0.0454063328691,      0.0,
@@ -80,18 +80,18 @@ int main() {
   int n_params = layers * 6 * n_blocks_per_layer;
   printf("%d qubit hamiltonian -> %d parameters\n", n_qubits, n_params);
 
-  /// Create the builder with signature void(std::vector<double>)
+  // Create the builder with signature void(std::vector<double>)
   auto [kernel, params] = cudaq::make_kernel<std::vector<double>>();
 
-  /// Allocate the qubits, initialize the HF product state
+  // Allocate the qubits, initialize the HF product state
   auto q = kernel.qalloc(n_qubits);
   kernel.x(q[0]);
   kernel.x(q[2]);
 
-  /// Loop over adding layers of SO4 entanglers
+  // Loop over adding layers of SO4 entanglers
   int counter = 0;
   for (int i = 0; i < layers; i++) {
-    /// first layer of so4 blocks (even)
+    // first layer of so4 blocks (even)
     for (int k = 0; k < n_qubits; k += block_size) {
       auto subq = q.slice(k, block_size);
       auto sub_p = params.slice(p_counter, 6);
@@ -99,7 +99,7 @@ int main() {
       p_counter += 6;
     }
 
-    /// second layer of so4 blocks (odd)
+    // second layer of so4 blocks (odd)
     for (int k = 1; k + block_size < n_qubits; k += block_size) {
       auto subq = q.slice(k, block_size);
       auto sub_p = params.slice(p_counter, 6);
@@ -108,10 +108,10 @@ int main() {
     }
   }
 
-  /// Run the VQE algorithm from specific initial parameters.
+  // Run the VQE algorithm from specific initial parameters.
   auto init_params = cudaq::random_vector(-1, 1, n_params);
 
-  /// Run VQE
+  // Run VQE
   cudaq::optimizers::lbfgs optimizer;
   cudaq::gradients::central_difference gradient(kernel);
   optimizer.initial_parameters = init_params;
