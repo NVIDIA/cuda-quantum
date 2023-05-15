@@ -85,13 +85,10 @@ private:
       data.nQubits += op.getResult().getType().cast<quake::VeqType>().getSize();
     });
 
-    // NOTE this assumes canonicalization has run.
+    // NOTE: assumes canonicalization and cse have run.
     funcOp->walk([&](quake::ExtractRefOp op) {
-      auto idxVal = op.getIndex();
-      if (auto defOp = idxVal.getDefiningOp<arith::ConstantIntOp>()) {
-        auto constant = defOp.value();
-        data.qubitValues.insert({constant, op.getResult()});
-      }
+      if (op.hasConstantIndex())
+        data.qubitValues.insert({op.getConstantIndex(), op.getResult()});
     });
 
     // Count all measures
