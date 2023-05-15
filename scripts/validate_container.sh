@@ -100,17 +100,17 @@ do
             let "skipped+=1"
             echo "Skipping $t target.";
 
-        elif [[ "$ex" != *"nois"* ]] && [ "$t" = "dm" ];
+        elif [[ "$ex" != *"nois"* ]] && [ "$t" == "density-matrix-cpu" ];
         then
             let "skipped+=1"
             echo "Skipping $t target."
 
         else
             echo "Testing on $t target..."
-            if [ "$t" = "default" ]; then 
+            if [ "$t" == "default" ]; then 
                 nvq++ $ex
             else
-                nvq++ $ex -qpu $t
+                nvq++ $ex --target $t
             fi
             ./a.out &> /dev/null
             status=$?
