@@ -67,7 +67,7 @@ namespace details {
 // this helps us keep MLIR out of this public header
 
 /// @brief The `kernel_builder::Type` allows us to track
-/// input C++ types representing the quake function argument types
+/// input C++ types represeting the quake function argument types
 /// in a way that does not expose MLIR Type to the CUDA Quantum code.
 /// This type keeps track of a functor that generates the MLIR Type
 /// in implementation code when create() is invoked.
