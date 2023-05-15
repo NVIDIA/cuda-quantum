@@ -402,7 +402,7 @@ trap delete_temp_files EXIT
 # the resultant binary to target that specified backend.
 OBJS_TO_MERGE=""
 if [ -n "${TARGET_CONFIG}" ]; then
-	TARGET_CONFIG_FILE="${install_dir}/platforms/${TARGET_CONFIG}.config"
+	TARGET_CONFIG_FILE="${install_dir}/targets/${TARGET_CONFIG}.config"
 	if [ -f "${TARGET_CONFIG_FILE}" ]; then
 		GEN_TARGET_BACKEND=false
 		. "${TARGET_CONFIG_FILE}" ${COPY_INPUT_ARGS}
@@ -412,7 +412,7 @@ if [ -n "${TARGET_CONFIG}" ]; then
 			# and set the target backend on the quantum_platform
 			TARGET_CONFIG="${TARGET_CONFIG}${PLATFORM_EXTRA_ARGS}"
 			OUTFILENAME=$(mktemp nvqppGenTargetBackend.XXXXXX.o)
-			run ${CXX} -DNVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"" -o $OUTFILENAME -c -x c++ ${install_dir}/platforms/backendConfig.cpp
+			run ${CXX} -DNVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"" -o $OUTFILENAME -c -x c++ ${install_dir}/targets/backendConfig.cpp
 			OBJS_TO_MERGE="${OUTFILENAME}"
 			TMPFILES="${TMPFILES} ${OUTFILENAME}"
 		fi
