@@ -160,7 +160,7 @@ inline auto distributeComputations(
   for (std::size_t i = 0; auto &asyncResult : asyncResults) {
     auto res = asyncResult.get();
     auto incomingData = res.raw_data();
-    result += incomingData.exp_val_z(spins[i].to_string(false));
+    result += incomingData.exp_val_z();
     data += incomingData;
     i++;
   }

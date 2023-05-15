@@ -100,7 +100,8 @@ private:
            }},
           {"swap",
            [](std::vector<double> d, Array *a, std::vector<Qubit *> &q) {
-             __quantum__qis__swap(q[0], q[1]);
+             a != nullptr ? __quantum__qis__swap__ctl(a, q[0], q[1])
+                          : __quantum__qis__swap(q[0], q[1]);
            }},
           {"cphase",
            [](std::vector<double> d, Array *a, std::vector<Qubit *> &q) {
