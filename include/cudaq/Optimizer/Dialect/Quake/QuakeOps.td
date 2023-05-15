@@ -43,7 +43,7 @@ def quake_AllocaOp : QuakeOp<"alloca", [MemoryEffects<[MemAlloc, MemWrite]>]> {
     of references to wires. The size of the vector may be provided either
     statically as part of the type or dynamically as an integer-like argument,
     `size`. The return value will be a quantum reference, type `!quake.ref`,
-    or a vector of such, type `!quake.qvec<N>`.
+    or a vector of such, type `!quake.veq<N>`.
 
     All wires are assumed to be initialized to the value `|0>` initially. See
     the `null_wire` op.
@@ -59,10 +59,10 @@ def quake_AllocaOp : QuakeOp<"alloca", [MemoryEffects<[MemAlloc, MemWrite]>]> {
       %qubit = quake.alloca !quake.ref
 
       // Allocate a qubit register with a size known at compilation time
-      %qvec = quake.alloca !quake.qvec<4> {name = "quantum"}
+      %veq = quake.alloca !quake.veq<4> {name = "quantum"}
 
       // Allocate a qubit register with a size known at runtime time
-      %qvec = quake.alloca(%size : i32) !quake.qvec<?>
+      %veq = quake.alloca(%size : i32) !quake.veq<?>
     ```
 
     Canonicalization for this op will fold constant vector sizes directly into
@@ -79,7 +79,7 @@ def quake_AllocaOp : QuakeOp<"alloca", [MemoryEffects<[MemAlloc, MemWrite]>]> {
       return build($_builder, $_state, $_builder.getType<RefType>(), {});
     }]>,
     OpBuilder<(ins "size_t":$size), [{
-      return build($_builder, $_state, $_builder.getType<QVecType>(size), {});
+      return build($_builder, $_state, $_builder.getType<VeqType>(size), {});
     }]>
   ];
 
@@ -92,20 +92,20 @@ def quake_AllocaOp : QuakeOp<"alloca", [MemoryEffects<[MemAlloc, MemWrite]>]> {
 }
 
 def quake_ConcatOp : QuakeOp<"concat", [Pure]> {
-  let summary = "Construct a qvec from a list of other ref/qvec values.";
+  let summary = "Construct a veq from a list of other ref/veq values.";
   let description = [{
     The `concat` operation allows one to concatenate a list of SSA-values of
-    either type Ref or QVec into a new QVec vector.
+    either type Ref or Veq into a new Veq vector.
 
     Example:
     ```mlir
-      %veq = quake.concat %r1, %v1, %r2 : (!quake.ref, !quake.qvec<?>,
-                                           !quake.ref) -> !quake.qvec<?>
+      %veq = quake.concat %r1, %v1, %r2 : (!quake.ref, !quake.veq<?>,
+                                           !quake.ref) -> !quake.veq<?>
     ```
   }];
 
   let arguments = (ins Variadic<AnyRefType>:$qbits);
-  let results = (outs QVecType);
+  let results = (outs VeqType);
 
   let assemblyFormat = [{
     $qbits attr-dict `:` functional-type(operands, results)
@@ -176,16 +176,16 @@ def quake_DeallocOp : QuakeOp<"dealloc"> {
   let description = [{
     The `dealloc` operation deallocates a references to wires. The deallocation
     can be a single wire, type `!quake.ref`, or a vector of references, type
-    `!quake.qvec<N>`.
+    `!quake.veq<N>`.
 
     Deallocations are automatically inserted by the `QuakeAddDeallocs` and
     `UnwindLowering` passes.
 
     Example:
     ```mlir
-      %1 = quake.alloca !quake.qvec<4>
+      %1 = quake.alloca !quake.veq<4>
       ...
-      quake.dealloc %1 : !quake.qvec<4>
+      quake.dealloc %1 : !quake.veq<4>
     ```
 
     See AllocaOp.
@@ -202,7 +202,7 @@ def quake_DeallocOp : QuakeOp<"dealloc"> {
 }
 
 //===----------------------------------------------------------------------===//
-// QVec, Ref manipulation
+// Veq, Ref manipulation
 //===----------------------------------------------------------------------===//
 
 def quake_ExtractRefOp : QuakeOp<"extract_ref", [Pure]> {
@@ -217,23 +217,23 @@ def quake_ExtractRefOp : QuakeOp<"extract_ref", [Pure]> {
     Example:
     ```mlir
       %zero = arith.constant 0 : i32
-      %qr = quake.extract_ref %qv[%zero] : (!quake.qvec<?>, i32) -> !quake.ref
+      %qr = quake.extract_ref %qv[%zero] : (!quake.veq<?>, i32) -> !quake.ref
     ```
   }];
 
   let arguments = (ins
-    QVecType:$qvec,
+    VeqType:$veq,
     AnySignlessIntegerOrIndex:$index
   );
   let results = (outs RefType:$ref);
 
   let assemblyFormat = [{
-    $qvec `[` $index `]` `:`  functional-type(operands, results) attr-dict
+    $veq `[` $index `]` `:`  functional-type(operands, results) attr-dict
   }];
 
   let builders = [
-    OpBuilder<(ins "mlir::Value":$qvec, "mlir::Value":$index), [{
-      return build($_builder, $_state, $_builder.getType<RefType>(), qvec,
+    OpBuilder<(ins "mlir::Value":$veq, "mlir::Value":$index), [{
+      return build($_builder, $_state, $_builder.getType<RefType>(), veq,
                    index);
     }]>,
   ];
@@ -241,21 +241,21 @@ def quake_ExtractRefOp : QuakeOp<"extract_ref", [Pure]> {
 }
 
 def quake_RelaxSizeOp : QuakeOp<"relax_size", [Pure]> {
-  let summary = "Relax the constant size on a !qvec to be unknown.";
+  let summary = "Relax the constant size on a !veq to be unknown.";
   let description = [{
     At times, the IR needs to forget the length of an SSA-value of type
-    `!quake.qvec<N>` and demote it to type `!quake.qvec<?>` where the size is
+    `!quake.veq<N>` and demote it to type `!quake.veq<?>` where the size is
     said to be unknown. This demotion is required to preserve a valid,
     strongly-typed IR.
 
     Example:
     ```mlir
-      %uqv = quake.relax_size %qv : (!quake.qvec<4>) -> !quake.qvec<?>
+      %uqv = quake.relax_size %qv : (!quake.veq<4>) -> !quake.veq<?>
     ```
   }];
 
-  let arguments = (ins QVecType:$inputVec);
-  let results = (outs QVecType);
+  let arguments = (ins VeqType:$inputVec);
+  let results = (outs VeqType);
 
   let assemblyFormat = [{
     $inputVec `:` functional-type(operands, results) attr-dict
@@ -266,10 +266,10 @@ def quake_RelaxSizeOp : QuakeOp<"relax_size", [Pure]> {
 }
 
 def quake_SubVecOp : QuakeOp<"subvec", [Pure]> {
-  let summary = "Extract a subvector from a qvec reference value.";
+  let summary = "Extract a subvector from a veq reference value.";
   let description = [{
     The `subvec` operation returns a subvector of references, type
-    `!quake.qvec<N>` from a vector of references, type `!quake.qvec<M>`, where
+    `!quake.veq<N>` from a vector of references, type `!quake.veq<M>`, where
     `M >= N`.
 
     In the following example, the operation produces an SSA-value with 5
@@ -283,17 +283,17 @@ def quake_SubVecOp : QuakeOp<"subvec", [Pure]> {
     ```mlir
       %0 = arith.constant 2 : i32
       %1 = arith.constant 6 : i32
-      %qr = quake.subvec %qv, %0, %1 : (!quake.qvec<?>, i32, i32) ->
-                                        !quake.qvec<5>
+      %qr = quake.subvec %qv, %0, %1 : (!quake.veq<?>, i32, i32) ->
+                                        !quake.veq<5>
     ```
   }];
 
   let arguments = (ins
-    QVecType:$qvec,
+    VeqType:$veq,
     AnySignlessIntegerOrIndex:$low,
     AnySignlessIntegerOrIndex:$high
   );
-  let results = (outs QVecType:$qsub);
+  let results = (outs VeqType:$qsub);
 
   let assemblyFormat = [{
     operands attr-dict `:` functional-type(operands, results)
@@ -303,33 +303,33 @@ def quake_SubVecOp : QuakeOp<"subvec", [Pure]> {
 }
 
 //===----------------------------------------------------------------------===//
-// QVecSizeOp
+// VeqSizeOp
 //===----------------------------------------------------------------------===//
 
-def quake_QVecSizeOp : QuakeOp<"vec_size", [Pure]> {
-  let summary = "Return the size of a qvec.";
+def quake_VeqSizeOp : QuakeOp<"vec_size", [Pure]> {
+  let summary = "Return the size of a veq.";
   let description = [{
-    Returns the size of a value of type `!quake.qvec<n>`. If the vector has a
+    Returns the size of a value of type `!quake.veq<n>`. If the vector has a
     static size, the static size is returned (effectively as a constant). If
     the size of the vector is dynamic, the size value will be an SSA-value.
 
     Examples:
     ```mlir
-      %0 = quake.alloca !quake.qvec<4>
+      %0 = quake.alloca !quake.veq<4>
       // %1 will be 4 with canonicalization.
-      %1 = quake.qvec_size %0 : (!quake.qvec<4>) -> i64
+      %1 = quake.veq_size %0 : (!quake.veq<4>) -> i64
       
-      %2 = ... : !quake.qvec<?>
+      %2 = ... : !quake.veq<?>
       // %3 may not be computed until runtime.
-      %3 = quake.qvec_size %2 : (!quake.qvec<?>) -> i64
+      %3 = quake.veq_size %2 : (!quake.veq<?>) -> i64
     ```
   }];
 
-  let arguments = (ins QVecType:$qvec);
+  let arguments = (ins VeqType:$veq);
   let results = (outs AnySignlessIntegerOrIndex:$size);
 
   let assemblyFormat = [{
-    $qvec `:` functional-type(operands, results) attr-dict
+    $veq `:` functional-type(operands, results) attr-dict
   }];
 
   let hasCanonicalizer = 1;

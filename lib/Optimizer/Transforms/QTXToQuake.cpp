@@ -210,7 +210,7 @@ LogicalResult convertOperation(Operation &op) {
 //===----------------------------------------------------------------------===//
 
 /// Convert the types of the arguments. Add returns to the function for each
-/// quantum input. Currently this handles only Refs and not Qvecs.
+/// quantum input. Currently this handles only Refs and not Veqs.
 void fixArgumentsAndAddReturns(qtx::CircuitOp circuitOp) {
   auto context = circuitOp->getContext();
   auto refType = quake::RefType::get(context);
@@ -222,8 +222,8 @@ void fixArgumentsAndAddReturns(qtx::CircuitOp circuitOp) {
       continue;
     }
     auto type = dyn_cast<qtx::WireArrayType>(arg.getType());
-    auto qvecType = quake::QVecType::get(context, type.getSize());
-    arg.setType(qvecType);
+    auto veqType = quake::VeqType::get(context, type.getSize());
+    arg.setType(veqType);
   }
 
   auto terminator =

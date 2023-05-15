@@ -18,12 +18,12 @@ module {
     
     // CHECK-LABEL: func.func @ccnot() {
     // CHECK:   %[[C1:.*]] = arith.constant 1 : i32
-    // CHECK:   %[[a0:.*]] = quake.alloca !quake.qvec<3>
+    // CHECK:   %[[a0:.*]] = quake.alloca !quake.veq<3>
     // CHECK:   affine.for %[[arg0:.*]] = 0 to 3 {
-    // CHECK:     %[[a2:.*]] = quake.extract_ref %[[a0]][%[[arg0]]] : (!quake.qvec<3>, index) -> !quake.ref
+    // CHECK:     %[[a2:.*]] = quake.extract_ref %[[a0]][%[[arg0]]] : (!quake.veq<3>, index) -> !quake.ref
     // CHECK:     quake.x %[[a2]] :
     // CHECK:   }
-    // CHECK:   %[[a1:.*]] = quake.extract_ref %[[a0]][%[[C1]]] : (!quake.qvec<3>, i32) -> !quake.ref
+    // CHECK:   %[[a1:.*]] = quake.extract_ref %[[a0]][%[[C1]]] : (!quake.veq<3>, i32) -> !quake.ref
     // CHECK:   quake.x %[[a1]] :
     // CHECK:   return
     // CHECK: }
@@ -38,14 +38,14 @@ module {
         %c_0 = arith.constant 0 : i32
         %c_1 = arith.constant 1 : i32
         %c_2 = arith.constant 2 : i32
-        %qubits = quake.alloca [ %c_3 : i32 ] !quake.qvec<?>
+        %qubits = quake.alloca [ %c_3 : i32 ] !quake.veq<?>
         %c_3_idx = arith.index_cast %c_3 : i32 to index
         affine.for %i = 0 to %c_3_idx {
-            %q0 = quake.extract_ref %qubits [%i] : (!quake.qvec<?>, index) -> !quake.ref
+            %q0 = quake.extract_ref %qubits [%i] : (!quake.veq<?>, index) -> !quake.ref
             quake.x %q0 : (!quake.ref) -> ()
         }
 
-        %q1 = quake.extract_ref %qubits [%c_1] : (!quake.qvec<?>, i32) -> !quake.ref
+        %q1 = quake.extract_ref %qubits [%c_1] : (!quake.veq<?>, i32) -> !quake.ref
         func.call @apply_x(%q1) : (!quake.ref) -> ()
 
         return

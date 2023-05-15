@@ -362,7 +362,7 @@ CUDAQ_TEST(BuilderTester, checkReset) {
     auto entryPoint = cudaq::make_kernel();
     auto q = entryPoint.qalloc(2);
     entryPoint.x(q);
-    // For now, don't allow reset on qvec.
+    // For now, don't allow reset on veq.
     entryPoint.reset(q);
     entryPoint.mz(q);
     printf("%s\n", entryPoint.to_quake().c_str());

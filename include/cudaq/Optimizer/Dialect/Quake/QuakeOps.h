@@ -61,10 +61,10 @@ void genericOpPrinter(mlir::OpAsmPrinter &_odsPrinter, mlir::Operation *op,
 
 namespace quake {
 /// Returns true if and only if any quantum operand has type `!quake.ref` or
-/// `!quake.qvec`.
+/// `!quake.veq`.
 inline bool hasReference(mlir::Operation *op) {
   for (mlir::Value opnd : op->getOperands())
-    if (isa<quake::RefType, quake::QVecType>(opnd.getType()))
+    if (isa<quake::RefType, quake::VeqType>(opnd.getType()))
       return true;
   return false;
 }
