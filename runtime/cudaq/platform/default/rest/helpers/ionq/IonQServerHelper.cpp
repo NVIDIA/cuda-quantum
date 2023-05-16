@@ -66,21 +66,14 @@ IonQServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   // return the job payload
   std::cout << "Creating Job" << std::endl;
 
-  std::vector<ServerMessage> jobs;
-  for (const auto &circuitCode : circuitCodes) {
-    ServerMessage job;
-    job["target"] = backendConfig.at("target"); // todo: use find to check keys
-    job["shots"] = static_cast<int>(shots);
-    job["input"] = {{"format", "qir"}, {"data", circuitCode.code}};
-    jobs.push_back(job);
-  }
-  ServerMessage request;
-  request["qubits"] = backendConfig.at("qubits");
-  request["shots"] = static_cast<int>(shots);
-  request["job"] = jobs;
+  ServerMessage job;
+  job["target"] = backendConfig.at("target"); // todo: use find to check keys
+  job["qubits"] = backendConfig.at("qubits");
+  job["shots"] = static_cast<int>(shots);
+  job["input"] = {{"format", "qir"}, {"data", circuitCodes.front().code}};
 
   return std::make_tuple(backendConfig.at("job_path"), getHeaders(),
-                         std::vector<ServerMessage>{request});
+                         std::vector<ServerMessage>{job});
 }
 
 std::string IonQServerHelper::extractJobId(ServerMessage &postResponse) {

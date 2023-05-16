@@ -8,6 +8,7 @@
 
 #include "Executor.h"
 #include "common/Logger.h"
+#include <iostream>
 
 namespace cudaq {
 details::future
@@ -28,6 +29,12 @@ Executor::execute(std::vector<KernelExecution> &codesToExecute) {
                 jobPostPath);
 
     // Post it, get the response
+    std::cout << "Job Post Path: " << jobPostPath << std::endl;
+    std::cout << "Job: " << job << std::endl;
+    std::cout << "Headers:";
+    for (const auto &header : headers) {
+      std::cout << header.first << " " << header.second << "\n";
+    }
     auto response = client.post(jobPostPath, "", job, headers);
     cudaq::info("Job (name={}) posted, response was {}", codesToExecute[i].name,
                 response.dump());
