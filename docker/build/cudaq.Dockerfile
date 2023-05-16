@@ -19,8 +19,11 @@ RUN apt-get update && \
     python3-pip \
     python3-dev \
     wget \
+    vim \
     libblas-dev \
-    liblapack-dev && \
+    liblapack-dev \
+    libcurl4-openssl-dev \
+    libssl-dev && \
     rm -rf /var/lib/apt/lists/*
 
 # Build LLVM / Clang / MLIR
