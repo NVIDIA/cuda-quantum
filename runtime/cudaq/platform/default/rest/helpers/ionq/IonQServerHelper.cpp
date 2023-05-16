@@ -69,7 +69,7 @@ IonQServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   std::vector<ServerMessage> jobs;
   for (const auto &circuitCode : circuitCodes) {
     ServerMessage job;
-    job["target"] = backendConfig.at("target");
+    job["target"] = backendConfig.at("target"); // todo: use find to check keys
     job["shots"] = static_cast<int>(shots);
     job["input"] = {{"format", "qir"}, {"data", circuitCode.code}};
     jobs.push_back(job);
@@ -93,7 +93,7 @@ std::string IonQServerHelper::constructGetJobPath(ServerMessage &postResponse) {
   // return "Get Job URL";
   std::cout << postResponse << std::endl;
   return backendConfig.at("url") +
-         postResponse.at("results_url"); // todo: use find to check keys
+         static_cast<std::string>(postResponse.at("results_url"));
 }
 
 std::string IonQServerHelper::constructGetJobPath(std::string &jobId) {
