@@ -64,6 +64,9 @@ public:
   /// @brief Deallocate the qubit with give idx
   virtual void deallocate(const std::size_t qubitIdx) = 0;
 
+  /// @brief Deallocate all the provided qubits.
+  virtual void deallocateQubits(const std::vector<std::size_t> &qubits) = 0;
+
   /// @brief Reset the current execution context.
   virtual void resetExecutionContext() = 0;
 
@@ -663,6 +666,26 @@ public:
       while (!gateQueue.empty())
         gateQueue.pop();
     }
+  }
+
+  /// @brief Deallocate all requested qubits. If the number of qubits
+  /// is equal to the number of allocated qubits, then clear the entire
+  /// state at once.
+  void deallocateQubits(const std::vector<std::size_t> &qubits) override {
+    // Do nothing if there are no allocated qubits.
+    if (nQubitsAllocated == 0)
+      return;
+
+    if (qubits.size() == tracker.totalNumQubits() - tracker.numAvailable()) {
+      cudaq::info("Deallocate all qubits.");
+      deallocateState();
+      for (auto &q : qubits)
+        tracker.returnIndex(q);
+      return;
+    }
+
+    for (auto &q : qubits)
+      deallocate(q);
   }
 
   /// @brief Reset the current execution context.

@@ -142,9 +142,32 @@ protected:
     qubits.insert({q.id, qubit});
   }
 
-  void deallocateQudit(std::size_t q) override {
-    __quantum__rt__qubit_release(qubits[q]);
-    qubits.erase(q);
+  void allocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
+    auto *qa = __quantum__rt__qubit_allocate_array(qudits.size());
+    for (std::size_t i = 0; i < qudits.size(); i++) {
+      Qubit **qq = reinterpret_cast<Qubit **>(
+          __quantum__rt__array_get_element_ptr_1d(qa, i));
+      qubits.insert({qudits[i].id, *qq});
+    }
+  }
+
+  void deallocateQudit(const cudaq::QuditInfo &q) override {
+    if (!qubits.count(q.id))
+      return;
+    __quantum__rt__qubit_release(qubits[q.id]);
+    qubits.erase(q.id);
+  }
+
+  void deallocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
+    std::vector<std::size_t> local;
+    std::transform(qudits.begin(), qudits.end(), std::back_inserter(local),
+                   [](auto &&el) { return el.id; });
+
+    __quantum__rt__deallocate_all(local.size(), local.data());
+
+    // remove from the qubits map
+    for (auto &q : qudits)
+      qubits.erase(q.id);
   }
 
   void handleExecutionContextChanged() override {

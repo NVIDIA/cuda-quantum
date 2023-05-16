@@ -215,6 +215,12 @@ void __quantum__rt__qubit_release(Qubit *q) {
       end);
 }
 
+void __quantum__rt__deallocate_all(const std::size_t numQubits,
+                                   const std::size_t *qubitIdxs) {
+  std::vector<std::size_t> qubits(qubitIdxs, qubitIdxs + numQubits);
+  nvqir::getCircuitSimulatorInternal()->deallocateQubits(qubits);
+}
+
 #define ONE_QUBIT_QIS_FUNCTION(GATENAME)                                       \
   void QIS_FUNCTION_NAME(GATENAME)(Qubit * qubit) {                            \
     auto targetIdx = qubitToSizeT(qubit);                                      \

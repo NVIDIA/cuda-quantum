@@ -44,7 +44,7 @@ protected:
 
   /// @brief Store qubits for delayed deletion under
   /// certain execution contexts
-  std::vector<std::size_t> contextQuditIdsForDeletion;
+  std::vector<QuditInfo> contextQuditIdsForDeletion;
 
   /// @brief The current queue of operations to execute
   InstructionQueue instructionQueue;
@@ -57,14 +57,26 @@ protected:
   /// need to store extra control qudit ids.
   std::vector<std::size_t> extraControlIds;
 
+  /// @brief To improve `qudit` allocation, we defer
+  /// single `qudit` allocation requests until the first
+  /// encountered `apply` call.
+  std::vector<QuditInfo> requestedAllocations;
+
   /// @brief Flag to indicate we are in an adjoint region
   bool inAdjointRegion = false;
 
   /// @brief Subtype-specific qudit allocation method
   virtual void allocateQudit(const QuditInfo &q) = 0;
 
-  /// @brief Subtype-specific qudit deallocation method
-  virtual void deallocateQudit(std::size_t q) = 0;
+  /// @brief Allocate a set of `qudits` with a single call.
+  virtual void allocateQudits(const std::vector<QuditInfo> &qudits) = 0;
+
+  /// @brief Subtype specific qudit deallocation method
+  virtual void deallocateQudit(const QuditInfo &q) = 0;
+
+  /// @brief Subtype specific qudit deallocation, deallocate
+  /// all qudits in the vector.
+  virtual void deallocateQudits(const std::vector<QuditInfo> &qudits) = 0;
 
   /// @brief Subtype-specific handler for when
   // the execution context changes
@@ -81,7 +93,17 @@ protected:
   /// @brief Subtype-specific method for performing qudit measurement.
   virtual int measureQudit(const cudaq::QuditInfo &q) = 0;
 
+  /// @brief Measure the state in the basis described by the given `spin_op`.
   virtual void measureSpinOp(const cudaq::spin_op &op) = 0;
+
+  /// @brief Allocated all requested `qudits`.
+  void flushRequestedAllocations() {
+    if (requestedAllocations.empty())
+      return;
+
+    allocateQudits(requestedAllocations);
+    requestedAllocations.clear();
+  }
 
 public:
   BasicExecutionManager() = default;
@@ -107,10 +129,10 @@ public:
 
     if (ctx_name == "observe" || ctx_name == "sample" ||
         ctx_name == "extract-state") {
-      for (auto &q : contextQuditIdsForDeletion) {
-        deallocateQudit(q);
-        returnIndex(q);
-      }
+      deallocateQudits(contextQuditIdsForDeletion);
+      for (auto &q : contextQuditIdsForDeletion)
+        returnIndex(q.id);
+
       contextQuditIdsForDeletion.clear();
     }
     executionContext = nullptr;
@@ -118,13 +140,13 @@ public:
 
   std::size_t getAvailableIndex(std::size_t quditLevels) override {
     auto new_id = getNextIndex();
-    allocateQudit({quditLevels, new_id});
+    requestedAllocations.emplace_back(quditLevels, new_id);
     return new_id;
   }
 
   void returnQudit(const QuditInfo &qid) override {
     if (!executionContext) {
-      deallocateQudit(qid.id);
+      deallocateQudit(qid);
       returnIndex(qid.id);
       return;
     }
@@ -137,11 +159,11 @@ public:
     // measure on the entire register.
     if (executionContext && (ctx_name == "observe" || ctx_name == "sample" ||
                              ctx_name == "extract-state")) {
-      contextQuditIdsForDeletion.push_back(qid.id);
+      contextQuditIdsForDeletion.push_back(qid);
       return;
     }
 
-    deallocateQudit(qid.id);
+    deallocateQudit(qid);
     returnIndex(qid.id);
     if (numAvailable() == totalNumQudits()) {
       if (executionContext && ctx_name == "observe") {
@@ -199,6 +221,7 @@ public:
              const std::vector<cudaq::QuditInfo> &controls,
              const std::vector<cudaq::QuditInfo> &targets,
              bool isAdjoint = false) override {
+    flushRequestedAllocations();
 
     // Make a copy of the name that we can mutate if necessary
     std::string mutable_name(gateName);
