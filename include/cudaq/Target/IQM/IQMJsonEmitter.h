@@ -14,8 +14,7 @@
 
 namespace cudaq {
 
-/// Translates the given operation to OpenQASM code. The operation or operations
-/// in the region of 'op' need almost all be in QTX dialect.
+/// Translates the given operation to IQM's json format code.
 mlir::LogicalResult translateToIQMJson(mlir::Operation *op,
                                        llvm::raw_ostream &os);
 

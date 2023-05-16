@@ -118,7 +118,6 @@ target_link_libraries(test_qudit
 gtest_discover_tests(test_qudit)
 
 add_subdirectory(backends)
-add_subdirectory(pass)
 add_subdirectory(Optimizer)
 
 if (CUDAQ_ENABLE_PYTHON)

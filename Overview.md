@@ -57,15 +57,15 @@ build up with Quake and classical MLIR operations.
 This folder contains the header files defining the MLIR dialects and
 transformations used by CUDA Quantum. The `Dialect` folder contains the tablegen
 definitions for Quake and CC. The `CodeGen` folder declares the tablegen
-required to define MLIR Passes that lower Quake to code, specifically LLVM
-IR. The `Transforms` folder contains the
-tablegen necessary for transformations on Quake (e.g. things like lambda
-lifting, generating extra kernel glue code, etc.).
+required to define MLIR Passes that lower Quake to code, specifically LLVM IR.
+The `Transforms` folder contains the tablegen necessary for transformations on
+Quake and CC (e.g. things like lambda lifting, generating extra kernel glue
+code, etc.).
 
 ### `include/cudaq/Target`
 
-This folder contains the headers for taking Quake to other quantum
-programming languages like OpenQASM.
+This folder contains the headers for taking Quake to other quantum programming
+languages like OpenQASM.
 
 ### `lib/Frontend/nvqpp`
 
@@ -78,15 +78,14 @@ Clang `Expr`, `Stmt`, and `Decl` types.
 This folder contains the implementation code for the MLIR dialects and
 transformations used by the compiler. The structure here is pretty
 self-explanatory. The dialect implementation is in the `Dialect` folder (for
-Quake and CC). All transformations on the IR are provided in the
-`Transforms` folder. Conversions between dialects are in the `Conversion`
-folder. The passes that lower MLIR to LLVM IR code are provided in the `CodeGen`
-folder.
+Quake and CC). All transformations on the IR are provided in the `Transforms`
+folder. Conversions between dialects are in the `Conversion` folder. The passes
+that lower MLIR to LLVM IR code are provided in the `CodeGen` folder.
 
 ### `lib/Target`
 
-This folder contains the implementation code for mapping Quake to other
-quantum programming languages.
+This folder contains the implementation code for mapping Quake to other quantum
+programming languages.
 
 ### `runtime/common`
 
@@ -138,8 +137,8 @@ specification of the `--emit-llvm-file` flag.
 ### `tools/cudaq-opt`
 
 This folder contains the implementation of the `cudaq-opt` tool. This tool takes
-as input a Quake file, an apply MLIR passes specified by the user
-as another command line option (the `--pass-pipeline` flag).
+as input a Quake file, an apply MLIR passes specified by the user as another
+command line option (the `--pass-pipeline` flag).
 
 ### `tools/quake-translate`
 

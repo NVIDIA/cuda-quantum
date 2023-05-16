@@ -2280,8 +2280,7 @@ INCLUDE_PATH           = "${CUDAQ_REPO_ROOT}/build/include" \
                          "${CUDAQ_REPO_ROOT}/build/include/cudaq/Optimizer/CodeGen" \
                          "${CUDAQ_REPO_ROOT}/build/include/cudaq/Optimizer/Transforms" \
                          "${CUDAQ_REPO_ROOT}/build/include/cudaq/Optimizer/Dialect/CC" \
-                         "${CUDAQ_REPO_ROOT}/build/include/cudaq/Optimizer/Dialect/Quake" \
-                         "${CUDAQ_REPO_ROOT}/build/include/cudaq/Optimizer/Dialect/QTX"
+                         "${CUDAQ_REPO_ROOT}/build/include/cudaq/Optimizer/Dialect/Quake"
 
 # You can use the INCLUDE_FILE_PATTERNS tag to specify one or more wildcard
 # patterns (like *.h and *.hpp) to filter out the header-files in the

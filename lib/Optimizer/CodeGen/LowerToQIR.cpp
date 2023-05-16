@@ -1030,7 +1030,7 @@ public:
   }
 };
 
-/// Convert Quake (or QTX) dialect to LLVM-IR and QIR.
+/// Convert Quake dialect to LLVM-IR and QIR.
 class QuakeToQIRLowering
     : public cudaq::opt::QuakeToQIRBase<QuakeToQIRLowering> {
 public:

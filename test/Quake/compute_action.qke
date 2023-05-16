@@ -16,7 +16,7 @@
 //     can produce the adjoint of the compute lambda.
 //   - quake-apply-rewrite generates the adjoint compute function.
 
-module attributes {qtx.mangled_name_map = {__nvqpp__mlirgen__t = "_Z1tv"}} {
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__t = "_Z1tv"}} {
   func.func @__nvqpp__mlirgen__t() attributes {"cudaq-entrypoint"} {
     %c5_i32 = arith.constant 5 : i32
     %0 = arith.extsi %c5_i32 : i32 to i64

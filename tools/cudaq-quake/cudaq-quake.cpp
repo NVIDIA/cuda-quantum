@@ -39,7 +39,7 @@ using namespace llvm;
 
 constexpr static const char toolName[] = "cudaq-quake";
 constexpr static const char mangledKernelNameMapAttrName[] =
-    "qtx.mangled_name_map";
+    "quake.mangled_name_map";
 
 //===----------------------------------------------------------------------===//
 // Command line options.
@@ -54,8 +54,7 @@ static cl::opt<std::string> outputFilename("o",
                                            cl::init("-"));
 
 static cl::list<std::string>
-    kernelNames("filter",
-                cl::desc("Names of quantum kernels to convert to QTX."));
+    kernelNames("filter", cl::desc("Names of quantum kernels to convert."));
 
 static cl::opt<bool>
     emitLLVM("emit-llvm-file",
@@ -179,7 +178,7 @@ private:
 };
 
 /// Action to create both the LLVM IR for the entire C++ compilation unit and to
-/// translate the CUDA Quantum kernels to the QTX dialect.
+/// translate the CUDA Quantum kernels.
 class CudaQAction : public clang::EmitLLVMAction {
 public:
   using Base = clang::EmitLLVMAction;
