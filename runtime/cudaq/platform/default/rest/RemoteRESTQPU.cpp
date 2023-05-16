@@ -16,6 +16,7 @@
 #include "common/FmtCore.h"
 #include "common/RuntimeMLIR.h"
 #include "cudaq/platform/quantum_platform.h"
+#include <cudaq/spin_op.h>
 #include <fstream>
 #include <iostream>
 #include <netinet/in.h>

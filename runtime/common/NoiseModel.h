@@ -9,14 +9,7 @@
 #pragma once
 
 #include <array>
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wrestrict"
-#endif
 #include <complex>
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic pop
-#endif
 #include <unordered_map>
 #include <vector>
 
