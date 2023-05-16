@@ -8,9 +8,9 @@
 
 #pragma once
 
+#include "EigenDense.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "EigenDense.h"
 #include <complex>
 #include <vector>
 

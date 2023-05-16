@@ -7,8 +7,8 @@
  *******************************************************************************/
 
 #include "CUDAQTestUtils.h"
-#include "cudaq/algorithm.h"
 #include "common/FmtCore.h"
+#include "cudaq/algorithm.h"
 #include <fstream>
 #include <gtest/gtest.h>
 

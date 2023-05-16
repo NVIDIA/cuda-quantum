@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "cudaq/builder/kernel_builder.h"
 #include "common/FmtCore.h"
+#include "cudaq/builder/kernel_builder.h"
 #include <functional>
 #include <pybind11/pybind11.h>
 #include <vector>

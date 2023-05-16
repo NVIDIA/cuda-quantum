@@ -27,7 +27,7 @@ public:
                  std::optional<std::size_t> nActiveElectrons = std::nullopt,
                  std::optional<std::size_t> nActiveOrbitals = std::nullopt) = 0;
 
-  /// Virtual destructor needed when deleting an instance of a derived class 
+  /// Virtual destructor needed when deleting an instance of a derived class
   /// via a pointer to the base class.
   virtual ~MoleculePackageDriver(){};
 };
