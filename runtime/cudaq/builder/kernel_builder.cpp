@@ -342,13 +342,15 @@ KernelBuilderType::KernelBuilderType(
 
 Type KernelBuilderType::create(MLIRContext *ctx) { return creator(ctx); }
 
+QuakeValue qalloc(ImplicitLocOpBuilder &builder) {
+  cudaq::info("kernel_builder allocating a single qubit");
+  Value qubit = builder.create<quake::AllocaOp>();
+  return QuakeValue(builder, qubit);
+}
+
 QuakeValue qalloc(ImplicitLocOpBuilder &builder, const std::size_t nQubits) {
   cudaq::info("kernel_builder allocating {} qubits", nQubits);
 
-  if (nQubits == 1) {
-    Value qubit = builder.create<quake::AllocaOp>();
-    return QuakeValue(builder, qubit);
-  }
   auto context = builder.getContext();
   Value qubits = builder.create<quake::AllocaOp>(
       quake::VeqType::get(context, nQubits),
