@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 
+#include "common/EigenDense.h"
 #include "common/FmtCore.h"
 #include <cudaq/spin_op.h>
 #include <stdint.h>
@@ -13,14 +14,6 @@
 #include <omp.h>
 #endif
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-anon-enum-enum-conversion"
-#endif
-#include <Eigen/Dense>
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 #include <algorithm>
 #include <array>
 #include <cassert>

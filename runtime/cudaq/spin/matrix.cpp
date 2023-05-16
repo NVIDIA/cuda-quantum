@@ -8,14 +8,7 @@
 
 #include "cudaq/matrix.h"
 #include "common/FmtCore.h"
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-#endif
 #include "common/EigenDense.h"
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic pop
-#endif
 #include <iostream>
 
 namespace cudaq {

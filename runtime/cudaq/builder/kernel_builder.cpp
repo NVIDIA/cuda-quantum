@@ -129,16 +129,7 @@ initializeBuilder(MLIRContext *context,
     os << digit;
   }
 
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstringop-overflow"
-#pragma GCC diagnostic ignored "-Wrestrict"
-#endif
-  kernelName += "_" + os.str();
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic pop
-#endif
-
+  kernelName += fmt::format("_{}", os.str());
   cudaq::info("kernel_builder name set to {}", kernelName);
 
   FunctionType funcTy = opBuilder->getFunctionType(types, std::nullopt);

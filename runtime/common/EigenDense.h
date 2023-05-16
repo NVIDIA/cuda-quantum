@@ -13,6 +13,7 @@
 #if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-enum-enum-conversion"
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
 #include <Eigen/Dense>
 #if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
