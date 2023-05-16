@@ -8,16 +8,9 @@
 
 #pragma once
 
+#include "common/FmtCore.h"
 #include "common/Logger.h"
 #include <filesystem>
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstringop-overflow"
-#endif
-#include <fmt/core.h>
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic pop
-#endif
 #include <map>
 #include <unordered_map>
 #include <vector>

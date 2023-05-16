@@ -13,17 +13,9 @@
 #include "cudaq/platform/qpu.h"
 #include "nvqpp_config.h"
 
+#include "common/FmtCore.h"
 #include "common/RuntimeMLIR.h"
 #include "cudaq/platform/quantum_platform.h"
-#include <cudaq/spin_op.h>
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstringop-overflow"
-#endif
-#include <fmt/core.h>
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic pop
-#endif
 #include <fstream>
 #include <iostream>
 #include <netinet/in.h>

@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 
+#include "common/FmtCore.h"
 #include "cudaq/matrix.h"
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -22,14 +23,6 @@
 #endif
 #ifdef __clang__
 #pragma clang diagnostic pop
-#endif
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstringop-overflow"
-#endif
-#include <fmt/core.h>
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic pop
 #endif
 #include <iostream>
 

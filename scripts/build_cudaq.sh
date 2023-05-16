@@ -155,7 +155,7 @@ else
 fi
 
 if [ ! "$?" -eq "0" ]; then
-  echo "Build failed. Please check the files in the $logs_dir directory."
+  echo "Build failed. Please check the console output or the files in the $logs_dir directory."
   cd "$working_dir" && if $is_sourced; then return 1; else exit 1; fi
 else
   cp "$repo_root/LICENSE" "$CUDAQ_INSTALL_PREFIX/LICENSE"

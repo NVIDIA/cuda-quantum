@@ -10,15 +10,8 @@
 
 #include <filesystem>
 
-// Be careful about Logger.h getting into public headers
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstringop-overflow"
-#endif
-#include <fmt/core.h>
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic pop
-#endif
+// Be careful about fmt getting into public headers
+#include "common/FmtCore.h"
 #include <fmt/ranges.h>
 
 namespace cudaq {
@@ -60,7 +53,14 @@ void debug(const std::string_view msg);
   template <typename... Args>                                                  \
   NAME(const std::string_view, Args &&...) -> NAME<Args...>;
 
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wrestrict"
+#endif
 CUDAQ_LOGGER_DEDUCTION_STRUCT(info);
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic pop
+#endif
 CUDAQ_LOGGER_DEDUCTION_STRUCT(debug);
 
 /// @brief This type is meant to provided quick tracing

@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 
+#include "common/FmtCore.h"
 #include <cudaq/spin_op.h>
 #include <stdint.h>
 #ifdef CUDAQ_HAS_OPENMP
@@ -24,7 +25,6 @@
 #include <array>
 #include <cassert>
 #include <complex>
-#include <fmt/core.h>
 #include <fstream>
 #include <iostream>
 #include <map>
