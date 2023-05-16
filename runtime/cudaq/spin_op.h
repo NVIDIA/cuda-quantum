@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include <complex>
 #include "matrix.h"
 #include "utils/cudaq_utils.h"
+#include <complex>
 #include <functional>
 #include <map>
 
