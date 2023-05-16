@@ -27,11 +27,15 @@ public:
     backendConfig = config;
 
     // Set any other config you need...
-    backendConfig["url"] = "https://api.ionq.co/v0.3";
+    backendConfig["url"] = "https://api.ionq.co";
+    backendConfig["version"] = "v0.3";
     backendConfig["user_agent"] = "cudaq/0.3.0";
     backendConfig["target"] = "simulator";
     backendConfig["qubits"] = 29;
     backendConfig["token"] = "giveme403";
+
+    backendConfig["job_path"] =
+        backendConfig["url"] + '/' + backendConfig["version"] + "/jobs";
   }
 
   /// @brief Create a job payload for the provided quantum codes
@@ -74,28 +78,28 @@ IonQServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   request["qubits"] = backendConfig.at("qubits");
   request["shots"] = static_cast<int>(shots);
   request["job"] = jobs;
-  return std::make_tuple(backendConfig.at("url") + "/jobs", getHeaders(),
+
+  return std::make_tuple(backendConfig.at("job_path"), getHeaders(),
                          std::vector<ServerMessage>{request});
 }
 
 std::string IonQServerHelper::extractJobId(ServerMessage &postResponse) {
   // return "JOB ID HERE, can extract from postResponse";
   std::cout << "Extracting Job ID" << std::endl;
-
-  std::cout << postResponse << std::endl;
   return postResponse.at("id");
 }
 
 std::string IonQServerHelper::constructGetJobPath(ServerMessage &postResponse) {
   // return "Get Job URL";
   std::cout << postResponse << std::endl;
-  return postResponse.at("output").at("uri"); // todo: use find to check keys
+  return backendConfig.at("url") +
+         postResponse.at("results_url"); // todo: use find to check keys
 }
 
 std::string IonQServerHelper::constructGetJobPath(std::string &jobId) {
   // return "Get Job URL from JOB ID string";
   std::cout << jobId << std::endl;
-  return backendConfig.at("url") + "/jobs?id=" + jobId;
+  return backendConfig.at("job_path") + "?id=" + jobId;
 }
 
 bool IonQServerHelper::jobIsDone(ServerMessage &getJobResponse) {
