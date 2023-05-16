@@ -25,14 +25,14 @@ One can specify the target quantum architecture to target with the :code:`--targ
   nvq++ simple.cpp --qpu nvidia 
   ./a.out 
 
-The :code:`nvidia` target architectre will configure the executable to run 
+The :code:`nvidia` target architecture will configure the executable to run 
 on GPU-enabled simulation resources accelerated by cuQuantum. 
 
 When targeting physical architectures, this simple compiler invocation orchestrates
 a complex workflow that incorporates a number of tools (available in your
 :code:`$CUDA_QUANTUM_PATH/bin` directory). 
 
-1. Map CUDA Quantum C++ kernels to Quake MLIR code via Clang ASTConsumers
+1. Map CUDA Quantum C++ kernels to Quake MLIR code via Clang :code:`ASTConsumers`
 2. Register all Quake kernel code with the runtime for quantum IR introspection
 3. Rewrite the original CUDA Quantum C++ kernel entry-point function to invoke an internal runtime kernel
    launch function which targets the specified :code:`quantum_platform`
