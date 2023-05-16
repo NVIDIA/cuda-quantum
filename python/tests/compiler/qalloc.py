@@ -101,7 +101,7 @@ def test_kernel_qalloc_qubit():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
-# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<1>
 # CHECK:           return
 # CHECK:         }
 
@@ -119,7 +119,7 @@ def test_kernel_qalloc_qubit_keyword():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
-# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<1>
 # CHECK:           return
 # CHECK:         }
 
