@@ -98,7 +98,8 @@ std::string IonQServerHelper::constructGetJobPath(std::string &jobId) {
 bool IonQServerHelper::jobIsDone(ServerMessage &getJobResponse) {
   // return true if job is done, false otherwise
   std::cout << getJobResponse << std::endl;
-  return getJobResponse.at("status") == "completed"; // todo: use status enum
+  return getJobResponse.at("jobs")[0].at("status") ==
+         "completed"; // todo: use status enum
 }
 
 cudaq::sample_result
