@@ -87,6 +87,7 @@ discretization
 discretize
 discretized
 eigenstate
+enqueues
 ensmallen
 entangler
 entanglers
@@ -120,6 +121,7 @@ nvq
 pre
 precompute
 precomputed
+prepend
 qir
 qke
 qpp
