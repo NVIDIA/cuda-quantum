@@ -108,7 +108,12 @@ do
         else
             echo "Testing on $t target..."
             if [ "$t" == "default" ]; then 
-                nvq++ $ex
+                if [[ "$ex" == *"mid_circuit"* ]];
+                then 
+                   nvq++ --enable-mlir $ex 
+                else
+                   nvq++ $ex
+                fi
             else
                 nvq++ $ex --target $t
             fi
