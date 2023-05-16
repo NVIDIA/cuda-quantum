@@ -339,7 +339,7 @@ def test_sample_result_observe(shots_count):
         sample_result = observe_result.counts()
         sample_result.dump()
         # Should just have 3 measurement registers, one for each spin term.
-        want_register_names = ["I0I1Z2", "I0Z1I2", "Z0I1I2"]
+        want_register_names = ["IIZ", "IZI", "ZII"]
         got_register_names = sample_result.register_names
         if '__global__' in got_register_names:
             got_register_names.remove('__global__')
@@ -347,10 +347,9 @@ def test_sample_result_observe(shots_count):
             assert want_name in got_register_names
 
         # Check that each register is in the proper state.
-        for index in range(hamiltonian.get_term_count()):
-            sub_term = hamiltonian[index]
+        for index, sub_term in enumerate(hamiltonian):
             # Extract the register name from the spin term.
-            got_name = str(sub_term).split(") ")[1]
+            got_name = str(sub_term).split(" ")[1].rstrip()
             # Pull the counts for that hamiltonian sub term from the
             # `ObserveResult::counts` overload.
             sub_term_counts = observe_result.counts(sub_term=sub_term)

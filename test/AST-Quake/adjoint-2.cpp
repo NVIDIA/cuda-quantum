@@ -47,7 +47,7 @@ struct kernel_delta {
 };
 
 // CHECK-LABEL:   func.func private @__nvqpp__mlirgen__kernel_gamma
-// CHECK-SAME:        .adj(%[[VAL_0:.*]]: !quake.qref) {
+// CHECK-SAME:        .adj(%[[VAL_0:.*]]: !quake.ref) {
 // CHECK:           cc.scope {
 // CHECK:             %[[VAL_1:.*]] = arith.constant 6 : i32
 // CHECK:             %[[VAL_2:.*]] = memref.alloca() : memref<i32>
@@ -97,7 +97,7 @@ struct kernel_delta {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func private @__nvqpp__mlirgen__kernel_alpha
-// CHECK-SAME:        .adj(%[[VAL_0:.*]]: !quake.qref) {
+// CHECK-SAME:        .adj(%[[VAL_0:.*]]: !quake.ref) {
 // CHECK:           cc.scope {
 // CHECK:             %[[VAL_1:.*]] = arith.constant 0 : i32
 // CHECK:             %[[VAL_2:.*]] = memref.alloca() : memref<i32>

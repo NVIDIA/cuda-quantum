@@ -22,7 +22,7 @@ struct ak2 {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ak2
 // CHECK-SAME: () -> !cc.stdvec<i1> attributes {
-// CHECK:           %[[VAL_19:.*]] = quake.mz %{{.*}} : (!quake.qvec<5>) -> !cc.stdvec<i1>
+// CHECK:           %[[VAL_19:.*]] = quake.mz %{{.*}} : (!quake.veq<5>) -> !cc.stdvec<i1>
 // CHECK:           %[[VAL_20:.*]] = cc.stdvec_data %[[VAL_19]] : (!cc.stdvec<i1>) -> !llvm.ptr<i8>
 // CHECK:           %[[VAL_21:.*]] = cc.stdvec_size %[[VAL_19]] : (!cc.stdvec<i1>) -> i64
 // CHECK:           %[[VAL_22:.*]] = arith.constant 1 : i64

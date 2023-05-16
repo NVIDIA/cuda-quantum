@@ -272,6 +272,14 @@ void __quantum__qis__swap(Qubit *q, Qubit *r) {
   cudaq::ScopedTrace trace("NVQIR::swap", qI, rI);
   nvqir::getCircuitSimulatorInternal()->swap(qI, rI);
 }
+
+void __quantum__qis__swap__ctl(Array *ctrls, Qubit *q, Qubit *r) {
+  auto ctrlIdxs = arrayToVectorSizeT(ctrls);
+  auto qI = qubitToSizeT(q);
+  auto rI = qubitToSizeT(r);
+  nvqir::getCircuitSimulatorInternal()->swap(ctrlIdxs, qI, rI);
+}
+
 void __quantum__qis__swap__body(Qubit *q, Qubit *r) {
   __quantum__qis__swap(q, r);
 }

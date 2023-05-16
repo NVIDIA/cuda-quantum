@@ -15,6 +15,7 @@
 #include "runtime/cudaq/algorithms/py_state.h"
 #include "runtime/cudaq/algorithms/py_vqe.h"
 #include "runtime/cudaq/builder/py_kernel_builder.h"
+#include "runtime/cudaq/kernels/py_chemistry.h"
 #include "runtime/cudaq/spin/py_matrix.h"
 #include "runtime/cudaq/spin/py_spin_op.h"
 #include "utils/LinkedLibraryHolder.h"
@@ -99,4 +100,6 @@ PYBIND11_MODULE(_pycudaq, mod) {
   cudaq::bindOptimizerWrapper(mod);
   cudaq::bindVQE(mod);
   cudaq::bindPyState(mod);
+  auto kernelSubmodule = mod.def_submodule("kernels");
+  cudaq::bindChemistry(kernelSubmodule);
 }

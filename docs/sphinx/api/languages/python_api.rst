@@ -88,8 +88,8 @@ Data Types
     .. automethod:: __rsub__
     .. automethod:: __mul__
     .. automethod:: __rmul__
-    .. automethod:: __getitem__
-
+    .. automethod:: __iter__
+        
 .. autofunction:: cudaq::spin.i
 .. autofunction:: cudaq::spin.x
 .. autofunction:: cudaq::spin.y

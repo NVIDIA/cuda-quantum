@@ -106,7 +106,7 @@ QuakeValue QuakeValue::operator[](const std::size_t idx) {
 
   Value vectorValue = value->asMLIR();
   Type type = vectorValue.getType();
-  if (!type.isa<cc::StdvecType, quake::QVecType>()) {
+  if (!type.isa<cc::StdvecType, quake::VeqType>()) {
     std::string typeName;
     {
       llvm::raw_string_ostream os(typeName);
@@ -119,7 +119,7 @@ QuakeValue QuakeValue::operator[](const std::size_t idx) {
 
   Value indexVar = opBuilder.create<arith::ConstantIntOp>(idx, 32);
 
-  if (type.isa<quake::QVecType>()) {
+  if (type.isa<quake::VeqType>()) {
     Value extractedQubit =
         opBuilder.create<quake::ExtractRefOp>(vectorValue, indexVar);
     auto ret = extractedFromIndex.emplace(
@@ -150,7 +150,7 @@ QuakeValue QuakeValue::operator[](const QuakeValue &idx) {
 
   Value vectorValue = value->asMLIR();
   Type type = vectorValue.getType();
-  if (!type.isa<cc::StdvecType, quake::QVecType>()) {
+  if (!type.isa<cc::StdvecType, quake::VeqType>()) {
     std::string typeName;
     {
       llvm::raw_string_ostream os(typeName);
@@ -163,7 +163,7 @@ QuakeValue QuakeValue::operator[](const QuakeValue &idx) {
 
   Value indexVar = idx.getValue();
 
-  if (type.isa<quake::QVecType>()) {
+  if (type.isa<quake::VeqType>()) {
     Value extractedQubit =
         opBuilder.create<quake::ExtractRefOp>(vectorValue, indexVar);
     auto ret = extractedFromValue.emplace(
@@ -194,7 +194,7 @@ QuakeValue QuakeValue::operator[](const QuakeValue &idx) {
 QuakeValue QuakeValue::size() {
   Value vectorValue = value->asMLIR();
   Type type = vectorValue.getType();
-  if (!type.isa<cc::StdvecType, quake::QVecType>())
+  if (!type.isa<cc::StdvecType, quake::VeqType>())
     throw std::runtime_error("This QuakeValue does not expose .size().");
 
   Type i64Ty = opBuilder.getI64Type();
@@ -202,7 +202,7 @@ QuakeValue QuakeValue::size() {
   if (type.isa<cc::StdvecType>())
     ret = opBuilder.create<cc::StdvecSizeOp>(i64Ty, vectorValue);
   else
-    ret = opBuilder.create<quake::QVecSizeOp>(i64Ty, vectorValue);
+    ret = opBuilder.create<quake::VeqSizeOp>(i64Ty, vectorValue);
 
   return QuakeValue(opBuilder, ret);
 }
@@ -211,7 +211,7 @@ QuakeValue QuakeValue::slice(const std::size_t startIdx,
                              const std::size_t count) {
   Value vectorValue = value->asMLIR();
   Type type = vectorValue.getType();
-  if (!type.isa<cc::StdvecType, quake::QVecType>())
+  if (!type.isa<cc::StdvecType, quake::VeqType>())
     throw std::runtime_error("This QuakeValue is not sliceable.");
 
   if (count == 0)
@@ -219,17 +219,17 @@ QuakeValue QuakeValue::slice(const std::size_t startIdx,
 
   Value startIdxValue = opBuilder.create<arith::ConstantIntOp>(startIdx, 64);
   Value countValue = opBuilder.create<arith::ConstantIntOp>(count, 64);
-  if (auto qvecType = type.dyn_cast_or_null<quake::QVecType>()) {
-    auto qvecSize = qvecType.getSize();
-    if (startIdx + count > qvecSize)
+  if (auto veqType = type.dyn_cast_or_null<quake::VeqType>()) {
+    auto veqSize = veqType.getSize();
+    if (startIdx + count > veqSize)
       throw std::runtime_error("Invalid number of elements requested in slice, "
                                "must be less than size of array (" +
-                               std::to_string(qvecSize) + ").");
+                               std::to_string(veqSize) + ").");
 
     auto one = opBuilder.create<arith::ConstantIntOp>(1, 64);
     Value offset = opBuilder.create<arith::AddIOp>(startIdxValue, countValue);
     offset = opBuilder.create<arith::SubIOp>(offset, one);
-    auto sizedVecTy = quake::QVecType::get(opBuilder.getContext(), count);
+    auto sizedVecTy = quake::VeqType::get(opBuilder.getContext(), count);
     Value subVec = opBuilder.create<quake::SubVecOp>(sizedVecTy, vectorValue,
                                                      startIdxValue, offset);
     return QuakeValue(opBuilder, subVec);

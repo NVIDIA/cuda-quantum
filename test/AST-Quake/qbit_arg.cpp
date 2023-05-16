@@ -9,16 +9,16 @@
 // RUN: cudaq-quake --emit-llvm-file %s | FileCheck %s
 
 // CHECK-LABEL: func.func @__nvqpp__mlirgen__function_testFunc
-// CHECK-SAME:    (%[[VAL_0:.*]]: !quake.qref)
+// CHECK-SAME:    (%[[VAL_0:.*]]: !quake.ref)
 // CHECK: quake.h %[[VAL_0]] :
-// CHECK: %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.qref) -> i1
+// CHECK: %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> i1
 // CHECK: return
 // CHECK: }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Test
 // CHECK-SAME: () attributes
-// CHECK: %[[VAL_2:.*]] = quake.alloca !quake.qref
-// CHECK: call @__nvqpp__mlirgen__function_testFunc{{.*}}(%[[VAL_2]]) : (!quake.qref) -> ()
+// CHECK: %[[VAL_2:.*]] = quake.alloca !quake.ref
+// CHECK: call @__nvqpp__mlirgen__function_testFunc{{.*}}(%[[VAL_2]]) : (!quake.ref) -> ()
 // CHECK: return
 // CHECK: }
 

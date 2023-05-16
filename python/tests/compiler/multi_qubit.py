@@ -44,17 +44,15 @@ def test_kernel_2q():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
-# CHECK:           %[[VAL_0:.*]] = arith.constant 1 : i32
-# CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
-# CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.qvec<2>
-# CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_2]][%[[VAL_1]]] : (!quake.qvec<2>, i32) -> !quake.qref
-# CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_2]][%[[VAL_0]]] : (!quake.qvec<2>, i32) -> !quake.qref
-# CHECK:           quake.h [%[[VAL_3]]] %[[VAL_4]] : (!quake.qref, !quake.qref) -> ()
-# CHECK:           quake.x [%[[VAL_4]]] %[[VAL_3]] : (!quake.qref, !quake.qref) -> ()
-# CHECK:           quake.y [%[[VAL_3]]] %[[VAL_4]] : (!quake.qref, !quake.qref) -> ()
-# CHECK:           quake.z [%[[VAL_4]]] %[[VAL_3]] : (!quake.qref, !quake.qref) -> ()
-# CHECK:           quake.t [%[[VAL_3]]] %[[VAL_4]] : (!quake.qref, !quake.qref) -> ()
-# CHECK:           quake.s [%[[VAL_4]]] %[[VAL_3]] : (!quake.qref, !quake.qref) -> ()
+# CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<2>
+# CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_2]][0] : (!quake.veq<2>) -> !quake.ref
+# CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_2]][1] : (!quake.veq<2>) -> !quake.ref
+# CHECK:           quake.h [%[[VAL_3]]] %[[VAL_4]] : (!quake.ref, !quake.ref) -> ()
+# CHECK:           quake.x [%[[VAL_4]]] %[[VAL_3]] : (!quake.ref, !quake.ref) -> ()
+# CHECK:           quake.y [%[[VAL_3]]] %[[VAL_4]] : (!quake.ref, !quake.ref) -> ()
+# CHECK:           quake.z [%[[VAL_4]]] %[[VAL_3]] : (!quake.ref, !quake.ref) -> ()
+# CHECK:           quake.t [%[[VAL_3]]] %[[VAL_4]] : (!quake.ref, !quake.ref) -> ()
+# CHECK:           quake.s [%[[VAL_4]]] %[[VAL_3]] : (!quake.ref, !quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
 
@@ -85,19 +83,16 @@ def test_kernel_3q():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
-# CHECK:           %[[VAL_0:.*]] = arith.constant 2 : i32
-# CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i32
-# CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i32
-# CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.qvec<3>
-# CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_3]][%[[VAL_2]]] : (!quake.qvec<3>, i32) -> !quake.qref
-# CHECK:           %[[VAL_5:.*]] = quake.extract_ref %[[VAL_3]][%[[VAL_1]]] : (!quake.qvec<3>, i32) -> !quake.qref
-# CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_3]][%[[VAL_0]]] : (!quake.qvec<3>, i32) -> !quake.qref
-# CHECK:           quake.h [%[[VAL_4]], %[[VAL_5]]] %[[VAL_6]] : (!quake.qref, !quake.qref, !quake.qref) -> ()
-# CHECK:           quake.x [%[[VAL_6]], %[[VAL_4]]] %[[VAL_5]] : (!quake.qref, !quake.qref, !quake.qref) -> ()
-# CHECK:           quake.y [%[[VAL_5]], %[[VAL_6]]] %[[VAL_4]] : (!quake.qref, !quake.qref, !quake.qref) -> ()
-# CHECK:           quake.z [%[[VAL_4]], %[[VAL_5]]] %[[VAL_6]] : (!quake.qref, !quake.qref, !quake.qref) -> ()
-# CHECK:           quake.t [%[[VAL_6]], %[[VAL_4]]] %[[VAL_5]] : (!quake.qref, !quake.qref, !quake.qref) -> ()
-# CHECK:           quake.s [%[[VAL_5]], %[[VAL_6]]] %[[VAL_4]] : (!quake.qref, !quake.qref, !quake.qref) -> ()
+# CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<3>
+# CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_3]][0] : (!quake.veq<3>) -> !quake.ref
+# CHECK:           %[[VAL_5:.*]] = quake.extract_ref %[[VAL_3]][1] : (!quake.veq<3>) -> !quake.ref
+# CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_3]][2] : (!quake.veq<3>) -> !quake.ref
+# CHECK:           quake.h [%[[VAL_4]], %[[VAL_5]]] %[[VAL_6]] : (!quake.ref, !quake.ref, !quake.ref) -> ()
+# CHECK:           quake.x [%[[VAL_6]], %[[VAL_4]]] %[[VAL_5]] : (!quake.ref, !quake.ref, !quake.ref) -> ()
+# CHECK:           quake.y [%[[VAL_5]], %[[VAL_6]]] %[[VAL_4]] : (!quake.ref, !quake.ref, !quake.ref) -> ()
+# CHECK:           quake.z [%[[VAL_4]], %[[VAL_5]]] %[[VAL_6]] : (!quake.ref, !quake.ref, !quake.ref) -> ()
+# CHECK:           quake.t [%[[VAL_6]], %[[VAL_4]]] %[[VAL_5]] : (!quake.ref, !quake.ref, !quake.ref) -> ()
+# CHECK:           quake.s [%[[VAL_5]], %[[VAL_6]]] %[[VAL_4]] : (!quake.ref, !quake.ref, !quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
 

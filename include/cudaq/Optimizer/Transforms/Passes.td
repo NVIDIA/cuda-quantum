@@ -67,7 +67,7 @@ def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
   let description = [{
     The quake.apply op allows quake kernels to be called with implicit
     specialization of the function itself. For example, a user-defined kernel
-    can be called with an optional qvec of control qubits. These extra control
+    can be called with an optional veq of control qubits. These extra control
     qubits implicitly create a new and distinct function that threads these
     control qubits to each quantum op in the function.
 
@@ -244,7 +244,7 @@ def CCMemToReg : Pass<"cc-mem2reg", "mlir::func::FuncOp"> {
 def ExpandMeasurements : Pass<"expand-measurements"> {
   let summary = "Expand multi-ref measurements to series on single refs.";
   let description = [{
-    The `mx`, `my`, `mz` ops can take a list of qubits and/or qvec arguments.
+    The `mx`, `my`, `mz` ops can take a list of qubits and/or veq arguments.
     The target may only support measuring a single qubit however. This pass
     expands these ops in list format into a series of measurements (including
     loops) on individual qubits and into a single `std::vector<bool>` result.

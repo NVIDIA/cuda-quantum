@@ -55,6 +55,9 @@ private:
   mlir::LogicalResult getQubits(mlir::ValueRange values,
                                 mlir::SmallVectorImpl<Qubit> &qubits);
 
+  void negatedControls(mlir::ArrayRef<bool> negatedControls,
+                       mlir::ArrayRef<Qubit> qubits);
+
   //===--------------------------------------------------------------------===//
   // Unitary
   //===--------------------------------------------------------------------===//

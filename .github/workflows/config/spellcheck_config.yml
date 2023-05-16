@@ -136,7 +136,7 @@ matrix:
   - pyspelling.filters.python:
       docstrings: true
       comments: true
-      strings: true
+      strings: false
   - pyspelling.filters.context:
       context_visible_first: true
       escapes: '\\[\\`~]'

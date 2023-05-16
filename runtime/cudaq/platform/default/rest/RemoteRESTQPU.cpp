@@ -274,8 +274,7 @@ public:
     if (executionContext && executionContext->name == "observe") {
 
       cudaq::spin_op &spin = *executionContext->spin.value();
-      for (std::size_t i = 0; i < spin.n_terms(); i++) {
-        auto term = spin[i];
+      for (const auto &term : spin) {
         if (term.is_identity())
           continue;
 
@@ -288,14 +287,14 @@ public:
         tmpModuleOp.push_back(ansatz.clone());
 
         // Extract the binary symplectic encoding
-        auto binarySymplecticForm = term.get_bsf()[0];
+        auto [binarySymplecticForm, coeffs] = term.get_raw_data();
 
         // Create the pass manager, add the quake observe ansatz pass
         // and run it followed by the canonicalizer
         PassManager pm(&context);
         OpPassManager &optPM = pm.nest<func::FuncOp>();
         optPM.addPass(
-            cudaq::opt::createQuakeObserveAnsatzPass(binarySymplecticForm));
+            cudaq::opt::createQuakeObserveAnsatzPass(binarySymplecticForm[0]));
         if (failed(pm.run(tmpModuleOp)))
           throw std::runtime_error("Could not apply measurements to ansatz.");
         runPassPipeline("canonicalize", tmpModuleOp);

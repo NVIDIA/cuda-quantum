@@ -16,7 +16,7 @@ class Qubit;
 class Result;
 using TuplePtr = int8_t *;
 
-/// QIR QIS Extern Declarations
+/// QIR QIS external declarations
 extern "C" {
 Array *__quantum__rt__array_concatenate(Array *, Array *);
 void __quantum__rt__array_release(Array *);
@@ -67,6 +67,7 @@ void __quantum__qis__r1(double, Qubit *q);
 void __quantum__qis__r1__ctl(double, Array *ctls, Qubit *q);
 
 void __quantum__qis__swap(Qubit *, Qubit *);
+void __quantum__qis__swap__ctl(Array *, Qubit *, Qubit *);
 void __quantum__qis__cphase(double x, Qubit *src, Qubit *tgt);
 
 Result *__quantum__qis__mz(Qubit *);

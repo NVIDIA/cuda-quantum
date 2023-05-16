@@ -13,13 +13,13 @@ module {
     %zero = arith.constant 0 : i32
     %one = arith.constant 1 : i32
     %two = arith.constant 2 : i32
-    %0 = quake.alloca [%two : i32] !quake.qvec<?>
+    %0 = quake.alloca [%two : i32] !quake.veq<?>
 
-    %qr1 = quake.extract_ref %0[%zero] : (!quake.qvec<?>,i32) -> !quake.qref
-    %qr2 = quake.extract_ref %0[%one] : (!quake.qvec<?>,i32) -> !quake.qref
+    %qr1 = quake.extract_ref %0[%zero] : (!quake.veq<?>,i32) -> !quake.ref
+    %qr2 = quake.extract_ref %0[%one] : (!quake.veq<?>,i32) -> !quake.ref
 
-    quake.mx %qr1 : (!quake.qref) -> i1
-    quake.my %qr1 : (!quake.qref) -> i1
+    quake.mx %qr1 : (!quake.ref) -> i1
+    quake.my %qr1 : (!quake.ref) -> i1
     return 
   }
 }

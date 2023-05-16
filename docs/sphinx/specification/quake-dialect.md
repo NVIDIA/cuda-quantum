@@ -39,23 +39,23 @@ Let's see an example to clarify the distinction between the models.  Take the
 following Quake implementation of some toy quantum computation:
 
 ```cpp
-func.func foo(%qvec : !quake.qvec<2>) {
+func.func foo(%veq : !quake.veq<2>) {
     // Boilerplate to extract each qubit from the vector
     %c0 = arith.constant 0 : index
     %c1 = arith.constant 1 : index
-    %q0 = quake.qextract %qvec[%c0 : index] : !quake.qvec<2> -> !quake.qref
-    %q1 = quake.qextract %qvec[%c1 : index] : !quake.qvec<2> -> !quake.qref
+    %q0 = quake.extract_ref %veq[%c0] : (!quake.veq<2>, index) -> !quake.ref
+    %q1 = quake.extract_ref %veq[%c1] : (!quake.veq<2>, index) -> !quake.ref
 
     // We apply some operators to those extracted qubits
-    ... bunch of operators using %q0 and %q1 ...
-    quake.h (%q0)
+    // ... bunch of operators using %q0 and %q1 ...
+    quake.h %q0 : (!quake.ref) -> ()
 
     // We decide to measure the vector
-    %result = quake.mz (%qvec) : vector<2xi1>
+    %result = quake.mz %veq : (!quake.veq<2>) -> cc.stdvec<i1>
 
     // And then apply another Hadamard to %q0
-    quake.h (%q0)
-    ...
+    quake.h %q0 : (!quake.ref) -> ()
+    // ...
 }
 ```
 
@@ -72,7 +72,7 @@ other on the same qubit---visually:
 Where `I` is the identity operator. Now note that a naive implemention of
 this optimization for Quake would optimize away both `quake.h` operators
 being applied to `%q0`.  Such an implementation would have missed the fact
-that a measurement is being applied to the vector, `%qvec`, which contains
+that a measurement is being applied to the vector, `%veq`, which contains
 `%q0`.
 
 Of course it is possible to correctly implement this optimization for Quake.

@@ -41,13 +41,13 @@ def test_kernel_non_param_1q():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
-# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.qref
-# CHECK:           quake.h %[[VAL_0]] : (!quake.qref) -> ()
-# CHECK:           quake.x %[[VAL_0]] : (!quake.qref) -> ()
-# CHECK:           quake.y %[[VAL_0]] : (!quake.qref) -> ()
-# CHECK:           quake.z %[[VAL_0]] : (!quake.qref) -> ()
-# CHECK:           quake.t %[[VAL_0]] : (!quake.qref) -> ()
-# CHECK:           quake.s %[[VAL_0]] : (!quake.qref) -> ()
+# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+# CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
+# CHECK:           quake.x %[[VAL_0]] : (!quake.ref) -> ()
+# CHECK:           quake.y %[[VAL_0]] : (!quake.ref) -> ()
+# CHECK:           quake.z %[[VAL_0]] : (!quake.ref) -> ()
+# CHECK:           quake.t %[[VAL_0]] : (!quake.ref) -> ()
+# CHECK:           quake.s %[[VAL_0]] : (!quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
 
@@ -79,10 +79,10 @@ def test_kernel_param_1q():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
 # CHECK-SAME:                                                                   %[[VAL_0:.*]]: f64) {
-# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.qref
-# CHECK:           quake.rx (%[[VAL_0]]) %[[VAL_1]] : (f64, !quake.qref) -> ()
-# CHECK:           quake.ry (%[[VAL_0]]) %[[VAL_1]] : (f64, !quake.qref) -> ()
-# CHECK:           quake.rz (%[[VAL_0]]) %[[VAL_1]] : (f64, !quake.qref) -> ()
+# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
+# CHECK:           quake.rx (%[[VAL_0]]) %[[VAL_1]] : (f64, !quake.ref) -> ()
+# CHECK:           quake.ry (%[[VAL_0]]) %[[VAL_1]] : (f64, !quake.ref) -> ()
+# CHECK:           quake.rz (%[[VAL_0]]) %[[VAL_1]] : (f64, !quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
 
