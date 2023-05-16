@@ -102,10 +102,6 @@ private:
            [](std::vector<double> d, Array *a, std::vector<Qubit *> &q) {
              a != nullptr ? __quantum__qis__swap__ctl(a, q[0], q[1])
                           : __quantum__qis__swap(q[0], q[1]);
-           }},
-          {"cphase",
-           [](std::vector<double> d, Array *a, std::vector<Qubit *> &q) {
-             __quantum__qis__cphase(d[0], q[0], q[1]);
            }}};
 
   /// Utility to convert a vector of qubits into an opaque Array pointer
