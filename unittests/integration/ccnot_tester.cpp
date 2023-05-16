@@ -79,3 +79,18 @@ CUDAQ_TEST(CCNOTTester, checkSimple) {
   EXPECT_EQ(1, counts3.size());
   EXPECT_TRUE(counts3.begin()->first == "101");
 }
+
+CUDAQ_TEST(FredkinTester, checkTruth) {
+
+  auto test = []() __qpu__ {
+    cudaq::qubit q, r, s;
+    x(q, s);
+    swap<cudaq::ctrl>(q, r, s);
+    mz(q, r, s);
+  };
+
+  auto counts = cudaq::sample(test);
+  counts.dump();
+  EXPECT_EQ(counts.size(), 1);
+  EXPECT_EQ(counts.begin()->first, "110");
+}

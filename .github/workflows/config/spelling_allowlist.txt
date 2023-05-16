@@ -74,6 +74,7 @@ discretization
 discretize
 discretized
 eigenstate
+enqueues
 ensmallen
 entangler
 entanglers
@@ -86,6 +87,7 @@ namespace
 natively
 precompute
 precomputed
+prepend
 quantize
 quantized
 qubit
