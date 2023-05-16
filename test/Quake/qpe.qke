@@ -8,30 +8,26 @@
 
 // RUN: cudaq-opt %s --canonicalize | FileCheck %s
 
-// CHECK: module {
-// CHECK:   func.func @ctrl_t_gate(%arg0: !quake.qref) {
-// CHECK:     quake.t (%arg0)
+// CHECK:   func.func @ctrl_t_gate(%arg0: !quake.ref) {
+// CHECK:     quake.t %arg0 :
 // CHECK:     return
 // CHECK:   }
-// CHECK:   func.func @qpe_test_callable(%arg0: i32, %arg1: i32, %arg2: (!quake.qvec<?>) -> !quake.qvec<?>, %arg3: (!quake.qref) -> ()) {
-// CHECK:     %[[C0:.*]] = arith.constant 0 : i32
-// CHECK:     %0 = quake.alloca(%arg0 : i32) : !quake.qvec<?>
-// CHECK:     %1 = quake.qextract %0[%[[C0]]] : !quake.qvec<?>[i32] -> !quake.qref
-// CHECK:     call_indirect %arg3(%1) : (!quake.qref) -> ()
+// CHECK:   func.func @qpe_test_callable(%arg0: i32, %arg1: i32, %arg2: (!quake.veq<?>) -> !quake.veq<?>, %arg3: (!quake.ref) -> ()) {
+// CHECK:     %0 = quake.alloca[%arg0 : i32] !quake.veq<?>
+// CHECK:     %1 = quake.extract_ref %0[0] : (!quake.veq<?>) -> !quake.ref
+// CHECK:     call_indirect %arg3(%1) : (!quake.ref) -> ()
 // CHECK:     return
 // CHECK:   }
-// CHECK: }
-module {
-    func.func @ctrl_t_gate(%q : !quake.qref) -> () {
-        quake.t (%q) 
-        return
-    }
 
-    func.func @qpe_test_callable(%nq : i32, %nc : i32, %state_prep : (!quake.qvec<?>)->(!quake.qvec<?>), %oracle : (!quake.qref)->()) {
-        %0 = arith.constant 0 : i32
-        %qubits = quake.alloca(%nq : i32) : !quake.qvec<?>
-        %q = quake.qextract %qubits[%0] : !quake.qvec<?>[i32] -> !quake.qref
-        func.call_indirect %oracle(%q) : (!quake.qref)->()
-        return
-    }
+func.func @ctrl_t_gate(%q : !quake.ref) -> () {
+  quake.t %q : (!quake.ref) -> () 
+  return
+}
+
+func.func @qpe_test_callable(%nq : i32, %nc : i32, %state_prep : (!quake.veq<?>)->(!quake.veq<?>), %oracle : (!quake.ref)->()) {
+  %0 = arith.constant 0 : i32
+  %qubits = quake.alloca[%nq : i32] !quake.veq<?>
+  %q = quake.extract_ref %qubits[%0] : (!quake.veq<?>,i32) -> !quake.ref
+  func.call_indirect %oracle(%q) : (!quake.ref)->()
+  return
 }

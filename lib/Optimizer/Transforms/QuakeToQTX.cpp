@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "PassDetails.h"
 #include "QuakeToQTXConverter.h"
@@ -75,25 +75,25 @@ public:
   }
 };
 
-class QExtractConverter final
-    : public ConvertOpToQTXPattern<quake::QExtractOp> {
+class ExtractRefConverter final
+    : public ConvertOpToQTXPattern<quake::ExtractRefOp> {
 public:
   using ConvertOpToQTXPattern::ConvertOpToQTXPattern;
 
-  LogicalResult matchAndRewrite(quake::QExtractOp op,
+  LogicalResult matchAndRewrite(quake::ExtractRefOp op,
                                 ArrayRef<Value> implicitUsedQuantumValues,
                                 OpAdaptor adaptor,
                                 ConvertToQTXRewriter &rewriter) const override {
     // Fail when we are try to borrow from an array that has only dead wires
-    auto arrayType = dyn_cast<qtx::WireArrayType>(adaptor.getQvec().getType());
+    auto arrayType = dyn_cast<qtx::WireArrayType>(adaptor.getVeq().getType());
     if (arrayType.getSize() == arrayType.getDead())
       return failure();
 
     auto newOp = rewriter.create<qtx::ArrayBorrowOp>(
-        op.getLoc(), adaptor.getIndex(), adaptor.getQvec());
+        op.getLoc(), adaptor.getIndex(), adaptor.getVeq());
 
     // Map (or remap) Quake values to QTX values
-    rewriter.mapOrRemap(op.getQvec(), newOp.getNewArray());
+    rewriter.mapOrRemap(op.getVeq(), newOp.getNewArray());
     rewriter.mapOrRemap(op.getResult(), newOp.getWires()[0]);
     rewriter.eraseOp(op);
     return success();
@@ -352,7 +352,7 @@ public:
       AllocaConverter,
       DeallocConverter,
       ResetConverter,
-      QExtractConverter,
+      ExtractRefConverter,
       OperatorConverter<quake::HOp, qtx::HOp>,
       OperatorConverter<quake::SOp, qtx::SOp>,
       OperatorConverter<quake::TOp, qtx::TOp>,

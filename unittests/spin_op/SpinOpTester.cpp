@@ -14,8 +14,8 @@ using namespace cudaq::spin;
 
 TEST(SpinOpTester, checkConstruction) {
   cudaq::spin_op op = x(10);
-  EXPECT_EQ(11, op.n_qubits());
-  EXPECT_EQ(1, op.n_terms());
+  EXPECT_EQ(11, op.num_qubits());
+  EXPECT_EQ(1, op.num_terms());
 }
 
 TEST(SpinOpTester, checkEquality) {
@@ -27,19 +27,19 @@ TEST(SpinOpTester, checkAddition) {
   cudaq::spin_op op = x(10);
 
   auto added = op + op;
-  EXPECT_EQ(11, added.n_qubits());
-  EXPECT_EQ(1, added.n_terms());
-  EXPECT_EQ(2.0, added.get_term_coefficient(0));
+  EXPECT_EQ(11, added.num_qubits());
+  EXPECT_EQ(1, added.num_terms());
+  EXPECT_EQ(2.0, added.get_coefficient());
 
   op.dump();
   added.dump();
 
   auto added2 = x(0) + y(1) + z(2);
   added2.dump();
-  EXPECT_EQ(3, added2.n_terms());
-  EXPECT_EQ(3, added2.n_qubits());
+  EXPECT_EQ(3, added2.num_terms());
+  EXPECT_EQ(3, added2.num_qubits());
   for (int i = 0; i < 3; i++) {
-    EXPECT_EQ(1.0, added2.get_term_coefficient(i));
+    EXPECT_EQ(1.0, added2.begin()->get_coefficient());
   }
 
   auto subtracted = x(0) - y(2);
@@ -50,19 +50,24 @@ TEST(SpinOpTester, checkBug178) {
 
   cudaq::spin_op op = 1.0 + 2.0 * x(0);
   op.dump();
-  auto bsf = op.get_bsf();
+  auto [bsf, coeffs] = op.get_raw_data();
 
   std::vector<std::vector<bool>> expected{std::vector<bool>(2),
                                           std::vector<bool>{1, 0}};
+  cudaq::spin_op exp(expected, {1., 2.});
+  EXPECT_EQ(op, exp);
 
-  for (std::size_t counter = 0; auto &row : bsf) {
-    EXPECT_EQ(expected[counter++], row);
-  }
+  EXPECT_TRUE(std::find(expected.begin(), expected.end(), bsf[0]) !=
+              expected.end());
+  EXPECT_TRUE(std::find(expected.begin(), expected.end(), bsf[1]) !=
+              expected.end());
 }
 
 TEST(SpinOpTester, checkMultiplication) {
   auto mult = x(0) * y(1);
   mult.dump();
+  auto mult3 = y(0) * y(1);
+  mult3.dump();
 
   auto tmp = 2 * y(1);
   tmp.dump();
@@ -73,38 +78,47 @@ TEST(SpinOpTester, checkMultiplication) {
   std::cout << "X * Z: -iY\n";
   (x(3) * z(3)).dump();
   EXPECT_EQ(y(3), x(3) * z(3));
-  EXPECT_EQ((x(3) * z(3)).get_term_coefficient(0), std::complex<double>(0, -1));
+  EXPECT_EQ((x(3) * z(3)).get_coefficient(), std::complex<double>(0, -1));
 
   std::cout << "X * X: I\n";
   (x(2) * x(2)).dump();
   EXPECT_EQ(cudaq::spin_op(), x(2) * x(2));
-  EXPECT_EQ((x(2) * x(2)).get_term_coefficient(0), std::complex<double>(1, 0));
+  EXPECT_EQ((x(2) * x(2)).get_coefficient(), std::complex<double>(1, 0));
 
   std::cout << "Y * Y: I\n";
   (y(14) * y(14)).dump();
   EXPECT_EQ(cudaq::spin_op(), y(14) * y(14));
-  EXPECT_EQ((y(14) * y(14)).get_term_coefficient(0),
-            std::complex<double>(1, 0));
+  EXPECT_EQ((y(14) * y(14)).get_coefficient(), std::complex<double>(1, 0));
 
   std::cout << "Z * Z: I\n";
   (z(0) * z(0)).dump();
   EXPECT_EQ(cudaq::spin_op(), z(0) * z(0));
-  EXPECT_EQ((z(0) * z(0)).get_term_coefficient(0), std::complex<double>(1, 0));
+  EXPECT_EQ((z(0) * z(0)).get_coefficient(), std::complex<double>(1, 0));
 
   std::cout << "X * Y: iZ\n";
   (x(3) * y(3)).dump();
   EXPECT_EQ(z(3), x(3) * y(3));
-  EXPECT_EQ((x(3) * y(3)).get_term_coefficient(0), std::complex<double>(0, 1));
+  EXPECT_EQ((x(3) * y(3)).get_coefficient(), std::complex<double>(0, 1));
 
   std::cout << "I * I: I\n";
   (i(2) * i(2)).dump();
   EXPECT_EQ(i(2), i(2) * i(2));
-  EXPECT_EQ((i(2) * i(2)).get_term_coefficient(0), std::complex<double>(1, 0));
+  EXPECT_EQ((i(2) * i(2)).get_coefficient(), std::complex<double>(1, 0));
 
   std::cout << "I * Z: Z\n";
   (i(3) * i(3)).dump();
   EXPECT_EQ(z(3), i(3) * z(3));
-  EXPECT_EQ((i(3) * z(3)).get_term_coefficient(0), std::complex<double>(1, 0));
+  EXPECT_EQ((i(3) * z(3)).get_coefficient(), std::complex<double>(1, 0));
+
+  auto tmp2 = 2 * x(0) * x(1) * y(2) * y(3) + 3 * y(0) * y(1) * x(2) * x(3);
+  std::cout << "START\n";
+  tmp2 = tmp2 * tmp2;
+  tmp2.dump();
+
+  EXPECT_EQ(2, tmp2.num_terms());
+  auto expected =
+      13 * i(0) * i(1) * i(2) * i(3) + 12 * z(0) * z(1) * z(2) * z(3);
+  EXPECT_EQ(expected, tmp2);
 }
 
 TEST(SpinOpTester, canBuildDeuteron) {
@@ -113,12 +127,8 @@ TEST(SpinOpTester, canBuildDeuteron) {
 
   H.dump();
 
-  EXPECT_EQ(5, H.n_terms());
-  EXPECT_EQ(2, H.n_qubits());
-
-  for (std::size_t i = 0; i < H.n_terms(); i++) {
-    H[i].dump();
-  }
+  EXPECT_EQ(5, H.num_terms());
+  EXPECT_EQ(2, H.num_qubits());
 }
 
 TEST(SpinOpTester, checkGetMatrix) {
@@ -177,4 +187,28 @@ TEST(SpinOpTester, checkGetMatrix) {
     }
     EXPECT_NEAR(sum, -1.74, 1e-2);
   }
+}
+
+TEST(SpinOpTester, checkIterator) {
+  auto H = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) + .21829 * z(0) -
+           6.125 * z(1);
+
+  std::size_t count = 0;
+  for (auto term : H) {
+    std::cout << "TEST: " << term.to_string();
+    count++;
+  }
+
+  EXPECT_EQ(count, H.num_terms());
+}
+
+TEST(SpinOpTester, checkDistributeTerms) {
+  auto H = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) + .21829 * z(0) -
+           6.125 * z(1);
+
+  auto distributed = H.distribute_terms(2);
+
+  EXPECT_EQ(distributed.size(), 2);
+  EXPECT_EQ(distributed[0].num_terms(), 2);
+  EXPECT_EQ(distributed[1].num_terms(), 3);
 }

@@ -81,7 +81,7 @@ public:
   /// starting at the given startIdx and including the following count elements.
   QuakeValue slice(const std::size_t startIdx, const std::size_t count);
 
-  /// @brief For a QuakeValue with type StdVec or QVec, return
+  /// @brief For a QuakeValue with type StdVec or Veq, return
   /// the size QuakeValue.
   QuakeValue size();
 
@@ -96,12 +96,12 @@ public:
 
   /// @brief Return a new QuakeValue when the current value
   /// is indexed, specifically for QuakeValues of type StdVecType
-  /// and QVecType.
+  /// and VeqType.
   QuakeValue operator[](const std::size_t idx);
 
   /// @brief Return a new QuakeValue when the current value
   /// is indexed, specifically for QuakeValues of type StdVecType
-  /// and QVecType.
+  /// and VeqType.
   QuakeValue operator[](const QuakeValue &idx);
 
   /// @brief Negate this QuakeValue

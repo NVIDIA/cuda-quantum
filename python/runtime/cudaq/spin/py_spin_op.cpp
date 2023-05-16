@@ -16,6 +16,30 @@
 
 namespace cudaq {
 
+/// @brief Map an OpenFermion QubitOperator to our own internal SpinOperator
+spin_op fromOpenFermionQubitOperator(py::object &op) {
+  if (!py::hasattr(op, "terms"))
+    throw std::runtime_error(
+        "This is not an openfermion operator, must have 'terms' attribute.");
+  std::map<std::string, std::function<spin_op(std::size_t)>> creatorMap{
+      {"X", [](std::size_t i) { return spin::x(i); }},
+      {"Y", [](std::size_t i) { return spin::y(i); }},
+      {"Z", [](std::size_t i) { return spin::z(i); }}};
+  auto terms = op.attr("terms");
+  spin_op H;
+  for (auto term : terms) {
+    auto termTuple = term.cast<py::tuple>();
+    spin_op localTerm;
+    for (auto &element : termTuple) {
+      auto casted = element.cast<std::pair<std::size_t, std::string>>();
+      localTerm *= creatorMap[casted.second](casted.first);
+    }
+    H += terms[term].cast<double>() * localTerm;
+  }
+  H -= spin::i(H.num_qubits() - 1);
+  return H;
+}
+
 void bindSpinClass(py::module &mod) {
   // Binding the `cudaq::spin` class to `_pycudaq` as a submodule
   // so it's accessible directly in the cudaq namespace.
@@ -52,18 +76,19 @@ void bindSpinOperator(py::module &mod) {
            "Read in `SpinOperator` from file.")
       .def(py::init<const cudaq::spin_op>(), py::arg("spin_operator"),
            "Copy constructor, given another `cudaq.SpinOperator`.")
+      .def(py::init(
+               [](py::object o) { return fromOpenFermionQubitOperator(o); }),
+           "Create from OpenFermion QubitOperator.")
 
       /// @brief Bind the member functions.
-      .def("get_term_count", &cudaq::spin_op::n_terms,
+      .def("get_raw_data", &cudaq::spin_op::get_raw_data, "")
+      .def("get_term_count", &cudaq::spin_op::num_terms,
            "Return the number of terms in this `SpinOperator`.")
-      .def("get_qubit_count", &cudaq::spin_op::n_qubits,
+      .def("get_qubit_count", &cudaq::spin_op::num_qubits,
            "Return the number of qubits this `SpinOperator` is on.")
-      .def("get_term_coefficient", &cudaq::spin_op::get_term_coefficient,
-           py::arg("term"),
-           "Return the coefficient of this `SpinOperator` at the given term "
-           "index.")
-      .def("get_coefficients", &cudaq::spin_op::get_coefficients,
-           "Return all term coefficients in this `SpinOperator`.")
+      .def("get_coefficient", &cudaq::spin_op::get_coefficient,
+           "Return the coefficient of this `SpinOperator`. Must be a "
+           "`SpinOperator` with one term, otherwise an exception is thrown.")
       .def("is_identity", &cudaq::spin_op::is_identity,
            "Returns a bool indicating if this `SpinOperator` is equal to the "
            "identity.")
@@ -75,9 +100,9 @@ void bindSpinOperator(py::module &mod) {
           "Return a string representation of this `SpinOperator`.")
       .def("dump", &cudaq::spin_op::dump,
            "Print a string representation of this `SpinOperator`.")
-      .def("slice", &cudaq::spin_op::slice,
-           "Return a slice of this `SpinOperator`. The slice starts at the "
-           "term index and contains the following `count` terms.")
+      .def("distribute_terms", &cudaq::spin_op::distribute_terms,
+           "Return a list of `SpinOperator` representing a distribution of the "
+           "terms in this `SpinOperator` into equally sized chunks.")
       .def_static("random", &cudaq::spin_op::random,
                   "Return a random spin_op on the given number of qubits and "
                   "composed of the given number of terms.")
@@ -102,12 +127,20 @@ void bindSpinOperator(py::module &mod) {
            "Specifically, this encoding is via a vector of doubles. The "
            "encoding is as follows: for each term, a list of doubles where the "
            "ith element is a 3.0 for a Y, a 1.0 for a X, and a 2.0 for a Z on "
-           "qubit i, followed by the real and imag part of the coefficient. "
+           "qubit i, followed by the real and imaginary part of the "
+           "coefficient. "
            "Each term is appended to the array forming one large 1d array of "
            "doubles. The array is ended with the total number of terms "
            "represented as a double.")
       .def("to_matrix", &spin_op::to_matrix,
            "Return `self` as a :class:`ComplexMatrix`.")
+
+      .def(
+          "__iter__",
+          [](spin_op &self) {
+            return py::make_iterator(self.begin(), self.end());
+          },
+          py::keep_alive<0, 1>())
       /// @brief Bind overloaded operators that are in-place on
       /// `cudaq.SpinOperator`.
       // `this_spin_op` += `cudaq.SpinOperator`
@@ -136,10 +169,7 @@ void bindSpinOperator(py::module &mod) {
 
       /// @brief Bind overloaded operators that return a new
       /// `cudaq.SpinOperator`.
-      // `this_spin_op[idx]`
-      .def("__getitem__", &cudaq::spin_op::operator[], py::arg("index"),
-           "Return the term of this `SpinOperator` at the provided index as a "
-           "new `cudaq.SpinOperator`.")
+
       // `cudaq.SpinOperator` + `cudaq.SpinOperator`
       .def(py::self + py::self, "Add the given `SpinOperator` to this one and "
                                 "return result as a new `cudaq.SpinOperator`.")

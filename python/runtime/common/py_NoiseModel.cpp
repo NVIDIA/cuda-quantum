@@ -84,7 +84,7 @@ void bindNoiseModel(py::module &mod) {
       .def(
           "__getitem__",
           [](kraus_channel &c, std::size_t idx) { return c[idx]; },
-          "Return the ith KrausOperator in this KrausChannel.")
+          "Return the KrausOperator at the given index in this KrausChannel.")
       .def("append", &kraus_channel::push_back,
            "Add a KrausOperator to this KrausChannel.");
 

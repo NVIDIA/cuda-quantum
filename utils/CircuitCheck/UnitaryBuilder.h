@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #pragma once
 
@@ -33,7 +33,7 @@ private:
   // Visitors
   //===--------------------------------------------------------------------===//
 
-  mlir::WalkResult visitExtractOp(quake::QExtractOp op);
+  mlir::WalkResult visitExtractOp(quake::ExtractRefOp op);
 
   mlir::WalkResult allocateQubits(mlir::Value value);
 
@@ -47,6 +47,9 @@ private:
 
   mlir::LogicalResult getQubits(mlir::ValueRange values,
                                 mlir::SmallVectorImpl<Qubit> &qubits);
+
+  void negatedControls(mlir::ArrayRef<bool> negatedControls,
+                       mlir::ArrayRef<Qubit> qubits);
 
   //===--------------------------------------------------------------------===//
   // Unitary

@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
@@ -59,7 +59,7 @@ LogicalResult convertOperation(qtx::ResetOp qtxOp) {
   for (auto [operand, result] :
        llvm::zip(qtxOp.getOperands(), qtxOp.getResults())) {
     result.replaceAllUsesWith(operand);
-    builder.create<quake::ResetOp>(operand);
+    builder.create<quake::ResetOp>(TypeRange{}, operand);
   }
   qtxOp.erase();
   return success();
@@ -89,8 +89,8 @@ LogicalResult convertOperation(qtx::ArrayBorrowOp qtxOp) {
                                       qtxOp->getAttrDictionary());
 
   for (auto [index, wire] : llvm::zip(adaptor.getIndices(), qtxOp.getWires())) {
-    Value qref = builder.create<quake::QExtractOp>(adaptor.getArray(), index);
-    wire.replaceAllUsesWith(qref);
+    Value ref = builder.create<quake::ExtractRefOp>(adaptor.getArray(), index);
+    wire.replaceAllUsesWith(ref);
   }
   qtxOp.getNewArray().replaceAllUsesWith(adaptor.getArray());
   qtxOp.erase();
@@ -210,20 +210,20 @@ LogicalResult convertOperation(Operation &op) {
 //===----------------------------------------------------------------------===//
 
 /// Convert the types of the arguments. Add returns to the function for each
-/// quantum input. Currently this handles only Qrefs and not Qvecs.
+/// quantum input. Currently this handles only Refs and not Veqs.
 void fixArgumentsAndAddReturns(qtx::CircuitOp circuitOp) {
   auto context = circuitOp->getContext();
-  auto qrefType = quake::QRefType::get(context);
+  auto refType = quake::RefType::get(context);
 
   // Iterate over the target arguments while converting types
   for (auto arg : circuitOp.getTargets()) {
     if (arg.getType().isa<qtx::WireType>()) {
-      arg.setType(qrefType);
+      arg.setType(refType);
       continue;
     }
     auto type = dyn_cast<qtx::WireArrayType>(arg.getType());
-    auto qvecType = quake::QVecType::get(context, type.getSize());
-    arg.setType(qvecType);
+    auto veqType = quake::VeqType::get(context, type.getSize());
+    arg.setType(veqType);
   }
 
   auto terminator =

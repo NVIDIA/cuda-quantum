@@ -88,12 +88,11 @@ public:
       } else {
         H.for_each_term([&](cudaq::spin_op &term) {
           if (term.is_identity())
-            sum += term.get_term_coefficient(0).real();
+            sum += term.get_coefficient().real();
           else {
-
             auto [exp, data] = cudaq::measure(term);
             results.emplace_back(data.to_map(), term.to_string(), exp);
-            sum += term.get_term_coefficient(0).real() * exp;
+            sum += term.get_coefficient().real() * exp;
           }
         });
 

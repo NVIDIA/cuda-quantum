@@ -7,7 +7,9 @@
  *******************************************************************************/
 
 // Compile and run with:
+// ```
 // nvq++ vqe_h2_builder.cpp -o builder.x && ./builder.x
+// ```
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
@@ -25,7 +27,7 @@ namespace cudaq {
 // Define a function that applies a general SO(4) rotation to
 // the builder on the provided qubits with the provided parameters.
 // Note we keep this qubit and parameter arguments as auto as these
-// will default to taking the qubits and variational parameters (QuakeValues)
+// will default to taking the qubits and variational parameters (`QuakeValue`s)
 void so4(cudaq::kernel_builder<std::vector<double>> &builder, QuakeValue &&q,
          QuakeValue &&r, QuakeValue &parameters) {
   builder.ry(parameters[0], q);
@@ -73,7 +75,7 @@ int main() {
                               15};
   cudaq::spin_op H(h2_data, /*nQubits*/ 4);
 
-  int layers = 2, n_qubits = H.n_qubits(), block_size = 2, p_counter = 0;
+  int layers = 2, n_qubits = H.num_qubits(), block_size = 2, p_counter = 0;
   int n_blocks_per_layer = 2 * (n_qubits / block_size) - 1;
   int n_params = layers * 6 * n_blocks_per_layer;
   printf("%d qubit hamiltonian -> %d parameters\n", n_qubits, n_params);
@@ -106,7 +108,7 @@ int main() {
     }
   }
 
-  // Run the vqe algorithm from specific initial params.
+  // Run the VQE algorithm from specific initial parameters.
   auto init_params = cudaq::random_vector(-1, 1, n_params);
 
   // Run VQE

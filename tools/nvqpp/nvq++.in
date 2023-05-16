@@ -67,6 +67,9 @@ function show_help {
 --clang-verbose | -clang-verbose
 	Enable the verbose option (-v) to the C++ compiler.
 
+--load=<domain>
+    Load the domain-specific library, e.g. chemistry.
+
 --library-mode
 	Execute the CUDA Quantum program in library mode. (C++ emulation.)
 
@@ -174,13 +177,27 @@ NVQPP_LD_PATH=${NVQPP_LD_PATH:-"@NVQPP_LD_PATH@"}
 if [ -f "$NVQPP_LD_PATH" ]; then
 	LINKER_PATH="--ld-path=${NVQPP_LD_PATH}"
 fi
-LINKER_FLAGS="${LINKER_FLAGS} -Wl,-rpath,${install_dir}/lib -Wl,-rpath,${PWD}"
+LINKER_FLAGS="${LINKER_FLAGS} -Wl,-rpath,${install_dir}/lib -Wl,-rpath,${install_dir}/lib/plugins -Wl,-rpath,${PWD}"
 
 LIBRARY_MODE_EXECUTION_MANAGER="qir"
 PLATFORM_LIBRARY="default"
 LLVM_QUANTUM_TARGET="qir"
-LINKDIRS="-L${install_dir}/lib @CUDAQ_CXX_NVQPP_LINK_STR@"
+LINKDIRS="-L${install_dir}/lib -L${install_dir}/lib/plugins @CUDAQ_CXX_NVQPP_LINK_STR@"
 LINKLIBS="-lcudaq -lcudaq-common -lcudaq-mlir-runtime -lcudaq-builder -lcudaq-ensmallen -lcudaq-nlopt -lcudaq-spin"
+
+# Add any plugin libraries to the link stage
+CUDAQ_PLUGIN_DIR=${install_dir}/lib/plugins
+if [ -d "$CUDAQ_PLUGIN_DIR" ] && [ -n "$(ls -A $CUDAQ_PLUGIN_DIR)" ]
+then 
+  CUDAQ_PLUGIN_LIBS=`ls ${install_dir}/lib/plugins/*` 
+  for entry in $CUDAQ_PLUGIN_LIBS
+  do 
+    PLUGIN_NAME=$(basename $entry)
+    PLUGIN_NAME=${PLUGIN_NAME#"lib"}
+    PLUGIN_NAME=${PLUGIN_NAME%".so"}
+    LINKLIBS="$LINKLIBS -l$PLUGIN_NAME"
+  done 
+fi
 
 # Provide a default backend, user can override
 NVQIR_SIMULATION_BACKEND="qpp"
@@ -237,6 +254,10 @@ while [ $# -ne 0 ]; do
 	--platform | -platform)
 		PLATFORM_LIBRARY="$2"
 		shift
+		;;
+	--load | -load)
+	    LINKLIBS="${LINKLIBS} -lcudaq-$2"
+		shift 
 		;;
 	--cmake-host-compiler)
 		CMAKE_FALLBACK_HOST_CXX="$2"

@@ -17,10 +17,10 @@ using namespace mlir;
 
 static LogicalResult convertOperation(func::FuncOp funcOp) {
   auto convertType = [](Type type) -> Type {
-    if (type.isa<quake::QRefType>())
+    if (type.isa<quake::RefType>())
       return qtx::WireType::get(type.getContext());
-    else if (auto qvec = type.dyn_cast_or_null<quake::QVecType>())
-      return qtx::WireArrayType::get(type.getContext(), qvec.getSize(), 0);
+    else if (auto veq = type.dyn_cast_or_null<quake::VeqType>())
+      return qtx::WireArrayType::get(type.getContext(), veq.getSize(), 0);
     return nullptr;
   };
   auto entryBlock = &*funcOp.getBody().begin();

@@ -18,9 +18,9 @@ module {
     %w2 = x %w1 : !qtx.wire
 
     // Corner case that we might not run into.  Since `h` is Hermitian the
-    // `adj` property should not make a differnce.
+    // `adj` property is not allowed.
     %w3 = h %w2 : !qtx.wire
-    %w4 = h<adj> %w3 : !qtx.wire
+    %w4 = h %w3 : !qtx.wire
 
     %w5 = t %w4 : !qtx.wire
     %w6 = t<adj> %w5 : !qtx.wire

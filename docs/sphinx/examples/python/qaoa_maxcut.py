@@ -3,10 +3,10 @@ from cudaq import spin
 
 import numpy as np
 
-# Here we build up a kernel for QAOA with p layers, with each layer
+# Here we build up a kernel for QAOA with `p` layers, with each layer
 # containing the alternating set of unitaries corresponding to the problem
 # and the mixer Hamiltonians. The algorithm leverages the VQE algorithm
-# to compute the maxcut of a rectangular graph illustrated below.
+# to compute the Max-Cut of a rectangular graph illustrated below.
 
 #       v0  0---------------------0 v1
 #           |                     |
@@ -14,7 +14,7 @@ import numpy as np
 #           |                     |
 #           |                     |
 #       v3  0---------------------0 v2
-# The maxcut for this problem is 0101 or 1010.
+# The Max-Cut for this problem is 0101 or 1010.
 
 # The problem Hamiltonian
 hamiltonian = 0.5 * spin.z(0) * spin.z(1) + 0.5 * spin.z(1) * spin.z(2) \
@@ -27,7 +27,7 @@ parameter_count: int = 2 * layer_count
 
 
 def kernel_qaoa() -> cudaq.Kernel:
-    """QAOA ansatz for maxcut"""
+    """QAOA ansatz for Max-Cut"""
     kernel, thetas = cudaq.make_kernel(list)
     qreg = kernel.qalloc(qubit_count)
 

@@ -341,7 +341,7 @@ struct ApplyOpPattern : public OpRewritePattern<quake::ApplyOp> {
     auto calleeName = getVariantFunctionName(
         apply, apply.getCallee().getRootReference().str());
     auto *ctx = apply.getContext();
-    auto consTy = quake::QVecType::getUnsized(ctx);
+    auto consTy = quake::VeqType::getUnsized(ctx);
     SmallVector<Value> newArgs;
     if (!apply.getControls().empty()) {
       auto consOp = rewriter.create<quake::ConcatOp>(apply.getLoc(), consTy,
@@ -443,9 +443,9 @@ public:
     // uncompute kernel) without the controls added.
     auto funcName = getCtrlVariantFunctionName(func.getName().str());
     auto funcTy = func.getFunctionType();
-    auto qvecTy = quake::QVecType::getUnsized(ctx);
+    auto veqTy = quake::VeqType::getUnsized(ctx);
     auto loc = func.getLoc();
-    SmallVector<Type> inTys = {qvecTy};
+    SmallVector<Type> inTys = {veqTy};
     inTys.append(funcTy.getInputs().begin(), funcTy.getInputs().end());
     auto newFunc = cudaq::opt::factory::createFunction(
         funcName, funcTy.getResults(), inTys, module);
@@ -453,7 +453,7 @@ public:
     IRMapping mapping;
     func.getBody().cloneInto(&newFunc.getBody(), mapping);
     auto controlNotNeeded = computeActionAnalysis(newFunc);
-    auto newCond = newFunc.getBody().front().insertArgument(0u, qvecTy, loc);
+    auto newCond = newFunc.getBody().front().insertArgument(0u, veqTy, loc);
     newFunc.walk([&](Operation *op) {
       OpBuilder builder(op);
       if (op->hasTrait<cudaq::QuantumGate>()) {

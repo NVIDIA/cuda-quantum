@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 // RUN: cudaq-quake %s | cudaq-opt --apply-op-specialization | FileCheck %s
 
@@ -47,7 +47,7 @@ struct kernel_delta {
 };
 
 // CHECK-LABEL:   func.func private @__nvqpp__mlirgen__kernel_gamma
-// CHECK-SAME:        .adj(%[[VAL_0:.*]]: !quake.qref) {
+// CHECK-SAME:        .adj(%[[VAL_0:.*]]: !quake.ref) {
 // CHECK:           cc.scope {
 // CHECK:             %[[VAL_1:.*]] = arith.constant 6 : i32
 // CHECK:             %[[VAL_2:.*]] = memref.alloca() : memref<i32>
@@ -77,9 +77,9 @@ struct kernel_delta {
 // CHECK:             } do {
 // CHECK:             ^bb0(%[[VAL_24:.*]]: i32):
 // CHECK:               cc.scope {
-// CHECK:                 quake.y (%[[VAL_0]])
-// CHECK:                 quake.x (%[[VAL_0]])
-// CHECK:                 quake.h (%[[VAL_0]])
+// CHECK:                 quake.y %[[VAL_0]]
+// CHECK:                 quake.x %[[VAL_0]]
+// CHECK:                 quake.h %[[VAL_0]]
 // CHECK:               }
 // CHECK:               cc.continue %[[VAL_24]] : i32
 // CHECK:             } step {
@@ -97,7 +97,7 @@ struct kernel_delta {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func private @__nvqpp__mlirgen__kernel_alpha
-// CHECK-SAME:        .adj(%[[VAL_0:.*]]: !quake.qref) {
+// CHECK-SAME:        .adj(%[[VAL_0:.*]]: !quake.ref) {
 // CHECK:           cc.scope {
 // CHECK:             %[[VAL_1:.*]] = arith.constant 0 : i32
 // CHECK:             %[[VAL_2:.*]] = memref.alloca() : memref<i32>
@@ -123,9 +123,9 @@ struct kernel_delta {
 // CHECK:             } do {
 // CHECK:             ^bb0(%[[VAL_20:.*]]: i32):
 // CHECK:               cc.scope {
-// CHECK:                 quake.z (%[[VAL_0]])
-// CHECK:                 quake.y (%[[VAL_0]])
-// CHECK:                 quake.x (%[[VAL_0]])
+// CHECK:                 quake.z %[[VAL_0]]
+// CHECK:                 quake.y %[[VAL_0]]
+// CHECK:                 quake.x %[[VAL_0]]
 // CHECK:               }
 // CHECK:               cc.continue %[[VAL_20]] : i32
 // CHECK:             } step {

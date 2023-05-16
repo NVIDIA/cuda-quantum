@@ -17,10 +17,10 @@
 // CHECK-VISIT:     memref.store %[[VAL_0]], %[[VAL_1]][] : memref<i32>
 // CHECK-VISIT:     %[[VAL_2:.*]] = memref.load %[[VAL_1]][] : memref<i32>
 // CHECK-VISIT:     %[[VAL_3:.*]] = arith.extsi %[[VAL_2]] : i32 to i64
-// CHECK-VISIT:     %[[VAL_4:.*]] = quake.alloca(%[[VAL_3]] : i64) : !quake.qvec<?>
+// CHECK-VISIT:     %[[VAL_4:.*]] = quake.alloca(%[[VAL_3]] : i64) : !quake.veq<?>
 // CHECK-VISIT:     %[[VAL_5:.*]] = arith.constant 0 : i32
 // CHECK-VISIT:     %[[VAL_6:.*]] = arith.extsi %[[VAL_5]] : i32 to i64
-// CHECK-VISIT:     %[[VAL_7:.*]] = quake.qextract %[[VAL_4]]{{\[}}%[[VAL_6]] : i64] : !quake.qvec<?> -> !quake.qref
+// CHECK-VISIT:     %[[VAL_7:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_6]] : i64] : !quake.veq<?> -> !quake.ref
 // CHECK-VISIT:     quake.h (%[[VAL_7]])
 // CHECK-VISIT:     quake.scope {
 // CHECK-VISIT:       %[[VAL_8:.*]] = arith.constant 0 : i32
@@ -37,12 +37,12 @@
 // CHECK-VISIT:         quake.scope {
 // CHECK-VISIT:           %[[VAL_15:.*]] = memref.load %[[VAL_9]][] : memref<i32>
 // CHECK-VISIT:           %[[VAL_16:.*]] = arith.extsi %[[VAL_15]] : i32 to i64
-// CHECK-VISIT:           %[[VAL_17:.*]] = quake.qextract %[[VAL_4]]{{\[}}%[[VAL_16]] : i64] : !quake.qvec<?> -> !quake.qref
+// CHECK-VISIT:           %[[VAL_17:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_16]] : i64] : !quake.veq<?> -> !quake.ref
 // CHECK-VISIT:           %[[VAL_18:.*]] = memref.load %[[VAL_9]][] : memref<i32>
 // CHECK-VISIT:           %[[VAL_19:.*]] = arith.constant 1 : i32
 // CHECK-VISIT:           %[[VAL_20:.*]] = arith.addi %[[VAL_18]], %[[VAL_19]] : i32
 // CHECK-VISIT:           %[[VAL_21:.*]] = arith.extsi %[[VAL_20]] : i32 to i64
-// CHECK-VISIT:           %[[VAL_22:.*]] = quake.qextract %[[VAL_4]]{{\[}}%[[VAL_21]] : i64] : !quake.qvec<?> -> !quake.qref
+// CHECK-VISIT:           %[[VAL_22:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_21]] : i64] : !quake.veq<?> -> !quake.ref
 // CHECK-VISIT:           quake.x [%[[VAL_17]]] (%[[VAL_22]])
 // CHECK-VISIT:         }
 // CHECK-VISIT:         quake.continue ()
@@ -53,12 +53,12 @@
 // CHECK-VISIT:         memref.store %[[VAL_25]], %[[VAL_9]][] : memref<i32>
 // CHECK-VISIT:       }
 // CHECK-VISIT:     }
-// CHECK-VISIT:     %[[VAL_26:.*]] = quake.qvec_size(%[[VAL_4]] : !quake.qvec<?>) : i64
+// CHECK-VISIT:     %[[VAL_26:.*]] = quake.vec_size(%[[VAL_4]] : !quake.veq<?>) : i64
 // CHECK-VISIT:     %[[VAL_27:.*]] = arith.index_cast %[[VAL_26]] : i64 to index
 // CHECK-VISIT:     %[[VAL_28:.*]] = arith.constant 0 : index
 // CHECK-VISIT:     affine.for %[[VAL_29:.*]] = affine_map<(d0) -> (d0)>(%[[VAL_28]]) to affine_map<(d0) -> (d0)>(%[[VAL_27]]) {
-// CHECK-VISIT:       %[[VAL_30:.*]] = quake.qextract %[[VAL_4]]{{\[}}%[[VAL_29]] : index] : !quake.qvec<?> -> !quake.qref
-// CHECK-VISIT:       %[[VAL_31:.*]] = quake.mz(%[[VAL_30]] : !quake.qref) : i1
+// CHECK-VISIT:       %[[VAL_30:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_29]] : index] : !quake.veq<?> -> !quake.ref
+// CHECK-VISIT:       %[[VAL_31:.*]] = quake.mz(%[[VAL_30]] : !quake.ref) : i1
 // CHECK-VISIT:     }
 // CHECK-VISIT:     return
 // CHECK-VISIT:   }
