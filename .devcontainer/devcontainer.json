@@ -83,7 +83,7 @@
 				],
 				"psi-header.changes-tracking": {
 					"isActive": true,
-					"enforceHeader": true,
+					"enforceHeader": false,
 					"autoHeader": "autoSave",
 					"include": [
 						"cpp",
