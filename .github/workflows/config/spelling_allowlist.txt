@@ -9,9 +9,9 @@ CUDA
 CUDAQ
 CUTN
 DGX
+FP
 FileCheck
 Fourier
-FP
 GHCR
 GPU
 GPUs
