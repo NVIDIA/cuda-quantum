@@ -157,12 +157,11 @@ inline auto distributeComputations(
   // in parallel on the available QPUs.
   double result = 0.0;
   sample_result data;
-  for (std::size_t i = 0; auto &asyncResult : asyncResults) {
+  for (auto &asyncResult : asyncResults) {
     auto res = asyncResult.get();
     auto incomingData = res.raw_data();
     result += incomingData.exp_val_z();
     data += incomingData;
-    i++;
   }
 
   return observe_result(result, H, data);

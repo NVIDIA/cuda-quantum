@@ -6,11 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 
-// FIXME: this should be removed
-#ifdef __clang__
-#pragma clang diagnostic ignored "-Woverloaded-virtual"
-#endif
-
 #include "QIRForwards.h"
 #include "common/Logger.h"
 #include "cudaq/qis/managers/BasicExecutionManager.h"

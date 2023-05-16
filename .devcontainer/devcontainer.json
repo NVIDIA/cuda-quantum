@@ -226,8 +226,8 @@
 						]
 					}
 				],
-				"C_Cpp.inlayHints.autoDeclarationTypes.enabled": true,
-				"C_Cpp.inlayHints.referenceOperator.enabled": true,
+				"C_Cpp.inlayHints.autoDeclarationTypes.enabled": false,
+				"C_Cpp.inlayHints.referenceOperator.enabled": false,
 				"C_Cpp.doxygen.generateOnType": false,
 				"doxdocgen.c.triggerSequence": "///",
 				"doxdocgen.c.firstLine": "",
