@@ -78,9 +78,6 @@ function show_help {
 --load=<domain>
     Load the domain-specific library, e.g. chemistry.
 
---library-mode
-	Execute the CUDA Quantum program in library mode. (C++ emulation.)
-
 --[no-]device-code-loading
 	Enable/disable device code loading pass.
 	
