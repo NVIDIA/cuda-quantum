@@ -49,7 +49,7 @@ def objective_function(parameter_vector: List[float],
     # you could purely define `cost = cudaq.observe().expectation_z()`.
     get_result = lambda parameter_vector: cudaq.observe(
         kernel, hamiltonian, parameter_vector, shots_count=100).expectation_z()
-    # `cudaq.observe` returns a cudaq.ObserveResult` that holds the
+    # `cudaq.observe` returns a `cudaq.ObserveResult` that holds the
     # counts dictionary and the `expectation_z`.
     cost = get_result(parameter_vector)
     print(f"<H> = {cost}")

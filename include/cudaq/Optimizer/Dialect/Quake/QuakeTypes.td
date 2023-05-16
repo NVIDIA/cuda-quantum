@@ -1,10 +1,10 @@
-/********************************************************** -*- tablegen -*- ***
+/***********************************************************-*- tablegen -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #ifndef CUDAQ_OPTIMIZER_DIALECT_QUAKE_TYPES
 #define CUDAQ_OPTIMIZER_DIALECT_QUAKE_TYPES
@@ -44,28 +44,38 @@ def WireType : QuakeType<"Wire", "wire"> {
       %q3 = quake.gate2 %q2 : (!quake.wire) -> !quake.wire
     ```
 
-    See also the description of the `qref` type.
+    See also the description of the `ref` type.
   }];
 
   let genStorageClass = 0;
 }
 
+def ControlType : QuakeType<"Control", "control"> {
+  let description = [{
+    A qubit of type control is a value of type wire used in a control position.
+    Using a qubit in a control position means the qubit is an SSA-value. It is
+    defined once and can be used multiple times (in multiple control positions)
+    without changing value.
+  }];
+  let genStorageClass = 0;
+}
+
 //===----------------------------------------------------------------------===//
-// QRefType
+// RefType
 //===----------------------------------------------------------------------===//
 
-def QRefType : QuakeType<"QRef", "qref"> {
+def RefType : QuakeType<"Ref", "ref"> {
   let summary = "reference to a wire";
   let description = [{
-    A `qref` represents a reference to a wire.  One can view the values of
+    A `ref` represents a reference to a wire.  One can view the values of
     this type as the horizontal lines in the following a quantum circuit
-    diagram. A value of type `qref` is an SSA-value.
+    diagram. A value of type `ref` is an SSA-value.
 
     ```
     q0 : ─────●────────── <--+
               │              |
             ┌─┴┐  ┌──┐       |
-    q1 : ───┤  ├──┤  ├─── <--+-- `qref`s
+    q1 : ───┤  ├──┤  ├─── <--+-- `ref`s
             └──┘  └──┘
     ```
 
@@ -73,8 +83,8 @@ def QRefType : QuakeType<"QRef", "qref"> {
     (gate1 and gate2 are quantum gates.)
 
     ```mlir
-      %q0 = quake.alloca : !quake.qref
-      %q1 = quake.alloca : !quake.qref
+      %q0 = quake.alloca : !quake.ref
+      %q1 = quake.alloca : !quake.ref
       quake.gate1 [%q0] (%q1)
       quake.gate2 (%q1)
     ```
@@ -91,22 +101,22 @@ def QRefType : QuakeType<"QRef", "qref"> {
     control position in `gate1`, the wire value is not updated.
 
     Not all operations will have side-effects on the referent wire of the
-    reference value of `qref` type.
+    reference value of `ref` type.
   }];
   let genStorageClass = 0;
 }
 
 //===----------------------------------------------------------------------===//
-// QVecType
+// VeqType
 //===----------------------------------------------------------------------===//
 
-def QVecType : QuakeType<"QVec", "qvec"> {
+def VeqType : QuakeType<"Veq", "veq"> {
   let summary = "a aggregate of wire references";
   let description = [{
-    A value of type `qvec` is a (linear) collection of values of type `qref`.
+    A value of type `veq` is a (linear) collection of values of type `ref`.
     These aggregates are a convenience for referring to an entire group of
-    references to wires. A `qvec` value is a proper SSA-value. `qref` values
-    in a `qvec` are not volatile.
+    references to wires. A `veq` value is a proper SSA-value. `ref` values
+    in a `veq` are not volatile.
   }];
 
   let parameters = (ins "std::size_t":$size);
@@ -116,15 +126,21 @@ def QVecType : QuakeType<"QVec", "qvec"> {
   
   let extraClassDeclaration = [{
     bool hasSpecifiedSize() const { return getSize(); }
-    static QVecType getUnsized(mlir::MLIRContext *ctx) {
-      return QVecType::get(ctx, 0);
+    static VeqType getUnsized(mlir::MLIRContext *ctx) {
+      return VeqType::get(ctx, 0);
     }
   }];
 }
 
-def AnyQTypeLike : TypeConstraint<Or<[WireType.predicate, QVecType.predicate,
-        QRefType.predicate]>, "quake quantum types">;
+def AnyQTypeLike : TypeConstraint<Or<[WireType.predicate, VeqType.predicate,
+        ControlType.predicate, RefType.predicate]>, "quake quantum types">;
 def AnyQType : Type<AnyQTypeLike.predicate, "quantum type">;
+def AnyRefTypeLike : TypeConstraint<Or<[VeqType.predicate,
+        RefType.predicate]>, "quake quantum reference types">;
+def AnyRefType : Type<AnyRefTypeLike.predicate, "quantum reference type">;
+def AnyQValueTypeLike : TypeConstraint<Or<[WireType.predicate,
+        ControlType.predicate]>, "quake quantum value types">;
+def AnyQValueType : Type<AnyQValueTypeLike.predicate, "quantum value type">;
 
 def IsStdvecTypePred : CPred<"$_self.isa<::cudaq::cc::StdvecType>()">;
 

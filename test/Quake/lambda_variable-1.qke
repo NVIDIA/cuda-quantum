@@ -13,59 +13,57 @@
 // constructing the QTX circuit.
 
 module attributes{ qtx.mangled_name_map = { __nvqpp__mlirgen__test3_callee = "_ZN12test3_calleeclEOSt8functionIFvRN4cudaq5quditILm2EEEEERNS1_4qregILm18446744073709551615ELm2EEE", __nvqpp__mlirgen__test3_caller = "_ZN12test3_callerclEv"}} {
-  func.func @__nvqpp__mlirgen__test3_callee(%arg0: !cc.lambda<(!quake.qref) -> ()>, %arg1: !quake.qvec<?>) attributes {"cudaq-kernel"} {
+  func.func @__nvqpp__mlirgen__test3_callee(%arg0: !cc.lambda<(!quake.ref) -> ()>, %arg1: !quake.veq<?>) attributes {"cudaq-kernel"} {
     %c0_i32 = arith.constant 0 : i32
     %0 = arith.extsi %c0_i32 : i32 to i64
-    %1 = quake.qextract %arg1[%0] : !quake.qvec<?>[i64] -> !quake.qref
-    cc.call_callable %arg0, %1 : (!cc.lambda<(!quake.qref) -> ()>, !quake.qref) -> ()
+    %1 = quake.extract_ref %arg1[%0] : (!quake.veq<?>,i64) -> !quake.ref
+    cc.call_callable %arg0, %1 : (!cc.lambda<(!quake.ref) -> ()>, !quake.ref) -> ()
     %c1_i32 = arith.constant 1 : i32
     %2 = arith.extsi %c1_i32 : i32 to i64
-    %3 = quake.qextract %arg1[%2] : !quake.qvec<?>[i64] -> !quake.qref
-    cc.call_callable %arg0, %3 : (!cc.lambda<(!quake.qref) -> ()>, !quake.qref) -> ()
+    %3 = quake.extract_ref %arg1[%2] : (!quake.veq<?>,i64) -> !quake.ref
+    cc.call_callable %arg0, %3 : (!cc.lambda<(!quake.ref) -> ()>, !quake.ref) -> ()
     return
   }
   func.func @__nvqpp__mlirgen__test3_caller() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     %c2_i32 = arith.constant 2 : i32
     %0 = arith.extsi %c2_i32 : i32 to i64
-    %1 = quake.alloca(%0 : i64) : !quake.qvec<?>
+    %1 = quake.alloca[%0 : i64] !quake.veq<?>
     %2 = cc.undef !llvm.struct<"test3_callee", ()>
     %3 = cc.create_lambda {
-    ^bb0(%arg0: !quake.qref):
+    ^bb0(%arg0: !quake.ref):
       cc.scope {
-        quake.h (%arg0)
-        quake.y (%arg0)
+        quake.h %arg0 : (!quake.ref) -> ()
+        quake.y %arg0 : (!quake.ref) -> ()
       }
-    } : !cc.lambda<(!quake.qref) -> ()>
-    call @__nvqpp__mlirgen__test3_callee(%3, %1) : (!cc.lambda<(!quake.qref) -> ()>, !quake.qvec<?>) -> ()
+    } : !cc.lambda<(!quake.ref) -> ()>
+    call @__nvqpp__mlirgen__test3_callee(%3, %1) : (!cc.lambda<(!quake.ref) -> ()>, !quake.veq<?>) -> ()
     return
   }
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test3_callee(
-// CHECK-SAME:        %[[VAL_0:.*]]: !cc.lambda<(!quake.qref) -> ()>,
-// CHECK-SAME:        %[[VAL_1:.*]]: !quake.qvec<?>)
-// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 1 : i64
-// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 0 : i64
-// CHECK:           %[[VAL_4:.*]] = quake.qextract %[[VAL_1]][%[[VAL_3]]] : !quake.qvec<?>[i64] -> !quake.qref
-// CHECK:           %[[VAL_5:.*]] = cc.callable_func %[[VAL_0]] : (!cc.lambda<(!quake.qref) -> ()>) -> ((!cc.lambda<(!quake.qref) -> ()>, !quake.qref) -> ())
-// CHECK:           call_indirect %[[VAL_5]](%[[VAL_0]], %[[VAL_4]]) : (!cc.lambda<(!quake.qref) -> ()>, !quake.qref) -> ()
-// CHECK:            %[[VAL_6:.*]] = quake.qextract %[[VAL_1]][%[[VAL_2]]] : !quake.qvec<?>[i64] -> !quake.qref
-// CHECK:           %[[VAL_7:.*]] = cc.callable_func %[[VAL_0]] : (!cc.lambda<(!quake.qref) -> ()>) -> ((!cc.lambda<(!quake.qref) -> ()>, !quake.qref) -> ())
-// CHECK:           call_indirect %[[VAL_7]](%[[VAL_0]], %[[VAL_6]]) : (!cc.lambda<(!quake.qref) -> ()>, !quake.qref) -> ()
+// CHECK-SAME:        %[[VAL_0:.*]]: !cc.lambda<(!quake.ref) -> ()>,
+// CHECK-SAME:        %[[VAL_1:.*]]: !quake.veq<?>)
+// CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_1]][0] : (!quake.veq<?>) -> !quake.ref
+// CHECK:           %[[VAL_5:.*]] = cc.callable_func %[[VAL_0]] : (!cc.lambda<(!quake.ref) -> ()>) -> ((!cc.lambda<(!quake.ref) -> ()>, !quake.ref) -> ())
+// CHECK:           call_indirect %[[VAL_5]](%[[VAL_0]], %[[VAL_4]]) : (!cc.lambda<(!quake.ref) -> ()>, !quake.ref) -> ()
+// CHECK:            %[[VAL_6:.*]] = quake.extract_ref %[[VAL_1]][1] : (!quake.veq<?>) -> !quake.ref
+// CHECK:           %[[VAL_7:.*]] = cc.callable_func %[[VAL_0]] : (!cc.lambda<(!quake.ref) -> ()>) -> ((!cc.lambda<(!quake.ref) -> ()>, !quake.ref) -> ())
+// CHECK:           call_indirect %[[VAL_7]](%[[VAL_0]], %[[VAL_6]]) : (!cc.lambda<(!quake.ref) -> ()>, !quake.ref) -> ()
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test3_caller()
-// CHECK:           %[[VAL_0:.*]] = quake.alloca : !quake.qvec<2>
-// CHECK:           %[[VAL_1:.*]] = quake.relax_size %[[VAL_0]] : (!quake.qvec<2>) -> !quake.qvec<?>
-// CHECK:           %[[VAL_2:.*]] = cc.instantiate_callable @__nvqpp__callable.thunk.lambda.0() : () -> !cc.lambda<(!quake.qref) -> ()>
-// CHECK:           call @__nvqpp__mlirgen__test3_callee(%[[VAL_2]], %[[VAL_1]]) : (!cc.lambda<(!quake.qref) -> ()>, !quake.qvec<?>) -> ()
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_1:.*]] = quake.relax_size %[[VAL_0]] : (!quake.veq<2>) -> !quake.veq<?>
+// CHECK:           %[[VAL_2:.*]] = cc.instantiate_callable @__nvqpp__callable.thunk.lambda.0() : () -> !cc.lambda<(!quake.ref) -> ()>
+// CHECK:           call @__nvqpp__mlirgen__test3_callee(%[[VAL_2]], %[[VAL_1]]) : (!cc.lambda<(!quake.ref) -> ()>, !quake.veq<?>) -> ()
 
 // CHECK-LABEL:   func.func private @__nvqpp__callable.thunk.lambda.0(
-// CHECK-SAME:        %[[VAL_0:.*]]: !cc.lambda<(!quake.qref) -> ()>,
-// CHECK-SAME:        %[[VAL_1:.*]]: !quake.qref) {
-// CHECK:           call @__nvqpp__lifted.lambda.0(%[[VAL_1]]) : (!quake.qref) -> ()
+// CHECK-SAME:        %[[VAL_0:.*]]: !cc.lambda<(!quake.ref) -> ()>,
+// CHECK-SAME:        %[[VAL_1:.*]]: !quake.ref) {
+// CHECK:           call @__nvqpp__lifted.lambda.0(%[[VAL_1]]) : (!quake.ref) -> ()
 
 // CHECK-LABEL:   func.func private @__nvqpp__lifted.lambda.0(
-// CHECK-SAME:        %[[VAL_0:.*]]: !quake.qref) {
-// CHECK:           quake.h (%[[VAL_0]])
-// CHECK:           quake.y (%[[VAL_0]])
+// CHECK-SAME:        %[[VAL_0:.*]]: !quake.ref) {
+// CHECK:           quake.h %[[VAL_0]] :
+// CHECK:           quake.y %[[VAL_0]] :
 

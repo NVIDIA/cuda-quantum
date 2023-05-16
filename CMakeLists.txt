@@ -67,6 +67,12 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
+# Set warnings as errors by default. 
+# Individual targets and the command line invocation can override this behavior.
+if(NOT DEFINED CMAKE_COMPILE_WARNING_AS_ERROR)
+  set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
+endif()
+
 # Generate a CompilationDatabase (compile_commands.json file) for our build,
 # for use by clang_complete, YouCompleteMe, etc.
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
@@ -336,6 +342,10 @@ find_package(OpenSSL QUIET)
 
 # Directory setup
 # ==============================================================================
+if (CUDAQ_ENABLE_PYTHON)
+  add_subdirectory(tpls/pybind11)
+endif()
+
 add_subdirectory(cmake)
 add_subdirectory(include)
 add_subdirectory(lib)
@@ -363,7 +373,6 @@ endif()
 # Users may specify  `-DCUDAQ_ENABLE_PYTHON=TRUE`, otherwise the python bindings
 # will not be built.
 if (CUDAQ_ENABLE_PYTHON)
-  add_subdirectory(tpls/pybind11)
   add_subdirectory(python)
 endif()
 

@@ -1,15 +1,17 @@
 // Compile and run with:
+// ```
 // nvq++ mid_circuit_measurement.cpp -o teleport.x && ./teleport.x
+// ```
 
 #include <cudaq.h>
 
 struct kernel {
   void operator()() __qpu__ {
     cudaq::qreg<3> q;
-    // Initial state prep
+    // Initial state preparation
     x(q[0]);
 
-    // create bell pair
+    // Create Bell pair
     h(q[1]);
     x<cudaq::ctrl>(q[1], q[2]);
 
@@ -35,7 +37,7 @@ int main() {
   auto counts = cudaq::sample(/*shots*/ nShots, kernel{});
   counts.dump();
 
-  // Get the marginal counts on the 2nd qubit
+  // Get the marginal counts on the second qubit
   auto resultsOnZero = counts.get_marginal({0});
   resultsOnZero.dump();
 

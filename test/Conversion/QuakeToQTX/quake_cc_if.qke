@@ -19,21 +19,21 @@ module {
 
     // CHECK:  %[[W0:.*]] = qtx.alloca
     // CHECK:  %[[W1:.*]] = qtx.alloca
-    %q0 = quake.alloca : !quake.qref
-    %q1 = quake.alloca : !quake.qref
+    %q0 = quake.alloca !quake.ref
+    %q1 = quake.alloca !quake.ref
 
     // CHECK:  %[[W1_1:.*]] = cc.if
     cc.if(%c1) {
       // CHECK:  %[[W1_2:.*]] = qtx.x [%[[W0]]] %[[W1]]
-      quake.x [%q0: !quake.qref] (%q1)
+      quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
       // CHECK:  cc.continue %[[W1_2]]
     } else {
       // CHECK:  %[[W1_3:.*]] = qtx.y [%[[W0]]] %[[W1]]
-      quake.y [%q0: !quake.qref] (%q1)
+      quake.y [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
       // CHECK:  cc.continue %[[W1_3]]
     }
     // CHECK:  %[[W1_4:.*]] = qtx.z [%[[W0]]] %[[W1_1]]
-    quake.z [%q0: !quake.qref] (%q1)
+    quake.z [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
     // CHECK: qtx.unrealized_return
     return
   }
@@ -45,21 +45,21 @@ module {
 
     // CHECK:  %[[W0:.*]] = qtx.alloca
     // CHECK:  %[[W1:.*]] = qtx.alloca
-    %q0 = quake.alloca : !quake.qref
-    %q1 = quake.alloca : !quake.qref
+    %q0 = quake.alloca  !quake.ref
+    %q1 = quake.alloca  !quake.ref
 
     // CHECK:  %[[WIRES:.*]]:2 = cc.if
     cc.if(%c1) {
       // CHECK:  %[[W1_1:.*]] = qtx.x [%[[W0]]] %[[W1]]
-      quake.x [%q0: !quake.qref] (%q1)
+      quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
       // CHECK:  cc.continue %[[W1_1]], %[[W0]]
     } else {
       // CHECK:  %[[W0_1:.*]] = qtx.y [%[[W1]]] %[[W0]]
-      quake.y [%q1: !quake.qref] (%q0)
+      quake.y [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
       // CHECK:  cc.continue %[[W1]], %[[W0_1]]
     }
     // CHECK:  %[[W1_2:.*]] = qtx.z [%[[WIRES]]#1] %[[WIRES]]#0
-    quake.z [%q0: !quake.qref] (%q1)
+    quake.z [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
     // CHECK: qtx.unrealized_return
     return
   }
@@ -68,12 +68,12 @@ module {
   func.func @test03(%c1: i1) {
     // CHECK:  %[[W0:.*]] = qtx.alloca
     // CHECK:  %[[W1:.*]] = qtx.alloca
-    %q0 = quake.alloca : !quake.qref
-    %q1 = quake.alloca : !quake.qref
+    %q0 = quake.alloca  !quake.ref
+    %q1 = quake.alloca  !quake.ref
 
     // CHECK:  %[[W1_1:.*]] = cc.if
     cc.if(%c1) {
-      quake.x [%q0: !quake.qref] (%q1)
+      quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
       // CHECK:  %[[W1_2:.*]] = qtx.x [%[[W0]]] %[[W1]]
       // CHECK:  cc.continue %[[W1_2]]
     }
@@ -81,7 +81,7 @@ module {
     // CHECK:   cc.continue %[[W1]]
 
     // CHECK:  %[[W1_3:.*]] = qtx.y [%[[W0]]] %[[W1_1]]
-    quake.y [%q0: !quake.qref] (%q1)
+    quake.y [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
     return
   }
 
@@ -90,19 +90,19 @@ module {
     // CHECK:  %[[W0:.*]] = qtx.alloca
     // CHECK:  %[[W1:.*]] = qtx.alloca
     // CHECK:  %[[W2:.*]] = qtx.alloca
-    %q0 = quake.alloca : !quake.qref
-    %q1 = quake.alloca : !quake.qref
-    %q2 = quake.alloca : !quake.qref
+    %q0 = quake.alloca !quake.ref
+    %q1 = quake.alloca !quake.ref
+    %q2 = quake.alloca !quake.ref
 
     // CHECK:  %[[W1_W2:.*]]:2 = cc.if
     cc.if(%c1) {
       // CHECK:  %[[W1_1:.*]] = qtx.h [%[[W0]]] %[[W1]]
-      quake.h [%q0: !quake.qref] (%q1)
+      quake.h [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
 
       // CHECK:  %[[W2_2:.*]] = cc.if
       cc.if(%c2) {
         // CHECK:  %[[W2_1:.*]] = qtx.x [%[[W0]]] %[[W2]]
-        quake.x [%q0: !quake.qref] (%q2)
+        quake.x [%q0] %q2 : (!quake.ref, !quake.ref) -> ()
         // CHECK:  cc.continue %[[W2_1]]
       }
       // CHECK: } else {
@@ -115,44 +115,44 @@ module {
 
     // CHECK:  %{{.*}} = qtx.y [%[[W0]]] %[[W1_W2]]#0
     // CHECK:  %{{.*}} = qtx.z [%[[W0]]] %[[W1_W2]]#1
-    quake.y [%q0: !quake.qref] (%q1)
-    quake.z [%q0: !quake.qref] (%q2)
+    quake.y [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+    quake.z [%q0] %q2 : (!quake.ref, !quake.ref) -> ()
     // CHECK: qtx.unrealized_return
     return
   }
 
   // CHECK-LABEL: func.func @test05
-  func.func @test05(%q0: !quake.qref, %c1: i1) {
+  func.func @test05(%q0: !quake.ref, %c1: i1) {
     // This `cc.if` does not return new wires because %q0 is only used as
     // control and %q1 is locally scoped.
     cc.if(%c1) {
-      %q1 = quake.alloca : !quake.qref
+      %q1 = quake.alloca !quake.ref
       // CHECK: %{{.*}} = qtx.x [%[[Q0_W0:.*]]] %{{.*}}
-      quake.x [%q0: !quake.qref] (%q1)
+      quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
       // CHECK-NOT: cc.continue
     }
     // CHECK: %[[Q0_W1:.*]] = qtx.y %[[Q0_W0]]
-    quake.y (%q0)
+    quake.y %q0 : (!quake.ref) -> ()
     // CHECK: qtx.unrealized_return %[[Q0_W1]]
     return
   }
 
   // CHECK-LABEL: func.func @test06
-  func.func @test06(%qvec : !quake.qvec<2>, %c1: i1) {
+  func.func @test06(%veq : !quake.veq<2>, %c1: i1) {
     %c_0 = arith.constant 0 : i32
 
     // CHECK: %[[W0:.*]], %[[A_0:.*]] = qtx.array_borrow %[[INDEX:.*]] from %{{.*}}
-    %q0 = quake.qextract %qvec[%c_0] : !quake.qvec<2>[i32] -> !quake.qref
+    %q0 = quake.extract_ref %veq[%c_0] : (!quake.veq<2>, i32) -> !quake.ref
     // CHECK: %[[W0_1:.*]] = qtx.x %[[W0]]
-    quake.x (%q0)
+    quake.x %q0 : (!quake.ref) -> ()
 
     // CHECK: %[[A_3:.*]] = cc.if
     cc.if(%c1) {
       %c_1 = arith.constant 1 : i32
       // CHECK: %[[W1:.*]], %[[A_1:.*]] = qtx.array_borrow %{{.*}} from %[[A_0]]
-      %q1 = quake.qextract %qvec[%c_1] : !quake.qvec<2>[i32] -> !quake.qref
+      %q1 = quake.extract_ref %veq[%c_1] : (!quake.veq<2>, i32) -> !quake.ref
       // CHECK: %[[W1_1:.*]] = qtx.y %[[W1]]
-      quake.y (%q1)
+      quake.y %q1 : (!quake.ref) -> ()
       // CHECK: %[[A_2:.*]] = qtx.array_yield %[[W1_1]] to %[[A_1]]
       // CHECK: cc.continue %[[A_2]]
     }
@@ -164,7 +164,7 @@ module {
 
     // CHECK: %[[A_4:.*]] = qtx.array_yield %[[W0_1]] to %[[A_3]]
     // CHECK: %{{.*}}, %[[A_5:.*]] = qtx.mz %[[A_4]]
-    %reg = quake.mz (%qvec : !quake.qvec<2>) : !cc.stdvec<i1>
+    %reg = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<i1>
 
     // We reborrow the wires after the measurement
 
@@ -175,31 +175,31 @@ module {
   }
 
   // CHECK-LABEL: func.func @test07
-  func.func @test07(%qvec : !quake.qvec<2>, %c1: i1, %c2: i1) {
+  func.func @test07(%veq : !quake.veq<2>, %c1: i1, %c2: i1) {
     %c_0 = arith.constant 0 : i32
     %c_1 = arith.constant 1 : i32
 
     // CHECK: %[[Q0_W0:.*]], %[[A_0:.*]] = qtx.array_borrow %[[INDEX_0:.*]] from %{{.*}}
-    %q0 = quake.qextract %qvec[%c_0] : !quake.qvec<2>[i32] -> !quake.qref
+    %q0 = quake.extract_ref %veq[%c_0] : (!quake.veq<2>, i32) -> !quake.ref
     // CHECK: %[[Q0_W1:.*]] = qtx.x %[[Q0_W0]]
-    quake.x (%q0)
+    quake.x %q0 : (!quake.ref) -> ()
 
     // CHECK: %[[A_Q0:.*]]:2 = cc.if
     cc.if(%c1) {
       // CHECK: %[[Q1_W0:.*]], %[[A_1:.*]] = qtx.array_borrow %[[INDEX_1:.*]] from %[[A_0]]
-      %q1 = quake.qextract %qvec[%c_1] : !quake.qvec<2>[i32] -> !quake.qref
+      %q1 = quake.extract_ref %veq[%c_1] : (!quake.veq<2>, i32) -> !quake.ref
 
       // CHECK: %[[A_Q0_Q1:.*]]:3 = cc.if
       cc.if(%c2) {
-        // We need to yield all wires back to the array corresponding to %qvec
+        // We need to yield all wires back to the array corresponding to %veq
 
         // CHECK: %[[A_2:.*]] = qtx.array_yield %[[Q0_W1]], %[[Q1_W0]] to %[[A_1]]
 
         // CHECK: %[[A_3:.*]] = qtx.reset %[[A_2]]
-        quake.reset (%qvec : !quake.qvec<2>)
+        quake.reset %veq : (!quake.veq<2>) -> ()
 
         // We reborrow the wires, and return a new wire that corresponds to %q0
-        // and a new array that corresponds to %qvec
+        // and a new array that corresponds to %veq
 
         // CHECK: %[[WIRES:.*]]:2, %[[A_4:.*]] = qtx.array_borrow %[[INDEX_0]], %[[INDEX_1]] from %[[A_3]]
         // CHECK: cc.continue %[[A_4]], %[[WIRES]]#0, %[[WIRES]]#1
@@ -218,7 +218,7 @@ module {
     // CHECK: %[[A_6:.*]] = qtx.array_yield %[[A_Q0]]#1 to %[[A_Q0]]#0
 
     // CHECK: %{{.*}}, %[[A_7:.*]] = qtx.mz %[[A_6]]
-    %reg = quake.mz (%qvec : !quake.qvec<2>) : !cc.stdvec<i1>
+    %reg = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<i1>
 
     // CHECK: %[[Q0_W2:.*]], %[[A_8:.*]] = qtx.array_borrow %[[INDEX_0:.*]] from %[[A_7]]
     // CHECK: %[[A_9:.*]] = qtx.array_yield %[[Q0_W2]] to %[[A_8]]

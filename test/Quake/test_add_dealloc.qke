@@ -7,18 +7,16 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt %s --quake-add-deallocs | FileCheck %s
-module {
+
 // CHECK-LABEL:   func.func @ghz(
 // CHECK-SAME:                   %[[VAL_0:.*]]: i32) {
-    func.func @ghz(%arg0 : i32) {
-        %c0 = arith.constant 0 : i32
-        %one = arith.constant 1 : i32
-// CHECK:           %[[VAL_3:.*]] = quake.alloca(%[[VAL_0]] : i32) : !quake.qvec<?>
-        %q = quake.alloca(%arg0 : i32) : !quake.qvec<?>
-        %q0 = quake.qextract %q[%c0] : !quake.qvec<?>[i32] -> !quake.qref
-        quake.h (%q0) 
-// CHECK:           quake.dealloc(%[[VAL_3]] : !quake.qvec<?>)
-        return
-    }
+func.func @ghz(%arg0 : i32) {
+  %c0 = arith.constant 0 : i32
+  %one = arith.constant 1 : i32
+  // CHECK: %[[VAL_3:.*]] = quake.alloca[%[[VAL_0]] : i32] !quake.veq<?>
+  %q = quake.alloca[%arg0 : i32] !quake.veq<?>
+  %q0 = quake.extract_ref %q[%c0] : (!quake.veq<?>, i32) -> !quake.ref
+  quake.h %q0 : (!quake.ref) -> () 
+  // CHECK: quake.dealloc %[[VAL_3]] : !quake.veq<?>
+  return
 }
-

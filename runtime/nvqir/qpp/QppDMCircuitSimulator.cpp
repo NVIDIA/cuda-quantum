@@ -69,47 +69,42 @@ protected:
       return;
     }
 
-    auto prevDim = 1UL << (nQubitsAllocated - 1);
     state.conservativeResize(stateDimension, stateDimension);
-    for (std::size_t i = prevDim; i < stateDimension; i++) {
+    for (std::size_t i = previousStateDimension; i < stateDimension; i++) {
       state.col(i).setZero();
       state.row(i).setZero();
     }
+  }
+
+  void addQubitsToState(std::size_t count) override {
+    if (count == 0)
+      return;
+
+    if (state.size() == 0) {
+      // If this is the first time, allocate the state
+      state = qpp::cmat::Zero(stateDimension, stateDimension);
+      state(0, 0) = 1.0;
+      return;
+    }
+
+    state.conservativeResize(stateDimension, stateDimension);
+    for (std::size_t i = previousStateDimension; i < stateDimension; i++) {
+      state.col(i).setZero();
+      state.row(i).setZero();
+    }
+
+    return;
+  }
+
+  void setToZeroState() override {
+    state = qpp::cmat::Zero(stateDimension, stateDimension);
+    state(0, 0) = 1.0;
   }
 
 public:
   QppNoiseCircuitSimulator() = default;
   virtual ~QppNoiseCircuitSimulator() = default;
   std::string name() const override { return "dm"; }
-
-  /// @brief Override the default sized allocation of qubits
-  /// here to be a bit more efficient than the default implementation
-  std::vector<std::size_t> allocateQubits(const std::size_t count) override {
-    std::vector<std::size_t> qubits;
-    for (std::size_t i = 0; i < count; i++)
-      qubits.emplace_back(tracker.getNextIndex());
-
-    if (state.size() == 0) {
-      // If this is the first time, allocate the state
-      nQubitsAllocated += count;
-      stateDimension = calculateStateDim(nQubitsAllocated);
-      state = qpp::cmat::Zero(stateDimension, stateDimension);
-      state(0, 0) = 1.0;
-      return qubits;
-    }
-
-    auto oldNQ = nQubitsAllocated;
-    nQubitsAllocated += count;
-    stateDimension = calculateStateDim(nQubitsAllocated);
-
-    auto prevDim = 1ULL << oldNQ;
-    state.conservativeResize(stateDimension, stateDimension);
-    for (std::size_t i = prevDim; i < stateDimension; i++) {
-      state.col(i).setZero();
-      state.row(i).setZero();
-    }
-    return qubits;
-  }
 
   cudaq::State getStateData() override {
     flushGateQueue();

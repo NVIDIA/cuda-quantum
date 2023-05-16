@@ -47,7 +47,7 @@ func.func @test_loop2(%arg0 : i32, %arg1 : i32) {
   } do {
     ^bb2(%i2 : i32):
       func.call @f1() : () -> ()
-      cc.continue { body = true } %i2 : i32
+      cc.continue %i2 : i32 { body = true }
   } step {
     ^bb3(%i3 : i32):
       %one = arith.constant 1 : i32

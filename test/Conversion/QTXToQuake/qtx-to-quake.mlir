@@ -12,7 +12,7 @@
 module {
 
   // CHECK-LABEL:   func.func @id(
-  // CHECK-SAME:                  %[[VAL_0:.*]]: !quake.qref) {
+  // CHECK-SAME:                  %[[VAL_0:.*]]: !quake.ref) {
   // CHECK:           return
   // CHECK:         }
   qtx.circuit @id(%q0: !qtx.wire) -> (!qtx.wire) {
@@ -20,14 +20,14 @@ module {
   }
 
   // CHECK-LABEL:   func.func @apply_one_target_operators(
-  // CHECK-SAME:                                          %[[VAL_0:.*]]: !quake.qref,
-  // CHECK-SAME:                                          %[[VAL_1:.*]]: !quake.qref) {
-  // CHECK:           quake.h {{\[}}%[[VAL_0]] : !quake.qref] (%[[VAL_1]])
-  // CHECK:           quake.s {{\[}}%[[VAL_0]] : !quake.qref] (%[[VAL_1]])
-  // CHECK:           quake.t {{\[}}%[[VAL_0]] : !quake.qref] (%[[VAL_1]])
-  // CHECK:           quake.x {{\[}}%[[VAL_0]] : !quake.qref] (%[[VAL_1]])
-  // CHECK:           quake.y {{\[}}%[[VAL_0]] : !quake.qref] (%[[VAL_1]])
-  // CHECK:           quake.z {{\[}}%[[VAL_0]] : !quake.qref] (%[[VAL_1]])
+  // CHECK-SAME:                                   %[[VAL_0:.*]]: !quake.ref,
+  // CHECK-SAME:                                   %[[VAL_1:.*]]: !quake.ref) {
+  // CHECK:   quake.h [%[[VAL_0]]] %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
+  // CHECK:   quake.s [%[[VAL_0]]] %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
+  // CHECK:   quake.t [%[[VAL_0]]] %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
+  // CHECK:   quake.x [%[[VAL_0]]] %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
+  // CHECK:   quake.y [%[[VAL_0]]] %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
+  // CHECK:   quake.z [%[[VAL_0]]] %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
   // CHECK:           return
   // CHECK:         }
   qtx.circuit @apply_one_target_operators(%q0: !qtx.wire, %q1: !qtx.wire) -> (!qtx.wire, !qtx.wire) {
@@ -42,14 +42,14 @@ module {
 
   // CHECK-LABEL:   func.func @apply_parametrized_one_target_operators() {
   // CHECK:           %[[VAL_0:.*]] = arith.constant 3.140000e+00 : f64
-  // CHECK:           %[[VAL_1:.*]] = quake.alloca : !quake.qref
-  // CHECK:           %[[VAL_2:.*]] = quake.alloca : !quake.qref
-  // CHECK:           quake.r1 {{\[}}%[[VAL_2]] : !quake.qref] |%[[VAL_0]] : f64|(%[[VAL_1]])
-  // CHECK:           quake.rx {{\[}}%[[VAL_2]] : !quake.qref] |%[[VAL_0]] : f64|(%[[VAL_1]])
-  // CHECK:           quake.ry {{\[}}%[[VAL_2]] : !quake.qref] |%[[VAL_0]] : f64|(%[[VAL_1]])
-  // CHECK:           quake.rz {{\[}}%[[VAL_2]] : !quake.qref] |%[[VAL_0]] : f64|(%[[VAL_1]])
-  // CHECK:           quake.dealloc(%[[VAL_1]] : !quake.qref)
-  // CHECK:           quake.dealloc(%[[VAL_2]] : !quake.qref)
+  // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
+  // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
+  // CHECK: quake.r1 (%[[VAL_0]]) [%[[VAL_2]]] %[[VAL_1]] : (f64, !quake.ref, !quake.ref) -> ()
+  // CHECK: quake.rx (%[[VAL_0]]) [%[[VAL_2]]] %[[VAL_1]] : (f64, !quake.ref, !quake.ref) -> ()
+  // CHECK: quake.ry (%[[VAL_0]]) [%[[VAL_2]]] %[[VAL_1]] : (f64, !quake.ref, !quake.ref) -> ()
+  // CHECK: quake.rz (%[[VAL_0]]) [%[[VAL_2]]] %[[VAL_1]] : (f64, !quake.ref, !quake.ref) -> ()
+  // CHECK:           quake.dealloc %[[VAL_1]] : !quake.ref
+  // CHECK:           quake.dealloc %[[VAL_2]] : !quake.ref
   // CHECK:           return
   // CHECK:         }
   qtx.circuit @apply_parametrized_one_target_operators() {
@@ -68,11 +68,11 @@ module {
   // CHECK-LABEL:   func.func @qextract_and_apply_two_targets_operator() {
   // CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i32
   // CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i32
-  // CHECK:           %[[VAL_2:.*]] = quake.alloca : !quake.qvec<2>
-  // CHECK:           %[[VAL_3:.*]] = quake.qextract %[[VAL_2]]{{\[}}%[[VAL_0]]] : !quake.qvec<2>[i32] -> !quake.qref
-  // CHECK:           %[[VAL_4:.*]] = quake.qextract %[[VAL_2]]{{\[}}%[[VAL_1]]] : !quake.qvec<2>[i32] -> !quake.qref
-  // CHECK:           quake.swap (%[[VAL_3]], %[[VAL_4]])
-  // CHECK:           quake.dealloc(%[[VAL_2]] : !quake.qvec<2>)
+  // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<2>
+  // CHECK: %[[VAL_3:.*]] = quake.extract_ref %[[VAL_2]][%[[VAL_0]]] : (!quake.veq<2>, i32) -> !quake.ref
+  // CHECK: %[[VAL_4:.*]] = quake.extract_ref %[[VAL_2]][%[[VAL_1]]] : (!quake.veq<2>, i32) -> !quake.ref
+  // CHECK: quake.swap %[[VAL_3]], %[[VAL_4]] : (!quake.ref, !quake.ref) -> ()
+  // CHECK:           quake.dealloc %[[VAL_2]] : !quake.veq<2>
   // CHECK:           return
   // CHECK:         }
   qtx.circuit @qextract_and_apply_two_targets_operator() {
@@ -90,12 +90,12 @@ module {
   // CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i32
   // CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i32
   // CHECK:           %[[VAL_2:.*]] = arith.constant 2 : i32
-  // CHECK:           %[[VAL_3:.*]] = quake.alloca : !quake.qvec<3>
-  // CHECK:           %[[VAL_4:.*]] = quake.qextract %[[VAL_3]]{{\[}}%[[VAL_0]]] : !quake.qvec<3>[i32] -> !quake.qref
-  // CHECK:           %[[VAL_5:.*]] = quake.qextract %[[VAL_3]]{{\[}}%[[VAL_1]]] : !quake.qvec<3>[i32] -> !quake.qref
-  // CHECK:           %[[VAL_6:.*]] = quake.qextract %[[VAL_3]]{{\[}}%[[VAL_2]]] : !quake.qvec<3>[i32] -> !quake.qref
-  // CHECK:           quake.swap {{\[}}%[[VAL_6]] : !quake.qref] (%[[VAL_4]], %[[VAL_5]])
-  // CHECK:           quake.dealloc(%[[VAL_3]] : !quake.qvec<3>)
+  // CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<3>
+  // CHECK: %[[VAL_4:.*]] = quake.extract_ref %[[VAL_3]][%[[VAL_0]]] : (!quake.veq<3>, i32) -> !quake.ref
+  // CHECK: %[[VAL_5:.*]] = quake.extract_ref %[[VAL_3]][%[[VAL_1]]] : (!quake.veq<3>, i32) -> !quake.ref
+  // CHECK: %[[VAL_6:.*]] = quake.extract_ref %[[VAL_3]][%[[VAL_2]]] : (!quake.veq<3>, i32) -> !quake.ref
+  // CHECK: quake.swap [%[[VAL_6]]] %[[VAL_4]], %[[VAL_5]] : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  // CHECK:           quake.dealloc %[[VAL_3]] : !quake.veq<3>
   // CHECK:           return
   // CHECK:         }
   qtx.circuit @qextract_and_apply_controlled_two_targets_operator() {
@@ -111,13 +111,13 @@ module {
   }
 
   // CHECK-LABEL:   func.func @return_array(
-  // CHECK-SAME:                            %[[VAL_0:.*]]: !quake.qvec<2>) {
+  // CHECK-SAME:                            %[[VAL_0:.*]]: !quake.veq<2>) {
   // CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
   // CHECK:           %[[VAL_2:.*]] = arith.constant 1 : i32
-  // CHECK:           %[[VAL_3:.*]] = quake.qextract %[[VAL_0]]{{\[}}%[[VAL_1]]] : !quake.qvec<2>[i32] -> !quake.qref
-  // CHECK:           %[[VAL_4:.*]] = quake.qextract %[[VAL_0]]{{\[}}%[[VAL_2]]] : !quake.qvec<2>[i32] -> !quake.qref
-  // CHECK:           quake.h (%[[VAL_3]])
-  // CHECK:           quake.x (%[[VAL_4]])
+  // CHECK: %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][%[[VAL_1]]] : (!quake.veq<2>, i32) -> !quake.ref
+  // CHECK: %[[VAL_4:.*]] = quake.extract_ref %[[VAL_0]][%[[VAL_2]]] : (!quake.veq<2>, i32) -> !quake.ref
+  // CHECK:           quake.h %[[VAL_3]] : (!quake.ref) -> ()
+  // CHECK:           quake.x %[[VAL_4]] : (!quake.ref) -> ()
   // CHECK:           return
   // CHECK:         }
   qtx.circuit @return_array(%arg0: !qtx.wire_array<2>) -> (!qtx.wire_array<2>) {
@@ -134,12 +134,12 @@ module {
   // CHECK-LABEL:   func.func @reset_wires() {
   // CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i32
   // CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i32
-  // CHECK:           %[[VAL_2:.*]] = quake.alloca : !quake.qvec<2>
-  // CHECK:           %[[VAL_3:.*]] = quake.qextract %[[VAL_2]]{{\[}}%[[VAL_0]]] : !quake.qvec<2>[i32] -> !quake.qref
-  // CHECK:           %[[VAL_4:.*]] = quake.qextract %[[VAL_2]]{{\[}}%[[VAL_1]]] : !quake.qvec<2>[i32] -> !quake.qref
-  // CHECK:           quake.reset(%[[VAL_3]] : !quake.qref)
-  // CHECK:           quake.reset(%[[VAL_4]] : !quake.qref)
-  // CHECK:           quake.dealloc(%[[VAL_2]] : !quake.qvec<2>)
+  // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<2>
+  // CHECK: %[[VAL_3:.*]] = quake.extract_ref %[[VAL_2]][%[[VAL_0]]] : (!quake.veq<2>, i32) -> !quake.ref
+  // CHECK: %[[VAL_4:.*]] = quake.extract_ref %[[VAL_2]][%[[VAL_1]]] : (!quake.veq<2>, i32) -> !quake.ref
+  // CHECK:           quake.reset %[[VAL_3]] : (!quake.ref) -> ()
+  // CHECK:           quake.reset %[[VAL_4]] : (!quake.ref) -> ()
+  // CHECK:           quake.dealloc %[[VAL_2]] : !quake.veq<2>
   // CHECK:           return
   // CHECK:         }
   qtx.circuit @reset_wires() {
@@ -157,17 +157,17 @@ module {
   // CHECK-LABEL:   func.func @reset_array() {
   // CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i32
   // CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i32
-  // CHECK:           %[[VAL_2:.*]] = quake.alloca : !quake.qvec<2>
-  // CHECK:           %[[VAL_3:.*]] = quake.qextract %[[VAL_2]]{{\[}}%[[VAL_0]]] : !quake.qvec<2>[i32] -> !quake.qref
-  // CHECK:           %[[VAL_4:.*]] = quake.qextract %[[VAL_2]]{{\[}}%[[VAL_1]]] : !quake.qvec<2>[i32] -> !quake.qref
-  // CHECK:           quake.h (%[[VAL_3]])
-  // CHECK:           quake.x (%[[VAL_4]])
-  // CHECK:           quake.reset(%[[VAL_2]] : !quake.qvec<2>)
-  // CHECK:           %[[VAL_5:.*]] = quake.qextract %[[VAL_2]]{{\[}}%[[VAL_0]]] : !quake.qvec<2>[i32] -> !quake.qref
-  // CHECK:           %[[VAL_6:.*]] = quake.qextract %[[VAL_2]]{{\[}}%[[VAL_1]]] : !quake.qvec<2>[i32] -> !quake.qref
-  // CHECK:           quake.h (%[[VAL_5]])
-  // CHECK:           quake.x (%[[VAL_6]])
-  // CHECK:           quake.dealloc(%[[VAL_2]] : !quake.qvec<2>)
+  // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<2>
+  // CHECK: %[[VAL_3:.*]] = quake.extract_ref %[[VAL_2]][%[[VAL_0]]] : (!quake.veq<2>, i32) -> !quake.ref
+  // CHECK: %[[VAL_4:.*]] = quake.extract_ref %[[VAL_2]][%[[VAL_1]]] : (!quake.veq<2>, i32) -> !quake.ref
+  // CHECK:           quake.h %[[VAL_3]] : (!quake.ref) -> ()
+  // CHECK:           quake.x %[[VAL_4]]  : (!quake.ref) -> ()
+  // CHECK:           quake.reset %[[VAL_2]] : (!quake.veq<2>) -> ()
+  // CHECK: %[[VAL_5:.*]] = quake.extract_ref %[[VAL_2]][%[[VAL_0]]] : (!quake.veq<2>, i32) -> !quake.ref
+  // CHECK: %[[VAL_6:.*]] = quake.extract_ref %[[VAL_2]][%[[VAL_1]]] : (!quake.veq<2>, i32) -> !quake.ref
+  // CHECK:           quake.h %[[VAL_5]] : (!quake.ref) -> ()
+  // CHECK:           quake.x %[[VAL_6]] : (!quake.ref) -> ()
+  // CHECK:           quake.dealloc %[[VAL_2]] : !quake.veq<2>
   // CHECK:           return
   // CHECK:         }
   qtx.circuit @reset_array() {
@@ -190,12 +190,12 @@ module {
   // CHECK-LABEL:   func.func @mz_wires() {
   // CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i32
   // CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i32
-  // CHECK:           %[[VAL_2:.*]] = quake.alloca : !quake.qvec<2>
-  // CHECK:           %[[VAL_3:.*]] = quake.qextract %[[VAL_2]]{{\[}}%[[VAL_0]]] : !quake.qvec<2>[i32] -> !quake.qref
-  // CHECK:           %[[VAL_4:.*]] = quake.qextract %[[VAL_2]]{{\[}}%[[VAL_1]]] : !quake.qvec<2>[i32] -> !quake.qref
-  // CHECK:           %[[VAL_5:.*]] = quake.mz(%[[VAL_3]] : !quake.qref) : i1
-  // CHECK:           %[[VAL_6:.*]] = quake.mz(%[[VAL_4]] : !quake.qref) : i1
-  // CHECK:           quake.dealloc(%[[VAL_2]] : !quake.qvec<2>)
+  // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<2>
+  // CHECK: %[[VAL_3:.*]] = quake.extract_ref %[[VAL_2]][%[[VAL_0]]] : (!quake.veq<2>, i32) -> !quake.ref
+  // CHECK: %[[VAL_4:.*]] = quake.extract_ref %[[VAL_2]][%[[VAL_1]]] : (!quake.veq<2>, i32) -> !quake.ref
+  // CHECK:           %[[VAL_5:.*]] = quake.mz %[[VAL_3]] : (!quake.ref) -> i1
+  // CHECK:           %[[VAL_6:.*]] = quake.mz %[[VAL_4]] : (!quake.ref) -> i1
+  // CHECK:           quake.dealloc %[[VAL_2]] : !quake.veq<2>
   // CHECK:           return
   // CHECK:         }
   qtx.circuit @mz_wires() {
@@ -213,17 +213,17 @@ module {
   // CHECK-LABEL:   func.func @mz_array() {
   // CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i32
   // CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i32
-  // CHECK:           %[[VAL_2:.*]] = quake.alloca : !quake.qvec<2>
-  // CHECK:           %[[VAL_3:.*]] = quake.qextract %[[VAL_2]]{{\[}}%[[VAL_0]]] : !quake.qvec<2>[i32] -> !quake.qref
-  // CHECK:           %[[VAL_4:.*]] = quake.qextract %[[VAL_2]]{{\[}}%[[VAL_1]]] : !quake.qvec<2>[i32] -> !quake.qref
-  // CHECK:           quake.h (%[[VAL_3]])
-  // CHECK:           quake.x (%[[VAL_4]])
-  // CHECK:           %[[VAL_5:.*]] = quake.mz(%[[VAL_2]] : !quake.qvec<2>) : !cc.stdvec<i1>
-  // CHECK:           %[[VAL_6:.*]] = quake.qextract %[[VAL_2]]{{\[}}%[[VAL_0]]] : !quake.qvec<2>[i32] -> !quake.qref
-  // CHECK:           %[[VAL_7:.*]] = quake.qextract %[[VAL_2]]{{\[}}%[[VAL_1]]] : !quake.qvec<2>[i32] -> !quake.qref
-  // CHECK:           quake.h (%[[VAL_6]])
-  // CHECK:           quake.x (%[[VAL_7]])
-  // CHECK:           quake.dealloc(%[[VAL_2]] : !quake.qvec<2>)
+  // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<2>
+  // CHECK: %[[VAL_3:.*]] = quake.extract_ref %[[VAL_2]][%[[VAL_0]]] : (!quake.veq<2>, i32) -> !quake.ref
+  // CHECK: %[[VAL_4:.*]] = quake.extract_ref %[[VAL_2]][%[[VAL_1]]] : (!quake.veq<2>, i32) -> !quake.ref
+  // CHECK:           quake.h %[[VAL_3]] : (!quake.ref) -> ()
+  // CHECK:           quake.x %[[VAL_4]] : (!quake.ref) -> ()
+  // CHECK:           %[[VAL_5:.*]] = quake.mz %[[VAL_2]] : (!quake.veq<2>) -> !cc.stdvec<i1>
+  // CHECK: %[[VAL_6:.*]] = quake.extract_ref %[[VAL_2]][%[[VAL_0]]] : (!quake.veq<2>, i32) -> !quake.ref
+  // CHECK: %[[VAL_7:.*]] = quake.extract_ref %[[VAL_2]][%[[VAL_1]]] : (!quake.veq<2>, i32) -> !quake.ref
+  // CHECK:           quake.h %[[VAL_6]] : (!quake.ref) -> ()
+  // CHECK:           quake.x %[[VAL_7]] : (!quake.ref) -> ()
+  // CHECK:           quake.dealloc %[[VAL_2]] : !quake.veq<2>
   // CHECK:           return
   // CHECK:         }
   qtx.circuit @mz_array() {

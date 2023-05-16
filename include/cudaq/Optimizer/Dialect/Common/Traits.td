@@ -1,10 +1,10 @@
-/********************************************************** -*- tablegen -*- ***
+/***********************************************************-*- tablegen -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #ifndef CUDAQ_OPTIMIZER_DIALECT_COMMON_TRAITS
 #define CUDAQ_OPTIMIZER_DIALECT_COMMON_TRAITS
@@ -20,6 +20,14 @@ def QuantumGate : NativeOpTrait<"QuantumGate"> {
 }
 
 def Hermitian : NativeOpTrait<"Hermitian"> {
+  let cppNamespace = "::cudaq";
+}
+
+def Rotation : NativeOpTrait<"Rotation"> {
+  let cppNamespace = "::cudaq";
+}
+
+def QuantumMeasure : NativeOpTrait<"QuantumMeasure"> {
   let cppNamespace = "::cudaq";
 }
 

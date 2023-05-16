@@ -25,7 +25,7 @@ struct iqft {
       int j = i + 1;
       for (int y = i; y >= 0; --y) {
         const double theta = -M_PI / std::pow(2.0, j - y);
-        cphase(theta, q[j], q[y]);
+        r1<cudaq::ctrl>(theta, q[j], q[y]);
       }
     }
 

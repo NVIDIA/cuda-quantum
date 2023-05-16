@@ -22,7 +22,7 @@ inline mlir::Value createFloatConstant(mlir::PatternRewriter &builder,
                                                       ty);
 }
 
-inline mlir::Value createRx(mlir::PatternRewriter &builder, mlir::Location loc,
+inline std::size_t createRx(mlir::PatternRewriter &builder, mlir::Location loc,
                             mlir::UnitAttr adj, mlir::Value theta,
                             mlir::Value ctrl, mlir::ValueRange targ,
                             mlir::DenseBoolArrayAttr neg) {
@@ -45,11 +45,11 @@ inline mlir::Value createRx(mlir::PatternRewriter &builder, mlir::Location loc,
   auto negHalfPi = builder.create<mlir::arith::NegFOp>(loc, halfPi);
   builder.create<quake::RzOp>(loc, adj, mlir::ValueRange{negHalfPi},
                               mlir::ValueRange{}, targ, neg);
-  return {};
+  return 0;
 }
 
 template <typename A>
-mlir::Value createR_(mlir::PatternRewriter &builder, mlir::Location loc,
+std::size_t createR_(mlir::PatternRewriter &builder, mlir::Location loc,
                      mlir::UnitAttr adj, mlir::Value theta, mlir::Value ctrl,
                      mlir::ValueRange targ, mlir::DenseBoolArrayAttr neg) {
   auto two = createFloatConstant(builder, loc,
@@ -64,24 +64,24 @@ mlir::Value createR_(mlir::PatternRewriter &builder, mlir::Location loc,
                     mlir::ValueRange{}, targ, neg);
   builder.create<quake::XOp>(loc, adj, mlir::ValueRange{},
                              mlir::ValueRange{ctrl}, targ, neg);
-  return {};
+  return 0;
 }
 
-inline mlir::Value createRy(mlir::PatternRewriter &builder, mlir::Location loc,
+inline std::size_t createRy(mlir::PatternRewriter &builder, mlir::Location loc,
                             mlir::UnitAttr adj, mlir::Value theta,
                             mlir::Value ctrl, mlir::ValueRange targ,
                             mlir::DenseBoolArrayAttr neg) {
   return createR_<quake::RyOp>(builder, loc, adj, theta, ctrl, targ, neg);
 }
 
-inline mlir::Value createRz(mlir::PatternRewriter &builder, mlir::Location loc,
+inline std::size_t createRz(mlir::PatternRewriter &builder, mlir::Location loc,
                             mlir::UnitAttr adj, mlir::Value theta,
                             mlir::Value ctrl, mlir::ValueRange targ,
                             mlir::DenseBoolArrayAttr neg) {
   return createR_<quake::RzOp>(builder, loc, adj, theta, ctrl, targ, neg);
 }
 
-inline mlir::Value createR1(mlir::PatternRewriter &builder, mlir::Location loc,
+inline std::size_t createR1(mlir::PatternRewriter &builder, mlir::Location loc,
                             mlir::UnitAttr adj, mlir::Value theta,
                             mlir::Value ctrl, mlir::ValueRange targ,
                             mlir::DenseBoolArrayAttr neg) {
@@ -92,7 +92,7 @@ inline mlir::Value createR1(mlir::PatternRewriter &builder, mlir::Location loc,
   auto halfTheta = builder.create<mlir::arith::DivFOp>(loc, theta, two);
   builder.create<quake::RzOp>(loc, adj, mlir::ValueRange{halfTheta},
                               mlir::ValueRange{}, mlir::ValueRange{ctrl}, neg);
-  return {};
+  return 0;
 }
 
 } // namespace cudaq::decomposition

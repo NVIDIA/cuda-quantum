@@ -29,14 +29,14 @@ int main() {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__thisWorks
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Z4mainE3$_0(
-// CHECK:           quake.x (%{{.*}})
+// CHECK:           quake.x %{{.*}} :
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__instance_test
-// CHECK-SAME:        (%[[VAL_0:.*]]: !cc.lambda<(!quake.qref) -> ()>)
+// CHECK-SAME:        (%[[VAL_0:.*]]: !cc.lambda<(!quake.ref) -> ()>)
 // CHECK-NOT:       %[[VAL_0]]
-// CHECK:           %[[VAL_3:.*]] = quake.alloca(%{{.*}} : i64) : !quake.qvec<?>
-// CHECK:           %[[VAL_6:.*]] = quake.qextract %{{.*}} : !quake.qvec<?>[i64] -> !quake.qref
-// CHECK:           %[[VAL_9:.*]] = quake.qextract %{{.*}} : !quake.qvec<?>[i64] -> !quake.qref
-// CHECK:           quake.apply @__nvqpp__mlirgen__Z4mainE3$_0[%[[VAL_6]] : !quake.qref] %[[VAL_9]] : (!quake.qref) -> ()
+// CHECK:           %[[VAL_3:.*]] = quake.alloca[%{{.*}} : i64] !quake.veq<?>
+// CHECK:           %[[VAL_6:.*]] = quake.extract_ref %{{.*}} : (!quake.veq<?>, i64) -> !quake.ref
+// CHECK:           %[[VAL_9:.*]] = quake.extract_ref %{{.*}} : (!quake.veq<?>, i64) -> !quake.ref
+// CHECK:           quake.apply @__nvqpp__mlirgen__Z4mainE3$_0[%[[VAL_6]]] %[[VAL_9]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           return
 

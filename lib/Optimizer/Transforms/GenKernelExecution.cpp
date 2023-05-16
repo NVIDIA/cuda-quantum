@@ -66,7 +66,7 @@ public:
     for (auto inTy : funcTy.getInputs()) {
       if (inTy.isa<cudaq::cc::LambdaType, LLVM::LLVMStructType>())
         eleTys.push_back(IntegerType::get(ctx, 64));
-      else if (inTy.isa<cudaq::cc::StdvecType, quake::QVecType>())
+      else if (inTy.isa<cudaq::cc::StdvecType, quake::VeqType>())
         eleTys.push_back(IntegerType::get(ctx, 64));
       else
         eleTys.push_back(inTy);
@@ -123,7 +123,7 @@ public:
       if (auto memrefTy = dyn_cast<cudaq::cc::StdvecType>(inTy))
         inputTys.push_back(cudaq::opt::factory::getPointerType(
             stlVectorType(memrefTy.getElementType())));
-      else if (auto memrefTy = dyn_cast<quake::QVecType>(inTy))
+      else if (auto memrefTy = dyn_cast<quake::VeqType>(inTy))
         inputTys.push_back(cudaq::opt::factory::getPointerType(stlVectorType(
             IntegerType::get(ctx, /*FIXME sizeof a pointer?*/ 64))));
       else
@@ -416,7 +416,7 @@ public:
       if (inTy.isa<cudaq::cc::LambdaType, LLVM::LLVMStructType>()) {
         auto undef = builder.create<cudaq::cc::UndefOp>(loc, inTy);
         args.push_back(undef);
-      } else if (inTy.isa<cudaq::cc::StdvecType, quake::QVecType>()) {
+      } else if (inTy.isa<cudaq::cc::StdvecType, quake::VeqType>()) {
         Type eleTy = IntegerType::get(ctx, /*FIXME sizeof a pointer?*/ 64);
         if (auto memrefTy = dyn_cast<cudaq::cc::StdvecType>(inTy))
           eleTy = memrefTy.getElementType();
@@ -678,10 +678,10 @@ public:
   // code.
   bool hasLegalType(FunctionType funTy) {
     for (auto ty : funTy.getInputs())
-      if (ty.isa<quake::QRefType, quake::QVecType>())
+      if (ty.isa<quake::RefType, quake::VeqType>())
         return false;
     for (auto ty : funTy.getResults())
-      if (ty.isa<quake::QRefType, quake::QVecType>())
+      if (ty.isa<quake::RefType, quake::VeqType>())
         return false;
     return true;
   }

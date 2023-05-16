@@ -1,8 +1,16 @@
 on:
   workflow_dispatch:
+  # We need write permissions for packages to update the build caches of GHCR.
+  # Make sure no external code is checked out as part of this workflow.
   pull_request_target:
     types:
       - closed
+    branches:
+      - 'main'
+      - 'releases/*'
+  # We update the build caches during the pull_request_target event, 
+  # and deploy the images during pushes to branches with deployment permissions.
+  push:
     branches:
       - 'main'
       - 'releases/*'
@@ -14,34 +22,17 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # The env context is only available to steps;
-  # we hence can't use environment variables in the `with` definition of a reusable workflow.
-  build_args:
-    runs-on: ubuntu-latest
-    outputs: 
-      local_cache_from: ${{ steps.args.outputs.local_cache_from }}
-
-    steps:
-      - id: args
-        run: |
-          if ${{ github.event.pull_request.number != '' }}; then
-            echo "local_cache_from=${{ github.event.pull_request.number }}/merge" >> $GITHUB_OUTPUT
-          fi
-
   doxygen:
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     uses: ./.github/workflows/dev_environment.yml
-    needs: build_args
     with:
       dockerfile: build/devdeps.Dockerfile
-      local_cache_from: ${{ needs.build_args.outputs.local_cache_from }}
       build_target: doxygenbuild
-      build_cache_only: true
-      environment: ghcr-deployment
+      registry_cache_update_only: true
 
   devdeps:
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
-    needs: [build_args, doxygen]
+    if: github.event_name != 'pull_request_target' || github.event.pull_request.merged == true
+    needs: doxygen
     strategy:
       matrix:
         toolchain: [clang16, gcc12]
@@ -49,24 +40,24 @@ jobs:
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.Dockerfile
-      local_cache_from: ${{ needs.build_args.outputs.local_cache_from }}
       additional_build_caches: |
         ${{ needs.doxygen.outputs.build_cache }}
       toolchain: ${{ matrix.toolchain }}
       matrix_key: ${{ matrix.toolchain }}
+      registry_cache_update_only: ${{ github.event.pull_request.merged == true }}
       environment: ghcr-deployment
 
   # split out so that it is not required to finish to proceed with other jobs
   devdeps_llvm:
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
-    needs: [build_args, doxygen]
+    if: github.event_name != 'pull_request_target' || github.event.pull_request.merged == true
+    needs: doxygen
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.Dockerfile
-      local_cache_from: ${{ needs.build_args.outputs.local_cache_from }}
       additional_build_caches: |
         ${{ needs.doxygen.outputs.build_cache }}
       toolchain: llvm
+      registry_cache_update_only: ${{ github.event.pull_request.merged == true }}
       environment: ghcr-deployment
 
   # This job is needed only when using the cloudposse GitHub action to read
@@ -74,7 +65,7 @@ jobs:
   # limitations that may not be needed if the work started here concludes:
   # https://github.com/actions/runner/pull/2477
   config:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name != 'pull_request_target'
     name: Configure build
     runs-on: ubuntu-latest
     needs: devdeps
@@ -93,15 +84,26 @@ jobs:
         run: |
           gcc12_image_name=${{ fromJson(steps.read_json.outputs.result).image_name.gcc12 }}
           gcc12_digests=${{ fromJson(steps.read_json.outputs.result).digests.gcc12 }}
-          base_image=${gcc12_image_name}@$(echo $gcc12_digests | cut -d ";" -f 1)
-          echo "base_image=$base_image" >> $GITHUB_OUTPUT
+          if [ "$gcc12_image_name" != "" ] && [ "$gcc12_digests" != "" ]; then
+            base_image=${gcc12_image_name}@$(echo $gcc12_digests | cut -d ";" -f 1)
+            echo "base_image=$base_image" >> $GITHUB_OUTPUT
+          fi
 
   extdevdeps:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name != 'pull_request_target'
     uses: ./.github/workflows/dev_environment.yml
-    needs: [build_args, config]
+    needs: config
     with:
       dockerfile: build/devdeps.ext.Dockerfile
-      local_cache_from: ${{ needs.build_args.outputs.local_cache_from }}
+      toolchain: gcc12
       base_image: ${{ needs.config.outputs.base_image }}
+      environment: ghcr-deployment
+
+  docker_image:
+    name: Create Packages
+    needs: extdevdeps
+    uses: ./.github/workflows/build_packages.yml
+    with:
+      devdeps_cache: ${{ needs.extdevdeps.outputs.cache_key }}
+      devdeps_archive: ${{ needs.extdevdeps.outputs.tar_archive }}
       environment: ghcr-deployment

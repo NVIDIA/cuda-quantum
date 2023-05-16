@@ -20,7 +20,7 @@
 # CUQUANTUM_INSTALL_PREFIX=/path/to/dir bash scripts/build_cudaq.sh
 #
 # Prerequisites:
-# - git, ninja-build, cmake, python3, libpython3-dev, libstdc++-11-dev, libblas-dev (all available via apt install)
+# - git, ninja-build, cmake, python3, libpython3-dev, libstdc++-12-dev, libblas-dev (all available via apt install)
 # - LLVM binaries, libraries, and headers as built by scripts/build_llvm.sh.
 # - To include simulator backends that use cuQuantum the packages cuquantum and cuquantum-dev are needed. 
 # - Additional python dependencies for running and testing: lit pytest numpy (available via pip install)
@@ -126,6 +126,7 @@ fi
 # (utils are needed for custom testing tools, e.g. CircuitCheck)
 echo "Preparing CUDA Quantum build with LLVM installation in $LLVM_INSTALL_PREFIX..."
 cmake_args="-G Ninja "$repo_root" \
+  -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF \
   -DCMAKE_INSTALL_PREFIX="$CUDAQ_INSTALL_PREFIX" \
   -DLLVM_DIR="$llvm_lib_dir/cmake/llvm" \
   -DNVQPP_LD_PATH="$NVQPP_LD_PATH" \
@@ -137,6 +138,7 @@ cmake_args="-G Ninja "$repo_root" \
   -DCMAKE_MODULE_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
   -DCMAKE_SHARED_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
   $custatevec_flag"
+# TODO: enable warnings as errors above. 
 if $verbose; then 
   cmake $cmake_args
 else
