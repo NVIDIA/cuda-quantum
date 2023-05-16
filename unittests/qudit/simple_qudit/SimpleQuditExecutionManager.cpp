@@ -92,7 +92,7 @@ protected:
     return measurement_result;
   }
 
-  void measureSpinOp(const cudaq::spin_op &op) override { return; }
+  void measureSpinOp(const cudaq::spin_op &) override {}
 
 public:
   SimpleQuditExecutionManager() {
