@@ -182,7 +182,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v3
         with:
-          name: cuda_quantum_docs
+          name: cuda_quantum_docs # changing the artifact name requires updating other workflows
           path: docs
           retention-days: 30
           if-no-files-found: error
