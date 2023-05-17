@@ -47,6 +47,7 @@ async def postJob(job : Job, token: Union[str, None] = Header(alias="Authorizati
     if 'token' == None:
         raise HTTPException(status_code(401), detail="Credentials not provided")
     
+    print('Posting job with name = ', job.name)
     name = job.name
     newId = str(uuid.uuid4())
     createdJobs[newId] = name
@@ -57,13 +58,13 @@ async def postJob(job : Job, token: Union[str, None] = Header(alias="Authorizati
     mstr = str(m)
     assert ('EntryPoint' in mstr)
 
-    if name == "X0X1":
+    if name == "XX":
         assert("qis__h__body" in mstr)
-    elif name == "Y0Y1":
+    elif name == "YY":
         assert("qis__ry__body" in mstr and "qis__mz__body" in mstr)
-    elif name == "Z0I1":
+    elif name == "ZI":
         assert("qis__mz__body" in mstr)
-    elif name == "I0Z1":
+    elif name == "IZ":
         assert("qis__mz__body" in mstr)
 
     # Job "created", return the id
@@ -82,13 +83,13 @@ async def getJob(jobId : str):
     countJobGetRequests = 0
     name = createdJobs[jobId]
     retData = []
-    if name == "X0X1":
+    if name == "XX":
         retData = ['11']*3887 +['10']*1104 + ['01']*1095 + ['00']*3914
-    elif name == "Y0Y1":
+    elif name == "YY":
         retData = ['11']*3861 + ['10']*1104 + ['01']*1095 + ['00']*3914
-    elif name == "Z0I1":
+    elif name == "ZI":
         retData = ['1']*9088 + ['0']*912
-    elif name == "I0Z1":
+    elif name == "IZ":
         retData = ['1']*880 + ['0']*9120
     else:
         retData = ['00']*int(shots/2) + ['11']*int(shots/2)
