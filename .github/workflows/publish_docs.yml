@@ -1,14 +1,24 @@
 on:
+  workflow_dispatch:
+    inputs:
+      version:
+        required: true
+        type: string
+        description: 'The version that the documentation corresponds to.'
+      download_url:
+        required: true
+        type: string
+        description: 'The url from which to download the built documentation.'
   workflow_run:
     workflows:
-      - CI
+      - Deployments
     types:
       - completed
 
-name: Docs preview
+name: Docs publishing
 
 concurrency:
-    group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch }}
+    group: ${{ github.workflow }}
     cancel-in-progress: false
 
 jobs:
@@ -17,8 +27,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      # pages: write
-      # id-token: write
+      pages: write
+      id-token: write
   
     environment:
       name: github-pages
@@ -33,11 +43,14 @@ jobs:
       - name: Download docs artifact
         id: artifacts
         run: |
-          target_folder=`echo ${{ github.event.workflow_run.head_branch }} | | tr / -`
-          actor=${{ github.event.workflow_run.actor.name }}
-          triggering_actor=${{ github.event.workflow_run.triggering_actor.name }}
+          target_folder=`echo ${{ github.event.workflow_run.head_branch }} | tr / -`
+          actor=${{ github.event.workflow_run.actor }}
+          triggering_actor=${{ github.event.workflow_run.triggering_actor }}
+          sha=${{ github.event.workflow_run.head_sha }}
 
-          artifacts_url=${{ github.event.workflow_run.artifacts_url }}
+          # FIXME
+          #artifacts_url=${{ github.event.workflow_run.artifacts_url }}
+          artifacts_url='https://api.github.com/repos/bettinaheim/cuda-quantum/actions/runs/5004485352/artifacts'
           artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
 
           status=1
@@ -46,9 +59,18 @@ jobs:
             if [ "$name" == "cuda_quantum_docs" ]; then
               url=`echo $artifact | jq -r '.url'`
               gh api $url > cuda_quantum_docs.zip
-              rm -rf preview
-              unzip -d preview cuda_quantum_docs.zip # FIXME
+              echo "download_url=$url" >> $GITHUB_OUTPUT
+
+              rm -rf ${{ inputs.version }}
+              unzip -d ${{ inputs.version }} cuda_quantum_docs.zip # FIXME
               rm -rf cuda_quantum_docs.zip
+
+              git config --global user.name "Docs Bot"
+              git config --global user.email "${{ github.event.workflow_run.actor.email }}"  # "${actor}@users.noreply.github.com"
+              git add ${{ inputs.version }}
+              git commit --allow-empty -m "..." # FIXME
+              git push
+
               status=0
             fi
           done
