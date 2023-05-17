@@ -1,0 +1,23 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -pass-pipeline='builtin.module(quake-decomposition{enable-patterns=ZToPhasedRx})' %s | FileCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(quake-decomposition{enable-patterns=ZToPhasedRx})' %s | CircuitCheck %s --up-to-global-phase
+
+
+// The FileCheck part of this test only cares about the sequence of operations.
+// Correcteness is checked by CircuitCheck.
+
+// CHECK-LABEL: func.func @trivial
+func.func @trivial(%qubit: !quake.ref) {
+  quake.z %qubit : (!quake.ref) -> ()
+  // CHECK: quake.phased_rx
+  // CHECK-NEXT: quake.phased_rx
+  // CHECK-NEXT: quake.phased_rx
+  return
+}
