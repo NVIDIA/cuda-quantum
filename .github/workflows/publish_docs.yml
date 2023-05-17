@@ -53,8 +53,8 @@ jobs:
             if [ "$name" == "cuda_quantum_docs" ]; then
               url=`echo $artifact | jq -r '.url'`
               gh api $url > cuda_quantum_docs.zip
-              rm -rf $version
-              unzip -d $version cuda_quantum_docs.zip # FIXME
+              rm -rf ${{ github.inputs.version }}
+              unzip -d ${{ github.inputs.version }} cuda_quantum_docs.zip # FIXME
               rm -rf cuda_quantum_docs.zip
               status=0
             fi
