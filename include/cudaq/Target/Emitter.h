@@ -49,8 +49,7 @@ inline std::optional<double> getParameterValueAsDouble(mlir::Value value) {
   return {};
 }
 
-/// Base emitter to translate QTX to quantum assembly-like languages, e.g.,
-/// OpenQASM.
+/// Base emitter to translate Quake to quantum assembly-like languages.
 struct Emitter {
   explicit Emitter(mlir::raw_ostream &os) : os(os) {
     valuesInScopeCount.push(0);

@@ -594,7 +594,7 @@ ExecutionEngine *jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   names.emplace_back(mlir::StringAttr::get(ctx, kernelName),
                      mlir::StringAttr::get(ctx, "BuilderKernel.EntryPoint"));
   auto mapAttr = mlir::DictionaryAttr::get(ctx, names);
-  module->setAttr("qtx.mangled_name_map", mapAttr);
+  module->setAttr("quake.mangled_name_map", mapAttr);
 
   // Tag as an entrypoint if it is one
   module.walk([&](func::FuncOp function) {

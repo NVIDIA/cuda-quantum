@@ -39,6 +39,7 @@ Quake
 Toffoli
 VQE
 Vazirani
+WSL
 adjoint
 al
 ansatz
@@ -81,8 +82,10 @@ entanglers
 enum
 et
 executables
+inlining
 instantiation
 instantiations
+json
 namespace
 natively
 precompute
@@ -102,6 +105,7 @@ subclass
 subclassed
 subclasses
 subclassing
+submodule
 subscriptable
 subtype
 subtypes

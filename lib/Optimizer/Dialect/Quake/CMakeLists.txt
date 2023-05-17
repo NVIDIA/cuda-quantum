@@ -20,7 +20,6 @@ add_cudaq_dialect_library(QuakeDialect
 
   LINK_LIBS
   CCDialect
-  DialectCommon
   MLIRFuncDialect
   MLIRIR
 )
