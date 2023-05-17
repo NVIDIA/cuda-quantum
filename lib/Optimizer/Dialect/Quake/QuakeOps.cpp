@@ -8,7 +8,6 @@
 
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
-#include "cudaq/Optimizer/Dialect/Common/Ops.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"

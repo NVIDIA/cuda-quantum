@@ -8,7 +8,6 @@
 
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
-#include "cudaq/Optimizer/Dialect/QTX/QTXDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Target/IQM/IQMJsonEmitter.h"
@@ -101,18 +100,6 @@ void addPipelineToQIR(PassManager &pm) {
   }
 }
 
-// Pipeline builder to convert Quake to QTX.
-void addPipelineToQTX(PassManager &pm) {
-  pm.addPass(createInlinerPass());
-  pm.addPass(createCanonicalizerPass());
-  pm.addPass(cudaq::opt::createExpandMeasurementsPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerToCFGPass());
-  pm.addPass(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
-  pm.addPass(cudaq::opt::createConvertQuakeToQTXPass());
-  pm.addPass(createCanonicalizerPass());
-}
-
 static void checkErrorCode(const std::error_code &ec) {
   if (ec) {
     llvm::errs() << "could not open output file";
@@ -131,7 +118,7 @@ int main(int argc, char **argv) {
                                     "quake mlir to llvm ir compiler\n");
 
   DialectRegistry registry;
-  registry.insert<cudaq::cc::CCDialect, quake::QuakeDialect, qtx::QTXDialect>();
+  registry.insert<cudaq::cc::CCDialect, quake::QuakeDialect>();
   registerAllDialects(registry);
   MLIRContext context(registry);
   context.loadAllAvailableDialects();

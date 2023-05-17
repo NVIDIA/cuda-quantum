@@ -10,7 +10,7 @@
 
 #include <cudaq.h>
 
-// CHECK: module attributes {qtx.mangled_name_map = {__nvqpp__mlirgen__super{{.*}} = "_ZN5superclEd"}} {
+// CHECK: module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__super{{.*}} = "_ZN5superclEd"}} {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__super
 // CHECK-SAME: (%[[arg0:.*]]: f64) -> i1
 // CHECK:     %[[V0:.*]] = memref.alloca() : memref<f64>

@@ -23,7 +23,7 @@
 #include <cxxabi.h>
 #include <regex>
 
-#define DEBUG_TYPE "qtx-kernel-exec"
+#define DEBUG_TYPE "quake-kernel-exec"
 
 using namespace mlir;
 
@@ -697,7 +697,7 @@ public:
     auto *ctx = module.getContext();
     auto builder = OpBuilder::atBlockEnd(module.getBody());
     auto mangledNameMap =
-        module->getAttrOfType<DictionaryAttr>("qtx.mangled_name_map");
+        module->getAttrOfType<DictionaryAttr>("quake.mangled_name_map");
     auto irBuilder = cudaq::IRBuilder::atBlockEnd(module.getBody());
     if (failed(irBuilder.loadIntrinsic(module,
                                        cudaq::runtime::launchKernelFuncName))) {

@@ -24,13 +24,11 @@ add_cudaq_library(OptCodeGen
     OptIQMGateSetIncGen
     OptTransformsPassIncGen
     CUDAQTargetOpenQASM
-    QTXDialect
     QuakeDialect
     
   LINK_LIBS PUBLIC
     CCDialect
     MLIRIR
     OptimBuilder
-    QTXDialect
     QuakeDialect
 )
