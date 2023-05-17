@@ -217,10 +217,10 @@ public:
     // Create an array of controls, we will
     // prepend any extra controls if in a control region
     std::vector<cudaq::QuditInfo> mutable_controls;
-    for (auto &e : extraControlIds) 
+    for (auto &e : extraControlIds)
       mutable_controls.emplace_back(2, e);
 
-    for (auto &e : controls) 
+    for (auto &e : controls)
       mutable_controls.push_back(e);
 
     std::vector<cudaq::QuditInfo> mutable_targets;
