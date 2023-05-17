@@ -37,11 +37,11 @@ private:
 
   mlir::WalkResult allocateQubits(mlir::Value value);
 
-  std::optional<int64_t> getValueAsInt(mlir::Value value);
-
   //===--------------------------------------------------------------------===//
   // Helpers
   //===--------------------------------------------------------------------===//
+
+  mlir::LogicalResult getValueAsInt(mlir::Value value, size_t &result);
 
   unsigned getNextQubit() { return std::log2(matrix.rows()); }
 
