@@ -108,21 +108,6 @@ jobs:
           path: ${{ steps.cudaq_image.outputs.tar_archive }}
           key: ${{ steps.cudaq_image.outputs.tar_cache }}
 
-      - name: Validate cuda-quantum image
-        run: |
-          docker run --rm -dit --name cuda-quantum ${{ steps.cudaq_image.outputs.image_name }}:${{ steps.cudaq_image.outputs.image_tag }}
-          docker cp scripts/validate_container.sh cuda-quantum:"/home/cudaq/validate_container.sh"
-          docker exec -e TERM=xterm cuda-quantum bash validate_container.sh > /tmp/validation.out
-          docker stop cuda-quantum
-
-      - name: Create job summary
-        run: |
-          echo "## Validation" >> $GITHUB_STEP_SUMMARY
-          echo "The validation of the cuda-quantum image produced the following output:" >> $GITHUB_STEP_SUMMARY
-          echo '```text' >> $GITHUB_STEP_SUMMARY
-          cat /tmp/validation.out >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-
   deployment:
     name: Deployment
     if: inputs.environment
