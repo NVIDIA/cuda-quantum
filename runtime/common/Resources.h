@@ -23,7 +23,7 @@ public:
 private:
   /// @brief We want an unordered_map on Instructions, so define
   /// the hash function here
-  struct InstructionHash : std::unary_function<Instruction, size_t> {
+  struct InstructionHash {
     std::size_t operator()(const Instruction &instruction) const;
   };
 
