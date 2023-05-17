@@ -42,7 +42,7 @@ protected:
   /// or observation
   cudaq::ExecutionContext *executionContext;
 
-  /// @brief Store qubits for delayed deletion under
+  /// @brief Store qudits for delayed deletion under
   /// certain execution contexts
   std::vector<QuditInfo> contextQuditIdsForDeletion;
 
