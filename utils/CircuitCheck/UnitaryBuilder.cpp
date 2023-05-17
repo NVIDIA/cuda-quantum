@@ -60,13 +60,16 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
 //===----------------------------------------------------------------------===//
 
 WalkResult UnitaryBuilder::visitExtractOp(quake::ExtractRefOp op) {
-  auto veq = op.getVeq();
-  auto qubits = qubitMap[veq];
-  auto index = getValueAsInt(op.getIndex());
-  if (!index && *index < 0)
+  Value veq = op.getVeq();
+  ArrayRef<unsigned> qubits = qubitMap[veq];
+  size_t index = 0;
+  // We need to check whether the index is a "raw" index or not.
+  if (op.hasConstantIndex())
+    index = op.getRawIndex();
+  else if (failed(getValueAsInt(op.getIndex(), index)))
     return WalkResult::interrupt();
   auto [entry, _] = qubitMap.try_emplace(op.getResult());
-  entry->second.push_back(qubits[*index]);
+  entry->second.push_back(qubits[index]);
   return WalkResult::advance();
 }
 
@@ -75,7 +78,7 @@ WalkResult UnitaryBuilder::allocateQubits(Value value) {
   if (!success)
     return WalkResult::interrupt();
   auto &qubits = entry->second;
-  if (auto veq = value.getType().dyn_cast<quake::VeqType>()) {
+  if (auto veq = dyn_cast<quake::VeqType>(value.getType())) {
     if (!veq.hasSpecifiedSize())
       return WalkResult::interrupt();
     qubits.resize(veq.getSize());
@@ -87,12 +90,14 @@ WalkResult UnitaryBuilder::allocateQubits(Value value) {
   return WalkResult::advance();
 }
 
-std::optional<int64_t> UnitaryBuilder::getValueAsInt(Value value) {
-  if (auto constOp =
-          dyn_cast_if_present<arith::ConstantOp>(value.getDefiningOp()))
-    if (auto index = dyn_cast<IntegerAttr>(constOp.getValue()))
-      return index.getInt();
-  return std::nullopt;
+LogicalResult UnitaryBuilder::getValueAsInt(Value value, size_t &result) {
+  if (auto op =
+          dyn_cast_if_present<arith::ConstantIntOp>(value.getDefiningOp()))
+    if (auto index = dyn_cast<IntegerAttr>(op.getValue())) {
+      result = index.getInt();
+      return success();
+    }
+  return failure();
 }
 
 //===----------------------------------------------------------------------===//
