@@ -1,7 +1,9 @@
 on:
+  workflow_dispatch:
   workflow_run:
     workflows:
       - CI
+      - Deployments
     types:
       - completed
 
@@ -16,9 +18,8 @@ jobs:
     name: Publish documentation in a subfolder
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      # pages: write
-      # id-token: write
+      pages: write
+      id-token: write
   
     environment:
       name: github-pages
@@ -33,11 +34,13 @@ jobs:
       - name: Download docs artifact
         id: artifacts
         run: |
-          target_folder=`echo ${{ github.event.workflow_run.head_branch }} | | tr / -`
+          target_folder=`echo ${{ github.event.workflow_run.head_branch }} | tr / -`
           actor=${{ github.event.workflow_run.actor.name }}
           triggering_actor=${{ github.event.workflow_run.triggering_actor.name }}
 
-          artifacts_url=${{ github.event.workflow_run.artifacts_url }}
+          # FIXME
+          #artifacts_url=${{ github.event.workflow_run.artifacts_url }}
+          artifacts_url='https://api.github.com/repos/bettinaheim/cuda-quantum/actions/runs/5004485352/artifacts'
           artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
 
           status=1
@@ -71,4 +74,4 @@ jobs:
         uses: actions/deploy-pages@v2
         with:
           artifact_name: docs_pages
-        
+  
