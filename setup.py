@@ -36,8 +36,9 @@ skbuild.setup(
     url="https://github.com/NVIDIA/cuda-quantum",
     long_description="",
     package_dir={"": "/cuda-quantum/python"},
-    packages=setuptools.find_packages(where="/cuda-quantum/python",
-                                      include=["*"]),
+    packages=setuptools.find_packages(where="cuda-quantum",
+                                     # May just need "python"
+                                      include=["python/cudaq"]),
     zip_safe=False,
 
     # TODO: Will extend for further python versions after a proof of concept.
@@ -47,32 +48,35 @@ skbuild.setup(
     # TODO: Replace all of the hard-coded paths
 
     # FIXME: Have to find the correct path to use here.
-    # This ensures that the python package is in the PYTHONPATH
+    # This location also isn't universal across build systems.
+    # This ensures that the python package is in the PYTHONPATH.
     cmake_install_dir=
-    f"lib/python{sys.version_info[0]}.{sys.version_info[1]}/cuda-quantum",
+    f"lib/python{sys.version_info[0]}.{sys.version_info[1]}/dist-packages/cuda-quantum",
+    # alt: "/root/.local/lib/python3.10/site-packages"
     # TODO: Add cmake flag to remove the need to build the nvq++ frontend here
     cmake_args=[
         "-DCUDAQ_ENABLE_PYTHON=TRUE",
-        "-DLLVM_DIR=/root/../opt/llvm/clang-16/lib/cmake/llvm"
+        "-DLLVM_DIR=/opt/llvm/clang-16/lib/cmake/llvm",
         "-DCUSTATEVEC_ROOT=/opt/nvidia/cuquantum",
-        "-DCMAKE_EXE_LINKER_FLAGS_INIT=$/opt/llvm/bin/ld.lld"
-        "-DCMAKE_MODULE_LINKER_FLAGS_INIT=$/opt/llvm/bin/ld.lld"
+        "-DCMAKE_EXE_LINKER_FLAGS_INIT=$/opt/llvm/bin/ld.lld",
+        "-DCMAKE_MODULE_LINKER_FLAGS_INIT=$/opt/llvm/bin/ld.lld",
         "-DCMAKE_SHARED_LINKER_FLAGS_INIT=$/opt/llvm/bin/ld.lld",
         "-DOPENSSL_ROOT_DIR=/usr/local/ssl",
         "-DCUDAQ_CPR_INSTALL=/lib/x86_64-linux-gnu/libz.so.1.2.11",
         "-DOPENSSL_USE_STATIC_LIBS=TRUE",
         "-DCUDAQ_BUILD_RELOCATABLE_PACKAGE=TRUE",
+        "-DCMAKE_COMPILE_WARNING_AS_ERROR=OFF",
 
         # First attempt at disabling the front-end build to minimize
         # dependencies of the pip wheel.
-        "-CUDAQ_DISABLE_FRONTEND=TRUE",
+        "-DCUDAQ_DISABLE_FRONTEND=TRUE",
 
         # NOTE: Not yet sure what/where to put the build output.
         "-DCMAKE_INSTALL_LIBDIR=lib",
 
         # Hopefully linking to my hard-coded build of zlib properly.
         "-DZLIB_ROOT=/lib/x86_64-linux-gnu/libz.so.1.2.11",
-        "-DZLIB_USE_STATIC_LIBS=TRUE"
+        "-DZLIB_USE_STATIC_LIBS=TRUE",
 
         # NOTE: I replaced these with similar but different commands from
         # the shell build script. May have to add them back.

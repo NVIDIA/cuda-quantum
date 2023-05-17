@@ -37,6 +37,13 @@ if(POLICY CMP0116)
   cmake_policy(SET CMP0116 OLD)
 endif()
 
+# FIXME: These are preventing the local compiler from being tested on a simple
+# program by C when building the pip wheels. These have to be set before the
+# project() is defined, thus why I can't hide them away in the python dir's
+# CMAKE. Revisit better solutions for this. 
+SET(CMAKE_C_COMPILER_WORKS 1)
+SET(CMAKE_CXX_COMPILER_WORKS 1)
+
 # Project setup
 # ==============================================================================
 project(cudaq LANGUAGES CXX C)
@@ -351,7 +358,12 @@ add_subdirectory(cmake)
 add_subdirectory(include)
 if (NOT CUDAQ_DISABLE_FRONTEND)  
   add_subdirectory(lib)
+else()
+  add_subdirectory(lib/Optimizer)
+  add_subdirectory(lib/Support)
+  add_subdirectory(lib/Target)
 endif()
+
 if (NOT CUDAQ_DISABLE_RUNTIME)
   add_subdirectory(runtime)
 endif()

@@ -28,8 +28,9 @@ if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
   set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
+# include_directories(SYSTEM tpls/pybind11/include)
 # set(pybind11_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../tpls/pybind11/tools/)
-find_package(pybind11 REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/../tpls/pybind11/)
+# find_package(pybind11 REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/../tpls/pybind11/)
 pybind11_add_module(_pycudaq 
                      utils/LinkedLibraryHolder.cpp 
                      src/_cudaq.cpp 
@@ -59,7 +60,7 @@ target_link_libraries(_pycudaq
       fmt::fmt-header-only)
 
 install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX})
-install(FILES cudaq.py DESTINATION ${CMAKE_INSTALL_PREFIX})
+# install(FILES cudaq.py DESTINATION ${CMAKE_INSTALL_PREFIX})
 install(FILES domains/chemistry.py DESTINATION ${CMAKE_INSTALL_PREFIX}/domains/)
 
 if(APPLE)
@@ -71,7 +72,7 @@ else()
 endif()
 
 # Copy to the build dir for testing
-file(COPY cudaq.py DESTINATION ${CMAKE_BINARY_DIR}/python)
+# file(COPY cudaq.py DESTINATION ${CMAKE_BINARY_DIR}/python)
 file(COPY domains/chemistry.py DESTINATION ${CMAKE_BINARY_DIR}/python/domains)
 
 add_subdirectory(domains/plugins)
