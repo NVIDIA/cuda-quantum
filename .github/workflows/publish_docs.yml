@@ -27,6 +27,7 @@ jobs:
     name: Publish documentation in a subfolder
     runs-on: ubuntu-latest
     permissions:
+      contents: write
       pages: write
       id-token: write
   
