@@ -26,6 +26,8 @@ using SpinMeasureResult = std::pair<double, sample_result>;
 struct QuditInfo {
   std::size_t levels = 0;
   std::size_t id = 0;
+  QuditInfo(const std::size_t &_levels, const std::size_t &_id)
+      : levels(_levels), id(_id) {}
 };
 
 /// The ExecutionManager provides a base class describing a
