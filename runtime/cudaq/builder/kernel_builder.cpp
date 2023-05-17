@@ -1,10 +1,10 @@
-/*******************************************************************************
+/*************************************************************** -*- C++ -*- ***
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- ******************************************************************************/
+ *******************************************************************************/
 
 #include "kernel_builder.h"
 #include "common/Logger.h"
@@ -128,8 +128,8 @@ initializeBuilder(MLIRContext *context,
     int digit = rand() % 10;
     os << digit;
   }
-  kernelName += "_" + os.str();
 
+  kernelName += fmt::format("_{}", os.str());
   cudaq::info("kernel_builder name set to {}", kernelName);
 
   FunctionType funcTy = opBuilder->getFunctionType(types, std::nullopt);
