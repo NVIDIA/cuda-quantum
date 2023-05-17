@@ -7,8 +7,8 @@
  *******************************************************************************/
 
 #include "cudaq/matrix.h"
-#include "common/FmtCore.h"
 #include "common/EigenDense.h"
+#include "common/FmtCore.h"
 #include <iostream>
 
 namespace cudaq {
