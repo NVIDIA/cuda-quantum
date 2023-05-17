@@ -20,7 +20,7 @@ jobs:
     name: Load dependencies
     strategy:
       matrix:
-        toolchain: [clang16, gcc12]
+        toolchain: [gcc12]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
@@ -28,14 +28,6 @@ jobs:
       toolchain: ${{ matrix.toolchain }}
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.toolchain }}
-
-  # split out to make the llvm build optional for now
-  setup_llvm:
-    name: Load dependencies (llvm)
-    uses: ./.github/workflows/dev_environment.yml
-    with:
-      dockerfile: build/devdeps.Dockerfile
-      toolchain: llvm
 
   # This job is needed only when using the cloudposse GitHub action to read
   # the output of a matrix job. This is a workaround due to current GitHub
@@ -55,40 +47,18 @@ jobs:
         with:
           matrix-step-name: dev_environment
 
-  build_and_test:
-    name: Build and test
-    needs: config
-    strategy:
-      matrix:
-        toolchain: [clang16, gcc12]
-      fail-fast: false
-    uses: ./.github/workflows/test_in_devenv.yml
-    with:
-      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}', matrix.toolchain)] }}
-      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}', matrix.toolchain)] }}
-      export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
-
-  build_and_test_llvm:
-    name: Build and test (llvm)
-    needs: setup_llvm
-    uses: ./.github/workflows/test_in_devenv.yml
-    with:
-      devdeps_cache: ${{ needs.setup_llvm.outputs.cache_key }}
-      devdeps_archive: ${{ needs.setup_llvm.outputs.tar_archive }}
-      export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
-
   docker_image:
     name: Create Packages
-    needs: setup_llvm
+    needs: config
     uses: ./.github/workflows/build_packages.yml
     with:
-      devdeps_cache: ${{ needs.setup_llvm.outputs.cache_key }}
-      devdeps_archive: ${{ needs.setup_llvm.outputs.tar_archive }}
+      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key.gcc12 }}
+      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive.gcc12 }}
 
   clean_up:
     name: Prepare cache clean-up
     runs-on: ubuntu-latest
-    needs: [config, setup_llvm, build_and_test, build_and_test_llvm, docker_image]
+    needs: [config, docker_image]
     if: always() # need to clean up even if the workflow is cancelled or fails
 
     steps:
