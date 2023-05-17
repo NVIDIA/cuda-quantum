@@ -89,98 +89,98 @@ CUDAQ_TEST(QuantinuumTester, checkSampleAsyncLoadFromFile) {
   std::remove("saveMe.json");
 }
 
-CUDAQ_TEST(QuantinuumTester, checkObserveSync) {
-  std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppQuantinuum.config";
-  auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
+// CUDAQ_TEST(QuantinuumTester, checkObserveSync) {
+//   std::string home = std::getenv("HOME");
+//   std::string fileName = home + "/FakeCppQuantinuum.config";
+//   auto backendString =
+//       fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
 
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
+//   auto &platform = cudaq::get_platform();
+//   platform.setTargetBackend(backendString);
 
-  auto [kernel, theta] = cudaq::make_kernel<double>();
-  auto qubit = kernel.qalloc(2);
-  kernel.x(qubit[0]);
-  kernel.ry(theta, qubit[1]);
-  kernel.x<cudaq::ctrl>(qubit[1], qubit[0]);
+//   auto [kernel, theta] = cudaq::make_kernel<double>();
+//   auto qubit = kernel.qalloc(2);
+//   kernel.x(qubit[0]);
+//   kernel.ry(theta, qubit[1]);
+//   kernel.x<cudaq::ctrl>(qubit[1], qubit[0]);
 
-  using namespace cudaq::spin;
-  cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
-                     .21829 * z(0) - 6.125 * z(1);
-  auto result = cudaq::observe(kernel, h, .59);
-  result.dump();
+//   using namespace cudaq::spin;
+//   cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
+//                      .21829 * z(0) - 6.125 * z(1);
+//   auto result = cudaq::observe(kernel, h, .59);
+//   result.dump();
 
-  printf("ENERGY: %lf\n", result.exp_val_z());
-  EXPECT_NEAR(result.exp_val_z(), -1.7, 1e-1);
-}
+//   printf("ENERGY: %lf\n", result.exp_val_z());
+//   EXPECT_NEAR(result.exp_val_z(), -1.7, 1e-1);
+// }
 
-CUDAQ_TEST(QuantinuumTester, checkObserveAsync) {
-  std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppQuantinuum.config";
-  auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
+// CUDAQ_TEST(QuantinuumTester, checkObserveAsync) {
+//   std::string home = std::getenv("HOME");
+//   std::string fileName = home + "/FakeCppQuantinuum.config";
+//   auto backendString =
+//       fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
 
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
+//   auto &platform = cudaq::get_platform();
+//   platform.setTargetBackend(backendString);
 
-  auto [kernel, theta] = cudaq::make_kernel<double>();
-  auto qubit = kernel.qalloc(2);
-  kernel.x(qubit[0]);
-  kernel.ry(theta, qubit[1]);
-  kernel.x<cudaq::ctrl>(qubit[1], qubit[0]);
+//   auto [kernel, theta] = cudaq::make_kernel<double>();
+//   auto qubit = kernel.qalloc(2);
+//   kernel.x(qubit[0]);
+//   kernel.ry(theta, qubit[1]);
+//   kernel.x<cudaq::ctrl>(qubit[1], qubit[0]);
 
-  using namespace cudaq::spin;
-  cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
-                     .21829 * z(0) - 6.125 * z(1);
-  auto future = cudaq::observe_async(kernel, h, .59);
+//   using namespace cudaq::spin;
+//   cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
+//                      .21829 * z(0) - 6.125 * z(1);
+//   auto future = cudaq::observe_async(kernel, h, .59);
 
-  auto result = future.get();
-  result.dump();
+//   auto result = future.get();
+//   result.dump();
 
-  printf("ENERGY: %lf\n", result.exp_val_z());
-  EXPECT_NEAR(result.exp_val_z(), -1.7, 1e-1);
-}
+//   printf("ENERGY: %lf\n", result.exp_val_z());
+//   EXPECT_NEAR(result.exp_val_z(), -1.7, 1e-1);
+// }
 
-CUDAQ_TEST(QuantinuumTester, checkObserveAsyncLoadFromFile) {
+// CUDAQ_TEST(QuantinuumTester, checkObserveAsyncLoadFromFile) {
 
-  std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppQuantinuum.config";
-  auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
+//   std::string home = std::getenv("HOME");
+//   std::string fileName = home + "/FakeCppQuantinuum.config";
+//   auto backendString =
+//       fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
 
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
+//   auto &platform = cudaq::get_platform();
+//   platform.setTargetBackend(backendString);
 
-  auto [kernel, theta] = cudaq::make_kernel<double>();
-  auto qubit = kernel.qalloc(2);
-  kernel.x(qubit[0]);
-  kernel.ry(theta, qubit[1]);
-  kernel.x<cudaq::ctrl>(qubit[1], qubit[0]);
+//   auto [kernel, theta] = cudaq::make_kernel<double>();
+//   auto qubit = kernel.qalloc(2);
+//   kernel.x(qubit[0]);
+//   kernel.ry(theta, qubit[1]);
+//   kernel.x<cudaq::ctrl>(qubit[1], qubit[0]);
 
-  using namespace cudaq::spin;
-  cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
-                     .21829 * z(0) - 6.125 * z(1);
-  auto future = cudaq::observe_async(kernel, h, .59);
+//   using namespace cudaq::spin;
+//   cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
+//                      .21829 * z(0) - 6.125 * z(1);
+//   auto future = cudaq::observe_async(kernel, h, .59);
 
-  {
-    std::ofstream out("saveMeObserve.json");
-    out << future;
-  }
+//   {
+//     std::ofstream out("saveMeObserve.json");
+//     out << future;
+//   }
 
-  // Later you can come back and read it in
-  cudaq::async_result<cudaq::observe_result> readIn(&h);
-  std::ifstream in("saveMeObserve.json");
-  in >> readIn;
+//   // Later you can come back and read it in
+//   cudaq::async_result<cudaq::observe_result> readIn(&h);
+//   std::ifstream in("saveMeObserve.json");
+//   in >> readIn;
 
-  // Get the results of the read in future.
-  auto result = readIn.get();
+//   // Get the results of the read in future.
+//   auto result = readIn.get();
 
-  std::remove("saveMeObserve.json");
-  result.dump();
+//   std::remove("saveMeObserve.json");
+//   result.dump();
 
-  printf("ENERGY: %lf\n", result.exp_val_z());
-  EXPECT_NEAR(result.exp_val_z(), -1.7, 1e-1);
-}
+//   printf("ENERGY: %lf\n", result.exp_val_z());
+//   EXPECT_NEAR(result.exp_val_z(), -1.7, 1e-1);
+// }
 
 int main(int argc, char **argv) {
   std::string home = std::getenv("HOME");

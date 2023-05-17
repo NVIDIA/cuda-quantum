@@ -13,6 +13,8 @@ add_library(cudaq-rest-qpu SHARED RemoteRESTQPU.cpp
    ../../common/QuantumExecutionQueue.cpp
    Executor.cpp)
 
+add_subdirectory(helpers)
+
 target_include_directories(cudaq-rest-qpu PRIVATE .
     PUBLIC 
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
