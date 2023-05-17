@@ -16,118 +16,166 @@
 namespace cudaq {
 
 class IonQServerHelper : public ServerHelper {
-public:
-  /// @brief Return the name of this server helper, must be the
-  /// same as the qpu config file.
-  const std::string name() const override { return "ionq"; }
-  RestHeaders getHeaders() override;
+private:
+  RestClient client;
 
-  void initialize(BackendConfig config) override {
-    std::cout << "IonQ Initialized" << std::endl;
-    backendConfig = config;
-
-    // Set any other config you need...
-    backendConfig["url"] = "https://api.ionq.co";
-    backendConfig["version"] = "v0.3";
-    backendConfig["user_agent"] = "cudaq/0.3.0";
-    backendConfig["target"] = "simulator";
-    backendConfig["qubits"] = 29;
-    backendConfig["token"] = "giveme403";
-
-    backendConfig["job_path"] =
-        backendConfig["url"] + '/' + backendConfig["version"] + "/jobs";
+  // Private helper function to check if a key exists in the map
+  bool keyExists(const std::string &key) const {
+    return backendConfig.find(key) != backendConfig.end();
   }
 
-  /// @brief Create a job payload for the provided quantum codes
+public:
+  const std::string name() const override { return "ionq"; }
+  RestHeaders getHeaders() override;
+  void initialize(BackendConfig config) override;
   ServerJobPayload
   createJob(std::vector<KernelExecution> &circuitCodes) override;
-
-  /// @brief Return the job id from the previous job post
   std::string extractJobId(ServerMessage &postResponse) override;
-
-  /// @brief Return the URL for retrieving job results
   std::string constructGetJobPath(ServerMessage &postResponse) override;
   std::string constructGetJobPath(std::string &jobId) override;
-
-  /// @brief Return true if the job is done
+  std::string constructGetResultsPath(ServerMessage &postResponse);
+  std::string constructGetResultsPath(std::string &jobId);
+  ServerMessage getResults(std::string &resultsGetPath);
   bool jobIsDone(ServerMessage &getJobResponse) override;
-
-  /// @brief Given a completed job response, map back to the sample_result
   cudaq::sample_result processResults(ServerMessage &postJobResponse) override;
 };
 
+void IonQServerHelper::initialize(BackendConfig config) {
+  backendConfig = std::move(config);
+  backendConfig["url"] = "https://api.ionq.co";
+  backendConfig["version"] = "v0.3";
+  backendConfig["user_agent"] = "cudaq/0.3.0";
+  backendConfig["target"] = "simulator";
+  backendConfig["qubits"] = 29;
+  backendConfig["token"] = "giveme403";
+  backendConfig["job_path"] =
+      backendConfig["url"] + '/' + backendConfig["version"] + "/jobs";
+
+  std::cout << "IonQ Initialized" << std::endl;
+}
+
 ServerJobPayload
 IonQServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
-
-  // Goal here is to build up the ServerPayload,
-  // which is a tuple containing the Job Post URL, the
-  // REST headers, and a vector of json messages containing the jobs to execute
-
-  // return the job payload
-  std::cout << "Creating Job" << std::endl;
+  // Check keys existence before accessing them
+  if (!keyExists("target") || !keyExists("qubits") || !keyExists("job_path"))
+    throw std::runtime_error("Key doesn't exist in backendConfig.");
 
   ServerMessage job;
-  job["target"] = backendConfig.at("target"); // todo: use find to check keys
+  job["target"] = backendConfig.at("target");
   job["qubits"] = backendConfig.at("qubits");
   job["shots"] = static_cast<int>(shots);
   job["input"] = {{"format", "qir"}, {"data", circuitCodes.front().code}};
+
+  std::cout << "Creating Job" << std::endl;
 
   return std::make_tuple(backendConfig.at("job_path"), getHeaders(),
                          std::vector<ServerMessage>{job});
 }
 
 std::string IonQServerHelper::extractJobId(ServerMessage &postResponse) {
-  // return "JOB ID HERE, can extract from postResponse";
+  if (!postResponse.contains("id"))
+    throw std::runtime_error("ServerMessage doesn't contain 'id' key.");
+
   std::cout << "Extracting Job ID" << std::endl;
   return postResponse.at("id");
 }
 
 std::string IonQServerHelper::constructGetJobPath(ServerMessage &postResponse) {
-  // return "Get Job URL";
+  if (!postResponse.contains("results_url"))
+    throw std::runtime_error(
+        "ServerMessage doesn't contain 'results_url' key.");
+
+  if (!keyExists("url"))
+    throw std::runtime_error("Key 'url' doesn't exist in backendConfig.");
+
   std::cout << postResponse << std::endl;
+
   return backendConfig.at("url") +
-         static_cast<std::string>(postResponse.at("results_url"));
+         postResponse.at("results_url").get<std::string>();
 }
 
 std::string IonQServerHelper::constructGetJobPath(std::string &jobId) {
-  // return "Get Job URL from JOB ID string";
+  if (!keyExists("job_path"))
+    throw std::runtime_error("Key 'job_path' doesn't exist in backendConfig.");
+
   std::cout << jobId << std::endl;
+
   return backendConfig.at("job_path") + "?id=" + jobId;
 }
 
+std::string
+IonQServerHelper::constructGetResultsPath(ServerMessage &resultsGetPath) {
+  if (!resultsGetPath.contains("jobs"))
+    throw std::runtime_error("ServerMessage doesn't contain 'jobs' key.");
+
+  auto &jobs = resultsGetPath.at("jobs");
+
+  if (jobs.empty() || !jobs[0].contains("results_url"))
+    throw std::runtime_error(
+        "ServerMessage doesn't contain 'results_url' key in the first job.");
+
+  if (!keyExists("url"))
+    throw std::runtime_error("Key 'url' doesn't exist in backendConfig.");
+
+  std::cout << resultsGetPath << std::endl;
+
+  return backendConfig.at("url") + jobs[0].at("results_url").get<std::string>();
+}
+
+std::string IonQServerHelper::constructGetResultsPath(std::string &jobId) {
+  if (!keyExists("job_path"))
+    throw std::runtime_error("Key 'job_path' doesn't exist in backendConfig.");
+
+  std::cout << jobId << std::endl;
+
+  return backendConfig.at("job_path") + jobId + "/results";
+}
+
+ServerMessage IonQServerHelper::getResults(std::string &resultsGetPath) {
+  auto headers = getHeaders();
+  std::cout << "Getting results" << std::endl;
+  return client.get(resultsGetPath, "", headers);
+}
+
 bool IonQServerHelper::jobIsDone(ServerMessage &getJobResponse) {
-  // return true if job is done, false otherwise
+  if (!getJobResponse.contains("jobs"))
+    throw std::runtime_error("ServerMessage doesn't contain 'jobs' key.");
+
+  auto &jobs = getJobResponse.at("jobs");
+
+  if (jobs.empty() || !jobs[0].contains("status"))
+    throw std::runtime_error(
+        "ServerMessage doesn't contain 'status' key in the first job.");
+
   std::cout << getJobResponse << std::endl;
-  return getJobResponse.at("jobs")[0].at("status") ==
-         "completed"; // todo: use status enum
+
+  return jobs[0].at("status").get<std::string>() == "completed";
 }
 
 cudaq::sample_result
 IonQServerHelper::processResults(ServerMessage &postJobResponse) {
-  // results come back as results :{ "regName" : ['00','01',...], "regName2":
-  // [...]}
-  // Map results back to a sample_result,
-  // here's an example
-  std::cout << postJobResponse << std::endl;
-  auto results = postJobResponse["results"];
-  std::vector<ExecutionResult> srs;
-  for (auto &result : results.items()) {
-    cudaq::CountsDictionary counts;
-    auto regName = result.key();
-    auto bitResults = result.value().get<std::vector<std::string>>();
-    for (auto &bitResult : bitResults) {
-      if (counts.count(bitResult))
-        counts[bitResult]++;
-      else
-        counts.insert({bitResult, 1});
-    }
-    srs.emplace_back(counts);
+  auto resultsGetPath = constructGetResultsPath(postJobResponse);
+  auto results = getResults(resultsGetPath);
+  cudaq::CountsDictionary counts;
+
+  for (const auto &element : results.items()) {
+    std::string key = element.key();
+    double value = element.value().get<double>();
+    std::size_t count = static_cast<std::size_t>(value * shots);
+    counts[key] = count;
   }
-  return sample_result(srs);
+
+  std::cout << postJobResponse << std::endl;
+
+  // construct an ExecutionResult with the counts
+  cudaq::ExecutionResult executionResult(counts);
+  return cudaq::sample_result(executionResult);
 }
 
 RestHeaders IonQServerHelper::getHeaders() {
-  //   return  generateRequestHeader();
+  if (!keyExists("token") || !keyExists("user_agent"))
+    throw std::runtime_error("Key doesn't exist in backendConfig.");
+
   std::cout << "Getting Request Headers" << std::endl;
 
   RestHeaders headers;
