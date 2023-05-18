@@ -78,6 +78,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
+      - name: Deploy preview
+        uses: rossjrw/pr-preview-action@v1
+        with:
+          source-dir: ${{ inputs.version }}
+
       - name: Setup Pages
         uses: actions/configure-pages@v2
         
