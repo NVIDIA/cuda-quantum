@@ -6,12 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-#pragma GCC diagnostic ignored "-Wdeprecated-enum-enum-conversion"
-
 #include "cudaq/matrix.h"
-#include <Eigen/Dense>
-#include <fmt/core.h>
+#include "common/EigenDense.h"
+#include "common/FmtCore.h"
 #include <iostream>
 
 namespace cudaq {

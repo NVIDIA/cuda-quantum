@@ -13,10 +13,10 @@
 #include "cudaq/platform/qpu.h"
 #include "nvqpp_config.h"
 
+#include "common/FmtCore.h"
 #include "common/RuntimeMLIR.h"
 #include "cudaq/platform/quantum_platform.h"
 #include <cudaq/spin_op.h>
-#include <fmt/core.h>
 #include <fstream>
 #include <iostream>
 #include <netinet/in.h>

@@ -6,17 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 
-#pragma once
-
-#include "cudaq/Support/SmallVector.h"
-#include "mlir/IR/BuiltinAttributes.h"
-#include "mlir/IR/BuiltinTypes.h"
-#include "mlir/IR/Types.h"
-#include "mlir/Interfaces/DataLayoutInterfaces.h"
-
-//===----------------------------------------------------------------------===//
-// Generated logic
-//===----------------------------------------------------------------------===//
-
-#define GET_TYPEDEF_CLASSES
-#include "cudaq/Optimizer/Dialect/CC/CCTypes.h.inc"
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#pragma GCC diagnostic ignored "-Wrestrict"
+#endif
+#include <fmt/core.h>
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic pop
+#endif

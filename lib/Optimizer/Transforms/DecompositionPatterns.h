@@ -8,15 +8,12 @@
 
 #pragma once
 
-#include "cudaq/Support/SmallVector.h"
-#include "mlir/IR/BuiltinAttributes.h"
-#include "mlir/IR/BuiltinTypes.h"
-#include "mlir/IR/Types.h"
-#include "mlir/Interfaces/DataLayoutInterfaces.h"
+namespace mlir {
+class RewritePatternSet;
+}
 
-//===----------------------------------------------------------------------===//
-// Generated logic
-//===----------------------------------------------------------------------===//
+namespace cudaq {
 
-#define GET_TYPEDEF_CLASSES
-#include "cudaq/Optimizer/Dialect/CC/CCTypes.h.inc"
+void populateWithAllDecompositionPatterns(mlir::RewritePatternSet &patterns);
+
+}

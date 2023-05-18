@@ -6,17 +6,19 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 
-#pragma once
-
-#include "cudaq/Support/SmallVector.h"
-#include "mlir/IR/BuiltinAttributes.h"
-#include "mlir/IR/BuiltinTypes.h"
-#include "mlir/IR/Types.h"
-#include "mlir/Interfaces/DataLayoutInterfaces.h"
-
-//===----------------------------------------------------------------------===//
-// Generated logic
-//===----------------------------------------------------------------------===//
-
-#define GET_TYPEDEF_CLASSES
-#include "cudaq/Optimizer/Dialect/CC/CCTypes.h.inc"
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-anon-enum-enum-conversion"
+#endif
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-enum-enum-conversion"
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+#include <Eigen/Dense>
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif

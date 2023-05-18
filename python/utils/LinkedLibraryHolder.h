@@ -8,9 +8,9 @@
 
 #pragma once
 
+#include "common/FmtCore.h"
 #include "common/Logger.h"
 #include <filesystem>
-#include <fmt/core.h>
 #include <map>
 #include <unordered_map>
 #include <vector>
