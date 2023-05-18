@@ -106,6 +106,11 @@ html_theme_path = ['https://pydata-sphinx-theme.readthedocs.io/en/stable/user_gu
 # documentation.
 html_theme_options = {
     "collapse_navigation" : False,
+    "navbar_start": ["version-switcher"],
+    "switcher": {
+        "json_url": "_templates/versions.json",
+        "version_match": "latest",
+    }
 }
 
 html_css_files = ['_static/cudaq_override.css']
