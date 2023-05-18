@@ -138,5 +138,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install additional tools for CUDA Quantum documentation generation.
 RUN python3 -m pip install --no-cache-dir \
-    sphinx==5.3.* sphinx_rtd_theme \
+    sphinx==5.3.* pydata-sphinx-theme \
     enum-tools[sphinx] breathe==4.34.* myst-parser
