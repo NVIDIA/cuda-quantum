@@ -18,3 +18,4 @@ for the quantum acceleration of existing heterogeneous computing architectures.
       Simulator Backends <using/simulators.rst>
       Specifications <specification/index.rst>
       API Reference <api/api.rst>
+      Other Versions <versions.rst>

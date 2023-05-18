@@ -18,7 +18,7 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
-import pydata_sphinx_theme
+import sphinx_rtd_theme
 
 # -- Project information -----------------------------------------------------
 
@@ -44,7 +44,6 @@ release = '0.3' #__version__
 extensions = [
     # 'sphinx.ext.imgmath',
     'sphinx.ext.ifconfig',
-    'breathe',
     'sphinx.ext.autodoc',      # to get documentation from python doc comments
     'sphinx.ext.autosummary',
     'sphinx.ext.autosectionlabel',
@@ -54,6 +53,8 @@ extensions = [
     #'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',     # support google/numpy style docstrings
     #'sphinx.ext.linkcode',
+    'sphinx_reredirects',
+    'breathe',
     'enum_tools.autoenum',     # for pretty-print Python enums
     'myst_parser',             # for including markdown files
 ]
@@ -98,19 +99,15 @@ pygments_style = 'sphinx'
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'pydata_sphinx_theme'
-html_theme_path = ['https://pydata-sphinx-theme.readthedocs.io/en/stable/user_guide']
+html_theme = 'sphinx_rtd_theme'
+html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
     "collapse_navigation" : False,
-    "navbar_start": ["version-switcher"],
-    "switcher": {
-        "json_url": "_static/versions.json", # FIXME: POINT TO LATEST DOCS URL
-        "version_match": "latest",
-    }
+    "sticky_navigation" : False,
 }
 
 html_css_files = ['_static/cudaq_override.css']
@@ -141,6 +138,10 @@ autosummary_generate = True
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
     'numpy': ('https://numpy.org/doc/stable/', None),
+}
+
+redirects = {
+    "versions": "../latest/versions.html"
 }
 
 nitpick_ignore = [
