@@ -108,7 +108,7 @@ html_theme_options = {
     "collapse_navigation" : False,
     "navbar_start": ["version-switcher"],
     "switcher": {
-        "json_url": "_templates/versions.json",
+        "json_url": "_static/versions.json", # FIXME: POINT TO LATEST DOCS URL
         "version_match": "latest",
     }
 }
