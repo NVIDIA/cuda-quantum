@@ -626,6 +626,8 @@ public:
         count = qubits.back() + 1 - nQubitsAllocated;
     }
 
+    cudaq::info("Allocating {} new qubits.", count);
+
     previousStateDimension = stateDimension;
     nQubitsAllocated += count;
     stateDimension = calculateStateDim(nQubitsAllocated);

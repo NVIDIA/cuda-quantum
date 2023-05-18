@@ -57,11 +57,6 @@ protected:
   /// need to store extra control qudit ids.
   std::vector<std::size_t> extraControlIds;
 
-  /// @brief To improve `qudit` allocation, we defer
-  /// single `qudit` allocation requests until the first
-  /// encountered `apply` call.
-  std::vector<QuditInfo> requestedAllocations;
-
   /// @brief Flag to indicate we are in an adjoint region
   bool inAdjointRegion = false;
 
@@ -95,15 +90,6 @@ protected:
 
   /// @brief Measure the state in the basis described by the given `spin_op`.
   virtual void measureSpinOp(const cudaq::spin_op &op) = 0;
-
-  /// @brief Allocated all requested `qudits`.
-  void flushRequestedAllocations() {
-    if (requestedAllocations.empty())
-      return;
-
-    allocateQudits(requestedAllocations);
-    requestedAllocations.clear();
-  }
 
 public:
   BasicExecutionManager() = default;
@@ -140,7 +126,7 @@ public:
 
   std::size_t getAvailableIndex(std::size_t quditLevels) override {
     auto new_id = getNextIndex();
-    requestedAllocations.emplace_back(quditLevels, new_id);
+    allocateQudit({quditLevels, new_id});
     return new_id;
   }
 
@@ -221,7 +207,6 @@ public:
              const std::vector<cudaq::QuditInfo> &controls,
              const std::vector<cudaq::QuditInfo> &targets,
              bool isAdjoint = false) override {
-    flushRequestedAllocations();
 
     // Make a copy of the name that we can mutate if necessary
     std::string mutable_name(gateName);

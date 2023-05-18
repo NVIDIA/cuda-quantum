@@ -137,9 +137,22 @@ private:
   }
 
 protected:
+  /// @brief To improve `qudit` allocation, we defer
+  /// single `qudit` allocation requests until the first
+  /// encountered `apply` call.
+  std::vector<cudaq::QuditInfo> requestedAllocations;
+
+  /// @brief Allocate all requested `qudits`.
+  void flushRequestedAllocations() {
+    if (requestedAllocations.empty())
+      return;
+
+    allocateQudits(requestedAllocations);
+    requestedAllocations.clear();
+  }
+
   void allocateQudit(const cudaq::QuditInfo &q) override {
-    Qubit *qubit = __quantum__rt__qubit_allocate();
-    qubits.insert({q.id, qubit});
+    requestedAllocations.emplace_back(2, q.id);
   }
 
   void allocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
@@ -179,6 +192,8 @@ protected:
   }
 
   void executeInstruction(const Instruction &instruction) override {
+    flushRequestedAllocations();
+
     // Get the data, create the Qubit* targets
     auto [gateName, p, c, q] = instruction;
 
