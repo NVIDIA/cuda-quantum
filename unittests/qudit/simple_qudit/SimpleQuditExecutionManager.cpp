@@ -48,7 +48,13 @@ protected:
     state = qpp::kron(state, zeroState);
   }
 
-  void deallocateQudit(std::size_t q) override {}
+  void allocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
+    for (auto &q : qudits)
+      allocateQudit(q);
+  }
+
+  void deallocateQudit(const cudaq::QuditInfo &q) override {}
+  void deallocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {}
 
   void handleExecutionContextChanged() override {}
 

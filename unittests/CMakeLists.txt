@@ -148,6 +148,8 @@ if (CUDAQ_ENABLE_PYTHON)
     cudaq-chemistry
     cudaq-pyscf
     gtest_main)
-  gtest_discover_tests(test_domains)
+  gtest_discover_tests(test_domains PROPERTIES 
+         ENVIRONMENT 
+         "PYTHONPATH=$ENV{PYTHONPATH}:${CMAKE_BINARY_DIR}/python")
 endif()
 
