@@ -9,6 +9,7 @@
 #include "Resources.h"
 #include <fmt/core.h>
 #include <fmt/ranges.h>
+#include <algorithm>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
