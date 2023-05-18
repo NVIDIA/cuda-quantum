@@ -1,7 +1,7 @@
 [
     {
-        "name": "nightly build",
+        "name": "nightly",
         "version": "latest",
-        "url": "https://bettinaheim.github.io/cuda-quantum/latest/index.html"
+        "url": "https://bettinaheim.github.io/cuda-quantum/latest/"
     }
 ]
