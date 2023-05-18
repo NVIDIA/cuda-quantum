@@ -3,6 +3,7 @@ CUDA Quantum
 ************
 
 Welcome to the CUDA Quantum documentation page!
+You are browsing the documentation for |version| version of CUDA Quantum.
 
 **CUDA Quantum** is a single-source, modern C++ programming model and compiler platform 
 for the quantum acceleration of existing heterogeneous computing architectures. 
