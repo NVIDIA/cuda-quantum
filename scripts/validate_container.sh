@@ -100,11 +100,14 @@ do
             let "skipped+=1"
             echo "Skipping $t target.";
 
-        elif [[ "$ex" != *"nois"* ]] && [ "$t" == "density-matrix-cpu" ];
+        elif [[ "$ex" != *"nois"* ]] && [[ "$t" == "density-matrix-cpu" ]];
         then
             let "skipped+=1"
+            echo "Skipping $t target for noise example."
+        elif [[ "$t" != "quantinuum" ]];
+        then 
+            let "skipped+=1"
             echo "Skipping $t target."
-
         else
             echo "Testing on $t target..."
             if [ "$t" == "default" ]; then 
