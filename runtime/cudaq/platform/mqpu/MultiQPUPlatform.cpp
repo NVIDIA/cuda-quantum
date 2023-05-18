@@ -19,9 +19,6 @@
 #include <spdlog/cfg/env.h>
 
 namespace {
-// We want to kick off CUDA lazy initialization,
-// flip this to true once we do
-static bool devicesWarmedUp = false;
 
 /// @brief This QPU implementation enqueues kernel
 /// execution tasks and sets the CUDA GPU device that it
@@ -126,30 +123,6 @@ public:
 
       if (specifiedNDevices < nDevices)
         nDevices = specifiedNDevices;
-    }
-
-    if (!devicesWarmedUp) {
-      // Warm up the GPUs so we don't have any lazy init issues.
-      std::vector<std::future<void>> futures;
-      for (int i = 0; i < nDevices; i++) {
-        futures.emplace_back(std::async(std::launch::async, [i]() {
-          auto warmUpSim = cudaq::getExecutionManager();
-
-          cudaSetDevice(i);
-
-          // Warm up the GPUs via an allocation / deallocation.
-          cudaq::info("Warm up Emulated QPU (GPU) {}.", i);
-          std::array<std::size_t, 1> qbits{warmUpSim->getAvailableIndex()};
-          warmUpSim->returnQudit({2, qbits[0]});
-        }));
-      }
-
-      // Sync up the threads
-      for (auto &f : futures)
-        f.get();
-
-      cudaSetDevice(0);
-      devicesWarmedUp = true;
     }
 
     // Add a QPU for each GPU.

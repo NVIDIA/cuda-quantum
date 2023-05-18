@@ -45,8 +45,9 @@ set (CMAKE_ENABLE_EXPORTS TRUE)
 ## the sources in CUDAQ_RUNTIME_TEST_SOURCE for a specific backend simulator
 macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER) 
   set(TEST_EXE_NAME "test_runtime_${NVQIR_BACKEND}")
+  string(REPLACE "-" "_" NVQIR_BACKEND_OUT ${NVQIR_BACKEND})
   add_executable(${TEST_EXE_NAME} main.cpp ${CUDAQ_RUNTIME_TEST_SOURCES} ${EXTRA_BACKEND_TESTER})
-  target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DNVQIR_BACKEND_NAME=${NVQIR_BACKEND})
+  target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DNVQIR_BACKEND_NAME=${NVQIR_BACKEND_OUT})
   target_include_directories(${TEST_EXE_NAME} PRIVATE .)
   # On GCC, the default is --as-needed for linking, and therefore the 
   # nvqir-simulation plugin may not get picked up. This works as is on clang 
@@ -75,7 +76,7 @@ create_tests_with_backend(dm "")
 # Docker environment built with CUDA, but no --gpus flag
 # or no gpus on the system. 
 if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
-  create_tests_with_backend(custatevec "")
+  create_tests_with_backend(custatevec-fp32 "")
   
   add_executable(test_mqpu main.cpp mqpu/mqpu_tester.cpp)
   # Need to force the link to nvqir-qpp here if gcc.
@@ -86,7 +87,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
     PRIVATE 
     cudaq
     cudaq-platform-mqpu
-    nvqir-custatevec
+    nvqir-custatevec-fp64
     gtest_main)
     gtest_discover_tests(test_mqpu)
 endif() 
