@@ -99,18 +99,13 @@ pygments_style = 'sphinx'
 # a list of builtin themes.
 #
 html_theme = 'pydata_sphinx_theme'
-html_theme_path = [pydata_sphinx_theme.get_html_theme_path()]
+html_theme_path = ['https://pydata-sphinx-theme.readthedocs.io/en/stable/user_guide']
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
     "collapse_navigation" : False,
-    "navbar_start": ["navbar-logo", "version-switcher"],
-    "switcher": {
-        "json_url": "https://bettinaheim.github.io/cuda-quantum/latest/_static/switcher.json",
-        "version_match": "latest",
-    }
 }
 
 html_css_files = ['_static/cudaq_override.css']
