@@ -1,12 +1,10 @@
-[
-    {
-        "name": "nightly build",
-        "version": "latest",
-        "url": "https://bettinaheim.github.io/cuda-quantum/latest/index.html"
-    },
-    {
-        "name": "v0.3",
-        "version": "0.3.0",
-        "url": "https://bettinaheim.github.io/cuda-quantum/0.3.0/index.html"
-    }
-]
+{
+    "name": "nightly build",
+    "version": "latest",
+    "url": "https://bettinaheim.github.io/cuda-quantum/latest/index.html"
+},
+{
+    "name": "v0.3",
+    "version": "0.3.0",
+    "url": "https://bettinaheim.github.io/cuda-quantum/0.3.0/index.html"
+}
