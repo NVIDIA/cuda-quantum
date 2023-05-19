@@ -8,28 +8,26 @@
 
 #pragma once
 
-#include <deque>
 #include <algorithm>
+#include <deque>
 
 namespace cudaq {
 
-/// @brief The QuditIdTracker tracks unique integer 
-/// indices for allocated qudits. It will recycle indices 
-/// when the qudit is deallocated, so that it can be reused. 
+/// @brief The QuditIdTracker tracks unique integer
+/// indices for allocated qudits. It will recycle indices
+/// when the qudit is deallocated, so that it can be reused.
 class QuditIdTracker {
 private:
-
   /// @brief The current identifier.
   std::size_t currentId = 0;
 
-  /// @brief The queue of recycled qubits. 
+  /// @brief The queue of recycled qubits.
   std::deque<std::size_t> recycledQudits;
 
 public:
-
-  /// @brief Return the next available index, 
-  /// take from the recycled qudit indentifiers 
-  /// if possible. 
+  /// @brief Return the next available index,
+  /// take from the recycled qudit indentifiers
+  /// if possible.
   std::size_t getNextIndex() {
     if (recycledQudits.empty()) {
       std::size_t ret = currentId;
@@ -43,8 +41,8 @@ public:
   }
 
   /// @brief Return indices due to qudit deallocation.
-  /// If all qudits have been deallocated, reset the 
-  /// tracker. 
+  /// If all qudits have been deallocated, reset the
+  /// tracker.
   void returnIndex(std::size_t idx) {
     recycledQudits.push_front(idx);
     std::sort(recycledQudits.begin(), recycledQudits.end());
