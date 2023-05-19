@@ -20,6 +20,7 @@ rm -rf _skbuild/
 rm -rf cuda_quantum.egg-info/
 rm -rf dist/ 
 rm -rf MANIFEST.in 
+rm -rf python/cuda_quantum.egg-info
 
 # Build wheel and sdist files out of the python directory,
 # as controlled by `python/setup.py`.
@@ -30,7 +31,7 @@ rm -rf MANIFEST.in
 # `apt-get install python3.10-venv`. This can be avoided, however,
 # if we specify `--no-isolation`.
 # python3 -m build python/.
-python3 -m build --sdist #--wheel
+python3 -m build --wheel
 
 # TODO: auditwheel
 

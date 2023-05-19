@@ -69,7 +69,7 @@ skbuild.setup(
 
         # First attempt at disabling the front-end build to minimize
         # dependencies of the pip wheel.
-        "-DCUDAQ_DISABLE_FRONTEND=TRUE",
+        "-DCUDAQ_DISABLE_FRONTEND=FALSE",
 
         # NOTE: Not yet sure what/where to put the build output.
         "-DCMAKE_INSTALL_LIBDIR=lib",
@@ -80,6 +80,7 @@ skbuild.setup(
 
         # NOTE: I replaced these with similar but different commands from
         # the shell build script. May have to add them back.
+        # FIXME: Is this linker command needed here? -lcudaq-mlir-runtime
         "-DCMAKE_EXE_LINKER_FLAGS='-static-libgcc -static-libstdc++'",
         "-DCMAKE_SHARED_LINKER_FLAGS='-static-libgcc -static-libstdc++'",
 
