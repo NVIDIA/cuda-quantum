@@ -26,13 +26,11 @@ RUN cd /llvm-project && mkdir build \
   && ninja install && cp bin/llvm-lit /opt/llvm/bin/
 
 # Get OpenSSL + CPR + BLAS
-RUN dnf install -y openssh-clients \
-        perl-core wget \
-        glibc-static zlib-static \
+RUN dnf install -y openssh-clients wget glibc-static zlib-static perl-core --nobest \
     && git clone https://github.com/openssl/openssl \
     && cd openssl && ./config --prefix=/usr/local/ssl --openssldir=/usr/local/ssl -static zlib \
-    && make install \
-    && cd / && git clone https://github.com/libcpr/cpr \
+    && make install 
+RUN cd / && git clone https://github.com/libcpr/cpr \
     && cd cpr && mkdir build && cd build \
     && cmake .. -G Ninja -DCPR_FORCE_USE_SYSTEM_CURL=FALSE \
                   -DCMAKE_INSTALL_LIBDIR=lib \
