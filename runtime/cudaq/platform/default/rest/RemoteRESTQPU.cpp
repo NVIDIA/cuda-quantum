@@ -104,7 +104,7 @@ public:
   /// @brief The constructor
   RemoteRESTQPU() : QPU() {
     std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
-    platformPath = cudaqLibPath.parent_path().parent_path() / "platforms";
+    platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
     // Default is to run sampling via the remote rest call
     executor = std::make_unique<cudaq::Executor>();
   }
