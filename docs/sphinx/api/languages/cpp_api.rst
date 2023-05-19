@@ -53,6 +53,8 @@ Common
 .. doxygenclass:: cudaq::complex_matrix
     :members:
 
+.. doxygenclass:: cudaq::resources
+
 .. doxygentypedef:: cudaq::complex_matrix::value_type
 
 Noise Modeling 
