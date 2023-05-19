@@ -132,9 +132,9 @@ public:
     cudaq::info("Config file path = {}", configFilePath.string());
 
     // Don't try to load something that doesn't exist.
-    if (!std::filesystem::exists(configFilePath)) 
+    if (!std::filesystem::exists(configFilePath))
       return;
-    
+
     std::ifstream configFile(configFilePath.string());
     std::string configContents((std::istreambuf_iterator<char>(configFile)),
                                std::istreambuf_iterator<char>());
