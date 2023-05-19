@@ -18,7 +18,7 @@ namespace cudaq {
 /// number and type of quantum operation, circuit depth, etc.
 class resources {
 public:
-  class Instruction;
+  struct Instruction;
 
 private:
   /// @brief We want an unordered_map on Instructions, so define
