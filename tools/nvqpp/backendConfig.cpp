@@ -10,7 +10,7 @@
 /// NVQPP_QPUD_BACKEND_CONFIG string must be replaced (e.g. with sed)
 /// with the actual target backend string.
 namespace cudaq {
-void set_qpu_backend(const char *);
+void set_target_backend(const char *);
 }
 constexpr static const char ____targetBackend[] = NVQPP_TARGET_BACKEND_CONFIG;
 __attribute__((constructor)) void setTargetBackend() {

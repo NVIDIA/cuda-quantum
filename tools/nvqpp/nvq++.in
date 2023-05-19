@@ -39,7 +39,7 @@ function add_pass_to_pipeline {
 }
 
 function list_targets {
-	ls -1 ${install_dir}/targets/ | sed -e 's/\.config$//'
+	ls -I *.cpp -1 ${install_dir}/targets/ | sed -e 's/\.config$//'
 	exit 0
 }
 
