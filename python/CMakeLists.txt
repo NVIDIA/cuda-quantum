@@ -71,7 +71,10 @@ endif()
 file(COPY cudaq.py DESTINATION ${CMAKE_BINARY_DIR}/python)
 file(COPY domains/chemistry.py DESTINATION ${CMAKE_BINARY_DIR}/python/domains)
 
-add_subdirectory(domains/plugins)
+
+if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
+  add_subdirectory(domains/plugins)
+endif()
 
 # Do we have pytest and numpy? 
 execute_process(COMMAND ${Python_EXECUTABLE} -m pytest --version

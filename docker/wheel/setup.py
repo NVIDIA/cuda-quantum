@@ -25,7 +25,9 @@ skbuild.setup(
     cmake_args=["-DCUDAQ_ENABLE_PYTHON=TRUE",
                 "-DBLAS_LIBRARIES=/usr/lib64/libblas.a",
                 "-DCMAKE_INSTALL_LIBDIR=lib",
-                "-DCUDAQ_DISABLE_CPP_FRONTEND=TRUE",
+                "-DCUDAQ_DISABLE_CPP_FRONTEND=ON",
+                "-DCUDAQ_BUILD_TESTS=FALSE",
+                "-DCMAKE_COMPILE_WARNING_AS_ERROR=OFF",
                 "-DCUSTATEVEC_ROOT={}".format(
                     os.environ["CUSTATEVEC_ROOT"]) if "CUSTATEVEC_ROOT" in os.environ else "",
                 "-DLLVM_DIR={}".format(os.environ["LLVM_DIR"]) if "LLVM_DIR" in os.environ else "",
