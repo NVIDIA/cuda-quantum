@@ -206,7 +206,7 @@ protected:
   cudaq::ExecutionContext *executionContext = nullptr;
 
   /// @brief A tracker for allocating and deallocating qubit ids
-  nvqir::QubitIdTracker tracker;
+  cudaq::QuditIdTracker tracker;
 
   /// @brief The number of qubits that have been allocated
   std::size_t nQubitsAllocated = 0;
@@ -661,7 +661,7 @@ public:
     --nQubitsAllocated;
 
     // Reset the state if we've deallocated all qubits.
-    if (tracker.numAvailable() == tracker.totalNumQubits()) {
+    if (tracker.allDeallocated()) {
       cudaq::info("Deallocated all qubits, reseting state vector.");
       // all qubits deallocated,
       deallocateState();
@@ -678,7 +678,7 @@ public:
     if (nQubitsAllocated == 0)
       return;
 
-    if (qubits.size() == tracker.totalNumQubits() - tracker.numAvailable()) {
+    if (qubits.size() == tracker.numAllocated()) {
       cudaq::info("Deallocate all qubits.");
       deallocateState();
       for (auto &q : qubits)
@@ -763,7 +763,7 @@ public:
     executionContext = nullptr;
 
     // Reset the state if we've deallocated all qubits.
-    if (tracker.numAvailable() == tracker.totalNumQubits()) {
+    if (tracker.allDeallocated()) {
       if (shouldSetToZero) {
         cudaq::info("In batch mode currently, reset state to |0>");
         // Do not deallocate the state, but reset it to |0>

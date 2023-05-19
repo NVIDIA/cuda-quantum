@@ -184,6 +184,7 @@ protected:
   }
 
   void handleExecutionContextChanged() override {
+    requestedAllocations.clear();
     __quantum__rt__setExecutionContext(executionContext);
   }
 

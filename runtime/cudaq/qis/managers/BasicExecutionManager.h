@@ -151,12 +151,12 @@ public:
 
     deallocateQudit(qid);
     returnIndex(qid.id);
-    if (numAvailable() == totalNumQudits()) {
-      if (executionContext && ctx_name == "observe") {
-        while (!instructionQueue.empty())
-          instructionQueue.pop();
-      }
-    }
+    // if (numAvailable() == totalNumQudits()) {
+    //   if (executionContext && ctx_name == "observe") {
+    //     while (!instructionQueue.empty())
+    //       instructionQueue.pop();
+    //   }
+    // }
   }
 
   void startAdjointRegion() override { adjointQueueStack.emplace(); }
