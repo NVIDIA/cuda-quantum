@@ -56,8 +56,15 @@ target_link_libraries(_pycudaq
       fmt::fmt-header-only)
 
 install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX})
-install(FILES cudaq.py DESTINATION ${CMAKE_INSTALL_PREFIX})
+if (SKBUILD)
+  install(FILES __init__.py DESTINATION ${CMAKE_INSTALL_PREFIX})
+else()
+  install(FILES cudaq.py DESTINATION ${CMAKE_INSTALL_PREFIX})
+  file(COPY cudaq.py DESTINATION ${CMAKE_BINARY_DIR}/python)
+endif()
+
 install(FILES domains/chemistry.py DESTINATION ${CMAKE_INSTALL_PREFIX}/domains/)
+file(COPY domains/chemistry.py DESTINATION ${CMAKE_BINARY_DIR}/python/domains)
 
 if(APPLE)
   set_target_properties(
@@ -66,11 +73,6 @@ else()
   set_target_properties(_pycudaq PROPERTIES INSTALL_RPATH
                                           "$ORIGIN/${CMAKE_INSTALL_LIBDIR}")
 endif()
-
-# Copy to the build dir for testing
-file(COPY cudaq.py DESTINATION ${CMAKE_BINARY_DIR}/python)
-file(COPY domains/chemistry.py DESTINATION ${CMAKE_BINARY_DIR}/python/domains)
-
 
 if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
   add_subdirectory(domains/plugins)

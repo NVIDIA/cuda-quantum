@@ -21,7 +21,7 @@ skbuild.setup(
     zip_safe=False,
     python_requires=">=3.6",
     # This ensures that the python package is in the PYTHONPATH
-    cmake_install_dir="lib/python{}.{}/site-packages/cuda-quantum".format(sys.version_info[0],sys.version_info[1]),
+    cmake_install_dir="lib/python{}.{}/site-packages/cudaq".format(sys.version_info[0],sys.version_info[1]),
     cmake_args=["-DCUDAQ_ENABLE_PYTHON=TRUE",
                 "-DBLAS_LIBRARIES=/usr/lib64/libblas.a",
                 "-DCMAKE_INSTALL_LIBDIR=lib",
