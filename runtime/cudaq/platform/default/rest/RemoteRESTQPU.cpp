@@ -252,15 +252,16 @@ public:
         throw std::runtime_error("Remote rest platform Quake lowering failed.");
     };
 
-    // Run the config-specified pass pipeline
-    runPassPipeline(passPipelineConfig, moduleOp);
-
     if (kernelArgs) {
+      cudaq::info("Run Quake Synth.\n");
       PassManager pm(&context);
       pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, kernelArgs));
       if (failed(pm.run(moduleOp)))
         throw std::runtime_error("Could not successfully apply quake-synth.");
     }
+
+    // Run the config-specified pass pipeline
+    runPassPipeline(passPipelineConfig, moduleOp);
 
     std::vector<std::pair<std::string, ModuleOp>> modules;
     // Apply observations if necessary
