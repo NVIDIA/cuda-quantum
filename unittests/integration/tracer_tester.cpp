@@ -21,11 +21,11 @@ CUDAQ_TEST(TracerTester, checkBell) {
   auto resources = cudaq::estimate_resources(bell);
   resources.dump();
 
-  EXPECT_EQ(1, resources.count(cudaq::resources::Instruction{"h", {}, {0}}));
+  EXPECT_EQ(1, resources.count(cudaq::resources::Instruction{"h", {}, 0}));
 
   EXPECT_EQ(1, resources.count("h"));
   EXPECT_EQ(1, resources.count("x", 1));
-  EXPECT_EQ(1, resources.count(cudaq::resources::Instruction{"x", {0}, {1}}));
+  EXPECT_EQ(1, resources.count(cudaq::resources::Instruction{"x", {0}, 1}));
   EXPECT_EQ(0, resources.count("rx"));
 }
 
@@ -41,7 +41,7 @@ CUDAQ_TEST(TracerTester, checkGHZ) {
   auto resources = cudaq::estimate_resources(ghz, 10);
   resources.dump();
 
-  EXPECT_EQ(1, resources.count(cudaq::resources::Instruction{"h", {}, {0}}));
+  EXPECT_EQ(1, resources.count(cudaq::resources::Instruction{"h", {}, 0}));
   EXPECT_EQ(1, resources.count("h"));
   EXPECT_EQ(9, resources.count("x", 1));
   EXPECT_EQ(9, resources.count("x"));

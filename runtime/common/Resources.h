@@ -42,7 +42,8 @@ public:
     std::size_t target;
 
     /// @brief The constructor
-    Instruction(std::string n, std::vector<std::size_t> c, std::size_t t)
+    Instruction(const std::string &n, const std::vector<std::size_t> &c,
+                std::size_t t)
         : name(n), controls(c), target(t) {}
 
     /// @brief Return true if this Instruction is equal to the given one.
