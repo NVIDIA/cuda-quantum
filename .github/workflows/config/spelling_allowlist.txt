@@ -26,11 +26,11 @@ LLVM
 MLIR
 MPI
 Max-Cut
-Namespaces
 NGC
 NUM
 NVIDIA
 NVQIR
+Namespaces
 OMP
 OMPI
 OpenMP
