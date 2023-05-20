@@ -41,9 +41,12 @@ public:
     /// @brief The target qubit index
     std::size_t target;
 
+    Instruction(const std::string &n, const std::size_t &t)
+        : name(n), target(t) {}
+
     /// @brief The constructor
     Instruction(const std::string &n, const std::vector<std::size_t> &c,
-                std::size_t t)
+                const std::size_t &t)
         : name(n), controls(c), target(t) {}
 
     /// @brief Return true if this Instruction is equal to the given one.
@@ -58,9 +61,26 @@ public:
   /// used in the current kernel execution
   std::size_t count(const Instruction &instruction) const;
 
+  /// @brief Return the number of times the instruction with
+  /// the given name on the given qubit is used in the current
+  /// kernel execution.
+  std::size_t count(const std::string &name, std::size_t target) {
+    return count(Instruction(name, {}, target));
+  }
+
+  /// @brief Return the number of times the instruction with
+  /// the given name, the given control qubits, and on the given target qubit is
+  /// used in the current kernel execution.
+  std::size_t count(const std::string &name,
+                    const std::vector<std::size_t> &controls,
+                    std::size_t target) {
+    return count(Instruction(name, controls, target));
+  }
+
   /// @brief Return the number of instructions with the given name and number of
   /// control qubits.
-  std::size_t count(const std::string &name, std::size_t nControls) const;
+  std::size_t count_controls(const std::string &name,
+                             std::size_t nControls) const;
 
   /// @brief Return the number of instructions with the given name
   std::size_t count(const std::string &name) const;

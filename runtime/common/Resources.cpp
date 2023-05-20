@@ -42,8 +42,8 @@ std::size_t resources::count(const resources::Instruction &instruction) const {
   return iter->second;
 }
 
-std::size_t resources::count(const std::string &name,
-                             std::size_t nControls) const {
+std::size_t resources::count_controls(const std::string &name,
+                                      std::size_t nControls) const {
   std::size_t result = 0;
   for (auto &[instruction, count] : instructions)
     if (instruction.name == name && instruction.controls.size() == nControls)
