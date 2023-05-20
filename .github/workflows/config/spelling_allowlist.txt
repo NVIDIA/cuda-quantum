@@ -26,6 +26,7 @@ LLVM
 MLIR
 MPI
 Max-Cut
+Namespaces
 NGC
 NUM
 NVIDIA
@@ -82,6 +83,7 @@ deallocated
 deallocates
 deallocation
 deallocations
+desc
 deserialize
 destructor
 discretization
