@@ -35,10 +35,8 @@ std::unique_ptr<mlir::Pass> createQIRToBaseProfilePass();
 std::unique_ptr<mlir::Pass> createBaseProfilePreparationPass();
 std::unique_ptr<mlir::Pass> createConvertToQIRFuncPass();
 
-std::unique_ptr<mlir::Pass> createR1DecompositionGateSetMapping();
-std::unique_ptr<mlir::Pass> createRnDecompositionGateSetMapping();
-std::unique_ptr<mlir::Pass> createQuantinuumGateSetMapping();
-std::unique_ptr<mlir::Pass> createIQMGateSetMapping();
+/// Register target pipelines.
+void registerTargetPipelines();
 
 // declarative passes
 #define GEN_PASS_REGISTRATION
