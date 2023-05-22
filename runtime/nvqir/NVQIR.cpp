@@ -35,46 +35,15 @@ thread_local nvqir::CircuitSimulator *simulator;
 inline static constexpr std::string_view GetCircuitSimulatorSymbol =
     "getCircuitSimulator";
 
-/// @brief Provide a holder for externally created
-/// CircuitSimulator pointers (like from Python) that
-/// will invoke clone on the simulator when requested, which
-/// in turn will create the simulator if there isn't one on the
-/// current thread, otherwise it will reuse the existing one
-struct ExternallyProvidedSimGenerator {
-  nvqir::CircuitSimulator *simulator;
-  ExternallyProvidedSimGenerator(nvqir::CircuitSimulator *sim)
-      : simulator(sim) {}
-  auto operator()() { return simulator->clone(); }
-};
-static std::unique_ptr<ExternallyProvidedSimGenerator> externSimGenerator;
-
-extern "C" {
-void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *sim) {
-  simulator = sim;
-  // If we had been given one before, reset the holder
-  if (externSimGenerator) {
-    auto ptr = externSimGenerator.release();
-    delete ptr;
-  }
-  externSimGenerator = std::make_unique<ExternallyProvidedSimGenerator>(sim);
-  cudaq::info("[runtime] Setting the circuit simulator to {}.", sim->name());
-}
-}
-
 namespace nvqir {
 
 /// @brief Return the single simulation backend pointer, create if not created
 /// already.
-/// @return
 CircuitSimulator *getCircuitSimulatorInternal() {
   if (simulator)
     return simulator;
 
-  if (externSimGenerator) {
-    simulator = (*externSimGenerator)();
-    return simulator;
-  }
-
+  // This is a link-time plugin.
   simulator = cudaq::getUniquePluginInstance<CircuitSimulator>(
       GetCircuitSimulatorSymbol);
   cudaq::info("Creating the {} backend.", simulator->name());
@@ -88,8 +57,6 @@ thread_local static std::vector<std::unique_ptr<Array>> allocatedArrays;
 thread_local static std::vector<std::unique_ptr<Qubit>> allocatedSingleQubits;
 
 /// @brief Utility function mapping qubit ids to a QIR Array pointer
-/// @param idxs
-/// @return
 Array *vectorSizetToArray(std::vector<std::size_t> &idxs) {
   auto newArray = std::make_unique<Array>(idxs.size(), sizeof(std::size_t));
   for (std::size_t i = 0; i < idxs.size(); i++) {
@@ -102,8 +69,6 @@ Array *vectorSizetToArray(std::vector<std::size_t> &idxs) {
 }
 
 /// @brief Utility function mapping a QIR Array pointer to a vector of ids
-/// @param arr
-/// @return
 std::vector<std::size_t> arrayToVectorSizeT(Array *arr) {
   std::vector<std::size_t> ret;
   for (std::size_t i = 0; i < arr->size(); i++) {
@@ -115,8 +80,6 @@ std::vector<std::size_t> arrayToVectorSizeT(Array *arr) {
 }
 
 /// @brief Utility function mapping a QIR Qubit pointer to its id
-/// @param q
-/// @return
 std::size_t qubitToSizeT(Qubit *q) { return q->idx; }
 
 } // namespace nvqir
@@ -126,8 +89,6 @@ using namespace nvqir;
 extern "C" {
 
 /// @brief QIR Initialization function
-/// @param argc
-/// @param argv
 void __quantum__rt__initialize(int argc, int8_t **argv) {
   if (!initialized) {
     // We may need this init function later....
@@ -141,7 +102,6 @@ void __quantum__rt__finalize() {
 }
 
 /// @brief Set the Execution Context
-/// @param context
 void __quantum__rt__setExecutionContext(cudaq::ExecutionContext *ctx) {
   __quantum__rt__initialize(0, nullptr);
 
@@ -162,8 +122,6 @@ void __quantum__rt__resetExecutionContext() {
 }
 
 /// @brief QIR function for allocated a qubit array
-/// @param size number of qubits to allocate
-/// @return
 Array *__quantum__rt__qubit_allocate_array(uint64_t size) {
   cudaq::ScopedTrace trace("NVQIR::qubit_allocate_array", size);
   __quantum__rt__initialize(0, nullptr);
@@ -172,7 +130,6 @@ Array *__quantum__rt__qubit_allocate_array(uint64_t size) {
 }
 
 /// @brief Once done, release the QIR qubit array
-/// @param arr
 void __quantum__rt__qubit_release_array(Array *arr) {
   cudaq::ScopedTrace trace("NVQIR::qubit_release_array", arr->size());
   for (std::size_t i = 0; i < arr->size(); i++) {
@@ -192,7 +149,6 @@ void __quantum__rt__qubit_release_array(Array *arr) {
 }
 
 /// @brief Allocate a single QIR Qubit
-/// @return
 Qubit *__quantum__rt__qubit_allocate() {
   cudaq::ScopedTrace trace("NVQIR::allocate_qubit");
   __quantum__rt__initialize(0, nullptr);
@@ -203,7 +159,6 @@ Qubit *__quantum__rt__qubit_allocate() {
 }
 
 /// @brief Once done, release that qubit
-/// @param q
 void __quantum__rt__qubit_release(Qubit *q) {
   cudaq::ScopedTrace trace("NVQIR::release_qubit");
   nvqir::getCircuitSimulatorInternal()->deallocate(q->idx);
@@ -327,8 +282,6 @@ Result *__quantum__qis__mz__to__register(Qubit *q, const char *name) {
 }
 
 /// @brief Map an Array pointer containing Paulis to a vector of Paulis.
-/// @param paulis
-/// @return
 static std::vector<Pauli> extractPauliTermIds(Array *paulis) {
   std::vector<Pauli> pauliIds;
   // size - 3 bc we don't want coeff.real coeff.imag or nterms
@@ -342,9 +295,6 @@ static std::vector<Pauli> extractPauliTermIds(Array *paulis) {
 }
 
 /// @brief QIR function measuring the qubit state in the given Pauli basis.
-/// @param pauli_arr
-/// @param qubits
-/// @return
 Result *__quantum__qis__measure__body(Array *pauli_arr, Array *qubits) {
   cudaq::info("NVQIR measuring in pauli basis");
   cudaq::ScopedTrace trace("NVQIR::observe_measure_body");
@@ -423,9 +373,6 @@ Result *__quantum__qis__measure__body(Array *pauli_arr, Array *qubits) {
 
 /// @brief Implementation of first order trotterization
 /// enables exp( i * angle * H), where H = Sum (PauliTensorProduct)
-/// @param paulis
-/// @param angle
-/// @param qubits
 void __quantum__qis__exp__body(Array *paulis, double angle, Array *qubits) {
   auto n_qubits = qubits->size();
   cudaq::ScopedTrace trace("NVQIR::exp_body");
@@ -571,9 +518,6 @@ void releasePackedQubitArray(Array *a) {
 
 /// @brief Utility function used by Quake->QIR to invoke a QIR QIS function
 /// with a variadic list of control qubits.
-/// @param nControls
-/// @param QISFunction
-/// @param
 void invokeWithControlQubits(const std::size_t nControls,
                              void (*QISFunction)(Array *, Qubit *), ...) {
   // Create the Control Array *, This should

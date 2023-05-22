@@ -28,6 +28,7 @@
 using namespace nvqir;
 
 namespace cudaq {
+
 thread_local nvqir::CircuitSimulator *simulator;
 inline static constexpr std::string_view GetCircuitSimulatorSymbol =
     "getCircuitSimulator";
@@ -66,9 +67,6 @@ CircuitSimulator *getCircuitSimulatorInternal() {
   return simulator;
 }
 
-} // namespace cudaq
-namespace {
-
 /// @brief
 class CircuitSimulatorManager : public cudaq::BasicExecutionManager {
 private:
@@ -92,7 +90,7 @@ protected:
   }
 
   void allocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
-    cudaq::simulator->allocateQubits(qudits.size());
+    simulator->allocateQubits(qudits.size());
   }
 
   void deallocateQudit(const cudaq::QuditInfo &q) override {
@@ -105,7 +103,7 @@ protected:
       return;
     }
 
-    cudaq::simulator->deallocate(q.id);
+    simulator->deallocate(q.id);
   }
 
   void deallocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
@@ -120,15 +118,15 @@ protected:
       }
     }
 
-    cudaq::simulator->deallocateQubits(local);
+    simulator->deallocateQubits(local);
   }
 
   void handleExecutionContextChanged() override {
-    cudaq::simulator->setExecutionContext(executionContext);
+    simulator->setExecutionContext(executionContext);
   }
 
   void handleExecutionContextEnded() override {
-    cudaq::simulator->resetExecutionContext();
+    simulator->resetExecutionContext();
   }
 
   void executeInstruction(const Instruction &instruction) override {
@@ -145,56 +143,43 @@ protected:
     std::transform(controls.begin(), controls.end(), std::back_inserter(localC),
                    [](auto &&el) { return el.id; });
 
-    // FIXME Could probably get rid of this with matrices
-    auto functor =
-        llvm::StringSwitch<std::function<void()>>(gateName)
-            .Case("h", [&]() { cudaq::simulator->h(localC, localT[0]); })
-            .Case("x", [&]() { cudaq::simulator->x(localC, localT[0]); })
-            .Case("y", [&]() { cudaq::simulator->y(localC, localT[0]); })
-            .Case("z", [&]() { cudaq::simulator->z(localC, localT[0]); })
-            .Case("rx",
-                  [&]() {
-                    cudaq::simulator->rx(parameters[0], localC, localT[0]);
-                  })
-            .Case("ry",
-                  [&]() {
-                    cudaq::simulator->ry(parameters[0], localC, localT[0]);
-                  })
-            .Case("rz",
-                  [&]() {
-                    cudaq::simulator->rz(parameters[0], localC, localT[0]);
-                  })
-            .Case("s", [&]() { cudaq::simulator->s(localC, localT[0]); })
-            .Case("t", [&]() { cudaq::simulator->t(localC, localT[0]); })
-            .Case("sdg", [&]() { cudaq::simulator->sdg(localC, localT[0]); })
-            .Case("tdg", [&]() { cudaq::simulator->tdg(localC, localT[0]); })
-            .Case("r1",
-                  [&]() {
-                    cudaq::simulator->r1(parameters[0], localC, localT[0]);
-                  })
-            // .Case("u1", [&]() { cudaq::simulator->tdg(localC, localT[0]); })
-            // .Case("u3", [&]() { cudaq::simulator->tdg(localC, localT[0]); })
-            .Case(
-                "swap",
-                [&]() { cudaq::simulator->swap(localC, localT[0], localT[1]); })
-            .Default([&]() {
-              throw std::runtime_error("[CircuitSimulatorManager] invalid gate "
-                                       "application requested " +
-                                       gateName + ".");
-            });
-
-    functor();
+    // Apply the gate
+    llvm::StringSwitch<std::function<void()>>(gateName)
+        .Case("h", [&]() { simulator->h(localC, localT[0]); })
+        .Case("x", [&]() { simulator->x(localC, localT[0]); })
+        .Case("y", [&]() { simulator->y(localC, localT[0]); })
+        .Case("z", [&]() { simulator->z(localC, localT[0]); })
+        .Case("rx", [&]() { simulator->rx(parameters[0], localC, localT[0]); })
+        .Case("ry", [&]() { simulator->ry(parameters[0], localC, localT[0]); })
+        .Case("rz", [&]() { simulator->rz(parameters[0], localC, localT[0]); })
+        .Case("s", [&]() { simulator->s(localC, localT[0]); })
+        .Case("t", [&]() { simulator->t(localC, localT[0]); })
+        .Case("sdg", [&]() { simulator->sdg(localC, localT[0]); })
+        .Case("tdg", [&]() { simulator->tdg(localC, localT[0]); })
+        .Case("r1", [&]() { simulator->r1(parameters[0], localC, localT[0]); })
+        .Case("u1", [&]() { simulator->u1(parameters[0], localC, localT[0]); })
+        .Case("u3",
+              [&]() {
+                simulator->u3(parameters[0], parameters[1], parameters[2],
+                              localC, localT[0]);
+              })
+        .Case("swap", [&]() { simulator->swap(localC, localT[0], localT[1]); })
+        .Default([&]() {
+          throw std::runtime_error("[CircuitSimulatorManager] invalid gate "
+                                   "application requested " +
+                                   gateName + ".");
+        })();
   }
 
   int measureQudit(const cudaq::QuditInfo &q) override {
-    return cudaq::simulator->mz(q.id);
+    return simulator->mz(q.id);
   }
 
   void measureSpinOp(const cudaq::spin_op &op) override {
-    cudaq::simulator->flushGateQueue();
+    simulator->flushGateQueue();
 
     if (executionContext->canHandleObserve) {
-      auto result = cudaq::simulator->observe(*executionContext->spin.value());
+      auto result = simulator->observe(*executionContext->spin.value());
       executionContext->expectationValue = result.expectationValue;
       executionContext->result = cudaq::sample_result(result);
       return;
@@ -211,11 +196,11 @@ protected:
 
       if (type == cudaq::pauli::Y)
         basisChange.emplace_back([&, qubitIdx](bool reverse) {
-          cudaq::simulator->rx(!reverse ? M_PI_2 : -M_PI_2, qubitIdx);
+          simulator->rx(!reverse ? M_PI_2 : -M_PI_2, qubitIdx);
         });
       else if (type == cudaq::pauli::X)
         basisChange.emplace_back(
-            [&, qubitIdx](bool) { cudaq::simulator->h(qubitIdx); });
+            [&, qubitIdx](bool) { simulator->h(qubitIdx); });
     });
 
     // Change basis, flush the queue
@@ -223,7 +208,7 @@ protected:
       for (auto &basis : basisChange)
         basis(false);
 
-      cudaq::simulator->flushGateQueue();
+      simulator->flushGateQueue();
     }
 
     // Get whether this is shots-based
@@ -232,8 +217,7 @@ protected:
       shots = executionContext->shots;
 
     // Sample and give the data to the context
-    cudaq::ExecutionResult result =
-        cudaq::simulator->sample(qubitsToMeasure, shots);
+    cudaq::ExecutionResult result = simulator->sample(qubitsToMeasure, shots);
     executionContext->expectationValue = result.expectationValue;
     executionContext->result = cudaq::sample_result(result);
 
@@ -243,7 +227,7 @@ protected:
       for (auto &basis : basisChange)
         basis(true);
 
-      cudaq::simulator->flushGateQueue();
+      simulator->flushGateQueue();
     }
 
     return;
@@ -254,17 +238,17 @@ public:
     // Get the default linked circuit simulator
     cudaq::getCircuitSimulatorInternal();
     cudaq::info("[CircuitSimulatorManager] Creating the {} backend.",
-                cudaq::simulator->name());
+                simulator->name());
   }
 
   ~CircuitSimulatorManager() = default;
 
   /// @brief Reset the qubit state
   void resetQudit(const cudaq::QuditInfo &qudit) override {
-    cudaq::simulator->resetQubit(qudit.id);
+    simulator->resetQubit(qudit.id);
   }
 };
 
-} // namespace
+} // namespace cudaq
 
-CUDAQ_REGISTER_EXECUTION_MANAGER(CircuitSimulatorManager)
+CUDAQ_REGISTER_EXECUTION_MANAGER(cudaq::CircuitSimulatorManager)

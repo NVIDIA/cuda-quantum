@@ -19,11 +19,6 @@
 
 namespace py = pybind11;
 
-// Our hook into configuring the NVQIR backend.
-extern "C" {
-void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *);
-}
-
 namespace cudaq {
 void setQuantumPlatformInternal(quantum_platform *p);
 void setCircuitSimulator(nvqir::CircuitSimulator*);
@@ -228,7 +223,6 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
   }
 
   // We'll always start off with the default platform and the QPP simulator
-  __nvqir__setCircuitSimulator(simulators["qpp"]);
   setCircuitSimulator(simulators["qpp"]);
   setQuantumPlatformInternal(platforms["default"]);
   targets.emplace("default",
@@ -242,7 +236,6 @@ LinkedLibraryHolder::~LinkedLibraryHolder() {
 }
 
 void LinkedLibraryHolder::resetTarget() {
-  __nvqir__setCircuitSimulator(simulators["qpp"]);
   setCircuitSimulator(simulators["qpp"]);
   setQuantumPlatformInternal(platforms["default"]);
   currentTarget = "default";
@@ -285,7 +278,6 @@ void LinkedLibraryHolder::setTarget(
   cudaq::info("Setting target={} (sim={}, platform={})", targetName,
               target.simulatorName, target.platformName);
 
-  __nvqir__setCircuitSimulator(simulators[target.simulatorName]);
   setCircuitSimulator(simulators[target.simulatorName]);
   auto *platform = platforms[target.platformName];
 
