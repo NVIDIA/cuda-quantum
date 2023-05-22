@@ -226,7 +226,6 @@ CUDAQ_TEST(BuilderTester, checkStdVecValidate) {
 
   // This is not ok
   EXPECT_ANY_THROW({ kernel(std::vector<double>{M_PI}); });
-
 }
 
 CUDAQ_TEST(BuilderTester, checkIsArgStdVec) {

@@ -21,7 +21,7 @@ namespace py = pybind11;
 
 namespace cudaq {
 void setQuantumPlatformInternal(quantum_platform *p);
-void setCircuitSimulator(nvqir::CircuitSimulator*);
+void setCircuitSimulator(nvqir::CircuitSimulator *);
 
 constexpr static const char PLATFORM_LIBRARY[] = "PLATFORM_LIBRARY=";
 constexpr static const char NVQIR_SIMULATION_BACKEND[] =
