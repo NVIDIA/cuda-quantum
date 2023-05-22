@@ -223,21 +223,43 @@ def quake_ExtractRefOp : QuakeOp<"extract_ref", [Pure]> {
 
   let arguments = (ins
     VeqType:$veq,
-    AnySignlessIntegerOrIndex:$index
+    Optional<AnySignlessIntegerOrIndex>:$index,
+    I64Attr:$rawIndex
   );
   let results = (outs RefType:$ref);
 
-  let assemblyFormat = [{
-    $veq `[` $index `]` `:`  functional-type(operands, results) attr-dict
-  }];
-
   let builders = [
+    OpBuilder<(ins "mlir::Value":$veq, "mlir::Value":$index,
+                   "mlir::IntegerAttr":$rawIndex), [{
+      return build($_builder, $_state, $_builder.getType<RefType>(), veq,
+                   index, rawIndex);
+    }]>,
     OpBuilder<(ins "mlir::Value":$veq, "mlir::Value":$index), [{
       return build($_builder, $_state, $_builder.getType<RefType>(), veq,
-                   index);
+                   index, ExtractRefOp::kDynamicIndex);
     }]>,
+    OpBuilder<(ins "mlir::Value":$veq, "std::size_t":$rawIndex), [{
+      auto i64Ty = $_builder.getI64Type();
+      return build($_builder, $_state, $_builder.getType<RefType>(), veq,
+                   mlir::Value{}, mlir::IntegerAttr::get(i64Ty, rawIndex));
+    }]>
   ];
-  let hasFolder = 1;
+
+  let assemblyFormat = [{
+    $veq `[` custom<RawIndex>($index, $rawIndex) `]` `:`
+      functional-type(operands, results) attr-dict
+  }];
+
+  let hasCanonicalizer = 1;
+  let hasVerifier = 1;
+
+  let extraClassDeclaration = [{
+    static constexpr std::size_t kDynamicIndex =
+      std::numeric_limits<std::size_t>::max();
+
+    bool hasConstantIndex() { return !getIndex(); }
+    std::size_t getConstantIndex() { return getRawIndex(); }
+  }];
 }
 
 def quake_RelaxSizeOp : QuakeOp<"relax_size", [Pure]> {
@@ -498,12 +520,21 @@ class QuakeOperator<string mnemonic, list<Trait> traits = []>
       return build($_builder, $_state, /*is_adj=*/false, parameters, controls,
                    targets);
     }]>,
+    OpBuilder<(ins "bool":$is_adj,
+                   "mlir::ValueRange":$controls,
+                   "mlir::ValueRange":$targets), [{
+      return build($_builder, $_state, is_adj, mlir::ValueRange{}, controls, targets);
+    }]>,
     OpBuilder<(ins "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$targets), [{
-      return build($_builder, $_state, mlir::ValueRange{}, controls, targets);
+      return build($_builder, $_state, /*is_adj=*/false, controls, targets);
+    }]>,
+    OpBuilder<(ins "bool":$is_adj,
+                   "mlir::ValueRange":$targets), [{
+      return build($_builder, $_state, is_adj, mlir::ValueRange{}, targets);
     }]>,
     OpBuilder<(ins "mlir::ValueRange":$targets), [{
-      return build($_builder, $_state, mlir::ValueRange{}, targets);
+      return build($_builder, $_state, /*is_adj=*/false, targets);
     }]>
   ];
 

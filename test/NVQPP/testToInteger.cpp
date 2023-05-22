@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 
-// RUN: nvq++ %s -o out_testToInt.x && ./out_testToInt.x && rm out_testToInt.x
+// RUN: nvq++ --enable-mlir %s -o out_testToInt.x && ./out_testToInt.x && rm out_testToInt.x
 
 #include <cudaq.h>
 

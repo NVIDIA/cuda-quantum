@@ -7,7 +7,7 @@
  *******************************************************************************/
 
 #include "state.h"
-#include <Eigen/Dense>
+#include "common/EigenDense.h"
 #include <iostream>
 
 namespace cudaq {

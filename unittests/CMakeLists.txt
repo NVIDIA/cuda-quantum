@@ -45,8 +45,9 @@ set (CMAKE_ENABLE_EXPORTS TRUE)
 ## the sources in CUDAQ_RUNTIME_TEST_SOURCE for a specific backend simulator
 macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER) 
   set(TEST_EXE_NAME "test_runtime_${NVQIR_BACKEND}")
+  string(REPLACE "-" "_" NVQIR_BACKEND_OUT ${NVQIR_BACKEND})
   add_executable(${TEST_EXE_NAME} main.cpp ${CUDAQ_RUNTIME_TEST_SOURCES} ${EXTRA_BACKEND_TESTER})
-  target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DNVQIR_BACKEND_NAME=${NVQIR_BACKEND})
+  target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DNVQIR_BACKEND_NAME=${NVQIR_BACKEND_OUT})
   target_include_directories(${TEST_EXE_NAME} PRIVATE .)
   # On GCC, the default is --as-needed for linking, and therefore the 
   # nvqir-simulation plugin may not get picked up. This works as is on clang 
@@ -75,7 +76,7 @@ create_tests_with_backend(dm "")
 # Docker environment built with CUDA, but no --gpus flag
 # or no gpus on the system. 
 if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
-  create_tests_with_backend(custatevec "")
+  create_tests_with_backend(custatevec-fp32 "")
   
   add_executable(test_mqpu main.cpp mqpu/mqpu_tester.cpp)
   # Need to force the link to nvqir-qpp here if gcc.
@@ -86,7 +87,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
     PRIVATE 
     cudaq
     cudaq-platform-mqpu
-    nvqir-custatevec
+    nvqir-custatevec-fp64
     gtest_main)
     gtest_discover_tests(test_mqpu)
 endif() 
@@ -118,6 +119,38 @@ target_link_libraries(test_qudit
 gtest_discover_tests(test_qudit)
 
 add_subdirectory(backends)
-add_subdirectory(pass)
 add_subdirectory(Optimizer)
+
+if (CUDAQ_ENABLE_PYTHON)
+  find_package(Python COMPONENTS Interpreter)
+  execute_process(COMMAND ${Python_EXECUTABLE} -c "import openfermionpyscf"
+    OUTPUT_VARIABLE PYSCF_output
+    ERROR_VARIABLE  PYSCF_error
+    RESULT_VARIABLE PYSCF_result)
+
+  if(NOT ${PYSCF_result} EQUAL 0)
+    message(STATUS "OpenFermion PySCF not available for chemistry tests.")
+    return()
+  endif()
+
+  message(STATUS "OpenFermion PySCF found, enabling chemistry tests.")
+  add_executable(test_domains main.cpp domains/ChemistryTester.cpp)
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+    target_link_options(test_domains PRIVATE -Wl,--no-as-needed)
+  endif()
+  target_compile_definitions(test_domains PRIVATE -DNVQIR_BACKEND_NAME=qpp)
+  target_include_directories(test_domains PRIVATE .)
+  target_link_libraries(test_domains
+    PRIVATE 
+    cudaq
+    cudaq-platform-default
+    nvqir nvqir-qpp
+    cudaq-spin
+    cudaq-chemistry
+    cudaq-pyscf
+    gtest_main)
+  gtest_discover_tests(test_domains PROPERTIES 
+         ENVIRONMENT 
+         "PYTHONPATH=$ENV{PYTHONPATH}:${CMAKE_BINARY_DIR}/python")
+endif()
 

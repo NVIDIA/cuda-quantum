@@ -21,7 +21,7 @@
 #include <stack>
 
 namespace {
-Array *spinToArray(cudaq::spin_op &);
+Array *spinToArray(const cudaq::spin_op &);
 
 /// The QIRQubitQISManager will implement allocation, deallocation, and
 /// quantum instruction application via calls to the extern declared QIR
@@ -100,11 +100,8 @@ private:
            }},
           {"swap",
            [](std::vector<double> d, Array *a, std::vector<Qubit *> &q) {
-             __quantum__qis__swap(q[0], q[1]);
-           }},
-          {"cphase",
-           [](std::vector<double> d, Array *a, std::vector<Qubit *> &q) {
-             __quantum__qis__cphase(d[0], q[0], q[1]);
+             a != nullptr ? __quantum__qis__swap__ctl(a, q[0], q[1])
+                          : __quantum__qis__swap(q[0], q[1]);
            }}};
 
   /// Utility to convert a vector of qubits into an opaque Array pointer
@@ -140,14 +137,50 @@ private:
   }
 
 protected:
-  void allocateQudit(const cudaq::QuditInfo &q) override {
-    Qubit *qubit = __quantum__rt__qubit_allocate();
-    qubits.insert({q.id, qubit});
+  /// @brief To improve `qudit` allocation, we defer
+  /// single `qudit` allocation requests until the first
+  /// encountered `apply` call.
+  std::vector<cudaq::QuditInfo> requestedAllocations;
+
+  /// @brief Allocate all requested `qudits`.
+  void flushRequestedAllocations() {
+    if (requestedAllocations.empty())
+      return;
+
+    allocateQudits(requestedAllocations);
+    requestedAllocations.clear();
   }
 
-  void deallocateQudit(std::size_t q) override {
-    __quantum__rt__qubit_release(qubits[q]);
-    qubits.erase(q);
+  void allocateQudit(const cudaq::QuditInfo &q) override {
+    requestedAllocations.emplace_back(2, q.id);
+  }
+
+  void allocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
+    auto *qa = __quantum__rt__qubit_allocate_array(qudits.size());
+    for (std::size_t i = 0; i < qudits.size(); i++) {
+      Qubit **qq = reinterpret_cast<Qubit **>(
+          __quantum__rt__array_get_element_ptr_1d(qa, i));
+      qubits.insert({qudits[i].id, *qq});
+    }
+  }
+
+  void deallocateQudit(const cudaq::QuditInfo &q) override {
+    if (!qubits.count(q.id))
+      return;
+    __quantum__rt__qubit_release(qubits[q.id]);
+    qubits.erase(q.id);
+  }
+
+  void deallocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
+    std::vector<std::size_t> local;
+    std::transform(qudits.begin(), qudits.end(), std::back_inserter(local),
+                   [](auto &&el) { return el.id; });
+
+    __quantum__rt__deallocate_all(local.size(), local.data());
+
+    // remove from the qubits map
+    for (auto &q : qudits)
+      qubits.erase(q.id);
   }
 
   void handleExecutionContextChanged() override {
@@ -159,6 +192,8 @@ protected:
   }
 
   void executeInstruction(const Instruction &instruction) override {
+    flushRequestedAllocations();
+
     // Get the data, create the Qubit* targets
     auto [gateName, p, c, q] = instruction;
 
@@ -183,27 +218,21 @@ protected:
     return res ? 1 : 0;
   }
 
+  void measureSpinOp(const cudaq::spin_op &op) override {
+    Array *term_arr = spinToArray(op);
+    __quantum__qis__measure__body(term_arr, nullptr);
+  }
+
 public:
   QIRExecutionManager() = default;
   virtual ~QIRExecutionManager() {}
-
-  cudaq::SpinMeasureResult measure(cudaq::spin_op &op) override {
-    synchronize();
-    // FIXME need to remove QIR things from spin_op
-    Array *term_arr = spinToArray(op);
-    __quantum__qis__measure__body(term_arr, nullptr);
-    // auto counts_raw = ctx->extract_results();
-    auto exp = executionContext->expectationValue;
-    auto data = executionContext->result;
-    return std::make_pair(exp.value(), data);
-  }
 
   void resetQudit(const cudaq::QuditInfo &id) override {
     __quantum__qis__reset(qubits[id.id]);
   }
 };
 
-Array *spinToArray(cudaq::spin_op &op) {
+Array *spinToArray(const cudaq::spin_op &op) {
   // How to pack the data???
   // add all term data as correct pointer to double for x,y,z,or I.
   // After each term add a pointer to real part of term coeff,

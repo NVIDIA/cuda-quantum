@@ -25,6 +25,16 @@ matrix:
       - ':matches(code, pre)'
       - 'code'
       - 'pre'
+  - pyspelling.filters.context:
+      context_visible_first: true
+      delimiters:
+      # Ignore word prefixes, e.g. "pre-" in pre-computed
+      - open: '(^|\s)[a-z]+-'
+        close: '(?=.)'
+      # Ignore paths of files (recognized by them having a file extension)
+      - open: '(^|\s)([A-Za-z_\\\/]+\.)+'
+        close: '($|(?=[^a-z]))'
+        content: '\S+?'
 
 - name: rst
   sources:
@@ -55,6 +65,9 @@ matrix:
       # Ignore lines that start with two dots
       - open: '^\s*\.\.'
         close: '$'
+      # Ignore word prefixes, e.g. "pre-" in pre-computed
+      - open: '(^|\s)[a-z]+-'
+        close: '(?=.)'
 
 - name: html
   sources:
@@ -74,10 +87,73 @@ matrix:
       - nav
       - code
       - pre
+  - pyspelling.filters.context:
+      context_visible_first: true
+      delimiters:
+      # Ignore word prefixes, e.g. "pre-" in pre-computed
+      - open: '(^|\s)[a-z]+-'
+        close: '(?=.)'
 
-- name: cxx
+- name: cxx_headers
   sources:
   - '**/*.h'
+  expect_match: false
+  aspell:
+    lang: en
+    d: en_US
+  dictionary:
+    wordlists:
+    - .github/workflows/config/spelling_allowlist.txt
+    - .github/workflows/config/spelling_allowlist_cxx.txt
+  pipeline:
+  - pyspelling.filters.url:
+  - pyspelling.filters.context:
+      context_visible_first: true
+      escapes: '\\[\\`~]'
+      delimiters:
+      # Ignore comments of the form `// namespace ...` since they are used to annotate the closing namespace
+      - open: '\/{2}\s*namespace\s+'
+        close: '($|\s)'
+      # Ignore comments of the form `/*...*/` since they are used to annotate argument names
+      - open: '\/\*'
+        close: '\*\/'
+        content: \S*?
+      # Ignore end of line comments
+      - open: '(^|\s)\/\/\s'
+        close: '$'
+  - pyspelling.filters.cpp:
+      block_comments: true
+      line_comments: true
+      group_comments: true
+      strings: false
+  - pyspelling.filters.context:
+      context_visible_first: true
+      escapes: '\\[\\`~]'
+      delimiters:
+      # Ignore multiline content between three or more backticks
+      - open: '(?s)(?P<open>\s*`{3,})\S*\s*$'
+        close: '(?P=open)$'
+      # Ignore content between inline backticks
+      - open: '(?P<open>`+)'
+        close: '(?P=open)'
+      # Ignore words that start with an @, e.g. @param used in doc comments
+      - open: '@\S'
+        close: '(\s|$)'
+      # Ignore words before and after double columns
+      - open: '([a-zA-Z0-9_])*::'
+        close: '([^a-zA-Z0-9_:]|$)'
+      # Ignore words that contain any underscores, numbers, or uppercase letters
+      - open: '[a-zA-Z0-9]+([A-Z0-9_])'
+        close: '([^a-zA-Z0-9_]|$)'
+      # Ignore words that start with uppercase letters or an underscore
+      - open: '(^|\s)([A-Z]|_)'
+        close: '($|\s|-)'
+      # Ignore word prefixes, e.g. "pre-" in pre-computed
+      - open: '(^|\s)[a-z]+-'
+        close: '(?=.)'
+
+- name: cxx_examples
+  sources:
   - 'docs/sphinx/examples/**/*.cpp'
   expect_match: false
   aspell:
@@ -98,7 +174,7 @@ matrix:
       # Ignore comments of the form `/*...*/` since they are used to annotate argument names
       - open: '\/\*'
         close: '\*\/'
-        content: \S*?        
+        content: '\S*?'
   - pyspelling.filters.cpp:
       block_comments: true
       line_comments: true
@@ -109,17 +185,17 @@ matrix:
       escapes: '\\[\\`~]'
       delimiters:
       # Ignore multiline content between three or more backticks
-      - open: '(?s)^(?P<open>\s*`{3,})\S*\s*$'
-        close: '^(?P=open)$'
+      - open: '(?s)(?P<open>\s*`{3,})\S*\s*$'
+        close: '(?P=open)$'
       # Ignore content between inline backticks
       - open: '(?P<open>`+)'
         close: '(?P=open)'
       # Ignore words that start with an @, e.g. @param used in doc comments
       - open: '@\S'
         close: '(\s|$)'
-      # Ignore words that contain any underscores, numbers, or uppercase letters
-      - open: '[a-zA-Z0-9]+([A-Z0-9]|_)'
-        close: '([^a-zA-Z0-9]|\s|$)'
+      # Ignore word prefixes, e.g. "pre-" in pre-computed
+      - open: '(^|\s)[a-z]+-'
+        close: '(?=.)'
 
 - name: python
   sources:
@@ -136,15 +212,20 @@ matrix:
   - pyspelling.filters.python:
       docstrings: true
       comments: true
-      strings: true
+      strings: false
   - pyspelling.filters.context:
       context_visible_first: true
       escapes: '\\[\\`~]'
       delimiters:
       # Ignore multiline content between three or more backticks
-      - open: '(?s)^(?P<open>\s*`{3,})\S*\s*$'
-        close: '^(?P=open)$'
+      - open: '(?s)(?P<open>\s*`{3,})\S*\s*$'
+        close: '(?P=open)$'
       # Ignore content between inline backticks
       - open: '(?P<open>`+)'
         close: '(?P=open)'
-
+      # Ignore words that start with uppercase letters or an underscore
+      - open: '(^|\s)([A-Z]|_)'
+        close: '($|\s|-)'
+      # Ignore word prefixes, e.g. "pre-" in pre-computed
+      - open: '(^|\s)[a-z]+-'
+        close: '(?=.)'

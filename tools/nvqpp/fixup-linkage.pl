@@ -19,7 +19,7 @@ my $cnt = 0;
 # 1. Get a list of all the mangled kernel names from the .qke file.
 open(F, $modFile);
 MAP: while (<F>) {
-    if ($_ =~ /qtx.mangled_name_map/) {
+    if ($_ =~ /quake.mangled_name_map/) {
 	my $i = index($_, '"');	
 	while ($i != -1) {
 	    $_ = substr($_, $i + 1);

@@ -8,7 +8,6 @@
 
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
-#include "cudaq/Optimizer/Dialect/Common/Ops.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"
@@ -83,40 +82,51 @@ LogicalResult quake::AllocaOp::verify() {
 // ExtractRef
 //===----------------------------------------------------------------------===//
 
-OpFoldResult quake::ExtractRefOp::fold(FoldAdaptor adaptor) {
-  auto veq = getVeq();
-  auto op = getOperation();
-  for (auto user : veq.getUsers()) {
-    if (user == op || op->getBlock() != user->getBlock() ||
-        op->isBeforeInBlock(user))
-      continue;
-    if (auto extractRefOp = dyn_cast<quake::ExtractRefOp>(user)) {
-      // Compare the constant extract index values
-      // Get the first index and its defining op
-      auto first = extractRefOp.getIndex();
-      auto defFirst = first.getDefiningOp();
-
-      // Get the second index and its defining op
-      auto second = getIndex();
-      auto defSecond = second.getDefiningOp();
-
-      // We want to see if firstIdx == secondIdx
-      std::optional<std::size_t> firstIdx = std::nullopt;
-      if (auto constOp = dyn_cast_or_null<arith::ConstantOp>(defFirst))
-        if (auto isaIntValue = dyn_cast<IntegerAttr>(constOp.getValue()))
-          firstIdx = isaIntValue.getValue().getLimitedValue();
-
-      std::optional<std::size_t> secondIdx = std::nullopt;
-      if (auto constOp = dyn_cast_or_null<arith::ConstantOp>(defSecond))
-        if (auto isaIntValue = dyn_cast<IntegerAttr>(constOp.getValue()))
-          secondIdx = isaIntValue.getValue().getLimitedValue();
-
-      if (firstIdx.has_value() && secondIdx.has_value() &&
-          firstIdx.value() == secondIdx.value())
-        return extractRefOp.getResult();
-    }
+static ParseResult
+parseRawIndex(OpAsmParser &parser,
+              std::optional<OpAsmParser::UnresolvedOperand> &index,
+              IntegerAttr &rawIndex) {
+  std::size_t constantIndex = quake::ExtractRefOp::kDynamicIndex;
+  OptionalParseResult parsedInteger =
+      parser.parseOptionalInteger(constantIndex);
+  if (parsedInteger.has_value()) {
+    if (failed(parsedInteger.value()))
+      return failure();
+    index = std::nullopt;
+  } else {
+    OpAsmParser::UnresolvedOperand operand;
+    if (parser.parseOperand(operand))
+      return failure();
+    index = operand;
   }
-  return {};
+  auto i64Ty = IntegerType::get(parser.getContext(), 64);
+  rawIndex = IntegerAttr::get(i64Ty, constantIndex);
+  return success();
+}
+
+static void printRawIndex(OpAsmPrinter &printer, quake::ExtractRefOp refOp,
+                          Value index, IntegerAttr rawIndex) {
+  if (rawIndex.getValue() == quake::ExtractRefOp::kDynamicIndex)
+    printer.printOperand(index);
+  else
+    printer << rawIndex.getValue();
+}
+
+void quake::ExtractRefOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<FuseConstantToExtractRefPattern>(context);
+}
+
+LogicalResult quake::ExtractRefOp::verify() {
+  if (getIndex()) {
+    if (getRawIndex() != kDynamicIndex)
+      return emitOpError(
+          "must not have both a constant index and an index argument.");
+  } else {
+    if (getRawIndex() == kDynamicIndex)
+      return emitOpError("invalid constant index value");
+  }
+  return success();
 }
 
 //===----------------------------------------------------------------------===//

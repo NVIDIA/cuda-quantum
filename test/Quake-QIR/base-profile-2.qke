@@ -8,7 +8,7 @@
 
 // RUN: cudaq-translate --convert-to=qir-base %s | FileCheck %s
 
-module attributes {qtx.mangled_name_map = {__nvqpp__mlirgen__t1 = "_ZN2t1clEv"}} {
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__t1 = "_ZN2t1clEv"}} {
   func.func @__nvqpp__mlirgen__t1() attributes {"cudaq-entrypoint"} {
     %c2_i32 = arith.constant 2 : i32
     %0 = arith.extsi %c2_i32 : i32 to i64

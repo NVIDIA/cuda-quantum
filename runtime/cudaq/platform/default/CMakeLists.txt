@@ -40,5 +40,6 @@ if (CURL_FOUND AND OPENSSL_FOUND)
 endif()
 
 if (CUSTATEVEC_ROOT AND CUDA_FOUND)
-  add_platform_config(cuquantum)
+  add_target_config(nvidia)
+  add_target_config(nvidia-fp64)
 endif()

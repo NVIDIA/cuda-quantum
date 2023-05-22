@@ -116,8 +116,6 @@ struct F {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__C()
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : index
-// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
-// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i64
 // CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 1 : index
 // CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 0 : index
 // CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 1 : i32
@@ -139,20 +137,20 @@ struct F {
 // CHECK:             cf.cond_br %[[VAL_13]], ^bb3, ^bb4
 // CHECK:           ^bb3:
 // CHECK:             %[[VAL_14:.*]] = quake.alloca !quake.ref
-// CHECK:             %[[VAL_15:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_2]]] : (!quake.veq<2>, i64) -> !quake.ref
+// CHECK:             %[[VAL_15:.*]] = quake.extract_ref %[[VAL_8]][0] : (!quake.veq<2>) -> !quake.ref
 // CHECK:             quake.x [%[[VAL_14]]] %[[VAL_15]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:             quake.dealloc %[[VAL_14]] : !quake.ref
 // CHECK:             cf.br ^bb8
 // CHECK:           ^bb4:
-// CHECK:             %[[VAL_16:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_2]]] : (!quake.veq<2>, i64) -> !quake.ref
-// CHECK:             %[[VAL_17:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_1]]] : (!quake.veq<2>, i64) -> !quake.ref
+// CHECK:             %[[VAL_16:.*]] = quake.extract_ref %[[VAL_8]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:             %[[VAL_17:.*]] = quake.extract_ref %[[VAL_8]][1] : (!quake.veq<2>) -> !quake.ref
 // CHECK:             quake.x [%[[VAL_16]]] %[[VAL_17]] : (!quake.ref,
 // CHECK:             func.call @_Z2g2v() : () -> ()
 // CHECK:             %[[VAL_18:.*]] = memref.load %[[VAL_9]][] : memref<i32>
 // CHECK:             %[[VAL_19:.*]] = func.call @_Z2f2i(%[[VAL_18]]) : (i32) -> i1
 // CHECK:             cf.cond_br %[[VAL_19]], ^bb5, ^bb6
 // CHECK:           ^bb5:
-// CHECK:             %[[VAL_20:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_1]]] : (!quake.veq<2>, i64) -> !quake.ref
+// CHECK:             %[[VAL_20:.*]] = quake.extract_ref %[[VAL_8]][1] : (!quake.veq<2>) -> !quake.ref
 // CHECK:             quake.y %[[VAL_20]] :
 // CHECK:             cf.br ^bb7
 // CHECK:           ^bb6:
@@ -186,8 +184,6 @@ struct F {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__D()
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : index
-// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
-// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i64
 // CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 1 : index
 // CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 0 : index
 // CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 1 : i32
@@ -209,20 +205,20 @@ struct F {
 // CHECK:             cf.cond_br %[[VAL_13]], ^bb3, ^bb4
 // CHECK:           ^bb3:
 // CHECK:             %[[VAL_14:.*]] = quake.alloca !quake.ref
-// CHECK:             %[[VAL_15:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_2]]] : (!quake.veq<2>, i64) -> !quake.ref
+// CHECK:             %[[VAL_15:.*]] = quake.extract_ref %[[VAL_8]][0] : (!quake.veq<2>) -> !quake.ref
 // CHECK:             quake.x [%[[VAL_14]]] %[[VAL_15]] :
 // CHECK:             quake.dealloc %[[VAL_14]] : !quake.ref
 // CHECK:             cf.br ^bb7
 // CHECK:           ^bb4:
-// CHECK:             %[[VAL_16:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_2]]] : (!quake.veq<2>, i64) -> !quake.ref
-// CHECK:             %[[VAL_17:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_1]]] : (!quake.veq<2>, i64) -> !quake.ref
+// CHECK:             %[[VAL_16:.*]] = quake.extract_ref %[[VAL_8]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:             %[[VAL_17:.*]] = quake.extract_ref %[[VAL_8]][1] : (!quake.veq<2>) -> !quake.ref
 // CHECK:             quake.x [%[[VAL_16]]] %[[VAL_17]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:             func.call @_Z2g2v() : () -> ()
 // CHECK:             %[[VAL_18:.*]] = memref.load %[[VAL_9]][] : memref<i32>
 // CHECK:             %[[VAL_19:.*]] = func.call @_Z2f2i(%[[VAL_18]]) : (i32) -> i1
 // CHECK:             cf.cond_br %[[VAL_19]], ^bb5, ^bb6
 // CHECK:           ^bb5:
-// CHECK:             %[[VAL_20:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_1]]] : (!quake.veq<2>, i64) -> !quake.ref
+// CHECK:             %[[VAL_20:.*]] = quake.extract_ref %[[VAL_8]][1] : (!quake.veq<2>) -> !quake.ref
 // CHECK:             quake.y %[[VAL_20]]
 // CHECK:             cf.br ^bb8
 // CHECK:           ^bb6:
@@ -256,8 +252,6 @@ struct F {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__E()
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : index
-// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
-// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i64
 // CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 1 : index
 // CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 0 : index
 // CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 1 : i32
@@ -278,20 +272,20 @@ struct F {
 // CHECK:           cf.cond_br %[[VAL_13]], ^bb3, ^bb4
 // CHECK:         ^bb3:
 // CHECK:           %[[VAL_14:.*]] = quake.alloca !quake.ref
-// CHECK:           %[[VAL_15:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_2]]] : (!quake.veq<2>, i64) -> !quake.ref
+// CHECK:           %[[VAL_15:.*]] = quake.extract_ref %[[VAL_8]][0] : (!quake.veq<2>) -> !quake.ref
 // CHECK:           quake.x [%[[VAL_14]]] %[[VAL_15]] : (!quake.ref, !quake.ref)
 // CHECK:           quake.dealloc %[[VAL_14]] : !quake.ref
 // CHECK:           cf.br ^bb8
 // CHECK:         ^bb4:
-// CHECK:           %[[VAL_16:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_2]]] : (!quake.veq<2>, i64) -> !quake.ref
-// CHECK:           %[[VAL_17:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_1]]] : (!quake.veq<2>, i64) -> !quake.ref
+// CHECK:           %[[VAL_16:.*]] = quake.extract_ref %[[VAL_8]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[VAL_17:.*]] = quake.extract_ref %[[VAL_8]][1] : (!quake.veq<2>) -> !quake.ref
 // CHECK:           quake.x [%[[VAL_16]]] %[[VAL_17]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           call @_Z2g2v() : () -> ()
 // CHECK:           %[[VAL_18:.*]] = memref.load %[[VAL_9]][] : memref<i32>
 // CHECK:           %[[VAL_19:.*]] = call @_Z2f2i(%[[VAL_18]]) : (i32) -> i1
 // CHECK:           cf.cond_br %[[VAL_19]], ^bb5, ^bb6
 // CHECK:         ^bb5:
-// CHECK:           %[[VAL_20:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_1]]] : (!quake.veq<2>, i64) -> !quake.ref
+// CHECK:           %[[VAL_20:.*]] = quake.extract_ref %[[VAL_8]][1] : (!quake.veq<2>) -> !quake.ref
 // CHECK:           quake.y %[[VAL_20]]
 // CHECK:           cf.br ^bb7
 // CHECK:         ^bb6:
@@ -324,8 +318,6 @@ struct F {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__F()
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : index
-// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
-// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i64
 // CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 1 : index
 // CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 0 : index
 // CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 1 : i32
@@ -346,20 +338,20 @@ struct F {
 // CHECK:           cf.cond_br %[[VAL_13]], ^bb3, ^bb4
 // CHECK:         ^bb3:
 // CHECK:           %[[VAL_14:.*]] = quake.alloca !quake.ref
-// CHECK:           %[[VAL_15:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_2]]] : (!quake.veq<2>, i64) -> !quake.ref
+// CHECK:           %[[VAL_15:.*]] = quake.extract_ref %[[VAL_8]][0] : (!quake.veq<2>) -> !quake.ref
 // CHECK:           quake.x [%[[VAL_14]]] %[[VAL_15]]
 // CHECK:           quake.dealloc %[[VAL_14]] : !quake.ref
 // CHECK:           cf.br ^bb7
 // CHECK:         ^bb4:
-// CHECK:           %[[VAL_16:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_2]]] : (!quake.veq<2>, i64) -> !quake.ref
-// CHECK:           %[[VAL_17:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_1]]] : (!quake.veq<2>, i64) -> !quake.ref
+// CHECK:           %[[VAL_16:.*]] = quake.extract_ref %[[VAL_8]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[VAL_17:.*]] = quake.extract_ref %[[VAL_8]][1] : (!quake.veq<2>) -> !quake.ref
 // CHECK:           quake.x [%[[VAL_16]]] %[[VAL_17]]
 // CHECK:           call @_Z2g2v() : () -> ()
 // CHECK:           %[[VAL_18:.*]] = memref.load %[[VAL_9]][] : memref<i32>
 // CHECK:           %[[VAL_19:.*]] = call @_Z2f2i(%[[VAL_18]]) : (i32) -> i1
 // CHECK:           cf.cond_br %[[VAL_19]], ^bb5, ^bb6
 // CHECK:         ^bb5:
-// CHECK:           %[[VAL_20:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_1]]] : (!quake.veq<2>, i64) -> !quake.ref
+// CHECK:           %[[VAL_20:.*]] = quake.extract_ref %[[VAL_8]][1] : (!quake.veq<2>) -> !quake.ref
 // CHECK:           quake.y %[[VAL_20]] : (!quake.ref)
 // CHECK:           cf.br ^bb9
 // CHECK:         ^bb6:

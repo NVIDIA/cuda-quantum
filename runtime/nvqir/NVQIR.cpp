@@ -215,6 +215,12 @@ void __quantum__rt__qubit_release(Qubit *q) {
       end);
 }
 
+void __quantum__rt__deallocate_all(const std::size_t numQubits,
+                                   const std::size_t *qubitIdxs) {
+  std::vector<std::size_t> qubits(qubitIdxs, qubitIdxs + numQubits);
+  nvqir::getCircuitSimulatorInternal()->deallocateQubits(qubits);
+}
+
 #define ONE_QUBIT_QIS_FUNCTION(GATENAME)                                       \
   void QIS_FUNCTION_NAME(GATENAME)(Qubit * qubit) {                            \
     auto targetIdx = qubitToSizeT(qubit);                                      \
@@ -272,6 +278,14 @@ void __quantum__qis__swap(Qubit *q, Qubit *r) {
   cudaq::ScopedTrace trace("NVQIR::swap", qI, rI);
   nvqir::getCircuitSimulatorInternal()->swap(qI, rI);
 }
+
+void __quantum__qis__swap__ctl(Array *ctrls, Qubit *q, Qubit *r) {
+  auto ctrlIdxs = arrayToVectorSizeT(ctrls);
+  auto qI = qubitToSizeT(q);
+  auto rI = qubitToSizeT(r);
+  nvqir::getCircuitSimulatorInternal()->swap(ctrlIdxs, qI, rI);
+}
+
 void __quantum__qis__swap__body(Qubit *q, Qubit *r) {
   __quantum__qis__swap(q, r);
 }

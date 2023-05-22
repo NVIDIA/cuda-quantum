@@ -6,21 +6,14 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 
-#ifdef __clang__
-#pragma clang diagnostic ignored "-Wcovered-switch-default"
-#pragma clang diagnostic ignored "-Wsuggest-override"
-#endif
-#ifdef __GNUC__
-#pragma GCC diagnostic ignored "-Wsuggest-override"
-#endif
 #include "cudaq/platform/quantum_platform.h"
+#include "common/FmtCore.h"
 #include "common/Logger.h"
 #include "common/PluginUtils.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/qis/qudit.h"
 #include "nvqpp_config.h"
-#include <fmt/core.h>
 #include <fstream>
 #include <iostream>
 #include <sstream>

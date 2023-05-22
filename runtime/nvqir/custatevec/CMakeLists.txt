@@ -41,5 +41,5 @@ macro (nvqir_create_cusv_plugin LIBRARY_NAME SOURCE_FILENAME)
 
 endmacro()
 
-nvqir_create_cusv_plugin(nvqir-custatevec CuStateVecCircuitSimulator.cu)
-nvqir_create_cusv_plugin(nvqir-custatevec-f32 CuStateVecCircuitSimulatorF32.cu)
+nvqir_create_cusv_plugin(nvqir-custatevec-fp64 CuStateVecCircuitSimulator.cu)
+nvqir_create_cusv_plugin(nvqir-custatevec-fp32 CuStateVecCircuitSimulatorF32.cu)

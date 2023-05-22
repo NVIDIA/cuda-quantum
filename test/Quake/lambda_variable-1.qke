@@ -9,8 +9,7 @@
 // RUN: cudaq-opt --lambda-lifting --canonicalize %s | FileCheck %s
 
 // Tests the basic functionality of passing closures as runtime values. Much of
-// the mechanism generated here is expected to be aggressively inlined when
-// constructing the QTX circuit.
+// the mechanism generated here is expected to be aggressively inlined.
 
 module attributes{ qtx.mangled_name_map = { __nvqpp__mlirgen__test3_callee = "_ZN12test3_calleeclEOSt8functionIFvRN4cudaq5quditILm2EEEEERNS1_4qregILm18446744073709551615ELm2EEE", __nvqpp__mlirgen__test3_caller = "_ZN12test3_callerclEv"}} {
   func.func @__nvqpp__mlirgen__test3_callee(%arg0: !cc.lambda<(!quake.ref) -> ()>, %arg1: !quake.veq<?>) attributes {"cudaq-kernel"} {
@@ -44,12 +43,10 @@ module attributes{ qtx.mangled_name_map = { __nvqpp__mlirgen__test3_callee = "_Z
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test3_callee(
 // CHECK-SAME:        %[[VAL_0:.*]]: !cc.lambda<(!quake.ref) -> ()>,
 // CHECK-SAME:        %[[VAL_1:.*]]: !quake.veq<?>)
-// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 1 : i64
-// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 0 : i64
-// CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_1]][%[[VAL_3]]] : (!quake.veq<?>, i64) -> !quake.ref
+// CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_1]][0] : (!quake.veq<?>) -> !quake.ref
 // CHECK:           %[[VAL_5:.*]] = cc.callable_func %[[VAL_0]] : (!cc.lambda<(!quake.ref) -> ()>) -> ((!cc.lambda<(!quake.ref) -> ()>, !quake.ref) -> ())
 // CHECK:           call_indirect %[[VAL_5]](%[[VAL_0]], %[[VAL_4]]) : (!cc.lambda<(!quake.ref) -> ()>, !quake.ref) -> ()
-// CHECK:            %[[VAL_6:.*]] = quake.extract_ref %[[VAL_1]][%[[VAL_2]]] : (!quake.veq<?>, i64) -> !quake.ref
+// CHECK:            %[[VAL_6:.*]] = quake.extract_ref %[[VAL_1]][1] : (!quake.veq<?>) -> !quake.ref
 // CHECK:           %[[VAL_7:.*]] = cc.callable_func %[[VAL_0]] : (!cc.lambda<(!quake.ref) -> ()>) -> ((!cc.lambda<(!quake.ref) -> ()>, !quake.ref) -> ())
 // CHECK:           call_indirect %[[VAL_7]](%[[VAL_0]], %[[VAL_6]]) : (!cc.lambda<(!quake.ref) -> ()>, !quake.ref) -> ()
 

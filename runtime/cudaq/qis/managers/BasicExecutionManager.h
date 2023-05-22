@@ -18,11 +18,11 @@
 
 namespace cudaq {
 
-/// @brief The BasicExecutionManager provides a common base class for
-/// specializations that implements the ExecutionManager type. Most of the
-/// required ExecutionManager functionality is implemented here, with
+/// @brief The `BasicExecutionManager` provides a common base class for
+/// specializations that implement the `ExecutionManager` type. Most of the
+/// required `ExecutionManager` functionality is implemented here, with
 /// backend-execution-specific details left for further subtypes. This type
-/// enqueues all quantum operations and flush them at specific synchronization
+/// enqueues all quantum operations and flushes them at specific synchronization
 /// points. Subtypes should implement concrete operation execution, qudit
 /// measurement, allocation, and deallocation, and execution context handling
 /// (e.g. sampling)
@@ -35,16 +35,16 @@ protected:
       std::tuple<std::string, std::vector<double>,
                  std::vector<cudaq::QuditInfo>, std::vector<cudaq::QuditInfo>>;
 
-  /// @brief Typedef for a queue of instructions
+  /// @brief `typedef` for a queue of instructions
   using InstructionQueue = std::queue<Instruction>;
 
   /// @brief The current execution context, e.g. sampling
   /// or observation
   cudaq::ExecutionContext *executionContext;
 
-  /// @brief Store qubits for delayed deletion under
+  /// @brief Store qudits for delayed deletion under
   /// certain execution contexts
-  std::vector<std::size_t> contextQuditIdsForDeletion;
+  std::vector<QuditInfo> contextQuditIdsForDeletion;
 
   /// @brief The current queue of operations to execute
   InstructionQueue instructionQueue;
@@ -63,8 +63,15 @@ protected:
   /// @brief Subtype-specific qudit allocation method
   virtual void allocateQudit(const QuditInfo &q) = 0;
 
-  /// @brief Subtype-specific qudit deallocation method
-  virtual void deallocateQudit(std::size_t q) = 0;
+  /// @brief Allocate a set of `qudits` with a single call.
+  virtual void allocateQudits(const std::vector<QuditInfo> &qudits) = 0;
+
+  /// @brief Subtype specific qudit deallocation method
+  virtual void deallocateQudit(const QuditInfo &q) = 0;
+
+  /// @brief Subtype specific qudit deallocation, deallocate
+  /// all qudits in the vector.
+  virtual void deallocateQudits(const std::vector<QuditInfo> &qudits) = 0;
 
   /// @brief Subtype-specific handler for when
   // the execution context changes
@@ -80,6 +87,9 @@ protected:
 
   /// @brief Subtype-specific method for performing qudit measurement.
   virtual int measureQudit(const cudaq::QuditInfo &q) = 0;
+
+  /// @brief Measure the state in the basis described by the given `spin_op`.
+  virtual void measureSpinOp(const cudaq::spin_op &op) = 0;
 
 public:
   BasicExecutionManager() = default;
@@ -105,10 +115,10 @@ public:
 
     if (ctx_name == "observe" || ctx_name == "sample" ||
         ctx_name == "extract-state") {
-      for (auto &q : contextQuditIdsForDeletion) {
-        deallocateQudit(q);
-        returnIndex(q);
-      }
+      deallocateQudits(contextQuditIdsForDeletion);
+      for (auto &q : contextQuditIdsForDeletion)
+        returnIndex(q.id);
+
       contextQuditIdsForDeletion.clear();
     }
     executionContext = nullptr;
@@ -122,7 +132,7 @@ public:
 
   void returnQudit(const QuditInfo &qid) override {
     if (!executionContext) {
-      deallocateQudit(qid.id);
+      deallocateQudit(qid);
       returnIndex(qid.id);
       return;
     }
@@ -135,11 +145,11 @@ public:
     // measure on the entire register.
     if (executionContext && (ctx_name == "observe" || ctx_name == "sample" ||
                              ctx_name == "extract-state")) {
-      contextQuditIdsForDeletion.push_back(qid.id);
+      contextQuditIdsForDeletion.push_back(qid);
       return;
     }
 
-    deallocateQudit(qid.id);
+    deallocateQudit(qid);
     returnIndex(qid.id);
     if (numAvailable() == totalNumQudits()) {
       if (executionContext && ctx_name == "observe") {
@@ -201,18 +211,17 @@ public:
     // Make a copy of the name that we can mutate if necessary
     std::string mutable_name(gateName);
 
-    // Make a copy of the params that we can mutate
+    // Make a copy of the parameters that we can mutate
     std::vector<double> mutable_params = params;
 
     // Create an array of controls, we will
     // prepend any extra controls if in a control region
     std::vector<cudaq::QuditInfo> mutable_controls;
-    for (auto &e : extraControlIds) {
+    for (auto &e : extraControlIds)
       mutable_controls.emplace_back(2, e);
-    }
-    for (auto &e : controls) {
+
+    for (auto &e : controls)
       mutable_controls.push_back(e);
-    }
 
     std::vector<cudaq::QuditInfo> mutable_targets;
     for (auto &t : targets) {
@@ -256,6 +265,13 @@ public:
 
     // Instruction executed, run the measure call
     return measureQudit(target);
+  }
+
+  cudaq::SpinMeasureResult measure(cudaq::spin_op &op) override {
+    synchronize();
+    measureSpinOp(op);
+    return std::make_pair(executionContext->expectationValue.value(),
+                          executionContext->result);
   }
 };
 

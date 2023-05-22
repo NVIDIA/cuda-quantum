@@ -17,13 +17,12 @@ module {
     // CHECK: }
     
     // CHECK-LABEL: func.func @ccnot() {
-    // CHECK:   %[[C1:.*]] = arith.constant 1 : i32
     // CHECK:   %[[a0:.*]] = quake.alloca !quake.veq<3>
     // CHECK:   affine.for %[[arg0:.*]] = 0 to 3 {
     // CHECK:     %[[a2:.*]] = quake.extract_ref %[[a0]][%[[arg0]]] : (!quake.veq<3>, index) -> !quake.ref
     // CHECK:     quake.x %[[a2]] :
     // CHECK:   }
-    // CHECK:   %[[a1:.*]] = quake.extract_ref %[[a0]][%[[C1]]] : (!quake.veq<3>, i32) -> !quake.ref
+    // CHECK:   %[[a1:.*]] = quake.extract_ref %[[a0]][1] : (!quake.veq<3>) -> !quake.ref
     // CHECK:   quake.x %[[a1]] :
     // CHECK:   return
     // CHECK: }

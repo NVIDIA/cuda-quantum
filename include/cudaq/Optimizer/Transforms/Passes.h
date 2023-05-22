@@ -12,7 +12,6 @@
 // These transforms can generally be thought of as "optimizations" or "rewrites"
 // on the IR.
 
-#include "cudaq/Optimizer/Dialect/QTX/QTXOps.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassRegistry.h"
@@ -36,7 +35,6 @@ std::unique_ptr<mlir::Pass> createConvertToDirectCalls();
 void registerConvertToDirectCalls();
 void registerGenerateKernelExecution();
 void registerGenerateDeviceCodeLoaderPass();
-void registerConversionPipelines();
 
 std::unique_ptr<mlir::Pass> createApplyOpSpecializationPass();
 std::unique_ptr<mlir::Pass>
@@ -55,14 +53,9 @@ std::unique_ptr<mlir::Pass> createQuakeSynthesizer();
 std::unique_ptr<mlir::Pass> createQuakeSynthesizer(std::string_view, void *);
 std::unique_ptr<mlir::Pass> createRaiseToAffinePass();
 std::unique_ptr<mlir::Pass> createUnwindLoweringPass();
-std::unique_ptr<mlir::Pass> createOpCancellationPass();
-std::unique_ptr<mlir::Pass> createOpDecompositionPass();
-std::unique_ptr<mlir::Pass> createSplitArraysPass();
-std::unique_ptr<mlir::Pass> createConvertFuncToQTXPass();
-std::unique_ptr<mlir::Pass> createConvertQTXToQuakePass();
-std::unique_ptr<mlir::Pass> createConvertQuakeToQTXPass();
 
 // declarative passes
+#define GEN_PASS_DECL
 #define GEN_PASS_REGISTRATION
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 

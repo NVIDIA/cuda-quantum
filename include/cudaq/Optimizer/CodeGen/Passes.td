@@ -12,11 +12,11 @@
 include "mlir/Pass/PassBase.td"
 
 def QuakeToQIR : Pass<"quake-to-qir", "mlir::ModuleOp"> {
-  let summary = "Lower Quake/QTX to QIR.";
+  let summary = "Lower Quake to QIR.";
   let description = [{
-    Converts Quake (or QTX) to QIR (as LLVM-IR).
-    The quake-add-deallocs pass should be run before this pass
-    in order to properly generate deallocations for allocated qubits.
+    Converts Quake to QIR (as LLVM-IR). The quake-add-deallocs pass should be
+    run before this pass in order to properly generate deallocations for
+    allocated qubits.
   }];
 
   let dependentDialects = ["mlir::LLVM::LLVMDialect"];

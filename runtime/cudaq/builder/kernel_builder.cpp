@@ -1,10 +1,10 @@
-/*******************************************************************************
+/*************************************************************** -*- C++ -*- ***
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- ******************************************************************************/
+ *******************************************************************************/
 
 #include "kernel_builder.h"
 #include "common/Logger.h"
@@ -128,8 +128,8 @@ initializeBuilder(MLIRContext *context,
     int digit = rand() % 10;
     os << digit;
   }
-  kernelName += "_" + os.str();
 
+  kernelName += fmt::format("_{}", os.str());
   cudaq::info("kernel_builder name set to {}", kernelName);
 
   FunctionType funcTy = opBuilder->getFunctionType(types, std::nullopt);
@@ -333,13 +333,15 @@ KernelBuilderType::KernelBuilderType(
 
 Type KernelBuilderType::create(MLIRContext *ctx) { return creator(ctx); }
 
+QuakeValue qalloc(ImplicitLocOpBuilder &builder) {
+  cudaq::info("kernel_builder allocating a single qubit");
+  Value qubit = builder.create<quake::AllocaOp>();
+  return QuakeValue(builder, qubit);
+}
+
 QuakeValue qalloc(ImplicitLocOpBuilder &builder, const std::size_t nQubits) {
   cudaq::info("kernel_builder allocating {} qubits", nQubits);
 
-  if (nQubits == 1) {
-    Value qubit = builder.create<quake::AllocaOp>();
-    return QuakeValue(builder, qubit);
-  }
   auto context = builder.getContext();
   Value qubits = builder.create<quake::AllocaOp>(
       quake::VeqType::get(context, nQubits),
@@ -592,7 +594,7 @@ ExecutionEngine *jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   names.emplace_back(mlir::StringAttr::get(ctx, kernelName),
                      mlir::StringAttr::get(ctx, "BuilderKernel.EntryPoint"));
   auto mapAttr = mlir::DictionaryAttr::get(ctx, names);
-  module->setAttr("qtx.mangled_name_map", mapAttr);
+  module->setAttr("quake.mangled_name_map", mapAttr);
 
   // Tag as an entrypoint if it is one
   module.walk([&](func::FuncOp function) {

@@ -7,10 +7,10 @@
  *******************************************************************************/
 
 #pragma once
-#include <complex>
 
 #include "matrix.h"
 #include "utils/cudaq_utils.h"
+#include <complex>
 #include <functional>
 #include <map>
 
@@ -153,8 +153,8 @@ public:
       iter++;
       return *this;
     }
-    iterator operator++(int) {
-      iterator tmp = *this;
+    iterator &operator++(int) {
+      iterator &tmp = *this;
       ++(*this);
       return tmp;
     }

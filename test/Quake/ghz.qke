@@ -9,10 +9,9 @@
 // RUN: cudaq-opt %s --canonicalize | FileCheck %s
 module {
     // CHECK: func.func @ghz(%[[arg0:.*]]: i32) {
-    // CHECK: %[[C0:.*]] = arith.constant 0 : i32
     // CHECK: %[[C1:.*]] = arith.constant 1 : i32
     // CHECK: %0 = quake.alloca[%[[arg0]] : i32] !quake.veq<?>
-    // CHECK: %1 = quake.extract_ref %0[%[[C0]]] : (!quake.veq<?>, i32) -> !quake.ref
+    // CHECK: %1 = quake.extract_ref %0[0] : (!quake.veq<?>) -> !quake.ref
     // CHECK: quake.h %1 :
     // CHECK: %2 = arith.subi %arg0, %[[C1]] : i32
     // CHECK: %3 = arith.index_cast %2 : i32 to index

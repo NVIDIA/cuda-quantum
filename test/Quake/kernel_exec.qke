@@ -8,7 +8,7 @@
 
 // RUN: cudaq-opt --kernel-execution %s | FileCheck %s
 
-module attributes {qtx.mangled_name_map = {__nvqpp__mlirgen__ghz = "_ZN3ghzclEi"}} {
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__ghz = "_ZN3ghzclEi"}} {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ghz(
 

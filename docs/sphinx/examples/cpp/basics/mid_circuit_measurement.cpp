@@ -1,17 +1,19 @@
 // Compile and run with:
 // ```
-// nvq++ mid_circuit_measurement.cpp -o teleport.x && ./teleport.x
+// nvq++ mid_circuit_measurement.cpp --enable-mlir -o teleport.x && ./teleport.x
 // ```
+// Note MLIR-based compilation must be enabled to detect
+// mid-circuit measurement and affect simulation accordingly.
 
 #include <cudaq.h>
 
 struct kernel {
   void operator()() __qpu__ {
     cudaq::qreg<3> q;
-    // Initial state prep
+    // Initial state preparation
     x(q[0]);
 
-    // create bell pair
+    // Create Bell pair
     h(q[1]);
     x<cudaq::ctrl>(q[1], q[2]);
 
