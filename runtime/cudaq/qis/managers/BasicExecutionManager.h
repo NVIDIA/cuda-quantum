@@ -105,22 +105,19 @@ public:
 
   void resetExecutionContext() override {
     synchronize();
-    std::string_view ctx_name = "";
-    if (executionContext)
-      ctx_name = executionContext->name;
+
+    if (!executionContext)
+      return;
 
     // Do any final post-processing before
     // we deallocate the qudits
     handleExecutionContextEnded();
 
-    if (ctx_name == "observe" || ctx_name == "sample" ||
-        ctx_name == "extract-state") {
-      deallocateQudits(contextQuditIdsForDeletion);
-      for (auto &q : contextQuditIdsForDeletion)
-        returnIndex(q.id);
+    deallocateQudits(contextQuditIdsForDeletion);
+    for (auto &q : contextQuditIdsForDeletion)
+      returnIndex(q.id);
 
-      contextQuditIdsForDeletion.clear();
-    }
+    contextQuditIdsForDeletion.clear();
     executionContext = nullptr;
   }
 
@@ -137,20 +134,7 @@ public:
       return;
     }
 
-    std::string_view ctx_name = "";
-    if (executionContext)
-      ctx_name = executionContext->name;
-
-    // Handle the case where we are sampling with an implicit
-    // measure on the entire register.
-    if (executionContext && (ctx_name == "observe" || ctx_name == "sample" ||
-                             ctx_name == "extract-state")) {
-      contextQuditIdsForDeletion.push_back(qid);
-      return;
-    }
-
-    deallocateQudit(qid);
-    returnIndex(qid.id);
+    contextQuditIdsForDeletion.push_back(qid);
   }
 
   void startAdjointRegion() override { adjointQueueStack.emplace(); }
@@ -218,31 +202,29 @@ public:
       mutable_controls.push_back(e);
 
     std::vector<cudaq::QuditInfo> mutable_targets;
-    for (auto &t : targets) {
+    for (auto &t : targets)
       mutable_targets.push_back(t);
-    }
 
     if (isAdjoint || !adjointQueueStack.empty()) {
-      for (std::size_t i = 0; i < params.size(); i++) {
+      for (std::size_t i = 0; i < params.size(); i++)
         mutable_params[i] = -1.0 * params[i];
-      }
-      if (mutable_name == "t") {
+      if (mutable_name == "t")
         mutable_name = "tdg";
-      } else if (mutable_name == "s") {
+      else if (mutable_name == "s")
         mutable_name = "sdg";
-      }
     }
 
     if (!adjointQueueStack.empty()) {
       // Add to the adjoint instruction queue
       adjointQueueStack.top().emplace(std::make_tuple(
           mutable_name, mutable_params, mutable_controls, mutable_targets));
-    } else {
-      // Add to the instruction queue
-      instructionQueue.emplace(std::make_tuple(std::move(mutable_name),
-                                               mutable_params, mutable_controls,
-                                               mutable_targets));
+      return;
     }
+
+    // Add to the instruction queue
+    instructionQueue.emplace(std::make_tuple(std::move(mutable_name),
+                                             mutable_params, mutable_controls,
+                                             mutable_targets));
   }
 
   void synchronize() override {
