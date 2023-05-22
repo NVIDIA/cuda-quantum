@@ -40,6 +40,6 @@ target_link_libraries(test_observe_backend
   nvqir-qpp-observe-test
   cudaq-spin 
   cudaq-platform-default 
-  cudaq-em-qir
+  cudaq-em-default
   gtest_main)
 gtest_discover_tests(test_observe_backend)
