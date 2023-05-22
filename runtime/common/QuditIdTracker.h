@@ -22,7 +22,7 @@ private:
   std::size_t currentId = 0;
 
   /// @brief The queue of recycled qubits.
-  std::deque<std::size_t> recycledQudits;
+  std::vector<std::size_t> recycledQudits;
 
 public:
   /// @brief Return the next available index,
@@ -36,7 +36,7 @@ public:
     }
 
     auto next = recycledQudits.front();
-    recycledQudits.pop_front();
+    recycledQudits.erase(recycledQudits.begin());
     return next;
   }
 
@@ -44,7 +44,7 @@ public:
   /// If all qudits have been deallocated, reset the
   /// tracker.
   void returnIndex(std::size_t idx) {
-    recycledQudits.push_front(idx);
+    recycledQudits.push_back(idx);
     std::sort(recycledQudits.begin(), recycledQudits.end());
     if (recycledQudits.size() == currentId) {
       currentId = 0;
