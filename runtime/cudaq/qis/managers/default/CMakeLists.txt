@@ -6,31 +6,23 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-set(LIBRARY_NAME cudaq-platform-mqpu)
-find_package(CUDA REQUIRED)
-add_library(${LIBRARY_NAME} SHARED MultiQPUPlatform.cpp ../common/QuantumExecutionQueue.cpp)
+set(LIBRARY_NAME cudaq-em-default)
+
+add_library(${LIBRARY_NAME} SHARED CircuitSimulatorManager.cpp)
 target_include_directories(${LIBRARY_NAME} 
     PUBLIC 
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
-       $<BUILD_INTERFACE:${CUDA_INCLUDE_DIRS}>
        $<INSTALL_INTERFACE:include>
-    PRIVATE . ../../)
+    PRIVATE .)
 
 target_link_libraries(${LIBRARY_NAME}
-  PUBLIC 
-    cudaq-em-default 
-    cudaq-spin 
-    cudaq-common 
-  PRIVATE 
-    pthread
-    spdlog::spdlog 
-    fmt::fmt-header-only 
-    ${CUDA_LIBRARIES})
+  PUBLIC cudaq-spin PRIVATE nvqir cudaq-common fmt::fmt-header-only)
 
 cudaq_library_set_rpath(${LIBRARY_NAME})
 
-install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
-install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-platform-mqpu-targets DESTINATION lib)
+install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-em-default-targets DESTINATION lib)
 
-add_target_config(nvidia-mqpu)
-add_target_config(nvidia-mqpu-fp64)
+install(EXPORT cudaq-em-default-targets
+        FILE CUDAQEmQirTargets.cmake
+        NAMESPACE cudaq::
+        DESTINATION lib/cmake/cudaq)

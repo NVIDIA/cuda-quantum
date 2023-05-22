@@ -28,6 +28,9 @@ struct QuditInfo {
   std::size_t id = 0;
   QuditInfo(const std::size_t &_levels, const std::size_t &_id)
       : levels(_levels), id(_id) {}
+  bool operator==(const QuditInfo &other) {
+    return levels == other.levels && id == other.id;
+  }
 };
 
 /// The ExecutionManager provides a base class describing a

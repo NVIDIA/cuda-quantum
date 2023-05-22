@@ -50,7 +50,7 @@ target_link_libraries(_pycudaq
       nvqir
       cudaq 
       cudaq-builder 
-      cudaq-em-qir 
+      cudaq-em-default 
       cudaq-platform-default 
       fmt::fmt-header-only)
 

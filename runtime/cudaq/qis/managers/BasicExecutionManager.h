@@ -17,6 +17,7 @@
 #include <stack>
 
 namespace cudaq {
+class BasicExecutionManager;
 
 /// @brief The `BasicExecutionManager` provides a common base class for
 /// specializations that implement the `ExecutionManager` type. Most of the
@@ -27,6 +28,7 @@ namespace cudaq {
 /// measurement, allocation, and deallocation, and execution context handling
 /// (e.g. sampling)
 class BasicExecutionManager : public cudaq::ExecutionManager {
+
 protected:
   /// @brief An instruction is composed of a operation name,
   /// a optional set of rotation parameters, control qudits, and
@@ -40,7 +42,7 @@ protected:
 
   /// @brief The current execution context, e.g. sampling
   /// or observation
-  cudaq::ExecutionContext *executionContext;
+  cudaq::ExecutionContext *executionContext = nullptr;
 
   /// @brief Store qudits for delayed deletion under
   /// certain execution contexts
@@ -105,22 +107,24 @@ public:
 
   void resetExecutionContext() override {
     synchronize();
-    std::string_view ctx_name = "";
-    if (executionContext)
-      ctx_name = executionContext->name;
+
+    if (!executionContext)
+      return;
 
     // Do any final post-processing before
     // we deallocate the qudits
     handleExecutionContextEnded();
 
-    if (ctx_name == "observe" || ctx_name == "sample" ||
-        ctx_name == "extract-state") {
+    if (executionContext->name == "observe" ||
+        executionContext->name == "sample" ||
+        executionContext->name == "extract-state") {
       deallocateQudits(contextQuditIdsForDeletion);
       for (auto &q : contextQuditIdsForDeletion)
         returnIndex(q.id);
 
       contextQuditIdsForDeletion.clear();
     }
+
     executionContext = nullptr;
   }
 
@@ -137,14 +141,11 @@ public:
       return;
     }
 
-    std::string_view ctx_name = "";
-    if (executionContext)
-      ctx_name = executionContext->name;
-
     // Handle the case where we are sampling with an implicit
     // measure on the entire register.
-    if (executionContext && (ctx_name == "observe" || ctx_name == "sample" ||
-                             ctx_name == "extract-state")) {
+    if (executionContext && (executionContext->name == "observe" ||
+                             executionContext->name == "sample" ||
+                             executionContext->name == "extract-state")) {
       contextQuditIdsForDeletion.push_back(qid);
       return;
     }
@@ -152,7 +153,7 @@ public:
     deallocateQudit(qid);
     returnIndex(qid.id);
     if (numAvailable() == totalNumQudits()) {
-      if (executionContext && ctx_name == "observe") {
+      if (executionContext && executionContext->name == "observe") {
         while (!instructionQueue.empty())
           instructionQueue.pop();
       }

@@ -26,6 +26,7 @@ void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *);
 
 namespace cudaq {
 void setQuantumPlatformInternal(quantum_platform *p);
+void setCircuitSimulator(nvqir::CircuitSimulator*);
 
 constexpr static const char PLATFORM_LIBRARY[] = "PLATFORM_LIBRARY=";
 constexpr static const char NVQIR_SIMULATION_BACKEND[] =
@@ -228,6 +229,7 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
 
   // We'll always start off with the default platform and the QPP simulator
   __nvqir__setCircuitSimulator(simulators["qpp"]);
+  setCircuitSimulator(simulators["qpp"]);
   setQuantumPlatformInternal(platforms["default"]);
   targets.emplace("default",
                   RuntimeTarget{"default", "qpp", "default",
@@ -241,6 +243,7 @@ LinkedLibraryHolder::~LinkedLibraryHolder() {
 
 void LinkedLibraryHolder::resetTarget() {
   __nvqir__setCircuitSimulator(simulators["qpp"]);
+  setCircuitSimulator(simulators["qpp"]);
   setQuantumPlatformInternal(platforms["default"]);
   currentTarget = "default";
 }
@@ -283,6 +286,7 @@ void LinkedLibraryHolder::setTarget(
               target.simulatorName, target.platformName);
 
   __nvqir__setCircuitSimulator(simulators[target.simulatorName]);
+  setCircuitSimulator(simulators[target.simulatorName]);
   auto *platform = platforms[target.platformName];
 
   // Pack the config into the backend string name
