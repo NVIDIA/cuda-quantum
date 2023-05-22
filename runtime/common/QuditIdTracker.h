@@ -9,7 +9,7 @@
 #pragma once
 
 #include <algorithm>
-#include <deque>
+#include <vector>
 
 namespace cudaq {
 
