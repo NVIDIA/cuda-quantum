@@ -25,6 +25,9 @@ private:
   std::vector<std::size_t> recycledQudits;
 
 public:
+  QuditIdTracker() = default;
+  QuditIdTracker(const QuditIdTracker &) = delete;
+
   /// @brief Return the next available index,
   /// take from the recycled qudit indentifiers
   /// if possible.
@@ -35,8 +38,8 @@ public:
       return ret;
     }
 
-    auto next = recycledQudits.front();
-    recycledQudits.erase(recycledQudits.begin());
+    auto next = recycledQudits.back();
+    recycledQudits.pop_back();
     return next;
   }
 
@@ -45,7 +48,8 @@ public:
   /// tracker.
   void returnIndex(std::size_t idx) {
     recycledQudits.push_back(idx);
-    std::sort(recycledQudits.begin(), recycledQudits.end());
+    std::sort(recycledQudits.begin(), recycledQudits.end(),
+              std::greater<std::size_t>());
     if (recycledQudits.size() == currentId) {
       currentId = 0;
       recycledQudits.clear();
@@ -55,7 +59,7 @@ public:
   /// @brief Return true if all qudits have been deallocated.
   bool allDeallocated() {
     // Either current id is 0 and we don't have recycled bits,
-    return (currentId == 0 && recycledQudits.empty());
+    return currentId == 0 && recycledQudits.empty();
   }
 
   /// @brief Return the number of qudits allocated.
