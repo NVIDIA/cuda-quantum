@@ -474,11 +474,7 @@ __qpu__ void doubletExcitation(cudaq::qspan<> qubits, double theta,
 
 std::size_t uccsd_num_parameters(std::size_t nElectrons, std::size_t nQubits) {
   auto [singles, doubles] = generateExcitations(nElectrons, nQubits);
-  auto ns = nQubits / 2;
-  auto no = std::ceil(nElectrons / 2);
-  auto nv = ns - no;
-  auto ns2 = no * nv;
-  return doubles.size() + ns2;
+  return singles.size() + doubles.size();
 }
 
 /// @brief Generate the unitary coupled cluster singlet doublet ansatz on the
@@ -488,13 +484,7 @@ std::size_t uccsd_num_parameters(std::size_t nElectrons, std::size_t nQubits) {
 template <typename KernelBuilder>
 void uccsd(KernelBuilder &kernel, QuakeValue &qubits, QuakeValue &thetas,
            std::size_t nElectrons, std::size_t nOrbitals) {
-  // auto nOrbitals = qubits.size();
   auto [singles, doubles] = generateExcitations(nElectrons, nOrbitals);
-  std::size_t thetaCounter = 0;
-  auto ns = nOrbitals / 2;
-  auto no = std::ceil(nElectrons / 2);
-  auto nv = ns - no;
-  auto ns2 = no * nv;
 
   // doubles
   std::vector<std::pair<std::vector<std::size_t>, std::vector<std::size_t>>>
@@ -512,17 +502,14 @@ void uccsd(KernelBuilder &kernel, QuakeValue &qubits, QuakeValue &thetas,
     double_processed.emplace_back(d1, d2);
   }
 
-  for (auto &el : double_processed) {
-    auto t = thetas[thetaCounter++];
+  for (std::size_t c = singles.size(); auto &el : double_processed) {
+    auto t = thetas[c++];
     doubletExcitation(kernel, qubits, t, el.first, el.second);
   }
 
   // singles
   for (std::size_t i = 0; auto &single : singles) {
-    if (i++ == ns2)
-      break;
-
-    auto t = thetas[thetaCounter++];
+    auto t = thetas[i++];
     singletExcitation(kernel, qubits, t, single);
   }
 }
@@ -533,13 +520,7 @@ void uccsd(KernelBuilder &kernel, QuakeValue &qubits, QuakeValue &thetas,
 /// the `uccsd_num_parameters` function.
 __qpu__ void uccsd(cudaq::qspan<> qubits, std::vector<double> thetas,
                    std::size_t nElectrons) {
-  auto nOrbitals = qubits.size();
-  auto [singles, doubles] = generateExcitations(nElectrons, nOrbitals);
-  std::size_t thetaCounter = 0;
-  auto ns = nOrbitals / 2;
-  auto no = std::ceil(nElectrons / 2);
-  auto nv = ns - no;
-  auto ns2 = no * nv;
+  auto [singles, doubles] = generateExcitations(nElectrons, qubits.size());
 
   // doubles
   std::vector<std::pair<std::vector<std::size_t>, std::vector<std::size_t>>>
@@ -557,15 +538,12 @@ __qpu__ void uccsd(cudaq::qspan<> qubits, std::vector<double> thetas,
     double_processed.emplace_back(d1, d2);
   }
 
-  for (auto &el : double_processed)
-    doubletExcitation(qubits, thetas[thetaCounter++], el.first, el.second);
+  for (std::size_t c = singles.size(); auto &el : double_processed)
+    doubletExcitation(qubits, thetas[c++], el.first, el.second);
 
   // singles
-  for (std::size_t i = 0; auto &single : singles) {
-    if (i++ == ns2)
-      break;
-    singletExcitation(qubits, thetas[thetaCounter++], single);
-  }
+  for (std::size_t i = 0; auto &single : singles)
+    singletExcitation(qubits, thetas[i++], single);
 }
 
 } // namespace cudaq
