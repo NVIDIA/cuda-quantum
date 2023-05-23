@@ -116,7 +116,7 @@ public:
   /// specified by that variable.
   void setTargetBackend(const std::string &backend) override {
     std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
-    auto platformPath = cudaqLibPath.parent_path().parent_path() / "platforms";
+    auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
 
     auto mutableBackend = backend;
     if (mutableBackend.find(";") != std::string::npos) {
