@@ -7,8 +7,8 @@
  *******************************************************************************/
 
 #include "Resources.h"
-#include <algorithm>
 #include "common/FmtCore.h"
+#include <algorithm>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -110,7 +110,7 @@ void resources::dump(std::ostream &os) const {
     writeRow(instruction, count);
     totalNumberGates += count;
     if (!instruction.controls.empty()) {
-      totalCtrlOperations++;
+      totalCtrlOperations += count;
     }
   }
 
