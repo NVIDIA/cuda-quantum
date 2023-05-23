@@ -208,9 +208,9 @@ public:
     if (isAdjoint || !adjointQueueStack.empty()) {
       for (std::size_t i = 0; i < params.size(); i++)
         mutable_params[i] = -1.0 * params[i];
-      if (mutable_name == "t")
+      if (gateName == "t")
         mutable_name = "tdg";
-      else if (mutable_name == "s")
+      else if (gateName == "s")
         mutable_name = "sdg";
     }
 
