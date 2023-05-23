@@ -27,6 +27,11 @@ namespace cudaq {
 /// measurement, allocation, and deallocation, and execution context handling
 /// (e.g. sampling)
 class BasicExecutionManager : public cudaq::ExecutionManager {
+private:
+  bool isInTracerMode() {
+    return executionContext && executionContext->name == "tracer";
+  }
+
 protected:
   /// @brief An instruction is composed of a operation name,
   /// a optional set of rotation parameters, control qudits, and
@@ -109,6 +114,14 @@ public:
     if (!executionContext)
       return;
 
+    if (isInTracerMode()) {
+      for (auto &q : contextQuditIdsForDeletion)
+        returnIndex(q.id);
+
+      contextQuditIdsForDeletion.clear();
+      return;
+    }
+
     // Do any final post-processing before
     // we deallocate the qudits
     handleExecutionContextEnded();
@@ -123,6 +136,8 @@ public:
 
   std::size_t getAvailableIndex(std::size_t quditLevels) override {
     auto new_id = getNextIndex();
+    if (isInTracerMode())
+      return new_id;
     allocateQudit({quditLevels, new_id});
     return new_id;
   }
@@ -130,6 +145,11 @@ public:
   void returnQudit(const QuditInfo &qid) override {
     if (!executionContext) {
       deallocateQudit(qid);
+      returnIndex(qid.id);
+      return;
+    }
+
+    if (isInTracerMode()) {
       returnIndex(qid.id);
       return;
     }
@@ -230,7 +250,17 @@ public:
   void synchronize() override {
     while (!instructionQueue.empty()) {
       auto instruction = instructionQueue.front();
-      executeInstruction(instruction);
+      if (isInTracerMode()) {
+        auto [gateName, params, controls, targets] = instruction;
+        std::vector<std::size_t> controlIds;
+        std::transform(controls.begin(), controls.end(),
+                       std::back_inserter(controlIds),
+                       [](const auto &el) { return el.id; });
+        executionContext->kernelResources.appendInstruction(
+            cudaq::resources::Instruction(gateName, controlIds, targets[0].id));
+      } else {
+        executeInstruction(instruction);
+      }
       instructionQueue.pop();
     }
   }

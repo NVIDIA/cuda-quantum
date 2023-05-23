@@ -8,8 +8,7 @@
 
 #include "Resources.h"
 #include <algorithm>
-#include <fmt/core.h>
-#include <fmt/ranges.h>
+#include "common/FmtCore.h"
 #include <iomanip>
 #include <iostream>
 #include <sstream>
