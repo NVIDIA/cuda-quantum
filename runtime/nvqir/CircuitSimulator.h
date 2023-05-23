@@ -964,4 +964,3 @@ public:
         std::make_unique<CLASSNAME>();                                         \
     return simulator.get();                                                    \
   }
-  
