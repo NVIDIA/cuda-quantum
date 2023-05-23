@@ -59,6 +59,14 @@ std::size_t resources::count(const std::string &name) const {
 
   return result;
 }
+
+std::size_t resources::count() const {
+  std::size_t total = 0;
+  for (const auto &[instruction, count] : instructions)
+    total += count;
+  return total;
+}
+
 void resources::appendInstruction(const resources::Instruction &instruction) {
   auto iter = instructions.find(instruction);
   if (iter == instructions.end())

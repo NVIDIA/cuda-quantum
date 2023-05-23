@@ -85,6 +85,9 @@ public:
   /// @brief Return the number of instructions with the given name
   std::size_t count(const std::string &name) const;
 
+  /// @brief Return the total number of operations
+  std::size_t count() const;
+
   /// @brief Append the given instruction to the resource estimate.
   void appendInstruction(const Instruction &instruction);
 
