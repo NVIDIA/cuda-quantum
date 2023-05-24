@@ -15,8 +15,8 @@
 
 namespace cudaq {
 
-std::size_t Resources::InstructionHash::operator()(
-    const Instruction &instruction) const {
+std::size_t
+Resources::InstructionHash::operator()(const Instruction &instruction) const {
   std::size_t seed = 0;
   std::size_t cHash = 0;
   for (auto &c : instruction.controls)
@@ -66,7 +66,6 @@ std::size_t Resources::count() const {
     total += count;
   return total;
 }
-
 
 void Resources::appendInstruction(const Resources::Instruction &instruction) {
   auto iter = instructions.find(instruction);
