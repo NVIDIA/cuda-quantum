@@ -17,11 +17,8 @@ namespace cudaq {
 class IonQServerHelper : public ServerHelper {
 private:
   RestClient client;
-
-  // Private helper function to check if a key exists in the map
-  bool keyExists(const std::string &key) const {
-    return backendConfig.find(key) != backendConfig.end();
-  }
+  std::string getEnvVar(const std::string &key) const;
+  bool keyExists(const std::string &key) const;
 
 public:
   const std::string name() const override { return "ionq"; }
@@ -46,9 +43,23 @@ void IonQServerHelper::initialize(BackendConfig config) {
   backendConfig["user_agent"] = "cudaq/0.3.0";
   backendConfig["target"] = "simulator";
   backendConfig["qubits"] = 29;
-  backendConfig["token"] = "giveme403";
+  backendConfig["token"] = getEnvVar("IONQ_API_KEY");
   backendConfig["job_path"] =
       backendConfig["url"] + '/' + backendConfig["version"] + "/jobs";
+}
+
+std::string IonQServerHelper::getEnvVar(const std::string &key) const {
+  const char *env_var = std::getenv(key.c_str());
+  if (env_var == nullptr) {
+    // Handle the case where the environment variable is not set
+    throw std::runtime_error(key + " environment variable is not set.");
+  }
+  return std::string(env_var);
+}
+
+bool IonQServerHelper::keyExists(const std::string &key) const {
+  // check if a key exists in the map
+  return backendConfig.find(key) != backendConfig.end();
 }
 
 ServerJobPayload

@@ -49,8 +49,9 @@ RUN mkdir llvm-project && \
 RUN pip3 install lit numpy pytest
 
 # Build CUDA Quantum
-RUN git clone https://github.com/NVIDIA/cuda-quantum && \
+RUN git clone https://github.com/splch/cuda-quantum && \
     cd cuda-quantum && \
+    git checkout ionqTemplate && \
     mkdir build && \
     cd build && \
     cmake .. -G Ninja \
