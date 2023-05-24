@@ -39,7 +39,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
     NAME
       nvqpp_cuquantum
     COMMAND
-      bash -c "${CMAKE_BINARY_DIR}/bin/nvq++ -qpu cuquantum ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/examples/cpp/basics/cuquantum_backends.cpp -o CuQuantumBackend ;\
+      bash -c "${CMAKE_BINARY_DIR}/bin/nvq++ --target nvidia ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/examples/cpp/basics/cuquantum_backends.cpp -o CuQuantumBackend ;\
                 ${CMAKE_CURRENT_BINARY_DIR}/CuQuantumBackend"
     )
 endif()
