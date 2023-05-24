@@ -53,8 +53,10 @@ Backend Configuration
 
 .. autofunction:: cudaq::set_noise
 .. autofunction:: cudaq::unset_noise
-.. autofunction:: cudaq::set_qpu
-.. autofunction:: cudaq::list_qpus
+.. autofunction:: cudaq::set_target
+.. autofunction:: cudaq::has_target
+.. autofunction:: cudaq::get_target
+.. autofunction:: cudaq::get_targets
 
 Data Types
 =============================
@@ -88,8 +90,8 @@ Data Types
     .. automethod:: __rsub__
     .. automethod:: __mul__
     .. automethod:: __rmul__
-    .. automethod:: __getitem__
-
+    .. automethod:: __iter__
+        
 .. autofunction:: cudaq::spin.i
 .. autofunction:: cudaq::spin.x
 .. autofunction:: cudaq::spin.y

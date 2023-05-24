@@ -8,4 +8,4 @@ The following specifications for the CUDA Quantum programming model and toolchai
    :maxdepth: 2
 
       Language Specification <cudaq.rst>
-      QTX Specification <qtx-dialect>
+      Quake Specification <quake-dialect>

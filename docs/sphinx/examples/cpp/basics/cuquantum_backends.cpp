@@ -1,5 +1,7 @@
 // Compile and run with:
+// ```
 // nvq++ cuquantum_backends.cpp -o dyn.x -qpu cuquantum && ./dyn.x
+// ```
 
 // This example is meant to demonstrate the cuQuantum
 // target and its ability to easily handle a larger number
@@ -15,7 +17,7 @@
 struct ghz {
   auto operator()(const int N) __qpu__ {
 
-    // Dynamic, vector-like qreg
+    // Dynamic, vector-like `qreg`
     cudaq::qreg q(N);
     h(q[0]);
     for (int i = 0; i < N - 1; i++) {

@@ -67,7 +67,7 @@ def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
   let description = [{
     The quake.apply op allows quake kernels to be called with implicit
     specialization of the function itself. For example, a user-defined kernel
-    can be called with an optional qvec of control qubits. These extra control
+    can be called with an optional veq of control qubits. These extra control
     qubits implicitly create a new and distinct function that threads these
     control qubits to each quantum op in the function.
 
@@ -130,9 +130,6 @@ def LowerToCFG : Pass<"lower-to-cfg", "mlir::func::FuncOp"> {
     ^bb26:
       // exit loop
     ```
-
-    Note that it may be the case that converting high-level control flow  Ops
-    to CFG form will not be as amenable to lowering to QTX or QTX optimizations.
   }];
 
   let dependentDialects = [ "mlir::cf::ControlFlowDialect" ];
@@ -244,7 +241,7 @@ def CCMemToReg : Pass<"cc-mem2reg", "mlir::func::FuncOp"> {
 def ExpandMeasurements : Pass<"expand-measurements"> {
   let summary = "Expand multi-ref measurements to series on single refs.";
   let description = [{
-    The `mx`, `my`, `mz` ops can take a list of qubits and/or qvec arguments.
+    The `mx`, `my`, `mz` ops can take a list of qubits and/or veq arguments.
     The target may only support measuring a single qubit however. This pass
     expands these ops in list format into a series of measurements (including
     loops) on individual qubits and into a single `std::vector<bool>` result.
@@ -299,79 +296,59 @@ def UnwindLowering : Pass<"unwind-lowering", "mlir::func::FuncOp"> {
   let constructor = "cudaq::opt::createUnwindLoweringPass()";
 }
 
-def OpCancellation : Pass<"qtx-op-cancellation", "qtx::CircuitOp"> {
-  let summary = "Remove pairs of adjacent adjoint operations.";
+def BasisConversionPass: Pass<"quake-basis-conversion", "mlir::ModuleOp"> {
+  let summary = "Converts kernels to a set of basis operations.";
   let description = [{
-    This pass performs basic quantum operation cancellation: it traverses
-    a 'circuit' and removes pairs of adjacent adjoint operations.  This
-    optimization is purely structural, and its effectiveness is highly
-    dependent on canonicalization.
+    This pass takes as input a list of target (allowed) quantum operations.
+    It builds a conversion target, and uses it, together with the dialect
+    conversion driver, to try converting all operations into the defined basis.
 
-    Note: This is a low-effort pass that only take into account commutations
-    between operations that share the a subset of controls.
+    The `basis` option takes a comma-separated list of elements identifying
+    specific quantum operations as input. Each element must have the
+    following format:
+
+    ```
+    <op-name>(`(` [<number-of-controls> | `n`] `)` )?
+    ```
+
+    Examples:
+    - `x` means targeting pauli-x operations without controls  (aka, `not`)
+    - `x(1)` means targeting pauli-x operations with one control (aka, `cx`)
+    - `x(n)` means targeting pauli-x operation with unbounded number of controls
+    - `x,x(1)` means targeting both `not` and `cx` operations
   }];
-  let constructor = "cudaq::opt::createOpCancellationPass()";
-}
-
-def OpDecomposition: Pass<"qtx-op-decomposition", "qtx::CircuitOp"> {
-  let summary = "Remove pairs of adjacent adjoint operations.";
-  let description = [{
-    Decomposition is the process of _systematically_ breaking down
-    high-level instruction (operations) into a sequence of lower level ones.
-    We emphasize "systematically" because it is the characteristic that
-    differentiates decompostion from synthesis.  When doing deomposition, we
-    generate the sequence of lower-level instructions by applying some
-    construction rule(s).  Decomposition techniques are faster than synthesis
-    and produce predictable results, i.e., we know in advance the cost in number
-    of low-level instructions and in the number of qubits.
-
-    NOTE: The implementation still preliminary.
-  }];
-  let constructor = "cudaq::opt::createOpDecompositionPass()";
-}
-
-def SplitArrays: Pass<"qtx-split-arrays", "qtx::CircuitOp"> {
-  let summary = "Split arrays.";
-  let description = [{
-    There are some quantum languages, e.g. Quil, that do not have the notion of
-    quantum register (array, vector).  Therefore, when targeting such languages,
-    it is necessary to split all arrays.
-
-    NOTE: We cannot split all arrays.  For example, we cannot split those which
-    are indexed by runtime arguments.  In such cases, the default behavior is to
-    leave those arrays alone and return success nevertheless.  This behavior can
-    be configured using the `allow-partial-split` option, when this option is
-    set to `false`, the pass will fail if cannot split all arrays.
-  }];
-  let constructor = "cudaq::opt::createSplitArraysPass()";
   let options = [
-    Option<"allowPartialSplit", "allow-partial-split", "bool",
-           /*default=*/"true", "Allow arrays that cannot be split">,
+    ListOption<"basis", "basis", "std::string", "Set of basis operations">,
+    ListOption<"disabledPatterns", "disable-patterns", "std::string",
+               "Labels of decomposition patterns that should be filtered out">,
+    ListOption<"enabledPatterns", "enable-patterns", "std::string",
+               "Labels of decomposition patterns that should be used, all "
+               "other patterns are filtered out">,
   ];
 }
 
-def ConvertQTXToQuake : Pass<"convert-qtx-to-quake", "mlir::ModuleOp">{
-  let summary = "Convert QTX dialect to Quake dialect";
-  let dependentDialects = ["::cudaq::cc::CCDialect", "quake::QuakeDialect",
-                           "mlir::func::FuncDialect"];
-  let constructor = "cudaq::opt::createConvertQTXToQuakePass()";
-}
-
-def ConvertQuakeToQTX : Pass<"convert-quake-to-qtx", "mlir::func::FuncOp">{
-  let summary = "Convert Quake dialect to QTX dialect";
+def DecompositionPass: Pass<"quake-decomposition", "mlir::ModuleOp"> {
+  let summary = "Break down quantum operations.";
   let description = [{
-    This pass assumes quake-synth and quake-add-deallocs have run.
-  }];
-  let dependentDialects = ["qtx::QTXDialect"];
-  let constructor = "cudaq::opt::createConvertQuakeToQTXPass()";
-}
+    This pass performs decomposition over a set of operations by iteratively
+    applying decomposition patterns until either a fixpoint is reached or the
+    maximum number of iterations/rewrites is exhausted. Decomposition is
+    best-effort and does not guarantee that the entire IR is decomposed after
+    running this pass.
 
-def ConvertFuncToQTX : Pass<"convert-func-to-qtx", "mlir::ModuleOp">{
-  let summary = "Convert Func dialect to QTX dialect";
-  let description = [{
+    NOTE: The current implementation is conservative w.r.t global phase, which
+    means no decomposition will take place under the presence of controlled
+    `quake.apply` operations in the module.
   }];
-  let dependentDialects = ["qtx::QTXDialect"];
-  let constructor = "cudaq::opt::createConvertFuncToQTXPass()";
+  let options = [
+    ListOption<"disabledPatterns", "disable-patterns", "std::string",
+               "Labels of decomposition patterns that should be filtered out">,
+    ListOption<"enabledPatterns", "enable-patterns", "std::string",
+               "Labels of decomposition patterns that should be used, all "
+               "other patterns are filtered out">,
+    Option<"testConvergence", "test-convergence", "bool", /*default=*/"false",
+           "Test only: Fail pass on non-convergence to detect cyclic patterns">,
+  ];
 }
 
 #endif // CUDAQ_OPT_OPTIMIZER_TRANSFORMS_PASSES

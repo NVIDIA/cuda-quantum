@@ -8,8 +8,8 @@
 
 #pragma once
 
+#include "common/FmtCore.h"
 #include "cudaq/builder/kernel_builder.h"
-#include <fmt/core.h>
 #include <functional>
 #include <pybind11/pybind11.h>
 #include <vector>
@@ -117,6 +117,66 @@ inline py::args validateInputArguments(kernel_builder<> &kernel,
   // TODO: Handle more type checking
 
   return processed;
+}
+
+/// @brief For general function broadcasting over many argument
+/// sets, this function will create those argument sets from
+/// the input args.
+inline std::vector<py::args> createArgumentSet(py::args &args) {
+  // we accept float, int, list so we will check here for
+  // list[float], list[int], list[list], or ndarray for any,
+  // where the ndarray could be 2D (list[list])
+
+  // First we need to get the size of the arg set.
+  std::size_t nArgSets = py::len(args[0]);
+
+  // Now I want to build up vector<tuple (arg0, arg1, ...)>
+  std::vector<py::args> argSet;
+  for (std::size_t j = 0; j < nArgSets; j++) {
+    py::args currentArgs = py::tuple(args.size());
+
+    for (std::size_t i = 0; i < args.size(); ++i) {
+      auto arg = args[i];
+
+      if (py::isinstance<py::list>(arg)) {
+        auto list = arg.cast<py::list>();
+        if (list.size() != nArgSets)
+          throw std::runtime_error(
+              "Invalid argument to sample/observe broadcast, must be a list of "
+              "argument instances.");
+        currentArgs[i] = list[j];
+      }
+
+      // This is not a list, but see if we can get it as one
+      if (py::hasattr(args[i], "tolist")) {
+        // This is a valid ndarray if it has tolist and shape
+        if (!py::hasattr(args[i], "shape"))
+          throw std::runtime_error(
+              "Invalid input argument type, could not get shape of array.");
+
+        // This is an ndarray with tolist() and shape attributes
+        // get the shape and check its size
+        auto shape = args[i].attr("shape").cast<py::tuple>();
+        if (shape.size() > 2)
+          throw std::runtime_error(
+              "Invalid kernel arg for sample_n / observe_n, shape.size() > 2");
+
+        // Can handle 1d array and 2d matrix of data
+        if (shape.size() == 2) {
+          auto list =
+              arg.attr("__getitem__")(j).attr("tolist")().cast<py::list>();
+          currentArgs[i] = list;
+        } else {
+          auto list = arg.attr("tolist")().cast<py::list>();
+          currentArgs[i] = list[j];
+        }
+      }
+    }
+
+    argSet.push_back(currentArgs);
+  }
+
+  return argSet;
 }
 
 /// @brief Convert py::args to an OpaqueArguments instance

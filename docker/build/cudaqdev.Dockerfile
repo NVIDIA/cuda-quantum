@@ -28,12 +28,14 @@ ARG env_tag=llvm-main
 FROM $build_environment:$env_tag
 
 ENV CUDAQ_REPO_ROOT=/workspaces/cuda-quantum
-ADD . "$CUDAQ_REPO_ROOT"
-WORKDIR "$CUDAQ_REPO_ROOT"
-
 ENV CUDAQ_INSTALL_PREFIX=/usr/local/cudaq
 ENV PATH="$CUDAQ_INSTALL_PREFIX/bin:${PATH}"
 ENV PYTHONPATH="$CUDAQ_INSTALL_PREFIX:${PYTHONPATH}"
+
+ARG workspace=.
+ARG destination="$CUDAQ_REPO_ROOT"
+ADD "$workspace" "$destination"
+WORKDIR "$destination"
 
 # Configuring build_environment that contains the necessary dependencies for GPU
 # accelerated components and passing a build argument 
@@ -46,7 +48,9 @@ RUN if [ -n "$install" ]; \
         expected_prefix=$CUDAQ_INSTALL_PREFIX; \
         export $install; \
         bash scripts/build_cudaq.sh -v; \
-        if [ "$CUDAQ_INSTALL_PREFIX" != "$expected_prefix" ]; then \
+        if [ ! "$?" -eq "0" ]; then \
+            exit 1; \
+        elif [ "$CUDAQ_INSTALL_PREFIX" != "$expected_prefix" ]; then \
             mkdir -p "$expected_prefix"; \
             mv "$CUDAQ_INSTALL_PREFIX"/* "$expected_prefix"; \
             rmdir "$CUDAQ_INSTALL_PREFIX"; \

@@ -44,7 +44,7 @@ listReachableFunctions(clang::CallGraphNode *cgn) {
 // Does `ty` refer to a Quake quantum type? This also checks custom recursive
 // types. It does not check builtin recursive types; e.g., `!llvm.ptr<T>`.
 static bool isQubitType(Type ty) {
-  if (ty.isa<quake::QRefType, quake::QVecType>())
+  if (ty.isa<quake::RefType, quake::VeqType>())
     return true;
   if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(ty))
     return isQubitType(vecTy.getElementType());
@@ -52,8 +52,7 @@ static bool isQubitType(Type ty) {
 }
 
 // Check the builtin type FunctionType to see if it has any references to Quake
-// qubit types in its arguments and/or results. It does not check QTX types as
-// the bridge should be lowering to Quake.
+// qubit types in its arguments and/or results.
 static bool hasAnyQubitTypes(FunctionType funcTy) {
   for (auto ty : funcTy.getInputs())
     if (isQubitType(ty))

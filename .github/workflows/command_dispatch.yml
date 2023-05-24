@@ -5,15 +5,47 @@ on:
 name: Slash command dispatch
 
 jobs:
+  preprocessing:
+    name: Check for slash command
+    runs-on: ubuntu-latest
+    permissions:
+      # keep this limited to read permissions for the content only!
+      contents: read
+
+    outputs:
+      react: ${{ steps.parse.outputs.react }}
+      command_type: ${{ steps.parse.outputs.command_type }}
+
+    steps:
+      - uses: actions/checkout@v3
+      - id: parse
+        run: |
+          first_char=`echo "${{ github.event.comment.body }}" | head -n 1 | xargs | cut -c 1`
+          if [ "$first_char" == "/" ]; then
+            echo "react=true" >> $GITHUB_OUTPUT
+            command=$(echo "${{ github.event.comment.body }}" | head -n 1 | xargs | cut -d " " -f 1)
+
+            json_config=`cat .github/workflows/config/command_dispatch_config.json | sed 's/{{.*}}//g'`
+            entries=`echo "$json_config" | jq -c '.[]'`
+            for entry in $entries; do
+              command_name=`echo $entry | jq -r '.command'`
+              if [ "${command:1}" == "$command_name" ]; then
+                command_suffix=`echo $entry | jq -r '.event_type_suffix'`
+                echo "command_type=${command:1}${command_suffix:--command}" >> $GITHUB_OUTPUT
+              fi
+            done
+          fi
+
   command_dispatch:
-    name: Process slash commands
+    name: Dispatch slash commands
+    needs: preprocessing
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Preprocessing
-        id: preprocessing
+      - name: Update configuration
+        id: config
         run: |
           pr_url=$(printf '%s\n' "${{ github.event.issue.pull_request.url }}" | sed -e 's/[\/&]/\\&/g')
           github_repo=$(printf '%s\n' "${{ github.repository }}" | sed -e 's/[\/&]/\\&/g')
@@ -22,25 +54,8 @@ jobs:
             | sed "s/.{{[ ]*github.event.comment.id[ ]*}}/${{ github.event.comment.id }}/g" \
             | sed "s/.{{[ ]*github.repository[ ]*}}/$github_repo/g" > /tmp/command_dispatch_config.json
 
-          first_char=`echo "${{ github.event.comment.body }}" | head -n 1 | xargs | cut -c 1`
-          if [ "$first_char" == "/" ]; then
-            echo "react=true" >> $GITHUB_OUTPUT
-            command=$(echo "${{ github.event.comment.body }}" | head -n 1 | xargs | cut -d " " -f 1)
-            echo "command=${command:1}" >> $GITHUB_OUTPUT
-
-            json_config=`cat /tmp/command_dispatch_config.json | sed 's/{{.*}}//g'`
-            entries=`echo "$json_config" | jq -c '.[]'`
-            for entry in $entries; do
-              command_name=`echo $entry | jq -r '.command'`
-              if [ "${command:1}" == "$command_name" ]; then
-                command_suffix=`echo $entry | jq -r '.event_type_suffix'`
-                echo "command_suffix=${command_suffix:--command}" >> $GITHUB_OUTPUT
-              fi
-            done
-          fi
-
       - name: React to comment
-        if: steps.preprocessing.outputs.react == 'true'
+        if: needs.preprocessing.outputs.react == 'true'
         uses: peter-evans/create-or-update-comment@v3
         with:
           comment-id: ${{ github.event.comment.id }}
@@ -55,7 +70,7 @@ jobs:
         id: dispatch
         uses: peter-evans/slash-command-dispatch@v3
         with:
-          token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+          token: ${{ github.token }}
           config-from-file: /tmp/command_dispatch_config.json
         continue-on-error: true
 
@@ -75,7 +90,7 @@ jobs:
           reactions: |
 
       - name: Indicate dispatch failure
-        if: ${{ steps.preprocessing.outputs.react == 'true' && steps.dispatch.outcome == 'failure' && ! steps.dispatch.outputs.error-message }}
+        if: ${{ needs.preprocessing.outputs.react == 'true' && steps.dispatch.outcome == 'failure' && ! steps.dispatch.outputs.error-message }}
         uses: peter-evans/create-or-update-comment@v3
         with:
           comment-id: ${{ github.event.comment.id }}
@@ -89,10 +104,10 @@ jobs:
           reactions: |
 
       - name: Indicate successful dispatch
-        if: ${{ steps.preprocessing.outputs.command_suffix != '' && steps.dispatch.outcome == 'success' && ! steps.dispatch.outputs.error-message }}
+        if: ${{ needs.preprocessing.outputs.command_type != '' && steps.dispatch.outcome == 'success' && ! steps.dispatch.outputs.error-message }}
         uses: peter-evans/create-or-update-comment@v3
         with:
           comment-id: ${{ github.event.comment.id }}
           body: |
-            The launched workflow can be found [here](https://github.com/${{ github.event.repository.full_name }}/actions/workflows/${{ steps.preprocessing.outputs.command }}${{ steps.preprocessing.outputs.command_suffix }}.yml).
+            The launched workflow can be found [here](https://github.com/${{ github.event.repository.full_name }}/actions/workflows/${{ needs.preprocessing.outputs.command_type }}.yml).
           edit-mode: append

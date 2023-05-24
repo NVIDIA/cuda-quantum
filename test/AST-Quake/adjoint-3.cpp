@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 // RUN: cudaq-quake %s | FileCheck %s
 // RUN: cudaq-quake %s | cudaq-opt --apply-op-specialization | FileCheck --check-prefixes=ADJOINT %s
@@ -48,18 +48,18 @@ struct QernelZero {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__run_circuit
 // CHECK-SAME:        (%{{.*}}: i32, %{{.*}}: i32, %{{.*}}: f64)
 // CHECK:           %[[VAL_5:.*]] = memref.alloca() : memref<f64>
-// CHECK:           %[[VAL_10:.*]] = quake.alloca(%{{.*}} : i64) : !quake.qvec<?>
+// CHECK:           %[[VAL_10:.*]] = quake.alloca[%{{.*}} : i64] !quake.veq<?>
 // CHECK:           %[[VAL_16:.*]] = memref.load %[[VAL_5]][] : memref<f64>
-// CHECK:           call @__nvqpp__mlirgen__statePrep_A{{.*}}(%[[VAL_10]], %[[VAL_16]]) : (!quake.qvec<?>, f64) -> ()
+// CHECK:           call @__nvqpp__mlirgen__statePrep_A{{.*}}(%[[VAL_10]], %[[VAL_16]]) : (!quake.veq<?>, f64) -> ()
 // CHECK:           cc.scope {
 // CHECK:             cc.loop while {
 // CHECK:               cc.condition %{{.*}}
 // CHECK:             } do {
 // CHECK:               cc.scope {
-// CHECK:                 quake.z (%{{.*}})
+// CHECK:                 quake.z %{{.*}}
 // CHECK:                 %[[VAL_23:.*]] = memref.load %[[VAL_5]][] : memref<f64>
-// CHECK:                 quake.apply<adj> @__nvqpp__mlirgen__statePrep_A{{.*}} %[[VAL_10]], %[[VAL_23]] : (!quake.qvec<?>, f64) -> ()
-// CHECK:                 func.call @__nvqpp__mlirgen__statePrep_A{{.*}}(%[[VAL_10]], %{{.*}}) : (!quake.qvec<?>, f64) -> ()
+// CHECK:                 quake.apply<adj> @__nvqpp__mlirgen__statePrep_A{{.*}} %[[VAL_10]], %[[VAL_23]] : (!quake.veq<?>, f64) -> ()
+// CHECK:                 func.call @__nvqpp__mlirgen__statePrep_A{{.*}}(%[[VAL_10]], %{{.*}}) : (!quake.veq<?>, f64) -> ()
 // CHECK:               }
 // CHECK:               cc.continue
 // CHECK:             } step {
@@ -90,10 +90,10 @@ struct run_circuit {
 };
 
 // ADJOINT-LABEL:   func.func private @__nvqpp__mlirgen__statePrep_A
-// ADJOINT-SAME:        .adj(%[[VAL_0:.*]]: !quake.qvec<?>, %[[VAL_1:.*]]: f64) {
+// ADJOINT-SAME:        .adj(%[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: f64) {
 // ADJOINT:           %[[VAL_2:.*]] = memref.alloca() : memref<f64>
 // ADJOINT:           memref.store %[[VAL_1]], %[[VAL_2]][] : memref<f64>
-// ADJOINT:           %[[VAL_3:.*]] = quake.qvec_size %[[VAL_0]] : (!quake.qvec<?>) -> i64
+// ADJOINT:           %[[VAL_3:.*]] = quake.vec_size %[[VAL_0]] : (!quake.veq<?>) -> i64
 // ADJOINT:           %[[VAL_4:.*]] = arith.trunci %[[VAL_3]] : i64 to i32
 // ADJOINT:           %[[VAL_5:.*]] = memref.alloca() : memref<i32>
 // ADJOINT:           memref.store %[[VAL_4]], %[[VAL_5]][] : memref<i32>
@@ -104,8 +104,8 @@ struct run_circuit {
 // ADJOINT:           %[[VAL_10:.*]] = arith.constant 0 : i64
 // ADJOINT:           %[[VAL_11:.*]] = arith.constant 1 : i64
 // ADJOINT:           %[[VAL_12:.*]] = arith.subi %[[VAL_9]], %[[VAL_11]] : i64
-// ADJOINT:           %[[VAL_13:.*]] = quake.subvec %[[VAL_0]], %[[VAL_10]], %[[VAL_12]] : (!quake.qvec<?>, i64, i64) -> !quake.qvec<?>
-// ADJOINT:           %[[VAL_16:.*]] = quake.qvec_size %[[VAL_13]] : (!quake.qvec<?>) -> i64
+// ADJOINT:           %[[VAL_13:.*]] = quake.subvec %[[VAL_0]], %[[VAL_10]], %[[VAL_12]] : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
+// ADJOINT:           %[[VAL_16:.*]] = quake.vec_size %[[VAL_13]] : (!quake.veq<?>) -> i64
 // ADJOINT:           %[[VAL_17:.*]] = arith.index_cast %[[VAL_16]] : i64 to index
 // ADJOINT:           %[[VAL_14:.*]] = arith.constant 0 : index
 // ADJOINT:           %[[VAL_15:.*]] = arith.constant 1 : index
@@ -121,7 +121,7 @@ struct run_circuit {
 // ADJOINT:           %[[VAL_27:.*]] = arith.constant 1 : i32
 // ADJOINT:           %[[VAL_28:.*]] = arith.subi %[[VAL_26]], %[[VAL_27]] : i32
 // ADJOINT:           %[[VAL_29:.*]] = arith.extsi %[[VAL_28]] : i32 to i64
-// ADJOINT:           %[[VAL_30:.*]] = quake.qextract %[[VAL_0]][%[[VAL_29]]] : !quake.qvec<?>[i64] -> !quake.qref
+// ADJOINT:           %[[VAL_30:.*]] = quake.extract_ref %[[VAL_0]][%[[VAL_29]]] : (!quake.veq<?>, i64) -> !quake.ref
 // ADJOINT:           cc.scope {
 // ADJOINT:             %[[VAL_31:.*]] = arith.constant 1 : i32
 // ADJOINT:             %[[VAL_32:.*]] = memref.alloca() : memref<i32>
@@ -161,14 +161,14 @@ struct run_circuit {
 // ADJOINT:                 %[[VAL_62:.*]] = arith.constant 1 : i32
 // ADJOINT:                 %[[VAL_63:.*]] = arith.subi %[[VAL_61]], %[[VAL_62]] : i32
 // ADJOINT:                 %[[VAL_64:.*]] = arith.extsi %[[VAL_63]] : i32 to i64
-// ADJOINT:                 %[[VAL_65:.*]] = quake.qextract %[[VAL_0]][%[[VAL_64]]] : !quake.qvec<?>[i64] -> !quake.qref
+// ADJOINT:                 %[[VAL_65:.*]] = quake.extract_ref %[[VAL_0]][%[[VAL_64]]] : (!quake.veq<?>, i64) -> !quake.ref
 // ADJOINT:                 %[[VAL_66:.*]] = memref.load %[[VAL_5]][] : memref<i32>
 // ADJOINT:                 %[[VAL_67:.*]] = arith.constant 1 : i32
 // ADJOINT:                 %[[VAL_68:.*]] = arith.subi %[[VAL_66]], %[[VAL_67]] : i32
 // ADJOINT:                 %[[VAL_69:.*]] = arith.extsi %[[VAL_68]] : i32 to i64
-// ADJOINT:                 %[[VAL_70:.*]] = quake.qextract %[[VAL_0]][%[[VAL_69]]] : !quake.qvec<?>[i64] -> !quake.qref
+// ADJOINT:                 %[[VAL_70:.*]] = quake.extract_ref %[[VAL_0]][%[[VAL_69]]] : (!quake.veq<?>, i64) -> !quake.ref
 // ADJOINT:                 %[[VAL_71:.*]] = arith.negf %[[VAL_60]] : f64
-// ADJOINT:                 quake.ry {{\[}}%[[VAL_65]] : !quake.qref] |%[[VAL_71]] : f64|(%[[VAL_70]])
+// ADJOINT:                 quake.ry (%[[VAL_71]]) [%[[VAL_65]]] %[[VAL_70]] : (f64, !quake.ref, !quake.ref) -> ()
 // ADJOINT:               }
 // ADJOINT:               cc.continue %[[VAL_50]] : i32
 // ADJOINT:             } step {
@@ -183,7 +183,7 @@ struct run_circuit {
 // ADJOINT:             }
 // ADJOINT:           }
 // ADJOINT:           %[[VAL_78:.*]] = arith.negf %[[VAL_25]] : f64
-// ADJOINT:           quake.ry |%[[VAL_78]] : f64|(%[[VAL_30]])
+// ADJOINT:           quake.ry (%[[VAL_78]]) %[[VAL_30]] : (f64, !quake.ref) -> ()
 // ADJOINT:           %[[VAL_79:.*]] = arith.constant 0 : index
 // ADJOINT:           %[[VAL_80:.*]] = arith.cmpi sgt, %[[VAL_17]], %[[VAL_79]] : index
 // ADJOINT:           %[[VAL_81:.*]] = arith.select %[[VAL_80]], %[[VAL_17]], %[[VAL_79]] : index
@@ -197,8 +197,8 @@ struct run_circuit {
 // ADJOINT:             cc.condition %[[VAL_90]](%[[VAL_87]], %[[VAL_88]] : index, index)
 // ADJOINT:           } do {
 // ADJOINT:           ^bb0(%[[VAL_91:.*]]: index, %[[VAL_92:.*]]: index):
-// ADJOINT:             %[[VAL_93:.*]] = quake.qextract %[[VAL_13]]{{\[}}%[[VAL_91]]] : !quake.qvec<?>[index] -> !quake.qref
-// ADJOINT:             quake.h (%[[VAL_93]])
+// ADJOINT:             %[[VAL_93:.*]] = quake.extract_ref %[[VAL_13]][%[[VAL_91]]] : (!quake.veq<?>, index) -> !quake.ref
+// ADJOINT:             quake.h %[[VAL_93]] : (!quake.ref) -> ()
 // ADJOINT:             cc.continue %[[VAL_91]], %[[VAL_92]] : index, index
 // ADJOINT:           } step {
 // ADJOINT:           ^bb0(%[[VAL_94:.*]]: index, %[[VAL_95:.*]]: index):
@@ -213,6 +213,6 @@ struct run_circuit {
 
 // ADJOINT-LABEL:   func.func @__nvqpp__mlirgen__run_circuit
 // ADJOINT:               cc.scope {
-// ADJOINT:                 quake.z (%{{.*}})
-// ADJOINT:                 func.call @__nvqpp__mlirgen__statePrep_A.adj(%{{.*}}, %{{.*}}) : (!quake.qvec<?>, f64) -> ()
+// ADJOINT:                 quake.z %{{.*}} : (!quake.ref) -> ()
+// ADJOINT:                 func.call @__nvqpp__mlirgen__statePrep_A.adj(%{{.*}}, %{{.*}}) : (!quake.veq<?>, f64) -> ()
 // ADJOINT:                 func.call @__nvqpp__mlirgen__QernelZero{{.*}}(%{{[0-9]+}}) :

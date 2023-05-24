@@ -9,7 +9,6 @@
 #pragma once
 
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
-#include "cudaq/Optimizer/Dialect/QTX/QTXDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 
 namespace cudaq {
@@ -19,8 +18,7 @@ inline void registerAllDialects(mlir::DialectRegistry &registry) {
   // clang-format off
   registry.insert<
     cudaq::cc::CCDialect,
-    quake::QuakeDialect,
-    qtx::QTXDialect
+    quake::QuakeDialect
   >();
   // clang-format on
 }

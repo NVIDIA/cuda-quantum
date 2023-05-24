@@ -22,7 +22,7 @@ macro (AddQppBackend LIBRARY_NAME SOURCE_FILE)
   endif()
 
   target_include_directories(${LIBRARY_NAME}
-                 PUBLIC . ..  
+                 PUBLIC . .. 
                  ${CMAKE_SOURCE_DIR}/runtime/common 
                  ${CMAKE_SOURCE_DIR}/tpls/eigen 
                  ${CMAKE_SOURCE_DIR}/tpls/qpp/include)
@@ -51,4 +51,4 @@ endmacro()
 AddQppBackend(nvqir-qpp QppCircuitSimulator.cpp)
 AddQppBackend(nvqir-dm QppDMCircuitSimulator.cpp)
 
-add_platform_config(dm)
+add_target_config(density-matrix-cpu)

@@ -23,6 +23,8 @@ target_include_directories(${LIBRARY_NAME} SYSTEM
      PRIVATE ${CUDAQ_TPLS_DIR}/armadillo/include 
              ${CUDAQ_TPLS_DIR}/ensmallen/include)
 target_link_libraries(${LIBRARY_NAME} PRIVATE BLAS::BLAS)
+# Don't export BLAS symbols to prevent symbol clashes.
+target_link_options(${LIBRARY_NAME} PRIVATE -Wl,--exclude-libs,ALL)
 
 install (FILES ensmallen.h DESTINATION include/cudaq/algorithms/optimizers/)
 

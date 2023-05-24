@@ -20,7 +20,7 @@
 # CUQUANTUM_INSTALL_PREFIX=/path/to/dir bash scripts/build_cudaq.sh
 #
 # Prerequisites:
-# - git, ninja-build, cmake, python3, libpython3-dev, libstdc++-11-dev, libblas-dev (all available via apt install)
+# - git, ninja-build, cmake, python3, libpython3-dev, libstdc++-12-dev, libblas-dev (all available via apt install)
 # - LLVM binaries, libraries, and headers as built by scripts/build_llvm.sh.
 # - To include simulator backends that use cuQuantum the packages cuquantum and cuquantum-dev are needed. 
 # - Additional python dependencies for running and testing: lit pytest numpy (available via pip install)
@@ -126,13 +126,14 @@ fi
 # (utils are needed for custom testing tools, e.g. CircuitCheck)
 echo "Preparing CUDA Quantum build with LLVM installation in $LLVM_INSTALL_PREFIX..."
 cmake_args="-G Ninja "$repo_root" \
+  -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
   -DCMAKE_INSTALL_PREFIX="$CUDAQ_INSTALL_PREFIX" \
   -DLLVM_DIR="$llvm_lib_dir/cmake/llvm" \
   -DNVQPP_LD_PATH="$NVQPP_LD_PATH" \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
   -DCUDAQ_ENABLE_PYTHON=TRUE \
-  -DLLVM_BUILD_UTILS=ON \
+  -DCUDAQ_TEST_MOCK_SERVERS=FALSE \
   -DCMAKE_EXE_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
   -DCMAKE_MODULE_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
   -DCMAKE_SHARED_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
@@ -154,7 +155,7 @@ else
 fi
 
 if [ ! "$?" -eq "0" ]; then
-  echo "Build failed. Please check the files in the $logs_dir directory."
+  echo "Build failed. Please check the console output or the files in the $logs_dir directory."
   cd "$working_dir" && if $is_sourced; then return 1; else exit 1; fi
 else
   cp "$repo_root/LICENSE" "$CUDAQ_INSTALL_PREFIX/LICENSE"

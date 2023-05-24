@@ -1,14 +1,13 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
-#include "cudaq/Optimizer/Dialect/Common/Ops.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"
@@ -36,10 +35,10 @@ class QuantumTrait : public OpTrait::TraitBase<ConcreteType, QuantumTrait> {};
 Value quake::createConstantAlloca(PatternRewriter &builder, Location loc,
                                   OpResult result, ValueRange args) {
   auto newAlloca = [&]() {
-    if (result.getType().isa<quake::QVecType>() &&
-        result.getType().cast<quake::QVecType>().hasSpecifiedSize()) {
+    if (result.getType().isa<quake::VeqType>() &&
+        result.getType().cast<quake::VeqType>().hasSpecifiedSize()) {
       return builder.create<quake::AllocaOp>(
-          loc, result.getType().cast<quake::QVecType>().getSize());
+          loc, result.getType().cast<quake::VeqType>().getSize());
     }
     auto constOp = cast<arith::ConstantOp>(args[0].getDefiningOp());
     return builder.create<quake::AllocaOp>(
@@ -47,7 +46,7 @@ Value quake::createConstantAlloca(PatternRewriter &builder, Location loc,
                  constOp.getValue().cast<IntegerAttr>().getInt()));
   }();
   return builder.create<quake::RelaxSizeOp>(
-      loc, quake::QVecType::getUnsized(builder.getContext()), newAlloca);
+      loc, quake::VeqType::getUnsized(builder.getContext()), newAlloca);
 }
 
 void quake::AllocaOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
@@ -56,7 +55,7 @@ void quake::AllocaOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
 }
 
 LogicalResult quake::AllocaOp::verify() {
-  auto resultType = dyn_cast<QVecType>(getResult().getType());
+  auto resultType = dyn_cast<VeqType>(getResult().getType());
   if (auto size = getSize()) {
     std::int64_t argSize = 0;
     if (auto cnt = dyn_cast_or_null<arith::ConstantOp>(size.getDefiningOp())) {
@@ -72,51 +71,62 @@ LogicalResult quake::AllocaOp::verify() {
           "must return a vector of qubits since a size was provided.");
     if (resultType.hasSpecifiedSize() &&
         (static_cast<std::size_t>(argSize) != resultType.getSize()))
-      return emitOpError("expected operand size to match QVecType size.");
+      return emitOpError("expected operand size to match VeqType size.");
   } else if (resultType && !resultType.hasSpecifiedSize()) {
-    return emitOpError("must return a qvec with known size.");
+    return emitOpError("must return a veq with known size.");
   }
   return success();
 }
 
 //===----------------------------------------------------------------------===//
-// QExtract
+// ExtractRef
 //===----------------------------------------------------------------------===//
 
-OpFoldResult quake::QExtractOp::fold(FoldAdaptor adaptor) {
-  auto qvec = getQvec();
-  auto op = getOperation();
-  for (auto user : qvec.getUsers()) {
-    if (user == op || op->getBlock() != user->getBlock() ||
-        op->isBeforeInBlock(user))
-      continue;
-    if (auto qextractOp = dyn_cast<quake::QExtractOp>(user)) {
-      // Compare the constant extract index values
-      // Get the first index and its defining op
-      auto first = qextractOp.getIndex();
-      auto defFirst = first.getDefiningOp();
-
-      // Get the second index and its defining op
-      auto second = getIndex();
-      auto defSecond = second.getDefiningOp();
-
-      // We want to see if firstIdx == secondIdx
-      std::optional<std::size_t> firstIdx = std::nullopt;
-      if (auto constOp = dyn_cast_or_null<arith::ConstantOp>(defFirst))
-        if (auto isaIntValue = dyn_cast<IntegerAttr>(constOp.getValue()))
-          firstIdx = isaIntValue.getValue().getLimitedValue();
-
-      std::optional<std::size_t> secondIdx = std::nullopt;
-      if (auto constOp = dyn_cast_or_null<arith::ConstantOp>(defSecond))
-        if (auto isaIntValue = dyn_cast<IntegerAttr>(constOp.getValue()))
-          secondIdx = isaIntValue.getValue().getLimitedValue();
-
-      if (firstIdx.has_value() && secondIdx.has_value() &&
-          firstIdx.value() == secondIdx.value())
-        return qextractOp.getResult();
-    }
+static ParseResult
+parseRawIndex(OpAsmParser &parser,
+              std::optional<OpAsmParser::UnresolvedOperand> &index,
+              IntegerAttr &rawIndex) {
+  std::size_t constantIndex = quake::ExtractRefOp::kDynamicIndex;
+  OptionalParseResult parsedInteger =
+      parser.parseOptionalInteger(constantIndex);
+  if (parsedInteger.has_value()) {
+    if (failed(parsedInteger.value()))
+      return failure();
+    index = std::nullopt;
+  } else {
+    OpAsmParser::UnresolvedOperand operand;
+    if (parser.parseOperand(operand))
+      return failure();
+    index = operand;
   }
-  return {};
+  auto i64Ty = IntegerType::get(parser.getContext(), 64);
+  rawIndex = IntegerAttr::get(i64Ty, constantIndex);
+  return success();
+}
+
+static void printRawIndex(OpAsmPrinter &printer, quake::ExtractRefOp refOp,
+                          Value index, IntegerAttr rawIndex) {
+  if (rawIndex.getValue() == quake::ExtractRefOp::kDynamicIndex)
+    printer.printOperand(index);
+  else
+    printer << rawIndex.getValue();
+}
+
+void quake::ExtractRefOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<FuseConstantToExtractRefPattern>(context);
+}
+
+LogicalResult quake::ExtractRefOp::verify() {
+  if (getIndex()) {
+    if (getRawIndex() != kDynamicIndex)
+      return emitOpError(
+          "must not have both a constant index and an index argument.");
+  } else {
+    if (getRawIndex() == kDynamicIndex)
+      return emitOpError("invalid constant index value");
+  }
+  return success();
 }
 
 //===----------------------------------------------------------------------===//
@@ -124,14 +134,14 @@ OpFoldResult quake::QExtractOp::fold(FoldAdaptor adaptor) {
 //===----------------------------------------------------------------------===//
 
 LogicalResult quake::RelaxSizeOp::verify() {
-  if (getType().cast<quake::QVecType>().hasSpecifiedSize())
-    emitOpError("return qvec type must not specify a size");
+  if (cast<quake::VeqType>(getType()).hasSpecifiedSize())
+    emitOpError("return veq type must not specify a size");
   return success();
 }
 
 // Forward the argument to a relax_size to the users for all users that are
-// quake operations. All quake ops that take a sized qvec argument are
-// polymorphic on all qvec types. If the op is not a quake op, then maintain
+// quake operations. All quake ops that take a sized veq argument are
+// polymorphic on all veq types. If the op is not a quake op, then maintain
 // strong typing.
 struct ForwardRelaxedSizePattern : public RewritePattern {
   ForwardRelaxedSizePattern(MLIRContext *context)
@@ -164,7 +174,7 @@ void quake::RelaxSizeOp::getCanonicalizationPatterns(
 Value quake::createSizedSubVecOp(PatternRewriter &builder, Location loc,
                                  OpResult result, Value inVec, Value lo,
                                  Value hi) {
-  auto vecTy = result.getType().cast<quake::QVecType>();
+  auto vecTy = result.getType().cast<quake::VeqType>();
   auto *ctx = builder.getContext();
   auto getVal = [&](Value v) {
     auto vCon = cast<arith::ConstantOp>(v.getDefiningOp());
@@ -172,7 +182,7 @@ Value quake::createSizedSubVecOp(PatternRewriter &builder, Location loc,
         vCon.getValue().cast<IntegerAttr>().getInt());
   };
   std::size_t size = getVal(hi) - getVal(lo) + 1u;
-  auto szVecTy = quake::QVecType::get(ctx, size);
+  auto szVecTy = quake::VeqType::get(ctx, size);
   auto subvec = builder.create<quake::SubVecOp>(loc, szVecTy, inVec, lo, hi);
   return builder.create<quake::RelaxSizeOp>(loc, vecTy, subvec);
 }
@@ -183,12 +193,36 @@ void quake::SubVecOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
 }
 
 //===----------------------------------------------------------------------===//
-// QVecSizeOp
+// VeqSizeOp
 //===----------------------------------------------------------------------===//
 
-void quake::QVecSizeOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
-                                                    MLIRContext *context) {
-  patterns.add<ForwardConstantQVecSizePattern>(context);
+void quake::VeqSizeOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
+                                                   MLIRContext *context) {
+  patterns.add<ForwardConstantVeqSizePattern>(context);
+}
+
+//===----------------------------------------------------------------------===//
+// WrapOp
+//===----------------------------------------------------------------------===//
+
+namespace {
+// If there is no operation that modifies the wire after it gets unwrapped and
+// before it is wrapped, then the wrap operation is a nop and can be eliminated.
+struct KillDeadWrapPattern : public OpRewritePattern<quake::WrapOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::WrapOp wrap,
+                                PatternRewriter &rewriter) const override {
+    if (auto unwrap = wrap.getWireValue().getDefiningOp<quake::UnwrapOp>())
+      rewriter.eraseOp(wrap);
+    return success();
+  }
+};
+} // namespace
+
+void quake::WrapOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
+                                                MLIRContext *context) {
+  patterns.add<KillDeadWrapPattern>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -201,7 +235,7 @@ static LogicalResult verifyMeasurements(Operation *const op,
                                         const Type bitsType) {
   bool mustBeStdvec =
       targetsType.size() > 1 ||
-      (targetsType.size() == 1 && targetsType[0].isa<quake::QVecType>());
+      (targetsType.size() == 1 && targetsType[0].isa<quake::VeqType>());
   if (mustBeStdvec) {
     if (!op->getResult(0).getType().isa<cudaq::cc::StdvecType>())
       return op->emitOpError("must return `!cc.stdvec<i1>`, when measuring a "
@@ -240,6 +274,41 @@ bool cudaq::EnableInlinerInterface::isLegalToInline(Operation *call,
       return false;
   return !(callable->hasAttr(cudaq::entryPointAttrName));
 }
+
+void quake::getOperatorEffectsImpl(
+    SmallVectorImpl<SideEffects::EffectInstance<MemoryEffects::Effect>>
+        &effects,
+    ValueRange controls, ValueRange targets) {
+  for (auto v : controls)
+    if (isa<quake::RefType, quake::VeqType>(v.getType()))
+      effects.emplace_back(MemoryEffects::Read::get(), v,
+                           SideEffects::DefaultResource::get());
+  for (auto v : targets)
+    if (isa<quake::RefType, quake::VeqType>(v.getType())) {
+      effects.emplace_back(MemoryEffects::Read::get(), v,
+                           SideEffects::DefaultResource::get());
+      effects.emplace_back(MemoryEffects::Write::get(), v,
+                           SideEffects::DefaultResource::get());
+    }
+}
+
+// This is a workaround for ODS generating these member function declarations
+// but not having a way to define them in the ODS.
+// clang-format off
+#define GATE_OPS(MACRO) MACRO(XOp) MACRO(YOp) MACRO(ZOp) MACRO(HOp) MACRO(SOp) \
+  MACRO(TOp) MACRO(SwapOp) MACRO(U2Op) MACRO(U3Op)                             \
+  MACRO(R1Op) MACRO(RxOp) MACRO(RyOp) MACRO(RzOp) MACRO(PhasedRxOp)
+#define MEASURE_OPS(MACRO) MACRO(MxOp) MACRO(MyOp) MACRO(MzOp)
+#define QUANTUM_OPS(MACRO) MACRO(ResetOp) GATE_OPS(MACRO) MEASURE_OPS(MACRO)
+// clang-format on
+#define INSTANTIATE_CALLBACKS(Op)                                              \
+  void quake::Op::getEffects(                                                  \
+      SmallVectorImpl<SideEffects::EffectInstance<MemoryEffects::Effect>>      \
+          &effects) {                                                          \
+    getEffectsImpl(effects);                                                   \
+  }
+
+QUANTUM_OPS(INSTANTIATE_CALLBACKS)
 
 //===----------------------------------------------------------------------===//
 // Generated logic

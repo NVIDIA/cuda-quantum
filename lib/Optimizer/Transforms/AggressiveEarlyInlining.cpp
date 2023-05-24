@@ -77,7 +77,7 @@ public:
   static llvm::StringMap<llvm::StringRef> getConversionMap(ModuleOp module) {
     llvm::StringMap<llvm::StringRef> result;
     auto mangledNameMap =
-        module->getAttrOfType<DictionaryAttr>("qtx.mangled_name_map");
+        module->getAttrOfType<DictionaryAttr>("quake.mangled_name_map");
     for (auto namedAttr : mangledNameMap) {
       auto key = namedAttr.getName();
       auto val = namedAttr.getValue().cast<StringAttr>().getValue();
