@@ -1,0 +1,42 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(quake-multicontrol-decomposition))' %s | CircuitCheck %s
+
+func.func @ccr1(%c0: !quake.ref, %c1: !quake.ref, %t: !quake.ref) {
+  %0 = arith.constant 1.57079632679489660 : f64
+  quake.r1 (%0)[%c0, %c1] %t : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @cccr1(%c0: !quake.ref,  %c1: !quake.ref, %c2: !quake.ref, %t: !quake.ref) {
+  %0 = arith.constant 1.57079632679489660 : f64
+  quake.r1 (%0)[%c0, %c1, %c2] %t : (f64, !quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @cccx(%c0: !quake.ref,  %c1: !quake.ref, %c2: !quake.ref, %t: !quake.ref) {
+  quake.x [%c0, %c1, %c2] %t : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @cccx_negated_controls(%c0: !quake.ref,  %c1: !quake.ref, %c2: !quake.ref, %t: !quake.ref) {
+  quake.x [%c0, %c1, %c2 neg [true, false, true]] %t : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @cccx_veq(%c: !quake.veq<3>, %t: !quake.ref) {
+  quake.x [%c] %t : (!quake.veq<3>, !quake.ref) -> ()
+  return
+}
+
+
+func.func @cccz(%c0: !quake.ref,  %c1: !quake.ref, %c2: !quake.ref, %t: !quake.ref) {
+  quake.z [%c0, %c1, %c2] %t : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}

@@ -25,6 +25,7 @@ add_cudaq_library(OptTransforms
   LoopUnroll.cpp
   LowerToCFG.cpp
   LowerUnwind.cpp
+  MultiControlDecomposition.cpp
   QuakeAddMetadata.cpp
   QuakeObserveAnsatz.cpp
   QuakeSynthesizer.cpp
