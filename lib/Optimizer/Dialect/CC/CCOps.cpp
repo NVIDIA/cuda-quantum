@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
@@ -43,6 +43,62 @@ cudaq::cc::AddressOfOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
   if (!function)
     return emitOpError("must reference a global defined by 'func.func'");
   return success();
+}
+
+//===----------------------------------------------------------------------===//
+// AllocaOp
+//===----------------------------------------------------------------------===//
+
+void cudaq::cc::AllocaOp::print(OpAsmPrinter &p) {
+  p << ' ' << getElementType();
+  if (auto size = getSeqSize())
+    p << '[' << size << " : " << size.getType() << ']';
+}
+
+ParseResult cudaq::cc::AllocaOp::parse(OpAsmParser &parser,
+                                       OperationState &result) {
+  Type eleTy;
+  if (parser.parseType(eleTy))
+    return failure();
+  result.addAttribute("elementType", TypeAttr::get(eleTy));
+  Type resTy;
+  if (succeeded(parser.parseOptionalLSquare())) {
+    OpAsmParser::UnresolvedOperand operand;
+    Type operTy;
+    if (parser.parseOperand(operand) || parser.parseColonType(operTy) ||
+        parser.parseRSquare() ||
+        parser.resolveOperand(operand, operTy, result.operands))
+      return failure();
+    resTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
+  } else {
+    resTy = cc::PointerType::get(eleTy);
+  }
+  if (!resTy || parser.parseOptionalAttrDict(result.attributes) ||
+      parser.addTypeToList(resTy, result.types))
+    return failure();
+  return success();
+}
+
+OpFoldResult cudaq::cc::AllocaOp::fold(ArrayRef<Attribute> params) {
+  if (params.size() == 1) {
+    // If allocating a contiguous block of elements and the size of the block is
+    // a constant, fold the size into the cc.array type and allocate a constant
+    // sized block.
+    if (auto intAttr = dyn_cast_or_null<IntegerAttr>(params[0])) {
+      auto size = intAttr.getInt();
+      if (size > 0) {
+        auto resTy = cast<cc::ArrayType>(
+            cast<cc::PointerType>(getType()).getElementType());
+        auto arrTy = cc::ArrayType::get(resTy.getContext(),
+                                        resTy.getElementType(), size);
+        getOperation()->setAttr("elementType", TypeAttr::get(arrTy));
+        getResult().setType(cc::PointerType::get(arrTy));
+        getOperation()->eraseOperand(0);
+        return getResult();
+      }
+    }
+  }
+  return nullptr;
 }
 
 //===----------------------------------------------------------------------===//
