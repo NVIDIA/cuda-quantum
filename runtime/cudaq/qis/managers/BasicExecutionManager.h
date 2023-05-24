@@ -257,7 +257,7 @@ public:
                        std::back_inserter(controlIds),
                        [](const auto &el) { return el.id; });
         executionContext->kernelResources.appendInstruction(
-            cudaq::resources::Instruction(gateName, controlIds, targets[0].id));
+            cudaq::Resources::Instruction(gateName, controlIds, targets[0].id));
       } else {
         executeInstruction(instruction);
       }

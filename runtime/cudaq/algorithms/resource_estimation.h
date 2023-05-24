@@ -21,7 +21,7 @@ namespace cudaq {
 /// a `resources` type that allows the programmer to query the number and types
 /// of operations in the kernel.
 template <typename QuantumKernel, typename... Args>
-resources estimate_resources(QuantumKernel &&kernel, Args &&...args) {
+auto estimate_resources(QuantumKernel &&kernel, Args &&...args) {
   ExecutionContext context("tracer");
   auto &platform = get_platform();
   platform.set_exec_ctx(&context);

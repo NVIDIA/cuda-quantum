@@ -8,6 +8,7 @@
 
 #include "CUDAQTestUtils.h"
 #include <cudaq/algorithms/resource_estimation.h>
+#include <random>
 #include <stdio.h>
 
 CUDAQ_TEST(TracerTester, checkBell) {
@@ -57,4 +58,55 @@ CUDAQ_TEST(TracerTester, checkGHZ) {
   EXPECT_EQ(9, resources.count_controls("x", /*nControls*/ 1));
   // How many x operations, any number of controls
   EXPECT_EQ(9, resources.count("x"));
+}
+
+CUDAQ_TEST(TracerTester, checkLargeTrace) {
+
+  static std::unordered_map<std::string, std::function<void(cudaq::qubit &)>>
+      operations{{"h", [](cudaq::qubit &q) {
+        h(q); }},
+                 {"x", [](cudaq::qubit &q) {
+        x(q); }},
+                 {"y", [](cudaq::qubit &q) {
+        y(q); }},
+                 {"z", [](cudaq::qubit &q) {
+        z(q); }},
+                 {"s", [](cudaq::qubit &q) {
+        s(q); }},
+                 {"t", [](cudaq::qubit &q) {
+        t(q); }}};
+
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<> distr(0, 5);
+
+  auto largeTrace = [&](int numQubits, int numLayers,
+                        std::vector<int> cnotPairs) __qpu__ {
+    cudaq::qreg q(numQubits);
+
+    for (int layer = 0; layer < numLayers; layer++) {
+      // each layer should be composed of a set of random
+      // single qubit gates on every qubit, followed by
+      // a layer of random cnots
+      for (int i = 0; i < numQubits; i++) {
+        auto iter = std::next(operations.begin(), distr(gen));
+        iter->second(q[i]);
+      }
+
+      for (int i = 0; i < numQubits; i += 2)
+        x<cudaq::ctrl>(q[i], q[i + 1]);
+    }
+  };
+
+  int numQubits = 1000;
+  int numLayers = 1000;
+
+  std::vector<int> cnots(numQubits);
+  std::iota(cnots.begin(), cnots.end(), 0);
+  std::shuffle(cnots.begin(), cnots.end(),
+               std::mt19937{std::random_device{}()});
+  auto resources =
+      cudaq::estimate_resources(largeTrace, numQubits, numLayers, cnots);
+  auto totalOps = resources.count();
+  EXPECT_EQ(totalOps, numLayers * numQubits * 1.5);
 }

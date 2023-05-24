@@ -68,7 +68,7 @@ public:
 
   /// @brief When run under the tracer context, persist the
   /// traced quantum resources here.
-  resources kernelResources;
+  Resources kernelResources;
 
   /// @brief The name of the kernel being executed.
   std::string kernelName = "";

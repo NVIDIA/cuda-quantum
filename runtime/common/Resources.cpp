@@ -15,8 +15,8 @@
 
 namespace cudaq {
 
-std::size_t resources::InstructionHash::operator()(
-    const resources::Instruction &instruction) const {
+std::size_t Resources::InstructionHash::operator()(
+    const Instruction &instruction) const {
   std::size_t seed = 0;
   std::size_t cHash = 0;
   for (auto &c : instruction.controls)
@@ -28,12 +28,12 @@ std::size_t resources::InstructionHash::operator()(
   return seed;
 }
 
-bool resources::Instruction::operator==(const Instruction &other) const {
+bool Resources::Instruction::operator==(const Instruction &other) const {
   return name == other.name && controls == other.controls &&
          target == other.target;
 }
 
-std::size_t resources::count(const resources::Instruction &instruction) const {
+std::size_t Resources::count(const Instruction &instruction) const {
   auto iter = instructions.find(instruction);
   if (iter == instructions.end())
     return 0;
@@ -41,7 +41,7 @@ std::size_t resources::count(const resources::Instruction &instruction) const {
   return iter->second;
 }
 
-std::size_t resources::count_controls(const std::string &name,
+std::size_t Resources::count_controls(const std::string &name,
                                       std::size_t nControls) const {
   std::size_t result = 0;
   for (auto &[instruction, count] : instructions)
@@ -51,7 +51,7 @@ std::size_t resources::count_controls(const std::string &name,
   return result;
 }
 
-std::size_t resources::count(const std::string &name) const {
+std::size_t Resources::count(const std::string &name) const {
   std::size_t result = 0;
   for (auto &[instruction, count] : instructions)
     if (instruction.name == name)
@@ -60,14 +60,15 @@ std::size_t resources::count(const std::string &name) const {
   return result;
 }
 
-std::size_t resources::count() const {
+std::size_t Resources::count() const {
   std::size_t total = 0;
   for (const auto &[instruction, count] : instructions)
     total += count;
   return total;
 }
 
-void resources::appendInstruction(const resources::Instruction &instruction) {
+
+void Resources::appendInstruction(const Resources::Instruction &instruction) {
   auto iter = instructions.find(instruction);
   if (iter == instructions.end())
     instructions.insert(std::make_pair(instruction, 1));
@@ -75,7 +76,7 @@ void resources::appendInstruction(const resources::Instruction &instruction) {
     iter->second++;
 }
 
-void resources::dump(std::ostream &os) const {
+void Resources::dump(std::ostream &os) const {
   os << "Resources Estimation Result:\n";
   size_t totalNumberGates = 0, totalCtrlOperations = 0, numQubits = 0;
   std::stringstream stream;
@@ -129,5 +130,5 @@ void resources::dump(std::ostream &os) const {
   os << "Operation Count Report: \n";
   os << stream.str();
 }
-void resources::dump() const { dump(std::cout); }
+void Resources::dump() const { dump(std::cout); }
 } // namespace cudaq

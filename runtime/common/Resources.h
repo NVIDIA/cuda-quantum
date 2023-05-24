@@ -13,10 +13,10 @@
 #include <vector>
 
 namespace cudaq {
-/// @brief The resources type type encodes information regarding
+/// @brief The Resources type encodes information regarding
 /// the currently executing kernel's resource usage. This includes
 /// number and type of quantum operation, circuit depth, etc.
-class resources {
+class Resources {
 public:
   struct Instruction;
 
@@ -28,7 +28,7 @@ private:
   };
 
 public:
-  /// @brief The resources::Instruction is a data type that
+  /// @brief The Resources::Instruction is a data type that
   /// encapsulates the name of a quantum operation, the set of
   /// optional control indices, and the target qubit index.
   struct Instruction {
@@ -53,9 +53,9 @@ public:
     bool operator==(const Instruction &other) const;
   };
 
-  resources() = default;
-  resources(resources &) = default;
-  resources(resources &&) = default;
+  Resources() = default;
+  Resources(Resources &) = default;
+  Resources(Resources &&) = default;
 
   /// @brief Return the number of times the given Instruction is
   /// used in the current kernel execution
