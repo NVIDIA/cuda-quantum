@@ -15,6 +15,15 @@
 LLVM_INSTANTIATE_REGISTRY(cudaq::MoleculePackageDriver::RegistryType)
 
 namespace cudaq {
+
+std::string molecular_geometry::name() const {
+  std::string ret = "";
+  for (auto &a : atoms)
+    ret += a.name;
+
+  return ret;
+}
+
 one_body_integrals::one_body_integrals(const std::vector<std::size_t> &shape)
     : shape(shape) {
   assert(shape.size() == 2);

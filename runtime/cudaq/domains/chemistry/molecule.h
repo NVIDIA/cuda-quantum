@@ -34,6 +34,7 @@ public:
   auto end() { return atoms.end(); }
   auto begin() const { return atoms.cbegin(); };
   auto end() const { return atoms.cend(); }
+  std::string name() const;
 };
 
 /// @brief The `one_body_integrals` provide simple holder type
