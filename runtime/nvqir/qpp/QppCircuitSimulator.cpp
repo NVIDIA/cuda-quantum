@@ -189,7 +189,8 @@ public:
     });
 
     std::sort(targets.begin(), targets.end());
-    std::unique(targets.begin(), targets.end());
+    const auto last_iter = std::unique(targets.begin(), targets.end());
+    targets.erase(last_iter, targets.end());
 
     // Get the matrix as an Eigen matrix
     auto matrix = op.to_matrix();
