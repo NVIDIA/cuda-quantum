@@ -33,8 +33,7 @@ struct ep {
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ep()
-// CHECK:           %[[VAL_2:.*]] = arith.constant 3 : i64
-// CHECK:           %[[VAL_3:.*]] = quake.alloca[%[[VAL_2]] : i64] !quake.veq<3>
+// CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<3>
 // CHECK:           %[[VAL_4:.*]] = quake.relax_size %[[VAL_3]] : (!quake.veq<3>) -> !quake.veq<?>
 // CHECK:           quake.apply<adj> @__nvqpp__mlirgen__k %[[VAL_4]] : (!quake.veq<?>) -> ()
 // CHECK:           return

@@ -13,9 +13,9 @@
 // CHECK-DAG:     %[[C2:.*]] = arith.constant 2 : i32
 // CHECK-DAG:     %[[C1:.*]] = arith.constant 1 : i32
 // CHECK-DAG:     %[[C22:.*]] = arith.constant 22 : i64
-// CHECK:     %0 = quake.alloca[%[[C2]] : i32] !quake.veq<?>
-// CHECK:     %1 = quake.alloca[%[[C22]] : i64] !quake.veq<?>
-// CHECK:     %2 = quake.alloca[%[[C1]] : i32] !quake.veq<?>
+// CHECK:     %0 = quake.alloca !quake.veq<?>[%[[C2]] : i32]
+// CHECK:     %1 = quake.alloca !quake.veq<?>[%[[C22]] : i64]
+// CHECK:     %2 = quake.alloca !quake.veq<?>[%[[C1]] : i32]
 // CHECK:     %3 = quake.extract_ref %0[%[[C0]]] : (!quake.veq<?>, i32) -> !quake.ref
 // CHECK:     %4 = quake.extract_ref %1[%[[C1]]] : (!quake.veq<?>, i32) -> !quake.ref
 // CHECK:     quake.h %3 :
@@ -27,9 +27,9 @@ func.func @bar() {
   %0 = arith.constant 2 : i32
   %one = arith.constant 1 : i32
   %1 = arith.constant 22 : i64
-  %qr2 = quake.alloca [ %0 : i32 ]  !quake.veq<?>
-  %qr22 = quake.alloca[ %1 : i64 ]  !quake.veq<?>
-  %q = quake.alloca [%one : i32]  !quake.veq<?>
+  %qr2 = quake.alloca !quake.veq<?>[%0 : i32]
+  %qr22 = quake.alloca !quake.veq<?>[%1 : i64]
+  %q = quake.alloca !quake.veq<?>[%one : i32]
 
   %r = quake.extract_ref %qr2[%3] : (!quake.veq<?>,i32) -> !quake.ref
   %q1 = quake.extract_ref %qr22[%one] : (!quake.veq<?> ,i32) -> !quake.ref
