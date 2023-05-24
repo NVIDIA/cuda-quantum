@@ -778,9 +778,10 @@ def cc_AddressOfOp : CCOp<"address_of", [Pure,
 }
 
 def cc_ExtractValueOp : CCOp<"extract_value", [Pure]> {
-  let summary = "Extract a value into an aggregate value.";
+  let summary = "Extract a value from an aggregate value.";
   let description = [{
-    This will translate to LLVM's extract_value instruction.
+    This will translate to LLVM's extract_value instruction. It makes a copy of
+    a subvalue that is part of a larger aggregate value.
 
     Example:
 
@@ -804,7 +805,8 @@ def cc_ExtractValueOp : CCOp<"extract_value", [Pure]> {
 def cc_InsertValueOp : CCOp<"insert_value", [Pure]> {
   let summary = "Insert a value into an aggregate value.";
   let description = [{
-    This will translate to LLVM's insert_value instruction.
+    This will translate to LLVM's insert_value instruction. It copies an
+    aggregate value and replaces one particular subvalue with a new value.
 
     Example:
 
