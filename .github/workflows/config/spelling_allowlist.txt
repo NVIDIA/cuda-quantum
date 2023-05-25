@@ -30,6 +30,7 @@ NGC
 NUM
 NVIDIA
 NVQIR
+Namespaces
 OMP
 OMPI
 OpenMP
@@ -82,6 +83,7 @@ deallocated
 deallocates
 deallocation
 deallocations
+desc
 deserialize
 destructor
 discretization

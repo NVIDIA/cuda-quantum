@@ -36,6 +36,7 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   qis/QubitQISTester.cpp
   common/MeasureCountsTester.cpp
   common/NoiseModelTester.cpp
+  integration/tracer_tester.cpp
 )
 
 # Make it so we can get function symbols
