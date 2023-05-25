@@ -38,7 +38,7 @@ public:
   qarray() {}
 
   /// @brief qarray cannot be copied
-  qarray(qarray const &) = delete;
+  qarray(const qarray&) = delete;
 
   /// @brief qarray cannot be moved
   qarray(qarray &&) = delete;

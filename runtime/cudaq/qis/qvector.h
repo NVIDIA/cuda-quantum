@@ -40,6 +40,7 @@ public:
 
   /// @brief qvectors cannot be moved
   qvector(qvector &&) = delete;
+  qvector &operator=(const qvector &) = delete;
 
   /// @brief Iterator interface, begin.
   auto begin() { return qudits.begin(); }
