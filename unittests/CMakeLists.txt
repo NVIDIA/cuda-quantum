@@ -149,8 +149,17 @@ if (CUDAQ_ENABLE_PYTHON)
     cudaq-chemistry
     cudaq-pyscf
     gtest_main)
-  gtest_discover_tests(test_domains PROPERTIES 
-         ENVIRONMENT 
-         "PYTHONPATH=$ENV{PYTHONPATH}:${CMAKE_BINARY_DIR}/python")
+  gtest_discover_tests(test_domains
+    TEST_SUFFIX _Sampling
+    PROPERTIES
+      ENVIRONMENT
+        "PYTHONPATH=$ENV{PYTHONPATH}:${CMAKE_BINARY_DIR}/python")
+  gtest_discover_tests(test_domains
+    TEST_SUFFIX _Observe
+    PROPERTIES
+      ENVIRONMENT
+        "PYTHONPATH=$ENV{PYTHONPATH}:${CMAKE_BINARY_DIR}/python"
+      ENVIRONMENT
+        "CUDAQ_OBSERVE_FROM_SAMPLING=false")
 endif()
 
