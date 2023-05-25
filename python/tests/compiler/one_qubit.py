@@ -69,6 +69,7 @@ def test_kernel_param_1q():
     kernel.rx(parameter=parameter, target=qubit[0])
     kernel.ry(parameter, qubit[0])
     kernel.rz(parameter, qubit[0])
+    kernel.r1(parameter, qubit[0])
     kernel(3.14)
     # Should have 1 argument and parameter.
     got_arguments = kernel.arguments
@@ -85,6 +86,7 @@ def test_kernel_param_1q():
 # CHECK:           quake.rx (%[[VAL_0]]) %[[VAL_1]] : (f64, !quake.ref) -> ()
 # CHECK:           quake.ry (%[[VAL_0]]) %[[VAL_1]] : (f64, !quake.ref) -> ()
 # CHECK:           quake.rz (%[[VAL_0]]) %[[VAL_1]] : (f64, !quake.ref) -> ()
+# CHECK:           quake.r1 (%[[VAL_0]]) %[[VAL_1]] : (f64, !quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
 
