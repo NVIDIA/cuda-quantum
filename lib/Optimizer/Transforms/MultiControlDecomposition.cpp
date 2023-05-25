@@ -87,7 +87,7 @@ void v_decomposition(quake::OperatorInterface op, ValueRange controls,
     toCleanup.back()->setAttr("negated_qubit_controls",
                               builder.getDenseBoolArrayAttr(
                                   {negatedControls[0], negatedControls[1]}));
-  for (size_t c = 2, a = 0, n = controls.size() - numControlsOutput + 1; c < n;
+  for (std::size_t c = 2, a = 0, n = controls.size() - numControlsOutput + 1; c < n;
        ++c, ++a) {
     cs = {controls[c], ancillas[a]};
     toCleanup.push_back(builder.create<quake::XOp>(loc, cs, ancillas[a + 1]));
@@ -97,9 +97,9 @@ void v_decomposition(quake::OperatorInterface op, ValueRange controls,
   }
 
   // Compute output
-  if (numControlsOutput == 1)
+  if (numControlsOutput == 1) {
     createOperator(loc, name, parameters, ancillas.back(), targets, builder);
-  else {
+  } else {
     cs = {controls.back(), ancillas.back()};
     Operation *out =
         createOperator(loc, name, parameters, cs, targets, builder);
