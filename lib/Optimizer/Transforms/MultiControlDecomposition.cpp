@@ -18,16 +18,19 @@ using namespace cudaq;
 //===----------------------------------------------------------------------===//
 // Generated logic
 //===----------------------------------------------------------------------===//
+
 namespace cudaq::opt {
 #define GEN_PASS_DEF_MULTICONTROLDECOMPOSITIONPASS
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
-namespace {
+//===----------------------------------------------------------------------===//
+// Helpers
+//===----------------------------------------------------------------------===//
 
-Operation *createOperator(Location loc, StringRef name, ValueRange parameters,
-                          ValueRange controls, ValueRange targets,
-                          OpBuilder &builder) {
+static Operation *createOperator(Location loc, StringRef name,
+                                 ValueRange parameters, ValueRange controls,
+                                 ValueRange targets, OpBuilder &builder) {
   StringAttr nameAttr = builder.getStringAttr(name);
   SmallVector<Value> operands(parameters);
   operands.append(controls.begin(), controls.end());
@@ -41,10 +44,38 @@ Operation *createOperator(Location loc, StringRef name, ValueRange parameters,
   return op;
 }
 
-LogicalResult extractControls(quake::OperatorInterface op,
-                              SmallVectorImpl<Value> &newControls,
-                              SmallVectorImpl<bool> &negatedControls,
-                              OpBuilder &builder) {
+//===----------------------------------------------------------------------===//
+// Decomposer
+//===----------------------------------------------------------------------===//
+
+namespace {
+
+class Decomposer {
+public:
+  Decomposer(func::FuncOp func) : builder(func) {
+    entryBlock = &(*func.getBody().begin());
+  }
+
+  LogicalResult v_decomposition(quake::OperatorInterface op);
+
+private:
+  LogicalResult extractControls(quake::OperatorInterface op,
+                                SmallVectorImpl<Value> &newControls,
+                                SmallVectorImpl<bool> &negatedControls);
+
+  void checkAndAddAncillas(Location loc, std::size_t numAncillas);
+
+  OpBuilder builder;
+  Block *entryBlock;
+  SmallVector<Value> ancillas;
+};
+
+} // namespace
+
+LogicalResult
+Decomposer::extractControls(quake::OperatorInterface op,
+                            SmallVectorImpl<Value> &newControls,
+                            SmallVectorImpl<bool> &negatedControls) {
   auto negControls = op.getNegatedControls();
   for (auto [index, control] : llvm::enumerate(op.getControls())) {
     size_t size = 1;
@@ -64,46 +95,67 @@ LogicalResult extractControls(quake::OperatorInterface op,
   return success();
 }
 
-void v_decomposition(quake::OperatorInterface op, ValueRange controls,
-                     ArrayRef<bool> negatedControls, OpBuilder &builder) {
+void Decomposer::checkAndAddAncillas(Location loc, std::size_t numAncillas) {
+  OpBuilder::InsertionGuard g(builder);
+  builder.setInsertionPointToStart(entryBlock);
+  for (size_t i = ancillas.size(); i < numAncillas; ++i)
+    ancillas.push_back(builder.create<quake::AllocaOp>(loc));
+}
+
+LogicalResult Decomposer::v_decomposition(quake::OperatorInterface op) {
+  builder.setInsertionPoint(op);
+  // First, we need to extract controls from any `veq` that might been used as
+  // a control for this operation.
+  SmallVector<Value> controls;
+  SmallVector<bool> negatedControls;
+  if (failed(extractControls(op, controls, negatedControls)))
+    return failure();
+
+  // We only decompose operations with multiple controls.
+  if (controls.size() <= 1)
+    return success();
+
+  // We don't decompose CCX and CCZ as they are handle by another pass.
+  if (controls.size() == 2 && isa<quake::XOp, quake::ZOp>(op))
+    return success();
+
   // Operator info
   Location loc = op->getLoc();
   StringRef name = op->getName().getStringRef();
   ValueRange parameters = op.getParameters();
   ValueRange targets = op.getTargets();
-  const size_t numControlsOutput = isa<quake::XOp, quake::ZOp>(op) ? 2 : 1;
 
-  SmallVector<Value> ancillas;
-  for (size_t i = 0, n = controls.size() - numControlsOutput; i < n; ++i)
-    ancillas.push_back(builder.create<quake::AllocaOp>(loc));
-
-  SmallVector<Operation *> toCleanup;
-  std::array<Value, 2> cs = {controls[0], controls[1]};
+  // Compute the required number of ancillas to decompose this operation.
+  // Allocate new qubits if necessary.
+  size_t requiredAncillas = isa<quake::XOp, quake::ZOp>(op)
+                                ? controls.size() - 2
+                                : controls.size() - 1;
+  checkAndAddAncillas(loc, requiredAncillas);
 
   // Compute intermediate results
+  SmallVector<Operation *> toCleanup;
+  std::array<Value, 2> cs = {controls[0], controls[1]};
   toCleanup.push_back(builder.create<quake::XOp>(loc, cs, ancillas[0]));
-  if (!negatedControls.empty() &&
-      (negatedControls[0] != false || negatedControls[0] != false))
+  if (!negatedControls.empty() && (negatedControls[0] || negatedControls[0]))
     toCleanup.back()->setAttr("negated_qubit_controls",
                               builder.getDenseBoolArrayAttr(
                                   {negatedControls[0], negatedControls[1]}));
-  for (std::size_t c = 2, a = 0, n = controls.size() - numControlsOutput + 1; c < n;
-       ++c, ++a) {
+  for (std::size_t c = 2, a = 0, n = requiredAncillas + 1; c < n; ++c, ++a) {
     cs = {controls[c], ancillas[a]};
     toCleanup.push_back(builder.create<quake::XOp>(loc, cs, ancillas[a + 1]));
-    if (!negatedControls.empty() && negatedControls[c] != false)
+    if (!negatedControls.empty() && negatedControls[c])
       toCleanup.back()->setAttr("negated_qubit_controls",
                                 builder.getDenseBoolArrayAttr({true, false}));
   }
 
   // Compute output
-  if (numControlsOutput == 1) {
+  if (isa<quake::XOp, quake::ZOp>(op)) {
     createOperator(loc, name, parameters, ancillas.back(), targets, builder);
   } else {
     cs = {controls.back(), ancillas.back()};
     Operation *out =
         createOperator(loc, name, parameters, cs, targets, builder);
-    if (!negatedControls.empty() && negatedControls.back() != false)
+    if (!negatedControls.empty() && negatedControls.back())
       out->setAttr("negated_qubit_controls",
                    builder.getDenseBoolArrayAttr({true, false}));
   }
@@ -111,12 +163,14 @@ void v_decomposition(quake::OperatorInterface op, ValueRange controls,
   // Cleanup intermediate results
   for (Operation *op : llvm::reverse(toCleanup))
     builder.clone(*op);
+
+  return success();
 }
 
 //===----------------------------------------------------------------------===//
 // Pass implementation
 //===----------------------------------------------------------------------===//
-
+namespace {
 struct Decomposition
     : public opt::impl::MultiControlDecompositionPassBase<Decomposition> {
   using MultiControlDecompositionPassBase::MultiControlDecompositionPassBase;
@@ -124,32 +178,16 @@ struct Decomposition
   void runOnOperation() override {
     func::FuncOp func = getOperation();
 
-    OpBuilder builder(func);
+    if (func.isExternal())
+      return;
+
+    Decomposer decomposer(func);
     func.walk([&](quake::OperatorInterface op) {
       // This pass does not handle Quake's value semantics form.
       if (!quake::isAllReferences(op))
         return;
-
-      builder.setInsertionPoint(op);
-      SmallVector<Value> controls;
-      SmallVector<bool> negatedControls;
-      if (failed(extractControls(op, controls, negatedControls, builder)))
+      if (failed(decomposer.v_decomposition(op)))
         return;
-
-      if (controls.size() == 2) {
-        if (isa<quake::XOp, quake::ZOp>(op))
-          return;
-        Value ancilla = builder.create<quake::AllocaOp>(op->getLoc());
-        auto andOp =
-            builder.create<quake::XOp>(op->getLoc(), controls, ancilla);
-        andOp.setNegatedQubitControls(op.getNegatedControls());
-        createOperator(op->getLoc(), op->getName().getStringRef(),
-                       op.getParameters(), ancilla, op.getTargets(), builder);
-        builder.clone(*andOp);
-        op.erase();
-        return;
-      }
-      v_decomposition(op, controls, negatedControls, builder);
       op.erase();
     });
   }
