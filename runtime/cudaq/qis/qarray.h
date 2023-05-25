@@ -18,8 +18,8 @@ template <std::size_t N>
 concept ValidQArraySize = N > 0;
 } // namespace details
 
-/// @brief A qarray is an owning, compile-time sized container for qudits.
-/// The semantics of the qarray follows that of a std::array for qudits. It
+/// @brief A `qarray` is an owning, compile-time sized container for qudits.
+/// The semantics of the `qarray` follows that of a `std::array` for qudits. It
 /// is templated on the number of qudits contained and the number of levels for
 /// the held qudits.
 template <std::size_t N, std::size_t Levels = 2>
@@ -37,11 +37,14 @@ public:
   /// Nullary constructor
   qarray() {}
 
-  /// @brief qarray cannot be copied
-  qarray(const qarray&) = delete;
+  /// @brief `qarray` cannot be copied
+  qarray(const qarray &) = delete;
 
-  /// @brief qarray cannot be moved
+  /// @brief `qarray` cannot be moved
   qarray(qarray &&) = delete;
+
+  /// @brief `qarray` cannot be copy assigned.
+  qarray &operator=(const qarray &) = delete;
 
   /// @brief Iterator interface, begin.
   auto begin() { return qudits.begin(); }

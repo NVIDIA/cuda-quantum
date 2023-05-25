@@ -12,9 +12,9 @@
 
 namespace cudaq {
 
-/// @brief A qvector is an owning, dynamically sized container for qudits.
-/// The semantics of the qvector follows that of a std::vector for qudits. It
-/// is templated on the number of levels for the held qudits.
+/// @brief A `qvector` is an owning, dynamically sized container for qudits.
+/// The semantics of the `qvector` follows that of a `std::vector` for qudits.
+/// It is templated on the number of levels for the held qudits.
 template <std::size_t Levels = 2>
 class qvector {
 public:
@@ -26,20 +26,22 @@ private:
   std::vector<value_type> qudits;
 
 public:
-  /// @brief Construct a qvector with `size` qudits in the |0> state.
+  /// @brief Construct a `qvector` with `size` qudits in the |0> state.
   qvector(std::size_t size) : qudits(size) {}
 
   /// @cond
   /// Nullary constructor
-  /// meant to be used with kernel_builder<cudaq::qvector<>>
+  /// meant to be used with `kernel_builder<cudaq::qvector<>>`
   qvector() : qudits(1) {}
   /// @endcond
 
-  /// @brief qvectors cannot be copied
+  /// @brief `qvectors` cannot be copied
   qvector(qvector const &) = delete;
 
-  /// @brief qvectors cannot be moved
+  /// @brief `qvectors` cannot be moved
   qvector(qvector &&) = delete;
+
+  /// @brief `qvectors` cannot be copy assigned.
   qvector &operator=(const qvector &) = delete;
 
   /// @brief Iterator interface, begin.
