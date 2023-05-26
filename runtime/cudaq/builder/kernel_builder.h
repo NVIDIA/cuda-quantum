@@ -23,8 +23,6 @@
 
 #include "QuakeValue.h"
 
-#include <iostream>
-
 // Goal here is to keep MLIR out of user code!
 namespace mlir {
 class Type;
@@ -166,7 +164,6 @@ CUDAQ_DETAILS_QIS_DECLARATION(t)
 CUDAQ_DETAILS_QIS_DECLARATION(x)
 CUDAQ_DETAILS_QIS_DECLARATION(y)
 CUDAQ_DETAILS_QIS_DECLARATION(z)
-CUDAQ_DETAILS_QIS_DECLARATION(swap)
 
 #define CUDAQ_DETAILS_ONEPARAM_QIS_DECLARATION(NAME)                           \
   void NAME(ImplicitLocOpBuilder &builder, QuakeValue &parameter,              \
@@ -184,6 +181,9 @@ CUDAQ_DETAILS_ONEPARAM_QIS_DECLARATION(r1)
 CUDAQ_DETAILS_MEASURE_DECLARATION(mx)
 CUDAQ_DETAILS_MEASURE_DECLARATION(my)
 CUDAQ_DETAILS_MEASURE_DECLARATION(mz)
+
+void swap(ImplicitLocOpBuilder &builder, std::vector<QuakeValue> &ctrls,
+          std::vector<QuakeValue> &targets, bool adjoint = false);
 
 void reset(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec);
 
@@ -500,23 +500,21 @@ public:
   CUDAQ_BUILDER_ADD_MEASURE(mz)
 
   /// @brief SWAP operation for swapping the quantum states of qubits.
-  /// Supports SWAP's between two qubits, as well as a multi-qubit 
+  /// Supports SWAP's between two qubits, as well as a multi-qubit
   /// controlled SWAP operation.
-  void swap(QuakeValue &ctrl, QuakeValue &target) {                                               
-    std::vector<QuakeValue> ctrls{ctrl};
-    std::cout << "Calling details::swap() [L500 k_b.h]\n";                                             
-    details::swap(*opBuilder, ctrls, target);                                   
-  }                       
+  void swap(QuakeValue &qubit, QuakeValue &target) {
+    std::vector<QuakeValue> empty;
+    std::vector<QuakeValue> targets{qubit, target};
+    details::swap(*opBuilder, empty, targets);
+  }
 
-  void swap(QuakeValue &&ctrl, QuakeValue &&target) { 
-    std::cout << "Calling the other swap funciton [L505 k_b.h]\n";      
-    swap(ctrl, target); 
-  }         
+  void swap(QuakeValue &&qubit, QuakeValue &&target) { swap(qubit, target); }
 
-  // TODO: Enable controlled-swap operation.
-  // void swap(std::vector<QuakeValue> &ctrls, QuakeValue &target) {              
-  //   details::swap(*opBuilder, ctrls, target);                                  
-  // }                                                      
+  void swap(std::vector<QuakeValue> &ctrls, QuakeValue &qubit,
+            QuakeValue &target) {
+    std::vector<QuakeValue> targets{qubit, target};
+    details::swap(*opBuilder, ctrls, targets);
+  }
 
   /// @brief Reset the given qubit or qubits.
   void reset(QuakeValue &qubit) { details::reset(*opBuilder, qubit); }

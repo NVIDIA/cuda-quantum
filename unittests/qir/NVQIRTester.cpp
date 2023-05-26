@@ -29,6 +29,7 @@ using TuplePtr = int8_t *;
 
 // Quantum instruction set - quantum intrinsic operations
 void __quantum__qis__swap(Qubit *src, Qubit *tgt);
+void __quantum__qis__swap__ctl(Array *ctrls, Qubit *q, Qubit *r);
 void __quantum__qis__cnot(Qubit *src, Qubit *tgt);
 void __quantum__qis__cz(Qubit *src, Qubit *tgt);
 void __quantum__qis__cphase(double x, Qubit *src, Qubit *tgt);
@@ -123,6 +124,7 @@ CUDAQ_TEST(NVQIRTester, checkQuantumIntrinsics) {
   auto q = src;
   auto ctls = __quantum__rt__array_slice_1d(qubits, 2, 1, 2);
   __quantum__qis__swap(src, tgt);
+  __quantum__qis__swap__ctl(ctls, src, tgt);
   __quantum__qis__cnot(src, tgt);
   __quantum__qis__cphase(2.2, src, tgt);
   __quantum__qis__h(q);
@@ -148,6 +150,74 @@ CUDAQ_TEST(NVQIRTester, checkQuantumIntrinsics) {
   // __quantum__qis__u3(1.1, 2.2, 3.3, q);
   __quantum__rt__qubit_release_array(qubits);
   __quantum__rt__finalize();
+}
+
+CUDAQ_TEST(NVQIRTester, checkSWAP) {
+
+  // Simple SWAP.
+  {
+    __quantum__rt__initialize(0, nullptr);
+    auto qubits = __quantum__rt__qubit_allocate_array(3);
+    Qubit *q0 = *reinterpret_cast<Qubit **>(
+        __quantum__rt__array_get_element_ptr_1d(qubits, 0));
+    Qubit *q1 = *reinterpret_cast<Qubit **>(
+        __quantum__rt__array_get_element_ptr_1d(qubits, 1));
+
+    // Place qubit 0 in the 1-state.
+    __quantum__qis__x(q1);
+
+    // Swap qubits 0 and 1.
+    __quantum__qis__swap(q0, q1);
+
+    assert(*__quantum__qis__mz(q0) == 0);
+    assert(*__quantum__qis__mz(q1) == 1);
+  }
+
+  // SWAP with ctrl qubit in 0 state.
+  {
+    __quantum__rt__initialize(0, nullptr);
+    auto ctrls = __quantum__rt__qubit_allocate_array(1);
+    auto qubits = __quantum__rt__qubit_allocate_array(2);
+    Qubit *ctrl = *reinterpret_cast<Qubit **>(
+        __quantum__rt__array_get_element_ptr_1d(ctrls, 0));
+    Qubit *q0 = *reinterpret_cast<Qubit **>(
+        __quantum__rt__array_get_element_ptr_1d(qubits, 0));
+    Qubit *q1 = *reinterpret_cast<Qubit **>(
+        __quantum__rt__array_get_element_ptr_1d(qubits, 1));
+
+    // Place qubit 1 in the 1-state.
+    __quantum__qis__x(q1);
+
+    // Swap qubits 0 and 1 based on state of the single ctrl.
+    __quantum__qis__swap__ctl(ctrl, q0, q1);
+
+    // assert(*__quantum__qis__mz(q0) == 0);
+    // assert(*__quantum__qis__mz(q1) == 1);
+  }
+
+  // SWAP with ctrl qubit in 1 state.
+  {
+    __quantum__rt__initialize(0, nullptr);
+    auto ctrls = __quantum__rt__qubit_allocate_array(1);
+    auto qubits = __quantum__rt__qubit_allocate_array(2);
+    Qubit *q0 = *reinterpret_cast<Qubit **>(
+        __quantum__rt__array_get_element_ptr_1d(qubits, 0));
+    Qubit *q1 = *reinterpret_cast<Qubit **>(
+        __quantum__rt__array_get_element_ptr_1d(qubits, 1));
+
+    // Place the control and qubit 1 in the 1-state.
+    __quantum__qis__x(ctrls);
+    __quantum__qis__x(q1);
+
+    // Swap qubits 0 and 1 based on state of the single ctrl.
+    __quantum__qis__swap__ctl(ctrls, q0, q1);
+
+    // assert(*__quantum__qis__mz(q0) == 0);
+    // assert(*__quantum__qis__mz(q1) == 1);
+  }
+
+  // Multi-controlled.
+  {}
 }
 
 // FIXME: Disabling test as qpp is the only backend capable

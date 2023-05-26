@@ -148,8 +148,23 @@ CUDAQ_TEST(BuilderTester, checkSwap) {
     // EXPECT_NEAR(counts.count("01"), 1000);
   }
 
-  // TODO: Controlled SWAP
+  // Controlled-SWAP with single control in 0-state.
+  {
+    auto kernel = cudaq::make_kernel();
+    auto ctrl = kernel.qalloc();
+    std::vector<cudaq::QuakeValue> ctrls{ctrl};
+    auto q = kernel.qalloc(2);
+    // 0th qubit into the 1-state.
+    kernel.x(q[0]);
+    // Swap their states with the control qubit in 0-state.
+    kernel.swap(ctrls, q[0], q[1]);
+    // Measure the qubit register.
+    kernel.mz(q);
 
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    // EXPECT_NEAR(counts.count("01"), 1000);
+  }
 }
 
 CUDAQ_TEST(BuilderTester, checkConditional) {
