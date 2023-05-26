@@ -23,7 +23,7 @@ In Python, this can be specified with
 
 .. code:: python 
 
-    cudaq.set_qpu('ionq')
+    cudaq.set_target('ionq')
 
 Hardware Backend
 ++++++++++++++++++++++++++++++++++
