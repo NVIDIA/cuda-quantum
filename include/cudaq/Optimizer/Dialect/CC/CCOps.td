@@ -688,14 +688,22 @@ def cc_AllocaOp : CCOp<"alloca", [
 
   let arguments = (ins
     TypeAttr:$elementType,
-    Optional<AnyInteger>:$seqSize
+    Optional<AnySignlessInteger>:$seqSize
   );
   let results = (outs cc_PointerType:$address);
 
-  let assemblyFormat = [{
-    $elementType (`[` $seqSize^ `]`)? `:` functional-type(operands, results)
-      attr-dict
-  }];
+  let hasFolder = 1;
+  let hasCustomAssemblyFormat = 1;
+  let builders = [
+    OpBuilder<(ins "mlir::Type":$elementType, "mlir::Value":$seqSize), [{
+      auto resTy = cudaq::cc::PointerType::get(seqSize ?
+        cudaq::cc::ArrayType::get(elementType) : elementType);
+      return build($_builder, $_state, resTy, elementType, seqSize);
+    }]>,
+    OpBuilder<(ins "mlir::Type":$elementType), [{
+      return build($_builder, $_state, elementType, mlir::Value{});
+    }]>
+  ];
 }
 
 def cc_LoadOp : CCOp<"load",

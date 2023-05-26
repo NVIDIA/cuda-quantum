@@ -34,7 +34,7 @@ int main() {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__instance_test
 // CHECK-SAME:        (%[[VAL_0:.*]]: !cc.lambda<(!quake.ref) -> ()>)
 // CHECK-NOT:       %[[VAL_0]]
-// CHECK:           %[[VAL_3:.*]] = quake.alloca[%{{.*}} : i64] !quake.veq<?>
+// CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<?>[%{{.*}} : i64]
 // CHECK:           %[[VAL_6:.*]] = quake.extract_ref %{{.*}} : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:           %[[VAL_9:.*]] = quake.extract_ref %{{.*}} : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:           quake.apply @__nvqpp__mlirgen__Z4mainE3$_0[%[[VAL_6]]] %[[VAL_9]] : (!quake.ref, !quake.ref) -> ()

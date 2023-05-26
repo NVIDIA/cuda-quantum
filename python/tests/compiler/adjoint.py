@@ -280,7 +280,7 @@ def test_sample_adjoint_qreg():
 # CHECK-SAME:      %[[VAL_0:.*]]: i32) {
 # CHECK:           %[[VAL_1:.*]] = arith.constant 1 : index
 # CHECK:           %[[VAL_2:.*]] = arith.constant 0 : index
-# CHECK:           %[[VAL_3:.*]] = quake.alloca[%[[VAL_0]] : i32] !quake.veq<?>
+# CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<?>[%[[VAL_0]] : i32]
 # CHECK:           %[[VAL_4:.*]] = quake.vec_size %[[VAL_3]] : (!quake.veq<?>) -> i64
 # CHECK:           %[[VAL_5:.*]] = arith.index_cast %[[VAL_4]] : i64 to index
 # CHECK:           %[[VAL_6:.*]] = cc.loop while ((%[[VAL_7:.*]] = %[[VAL_2]]) -> (index)) {

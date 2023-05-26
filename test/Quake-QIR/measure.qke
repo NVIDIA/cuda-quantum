@@ -13,7 +13,7 @@ module {
     %zero = arith.constant 0 : i32
     %one = arith.constant 1 : i32
     %two = arith.constant 2 : i32
-    %0 = quake.alloca [%two : i32] !quake.veq<?>
+    %0 = quake.alloca !quake.veq<?>[%two : i32]
 
     %qr1 = quake.extract_ref %0[%zero] : (!quake.veq<?>,i32) -> !quake.ref
     %qr2 = quake.extract_ref %0[%one] : (!quake.veq<?>,i32) -> !quake.ref

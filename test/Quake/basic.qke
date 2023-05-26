@@ -13,8 +13,8 @@
 func.func @alloc(%size : i32) {
   // CHECK: %[[QUBIT:.*]] = quake.alloca !quake.ref
   %qubit = quake.alloca !quake.ref
-  // CHECK: %[[QREG0:.*]] = quake.alloca[%[[SIZE]] : i32] !quake.veq<?>
-  %veq0 = quake.alloca [%size : i32] !quake.veq<?>
+  // CHECK: %[[QREG0:.*]] = quake.alloca !quake.veq<?>[%[[SIZE]] : i32]
+  %veq0 = quake.alloca  !quake.veq<?>[%size : i32]
   // CHECK: %[[QREG1:.*]] = quake.alloca !quake.veq<4>
   %veq1 = quake.alloca !quake.veq<4>
   return

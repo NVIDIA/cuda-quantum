@@ -1718,11 +1718,15 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
           auto sizeVal = popValue();
           if (isa<quake::VeqType>(sizeVal.getType()))
             return pushValue(sizeVal);
+          if (regTy.hasSpecifiedSize())
+            return pushValue(builder.create<quake::AllocaOp>(loc, regTy));
           return pushValue(
               builder.create<quake::AllocaOp>(loc, regTy, sizeVal));
         }
         auto qregSizeVal = builder.create<arith::ConstantIntOp>(
             loc, regTy.getSize(), builder.getIntegerType(64));
+        if (regTy.hasSpecifiedSize())
+          return pushValue(builder.create<quake::AllocaOp>(loc, regTy));
         return pushValue(
             builder.create<quake::AllocaOp>(loc, regTy, qregSizeVal));
       }
