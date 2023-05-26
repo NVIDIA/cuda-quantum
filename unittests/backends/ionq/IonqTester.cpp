@@ -16,9 +16,9 @@ std::string mockPort = "62454";
 std::string backendStringTemplate =
     "ionq;url;http://localhost:{};credentials;{}";
 
-CUDAQ_TEST(IonqTester, checkSampleSync) {
+CUDAQ_TEST(IonQTester, checkSampleSync) {
   std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppIonq.config";
+  std::string fileName = home + "/FakeCppIonQ.config";
   auto backendString =
       fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
 
@@ -35,9 +35,9 @@ CUDAQ_TEST(IonqTester, checkSampleSync) {
   EXPECT_EQ(counts.size(), 2);
 }
 
-CUDAQ_TEST(IonqTester, checkSampleAsync) {
+CUDAQ_TEST(IonQTester, checkSampleAsync) {
   std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppIonq.config";
+  std::string fileName = home + "/FakeCppIonQ.config";
   auto backendString =
       fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
 
@@ -54,9 +54,9 @@ CUDAQ_TEST(IonqTester, checkSampleAsync) {
   EXPECT_EQ(counts.size(), 2);
 }
 
-CUDAQ_TEST(IonqTester, checkSampleAsyncLoadFromFile) {
+CUDAQ_TEST(IonQTester, checkSampleAsyncLoadFromFile) {
   std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppIonq.config";
+  std::string fileName = home + "/FakeCppIonQ.config";
   auto backendString =
       fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
 
@@ -89,9 +89,9 @@ CUDAQ_TEST(IonqTester, checkSampleAsyncLoadFromFile) {
   std::remove("saveMe.json");
 }
 
-CUDAQ_TEST(IonqTester, checkObserveSync) {
+CUDAQ_TEST(IonQTester, checkObserveSync) {
   std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppIonq.config";
+  std::string fileName = home + "/FakeCppIonQ.config";
   auto backendString =
       fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
 
@@ -114,9 +114,9 @@ CUDAQ_TEST(IonqTester, checkObserveSync) {
   EXPECT_NEAR(result.exp_val_z(), -1.7, 1e-1);
 }
 
-CUDAQ_TEST(IonqTester, checkObserveAsync) {
+CUDAQ_TEST(IonQTester, checkObserveAsync) {
   std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppIonq.config";
+  std::string fileName = home + "/FakeCppIonQ.config";
   auto backendString =
       fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
 
@@ -141,10 +141,10 @@ CUDAQ_TEST(IonqTester, checkObserveAsync) {
   EXPECT_NEAR(result.exp_val_z(), -1.7, 1e-1);
 }
 
-CUDAQ_TEST(IonqTester, checkObserveAsyncLoadFromFile) {
+CUDAQ_TEST(IonQTester, checkObserveAsyncLoadFromFile) {
 
   std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppIonq.config";
+  std::string fileName = home + "/FakeCppIonQ.config";
   auto backendString =
       fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
 
@@ -184,7 +184,7 @@ CUDAQ_TEST(IonqTester, checkObserveAsyncLoadFromFile) {
 
 int main(int argc, char **argv) {
   std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppIonq.config";
+  std::string fileName = home + "/FakeCppIonQ.config";
   std::ofstream out(fileName);
   out << "key: key\nrefresh: refresh\ntime: 0";
   out.close();
