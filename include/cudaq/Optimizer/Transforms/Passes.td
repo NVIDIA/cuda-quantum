@@ -351,4 +351,20 @@ def DecompositionPass: Pass<"quake-decomposition", "mlir::ModuleOp"> {
   ];
 }
 
+def MultiControlDecompositionPass: Pass<"quake-multicontrol-decomposition",
+                                        "mlir::func::FuncOp"> {
+  let summary = "Break down multi-control quantum operations.";
+  let description = [{
+    This pass decomposes multi-control quantum operations. The decompostion
+    involves allocating new qubits to hold intermediate results. The number of
+    extra qubits depends on the particular operation being decomposed.
+    Pauli-X and Pauli-Z operations add _N_ - 2 qubits, while other operations
+    add _N_ - 1 qubits, where _N_ is the number of controls.
+
+    Note: When a `veq` is used as control, we need to know its size to be able
+    to decompose. In such cases, all qubits will be extracted. If the size is
+    unknown at compilation-time, the pass leaves the operation as-is.
+  }];
+}
+
 #endif // CUDAQ_OPT_OPTIMIZER_TRANSFORMS_PASSES
