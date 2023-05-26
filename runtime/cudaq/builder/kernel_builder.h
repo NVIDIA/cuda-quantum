@@ -23,6 +23,8 @@
 
 #include "QuakeValue.h"
 
+#include <iostream>
+
 // Goal here is to keep MLIR out of user code!
 namespace mlir {
 class Type;
@@ -164,6 +166,7 @@ CUDAQ_DETAILS_QIS_DECLARATION(t)
 CUDAQ_DETAILS_QIS_DECLARATION(x)
 CUDAQ_DETAILS_QIS_DECLARATION(y)
 CUDAQ_DETAILS_QIS_DECLARATION(z)
+CUDAQ_DETAILS_QIS_DECLARATION(swap)
 
 #define CUDAQ_DETAILS_ONEPARAM_QIS_DECLARATION(NAME)                           \
   void NAME(ImplicitLocOpBuilder &builder, QuakeValue &parameter,              \
@@ -495,6 +498,25 @@ public:
   CUDAQ_BUILDER_ADD_MEASURE(mx)
   CUDAQ_BUILDER_ADD_MEASURE(my)
   CUDAQ_BUILDER_ADD_MEASURE(mz)
+
+  /// @brief SWAP operation for swapping the quantum states of qubits.
+  /// Supports SWAP's between two qubits, as well as a multi-qubit 
+  /// controlled SWAP operation.
+  void swap(QuakeValue &ctrl, QuakeValue &target) {                                               
+    std::vector<QuakeValue> ctrls{ctrl};
+    std::cout << "Calling details::swap() [L500 k_b.h]\n";                                             
+    details::swap(*opBuilder, ctrls, target);                                   
+  }                       
+
+  void swap(QuakeValue &&ctrl, QuakeValue &&target) { 
+    std::cout << "Calling the other swap funciton [L505 k_b.h]\n";      
+    swap(ctrl, target); 
+  }         
+
+  // TODO: Enable controlled-swap operation.
+  // void swap(std::vector<QuakeValue> &ctrls, QuakeValue &target) {              
+  //   details::swap(*opBuilder, ctrls, target);                                  
+  // }                                                      
 
   /// @brief Reset the given qubit or qubits.
   void reset(QuakeValue &qubit) { details::reset(*opBuilder, qubit); }

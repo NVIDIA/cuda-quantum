@@ -33,6 +33,8 @@
 
 #include <numeric>
 
+#include <iostream>
+
 using namespace mlir;
 
 extern "C" {
@@ -527,6 +529,19 @@ void reset(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec) {
   value.getType().dump();
   llvm::errs() << '\n';
   throw std::runtime_error("Invalid type passed to reset().");
+}
+
+void swap(ImplicitLocOpBuilder &builder, std::vector<QuakeValue> &ctrls,     
+          const QuakeValue &target, bool adjoint) { 
+  // TODO: Type checking to ensure there are at least two qubits to swap.                         
+  cudaq::info("kernel_builder apply swap");                
+  auto value = target.getValue();                                                                                                                                                           
+  std::vector<Value> ctrlValues;                                             
+  std::transform(ctrls.begin(), ctrls.end(), std::back_inserter(ctrlValues), 
+                  [](auto &el) { return el.getValue(); });   
+  std::cout << "About to call applyOneQubitOp [L535 k_b.cpp]\n";               
+  applyOneQubitOp<quake::SwapOp>(builder, ValueRange(), ctrlValues,       
+                                    value, adjoint);                         
 }
 
 void c_if(ImplicitLocOpBuilder &builder, QuakeValue &conditional,
