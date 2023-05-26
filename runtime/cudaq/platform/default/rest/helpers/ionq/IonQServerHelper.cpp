@@ -192,8 +192,9 @@ std::string IonQServerHelper::constructGetResultsPath(std::string &jobId) {
 
 // Get the results from a given path
 ServerMessage IonQServerHelper::getResults(std::string &resultsGetPath) {
+  RestHeaders headers = getHeaders();
   // Return the results from the client
-  return client.get(resultsGetPath, "", getHeaders());
+  return client.get(resultsGetPath, "", headers);
 }
 
 // Check if a job is done
