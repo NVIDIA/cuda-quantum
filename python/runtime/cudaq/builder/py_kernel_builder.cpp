@@ -344,6 +344,7 @@ void bindKernel(py::module &mod) {
       ADD_BUILDER_PARAM_QIS_METHOD(rx)
       ADD_BUILDER_PARAM_QIS_METHOD(ry)
       ADD_BUILDER_PARAM_QIS_METHOD(rz)
+      ADD_BUILDER_PARAM_QIS_METHOD(r1)
       // clang-format on
 
       /// @brief Allow for conditional statements on measurements.

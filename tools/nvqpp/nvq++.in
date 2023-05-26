@@ -38,6 +38,11 @@ function add_pass_to_pipeline {
 	fi
 }
 
+function list_targets {
+	ls -1 ${install_dir}/targets/ | sed -e 's/\.config$//'
+	exit 0
+}
+
 function show_help {
 	cat - <<HELP
 --llvm-version=<vers>
@@ -46,8 +51,11 @@ function show_help {
 --execution-manager=<mgr> | -em=<mgr> | -execution-manager=<mgr>
 	Set the execution manager to <mgr>.
 	
---qpu=<qpu> | -qpu=<qpu>
-	Set the QPU name to <qpu>.
+--target=<target> | -target=<target>
+	Set the Target name to <target>.
+
+--list-targets 
+    List the available targets NVQ++ can compile to. 
 
 --emit-qir=<file> | -emit-qir=<file>
 	Emit the QIR output to <file>.
@@ -69,9 +77,6 @@ function show_help {
 
 --load=<domain>
     Load the domain-specific library, e.g. chemistry.
-
---library-mode
-	Execute the CUDA Quantum program in library mode. (C++ emulation.)
 
 --[no-]device-code-loading
 	Enable/disable device code loading pass.
@@ -217,12 +222,17 @@ ENABLE_LOWER_TO_CFG=true
 ENABLE_APPLY_SPECIALIZATION=true
 ENABLE_LAMBDA_LIFTING=true
 DELETE_TEMPS=true
-LIBRARY_MODE=false
-QPU_CONFIG=
+TARGET_CONFIG=
 EMIT_QIR=false
 PREPROCESSOR_DEFINES=
 CUDAQ_QUAKE_DEBUG=
 SHOW_HELP=false
+LIST_TARGETS=false 
+
+# We default to LIBRARY_MODE, physical 
+# Quantum Targets can override this to turn on 
+# our MLIR compilation workflow.
+LIBRARY_MODE=true
 
 CXX=${LLVMBIN}clang++${llvm_suffix}
 LINKER_CXX=${CXX}
@@ -243,12 +253,16 @@ while [ $# -ne 0 ]; do
 		LIBRARY_MODE_EXECUTION_MANAGER="$2"
 		shift
 		;;
-	--qpu | -qpu)
-		QPU_CONFIG="$2"
+	--target | -target)
+		TARGET_CONFIG="$2"
 		shift
 		;;
 	--emit-qir | -emit-qir)
 		EMIT_QIR="$2"
+		shift
+		;;
+	--list-targets)
+		LIST_TARGETS=true
 		shift
 		;;
 	--platform | -platform)
@@ -273,9 +287,6 @@ while [ $# -ne 0 ]; do
 		;;
 	--clang-verbose | -clang-verbose)
 		CLANG_VERBOSE="-v"
-		;;
-	--library-mode)
-		LIBRARY_MODE=true
 		;;
 	--no-device-code-loading)
 		ENABLE_DEVICE_CODE_LOADERS=false
@@ -369,6 +380,10 @@ if ${SHOW_HELP}; then
 	show_help
 fi
 
+if ${LIST_TARGETS}; then
+	list_targets
+fi
+
 TMPFILES=
 function delete_temp_files {
 	if ${DELETE_TEMPS}; then
@@ -383,23 +398,23 @@ trap delete_temp_files EXIT
 # platform library name, and any boolean flags, and setup
 # the resultant binary to target that specified backend.
 OBJS_TO_MERGE=""
-if [ -n "${QPU_CONFIG}" ]; then
-	QPU_CONFIG_FILE="${install_dir}/platforms/${QPU_CONFIG}.config"
-	if [ -f "${QPU_CONFIG_FILE}" ]; then
+if [ -n "${TARGET_CONFIG}" ]; then
+	TARGET_CONFIG_FILE="${install_dir}/targets/${TARGET_CONFIG}.config"
+	if [ -f "${TARGET_CONFIG_FILE}" ]; then
 		GEN_TARGET_BACKEND=false
-		. "${QPU_CONFIG_FILE}" ${COPY_INPUT_ARGS}
+		. "${TARGET_CONFIG_FILE}" ${COPY_INPUT_ARGS}
 
 		if ${GEN_TARGET_BACKEND}; then
 			# Add a function that will run before main
 			# and set the target backend on the quantum_platform
-			QPU_CONFIG="${QPU_CONFIG}${PLATFORM_EXTRA_ARGS}"
+			TARGET_CONFIG="${TARGET_CONFIG}${PLATFORM_EXTRA_ARGS}"
 			OUTFILENAME=$(mktemp nvqppGenTargetBackend.XXXXXX.o)
-			run ${CXX} -DNVQPP_QPU_BACKEND_CONFIG="\"${QPU_CONFIG}\"" -o $OUTFILENAME -c -x c++ ${install_dir}/platforms/backendConfig.cpp
+			run ${CXX} -DNVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"" -o $OUTFILENAME -c -x c++ ${install_dir}/targets/backendConfig.cpp
 			OBJS_TO_MERGE="${OUTFILENAME}"
 			TMPFILES="${TMPFILES} ${OUTFILENAME}"
 		fi
 	else
-		error_exit "Invalid Target QPU: ($QPU_CONFIG)"
+		error_exit "Invalid Target: ($TARGET_CONFIG)"
 	fi
 fi
 

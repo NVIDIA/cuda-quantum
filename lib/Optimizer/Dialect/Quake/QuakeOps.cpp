@@ -86,7 +86,7 @@ static ParseResult
 parseRawIndex(OpAsmParser &parser,
               std::optional<OpAsmParser::UnresolvedOperand> &index,
               IntegerAttr &rawIndex) {
-  std::size_t constantIndex = 0;
+  std::size_t constantIndex = quake::ExtractRefOp::kDynamicIndex;
   OptionalParseResult parsedInteger =
       parser.parseOptionalInteger(constantIndex);
   if (parsedInteger.has_value()) {
@@ -94,7 +94,6 @@ parseRawIndex(OpAsmParser &parser,
       return failure();
     index = std::nullopt;
   } else {
-    constantIndex = quake::ExtractRefOp::kDynamicIndex;
     OpAsmParser::UnresolvedOperand operand;
     if (parser.parseOperand(operand))
       return failure();

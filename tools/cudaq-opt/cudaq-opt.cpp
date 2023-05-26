@@ -53,6 +53,7 @@ int main(int argc, char **argv) {
   mlir::registerAllPasses();
   cudaq::opt::registerOptCodeGenPasses();
   cudaq::opt::registerOptTransformsPasses();
+  cudaq::opt::registerTargetPipelines();
 
   // See if we have been asked to load a pass plugin,
   // if so load it.

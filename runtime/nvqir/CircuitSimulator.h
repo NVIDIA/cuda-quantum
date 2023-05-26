@@ -64,6 +64,9 @@ public:
   /// @brief Deallocate the qubit with give idx
   virtual void deallocate(const std::size_t qubitIdx) = 0;
 
+  /// @brief Deallocate all the provided qubits.
+  virtual void deallocateQubits(const std::vector<std::size_t> &qubits) = 0;
+
   /// @brief Reset the current execution context.
   virtual void resetExecutionContext() = 0;
 
@@ -203,7 +206,7 @@ protected:
   cudaq::ExecutionContext *executionContext = nullptr;
 
   /// @brief A tracker for allocating and deallocating qubit ids
-  nvqir::QubitIdTracker tracker;
+  cudaq::QuditIdTracker tracker;
 
   /// @brief The number of qubits that have been allocated
   std::size_t nQubitsAllocated = 0;
@@ -623,6 +626,8 @@ public:
         count = qubits.back() + 1 - nQubitsAllocated;
     }
 
+    cudaq::info("Allocating {} new qubits.", count);
+
     previousStateDimension = stateDimension;
     nQubitsAllocated += count;
     stateDimension = calculateStateDim(nQubitsAllocated);
@@ -656,13 +661,33 @@ public:
     --nQubitsAllocated;
 
     // Reset the state if we've deallocated all qubits.
-    if (tracker.numAvailable() == tracker.totalNumQubits()) {
+    if (tracker.allDeallocated()) {
       cudaq::info("Deallocated all qubits, reseting state vector.");
       // all qubits deallocated,
       deallocateState();
       while (!gateQueue.empty())
         gateQueue.pop();
     }
+  }
+
+  /// @brief Deallocate all requested qubits. If the number of qubits
+  /// is equal to the number of allocated qubits, then clear the entire
+  /// state at once.
+  void deallocateQubits(const std::vector<std::size_t> &qubits) override {
+    // Do nothing if there are no allocated qubits.
+    if (nQubitsAllocated == 0)
+      return;
+
+    if (qubits.size() == tracker.numAllocated()) {
+      cudaq::info("Deallocate all qubits.");
+      deallocateState();
+      for (auto &q : qubits)
+        tracker.returnIndex(q);
+      return;
+    }
+
+    for (auto &q : qubits)
+      deallocate(q);
   }
 
   /// @brief Reset the current execution context.
@@ -738,7 +763,7 @@ public:
     executionContext = nullptr;
 
     // Reset the state if we've deallocated all qubits.
-    if (tracker.numAvailable() == tracker.totalNumQubits()) {
+    if (tracker.allDeallocated()) {
       if (shouldSetToZero) {
         cudaq::info("In batch mode currently, reset state to |0>");
         // Do not deallocate the state, but reset it to |0>

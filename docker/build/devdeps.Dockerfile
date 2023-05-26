@@ -133,7 +133,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         git ninja-build \
         python3 python3-pip libpython3-dev \
         libblas-dev \
-    && python3 -m pip install --no-cache-dir lit pytest numpy \
+    && python3 -m pip install --no-cache-dir \
+        lit pytest numpy \
+        fastapi uvicorn pydantic llvmlite \
+        openfermionpyscf \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install additional tools for CUDA Quantum documentation generation.

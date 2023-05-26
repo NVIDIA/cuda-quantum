@@ -7,9 +7,9 @@
  *******************************************************************************/
 
 #include "CUDAQTestUtils.h"
+#include "common/FmtCore.h"
 #include <cudaq/algorithm.h>
 #include <cudaq/optimizers.h>
-#include <fmt/core.h>
 #include <numeric>
 
 using namespace cudaq;

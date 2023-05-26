@@ -14,7 +14,10 @@ add_cudaq_library(OptTransforms
   AddDeallocs.cpp
   AggressiveEarlyInlining.cpp
   ApplyOpSpecialization.cpp
+  BasisConversion.cpp
   CCMem2Reg.cpp
+  Decomposition.cpp
+  DecompositionPatterns.cpp
   ExpandMeasurements.cpp
   GenKernelExecution.cpp
   GenDeviceCodeLoader.cpp

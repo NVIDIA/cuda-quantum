@@ -644,3 +644,32 @@ func.func @cc_struct() {
   %9 = cc.undef !cc.struct<"foo6"{f32, i8} packed>
   return
 }
+
+// CHECK-LABEL:   func.func @cc_indexing(
+// CHECK-SAME:                           %[[VAL_0:.*]]: !cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}>) {
+// CHECK:           %[[VAL_1:.*]] = cc.address_of @cc_struct : !cc.ptr<() -> ()>
+// CHECK:           %[[VAL_2:.*]] = cc.extract_value %[[VAL_0]][0] : (!cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}>) -> i32
+// CHECK:           %[[VAL_3:.*]] = cc.extract_value %[[VAL_0]][1, 15, 2] : (!cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}>) -> f32
+// CHECK:           %[[VAL_4:.*]] = arith.constant 1 : i32
+// CHECK:           %[[VAL_5:.*]] = arith.addi %[[VAL_2]], %[[VAL_4]] : i32
+// CHECK:           %[[VAL_6:.*]] = cc.insert_value %[[VAL_5]], %[[VAL_0]][0] : (!cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}>, i32) -> !cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}>
+// CHECK:           %[[VAL_7:.*]] = cc.alloca !cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}> : () -> !cc.ptr<!cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}>>
+// CHECK:           cc.store %[[VAL_6]], %[[VAL_7]] : !cc.ptr<!cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}>>
+// CHECK:           %[[VAL_8:.*]] = cc.compute_ptr %[[VAL_7]][1, 4, 3] : (!cc.ptr<!cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}>>) -> !cc.ptr<i64>
+// CHECK:           %[[VAL_9:.*]] = cc.compute_ptr %[[VAL_7]][1, %[[VAL_4]], 1] : (!cc.ptr<!cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}>>, i32) -> !cc.ptr<i16>
+// CHECK:           return
+// CHECK:         }
+
+func.func @cc_indexing(%arg0 : !cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}>) {
+  %0 = cc.address_of @cc_struct : !cc.ptr<() -> ()>
+  %1 = cc.extract_value %arg0[0] : (!cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}>) -> i32
+  %2 = cc.extract_value %arg0[1, 15, 2] : (!cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}>) -> f32
+  %one = arith.constant 1 : i32
+  %incr = arith.addi %1, %one : i32
+  %3 = cc.insert_value %incr, %arg0[0] : (!cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}>, i32) -> !cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}>
+  %ss = cc.alloca !cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}> : () -> !cc.ptr<!cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}>>
+  cc.store %3, %ss : !cc.ptr<!cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}>>
+  %p = cc.compute_ptr %ss[1, 4, 3] : (!cc.ptr<!cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}>>) -> !cc.ptr<i64>
+  %q = cc.compute_ptr %ss[1, %one, 1] : (!cc.ptr<!cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}>>, i32) -> !cc.ptr<i16>
+  return
+}

@@ -20,6 +20,9 @@ def AnyPointerType : Type<CPred<"$_self.isa<mlir::LLVM::LLVMPointerType,"
 def AnyCallableType : Type<CPred<"$_self.isa<cudaq::cc::LambdaType, "
                           "mlir::FunctionType>()">, "any callable type">;
 
+def AnyAggregateType : Type<CPred<"$_self.isa<cudaq::cc::StructType, "
+                            "cudaq::cc::ArrayType>()">, "any aggregate type">;
+
 //===----------------------------------------------------------------------===//
 // Base operation definition.
 //===----------------------------------------------------------------------===//
@@ -742,6 +745,162 @@ def cc_StoreOp : CCOp<"store",
   );
   let assemblyFormat = [{
     $value `,` $ptrvalue `:` qualified(type($ptrvalue)) attr-dict
+  }];
+}
+
+//===----------------------------------------------------------------------===//
+// Aggregate operations.
+//===----------------------------------------------------------------------===//
+
+
+def cc_AddressOfOp : CCOp<"address_of", [Pure,
+    DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
+  // Note: should be used to get a pointer to a global object as well, but we
+  // haven't added globals to the dialect yet.
+
+  let summary = "Creates a pointer pointing to a function";
+  let description = [{
+    An AddressOfOp is used to get the address of a function by its symbol name.
+
+    Example:
+
+    ```mlir
+      %fp = cc.address_of @my_void_function : !cc.ptr<() -> ()>
+    ```
+  }];
+  
+  let arguments = (ins FlatSymbolRefAttr:$global_name);
+  let results = (outs cc_PointerType:$res);
+
+  let assemblyFormat = [{
+    $global_name `:` qualified(type($res)) attr-dict
+  }];
+}
+
+def cc_ExtractValueOp : CCOp<"extract_value", [Pure]> {
+  let summary = "Extract a value from an aggregate value.";
+  let description = [{
+    This will translate to LLVM's extract_value instruction. It makes a copy of
+    a subvalue that is part of a larger aggregate value.
+
+    Example:
+
+    ```mlir
+      %i = cc.extract_value %r [1, 0] : (!cc.struct<{i32, !cc.struct<{i16, f32,
+                                        i64}>}>) -> i16
+    ```
+  }];
+
+  let arguments = (ins
+    AnyAggregateType:$container,
+    DenseI64ArrayAttr:$position
+  );
+  let results = (outs AnyType);
+
+  let assemblyFormat = [{
+    $container `` $position `:` functional-type(operands, results) attr-dict
+  }];
+}
+
+def cc_InsertValueOp : CCOp<"insert_value", [Pure]> {
+  let summary = "Insert a value into an aggregate value.";
+  let description = [{
+    This will translate to LLVM's insert_value instruction. It copies an
+    aggregate value and replaces one particular subvalue with a new value.
+
+    Example:
+
+    ```mlir
+      %s = cc.insert_value %r, %i [1, 0] : (!cc.struct<{i32, !cc.struct<{i16,
+           f32, i64}>}>, i16) -> !cc.struct<{i32, !cc.struct<{i16, f32, i64}>}>
+    ```
+  }];
+
+  let arguments = (ins
+    AnyAggregateType:$container,
+    AnyType:$value,
+    DenseI64ArrayAttr:$position
+  );
+  let results = (outs AnyAggregateType);
+
+  let assemblyFormat = [{
+    $value `,` $container `` $position `:` functional-type(operands, results)
+      attr-dict
+  }];
+}
+
+def cc_ComputePtrOp : CCOp<"compute_ptr", [Pure]> {
+  let summary = "Creates a pointer pointing to a subobject in an object.";
+  let description = [{
+    This translates to LLVM's get_element_ptr operation. The initial thinking
+    is that unlike the GEP, the base object must be either an array or a single
+    object and a ComputerPtrOp does not accept a pointer as both implicitly.
+
+    Example:
+
+    ```mlir
+      %p = cc.compute_ptr %struct, 1 : (!cc.ptr<!cc.struct<{i32, f32}>>) ->
+                                       !cc.ptr<f32>
+      %q = cc.compute_ptr %array, %i : (!cc.ptr<!cc.array<i32 x 100>>, i64) ->
+                                       !cc.ptr<i32>
+    ```
+  }];
+
+  let arguments = (ins
+    cc_PointerType:$base,
+    Variadic<AnyInteger>:$dynamicIndices,
+    DenseI32ArrayAttr:$rawConstantIndices
+  );
+  let results = (outs cc_PointerType);
+
+  let assemblyFormat = [{
+    $base `[` custom<ComputePtrIndices>($dynamicIndices, $rawConstantIndices)
+      `]` `:` functional-type(operands, results) attr-dict
+  }];
+}
+
+//===----------------------------------------------------------------------===//
+// Cast operation.
+//===----------------------------------------------------------------------===//
+
+def cc_CastOp : CCOp<"cast", [Pure]> {
+  let summary = "Overloads LLVM's casting instructions.";
+  let description = [{
+    A CastOp can be used to create one of LLVM's cast instructions. The signed
+    (unsigned) keyword can/must be used with otherwise sign agnostic integer
+    conversions to distinguish between sext (zext).
+
+    Example:
+
+    ```mlir
+      %11 = cc.cast %10 : (!cc.ptr<i8>) -> i64           // ptrtoint
+      %12 = cc.cast %11 : (i64) -> !cc.ptr<i32>          // inttoptr
+      %13 = cc.cast %12 : (!cc.ptr<i32>) -> !cc.ptr<f64> // bitcast
+      %14 = cc.cast %11 : (i64) -> f64                   // bitcast
+      %15 = cc.cast signed %11 : (i64) -> f64            // sitofp
+      %16 = cc.cast unsigned %11 : (i64) -> f64          // uitofp
+      %17 = cc.cast signed %15 : (f64) -> i32            // fptosi
+      %18 = cc.cast unsigned %16 : (f64) -> i16          // fptoui
+      %21 = cc.cast signed %20 : (i8) -> i32             // sext
+      %22 = cc.cast unsigned %20 : (i8) -> i32           // zext
+      %23 = cc.cast %22 : (i32) -> i16                   // trunc
+      %24 = cc.cast %16 : (f64) -> f32                   // fptrunc
+      %25 = cc.cast %24 : (f32) -> f64                   // fpext
+    ```
+  }];
+
+  let arguments = (ins
+    AnyType:$value,
+    OptionalAttr<UnitAttr>:$sint,
+    OptionalAttr<UnitAttr>:$zint
+  );
+  let results = (outs AnyType:$result);
+  let hasFolder = 1;
+  let hasVerifier = 1;
+  
+  let assemblyFormat = [{
+    ( `signed` $sint^ ):( ( `unsigned` $zint^ )? )? $value `:`
+      functional-type(operands, results) attr-dict
   }];
 }
 
