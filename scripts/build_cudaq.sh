@@ -129,6 +129,7 @@ cmake_args="-G Ninja "$repo_root" \
   -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
   -DCMAKE_INSTALL_PREFIX="$CUDAQ_INSTALL_PREFIX" \
   -DLLVM_DIR="$llvm_lib_dir/cmake/llvm" \
+  -DLLVM_ENABLE_ASSERTIONS=ON \
   -DNVQPP_LD_PATH="$NVQPP_LD_PATH" \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
