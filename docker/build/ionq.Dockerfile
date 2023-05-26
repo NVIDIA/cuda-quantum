@@ -46,7 +46,7 @@ RUN mkdir llvm-project && \
     cp bin/llvm-lit ${LLVM_INSTALL_PATH}/bin/
 
 # Install pip dependencies
-RUN pip3 install lit numpy pytest
+RUN pip3 install lit numpy pytest pybind11[global]
 
 # Build CUDA Quantum
 RUN git clone https://github.com/splch/cuda-quantum && \
@@ -61,8 +61,11 @@ RUN git clone https://github.com/splch/cuda-quantum && \
     ninja install && \
     ctest -E ctest-nvqpp
 
+RUN cp -r /cuda-quantum/docs/sphinx/examples/ /workspace/
+
 # Add binaries to path
 ENV PATH="${PATH}:/cuda-quantum/build/bin"
+ENV PYTHONPATH="${PYTHONPATH}:/cuda-quantum/build/python"
 
 # Set the working directory
 WORKDIR /workspace

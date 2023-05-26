@@ -32,7 +32,7 @@
 # behavior and force building GPU components even if no GPU is detected by setting the
 # FORCE_COMPILE_GPU_COMPONENTS environment variable to true. This is useful primarily
 # when building docker images since GPUs may not be accessible during build.
-set -ex
+
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/opt/llvm}
 CUQUANTUM_INSTALL_PREFIX=${CUQUANTUM_INSTALL_PREFIX:-/opt/nvidia/cuquantum}
 CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$HOME/.cudaq"}
