@@ -53,7 +53,7 @@ void cudaq::opt::registerTargetPipelines() {
   PassPipelineRegistration<>("quantinuum-gate-set-mapping",
                              "Convert kernels to Quantinuum gate set.",
                              addQuantinuumPipeline);
-  PassPipelineRegistration<>("quantinuum-gate-set-mapping",
-                             "Convert kernels to Quantinuum gate set.",
+  PassPipelineRegistration<>("ionq-gate-set-mapping",
+                             "Convert kernels to IonQ gate set.",
                              addIonQPipeline);
 }
