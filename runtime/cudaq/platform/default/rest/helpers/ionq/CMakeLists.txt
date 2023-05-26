@@ -6,4 +6,4 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 target_sources(cudaq-rest-qpu PRIVATE IonQServerHelper.cpp)
-add_platform_config(ionq)
+add_target_config(ionq)
