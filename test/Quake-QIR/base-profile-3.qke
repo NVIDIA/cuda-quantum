@@ -8,16 +8,16 @@
 
 // RUN: cudaq-translate --convert-to=qir-base %s | FileCheck %s
 
-module attributes {qtx.mangled_name_map = {__nvqpp__mlirgen__t1 = "_ZN2t1clEv"}} {
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__t1 = "_ZN2t1clEv"}} {
   func.func @__nvqpp__mlirgen__t1() attributes {"cudaq-entrypoint"} {
     %c2_i32 = arith.constant 2 : i32
     %0 = arith.extsi %c2_i32 : i32 to i64
     %c2_i64 = arith.constant 2 : i64
-    %1 = quake.alloca(%c2_i64 : i64) : !quake.qvec<2>
+    %1 = quake.alloca !quake.veq<2>
     %c1_i32 = arith.constant 1 : i32
     %2 = arith.extsi %c1_i32 : i32 to i64
-    %3 = quake.qextract %1[%2] : !quake.qvec<2>[i64] -> !quake.qref
-    %4 = quake.mz(%3 : !quake.qref) {registerName = "Bob"} : i1
+    %3 = quake.extract_ref %1[%2] : (!quake.veq<2>,i64) -> !quake.ref
+    %4 = quake.mz %3 : (!quake.ref) -> i1 { registerName = "Bob" }
     return
   }
 }

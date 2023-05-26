@@ -44,7 +44,7 @@ listReachableFunctions(clang::CallGraphNode *cgn) {
 // Does `ty` refer to a Quake quantum type? This also checks custom recursive
 // types. It does not check builtin recursive types; e.g., `!llvm.ptr<T>`.
 static bool isQubitType(Type ty) {
-  if (ty.isa<quake::QRefType, quake::QVecType>())
+  if (ty.isa<quake::RefType, quake::VeqType>())
     return true;
   if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(ty))
     return isQubitType(vecTy.getElementType());
@@ -52,8 +52,7 @@ static bool isQubitType(Type ty) {
 }
 
 // Check the builtin type FunctionType to see if it has any references to Quake
-// qubit types in its arguments and/or results. It does not check QTX types as
-// the bridge should be lowering to Quake.
+// qubit types in its arguments and/or results.
 static bool hasAnyQubitTypes(FunctionType funcTy) {
   for (auto ty : funcTy.getInputs())
     if (isQubitType(ty))
@@ -180,9 +179,10 @@ public:
     for (auto *method : x->methods()) {
       if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(method)) {
         if (quantumCount++) {
-          auto id = de.getCustomDiagID(clang::DiagnosticsEngine::Error,
-                                       "CUDA Quantum kernel class with multiple "
-                                       "quantum methods not yet supported");
+          auto id =
+              de.getCustomDiagID(clang::DiagnosticsEngine::Error,
+                                 "CUDA Quantum kernel class with multiple "
+                                 "quantum methods not yet supported");
           de.Report(method->getBeginLoc(), id);
           break;
         }
@@ -367,7 +367,7 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
   // Lower each kernel entry function.
   for (auto fdPair : functionsToEmit) {
     SymbolTableScope var_scope(symbol_table);
-    std::string entryName = visitor.generateQodaKernelName(fdPair);
+    std::string entryName = visitor.generateCudaqKernelName(fdPair);
     visitor.setEntryName(entryName);
     // Extend the mangled kernel names map.
     auto mangledFuncName = visitor.cxxMangledDeclName(fdPair.second);

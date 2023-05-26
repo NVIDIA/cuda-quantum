@@ -12,7 +12,7 @@
 namespace cudaq {
 void set_qpu_backend(const char *);
 }
-constexpr static const char ____targetBackend[] = NVQPP_QPU_BACKEND_CONFIG;
+constexpr static const char ____targetBackend[] = NVQPP_TARGET_BACKEND_CONFIG;
 __attribute__((constructor)) void setTargetBackend() {
-  cudaq::set_qpu_backend(____targetBackend);
+  cudaq::set_target_backend(____targetBackend);
 }

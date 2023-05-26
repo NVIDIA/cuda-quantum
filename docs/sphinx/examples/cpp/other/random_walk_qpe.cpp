@@ -7,7 +7,9 @@
  *******************************************************************************/
 
 // Compile and run with:
+// ```
 // nvq++ random_walk_qpe.cpp -o qpe.x && ./qpe.x
+// ```
 
 #include <cudaq.h>
 

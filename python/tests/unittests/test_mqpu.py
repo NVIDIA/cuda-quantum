@@ -19,10 +19,10 @@ def assert_close(want, got, tolerance=1.e-5) -> bool:
 
 
 def testLargeProblem():
-    if not cudaq.has_qpu('cuquantum'):
+    if not cudaq.has_target('nvidia-mqpu'):
         return
 
-    cudaq.set_qpu('cuquantum')
+    cudaq.set_target('nvidia')
     # This is not large, but we don't want our CI testing
     # to take up too much time, if you want to see more
     # of the speedup increase the number of terms. I usually
@@ -64,21 +64,26 @@ def testLargeProblem():
     e = cudaq.observe(kernel, H, execParams)
     stop = timeit.default_timer()
     print("serial time = ", (stop - start))
-    cudaq.set_platform('mqpu')
+    
+    cudaq.set_target('nvidia-mqpu')
     start = timeit.default_timer()
     e = cudaq.observe(kernel, H, execParams)
     stop = timeit.default_timer()
     print("mqpu time = ", (stop - start))
     assert assert_close(e.expectation_z(), e.expectation_z())
-    cudaq.set_qpu('qpp')
-    cudaq.set_platform('default')
+ 
+    # Reset for the next tests. 
+    cudaq.reset_target()
 
 
 def testAccuracy():
-    if not cudaq.has_qpu('cuquantum'):
+    if not cudaq.has_target('nvidia'):
         return
 
-    cudaq.set_platform('mqpu')
+    cudaq.set_target('nvidia-mqpu')
+    target = cudaq.get_target()
+    numQpus = target.num_qpus()
+    assert numQpus > 0
 
     kernel, theta = cudaq.make_kernel(float)
     qreg = kernel.qalloc(2)
@@ -97,8 +102,7 @@ def testAccuracy():
     expectation_value_no_shots = result_no_shots.expectation_z()
     assert assert_close(want_expectation_value, expectation_value_no_shots)
 
-    cudaq.set_platform('default')
-    cudaq.set_qpu('qpp')
+    cudaq.reset_target()
 
 
 # leave for gdb debugging

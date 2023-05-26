@@ -39,7 +39,7 @@ using namespace llvm;
 
 constexpr static const char toolName[] = "cudaq-quake";
 constexpr static const char mangledKernelNameMapAttrName[] =
-    "qtx.mangled_name_map";
+    "quake.mangled_name_map";
 
 //===----------------------------------------------------------------------===//
 // Command line options.
@@ -54,8 +54,7 @@ static cl::opt<std::string> outputFilename("o",
                                            cl::init("-"));
 
 static cl::list<std::string>
-    kernelNames("filter",
-                cl::desc("Names of quantum kernels to convert to QTX."));
+    kernelNames("filter", cl::desc("Names of quantum kernels to convert."));
 
 static cl::opt<bool>
     emitLLVM("emit-llvm-file",
@@ -106,16 +105,16 @@ inline bool isStdinInput(StringRef str) { return str == "-"; }
 
 namespace {
 /// Consumer that runs a pair of AST consumers at the same time.
-class QodaQtxLlvmASTConsumer : public clang::ASTConsumer {
+class CudaQASTConsumer : public clang::ASTConsumer {
 public:
-  QodaQtxLlvmASTConsumer(std::unique_ptr<clang::ASTConsumer> &consumer0,
-                         std::unique_ptr<clang::ASTConsumer> &consumer1) {
+  CudaQASTConsumer(std::unique_ptr<clang::ASTConsumer> &consumer0,
+                   std::unique_ptr<clang::ASTConsumer> &consumer1) {
     assert(consumer0 && consumer1 && "AST Consumers must be instantiated");
     consumers.emplace_back(consumer1.release());
     consumers.emplace_back(consumer0.release());
   }
 
-  virtual ~QodaQtxLlvmASTConsumer() {
+  virtual ~CudaQASTConsumer() {
     for (auto *p : consumers)
       delete p;
     consumers.clear();
@@ -179,22 +178,22 @@ private:
 };
 
 /// Action to create both the LLVM IR for the entire C++ compilation unit and to
-/// translate the CUDA Quantum kernels to the QTX dialect.
-class QodaQtxLlvmAction : public clang::EmitLLVMAction {
+/// translate the CUDA Quantum kernels.
+class CudaQAction : public clang::EmitLLVMAction {
 public:
   using Base = clang::EmitLLVMAction;
   using MangledKernelNamesMap = cudaq::ASTBridgeAction::MangledKernelNamesMap;
 
-  QodaQtxLlvmAction(mlir::OwningOpRef<mlir::ModuleOp> &module,
-                    MangledKernelNamesMap &kernelNames)
+  CudaQAction(mlir::OwningOpRef<mlir::ModuleOp> &module,
+              MangledKernelNamesMap &kernelNames)
       : mlirAction(module, kernelNames) {}
-  virtual ~QodaQtxLlvmAction() = default;
+  virtual ~CudaQAction() = default;
 
   std::unique_ptr<clang::ASTConsumer>
   CreateASTConsumer(clang::CompilerInstance &ci, StringRef inFile) override {
     auto llvmConsumer = this->Base::CreateASTConsumer(ci, inFile);
     auto mlirConsumer = mlirAction.CreateASTConsumer(ci, inFile);
-    return std::make_unique<QodaQtxLlvmASTConsumer>(llvmConsumer, mlirConsumer);
+    return std::make_unique<CudaQASTConsumer>(llvmConsumer, mlirConsumer);
   }
 
 private:
@@ -202,14 +201,14 @@ private:
 };
 
 /// This is the front-end action to convert the C++ code to LLVM IR to a file.
-class InterceptQodaAction : public clang::EmitLLVMAction {
+class InterceptCudaQAction : public clang::EmitLLVMAction {
 public:
   using MangledKernelNamesMap = cudaq::ASTBridgeAction::MangledKernelNamesMap;
 
-  InterceptQodaAction(mlir::OwningOpRef<mlir::ModuleOp> &,
-                      MangledKernelNamesMap &)
+  InterceptCudaQAction(mlir::OwningOpRef<mlir::ModuleOp> &,
+                       MangledKernelNamesMap &)
       : clang::EmitLLVMAction{} {}
-  virtual ~InterceptQodaAction() = default;
+  virtual ~InterceptCudaQAction() = default;
 
   void EndSourceFileAction() override {
     clang::EmitLLVMAction::EndSourceFileAction();
@@ -222,7 +221,7 @@ public:
 
 template <typename ACTION>
 bool runTool(mlir::OwningOpRef<mlir::ModuleOp> &module,
-             QodaQtxLlvmAction::MangledKernelNamesMap &mangledKernelNameMap,
+             CudaQAction::MangledKernelNamesMap &mangledKernelNameMap,
              StringRef cplusplusCode, std::vector<std::string> &clArgs,
              const std::string &inputFileName) {
   assert(cplusplusCode.size() > 0);
@@ -365,7 +364,8 @@ int main(int argc, char **argv) {
   // One final check here, do we have this header,
   // if not we cannot proceed.
   if (!std::filesystem::exists(cudaqIncludeDir / "cudaq.h")) {
-    llvm::errs() << "Invalid CUDA Quantum install configuration, cannot find CUDA Quantum "
+    llvm::errs() << "Invalid CUDA Quantum install configuration, cannot find "
+                    "CUDA Quantum "
                     "include directory.\n";
     return 1;
   }
@@ -398,20 +398,20 @@ int main(int argc, char **argv) {
   }
 
   // Set the mangled kernel names map.
-  QodaQtxLlvmAction::MangledKernelNamesMap mangledKernelNameMap;
+  CudaQAction::MangledKernelNamesMap mangledKernelNameMap;
 
   std::string inputFile = isStdinInput(inputFilename)
                               ? std::string("input.cc")
                               : sys::path::filename(inputFilename).str();
-  if (auto rc = emitLLVM ? runTool<QodaQtxLlvmAction>(
-                               module, mangledKernelNameMap, cplusplusCode,
-                               clArgs, inputFile)
-                         : (llvmOnly ? runTool<InterceptQodaAction>(
-                                           module, mangledKernelNameMap,
+  if (auto rc = emitLLVM
+                    ? runTool<CudaQAction>(module, mangledKernelNameMap,
                                            cplusplusCode, clArgs, inputFile)
-                                     : runTool<cudaq::ASTBridgeAction>(
-                                           module, mangledKernelNameMap,
-                                           cplusplusCode, clArgs, inputFile)))
+                    : (llvmOnly ? runTool<InterceptCudaQAction>(
+                                      module, mangledKernelNameMap,
+                                      cplusplusCode, clArgs, inputFile)
+                                : runTool<cudaq::ASTBridgeAction>(
+                                      module, mangledKernelNameMap,
+                                      cplusplusCode, clArgs, inputFile)))
     return rc;
 
   // Success! Dump the IR and exit.

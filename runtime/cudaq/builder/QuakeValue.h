@@ -8,6 +8,7 @@
 
 #pragma once
 #include <functional>
+#include <map>
 #include <memory>
 
 namespace mlir {
@@ -16,6 +17,7 @@ class ImplicitLocOpBuilder;
 } // namespace mlir
 
 namespace cudaq {
+class QuakeValue;
 
 /// @brief A QuakeValue is meant to provide a thin
 /// wrapper around an mlir::Value instance. These QuakeValues
@@ -34,12 +36,22 @@ protected:
   /// @brief Pointer to the OpBuilder we are using
   mlir::ImplicitLocOpBuilder &opBuilder;
 
+  /// @brief For Values of StdVecType, we might be able
+  /// to validate that the number of required unique elements
+  /// is equal to the number provided as input at runtime.
+  bool canValidateVectorNumElements = true;
+
+  /// @brief Keep track of previously extracted QuakeValues from
+  /// a concrete index value
+  std::map<std::size_t, QuakeValue> extractedFromIndex;
+
+  /// @brief Keep track of previously extracted QuakeValues from
+  /// another QuakeValue (represented by its unique opaque pointer)
+  std::map<void *, QuakeValue> extractedFromValue;
+
 public:
   /// @brief Return the actual MLIR Value
-  mlir::Value getValue();
-
-  // Let kernel_builder use getValue()
-  // friend class kernel_builder;
+  mlir::Value getValue() const;
 
   /// @brief The constructor, takes the builder and the value to wrap
   QuakeValue(mlir::ImplicitLocOpBuilder &builder, mlir::Value v);
@@ -53,12 +65,25 @@ public:
   QuakeValue(const QuakeValue &);
   ~QuakeValue();
 
+  /// @brief Dump the QuakeValue to standard out.
   void dump();
+
+  /// @brief Dump the QuakeValue to the given output stream.
   void dump(std::ostream &);
+
+  /// @brief Return true if this QuakeValue of StdVecType can
+  /// validate its number of unique elements. We cannot do this in the
+  /// case of QuakeValue extractions within for loops where we do not know
+  /// the bounds of the loop.
+  bool canValidateNumElements() { return canValidateVectorNumElements; }
 
   /// @brief For a subscriptable QuakeValue, extract a sub set of the elements
   /// starting at the given startIdx and including the following count elements.
   QuakeValue slice(const std::size_t startIdx, const std::size_t count);
+
+  /// @brief For a QuakeValue with type StdVec or Veq, return
+  /// the size QuakeValue.
+  QuakeValue size();
 
   /// @brief Return true if this QuakeValue is of type StdVec.
   /// @return
@@ -71,8 +96,13 @@ public:
 
   /// @brief Return a new QuakeValue when the current value
   /// is indexed, specifically for QuakeValues of type StdVecType
-  /// and QVecType.
+  /// and VeqType.
   QuakeValue operator[](const std::size_t idx);
+
+  /// @brief Return a new QuakeValue when the current value
+  /// is indexed, specifically for QuakeValues of type StdVecType
+  /// and VeqType.
+  QuakeValue operator[](const QuakeValue &idx);
 
   /// @brief Negate this QuakeValue
   QuakeValue operator-();
@@ -86,11 +116,17 @@ public:
   /// @brief Add this QuakeValue with the given double.
   QuakeValue operator+(const double);
 
+  /// @brief Add this QuakeValue with the given int.
+  QuakeValue operator+(const int);
+
   /// @brief Add this QuakeValue with the given QuakeValue
   QuakeValue operator+(QuakeValue other);
 
   /// @brief Subtract the given double from this QuakeValue
   QuakeValue operator-(const double);
+
+  /// @brief Subtract the given int from this QuakeValue
+  QuakeValue operator-(const int);
 
   /// @brief Subtract the given QuakeValue from this QuakeValue
   QuakeValue operator-(QuakeValue other);

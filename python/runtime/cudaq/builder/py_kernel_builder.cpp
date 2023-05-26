@@ -39,7 +39,11 @@ void bindMakeKernel(py::module &mod) {
                      "  kernel, qreg = cudaq.make_kernel(cudaq.qreg)\n");
 
   mod.def(
-      "make_kernel", []() { return make_kernel(); },
+      "make_kernel",
+      []() {
+        std::vector<details::KernelBuilderType> empty;
+        return std::make_unique<kernel_builder<>>(empty);
+      },
       "Create and return a :class:`Kernel` that accepts no arguments.\n"
       "\nReturns:\n"
       "  :class:`Kernel` : An empty kernel function to be used for quantum "
@@ -217,7 +221,7 @@ void bindMakeKernel(py::module &mod) {
           "  # Example:\n"                                                     \
           "  kernel = cudaq.make_kernel() \n"                                  \
           "  # Apply an " #NAME                                                \
-          " to the kernel at a concrete parameter value.\n"                   \
+          " to the kernel at a concrete parameter value.\n"                    \
           "  kernel." #NAME "(parameter=3.14, target=qubit)\n")
 
 void bindKernel(py::module &mod) {
@@ -292,6 +296,13 @@ void bindKernel(py::module &mod) {
           "  kernel, qubit_count = cudaq.make_kernel(int)\n"
           "  # Allocate the variable number of qubits.\n"
           "  qubits = kernel.qalloc(qubit_count)\n")
+      /// @brief Bind the qubit reset method.
+      .def(
+          "reset",
+          [](kernel_builder<> &self, QuakeValue &qubitOrQreg) {
+            self.reset(qubitOrQreg);
+          },
+          "Reset the provided qubit or qubits.")
       /// @brief Allow for JIT compilation of kernel in python via call to
       /// `builder(args)`.
       .def(
@@ -333,6 +344,7 @@ void bindKernel(py::module &mod) {
       ADD_BUILDER_PARAM_QIS_METHOD(rx)
       ADD_BUILDER_PARAM_QIS_METHOD(ry)
       ADD_BUILDER_PARAM_QIS_METHOD(rz)
+      ADD_BUILDER_PARAM_QIS_METHOD(r1)
       // clang-format on
 
       /// @brief Allow for conditional statements on measurements.
@@ -566,7 +578,42 @@ void bindKernel(py::module &mod) {
           "  kernel.apply_call(target_kernel, qubit)\n"
           "  # The final measurement of `qubit` should return the 1-state.\n"
           "  kernel.mz(qubit)\n")
-
+      .def(
+          "for_loop",
+          [](kernel_builder<> &self, std::size_t start, std::size_t end,
+             py::function body) { self.for_loop(start, end, body); },
+          "Add a for loop that starts from the given `start` integer index, "
+          "ends at the given `end` integer index (non inclusive), and applies "
+          "the given `body` "
+          "as a callable function. This callable function must take as input "
+          "an index variable that can be used within the body.")
+      .def(
+          "for_loop",
+          [](kernel_builder<> &self, std::size_t start, QuakeValue &end,
+             py::function body) { self.for_loop(start, end, body); },
+          "Add a for loop that starts from the given `start` integer index, "
+          "ends at the given `end` QuakeValue index (non inclusive), and "
+          "applies the given "
+          "`body` as a callable function. This callable function must take as "
+          "input an index variable that can be used within the body.")
+      .def(
+          "for_loop",
+          [](kernel_builder<> &self, QuakeValue &start, std::size_t end,
+             py::function body) { self.for_loop(start, end, body); },
+          "Add a for loop that starts from the given `start` QuakeValue index, "
+          "ends at the given `end` integer index (non inclusive), and applies "
+          "the given `body` "
+          "as a callable function. This callable function must take as input "
+          "an index variable that can be used within the body.")
+      .def(
+          "for_loop",
+          [](kernel_builder<> &self, QuakeValue &start, QuakeValue &end,
+             py::function body) { self.for_loop(start, end, body); },
+          "Add a for loop that starts from the given `start` QuakeValue index, "
+          "ends at the given `end` QuakeValue index (non inclusive), and "
+          "applies the given "
+          "`body` as a callable function. This callable function must take as "
+          "input an index variable that can be used within the body.")
       /// @brief Convert kernel to a Quake string.
       .def("to_quake", &kernel_builder<>::to_quake, "See :func:`__str__`.")
       .def("__str__", &kernel_builder<>::to_quake,

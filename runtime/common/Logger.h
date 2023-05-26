@@ -10,8 +10,8 @@
 
 #include <filesystem>
 
-// Be careful about Logger.h getting into public headers
-#include <fmt/core.h>
+// Be careful about fmt getting into public headers
+#include "common/FmtCore.h"
 #include <fmt/ranges.h>
 
 namespace cudaq {

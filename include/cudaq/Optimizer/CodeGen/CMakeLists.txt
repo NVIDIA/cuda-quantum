@@ -14,11 +14,3 @@ set(LLVM_TARGET_DEFINITIONS Peephole.td)
 mlir_tablegen(Peephole.inc -gen-rewriters)
 add_public_tablegen_target(OptPeepholeIncGen)
 
-set(LLVM_TARGET_DEFINITIONS DecompositionGateSetMapping.td)
-mlir_tablegen(DecompositionGateSetMapping.inc -gen-rewriters)
-add_public_tablegen_target(OptDecompositionGateSetIncGen)
-
-set(LLVM_TARGET_DEFINITIONS IQMGateSetMapping.td)
-mlir_tablegen(IQMGateSetMapping.inc -gen-rewriters)
-add_public_tablegen_target(OptIQMGateSetIncGen)
-

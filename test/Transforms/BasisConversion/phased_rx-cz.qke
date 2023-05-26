@@ -1,0 +1,63 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -pass-pipeline='builtin.module(quake-basis-conversion{basis=z(1),phased_rx})' %s | FileCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(quake-basis-conversion{basis=z(1),phased_rx})' %s | CircuitCheck %s --up-to-global-phase
+
+
+// CHECK-LABEL: func.func @cx
+func.func @cx(%c0: !quake.ref, %t: !quake.ref) {
+  // CHECK-NOT: quake.x
+  quake.x [%c0] %t : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @ccz
+func.func @ccz(%c0: !quake.ref, %c1: !quake.ref, %t: !quake.ref) {
+  quake.z [%c0, %c1] %t : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @ccx
+func.func @ccx(%c0: !quake.ref, %c1: !quake.ref, %t: !quake.ref) {
+  // CHECK-NOT: quake.x
+  quake.x [%c0, %c1] %t : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @cr1
+func.func @cr1(%c: !quake.ref, %t: !quake.ref) {
+  %0 = arith.constant 1.57079632679489660 : f64
+  // CHECK-NOT: quake.r1
+  quake.r1 (%0)[%c] %t : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @crx
+func.func @crx(%c: !quake.ref, %t: !quake.ref) {
+  %0 = arith.constant 1.57079632679489660 : f64
+  // CHECK-NOT: quake.rx
+  quake.rx (%0)[%c] %t : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @cry
+func.func @cry(%c: !quake.ref, %t: !quake.ref) {
+  %0 = arith.constant 1.57079632679489660 : f64
+  // CHECK-NOT: quake.ry
+  quake.ry (%0)[%c] %t : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @crz
+func.func @crz(%c: !quake.ref, %t: !quake.ref) {
+  %0 = arith.constant 1.57079632679489660 : f64
+  // CHECK-NOT: quake.rz
+  quake.rz (%0)[%c] %t : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}

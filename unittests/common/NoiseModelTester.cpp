@@ -7,8 +7,8 @@
  *******************************************************************************/
 
 #include "CUDAQTestUtils.h"
+#include "common/FmtCore.h"
 #include "common/MeasureCounts.h"
-#include <fmt/core.h>
 
 using namespace cudaq;
 

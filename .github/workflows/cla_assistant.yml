@@ -15,7 +15,7 @@ jobs:
         if: (github.event.comment.body == 'recheck' || github.event.comment.body == 'I have read the Contributor License Agreement and I hereby accept the Terms.') || github.event_name == 'pull_request_target'
         uses: cla-assistant/github-action@v2.1.3-beta
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
           PERSONAL_ACCESS_TOKEN : ${{ secrets.CLA_BOT_ACCESS_TOKEN }}
         with:
           remote-organization-name: NVIDIA

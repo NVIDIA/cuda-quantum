@@ -7,9 +7,9 @@
  *******************************************************************************/
 
 #include "CircuitSimulator.h"
-#include "Logger.h"
-#include "PluginUtils.h"
 #include "QIRTypes.h"
+#include "common/Logger.h"
+#include "common/PluginUtils.h"
 #include "cudaq/spin_op.h"
 #include <cmath>
 #include <complex>
@@ -32,7 +32,7 @@
 // Is the library initialized?
 thread_local bool initialized = false;
 thread_local nvqir::CircuitSimulator *simulator;
-inline static constexpr std::string_view GetCircuitSymbol =
+inline static constexpr std::string_view GetCircuitSimulatorSymbol =
     "getCircuitSimulator";
 
 /// @brief Provide a holder for externally created
@@ -75,8 +75,8 @@ CircuitSimulator *getCircuitSimulatorInternal() {
     return simulator;
   }
 
-  simulator =
-      cudaq::getUniquePluginInstance<CircuitSimulator>(GetCircuitSymbol);
+  simulator = cudaq::getUniquePluginInstance<CircuitSimulator>(
+      GetCircuitSimulatorSymbol);
   cudaq::info("Creating the {} backend.", simulator->name());
   return simulator;
 }
@@ -215,6 +215,12 @@ void __quantum__rt__qubit_release(Qubit *q) {
       end);
 }
 
+void __quantum__rt__deallocate_all(const std::size_t numQubits,
+                                   const std::size_t *qubitIdxs) {
+  std::vector<std::size_t> qubits(qubitIdxs, qubitIdxs + numQubits);
+  nvqir::getCircuitSimulatorInternal()->deallocateQubits(qubits);
+}
+
 #define ONE_QUBIT_QIS_FUNCTION(GATENAME)                                       \
   void QIS_FUNCTION_NAME(GATENAME)(Qubit * qubit) {                            \
     auto targetIdx = qubitToSizeT(qubit);                                      \
@@ -272,6 +278,14 @@ void __quantum__qis__swap(Qubit *q, Qubit *r) {
   cudaq::ScopedTrace trace("NVQIR::swap", qI, rI);
   nvqir::getCircuitSimulatorInternal()->swap(qI, rI);
 }
+
+void __quantum__qis__swap__ctl(Array *ctrls, Qubit *q, Qubit *r) {
+  auto ctrlIdxs = arrayToVectorSizeT(ctrls);
+  auto qI = qubitToSizeT(q);
+  auto rI = qubitToSizeT(r);
+  nvqir::getCircuitSimulatorInternal()->swap(ctrlIdxs, qI, rI);
+}
+
 void __quantum__qis__swap__body(Qubit *q, Qubit *r) {
   __quantum__qis__swap(q, r);
 }
@@ -341,6 +355,7 @@ Result *__quantum__qis__measure__body(Array *pauli_arr, Array *qubits) {
   // Some backends may better handle the observe task.
   // Let's give them that opportunity.
   if (currentContext->canHandleObserve) {
+    circuitSimulator->flushGateQueue();
     auto result = circuitSimulator->observe(*currentContext->spin.value());
     currentContext->expectationValue = result.expectationValue;
     currentContext->result = cudaq::sample_result(result);
@@ -377,6 +392,7 @@ Result *__quantum__qis__measure__body(Array *pauli_arr, Array *qubits) {
     }
   }
 
+  circuitSimulator->flushGateQueue();
   int shots = 0;
   if (currentContext->shots > 0) {
     shots = currentContext->shots;
@@ -399,6 +415,7 @@ Result *__quantum__qis__measure__body(Array *pauli_arr, Array *qubits) {
         circuitSimulator->rx(angle, it->second);
       }
     }
+    circuitSimulator->flushGateQueue();
   }
 
   return ResultZero;

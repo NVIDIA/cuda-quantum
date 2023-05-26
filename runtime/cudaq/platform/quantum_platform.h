@@ -99,12 +99,11 @@ public:
   std::future<sample_result> enqueueAsyncTask(const std::size_t qpu_id,
                                               KernelExecutionTask &t);
 
-  /// Enqueue an asynchronous observation task
-  // std::future<observe_result>
-  // enqueueAsyncObserveTask(const std::size_t qpu_id, ObserveTask &t);
+  /// @brief Enqueue a general task that runs on the specified QPU
+  void enqueueAsyncTask(const std::size_t qpu_id, std::function<void()> &f);
 
   // This method is the hook for the kernel rewrites to invoke
-  // quantum kernels on the asynchronously executing qpud daemon process.
+  // quantum kernels.
   void launchKernel(std::string kernelName, void (*kernelFunc)(void *),
                     void *args, std::uint64_t voidStarSize,
                     std::uint64_t resultOffset);
@@ -136,6 +135,10 @@ protected:
 
   /// The current QPU.
   std::size_t platformCurrentQPU = 0;
+
+  /// @brief Store the mapping of thread ids to the QPU id
+  /// that it is running in a multi-QPU context.
+  std::unordered_map<std::size_t, std::size_t> threadToQpuId;
 
   /// Optional number of shots.
   std::optional<int> platformNumShots;

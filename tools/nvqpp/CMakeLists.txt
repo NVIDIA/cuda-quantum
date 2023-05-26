@@ -24,5 +24,5 @@ configure_file("fixup-linkage.pl"
 install(PROGRAMS ${CUDAQ_BINARY_DIR}/bin/nvq++
                  ${CUDAQ_BINARY_DIR}/bin/fixup-linkage.pl
         DESTINATION bin)
-install(FILES backendConfig.cpp DESTINATION platforms/)
-file(COPY backendConfig.cpp DESTINATION ${CMAKE_BINARY_DIR}/platforms/)
+install(FILES backendConfig.cpp DESTINATION targets/)
+file(COPY backendConfig.cpp DESTINATION ${CMAKE_BINARY_DIR}/targets/)

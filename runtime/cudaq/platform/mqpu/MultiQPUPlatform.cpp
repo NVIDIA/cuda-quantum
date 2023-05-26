@@ -19,9 +19,6 @@
 #include <spdlog/cfg/env.h>
 
 namespace {
-// We want to kick off CUDA lazy initialization,
-// flip this to true once we do
-static bool devicesWarmedUp = false;
 
 /// @brief This QPU implementation enqueues kernel
 /// execution tasks and sets the CUDA GPU device that it
@@ -43,6 +40,7 @@ public:
   void launchKernel(const std::string &name, void (*kernelFunc)(void *),
                     void *args, std::uint64_t, std::uint64_t) override {
     cudaq::info("QPU::launchKernel GPU {}", qpu_id);
+    cudaSetDevice(qpu_id);
     kernelFunc(args);
   }
 
@@ -81,18 +79,17 @@ public:
       // and computing <ZZ..ZZZ>
       if (ctx->canHandleObserve) {
         auto [exp, data] = cudaq::measure(H);
-        results.emplace_back(data.to_map(), H.to_string());
+        results.emplace_back(data.to_map(), H.to_string(false), exp);
         ctx->expectationValue = exp;
         ctx->result = cudaq::sample_result(results);
       } else {
         H.for_each_term([&](cudaq::spin_op &term) {
           if (term.is_identity())
-            sum += term.get_term_coefficient(0).real();
+            sum += term.get_coefficient().real();
           else {
-
             auto [exp, data] = cudaq::measure(term);
-            results.emplace_back(data.to_map(), term.to_string());
-            sum += term.get_term_coefficient(0).real() * exp;
+            results.emplace_back(data.to_map(), term.to_string(), exp);
+            sum += term.get_coefficient().real() * exp;
           }
         });
 
@@ -126,31 +123,6 @@ public:
 
       if (specifiedNDevices < nDevices)
         nDevices = specifiedNDevices;
-    }
-
-    if (!devicesWarmedUp) {
-      // Warm up the GPUs so we don't have any lazy init issues.
-      std::vector<std::future<void>> futures;
-      for (int i = 0; i < nDevices; i++) {
-        futures.emplace_back(std::async(std::launch::async, [i]() {
-          auto warmUpSim = cudaq::getExecutionManager();
-
-          cudaSetDevice(i);
-          cudaFree(0);
-
-          // Warm up the GPUs via an allocation / deallocation.
-          cudaq::info("Warm up Emulated QPU (GPU) {}.", i);
-          std::array<std::size_t, 1> qbits{warmUpSim->getAvailableIndex()};
-          warmUpSim->returnQubit(qbits[0]);
-        }));
-      }
-
-      // Sync up the threads
-      for (auto &f : futures)
-        f.get();
-
-      cudaSetDevice(0);
-      devicesWarmedUp = true;
     }
 
     // Add a QPU for each GPU.

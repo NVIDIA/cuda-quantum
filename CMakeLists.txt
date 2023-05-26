@@ -67,6 +67,12 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
+# Set warnings as errors by default. 
+# Individual targets and the command line invocation can override this behavior.
+if(NOT DEFINED CMAKE_COMPILE_WARNING_AS_ERROR)
+  set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
+endif()
+
 # Generate a CompilationDatabase (compile_commands.json file) for our build,
 # for use by clang_complete, YouCompleteMe, etc.
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
@@ -312,14 +318,6 @@ add_subdirectory(tpls/spdlog)
 set_property(TARGET spdlog APPEND PROPERTY INTERFACE_SYSTEM_INCLUDE_DIRECTORIES)
 target_compile_options(spdlog PRIVATE -Wno-covered-switch-default)
 
-# May want to provide a hook to this
-if (CUDAQ_ENABLE_RPC_LOGGING)
-  set(RPCLIB_ENABLE_LOGGING TRUE)
-endif()
-set(RPCLIB_EXTRA_BUILD_FLAGS "-Wno-suggest-override;-Wno-documentation;-Wno-unused-variable;-Wno-unused-but-set-variable;-Wno-unsafe-buffer-usage")
-add_subdirectory(tpls/rpclib EXCLUDE_FROM_ALL)
-set_property(TARGET rpc APPEND PROPERTY INTERFACE_SYSTEM_INCLUDE_DIRECTORIES)
-
 # Check for CUDA Support
 # ==============================================================================
 include(CheckLanguage)
@@ -344,6 +342,10 @@ find_package(OpenSSL QUIET)
 
 # Directory setup
 # ==============================================================================
+if (CUDAQ_ENABLE_PYTHON)
+  add_subdirectory(tpls/pybind11)
+endif()
+
 add_subdirectory(cmake)
 add_subdirectory(include)
 add_subdirectory(lib)
@@ -371,7 +373,6 @@ endif()
 # Users may specify  `-DCUDAQ_ENABLE_PYTHON=TRUE`, otherwise the python bindings
 # will not be built.
 if (CUDAQ_ENABLE_PYTHON)
-  add_subdirectory(tpls/pybind11)
   add_subdirectory(python)
 endif()
 

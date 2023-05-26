@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "llvm/ADT/SmallVector.h"
+#include "cudaq/Support/SmallVector.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Types.h"

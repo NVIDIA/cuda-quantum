@@ -83,5 +83,11 @@ docs/sphinx/_doxygen
 docs/sphinx/_mdgen
 **/_build/*
 
+# third party integrations
+simulators/
+
 # macOS
 .DS_Store
+
+# JetBrains IDE files
+.idea

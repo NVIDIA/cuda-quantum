@@ -50,6 +50,13 @@ Common
 .. doxygenclass:: cudaq::registry::RegisteredType
     :members:
 
+.. doxygenclass:: cudaq::complex_matrix
+    :members:
+
+.. doxygenclass:: cudaq::Resources
+
+.. doxygentypedef:: cudaq::complex_matrix::value_type
+
 Noise Modeling 
 ================
 .. doxygentypedef:: cudaq::complex

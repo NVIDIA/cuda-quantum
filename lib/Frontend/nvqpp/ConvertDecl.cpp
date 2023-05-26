@@ -24,7 +24,7 @@ bool QuakeBridgeVisitor::needToLowerFunction(const clang::FunctionDecl *decl) {
   for (auto fdPair : functionsToEmit) {
     if (decl == fdPair.second) {
       // This is an entry point.
-      std::string entryName = generateQodaKernelName(fdPair);
+      std::string entryName = generateCudaqKernelName(fdPair);
       setEntryName(entryName);
       // Extend the mangled kernel names map.
       auto mangledFuncName = cxxMangledDeclName(decl);
@@ -93,7 +93,7 @@ bool QuakeBridgeVisitor::TraverseFunctionDecl(clang::FunctionDecl *x) {
   postOrderTraversal = false;
   if (!Base::TraverseFunctionDecl(x))
     return true;
-  if (!hasTerminator(builder.getBlock()))
+  if (!typeMode && !hasTerminator(builder.getBlock()))
     builder.create<func::ReturnOp>(toLocation(x));
   return true;
 }
@@ -124,7 +124,7 @@ void QuakeBridgeVisitor::addArgumentSymbols(
       auto loc = toLocation(argVal);
       auto parmTy = entryBlock->getArgument(index).getType();
       if (parmTy.isa<cc::LambdaType, cc::StdvecType, LLVM::LLVMStructType,
-                     FunctionType, quake::QRefType, quake::QVecType>()) {
+                     FunctionType, quake::RefType, quake::VeqType>()) {
         symbolTable.insert(name, entryBlock->getArgument(index));
       } else {
         auto memRefTy = MemRefType::get(std::nullopt, parmTy);
@@ -242,8 +242,8 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
   assert(type && "variable must have a valid type");
   auto loc = toLocation(x->getSourceRange());
   auto name = x->getName();
-  if (auto qType = dyn_cast<quake::QVecType>(type)) {
-    // Variable is of !quake.qvec type.
+  if (auto qType = dyn_cast<quake::VeqType>(type)) {
+    // Variable is of !quake.veq type.
     mlir::Value qreg;
     std::size_t qregSize = qType.getSize();
     if (qregSize == 0 || (x->hasInit() && !valueStack.empty())) {
@@ -253,28 +253,29 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
       // this is a qreg<N> q;
       auto qregSizeVal = builder.create<mlir::arith::ConstantIntOp>(
           loc, qregSize, builder.getIntegerType(64));
-      qreg = builder.create<quake::AllocaOp>(loc, qType, qregSizeVal);
+      if (qregSize != 0)
+        qreg = builder.create<quake::AllocaOp>(loc, qType);
+      else
+        qreg = builder.create<quake::AllocaOp>(loc, qType, qregSizeVal);
     }
     symbolTable.insert(name, qreg);
     // allocated_qreg_names.push_back(name);
     return pushValue(qreg);
   }
 
-  if (auto qType = dyn_cast<quake::QRefType>(type)) {
-    // Variable is of !quake.qref type.
+  if (auto qType = dyn_cast<quake::RefType>(type)) {
+    // Variable is of !quake.ref type.
     if (x->hasInit() && !valueStack.empty()) {
       auto val = popValue();
       symbolTable.insert(name, val);
       return pushValue(val);
     }
-    auto qregSizeVal = builder.create<mlir::arith::ConstantIntOp>(
-        loc, 1, builder.getIntegerType(64));
     auto zero = builder.create<mlir::arith::ConstantIntOp>(
         loc, 0, builder.getIntegerType(64));
     auto qregSizeOne = builder.create<quake::AllocaOp>(
-        loc, quake::QVecType::get(builder.getContext(), 1), qregSizeVal);
+        loc, quake::VeqType::get(builder.getContext(), 1));
     Value addressTheQubit =
-        builder.create<quake::QExtractOp>(loc, qregSizeOne, zero);
+        builder.create<quake::ExtractRefOp>(loc, qregSizeOne, zero);
     symbolTable.insert(name, addressTheQubit);
     return pushValue(addressTheQubit);
   }

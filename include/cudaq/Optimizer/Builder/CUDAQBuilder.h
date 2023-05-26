@@ -17,11 +17,11 @@ static constexpr const char stdvecBoolCtorFromInitList[] =
 
 namespace cudaq {
 
-/// Builder for lowering the clang AST to an IR for CUDA Quantum. Lowering includes
-/// the transformation of both quantum and classical computation. Different features
-/// of the CUDA Quantum programming model are lowered into different dialects of MLIR.
-/// This builder makes heavy use of the Quake (QUAntum Kernel Execution) and CC
-/// (Classical Computation) dialects.
+/// Builder for lowering the clang AST to an IR for CUDA Quantum. Lowering
+/// includes the transformation of both quantum and classical computation.
+/// Different features of the CUDA Quantum programming model are lowered into
+/// different dialects of MLIR. This builder makes heavy use of the Quake
+/// (QUAntum Kernel Execution) and CC (Classical Computation) dialects.
 class IRBuilder : public mlir::OpBuilder {
 public:
   using OpBuilder::OpBuilder;

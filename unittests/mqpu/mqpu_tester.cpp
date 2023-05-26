@@ -8,6 +8,7 @@
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
 #include <gtest/gtest.h>
+#include <random>
 
 TEST(MQPUTester, checkSimple) {
   using namespace cudaq::spin;
@@ -35,7 +36,7 @@ TEST(MQPUTester, checkLarge) {
   int nTerms = 1000; /// Scale this on multiple gpus to see speed up
   auto H = cudaq::spin_op::random(nQubits, nTerms);
 
-  printf("Total Terms = %lu\n", H.n_terms());
+  printf("Total Terms = %lu\n", H.num_terms());
   auto kernel = [](const int n_qubits, const int layers,
                    std::vector<int> cnot_pairs,
                    std::vector<double> params) __qpu__ {
@@ -78,7 +79,9 @@ TEST(MQPUTester, checkLarge) {
 
   std::vector<int> cnot_pairs(nQubits);
   std::iota(cnot_pairs.begin(), cnot_pairs.end(), 0);
-  std::random_shuffle(cnot_pairs.begin(), cnot_pairs.end());
+  std::random_device rd;
+  std::mt19937 g(rd());
+  std::shuffle(cnot_pairs.begin(), cnot_pairs.end(), g);
 
   auto t1 = std::chrono::high_resolution_clock::now();
   cudaq::observe(kernel, H, nQubits, nLayers, cnot_pairs, execParams);

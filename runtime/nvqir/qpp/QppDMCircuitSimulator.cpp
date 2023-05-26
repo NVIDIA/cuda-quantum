@@ -69,12 +69,36 @@ protected:
       return;
     }
 
-    auto prevDim = 1UL << (nQubitsAllocated - 1);
     state.conservativeResize(stateDimension, stateDimension);
-    for (std::size_t i = prevDim; i < stateDimension; i++) {
+    for (std::size_t i = previousStateDimension; i < stateDimension; i++) {
       state.col(i).setZero();
       state.row(i).setZero();
     }
+  }
+
+  void addQubitsToState(std::size_t count) override {
+    if (count == 0)
+      return;
+
+    if (state.size() == 0) {
+      // If this is the first time, allocate the state
+      state = qpp::cmat::Zero(stateDimension, stateDimension);
+      state(0, 0) = 1.0;
+      return;
+    }
+
+    state.conservativeResize(stateDimension, stateDimension);
+    for (std::size_t i = previousStateDimension; i < stateDimension; i++) {
+      state.col(i).setZero();
+      state.row(i).setZero();
+    }
+
+    return;
+  }
+
+  void setToZeroState() override {
+    state = qpp::cmat::Zero(stateDimension, stateDimension);
+    state(0, 0) = 1.0;
   }
 
 public:
@@ -83,6 +107,7 @@ public:
   std::string name() const override { return "dm"; }
 
   cudaq::State getStateData() override {
+    flushGateQueue();
     // There has to be at least one copy
     return cudaq::State{{stateDimension, stateDimension},
                         {state.data(), state.data() + state.size()}};

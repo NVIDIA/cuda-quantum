@@ -11,7 +11,6 @@
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/QTX/QTXDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -62,8 +61,7 @@ static llvm::StringMap<cudaq::Translation> &getTranslationRegistry() {
 cudaq::Translation &getTranslation(StringRef name) {
   auto &registry = getTranslationRegistry();
   if (!registry.count(name))
-    throw std::runtime_error("Invalid IR Translation (" + name.str() +
-                             ").");
+    throw std::runtime_error("Invalid IR Translation (" + name.str() + ").");
   return registry[name];
 }
 
@@ -94,7 +92,6 @@ std::unique_ptr<MLIRContext> initializeMLIR() {
     registerAllPasses();
     cudaq::opt::registerOptCodeGenPasses();
     cudaq::opt::registerOptTransformsPasses();
-    cudaq::opt::registerConversionPipelines();
     registerToQIRTranslation();
     registerToOpenQASMTranslation();
     registerToIQMJsonTranslation();
@@ -186,24 +183,18 @@ void registerToQIRTranslation() {
 
 void registerToOpenQASMTranslation() {
   cudaq::TranslateFromMLIRRegistration reg(
-      "qasm2", "translate from qtx to openqasm",
+      "qasm2", "translate from quake to openQASM 2.0",
       [](Operation *op, raw_ostream &output) {
-        // Manually run quake to qtx here
         PassManager pm(op->getContext());
-        std::string errMsg;
-        llvm::raw_string_ostream os(errMsg);
-        if (failed(parsePassPipeline(
-                "func.func(convert-quake-to-qtx),convert-func-to-qtx", pm, os)))
-          throw std::runtime_error("Lowering to qtx failed (" + errMsg + ").");
         if (failed(pm.run(op)))
-          throw std::runtime_error("Lowering to qtx failed.");
+          throw std::runtime_error("Lowering failed.");
         return cudaq::translateToOpenQASM(op, output);
       });
 }
 
 void registerToIQMJsonTranslation() {
   cudaq::TranslateFromMLIRRegistration reg(
-      "iqm", "translate from qtx to iqm json",
+      "iqm", "translate from quake to IQM's json format",
       [](Operation *op, raw_ostream &output) {
         return cudaq::translateToIQMJson(op, output);
       });

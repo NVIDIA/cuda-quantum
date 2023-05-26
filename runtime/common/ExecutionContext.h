@@ -11,6 +11,7 @@
 #include "Future.h"
 #include "MeasureCounts.h"
 #include "NoiseModel.h"
+#include "Resources.h"
 #include <optional>
 #include <string_view>
 
@@ -64,6 +65,21 @@ public:
   /// @brief simulationData provides a mechanism for
   /// simulation clients to extract the underlying simulation data.
   State simulationData;
+
+  /// @brief When run under the tracer context, persist the
+  /// traced quantum resources here.
+  Resources kernelResources;
+
+  /// @brief The name of the kernel being executed.
+  std::string kernelName = "";
+
+  /// @brief The current iteration for a batch execution,
+  /// used by observe_n and sample_n.
+  std::size_t batchIteration = 0;
+
+  /// @brief For batch execution, the total number of
+  /// batch iterations.
+  std::size_t totalIterations = 0;
 
   /// @brief The Constructor, takes the name of the context
   /// @param n The name of the context

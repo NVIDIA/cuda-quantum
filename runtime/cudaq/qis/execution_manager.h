@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "common/QuditIdTracker.h"
 #include "cudaq/spin_op.h"
 #include <cassert>
 #include <complex>
@@ -20,6 +21,15 @@
 namespace cudaq {
 class ExecutionContext;
 using SpinMeasureResult = std::pair<double, sample_result>;
+
+// A QuditInfo, to the ExecutionManager, is a type encoding
+// the number of levels and the id of the qudit.
+struct QuditInfo {
+  std::size_t levels = 0;
+  std::size_t id = 0;
+  QuditInfo(const std::size_t &_levels, const std::size_t &_id)
+      : levels(_levels), id(_id) {}
+};
 
 /// The ExecutionManager provides a base class describing a
 /// concrete sub-system for allocating qudits and executing quantum
@@ -35,41 +45,28 @@ protected:
   /// Total qudits available
   std::size_t totalQudits;
 
+  /// @brief Utility type tracking qudit unique
+  /// identifiers as they are allocated and deallocated.
+  QuditIdTracker tracker;
+
   /// Internal - return the next qudit index
-  std::size_t getNextIndex() {
-    assert(!availableIndices.empty() && "No more qubits available.");
-    auto next = availableIndices.front();
-    availableIndices.pop_front();
-    return next;
-  }
+  std::size_t getNextIndex() { return tracker.getNextIndex(); }
 
   /// Internal - At qudit deallocation, return the qudit index
-  void returnIndex(std::size_t idx) {
-    availableIndices.push_front(idx);
-    std::sort(availableIndices.begin(), availableIndices.end());
-  }
-
-  /// Internal - Get the number of remaining available qudit ids
-  std::size_t numAvailable() { return availableIndices.size(); }
-
-  /// Internal - Get the total number of qudit ids available
-  std::size_t totalNumQudits() { return totalQudits; }
+  void returnIndex(std::size_t idx) { tracker.returnIndex(idx); }
 
 public:
-  ExecutionManager() {
-    totalQudits = 30; // platform.get_num_qubits();
-    for (std::size_t i = 0; i < totalQudits; i++) {
-      availableIndices.push_back(i);
-    }
-  }
-  /// Return the next available qudit index
-  virtual std::size_t getAvailableIndex() { return getNextIndex(); }
+  ExecutionManager() = default;
 
-  /// Qudit has been deallocated, return the qudit / id to the pool of qudits.
-  virtual void returnQubit(const std::size_t &q) { returnIndex(q); }
+  /// Return the next available qudit index
+  virtual std::size_t getAvailableIndex(std::size_t quditLevels = 2) = 0;
+
+  /// QuditInfo has been deallocated, return the qudit / id to the pool of
+  /// qudits.
+  virtual void returnQudit(const QuditInfo &q) = 0;
 
   /// Checker for qudits that were not deallocated
-  bool memoryLeaked() { return numAvailable() != totalNumQudits(); }
+  bool memoryLeaked() { return !tracker.allDeallocated(); }
 
   /// Provide an ExecutionContext for the current cudaq kernel
   virtual void setExecutionContext(cudaq::ExecutionContext *ctx) = 0;
@@ -78,23 +75,14 @@ public:
   virtual void resetExecutionContext() = 0;
 
   /// Apply the quantum instruction with the given name, on the provided
-  /// target qubits. Supports input of control qubits and rotational parameters.
+  /// target qudits. Supports input of control qudits and rotational parameters.
   virtual void apply(const std::string_view gateName,
                      const std::vector<double> &&params,
-                     std::span<std::size_t> controls,
-                     std::span<std::size_t> targets,
+                     const std::vector<QuditInfo> &controls,
+                     const std::vector<QuditInfo> &targets,
                      bool isAdjoint = false) = 0;
 
-  /// Apply exp( -i theta op), first order trotterization
-  // For the spin_op representation, this takes the BinarySymplectic Data
-  // and the term coefficients. Subtypes can reconstruct the spin op
-  // with that data.
-  virtual void exp(std::vector<std::size_t> &&q, double theta,
-                   cudaq::spin_op &op) = 0;
-  //  std::vector<std::vector<bool>> &data,
-  //  std::vector<std::complex<double>> &coefficients) = 0;
-
-  virtual void resetQubit(const std::size_t &id) = 0;
+  virtual void resetQudit(const QuditInfo &id) = 0;
 
   /// Begin an region of code where all operations will be adjoint-ed
   virtual void startAdjointRegion() = 0;
@@ -102,14 +90,15 @@ public:
   virtual void endAdjointRegion() = 0;
 
   /// Start a region of code where all operations will be
-  /// controlled on the given qubits.
-  virtual void startCtrlRegion(std::vector<std::size_t> &control_qubits) = 0;
+  /// controlled on the given qudits.
+  virtual void
+  startCtrlRegion(const std::vector<std::size_t> &control_qubits) = 0;
   /// End the control region
-  virtual void endCtrlRegion(const std::size_t n_controls) = 0;
+  virtual void endCtrlRegion(std::size_t n_controls) = 0;
 
   /// Measure the qudit and return the observed state (0,1,2,3,...)
   /// e.g. for qubits, this can return 0 or 1;
-  virtual int measure(const std::size_t &target) = 0;
+  virtual int measure(const QuditInfo &target) = 0;
 
   /// Measure the current state in the given pauli basis, return
   /// the expectation value <term>.
@@ -117,7 +106,7 @@ public:
 
   /// Synchronize - run all queue-ed instructions
   virtual void synchronize() = 0;
-  virtual ~ExecutionManager() {}
+  virtual ~ExecutionManager() = default;
 };
 
 ExecutionManager *getExecutionManager();

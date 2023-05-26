@@ -9,50 +9,52 @@ State Vector Simulators
 cuQuantum single-GPU 
 ++++++++++++++++++++++++++++++++++
 
-The :code:`cuquantum` backend provides a state vector simulator accelerated with 
+The :code:`nvidia` target provides a state vector simulator accelerated with 
 the cuStateVec library. 
 
-To specify the use of the :code:`cuquantum` backend, pass the following command line 
+To specify the use of the :code:`nvidia` target, pass the following command line 
 options to :code:`nvq++`
 
 .. code:: bash 
 
-    nvq++ --qpu cuquantum src.cpp ...
+    nvq++ --target nvidia src.cpp ...
 
 In python, this can be specified with 
 
 .. code:: python 
 
-    cudaq.set_qpu('cuquantum')
+    cudaq.set_target('nvidia')
+
+By default, this will leverage :code:`FP32` floating point types for the simulation. To 
+switch to :code:`FP64`, specify the :code:`nvidia-fp64` target instead. 
 
 cuQuantum multi-node multi-GPU
 ++++++++++++++++++++++++++++++++++
 
-The :code:`cuquantum_mgmn` backend provides a state vector simulator accelerated with 
+The :code:`cuquantum_mgpu` target provides a state vector simulator accelerated with 
 the cuStateVec library but with support for Multi-Node, Multi-GPU distribution of the 
 state vector. 
 
-To specify the use of the :code:`cuquantum_mgmn` backend, pass the following command line 
+To specify the use of the :code:`cuquantum_mgpu` target, pass the following command line 
 options to :code:`nvq++`
 
 .. code:: bash 
 
-    nvq++ --qpu cuquantum_mgmn src.cpp ...
+    nvq++ --target cuquantum_mgpu src.cpp ...
 
 In python, this can be specified with 
 
 .. code:: python 
 
-    cudaq.set_qpu('cuquantum_mgmn')
+    cudaq.set_target('cuquantum_mgpu')
 
 OpenMP CPU-only
 ++++++++++++++++++++++++++++++++++
 
-The :code:`qpp` backend provides a state vector simulator based on the CPU-only, OpenMP
+The :code:`default` target provides a state vector simulator based on the CPU-only, OpenMP
 threaded `Q++ <https//github.com/softwareqinc/qpp>`_ library. This is the default 
-backend, so if the code is compiled without any :code:`--qpu` flags, this is the 
+target, so if the code is compiled without any :code:`--target` flags, this is the 
 simulator that will be used. 
-
 
 Tensor Network Simulators
 ==================================
@@ -60,7 +62,7 @@ Tensor Network Simulators
 cuQuantum multi-node multi-GPU
 ++++++++++++++++++++++++++++++++++
 
-The :code:`tensornet` backend provides a tensor-network simulator accelerated with 
+The :code:`tensornet` target provides a tensor-network simulator accelerated with 
 the cuTensorNet library. This backend is currently available for use from C++ and supports 
 Multi-Node, Multi-GPU distribution of tensor operations required to evaluate and simulate the circuit.
 
@@ -82,9 +84,9 @@ backend if you have multiple GPUs available. With OpenMPI, you can run a multi-G
 
 This command will assign a unique GPU to each MPI process within the node with 8 GPUs and produce a separate output for each MPI process.
 
-To specify the use of the :code:`tensornet` backend, pass the following command line 
+To specify the use of the :code:`tensornet` target, pass the following command line 
 options to :code:`nvq++`
 
 .. code:: bash 
 
-    nvq++ --qpu tensornet src.cpp ...
+    nvq++ --target tensornet src.cpp ...

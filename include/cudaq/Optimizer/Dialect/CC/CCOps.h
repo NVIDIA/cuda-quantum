@@ -12,7 +12,7 @@
 #include "cudaq/Optimizer/Dialect/Common/Traits.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/Dialect/LLVMIR/LLVMTypes.h"
+#include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/OpImplementation.h"
@@ -28,6 +28,10 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h.inc"
 
 namespace cudaq::cc {
+
+template <typename A>
+using ComputePtrIndicesAdaptor = mlir::LLVM::GEPIndicesAdaptor<A>;
+
 class RegionBuilderGuard : mlir::OpBuilder::InsertionGuard {
   using Base = mlir::OpBuilder::InsertionGuard;
 

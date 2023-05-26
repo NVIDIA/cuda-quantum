@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ %s -o include.x && ./include.x | FileCheck %s
+// RUN: nvq++ --enable-mlir  %s -o include.x && ./include.x | FileCheck %s
 
 #include "include/include.h"
 #include <iostream>

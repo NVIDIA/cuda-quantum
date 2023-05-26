@@ -14,6 +14,7 @@ set(COMMON_RUNTIME_SRC
   MeasureCounts.cpp 
   NoiseModel.cpp 
   ServerHelper.cpp 
+  Resources.cpp
   Future.cpp
 )
 
@@ -29,6 +30,14 @@ target_include_directories(${LIBRARY_NAME}
 
 # Link privately to all dependencies
 target_link_libraries(${LIBRARY_NAME} PUBLIC cudaq-spin PRIVATE spdlog::spdlog)
+
+# Bug in GCC 12 leads to spurious warnings (-Wrestrict)
+# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105329
+if (CMAKE_COMPILER_IS_GNUCXX 
+  AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12.0.0 
+  AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13.0.0)
+  target_compile_options(${LIBRARY_NAME} PUBLIC --param=evrp-mode=legacy)
+endif()
 
 # We can only build the RestClient support if we have Curl+OpenSSL
 if(CURL_FOUND AND OPENSSL_FOUND)
@@ -117,5 +126,4 @@ target_link_libraries(cudaq-mlir-runtime
 
 cudaq_library_set_rpath(cudaq-mlir-runtime)
 
-install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 install(TARGETS cudaq-mlir-runtime DESTINATION lib)

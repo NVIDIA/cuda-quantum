@@ -6,8 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 
-// RUN: nvq++ -v --nvqir-simulator qpp --enable-mlir %s -o out_auto_kernel.x && ./out_auto_kernel.x | FileCheck %s
-// RUN: nvq++ -v --nvqir-simulator qpp --enable-mlir --platform default-qpud %s -o out_auto_kernel.x && ./out_auto_kernel.x | FileCheck %s
+// RUN: nvq++ --enable-mlir -v %s -o out_auto_kernel.x && ./out_auto_kernel.x | FileCheck %s
 
 #include <cudaq.h>
 

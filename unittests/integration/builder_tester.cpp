@@ -130,22 +130,26 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     counts.dump();
     EXPECT_TRUE(counts.begin()->first == "101");
   }
+}
 
-  {
-    auto kernel = cudaq::make_kernel();
-    auto q = kernel.qalloc(2);
-    kernel.h(q[0]);
-    auto mres = kernel.mz(q[0], "res0");
-    kernel.c_if(mres, [&]() { kernel.x(q[1]); });
-    kernel.mz(q);
+CUDAQ_TEST(BuilderTester, checkConditional) {
+  auto kernel = cudaq::make_kernel();
+  auto q = kernel.qalloc(2);
+  kernel.h(q[0]);
+  auto mres = kernel.mz(q[0], "res0");
+  kernel.c_if(mres, [&]() { kernel.x(q[1]); });
+  kernel.mz(q);
 
-    printf("%s\n", kernel.to_quake().c_str());
+  printf("%s\n", kernel.to_quake().c_str());
 
-    auto counts = cudaq::sample(kernel);
-    counts.dump();
-    EXPECT_EQ(counts.register_names().size(), 2);
-    EXPECT_EQ(counts.size("res0"), 2);
-  }
+  auto counts = cudaq::sample(kernel);
+  counts.dump();
+  EXPECT_EQ(counts.register_names().size(), 2);
+  EXPECT_EQ(counts.size("res0"), 2);
+  EXPECT_NEAR(counts.count("11") / 1000., 0.5, 1e-1);
+  EXPECT_NEAR(counts.count("00") / 1000., 0.5, 1e-1);
+  EXPECT_NEAR(counts.count("1", "res0") / 1000., 0.5, 1e-1);
+  EXPECT_NEAR(counts.count("0", "res0") / 1000., 0.5, 1e-1);
 }
 
 CUDAQ_TEST(BuilderTester, checkQubitArg) {
@@ -257,7 +261,7 @@ CUDAQ_TEST(BuilderTester, checkKernelControl) {
   hadamardTest.mz(ancilla);
 
   printf("%s\n", hadamardTest.to_quake().c_str());
-  auto counts = cudaq::sample(hadamardTest);
+  auto counts = cudaq::sample(10000, hadamardTest);
   counts.dump();
   printf("< 1 | X | 1 > = %lf\n", counts.exp_val_z());
   EXPECT_NEAR(counts.exp_val_z(), 0.0, 1e-1);
@@ -273,7 +277,7 @@ CUDAQ_TEST(BuilderTester, checkKernelControl) {
   hadamardTest2.mz(ancilla2);
 
   printf("%s\n", hadamardTest2.to_quake().c_str());
-  counts = cudaq::sample(hadamardTest2);
+  counts = cudaq::sample(10000, hadamardTest2);
   printf("< 1 | H | 1 > = %lf\n", counts.exp_val_z());
   EXPECT_NEAR(counts.exp_val_z(), -1.0 / std::sqrt(2.0), 1e-1);
 
@@ -304,6 +308,24 @@ CUDAQ_TEST(BuilderTester, checkAdjointOp) {
   cudaq::sample(kernel).dump();
 }
 
+CUDAQ_TEST(BuilderTester, checkAdjointOpRvalQuakeValue) {
+  auto kernel = cudaq::make_kernel();
+  // allocate more than 1 qubits so that we can use QuakeValue::operator[],
+  // which returns an r-val QuakeValue.
+  auto qubits = kernel.qalloc(2);
+  kernel.h(qubits[0]);
+  // T-dagger - T = I
+  kernel.t<cudaq::adj>(qubits[0]);
+  kernel.t(qubits[0]);
+  kernel.h(qubits[0]);
+  kernel.mz(qubits[0]);
+  printf("%s\n", kernel.to_quake().c_str());
+  auto counts = cudaq::sample(kernel);
+  counts.dump();
+  EXPECT_EQ(1, counts.size());
+  EXPECT_TRUE(counts.begin()->first == "0");
+}
+
 CUDAQ_TEST(BuilderTester, checkKernelAdjoint) {
   auto [kernel, qubit] = cudaq::make_kernel<cudaq::qubit>();
   kernel.h(qubit);
@@ -323,4 +345,154 @@ CUDAQ_TEST(BuilderTester, checkKernelAdjoint) {
   counts.dump();
   EXPECT_EQ(counts.size(), 1);
   EXPECT_EQ(counts.begin()->first, "1");
+}
+
+CUDAQ_TEST(BuilderTester, checkReset) {
+  {
+    auto entryPoint = cudaq::make_kernel();
+    auto q = entryPoint.qalloc();
+    entryPoint.x(q);
+    entryPoint.reset(q);
+    entryPoint.mz(q);
+    auto counts = cudaq::sample(entryPoint);
+    EXPECT_EQ(counts.size(), 1);
+    EXPECT_EQ(counts.begin()->first, "0");
+  }
+  {
+    auto entryPoint = cudaq::make_kernel();
+    auto q = entryPoint.qalloc(2);
+    entryPoint.x(q);
+    // For now, don't allow reset on veq.
+    entryPoint.reset(q);
+    entryPoint.mz(q);
+    printf("%s\n", entryPoint.to_quake().c_str());
+
+    auto counts = cudaq::sample(entryPoint);
+    counts.dump();
+    EXPECT_EQ(counts.size(), 1);
+    EXPECT_EQ(counts.begin()->first, "00");
+  }
+}
+
+CUDAQ_TEST(BuilderTester, checkForLoop) {
+
+  {
+    auto ret = cudaq::make_kernel<std::size_t>();
+    auto &circuit = ret.get<0>();
+    auto &inSize = ret.get<1>();
+    auto qubits = circuit.qalloc(inSize);
+    circuit.h(qubits[0]);
+    circuit.for_loop(0, inSize - 1, [&](auto &index) {
+      circuit.x<cudaq::ctrl>(qubits[index], qubits[index + 1]);
+    });
+
+    printf("%s\n", circuit.to_quake().c_str());
+    auto counts = cudaq::sample(circuit, 5);
+    std::size_t counter = 0;
+    for (auto &[k, v] : counts) {
+      counter += v;
+      EXPECT_TRUE(k == "00000" || k == "11111");
+    }
+    EXPECT_EQ(counter, 1000);
+  }
+
+  {
+    auto ret = cudaq::make_kernel<std::size_t>();
+    auto &circuit = ret.get<0>();
+    auto &inSize = ret.get<1>();
+    auto qubits = circuit.qalloc(inSize);
+    circuit.h(qubits[0]);
+    // can pass concrete integers for both
+    circuit.for_loop(0, 4, [&](auto &index) {
+      circuit.x<cudaq::ctrl>(qubits[index], qubits[index + 1]);
+    });
+
+    printf("%s\n", circuit.to_quake().c_str());
+    auto counts = cudaq::sample(circuit, 5);
+    std::size_t counter = 0;
+    for (auto &[k, v] : counts) {
+      counter += v;
+      EXPECT_TRUE(k == "00000" || k == "11111");
+    }
+    EXPECT_EQ(counter, 1000);
+  }
+
+  {
+    // Test that we can iterate over existing QuakeValues
+    auto ret = cudaq::make_kernel<std::vector<double>>();
+    auto &circuit = ret.get<0>();
+    auto &params = ret.get<1>();
+
+    // Get the size of the input params
+    auto size = params.size();
+    auto qubits = circuit.qalloc(size);
+
+    // can pass concrete integers for both
+    circuit.for_loop(0, size, [&](auto &index) {
+      circuit.ry(params[index], qubits[index]);
+    });
+
+    printf("%s\n", circuit.to_quake().c_str());
+
+    auto counts = cudaq::sample(circuit, std::vector<double>{1., 2.});
+    counts.dump();
+    // Should have 2 qubit results since this is a 2 parameter input
+    EXPECT_EQ(counts.begin()->first.length(), 2);
+  }
+}
+
+CUDAQ_TEST(BuilderTester, checkMidCircuitMeasure) {
+  {
+    auto entryPoint = cudaq::make_kernel();
+    auto qubit = entryPoint.qalloc();
+    entryPoint.x(qubit);
+    entryPoint.mz(qubit, "c0");
+    printf("%s\n", entryPoint.to_quake().c_str());
+
+    auto counts = cudaq::sample(entryPoint);
+    counts.dump();
+    EXPECT_EQ(counts.register_names().size(), 1);
+    EXPECT_EQ(counts.register_names()[0], "c0");
+  }
+
+  {
+    auto entryPoint = cudaq::make_kernel();
+    auto qubit = entryPoint.qalloc();
+    entryPoint.x(qubit);
+    entryPoint.mz(qubit, "c0");
+    entryPoint.x(qubit);
+    entryPoint.mz(qubit, "c1");
+
+    printf("%s\n", entryPoint.to_quake().c_str());
+
+    auto counts = cudaq::sample(entryPoint);
+    counts.dump();
+    EXPECT_EQ(counts.register_names().size(), 2);
+    auto regNames = counts.register_names();
+    EXPECT_TRUE(std::find(regNames.begin(), regNames.end(), "c0") !=
+                regNames.end());
+    EXPECT_TRUE(std::find(regNames.begin(), regNames.end(), "c1") !=
+                regNames.end());
+
+    EXPECT_EQ(counts.count("0", "c1"), 1000);
+    EXPECT_EQ(counts.count("1", "c0"), 1000);
+  }
+
+  {
+    // Measure one qubit to one reg, and another to another reg.
+    auto entryPoint = cudaq::make_kernel();
+    auto q = entryPoint.qalloc(2);
+    entryPoint.x(q[0]);
+    entryPoint.mz(q[0], "hello");
+    entryPoint.mz(q[1], "hello2");
+
+    printf("%s\n", entryPoint.to_quake().c_str());
+    auto counts = cudaq::sample(entryPoint);
+    counts.dump();
+
+    EXPECT_EQ(counts.count("1", "hello"), 1000);
+    EXPECT_EQ(counts.count("0", "hello"), 0);
+    EXPECT_EQ(counts.count("1", "hello2"), 0);
+    EXPECT_EQ(counts.count("0", "hello2"), 1000);
+  }
 }

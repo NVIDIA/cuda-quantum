@@ -8,7 +8,7 @@
 
 #include "NoiseModel.h"
 #include "Logger.h"
-#include <Eigen/Dense>
+#include "common/EigenDense.h"
 
 namespace cudaq {
 

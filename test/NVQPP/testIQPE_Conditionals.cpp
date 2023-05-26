@@ -6,8 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 
-// RUN: nvq++ %s -o out_testifstmts_iqpe.x && ./out_testifstmts_iqpe.x | FileCheck %s && rm out_testifstmts_iqpe.x
-// RUN: nvq++ --platform default-qpud %s -o out_testifstmts_iqpe2.x && ./out_testifstmts_iqpe2.x | FileCheck %s && rm out_testifstmts_iqpe2.x
+// RUN: nvq++ --enable-mlir %s -o out_testifstmts_iqpe.x && ./out_testifstmts_iqpe.x | FileCheck %s && rm out_testifstmts_iqpe.x
 
 #include <cudaq.h>
 

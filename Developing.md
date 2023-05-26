@@ -1,7 +1,7 @@
 # Getting Started with Developing CUDA Quantum
 
 This document contains guidelines for contributing to the code in this
-repository. This document is relevant primarily for contributions to the NVQ++
+repository. This document is relevant primarily for contributions to the `nvq++`
 compiler, the CUDA Quantum runtime, or to the integrated simulation backends. If
 you would like to contribute applications and examples that use the CUDA Quantum
 platform, please follow the instructions for [installing CUDA
@@ -13,12 +13,11 @@ Quantum][official_install] instead.
 
 Before getting started with development, please create a fork of this repository
 if you haven't done so already and make sure to check out the latest version on
-the `main` branch. After following the instruction for [setting up your dev
-environment](./Dev_Setup.md) and [building CUDA Quantum from
+the `main` branch. After following the instruction for [setting up your
+development environment](./Dev_Setup.md) and [building CUDA Quantum from
 source](Building.md), you should be able to confirm that you can run the tests
-and examples using your local build. If you edit the file
-[CircuitSimulator.h](./runtime/nvqir/CircuitSimulator.h) to add a print
-statement
+and examples using your local build. If you edit [this
+file](./runtime/nvqir/CircuitSimulator.h) to add a print statement
 
 ```c++
 std::cout << "Custom registration of " << #NAME << "\n" << std::endl;
@@ -36,9 +35,9 @@ nvq++ "$CUDAQ_REPO_ROOT/docs/sphinx/examples/cpp/algorithms/grover.cpp" -o grove
 When working on compiler internals, it can be useful to look at intermediate
 representations for CUDA Quantum kernels.
 
-To see how the kernels in the
-[grover.cpp](./docs/sphinx/examples/cpp/algorithms/grover.cpp) example are
-translated, you can run
+To see how the kernels in [this
+example](./docs/sphinx/examples/cpp/algorithms/grover.cpp) are translated, you
+can run
 
 ```bash
 cudaq-quake $CUDAQ_REPO_ROOT/docs/sphinx/examples/cpp/algorithms/grover.cpp
@@ -59,10 +58,9 @@ With regards to code format and style, we distinguish public APIs and CUDA
 Quantum internals. Public APIs should follow the style guide of the respective
 language, specifically [this guide][cpp_style] for C++, and the [this
 guide][python_style] for Python. The CUDA Quantum internals on the other hand
-follow the [MLIR/LLVM style guide][llvm_style]. [This
-script](./scripts/run_clang_format.sh) can be run to apply some basic formatting
-rules to your code. Please ensure that your code includes comprehensive doc
-comments as well as a comment at the top of the file to indicating its purpose.
+follow the [MLIR/LLVM style guide][llvm_style]. Please ensure that your code
+includes comprehensive doc comments as well as a comment at the top of the file
+to indicating its purpose.
 
 [python_style]: https://google.github.io/styleguide/pyguide.html
 [cpp_style]: https://www.gnu.org/prep/standards/standards.html

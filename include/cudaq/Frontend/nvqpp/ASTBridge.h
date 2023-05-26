@@ -107,13 +107,13 @@ std::string getCxxMangledTypeName(clang::QualType ty,
                                   clang::ItaniumMangleContext *mangler);
 
 /// Use this helper to convert a tag name to a nvqpp mangled name.
-inline std::string getQodaKernelName(const std::string &tag) {
+inline std::string getCudaqKernelName(const std::string &tag) {
   return runtime::cudaqGenPrefixName + tag;
 }
 
-/// Creates the tag name for a quantum kernel. The tag name is a name by which one
-/// can lookup a kernel at runtime. This name does not include the nvq++ prefix
-/// nor the unique (C++ mangled) suffix.
+/// Creates the tag name for a quantum kernel. The tag name is a name by which
+/// one can lookup a kernel at runtime. This name does not include the nvq++
+/// prefix nor the unique (C++ mangled) suffix.
 std::string getTagNameOfFunctionDecl(const clang::FunctionDecl *func,
                                      clang::ItaniumMangleContext *mangler);
 
@@ -144,14 +144,14 @@ public:
   /// nvq++ renames quantum kernels to differentiate them from classical C++
   /// code. This renaming is done on function names. \p tag makes it easier
   /// to identify the kernel class from which the function was extracted.
-  std::string generateQodaKernelName(const clang::FunctionDecl *func) {
-    return getQodaKernelName(
+  std::string generateCudaqKernelName(const clang::FunctionDecl *func) {
+    return getCudaqKernelName(
         cudaq::details::getTagNameOfFunctionDecl(func, mangler));
   }
-  std::string generateQodaKernelName(const EmittedFunctionPair &emittedFunc) {
+  std::string generateCudaqKernelName(const EmittedFunctionPair &emittedFunc) {
     if (emittedFunc.first.starts_with(runtime::cudaqGenPrefixName))
       return emittedFunc.first;
-    return generateQodaKernelName(emittedFunc.second);
+    return generateCudaqKernelName(emittedFunc.second);
   }
 
   //===--------------------------------------------------------------------===//
@@ -227,25 +227,33 @@ public:
   // Expr nodes to lower to Quake.
   //===--------------------------------------------------------------------===//
 
-  bool TraverseBinaryOperator(clang::BinaryOperator *x,
-                              DataRecursionQueue *q = nullptr);
   bool VisitArraySubscriptExpr(clang::ArraySubscriptExpr *x);
   bool VisitBinaryOperator(clang::BinaryOperator *x);
-  bool VisitConditionalOperator(clang::ConditionalOperator *x);
   bool VisitCallExpr(clang::CallExpr *x);
+  bool VisitConditionalOperator(clang::ConditionalOperator *x);
   bool VisitCXXConstructExpr(clang::CXXConstructExpr *x);
+  bool VisitCXXTemporaryObjectExpr(clang::CXXTemporaryObjectExpr *x);
+  bool WalkUpFromCXXTemporaryObjectExpr(clang::CXXTemporaryObjectExpr *x);
   bool VisitCXXOperatorCallExpr(clang::CXXOperatorCallExpr *x);
   bool WalkUpFromCXXOperatorCallExpr(clang::CXXOperatorCallExpr *x);
   bool VisitDeclRefExpr(clang::DeclRefExpr *x);
   bool VisitFloatingLiteral(clang::FloatingLiteral *x);
   bool VisitImplicitCastExpr(clang::ImplicitCastExpr *x);
+  bool VisitInitListExpr(clang::InitListExpr *x);
   bool VisitIntegerLiteral(clang::IntegerLiteral *x);
   bool VisitCXXBoolLiteralExpr(clang::CXXBoolLiteralExpr *x);
-  bool TraverseLambdaExpr(clang::LambdaExpr *x,
-                          DataRecursionQueue *q = nullptr);
   bool VisitMaterializeTemporaryExpr(clang::MaterializeTemporaryExpr *x);
   bool VisitUnaryOperator(clang::UnaryOperator *x);
   bool VisitStringLiteral(clang::StringLiteral *x);
+
+  bool TraverseBinaryOperator(clang::BinaryOperator *x,
+                              DataRecursionQueue *q = nullptr);
+  bool TraverseCallExpr(clang::CallExpr *x, DataRecursionQueue *q = nullptr);
+  bool TraverseLambdaExpr(clang::LambdaExpr *x,
+                          DataRecursionQueue *q = nullptr);
+
+  bool isVectorOfQubitRefs(clang::CXXConstructExpr *x);
+  bool visitFunctionDeclAsCallArg(clang::FunctionDecl *x);
 
   //===--------------------------------------------------------------------===//
   // Type nodes to lower to Quake.
@@ -428,8 +436,8 @@ private:
   /// Get the ASTContext.
   clang::ASTContext *getContext() const { return astContext; }
 
-  /// Calls should be to C++ mangled names unless this is a known entry point. In
-  /// the latter case, use the entry point name.
+  /// Calls should be to C++ mangled names unless this is a known entry point.
+  /// In the latter case, use the entry point name.
   std::string genLoweredName(clang::FunctionDecl *x, mlir::FunctionType funcTy);
 
   /// Return a FuncOp for the specified function, given a name and signature. If
@@ -454,14 +462,15 @@ private:
   clang::ItaniumMangleContext *mangler;
   std::string loweredFuncName;
   llvm::SmallVector<mlir::Value> negations;
+  llvm::DenseSet<clang::DeclRefExpr *> declRefArgs;
   /// Should traversal be postorder or preorder?
-  bool postOrderTraversal = true;
-  bool skipCompoundScope = false;
-  bool isEntry = false;
+  bool postOrderTraversal : 1 = true;
+  bool skipCompoundScope : 1 = false;
+  bool isEntry : 1 = false;
   /// If there is a catastrophic error in the bridge (there is no rational way
   /// to proceed to emit correct code), emit an error using the diagnostic
   /// engine, set this flag, and return false.
-  bool raisedError = false;
+  bool raisedError : 1 = false;
 
   //===--------------------------------------------------------------------===//
   // Type traversals
@@ -479,10 +488,10 @@ private:
   /// Stack of Types built by the visitor. (right-to-left ordering)
   llvm::SmallVector<mlir::Type> typeStack;
   llvm::SmallVector<clang::RecordType *> records;
-  bool visitImplicitCode = false;
-  bool visitTemplateInstantiations = false;
-  bool typeMode = false;
-  bool codeGenMethodDecl = false;
+  bool visitImplicitCode : 1 = false;
+  bool visitTemplateInstantiations : 1 = false;
+  bool typeMode : 1 = false;
+  bool codeGenMethodDecl : 1 = false;
 };
 } // namespace details
 

@@ -7,14 +7,15 @@
  *******************************************************************************/
 
 #include "UnitaryBuilder.h"
-#include "cudaq/Optimizer/Dialect/QTX/QTXDialect.h"
-#include "cudaq/Optimizer/Dialect/QTX/QTXOps.h"
+#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/SourceMgr.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Parser/Parser.h"
+#include "mlir/Pass/PassManager.h"
+#include "mlir/Transforms/Passes.h"
 
 #include <iostream>
 
@@ -32,69 +33,80 @@ static cl::opt<bool>
                     cl::desc("Check unitaries are equal up to global phase."),
                     cl::init(false));
 
+static cl::opt<bool>
+    dontCanonicalize("no-canonicalizer",
+                     cl::desc("Disable running the canonicalizer pass."),
+                     cl::init(false));
+
 static cl::opt<bool> printUnitary("print-unitary",
                                   cl::desc("Print the unitary of each circuit"),
                                   cl::init(false));
 
-static LogicalResult computeUnitary(mlir::Operation *op,
+static LogicalResult computeUnitary(func::FuncOp func,
                                     cudaq::UnitaryBuilder::UMatrix &unitary) {
   cudaq::UnitaryBuilder builder(unitary);
-  if (auto func = dyn_cast_if_present<func::FuncOp>(op)) {
-    auto a = builder.build(func);
-    return a;
-  }
-  if (auto circuit = dyn_cast_if_present<qtx::CircuitOp>(op)) {
-    return builder.build(circuit);
-  }
-  return failure();
+  return builder.build(func);
 }
 
 int main(int argc, char **argv) {
   cl::ParseCommandLineOptions(argc, argv);
 
   MLIRContext context;
-  context.loadDialect<qtx::QTXDialect, quake::QuakeDialect, func::FuncDialect,
-                      memref::MemRefDialect>();
+  context.loadDialect<cudaq::cc::CCDialect, quake::QuakeDialect,
+                      func::FuncDialect, memref::MemRefDialect>();
 
-  mlir::ParserConfig config(&context);
-  auto checkMod = mlir::parseSourceFile<mlir::ModuleOp>(checkFilename, config);
-  auto inputMod = mlir::parseSourceFile<mlir::ModuleOp>(inputFilename, config);
+  ParserConfig config(&context);
+  auto checkMod = parseSourceFile<mlir::ModuleOp>(checkFilename, config);
+  auto inputMod = parseSourceFile<mlir::ModuleOp>(inputFilename, config);
 
+  // Run canonicalizer to make sure angles in parametrized quantum operations
+  // are taking constants as inputs.
+  if (!dontCanonicalize) {
+    PassManager pm(&context);
+    OpPassManager &nestedFuncPM = pm.nest<func::FuncOp>();
+    nestedFuncPM.addPass(createCanonicalizerPass());
+    if (failed(pm.run(*checkMod)) || failed(pm.run(*inputMod)))
+      return EXIT_FAILURE;
+  }
+
+  auto applyTolerance = [](cudaq::UnitaryBuilder::UMatrix &m) {
+    m = (1e-12 < m.array().abs()).select(m, 0.0f);
+  };
   cudaq::UnitaryBuilder::UMatrix checkUnitary;
   cudaq::UnitaryBuilder::UMatrix inputUnitary;
-  for (auto &checkOp : checkMod->getBodyRegion().getOps()) {
-    mlir::StringAttr opName;
-    if (auto func = dyn_cast<func::FuncOp>(checkOp)) {
-      opName = func.getSymNameAttr();
-    } else if (auto circuit = dyn_cast_if_present<qtx::CircuitOp>(checkOp)) {
-      opName = circuit.getSymNameAttr();
-    } else {
-      continue;
-    }
+  auto exitStatus = EXIT_SUCCESS;
+  for (auto checkFunc : checkMod->getOps<func::FuncOp>()) {
+    StringAttr opName = checkFunc.getSymNameAttr();
     checkUnitary.resize(0, 0);
     inputUnitary.resize(0, 0);
     // We need to check if input also has the same function
     auto *inputOp = inputMod->lookupSymbol(opName);
-    if (failed(computeUnitary(&checkOp, checkUnitary)) ||
-        failed(computeUnitary(inputOp, inputUnitary)))
-      continue;
+    assert(inputOp && "Function not present in input");
 
+    auto inputFunc = dyn_cast<func::FuncOp>(inputOp);
+    if (failed(computeUnitary(checkFunc, checkUnitary)) ||
+        failed(computeUnitary(inputFunc, inputUnitary))) {
+      llvm::errs() << "Cannot compute unitary for " << opName.str() << ".\n";
+      continue;
+    }
+
+    // Here we use std streams because Eigen printers don't work with LLVM ones.
     if (!cudaq::isApproxEqual(checkUnitary, inputUnitary, upToGlobalPhase)) {
+      applyTolerance(checkUnitary);
+      applyTolerance(inputUnitary);
       std::cerr << "Circuit: " << opName.str() << '\n';
       std::cerr << "Expected:\n";
       std::cerr << checkUnitary << '\n';
       std::cerr << "Got:\n";
       std::cerr << inputUnitary << '\n';
+      exitStatus = EXIT_FAILURE;
     }
 
     if (printUnitary) {
+      applyTolerance(checkUnitary);
       std::cout << "Circuit: " << opName.str() << '\n'
                 << checkUnitary << "\n\n";
-      inputUnitary =
-          (1e-12 < inputUnitary.array().abs()).select(inputUnitary, 0.0f);
-
-      std::cout << "Unitary:\n" << inputUnitary << "\n\n";
     }
   }
-  return 0;
+  return exitStatus;
 }

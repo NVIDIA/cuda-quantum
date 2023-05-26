@@ -23,9 +23,7 @@ LLVM_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType)
 
 namespace {
 /// The DefaultQPU models a simulated QPU by specifically
-/// targeting the QIS ExecutionManager. This QPU is meant
-/// to be used in Library Mode (no qpud daemon or remote
-/// physical QPU invocation)
+/// targeting the QIS ExecutionManager.
 class DefaultQPU : public cudaq::QPU {
 public:
   DefaultQPU() = default;
@@ -73,7 +71,7 @@ public:
       // and computing <ZZ..ZZZ>
       if (executionContext->canHandleObserve) {
         auto [exp, data] = cudaq::measure(H);
-        results.emplace_back(data.to_map(), H.to_string());
+        results.emplace_back(data.to_map(), H.to_string(false), exp);
         ctx->expectationValue = exp;
         ctx->result = cudaq::sample_result(results);
       } else {
@@ -81,11 +79,11 @@ public:
         // Loop over each term and compute coeff * <term>
         H.for_each_term([&](cudaq::spin_op &term) {
           if (term.is_identity())
-            sum += term.get_term_coefficient(0).real();
+            sum += term.get_coefficient().real();
           else {
             auto [exp, data] = cudaq::measure(term);
-            results.emplace_back(data.to_map(), term.to_string(false));
-            sum += term.get_term_coefficient(0).real() * exp;
+            results.emplace_back(data.to_map(), term.to_string(false), exp);
+            sum += term.get_coefficient().real() * exp;
           }
         });
 
@@ -118,7 +116,7 @@ public:
   /// specified by that variable.
   void setTargetBackend(const std::string &backend) override {
     std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
-    auto platformPath = cudaqLibPath.parent_path().parent_path() / "platforms";
+    auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
 
     auto mutableBackend = backend;
     if (mutableBackend.find(";") != std::string::npos) {
