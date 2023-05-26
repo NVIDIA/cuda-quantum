@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 // RUN: nvq++ --enable-mlir %s -o out_testTemplateI.x && ./out_testTemplateI.x | FileCheck %s
 
