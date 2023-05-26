@@ -21,7 +21,7 @@ struct NegationOperatorTest {
 // CHECK-SAME: () attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 3 : i32
 // CHECK:           %[[VAL_1:.*]] = arith.extsi %[[VAL_0]] : i32 to i64
-// CHECK:           %[[VAL_2:.*]] = quake.alloca[%[[VAL_1]] : i64] !quake.veq<?>
+// CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<?>[%[[VAL_1]] : i64]
 // CHECK:           %[[VAL_3:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_4:.*]] = arith.extsi %[[VAL_3]] : i32 to i64
 // CHECK:           %[[VAL_5:.*]] = quake.extract_ref %[[VAL_2]][%[[VAL_4]]] : (!quake.veq<?>, i64) -> !quake.ref

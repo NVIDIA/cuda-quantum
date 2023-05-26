@@ -18,7 +18,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__lambda.main.canHa
   func.func @__nvqpp__mlirgen__lambda.main.test() attributes {"cudaq-entrypoint"} {
     %c2_i32 = arith.constant 2 : i32
     %0 = arith.extsi %c2_i32 : i32 to i64
-    %1 = quake.alloca[%0 : i64]  !quake.veq<?>
+    %1 = quake.alloca !quake.veq<?>[%0 : i64]
     %c0_i32 = arith.constant 0 : i32
     %2 = arith.extsi %c0_i32 : i32 to i64
     %3 = quake.extract_ref %1[%2] : (!quake.veq<?>,i64) -> !quake.ref
@@ -52,7 +52,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__lambda.main.canHa
   func.func @__nvqpp__mlirgen__lambda.main.canHaveMultiple() attributes {"cudaq-entrypoint"} {
     %c2_i32 = arith.constant 2 : i32
     %0 = arith.extsi %c2_i32 : i32 to i64
-    %1 = quake.alloca[%0 : i64] !quake.veq<?>
+    %1 = quake.alloca !quake.veq<?>[%0 : i64]
     %c0_i32 = arith.constant 0 : i32
     %2 = arith.extsi %c0_i32 : i32 to i64
     %3 = quake.extract_ref %1[%2] : (!quake.veq<?>,i64) -> !quake.ref

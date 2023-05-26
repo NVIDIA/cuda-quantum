@@ -80,11 +80,14 @@ def quake_AllocaOp : QuakeOp<"alloca", [MemoryEffects<[MemAlloc, MemWrite]>]> {
     }]>,
     OpBuilder<(ins "size_t":$size), [{
       return build($_builder, $_state, $_builder.getType<VeqType>(size), {});
+    }]>,
+    OpBuilder<(ins "mlir::Type":$ty), [{
+      return build($_builder, $_state, ty, {});
     }]>
   ];
 
   let assemblyFormat = [{
-    (`[` $size^ `:` type($size)`]`)? qualified(type($ref_or_vec)) attr-dict
+    qualified(type($ref_or_vec)) (`[` $size^ `:` type($size) `]`)? attr-dict
   }];
 
   let hasCanonicalizer = 1;
