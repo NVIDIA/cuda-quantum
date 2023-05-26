@@ -9,6 +9,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
+#include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"
 #include "mlir/Dialect/Utils/StructuredOpsUtils.h"
@@ -168,7 +169,8 @@ LogicalResult cudaq::cc::CastOp::verify() {
     }
   } else if (isa<FloatType>(inTy) && isa<FloatType>(outTy)) {
     // ok, floating-point casts: fptrunc, fpext, nop
-  } else if (isa<cc::PointerType>(inTy) && isa<cc::PointerType>(outTy)) {
+  } else if (isa<cc::PointerType, LLVM::LLVMPointerType>(inTy) &&
+             isa<cc::PointerType, LLVM::LLVMPointerType>(outTy)) {
     // ok, pointer casts: bitcast, nop
   } else {
     // Could support a bitcast of a float with pointer size bits to/from a
@@ -222,6 +224,60 @@ static void printComputePtrIndices(OpAsmPrinter &printer,
                           else
                             printer << cst.get<IntegerAttr>().getInt();
                         });
+}
+
+void cudaq::cc::ComputePtrOp::build(OpBuilder &builder, OperationState &result,
+                                    Type resultType, Value basePtr,
+                                    ValueRange indices,
+                                    ArrayRef<NamedAttribute> attrs) {
+  build(builder, result, resultType, basePtr,
+        SmallVector<ComputePtrArg>(indices), attrs);
+}
+
+static void
+destructureIndices(Type currType, ArrayRef<cudaq::cc::ComputePtrArg> indices,
+                   SmallVectorImpl<std::int32_t> &rawConstantIndices,
+                   SmallVectorImpl<Value> &dynamicIndices) {
+  for (const cudaq::cc::ComputePtrArg &iter : indices) {
+    if (Value val = iter.dyn_cast<Value>()) {
+      rawConstantIndices.push_back(cudaq::cc::ComputePtrOp::kDynamicIndex);
+      dynamicIndices.push_back(val);
+    } else {
+      rawConstantIndices.push_back(
+          iter.get<cudaq::cc::ComputePtrConstantIndex>());
+    }
+
+    currType =
+        TypeSwitch<Type, Type>(currType)
+            .Case([](cudaq::cc::ArrayType containerType) {
+              return containerType.getElementType();
+            })
+            .Case([&](cudaq::cc::StructType structType) -> Type {
+              int64_t memberIndex = rawConstantIndices.back();
+              if (memberIndex >= 0 && static_cast<std::size_t>(memberIndex) <
+                                          structType.getMembers().size())
+                return structType.getMembers()[memberIndex];
+              return {};
+            })
+            .Default(Type{});
+  }
+}
+
+void cudaq::cc::ComputePtrOp::build(OpBuilder &builder, OperationState &result,
+                                    Type resultType, Value basePtr,
+                                    ArrayRef<ComputePtrArg> cpArgs,
+                                    ArrayRef<NamedAttribute> attrs) {
+  SmallVector<int32_t> rawConstantIndices;
+  SmallVector<Value> dynamicIndices;
+  Type elementType = cast<cc::PointerType>(basePtr.getType()).getElementType();
+  destructureIndices(elementType, cpArgs, rawConstantIndices, dynamicIndices);
+
+  result.addTypes(resultType);
+  result.addAttributes(attrs);
+  result.addAttribute(getRawConstantIndicesAttrName(result.name),
+                      builder.getDenseI32ArrayAttr(rawConstantIndices));
+  result.addOperands(basePtr);
+  result.addOperands(dynamicIndices);
 }
 
 //===----------------------------------------------------------------------===//

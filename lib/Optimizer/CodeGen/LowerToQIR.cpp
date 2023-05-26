@@ -13,6 +13,7 @@
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Conversion/AffineToStandard/AffineToStandard.h"
 #include "mlir/Conversion/ArithToLLVM/ArithToLLVM.h"
 #include "mlir/Conversion/ControlFlowToLLVM/ControlFlowToLLVM.h"
@@ -36,6 +37,10 @@ static LLVM::LLVMStructType lambdaAsPairOfPointers(MLIRContext *context) {
 }
 
 namespace {
+
+//===----------------------------------------------------------------------===//
+// Conversion patterns for Quake dialect ops.
+//===----------------------------------------------------------------------===//
 
 /// Lowers Quake AllocaOp to QIR function call in LLVM.
 class AllocaOpLowering : public ConvertOpToLLVMPattern<quake::AllocaOp> {
@@ -757,52 +762,6 @@ public:
   }
 };
 
-/// Converts returning a Result* to returning a bit. QIR expects
-/// __quantum__qis__mz(Qubit*) to return a Result*, and CUDA Quantum expects
-/// mz to return a bool. In the library we let Result = bool, so Result* is
-/// a bool*. Here we bitcast the Result* to a bool* and then load it and
-/// replace its use with that loaded bool.
-class ReturnBitRewrite : public OpConversionPattern<func::ReturnOp> {
-public:
-  using OpConversionPattern::OpConversionPattern;
-
-  LogicalResult
-  matchAndRewrite(func::ReturnOp ret, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
-    auto loc = ret->getLoc();
-    auto parentModule = ret->getParentOfType<ModuleOp>();
-    auto context = parentModule->getContext();
-
-    // If we are returning a llvm.ptr<Result> then we've really
-    // been asked to return a bit, set that up here
-    if (ret.getNumOperands() == 1 && adaptor.getOperands().front().getType() ==
-                                         cudaq::opt::getResultType(context)) {
-
-      // Bitcast the produced value, which corresponds to the value in
-      // ret.operands()[0], from llvm.ptr<Result> to llvm.ptr<i1>. There is a
-      // big assumption here, which is that the operation that produced the
-      // llvm.ptr<Result> type returns only one value. Given that this should
-      // be a call to __quantum__qis__mz(Qubit*) and that in the LLVM dialect,
-      // functions always have a single result, this should be fine. If things
-      // change, we will need to update this.
-      auto bitcast = rewriter.create<LLVM::BitcastOp>(
-          loc, LLVM::LLVMPointerType::get(rewriter.getI1Type()),
-          adaptor.getOperands().front());
-
-      // Load the bool
-      auto loadBit = rewriter.create<LLVM::LoadOp>(loc, rewriter.getI1Type(),
-                                                   bitcast.getResult());
-
-      // Replace all uses of the llvm.ptr<Result> with the i1, which includes
-      // the return op. Do not replace its use in the bitcast.
-      adaptor.getOperands().front().replaceAllUsesExcept(loadBit.getResult(),
-                                                         bitcast);
-      return success();
-    }
-    return failure();
-  }
-};
-
 class GetVeqSizeOpLowering : public OpConversionPattern<quake::VeqSizeOp> {
 public:
   using OpConversionPattern::OpConversionPattern;
@@ -823,6 +782,130 @@ public:
                                            symbolRef, adaptor.getOperands());
     vecsize->getResult(0).replaceAllUsesWith(c->getResult(0));
     rewriter.eraseOp(vecsize);
+    return success();
+  }
+};
+
+//===----------------------------------------------------------------------===//
+// Conversion patterns for CC dialect ops.
+//===----------------------------------------------------------------------===//
+
+class ComputePtrOpLowering
+    : public ConvertOpToLLVMPattern<cudaq::cc::ComputePtrOp> {
+public:
+  using Base = ConvertOpToLLVMPattern<cudaq::cc::ComputePtrOp>;
+  using Base::Base;
+
+  // Convert each cc::ComputePtrOp to an LLVM::GEPOp.
+  LogicalResult
+  matchAndRewrite(cudaq::cc::ComputePtrOp cp, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto operands = adaptor.getOperands();
+    auto toTy = getTypeConverter()->convertType(cp.getType());
+    rewriter.replaceOpWithNewOp<LLVM::GEPOp>(
+        cp, toTy, operands[0],
+        interleaveConstantsAndOperands(operands.drop_front(),
+                                       cp.getRawConstantIndices()));
+    return success();
+  }
+
+  static SmallVector<LLVM::GEPArg>
+  interleaveConstantsAndOperands(ValueRange values,
+                                 ArrayRef<std::int32_t> rawConsts) {
+    SmallVector<LLVM::GEPArg> result;
+    auto valIter = values.begin();
+    for (auto rc : rawConsts) {
+      if (rc == cudaq::cc::ComputePtrOp::kDynamicIndex)
+        result.push_back(*valIter++);
+      else
+        result.push_back(rc);
+    }
+    return result;
+  }
+};
+
+class LoadOpLowering : public ConvertOpToLLVMPattern<cudaq::cc::LoadOp> {
+public:
+  using Base = ConvertOpToLLVMPattern<cudaq::cc::LoadOp>;
+  using Base::Base;
+
+  // Convert each cc::LoadOp to an LLVM::LoadOp.
+  LogicalResult
+  matchAndRewrite(cudaq::cc::LoadOp load, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto operands = adaptor.getOperands();
+    auto toTy = getTypeConverter()->convertType(load.getType());
+    rewriter.replaceOpWithNewOp<LLVM::LoadOp>(load, toTy, operands);
+    return success();
+  }
+};
+
+class CastOpLowering : public ConvertOpToLLVMPattern<cudaq::cc::CastOp> {
+public:
+  using Base = ConvertOpToLLVMPattern<cudaq::cc::CastOp>;
+  using Base::Base;
+
+  // Convert each cc::CastOp to one of the flavors of LLVM casts.
+  LogicalResult
+  matchAndRewrite(cudaq::cc::CastOp cast, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto operands = adaptor.getOperands();
+    auto fromTy = operands[0].getType();
+    auto toTy = getTypeConverter()->convertType(cast.getType());
+    auto boilerplate = [&]<typename A>(A *) {
+      rewriter.replaceOpWithNewOp<A>(cast, toTy, operands);
+    };
+    TypeSwitch<Type>(toTy)
+        .Case([&](IntegerType toIntTy) {
+          TypeSwitch<Type>(fromTy)
+              .Case([&](IntegerType fromIntTy) {
+                if (fromIntTy.getWidth() < toIntTy.getWidth()) {
+                  if (cast.getSint())
+                    boilerplate((LLVM::SExtOp *)nullptr);
+                  else
+                    boilerplate((LLVM::ZExtOp *)nullptr);
+                } else {
+                  boilerplate((LLVM::TruncOp *)nullptr);
+                }
+              })
+              .Case([&](FloatType) {
+                if (cast.getSint())
+                  boilerplate((LLVM::FPToSIOp *)nullptr);
+                else if (cast.getZint())
+                  boilerplate((LLVM::FPToUIOp *)nullptr);
+                else
+                  boilerplate((LLVM::BitcastOp *)nullptr);
+              })
+              .Case([&](LLVM::LLVMPointerType) {
+                boilerplate((LLVM::PtrToIntOp *)nullptr);
+              });
+        })
+        .Case([&](FloatType toFloatTy) {
+          TypeSwitch<Type>(fromTy)
+              .Case([&](FloatType fromFloatTy) {
+                if (fromFloatTy.getWidth() < toFloatTy.getWidth())
+                  boilerplate((LLVM::FPExtOp *)nullptr);
+                else
+                  boilerplate((LLVM::FPTruncOp *)nullptr);
+              })
+              .Case([&](IntegerType) {
+                if (cast.getSint())
+                  boilerplate((LLVM::SIToFPOp *)nullptr);
+                else if (cast.getZint())
+                  boilerplate((LLVM::UIToFPOp *)nullptr);
+                else
+                  boilerplate((LLVM::BitcastOp *)nullptr);
+              });
+        })
+        .Case([&](LLVM::LLVMPointerType toPtrTy) {
+          TypeSwitch<Type>(fromTy)
+              .Case([&](LLVM::LLVMPointerType) {
+                boilerplate((LLVM::BitcastOp *)nullptr);
+              })
+              .Case([&](IntegerType) {
+                boilerplate((LLVM::IntToPtrOp *)nullptr);
+              });
+        });
     return success();
   }
 };
@@ -1030,6 +1113,60 @@ public:
   }
 };
 
+//===----------------------------------------------------------------------===//
+// Other conversion patterns.
+//===----------------------------------------------------------------------===//
+
+/// Converts returning a Result* to returning a bit. QIR expects
+/// __quantum__qis__mz(Qubit*) to return a Result*, and CUDA Quantum expects
+/// mz to return a bool. In the library we let Result = bool, so Result* is
+/// a bool*. Here we bitcast the Result* to a bool* and then load it and
+/// replace its use with that loaded bool.
+class ReturnBitRewrite : public OpConversionPattern<func::ReturnOp> {
+public:
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(func::ReturnOp ret, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = ret->getLoc();
+    auto parentModule = ret->getParentOfType<ModuleOp>();
+    auto context = parentModule->getContext();
+
+    // If we are returning a llvm.ptr<Result> then we've really
+    // been asked to return a bit, set that up here
+    if (ret.getNumOperands() == 1 && adaptor.getOperands().front().getType() ==
+                                         cudaq::opt::getResultType(context)) {
+
+      // Bitcast the produced value, which corresponds to the value in
+      // ret.operands()[0], from llvm.ptr<Result> to llvm.ptr<i1>. There is a
+      // big assumption here, which is that the operation that produced the
+      // llvm.ptr<Result> type returns only one value. Given that this should
+      // be a call to __quantum__qis__mz(Qubit*) and that in the LLVM dialect,
+      // functions always have a single result, this should be fine. If things
+      // change, we will need to update this.
+      auto bitcast = rewriter.create<LLVM::BitcastOp>(
+          loc, LLVM::LLVMPointerType::get(rewriter.getI1Type()),
+          adaptor.getOperands().front());
+
+      // Load the bool
+      auto loadBit = rewriter.create<LLVM::LoadOp>(loc, rewriter.getI1Type(),
+                                                   bitcast.getResult());
+
+      // Replace all uses of the llvm.ptr<Result> with the i1, which includes
+      // the return op. Do not replace its use in the bitcast.
+      adaptor.getOperands().front().replaceAllUsesExcept(loadBit.getResult(),
+                                                         bitcast);
+      return success();
+    }
+    return failure();
+  }
+};
+
+//===----------------------------------------------------------------------===//
+// Code generation: converts the Quake IR to QIR.
+//===----------------------------------------------------------------------===//
+
 /// Convert Quake dialect to LLVM-IR and QIR.
 class QuakeToQIRLowering
     : public cudaq::opt::QuakeToQIRBase<QuakeToQIRLowering> {
@@ -1050,6 +1187,11 @@ public:
     typeConverter.addConversion([&](cudaq::cc::StdvecType type) {
       return cudaq::opt::factory::stdVectorImplType(type.getElementType());
     });
+    typeConverter.addConversion([&](cudaq::cc::PointerType type) {
+      if (isa<NoneType>(type.getElementType()))
+        return cudaq::opt::factory::getPointerType(context);
+      return cudaq::opt::factory::getPointerType(type.getElementType());
+    });
     RewritePatternSet patterns(context);
 
     populateAffineToStdConversionPatterns(patterns);
@@ -1065,8 +1207,9 @@ public:
         context);
     patterns.insert<
         AllocaOpLowering, CallableClosureOpLowering, CallableFuncOpLowering,
-        ConcatOpLowering, DeallocOpLowering, ExtractQubitOpLowering,
-        FuncToPtrOpLowering, InstantiateCallableOpLowering,
+        CastOpLowering, ComputePtrOpLowering, ConcatOpLowering,
+        DeallocOpLowering, ExtractQubitOpLowering, FuncToPtrOpLowering,
+        InstantiateCallableOpLowering, LoadOpLowering,
         MeasureLowering<quake::MzOp>, OneTargetLowering<quake::HOp>,
         OneTargetLowering<quake::XOp>, OneTargetLowering<quake::YOp>,
         OneTargetLowering<quake::ZOp>, OneTargetLowering<quake::SOp>,

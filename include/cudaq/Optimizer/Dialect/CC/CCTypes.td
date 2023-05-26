@@ -46,6 +46,9 @@ def cc_PointerType : CCType<"Pointer", "ptr"> {
     TypeBuilderWithInferredContext<(ins "mlir::Type":$elementType), [{
       return Base::get(elementType.getContext(), elementType);
     }]>,
+    TypeBuilder<(ins), [{
+      return $_get($_ctxt, mlir::NoneType::get($_ctxt));
+    }]>
   ];
 }
 
@@ -55,7 +58,6 @@ def cc_PointerType : CCType<"Pointer", "ptr"> {
 
 def cc_StructType : CCType<"Struct", "struct",
     [DeclareTypeInterfaceMethods<DataLayoutTypeInterface>]> {
-
   let summary = "Primitive aggregate C/C++ type.";
   let description = [{
     A struct is first-class type for an aggregate tuple value composed of
@@ -74,6 +76,25 @@ def cc_StructType : CCType<"Struct", "struct",
   );
 
   let hasCustomAssemblyFormat = 1;
+
+  let builders = [
+    TypeBuilder<(ins CArg<"llvm::StringRef">:$name,
+                 CArg<"bool", "true">:$isOpaque), [{
+      return $_get($_ctxt, mlir::StringAttr::get($_ctxt, name),
+                   llvm::ArrayRef<mlir::Type>{}, isOpaque, /*isPacked=*/false);
+    }]>,
+    TypeBuilder<(ins CArg<"llvm::StringRef">:$name,
+                 CArg<"llvm::ArrayRef<mlir::Type>">:$members,
+                 CArg<"bool", "false">:$isPacked), [{
+      return $_get($_ctxt, mlir::StringAttr::get($_ctxt, name), members,
+                   /*isOpaque=*/false, isPacked);
+    }]>,
+    TypeBuilder<(ins CArg<"llvm::ArrayRef<mlir::Type>">:$members,
+                 CArg<"bool", "false">:$isPacked), [{
+      return $_get($_ctxt, mlir::StringAttr{}, members, /*isOpaque=*/false,
+                   isPacked);
+    }]>
+  ];
 }
 
 //===----------------------------------------------------------------------===//
@@ -112,7 +133,7 @@ def cc_ArrayType : CCType<"Array", "array"> {
   let builders = [
     TypeBuilderWithInferredContext<(ins "mlir::Type":$elementType), [{
       return Base::get(elementType.getContext(), elementType, unknownSize);
-    }]>,
+    }]>
   ];
 }
 
@@ -137,7 +158,7 @@ def cc_LambdaType : CCType<"Lambda", "lambda"> {
   let builders = [
     TypeBuilderWithInferredContext<(ins "mlir::FunctionType":$signature), [{
       return Base::get(signature.getContext(), signature);
-    }]>,
+    }]>
   ];
 
   let extraClassDeclaration = [{
@@ -174,7 +195,7 @@ def cc_StdVectorType : CCType<"Stdvec", "stdvec"> {
   let builders = [
     TypeBuilderWithInferredContext<(ins "mlir::Type":$elementType), [{
       return Base::get(elementType.getContext(), elementType);
-    }]>,
+    }]>
   ];
 }
 

@@ -865,6 +865,19 @@ def cc_ComputePtrOp : CCOp<"compute_ptr", [Pure]> {
     $base `[` custom<ComputePtrIndices>($dynamicIndices, $rawConstantIndices)
       `]` `:` functional-type(operands, results) attr-dict
   }];
+
+  let builders = [
+    OpBuilder<(ins "mlir::Type":$resultType, "mlir::Value":$basePtr,
+               "mlir::ValueRange":$indices,
+               CArg<"mlir::ArrayRef<mlir::NamedAttribute>", "{}">:$attributes)>,
+    OpBuilder<(ins "mlir::Type":$resultType, "mlir::Value":$basePtr,
+               "mlir::ArrayRef<cudaq::cc::ComputePtrArg>":$indices,
+               CArg<"mlir::ArrayRef<mlir::NamedAttribute>", "{}">:$attributes)> 
+  ];
+  let extraClassDeclaration = [{
+    static constexpr std::int32_t kDynamicIndex =
+      std::numeric_limits<std::int32_t>::min();
+  }];
 }
 
 //===----------------------------------------------------------------------===//
