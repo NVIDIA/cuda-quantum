@@ -95,6 +95,7 @@ std::unique_ptr<MLIRContext> initializeMLIR() {
     registerToQIRTranslation();
     registerToOpenQASMTranslation();
     registerToIQMJsonTranslation();
+    cudaq::opt::registerTargetPipelines();
     mlirLLVMInitialized = true;
   }
 
