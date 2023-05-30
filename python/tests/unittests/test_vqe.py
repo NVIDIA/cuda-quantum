@@ -279,9 +279,9 @@ def test_vqe_three_qubit_list(optimizer, kernel_three_qubit_vqe_list,
                               hamiltonian_3q):
     # Should be able to call this by passing a function that returns a kernel:
     got_expectation, got_parameters = cudaq.vqe(kernel_three_qubit_vqe_list,
-                                               hamiltonian_3q,
-                                               optimizer,
-                                               parameter_count=2)
+                                                hamiltonian_3q,
+                                                optimizer,
+                                                parameter_count=2)
 
     # Known minimal expectation value for this system:
     want_expectation_value = -2.045375
@@ -321,11 +321,11 @@ def test_vqe_three_qubit_float_gradients(optimizer, gradient,
     optimizer.max_iterations = 100
     # Should be able to call this by passing a function that returns a kernel:
     got_expectation, got_parameters = cudaq.vqe(kernel=kernel_three_qubit_vqe,
-                                               gradient_strategy=gradient,
-                                               spin_operator=hamiltonian_3q,
-                                               optimizer=optimizer,
-                                               parameter_count=2,
-                                               argument_mapper=argument_map)
+                                                gradient_strategy=gradient,
+                                                spin_operator=hamiltonian_3q,
+                                                optimizer=optimizer,
+                                                parameter_count=2,
+                                                argument_mapper=argument_map)
 
     # Known minimal expectation value for this system:
     want_expectation_value = -2.045375

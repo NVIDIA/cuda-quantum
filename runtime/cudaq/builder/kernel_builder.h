@@ -182,8 +182,8 @@ CUDAQ_DETAILS_MEASURE_DECLARATION(mx)
 CUDAQ_DETAILS_MEASURE_DECLARATION(my)
 CUDAQ_DETAILS_MEASURE_DECLARATION(mz)
 
-void swap(ImplicitLocOpBuilder &builder, std::vector<QuakeValue> &ctrls,
-          std::vector<QuakeValue> &targets, bool adjoint = false);
+void swap(ImplicitLocOpBuilder &builder, const std::vector<QuakeValue> &ctrls,
+          const std::vector<QuakeValue> &targets, bool adjoint = false);
 
 void reset(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec);
 
@@ -500,20 +500,19 @@ public:
   CUDAQ_BUILDER_ADD_MEASURE(mz)
 
   /// @brief SWAP operation for swapping the quantum states of qubits.
-  /// Supports SWAP's between two qubits, as well as a multi-qubit
+  /// Supports swaps between two qubits, as well as a multi-qubit
   /// controlled SWAP operation.
-  void swap(QuakeValue &qubit, QuakeValue &target) {
-    std::vector<QuakeValue> empty;
-    std::vector<QuakeValue> targets{qubit, target};
-    details::swap(*opBuilder, empty, targets);
+  void swap(const QuakeValue &first, const QuakeValue &second) {
+    const std::vector<QuakeValue> empty;
+    const std::vector<QuakeValue> &qubits{first, second};
+    details::swap(*opBuilder, empty, qubits);
   }
 
-  void swap(QuakeValue &&qubit, QuakeValue &&target) { swap(qubit, target); }
-
-  void swap(std::vector<QuakeValue> &ctrls, QuakeValue &qubit,
-            QuakeValue &target) {
-    std::vector<QuakeValue> targets{qubit, target};
-    details::swap(*opBuilder, ctrls, targets);
+  // Not yet enabled.
+  void swap(const std::vector<QuakeValue> &ctrls, const QuakeValue &first,
+            const QuakeValue &second) {
+    const std::vector<QuakeValue> &qubits{first, second};
+    details::swap(*opBuilder, ctrls, qubits);
   }
 
   /// @brief Reset the given qubit or qubits.

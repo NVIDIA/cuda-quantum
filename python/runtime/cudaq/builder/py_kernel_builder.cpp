@@ -347,6 +347,23 @@ void bindKernel(py::module &mod) {
       ADD_BUILDER_PARAM_QIS_METHOD(r1)
       // clang-format on
 
+      /// @brief Bind the SWAP gate.
+      .def(
+          "swap",
+          [](kernel_builder<> &self, const QuakeValue &first,
+             const QuakeValue &second) { return self.swap(first, second); },
+          py::arg("first"), py::arg("second"),
+          R"pbdoc(
+                  Swap the states of the provided qubits.      
+
+                  .. code-block:: python"                                        
+                    # Example:"                                                      
+                    kernel = cudaq.make_kernel()"                                    
+                    # Allocate qubit/s to the `kernel`."                             
+                    qubits = kernel.qalloc(2)"       
+                    kernel.x(qubits[0])                            
+                    # Swap their states. Qubit 1 should now be in the 1-state.
+                    kernel.swap(qubits[0], qubits[1]))pbdoc")
       /// @brief Allow for conditional statements on measurements.
       .def(
           "c_if",
