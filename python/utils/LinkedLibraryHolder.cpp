@@ -166,6 +166,13 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
     libHandles.emplace(p.string(),
                        dlopen(p.string().c_str(), RTLD_GLOBAL | RTLD_NOW));
 
+  // We will always load the RemoteRestQPU plugin in Python.
+  auto potentialPath =
+      cudaqLibPath / fmt::format("libcudaq-rest-qpu.{}", libSuffix);
+  libHandles.emplace(
+      potentialPath.string(),
+      dlopen(potentialPath.string().c_str(), RTLD_GLOBAL | RTLD_NOW));
+
   // Search for all simulators and create / store them
   for (const auto &library :
        std::filesystem::directory_iterator{cudaqLibPath}) {
@@ -286,21 +293,13 @@ void LinkedLibraryHolder::setTarget(
   auto *platform = platforms[target.platformName];
 
   // Pack the config into the backend string name
-  std::string backendConfigStr = "";
+  std::string backendConfigStr = targetName;
   for (auto &[key, value] : extraConfig)
     backendConfigStr += fmt::format(";{};{}", key, value);
 
   platform->setTargetBackend(backendConfigStr);
   setQuantumPlatformInternal(platform);
-
   currentTarget = targetName;
-
-  // FIXME May also need to load a plugin library
-  //     auto potentialPath =
-  //         cudaqLibPath / fmt::format("libcudaq-rest-qpu.{}", libSuffix);
-  //     libHandles.emplace(
-  //         potentialPath.string(),
-  //         dlopen(potentialPath.string().c_str(), RTLD_GLOBAL | RTLD_NOW));
 }
 
 std::vector<RuntimeTarget> LinkedLibraryHolder::getTargets() const {

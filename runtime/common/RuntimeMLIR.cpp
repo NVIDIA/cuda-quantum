@@ -95,6 +95,7 @@ std::unique_ptr<MLIRContext> initializeMLIR() {
     registerToQIRTranslation();
     registerToOpenQASMTranslation();
     registerToIQMJsonTranslation();
+    cudaq::opt::registerTargetPipelines();
     mlirLLVMInitialized = true;
   }
 
@@ -103,7 +104,8 @@ std::unique_ptr<MLIRContext> initializeMLIR() {
 
   DialectRegistry registry;
   registry.insert<arith::ArithDialect, AffineDialect, LLVM::LLVMDialect,
-                  quake::QuakeDialect, cc::CCDialect, func::FuncDialect>();
+                  memref::MemRefDialect, quake::QuakeDialect, cc::CCDialect,
+                  func::FuncDialect>();
   auto context = std::make_unique<MLIRContext>(registry);
   context->loadAllAvailableDialects();
   registerLLVMDialectTranslation(*context);
