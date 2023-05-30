@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # ============================================================================ #
 # Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
@@ -7,18 +5,5 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-
-# We'll need the requests and llvm module
-# Launch the fake server
-@Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/mock_qpu/quantum_machines/mock_quantum_machines.py &
-# we'll need the process id to kill it
-pid=$(echo "$!")
-sleep 1
-# Run the tests
-./test_quantum_machines
-# Did they fail? 
-testsPassed=$?
-# kill the server
-kill -INT $pid
-# return success / failure
-exit $testsPassed
+target_sources(cudaq-rest-qpu PRIVATE QuantinuumServerHelper.cpp)
+add_target_config(quantinuum)

@@ -7,3 +7,4 @@
 # ============================================================================ #
 
 add_subdirectory(ionq)
+add_subdirectory(quantinuum)
