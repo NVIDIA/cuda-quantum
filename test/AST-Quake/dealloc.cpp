@@ -21,11 +21,11 @@ __qpu__ void magic_func(int N) {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_magic_func
 // CHECK:           cc.scope {
-// CHECK:             %[[VAL_4:.*]] = quake.alloca[%{{.*}} : i64] !quake.veq<?>
+// CHECK:             %[[VAL_4:.*]] = quake.alloca !quake.veq<?>[%{{.*}} : i64]
 // CHECK:             quake.dealloc %[[VAL_4]] : !quake.veq<?>
 // CHECK:             cc.continue
 // CHECK:           }
-// CHECK:           %[[VAL_10:.*]] = quake.alloca[%{{.*}} : i64] !quake.veq<?>
+// CHECK:           %[[VAL_10:.*]] = quake.alloca !quake.veq<?>[%{{.*}} : i64]
 // CHECK:           quake.dealloc %[[VAL_10]] : !quake.veq<?>
 // CHECK:           return
 // CHECK:         }

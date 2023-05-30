@@ -27,8 +27,7 @@ struct entry {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__entry() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 3 : i64
-// CHECK:           %[[VAL_1:.*]] = quake.alloca[%[[VAL_0]] : i64] !quake.veq<3>
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<3>
 // CHECK:           %[[VAL_2:.*]] = quake.relax_size %[[VAL_1]] : (!quake.veq<3>) -> !quake.veq<?>
 // CHECK:           call @__nvqpp__mlirgen__function_mcx._Z3mcxN5cudaq5qspan{{.*}}(%[[VAL_2]]) : (!quake.veq<?>) -> ()
 // CHECK:           return

@@ -15,7 +15,7 @@
 // CHECK:   func.func @ccnot() {
 // CHECK:     %[[C3:.*]] = arith.constant 3 : i32
 // CHECK:     %[[C1:.*]] = arith.constant 1 : i32
-// CHECK:     %0 = quake.alloca[%[[C3]] : i32] !quake.veq<?>
+// CHECK:     %0 = quake.alloca !quake.veq<?>[%[[C3]] : i32]
 // CHECK:     %1 = arith.index_cast %[[C3]] : i32 to index
 // CHECK:     affine.for %arg0 = 0 to %1 {
 // CHECK:       %3 = quake.extract_ref %0[%arg0] : (!quake.veq<?>, index) -> !quake.ref
@@ -38,7 +38,7 @@ module {
     func.func @ccnot() {
         %c_3 = arith.constant 3 : i32
         %c_1 = arith.constant 1 : i32
-        %qubits = quake.alloca [%c_3 : i32 ] !quake.veq<?>
+        %qubits = quake.alloca  !quake.veq<?>[%c_3 : i32 ]
         %c_3_idx = arith.index_cast %c_3 : i32 to index
         affine.for %i = 0 to %c_3_idx {
             %q0 = quake.extract_ref %qubits [%i] :( !quake.veq<?>,index) -> !quake.ref
