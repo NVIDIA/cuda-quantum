@@ -508,13 +508,6 @@ public:
     details::swap(*opBuilder, empty, qubits);
   }
 
-  // Not yet enabled.
-  void swap(const std::vector<QuakeValue> &ctrls, const QuakeValue &first,
-            const QuakeValue &second) {
-    const std::vector<QuakeValue> &qubits{first, second};
-    details::swap(*opBuilder, ctrls, qubits);
-  }
-
   /// @brief Reset the given qubit or qubits.
   void reset(QuakeValue &qubit) { details::reset(*opBuilder, qubit); }
 

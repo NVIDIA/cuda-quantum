@@ -152,8 +152,10 @@ CUDAQ_TEST(NVQIRTester, checkQuantumIntrinsics) {
   __quantum__rt__finalize();
 }
 
+// FIXME: Disabling test as qpp is the only backend capable
+// of swapping qubits right now.
+#if 0
 CUDAQ_TEST(NVQIRTester, checkSWAP) {
-
   // Simple SWAP.
   {
     __quantum__rt__initialize(0, nullptr);
@@ -226,6 +228,7 @@ CUDAQ_TEST(NVQIRTester, checkSWAP) {
     assert(*__quantum__qis__mz(q1) == 0);
   }
 }
+#endif
 
 // FIXME: Disabling test as qpp is the only backend capable
 // of resetting qubits right now.
