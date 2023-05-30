@@ -17,15 +17,15 @@ options to :code:`nvq++`
 
 .. code:: bash 
 
-    nvq++ --qpu ionq src.cpp ...
+    nvq++ --target ionq src.cpp ...
 
-In Python, this can be specified with 
+In Python, this can be specified with
 
 .. code:: python 
 
     cudaq.set_target('ionq')
 
+Export your `IonQ API key https://cloud.ionq.com/`_ to an environment variable, :code:`IONQ_API_KEY`, to authenticate.
+
 Hardware Backend
 ++++++++++++++++++++++++++++++++++
-
-
