@@ -71,7 +71,7 @@ The key methods that need to be overridden by subtypes of :code:`CircuitSimulato
 The strategy for extending this class is to create a new :code:`cpp` implementation file with the same name as your 
 subtype class name. In this file, you will subclass the :code:`CircuitSimulatorBase<FloatType>` and implement the methods in 
 the above table. Finally, the subclass must be registered with the NVQIR library so that it 
-can be picked up and used when a user specifies :code:`nvq++ -qpu mySimulator ...` from the command line (or :code:`cudaq.set_qpu('mySimulator')` in Python.)
+can be picked up and used when a user specifies :code:`nvq++ -qpu mySimulator ...` from the command line (or :code:`cudaq.set_target('mySimulator')` in Python.)
 Type registration can be performed with a provided NVQIR macro 
 
 .. code:: cpp 
