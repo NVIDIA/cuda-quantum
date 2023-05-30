@@ -1,4 +1,4 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -253,7 +253,10 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
       // this is a qreg<N> q;
       auto qregSizeVal = builder.create<mlir::arith::ConstantIntOp>(
           loc, qregSize, builder.getIntegerType(64));
-      qreg = builder.create<quake::AllocaOp>(loc, qType, qregSizeVal);
+      if (qregSize != 0)
+        qreg = builder.create<quake::AllocaOp>(loc, qType);
+      else
+        qreg = builder.create<quake::AllocaOp>(loc, qType, qregSizeVal);
     }
     symbolTable.insert(name, qreg);
     // allocated_qreg_names.push_back(name);
@@ -267,12 +270,10 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
       symbolTable.insert(name, val);
       return pushValue(val);
     }
-    auto qregSizeVal = builder.create<mlir::arith::ConstantIntOp>(
-        loc, 1, builder.getIntegerType(64));
     auto zero = builder.create<mlir::arith::ConstantIntOp>(
         loc, 0, builder.getIntegerType(64));
     auto qregSizeOne = builder.create<quake::AllocaOp>(
-        loc, quake::VeqType::get(builder.getContext(), 1), qregSizeVal);
+        loc, quake::VeqType::get(builder.getContext(), 1));
     Value addressTheQubit =
         builder.create<quake::ExtractRefOp>(loc, qregSizeOne, zero);
     symbolTable.insert(name, addressTheQubit);

@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "CircuitSimulator.h"
 #include "Gates.h"
@@ -189,7 +189,8 @@ public:
     });
 
     std::sort(targets.begin(), targets.end());
-    std::unique(targets.begin(), targets.end());
+    const auto last_iter = std::unique(targets.begin(), targets.end());
+    targets.erase(last_iter, targets.end());
 
     // Get the matrix as an Eigen matrix
     auto matrix = op.to_matrix();

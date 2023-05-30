@@ -47,8 +47,7 @@ int main() {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ghz
 // CHECK-SAME: ()
-// CHECK:           %[[VAL_2:.*]] = arith.constant 5 : i64
-// CHECK:           %[[VAL_3:.*]] = quake.alloca[%[[VAL_2]] : i64] !quake.veq<5>
+// CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<5>
 // CHECK:           %[[VAL_6:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_7:.*]] = arith.extsi %[[VAL_6]] : i32 to i64
 // CHECK:           %[[VAL_8:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_7]]] : (!quake.veq<5>, i64) -> !quake.ref

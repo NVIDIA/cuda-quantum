@@ -36,9 +36,9 @@
 
 module {
      func.func @test_func(%p : i32) {
-          %qv = quake.alloca [%p : i32] !quake.veq<?>
+          %qv = quake.alloca !quake.veq<?>[%p : i32]
           %t = arith.constant 2 : i32
-          %v = quake.alloca [%t : i32] !quake.veq<?>
+          %v = quake.alloca !quake.veq<?>[%t : i32]
           return
      }
 
@@ -48,10 +48,10 @@ module {
       %one = arith.constant 1 : i32
       %neg = arith.constant -5 : i32
       %two = arith.constant 2 : i32
-      %0 = quake.alloca [%two : i32] !quake.veq<?>
+      %0 = quake.alloca !quake.veq<?>[%two : i32]
      
-      %1 = quake.alloca [%two : i32] !quake.veq<2>
-      %2 = quake.alloca [%one : i32] !quake.veq<?>
+      %1 = quake.alloca !quake.veq<2>
+      %2 = quake.alloca !quake.veq<?>[%one : i32]
       
       %qr1 = quake.extract_ref %0[%zero] : (!quake.veq<?>,i32) -> !quake.ref
       %qr2 = quake.extract_ref %1[%one]  : (!quake.veq<2>,i32) -> !quake.ref

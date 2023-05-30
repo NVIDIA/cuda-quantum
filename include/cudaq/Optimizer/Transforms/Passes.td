@@ -296,6 +296,37 @@ def UnwindLowering : Pass<"unwind-lowering", "mlir::func::FuncOp"> {
   let constructor = "cudaq::opt::createUnwindLoweringPass()";
 }
 
+def BasisConversionPass: Pass<"quake-basis-conversion", "mlir::ModuleOp"> {
+  let summary = "Converts kernels to a set of basis operations.";
+  let description = [{
+    This pass takes as input a list of target (allowed) quantum operations.
+    It builds a conversion target, and uses it, together with the dialect
+    conversion driver, to try converting all operations into the defined basis.
+
+    The `basis` option takes a comma-separated list of elements identifying
+    specific quantum operations as input. Each element must have the
+    following format:
+
+    ```
+    <op-name>(`(` [<number-of-controls> | `n`] `)` )?
+    ```
+
+    Examples:
+    - `x` means targeting pauli-x operations without controls  (aka, `not`)
+    - `x(1)` means targeting pauli-x operations with one control (aka, `cx`)
+    - `x(n)` means targeting pauli-x operation with unbounded number of controls
+    - `x,x(1)` means targeting both `not` and `cx` operations
+  }];
+  let options = [
+    ListOption<"basis", "basis", "std::string", "Set of basis operations">,
+    ListOption<"disabledPatterns", "disable-patterns", "std::string",
+               "Labels of decomposition patterns that should be filtered out">,
+    ListOption<"enabledPatterns", "enable-patterns", "std::string",
+               "Labels of decomposition patterns that should be used, all "
+               "other patterns are filtered out">,
+  ];
+}
+
 def DecompositionPass: Pass<"quake-decomposition", "mlir::ModuleOp"> {
   let summary = "Break down quantum operations.";
   let description = [{
@@ -318,6 +349,22 @@ def DecompositionPass: Pass<"quake-decomposition", "mlir::ModuleOp"> {
     Option<"testConvergence", "test-convergence", "bool", /*default=*/"false",
            "Test only: Fail pass on non-convergence to detect cyclic patterns">,
   ];
+}
+
+def MultiControlDecompositionPass: Pass<"quake-multicontrol-decomposition",
+                                        "mlir::func::FuncOp"> {
+  let summary = "Break down multi-control quantum operations.";
+  let description = [{
+    This pass decomposes multi-control quantum operations. The decompostion
+    involves allocating new qubits to hold intermediate results. The number of
+    extra qubits depends on the particular operation being decomposed.
+    Pauli-X and Pauli-Z operations add _N_ - 2 qubits, while other operations
+    add _N_ - 1 qubits, where _N_ is the number of controls.
+
+    Note: When a `veq` is used as control, we need to know its size to be able
+    to decompose. In such cases, all qubits will be extracted. If the size is
+    unknown at compilation-time, the pass leaves the operation as-is.
+  }];
 }
 
 #endif // CUDAQ_OPT_OPTIMIZER_TRANSFORMS_PASSES

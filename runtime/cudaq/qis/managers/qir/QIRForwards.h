@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 #pragma once
 
 #include "common/ExecutionContext.h"
@@ -18,6 +18,7 @@ using TuplePtr = int8_t *;
 
 /// QIR QIS external declarations
 extern "C" {
+void __quantum__rt__deallocate_all(const std::size_t, const std::size_t *);
 Array *__quantum__rt__array_concatenate(Array *, Array *);
 void __quantum__rt__array_release(Array *);
 int8_t *__quantum__rt__array_get_element_ptr_1d(Array *q, uint64_t);
@@ -26,6 +27,7 @@ Array *__quantum__rt__array_create_1d(int, int64_t);
 void __quantum__qis__exp__body(Array *paulis, double angle, Array *qubits);
 void __quantum__qis__measure__body(Array *, Array *);
 Qubit *__quantum__rt__qubit_allocate();
+Array *__quantum__rt__qubit_allocate_array(uint64_t);
 void __quantum__rt__qubit_release(Qubit *);
 void __quantum__rt__setExecutionContext(cudaq::ExecutionContext *);
 void __quantum__rt__resetExecutionContext();

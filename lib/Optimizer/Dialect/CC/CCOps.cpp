@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
@@ -18,6 +18,211 @@
 #include "mlir/IR/TypeUtilities.h"
 
 using namespace mlir;
+
+template <typename R>
+R getParentOfType(Operation *op) {
+  do {
+    op = op->getParentOp();
+    if (auto r = dyn_cast_or_null<R>(op))
+      return r;
+  } while (op);
+  return {};
+}
+
+//===----------------------------------------------------------------------===//
+// AddressOfOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult
+cudaq::cc::AddressOfOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
+  Operation *op = symbolTable.lookupSymbolIn(
+      getParentOfType<ModuleOp>(getOperation()), getGlobalNameAttr());
+
+  // TODO: add globals?
+  auto function = dyn_cast_or_null<func::FuncOp>(op);
+  if (!function)
+    return emitOpError("must reference a global defined by 'func.func'");
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
+// AllocaOp
+//===----------------------------------------------------------------------===//
+
+void cudaq::cc::AllocaOp::print(OpAsmPrinter &p) {
+  p << ' ' << getElementType();
+  if (auto size = getSeqSize())
+    p << '[' << size << " : " << size.getType() << ']';
+}
+
+ParseResult cudaq::cc::AllocaOp::parse(OpAsmParser &parser,
+                                       OperationState &result) {
+  Type eleTy;
+  if (parser.parseType(eleTy))
+    return failure();
+  result.addAttribute("elementType", TypeAttr::get(eleTy));
+  Type resTy;
+  if (succeeded(parser.parseOptionalLSquare())) {
+    OpAsmParser::UnresolvedOperand operand;
+    Type operTy;
+    if (parser.parseOperand(operand) || parser.parseColonType(operTy) ||
+        parser.parseRSquare() ||
+        parser.resolveOperand(operand, operTy, result.operands))
+      return failure();
+    resTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
+  } else {
+    resTy = cc::PointerType::get(eleTy);
+  }
+  if (!resTy || parser.parseOptionalAttrDict(result.attributes) ||
+      parser.addTypeToList(resTy, result.types))
+    return failure();
+  return success();
+}
+
+OpFoldResult cudaq::cc::AllocaOp::fold(ArrayRef<Attribute> params) {
+  if (params.size() == 1) {
+    // If allocating a contiguous block of elements and the size of the block is
+    // a constant, fold the size into the cc.array type and allocate a constant
+    // sized block.
+    if (auto intAttr = dyn_cast_or_null<IntegerAttr>(params[0])) {
+      auto size = intAttr.getInt();
+      if (size > 0) {
+        auto resTy = cast<cc::ArrayType>(
+            cast<cc::PointerType>(getType()).getElementType());
+        auto arrTy = cc::ArrayType::get(resTy.getContext(),
+                                        resTy.getElementType(), size);
+        getOperation()->setAttr("elementType", TypeAttr::get(arrTy));
+        getResult().setType(cc::PointerType::get(arrTy));
+        getOperation()->eraseOperand(0);
+        return getResult();
+      }
+    }
+  }
+  return nullptr;
+}
+
+//===----------------------------------------------------------------------===//
+// CastOp
+//===----------------------------------------------------------------------===//
+
+OpFoldResult cudaq::cc::CastOp::fold(ArrayRef<Attribute>) {
+  // If cast is a nop, just forward the argument to the uses.
+  if (getType() == getValue().getType())
+    return getValue();
+  return nullptr;
+}
+
+LogicalResult cudaq::cc::CastOp::verify() {
+  auto inTy = getValue().getType();
+  auto outTy = getType();
+
+  // Make sure sint/zint are properly used.
+  if (getSint() || getZint()) {
+    if (getSint() && getZint())
+      return emitOpError("cannot be both signed and unsigned.");
+    if ((isa<IntegerType>(inTy) && isa<IntegerType>(outTy)) ||
+        (isa<FloatType>(inTy) && isa<IntegerType>(outTy)) ||
+        (isa<IntegerType>(inTy) && isa<FloatType>(outTy))) {
+      // ok, do nothing.
+    } else {
+      return emitOpError("signed (unsigned) may only be applied to integer to "
+                         "integer or integer to/from float.");
+    }
+  }
+
+  // Make sure this cast can be translated to one of LLVM's instructions.
+  if (isa<IntegerType>(inTy) || isa<IntegerType>(outTy)) {
+    // Check casts to and from integer types.
+    if (isa<IntegerType>(inTy) && isa<IntegerType>(outTy)) {
+      // trunc, sext, zext, nop
+      auto iTy1 = cast<IntegerType>(inTy);
+      auto iTy2 = cast<IntegerType>(outTy);
+      if ((iTy1.getWidth() < iTy2.getWidth()) && !getSint() && !getZint())
+        return emitOpError("integer extension must be signed or unsigned.");
+    } else if (isa<IntegerType>(inTy) && isa<cc::PointerType>(outTy)) {
+      // ok: inttoptr
+    } else if (isa<cc::PointerType>(inTy) && isa<IntegerType>(outTy)) {
+      // ok: ptrtoint
+    } else if (isa<IntegerType>(inTy) && isa<FloatType>(outTy)) {
+      if (!getSint() && !getZint()) {
+        // bitcast
+        auto iTy1 = cast<IntegerType>(inTy);
+        auto fTy2 = cast<FloatType>(outTy);
+        if (iTy1.getWidth() != fTy2.getWidth())
+          return emitOpError("bitcast must be same number of bits.");
+      } else {
+        // ok: sitofp, uitofp
+      }
+    } else if (isa<FloatType>(inTy) && isa<IntegerType>(outTy)) {
+      if (!getSint() && !getZint()) {
+        // bitcast
+        auto iTy1 = cast<IntegerType>(outTy);
+        auto fTy2 = cast<FloatType>(inTy);
+        if (iTy1.getWidth() != fTy2.getWidth())
+          return emitOpError("bitcast must be same number of bits.");
+      } else {
+        // ok: fptosi, fptoui
+      }
+    } else {
+      return emitOpError("invalid integer cast.");
+    }
+  } else if (isa<FloatType>(inTy) && isa<FloatType>(outTy)) {
+    // ok, floating-point casts: fptrunc, fpext, nop
+  } else if (isa<cc::PointerType>(inTy) && isa<cc::PointerType>(outTy)) {
+    // ok, pointer casts: bitcast, nop
+  } else {
+    // Could support a bitcast of a float with pointer size bits to/from a
+    // pointer, but that doesn't seem like it would be very common.
+    return emitOpError("invalid cast.");
+  }
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
+// ComputePtrOp
+//===----------------------------------------------------------------------===//
+
+static ParseResult
+parseComputePtrIndices(OpAsmParser &parser,
+                       SmallVectorImpl<OpAsmParser::UnresolvedOperand> &indices,
+                       DenseI32ArrayAttr &rawConstantIndices) {
+  SmallVector<int32_t> constantIndices;
+
+  auto idxParser = [&]() -> ParseResult {
+    int32_t constantIndex;
+    OptionalParseResult parsedInteger =
+        parser.parseOptionalInteger(constantIndex);
+    if (parsedInteger.has_value()) {
+      if (failed(parsedInteger.value()))
+        return failure();
+      constantIndices.push_back(constantIndex);
+      return success();
+    }
+
+    constantIndices.push_back(LLVM::GEPOp::kDynamicIndex);
+    return parser.parseOperand(indices.emplace_back());
+  };
+  if (parser.parseCommaSeparatedList(idxParser))
+    return failure();
+
+  rawConstantIndices =
+      DenseI32ArrayAttr::get(parser.getContext(), constantIndices);
+  return success();
+}
+
+static void printComputePtrIndices(OpAsmPrinter &printer,
+                                   cudaq::cc::ComputePtrOp computePtrOp,
+                                   OperandRange indices,
+                                   DenseI32ArrayAttr rawConstantIndices) {
+  llvm::interleaveComma(cudaq::cc::ComputePtrIndicesAdaptor<OperandRange>(
+                            rawConstantIndices, indices),
+                        printer, [&](PointerUnion<IntegerAttr, Value> cst) {
+                          if (Value val = cst.dyn_cast<Value>())
+                            printer.printOperand(val);
+                          else
+                            printer << cst.get<IntegerAttr>().getInt();
+                        });
+}
 
 //===----------------------------------------------------------------------===//
 // LoopOp

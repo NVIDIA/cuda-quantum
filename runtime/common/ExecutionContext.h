@@ -1,16 +1,17 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #pragma once
 
 #include "Future.h"
 #include "MeasureCounts.h"
 #include "NoiseModel.h"
+#include "Resources.h"
 #include <optional>
 #include <string_view>
 
@@ -64,6 +65,10 @@ public:
   /// @brief simulationData provides a mechanism for
   /// simulation clients to extract the underlying simulation data.
   State simulationData;
+
+  /// @brief When run under the tracer context, persist the
+  /// traced quantum resources here.
+  Resources kernelResources;
 
   /// @brief The name of the kernel being executed.
   std::string kernelName = "";

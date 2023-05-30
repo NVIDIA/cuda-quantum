@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #pragma once
 
@@ -15,48 +15,83 @@
 #include <unordered_map>
 #include <vector>
 
+#include <pybind11/pybind11.h>
+
+namespace py = pybind11;
+
 namespace nvqir {
 class CircuitSimulator;
 }
 
 namespace cudaq {
 
+class quantum_platform;
+
+/// @brief A RuntimeTarget encapsulates an available
+/// backend simulator and quantum_platform for CUDA Quantum
+/// kernel execution.
+struct RuntimeTarget {
+  std::string name;
+  std::string simulatorName;
+  std::string platformName;
+  std::string description;
+
+  /// @brief Return the number of QPUs this target exposes.
+  std::size_t num_qpus();
+};
+
 /// @brief The LinkedLibraryHolder provides a mechanism for
 /// dynamically loading and storing the required plugin libraries
 /// for the CUDA Quantum runtime within the Python runtime.
 class LinkedLibraryHolder {
+public:
 protected:
-  // Store the library suffix, .so or .dylib
+  // Store the library suffix
   std::string libSuffix = "";
 
   /// @brief The path to the CUDA Quantum libraries
   std::filesystem::path cudaqLibPath;
 
-  /// @brief Map of path strings to dlopen loaded library
-  /// handles.
+  /// @brief Map of path strings to loaded library handles.
   std::unordered_map<std::string, void *> libHandles;
 
   /// @brief Map of available simulators
   std::unordered_map<std::string, nvqir::CircuitSimulator *> simulators;
 
+  /// @brief Map of available platforms
+  std::unordered_map<std::string, quantum_platform *> platforms;
+
+  /// @brief Map of available targets.
+  std::unordered_map<std::string, RuntimeTarget> targets;
+
+  /// @brief Store the name of the current target
+  std::string currentTarget = "default";
+
 public:
   LinkedLibraryHolder();
   ~LinkedLibraryHolder();
 
-  /// Return true if the simulator with given name is available.
-  bool hasQPU(const std::string &name) const;
+  /// @brief Return the available runtime target with given name.
+  /// Throws an exception if no target available with that name.
+  RuntimeTarget getTarget(const std::string &name) const;
 
-  /// @brief Return the names of the available qpu backends
-  std::vector<std::string> list_qpus() const;
+  /// @brief Return the current target.
+  RuntimeTarget getTarget() const;
 
-  /// @brief At initialization, set the name of the QPU
-  /// and load the correct library
-  void setQPU(const std::string &name,
-              std::map<std::string, std::string> extraConfig = {});
+  /// @brief Return all available runtime targets
+  std::vector<RuntimeTarget> getTargets() const;
 
-  /// @brief At initialization, set the name of the
-  /// platform and load the correct library.
-  void setPlatform(const std::string &name,
-                   std::map<std::string, std::string> extraConfig = {});
+  /// @brief Return true if a target exists with the given name.
+  bool hasTarget(const std::string &name);
+
+  /// @brief Set the current target.
+  void setTarget(const std::string &targetName,
+                 std::map<std::string, std::string> extraConfig = {});
+
+  /// @brief Reset the target back to the default.
+  void resetTarget();
 };
+
+void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder);
+
 } // namespace cudaq

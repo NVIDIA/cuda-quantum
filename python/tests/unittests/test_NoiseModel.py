@@ -16,7 +16,7 @@ import cudaq
 
 def test_Depol():
 
-    cudaq.set_qpu('dm')
+    cudaq.set_target('density-matrix-cpu')
 
     circuit = cudaq.make_kernel()
     q = circuit.qalloc()
@@ -36,7 +36,7 @@ def test_Depol():
     assert (len(counts) == 1)
     assert ('1' in counts)
 
-    cudaq.set_qpu('qpp')
+    cudaq.reset_target()
     counts = cudaq.sample(circuit)
     assert (len(counts) == 1)
     assert ('1' in counts)
@@ -44,7 +44,7 @@ def test_Depol():
 
 def test_Kraus():
 
-    cudaq.set_qpu('dm')
+    cudaq.set_target('density-matrix-cpu')
 
     k0 = np.array([[0.05773502691896258, 0.0], [0., -0.05773502691896258]],
                   dtype=np.complex128)
@@ -74,8 +74,8 @@ def test_Kraus():
     assert ('0' in counts)
     assert ('1' in counts)
 
-    cudaq.set_qpu('qpp')
     cudaq.unset_noise()
+    cudaq.reset_target()
 
 
 # leave for gdb debugging

@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "common/ExecutionContext.h"
 #include "common/Logger.h"
@@ -116,7 +116,7 @@ public:
   /// specified by that variable.
   void setTargetBackend(const std::string &backend) override {
     std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
-    auto platformPath = cudaqLibPath.parent_path().parent_path() / "platforms";
+    auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
 
     auto mutableBackend = backend;
     if (mutableBackend.find(";") != std::string::npos) {
