@@ -18,6 +18,7 @@
 # bash scripts/build_llvm.sh -c DEBUG
 # -or-
 # LLVM_INSTALL_PREFIX=/installation/path/ bash scripts/build_llvm.sh
+
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-$HOME/.llvm}
 
 # Process command line arguments

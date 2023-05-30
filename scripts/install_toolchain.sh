@@ -19,6 +19,7 @@
 # where <toolchain> can be either llvm, clang16, clang15, gcc12, or gcc11. 
 # The -e option creates a init_command.sh file in the given directory that 
 # can be used to reinstall the same toolchain if needed.
+
 (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
 __optind__=$OPTIND
 OPTIND=1
