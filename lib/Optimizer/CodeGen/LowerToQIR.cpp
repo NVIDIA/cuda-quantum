@@ -43,7 +43,7 @@ namespace {
 //===----------------------------------------------------------------------===//
 
 /// Lowers Quake AllocaOp to QIR function call in LLVM.
-class AllocaOpLowering : public ConvertOpToLLVMPattern<quake::AllocaOp> {
+class AllocaOpRewrite : public ConvertOpToLLVMPattern<quake::AllocaOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
@@ -100,7 +100,7 @@ public:
 };
 
 /// Lower Quake Dealloc Ops to QIR function calls.
-class DeallocOpLowering : public ConvertOpToLLVMPattern<quake::DeallocOp> {
+class DeallocOpRewrite : public ConvertOpToLLVMPattern<quake::DeallocOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
@@ -142,7 +142,7 @@ public:
 // for further reallocations, etc. (These opportunities are left as TODOs.) In
 // general, quake.concat does not guarantee that the sizes of the input Veq is
 // a compile-time constant however.
-class ConcatOpLowering : public ConvertOpToLLVMPattern<quake::ConcatOp> {
+class ConcatOpRewrite : public ConvertOpToLLVMPattern<quake::ConcatOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
@@ -211,7 +211,7 @@ public:
 };
 
 /// Convert a ExtractRefOp to the respective QIR.
-class ExtractQubitOpLowering
+class ExtractQubitOpRewrite
     : public ConvertOpToLLVMPattern<quake::ExtractRefOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
@@ -265,7 +265,7 @@ public:
   }
 };
 
-class SubvecOpLowering : public ConvertOpToLLVMPattern<quake::SubVecOp> {
+class SubvecOpRewrite : public ConvertOpToLLVMPattern<quake::SubVecOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
@@ -309,7 +309,7 @@ public:
 
 /// Lower the quake.reset op to QIR
 template <typename ResetOpType>
-class ResetLowering : public ConvertOpToLLVMPattern<ResetOpType> {
+class ResetRewrite : public ConvertOpToLLVMPattern<ResetOpType> {
 public:
   using Base = ConvertOpToLLVMPattern<ResetOpType>;
   using Base::Base;
@@ -343,7 +343,7 @@ public:
 /// Lower single target Quantum ops with no parameter to QIR:
 /// h, x, y, z, s, t
 template <typename OP>
-class OneTargetLowering : public ConvertOpToLLVMPattern<OP> {
+class OneTargetRewrite : public ConvertOpToLLVMPattern<OP> {
 public:
   using Base = ConvertOpToLLVMPattern<OP>;
   using Base::Base;
@@ -456,7 +456,7 @@ public:
 /// Lower single target Quantum ops with one parameter to QIR:
 /// rx, ry, rz, p
 template <typename OP>
-class OneTargetOneParamLowering : public ConvertOpToLLVMPattern<OP> {
+class OneTargetOneParamRewrite : public ConvertOpToLLVMPattern<OP> {
 public:
   using Base = ConvertOpToLLVMPattern<OP>;
   using Base::Base;
@@ -590,7 +590,7 @@ public:
 /// Lower single target Quantum ops with two parameters to QIR:
 /// u2, u3
 template <typename OP>
-class OneTargetTwoParamLowering : public ConvertOpToLLVMPattern<OP> {
+class OneTargetTwoParamRewrite : public ConvertOpToLLVMPattern<OP> {
 public:
   using Base = ConvertOpToLLVMPattern<OP>;
   using Base::Base;
@@ -647,7 +647,7 @@ public:
 /// Lower two-target Quantum ops with no parameter to QIR:
 /// swap
 template <typename OP>
-class TwoTargetLowering : public ConvertOpToLLVMPattern<OP> {
+class TwoTargetRewrite : public ConvertOpToLLVMPattern<OP> {
 public:
   using Base = ConvertOpToLLVMPattern<OP>;
   using Base::Base;
@@ -690,7 +690,7 @@ public:
 /// Lowers Quake MeasureOp to respective QIR function.
 /// mx, my, mz
 template <typename OP>
-class MeasureLowering : public ConvertOpToLLVMPattern<OP> {
+class MeasureRewrite : public ConvertOpToLLVMPattern<OP> {
 public:
   using Base = ConvertOpToLLVMPattern<OP>;
   using Base::Base;
@@ -762,7 +762,7 @@ public:
   }
 };
 
-class GetVeqSizeOpLowering : public OpConversionPattern<quake::VeqSizeOp> {
+class GetVeqSizeOpRewrite : public OpConversionPattern<quake::VeqSizeOp> {
 public:
   using OpConversionPattern::OpConversionPattern;
 
@@ -790,57 +790,86 @@ public:
 // Conversion patterns for CC dialect ops.
 //===----------------------------------------------------------------------===//
 
-class ComputePtrOpLowering
-    : public ConvertOpToLLVMPattern<cudaq::cc::ComputePtrOp> {
+class AllocaOpPattern : public ConvertOpToLLVMPattern<cudaq::cc::AllocaOp> {
 public:
-  using Base = ConvertOpToLLVMPattern<cudaq::cc::ComputePtrOp>;
+  using Base = ConvertOpToLLVMPattern<cudaq::cc::AllocaOp>;
   using Base::Base;
 
-  // Convert each cc::ComputePtrOp to an LLVM::GEPOp.
+  // Convert each cc::AllocaOp to an LLVM::AllocaOp.
   LogicalResult
-  matchAndRewrite(cudaq::cc::ComputePtrOp cp, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::cc::AllocaOp alloc, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto operands = adaptor.getOperands();
-    auto toTy = getTypeConverter()->convertType(cp.getType());
-    rewriter.replaceOpWithNewOp<LLVM::GEPOp>(
-        cp, toTy, operands[0],
-        interleaveConstantsAndOperands(operands.drop_front(),
-                                       cp.getRawConstantIndices()));
-    return success();
-  }
-
-  static SmallVector<LLVM::GEPArg>
-  interleaveConstantsAndOperands(ValueRange values,
-                                 ArrayRef<std::int32_t> rawConsts) {
-    SmallVector<LLVM::GEPArg> result;
-    auto valIter = values.begin();
-    for (auto rc : rawConsts) {
-      if (rc == cudaq::cc::ComputePtrOp::kDynamicIndex)
-        result.push_back(*valIter++);
-      else
-        result.push_back(rc);
+    auto toTy = LLVM::LLVMPointerType::get([&]() -> Type {
+      if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(alloc.getElementType());
+          arrTy && arrTy.isUnknownSize())
+        return getTypeConverter()->convertType(arrTy.getElementType());
+      return getTypeConverter()->convertType(alloc.getElementType());
+    }());
+    if (operands.empty()) {
+      rewriter.replaceOpWithNewOp<LLVM::AllocaOp>(
+          alloc, toTy,
+          ArrayRef<Value>{cudaq::opt::factory::genI32Constant(alloc.getLoc(),
+                                                              rewriter, 1)});
+    } else {
+      rewriter.replaceOpWithNewOp<LLVM::AllocaOp>(alloc, toTy, operands);
     }
-    return result;
-  }
-};
-
-class LoadOpLowering : public ConvertOpToLLVMPattern<cudaq::cc::LoadOp> {
-public:
-  using Base = ConvertOpToLLVMPattern<cudaq::cc::LoadOp>;
-  using Base::Base;
-
-  // Convert each cc::LoadOp to an LLVM::LoadOp.
-  LogicalResult
-  matchAndRewrite(cudaq::cc::LoadOp load, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
-    auto operands = adaptor.getOperands();
-    auto toTy = getTypeConverter()->convertType(load.getType());
-    rewriter.replaceOpWithNewOp<LLVM::LoadOp>(load, toTy, operands);
     return success();
   }
 };
 
-class CastOpLowering : public ConvertOpToLLVMPattern<cudaq::cc::CastOp> {
+class CallableClosureOpPattern
+    : public ConvertOpToLLVMPattern<cudaq::cc::CallableClosureOp> {
+public:
+  using Base = ConvertOpToLLVMPattern<cudaq::cc::CallableClosureOp>;
+  using Base::Base;
+
+  LogicalResult
+  matchAndRewrite(cudaq::cc::CallableClosureOp callable, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = callable.getLoc();
+    auto operands = adaptor.getOperands();
+    SmallVector<Type> resTy;
+    for (std::size_t i = 0, N = callable.getResults().size(); i < N; ++i)
+      resTy.push_back(getTypeConverter()->convertType(callable.getType(i)));
+    auto *ctx = rewriter.getContext();
+    auto tupleTy = LLVM::LLVMStructType::getLiteral(ctx, resTy);
+    auto tuplePtrTy = cudaq::opt::factory::getPointerType(tupleTy);
+    auto structTy = dyn_cast<LLVM::LLVMStructType>(operands[0].getType());
+    assert(structTy);
+    auto one = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{1});
+    auto extract = rewriter.create<LLVM::ExtractValueOp>(
+        loc, structTy.getBody()[1], operands[0], one);
+    auto tupleVal = rewriter.create<LLVM::BitcastOp>(loc, tuplePtrTy, extract);
+    rewriter.replaceOpWithNewOp<LLVM::LoadOp>(callable, tupleTy, tupleVal);
+    return success();
+  }
+};
+
+class CallableFuncOpPattern
+    : public ConvertOpToLLVMPattern<cudaq::cc::CallableFuncOp> {
+public:
+  using Base = ConvertOpToLLVMPattern<cudaq::cc::CallableFuncOp>;
+  using Base::Base;
+
+  LogicalResult
+  matchAndRewrite(cudaq::cc::CallableFuncOp callable, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = callable.getLoc();
+    auto operands = adaptor.getOperands();
+    auto resTy = getTypeConverter()->convertType(callable.getType());
+    auto structTy = dyn_cast<LLVM::LLVMStructType>(operands[0].getType());
+    assert(structTy);
+    auto *ctx = rewriter.getContext();
+    auto zero = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{0});
+    auto extract = rewriter.create<LLVM::ExtractValueOp>(
+        loc, structTy.getBody()[0], operands[0], zero);
+    rewriter.replaceOpWithNewOp<LLVM::BitcastOp>(callable, resTy, extract);
+    return success();
+  }
+};
+
+class CastOpPattern : public ConvertOpToLLVMPattern<cudaq::cc::CastOp> {
 public:
   using Base = ConvertOpToLLVMPattern<cudaq::cc::CastOp>;
   using Base::Base;
@@ -910,7 +939,48 @@ public:
   }
 };
 
-class FuncToPtrOpLowering
+class ComputePtrOpPattern
+    : public ConvertOpToLLVMPattern<cudaq::cc::ComputePtrOp> {
+public:
+  using Base = ConvertOpToLLVMPattern<cudaq::cc::ComputePtrOp>;
+  using Base::Base;
+
+  // Convert each cc::ComputePtrOp to an LLVM::GEPOp.
+  LogicalResult
+  matchAndRewrite(cudaq::cc::ComputePtrOp cp, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto operands = adaptor.getOperands();
+    auto toTy = getTypeConverter()->convertType(cp.getType());
+    Value base = operands[0];
+    if (auto ptrTy = dyn_cast<LLVM::LLVMPointerType>(base.getType()))
+      if (auto arrTy = dyn_cast<LLVM::LLVMArrayType>(ptrTy.getElementType())) {
+        // Eliminate intermediate array type. Not needed in LLVM. (NB: for some
+        // element types, the executable will crash.)
+        auto ty = cudaq::opt::factory::getPointerType(arrTy.getElementType());
+        base = rewriter.create<LLVM::BitcastOp>(cp.getLoc(), ty, base);
+      }
+    auto gepOpnds = interleaveConstantsAndOperands(operands.drop_front(),
+                                                   cp.getRawConstantIndices());
+    rewriter.replaceOpWithNewOp<LLVM::GEPOp>(cp, toTy, base, gepOpnds);
+    return success();
+  }
+
+  static SmallVector<LLVM::GEPArg>
+  interleaveConstantsAndOperands(ValueRange values,
+                                 ArrayRef<std::int32_t> rawConsts) {
+    SmallVector<LLVM::GEPArg> result;
+    auto valIter = values.begin();
+    for (auto rc : rawConsts) {
+      if (rc == cudaq::cc::ComputePtrOp::kDynamicIndex)
+        result.push_back(*valIter++);
+      else
+        result.push_back(rc);
+    }
+    return result;
+  }
+};
+
+class FuncToPtrOpPattern
     : public ConvertOpToLLVMPattern<cudaq::cc::FuncToPtrOp> {
 public:
   using Base = ConvertOpToLLVMPattern<cudaq::cc::FuncToPtrOp>;
@@ -927,142 +997,7 @@ public:
   }
 };
 
-class StdvecInitOpLowering
-    : public ConvertOpToLLVMPattern<cudaq::cc::StdvecInitOp> {
-public:
-  using Base = ConvertOpToLLVMPattern<cudaq::cc::StdvecInitOp>;
-  using Base::Base;
-
-  LogicalResult
-  matchAndRewrite(cudaq::cc::StdvecInitOp init, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
-    auto operands = adaptor.getOperands();
-    auto resTy = getTypeConverter()->convertType(init.getType());
-    auto ctx = init.getContext();
-    auto zero = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{0});
-    auto loc = init.getLoc();
-    Value val = rewriter.create<LLVM::UndefOp>(loc, resTy);
-    auto structTy = dyn_cast<LLVM::LLVMStructType>(resTy);
-    if (!structTy)
-      return init.emitError("stdvec_init must have a struct as argument.");
-    auto cast = rewriter.create<LLVM::BitcastOp>(loc, structTy.getBody()[0],
-                                                 operands[0]);
-    val = rewriter.create<LLVM::InsertValueOp>(loc, val, cast, zero);
-    auto one = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{1});
-    rewriter.replaceOpWithNewOp<LLVM::InsertValueOp>(init, val, operands[1],
-                                                     one);
-    return success();
-  }
-};
-
-class StdvecDataOpLowering
-    : public ConvertOpToLLVMPattern<cudaq::cc::StdvecDataOp> {
-public:
-  using Base = ConvertOpToLLVMPattern<cudaq::cc::StdvecDataOp>;
-  using Base::Base;
-
-  LogicalResult
-  matchAndRewrite(cudaq::cc::StdvecDataOp data, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
-    auto operands = adaptor.getOperands();
-    auto resTy = getTypeConverter()->convertType(data.getType());
-    auto ctx = data.getContext();
-    auto zero = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{0});
-    auto structTy = dyn_cast<LLVM::LLVMStructType>(operands[0].getType());
-    if (!structTy)
-      return data.emitError("stdvec_data must have a struct as argument.");
-    auto extract = rewriter.create<LLVM::ExtractValueOp>(
-        data.getLoc(), structTy.getBody()[0], operands[0], zero);
-    rewriter.replaceOpWithNewOp<LLVM::BitcastOp>(data, resTy, extract);
-    return success();
-  }
-};
-
-class StdvecSizeOpLowering
-    : public ConvertOpToLLVMPattern<cudaq::cc::StdvecSizeOp> {
-public:
-  using Base = ConvertOpToLLVMPattern<cudaq::cc::StdvecSizeOp>;
-  using Base::Base;
-
-  LogicalResult
-  matchAndRewrite(cudaq::cc::StdvecSizeOp size, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
-    auto operands = adaptor.getOperands();
-    auto resTy = getTypeConverter()->convertType(size.getType());
-    auto ctx = size.getContext();
-    auto one = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{1});
-    rewriter.replaceOpWithNewOp<LLVM::ExtractValueOp>(size, resTy, operands[0],
-                                                      one);
-    return success();
-  }
-};
-
-class UndefOpLowering : public ConvertOpToLLVMPattern<cudaq::cc::UndefOp> {
-public:
-  using Base = ConvertOpToLLVMPattern<cudaq::cc::UndefOp>;
-  using Base::Base;
-
-  LogicalResult
-  matchAndRewrite(cudaq::cc::UndefOp undef, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
-    auto resTy = getTypeConverter()->convertType(undef.getType());
-    rewriter.replaceOpWithNewOp<LLVM::UndefOp>(undef, resTy);
-    return success();
-  }
-};
-
-class CallableFuncOpLowering
-    : public ConvertOpToLLVMPattern<cudaq::cc::CallableFuncOp> {
-public:
-  using Base = ConvertOpToLLVMPattern<cudaq::cc::CallableFuncOp>;
-  using Base::Base;
-
-  LogicalResult
-  matchAndRewrite(cudaq::cc::CallableFuncOp callable, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
-    auto loc = callable.getLoc();
-    auto operands = adaptor.getOperands();
-    auto resTy = getTypeConverter()->convertType(callable.getType());
-    auto structTy = dyn_cast<LLVM::LLVMStructType>(operands[0].getType());
-    assert(structTy);
-    auto *ctx = rewriter.getContext();
-    auto zero = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{0});
-    auto extract = rewriter.create<LLVM::ExtractValueOp>(
-        loc, structTy.getBody()[0], operands[0], zero);
-    rewriter.replaceOpWithNewOp<LLVM::BitcastOp>(callable, resTy, extract);
-    return success();
-  }
-};
-
-class CallableClosureOpLowering
-    : public ConvertOpToLLVMPattern<cudaq::cc::CallableClosureOp> {
-public:
-  using Base = ConvertOpToLLVMPattern<cudaq::cc::CallableClosureOp>;
-  using Base::Base;
-
-  LogicalResult
-  matchAndRewrite(cudaq::cc::CallableClosureOp callable, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
-    auto loc = callable.getLoc();
-    auto operands = adaptor.getOperands();
-    SmallVector<Type> resTy;
-    for (std::size_t i = 0, N = callable.getResults().size(); i < N; ++i)
-      resTy.push_back(getTypeConverter()->convertType(callable.getType(i)));
-    auto *ctx = rewriter.getContext();
-    auto tupleTy = LLVM::LLVMStructType::getLiteral(ctx, resTy);
-    auto tuplePtrTy = cudaq::opt::factory::getPointerType(tupleTy);
-    auto structTy = dyn_cast<LLVM::LLVMStructType>(operands[0].getType());
-    assert(structTy);
-    auto one = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{1});
-    auto extract = rewriter.create<LLVM::ExtractValueOp>(
-        loc, structTy.getBody()[1], operands[0], one);
-    auto tupleVal = rewriter.create<LLVM::BitcastOp>(loc, tuplePtrTy, extract);
-    rewriter.replaceOpWithNewOp<LLVM::LoadOp>(callable, tupleTy, tupleVal);
-    return success();
-  }
-};
-
-class InstantiateCallableOpLowering
+class InstantiateCallableOpPattern
     : public ConvertOpToLLVMPattern<cudaq::cc::InstantiateCallableOp> {
 public:
   using Base = ConvertOpToLLVMPattern<cudaq::cc::InstantiateCallableOp>;
@@ -1109,6 +1044,121 @@ public:
     auto oneA = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{1});
     rewriter.replaceOpWithNewOp<LLVM::InsertValueOp>(callable, tupleArgTy,
                                                      tupleArg, castTmp, oneA);
+    return success();
+  }
+};
+
+class LoadOpPattern : public ConvertOpToLLVMPattern<cudaq::cc::LoadOp> {
+public:
+  using Base = ConvertOpToLLVMPattern<cudaq::cc::LoadOp>;
+  using Base::Base;
+
+  // Convert each cc::LoadOp to an LLVM::LoadOp.
+  LogicalResult
+  matchAndRewrite(cudaq::cc::LoadOp load, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto operands = adaptor.getOperands();
+    Type toTy = getTypeConverter()->convertType(load.getType());
+    rewriter.replaceOpWithNewOp<LLVM::LoadOp>(load, toTy, operands);
+    return success();
+  }
+};
+
+class StdvecDataOpPattern
+    : public ConvertOpToLLVMPattern<cudaq::cc::StdvecDataOp> {
+public:
+  using Base = ConvertOpToLLVMPattern<cudaq::cc::StdvecDataOp>;
+  using Base::Base;
+
+  LogicalResult
+  matchAndRewrite(cudaq::cc::StdvecDataOp data, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto operands = adaptor.getOperands();
+    auto resTy = getTypeConverter()->convertType(data.getType());
+    auto ctx = data.getContext();
+    auto zero = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{0});
+    auto structTy = dyn_cast<LLVM::LLVMStructType>(operands[0].getType());
+    if (!structTy)
+      return data.emitError("stdvec_data must have a struct as argument.");
+    auto extract = rewriter.create<LLVM::ExtractValueOp>(
+        data.getLoc(), structTy.getBody()[0], operands[0], zero);
+    rewriter.replaceOpWithNewOp<LLVM::BitcastOp>(data, resTy, extract);
+    return success();
+  }
+};
+
+class StdvecInitOpPattern
+    : public ConvertOpToLLVMPattern<cudaq::cc::StdvecInitOp> {
+public:
+  using Base = ConvertOpToLLVMPattern<cudaq::cc::StdvecInitOp>;
+  using Base::Base;
+
+  LogicalResult
+  matchAndRewrite(cudaq::cc::StdvecInitOp init, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto operands = adaptor.getOperands();
+    auto resTy = getTypeConverter()->convertType(init.getType());
+    auto ctx = init.getContext();
+    auto zero = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{0});
+    auto loc = init.getLoc();
+    Value val = rewriter.create<LLVM::UndefOp>(loc, resTy);
+    auto structTy = dyn_cast<LLVM::LLVMStructType>(resTy);
+    if (!structTy)
+      return init.emitError("stdvec_init must have a struct as argument.");
+    auto cast = rewriter.create<LLVM::BitcastOp>(loc, structTy.getBody()[0],
+                                                 operands[0]);
+    val = rewriter.create<LLVM::InsertValueOp>(loc, val, cast, zero);
+    auto one = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{1});
+    rewriter.replaceOpWithNewOp<LLVM::InsertValueOp>(init, val, operands[1],
+                                                     one);
+    return success();
+  }
+};
+
+class StdvecSizeOpPattern
+    : public ConvertOpToLLVMPattern<cudaq::cc::StdvecSizeOp> {
+public:
+  using Base = ConvertOpToLLVMPattern<cudaq::cc::StdvecSizeOp>;
+  using Base::Base;
+
+  LogicalResult
+  matchAndRewrite(cudaq::cc::StdvecSizeOp size, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto operands = adaptor.getOperands();
+    auto resTy = getTypeConverter()->convertType(size.getType());
+    auto ctx = size.getContext();
+    auto one = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{1});
+    rewriter.replaceOpWithNewOp<LLVM::ExtractValueOp>(size, resTy, operands[0],
+                                                      one);
+    return success();
+  }
+};
+
+class StoreOpPattern : public ConvertOpToLLVMPattern<cudaq::cc::StoreOp> {
+public:
+  using Base = ConvertOpToLLVMPattern<cudaq::cc::StoreOp>;
+  using Base::Base;
+
+  // Convert each cc::StoreOp to an LLVM::StoreOp.
+  LogicalResult
+  matchAndRewrite(cudaq::cc::StoreOp store, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto operands = adaptor.getOperands();
+    rewriter.replaceOpWithNewOp<LLVM::StoreOp>(store, operands[0], operands[1]);
+    return success();
+  }
+};
+
+class UndefOpPattern : public ConvertOpToLLVMPattern<cudaq::cc::UndefOp> {
+public:
+  using Base = ConvertOpToLLVMPattern<cudaq::cc::UndefOp>;
+  using Base::Base;
+
+  LogicalResult
+  matchAndRewrite(cudaq::cc::UndefOp undef, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto resTy = getTypeConverter()->convertType(undef.getType());
+    rewriter.replaceOpWithNewOp<LLVM::UndefOp>(undef, resTy);
     return success();
   }
 };
@@ -1168,11 +1218,12 @@ public:
 //===----------------------------------------------------------------------===//
 
 /// Convert Quake dialect to LLVM-IR and QIR.
-class QuakeToQIRLowering
-    : public cudaq::opt::QuakeToQIRBase<QuakeToQIRLowering> {
+class QuakeToQIRRewrite : public cudaq::opt::QuakeToQIRBase<QuakeToQIRRewrite> {
 public:
-  QuakeToQIRLowering() = default;
+  QuakeToQIRRewrite() = default;
+
   ModuleOp getModule() { return getOperation(); }
+
   void runOnOperation() override final {
     auto *context = getModule().getContext();
     LLVMConversionTarget target{*context};
@@ -1188,9 +1239,22 @@ public:
       return cudaq::opt::factory::stdVectorImplType(type.getElementType());
     });
     typeConverter.addConversion([&](cudaq::cc::PointerType type) {
-      if (isa<NoneType>(type.getElementType()))
+      auto eleTy = type.getElementType();
+      if (isa<NoneType>(eleTy))
         return cudaq::opt::factory::getPointerType(context);
-      return cudaq::opt::factory::getPointerType(type.getElementType());
+      eleTy = typeConverter.convertType(eleTy);
+      if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(eleTy)) {
+        assert(arrTy.isUnknownSize());
+        return cudaq::opt::factory::getPointerType(
+            typeConverter.convertType(arrTy.getElementType()));
+      }
+      return cudaq::opt::factory::getPointerType(eleTy);
+    });
+    typeConverter.addConversion([&](cudaq::cc::ArrayType type) -> Type {
+      auto eleTy = typeConverter.convertType(type.getElementType());
+      if (type.isUnknownSize())
+        return type;
+      return LLVM::LLVMArrayType::get(eleTy, type.getSize());
     });
     RewritePatternSet patterns(context);
 
@@ -1203,26 +1267,25 @@ public:
     cf::populateControlFlowToLLVMConversionPatterns(typeConverter, patterns);
     populateFuncToLLVMConversionPatterns(typeConverter, patterns);
 
-    patterns.insert<GetVeqSizeOpLowering, MxToMz, MyToMz, ReturnBitRewrite>(
+    patterns.insert<GetVeqSizeOpRewrite, MxToMz, MyToMz, ReturnBitRewrite>(
         context);
     patterns.insert<
-        AllocaOpLowering, CallableClosureOpLowering, CallableFuncOpLowering,
-        CastOpLowering, ComputePtrOpLowering, ConcatOpLowering,
-        DeallocOpLowering, ExtractQubitOpLowering, FuncToPtrOpLowering,
-        InstantiateCallableOpLowering, LoadOpLowering,
-        MeasureLowering<quake::MzOp>, OneTargetLowering<quake::HOp>,
-        OneTargetLowering<quake::XOp>, OneTargetLowering<quake::YOp>,
-        OneTargetLowering<quake::ZOp>, OneTargetLowering<quake::SOp>,
-        OneTargetLowering<quake::TOp>, ResetLowering<quake::ResetOp>,
-        OneTargetOneParamLowering<quake::R1Op>,
-        OneTargetOneParamLowering<quake::RxOp>,
-        OneTargetOneParamLowering<quake::RyOp>,
-        OneTargetOneParamLowering<quake::RzOp>,
-        OneTargetTwoParamLowering<quake::U2Op>,
-        OneTargetTwoParamLowering<quake::U3Op>,
-        TwoTargetLowering<quake::SwapOp>, StdvecDataOpLowering,
-        StdvecInitOpLowering, StdvecSizeOpLowering, SubvecOpLowering,
-        UndefOpLowering>(typeConverter);
+        AllocaOpRewrite, AllocaOpPattern, CallableClosureOpPattern,
+        CallableFuncOpPattern, CastOpPattern, ComputePtrOpPattern,
+        ConcatOpRewrite, DeallocOpRewrite, ExtractQubitOpRewrite,
+        FuncToPtrOpPattern, InstantiateCallableOpPattern, LoadOpPattern,
+        MeasureRewrite<quake::MzOp>, OneTargetRewrite<quake::HOp>,
+        OneTargetRewrite<quake::XOp>, OneTargetRewrite<quake::YOp>,
+        OneTargetRewrite<quake::ZOp>, OneTargetRewrite<quake::SOp>,
+        OneTargetRewrite<quake::TOp>, OneTargetOneParamRewrite<quake::R1Op>,
+        OneTargetOneParamRewrite<quake::RxOp>,
+        OneTargetOneParamRewrite<quake::RyOp>,
+        OneTargetOneParamRewrite<quake::RzOp>,
+        OneTargetTwoParamRewrite<quake::U2Op>,
+        OneTargetTwoParamRewrite<quake::U3Op>, ResetRewrite<quake::ResetOp>,
+        StdvecDataOpPattern, StdvecInitOpPattern, StdvecSizeOpPattern,
+        StoreOpPattern, SubvecOpRewrite, TwoTargetRewrite<quake::SwapOp>,
+        UndefOpPattern>(typeConverter);
 
     target.addLegalDialect<LLVM::LLVMDialect>();
     target.addLegalOp<ModuleOp>();
@@ -1236,5 +1299,5 @@ public:
 } // namespace
 
 std::unique_ptr<Pass> cudaq::opt::createConvertToQIRPass() {
-  return std::make_unique<QuakeToQIRLowering>();
+  return std::make_unique<QuakeToQIRRewrite>();
 }

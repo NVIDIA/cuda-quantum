@@ -83,19 +83,20 @@ LogicalResult synthesizeVectorArgument(OpBuilder &builder,
     // could be a load, or a getelementptr.
     // if load, the index is 0
     // if getelementptr, then we get the index there to use
-    if (auto loadOp = dyn_cast_or_null<LLVM::LoadOp>(user)) {
+    if (auto loadOp = dyn_cast_or_null<cudaq::cc::LoadOp>(user)) {
       llvm::APFloat f(vec[0]);
       Value runtimeParam = builder.create<arith::ConstantFloatOp>(
           builder.getUnknownLoc(), f, builder.getF64Type());
       // Replace with the constant value, remove the load
       loadOp.replaceAllUsesWith(runtimeParam);
       loadOp.erase();
-    } else if (auto gepOp = dyn_cast_or_null<LLVM::GEPOp>(user)) {
+    } else if (auto gepOp = dyn_cast_or_null<cudaq::cc::ComputePtrOp>(user)) {
       auto index = gepOp.getRawConstantIndices()[0];
       llvm::APFloat f(vec[index]);
       Value runtimeParam = builder.create<arith::ConstantFloatOp>(
           builder.getUnknownLoc(), f, builder.getF64Type());
-      auto loadOp = dyn_cast_or_null<LLVM::LoadOp>(*gepOp->getUsers().begin());
+      auto loadOp =
+          dyn_cast_or_null<cudaq::cc::LoadOp>(*gepOp->getUsers().begin());
       if (!loadOp)
         return loadOp.emitError(
             "Unknown gep/load configuration for quake-synth.");
