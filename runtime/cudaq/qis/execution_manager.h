@@ -77,7 +77,7 @@ public:
   /// Apply the quantum instruction with the given name, on the provided
   /// target qudits. Supports input of control qudits and rotational parameters.
   virtual void apply(const std::string_view gateName,
-                     const std::vector<double> &&params,
+                     const std::vector<double> &params,
                      const std::vector<QuditInfo> &controls,
                      const std::vector<QuditInfo> &targets,
                      bool isAdjoint = false) = 0;
