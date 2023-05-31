@@ -27,7 +27,7 @@ export PATH="${CUDAQ_INSTALL_PREFIX}/bin:${PATH}"
 export PYTHONPATH="${CUDAQ_INSTALL_PREFIX}:${PYTHONPATH}"
 ```
 
-Our development container comes with a prebuilt version of LLVM which is used to
+Our development container comes with a pre-built version of LLVM which is used to
 build CUDA Quantum. If you are working outside our container, please see the
 instructions for [building CUDA Quantum with a custom LLVM
 version](#building-cuda-quantum-with-a-custom-llvm-version).
