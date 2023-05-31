@@ -76,6 +76,7 @@ public:
 
 // Initialize the IonQ server helper with a given backend configuration
 void IonQServerHelper::initialize(BackendConfig config) {
+  cudaq::info("Initializing IonQ Backend.");
   // Move the passed config into the member variable backendConfig
   backendConfig = std::move(config);
   // Set the necessary configuration variables for the IonQ API

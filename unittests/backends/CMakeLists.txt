@@ -9,7 +9,6 @@
 find_package(Python COMPONENTS Interpreter)
 if (CURL_FOUND AND OPENSSL_FOUND AND Python_FOUND AND CUDAQ_TEST_MOCK_SERVERS)
   add_subdirectory(quantinuum)
-  add_subdirectory(quantum_machines)
   add_subdirectory(ionq)
 endif()
 add_subdirectory(qpp_observe)
