@@ -141,7 +141,7 @@ intersphinx_mapping = {
 }
 
 redirects = {
-    "versions": "../versions.html"
+    "versions": "../latest/releases.html"
 }
 
 nitpick_ignore = [
