@@ -353,18 +353,16 @@ void bindKernel(py::module &mod) {
           [](kernel_builder<> &self, const QuakeValue &first,
              const QuakeValue &second) { return self.swap(first, second); },
           py::arg("first"), py::arg("second"),
-          R"pbdoc(
-                  Swap the states of the provided qubits.      
-
-                  .. code-block:: python                                        
-                    # Example:                                                      
-                    kernel = cudaq.make_kernel()                                    
-                    # Allocate qubit/s to the `kernel`.                            
-                    qubits = kernel.qalloc(2)  
-                    # Place the 0th qubit in the 1-state.     
-                    kernel.x(qubits[0])                            
-                    # Swap their states. 
-                    kernel.swap(qubits[0], qubits[1]))pbdoc")
+          "Swap the states of the provided qubits.\n "
+          "\n.. code-block:: python\n\n"
+          "  # Example:\n"
+          "  kernel = cudaq.make_kernel()\n"
+          "  # Allocate qubit/s to the `kernel`.\n"
+          "  qubits = kernel.qalloc(2)\n"
+          "  # Place the 0th qubit in the 1-state.\n"
+          "  kernel.x(qubits[0])\n\n"
+          "  # Swap their states.\n"
+          "  kernel.swap(qubits[0], qubits[1])\n")
       /// @brief Allow for conditional statements on measurements.
       .def(
           "c_if",
