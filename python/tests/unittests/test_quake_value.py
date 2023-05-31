@@ -61,3 +61,19 @@ def test_quake_value_operators(type_):
     test = -value_1
     assert type(test) == cudaq.QuakeValue
     assert test != value_1
+
+
+def test_QuakeValueLifetimeAndPrint():
+    """Tests Bug #64 for the lifetime of a QuakeValue"""
+    circuit = cudaq.make_kernel()
+    qubitRegister = circuit.qalloc(2)
+    circuit.x(qubitRegister[0])
+    s = str(circuit)
+    print(s)
+
+    assert s.count('quake.x') == 1
+
+    circuit.x(qubitRegister[0])
+    s = str(circuit)
+    print(s)
+    assert s.count('quake.x') == 2
