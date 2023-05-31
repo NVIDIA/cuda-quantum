@@ -137,7 +137,7 @@ CUDAQ_TEST(NVQIRTester, checkQuantumIntrinsics) {
   __quantum__qis__t(q);
   __quantum__qis__t__ctl(ctls, q);
   __quantum__qis__tdg(q);
-  // __quantum__qis__reset(q);
+  __quantum__qis__reset(q);
   __quantum__qis__x(q);
   __quantum__qis__x__ctl(ctls, q);
   __quantum__qis__y(q);
@@ -152,9 +152,6 @@ CUDAQ_TEST(NVQIRTester, checkQuantumIntrinsics) {
   __quantum__rt__finalize();
 }
 
-// FIXME: Disabling test as qpp is the only backend capable
-// of swapping qubits right now.
-#if 0
 CUDAQ_TEST(NVQIRTester, checkSWAP) {
   // Simple SWAP.
   {
@@ -173,6 +170,9 @@ CUDAQ_TEST(NVQIRTester, checkSWAP) {
 
     assert(*__quantum__qis__mz(q0) == 0);
     assert(*__quantum__qis__mz(q1) == 1);
+
+    __quantum__rt__qubit_release_array(qubits);
+    __quantum__rt__finalize();
   }
 
   // SWAP with a single ctrl qubit in 0 state.
@@ -195,6 +195,10 @@ CUDAQ_TEST(NVQIRTester, checkSWAP) {
 
     assert(*__quantum__qis__mz(q0) == 0);
     assert(*__quantum__qis__mz(q1) == 1);
+
+    __quantum__rt__qubit_release_array(ctrls);
+    __quantum__rt__qubit_release_array(qubits);
+    __quantum__rt__finalize();
   }
 
   // SWAP with three ctrl qubits in 1 state.
@@ -226,13 +230,13 @@ CUDAQ_TEST(NVQIRTester, checkSWAP) {
 
     assert(*__quantum__qis__mz(q0) == 1);
     assert(*__quantum__qis__mz(q1) == 0);
+
+    __quantum__rt__qubit_release_array(ctrls);
+    __quantum__rt__qubit_release_array(qubits);
+    __quantum__rt__finalize();
   }
 }
-#endif
 
-// FIXME: Disabling test as qpp is the only backend capable
-// of resetting qubits right now.
-#if 0
 CUDAQ_TEST(NVQIRTester, checkQubitReset) {
   // Initialize two qubits in the 0-state.
   __quantum__rt__initialize(0, nullptr);
@@ -241,20 +245,21 @@ CUDAQ_TEST(NVQIRTester, checkQubitReset) {
       __quantum__rt__array_get_element_ptr_1d(qubits, 0));
   Qubit *q2 = *reinterpret_cast<Qubit **>(
       __quantum__rt__array_get_element_ptr_1d(qubits, 1));
-  
+
   // Place both qubits in the 1-state with X-gates.
   __quantum__qis__x(q1);
   __quantum__qis__x(q2);
   assert(*__quantum__qis__mz(q1) == 1);
   assert(*__quantum__qis__mz(q2) == 1);
 
-  // Reset just one of the qubits and confirm the other 
+  // Reset just one of the qubits and confirm the other
   // remains untouched.
   __quantum__qis__reset(q1);
   assert(*__quantum__qis__mz(q1) == 0);
   assert(*__quantum__qis__mz(q2) == 1);
+
+  __quantum__rt__qubit_release_array(qubits);
 }
-#endif
 
 Qubit *extract_qubit(Array *a, int idx) {
   auto q_raw_ptr = __quantum__rt__array_get_element_ptr_1d(a, idx);
