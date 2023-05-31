@@ -5,7 +5,7 @@ Quantum Documentation][cuda_quantum_docs]. The page also contains [installation
 instructions][official_install] for released packages.
 
 [cuda_quantum_docs]: https://nvidia.github.io/cuda-quantum/
-[official_install]: https://nvidia.github.io/cuda-quantum/install.html
+[official_install]: https://nvidia.github.io/cuda-quantum/latest/install.html
 
 This document contains instructions for how to build CUDA Quantum from source.
 This is only needed if you would like to try out the latest (unreleased) version
@@ -18,7 +18,7 @@ have done that, you should be able to run the [build
 script](./scripts/build_cudaq.sh) to build and install CUDA Quantum in a local
 folder. The path where CUDA Quantum will be installed can be configured by
 setting the environment variable `CUDAQ_INSTALL_PREFIX`. If you customize this
-path or do not work in our dev container, you either need to invoke the
+path or do not work in our development container, you either need to invoke the
 built/installed binaries with the full path or modify your path variables as
 follows:
 
@@ -27,8 +27,8 @@ export PATH="${CUDAQ_INSTALL_PREFIX}/bin:${PATH}"
 export PYTHONPATH="${CUDAQ_INSTALL_PREFIX}:${PYTHONPATH}"
 ```
 
-Our dev container comes with a prebuilt version of LLVM which is used to build
-CUDA Quantum. If you are working outside our container, please see the
+Our development container comes with a pre-built version of LLVM which is used to
+build CUDA Quantum. If you are working outside our container, please see the
 instructions for [building CUDA Quantum with a custom LLVM
 version](#building-cuda-quantum-with-a-custom-llvm-version).
 
@@ -49,15 +49,15 @@ To use or develop GPU-based simulators, you will need to make sure you have a
 suitable NVIDIA GPU with the [latest driver][nvidia_driver] installed. You can
 confirm the GPU is properly detected running the command `nvidia-smi`.
 
-If you are working in our dev container, please add a `--gpus=all` flag to the
-list of `runArgs` in the
+If you are working in our development container, please add a `--gpus=all` flag
+to the list of `runArgs` in the
 [.devcontainer/devcontainer.json](.devcontainer/devcontainer.json) file and
-relaunch the container. It is unfortunately not possible to define a dev
+relaunch the container. It is unfortunately not possible to define a development
 container that enables GPU support depending on the system configuration (see
 [this issue](https://github.com/airo-ugent/airo-ros/issues/17)).
 
-If you are not working in our dev container, you may need to specify the correct
-path to your cuQuantum installation by setting the environment variable
+If you are not working in our development container, you may need to specify the
+correct path to your cuQuantum installation by setting the environment variable
 `CUQUANTUM_INSTALL_PREFIX`.
 
 [cuquantum]: https://developer.nvidia.com/cuquantum-sdk
@@ -67,11 +67,11 @@ path to your cuQuantum installation by setting the environment variable
 
 CUDA Quantum is intended to be built using the LLVM commit that the submodule is
 set to. If you need to update the LLVM commit, or if you are not using the
-prebuilt version of that commit in our dev container, LLVM will need to be built
-from source. To configure our build scripts, please set the LLVM submodule to
-the desired commit, and set the following environment variable, replacing
-`<installation_path>` with the path where the freshly built LLVM tools and
-libraries should be installed:
+pre-built version of that commit in our development container, LLVM will need to
+be built from source. To configure our build scripts, please set the LLVM
+submodule to the desired commit, and set the following environment variable,
+replacing `<installation_path>` with the path where the freshly built LLVM tools
+and libraries should be installed:
 
 ```bash
 export LLVM_INSTALL_PREFIX=<installation_path>

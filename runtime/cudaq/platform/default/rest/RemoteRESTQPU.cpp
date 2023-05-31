@@ -104,7 +104,7 @@ public:
   /// @brief The constructor
   RemoteRESTQPU() : QPU() {
     std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
-    platformPath = cudaqLibPath.parent_path().parent_path() / "platforms";
+    platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
     // Default is to run sampling via the remote rest call
     executor = std::make_unique<cudaq::Executor>();
   }
@@ -252,15 +252,16 @@ public:
         throw std::runtime_error("Remote rest platform Quake lowering failed.");
     };
 
-    // Run the config-specified pass pipeline
-    runPassPipeline(passPipelineConfig, moduleOp);
-
     if (kernelArgs) {
+      cudaq::info("Run Quake Synth.\n");
       PassManager pm(&context);
       pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, kernelArgs));
       if (failed(pm.run(moduleOp)))
         throw std::runtime_error("Could not successfully apply quake-synth.");
     }
+
+    // Run the config-specified pass pipeline
+    runPassPipeline(passPipelineConfig, moduleOp);
 
     std::vector<std::pair<std::string, ModuleOp>> modules;
     // Apply observations if necessary
