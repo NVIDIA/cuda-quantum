@@ -553,11 +553,11 @@ def test_sample_n():
     circuit.ry(angles[1], q[0])
     circuit.cx(q[0], q[1])
 
-    runtimeAngles = np.random.uniform(low=-np.pi, high=np.pi, size=(10,2))
+    runtimeAngles = np.random.uniform(low=1.0, high=np.pi, size=(10,2))
     print(runtimeAngles)
     allCounts = cudaq.sample_n(circuit, runtimeAngles)
     for i, c in enumerate(allCounts):
-        print(c)
+        print(runtimeAngles[i, :], c)
         assert len(c) == 2
 
 # leave for gdb debugging
