@@ -506,7 +506,7 @@ public:
 
     // Compute the expectation value from the counts
     for (auto &kv : counts.counts) {
-      auto par = sample_result::has_even_parity(kv.first);
+      auto par = cudaq::sample_result::has_even_parity(kv.first);
       auto p = kv.second / (double)shots;
       if (!par) {
         p = -p;
