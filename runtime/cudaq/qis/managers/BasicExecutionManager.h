@@ -200,8 +200,7 @@ public:
 
   /// The goal for apply is to create a new element of the
   /// instruction queue (a tuple).
-  void apply(const std::string_view gateName,
-             const std::vector<double> &&params,
+  void apply(const std::string_view gateName, const std::vector<double> &params,
              const std::vector<cudaq::QuditInfo> &controls,
              const std::vector<cudaq::QuditInfo> &targets,
              bool isAdjoint = false) override {
