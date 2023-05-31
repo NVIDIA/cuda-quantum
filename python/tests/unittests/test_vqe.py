@@ -123,7 +123,7 @@ def test_vqe_two_qubit_float(optimizer, kernel_two_qubit_vqe_float,
         optimizer,
         parameter_count=1,
         argument_mapper=lambda parameter_vector: parameter_vector[0],
-        shots=100)
+        shots=-1)
 
     # Known minimal expectation value for this system:
     want_expectation_value = -1.7487948611472093
@@ -149,7 +149,7 @@ def test_vqe_two_qubit_list(optimizer, kernel_two_qubit_vqe_list,
                                                hamiltonian_2q,
                                                optimizer,
                                                parameter_count=1,
-                                               shots=100)
+                                               shots=-1)
 
     # Known minimal expectation value for this system:
     want_expectation_value = -1.7487948611472093
@@ -197,7 +197,7 @@ def test_vqe_two_qubit_float_gradients(optimizer, gradient,
         optimizer=optimizer,
         parameter_count=1,
         argument_mapper=argument_map,
-        shots=100)
+        shots=-1)
 
     # Known minimal expectation value for this system:
     want_expectation_value = -1.7487948611472093
@@ -237,7 +237,7 @@ def test_vqe_two_qubit_list_gradients(optimizer, gradient,
                                                spin_operator=hamiltonian_2q,
                                                optimizer=optimizer,
                                                parameter_count=1,
-                                               shots=100)
+                                               shots=-1)
 
     # Known minimal expectation value for this system:
     want_expectation_value = -1.7487948611472093

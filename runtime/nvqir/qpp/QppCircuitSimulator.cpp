@@ -221,8 +221,8 @@ public:
   /// @brief Sample the multi-qubit state.
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &measuredBits,
                                 const int shots) override {
-    double expectationValue = calculateExpectationValue(measuredBits);
     if (shots < 1) {
+      double expectationValue = calculateExpectationValue(measuredBits);
       cudaq::info("Computed expectation value = {}", expectationValue);
       return cudaq::ExecutionResult{{}, expectationValue};
     }
@@ -230,8 +230,10 @@ public:
     auto sampleResult = qpp::sample(shots, state, measuredBits, 2);
     // Convert to what we expect
     std::stringstream bitstring;
-    cudaq::ExecutionResult counts(expectationValue);
+    cudaq::ExecutionResult counts;
 
+    // Expectation value from the counts
+    double expVal = 0.0;
     for (auto [result, count] : sampleResult) {
       // Push back each term in the vector of bits to the bitstring.
       for (const auto &bit : result) {
@@ -241,12 +243,18 @@ public:
       // Add to the sample result
       // in mid-circ sampling mode this will append 1 bitstring
       counts.appendResult(bitstring.str(), count);
-
+      auto par = cudaq::sample_result::has_even_parity(bitstring.str());
+      auto p = count / (double)shots;
+      if (!par) {
+        p = -p;
+      }
+      expVal += p;
       // Reset the state.
       bitstring.str("");
       bitstring.clear();
     }
 
+    counts.expectationValue = expVal;
     return counts;
   }
 

@@ -137,14 +137,6 @@ protected:
   custatevecComputeType_t cuStateVecComputeType = CUSTATEVEC_COMPUTE_64F;
   cudaDataType_t cuStateVecCudaDataType = CUDA_C_64F;
 
-  /// @brief Return true if the bit string has even parity
-  /// @param x
-  /// @return
-  bool hasEvenParity(const std::string &x) {
-    int c = std::count(x.begin(), x.end(), '1');
-    return c % 2 == 0;
-  }
-
   /// @brief Convert the pauli rotation gate name to a CUSTATEVEC_PAULI Type
   /// @param type
   /// @return
@@ -514,7 +506,7 @@ public:
 
     // Compute the expectation value from the counts
     for (auto &kv : counts.counts) {
-      auto par = hasEvenParity(kv.first);
+      auto par = sample_result::has_even_parity(kv.first);
       auto p = kv.second / (double)shots;
       if (!par) {
         p = -p;

@@ -29,6 +29,7 @@ private:
 public:
   molecular_geometry(std::initializer_list<atom> &&args)
       : atoms(args.begin(), args.end()) {}
+  molecular_geometry(const std::vector<atom> &args) : atoms(args) {}
   std::size_t size() const { return atoms.size(); }
   auto begin() { return atoms.begin(); }
   auto end() { return atoms.end(); }
