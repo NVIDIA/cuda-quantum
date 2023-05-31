@@ -51,4 +51,4 @@ endmacro()
 AddQppBackend(nvqir-qpp QppCircuitSimulator.cpp)
 AddQppBackend(nvqir-dm QppDMCircuitSimulator.cpp)
 
-add_platform_config(dm)
+add_target_config(density-matrix-cpu)

@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #pragma once
 
@@ -29,11 +29,13 @@ private:
 public:
   molecular_geometry(std::initializer_list<atom> &&args)
       : atoms(args.begin(), args.end()) {}
+  molecular_geometry(const std::vector<atom> &args) : atoms(args) {}
   std::size_t size() const { return atoms.size(); }
   auto begin() { return atoms.begin(); }
   auto end() { return atoms.end(); }
   auto begin() const { return atoms.cbegin(); };
   auto end() const { return atoms.cend(); }
+  std::string name() const;
 };
 
 /// @brief The `one_body_integrals` provide simple holder type

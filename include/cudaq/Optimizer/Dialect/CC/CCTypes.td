@@ -108,6 +108,12 @@ def cc_ArrayType : CCType<"Array", "array"> {
 
     bool isUnknownSize() const { return getSize() == unknownSize; }
   }];
+
+  let builders = [
+    TypeBuilderWithInferredContext<(ins "mlir::Type":$elementType), [{
+      return Base::get(elementType.getContext(), elementType, unknownSize);
+    }]>,
+  ];
 }
 
 //===----------------------------------------------------------------------===//

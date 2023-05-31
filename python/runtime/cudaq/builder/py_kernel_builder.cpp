@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include <pybind11/stl.h>
 
@@ -344,6 +344,7 @@ void bindKernel(py::module &mod) {
       ADD_BUILDER_PARAM_QIS_METHOD(rx)
       ADD_BUILDER_PARAM_QIS_METHOD(ry)
       ADD_BUILDER_PARAM_QIS_METHOD(rz)
+      ADD_BUILDER_PARAM_QIS_METHOD(r1)
       // clang-format on
 
       /// @brief Allow for conditional statements on measurements.

@@ -276,7 +276,7 @@ int main() {
 // CHECK:           %[[VAL_7:.*]] = memref.load %[[VAL_5]][] : memref<i32>
 // CHECK:           %[[VAL_8:.*]] = arith.addi %[[VAL_6]], %[[VAL_7]] : i32
 // CHECK:           %[[VAL_9:.*]] = arith.extsi %[[VAL_8]] : i32 to i64
-// CHECK:           %[[VAL_10:.*]] = quake.alloca[%[[VAL_9]] : i64] !quake.veq<?>
+// CHECK:           %[[VAL_10:.*]] = quake.alloca !quake.veq<?>[%[[VAL_9]] : i64]
 // CHECK:           %[[VAL_11:.*]] = memref.load %[[VAL_4]][] : memref<i32>
 // CHECK:           %[[VAL_12:.*]] = arith.extsi %[[VAL_11]] : i32 to i64
 // CHECK:           %[[VAL_13:.*]] = arith.constant 0 : i64

@@ -1,4 +1,4 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -41,15 +41,17 @@ private:
   // Helpers
   //===--------------------------------------------------------------------===//
 
-  mlir::LogicalResult getValueAsInt(mlir::Value value, size_t &result);
+  mlir::LogicalResult getValueAsInt(mlir::Value value, std::size_t &result);
 
-  unsigned getNextQubit() { return std::log2(matrix.rows()); }
+  std::size_t getNumQubits() { return std::log2(matrix.rows()); }
 
   mlir::LogicalResult getQubits(mlir::ValueRange values,
                                 mlir::SmallVectorImpl<Qubit> &qubits);
 
   void negatedControls(mlir::ArrayRef<bool> negatedControls,
                        mlir::ArrayRef<Qubit> qubits);
+
+  mlir::LogicalResult deallocateAncillas(std::size_t numQubits);
 
   //===--------------------------------------------------------------------===//
   // Unitary

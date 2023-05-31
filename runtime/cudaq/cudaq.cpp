@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "cudaq.h"
 #define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
@@ -79,7 +79,7 @@ bool cudaq::__internal__::isLibraryMode(const std::string &kernelname) {
 //===----------------------------------------------------------------------===//
 
 namespace cudaq {
-void set_qpu_backend(const char *backend) {
+void set_target_backend(const char *backend) {
   std::string backendName(backend);
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendName);

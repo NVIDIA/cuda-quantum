@@ -130,7 +130,7 @@ ENV CXX="$LLVM_INSTALL_PREFIX/bootstrap/cxx"
 COPY --from=cmakebuild /usr/local/cmake-3.26/ /usr/local/cmake-3.26/
 ENV PATH="${PATH}:/usr/local/cmake-3.26/bin"
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        git ninja-build \
+        git ninja-build libcurl4-openssl-dev libssl-dev \
         python3 python3-pip libpython3-dev \
         libblas-dev \
     && python3 -m pip install --no-cache-dir \

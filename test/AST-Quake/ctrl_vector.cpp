@@ -26,9 +26,9 @@ struct lower_ctrl_as_qreg {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__lower_ctrl_as_qreg
 // CHECK-SAME: () attributes {{{.*}}"cudaq-entrypoint"{{.*}}} {
 // CHECK:  %[[VAL_0:.*]] = arith.constant 4 : i32
-// CHECK:  %[[VAL_2:.*]] = quake.alloca[%{{.*}} : i64] !quake.veq<?>
+// CHECK:  %[[VAL_2:.*]] = quake.alloca !quake.veq<?>[%{{.*}} : i64]
 // CHECK:  %[[VAL_3:.*]] = arith.constant 2 : i32
-// CHECK:  %[[VAL_5:.*]] = quake.alloca[%{{.*}} : i64] !quake.veq<?>
+// CHECK:  %[[VAL_5:.*]] = quake.alloca !quake.veq<?>[%{{.*}} : i64]
 // CHECK:  %[[VAL_6:.*]] = arith.constant 0 : i32
 // CHECK:  %[[VAL_8:.*]] = quake.extract_ref %[[VAL_5]][%{{.*}}] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:  quake.h [%[[VAL_2]]] %[[VAL_8]] : (!quake.veq<?>, !quake.ref) -> ()
@@ -60,7 +60,7 @@ struct test_two_control_call {
 // CHECK:             }
 // CHECK:           } : !cc.lambda<(!quake.ref) -> ()>
 // CHECK:           %[[VAL_4:.*]] = arith.constant 4 : i64
-// CHECK:           %[[VAL_5:.*]] = quake.alloca[%[[VAL_4]] : i64] !quake.veq<4>
+// CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<4>
 // CHECK:           %[[VAL_6:.*]] = quake.alloca !quake.ref
 // CHECK:           quake.apply @__nvqpp__mlirgen__{{.*}}test_two_control_call{{.*}}[%[[VAL_5]]] %[[VAL_6]] : (!quake.veq<4>, !quake.ref) -> ()
 // CHECK:           %[[VAL_7:.*]] = quake.mz %[[VAL_6]] : (!quake.ref) -> i1

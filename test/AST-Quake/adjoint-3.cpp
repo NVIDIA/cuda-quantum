@@ -48,7 +48,7 @@ struct QernelZero {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__run_circuit
 // CHECK-SAME:        (%{{.*}}: i32, %{{.*}}: i32, %{{.*}}: f64)
 // CHECK:           %[[VAL_5:.*]] = memref.alloca() : memref<f64>
-// CHECK:           %[[VAL_10:.*]] = quake.alloca[%{{.*}} : i64] !quake.veq<?>
+// CHECK:           %[[VAL_10:.*]] = quake.alloca !quake.veq<?>[%{{.*}} : i64]
 // CHECK:           %[[VAL_16:.*]] = memref.load %[[VAL_5]][] : memref<f64>
 // CHECK:           call @__nvqpp__mlirgen__statePrep_A{{.*}}(%[[VAL_10]], %[[VAL_16]]) : (!quake.veq<?>, f64) -> ()
 // CHECK:           cc.scope {

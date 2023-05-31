@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "RuntimeMLIR.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
@@ -95,6 +95,7 @@ std::unique_ptr<MLIRContext> initializeMLIR() {
     registerToQIRTranslation();
     registerToOpenQASMTranslation();
     registerToIQMJsonTranslation();
+    cudaq::opt::registerTargetPipelines();
     mlirLLVMInitialized = true;
   }
 
@@ -103,7 +104,8 @@ std::unique_ptr<MLIRContext> initializeMLIR() {
 
   DialectRegistry registry;
   registry.insert<arith::ArithDialect, AffineDialect, LLVM::LLVMDialect,
-                  quake::QuakeDialect, cc::CCDialect, func::FuncDialect>();
+                  memref::MemRefDialect, quake::QuakeDialect, cc::CCDialect,
+                  func::FuncDialect>();
   auto context = std::make_unique<MLIRContext>(registry);
   context->loadAllAvailableDialects();
   registerLLVMDialectTranslation(*context);

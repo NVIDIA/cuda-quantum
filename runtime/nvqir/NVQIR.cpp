@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "CircuitSimulator.h"
 #include "QIRTypes.h"
@@ -213,6 +213,12 @@ void __quantum__rt__qubit_release(Qubit *q) {
       std::remove_if(begin, end,
                      [&](std::unique_ptr<Qubit> &qq) { return q == qq.get(); }),
       end);
+}
+
+void __quantum__rt__deallocate_all(const std::size_t numQubits,
+                                   const std::size_t *qubitIdxs) {
+  std::vector<std::size_t> qubits(qubitIdxs, qubitIdxs + numQubits);
+  nvqir::getCircuitSimulatorInternal()->deallocateQubits(qubits);
 }
 
 #define ONE_QUBIT_QIS_FUNCTION(GATENAME)                                       \

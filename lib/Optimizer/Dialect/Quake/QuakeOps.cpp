@@ -49,33 +49,38 @@ Value quake::createConstantAlloca(PatternRewriter &builder, Location loc,
       loc, quake::VeqType::getUnsized(builder.getContext()), newAlloca);
 }
 
-void quake::AllocaOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
-                                                  MLIRContext *context) {
-  patterns.add<FuseConstantToAllocaPattern>(context);
-}
-
 LogicalResult quake::AllocaOp::verify() {
-  auto resultType = dyn_cast<VeqType>(getResult().getType());
-  if (auto size = getSize()) {
-    std::int64_t argSize = 0;
-    if (auto cnt = dyn_cast_or_null<arith::ConstantOp>(size.getDefiningOp())) {
-      argSize = cnt.getValue().cast<IntegerAttr>().getInt();
-      // TODO: This is a questionable check. We could have a very large unsigned
-      // value that appears to be negative because of two's complement. On the
-      // other hand, allocating 2^64 - 1 qubits isn't going to go well.
-      if (argSize < 0)
-        return emitOpError("expected a non-negative integer size.");
+  // Result must be RefType or VeqType by construction.
+  if (auto resTy = dyn_cast<VeqType>(getResult().getType())) {
+    if (resTy.hasSpecifiedSize()) {
+      if (getSize())
+        return emitOpError("unexpected size operand");
+    } else {
+      if (auto size = getSize()) {
+        if (auto cnt =
+                dyn_cast_or_null<arith::ConstantOp>(size.getDefiningOp())) {
+          std::int64_t argSize = cnt.getValue().cast<IntegerAttr>().getInt();
+          // TODO: This is a questionable check. We could have a very large
+          // unsigned value that appears to be negative because of two's
+          // complement. On the other hand, allocating 2^64 - 1 qubits isn't
+          // going to go well.
+          if (argSize < 0)
+            return emitOpError("expected a non-negative integer size.");
+        }
+      } else {
+        return emitOpError("size operand required");
+      }
     }
-    if (!resultType)
-      return emitOpError(
-          "must return a vector of qubits since a size was provided.");
-    if (resultType.hasSpecifiedSize() &&
-        (static_cast<std::size_t>(argSize) != resultType.getSize()))
-      return emitOpError("expected operand size to match VeqType size.");
-  } else if (resultType && !resultType.hasSpecifiedSize()) {
-    return emitOpError("must return a veq with known size.");
   }
   return success();
+}
+
+void quake::AllocaOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
+                                                  MLIRContext *context) {
+  // Use a canonicalization pattern as folding the constant into the veq type
+  // changes the type. Uses may still expect a veq with unspecified size.
+  // Folding is strictly reductive and doesn't allow the creation of ops.
+  patterns.add<FuseConstantToAllocaPattern>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -86,7 +91,7 @@ static ParseResult
 parseRawIndex(OpAsmParser &parser,
               std::optional<OpAsmParser::UnresolvedOperand> &index,
               IntegerAttr &rawIndex) {
-  std::size_t constantIndex = 0;
+  std::size_t constantIndex = quake::ExtractRefOp::kDynamicIndex;
   OptionalParseResult parsedInteger =
       parser.parseOptionalInteger(constantIndex);
   if (parsedInteger.has_value()) {
@@ -94,7 +99,6 @@ parseRawIndex(OpAsmParser &parser,
       return failure();
     index = std::nullopt;
   } else {
-    constantIndex = quake::ExtractRefOp::kDynamicIndex;
     OpAsmParser::UnresolvedOperand operand;
     if (parser.parseOperand(operand))
       return failure();

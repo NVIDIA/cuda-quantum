@@ -83,7 +83,7 @@ def test_kernel_qalloc_quake_val():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
 # CHECK-SAME:      %[[VAL_0:.*]]: i32) {
-# CHECK:           %[[VAL_1:.*]] = quake.alloca[%[[VAL_0]] : i32] !quake.veq<?>
+# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<?>[%[[VAL_0]] : i32]
 # CHECK:           return
 # CHECK:         }
 

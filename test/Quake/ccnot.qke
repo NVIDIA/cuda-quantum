@@ -37,7 +37,7 @@ module {
         %c_0 = arith.constant 0 : i32
         %c_1 = arith.constant 1 : i32
         %c_2 = arith.constant 2 : i32
-        %qubits = quake.alloca [ %c_3 : i32 ] !quake.veq<?>
+        %qubits = quake.alloca !quake.veq<?> [ %c_3 : i32 ]
         %c_3_idx = arith.index_cast %c_3 : i32 to index
         affine.for %i = 0 to %c_3_idx {
             %q0 = quake.extract_ref %qubits [%i] : (!quake.veq<?>, index) -> !quake.ref

@@ -53,8 +53,10 @@ Backend Configuration
 
 .. autofunction:: cudaq::set_noise
 .. autofunction:: cudaq::unset_noise
-.. autofunction:: cudaq::set_qpu
-.. autofunction:: cudaq::list_qpus
+.. autofunction:: cudaq::set_target
+.. autofunction:: cudaq::has_target
+.. autofunction:: cudaq::get_target
+.. autofunction:: cudaq::get_targets
 
 Data Types
 =============================

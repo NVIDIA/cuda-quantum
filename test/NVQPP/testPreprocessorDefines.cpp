@@ -1,13 +1,13 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
-// RUN: nvq++ %s -o out_defines.x && ./out_defines.x | FileCheck %s && rm out_defines.x
-// RUN: nvq++ -DCUDAQ_HELLO_WORLD %s -o out_defines2.x && ./out_defines2.x | FileCheck --check-prefixes=DEFINE_ON %s && rm out_defines2.x
+// RUN: nvq++ --enable-mlir %s -o out_defines.x && ./out_defines.x | FileCheck %s && rm out_defines.x
+// RUN: nvq++ --enable-mlir -DCUDAQ_HELLO_WORLD %s -o out_defines2.x && ./out_defines2.x | FileCheck --check-prefixes=DEFINE_ON %s && rm out_defines2.x
 
 #include "cudaq.h"
 

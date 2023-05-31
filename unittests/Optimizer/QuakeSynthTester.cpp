@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "common/RuntimeMLIR.h"
 #include "cudaq.h"
@@ -92,7 +92,7 @@ cudaq::sample_result sampleJitCode(ExecutionEngine *jit,
       .value();
 }
 
-/// @brief Run sampling on the JIT compiled kernel function
+/// @brief Run observation on the JIT compiled kernel function
 cudaq::observe_result observeJitCode(ExecutionEngine *jit, cudaq::spin_op &h,
                                      const std::string &kernelName) {
   auto &p = cudaq::get_platform();
@@ -102,7 +102,7 @@ cudaq::observe_result observeJitCode(ExecutionEngine *jit, cudaq::spin_op &h,
                                             kernelName);
                ASSERT_TRUE(!err);
              },
-             h, p, 1000, "")
+             h, p, /*shots=*/-1, "")
       .value();
 }
 

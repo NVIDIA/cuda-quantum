@@ -28,7 +28,7 @@ struct kernel {
 // CHECK:           memref.store %[[VAL_0]], %[[VAL_1]][] : memref<i1>
 // CHECK:           %[[VAL_2:.*]] = arith.constant 2 : i32
 // CHECK:           %[[VAL_3:.*]] = arith.extsi %[[VAL_2]] : i32 to i64
-// CHECK:           %[[VAL_4:.*]] = quake.alloca[%[[VAL_3]] : i64] !quake.veq<?>
+// CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.veq<?>[%[[VAL_3]] : i64]
 // CHECK:           %[[VAL_5:.*]] = memref.load %[[VAL_1]][] : memref<i1>
 // CHECK:           cc.if(%[[VAL_5]]) {
 // CHECK:             cc.scope {
@@ -63,7 +63,7 @@ struct kernel_else {
 // CHECK:           memref.store %[[VAL_0]], %[[VAL_1]][] : memref<i1>
 // CHECK:           %[[VAL_2:.*]] = arith.constant 2 : i32
 // CHECK:           %[[VAL_3:.*]] = arith.extsi %[[VAL_2]] : i32 to i64
-// CHECK:           %[[VAL_4:.*]] = quake.alloca[%[[VAL_3]] : i64] !quake.veq<?>
+// CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.veq<?>[%[[VAL_3]] : i64]
 // CHECK:           %[[VAL_5:.*]] = memref.load %[[VAL_1]][] : memref<i1>
 // CHECK:           cc.if(%[[VAL_5]]) {
 // CHECK:             cc.scope {
