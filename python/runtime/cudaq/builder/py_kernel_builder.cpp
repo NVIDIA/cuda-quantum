@@ -356,13 +356,14 @@ void bindKernel(py::module &mod) {
           R"pbdoc(
                   Swap the states of the provided qubits.      
 
-                  .. code-block:: python"                                        
-                    # Example:"                                                      
-                    kernel = cudaq.make_kernel()"                                    
-                    # Allocate qubit/s to the `kernel`."                             
-                    qubits = kernel.qalloc(2)"       
+                  .. code-block:: python                                        
+                    # Example:                                                      
+                    kernel = cudaq.make_kernel()                                    
+                    # Allocate qubit/s to the `kernel`.                            
+                    qubits = kernel.qalloc(2)  
+                    # Place the 0th qubit in the 1-state.     
                     kernel.x(qubits[0])                            
-                    # Swap their states. Qubit 1 should now be in the 1-state.
+                    # Swap their states. 
                     kernel.swap(qubits[0], qubits[1]))pbdoc")
       /// @brief Allow for conditional statements on measurements.
       .def(
