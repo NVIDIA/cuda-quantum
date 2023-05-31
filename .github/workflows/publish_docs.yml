@@ -48,9 +48,7 @@ jobs:
           triggering_actor=${{ github.event.workflow_run.triggering_actor }}
           sha=${{ github.event.workflow_run.head_sha }}
 
-          # FIXME
-          #artifacts_url=${{ github.event.workflow_run.artifacts_url }}
-          artifacts_url='https://api.github.com/repos/bettinaheim/cuda-quantum/actions/runs/5016642287/artifacts'
+          artifacts_url=${{ github.event.workflow_run.artifacts_url }}
           artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
 
           status=1
