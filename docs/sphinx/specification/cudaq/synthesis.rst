@@ -60,7 +60,7 @@ a range of control qubits with or without the use of the :code:`operator!`
 
 .. code-block:: cpp
 
-   cudaq::control(kernel{}, {qubit0, !qubit1}, kernel_arg);
+    cudaq::control(kernel{}, {qubit0, !qubit1}, kernel_arg);
 
 The :code:`cudaq::adjoint(...)` function takes as input an
 instantiated pure device quantum kernel (or specified template type)
