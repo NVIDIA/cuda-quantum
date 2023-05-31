@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include <random>
 #include "CUDAQTestUtils.h"
+#include <random>
 
 #include "cudaq/algorithm.h"
 #include "cudaq/domains/chemistry.h"

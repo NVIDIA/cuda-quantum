@@ -267,8 +267,8 @@ public:
   CountsDictionary::const_iterator end() const { return cend(); }
 
   /// @brief Return true if the bit string has even parity
-  /// @param bitString 
-  /// @return 
+  /// @param bitString
+  /// @return
   static bool has_even_parity(std::string_view bitString);
 };
 
