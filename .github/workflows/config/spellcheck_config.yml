@@ -32,7 +32,7 @@ matrix:
       - open: '(^|\s)[a-z]+-'
         close: '(?=.)'
       # Ignore paths of files (recognized by them having a file extension)
-      - open: '(^|\s)([A-Za-z_\\\/]+\.)+'
+      - open: '([A-Za-z_\\\/]+\.)+'
         close: '($|(?=[^a-z]))'
         content: '\S+?'
 
