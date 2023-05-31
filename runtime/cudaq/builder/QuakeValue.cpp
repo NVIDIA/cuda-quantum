@@ -135,8 +135,9 @@ QuakeValue QuakeValue::operator[](const std::size_t idx) {
   auto arrPtrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
   Value vecPtr = opBuilder.create<cc::StdvecDataOp>(arrPtrTy, vectorValue);
   Type elePtrTy = cc::PointerType::get(eleTy);
+  std::int32_t idx32 = static_cast<std::int32_t>(idx);
   Value eleAddr = opBuilder.create<cc::ComputePtrOp>(
-      elePtrTy, vecPtr, ArrayRef<cc::ComputePtrArg>{idx});
+      elePtrTy, vecPtr, ArrayRef<cc::ComputePtrArg>{idx32});
   Value loaded = opBuilder.create<cc::LoadOp>(eleAddr);
   auto ret = extractedFromIndex.emplace(
       std::make_pair(idx, QuakeValue(opBuilder, loaded)));
