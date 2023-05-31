@@ -12,9 +12,8 @@
 
 namespace cudaq::gradients {
 
-/// @brief Compute the first order forward difference approximation,
-/// \f$ \frac{f(x+dx) - f(x)}{dx} \f$,
-/// for the gradient
+/// @brief Compute the first order forward difference approximation for the
+/// gradient
 class forward_difference : public gradient {
 public:
   using gradient::gradient;
