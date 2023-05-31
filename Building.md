@@ -5,7 +5,7 @@ Quantum Documentation][cuda_quantum_docs]. The page also contains [installation
 instructions][official_install] for released packages.
 
 [cuda_quantum_docs]: https://nvidia.github.io/cuda-quantum/
-[official_install]: https://nvidia.github.io/cuda-quantum/install.html
+[official_install]: https://nvidia.github.io/cuda-quantum/latest/install.html
 
 This document contains instructions for how to build CUDA Quantum from source.
 This is only needed if you would like to try out the latest (unreleased) version
