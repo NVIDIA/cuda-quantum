@@ -3,8 +3,11 @@ APIs
 AST
 ASTConsumers
 BFGS
+CLA
 CMake
 COBYLA
+CPU
+CPUs
 CUDA
 CUDAQ
 CUTN
@@ -132,6 +135,7 @@ subclass
 subclassed
 subclasses
 subclassing
+subfolder
 submodule
 subscriptable
 subtype

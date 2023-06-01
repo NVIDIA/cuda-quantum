@@ -92,7 +92,7 @@ cudaq::sample_result sampleJitCode(ExecutionEngine *jit,
       .value();
 }
 
-/// @brief Run sampling on the JIT compiled kernel function
+/// @brief Run observation on the JIT compiled kernel function
 cudaq::observe_result observeJitCode(ExecutionEngine *jit, cudaq::spin_op &h,
                                      const std::string &kernelName) {
   auto &p = cudaq::get_platform();
@@ -102,7 +102,7 @@ cudaq::observe_result observeJitCode(ExecutionEngine *jit, cudaq::spin_op &h,
                                             kernelName);
                ASSERT_TRUE(!err);
              },
-             h, p, 1000, "")
+             h, p, /*shots=*/-1, "")
       .value();
 }
 

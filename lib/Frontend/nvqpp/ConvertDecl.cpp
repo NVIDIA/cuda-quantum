@@ -123,8 +123,9 @@ void QuakeBridgeVisitor::addArgumentSymbols(
       // Transform pass-by-value arguments to stack slots.
       auto loc = toLocation(argVal);
       auto parmTy = entryBlock->getArgument(index).getType();
-      if (parmTy.isa<cc::LambdaType, cc::StdvecType, LLVM::LLVMStructType,
-                     FunctionType, quake::RefType, quake::VeqType>()) {
+      if (parmTy.isa<cc::LambdaType, cc::StdvecType, cc::ArrayType,
+                     cc::StructType, LLVM::LLVMStructType, FunctionType,
+                     quake::RefType, quake::VeqType>()) {
         symbolTable.insert(name, entryBlock->getArgument(index));
       } else {
         auto memRefTy = MemRefType::get(std::nullopt, parmTy);
@@ -304,13 +305,13 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
 
       // Did the first operand come from an LLVM AllocaOp, if not drop out
       auto bitVecAllocation =
-          stdVecInit.getOperand(0).getDefiningOp<LLVM::AllocaOp>();
+          stdVecInit.getOperand(0).getDefiningOp<cc::AllocaOp>();
       if (!bitVecAllocation)
         return true;
 
       // Search the AllocaOp users, find a potential GEPOp
       for (auto user : bitVecAllocation->getUsers()) {
-        auto gepOp = dyn_cast<LLVM::GEPOp>(user);
+        auto gepOp = dyn_cast<cc::ComputePtrOp>(user);
         if (!gepOp)
           continue;
 
@@ -321,7 +322,7 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
         // Is the first use a StoreOp, if so, we'll get its operand
         // and see if it came from an MzOp
         auto firstGepUser = *gepOp->getResult(0).getUsers().begin();
-        if (auto storeOp = dyn_cast<LLVM::StoreOp>(firstGepUser)) {
+        if (auto storeOp = dyn_cast<cc::StoreOp>(firstGepUser)) {
           auto result = storeOp->getOperand(0);
           auto mzOp = result.getDefiningOp<quake::MzOp>();
           if (mzOp) {

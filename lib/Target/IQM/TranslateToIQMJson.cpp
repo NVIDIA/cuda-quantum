@@ -68,7 +68,12 @@ static LogicalResult emitOperation(nlohmann::json &json, Emitter &emitter,
 
 static LogicalResult emitOperation(nlohmann::json &json, Emitter &emitter,
                                    quake::ExtractRefOp op) {
-  auto index = getIndexValueAsInt(op.getIndex());
+  std::optional<int64_t> index = std::nullopt;
+  if (op.hasConstantIndex())
+    index = op.getConstantIndex();
+  else
+    index = getIndexValueAsInt(op.getIndex());
+
   if (!index.has_value())
     return op.emitError("cannot translate runtime index to IQM Json");
   auto qrefName = llvm::formatv("{0}{1}", "QB", *index);

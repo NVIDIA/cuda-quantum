@@ -9,7 +9,6 @@
 #pragma once
 
 #include <optional>
-#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -265,6 +264,11 @@ public:
   /// @brief Range-based constant iterator end function
   /// @return
   CountsDictionary::const_iterator end() const { return cend(); }
+
+  /// @brief Return true if the bit string has even parity
+  /// @param bitString
+  /// @return
+  static bool has_even_parity(std::string_view bitString);
 };
 
 } // namespace cudaq

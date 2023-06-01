@@ -11,7 +11,7 @@
 CUDAQ_TEST(NegativeControlsTester, checkSimple) {
 
   auto kernel = []() __qpu__ {
-    cudaq::qreg<2> q;
+    cudaq::qarray<2> q;
     x<cudaq::ctrl>(!q[0], q[1]);
     mz(q);
   };
@@ -28,7 +28,7 @@ CUDAQ_TEST(NegativeControlsTester, checkSimple) {
   EXPECT_EQ(counter, 1000);
 
   auto kernel2 = []() __qpu__ {
-    cudaq::qreg<4> q;
+    cudaq::qarray<4> q;
     x<cudaq::ctrl>(!q[0], !q[1], !q[2], q[3]);
     mz(q);
   };
@@ -45,7 +45,7 @@ CUDAQ_TEST(NegativeControlsTester, checkSimple) {
   EXPECT_EQ(counter, 1000);
 
   auto kernel3 = []() __qpu__ {
-    cudaq::qreg<2> q;
+    cudaq::qarray<2> q;
     x(q.front(2));
     x<cudaq::ctrl>(!q[0], q[1]);
     mz(q);

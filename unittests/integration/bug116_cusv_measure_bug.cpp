@@ -11,7 +11,7 @@
 CUDAQ_TEST(Bug116CuSVMeasure, checkMeasure) {
   struct run_circuit {
     auto operator()(bool mAll) __qpu__ {
-      cudaq::qreg q(2);
+      cudaq::qvector q(2);
       // Prep in state 10
       x(q[0]);
       // Measure the second qubit

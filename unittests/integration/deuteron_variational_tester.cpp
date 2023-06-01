@@ -11,7 +11,7 @@
 
 struct ansatz2 {
   auto operator()(double theta) __qpu__ {
-    cudaq::qreg q(2);
+    cudaq::qarray<2> q;
     x(q[0]);
     ry(theta, q[1]);
     x<cudaq::ctrl>(q[1], q[0]);
@@ -41,7 +41,7 @@ CUDAQ_TEST(D2VariationalTester, checkBroadcast) {
   auto params = cudaq::linspace(-M_PI, M_PI, 50);
 
   auto ansatz = [](double theta, int size) __qpu__ {
-    cudaq::qreg q(size);
+    cudaq::qvector q(size);
     x(q[0]);
     ry(theta, q[1]);
     x<cudaq::ctrl>(q[1], q[0]);

@@ -96,6 +96,10 @@ protected:
   /// @brief Measure the state in the basis described by the given `spin_op`.
   virtual void measureSpinOp(const cudaq::spin_op &op) = 0;
 
+  /// @brief Subtype-specific method for performing qudit reset.
+  /// @param q Qudit to reset
+  virtual void resetQudit(const QuditInfo &q) = 0;
+
 public:
   BasicExecutionManager() = default;
   virtual ~BasicExecutionManager() = default;
@@ -200,8 +204,7 @@ public:
 
   /// The goal for apply is to create a new element of the
   /// instruction queue (a tuple).
-  void apply(const std::string_view gateName,
-             const std::vector<double> &&params,
+  void apply(const std::string_view gateName, const std::vector<double> &params,
              const std::vector<cudaq::QuditInfo> &controls,
              const std::vector<cudaq::QuditInfo> &targets,
              bool isAdjoint = false) override {
@@ -278,6 +281,12 @@ public:
     measureSpinOp(op);
     return std::make_pair(executionContext->expectationValue.value(),
                           executionContext->result);
+  }
+
+  void reset(const QuditInfo &target) override {
+    // We hit a reset, need to exec / clear instruction queue
+    synchronize();
+    resetQudit(target);
   }
 };
 

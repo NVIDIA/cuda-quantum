@@ -28,6 +28,8 @@ Program Construction
     .. automethod:: rx
     .. automethod:: ry
     .. automethod:: rz
+    .. automethod:: r1
+    .. automethod:: swap
     .. automethod:: mx
     .. automethod:: my
     .. automethod:: mz

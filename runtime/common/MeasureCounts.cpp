@@ -344,11 +344,6 @@ bool sample_result::has_expectation(const std::string_view registerName) {
 
 double sample_result::exp_val_z(const std::string_view registerName) {
   double aver = 0.0;
-  auto has_even_parity = [](const std::string &x) -> bool {
-    int c = std::count(x.begin(), x.end(), '1');
-    return c % 2 == 0;
-  };
-
   auto iter = sampleResults.find(registerName.data());
   if (iter == sampleResults.end())
     return 0.0;
@@ -460,4 +455,8 @@ void sample_result::dump(std::ostream &os) {
 
 void sample_result::dump() { dump(std::cout); }
 
+bool sample_result::has_even_parity(std::string_view bitString) {
+  int c = std::count(bitString.begin(), bitString.end(), '1');
+  return c % 2 == 0;
+}
 } // namespace cudaq

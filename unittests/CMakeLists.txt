@@ -14,7 +14,6 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   integration/adjoint_tester.cpp
   integration/builder_tester.cpp
   integration/ccnot_tester.cpp
-  # integration/deuteron_exp_inst.cpp
   integration/deuteron_variational_tester.cpp
   integration/ghz_nisq_tester.cpp
   integration/gradient_tester.cpp

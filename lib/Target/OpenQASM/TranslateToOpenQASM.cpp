@@ -207,8 +207,13 @@ static LogicalResult emitOperation(Emitter &emitter, func::FuncOp op) {
 }
 
 static LogicalResult emitOperation(Emitter &emitter, quake::ExtractRefOp op) {
+  std::optional<int64_t> index = std::nullopt;
+  if (op.hasConstantIndex())
+    index = op.getConstantIndex();
+  else
+    index = getIndexValueAsInt(op.getIndex());
+
   auto veqName = emitter.getOrAssignName(op.getVeq());
-  auto index = getIndexValueAsInt(op.getIndex());
   auto qrefName = llvm::formatv("{0}[{1}]", veqName, *index);
   emitter.getOrAssignName(op.getRef(), qrefName);
   return success();

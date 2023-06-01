@@ -198,8 +198,8 @@ then
   for entry in $CUDAQ_PLUGIN_LIBS
   do 
     PLUGIN_NAME=$(basename $entry)
-    PLUGIN_NAME=${PLUGIN_NAME#"lib"}
-    PLUGIN_NAME=${PLUGIN_NAME%".so"}
+    PLUGIN_NAME=${PLUGIN_NAME#lib}
+    PLUGIN_NAME=${PLUGIN_NAME%@CMAKE_SHARED_LIBRARY_SUFFIX@}
     LINKLIBS="$LINKLIBS -l$PLUGIN_NAME"
   done 
 fi

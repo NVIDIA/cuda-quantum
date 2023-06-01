@@ -64,15 +64,15 @@ def testLargeProblem():
     e = cudaq.observe(kernel, H, execParams)
     stop = timeit.default_timer()
     print("serial time = ", (stop - start))
-    
+
     cudaq.set_target('nvidia-mqpu')
     start = timeit.default_timer()
     e = cudaq.observe(kernel, H, execParams)
     stop = timeit.default_timer()
     print("mqpu time = ", (stop - start))
     assert assert_close(e.expectation_z(), e.expectation_z())
- 
-    # Reset for the next tests. 
+
+    # Reset for the next tests.
     cudaq.reset_target()
 
 
