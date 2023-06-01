@@ -11,4 +11,4 @@ add_test(NAME py-cudaq-backend-tests
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 set_tests_properties(py-cudaq-backend-tests PROPERTIES 
                     ENVIRONMENT 
-                    "PYTHONPATH=$ENV{PYTHONPATH}:${CMAKE_BINARY_DIR}/python:${CMAKE_SOURCE_DIR}/utils/mock_qpu/quantinuum")  
+                    "PYTHONPATH=$ENV{PYTHONPATH}:${CMAKE_BINARY_DIR}/python:${CMAKE_SOURCE_DIR}/utils/mock_qpu/quantinuum:${CMAKE_SOURCE_DIR}/utils/mock_qpu/ionq")  
