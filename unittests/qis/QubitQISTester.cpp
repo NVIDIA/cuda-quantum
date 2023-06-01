@@ -21,7 +21,7 @@ CUDAQ_TEST(QubitQISTester, checkAllocateDeallocateSubRegister) {
     EXPECT_EQ(r.id(), 1);
 
     h(q, r);
-    cudaq::qreg qq(3);
+    cudaq::qvector qq(3);
     auto f = qq.front(2);
     h(f, qq[2]);
   }
@@ -29,7 +29,7 @@ CUDAQ_TEST(QubitQISTester, checkAllocateDeallocateSubRegister) {
   EXPECT_FALSE(cudaq::getExecutionManager()->memoryLeaked());
 
   {
-    cudaq::qreg q(10);
+    cudaq::qvector q(10);
     for (auto [i, q] : cudaq::enumerate(q)) {
       EXPECT_EQ(i, q.id());
     }
@@ -43,7 +43,7 @@ CUDAQ_TEST(QubitQISTester, checkAllocateDeallocateSubRegister) {
   EXPECT_FALSE(cudaq::getExecutionManager()->memoryLeaked());
 
   {
-    cudaq::qreg q(15);
+    cudaq::qvector q(15);
     EXPECT_EQ(q[14].id(), 14);
 
     EXPECT_EQ(q.front().id(), 0);
@@ -84,14 +84,14 @@ CUDAQ_TEST(QubitQISTester, checkAllocateDeallocateSubRegister) {
 
 CUDAQ_TEST(QubitQISTester, checkArray) {
   {
-    cudaq::qreg<5> compileTimeQubits;
+    cudaq::qarray<5> compileTimeQubits;
     EXPECT_EQ(compileTimeQubits.size(), 5);
     for (int i = 0; i < 5; i++)
       EXPECT_EQ(compileTimeQubits[i].id(), i);
   }
 
   {
-    cudaq::qreg<15> q;
+    cudaq::qarray<15> q;
     EXPECT_EQ(q[14].id(), 14);
 
     EXPECT_EQ(q.front().id(), 0);
@@ -126,7 +126,7 @@ CUDAQ_TEST(QubitQISTester, checkArray) {
 CUDAQ_TEST(QubitQISTester, checkCommonKernel) {
   auto ghz = []() {
     const int N = 5;
-    cudaq::qreg q(N);
+    cudaq::qvector q(N);
     h(q[0]);
     for (int i = 0; i < N - 1; i++) {
       x<cudaq::ctrl>(q[i], q[i + 1]);
@@ -143,7 +143,7 @@ CUDAQ_TEST(QubitQISTester, checkCommonKernel) {
   EXPECT_EQ(counter, 1000);
 
   auto ansatz = [](double theta) {
-    cudaq::qreg q(2);
+    cudaq::qvector q(2);
     x(q[0]);
     ry(theta, q[1]);
     x<cudaq::ctrl>(q[1], q[0]);
@@ -160,7 +160,7 @@ CUDAQ_TEST(QubitQISTester, checkCommonKernel) {
 CUDAQ_TEST(QubitQISTester, checkCtrlRegion) {
 
   auto ccnot = []() {
-    cudaq::qreg q(3);
+    cudaq::qvector q(3);
 
     x(q);
     x(q[1]);
@@ -172,7 +172,7 @@ CUDAQ_TEST(QubitQISTester, checkCtrlRegion) {
 
   struct ccnot_test {
     void operator()() __qpu__ {
-      cudaq::qreg q(3);
+      cudaq::qvector q(3);
 
       x(q);
       x(q[1]);
@@ -193,7 +193,7 @@ CUDAQ_TEST(QubitQISTester, checkCtrlRegion) {
     void operator()() __qpu__ {
       auto apply_x = [](cudaq::qubit &r) { x(r); };
 
-      cudaq::qreg q(3);
+      cudaq::qvector q(3);
       // Create 101
       x(q);
       x(q[1]);
@@ -240,9 +240,9 @@ CUDAQ_TEST(QubitQISTester, checkAdjointRegions) {
     }
   };
 
-  struct qreg_adjoint_test {
+  struct qvector_adjoint_test {
     void operator()() __qpu__ {
-      cudaq::qreg q(10);
+      cudaq::qvector q(10);
 
       x(q);
       x<cudaq::adj>(q);
@@ -253,7 +253,7 @@ CUDAQ_TEST(QubitQISTester, checkAdjointRegions) {
 
   struct rotation_adjoint_test {
     void operator()() __qpu__ {
-      cudaq::qreg q(1);
+      cudaq::qvector q(1);
 
       rx(1.1, q[0]);
       rx<cudaq::adj>(1.1, q[0]);
@@ -269,7 +269,7 @@ CUDAQ_TEST(QubitQISTester, checkAdjointRegions) {
 
   struct twoqbit_adjoint_test {
     void operator()() __qpu__ {
-      cudaq::qreg q(2);
+      cudaq::qvector q(2);
 
       cnot(q[0], q[1]);
       cnot(q[0], q[1]);
@@ -300,7 +300,7 @@ CUDAQ_TEST(QubitQISTester, checkAdjointRegions) {
 
   struct test_cudaq_adjoint {
     void operator()() __qpu__ {
-      cudaq::qreg q(3);
+      cudaq::qvector q(3);
       x(q[0]);
       x(q[2]);
       test_adjoint{}(q);
@@ -314,7 +314,7 @@ CUDAQ_TEST(QubitQISTester, checkAdjointRegions) {
   EXPECT_EQ(1, counts.size());
   EXPECT_TRUE(counts.begin()->first == "0");
 
-  auto counts2 = cudaq::sample(qreg_adjoint_test{});
+  auto counts2 = cudaq::sample(qvector_adjoint_test{});
   counts2.dump();
   EXPECT_EQ(1, counts2.size());
   EXPECT_TRUE(counts2.begin()->first == "0000000000");

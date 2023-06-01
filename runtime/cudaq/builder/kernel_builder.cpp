@@ -44,57 +44,62 @@ namespace cudaq::details {
 
 KernelBuilderType mapArgToType(double &e) {
   return KernelBuilderType(
-      [](MLIRContext *ctx) mutable { return Float64Type::get(ctx); });
+      [](MLIRContext *ctx) { return Float64Type::get(ctx); });
 }
 
 KernelBuilderType mapArgToType(float &e) {
   return KernelBuilderType(
-      [](MLIRContext *ctx) mutable { return Float32Type::get(ctx); });
+      [](MLIRContext *ctx) { return Float32Type::get(ctx); });
 }
 
 KernelBuilderType mapArgToType(int &e) {
   return KernelBuilderType(
-      [](MLIRContext *ctx) mutable { return IntegerType::get(ctx, 32); });
+      [](MLIRContext *ctx) { return IntegerType::get(ctx, 32); });
 }
 
 KernelBuilderType mapArgToType(std::vector<double> &e) {
-  return KernelBuilderType([](MLIRContext *ctx) mutable {
+  return KernelBuilderType([](MLIRContext *ctx) {
     return cudaq::cc::StdvecType::get(ctx, Float64Type::get(ctx));
   });
 }
 
 KernelBuilderType mapArgToType(std::size_t &e) {
   return KernelBuilderType(
-      [](MLIRContext *ctx) mutable { return IntegerType::get(ctx, 64); });
+      [](MLIRContext *ctx) { return IntegerType::get(ctx, 64); });
 }
 
 KernelBuilderType mapArgToType(std::vector<int> &e) {
-  return KernelBuilderType([](MLIRContext *ctx) mutable {
+  return KernelBuilderType([](MLIRContext *ctx) {
     return cudaq::cc::StdvecType::get(ctx, mlir::IntegerType::get(ctx, 32));
   });
 }
 
 KernelBuilderType mapArgToType(std::vector<std::size_t> &e) {
-  return KernelBuilderType([](MLIRContext *ctx) mutable {
+  return KernelBuilderType([](MLIRContext *ctx) {
     return cudaq::cc::StdvecType::get(ctx, mlir::IntegerType::get(ctx, 64));
   });
 }
 
 /// Map a std::vector<float> to a KernelBuilderType
 KernelBuilderType mapArgToType(std::vector<float> &e) {
-  return KernelBuilderType([](MLIRContext *ctx) mutable {
+  return KernelBuilderType([](MLIRContext *ctx) {
     return cudaq::cc::StdvecType::get(ctx, Float32Type::get(ctx));
   });
 }
 
 KernelBuilderType mapArgToType(cudaq::qubit &e) {
   return KernelBuilderType(
-      [](MLIRContext *ctx) mutable { return quake::RefType::get(ctx); });
+      [](MLIRContext *ctx) { return quake::RefType::get(ctx); });
 }
 
 KernelBuilderType mapArgToType(cudaq::qreg<> &e) {
   return KernelBuilderType(
-      [](MLIRContext *ctx) mutable { return quake::VeqType::getUnsized(ctx); });
+      [](MLIRContext *ctx) { return quake::VeqType::getUnsized(ctx); });
+}
+
+KernelBuilderType mapArgToType(cudaq::qvector<> &e) {
+  return KernelBuilderType(
+      [](MLIRContext *ctx) { return quake::VeqType::getUnsized(ctx); });
 }
 
 MLIRContext *initializeContext() {
@@ -368,7 +373,7 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &size) {
 template <typename QuakeOp>
 void handleOneQubitBroadcast(ImplicitLocOpBuilder &builder, Value veq,
                              bool adjoint = false) {
-  cudaq::info("kernel_builder handling operation broadcast on qreg.");
+  cudaq::info("kernel_builder handling operation broadcast on qvector.");
 
   auto loc = builder.getLoc();
   auto indexTy = builder.getIndexType();
@@ -479,23 +484,23 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
   return QuakeValue(builder, ret);
 }
 
-QuakeValue mx(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQreg,
+QuakeValue mx(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec,
               std::string regName) {
-  return applyMeasure<quake::MxOp>(builder, qubitOrQreg.getValue(), regName);
+  return applyMeasure<quake::MxOp>(builder, qubitOrQvec.getValue(), regName);
 }
 
-QuakeValue my(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQreg,
+QuakeValue my(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec,
               std::string regName) {
-  return applyMeasure<quake::MyOp>(builder, qubitOrQreg.getValue(), regName);
+  return applyMeasure<quake::MyOp>(builder, qubitOrQvec.getValue(), regName);
 }
 
-QuakeValue mz(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQreg,
+QuakeValue mz(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec,
               std::string regName) {
-  return applyMeasure<quake::MzOp>(builder, qubitOrQreg.getValue(), regName);
+  return applyMeasure<quake::MzOp>(builder, qubitOrQvec.getValue(), regName);
 }
 
-void reset(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQreg) {
-  auto value = qubitOrQreg.getValue();
+void reset(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec) {
+  auto value = qubitOrQvec.getValue();
   if (isa<quake::RefType>(value.getType())) {
     builder.create<quake::ResetOp>(TypeRange{}, value);
     return;

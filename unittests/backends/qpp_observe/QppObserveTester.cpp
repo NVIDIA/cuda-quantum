@@ -32,7 +32,7 @@ CUDAQ_TEST(QPPBackendTester, checkBackendObserve) {
   struct ansatzTest {
     auto operator()(double theta) __qpu__ {
       // Programmer would just write this...
-      cudaq::qreg q(2);
+      cudaq::qvector q(2);
       x(q[0]);
       ry(theta, q[1]);
       x<cudaq::ctrl>(q[1], q[0]);

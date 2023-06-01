@@ -10,6 +10,7 @@
 
 #include "cudaq/qis/modifiers.h"
 #include "cudaq/qis/qreg.h"
+#include "cudaq/qis/qvector.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <cstring>
 #include <functional>
@@ -55,11 +56,12 @@ concept KernelBuilderArgTypeIsValid =
 // If you want to add to the list of valid kernel argument types
 // first add it here, then add `details::mapArgToType()` function
 #define CUDAQ_VALID_BUILDER_ARGS_FOLD()                                        \
-  requires(KernelBuilderArgTypeIsValid<                                        \
-               Args, float, double, std::size_t, int, std::vector<int>,        \
-               std::vector<float>, std::vector<std::size_t>,                   \
-               std::vector<double>, cudaq::qubit, cudaq::qreg<>> &&            \
-           ...)
+  requires(                                                                    \
+      KernelBuilderArgTypeIsValid<                                             \
+          Args, float, double, std::size_t, int, std::vector<int>,             \
+          std::vector<float>, std::vector<std::size_t>, std::vector<double>,   \
+          cudaq::qubit, cudaq::qreg<>, cudaq::qvector<>> &&                    \
+      ...)
 
 namespace details {
 
@@ -114,6 +116,9 @@ KernelBuilderType mapArgToType(cudaq::qubit &e);
 /// @brief  Map a `qreg` to a `KernelBuilderType`
 KernelBuilderType mapArgToType(cudaq::qreg<> &e);
 
+/// @brief  Map a qvector to a `KernelBuilderType`
+KernelBuilderType mapArgToType(cudaq::qvector<> &e);
+
 /// @brief Initialize the `MLIRContext`, return the raw
 /// pointer which we'll wrap in an `unique_ptr`.
 MLIRContext *initializeContext();
@@ -137,13 +142,13 @@ void deleteBuilder(ImplicitLocOpBuilder *builder);
 /// also given to the `unique_ptr`
 void deleteJitEngine(ExecutionEngine *jit);
 
-/// @brief Allocate a single qubit
+/// @brief Allocate a single `qubit`
 QuakeValue qalloc(ImplicitLocOpBuilder &builder);
 
-/// @brief Allocate a `qubit` or a `qreg`.
+/// @brief Allocate a `qvector`.
 QuakeValue qalloc(ImplicitLocOpBuilder &builder, const std::size_t nQubits);
 
-/// @brief Allocate a `qreg` from existing `QuakeValue` size
+/// @brief Allocate a `qvector` from existing `QuakeValue` size
 QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &size);
 
 // In the following macros + instantiations, we define the functions
@@ -177,7 +182,7 @@ CUDAQ_DETAILS_MEASURE_DECLARATION(mx)
 CUDAQ_DETAILS_MEASURE_DECLARATION(my)
 CUDAQ_DETAILS_MEASURE_DECLARATION(mz)
 
-void reset(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQreg);
+void reset(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec);
 
 void c_if(ImplicitLocOpBuilder &builder, QuakeValue &conditional,
           std::function<void()> &thenFunctor);
@@ -464,8 +469,8 @@ public:
   CUDAQ_BUILDER_ADD_ONE_QUBIT_PARAM(r1)
 
 #define CUDAQ_BUILDER_ADD_MEASURE(NAME)                                        \
-  QuakeValue NAME(QuakeValue qubitOrQreg) {                                    \
-    return details::NAME(*opBuilder, qubitOrQreg);                             \
+  QuakeValue NAME(QuakeValue qubitOrQvec) {                                    \
+    return details::NAME(*opBuilder, qubitOrQvec);                             \
   }                                                                            \
   auto NAME(QuakeValue qubit, const std::string &regName) {                    \
     return details::NAME(*opBuilder, qubit, regName);                          \
