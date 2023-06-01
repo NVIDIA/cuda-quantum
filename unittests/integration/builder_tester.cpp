@@ -132,6 +132,40 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
   }
 }
 
+CUDAQ_TEST(BuilderTester, checkSwap) {
+  // Simple two-qubit swap.
+  {
+    auto kernel = cudaq::make_kernel();
+    auto q = kernel.qalloc(2);
+    // 0th qubit into the 1-state.
+    kernel.x(q[0]);
+    // Swap their states and measure.
+    kernel.swap(q[0], q[1]);
+    // Measure.
+    kernel.mz(q);
+
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    EXPECT_NEAR(counts.count("01"), 1000, 0);
+  }
+
+  // Simple two-qubit swap.
+  {
+    auto kernel = cudaq::make_kernel();
+    auto q = kernel.qalloc(2);
+    // 1st qubit into the 1-state.
+    kernel.x(q[1]);
+    // Swap their states and measure.
+    kernel.swap(q[0], q[1]);
+    // Measure.
+    kernel.mz(q);
+
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    EXPECT_NEAR(counts.count("10"), 1000, 0);
+  }
+}
+
 CUDAQ_TEST(BuilderTester, checkConditional) {
   auto kernel = cudaq::make_kernel();
   auto q = kernel.qalloc(2);

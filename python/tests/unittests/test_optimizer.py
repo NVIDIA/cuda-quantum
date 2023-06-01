@@ -87,7 +87,7 @@ def ackley_gradient(parameter_vector: List[float],
     # this function is called:
     cudaq_gradient = cudaq.gradients.CentralDifference()
     cudaq_gradient_vector = cudaq_gradient.compute(parameter_vector,
-                                                 ackley_function_no_grad)
+                                                   ackley_function_no_grad)
     assert (gradient_vector == cudaq_gradient_vector)
     return function_value, gradient_vector
 

@@ -267,7 +267,7 @@ int main() {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__instance_qpe
 // CHECK-SAME:      (%[[VAL_0:.*]]: i32, %[[VAL_1:.*]]: i32,
 // CHECK-SAME:       %[[VAL_2:.*]]: !cc.lambda<(!quake.veq<?>) -> ()>,
-// CHECK-SAME:       %[[VAL_3:.*]]: !llvm.struct<"tgate", ()>) attributes
+// CHECK-SAME:       %[[VAL_3:.*]]: !cc.struct<"tgate" {}>) attributes
 // CHECK:           %[[VAL_4:.*]] = memref.alloca() : memref<i32>
 // CHECK:           memref.store %[[VAL_0]], %[[VAL_4]][] : memref<i32>
 // CHECK:           %[[VAL_5:.*]] = memref.alloca() : memref<i32>

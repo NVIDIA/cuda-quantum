@@ -85,7 +85,7 @@ struct test4_caller {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 2 : i32
 // CHECK:           %[[VAL_1:.*]] = arith.extsi %[[VAL_0]] : i32 to i64
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<?>[%[[VAL_1]] : i64]
-// CHECK:           %[[VAL_3:.*]] = cc.undef !llvm.struct<"test4_callee", ()>
+// CHECK:           %[[VAL_3:.*]] = cc.undef !cc.struct<"test4_callee" {}>
 // CHECK:           %[[VAL_4:.*]] = cc.create_lambda {
 // CHECK:           ^bb0(%[[VAL_5:.*]]: !quake.ref):
 // CHECK:             cc.scope {

@@ -70,11 +70,10 @@ def test_kernel_measure_qreg():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
 # CHECK:           %[[VAL_0:.*]] = arith.constant 3 : index
-# CHECK:           %[[VAL_1:.*]] = arith.constant 3 : i64
 # CHECK:           %[[VAL_2:.*]] = arith.constant 1 : index
 # CHECK:           %[[VAL_3:.*]] = arith.constant 0 : index
 # CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.veq<3>
-# CHECK:           %[[VAL_5:.*]] = llvm.alloca %[[VAL_1]] x i1 : (i64) -> !llvm.ptr<i1>
+# CHECK:           %[[VAL_5:.*]] = cc.alloca !cc.array<i1 x 3>
 # CHECK:           %[[VAL_6:.*]] = cc.loop while ((%[[VAL_7:.*]] = %[[VAL_3]]) -> (index)) {
 # CHECK:             %[[VAL_8:.*]] = arith.cmpi slt, %[[VAL_7]], %[[VAL_0]] : index
 # CHECK:             cc.condition %[[VAL_8]](%[[VAL_7]] : index)
@@ -83,15 +82,15 @@ def test_kernel_measure_qreg():
 # CHECK:             %[[VAL_10:.*]] = quake.extract_ref %[[VAL_4]][%[[VAL_9]]] : (!quake.veq<3>, index) -> !quake.ref
 # CHECK:             %[[VAL_11:.*]] = quake.mx %[[VAL_10]] : (!quake.ref) -> i1
 # CHECK:             %[[VAL_12:.*]] = arith.index_cast %[[VAL_9]] : index to i64
-# CHECK:             %[[VAL_13:.*]] = llvm.getelementptr %[[VAL_5]]{{\[}}%[[VAL_12]]] : (!llvm.ptr<i1>, i64) -> !llvm.ptr<i1>
-# CHECK:             llvm.store %[[VAL_11]], %[[VAL_13]] : !llvm.ptr<i1>
+# CHECK:             %[[VAL_13:.*]] = cc.compute_ptr %[[VAL_5]][%[[VAL_12]]] : (!cc.ptr<!cc.array<i1 x 3>>, i64) -> !cc.ptr<i1>
+# CHECK:             cc.store %[[VAL_11]], %[[VAL_13]] : !cc.ptr<i1>
 # CHECK:             cc.continue %[[VAL_9]] : index
 # CHECK:           } step {
 # CHECK:           ^bb0(%[[VAL_14:.*]]: index):
 # CHECK:             %[[VAL_15:.*]] = arith.addi %[[VAL_14]], %[[VAL_2]] : index
 # CHECK:             cc.continue %[[VAL_15]] : index
 # CHECK:           } {counted}
-# CHECK:           %[[VAL_16:.*]] = llvm.alloca %[[VAL_1]] x i1 : (i64) -> !llvm.ptr<i1>
+# CHECK:           %[[VAL_16:.*]] = cc.alloca !cc.array<i1 x 3>
 # CHECK:           %[[VAL_17:.*]] = cc.loop while ((%[[VAL_18:.*]] = %[[VAL_3]]) -> (index)) {
 # CHECK:             %[[VAL_19:.*]] = arith.cmpi slt, %[[VAL_18]], %[[VAL_0]] : index
 # CHECK:             cc.condition %[[VAL_19]](%[[VAL_18]] : index)
@@ -100,15 +99,15 @@ def test_kernel_measure_qreg():
 # CHECK:             %[[VAL_21:.*]] = quake.extract_ref %[[VAL_4]][%[[VAL_20]]] : (!quake.veq<3>, index) -> !quake.ref
 # CHECK:             %[[VAL_22:.*]] = quake.my %[[VAL_21]] : (!quake.ref) -> i1
 # CHECK:             %[[VAL_23:.*]] = arith.index_cast %[[VAL_20]] : index to i64
-# CHECK:             %[[VAL_24:.*]] = llvm.getelementptr %[[VAL_16]]{{\[}}%[[VAL_23]]] : (!llvm.ptr<i1>, i64) -> !llvm.ptr<i1>
-# CHECK:             llvm.store %[[VAL_22]], %[[VAL_24]] : !llvm.ptr<i1>
+# CHECK:             %[[VAL_24:.*]] = cc.compute_ptr %[[VAL_16]][%[[VAL_23]]] : (!cc.ptr<!cc.array<i1 x 3>>, i64) -> !cc.ptr<i1>
+# CHECK:             cc.store %[[VAL_22]], %[[VAL_24]] : !cc.ptr<i1>
 # CHECK:             cc.continue %[[VAL_20]] : index
 # CHECK:           } step {
 # CHECK:           ^bb0(%[[VAL_25:.*]]: index):
 # CHECK:             %[[VAL_26:.*]] = arith.addi %[[VAL_25]], %[[VAL_2]] : index
 # CHECK:             cc.continue %[[VAL_26]] : index
 # CHECK:           } {counted}
-# CHECK:           %[[VAL_27:.*]] = llvm.alloca %[[VAL_1]] x i1 : (i64) -> !llvm.ptr<i1>
+# CHECK:           %[[VAL_27:.*]] = cc.alloca !cc.array<i1 x 3>
 # CHECK:           %[[VAL_28:.*]] = cc.loop while ((%[[VAL_29:.*]] = %[[VAL_3]]) -> (index)) {
 # CHECK:             %[[VAL_30:.*]] = arith.cmpi slt, %[[VAL_29]], %[[VAL_0]] : index
 # CHECK:             cc.condition %[[VAL_30]](%[[VAL_29]] : index)
@@ -117,8 +116,8 @@ def test_kernel_measure_qreg():
 # CHECK:             %[[VAL_32:.*]] = quake.extract_ref %[[VAL_4]][%[[VAL_31]]] : (!quake.veq<3>, index) -> !quake.ref
 # CHECK:             %[[VAL_33:.*]] = quake.mz %[[VAL_32]] : (!quake.ref) -> i1
 # CHECK:             %[[VAL_34:.*]] = arith.index_cast %[[VAL_31]] : index to i64
-# CHECK:             %[[VAL_35:.*]] = llvm.getelementptr %[[VAL_27]]{{\[}}%[[VAL_34]]] : (!llvm.ptr<i1>, i64) -> !llvm.ptr<i1>
-# CHECK:             llvm.store %[[VAL_33]], %[[VAL_35]] : !llvm.ptr<i1>
+# CHECK:             %[[VAL_35:.*]] = cc.compute_ptr %[[VAL_27]][%[[VAL_34]]] : (!cc.ptr<!cc.array<i1 x 3>>, i64) -> !cc.ptr<i1>
+# CHECK:             cc.store %[[VAL_33]], %[[VAL_35]] : !cc.ptr<i1>
 # CHECK:             cc.continue %[[VAL_31]] : index
 # CHECK:           } step {
 # CHECK:           ^bb0(%[[VAL_36:.*]]: index):
