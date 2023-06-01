@@ -335,4 +335,36 @@ CUDAQ_TEST(QubitQISTester, checkAdjointRegions) {
   EXPECT_TRUE(counts5.begin()->first == "101");
 }
 
+CUDAQ_TEST(QubitQISTester, checkMeasureResetFence) {
+  {
+    struct init_measure {
+      auto operator()() __qpu__ {
+        // Allocate then measure, no gates.
+        // Check that allocation requests are flushed.
+        cudaq::qreg q(2);
+        mz(q);
+      }
+    };
+    auto kernel = init_measure{};
+    auto counts = cudaq::sample(kernel);
+    EXPECT_EQ(1, counts.size());
+    EXPECT_TRUE(counts.begin()->first == "00");
+  }
+  {
+    struct reset_circ {
+      auto operator()() __qpu__ {
+        cudaq::qreg q(2);
+        x(q);
+        reset(q[0]);
+        mz(q);
+      }
+    };
+    auto kernel = reset_circ{};
+    auto counts = cudaq::sample(kernel);
+    EXPECT_EQ(1, counts.size());
+    // |11> -> |01> after reset
+    EXPECT_TRUE(counts.begin()->first == "01");
+  }
+}
+
 #endif

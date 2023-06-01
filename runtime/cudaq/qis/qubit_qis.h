@@ -295,7 +295,7 @@ inline bool my(qubit &q) {
 }
 
 inline void reset(qubit &q) {
-  getExecutionManager()->resetQudit({q.n_levels(), q.id()});
+  getExecutionManager()->reset({q.n_levels(), q.id()});
 }
 
 // Measure all qubits in the range, return vector of 0,1
