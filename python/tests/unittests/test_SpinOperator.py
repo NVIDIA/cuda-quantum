@@ -115,7 +115,7 @@ def test_spin_op_operators():
     assert (len(data[0]) == 6)
     expected = [[0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 1], [0, 1, 0, 0, 1, 1]]
     assert (all([d in expected for d in data]))
-    expected = [5+5j, 5+5j, -5-5j]
+    expected = [5 + 5j, 5 + 5j, -5 - 5j]
     assert (all([c in expected for c in coeffs]))
 
     data, coeffs = spin_b.get_raw_data()
@@ -145,19 +145,19 @@ def test_spin_op_operators():
     data, coeffs = spin_f.get_raw_data()
     assert (len(data) == 4)
     assert (len(data[0]) == 6)
-    expected = [[0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 1],
-                [0, 1, 0, 0, 1, 1], [1, 0, 0, 0, 0, 0]]
+    expected = [[0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 1], [0, 1, 0, 0, 1, 1],
+                [1, 0, 0, 0, 0, 0]]
     assert (all([d in expected for d in data]))
-    expected = [5+5j, 5+5j, -5-5j, 1]
+    expected = [5 + 5j, 5 + 5j, -5 - 5j, 1]
     assert (all([c in expected for c in coeffs]))
 
     data, coeffs = spin_g.get_raw_data()
     assert (len(data) == 4)
     assert (len(data[0]) == 6)
-    expected = [[0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 1],
-                [0, 1, 0, 0, 1, 1], [1, 0, 0, 0, 0, 0]]
+    expected = [[0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 1], [0, 1, 0, 0, 1, 1],
+                [1, 0, 0, 0, 0, 0]]
     assert (all([d in expected for d in data]))
-    expected = [5+5j, 5+5j, -5-5j, -1]
+    expected = [5 + 5j, 5 + 5j, -5 - 5j, -1]
     assert (all([c in expected for c in coeffs]))
 
     data, coeffs = spin_h.get_raw_data()
@@ -165,7 +165,7 @@ def test_spin_op_operators():
     assert (len(data[0]) == 6)
     expected = [[1, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 1], [1, 1, 0, 0, 1, 1]]
     assert (all([d in expected for d in data]))
-    expected = [5+5j, 5+5j, -5-5j]
+    expected = [5 + 5j, 5 + 5j, -5 - 5j]
     assert (all([c in expected for c in coeffs]))
 
     data, coeffs = spin_i.get_raw_data()
@@ -173,7 +173,7 @@ def test_spin_op_operators():
     assert (len(data[0]) == 6)
     expected = [[1, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 1], [0, 1, 0, 0, 1, 1]]
     assert (all([d in expected for d in data]))
-    expected = [-5-5j, 5+5j, -5-5j]
+    expected = [-5 - 5j, 5 + 5j, -5 - 5j]
     assert (all([c in expected for c in coeffs]))
 
     data, coeffs = spin_j.get_raw_data()
@@ -181,7 +181,7 @@ def test_spin_op_operators():
     assert (len(data[0]) == 6)
     expected = [[1, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 1], [0, 1, 0, 0, 1, 1]]
     assert (all([d in expected for d in data]))
-    expected = [-5-5j, 5+5j, -5-5j]
+    expected = [-5 - 5j, 5 + 5j, -5 - 5j]
     assert (all([c in expected for c in coeffs]))
 
     data, coeffs = spin_k.get_raw_data()
@@ -203,26 +203,30 @@ def test_spin_op_operators():
     data, coeffs = spin_m.get_raw_data()
     assert (len(data) == 4)
     assert (len(data[0]) == 6)
-    expected = [[0,0,0,0,0,0], [0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 1], [0, 1, 0, 0, 1, 1]]
+    expected = [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 1],
+                [0, 1, 0, 0, 1, 1]]
     assert (all([d in expected for d in data]))
-    expected = [3, 5+5j, 5+5j, -5-5j]
+    expected = [3, 5 + 5j, 5 + 5j, -5 - 5j]
     assert (all([c in expected for c in coeffs]))
 
     data, coeffs = spin_o.get_raw_data()
     assert (len(data) == 4)
     assert (len(data[0]) == 6)
-    expected = [[0,0,0,0,0,0], [0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 1], [0, 1, 0, 0, 1, 1]]
+    expected = [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 1],
+                [0, 1, 0, 0, 1, 1]]
     assert (all([d in expected for d in data]))
-    expected = [-3, 5+5j, 5+5j, -5-5j]
+    expected = [-3, 5 + 5j, 5 + 5j, -5 - 5j]
     assert (all([c in expected for c in coeffs]))
 
     data, coeffs = spin_p.get_raw_data()
     assert (len(data) == 4)
     assert (len(data[0]) == 6)
-    expected = [[0,0,0,0,0,0], [0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 1], [0, 1, 0, 0, 1, 1]]
+    expected = [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 1], [1, 0, 0, 0, 0, 1],
+                [0, 1, 0, 0, 1, 1]]
     assert (all([d in expected for d in data]))
-    expected = [3, 5+5j, -5-5j, -5-5j]
+    expected = [3, 5 + 5j, -5 - 5j, -5 - 5j]
     assert (all([c in expected for c in coeffs]))
+
 
 def test_spin_op_members():
     """
@@ -242,10 +246,8 @@ def test_spin_op_members():
     assert not spin_operator.is_identity()
     for term in spin_operator:
         # Second term should have a coefficient of -1.0
-        assert term.get_coefficient(
-        ) == -1.0 or term.get_coefficient() == 1.0
-        assert term.get_coefficient(
-        ) == -1.0 or term.get_coefficient() == 1.0
+        assert term.get_coefficient() == -1.0 or term.get_coefficient() == 1.0
+        assert term.get_coefficient() == -1.0 or term.get_coefficient() == 1.0
 
 
 def test_spin_op_vqe():
@@ -263,11 +265,11 @@ def test_spin_op_vqe():
     got_data, got_coefficients = hamiltonian.get_raw_data()
     assert (len(got_data) == 5)
     assert (len(got_data[0]) == 4)
-    expected = [[0,0,0,0], [1, 1, 0, 0], [1,1,1,1], [0,0,0,1], [0,0,1,0]]
+    expected = [[0, 0, 0, 0], [1, 1, 0, 0], [1, 1, 1, 1], [0, 0, 0, 1],
+                [0, 0, 1, 0]]
     assert (all([d in expected for d in got_data]))
     expected = [5.907, -2.1433, -2.1433, .21829, -6.125]
     assert (all([c in expected for c in got_coefficients]))
-
 
 
 def test_matrix():
@@ -280,10 +282,8 @@ def test_matrix():
     mat = hamiltonian.to_matrix()
     assert assert_close(-1.74, np.linalg.eigvals(mat)[0], 1e-2)
     print(mat)
-    want_matrix = np.array([[.00029, 0, 0, 0],
-                            [0, 12.2503, -4.2866, 0], 
-                            [0, -4.2866, -.43629, 0], 
-                            [0,0,0,11.8137]])
+    want_matrix = np.array([[.00029, 0, 0, 0], [0, 12.2503, -4.2866, 0],
+                            [0, -4.2866, -.43629, 0], [0, 0, 0, 11.8137]])
 
     got_matrix = np.array(mat, copy=False)
     assert np.allclose(want_matrix, got_matrix, rtol=1e-3)
@@ -312,17 +312,20 @@ def test_spin_op_foreach():
     xSupports = []
 
     def doSomethingWithTerm(term):
+
         def doSomethingWithPauli(pauli: cudaq.Pauli, idx: int):
             nonlocal counter, xSupports
             if pauli == cudaq.Pauli.X:
-                counter = counter+1
+                counter = counter + 1
                 xSupports.append(idx)
+
         term.for_each_pauli(doSomethingWithPauli)
 
     hamiltonian.for_each_term(doSomethingWithTerm)
 
     assert counter == 2
     assert xSupports == [0, 1]
+
 
 def test_spin_op_iter():
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
@@ -332,6 +335,7 @@ def test_spin_op_iter():
         print('hi, ', term)
         count += 1
     assert count == 5
+
 
 # leave for gdb debugging
 if __name__ == "__main__":

@@ -529,6 +529,18 @@ void reset(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec) {
   throw std::runtime_error("Invalid type passed to reset().");
 }
 
+void swap(ImplicitLocOpBuilder &builder, const std::vector<QuakeValue> &ctrls,
+          const std::vector<QuakeValue> &qubits, bool adjoint) {
+  cudaq::info("kernel_builder apply swap");
+  std::vector<Value> ctrlValues;
+  std::vector<Value> qubitValues;
+  std::transform(ctrls.begin(), ctrls.end(), std::back_inserter(ctrlValues),
+                 [](auto &el) { return el.getValue(); });
+  std::transform(qubits.begin(), qubits.end(), std::back_inserter(qubitValues),
+                 [](auto &el) { return el.getValue(); });
+  builder.create<quake::SwapOp>(adjoint, ValueRange(), ctrlValues, qubitValues);
+}
+
 void c_if(ImplicitLocOpBuilder &builder, QuakeValue &conditional,
           std::function<void()> &thenFunctor) {
   auto value = conditional.getValue();

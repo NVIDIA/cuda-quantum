@@ -477,6 +477,28 @@ def test_sample_marginalize():
     assert marginal_result.most_probable() == "101"
 
 
+def test_swap_2q():
+    """
+    Tests the simple case of swapping the states of two qubits.
+    """
+    kernel = cudaq.make_kernel()
+    # Allocate a register of size 2.
+    qreg = kernel.qalloc(2)
+    qubit_0 = qreg[0]
+    qubit_1 = qreg[1]
+    # Place qubit 0 in the 1-state.
+    kernel.x(qubit_0)
+    # Swap states with qubit 1.
+    kernel.swap(qubit_0, qubit_1)
+    # Check their states.
+    kernel.mz(qreg)
+
+    want_state = "01"
+    result = cudaq.sample(kernel)
+    assert (want_state in result)
+    assert (result[want_state] == 1000)
+
+
 def test_qubit_reset():
     """
     Basic test that we can apply a qubit reset.

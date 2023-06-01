@@ -182,6 +182,9 @@ CUDAQ_DETAILS_MEASURE_DECLARATION(mx)
 CUDAQ_DETAILS_MEASURE_DECLARATION(my)
 CUDAQ_DETAILS_MEASURE_DECLARATION(mz)
 
+void swap(ImplicitLocOpBuilder &builder, const std::vector<QuakeValue> &ctrls,
+          const std::vector<QuakeValue> &targets, bool adjoint = false);
+
 void reset(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec);
 
 void c_if(ImplicitLocOpBuilder &builder, QuakeValue &conditional,
@@ -495,6 +498,14 @@ public:
   CUDAQ_BUILDER_ADD_MEASURE(mx)
   CUDAQ_BUILDER_ADD_MEASURE(my)
   CUDAQ_BUILDER_ADD_MEASURE(mz)
+
+  /// @brief SWAP operation for swapping the quantum states of qubits.
+  /// Currently only support swaps between two qubits.
+  void swap(const QuakeValue &first, const QuakeValue &second) {
+    const std::vector<QuakeValue> empty;
+    const std::vector<QuakeValue> &qubits{first, second};
+    details::swap(*opBuilder, empty, qubits);
+  }
 
   /// @brief Reset the given qubit or qubits.
   void reset(QuakeValue &qubit) { details::reset(*opBuilder, qubit); }
