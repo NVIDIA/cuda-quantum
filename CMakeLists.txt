@@ -78,7 +78,7 @@ endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
 if(NOT CUDAQ_LLVM_VERSION)
-  set(CUDAQ_LLVM_VERSION 16)
+  set(CUDAQ_LLVM_VERSION 17)
 endif()
 
 find_package(Git QUIET)

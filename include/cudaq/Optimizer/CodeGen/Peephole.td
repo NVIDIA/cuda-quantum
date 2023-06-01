@@ -84,8 +84,9 @@ def CreateIntToPtrOp : NativeCodeCall<
 // ───────────────────────────────────────
 // %8 = inttoptr %5
 def ArrayGetElementPtrConv : Pat<
-    (LLVM_LoadOp:$load (LLVM_BitcastOp (LLVM_CallOp $callee, $args, $_, $_)), $_,
-                       $_, $_, $_, $_, $_),
+    (LLVM_LoadOp:$load
+      (LLVM_BitcastOp (LLVM_CallOp $callee, $args, $_, $_)),
+      $_, $_, $_, $_, $_, $_, $_, $_, $_),
     (CreateIntToPtrOp $load, $args), [(IsArrayGetElementPtrId $callee)]>;
 
 //===----------------------------------------------------------------------===//
@@ -183,8 +184,9 @@ def CreateReadResultCall : NativeCodeCall<
 // ─────────────────────────────────────
 // %4 = call @read_result %2
 def LoadMeasureResult : Pat<
-    (LLVM_LoadOp:$load (LLVM_BitcastOp:$bitcast (LLVM_IntToPtrOp:$cast
-                       (LLVM_ConstantOp $attr))), $_, $_, $_, $_, $_, $_),
+    (LLVM_LoadOp:$load
+      (LLVM_BitcastOp:$bitcast (LLVM_IntToPtrOp:$cast (LLVM_ConstantOp $attr))),
+      $_, $_, $_, $_, $_, $_, $_, $_, $_),
     (CreateReadResultCall $cast),
     [(HasI1PtrType:$bitcast), (HasResultType:$cast), (IsaIntAttr:$attr)]>;
 

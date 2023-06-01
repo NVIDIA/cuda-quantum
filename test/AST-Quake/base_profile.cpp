@@ -29,9 +29,9 @@ struct kernel {
 
 // CHECK-LABEL: define void @__nvqpp__mlirgen__kernel
 // CHECK-SAME: ()
-// CHECK: tail call void @__quantum__qis__mz__body(%Qubit* null, %Result* null)
-// CHECK: %[[VAL_2:.*]] = tail call i1 @__quantum__qis__read_result__body(%Result* null)
-// CHECK: tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Result* nonnull inttoptr (i64 1 to %Result*))
-// CHECK: %[[VAL_3:.*]] = tail call i1 @__quantum__qis__read_result__body(%Result* nonnull inttoptr (i64 1 to %Result*))
+// CHECK: tail call void @__quantum__qis__mz__body(ptr null, ptr null)
+// CHECK: %[[VAL_2:.*]] = tail call i1 @__quantum__qis__read_result__body(ptr null)
+// CHECK: tail call void @__quantum__qis__mz__body(ptr nonnull inttoptr (i64 1 to ptr), ptr nonnull inttoptr (i64 1 to ptr))
+// CHECK: %[[VAL_3:.*]] = tail call i1 @__quantum__qis__read_result__body(ptr nonnull inttoptr (i64 1 to ptr))
 // CHECK: br i1 %[[VAL_3]], label %[[VAL_4:.*]], label %[[VAL_5:.*]]
 // CHECK: br i1 %[[VAL_2]], label %[[VAL_7:.*]], label %[[VAL_8:.*]]

@@ -28,6 +28,11 @@
 
 using namespace llvm;
 
+/// A cudaq specific command line flag for loading plugins.
+static cl::list<std::string>
+    PassPlugins("cudaq-load-pass-plugin",
+                cl::desc("Load passes from plugin library"));
+
 /// Dialect extension to allow inlining of the MLIR defined LLVM-IR dialects
 /// which lacks inlining support out of the box.
 class InlinerExtension
@@ -44,11 +49,6 @@ static void registerInlinerExtension(mlir::DialectRegistry &registry) {
   registry.addExtensions<InlinerExtension>();
 }
 
-/// @brief Add a command line flag for loading plugins
-static cl::list<std::string>
-    PassPlugins("load-pass-plugin",
-                cl::desc("Load passes from plugin library"));
-
 int main(int argc, char **argv) {
   mlir::registerAllPasses();
   cudaq::opt::registerOptCodeGenPasses();
@@ -57,17 +57,15 @@ int main(int argc, char **argv) {
 
   // See if we have been asked to load a pass plugin,
   // if so load it.
-  std::vector<std::string> args(&argv[0], &argv[0] + argc);
-  for (std::size_t i = 0; i < args.size(); i++) {
-    if (args[i].find("-load-pass-plugin") != std::string::npos) {
-      auto Plugin = cudaq::Plugin::Load(args[i + 1]);
+  if (!PassPlugins.empty()) {
+    for (auto p : PassPlugins) {
+      auto Plugin = cudaq::Plugin::Load(p);
       if (!Plugin) {
-        errs() << "Failed to load passes from '" << args[i + 1]
-               << "'. Request ignored.\n";
+        llvm::errs() << "Failed to load passes from '" << p
+                     << "'. Request ignored.\n";
         return 1;
       }
       Plugin.get().registerExtensions();
-      i++;
     }
   }
 

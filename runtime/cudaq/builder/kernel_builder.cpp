@@ -671,13 +671,24 @@ ExecutionEngine *jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   opts.llvmModuleBuilder =
       [](Operation *module,
          llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
-    llvmContext.setOpaquePointers(false);
+    llvmContext.setOpaquePointers(true);
     auto llvmModule = translateModuleToLLVMIR(module, llvmContext);
     if (!llvmModule) {
       llvm::errs() << "Failed to emit LLVM IR\n";
       return nullptr;
     }
-    ExecutionEngine::setupTargetTriple(llvmModule.get());
+    auto tmBuilderOrError = llvm::orc::JITTargetMachineBuilder::detectHost();
+    if (!tmBuilderOrError) {
+      llvm::errs() << "Could not create JITTargetMachineBuilder\n";
+      return nullptr;
+    }
+    auto tmOrError = tmBuilderOrError->createTargetMachine();
+    if (!tmOrError) {
+      llvm::errs() << "Could not create TargetMachine";
+      return nullptr;
+    }
+    ExecutionEngine::setupTargetTripleAndDataLayout(llvmModule.get(),
+                                                    tmOrError.get().get());
     return llvmModule;
   };
 

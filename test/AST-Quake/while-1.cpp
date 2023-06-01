@@ -172,6 +172,6 @@ __qpu__ double test4(cudaq::qspan<> a, cudaq::qspan<> b) {
 // CHECK:             cc.condition %[[VAL_23]]
 // CHECK:           }
 // CHECK:           %[[VAL_24:.*]] = memref.load %[[VAL_7]][] : memref<f64>
-// CHECK:           cc.return %[[VAL_24]] : f64
+// CHECK:           return %[[VAL_24]] : f64
 // CHECK:         }
 

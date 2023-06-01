@@ -1635,8 +1635,12 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
       SmallVector<Value> args = lastValues(funcArity);
       auto indirect = popValue();
       auto indirectTy = indirect.getType().cast<cc::LambdaType>();
-      auto callInd = builder.create<cc::CallCallableOp>(
-          loc, indirectTy.getSignature().getResults(), indirect, args);
+      auto resultTy = indirectTy.getSignature().getResults();
+      auto callInd =
+          builder.create<cc::CallCallableOp>(loc, resultTy, indirect, args);
+      if (resultTy.empty())
+        return true;
+      // FIXME: This should push all of the results, eh?
       return pushValue(callInd.getResult(0));
     }
     if (isInClassInNamespace(func, "qudit", "cudaq") && isExclaimOperator(x)) {

@@ -175,7 +175,14 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *stmt) {
     if (auto *block = builder.getBlock())
       if (auto *region = block->getParent())
         if (auto *op = region->getParentOp())
-          return isa<func::FuncOp, cc::CreateLambdaOp>(op);
+          return isa<func::FuncOp>(op);
+    return false;
+  }();
+  bool isLambdaScope = [&]() {
+    if (auto *block = builder.getBlock())
+      if (auto *region = block->getParent())
+        if (auto *op = region->getParentOp())
+          return isa<cc::CreateLambdaOp>(op);
     return false;
   }();
   if (stmt->getRetValue()) {
@@ -207,12 +214,16 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *stmt) {
                                                 ValueRange{heapCopy, dynSize});
     }
     if (isFuncScope)
+      builder.create<func::ReturnOp>(loc, result);
+    else if (isLambdaScope)
       builder.create<cc::ReturnOp>(loc, result);
     else
       builder.create<cc::UnwindReturnOp>(loc, result);
     return true;
   }
   if (isFuncScope)
+    builder.create<func::ReturnOp>(loc);
+  else if (isLambdaScope)
     builder.create<cc::ReturnOp>(loc);
   else
     builder.create<cc::UnwindReturnOp>(loc);

@@ -44,6 +44,7 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Support/LogicalResult.h"
+#include "mlir/Target/LLVMIR/Dialect/Builtin/BuiltinToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Tools/ParseUtilities.h"
@@ -108,6 +109,7 @@ std::unique_ptr<MLIRContext> initializeMLIR() {
                   func::FuncDialect>();
   auto context = std::make_unique<MLIRContext>(registry);
   context->loadAllAvailableDialects();
+  registerBuiltinDialectTranslation(*context);
   registerLLVMDialectTranslation(*context);
   return context;
 }
@@ -167,7 +169,7 @@ void registerToQIRTranslation() {
 
         std::unique_ptr<llvm::LLVMContext> llvmContext =
             std::make_unique<llvm::LLVMContext>();
-        llvmContext->setOpaquePointers(false);
+        llvmContext->setOpaquePointers(true);
         auto llvmModule = translateModuleToLLVMIR(op, *llvmContext);
         cudaq::optimizeLLVM(llvmModule.get());
         if (!cudaq::setupTargetTriple(llvmModule.get()))

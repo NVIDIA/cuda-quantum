@@ -33,6 +33,7 @@
 #include "mlir/InitAllTranslations.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/PassManager.h"
+#include "mlir/Target/LLVMIR/Dialect/Builtin/BuiltinToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
@@ -154,11 +155,11 @@ int main(int argc, char **argv) {
 
   PassManager pm(&context);
   // Apply any generic pass manager command line options and run the pipeline.
-  applyPassManagerCLOptions(pm);
+  [[maybe_unused]] auto applyPassResult = applyPassManagerCLOptions(pm);
 
   // Some translations do not involve translation to LLVM IR. These translations
   // are done directly from the MLIR Module to an output file.
-  llvm::Optional<std::function<LogicalResult(Operation *, raw_ostream &)>>
+  std::optional<std::function<LogicalResult(Operation *, raw_ostream &)>>
       directTranslation;
   llvm::StringSwitch<std::function<void()>>(convertTo)
       .Case("qir", [&]() { addPipelineToQIR<>(pm); })
@@ -193,11 +194,12 @@ int main(int argc, char **argv) {
   }
 
   // Register the translation to LLVM IR with the MLIR context.
+  registerBuiltinDialectTranslation(*module->getContext());
   registerLLVMDialectTranslation(*module->getContext());
 
   // Convert the module to LLVM IR in a new LLVM IR context.
   llvm::LLVMContext llvmContext;
-  llvmContext.setOpaquePointers(false);
+  llvmContext.setOpaquePointers(true);
   auto llvmModule = translateModuleToLLVMIR(module.get(), llvmContext);
   if (!llvmModule)
     cudaq::emitFatalError(module->getLoc(), "Failed to emit LLVM IR");
@@ -205,14 +207,22 @@ int main(int argc, char **argv) {
   // Initialize LLVM targets.
   llvm::InitializeNativeTarget();
   llvm::InitializeNativeTargetAsmPrinter();
-  ExecutionEngine::setupTargetTriple(llvmModule.get());
+  auto tmBuilderOrError = llvm::orc::JITTargetMachineBuilder::detectHost();
+  if (!tmBuilderOrError)
+    cudaq::emitFatalError(module->getLoc(),
+                          "Could not create JITTargetMachineBuilder");
+  auto tmOrError = tmBuilderOrError->createTargetMachine();
+  if (!tmOrError)
+    cudaq::emitFatalError(module->getLoc(), "Could not create TargetMachine");
+  ExecutionEngine::setupTargetTripleAndDataLayout(llvmModule.get(),
+                                                  tmOrError.get().get());
 
   // Optionally run an optimization pipeline over the llvm module.
-  auto optPipeline = makeOptimizingTransformer(optLevel, sizeLevel,
-                                               /*targetMachine=*/nullptr);
+  auto optPipeline =
+      makeOptimizingTransformer(optLevel, sizeLevel, tmOrError.get().get());
   if (auto err = optPipeline(llvmModule.get())) {
-    llvm::errs() << "Failed to optimize LLVM IR " << err << '\n';
-    std::exit(1);
+    llvm::errs() << "Pipeline returned: " << err << '\n';
+    cudaq::emitFatalError(module->getLoc(), "Failed to optimize LLVM IR");
   }
 
   // Output the LLVM IR to the output file.
