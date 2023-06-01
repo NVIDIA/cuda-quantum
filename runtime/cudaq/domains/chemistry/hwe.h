@@ -76,7 +76,7 @@ __qpu__ void hwe(cudaq::qview<> qubits, std::size_t numLayers,
   }
 }
 
-/// @brief Given the number of qubits and number of layers, 
+/// @brief Given the number of qubits and number of layers,
 /// return the number of variational parameters for the HWE ansatz.
 std::size_t num_hwe_parameters(std::size_t numQubits, std::size_t numLayers) {
   return 2 * numQubits * (1 + numLayers);
