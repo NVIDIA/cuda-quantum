@@ -268,6 +268,183 @@ LogicalResult quake::MzOp::verify() {
                             getBits().getType());
 }
 
+//===----------------------------------------------------------------------===//
+// Operator interface
+//===----------------------------------------------------------------------===//
+
+// The following methods return to the operator's unitary matrix as a
+// column-major array. For parametrizable operations, the matrix can only be
+// built if the parameter can be computed at compilation time. These methods
+// populate an empty array taken as a input. If the matrix was not successfuly
+// computed, the array will be left empty.
+
+/// If the parameter is known at compilation-time, set the result value and
+/// returns success. Otherwise, returns failure.
+static LogicalResult getParameterAsDouble(Value parameter, double &result) {
+  auto paramDefOp = parameter.getDefiningOp();
+  if (!paramDefOp)
+    return failure();
+  if (auto constOp = mlir::dyn_cast<mlir::arith::ConstantOp>(paramDefOp)) {
+    if (auto value = dyn_cast<mlir::FloatAttr>(constOp.getValue())) {
+      result = value.getValueAsDouble();
+      return success();
+    }
+  }
+  return failure();
+}
+
+void quake::HOp::getOperatorMatrix(Matrix &matrix) {
+  using namespace llvm::numbers;
+  matrix.assign({inv_sqrt2, inv_sqrt2, inv_sqrt2, -inv_sqrt2});
+}
+
+void quake::PhasedRxOp::getOperatorMatrix(Matrix &matrix) {
+  using namespace std::complex_literals;
+
+  // Get parameters
+  double theta;
+  double phi;
+  if (failed(getParameterAsDouble(getParameter(), theta)) ||
+      failed(getParameterAsDouble(getParameter(1), phi)))
+    return;
+
+  if (getIsAdj())
+    theta *= -1;
+
+  matrix.assign(
+      {std::cos(theta / 2.), -1i * std::exp(1i * phi) * std::sin(theta / 2.),
+       -1i * std::exp(-1i * phi) * std::sin(theta / 2.), std::cos(theta / 2.)});
+}
+
+void quake::R1Op::getOperatorMatrix(Matrix &matrix) {
+  using namespace std::complex_literals;
+  double theta;
+  if (failed(getParameterAsDouble(getParameter(), theta)))
+    return;
+  if (getIsAdj())
+    theta *= -1;
+  matrix.assign({1, 0, 0, std::exp(theta * 1i)});
+}
+
+void quake::RxOp::getOperatorMatrix(Matrix &matrix) {
+  using namespace std::complex_literals;
+  double theta;
+  if (failed(getParameterAsDouble(getParameter(), theta)))
+    return;
+  if (getIsAdj())
+    theta *= -1;
+  matrix.assign({std::cos(theta / 2.), -1i * std::sin(theta / 2.),
+                 -1i * std::sin(theta / 2.), std::cos(theta / 2.)});
+}
+
+void quake::RyOp::getOperatorMatrix(Matrix &matrix) {
+  // Get parameter
+  double theta;
+  if (failed(getParameterAsDouble(getParameter(), theta)))
+    return;
+
+  if (getIsAdj())
+    theta *= -1;
+
+  matrix.assign({std::cos(theta / 2.), std::sin(theta / 2.),
+                 -std::sin(theta / 2.), std::cos(theta / 2.)});
+}
+
+void quake::RzOp::getOperatorMatrix(Matrix &matrix) {
+  using namespace std::complex_literals;
+
+  // Get parameter
+  double theta;
+  if (failed(getParameterAsDouble(getParameter(), theta)))
+    return;
+
+  if (getIsAdj())
+    theta *= -1;
+
+  matrix.assign({std::exp(-1i * theta / 2.), 0, 0, std::exp(1i * theta / 2.)});
+}
+
+void quake::SOp::getOperatorMatrix(Matrix &matrix) {
+  using namespace llvm::numbers;
+  using namespace std::complex_literals;
+  if (getIsAdj())
+    matrix.assign({1, 0, 0, -1i});
+  else
+    matrix.assign({1, 0, 0, 1i});
+}
+
+void quake::SwapOp::getOperatorMatrix(Matrix &matrix) {
+  matrix.assign({1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1});
+}
+
+void quake::TOp::getOperatorMatrix(Matrix &matrix) {
+  using namespace llvm::numbers;
+  if (getIsAdj())
+    matrix.assign({1, 0, 0, {inv_sqrt2, -inv_sqrt2}});
+  else
+    matrix.assign({1, 0, 0, {inv_sqrt2, inv_sqrt2}});
+}
+
+void quake::U2Op::getOperatorMatrix(Matrix &matrix) {
+  using namespace llvm::numbers;
+  using namespace std::complex_literals;
+
+  // Get parameters
+  double phi;
+  double lambda;
+  if (failed(getParameterAsDouble(getParameter(), phi)) ||
+      failed(getParameterAsDouble(getParameter(1), lambda)))
+    return;
+
+  if (getIsAdj()) {
+    phi *= -1;
+    lambda *= -1;
+  }
+
+  matrix.assign({inv_sqrt2, inv_sqrt2 * std::exp(phi * 1i),
+                 -inv_sqrt2 * std::exp(lambda * 1i),
+                 inv_sqrt2 * std::exp(1i * (phi + lambda))});
+}
+
+void quake::U3Op::getOperatorMatrix(Matrix &matrix) {
+  using namespace std::complex_literals;
+
+  // Get parameters
+  double theta;
+  double phi;
+  double lambda;
+  if (failed(getParameterAsDouble(getParameter(), theta)) ||
+      failed(getParameterAsDouble(getParameter(1), phi)) ||
+      failed(getParameterAsDouble(getParameter(2), lambda)))
+    return;
+
+  if (getIsAdj()) {
+    theta *= -1;
+    phi *= -1;
+    lambda *= -1;
+  }
+
+  matrix.assign({std::cos(theta / 2.),
+                 std::exp(phi * 1i) * std::sin(theta / 2.),
+                 -std::exp(lambda * 1i) * std::sin(theta / 2.),
+                 std::exp(1i * (phi + lambda)) * std::cos(theta / 2.)});
+}
+
+void quake::XOp::getOperatorMatrix(Matrix &matrix) {
+  matrix.assign({0, 1, 1, 0});
+}
+
+void quake::YOp::getOperatorMatrix(Matrix &matrix) {
+  using namespace std::complex_literals;
+  matrix.assign({0, 1i, -1i, 0});
+}
+
+void quake::ZOp::getOperatorMatrix(Matrix &matrix) {
+  matrix.assign({1, 0, 0, -1});
+}
+
+//===----------------------------------------------------------------------===//
+
 /// Never inline a `quake.apply` of a variant form of a kernel. The apply
 /// operation must be rewritten to a call before it is inlined when the apply is
 /// a variant form.
