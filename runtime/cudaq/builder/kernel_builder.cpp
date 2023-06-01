@@ -460,8 +460,7 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
       builder.getIntegerType(64), value);
   Value size = builder.template create<arith::IndexCastOp>(
       builder.getIndexType(), vecSize);
-  auto i1PtrTy = cudaq::opt::factory::getPointerType(i1Ty);
-  auto buff = builder.template create<LLVM::AllocaOp>(i1PtrTy, vecSize);
+  auto buff = builder.template create<cc::AllocaOp>(i1Ty, vecSize);
   cudaq::opt::factory::createCountedLoop(
       builder, builder.getLoc(), size,
       [&](OpBuilder &nestedBuilder, Location nestedLoc, Region &,
@@ -475,9 +474,10 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
         auto i64Ty = nestedBuilder.getIntegerType(64);
         auto intIv =
             nestedBuilder.create<arith::IndexCastOp>(nestedLoc, i64Ty, iv);
-        auto addr = nestedBuilder.create<LLVM::GEPOp>(nestedLoc, i1PtrTy, buff,
-                                                      ValueRange{intIv});
-        nestedBuilder.create<LLVM::StoreOp>(nestedLoc, bit, addr);
+        auto i1PtrTy = cudaq::cc::PointerType::get(i1Ty);
+        auto addr = nestedBuilder.create<cc::ComputePtrOp>(
+            nestedLoc, i1PtrTy, buff, ValueRange{intIv});
+        nestedBuilder.create<cc::StoreOp>(nestedLoc, bit, addr);
       });
   Value ret = builder.template create<cc::StdvecInitOp>(
       cc::StdvecType::get(builder.getContext(), i1Ty), buff, vecSize);

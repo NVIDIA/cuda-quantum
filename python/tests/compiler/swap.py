@@ -34,7 +34,6 @@ def test_swap_2q():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
 # CHECK:           %[[VAL_0:.*]] = arith.constant 2 : index
-# CHECK:           %[[VAL_1:.*]] = arith.constant 2 : i64
 # CHECK:           %[[VAL_2:.*]] = arith.constant 1 : index
 # CHECK:           %[[VAL_3:.*]] = arith.constant 0 : index
 # CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.veq<2>
@@ -42,7 +41,7 @@ def test_swap_2q():
 # CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_4]][1] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           quake.x %[[VAL_5]] : (!quake.ref) -> ()
 # CHECK:           quake.swap %[[VAL_5]], %[[VAL_6]] : (!quake.ref, !quake.ref) -> ()
-# CHECK:           %[[VAL_7:.*]] = llvm.alloca %[[VAL_1]] x i1 : (i64) -> !llvm.ptr<i1>
+# CHECK:           %[[VAL_7:.*]] = cc.alloca !cc.array<i1 x 2>
 # CHECK:           %[[VAL_8:.*]] = cc.loop while ((%[[VAL_9:.*]] = %[[VAL_3]]) -> (index)) {
 # CHECK:             %[[VAL_10:.*]] = arith.cmpi slt, %[[VAL_9]], %[[VAL_0]] : index
 # CHECK:             cc.condition %[[VAL_10]](%[[VAL_9]] : index)
@@ -51,8 +50,8 @@ def test_swap_2q():
 # CHECK:             %[[VAL_12:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_11]]] : (!quake.veq<2>, index) -> !quake.ref
 # CHECK:             %[[VAL_13:.*]] = quake.mz %[[VAL_12]] : (!quake.ref) -> i1
 # CHECK:             %[[VAL_14:.*]] = arith.index_cast %[[VAL_11]] : index to i64
-# CHECK:             %[[VAL_15:.*]] = llvm.getelementptr %[[VAL_7]]{{\[}}%[[VAL_14]]] : (!llvm.ptr<i1>, i64) -> !llvm.ptr<i1>
-# CHECK:             llvm.store %[[VAL_13]], %[[VAL_15]] : !llvm.ptr<i1>
+# CHECK:             %[[VAL_15:.*]] = cc.compute_ptr %[[VAL_7]][%[[VAL_14]]] : (!cc.ptr<!cc.array<i1 x 2>>, i64) -> !cc.ptr<i1>
+# CHECK:             cc.store %[[VAL_13]], %[[VAL_15]] : !cc.ptr<i1>
 # CHECK:             cc.continue %[[VAL_11]] : index
 # CHECK:           } step {
 # CHECK:           ^bb0(%[[VAL_16:.*]]: index):
