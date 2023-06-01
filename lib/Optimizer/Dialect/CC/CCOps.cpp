@@ -280,6 +280,42 @@ void cudaq::cc::ComputePtrOp::build(OpBuilder &builder, OperationState &result,
   result.addOperands(dynamicIndices);
 }
 
+OpFoldResult cudaq::cc::ComputePtrOp::fold(ArrayRef<Attribute> params) {
+  if (getDynamicIndices().empty())
+    return nullptr;
+  SmallVector<std::tuple<Attribute, std::int32_t>> pairs;
+  for (auto p : llvm::zip(params.drop_front(), getRawConstantIndices()))
+    pairs.push_back(p);
+  auto dynIter = getDynamicIndices().begin();
+  SmallVector<int32_t> newConstantIndices;
+  SmallVector<Value> newIndices;
+  bool changed = false;
+  for (auto [paramAttr, index] : pairs) {
+    if (index == kDynamicIndex) {
+      std::int32_t newVal;
+      if (paramAttr) {
+        newVal = cast<IntegerAttr>(paramAttr).getInt();
+        changed = true;
+      } else {
+        newVal = index;
+        newIndices.push_back(*dynIter);
+      }
+      newConstantIndices.push_back(newVal);
+      dynIter++;
+    } else {
+      newConstantIndices.push_back(index);
+    }
+  }
+  if (changed) {
+    assert(newConstantIndices.size() == getRawConstantIndices().size());
+    assert(newIndices.size() < getDynamicIndices().size());
+    getDynamicIndicesMutable().assign(newIndices);
+    setRawConstantIndices(newConstantIndices);
+    return Value{*this};
+  }
+  return nullptr;
+}
+
 //===----------------------------------------------------------------------===//
 // LoopOp
 //===----------------------------------------------------------------------===//

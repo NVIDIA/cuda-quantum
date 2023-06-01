@@ -27,7 +27,7 @@ struct C {
 // CHECK:           cc.store %[[VAL_6]], %{{.*}} : !cc.ptr<i1>
 // CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_3]][%[[VAL_1]]] : (!quake.veq<2>, index) -> !quake.ref
 // CHECK:           %[[VAL_8:.*]] = quake.mz %[[VAL_7]] : (!quake.ref) -> i1
-// CHECK:           %[[VAL_9:.*]] = cc.compute_ptr %[[VAL_4]][%{{.*}}] : (!cc.ptr<!cc.array<i1 x 2>>, i64) -> !cc.ptr<i1>
+// CHECK:           %[[VAL_9:.*]] = cc.compute_ptr %[[VAL_4]][1] : (!cc.ptr<!cc.array<i1 x 2>>) -> !cc.ptr<i1>
 // CHECK:           cc.store %[[VAL_8]], %[[VAL_9]] : !cc.ptr<i1>
 // CHECK:           return
 // CHECK:         }
