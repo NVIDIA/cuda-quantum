@@ -22,9 +22,9 @@ struct single_adjoint_test {
   }
 };
 
-struct qreg_adjoint_test {
+struct qvector_adjoint_test {
   void operator()() __qpu__ {
-    cudaq::qreg q(5);
+    cudaq::qvector q(5);
 
     x(q);
     x<cudaq::adj>(q);
@@ -35,7 +35,7 @@ struct qreg_adjoint_test {
 
 struct rotation_adjoint_test {
   void operator()() __qpu__ {
-    cudaq::qreg q(1);
+    cudaq::qvector q(1);
 
     rx(1.1, q[0]);
     rx<cudaq::adj>(1.1, q[0]);
@@ -51,7 +51,7 @@ struct rotation_adjoint_test {
 
 struct twoqbit_adjoint_test {
   void operator()() __qpu__ {
-    cudaq::qreg q(2);
+    cudaq::qvector q(2);
 
     cnot(q[0], q[1]);
     cnot(q[0], q[1]);
@@ -82,7 +82,7 @@ struct test_adjoint {
 
 struct test_cudaq_adjoint {
   void operator()() __qpu__ {
-    cudaq::qreg q(3);
+    cudaq::qvector q(3);
     x(q[0]);
     x(q[2]);
     test_adjoint{}(q);
@@ -96,7 +96,7 @@ CUDAQ_TEST(AdjointTester, checkSimple) {
   EXPECT_EQ(1, counts.size());
   EXPECT_TRUE(counts.begin()->first == "0");
 
-  auto counts2 = cudaq::sample(qreg_adjoint_test{});
+  auto counts2 = cudaq::sample(qvector_adjoint_test{});
   counts2.dump();
   EXPECT_EQ(1, counts2.size());
   EXPECT_TRUE(counts2.begin()->first == "00000");
@@ -162,7 +162,7 @@ CUDAQ_TEST(AdjointTester, checkNestedAdjoint) {
   struct run_circuit {
 
     auto operator()(const int n_qubits, const int n_itrs) __qpu__ {
-      cudaq::qreg q(n_qubits);
+      cudaq::qvector q(n_qubits);
 
       A{}(q);
 

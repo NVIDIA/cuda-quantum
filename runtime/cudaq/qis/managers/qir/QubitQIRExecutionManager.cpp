@@ -214,12 +214,14 @@ protected:
   }
 
   int measureQudit(const cudaq::QuditInfo &q) override {
+    flushRequestedAllocations();
     auto res_ptr = __quantum__qis__mz(qubits[q.id]);
     auto res = *reinterpret_cast<bool *>(res_ptr);
     return res ? 1 : 0;
   }
 
   void measureSpinOp(const cudaq::spin_op &op) override {
+    flushRequestedAllocations();
     Array *term_arr = spinToArray(op);
     __quantum__qis__measure__body(term_arr, nullptr);
   }
@@ -229,6 +231,7 @@ public:
   virtual ~QIRExecutionManager() {}
 
   void resetQudit(const cudaq::QuditInfo &id) override {
+    flushRequestedAllocations();
     __quantum__qis__reset(qubits[id.id]);
   }
 };
