@@ -341,7 +341,7 @@ CUDAQ_TEST(QubitQISTester, checkMeasureResetFence) {
       auto operator()() __qpu__ {
         // Allocate then measure, no gates.
         // Check that allocation requests are flushed.
-        cudaq::qreg q(2);
+        cudaq::qvector q(2);
         mz(q);
       }
     };
@@ -353,7 +353,7 @@ CUDAQ_TEST(QubitQISTester, checkMeasureResetFence) {
   {
     struct reset_circ {
       auto operator()() __qpu__ {
-        cudaq::qreg q(2);
+        cudaq::qvector q(2);
         x(q);
         reset(q[0]);
         mz(q);

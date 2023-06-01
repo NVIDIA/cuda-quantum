@@ -99,6 +99,7 @@ protected:
   /// @brief Subtype-specific method for performing qudit reset.
   /// @param q Qudit to reset
   virtual void resetQudit(const QuditInfo &q) = 0;
+
 public:
   BasicExecutionManager() = default;
   virtual ~BasicExecutionManager() = default;
@@ -283,6 +284,7 @@ public:
   }
 
   void reset(const QuditInfo &target) override {
+    // We hit a reset, need to exec / clear instruction queue
     synchronize();
     resetQudit(target);
   }
