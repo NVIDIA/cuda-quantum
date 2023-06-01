@@ -866,6 +866,8 @@ def cc_ComputePtrOp : CCOp<"compute_ptr", [Pure]> {
       `]` `:` functional-type(operands, results) attr-dict
   }];
 
+  let hasFolder = 1;
+
   let builders = [
     OpBuilder<(ins "mlir::Type":$resultType, "mlir::Value":$basePtr,
                "mlir::ValueRange":$indices,
