@@ -56,9 +56,6 @@ jobs:
               unzip -d "$target_folder" cuda_quantum_docs.zip
               rm -rf cuda_quantum_docs.zip
 
-              actor=${{ github.event.workflow_run.actor }}
-              triggering_actor=${{ github.event.workflow_run.triggering_actor }}
-
               git config --global user.name "${{ github.event.workflow_run.actor.name }}"
               git config --global user.email "${{ github.event.workflow_run.actor.email }}"
               git add "$target_folder"
