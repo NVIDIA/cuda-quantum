@@ -1,15 +1,8 @@
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        required: true
-        type: string
-        description: 'The version that the documentation corresponds to.'
-      download_url:
-        required: true
-        type: string
-        description: 'The url from which to download the built documentation.'
   workflow_run:
+    branches:
+      - 'main'
+      - 'releases/*'
     workflows:
       - Deployments
     types:
@@ -18,12 +11,12 @@ on:
 name: Docs publishing
 
 concurrency:
-    group: ${{ github.workflow }}
+    group: ${{ github.workflow }} # only one docs publishing can be run at a time, since all docs are published to the same location!
     cancel-in-progress: false
 
 jobs:
   publish_docs:
-    name: Publish documentation in a subfolder
+    name: Publish documentation
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -32,21 +25,22 @@ jobs:
   
     environment:
       name: github-pages
-      url: 'https://nvidia.github.io/cuda-quantum/preview'
+      url: ${{ vars.deployment_url }}
   
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          ref: 'gh-pages'
+          ref: ${{ vars.live_branch }}
 
       - name: Download docs artifact
         id: artifacts
         run: |
-          target_folder=`echo ${{ github.event.workflow_run.head_branch }} | tr / -`
-          actor=${{ github.event.workflow_run.actor }}
-          triggering_actor=${{ github.event.workflow_run.triggering_actor }}
-          sha=${{ github.event.workflow_run.head_sha }}
+          if ${{ github.event.workflow_run.head_branch == 'main' }}
+            target_folder=latest
+          else
+            target_folder=`echo ${{ github.event.workflow_run.head_branch }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
+          fi
 
           artifacts_url=${{ github.event.workflow_run.artifacts_url }}
           artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
@@ -57,16 +51,18 @@ jobs:
             if [ "$name" == "cuda_quantum_docs" ]; then
               url=`echo $artifact | jq -r '.url'`
               gh api $url > cuda_quantum_docs.zip
-              echo "download_url=$url" >> $GITHUB_OUTPUT
 
-              rm -rf ${{ inputs.version }}
-              unzip -d ${{ inputs.version }} cuda_quantum_docs.zip # FIXME
+              rm -rf "$target_folder"
+              unzip -d "$target_folder" cuda_quantum_docs.zip
               rm -rf cuda_quantum_docs.zip
 
-              git config --global user.name "Docs Bot"
-              git config --global user.email "${{ github.event.workflow_run.actor.email }}"  # "${actor}@users.noreply.github.com"
-              git add ${{ inputs.version }}
-              git commit --allow-empty -m "..." # FIXME
+              actor=${{ github.event.workflow_run.actor }}
+              triggering_actor=${{ github.event.workflow_run.triggering_actor }}
+
+              git config --global user.name "${{ github.event.workflow_run.actor.name }}"
+              git config --global user.email "${{ github.event.workflow_run.actor.email }}"
+              git add "$target_folder"
+              git commit --allow-empty -m "Docs update triggered by deployment on head branch ${{ github.event.workflow_run.head_branch }}, commit ${{ github.event.workflow_run.head_sha }}."
               git push
 
               status=0
