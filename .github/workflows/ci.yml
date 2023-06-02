@@ -58,7 +58,7 @@ jobs:
     with:
       devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}', matrix.toolchain)] }}
       devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}', matrix.toolchain)] }}
-      export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
+      export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment == 'true' }}
 
   docker_image:
     name: Create Packages

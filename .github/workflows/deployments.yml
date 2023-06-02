@@ -1,5 +1,11 @@
 on:
   workflow_dispatch:
+    inputs:
+      update_registry_cache:
+        type: boolean
+        description: Create or update the build caches on the container registry.
+        required: false
+        default: false
   # We need write permissions for packages to update the build caches of GHCR.
   # Make sure no external code is checked out as part of this workflow.
   pull_request_target:
@@ -33,6 +39,7 @@ jobs:
       dockerfile: build/devdeps.Dockerfile
       toolchain: ${{ matrix.toolchain }}
       matrix_key: ${{ matrix.toolchain }}
+      registry_cache_update: ${{ github.event_name == 'workflow_dispatch' && inputs.update_registry_cache == 'true' }}
       registry_cache_update_only: ${{ github.event.pull_request.merged == true }}
       environment: ghcr-deployment
 
