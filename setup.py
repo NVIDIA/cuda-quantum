@@ -34,15 +34,15 @@ skbuild.setup(
         "-DCUSTATEVEC_ROOT={}".format(os.environ["CUSTATEVEC_ROOT"])
         if "CUSTATEVEC_ROOT" in os.environ else "",
         "-DLLVM_DIR={}".format(os.environ["LLVM_DIR"])
-        if "LLVM_DIR" in os.environ else "", "-DOPENSSL_USE_STATIC_LIBS=TRUE",
+        if "LLVM_DIR" in os.environ else "/opt/llvm/clang-16/lib/cmake/llvm", "-DOPENSSL_USE_STATIC_LIBS=TRUE",
         "-DCMAKE_EXE_LINKER_FLAGS='-static-libgcc -static-libstdc++'",
         "-DCMAKE_SHARED_LINKER_FLAGS='-static-libgcc -static-libstdc++'",
         "-DOPENSSL_ROOT_DIR=/usr/local/ssl", "-DCUDAQ_CPR_INSTALL={}".format(
             os.environ["CUDAQ_CPR_INSTALL"]) if "CUDAQ_CPR_INSTALL"
-        in os.environ else "/lib/x86_64-linux-gnu/libz.so.1.2.11",
+        in os.environ else "/cpr/install",
         "-DZLIB_ROOT={}".format(os.environ["CUDAQ_CPR_INSTALL"])
         if "CUDAQ_CPR_INSTALL" in os.environ else
-        "/lib/x86_64-linux-gnu/libz.so.1.2.11", "-DZLIB_USE_STATIC_LIBS=TRUE",
+        "/cpr/install", "-DZLIB_USE_STATIC_LIBS=TRUE",
         "-DCUDAQ_BUILD_RELOCATABLE_PACKAGE=TRUE"
     ],
     setup_requires=["numpy", "pytest", "scikit-build"])
