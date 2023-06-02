@@ -83,7 +83,7 @@ Open VS Code and navigate to the Remote Explorer. You should see the running cud
 .. image:: _static/attachToDevContainer.png 
 
 Click on :code:`Attach to Container`. A new VS Code instance will open in that container. Open the `/home/cudaq`
-folder to see the README and the CUDA Quantum examples that are included in the container. To run the examples, 
+folder to see the `README.md` file and the CUDA Quantum examples that are included in the container. To run the examples, 
 open a terminal by going to the Terminal menu and select :code:`New Terminal`. 
 
 .. image:: _static/openTerminal.png 
