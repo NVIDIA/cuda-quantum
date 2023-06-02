@@ -16,7 +16,7 @@ To download the latest version on the main branch of our GitHub repo, for exampl
 
 .. code-block:: console
 
-    docker pull ghcr.io/nvidia/cuda-quantum:main
+    docker pull ghcr.io/nvidia/cuda-quantum:latest
 
 .. _use-cuda-quantum-in-terminal:
 
@@ -35,7 +35,7 @@ This will give you terminal access to the created container, for example
 
 .. code-block:: console 
 
-    user@host:~$ docker run -it --name cuda-quantum ghcr.io/nvidia/cuda-quantum:main
+    user@host:~$ docker run -it --name cuda-quantum ghcr.io/nvidia/cuda-quantum:latest
     To run a command as administrator (user "root"), use "sudo <command>".
     See "man sudo_root" for details.
 

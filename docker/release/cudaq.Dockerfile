@@ -63,8 +63,8 @@ ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:/usr/include/c++/11/:/usr/include/x8
 
 # Copy over the CUDA Quantum installation, and the necessary compiler tools.
 
-ARG CUDA_QUANTUM_VERSION
-ENV CUDA_QUANTUM_VERSION=$CUDA_QUANTUM_VERSION
+ARG release_version
+ENV CUDA_QUANTUM_VERSION=$release_version
 ENV CUDA_QUANTUM_PATH="/opt/nvidia/cudaq"
 
 COPY --from=cudaqbuild "/usr/local/llvm/bin/clang++" "$CUDA_QUANTUM_PATH/llvm/bin/clang++"
