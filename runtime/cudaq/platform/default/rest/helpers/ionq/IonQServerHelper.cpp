@@ -80,10 +80,13 @@ void IonQServerHelper::initialize(BackendConfig config) {
   // Move the passed config into the member variable backendConfig
   backendConfig = std::move(config);
   // Set the necessary configuration variables for the IonQ API
-  backendConfig["url"] = "https://api.ionq.co";
+  backendConfig["url"] = config.find("url") != config.end()
+                             ? config["url"]
+                             : "https://api.ionq.co";
   backendConfig["version"] = "v0.3";
   backendConfig["user_agent"] = "cudaq/0.3.0";
-  backendConfig["target"] = "simulator";
+  backendConfig["target"] =
+      config.find("qpu") != config.end() ? config["qpu"] : "simulator";
   backendConfig["qubits"] = 29;
   // Retrieve the API key from the environment variables
   backendConfig["token"] = getEnvVar("IONQ_API_KEY");

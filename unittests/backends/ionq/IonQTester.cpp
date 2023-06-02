@@ -14,13 +14,13 @@
 
 std::string mockPort = "62454";
 std::string backendStringTemplate =
-    "ionq;url;http://localhost:{};credentials;{}";
+    "ionq;url;http://localhost:{};qpu:{};credentials;{}";
 
 CUDAQ_TEST(IonQTester, checkSampleSync) {
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppIonQ.config";
   auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
+      fmt::format(fmt::runtime(backendStringTemplate), mockPort, qpu, fileName);
 
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
