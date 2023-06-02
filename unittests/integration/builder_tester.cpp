@@ -30,7 +30,7 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
 
     // Create the kernel, can be passed to cudaq algorithms
     // just like a declared kernel type. Instantiate
-    // invalidates the qreg reference you have.
+    // invalidates the qvector reference you have.
     double exp = cudaq::observe(ansatz, h, .59);
     printf("<H2> = %lf\n", exp);
     EXPECT_NEAR(exp, -1.748795, 1e-2);
@@ -132,6 +132,40 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
   }
 }
 
+CUDAQ_TEST(BuilderTester, checkSwap) {
+  // Simple two-qubit swap.
+  {
+    auto kernel = cudaq::make_kernel();
+    auto q = kernel.qalloc(2);
+    // 0th qubit into the 1-state.
+    kernel.x(q[0]);
+    // Swap their states and measure.
+    kernel.swap(q[0], q[1]);
+    // Measure.
+    kernel.mz(q);
+
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    EXPECT_NEAR(counts.count("01"), 1000, 0);
+  }
+
+  // Simple two-qubit swap.
+  {
+    auto kernel = cudaq::make_kernel();
+    auto q = kernel.qalloc(2);
+    // 1st qubit into the 1-state.
+    kernel.x(q[1]);
+    // Swap their states and measure.
+    kernel.swap(q[0], q[1]);
+    // Measure.
+    kernel.mz(q);
+
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    EXPECT_NEAR(counts.count("10"), 1000, 0);
+  }
+}
+
 CUDAQ_TEST(BuilderTester, checkConditional) {
   auto kernel = cudaq::make_kernel();
   auto q = kernel.qalloc(2);
@@ -170,9 +204,9 @@ CUDAQ_TEST(BuilderTester, checkQubitArg) {
   EXPECT_EQ(counts.size(), 2);
 }
 
-CUDAQ_TEST(BuilderTester, checkQregArg) {
-  auto [kernel, qregArg] = cudaq::make_kernel<cudaq::qreg<>>();
-  kernel.h(qregArg);
+CUDAQ_TEST(BuilderTester, checkQvecArg) {
+  auto [kernel, qvectorArg] = cudaq::make_kernel<cudaq::qvector<>>();
+  kernel.h(qvectorArg);
 
   printf("%s", kernel.to_quake().c_str());
 
@@ -281,7 +315,7 @@ CUDAQ_TEST(BuilderTester, checkKernelControl) {
   printf("< 1 | H | 1 > = %lf\n", counts.exp_val_z());
   EXPECT_NEAR(counts.exp_val_z(), -1.0 / std::sqrt(2.0), 1e-1);
 
-  // Demonstrate can control on qreg
+  // Demonstrate can control on qvector
   auto kernel = cudaq::make_kernel();
   auto ctrls = kernel.qalloc(2);
   auto tgt = kernel.qalloc();

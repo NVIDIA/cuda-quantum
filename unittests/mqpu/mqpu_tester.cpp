@@ -41,7 +41,7 @@ TEST(MQPUTester, checkLarge) {
                    std::vector<int> cnot_pairs,
                    std::vector<double> params) __qpu__ {
     // Allocate the qubits
-    cudaq::qreg q(n_qubits);
+    cudaq::qvector q(n_qubits);
 
     // We can only handle 1d vectors so
     // count the params manually

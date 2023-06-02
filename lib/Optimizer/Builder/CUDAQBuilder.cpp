@@ -73,12 +73,14 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   llvm.func @__nvqpp_initializer_list_to_vector_bool(!llvm.ptr<i8>, !llvm.ptr<i8>, i64) -> ())#"},
 
     {"__nvqpp_vectorCopyCtor", {llvmMemCopyIntrinsic, "malloc"}, R"#(
-  func.func private @__nvqpp_vectorCopyCtor(%arg0: !llvm.ptr<i8>, %arg1: i64, %arg2: i64) -> !llvm.ptr<i8> {
+  func.func private @__nvqpp_vectorCopyCtor(%arg0: !cc.ptr<none>, %arg1: i64, %arg2: i64) -> !cc.ptr<none> {
+    %a0 = cc.cast %arg0 : (!cc.ptr<none>) -> !llvm.ptr<i8>
     %size = arith.muli %arg1, %arg2 : i64
     %0 = call @malloc(%size) : (i64) -> !llvm.ptr<i8>
     %false = arith.constant false
-    call @llvm.memcpy.p0i8.p0i8.i64(%0, %arg0, %arg1, %false) : (!llvm.ptr<i8>, !llvm.ptr<i8>, i64, i1) -> ()
-    return %0 : !llvm.ptr<i8>
+    call @llvm.memcpy.p0i8.p0i8.i64(%0, %0, %arg1, %false) : (!llvm.ptr<i8>, !llvm.ptr<i8>, i64, i1) -> ()
+    %r = cc.cast %0 : (!llvm.ptr<i8>) -> !cc.ptr<none>
+    return %r : !cc.ptr<none>
   })#"},
 
     {"__nvqpp_zeroDynamicResult", {}, R"#(

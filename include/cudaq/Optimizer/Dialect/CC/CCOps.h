@@ -20,6 +20,25 @@
 #include "mlir/Interfaces/ControlFlowInterfaces.h"
 #include "mlir/Interfaces/LoopLikeInterface.h"
 
+namespace cudaq::cc {
+constexpr int kComputePtrConstantBitWidth = 29;
+using ComputePtrConstantIndex =
+    llvm::PointerEmbeddedInt<std::int32_t, kComputePtrConstantBitWidth>;
+
+// Allow a mix of values and constants to be passed as arguments to
+// ComputePtrOp's builder.
+class ComputePtrArg
+    : public llvm::PointerUnion<mlir::Value, ComputePtrConstantIndex> {
+  using BaseT = llvm::PointerUnion<mlir::Value, ComputePtrConstantIndex>;
+
+public:
+  ComputePtrArg(std::int32_t integer) : BaseT(integer) {}
+  ComputePtrArg(mlir::Value value) : BaseT(value) {}
+
+  using BaseT::operator=;
+};
+} // namespace cudaq::cc
+
 //===----------------------------------------------------------------------===//
 // Generated logic
 //===----------------------------------------------------------------------===//
