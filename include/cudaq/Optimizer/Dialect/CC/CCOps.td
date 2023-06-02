@@ -819,8 +819,9 @@ def cc_InsertValueOp : CCOp<"insert_value", [Pure]> {
     Example:
 
     ```mlir
-      %s = cc.insert_value %r, %i [1, 0] : (!cc.struct<{i32, !cc.struct<{i16,
-           f32, i64}>}>, i16) -> !cc.struct<{i32, !cc.struct<{i16, f32, i64}>}>
+      %s = cc.insert_value %i16, %r[1, 0] :
+           (!cc.struct<{i32, !cc.struct<{i16, f32}>}>, i16) ->
+           !cc.struct<{i32, !cc.struct<{i16, f32}>}>
     ```
   }];
 
@@ -925,6 +926,12 @@ def cc_CastOp : CCOp<"cast", [Pure]> {
     ( `signed` $sint^ ):( ( `unsigned` $zint^ )? )? $value `:`
       functional-type(operands, results) attr-dict
   }];
+
+  let builders = [
+    OpBuilder<(ins "mlir::Type":$resTy, "mlir::Value":$value), [{
+      return build($_builder, $_state, resTy, value, {}, {});
+    }]>
+  ];
 }
 
 //===----------------------------------------------------------------------===//
