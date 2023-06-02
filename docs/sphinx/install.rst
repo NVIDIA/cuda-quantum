@@ -12,7 +12,7 @@ The image for the latest version under development is built from source on our `
 
 .. _NGC Container Registry: https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum
 
-To download the latest version on the main branch of our GitHub repo, for example, use the command
+To download the latest version on the main branch of our GitHub repository, for example, use the command
 
 .. code-block:: console
 
@@ -48,8 +48,6 @@ This will give you terminal access to the created container, for example
     Copyright (c) 2023 NVIDIA Corporation & Affiliates
     All rights reserved.
 
-    cudaq@container:~$ ls
-    README.md  examples
     cudaq@container:~$ ls examples/
     cpp  python
 
@@ -80,7 +78,7 @@ To do so, install the `Dev Containers extension`_:
 .. image:: _static/devContainersExtension.png 
 
 Follow the steps :ref:`above<use-cuda-quantum-in-terminal>` to start the container. 
-Open VS Code and navigate to the Remote Explorer. You should see the running cuda-quantum dev container listed there.
+Open VS Code and navigate to the Remote Explorer. You should see the running cuda-quantum development container listed there.
 
 .. image:: _static/attachToDevContainer.png 
 
@@ -103,7 +101,7 @@ or run the Python examples using the Python interpreter.
 
     VS Code extensions that you have installed locally, such as e.g. an extension for Jupyter notebooks, 
     may not be automatically active in the container environment. You may need to install your preferred 
-    extension in the container environment for all of your dev tools to be available.
+    extension in the container environment for all of your development tools to be available.
 
 
 Build CUDA Quantum from Source
@@ -120,7 +118,7 @@ With the CUDA Quantum Docker image installed and a container up and running, che
 Using CUDA Quantum page_. To run the examples codes in the container, checkout the Compiling
 and Executing section here_. 
 
-Once in the VSCode IDE or in the terminal for the container in headless mode, you'll 
+Once in the VS Code IDE or in the terminal for the container in headless mode, you'll 
 notice there is an :code:`examples/` folder. These examples are provided to 
 get you started with CUDA Quantum and understanding the programming and execution model. 
 Start of by trying to compile a simple one, like :code:`examples/cpp/basics/static_kernel.cpp`
