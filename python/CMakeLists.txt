@@ -50,6 +50,7 @@ target_link_libraries(_pycudaq
     PRIVATE 
       nvqir
       cudaq 
+      cudaq-common
       cudaq-builder 
       cudaq-em-qir 
       cudaq-platform-default 
