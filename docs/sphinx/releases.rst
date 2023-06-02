@@ -5,7 +5,7 @@ CUDA Quantum Releases
 latest
 ----------
 
-The latest version of CUDA Quantum is on the main branch of our `GitHub repository`_.
+The latest version of CUDA Quantum is on the main branch of our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`.
 
 - `Documentation <https://bettinaheim.github.io/cuda-quantum/latest>`
 

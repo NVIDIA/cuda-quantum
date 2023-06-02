@@ -63,7 +63,8 @@ ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:/usr/include/c++/11/:/usr/include/x8
 
 # Copy over the CUDA Quantum installation, and the necessary compiler tools.
 
-ENV CUDA_QUANTUM_VERSION=0.3.0
+ARG CUDA_QUANTUM_VERSION
+ENV CUDA_QUANTUM_VERSION=$CUDA_QUANTUM_VERSION
 ENV CUDA_QUANTUM_PATH="/opt/nvidia/cudaq"
 
 COPY --from=cudaqbuild "/usr/local/llvm/bin/clang++" "$CUDA_QUANTUM_PATH/llvm/bin/clang++"
@@ -107,7 +108,7 @@ ADD ./docker/release/README.md /home/cudaq/README.md
 ARG COPYRIGHT_NOTICE="=========================\n\
    NVIDIA CUDA Quantum   \n\
 =========================\n\n\
-CUDA Quantum Version ${CUDA_QUANTUM_VERSION}\n\n\
+Version: ${CUDA_QUANTUM_VERSION}\n\n\
 Copyright (c) 2023 NVIDIA Corporation & Affiliates \n\
 All rights reserved.\n"
 RUN echo -e "$COPYRIGHT_NOTICE" > "$CUDA_QUANTUM_PATH/Copyright.txt"

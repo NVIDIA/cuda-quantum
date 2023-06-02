@@ -139,9 +139,11 @@ jobs:
       - name: Build documentation
         id: docs_build
         run: |
+          docs_version="CUDA_QUANTUM_VERSION=main" # FIXME
+
           docker load --input ${{ needs.release_build.outputs.cudaqdev_tarfile }}
           docker run --rm -dit --name cuda-quantum-dev cuda-quantum-dev:local
-          (docker exec cuda-quantum-dev bash scripts/build_docs.sh && built=true) || built=false
+          (docker exec cuda-quantum-dev bash export $docs_version && scripts/build_docs.sh && built=true) || built=false
           if $built; then docker cp cuda-quantum-dev:"/usr/local/cudaq/docs/." docs; \
           else docker cp cuda-quantum-dev:"/workspaces/cuda-quantum/build/." /tmp/build; fi
           docker stop cuda-quantum-dev

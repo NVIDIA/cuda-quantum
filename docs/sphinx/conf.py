@@ -18,6 +18,7 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
+import os
 import sphinx_rtd_theme
 
 # -- Project information -----------------------------------------------------
@@ -27,14 +28,10 @@ copyright = '2023, NVIDIA Corporation & Affiliates'
 author    = 'NVIDIA Corporation & Affiliates'
 
 # The version info for the project you're documenting, acts as replacement for
-# |version| and |release|, also used in various other places throughout the
-# built documents.
+# |version| used in various places throughout the docs.
 
 # The short X.Y version.
-version = '0.3' #__version__
-
-# The full version, including alpha/beta/rc tags.
-release = '0.3' #__version__
+version = os.getenv("CUDA_QUANTUM_VERSION", "latest")
 
 # -- General configuration ---------------------------------------------------
 

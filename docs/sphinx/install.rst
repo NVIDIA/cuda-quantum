@@ -4,19 +4,19 @@ CUDA Quantum Open Beta Installation
 Docker Image
 --------------------
 
-Install the Public Beta Docker Image
+Install the Docker Image
 ++++++++++++++++++++++++++++++++++++
-This public beta release of CUDA Quantum is being deployed via 
-a provided Docker image. 
-The image :code:`nvcr.io/nvidia/cuda-quantum:0.3.0` is available on the 
-`NGC Container Registry`_.
-Currently, the image is available for :code:`x86_64,amd64` platforms only.
+
+Docker images for all CUDA Quantum releases are available on the `NGC Container Registry`_.
+The image for the latest version under development is built from source on our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`.
 
 .. _NGC Container Registry: https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum
 
+To download the latest version on the main branch of our GitHub repo, for example, use the command
+
 .. code-block:: console
 
-    docker pull nvcr.io/nvidia/cuda-quantum:0.3.0
+    docker pull ghcr.io/nvidia/cuda-quantum:main
 
 .. _use-cuda-quantum-in-terminal:
 
@@ -27,16 +27,15 @@ The container can be run using the following command
 
 .. code-block:: console
 
-    docker run -it --name cuda-quantum nvcr.io/nvidia/cuda-quantum:0.3.0
+    docker run -it --name cuda-quantum <image_name>
 
-This will give you terminal access to the created container, but you are free to attach 
-an existing VSCode IDE to it.
+replacing :code:`<image_name>` with the name and tag of the image you downloaded.
 
-(what you'll see) 
+This will give you terminal access to the created container, for example
 
 .. code-block:: console 
 
-    user@host:~$ docker run -it --name cuda-quantum nvcr.io/nvidia/cuda-quantum:0.3.0
+    user@host:~$ docker run -it --name cuda-quantum ghcr.io/nvidia/cuda-quantum:main
     To run a command as administrator (user "root"), use "sudo <command>".
     See "man sudo_root" for details.
 
@@ -44,7 +43,7 @@ an existing VSCode IDE to it.
     NVIDIA CUDA Quantum
     =========================
 
-    CUDA Quantum Version 0.3.0
+    Version: latest
 
     Copyright (c) 2023 NVIDIA Corporation & Affiliates
     All rights reserved.
