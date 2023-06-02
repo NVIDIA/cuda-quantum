@@ -2,8 +2,8 @@
 FROM nvidia/cudaq_manylinux_deps as buildStage 
 
 # GET cudaq
-ARG SSH_PRIVATE_KEY
-RUN ls && ls && ls && git clone -b wheel https://github.com/amccaskey/cuda-quantum \
+# ARG SSH_PRIVATE_KEY
+RUN ls && ls && ls && git clone -b wheel https://github.com/anthony-santana/cuda-quantum \
     && cd cuda-quantum && git -c submodule.tpls/llvm.update=none submodule update --init --recursive \
     && rm -rf /root/.ssh 
 
@@ -14,7 +14,7 @@ RUN cd cuda-quantum && chmod +x $PWD/auditwheel \
     && export LLVM_DIR=/opt/llvm/lib/cmake/llvm \
     && export CUDAQ_CPR_INSTALL=/cpr/install \
     && python3.10 -m pip install auditwheel scikit-build \
-    && python3.10 setup.py bdist_wheel 
+    && bash script/build_wheel.sh 
 
     # Do this later...
     # # && for i in {7..10} ; do python3.${i} -m pip install auditwheel scikit-build && python3.${i} setup.py bdist_wheel ; done \
