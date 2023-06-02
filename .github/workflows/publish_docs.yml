@@ -67,21 +67,4 @@ jobs:
           done
           exit $status
         env:
-          GH_TOKEN: ${{ github.token }}
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v2
-        
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v1
-        with:
-          name: docs_pages
-          path: .
-          retention-days: 1
-        
-      - name: Deploy docs
-        id: docs_deployment
-        uses: actions/deploy-pages@v2
-        with:
-          artifact_name: docs_pages
-        
+          GH_TOKEN: ${{ github.token }}        
