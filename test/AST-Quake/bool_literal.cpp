@@ -13,8 +13,8 @@
 
 // CHECK: quake.h %[[VAL_0:.*]] : (!quake.ref) -> ()
 // CHECK: %false = arith.constant false
-// CHECK: %[[VAL_1:.*]] = memref.alloca() : memref<i1>
-// CHECK: memref.store %false, %[[VAL_1]][] : memref<i1>
+// CHECK: %[[VAL_1:.*]] = cc.alloca i1
+// CHECK: cc.store %false, %[[VAL_1]] : !cc.ptr<i1>
 
 struct testBoolLiteral {
   bool operator()() __qpu__ {
