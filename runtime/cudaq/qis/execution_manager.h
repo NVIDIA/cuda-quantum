@@ -31,6 +31,19 @@ struct QuditInfo {
       : levels(_levels), id(_id) {}
 };
 
+class measure_result {
+private:
+  int result = 0;
+  std::size_t uniqueId = 0;
+
+public:
+  measure_result(int res, std::size_t id) : result(res), uniqueId(id) {}
+  measure_result(int res) : result(res) {}
+
+  operator int() {return result;}
+  operator bool();
+};
+
 /// The ExecutionManager provides a base class describing a
 /// concrete sub-system for allocating qudits and executing quantum
 /// instructions on those qudits. This type is templated on the concrete

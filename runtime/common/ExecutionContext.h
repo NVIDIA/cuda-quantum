@@ -81,6 +81,10 @@ public:
   /// batch iterations.
   std::size_t totalIterations = 0;
 
+  /// @brief For mid-circuit measurements in library mode
+  /// keep track of the register names.
+  std::vector<std::string> registerNames;
+
   /// @brief The Constructor, takes the name of the context
   /// @param n The name of the context
   ExecutionContext(const std::string n) : name(n) {}
