@@ -10,7 +10,7 @@
 #include "cudaq/platform.h"
 
 namespace cudaq {
-measure_result::operator bool() {
+bool __nvqpp__MeasureResultBoolConversion(int result) {
   auto &platform = get_platform();
   auto *ctx = platform.get_exec_ctx();
   if (ctx && ctx->name == "tracer")

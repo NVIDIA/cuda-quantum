@@ -49,7 +49,8 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   // conditionals on measure results
   ctx->hasConditionalsOnMeasureResults =
       cudaq::kernelHasConditionalFeedback(kernelName);
-  
+
+#ifdef CUDAQ_LIBRARY_MODE
   // If we have a kernel that has its quake code registered, we 
   // won't check for if statements with the tracer. 
   auto isRegistered = cudaq::__internal__::isKernelGenerated(kernelName);
@@ -74,6 +75,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
       ctx->hasConditionalsOnMeasureResults = true;
     }
   }
+#endif 
 
   // Indicate that this is an async exec
   ctx->asyncExec = futureResult != nullptr;
