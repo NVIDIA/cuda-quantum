@@ -91,17 +91,17 @@ To compile and execute this code, we run the following
     nvq++ multi_controlled_operations.cpp -o mcx.x 
     ./mcx.x 
 
-Simulations with cuQuantum
-----------------------------
+Simulations with :code:`cuQuantum`
+-----------------------------------
 
-CUDA Quantum provides native support for cuQuantum-accelerated state vector and tensor network 
+CUDA Quantum provides native support for :code:`cuQuantum`-accelerated state vector and tensor network 
 simulations. Let's take a look at an example that is too large for a standard CPU-only simulator, but 
 can be trivially simulated via a NVIDIA GPU-accelerated backend:
 
 .. literalinclude:: ../examples/cpp/basics/cuquantum_backends.cpp
    :language: cpp
 
-Here we generate a GHZ state on 30 qubits. To run with the built-in cuQuantum state 
+Here we generate a GHZ state on 30 qubits. To run with the built-in :code:`cuQuantum` state 
 vector support, we pass the :code:`--qpu cuquantum` flag at compile time:
 
 .. code:: bash 

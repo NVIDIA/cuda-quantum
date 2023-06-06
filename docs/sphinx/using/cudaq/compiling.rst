@@ -6,7 +6,7 @@ intermediate representation, quantum circuit optimization, placement, and routin
 and lowering to LLVM-based representations (e.g. the QIR) for binary object 
 creation and linking. The compiler supports a number of modes, simulators, and 
 target quantum architectures, all of which can be configured with command line flags. 
-All the usual compiler flags provided by compilers like :code:`clang++`` and :code:`gcc` are also 
+All the usual compiler flags provided by compilers like :code:`clang++` and :code:`gcc` are also 
 available for creating hybrid quantum-classical applications and libraries (e.g. 
 linker flags and include header search paths). 
 
