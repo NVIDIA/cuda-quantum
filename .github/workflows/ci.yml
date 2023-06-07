@@ -65,8 +65,8 @@ jobs:
     needs: config
     uses: ./.github/workflows/build_packages.yml
     with:
-      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key.gcc12 }}
-      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive.gcc12 }}
+      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key.clang16 }}
+      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive.clang16 }}
 
   clean_up:
     name: Prepare cache clean-up
