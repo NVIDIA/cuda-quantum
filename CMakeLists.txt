@@ -360,7 +360,16 @@ add_subdirectory(utils)
 if(CUDAQ_BUILD_TESTS)
   set(INSTALL_GTEST OFF)
   add_subdirectory(tpls/googletest-src)
-  target_compile_options(gtest PRIVATE -Wno-covered-switch-default)
+  # Bug in GCC 12 leads to spurious warnings (-Wrestrict)
+  # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105329
+  if (CMAKE_COMPILER_IS_GNUCXX 
+    AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12.0.0 
+    AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13.0.0)
+    target_compile_options(gtest PUBLIC --param=evrp-mode=legacy)
+  endif()
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    target_compile_options(gtest PUBLIC -Wno-covered-switch-default)
+  endif()
   include(GoogleTest)
   include(CTest)
   if (NOT CUDAQ_DISABLE_RUNTIME)
