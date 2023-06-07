@@ -16,7 +16,7 @@ on:
         value: ${{ jobs.deployment.outputs.image_name }}
       digests:
         description: "The digest(s) of the deployed docker image(s)."
-        value: ${{ jobs.deployment.outputs.digest }}
+        value: ${{ jobs.deployment.outputs.digests }}
 
 name: Deploy image to container registry
 

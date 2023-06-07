@@ -14,6 +14,35 @@ on:
 name: Packages # do not change name without updating workflow_run triggers
 
 jobs:
+  metadata:
+    name: Metadata
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    outputs:
+      image_name: ${{ steps.metadata.outputs.image_name }}
+      image_tag: ${{ steps.metadata.outputs.image_tag }}
+
+    steps:
+      - name: Determine metadata
+        id: metadata
+        run: |
+          repo_owner=${{ github.repository_owner }}
+          image_name=${{ vars.registry || 'ghcr.io' }}/${repo_owner,,}/cuda-quantum
+          if ${{ github.event.pull_request.number != '' }}; then
+            image_tag=pr-${{ github.event.pull_request.number }}
+          elif ${{ github.ref_type == 'branch' && github.ref_name == 'main' }}; then
+            image_tag=latest
+          elif ${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') }}; then
+            image_tag=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
+          else
+            image_tag=`echo ${{ github.ref_name }} | tr '/' '-'`
+          fi
+
+          echo "image_name=$image_name" >> $GITHUB_OUTPUT
+          echo "image_tag=$image_tag" >> $GITHUB_OUTPUT
+
   release_build:
     name: Release build
     runs-on: ubuntu-latest
@@ -63,7 +92,7 @@ jobs:
   docker_image:
     name: Docker image
     runs-on: ubuntu-latest
-    needs: release_build
+    needs: [release_build, metadata]
     permissions:
       contents: read
 
@@ -85,20 +114,16 @@ jobs:
       - name: Build cuda-quantum image
         id: cudaq_image
         run: |
-          repo_owner=${{ github.repository_owner }}
-          image_name=${{ vars.registry || 'ghcr.io' }}/${repo_owner,,}/cuda-quantum
-          tag_prefix=${{ (github.event.pull_request && 'pr-') || '' }}
-          tag_name=`echo ${{ github.ref_name }} | cut -d '/' -f 1`
-          image_tag=${tag_prefix}${tag_name}
+          image_name=${{ needs.metadata.outputs.image_name }}
+          image_tag=${{ needs.metadata.outputs.image_tag }}
           tar_archive=/tmp/cuda-quantum.tar
 
           docker load --input ${{ needs.release_build.outputs.cudaqdev_tarfile }}
           docker build -t $image_name:$image_tag -f docker/release/cudaq.Dockerfile . \
-            --build-arg dev_image=cuda-quantum-dev --build-arg dev_tag=local
+            --build-arg dev_image=cuda-quantum-dev --build-arg dev_tag=local \
+            --build-arg release_version=$image_tag
           docker save $image_name:$image_tag > $tar_archive
 
-          echo "image_name=$image_name" >> $GITHUB_OUTPUT
-          echo "image_tag=$image_tag" >> $GITHUB_OUTPUT
           echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
           echo "tar_cache=tar-cuda-quantum-${{ github.sha }}" >> $GITHUB_OUTPUT
 
@@ -110,7 +135,7 @@ jobs:
 
       - name: Validate cuda-quantum image
         run: |
-          docker run --rm -dit --name cuda-quantum ${{ steps.cudaq_image.outputs.image_name }}:${{ steps.cudaq_image.outputs.image_tag }}
+          docker run --rm -dit --name cuda-quantum ${{ needs.metadata.outputs.image_name }}:${{ needs.metadata.outputs.image_tag }}
           docker cp scripts/validate_container.sh cuda-quantum:"/home/cudaq/validate_container.sh"
           docker exec -e TERM=xterm cuda-quantum bash validate_container.sh density-matrix-cpu > /tmp/validation.out
           docker stop cuda-quantum
@@ -136,7 +161,7 @@ jobs:
   documentation:
     name: Documentation
     runs-on: ubuntu-latest
-    needs: release_build
+    needs: [release_build, metadata]
     permissions:
       contents: read
 
@@ -154,9 +179,11 @@ jobs:
       - name: Build documentation
         id: docs_build
         run: |
+          docs_version="CUDA_QUANTUM_VERSION=${{ needs.metadata.outputs.image_tag }}"
+
           docker load --input ${{ needs.release_build.outputs.cudaqdev_tarfile }}
           docker run --rm -dit --name cuda-quantum-dev cuda-quantum-dev:local
-          (docker exec cuda-quantum-dev bash scripts/build_docs.sh && built=true) || built=false
+          (docker exec cuda-quantum-dev bash -c "export $docs_version && bash scripts/build_docs.sh" && built=true) || built=false
           if $built; then docker cp cuda-quantum-dev:"/usr/local/cudaq/docs/." docs; \
           else docker cp cuda-quantum-dev:"/workspaces/cuda-quantum/build/." /tmp/build; fi
           docker stop cuda-quantum-dev
@@ -182,7 +209,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v3
         with:
-          name: cuda_quantum_docs
+          name: cuda_quantum_docs # changing the artifact name requires updating other workflows
           path: docs
           retention-days: 30
           if-no-files-found: error

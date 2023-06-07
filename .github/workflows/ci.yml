@@ -20,7 +20,7 @@ jobs:
     name: Load dependencies
     strategy:
       matrix:
-        toolchain: [llvm, clang16, gcc12]
+        toolchain: [clang16, gcc12]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
@@ -52,21 +52,21 @@ jobs:
     needs: config
     strategy:
       matrix:
-        toolchain: [llvm, clang16, gcc12]
+        toolchain: [clang16, gcc12]
       fail-fast: false
     uses: ./.github/workflows/test_in_devenv.yml
     with:
       devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}', matrix.toolchain)] }}
       devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}', matrix.toolchain)] }}
-      export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
+      export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment == 'true' }}
 
   docker_image:
     name: Create Packages
     needs: config
     uses: ./.github/workflows/build_packages.yml
     with:
-      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key.llvm }}
-      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive.llvm }}
+      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key.clang16 }}
+      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive.clang16 }}
 
   clean_up:
     name: Prepare cache clean-up
@@ -81,7 +81,6 @@ jobs:
           set -e
           key_matrix='${{ needs.config.outputs.json }}'
           keys=`echo $key_matrix | jq '.cache_key | to_entries | .[].value' --raw-output`
-          keys+=" ${{ needs.setup_llvm.outputs.cache_key }}"
           echo "$keys" >> cache_keys.txt
 
       - uses: actions/upload-artifact@v3

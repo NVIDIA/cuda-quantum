@@ -17,6 +17,10 @@ on:
         required: false
         type: boolean
         default: false
+      registry_cache_update:
+        required: false
+        type: boolean
+        default: false
       registry_cache_update_only:
         required: false
         type: boolean
@@ -187,7 +191,7 @@ jobs:
           cache_from_gh="type=local,src=${local_buildcache_path}"
           cache_from_registry="type=registry,ref=${registry_cache}-${cache_id}:${registry_cache_base}"
           cache_from_nvidia_registry="type=registry,ref=${nvidia_registry_cache}-${cache_id}:${registry_cache_base}"
-          if ${{ inputs.registry_cache_update_only }}; then
+          if ${{ inputs.registry_cache_update || inputs.registry_cache_update_only }}; then
             build_cache="type=registry,ref=${registry_cache}-${cache_id}:${{ github.ref_name }}"
             cache_to="${build_cache},mode=max,ignore-error=false"
           elif ${{ inputs.create_local_cache }}; then
