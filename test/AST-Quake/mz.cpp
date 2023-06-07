@@ -67,15 +67,15 @@ struct VectorOfDynamicVeq {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__VectorOfDynamicVeq(
 // CHECK-SAME:           %[[VAL_0:.*]]: i32, %[[VAL_1:.*]]: i32) -> !cc.stdvec<i1> attributes {
-// CHECK:           %[[VAL_2:.*]] = memref.alloca() : memref<i32>
-// CHECK:           memref.store %[[VAL_0]], %[[VAL_2]][] : memref<i32>
-// CHECK:           %[[VAL_3:.*]] = memref.alloca() : memref<i32>
-// CHECK:           memref.store %[[VAL_1]], %[[VAL_3]][] : memref<i32>
+// CHECK:           %[[VAL_2:.*]] = cc.alloca i32
+// CHECK:           cc.store %[[VAL_0]], %[[VAL_2]] : !cc.ptr<i32>
+// CHECK:           %[[VAL_3:.*]] = cc.alloca i32
+// CHECK:           cc.store %[[VAL_1]], %[[VAL_3]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.ref
-// CHECK:           %[[VAL_5:.*]] = memref.load %[[VAL_2]][] : memref<i32>
+// CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_2]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_6:.*]] = arith.extui %[[VAL_5]] : i32 to i64
 // CHECK:           %[[VAL_7:.*]] = quake.alloca !quake.veq<?>[%[[VAL_6]] : i64]
-// CHECK:           %[[VAL_8:.*]] = memref.load %[[VAL_3]][] : memref<i32>
+// CHECK:           %[[VAL_8:.*]] = cc.load %[[VAL_3]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_9:.*]] = arith.extui %[[VAL_8]] : i32 to i64
 // CHECK:           %[[VAL_10:.*]] = quake.alloca !quake.veq<?>[%[[VAL_9]] : i64]
 // CHECK:           %[[VAL_11:.*]] = quake.alloca !quake.ref

@@ -47,9 +47,9 @@ struct QernelZero {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__run_circuit
 // CHECK-SAME:        (%{{.*}}: i32, %{{.*}}: i32, %{{.*}}: f64)
-// CHECK:           %[[VAL_5:.*]] = memref.alloca() : memref<f64>
+// CHECK:           %[[VAL_5:.*]] = cc.alloca f64
 // CHECK:           %[[VAL_10:.*]] = quake.alloca !quake.veq<?>[%{{.*}} : i64]
-// CHECK:           %[[VAL_16:.*]] = memref.load %[[VAL_5]][] : memref<f64>
+// CHECK:           %[[VAL_16:.*]] = cc.load %[[VAL_5]] : !cc.ptr<f64>
 // CHECK:           call @__nvqpp__mlirgen__statePrep_A{{.*}}(%[[VAL_10]], %[[VAL_16]]) : (!quake.veq<?>, f64) -> ()
 // CHECK:           cc.scope {
 // CHECK:             cc.loop while {
@@ -57,7 +57,7 @@ struct QernelZero {
 // CHECK:             } do {
 // CHECK:               cc.scope {
 // CHECK:                 quake.z %{{.*}}
-// CHECK:                 %[[VAL_23:.*]] = memref.load %[[VAL_5]][] : memref<f64>
+// CHECK:                 %[[VAL_23:.*]] = cc.load %[[VAL_5]] : !cc.ptr<f64>
 // CHECK:                 quake.apply<adj> @__nvqpp__mlirgen__statePrep_A{{.*}} %[[VAL_10]], %[[VAL_23]] : (!quake.veq<?>, f64) -> ()
 // CHECK:                 func.call @__nvqpp__mlirgen__statePrep_A{{.*}}(%[[VAL_10]], %{{.*}}) : (!quake.veq<?>, f64) -> ()
 // CHECK:               }
@@ -91,13 +91,13 @@ struct run_circuit {
 
 // ADJOINT-LABEL:   func.func private @__nvqpp__mlirgen__statePrep_A
 // ADJOINT-SAME:        .adj(%[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: f64) {
-// ADJOINT:           %[[VAL_2:.*]] = memref.alloca() : memref<f64>
-// ADJOINT:           memref.store %[[VAL_1]], %[[VAL_2]][] : memref<f64>
+// ADJOINT:           %[[VAL_2:.*]] = cc.alloca f64
+// ADJOINT:           cc.store %[[VAL_1]], %[[VAL_2]] : !cc.ptr<f64>
 // ADJOINT:           %[[VAL_3:.*]] = quake.vec_size %[[VAL_0]] : (!quake.veq<?>) -> i64
 // ADJOINT:           %[[VAL_4:.*]] = arith.trunci %[[VAL_3]] : i64 to i32
-// ADJOINT:           %[[VAL_5:.*]] = memref.alloca() : memref<i32>
-// ADJOINT:           memref.store %[[VAL_4]], %[[VAL_5]][] : memref<i32>
-// ADJOINT:           %[[VAL_6:.*]] = memref.load %[[VAL_5]][] : memref<i32>
+// ADJOINT:           %[[VAL_5:.*]] = cc.alloca i32
+// ADJOINT:           cc.store %[[VAL_4]], %[[VAL_5]] : !cc.ptr<i32>
+// ADJOINT:           %[[VAL_6:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
 // ADJOINT:           %[[VAL_7:.*]] = arith.constant 1 : i32
 // ADJOINT:           %[[VAL_8:.*]] = arith.subi %[[VAL_6]], %[[VAL_7]] : i32
 // ADJOINT:           %[[VAL_9:.*]] = arith.extsi %[[VAL_8]] : i32 to i64
@@ -109,25 +109,25 @@ struct run_circuit {
 // ADJOINT:           %[[VAL_17:.*]] = arith.index_cast %[[VAL_16]] : i64 to index
 // ADJOINT:           %[[VAL_14:.*]] = arith.constant 0 : index
 // ADJOINT:           %[[VAL_15:.*]] = arith.constant 1 : index
-// ADJOINT:           %[[VAL_18:.*]] = memref.load %[[VAL_2]][] : memref<f64>
+// ADJOINT:           %[[VAL_18:.*]] = cc.load %[[VAL_2]] : !cc.ptr<f64>
 // ADJOINT:           %[[VAL_19:.*]] = arith.constant 2.0{{.*}} : f64
-// ADJOINT:           %[[VAL_20:.*]] = memref.load %[[VAL_5]][] : memref<i32>
+// ADJOINT:           %[[VAL_20:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
 // ADJOINT:           %[[VAL_21:.*]] = arith.constant 1 : i32
 // ADJOINT:           %[[VAL_22:.*]] = arith.subi %[[VAL_20]], %[[VAL_21]] : i32
 // ADJOINT:           %[[VAL_23:.*]] = arith.sitofp %[[VAL_22]] : i32 to f64
 // ADJOINT:           %[[VAL_24:.*]] = math.powf %[[VAL_19]], %[[VAL_23]] : f64
 // ADJOINT:           %[[VAL_25:.*]] = arith.divf %[[VAL_18]], %[[VAL_24]] : f64
-// ADJOINT:           %[[VAL_26:.*]] = memref.load %[[VAL_5]][] : memref<i32>
+// ADJOINT:           %[[VAL_26:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
 // ADJOINT:           %[[VAL_27:.*]] = arith.constant 1 : i32
 // ADJOINT:           %[[VAL_28:.*]] = arith.subi %[[VAL_26]], %[[VAL_27]] : i32
 // ADJOINT:           %[[VAL_29:.*]] = arith.extsi %[[VAL_28]] : i32 to i64
 // ADJOINT:           %[[VAL_30:.*]] = quake.extract_ref %[[VAL_0]][%[[VAL_29]]] : (!quake.veq<?>, i64) -> !quake.ref
 // ADJOINT:           cc.scope {
 // ADJOINT:             %[[VAL_31:.*]] = arith.constant 1 : i32
-// ADJOINT:             %[[VAL_32:.*]] = memref.alloca() : memref<i32>
-// ADJOINT:             memref.store %[[VAL_31]], %[[VAL_32]][] : memref<i32>
-// ADJOINT:             %[[VAL_33:.*]] = memref.load %[[VAL_32]][] : memref<i32>
-// ADJOINT:             %[[VAL_34:.*]] = memref.load %[[VAL_5]][] : memref<i32>
+// ADJOINT:             %[[VAL_32:.*]] = cc.alloca i32
+// ADJOINT:             cc.store %[[VAL_31]], %[[VAL_32]] : !cc.ptr<i32>
+// ADJOINT:             %[[VAL_33:.*]] = cc.load %[[VAL_32]] : !cc.ptr<i32>
+// ADJOINT:             %[[VAL_34:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
 // ADJOINT:             %[[VAL_35:.*]] = arith.constant 1 : i32
 // ADJOINT:             %[[VAL_36:.*]] = arith.constant 0 : i32
 // ADJOINT:             %[[VAL_37:.*]] = arith.subi %[[VAL_34]], %[[VAL_33]] : i32
@@ -136,33 +136,33 @@ struct run_circuit {
 // ADJOINT:             %[[VAL_40:.*]] = arith.constant 1 : i32
 // ADJOINT:             %[[VAL_41:.*]] = arith.subi %[[VAL_39]], %[[VAL_40]] : i32
 // ADJOINT:             %[[VAL_42:.*]] = arith.addi %[[VAL_33]], %[[VAL_41]] : i32
-// ADJOINT:             memref.store %[[VAL_42]], %[[VAL_32]][] : memref<i32>
+// ADJOINT:             cc.store %[[VAL_42]], %[[VAL_32]] : !cc.ptr<i32>
 // ADJOINT:             %[[VAL_43:.*]] = arith.constant 0 : i32
 // ADJOINT:             %[[VAL_44:.*]] = cc.loop while ((%[[VAL_45:.*]] = %[[VAL_39]]) -> (i32)) {
-// ADJOINT:               %[[VAL_46:.*]] = memref.load %[[VAL_32]][] : memref<i32>
-// ADJOINT:               %[[VAL_47:.*]] = memref.load %[[VAL_5]][] : memref<i32>
+// ADJOINT:               %[[VAL_46:.*]] = cc.load %[[VAL_32]] : !cc.ptr<i32>
+// ADJOINT:               %[[VAL_47:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
 // ADJOINT:               %[[VAL_48:.*]] = arith.cmpi slt, %[[VAL_46]], %[[VAL_47]] : i32
 // ADJOINT:               %[[VAL_49:.*]] = arith.cmpi sgt, %[[VAL_45]], %[[VAL_43]] : i32
 // ADJOINT:               cc.condition %[[VAL_49]](%[[VAL_45]] : i32)
 // ADJOINT:             } do {
 // ADJOINT:             ^bb0(%[[VAL_50:.*]]: i32):
 // ADJOINT:               cc.scope {
-// ADJOINT:                 %[[VAL_51:.*]] = memref.load %[[VAL_2]][] : memref<f64>
+// ADJOINT:                 %[[VAL_51:.*]] = cc.load %[[VAL_2]] : !cc.ptr<f64>
 // ADJOINT:                 %[[VAL_52:.*]] = arith.constant 2.0{{.*}} : f64
-// ADJOINT:                 %[[VAL_53:.*]] = memref.load %[[VAL_5]][] : memref<i32>
-// ADJOINT:                 %[[VAL_54:.*]] = memref.load %[[VAL_32]][] : memref<i32>
+// ADJOINT:                 %[[VAL_53:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
+// ADJOINT:                 %[[VAL_54:.*]] = cc.load %[[VAL_32]] : !cc.ptr<i32>
 // ADJOINT:                 %[[VAL_55:.*]] = arith.subi %[[VAL_53]], %[[VAL_54]] : i32
 // ADJOINT:                 %[[VAL_56:.*]] = arith.constant 1 : i32
 // ADJOINT:                 %[[VAL_57:.*]] = arith.subi %[[VAL_55]], %[[VAL_56]] : i32
 // ADJOINT:                 %[[VAL_58:.*]] = arith.sitofp %[[VAL_57]] : i32 to f64
 // ADJOINT:                 %[[VAL_59:.*]] = math.powf %[[VAL_52]], %[[VAL_58]] : f64
 // ADJOINT:                 %[[VAL_60:.*]] = arith.divf %[[VAL_51]], %[[VAL_59]] : f64
-// ADJOINT:                 %[[VAL_61:.*]] = memref.load %[[VAL_32]][] : memref<i32>
+// ADJOINT:                 %[[VAL_61:.*]] = cc.load %[[VAL_32]] : !cc.ptr<i32>
 // ADJOINT:                 %[[VAL_62:.*]] = arith.constant 1 : i32
 // ADJOINT:                 %[[VAL_63:.*]] = arith.subi %[[VAL_61]], %[[VAL_62]] : i32
 // ADJOINT:                 %[[VAL_64:.*]] = arith.extsi %[[VAL_63]] : i32 to i64
 // ADJOINT:                 %[[VAL_65:.*]] = quake.extract_ref %[[VAL_0]][%[[VAL_64]]] : (!quake.veq<?>, i64) -> !quake.ref
-// ADJOINT:                 %[[VAL_66:.*]] = memref.load %[[VAL_5]][] : memref<i32>
+// ADJOINT:                 %[[VAL_66:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
 // ADJOINT:                 %[[VAL_67:.*]] = arith.constant 1 : i32
 // ADJOINT:                 %[[VAL_68:.*]] = arith.subi %[[VAL_66]], %[[VAL_67]] : i32
 // ADJOINT:                 %[[VAL_69:.*]] = arith.extsi %[[VAL_68]] : i32 to i64
@@ -173,10 +173,10 @@ struct run_circuit {
 // ADJOINT:               cc.continue %[[VAL_50]] : i32
 // ADJOINT:             } step {
 // ADJOINT:             ^bb0(%[[VAL_72:.*]]: i32):
-// ADJOINT:               %[[VAL_73:.*]] = memref.load %[[VAL_32]][] : memref<i32>
+// ADJOINT:               %[[VAL_73:.*]] = cc.load %[[VAL_32]] : !cc.ptr<i32>
 // ADJOINT:               %[[VAL_74:.*]] = arith.constant 1 : i32
 // ADJOINT:               %[[VAL_75:.*]] = arith.subi %[[VAL_73]], %[[VAL_74]] : i32
-// ADJOINT:               memref.store %[[VAL_75]], %[[VAL_32]][] : memref<i32>
+// ADJOINT:               cc.store %[[VAL_75]], %[[VAL_32]] : !cc.ptr<i32>
 // ADJOINT:               %[[VAL_76:.*]] = arith.constant 1 : i32
 // ADJOINT:               %[[VAL_77:.*]] = arith.subi %[[VAL_72]], %[[VAL_76]] : i32
 // ADJOINT:               cc.continue %[[VAL_77]] : i32

@@ -15,7 +15,6 @@
 #include "cudaq/Todo.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 
@@ -61,13 +60,11 @@ void synthesizeRuntimeArgument(
   // and replace with the concrete op.
   if (!argument.getUsers().empty()) {
     auto firstUse = *argument.user_begin();
-    if (dyn_cast<memref::StoreOp>(firstUse)) {
+    if (dyn_cast<cudaq::cc::StoreOp>(firstUse)) {
       auto memrefValue = firstUse->getOperand(1);
-      for (auto user : memrefValue.getUsers()) {
-        if (auto load = dyn_cast<memref::LoadOp>(user)) {
+      for (auto user : memrefValue.getUsers())
+        if (auto load = dyn_cast<cudaq::cc::LoadOp>(user))
           load.getResult().replaceAllUsesWith(runtimeArg);
-        }
-      }
     }
   }
   argument.replaceAllUsesWith(runtimeArg);

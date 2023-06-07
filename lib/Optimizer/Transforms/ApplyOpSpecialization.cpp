@@ -12,7 +12,6 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Todo.h"
 #include "llvm/Support/Debug.h"
-#include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/SCF/IR/SCF.h"
 #include "mlir/IR/Dominance.h"
 #include "mlir/IR/IRMapping.h"
@@ -195,13 +194,12 @@ static SmallVector<Operation *> populateComparisonTemps(Operation *cmpOp,
   do {
     auto *op = worklist.back();
     worklist.pop_back();
-    if (auto loadOp = dyn_cast<memref::LoadOp>(op)) {
-      auto *defOp = loadOp.getMemRef().getDefiningOp();
-      if (auto alloc = dyn_cast_or_null<memref::AllocaOp>(defOp)) {
+    if (auto loadOp = dyn_cast<cudaq::cc::LoadOp>(op)) {
+      auto *defOp = loadOp.getPtrvalue().getDefiningOp();
+      if (auto alloc = dyn_cast_or_null<cudaq::cc::AllocaOp>(defOp)) {
         auto memrefTy = alloc.getType();
         // Induction must be a scalar integral type.
-        if (memrefTy.getShape().empty() &&
-            memrefTy.getElementType().isa<IntegerType>())
+        if (memrefTy.getElementType().isa<IntegerType>())
           results.push_back(defOp);
       }
     } else {
@@ -254,17 +252,17 @@ static bool hasMonotonicLCV(cudaq::cc::LoopOp loop) {
   auto matchedWhileVariable = [&]() {
     unsigned count = 0;
     for (auto &op : llvm::reverse(stepBlock))
-      if (auto storeOp = dyn_cast<memref::StoreOp>(op))
+      if (auto storeOp = dyn_cast<cudaq::cc::StoreOp>(op))
         if (std::find(comparisonTemps.begin(), comparisonTemps.end(),
-                      storeOp.getMemRef().getDefiningOp()) !=
+                      storeOp.getPtrvalue().getDefiningOp()) !=
             comparisonTemps.end())
           if (auto *def = storeOp.getValue().getDefiningOp())
             if (isa<arith::AddIOp, arith::SubIOp>(def))
               for (auto defOpnd : def->getOperands()) // exactly 2
                 if (auto loadOp =
-                        dyn_cast<memref::LoadOp>(defOpnd.getDefiningOp()))
-                  if (storeOp.getMemRef().getDefiningOp() ==
-                      loadOp.getMemRef().getDefiningOp())
+                        dyn_cast<cudaq::cc::LoadOp>(defOpnd.getDefiningOp()))
+                  if (storeOp.getPtrvalue().getDefiningOp() ==
+                      loadOp.getPtrvalue().getDefiningOp())
                     ++count;
     return count == 1;
   }();
@@ -591,8 +589,8 @@ public:
         auto comparisonTemps =
             populateComparisonTemps(cmpOp, whileRegion.back());
         for (auto &op : llvm::reverse(loop.getStepRegion().back())) {
-          if (auto storeOp = dyn_cast<memref::StoreOp>(op)) {
-            auto *storeTo = storeOp.getMemRef().getDefiningOp();
+          if (auto storeOp = dyn_cast<cudaq::cc::StoreOp>(op)) {
+            auto *storeTo = storeOp.getPtrvalue().getDefiningOp();
             if (std::find(comparisonTemps.begin(), comparisonTemps.end(),
                           storeTo) != comparisonTemps.end())
               return {storeTo, storeOp.getValue().getDefiningOp()};
@@ -603,13 +601,14 @@ public:
     }();
     auto inductionVar{pair0.first};
     auto stepOp{pair0.second};
-    Value initialValue =
-        inductionIsValue
-            ? loop.getInitArgs()[0]
-            : builder.create<memref::LoadOp>(loc, inductionVar->getResult(0));
+    Value initialValue = inductionIsValue
+                             ? loop.getInitArgs()[0]
+                             : builder.create<cudaq::cc::LoadOp>(
+                                   loc, inductionVar->getResult(0));
     auto inductionOnLhs = [&](auto binOp) -> Value {
-      if (auto load = dyn_cast<memref::LoadOp>(binOp.getLhs().getDefiningOp()))
-        if (load.getMemRef().getDefiningOp() == inductionVar)
+      if (auto load =
+              dyn_cast<cudaq::cc::LoadOp>(binOp.getLhs().getDefiningOp()))
+        if (load.getPtrvalue().getDefiningOp() == inductionVar)
           return binOp.getRhs();
       return {};
     };
@@ -617,8 +616,8 @@ public:
       if (auto result = inductionOnLhs(binOp))
         return result;
       [[maybe_unused]] auto load =
-          dyn_cast<memref::LoadOp>(binOp.getRhs().getDefiningOp());
-      assert(load && load.getMemRef().getDefiningOp() == inductionVar);
+          dyn_cast<cudaq::cc::LoadOp>(binOp.getRhs().getDefiningOp());
+      assert(load && load.getPtrvalue().getDefiningOp() == inductionVar);
       return binOp.getLhs();
     };
     Value terminalValue = [&]() {
@@ -692,8 +691,8 @@ public:
     if (inductionIsValue)
       inputs.push_back(newInitVal);
     else
-      builder.create<memref::StoreOp>(loc, newInitVal,
-                                      inductionVar->getResult(0));
+      builder.create<cudaq::cc::StoreOp>(loc, newInitVal,
+                                         inductionVar->getResult(0));
     inputs.push_back(iters);
 
     // Create the new LoopOp. This requires threading the new value that is the
