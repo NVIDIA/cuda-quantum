@@ -21,7 +21,7 @@ If you would like to install the latest iteration under development in this
 repository and/or add your own modifications, please build CUDA Quantum from
 source following [these instructions](./Building.md).
 
-[cuda_quantum_docs]: https://nvidia.github.io/cuda-quantum/
+[cuda_quantum_docs]: https://nvidia.github.io/cuda-quantum/latest
 [official_install]: https://nvidia.github.io/cuda-quantum/latest/install.html
 
 ## Contributing
