@@ -1,0 +1,70 @@
+on:
+  workflow_run:
+    branches:
+      - 'main'
+      - 'releases/*'
+    workflows:
+      - Deployments
+    types:
+      - completed
+
+name: Docs publishing
+
+concurrency:
+    group: ${{ github.workflow }} # only one docs publishing can be run at a time, since all docs are published to the same location!
+    cancel-in-progress: false
+
+jobs:
+  publish_docs:
+    name: Publish documentation
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+  
+    environment:
+      name: github-pages
+      url: ${{ vars.deployment_url }}
+  
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ vars.live_branch }}
+
+      - name: Download docs artifact
+        id: artifacts
+        run: |
+          if ${{ github.event.workflow_run.head_branch == 'main' }}
+            target_folder=latest
+          else
+            target_folder=`echo ${{ github.event.workflow_run.head_branch }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
+          fi
+
+          artifacts_url=${{ github.event.workflow_run.artifacts_url }}
+          artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
+
+          status=1
+          for artifact in `echo "$artifacts"`; do
+            name=`echo $artifact | jq -r '.name'`
+            if [ "$name" == "cuda_quantum_docs" ]; then
+              url=`echo $artifact | jq -r '.url'`
+              gh api $url > cuda_quantum_docs.zip
+
+              rm -rf "$target_folder"
+              unzip -d "$target_folder" cuda_quantum_docs.zip
+              rm -rf cuda_quantum_docs.zip
+
+              git config --global user.name "${{ github.event.workflow_run.actor.name }}"
+              git config --global user.email "${{ github.event.workflow_run.actor.email }}"
+              git add "$target_folder"
+              git commit --allow-empty -m "Docs update triggered by deployment on head branch ${{ github.event.workflow_run.head_branch }}, commit ${{ github.event.workflow_run.head_sha }}."
+              git push
+
+              status=0
+            fi
+          done
+          exit $status
+        env:
+          GH_TOKEN: ${{ github.token }}        
