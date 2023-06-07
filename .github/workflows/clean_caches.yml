@@ -53,7 +53,7 @@ jobs:
               rm -rf cache_keys cache_keys.zip
             fi
           done
-          echo "cache_keys='$keys'" >> $GITHUB_OUTPUT
+          echo "cache_keys='$(echo $keys)'" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ github.token }}
 
