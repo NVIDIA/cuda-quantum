@@ -32,9 +32,9 @@ jobs:
           image_name=${{ vars.registry || 'ghcr.io' }}/${repo_owner,,}/cuda-quantum
           if ${{ github.event.pull_request.number != '' }}; then
             image_tag=pr-${{ github.event.pull_request.number }}
-          elif ${{ github.ref_type == 'branch' && github.ref_name == 'main' }}
+          elif ${{ github.ref_type == 'branch' && github.ref_name == 'main' }}; then
             image_tag=latest
-          elif ${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') }}
+          elif ${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') }}; then
             image_tag=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
           else
             image_tag=`echo ${{ github.ref_name }} | tr '/' '-'`
