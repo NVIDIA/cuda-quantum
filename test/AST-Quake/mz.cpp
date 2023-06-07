@@ -47,11 +47,11 @@ struct VectorOfStaticVeq {
 // CHECK:           %[[VAL_6:.*]] = quake.alloca !quake.veq<?>[%[[VAL_5]] : i64]
 // CHECK:           %[[VAL_7:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_8:.*]] = quake.mz %[[VAL_0]], %[[VAL_3]], %[[VAL_6]], %[[VAL_7]] : (!quake.ref, !quake.veq<?>, !quake.veq<?>, !quake.ref) -> !cc.stdvec<i1>
-// CHECK:           %[[VAL_9:.*]] = cc.stdvec_data %[[VAL_8]] : (!cc.stdvec<i1>) -> !cc.ptr<none>
+// CHECK:           %[[VAL_9:.*]] = cc.stdvec_data %[[VAL_8]] : (!cc.stdvec<i1>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_10:.*]] = cc.stdvec_size %[[VAL_8]] : (!cc.stdvec<i1>) -> i64
 // CHECK:           %[[VAL_11:.*]] = arith.constant 1 : i64
-// CHECK:           %[[VAL_12:.*]] = call @__nvqpp_vectorCopyCtor(%[[VAL_9]], %[[VAL_10]], %[[VAL_11]]) : (!cc.ptr<none>, i64, i64) -> !cc.ptr<none>
-// CHECK:           %[[VAL_13:.*]] = cc.stdvec_init %[[VAL_12]], %[[VAL_10]] : (!cc.ptr<none>, i64) -> !cc.stdvec<i1>
+// CHECK:           %[[VAL_12:.*]] = call @__nvqpp_vectorCopyCtor(%[[VAL_9]], %[[VAL_10]], %[[VAL_11]]) : (!cc.ptr<i8>, i64, i64) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_13:.*]] = cc.stdvec_init %[[VAL_12]], %[[VAL_10]] : (!cc.ptr<i8>, i64) -> !cc.stdvec<i1>
 // CHECK:           return %[[VAL_13]] : !cc.stdvec<i1>
 // CHECK:         }
 
@@ -80,11 +80,11 @@ struct VectorOfDynamicVeq {
 // CHECK:           %[[VAL_10:.*]] = quake.alloca !quake.veq<?>[%[[VAL_9]] : i64]
 // CHECK:           %[[VAL_11:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_12:.*]] = quake.mz %[[VAL_4]], %[[VAL_7]], %[[VAL_10]], %[[VAL_11]] : (!quake.ref, !quake.veq<?>, !quake.veq<?>, !quake.ref) -> !cc.stdvec<i1>
-// CHECK:           %[[VAL_13:.*]] = cc.stdvec_data %[[VAL_12]] : (!cc.stdvec<i1>) -> !cc.ptr<none>
+// CHECK:           %[[VAL_13:.*]] = cc.stdvec_data %[[VAL_12]] : (!cc.stdvec<i1>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_14:.*]] = cc.stdvec_size %[[VAL_12]] : (!cc.stdvec<i1>) -> i64
 // CHECK:           %[[VAL_15:.*]] = arith.constant 1 : i64
-// CHECK:           %[[VAL_16:.*]] = call @__nvqpp_vectorCopyCtor(%[[VAL_13]], %[[VAL_14]], %[[VAL_15]]) : (!cc.ptr<none>, i64, i64) -> !cc.ptr<none>
-// CHECK:           %[[VAL_17:.*]] = cc.stdvec_init %[[VAL_16]], %[[VAL_14]] : (!cc.ptr<none>, i64) -> !cc.stdvec<i1>
+// CHECK:           %[[VAL_16:.*]] = call @__nvqpp_vectorCopyCtor(%[[VAL_13]], %[[VAL_14]], %[[VAL_15]]) : (!cc.ptr<i8>, i64, i64) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_17:.*]] = cc.stdvec_init %[[VAL_16]], %[[VAL_14]] : (!cc.ptr<i8>, i64) -> !cc.stdvec<i1>
 // CHECK:           return %[[VAL_17]] : !cc.stdvec<i1>
 // CHECK:         }
 
