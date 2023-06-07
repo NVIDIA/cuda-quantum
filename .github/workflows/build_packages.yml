@@ -183,7 +183,7 @@ jobs:
 
           docker load --input ${{ needs.release_build.outputs.cudaqdev_tarfile }}
           docker run --rm -dit --name cuda-quantum-dev cuda-quantum-dev:local
-          (docker exec cuda-quantum-dev export $docs_version && bash scripts/build_docs.sh && built=true) || built=false
+          (docker exec cuda-quantum-dev bash -c "export $docs_version && bash scripts/build_docs.sh" && built=true) || built=false
           if $built; then docker cp cuda-quantum-dev:"/usr/local/cudaq/docs/." docs; \
           else docker cp cuda-quantum-dev:"/workspaces/cuda-quantum/build/." /tmp/build; fi
           docker stop cuda-quantum-dev
