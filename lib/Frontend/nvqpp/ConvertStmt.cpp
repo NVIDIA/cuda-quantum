@@ -103,7 +103,7 @@ bool QuakeBridgeVisitor::VisitCompoundAssignOperator(
     TODO_loc(loc, "assignment operator");
   }();
 
-  builder.create<mlir::memref::StoreOp>(loc, result, lhsPtr);
+  builder.create<cudaq::cc::StoreOp>(loc, result, lhsPtr);
   return pushValue(lhsPtr);
 }
 

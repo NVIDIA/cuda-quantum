@@ -124,15 +124,15 @@ struct F {
 // CHECK:           %[[VAL_8:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           call @_Z2g1v() : () -> ()
 // CHECK:           cc.scope {
-// CHECK:             %[[VAL_9:.*]] = memref.alloca() : memref<i32>
-// CHECK:             memref.store %[[VAL_7]], %[[VAL_9]][] : memref<i32>
+// CHECK:             %[[VAL_9:.*]] = cc.alloca i32
+// CHECK:             cc.store %[[VAL_7]], %[[VAL_9]] : !cc.ptr<i32>
 // CHECK:             cf.br ^bb1
 // CHECK:           ^bb1:
-// CHECK:             %[[VAL_10:.*]] = memref.load %[[VAL_9]][] : memref<i32>
+// CHECK:             %[[VAL_10:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
 // CHECK:             %[[VAL_11:.*]] = arith.cmpi slt, %[[VAL_10]], %[[VAL_6]] : i32
 // CHECK:             cf.cond_br %[[VAL_11]], ^bb2, ^bb8
 // CHECK:           ^bb2:
-// CHECK:             %[[VAL_12:.*]] = memref.load %[[VAL_9]][] : memref<i32>
+// CHECK:             %[[VAL_12:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
 // CHECK:             %[[VAL_13:.*]] = func.call @_Z2f1i(%[[VAL_12]]) : (i32) -> i1
 // CHECK:             cf.cond_br %[[VAL_13]], ^bb3, ^bb4
 // CHECK:           ^bb3:
@@ -146,7 +146,7 @@ struct F {
 // CHECK:             %[[VAL_17:.*]] = quake.extract_ref %[[VAL_8]][1] : (!quake.veq<2>) -> !quake.ref
 // CHECK:             quake.x [%[[VAL_16]]] %[[VAL_17]] : (!quake.ref,
 // CHECK:             func.call @_Z2g2v() : () -> ()
-// CHECK:             %[[VAL_18:.*]] = memref.load %[[VAL_9]][] : memref<i32>
+// CHECK:             %[[VAL_18:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
 // CHECK:             %[[VAL_19:.*]] = func.call @_Z2f2i(%[[VAL_18]]) : (i32) -> i1
 // CHECK:             cf.cond_br %[[VAL_19]], ^bb5, ^bb6
 // CHECK:           ^bb5:
@@ -170,9 +170,9 @@ struct F {
 // CHECK:             } {counted}
 // CHECK:             cf.br ^bb7
 // CHECK:           ^bb7:
-// CHECK:             %[[VAL_28:.*]] = memref.load %[[VAL_9]][] : memref<i32>
+// CHECK:             %[[VAL_28:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
 // CHECK:             %[[VAL_29:.*]] = arith.addi %[[VAL_28]], %[[VAL_5]] : i32
-// CHECK:             memref.store %[[VAL_29]], %[[VAL_9]][] : memref<i32>
+// CHECK:             cc.store %[[VAL_29]], %[[VAL_9]] : !cc.ptr<i32>
 // CHECK:             cf.br ^bb1
 // CHECK:           ^bb8:
 // CHECK:             cc.continue
@@ -192,15 +192,15 @@ struct F {
 // CHECK:           %[[VAL_8:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           call @_Z2g1v() : () -> ()
 // CHECK:           cc.scope {
-// CHECK:             %[[VAL_9:.*]] = memref.alloca() : memref<i32>
-// CHECK:             memref.store %[[VAL_7]], %[[VAL_9]][] : memref<i32>
+// CHECK:             %[[VAL_9:.*]] = cc.alloca i32
+// CHECK:             cc.store %[[VAL_7]], %[[VAL_9]] : !cc.ptr<i32>
 // CHECK:             cf.br ^bb1
 // CHECK:           ^bb1:
-// CHECK:             %[[VAL_10:.*]] = memref.load %[[VAL_9]][] : memref<i32>
+// CHECK:             %[[VAL_10:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
 // CHECK:             %[[VAL_11:.*]] = arith.cmpi slt, %[[VAL_10]], %[[VAL_6]] : i32
 // CHECK:             cf.cond_br %[[VAL_11]], ^bb2, ^bb8
 // CHECK:           ^bb2:
-// CHECK:             %[[VAL_12:.*]] = memref.load %[[VAL_9]][] : memref<i32>
+// CHECK:             %[[VAL_12:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
 // CHECK:             %[[VAL_13:.*]] = func.call @_Z2f1i(%[[VAL_12]]) : (i32) -> i1
 // CHECK:             cf.cond_br %[[VAL_13]], ^bb3, ^bb4
 // CHECK:           ^bb3:
@@ -214,7 +214,7 @@ struct F {
 // CHECK:             %[[VAL_17:.*]] = quake.extract_ref %[[VAL_8]][1] : (!quake.veq<2>) -> !quake.ref
 // CHECK:             quake.x [%[[VAL_16]]] %[[VAL_17]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:             func.call @_Z2g2v() : () -> ()
-// CHECK:             %[[VAL_18:.*]] = memref.load %[[VAL_9]][] : memref<i32>
+// CHECK:             %[[VAL_18:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
 // CHECK:             %[[VAL_19:.*]] = func.call @_Z2f2i(%[[VAL_18]]) : (i32) -> i1
 // CHECK:             cf.cond_br %[[VAL_19]], ^bb5, ^bb6
 // CHECK:           ^bb5:
@@ -238,9 +238,9 @@ struct F {
 // CHECK:             } {counted}
 // CHECK:             cf.br ^bb7
 // CHECK:           ^bb7:
-// CHECK:             %[[VAL_28:.*]] = memref.load %[[VAL_9]][] : memref<i32>
+// CHECK:             %[[VAL_28:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
 // CHECK:             %[[VAL_29:.*]] = arith.addi %[[VAL_28]], %[[VAL_5]] : i32
-// CHECK:             memref.store %[[VAL_29]], %[[VAL_9]][] : memref<i32>
+// CHECK:             cc.store %[[VAL_29]], %[[VAL_9]] : !cc.ptr<i32>
 // CHECK:             cf.br ^bb1
 // CHECK:           ^bb8:
 // CHECK:             cc.continue
@@ -259,15 +259,15 @@ struct F {
 // CHECK-DAG:       %[[VAL_7:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_8:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           call @_Z2g1v() : () -> ()
-// CHECK:           %[[VAL_9:.*]] = memref.alloca() : memref<i32>
-// CHECK:           memref.store %[[VAL_7]], %[[VAL_9]][] : memref<i32>
+// CHECK:           %[[VAL_9:.*]] = cc.alloca i32
+// CHECK:           cc.store %[[VAL_7]], %[[VAL_9]] : !cc.ptr<i32>
 // CHECK:           cf.br ^bb1
 // CHECK:         ^bb1:
-// CHECK:           %[[VAL_10:.*]] = memref.load %[[VAL_9]][] : memref<i32>
+// CHECK:           %[[VAL_10:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_11:.*]] = arith.cmpi slt, %[[VAL_10]], %[[VAL_6]] : i32
 // CHECK:           cf.cond_br %[[VAL_11]], ^bb2, ^bb7
 // CHECK:         ^bb2:
-// CHECK:           %[[VAL_12:.*]] = memref.load %[[VAL_9]][] : memref<i32>
+// CHECK:           %[[VAL_12:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_13:.*]] = call @_Z2f1i(%[[VAL_12]]) : (i32) -> i1
 // CHECK:           cf.cond_br %[[VAL_13]], ^bb3, ^bb4
 // CHECK:         ^bb3:
@@ -281,7 +281,7 @@ struct F {
 // CHECK:           %[[VAL_17:.*]] = quake.extract_ref %[[VAL_8]][1] : (!quake.veq<2>) -> !quake.ref
 // CHECK:           quake.x [%[[VAL_16]]] %[[VAL_17]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           call @_Z2g2v() : () -> ()
-// CHECK:           %[[VAL_18:.*]] = memref.load %[[VAL_9]][] : memref<i32>
+// CHECK:           %[[VAL_18:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_19:.*]] = call @_Z2f2i(%[[VAL_18]]) : (i32) -> i1
 // CHECK:           cf.cond_br %[[VAL_19]], ^bb5, ^bb6
 // CHECK:         ^bb5:
@@ -303,9 +303,9 @@ struct F {
 // CHECK:             %[[VAL_27:.*]] = arith.addi %[[VAL_26]], %[[VAL_3]] : index
 // CHECK:             cc.continue %[[VAL_27]] : index
 // CHECK:           } {counted}
-// CHECK:           %[[VAL_28:.*]] = memref.load %[[VAL_9]][] : memref<i32>
+// CHECK:           %[[VAL_28:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_29:.*]] = arith.addi %[[VAL_28]], %[[VAL_5]] : i32
-// CHECK:           memref.store %[[VAL_29]], %[[VAL_9]][] : memref<i32>
+// CHECK:           cc.store %[[VAL_29]], %[[VAL_9]] : !cc.ptr<i32>
 // CHECK:           cf.br ^bb1
 // CHECK:         ^bb7:
 // CHECK:           call @_Z2g4v() : () -> ()
@@ -325,15 +325,15 @@ struct F {
 // CHECK-DAG:       %[[VAL_7:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_8:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           call @_Z2g1v() : () -> ()
-// CHECK:           %[[VAL_9:.*]] = memref.alloca() : memref<i32>
-// CHECK:           memref.store %[[VAL_7]], %[[VAL_9]][] : memref<i32>
+// CHECK:           %[[VAL_9:.*]] = cc.alloca i32
+// CHECK:           cc.store %[[VAL_7]], %[[VAL_9]] : !cc.ptr<i32>
 // CHECK:           cf.br ^bb1
 // CHECK:         ^bb1:
-// CHECK:           %[[VAL_10:.*]] = memref.load %[[VAL_9]][] : memref<i32>
+// CHECK:           %[[VAL_10:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_11:.*]] = arith.cmpi slt, %[[VAL_10]], %[[VAL_6]] : i32
 // CHECK:           cf.cond_br %[[VAL_11]], ^bb2, ^bb8
 // CHECK:         ^bb2:
-// CHECK:           %[[VAL_12:.*]] = memref.load %[[VAL_9]][] : memref<i32>
+// CHECK:           %[[VAL_12:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_13:.*]] = call @_Z2f1i(%[[VAL_12]]) : (i32) -> i1
 // CHECK:           cf.cond_br %[[VAL_13]], ^bb3, ^bb4
 // CHECK:         ^bb3:
@@ -347,7 +347,7 @@ struct F {
 // CHECK:           %[[VAL_17:.*]] = quake.extract_ref %[[VAL_8]][1] : (!quake.veq<2>) -> !quake.ref
 // CHECK:           quake.x [%[[VAL_16]]] %[[VAL_17]]
 // CHECK:           call @_Z2g2v() : () -> ()
-// CHECK:           %[[VAL_18:.*]] = memref.load %[[VAL_9]][] : memref<i32>
+// CHECK:           %[[VAL_18:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_19:.*]] = call @_Z2f2i(%[[VAL_18]]) : (i32) -> i1
 // CHECK:           cf.cond_br %[[VAL_19]], ^bb5, ^bb6
 // CHECK:         ^bb5:
@@ -371,9 +371,9 @@ struct F {
 // CHECK:           } {counted}
 // CHECK:           cf.br ^bb7
 // CHECK:         ^bb7:
-// CHECK:           %[[VAL_28:.*]] = memref.load %[[VAL_9]][] : memref<i32>
+// CHECK:           %[[VAL_28:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_29:.*]] = arith.addi %[[VAL_28]], %[[VAL_5]] : i32
-// CHECK:           memref.store %[[VAL_29]], %[[VAL_9]][] : memref<i32>
+// CHECK:           cc.store %[[VAL_29]], %[[VAL_9]] : !cc.ptr<i32>
 // CHECK:           cf.br ^bb1
 // CHECK:         ^bb8:
 // CHECK:           call @_Z2g4v() : () -> ()

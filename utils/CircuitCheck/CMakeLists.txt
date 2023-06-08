@@ -19,7 +19,6 @@ target_include_directories(CircuitCheck
 target_link_libraries(CircuitCheck
   PRIVATE
   MLIRArithDialect
-  MLIRMemRefDialect
   MLIRParser
   MLIRPass
   MLIRTransforms
