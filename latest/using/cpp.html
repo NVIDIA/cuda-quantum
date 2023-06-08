@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CUDA Quantum in C++ &mdash; NVIDIA CUDA Quantum 0.3 documentation</title>
+  <title>CUDA Quantum in C++ &mdash; NVIDIA CUDA Quantum  documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../_static/cudaq_override.css" type="text/css" />
@@ -38,7 +38,7 @@
             NVIDIA CUDA Quantum
           </a>
               <div class="version">
-                0.3
+                pr-231
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -93,18 +93,12 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../install.html">   Getting Started</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#docker-image">Docker Image</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../install.html#install-the-public-beta-docker-image">Install the Public Beta Docker Image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../install.html#install-the-docker-image">Install the Docker Image</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../install.html#use-cuda-quantum-in-a-terminal">Use CUDA Quantum in a Terminal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../install.html#use-cuda-quantum-in-vs-code">Use CUDA Quantum in VS Code</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../install.html#build-cuda-quantum-from-source">Build CUDA Quantum from Source</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../install.html#get-the-basic-compilers-you-ll-need-via-apt-get">Get the basic compilers you’ll need via apt-get</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../install.html#get-cuquantum-optional">Get cuQuantum (optional)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../install.html#get-llvm-clang-mlir">Get LLVM / Clang / MLIR</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../install.html#build-cuda-quantum">Build CUDA Quantum</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#build-cuda-quantum-from-source">Build CUDA Quantum from Source</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
@@ -123,7 +117,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="advanced.html">   Advanced Topics</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="advanced/nvqir_simulator.html">Create a new NVQIR Simulator</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="advanced/nvqir_simulator.html#circuitsimulator">CircuitSimulator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="advanced/nvqir_simulator.html#circuitsimulator"><code class="code docutils literal notranslate"><span class="pre">CircuitSimulator</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="advanced/nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
 </ul>
 </li>
@@ -194,10 +188,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/platform.html">11. Platform</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html">12. Algorithmic Primitives</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html#cudaq-sample">12.1. cudaq::sample</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html#cudaq-observe">12.2. cudaq::observe</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer">12.3. cudaq::optimizer</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html#cudaq-gradient">12.4. cudaq::gradient</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html#cudaq-sample">12.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html#cudaq-observe">12.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html#cudaq-gradient">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/examples.html">13. Example Programs</a><ul>
@@ -211,10 +205,10 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../specification/qtx-dialect.html">   QTX Specification</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../specification/qtx-dialect.html#general-introduction">General Introduction</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../specification/qtx-dialect.html#motivation">Motivation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../specification/qtx-dialect.html#qtx-types">QTX Types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../specification/quake-dialect.html">   Quake Specification</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../specification/quake-dialect.html#general-introduction">General Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../specification/quake-dialect.html#motivation">Motivation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../specification/quake-dialect.html#quake-types">Quake Types</a></li>
 </ul>
 </li>
 </ul>
@@ -248,14 +242,17 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#backend-configuration">Backend Configuration</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.set_noise"><code class="docutils literal notranslate"><span class="pre">set_noise()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.unset_noise"><code class="docutils literal notranslate"><span class="pre">unset_noise()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.set_qpu"><code class="docutils literal notranslate"><span class="pre">set_qpu()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.list_qpus"><code class="docutils literal notranslate"><span class="pre">list_qpus()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.set_target"><code class="docutils literal notranslate"><span class="pre">set_target()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.has_target"><code class="docutils literal notranslate"><span class="pre">has_target()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.get_target"><code class="docutils literal notranslate"><span class="pre">get_target()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.get_targets"><code class="docutils literal notranslate"><span class="pre">get_targets()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#data-types">Data Types</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.QuakeValue"><code class="docutils literal notranslate"><span class="pre">QuakeValue</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.SpinOperator"><code class="docutils literal notranslate"><span class="pre">SpinOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.spin.i"><code class="docutils literal notranslate"><span class="pre">spin.i()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.spin.x"><code class="docutils literal notranslate"><span class="pre">spin.x()</span></code></a></li>
@@ -273,6 +270,11 @@
 </li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">   Other Versions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../versions.html#latest">latest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../versions.html#id1">0.3.0</a></li>
 </ul>
 </li>
 </ul>
@@ -312,7 +314,9 @@ using CUDA Quantum.</p>
 <p>CUDA Quantum kernels are any typed callable in the language that is annotated with the <code class="code docutils literal notranslate"><span class="pre">__qpu__</span></code> attribute. Let’s take a look at a very
 simple “Hello World” example, specifically a CUDA Quantum kernel that prepares a GHZ state on a programmer-specified number of qubits.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Compile and run with:</span>
+<span class="c1">// ```</span>
 <span class="c1">// nvq++ static_kernel.cpp -o ghz.x &amp;&amp; ./ghz.x</span>
+<span class="c1">// ```</span>
 
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
 
@@ -322,7 +326,7 @@ simple “Hello World” example, specifically a CUDA Quantum kernel that prepar
 <span class="k">struct</span><span class="w"> </span><span class="nc">ghz</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="k">operator</span><span class="p">()()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
 
-<span class="w">    </span><span class="c1">// Compile-time, std::array-like qreg.</span>
+<span class="w">    </span><span class="c1">// Compile-time, std::array-like `qreg`.</span>
 <span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="o">&lt;</span><span class="n">N</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
 <span class="w">    </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
 <span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">N</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
@@ -369,12 +373,14 @@ was observed (here the default number of shots is used, <code class="code docuti
 of quantum spin operators with respect to a parameterized CUDA Quantum kernel. Let’s take a look
 at an example of this:</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Compile and run with:</span>
+<span class="c1">// ```</span>
 <span class="c1">// nvq++ expectation_values.cpp -o d2.x &amp;&amp; ./d2.x</span>
+<span class="c1">// ```</span>
 
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq/algorithm.h&gt;</span>
 
-<span class="c1">// The example here shows a simple use case for the cudaq::observe()</span>
+<span class="c1">// The example here shows a simple use case for the `cudaq::observe`</span>
 <span class="c1">// function in computing expected values of provided spin_ops.</span>
 
 <span class="k">struct</span><span class="w"> </span><span class="nc">ansatz</span><span class="w"> </span><span class="p">{</span>
@@ -393,8 +399,8 @@ at an example of this:</p>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin_op</span><span class="w"> </span><span class="n">h</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">5.907</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">2.1433</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">x</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">2.1433</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">y</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">y</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span>
 <span class="w">                     </span><span class="mf">.21829</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">6.125</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">z</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
 
-<span class="w">  </span><span class="c1">// Observe takes the kernel, the spin_op, and the concrete params for the</span>
-<span class="w">  </span><span class="c1">// kernel</span>
+<span class="w">  </span><span class="c1">// Observe takes the kernel, the spin_op, and the concrete</span>
+<span class="w">  </span><span class="c1">// parameters for the kernel</span>
 <span class="w">  </span><span class="kt">double</span><span class="w"> </span><span class="n">energy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">observe</span><span class="p">(</span><span class="n">ansatz</span><span class="p">{},</span><span class="w"> </span><span class="n">h</span><span class="p">,</span><span class="w"> </span><span class="mf">.59</span><span class="p">);</span>
 <span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Energy is %lf</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">energy</span><span class="p">);</span>
 <span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
@@ -421,7 +427,9 @@ from the execution, but is trivially convertible to a double, resulting in the e
 on an arbitrary number of control qubits. For this scenario, our general unitary can be described
 by another pre-defined CUDA Quantum kernel expression. Let’s take a look at the following example:</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Compile and run with:</span>
+<span class="c1">// ```</span>
 <span class="c1">// nvq++ multi_controlled_operations.cpp -o ccnot.x &amp;&amp; ./ccnot.x</span>
+<span class="c1">// ```</span>
 
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq/algorithm.h&gt;</span>
@@ -499,7 +507,9 @@ a single target qubit).</p>
 simulations. Let’s take a look at an example that is too large for a standard CPU-only simulator, but
 can be trivially simulated via a NVIDIA GPU-accelerated backend:</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Compile and run with:</span>
+<span class="c1">// ```</span>
 <span class="c1">// nvq++ cuquantum_backends.cpp -o dyn.x -qpu cuquantum &amp;&amp; ./dyn.x</span>
+<span class="c1">// ```</span>
 
 <span class="c1">// This example is meant to demonstrate the cuQuantum</span>
 <span class="c1">// target and its ability to easily handle a larger number</span>
@@ -515,7 +525,7 @@ can be trivially simulated via a NVIDIA GPU-accelerated backend:</p>
 <span class="k">struct</span><span class="w"> </span><span class="nc">ghz</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="k">operator</span><span class="p">()(</span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">N</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
 
-<span class="w">    </span><span class="c1">// Dynamic, vector-like qreg</span>
+<span class="w">    </span><span class="c1">// Dynamic, vector-like `qreg`</span>
 <span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="n">N</span><span class="p">);</span>
 <span class="w">    </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
 <span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">N</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>

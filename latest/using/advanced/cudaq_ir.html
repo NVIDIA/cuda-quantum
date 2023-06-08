@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Working with the CUDA Quantum IR &mdash; NVIDIA CUDA Quantum 0.3 documentation</title>
+  <title>Working with the CUDA Quantum IR &mdash; NVIDIA CUDA Quantum  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/cudaq_override.css" type="text/css" />
@@ -38,7 +38,7 @@
             NVIDIA CUDA Quantum
           </a>
               <div class="version">
-                0.3
+                pr-231
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -93,18 +93,12 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../../install.html">   Getting Started</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../install.html#docker-image">Docker Image</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../install.html#install-the-public-beta-docker-image">Install the Public Beta Docker Image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../install.html#install-the-docker-image">Install the Docker Image</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../install.html#use-cuda-quantum-in-a-terminal">Use CUDA Quantum in a Terminal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../install.html#use-cuda-quantum-in-vs-code">Use CUDA Quantum in VS Code</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../install.html#build-cuda-quantum-from-source">Build CUDA Quantum from Source</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../install.html#get-the-basic-compilers-you-ll-need-via-apt-get">Get the basic compilers you’ll need via apt-get</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../install.html#get-cuquantum-optional">Get cuQuantum (optional)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../install.html#get-llvm-clang-mlir">Get LLVM / Clang / MLIR</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../install.html#build-cuda-quantum">Build CUDA Quantum</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="../../install.html#build-cuda-quantum-from-source">Build CUDA Quantum from Source</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../install.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
@@ -123,7 +117,7 @@
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">   Advanced Topics</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="nvqir_simulator.html">Create a new NVQIR Simulator</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="nvqir_simulator.html#circuitsimulator">CircuitSimulator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nvqir_simulator.html#circuitsimulator"><code class="code docutils literal notranslate"><span class="pre">CircuitSimulator</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
 </ul>
 </li>
@@ -194,10 +188,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/platform.html">11. Platform</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html">12. Algorithmic Primitives</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-sample">12.1. cudaq::sample</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-observe">12.2. cudaq::observe</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer">12.3. cudaq::optimizer</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-gradient">12.4. cudaq::gradient</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-sample">12.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-observe">12.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-gradient">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/examples.html">13. Example Programs</a><ul>
@@ -211,10 +205,10 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../specification/qtx-dialect.html">   QTX Specification</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../specification/qtx-dialect.html#general-introduction">General Introduction</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../specification/qtx-dialect.html#motivation">Motivation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../specification/qtx-dialect.html#qtx-types">QTX Types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../specification/quake-dialect.html">   Quake Specification</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#general-introduction">General Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#motivation">Motivation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#quake-types">Quake Types</a></li>
 </ul>
 </li>
 </ul>
@@ -248,14 +242,17 @@
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#backend-configuration">Backend Configuration</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.set_noise"><code class="docutils literal notranslate"><span class="pre">set_noise()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.unset_noise"><code class="docutils literal notranslate"><span class="pre">unset_noise()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.set_qpu"><code class="docutils literal notranslate"><span class="pre">set_qpu()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.list_qpus"><code class="docutils literal notranslate"><span class="pre">list_qpus()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.set_target"><code class="docutils literal notranslate"><span class="pre">set_target()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.has_target"><code class="docutils literal notranslate"><span class="pre">has_target()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.get_target"><code class="docutils literal notranslate"><span class="pre">get_target()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.get_targets"><code class="docutils literal notranslate"><span class="pre">get_targets()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#data-types">Data Types</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.QuakeValue"><code class="docutils literal notranslate"><span class="pre">QuakeValue</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SpinOperator"><code class="docutils literal notranslate"><span class="pre">SpinOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.i"><code class="docutils literal notranslate"><span class="pre">spin.i()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.x"><code class="docutils literal notranslate"><span class="pre">spin.x()</span></code></a></li>
@@ -273,6 +270,11 @@
 </li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../versions.html">   Other Versions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../versions.html#latest">latest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../versions.html#id1">0.3.0</a></li>
 </ul>
 </li>
 </ul>
@@ -331,7 +333,7 @@
 <span class="go">llc --relocation-model=pic --filetype=obj -O2 simple.ll.p3De4L -o simple.qke.o</span>
 <span class="go">llc --relocation-model=pic --filetype=obj -O2 simple.ll -o simple.classic.o</span>
 <span class="go">clang++ -L/usr/lib/gcc/x86_64-linux-gnu/11 -L/usr/lib64 -L/lib/x86_64-linux-gnu -L/lib64 -L/usr/lib/x86_64-linux-gnu -L/lib -L/usr/lib -L/usr/local/cuda/lib64/stubs -r simple.qke.o simple.classic.o -o simple.o</span>
-<span class="go">clang++ -Wl,-rpath,lib -Llib -L/usr/lib/gcc/x86_64-linux-gnu/11 -L/usr/lib64 -L/lib/x86_64-linux-gnu -L/lib64 -L/usr/lib/x86_64-linux-gnu -L/lib -L/usr/lib -L/usr/local/cuda/lib64/stubs simple.o -lcudaq -lcudaq-common -lcudaq-mlir-runtime -lcudaq-builder -lcudaq-ensmallen -lcudaq-nlopt -lcudaq-spin -lcudaq-qpud-client -lcudaq-em-qir -lcudaq-platform-default -lnvqir -lnvqir-qpp</span>
+<span class="go">clang++ -Wl,-rpath,lib -Llib -L/usr/lib/gcc/x86_64-linux-gnu/11 -L/usr/lib64 -L/lib/x86_64-linux-gnu -L/lib64 -L/usr/lib/x86_64-linux-gnu -L/lib -L/usr/lib -L/usr/local/cuda/lib64/stubs simple.o -lcudaq -lcudaq-common -lcudaq-mlir-runtime -lcudaq-builder -lcudaq-ensmallen -lcudaq-nlopt -lcudaq-spin -lcudaq-em-qir -lcudaq-platform-default -lnvqir -lnvqir-qpp</span>
 </pre></div>
 </div>
 <p>The workflow orchestrated above is best visualized in the following figure.</p>
@@ -341,16 +343,16 @@ to the Quake dialect. Since we added <code class="code docutils literal notransl
 we can look at the IR code that was produced. <code class="code docutils literal notranslate"><span class="pre">simple.qke</span></code> contains</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">module attributes {qtx.mangled_name_map = {__nvqpp__mlirgen__ghz = &quot;_ZN3ghzclEi&quot;}} {</span>
 <span class="go">    func.func @__nvqpp__mlirgen__ghz(%arg0: i32) attributes {&quot;cudaq-entrypoint&quot;, &quot;cudaq-kernel&quot;} {</span>
-<span class="gp">        %</span><span class="nv">alloca</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>memref.alloca<span class="o">()</span><span class="w"> </span>:<span class="w"> </span>memref&lt;i32&gt;
-<span class="go">        memref.store %arg0, %alloca[] : memref&lt;i32&gt;</span>
-<span class="gp">        %</span><span class="nv">0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>memref.load<span class="w"> </span>%alloca<span class="o">[]</span><span class="w"> </span>:<span class="w"> </span>memref&lt;i32&gt;
-<span class="gp">        %</span><span class="nv">1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>arith.extsi<span class="w"> </span>%0<span class="w"> </span>:<span class="w"> </span>i32<span class="w"> </span>to<span class="w"> </span>i64
-<span class="gp">        %</span><span class="nv">2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>quake.alloca<span class="o">(</span>%1<span class="w"> </span>:<span class="w"> </span>i64<span class="o">)</span><span class="w"> </span>:<span class="w"> </span>!quake.qvec&lt;?&gt;
-<span class="gp">        %</span><span class="nv">c0_i32</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>arith.constant<span class="w"> </span><span class="m">0</span><span class="w"> </span>:<span class="w"> </span>i32
-<span class="gp">        %</span><span class="nv">3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>arith.extsi<span class="w"> </span>%c0_i32<span class="w"> </span>:<span class="w"> </span>i32<span class="w"> </span>to<span class="w"> </span>i64
-<span class="gp">        %</span><span class="nv">4</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>quake.qextract<span class="w"> </span>%2<span class="o">[</span>%3<span class="o">]</span><span class="w"> </span>:<span class="w"> </span>!quake.qvec&lt;?&gt;<span class="o">[</span>i64<span class="o">]</span><span class="w"> </span>-&gt;<span class="w"> </span>!quake.qref
-<span class="go">        quake.h (%4)</span>
-<span class="go">        cc.scope {</span>
+<span class="gp">       %</span><span class="nv">alloca</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>memref.alloca<span class="o">()</span><span class="w"> </span>:<span class="w"> </span>memref&lt;i32&gt;
+<span class="go">       memref.store %arg0, %alloca[] : memref&lt;i32&gt;</span>
+<span class="gp">       %</span><span class="nv">0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>memref.load<span class="w"> </span>%alloca<span class="o">[]</span><span class="w"> </span>:<span class="w"> </span>memref&lt;i32&gt;
+<span class="gp">       %</span><span class="nv">1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>arith.extsi<span class="w"> </span>%0<span class="w"> </span>:<span class="w"> </span>i32<span class="w"> </span>to<span class="w"> </span>i64
+<span class="gp">       %</span><span class="nv">2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>quake.alloca<span class="o">(</span>%1<span class="w"> </span>:<span class="w"> </span>i64<span class="o">)</span><span class="w"> </span>!quake.veq&lt;?&gt;
+<span class="gp">       %</span><span class="nv">c0_i32</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>arith.constant<span class="w"> </span><span class="m">0</span><span class="w"> </span>:<span class="w"> </span>i32
+<span class="gp">       %</span><span class="nv">3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>arith.extsi<span class="w"> </span>%c0_i32<span class="w"> </span>:<span class="w"> </span>i32<span class="w"> </span>to<span class="w"> </span>i64
+<span class="gp">       %</span><span class="nv">4</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>quake.extract_ref<span class="w"> </span>%2<span class="o">[</span>%3<span class="o">]</span><span class="w"> </span>:<span class="w"> </span><span class="o">(</span>!quake.veq&lt;?&gt;,<span class="w"> </span>i64<span class="o">)</span><span class="w"> </span>-&gt;<span class="w"> </span>!quake.ref
+<span class="go">       quake.h %4 : (!quake.ref) -&gt; ()</span>
+<span class="go">       cc.scope {</span>
 <span class="gp">        %</span><span class="nv">c0_i32_0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>arith.constant<span class="w"> </span><span class="m">0</span><span class="w"> </span>:<span class="w"> </span>i32
 <span class="gp">        %</span><span class="nv">alloca_1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>memref.alloca<span class="o">()</span><span class="w"> </span>:<span class="w"> </span>memref&lt;i32&gt;
 <span class="go">        memref.store %c0_i32_0, %alloca_1[] : memref&lt;i32&gt;</span>
@@ -362,18 +364,18 @@ we can look at the IR code that was produced. <code class="code docutils literal
 <span class="gp">            %</span><span class="nv">9</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>arith.cmpi<span class="w"> </span>slt,<span class="w"> </span>%6,<span class="w"> </span>%8<span class="w"> </span>:<span class="w"> </span>i32
 <span class="go">            cc.condition %9</span>
 <span class="go">        } do {</span>
-<span class="go">            cc.scope {</span>
+<span class="go">          cc.scope {</span>
 <span class="gp">            %</span><span class="nv">6</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>memref.load<span class="w"> </span>%alloca_1<span class="o">[]</span><span class="w"> </span>:<span class="w"> </span>memref&lt;i32&gt;
 <span class="gp">            %</span><span class="nv">7</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>arith.extsi<span class="w"> </span>%6<span class="w"> </span>:<span class="w"> </span>i32<span class="w"> </span>to<span class="w"> </span>i64
-<span class="gp">            %</span><span class="nv">8</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>quake.qextract<span class="w"> </span>%2<span class="o">[</span>%7<span class="o">]</span><span class="w"> </span>:<span class="w"> </span>!quake.qvec&lt;?&gt;<span class="o">[</span>i64<span class="o">]</span><span class="w"> </span>-&gt;<span class="w"> </span>!quake.qref
+<span class="gp">            %</span><span class="nv">8</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>quake.extract_ref<span class="w"> </span>%2<span class="o">[</span>%7<span class="o">]</span><span class="w"> </span>:<span class="w"> </span><span class="o">(</span>!quake.veq&lt;?&gt;,<span class="w"> </span>i64<span class="o">)</span><span class="w"> </span>-&gt;<span class="w"> </span>!quake.ref
 <span class="gp">            %</span><span class="nv">9</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>memref.load<span class="w"> </span>%alloca_1<span class="o">[]</span><span class="w"> </span>:<span class="w"> </span>memref&lt;i32&gt;
 <span class="gp">            %</span><span class="nv">c1_i32</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>arith.constant<span class="w"> </span><span class="m">1</span><span class="w"> </span>:<span class="w"> </span>i32
 <span class="gp">            %</span><span class="nv">10</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>arith.addi<span class="w"> </span>%9,<span class="w"> </span>%c1_i32<span class="w"> </span>:<span class="w"> </span>i32
 <span class="gp">            %</span><span class="nv">11</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>arith.extsi<span class="w"> </span>%10<span class="w"> </span>:<span class="w"> </span>i32<span class="w"> </span>to<span class="w"> </span>i64
-<span class="gp">            %</span><span class="nv">12</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>quake.qextract<span class="w"> </span>%2<span class="o">[</span>%11<span class="o">]</span><span class="w"> </span>:<span class="w"> </span>!quake.qvec&lt;?&gt;<span class="o">[</span>i64<span class="o">]</span><span class="w"> </span>-&gt;<span class="w"> </span>!quake.qref
-<span class="go">            quake.x [%8 : !quake.qref] (%12)</span>
-<span class="go">            }</span>
-<span class="go">            cc.continue</span>
+<span class="gp">            %</span><span class="nv">12</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>quake.extract_ref<span class="w"> </span>%2<span class="o">[</span>%11<span class="o">]</span><span class="w"> </span>:<span class="w"> </span><span class="o">(</span>!quake.veq&lt;?&gt;,<span class="w"> </span>i64<span class="o">)</span><span class="w"> </span>-&gt;<span class="w"> </span>!quake.ref
+<span class="go">            quake.x [%8] %12 : (!quake.ref, !quake.ref) -&gt; ()</span>
+<span class="go">          }</span>
+<span class="go">          cc.continue</span>
 <span class="go">        } step {</span>
 <span class="gp">            %</span><span class="nv">6</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>memref.load<span class="w"> </span>%alloca_1<span class="o">[]</span><span class="w"> </span>:<span class="w"> </span>memref&lt;i32&gt;
 <span class="gp">            %</span><span class="nv">c1_i32</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>arith.constant<span class="w"> </span><span class="m">1</span><span class="w"> </span>:<span class="w"> </span>i32
@@ -381,7 +383,7 @@ we can look at the IR code that was produced. <code class="code docutils literal
 <span class="go">            memref.store %7, %alloca_1[] : memref&lt;i32&gt;</span>
 <span class="go">        }</span>
 <span class="go">        }</span>
-<span class="gp">        %</span><span class="nv">5</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>quake.mz<span class="o">(</span>%2<span class="w"> </span>:<span class="w"> </span>!quake.qvec&lt;?&gt;<span class="o">)</span><span class="w"> </span>:<span class="w"> </span>!cc.stdvec&lt;i1&gt;
+<span class="gp">        %</span><span class="nv">5</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>quake.mz<span class="w"> </span>%2<span class="w"> </span>:<span class="w"> </span><span class="o">(</span>!quake.veq&lt;?&gt;<span class="o">)</span><span class="w"> </span>-&gt;<span class="w"> </span>!cc.stdvec&lt;i1&gt;
 <span class="go">        return</span>
 <span class="go">    }</span>
 <span class="go">}</span>
@@ -413,8 +415,8 @@ via the <code class="code docutils literal notranslate"><span class="pre">--plat
 <img alt="../../_images/dialects.png" src="../../_images/dialects.png" />
 <p>The above figure demonstrate the MLIR dialects involved and the overall workflow mapping
 high-level language constructs to lower-level MLIR dialect code, and ultimately LLVM IR.</p>
-<p>CUDA Quantum also provides value-semantics dialect for static circuit representation
-called Quantum Thread Execution (QTX). This dialect directly enables robust circuit
+<p>CUDA Quantum also provides value-semantics form of Quake for static circuit
+representation. This dialect directly enables robust circuit
 optimizations via data-flow analysis of the representative circuit. This dialect
 is typically produced just-in-time when the structure of the circuit is fully known.</p>
 <p>You will notice that there are a number of CUDA Quantum executable tools installed as part
@@ -423,20 +425,20 @@ processing, optimization, and lowering of the core NVQ++ compiler representation
 The tools available are</p>
 <ol class="arabic simple">
 <li><p><code class="code docutils literal notranslate"><span class="pre">cudaq-quake</span></code> - Lower C++ to Quake, can also output classical LLVM IR file</p></li>
-<li><p><code class="code docutils literal notranslate"><span class="pre">cudaq-opt</span></code> - Process Quake with various MLIR Passes, convert to QTX</p></li>
-<li><p><code class="code docutils literal notranslate"><span class="pre">cudaq-translate</span></code> - Lower Quake or QTX to external representations like QIR (or Base Profile QIR)</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">cudaq-opt</span></code> - Process Quake with various MLIR Passes</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">cudaq-translate</span></code> - Lower Quake to external representations like QIR (or Base Profile QIR)</p></li>
 </ol>
-<p>CUDA Quantum and NVQ++ rely on Quake and QTX for the core quantum intermediate representation.
+<p>CUDA Quantum and NVQ++ rely on Quake for the core quantum intermediate representation.
 Quake represents an IR closer to the CUDA Quantum source language and models qubits and
 quantum instructions via memory semantics. Quake can be fully dynamic and in
 that sense represents a quantum circuit template or generator. With runtime
-arguments fully specified, Quake code generates or synthesizes
-a fully-known quantum circuit. QTX is a dialect that sits below Quake and does
-not allow any dynamic or runtime parameterization. It is a representation for fully-known
+arguments fully specified, Quake code can be used to generate or synthesize
+a fully-known quantum circuit. The value semantics form of Quake can thus be
+used as a representation for fully-known
 or synthesized quantum circuits. Its utility, therefore, lies in its ability to
 optimize quantum code. It departs from the memory semantics model of Quake and
-relies fully on the SSA-nature of the MLIR, a value-semantics model. This approach
-makes it easier for finding circuit patterns and leveraging it for common
+expresses the flow of quantum information explicitly as MLIR values.
+This approach makes it easier for finding circuit patterns and leveraging it for common
 optimization tasks.</p>
 <p>To demonstrate how these tools work together, let’s take the simple GHZ CUDA Quantum
 program and lower the kernel from C++ to Quake, synthesize that Quake code,
@@ -605,7 +607,7 @@ and produce QIR. Recall the code snippet for the kernel</p>
 <span class="go">!0 = !{i32 2, !&quot;Debug Info Version&quot;, i32 3}</span>
 </pre></div>
 </div>
-<p>Note that the results of each tool can be piped to futher tools, creating a
+<p>Note that the results of each tool can be piped to further tools, creating a
 composable pipeline of compiler lowering tools.</p>
 </section>
 

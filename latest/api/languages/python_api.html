@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CUDA Quantum Python API &mdash; NVIDIA CUDA Quantum 0.3 documentation</title>
+  <title>CUDA Quantum Python API &mdash; NVIDIA CUDA Quantum  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/cudaq_override.css" type="text/css" />
@@ -22,6 +22,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="CUDA Quantum Versions" href="../../versions.html" />
     <link rel="prev" title="CUDA Quantum C++ API" href="cpp_api.html" /> 
 </head>
 
@@ -37,7 +38,7 @@
             NVIDIA CUDA Quantum
           </a>
               <div class="version">
-                0.3
+                pr-231
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -92,18 +93,12 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../../install.html">   Getting Started</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../install.html#docker-image">Docker Image</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../install.html#install-the-public-beta-docker-image">Install the Public Beta Docker Image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../install.html#install-the-docker-image">Install the Docker Image</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../install.html#use-cuda-quantum-in-a-terminal">Use CUDA Quantum in a Terminal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../install.html#use-cuda-quantum-in-vs-code">Use CUDA Quantum in VS Code</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../install.html#build-cuda-quantum-from-source">Build CUDA Quantum from Source</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../install.html#get-the-basic-compilers-you-ll-need-via-apt-get">Get the basic compilers you’ll need via apt-get</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../install.html#get-cuquantum-optional">Get cuQuantum (optional)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../install.html#get-llvm-clang-mlir">Get LLVM / Clang / MLIR</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../install.html#build-cuda-quantum">Build CUDA Quantum</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="../../install.html#build-cuda-quantum-from-source">Build CUDA Quantum from Source</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../install.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
@@ -122,7 +117,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/advanced.html">   Advanced Topics</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../using/advanced/nvqir_simulator.html">Create a new NVQIR Simulator</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../using/advanced/nvqir_simulator.html#circuitsimulator">CircuitSimulator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/advanced/nvqir_simulator.html#circuitsimulator"><code class="code docutils literal notranslate"><span class="pre">CircuitSimulator</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/advanced/nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
 </ul>
 </li>
@@ -193,10 +188,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/platform.html">11. Platform</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html">12. Algorithmic Primitives</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-sample">12.1. cudaq::sample</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-observe">12.2. cudaq::observe</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer">12.3. cudaq::optimizer</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-gradient">12.4. cudaq::gradient</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-sample">12.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-observe">12.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-gradient">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/examples.html">13. Example Programs</a><ul>
@@ -210,10 +205,10 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../specification/qtx-dialect.html">   QTX Specification</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../specification/qtx-dialect.html#general-introduction">General Introduction</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../specification/qtx-dialect.html#motivation">Motivation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../specification/qtx-dialect.html#qtx-types">QTX Types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../specification/quake-dialect.html">   Quake Specification</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#general-introduction">General Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#motivation">Motivation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#quake-types">Quake Types</a></li>
 </ul>
 </li>
 </ul>
@@ -247,14 +242,17 @@
 <li class="toctree-l3"><a class="reference internal" href="#backend-configuration">Backend Configuration</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.set_noise"><code class="docutils literal notranslate"><span class="pre">set_noise()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.unset_noise"><code class="docutils literal notranslate"><span class="pre">unset_noise()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#cudaq.set_qpu"><code class="docutils literal notranslate"><span class="pre">set_qpu()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#cudaq.list_qpus"><code class="docutils literal notranslate"><span class="pre">list_qpus()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.set_target"><code class="docutils literal notranslate"><span class="pre">set_target()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.has_target"><code class="docutils literal notranslate"><span class="pre">has_target()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.get_target"><code class="docutils literal notranslate"><span class="pre">get_target()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.get_targets"><code class="docutils literal notranslate"><span class="pre">get_targets()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#data-types">Data Types</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.QuakeValue"><code class="docutils literal notranslate"><span class="pre">QuakeValue</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.SpinOperator"><code class="docutils literal notranslate"><span class="pre">SpinOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.spin.i"><code class="docutils literal notranslate"><span class="pre">spin.i()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.spin.x"><code class="docutils literal notranslate"><span class="pre">spin.x()</span></code></a></li>
@@ -272,6 +270,11 @@
 </li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../versions.html">   Other Versions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../versions.html#latest">latest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../versions.html#id1">0.3.0</a></li>
 </ul>
 </li>
 </ul>
@@ -1103,6 +1106,76 @@
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="cudaq.Kernel.r1">
+<span class="sig-name descname"><span class="pre">r1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Kernel.r1" title="Permalink to this definition">¶</a></dt>
+<dd><p>Overloaded function.</p>
+<ol class="arabic">
+<li><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">r1</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">Kernel</span><span class="p">,</span> <span class="n">parameter</span><span class="p">:</span> <span class="n">cudaq</span><span class="p">::</span><span class="n">QuakeValue</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">cudaq</span><span class="p">::</span><span class="n">QuakeValue</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</li>
+</ol>
+<p>Apply r1 to the given target qubit, parameterized by the provided kernel argument (<code class="code docutils literal notranslate"><span class="pre">parameter</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>parameter</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The kernel argument to parameterize the r1 gate over.</p></li>
+<li><p><strong>target</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The target qubit of the r1 gate.</p></li>
+</ul>
+</dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
+<span class="c1"># Create a kernel that accepts a float, `angle`, as its argument.</span>
+<span class="n">kernel</span><span class="p">,</span> <span class="n">angle</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+<span class="n">qubit</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+<span class="c1"># Apply an r1 to the kernel at `angle`.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">r1</span><span class="p">(</span><span class="n">parameter</span><span class="o">=</span><span class="n">angle</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">qubit</span><span class="p">)</span>
+</pre></div>
+</div>
+<ol class="arabic" start="2">
+<li><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">r1</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">Kernel</span><span class="p">,</span> <span class="n">parameter</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">cudaq</span><span class="p">::</span><span class="n">QuakeValue</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</li>
+</ol>
+<p>Apply r1 to the given target qubit, parameterized by the provided double value (<code class="code docutils literal notranslate"><span class="pre">parameter</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>parameter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.11)"><em>float</em></a>) – The double value to parameterize the r1 gate over.</p></li>
+<li><p><strong>target</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The target qubit of the r1 gate.</p></li>
+</ul>
+</dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
+<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="c1"># Apply an r1 to the kernel at a concrete parameter value.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">r1</span><span class="p">(</span><span class="n">parameter</span><span class="o">=</span><span class="mf">3.14</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">qubit</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.Kernel.swap">
+<span class="sig-name descname"><span class="pre">swap</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Kernel.swap" title="Permalink to this definition">¶</a></dt>
+<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">swap</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">Kernel</span><span class="p">,</span> <span class="n">first</span><span class="p">:</span> <span class="n">cudaq</span><span class="p">::</span><span class="n">QuakeValue</span><span class="p">,</span> <span class="n">second</span><span class="p">:</span> <span class="n">cudaq</span><span class="p">::</span><span class="n">QuakeValue</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<p>Swap the states of the provided qubits.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
+<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="c1"># Allocate qubit/s to the `kernel`.</span>
+<span class="n">qubits</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="c1"># Place the 0th qubit in the 1-state.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+<span class="c1"># Swap their states.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">swap</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="cudaq.Kernel.mx">
 <span class="sig-name descname"><span class="pre">mx</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Kernel.mx" title="Permalink to this definition">¶</a></dt>
 <dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">mx</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">Kernel</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">cudaq</span><span class="p">::</span><span class="n">QuakeValue</span><span class="p">,</span> <span class="n">register_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cudaq</span><span class="p">::</span><span class="n">QuakeValue</span>
@@ -1406,7 +1479,7 @@ When targeting a quantum platform with more than one QPU, the optional <code cla
 <dl class="py function">
 <dt class="sig sig-object py" id="cudaq.observe">
 <span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">observe</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.observe" title="Permalink to this definition">¶</a></dt>
-<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">Kernel</span><span class="p">,</span> <span class="n">spin_operator</span><span class="p">:</span> <span class="n">cudaq</span><span class="p">::</span><span class="n">spin_op</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">shots_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cudaq</span><span class="p">::</span><span class="n">observe_result</span>
+<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">Kernel</span><span class="p">,</span> <span class="n">spin_operator</span><span class="p">:</span> <span class="n">cudaq</span><span class="p">::</span><span class="n">spin_op</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">shots_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">noise_model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">cudaq</span><span class="p">::</span><span class="n">noise_model</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cudaq</span><span class="p">::</span><span class="n">observe_result</span>
 </pre></div>
 </div>
 <p>Compute the expected value of the <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> with respect to the <code class="code docutils literal notranslate"><span class="pre">kernel</span></code>. If the kernel accepts arguments, it will be evaluated with respect to <code class="code docutils literal notranslate"><span class="pre">kernel(*arguments)</span></code>.</p>
@@ -1417,6 +1490,7 @@ When targeting a quantum platform with more than one QPU, the optional <code cla
 <li><p><strong>spin_operator</strong> (<a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinOperator</span></code></a>) – The Hermitian spin operator to calculate the expectation of.</p></li>
 <li><p><strong>*arguments</strong> (<em>Optional</em><em>[</em><em>Any</em><em>]</em>) – The concrete values to evaluate the kernel function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
 <li><p><strong>shots_count</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a><em>]</em>) – The number of shots to use for QPU execution. Defaults to 1 shot. Key-word only.</p></li>
+<li><p><strong>noise_model</strong> (Optional[<code class="code docutils literal notranslate"><span class="pre">NoiseModel</span></code>]) – The optional <a class="reference internal" href="#cudaq.NoiseModel" title="cudaq.NoiseModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NoiseModel</span></code></a> to add noise to the kernel execution on the simulator. Defaults to an empty noise model.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1431,7 +1505,7 @@ When targeting a quantum platform with more than one QPU, the optional <code cla
 <dl class="py function">
 <dt class="sig sig-object py" id="cudaq.observe_async">
 <span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">observe_async</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.observe_async" title="Permalink to this definition">¶</a></dt>
-<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">observe_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">Kernel</span><span class="p">,</span> <span class="n">spin_operator</span><span class="p">:</span> <span class="n">cudaq</span><span class="p">::</span><span class="n">spin_op</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">qpu_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">shots_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cudaq</span><span class="p">::</span><span class="n">async_result</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="p">::</span><span class="n">observe_result</span><span class="o">&gt;</span>
+<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">observe_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">Kernel</span><span class="p">,</span> <span class="n">spin_operator</span><span class="p">:</span> <span class="n">cudaq</span><span class="p">::</span><span class="n">spin_op</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">qpu_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">shots_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">noise_model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">cudaq</span><span class="p">::</span><span class="n">noise_model</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cudaq</span><span class="p">::</span><span class="n">async_result</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="p">::</span><span class="n">observe_result</span><span class="o">&gt;</span>
 </pre></div>
 </div>
 <p>Compute the expected value of the <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> with respect to the <code class="code docutils literal notranslate"><span class="pre">kernel</span></code> asynchronously. If the kernel accepts arguments, it will be evaluated with respect to <code class="code docutils literal notranslate"><span class="pre">kernel(*arguments)</span></code>.
@@ -1444,6 +1518,7 @@ When targeting a quantum platform with more than one QPU, the optional <code cla
 <li><p><strong>*arguments</strong> (<em>Optional</em><em>[</em><em>Any</em><em>]</em>) – The concrete values to evaluate the kernel function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
 <li><p><strong>qpu_id</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a><em>]</em>) – The optional identification for which QPU on the platform to target. Defaults to zero. Key-word only.</p></li>
 <li><p><strong>shots_count</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a><em>]</em>) – The number of shots to use for QPU execution. Defaults to 1 shot. Key-word only.</p></li>
+<li><p><strong>noise_model</strong> (Optional[<code class="code docutils literal notranslate"><span class="pre">NoiseModel</span></code>]) – The optional <a class="reference internal" href="#cudaq.NoiseModel" title="cudaq.NoiseModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NoiseModel</span></code></a> to add noise to the kernel execution on the simulator. Defaults to an empty noise model.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1501,21 +1576,61 @@ When targeting a quantum platform with more than one QPU, the optional <code cla
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="cudaq.set_qpu">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">set_qpu</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.set_qpu" title="Permalink to this definition">¶</a></dt>
-<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">set_qpu</span><span class="p">(</span><span class="n">arg0</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+<dt class="sig sig-object py" id="cudaq.set_target">
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">set_target</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.set_target" title="Permalink to this definition">¶</a></dt>
+<dd><p>Overloaded function.</p>
+<ol class="arabic">
+<li><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">set_target</span><span class="p">(</span><span class="n">arg0</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">Target</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </pre></div>
 </div>
-<p>Specifies which backend quantum kernels will be executed on. Possible values can be queried using the list_qpus. You may also specify the name of an external simulation plugin. Can specify str:str key value pairs as kwargs to configure the backend.</p>
+</li>
+</ol>
+<p>Set the <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code> to be used for CUDA Quantum kernel execution. Can provide optional, target-specific configuration data via Python kwargs.</p>
+<ol class="arabic" start="2">
+<li><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">set_target</span><span class="p">(</span><span class="n">arg0</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</li>
+</ol>
+<p>Set the <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code> with given name to be used for CUDA Quantum kernel execution. Can provide optional, target-specific configuration data via Python kwargs.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="cudaq.list_qpus">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">list_qpus</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.list_qpus" title="Permalink to this definition">¶</a></dt>
-<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">list_qpus</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+<dt class="sig sig-object py" id="cudaq.has_target">
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">has_target</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.has_target" title="Permalink to this definition">¶</a></dt>
+<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">has_target</span><span class="p">(</span><span class="n">arg0</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
 </pre></div>
 </div>
-<p>Lists all available backends. Use set_qpu to execute code on one of these backends.</p>
+<p>Return true if the <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code> with the given name exists.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cudaq.get_target">
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">get_target</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.get_target" title="Permalink to this definition">¶</a></dt>
+<dd><p>Overloaded function.</p>
+<ol class="arabic">
+<li><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">get_target</span><span class="p">(</span><span class="n">arg0</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">Target</span>
+</pre></div>
+</div>
+</li>
+</ol>
+<p>Return the <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code> with the given name. Will raise an exception if the name is not valid.</p>
+<ol class="arabic" start="2">
+<li><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">get_target</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">Target</span>
+</pre></div>
+</div>
+</li>
+</ol>
+<p>Return the <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code> with the given name. Will raise an exception if the name is not valid.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cudaq.get_targets">
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">get_targets</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.get_targets" title="Permalink to this definition">¶</a></dt>
+<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">get_targets</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">_pycudaq</span><span class="o">.</span><span class="n">Target</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>Return all available <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code> instances on the current system.</p>
 </dd></dl>
 
 </section>
@@ -1555,12 +1670,29 @@ When targeting a quantum platform with more than one QPU, the optional <code cla
 <p>Return the sum of <code class="code docutils literal notranslate"><span class="pre">self</span></code> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) and <code class="code docutils literal notranslate"><span class="pre">other</span></code> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.11)"><strong>RuntimeError</strong></a> – if the underlying <a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a> type is not a float.</p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.11)"><strong>RuntimeError</strong></a> – if the underlying <a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a> type is not the same type as <code class="code docutils literal notranslate"><span class="pre">self</span></code>.</p>
 </dd>
 </dl>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
 <span class="n">kernel</span><span class="p">,</span> <span class="n">values</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
 <span class="n">new_value</span><span class="p">:</span> <span class="n">QuakeValue</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+</pre></div>
+</div>
+<ol class="arabic" start="3">
+<li><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">QuakeValue</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">QuakeValue</span>
+</pre></div>
+</div>
+</li>
+</ol>
+<p>Return the sum of <code class="code docutils literal notranslate"><span class="pre">self</span></code> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) and <code class="code docutils literal notranslate"><span class="pre">other</span></code> (int).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.11)"><strong>RuntimeError</strong></a> – if the underlying <a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a> type is not a int.</p>
+</dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
+<span class="n">kernel</span><span class="p">,</span> <span class="n">values</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+<span class="n">new_value</span><span class="p">:</span> <span class="n">QuakeValue</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">2</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -1614,12 +1746,29 @@ When targeting a quantum platform with more than one QPU, the optional <code cla
 <p>Return the difference of <code class="code docutils literal notranslate"><span class="pre">self</span></code> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) and <code class="code docutils literal notranslate"><span class="pre">other</span></code> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.11)"><strong>RuntimeError</strong></a> – if the underlying <a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a> type is not a float.</p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.11)"><strong>RuntimeError</strong></a> – if the underlying <a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a> type is not the same type as <code class="code docutils literal notranslate"><span class="pre">self</span></code>.</p>
 </dd>
 </dl>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
 <span class="n">kernel</span><span class="p">,</span> <span class="n">values</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
 <span class="n">new_value</span><span class="p">:</span> <span class="n">QuakeValue</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+</pre></div>
+</div>
+<ol class="arabic" start="3">
+<li><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__sub__</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">QuakeValue</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">QuakeValue</span>
+</pre></div>
+</div>
+</li>
+</ol>
+<p>Return the difference of <code class="code docutils literal notranslate"><span class="pre">self</span></code> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) and <code class="code docutils literal notranslate"><span class="pre">other</span></code> (int).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.11)"><strong>RuntimeError</strong></a> – if the underlying <a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a> type is not a int.</p>
+</dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
+<span class="n">kernel</span><span class="p">,</span> <span class="n">values</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+<span class="n">new_value</span><span class="p">:</span> <span class="n">QuakeValue</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">2</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -1723,10 +1872,14 @@ When targeting a quantum platform with more than one QPU, the optional <code cla
 
 <dl class="py method">
 <dt class="sig sig-object py" id="cudaq.QuakeValue.__getitem__">
-<span class="sig-name descname"><span class="pre">__getitem__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.QuakeValue.__getitem__" title="Permalink to this definition">¶</a></dt>
-<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">QuakeValue</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">QuakeValue</span>
+<span class="sig-name descname"><span class="pre">__getitem__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.QuakeValue.__getitem__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Overloaded function.</p>
+<ol class="arabic">
+<li><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">QuakeValue</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">QuakeValue</span>
 </pre></div>
 </div>
+</li>
+</ol>
 <p>Return the element of <code class="code docutils literal notranslate"><span class="pre">self</span></code> at the provided <code class="code docutils literal notranslate"><span class="pre">index</span></code>.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -1746,6 +1899,54 @@ When targeting a quantum platform with more than one QPU, the optional <code cla
 <dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.11)"><strong>RuntimeError</strong></a> – if <code class="code docutils literal notranslate"><span class="pre">self</span></code> is a non-subscriptable <a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>.</p>
 </dd>
 </dl>
+<ol class="arabic" start="2">
+<li><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">QuakeValue</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">QuakeValue</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">QuakeValue</span>
+</pre></div>
+</div>
+</li>
+</ol>
+<p>Return the element of <code class="code docutils literal notranslate"><span class="pre">self</span></code> at the provided <code class="code docutils literal notranslate"><span class="pre">index</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only <code class="code docutils literal notranslate"><span class="pre">list</span></code> or <a class="reference internal" href="#cudaq.qreg" title="cudaq.qreg"><code class="xref py py-class docutils literal notranslate"><span class="pre">qreg</span></code></a> type <a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>’s may be indexed.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>index</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><em>QuakeValue</em></a>) – The element of <code class="code docutils literal notranslate"><span class="pre">self</span></code> that you’d like to return.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Returns a new <a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a> for the <code class="code docutils literal notranslate"><span class="pre">index</span></code>-th element of <code class="code docutils literal notranslate"><span class="pre">self</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.11)"><strong>RuntimeError</strong></a> – if <code class="code docutils literal notranslate"><span class="pre">self</span></code> is a non-subscriptable <a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.QuakeValue.slice">
+<span class="sig-name descname"><span class="pre">slice</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.QuakeValue.slice" title="Permalink to this definition">¶</a></dt>
+<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nb">slice</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">QuakeValue</span><span class="p">,</span> <span class="n">start</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">count</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">QuakeValue</span>
+</pre></div>
+</div>
+<p>Return a slice of the given <a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a> as a new <a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>.</p>
+<blockquote>
+<div><dl>
+<dt>Note:</dt><dd><p>The underlying <a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a> must be a <code class="code docutils literal notranslate"><span class="pre">list</span></code> or <code class="code docutils literal notranslate"><span class="pre">veq</span></code>.</p>
+</dd>
+<dt>Args:</dt><dd><p>start (int) : The index to begin the slice from.
+count (int) : The number of elements to extract after the <code class="code docutils literal notranslate"><span class="pre">start</span></code> index.</p>
+</dd>
+<dt>Returns:</dt><dd><dl>
+<dt><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a><span class="classifier">A new <code class="code docutils literal notranslate"><span class="pre">QuakeValue</span></code> containing a slice of <code class="code docutils literal notranslate"><span class="pre">self</span></code> from</span></dt><dd><p>the <code class="code docutils literal notranslate"><span class="pre">start</span></code>-th element to <code class="code docutils literal notranslate"><span class="pre">start</span> <span class="pre">+</span> <span class="pre">count</span></code>-th element.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</div></blockquote>
 </dd></dl>
 
 </dd></dl>
@@ -1768,6 +1969,39 @@ When targeting a quantum platform with more than one QPU, the optional <code cla
 <span class="n">kernel</span><span class="p">,</span> <span class="n">qreg</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">qreg</span><span class="p">)</span>
 </pre></div>
 </div>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cudaq.ComplexMatrix">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">ComplexMatrix</span></span><a class="headerlink" href="#cudaq.ComplexMatrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>The <a class="reference internal" href="#cudaq.ComplexMatrix" title="cudaq.ComplexMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a> is a thin wrapper around a matrix of complex&lt;double&gt; elements.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.ComplexMatrix.__getitem__">
+<span class="sig-name descname"><span class="pre">__getitem__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.ComplexMatrix.__getitem__" title="Permalink to this definition">¶</a></dt>
+<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">ComplexMatrix</span><span class="p">,</span> <span class="n">arg0</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">arg1</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">complex</span>
+</pre></div>
+</div>
+<p>Return the matrix element at i, j.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.ComplexMatrix.__str__">
+<span class="sig-name descname"><span class="pre">__str__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.ComplexMatrix.__str__" title="Permalink to this definition">¶</a></dt>
+<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">ComplexMatrix</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p>Write this matrix to a string representation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.ComplexMatrix.minimal_eigenvalue">
+<span class="sig-name descname"><span class="pre">minimal_eigenvalue</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.ComplexMatrix.minimal_eigenvalue" title="Permalink to this definition">¶</a></dt>
+<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">minimal_eigenvalue</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">ComplexMatrix</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">complex</span>
+</pre></div>
+</div>
+<p>Return the lowest eigenvalue for this <a class="reference internal" href="#cudaq.ComplexMatrix" title="cudaq.ComplexMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a>.</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -1888,12 +2122,21 @@ When targeting a quantum platform with more than one QPU, the optional <code cla
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="cudaq.SpinOperator.__getitem__">
-<span class="sig-name descname"><span class="pre">__getitem__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SpinOperator.__getitem__" title="Permalink to this definition">¶</a></dt>
-<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">SpinOperator</span>
+<dt class="sig sig-object py" id="cudaq.SpinOperator.__iter__">
+<span class="sig-name descname"><span class="pre">__iter__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SpinOperator.__iter__" title="Permalink to this definition">¶</a></dt>
+<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span>
 </pre></div>
 </div>
-<p>Return the term of this <code class="code docutils literal notranslate"><span class="pre">SpinOperator</span></code> at the provided index as a new <code class="code docutils literal notranslate"><span class="pre">cudaq.SpinOperator</span></code>.</p>
+<p>__iter__(self: _pycudaq.SpinOperator) -&gt; Iterator</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.SpinOperator.distribute_terms">
+<span class="sig-name descname"><span class="pre">distribute_terms</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SpinOperator.distribute_terms" title="Permalink to this definition">¶</a></dt>
+<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">distribute_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">,</span> <span class="n">arg0</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">_pycudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>Return a list of <code class="code docutils literal notranslate"><span class="pre">SpinOperator</span></code> representing a distribution of the terms in this <code class="code docutils literal notranslate"><span class="pre">SpinOperator</span></code> into equally sized chunks.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1906,12 +2149,30 @@ When targeting a quantum platform with more than one QPU, the optional <code cla
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="cudaq.SpinOperator.get_coefficients">
-<span class="sig-name descname"><span class="pre">get_coefficients</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SpinOperator.get_coefficients" title="Permalink to this definition">¶</a></dt>
-<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">get_coefficients</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">complex</span><span class="p">]</span>
+<dt class="sig sig-object py" id="cudaq.SpinOperator.for_each_pauli">
+<span class="sig-name descname"><span class="pre">for_each_pauli</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SpinOperator.for_each_pauli" title="Permalink to this definition">¶</a></dt>
+<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">for_each_pauli</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">,</span> <span class="n">arg0</span><span class="p">:</span> <span class="n">function</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </pre></div>
 </div>
-<p>Return all term coefficients in this <code class="code docutils literal notranslate"><span class="pre">SpinOperator</span></code>.</p>
+<p>For a single <code class="code docutils literal notranslate"><span class="pre">cudaq.SpinOperator</span></code> term, apply the given function to each pauli element in the term. The function must have <code class="code docutils literal notranslate"><span class="pre">void(pauli,</span> <span class="pre">int)</span></code> signature where <code class="code docutils literal notranslate"><span class="pre">pauli</span></code> is the Pauli matrix type and the <code class="code docutils literal notranslate"><span class="pre">int</span></code> is the qubit index.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.SpinOperator.for_each_term">
+<span class="sig-name descname"><span class="pre">for_each_term</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SpinOperator.for_each_term" title="Permalink to this definition">¶</a></dt>
+<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">for_each_term</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">,</span> <span class="n">arg0</span><span class="p">:</span> <span class="n">function</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<p>Apply the given function to all terms in this <code class="code docutils literal notranslate"><span class="pre">cudaq.SpinOperator</span></code>. The input function must have <code class="code docutils literal notranslate"><span class="pre">void(SpinOperator)</span></code> signature.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.SpinOperator.get_coefficient">
+<span class="sig-name descname"><span class="pre">get_coefficient</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SpinOperator.get_coefficient" title="Permalink to this definition">¶</a></dt>
+<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">get_coefficient</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">complex</span>
+</pre></div>
+</div>
+<p>Return the coefficient of this <code class="code docutils literal notranslate"><span class="pre">SpinOperator</span></code>. Must be a <code class="code docutils literal notranslate"><span class="pre">SpinOperator</span></code> with one term, otherwise an exception is thrown.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1924,12 +2185,12 @@ When targeting a quantum platform with more than one QPU, the optional <code cla
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="cudaq.SpinOperator.get_term_coefficient">
-<span class="sig-name descname"><span class="pre">get_term_coefficient</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SpinOperator.get_term_coefficient" title="Permalink to this definition">¶</a></dt>
-<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">get_term_coefficient</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">,</span> <span class="n">term</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">complex</span>
+<dt class="sig sig-object py" id="cudaq.SpinOperator.get_raw_data">
+<span class="sig-name descname"><span class="pre">get_raw_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SpinOperator.get_raw_data" title="Permalink to this definition">¶</a></dt>
+<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span>
 </pre></div>
 </div>
-<p>Return the coefficient of this <code class="code docutils literal notranslate"><span class="pre">SpinOperator</span></code> at the given term index.</p>
+<p>get_raw_data(self: _pycudaq.SpinOperator) -&gt; Tuple[List[List[bool]], List[complex]]</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1960,12 +2221,21 @@ When targeting a quantum platform with more than one QPU, the optional <code cla
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="cudaq.SpinOperator.slice">
-<span class="sig-name descname"><span class="pre">slice</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SpinOperator.slice" title="Permalink to this definition">¶</a></dt>
-<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nb">slice</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">,</span> <span class="n">arg0</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">arg1</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">SpinOperator</span>
+<dt class="sig sig-object py" id="cudaq.SpinOperator.serialize">
+<span class="sig-name descname"><span class="pre">serialize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SpinOperator.serialize" title="Permalink to this definition">¶</a></dt>
+<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">serialize</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
 </pre></div>
 </div>
-<p>Return a slice of this <code class="code docutils literal notranslate"><span class="pre">SpinOperator</span></code>. The slice starts at the term index and contains the following <code class="code docutils literal notranslate"><span class="pre">count</span></code> terms.</p>
+<p>Return a serialized representation of the <code class="code docutils literal notranslate"><span class="pre">SpinOperator</span></code>. Specifically, this encoding is via a vector of doubles. The encoding is as follows: for each term, a list of doubles where the ith element is a 3.0 for a Y, a 1.0 for a X, and a 2.0 for a Z on qubit i, followed by the real and imaginary part of the coefficient. Each term is appended to the array forming one large 1d array of doubles. The array is ended with the total number of terms represented as a double.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.SpinOperator.to_matrix">
+<span class="sig-name descname"><span class="pre">to_matrix</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SpinOperator.to_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">to_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">ComplexMatrix</span>
+</pre></div>
+</div>
+<p>Return <code class="code docutils literal notranslate"><span class="pre">self</span></code> as a <a class="reference internal" href="#cudaq.ComplexMatrix" title="cudaq.ComplexMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a>.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -2596,7 +2866,7 @@ See <a class="reference external" href="https://en.cppreference.com/w/cpp/thread
 <dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">KrausChannel</span><span class="p">,</span> <span class="n">arg0</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_pycudaq</span><span class="o">.</span><span class="n">KrausOperator</span>
 </pre></div>
 </div>
-<p>Return the ith KrausOperator in this KrausChannel.</p>
+<p>Return the KrausOperator at the given index in this KrausChannel.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -2637,6 +2907,7 @@ See <a class="reference external" href="https://en.cppreference.com/w/cpp/thread
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="cpp_api.html" class="btn btn-neutral float-left" title="CUDA Quantum C++ API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../versions.html" class="btn btn-neutral float-right" title="CUDA Quantum Versions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
