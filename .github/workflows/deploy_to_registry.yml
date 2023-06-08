@@ -59,7 +59,7 @@ jobs:
           loaded=`docker load --input ${{ inputs.tar_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
 
           image_name=`echo $loaded | cut -d ":" -f 1`
-          digests=`docker images $image_name --digests --format '{{.Digest}}'`
+          digests=`docker images $image_name --digests --format '{{.Digest}}' | grep -vxF "<none>"`
           docker push $image_name --all-tags
 
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
