@@ -15,6 +15,10 @@
 # This script will look for all of the packages required to build the wheel and install whatever
 # it can't find.
 
+# TODO: The manylinux container doesn't have apt-get or pip installed by default??
+# Actually it might be, just prefaced with python3.10. Needs confirmation.
+# Pip install: `wget https://bootstrap.pypa.io/get-pip.py && python3.10 ./get-pip.py`
+
 LLVM_DIR=${LLVM_DIR:-/opt/llvm/lib/cmake/llvm}
 CPR_DIR=${CPR_DIR:-/cpr/install}
 BLAS_PATH=${BLAS_PATH:-/usr/lib64/libblas.a}
@@ -48,17 +52,17 @@ else
 fi
 export LLVM_DIR=$LLVM_DIR
 
-# Look for required apt packages and install any not found.
-apt-get update
-declare -a REQUIRED_PKGS=("build-essential" "wget" "gfortran" "python3.10-venv")
-for REQUIRED_PKG in "${REQUIRED_PKGS[@]}"; do
-  PKG_OK=$(dpkg-query -W --showformat='${Status}\n' $REQUIRED_PKG|grep "install ok installed")
-  echo Checking for $REQUIRED_PKG: $PKG_OK
-  if [ "" = "$PKG_OK" ]; then
-    echo "Could not find $REQUIRED_PKG. Installing $REQUIRED_PKG."
-    apt-get --yes install $REQUIRED_PKG
-  fi
-done
+# # Look for required apt packages and install any not found.
+# apt-get update
+# declare -a REQUIRED_PKGS=("build-essential" "wget" "gfortran" "python3.10-venv")
+# for REQUIRED_PKG in "${REQUIRED_PKGS[@]}"; do
+#   PKG_OK=$(dpkg-query -W --showformat='${Status}\n' $REQUIRED_PKG|grep "install ok installed")
+#   echo Checking for $REQUIRED_PKG: $PKG_OK
+#   if [ "" = "$PKG_OK" ]; then
+#     echo "Could not find $REQUIRED_PKG. Installing $REQUIRED_PKG."
+#     apt-get --yes install $REQUIRED_PKG
+#   fi
+# done
 
 if [ ! -d "$CPR_DIR" ]; then
   echo "Could not find libcpr install dir"
@@ -89,12 +93,12 @@ else
 fi
 
 # Install the python build package via pip
-python3 -m pip install build
+python3.10 -m pip install build
 
 # Return to the outer level of CUDA Quantum to build the wheel off of setup.py
 cd "$repo_root"
 
 # Build the wheel only (no sdist).
-# python3 -m build --wheel
+python3.10 -m build --wheel
 
 cd "$working_dir"
