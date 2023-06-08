@@ -20,7 +20,7 @@ jobs:
     name: Load dependencies
     strategy:
       matrix:
-        toolchain: [clang16, gcc12]
+        toolchain: [llvm, clang16, gcc12]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
@@ -52,7 +52,7 @@ jobs:
     needs: config
     strategy:
       matrix:
-        toolchain: [clang16, gcc12]
+        toolchain: [llvm, clang16, gcc12]
       fail-fast: false
     uses: ./.github/workflows/test_in_devenv.yml
     with:
@@ -65,8 +65,8 @@ jobs:
     needs: config
     uses: ./.github/workflows/build_packages.yml
     with:
-      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key.clang16 }}
-      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive.clang16 }}
+      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key.llvm }}
+      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive.llvm }}
 
   clean_up:
     name: Prepare cache clean-up
