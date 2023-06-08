@@ -13,7 +13,7 @@ on:
       version:
         required: true
         type: string
-        description: 'The version that the documentation corresponds to, e.g. \'0.3.1\' or \'latest\'.'
+        description: 'The version that the documentation corresponds to, e.g. 0.3.1 or latest.'
   workflow_run:
     branches:
       - 'main'
