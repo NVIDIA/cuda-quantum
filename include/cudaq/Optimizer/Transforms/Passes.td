@@ -184,51 +184,6 @@ def QuakeObserveAnsatz : Pass<"quake-observe-ansatz", "mlir::func::FuncOp"> {
   ];
 }
 
-def RaiseToAffine : Pass<"raise-to-affine", "mlir::func::FuncOp"> {
-  let summary = "Convert CLoop ops to affine.for loops when possible.";
-  let description = [{
-    This pass converts quake.CLoop ops to a more structured loop operation,
-    affine.for.
-
-    For example, a `quake.loop` model of a C `for` loop
-    ```mlir
-    quake.scope {
-      %i0 = constant 0 : index
-      quake.loop while (%i1 = %i0) -> index {
-        %c10 = constant 10 : index
-        %cond = arith.cmpi %i1, %c10
-        quake.condition %cond, %i1
-      } do {
-        ^bb1 (%i2 : index):
-          %19 = quake.qubit_extract %qreg[%i2 : index] : !quake.qubit
-          %c1 = costant 1 : index
-          %i2p1 = arith.addi %i2, %c1 : index
-          %23 = quake.qubit_extract %qreg[%i2p1 : index] : !quake.qubit
-          quake.x [%19] %23
-          quake.continue %i2 : index
-      } step {
-        ^bb2 (%i3 : index):
-          %c1 = constant 1 : index
-          %incr = arith.addi %i3, %c1
-          quake.continue %incr : index
-      }
-    }
-    // exit loop
-    ```
-    would be rewritten to
-    ```mlir
-    affine.for %arg1 = #map(%c0) to #map(%c9) {
-      %19 = quake.qubit_extract %qreg[%arg1 : index] : !quake.qubit
-      %21 = affine.apply affine_map<(i) -> (i+1)> (%arg1)
-      %23 = quake.qubit_extract %qreg[%21 : index] : !quake.qubit
-      quake.x [%19] %23 : !quake.qubit
-    }
-    ```
-  }];
-  let dependentDialects = [ "mlir::AffineDialect" ];
-  let constructor = "cudaq::opt::createRaiseToAffinePass()";
-}
-
 def CCMemToReg : Pass<"cc-mem2reg", "mlir::func::FuncOp"> {
   let summary = "Converts classical compute memory to register SSA form.";
   let description = [{
