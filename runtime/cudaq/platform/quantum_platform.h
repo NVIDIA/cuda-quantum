@@ -74,7 +74,7 @@ public:
   void set_exec_ctx(cudaq::ExecutionContext *ctx, std::size_t qpu_id = 0);
 
   /// Return the current execution context
-  ExecutionContext* get_exec_ctx() const {return executionContext;}
+  ExecutionContext *get_exec_ctx() const { return executionContext; }
 
   /// Reset the execution context for this platform.
   void reset_exec_ctx(std::size_t qpu_id = 0);

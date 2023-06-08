@@ -16,7 +16,7 @@
 namespace cudaq {
 bool kernelHasConditionalFeedback(const std::string &);
 namespace __internal__ {
-  bool isKernelGenerated(const std::string &);
+bool isKernelGenerated(const std::string &);
 }
 /// @brief Return type for asynchronous sampling.
 using async_sample_result = async_result<sample_result>;
@@ -51,8 +51,8 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
       cudaq::kernelHasConditionalFeedback(kernelName);
 
 #ifdef CUDAQ_LIBRARY_MODE
-  // If we have a kernel that has its quake code registered, we 
-  // won't check for if statements with the tracer. 
+  // If we have a kernel that has its quake code registered, we
+  // won't check for if statements with the tracer.
   auto isRegistered = cudaq::__internal__::isKernelGenerated(kernelName);
 
   // One extra check to see if we have mid-circuit
@@ -75,7 +75,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
       ctx->hasConditionalsOnMeasureResults = true;
     }
   }
-#endif 
+#endif
 
   // Indicate that this is an async exec
   ctx->asyncExec = futureResult != nullptr;

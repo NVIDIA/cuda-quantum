@@ -35,10 +35,10 @@ bool __nvqpp__MeasureResultBoolConversion(int);
 
 #ifdef CUDAQ_LIBRARY_MODE
 
-/// @brief In library mode, we model the return type of 
-/// a qubit measurement result via the measure_result type. 
-/// This allows us to keep track of when the result is 
-/// implicitly casted to a bool (likely in the case of 
+/// @brief In library mode, we model the return type of
+/// a qubit measurement result via the measure_result type.
+/// This allows us to keep track of when the result is
+/// implicitly casted to a bool (likely in the case of
 /// conditional feedback), and affect the simulation accordingly
 class measure_result {
 private:
@@ -52,13 +52,13 @@ public:
   measure_result(int res, std::size_t id) : result(res), uniqueId(id) {}
   measure_result(int res) : result(res) {}
 
-  operator int() {return result;}
-  operator bool() {return __nvqpp__MeasureResultBoolConversion(result); }
+  operator int() { return result; }
+  operator bool() { return __nvqpp__MeasureResultBoolConversion(result); }
 };
-#else 
+#else
 /// @brief When compiling with MLIR, we default to a boolean
 using measure_result = bool;
-#endif 
+#endif
 
 /// The ExecutionManager provides a base class describing a
 /// concrete sub-system for allocating qudits and executing quantum
