@@ -8,7 +8,7 @@ Install the Docker Image
 ++++++++++++++++++++++++++++++++++++
 
 Docker images for all CUDA Quantum releases are available on the `NGC Container Registry`_.
-The image for the latest version under development is built from source on our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`.
+The image for the latest version under development is built from source on our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`_.
 
 .. _NGC Container Registry: https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum
 
