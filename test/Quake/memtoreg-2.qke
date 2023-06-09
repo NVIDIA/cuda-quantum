@@ -20,356 +20,6 @@ func.func @classical_if01(%c1: i1) {
   return
 }
 
-func.func @classical_if02(%c1: i1) {
-  %q0 = quake.alloca !quake.ref
-  %q1 = quake.alloca !quake.ref
-  cc.if (%c1) {
-    quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-  } else {
-    quake.y [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
-  }
-  quake.z [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-  return
-}
-
-func.func @classical_if03(%c1: i1) {
-  %q0 = quake.alloca !quake.ref
-  %q1 = quake.alloca !quake.ref
-  cc.if (%c1) {
-    quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-  }
-  quake.y [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-  return
-}
-
-func.func @classical_if04(%c1: i1, %c2: i1) {
-  %q0 = quake.alloca !quake.ref
-  %q1 = quake.alloca !quake.ref
-  %q2 = quake.alloca !quake.ref
-  cc.if (%c1) {
-    quake.h [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-    cc.if (%c2) {
-      quake.x [%q0] %q2 : (!quake.ref, !quake.ref) -> ()
-    }
-  }
-  quake.y [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-  quake.z [%q0] %q2 : (!quake.ref, !quake.ref) -> ()
-  return
-}
-
-func.func @classical_if05(%q0: !quake.ref, %c1: i1) {
-  cc.if (%c1) {
-    cc.scope {
-      %q1 = quake.alloca !quake.ref
-      quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-    }
-    cc.continue
-  }
-  quake.y %q0 : (!quake.ref) -> ()
-  return
-}
-
-func.func @classical_if06(%veq : !quake.veq<2>, %c1: i1) {
-  %c_0 = arith.constant 0 : i32
-  %q0 = quake.extract_ref %veq[%c_0] : (!quake.veq<2>, i32) -> !quake.ref
-  quake.x %q0 : (!quake.ref) -> ()
-  cc.if (%c1) {
-    %c_1 = arith.constant 1 : i32
-    %q1 = quake.extract_ref %veq[%c_1] : (!quake.veq<2>, i32) -> !quake.ref
-    quake.y %q1 : (!quake.ref) -> ()
-  }
-  %reg = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<i1>
-  return
-}
-
-func.func @classical_if07(%veq : !quake.veq<2>, %c1: i1, %c2: i1) {
-  %c_0 = arith.constant 0 : i32
-  %c_1 = arith.constant 1 : i32
-  %q0 = quake.extract_ref %veq[%c_0] : (!quake.veq<2>, i32) -> !quake.ref
-  quake.x %q0 : (!quake.ref) -> ()
-  cc.if (%c1) {
-    %q1 = quake.extract_ref %veq[%c_1] : (!quake.veq<2>, i32) -> !quake.ref
-    cc.if (%c2) {
-      quake.reset %veq : (!quake.veq<2>) -> ()
-    }
-  }
-  %reg = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<i1>
-  return
-}
-
-func.func @one_scope() {
-  %q0 = quake.alloca !quake.ref
-  %q1 = quake.alloca !quake.ref
-  cc.scope {
-    quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-  }
-  quake.z [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-  return
-}
-
-func.func @scope_local_wire() {
-  %q0 = quake.alloca !quake.ref
-  cc.scope {
-    %q1 = quake.alloca !quake.ref
-    quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-    quake.y [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
-  }
-  quake.z %q0 : (!quake.ref) -> ()
-  return
-}
-
-func.func @nested_scopes() {
-  %q0 = quake.alloca  !quake.ref
-  %q1 = quake.alloca  !quake.ref
-  %q2 = quake.alloca  !quake.ref
-  cc.scope {
-    quake.h [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-    cc.scope {
-      quake.x [%q0] %q2 : (!quake.ref, !quake.ref) -> ()
-    }
-  }
-  quake.y [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-  return
-}
-
-func.func @scope_local_extract_and_vec_measurement(%veq : !quake.veq<2>) {
-  %c_0 = arith.constant 0 : i32
-  %c_1 = arith.constant 1 : i32
-  %q0 = quake.extract_ref %veq[%c_0] : (!quake.veq<2>, i32) -> !quake.ref
-  cc.scope {
-    %q1 = quake.extract_ref %veq[%c_1] : (!quake.veq<2>,i32) -> !quake.ref
-    quake.y %q1 : (!quake.ref) -> ()
-  }
-  %reg = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<i1>
-  return
-}
-
-func.func @vec_op_in_nested_scope(%veq : !quake.veq<2>) {
-  %c_0 = arith.constant 0 : i32
-  %q0 = quake.extract_ref %veq[%c_0] : (!quake.veq<2>,i32) -> !quake.ref
-  cc.scope {
-    cc.scope {
-      quake.reset %veq : (!quake.veq<2>)-> ()
-    }
-  }
-  %reg = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<i1>
-  return
-}
-
-func.func @vec_op_in_nested_scope_and_local_extraction(%veq : !quake.veq<2>) {
-  %c_0 = arith.constant 0 : i32
-  %c_1 = arith.constant 1 : i32
-  %q0 = quake.extract_ref %veq[%c_0] : (!quake.veq<2>,i32) -> !quake.ref
-  cc.scope {
-    cc.scope {
-      %q1 = quake.extract_ref %veq[%c_1] : (!quake.veq<2>,i32) -> !quake.ref
-      quake.reset %veq : (!quake.veq<2>) -> ()
-    }
-  }
-  %reg = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<i1>
-  return
-}
-
-func.func @raw_cfg01() {
-  %q0 = quake.alloca !quake.ref
-  %q1 = quake.alloca !quake.ref
-  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-  cf.br ^bb1
-^bb1:
-  quake.y [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-  cf.br ^bb2
-^bb2:
-  quake.z [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-  return
-}
-
-func.func @raw_cfg02(%q0: !quake.ref, %q1: !quake.ref, %c1: i1) {
-  cf.cond_br %c1, ^bb1, ^bb2
-^bb1:
-  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-  cf.br ^bb3
-^bb2:
-  quake.y [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-  cf.br ^bb3
-^bb3:
-  quake.z [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-  return
-}
-
-func.func @raw_cfg03(%q0: !quake.ref, %q1: !quake.ref, %c1: i1) {
-  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-  cf.br ^bb1
-^bb1:
-  quake.y [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-  cf.cond_br %c1, ^bb1, ^bb2
-^bb2:
-  quake.z [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-  return
-}
-
-func.func @raw_cfg04(%q0: !quake.ref, %q1: !quake.ref, %c1: i1) {
-  cf.cond_br %c1, ^bb1, ^bb2
-^bb1:
-  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-  return
-^bb2:
-  quake.y [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-  return
-}
-
-func.func @raw_cfg05(%c1: i1) {
-  %c0_i64 = arith.constant 0 : i64
-  %veq = quake.alloca !quake.veq<2>
-  cf.cond_br %c1, ^bb1, ^bb2
-^bb1:
-  %q0 = quake.extract_ref %veq[%c0_i64] : (!quake.veq<2>, i64) -> !quake.ref
-  cf.br ^bb3
-^bb2:
-  cf.br ^bb3
-^bb3:
-  %reg = quake.mz %veq: (!quake.veq<2>) -> !cc.stdvec<i1>
-  return
-}
-
-func.func @raw_cfg06(%c1: i1) {
-  %c0_i64 = arith.constant 0 : i64
-  %c1_i64 = arith.constant 1 : i64
-  %veq = quake.alloca !quake.veq<2>
-  %q0 = quake.extract_ref %veq[%c0_i64] : (!quake.veq<2>, i64) -> !quake.ref
-  cf.cond_br %c1, ^bb1, ^bb4
-^bb1:
-  %q1 = quake.extract_ref %veq[%c1_i64] : (!quake.veq<2>, i64) -> !quake.ref
-  cf.cond_br %c1, ^bb2, ^bb3
-^bb2:
-  cf.br ^bb5
-^bb3:
-  cf.br ^bb5
-^bb4:
-  %q2 = quake.extract_ref %veq[%c1_i64] : (!quake.veq<2>, i64) -> !quake.ref
-  cf.br ^bb5
-^bb5:
-  %reg = quake.mz %veq: (!quake.veq<2>)-> !cc.stdvec<i1>
-  return
-}
-
-func.func @raw_cfg07(%c1: i1) {
-  %c0_i64 = arith.constant 0 : i64
-  %c1_i64 = arith.constant 1 : i64
-  %veq = quake.alloca !quake.veq<2>
-  %q0 = quake.extract_ref %veq[%c0_i64] : (!quake.veq<2>, i64) -> !quake.ref
-  cf.cond_br %c1, ^bb1, ^bb2
-^bb1:
-  %q1 = quake.extract_ref %veq[%c0_i64] : (!quake.veq<2>, i64) -> !quake.ref
-  cf.br ^bb3
-^bb2:
-  quake.reset %veq: (!quake.veq<2>)->()
-  cf.br ^bb3
-^bb3:
-  %reg = quake.mz %veq: (!quake.veq<2>) -> !cc.stdvec<i1>
-  return
-}
-
-func.func @alloc_dealloc_veq_with_extracted_refs() {
-  %c_0 = arith.constant 0 : i32
-  %veq = quake.alloca  !quake.veq<2>
-  %q0 = quake.extract_ref %veq[%c_0] : (!quake.veq<2>, i32) -> !quake.ref
-  quake.dealloc %veq : !quake.veq<2>
-  return
-}
-
-func.func @apply_one_target_operators(%q0: !quake.ref, %q1: !quake.ref) {
-  quake.h [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-  quake.s [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-  quake.t [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-  quake.y [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-  quake.z [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-  return
-}
-
-func.func @apply_parametrized_one_target_operators() {
-  %angle = arith.constant 3.14 : f64
-  %q0 = quake.alloca  !quake.ref
-  %q1 = quake.alloca  !quake.ref
-  quake.r1 (%angle) [%q1] %q0 : (f64, !quake.ref, !quake.ref) -> ()
-  quake.rx (%angle) [%q1] %q0 : (f64, !quake.ref, !quake.ref) -> ()
-  quake.ry (%angle) [%q1] %q0 : (f64, !quake.ref, !quake.ref) -> ()
-  quake.rz (%angle) [%q1] %q0 : (f64, !quake.ref, !quake.ref) -> ()
-  return
-}
-
-func.func @qextract_and_apply_controlled_two_targets_operator() {
-  %c_0 = arith.constant 0 : i32
-  %c_1 = arith.constant 1 : i32
-  %c_2 = arith.constant 2 : i32
-  %0 = quake.alloca !quake.veq<3>
-  %q0 = quake.extract_ref %0 [%c_0] : (!quake.veq<3>,i32) -> !quake.ref
-  %q1 = quake.extract_ref %0 [%c_1] : (!quake.veq<3>,i32) -> !quake.ref
-  %q2 = quake.extract_ref %0 [%c_2] : (!quake.veq<3>,i32) -> !quake.ref
-  quake.swap [%q2] %q0, %q1 : (!quake.ref,!quake.ref,!quake.ref) -> ()
-  return
-}
-
-func.func @mz_and_reset_veq_with_extracted_refs() {
-  %c_0 = arith.constant 0 : i32
-  %c_1 = arith.constant 1 : i32
-  %0 = quake.alloca !quake.veq<2>
-  %q0 = quake.extract_ref %0[%c_0] : (!quake.veq<2>, i32) -> !quake.ref
-  %q1 = quake.extract_ref %0[%c_1] : (!quake.veq<2>, i32) -> !quake.ref
-  %reg = quake.mz %0 : (!quake.veq<2>) -> !cc.stdvec<i1>
-  quake.reset %0 : (!quake.veq<2>) -> ()
-  return
-}
-
-func.func @simple_loop() {
-  %c0_i64 = arith.constant 0 : i64
-  %c1_i64 = arith.constant 1 : i64
-  %c42_i64 = arith.constant 42 : i64
-  %q0 = quake.alloca !quake.ref
-  // memtoreg does not promote memref types.
-  %alloca = memref.alloca() : memref<i64>
-  memref.store %c0_i64, %alloca[] : memref<i64>
-  cc.loop while {
-    %1 = memref.load %alloca[] : memref<i64>
-    %2 = arith.cmpi ult, %1, %c42_i64 : i64
-    cc.condition %2
-  } do {
-    quake.x %q0 : (!quake.ref) -> ()
-    cc.continue
-  } step {
-    %1 = memref.load %alloca[] : memref<i64>
-    %2 = arith.addi %1, %c1_i64 : i64
-    memref.store %2, %alloca[] : memref<i64>
-  }
-  quake.z %q0 : (!quake.ref) -> ()
-  return
-}
-
-func.func @floop_with_vector_and_qextract() {
-  %c0_i64 = arith.constant 0 : i64
-  %c1_i64 = arith.constant 1 : i64
-  %c2_i64 = arith.constant 2 : i64
-  %veq = quake.alloca  !quake.veq<2>
-  %q0 = quake.extract_ref %veq[%c0_i64] : (!quake.veq<2> ,i64) -> !quake.ref
-  %alloca = memref.alloca() : memref<i64>
-  memref.store %c0_i64, %alloca[] : memref<i64>
-  cc.loop while {
-    %3 = memref.load %alloca[] : memref<i64>
-    %4 = arith.cmpi ult, %3, %c2_i64 : i64
-    cc.condition %4
-  } do {
-    %3 = memref.load %alloca[] : memref<i64>
-    %4 = quake.extract_ref %veq[%3] : (!quake.veq<2> ,i64) -> !quake.ref
-    cc.continue
-  } step {
-    %3 = memref.load %alloca[] : memref<i64>
-    %4 = arith.addi %3, %c1_i64 : i64
-    memref.store %4, %alloca[] : memref<i64>
-  }
-  %2 = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<i1>
-  return
-}
-
 // CHECK-LABEL:   func.func @classical_if01(
 // CHECK-SAME:                              %[[VAL_0:.*]]: i1) {
 // CHECK:           %[[VAL_1:.*]] = quake.null_wire
@@ -384,6 +34,18 @@ func.func @floop_with_vector_and_qextract() {
 // CHECK:           %[[VAL_6:.*]] = quake.z [%[[VAL_1]]] %[[VAL_7:.*]] : (!quake.wire, !quake.wire) -> !quake.wire
 // CHECK:           return
 // CHECK:         }
+
+func.func @classical_if02(%c1: i1) {
+  %q0 = quake.alloca !quake.ref
+  %q1 = quake.alloca !quake.ref
+  cc.if (%c1) {
+    quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  } else {
+    quake.y [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  }
+  quake.z [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  return
+}
 
 // CHECK-LABEL:   func.func @classical_if02(
 // CHECK-SAME:                              %[[VAL_0:.*]]: i1) {
@@ -400,6 +62,16 @@ func.func @floop_with_vector_and_qextract() {
 // CHECK:           return
 // CHECK:         }
 
+func.func @classical_if03(%c1: i1) {
+  %q0 = quake.alloca !quake.ref
+  %q1 = quake.alloca !quake.ref
+  cc.if (%c1) {
+    quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  }
+  quake.y [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
 // CHECK-LABEL:   func.func @classical_if03(
 // CHECK-SAME:                              %[[VAL_0:.*]]: i1) {
 // CHECK:           %[[VAL_1:.*]] = quake.null_wire
@@ -413,6 +85,21 @@ func.func @floop_with_vector_and_qextract() {
 // CHECK:           %[[VAL_5:.*]] = quake.y [%[[VAL_1]]] %[[VAL_6:.*]] : (!quake.wire, !quake.wire) -> !quake.wire
 // CHECK:           return
 // CHECK:         }
+
+func.func @classical_if04(%c1: i1, %c2: i1) {
+  %q0 = quake.alloca !quake.ref
+  %q1 = quake.alloca !quake.ref
+  %q2 = quake.alloca !quake.ref
+  cc.if (%c1) {
+    quake.h [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+    cc.if (%c2) {
+      quake.x [%q0] %q2 : (!quake.ref, !quake.ref) -> ()
+    }
+  }
+  quake.y [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  quake.z [%q0] %q2 : (!quake.ref, !quake.ref) -> ()
+  return
+}
 
 // CHECK-LABEL:   func.func @classical_if04(
 // CHECK-SAME:        %[[VAL_0:.*]]: i1, %[[VAL_1:.*]]: i1) {
@@ -436,6 +123,18 @@ func.func @floop_with_vector_and_qextract() {
 // CHECK:           return
 // CHECK:         }
 
+func.func @classical_if05(%q0: !quake.ref, %c1: i1) {
+  cc.if (%c1) {
+    cc.scope {
+      %q1 = quake.alloca !quake.ref
+      quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+    }
+    cc.continue
+  }
+  quake.y %q0 : (!quake.ref) -> ()
+  return
+}
+
 // CHECK-LABEL:   func.func @classical_if05(
 // CHECK-SAME:        %[[VAL_0:.*]]: !quake.ref, %[[VAL_1:.*]]: i1) {
 // CHECK:           %[[VAL_2:.*]] = quake.unwrap %[[VAL_0]] : (!quake.ref) -> !quake.wire
@@ -450,6 +149,19 @@ func.func @floop_with_vector_and_qextract() {
 // CHECK:           quake.wrap %[[VAL_5]] to %[[VAL_0]] : !quake.wire, !quake.ref
 // CHECK:           return
 // CHECK:         }
+
+func.func @classical_if06(%veq : !quake.veq<2>, %c1: i1) {
+  %c_0 = arith.constant 0 : i32
+  %q0 = quake.extract_ref %veq[%c_0] : (!quake.veq<2>, i32) -> !quake.ref
+  quake.x %q0 : (!quake.ref) -> ()
+  cc.if (%c1) {
+    %c_1 = arith.constant 1 : i32
+    %q1 = quake.extract_ref %veq[%c_1] : (!quake.veq<2>, i32) -> !quake.ref
+    quake.y %q1 : (!quake.ref) -> ()
+  }
+  %reg = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<i1>
+  return
+}
 
 // CHECK-LABEL:   func.func @classical_if06(
 // CHECK-SAME:        %[[VAL_0:.*]]: !quake.veq<2>, %[[VAL_1:.*]]: i1) {
@@ -467,6 +179,21 @@ func.func @floop_with_vector_and_qextract() {
 // CHECK:           %[[VAL_10:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<2>) -> !cc.stdvec<i1>
 // CHECK:           return
 // CHECK:         }
+
+func.func @classical_if07(%veq : !quake.veq<2>, %c1: i1, %c2: i1) {
+  %c_0 = arith.constant 0 : i32
+  %c_1 = arith.constant 1 : i32
+  %q0 = quake.extract_ref %veq[%c_0] : (!quake.veq<2>, i32) -> !quake.ref
+  quake.x %q0 : (!quake.ref) -> ()
+  cc.if (%c1) {
+    %q1 = quake.extract_ref %veq[%c_1] : (!quake.veq<2>, i32) -> !quake.ref
+    cc.if (%c2) {
+      quake.reset %veq : (!quake.veq<2>) -> ()
+    }
+  }
+  %reg = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<i1>
+  return
+}
 
 // CHECK-LABEL:   func.func @classical_if07(
 // CHECK-SAME:        %[[VAL_0:.*]]: !quake.veq<2>, %[[VAL_1:.*]]: i1, %[[VAL_2:.*]]: i1) {
@@ -488,6 +215,16 @@ func.func @floop_with_vector_and_qextract() {
 // CHECK:           return
 // CHECK:         }
 
+func.func @one_scope() {
+  %q0 = quake.alloca !quake.ref
+  %q1 = quake.alloca !quake.ref
+  cc.scope {
+    quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  }
+  quake.z [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
 // CHECK-LABEL:   func.func @one_scope() {
 // CHECK:           %[[VAL_0:.*]] = quake.null_wire
 // CHECK:           %[[VAL_1:.*]] = quake.null_wire
@@ -498,6 +235,17 @@ func.func @floop_with_vector_and_qextract() {
 // CHECK:           %[[VAL_4:.*]] = quake.z [%[[VAL_0]]] %[[VAL_5:.*]] : (!quake.wire, !quake.wire) -> !quake.wire
 // CHECK:           return
 // CHECK:         }
+
+func.func @scope_local_wire() {
+  %q0 = quake.alloca !quake.ref
+  cc.scope {
+    %q1 = quake.alloca !quake.ref
+    quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+    quake.y [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  }
+  quake.z %q0 : (!quake.ref) -> ()
+  return
+}
 
 // CHECK-LABEL:   func.func @scope_local_wire() {
 // CHECK:           %[[VAL_0:.*]] = quake.null_wire
@@ -510,6 +258,20 @@ func.func @floop_with_vector_and_qextract() {
 // CHECK:           %[[VAL_5:.*]] = quake.z %[[VAL_6:.*]] : (!quake.wire) -> !quake.wire
 // CHECK:           return
 // CHECK:         }
+
+func.func @nested_scopes() {
+  %q0 = quake.alloca  !quake.ref
+  %q1 = quake.alloca  !quake.ref
+  %q2 = quake.alloca  !quake.ref
+  cc.scope {
+    quake.h [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+    cc.scope {
+      quake.x [%q0] %q2 : (!quake.ref, !quake.ref) -> ()
+    }
+  }
+  quake.y [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  return
+}
 
 // CHECK-LABEL:   func.func @nested_scopes() {
 // CHECK:           %[[VAL_0:.*]] = quake.null_wire
@@ -527,6 +289,18 @@ func.func @floop_with_vector_and_qextract() {
 // CHECK:           return
 // CHECK:         }
 
+func.func @scope_local_extract_and_vec_measurement(%veq : !quake.veq<2>) {
+  %c_0 = arith.constant 0 : i32
+  %c_1 = arith.constant 1 : i32
+  %q0 = quake.extract_ref %veq[%c_0] : (!quake.veq<2>, i32) -> !quake.ref
+  cc.scope {
+    %q1 = quake.extract_ref %veq[%c_1] : (!quake.veq<2>,i32) -> !quake.ref
+    quake.y %q1 : (!quake.ref) -> ()
+  }
+  %reg = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<i1>
+  return
+}
+
 // CHECK-LABEL:   func.func @scope_local_extract_and_vec_measurement(
 // CHECK-SAME:                                  %[[VAL_0:.*]]: !quake.veq<2>) {
 // CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
@@ -542,6 +316,18 @@ func.func @floop_with_vector_and_qextract() {
 // CHECK:           return
 // CHECK:         }
 
+func.func @vec_op_in_nested_scope(%veq : !quake.veq<2>) {
+  %c_0 = arith.constant 0 : i32
+  %q0 = quake.extract_ref %veq[%c_0] : (!quake.veq<2>,i32) -> !quake.ref
+  cc.scope {
+    cc.scope {
+      quake.reset %veq : (!quake.veq<2>)-> ()
+    }
+  }
+  %reg = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<i1>
+  return
+}
+
 // CHECK-LABEL:   func.func @vec_op_in_nested_scope(
 // CHECK-SAME:                                      %[[VAL_0:.*]]: !quake.veq<2>) {
 // CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
@@ -555,6 +341,20 @@ func.func @floop_with_vector_and_qextract() {
 // CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<2>) -> !cc.stdvec<i1>
 // CHECK:           return
 // CHECK:         }
+
+func.func @vec_op_in_nested_scope_and_local_extraction(%veq : !quake.veq<2>) {
+  %c_0 = arith.constant 0 : i32
+  %c_1 = arith.constant 1 : i32
+  %q0 = quake.extract_ref %veq[%c_0] : (!quake.veq<2>,i32) -> !quake.ref
+  cc.scope {
+    cc.scope {
+      %q1 = quake.extract_ref %veq[%c_1] : (!quake.veq<2>,i32) -> !quake.ref
+      quake.reset %veq : (!quake.veq<2>) -> ()
+    }
+  }
+  %reg = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<i1>
+  return
+}
 
 // CHECK-LABEL:   func.func @vec_op_in_nested_scope_and_local_extraction(
 // CHECK-SAME:                                                           %[[VAL_0:.*]]: !quake.veq<2>) {
@@ -573,6 +373,19 @@ func.func @floop_with_vector_and_qextract() {
 // CHECK:           return
 // CHECK:         }
 
+func.func @raw_cfg01() {
+  %q0 = quake.alloca !quake.ref
+  %q1 = quake.alloca !quake.ref
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  cf.br ^bb1
+^bb1:
+  quake.y [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  cf.br ^bb2
+^bb2:
+  quake.z [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
 // CHECK-LABEL:   func.func @raw_cfg01() {
 // CHECK:           %[[VAL_0:.*]] = quake.null_wire
 // CHECK:           %[[VAL_1:.*]] = quake.null_wire
@@ -585,6 +398,19 @@ func.func @floop_with_vector_and_qextract() {
 // CHECK:           %[[VAL_8:.*]] = quake.z [%[[VAL_6]]] %[[VAL_7]] : (!quake.wire, !quake.wire) -> !quake.wire
 // CHECK:           return
 // CHECK:         }
+
+func.func @raw_cfg02(%q0: !quake.ref, %q1: !quake.ref, %c1: i1) {
+  cf.cond_br %c1, ^bb1, ^bb2
+^bb1:
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  cf.br ^bb3
+^bb2:
+  quake.y [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  cf.br ^bb3
+^bb3:
+  quake.z [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  return
+}
 
 // CHECK-LABEL:   func.func @raw_cfg02(
 // CHECK-SAME:        %[[VAL_0:.*]]: !quake.ref, %[[VAL_1:.*]]: !quake.ref, %[[VAL_2:.*]]: i1) {
@@ -603,6 +429,17 @@ func.func @floop_with_vector_and_qextract() {
 // CHECK:           return
 // CHECK:         }
 
+func.func @raw_cfg03(%q0: !quake.ref, %q1: !quake.ref, %c1: i1) {
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  cf.br ^bb1
+^bb1:
+  quake.y [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  cf.cond_br %c1, ^bb1, ^bb2
+^bb2:
+  quake.z [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
 // CHECK-LABEL:   func.func @raw_cfg03(
 // CHECK-SAME:        %[[VAL_0:.*]]: !quake.ref, %[[VAL_1:.*]]: !quake.ref, %[[VAL_2:.*]]: i1) {
 // CHECK:           %[[VAL_3:.*]] = quake.unwrap %[[VAL_1]] : (!quake.ref) -> !quake.wire
@@ -617,6 +454,16 @@ func.func @floop_with_vector_and_qextract() {
 // CHECK:           quake.wrap %[[VAL_11]] to %[[VAL_1]] : !quake.wire, !quake.ref
 // CHECK:           return
 // CHECK:         }
+
+func.func @raw_cfg04(%q0: !quake.ref, %q1: !quake.ref, %c1: i1) {
+  cf.cond_br %c1, ^bb1, ^bb2
+^bb1:
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  return
+^bb2:
+  quake.y [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  return
+}
 
 // CHECK-LABEL:   func.func @raw_cfg04(
 // CHECK-SAME:        %[[VAL_0:.*]]: !quake.ref, %[[VAL_1:.*]]: !quake.ref, %[[VAL_2:.*]]: i1) {
@@ -633,6 +480,20 @@ func.func @floop_with_vector_and_qextract() {
 // CHECK:           return
 // CHECK:         }
 
+func.func @raw_cfg05(%c1: i1) {
+  %c0_i64 = arith.constant 0 : i64
+  %veq = quake.alloca !quake.veq<2>
+  cf.cond_br %c1, ^bb1, ^bb2
+^bb1:
+  %q0 = quake.extract_ref %veq[%c0_i64] : (!quake.veq<2>, i64) -> !quake.ref
+  cf.br ^bb3
+^bb2:
+  cf.br ^bb3
+^bb3:
+  %reg = quake.mz %veq: (!quake.veq<2>) -> !cc.stdvec<i1>
+  return
+}
+
 // CHECK-LABEL:   func.func @raw_cfg05(
 // CHECK-SAME:                         %[[VAL_0:.*]]: i1) {
 // CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i64
@@ -648,6 +509,27 @@ func.func @floop_with_vector_and_qextract() {
 // CHECK:           %[[VAL_5:.*]] = quake.mz %[[VAL_2]] : (!quake.veq<2>) -> !cc.stdvec<i1>
 // CHECK:           return
 // CHECK:         }
+
+func.func @raw_cfg06(%c1: i1) {
+  %c0_i64 = arith.constant 0 : i64
+  %c1_i64 = arith.constant 1 : i64
+  %veq = quake.alloca !quake.veq<2>
+  %q0 = quake.extract_ref %veq[%c0_i64] : (!quake.veq<2>, i64) -> !quake.ref
+  cf.cond_br %c1, ^bb1, ^bb4
+^bb1:
+  %q1 = quake.extract_ref %veq[%c1_i64] : (!quake.veq<2>, i64) -> !quake.ref
+  cf.cond_br %c1, ^bb2, ^bb3
+^bb2:
+  cf.br ^bb5
+^bb3:
+  cf.br ^bb5
+^bb4:
+  %q2 = quake.extract_ref %veq[%c1_i64] : (!quake.veq<2>, i64) -> !quake.ref
+  cf.br ^bb5
+^bb5:
+  %reg = quake.mz %veq: (!quake.veq<2>)-> !cc.stdvec<i1>
+  return
+}
 
 // CHECK-LABEL:   func.func @raw_cfg06(
 // CHECK-SAME:                         %[[VAL_0:.*]]: i1) {
@@ -674,6 +556,23 @@ func.func @floop_with_vector_and_qextract() {
 // CHECK:           return
 // CHECK:         }
 
+func.func @raw_cfg07(%c1: i1) {
+  %c0_i64 = arith.constant 0 : i64
+  %c1_i64 = arith.constant 1 : i64
+  %veq = quake.alloca !quake.veq<2>
+  %q0 = quake.extract_ref %veq[%c0_i64] : (!quake.veq<2>, i64) -> !quake.ref
+  cf.cond_br %c1, ^bb1, ^bb2
+^bb1:
+  %q1 = quake.extract_ref %veq[%c0_i64] : (!quake.veq<2>, i64) -> !quake.ref
+  cf.br ^bb3
+^bb2:
+  quake.reset %veq: (!quake.veq<2>)->()
+  cf.br ^bb3
+^bb3:
+  %reg = quake.mz %veq: (!quake.veq<2>) -> !cc.stdvec<i1>
+  return
+}
+
 // CHECK-LABEL:   func.func @raw_cfg07(
 // CHECK-SAME:                         %[[VAL_0:.*]]: i1) {
 // CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i64
@@ -694,6 +593,14 @@ func.func @floop_with_vector_and_qextract() {
 // CHECK:           return
 // CHECK:         }
 
+func.func @alloc_dealloc_veq_with_extracted_refs() {
+  %c_0 = arith.constant 0 : i32
+  %veq = quake.alloca  !quake.veq<2>
+  %q0 = quake.extract_ref %veq[%c_0] : (!quake.veq<2>, i32) -> !quake.ref
+  quake.dealloc %veq : !quake.veq<2>
+  return
+}
+
 // CHECK-LABEL:   func.func @alloc_dealloc_veq_with_extracted_refs() {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
@@ -702,6 +609,16 @@ func.func @floop_with_vector_and_qextract() {
 // CHECK:           quake.dealloc %[[VAL_1]] : !quake.veq<2>
 // CHECK:           return
 // CHECK:         }
+
+func.func @apply_one_target_operators(%q0: !quake.ref, %q1: !quake.ref) {
+  quake.h [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  quake.s [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  quake.t [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  quake.y [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  quake.z [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  return
+}
 
 // CHECK-LABEL:   func.func @apply_one_target_operators(
 // CHECK-SAME:        %[[VAL_0:.*]]: !quake.ref, %[[VAL_1:.*]]: !quake.ref) {
@@ -717,6 +634,17 @@ func.func @floop_with_vector_and_qextract() {
 // CHECK:           return
 // CHECK:         }
 
+func.func @apply_parametrized_one_target_operators() {
+  %angle = arith.constant 3.14 : f64
+  %q0 = quake.alloca  !quake.ref
+  %q1 = quake.alloca  !quake.ref
+  quake.r1 (%angle) [%q1] %q0 : (f64, !quake.ref, !quake.ref) -> ()
+  quake.rx (%angle) [%q1] %q0 : (f64, !quake.ref, !quake.ref) -> ()
+  quake.ry (%angle) [%q1] %q0 : (f64, !quake.ref, !quake.ref) -> ()
+  quake.rz (%angle) [%q1] %q0 : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
 // CHECK-LABEL:   func.func @apply_parametrized_one_target_operators() {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 3.140000e+00 : f64
 // CHECK:           %[[VAL_1:.*]] = quake.null_wire
@@ -727,6 +655,18 @@ func.func @floop_with_vector_and_qextract() {
 // CHECK:           %[[VAL_6:.*]] = quake.rz (%[[VAL_0]]) [%[[VAL_2]]] %[[VAL_5]] : (f64, !quake.wire, !quake.wire) -> !quake.wire
 // CHECK:           return
 // CHECK:         }
+
+func.func @qextract_and_apply_controlled_two_targets_operator() {
+  %c_0 = arith.constant 0 : i32
+  %c_1 = arith.constant 1 : i32
+  %c_2 = arith.constant 2 : i32
+  %0 = quake.alloca !quake.veq<3>
+  %q0 = quake.extract_ref %0 [%c_0] : (!quake.veq<3>,i32) -> !quake.ref
+  %q1 = quake.extract_ref %0 [%c_1] : (!quake.veq<3>,i32) -> !quake.ref
+  %q2 = quake.extract_ref %0 [%c_2] : (!quake.veq<3>,i32) -> !quake.ref
+  quake.swap [%q2] %q0, %q1 : (!quake.ref,!quake.ref,!quake.ref) -> ()
+  return
+}
 
 // CHECK-LABEL:   func.func @qextract_and_apply_controlled_two_targets_operator() {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i32
@@ -743,6 +683,17 @@ func.func @floop_with_vector_and_qextract() {
 // CHECK:           return
 // CHECK:         }
 
+func.func @mz_and_reset_veq_with_extracted_refs() {
+  %c_0 = arith.constant 0 : i32
+  %c_1 = arith.constant 1 : i32
+  %0 = quake.alloca !quake.veq<2>
+  %q0 = quake.extract_ref %0[%c_0] : (!quake.veq<2>, i32) -> !quake.ref
+  %q1 = quake.extract_ref %0[%c_1] : (!quake.veq<2>, i32) -> !quake.ref
+  %reg = quake.mz %0 : (!quake.veq<2>) -> !cc.stdvec<i1>
+  quake.reset %0 : (!quake.veq<2>) -> ()
+  return
+}
+
 // CHECK-LABEL:   func.func @mz_and_reset_veq_with_extracted_refs() {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i32
@@ -755,6 +706,30 @@ func.func @floop_with_vector_and_qextract() {
 // CHECK:           quake.reset %[[VAL_2]] : (!quake.veq<2>) -> ()
 // CHECK:           return
 // CHECK:         }
+
+func.func @simple_loop() {
+  %c0_i64 = arith.constant 0 : i64
+  %c1_i64 = arith.constant 1 : i64
+  %c42_i64 = arith.constant 42 : i64
+  %q0 = quake.alloca !quake.ref
+  // memtoreg does not promote memref types.
+  %alloca = memref.alloca() : memref<i64>
+  memref.store %c0_i64, %alloca[] : memref<i64>
+  cc.loop while {
+    %1 = memref.load %alloca[] : memref<i64>
+    %2 = arith.cmpi ult, %1, %c42_i64 : i64
+    cc.condition %2
+  } do {
+    quake.x %q0 : (!quake.ref) -> ()
+    cc.continue
+  } step {
+    %1 = memref.load %alloca[] : memref<i64>
+    %2 = arith.addi %1, %c1_i64 : i64
+    memref.store %2, %alloca[] : memref<i64>
+  }
+  quake.z %q0 : (!quake.ref) -> ()
+  return
+}
 
 // CHECK-LABEL:   func.func @simple_loop() {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i64
@@ -781,6 +756,32 @@ func.func @floop_with_vector_and_qextract() {
 // CHECK:           %[[VAL_14:.*]] = quake.z %[[VAL_15:.*]] : (!quake.wire) -> !quake.wire
 // CHECK:           return
 // CHECK:         }
+
+func.func @floop_with_vector_and_qextract() {
+  %c0_i64 = arith.constant 0 : i64
+  %c1_i64 = arith.constant 1 : i64
+  %c2_i64 = arith.constant 2 : i64
+  %veq = quake.alloca  !quake.veq<2>
+  %q0 = quake.extract_ref %veq[%c0_i64] : (!quake.veq<2> ,i64) -> !quake.ref
+  %alloca = memref.alloca() : memref<i64>
+  memref.store %c0_i64, %alloca[] : memref<i64>
+  cc.loop while {
+    %3 = memref.load %alloca[] : memref<i64>
+    %4 = arith.cmpi ult, %3, %c2_i64 : i64
+    cc.condition %4
+  } do {
+    %3 = memref.load %alloca[] : memref<i64>
+    %4 = quake.extract_ref %veq[%3] : (!quake.veq<2> ,i64) -> !quake.ref
+    cc.continue
+  } step {
+    %3 = memref.load %alloca[] : memref<i64>
+    %4 = arith.addi %3, %c1_i64 : i64
+    memref.store %4, %alloca[] : memref<i64>
+  }
+  %2 = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<i1>
+  return
+}
+
 
 // CHECK-LABEL:   func.func @floop_with_vector_and_qextract() {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i64

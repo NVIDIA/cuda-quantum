@@ -241,9 +241,9 @@ static Type unwrapType(Type ty) {
   return cast<cudaq::cc::PointerType>(ty).getElementType();
 }
 
-#define WRAPPER(X) Wrapper<quake::X>
+#define WRAPPER(OpClass) Wrapper<quake::OpClass>
 #define WRAPPER_QUANTUM_OPS QUANTUM_OPS(WRAPPER)
-#define RAW(X) quake::X
+#define RAW(OpClass) quake::OpClass
 #define RAW_QUANTUM_OPS QUANTUM_OPS(RAW)
 
 namespace {
