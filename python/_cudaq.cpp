@@ -21,6 +21,8 @@
 #include "utils/LinkedLibraryHolder.h"
 #include "utils/TestingUtils.h"
 
+#include "cudaq.h"
+
 PYBIND11_MODULE(_pycudaq, mod) {
   static cudaq::LinkedLibraryHolder holder;
 
@@ -42,6 +44,12 @@ PYBIND11_MODULE(_pycudaq, mod) {
         }
       },
       "");
+
+  mod.def(
+      "mpi_initialize", []() { cudaq::mpi_initialize(); },
+      "Initialize MPI if available.");
+  mod.def(
+      "mpi_finalize", []() { cudaq::mpi_finalize(); }, "Finalize MPI.");
 
   cudaq::bindRuntimeTarget(mod, holder);
   cudaq::bindBuilder(mod);

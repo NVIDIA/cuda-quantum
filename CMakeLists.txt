@@ -340,6 +340,12 @@ endif()
 find_package(CURL COMPONENTS HTTP HTTPS QUIET) 
 find_package(OpenSSL QUIET)
 
+# Optionally build with MPI
+find_package(MPI COMPONENTS CXX)
+if (MPI_FOUND) 
+  message(STATUS "MPI CXX Found: ${MPIEXEC}")
+endif()
+
 # Directory setup
 # ==============================================================================
 if (CUDAQ_ENABLE_PYTHON)

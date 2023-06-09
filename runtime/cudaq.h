@@ -190,7 +190,24 @@ void unset_noise();
 /// @brief Utility function for clearing the shots
 void clear_shots(const std::size_t nShots);
 
+/// @brief Initialize MPI if available. This function
+/// is a no-op if there CUDA Quantum has not been built
+/// against MPI.
+void mpi_initialize();
+
+/// @brief Initialize MPI if available. This function
+/// is a no-op if there CUDA Quantum has not been built
+/// against MPI. Takes program arguments as input.
+void mpi_initialize(int argc, char **argv);
+
+/// @brief Finalize MPI. This function
+/// is a no-op if there CUDA Quantum has not been built
+/// against MPI.
+void mpi_finalize();
+
 } // namespace cudaq
 
 // Users should get sample by default
 #include "cudaq/algorithms/sample.h"
+// Users should get observe by default
+#include "cudaq/algorithms/observe.h"

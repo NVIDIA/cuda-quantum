@@ -18,6 +18,37 @@
 #include <string>
 #include <vector>
 
+#ifdef CUDAQ_HAS_MPI
+#include <mpi.h>
+namespace cudaq {
+void mpi_initialize() {
+  int argc{0};
+  char **argv = nullptr;
+  mpi_initialize(argc, argv);
+}
+void mpi_initialize(int argc, char **argv) {
+  int pid, np, thread_provided;
+  int mpi_error =
+      MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &thread_provided);
+  assert(mpi_error == MPI_SUCCESS);
+  assert(thread_provided == MPI_THREAD_MULTIPLE);
+  MPI_Comm_rank(MPI_COMM_WORLD, &pid);
+  MPI_Comm_size(MPI_COMM_WORLD, &np);
+  if (pid == 0)
+    cudaq::info("MPI Enabled, nRanks = {}", np);
+}
+void mpi_finalize() {
+  int mpi_error = MPI_Finalize();
+  assert(mpi_error == MPI_SUCCESS);
+}
+} // namespace cudaq
+#else
+namespace cudaq {
+void mpi_initialize(int argc, char **argv) {}
+void mpi_finalize() {}
+} // namespace cudaq
+#endif
+
 namespace cudaq::__internal__ {
 std::map<std::string, std::string> runtime_registered_mlir;
 std::string demangle_kernel(const char *name) {
