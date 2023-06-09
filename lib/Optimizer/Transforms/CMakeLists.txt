@@ -29,7 +29,6 @@ add_cudaq_library(OptTransforms
   QuakeAddMetadata.cpp
   QuakeObserveAnsatz.cpp
   QuakeSynthesizer.cpp
-  RaiseToAffine.cpp
 
   DEPENDS
     OptTransformsPassIncGen
