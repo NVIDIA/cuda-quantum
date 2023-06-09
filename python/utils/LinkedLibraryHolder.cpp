@@ -11,7 +11,6 @@
 #include "cudaq/platform.h"
 #include "nvqir/CircuitSimulator.h"
 #include <fstream>
-#include <iostream>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <regex>
@@ -31,40 +30,6 @@ constexpr static const char PLATFORM_LIBRARY[] = "PLATFORM_LIBRARY=";
 constexpr static const char NVQIR_SIMULATION_BACKEND[] =
     "NVQIR_SIMULATION_BACKEND=";
 constexpr static const char TARGET_DESCRIPTION[] = "TARGET_DESCRIPTION=";
-
-#if defined(__APPLE__) && defined(__MACH__)
-#include <mach-o/dyld.h>
-#else
-#include <link.h>
-#endif
-
-struct CUDAQLibraryData {
-  std::string path;
-};
-
-#if defined(__APPLE__) && defined(__MACH__)
-static void getCUDAQLibraryPath(CUDAQLibraryData *data) {
-  auto nLibs = _dyld_image_count();
-  for (uint32_t i = 0; i < nLibs; i++) {
-    auto ptr = _dyld_get_image_name(i);
-    std::string libName(ptr);
-    if (libName.find("cudaq-common") != std::string::npos) {
-      auto casted = static_cast<CUDAQLibraryData *>(data);
-      casted->path = std::string(ptr);
-    }
-  }
-}
-#else
-static int getCUDAQLibraryPath(struct dl_phdr_info *info, size_t size,
-                               void *data) {
-  std::string libraryName(info->dlpi_name);
-  if (libraryName.find("cudaq-common") != std::string::npos) {
-    auto casted = static_cast<CUDAQLibraryData *>(data);
-    casted->path = std::string(info->dlpi_name);
-  }
-  return 0;
-}
-#endif
 
 std::size_t RuntimeTarget::num_qpus() {
   auto &platform = cudaq::get_platform();
@@ -134,13 +99,13 @@ void findAvailableTargets(
 LinkedLibraryHolder::LinkedLibraryHolder() {
   cudaq::info("Init infrastructure for pythonic builder.");
 
-  CUDAQLibraryData data;
+  cudaq::__internal__::CUDAQLibraryData data;
 #if defined(__APPLE__) && defined(__MACH__)
   libSuffix = "dylib";
-  getCUDAQLibraryPath(&data);
+  cudaq::__internal__::getCUDAQLibraryPath(&data);
 #else
   libSuffix = "so";
-  dl_iterate_phdr(getCUDAQLibraryPath, &data);
+  dl_iterate_phdr(cudaq::__internal__::getCUDAQLibraryPath, &data);
 #endif
 
   std::filesystem::path nvqirLibPath{data.path};
@@ -167,11 +132,13 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
                        dlopen(p.string().c_str(), RTLD_GLOBAL | RTLD_NOW));
 
   // We will always load the RemoteRestQPU plugin in Python.
+  // It will be built when CURL and OpenSSL are present.
   auto potentialPath =
       cudaqLibPath / fmt::format("libcudaq-rest-qpu.{}", libSuffix);
-  libHandles.emplace(
-      potentialPath.string(),
-      dlopen(potentialPath.string().c_str(), RTLD_GLOBAL | RTLD_NOW));
+  void *restQpuLibHandle =
+      dlopen(potentialPath.string().c_str(), RTLD_GLOBAL | RTLD_NOW);
+  if (restQpuLibHandle)
+    libHandles.emplace(potentialPath.string(), restQpuLibHandle);
 
   // Search for all simulators and create / store them
   for (const auto &library :
