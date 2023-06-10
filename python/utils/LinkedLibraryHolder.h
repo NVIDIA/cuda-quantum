@@ -46,6 +46,12 @@ struct RuntimeTarget {
 class LinkedLibraryHolder {
 public:
 protected:
+  /// @brief Lazy-loader functor for CircuitSimulators
+  using SimulatorCreator = std::function<nvqir::CircuitSimulator *()>;
+
+  /// @brief Lazy-loader functor for Quantum Platforms
+  using PlatformCreator = std::function<quantum_platform *()>;
+
   // Store the library suffix
   std::string libSuffix = "";
 
@@ -56,10 +62,10 @@ protected:
   std::unordered_map<std::string, void *> libHandles;
 
   /// @brief Map of available simulators
-  std::unordered_map<std::string, nvqir::CircuitSimulator *> simulators;
+  std::unordered_map<std::string, SimulatorCreator> simulators;
 
   /// @brief Map of available platforms
-  std::unordered_map<std::string, quantum_platform *> platforms;
+  std::unordered_map<std::string, PlatformCreator> platforms;
 
   /// @brief Map of available targets.
   std::unordered_map<std::string, RuntimeTarget> targets;
