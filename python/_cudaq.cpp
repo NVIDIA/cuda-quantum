@@ -45,11 +45,15 @@ PYBIND11_MODULE(_pycudaq, mod) {
       },
       "");
 
-  mod.def(
-      "mpi_initialize", []() { cudaq::mpi_initialize(); },
+  auto mpiSubmodule = mod.def_submodule("mpi");
+  mpiSubmodule.def(
+      "initialize", []() { cudaq::mpi::initialize(); },
       "Initialize MPI if available.");
-  mod.def(
-      "mpi_finalize", []() { cudaq::mpi_finalize(); }, "Finalize MPI.");
+  mpiSubmodule.def(
+      "is_initialized", []() { cudaq::mpi::is_initialized(); },
+      "Return true if MPI has already been initialized.");
+  mpiSubmodule.def(
+      "finalize", []() { cudaq::mpi::finalize(); }, "Finalize MPI.");
 
   cudaq::bindRuntimeTarget(mod, holder);
   cudaq::bindBuilder(mod);

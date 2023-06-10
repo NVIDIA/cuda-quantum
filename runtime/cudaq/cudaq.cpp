@@ -20,13 +20,13 @@
 
 #ifdef CUDAQ_HAS_MPI
 #include <mpi.h>
-namespace cudaq {
-void mpi_initialize() {
+namespace cudaq::mpi {
+void initialize() {
   int argc{0};
   char **argv = nullptr;
-  mpi_initialize(argc, argv);
+  initialize(argc, argv);
 }
-void mpi_initialize(int argc, char **argv) {
+void initialize(int argc, char **argv) {
   int pid, np, thread_provided;
   int mpi_error =
       MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &thread_provided);
@@ -37,16 +37,23 @@ void mpi_initialize(int argc, char **argv) {
   if (pid == 0)
     cudaq::info("MPI Enabled, nRanks = {}", np);
 }
-void mpi_finalize() {
+bool is_initialized() {
+  int i;
+  MPI_Initialized(&i);
+  return i == 1;
+}
+
+void finalize() {
   int mpi_error = MPI_Finalize();
   assert(mpi_error == MPI_SUCCESS);
 }
-} // namespace cudaq
+} // namespace cudaq::mpi
 #else
 namespace cudaq {
-void mpi_initialize() {}
-void mpi_initialize(int argc, char **argv) {}
-void mpi_finalize() {}
+void initialize() {}
+void initialize(int argc, char **argv) {}
+bool is_initialized() { return false; }
+void finalize() {}
 } // namespace cudaq
 #endif
 
