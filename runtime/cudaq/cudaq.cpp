@@ -49,7 +49,7 @@ void finalize() {
 }
 } // namespace cudaq::mpi
 #else
-namespace cudaq {
+namespace cudaq::mpi {
 void initialize() {}
 void initialize(int argc, char **argv) {}
 bool is_initialized() { return false; }
