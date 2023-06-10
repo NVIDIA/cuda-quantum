@@ -44,6 +44,7 @@ void mpi_finalize() {
 } // namespace cudaq
 #else
 namespace cudaq {
+void mpi_initialize() {}
 void mpi_initialize(int argc, char **argv) {}
 void mpi_finalize() {}
 } // namespace cudaq
