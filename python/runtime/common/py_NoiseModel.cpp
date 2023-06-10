@@ -38,9 +38,12 @@ void bindNoiseModel(py::module &mod) {
           "Clear backend simulation from any existing noise models.");
 
   py::class_<kraus_op>(mod, "KrausOperator", py::buffer_protocol(),
-                       "The KrausOperator is represented by a matrix and "
-                       "serves as an element of a "
-                       "quantum channel such that Sum Ki Ki^dag = I.")
+                      """
+                      The KrausOperator is represented by a matrix and 
+                      serves as an element of a quantum channel such that 
+                      Sum Ki Ki^dag = I.
+                      """
+                      )
       .def_buffer([](kraus_op &op) -> py::buffer_info {
         return py::buffer_info(op.data.data(), sizeof(complex),
                                py::format_descriptor<complex>::format(), 2,
@@ -55,19 +58,29 @@ void bindNoiseModel(py::module &mod) {
            }),
            "Create a KrausOperator from a buffer of data, like a numpy array.")
       .def_readonly("row_count", &kraus_op::nRows,
-                    "The number of rows in the matrix representation of this "
-                    "KrausOperator")
+                    """
+                    The number of rows in the matrix representation 
+                    of this KrausOperator.
+                    """
+                    )
       .def_readonly("col_count", &kraus_op::nCols,
-                    "The number of columns in the matrix representation of "
-                    "this KrausOperator");
+                    """
+                    The number of columns in the matrix representation of
+                    this KrausOperator.
+                    """
+                    );
 
   py::class_<kraus_channel>(mod, "KrausChannel",
-                            "The KrausChannel is composed of a list of "
-                            "KrausOperators and is applied to "
-                            "a specific qubit or set of qubits.")
+                            """
+                            The KrausChannel is composed of a list of KrausOperators and
+                            is applied to a specific qubit or set of qubits.
+                            """
+                            )
       .def(py::init<std::vector<kraus_op>>(),
-           "Create a KrausChannel composed of a list "
-           "of kraus_ops.")
+           """
+           Create a KrausChannel composed of a list of kraus_ops.
+           """
+           )
       .def(py::init([](py::list ops) {
              std::vector<kraus_op> kops;
              for (std::size_t i = 0; i < ops.size(); i++) {
@@ -80,33 +93,51 @@ void bindNoiseModel(py::module &mod) {
              }
              return kraus_channel(kops);
            }),
-           "Create a KrausChannel given a list of KrausOperators.")
+           """
+           Create a KrausChannel given a list of KrausOperators.
+           """
+           )
       .def(
           "__getitem__",
           [](kraus_channel &c, std::size_t idx) { return c[idx]; },
-          "Return the KrausOperator at the given index in this KrausChannel.")
+          """
+          Return the KrausOperator at the given index in this KrausChannel.
+          """
+          )
       .def("append", &kraus_channel::push_back,
-           "Add a KrausOperator to this KrausChannel.");
+          """
+          Add a KrausOperator to this KrausChannel.
+          """
+          );
 
   py::class_<noise_model>(
       mod, "NoiseModel",
-      "The cudaq NoiseModel defines a set of KrausChannels applied to "
-      "specific qubits after the invocation specified quantum operations.")
+      """
+      The cudaq NoiseModel defines a set of KrausChannels applied to
+      specific qubits after the invocation specified quantum operations.
+      """
+      )
       .def(py::init<>(), "Construct an empty noise model.")
       .def(
           "add_channel",
           [](noise_model &n, std::string &opName,
              std::vector<std::size_t> &qubits,
              kraus_channel &c) { n.add_channel(opName, qubits, c); },
-          "Add the given KrausChannel to be applied after invocation of the "
-          "specified quantum operation.")
+          """
+          Add the given KrausChannel to be applied after invocation of the
+          specified quantum operation.
+          """
+          )
       .def(
           "get_channels",
           [](noise_model n, const std::string &op,
              std::vector<std::size_t> qbits) {
             return n.get_channels(op, qbits);
           },
-          "Return the KrausChannels that make up this noise model.");
+          """
+          Return the KrausChannels that make up this noise model.
+          """
+          );
 
   py::class_<depolarization_channel, kraus_channel>(mod,
                                                     "DepolarizationChannel")
