@@ -54,7 +54,7 @@ void initialize() {}
 void initialize(int argc, char **argv) {}
 bool is_initialized() { return false; }
 void finalize() {}
-} // namespace cudaq
+} // namespace cudaq::mpi
 #endif
 
 namespace cudaq::__internal__ {
