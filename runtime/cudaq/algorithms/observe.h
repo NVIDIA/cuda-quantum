@@ -21,8 +21,27 @@
 
 namespace cudaq {
 
+namespace mpi {
+int rank();
+int num_ranks();
+bool is_initialized();
+double allreduce_double_add(double localValue);
+} // namespace mpi
+
 /// @brief Return type for asynchronous observation.
 using async_observe_result = async_result<observe_result>;
+
+/// @brief Multi-GPU Multi-Node (MPI)
+/// Distribution Type for observe
+struct mgmn {};
+
+/// @brief Multi-GPU Single-Node
+/// Distribution Type for observe
+struct mgsn {};
+
+/// @brief Multi-Node, no GPU,
+/// Distribution Type for observe
+struct mn {};
 
 /// @brief Define a combined sample function validation concept.
 /// These concepts provide much better error messages than old-school SFINAE
@@ -176,18 +195,6 @@ observe_result observe(QuantumKernel &&kernel, spin_op H, Args &&...args) {
   // Run this SHOTS times
   auto &platform = cudaq::get_platform();
   auto shots = platform.get_shots().value_or(-1);
-
-  // Does this platform expose more than 1 QPU
-  // If so, let's distribute the work among the QPUs
-  if (auto nQpus = platform.num_qpus(); nQpus > 1)
-    return details::distributeComputations(
-        [&kernel, ... args = std::forward<Args>(args)](std::size_t i,
-                                                       spin_op &op) mutable {
-          return observe_async(i, std::forward<QuantumKernel>(kernel), op,
-                               std::forward<Args>(args)...);
-        },
-        H, nQpus);
-
   auto kernelName = cudaq::getKernelName(kernel);
   return details::runObservation(
              [&kernel, ... args = std::forward<Args>(args)]() mutable {
@@ -195,6 +202,80 @@ observe_result observe(QuantumKernel &&kernel, spin_op H, Args &&...args) {
              },
              H, platform, shots, kernelName)
       .value();
+}
+
+/// @brief Compute the expected value of `H` with respect to `kernel(Args...)`.
+/// Distribute the work amongst available QPUs on the platform in parallel. This
+/// distribution can occur on multi-gpu multi-node platforms, multi-gpu
+/// single-node platforms, or multi-node no-gpu platforms. Programmers must
+/// indicate the distribution type via the corresponding template types
+/// (cudaq::mgmn, cudaq::mgsn, cudaq::mn).
+template <typename DistributionType, typename QuantumKernel, typename... Args>
+  requires ObserveCallValid<QuantumKernel, Args...>
+observe_result observe(std::size_t shots, QuantumKernel &&kernel, spin_op H,
+                       Args &&...args) {
+  // Run this SHOTS times
+  auto &platform = cudaq::get_platform();
+  auto nQpus = platform.num_qpus();
+  if constexpr (std::is_same_v<DistributionType, mgsn>) {
+    if (nQpus == 1)
+      printf(
+          "[cudaq::observe warning] distributed observe requested but only 1 "
+          "QPU available. no speedup expected.\n");
+    // Let's distribute the work among the QPUs on this node
+    return details::distributeComputations(
+        [&kernel, ... args = std::forward<Args>(args)](std::size_t i,
+                                                       spin_op &op) mutable {
+          return observe_async(i, std::forward<QuantumKernel>(kernel), op,
+                               std::forward<Args>(args)...);
+        },
+        H, nQpus);
+  } else if (std::is_same_v<DistributionType, mgmn>) {
+
+    // This is an MPI distribution, where each node has N GPUs.
+    if (!mpi::is_initialized())
+      throw std::runtime_error(
+          "Cannot use mgmn or mn multi-node observe() without MPI.");
+
+    // Note - For MGMN, we assume that nQpus == num visible GPUs for this local
+    // rank.
+
+    // Get the rank and the number of ranks
+    auto rank = mpi::rank();
+    auto nRanks = mpi::num_ranks();
+
+    // Each rank gets a subset of the spin terms
+    auto spins = H.distribute_terms(nRanks);
+
+    // Get this rank's set of spins to compute
+    auto localH = spins[rank];
+
+    // Distribute locally, i.e. to the local nodes QPUs
+    auto localRankResult = details::distributeComputations(
+        [&kernel, ... args = std::forward<Args>(args)](std::size_t i,
+                                                       spin_op &op) mutable {
+          return observe_async(i, std::forward<QuantumKernel>(kernel), op,
+                               std::forward<Args>(args)...);
+        },
+        localH, nQpus);
+
+    // combine all the data via an all_reduce
+    auto exp_val = localRankResult.exp_val_z();
+    auto globalExpVal = mpi::allreduce_double_add(exp_val);
+    return observe_result(globalExpVal, H);
+
+  } else {
+    throw std::runtime_error("Not implemented.");
+  }
+}
+
+template <typename DistributionType, typename QuantumKernel, typename... Args>
+  requires ObserveCallValid<QuantumKernel, Args...>
+observe_result observe(QuantumKernel &&kernel, spin_op H, Args &&...args) {
+  auto &platform = cudaq::get_platform();
+  auto shots = platform.get_shots().value_or(-1);
+  return observe<DistributionType>(shots, std::forward<QuantumKernel>(kernel),
+                                   H, std::forward<Args>(args)...);
 }
 
 /// \brief Compute the expected value of `H` with respect to `kernel(Args...)`.

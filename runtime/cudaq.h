@@ -201,7 +201,16 @@ void initialize();
 /// against MPI. Takes program arguments as input.
 void initialize(int argc, char **argv);
 
+/// @brief Return the rank of the calling process.
+int rank();
+
+/// @brief Return the number of MPI ranks.
+int num_ranks();
+
+/// @brief Return true if MPI is already initialized, false otherwise.
 bool is_initialized();
+
+double allreduce_double_add(double localValue);
 
 /// @brief Finalize MPI. This function
 /// is a no-op if there CUDA Quantum has not been built

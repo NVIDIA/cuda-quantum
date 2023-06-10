@@ -37,10 +37,26 @@ void initialize(int argc, char **argv) {
   if (pid == 0)
     cudaq::info("MPI Enabled, nRanks = {}", np);
 }
+int rank() {
+  int pid;
+  MPI_Comm_rank(MPI_COMM_WORLD, &pid);
+  return pid;
+}
+int num_ranks() {
+  int np;
+  MPI_Comm_size(MPI_COMM_WORLD, &np);
+  return np;
+}
 bool is_initialized() {
   int i;
   MPI_Initialized(&i);
   return i == 1;
+}
+
+double allreduce_double_add(double localValue) {
+  double result;
+  MPI_Allreduce(&localValue, &result, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  return result;
 }
 
 void finalize() {
@@ -53,6 +69,9 @@ namespace cudaq::mpi {
 void initialize() {}
 void initialize(int argc, char **argv) {}
 bool is_initialized() { return false; }
+int rank() { return 0; }
+int num_ranks() { return 1; }
+double allreduce_double_add(double value) { return 0.0; }
 void finalize() {}
 } // namespace cudaq::mpi
 #endif
