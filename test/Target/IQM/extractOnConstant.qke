@@ -32,7 +32,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__super = "_ZN5supe
 // CHECK:             },
 // CHECK:             "name": "phased_rx",
 // CHECK:             "qubits": [
-// CHECK:                 "QB0"
+// CHECK:                 "QB1"
 // CHECK:             ]
 // CHECK:         },
 // CHECK:         {
@@ -42,13 +42,16 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__super = "_ZN5supe
 // CHECK:             },
 // CHECK:             "name": "phased_rx",
 // CHECK:             "qubits": [
-// CHECK:                 "QB0"
+// CHECK:                 "QB1"
 // CHECK:             ]
 // CHECK:         },
 // CHECK:         {
+// CHECK:             "args": {
+// CHECK:                 "key": "m_QB1"
+// CHECK:             },
 // CHECK:             "name": "measurement",
 // CHECK:             "qubits": [
-// CHECK:                 "QB0"
+// CHECK:                 "QB1"
 // CHECK:             ]
 // CHECK:         }
 // CHECK:     ],

@@ -51,7 +51,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__bell = "_ZN4bellc
 // CHECK:                   },
 // CHECK:                   "name": "phased_rx",
 // CHECK:                   "qubits": [
-// CHECK:                       "QB0"
+// CHECK:                       "QB1"
 // CHECK:                   ]
 // CHECK:               },
 // CHECK:         {
@@ -61,7 +61,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__bell = "_ZN4bellc
 // CHECK:                   },
 // CHECK:                   "name": "phased_rx",
 // CHECK:                   "qubits": [
-// CHECK:                       "QB0"
+// CHECK:                       "QB1"
 // CHECK:                   ]
 // CHECK:               },
 // CHECK:         {
@@ -71,7 +71,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__bell = "_ZN4bellc
 // CHECK:                   },
 // CHECK:                   "name": "phased_rx",
 // CHECK:                   "qubits": [
-// CHECK:                       "QB1"
+// CHECK:                       "QB2"
 // CHECK:                   ]
 // CHECK:               },
 // CHECK:         {
@@ -81,14 +81,15 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__bell = "_ZN4bellc
 // CHECK:                   },
 // CHECK:                   "name": "phased_rx",
 // CHECK:                   "qubits": [
-// CHECK:                       "QB1"
+// CHECK:                       "QB2"
 // CHECK:                   ]
 // CHECK:               },
 // CHECK:         {
 // CHECK:                   "args": {},
-// CHECK:                   "name": "z",
+// CHECK:                   "name": "cz",
 // CHECK:                   "qubits": [
-// CHECK:                       "QB1"
+// CHECK:                       "QB1",
+// CHECK:                       "QB2"
 // CHECK:                   ]
 // CHECK:               },
 // CHECK:         {
@@ -98,7 +99,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__bell = "_ZN4bellc
 // CHECK:                   },
 // CHECK:                   "name": "phased_rx",
 // CHECK:                   "qubits": [
-// CHECK:                       "QB1"
+// CHECK:                       "QB2"
 // CHECK:                   ]
 // CHECK:               },
 // CHECK:         {
@@ -108,19 +109,25 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__bell = "_ZN4bellc
 // CHECK:                   },
 // CHECK:                   "name": "phased_rx",
 // CHECK:                   "qubits": [
+// CHECK:                       "QB2"
+// CHECK:                   ]
+// CHECK:               },
+// CHECK:         {
+// CHECK:                   "args": {
+// CHECK:                       "key": "m_QB1"
+// CHECK:                   },
+// CHECK:                   "name": "measurement",
+// CHECK:                   "qubits": [
 // CHECK:                       "QB1"
 // CHECK:                   ]
 // CHECK:               },
 // CHECK:         {
+// CHECK:                   "args": {
+// CHECK:                       "key": "m_QB2"
+// CHECK:                   },
 // CHECK:                   "name": "measurement",
 // CHECK:                   "qubits": [
-// CHECK:                       "QB0"
-// CHECK:                   ]
-// CHECK:               },
-// CHECK:         {
-// CHECK:                   "name": "measurement",
-// CHECK:                   "qubits": [
-// CHECK:                       "QB1"
+// CHECK:                       "QB2"
 // CHECK:                   ]
 // CHECK:               }
 // CHECK:           ],
