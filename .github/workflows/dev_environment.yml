@@ -48,12 +48,9 @@ on:
         required: false
         type: string
     outputs:
-      image_name:
-        description: "The full name of the built docker image."
-        value: ${{ jobs.finalize.outputs.image_name }}
-      digests:
-        description: "The digests of the docker image(s) that were deployed to the registry."
-        value: ${{ jobs.finalize.outputs.digests }}
+      image_hash:
+        description: "The name and digest of the docker image that was deployed to the registry, which can be used to retrieve it independently of any tag updates."
+        value: ${{ jobs.finalize.outputs.image_hash }}
       cache_key:
         description: "The cache key to retrieve a tar archive containing the built image(s)."
         value: ${{ jobs.finalize.outputs.cache_key }}
@@ -286,8 +283,7 @@ jobs:
     needs: [metadata, build, deployment]
 
     outputs:
-      image_name: ${{ fromJson(steps.write_json.outputs.result).image_name }}
-      digests: ${{ fromJson(steps.write_json.outputs.result).digests }}
+      image_hash: ${{ fromJson(steps.write_json.outputs.result).image_hash }}
       cache_key: ${{ fromJson(steps.write_json.outputs.result).cache_key }}
       tar_archive: ${{ fromJson(steps.write_json.outputs.result).tar_archive }}
       build_cache: ${{ fromJson(steps.write_json.outputs.result).build_cache }}
@@ -299,8 +295,7 @@ jobs:
           matrix-step-name: ${{ inputs.matrix_key && 'dev_environment' }}
           matrix-key: ${{ inputs.matrix_key }}
           outputs: |
-            image_name: ${{ needs.metadata.outputs.image_name }}
-            digests: ${{ needs.deployment.outputs.digests }}
+            image_hash: ${{ needs.deployment.outputs.image_hash }}
             cache_key: ${{ needs.build.outputs.tar_cache }}
             tar_archive: ${{ needs.build.outputs.tar_archive }}
             build_cache: ${{ needs.build.outputs.build_cache }}
