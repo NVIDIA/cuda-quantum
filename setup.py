@@ -14,18 +14,24 @@ except ImportError:
 import skbuild
 import setuptools
 
+# TODO: Handle setting up system dependencies by either calling the 
+# build_wheel script and deselecting build wheel, or by giving it
+# its own dedicated script.
+
 # os.environ["LLVM_DIR"]="/opt/llvm/clang-16/lib/cmake/llvm"
 
 skbuild.setup(
-    name="cudaq",
+    name="cuda-quantum",
     version="0.0.3",
-    package_dir={"": "python"},
+    package_dir={"cudaq": "python/cudaq"},
     packages=setuptools.find_packages(where="python", include=["*"]),
     zip_safe=False,
     python_requires=">=3.6",
-    # This ensures that the python package is in the PYTHONPATH
-    cmake_install_dir=
-    f"lib/python{sys.version_info[0]}.{sys.version_info[1]}/dist-packages/cudaq",
+    # FIXME: Linux machines default to dist-packages unless the `--user` flag is provided to
+    # the pip install. I'm trying to hard-code everything to site-packages in the meantime,
+    # which is also the location expected on MacOS.
+    # cmake_install_dir=
+    # f"lib/python{sys.version_info[0]}.{sys.version_info[1]}/site-packages/cudaq",
     # FIXME: Remove hard-coding on zlib and libcpr path.
     cmake_args=[
         "-DCUDAQ_ENABLE_PYTHON=TRUE", "-DBLAS_LIBRARIES=/usr/lib64/libblas.a",
