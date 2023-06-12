@@ -18,7 +18,7 @@
 # The variable $toolchain should indicate which compiler toolchain the development environment 
 # which this image extends is configure with; see also docker/build/devdeps.Dockerfile.
 
-ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:gcc12-main
+ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:llvm-main
 
 FROM nvidia/cuda:11.8.0-devel-ubuntu22.04 as ompibuild
 SHELL ["/bin/bash", "-c"]
