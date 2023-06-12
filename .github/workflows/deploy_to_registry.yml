@@ -55,11 +55,9 @@ jobs:
           loaded=`docker load --input ${{ inputs.tar_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
 
           image_name=`echo $loaded | cut -d ":" -f 1`
-          docker push $image_name --all-tags # need to push before getting the digest
-          digests=`docker images $image_name --digests --format '{{.Digest}}' | grep -vxF "<none>"`
+          digest_id=`docker push $image_name --all-tags | grep -o 'digest:\ssha256:\S*' | cut -d ":" -f 3`
 
-          # FIXME: get the digest from the push instead
-          image_hash=${image_name}@$(echo $digests | tr ' ' ';' | cut -d ";" -f 1)
+          image_hash=${image_name}@sha256:$digest_id
           echo "image_hash=$image_hash" >> $GITHUB_OUTPUT
 
       - name: Clean up
