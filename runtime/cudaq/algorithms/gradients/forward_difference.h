@@ -21,16 +21,15 @@ public:
 
   /// @brief Compute the `forward_difference` gradient
   void compute(const std::vector<double> &x, std::vector<double> &dx,
-               spin_op &h, double exp_h) override {
+               spin_op &h, double funcAtX) override {
     auto tmpX = x;
-    auto fx = getExpectedValue(tmpX, h);
     for (std::size_t i = 0; i < x.size(); i++) {
       // increase value to x_i + dx_i
       tmpX[i] += step;
       auto px = getExpectedValue(tmpX, h);
       // return value back to x_i
       tmpX[i] -= step;
-      dx[i] = (px - fx) / step;
+      dx[i] = (px - funcAtX) / step;
     }
   }
 
@@ -38,17 +37,17 @@ public:
   /// function, `func`, passed in by the user.
   std::vector<double>
   compute(const std::vector<double> &x,
-          std::function<double(std::vector<double>)> &func) override {
+          const std::function<double(std::vector<double>)> &func,
+          double funcAtX) override {
     std::vector<double> dx(x.size());
     auto tmpX = x;
-    auto fx = func(tmpX);
     for (std::size_t i = 0; i < x.size(); i++) {
       // increase value to x_i + dx_i
       tmpX[i] += step;
       double px = func(tmpX);
       // return value back to x_i
       tmpX[i] -= step;
-      dx[i] = (px - fx) / step;
+      dx[i] = (px - funcAtX) / step;
     }
     return dx;
   }

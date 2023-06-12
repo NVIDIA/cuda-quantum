@@ -38,36 +38,39 @@ void bindGradientStrategies(py::module &mod) {
       .def(
           "compute",
           [](cudaq::gradient &grad, const std::vector<double> &x,
-             py::function &func) {
+             py::function &func, double funcAtX) {
             auto function =
                 func.cast<std::function<double(std::vector<double>)>>();
-            return grad.compute(x, function);
+            return grad.compute(x, function, funcAtX);
           },
-          py::arg("parameter_vector"), py::arg("function"), "");
+          py::arg("parameter_vector"), py::arg("function"), py::arg("funcAtX"),
+          "");
   py::class_<gradients::forward_difference, gradient>(gradients_submodule,
                                                       "ForwardDifference")
       .def(py::init<>())
       .def(
           "compute",
           [](cudaq::gradient &grad, const std::vector<double> &x,
-             py::function &func) {
+             py::function &func, double funcAtX) {
             auto function =
                 func.cast<std::function<double(std::vector<double>)>>();
-            return grad.compute(x, function);
+            return grad.compute(x, function, funcAtX);
           },
-          py::arg("parameter_vector"), py::arg("function"), "");
+          py::arg("parameter_vector"), py::arg("function"), py::arg("funcAtX"),
+          "");
   py::class_<gradients::parameter_shift, gradient>(gradients_submodule,
                                                    "ParameterShift")
       .def(py::init<>())
       .def(
           "compute",
           [](cudaq::gradient &grad, const std::vector<double> &x,
-             py::function &func) {
+             py::function &func, double funcAtX) {
             auto function =
                 func.cast<std::function<double(std::vector<double>)>>();
-            return grad.compute(x, function);
+            return grad.compute(x, function, funcAtX);
           },
-          py::arg("parameter_vector"), py::arg("function"), "");
+          py::arg("parameter_vector"), py::arg("function"), py::arg("funcAtX"),
+          "");
 }
 
 /// @brief Add the requested optimization routine as a class
