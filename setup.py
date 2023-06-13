@@ -32,6 +32,7 @@ skbuild.setup(
     # which is also the location expected on MacOS.
     # cmake_install_dir=
     # f"lib/python{sys.version_info[0]}.{sys.version_info[1]}/site-packages/cudaq",
+    cmake_install_dir="${CMAKE_INSTALL_PREFIX}",
     # FIXME: Remove hard-coding on zlib and libcpr path.
     cmake_args=[
         "-DCUDAQ_ENABLE_PYTHON=TRUE", "-DBLAS_LIBRARIES=/usr/lib64/libblas.a",
@@ -52,4 +53,3 @@ skbuild.setup(
         "-DCUDAQ_BUILD_RELOCATABLE_PACKAGE=TRUE"
     ],
     setup_requires=["numpy", "pytest", "scikit-build"])
-    
