@@ -22,6 +22,11 @@
 LLVM_DIR=${LLVM_DIR:-/opt/llvm/lib/cmake/llvm}
 CPR_DIR=${CPR_DIR:-/cpr/install}
 BLAS_PATH=${BLAS_PATH:-/usr/lib64/libblas.a}
+# Get the CC and CXX directories and export so scikit-build can find them.
+CC=${CC:-/opt/llvm/clang-16/bin/clang}
+CXX=${CXX:-/opt/llvm/clang-16/bin/clang++}
+export CC=$CC
+export CXX=$CXX
 
 # Run the script from the top-level of the repo
 working_dir=`pwd`
@@ -31,7 +36,8 @@ cd "$repo_root"
 
 # Remove any old builds and dist's
 rm -rf _skbuild
-rm -rf cudaq.egg-info
+rm -rf cuda_quantum.egg-info
+rm -rf python/cuda_quantum.egg-info
 rm -rf dist
 rm -rf wheelhouse
 
@@ -98,6 +104,7 @@ python3.10 -m pip install build
 # Return to the outer level of CUDA Quantum to build the wheel off of setup.py
 cd "$repo_root"
 
+# TODO: Set the srcdir here to dump the wheels and all extra files into a contained folder.
 # Build the wheel only (no sdist).
 python3.10 -m build --wheel
 
