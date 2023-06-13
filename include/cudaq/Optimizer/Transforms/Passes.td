@@ -11,54 +11,6 @@
 
 include "mlir/Pass/PassBase.td"
 
-def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
-  let summary = "Generate kernel execution code.";
-  let description = [{
-    Generate the kernel execution thunks. The kernel execution thunks allow
-    the control side (C++ code) to launch quantum kernels. This pass
-    generates the required glue code.
-  }];
-
-  let dependentDialects = ["::cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
-  let constructor = "cudaq::opt::createGenerateKernelExecution()";
-
-  let options = [
-    Option<"outputFilename", "output-filename", "std::string",
-      /*default=*/"\"-\"", "Name of output file.">,
-  ];
-}
-
-def ConvertToDirectCalls :
-    Pass<"indirect-to-direct-calls", "mlir::func::FuncOp"> {
-  let summary = "Convert calls to direct calls to Quake routines.";
-  let description = [{
-    Rewrite the calls in the IR so that they point to the generated code and not
-    to the entry point thunks that call back to the runtime. After this pass
-    quantum code will call other quantum code directly and without going
-    indirectly through the launch kernel runtime.
-  }];
-
-  let constructor = "cudaq::opt::createConvertToDirectCalls()";
-}
-
-def GenerateDeviceCodeLoader : Pass<"device-code-loader", "mlir::ModuleOp"> {
-  let summary = "Generate device code loader stubs.";
-  let description = [{
-    Generate device code loader stubs which are used for code introspection
-    by the runtime.
-  }];
-
-  let dependentDialects = ["mlir::LLVM::LLVMDialect"];
-  let constructor = "cudaq::opt::createGenerateDeviceCodeLoader()";
-
-  let options = [
-    Option<"outputFilename", "output-filename", "std::string",
-      /*default=*/"\"-\"", "Name of output file.">,
-    Option<"generateAsQuake", "use-quake", "bool",
-      /*default=*/"false", "Output should be module in Quake dialect.">
-  ];
-}
-
 // ApplyOpSpecialization is a module pass because it may modify the ModuleOp
 // and add new FuncOps.
 def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
@@ -83,6 +35,68 @@ def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
   ];
 }
 
+def ConvertToDirectCalls :
+    Pass<"indirect-to-direct-calls", "mlir::func::FuncOp"> {
+  let summary = "Convert calls to direct calls to Quake routines.";
+  let description = [{
+    Rewrite the calls in the IR so that they point to the generated code and not
+    to the entry point thunks that call back to the runtime. After this pass
+    quantum code will call other quantum code directly and without going
+    indirectly through the launch kernel runtime.
+  }];
+
+  let constructor = "cudaq::opt::createConvertToDirectCalls()";
+}
+
+def ExpandMeasurements : Pass<"expand-measurements"> {
+  let summary = "Expand multi-ref measurements to series on single refs.";
+  let description = [{
+    The `mx`, `my`, `mz` ops can take a list of qubits and/or veq arguments.
+    The target may only support measuring a single qubit however. This pass
+    expands these ops in list format into a series of measurements (including
+    loops) on individual qubits and into a single `std::vector<bool>` result.
+  }];
+
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
+
+  let constructor = "cudaq::opt::createExpandMeasurementsPass()";
+}
+
+def GenerateDeviceCodeLoader : Pass<"device-code-loader", "mlir::ModuleOp"> {
+  let summary = "Generate device code loader stubs.";
+  let description = [{
+    Generate device code loader stubs which are used for code introspection
+    by the runtime.
+  }];
+
+  let dependentDialects = ["mlir::LLVM::LLVMDialect"];
+  let constructor = "cudaq::opt::createGenerateDeviceCodeLoader()";
+
+  let options = [
+    Option<"outputFilename", "output-filename", "std::string",
+      /*default=*/"\"-\"", "Name of output file.">,
+    Option<"generateAsQuake", "use-quake", "bool",
+      /*default=*/"false", "Output should be module in Quake dialect.">
+  ];
+}
+
+def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
+  let summary = "Generate kernel execution code.";
+  let description = [{
+    Generate the kernel execution thunks. The kernel execution thunks allow
+    the control side (C++ code) to launch quantum kernels. This pass
+    generates the required glue code.
+  }];
+
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
+  let constructor = "cudaq::opt::createGenerateKernelExecution()";
+
+  let options = [
+    Option<"outputFilename", "output-filename", "std::string",
+      /*default=*/"\"-\"", "Name of output file.">,
+  ];
+}
+
 // LambdaLifting is a module pass because it may modify the ModuleOp and add
 // new FuncOps.
 def LambdaLifting : Pass<"lambda-lifting", "mlir::ModuleOp"> {
@@ -96,6 +110,24 @@ def LambdaLifting : Pass<"lambda-lifting", "mlir::ModuleOp"> {
   }];
 
   let constructor = "cudaq::opt::createLambdaLiftingPass()";
+}
+
+def LoopUnroll : Pass<"cc-loop-unroll"> {
+  let summary = "Unroll classical compute (C++) loops.";
+  let description = [{
+    If a cc.loop op is a simple, constant counted loop, it can be fully
+    unrolled into <i>n</i> copies of the body of the loop.
+  }];
+
+  let dependentDialects = ["mlir::arith::ArithDialect",
+                           "mlir::cf::ControlFlowDialect"];
+
+  let constructor = "cudaq::opt::createLoopUnrollPass()";
+
+  let options = [
+    Option<"threshold", "maximum-iterations", "std::size_t",
+      /*default=*/"50", "Maximum iterations to unroll.">,
+  ];
 }
 
 def LowerToCFG : Pass<"lower-to-cfg", "mlir::func::FuncOp"> {
@@ -134,6 +166,31 @@ def LowerToCFG : Pass<"lower-to-cfg", "mlir::func::FuncOp"> {
 
   let dependentDialects = [ "mlir::cf::ControlFlowDialect" ];
   let constructor = "cudaq::opt::createLowerToCFGPass()";
+}
+
+def MemToReg : Pass<"memtoreg", "mlir::func::FuncOp"> {
+  let summary = "Converts memory-SSA to register-SSA form.";
+  let description = [{
+    When classical is enabled, loads and stores of simple scalars that are stack
+    allocated are converted to register form. The values themselves are promoted
+    out of memory and passed directly. Store to load forwarding and the addition
+    of block arguments is performed to eliminate the loads and stores.
+
+    When quantum is enabled, this pass converts values of type `!quake.ref` to
+    values of type `!quake.wire`. A `ref` value has ordinary SSA semantics. It
+    is possible to make copies of its value, pass the ref value, operate on the
+    quantum information by reference, etc. A `wire` value does not have ordinary
+    SSA semantics. A use can destroy the value itself, therefore it is required
+    that `wire` values be threads in and out of each and every use.
+  }];
+  let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
+
+  let options = [
+    Option<"classicalValues", "classical", "bool",
+      /*default=*/"true", "Promote classical stack slots to values.">,
+    Option<"quantumValues", "quantum", "bool",
+      /*default=*/"true", "Promote of quantum values.">
+  ];
 }
 
 def QuakeSynthesize : Pass<"quake-synth", "mlir::ModuleOp"> {
@@ -184,45 +241,19 @@ def QuakeObserveAnsatz : Pass<"quake-observe-ansatz", "mlir::func::FuncOp"> {
   ];
 }
 
-def CCMemToReg : Pass<"cc-mem2reg", "mlir::func::FuncOp"> {
-  let summary = "Converts classical compute memory to register SSA form.";
+def RegToMem : Pass<"regtomem", "mlir::func::FuncOp"> {
+  let summary = "Converts register-SSA to memory-SSA form.";
   let description = [{
-    For cc.alloca ops on scalar values, this pass will convert the alloca op
-    to register form when the memory reference does not escape.
+    Perform the reverse transformation of the memtoreg pass.
+
+    This pass converts values of type `!quake.wire` to be wrapped as references
+    where possible. This is an greedy/exhaustive transformation in that wires
+    will be removed from the Quake IR wherever possible. There may be cases
+    where the wire cannot be wrapped uniquely. In those cases, this
+    transformation will take no action and leave the IR (partially) with wire
+    type values.
   }];
-  let constructor = "cudaq::opt::createCCMemToRegPass()";
-}
-
-def ExpandMeasurements : Pass<"expand-measurements"> {
-  let summary = "Expand multi-ref measurements to series on single refs.";
-  let description = [{
-    The `mx`, `my`, `mz` ops can take a list of qubits and/or veq arguments.
-    The target may only support measuring a single qubit however. This pass
-    expands these ops in list format into a series of measurements (including
-    loops) on individual qubits and into a single `std::vector<bool>` result.
-  }];
-
-  let dependentDialects = ["::cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
-
-  let constructor = "cudaq::opt::createExpandMeasurementsPass()";
-}
-
-def LoopUnroll : Pass<"cc-loop-unroll"> {
-  let summary = "Unroll classical compute (C++) loops.";
-  let description = [{
-    If a cc.loop op is a simple, constant counted loop, it can be fully
-    unrolled into <i>n</i> copies of the body of the loop.
-  }];
-
-  let dependentDialects = ["mlir::arith::ArithDialect",
-                           "mlir::cf::ControlFlowDialect"];
-
-  let constructor = "cudaq::opt::createLoopUnrollPass()";
-
-  let options = [
-    Option<"threshold", "maximum-iterations", "std::size_t",
-      /*default=*/"50", "Maximum iterations to unroll.">,
-  ];
+  let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
 }
 
 def UnwindLowering : Pass<"unwind-lowering", "mlir::func::FuncOp"> {

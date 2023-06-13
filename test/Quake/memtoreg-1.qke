@@ -1,0 +1,65 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --memtoreg %s | FileCheck %s
+// RUN: cudaq-opt --regtomem %s | cudaq-opt --memtoreg | FileCheck %s
+// RUN: cudaq-opt --regtomem %s | FileCheck --check-prefix=TOMEM %s
+// RUN: cudaq-opt --memtoreg %s | cudaq-opt --regtomem | FileCheck --check-prefix=TOMEM %s
+
+func.func @t() {
+  %0 = quake.null_wire {}
+  %1 = quake.x %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.alloca !quake.ref
+  %3 = quake.unwrap %2 : (!quake.ref) -> !quake.wire
+  %4 = quake.y %3 : (!quake.wire) -> !quake.wire
+  quake.wrap %4 to %2 : !quake.wire, !quake.ref
+  cf.br ^bb1
+ ^bb1:
+  %u = cc.undef  i1
+  cf.cond_br %u, ^bb2, ^bb3
+ ^bb2:
+  quake.z %2 : (!quake.ref) -> ()
+  cf.br ^bb1
+ ^bb3:
+  return
+}
+
+// CHECK-LABEL:   func.func @t() {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK:           %[[VAL_1:.*]] = quake.x %[[VAL_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_2:.*]] = quake.null_wire
+// CHECK:           %[[VAL_3:.*]] = quake.y %[[VAL_2]] : (!quake.wire) -> !quake.wire
+// CHECK:           cf.br ^bb1(%[[VAL_3]] : !quake.wire)
+// CHECK:         ^bb1(%[[VAL_4:.*]]: !quake.wire):
+// CHECK:           %[[VAL_5:.*]] = cc.undef i1
+// CHECK:           cf.cond_br %[[VAL_5]], ^bb2(%[[VAL_4]] : !quake.wire), ^bb3
+// CHECK:         ^bb2(%[[VAL_6:.*]]: !quake.wire):
+// CHECK:           %[[VAL_7:.*]] = quake.z %[[VAL_6]] : (!quake.wire) -> !quake.wire
+// CHECK:           cf.br ^bb1(%[[VAL_7]] : !quake.wire)
+// CHECK:         ^bb3:
+// CHECK:           return
+// CHECK:         }
+
+
+
+// TOMEM-LABEL:   func.func @t() {
+// TOMEM:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// TOMEM:           quake.x %[[VAL_0]] : (!quake.ref) -> ()
+// TOMEM:           %[[VAL_1:.*]] = quake.alloca !quake.ref
+// TOMEM:           quake.y %[[VAL_1]] : (!quake.ref) -> ()
+// TOMEM:           cf.br ^bb1
+// TOMEM:         ^bb1:
+// TOMEM:           %[[VAL_2:.*]] = cc.undef i1
+// TOMEM:           cf.cond_br %[[VAL_2]], ^bb2, ^bb3
+// TOMEM:         ^bb2:
+// TOMEM:           quake.z %[[VAL_1]] : (!quake.ref) -> ()
+// TOMEM:           cf.br ^bb1
+// TOMEM:         ^bb3:
+// TOMEM:           return
+// TOMEM:         }
+
