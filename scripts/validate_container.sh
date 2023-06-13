@@ -28,8 +28,8 @@ requested_backends=`\
 available_backends=`\
     echo "default"
     for file in $(ls $CUDA_QUANTUM_PATH/targets/*.config); \
-    do \
-        platform=`cat $file | grep PLATFORM_QPU=`; \
+    do
+        platform=$(cat $file | grep "PLATFORM_QPU=")
         if [ "${platform#PLATFORM_QPU=}" != "remote_rest" ]; then \
             basename $file | cut -d "." -f 1; \
         fi; \
@@ -59,7 +59,7 @@ echo "Testing backends:"
 echo "$requested_backends"
 echo
 
-if $missing_backend; 
+if $missing_backend || [ "$available_backends" == "" ]; 
 then
     echo "Abort due to missing backend configuration."
     exit 1 
