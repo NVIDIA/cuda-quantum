@@ -134,6 +134,9 @@ jobs:
           docker build --squash -t $image_name:$image_tag -f docker/release/cudaq.Dockerfile . \
             --build-arg dev_image=cuda-quantum-dev --build-arg dev_tag=local \
             --build-arg release_version=$image_tag
+
+          rm -rf "${{ needs.release_build.outputs.cudaqdev_tarfile }}"
+          docker image rm cuda-quantum-dev:local
           docker builder prune --all --force
           docker save $image_name:$image_tag > $tar_archive
 
