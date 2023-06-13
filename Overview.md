@@ -1,8 +1,8 @@
 # Architecture Overview
 
 This document give a high-level overview of the CUDA Quantum codebase. If you
-want to familiarize yourself with the code on this repo, this is the document
-for you.
+want to familiarize yourself with the code on this repository, this is the
+document for you.
 
 ## Bird's Eye View
 
@@ -32,11 +32,11 @@ the CC dialect.
 
 The dialects for Quake, QTX, and CC are defined in
 
-[Quake](https://github.com/NVIDIA/cuda-quantum/blob/main/include/cudaq/Optimizer/Dialect/Quake/QuakeOps.td)
+[Quake](https://github.com/NVIDIA/cuda-quantum/blob/releases/v0.3.0/include/cudaq/Optimizer/Dialect/Quake/QuakeOps.td)
 
-[QTX](https://github.com/NVIDIA/cuda-quantum/blob/main/include/cudaq/Optimizer/Dialect/QTX/QTXOps.td)
+[QTX](https://github.com/NVIDIA/cuda-quantum/blob/releases/v0.3.0/include/cudaq/Optimizer/Dialect/QTX/QTXOps.td)
 
-[CC](https://github.com/NVIDIA/cuda-quantum/blob/main/include/cudaq/Optimizer/Dialect/CC/CCOps.td)
+[CC](https://github.com/NVIDIA/cuda-quantum/blob/releases/v0.3.0/include/cudaq/Optimizer/Dialect/CC/CCOps.td)
 
 We have designed the compiler to be modular, and the compiler workflow itself is
 composed of a set of tools (executables) that achieve a specific task.
@@ -136,13 +136,13 @@ process daemon.
 ### `tools/qpud`
 
 This folder implements the `qpud` executable. `qpud` is meant to serve as a
-separate daemon process that emulates the true host, classical driver cpu,
+separate daemon process that emulates the true host, classical driver CPU,
 quantum register architectural separation. It implements a client/server model
 and accepts Quake code, JIT compiles it, and enables its execution on local
 emulators, or physical remote vendor quantum computers.
 
-This folder contains a TargetBackend type with specializations that target the
-nvqir, quantinuum, and rigetti backends.
+This folder contains a `TargetBackend` type with specializations that target the
+`nvqir`, `quantinuum`, and `rigetti` backends.
 
 ### `tools/cudaq-quake`
 

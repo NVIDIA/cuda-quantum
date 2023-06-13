@@ -1,0 +1,88 @@
+on:
+  workflow_call:
+    inputs:
+      devdeps_cache:
+        required: true
+        type: string
+      devdeps_archive:
+        required: true
+        type: string
+      export_environment:
+        required: false
+        type: boolean
+
+name: Run CI within the dev environment container
+
+jobs:
+  build_and_test:
+    name: Dev environment (Debug)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Restore environment
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ inputs.devdeps_archive }}
+          key: ${{ inputs.devdeps_cache }}
+          fail-on-cache-miss: true
+
+      - name: Build CUDA Quantum
+        id: cudaq_build
+        run: |
+          loaded=`docker load --input ${{ inputs.devdeps_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+          devdeps_image=`echo $loaded | cut -d ":" -f 1`
+          devdeps_tag=`echo $loaded | cut -d ":" -f 2`
+
+          docker build -t cuda-quantum-dev:local -f docker/build/cudaqdev.Dockerfile . \
+            --build-arg base_image=${devdeps_image}:${devdeps_tag} \
+            --build-arg install="CMAKE_BUILD_TYPE=Debug"
+          
+          tag_prefix=`echo $devdeps_tag | cut -d "_" -f 1`
+          echo "tag_prefix=$tag_prefix" >> $GITHUB_OUTPUT
+
+      - name: Test CUDA Quantum
+        uses: addnab/docker-run-action@v3
+        with:
+            image: cuda-quantum-dev:local
+            shell: bash
+            run: |
+                cd $CUDAQ_REPO_ROOT
+                ctest --output-on-failure --test-dir build -E ctest-nvqpp
+                RESULT_A=$?
+                /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
+                RESULT_B=$?
+                if [ $RESULT_A -eq 0 ] && [ $RESULT_B -eq 0 ]
+                then
+                  exit 0
+                else 
+                  echo "ctest failure status = " $RESULT_A
+                  echo "llvm-lit failure status = " $RESULT_B
+                  exit 1
+                fi 
+
+      - name: Save environment
+        id: env_save
+        if: inputs.export_environment
+        run: |
+          output_directory=/tmp
+          filename=${{ steps.cudaq_build.outputs.tag_prefix }}_build
+
+          docker run --name cuda-quantum-dev cuda-quantum-dev:local
+          docker export cuda-quantum-dev > $output_directory/$filename.tar
+          docker rm -f cuda-quantum-dev
+    
+          echo "filename=$filename" >> $GITHUB_OUTPUT
+          echo "output_directory=$output_directory" >> $GITHUB_OUTPUT
+
+      - name: Upload environment
+        uses: actions/upload-artifact@v3
+        if: inputs.export_environment
+        with:
+          name: ${{ steps.env_save.outputs.filename }}
+          path: ${{ steps.env_save.outputs.output_directory }}/${{ steps.env_save.outputs.filename }}.tar
+          retention-days: 1

@@ -18,6 +18,7 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
+import os
 import sphinx_rtd_theme
 
 # -- Project information -----------------------------------------------------
@@ -27,14 +28,10 @@ copyright = '2023, NVIDIA Corporation & Affiliates'
 author    = 'NVIDIA Corporation & Affiliates'
 
 # The version info for the project you're documenting, acts as replacement for
-# |version| and |release|, also used in various other places throughout the
-# built documents.
+# |version| used in various places throughout the docs.
 
 # The short X.Y version.
-version = '0.3' #__version__
-
-# The full version, including alpha/beta/rc tags.
-release = '0.3' #__version__
+version = os.getenv("CUDA_QUANTUM_VERSION", "0.3.0")
 
 # -- General configuration ---------------------------------------------------
 
@@ -44,7 +41,6 @@ release = '0.3' #__version__
 extensions = [
     # 'sphinx.ext.imgmath',
     'sphinx.ext.ifconfig',
-    'breathe',
     'sphinx.ext.autodoc',      # to get documentation from python doc comments
     'sphinx.ext.autosummary',
     'sphinx.ext.autosectionlabel',
@@ -54,6 +50,8 @@ extensions = [
     #'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',     # support google/numpy style docstrings
     #'sphinx.ext.linkcode',
+    'sphinx_reredirects',
+    'breathe',
     'enum_tools.autoenum',     # for pretty-print Python enums
     'myst_parser',             # for including markdown files
 ]
@@ -137,6 +135,10 @@ autosummary_generate = True
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
     'numpy': ('https://numpy.org/doc/stable/', None),
+}
+
+redirects = {
+    "versions": "../latest/releases.html"
 }
 
 nitpick_ignore = [

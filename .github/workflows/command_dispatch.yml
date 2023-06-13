@@ -1,0 +1,112 @@
+on:
+  issue_comment: # applies to PR and issue comments
+    types: [created, edited]
+
+name: Slash command dispatch
+
+jobs:
+  preprocessing:
+    name: Check for slash command
+    runs-on: ubuntu-latest
+    permissions:
+      # keep this limited to read permissions for the content only!
+      contents: read
+
+    outputs:
+      react: ${{ steps.parse.outputs.react }}
+      command_type: ${{ steps.parse.outputs.command_type }}
+
+    steps:
+      - uses: actions/checkout@v3
+      - id: parse
+        run: |
+          if ${{ startsWith(github.event.comment.body, '/') }}; then
+            echo "react=true" >> $GITHUB_OUTPUT
+            command=$(echo "${{ github.event.comment.body }}" | head -n 1 | xargs | cut -d " " -f 1)
+
+            json_config=`cat .github/workflows/config/command_dispatch_config.json | sed 's/{{.*}}//g'`
+            entries=`echo "$json_config" | jq -c '.[]'`
+            for entry in $entries; do
+              command_name=`echo $entry | jq -r '.command'`
+              if [ "${command:1}" == "$command_name" ]; then
+                command_suffix=`echo $entry | jq -r '.event_type_suffix'`
+                echo "command_type=${command:1}${command_suffix:--command}" >> $GITHUB_OUTPUT
+              fi
+            done
+          fi
+
+  command_dispatch:
+    name: Dispatch slash commands
+    needs: preprocessing
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Update configuration
+        id: config
+        run: |
+          pr_url=$(printf '%s\n' "${{ github.event.issue.pull_request.url }}" | sed -e 's/[\/&]/\\&/g')
+          github_repo=$(printf '%s\n' "${{ github.repository }}" | sed -e 's/[\/&]/\\&/g')
+          cat .github/workflows/config/command_dispatch_config.json \
+            | sed "s/.{{[ ]*github.event.issue.pull_request.url[ ]*}}/$pr_url/g" \
+            | sed "s/.{{[ ]*github.event.comment.id[ ]*}}/${{ github.event.comment.id }}/g" \
+            | sed "s/.{{[ ]*github.repository[ ]*}}/$github_repo/g" > /tmp/command_dispatch_config.json
+
+      - name: React to comment
+        if: needs.preprocessing.outputs.react == 'true'
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          comment-id: ${{ github.event.comment.id }}
+          body: |
+            > ${{ github.event.comment.body }}
+  
+            **Command Bot:** Processing...
+          edit-mode: replace
+          reactions: eyes
+
+      - name: Dispatch
+        id: dispatch
+        uses: peter-evans/slash-command-dispatch@v3
+        with:
+          token: ${{ github.token }}
+          config-from-file: /tmp/command_dispatch_config.json
+        continue-on-error: true
+
+      - name: Edit comment with error message
+        if: steps.dispatch.outputs.error-message
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          comment-id: ${{ github.event.comment.id }}
+          body: |
+            > ${{ github.event.comment.body }}
+  
+            **Command Bot:** Could not process command.
+            ${{ steps.dispatch.outputs.error-message }}
+          # We replace the original comment to avoid an infinite loop
+          edit-mode: replace
+          reactions-edit-mode: replace
+          reactions: |
+
+      - name: Indicate dispatch failure
+        if: ${{ needs.preprocessing.outputs.react == 'true' && steps.dispatch.outcome == 'failure' && ! steps.dispatch.outputs.error-message }}
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          comment-id: ${{ github.event.comment.id }}
+          body: |
+            > ${{ github.event.comment.body }}
+  
+            **Command Bot:** Failed to dispatch command. For more information about available commands, use the command /help.
+          # We replace the original comment to avoid an infinite loop
+          edit-mode: replace
+          reactions-edit-mode: replace
+          reactions: |
+
+      - name: Indicate successful dispatch
+        if: ${{ needs.preprocessing.outputs.command_type != '' && steps.dispatch.outcome == 'success' && ! steps.dispatch.outputs.error-message }}
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          comment-id: ${{ github.event.comment.id }}
+          body: |
+            The launched workflow can be found [here](https://github.com/${{ github.event.repository.full_name }}/actions/workflows/${{ needs.preprocessing.outputs.command_type }}.yml).
+          edit-mode: append
