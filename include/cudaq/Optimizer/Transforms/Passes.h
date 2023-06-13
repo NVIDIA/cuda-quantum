@@ -32,14 +32,9 @@ std::unique_ptr<mlir::Pass> createAggressiveEarlyInlining();
 /// Create the pass to convert indirect calls to direct calls.
 std::unique_ptr<mlir::Pass> createConvertToDirectCalls();
 
-void registerConvertToDirectCalls();
-void registerGenerateKernelExecution();
-void registerGenerateDeviceCodeLoaderPass();
-
 std::unique_ptr<mlir::Pass> createApplyOpSpecializationPass();
 std::unique_ptr<mlir::Pass>
 createApplyOpSpecializationPass(bool computeActionOpt);
-std::unique_ptr<mlir::Pass> createCCMemToRegPass();
 std::unique_ptr<mlir::Pass> createExpandMeasurementsPass();
 std::unique_ptr<mlir::Pass> createLambdaLiftingPass();
 std::unique_ptr<mlir::Pass> createLoopUnrollPass();
