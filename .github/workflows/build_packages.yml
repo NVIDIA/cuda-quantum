@@ -153,7 +153,7 @@ jobs:
         run: |
           docker run --rm -dit --name cuda-quantum ${{ needs.metadata.outputs.image_name }}:${{ needs.metadata.outputs.image_tag }}
           docker cp scripts/validate_container.sh cuda-quantum:"/home/cudaq/validate_container.sh"
-          docker exec -e TERM=xterm cuda-quantum bash validate_container.sh > /tmp/validation.out
+          docker exec -e TERM=xterm cuda-quantum bash validate_container.sh dm > /tmp/validation.out
           docker stop cuda-quantum
 
       - name: Create job summary
