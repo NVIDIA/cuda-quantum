@@ -115,7 +115,7 @@ do
                    nvq++ $ex
                 fi
             else
-                nvq++ $ex --target $t
+                nvq++ $ex --qpu $t
             fi
             ./a.out &> /dev/null
             status=$?
