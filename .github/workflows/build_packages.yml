@@ -1,0 +1,247 @@
+on:
+  workflow_call:
+    inputs:
+      devdeps_cache:
+        required: true
+        type: string
+      devdeps_archive:
+        required: true
+        type: string
+      environment:
+        required: false
+        type: string
+
+name: Packages # do not change name without updating workflow_run triggers
+
+jobs:
+  metadata:
+    name: Metadata
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    outputs:
+      image_name: ${{ steps.metadata.outputs.image_name }}
+      image_tag: ${{ steps.metadata.outputs.image_tag }}
+
+    steps:
+      - name: Determine metadata
+        id: metadata
+        run: |
+          repo_owner=${{ github.repository_owner }}
+          image_name=${{ vars.registry || 'ghcr.io' }}/${repo_owner,,}/cuda-quantum
+          if ${{ github.event.pull_request.number != '' }}; then
+            image_tag=pr-${{ github.event.pull_request.number }}
+          elif ${{ github.ref_type == 'branch' && github.ref_name == 'main' }}; then
+            image_tag=latest
+          elif ${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') }}; then
+            image_tag=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
+          else
+            image_tag=`echo ${{ github.ref_name }} | tr '/' '-'`
+          fi
+
+          echo "image_name=$image_name" >> $GITHUB_OUTPUT
+          echo "image_tag=$image_tag" >> $GITHUB_OUTPUT
+
+  release_build:
+    name: Release build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    outputs:
+      cudaqdev_cache: ${{ steps.cudaq_build.outputs.cudaqdev_cache }}
+      cudaqdev_tarfile: ${{ steps.cudaq_build.outputs.cudaqdev_tarfile }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Restore environment
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ inputs.devdeps_archive }}
+          key: ${{ inputs.devdeps_cache }}
+          fail-on-cache-miss: true
+
+      - name: Build CUDA Quantum
+        id: cudaq_build
+        run: |
+          loaded=`docker load --input ${{ inputs.devdeps_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+          devdeps_image=`echo $loaded | cut -d ":" -f 1`
+          devdeps_tag=`echo $loaded | cut -d ":" -f 2`
+
+          docker build -t cuda-quantum-dev:local -f docker/build/cudaqdev.Dockerfile . \
+            --build-arg build_environment=$devdeps_image --build-arg env_tag=$devdeps_tag \
+            --build-arg install="CMAKE_BUILD_TYPE=Release FORCE_COMPILE_GPU_COMPONENTS=true"
+
+          cudaqdev_tarfile=/tmp/cudaqdev.tar
+          docker save cuda-quantum-dev:local > $cudaqdev_tarfile
+          tag_prefix=`echo $devdeps_tag | cut -d "_" -f 1`
+          cudaqdev_cache=tar-cudaqdev-${tag_prefix}-${{ github.sha }}
+
+          echo "cudaqdev_cache=$cudaqdev_cache" >> $GITHUB_OUTPUT
+          echo "cudaqdev_tarfile=$cudaqdev_tarfile" >> $GITHUB_OUTPUT
+
+      - name: Cache cuda-quantum-dev image
+        uses: actions/cache/save@v3
+        with:
+          path: ${{ steps.cudaq_build.outputs.cudaqdev_tarfile }}
+          key: ${{ steps.cudaq_build.outputs.cudaqdev_cache }}
+
+  docker_image:
+    name: Docker image
+    runs-on: ubuntu-latest
+    needs: [release_build, metadata]
+    permissions:
+      contents: read
+
+    outputs:
+      tar_cache: ${{ steps.cudaq_image.outputs.tar_cache }}
+      tar_archive: ${{ steps.cudaq_image.outputs.tar_archive }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Restore release build
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ needs.release_build.outputs.cudaqdev_tarfile }}
+          key: ${{ needs.release_build.outputs.cudaqdev_cache }}
+          fail-on-cache-miss: true
+
+      - name: Build cuda-quantum image
+        id: cudaq_image
+        run: |
+          image_name=${{ needs.metadata.outputs.image_name }}
+          image_tag=${{ needs.metadata.outputs.image_tag }}
+          tar_archive=/tmp/cuda-quantum.tar
+
+          docker load --input ${{ needs.release_build.outputs.cudaqdev_tarfile }}
+          docker build -t $image_name:$image_tag -f docker/release/cudaq.Dockerfile . \
+            --build-arg dev_image=cuda-quantum-dev --build-arg dev_tag=local \
+            --build-arg release_version=$image_tag
+          docker save $image_name:$image_tag > $tar_archive
+
+          echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
+          echo "tar_cache=tar-cuda-quantum-${{ github.sha }}" >> $GITHUB_OUTPUT
+
+      - name: Cache cuda-quantum image
+        uses: actions/cache/save@v3
+        with:
+          path: ${{ steps.cudaq_image.outputs.tar_archive }}
+          key: ${{ steps.cudaq_image.outputs.tar_cache }}
+
+      - name: Validate cuda-quantum image
+        run: |
+          docker run --rm -dit --name cuda-quantum ${{ needs.metadata.outputs.image_name }}:${{ needs.metadata.outputs.image_tag }}
+          docker cp scripts/validate_container.sh cuda-quantum:"/home/cudaq/validate_container.sh"
+          docker exec -e TERM=xterm cuda-quantum bash validate_container.sh density-matrix-cpu > /tmp/validation.out
+          docker stop cuda-quantum
+
+      - name: Create job summary
+        run: |
+          echo "## Validation" >> $GITHUB_STEP_SUMMARY
+          echo "The validation of the cuda-quantum image produced the following output:" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          cat /tmp/validation.out >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+  deployment:
+    name: Deployment
+    if: inputs.environment
+    needs: docker_image
+    uses: ./.github/workflows/deploy_to_registry.yml
+    with:
+      environment: ${{ inputs.environment }}
+      cache_key: ${{ needs.docker_image.outputs.tar_cache }}
+      tar_archive: ${{ needs.docker_image.outputs.tar_archive }}
+
+  documentation:
+    name: Documentation
+    runs-on: ubuntu-latest
+    needs: [release_build, metadata]
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Restore release build
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ needs.release_build.outputs.cudaqdev_tarfile }}
+          key: ${{ needs.release_build.outputs.cudaqdev_cache }}
+          fail-on-cache-miss: true
+
+      - name: Build documentation
+        id: docs_build
+        run: |
+          docs_version="CUDA_QUANTUM_VERSION=${{ needs.metadata.outputs.image_tag }}"
+
+          docker load --input ${{ needs.release_build.outputs.cudaqdev_tarfile }}
+          docker run --rm -dit --name cuda-quantum-dev cuda-quantum-dev:local
+          (docker exec cuda-quantum-dev bash -c "export $docs_version && bash scripts/build_docs.sh" && built=true) || built=false
+          if $built; then docker cp cuda-quantum-dev:"/usr/local/cudaq/docs/." docs; \
+          else docker cp cuda-quantum-dev:"/workspaces/cuda-quantum/build/." /tmp/build; fi
+          docker stop cuda-quantum-dev
+          if $built; then `exit 0`; else `exit 1`; fi
+
+          html_files=`find docs/api/ -type f -name "*.html"`
+          json="{\"html_files\":[]}"
+          for file in $html_files; do
+            file=\'$file\'
+            json=`echo $json | jq ".html_files |= . + [\"$file\"]"`
+          done
+          echo "json=$(echo $json)" >> $GITHUB_OUTPUT
+
+      - name: Upload build artifacts
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: build
+          path: /tmp/build
+          retention-days: 1
+
+      - name: Upload documentation
+        if: success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: cuda_quantum_docs # changing the artifact name requires updating other workflows
+          path: docs
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Spell check HTML documentation
+        if: success()
+        continue-on-error: true # to be removed once we update all docs for this check to pass
+        uses: rojopolis/spellcheck-github-actions@0.30.0
+        with:
+          config_path: '.github/workflows/config/spellcheck_config.yml'
+          task_name: html
+          source_files: ${{ join(fromJSON(steps.docs_build.outputs.json).html_files, ' ') }}
+
+  clean_up:
+    name: Prepare cache clean-up
+    runs-on: ubuntu-latest
+    needs: [release_build, docker_image, documentation]
+    if: always() # need to clean up even if the workflow is cancelled or fails
+
+    steps:
+      - name: Save cache keys
+        id: workflow_inputs
+        run: |
+          keys=${{ needs.release_build.outputs.cudaqdev_cache }} 
+          if ${{ inputs.environment == '' }}; then
+            keys+=" ${{ needs.docker_image.outputs.tar_cache }}"
+          fi
+          echo "$keys" >> cache_keys.txt
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: cache_keys_packages
+          path: cache_keys.txt
+          retention-days: 1
+          if-no-files-found: error
