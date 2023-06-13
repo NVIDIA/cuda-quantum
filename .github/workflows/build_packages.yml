@@ -131,7 +131,7 @@ jobs:
           tar_archive=/tmp/cuda-quantum.tar
 
           docker load --input ${{ needs.release_build.outputs.cudaqdev_tarfile }}
-          docker build --squash -t $image_name:$image_tag -f docker/release/cudaq.Dockerfile . \
+          docker build -t $image_name:$image_tag -f docker/release/cudaq.Dockerfile . \
             --build-arg dev_image=cuda-quantum-dev --build-arg dev_tag=local \
             --build-arg release_version=$image_tag
 
