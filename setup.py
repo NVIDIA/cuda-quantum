@@ -15,7 +15,7 @@ import skbuild
 import setuptools
 
 # Handle installing any missing dependencies.
-os.system("bash /cuda-quantum/scripts/wheel_dependencies.sh")
+os.system("bash /scripts/wheel_dependencies.sh")
 
 # os.environ["LLVM_DIR"]="/opt/llvm/clang-16/lib/cmake/llvm"
 
