@@ -55,22 +55,13 @@ jobs:
 
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
-      base_image: ${{ steps.package_config.outputs.base_image }}
+      base_image: ${{ fromJson(steps.read_json.outputs.result).image_hash.llvm }}
 
     steps:
       - uses: cloudposse/github-action-matrix-outputs-read@0.1.1
         id: read_json
         with:
           matrix-step-name: dev_environment
-
-      - id: package_config
-        run: |
-          llvm_image_name=${{ fromJson(steps.read_json.outputs.result).image_name.llvm }}
-          llvm_digests=${{ fromJson(steps.read_json.outputs.result).digests.llvm }}
-          if [ "$llvm_image_name" != "" ] && [ "$llvm_digests" != "" ]; then
-            base_image=${llvm_image_name}@$(echo $llvm_digests | cut -d ";" -f 1)
-            echo "base_image=$base_image" >> $GITHUB_OUTPUT
-          fi
 
   extdevdeps:
     if: github.event_name != 'pull_request_target'
@@ -87,6 +78,5 @@ jobs:
     needs: extdevdeps
     uses: ./.github/workflows/build_packages.yml
     with:
-      devdeps_cache: ${{ needs.extdevdeps.outputs.cache_key }}
-      devdeps_archive: ${{ needs.extdevdeps.outputs.tar_archive }}
+      devdeps_image: ${{ needs.extdevdeps.outputs.image_hash }}
       environment: ghcr-deployment
