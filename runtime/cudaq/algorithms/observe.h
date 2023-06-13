@@ -31,17 +31,14 @@ double allreduce_double_add(double localValue);
 /// @brief Return type for asynchronous observation.
 using async_observe_result = async_result<observe_result>;
 
+namespace par {
 /// @brief Multi-GPU Multi-Node (MPI)
 /// Distribution Type for observe
-struct mgmn {};
+struct mpi {};
 
-/// @brief Multi-GPU Single-Node
-/// Distribution Type for observe
-struct mgsn {};
+struct thread {};
 
-/// @brief Multi-Node, no GPU,
-/// Distribution Type for observe
-struct mn {};
+} // namespace par
 
 /// @brief Define a combined sample function validation concept.
 /// These concepts provide much better error messages than old-school SFINAE
@@ -216,8 +213,14 @@ observe_result observe(std::size_t shots, QuantumKernel &&kernel, spin_op H,
                        Args &&...args) {
   // Run this SHOTS times
   auto &platform = cudaq::get_platform();
+  // Does platform support parallelism? Need a check here
+  if (!platform.supports_task_distribution())
+    throw std::runtime_error(
+        "The current quantum_platform does not support parallel distribution "
+        "of observe() expectation value computations.");
+
   auto nQpus = platform.num_qpus();
-  if constexpr (std::is_same_v<DistributionType, mgsn>) {
+  if constexpr (std::is_same_v<DistributionType, par::thread>) {
     if (nQpus == 1)
       printf(
           "[cudaq::observe warning] distributed observe requested but only 1 "
@@ -230,15 +233,18 @@ observe_result observe(std::size_t shots, QuantumKernel &&kernel, spin_op H,
                                std::forward<Args>(args)...);
         },
         H, nQpus);
-  } else if (std::is_same_v<DistributionType, mgmn>) {
+  } else if (std::is_same_v<DistributionType, par::mpi>) {
 
     // This is an MPI distribution, where each node has N GPUs.
     if (!mpi::is_initialized())
-      throw std::runtime_error(
-          "Cannot use mgmn or mn multi-node observe() without MPI.");
+      throw std::runtime_error("Cannot use mgmn multi-node observe() without "
+                               "MPI (did you initialize MPI?).");
 
     // Note - For MGMN, we assume that nQpus == num visible GPUs for this local
     // rank.
+
+    // FIXME, how do we handle an mpi run where each rank
+    // is targeting the same GPU? Should we even allow that?
 
     // Get the rank and the number of ranks
     auto rank = mpi::rank();
@@ -264,9 +270,8 @@ observe_result observe(std::size_t shots, QuantumKernel &&kernel, spin_op H,
     auto globalExpVal = mpi::allreduce_double_add(exp_val);
     return observe_result(globalExpVal, H);
 
-  } else {
-    throw std::runtime_error("Not implemented.");
-  }
+  } else
+    throw std::runtime_error("Invalid cudaq::par execution type.");
 }
 
 template <typename DistributionType, typename QuantumKernel, typename... Args>

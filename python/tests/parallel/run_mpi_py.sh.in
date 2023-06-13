@@ -1,0 +1,4 @@
+#!/bin/bash
+
+# FIXME What is this for MPICH
+CUDA_VISIBLE_DEVICES=$OMPI_COMM_WORLD_LOCAL_RANK @Python_EXECUTABLE@ -m pytest -rP @CMAKE_SOURCE_DIR@/python/tests/parallel/test_mpi_mqpu.py

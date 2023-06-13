@@ -50,7 +50,7 @@ PYBIND11_MODULE(_pycudaq, mod) {
       "initialize", []() { cudaq::mpi::initialize(); },
       "Initialize MPI if available.");
   mpiSubmodule.def(
-      "is_initialized", []() { cudaq::mpi::is_initialized(); },
+      "is_initialized", []() { return cudaq::mpi::is_initialized(); },
       "Return true if MPI has already been initialized.");
   mpiSubmodule.def(
       "finalize", []() { cudaq::mpi::finalize(); }, "Finalize MPI.");

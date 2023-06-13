@@ -30,12 +30,12 @@ void initialize(int argc, char **argv) {
   int pid, np, thread_provided;
   int mpi_error =
       MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &thread_provided);
-  assert(mpi_error == MPI_SUCCESS);
+  assert(mpi_error == MPI_SUCCESS && "MPI_Init_thread failed");
   assert(thread_provided == MPI_THREAD_MULTIPLE);
   MPI_Comm_rank(MPI_COMM_WORLD, &pid);
   MPI_Comm_size(MPI_COMM_WORLD, &np);
   if (pid == 0)
-    cudaq::info("MPI Enabled, nRanks = {}", np);
+    cudaq::info("MPI Initialized, nRanks = {}", np);
 }
 int rank() {
   int pid;
@@ -49,7 +49,8 @@ int num_ranks() {
 }
 bool is_initialized() {
   int i;
-  MPI_Initialized(&i);
+  auto err = MPI_Initialized(&i);
+  assert(err == MPI_SUCCESS && "MPI_Initialized failed.");
   return i == 1;
 }
 
@@ -60,8 +61,10 @@ double allreduce_double_add(double localValue) {
 }
 
 void finalize() {
+  if (rank() == 0)
+    cudaq::info("Finalizing MPI.");
   int mpi_error = MPI_Finalize();
-  assert(mpi_error == MPI_SUCCESS);
+  assert(mpi_error == MPI_SUCCESS && "MPI_Finalize failed.");
 }
 } // namespace cudaq::mpi
 #else

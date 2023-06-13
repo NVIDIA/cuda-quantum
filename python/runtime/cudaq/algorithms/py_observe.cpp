@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq.h"
+#include <pybind11/eval.h>
 #include <pybind11/stl.h>
 
 #include "py_observe.h"
@@ -17,6 +18,8 @@
 #include "common/Logger.h"
 
 namespace cudaq {
+
+enum class PyParType { thread, mpi };
 
 /// @brief Default shots value set to -1
 constexpr int defaultShotsValue = -1;
@@ -42,14 +45,6 @@ observe_result pyObserve(kernel_builder<> &kernel, spin_op &spin_operator,
   // `kernel.num_qubits() >= spin_operator.num_qubits()`
   kernel.jitCode();
   auto name = kernel.name();
-  // Does this platform expose more than 1 QPU
-  // If so, let's distribute the work amongst the QPUs
-  if (auto nQpus = platform.num_qpus(); nQpus > 1)
-    return details::distributeComputations(
-        [&](std::size_t i, spin_op &op) {
-          return pyObserveAsync(kernel, op, args, i, shots);
-        },
-        spin_operator, nQpus);
 
   // Launch the observation task
   return details::runObservation(
@@ -60,6 +55,65 @@ observe_result pyObserve(kernel_builder<> &kernel, spin_op &spin_operator,
              },
              spin_operator, platform, shots, name)
       .value();
+}
+
+/// @brief Run `cudaq::observe` on the provided kernel and spin operator.
+observe_result pyObservePar(const PyParType &type, kernel_builder<> &kernel,
+                            spin_op &spin_operator, py::args args = {},
+                            int shots = defaultShotsValue) {
+  // Ensure the user input is correct.
+  auto validatedArgs = validateInputArguments(kernel, args);
+  auto &platform = cudaq::get_platform();
+  if (!platform.supports_task_distribution())
+    throw std::runtime_error(
+        "The current quantum_platform does not support parallel distribution "
+        "of observe() expectation value computations.");
+
+  // TODO: would like to handle errors in the case that
+  // `kernel.num_qubits() >= spin_operator.num_qubits()`
+  kernel.jitCode();
+  auto name = kernel.name();
+  auto nQpus = platform.num_qpus();
+  if (type == PyParType::thread) {
+    // Does this platform expose more than 1 QPU
+    // If so, let's distribute the work amongst the QPUs
+    if (nQpus == 1)
+      printf(
+          "[cudaq::observe warning] distributed observe requested but only 1 "
+          "QPU available. no speedup expected.\n");
+    return details::distributeComputations(
+        [&](std::size_t i, spin_op &op) {
+          return pyObserveAsync(kernel, op, args, i, shots);
+        },
+        spin_operator, nQpus);
+  }
+
+  if (!mpi::is_initialized())
+    throw std::runtime_error("Cannot use mpi multi-node observe() without "
+                             "MPI (did you initialize MPI?).");
+
+  // Necessarily has to be MPI
+  // Get the rank and the number of ranks
+  auto rank = mpi::rank();
+  auto nRanks = mpi::num_ranks();
+
+  // Each rank gets a subset of the spin terms
+  auto spins = spin_operator.distribute_terms(nRanks);
+
+  // Get this rank's set of spins to compute
+  auto localH = spins[rank];
+
+  // Distribute locally, i.e. to the local nodes QPUs
+  auto localRankResult = details::distributeComputations(
+      [&](std::size_t i, spin_op &op) {
+        return pyObserveAsync(kernel, op, args, i, shots);
+      },
+      localH, nQpus);
+
+  // combine all the data via an all_reduce
+  auto exp_val = localRankResult.exp_val_z();
+  auto globalExpVal = mpi::allreduce_double_add(exp_val);
+  return observe_result(globalExpVal, spin_operator);
 }
 
 /// @brief Broadcast the observe call over the list-like arguments provided.
@@ -129,22 +183,49 @@ async_observe_result pyObserveAsync(kernel_builder<> &kernel,
 }
 
 void bindObserve(py::module &mod) {
+  auto parallelSubmodule = mod.def_submodule("par");
 
-  // FIXME provide ability to inject noise model here
+  py::class_<cudaq::par::mpi>(parallelSubmodule, "mpi");
+  py::class_<cudaq::par::thread>(parallelSubmodule, "thread");
+
   mod.def(
       "observe",
       [&](kernel_builder<> &kernel, spin_op &spin_operator, py::args arguments,
-          int shots, std::optional<noise_model> noise) {
-        if (!noise)
-          return pyObserve(kernel, spin_operator, arguments, shots);
-        set_noise(*noise);
-        auto res = pyObserve(kernel, spin_operator, arguments, shots);
-        unset_noise();
-        return res;
+          int shots, std::optional<noise_model> noise,
+          std::optional<py::type> execution) {
+        using ObserveApplicator = std::function<observe_result(
+            kernel_builder<> &, spin_op &, py::args &, int)>;
+        std::unordered_map<std::string, ObserveApplicator> applicator{
+            {"thread",
+             [&](kernel_builder<> &kernel, spin_op &spin_operator,
+                 py::args arguments, int shots) {
+               return pyObservePar(PyParType::thread, kernel, spin_operator,
+                                   arguments, shots);
+             }},
+            {"mpi", [&](kernel_builder<> &kernel, spin_op &spin_operator,
+                        py::args arguments, int shots) {
+               return pyObservePar(PyParType::mpi, kernel, spin_operator,
+                                   arguments, shots);
+             }}};
+        observe_result result;
+
+        if (noise)
+          set_noise(*noise);
+        if (!execution.has_value()) {
+          result = pyObserve(kernel, spin_operator, arguments, shots);
+        } else {
+          result = applicator[py::str(execution.value().attr("__name__"))](
+              kernel, spin_operator, arguments, shots);
+        }
+
+        if (noise)
+          unset_noise();
+
+        return result;
       },
       py::arg("kernel"), py::arg("spin_operator"), py::kw_only(),
       py::arg("shots_count") = defaultShotsValue,
-      py::arg("noise_model") = py::none(),
+      py::arg("noise_model") = py::none(), py::arg("execution") = py::none(),
       "Compute the expected value of the `spin_operator` with respect to "
       "the `kernel`. If the kernel accepts arguments, it will be evaluated "
       "with respect to `kernel(*arguments)`.\n"

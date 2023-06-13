@@ -1,0 +1,4 @@
+#!/bin/bash
+
+# FIXME What is this for MPICH
+CUDA_VISIBLE_DEVICES=$OMPI_COMM_WORLD_LOCAL_RANK @CMAKE_BINARY_DIR@/unittests/test_mpi
