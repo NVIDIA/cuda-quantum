@@ -1,1 +1,5 @@
- * 	@cuda-quantum-bot
+# Nothing/nobody should write to this branch except the CLA bot.
+# To avoid giving the bot admin rights, the branch protection is configured to require PRs + approval from code owners, 
+# and to allow the bot to bypass these requirements.
+# Code owners should hence be nobody for the branch to be effectively locked for everyone except the bot.
+* @cuda-quantum-bot
