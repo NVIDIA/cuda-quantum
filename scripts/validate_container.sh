@@ -24,10 +24,15 @@ requested_backends=`\
     do echo "$target"; \
     done`
 
+# remote_rest targets are automatically filtered
 available_backends=`\
     echo "default"
     for file in $(ls $CUDA_QUANTUM_PATH/targets/*.config); \
-    do basename $file | cut -d "." -f 1; \
+    do \
+        platform=`cat $file | grep PLATFORM_QPU=`; \
+        if [ "${platform#PLATFORM_QPU=}" != "remote_rest" ]; then \
+            basename $file | cut -d "." -f 1; \
+        fi; \
     done`
 
 missing_backend=false
