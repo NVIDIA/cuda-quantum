@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CUDA Quantum Open Beta Installation &mdash; NVIDIA CUDA Quantum 0.3 documentation</title>
+  <title>CUDA Quantum Open Beta Installation &mdash; NVIDIA CUDA Quantum  documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="_static/cudaq_override.css" type="text/css" />
@@ -38,7 +38,7 @@
             NVIDIA CUDA Quantum
           </a>
               <div class="version">
-                0.3
+                0.3.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -93,18 +93,12 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">   Getting Started</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#docker-image">Docker Image</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#install-the-public-beta-docker-image">Install the Public Beta Docker Image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#install-the-docker-image">Install the Docker Image</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#use-cuda-quantum-in-a-terminal">Use CUDA Quantum in a Terminal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#use-cuda-quantum-in-vs-code">Use CUDA Quantum in VS Code</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#build-cuda-quantum-from-source">Build CUDA Quantum from Source</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#get-the-basic-compilers-you-ll-need-via-apt-get">Get the basic compilers you’ll need via apt-get</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#get-cuquantum-optional">Get cuQuantum (optional)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#get-llvm-clang-mlir">Get LLVM / Clang / MLIR</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#build-cuda-quantum">Build CUDA Quantum</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="#build-cuda-quantum-from-source">Build CUDA Quantum from Source</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#next-steps">Next Steps</a></li>
 </ul>
 </li>
@@ -275,6 +269,10 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="versions.html">   Other Versions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="versions.html#id1">0.3.0</a></li>
+</ul>
+</li>
 </ul>
 
         </div>
@@ -305,11 +303,11 @@
 <h1>CUDA Quantum Open Beta Installation<a class="headerlink" href="#cuda-quantum-open-beta-installation" title="Permalink to this heading">¶</a></h1>
 <section id="docker-image">
 <h2>Docker Image<a class="headerlink" href="#docker-image" title="Permalink to this heading">¶</a></h2>
-<section id="install-the-public-beta-docker-image">
-<h3>Install the Public Beta Docker Image<a class="headerlink" href="#install-the-public-beta-docker-image" title="Permalink to this heading">¶</a></h3>
-<p>This public beta release of CUDA Quantum is being deployed via
-a provided Docker image. The name of the image is <code class="code docutils literal notranslate"><span class="pre">nvcr.io/nvidia/cuda-quantum:0.3.0</span></code>,
-and it has been built for <code class="code docutils literal notranslate"><span class="pre">x86_64,amd64</span></code> platforms.</p>
+<section id="install-the-docker-image">
+<h3>Install the Docker Image<a class="headerlink" href="#install-the-docker-image" title="Permalink to this heading">¶</a></h3>
+<p>Docker images for all CUDA Quantum releases are available on the <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum">NGC Container Registry</a>.
+The image for the latest version under development is built from source on our <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>.</p>
+<p>To download the 0.3.0 release from NGC, for example, use the command</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">docker pull nvcr.io/nvidia/cuda-quantum:0.3.0</span>
 </pre></div>
 </div>
@@ -317,12 +315,11 @@ and it has been built for <code class="code docutils literal notranslate"><span 
 <section id="use-cuda-quantum-in-a-terminal">
 <span id="use-cuda-quantum-in-terminal"></span><h3>Use CUDA Quantum in a Terminal<a class="headerlink" href="#use-cuda-quantum-in-a-terminal" title="Permalink to this heading">¶</a></h3>
 <p>The container can be run using the following command</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">docker run -it --name cuda-quantum nvcr.io/nvidia/cuda-quantum:0.3.0</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">docker run -it --name cuda-quantum &lt;image_name&gt;</span>
 </pre></div>
 </div>
-<p>This will give you terminal access to the created container, but you are free to attach
-an existing VSCode IDE to it.</p>
-<p>(what you’ll see)</p>
+<p>replacing <code class="code docutils literal notranslate"><span class="pre">&lt;image_name&gt;</span></code> with the name and tag of the image you downloaded.</p>
+<p>This will give you terminal access to the created container, for example</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">user@host:~$ </span>docker<span class="w"> </span>run<span class="w"> </span>-it<span class="w"> </span>--name<span class="w"> </span>cuda-quantum<span class="w"> </span>nvcr.io/nvidia/cuda-quantum:0.3.0
 <span class="go">To run a command as administrator (user &quot;root&quot;), use &quot;sudo &lt;command&gt;&quot;.</span>
 <span class="go">See &quot;man sudo_root&quot; for details.</span>
@@ -331,13 +328,11 @@ an existing VSCode IDE to it.</p>
 <span class="go">NVIDIA CUDA Quantum</span>
 <span class="go">=========================</span>
 
-<span class="go">CUDA Quantum Version 0.3.0</span>
+<span class="go">Version: 0.3.0</span>
 
 <span class="go">Copyright (c) 2023 NVIDIA Corporation &amp; Affiliates</span>
 <span class="go">All rights reserved.</span>
 
-<span class="gp">cudaq@container:~$ </span>ls
-<span class="go">README.md  examples</span>
 <span class="gp">cudaq@container:~$ </span>ls<span class="w"> </span>examples/
 <span class="go">cpp  python</span>
 </pre></div>
@@ -366,10 +361,10 @@ You can delete an existing container and any changes you made using <code class=
 To do so, install the <a class="reference external" href="https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers">Dev Containers extension</a>:</p>
 <img alt="_images/devContainersExtension.png" src="_images/devContainersExtension.png" />
 <p>Follow the steps <a class="reference internal" href="#use-cuda-quantum-in-terminal"><span class="std std-ref">above</span></a> to start the container.
-Open VS Code and navigate to the Remote Explorer. You should see the running cuda-quantum dev container listed there.</p>
+Open VS Code and navigate to the Remote Explorer. You should see the running cuda-quantum development container listed there.</p>
 <img alt="_images/attachToDevContainer.png" src="_images/attachToDevContainer.png" />
 <p>Click on <code class="code docutils literal notranslate"><span class="pre">Attach</span> <span class="pre">to</span> <span class="pre">Container</span></code>. A new VS Code instance will open in that container. Open the <code class="code docutils literal notranslate"><span class="pre">/home/cudaq</span></code>
-folder to see the README and the CUDA Quantum examples that are included in the container. To run the examples,
+folder to see the <code class="code docutils literal notranslate"><span class="pre">README.md</span></code> file and the CUDA Quantum examples that are included in the container. To run the examples,
 open a terminal by going to the Terminal menu and select <code class="code docutils literal notranslate"><span class="pre">New</span> <span class="pre">Terminal</span></code>.</p>
 <img alt="_images/openTerminal.png" src="_images/openTerminal.png" />
 <p>You can now compile and run the C++ examples using the <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> compiler, which is installed in your <code class="code docutils literal notranslate"><span class="pre">PATH</span></code>,
@@ -379,77 +374,21 @@ or run the Python examples using the Python interpreter.</p>
 <p class="admonition-title">Note</p>
 <p>VS Code extensions that you have installed locally, such as e.g. an extension for Jupyter notebooks,
 may not be automatically active in the container environment. You may need to install your preferred
-extension in the container environment for all of your dev tools to be available.</p>
+extension in the container environment for all of your development tools to be available.</p>
 </div>
 </section>
 </section>
 <section id="build-cuda-quantum-from-source">
 <h2>Build CUDA Quantum from Source<a class="headerlink" href="#build-cuda-quantum-from-source" title="Permalink to this heading">¶</a></h2>
-<p>Here we will assume a Ubuntu 22.04 system. Adjust the package manager calls
-for your distribution. Make sure that recent versions <code class="code docutils literal notranslate"><span class="pre">cmake</span></code> and <code class="code docutils literal notranslate"><span class="pre">ninja</span></code> installed.
-The build also requires a recent version of <code class="code docutils literal notranslate"><span class="pre">clang/clang++</span></code> or <code class="code docutils literal notranslate"><span class="pre">gcc/g++</span></code>
-(must have C++20 support).</p>
-<section id="get-the-basic-compilers-you-ll-need-via-apt-get">
-<h3>Get the basic compilers you’ll need via apt-get<a class="headerlink" href="#get-the-basic-compilers-you-ll-need-via-apt-get" title="Permalink to this heading">¶</a></h3>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>apt-get<span class="w"> </span>update<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>--no-install-recommends<span class="w"> </span>gcc<span class="w"> </span>g++
-</pre></div>
-</div>
-<p>On Ubuntu 22.04 this will get you GCC 11.</p>
-</section>
-<section id="get-cuquantum-optional">
-<h3>Get cuQuantum (optional)<a class="headerlink" href="#get-cuquantum-optional" title="Permalink to this heading">¶</a></h3>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>wget<span class="w"> </span>https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.0-1_all.deb<span class="w"> </span><span class="se">\</span>
-dpkg<span class="w"> </span>-i<span class="w"> </span>cuda-keyring_1.0-1_all.deb
-apt-get<span class="w"> </span>update<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>apt-get<span class="w"> </span>-y<span class="w"> </span>install<span class="w"> </span>cuquantum<span class="w"> </span>cuquantum-dev
-</pre></div>
-</div>
-</section>
-<section id="get-llvm-clang-mlir">
-<h3>Get LLVM / Clang / MLIR<a class="headerlink" href="#get-llvm-clang-mlir" title="Permalink to this heading">¶</a></h3>
-<p>You will need the same version of LLVM as our submodule in <code class="code docutils literal notranslate"><span class="pre">tpls/llvm</span></code>.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>llvm-project<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>llvm-project
-git<span class="w"> </span>init
-git<span class="w"> </span>remote<span class="w"> </span>add<span class="w"> </span>origin<span class="w"> </span>https://github.com/llvm/llvm-project
-<span class="c1"># note this will change as the project evolves,</span>
-<span class="c1"># Must be == to the hash we use for the tpls/llvm submodule.</span>
-git<span class="w"> </span>fetch<span class="w"> </span>origin<span class="w"> </span>--depth<span class="o">=</span><span class="m">1</span><span class="w"> </span>c0b45fef155fbe3f17f9a6f99074682c69545488
-git<span class="w"> </span>reset<span class="w"> </span>--hard<span class="w"> </span>FETCH_HEAD
-mkdir<span class="w"> </span>build<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>build
-cmake<span class="w"> </span>..<span class="w"> </span>-G<span class="w"> </span>Ninja
-<span class="w">            </span>-DLLVM_TARGETS_TO_BUILD<span class="o">=</span><span class="s2">&quot;host&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">            </span>-DCMAKE_INSTALL_PREFIX<span class="o">=</span>/opt/llvm/
-<span class="w">            </span>-DLLVM_ENABLE_PROJECTS<span class="o">=</span><span class="s2">&quot;clang;mlir&quot;</span>
-<span class="w">            </span>-DCMAKE_BUILD_TYPE<span class="o">=</span>Release
-<span class="w">            </span>-DLLVM_ENABLE_ASSERTIONS<span class="o">=</span>ON
-<span class="w">            </span>-DLLVM_INSTALL_UTILS<span class="o">=</span>TRUE
-ninja<span class="w"> </span>install
-<span class="c1"># This is needed for FileCheck tests.</span>
-cp<span class="w"> </span>bin/llvm-lit<span class="w"> </span>/opt/llvm/bin/
-</pre></div>
-</div>
-</section>
-<section id="build-cuda-quantum">
-<h3>Build CUDA Quantum<a class="headerlink" href="#build-cuda-quantum" title="Permalink to this heading">¶</a></h3>
-<p>You must use the same compiler that you compiled LLVM with to compile CUDA Quantum.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/NVIDIA/cuda-quantum<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>cuda-quantum
-mkdir<span class="w"> </span>build<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>build
-cmake<span class="w"> </span>..<span class="w"> </span>-G<span class="w"> </span>-DCMAKE_INSTALL_PREFIX<span class="o">=</span><span class="nv">$HOME</span>/.cudaq
-<span class="w">            </span>-DLLVM_DIR<span class="o">=</span>/path/to/llvm/lib/cmake/llvm
-<span class="w">            </span>-DCUDAQ_ENABLE_PYTHON<span class="o">=</span>TRUE
-<span class="w">            </span><span class="se">\#</span><span class="w"> </span><span class="o">(</span>optional,<span class="w"> </span><span class="k">if</span><span class="w"> </span>cuquantum<span class="w"> </span>is<span class="w"> </span>installed<span class="o">)</span>
-<span class="w">            </span>-DCUSTATEVEC<span class="o">=</span>/opt/nvidia/cuquantum
-ninja<span class="w"> </span>install
-ctest
-</pre></div>
-</div>
-</section>
+<p>For more information about building CUDA Quantum from source,
+we refer to the <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/blob/main/Building.md">CUDA Quantum GitHub repository</a>.</p>
 </section>
 <section id="next-steps">
 <h2>Next Steps<a class="headerlink" href="#next-steps" title="Permalink to this heading">¶</a></h2>
 <p>With the CUDA Quantum Docker image installed and a container up and running, check out the
 Using CUDA Quantum <a class="reference external" href="using/cudaq.html">page</a>. To run the examples codes in the container, checkout the Compiling
 and Executing section <a class="reference external" href="using/cudaq/compiling.html">here</a>.</p>
-<p>Once in the VSCode IDE or in the terminal for the container in headless mode, you’ll
+<p>Once in the VS Code IDE or in the terminal for the container in headless mode, you’ll
 notice there is an <code class="code docutils literal notranslate"><span class="pre">examples/</span></code> folder. These examples are provided to
 get you started with CUDA Quantum and understanding the programming and execution model.
 Start of by trying to compile a simple one, like <code class="code docutils literal notranslate"><span class="pre">examples/cpp/basics/static_kernel.cpp</span></code></p>
