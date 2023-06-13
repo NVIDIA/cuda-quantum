@@ -14,9 +14,8 @@ except ImportError:
 import skbuild
 import setuptools
 
-# TODO: Handle setting up system dependencies by either calling the 
-# build_wheel script and deselecting build wheel, or by giving it
-# its own dedicated script.
+# Handle installing any missing dependencies.
+os.system("bash /cuda-quantum/scripts/wheel_dependencies.sh")
 
 # os.environ["LLVM_DIR"]="/opt/llvm/clang-16/lib/cmake/llvm"
 
