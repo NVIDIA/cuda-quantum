@@ -131,9 +131,10 @@ jobs:
           tar_archive=/tmp/cuda-quantum.tar
 
           docker load --input ${{ needs.release_build.outputs.cudaqdev_tarfile }}
-          docker build -t $image_name:$image_tag -f docker/release/cudaq.Dockerfile . \
+          docker build --squash -t $image_name:$image_tag -f docker/release/cudaq.Dockerfile . \
             --build-arg dev_image=cuda-quantum-dev --build-arg dev_tag=local \
             --build-arg release_version=$image_tag
+          docker builder prune --all --force
           docker save $image_name:$image_tag > $tar_archive
 
           echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
@@ -149,7 +150,7 @@ jobs:
         run: |
           docker run --rm -dit --name cuda-quantum ${{ needs.metadata.outputs.image_name }}:${{ needs.metadata.outputs.image_tag }}
           docker cp scripts/validate_container.sh cuda-quantum:"/home/cudaq/validate_container.sh"
-          docker exec -e TERM=xterm cuda-quantum bash validate_container.sh density-matrix-cpu > /tmp/validation.out
+          docker exec -e TERM=xterm cuda-quantum bash validate_container.sh > /tmp/validation.out
           docker stop cuda-quantum
 
       - name: Create job summary
