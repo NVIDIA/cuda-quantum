@@ -106,9 +106,6 @@ RUN rdom () { local IFS=\> ; read -d \< E C ;} && \
 
 # Include additional readmes and samples that are distributed with the image.
 
-ADD ./docs/sphinx/examples/ /home/cudaq/examples/
-ADD ./docker/release/README.md /home/cudaq/README.md
-
 ARG COPYRIGHT_NOTICE="=========================\n\
    NVIDIA CUDA Quantum   \n\
 =========================\n\n\
@@ -121,6 +118,8 @@ RUN echo 'cat "$CUDA_QUANTUM_PATH/Copyright.txt"' > /etc/profile.d/welcome.sh
 # Create cudaq user
 
 RUN useradd -m cudaq && echo "cudaq:cuda-quantum" | chpasswd && adduser cudaq sudo
+ADD ./docs/sphinx/examples/ /home/cudaq/examples/
+ADD ./docker/release/README.md /home/cudaq/README.md
 RUN chown -R cudaq /home/cudaq && chgrp -R cudaq /home/cudaq
 
 USER cudaq
