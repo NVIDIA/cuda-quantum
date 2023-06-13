@@ -13,7 +13,7 @@ of contribution, it will fall into three categories:
 1. Share your work built upon CUDA Quantum:
 
     We would love to hear more about your work! Please share with us on [GitHub
-    Discussions](https://github.com/NVIDIA/cudaq/discussions) or consider
+    Discussions](https://github.com/NVIDIA/cuda-quantum/discussions) or consider
     contributing to our [examples](./docs/sphinx/examples/)! We also take any
     CUDA Quantum related questions on this forum.
 
