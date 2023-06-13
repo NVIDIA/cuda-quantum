@@ -26,13 +26,12 @@ skbuild.setup(
     package_dir={"cudaq": "python/cudaq"},
     packages=setuptools.find_packages(where="python", include=["*"]),
     zip_safe=False,
-    python_requires=">=3.6",
+    python_requires=">=3.8",
     # FIXME: Linux machines default to dist-packages unless the `--user` flag is provided to
     # the pip install. I'm trying to hard-code everything to site-packages in the meantime,
     # which is also the location expected on MacOS.
-    # cmake_install_dir=
-    # f"lib/python{sys.version_info[0]}.{sys.version_info[1]}/site-packages/cudaq",
-    cmake_install_dir="${CMAKE_INSTALL_PREFIX}",
+    cmake_install_dir=
+    f"lib/python{sys.version_info[0]}.{sys.version_info[1]}/site-packages/cudaq",
     # FIXME: Remove hard-coding on zlib and libcpr path.
     cmake_args=[
         "-DCUDAQ_ENABLE_PYTHON=TRUE", "-DBLAS_LIBRARIES=/usr/lib64/libblas.a",
