@@ -86,7 +86,7 @@ jobs:
             --build-arg base_image=$base_image \
             --build-arg install="CMAKE_BUILD_TYPE=Release FORCE_COMPILE_GPU_COMPONENTS=true"
 
-          cache_id=`docker inspect cuda-quantum-dev:local --format='{{.Config.Labels}}' | grep -o image.version:[A-Za-z0-9_-]* | cut -d ":" -f 2`
+          cache_id=`docker inspect cuda-quantum-dev:local --format='{{.Config.Labels}}' | grep -o image.version:[A-Za-z0-9_-]* | cut -d ":" -f 2 | tr '.' '-'`
           cudaqdev_cache=tar-cudaqdev-${cache_id}-${{ github.sha }}
 
           cudaqdev_tarfile=/tmp/cudaqdev.tar
