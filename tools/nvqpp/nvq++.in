@@ -60,6 +60,9 @@ function show_help {
 --emit-qir=<file> | -emit-qir=<file>
 	Emit the QIR output to <file>.
 
+--emulate
+   For physical, remote QPU execution, enable local emulation for testing. 
+
 --platform=<lib> | -platform=<lib>
 	Set the platform library name to <lib>.
 
@@ -208,6 +211,7 @@ fi
 NVQIR_SIMULATION_BACKEND="qpp"
 NVQIR_LIBS="-lnvqir -lnvqir-"
 
+CUDAQ_EMULATE_REMOTE=false
 CLANG_VERBOSE=
 OUTPUTOPTS=
 OUTPUTFILE=
@@ -259,6 +263,10 @@ while [ $# -ne 0 ]; do
 		;;
 	--emit-qir | -emit-qir)
 		EMIT_QIR="$2"
+		shift
+		;;
+	--emulate | -emulate)
+	    CUDAQ_EMULATE_REMOTE=true
 		shift
 		;;
 	--list-targets)
@@ -407,7 +415,7 @@ if [ -n "${TARGET_CONFIG}" ]; then
 		if ${GEN_TARGET_BACKEND}; then
 			# Add a function that will run before main
 			# and set the target backend on the quantum_platform
-			TARGET_CONFIG="${TARGET_CONFIG}${PLATFORM_EXTRA_ARGS}"
+			TARGET_CONFIG="${TARGET_CONFIG};emulate;${CUDAQ_EMULATE_REMOTE}${PLATFORM_EXTRA_ARGS}"
 			OUTFILENAME=$(mktemp nvqppGenTargetBackend.XXXXXX.o)
 			run ${CXX} -DNVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"" -o $OUTFILENAME -c -x c++ ${install_dir}/targets/backendConfig.cpp
 			OBJS_TO_MERGE="${OUTFILENAME}"

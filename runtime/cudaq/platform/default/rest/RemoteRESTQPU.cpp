@@ -39,6 +39,7 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/Math/IR/Math.h"
+#include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/ExecutionEngine/OptUtils.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Diagnostics.h"
@@ -98,6 +99,9 @@ protected:
   /// @brief Mapping of general key-values for backend
   /// configuration.
   std::map<std::string, std::string> backendConfig;
+
+  bool emulate = false;
+  std::vector<ExecutionEngine *> jitEngines;
 
 public:
   /// @brief The constructor
@@ -172,6 +176,10 @@ public:
       for (std::size_t i = 1; i < split.size(); i += 2)
         backendConfig.insert({split[i], split[i + 1]});
     }
+
+    // Turn on emulation mode if requested
+    auto iter = backendConfig.find("emulate");
+    emulate = iter != backendConfig.end() && iter->second == "true";
 
     /// Once we know the backend, we should search for the config file
     /// from there we can get the URL/PORT and the required MLIR pass
@@ -293,9 +301,17 @@ public:
         runPassPipeline("canonicalize", tmpModuleOp);
         modules.emplace_back(term.to_string(false), tmpModuleOp);
       }
-
     } else
       modules.emplace_back(kernelName, moduleOp);
+
+    if (emulate) {
+      // If we are in emulation mode, we need to first get a
+      // full QIR representation of the code. Then we'll map to
+      // an LLVM Module, create a JIT ExecutionEngine pointer
+      // and use that for execution
+      for (auto &[name, module] : modules)
+        jitEngines.emplace_back(cudaq::createQIRJITEngine(module));
+    }
 
     // Get the code gen translation
     auto translation = cudaq::getTranslation(codegenTranslation);
@@ -331,6 +347,51 @@ public:
 
     // Get the Quake code, lowered according to config file.
     auto codes = lowerQuakeCode(kernelName, args);
+
+    // If emulation requested, then just grab the function
+    // and invoke it with the simulator
+    if (emulate) {
+      bool isObserveContext = executionContext->name == "observe";
+      auto kernelFunctor = [&](std::size_t i) {
+        // auto &code = codes.back().code;
+        auto *jit = jitEngines[i];
+        auto funcPtr =
+            jit->lookup(std::string("__nvqpp__mlirgen__") + kernelName);
+        if (!funcPtr) {
+          throw std::runtime_error(
+              "cudaq::builder failed to get kernelReg function.");
+        }
+        reinterpret_cast<void (*)()>(*funcPtr)();
+        delete jit;
+      };
+
+      if (!isObserveContext) {
+        cudaq::getExecutionManager()->setExecutionContext(executionContext);
+        kernelFunctor(0);
+        cudaq::getExecutionManager()->resetExecutionContext();
+        return;
+      }
+
+      // this is a spin_op observation, should have multiple codes,
+      // but measurements have already been applied, so we just sample
+      double sum = 0.0;
+      std::size_t localShots =
+          executionContext->shots > 0 ? executionContext->shots : 1000;
+      std::vector<cudaq::ExecutionResult> results;
+      for (std::size_t i = 0; i < codes.size(); i++) {
+        cudaq::ExecutionContext observeContext("observe", localShots);
+        cudaq::getExecutionManager()->setExecutionContext(&observeContext);
+        kernelFunctor(i);
+        cudaq::getExecutionManager()->resetExecutionContext();
+        results.emplace_back(observeContext.result.to_map(), codes[i].name,
+                             observeContext.expectationValue.value_or(0.0));
+      }
+
+      // ctx->expectationValue = sum;
+      executionContext->result = cudaq::sample_result(sum, results);
+      jitEngines.clear();
+      return;
+    }
 
     // Execute the codes produced in quake lowering
     auto future = executor->execute(codes);

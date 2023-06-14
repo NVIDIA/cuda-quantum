@@ -13,6 +13,8 @@
 
 namespace mlir {
 class MLIRContext;
+class ExecutionEngine;
+class ModuleOp;
 } // namespace mlir
 
 namespace llvm {
@@ -29,6 +31,7 @@ bool setupTargetTriple(llvm::Module *);
 
 /// @brief Run the LLVM PassManager.
 void optimizeLLVM(llvm::Module *);
+mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp);
 
 class Translation {
 public:

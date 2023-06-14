@@ -18,6 +18,7 @@
 #include "cudaq/Target/OpenQASM/OpenQASMEmitter.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Module.h"
+#include "llvm/IRReader/IRReader.h"
 #include "llvm/MC/SubtargetFeature.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/Base64.h"
@@ -201,4 +202,42 @@ void registerToIQMJsonTranslation() {
         return cudaq::translateToIQMJson(op, output);
       });
 }
+
+/// @brief Lower ModuleOp to a full QIR LLVMIR representation
+/// and return an ExecutionEngine pointer for JIT function pointer
+/// execution
+ExecutionEngine *createQIRJITEngine(ModuleOp &moduleOp) {
+  ExecutionEngineOptions opts;
+  opts.transformer = [](llvm::Module *m) { return llvm::ErrorSuccess(); };
+  opts.jitCodeGenOptLevel = llvm::CodeGenOpt::None;
+  opts.llvmModuleBuilder =
+      [&](Operation *module,
+          llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
+    llvmContext.setOpaquePointers(false);
+
+    auto *context = module->getContext();
+    PassManager pm(context);
+    std::string errMsg;
+    llvm::raw_string_ostream errOs(errMsg);
+    std::string qirBasePipelineConfig =
+        "func.func(quake-add-deallocs),quake-to-qir";
+    if (failed(parsePassPipeline(qirBasePipelineConfig, pm, errOs)))
+      throw std::runtime_error(".");
+    if (failed(pm.run(module)))
+      throw std::runtime_error(".");
+
+    auto llvmModule = translateModuleToLLVMIR(module, llvmContext);
+    if (!llvmModule) {
+      llvm::errs() << "Failed to emit LLVM IR\n";
+      return nullptr;
+    }
+    ExecutionEngine::setupTargetTriple(llvmModule.get());
+    return llvmModule;
+  };
+
+  auto jitOrError = ExecutionEngine::create(moduleOp, opts);
+  assert(!!jitOrError);
+  return jitOrError.get().release();
+}
+
 } // namespace cudaq
