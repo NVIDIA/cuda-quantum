@@ -18,7 +18,6 @@
 #include "cudaq/Target/OpenQASM/OpenQASMEmitter.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Module.h"
-#include "llvm/IRReader/IRReader.h"
 #include "llvm/MC/SubtargetFeature.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/Base64.h"
@@ -219,21 +218,21 @@ ExecutionEngine *createQIRJITEngine(ModuleOp &moduleOp) {
     std::string qirBasePipelineConfig =
         "func.func(quake-add-deallocs),quake-to-qir";
     if (failed(parsePassPipeline(qirBasePipelineConfig, pm, errOs)))
-      throw std::runtime_error(".");
+      throw std::runtime_error("[createQIRJITEngine] Lowering to QIR failed.");
     if (failed(pm.run(module)))
-      throw std::runtime_error(".");
+      throw std::runtime_error("[createQIRJITEngine] Lowering to QIR failed.");
 
     auto llvmModule = translateModuleToLLVMIR(module, llvmContext);
-    if (!llvmModule) {
-      llvm::errs() << "Failed to emit LLVM IR\n";
-      return nullptr;
-    }
+    if (!llvmModule)
+      throw std::runtime_error(
+          "[createQIRJITEngine] Lowering to LLVM IR failed.");
+
     ExecutionEngine::setupTargetTriple(llvmModule.get());
     return llvmModule;
   };
 
   auto jitOrError = ExecutionEngine::create(moduleOp, opts);
-  assert(!!jitOrError);
+  assert(!!jitOrError && "ExecutionEngine creation failed.");
   return jitOrError.get().release();
 }
 

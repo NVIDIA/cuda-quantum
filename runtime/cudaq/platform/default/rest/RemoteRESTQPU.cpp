@@ -100,9 +100,15 @@ protected:
   /// configuration.
   std::map<std::string, std::string> backendConfig;
 
+  /// @brief Flag indicating whether we should emulate
+  /// execution locally.
   bool emulate = false;
+
+  /// @brief If we are emulating locally, keep track
+  /// of JIT engines for invoking the kernels.
   std::vector<ExecutionEngine *> jitEngines;
 
+  /// @brief Invoke the kernel in the JIT engine and then delete the JIT engine.
   void invokeJITKernelAndRelease(ExecutionEngine *jit,
                                  const std::string &kernelName) {
     auto funcPtr = jit->lookup(std::string("__nvqpp__mlirgen__") + kernelName);
