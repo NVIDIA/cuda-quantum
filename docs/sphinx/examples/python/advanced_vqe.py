@@ -55,7 +55,7 @@ def objective_function(parameter_vector: List[float],
     print(f"<H> = {cost}")
     # Compute the gradient vector using `cudaq.gradients.STRATEGY.compute()`.
     gradient_vector = gradient_strategy.compute(
-        parameter_vector=parameter_vector, function=get_result)
+        parameter_vector, get_result, cost)
 
     # Return the (cost, gradient_vector) tuple.
     return cost, gradient_vector
