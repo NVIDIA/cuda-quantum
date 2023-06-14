@@ -42,21 +42,12 @@ else
 fi
 export LLVM_DIR=$LLVM_DIR
 
-# # Look for required apt packages and install any not found.
-# apt-get update
-# declare -a REQUIRED_PKGS=("build-essential" "wget" "gfortran" "python3.10-venv")
-# for REQUIRED_PKG in "${REQUIRED_PKGS[@]}"; do
-#   PKG_OK=$(dpkg-query -W --showformat='${Status}\n' $REQUIRED_PKG|grep "install ok installed")
-#   echo Checking for $REQUIRED_PKG: $PKG_OK
-#   if [ "" = "$PKG_OK" ]; then
-#     echo "Could not find $REQUIRED_PKG. Installing $REQUIRED_PKG."
-#     apt-get --yes install $REQUIRED_PKG
-#   fi
-# done
+# Get necessary pacakges from apt.
+apt-get update && apt-get install build-essential wget gfortran python3.10-venv
 
 if [ ! -d "$CPR_DIR" ]; then
   echo "Could not find libcpr install dir"
-  cd / && git clone https://github.com/libcpr/cpr
+  cd "$repo_root"/.. && git clone https://github.com/libcpr/cpr
   cd cpr && mkdir build && cd build
   cmake .. -G Ninja -DCPR_FORCE_USE_SYSTEM_CURL=FALSE 
                     -DCMAKE_INSTALL_LIBDIR=lib 

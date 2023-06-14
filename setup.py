@@ -14,8 +14,12 @@ except ImportError:
 import skbuild
 import setuptools
 
+print("here!\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+
 # Handle installing any missing dependencies.
-os.system("bash /scripts/wheel_dependencies.sh")
+script_path = os.getcwd() + "/scripts/wheel_dependencies.sh"
+# script_path = os.path.dirname(os.path.abspath(__file__)) + "/scripts/wheel_dependencies.sh"
+os.system(f"bash {script_path}")
 
 # os.environ["LLVM_DIR"]="/opt/llvm/clang-16/lib/cmake/llvm"
 
