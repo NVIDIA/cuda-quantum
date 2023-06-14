@@ -50,25 +50,16 @@ target_link_libraries(_pycudaq
     PRIVATE 
       nvqir
       cudaq 
-      cudaq-common
       cudaq-builder 
       cudaq-em-qir 
       cudaq-platform-default 
       fmt::fmt-header-only)
 
-install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX})
-# TODO: Can remove this first one as it is now automatically handled by skbuild 
-# as we've given the "cudaq" module its own directory with `__init__.py` in it.
-# if (SKBUILD)
-#   install(FILES __init__.py DESTINATION ${CMAKE_INSTALL_PREFIX})
-# else()
-#   # FIXME: This will be broken due to the removal of cudaq.py . The preferred method
-#   # of building the python bindings from srouce should be through `pip install .` , 
-#   # but that means you can't build a full cuda-quantum with the python bindings as well.
-#   # Is that a problem??
-#   install(FILES cudaq.py DESTINATION ${CMAKE_INSTALL_PREFIX})
-#   file(COPY cudaq.py DESTINATION ${CMAKE_BINARY_DIR}/python)
-# endif()
+
+if (!SKBUILD)
+  install(FILES __init__.py DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq)
+  install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq)
+endif()
 
 install(FILES domains/chemistry.py DESTINATION ${CMAKE_INSTALL_PREFIX}/domains/)
 file(COPY domains/chemistry.py DESTINATION ${CMAKE_BINARY_DIR}/python/domains)

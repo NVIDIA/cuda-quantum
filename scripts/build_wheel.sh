@@ -8,16 +8,24 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# Usage: `bash build_wheel.sh`
+# This script is intended to be run by the CI or the local developer to
+# build a wheel for the CUDA Quantum python bindings.
+# It will handle calling `/cuda-quantum/scripts/wheel_dependencies.sh`
+# for any missing dependencies.
+#
+# Usage: 
+# `bash build_wheel.sh`
+# -or-
+# `LLVM_DIR=/path/to/llvm/lib/cmake/llvm  CPR_DIR=/path/to/cpr/install BLAS_PATH=/path/to/libblas.a  bash build_wheel.sh`
+#
+# Prerequisites:
+# All tools required to run this script are installed when using the dev container definition
+# in this repository. Any remaining dependencies are automatically installed here through a
+# call to `scripts/wheel_dependencies.sh`. 
 
-LLVM_DIR=${LLVM_DIR:-/opt/llvm/lib/cmake/llvm}
+LLVM_DIR=${LLVM_DIR:-/opt/llvm}
 CPR_DIR=${CPR_DIR:-/cpr/install}
 BLAS_PATH=${BLAS_PATH:-/usr/lib64/libblas.a}
-# Get the CC and CXX directories and export so scikit-build can find them.
-# CC=${CC:-/opt/llvm/clang-16/bin/clang}
-# CXX=${CXX:-/opt/llvm/clang-16/bin/clang++}
-# export CC=$CC
-# export CXX=$CXX
 
 # Run the script from the top-level of the repo
 working_dir=`pwd`
@@ -31,6 +39,12 @@ rm -rf cuda_quantum.egg-info
 rm -rf python/cuda_quantum.egg-info
 rm -rf dist
 rm -rf wheelhouse
+
+# Call the dependency script.
+bash /cuda-quantum/scripts/wheel_dependencies.sh
+
+# Return to the outer level of CUDA Quantum to build the wheel off of setup.py
+cd "$repo_root"
 
 # TODO: Set the srcdir here to dump the wheels and all extra files into a contained folder.
 # Build the wheel only (no sdist). 

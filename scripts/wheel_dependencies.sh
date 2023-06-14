@@ -9,15 +9,15 @@
 # ============================================================================ #
 
 # Usage: 
+# This script is called in the file `/cuda-quantum/setup.py` and is responsible
+# for installing all dependencies needed to build a python wheel or to pip install
+# the python bindings from source. It expects to be run on the Ubuntu Dev Image, 
+# otherwise refer to the installation steps in `build_cudaq.sh` for any further 
+# missing dependencies.
 
-LLVM_DIR=${LLVM_DIR:-/opt/llvm/lib/cmake/llvm}
+LLVM_DIR=${LLVM_DIR:-/opt/llvm}
 CPR_DIR=${CPR_DIR:-/cpr/install}
 BLAS_PATH=${BLAS_PATH:-/usr/lib64/libblas.a}
-# Get the CC and CXX directories and export so scikit-build can find them.
-# CC=${CC:-/opt/llvm/clang-16/bin/clang}
-# CXX=${CXX:-/opt/llvm/clang-16/bin/clang++}
-# export CC=$CC
-# export CXX=$CXX
 
 # Run the script from the top-level of the repo
 working_dir=`pwd`
@@ -49,11 +49,10 @@ if [ ! -d "$CPR_DIR" ]; then
   echo "Could not find libcpr install dir"
   # Install in same parent directory as cuda-quantum.
   cd "$repo_root" && cd /
-  # If user has cpr but it's not installed, we will build off of theirs.
-  if [ ! -d "$CPR_DIR/.." ]; then 
-    git clone https://github.com/libcpr/cpr
-  fi
-  cd cpr && mkdir build && cd build
+  echo "Cloning libcpr"
+  git clone https://github.com/libcpr/cpr
+  echo "Building libcpr"
+  cd cpr && rm -rf build && mkdir build && cd build
   cmake .. -G Ninja -DCPR_FORCE_USE_SYSTEM_CURL=FALSE 
                     -DCMAKE_INSTALL_LIBDIR=lib 
                     -DOPENSSL_USE_STATIC_LIBS=TRUE 
@@ -61,6 +60,7 @@ if [ ! -d "$CPR_DIR" ]; then
                     -DOPENSSL_ROOT_DIR=/usr/local/ssl 
                     -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE 
                     -DCMAKE_INSTALL_PREFIX=$CPR_DIR
+  echo "Installing libcpr"
   ninja install
 else 
   echo "libcpr directory: $CPR_DIR"
@@ -70,9 +70,8 @@ cd "$repo_root"
 
 if [ ! -f "$BLAS_PATH" ]; then
   echo "Could not find libblas.a"
-  # Find or configure BLAS 
-  # cd "$CPR_DIR" 
-  cd /
+  # Install BLAS 
+  cd "$CPR_DIR" && cd /
   wget http://www.netlib.org/blas/blas-3.11.0.tgz
   tar -xzvf blas-3.11.0.tgz && cd BLAS-3.11.0
   make && mv blas_LINUX.a /usr/lib64/libblas.a
