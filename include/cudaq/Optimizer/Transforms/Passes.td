@@ -122,8 +122,6 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
   let dependentDialects = ["mlir::arith::ArithDialect",
                            "mlir::cf::ControlFlowDialect"];
 
-  let constructor = "cudaq::opt::createLoopUnrollPass()";
-
   let options = [
     Option<"threshold", "maximum-iterations", "std::size_t",
       /*default=*/"50", "Maximum iterations to unroll.">,

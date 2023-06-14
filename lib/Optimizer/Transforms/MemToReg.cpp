@@ -506,8 +506,13 @@ public:
           continue;
         }
         if (auto load = dyn_cast<cudaq::cc::LoadOp>(op)) {
-          if (classicalValues)
-            handleUse(load, load.getPtrvalue());
+          if (classicalValues) {
+            auto memuse = load.getPtrvalue();
+            // Process only singleton classical scalars, no aggregates.
+            if (auto *useOp = memuse.getDefiningOp())
+              if (memAnalysis.isMember(useOp))
+                handleUse(load, memuse);
+          }
           continue;
         }
 
@@ -529,8 +534,13 @@ public:
           continue;
         }
         if (auto store = dyn_cast<cudaq::cc::StoreOp>(op)) {
-          if (classicalValues)
-            handleDefinition(store.getValue(), store.getPtrvalue());
+          if (classicalValues) {
+            auto memuse = store.getPtrvalue();
+            // Process only singleton classical scalars, no aggregates.
+            if (auto *useOp = memuse.getDefiningOp())
+              if (memAnalysis.isMember(useOp))
+                handleDefinition(store.getValue(), store.getPtrvalue());
+          }
           continue;
         }
 
@@ -565,12 +575,20 @@ public:
               auto defVal = blockArgsMap[succBlock][i];
               if (valMap.count(defVal)) {
                 if (!valMap[defVal]) {
-                  // Wire was killed by an Op. Unwrap the reference again.
-                  OpBuilder builder(ctx);
-                  builder.setInsertionPoint(block->getTerminator());
-                  auto unwrap = builder.create<quake::UnwrapOp>(defVal.getLoc(),
-                                                                wireTy, defVal);
-                  valMap[defVal] = unwrap;
+                  if (isa<quake::RefType>(defVal.getType())) {
+                    // Wire was killed by an Op. Unwrap the reference again.
+                    OpBuilder builder(ctx);
+                    builder.setInsertionPoint(block->getTerminator());
+                    auto unwrap = builder.create<quake::UnwrapOp>(
+                        defVal.getLoc(), wireTy, defVal);
+                    valMap[defVal] = unwrap;
+                  } else {
+                    OpBuilder builder(ctx);
+                    builder.setInsertionPoint(block->getTerminator());
+                    auto load = builder.create<cudaq::cc::LoadOp>(
+                        defVal.getLoc(), defVal);
+                    valMap[defVal] = load;
+                  }
                 }
                 assert(valMap[defVal]);
                 newArguments.push_back(valMap[defVal]);
@@ -591,7 +609,8 @@ public:
                   // the successors but was neither used/defined in this block
                   // nor passed in as an argument.
                   argVec.push_back(defVal);
-                  auto newArg = block->addArgument(wireTy, defVal.getLoc());
+                  auto newArg = block->addArgument(unwrapType(defVal.getType()),
+                                                   defVal.getLoc());
                   assert(newArg);
                   valMap[defVal] = newArg;
                   for (auto *p : block->getPredecessors())

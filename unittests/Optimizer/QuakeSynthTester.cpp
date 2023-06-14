@@ -55,9 +55,9 @@ LogicalResult runQuakeSynth(std::string_view kernelName, void *rawArgs,
   pm.addPass(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, rawArgs));
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());  
   pm.addPass(createCanonicalizerPass());
-  pm.addPass(cudaq::opt::createLoopUnrollPass());
-  pm.addPass(createCanonicalizerPass());
+  pm.addPass(cudaq::opt::createLoopUnroll());
   pm.addPass(createCanonicalizerPass());
   return pm.run(*module);
 }
@@ -68,8 +68,9 @@ LogicalResult lowerToLLVMDialect(ModuleOp module) {
   pm.addPass(createCanonicalizerPass());
   OpPassManager &optPM = pm.nest<func::FuncOp>();
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
+  optPM.addPass(cudaq::opt::createClassicalMemToReg());
   pm.addPass(createCanonicalizerPass());
-  pm.addPass(cudaq::opt::createLoopUnrollPass());
+  pm.addPass(cudaq::opt::createLoopUnroll());
   pm.addPass(createCanonicalizerPass());
   optPM.addPass(cudaq::opt::createQuakeAddDeallocs());
   optPM.addPass(cudaq::opt::createQuakeAddMetadata());

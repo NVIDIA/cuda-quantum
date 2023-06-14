@@ -372,7 +372,7 @@ void cudaq::cc::LoopOp::build(OpBuilder &builder, OperationState &result,
 }
 
 LogicalResult cudaq::cc::LoopOp::verify() {
-  const auto initArgsSize = getInitArgs().size();
+  const auto initArgsSize = getInitialArgs().size();
   if (getResults().size() != initArgsSize)
     return emitOpError("size of init args and outputs must be equal");
   if (getWhileRegion().front().getArguments().size() != initArgsSize)
@@ -557,7 +557,7 @@ void cudaq::cc::LoopOp::getSuccessorRegions(
 
 OperandRange
 cudaq::cc::LoopOp::getSuccessorEntryOperands(std::optional<unsigned> index) {
-  return getInitArgs();
+  return getInitialArgs();
 }
 
 //===----------------------------------------------------------------------===//
