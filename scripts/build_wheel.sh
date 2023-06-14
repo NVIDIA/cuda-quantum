@@ -32,16 +32,11 @@ rm -rf python/cuda_quantum.egg-info
 rm -rf dist
 rm -rf wheelhouse
 
-# Look for and install any missing dependencies
-# TODO: May not need this as it's going to get called from setup.py anyways
-# cd "$repo_root"
-# bash /cuda-quantum/scripts/wheel_dependencies.sh
-
-# Return to the outer level of CUDA Quantum to build the wheel off of setup.py
-cd "$repo_root"
-
 # TODO: Set the srcdir here to dump the wheels and all extra files into a contained folder.
-# Build the wheel only (no sdist).
+# Build the wheel only (no sdist). 
+# The setup.py file will call `wheel_dependencies.sh` and 
+# handle all dependency installation for someone using our
+# Docker image.
 python3.10 -m build --wheel
 
 cd "$working_dir"
