@@ -103,6 +103,18 @@ protected:
   bool emulate = false;
   std::vector<ExecutionEngine *> jitEngines;
 
+  void invokeJITKernelAndRelease(ExecutionEngine *jit,
+                                 const std::string &kernelName) {
+    auto funcPtr = jit->lookup(std::string("__nvqpp__mlirgen__") + kernelName);
+    if (!funcPtr) {
+      throw std::runtime_error(
+          "cudaq::builder failed to get kernelReg function.");
+    }
+    reinterpret_cast<void (*)()>(*funcPtr)();
+    // We're done, delete the pointer.
+    delete jit;
+  }
+
 public:
   /// @brief The constructor
   RemoteRESTQPU() : QPU() {
@@ -350,51 +362,37 @@ public:
 
     // If emulation requested, then just grab the function
     // and invoke it with the simulator
+    cudaq::details::future future;
     if (emulate) {
-      bool isObserveContext = executionContext->name == "observe";
-      auto kernelFunctor = [&](std::size_t i) {
-        // auto &code = codes.back().code;
-        auto *jit = jitEngines[i];
-        auto funcPtr =
-            jit->lookup(std::string("__nvqpp__mlirgen__") + kernelName);
-        if (!funcPtr) {
-          throw std::runtime_error(
-              "cudaq::builder failed to get kernelReg function.");
-        }
-        reinterpret_cast<void (*)()>(*funcPtr)();
-        delete jit;
-      };
+      // Get the current execution context and number of shots
+      std::size_t localShots = 1000;
+      if (executionContext->shots != std::numeric_limits<std::size_t>::max() &&
+          executionContext->shots != 0)
+        localShots = executionContext->shots;
 
-      if (!isObserveContext) {
-        cudaq::getExecutionManager()->setExecutionContext(executionContext);
-        kernelFunctor(0);
-        cudaq::getExecutionManager()->resetExecutionContext();
-        return;
-      }
+      // Launch the execution of the simulated jobs asynchronously
+      future = cudaq::details::future(std::async(
+          std::launch::async,
+          [&, codes, localShots, kernelName,
+           localJIT = std::move(jitEngines)]() mutable -> cudaq::sample_result {
+            std::vector<cudaq::ExecutionResult> results;
+            for (std::size_t i = 0; i < codes.size(); i++) {
+              cudaq::ExecutionContext context("sample", localShots);
+              cudaq::getExecutionManager()->setExecutionContext(&context);
+              invokeJITKernelAndRelease(localJIT[i], kernelName);
+              cudaq::getExecutionManager()->resetExecutionContext();
+              context.result.dump();
+              results.emplace_back(context.result.to_map(),
+                                   codes.size() == 1 ? cudaq::GlobalRegisterName
+                                                     : codes[i].name);
+            }
+            localJIT.clear();
+            return cudaq::sample_result(results);
+          }));
 
-      // this is a spin_op observation, should have multiple codes,
-      // but measurements have already been applied, so we just sample
-      double sum = 0.0;
-      std::size_t localShots =
-          executionContext->shots > 0 ? executionContext->shots : 1000;
-      std::vector<cudaq::ExecutionResult> results;
-      for (std::size_t i = 0; i < codes.size(); i++) {
-        cudaq::ExecutionContext observeContext("observe", localShots);
-        cudaq::getExecutionManager()->setExecutionContext(&observeContext);
-        kernelFunctor(i);
-        cudaq::getExecutionManager()->resetExecutionContext();
-        results.emplace_back(observeContext.result.to_map(), codes[i].name,
-                             observeContext.expectationValue.value_or(0.0));
-      }
-
-      // ctx->expectationValue = sum;
-      executionContext->result = cudaq::sample_result(sum, results);
-      jitEngines.clear();
-      return;
-    }
-
-    // Execute the codes produced in quake lowering
-    auto future = executor->execute(codes);
+    } else
+      // Execute the codes produced in quake lowering
+      future = executor->execute(codes);
 
     // Keep this asynchronous if requested
     if (executionContext->asyncExec) {

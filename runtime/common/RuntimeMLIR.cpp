@@ -203,9 +203,6 @@ void registerToIQMJsonTranslation() {
       });
 }
 
-/// @brief Lower ModuleOp to a full QIR LLVMIR representation
-/// and return an ExecutionEngine pointer for JIT function pointer
-/// execution
 ExecutionEngine *createQIRJITEngine(ModuleOp &moduleOp) {
   ExecutionEngineOptions opts;
   opts.transformer = [](llvm::Module *m) { return llvm::ErrorSuccess(); };
