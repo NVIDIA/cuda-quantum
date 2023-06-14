@@ -215,12 +215,11 @@ ExecutionEngine *createQIRJITEngine(ModuleOp &moduleOp) {
     PassManager pm(context);
     std::string errMsg;
     llvm::raw_string_ostream errOs(errMsg);
-    std::string qirBasePipelineConfig =
-        "func.func(quake-add-deallocs),quake-to-qir";
-    if (failed(parsePassPipeline(qirBasePipelineConfig, pm, errOs)))
-      throw std::runtime_error("[createQIRJITEngine] Lowering to QIR failed.");
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
+    pm.addPass(cudaq::opt::createConvertToQIRPass());
     if (failed(pm.run(module)))
-      throw std::runtime_error("[createQIRJITEngine] Lowering to QIR failed.");
+      throw std::runtime_error(
+          "[createQIRJITEngine] Lowering to QIR for remote emulation failed.");
 
     auto llvmModule = translateModuleToLLVMIR(module, llvmContext);
     if (!llvmModule)
