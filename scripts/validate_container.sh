@@ -18,7 +18,7 @@ failed=0
 skipped=0
 samples=0
 
-if [ -x "$(command -v nvidia-smi)" ] && [ "$(nvidia-smi -L | grep -i nvidia)" != "" ]; 
+if [ -x "$(command -v nvidia-smi)" ] && [ "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" != "" ]; 
 then gpu_available=true
 else gpu_available=false
 fi
