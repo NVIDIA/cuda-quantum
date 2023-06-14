@@ -43,7 +43,7 @@ jobs:
 
   dispatch:
     if: github.event_name == 'pull_request_target'
-    name: Dispatch additional deployments
+    name: Dispatch deployments
     runs-on: ubuntu-latest
     needs: devdeps
 
