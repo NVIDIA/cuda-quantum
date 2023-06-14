@@ -60,7 +60,7 @@ function show_help {
 --emit-qir=<file> | -emit-qir=<file>
 	Emit the QIR output to <file>.
 
---emulate
+--emulate | -emulate
    For physical, remote QPU execution, enable local emulation for testing. 
 
 --platform=<lib> | -platform=<lib>

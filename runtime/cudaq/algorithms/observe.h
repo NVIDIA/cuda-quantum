@@ -252,12 +252,13 @@ auto observe_async(std::size_t shots, std::size_t qpu_id,
                    QuantumKernel &&kernel, spin_op &H, Args &&...args) {
   // Run this SHOTS times
   auto &platform = cudaq::get_platform();
+  auto kernelName = cudaq::getKernelName(kernel);
 
   return details::runObservationAsync(
       [&kernel, ... args = std::forward<Args>(args)]() mutable {
         kernel(std::forward<Args>(args)...);
       },
-      H, platform, shots, qpu_id);
+      H, platform, shots, kernelName, qpu_id);
 }
 
 /// \brief Asynchronously compute the expected value of \p H with respect to

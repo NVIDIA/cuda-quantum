@@ -387,7 +387,6 @@ public:
               cudaq::getExecutionManager()->setExecutionContext(&context);
               invokeJITKernelAndRelease(localJIT[i], kernelName);
               cudaq::getExecutionManager()->resetExecutionContext();
-              context.result.dump();
               results.emplace_back(context.result.to_map(),
                                    codes.size() == 1 ? cudaq::GlobalRegisterName
                                                      : codes[i].name);
