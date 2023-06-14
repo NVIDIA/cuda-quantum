@@ -157,12 +157,15 @@ jobs:
           docker stop cuda-quantum
 
       - name: Create job summary
+        if: always() && !cancelled()
         run: |
-          echo "## Validation" >> $GITHUB_STEP_SUMMARY
-          echo "The validation of the cuda-quantum image produced the following output:" >> $GITHUB_STEP_SUMMARY
-          echo '```text' >> $GITHUB_STEP_SUMMARY
-          cat /tmp/validation.out >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+          if [ -f /tmp/validation.out ]; then
+            echo "## Validation" >> $GITHUB_STEP_SUMMARY
+            echo "The validation of the cuda-quantum image produced the following output:" >> $GITHUB_STEP_SUMMARY
+            echo '```text' >> $GITHUB_STEP_SUMMARY
+            cat /tmp/validation.out >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
 
   deployment:
     name: Deployment
