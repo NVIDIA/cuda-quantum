@@ -13,16 +13,16 @@ using namespace mlir;
 /// \file
 /// Some working definitions:
 ///
-/// A \em counted loop, we mean a loop that counts from `0` up to `n-1` stepping
-/// by 1. Such a loop is \em normalized (starts at 0), \em monotonically
-/// increasing (slope is a constant 1), executes exactly `n` times, and `n` is a
+/// A \em counted loop: a loop that counts from `0` up to `n-1` stepping by 1.
+/// Such a loop is \em normalized (starts at 0), \em monotonically increasing
+/// (slope is a constant 1), executes exactly `n` times, and `n` is a
 /// compile-time constant. A counted loop is said to have static control flow.
 ///
-/// An \em invariant loop is a counted loop but `n` need not be a compile-time
+/// An \em invariant loop: a counted loop but `n` need not be a compile-time
 /// constant. An invariant loop cannot be fully unrolled until runtime. In
 /// quantum circuit speak, one does not know the full size of the circuit.
 ///
-/// A \em monotonic loop is a loop that counts from `i` up to (down to) `j`
+/// A \em monotonic loop: a loop that counts from `i` up to (down to) `j`
 /// stepping by positive (negative) integral values; mathematically, it is a
 /// strictly monotonic sequence. If the step is a compile-time constant, `k`,
 /// then a closed iterval monotonic loop must execute exactly `floor((j - i + k)
@@ -34,9 +34,10 @@ using namespace mlir;
 /// iteration is executed or not. For example, the condition might be used in
 /// iteration `m` to disable all subsequent iterations. (Much like a `break`
 /// statement.) These loops might be unrolled but only if the loop can be
-/// normalized into static control flow and the auxillary condition can be
-/// computed as a constant. It is likely these loops cannot be converted to
-/// static control flow and would thus need to be expanded at runtime.
+/// normalized into static control flow. It is helpful in pruning the amount of
+/// unrolling if the auxillary condition can be computed as a constant. It is
+/// likely these loops cannot be converted to static control flow and would thus
+/// need to be expanded at runtime.
 
 static bool isaConstant(Value v) {
   if (auto c = v.getDefiningOp<arith::ConstantOp>())
@@ -64,7 +65,7 @@ static bool validCountedLoopIntervalForm(arith::CmpIOp cmp,
                                          bool allowClosedInterval) {
   auto p = cmp.getPredicate();
   return isSemiOpenIntervalForm(p) ||
-         allowClosedInterval && isClosedIntervalForm(p);
+         (allowClosedInterval && isClosedIntervalForm(p));
 }
 
 namespace cudaq {

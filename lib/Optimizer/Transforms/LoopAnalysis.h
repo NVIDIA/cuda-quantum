@@ -33,7 +33,6 @@ namespace cudaq::opt {
 // the value of `%bound` or `%step`. Those values are invariant if there are
 // no side-effects in the loop Op (no store or call operations) and these values
 // do not depend on a block argument.
-// FIXME: assumes only the LCV is passed as a Value.
 bool hasMonotonicControlInduction(cc::LoopOp loop);
 
 /// A monotonic loop is defined to be a loop that will execute some bounded

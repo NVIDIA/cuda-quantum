@@ -630,7 +630,7 @@ ExecutionEngine *jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
-  optPM.addPass(cudaq::opt::createClassicalMemToReg());  
+  optPM.addPass(cudaq::opt::createClassicalMemToReg());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createLoopUnroll());
   pm.addPass(createCanonicalizerPass());
