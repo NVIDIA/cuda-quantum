@@ -43,14 +43,14 @@ fi
 export LLVM_DIR=$LLVM_DIR
 
 # Get necessary pacakges from apt.
-apt-get update && apt-get install build-essential wget gfortran python3.10-venv
+apt-get update && apt-get install -y --no-install-recommends build-essential wget gfortran python3.10-venv
 
 if [ ! -d "$CPR_DIR" ]; then
   echo "Could not find libcpr install dir"
-  # Install in same directory as cuda-quantum.
-  cd "$repo_root"/..
+  # Install in same parent directory as cuda-quantum.
+  cd "$repo_root" && cd /
   # If user has cpr but it's not installed, we will build off of theirs.
-  if [! -d "cpr"]; then 
+  if [ ! -d "$CPR_DIR/.." ]; then 
     git clone https://github.com/libcpr/cpr
   fi
   cd cpr && mkdir build && cd build
@@ -66,17 +66,20 @@ else
   echo "libcpr directory: $CPR_DIR"
 fi
 export CPR_DIR=$CPR_DIR
+cd "$repo_root"
 
 if [ ! -f "$BLAS_PATH" ]; then
   echo "Could not find libblas.a"
   # Find or configure BLAS 
-  cd "$CPR_DIR" 
+  # cd "$CPR_DIR" 
+  cd /
   wget http://www.netlib.org/blas/blas-3.11.0.tgz
   tar -xzvf blas-3.11.0.tgz && cd BLAS-3.11.0
   make && mv blas_LINUX.a /usr/lib64/libblas.a
 else 
   echo "Found libblas.a"
 fi
+cd "$repo_root"
 
 # Check for pip and install
 # wget https://bootstrap.pypa.io/get-pip.py && python3.10 ./get-pip.py
