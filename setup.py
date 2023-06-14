@@ -14,25 +14,28 @@ except ImportError:
 import skbuild
 import setuptools
 
-print("here!\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+__version__ = "0.0.3"
 
-# Handle installing any missing dependencies.
-script_path = os.getcwd() + "/scripts/wheel_dependencies.sh"
-# script_path = os.path.dirname(os.path.abspath(__file__)) + "/scripts/wheel_dependencies.sh"
-os.system(f"bash {script_path}")
+# The setup.py script gets called twice when installing from source 
+# with `pip install .` . Once for the `egg_info` subcommand and another
+# for `install`. We check if it's the egg_info subcommand and only install
+# the missing dependencies once.
+if (sys.argv[1] == 'egg_info'):
+    print("here!\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
 
-# os.environ["LLVM_DIR"]="/opt/llvm/clang-16/lib/cmake/llvm"
+    script_path = os.getcwd() + "/scripts/wheel_dependencies.sh"
+    os.system(f"bash {script_path}")
 
 skbuild.setup(
     name="cuda-quantum",
-    version="0.0.3",
+    version=__version__,
     package_dir={"cudaq": "python/cudaq"},
     packages=setuptools.find_packages(where="python", include=["*"]),
     zip_safe=False,
     python_requires=">=3.8",
     # FIXME: Linux machines default to dist-packages unless the `--user` flag is provided to
-    # the pip install. I'm trying to hard-code everything to site-packages in the meantime,
-    # which is also the location expected on MacOS.
+    # the pip install. We hard-code everything to site-packages in the meantime and require the
+    # user to install with `--user`.
     cmake_install_dir=
     f"lib/python{sys.version_info[0]}.{sys.version_info[1]}/site-packages/cudaq",
     # FIXME: Remove hard-coding on zlib and libcpr path.
@@ -43,7 +46,7 @@ skbuild.setup(
         "-DCUSTATEVEC_ROOT={}".format(os.environ["CUSTATEVEC_ROOT"])
         if "CUSTATEVEC_ROOT" in os.environ else "",
         "-DLLVM_DIR={}".format(os.environ["LLVM_DIR"])
-        if "LLVM_DIR" in os.environ else "/opt/llvm/clang-16/lib/cmake/llvm", "-DOPENSSL_USE_STATIC_LIBS=TRUE",
+        if "LLVM_DIR" in os.environ else "/opt/llvm", "-DOPENSSL_USE_STATIC_LIBS=TRUE",
         "-DCMAKE_EXE_LINKER_FLAGS='-static-libgcc -static-libstdc++'",
         "-DCMAKE_SHARED_LINKER_FLAGS='-static-libgcc -static-libstdc++'",
         "-DOPENSSL_ROOT_DIR=/usr/local/ssl", 
