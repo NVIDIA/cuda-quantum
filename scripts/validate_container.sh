@@ -18,6 +18,11 @@ failed=0
 skipped=0
 samples=0
 
+if [ -x "$(command -v nvidia-smi)" ] && [ "$(nvidia-smi -L | grep -i nvidia)" != "" ]; 
+then gpu_available=true
+else gpu_available=false
+fi
+
 requested_backends=`\
     echo "default"
     for target in $@; \
@@ -30,7 +35,8 @@ available_backends=`\
     for file in $(ls $CUDA_QUANTUM_PATH/targets/*.config); \
     do
         platform=$(cat $file | grep "PLATFORM_QPU=")
-        if [ "${platform#PLATFORM_QPU=}" != "remote_rest" ]; then \
+        if [ "${platform#PLATFORM_QPU=}" != "remote_rest" ] \
+           && ($gpu_available || [ "$(cat $file | grep "GPU_REQUIREMENTS")" == "" ]); then \
             basename $file | cut -d "." -f 1; \
         fi; \
     done`
