@@ -45,8 +45,10 @@ skbuild.setup(
         "-DCUDAQ_BUILD_TESTS=FALSE", "-DCMAKE_COMPILE_WARNING_AS_ERROR=OFF",
         "-DCUSTATEVEC_ROOT={}".format(os.environ["CUSTATEVEC_ROOT"])
         if "CUSTATEVEC_ROOT" in os.environ else "",
-        "-DLLVM_DIR={}".format(os.environ["LLVM_DIR"])
-        if "LLVM_DIR" in os.environ else "/opt/llvm", "-DOPENSSL_USE_STATIC_LIBS=TRUE",
+        "-DLLVM_DIR=/opt/llvm",
+        # "-DLLVM_DIR={}".format(os.environ["LLVM_DIR"])
+        # if "LLVM_DIR" in os.environ else "/opt/llvm",
+         "-DOPENSSL_USE_STATIC_LIBS=TRUE",
         "-DCMAKE_EXE_LINKER_FLAGS='-static-libgcc -static-libstdc++'",
         "-DCMAKE_SHARED_LINKER_FLAGS='-static-libgcc -static-libstdc++'",
         "-DOPENSSL_ROOT_DIR=/usr/local/ssl", 
