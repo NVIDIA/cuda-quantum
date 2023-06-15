@@ -63,7 +63,7 @@ if (!SKBUILD)
   install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq)
 else()
   # Copy the `__init__.py` file to the scikit-build install directory.
-  install(TARGET _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX})
+  install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX})
 endif()
 
 install(FILES domains/chemistry.py DESTINATION ${CMAKE_INSTALL_PREFIX}/domains/)
