@@ -55,10 +55,15 @@ target_link_libraries(_pycudaq
       cudaq-platform-default 
       fmt::fmt-header-only)
 
-
+# If building from source but without pip install, dump the 
+# `__init__.py` file and target into a cudaq directory in the 
+# install directory.
 if (!SKBUILD)
-  install(FILES __init__.py DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq)
+  install(FILES cudaq/__init__.py DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq)
   install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq)
+else()
+  # Copy the `__init__.py` file to the scikit-build install directory.
+  install(TARGET _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX})
 endif()
 
 install(FILES domains/chemistry.py DESTINATION ${CMAKE_INSTALL_PREFIX}/domains/)

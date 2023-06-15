@@ -18,8 +18,8 @@ __version__ = "0.0.3"
 
 # The setup.py script gets called twice when installing from source 
 # with `pip install .` . Once for the `egg_info` subcommand and another
-# for `install`. We check if it's the egg_info subcommand and only install
-# the missing dependencies once.
+# for `install`. We will only install the missing dependencies once, for 
+# the egg_info subcommand.
 if (sys.argv[1] == 'egg_info'):
     print("here!\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
 
