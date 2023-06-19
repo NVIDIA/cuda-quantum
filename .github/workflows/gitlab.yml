@@ -7,7 +7,8 @@ stages:
 
 build_all:
   stage: build
-  tags: os/linux
+  tags: 
+    - 'os/linux'
   script: 
     - echo 'Run when triggered'
  
