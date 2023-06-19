@@ -101,24 +101,6 @@ jobs:
           path: ${{ steps.cudaq_build.outputs.cudaqdev_tarfile }}
           key: ${{ steps.cudaq_build.outputs.cudaqdev_cache }}
 
-  gitlab:
-    name: GitLab
-    runs-on: ubuntu-latest
-    # needs: [release_build, metadata]
-    if: inputs.environment
-    permissions:
-      contents: read
-      
-    environment:
-      name: ${{ inputs.environment }}
-      url: ${{ vars.deployment_url }}
-
-    steps:
-      - name: Test GitLab trigger
-        run: |
-          curl --request POST --form token=${{ secrets.gitlab_token }} --form ref=${{ github.ref_name }} \
-          "https://gitlab-master.nvidia.com/api/v4/projects/94001/trigger/pipeline"
-
   docker_image:
     name: Docker image
     runs-on: ubuntu-latest
