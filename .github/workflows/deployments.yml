@@ -22,7 +22,7 @@ on:
 name: Deployments # do not change name without updating workflow_run triggers
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.ref_name }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.base.ref || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      
+
     environment:
       name: ghcr-deployment
       url: ${{ vars.deployment_url }}
@@ -40,7 +40,7 @@ jobs:
     steps:
       - name: Test GitLab trigger
         run: |
-          echo "${{ github.workflow }}-${{ github.event.pull_request.base.ref || github.event.ref_name }}"
+          echo "${{ github.workflow }}-${{ github.event.pull_request.base.ref || github.ref_name }}"
           curl --request POST --header "PRIVATE-TOKEN: ${{ secrets.gitlab_access_token }}" \
           "https://gitlab-master.nvidia.com/api/v4/projects/94001/mirror/pull"
           curl --request POST --form token=${{ secrets.gitlab_trigger_token }} --form ref=${{ github.ref_name }} \
