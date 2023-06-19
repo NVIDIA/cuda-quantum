@@ -26,26 +26,6 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # TODO: remove
-  gitlab:
-    name: GitLab
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    environment:
-      name: ghcr-deployment
-      url: ${{ vars.deployment_url }}
-
-    steps:
-      - name: Test GitLab trigger
-        run: |
-          curl "https://gitlab.com/nvidia/api/v4/projects" >> $GITHUB_STEP_SUMMARY
-          curl -v --fail --request POST --header "PRIVATE-TOKEN: ${{ secrets.GITLAB_ACCESS }}" \
-          "https://gitlab.com/nvidia/api/v4/projects/94001/mirror/pull" >> $GITHUB_STEP_SUMMARY
-          curl -v --fail --request POST --form token=${{ secrets.GITLAB_TRIGGER }} --form ref=${{ github.ref_name }} \
-          "https://gitlab.com/nvidia/api/v4/projects/94001/trigger/pipeline" >> $GITHUB_STEP_SUMMARY
-
   devdeps:
     if: github.event_name != 'pull_request_target' || github.event.pull_request.merged == true
     strategy:
