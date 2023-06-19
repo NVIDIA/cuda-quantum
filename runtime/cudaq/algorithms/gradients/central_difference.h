@@ -37,7 +37,8 @@ public:
   /// function, `func`, passed in by the user.
   std::vector<double>
   compute(const std::vector<double> &x,
-          std::function<double(std::vector<double>)> &func) override {
+          const std::function<double(std::vector<double>)> &func,
+          double funcAtX) override {
     std::vector<double> dx(x.size());
     auto tmpX = x;
     for (std::size_t i = 0; i < x.size(); i++) {
