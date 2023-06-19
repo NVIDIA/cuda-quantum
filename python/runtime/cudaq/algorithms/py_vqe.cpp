@@ -92,7 +92,7 @@ optimization_result pyVQE(kernel_builder<> &kernel, cudaq::gradient &gradient,
     double energy = get_expected_value(x);
     printf("<H> = %lf\n", energy);
     if (requires_grad) {
-      grad_vec = gradient.compute(x, get_expected_value);
+      grad_vec = gradient.compute(x, get_expected_value, energy);
     }
     return energy;
   });
@@ -127,7 +127,7 @@ optimization_result pyVQE(kernel_builder<> &kernel, cudaq::gradient &gradient,
     double energy = get_expected_value(x);
     printf("<H> = %lf\n", energy);
     if (requires_grad) {
-      grad_vec = gradient.compute(x, get_expected_value);
+      grad_vec = gradient.compute(x, get_expected_value, energy);
     }
     return energy;
   });

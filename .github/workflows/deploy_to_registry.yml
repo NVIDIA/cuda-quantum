@@ -12,7 +12,7 @@ on:
         type: string
     outputs:
       image_hash:
-        description: "The the name and digest of the deployed docker image that can be used to retrieve it independently of any tag updates."
+        description: "The name and digest of the deployed docker image that can be used to retrieve it independently of any tag updates."
         value: ${{ jobs.deployment.outputs.image_hash }}
 
 name: Deploy image to container registry

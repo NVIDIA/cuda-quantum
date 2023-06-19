@@ -23,6 +23,11 @@ then gpu_available=true
 else gpu_available=false
 fi
 
+if $gpu_available; 
+then echo "GPU detected." && nvidia-smi
+else echo "No GPU detected."
+fi 
+
 requested_backends=`\
     echo "default"
     for target in $@; \
