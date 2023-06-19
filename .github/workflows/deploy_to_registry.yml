@@ -51,14 +51,24 @@ jobs:
         run: |
           # Note that this may change the digest compared to the digest produced during build
           # (the saved docker format has its own manifest that doesn't necessarily have the same bit-by-bit format...)
-          docker load --input ${{ inputs.tar_archive }}
           loaded=`docker load --input ${{ inputs.tar_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
 
           image_name=`echo $loaded | cut -d ":" -f 1`
           digest_id=`docker push $image_name --all-tags | grep -o 'digest:\ssha256:\S*' | cut -d ":" -f 3`
 
           image_hash=${image_name}@sha256:$digest_id
+          echo "short_name=$(echo $image_name | cut -d / -f 3)" >> $GITHUB_OUTPUT
           echo "image_hash=$image_hash" >> $GITHUB_OUTPUT
+
+      # TODO: remove - this is here just temporarily until the corresponding packages on GHCR are made public
+      # Also remove short_name stored above.
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.push_image.outputs.short_name }}
+          path: ${{ inputs.tar_archive }}
+          retention-days: 1
+          if-no-files-found: error
 
       - name: Clean up
         run: |
