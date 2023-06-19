@@ -1,0 +1,12 @@
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "trigger"
+
+stages:
+  - build
+
+build_all:
+  stage: build
+  script: 
+    - echo 'Run when triggered'
+ 
