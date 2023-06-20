@@ -4,35 +4,35 @@ Let's see the output of :code:`nvq++` in verbose mode. Given a simple code like
 
 .. code-block:: cpp 
 
-  #include <cudaq.h>
+    #include <cudaq.h>
 
-  struct ghz {
-    void operator()(int N) __qpu__ {
-      cudaq::qreg q(N);
-      h(q[0]);
-      for (int i = 0; i < N - 1; i++) {
-        x<cudaq::ctrl>(q[i], q[i + 1]);
+    struct ghz {
+      void operator()(int N) __qpu__ {
+        cudaq::qreg q(N);
+        h(q[0]);
+        for (int i = 0; i < N - 1; i++) {
+          x<cudaq::ctrl>(q[i], q[i + 1]);
+        }
+        mz(q);
       }
-      mz(q);
-    }
-  };
+    };
 
-  int main() { ... }
+    int main() { ... }
 
 saved to file :code:`simple.cpp`, we see the following output from :code:`nvq++` verbose mode (up to some absolute paths)
 
 .. code-block:: console 
 
-  $ nvq++ simple.cpp -v --save-temps
-  
-  cudaq-quake --emit-llvm-file simple.cpp -o simple.qke
-  cudaq-opt --pass-pipeline=builtin.module(canonicalize,lambda-lifting,canonicalize,apply-op-specialization,kernel-execution,inline{default-pipeline=func.func(indirect-to-direct-calls)},func.func(quake-add-metadata),device-code-loader{use-quake=1},expand-measurements,func.func(lower-to-cfg),canonicalize,cse) simple.qke -o simple.qke.LpsXpu
-  cudaq-translate --convert-to=qir simple.qke.LpsXpu -o simple.ll.p3De4L
-  fixup-linkage.pl simple.qke simple.ll
-  llc --relocation-model=pic --filetype=obj -O2 simple.ll.p3De4L -o simple.qke.o
-  llc --relocation-model=pic --filetype=obj -O2 simple.ll -o simple.classic.o
-  clang++ -L/usr/lib/gcc/x86_64-linux-gnu/11 -L/usr/lib64 -L/lib/x86_64-linux-gnu -L/lib64 -L/usr/lib/x86_64-linux-gnu -L/lib -L/usr/lib -L/usr/local/cuda/lib64/stubs -r simple.qke.o simple.classic.o -o simple.o
-  clang++ -Wl,-rpath,lib -Llib -L/usr/lib/gcc/x86_64-linux-gnu/11 -L/usr/lib64 -L/lib/x86_64-linux-gnu -L/lib64 -L/usr/lib/x86_64-linux-gnu -L/lib -L/usr/lib -L/usr/local/cuda/lib64/stubs simple.o -lcudaq -lcudaq-common -lcudaq-mlir-runtime -lcudaq-builder -lcudaq-ensmallen -lcudaq-nlopt -lcudaq-spin -lcudaq-em-qir -lcudaq-platform-default -lnvqir -lnvqir-qpp
+    $ nvq++ simple.cpp -v --save-temps
+    
+    cudaq-quake --emit-llvm-file simple.cpp -o simple.qke
+    cudaq-opt --pass-pipeline=builtin.module(canonicalize,lambda-lifting,canonicalize,apply-op-specialization,kernel-execution,inline{default-pipeline=func.func(indirect-to-direct-calls)},func.func(quake-add-metadata),device-code-loader{use-quake=1},expand-measurements,func.func(lower-to-cfg),canonicalize,cse) simple.qke -o simple.qke.LpsXpu
+    cudaq-translate --convert-to=qir simple.qke.LpsXpu -o simple.ll.p3De4L
+    fixup-linkage.pl simple.qke simple.ll
+    llc --relocation-model=pic --filetype=obj -O2 simple.ll.p3De4L -o simple.qke.o
+    llc --relocation-model=pic --filetype=obj -O2 simple.ll -o simple.classic.o
+    clang++ -L/usr/lib/gcc/x86_64-linux-gnu/11 -L/usr/lib64 -L/lib/x86_64-linux-gnu -L/lib64 -L/usr/lib/x86_64-linux-gnu -L/lib -L/usr/lib -L/usr/local/cuda/lib64/stubs -r simple.qke.o simple.classic.o -o simple.o
+    clang++ -Wl,-rpath,lib -Llib -L/usr/lib/gcc/x86_64-linux-gnu/11 -L/usr/lib64 -L/lib/x86_64-linux-gnu -L/lib64 -L/usr/lib/x86_64-linux-gnu -L/lib -L/usr/lib -L/usr/local/cuda/lib64/stubs simple.o -lcudaq -lcudaq-common -lcudaq-mlir-runtime -lcudaq-builder -lcudaq-ensmallen -lcudaq-nlopt -lcudaq-spin -lcudaq-em-qir -lcudaq-platform-default -lnvqir -lnvqir-qpp
 
 The workflow orchestrated above is best visualized in the following figure. 
 
@@ -115,7 +115,7 @@ call is injected first, thereby over-writing the original. Finally, based on use
 we configure the link line with specific libraries that implement the :code:`quantum_platform` 
 (here the :code:`libcudaq-platform-default.so`) and NVQIR circuit simulator backend (the 
 :code:`libnvqir-qpp.so` Q++ CPU-only simulation backend). These latter libraries are controlled 
-via the :code:`--platform` and :code:`--qpu` compiler flags. 
+via the :code:`--platform` and :code:`--target` compiler flags. 
 
 .. image:: ../../_static/dialects.png
 
@@ -155,22 +155,22 @@ and produce QIR. Recall the code snippet for the kernel
 
 .. code-block:: cpp 
 
-  // Define a quantum kernel
-  struct ghz {
-    auto operator()() __qpu__ {
-      cudaq::qreg q(5);
-      h(q[0]);
-      for (int i = 0; i < 4; i++) 
-        x<cudaq::ctrl>(q[i], q[i + 1]);
-      mz(q);
-    }
-  };
+    // Define a quantum kernel
+    struct ghz {
+      auto operator()() __qpu__ {
+        cudaq::qreg q(5);
+        h(q[0]);
+        for (int i = 0; i < 4; i++) 
+          x<cudaq::ctrl>(q[i], q[i + 1]);
+        mz(q);
+      }
+    };
 
 Using the toolchain, we can lower this to directly to QIR
 
 .. code-block:: console
 
-  cudaq-quake simple.cpp | cudaq-opt --canonicalize | cudaq-translate --convert-to=qir 
+    cudaq-quake simple.cpp | cudaq-opt --canonicalize | cudaq-translate --convert-to=qir 
 
 which prints 
 
@@ -267,7 +267,7 @@ We could also lower to the QIR Base Profile
 
 .. code-block:: console
 
-  cudaq-quake simple.cpp | cudaq-opt --canonicalize --expand-measurements --canonicalize --cc-loop-unroll --canonicalize | cudaq-translate --convert-to=qir-base 
+    cudaq-quake simple.cpp | cudaq-opt --canonicalize --expand-measurements --canonicalize --cc-loop-unroll --canonicalize | cudaq-translate --convert-to=qir-base 
 
 which prints 
 
