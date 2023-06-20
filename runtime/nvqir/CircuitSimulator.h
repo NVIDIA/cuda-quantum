@@ -688,6 +688,14 @@ public:
     if (nQubitsAllocated == 0)
       return;
 
+    if (executionContext) {
+      for (auto &qubitIdx : qubits) {
+        cudaq::info("Deferring qubit {} deallocation", qubitIdx);
+        deferredDeallocation.push_back(qubitIdx);
+      }
+      return;
+    }
+
     if (qubits.size() == tracker.numAllocated()) {
       cudaq::info("Deallocate all qubits.");
       deallocateState();

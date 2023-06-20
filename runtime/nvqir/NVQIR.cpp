@@ -81,6 +81,9 @@ CircuitSimulator *getCircuitSimulatorInternal() {
   return simulator;
 }
 
+thread_local static bool isBaseProfile = false;
+void toggleBaseProfile() { isBaseProfile = !isBaseProfile; }
+
 /// @brief Store allocated Array pointers
 thread_local static std::vector<std::unique_ptr<Array>> allocatedArrays;
 
@@ -117,7 +120,12 @@ std::vector<std::size_t> arrayToVectorSizeT(Array *arr) {
 /// @brief Utility function mapping a QIR Qubit pointer to its id
 /// @param q
 /// @return
-std::size_t qubitToSizeT(Qubit *q) { return q->idx; }
+std::size_t qubitToSizeT(Qubit *q) {
+  if (isBaseProfile)
+    return (intptr_t)q;
+
+  return q->idx;
+}
 
 } // namespace nvqir
 
@@ -305,6 +313,14 @@ void __quantum__qis__cnot(Qubit *q, Qubit *r) {
   nvqir::getCircuitSimulatorInternal()->x(controls, rI);
 }
 
+void __quantum__qis__cnot__body(Qubit *q, Qubit *r) {
+  auto qI = qubitToSizeT(q);
+  auto rI = qubitToSizeT(r);
+  cudaq::ScopedTrace trace("NVQIR::cnot", qI, rI);
+  std::vector<std::size_t> controls{qI};
+  nvqir::getCircuitSimulatorInternal()->x(controls, rI);
+}
+
 void __quantum__qis__reset(Qubit *q) {
   auto qI = qubitToSizeT(q);
   cudaq::ScopedTrace trace("NVQIR::reset", qI);
@@ -318,6 +334,13 @@ Result *__quantum__qis__mz(Qubit *q) {
   return b ? ResultOne : ResultZero;
 }
 
+Result *__quantum__qis__mz__body(Qubit *q) {
+  auto qI = qubitToSizeT(q);
+  cudaq::ScopedTrace trace("NVQIR::mz", qI);
+  auto b = nvqir::getCircuitSimulatorInternal()->mz(qI, "");
+  return b ? ResultOne : ResultZero;
+}
+
 Result *__quantum__qis__mz__to__register(Qubit *q, const char *name) {
   std::string regName(name);
   auto qI = qubitToSizeT(q);
@@ -325,6 +348,10 @@ Result *__quantum__qis__mz__to__register(Qubit *q, const char *name) {
   auto b = nvqir::getCircuitSimulatorInternal()->mz(qI, regName);
   return b ? ResultOne : ResultZero;
 }
+
+void __quantum__rt__array_start_record_output() {}
+void __quantum__rt__array_end_record_output() {}
+void __quantum__rt__result_record_output(Result *, int8_t *) {}
 
 /// @brief Map an Array pointer containing Paulis to a vector of Paulis.
 /// @param paulis

@@ -67,15 +67,15 @@ protected:
   /// @brief Store the name of the current target
   std::string currentTarget = "default";
 
+public:
+  LinkedLibraryHolder();
+  ~LinkedLibraryHolder();
+
   /// @brief Return the registered simulator with the given name.
   nvqir::CircuitSimulator *getSimulator(const std::string &name);
 
   /// @brief Return the registered quantum_platform with the given name.
   quantum_platform *getPlatform(const std::string &name);
-
-public:
-  LinkedLibraryHolder();
-  ~LinkedLibraryHolder();
 
   /// @brief Return the available runtime target with given name.
   /// Throws an exception if no target available with that name.
