@@ -1,38 +1,39 @@
-/****************************************************************-*- C++ -*-****
+/*************************************************************** -*- C++ -*- ***
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- ******************************************************************************/
+ *******************************************************************************/
 
 #pragma once
 
 #include "cudaq/algorithms/gradient.h"
 
 namespace cudaq::gradients {
-class parameter_shift : public gradient {
+
+/// @brief Compute the first order forward difference approximation for the
+/// gradient
+class forward_difference : public gradient {
 public:
   using gradient::gradient;
-  double shiftScalar = 0.5;
+  double step = 1e-4;
 
+  /// @brief Compute the `forward_difference` gradient
   void compute(const std::vector<double> &x, std::vector<double> &dx,
-               spin_op &h, double exp_h) override {
+               spin_op &h, double funcAtX) override {
     auto tmpX = x;
     for (std::size_t i = 0; i < x.size(); i++) {
-      // increase value to x_i + (shiftScalar * pi)
-      tmpX[i] += shiftScalar * M_PI;
+      // increase value to x_i + dx_i
+      tmpX[i] += step;
       auto px = getExpectedValue(tmpX, h);
-      // decrease value to x_i - (shiftScalar * pi)
-      tmpX[i] -= 2 * shiftScalar * M_PI;
-      auto mx = getExpectedValue(tmpX, h);
       // return value back to x_i
-      tmpX[i] += shiftScalar * M_PI;
-      dx[i] = (px - mx) / 2.;
+      tmpX[i] -= step;
+      dx[i] = (px - funcAtX) / step;
     }
   }
 
-  /// @brief Compute the `parameter_shift` gradient for the arbitrary
+  /// @brief Compute the `forward_difference` gradient for the arbitary
   /// function, `func`, passed in by the user.
   std::vector<double>
   compute(const std::vector<double> &x,
@@ -41,15 +42,12 @@ public:
     std::vector<double> dx(x.size());
     auto tmpX = x;
     for (std::size_t i = 0; i < x.size(); i++) {
-      // increase value to x_i + (shiftScalar * pi)
-      tmpX[i] += shiftScalar * M_PI;
+      // increase value to x_i + dx_i
+      tmpX[i] += step;
       double px = func(tmpX);
-      // decrease value to x_i - (shiftScalar * pi)
-      tmpX[i] -= 2 * shiftScalar * M_PI;
-      double mx = func(tmpX);
       // return value back to x_i
-      tmpX[i] += shiftScalar * M_PI;
-      dx[i] = (px - mx) / 2.;
+      tmpX[i] -= step;
+      dx[i] = (px - funcAtX) / step;
     }
     return dx;
   }
