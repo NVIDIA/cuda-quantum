@@ -21,6 +21,7 @@ add_cudaq_library(OptTransforms
   GenKernelExecution.cpp
   GenDeviceCodeLoader.cpp
   LambdaLifting.cpp
+  LoopAnalysis.cpp
   LoopUnroll.cpp
   LowerToCFG.cpp
   LowerUnwind.cpp

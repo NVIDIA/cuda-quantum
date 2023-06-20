@@ -188,7 +188,7 @@ def cc_LoopOp : CCOp<"loop",
   }];
 
   let arguments = (ins
-    Variadic<AnyType>:$initArgs,
+    Variadic<AnyType>:$initialArgs,
     BoolAttr:$post_condition
   );
   let results = (outs Variadic<AnyType>:$results);
@@ -475,8 +475,8 @@ def cc_ReturnOp : CCOp<"return", [Pure, ReturnLike, Terminator,
 // Global transfers of control.
 //===----------------------------------------------------------------------===//
 
-def cc_UnwindBreakOp : CCOp<"unwind_break", [ 
-        ParentOneOf<["IfOp", "ScopeOp"]>]> {
+def cc_UnwindBreakOp : CCOp<"unwind_break", [
+        ParentOneOf<["IfOp", "ScopeOp"]>, JumpWithUnwind]> {
   let summary = "Non-local break (exiting) branch with unwind semantics.";
   let description = [{
     An UnwindBreakOp may imply unwinding the stack frame for the current
@@ -536,8 +536,8 @@ def cc_UnwindBreakOp : CCOp<"unwind_break", [
   let hasCanonicalizer = 1;
 }
 
-def cc_UnwindContinueOp : CCOp<"unwind_continue", [ 
-        ParentOneOf<["IfOp", "ScopeOp"]>]> {
+def cc_UnwindContinueOp : CCOp<"unwind_continue", [
+        ParentOneOf<["IfOp", "ScopeOp"]>, JumpWithUnwind]> {
   let summary = "Non-local continue branch with unwind semantics.";
   let description = [{
     An UnwindContinueOp may imply unwinding the stack frame for the current
@@ -598,8 +598,8 @@ def cc_UnwindContinueOp : CCOp<"unwind_continue", [
   let hasCanonicalizer = 1;
 }
 
-def cc_UnwindReturnOp : CCOp<"unwind_return", [ 
-        ParentOneOf<["LoopOp", "IfOp", "ScopeOp"]>]> {
+def cc_UnwindReturnOp : CCOp<"unwind_return", [
+        ParentOneOf<["LoopOp", "IfOp", "ScopeOp"]>, JumpWithUnwind]> {
   let summary = "Non-local return (exiting) branch with unwind semantics.";
   let description = [{
     An UnwindReturnOp may imply unwinding the stack frame for the current
