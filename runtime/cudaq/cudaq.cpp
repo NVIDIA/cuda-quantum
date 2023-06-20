@@ -86,10 +86,7 @@ int num_ranks() { return 1; }
 
 namespace details {
 #define CUDAQ_ALL_REDUCE_IMPL(TYPE, BINARY)                                    \
-  TYPE allReduce(const TYPE &local, const BINARY<TYPE> &) {                    \
-    TYPE result;                                                               \
-    return result;                                                             \
-  }
+  TYPE allReduce(const TYPE &local, const BINARY<TYPE> &) { return TYPE(); }
 
 CUDAQ_ALL_REDUCE_IMPL(float, std::plus)
 CUDAQ_ALL_REDUCE_IMPL(float, std::multiplies)
