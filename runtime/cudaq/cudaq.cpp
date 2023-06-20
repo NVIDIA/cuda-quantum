@@ -54,11 +54,20 @@ bool is_initialized() {
   return i == 1;
 }
 
-double allreduce_double_add(double localValue) {
-  double result;
-  MPI_Allreduce(&localValue, &result, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-  return result;
-}
+namespace details {
+#define CUDAQ_ALL_REDUCE_IMPL(TYPE, MPI_TYPE, BINARY, MPI_OP)                  \
+  TYPE allReduce(const TYPE &local, const BINARY<TYPE> &) {                    \
+    TYPE result;                                                               \
+    MPI_Allreduce(&local, &result, 1, MPI_TYPE, MPI_OP, MPI_COMM_WORLD);       \
+    return result;                                                             \
+  }
+
+CUDAQ_ALL_REDUCE_IMPL(float, MPI_FLOAT, std::plus, MPI_SUM)
+CUDAQ_ALL_REDUCE_IMPL(float, MPI_FLOAT, std::multiplies, MPI_PROD)
+
+CUDAQ_ALL_REDUCE_IMPL(double, MPI_DOUBLE, std::plus, MPI_SUM)
+CUDAQ_ALL_REDUCE_IMPL(double, MPI_DOUBLE, std::multiplies, MPI_PROD)
+} // namespace details
 
 void finalize() {
   if (rank() == 0)
@@ -74,7 +83,21 @@ void initialize(int argc, char **argv) {}
 bool is_initialized() { return false; }
 int rank() { return 0; }
 int num_ranks() { return 1; }
-double allreduce_double_add(double value) { return 0.0; }
+
+namespace details {
+#define CUDAQ_ALL_REDUCE_IMPL(TYPE, BINARY)                                    \
+  TYPE allReduce(const TYPE &local, const BINARY<TYPE> &) {                    \
+    TYPE result;                                                               \
+    return result;                                                             \
+  }
+
+CUDAQ_ALL_REDUCE_IMPL(float, std::plus)
+CUDAQ_ALL_REDUCE_IMPL(float, std::multiplies)
+
+CUDAQ_ALL_REDUCE_IMPL(double, std::plus)
+CUDAQ_ALL_REDUCE_IMPL(double, std::multiplies)
+} // namespace details
+
 void finalize() {}
 } // namespace cudaq::mpi
 #endif

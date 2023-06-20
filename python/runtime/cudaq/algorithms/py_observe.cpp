@@ -112,7 +112,7 @@ observe_result pyObservePar(const PyParType &type, kernel_builder<> &kernel,
 
   // combine all the data via an all_reduce
   auto exp_val = localRankResult.exp_val_z();
-  auto globalExpVal = mpi::allreduce_double_add(exp_val);
+  auto globalExpVal = mpi::all_reduce(exp_val, std::plus<double>());
   return observe_result(globalExpVal, spin_operator);
 }
 

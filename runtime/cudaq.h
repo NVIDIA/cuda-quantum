@@ -212,6 +212,24 @@ bool is_initialized();
 
 double allreduce_double_add(double localValue);
 
+namespace details {
+#define CUDAQ_ALL_REDUCE_DEF(TYPE, BINARY)                                     \
+  TYPE allReduce(const TYPE &, const BINARY<TYPE> &);
+
+CUDAQ_ALL_REDUCE_DEF(float, std::plus)
+CUDAQ_ALL_REDUCE_DEF(float, std::multiplies)
+
+CUDAQ_ALL_REDUCE_DEF(double, std::plus)
+CUDAQ_ALL_REDUCE_DEF(double, std::multiplies)
+
+} // namespace details
+
+/// @brief Reduce all values across ranks with the specified binary function.
+template <typename T, typename BinaryFunction>
+T all_reduce(const T &localValue, const BinaryFunction &function) {
+  return details::allReduce(localValue, function);
+}
+
 /// @brief Finalize MPI. This function
 /// is a no-op if there CUDA Quantum has not been built
 /// against MPI.

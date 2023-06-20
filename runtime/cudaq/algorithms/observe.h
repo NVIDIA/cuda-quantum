@@ -25,7 +25,8 @@ namespace mpi {
 int rank();
 int num_ranks();
 bool is_initialized();
-double allreduce_double_add(double localValue);
+template <typename T, typename Func>
+T all_reduce(const T &, const Func &);
 } // namespace mpi
 
 /// @brief Return type for asynchronous observation.
@@ -36,6 +37,7 @@ namespace par {
 /// Distribution Type for observe
 struct mpi {};
 
+/// @brief Single node, multi-GPU
 struct thread {};
 
 } // namespace par
@@ -267,7 +269,7 @@ observe_result observe(std::size_t shots, QuantumKernel &&kernel, spin_op H,
 
     // combine all the data via an all_reduce
     auto exp_val = localRankResult.exp_val_z();
-    auto globalExpVal = mpi::allreduce_double_add(exp_val);
+    auto globalExpVal = mpi::all_reduce(exp_val, std::plus<double>());
     return observe_result(globalExpVal, H);
 
   } else
