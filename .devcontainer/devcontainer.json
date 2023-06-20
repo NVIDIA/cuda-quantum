@@ -3,7 +3,6 @@
 	"build": {
 		"dockerfile": "../docker/build/cudaqdev.Dockerfile",
 		"args": { 
-			"env_tag": "llvm-main",
 			"destination": "workspaces/host"
 		}
 	},

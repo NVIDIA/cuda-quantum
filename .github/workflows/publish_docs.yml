@@ -33,6 +33,8 @@ jobs:
   publish_docs:
     name: Publish documentation
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+
     permissions:
       contents: write
   
@@ -76,6 +78,8 @@ jobs:
               git config --global user.name "cuda-quantum-bot"
               git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
               git add "$target_folder"
+
+              bash create_redirects.sh >> $GITHUB_STEP_SUMMARY
 
               if ${{ github.event_name == 'workflow_dispatch' }}; then
                 git commit -m "Docs update triggered manually for version ${{ inputs.version }} (artifacts url: ${{ inputs.artifacts_url }}, artifact name: ${{ inputs.artifact_name }})."

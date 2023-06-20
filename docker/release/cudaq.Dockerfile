@@ -59,7 +59,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && python3 -m pip install --no-cache-dir numpy \
     && ln -s /bin/python3 /bin/python
 
-ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:/usr/include/c++/11/:/usr/include/x86_64-linux-gnu/c++/11"
+ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:/usr/include/c++/12/:/usr/include/x86_64-linux-gnu/c++/12"
 
 # Copy over the CUDA Quantum installation, and the necessary compiler tools.
 
@@ -82,8 +82,23 @@ ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CUDA_QUANTUM_PATH/lib"
 # Install additional runtime dependencies for optional components if present.
 
 RUN if [ -n "$(ls -A $CUDA_QUANTUM_PATH/cuquantum)" ]; then \
-        apt-get update && apt-get install -y --no-install-recommends cuda-runtime-11-8; fi \
-    && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/*
+        wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.0-1_all.deb \
+        && dpkg -i cuda-keyring_1.0-1_all.deb \
+        && apt-get update && apt-get install -y --no-install-recommends cuda-runtime-11-8 \
+        && rm cuda-keyring_1.0-1_all.deb \
+        && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*; \
+    fi
+
+# The installation of CUDA above creates files that will be injected upon launching the container
+# with the --gpu=all flag. This creates issues upon container launch. We hence remove these files.
+# As long as the container is launched with the --gpu=all flag, the GPUs remain accessible and CUDA
+# is fully functional. See also https://github.com/NVIDIA/nvidia-docker/issues/1699.
+RUN rm -rf \
+    /usr/lib/x86_64-linux-gnu/libcuda.so* \
+    /usr/lib/x86_64-linux-gnu/libnvcuvid.so* \
+    /usr/lib/x86_64-linux-gnu/libnvidia-*.so* \
+    /usr/lib/firmware \
+    /usr/local/cuda/compat/lib
 
 ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/cuda-11.8/lib64:/usr/local/cuda-11.8/extras/CUPTI/lib64"
 
@@ -102,9 +117,6 @@ RUN rdom () { local IFS=\> ; read -d \< E C ;} && \
 
 # Include additional readmes and samples that are distributed with the image.
 
-ADD ./docs/sphinx/examples/ /home/cudaq/examples/
-ADD ./docker/release/README.md /home/cudaq/README.md
-
 ARG COPYRIGHT_NOTICE="=========================\n\
    NVIDIA CUDA Quantum   \n\
 =========================\n\n\
@@ -117,6 +129,8 @@ RUN echo 'cat "$CUDA_QUANTUM_PATH/Copyright.txt"' > /etc/profile.d/welcome.sh
 # Create cudaq user
 
 RUN useradd -m cudaq && echo "cudaq:cuda-quantum" | chpasswd && adduser cudaq sudo
+ADD ./docs/sphinx/examples/ /home/cudaq/examples/
+ADD ./docker/release/README.md /home/cudaq/README.md
 RUN chown -R cudaq /home/cudaq && chgrp -R cudaq /home/cudaq
 
 USER cudaq

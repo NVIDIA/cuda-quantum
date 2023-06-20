@@ -1,11 +1,14 @@
 on:
   workflow_call:
     inputs:
+      devdeps_image:
+        required: false
+        type: string
       devdeps_cache:
-        required: true
+        required: false
         type: string
       devdeps_archive:
-        required: true
+        required: false
         type: string
       environment:
         required: false
@@ -58,6 +61,8 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Restore environment
+        if: inputs.devdeps_cache && inputs.devdeps_archive
+        id: restore
         uses: actions/cache/restore@v3
         with:
           path: ${{ inputs.devdeps_archive }}
@@ -67,18 +72,25 @@ jobs:
       - name: Build CUDA Quantum
         id: cudaq_build
         run: |
-          loaded=`docker load --input ${{ inputs.devdeps_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
-          devdeps_image=`echo $loaded | cut -d ":" -f 1`
-          devdeps_tag=`echo $loaded | cut -d ":" -f 2`
+          if ${{ steps.restore.outcome != 'skipped' }}; then
+            base_image=`docker load --input ${{ inputs.devdeps_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+          elif ${{ inputs.devdeps_image != '' }}; then
+            docker pull ${{ inputs.devdeps_image }}
+            base_image=${{ inputs.devdeps_image }}
+          else
+            echo "Missing configuration for development dependencies. Either specify the image (i.e. provide devdeps_image) or cache (i.e. provide devdeps_cache and devdeps_archive) that should be used for the build." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
 
           docker build -t cuda-quantum-dev:local -f docker/build/cudaqdev.Dockerfile . \
-            --build-arg build_environment=$devdeps_image --build-arg env_tag=$devdeps_tag \
+            --build-arg base_image=$base_image \
             --build-arg install="CMAKE_BUILD_TYPE=Release FORCE_COMPILE_GPU_COMPONENTS=true"
+
+          cache_id=`docker inspect cuda-quantum-dev:local --format='{{.Config.Labels}}' | grep -o image.version:[A-Za-z0-9_-]* | cut -d ":" -f 2 | tr . -`
+          cudaqdev_cache=tar-cudaqdev-${cache_id}-${{ github.sha }}
 
           cudaqdev_tarfile=/tmp/cudaqdev.tar
           docker save cuda-quantum-dev:local > $cudaqdev_tarfile
-          tag_prefix=`echo $devdeps_tag | cut -d "_" -f 1`
-          cudaqdev_cache=tar-cudaqdev-${tag_prefix}-${{ github.sha }}
 
           echo "cudaqdev_cache=$cudaqdev_cache" >> $GITHUB_OUTPUT
           echo "cudaqdev_tarfile=$cudaqdev_tarfile" >> $GITHUB_OUTPUT
@@ -122,6 +134,10 @@ jobs:
           docker build -t $image_name:$image_tag -f docker/release/cudaq.Dockerfile . \
             --build-arg dev_image=cuda-quantum-dev --build-arg dev_tag=local \
             --build-arg release_version=$image_tag
+
+          rm -rf "${{ needs.release_build.outputs.cudaqdev_tarfile }}"
+          docker image rm cuda-quantum-dev:local
+          docker builder prune --all --force
           docker save $image_name:$image_tag > $tar_archive
 
           echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
@@ -137,16 +153,19 @@ jobs:
         run: |
           docker run --rm -dit --name cuda-quantum ${{ needs.metadata.outputs.image_name }}:${{ needs.metadata.outputs.image_tag }}
           docker cp scripts/validate_container.sh cuda-quantum:"/home/cudaq/validate_container.sh"
-          docker exec -e TERM=xterm cuda-quantum bash validate_container.sh density-matrix-cpu > /tmp/validation.out
+          docker exec -e TERM=xterm cuda-quantum bash validate_container.sh > /tmp/validation.out
           docker stop cuda-quantum
 
       - name: Create job summary
+        if: always() && !cancelled()
         run: |
-          echo "## Validation" >> $GITHUB_STEP_SUMMARY
-          echo "The validation of the cuda-quantum image produced the following output:" >> $GITHUB_STEP_SUMMARY
-          echo '```text' >> $GITHUB_STEP_SUMMARY
-          cat /tmp/validation.out >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+          if [ -f /tmp/validation.out ]; then
+            echo "## Validation" >> $GITHUB_STEP_SUMMARY
+            echo "The validation of the cuda-quantum image produced the following output:" >> $GITHUB_STEP_SUMMARY
+            echo '```text' >> $GITHUB_STEP_SUMMARY
+            cat /tmp/validation.out >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
 
   deployment:
     name: Deployment
