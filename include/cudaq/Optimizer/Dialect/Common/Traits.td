@@ -32,6 +32,14 @@ def QuantumMeasure : NativeOpTrait<"QuantumMeasure"> {
 }
 
 //===----------------------------------------------------------------------===//
+// Classical compute operation traits
+//===----------------------------------------------------------------------===//
+
+def JumpWithUnwind : NativeOpTrait<"JumpWithUnwind"> {
+  let cppNamespace = "::cudaq";
+}
+
+//===----------------------------------------------------------------------===//
 // Common op constraints
 //===----------------------------------------------------------------------===//
 

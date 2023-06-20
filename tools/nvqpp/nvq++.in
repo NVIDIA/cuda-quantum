@@ -453,7 +453,7 @@ if ${ENABLE_LAMBDA_LIFTING}; then
 fi
 if ${ENABLE_APPLY_SPECIALIZATION}; then
 	RUN_OPT=true
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "canonicalize,apply-op-specialization")
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(memtoreg{quantum=0}),canonicalize,apply-op-specialization")
 fi
 if ${ENABLE_KERNEL_EXECUTION}; then
 	RUN_OPT=true
