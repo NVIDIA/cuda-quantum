@@ -115,7 +115,7 @@ call is injected first, thereby over-writing the original. Finally, based on use
 we configure the link line with specific libraries that implement the :code:`quantum_platform` 
 (here the :code:`libcudaq-platform-default.so`) and NVQIR circuit simulator backend (the 
 :code:`libnvqir-qpp.so` Q++ CPU-only simulation backend). These latter libraries are controlled 
-via the :code:`--platform` and :code:`--qpu` compiler flags. 
+via the :code:`--platform` and :code:`--target` compiler flags. 
 
 .. image:: ../../_static/dialects.png
 

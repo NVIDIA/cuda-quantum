@@ -102,9 +102,9 @@ can be trivially simulated via a NVIDIA GPU-accelerated backend:
    :language: cpp
 
 Here we generate a GHZ state on 30 qubits. To run with the built-in cuQuantum state 
-vector support, we pass the :code:`--qpu cuquantum` flag at compile time:
+vector support, we pass the :code:`--target nvidia` flag at compile time:
 
 .. code:: bash 
 
-    nvq++ --qpu cuquantum cuquantum_backends.cpp -o ghz.x 
+    nvq++ --target nvidia cuquantum_backends.cpp -o ghz.x 
     ./ghz.x 
