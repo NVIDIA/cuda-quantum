@@ -453,24 +453,24 @@ public:
     QuakeValue v(*opBuilder, param);                                           \
     details::NAME(*opBuilder, v, empty, qubit);                                \
   }                                                                            \
-  template <typename mod, QuakeValueOrNumericType paramT,                      \
+  template <typename mod, QuakeValueOrNumericType ParamT,                      \
             typename =                                                         \
                 typename std::enable_if_t<std::is_same_v<mod, cudaq::adj>>>    \
-  void NAME(paramT &&parameter, QuakeValue qubit) {                            \
-    if constexpr (NumericType<paramT>)                                         \
+  void NAME(const ParamT &parameter, QuakeValue qubit) {                       \
+    if constexpr (NumericType<ParamT>)                                         \
       NAME(QuakeValue(*opBuilder, -parameter), qubit);                         \
     else                                                                       \
       NAME(-parameter, qubit);                                                 \
   }                                                                            \
-  template <typename mod, QuakeValueOrNumericType paramT,                      \
+  template <typename mod, QuakeValueOrNumericType ParamT,                      \
             typename... QubitValues,                                           \
             typename = typename std::enable_if_t<sizeof...(QubitValues) >= 2>> \
-  void NAME(paramT &&parameter, QubitValues... args) {                         \
+  void NAME(const ParamT &parameter, QubitValues... args) {                    \
     std::vector<QuakeValue> values{args...};                                   \
     if constexpr (std::is_same_v<mod, cudaq::ctrl>) {                          \
       std::vector<QuakeValue> ctrls(values.begin(), values.end() - 1);         \
       auto &target = values.back();                                            \
-      if constexpr (NumericType<paramT>)                                       \
+      if constexpr (NumericType<ParamT>)                                       \
         NAME(QuakeValue(*opBuilder, parameter), ctrls, target);                \
       else                                                                     \
         NAME(parameter, ctrls, target);                                        \
