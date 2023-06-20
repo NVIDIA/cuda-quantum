@@ -57,18 +57,7 @@ jobs:
           digest_id=`docker push $image_name --all-tags | grep -o 'digest:\ssha256:\S*' | cut -d ":" -f 3`
 
           image_hash=${image_name}@sha256:$digest_id
-          echo "short_name=$(echo $image_name | cut -d / -f 3)" >> $GITHUB_OUTPUT
           echo "image_hash=$image_hash" >> $GITHUB_OUTPUT
-
-      # TODO: remove - this is here just temporarily until the corresponding packages on GHCR are made public
-      # Also remove short_name stored above.
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ steps.push_image.outputs.short_name }}
-          path: ${{ inputs.tar_archive }}
-          retention-days: 1
-          if-no-files-found: error
 
       - name: Clean up
         run: |
