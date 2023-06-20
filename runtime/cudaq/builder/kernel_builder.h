@@ -44,6 +44,15 @@ std::string get_quake_by_name(const std::string &);
 template <typename T>
 concept NumericType = requires(T param) { std::is_floating_point_v<T>; };
 
+/// @brief Define a Quake-constructable floating point value concept
+// i.e., it could be a `QuakeValue` type or a floating point number (convertible
+// to a `QuakeValue` with `ConstantFloatOp`).
+template <typename T>
+concept QuakeValueOrNumericType = requires(T param) {
+  std::is_floating_point_v<T> ||
+      std::is_same_v<std::remove_cvref_t<T>, QuakeValue>;
+};
+
 /// @brief Define a floating point concept
 template <typename T>
 concept IntegralType = requires(T param) { std::is_integral_v<T>; };
@@ -185,7 +194,7 @@ CUDAQ_DETAILS_MEASURE_DECLARATION(mz)
 void swap(ImplicitLocOpBuilder &builder, const std::vector<QuakeValue> &ctrls,
           const std::vector<QuakeValue> &targets, bool adjoint = false);
 
-void reset(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec);
+void reset(ImplicitLocOpBuilder &builder, const QuakeValue &qubitOrQvec);
 
 void c_if(ImplicitLocOpBuilder &builder, QuakeValue &conditional,
           std::function<void()> &thenFunctor);
@@ -444,24 +453,27 @@ public:
     QuakeValue v(*opBuilder, param);                                           \
     details::NAME(*opBuilder, v, empty, qubit);                                \
   }                                                                            \
-  template <NumericType ConstantParameter>                                     \
-  void NAME(ConstantParameter &&constant, QuakeValue qubit) {                  \
-    NAME(constant, qubit);                                                     \
-  }                                                                            \
-  template <typename mod,                                                      \
+  template <typename mod, QuakeValueOrNumericType paramT,                      \
             typename =                                                         \
                 typename std::enable_if_t<std::is_same_v<mod, cudaq::adj>>>    \
-  void NAME(QuakeValue parameter, QuakeValue qubit) {                          \
-    NAME(-parameter, qubit);                                                   \
+  void NAME(paramT &&parameter, QuakeValue qubit) {                            \
+    if constexpr (NumericType<paramT>)                                         \
+      NAME(QuakeValue(*opBuilder, -parameter), qubit);                         \
+    else                                                                       \
+      NAME(-parameter, qubit);                                                 \
   }                                                                            \
-  template <typename mod, typename... QubitValues,                             \
+  template <typename mod, QuakeValueOrNumericType paramT,                      \
+            typename... QubitValues,                                           \
             typename = typename std::enable_if_t<sizeof...(QubitValues) >= 2>> \
-  void NAME(QuakeValue parameter, QubitValues... args) {                       \
+  void NAME(paramT &&parameter, QubitValues... args) {                         \
     std::vector<QuakeValue> values{args...};                                   \
     if constexpr (std::is_same_v<mod, cudaq::ctrl>) {                          \
       std::vector<QuakeValue> ctrls(values.begin(), values.end() - 1);         \
       auto &target = values.back();                                            \
-      NAME(parameter, ctrls, target);                                          \
+      if constexpr (NumericType<paramT>)                                       \
+        NAME(QuakeValue(*opBuilder, parameter), ctrls, target);                \
+      else                                                                     \
+        NAME(parameter, ctrls, target);                                        \
       return;                                                                  \
     }                                                                          \
   }
@@ -508,7 +520,7 @@ public:
   }
 
   /// @brief Reset the given qubit or qubits.
-  void reset(QuakeValue &qubit) { details::reset(*opBuilder, qubit); }
+  void reset(const QuakeValue &qubit) { details::reset(*opBuilder, qubit); }
 
   /// @brief Apply a conditional statement on a
   /// measure result, if true apply the `thenFunctor`.

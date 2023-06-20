@@ -130,6 +130,56 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     counts.dump();
     EXPECT_TRUE(counts.begin()->first == "101");
   }
+
+  {
+    // Check controlled parametric gates (constant angle)
+    auto cnot_builder = cudaq::make_kernel();
+    auto q = cnot_builder.qalloc(2);
+    cnot_builder.x(q);
+    // Rx(pi) == X
+    cnot_builder.rx<cudaq::ctrl>(M_PI, q[0], q[1]);
+    cnot_builder.mz(q);
+
+    auto counts = cudaq::sample(cnot_builder);
+    counts.dump();
+    EXPECT_EQ(counts.size(), 1);
+    EXPECT_TRUE(counts.begin()->first == "10");
+  }
+
+  {
+    // Check adjoint parametric gates (constant angles)
+    auto rx_builder = cudaq::make_kernel();
+    auto q = rx_builder.qalloc();
+    // Rx(pi) == X
+    rx_builder.rx<cudaq::adj>(-M_PI_2, q);
+    rx_builder.rx(M_PI_2, q);
+    rx_builder.mz(q);
+
+    auto counts = cudaq::sample(rx_builder);
+    counts.dump();
+    EXPECT_EQ(counts.size(), 1);
+    EXPECT_TRUE(counts.begin()->first == "1");
+  }
+
+  {
+    // Check adjoint parametric gates (constant angles, implicit type
+    // conversion)
+    auto rx_builder = cudaq::make_kernel();
+    auto q = rx_builder.qalloc();
+    // float -> double implicit type conversion
+    rx_builder.rx<cudaq::adj>(-M_PI_4f32, q);
+    rx_builder.rx(M_PI_4f32, q);
+    // long double -> double implicit type conversion
+    const long double pi_4_ld = M_PI / 4.0;
+    rx_builder.rx<cudaq::adj>(-pi_4_ld, q);
+    rx_builder.rx(pi_4_ld, q);
+    rx_builder.mz(q);
+    // Rx(pi) == X (four pi/4 rotations)
+    auto counts = cudaq::sample(rx_builder);
+    counts.dump();
+    EXPECT_EQ(counts.size(), 1);
+    EXPECT_TRUE(counts.begin()->first == "1");
+  }
 }
 
 CUDAQ_TEST(BuilderTester, checkSwap) {
@@ -405,6 +455,16 @@ CUDAQ_TEST(BuilderTester, checkReset) {
     counts.dump();
     EXPECT_EQ(counts.size(), 1);
     EXPECT_EQ(counts.begin()->first, "00");
+  }
+  {
+    auto entryPoint = cudaq::make_kernel();
+    auto q = entryPoint.qalloc(2);
+    entryPoint.x(q);
+    entryPoint.reset(q[0]);
+    entryPoint.mz(q);
+    auto counts = cudaq::sample(entryPoint);
+    EXPECT_EQ(counts.size(), 1);
+    EXPECT_EQ(counts.begin()->first, "01");
   }
 }
 
