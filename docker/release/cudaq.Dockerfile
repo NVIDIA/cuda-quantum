@@ -89,6 +89,17 @@ RUN if [ -n "$(ls -A $CUDA_QUANTUM_PATH/cuquantum)" ]; then \
         && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*; \
     fi
 
+# The installation of CUDA above creates files that will be injected upon launching the container
+# with the --gpu=all flag. This creates issues upon container launch. We hence remove these files.
+# As long as the container is launched with the --gpu=all flag, the GPUs remain accessible and CUDA
+# is fully functional. See also https://github.com/NVIDIA/nvidia-docker/issues/1699.
+RUN rm -rf \
+    /usr/lib/x86_64-linux-gnu/libcuda.so* \
+    /usr/lib/x86_64-linux-gnu/libnvcuvid.so* \
+    /usr/lib/x86_64-linux-gnu/libnvidia-*.so* \
+    /usr/lib/firmware \
+    /usr/local/cuda/compat/lib
+
 ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/cuda-11.8/lib64:/usr/local/cuda-11.8/extras/CUPTI/lib64"
 
 # For now, the CUDA Quantum build hardcodes certain paths and hence expects to find its 

@@ -141,6 +141,16 @@ public:
                   const std::vector<std::size_t> &controls,
                   const std::size_t qubitIdx) = 0;
 
+  void phased_rx(const double phi, const double lambda,
+                 const std::size_t qubitIdx) {
+    std::vector<std::size_t> controls;
+    phased_rx(phi, lambda, controls, qubitIdx);
+  }
+
+  virtual void phased_rx(const double phi, const double lambda,
+                         const std::vector<std::size_t> &controls,
+                         const std::size_t qubitIdx) = 0;
+
   void u3(const double theta, const double phi, const double lambda,
           const std::size_t qubitIdx) {
     std::vector<std::size_t> controls;
@@ -892,6 +902,16 @@ public:
                                 static_cast<ScalarType>(phi),
                                 static_cast<ScalarType>(lambda)};
     enqueueQuantumOperation<nvqir::u3<ScalarType>>(
+        tmp, controls, std::vector<std::size_t>{qubitIdx});
+  }
+
+  using CircuitSimulator::phased_rx;
+  void phased_rx(const double phi, const double lambda,
+                 const std::vector<std::size_t> &controls,
+                 const std::size_t qubitIdx) override {
+    std::vector<ScalarType> tmp{static_cast<ScalarType>(phi),
+                                static_cast<ScalarType>(lambda)};
+    enqueueQuantumOperation<nvqir::phased_rx<ScalarType>>(
         tmp, controls, std::vector<std::size_t>{qubitIdx});
   }
 
