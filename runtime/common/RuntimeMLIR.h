@@ -13,6 +13,8 @@
 
 namespace mlir {
 class MLIRContext;
+class ExecutionEngine;
+class ModuleOp;
 } // namespace mlir
 
 namespace llvm {
@@ -29,6 +31,11 @@ bool setupTargetTriple(llvm::Module *);
 
 /// @brief Run the LLVM PassManager.
 void optimizeLLVM(llvm::Module *);
+
+/// @brief Lower ModuleOp to a full QIR LLVMIR representation
+/// and return an ExecutionEngine pointer for JIT function pointer
+/// execution. Clients are responsible for deleting this pointer.
+mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp);
 
 class Translation {
 public:
