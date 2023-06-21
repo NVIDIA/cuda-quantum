@@ -457,7 +457,7 @@ public:
             typename =                                                         \
                 typename std::enable_if_t<std::is_same_v<mod, cudaq::adj>>>    \
   void NAME(const ParamT &parameter, QuakeValue qubit) {                       \
-    if constexpr (NumericType<ParamT>)                                         \
+    if constexpr (std::is_floating_point_v<ParamT>)                            \
       NAME(QuakeValue(*opBuilder, -parameter), qubit);                         \
     else                                                                       \
       NAME(-parameter, qubit);                                                 \
@@ -470,7 +470,7 @@ public:
     if constexpr (std::is_same_v<mod, cudaq::ctrl>) {                          \
       std::vector<QuakeValue> ctrls(values.begin(), values.end() - 1);         \
       auto &target = values.back();                                            \
-      if constexpr (NumericType<ParamT>)                                       \
+      if constexpr (std::is_floating_point_v<ParamT>)                          \
         NAME(QuakeValue(*opBuilder, parameter), ctrls, target);                \
       else                                                                     \
         NAME(parameter, ctrls, target);                                        \

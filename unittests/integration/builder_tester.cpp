@@ -147,6 +147,21 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
   }
 
   {
+    // Check controlled parametric gates (QuakeValue angle)
+    auto [cnot_builder, theta] = cudaq::make_kernel<double>();
+    auto q = cnot_builder.qalloc(2);
+    cnot_builder.x(q);
+    // controlled-Rx(theta)
+    cnot_builder.rx<cudaq::ctrl>(theta, q[0], q[1]);
+    cnot_builder.mz(q);
+    // assign theta = pi; controlled-Rx(pi) == CNOT
+    auto counts = cudaq::sample(cnot_builder, M_PI);
+    counts.dump();
+    EXPECT_EQ(counts.size(), 1);
+    EXPECT_TRUE(counts.begin()->first == "10");
+  }
+
+  {
     // Check adjoint parametric gates (constant angles)
     auto rx_builder = cudaq::make_kernel();
     auto q = rx_builder.qalloc();
@@ -176,6 +191,20 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     rx_builder.mz(q);
     // Rx(pi) == X (four pi/4 rotations)
     auto counts = cudaq::sample(rx_builder);
+    counts.dump();
+    EXPECT_EQ(counts.size(), 1);
+    EXPECT_TRUE(counts.begin()->first == "1");
+  }
+
+  {
+    // Check adjoint parametric gates (QuakeValue angle)
+    auto [rx_builder, angle] = cudaq::make_kernel<double>();
+    auto q = rx_builder.qalloc();
+    rx_builder.rx<cudaq::adj>(-angle, q);
+    rx_builder.rx(angle, q);
+    rx_builder.mz(q);
+    // angle = pi/2 => equivalent to Rx(pi) == X
+    auto counts = cudaq::sample(rx_builder, M_PI_2);
     counts.dump();
     EXPECT_EQ(counts.size(), 1);
     EXPECT_TRUE(counts.begin()->first == "1");
