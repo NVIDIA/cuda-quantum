@@ -1,0 +1,72 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --combine-quantum-alloc --canonicalize %s | FileCheck %s
+
+func.func @a() {
+  %0 = quake.alloca !quake.ref
+  quake.x %0 : (!quake.ref) -> ()
+  %1 = quake.alloca !quake.veq<4>
+  %a1 = quake.extract_ref %1 [0] : (!quake.veq<4>) -> !quake.ref
+  quake.x %a1 : (!quake.ref) -> ()
+  %b1 = quake.extract_ref %1 [1] : (!quake.veq<4>) -> !quake.ref
+  quake.x %b1 : (!quake.ref) -> ()
+  %2 = quake.alloca !quake.ref
+  quake.x %2 : (!quake.ref) -> ()
+  %3 = quake.alloca !quake.veq<7>
+  %a3 = quake.extract_ref %3 [0] : (!quake.veq<7>) -> !quake.ref
+  quake.x %a3 : (!quake.ref) -> ()
+  %b3 = quake.extract_ref %3 [1] : (!quake.veq<7>) -> !quake.ref
+  quake.x %b3 : (!quake.ref) -> ()
+  %c3 = quake.extract_ref %3 [2] : (!quake.veq<7>) -> !quake.ref
+  quake.x %c3 : (!quake.ref) -> ()
+  %c1 = quake.extract_ref %1 [2] : (!quake.veq<4>) -> !quake.ref
+  quake.x %c1 : (!quake.ref) -> ()
+  %d1 = quake.extract_ref %1 [3] : (!quake.veq<4>) -> !quake.ref
+  quake.x %d1 : (!quake.ref) -> ()
+  %d3 = quake.extract_ref %3 [3] : (!quake.veq<7>) -> !quake.ref
+  quake.x %d3 : (!quake.ref) -> ()
+  %e3 = quake.extract_ref %3 [4] : (!quake.veq<7>) -> !quake.ref
+  quake.x %e3 : (!quake.ref) -> ()
+  %f3 = quake.extract_ref %3 [5] : (!quake.veq<7>) -> !quake.ref
+  quake.x %f3 : (!quake.ref) -> ()
+  %g3 = quake.extract_ref %3 [6] : (!quake.veq<7>) -> !quake.ref
+  quake.x %g3 : (!quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @a() {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<13>
+// CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<13>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<13>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_2]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][2] : (!quake.veq<13>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_3]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_0]][5] : (!quake.veq<13>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_4]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_5:.*]] = quake.extract_ref %[[VAL_0]][6] : (!quake.veq<13>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_5]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_0]][7] : (!quake.veq<13>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_6]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_0]][8] : (!quake.veq<13>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_7]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_8:.*]] = quake.extract_ref %[[VAL_0]][3] : (!quake.veq<13>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_8]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_9:.*]] = quake.extract_ref %[[VAL_0]][4] : (!quake.veq<13>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_9]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_10:.*]] = quake.extract_ref %[[VAL_0]][9] : (!quake.veq<13>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_10]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_11:.*]] = quake.extract_ref %[[VAL_0]][10] : (!quake.veq<13>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_11]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_12:.*]] = quake.extract_ref %[[VAL_0]][11] : (!quake.veq<13>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_12]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_13:.*]] = quake.extract_ref %[[VAL_0]][12] : (!quake.veq<13>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_13]] : (!quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
