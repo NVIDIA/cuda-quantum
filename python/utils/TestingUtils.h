@@ -22,6 +22,7 @@ namespace py = pybind11;
 
 namespace cudaq {
 
+/// @brief Bind test utils needed for mock qpu base profile simulation
 void bindTestUtils(py::module &mod, LinkedLibraryHolder &holder);
 
 } // namespace cudaq
