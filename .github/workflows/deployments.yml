@@ -55,7 +55,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: 'deployments.yml',
-              ref: ${{ github.event.pull_request.base.ref }},
+              ref: '${{ github.event.pull_request.base.ref }}',
             })
 
   # This job is needed only when using the cloudposse GitHub action to read
