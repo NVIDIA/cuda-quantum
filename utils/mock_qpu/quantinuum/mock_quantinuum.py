@@ -5,10 +5,11 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
+import cudaq
 
 from fastapi import FastAPI, Request, HTTPException, Header
 from typing import Optional, Union
-import uvicorn, uuid, json, base64
+import uvicorn, uuid, json, base64, ctypes
 from pydantic import BaseModel
 from llvmlite import binding as llvm
 
@@ -30,9 +31,27 @@ createdJobs = {}
 countJobGetRequests = 0
 
 # Global holding the number of shots
-shots = 100
+# shots = 100
 
+llvm.initialize()
+llvm.initialize_native_target()
+llvm.initialize_native_asmprinter()  
+target = llvm.Target.from_default_triple()
+targetMachine = target.create_target_machine()
+backing_mod = llvm.parse_assembly("")
+engine = llvm.create_mcjit_compiler(backing_mod, targetMachine)
 
+def getKernelFunction(module):
+    for f in module.functions:
+        if not f.is_declaration:
+            return f
+    return None
+
+def getNumRequiredQubits(function):
+    for a in function.attributes:
+        if "requiredQubits" in str(a):
+            return int(str(a).split("requiredQubits\"=")[-1].split(" ")[0].replace("\"",""))
+    
 # Here we test that the login endpoint works
 @app.post("/login")
 async def login(token: Union[str, None] = Header(alias="Authorization",
@@ -54,26 +73,42 @@ async def postJob(job: Job,
     if 'token' == None:
         raise HTTPException(status_code(401), detail="Credentials not provided")
 
-    print('Posting job with name = ', job.name)
+    print('Posting job with name = ', job.name, job.count)
     name = job.name
     newId = str(uuid.uuid4())
-    createdJobs[newId] = name
-    shots = job.count
     program = job.program
     decoded = base64.b64decode(program)
     m = llvm.module.parse_bitcode(decoded)
     mstr = str(m)
     assert ('EntryPoint' in mstr)
+    
+    # Get the function, number of qubits, and kernel name
+    function = getKernelFunction(m)
+    if function == None:
+        raise Exception("Could not find kernel function")
+    numQubitsRequired = getNumRequiredQubits(function)
+    kernelFunctionName = function.name 
 
-    if name == "XX":
-        assert ("qis__h__body" in mstr)
-    elif name == "YY":
-        assert ("qis__ry__body" in mstr and "qis__mz__body" in mstr)
-    elif name == "ZI":
-        assert ("qis__mz__body" in mstr)
-    elif name == "IZ":
-        assert ("qis__mz__body" in mstr)
+    # JIT Compile and get Function Pointer
+    print("NAME ", kernelFunctionName)
+    getNumRequiredQubits(function)
+    engine.add_module(m)
+    engine.finalize_object()
+    engine.run_static_constructors()
+    funcPtr = engine.get_function_address(kernelFunctionName)
+    kernel = ctypes.CFUNCTYPE(None)(funcPtr)
 
+    # Invoke the Kernel
+    print("Requires {} qubits".format(numQubitsRequired))
+    cudaq.testing.toggleBaseProfile()
+    qubits, context = cudaq.testing.initialize(numQubitsRequired, job.count)
+    kernel() 
+    results = cudaq.testing.finalize(qubits, context)
+    results.dump()
+    createdJobs[newId] = (name, results)
+
+    engine.remove_module(m)
+    
     # Job "created", return the id
     return {"job": newId}
 
@@ -84,23 +119,17 @@ async def postJob(job: Job,
 async def getJob(jobId: str):
     global countJobGetRequests, createdJobs, shots
 
+    # Simulate async exec
     if countJobGetRequests < 3:
         countJobGetRequests += 1
         return {"status": "running"}
 
     countJobGetRequests = 0
-    name = createdJobs[jobId]
+    name, counts = createdJobs[jobId]
     retData = []
-    if name == "XX":
-        retData = ['11'] * 3887 + ['10'] * 1104 + ['01'] * 1095 + ['00'] * 3914
-    elif name == "YY":
-        retData = ['11'] * 3861 + ['10'] * 1104 + ['01'] * 1095 + ['00'] * 3914
-    elif name == "ZI":
-        retData = ['1'] * 9088 + ['0'] * 912
-    elif name == "IZ":
-        retData = ['1'] * 880 + ['0'] * 9120
-    else:
-        retData = ['00'] * int(shots / 2) + ['11'] * int(shots / 2)
+    for bits, count in counts.items():
+        retData += [bits]*count 
+
     res = {"status": "completed", "results": {"mz0": retData}}
     return res
 

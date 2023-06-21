@@ -13,7 +13,7 @@
 
 namespace cudaq {
 
-/// @brief Return the quantum circuit simulator for qubits. 
+/// @brief Return the quantum circuit simulator for qubits.
 nvqir::CircuitSimulator *get_simulator() {
   return getUniquePluginInstance<nvqir::CircuitSimulator>(
       "getCircuitSimulator");

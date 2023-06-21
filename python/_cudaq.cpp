@@ -19,6 +19,7 @@
 #include "runtime/cudaq/spin/py_matrix.h"
 #include "runtime/cudaq/spin/py_spin_op.h"
 #include "utils/LinkedLibraryHolder.h"
+#include "utils/TestingUtils.h"
 
 PYBIND11_MODULE(_pycudaq, mod) {
   static cudaq::LinkedLibraryHolder holder;
@@ -57,4 +58,5 @@ PYBIND11_MODULE(_pycudaq, mod) {
   cudaq::bindPyState(mod);
   auto kernelSubmodule = mod.def_submodule("kernels");
   cudaq::bindChemistry(kernelSubmodule);
+  cudaq::bindTestUtils(mod, holder);
 }

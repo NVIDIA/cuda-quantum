@@ -26,9 +26,10 @@ namespace cudaq {
 
 void bindTestUtils(py::module &mod, LinkedLibraryHolder &holder) {
   auto testingSubmodule = mod.def_submodule("testing");
+  py::class_<ExecutionContext>(testingSubmodule, "ExecutionContext", "");
 
   // Vision for all this
-  // 
+  //
   // cudaq.testing.toggleBaseProfile()
   // qubits, context = cudaq.testing.initialize(numQubits, 1000)
   // .. use llvmlite.jit to execute kernel function
@@ -36,12 +37,7 @@ void bindTestUtils(py::module &mod, LinkedLibraryHolder &holder) {
   // results.dump()
 
   testingSubmodule.def(
-      "toggleBaseProfile",
-      [&]() {
-        cudaq::info("Calling initialize_cudaq.");
-        nvqir::toggleBaseProfile();
-      },
-      "");
+      "toggleBaseProfile", [&]() { nvqir::toggleBaseProfile(); }, "");
 
   testingSubmodule.def(
       "initialize", [&](std::size_t numQubits, std::size_t numShots) {
@@ -56,9 +52,9 @@ void bindTestUtils(py::module &mod, LinkedLibraryHolder &holder) {
                                        cudaq::ExecutionContext *context) {
     holder.getSimulator("qpp")->deallocateQubits(qubits);
     holder.getSimulator("qpp")->resetExecutionContext();
-    auto result = context->result;
-    delete context;
-    return result;
+    nvqir::toggleBaseProfile();
+    // Pybind will delete the context bc its been wrapped in a unique_ptr
+    return context->result;
   });
 }
 
