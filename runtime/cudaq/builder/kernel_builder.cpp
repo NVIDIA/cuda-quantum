@@ -499,7 +499,7 @@ QuakeValue mz(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec,
   return applyMeasure<quake::MzOp>(builder, qubitOrQvec.getValue(), regName);
 }
 
-void reset(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec) {
+void reset(ImplicitLocOpBuilder &builder, const QuakeValue &qubitOrQvec) {
   auto value = qubitOrQvec.getValue();
   if (isa<quake::RefType>(value.getType())) {
     builder.create<quake::ResetOp>(TypeRange{}, value);
