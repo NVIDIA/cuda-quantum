@@ -85,10 +85,11 @@ async def postJob(job: Job,
         raise Exception("Could not find kernel function")
     numQubitsRequired = getNumRequiredQubits(function)
     kernelFunctionName = function.name 
-
+    
+    print("Kernel name = ", kernelFunctionName)
+    print("Requires {} qubits".format(numQubitsRequired))
+    
     # JIT Compile and get Function Pointer
-    print("NAME ", kernelFunctionName)
-    getNumRequiredQubits(function)
     engine.add_module(m)
     engine.finalize_object()
     engine.run_static_constructors()
@@ -96,7 +97,6 @@ async def postJob(job: Job,
     kernel = ctypes.CFUNCTYPE(None)(funcPtr)
 
     # Invoke the Kernel
-    print("Requires {} qubits".format(numQubitsRequired))
     cudaq.testing.toggleBaseProfile()
     qubits, context = cudaq.testing.initialize(numQubitsRequired, job.count)
     kernel() 
