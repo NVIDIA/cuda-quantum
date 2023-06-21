@@ -121,7 +121,7 @@ async def postJob(job: Job,
 async def getJob(jobId: str):
     global countJobGetRequests, createdJobs, shots
 
-    # Simulate async exec
+    # Simulate asynchronous execution
     if countJobGetRequests < 3:
         countJobGetRequests += 1
         return {"status": "running"}
