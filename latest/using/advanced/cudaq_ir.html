@@ -272,11 +272,7 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../../versions.html">   Other Versions</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../versions.html#latest">latest</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../versions.html#id1">0.3.0</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="../../versions.html">   Other Versions</a></li>
 </ul>
 
         </div>
@@ -332,8 +328,8 @@
 <span class="go">fixup-linkage.pl simple.qke simple.ll</span>
 <span class="go">llc --relocation-model=pic --filetype=obj -O2 simple.ll.p3De4L -o simple.qke.o</span>
 <span class="go">llc --relocation-model=pic --filetype=obj -O2 simple.ll -o simple.classic.o</span>
-<span class="go">clang++ -L/usr/lib/gcc/x86_64-linux-gnu/11 -L/usr/lib64 -L/lib/x86_64-linux-gnu -L/lib64 -L/usr/lib/x86_64-linux-gnu -L/lib -L/usr/lib -L/usr/local/cuda/lib64/stubs -r simple.qke.o simple.classic.o -o simple.o</span>
-<span class="go">clang++ -Wl,-rpath,lib -Llib -L/usr/lib/gcc/x86_64-linux-gnu/11 -L/usr/lib64 -L/lib/x86_64-linux-gnu -L/lib64 -L/usr/lib/x86_64-linux-gnu -L/lib -L/usr/lib -L/usr/local/cuda/lib64/stubs simple.o -lcudaq -lcudaq-common -lcudaq-mlir-runtime -lcudaq-builder -lcudaq-ensmallen -lcudaq-nlopt -lcudaq-spin -lcudaq-em-qir -lcudaq-platform-default -lnvqir -lnvqir-qpp</span>
+<span class="go">clang++ -L/usr/lib/gcc/x86_64-linux-gnu/12 -L/usr/lib64 -L/lib/x86_64-linux-gnu -L/lib64 -L/usr/lib/x86_64-linux-gnu -L/lib -L/usr/lib -L/usr/local/cuda/lib64/stubs -r simple.qke.o simple.classic.o -o simple.o</span>
+<span class="go">clang++ -Wl,-rpath,lib -Llib -L/usr/lib/gcc/x86_64-linux-gnu/12 -L/usr/lib64 -L/lib/x86_64-linux-gnu -L/lib64 -L/usr/lib/x86_64-linux-gnu -L/lib -L/usr/lib -L/usr/local/cuda/lib64/stubs simple.o -lcudaq -lcudaq-common -lcudaq-mlir-runtime -lcudaq-builder -lcudaq-ensmallen -lcudaq-nlopt -lcudaq-spin -lcudaq-em-qir -lcudaq-platform-default -lnvqir -lnvqir-qpp</span>
 </pre></div>
 </div>
 <p>The workflow orchestrated above is best visualized in the following figure.</p>
@@ -411,7 +407,7 @@ call is injected first, thereby over-writing the original. Finally, based on use
 we configure the link line with specific libraries that implement the <code class="code docutils literal notranslate"><span class="pre">quantum_platform</span></code>
 (here the <code class="code docutils literal notranslate"><span class="pre">libcudaq-platform-default.so</span></code>) and NVQIR circuit simulator backend (the
 <code class="code docutils literal notranslate"><span class="pre">libnvqir-qpp.so</span></code> Q++ CPU-only simulation backend). These latter libraries are controlled
-via the <code class="code docutils literal notranslate"><span class="pre">--platform</span></code> and <code class="code docutils literal notranslate"><span class="pre">--qpu</span></code> compiler flags.</p>
+via the <code class="code docutils literal notranslate"><span class="pre">--platform</span></code> and <code class="code docutils literal notranslate"><span class="pre">--target</span></code> compiler flags.</p>
 <img alt="../../_images/dialects.png" src="../../_images/dialects.png" />
 <p>The above figure demonstrate the MLIR dialects involved and the overall workflow mapping
 high-level language constructs to lower-level MLIR dialect code, and ultimately LLVM IR.</p>

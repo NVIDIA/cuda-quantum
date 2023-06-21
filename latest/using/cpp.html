@@ -272,11 +272,7 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../versions.html">   Other Versions</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../versions.html#latest">latest</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../versions.html#id1">0.3.0</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">   Other Versions</a></li>
 </ul>
 
         </div>
@@ -354,7 +350,7 @@ simple “Hello World” example, specifically a CUDA Quantum kernel that prepar
 <p>Here we see that we can define a custom <code class="code docutils literal notranslate"><span class="pre">struct</span></code> that is templated on a <code class="code docutils literal notranslate"><span class="pre">size_t</span></code> parameter.
 Our kernel expression is free to use this template parameter in the allocation of a
 compile-time-known register of qubits. Within the kernel, we are free to apply various quantum operations,
-like a hadamard on qubit 0 <code class="code docutils literal notranslate"><span class="pre">h(q[0])</span></code>. Controlled operations are <strong>modifications</strong> of single-qubit
+like a Hadamard on qubit 0 <code class="code docutils literal notranslate"><span class="pre">h(q[0])</span></code>. Controlled operations are <strong>modifications</strong> of single-qubit
 operations, like the <code class="code docutils literal notranslate"><span class="pre">x&lt;cudaq::ctrl&gt;(q[0],q[1])</span></code> operation to affect a controlled-X. We
 can measure single qubits or entire registers.</p>
 <p>In this example we are interested in sampling the final state produced by this CUDA Quantum kernel.
@@ -409,7 +405,7 @@ at an example of this:</p>
 </div>
 <p>Here we define a parameterized CUDA Quantum kernel, a callable type named <code class="code docutils literal notranslate"><span class="pre">ansatz</span></code> that takes as
 input a single angle <code class="code docutils literal notranslate"><span class="pre">theta</span></code>. This angle is used as part of a single <code class="code docutils literal notranslate"><span class="pre">ry</span></code> rotation.</p>
-<p>In host code, we define a Hamiltonian operator we are interested in via the CUDA Quantun <code class="code docutils literal notranslate"><span class="pre">spin_op</span></code> type.
+<p>In host code, we define a Hamiltonian operator we are interested in via the CUDA Quantum <code class="code docutils literal notranslate"><span class="pre">spin_op</span></code> type.
 CUDA Quantum provides a generic function <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code> which takes a parameterized
 kernel, the <code class="code docutils literal notranslate"><span class="pre">spin_op</span></code> whose expectation value we wish to compute, and the runtime
 parameters at which we evaluate the parameterized kernel.</p>
@@ -549,8 +545,8 @@ can be trivially simulated via a NVIDIA GPU-accelerated backend:</p>
 </pre></div>
 </div>
 <p>Here we generate a GHZ state on 30 qubits. To run with the built-in cuQuantum state
-vector support, we pass the <code class="code docutils literal notranslate"><span class="pre">--qpu</span> <span class="pre">cuquantum</span></code> flag at compile time:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--qpu<span class="w"> </span>cuquantum<span class="w"> </span>cuquantum_backends.cpp<span class="w"> </span>-o<span class="w"> </span>ghz.x
+vector support, we pass the <code class="code docutils literal notranslate"><span class="pre">--target</span> <span class="pre">nvidia</span></code> flag at compile time:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w"> </span>cuquantum_backends.cpp<span class="w"> </span>-o<span class="w"> </span>ghz.x
 ./ghz.x
 </pre></div>
 </div>

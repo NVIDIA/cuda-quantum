@@ -272,11 +272,7 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../versions.html">   Other Versions</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../versions.html#latest">latest</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../versions.html#id1">0.3.0</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">   Other Versions</a></li>
 </ul>
 
         </div>
@@ -530,8 +526,8 @@
     <span class="n">cost</span> <span class="o">=</span> <span class="n">get_result</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&lt;H&gt; = </span><span class="si">{</span><span class="n">cost</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="c1"># Compute the gradient vector using `cudaq.gradients.STRATEGY.compute()`.</span>
-    <span class="n">gradient_vector</span> <span class="o">=</span> <span class="n">gradient_strategy</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span>
-        <span class="n">parameter_vector</span><span class="o">=</span><span class="n">parameter_vector</span><span class="p">,</span> <span class="n">function</span><span class="o">=</span><span class="n">get_result</span><span class="p">)</span>
+    <span class="n">gradient_vector</span> <span class="o">=</span> <span class="n">gradient_strategy</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">,</span> <span class="n">get_result</span><span class="p">,</span>
+                                                <span class="n">cost</span><span class="p">)</span>
 
     <span class="c1"># Return the (cost, gradient_vector) tuple.</span>
     <span class="k">return</span> <span class="n">cost</span><span class="p">,</span> <span class="n">gradient_vector</span>

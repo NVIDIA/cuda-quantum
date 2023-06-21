@@ -272,11 +272,7 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="versions.html">   Other Versions</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="versions.html#latest">latest</a></li>
-<li class="toctree-l2"><a class="reference internal" href="versions.html#id1">0.3.0</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="versions.html">   Other Versions</a></li>
 </ul>
 
         </div>
@@ -346,7 +342,7 @@ The image for the latest version under development is built from source on our <
 <p>If you have NVIDIA GPUs available and NVIDIA Docker correctly configured,
 you can add <code class="code docutils literal notranslate"><span class="pre">--gpus</span> <span class="pre">all</span></code> to the <code class="code docutils literal notranslate"><span class="pre">docker</span> <span class="pre">run</span></code> command to expose all available GPUs
 to the container, or <code class="code docutils literal notranslate"><span class="pre">--gpus</span> <span class="pre">'&quot;device=1&quot;'</span></code> to select a specific GPU device.
-Unless you specify this flag, you will not be able to compile to the <code class="code docutils literal notranslate"><span class="pre">--qpu</span> <span class="pre">cuquantum</span></code>
+Unless you specify this flag, you will not be able to compile to the <code class="code docutils literal notranslate"><span class="pre">--target</span> <span class="pre">nvidia</span></code>
 target.</p>
 </div>
 <div class="admonition note">
@@ -402,7 +398,7 @@ Start of by trying to compile a simple one, like <code class="code docutils lite
 </div>
 <p>If you have GPU support (e.g. you successfully provided <code class="code docutils literal notranslate"><span class="pre">--gpus</span></code> to your docker
 run command), try out the 30 qubit version of this example.</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ examples/cpp/basics/cuquantum_backends.cpp --qpu cuquantum</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ examples/cpp/basics/cuquantum_backends.cpp --target nvidia</span>
 <span class="go">./a.out</span>
 </pre></div>
 </div>
