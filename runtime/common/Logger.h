@@ -23,15 +23,15 @@ void debug(const std::string_view msg);
 } // namespace details
 
 /// This type seeks to enable automated injection of the
-/// source location of the cudaq::info() or debug() call.
+/// source location of the `cudaq::info()` or `debug()` call.
 /// We do this via a struct of the same name (info), which
-/// takes the message and variadic args for the message, and
-/// finishes with args with defaults providing the file name
+/// takes the message and variadic arguments for the message, and
+/// finishes with arguments with defaults providing the file name
 /// and the source location. We could also add the function name
 /// if we want it in the future.
 ///
 /// We then use a template deduction guide to map calls of the
-/// templated cudaq info() function to this type.
+/// templated `cudaq::info()` function to this type.
 #define CUDAQ_LOGGER_DEDUCTION_STRUCT(NAME)                                    \
   template <typename... Args>                                                  \
   struct NAME {                                                                \
@@ -89,7 +89,7 @@ private:
   /// @brief The name of this trace, typically the function name
   std::string traceName;
 
-  /// @brief Any args the user would also like to print
+  /// @brief Any arguments the user would also like to print
   std::string argsMsg;
 
   static inline short int globalTraceStack = -1;
@@ -101,7 +101,7 @@ public:
     globalTraceStack++;
   }
 
-  /// @brief  Constructor, take and print user-specified critical args
+  /// @brief  Constructor, take and print user-specified critical arguments
   template <typename... Args>
   ScopedTrace(const std::string &name, Args &&...args)
       : startTime(std::chrono::system_clock::now()), traceName(name) {

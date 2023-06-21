@@ -32,11 +32,12 @@ countJobGetRequests = 0
 
 llvm.initialize()
 llvm.initialize_native_target()
-llvm.initialize_native_asmprinter()  
+llvm.initialize_native_asmprinter()
 target = llvm.Target.from_default_triple()
 targetMachine = target.create_target_machine()
 backing_mod = llvm.parse_assembly("")
 engine = llvm.create_mcjit_compiler(backing_mod, targetMachine)
+
 
 def getKernelFunction(module):
     for f in module.functions:
@@ -44,11 +45,15 @@ def getKernelFunction(module):
             return f
     return None
 
+
 def getNumRequiredQubits(function):
     for a in function.attributes:
         if "requiredQubits" in str(a):
-            return int(str(a).split("requiredQubits\"=")[-1].split(" ")[0].replace("\"",""))
-    
+            return int(
+                str(a).split("requiredQubits\"=")[-1].split(" ")[0].replace(
+                    "\"", ""))
+
+
 # Here we test that the login endpoint works
 @app.post("/login")
 async def login(token: Union[str, None] = Header(alias="Authorization",
@@ -78,17 +83,17 @@ async def postJob(job: Job,
     m = llvm.module.parse_bitcode(decoded)
     mstr = str(m)
     assert ('EntryPoint' in mstr)
-    
+
     # Get the function, number of qubits, and kernel name
     function = getKernelFunction(m)
     if function == None:
         raise Exception("Could not find kernel function")
     numQubitsRequired = getNumRequiredQubits(function)
-    kernelFunctionName = function.name 
-    
+    kernelFunctionName = function.name
+
     print("Kernel name = ", kernelFunctionName)
     print("Requires {} qubits".format(numQubitsRequired))
-    
+
     # JIT Compile and get Function Pointer
     engine.add_module(m)
     engine.finalize_object()
@@ -99,13 +104,13 @@ async def postJob(job: Job,
     # Invoke the Kernel
     cudaq.testing.toggleBaseProfile()
     qubits, context = cudaq.testing.initialize(numQubitsRequired, job.count)
-    kernel() 
+    kernel()
     results = cudaq.testing.finalize(qubits, context)
     results.dump()
     createdJobs[newId] = (name, results)
 
     engine.remove_module(m)
-    
+
     # Job "created", return the id
     return {"job": newId}
 
@@ -125,7 +130,7 @@ async def getJob(jobId: str):
     name, counts = createdJobs[jobId]
     retData = []
     for bits, count in counts.items():
-        retData += [bits]*count 
+        retData += [bits] * count
 
     res = {"status": "completed", "results": {"mz0": retData}}
     return res

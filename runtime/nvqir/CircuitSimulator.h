@@ -28,7 +28,7 @@ namespace nvqir {
 /// execution context handling, and defines all quantum operations pure
 /// virtual methods that subtypes must implement. Subtypes should be responsible
 /// for evolution of the concrete wave function representation (e.g.,
-/// statevector), sampling, and measurements.
+/// state vector), sampling, and measurements.
 class CircuitSimulator {
 protected:
   /// @brief Flush the current queue of gates, i.e.
@@ -61,7 +61,7 @@ public:
   /// @brief Allocate `count` qubits.
   virtual std::vector<std::size_t> allocateQubits(const std::size_t count) = 0;
 
-  /// @brief Deallocate the qubit with give idx
+  /// @brief Deallocate the qubit with give unique index
   virtual void deallocate(const std::size_t qubitIdx) = 0;
 
   /// @brief Deallocate all the provided qubits.
@@ -178,10 +178,10 @@ public:
   /// context is. If the context is sample, then we do nothing but store the
   /// measure qubit, which we then use to do full state sampling when
   /// flushAnySamplingTask() is called. If the context is sample-conditional,
-  /// then we have a circuit that contains if (mz(q)) and we measure the qubit,
-  /// collapse the state, and then store the sample qubit for final full state
-  /// sampling. We also return the bit result. If no execution context, just
-  /// measure, collapse, and return the bit.
+  /// then we have a circuit that contains if (`mz(q)`) and we measure the
+  /// qubit, collapse the state, and then store the sample qubit for final full
+  /// state sampling. We also return the bit result. If no execution context,
+  /// just measure, collapse, and return the bit.
   virtual bool mz(const std::size_t qubitIdx,
                   const std::string &registerName) = 0;
 
@@ -215,7 +215,7 @@ protected:
   /// sampling, or spin_op observation.
   cudaq::ExecutionContext *executionContext = nullptr;
 
-  /// @brief A tracker for allocating and deallocating qubit ids
+  /// @brief A tracker for qubit allocation
   cudaq::QuditIdTracker tracker;
 
   /// @brief The number of qubits that have been allocated
@@ -502,7 +502,7 @@ protected:
     registerNameToMeasuredQubit.clear();
   }
 
-  /// @brief Enqueue a new gate application task
+  /// @brief Add a new gate application task to the queue
   void enqueueGate(const std::string name,
                    const std::vector<std::complex<ScalarType>> &matrix,
                    const std::vector<std::size_t> &controls,
@@ -653,7 +653,7 @@ public:
     return qubits;
   }
 
-  /// @brief Deallocate the qubit with give idx
+  /// @brief Deallocate the qubit with give index
   void deallocate(const std::size_t qubitIdx) override {
     if (executionContext) {
       cudaq::info("Deferring qubit {} deallocation", qubitIdx);
@@ -943,7 +943,7 @@ public:
   /// context is. If the context is sample, then we do nothing but store the
   /// measure qubit, which we then use to do full state sampling when
   /// flushAnySamplingTask() is called. If the context is sample-conditional,
-  /// then we have a circuit that contains if (mz(q)) and we measure the
+  /// then we have a circuit that contains if (`mz(q)`) and we measure the
   /// qubit, collapse the state, and then store the sample qubit for final
   /// full state sampling. We also return the bit result. If no execution
   /// context, just measure, collapse, and return the bit.
