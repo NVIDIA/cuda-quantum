@@ -8,10 +8,9 @@
 
 // This code is from Issue 251.
 
-// RUN: nvq++ --enable-mlir -v %s --target quantinuum --quantinuum-url http://localhost:6245 && ( ./a.out > %t 2>&1 || ( cat %t | FileCheck %s ) )
+// RUN: nvq++ --enable-mlir -v %s --target quantinuum --emulate && ./a.out | FileCheck %s
 
-// CHECK-NOT: could not trace offset value
-// CHECK: terminate called
+// CHECK: Test: { 0:{{[0-9]+}} 1:{{[0-9]+}} }
 
 #include <cudaq.h>
 #include <iostream>
