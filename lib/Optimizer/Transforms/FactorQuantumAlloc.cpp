@@ -53,7 +53,7 @@ public:
           rewriter.create<quake::DeallocOp>(deloc, newAllocs[i]);
         rewriter.replaceOpWithNewOp<quake::DeallocOp>(dealloc,
                                                       newAllocs[size - 1]);
-	continue;
+        continue;
       }
       auto ext = cast<quake::ExtractRefOp>(user);
       auto index = ext.getConstantIndex();
