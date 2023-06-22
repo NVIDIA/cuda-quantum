@@ -25,6 +25,8 @@ constexpr int kComputePtrConstantBitWidth = 29;
 using ComputePtrConstantIndex =
     llvm::PointerEmbeddedInt<std::int32_t, kComputePtrConstantBitWidth>;
 
+enum class CastOpMode { Signed, Unsigned };
+
 // Allow a mix of values and constants to be passed as arguments to
 // ComputePtrOp's builder.
 class ComputePtrArg
