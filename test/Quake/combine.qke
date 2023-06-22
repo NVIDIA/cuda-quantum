@@ -7,6 +7,7 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --combine-quantum-alloc --canonicalize %s | FileCheck %s
+// RUN: cudaq-opt --factor-quantum-alloc --canonicalize %s | FileCheck --check-prefixes=FACTOR %s
 
 func.func @a() {
   %0 = quake.alloca !quake.ref
@@ -37,6 +38,10 @@ func.func @a() {
   quake.x %f3 : (!quake.ref) -> ()
   %g3 = quake.extract_ref %3 [6] : (!quake.veq<7>) -> !quake.ref
   quake.x %g3 : (!quake.ref) -> ()
+  quake.dealloc %0 : !quake.ref
+  quake.dealloc %1 : !quake.veq<4>
+  quake.dealloc %2 : !quake.ref
+  quake.dealloc %3 : !quake.veq<7>
   return
 }
 
@@ -68,5 +73,50 @@ func.func @a() {
 // CHECK:           quake.x %[[VAL_12]] : (!quake.ref) -> ()
 // CHECK:           %[[VAL_13:.*]] = quake.extract_ref %[[VAL_0]][12] : (!quake.veq<13>) -> !quake.ref
 // CHECK:           quake.x %[[VAL_13]] : (!quake.ref) -> ()
+// CHECK:           quake.dealloc %[[VAL_0]] : !quake.veq<13>
 // CHECK:           return
 // CHECK:         }
+
+// FACTOR-LABEL:   func.func @a() {
+// FACTOR:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// FACTOR:           quake.x %[[VAL_0]] : (!quake.ref) -> ()
+// FACTOR:           %[[VAL_1:.*]] = quake.alloca !quake.ref
+// FACTOR:           %[[VAL_2:.*]] = quake.alloca !quake.ref
+// FACTOR:           %[[VAL_3:.*]] = quake.alloca !quake.ref
+// FACTOR:           %[[VAL_4:.*]] = quake.alloca !quake.ref
+// FACTOR:           quake.x %[[VAL_1]] : (!quake.ref) -> ()
+// FACTOR:           quake.x %[[VAL_2]] : (!quake.ref) -> ()
+// FACTOR:           %[[VAL_5:.*]] = quake.alloca !quake.ref
+// FACTOR:           quake.x %[[VAL_5]] : (!quake.ref) -> ()
+// FACTOR:           %[[VAL_6:.*]] = quake.alloca !quake.ref
+// FACTOR:           %[[VAL_7:.*]] = quake.alloca !quake.ref
+// FACTOR:           %[[VAL_8:.*]] = quake.alloca !quake.ref
+// FACTOR:           %[[VAL_9:.*]] = quake.alloca !quake.ref
+// FACTOR:           %[[VAL_10:.*]] = quake.alloca !quake.ref
+// FACTOR:           %[[VAL_11:.*]] = quake.alloca !quake.ref
+// FACTOR:           %[[VAL_12:.*]] = quake.alloca !quake.ref
+// FACTOR:           quake.x %[[VAL_6]] : (!quake.ref) -> ()
+// FACTOR:           quake.x %[[VAL_7]] : (!quake.ref) -> ()
+// FACTOR:           quake.x %[[VAL_8]] : (!quake.ref) -> ()
+// FACTOR:           quake.x %[[VAL_3]] : (!quake.ref) -> ()
+// FACTOR:           quake.x %[[VAL_4]] : (!quake.ref) -> ()
+// FACTOR:           quake.x %[[VAL_9]] : (!quake.ref) -> ()
+// FACTOR:           quake.x %[[VAL_10]] : (!quake.ref) -> ()
+// FACTOR:           quake.x %[[VAL_11]] : (!quake.ref) -> ()
+// FACTOR:           quake.x %[[VAL_12]] : (!quake.ref) -> ()
+// FACTOR:           quake.dealloc %[[VAL_0]] : !quake.ref
+// FACTOR:           quake.dealloc %[[VAL_1]] : !quake.ref
+// FACTOR:           quake.dealloc %[[VAL_2]] : !quake.ref
+// FACTOR:           quake.dealloc %[[VAL_3]] : !quake.ref
+// FACTOR:           quake.dealloc %[[VAL_4]] : !quake.ref
+// FACTOR:           quake.dealloc %[[VAL_5]] : !quake.ref
+// FACTOR:           quake.dealloc %[[VAL_6]] : !quake.ref
+// FACTOR:           quake.dealloc %[[VAL_7]] : !quake.ref
+// FACTOR:           quake.dealloc %[[VAL_8]] : !quake.ref
+// FACTOR:           quake.dealloc %[[VAL_9]] : !quake.ref
+// FACTOR:           quake.dealloc %[[VAL_10]] : !quake.ref
+// FACTOR:           quake.dealloc %[[VAL_11]] : !quake.ref
+// FACTOR:           quake.dealloc %[[VAL_12]] : !quake.ref
+// FACTOR:           return
+// FACTOR:         }
+
