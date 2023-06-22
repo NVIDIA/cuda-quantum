@@ -18,12 +18,12 @@
 # Must be built from the repo root with:
 #   docker build -t ghcr.io/nvidia/cuda-quantum:latest -f docker/release/cudaq.Dockerfile .
 # 
-# The build argument dev_image defines the CUDA Quantum dev image to use, and the argument
-# dev_tag defines the tag of that image.
+# The build argument base_image defines the CUDA Quantum dev image that contains the CUDA Quantum
+# build. This Dockerfile copies the built components into a clear environment that contains the
+# necessary runtime dependencies, but no longer contains the build dependencies.
 
-ARG dev_image=nvidia/cuda-quantum-dev
-ARG dev_tag=latest
-FROM $dev_image:$dev_tag as cudaqbuild
+ARG base_image=ghcr.io/nvidia/cuda-quantum-dev:latest
+FROM $base_image as cudaqbuild
 
 # Unfortunately, there is no way to use the environment variables defined in the dev image
 # to determine where to copy files from. See also e.g. https://github.com/moby/moby/issues/37345
