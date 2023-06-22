@@ -49,8 +49,7 @@ jobs:
           ref: ${{ vars.live_branch }}
           token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
-      - name: Download docs artifact
-        id: artifacts
+      - name: Push docs update
         run: |
           if ${{ github.event_name == 'workflow_dispatch' }}; then
             target_folder=${{ inputs.version }}
@@ -77,16 +76,16 @@ jobs:
 
               git config --global user.name "cuda-quantum-bot"
               git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
-              git add "$target_folder"
 
               bash create_redirects.sh >> $GITHUB_STEP_SUMMARY
+              git add "$target_folder"
 
               if ${{ github.event_name == 'workflow_dispatch' }}; then
                 git commit -m "Docs update triggered manually for version ${{ inputs.version }} (artifacts url: ${{ inputs.artifacts_url }}, artifact name: ${{ inputs.artifact_name }})."
               else
                 git commit --allow-empty -m "Docs update triggered by deployment on head branch ${{ github.event.workflow_run.head_branch }}, commit ${{ github.event.workflow_run.head_sha }}."
               fi
-              git push
+              git pull --no-edit && git push
 
               status=0
             fi
