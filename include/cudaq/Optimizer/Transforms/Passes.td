@@ -81,6 +81,22 @@ def ExpandMeasurements : Pass<"expand-measurements"> {
   let constructor = "cudaq::opt::createExpandMeasurementsPass()";
 }
 
+def FactorQuantumAllocations :
+    Pass<"factor-quantum-alloc", "mlir::func::FuncOp"> {
+  let summary = "Factors quake alloca operations.";
+  let description = [{
+    Quake code may contain `quake.alloca` operations that allocate vectors of
+    qubits (`!quake.veq`). This pass will factor these single allocations of
+    type `!quake.veq` and the associated `quake.extract_ref` operations into a
+    series of single qubit allocations, thereby eliminating the
+    `quake.extract_ref` operations.
+
+    If the function contains deallocations of quantum vectors (`veq`), these
+    will be replaced with a series of deallocations.
+  }];
+  let dependentDialects = ["quake::QuakeDialect"];
+}
+
 def GenerateDeviceCodeLoader : Pass<"device-code-loader", "mlir::ModuleOp"> {
   let summary = "Generate device code loader stubs.";
   let description = [{
