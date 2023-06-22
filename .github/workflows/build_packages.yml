@@ -218,7 +218,6 @@ jobs:
           git pull --no-edit && git push
 
 # FIXME: ONLY IF WE ARE NOT DEPLOYING FROM ELSEWHERE
-# -> also update clean up
   cudaq_image:
     name: Docker image
     needs: [metadata, cudaqdev_image, cudaqdev_deployment]
@@ -296,7 +295,6 @@ jobs:
           fi
 
 # FIXME: ONLY IF WE ARE NOT DEPLOYING FROM ELSEWHERE
-# -> also update clean up
   cudaq_deployment:
     name: Deploy image
     if: inputs.environment
@@ -311,16 +309,14 @@ jobs:
     name: Prepare cache clean-up
     needs: [cudaqdev_image, cudaq_image, documentation]
     runs-on: ubuntu-latest
-    if: always() # need to clean up even if the workflow is cancelled or fails
+    if: always() && inputs.environment == '' # need to clean up even if the workflow is cancelled or fails
 
     steps:
       - name: Save cache keys
         id: workflow_inputs
         run: |
-          if ${{ inputs.environment == '' }}; then
-            keys=${{ needs.cudaqdev_image.outputs.tar_cache }} 
-            keys+=" ${{ needs.cudaq_image.outputs.tar_cache }}"
-          fi
+          keys=${{ needs.cudaqdev_image.outputs.tar_cache }} 
+          keys+=" ${{ needs.cudaq_image.outputs.tar_cache }}"
           echo "$keys" >> cache_keys.txt
 
       - uses: actions/upload-artifact@v3
