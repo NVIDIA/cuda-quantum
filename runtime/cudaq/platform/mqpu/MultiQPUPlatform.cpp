@@ -132,6 +132,8 @@ public:
     platformNumQPUs = platformQPUs.size();
     platformCurrentQPU = 0;
   }
+
+  bool supports_task_distribution() const override { return true; }
 };
 } // namespace
 
