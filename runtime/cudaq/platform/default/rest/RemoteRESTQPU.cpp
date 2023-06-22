@@ -365,16 +365,18 @@ public:
 
     // Get the Quake code, lowered according to config file.
     auto codes = lowerQuakeCode(kernelName, args);
+    // Get the current execution context and number of shots
+    std::size_t localShots = 1000;
+    if (executionContext->shots != std::numeric_limits<std::size_t>::max() &&
+        executionContext->shots != 0)
+      localShots = executionContext->shots;
+
+    executor->setShots(localShots);
 
     // If emulation requested, then just grab the function
     // and invoke it with the simulator
     cudaq::details::future future;
     if (emulate) {
-      // Get the current execution context and number of shots
-      std::size_t localShots = 1000;
-      if (executionContext->shots != std::numeric_limits<std::size_t>::max() &&
-          executionContext->shots != 0)
-        localShots = executionContext->shots;
 
       // Launch the execution of the simulated jobs asynchronously
       future = cudaq::details::future(std::async(
