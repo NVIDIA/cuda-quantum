@@ -236,7 +236,7 @@ jobs:
 
       - name: Restore release build
         id: restore
-        if: needs.cudaqdev_deployment.outcome == 'skipped'
+        if: needs.cudaqdev_deployment.result == 'skipped'
         uses: actions/cache/restore@v3
         with:
           path: ${{ needs.cudaqdev_image.outputs.tar_archive }}
