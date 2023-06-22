@@ -11,7 +11,6 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/IR/IRMapping.h"
-#include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 
@@ -189,38 +188,22 @@ public:
     auto veqTy = quake::VeqType::get(ctx, currentOffset);
     analysis.newAlloc = rewriter.create<quake::AllocaOp>(loc, veqTy);
 
-    // 3. Replace the uses of the original alloca ops with uses of partitions of
-    // the new alloca op.
+    // 3. Greedily replace the uses of the original alloca ops with uses of
+    // partitions of the new alloca op. Replace subvec of subvec with a single
+    // new subvec. Replace extract from subvec with extract from original
+    // veq.
     {
       RewritePatternSet patterns(ctx);
       patterns.insert<AllocaPat>(ctx, analysis);
-      ConversionTarget target(*ctx);
-      target.addLegalDialect<quake::QuakeDialect, arith::ArithDialect>();
-      target.addDynamicallyLegalOp<quake::AllocaOp>([&](quake::AllocaOp alloc) {
-        return std::find(analysis.allocations.begin(),
-                         analysis.allocations.end(),
-                         alloc) == analysis.allocations.end();
-      });
-      if (failed(applyPartialConversion(func.getOperation(), target,
-                                        std::move(patterns)))) {
-        func.emitOpError("rewriting alloca ops failed");
-        signalPassFailure();
-      }
-    }
-
-    // 4. Greedily replace subvec of subvec with a single new subvec, and
-    // replace extract from subvec with extract from original veq.
-    {
-      RewritePatternSet patterns(ctx);
       patterns.insert<ExtractPat, SubVecPat>(ctx);
       if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
                                               std::move(patterns)))) {
-        func.emitOpError("combining subvec and extract ops failed");
+        func.emitOpError("combining alloca, subvec, and extract ops failed");
         signalPassFailure();
       }
     }
 
-    // 5. Remove the deallocations, if any. Add new dealloc to exits.
+    // 4. Remove the deallocations, if any. Add new dealloc to exits.
     if (!analysis.deallocs.empty()) {
       for (auto d : analysis.deallocs)
         d.erase();
