@@ -191,6 +191,7 @@ void unset_noise();
 void clear_shots(const std::size_t nShots);
 
 namespace mpi {
+
 /// @brief Initialize MPI if available. This function
 /// is a no-op if there CUDA Quantum has not been built
 /// against MPI.

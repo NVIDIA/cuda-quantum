@@ -21,11 +21,13 @@
 #ifdef CUDAQ_HAS_MPI
 #include <mpi.h>
 namespace cudaq::mpi {
+
 void initialize() {
   int argc{0};
   char **argv = nullptr;
   initialize(argc, argv);
 }
+
 void initialize(int argc, char **argv) {
   int pid, np, thread_provided;
   int mpi_error =
@@ -37,16 +39,19 @@ void initialize(int argc, char **argv) {
   if (pid == 0)
     cudaq::info("MPI Initialized, nRanks = {}", np);
 }
+
 int rank() {
   int pid;
   MPI_Comm_rank(MPI_COMM_WORLD, &pid);
   return pid;
 }
+
 int num_ranks() {
   int np;
   MPI_Comm_size(MPI_COMM_WORLD, &np);
   return np;
 }
+
 bool is_initialized() {
   int i;
   auto err = MPI_Initialized(&i);
@@ -55,6 +60,7 @@ bool is_initialized() {
 }
 
 namespace details {
+
 #define CUDAQ_ALL_REDUCE_IMPL(TYPE, MPI_TYPE, BINARY, MPI_OP)                  \
   TYPE allReduce(const TYPE &local, const BINARY<TYPE> &) {                    \
     TYPE result;                                                               \
@@ -67,6 +73,7 @@ CUDAQ_ALL_REDUCE_IMPL(float, MPI_FLOAT, std::multiplies, MPI_PROD)
 
 CUDAQ_ALL_REDUCE_IMPL(double, MPI_DOUBLE, std::plus, MPI_SUM)
 CUDAQ_ALL_REDUCE_IMPL(double, MPI_DOUBLE, std::multiplies, MPI_PROD)
+
 } // namespace details
 
 void finalize() {
@@ -75,16 +82,23 @@ void finalize() {
   int mpi_error = MPI_Finalize();
   assert(mpi_error == MPI_SUCCESS && "MPI_Finalize failed.");
 }
+
 } // namespace cudaq::mpi
 #else
 namespace cudaq::mpi {
+
 void initialize() {}
+
 void initialize(int argc, char **argv) {}
+
 bool is_initialized() { return false; }
+
 int rank() { return 0; }
+
 int num_ranks() { return 1; }
 
 namespace details {
+
 #define CUDAQ_ALL_REDUCE_IMPL(TYPE, BINARY)                                    \
   TYPE allReduce(const TYPE &local, const BINARY<TYPE> &) { return TYPE(); }
 
@@ -93,9 +107,11 @@ CUDAQ_ALL_REDUCE_IMPL(float, std::multiplies)
 
 CUDAQ_ALL_REDUCE_IMPL(double, std::plus)
 CUDAQ_ALL_REDUCE_IMPL(double, std::multiplies)
+
 } // namespace details
 
 void finalize() {}
+
 } // namespace cudaq::mpi
 #endif
 
