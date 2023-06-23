@@ -101,6 +101,23 @@ struct test5 {
 // CHECK-NOT:       quake.x %{{.*}} : (!quake.ref) -> ()
 // CHECK:           return
 
+struct test6 {
+  // Loop that decrements. Loop is not unrolled. It needs to be normalized.
+  void operator()() __qpu__ {
+    cudaq::qreg reg(1);
+    for (size_t i = 3; i-- > 0;)
+      x(reg[0]);
+    mz(reg);
+  }
+};
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__test6(
+// CHECK:           cc.loop while
+// CHECK:           } do {
+// CHECK:           quake.x %{{.*}} : (!quake.ref) -> ()
+// CHECK-NOT:       quake.x %{{.*}} : (!quake.ref) -> ()
+// CHECK:           return
+
 //===----------------------------------------------------------------------===//
 // The next 2 cases are negative tests. It is impossible to fully unroll a loop
 // when the number of iterations is not statically determinable.
