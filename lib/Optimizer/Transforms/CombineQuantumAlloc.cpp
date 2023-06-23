@@ -10,9 +10,8 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/Todo.h"
 #include "mlir/IR/IRMapping.h"
-#include "mlir/Transforms/DialectConversion.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 
 namespace cudaq::opt {
@@ -94,22 +93,56 @@ public:
   // ```
   LogicalResult matchAndRewrite(quake::ExtractRefOp extract,
                                 PatternRewriter &rewriter) const override {
-    if (auto subvec = extract.getVeq().getDefiningOp<quake::SubVecOp>()) {
-      Value offset;
-      auto loc = extract.getLoc();
-      Value low = subvec.getLow();
-      if (extract.hasConstantIndex()) {
-        Value cv = rewriter.create<arith::ConstantIntOp>(
-            loc, extract.getConstantIndex(), low.getType());
-        offset = rewriter.create<arith::AddIOp>(loc, cv, low);
-      } else {
-        Value cast = rewriter.create<cudaq::cc::CastOp>(loc, low.getType(),
-                                                        extract.getIndex());
-        offset = rewriter.create<arith::AddIOp>(loc, cast, low);
-      }
-      rewriter.replaceOpWithNewOp<quake::ExtractRefOp>(extract, subvec.getVeq(),
-                                                       offset);
+    auto subvec = extract.getVeq().getDefiningOp<quake::SubVecOp>();
+    if (!subvec || isa<quake::SubVecOp>(subvec.getVeq().getDefiningOp()))
+      return failure();
+
+    Value offset;
+    auto loc = extract.getLoc();
+    Value low = subvec.getLow();
+    if (extract.hasConstantIndex()) {
+      Value cv = rewriter.create<arith::ConstantIntOp>(
+          loc, extract.getConstantIndex(), low.getType());
+      offset = rewriter.create<arith::AddIOp>(loc, cv, low);
+    } else {
+      Value cast1 = rewriter.create<cudaq::cc::CastOp>(
+          loc, rewriter.getI64Type(), extract.getIndex(),
+          cudaq::cc::CastOpMode::Unsigned);
+      Value cast2 = rewriter.create<cudaq::cc::CastOp>(
+          loc, rewriter.getI64Type(), low, cudaq::cc::CastOpMode::Unsigned);
+      offset = rewriter.create<arith::AddIOp>(loc, cast1, cast2);
     }
+    rewriter.replaceOpWithNewOp<quake::ExtractRefOp>(extract, subvec.getVeq(),
+                                                     offset);
+    return success();
+  }
+};
+
+class SubVecPat : public OpRewritePattern<quake::SubVecOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::SubVecOp subvec,
+                                PatternRewriter &rewriter) const override {
+    auto prior = subvec.getVeq().getDefiningOp<quake::SubVecOp>();
+    if (!prior)
+      return failure();
+
+    auto loc = subvec.getLoc();
+    Value cast1 = rewriter.create<cudaq::cc::CastOp>(
+        loc, rewriter.getI64Type(), prior.getLow(),
+        cudaq::cc::CastOpMode::Unsigned);
+    Value cast2 = rewriter.create<cudaq::cc::CastOp>(
+        loc, rewriter.getI64Type(), subvec.getLow(),
+        cudaq::cc::CastOpMode::Unsigned);
+    Value cast3 = rewriter.create<cudaq::cc::CastOp>(
+        loc, rewriter.getI64Type(), subvec.getHigh(),
+        cudaq::cc::CastOpMode::Unsigned);
+    Value sum1 = rewriter.create<arith::AddIOp>(loc, cast1, cast2);
+    Value sum2 = rewriter.create<arith::AddIOp>(loc, cast1, cast3);
+    auto veqTy = subvec.getType();
+    rewriter.replaceOpWithNewOp<quake::SubVecOp>(subvec, veqTy, prior.getVeq(),
+                                                 sum1, sum2);
     return success();
   }
 };
@@ -155,44 +188,22 @@ public:
     auto veqTy = quake::VeqType::get(ctx, currentOffset);
     analysis.newAlloc = rewriter.create<quake::AllocaOp>(loc, veqTy);
 
-    // 3. Replace the uses of the original alloca ops with uses of partitions of
-    // the new alloca op.
+    // 3. Greedily replace the uses of the original alloca ops with uses of
+    // partitions of the new alloca op. Replace subvec of subvec with a single
+    // new subvec. Replace extract from subvec with extract from original
+    // veq.
     {
       RewritePatternSet patterns(ctx);
       patterns.insert<AllocaPat>(ctx, analysis);
-      ConversionTarget target(*ctx);
-      target.addLegalDialect<quake::QuakeDialect, arith::ArithDialect>();
-      target.addDynamicallyLegalOp<quake::AllocaOp>([&](quake::AllocaOp alloc) {
-        return std::find(analysis.allocations.begin(),
-                         analysis.allocations.end(),
-                         alloc) == analysis.allocations.end();
-      });
-      if (failed(applyPartialConversion(func.getOperation(), target,
-                                        std::move(patterns)))) {
-        func.emitOpError("rewriting alloca ops failed");
+      patterns.insert<ExtractPat, SubVecPat>(ctx);
+      if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
+                                              std::move(patterns)))) {
+        func.emitOpError("combining alloca, subvec, and extract ops failed");
         signalPassFailure();
       }
     }
 
-    // 4. Replace extract from subvec with extract from original veq.
-    {
-      RewritePatternSet patterns(ctx);
-      patterns.insert<ExtractPat>(ctx);
-      ConversionTarget target(*ctx);
-      target.addLegalDialect<quake::QuakeDialect, cudaq::cc::CCDialect,
-                             arith::ArithDialect>();
-      target.addDynamicallyLegalOp<quake::ExtractRefOp>(
-          [&](quake::ExtractRefOp ext) {
-            return !ext.getVeq().getDefiningOp<quake::SubVecOp>();
-          });
-      if (failed(applyPartialConversion(func.getOperation(), target,
-                                        std::move(patterns)))) {
-        func.emitOpError("combining subvec and extract ops failed");
-        signalPassFailure();
-      }
-    }
-
-    // 5. Remove the deallocations, if any. Add new dealloc to exits.
+    // 4. Remove the deallocations, if any. Add new dealloc to exits.
     if (!analysis.deallocs.empty()) {
       for (auto d : analysis.deallocs)
         d.erase();

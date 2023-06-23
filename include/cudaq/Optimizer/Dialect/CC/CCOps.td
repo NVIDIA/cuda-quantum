@@ -930,6 +930,13 @@ def cc_CastOp : CCOp<"cast", [Pure]> {
   let builders = [
     OpBuilder<(ins "mlir::Type":$resTy, "mlir::Value":$value), [{
       return build($_builder, $_state, resTy, value, {}, {});
+    }]>,
+    OpBuilder<(ins "mlir::Type":$resTy, "mlir::Value":$value,
+        "CastOpMode":$mode), [{
+      auto unitAttr = mlir::UnitAttr::get($_builder.getContext());
+      if (mode == CastOpMode::Signed)
+        return build($_builder, $_state, resTy, value, /*signed=*/unitAttr, {});
+      return build($_builder, $_state, resTy, value, {}, /*unsigned=*/unitAttr);
     }]>
   ];
 }
