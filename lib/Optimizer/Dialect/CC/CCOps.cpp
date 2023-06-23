@@ -328,6 +328,8 @@ Region &cudaq::cc::LoopOp::getLoopBody() { return getBodyRegion(); }
 // block is properly terminated.
 static void ensureStepTerminator(OpBuilder &builder, OperationState &result,
                                  Region *stepRegion) {
+  if (stepRegion->empty())
+    return;
   auto *block = &stepRegion->back();
   auto addContinue = [&]() {
     OpBuilder::InsertionGuard guard(builder);
