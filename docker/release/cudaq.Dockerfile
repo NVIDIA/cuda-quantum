@@ -102,6 +102,76 @@ RUN rm -rf \
 
 ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/cuda-11.8/lib64:/usr/local/cuda-11.8/extras/CUPTI/lib64"
 
+
+COPY --from=cudaqbuild /usr/local/pmi /usr/local/pmi
+
+# 3 - Mellanox OFED version 5.3-1.0.0.1
+RUN apt-get update && apt-get install -y gnupg && wget -qO - https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox | apt-key add - && \
+    mkdir -p /etc/apt/sources.list.d && wget -q -nc --no-check-certificate -P /etc/apt/sources.list.d https://linux.mellanox.com/public/repo/mlnx_ofed/5.3-1.0.0.1/ubuntu20.04/mellanox_mlnx_ofed.list && \
+    apt-get update -y && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        ibverbs-providers \
+        ibverbs-utils \
+        libibmad5 \
+        libibumad3 \
+        libibverbs1 \
+        librdmacm1 && \
+    rm -rf /var/lib/apt/lists/*
+
+# 4 - GDRCOPY version 2.1
+COPY --from=cudaqbuild /usr/local/gdrcopy /usr/local/gdrcopy
+RUN echo "/usr/local/gdrcopy/lib64" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig
+ENV CPATH=/usr/local/gdrcopy/include:$CPATH \
+    LIBRARY_PATH=/usr/local/gdrcopy/lib64:$LIBRARY_PATH
+
+RUN apt-get update -y && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        libgcrypt20 \
+        libnuma1 && \
+    rm -rf /var/lib/apt/lists/*
+
+# 5 - UCX from https://github.com/openucx/ucx.git
+ENV UCX_TAG=v1.13.1
+COPY --from=cudaqbuild /usr/local/ucx /usr/local/ucx
+
+# 6 - MUNGE from https://github.com/dun/munge/releases/download/munge-0.5.14/munge-0.5.14.tar.xz
+COPY --from=cudaqbuild /usr/local/munge /usr/local/munge
+
+# 7 - PMIX version 3.2.3
+RUN apt-get update -y && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        hwloc \
+        libevent-dev && \
+    rm -rf /var/lib/apt/lists/*
+COPY --from=cudaqbuild /usr/local/pmix /usr/local/pmix
+ENV CPATH=/usr/local/pmix/include:$CPATH \
+    LD_LIBRARY_PATH=/usr/local/pmix/lib:$LD_LIBRARY_PATH \
+    PATH=/usr/local/pmix/bin:$PATH
+
+# 8 - OMPI from https://github.com/open-mpi/ompi.git
+RUN apt-get update -y && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        flex openssh-client && \
+    rm -rf /var/lib/apt/lists/*
+ENV OMPI_TAG=v4.1.4
+COPY --from=cudaqbuild /usr/local/openmpi /usr/local/openmpi
+
+RUN echo "/usr/local/openmpi/lib" >> /etc/ld.so.conf.d/hpccm.conf && \
+    ldconfig
+
+ENV CPATH=/usr/local/openmpi/include:/usr/local/ofed/5.0-0/include:$CPATH \
+    LIBRARY_PATH=/usr/local/ofed/5.0-0/lib:$LIBRARY_PATH \
+    MPI_HOME=/usr/local/openmpi \
+    MPI_ROOT=/usr/local/openmpi \
+    OMPI_MCA_btl=^smcuda,vader,tcp,uct,openib \
+    OMPI_MCA_pml=ucx \
+    PATH=/usr/local/openmpi/bin:${PATH} \
+    UCX_IB_PCI_RELAXED_ORDERING=on \
+    UCX_MAX_RNDV_RAILS=1 \
+    UCX_MEMTYPE_CACHE=n \
+    UCX_WARN_UNUSED_ENV_VARS=n \
+    CUDA_VISIBLE_DEVICES=0
+
 # For now, the CUDA Quantum build hardcodes certain paths and hence expects to find its 
 # dependencies in specific locations. While a relocatable installation of CUDA Quantum should 
 # be a good/better option in the future, for now we make sure to copy the dependencies to the 
