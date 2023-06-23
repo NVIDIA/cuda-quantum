@@ -92,7 +92,7 @@ jobs:
     name: Create Packages
     needs: extdevdeps
     uses: ./.github/workflows/build_packages.yml
+    secrets: inherit
     with:
       devdeps_image: ${{ needs.extdevdeps.outputs.image_hash }}
       environment: ghcr-deployment
-      secrets: inherit
