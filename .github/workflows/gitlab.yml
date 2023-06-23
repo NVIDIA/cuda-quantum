@@ -10,7 +10,8 @@ workflow:
 #  - docker:20.10.16-dind
 
 default:
-  tags: os/linux
+  tags: 
+    - os/linux
   timeout: 1h
   interruptible: true
 
