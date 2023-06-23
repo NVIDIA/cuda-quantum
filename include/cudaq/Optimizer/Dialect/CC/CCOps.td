@@ -198,6 +198,7 @@ def cc_LoopOp : CCOp<"loop",
     AnyRegion:$stepRegion
   );
 
+  let hasCanonicalizer = 1;
   let hasCustomAssemblyFormat = 1;
   let hasVerifier = 1;
 

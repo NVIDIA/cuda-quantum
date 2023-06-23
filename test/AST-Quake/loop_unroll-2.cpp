@@ -211,8 +211,6 @@ struct for_loop_3 {
 // CHECK:           return
 
 struct for_loop_4 {
-  // Not unrolled because the upper bound constant is not canonicalized but
-  // instead passed as a block argument around the loop.
   void operator()() __qpu__ {
     cudaq::qreg reg(3);
     for (size_t i = 0, n = reg.size(); i < n; ++i)
@@ -226,16 +224,16 @@ struct for_loop_4 {
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__for_loop_4(
-// CHECK:           cc.loop while
-// CHECK:           } do {
+// CHECK:           quake.y %{{.*}} : (!quake.ref) -> ()
+// CHECK:           quake.y %{{.*}} : (!quake.ref) -> ()
 // CHECK:           quake.y %{{.*}} : (!quake.ref) -> ()
 // CHECK-NOT:       quake.y %{{.*}} : (!quake.ref) -> ()
-// CHECK:           cc.loop while
-// CHECK:           } do {
+// CHECK:           quake.h %{{.*}} : (!quake.ref) -> ()
+// CHECK:           quake.h %{{.*}} : (!quake.ref) -> ()
 // CHECK:           quake.h %{{.*}} : (!quake.ref) -> ()
 // CHECK-NOT:       quake.h %{{.*}} : (!quake.ref) -> ()
-// CHECK:           cc.loop while
-// CHECK:           } do {
+// CHECK:           quake.z %{{.*}} : (!quake.ref) -> ()
+// CHECK:           quake.z %{{.*}} : (!quake.ref) -> ()
 // CHECK:           quake.z %{{.*}} : (!quake.ref) -> ()
 // CHECK-NOT:       quake.z %{{.*}} : (!quake.ref) -> ()
 // CHECK:           return
