@@ -37,7 +37,7 @@ jobs:
       dockerfile: build/devdeps.Dockerfile
       toolchain: ${{ matrix.toolchain }}
       matrix_key: ${{ matrix.toolchain }}
-      registry_cache_update: ${{ github.event_name == 'workflow_dispatch' && inputs.update_registry_cache == 'true' }}
+      registry_cache_update: ${{ github.event_name == 'workflow_dispatch' && inputs.update_registry_cache }}
       registry_cache_update_only: ${{ github.event.pull_request.merged == true }}
       environment: ghcr-deployment
 
@@ -85,6 +85,7 @@ jobs:
       dockerfile: build/devdeps.ext.Dockerfile
       toolchain: llvm
       base_image: ${{ needs.config.outputs.base_image }}
+      registry_cache_update: ${{ github.event_name == 'workflow_dispatch' && inputs.update_registry_cache }}
       environment: ghcr-deployment
 
   docker_image:
