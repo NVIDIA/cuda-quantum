@@ -206,20 +206,9 @@ jobs:
 
       - name: Push staging info
         run: |
-          echo ${{ secrets.REPO_BOT_ACCESS_TOKEN != '' }}
-
-          image_name=${{ needs.metadata.outputs.image_name }}-dev
-          image_tag=${{ needs.metadata.outputs.image_tag }}
-          target_folder="deployments/staging/$image_name"
-
-          mkdir -p "$target_folder"
-          echo '${{ needs.cudaqdev_deployment.outputs.image_hash }}' >> $target_folder/$image_tag
-
           git config --global user.name "cuda-quantum-bot"
           git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
-
-          git add "$target_folder"
-          git commit -m "Staging information for $image_name:$image_tag (commit ${{ github.sha }})."
+          git commit --allow-empty -m "cuda-quantum-dev staged: ${{ needs.cudaqdev_deployment.outputs.image_hash }}"
           git pull --no-edit && git push
 
 # FIXME: ONLY IF WE ARE NOT DEPLOYING FROM ELSEWHERE
