@@ -202,7 +202,7 @@ jobs:
 
       - name: Push staging info
         run: |
-          echo ${{ secrets.REPO_BOT_ACCESS_TOKEN != "" }}
+          echo ${{ secrets.REPO_BOT_ACCESS_TOKEN != '' }}
 
           image_name=${{ needs.metadata.outputs.image_name }}-dev
           image_tag=${{ needs.metadata.outputs.image_tag }}
