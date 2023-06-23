@@ -85,6 +85,7 @@ jobs:
       dockerfile: build/devdeps.ext.Dockerfile
       toolchain: llvm
       base_image: ${{ needs.config.outputs.base_image }}
+      registry_cache_update: ${{ github.event_name == 'workflow_dispatch' && inputs.update_registry_cache == 'true' }}
       environment: ghcr-deployment
 
   docker_image:
