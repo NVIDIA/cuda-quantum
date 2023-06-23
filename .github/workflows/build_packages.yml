@@ -13,6 +13,10 @@ on:
       environment:
         required: false
         type: string
+    secrets:
+      REPO_BOT_ACCESS_TOKEN:
+        description: 'Access token used for deployments.'
+        required: false
 
 name: Packages # do not change name without updating workflow_run triggers
 
