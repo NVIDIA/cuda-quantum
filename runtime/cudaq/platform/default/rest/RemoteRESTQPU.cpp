@@ -59,9 +59,6 @@ std::string get_quake_by_name(const std::string &);
 
 namespace {
 
-constexpr char platformLoweringConfig[] = "PLATFORM_LOWERING_CONFIG";
-constexpr char codeEmissionType[] = "CODEGEN_EMISSION";
-
 /// @brief The RemoteRESTQPU is a subtype of QPU that enables the
 /// execution of CUDA Quantum kernels on remotely hosted quantum computing
 /// services via a REST Client / Server interaction. This type is meant
@@ -211,15 +208,15 @@ public:
 
     // Loop through the file, extract the pass pipeline and CODEGEN Type
     auto lines = cudaq::split(configContents, '\n');
-    for (auto &line : lines) {
-      if (line.find(platformLoweringConfig) != std::string::npos) {
-        auto keyVal = cudaq::split(line, '=');
-        auto value = std::regex_replace(keyVal[1], std::regex("\""), "");
-        cudaq::info("Appending lowering pipeline: {}", value);
-        passPipelineConfig += "," + value;
-      } else if (line.find(codeEmissionType) != std::string::npos) {
-        auto keyVal = cudaq::split(line, '=');
-        codegenTranslation = keyVal[1];
+    std::regex pipeline("PLATFORM_LOWERING_CONFIG\\s*=\\s*\"(\\S+)\"");
+    std::regex emissionType("CODEGEN_EMISSION\\s*=\\s*(\\S+)");
+    std::smatch match;
+    for (const std::string &line : lines) {
+      if (std::regex_search(line, match, pipeline)) {
+        cudaq::info("Appending lowering pipeline: {}", match[1].str());
+        passPipelineConfig += "," + match[1].str();
+      } else if (std::regex_search(line, match, emissionType)) {
+        codegenTranslation = match[1].str();
       }
     }
 
