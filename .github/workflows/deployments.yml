@@ -94,3 +94,4 @@ jobs:
     with:
       devdeps_image: ${{ needs.extdevdeps.outputs.image_hash }}
       environment: ghcr-deployment
+      secrets: inherit
