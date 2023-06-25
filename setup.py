@@ -53,10 +53,10 @@ skbuild.setup(
         "-DCMAKE_SHARED_LINKER_FLAGS='-static-libgcc -static-libstdc++'",
         "-DOPENSSL_ROOT_DIR=/usr/local/ssl", 
         "-DCUDAQ_CPR_INSTALL=/cpr/install",
-        "-DZLIB_ROOT=/cpr/install", 
+        # "-DZLIB_ROOT=/cpr/install", 
         # "-DCUDAQ_CPR_INSTALL={}".format(os.environ["CUDAQ_CPR_INSTALL"]) if "CUDAQ_CPR_INSTALL" in os.environ else "/cpr/install",
         # "-DZLIB_ROOT={}".format(os.environ["CUDAQ_CPR_INSTALL"]) if "CUDAQ_CPR_INSTALL" in os.environ else "/cpr/install", 
-        "-DZLIB_USE_STATIC_LIBS=TRUE",
+        # "-DZLIB_USE_STATIC_LIBS=TRUE",
         "-DCUDAQ_BUILD_RELOCATABLE_PACKAGE=TRUE"
     ],
-    setup_requires=["numpy", "pytest", "scikit-build"])
+    setup_requires=["numpy", "pytest", "scikit-build", "setuptools"])
