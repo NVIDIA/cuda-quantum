@@ -55,13 +55,14 @@ target_link_libraries(_pycudaq
       cudaq-platform-default 
       fmt::fmt-header-only)
 
-install(FILES cudaq/__init__.py DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq)
-install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq)
-
-install(FILES domains/chemistry/__init__.py DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq/chemistry)
-file(COPY domains/chemistry/__init__.py DESTINATION ${CMAKE_BINARY_DIR}/python/cudaq/chemistry)
-
-set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+if (NOT SKBUILD)
+  install(FILES cudaq/__init__.py DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq)
+  install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq) 
+  install(FILES domains/chemistry/__init__.py DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq/chemistry)
+  file(COPY domains/chemistry/__init__.py DESTINATION ${CMAKE_BINARY_DIR}/python/cudaq/chemistry)
+else()
+  install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX}
+endif()
 
 if(APPLE)
   set_target_properties(
