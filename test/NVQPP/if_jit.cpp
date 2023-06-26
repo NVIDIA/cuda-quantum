@@ -6,7 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ %s --target quantinuum --emulate && ./a.out | FileCheck %s
+// This code is from Issue 296.
+
+// RUN: nvq++ %s --target quantinuum --emulate -o %t.x && %t.x | FileCheck %s
+
+// CHECK: { 0:{{[0-9]+}} }
 
 #include <cudaq.h>
 
@@ -22,5 +26,3 @@ int main() {
   result.dump();
   return 0;
 }
-
-// CHECK: { 0:{{[0-9]+}} }

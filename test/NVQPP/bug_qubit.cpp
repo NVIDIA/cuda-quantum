@@ -8,7 +8,7 @@
 
 // This code is from Issue 251.
 
-// RUN: nvq++ --enable-mlir -v %s --target quantinuum --emulate && ./a.out | FileCheck %s
+// RUN: nvq++ --enable-mlir -v %s --target quantinuum --emulate -o %t.x && %t.x | FileCheck %s
 
 // CHECK: Test: { 0:{{[0-9]+}} 1:{{[0-9]+}} }
 
