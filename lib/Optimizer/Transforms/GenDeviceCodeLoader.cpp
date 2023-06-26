@@ -80,7 +80,12 @@ public:
         std::string thunkName = className.str() + ".thunk";
         std::string funcCode;
         llvm::raw_string_ostream strOut(funcCode);
-        strOut << "module { " << funcOp << '\n';
+        OpPrintingFlags opf;
+        opf.enableDebugInfo(/*enable=*/true,
+                            /*pretty=*/false);
+        strOut << "module { ";
+        funcOp.print(strOut, opf);
+        strOut << '\n';
 
         // We'll also need any non-inlined functions that are
         // called by our cudaq kernel
@@ -89,7 +94,8 @@ public:
                   module.lookupSymbol<func::FuncOp>(callOp.getCallee())) {
             if (neededFunc.empty())
               return WalkResult::skip();
-            strOut << neededFunc << '\n';
+            neededFunc.print(strOut, opf);
+            strOut << '\n';
             return WalkResult::advance();
           }
           return WalkResult::advance();

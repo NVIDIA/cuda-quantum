@@ -102,7 +102,7 @@ int main() {
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_iqft
-// CHECK-SAME:        (%[[VAL_0:.*]]: !quake.veq<?>) attributes {"cudaq-kernel"} {
+// CHECK-SAME:        (%[[VAL_0:.*]]: !quake.veq<?>{{.*}}) attributes {"cudaq-kernel"} {
 // CHECK:           %[[VAL_1:.*]] = quake.vec_size %[[VAL_0]] : (!quake.veq<?>) -> i64
 // CHECK:           %[[VAL_2:.*]] = arith.trunci %[[VAL_1]] : i64 to i32
 // CHECK:           %[[VAL_3:.*]] = cc.alloca i32
@@ -221,7 +221,7 @@ int main() {
 
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__tgate
-// CHECK-SAME:        (%[[VAL_0:.*]]: !quake.veq<?>) attributes
+// CHECK-SAME:        (%[[VAL_0:.*]]: !quake.veq<?>{{.*}}) attributes
 // CHECK:           %[[VAL_3:.*]] = quake.vec_size %[[VAL_0]] : (!quake.veq<?>) -> i64
 // CHECK:           %[[VAL_4:.*]] = arith.index_cast %[[VAL_3]] : i64 to index
 // CHECK:           %[[VAL_1:.*]] = arith.constant 0 : index
@@ -230,12 +230,12 @@ int main() {
 // CHECK:             %[[VAL_7:.*]] = arith.cmpi slt, %[[VAL_6]], %[[VAL_4]] : index
 // CHECK:             cc.condition %[[VAL_7]](%[[VAL_6]] : index)
 // CHECK:           } do {
-// CHECK:           ^bb0(%[[VAL_8:.*]]: index):
+// CHECK:           ^bb0(%[[VAL_8:.*]]: index
 // CHECK:             %[[VAL_9:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_8]]] : (!quake.veq<?>, index) -> !quake.ref
 // CHECK:             quake.t %[[VAL_9]] : (!quake.ref) -> ()
 // CHECK:             cc.continue %[[VAL_8]] : index
 // CHECK:           } step {
-// CHECK:           ^bb0(%[[VAL_10:.*]]: index):
+// CHECK:           ^bb0(%[[VAL_10:.*]]: index
 // CHECK:             %[[VAL_11:.*]] = arith.addi %[[VAL_10]], %[[VAL_2]] : index
 // CHECK:             cc.continue %[[VAL_11]] : index
 // CHECK:           }
@@ -243,7 +243,7 @@ int main() {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Z4mainE3$_0
-// CHECK-SAME:        (%[[VAL_0:.*]]: !quake.veq<?>)
+// CHECK-SAME:        (%[[VAL_0:.*]]: !quake.veq<?>
 // CHECK:           %[[VAL_3:.*]] = quake.vec_size %[[VAL_0]] : (!quake.veq<?>) -> i64
 // CHECK:           %[[VAL_4:.*]] = arith.index_cast %[[VAL_3]] : i64 to index
 // CHECK:           %[[VAL_1:.*]] = arith.constant 0 : index
@@ -252,12 +252,12 @@ int main() {
 // CHECK:             %[[VAL_7:.*]] = arith.cmpi slt, %[[VAL_6]], %[[VAL_4]] : index
 // CHECK:             cc.condition %[[VAL_7]](%[[VAL_6]] : index)
 // CHECK:           } do {
-// CHECK:           ^bb0(%[[VAL_8:.*]]: index):
+// CHECK:           ^bb0(%[[VAL_8:.*]]: index
 // CHECK:             %[[VAL_9:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_8]]] : (!quake.veq<?>, index) -> !quake.ref
 // CHECK:             quake.x %[[VAL_9]] :
 // CHECK:             cc.continue %[[VAL_8]] : index
 // CHECK:           } step {
-// CHECK:           ^bb0(%[[VAL_10:.*]]: index):
+// CHECK:           ^bb0(%[[VAL_10:.*]]: index
 // CHECK:             %[[VAL_11:.*]] = arith.addi %[[VAL_10]], %[[VAL_2]] : index
 // CHECK:             cc.continue %[[VAL_11]] : index
 // CHECK:           }
@@ -265,9 +265,7 @@ int main() {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__instance_qpe
-// CHECK-SAME:      (%[[VAL_0:.*]]: i32, %[[VAL_1:.*]]: i32,
-// CHECK-SAME:       %[[VAL_2:.*]]: !cc.lambda<(!quake.veq<?>) -> ()>,
-// CHECK-SAME:       %[[VAL_3:.*]]: !cc.struct<"tgate" {}>) attributes
+// CHECK-SAME:      (%[[VAL_0:.*]]: i32{{.*}}, %[[VAL_1:.*]]: i32{{.*}}, %[[VAL_2:.*]]: !cc.lambda<(!quake.veq<?>) -> ()>{{.*}}, %[[VAL_3:.*]]: !cc.struct<"tgate" {}>{{.*}}) attributes
 // CHECK:           %[[VAL_4:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_4]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_5:.*]] = cc.alloca i32
@@ -299,12 +297,12 @@ int main() {
 // CHECK:             %[[VAL_30:.*]] = arith.cmpi slt, %[[VAL_29]], %[[VAL_25]] : index
 // CHECK:             cc.condition %[[VAL_30]](%[[VAL_29]] : index)
 // CHECK:           } do {
-// CHECK:           ^bb0(%[[VAL_31:.*]]: index):
+// CHECK:           ^bb0(%[[VAL_31:.*]]: index
 // CHECK:             %[[VAL_32:.*]] = quake.extract_ref %[[VAL_16]]{{\[}}%[[VAL_31]]] : (!quake.veq<?>, index) -> !quake.ref
 // CHECK:             quake.h %[[VAL_32]] :
 // CHECK:             cc.continue %[[VAL_31]] : index
 // CHECK:           } step {
-// CHECK:           ^bb0(%[[VAL_33:.*]]: index):
+// CHECK:           ^bb0(%[[VAL_33:.*]]: index
 // CHECK:             %[[VAL_34:.*]] = arith.addi %[[VAL_33]], %[[VAL_27]] : index
 // CHECK:             cc.continue %[[VAL_34]] : index
 // CHECK:           }

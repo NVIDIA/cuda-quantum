@@ -19,7 +19,7 @@ struct k {
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__k
-// CHECK-SAME: (%[[VAL_0:.*]]: !quake.veq<?>)
+// CHECK-SAME: (%[[VAL_0:.*]]: !quake.veq<?>{{.*}})
 // CHECK:           quake.h %{{.*}}
 // CHECK:           quake.ry (%{{.*}}) %{{.*}}
 // CHECK:           quake.t %{{.*}}

@@ -19,8 +19,7 @@ __qpu__ void test(cudaq::qspan<> a, cudaq::qspan<> b) {
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test.
-// CHECK-SAME:        (%[[VAL_0:.*]]: !quake.veq<?>,
-// CHECK-SAME:         %[[VAL_1:.*]]: !quake.veq<?>) attributes {"cudaq-kernel"} {
+// CHECK-SAME:        (%[[VAL_0:.*]]: !quake.veq<?>{{.*}}, %[[VAL_1:.*]]: !quake.veq<?>{{.*}}) attributes
 // CHECK:           cc.scope {
 // CHECK:             %[[VAL_2:.*]] = quake.vec_size %[[VAL_0]] : (!quake.veq<?>) -> i64
 // CHECK:             %[[VAL_3:.*]] = arith.trunci %[[VAL_2]] : i64 to i32
