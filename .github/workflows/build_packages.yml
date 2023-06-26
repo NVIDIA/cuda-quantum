@@ -211,10 +211,7 @@ jobs:
         run: |
           git config --global user.name "cuda-quantum-bot"
           git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
-
-          # FIXME: SHOULD BE THE LINE BELOW INSTEAD:
-          git commit --allow-empty -m "ghcr.io/nvidia/cuda-quantum-devdeps@sha256:82bd11902d0e7e385dad1cc62e2e34e2099edefc87f124463867a455d797d64c"
-          #git commit --allow-empty -m "${{ needs.cudaqdev_deployment.outputs.image_hash }}"
+          git commit --allow-empty -m "${{ needs.cudaqdev_deployment.outputs.image_hash }}"
           git pull --no-edit && git push
 
   ompi_image:
