@@ -179,7 +179,6 @@ jobs:
 
   cudaqdev_deployment:
     name: Deploy build
-    id: cudaqdev_deployment
     if: inputs.environment
     needs: [cudaqdev_image, documentation]
     uses: ./.github/workflows/deploy_to_registry.yml
