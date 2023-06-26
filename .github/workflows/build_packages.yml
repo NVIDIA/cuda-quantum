@@ -318,6 +318,9 @@ jobs:
           rm -rf "${{ needs.cudaqdev_image.outputs.tar_archive }}"
           docker image rm $base_image
           docker image rm $cudaqdev_image
+          docker image prune --all --force
+          docker container prune --force
+          docker volume prune --force
           docker builder prune --all --force
           docker save $image_name:$image_tag > $tar_archive
 
