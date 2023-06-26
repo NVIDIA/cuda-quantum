@@ -218,9 +218,6 @@ jobs:
           #git commit --allow-empty -m "${{ needs.cudaqdev_deployment.outputs.image_hash }}"
           git pull --no-edit && git push
 
-files=(git diff-tree --no-commit-id --name-only -r $CI_COMMIT_SHA)
-git diff --name-only ${CI_COMMIT_BEFORE_SHA}...${CI_COMMIT_SHA}
-
   ompi_image:
     name: Open MPI
     if: inputs.ompidev_image
@@ -279,7 +276,7 @@ git diff --name-only ${CI_COMMIT_BEFORE_SHA}...${CI_COMMIT_SHA}
 
       - name: Restore release build
         id: restore_cudaqdev
-        if: needs.cudaqdev_deployment.outcome == 'skipped'
+        if: needs.cudaqdev_deployment.result == 'skipped'
         uses: actions/cache/restore@v3
         with:
           path: ${{ needs.cudaqdev_image.outputs.tar_archive }}
@@ -288,7 +285,7 @@ git diff --name-only ${CI_COMMIT_BEFORE_SHA}...${CI_COMMIT_SHA}
 
       - name: Restore OpenMPI build
         id: restore_openmpi
-        if: needs.ompi_image.outcome != 'skipped'
+        if: needs.ompi_image.result != 'skipped'
         uses: actions/cache/restore@v3
         with:
           path: ${{ needs.ompi_image.outputs.tar_archive }}
