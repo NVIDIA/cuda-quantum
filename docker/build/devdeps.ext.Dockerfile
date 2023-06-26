@@ -6,17 +6,15 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# This file extends the CUDA Quantum development dependencies to include the necessary 
-# dependencies for GPU components and backends. This image include an OpenMPI
-# installation as well as the configured CUDA packages. Which CUDA packages are 
-# included is defined by the cuda_packages argument. 
+# This file contains additional CUDA Quantum development dependencies. 
+# The image installs cuQuantum, cuTensor, and the CUDA packages defined by the
+# cuda_packages build argument. It copies the OpenMPI installation and its 
+# dependencies from the given ompidev_image. The copied paths can be configured
+# via build arguments.  
 #
 # Usage:
 # Must be built from the repo root with:
-#   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:ext-${toolchain} -f docker/build/devdeps.ext.Dockerfile .
-#
-# The variable $toolchain should indicate which compiler toolchain the development environment 
-# which this image extends is configure with; see also docker/build/devdeps.Dockerfile.
+#   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:ext -f docker/build/devdeps.ext.Dockerfile .
 
 ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:llvm-main
 ARG ompidev_image=ghcr.io/nvidia/cuda-quantum-devdeps:ompi-main
@@ -46,16 +44,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends gnupg \
 
 # Copy over SLURM PMI2.
 
-COPY --from=ompibuild /usr/local/pmi /usr/local/pmi
-ENV PMI_INSTALL_PREFIX=/usr/local/pmi
+ARG PMI_INSTALL_PREFIX=/usr/local/pmi
+ENV PMI_INSTALL_PREFIX="$PMI_INSTALL_PREFIX"
 ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$PMIX_INSTALL_PREFIX/lib"
+COPY --from=ompibuild "$PMI_INSTALL_PREFIX" "$PMI_INSTALL_PREFIX"
 
 # Copy over GDRCOPY and install runtime dependencies.
 
-COPY --from=ompibuild /usr/local/gdrcopy /usr/local/gdrcopy
-ENV GDRCOPY_INSTALL_PREFIX=/usr/local/gdrcopy
+ARG GDRCOPY_INSTALL_PREFIX=/usr/local/gdrcopy
+ENV GDRCOPY_INSTALL_PREFIX="$GDRCOPY_INSTALL_PREFIX"
 ENV CPATH="$GDRCOPY_INSTALL_PREFIX/include:$CPATH"
 ENV LIBRARY_PATH="$GDRCOPY_INSTALL_PREFIX/lib64:$LIBRARY_PATH"
+COPY --from=ompibuild "$GDRCOPY_INSTALL_PREFIX" "$GDRCOPY_INSTALL_PREFIX"
 
 RUN echo "$GDRCOPY_INSTALL_PREFIX/lib64" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig \
     && apt-get update -y && apt-get install -y --no-install-recommends \
@@ -64,22 +64,25 @@ RUN echo "$GDRCOPY_INSTALL_PREFIX/lib64" >> /etc/ld.so.conf.d/hpccm.conf && ldco
 
 # Copy over UCX.
 
-COPY --from=ompibuild /usr/local/ucx /usr/local/ucx
-ENV UCX_INSTALL_PREFIX=/usr/local/ucx
+ARG UCX_INSTALL_PREFIX=/usr/local/ucx
+ENV UCX_INSTALL_PREFIX="$UCX_INSTALL_PREFIX"
 ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$UCX_INSTALL_PREFIX/lib"
+COPY --from=ompibuild "$UCX_INSTALL_PREFIX" "$UCX_INSTALL_PREFIX"
 
 # Copy over MUNGE.
 
-COPY --from=ompibuild /usr/local/munge /usr/local/munge
-ENV MUNGE_INSTALL_PREFIX=/usr/local/munge
+ARG MUNGE_INSTALL_PREFIX=/usr/local/munge
+ENV MUNGE_INSTALL_PREFIX="$MUNGE_INSTALL_PREFIX"
+COPY --from=ompibuild "$MUNGE_INSTALL_PREFIX" "$MUNGE_INSTALL_PREFIX"
 
 # Copy over PMIX and install runtime dependencies.
 
-COPY --from=ompibuild /usr/local/pmix /usr/local/pmix
-ENV PMIX_INSTALL_PREFIX=/usr/local/pmix
+ARG PMIX_INSTALL_PREFIX=/usr/local/pmix
+ENV PMIX_INSTALL_PREFIX="$PMIX_INSTALL_PREFIX"
 ENV PATH="$PMIX_INSTALL_PREFIX/bin:$PATH"
 ENV CPATH="$PMIX_INSTALL_PREFIX/include:$CPATH"
 ENV LD_LIBRARY_PATH="$PMIX_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
+COPY --from=ompibuild "$PMIX_INSTALL_PREFIX" "$PMIX_INSTALL_PREFIX"
 
 RUN apt-get update -y && apt-get install -y --no-install-recommends \
         hwloc libevent-dev \
@@ -87,16 +90,17 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
 
 # Copy over OpenMPI and install runtime dependencies.
 
-COPY --from=ompibuild /usr/local/openmpi /usr/local/openmpi
-ENV OPENMPI_INSTALL_PREFIX=/usr/local/openmpi
+ARG OPENMPI_INSTALL_PREFIX=/usr/local/openmpi
+ENV OPENMPI_INSTALL_PREFIX="$OPENMPI_INSTALL_PREFIX"
 ENV MPI_HOME="$OPENMPI_INSTALL_PREFIX"
 ENV MPI_ROOT="$OPENMPI_INSTALL_PREFIX"
 ENV PATH="$PATH:$OPENMPI_INSTALL_PREFIX/bin"
 ENV CPATH="$OPENMPI_INSTALL_PREFIX/include:/usr/local/ofed/5.0-0/include:$CPATH"
 ENV LIBRARY_PATH="/usr/local/ofed/5.0-0/lib:$LIBRARY_PATH"
 ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$OPENMPI_INSTALL_PREFIX/lib"
+COPY --from=ompibuild "$OPENMPI_INSTALL_PREFIX" "$OPENMPI_INSTALL_PREFIX"
 
-RUN echo "/usr/local/openmpi/lib" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig \
+RUN echo "$OPENMPI_INSTALL_PREFIX/lib" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig \
     && apt-get update -y && apt-get install -y --no-install-recommends \
         flex openssh-client \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
@@ -112,28 +116,31 @@ ENV UCX_TLS=rc,cuda_copy,cuda_ipc,gdr_copy,sm
 
 # Install cuQuantum libraries.
 
+ARG CUQUANTUM_INSTALL_PREFIX=/opt/nvidia/cuquantum
+ENV CUQUANTUM_INSTALL_PREFIX="$CUQUANTUM_INSTALL_PREFIX"
+ENV LD_LIBRARY_PATH="$CUQUANTUM_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
+
 RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
     && wget https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-x86_64/cuquantum-linux-x86_64-22.11.0.13-archive.tar.xz \
     && tar xf cuquantum-linux-x86_64-22.11.0.13-archive.tar.xz \
-    && mkdir -p /opt/nvidia && mv cuquantum-linux-x86_64-22.11.0.13-archive /opt/nvidia/cuquantum \
+    && mkdir -p /opt/nvidia && mv cuquantum-linux-x86_64-22.11.0.13-archive "$CUQUANTUM_INSTALL_PREFIX" \
     && cd / && rm -rf cuquantum-linux-x86_64-22.11.0.13-archive.tar.xz \
     && apt-get remove -y xz-utils \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
-ENV CUQUANTUM_INSTALL_PREFIX=/opt/nvidia/cuquantum
-ENV LD_LIBRARY_PATH="$CUQUANTUM_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
-
 # Install cuTensor libraries.
+
+ARG CUTENSOR_INSTALL_PREFIX=/opt/nvidia/cutensor
+ENV CUTENSOR_INSTALL_PREFIX="$CUTENSOR_INSTALL_PREFIX"
+ENV LD_LIBRARY_PATH="$CUTENSOR_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
+
 RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
     && wget https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor/linux-x86_64/libcutensor-linux-x86_64-1.6.2.3-archive.tar.xz \
     && tar xf libcutensor-linux-x86_64-1.6.2.3-archive.tar.xz && cd libcutensor-linux-x86_64-1.6.2.3-archive \
-    && mkdir -p /opt/nvidia/cutensor && mv include /opt/nvidia/cutensor/ && mv lib/11 /opt/nvidia/cutensor/lib \
+    && mkdir -p "$CUTENSOR_INSTALL_PREFIX" && mv include "$CUTENSOR_INSTALL_PREFIX" && mv lib/11 "$CUTENSOR_INSTALL_PREFIX/lib" \
     && cd / && rm -rf libcutensor-linux-x86_64-1.6.2.3-archive* \
     && apt-get remove -y xz-utils \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
-
-ENV CUTENSOR_INSTALL_PREFIX=/opt/nvidia/cutensor
-ENV LD_LIBRARY_PATH="$CUTENSOR_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
 
 # Install CUDA 11.8.
 
