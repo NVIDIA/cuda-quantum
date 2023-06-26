@@ -71,6 +71,7 @@ jobs:
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
       base_image: ${{ fromJson(steps.read_json.outputs.result).image_hash.llvm }}
+      toolchain: llvm
 
     steps:
       - uses: cloudposse/github-action-matrix-outputs-read@0.1.1
@@ -78,21 +79,32 @@ jobs:
         with:
           matrix-step-name: dev_environment
 
+  openmpi:
+    if: github.event_name != 'pull_request_target'
+    uses: ./.github/workflows/dev_environment.yml
+    with:
+      dockerfile: build/devdeps.ompi.Dockerfile
+      registry_cache_update: true
+      environment: ghcr-deployment
+
   extdevdeps:
     uses: ./.github/workflows/dev_environment.yml
-    needs: config
+    needs: [config, openmpi]
     with:
       dockerfile: build/devdeps.ext.Dockerfile
-      toolchain: llvm
-      base_image: ${{ needs.config.outputs.base_image }}
+      toolchain: ${{ needs.config.outputs.toolchain }}
+      build_args: |
+        base_image=${{ needs.config.outputs.base_image }}
+        ompidev_image=${{ needs.openmpi.outputs.image_hash }}
       registry_cache_update: ${{ github.event_name == 'workflow_dispatch' && inputs.update_registry_cache }}
       environment: ghcr-deployment
 
   docker_image:
     name: Create Packages
-    needs: extdevdeps
+    needs: [extdevdeps, openmpi]
     uses: ./.github/workflows/build_packages.yml
     secrets: inherit
     with:
+      ompidev_image: ${{ needs.openmpi.outputs.image_hash }}
       devdeps_image: ${{ needs.extdevdeps.outputs.image_hash }}
       environment: ghcr-deployment

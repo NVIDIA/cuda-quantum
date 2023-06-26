@@ -8,7 +8,7 @@
 
 # Usage:
 # Build from the repo root with
-#   docker build -t nvidia/cuda-quantum-dev:latest -f docker/build/cudaqdev.Dockerfile .
+#   docker build -t nvidia/cuda-quantum-dev:latest -f docker/build/cudaq.dev.Dockerfile .
 #
 # If a custom base image is used, then that image (i.e. the build environment) must 
 # 1) have all the necessary build dependendencies installed

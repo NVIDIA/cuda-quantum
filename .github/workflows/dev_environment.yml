@@ -7,6 +7,9 @@ on:
       build_target:
         required: false
         type: string
+      build_args:
+        required: false
+        type: string
       registry_cache_from:
         required: false
         type: string
@@ -29,9 +32,6 @@ on:
         required: false
         type: string
       additional_local_caches:
-        required: false
-        type: string
-      base_image:
         required: false
         type: string
       toolchain:
@@ -95,8 +95,8 @@ jobs:
           image_title=cuda-quantum-`echo $image_id | cut -d "." -f 1`
           image_name=${{ vars.registry || 'ghcr.io' }}/${repo_owner,,}/$image_title
           toolchain=${{ inputs.toolchain }}
-          tag_prefix=${toolchain:+$toolchain-}
-          tag_suffix=`echo $image_id | cut -s -d "." -f 2- | xargs -I "%" echo .% | tr . -`
+          tag_prefix=`echo $image_id | cut -s -d "." -f 2- | xargs -I "%" echo %. | tr . -`${toolchain:+$toolchain-}
+          tag_suffix=""
 
           if ${{ inputs.pull_request_number != '' }}; then
             custom_tags="type=raw,value=pr-${{ inputs.pull_request_number }}"
@@ -229,9 +229,9 @@ jobs:
           file: ./docker/${{ needs.metadata.outputs.dockerfile }}
           target: ${{ inputs.build_target }}
           build-args: |
-            base_image=${{ inputs.base_image }}
             toolchain=${{ inputs.toolchain }}
             llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
+            ${{ inputs.build_args }}
           load: false
           tags: ${{ needs.metadata.outputs.image_tags }}
           labels: ${{ needs.metadata.outputs.image_labels }}

@@ -1,6 +1,9 @@
 on:
   workflow_call:
     inputs:
+      ompidev_image:
+        required: false
+        type: string
       devdeps_image:
         required: false
         type: string
@@ -91,7 +94,7 @@ jobs:
             exit 1
           fi
 
-          docker build -t $image_name:$image_tag -f docker/build/cudaqdev.Dockerfile . \
+          docker build -t $image_name:$image_tag -f docker/build/cudaq.dev.Dockerfile . \
             --build-arg base_image=$base_image \
             --build-arg install="CMAKE_BUILD_TYPE=Release FORCE_COMPILE_GPU_COMPONENTS=true"
 
@@ -176,6 +179,7 @@ jobs:
 
   cudaqdev_deployment:
     name: Deploy build
+    id: cudaqdev_deployment
     if: inputs.environment
     needs: [cudaqdev_image, documentation]
     uses: ./.github/workflows/deploy_to_registry.yml
@@ -214,11 +218,50 @@ jobs:
           #git commit --allow-empty -m "${{ needs.cudaqdev_deployment.outputs.image_hash }}"
           git pull --no-edit && git push
 
+  ompi_image:
+    name: Open MPI
+    if: inputs.ompidev_image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    outputs:
+      tar_cache: ${{ steps.open_mpi.outputs.tar_cache }}
+      tar_archive: ${{ steps.open_mpi.outputs.tar_archive }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: OpenMPI installation
+        id: open_mpi
+        run: |
+          tar_archive=/tmp/open-mpi.tar
+          docker pull ${{ inputs.ompidev_image }}
+
+          docker build -t open-mpi:local -f docker/build/devdeps.ext.Dockerfile . \
+            --build-arg ompidev_image=${{ inputs.ompidev_image }} \
+            --build-arg cuda_packages=cuda-runtime-11-8
+            --build-arg base_image=ubuntu:22.04
+
+          docker image rm ${{ inputs.ompidev_image }}
+          docker builder prune --all --force
+          docker save open-mpi:local > $tar_archive
+
+          echo "tar_cache=tar-ompi-${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
+
+      - name: Cache cuda-quantum image
+        uses: actions/cache/save@v3
+        with:
+          path: ${{ steps.open_mpi.outputs.tar_archive }}
+          key: ${{ steps.open_mpi.outputs.tar_cache }}
+
 # FIXME: ONLY IF WE ARE NOT DEPLOYING FROM ELSEWHERE
   cudaq_image:
     name: Docker image
-    needs: [metadata, cudaqdev_image, cudaqdev_deployment]
-    # Force this job to run even when one of the dependencies (needs) above is skipped.
+    needs: [metadata, ompi_image, cudaqdev_image, cudaqdev_deployment]
+    # Force this job to run even when some of the dependencies (needs) above are skipped.
     if: always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
     permissions:
@@ -233,12 +276,21 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Restore release build
-        id: restore
+        id: restore_cudaqdev
         if: needs.cudaqdev_deployment.result == 'skipped'
         uses: actions/cache/restore@v3
         with:
           path: ${{ needs.cudaqdev_image.outputs.tar_archive }}
           key: ${{ needs.cudaqdev_image.outputs.tar_cache }}
+          fail-on-cache-miss: true
+
+      - name: Restore OpenMPI build
+        id: restore_openmpi
+        if: needs.ompi_image.result != 'skipped'
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ needs.ompi_image.outputs.tar_archive }}
+          key: ${{ needs.ompi_image.outputs.tar_cache }}
           fail-on-cache-miss: true
 
       - name: Build cuda-quantum image
@@ -248,14 +300,21 @@ jobs:
           image_tag=${{ needs.metadata.outputs.image_tag }}
           tar_archive=/tmp/cuda-quantum.tar
 
-          if ${{ steps.restore.outcome != 'skipped' }}; then
-            base_image=`docker load --input ${{ needs.cudaqdev_image.outputs.tar_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+          if ${{ steps.restore_openmpi.outcome != 'skipped' }}; then
+            base_image=`docker load --input ${{ needs.ompi_image.outputs.tar_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+          else
+            base_image=ubuntu:22.04
+          fi
+
+          if ${{ steps.restore_cudaqdev.outcome != 'skipped' }}; then
+            cudaqdev_image=`docker load --input ${{ needs.cudaqdev_image.outputs.tar_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
           else
             docker pull ${{ needs.cudaqdev_deployment.outputs.image_hash }}
-            base_image=${{ needs.cudaqdev_deployment.outputs.image_hash }}
+            cudaqdev_image=${{ needs.cudaqdev_deployment.outputs.image_hash }}
           fi
 
           docker build -t $image_name:$image_tag -f docker/release/cudaq.Dockerfile . \
+            --build-arg cudaqdev_image=$cudaqdev_image \
             --build-arg base_image=$base_image \
             --build-arg release_version=$image_tag
 

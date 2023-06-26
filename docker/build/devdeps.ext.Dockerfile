@@ -13,157 +13,15 @@
 #
 # Usage:
 # Must be built from the repo root with:
-#   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:${toolchain}-ext -f docker/build/devdeps.ext.Dockerfile .
+#   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:ext-${toolchain} -f docker/build/devdeps.ext.Dockerfile .
 #
 # The variable $toolchain should indicate which compiler toolchain the development environment 
 # which this image extends is configure with; see also docker/build/devdeps.Dockerfile.
 
 ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:llvm-main
+ARG ompidev_image=ghcr.io/nvidia/cuda-quantum-devdeps:ompi-main
+FROM $ompidev_image as ompibuild
 
-FROM nvidia/cuda:11.8.0-devel-ubuntu22.04 as ompibuild
-SHELL ["/bin/bash", "-c"]
-ARG DEBIAN_FRONTEND=noninteractive
-
-ENV CUDA_INSTALL_PREFIX=/usr/local/cuda-11.8
-ENV COMMON_COMPILER_FLAGS="-march=x86-64-v3 -mtune=generic -O2 -pipe"
-
-# 1 - Install basic tools needed for the builds
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        gcc g++ gfortran python3 python3-pip \
-        libcurl4-openssl-dev libssl-dev liblapack-dev libpython3-dev \
-        bzip2 make sudo vim curl git wget \
-    && pip install --no-cache-dir numpy \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
-
-# 2 - Install SLURM PMI2 version 21.08.8
-
-ENV PMI_INSTALL_PREFIX=/usr/local/pmi
-RUN mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://download.schedmd.com/slurm/slurm-21.08.8.tar.bz2 \
-    && tar -x -f /var/tmp/slurm-21.08.8.tar.bz2 -C /var/tmp -j && cd /var/tmp/slurm-21.08.8 \
-    &&  CC=gcc CFLAGS="$COMMON_COMPILER_FLAGS" \
-        CXX=g++ CXXFLAGS="$COMMON_COMPILER_FLAGS" \
-        F77=gfortran F90=gfortran FFLAGS="$COMMON_COMPILER_FLAGS" \
-        FC=gfortran FCFLAGS="$COMMON_COMPILER_FLAGS" \
-        LDFLAGS=-Wl,--as-needed \
-        ./configure --prefix="$PMI_INSTALL_PREFIX" \
-    && make -C contribs/pmi2 install \
-    && rm -rf /var/tmp/slurm-21.08.8 /var/tmp/slurm-21.08.8.tar.bz2
-
-# 3 - Install Mellanox OFED version 5.3-1.0.0.1
-
-RUN wget -qO - https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox | apt-key add - \
-    && mkdir -p /etc/apt/sources.list.d && wget -q -nc --no-check-certificate -P /etc/apt/sources.list.d https://linux.mellanox.com/public/repo/mlnx_ofed/5.3-1.0.0.1/ubuntu20.04/mellanox_mlnx_ofed.list \
-    && apt-get update -y && apt-get install -y --no-install-recommends \
-        ibverbs-providers ibverbs-utils \
-        libibmad-dev libibmad5 libibumad-dev libibumad3 \
-        libibverbs-dev libibverbs1 \
-        librdmacm-dev librdmacm1 \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
-
-# 4 - Install GDRCOPY version 2.1
-
-ENV GDRCOPY_INSTALL_PREFIX=/usr/local/gdrcopy
-RUN apt-get update -y && apt-get install -y --no-install-recommends \
-        autoconf automake \
-        libgcrypt20-dev libnuma-dev libtool \
-    && mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://github.com/NVIDIA/gdrcopy/archive/v2.1.tar.gz \
-    && tar -x -f /var/tmp/v2.1.tar.gz -C /var/tmp -z && cd /var/tmp/gdrcopy-2.1 \
-    && mkdir -p "$GDRCOPY_INSTALL_PREFIX/include" "$GDRCOPY_INSTALL_PREFIX/lib64" \
-    && make PREFIX="$GDRCOPY_INSTALL_PREFIX" lib lib_install \
-    && echo "$GDRCOPY_INSTALL_PREFIX/lib64" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig \
-    && rm -rf /var/tmp/gdrcopy-2.1 /var/tmp/v2.1.tar.gz \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
-
-ENV CPATH="$GDRCOPY_INSTALL_PREFIX/include:$CPATH"
-ENV LIBRARY_PATH="$GDRCOPY_INSTALL_PREFIX/lib64:$LIBRARY_PATH"
-
-# 5 - Install UCX version v1.13.1
-
-ENV UCX_INSTALL_PREFIX=/usr/local/ucx
-RUN mkdir -p /var/tmp && cd /var/tmp \
-    && git clone https://github.com/openucx/ucx.git ucx && cd /var/tmp/ucx \
-    && git checkout v1.13.1 \
-    && ./autogen.sh \
-    &&  CC=gcc CFLAGS="$COMMON_COMPILER_FLAGS" \
-        CXX=g++ CXXFLAGS="$COMMON_COMPILER_FLAGS" \
-        F77=gfortran F90=gfortran FFLAGS="$COMMON_COMPILER_FLAGS" \
-        FC=gfortran FCFLAGS="$COMMON_COMPILER_FLAGS" \
-        LDFLAGS=-Wl,--as-needed \
-        ./configure --prefix="$UCX_INSTALL_PREFIX" \
-            --with-cuda="$CUDA_INSTALL_PREFIX" --with-gdrcopy="$GDRCOPY_INSTALL_PREFIX" \
-            --disable-assertions --disable-backtrace-detail --disable-debug \
-            --disable-params-check --disable-static \
-            --disable-doxygen-doc --disable-logging \
-            --enable-mt \
-    && make -j$(nproc) && make -j$(nproc) install \
-    && rm -rf /var/tmp/ucx
-
-# 6 - Install MUNGE version 0.5.14
-
-ENV MUNGE_INSTALL_PREFIX=/usr/local/munge
-RUN mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://github.com/dun/munge/releases/download/munge-0.5.14/munge-0.5.14.tar.xz \
-    && tar -x -f /var/tmp/munge-0.5.14.tar.xz -C /var/tmp -J && cd /var/tmp/munge-0.5.14 \
-    &&  CC=gcc CFLAGS="$COMMON_COMPILER_FLAGS" \
-        CXX=g++ CXXFLAGS="$COMMON_COMPILER_FLAGS" \
-        F77=gfortran F90=gfortran FFLAGS="$COMMON_COMPILER_FLAGS" \
-        FC=gfortran FCFLAGS="$COMMON_COMPILER_FLAGS" \
-        LDFLAGS=-Wl,--as-needed \
-        ./configure --prefix="$MUNGE_INSTALL_PREFIX" \
-    && make -j$(nproc) && make -j$(nproc) install \
-    && rm -rf /var/tmp/munge-0.5.14 /var/tmp/munge-0.5.14.tar.xz
-
-# 7 - Install PMIX version 3.2.3
-
-ENV PMIX_INSTALL_PREFIX=/usr/local/pmix
-RUN apt-get update -y && apt-get install -y --no-install-recommends \
-        hwloc libevent-dev \
-    && mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://github.com/openpmix/openpmix/releases/download/v3.2.3/pmix-3.2.3.tar.gz \
-    && tar -x -f /var/tmp/pmix-3.2.3.tar.gz -C /var/tmp -z && cd /var/tmp/pmix-3.2.3 \
-    &&  CC=gcc CFLAGS="$COMMON_COMPILER_FLAGS" \
-        CXX=g++ CXXFLAGS="$COMMON_COMPILER_FLAGS" \
-        F77=gfortran F90=gfortran FFLAGS="$COMMON_COMPILER_FLAGS" \
-        FC=gfortran FCFLAGS="$COMMON_COMPILER_FLAGS" \
-        LDFLAGS=-Wl,--as-needed \
-        ./configure --prefix="$PMIX_INSTALL_PREFIX" \
-            --with-munge="$MUNGE_INSTALL_PREFIX" \
-    && make -j$(nproc) && make -j$(nproc) install \
-    && rm -rf /var/tmp/pmix-3.2.3 /var/tmp/pmix-3.2.3.tar.gz \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
-
-ENV CPATH="$PMIX_INSTALL_PREFIX/include:$CPATH" \
-    LD_LIBRARY_PATH="$PMIX_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH" \
-    PATH="$PMIX_INSTALL_PREFIX/bin:$PATH"
-
-# 8 - Install OMPI version 4.1.4
-
-ENV OPENMPI_INSTALL_PREFIX=/usr/local/openmpi
-RUN apt-get update -y && apt-get install -y --no-install-recommends \
-        flex openssh-client \
-    && mkdir -p /var/tmp && cd /var/tmp \
-    && git clone https://github.com/open-mpi/ompi.git ompi && cd /var/tmp/ompi \
-    && git checkout v4.1.4 \
-    && ./autogen.pl \
-    &&  CC=gcc CFLAGS="$COMMON_COMPILER_FLAGS" \
-        CXX=g++ CXXFLAGS="$COMMON_COMPILER_FLAGS" \
-        F77=gfortran F90=gfortran FFLAGS="$COMMON_COMPILER_FLAGS" \
-        FC=gfortran FCFLAGS="$COMMON_COMPILER_FLAGS" \
-        LDFLAGS=-Wl,--as-needed \
-        ./configure --prefix="$OPENMPI_INSTALL_PREFIX" \
-            --disable-getpwuid --disable-static \
-            --disable-debug --disable-mem-debug --disable-mem-profile --disable-memchecker \
-            --enable-mca-no-build=btl-uct --enable-mpi1-compatibility --enable-oshmem \
-            --with-cuda="$CUDA_INSTALL_PREFIX" \
-            --with-slurm --with-pmi="$PMI_INSTALL_PREFIX" \
-            --with-pmix="$PMIX_INSTALL_PREFIX" \
-            --with-ucx="$UCX_INSTALL_PREFIX" \
-            --without-verbs \
-    && make -j$(nproc) && make -j$(nproc) install \
-    && rm -rf /var/tmp/ompi \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
-
-# Build the final image that has CUDA Quantum and all its dev dependencies installed, as well as
-# OpenMPI, its dependencies, and additional tools for developing CUDA Quantum backends and extensions.
 FROM $base_image
 SHELL ["/bin/bash", "-c"]
 
@@ -301,5 +159,5 @@ ENV CUDA_INSTALL_PREFIX=/usr/local/cuda-11.8
 ENV CUDA_HOME="$CUDA_INSTALL_PREFIX"
 ENV CUDA_ROOT="$CUDA_INSTALL_PREFIX"
 ENV CUDA_PATH="$CUDA_INSTALL_PREFIX"
-ENV PATH="${CUDA_INSTALL_PREFIX}/lib64/:${PATH}:${CUDA_INSTALL_PREFIX}/bin"
+ENV PATH="${CUDA_INSTALL_PREFIX}/lib64/:${CUDA_INSTALL_PREFIX}/bin:${PATH}"
 ENV LD_LIBRARY_PATH="${CUDA_INSTALL_PREFIX}/lib64:${CUDA_INSTALL_PREFIX}/extras/CUPTI/lib64:${LD_LIBRARY_PATH}"
