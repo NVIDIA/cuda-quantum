@@ -468,7 +468,7 @@ if ${ENABLE_DEVICE_CODE_LOADERS}; then
 fi
 if ${ENABLE_LOWER_TO_CFG}; then
 	RUN_OPT=true
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "expand-measurements,func.func(lower-to-cfg)")
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(unwind-lowering),expand-measurements,func.func(lower-to-cfg)")
 fi
 if ${RUN_OPT}; then
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "canonicalize,cse")
