@@ -8,18 +8,5 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# We'll need the requests and llvm module
-@Python_EXECUTABLE@ -m pip install requests llvmlite --user 
-# Launch the fake server
-PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/mock_qpu/quantinuum/mock_quantinuum.py &
-# we'll need the process id to kill it
-pid=$(echo "$!")
-sleep 1
-# Run the tests
-./test_quantinuum
-# Did they fail? 
-testsPassed=$?
-# kill the server
-kill -INT $pid
-# return success / failure
-exit $testsPassed
+# FIXME What is this for MPICH
+CUDA_VISIBLE_DEVICES=$OMPI_COMM_WORLD_LOCAL_RANK @Python_EXECUTABLE@ -m pytest -rP @CMAKE_SOURCE_DIR@/python/tests/parallel/test_mpi_mqpu.py

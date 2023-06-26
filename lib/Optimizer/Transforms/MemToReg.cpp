@@ -467,6 +467,8 @@ public:
               auto numOperands = parent->getNumOperands();
               parent->insertOperands(numOperands, ValueRange{newUnwrapVal});
               for (auto &reg : parent->getRegions()) {
+                if (reg.empty())
+                  continue;
                 auto *entry = &reg.front();
                 auto blockArg =
                     entry->addArgument(unwrap.getType(), unwrap.getLoc());

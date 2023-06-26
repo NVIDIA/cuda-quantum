@@ -22,11 +22,12 @@ def testLargeProblem():
     if not cudaq.has_target('nvidia-mqpu'):
         return
 
-    cudaq.set_target('nvidia')
+    cudaq.set_target('nvidia-mqpu')
     # This is not large, but we don't want our CI testing
     # to take up too much time, if you want to see more
     # of the speedup increase the number of terms. I usually
-    # set it to 12 and 100000
+    # set it to 12 and 100000. Here we are just testing the 
+    # mechanics.
     nQubits = 4
     nTerms = 1000
     nLayers = 2
@@ -59,15 +60,20 @@ def testLargeProblem():
                                    high=np.pi,
                                    size=(nQubits *
                                          (3 * nLayers + 2),)).tolist()
+    warmUp = cudaq.make_kernel()
+    q = warmUp.qalloc()
+    warmUp.x(q)
+    warmUp()
 
+    # Serial Execution
     start = timeit.default_timer()
     e = cudaq.observe(kernel, H, execParams)
     stop = timeit.default_timer()
     print("serial time = ", (stop - start))
 
-    cudaq.set_target('nvidia-mqpu')
+    # Parallel Execution
     start = timeit.default_timer()
-    e = cudaq.observe(kernel, H, execParams)
+    e = cudaq.observe(kernel, H, execParams, execution=cudaq.par.thread)
     stop = timeit.default_timer()
     print("mqpu time = ", (stop - start))
     assert assert_close(e.expectation_z(), e.expectation_z())
@@ -77,7 +83,7 @@ def testLargeProblem():
 
 
 def testAccuracy():
-    if not cudaq.has_target('nvidia'):
+    if not cudaq.has_target('nvidia-mqpu'):
         return
 
     cudaq.set_target('nvidia-mqpu')
@@ -103,7 +109,6 @@ def testAccuracy():
     assert assert_close(want_expectation_value, expectation_value_no_shots)
 
     cudaq.reset_target()
-
 
 # leave for gdb debugging
 if __name__ == "__main__":

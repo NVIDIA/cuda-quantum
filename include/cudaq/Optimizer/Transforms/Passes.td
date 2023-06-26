@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #ifndef CUDAQ_OPT_OPTIMIZER_TRANSFORMS_PASSES
 #define CUDAQ_OPT_OPTIMIZER_TRANSFORMS_PASSES
@@ -35,6 +35,25 @@ def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
   ];
 }
 
+def CombineQuantumAllocations :
+    Pass<"combine-quantum-alloc", "mlir::func::FuncOp"> {
+  let summary = "Combines quake alloca operations.";
+  let description = [{
+    Quake code may contain several distinct `quake.alloca` operations prior to
+    final code gen. This pass will combine them into a single allocation of
+    type `!quake.veq` with appropriate `quake.extract_ref` operations. The
+    combined allocation will be placed in the entry block and thus dominate all
+    potential uses.
+
+    This pass will only process `quake.alloca` operations at the top-level of
+    a function. It assumes all calls have been inlined, loops unrolled, etc.
+
+    If the function contains deallocations, these are combined as well. The
+    combined deallocation will be added to each exit block.
+  }];
+  let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
+}
+
 def ConvertToDirectCalls :
     Pass<"indirect-to-direct-calls", "mlir::func::FuncOp"> {
   let summary = "Convert calls to direct calls to Quake routines.";
@@ -60,6 +79,22 @@ def ExpandMeasurements : Pass<"expand-measurements"> {
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
 
   let constructor = "cudaq::opt::createExpandMeasurementsPass()";
+}
+
+def FactorQuantumAllocations :
+    Pass<"factor-quantum-alloc", "mlir::func::FuncOp"> {
+  let summary = "Factors quake alloca operations.";
+  let description = [{
+    Quake code may contain `quake.alloca` operations that allocate vectors of
+    qubits (`!quake.veq`). This pass will factor these single allocations of
+    type `!quake.veq` and the associated `quake.extract_ref` operations into a
+    series of single qubit allocations, thereby eliminating the
+    `quake.extract_ref` operations.
+
+    If the function contains deallocations of quantum vectors (`veq`), these
+    will be replaced with a series of deallocations.
+  }];
+  let dependentDialects = ["quake::QuakeDialect"];
 }
 
 def GenerateDeviceCodeLoader : Pass<"device-code-loader", "mlir::ModuleOp"> {

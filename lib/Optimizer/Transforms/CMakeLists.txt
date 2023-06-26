@@ -15,9 +15,11 @@ add_cudaq_library(OptTransforms
   AggressiveEarlyInlining.cpp
   ApplyOpSpecialization.cpp
   BasisConversion.cpp
+  CombineQuantumAlloc.cpp
   Decomposition.cpp
   DecompositionPatterns.cpp
   ExpandMeasurements.cpp
+  FactorQuantumAlloc.cpp
   GenKernelExecution.cpp
   GenDeviceCodeLoader.cpp
   LambdaLifting.cpp

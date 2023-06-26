@@ -9,7 +9,6 @@
 #include "LoopAnalysis.h"
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/Todo.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"
@@ -90,10 +89,12 @@ public:
     Value iterCount = getIntegerConstant(loc, inductionTy, 0, rewriter);
     SmallVector<Location> locsRange(loop.getNumResults(), loc);
     auto &bodyRegion = loop.getBodyRegion();
+    SmallVector<Value> iterationOpers = loop.getOperands();
     // Make a constant number of copies of the body.
     for (std::size_t i = 0u; i < unrollBy; ++i) {
       rewriter.cloneRegionBefore(bodyRegion, endBlock);
       auto [cloneFront, cloneBack] = findCloneRange(insBlock, endBlock);
+      auto termOpers = cloneBack->getTerminator()->getOperands();
       rewriter.eraseOp(cloneBack->getTerminator());
       rewriter.setInsertionPointToEnd(cloneBack);
       // Append the next iteration number.
@@ -101,14 +102,23 @@ public:
           getIntegerConstant(loc, inductionTy, i + 1, rewriter);
       rewriter.setInsertionPointToEnd(insBlock);
       // Propagate the previous iteration number into the new block.
-      rewriter.create<cf::BranchOp>(loc, cloneFront, ValueRange{iterCount});
+      // FIXME: need to thread all exit blocks. Also the step and while blocks
+      // may have side-effects that should be considered here.
+      iterationOpers[components->induction] = iterCount;
+      rewriter.create<cf::BranchOp>(loc, cloneFront, iterationOpers);
+      iterationOpers = termOpers;
       iterCount = nextIterCount;
       insBlock = cloneBack;
     }
     rewriter.setInsertionPointToEnd(insBlock);
     auto total = getIntegerConstant(loc, inductionTy, unrollBy, rewriter);
-    rewriter.replaceOp(loop, total);
-    rewriter.create<cf::BranchOp>(loc, endBlock);
+    iterationOpers[components->induction] = total;
+    rewriter.replaceOp(loop, iterationOpers);
+    [[maybe_unused]] auto lastBranch =
+        rewriter.create<cf::BranchOp>(loc, endBlock);
+
+    LLVM_DEBUG(llvm::dbgs() << "after unrolling a loop:\n";
+               lastBranch->getParentOfType<func::FuncOp>().dump());
     return success();
   }
 
