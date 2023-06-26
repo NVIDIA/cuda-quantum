@@ -314,7 +314,9 @@ jobs:
             --build-arg base_image=$base_image \
             --build-arg release_version=$image_tag
 
+          rm -rf "${{ needs.ompi_image.outputs.tar_archive }}"
           rm -rf "${{ needs.cudaqdev_image.outputs.tar_archive }}"
+          docker image rm $base_image
           docker image rm $cudaqdev_image
           docker builder prune --all --force
           docker save $image_name:$image_tag > $tar_archive
