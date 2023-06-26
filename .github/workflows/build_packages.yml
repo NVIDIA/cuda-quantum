@@ -363,14 +363,17 @@ jobs:
     name: Prepare cache clean-up
     needs: [cudaqdev_image, cudaq_image, documentation]
     runs-on: ubuntu-latest
-    if: always() && inputs.environment == '' # need to clean up even if the workflow is cancelled or fails
+    if: always() # need to clean up even if the workflow is cancelled or fails
 
     steps:
       - name: Save cache keys
         id: workflow_inputs
         run: |
-          keys=${{ needs.cudaqdev_image.outputs.tar_cache }} 
-          keys+=" ${{ needs.cudaq_image.outputs.tar_cache }}"
+          keys=${{ needs.ompi_image.outputs.tar_cache }}
+          if ${{ inputs.environment == '' }}; then
+            keys+=" ${{ needs.cudaqdev_image.outputs.tar_cache }}"
+            keys+=" ${{ needs.cudaq_image.outputs.tar_cache }}"
+          fi
           echo "$keys" >> cache_keys.txt
 
       - uses: actions/upload-artifact@v3
