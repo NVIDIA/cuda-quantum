@@ -1,8 +1,7 @@
 workflow:
   name: 'Staging'
   rules:
-    # FIXME: cuda-quantum-dev instead
-    - if: '$CI_COMMIT_BRANCH == "bot/data" && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-devdeps@sha256:\S+$/'
+    - if: '$CI_COMMIT_BRANCH == "bot/data" && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-dev@sha256:\S+$/'
       variables:
         resource_group: cuda-quantum-dev
 
