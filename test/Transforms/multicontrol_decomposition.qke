@@ -63,7 +63,7 @@ func.func @cccz(%c0: !quake.ref,  %c1: !quake.ref, %c2: !quake.ref, %t: !quake.r
   return
 }
 
-// Make sure that non-controlled ops will be left allone.
+// Make sure that non-controlled ops will be left alone.
 // CHECK-LABEL: func.func @bug_291
 func.func @bug_291(%c: !quake.veq<3>, %t: !quake.ref) {
   // CHECK: quake.alloca !quake.ref
