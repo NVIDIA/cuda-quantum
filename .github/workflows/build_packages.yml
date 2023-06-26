@@ -241,6 +241,7 @@ jobs:
 
           docker build -t open-mpi:local -f docker/build/devdeps.ext.Dockerfile . \
             --build-arg ompidev_image=${{ inputs.ompidev_image }} \
+            --build-arg cuda_packages=cuda-runtime-11-8
             --build-arg base_image=ubuntu:22.04
 
           docker image rm ${{ inputs.ompidev_image }}

@@ -18,9 +18,9 @@
 # Must be built from the repo root with:
 #   docker build -t ghcr.io/nvidia/cuda-quantum:latest -f docker/release/cudaq.Dockerfile .
 # 
-# The build argument build_stage defines the CUDA Quantum dev image that contains the CUDA Quantum
-# build. This Dockerfile copies the built components into a clear environment that contains the
-# necessary runtime dependencies, but no longer contains the build dependencies.
+# The build argument cudaqdev_image defines the CUDA Quantum dev image that contains the CUDA
+# Quantum build. This Dockerfile copies the built components into the base_image. The specified
+# base_image must contain the necessary CUDA Quantum runtime dependencies.
 
 ARG base_image=ubuntu:22.04
 ARG cudaqdev_image=ghcr.io/nvidia/cuda-quantum-dev:latest
@@ -79,29 +79,6 @@ COPY --from=cudaqbuild "/usr/local/cudaq/" "$CUDA_QUANTUM_PATH"
 ENV PATH "${PATH}:$CUDA_QUANTUM_PATH/bin"
 ENV PYTHONPATH "${PYTHONPATH}:$CUDA_QUANTUM_PATH"
 ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CUDA_QUANTUM_PATH/lib"
-
-# Install additional runtime dependencies for optional components if present.
-
-RUN if [ -n "$(ls -A $CUDA_QUANTUM_PATH/cuquantum)" ]; then \
-        wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.0-1_all.deb \
-        && dpkg -i cuda-keyring_1.0-1_all.deb \
-        && apt-get update && apt-get install -y --no-install-recommends cuda-runtime-11-8 \
-        && rm cuda-keyring_1.0-1_all.deb \
-        && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*; \
-    fi
-
-# The installation of CUDA above creates files that will be injected upon launching the container
-# with the --gpu=all flag. This creates issues upon container launch. We hence remove these files.
-# As long as the container is launched with the --gpu=all flag, the GPUs remain accessible and CUDA
-# is fully functional. See also https://github.com/NVIDIA/nvidia-docker/issues/1699.
-RUN rm -rf \
-    /usr/lib/x86_64-linux-gnu/libcuda.so* \
-    /usr/lib/x86_64-linux-gnu/libnvcuvid.so* \
-    /usr/lib/x86_64-linux-gnu/libnvidia-*.so* \
-    /usr/lib/firmware \
-    /usr/local/cuda/compat/lib
-
-ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/cuda-11.8/lib64:/usr/local/cuda-11.8/extras/CUPTI/lib64"
 
 # For now, the CUDA Quantum build hardcodes certain paths and hence expects to find its 
 # dependencies in specific locations. While a relocatable installation of CUDA Quantum should 

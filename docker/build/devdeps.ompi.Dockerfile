@@ -6,14 +6,14 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# This file extends the CUDA Quantum development dependencies to include the necessary 
-# dependencies for GPU components and backends. This image include an OpenMPI
-# installation as well as the configured CUDA packages. Which CUDA packages are 
-# included is defined by the cuda_packages argument. 
+# This file builds the necessary Open MPI dependencies used by CUDA Quantum.
+# This image can be passed as argument to docker/build/devdeps.ext.Dockerfile
+# to create a complete development environment for CUDA Quantum that contains all
+# necessary dependencies.
 #
 # Usage:
 # Must be built from the repo root with:
-#   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:ompi -f docker/build/devdeps.ext.Dockerfile .
+#   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:ompi -f docker/build/devdeps.ompi.Dockerfile .
 
 FROM nvidia/cuda:11.8.0-devel-ubuntu22.04
 SHELL ["/bin/bash", "-c"]
