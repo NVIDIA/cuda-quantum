@@ -12,18 +12,19 @@
 # This image requires specifing an image as argument that contains a CUDA Quantum installation
 # along with its development dependencies. This file then copies that installation into a more
 # minimal runtime environment. 
-# A suitable dev image can be obtained by building docker/build/cudaqdev.Dockerfile.
+# A suitable dev image can be obtained by building docker/build/cudaq.dev.Dockerfile.
 #
 # Usage:
 # Must be built from the repo root with:
 #   docker build -t ghcr.io/nvidia/cuda-quantum:latest -f docker/release/cudaq.Dockerfile .
 # 
-# The build argument base_image defines the CUDA Quantum dev image that contains the CUDA Quantum
+# The build argument build_stage defines the CUDA Quantum dev image that contains the CUDA Quantum
 # build. This Dockerfile copies the built components into a clear environment that contains the
 # necessary runtime dependencies, but no longer contains the build dependencies.
 
-ARG base_image=ghcr.io/nvidia/cuda-quantum-dev:latest
-FROM $base_image as cudaqbuild
+ARG base_image=ubuntu:22.04
+ARG cudaqdev_image=ghcr.io/nvidia/cuda-quantum-dev:latest
+FROM $cudaqdev_image as cudaqbuild
 
 # Unfortunately, there is no way to use the environment variables defined in the dev image
 # to determine where to copy files from. See also e.g. https://github.com/moby/moby/issues/37345
@@ -36,8 +37,8 @@ RUN mkdir -p /usr/local/cuquantum && \
     if [ "$CUQUANTUM_INSTALL_PREFIX" != "/usr/local/cuquantum" ] && [ -d "$CUQUANTUM_INSTALL_PREFIX" ]; then \
         mv "$CUQUANTUM_INSTALL_PREFIX"/* /usr/local/cuquantum; \
     fi
-    
-FROM ubuntu:22.04
+
+FROM $base_image
 SHELL ["/bin/bash", "-c"]
 ENV SHELL=/bin/bash LANG=C.UTF-8 LC_ALL=C.UTF-8
 
