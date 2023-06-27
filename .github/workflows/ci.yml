@@ -83,7 +83,9 @@ jobs:
         run: |
           tar_archive=${{ fromJson(needs.config.outputs.json).tar_archive.llvm }}
           loaded=`docker load --input "$tar_archive" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
-          echo "loaded_image=$loaded" >> $GITHUB_OUTPUT
+          docker build -t cuda-quantum-dev:local -f docker/build/cudaqdev.Dockerfile . \
+            --build-arg base_image=$loaded
+          echo "loaded_image=cuda-quantum-dev:local" >> $GITHUB_OUTPUT
 
       - name: Test CUDA Quantum
         uses: addnab/docker-run-action@v3
@@ -93,7 +95,6 @@ jobs:
             run: |
                 cd $CUDAQ_REPO_ROOT
                 echo $PWD
-                ls $CUDAQ_REPO_ROOT
                 pip install . --user -vvv
                 python3 -m pytest python/tests/
                 RESULT_B=$?
