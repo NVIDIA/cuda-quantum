@@ -61,15 +61,15 @@ if (NOT SKBUILD)
   install(FILES domains/chemistry/__init__.py DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq/chemistry)
   file(COPY domains/chemistry/__init__.py DESTINATION ${CMAKE_BINARY_DIR}/python/cudaq/chemistry)
 else()
-  install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX}
+  install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX})
 endif()
 
 if(APPLE)
   set_target_properties(
-     _pycudaq PROPERTIES INSTALL_RPATH "@loader_path/${CMAKE_INSTALL_LIBDIR}")
+     _pycudaq PROPERTIES INSTALL_RPATH "@loader_path/lib")
 else()
   set_target_properties(_pycudaq PROPERTIES INSTALL_RPATH
-                                          "$ORIGIN/${CMAKE_INSTALL_LIBDIR}")
+                                          "$ORIGIN/lib")
 endif()
 
 if (NOT CUDAQ_DISABLE_CPP_FRONTEND)

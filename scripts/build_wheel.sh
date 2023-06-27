@@ -41,7 +41,7 @@ rm -rf dist
 rm -rf wheelhouse
 
 # Call the dependency script.
-# bash /cuda-quantum/scripts/wheel_dependencies.sh
+bash /cuda-quantum/scripts/wheel_dependencies.sh
 
 # Return to the outer level of CUDA Quantum to build the wheel off of setup.py
 cd "$repo_root"
