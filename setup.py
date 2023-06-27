@@ -34,7 +34,6 @@ if (sys.argv[1] == 'egg_info'):
     # Since this is a local source install, the package must be installed to
     # `dist-packages`, even if it's on linux.
     cmake_install_dir=f"lib/python{sys.version_info[0]}.{sys.version_info[1]}/dist-packages/cudaq"
-    
 
 skbuild.setup(
     name="cuda-quantum",
