@@ -50,6 +50,8 @@ jobs:
     steps:
       - uses: actions/github-script@v6
         with:
+          # We want this dispatch to trigger additional workflows.
+          github-token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
           script: |
             github.rest.actions.createWorkflowDispatch({
               owner: context.repo.owner,
