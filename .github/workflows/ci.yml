@@ -93,7 +93,6 @@ jobs:
             image: ${{ steps.python_env_load.outputs.loaded_image }}
             shell: bash
             run: |
-                set -e 
                 cd $CUDAQ_REPO_ROOT
                 echo $PWD
                 pip install . --user -vvv
