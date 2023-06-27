@@ -92,6 +92,8 @@ jobs:
             shell: bash
             run: |
                 cd $CUDAQ_REPO_ROOT
+                echo $PWD
+                ls $CUDAQ_REPO_ROOT
                 pip install . --user -vvv
                 python3 -m pytest python/tests/
                 RESULT_B=$?
