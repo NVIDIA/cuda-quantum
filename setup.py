@@ -33,7 +33,6 @@ skbuild.setup(
     name="cuda-quantum",
     version=__version__,
     package_dir={"cudaq": "python/cudaq",
-                 "domains": "python/domains",
                  "chemistry": "python/domains/chemistry",
     },
     packages=setuptools.find_packages(where="python", include=["*"]),

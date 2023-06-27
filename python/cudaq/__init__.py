@@ -9,7 +9,7 @@
 import sys
 
 from ._pycudaq import *
-from .domains import chemistry
+from .chemistry import chemistry
 
 initKwargs = {'qpu': 'qpp', 'platform': 'default'}
 
