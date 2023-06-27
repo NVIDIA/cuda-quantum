@@ -75,7 +75,7 @@ cd "$repo_root"
 if [ ! -f "$BLAS_PATH" ]; then
   echo "Did not find libblas.a\n Installing libblas"
   # Install BLAS 
-  cd "$CPR_DIR" && cd /
+  cd "$repo_root" && cd /
   wget http://www.netlib.org/blas/blas-3.11.0.tgz
   tar -xzvf blas-3.11.0.tgz && cd BLAS-3.11.0
   make && mv blas_LINUX.a /usr/lib64/libblas.a
