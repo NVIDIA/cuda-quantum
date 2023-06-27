@@ -56,10 +56,10 @@ target_link_libraries(_pycudaq
       fmt::fmt-header-only)
 
 if (NOT SKBUILD)
+  install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq)
   install(FILES cudaq/__init__.py DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq)
-  install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq) 
   install(FILES domains/chemistry/__init__.py DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq/chemistry)
-  file(COPY domains/chemistry/__init__.py DESTINATION ${CMAKE_BINARY_DIR}/python/cudaq/chemistry)
+  # file(COPY domains/chemistry/__init__.py DESTINATION ${CMAKE_BINARY_DIR}/python/cudaq/chemistry)
 else()
   install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX})
 endif()

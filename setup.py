@@ -32,7 +32,10 @@ cmake_install_dir=f"lib/python{sys.version_info[0]}.{sys.version_info[1]}/site-p
 skbuild.setup(
     name="cuda-quantum",
     version=__version__,
-    package_dir={"cudaq": "python/cudaq"},
+    package_dir={"cudaq": "python/cudaq",
+                 "domains": "python/domains",
+                 "chemistry": "python/domains/chemistry",
+    },
     packages=setuptools.find_packages(where="python", include=["*"]),
     zip_safe=False,
     python_requires=">=3.8",
