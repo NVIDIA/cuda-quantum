@@ -62,6 +62,8 @@ if (NOT SKBUILD)
   # file(COPY domains/chemistry/__init__.py DESTINATION ${CMAKE_BINARY_DIR}/python/cudaq/chemistry)
 else()
   install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX})
+  install(FILES domains/__init__.py DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq/domains)
+  install(FILES domains/chemistry/__init__.py DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq/domains/chemistry)
 endif()
 
 if(APPLE)
