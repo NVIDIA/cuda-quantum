@@ -860,6 +860,8 @@ void cudaq::cc::IfOp::print(OpAsmPrinter &p) {
 
 static void ensureIfRegionTerminator(OpBuilder &builder, OperationState &result,
                                      Region *ifRegion) {
+  if (ifRegion->empty())
+    return;
   auto *block = &ifRegion->back();
   if (!block)
     return;

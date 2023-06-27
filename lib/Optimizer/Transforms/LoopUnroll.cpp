@@ -153,6 +153,23 @@ public:
       emitError(op->getLoc(), "could not unroll cc.loop\n");
       signalPassFailure();
     }
+    if (full_unroll) {
+      bool fail = false;
+      op->walk([&](cudaq::cc::LoopOp loop) {
+        fail = true;
+        if (!cudaq::opt::isaCountedLoop(loop))
+          loop.emitError("cannot unroll non-counted loop.");
+        else if (exceedsThresholdValue(loop))
+          loop.emitError(
+              "cannot unroll loop that exceeds iteration threshold.");
+        else
+          loop.emitError("cannot unroll loop.");
+      });
+      if (fail) {
+        emitError(op->getLoc(), "could not unroll all loops.\n");
+        signalPassFailure();
+      }
+    }
   }
 
   bool exceedsThresholdValue(cudaq::cc::LoopOp loop) {
