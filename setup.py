@@ -29,7 +29,7 @@ if (sys.argv[1] == 'egg_info'):
     print("here!\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
 
     script_path = os.getcwd() + "/scripts/wheel_dependencies.sh"
-    # os.system(f"bash {script_path}")
+    os.system(f"bash {script_path}")
 
     # Since this is a local source install, the package must be installed to
     # `dist-packages`, even if it's on linux.
