@@ -65,7 +65,7 @@ jobs:
     needs: config
     runs-on: ubuntu-latest
     permissions:
-      content: read
+      contents: read
 
     steps:
       - name: Checkout repository
