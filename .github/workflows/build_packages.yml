@@ -253,11 +253,10 @@ jobs:
           path: ${{ steps.open_mpi.outputs.tar_archive }}
           key: ${{ steps.open_mpi.outputs.tar_cache }}
 
-# FIXME: ONLY IF WE ARE NOT DEPLOYING FROM ELSEWHERE
   cudaq_image:
     name: Docker image
     needs: [metadata, ompi_image, cudaqdev_image, cudaqdev_deployment]
-    # Force this job to run even when some of the dependencies (needs) above are skipped.
+    # Force this job to run even when some of the dependencies above are skipped.
     if: always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
     permissions:
@@ -351,7 +350,6 @@ jobs:
             echo '```' >> $GITHUB_STEP_SUMMARY
           fi
 
-# FIXME: ONLY IF WE ARE NOT DEPLOYING FROM ELSEWHERE
   cudaq_deployment:
     name: Deploy image
     if: inputs.environment
