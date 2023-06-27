@@ -431,17 +431,18 @@ int main(int argc, char **argv) {
       moduleOp->setAttr(mangledKernelNameMapAttrName, mapAttr);
     }
 
-    // Running a basic pass so that the verifiers will run, and it will be
-    // easier to track down errors. Previously the only hint that something was
-    // awry was ugly MLIR being emitted. Probably a way to just run the
-    // verifiers, but seems like there is no harm in running CSE.
+    // Running the verifier to make it easier to track down errors.
     mlir::PassManager pm(&context);
     pm.addPass(std::make_unique<cudaq::VerifierPass>());
     if (failed(pm.run(moduleOp))) {
       moduleOp->dump();
       llvm::errs() << "Passes failed!\n";
     } else {
-      out.os() << moduleOp << "\n";
+      mlir::OpPrintingFlags opf;
+      opf.enableDebugInfo(/*enable=*/true,
+                          /*pretty=*/false);
+      moduleOp.print(out.os(), opf);
+      out.os() << '\n';
       out.keep();
     }
   }
