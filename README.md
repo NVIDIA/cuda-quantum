@@ -18,11 +18,15 @@ To learn more about how to work with CUDA Quantum, please take a look at the
 [installation instructions][official_install] for officially released packages.
 
 If you would like to install the latest iteration under development in this
-repository and/or add your own modifications, please build CUDA Quantum from
-source following [these instructions](./Building.md).
+repository and/or add your own modifications, take a look at the [latest
+packages][github_packages] deployed on the GitHub Container Registry. For more
+information about building CUDA Quantum from source, see [these
+instructions](./Building.md).
 
 [cuda_quantum_docs]: https://nvidia.github.io/cuda-quantum/latest
 [official_install]: https://nvidia.github.io/cuda-quantum/latest/install.html
+[github_packages]:
+    https://github.com/orgs/NVIDIA/packages?repo_name=cuda-quantum
 
 ## Contributing
 
@@ -53,3 +57,15 @@ Conduct](./Code_of_Conduct.md) violations, please reach out to
 
 [cuda_quantum_discussions]: https://github.com/NVIDIA/cuda-quantum/discussions
 [cuda_quantum_issues]: https://github.com/NVIDIA/cuda-quantum/issues
+
+<a
+href="https://github.com/NVIDIA/cuda-quantum/actions/workflows/deployments.yml"><img
+align="right"
+src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/deployments.yml/badge.svg?event=workflow_dispatch&branch=main"
+/></a><br/>
+
+<a
+href="https://github.com/NVIDIA/cuda-quantum/actions/workflows/publish_docs.yml"><img
+align="right"
+src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/publish_docs.yml/badge.svg?branch=main"
+/></a><br/>
