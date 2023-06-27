@@ -16,24 +16,18 @@ import setuptools
 
 __version__ = "0.0.3"
 
+# The setup.py script gets called twice when installing from source 
+# with `pip install .` . Once for the `egg_info` subcommand and another
+# for `install`. We will only install the missing dependencies once, for 
+# the `egg_info` subcommand (arbitrary choice).
+if (sys.argv[1] == 'egg_info'):
+    script_path = os.getcwd() + "/scripts/install_wheel_dependencies.sh"
+    os.system(f"bash {script_path}")
+
 # FIXME: Linux machines default to dist-packages unless the `--user` flag is provided to
 # the pip install. We hard-code everything to site-packages in the meantime and require the
 # user to install with `--user`.
 cmake_install_dir=f"lib/python{sys.version_info[0]}.{sys.version_info[1]}/site-packages/cudaq"
-
-# The setup.py script gets called twice when installing from source 
-# with `pip install .` . Once for the `egg_info` subcommand and another
-# for `install`. We will only install the missing dependencies once, for 
-# the egg_info subcommand.
-if (sys.argv[1] == 'egg_info'):
-    print("here!\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
-
-    script_path = os.getcwd() + "/scripts/wheel_dependencies.sh"
-    os.system(f"bash {script_path}")
-
-    # Since this is a local source install, the package must be installed to
-    # `dist-packages`, even if it's on linux.
-    cmake_install_dir=f"lib/python{sys.version_info[0]}.{sys.version_info[1]}/dist-packages/cudaq"
 
 skbuild.setup(
     name="cuda-quantum",
