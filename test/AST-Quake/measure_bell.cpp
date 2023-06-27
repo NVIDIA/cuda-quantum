@@ -29,7 +29,7 @@ struct bell {
 int main() { bell{}(100); }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__bell(
-// CHECK-SAME:      %[[VAL_0:.*]]: i32)
+// CHECK-SAME:      %[[VAL_0:.*]]: i32{{.*}})
 // CHECK:           %[[VAL_1:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_2:.*]] = arith.constant 2 : i32
@@ -130,7 +130,7 @@ struct tinkerbell {
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__libertybell(
-// CHECK-SAME:        %[[VAL_0:.*]]: i32)
+// CHECK-SAME:        %[[VAL_0:.*]]: i32{{.*}})
 // CHECK:           %[[VAL_1:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_2:.*]] = arith.constant 2 : i32
@@ -194,7 +194,7 @@ struct tinkerbell {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__tinkerbell(
-// CHECK-SAME:        %[[VAL_0:.*]]: i32) attributes
+// CHECK-SAME:        %[[VAL_0:.*]]: i32{{.*}}) attributes
 // CHECK:           %[[VAL_1:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_2:.*]] = arith.constant 2 : i32

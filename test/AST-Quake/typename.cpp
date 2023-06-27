@@ -19,7 +19,7 @@ struct test {
 } // namespace ns
 
 // CHECK-LABEL: func.func @__nvqpp__mlirgen__name1
-// CHECK-SAME: (%{{.*}}: !cc.stdvec<f64>) attributes {
+// CHECK-SAME: (%{{.*}}: !cc.stdvec<f64>{{.*}}) attributes {
 struct name1 {
   void operator()(std::vector<ns::test<double>::Type> variable) __qpu__ {}
 };

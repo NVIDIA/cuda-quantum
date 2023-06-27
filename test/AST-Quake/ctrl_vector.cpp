@@ -53,7 +53,7 @@ struct test_two_control_call {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test_two
 // CHECK-SAME: () attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = cc.create_lambda {
-// CHECK:           ^bb0(%[[VAL_1:.*]]: !quake.ref):
+// CHECK:           ^bb0(%[[VAL_1:.*]]: !quake.ref loc{{.*}}):
 // CHECK:             cc.scope {
 // CHECK:               quake.h %[[VAL_1]]
 // CHECK:               quake.x %[[VAL_1]]

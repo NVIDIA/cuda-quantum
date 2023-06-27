@@ -46,7 +46,7 @@ struct QernelZero {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__QernelZero
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__run_circuit
-// CHECK-SAME:        (%{{.*}}: i32, %{{.*}}: i32, %{{.*}}: f64)
+// CHECK-SAME:        (%{{.*}}: i32{{.*}}, %{{.*}}: i32{{.*}}, %{{.*}}: f64{{.*}})
 // CHECK:           %[[VAL_5:.*]] = cc.alloca f64
 // CHECK:           %[[VAL_10:.*]] = quake.alloca !quake.veq<?>[%{{.*}} : i64]
 // CHECK:           %[[VAL_16:.*]] = cc.load %[[VAL_5]] : !cc.ptr<f64>
