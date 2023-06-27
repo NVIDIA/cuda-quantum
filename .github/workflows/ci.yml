@@ -61,7 +61,7 @@ jobs:
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
   build_and_test_python:
-    name: Build and test Python install form source
+    name: Build and test Python install from source
     needs: config
     runs-on: ubuntu-latest
     permissions:
