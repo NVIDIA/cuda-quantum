@@ -46,9 +46,13 @@ export LLVM_DIR=$LLVM_DIR
 apt-get update && apt-get install -y --no-install-recommends build-essential wget gfortran python3.10-venv
 
 if [ ! -d "$CPR_DIR" ]; then
-  echo "Could not find libcpr install dir"
+  echo "Did not find a libcpr install dir"
+  echo "Installing libcpr"
+  
   # Install in same parent directory as cuda-quantum.
   cd "$repo_root" && cd /
+  echo `pwd`
+
   echo "Cloning libcpr"
   git clone https://github.com/libcpr/cpr
   echo "Building libcpr"
@@ -60,7 +64,7 @@ if [ ! -d "$CPR_DIR" ]; then
                     -DOPENSSL_ROOT_DIR=/usr/local/ssl 
                     -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE 
                     -DCMAKE_INSTALL_PREFIX=$CPR_DIR
-  echo "Installing libcpr"
+  
   ninja install
 else 
   echo "libcpr directory: $CPR_DIR"
@@ -69,7 +73,7 @@ export CPR_DIR=$CPR_DIR
 cd "$repo_root"
 
 if [ ! -f "$BLAS_PATH" ]; then
-  echo "Could not find libblas.a"
+  echo "Did not find libblas.a\n Installing libblas"
   # Install BLAS 
   cd "$CPR_DIR" && cd /
   wget http://www.netlib.org/blas/blas-3.11.0.tgz

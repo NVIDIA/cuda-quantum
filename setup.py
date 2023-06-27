@@ -16,6 +16,11 @@ import setuptools
 
 __version__ = "0.0.3"
 
+# FIXME: Linux machines default to dist-packages unless the `--user` flag is provided to
+# the pip install. We hard-code everything to site-packages in the meantime and require the
+# user to install with `--user`.
+cmake_install_dir=f"lib/python{sys.version_info[0]}.{sys.version_info[1]}/site-packages/cudaq"
+
 # The setup.py script gets called twice when installing from source 
 # with `pip install .` . Once for the `egg_info` subcommand and another
 # for `install`. We will only install the missing dependencies once, for 
@@ -24,7 +29,12 @@ if (sys.argv[1] == 'egg_info'):
     print("here!\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
 
     script_path = os.getcwd() + "/scripts/wheel_dependencies.sh"
-    os.system(f"bash {script_path}")
+    # os.system(f"bash {script_path}")
+
+    # Since this is a local source install, the package must be installed to
+    # `dist-packages`, even if it's on linux.
+    cmake_install_dir=f"lib/python{sys.version_info[0]}.{sys.version_info[1]}/dist-packages/cudaq"
+    
 
 skbuild.setup(
     name="cuda-quantum",
@@ -33,11 +43,7 @@ skbuild.setup(
     packages=setuptools.find_packages(where="python", include=["*"]),
     zip_safe=False,
     python_requires=">=3.8",
-    # FIXME: Linux machines default to dist-packages unless the `--user` flag is provided to
-    # the pip install. We hard-code everything to site-packages in the meantime and require the
-    # user to install with `--user`.
-    cmake_install_dir=
-    f"lib/python{sys.version_info[0]}.{sys.version_info[1]}/site-packages/cudaq",
+    cmake_install_dir=cmake_install_dir,
     # FIXME: Remove hard-coding on zlib and libcpr path.
     cmake_args=[
         "-DCUDAQ_ENABLE_PYTHON=TRUE", "-DBLAS_LIBRARIES=/usr/lib64/libblas.a",
