@@ -9,8 +9,7 @@
 // RUN: cudaq-opt --lambda-lifting --canonicalize %s | FileCheck %s
 
 // Tests the basic functionality of passing closures as runtime values. Much of
-// the mechanism generated here is expected to be aggressively inlined when
-// constructing the QTX circuit.
+// the mechanism generated here is expected to be aggressively inlined.
 
 module attributes{ qtx.mangled_name_map = { __nvqpp__mlirgen__test3_callee = "_ZN12test3_calleeclEOSt8functionIFvRN4cudaq5quditILm2EEEEERNS1_4qregILm18446744073709551615ELm2EEE", __nvqpp__mlirgen__test3_caller = "_ZN12test3_callerclEv"}} {
   func.func @__nvqpp__mlirgen__test3_callee(%arg0: !cc.lambda<(!quake.ref) -> ()>, %arg1: !quake.veq<?>) attributes {"cudaq-kernel"} {
@@ -27,7 +26,7 @@ module attributes{ qtx.mangled_name_map = { __nvqpp__mlirgen__test3_callee = "_Z
   func.func @__nvqpp__mlirgen__test3_caller() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     %c2_i32 = arith.constant 2 : i32
     %0 = arith.extsi %c2_i32 : i32 to i64
-    %1 = quake.alloca[%0 : i64] !quake.veq<?>
+    %1 = quake.alloca !quake.veq<?> [%0 : i64]
     %2 = cc.undef !llvm.struct<"test3_callee", ()>
     %3 = cc.create_lambda {
     ^bb0(%arg0: !quake.ref):

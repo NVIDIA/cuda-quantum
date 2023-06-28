@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #pragma once
 
@@ -71,7 +71,7 @@ struct kraus_op {
 
 /// @brief A kraus_channel represents a quantum noise channel
 /// on specific qubits. The action of the noise channel is
-/// described by a vector of kraus operations - matrices with
+/// described by a vector of Kraus operations - matrices with
 /// size equal to 2**nQubits x 2**nQubits, where the number of
 /// qubits is the number of provided qubit indices at construction.
 class kraus_channel {
@@ -135,7 +135,7 @@ public:
 /// @brief The noise_model type keeps track of a set of
 /// kraus_channels to be applied after the execution of
 /// quantum operations. Each quantum operation maps
-/// to a kraus channel containing a number of kraus_ops to
+/// to a Kraus channel containing a number of kraus_ops to
 /// be applied to the density matrix representation of the state.
 class noise_model {
 protected:
@@ -163,7 +163,7 @@ protected:
       "x", "y", "z", "h", "s", "t", "rx", "ry", "rz", "r1"};
 
   // The noise model is a mapping of quantum operation
-  // names to a kraus channel applied after the operation is applied.
+  // names to a Kraus channel applied after the operation is applied.
   NoiseModelOpMap noiseModel;
 
 public:
@@ -200,7 +200,7 @@ public:
   }
 
   /// @brief Return relevant kraus_channels on the specified qubits for
-  // the given quantum operation. This will merge kraus channels
+  // the given quantum operation. This will merge Kraus channels
   // that exists for the same quantumOp and qubits.
   std::vector<kraus_channel>
   get_channels(const std::string &quantumOp,

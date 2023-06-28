@@ -1,0 +1,43 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --canonicalize %s | FileCheck %s
+
+func.func @e() -> !cc.ptr<f64> {
+  %0 = arith.constant 1 : i32
+  %z = arith.constant 0 : i32
+  %1 = arith.addi %z, %0 : i32
+  %2 = arith.addi %1, %0 : i32
+  %3 = cc.alloca !cc.struct<{!cc.array<i64 x 4>, !cc.array<f64 x 4>}>
+  %4 = cc.compute_ptr %3[%1, %2] : (!cc.ptr<!cc.struct<{!cc.array<i64 x 4>, !cc.array<f64 x 4>}>>, i32, i32) -> !cc.ptr<f64>
+  return %4 : !cc.ptr<f64>
+}
+
+func.func @r(%arg0: i64) -> !cc.ptr<f64> {
+  %0 = arith.constant 1 : i32
+  %z = arith.constant 0 : i32
+  %1 = arith.addi %z, %0 : i32
+  %2 = arith.addi %1, %0 : i32
+  %3 = cc.alloca !cc.struct<{!cc.array<i64 x 4>, !cc.array<f64 x 4>}>
+  %4 = cc.compute_ptr %3[%1, %arg0] : (!cc.ptr<!cc.struct<{!cc.array<i64 x 4>, !cc.array<f64 x 4>}>>, i32, i64) -> !cc.ptr<f64>
+  return %4 : !cc.ptr<f64>
+}
+
+// CHECK-LABEL:   func.func @e() -> !cc.ptr<f64> {
+// CHECK:           %[[VAL_0:.*]] = cc.alloca !cc.struct<{!cc.array<i64 x 4>, !cc.array<f64 x 4>}>
+// CHECK:           %[[VAL_1:.*]] = cc.compute_ptr %[[VAL_0]][1, 2] : (!cc.ptr<!cc.struct<{!cc.array<i64 x 4>, !cc.array<f64 x 4>}>>) -> !cc.ptr<f64>
+// CHECK:           return %[[VAL_1]] : !cc.ptr<f64>
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @r(
+// CHECK-SAME:                 %[[VAL_0:.*]]: i64) -> !cc.ptr<f64> {
+// CHECK:           %[[VAL_1:.*]] = cc.alloca !cc.struct<{!cc.array<i64 x 4>, !cc.array<f64 x 4>}>
+// CHECK:           %[[VAL_2:.*]] = cc.compute_ptr %[[VAL_1]][1, %[[VAL_0]]] : (!cc.ptr<!cc.struct<{!cc.array<i64 x 4>, !cc.array<f64 x 4>}>>, i64) -> !cc.ptr<f64>
+// CHECK:           return %[[VAL_2]] : !cc.ptr<f64>
+// CHECK:         }
+

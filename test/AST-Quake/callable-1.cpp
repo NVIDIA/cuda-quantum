@@ -29,7 +29,7 @@ int main() {
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Z4mainE3$_0
-// CHECK-SAME:        (%[[VAL_0:.*]]: !quake.veq<?>) attributes {"cudaq-kernel"} {
+// CHECK-SAME:        (%[[VAL_0:.*]]: !quake.veq<?>{{.*}}) attributes
 // CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_2:.*]] = arith.extsi %[[VAL_1]] : i32 to i64
 // CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][%[[VAL_2]]] : (!quake.veq<?>, i64) -> !quake.ref
@@ -45,10 +45,10 @@ int main() {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__instance_MyKernel
-// CHECK-SAME:        (%[[VAL_0:.*]]: !cc.lambda<(!quake.veq<?>) -> ()>) attributes {{{.*}}"cudaq-entrypoint"{{.*}}} {
+// CHECK-SAME:        (%[[VAL_0:.*]]: !cc.lambda<(!quake.veq<?>) -> ()>{{.*}}) attributes
 // CHECK:           %[[VAL_1:.*]] = arith.constant 2 : i32
 // CHECK:           %[[VAL_2:.*]] = arith.extsi %[[VAL_1]] : i32 to i64
-// CHECK:           %[[VAL_3:.*]] = quake.alloca[%[[VAL_2]] : i64] !quake.veq<?>
+// CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<?>[%[[VAL_2]] : i64]
 // CHECK:           call @__nvqpp__mlirgen__Z4mainE3$_0(%[[VAL_3]]) : (!quake.veq<?>) -> ()
 // CHECK:           return
 // CHECK:         }

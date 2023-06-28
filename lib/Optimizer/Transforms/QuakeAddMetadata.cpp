@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
@@ -15,7 +15,6 @@
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
-#include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/IR/Dominance.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"
@@ -75,34 +74,37 @@ private:
         }
 
         // See if it is a store op, storing the bit to memory
-        auto storeOp = dyn_cast_or_null<memref::StoreOp>(user);
+        auto storeOp = dyn_cast_or_null<cudaq::cc::StoreOp>(user);
         if (!storeOp)
           return WalkResult::skip();
 
         // Get the alloca op that this store op operates on
         auto allocValue = storeOp.getOperand(1);
-        auto allocaOp = allocValue.getDefiningOp<memref::AllocaOp>();
+        if (auto cp = allocValue.getDefiningOp<cudaq::cc::ComputePtrOp>())
+          allocValue = cp.getBase();
 
-        // Get the alloca users
-        for (auto allocUser : allocaOp->getUsers()) {
+        if (auto allocaOp = allocValue.getDefiningOp<cudaq::cc::AllocaOp>()) {
+          // Get the alloca users
+          for (auto allocUser : allocaOp->getUsers()) {
 
-          // Look for any future loads, and if that load is
-          // used by a conditional statement
-          if (auto load = dyn_cast<memref::LoadOp>(allocUser)) {
-            auto loadUser = *load->getUsers().begin();
+            // Look for any future loads, and if that load is
+            // used by a conditional statement
+            if (auto load = dyn_cast<cudaq::cc::LoadOp>(allocUser)) {
+              auto loadUser = *load->getUsers().begin();
 
-            // Loaded Val could be used directly or by an Arith boolean
-            // operation
-            while (loadUser->getDialect()->getNamespace() == "arith") {
-              auto res = loadUser->getResult(0);
-              loadUser = *res.getUsers().begin();
-            }
+              // Loaded Val could be used directly or by an Arith boolean
+              // operation
+              while (loadUser->getDialect()->getNamespace() == "arith") {
+                auto res = loadUser->getResult(0);
+                loadUser = *res.getUsers().begin();
+              }
 
-            // At this point we should be able to check if we are
-            // being used by a conditional
-            if (isa<cudaq::cc::IfOp, cf::CondBranchOp>(loadUser)) {
-              data.hasConditionalsOnMeasure = true;
-              return WalkResult::interrupt();
+              // At this point we should be able to check if we are
+              // being used by a conditional
+              if (isa<cudaq::cc::IfOp, cf::CondBranchOp>(loadUser)) {
+                data.hasConditionalsOnMeasure = true;
+                return WalkResult::interrupt();
+              }
             }
           }
         }

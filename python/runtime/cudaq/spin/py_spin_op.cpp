@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 #include <pybind11/complex.h>
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
@@ -146,9 +146,16 @@ void bindSpinOperator(py::module &mod) {
       // `this_spin_op` += `cudaq.SpinOperator`
       .def(py::self += py::self,
            "Add the given `SpinOperator` to this one and return *this.")
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wself-assign-overloaded"
+#endif
       // `this_spin_op` -= `cudaq.SpinOperator`
       .def(py::self -= py::self,
            "Subtract the given `SpinOperator` from this one and return *this.")
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
       // `this_spin_op` *= `cudaq.SpinOperator`
       .def(py::self *= py::self,
            "Multiply the given `SpinOperator` with this one and return *this.")

@@ -1,17 +1,19 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #pragma once
 
 #include "common/MeasureCounts.h"
 #include "cudaq/spin_op.h"
 #include "modifiers.h"
+#include "qarray.h"
 #include "qreg.h"
+#include "qvector.h"
 #include <functional>
 
 #define __qpu__ __attribute__((annotate("quantum")))
@@ -293,14 +295,14 @@ inline bool my(qubit &q) {
 }
 
 inline void reset(qubit &q) {
-  getExecutionManager()->resetQudit({q.n_levels(), q.id()});
+  getExecutionManager()->reset({q.n_levels(), q.id()});
 }
 
 // Measure all qubits in the range, return vector of 0,1
 template <typename QubitRange>
   requires(std::ranges::range<QubitRange>)
 std::vector<bool> mz(QubitRange &q) {
-  std::vector<bool> b; //(q.size());
+  std::vector<bool> b;
   for (auto &qq : q) {
     b.push_back(mz(qq));
   }

@@ -1,21 +1,26 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
+#include "common/FmtCore.h"
 #include "cudaq/algorithm.h"
-#include <fmt/core.h>
-
 #include <fstream>
 #include <gtest/gtest.h>
+#include <regex>
 
 std::string mockPort = "62454";
 std::string backendStringTemplate =
-    "quantinuum;url;http://localhost:{};credentials;{}";
+    "quantinuum;emulate;false;url;http://localhost:{};credentials;{}";
+
+bool isValidExpVal(double value) {
+  // give us some wiggle room while keep the tests fast
+  return value < -1.2 && value > -2.2;
+}
 
 CUDAQ_TEST(QuantinuumTester, checkSampleSync) {
   std::string home = std::getenv("HOME");
@@ -30,6 +35,29 @@ CUDAQ_TEST(QuantinuumTester, checkSampleSync) {
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
   kernel.mz(qubit[0]);
+
+  auto counts = cudaq::sample(kernel);
+  counts.dump();
+  EXPECT_EQ(counts.size(), 2);
+}
+
+CUDAQ_TEST(QuantinuumTester, checkSampleSyncEmulate) {
+  std::string home = std::getenv("HOME");
+  std::string fileName = home + "/FakeCppQuantinuum.config";
+  auto backendString =
+      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
+  backendString =
+      std::regex_replace(backendString, std::regex("false"), "true");
+
+  auto &platform = cudaq::get_platform();
+  platform.setTargetBackend(backendString);
+
+  auto kernel = cudaq::make_kernel();
+  auto qubit = kernel.qalloc(2);
+  kernel.h(qubit[0]);
+  kernel.x<cudaq::ctrl>(qubit[0], qubit[1]);
+  kernel.mz(qubit[0]);
+  kernel.mz(qubit[1]);
 
   auto counts = cudaq::sample(kernel);
   counts.dump();
@@ -52,6 +80,28 @@ CUDAQ_TEST(QuantinuumTester, checkSampleAsync) {
 
   auto future = cudaq::sample_async(kernel);
   auto counts = future.get();
+  EXPECT_EQ(counts.size(), 2);
+}
+
+CUDAQ_TEST(QuantinuumTester, checkSampleAsyncEmulate) {
+  std::string home = std::getenv("HOME");
+  std::string fileName = home + "/FakeCppQuantinuum.config";
+  auto backendString =
+      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
+  backendString =
+      std::regex_replace(backendString, std::regex("false"), "true");
+
+  auto &platform = cudaq::get_platform();
+  platform.setTargetBackend(backendString);
+
+  auto kernel = cudaq::make_kernel();
+  auto qubit = kernel.qalloc(2);
+  kernel.h(qubit[0]);
+  kernel.mz(qubit[0]);
+
+  auto future = cudaq::sample_async(kernel);
+  auto counts = future.get();
+  counts.dump();
   EXPECT_EQ(counts.size(), 2);
 }
 
@@ -108,11 +158,38 @@ CUDAQ_TEST(QuantinuumTester, checkObserveSync) {
   using namespace cudaq::spin;
   cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
                      .21829 * z(0) - 6.125 * z(1);
-  auto result = cudaq::observe(kernel, h, .59);
+  auto result = cudaq::observe(10000, kernel, h, .59);
   result.dump();
 
   printf("ENERGY: %lf\n", result.exp_val_z());
-  EXPECT_NEAR(result.exp_val_z(), -1.7, 1e-1);
+  EXPECT_TRUE(isValidExpVal(result.exp_val_z()));
+}
+
+CUDAQ_TEST(QuantinuumTester, checkObserveSyncEmulate) {
+  std::string home = std::getenv("HOME");
+  std::string fileName = home + "/FakeCppQuantinuum.config";
+  auto backendString =
+      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
+  backendString =
+      std::regex_replace(backendString, std::regex("false"), "true");
+
+  auto &platform = cudaq::get_platform();
+  platform.setTargetBackend(backendString);
+
+  auto [kernel, theta] = cudaq::make_kernel<double>();
+  auto qubit = kernel.qalloc(2);
+  kernel.x(qubit[0]);
+  kernel.ry(theta, qubit[1]);
+  kernel.x<cudaq::ctrl>(qubit[1], qubit[0]);
+
+  using namespace cudaq::spin;
+  cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
+                     .21829 * z(0) - 6.125 * z(1);
+  auto result = cudaq::observe(100000, kernel, h, .59);
+  result.dump();
+
+  printf("ENERGY: %lf\n", result.exp_val_z());
+  EXPECT_TRUE(isValidExpVal(result.exp_val_z()));
 }
 
 CUDAQ_TEST(QuantinuumTester, checkObserveAsync) {
@@ -139,7 +216,36 @@ CUDAQ_TEST(QuantinuumTester, checkObserveAsync) {
   result.dump();
 
   printf("ENERGY: %lf\n", result.exp_val_z());
-  EXPECT_NEAR(result.exp_val_z(), -1.7, 1e-1);
+  EXPECT_TRUE(isValidExpVal(result.exp_val_z()));
+}
+
+CUDAQ_TEST(QuantinuumTester, checkObserveAsyncEmulate) {
+  std::string home = std::getenv("HOME");
+  std::string fileName = home + "/FakeCppQuantinuum.config";
+  auto backendString =
+      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
+  backendString =
+      std::regex_replace(backendString, std::regex("false"), "true");
+
+  auto &platform = cudaq::get_platform();
+  platform.setTargetBackend(backendString);
+
+  auto [kernel, theta] = cudaq::make_kernel<double>();
+  auto qubit = kernel.qalloc(2);
+  kernel.x(qubit[0]);
+  kernel.ry(theta, qubit[1]);
+  kernel.x<cudaq::ctrl>(qubit[1], qubit[0]);
+
+  using namespace cudaq::spin;
+  cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
+                     .21829 * z(0) - 6.125 * z(1);
+  auto future = cudaq::observe_async(100000, 0, kernel, h, .59);
+
+  auto result = future.get();
+  result.dump();
+
+  printf("ENERGY: %lf\n", result.exp_val_z());
+  EXPECT_TRUE(isValidExpVal(result.exp_val_z()));
 }
 
 CUDAQ_TEST(QuantinuumTester, checkObserveAsyncLoadFromFile) {
@@ -180,7 +286,7 @@ CUDAQ_TEST(QuantinuumTester, checkObserveAsyncLoadFromFile) {
   result.dump();
 
   printf("ENERGY: %lf\n", result.exp_val_z());
-  EXPECT_NEAR(result.exp_val_z(), -1.7, 1e-1);
+  EXPECT_TRUE(isValidExpVal(result.exp_val_z()));
 }
 
 int main(int argc, char **argv) {

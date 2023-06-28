@@ -1,4 +1,4 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -8,9 +8,9 @@
 
 #pragma once
 
+#include "common/EigenDense.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-#include <Eigen/Dense>
 #include <complex>
 #include <vector>
 
@@ -37,19 +37,21 @@ private:
 
   mlir::WalkResult allocateQubits(mlir::Value value);
 
-  std::optional<int64_t> getValueAsInt(mlir::Value value);
-
   //===--------------------------------------------------------------------===//
   // Helpers
   //===--------------------------------------------------------------------===//
 
-  unsigned getNextQubit() { return std::log2(matrix.rows()); }
+  mlir::LogicalResult getValueAsInt(mlir::Value value, std::size_t &result);
+
+  std::size_t getNumQubits() { return std::log2(matrix.rows()); }
 
   mlir::LogicalResult getQubits(mlir::ValueRange values,
                                 mlir::SmallVectorImpl<Qubit> &qubits);
 
   void negatedControls(mlir::ArrayRef<bool> negatedControls,
                        mlir::ArrayRef<Qubit> qubits);
+
+  mlir::LogicalResult deallocateAncillas(std::size_t numQubits);
 
   //===--------------------------------------------------------------------===//
   // Unitary

@@ -21,10 +21,10 @@ struct SliceTest {
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__SliceTest
-// CHECK-SAME:      (%[[VAL_0:.*]]: i32, %[[VAL_1:.*]]: i32) attributes {
+// CHECK-SAME:      (%[[VAL_0:.*]]: i32{{.*}}, %[[VAL_1:.*]]: i32{{.*}}) attributes {
 // CHECK:           %[[VAL_4:.*]] = arith.constant 10 : i32
 // CHECK:           %[[VAL_5:.*]] = arith.extsi %[[VAL_4]] : i32 to i64
-// CHECK:           %[[VAL_6:.*]] = quake.alloca[%[[VAL_5]] : i64] !quake.veq<?>
+// CHECK:           %[[VAL_6:.*]] = quake.alloca !quake.veq<?>[%[[VAL_5]] : i64]
 // CHECK:           %[[VAL_11:.*]] = arith.constant 1 : i64
 // CHECK:           %[[VAL_12:.*]] = arith.addi %{{.*}}, %{{.*}} : i64
 // CHECK:           %[[VAL_13:.*]] = arith.subi %[[VAL_12]], %[[VAL_11]] : i64

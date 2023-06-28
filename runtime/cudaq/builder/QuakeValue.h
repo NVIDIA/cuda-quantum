@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #pragma once
 #include <functional>
@@ -104,8 +104,8 @@ public:
   /// and VeqType.
   QuakeValue operator[](const QuakeValue &idx);
 
-  /// @brief Negate this QuakeValue
-  QuakeValue operator-();
+  /// @brief Return the negation of this QuakeValue
+  QuakeValue operator-() const;
 
   /// @brief Multiply this QuakeValue by the given double.
   QuakeValue operator*(const double);

@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
 #include <cudaq/algorithm.h>
@@ -20,7 +20,7 @@ CUDAQ_TEST(VqeWithShots, checkBug77) {
     const int n_layers;
     void operator()(std::vector<double> theta) __qpu__ {
       using namespace cudaq::spin;
-      cudaq::qreg q(n_qubits);
+      cudaq::qvector q(n_qubits);
 
       // Prepare the initial state by superposition
       h(q);

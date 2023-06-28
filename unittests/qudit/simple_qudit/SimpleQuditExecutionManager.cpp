@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "common/ExecutionContext.h"
 #include "common/Logger.h"
@@ -48,7 +48,13 @@ protected:
     state = qpp::kron(state, zeroState);
   }
 
-  void deallocateQudit(std::size_t q) override {}
+  void allocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
+    for (auto &q : qudits)
+      allocateQudit(q);
+  }
+
+  void deallocateQudit(const cudaq::QuditInfo &q) override {}
+  void deallocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {}
 
   void handleExecutionContextChanged() override {}
 

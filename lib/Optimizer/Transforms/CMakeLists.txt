@@ -14,37 +14,34 @@ add_cudaq_library(OptTransforms
   AddDeallocs.cpp
   AggressiveEarlyInlining.cpp
   ApplyOpSpecialization.cpp
-  CCMem2Reg.cpp
+  BasisConversion.cpp
+  CombineQuantumAlloc.cpp
+  Decomposition.cpp
+  DecompositionPatterns.cpp
   ExpandMeasurements.cpp
-  FuncToQTX.cpp
+  FactorQuantumAlloc.cpp
   GenKernelExecution.cpp
   GenDeviceCodeLoader.cpp
   LambdaLifting.cpp
+  LoopAnalysis.cpp
   LoopUnroll.cpp
   LowerToCFG.cpp
   LowerUnwind.cpp
-  OpCancellation.cpp
-  OpDecomposition.cpp
-  Passes.cpp
-  QTXToQuake.cpp
+  MemToReg.cpp
+  MultiControlDecomposition.cpp
   QuakeAddMetadata.cpp
   QuakeObserveAnsatz.cpp
   QuakeSynthesizer.cpp
-  QuakeToQTX.cpp
-  QuakeToQTXConverter.cpp
-  RaiseToAffine.cpp
-  SplitArrays.cpp
+  RegToMem.cpp
 
   DEPENDS
     OptTransformsPassIncGen
     CCDialect
-    QTXDialect
     QuakeDialect
     
   LINK_LIBS PUBLIC
     CCDialect
     MLIRIR
     OptimBuilder
-    QTXDialect
     QuakeDialect
 )

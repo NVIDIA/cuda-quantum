@@ -1,17 +1,17 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 // Simple test to make sure the tool is built and has basic functionality.
 
 // RUN: cudaq-quake --emit-llvm-file %s | FileCheck %s
 
 // We should only have 2 kernels created even though we instantiate ghz<5> twice. 
-// CHECK-LABEL: module attributes {qtx.mangled_name_map = {
+// CHECK-LABEL: module attributes {quake.mangled_name_map = {
 // CHECK-SAME: __nvqpp__mlirgen__ghzILm10EE = "_ZN3ghzILm10EEclEv", __nvqpp__mlirgen__ghzILm5EE = "_ZN3ghzILm5EEclEv"
 
 // CHECK-LABEL: func.func @__nvqpp__mlirgen__ghzILm5EE

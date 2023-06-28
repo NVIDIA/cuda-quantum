@@ -1,15 +1,14 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #pragma once
 
 #include <optional>
-#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -265,6 +264,11 @@ public:
   /// @brief Range-based constant iterator end function
   /// @return
   CountsDictionary::const_iterator end() const { return cend(); }
+
+  /// @brief Return true if the bit string has even parity
+  /// @param bitString
+  /// @return
+  static bool has_even_parity(std::string_view bitString);
 };
 
 } // namespace cudaq

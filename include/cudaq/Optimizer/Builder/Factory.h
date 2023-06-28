@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #pragma once
 
@@ -43,14 +43,6 @@ inline mlir::Type getPointerType(mlir::Type ty) {
 /// Return the LLVM-IR dialect type: `[length x i8]`.
 inline mlir::Type getStringType(mlir::MLIRContext *ctx, std::size_t length) {
   return mlir::LLVM::LLVMArrayType::get(mlir::IntegerType::get(ctx, 8), length);
-}
-
-/// Return a 1D MemRefType with a non-constant size.
-inline mlir::MemRefType getDynamicSize1DMemRef(mlir::Type elementType) {
-  // -1 is used to indicate that the size is dynamic.
-  constexpr int DYNAMIC = -1;
-  mlir::ArrayRef<int64_t> shape = {DYNAMIC};
-  return mlir::MemRefType::get(shape, elementType);
 }
 
 /// Return the QPU-side version of a `std::vector<T>` when lowered to a plain

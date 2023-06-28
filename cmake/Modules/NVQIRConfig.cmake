@@ -25,7 +25,7 @@ endif()
 get_filename_component(PARENT_DIRECTORY ${PARENT_DIRECTORY} DIRECTORY)
 set(NVQIR_SIMULATOR_PLUGIN_PATH "${PARENT_DIRECTORY}")
 get_filename_component(PARENT_DIRECTORY ${PARENT_DIRECTORY} DIRECTORY)
-set(NVQIR_SIMULATOR_CONFIG_PATH "${PARENT_DIRECTORY}/platforms")
+set(NVQIR_SIMULATOR_CONFIG_PATH "${PARENT_DIRECTORY}/targets")
 
 function(nvqir_add_backend BackendName)
   set(LIBRARY_NAME nvqir-${BackendName})

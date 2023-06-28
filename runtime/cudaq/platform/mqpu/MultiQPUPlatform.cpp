@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "common/ExecutionContext.h"
 #include "common/Logger.h"
@@ -19,9 +19,6 @@
 #include <spdlog/cfg/env.h>
 
 namespace {
-// We want to kick off CUDA lazy initialization,
-// flip this to true once we do
-static bool devicesWarmedUp = false;
 
 /// @brief This QPU implementation enqueues kernel
 /// execution tasks and sets the CUDA GPU device that it
@@ -91,7 +88,7 @@ public:
             sum += term.get_coefficient().real();
           else {
             auto [exp, data] = cudaq::measure(term);
-            results.emplace_back(data.to_map(), term.to_string(), exp);
+            results.emplace_back(data.to_map(), term.to_string(false), exp);
             sum += term.get_coefficient().real() * exp;
           }
         });
@@ -128,30 +125,6 @@ public:
         nDevices = specifiedNDevices;
     }
 
-    if (!devicesWarmedUp) {
-      // Warm up the GPUs so we don't have any lazy init issues.
-      std::vector<std::future<void>> futures;
-      for (int i = 0; i < nDevices; i++) {
-        futures.emplace_back(std::async(std::launch::async, [i]() {
-          auto warmUpSim = cudaq::getExecutionManager();
-
-          cudaSetDevice(i);
-
-          // Warm up the GPUs via an allocation / deallocation.
-          cudaq::info("Warm up Emulated QPU (GPU) {}.", i);
-          std::array<std::size_t, 1> qbits{warmUpSim->getAvailableIndex()};
-          warmUpSim->returnQudit({2, qbits[0]});
-        }));
-      }
-
-      // Sync up the threads
-      for (auto &f : futures)
-        f.get();
-
-      cudaSetDevice(0);
-      devicesWarmedUp = true;
-    }
-
     // Add a QPU for each GPU.
     for (int i = 0; i < nDevices; i++)
       platformQPUs.emplace_back(std::make_unique<GPUEmulatedQPU>(i));
@@ -159,6 +132,8 @@ public:
     platformNumQPUs = platformQPUs.size();
     platformCurrentQPU = 0;
   }
+
+  bool supports_task_distribution() const override { return true; }
 };
 } // namespace
 

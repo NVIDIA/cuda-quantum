@@ -22,7 +22,7 @@ struct test0 {
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test0
-// CHECK:           %[[VAL_2:.*]] = quake.alloca[%{{.*}} : i64] !quake.veq<?>
+// CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<?>[%{{.*}} : i64]
 // CHECK:           %[[VAL_3:.*]] = cc.create_lambda {
 // CHECK:           } : !cc.lambda<(!quake.ref) -> ()>
 // CHECK:           %[[VAL_12:.*]] = quake.extract_ref %[[VAL_2]][%{{.*}}] : (!quake.veq<?>, i64) -> !quake.ref
@@ -33,7 +33,7 @@ struct test0 {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__
 // CHECK-SAME:        5test0
-// CHECK-SAME:        %[[VAL_0:.*]]: !quake.ref)
+// CHECK-SAME:        %[[VAL_0:.*]]: !quake.ref{{.*}})
 // CHECK:           quake.x %[[VAL_0]] :
 // CHECK:           return
 // CHECK:         }
@@ -46,19 +46,17 @@ struct test1 {
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test1
-// CHECK-SAME:        () attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK:           %[[VAL_3:.*]] = quake.alloca[%{{.*}} : i64] !quake.veq<2>
+// CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           %[[VAL_4:.*]] = cc.create_lambda {
 // CHECK:           } : !cc.lambda<(!quake.ref) -> ()>
 // CHECK:           %[[VAL_13:.*]] = quake.extract_ref %[[VAL_3]][%{{.*}}] : (!quake.veq<2>, i64) -> !quake.ref
 // CHECK:           %[[VAL_16:.*]] = quake.extract_ref %[[VAL_3]][%{{.*}}] : (!quake.veq<2>, i64) -> !quake.ref
 // CHECK:           quake.apply @__nvqpp__mlirgen__{{.*}}5test1{{.*}}[%[[VAL_13]]] %[[VAL_16]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           return
-// CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__
 // CHECK-SAME:        5test1
-// CHECK-SAME:        %[[VAL_0:.*]]: !quake.ref)
+// CHECK-SAME:        %[[VAL_0:.*]]: !quake.ref{{.*}})
 // CHECK:           quake.x %[[VAL_0]] :
 // CHECK:           return
 // CHECK:         }
@@ -84,15 +82,14 @@ struct test2b {
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test2b
-// CHECK:           %[[VAL_2:.*]] = quake.alloca[%{{.*}} : i64] !quake.veq<?>
+// CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<?>[%{{.*}} : i64]
 // CHECK:           %[[VAL_4:.*]] = cc.create_lambda {
 // CHECK:           } : !cc.lambda<(!quake.ref) -> ()>
 // CHECK:           call @__nvqpp__mlirgen__instance_test2a{{.*}}(%{{.*}}, %[[VAL_2]]) : (!cc.lambda<(!quake.ref) -> ()>, !quake.veq<?>) -> ()
 // CHECK:           return
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__instance_test2a
-// CHECK-SAME:       (%[[VAL_0:.*]]: !cc.lambda<(!quake.ref) -> ()>,
-// CHECK-SAME:        %[[VAL_1:.*]]: !quake.veq<?>)
+// CHECK-SAME:       (%[[VAL_0:.*]]: !cc.lambda<(!quake.ref) -> ()>{{.*}}, %[[VAL_1:.*]]: !quake.veq<?>{{.*}})
 // CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_1]][%{{.*}}] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:           call @__nvqpp__mlirgen__{{.*}}test2b{{.*}}(%[[VAL_4]]) : (!quake.ref) -> ()
 // CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_1]][%{{.*}}] : (!quake.veq<?>, i64) -> !quake.ref
@@ -101,7 +98,7 @@ struct test2b {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__
 // CHECK-SAME:        6test2b
-// CHECK-SAME:        %[[VAL_0:.*]]: !quake.ref)
+// CHECK-SAME:        %[[VAL_0:.*]]: !quake.ref{{.*}})
 // CHECK:           quake.h %[[VAL_0]] :
 // CHECK:           quake.y %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           return
@@ -130,15 +127,14 @@ struct test2c {
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test2c
-// CHECK:           %[[VAL_2:.*]] = quake.alloca[%{{.*}} : i64] !quake.veq<?>
+// CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<?>[%{{.*}} : i64]
 // CHECK:           %[[VAL_3:.*]] = cc.create_lambda {
 // CHECK:           } : !cc.lambda<(!quake.ref) -> ()>
 // CHECK:           call @__nvqpp__mlirgen__instance_test2a_c{{.*}}(%{{.*}}, %[[VAL_2]]) : (!cc.lambda<(!quake.ref) -> ()>, !quake.veq<?>) -> ()
 // CHECK:           return
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__instance_test2a_c
-// CHECK-SAME:       (%[[VAL_0:.*]]: !cc.lambda<(!quake.ref) -> ()>,
-// CHECK-SAME:        %[[VAL_1:.*]]: !quake.veq<?>)
+// CHECK-SAME:       (%[[VAL_0:.*]]: !cc.lambda<(!quake.ref) -> ()>{{.*}}, %[[VAL_1:.*]]: !quake.veq<?>{{.*}})
 // CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_1]][%{{.*}}] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:           call @__nvqpp__mlirgen__{{.*}}test2c{{.*}}(%[[VAL_4]]) : (!quake.ref) -> ()
 // CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_1]][%{{.*}}] : (!quake.veq<?>, i64) -> !quake.ref
@@ -148,7 +144,7 @@ struct test2c {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__
 // CHECK-SAME:        6test2c
-// CHECK-SAME:        %[[VAL_0:.*]]: !quake.ref)
+// CHECK-SAME:        %[[VAL_0:.*]]: !quake.ref{{.*}})
 // CHECK:           quake.h %[[VAL_0]]
 // CHECK:           quake.z %[[VAL_0]]
 // CHECK:           quake.h %[[VAL_0]]
@@ -176,8 +172,7 @@ struct test3 {
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test3a
-// CHECK-SAME:       (%[[VAL_0:.*]]: !cc.lambda<(!quake.ref) -> ()>,
-// CHECK-SAME:        %[[VAL_1:.*]]: !quake.veq<?>) attributes {"cudaq-kernel"} {
+// CHECK-SAME:       (%[[VAL_0:.*]]: !cc.lambda<(!quake.ref) -> ()>{{.*}}, %[[VAL_1:.*]]: !quake.veq<?>{{.*}}) attributes
 // CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_3:.*]] = arith.extsi %[[VAL_2]] : i32 to i64
 // CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_1]]{{\[}}%[[VAL_3]]] : (!quake.veq<?>, i64) -> !quake.ref
@@ -193,9 +188,9 @@ struct test3 {
 // CHECK-SAME:        () attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 2 : i32
 // CHECK:           %[[VAL_1:.*]] = arith.extsi %[[VAL_0]] : i32 to i64
-// CHECK:           %[[VAL_2:.*]] = quake.alloca[%[[VAL_1]] : i64] !quake.veq<?>
+// CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<?>[%[[VAL_1]] : i64]
 // CHECK:           %[[VAL_3:.*]] = cc.create_lambda {
-// CHECK:           ^bb0(%[[VAL_4:.*]]: !quake.ref):
+// CHECK:           ^bb0(%[[VAL_4:.*]]: !quake.ref
 // CHECK:             cc.scope {
 // CHECK:               quake.h %[[VAL_4]]
 // CHECK:               quake.z %[[VAL_4]]

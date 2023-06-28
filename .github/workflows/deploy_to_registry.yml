@@ -11,12 +11,9 @@ on:
         required: true
         type: string
     outputs:
-      image_name:
-        description: "The the name of the deployed docker image."
-        value: ${{ jobs.deployment.outputs.image_name }}
-      digests:
-        description: "The digest(s) of the deployed docker image(s)."
-        value: ${{ jobs.deployment.outputs.digest }}
+      image_hash:
+        description: "The name and digest of the deployed docker image that can be used to retrieve it independently of any tag updates."
+        value: ${{ jobs.deployment.outputs.image_hash }}
 
 name: Deploy image to container registry
 
@@ -27,8 +24,7 @@ jobs:
     permissions: write-all
 
     outputs:
-      image_name: ${{ steps.push_image.outputs.image_name }}
-      digests: ${{ steps.push_image.outputs.digests }}
+      image_hash: ${{ steps.push_image.outputs.image_hash }}
 
     environment:
       name: ${{ inputs.environment }}
@@ -55,15 +51,13 @@ jobs:
         run: |
           # Note that this may change the digest compared to the digest produced during build
           # (the saved docker format has its own manifest that doesn't necessarily have the same bit-by-bit format...)
-          docker load --input ${{ inputs.tar_archive }}
           loaded=`docker load --input ${{ inputs.tar_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
 
           image_name=`echo $loaded | cut -d ":" -f 1`
-          digests=`docker images $image_name --digests --format '{{.Digest}}'`
-          docker push $image_name --all-tags
+          digest_id=`docker push $image_name --all-tags | grep -o 'digest:\ssha256:\S*' | cut -d ":" -f 3`
 
-          echo "image_name=$image_name" >> $GITHUB_OUTPUT
-          echo "digests=$(echo $digests | tr ' ' ';')" >> $GITHUB_OUTPUT
+          image_hash=${image_name}@sha256:$digest_id
+          echo "image_hash=$image_hash" >> $GITHUB_OUTPUT
 
       - name: Clean up
         run: |

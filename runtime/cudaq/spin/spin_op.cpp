@@ -1,23 +1,23 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
+#include "common/EigenDense.h"
+#include "common/FmtCore.h"
 #include <cudaq/spin_op.h>
 #include <stdint.h>
 #ifdef CUDAQ_HAS_OPENMP
 #include <omp.h>
 #endif
 
-#include <Eigen/Dense>
 #include <algorithm>
 #include <array>
 #include <cassert>
 #include <complex>
-#include <fmt/core.h>
 #include <fstream>
 #include <iostream>
 #include <map>

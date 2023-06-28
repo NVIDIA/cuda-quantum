@@ -8,7 +8,6 @@
 
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
-#include "cudaq/Optimizer/Dialect/Common/Ops.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"
@@ -50,33 +49,38 @@ Value quake::createConstantAlloca(PatternRewriter &builder, Location loc,
       loc, quake::VeqType::getUnsized(builder.getContext()), newAlloca);
 }
 
-void quake::AllocaOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
-                                                  MLIRContext *context) {
-  patterns.add<FuseConstantToAllocaPattern>(context);
-}
-
 LogicalResult quake::AllocaOp::verify() {
-  auto resultType = dyn_cast<VeqType>(getResult().getType());
-  if (auto size = getSize()) {
-    std::int64_t argSize = 0;
-    if (auto cnt = dyn_cast_or_null<arith::ConstantOp>(size.getDefiningOp())) {
-      argSize = cnt.getValue().cast<IntegerAttr>().getInt();
-      // TODO: This is a questionable check. We could have a very large unsigned
-      // value that appears to be negative because of two's complement. On the
-      // other hand, allocating 2^64 - 1 qubits isn't going to go well.
-      if (argSize < 0)
-        return emitOpError("expected a non-negative integer size.");
+  // Result must be RefType or VeqType by construction.
+  if (auto resTy = dyn_cast<VeqType>(getResult().getType())) {
+    if (resTy.hasSpecifiedSize()) {
+      if (getSize())
+        return emitOpError("unexpected size operand");
+    } else {
+      if (auto size = getSize()) {
+        if (auto cnt =
+                dyn_cast_or_null<arith::ConstantOp>(size.getDefiningOp())) {
+          std::int64_t argSize = cnt.getValue().cast<IntegerAttr>().getInt();
+          // TODO: This is a questionable check. We could have a very large
+          // unsigned value that appears to be negative because of two's
+          // complement. On the other hand, allocating 2^64 - 1 qubits isn't
+          // going to go well.
+          if (argSize < 0)
+            return emitOpError("expected a non-negative integer size.");
+        }
+      } else {
+        return emitOpError("size operand required");
+      }
     }
-    if (!resultType)
-      return emitOpError(
-          "must return a vector of qubits since a size was provided.");
-    if (resultType.hasSpecifiedSize() &&
-        (static_cast<std::size_t>(argSize) != resultType.getSize()))
-      return emitOpError("expected operand size to match VeqType size.");
-  } else if (resultType && !resultType.hasSpecifiedSize()) {
-    return emitOpError("must return a veq with known size.");
   }
   return success();
+}
+
+void quake::AllocaOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
+                                                  MLIRContext *context) {
+  // Use a canonicalization pattern as folding the constant into the veq type
+  // changes the type. Uses may still expect a veq with unspecified size.
+  // Folding is strictly reductive and doesn't allow the creation of ops.
+  patterns.add<FuseConstantToAllocaPattern>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -87,7 +91,7 @@ static ParseResult
 parseRawIndex(OpAsmParser &parser,
               std::optional<OpAsmParser::UnresolvedOperand> &index,
               IntegerAttr &rawIndex) {
-  std::size_t constantIndex = 0;
+  std::size_t constantIndex = quake::ExtractRefOp::kDynamicIndex;
   OptionalParseResult parsedInteger =
       parser.parseOptionalInteger(constantIndex);
   if (parsedInteger.has_value()) {
@@ -95,7 +99,6 @@ parseRawIndex(OpAsmParser &parser,
       return failure();
     index = std::nullopt;
   } else {
-    constantIndex = quake::ExtractRefOp::kDynamicIndex;
     OpAsmParser::UnresolvedOperand operand;
     if (parser.parseOperand(operand))
       return failure();
@@ -264,6 +267,183 @@ LogicalResult quake::MzOp::verify() {
   return verifyMeasurements(getOperation(), getTargets().getType(),
                             getBits().getType());
 }
+
+//===----------------------------------------------------------------------===//
+// Operator interface
+//===----------------------------------------------------------------------===//
+
+// The following methods return to the operator's unitary matrix as a
+// column-major array. For parametrizable operations, the matrix can only be
+// built if the parameter can be computed at compilation time. These methods
+// populate an empty array taken as a input. If the matrix was not successfuly
+// computed, the array will be left empty.
+
+/// If the parameter is known at compilation-time, set the result value and
+/// returns success. Otherwise, returns failure.
+static LogicalResult getParameterAsDouble(Value parameter, double &result) {
+  auto paramDefOp = parameter.getDefiningOp();
+  if (!paramDefOp)
+    return failure();
+  if (auto constOp = mlir::dyn_cast<mlir::arith::ConstantOp>(paramDefOp)) {
+    if (auto value = dyn_cast<mlir::FloatAttr>(constOp.getValue())) {
+      result = value.getValueAsDouble();
+      return success();
+    }
+  }
+  return failure();
+}
+
+void quake::HOp::getOperatorMatrix(Matrix &matrix) {
+  using namespace llvm::numbers;
+  matrix.assign({inv_sqrt2, inv_sqrt2, inv_sqrt2, -inv_sqrt2});
+}
+
+void quake::PhasedRxOp::getOperatorMatrix(Matrix &matrix) {
+  using namespace std::complex_literals;
+
+  // Get parameters
+  double theta;
+  double phi;
+  if (failed(getParameterAsDouble(getParameter(), theta)) ||
+      failed(getParameterAsDouble(getParameter(1), phi)))
+    return;
+
+  if (getIsAdj())
+    theta *= -1;
+
+  matrix.assign(
+      {std::cos(theta / 2.), -1i * std::exp(1i * phi) * std::sin(theta / 2.),
+       -1i * std::exp(-1i * phi) * std::sin(theta / 2.), std::cos(theta / 2.)});
+}
+
+void quake::R1Op::getOperatorMatrix(Matrix &matrix) {
+  using namespace std::complex_literals;
+  double theta;
+  if (failed(getParameterAsDouble(getParameter(), theta)))
+    return;
+  if (getIsAdj())
+    theta *= -1;
+  matrix.assign({1, 0, 0, std::exp(theta * 1i)});
+}
+
+void quake::RxOp::getOperatorMatrix(Matrix &matrix) {
+  using namespace std::complex_literals;
+  double theta;
+  if (failed(getParameterAsDouble(getParameter(), theta)))
+    return;
+  if (getIsAdj())
+    theta *= -1;
+  matrix.assign({std::cos(theta / 2.), -1i * std::sin(theta / 2.),
+                 -1i * std::sin(theta / 2.), std::cos(theta / 2.)});
+}
+
+void quake::RyOp::getOperatorMatrix(Matrix &matrix) {
+  // Get parameter
+  double theta;
+  if (failed(getParameterAsDouble(getParameter(), theta)))
+    return;
+
+  if (getIsAdj())
+    theta *= -1;
+
+  matrix.assign({std::cos(theta / 2.), std::sin(theta / 2.),
+                 -std::sin(theta / 2.), std::cos(theta / 2.)});
+}
+
+void quake::RzOp::getOperatorMatrix(Matrix &matrix) {
+  using namespace std::complex_literals;
+
+  // Get parameter
+  double theta;
+  if (failed(getParameterAsDouble(getParameter(), theta)))
+    return;
+
+  if (getIsAdj())
+    theta *= -1;
+
+  matrix.assign({std::exp(-1i * theta / 2.), 0, 0, std::exp(1i * theta / 2.)});
+}
+
+void quake::SOp::getOperatorMatrix(Matrix &matrix) {
+  using namespace llvm::numbers;
+  using namespace std::complex_literals;
+  if (getIsAdj())
+    matrix.assign({1, 0, 0, -1i});
+  else
+    matrix.assign({1, 0, 0, 1i});
+}
+
+void quake::SwapOp::getOperatorMatrix(Matrix &matrix) {
+  matrix.assign({1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1});
+}
+
+void quake::TOp::getOperatorMatrix(Matrix &matrix) {
+  using namespace llvm::numbers;
+  if (getIsAdj())
+    matrix.assign({1, 0, 0, {inv_sqrt2, -inv_sqrt2}});
+  else
+    matrix.assign({1, 0, 0, {inv_sqrt2, inv_sqrt2}});
+}
+
+void quake::U2Op::getOperatorMatrix(Matrix &matrix) {
+  using namespace llvm::numbers;
+  using namespace std::complex_literals;
+
+  // Get parameters
+  double phi;
+  double lambda;
+  if (failed(getParameterAsDouble(getParameter(), phi)) ||
+      failed(getParameterAsDouble(getParameter(1), lambda)))
+    return;
+
+  if (getIsAdj()) {
+    phi *= -1;
+    lambda *= -1;
+  }
+
+  matrix.assign({inv_sqrt2, inv_sqrt2 * std::exp(phi * 1i),
+                 -inv_sqrt2 * std::exp(lambda * 1i),
+                 inv_sqrt2 * std::exp(1i * (phi + lambda))});
+}
+
+void quake::U3Op::getOperatorMatrix(Matrix &matrix) {
+  using namespace std::complex_literals;
+
+  // Get parameters
+  double theta;
+  double phi;
+  double lambda;
+  if (failed(getParameterAsDouble(getParameter(), theta)) ||
+      failed(getParameterAsDouble(getParameter(1), phi)) ||
+      failed(getParameterAsDouble(getParameter(2), lambda)))
+    return;
+
+  if (getIsAdj()) {
+    theta *= -1;
+    phi *= -1;
+    lambda *= -1;
+  }
+
+  matrix.assign({std::cos(theta / 2.),
+                 std::exp(phi * 1i) * std::sin(theta / 2.),
+                 -std::exp(lambda * 1i) * std::sin(theta / 2.),
+                 std::exp(1i * (phi + lambda)) * std::cos(theta / 2.)});
+}
+
+void quake::XOp::getOperatorMatrix(Matrix &matrix) {
+  matrix.assign({0, 1, 1, 0});
+}
+
+void quake::YOp::getOperatorMatrix(Matrix &matrix) {
+  using namespace std::complex_literals;
+  matrix.assign({0, 1i, -1i, 0});
+}
+
+void quake::ZOp::getOperatorMatrix(Matrix &matrix) {
+  matrix.assign({1, 0, 0, -1});
+}
+
+//===----------------------------------------------------------------------===//
 
 /// Never inline a `quake.apply` of a variant form of a kernel. The apply
 /// operation must be rewritten to a call before it is inlined when the apply is

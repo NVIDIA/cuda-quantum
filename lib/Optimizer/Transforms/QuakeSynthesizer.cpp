@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
@@ -15,7 +15,6 @@
 #include "cudaq/Todo.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 
@@ -61,13 +60,11 @@ void synthesizeRuntimeArgument(
   // and replace with the concrete op.
   if (!argument.getUsers().empty()) {
     auto firstUse = *argument.user_begin();
-    if (dyn_cast<memref::StoreOp>(firstUse)) {
+    if (dyn_cast<cudaq::cc::StoreOp>(firstUse)) {
       auto memrefValue = firstUse->getOperand(1);
-      for (auto user : memrefValue.getUsers()) {
-        if (auto load = dyn_cast<memref::LoadOp>(user)) {
+      for (auto user : memrefValue.getUsers())
+        if (auto load = dyn_cast<cudaq::cc::LoadOp>(user))
           load.getResult().replaceAllUsesWith(runtimeArg);
-        }
-      }
     }
   }
   argument.replaceAllUsesWith(runtimeArg);
@@ -83,19 +80,20 @@ LogicalResult synthesizeVectorArgument(OpBuilder &builder,
     // could be a load, or a getelementptr.
     // if load, the index is 0
     // if getelementptr, then we get the index there to use
-    if (auto loadOp = dyn_cast_or_null<LLVM::LoadOp>(user)) {
+    if (auto loadOp = dyn_cast_or_null<cudaq::cc::LoadOp>(user)) {
       llvm::APFloat f(vec[0]);
       Value runtimeParam = builder.create<arith::ConstantFloatOp>(
           builder.getUnknownLoc(), f, builder.getF64Type());
       // Replace with the constant value, remove the load
       loadOp.replaceAllUsesWith(runtimeParam);
       loadOp.erase();
-    } else if (auto gepOp = dyn_cast_or_null<LLVM::GEPOp>(user)) {
+    } else if (auto gepOp = dyn_cast_or_null<cudaq::cc::ComputePtrOp>(user)) {
       auto index = gepOp.getRawConstantIndices()[0];
       llvm::APFloat f(vec[index]);
       Value runtimeParam = builder.create<arith::ConstantFloatOp>(
           builder.getUnknownLoc(), f, builder.getF64Type());
-      auto loadOp = dyn_cast_or_null<LLVM::LoadOp>(*gepOp->getUsers().begin());
+      auto loadOp =
+          dyn_cast_or_null<cudaq::cc::LoadOp>(*gepOp->getUsers().begin());
       if (!loadOp)
         return loadOp.emitError(
             "Unknown gep/load configuration for quake-synth.");

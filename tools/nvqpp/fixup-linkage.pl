@@ -19,7 +19,7 @@ my $cnt = 0;
 # 1. Get a list of all the mangled kernel names from the .qke file.
 open(F, $modFile);
 MAP: while (<F>) {
-    if ($_ =~ /qtx.mangled_name_map/) {
+    if ($_ =~ /quake.mangled_name_map/) {
 	my $i = index($_, '"');	
 	while ($i != -1) {
 	    $_ = substr($_, $i + 1);
@@ -46,6 +46,14 @@ while (<F>) {
     if ($_ =~ /^define internal /) {
 	LINE: for $name (@functions) {
 	    if ($_ =~ /^define internal (.*)\Q$name/) {
+		$_ = "define linkonce_odr dso_preemptable $1$name$'";
+		last LINE;
+	    }
+	}
+    }
+    if ($_ =~ /^define dso_local /) {
+	LINE: for $name (@functions) {
+	    if ($_ =~ /^define dso_local (.*)\Q$name/) {
 		$_ = "define linkonce_odr dso_preemptable $1$name$'";
 		last LINE;
 	    }

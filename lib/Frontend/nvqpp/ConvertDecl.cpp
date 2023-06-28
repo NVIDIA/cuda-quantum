@@ -1,4 +1,4 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -123,14 +123,14 @@ void QuakeBridgeVisitor::addArgumentSymbols(
       // Transform pass-by-value arguments to stack slots.
       auto loc = toLocation(argVal);
       auto parmTy = entryBlock->getArgument(index).getType();
-      if (parmTy.isa<cc::LambdaType, cc::StdvecType, LLVM::LLVMStructType,
-                     FunctionType, quake::RefType, quake::VeqType>()) {
+      if (parmTy.isa<cc::LambdaType, cc::StdvecType, cc::ArrayType,
+                     cc::StructType, LLVM::LLVMStructType, FunctionType,
+                     quake::RefType, quake::VeqType>()) {
         symbolTable.insert(name, entryBlock->getArgument(index));
       } else {
-        auto memRefTy = MemRefType::get(std::nullopt, parmTy);
-        auto stackSlot = builder.create<memref::AllocaOp>(loc, memRefTy);
-        builder.create<memref::StoreOp>(loc, entryBlock->getArgument(index),
-                                        stackSlot);
+        auto stackSlot = builder.create<cc::AllocaOp>(loc, parmTy);
+        builder.create<cc::StoreOp>(loc, entryBlock->getArgument(index),
+                                    stackSlot);
         symbolTable.insert(name, stackSlot);
       }
     }
@@ -253,7 +253,10 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
       // this is a qreg<N> q;
       auto qregSizeVal = builder.create<mlir::arith::ConstantIntOp>(
           loc, qregSize, builder.getIntegerType(64));
-      qreg = builder.create<quake::AllocaOp>(loc, qType, qregSizeVal);
+      if (qregSize != 0)
+        qreg = builder.create<quake::AllocaOp>(loc, qType);
+      else
+        qreg = builder.create<quake::AllocaOp>(loc, qType, qregSizeVal);
     }
     symbolTable.insert(name, qreg);
     // allocated_qreg_names.push_back(name);
@@ -267,12 +270,10 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
       symbolTable.insert(name, val);
       return pushValue(val);
     }
-    auto qregSizeVal = builder.create<mlir::arith::ConstantIntOp>(
-        loc, 1, builder.getIntegerType(64));
     auto zero = builder.create<mlir::arith::ConstantIntOp>(
         loc, 0, builder.getIntegerType(64));
     auto qregSizeOne = builder.create<quake::AllocaOp>(
-        loc, quake::VeqType::get(builder.getContext(), 1), qregSizeVal);
+        loc, quake::VeqType::get(builder.getContext(), 1));
     Value addressTheQubit =
         builder.create<quake::ExtractRefOp>(loc, qregSizeOne, zero);
     symbolTable.insert(name, addressTheQubit);
@@ -303,13 +304,13 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
 
       // Did the first operand come from an LLVM AllocaOp, if not drop out
       auto bitVecAllocation =
-          stdVecInit.getOperand(0).getDefiningOp<LLVM::AllocaOp>();
+          stdVecInit.getOperand(0).getDefiningOp<cc::AllocaOp>();
       if (!bitVecAllocation)
         return true;
 
       // Search the AllocaOp users, find a potential GEPOp
       for (auto user : bitVecAllocation->getUsers()) {
-        auto gepOp = dyn_cast<LLVM::GEPOp>(user);
+        auto gepOp = dyn_cast<cc::ComputePtrOp>(user);
         if (!gepOp)
           continue;
 
@@ -320,7 +321,7 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
         // Is the first use a StoreOp, if so, we'll get its operand
         // and see if it came from an MzOp
         auto firstGepUser = *gepOp->getResult(0).getUsers().begin();
-        if (auto storeOp = dyn_cast<LLVM::StoreOp>(firstGepUser)) {
+        if (auto storeOp = dyn_cast<cc::StoreOp>(firstGepUser)) {
           auto result = storeOp->getOperand(0);
           auto mzOp = result.getDefiningOp<quake::MzOp>();
           if (mzOp) {
@@ -345,8 +346,7 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
   // Variable is of some basic type not already handled. Create a local stack
   // slot in which to save the value. This stack slot is the variable in the
   // memory domain.
-  Value alloca = builder.create<memref::AllocaOp>(
-      loc, MemRefType::get(ArrayRef<int64_t>{}, type));
+  Value alloca = builder.create<cc::AllocaOp>(loc, type);
   if (x->getInit()) {
     auto initValue = popValue();
 
@@ -361,12 +361,12 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
           type.getIntOrFloatBitWidth()) {
         // FIXME: Use zero-extend if this is unsigned!
         initValue = builder.create<arith::ExtSIOp>(
-            loc, alloca.getType().cast<MemRefType>().getElementType(),
+            loc, alloca.getType().cast<cc::PointerType>().getElementType(),
             initValue);
       } else if (initValue.getType().getIntOrFloatBitWidth() >
                  type.getIntOrFloatBitWidth()) {
         initValue = builder.create<arith::TruncIOp>(
-            loc, alloca.getType().cast<MemRefType>().getElementType(),
+            loc, alloca.getType().cast<cc::PointerType>().getElementType(),
             initValue);
       }
     } else if (initValue.getType().isa<IntegerType>() &&
@@ -375,7 +375,7 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
       initValue = builder.create<arith::SIToFPOp>(loc, type, initValue);
     }
     // FIXME: Add more conversions!
-    builder.create<memref::StoreOp>(loc, initValue, alloca);
+    builder.create<cc::StoreOp>(loc, initValue, alloca);
   }
   symbolTable.insert(x->getName(), alloca);
   return pushValue(alloca);

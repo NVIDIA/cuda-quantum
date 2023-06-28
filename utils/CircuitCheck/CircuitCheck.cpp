@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "UnitaryBuilder.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
@@ -12,7 +12,6 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/SourceMgr.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/Passes.h"
@@ -53,7 +52,7 @@ int main(int argc, char **argv) {
 
   MLIRContext context;
   context.loadDialect<cudaq::cc::CCDialect, quake::QuakeDialect,
-                      func::FuncDialect, memref::MemRefDialect>();
+                      func::FuncDialect>();
 
   ParserConfig config(&context);
   auto checkMod = parseSourceFile<mlir::ModuleOp>(checkFilename, config);

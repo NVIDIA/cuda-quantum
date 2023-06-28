@@ -68,9 +68,6 @@ Additional links that may be helpful that are not listed above:
   objects](https://www.sphinx-doc.org/en/master/usage/restructuredtext/domains.html#cross-referencing)
 - [Sphinx configuration
   options](https://www.sphinx-doc.org/en/master/usage/configuration.html)
-- <!-- markdown-link-check-disable> [Common Sphinx warnings and
-  fixes](https://developer.mantidproject.org/Standards/DocumentationGuideForDevs.html#common-warnings-and-fixes)
-  <!-- markdown-link-check-enable>
 - [Syntax highlighting in inline
   code](https://sphinxawesome.xyz/demo/inline-code/#syntax-highlighting-in-inline-code)
 - [Test examples in Python

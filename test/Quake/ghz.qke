@@ -10,7 +10,7 @@
 module {
     // CHECK: func.func @ghz(%[[arg0:.*]]: i32) {
     // CHECK: %[[C1:.*]] = arith.constant 1 : i32
-    // CHECK: %0 = quake.alloca[%[[arg0]] : i32] !quake.veq<?>
+    // CHECK: %0 = quake.alloca !quake.veq<?>[%[[arg0]] : i32]
     // CHECK: %1 = quake.extract_ref %0[0] : (!quake.veq<?>) -> !quake.ref
     // CHECK: quake.h %1 :
     // CHECK: %2 = arith.subi %arg0, %[[C1]] : i32
@@ -28,7 +28,7 @@ module {
         // %size = arith.constant 3 : i32
         %c0 = arith.constant 0 : i32
         %one = arith.constant 1 : i32
-        %q = quake.alloca [%arg0 : i32] !quake.veq<?>
+        %q = quake.alloca !quake.veq<?>[%arg0 : i32]
         %q0 = quake.extract_ref %q[%c0] : (!quake.veq<?>, i32) -> !quake.ref
         quake.h %q0 : (!quake.ref) -> ()
         %size_m_1 = arith.subi %arg0, %one : i32

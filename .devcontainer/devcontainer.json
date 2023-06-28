@@ -1,9 +1,8 @@
 {
 	"name": "cuda-quantum-dev",
 	"build": {
-		"dockerfile": "../docker/build/cudaqdev.Dockerfile",
+		"dockerfile": "../docker/build/cudaq.dev.Dockerfile",
 		"args": { 
-			"env_tag": "llvm-main",
 			"destination": "workspaces/host"
 		}
 	},
@@ -226,8 +225,8 @@
 						]
 					}
 				],
-				"C_Cpp.inlayHints.autoDeclarationTypes.enabled": true,
-				"C_Cpp.inlayHints.referenceOperator.enabled": true,
+				"C_Cpp.inlayHints.autoDeclarationTypes.enabled": false,
+				"C_Cpp.inlayHints.referenceOperator.enabled": false,
 				"C_Cpp.doxygen.generateOnType": false,
 				"doxdocgen.c.triggerSequence": "///",
 				"doxdocgen.c.firstLine": "",

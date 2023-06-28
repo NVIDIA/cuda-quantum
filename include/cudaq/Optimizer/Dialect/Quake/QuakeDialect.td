@@ -22,8 +22,7 @@ def QuakeDialect : Dialect {
     Quake is envisioned to be a high-level, portable MLIR dialect that is very
     close to the CUDA Quantum programming model. Quake is a "circuit building"
     language in which one writes programs that build quantum circuits. Quake is 
-    not tied to a particular quantum hardware/machine. Quake + a platform/machine 
-    model lowers to the QTX dialect, which describes quantum circuits.
+    not tied to a particular quantum hardware/machine.
   }];
   let cppNamespace = "::quake";
   let useDefaultTypePrinterParser = 1;

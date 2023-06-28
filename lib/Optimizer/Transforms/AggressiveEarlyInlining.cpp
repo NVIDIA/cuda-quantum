@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -77,7 +77,7 @@ public:
   static llvm::StringMap<llvm::StringRef> getConversionMap(ModuleOp module) {
     llvm::StringMap<llvm::StringRef> result;
     auto mangledNameMap =
-        module->getAttrOfType<DictionaryAttr>("qtx.mangled_name_map");
+        module->getAttrOfType<DictionaryAttr>("quake.mangled_name_map");
     for (auto namedAttr : mangledNameMap) {
       auto key = namedAttr.getName();
       auto val = namedAttr.getValue().cast<StringAttr>().getValue();

@@ -1,4 +1,4 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -15,7 +15,6 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/IR/IRMapping.h"
 #include <cxxabi.h>
 #include <fstream>
@@ -52,8 +51,7 @@ static bool isQubitType(Type ty) {
 }
 
 // Check the builtin type FunctionType to see if it has any references to Quake
-// qubit types in its arguments and/or results. It does not check QTX types as
-// the bridge should be lowering to Quake.
+// qubit types in its arguments and/or results.
 static bool hasAnyQubitTypes(FunctionType funcTy) {
   for (auto ty : funcTy.getInputs())
     if (isQubitType(ty))

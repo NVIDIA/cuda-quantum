@@ -29,6 +29,7 @@ endif()
 pybind11_add_module(_pycudaq 
                      _cudaq.cpp 
                      utils/LinkedLibraryHolder.cpp 
+                     utils/TestingUtils.cpp
                      runtime/cudaq/builder/py_kernel_builder.cpp
                      runtime/cudaq/builder/py_QuakeValue.cpp
                      runtime/cudaq/algorithms/py_observe.cpp
@@ -45,8 +46,9 @@ pybind11_add_module(_pycudaq
 
 target_compile_options(_pycudaq PRIVATE -Wno-attributes)                     
 target_include_directories(_pycudaq PRIVATE .)
-target_link_libraries(_pycudaq PUBLIC nvqir
+target_link_libraries(_pycudaq 
     PRIVATE 
+      nvqir
       cudaq 
       cudaq-builder 
       cudaq-em-qir 

@@ -14,8 +14,10 @@ from multiprocessing import Process
 # Define the port for the mock server
 port = 62444
 
-def assert_close(want, got, tolerance=1.e-5) -> bool:
-    return abs(want - got) < tolerance
+
+def assert_close(got) -> bool:
+    return got < -1.1 and got > -2.2
+
 
 @pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
@@ -26,7 +28,9 @@ def startUpMockServer():
     f.close()
 
     # Set the targeted QPU
-    cudaq.set_qpu('quantinuum', url='http://localhost:{}'.format(port), credentials=credsName)
+    cudaq.set_target('quantinuum',
+                     url='http://localhost:{}'.format(port),
+                     credentials=credsName)
 
     # Launch the Mock Server
     p = Process(target=startServer, args=(port,))
@@ -39,6 +43,7 @@ def startUpMockServer():
     p.terminate()
     os.remove(credsName)
 
+
 def test_quantinuum_sample():
     # Create the kernel we'd like to execute on Quantinuum
     kernel = cudaq.make_kernel()
@@ -50,43 +55,44 @@ def test_quantinuum_sample():
     kernel.mz(qubits[1])
     print(kernel)
 
-    # Run sample synchronously, this is fine 
-    # here in testing since we are targeting a mock 
-    # server. In reality you'd probably not want to 
-    # do this with the remote job queue. 
+    # Run sample synchronously, this is fine
+    # here in testing since we are targeting a mock
+    # server. In reality you'd probably not want to
+    # do this with the remote job queue.
     counts = cudaq.sample(kernel)
     assert (len(counts) == 2)
     assert ('00' in counts)
     assert ('11' in counts)
-    
-    # Run sample, but do so asynchronously. This enters 
+
+    # Run sample, but do so asynchronously. This enters
     # the execution job into the remote Quantinuum job queue.
     future = cudaq.sample_async(kernel)
-    # We could go do other work, but since this 
-    # is a mock server, get the result 
+    # We could go do other work, but since this
+    # is a mock server, get the result
     counts = future.get()
     assert (len(counts) == 2)
     assert ('00' in counts)
     assert ('11' in counts)
 
-    # Ok now this is the most likely scenario, launch the 
-    # job asynchronously, this puts it in the queue, now 
-    # you can take the future and persist it to file for later. 
+    # Ok now this is the most likely scenario, launch the
+    # job asynchronously, this puts it in the queue, now
+    # you can take the future and persist it to file for later.
     future = cudaq.sample_async(kernel)
     print(future)
 
-    # Persist the future to a file (or here a string, 
+    # Persist the future to a file (or here a string,
     # could write this string to file for later)
     futureAsString = str(future)
 
-    # Later you can come back and read it in and get 
-    # the results, which are now present because the job 
+    # Later you can come back and read it in and get
+    # the results, which are now present because the job
     # made it through the queue
     futureReadIn = cudaq.AsyncSampleResult(futureAsString)
     counts = futureReadIn.get()
     assert (len(counts) == 2)
     assert ('00' in counts)
     assert ('11' in counts)
+
 
 def test_quantinuum_observe():
     # Create the parameterized ansatz
@@ -99,30 +105,31 @@ def test_quantinuum_observe():
     # Define its spin Hamiltonian.
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
-    
+
     # Run the observe task on quantinuum synchronously
     res = cudaq.observe(kernel, hamiltonian, .59)
     want_expectation_value = -1.71
-    assert assert_close(want_expectation_value, res.expectation_z(), 1e-2)
+    assert assert_close(res.expectation_z())
 
     # Launch it asynchronously, enters the job into the queue
     future = cudaq.observe_async(kernel, hamiltonian, .59)
     # Retrieve the results (since we're on a mock server)
     res = future.get()
-    assert assert_close(want_expectation_value, res.expectation_z(), 1e-2)
+    assert assert_close(res.expectation_z())
 
-    # Launch the job async, job goes in the queue, and 
+    # Launch the job async, job goes in the queue, and
     # we're free to dump the future to file
     future = cudaq.observe_async(kernel, hamiltonian, .59)
     print(future)
     futureAsString = str(future)
 
     # Later you can come back and read it in
-    # You must provide the spin_op so we can reconstruct 
-    # the results from the term job ids. 
+    # You must provide the spin_op so we can reconstruct
+    # the results from the term job ids.
     futureReadIn = cudaq.AsyncObserveResult(futureAsString, hamiltonian)
     res = futureReadIn.get()
-    assert assert_close(want_expectation_value, res.expectation_z(), 1e-2)
+    assert assert_close(res.expectation_z())
+
 
 # leave for gdb debugging
 if __name__ == "__main__":

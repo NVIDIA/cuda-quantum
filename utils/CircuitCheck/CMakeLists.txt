@@ -13,12 +13,12 @@ add_llvm_executable(CircuitCheck
 
 target_include_directories(CircuitCheck
   PRIVATE ${CMAKE_SOURCE_DIR}/tpls/eigen
+  PRIVATE ${CMAKE_SOURCE_DIR}/runtime
 )
 
 target_link_libraries(CircuitCheck
   PRIVATE
   MLIRArithDialect
-  MLIRMemRefDialect
   MLIRParser
   MLIRPass
   MLIRTransforms

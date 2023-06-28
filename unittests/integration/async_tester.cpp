@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
 #include <cudaq/algorithm.h>
@@ -22,7 +22,7 @@ CUDAQ_TEST(AsyncTester, checkObserveAsync) {
   auto params = cudaq::linspace(-M_PI, M_PI, 20);
 
   auto ansatz = [](double theta) __qpu__ {
-    cudaq::qreg q(2);
+    cudaq::qvector q(2);
     x(q[0]);
     ry(theta, q[1]);
     x<cudaq::ctrl>(q[1], q[0]);
@@ -50,7 +50,7 @@ CUDAQ_TEST(AsyncTester, checkSampleAsync) {
   struct ghz {
     auto operator()(int NQubits) __qpu__ {
       // int N = 5;
-      cudaq::qreg q(NQubits);
+      cudaq::qvector q(NQubits);
       h(q[0]);
       for (int i = 0; i < NQubits - 1; i++) {
         x<cudaq::ctrl>(q[i], q[i + 1]);

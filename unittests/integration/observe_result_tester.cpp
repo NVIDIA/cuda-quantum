@@ -1,17 +1,17 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
 #include <cudaq/algorithm.h>
 
 struct deuteron_n3_ansatz {
   void operator()(double x0, double x1) __qpu__ {
-    cudaq::qreg q(3);
+    cudaq::qvector q(3);
     x(q[0]);
     ry(x0, q[1]);
     ry(x1, q[2]);

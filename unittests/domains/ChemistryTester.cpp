@@ -1,12 +1,13 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
+#include <random>
 
 #include "cudaq/algorithm.h"
 #include "cudaq/domains/chemistry.h"
@@ -84,5 +85,38 @@ CUDAQ_TEST(H2MoleculeTester, checkUCCSD) {
 
     // Make sure our UCCSD state at the optimal parameters is the ground state
     EXPECT_NEAR(1.0, groundState.overlap(expectedState), 1e-6);
+  }
+
+  {
+    // Test dynamic molecular_geometry generation
+    const auto gen_random_h2_geometry = []() -> std::vector<cudaq::atom> {
+      std::vector<cudaq::atom> geom;
+      geom.emplace_back(cudaq::atom{"H", {0.0, 0.0, 0.0}});
+      static std::random_device rd;
+      static std::uniform_real_distribution<> dist(0.1, 1); // range [0.1, 1)
+      geom.emplace_back(cudaq::atom{"H", {0.0, 0.0, dist(rd)}});
+      return geom;
+    };
+
+    cudaq::molecular_geometry geometry(gen_random_h2_geometry());
+    auto molecule = cudaq::create_molecule(geometry, "sto-3g", 1, 0);
+    auto ansatz = [&](const std::vector<double> &thetas) __qpu__ {
+      cudaq::qreg q(2 * molecule.n_orbitals);
+      for (std::size_t qId = 0; qId < molecule.n_orbitals; ++qId) {
+        x(q[qId]);
+      }
+      cudaq::uccsd(q, thetas, molecule.n_electrons);
+    };
+
+    cudaq::optimizers::cobyla optimizer;
+    auto res = cudaq::vqe(ansatz, molecule.hamiltonian, optimizer,
+                          cudaq::uccsd_num_parameters(molecule.n_electrons,
+                                                      2 * molecule.n_orbitals));
+
+    // Get the true ground state eigenvalue
+    auto matrix = molecule.hamiltonian.to_matrix();
+    const auto min_eigenvalue = matrix.minimal_eigenvalue();
+    EXPECT_NEAR(min_eigenvalue.real(), std::get<0>(res), 1e-3);
+    EXPECT_NEAR(min_eigenvalue.imag(), 0.0, 1e-9);
   }
 }

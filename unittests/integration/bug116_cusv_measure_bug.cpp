@@ -1,17 +1,17 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
 
 CUDAQ_TEST(Bug116CuSVMeasure, checkMeasure) {
   struct run_circuit {
     auto operator()(bool mAll) __qpu__ {
-      cudaq::qreg q(2);
+      cudaq::qvector q(2);
       // Prep in state 10
       x(q[0]);
       // Measure the second qubit

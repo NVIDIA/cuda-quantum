@@ -15,7 +15,7 @@ func.func @test1(%arg0 : !quake.veq<?>) -> i1 {
 
 func.func @test2() {
   %0 = arith.constant 10 : i64
-  %1 = quake.alloca[%0 : i64] !quake.veq<?>
+  %1 = quake.alloca !quake.veq<?>[%0 : i64]
   // relax_size must be inserted here
   %2 = call @test1(%1) : (!quake.veq<?>) -> i1
   %3 = arith.constant 1 : i64
@@ -35,7 +35,7 @@ func.func @test2() {
 
 func.func @test3() {
   %0 = arith.constant 10 : i64
-  %1 = quake.alloca [%0 : i64] !quake.veq<?>
+  %1 = quake.alloca !quake.veq<?>[%0 : i64]
   %2 = arith.constant 4 : i64
   %3 = arith.constant 7 : i64
   // This subvec veq<?> can be reified to veq<4>
@@ -59,7 +59,7 @@ func.func @test3() {
 func.func @test_qextract_1() {
     %c0 = arith.constant 0 : i64
     %c2 = arith.constant 2 : i64
-    %veq = quake.alloca [%c2 : i64] !quake.veq<?>
+    %veq = quake.alloca !quake.veq<?>[%c2 : i64]
     %0 = quake.extract_ref %veq[%c0] : (!quake.veq<?>, i64) -> !quake.ref
     quake.h %0 : (!quake.ref) -> ()
     %c0_0 = arith.constant 0 : i64
@@ -83,7 +83,7 @@ func.func @test_qextract_2(%arg0: i1) {
     %c0 = arith.constant 0 : i64
     %c2 = arith.constant 2 : i64
     %c1 = arith.constant 1 : i64
-    %veq = quake.alloca[%c2 : i64]  !quake.veq<?>
+    %veq = quake.alloca !quake.veq<?>[%c2 : i64]
     %0 = quake.extract_ref %veq[%c0] : (!quake.veq<?>,i64) -> !quake.ref
     quake.h %0 : (!quake.ref) -> ()
     cc.if(%arg0) {
