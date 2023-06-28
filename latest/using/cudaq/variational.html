@@ -311,7 +311,9 @@ with the <code class="code docutils literal notranslate"><span class="pre">doubl
 signature for gradient-based optimizers, where the arguments represent the
 function parameters at the current iteration and the modifiable gradient
 vector reference, respectively. For gradient-free optimizers, the second
-argument, <code class="code docutils literal notranslate"><span class="pre">double(const</span> <span class="pre">std::vector&lt;double&gt;&amp;)</span></code>, can be dropped.</p>
+argument, <code class="code docutils literal notranslate"><span class="pre">double(const</span> <span class="pre">std::vector&lt;double&gt;&amp;)</span></code>, can be dropped.
+Optimizers are defined in the header <code class="code docutils literal notranslate"><span class="pre">&lt;cudaq/optimizers.h&gt;</span></code> and
+gradients in <code class="code docutils literal notranslate"><span class="pre">&lt;cudaq/gradients.h&gt;</span></code>.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Define your parameterized ansatz</span>
 <span class="k">struct</span><span class="w"> </span><span class="nc">ansatz</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="kt">double</span><span class="w"> </span><span class="n">x0</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">x1</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
@@ -392,7 +394,7 @@ Here is an example</p>
 <span class="w">  </span><span class="p">});</span>
 </pre></div>
 </div>
-<p>CUDA Quantum packages the above up for the variational quantum eigensolver algorithm in
+<p>CUDA Quantum provides the above code for the variational quantum eigensolver algorithm in
 a generic <code class="code docutils literal notranslate"><span class="pre">cudaq::</span></code> namespace function. The above snippets could be
 replaced with</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Gradient-free VQE</span>
