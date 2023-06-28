@@ -1,15 +1,15 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
+#include "common/FmtCore.h"
 #include <cudaq/algorithm.h>
 #include <cudaq/optimizers.h>
-#include <fmt/core.h>
 #include <numeric>
 
 using namespace cudaq;

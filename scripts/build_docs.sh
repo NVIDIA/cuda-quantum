@@ -154,11 +154,14 @@ cp -r "$doxygen_output_dir" sphinx/_doxygen/
 # cp -r "$dialect_output_dir" sphinx/_mdgen/ # uncomment once we use the content from those files
 
 rm -rf "$sphinx_output_dir"
-sphinx-build -n -W --keep-going -b html sphinx "$sphinx_output_dir" -j auto 2> "$logs_dir/sphinx_error.txt" 1> "$logs_dir/sphinx_output.txt"
+sphinx-build -v -n -W --keep-going -b html sphinx "$sphinx_output_dir" -j auto 2> "$logs_dir/sphinx_error.txt" 1> "$logs_dir/sphinx_output.txt"
 sphinx_exit_code=$?
 if [ ! "$sphinx_exit_code" -eq "0" ]; then
     echo "Failed to generate documentation using sphinx-build."
     echo "Sphinx exit code: $sphinx_exit_code"
+    echo "======== logs ========"
+    cat "$logs_dir/sphinx_output.txt" "$logs_dir/sphinx_error.txt"
+    echo "======================"
     docs_exit_code=12
 fi
 

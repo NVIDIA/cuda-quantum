@@ -1,5 +1,7 @@
 // Compile and run with:
+// ```
 // nvq++ phase_estimation.cpp -o qpe.x && ./qpe.x
+// ```
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
@@ -37,7 +39,7 @@ struct qpe {
 
   // Define the CUDA Quantum call expression to take user-specified eigenstate
   // and unitary evolution kernels, as well as the number of qubits in the
-  // counting register and in the eigen state register.
+  // counting register and in the eigenstate register.
   template <typename StatePrep, typename Unitary>
   void operator()(const int nCountingQubits, StatePrep &&state_prep,
                   Unitary &&oracle) __qpu__ {
@@ -45,7 +47,7 @@ struct qpe {
     cudaq::qreg q(nCountingQubits + 1);
 
     // Extract sub-registers, one for the counting qubits
-    // another for the eigen state register
+    // another for the eigenstate register
     auto counting_qubits = q.front(nCountingQubits);
     auto &state_register = q.back();
 
@@ -55,14 +57,14 @@ struct qpe {
     // Put the counting register into uniform superposition
     h(counting_qubits);
 
-    // Perform ctrl-U^j
+    // Perform `ctrl-U^j`
     for (int i = 0; i < nCountingQubits; ++i) {
       for (int j = 0; j < (1UL << i); ++j) {
         cudaq::control(oracle, counting_qubits[i], state_register);
       }
     }
 
-    // Apply inverse quantum fourier transform
+    // Apply inverse quantum Fourier transform
     iqft(counting_qubits);
 
     // Measure to gather sampling statistics

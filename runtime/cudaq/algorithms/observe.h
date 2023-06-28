@@ -1,14 +1,14 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #pragma once
 
-#include <cudaq/spin_op.h>
+#include "cudaq/spin_op.h"
 
 #include <functional>
 #include <type_traits>
@@ -16,14 +16,31 @@
 
 #include "common/ExecutionContext.h"
 #include "common/ObserveResult.h"
+#include "cudaq/algorithms/broadcast.h"
 #include "cudaq/concepts.h"
-#include "cudaq/platform.h"
-#include "cudaq/platform/quantum_platform.h"
 
 namespace cudaq {
 
+namespace mpi {
+int rank();
+int num_ranks();
+bool is_initialized();
+template <typename T, typename Func>
+T all_reduce(const T &, const Func &);
+} // namespace mpi
+
 /// @brief Return type for asynchronous observation.
 using async_observe_result = async_result<observe_result>;
+
+namespace par {
+/// @brief Multi-GPU Multi-Node (MPI)
+/// Distribution Type for observe
+struct mpi {};
+
+/// @brief Single node, multi-GPU
+struct thread {};
+
+} // namespace par
 
 /// @brief Define a combined sample function validation concept.
 /// These concepts provide much better error messages than old-school SFINAE
@@ -34,20 +51,26 @@ concept ObserveCallValid =
 
 namespace details {
 
-/// @brief Take the input KernelFunctor (a lambda that captures runtime args and
-/// invokes the quantum kernel) and invoke the spin_op observation process.
+/// @brief Take the input KernelFunctor (a lambda that captures runtime
+/// arguments and invokes the quantum kernel) and invoke the `spin_op`
+/// observation process.
 template <typename KernelFunctor>
 std::optional<observe_result>
 runObservation(KernelFunctor &&k, cudaq::spin_op &h, quantum_platform &platform,
                int shots, const std::string &kernelName, std::size_t qpu_id = 0,
-               details::future *futureResult = nullptr) {
+               details::future *futureResult = nullptr,
+               std::size_t batchIteration = 0,
+               std::size_t totalBatchIters = 0) {
   auto ctx = std::make_unique<ExecutionContext>("observe", shots);
   ctx->kernelName = kernelName;
   ctx->spin = &h;
   if (shots > 0)
     ctx->shots = shots;
 
-  // Indicate that this is an async exec
+  ctx->batchIteration = batchIteration;
+  ctx->totalIterations = totalBatchIters;
+
+  // Indicate that this is an asynchronous execution
   ctx->asyncExec = futureResult != nullptr;
 
   platform.set_current_qpu(qpu_id);
@@ -55,8 +78,8 @@ runObservation(KernelFunctor &&k, cudaq::spin_op &h, quantum_platform &platform,
 
   k();
 
-  // If this is an async execution, we need
-  // to store the cudaq::details::future
+  // If this is an asynchronous execution, we need
+  // to store the `cudaq::details::future`
   if (futureResult) {
     *futureResult = ctx->futureResult;
     return std::nullopt;
@@ -70,29 +93,29 @@ runObservation(KernelFunctor &&k, cudaq::spin_op &h, quantum_platform &platform,
   data = ctx->result;
 
   // It is possible for the expectation value to be
-  // pre computed, if so grab it and set it so the client gets it
+  // precomputed, if so grab it and set it so the client gets it
   if (ctx->expectationValue.has_value())
     expectationValue = ctx->expectationValue.value_or(0.0);
   else {
     // If not, we have everything we need to compute it.
     double sum = 0.0;
-    for (std::size_t i = 0; i < h.n_terms(); i++) {
-      auto term = h[i];
+    h.for_each_term([&](spin_op &term) {
       if (term.is_identity())
-        sum += term.get_coefficients()[0].real();
+        sum += term.get_coefficient().real();
       else
         sum += data.exp_val_z(term.to_string(false)) *
-               term.get_coefficients()[0].real();
-    }
+               term.get_coefficient().real();
+    });
+
     expectationValue = sum;
   }
 
   return observe_result(expectationValue, h, data);
 }
 
-/// @brief Take the input KernelFunctor (a lambda that captures runtime args and
-/// invokes the quantum kernel) and invoke the spin_op observation process
-/// asynchronously
+/// @brief Take the input KernelFunctor (a lambda that captures runtime
+/// arguments and invokes the quantum kernel) and invoke the `spin_op`
+/// observation process asynchronously
 template <typename KernelFunctor>
 auto runObservationAsync(KernelFunctor &&wrappedKernel, spin_op &H,
                          quantum_platform &platform, int shots,
@@ -105,7 +128,7 @@ auto runObservationAsync(KernelFunctor &&wrappedKernel, spin_op &H,
   }
 
   // Could be that the platform we are running on is
-  // remotely hosted, if so, we can't do async execution with a
+  // remotely hosted, if so, we can't do asynchronous execution with a
   // separate thread, the separate thread is the remote server invocation
   if (platform.is_remote(qpu_id)) {
     // In this case, everything we need can be dumped into a details::future
@@ -116,8 +139,8 @@ auto runObservationAsync(KernelFunctor &&wrappedKernel, spin_op &H,
     return async_observe_result(std::move(futureResult), &H);
   }
 
-  // If the platform is not remote, then we can handle async execution via
-  // a new worker thread.
+  // If the platform is not remote, then we can handle asynchronous execution
+  // via a new worker thread.
   KernelExecutionTask task(
       [&, qpu_id, shots, kernelName,
        kernel = std::forward<KernelFunctor>(wrappedKernel)]() mutable {
@@ -131,22 +154,15 @@ auto runObservationAsync(KernelFunctor &&wrappedKernel, spin_op &H,
       details::future(platform.enqueueAsyncTask(qpu_id, task)), &H);
 }
 
-/// @brief Distribute the expectation value computations amongst the
-/// available platform QPUs. The asyncLauncher functor takes as input the
-/// qpu index and the spin_op chunk and returns an async_observe_result.
+/// @brief Distribute the expectation value computations among the
+/// available platform QPUs. The `asyncLauncher` functor takes as input the
+/// qpu index and the `spin_op` chunk and returns an `async_observe_result`.
 inline auto distributeComputations(
     std::function<async_observe_result(std::size_t, spin_op &)> &&asyncLauncher,
     spin_op &H, std::size_t nQpus) {
 
-  // Calculate how many terms we can equally divide amongst the qpus
-  auto nTermsPerQPU = H.n_terms() / nQpus + (H.n_terms() % nQpus != 0);
-
-  // Slice the given spin_op into subsets for each QPU
-  std::vector<spin_op> spins;
-  for (auto uniqueQpuId : cudaq::range(nQpus)) {
-    auto lowerBound = uniqueQpuId * nTermsPerQPU;
-    spins.emplace_back(H.slice(lowerBound, nTermsPerQPU));
-  }
+  // Distribute the given spin_op into subsets for each QPU
+  auto spins = H.distribute_terms(nQpus);
 
   // Observe each sub-spin_op asynchronously
   std::vector<async_observe_result> asyncResults;
@@ -161,8 +177,8 @@ inline auto distributeComputations(
   sample_result data;
   for (auto &asyncResult : asyncResults) {
     auto res = asyncResult.get();
-    result += res.exp_val_z();
     auto incomingData = res.raw_data();
+    result += incomingData.exp_val_z();
     data += incomingData;
   }
 
@@ -171,58 +187,13 @@ inline auto distributeComputations(
 
 } // namespace details
 
-///
-/// \brief Compute the expected value of \p H with respect to kernel(Args...).
-///
-/// \tparam Args The variadic list of argument types for this kernel. Usually
-///         can be deduced by the compiler.
-/// \param kernel The instantiated ansatz callable, a CUDA Quantum kernel,
-///         cannot contain measure statements.
-/// \param H The hermitian cudaq::spin_op to compute the expected value for.
-/// \param args The variadic concrete arguments for evaluation of the kernel.
-/// \returns exp The expected value <ansatz(args...)|H|ansatz<args...)>.
-///
-/// \details Given a CUDA Quantum kernel of general callable type
-///          void(Args...), compute the expectation value of \p H at the
-///          concrete kernel parameter args...
-///
-/// Usage:
-/// \code{.cpp}
-/// #include <cudaq.h>
-/// #include <cudaq/algorithm.h>
-/// ...
-/// struct ansatz {
-///   void operator(double  x) __qpu__ {
-///     cudaq::qreg q(2);
-///     x(q[0]);
-///     ry(x, q[1]);
-///     x<ctrl>(q[1],q[0]);
-///   }
-/// };
-/// auto H = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
-///           .21829 * z(0) - 6.125 * z(1);
-/// double theta = .59;
-/// auto exp_val = cudaq::observe(ansatz{}, H, theta);
-/// \endcode
-///
+/// \brief Compute the expected value of `H` with respect to `kernel(Args...)`.
 template <typename QuantumKernel, typename... Args>
   requires ObserveCallValid<QuantumKernel, Args...>
 observe_result observe(QuantumKernel &&kernel, spin_op H, Args &&...args) {
   // Run this SHOTS times
   auto &platform = cudaq::get_platform();
   auto shots = platform.get_shots().value_or(-1);
-
-  // Does this platform expose more than 1 QPU
-  // If so, let's distribute the work amongst the QPUs
-  if (auto nQpus = platform.num_qpus(); nQpus > 1)
-    return details::distributeComputations(
-        [&kernel, ... args = std::forward<Args>(args)](std::size_t i,
-                                                       spin_op &op) mutable {
-          return observe_async(i, std::forward<QuantumKernel>(kernel), op,
-                               std::forward<Args>(args)...);
-        },
-        H, nQpus);
-
   auto kernelName = cudaq::getKernelName(kernel);
   return details::runObservation(
              [&kernel, ... args = std::forward<Args>(args)]() mutable {
@@ -232,41 +203,90 @@ observe_result observe(QuantumKernel &&kernel, spin_op H, Args &&...args) {
       .value();
 }
 
-///
-/// \brief Compute the expected value of \p H with respect to kernel(Args...).
-///
-/// \tparam Args The variadic list of argument types for this kernel. Usually
-///         can be deduced by the compiler.
-/// \param shots The number of samples to collect
-/// \param kernel The instantiated ansatz callable, a CUDA Quantum kernel,
-///         cannot contain measure statements.
-/// \param H The hermitian cudaq::spin_op to compute the expected value for.
-/// \param args The variadic concrete arguments for evaluation of the kernel.
-/// \returns exp The expected value <ansatz(args...)|H|ansatz<args...)>.
-///
-/// \details Given a CUDA Quantum kernel of general callable type
-///          void(Args...), compute the expectation value of \p H at the
-///          concrete kernel parameter args...
-///
-/// Usage:
-/// \code{.cpp}
-/// #include <cudaq.h>
-/// #include <cudaq/algorithm.h>
-/// ...
-/// struct ansatz {
-///   void operator(double  x) __qpu__ {
-///     cudaq::qreg q(2);
-///     x(q[0]);
-///     ry(x, q[1]);
-///     x<ctrl>(q[1],q[0]);
-///   }
-/// };
-/// auto H = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
-///           .21829 * z(0) - 6.125 * z(1);
-/// double theta = .59;
-/// auto exp_val = cudaq::observe(ansatz{}, H, theta);
-/// \endcode
-///
+/// @brief Compute the expected value of `H` with respect to `kernel(Args...)`.
+/// Distribute the work amongst available QPUs on the platform in parallel. This
+/// distribution can occur on multi-gpu multi-node platforms, multi-gpu
+/// single-node platforms, or multi-node no-gpu platforms. Programmers must
+/// indicate the distribution type via the corresponding template types
+/// (cudaq::mgmn, cudaq::mgsn, cudaq::mn).
+template <typename DistributionType, typename QuantumKernel, typename... Args>
+  requires ObserveCallValid<QuantumKernel, Args...>
+observe_result observe(std::size_t shots, QuantumKernel &&kernel, spin_op H,
+                       Args &&...args) {
+  // Run this SHOTS times
+  auto &platform = cudaq::get_platform();
+  // Does platform support parallelism? Need a check here
+  if (!platform.supports_task_distribution())
+    throw std::runtime_error(
+        "The current quantum_platform does not support parallel distribution "
+        "of observe() expectation value computations.");
+
+  auto nQpus = platform.num_qpus();
+  if constexpr (std::is_same_v<DistributionType, par::thread>) {
+    if (nQpus == 1)
+      printf(
+          "[cudaq::observe warning] distributed observe requested but only 1 "
+          "QPU available. no speedup expected.\n");
+    // Let's distribute the work among the QPUs on this node
+    return details::distributeComputations(
+        [&kernel, ... args = std::forward<Args>(args)](std::size_t i,
+                                                       spin_op &op) mutable {
+          return observe_async(i, std::forward<QuantumKernel>(kernel), op,
+                               std::forward<Args>(args)...);
+        },
+        H, nQpus);
+  } else if (std::is_same_v<DistributionType, par::mpi>) {
+
+    // This is an MPI distribution, where each node has N GPUs.
+    if (!mpi::is_initialized())
+      throw std::runtime_error("Cannot use mgmn multi-node observe() without "
+                               "MPI (did you initialize MPI?).");
+
+    // Note - For MGMN, we assume that nQpus == num visible GPUs for this local
+    // rank.
+
+    // FIXME, how do we handle an mpi run where each rank
+    // is targeting the same GPU? Should we even allow that?
+
+    // Get the rank and the number of ranks
+    auto rank = mpi::rank();
+    auto nRanks = mpi::num_ranks();
+
+    // Each rank gets a subset of the spin terms
+    auto spins = H.distribute_terms(nRanks);
+
+    // Get this rank's set of spins to compute
+    auto localH = spins[rank];
+
+    // Distribute locally, i.e. to the local nodes QPUs
+    auto localRankResult = details::distributeComputations(
+        [&kernel, ... args = std::forward<Args>(args)](std::size_t i,
+                                                       spin_op &op) mutable {
+          return observe_async(i, std::forward<QuantumKernel>(kernel), op,
+                               std::forward<Args>(args)...);
+        },
+        localH, nQpus);
+
+    // combine all the data via an all_reduce
+    auto exp_val = localRankResult.exp_val_z();
+    auto globalExpVal = mpi::all_reduce(exp_val, std::plus<double>());
+    return observe_result(globalExpVal, H);
+
+  } else
+    throw std::runtime_error("Invalid cudaq::par execution type.");
+}
+
+template <typename DistributionType, typename QuantumKernel, typename... Args>
+  requires ObserveCallValid<QuantumKernel, Args...>
+observe_result observe(QuantumKernel &&kernel, spin_op H, Args &&...args) {
+  auto &platform = cudaq::get_platform();
+  auto shots = platform.get_shots().value_or(-1);
+  return observe<DistributionType>(shots, std::forward<QuantumKernel>(kernel),
+                                   H, std::forward<Args>(args)...);
+}
+
+/// \brief Compute the expected value of `H` with respect to `kernel(Args...)`.
+/// Specify the number of shots.
 template <typename QuantumKernel, typename... Args>
   requires ObserveCallValid<QuantumKernel, Args...>
 observe_result observe(std::size_t shots, QuantumKernel &&kernel, spin_op H,
@@ -276,7 +296,7 @@ observe_result observe(std::size_t shots, QuantumKernel &&kernel, spin_op H,
   auto kernelName = cudaq::getKernelName(kernel);
 
   // Does this platform expose more than 1 QPU
-  // If so, let's distribute the work amongst the QPUs
+  // If so, let's distribute the work among the QPUs
   if (auto nQpus = platform.num_qpus(); nQpus > 1)
     return details::distributeComputations(
         [&kernel, ... args = std::forward<Args>(args)](std::size_t i,
@@ -294,27 +314,8 @@ observe_result observe(std::size_t shots, QuantumKernel &&kernel, spin_op H,
       .value();
 }
 
-///
-/// \brief Asynchronously compute the expected value of \p H with respect to
-/// kernel(Args...).
-///
-/// \tparam Args The variadic list of argument types for this kernel. Usually
-///         can be deduced by the compiler.
-/// \param qpu_id The QPU id to run asynchronously on.
-/// \param kernel The instantiated ansatz callable, a CUDA Quantum kernel,
-///         cannot contain measure statements.
-/// \param H The hermitian cudaq::spin_op to compute the expected value for.
-/// \param args The variadic concrete arguments for evaluation of the kernel.
-/// \returns exp The expected value <ansatz(args...)|H|ansatz<args...)> as a
-/// std::future.
-///
-/// \details Given a CUDA Quantum kernel of general callable type
-///          void(Args...), compute the expectation value of \p H at the
-/// auto H = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
-///           .21829 * z(0) - 6.125 * z(1);
-/// double theta = .59;
-/// auto exp_val = cudaq::observe(ansatz{}, H, theta);
-///
+/// \brief Asynchronously compute the expected value of `H` with respect to
+/// `kernel(Args...)`.
 template <typename QuantumKernel, typename... Args>
   requires ObserveCallValid<QuantumKernel, Args...>
 auto observe_async(const std::size_t qpu_id, QuantumKernel &&kernel, spin_op &H,
@@ -331,65 +332,102 @@ auto observe_async(const std::size_t qpu_id, QuantumKernel &&kernel, spin_op &H,
       H, platform, shots, kernelName, qpu_id);
 }
 
-///
-/// \brief Asynchronously compute the expected value of \p H with respect to
-/// kernel(Args...).
-///
-/// \tparam Args The variadic list of argument types for this kernel. Usually
-///         can be deduced by the compiler.
-/// \param qpu_id The QPU id to run asynchronously on.
-/// \param kernel The instantiated ansatz callable, a CUDA Quantum kernel,
-///         cannot contain measure statements.
-/// \param H The hermitian cudaq::spin_op to compute the expected value for.
-/// \param args The variadic concrete arguments for evaluation of the kernel.
-/// \returns exp The expected value <ansatz(args...)|H|ansatz<args...)> as a
-/// std::future.
-///
-/// \details Given a CUDA Quantum kernel of general callable type
-///          void(Args...), compute the expectation value of \p H at the
-/// auto H = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
-///           .21829 * z(0) - 6.125 * z(1);
-/// double theta = .59;
-/// auto exp_val = cudaq::observe(ansatz{}, H, theta);
-///
+/// \brief Asynchronously compute the expected value of `H` with respect to
+/// `kernel(Args...)`. Specify the shots.
 template <typename QuantumKernel, typename... Args>
   requires ObserveCallValid<QuantumKernel, Args...>
 auto observe_async(std::size_t shots, std::size_t qpu_id,
                    QuantumKernel &&kernel, spin_op &H, Args &&...args) {
   // Run this SHOTS times
   auto &platform = cudaq::get_platform();
+  auto kernelName = cudaq::getKernelName(kernel);
 
   return details::runObservationAsync(
       [&kernel, ... args = std::forward<Args>(args)]() mutable {
         kernel(std::forward<Args>(args)...);
       },
-      H, platform, shots, qpu_id);
+      H, platform, shots, kernelName, qpu_id);
 }
 
-///
 /// \brief Asynchronously compute the expected value of \p H with respect to
-/// kernel(Args...). Default to the 0th QPU
-///
-/// \tparam Args The variadic list of argument types for this kernel. Usually
-///         can be deduced by the compiler.
-/// \param kernel The instantiated ansatz callable, a CUDA Quantum kernel,
-///         cannot contain measure statements.
-/// \param H The hermitian cudaq::spin_op to compute the expected value for.
-/// \param args The variadic concrete arguments for evaluation of the kernel.
-/// \returns exp The expected value <ansatz(args...)|H|ansatz<args...)> as a
-/// std::future.
-///
-/// \details Given a CUDA Quantum kernel of general callable type
-///          void(Args...), compute the expectation value of \p H at the
-/// auto H = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
-///           .21829 * z(0) - 6.125 * z(1);
-/// double theta = .59;
-/// auto exp_val = cudaq::observe(ansatz{}, H, theta);
-///
+/// `kernel(Args...)`. Default to the `0-th` QPU.
 template <typename QuantumKernel, typename... Args>
   requires ObserveCallValid<QuantumKernel, Args...>
 auto observe_async(QuantumKernel &&kernel, spin_op &H, Args &&...args) {
   return observe_async(0, std::forward<QuantumKernel>(kernel), H,
                        std::forward<Args>(args)...);
+}
+
+/// @brief Run the standard observe functionality over a set of `N`
+/// argument packs. For a kernel with signature `void(Args...)`, this
+/// function takes as input a set of `vector<Arg>...`, a vector for
+/// each argument type in the kernel signature. The vectors must be of
+/// equal length, and the `i-th` element of each vector is used `i-th`
+/// execution of the standard observe function. Results are collected
+/// from the execution of every argument set and returned.
+template <typename QuantumKernel, typename... Args>
+  requires ObserveCallValid<QuantumKernel, Args...>
+std::vector<observe_result> observe_n(QuantumKernel &&kernel, spin_op H,
+                                      ArgumentSet<Args...> &&params) {
+  // Get the platform and query the number of quantum computers
+  auto &platform = cudaq::get_platform();
+  auto numQpus = platform.num_qpus();
+
+  // Create the functor that will broadcast the observations across
+  // all requested argument sets provided.
+  details::BroadcastFunctorType<observe_result, Args...> functor =
+      [&](std::size_t qpuId, std::size_t counter, std::size_t N,
+          Args &...singleIterParameters) -> observe_result {
+    auto shots = platform.get_shots().value_or(-1);
+    auto kernelName = cudaq::getKernelName(kernel);
+    auto ret =
+        details::runObservation(
+            [&kernel, ... args = std::forward<decltype(singleIterParameters)>(
+                          singleIterParameters)]() mutable { kernel(args...); },
+            H, platform, shots, kernelName, qpuId, nullptr, counter, N)
+            .value();
+    return ret;
+  };
+
+  // Broadcast the executions and return the results.
+  return details::broadcastFunctionOverArguments<observe_result, Args...>(
+      numQpus, platform, functor, params);
+}
+
+/// @brief Run the standard observe functionality over a set of N
+/// argument packs. For a kernel with signature `void(Args...)`, this
+/// function takes as input a set of `vector<Arg>...`, a vector for
+/// each argument type in the kernel signature. The vectors must be of
+/// equal length, and the `i-th` element of each vector is used `i-th`
+/// execution of the standard observe function. Results are collected
+/// from the execution of every argument set and returned. This overload
+/// allows the number of circuit executions (shots) to be specified.
+template <typename QuantumKernel, typename... Args>
+  requires ObserveCallValid<QuantumKernel, Args...>
+std::vector<observe_result> observe_n(std::size_t shots, QuantumKernel &&kernel,
+                                      spin_op H,
+                                      ArgumentSet<Args...> &&params) {
+  // Get the platform and query the number of quantum computers
+  auto &platform = cudaq::get_platform();
+  auto numQpus = platform.num_qpus();
+
+  // Create the functor that will broadcast the observations across
+  // all requested argument sets provided.
+  details::BroadcastFunctorType<observe_result, Args...> functor =
+      [&](std::size_t qpuId, std::size_t counter, std::size_t N,
+          Args &...singleIterParameters) -> observe_result {
+    auto kernelName = cudaq::getKernelName(kernel);
+    auto ret =
+        details::runObservation(
+            [&kernel, ... args = std::forward<decltype(singleIterParameters)>(
+                          singleIterParameters)]() mutable { kernel(args...); },
+            H, platform, shots, kernelName, qpuId, nullptr, counter, N)
+            .value();
+    return ret;
+  };
+
+  // Broadcast the executions and return the results.
+  return details::broadcastFunctionOverArguments<observe_result, Args...>(
+      numQpus, platform, functor, params);
 }
 } // namespace cudaq

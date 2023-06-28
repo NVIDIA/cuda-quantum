@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "cudaq.h"
 #define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
@@ -17,6 +17,103 @@
 #include <regex>
 #include <string>
 #include <vector>
+
+#ifdef CUDAQ_HAS_MPI
+#include <mpi.h>
+namespace cudaq::mpi {
+
+void initialize() {
+  int argc{0};
+  char **argv = nullptr;
+  initialize(argc, argv);
+}
+
+void initialize(int argc, char **argv) {
+  int pid, np, thread_provided;
+  int mpi_error =
+      MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &thread_provided);
+  assert(mpi_error == MPI_SUCCESS && "MPI_Init_thread failed");
+  assert(thread_provided == MPI_THREAD_MULTIPLE);
+  MPI_Comm_rank(MPI_COMM_WORLD, &pid);
+  MPI_Comm_size(MPI_COMM_WORLD, &np);
+  if (pid == 0)
+    cudaq::info("MPI Initialized, nRanks = {}", np);
+}
+
+int rank() {
+  int pid;
+  MPI_Comm_rank(MPI_COMM_WORLD, &pid);
+  return pid;
+}
+
+int num_ranks() {
+  int np;
+  MPI_Comm_size(MPI_COMM_WORLD, &np);
+  return np;
+}
+
+bool is_initialized() {
+  int i;
+  auto err = MPI_Initialized(&i);
+  assert(err == MPI_SUCCESS && "MPI_Initialized failed.");
+  return i == 1;
+}
+
+namespace details {
+
+#define CUDAQ_ALL_REDUCE_IMPL(TYPE, MPI_TYPE, BINARY, MPI_OP)                  \
+  TYPE allReduce(const TYPE &local, const BINARY<TYPE> &) {                    \
+    TYPE result;                                                               \
+    MPI_Allreduce(&local, &result, 1, MPI_TYPE, MPI_OP, MPI_COMM_WORLD);       \
+    return result;                                                             \
+  }
+
+CUDAQ_ALL_REDUCE_IMPL(float, MPI_FLOAT, std::plus, MPI_SUM)
+CUDAQ_ALL_REDUCE_IMPL(float, MPI_FLOAT, std::multiplies, MPI_PROD)
+
+CUDAQ_ALL_REDUCE_IMPL(double, MPI_DOUBLE, std::plus, MPI_SUM)
+CUDAQ_ALL_REDUCE_IMPL(double, MPI_DOUBLE, std::multiplies, MPI_PROD)
+
+} // namespace details
+
+void finalize() {
+  if (rank() == 0)
+    cudaq::info("Finalizing MPI.");
+  int mpi_error = MPI_Finalize();
+  assert(mpi_error == MPI_SUCCESS && "MPI_Finalize failed.");
+}
+
+} // namespace cudaq::mpi
+#else
+namespace cudaq::mpi {
+
+void initialize() {}
+
+void initialize(int argc, char **argv) {}
+
+bool is_initialized() { return false; }
+
+int rank() { return 0; }
+
+int num_ranks() { return 1; }
+
+namespace details {
+
+#define CUDAQ_ALL_REDUCE_IMPL(TYPE, BINARY)                                    \
+  TYPE allReduce(const TYPE &local, const BINARY<TYPE> &) { return TYPE(); }
+
+CUDAQ_ALL_REDUCE_IMPL(float, std::plus)
+CUDAQ_ALL_REDUCE_IMPL(float, std::multiplies)
+
+CUDAQ_ALL_REDUCE_IMPL(double, std::plus)
+CUDAQ_ALL_REDUCE_IMPL(double, std::multiplies)
+
+} // namespace details
+
+void finalize() {}
+
+} // namespace cudaq::mpi
+#endif
 
 namespace cudaq::__internal__ {
 std::map<std::string, std::string> runtime_registered_mlir;
@@ -79,7 +176,7 @@ bool cudaq::__internal__::isLibraryMode(const std::string &kernelname) {
 //===----------------------------------------------------------------------===//
 
 namespace cudaq {
-void set_qpu_backend(const char *backend) {
+void set_target_backend(const char *backend) {
   std::string backendName(backend);
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendName);

@@ -1,14 +1,13 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
-#include "cudaq/Optimizer/Dialect/QTX/QTXDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Target/IQM/IQMJsonEmitter.h"
@@ -89,28 +88,19 @@ void addPipelineToQIR(PassManager &pm) {
   pm.addPass(createInlinerPass());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerToCFGPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   pm.addPass(createCanonicalizerPass());
+  pm.addPass(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerToCFGPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
-  pm.addNestedPass<func::FuncOp>(createLoopUnrollPass(
-      /*unrollFactor=*/-1, /*unrollUpToFactor=*/false, /*unrollFull=*/true));
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll());
+  pm.addPass(createCanonicalizerPass());
+  pm.addPass(createCSEPass());
   pm.addPass(cudaq::opt::createConvertToQIRPass());
   pm.addPass(createCanonicalizerPass());
   if constexpr (BaseProfile) {
     cudaq::opt::addBaseProfilePipeline(pm);
   }
-}
-
-// Pipeline builder to convert Quake to QTX.
-void addPipelineToQTX(PassManager &pm) {
-  pm.addPass(createInlinerPass());
-  pm.addPass(createCanonicalizerPass());
-  pm.addPass(cudaq::opt::createExpandMeasurementsPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerToCFGPass());
-  pm.addPass(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
-  pm.addPass(cudaq::opt::createConvertQuakeToQTXPass());
-  pm.addPass(createCanonicalizerPass());
 }
 
 static void checkErrorCode(const std::error_code &ec) {
@@ -131,7 +121,7 @@ int main(int argc, char **argv) {
                                     "quake mlir to llvm ir compiler\n");
 
   DialectRegistry registry;
-  registry.insert<cudaq::cc::CCDialect, quake::QuakeDialect, qtx::QTXDialect>();
+  registry.insert<cudaq::cc::CCDialect, quake::QuakeDialect>();
   registerAllDialects(registry);
   MLIRContext context(registry);
   context.loadAllAvailableDialects();

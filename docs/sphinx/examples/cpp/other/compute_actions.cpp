@@ -1,13 +1,15 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 // Compile and run with:
+// ```
 // nvq++ compute_actions.cpp -o gs.x && ./gs.x
+// ```
 
 // The algorithm leverages the VQE support to compute ground
 // state of the Hydrogen atom.
@@ -41,8 +43,8 @@ struct ansatz_handcoded {
   }
 };
 
-// The kernel defined by ansatz_compute_action is
-// equivalent to the one defined in ansatz_handcoded.
+// The kernel defined by `ansatz_compute_action` is
+// equivalent to the one defined in `ansatz_handcoded`.
 struct ansatz_compute_action {
   void operator()(std::vector<double> theta) __qpu__ {
     cudaq::qreg q(4);
@@ -85,13 +87,13 @@ int main(int argc, char **argv) {
 
   const auto param_space = cudaq::linspace(-M_PI, M_PI, 50);
   for (const auto &param : param_space) {
-    // E(params...) = <psi(params...) | H | psi(params...)>
+    // `E(params...) = <psi(params...) | H | psi(params...)>`
     double energy_at_param = cudaq::observe(ansatz_handcoded{}, H, param);
     printf("<H>(%lf) = %lf\n", param, energy_at_param);
   }
 
   for (const auto &param : param_space) {
-    // E(params...) = <psi(params...) | H | psi(params...)>
+    // `E(params...) = <psi(params...) | H | psi(params...)>`
     double energy_at_param =
         cudaq::observe(ansatz_compute_action{}, H, std::vector<double>{param});
     printf("<H>(%lf) = %lf\n", param, energy_at_param);

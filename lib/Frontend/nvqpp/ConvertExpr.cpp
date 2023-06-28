@@ -53,23 +53,23 @@ maybeUnpackOperands(OpBuilder &builder, Location loc, ValueRange operands) {
     return std::make_pair(SmallVector<Value>{operands.take_back()},
                           SmallVector<Value>{operands.drop_back(1)});
   Value target = operands.back();
-  if (target.getType().isa<quake::QVecType>()) {
+  if (target.getType().isa<quake::VeqType>()) {
     // Split the vector. Last one is target, front N-1 are controls.
-    auto vecSize = builder.create<quake::QVecSizeOp>(
+    auto vecSize = builder.create<quake::VeqSizeOp>(
         loc, builder.getIntegerType(64), target);
     auto size = builder.create<arith::IndexCastOp>(loc, builder.getIndexType(),
                                                    vecSize);
     auto one = builder.create<arith::ConstantIndexOp>(loc, 1);
     auto offset = builder.create<arith::SubIOp>(loc, size, one);
-    // Get the last qubit in the qvec: the target.
-    Value qTarg = builder.create<quake::QExtractOp>(loc, target, offset);
+    // Get the last qubit in the veq: the target.
+    Value qTarg = builder.create<quake::ExtractRefOp>(loc, target, offset);
     auto zero = builder.create<arith::ConstantIndexOp>(loc, 0);
     auto last = builder.create<arith::SubIOp>(loc, offset, one);
     // The canonicalizer will compute a constant size, if possible.
-    auto unsizedQVecTy = quake::QVecType::getUnsized(builder.getContext());
+    auto unsizedVeqTy = quake::VeqType::getUnsized(builder.getContext());
     // Get the subvector of all qubits excluding the last one: controls.
     Value ctrlSubvec =
-        builder.create<quake::SubVecOp>(loc, unsizedQVecTy, target, zero, last);
+        builder.create<quake::SubVecOp>(loc, unsizedVeqTy, target, zero, last);
     return std::make_pair(SmallVector<Value>{qTarg},
                           SmallVector<Value>{ctrlSubvec});
   }
@@ -130,20 +130,19 @@ bool buildOp(OpBuilder &builder, Location loc, ValueRange operands,
     builder.create<A>(loc, isAdjoint, params, ctrls, target, negs);
   } else {
     assert(operands.size() >= 1 && "must be at least 1 operand");
-    if ((operands.size() == 1) &&
-        operands[0].getType().isa<quake::QVecType>()) {
+    if ((operands.size() == 1) && operands[0].getType().isa<quake::VeqType>()) {
       auto target = operands[0];
       if (!negations.empty())
         reportNegateError();
       Type indexTy = builder.getIndexType();
-      auto size = builder.create<quake::QVecSizeOp>(
+      auto size = builder.create<quake::VeqSizeOp>(
           loc, builder.getIntegerType(64), target);
       Value rank = builder.create<arith::IndexCastOp>(loc, indexTy, size);
       auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &,
                              Block &block) {
-        Value qref = builder.create<quake::QExtractOp>(loc, target,
-                                                       block.getArgument(0));
-        builder.create<A>(loc, ValueRange(), qref);
+        Value ref = builder.create<quake::ExtractRefOp>(loc, target,
+                                                        block.getArgument(0));
+        builder.create<A>(loc, ValueRange(), ref);
       };
       cudaq::opt::factory::createCountedLoop(builder, loc, rank, bodyBuilder);
     } else {
@@ -230,10 +229,9 @@ static Value toIntegerImpl(OpBuilder &builder, Location loc, Value bitVec) {
   Value negOne = builder.create<arith::ConstantIntOp>(loc, -1, i32Ty);
 
   // Create int i = 0;
-  auto memRefTy = MemRefType::get(std::nullopt, i32Ty);
-  Value stackSlot = builder.create<memref::AllocaOp>(loc, memRefTy);
+  Value stackSlot = builder.create<cudaq::cc::AllocaOp>(loc, i32Ty);
   Value zeroInt = builder.create<arith::ConstantIntOp>(loc, 0, i32Ty);
-  builder.create<memref::StoreOp>(loc, zeroInt, stackSlot);
+  builder.create<cudaq::cc::StoreOp>(loc, zeroInt, stackSlot);
 
   // Create the for loop
   Value rank = builder.create<arith::IndexCastOp>(loc, builder.getIndexType(),
@@ -259,12 +257,12 @@ static Value toIntegerImpl(OpBuilder &builder, Location loc, Value bitVec) {
         // bits[k]
         auto eleTy =
             bitVec.getType().cast<cudaq::cc::StdvecType>().getElementType();
-        auto elePtrTy = cudaq::opt::factory::getPointerType(eleTy);
+        auto elePtrTy = cudaq::cc::PointerType::get(eleTy);
         auto vecPtr =
             builder.create<cudaq::cc::StdvecDataOp>(loc, elePtrTy, bitVec);
-        auto eleAddr = builder.create<LLVM::GEPOp>(loc, elePtrTy, vecPtr,
-                                                   ValueRange{kIter});
-        Value bitElement = builder.create<LLVM::LoadOp>(loc, eleAddr);
+        auto eleAddr = builder.create<cudaq::cc::ComputePtrOp>(
+            loc, elePtrTy, vecPtr, ValueRange{kIter});
+        Value bitElement = builder.create<cudaq::cc::LoadOp>(loc, eleAddr);
 
         // -bits[k]
         bitElement = builder.create<arith::ExtUIOp>(loc, builder.getI32Type(),
@@ -272,8 +270,7 @@ static Value toIntegerImpl(OpBuilder &builder, Location loc, Value bitVec) {
         bitElement = builder.create<arith::MulIOp>(loc, negOne, bitElement);
 
         // -bits[k] ^ i
-        Value integer =
-            builder.create<memref::LoadOp>(loc, ValueRange(stackSlot));
+        Value integer = builder.create<cudaq::cc::LoadOp>(loc, stackSlot);
         Value leftPart =
             builder.create<arith::XOrIOp>(loc, bitElement, integer);
 
@@ -282,9 +279,9 @@ static Value toIntegerImpl(OpBuilder &builder, Location loc, Value bitVec) {
 
         // i ^ andVal
         Value result = builder.create<arith::XOrIOp>(loc, integer, andVal);
-        builder.create<memref::StoreOp>(loc, result, stackSlot);
+        builder.create<cudaq::cc::StoreOp>(loc, result, stackSlot);
       });
-  return builder.create<memref::LoadOp>(loc, ValueRange(stackSlot));
+  return builder.create<cudaq::cc::LoadOp>(loc, stackSlot);
 }
 
 static void castToSameType(OpBuilder builder, Location loc,
@@ -340,16 +337,16 @@ static SmallVector<Value> convertKernelArgs(OpBuilder &builder, Location loc,
       result.push_back(v);
       continue;
     }
-    if (auto memrefTy = dyn_cast<MemRefType>(vTy))
-      if (memrefTy.getElementType() == kTy) {
+    if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(vTy))
+      if (ptrTy.getElementType() == kTy) {
         // Promote pass-by-reference to pass-by-value.
-        auto load = builder.create<memref::LoadOp>(loc, v);
+        auto load = builder.create<cudaq::cc::LoadOp>(loc, v);
         result.push_back(load);
         continue;
       }
-    if (auto vVecTy = dyn_cast<quake::QVecType>(vTy))
-      if (auto kVecTy = dyn_cast<quake::QVecType>(kTy)) {
-        // Both are QVec but the QVec are not identical. If the callee has a
+    if (auto vVecTy = dyn_cast<quake::VeqType>(vTy))
+      if (auto kVecTy = dyn_cast<quake::VeqType>(kTy)) {
+        // Both are Veq but the Veq are not identical. If the callee has a
         // dynamic size, we can relax the size from the calling context.
         if (vVecTy.hasSpecifiedSize() && !kVecTy.hasSpecifiedSize()) {
           auto relax = builder.create<quake::RelaxSizeOp>(loc, kVecTy, v);
@@ -429,42 +426,42 @@ bool QuakeBridgeVisitor::VisitUnaryOperator(clang::UnaryOperator *x) {
   switch (x->getOpcode()) {
   case clang::UnaryOperatorKind::UO_PostInc: {
     auto var = popValue();
-    auto loaded = builder.create<memref::LoadOp>(loc, var);
+    auto loaded = builder.create<cc::LoadOp>(loc, var);
     auto incremented = builder.create<arith::AddIOp>(
         loc, loaded,
         getConstantInt(builder, loc, 1,
                        loaded.getType().getIntOrFloatBitWidth()));
-    builder.create<memref::StoreOp>(loc, incremented, var);
+    builder.create<cc::StoreOp>(loc, incremented, var);
     return pushValue(loaded);
   }
   case clang::UnaryOperatorKind::UO_PreInc: {
     auto var = popValue();
-    auto loaded = builder.create<memref::LoadOp>(loc, var);
+    auto loaded = builder.create<cc::LoadOp>(loc, var);
     auto incremented = builder.create<arith::AddIOp>(
         loc, loaded,
         getConstantInt(builder, loc, 1,
                        loaded.getType().getIntOrFloatBitWidth()));
-    builder.create<memref::StoreOp>(loc, incremented, var);
+    builder.create<cc::StoreOp>(loc, incremented, var);
     return pushValue(incremented);
   }
   case clang::UnaryOperatorKind::UO_PostDec: {
     auto var = popValue();
-    auto loaded = builder.create<memref::LoadOp>(loc, var);
+    auto loaded = builder.create<cc::LoadOp>(loc, var);
     auto decremented = builder.create<arith::SubIOp>(
         loc, loaded,
         getConstantInt(builder, loc, 1,
                        loaded.getType().getIntOrFloatBitWidth()));
-    builder.create<memref::StoreOp>(loc, decremented, var);
+    builder.create<cc::StoreOp>(loc, decremented, var);
     return pushValue(loaded);
   }
   case clang::UnaryOperatorKind::UO_PreDec: {
     auto var = popValue();
-    auto loaded = builder.create<memref::LoadOp>(loc, var);
+    auto loaded = builder.create<cc::LoadOp>(loc, var);
     auto decremented = builder.create<arith::SubIOp>(
         loc, loaded,
         getConstantInt(builder, loc, 1,
                        loaded.getType().getIntOrFloatBitWidth()));
-    builder.create<memref::StoreOp>(loc, decremented, var);
+    builder.create<cc::StoreOp>(loc, decremented, var);
     return pushValue(decremented);
   }
   case clang::UnaryOperatorKind::UO_LNot: {
@@ -619,13 +616,13 @@ bool QuakeBridgeVisitor::VisitImplicitCastExpr(clang::ImplicitCastExpr *x) {
     TODO_loc(loc, "unhandled user defined implicit conversion");
   }
   case clang::CastKind::CK_ConstructorConversion: {
-    // Enable implicit conversion of qreg -> qspan, which are both QVecType.
+    // Enable implicit conversion of qreg -> qspan, which are both VeqType.
     auto toTy = genType(x->getType());
-    if (toTy.isa<quake::QVecType>()) {
+    if (toTy.isa<quake::VeqType>()) {
       auto subExpr = x->getSubExpr();
       if (auto cxxExpr = dyn_cast<clang::CXXConstructExpr>(subExpr);
           cxxExpr->getNumArgs() == 1 &&
-          genType(cxxExpr->getArg(0)->getType()).isa<quake::QVecType>()) {
+          genType(cxxExpr->getArg(0)->getType()).isa<quake::VeqType>()) {
         return true;
       }
     }
@@ -641,7 +638,7 @@ bool QuakeBridgeVisitor::VisitImplicitCastExpr(clang::ImplicitCastExpr *x) {
       // Enable implicit conversion of callable -> std::function.
       if (auto cxxExpr = dyn_cast<clang::CXXConstructExpr>(subExpr);
           cxxExpr->getNumArgs() == 1 &&
-          genType(cxxExpr->getArg(0)->getType()).isa<LLVM::LLVMStructType>()) {
+          genType(cxxExpr->getArg(0)->getType()).isa<cc::StructType>()) {
         return true;
       }
     }
@@ -793,7 +790,7 @@ bool QuakeBridgeVisitor::VisitBinaryOperator(clang::BinaryOperator *x) {
 
   switch (x->getOpcode()) {
   case clang::BinaryOperatorKind::BO_Assign: {
-    builder.create<memref::StoreOp>(loc, rhs, lhs);
+    builder.create<cc::StoreOp>(loc, rhs, lhs);
     return pushValue(lhs);
   }
   case clang::BinaryOperatorKind::BO_AddAssign:
@@ -1002,20 +999,20 @@ bool QuakeBridgeVisitor::VisitMaterializeTemporaryExpr(
     assert(isa<cc::LambdaType>(peekValue().getType()));
     return true;
   }
-  if (isa<quake::QVecType>(ty)) {
-    assert(isa<quake::QVecType>(peekValue().getType()));
+  if (isa<quake::VeqType>(ty)) {
+    assert(isa<quake::VeqType>(peekValue().getType()));
     return true;
   }
-  if (auto structTy = dyn_cast<LLVM::LLVMStructType>(ty);
-      structTy && structTy.getName().equals("reference_wrapper")) {
-    assert(isa<quake::QRefType>(peekValue().getType()) ||
-           isa<quake::QVecType>(peekValue().getType()));
+  if (auto structTy = dyn_cast<cc::StructType>(ty);
+      structTy && structTy.getName().getValue().equals("reference_wrapper")) {
+    assert(isa<quake::RefType>(peekValue().getType()) ||
+           isa<quake::VeqType>(peekValue().getType()));
     return true;
   }
   if (auto stdvecTy = dyn_cast<cc::StdvecType>(ty);
-      stdvecTy && isa<quake::QRefType>(stdvecTy.getElementType())) {
-    assert(isa<quake::QRefType>(peekValue().getType()) ||
-           isa<quake::QVecType>(peekValue().getType()));
+      stdvecTy && isa<quake::RefType>(stdvecTy.getElementType())) {
+    assert(isa<quake::RefType>(peekValue().getType()) ||
+           isa<quake::VeqType>(peekValue().getType()));
     return true;
   }
 
@@ -1107,10 +1104,10 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     return pushValue(builder.create<math::PowFOp>(loc, base, power));
   }
 
-  // Dealing with our vector -> memref conversions.
-  // If we have some θ with the type `std::vector<double/float/int>`, and in the
-  // kernel, θ.size() is called, we need to convert that to memref.dim. For
-  // θ.empty(), we convert to memref.dim > 0.
+  // Dealing with our std::vector as a view data structures. If we have some θ
+  // with the type `std::vector<double/float/int>`, and in the kernel, θ.size()
+  // is called, we need to convert that to loading the size field of the pair.
+  // For θ.empty(), the size is loaded and compared to zero.
   if (isInClassInNamespace(func, "vector", "std")) {
     // Get the size of the std::vector.
     auto svec = popValue();
@@ -1134,9 +1131,9 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
 
   if (isInClassInNamespace(func, "_Bit_reference", "std")) {
     auto loadFromReference = [&](mlir::Value ref) -> Value {
-      if (auto mrTy = dyn_cast<MemRefType>(ref.getType())) {
+      if (auto mrTy = dyn_cast<cc::PointerType>(ref.getType())) {
         assert(mrTy.getElementType() == builder.getI1Type());
-        return builder.create<memref::LoadOp>(loc, ref);
+        return builder.create<cc::LoadOp>(loc, ref);
       }
       return ref;
     };
@@ -1159,7 +1156,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       if (auto memberCall = dyn_cast<clang::CXXMemberCallExpr>(x))
         if (memberCall->getImplicitObjectArgument()) {
           auto qregArg = popValue();
-          auto qrSize = builder.create<quake::QVecSizeOp>(
+          auto qrSize = builder.create<quake::VeqSizeOp>(
               loc, builder.getI64Type(), qregArg);
           return pushValue(qrSize);
         }
@@ -1175,13 +1172,13 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
             auto one = getConstantInt(builder, loc, 1, 64);
             auto offset = builder.create<arith::SubIOp>(loc, qrSize, one);
             auto unsizedVecTy =
-                quake::QVecType::getUnsized(builder.getContext());
+                quake::VeqType::getUnsized(builder.getContext());
             return pushValue(builder.create<quake::SubVecOp>(
                 loc, unsizedVecTy, qregArg, zero, offset));
           }
           assert(actArgs.size() == 0);
           return pushValue(
-              builder.create<quake::QExtractOp>(loc, qregArg, zero));
+              builder.create<quake::ExtractRefOp>(loc, qregArg, zero));
         }
 
     if (funcName.equals("back"))
@@ -1189,7 +1186,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         if (memberCall->getImplicitObjectArgument()) {
           auto actArgs = lastValues(x->getNumArgs());
           auto qregArg = popValue();
-          auto qrSize = builder.create<quake::QVecSizeOp>(
+          auto qrSize = builder.create<quake::VeqSizeOp>(
               loc, builder.getI64Type(), qregArg);
           auto one = getConstantInt(builder, loc, 1, 64);
           auto endOff = builder.create<arith::SubIOp>(loc, qrSize, one);
@@ -1197,13 +1194,13 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
             auto startOff =
                 builder.create<arith::SubIOp>(loc, qrSize, actArgs.front());
             auto unsizedVecTy =
-                quake::QVecType::getUnsized(builder.getContext());
+                quake::VeqType::getUnsized(builder.getContext());
             return pushValue(builder.create<quake::SubVecOp>(
                 loc, unsizedVecTy, qregArg, startOff, endOff));
           }
           assert(actArgs.size() == 0);
           return pushValue(
-              builder.create<quake::QExtractOp>(loc, qregArg, endOff));
+              builder.create<quake::ExtractRefOp>(loc, qregArg, endOff));
         }
 
     if (funcName.equals("slice")) {
@@ -1217,7 +1214,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           auto one = getConstantInt(builder, loc, 1, 64);
           Value offset = builder.create<arith::AddIOp>(loc, start, count);
           offset = builder.create<arith::SubIOp>(loc, offset, one);
-          auto unsizedVecTy = quake::QVecType::getUnsized(builder.getContext());
+          auto unsizedVecTy = quake::VeqType::getUnsized(builder.getContext());
           return pushValue(builder.create<quake::SubVecOp>(
               loc, unsizedVecTy, qregArg, start, offset));
         }
@@ -1260,7 +1257,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       // Measurements always return a bool or a std::vector<bool>.
       Type resTy = builder.getI1Type();
       if ((args.size() > 1) ||
-          (args.size() == 1 && args[0].getType().isa<quake::QVecType>()))
+          (args.size() == 1 && args[0].getType().isa<quake::VeqType>()))
         resTy = cc::StdvecType::get(builder.getI1Type());
       if (funcName.equals("mx"))
         return pushValue(builder.create<quake::MxOp>(loc, resTy, args));
@@ -1296,7 +1293,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     if (funcName.equals("reset")) {
       if (!negations.empty())
         reportNegateError();
-      return builder.create<quake::ResetOp>(loc, args[0]);
+      return builder.create<quake::ResetOp>(loc, TypeRange{}, args[0]);
     }
     if (funcName.equals("swap")) {
       const auto size = args.size();
@@ -1345,7 +1342,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
             for (auto v : concat.getQbits())
               if (std::find(negations.begin(), negations.end(), v) !=
                   negations.end()) {
-                if (isa<quake::QVecType>(v.getType())) {
+                if (isa<quake::VeqType>(v.getType())) {
                   reportClangError(
                       x, mangler, "cannot negate an entire register of qubits");
                 } else {
@@ -1353,12 +1350,12 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
                   buildOp<quake::XOp>(builder, loc, v, dummy, []() {});
                 }
               }
-          } else if (isa<quake::QVecType>(ctrlValues.getType())) {
+          } else if (isa<quake::VeqType>(ctrlValues.getType())) {
             assert(negations.size() == 1 && negations[0] == ctrlValues);
             reportClangError(x, mangler,
                              "cannot negate an entire register of qubits");
           } else {
-            assert(isa<quake::QRefType>(ctrlValues.getType()));
+            assert(isa<quake::RefType>(ctrlValues.getType()));
             assert(negations.size() == 1 && negations[0] == ctrlValues);
             SmallVector<Value> dummy;
             buildOp<quake::XOp>(builder, loc, ctrlValues, dummy, []() {});
@@ -1374,7 +1371,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         return true;
       };
 
-      if (auto ty = dyn_cast<LLVM::LLVMStructType>(calleeValue.getType())) {
+      if (auto ty = dyn_cast<cc::StructType>(calleeValue.getType())) {
         auto *classDecl = classDeclFromTemplateArgument(*func, 0, *astContext);
         if (!classDecl) {
           // This shouldn't happen if the cudaq headers are used, but add a
@@ -1470,7 +1467,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       // to be called.
       auto calleeValue = args[0];
       SymbolRefAttr calleeSymbol;
-      if (auto ty = dyn_cast<LLVM::LLVMStructType>(calleeValue.getType())) {
+      if (auto ty = dyn_cast<cc::StructType>(calleeValue.getType())) {
         auto *ctx = builder.getContext();
         auto *classDecl = classDeclFromTemplateArgument(*func, 0, *astContext);
         if (!classDecl) {
@@ -1523,15 +1520,15 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     if (funcName.equals("slice_vector")) {
       auto svecTy = dyn_cast<cc::StdvecType>(args[0].getType());
       assert(svecTy && "first argument must be std::vector");
-      auto ptrTy = opt::factory::getPointerType(builder.getContext());
+      auto ptrTy = cc::PointerType::get(builder.getContext());
       auto vecPtr = builder.create<cc::StdvecDataOp>(loc, ptrTy, args[0]);
       auto bits = svecTy.getElementType().getIntOrFloatBitWidth();
       assert(bits > 0);
       auto scale = builder.create<arith::ConstantIntOp>(loc, (bits + 7) / 8,
                                                         args[1].getType());
       auto offset = builder.create<arith::MulIOp>(loc, scale, args[1]);
-      auto ptr = builder.create<LLVM::GEPOp>(loc, ptrTy, vecPtr,
-                                             ArrayRef<Value>{offset});
+      auto ptr = builder.create<cc::ComputePtrOp>(loc, ptrTy, vecPtr,
+                                                  ArrayRef<Value>{offset});
       return pushValue(builder.create<cc::StdvecInitOp>(loc, args[0].getType(),
                                                         ptr, args[2]));
     }
@@ -1607,7 +1604,7 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
       // the symbol table, and return the AddressQubit operation's resulting
       // value.
       auto address_qubit =
-          builder.create<quake::QExtractOp>(loc, qreg_var, idx_var);
+          builder.create<quake::ExtractRefOp>(loc, qreg_var, idx_var);
 
       symbolTable.insert(StringRef(varName), address_qubit);
       return pushValue(address_qubit);
@@ -1621,11 +1618,11 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
       auto svec = popValue();
       assert(svec.getType().isa<cc::StdvecType>());
       auto eleTy = svec.getType().cast<cc::StdvecType>().getElementType();
-      auto elePtrTy = opt::factory::getPointerType(eleTy);
+      auto elePtrTy = cc::PointerType::get(eleTy);
       auto vecPtr = builder.create<cc::StdvecDataOp>(loc, elePtrTy, svec);
-      auto eleAddr = builder.create<LLVM::GEPOp>(loc, elePtrTy, vecPtr,
-                                                 ValueRange{indexVar});
-      return pushValue(builder.create<LLVM::LoadOp>(loc, eleAddr));
+      auto eleAddr = builder.create<cc::ComputePtrOp>(loc, elePtrTy, vecPtr,
+                                                      ValueRange{indexVar});
+      return pushValue(builder.create<cc::LoadOp>(loc, eleAddr));
     }
     TODO_loc(loc, "unhandled operator call for quake conversion");
   }
@@ -1650,7 +1647,7 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
 bool QuakeBridgeVisitor::isVectorOfQubitRefs(clang::CXXConstructExpr *x) {
   if (auto *ctor = x->getConstructor();
       ctor && isInNamespace(ctor, "std") && ctor->getNameAsString() == "vector")
-    if (Value v = peekValue(); v && isa<quake::QVecType>(v.getType()))
+    if (Value v = peekValue(); v && isa<quake::VeqType>(v.getType()))
       return true;
   return false;
 }
@@ -1667,7 +1664,7 @@ bool QuakeBridgeVisitor::VisitCXXTemporaryObjectExpr(
   if (typeMode)
     return true;
   if (isVectorOfQubitRefs(x)) {
-    assert(isa<quake::QVecType>(peekValue().getType()));
+    assert(isa<quake::VeqType>(peekValue().getType()));
     return true;
   }
   return true;
@@ -1682,21 +1679,21 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
   if (size > 0) {
     auto loc = toLocation(x);
     auto last = lastValues(size);
-    bool allQRef = [&]() {
+    bool allRef = [&]() {
       for (auto v : last)
-        if (!isa<quake::QRefType>(v.getType()))
+        if (!isa<quake::RefType>(v.getType()))
           return false;
       return true;
     }();
-    if (allQRef) {
+    if (allRef) {
       if (size > 1) {
-        auto qVecTy = quake::QVecType::get(builder.getContext(), size);
+        auto qVecTy = quake::VeqType::get(builder.getContext(), size);
         return pushValue(builder.create<quake::ConcatOp>(loc, qVecTy, last));
       }
-      // Pass a one member initialization list as a QRef.
+      // Pass a one member initialization list as a Ref.
       return pushValue(last[0]);
     }
-    TODO_x(loc, x, mangler, "list initialization (not qref)");
+    TODO_x(loc, x, mangler, "list initialization (not ref)");
   }
   return true;
 }
@@ -1713,17 +1710,21 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     if (isInNamespace(ctor, "cudaq")) {
       if (ctorName == "qreg" || ctorName == "qspan") {
         // This is a qreg q(N);
-        auto regTy = genType(x->getType()).cast<quake::QVecType>();
+        auto regTy = genType(x->getType()).cast<quake::VeqType>();
         if (x->getNumArgs() == 1) {
           assert(!regTy.hasSpecifiedSize());
           auto sizeVal = popValue();
-          if (isa<quake::QVecType>(sizeVal.getType()))
+          if (isa<quake::VeqType>(sizeVal.getType()))
             return pushValue(sizeVal);
+          if (regTy.hasSpecifiedSize())
+            return pushValue(builder.create<quake::AllocaOp>(loc, regTy));
           return pushValue(
               builder.create<quake::AllocaOp>(loc, regTy, sizeVal));
         }
         auto qregSizeVal = builder.create<arith::ConstantIntOp>(
             loc, regTy.getSize(), builder.getIntegerType(64));
+        if (regTy.hasSpecifiedSize())
+          return pushValue(builder.create<quake::AllocaOp>(loc, regTy));
         return pushValue(
             builder.create<quake::AllocaOp>(loc, regTy, qregSizeVal));
       }
@@ -1733,7 +1734,7 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
       }
     } else if (isInNamespace(ctor, "std")) {
       if (isVectorOfQubitRefs(x)) {
-        assert(isa<quake::QVecType>(peekValue().getType()));
+        assert(isa<quake::VeqType>(peekValue().getType()));
         return true;
       }
       if (ctorName == "function") {
@@ -1743,8 +1744,8 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
           // Skip this constructor (for now).
           return true;
         }
-        if (auto stTy = backTy.dyn_cast_or_null<LLVM::LLVMStructType>()) {
-          if (!stTy.getBody().empty()) {
+        if (auto stTy = backTy.dyn_cast_or_null<cc::StructType>()) {
+          if (!stTy.getMembers().empty()) {
             // TODO: We don't support a callable class with data members yet.
             TODO_loc(loc, "callable class with data members");
           }
@@ -1799,13 +1800,13 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     // FIXME: As this is now, the stack space isn't correctly sized. The
     // next line should be something like:
     //   auto ty = genType(x->getType());
-    auto ty = LLVM::LLVMStructType::getLiteral(
-        builder.getContext(), ArrayRef<Type>{builder.getIntegerType(8)});
+    auto ty = cc::StructType::get(builder.getContext(),
+                                  ArrayRef<Type>{builder.getIntegerType(8)});
     auto ptrTy = opt::factory::getPointerType(ty);
     auto oneAttr = builder.getI64IntegerAttr(1);
     auto i64Ty = builder.getIntegerType(64);
-    auto one = builder.create<LLVM::ConstantOp>(loc, i64Ty, oneAttr);
-    auto mem = builder.create<LLVM::AllocaOp>(loc, ptrTy, ValueRange{one});
+    auto one = builder.create<arith::ConstantOp>(loc, i64Ty, oneAttr);
+    auto mem = builder.create<cc::AllocaOp>(loc, ptrTy, ValueRange{one});
     // FIXME: Using Ctor_Complete for mangled name generation blindly here.
     // Is there a programmatic way of determining which enum to use from the
     // AST?

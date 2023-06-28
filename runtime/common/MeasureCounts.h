@@ -1,27 +1,26 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #pragma once
 
 #include <optional>
-#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 namespace cudaq {
-/// Typedef for the mapping of observed qubit measurement bit strings
+/// Type definition for the mapping of observed qubit measurement bit strings
 /// to the number of times they were observed.
 using CountsDictionary = std::unordered_map<std::string, std::size_t>;
 
 inline static const std::string GlobalRegisterName = "__global__";
 
-/// The ExecutionResult models the result of a typical
+/// The `ExecutionResult` models the result of a typical
 /// quantum state sampling task. It will contain the
 /// observed measurement bit strings and corresponding number
 /// of times observed, as well as an expected value with
@@ -33,7 +32,7 @@ struct ExecutionResult {
   // <Z...Z> expected value
   std::optional<double> expectationValue = std::nullopt;
 
-  /// Register name for the classicla bits
+  /// Register name for the classical bits
   std::string registerName = GlobalRegisterName;
 
   /// @brief Sequential bit strings observed (not collated into a map)
@@ -41,14 +40,15 @@ struct ExecutionResult {
 
   /// @brief Serialize this sample result to a vector of integers.
   /// Encoding: 1st element is size of the register name N, then next N
-  /// represent register name, next is the number of Bitstrings M,
-  /// then for each bit string a triple {stringMappedToLong, bit string
+  /// represent register name, next is the number of bitstrings M,
+  /// then for each bit string a triple {string mapped to long, bit string
   /// length, count}
   /// @return
   std::vector<std::size_t> serialize();
 
-  /// @brief Deserialize a vector of integers to a ExecutionResult
-  /// @param data The data with encoding discussed in the serialize() brief.
+  /// @brief Deserialize a vector of integers to a `ExecutionResult`
+  /// @param data The data with encoding discussed in the brief for
+  /// `serialize`.
   void deserialize(std::vector<std::size_t> &data);
 
   /// @brief Constructor
@@ -65,15 +65,15 @@ struct ExecutionResult {
   /// @brief Construct from a precomputed expectation value
   ExecutionResult(double expVal);
 
-  /// @brief Construct from a CountsDictionary, specify the register name
+  /// @brief Construct from a `CountsDictionary`, specify the register name
   /// @param c the counts
   /// @param name the register name
   ExecutionResult(CountsDictionary c, std::string name);
   ExecutionResult(CountsDictionary c, std::string name, double exp);
 
-  /// @brief Construct from a CountsDictionary and expected value
+  /// @brief Construct from a `CountsDictionary` and expected value
   /// @param c The counts
-  /// @param e The pre-computed expected value
+  /// @param e The precomputed expected value
   ExecutionResult(CountsDictionary c, double e);
 
   /// @brief Copy constructor
@@ -85,12 +85,12 @@ struct ExecutionResult {
   /// @return
   ExecutionResult &operator=(ExecutionResult &other);
 
-  /// @brief Return true if the given ExecutionResult is the same as this one.
+  /// @brief Return true if the given `ExecutionResult` is the same as this one.
   /// @param result
   /// @return
   bool operator==(const ExecutionResult &result) const;
 
-  /// @brief Append the bitstring and count to this ExecutionResult
+  /// @brief Append the bitstring and count to this `ExecutionResult`
   /// @param bitString
   /// @param count
   void appendResult(std::string bitString, std::size_t count);
@@ -98,14 +98,14 @@ struct ExecutionResult {
   std::vector<std::string> getSequentialData() { return sequentialData; }
 };
 
-/// @brief The sample_result abstraction wraps a set of ExecutionResults for
+/// @brief The sample_result abstraction wraps a set of `ExecutionResult`s for
 /// a single quantum kernel execution under the sampling or observation
-/// ExecutionContext. Each ExecutionResult is mapped to a register name,
-/// with a default ExecutionResult with name __global__ representing the
+/// `ExecutionContext`. Each `ExecutionResult` is mapped to a register name,
+/// with a default `ExecutionResult` with name __global__ representing the
 /// observed measurement results holistically for the quantum kernel.
 class sample_result {
 private:
-  /// @brief A mapping of register names to ExecutionResults
+  /// @brief A mapping of register names to `ExecutionResult`s
   std::unordered_map<std::string, ExecutionResult> sampleResults;
 
   /// @brief Keep track of the total number of shots. We keep this
@@ -120,11 +120,11 @@ public:
   /// @param result
   sample_result(ExecutionResult &result);
 
-  /// @brief The constructor, appends all provided ExecutionResults
+  /// @brief The constructor, appends all provided `ExecutionResult`s
   sample_result(std::vector<ExecutionResult> &results);
 
-  /// @brief The constructor, takes a pre-computed expectation value and
-  /// stores it with the __global__ ExecutionResult.
+  /// @brief The constructor, takes a precomputed expectation value and
+  /// stores it with the `__global__` `ExecutionResult`.
   sample_result(double preComputedExp, std::vector<ExecutionResult> &results);
 
   /// @brief Copy Constructor
@@ -133,12 +133,12 @@ public:
   /// @brief The destructor
   ~sample_result() = default;
 
-  /// @brief Return true if the given ExecutionResult with registerName has
-  /// a pre-computed expectation value.
+  /// @brief Return true if the `ExecutionResult` with the specified register
+  /// name has a precomputed expectation value.
   bool
   has_expectation(const std::string_view registerName = GlobalRegisterName);
 
-  /// @brief Add another ExecutionResult to this pre-constructed sample_result
+  /// @brief Add another `ExecutionResult` to this `sample_result`.
   /// @param result
   void append(ExecutionResult &result);
 
@@ -160,10 +160,9 @@ public:
   /// @return
   sample_result &operator+=(sample_result &other);
 
-  /// @brief Serialize this sample_result. Encoding is
-  /// [(ExecutionResult0_Encoding)
-  /// (ExecutionResult1_Encoding)...(ExecutionResultN_Encoding)] (see
-  /// ExecutionResult::serialize() docs for encoding).
+  /// @brief Serialize this sample_result. See
+  /// `ExecutionResult::serialize()` documentation for information
+  //. about the encoding.
   /// @return
   std::vector<std::size_t> serialize();
 
@@ -222,9 +221,9 @@ public:
   CountsDictionary
   to_map(const std::string_view registerName = GlobalRegisterName);
 
-  /// @brief Extract marginal counts, ie those counts for a subset of measured
-  /// qubits
-  /// @param marginalIndices The qubit indices as an rvalue
+  /// @brief Extract marginal counts, that is those counts for a subset
+  /// of measured qubits
+  /// @param marginalIndices The qubit indices as an `rvalue`
   /// @param registerName
   /// @return
   sample_result
@@ -233,8 +232,8 @@ public:
     return get_marginal(marginalIndices);
   }
 
-  /// @brief Extract marginal counts, ie those counts for a subset of measured
-  /// qubits
+  /// @brief Extract marginal counts, that is those counts for a subset
+  /// of measured qubits
   /// @param marginalIndices The qubit indices as an reference
   /// @param registerName
   /// @return
@@ -250,21 +249,26 @@ public:
   /// @return
   CountsDictionary::iterator end();
 
-  /// @brief Range-based const iterator begin function
+  /// @brief Range-based constant iterator begin function
   /// @return
   CountsDictionary::const_iterator cbegin() const;
 
-  /// @brief Range-based const iterator end function
+  /// @brief Range-based constant iterator end function
   /// @return
   CountsDictionary::const_iterator cend() const;
 
-  /// @brief Range-based const iterator begin function
+  /// @brief Range-based constant iterator begin function
   /// @return
   CountsDictionary::const_iterator begin() const { return cbegin(); }
 
-  /// @brief Range-based const iterator end function
+  /// @brief Range-based constant iterator end function
   /// @return
   CountsDictionary::const_iterator end() const { return cend(); }
+
+  /// @brief Return true if the bit string has even parity
+  /// @param bitString
+  /// @return
+  static bool has_even_parity(std::string_view bitString);
 };
 
 } // namespace cudaq

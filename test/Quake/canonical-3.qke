@@ -1,0 +1,74 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -canonicalize %s | FileCheck %s
+
+func.func @__nvqpp__mlirgen__super() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %c3 = arith.constant 3 : index
+  %c2 = arith.constant 2 : index
+  %c1 = arith.constant 1 : index
+  %c0 = arith.constant 0 : index
+  %0 = quake.alloca !quake.veq<4>
+  %1 = quake.extract_ref %0[0] : (!quake.veq<4>) -> !quake.ref
+  quake.h %1 : (!quake.ref) -> ()
+  %2 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+  quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+  %3 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+  quake.x [%2] %3 : (!quake.ref, !quake.ref) -> ()
+  %4 = quake.extract_ref %0[3] : (!quake.veq<4>) -> !quake.ref
+  quake.x [%3] %4 : (!quake.ref, !quake.ref) -> ()
+  %5 = cc.alloca !cc.array<i1 x 4>
+  %6 = quake.extract_ref %0[%c0] : (!quake.veq<4>, index) -> !quake.ref
+  %7 = quake.mz %6 : (!quake.ref) -> i1
+  %8 = cc.compute_ptr %5[0] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
+  cc.store %7, %8 : !cc.ptr<i1>
+  %9 = quake.extract_ref %0[%c1] : (!quake.veq<4>, index) -> !quake.ref
+  %10 = quake.mz %9 : (!quake.ref) -> i1
+  %11 = cc.compute_ptr %5[1] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
+  cc.store %10, %11 : !cc.ptr<i1>
+  %12 = quake.extract_ref %0[%c2] : (!quake.veq<4>, index) -> !quake.ref
+  %13 = quake.mz %12 : (!quake.ref) -> i1
+  %14 = cc.compute_ptr %5[2] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
+  cc.store %13, %14 : !cc.ptr<i1>
+  %15 = quake.extract_ref %0[%c3] : (!quake.veq<4>, index) -> !quake.ref
+  %16 = quake.mz %15 : (!quake.ref) -> i1
+  %17 = cc.compute_ptr %5[3] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
+  cc.store %16, %17 : !cc.ptr<i1>
+  return
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__super() attributes
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<4>
+// CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<4>) -> !quake.ref
+// CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<4>) -> !quake.ref
+// CHECK:           quake.x {{\[}}%[[VAL_1]]] %[[VAL_2]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][2] : (!quake.veq<4>) -> !quake.ref
+// CHECK:           quake.x {{\[}}%[[VAL_2]]] %[[VAL_3]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_0]][3] : (!quake.veq<4>) -> !quake.ref
+// CHECK:           quake.x {{\[}}%[[VAL_3]]] %[[VAL_4]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           %[[VAL_5:.*]] = cc.alloca !cc.array<i1 x 4>
+// CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<4>) -> !quake.ref
+// CHECK:           %[[VAL_7:.*]] = quake.mz %[[VAL_6]] : (!quake.ref) -> i1
+// CHECK:           %[[VAL_8:.*]] = cc.compute_ptr %[[VAL_5]][0] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
+// CHECK:           cc.store %[[VAL_7]], %[[VAL_8]] : !cc.ptr<i1>
+// CHECK:           %[[VAL_9:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<4>) -> !quake.ref
+// CHECK:           %[[VAL_10:.*]] = quake.mz %[[VAL_9]] : (!quake.ref) -> i1
+// CHECK:           %[[VAL_11:.*]] = cc.compute_ptr %[[VAL_5]][1] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
+// CHECK:           cc.store %[[VAL_10]], %[[VAL_11]] : !cc.ptr<i1>
+// CHECK:           %[[VAL_12:.*]] = quake.extract_ref %[[VAL_0]][2] : (!quake.veq<4>) -> !quake.ref
+// CHECK:           %[[VAL_13:.*]] = quake.mz %[[VAL_12]] : (!quake.ref) -> i1
+// CHECK:           %[[VAL_14:.*]] = cc.compute_ptr %[[VAL_5]][2] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
+// CHECK:           cc.store %[[VAL_13]], %[[VAL_14]] : !cc.ptr<i1>
+// CHECK:           %[[VAL_15:.*]] = quake.extract_ref %[[VAL_0]][3] : (!quake.veq<4>) -> !quake.ref
+// CHECK:           %[[VAL_16:.*]] = quake.mz %[[VAL_15]] : (!quake.ref) -> i1
+// CHECK:           %[[VAL_17:.*]] = cc.compute_ptr %[[VAL_5]][3] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
+// CHECK:           cc.store %[[VAL_16]], %[[VAL_17]] : !cc.ptr<i1>
+// CHECK:           return
+// CHECK:         }
+

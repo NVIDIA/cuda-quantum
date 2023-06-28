@@ -9,7 +9,7 @@ for our toolchain to integrate well with the CMake build system.
 CUDA Quantum provides CMake configuration files that allow downstream 
 application developers to create hybrid quantum-classical source code 
 and build it with the typical CMake workflow, which will natively 
-leverage NVQ++ for compilation of CUDA Quantum source files. 
+leverage :code:`nvq++` for compilation of CUDA Quantum source files. 
 
 To see how this works, let's create a trivial example. Suppose we have 
 a folder named :code:`myCudaQApp` and within that folder we have 
@@ -20,7 +20,7 @@ following top-level :code:`CMakeLists.txt` file to build this file with
 
 .. code:: bash 
 
-    cmake_minimum_required(VERSION 3.19 FATAL_ERROR)
+    cmake_minimum_required(VERSION 3.24 FATAL_ERROR)
     project(myCudaQApp LANGUAGES CXX)
     find_package(CUDAQ REQUIRED)
     add_executable(ghz_exe ghz.cpp)

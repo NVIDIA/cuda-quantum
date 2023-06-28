@@ -315,7 +315,7 @@ def test_sample_result_multiple_registers(qubit_count, shots_count):
     # the rest of this test.
 
 
-@pytest.mark.parametrize("shots_count", [-1, 10, 100])
+@pytest.mark.parametrize("shots_count", [10, 100])
 def test_sample_result_observe(shots_count):
     """
     Test `cudaq.SampleResult` as its returned from a call
@@ -339,7 +339,7 @@ def test_sample_result_observe(shots_count):
         sample_result = observe_result.counts()
         sample_result.dump()
         # Should just have 3 measurement registers, one for each spin term.
-        want_register_names = ["I0I1Z2", "I0Z1I2", "Z0I1I2"]
+        want_register_names = ["IIZ", "IZI", "ZII"]
         got_register_names = sample_result.register_names
         if '__global__' in got_register_names:
             got_register_names.remove('__global__')
@@ -347,10 +347,9 @@ def test_sample_result_observe(shots_count):
             assert want_name in got_register_names
 
         # Check that each register is in the proper state.
-        for index in range(hamiltonian.get_term_count()):
-            sub_term = hamiltonian[index]
+        for index, sub_term in enumerate(hamiltonian):
             # Extract the register name from the spin term.
-            got_name = str(sub_term).split(") ")[1]
+            got_name = str(sub_term).split(" ")[1].rstrip()
             # Pull the counts for that hamiltonian sub term from the
             # `ObserveResult::counts` overload.
             sub_term_counts = observe_result.counts(sub_term=sub_term)
@@ -371,6 +370,7 @@ def test_sample_result_observe(shots_count):
             assert "1" in sub_term_counts
             assert "1" in sub_register_counts
 
+    sample_result.dump()
     # `::items()`
     for key, value in sample_result.items():
         assert key == "1"
@@ -476,6 +476,29 @@ def test_sample_marginalize():
     marginal_result = sample_result.get_marginal_counts([1, 2, 3])
     assert marginal_result.most_probable() == "101"
 
+
+def test_swap_2q():
+    """
+    Tests the simple case of swapping the states of two qubits.
+    """
+    kernel = cudaq.make_kernel()
+    # Allocate a register of size 2.
+    qreg = kernel.qalloc(2)
+    qubit_0 = qreg[0]
+    qubit_1 = qreg[1]
+    # Place qubit 0 in the 1-state.
+    kernel.x(qubit_0)
+    # Swap states with qubit 1.
+    kernel.swap(qubit_0, qubit_1)
+    # Check their states.
+    kernel.mz(qreg)
+
+    want_state = "01"
+    result = cudaq.sample(kernel)
+    assert (want_state in result)
+    assert (result[want_state] == 1000)
+
+
 def test_qubit_reset():
     """
     Basic test that we can apply a qubit reset.
@@ -488,7 +511,8 @@ def test_qubit_reset():
 
     counts = cudaq.sample(kernel)
     assert (len(counts) == 1)
-    assert('0' in counts)
+    assert ('0' in counts)
+
 
 def test_qreg_reset():
     """
@@ -502,8 +526,9 @@ def test_qreg_reset():
 
     counts = cudaq.sample(kernel)
     assert (len(counts) == 1)
-    assert('00' in counts)
-    
+    assert ('00' in counts)
+
+
 def test_for_loop():
     """
     Test that we can build a kernel expression with a for loop.
@@ -512,14 +537,59 @@ def test_for_loop():
     qubits = circuit.qalloc(inSize)
     circuit.h(qubits[0])
     # can pass concrete integers for both
-    circuit.for_loop(0, inSize-1, lambda index : circuit.cx(qubits[index], qubits[index+1]))
+    circuit.for_loop(0, inSize - 1,
+                     lambda index: circuit.cx(qubits[index], qubits[index + 1]))
     print(circuit)
     counts = cudaq.sample(circuit, 5)
     assert len(counts) == 2
-    assert '0'*5 in counts
-    assert '1'*5 in counts 
+    assert '0' * 5 in counts
+    assert '1' * 5 in counts
 
     counts.dump()
+
+
+def test_sample_n():
+    """
+    Test that we can broadcast the sample call over a number of argument sets
+    """
+    circuit, inSize = cudaq.make_kernel(int)
+    qubits = circuit.qalloc(inSize)
+    circuit.h(qubits[0])
+    # can pass concrete integers for both
+    circuit.for_loop(0, inSize - 1,
+                     lambda index: circuit.cx(qubits[index], qubits[index + 1]))
+    # circuit.mz(qubits)
+    print(circuit)
+
+    allCounts = cudaq.sample_n(circuit, [3, 4, 5, 6, 7])
+    first0 = '000'
+    first1 = '111'
+    for c in allCounts:
+        print(c)
+        assert first0 in c and first1 in c
+        first0 += '0'
+        first1 += '1'
+
+    testNpArray = np.random.randint(3, high=8, size=6)
+    print(testNpArray)
+    allCounts = cudaq.sample_n(circuit, testNpArray)
+    for i, c in enumerate(allCounts):
+        print(c)
+        assert '0' * testNpArray[i] in c and '1' * testNpArray[i] in c
+
+    circuit, angles = cudaq.make_kernel(list)
+    q = circuit.qalloc(2)
+    circuit.rx(angles[0], q[0])
+    circuit.ry(angles[1], q[0])
+    circuit.cx(q[0], q[1])
+
+    runtimeAngles = np.random.uniform(low=1.0, high=np.pi, size=(10, 2))
+    print(runtimeAngles)
+    allCounts = cudaq.sample_n(circuit, runtimeAngles)
+    for i, c in enumerate(allCounts):
+        print(runtimeAngles[i, :], c)
+        assert len(c) == 2
+
 
 # leave for gdb debugging
 if __name__ == "__main__":

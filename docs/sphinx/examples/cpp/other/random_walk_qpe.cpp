@@ -1,13 +1,15 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 // Compile and run with:
+// ```
 // nvq++ random_walk_qpe.cpp -o qpe.x && ./qpe.x
+// ```
 
 #include <cudaq.h>
 

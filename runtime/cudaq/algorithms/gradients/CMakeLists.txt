@@ -8,3 +8,4 @@
 
 install (FILES central_difference.h DESTINATION include/cudaq/gradients/)
 install (FILES parameter_shift.h DESTINATION include/cudaq/gradients/)
+install (FILES forward_difference.h DESTINATION include/cudaq/gradients/)

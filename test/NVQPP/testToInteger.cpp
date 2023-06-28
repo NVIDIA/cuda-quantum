@@ -1,12 +1,12 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
-// RUN: nvq++ %s -o out_testToInt.x && ./out_testToInt.x && rm out_testToInt.x
+// RUN: nvq++ --enable-mlir %s -o out_testToInt.x && ./out_testToInt.x && rm out_testToInt.x
 
 #include <cudaq.h>
 

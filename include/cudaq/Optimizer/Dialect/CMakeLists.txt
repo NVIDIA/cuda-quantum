@@ -7,5 +7,4 @@
 # ============================================================================ #
 
 add_subdirectory(CC)
-add_subdirectory(QTX)
 add_subdirectory(Quake)

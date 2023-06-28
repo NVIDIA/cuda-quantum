@@ -10,6 +10,7 @@
 add_subdirectory(compiler)
 # Unit tests that are run exclusively through pytest.
 add_subdirectory(unittests)     
+add_subdirectory(parallel)
 
 if (NOT CUDAQ_TEST_MOCK_SERVERS)
   message(STATUS "CUDAQ_TEST_MOCK_SERVERS=FALSE, skipping Python remote QPU tests.")

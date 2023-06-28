@@ -6,20 +6,23 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_llvm_utility(CircuitCheck
+add_llvm_executable(CircuitCheck
   CircuitCheck.cpp
   UnitaryBuilder.cpp
 )
 
 target_include_directories(CircuitCheck
   PRIVATE ${CMAKE_SOURCE_DIR}/tpls/eigen
+  PRIVATE ${CMAKE_SOURCE_DIR}/runtime
 )
 
 target_link_libraries(CircuitCheck
   PRIVATE
-  QTXDialect
-  QuakeDialect
-  MLIRMemRefDialect
+  MLIRArithDialect
   MLIRParser
-)
+  MLIRPass
+  MLIRTransforms
 
+  CCDialect
+  QuakeDialect
+)

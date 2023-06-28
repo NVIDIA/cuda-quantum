@@ -79,6 +79,16 @@ RUN source /opt/llvm/bootstrap/init_command.sh && \
         bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
     && rm -rf /llvm-project 
 
+# We use a newer version of cmake that is only available via the Kitware apt repository.
+FROM ubuntu:22.04 as cmakebuild
+RUN apt-get update && apt-get install -y wget unzip make gcc g++ libssl-dev \
+    && wget https://github.com/Kitware/CMake/releases/download/v3.26.3/cmake-3.26.3.zip -q \
+    && unzip cmake-3.26.3.zip && rm cmake-3.26.3.zip \
+    && cd cmake-3.26.3 && ./bootstrap --prefix=/usr/local/cmake-3.26/ \
+    && make -j$(nproc) && make -j$(nproc) install && cd .. \
+    && rm -rf cmake-3.26.3 && apt-get remove -y wget unzip make gcc g++ libssl-dev \
+    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 FROM ubuntu:22.04
 SHELL ["/bin/bash", "-c"]
 
@@ -101,7 +111,6 @@ ENV PATH="$PATH:$LLVM_INSTALL_PREFIX/bin/"
 # as part of the LLVM build and compile against that instead of libstdc++.
 RUN apt-get update && apt-get install -y --no-install-recommends libstdc++-12-dev \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
-ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:/usr/include/c++/11/:/usr/include/x86_64-linux-gnu/c++/11"
 
 # Install the C/C++ compiler toolchain with which the LLVM dependencies have
 # been built. CUDA Quantum needs to be built with that same toolchain. We use
@@ -117,14 +126,19 @@ ENV CC="$LLVM_INSTALL_PREFIX/bootstrap/cc"
 ENV CXX="$LLVM_INSTALL_PREFIX/bootstrap/cxx"
 
 # Install additional dependencies required to build and test CUDA Quantum.
+COPY --from=cmakebuild /usr/local/cmake-3.26/ /usr/local/cmake-3.26/
+ENV PATH="${PATH}:/usr/local/cmake-3.26/bin"
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        git ninja-build cmake \
+        git ninja-build libcurl4-openssl-dev libssl-dev \
         python3 python3-pip libpython3-dev \
         libblas-dev \
-    && python3 -m pip install --no-cache-dir lit pytest numpy \
+    && python3 -m pip install --no-cache-dir \
+        lit pytest numpy \
+        fastapi uvicorn pydantic llvmlite \
+        openfermionpyscf \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install additional tools for CUDA Quantum documentation generation.
 RUN python3 -m pip install --no-cache-dir \
-    sphinx==5.3.* sphinx_rtd_theme \
-    enum-tools[sphinx] breathe==4.34.* myst-parser
+    sphinx==5.3.0 sphinx_rtd_theme==1.2.0 sphinx-reredirects==0.1.2 \
+    enum-tools[sphinx] breathe==4.34.0 myst-parser==1.0.0

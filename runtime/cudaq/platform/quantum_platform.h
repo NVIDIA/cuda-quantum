@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #pragma once
 
@@ -54,6 +54,10 @@ public:
   /// Get the number of qubits for the current QPU
   std::size_t get_num_qubits();
 
+  /// @brief Return true if this platform exposes multiple QPUs and
+  /// supports parallel distribution of quantum tasks.
+  virtual bool supports_task_distribution() const { return false; }
+
   /// Get the number of qubits for the QPU with ID qpu_id
   std::size_t get_num_qubits(std::size_t qpu_id);
 
@@ -99,12 +103,11 @@ public:
   std::future<sample_result> enqueueAsyncTask(const std::size_t qpu_id,
                                               KernelExecutionTask &t);
 
-  /// Enqueue an asynchronous observation task
-  // std::future<observe_result>
-  // enqueueAsyncObserveTask(const std::size_t qpu_id, ObserveTask &t);
+  /// @brief Enqueue a general task that runs on the specified QPU
+  void enqueueAsyncTask(const std::size_t qpu_id, std::function<void()> &f);
 
   // This method is the hook for the kernel rewrites to invoke
-  // quantum kernels on the asynchronously executing qpud daemon process.
+  // quantum kernels.
   void launchKernel(std::string kernelName, void (*kernelFunc)(void *),
                     void *args, std::uint64_t voidStarSize,
                     std::uint64_t resultOffset);
@@ -136,6 +139,10 @@ protected:
 
   /// The current QPU.
   std::size_t platformCurrentQPU = 0;
+
+  /// @brief Store the mapping of thread ids to the QPU id
+  /// that it is running in a multi-QPU context.
+  std::unordered_map<std::size_t, std::size_t> threadToQpuId;
 
   /// Optional number of shots.
   std::optional<int> platformNumShots;

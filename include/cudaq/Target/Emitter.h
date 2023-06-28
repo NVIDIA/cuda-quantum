@@ -1,15 +1,22 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #pragma once
 
 #include "llvm/ADT/ScopedHashTable.h"
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
 #include "llvm/Support/FormatVariadic.h"
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic pop
+#endif
 #include "mlir/IR/ValueRange.h"
 #include "mlir/Support/IndentedOstream.h"
 #include <stack>
@@ -42,8 +49,7 @@ inline std::optional<double> getParameterValueAsDouble(mlir::Value value) {
   return {};
 }
 
-/// Base emitter to translate QTX to quantum assembly-like languages, e.g.,
-/// OpenQASM.
+/// Base emitter to translate Quake to quantum assembly-like languages.
 struct Emitter {
   explicit Emitter(mlir::raw_ostream &os) : os(os) {
     valuesInScopeCount.push(0);

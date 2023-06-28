@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 #include <pybind11/complex.h>
 #include <pybind11/stl.h>
 
@@ -84,7 +84,7 @@ void bindNoiseModel(py::module &mod) {
       .def(
           "__getitem__",
           [](kraus_channel &c, std::size_t idx) { return c[idx]; },
-          "Return the ith KrausOperator in this KrausChannel.")
+          "Return the KrausOperator at the given index in this KrausChannel.")
       .def("append", &kraus_channel::push_back,
            "Add a KrausOperator to this KrausChannel.");
 

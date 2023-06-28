@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "common/RuntimeMLIR.h"
 #include "cudaq.h"
@@ -34,7 +34,7 @@ typedef std::size_t (*Creator)(void **, void **);
 /// Retrieve the kernel args creator function for the kernel name
 Creator getArgsCreator(const std::string &);
 
-/// @brief Utility function for mapping variadic args to qpud required void*,
+/// @brief Utility function for mapping variadic args to required void*,
 /// size_t. Note clients of this function own the allocated rawArgs.
 template <typename... Args>
 std::pair<void *, std::size_t> mapToRawArgs(const std::string &kernelName,
@@ -55,9 +55,9 @@ LogicalResult runQuakeSynth(std::string_view kernelName, void *rawArgs,
   pm.addPass(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, rawArgs));
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   pm.addPass(createCanonicalizerPass());
-  pm.addPass(cudaq::opt::createLoopUnrollPass());
-  pm.addPass(createCanonicalizerPass());
+  pm.addPass(cudaq::opt::createLoopUnroll());
   pm.addPass(createCanonicalizerPass());
   return pm.run(*module);
 }
@@ -68,8 +68,9 @@ LogicalResult lowerToLLVMDialect(ModuleOp module) {
   pm.addPass(createCanonicalizerPass());
   OpPassManager &optPM = pm.nest<func::FuncOp>();
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
+  optPM.addPass(cudaq::opt::createClassicalMemToReg());
   pm.addPass(createCanonicalizerPass());
-  pm.addPass(cudaq::opt::createLoopUnrollPass());
+  pm.addPass(cudaq::opt::createLoopUnroll());
   pm.addPass(createCanonicalizerPass());
   optPM.addPass(cudaq::opt::createQuakeAddDeallocs());
   optPM.addPass(cudaq::opt::createQuakeAddMetadata());
@@ -92,7 +93,7 @@ cudaq::sample_result sampleJitCode(ExecutionEngine *jit,
       .value();
 }
 
-/// @brief Run sampling on the JIT compiled kernel function
+/// @brief Run observation on the JIT compiled kernel function
 cudaq::observe_result observeJitCode(ExecutionEngine *jit, cudaq::spin_op &h,
                                      const std::string &kernelName) {
   auto &p = cudaq::get_platform();
@@ -102,7 +103,7 @@ cudaq::observe_result observeJitCode(ExecutionEngine *jit, cudaq::spin_op &h,
                                             kernelName);
                ASSERT_TRUE(!err);
              },
-             h, p, 1000, "")
+             h, p, /*shots=*/-1, "")
       .value();
 }
 

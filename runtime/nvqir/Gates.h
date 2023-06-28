@@ -1,14 +1,22 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #pragma once
 
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfree-nonheap-object"
+#endif
 #include <complex>
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic pop
+#endif
+
 #include <vector>
 
 namespace nvqir {
@@ -22,7 +30,24 @@ template <typename ScalarType = double>
 using ComplexT = std::complex<ScalarType>;
 
 /// @brief Enumeration of supported CUDA Quantum operations
-enum class GateName { X, Y, Z, H, S, Sdg, Tdg, T, Rx, Ry, Rz, R1, U1, U2, U3 };
+enum class GateName {
+  X,
+  Y,
+  Z,
+  H,
+  S,
+  Sdg,
+  Tdg,
+  T,
+  Rx,
+  Ry,
+  Rz,
+  R1,
+  U1,
+  U2,
+  U3,
+  PhasedRx
+};
 
 /// @brief Given the gate name (an element of the GateName enum),
 /// return the matrix data, optionally parameterized by a rotation angle.
@@ -93,6 +118,17 @@ getGateByName(GateName name, const std::vector<Scalar> angles = {}) {
             std::exp(nvqir::im<Scalar> * phi) * std::sin(theta / 2),
             -std::exp(nvqir::im<Scalar> * lambda) * std::sin(theta / 2),
             std::exp(nvqir::im<Scalar> * (phi + lambda)) * std::cos(theta / 2)};
+  }
+  case (GateName::PhasedRx): {
+    Scalar two = 2.;
+    auto phi = angles[0];
+    auto lambda = angles[1];
+    return {{std::cos(phi / two), 0.},
+            -nvqir::im<Scalar> * std::exp(-nvqir::im<Scalar> * lambda) *
+                std::complex<Scalar>{std::sin(phi / two), 0.},
+            -nvqir::im<Scalar> * std::exp(nvqir::im<Scalar> * lambda) *
+                std::sin(phi / two),
+            std::cos(phi / two)};
   }
   }
 
@@ -240,6 +276,15 @@ struct u3 {
                                      {angles[0], angles[1], angles[2]});
   }
   const std::string name() const { return "u3"; }
+};
+
+template <typename ScalarType = double>
+struct phased_rx {
+  std::vector<ComplexT<ScalarType>> getGate(std::vector<ScalarType> angles) {
+    return getGateByName<ScalarType>(GateName::PhasedRx,
+                                     {angles[0], angles[1]});
+  }
+  const std::string name() const { return "phased_rx"; }
 };
 
 } // namespace nvqir

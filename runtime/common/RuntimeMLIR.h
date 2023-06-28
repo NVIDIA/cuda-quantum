@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #pragma once
 
@@ -13,6 +13,8 @@
 
 namespace mlir {
 class MLIRContext;
+class ExecutionEngine;
+class ModuleOp;
 } // namespace mlir
 
 namespace llvm {
@@ -29,6 +31,11 @@ bool setupTargetTriple(llvm::Module *);
 
 /// @brief Run the LLVM PassManager.
 void optimizeLLVM(llvm::Module *);
+
+/// @brief Lower ModuleOp to a full QIR LLVMIR representation
+/// and return an ExecutionEngine pointer for JIT function pointer
+/// execution. Clients are responsible for deleting this pointer.
+mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp);
 
 class Translation {
 public:

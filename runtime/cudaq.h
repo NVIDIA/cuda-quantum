@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #pragma once
 
@@ -25,7 +25,7 @@ extern bool globalFalse;
 std::string get_quake_by_name(const std::string &kernelName);
 
 // Simple test to see if the QuantumKernel template
-// type is a cudaq::builder with operator()(Args...)
+// type is a `cudaq::builder` with `operator()(Args...)`
 template <class T, class = void>
 struct hasToQuakeMethod : std::false_type {};
 template <class T>
@@ -46,7 +46,7 @@ namespace internal {
 template <typename T>
 struct KernelCallArgs;
 
-/// @brief Deduce the Args... for operator()(Args...)
+/// @brief Deduce the `Args...` for `operator()(Args...)`
 template <typename RT, typename Owner, typename... Args>
 struct KernelCallArgs<RT (Owner::*)(Args...)> {
   static constexpr std::size_t ArgCount = sizeof...(Args);
@@ -54,7 +54,7 @@ struct KernelCallArgs<RT (Owner::*)(Args...)> {
   using ArgsTuple = std::tuple<std::remove_reference_t<Args>...>;
 };
 
-/// @brief Deduce the Args... for operator()(Args...), for const lambda
+/// @brief Deduce the `Args...` for `operator()(Args...)`, for constant lambda
 template <typename RT, typename Owner, typename... Args>
 struct KernelCallArgs<RT (Owner::*)(Args...) const> {
   static constexpr std::size_t ArgCount = sizeof...(Args);
@@ -87,8 +87,8 @@ std::string get_kernel_name() {
   return internal::get_kernel_name_from_type<QuantumKernel>();
 }
 
-/// Get the name of the kernel when the kernel has a template operator()
-/// function. The resolved template arguments must be provided as Args.
+/// Get the name of the kernel when the kernel has a template `operator()`
+/// function. The resolved template arguments must be provided as `Args`.
 template <typename QuantumKernel, typename... Args>
 std::string get_kernel_template_member_name() {
   return "instance_" + internal::get_kernel_name_from_type<QuantumKernel>() +
@@ -104,7 +104,7 @@ inline std::string get_kernel_function_name(const std::string &name) {
 }
 
 /// Get the name of a template function (not a class member) that is marked as a
-/// quantum kernel. The template arguments must be supplied as Args.
+/// quantum kernel. The template arguments must be supplied as `Args`.
 template <typename... Args>
 std::string get_kernel_template_function_name(std::string &&funcName) {
   std::string name = internal::expand_parameter_pack<Args...>();
@@ -176,9 +176,8 @@ KernelArgsCreator getArgsCreator(const std::string &kernelName);
 /// @return
 bool kernelHasConditionalFeedback(const std::string &kernelName);
 
-/// @brief Provide a hook to set the remote qpud target backend.
-/// @param backend
-void set_qpu_backend(const char *backend);
+/// @brief Provide a hook to set the target backend.
+void set_target_backend(const char *backend);
 
 /// @brief Utility function for setting the shots on the platform
 void set_shots(const std::size_t nShots);
@@ -191,7 +190,57 @@ void unset_noise();
 /// @brief Utility function for clearing the shots
 void clear_shots(const std::size_t nShots);
 
+namespace mpi {
+
+/// @brief Initialize MPI if available. This function
+/// is a no-op if there CUDA Quantum has not been built
+/// against MPI.
+void initialize();
+
+/// @brief Initialize MPI if available. This function
+/// is a no-op if there CUDA Quantum has not been built
+/// against MPI. Takes program arguments as input.
+void initialize(int argc, char **argv);
+
+/// @brief Return the rank of the calling process.
+int rank();
+
+/// @brief Return the number of MPI ranks.
+int num_ranks();
+
+/// @brief Return true if MPI is already initialized, false otherwise.
+bool is_initialized();
+
+double allreduce_double_add(double localValue);
+
+namespace details {
+#define CUDAQ_ALL_REDUCE_DEF(TYPE, BINARY)                                     \
+  TYPE allReduce(const TYPE &, const BINARY<TYPE> &);
+
+CUDAQ_ALL_REDUCE_DEF(float, std::plus)
+CUDAQ_ALL_REDUCE_DEF(float, std::multiplies)
+
+CUDAQ_ALL_REDUCE_DEF(double, std::plus)
+CUDAQ_ALL_REDUCE_DEF(double, std::multiplies)
+
+} // namespace details
+
+/// @brief Reduce all values across ranks with the specified binary function.
+template <typename T, typename BinaryFunction>
+T all_reduce(const T &localValue, const BinaryFunction &function) {
+  return details::allReduce(localValue, function);
+}
+
+/// @brief Finalize MPI. This function
+/// is a no-op if there CUDA Quantum has not been built
+/// against MPI.
+void finalize();
+
+} // namespace mpi
+
 } // namespace cudaq
 
 // Users should get sample by default
 #include "cudaq/algorithms/sample.h"
+// Users should get observe by default
+#include "cudaq/algorithms/observe.h"

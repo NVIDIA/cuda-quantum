@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #ifndef CUDAQ_OPTIMIZER_DIALECT_CC_OPS
 #define CUDAQ_OPTIMIZER_DIALECT_CC_OPS
@@ -20,12 +20,19 @@ def AnyPointerType : Type<CPred<"$_self.isa<mlir::LLVM::LLVMPointerType,"
 def AnyCallableType : Type<CPred<"$_self.isa<cudaq::cc::LambdaType, "
                           "mlir::FunctionType>()">, "any callable type">;
 
+def AnyAggregateType : Type<CPred<"$_self.isa<cudaq::cc::StructType, "
+                            "cudaq::cc::ArrayType>()">, "any aggregate type">;
+
 //===----------------------------------------------------------------------===//
 // Base operation definition.
 //===----------------------------------------------------------------------===//
 
 class CCOp<string mnemonic, list<Trait> traits = []> :
     Op<CCDialect, mnemonic, traits>;
+
+//===----------------------------------------------------------------------===//
+// Local Scope.
+//===----------------------------------------------------------------------===//
 
 def cc_ScopeOp : CCOp<"scope",
         [AutomaticAllocationScope, RecursiveMemoryEffects, NoRegionArguments,
@@ -34,17 +41,29 @@ def cc_ScopeOp : CCOp<"scope",
                                     "getRegionInvocationBounds"]>]> {
   let summary = "A compound statement in which allocations are scoped.";
   let description = [{
-    The cc.scope Op is used to delineate the scope of allocations, such as for
-    variables declared in a compound statement. All such allocations that appear
-    in the context of the ScopeOp are dead when the ScopeOp exits.
+    A ScopeOp is used to delineate the scope of local allocations, such as
+    for variables declared in a compound statement. All such allocations that
+    appear in the context of the ScopeOp are dead when the ScopeOp exits.
 
-    This allows us to lower to LLVM IR with the appropriate calls to intrinsics
-    `llvm.stacksave` and `llvm.stackrestore`. It also gives a point to `free`
-    (deconstruct) any compiler-generated heap allocations.
+    For a C++ variable, this means that the variable may require a call to a
+    destructor as well as deallocation. For example, after inserting calls to
+    dtors the LLVM IR intrinsics `llvm.stacksave` and `llvm.stackrestore` may
+    be added to reclaim stack space, or a call to `free` may be inserted to
+    deallocate any compiler-generated heap allocations.
+
+    For a CUDA Quantum variable, cc.scope will, at minimum add calls to
+    deallocate any quantum references created inside the ScopeOp's region. It
+    may also be desirable to autogenerate adjoint code.
 
     A ScopeOp that contains no allocations has no semantics and can be inlined
-    into the parent Region.
+    into the parent Region. This transformation is done in canonicalization.
 
+    A ScopeOp may contain a single-entry, multiple-exit CFG with multiple
+    basic blocks in its region. A ContinueOp is the terminator that exits a
+    ScopeOp.
+
+    Example:
+    
     ```mlir
       cc.scope {
         %alloc = cc.alloca i32
@@ -72,58 +91,104 @@ def cc_ScopeOp : CCOp<"scope",
   }];
 }
 
+//===----------------------------------------------------------------------===//
+// Generalized Loop.
+//===----------------------------------------------------------------------===//
+
 def cc_LoopOp : CCOp<"loop",
         [AutomaticAllocationScope, RecursiveMemoryEffects,
          DeclareOpInterfaceMethods<LoopLikeOpInterface>,
          DeclareOpInterfaceMethods<RegionBranchOpInterface>]> {
   let summary = "generalized loop construct";
   let description = [{
-    The `cc.loop` operation is a very generalized loop-like structure that
-    can capture generalized loop structures such as C's `for`, `while`, and
-    `do while`. It is in essence a gated backedge with four distinct phases.
-    This loop construct takes no arguments and generates no results. All
-    arguments and results must be conveyed via memory operations.
+    A LoopOp is a generalized C-like loop structure. It can be used to capture
+    the semantics of C's `for`, `while`, and `do while` statements. A LoopOp is
+    at its core a gated backedge with three distinct phases. Each phase is
+    a Region in the LoopOp. A LoopOp has the following structure.
 
+    Example:
+    
     ```mlir
-    cc.loop while { ... } do { ... } step { ... }
+      cc.loop while {
+        <while-code>
+      } do {
+        <do-code>
+      } step {
+        <step-code>
+      }
     ```
 
-    A C++ `for` loop
+    - `for` statement:
+    
     ```c++
-    for (@init; @while; @step) { @do }
+      for (<init-code>; <while-code>; <step-code>) {
+        <do-code>
+      }
     ```
-    is lowered to
+    
+    The above C++ `for` loop (C-style) is lowered to the following ScopeOp and
+    LoopOp.
+    
     ```mlir
-    cc.scope {
-      @init
-      cc.loop while { @while} do { @do } step { @step }
-    }
+      cc.scope {
+        <init-code>
+        cc.loop while {
+          <while-code>
+          cc.condition ...
+        } do {
+          <do-code>
+        } step {
+          <step-code>
+        }
+        cc.continue
+      }
     ```
-    A `cc.loop` op terminates the `cc.scope`.
 
-    A C++ `while` loop
+    - `while` statement:
+
     ```c++
-    while (@while) { @do }
+      while (<while-code>) {
+        <do-code>
+      }
     ```
-    maps as (<step> region is empty)
+    
+    The above C++ `while` loop is lowered to the following LoopOp. Note that
+    the LoopOp's step region is left empty.
+    
     ```mlir
-    cc.loop while { @while} do { @do } // step {}
+      cc.loop while {
+        <while-code>
+        cc.condition ...
+      } do {
+        <do-code>
+      }
     ```
 
-    A C++ `do while` loop
+    - `do while` statement:
+
     ```c++
-    do { @do } while (@while);
+      do {
+        <do-code>
+      } while (<while-code>);
     ```
-    maps as (<step> region is empty)
+    
+    The above C++ `do while` loop is lowered to the following LoopOp. Once
+    again, the LoopOp's step region is left empty. The semantics of this form of
+    LoopOp are identical to a C `do while` loop. The body of the loop will be
+    executed exactly one time before the control condition is evaluated.
+    
     ```mlir
-    cc.loop do { @do } while { @while} // step {}
+      cc.loop do {
+        <do-code>
+      } while {
+        <while-code>
+        cc.condition ...
+      }
     ```
-    The semantics are identical to a C `do while` loop in that the body of the
-    loop will be executed one time before the control condition is evaluated.
   }];
 
   let arguments = (ins
-    Variadic<AnyType>:$initArgs,
+    Variadic<AnyType>:$initialArgs,
     BoolAttr:$post_condition
   );
   let results = (outs Variadic<AnyType>:$results);
@@ -133,6 +198,7 @@ def cc_LoopOp : CCOp<"loop",
     AnyRegion:$stepRegion
   );
 
+  let hasCanonicalizer = 1;
   let hasCustomAssemblyFormat = 1;
   let hasVerifier = 1;
 
@@ -190,8 +256,14 @@ def cc_LoopOp : CCOp<"loop",
 
     mlir::OperandRange
     getSuccessorEntryOperands(std::optional<unsigned> index);
+
+    bool hasBreakInBody();
   }];
 }
+
+//===----------------------------------------------------------------------===//
+// If statement.
+//===----------------------------------------------------------------------===//
 
 def cc_IfOp : CCOp<"if",
     [DeclareOpInterfaceMethods<RegionBranchOpInterface,
@@ -200,14 +272,28 @@ def cc_IfOp : CCOp<"if",
      RecursiveMemoryEffects, NoRegionArguments]> {
   let summary = "if-then-else operation";
   let description = [{
+    An IfOp is a C-like if statement that supports single-entry, multiple-exit
+    code blocks for both the true (then) and false (else) execution cases. The
+    else region may be left empty only if the IfOp does not return any results
+    to the parent operation.
+
+    Example:
+    
     ```mlir
-    cc.if (%cond) {
-      ^bb0:
-        ...
-    } else {
-      ^bb9:
-        ...
-    }
+      cc.if (%cond) {
+        ^bb0:
+          ...
+        ^bb2:
+          ...
+        ^bb3:
+          ...
+          cc.continue // exits then region
+        ^bb4:
+          cf.cond_br ..., ^bb0, ^bb2
+      } else {
+        ^bb5:
+          ...
+      }
     ```
   }];
 
@@ -234,18 +320,34 @@ def cc_IfOp : CCOp<"if",
   }];
 }
 
+//===----------------------------------------------------------------------===//
+// Terminators for control-flow operations.
+//===----------------------------------------------------------------------===//
+
 def cc_ConditionOp : CCOp<"condition",
         [Pure, Terminator, ParentOneOf<["LoopOp"]>,
          DeclareOpInterfaceMethods<RegionBranchTerminatorOpInterface>]> {
   let summary = "Conditional branch in a where region's basic block.";
   let description = [{
-    The condition op is used as the terminator of the basic block in the where
-    region of a loop op. It takes, at minimum, an `i1` value as the control
+    A ConditionOp is used as the terminator of the basic block in the where
+    region of a LoopOp. It takes, at minimum, an `i1` value as the control
     condition. If the value is true, a branch to the body of the loop is taken.
-    If the value is false, the loop op exits.
+    If the value is false, the parent LoopOp exits.
 
-    Any additional arguments to the condition op are forwarded as block
-    arguments to the body or the result of the loop op accordingly.
+    Any additional arguments to the ConditionOp are forwarded as block
+    arguments to the body or the result of the parent LoopOp accordingly.
+
+    Example:
+
+    ```mlir
+      cc.loop while {
+        ...
+        cc.condition %1 (%2, %3 : i32, !quake.wire)
+      } do {
+       ^bb0(%0 : i32, %1 : !quake.wire):
+        ...
+      }
+    ```
   }];
 
   let arguments = (ins
@@ -255,7 +357,7 @@ def cc_ConditionOp : CCOp<"condition",
   let builders = [OpBuilder<(ins), [{ /* nothing to do */ }]>];
 
   let assemblyFormat = [{
-    $condition attr-dict ( `(` $results^ `:` qualified(type($results)) `)` )?
+    $condition ( `(` $results^ `:` qualified(type($results)) `)` )? attr-dict
   }];
   let hasVerifier = 1;
 }
@@ -264,19 +366,36 @@ def cc_ContinueOp : CCOp<"continue", [Pure, ReturnLike, Terminator,
         ParentOneOf<["LoopOp", "ScopeOp", "IfOp"]>]> {
   let summary = "Continue branch.";
   let description = [{
-    The continue op is overloaded. In the body region of a loop op, the continue
-    op has the standard C semantics of a branch to the next iteration of the
-    loop. More precisely, a branch to the step region's basic block.
+    A ContinueOp is a generalized exit terminator for the dialect operations
+    with regions.
 
-    When used in other ops or regions of a loop op, the continue op is an
-    unconditional branch that forwards its arguments to the next logical region
-    or to the op's results.
+    In the body region of a loop op, a ContinueOp has the standard C semantics.
+    If the LoopOp has a step region, control is first transferred to the entry
+    block of the step region and from there to the next iteration of the loop,
+    which starts at the while region. If the LoopOp does not have a step
+    region, control is transferred to the while region's entry block.
+
+    In the step region of a LoopOp, a ContinueOp is an unconditinal branch from
+    the step region to the while region's entry block.
+
+    In the parent op is a ScopeOp or IfOp, a ContinueOp is an unconditional
+    branch exiting the parent op and returning control to the parent's parent.
+
+    Example:
+
+    ```mlir
+    %0 = cc.scope -> (!quake.wire) {
+      ...
+      cc.continue %4 : !quake.wire
+    }
+    ```
   }];
 
   let arguments = (ins Variadic<AnyType>:$operands);
   let builders = [OpBuilder<(ins), [{ /* nothing to do */ }]>];
+
   let assemblyFormat = [{
-    attr-dict ($operands^ `:` qualified(type($operands)))?
+    ($operands^ `:` qualified(type($operands)))? attr-dict
   }];
 }
 
@@ -284,182 +403,81 @@ def cc_BreakOp : CCOp<"break",
         [Pure, ReturnLike, Terminator, ParentOneOf<["LoopOp"]>]> {
   let summary = "Break branch.";
   let description = [{
-    The break op can be used in a loop op's body region. This terminator is
-    a branch immediately from the body to exit the loop op. No other operations
-    in the loop op (from any region) will be executed.
+    A BreakOp can be used in a LoopOp's body region (only). A BreakOp is a
+    terminator. Semantically, a BreakOp is an unconditional, immediate branch
+    from the body of the parent LoopOp to the parent's parent operation. When
+    a BreakOp is reached, no other operations in the parent LoopOp (from any
+    region) will be executed. Any arguments to the BreakOp will be forwarded as
+    the results of the parent LoopOp.
+
+    Example:
+
+    ```mlir
+      %w = cc.loop while ((%arg0 = %0) -> !quake.wire) {
+        ...
+      } do {
+        ...
+       ^bb6:
+        cc.break %4 : !quake.wire
+       ...
+     }
+    ```
   }];
 
   let arguments = (ins Variadic<AnyType>:$operands);
   let builders = [OpBuilder<(ins), [{ /* nothing to do */ }]>];
   let assemblyFormat = [{
-    attr-dict ($operands^ `:` qualified(type($operands)))?
+    ($operands^ `:` qualified(type($operands)))? attr-dict
   }];
 }
 
-// TODO: Should relax the arguments restriction. Lambdas can have arguments in
-// addition to free variables.
-def cc_CreateLambdaOp : CCOp<"create_lambda",
-        [AutomaticAllocationScope, RecursiveMemoryEffects,
-         SingleBlockImplicitTerminator<"cudaq::cc::ReturnOp">]> {
-  let summary = "Create a lambda value.";
+def cc_ReturnOp : CCOp<"return", [Pure, ReturnLike, Terminator,
+        ParentOneOf<["mlir::func::FuncOp", "CreateLambdaOp"]>]> {
+  let summary = "Return (exiting) branch.";
   let description = [{
-    Creates a λ expression. A λ expression is a Callable instance that may have
-    associated data (or data references) that it captures. Currently, captured
-    data is implied by using values from the enclosing regions in the body of
-    the create_lambda.
-  }];
-  let results = (outs cc_LambdaType:$signature);
-  let regions = (region SizedRegion<1>:$initRegion);
-  let hasCustomAssemblyFormat = 1;
+    A ReturnOp returns control from the current activation of a λ expression to
+    the enclosing dynamic scope, the calling function.
 
-  let builders = [
-      OpBuilder<(ins
-        "cudaq::cc::LambdaType":$signature,
-        CArg<"llvm::function_ref<void(mlir::OpBuilder &, mlir::Location)>",
-           "nullptr">)>];
+    In callable expressions, the ReturnOp is always ends the execution of the
+    callable.
 
-  let extraClassDeclaration = [{
-    using BodyBuilderFn =
-        llvm::function_ref<void(mlir::OpBuilder &, mlir::Location)>;
-
-    llvm::ArrayRef<mlir::Type> getResultTypes() {
-      return getType().getSignature().getResults();
-    }
-
-    unsigned getNumResults() {
-      return getType().getSignature().getNumResults();
-    }
-  }];
-}
-
-def cc_AllocaOp : CCOp<"alloca", [
-    MemoryEffects<[MemAlloc<AutomaticAllocationScopeResource>]>]> {
-  let summary = "Allocate a dynamic block of memory on the stack.";
-  let description = [{
-    This is similar to the C library `alloca()` function. The number of bytes
-    to be allocated is computed by the size of the `elementType` (which may not
-    have a non-positive size) times `seqSize` if present or `1` if `seqSize` is
-    omitted. This returns a pointer to the first element in the allocated
-    sequence of `seqSize` elements of `elementType`.
+    ```mlir
+      %lambda = cc.create_lambda {
+       ^entry(%arg0 : i32):
+        ...
+        cc.return
+      } : !cc.lambda<(i32) -> ()>
+      ...
+      cc.call_callable %lambda, %20 : (!cc.lambda<(i32) -> ()>, i32) -> ()
+    ```
   }];
 
-  let arguments = (ins
-    TypeAttr:$elementType,
-    Optional<AnyInteger>:$seqSize
-  );
-  let results = (outs cc_PointerType:$address);
-
+  let arguments = (ins Variadic<AnyType>:$operands);
+  let builders = [OpBuilder<(ins), [{ /* nothing to do */ }]>];
   let assemblyFormat = [{
-    $elementType (`[` $seqSize^ `]`)? attr-dict `:`
-      functional-type(operands, results)
-  }];
-}
-
-def cc_InstantiateCallableOp : CCOp<"instantiate_callable", [Pure]> {
-  let summary = "Fine-grained construction of a C++ Callable.";
-  let description = [{
-    When we lift a λ expression, a `cc.create_lambda`, to a set of functions,
-    this operation can be used to construct a pair that is the captured values
-    and a pointer to the associated currying trampoline function.
+    ($operands^ `:` qualified(type($operands)))? attr-dict
   }];
 
-  let arguments = (ins
-    SymbolRefAttr:$callee,
-    Variadic<AnyType>:$closure_data
-  );
-  let results = (outs cc_LambdaType:$signature);
-
-  let assemblyFormat = [{
-    $callee `(` $closure_data `)` attr-dict `:`
-      functional-type(operands, results)
-  }];
-}
-
-def cc_CallableFuncOp : CCOp<"callable_func", [Pure]> {
-  let summary = "Extract the function from the λ expression.";
-  let description = [{
-    A λ expression contains both code (a function) and data (a closure). This
-    op can be used to retrieve the function from the λ expression.
-  }];
-
-  let arguments = (ins cc_LambdaType:$callable);
-  let results = (outs FunctionType:$function);
-
-  let assemblyFormat = [{
-    $callable attr-dict `:` functional-type(operands, results)
-  }];
-}
-
-def cc_CallableClosureOp : CCOp<"callable_closure", [Pure]> {
-  let summary = "Extract the closure data from the λ expression.";
-  let description = [{
-    A λ expression contains both code (a function) and data (a closure). This
-    op can be used to retrieve the closure (data) from the λ expression. The
-    unpacked values are returned as a (transparent) tuple of values. A closure
-    has a (compile-time) constant number of values. The tuple cannot be extended
-    dynamically.
-  }];
-
-  let arguments = (ins cc_LambdaType:$callable);
-  let results = (outs Variadic<AnyType>:$closure_data);
-
-  let assemblyFormat = [{
-    $callable attr-dict `:` functional-type(operands, results)
-  }];
-}
-
-def cc_CallCallableOp : CCOp<"call_callable", [CallOpInterface]> {
-  let summary = "Abstract application of a callable.";
-  let description = [{
-    Call a function of C++ callable (a closure). The call target is specified
-    as an SSA-value as the first argument.
-
-    For a plain old function, the call target will effectively degenerate to a
-    pointer to a function (code) and the argument list must be a type correct
-    one-to-one match. The closure of the calling context is empty and can be
-    elided.
-
-    A callable defined as a C++ `class` will pass an object instance (`this`
-    pointer) as a special (free) argument. C++ semantics are that all calling
-    state must be included as members of this instance or passed as arguments.
-
-    For a λ expression callable, the call target will involve a trampoline to
-    load any captured free variables as special arguments to the ultimate target
-    function.
-  }];
-
-  let arguments = (ins
-    AnyCallableType:$callee,
-    Variadic<AnyType>:$args
-  );
-  let results = (outs Variadic<AnyType>:$results);
   let hasVerifier = 1;
-
-  let assemblyFormat = [{
-    $callee (`,` $args^)? attr-dict `:` functional-type(operands, results)
-  }];
+  let hasCanonicalizer = 1;
 
   let extraClassDeclaration = [{
-    /// Get the argument operands to the called function.
-    operand_range getArgOperands() {
-      return {arg_operand_begin(), arg_operand_end()};
-    }
-
-    operand_iterator arg_operand_begin() { return ++operand_begin(); }
-    operand_iterator arg_operand_end() { return operand_end(); }
-
-    /// Return the callee of this operation.
-    mlir::CallInterfaceCallable getCallableForCallee() { return getCallee(); }
-
-    mlir::FunctionType getFunctionType() {
-      return mlir::FunctionType::get(getContext(), getOperands().getType(),
-        getResults().getTypes());
+    /// Return true if the cc.return is directly owned by a func.func's region.
+    /// If it is in a region of some other op, returns false.
+    bool ownedByFuncOp() {
+      if (auto *region = getOperation()->getParentRegion())
+        return isa<mlir::func::FuncOp>(region->getParentOp());
+      return false;
     }
   }];
 }
 
-def cc_UnwindBreakOp : CCOp<"unwind_break", [ 
-        ParentOneOf<["IfOp", "ScopeOp"]>]> {
+//===----------------------------------------------------------------------===//
+// Global transfers of control.
+//===----------------------------------------------------------------------===//
+
+def cc_UnwindBreakOp : CCOp<"unwind_break", [
+        ParentOneOf<["IfOp", "ScopeOp"]>, JumpWithUnwind]> {
   let summary = "Non-local break (exiting) branch with unwind semantics.";
   let description = [{
     An UnwindBreakOp may imply unwinding the stack frame for the current
@@ -519,8 +537,8 @@ def cc_UnwindBreakOp : CCOp<"unwind_break", [
   let hasCanonicalizer = 1;
 }
 
-def cc_UnwindContinueOp : CCOp<"unwind_continue", [ 
-        ParentOneOf<["IfOp", "ScopeOp"]>]> {
+def cc_UnwindContinueOp : CCOp<"unwind_continue", [
+        ParentOneOf<["IfOp", "ScopeOp"]>, JumpWithUnwind]> {
   let summary = "Non-local continue branch with unwind semantics.";
   let description = [{
     An UnwindContinueOp may imply unwinding the stack frame for the current
@@ -581,8 +599,8 @@ def cc_UnwindContinueOp : CCOp<"unwind_continue", [
   let hasCanonicalizer = 1;
 }
 
-def cc_UnwindReturnOp : CCOp<"unwind_return", [ 
-        ParentOneOf<["LoopOp", "IfOp", "ScopeOp"]>]> {
+def cc_UnwindReturnOp : CCOp<"unwind_return", [
+        ParentOneOf<["LoopOp", "IfOp", "ScopeOp"]>, JumpWithUnwind]> {
   let summary = "Non-local return (exiting) branch with unwind semantics.";
   let description = [{
     An UnwindReturnOp may imply unwinding the stack frame for the current
@@ -636,69 +654,333 @@ def cc_UnwindReturnOp : CCOp<"unwind_return", [
   let hasVerifier = 1;
 }
 
-def cc_ReturnOp : CCOp<"return", [Pure, ReturnLike, Terminator,
-        ParentOneOf<["mlir::func::FuncOp", "CreateLambdaOp"]>]> {
-  let summary = "Return (exiting) branch.";
+//===----------------------------------------------------------------------===//
+// Memory operations and initializations.
+//===----------------------------------------------------------------------===//
+
+def cc_UndefOp : CCOp<"undef", [Pure]> {
+  let summary = "Explicit undefined value.";
   let description = [{
-    A ReturnOp returns control from the current activation to the enclosing
-    dynamic scope, the calling function.
+    An UndefOp is used to create an undefined value of a specified type. This
+    op will be translated to LLVM IR as an undefined instruction.
 
-    In callable expressions, the ReturnOp is always to end the execution of the
-    callable.
+    Example:
+
+    ```mlir
+      %structValue = cc.undef !cc.struct<{i32, i8}>
+    ```
   }];
-
-  let arguments = (ins Variadic<AnyType>:$operands);
-  let builders = [OpBuilder<(ins), [{ /* nothing to do */ }]>];
+  let results = (outs AnyType:$inputType);
   let assemblyFormat = [{
-    ($operands^ `:` qualified(type($operands)))? attr-dict
-  }];
-
-  let hasVerifier = 1;
-  let hasCanonicalizer = 1;
-
-  let extraClassDeclaration = [{
-    /// Return true if the cc.return is directly owned by a func.func's region.
-    /// If it is in a region of some other op, returns false.
-    bool ownedByFuncOp() {
-      if (auto *region = getOperation()->getParentRegion())
-        return isa<mlir::func::FuncOp>(region->getParentOp());
-      return false;
-    }
+    type($inputType) attr-dict
   }];
 }
+
+def cc_AllocaOp : CCOp<"alloca", [
+    MemoryEffects<[MemAlloc<AutomaticAllocationScopeResource>]>]> {
+  let summary = "Allocate a dynamic block of memory on the stack.";
+  let description = [{
+    The AllocaOp is similar to the C library `alloca()` function. The number of
+    bytes to be allocated is computed by the size of the `elementType` (which
+    may not have a non-positive size) times `seqSize` if present or `1` if
+    `seqSize` is omitted. This returns a pointer to the first element in the
+    allocated sequence of `seqSize` elements of `elementType`.
+  }];
+
+  let arguments = (ins
+    TypeAttr:$elementType,
+    Optional<AnySignlessInteger>:$seqSize
+  );
+  let results = (outs cc_PointerType:$address);
+
+  let hasFolder = 1;
+  let hasCustomAssemblyFormat = 1;
+  let builders = [
+    OpBuilder<(ins "mlir::Type":$elementType, "mlir::Value":$seqSize), [{
+      auto resTy = cudaq::cc::PointerType::get(seqSize ?
+        cudaq::cc::ArrayType::get(elementType) : elementType);
+      return build($_builder, $_state, resTy, elementType, seqSize);
+    }]>,
+    OpBuilder<(ins "mlir::Type":$elementType), [{
+      return build($_builder, $_state, elementType, mlir::Value{});
+    }]>
+  ];
+}
+
+def cc_LoadOp : CCOp<"load",
+    [TypesMatchWith<"result type matches element type of pointer value",
+        "ptrvalue", "result",
+        "$_self.cast<cudaq::cc::PointerType>().getElementType()">]> {
+  let summary = "Load a value from a pointer into a virtual register.";
+  let description = [{
+    A LoadOp is used to load a value from a memory location, specified by a
+    pointer, into a virtual register.
+
+    Example:
+
+    ```mlir
+      %1 = cc.load %0 : !cc.ptr<i32>
+    ```
+  }];
+
+  let arguments = (ins
+    Arg<cc_PointerType,"pointer to memory location",[MemRead]>:$ptrvalue
+  );
+  let results = (outs AnyType:$result);
+  let assemblyFormat = [{
+    $ptrvalue `:` qualified(type($ptrvalue)) attr-dict
+  }];
+}
+
+def cc_StoreOp : CCOp<"store",
+    [TypesMatchWith<"type of value matches element type of pointer",
+        "ptrvalue", "value",
+        "$_self.cast<cudaq::cc::PointerType>().getElementType()">]> {
+  let summary = "Store a virtual register value to a memory location.";
+  let description = [{
+    A StoreOp is used to store the value from a virtual register to a memory
+    location, specified by a pointer.
+
+    Example:
+
+    ```mlir
+      cc.store %value, %pointer : !cc.ptr<f64> {cpp_variable="my_double"}
+    ```
+  }];
+
+  let arguments = (ins
+    AnyType:$value,
+    Arg<cc_PointerType,"pointer to memory location",[MemWrite]>:$ptrvalue
+  );
+  let assemblyFormat = [{
+    $value `,` $ptrvalue `:` qualified(type($ptrvalue)) attr-dict
+  }];
+}
+
+//===----------------------------------------------------------------------===//
+// Aggregate operations.
+//===----------------------------------------------------------------------===//
+
+
+def cc_AddressOfOp : CCOp<"address_of", [Pure,
+    DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
+  // Note: should be used to get a pointer to a global object as well, but we
+  // haven't added globals to the dialect yet.
+
+  let summary = "Creates a pointer pointing to a function";
+  let description = [{
+    An AddressOfOp is used to get the address of a function by its symbol name.
+
+    Example:
+
+    ```mlir
+      %fp = cc.address_of @my_void_function : !cc.ptr<() -> ()>
+    ```
+  }];
+  
+  let arguments = (ins FlatSymbolRefAttr:$global_name);
+  let results = (outs cc_PointerType:$res);
+
+  let assemblyFormat = [{
+    $global_name `:` qualified(type($res)) attr-dict
+  }];
+}
+
+def cc_ExtractValueOp : CCOp<"extract_value", [Pure]> {
+  let summary = "Extract a value from an aggregate value.";
+  let description = [{
+    This will translate to LLVM's extract_value instruction. It makes a copy of
+    a subvalue that is part of a larger aggregate value.
+
+    Example:
+
+    ```mlir
+      %i = cc.extract_value %r [1, 0] : (!cc.struct<{i32, !cc.struct<{i16, f32,
+                                        i64}>}>) -> i16
+    ```
+  }];
+
+  let arguments = (ins
+    AnyAggregateType:$container,
+    DenseI64ArrayAttr:$position
+  );
+  let results = (outs AnyType);
+
+  let assemblyFormat = [{
+    $container `` $position `:` functional-type(operands, results) attr-dict
+  }];
+}
+
+def cc_InsertValueOp : CCOp<"insert_value", [Pure]> {
+  let summary = "Insert a value into an aggregate value.";
+  let description = [{
+    This will translate to LLVM's insert_value instruction. It copies an
+    aggregate value and replaces one particular subvalue with a new value.
+
+    Example:
+
+    ```mlir
+      %s = cc.insert_value %i16, %r[1, 0] :
+           (!cc.struct<{i32, !cc.struct<{i16, f32}>}>, i16) ->
+           !cc.struct<{i32, !cc.struct<{i16, f32}>}>
+    ```
+  }];
+
+  let arguments = (ins
+    AnyAggregateType:$container,
+    AnyType:$value,
+    DenseI64ArrayAttr:$position
+  );
+  let results = (outs AnyAggregateType);
+
+  let assemblyFormat = [{
+    $value `,` $container `` $position `:` functional-type(operands, results)
+      attr-dict
+  }];
+}
+
+def cc_ComputePtrOp : CCOp<"compute_ptr", [Pure]> {
+  let summary = "Creates a pointer pointing to a subobject in an object.";
+  let description = [{
+    This translates to LLVM's get_element_ptr operation. The initial thinking
+    is that unlike the GEP, the base object must be either an array or a single
+    object and a ComputerPtrOp does not accept a pointer as both implicitly.
+
+    Example:
+
+    ```mlir
+      %p = cc.compute_ptr %struct, 1 : (!cc.ptr<!cc.struct<{i32, f32}>>) ->
+                                       !cc.ptr<f32>
+      %q = cc.compute_ptr %array, %i : (!cc.ptr<!cc.array<i32 x 100>>, i64) ->
+                                       !cc.ptr<i32>
+    ```
+  }];
+
+  let arguments = (ins
+    cc_PointerType:$base,
+    Variadic<AnyInteger>:$dynamicIndices,
+    DenseI32ArrayAttr:$rawConstantIndices
+  );
+  let results = (outs cc_PointerType);
+
+  let assemblyFormat = [{
+    $base `[` custom<ComputePtrIndices>($dynamicIndices, $rawConstantIndices)
+      `]` `:` functional-type(operands, results) attr-dict
+  }];
+
+  let hasFolder = 1;
+
+  let builders = [
+    OpBuilder<(ins "mlir::Type":$resultType, "mlir::Value":$basePtr,
+               "mlir::ValueRange":$indices,
+               CArg<"mlir::ArrayRef<mlir::NamedAttribute>", "{}">:$attributes)>,
+    OpBuilder<(ins "mlir::Type":$resultType, "mlir::Value":$basePtr,
+               "mlir::ArrayRef<cudaq::cc::ComputePtrArg>":$indices,
+               CArg<"mlir::ArrayRef<mlir::NamedAttribute>", "{}">:$attributes)> 
+  ];
+  let extraClassDeclaration = [{
+    static constexpr std::int32_t kDynamicIndex =
+      std::numeric_limits<std::int32_t>::min();
+  }];
+}
+
+//===----------------------------------------------------------------------===//
+// Cast operation.
+//===----------------------------------------------------------------------===//
+
+def cc_CastOp : CCOp<"cast", [Pure]> {
+  let summary = "Overloads LLVM's casting instructions.";
+  let description = [{
+    A CastOp can be used to create one of LLVM's cast instructions. The signed
+    (unsigned) keyword can/must be used with otherwise sign agnostic integer
+    conversions to distinguish between sext (zext).
+
+    Example:
+
+    ```mlir
+      %11 = cc.cast %10 : (!cc.ptr<i8>) -> i64           // ptrtoint
+      %12 = cc.cast %11 : (i64) -> !cc.ptr<i32>          // inttoptr
+      %13 = cc.cast %12 : (!cc.ptr<i32>) -> !cc.ptr<f64> // bitcast
+      %14 = cc.cast %11 : (i64) -> f64                   // bitcast
+      %15 = cc.cast signed %11 : (i64) -> f64            // sitofp
+      %16 = cc.cast unsigned %11 : (i64) -> f64          // uitofp
+      %17 = cc.cast signed %15 : (f64) -> i32            // fptosi
+      %18 = cc.cast unsigned %16 : (f64) -> i16          // fptoui
+      %21 = cc.cast signed %20 : (i8) -> i32             // sext
+      %22 = cc.cast unsigned %20 : (i8) -> i32           // zext
+      %23 = cc.cast %22 : (i32) -> i16                   // trunc
+      %24 = cc.cast %16 : (f64) -> f32                   // fptrunc
+      %25 = cc.cast %24 : (f32) -> f64                   // fpext
+    ```
+  }];
+
+  let arguments = (ins
+    AnyType:$value,
+    OptionalAttr<UnitAttr>:$sint,
+    OptionalAttr<UnitAttr>:$zint
+  );
+  let results = (outs AnyType:$result);
+  let hasFolder = 1;
+  let hasVerifier = 1;
+  
+  let assemblyFormat = [{
+    ( `signed` $sint^ ):( ( `unsigned` $zint^ )? )? $value `:`
+      functional-type(operands, results) attr-dict
+  }];
+
+  let builders = [
+    OpBuilder<(ins "mlir::Type":$resTy, "mlir::Value":$value), [{
+      return build($_builder, $_state, resTy, value, {}, {});
+    }]>,
+    OpBuilder<(ins "mlir::Type":$resTy, "mlir::Value":$value,
+        "CastOpMode":$mode), [{
+      auto unitAttr = mlir::UnitAttr::get($_builder.getContext());
+      if (mode == CastOpMode::Signed)
+        return build($_builder, $_state, resTy, value, /*signed=*/unitAttr, {});
+      return build($_builder, $_state, resTy, value, {}, /*unsigned=*/unitAttr);
+    }]>
+  ];
+}
+
+//===----------------------------------------------------------------------===//
+// Stdvec operations.
+//===----------------------------------------------------------------------===//
 
 def cc_StdvecInitOp : CCOp<"stdvec_init", [Pure]> {
   let summary = "Initialize a stdvec object from a pointer and length.";
   let description = [{
-    The stdvec_init op can be used to create a "high-level" std::vector object
-    in cc. The construction is similar to an initializer list constructor.
-    It takes two arguments: a pointer to a memory buffer and the length of
-    the buffer as a number of elements.
-
-    ```mlir
-    %buff = ... : !llvm.ptr<f64>
-    %len = ... : i64
-    %svec = cc.stdvec_init %buff, %len : (!llvm.ptr<f64>, i64) -> !cc.stdvec<f64>
-    func.call @kernel(%svec) ...
-    ```
+    A StdvecInitOp can be used to create a "high-level" `std::vector` object in
+    cc. The construction is similar to the `std::vector` initializer list
+    constructor. It takes two arguments: a pointer to a memory buffer and the
+    length of the buffer in terms of the number of elements.
 
     Note this op has value semantics and does not touch memory. It is used to
-    create an abstract aggregate value.
+    create an abstract aggregate value. No data is moved or copied.
+
+    Example:
+
+    ```mlir
+    %buff = ... : !cc.ptr<f64>
+    %len = ... : i64
+    %svec = cc.stdvec_init %buff, %len : (!cc.ptr<f64>, i64) -> !cc.stdvec<f64>
+    func.call @kernel(%svec) ...
+    ```
   }];
 
   let arguments = (ins AnyPointerType:$buffer, AnyInteger:$length);
   let results = (outs cc_StdVectorType:$stdvec);
 
   let assemblyFormat = [{
-    $buffer `,` $length attr-dict `:` functional-type(operands, results)
+    $buffer `,` $length `:` functional-type(operands, results) attr-dict
   }];
 }
 
 def cc_StdvecDataOp : CCOp<"stdvec_data", [Pure]> {
   let summary = "Retrieve the data pointer from a stdvec object.";
   let description = [{
-    The stdvec_data op can be used to retreive the data pointer from a stdvec
-    object. Analogous to a call to `vec.data()`.
+    A StdvecDataOp can be used to retreive the data pointer from a stdvec
+    object. (See StdvecInitOp.) This operation is analogous to a call to
+    `std::vector<T>::data()`.
 
     Note that this operation has value semantics. It does not touch memory as
     the data pointer is part of the aggregate value and nothing is dereferenced.
@@ -708,51 +990,303 @@ def cc_StdvecDataOp : CCOp<"stdvec_data", [Pure]> {
   let results = (outs AnyPointerType:$data);
 
   let assemblyFormat = [{
-    $stdvec attr-dict `:` functional-type(operands, results)
+    $stdvec `:` functional-type(operands, results) attr-dict
   }];
 }
 
 def cc_StdvecSizeOp : CCOp<"stdvec_size", [Pure]> {
   let summary = "Retrieve the size from a stdvec object.";
   let description = [{
-    The stdvec_size op can be used to retreive the size from a stdvec object.
-    Analogous to a call to `vec.size()`.
+    A StdvecSizeOp can be used to retreive the size from a stdvec object.
+    This is analogous to a call to `std::vector<T>::size()`.
 
-    Note that this operation has value semantics. It does not touch memory as
-    the size is part of the aggregate value and nothing is dereferenced.
+    Note that this operation is pure and has value semantics. It does not
+    modify memory as the size is part of a stdvec's aggregate value and nothing
+    is dereferenced.
   }];
 
   let arguments = (ins cc_StdVectorType:$stdvec);
   let results = (outs AnyInteger:$size);
 
   let assemblyFormat = [{
-    $stdvec attr-dict `:` functional-type(operands, results)
+    $stdvec `:` functional-type(operands, results) attr-dict
   }];
 }
+
+//===----------------------------------------------------------------------===//
+// Type conversions.
+//===----------------------------------------------------------------------===//
 
 def cc_FuncToPtrOp : CCOp<"func_ptr", [Pure]> {
   let summary = "Cast a function to a pointer.";
   let description = [{
-    Degenerate a function (such as the result of `func.constant`) to a pointer.
-    For now, pointers are expressed in the LLVM-IR dialect.
+    A FuncToPtrOp is used to degenerate a function value (such as the result of
+    a `func.constant` operation) to a pointer.
+
+    Example:
+
+    ```mlir
+      %func = func.constant @foo : () -> ()
+      %ptr = cc.func_ptr %func : (() -> ()) -> !cc.ptr<i8>
+    ```
   }];
 
   let arguments = (ins FunctionType:$func);
   let results = (outs AnyPointerType:$pointer);
 
   let assemblyFormat = [{
-    $func attr-dict `:` functional-type(operands, results)
+    $func `:` functional-type(operands, results) attr-dict
   }];
 }
 
-def cc_UndefOp : CCOp<"undef", [Pure]> {
-  let summary = "Explicit undefined value.";
+//===----------------------------------------------------------------------===//
+// Lambda (λ) expressions.
+//===----------------------------------------------------------------------===//
+
+def cc_CreateLambdaOp : CCOp<"create_lambda",
+        [AutomaticAllocationScope, RecursiveMemoryEffects,
+         SingleBlockImplicitTerminator<"cudaq::cc::ReturnOp">]> {
+  let summary = "Create a lambda expression as an abstract callable.";
   let description = [{
-    An undefined value of a specified type. This op will be translated to LLVM
-    IR as an undefined instruction.
+    A CreateLambdaOp creates a λ expression. A λ expression is a Callable
+    instance that may have associated data (or data references) that it
+    captures. Currently, captured data is implied by using values from the
+    parent operation's regions in the body of the CreateLambdaOp.
+
+    Example:
+
+    ```mlir
+      %lambda = cc.create_lambda {
+       ^entry(%arg0 : i32):
+        ...
+        cc.return
+      } : !cc.lambda<(i32) -> ()>
+      ...
+      cc.call_callable %lambda, %20 : (!cc.lambda<(i32) -> ()>, i32) -> ()
+    ```
   }];
-  let results = (outs AnyType:$inputType);
-  let assemblyFormat = "type($inputType) attr-dict";
+
+  let results = (outs cc_LambdaType:$signature);
+  let regions = (region SizedRegion<1>:$initRegion);
+  let hasCustomAssemblyFormat = 1;
+
+  let builders = [
+      OpBuilder<(ins
+        "cudaq::cc::LambdaType":$signature,
+        CArg<"llvm::function_ref<void(mlir::OpBuilder &, mlir::Location)>",
+           "nullptr">)>];
+
+  let extraClassDeclaration = [{
+    using BodyBuilderFn =
+        llvm::function_ref<void(mlir::OpBuilder &, mlir::Location)>;
+
+    llvm::ArrayRef<mlir::Type> getResultTypes() {
+      return getType().getSignature().getResults();
+    }
+
+    unsigned getNumResults() {
+      return getType().getSignature().getNumResults();
+    }
+  }];
+}
+
+def cc_CallCallableOp : CCOp<"call_callable", [CallOpInterface]> {
+  let summary = "Abstract application of a callable object with arguments.";
+  let description = [{
+    A CallCallableOp results in the transfer of control to a C++ callable (a
+    closure). The call target is specified as an SSA-value as the first
+    argument position. In the CC dialect, a callable is an object (not a
+    function pointer/symbol).
+
+    A plain old function may be used to construct a callable object. In this
+    case the callable object will contain a pointer to the function and no
+    additional data. The argument list to the CallCallableOp must be a type
+    correct one-to-one match with the function's arguments. The compiler may
+    recognize that the closure of the calling context is empty and can be
+    elided.
+
+    A C++ class can be used to construct a callable object. In this case, the
+    closure can be thought of as containing a pointer to the function call
+    (`operator()`) and a `this` pointer to the captured data. In this case, all
+    values captured in the closure are data members of the instance.
+
+    For a λ expression callable, the call target will involve creating an object
+    at the instantiation site (InstantiateCallableOp). This object will capture
+    a pointer to a trampoline function and construct a tuple for all captured
+    variables. The compiler-generated trampoline will know how to unpack the
+    tuple and call the ultimate outlined lambda function with the unpacked
+    captured variables passed as individual arguments.
+
+    Example:
+
+    ```mlir
+      %lambda = cc.create_lambda {
+       ^entry(%arg0 : i32):
+        ...
+        cc.return
+      } : !cc.lambda<(i32) -> ()>
+      ...
+      cc.call_callable %lambda, %20 : (!cc.lambda<(i32) -> ()>, i32) -> ()
+    ```
+  }];
+
+  let arguments = (ins
+    AnyCallableType:$callee,
+    Variadic<AnyType>:$args
+  );
+  let results = (outs Variadic<AnyType>:$results);
+  let hasVerifier = 1;
+
+  let assemblyFormat = [{
+    $callee (`,` $args^)? `:` functional-type(operands, results) attr-dict
+  }];
+
+  let extraClassDeclaration = [{
+    /// Get the argument operands to the called function.
+    operand_range getArgOperands() {
+      return {arg_operand_begin(), arg_operand_end()};
+    }
+
+    operand_iterator arg_operand_begin() { return ++operand_begin(); }
+    operand_iterator arg_operand_end() { return operand_end(); }
+
+    /// Return the callee of this operation.
+    mlir::CallInterfaceCallable getCallableForCallee() { return getCallee(); }
+
+    mlir::FunctionType getFunctionType() {
+      return mlir::FunctionType::get(getContext(), getOperands().getType(),
+        getResults().getTypes());
+    }
+  }];
+}
+
+def cc_InstantiateCallableOp : CCOp<"instantiate_callable", [Pure]> {
+  let summary = "Construction of a callable object.";
+  let description = [{
+    An InstantiateCallableOp is created by the compiler when lifting a λ
+    expression, i.e. a CreateLambdaOp. The CreateLambdaOp is replaced at its
+    definition site by an InstantiateCallableOp. It is also replaced by a pair
+    of functions, a trampoline and the code from the CreateLambdaOp's body.
+
+    The InstantiateCallableOp constructs a pair. The pair is a pointer to the
+    associated currying trampoline function and a tuple of the captured values.
+
+    Example:
+
+    Take the following λ expression.
+
+    ```mlir
+      %88 = ... : f64
+      ...
+      %lambda = cc.create_lambda {
+       ^entry(%arg0 : i32):
+        ... %88 ...
+        cc.return
+      } : !cc.lambda<(i32) -> ()>
+    ```
+
+    Since this λ expression captures the value %88 from the parent, we have to
+    instantiate a closure that includes this %88 value when we lift the λ.
+    The lifted λ is given the name `@lifted_lambda.54` in the following. A
+    second function, `@stub.54`, unpacks the closure into arguments to the new
+    outlined λ function in the following example.
+
+    ```mlir
+      %lambda = cc.instantiate_callable @trampoline.54(%88) : (f64) -> !cc.lambda<(i32) -> ()>
+      ...
+
+      // Trampoline function
+      func.func private @trampoline.54(%arg0: !cc.lambda<(i32) -> ()>, %arg1: i32) {
+        %0 = cc.callable_closure %arg0: !cc.lambda<(i32) -> ()> -> f64
+        call @lifted_lambda.54(%0, %arg1) : (f64, i32) -> ()
+      }
+
+      // Outlined body of original lambda
+      func.func private @lifted_lambda.54(%88: f64, %arg0: i32) {
+       ^entry:
+        ... %88 ...
+        cc.return
+      }
+    ```
+
+    See also CallCallableOp.
+  }];
+
+  let arguments = (ins
+    SymbolRefAttr:$callee,
+    Variadic<AnyType>:$closure_data
+  );
+  let results = (outs cc_LambdaType:$signature);
+
+  let assemblyFormat = [{
+    $callee `(` $closure_data `)`
+    `:` functional-type(operands, results) attr-dict
+  }];
+}
+
+def cc_CallableFuncOp : CCOp<"callable_func", [Pure]> {
+  let summary = "Extract the function from a callable object.";
+  let description = [{
+    A callable object contains both code (a function) and data (a closure). A
+    CallableFuncOp can be used to retrieve the function (pointer) from the
+    callable object.
+
+    Example:
+
+    ```mlir
+      %0 = ... : !cc.lambda<(i32) -> i8>
+      %1 = ... : i32
+      %2 = cc.callable_func %0 : (!cc.lambda<(i32) -> i8>) -> ((!cc.lambda<(i32) -> i8>, i32) -> i8)
+      %3 = call_indirect %2(%0, %1) : (!cc.lambda<(i32) -> i8>, i32) -> i8
+    ```
+
+    See also InstantiateCallableOp, CallableClosureOp.
+  }];
+
+  let arguments = (ins cc_LambdaType:$callable);
+  let results = (outs FunctionType:$function);
+
+  let assemblyFormat = [{
+    $callable `:` functional-type(operands, results) attr-dict
+  }];
+}
+
+def cc_CallableClosureOp : CCOp<"callable_closure", [Pure]> {
+  let summary = "Extract the closure data from a callable object.";
+  let description = [{
+    A callable object contains both code (a function) and data (a closure). The
+    CallableClosureOp can be used to retrieve the closure (data) from the
+    callable object.
+
+    For a callable instantiated from a λ expression, the closure is unpacked
+    and returned as transparently as a set of values. This is possible because
+    a closure has a compile-time constant number of values and cannot be
+    extended dynamically.
+
+    For a callable instantiated from a C++ class, the closure is the `this`
+    pointer to the object instance.
+
+    For a callable instantiated from a plain old function, the closure is empty
+    and contains no data.
+
+    Example:
+
+    ```mlir
+      %0 = ... !cc.lambda<(i32) -> i8>
+      %1 = ... : i32
+      %2:2 = cc.callable_closure %0 : (!cc.lambda<(i32) -> i8>) -> (!quake.wire, i1)
+      %3 = call @lifted_lambda.72(%2#0, %2#1, %1) : (!quake.wire, i1, i32) -> i8
+    ```
+
+    See also CallableFuncOp, InstantiateCallableOp.
+  }];
+
+  let arguments = (ins cc_LambdaType:$callable);
+  let results = (outs Variadic<AnyType>:$closure_data);
+
+  let assemblyFormat = [{
+    $callable `:` functional-type(operands, results) attr-dict
+  }];
 }
 
 #endif // CUDAQ_OPTIMIZER_DIALECT_CC_OPS

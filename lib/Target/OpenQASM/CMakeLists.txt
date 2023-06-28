@@ -10,7 +10,6 @@ add_cudaq_translation_library(CUDAQTargetOpenQASM
   TranslateToOpenQASM.cpp
 
   LINK_LIBS PUBLIC
-  QTXDialect
   MLIRIR
   MLIRTranslateLib
 )

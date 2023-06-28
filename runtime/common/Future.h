@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #pragma once
 #include "MeasureCounts.h"
@@ -111,9 +111,9 @@ public:
       return data;
 
     if constexpr (std::is_same_v<T, observe_result>) {
-
-      if (data.has_expectation())
-        return observe_result(data.exp_val_z(), *spinOp, data);
+      auto checkRegName = spinOp->to_string(false);
+      if (data.has_expectation(checkRegName))
+        return observe_result(data.exp_val_z(checkRegName), *spinOp, data);
 
       if (!spinOp)
         throw std::runtime_error(
@@ -121,16 +121,13 @@ public:
 
       // this assumes we ran in shots mode.
       double sum = 0.0;
-      for (std::size_t i = 0; i < spinOp->n_terms(); i++) {
-        auto term = (*spinOp)[i];
-        if (term.is_identity()) {
-          sum += term.get_coefficients()[0].real();
-          continue;
-        }
-
-        sum += data.exp_val_z(term.to_string(false)) *
-               term.get_coefficients()[0].real();
-      }
+      spinOp->for_each_term([&](spin_op &term) {
+        if (term.is_identity())
+          sum += term.get_coefficient().real();
+        else
+          sum += data.exp_val_z(term.to_string(false)) *
+                 term.get_coefficient().real();
+      });
 
       return observe_result(sum, *spinOp, data);
     }

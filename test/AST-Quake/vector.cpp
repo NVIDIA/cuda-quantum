@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 // Test for std::vector support
 
@@ -16,7 +16,7 @@
 // Define a quantum kernel
 struct simple_double_rotation {
   // CHECK-LABEL: func.func @__nvqpp__mlirgen__simple_double_rotation
-  // CHECK-SAME: ([[arg:.*]]: !cc.stdvec<f64>) attributes
+  // CHECK-SAME: ([[arg:.*]]: !cc.stdvec<f64>{{.*}}) attributes
   auto operator()(std::vector<double> theta) __qpu__ {
     auto size = theta.size();
     bool empty = theta.empty();
@@ -29,7 +29,7 @@ struct simple_double_rotation {
 
 struct simple_float_rotation {
   // CHECK-LABEL: func.func @__nvqpp__mlirgen__simple_float_rotation
-  // CHECK-SAME: ([[arg:.*]]: !cc.stdvec<f32>) attributes
+  // CHECK-SAME: ([[arg:.*]]: !cc.stdvec<f32>{{.*}}) attributes
   auto operator()(std::vector<float> theta) __qpu__ {
     int size = theta.size();
     bool empty = theta.empty();

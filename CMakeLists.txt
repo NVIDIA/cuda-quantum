@@ -67,6 +67,12 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
+# Set warnings as errors by default. 
+# Individual targets and the command line invocation can override this behavior.
+if(NOT DEFINED CMAKE_COMPILE_WARNING_AS_ERROR)
+  set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
+endif()
+
 # Generate a CompilationDatabase (compile_commands.json file) for our build,
 # for use by clang_complete, YouCompleteMe, etc.
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
@@ -101,6 +107,7 @@ option(CUDAQ_ENABLE_RPC_LOGGING "Enable verbose printout for client/server qpud 
 option(CUDAQ_BUILD_RELOCATABLE_PACKAGE "Make CUDA Quantum install tree relocatable, system headers included." OFF)
 option(CUDAQ_TEST_MOCK_SERVERS "Enable Remote QPU Tests via Mock Servers." OFF)
 option(CUDAQ_DISABLE_RUNTIME "Build without the CUDA Quantum runtime, just the compiler toolchain." OFF)
+option(CUDAQ_SKIP_MPI "Do not build with MPI, even when it is available." OFF)
 
 if (CUDAQ_BUILD_RELOCATABLE_PACKAGE) 
   if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -312,14 +319,6 @@ add_subdirectory(tpls/spdlog)
 set_property(TARGET spdlog APPEND PROPERTY INTERFACE_SYSTEM_INCLUDE_DIRECTORIES)
 target_compile_options(spdlog PRIVATE -Wno-covered-switch-default)
 
-# May want to provide a hook to this
-if (CUDAQ_ENABLE_RPC_LOGGING)
-  set(RPCLIB_ENABLE_LOGGING TRUE)
-endif()
-set(RPCLIB_EXTRA_BUILD_FLAGS "-Wno-suggest-override;-Wno-documentation;-Wno-unused-variable;-Wno-unused-but-set-variable;-Wno-unsafe-buffer-usage")
-add_subdirectory(tpls/rpclib EXCLUDE_FROM_ALL)
-set_property(TARGET rpc APPEND PROPERTY INTERFACE_SYSTEM_INCLUDE_DIRECTORIES)
-
 # Check for CUDA Support
 # ==============================================================================
 include(CheckLanguage)
@@ -342,8 +341,20 @@ endif()
 find_package(CURL COMPONENTS HTTP HTTPS QUIET) 
 find_package(OpenSSL QUIET)
 
+# Optionally build with MPI
+if (NOT CUDAQ_SKIP_MPI)
+  find_package(MPI COMPONENTS CXX)
+  if (MPI_FOUND) 
+    message(STATUS "MPI CXX Found: ${MPIEXEC}")
+  endif()
+endif()
+
 # Directory setup
 # ==============================================================================
+if (CUDAQ_ENABLE_PYTHON)
+  add_subdirectory(tpls/pybind11)
+endif()
+
 add_subdirectory(cmake)
 add_subdirectory(include)
 add_subdirectory(lib)
@@ -358,7 +369,16 @@ add_subdirectory(utils)
 if(CUDAQ_BUILD_TESTS)
   set(INSTALL_GTEST OFF)
   add_subdirectory(tpls/googletest-src)
-  target_compile_options(gtest PRIVATE -Wno-covered-switch-default)
+  # Bug in GCC 12 leads to spurious warnings (-Wrestrict)
+  # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105329
+  if (CMAKE_COMPILER_IS_GNUCXX 
+    AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12.0.0 
+    AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13.0.0)
+    target_compile_options(gtest PUBLIC --param=evrp-mode=legacy)
+  endif()
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    target_compile_options(gtest PUBLIC -Wno-covered-switch-default)
+  endif()
   include(GoogleTest)
   include(CTest)
   if (NOT CUDAQ_DISABLE_RUNTIME)
@@ -371,7 +391,6 @@ endif()
 # Users may specify  `-DCUDAQ_ENABLE_PYTHON=TRUE`, otherwise the python bindings
 # will not be built.
 if (CUDAQ_ENABLE_PYTHON)
-  add_subdirectory(tpls/pybind11)
   add_subdirectory(python)
 endif()
 

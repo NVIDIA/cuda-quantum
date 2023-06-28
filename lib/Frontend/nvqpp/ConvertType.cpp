@@ -1,4 +1,4 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -101,11 +101,13 @@ static bool matchTypeName(std::string nsPrefix, std::string match,
 static bool isArithmeticType(Type t) { return isa<IntegerType, FloatType>(t); }
 
 static bool isQuantumType(Type t) {
-  return isa<quake::QVecType, quake::QRefType>(t);
+  return isa<quake::VeqType, quake::RefType>(t);
 }
 
 static bool isArithmeticSequenceType(Type t) {
   if (auto vec = dyn_cast<cudaq::cc::StdvecType>(t))
+    return isArithmeticType(vec.getElementType());
+  if (auto vec = dyn_cast<cudaq::cc::ArrayType>(t))
     return isArithmeticType(vec.getElementType());
   return false;
 }
@@ -128,7 +130,7 @@ static bool isKernelSignatureType(FunctionType t) {
   for (auto t : t.getInputs()) {
     if (isArithmeticType(t) || isArithmeticSequenceType(t) ||
         isQuantumType(t) || isKernelCallable(t) || isFunctionCallable(t) ||
-        isa<LLVM::LLVMStructType>(t)) {
+        isa<cudaq::cc::StructType>(t)) {
       // Assume a class (LLVMStructType) is callable.
       continue;
     }
@@ -145,7 +147,7 @@ static bool isKernelSignatureType(FunctionType t) {
 static bool isReferenceToCallableRecord(Type t, clang::ParmVarDecl *arg) {
   // TODO: add check that the Decl is, in fact, a callable with a legal kernel
   // signature.
-  return isa<LLVM::LLVMStructType>(t);
+  return isa<cudaq::cc::StructType>(t);
 }
 
 namespace cudaq::details {
@@ -215,9 +217,9 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
   if (cudaq::isInNamespace(x, "cudaq")) {
     // Types from the `cudaq` namespace.
     if (name.equals("qudit") || name.equals("qubit"))
-      return pushType(quake::QRefType::get(ctx));
+      return pushType(quake::RefType::get(ctx));
     if (name.equals("qspan") || name.equals("qreg"))
-      return pushType(quake::QVecType::getUnsized(ctx));
+      return pushType(quake::VeqType::getUnsized(ctx));
     if (name.equals("ctrl"))
       return true;
     TODO("unhandled type, " + name + ", in cudaq namespace");
@@ -253,12 +255,8 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
   }
   SmallVector<Type> fieldTys = lastTypes(fieldCount());
   if (name.empty())
-    return pushType(LLVM::LLVMStructType::getLiteral(ctx, fieldTys));
-  auto structTy = LLVM::LLVMStructType::getIdentified(ctx, name);
-  if (!structTy.isInitialized())
-    if (failed(structTy.setBody(fieldTys, /*isPacked=*/false)))
-      return false;
-  return pushType(structTy);
+    return pushType(cc::StructType::get(ctx, fieldTys));
+  return pushType(cc::StructType::get(ctx, name, fieldTys));
 }
 
 bool QuakeBridgeVisitor::VisitFunctionProtoType(clang::FunctionProtoType *x) {
@@ -295,12 +293,12 @@ bool QuakeBridgeVisitor::VisitElaboratedType(clang::ElaboratedType *t) {
   }
   if (matchTypeName("cudaq", "qubit", name, /*toEnd=*/true) ||
       matchTypeName("cudaq", "qudit<2UL>", name, /*toEnd=*/true))
-    return pushType(quake::QRefType::get(context));
+    return pushType(quake::RefType::get(context));
   if (matchTypeName("cudaq", "qreg", name))
     return pushType(
-        quake::QVecType::get(context, getQregArraySize(t->getNamedType())));
+        quake::VeqType::get(context, getQregArraySize(t->getNamedType())));
   if (matchTypeName("cudaq", "qspan", name))
-    return pushType(quake::QVecType::get(context, 0));
+    return pushType(quake::VeqType::get(context, 0));
   // N.B.: always traversing the desugared type leads to infinite recursion.
   LLVM_DEBUG(llvm::dbgs() << " skipping elaborated type: " << name << '\n';
              t->dump(llvm::dbgs(), *astContext));
@@ -375,7 +373,7 @@ Type QuakeBridgeVisitor::builtinTypeToType(const clang::BuiltinType *t) {
   case BuiltinType::Ibm128: /* double double format -> {double, double} */
     return builder.getF128Type();
   case BuiltinType::NullPtr:
-    return cudaq::opt::factory::getPointerType(builder.getI8Type());
+    return cc::PointerType::get(builder.getContext());
   case BuiltinType::UInt128:
   case BuiltinType::Int128:
     return builder.getIntegerType(128);
@@ -396,7 +394,7 @@ bool QuakeBridgeVisitor::VisitPointerType(clang::PointerType *t) {
 bool QuakeBridgeVisitor::VisitLValueReferenceType(
     clang::LValueReferenceType *t) {
   auto eleTy = popType();
-  if (isa<cc::LambdaType, cc::StdvecType, quake::QVecType, quake::QRefType>(
+  if (isa<cc::LambdaType, cc::StdvecType, quake::VeqType, quake::RefType>(
           eleTy))
     return pushType(eleTy);
   return pushType(cc::PointerType::get(eleTy));
@@ -406,8 +404,8 @@ bool QuakeBridgeVisitor::VisitRValueReferenceType(
     clang::RValueReferenceType *t) {
   auto eleTy = popType();
   // FIXME: LLVMStructType is promoted as a temporary workaround.
-  if (isa<cc::LambdaType, cc::StdvecType, quake::QVecType, quake::QRefType,
-          LLVM::LLVMStructType>(eleTy))
+  if (isa<cc::LambdaType, cc::StdvecType, cc::ArrayType, cc::StructType,
+          quake::VeqType, quake::RefType, LLVM::LLVMStructType>(eleTy))
     return pushType(eleTy);
   return pushType(cc::PointerType::get(eleTy));
 }
@@ -467,7 +465,7 @@ QuakeBridgeVisitor::getFunctionType(const clang::FunctionDecl *x,
     }
     for (auto [t, p] : llvm::zip(funcTy.getInputs(), x->parameters())) {
       // Structs, lambdas, functions are valid callable objects. Also pure
-      // device kernels may take qvec and/or qref arguments.
+      // device kernels may take veq and/or ref arguments.
       if (isArithmeticType(t) || isArithmeticSequenceType(t) ||
           isQuantumType(t) || isKernelCallable(t) || isFunctionCallable(t) ||
           isReferenceToCallableRecord(t, p))

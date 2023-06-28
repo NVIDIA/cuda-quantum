@@ -1,0 +1,151 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt %s | cudaq-opt --canonicalize | FileCheck %s
+
+func.func @f1(%0 : i32) -> i32 {
+  %1 = cc.cast %0 : (i32) -> i32
+  return %1 : i32
+}
+
+func.func @f1a(%0 : i32) -> i16 {
+  %1 = cc.cast %0 : (i32) -> i16
+  return %1 : i16
+}
+
+func.func @f1b(%0 : i32) -> i64 {
+  %1 = cc.cast unsigned %0 : (i32) -> i64
+  return %1 : i64
+}
+
+func.func @f1c(%0 : i32) -> i64 {
+  %1 = cc.cast signed %0 : (i32) -> i64
+  return %1 : i64
+}
+
+func.func @f2(%0 : f32) -> i32 {
+  %1 = cc.cast %0 : (f32) -> i32
+  return %1 : i32
+}
+
+func.func @f2a(%0 : f32) -> i32 {
+  %1 = cc.cast signed %0 : (f32) -> i32
+  return %1 : i32
+}
+
+func.func @f2b(%0 : f32) -> i32 {
+  %1 = cc.cast unsigned %0 : (f32) -> i32
+  return %1 : i32
+}
+
+func.func @f3(%0 : f32) -> f64 {
+  %1 = cc.cast %0 : (f32) -> f64
+  return %1 : f64
+}
+
+func.func @f4(%0 : f32) -> f16 {
+  %1 = cc.cast %0 : (f32) -> f16
+  return %1 : f16
+}
+
+func.func @f5(%0 : i64) -> !cc.ptr<i8> {
+  %1 = cc.cast %0 : (i64) -> !cc.ptr<i8>
+  return %1 : !cc.ptr<i8>
+}
+
+func.func @f6(%0 : !cc.ptr<!cc.array<f64 x 10>>) -> i64 {
+  %1 = cc.cast %0 : (!cc.ptr<!cc.array<f64 x 10>>) -> i64
+  return %1 : i64
+}
+
+func.func @f7a(%0 : !cc.ptr<f32>) -> !cc.ptr<i8> {
+  %1 = cc.cast %0 : (!cc.ptr<f32>) -> !cc.ptr<i8>
+  return %1 : !cc.ptr<i8>
+}
+
+func.func @f7b(%0 : !cc.ptr<i8>) -> !cc.ptr<i8> {
+  %1 = cc.cast %0 : (!cc.ptr<i8>) -> !cc.ptr<i8>
+  return %1 : !cc.ptr<i8>
+}
+
+// CHECK-LABEL:   func.func @f1(
+// CHECK-SAME:                  %[[VAL_0:.*]]: i32) -> i32 {
+// CHECK:           return %[[VAL_0]] : i32
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @f1a(
+// CHECK-SAME:                   %[[VAL_0:.*]]: i32) -> i16 {
+// CHECK:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (i32) -> i16
+// CHECK:           return %[[VAL_1]] : i16
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @f1b(
+// CHECK-SAME:                   %[[VAL_0:.*]]: i32) -> i64 {
+// CHECK:           %[[VAL_1:.*]] = cc.cast unsigned %[[VAL_0]] : (i32) -> i64
+// CHECK:           return %[[VAL_1]] : i64
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @f1c(
+// CHECK-SAME:                   %[[VAL_0:.*]]: i32) -> i64 {
+// CHECK:           %[[VAL_1:.*]] = cc.cast signed %[[VAL_0]] : (i32) -> i64
+// CHECK:           return %[[VAL_1]] : i64
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @f2(
+// CHECK-SAME:                  %[[VAL_0:.*]]: f32) -> i32 {
+// CHECK:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (f32) -> i32
+// CHECK:           return %[[VAL_1]] : i32
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @f2a(
+// CHECK-SAME:                   %[[VAL_0:.*]]: f32) -> i32 {
+// CHECK:           %[[VAL_1:.*]] = cc.cast signed %[[VAL_0]] : (f32) -> i32
+// CHECK:           return %[[VAL_1]] : i32
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @f2b(
+// CHECK-SAME:                   %[[VAL_0:.*]]: f32) -> i32 {
+// CHECK:           %[[VAL_1:.*]] = cc.cast unsigned %[[VAL_0]] : (f32) -> i32
+// CHECK:           return %[[VAL_1]] : i32
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @f3(
+// CHECK-SAME:                  %[[VAL_0:.*]]: f32) -> f64 {
+// CHECK:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (f32) -> f64
+// CHECK:           return %[[VAL_1]] : f64
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @f4(
+// CHECK-SAME:                  %[[VAL_0:.*]]: f32) -> f16 {
+// CHECK:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (f32) -> f16
+// CHECK:           return %[[VAL_1]] : f16
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @f5(
+// CHECK-SAME:                  %[[VAL_0:.*]]: i64) -> !cc.ptr<i8> {
+// CHECK:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (i64) -> !cc.ptr<i8>
+// CHECK:           return %[[VAL_1]] : !cc.ptr<i8>
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @f6(
+// CHECK-SAME:                  %[[VAL_0:.*]]: !cc.ptr<!cc.array<f64 x 10>>) -> i64 {
+// CHECK:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<!cc.array<f64 x 10>>) -> i64
+// CHECK:           return %[[VAL_1]] : i64
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @f7a(
+// CHECK-SAME:                   %[[VAL_0:.*]]: !cc.ptr<f32>) -> !cc.ptr<i8> {
+// CHECK:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<f32>) -> !cc.ptr<i8>
+// CHECK:           return %[[VAL_1]] : !cc.ptr<i8>
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @f7b(
+// CHECK-SAME:                   %[[VAL_0:.*]]: !cc.ptr<i8>) -> !cc.ptr<i8> {
+// CHECK:           return %[[VAL_0]] : !cc.ptr<i8>
+// CHECK:         }
+

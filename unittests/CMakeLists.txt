@@ -14,7 +14,6 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   integration/adjoint_tester.cpp
   integration/builder_tester.cpp
   integration/ccnot_tester.cpp
-  integration/deuteron_exp_inst.cpp
   integration/deuteron_variational_tester.cpp
   integration/ghz_nisq_tester.cpp
   integration/gradient_tester.cpp
@@ -36,6 +35,7 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   qis/QubitQISTester.cpp
   common/MeasureCountsTester.cpp
   common/NoiseModelTester.cpp
+  integration/tracer_tester.cpp
 )
 
 # Make it so we can get function symbols
@@ -45,8 +45,9 @@ set (CMAKE_ENABLE_EXPORTS TRUE)
 ## the sources in CUDAQ_RUNTIME_TEST_SOURCE for a specific backend simulator
 macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER) 
   set(TEST_EXE_NAME "test_runtime_${NVQIR_BACKEND}")
+  string(REPLACE "-" "_" NVQIR_BACKEND_OUT ${NVQIR_BACKEND})
   add_executable(${TEST_EXE_NAME} main.cpp ${CUDAQ_RUNTIME_TEST_SOURCES} ${EXTRA_BACKEND_TESTER})
-  target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DNVQIR_BACKEND_NAME=${NVQIR_BACKEND})
+  target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DNVQIR_BACKEND_NAME=${NVQIR_BACKEND_OUT})
   target_include_directories(${TEST_EXE_NAME} PRIVATE .)
   # On GCC, the default is --as-needed for linking, and therefore the 
   # nvqir-simulation plugin may not get picked up. This works as is on clang 
@@ -75,7 +76,7 @@ create_tests_with_backend(dm "")
 # Docker environment built with CUDA, but no --gpus flag
 # or no gpus on the system. 
 if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
-  create_tests_with_backend(custatevec "")
+  create_tests_with_backend(custatevec-fp32 "")
   
   add_executable(test_mqpu main.cpp mqpu/mqpu_tester.cpp)
   # Need to force the link to nvqir-qpp here if gcc.
@@ -86,9 +87,30 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
     PRIVATE 
     cudaq
     cudaq-platform-mqpu
-    nvqir-custatevec
+    nvqir-custatevec-fp64
     gtest_main)
     gtest_discover_tests(test_mqpu)
+
+    if (MPI_CXX_FOUND)
+      # Count the number of GPUs
+      execute_process(COMMAND bash -c "nvidia-smi --list-gpus | wc -l" OUTPUT_VARIABLE NGPUS)
+      # Only build this test if we have more than 1 GPU
+      if (${NGPUS} GREATER_EQUAL 2)
+        add_executable(test_mpi main.cpp mqpu/mpi_mqpu_tester.cpp)
+        if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+          target_link_options(test_mpi PRIVATE -Wl,--no-as-needed)
+        endif()
+        target_link_libraries(test_mpi
+            PRIVATE 
+            cudaq
+            cudaq-platform-mqpu
+            nvqir-custatevec-fp32
+            gtest_main)
+          configure_file("mqpu/run_mpi.sh.in"
+                    "${CMAKE_BINARY_DIR}/unittests/run_mpi.sh" @ONLY)
+        add_test(NAME MPITest COMMAND ${MPIEXEC} --allow-run-as-root -np 2 ${CMAKE_BINARY_DIR}/unittests/run_mpi.sh)
+      endif()
+    endif() 
 endif() 
 
 # Create an executable for SpinOp UnitTests
@@ -103,18 +125,62 @@ target_link_libraries(test_spin
   gtest_main)
 gtest_discover_tests(test_spin)
 
-add_executable(test_qpud_client main.cpp qpud_client/QPUDClientTester.cpp)
-# Need to force the link to nvqir-qpp here if gcc.
+# build the test qudit execution manager
+add_subdirectory(qudit)
+add_executable(test_qudit main.cpp qudit/SimpleQuditTester.cpp)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_qpud_client PRIVATE -Wl,--no-as-needed)
+  target_link_options(test_qudit PRIVATE -Wl,--no-as-needed)
 endif()
-target_link_libraries(test_qpud_client
+target_link_libraries(test_qudit
   PRIVATE 
-  cudaq-qpud-client
-  nvqir-qpp
+  cudaq
+  cudaq-platform-default
+  cudaq-em-qudit
   gtest_main)
-gtest_discover_tests(test_qpud_client)
+gtest_discover_tests(test_qudit)
 
 add_subdirectory(backends)
-add_subdirectory(pass)
 add_subdirectory(Optimizer)
+
+if (CUDAQ_ENABLE_PYTHON)
+  find_package(Python COMPONENTS Interpreter)
+  execute_process(COMMAND ${Python_EXECUTABLE} -c "import openfermionpyscf"
+    OUTPUT_VARIABLE PYSCF_output
+    ERROR_VARIABLE  PYSCF_error
+    RESULT_VARIABLE PYSCF_result)
+
+  if(NOT ${PYSCF_result} EQUAL 0)
+    message(STATUS "OpenFermion PySCF not available for chemistry tests.")
+    return()
+  endif()
+
+  message(STATUS "OpenFermion PySCF found, enabling chemistry tests.")
+  add_executable(test_domains main.cpp domains/ChemistryTester.cpp)
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+    target_link_options(test_domains PRIVATE -Wl,--no-as-needed)
+  endif()
+  target_compile_definitions(test_domains PRIVATE -DNVQIR_BACKEND_NAME=qpp)
+  target_include_directories(test_domains PRIVATE .)
+  target_link_libraries(test_domains
+    PRIVATE 
+    cudaq
+    cudaq-platform-default
+    nvqir nvqir-qpp
+    cudaq-spin
+    cudaq-chemistry
+    cudaq-pyscf
+    gtest_main)
+  gtest_discover_tests(test_domains
+    TEST_SUFFIX _Sampling
+    PROPERTIES
+      ENVIRONMENT
+        "PYTHONPATH=$ENV{PYTHONPATH}:${CMAKE_BINARY_DIR}/python")
+  gtest_discover_tests(test_domains
+    TEST_SUFFIX _Observe
+    PROPERTIES
+      ENVIRONMENT
+        "PYTHONPATH=$ENV{PYTHONPATH}:${CMAKE_BINARY_DIR}/python"
+      ENVIRONMENT
+        "CUDAQ_OBSERVE_FROM_SAMPLING=false")
+endif()
+

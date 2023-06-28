@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #pragma once
 #include <functional>
@@ -81,7 +81,7 @@ public:
   /// starting at the given startIdx and including the following count elements.
   QuakeValue slice(const std::size_t startIdx, const std::size_t count);
 
-  /// @brief For a QuakeValue with type StdVec or QVec, return
+  /// @brief For a QuakeValue with type StdVec or Veq, return
   /// the size QuakeValue.
   QuakeValue size();
 
@@ -96,16 +96,16 @@ public:
 
   /// @brief Return a new QuakeValue when the current value
   /// is indexed, specifically for QuakeValues of type StdVecType
-  /// and QVecType.
+  /// and VeqType.
   QuakeValue operator[](const std::size_t idx);
 
   /// @brief Return a new QuakeValue when the current value
   /// is indexed, specifically for QuakeValues of type StdVecType
-  /// and QVecType.
+  /// and VeqType.
   QuakeValue operator[](const QuakeValue &idx);
 
-  /// @brief Negate this QuakeValue
-  QuakeValue operator-();
+  /// @brief Return the negation of this QuakeValue
+  QuakeValue operator-() const;
 
   /// @brief Multiply this QuakeValue by the given double.
   QuakeValue operator*(const double);

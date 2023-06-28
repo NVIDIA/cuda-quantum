@@ -17,6 +17,7 @@
 #include <complex>
 #include <iostream>
 #include <random>
+#include <set>
 
 namespace {
 
@@ -107,6 +108,17 @@ protected:
   using CudaDataType = std::conditional_t<std::is_same_v<ScalarType, float>,
                                           cuFloatComplex, cuDoubleComplex>;
 
+  using nvqir::CircuitSimulatorBase<ScalarType>::tracker;
+  using nvqir::CircuitSimulatorBase<ScalarType>::nQubitsAllocated;
+  using nvqir::CircuitSimulatorBase<ScalarType>::stateDimension;
+  using nvqir::CircuitSimulatorBase<ScalarType>::calculateStateDim;
+  using nvqir::CircuitSimulatorBase<ScalarType>::executionContext;
+  using nvqir::CircuitSimulatorBase<ScalarType>::gateToString;
+  using nvqir::CircuitSimulatorBase<ScalarType>::x;
+  using nvqir::CircuitSimulatorBase<ScalarType>::flushGateQueue;
+  using nvqir::CircuitSimulatorBase<ScalarType>::previousStateDimension;
+  using nvqir::CircuitSimulatorBase<ScalarType>::shouldObserveFromSampling;
+
   /// @brief The statevector that cuStateVec manipulates on the GPU
   void *deviceStateVector = nullptr;
 
@@ -115,6 +127,7 @@ protected:
 
   /// @brief Pointer to potentially needed extra memory
   void *extraWorkspace = nullptr;
+
   /// @brief The size of the extra workspace
   size_t extraWorkspaceSizeInBytes = 0;
 
@@ -123,14 +136,6 @@ protected:
 
   custatevecComputeType_t cuStateVecComputeType = CUSTATEVEC_COMPUTE_64F;
   cudaDataType_t cuStateVecCudaDataType = CUDA_C_64F;
-
-  /// @brief Return true if the bit string has even parity
-  /// @param x
-  /// @return
-  bool hasEvenParity(const std::string &x) {
-    int c = std::count(x.begin(), x.end(), '1');
-    return c % 2 == 0;
-  }
 
   /// @brief Convert the pauli rotation gate name to a CUSTATEVEC_PAULI Type
   /// @param type
@@ -176,34 +181,12 @@ protected:
         cuStateVecComputeType, extraWorkspace, extraWorkspaceSizeInBytes));
   }
 
-  /// @brief Utility function for applying one-target-qubit operations with
-  /// optional control qubits
-  /// @tparam GateT The instruction type, must be QppInstruction derived
-  /// @param controls The control qubits, can be empty
-  /// @param qubitIdx The target qubit
-  template <typename GateT>
-  void oneQubitApply(const std::vector<std::size_t> &controls,
-                     const std::size_t qubitIdx) {
-    GateT gate;
-    cudaq::info(gateToString(gate.name(), controls, {}, {qubitIdx}));
-    DataVector matrix = gate.getGate();
-    std::vector<int> targets{(int)qubitIdx}, ctrls32;
-    for (auto &c : controls)
-      ctrls32.push_back(c);
-    applyGateMatrix(matrix, ctrls32, targets);
-  }
-
   /// @brief Utility function for applying one-target-qubit rotation operations
-  /// @tparam RotationGateT The instruction type, must be QppInstruction derived
-  /// @param angle The rotation angle
-  /// @param controls The control qubits, can be empty
-  /// @param qubitIdx The target qubit
   template <typename RotationGateT>
   void oneQubitOneParamApply(const double angle,
                              const std::vector<std::size_t> &controls,
                              const std::size_t qubitIdx) {
     RotationGateT gate;
-    cudaq::info(gateToString(gate.name(), controls, {angle}, {qubitIdx}));
     std::vector<int> controls32;
     for (auto c : controls)
       controls32.push_back((int)c);
@@ -215,29 +198,14 @@ protected:
                                  controls32.data(), nullptr, controls32.size());
   }
 
-  using nvqir::CircuitSimulatorBase<ScalarType>::tracker;
-  using nvqir::CircuitSimulatorBase<ScalarType>::nQubitsAllocated;
-  using nvqir::CircuitSimulatorBase<ScalarType>::stateDimension;
-  using nvqir::CircuitSimulatorBase<ScalarType>::calculateStateDim;
-
-  /// @brief It's more efficient for us to allocate the whole state vector
-  /// and if we are in sampling or observe contexts, we will likely allocate
-  /// a chunk of qubits at once. Override the base class here and allocate
-  /// the state vector on GPU.
-  std::vector<std::size_t> allocateQubits(const std::size_t count) override {
-    std::vector<std::size_t> qubits;
-    for (std::size_t i = 0; i < count; i++)
-      qubits.emplace_back(tracker.getNextIndex());
+  /// @brief Increase the state size by the given number of qubits.
+  void addQubitsToState(std::size_t count) override {
+    if (count == 0)
+      return;
 
     int dev;
     cudaGetDevice(&dev);
     cudaq::info("GPU {} Allocating new qubit array of size {}.", dev, count);
-
-    // Increment the number of qubits and set
-    // the new state dimension
-    nQubitsAllocated += count;
-    auto oldStateDimension = stateDimension;
-    stateDimension = calculateStateDim(nQubitsAllocated);
 
     if (!deviceStateVector) {
       HANDLE_CUDA_ERROR(cudaMalloc((void **)&deviceStateVector,
@@ -259,15 +227,13 @@ protected:
       setFirstNElements<<<n_blocks, threads_per_block>>>(
           reinterpret_cast<CudaDataType *>(newDeviceStateVector),
           reinterpret_cast<CudaDataType *>(deviceStateVector),
-          oldStateDimension);
+          previousStateDimension);
       cudaFree(deviceStateVector);
       deviceStateVector = newDeviceStateVector;
     }
-
-    return qubits;
   }
 
-  /// @brief Grow the state vector by one qubit.
+  /// @brief Increase the state size by one qubit.
   void addQubitToState() override {
     // Update the state vector
     if (!deviceStateVector) {
@@ -280,7 +246,6 @@ protected:
           reinterpret_cast<CudaDataType *>(deviceStateVector), stateDimension);
       HANDLE_ERROR(custatevecCreate(&handle));
     } else {
-      int64_t oldDimension = calculateStateDim(std::log2(stateDimension) - 1);
       // Allocate new state..
       void *newDeviceStateVector;
       HANDLE_CUDA_ERROR(cudaMalloc((void **)&newDeviceStateVector,
@@ -290,14 +255,15 @@ protected:
           (stateDimension + threads_per_block - 1) / threads_per_block;
       setFirstNElements<<<n_blocks, threads_per_block>>>(
           reinterpret_cast<CudaDataType *>(newDeviceStateVector),
-          reinterpret_cast<CudaDataType *>(deviceStateVector), oldDimension);
+          reinterpret_cast<CudaDataType *>(deviceStateVector),
+          previousStateDimension);
       cudaFree(deviceStateVector);
       deviceStateVector = newDeviceStateVector;
     }
   }
 
   /// @brief Reset the qubit state.
-  void resetQubitStateImpl() override {
+  void deallocateStateImpl() override {
     HANDLE_ERROR(custatevecDestroy(handle));
     HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
     if (extraWorkspaceSizeInBytes)
@@ -307,9 +273,9 @@ protected:
     nResets = 0;
   }
 
-  void applyGate(
-      const typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask &task)
-      override {
+  /// @brief Apply the given GateApplicationTask
+  void applyGate(const typename nvqir::CircuitSimulatorBase<
+                 ScalarType>::GateApplicationTask &task) override {
     std::vector<int> controls, targets;
     std::transform(task.controls.begin(), task.controls.end(),
                    std::back_inserter(controls),
@@ -317,7 +283,37 @@ protected:
     std::transform(task.targets.begin(), task.targets.end(),
                    std::back_inserter(targets),
                    [](std::size_t idx) { return static_cast<int>(idx); });
-    applyGateMatrix(task.matrix, controls, targets);
+    // If we have no parameters, just apply the matrix.
+    if (task.parameters.empty()) {
+      applyGateMatrix(task.matrix, controls, targets);
+      return;
+    }
+
+    // If we have parameters, it may be more efficient to
+    // compute with custatevecApplyPauliRotation
+    if (task.operationName == "rx") {
+      oneQubitOneParamApply<nvqir::rx<ScalarType>>(
+          task.parameters[0], task.controls, task.targets[0]);
+    } else if (task.operationName == "ry") {
+      oneQubitOneParamApply<nvqir::ry<ScalarType>>(
+          task.parameters[0], task.controls, task.targets[0]);
+    } else if (task.operationName == "rz") {
+      oneQubitOneParamApply<nvqir::rz<ScalarType>>(
+          task.parameters[0], task.controls, task.targets[0]);
+    } else {
+      // Fallback to just applying the gate.
+      applyGateMatrix(task.matrix, controls, targets);
+    }
+  }
+
+  /// @brief Set the state back to the |0> state on the
+  /// current number of qubits
+  void setToZeroState() override {
+    constexpr int32_t threads_per_block = 256;
+    uint32_t n_blocks =
+        (stateDimension + threads_per_block - 1) / threads_per_block;
+    initializeDeviceStateVector<<<n_blocks, threads_per_block>>>(
+        reinterpret_cast<CudaDataType *>(deviceStateVector), stateDimension);
   }
 
 public:
@@ -349,9 +345,6 @@ public:
     return parity == 1 ? true : false;
   }
 
-  using nvqir::CircuitSimulatorBase<ScalarType>::x;
-  using nvqir::CircuitSimulatorBase<ScalarType>::flushGateQueue;
-
   /// @brief Reset the qubit
   /// @param qubitIdx
   void resetQubit(const std::size_t qubitIdx) override {
@@ -369,10 +362,87 @@ public:
     }
   }
 
+  /// @brief Compute the operator expectation value, with respect to
+  /// the current state vector, directly on GPU with the
+  /// given the operator matrix and target qubit indices.
+  auto getExpectationFromOperatorMatrix(const std::complex<double> *matrix,
+                                        const std::vector<std::size_t> &tgts) {
+    void *extraWorkspace = nullptr;
+    size_t extraWorkspaceSizeInBytes = 0;
+
+    // Convert the size_t tgts into ints
+    std::vector<int> tgtsInt(tgts.size());
+    std::transform(tgts.begin(), tgts.end(), tgtsInt.begin(),
+                   [&](std::size_t x) { return static_cast<int>(x); });
+    // our bit ordering is reversed.
+    std::reverse(tgtsInt.begin(), tgtsInt.end());
+    size_t nIndexBits = nQubitsAllocated;
+
+    // check the size of external workspace
+    HANDLE_ERROR(custatevecComputeExpectationGetWorkspaceSize(
+        handle, cuStateVecCudaDataType, nIndexBits, matrix,
+        cuStateVecCudaDataType, CUSTATEVEC_MATRIX_LAYOUT_ROW, tgts.size(),
+        cuStateVecComputeType, &extraWorkspaceSizeInBytes));
+
+    if (extraWorkspaceSizeInBytes > 0) {
+      HANDLE_CUDA_ERROR(cudaMalloc(&extraWorkspace, extraWorkspaceSizeInBytes));
+    }
+
+    double expect;
+
+    // compute expectation
+    HANDLE_ERROR(custatevecComputeExpectation(
+        handle, deviceStateVector, cuStateVecCudaDataType, nIndexBits, &expect,
+        CUDA_R_64F, nullptr, matrix, cuStateVecCudaDataType,
+        CUSTATEVEC_MATRIX_LAYOUT_ROW, tgtsInt.data(), tgts.size(),
+        cuStateVecComputeType, extraWorkspace, extraWorkspaceSizeInBytes));
+    if (extraWorkspaceSizeInBytes)
+      HANDLE_CUDA_ERROR(cudaFree(extraWorkspace));
+
+    return expect;
+  }
+
+  /// @brief We can compute Observe from the matrix for a
+  /// reasonable number of qubits, otherwise we should compute it
+  /// via sampling
+  bool canHandleObserve() override {
+    // Do not compute <H> from matrix if shots based sampling requested
+    if (executionContext &&
+        executionContext->shots != static_cast<std::size_t>(-1)) {
+      return false;
+    }
+
+    /// Seems that FP32 is faster with
+    /// custatevecComputeExpectationsOnPauliBasis
+    if constexpr (std::is_same_v<ScalarType, float>) {
+      return false;
+    }
+
+    return !shouldObserveFromSampling();
+  }
+
+  /// @brief Compute the expected value from the observable matrix.
+  cudaq::ExecutionResult observe(const cudaq::spin_op &op) override {
+
+    flushGateQueue();
+
+    // The op is on the following target bits.
+    std::set<std::size_t> targets;
+    op.for_each_term([&](cudaq::spin_op &term) {
+      term.for_each_pauli(
+          [&](cudaq::pauli p, std::size_t idx) { targets.insert(idx); });
+    });
+
+    std::vector<std::size_t> targetsVec(targets.begin(), targets.end());
+
+    // Get the matrix
+    auto matrix = op.to_matrix();
+    /// Compute the expectation value.
+    auto ee = getExpectationFromOperatorMatrix(matrix.data(), targetsVec);
+    return cudaq::ExecutionResult({}, ee);
+  }
+
   /// @brief Sample the multi-qubit state.
-  /// @param measuredBits
-  /// @param shots
-  /// @return
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &measuredBits,
                                 const int shots) override {
     double expVal = 0.0;
@@ -436,7 +506,7 @@ public:
 
     // Compute the expectation value from the counts
     for (auto &kv : counts.counts) {
-      auto par = hasEvenParity(kv.first);
+      auto par = cudaq::sample_result::has_even_parity(kv.first);
       auto p = kv.second / (double)shots;
       if (!par) {
         p = -p;
@@ -449,14 +519,19 @@ public:
   }
 
   cudaq::State getStateData() override {
+    std::vector<std::complex<ScalarType>> tmp(stateDimension);
+    cudaMemcpy(tmp.data(), deviceStateVector,
+               stateDimension * sizeof(CudaDataType), cudaMemcpyDeviceToHost);
     if constexpr (std::is_same_v<ScalarType, float>) {
-      throw std::runtime_error(
-          "CustateVec F32 does not support getStateData().");
-    } else {
-      std::vector<std::complex<ScalarType>> data(stateDimension);
-      cudaMemcpy(data.data(), deviceStateVector,
-                 stateDimension * sizeof(CudaDataType), cudaMemcpyDeviceToHost);
+      std::vector<std::complex<double>> data;
+      std::transform(tmp.begin(), tmp.end(), std::back_inserter(data),
+                     [](std::complex<float> &el) -> std::complex<double> {
+                       return {static_cast<double>(el.real()),
+                               static_cast<double>(el.imag())};
+                     });
       return cudaq::State{{stateDimension}, data};
+    } else {
+      return cudaq::State{{stateDimension}, tmp};
     }
   }
 
@@ -468,8 +543,8 @@ public:
 #ifndef __NVQIR_CUSTATEVEC_TOGGLE_CREATE
 template <>
 std::string CuStateVecCircuitSimulator<double>::name() const {
-  return "custatevec";
+  return "custatevec-fp64";
 }
 /// Register this Simulator with NVQIR.
-NVQIR_REGISTER_SIMULATOR(CuStateVecCircuitSimulator<>, custatevec)
+NVQIR_REGISTER_SIMULATOR(CuStateVecCircuitSimulator<>, custatevec_fp64)
 #endif

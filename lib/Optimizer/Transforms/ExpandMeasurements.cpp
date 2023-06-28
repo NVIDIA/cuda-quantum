@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
@@ -39,57 +39,56 @@ public:
     // in.
     unsigned numQubits = 0u;
     for (auto v : measureOp.getTargets())
-      if (v.getType().template isa<quake::QRefType>())
+      if (v.getType().template isa<quake::RefType>())
         ++numQubits;
     Value totalToRead =
         rewriter.template create<arith::ConstantIndexOp>(loc, numQubits);
     auto idxTy = rewriter.getIndexType();
     for (auto v : measureOp.getTargets())
-      if (v.getType().template isa<quake::QVecType>()) {
-        Value vecSz =
-            rewriter.template create<quake::QVecSizeOp>(loc, idxTy, v);
+      if (v.getType().template isa<quake::VeqType>()) {
+        Value vecSz = rewriter.template create<quake::VeqSizeOp>(loc, idxTy, v);
         totalToRead =
             rewriter.template create<arith::AddIOp>(loc, totalToRead, vecSz);
       }
-    auto i1Ty = rewriter.getI1Type();
-    auto i1PtrTy = cudaq::opt::factory::getPointerType(i1Ty);
 
     // 2. Create the buffer.
     auto i64Ty = rewriter.getI64Type();
     Value buffLen =
         rewriter.template create<arith::IndexCastOp>(loc, i64Ty, totalToRead);
+    auto i1Ty = rewriter.getI1Type();
     Value buff =
-        rewriter.template create<LLVM::AllocaOp>(loc, i1PtrTy, buffLen);
+        rewriter.template create<cudaq::cc::AllocaOp>(loc, i1Ty, buffLen);
 
     // 3. Measure each individual qubit and insert the result, in order, into
     // the buffer. For registers/vectors, loop over the entire set of qubits.
     Value buffOff = rewriter.template create<arith::ConstantIndexOp>(loc, 0);
     Value one = rewriter.template create<arith::ConstantIndexOp>(loc, 1);
+    auto i1PtrTy = cudaq::cc::PointerType::get(i1Ty);
     for (auto v : measureOp.getTargets()) {
-      if (v.getType().template isa<quake::QRefType>()) {
+      if (v.getType().template isa<quake::RefType>()) {
         auto bit = rewriter.template create<A>(loc, i1Ty, v);
         Value offCast =
             rewriter.template create<arith::IndexCastOp>(loc, i64Ty, buffOff);
-        auto addr =
-            rewriter.template create<LLVM::GEPOp>(loc, i1PtrTy, buff, offCast);
-        rewriter.template create<LLVM::StoreOp>(loc, bit, addr);
+        auto addr = rewriter.template create<cudaq::cc::ComputePtrOp>(
+            loc, i1PtrTy, buff, offCast);
+        rewriter.template create<cudaq::cc::StoreOp>(loc, bit, addr);
         buffOff = rewriter.template create<arith::AddIOp>(loc, buffOff, one);
       } else {
-        Value vecSz =
-            rewriter.template create<quake::QVecSizeOp>(loc, idxTy, v);
+        Value vecSz = rewriter.template create<quake::VeqSizeOp>(loc, idxTy, v);
         cudaq::opt::factory::createCountedLoop(
             rewriter, loc, vecSz,
             [&](OpBuilder &builder, Location loc, Region &, Block &block) {
               Value iv = block.getArgument(0);
-              Value qv = builder.template create<quake::QExtractOp>(loc, v, iv);
+              Value qv =
+                  builder.template create<quake::ExtractRefOp>(loc, v, iv);
               auto bit = builder.template create<A>(loc, i1Ty, qv);
               auto offset =
                   builder.template create<arith::AddIOp>(loc, iv, buffOff);
               Value offCast = builder.template create<arith::IndexCastOp>(
                   loc, i64Ty, offset);
-              auto addr = builder.template create<LLVM::GEPOp>(loc, i1PtrTy,
-                                                               buff, offCast);
-              builder.template create<LLVM::StoreOp>(loc, bit, addr);
+              auto addr = builder.template create<cudaq::cc::ComputePtrOp>(
+                  loc, i1PtrTy, buff, offCast);
+              builder.template create<cudaq::cc::StoreOp>(loc, bit, addr);
             });
         buffOff = rewriter.template create<arith::AddIOp>(loc, buffOff, vecSz);
       }
@@ -127,7 +126,7 @@ public:
     target.addDynamicallyLegalOp<quake::MzOp>(
         [](quake::MzOp x) { return usesIndividualQubit(x); });
     if (failed(applyPartialConversion(op, target, std::move(patterns)))) {
-      emitError(op->getLoc(), "error expanding measurements\n");
+      op->emitOpError("could not expand measurements");
       signalPassFailure();
     }
   }

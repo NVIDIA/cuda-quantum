@@ -1,13 +1,14 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
 #include <gtest/gtest.h>
+#include <random>
 
 TEST(MQPUTester, checkSimple) {
   using namespace cudaq::spin;
@@ -21,7 +22,7 @@ TEST(MQPUTester, checkSimple) {
     x<cudaq::ctrl>(r, q);
   };
 
-  double result = cudaq::observe(ansatz, h, 0.59);
+  double result = cudaq::observe<cudaq::par::thread>(ansatz, h, 0.59);
   EXPECT_NEAR(result, -1.7487, 1e-3);
   printf("Get energy directly as double %lf\n", result);
 }
@@ -35,12 +36,12 @@ TEST(MQPUTester, checkLarge) {
   int nTerms = 1000; /// Scale this on multiple gpus to see speed up
   auto H = cudaq::spin_op::random(nQubits, nTerms);
 
-  printf("Total Terms = %lu\n", H.n_terms());
+  printf("Total Terms = %lu\n", H.num_terms());
   auto kernel = [](const int n_qubits, const int layers,
                    std::vector<int> cnot_pairs,
                    std::vector<double> params) __qpu__ {
     // Allocate the qubits
-    cudaq::qreg q(n_qubits);
+    cudaq::qvector q(n_qubits);
 
     // We can only handle 1d vectors so
     // count the params manually
@@ -78,10 +79,13 @@ TEST(MQPUTester, checkLarge) {
 
   std::vector<int> cnot_pairs(nQubits);
   std::iota(cnot_pairs.begin(), cnot_pairs.end(), 0);
-  std::random_shuffle(cnot_pairs.begin(), cnot_pairs.end());
+  std::random_device rd;
+  std::mt19937 g(rd());
+  std::shuffle(cnot_pairs.begin(), cnot_pairs.end(), g);
 
   auto t1 = std::chrono::high_resolution_clock::now();
-  cudaq::observe(kernel, H, nQubits, nLayers, cnot_pairs, execParams);
+  cudaq::observe<cudaq::par::thread>(kernel, H, nQubits, nLayers, cnot_pairs,
+                                     execParams);
   auto t2 = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double, std::milli> ms_double = t2 - t1;
   printf("Time %lf s\n", ms_double.count() * 1e-3);

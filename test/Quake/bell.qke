@@ -9,28 +9,26 @@
 // RUN: cudaq-opt %s  --canonicalize | FileCheck %s
 module {
     // CHECK-LABEL: func @bell()
-    // CHECK: %[[C0:.*]] = arith.constant 0 : i32
-    // CHECK: %[[C1:.*]] = arith.constant 1 : i32
-    // CHECK: %0 = quake.alloca : !quake.qvec<2>
-    // CHECK: %1 = quake.qextract %0[%[[C0]]] : !quake.qvec<2>[i32] -> !quake.qref
-    // CHECK: %2 = quake.qextract %0[%[[C1]]] : !quake.qvec<2>[i32] -> !quake.qref
-    // CHECK: quake.h (%1)
-    // CHECK: quake.x [%1 : !quake.qref] (%2)
-    // CHECK: %3 = quake.mz(%1 : !quake.qref) : i1
-    // CHECK: %4 = quake.mz(%2 : !quake.qref) : i1
+    // CHECK: %0 = quake.alloca !quake.veq<2>
+    // CHECK: %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+    // CHECK: %2 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+    // CHECK: quake.h %1
+    // CHECK: quake.x [%1] %2 :
+    // CHECK: %3 = quake.mz %1 : (!quake.ref) -> i1
+    // CHECK: %4 = quake.mz %2 : (!quake.ref) -> i1
     // CHECK: return
     func.func @bell() {
         %0 = arith.constant 2 : i32
         %c_0 = arith.constant 0 : i32
         %c_1 = arith.constant 1 : i32
-        %qubits = quake.alloca ( %0 : i32 ) : !quake.qvec<?>
-        %q0 = quake.qextract %qubits[%c_0] : !quake.qvec<?>[i32] -> !quake.qref
-        %q1 = quake.qextract %qubits[%c_1] : !quake.qvec<?>[i32] -> !quake.qref
+        %qubits = quake.alloca !quake.veq<?>[%0 : i32]
+        %q0 = quake.extract_ref %qubits[%c_0] : (!quake.veq<?>,i32) -> !quake.ref
+        %q1 = quake.extract_ref %qubits[%c_1] : (!quake.veq<?>,i32) -> !quake.ref
 
-        quake.h (%q0)
-        quake.x [%q0 : !quake.qref] (%q1)
-        quake.mz(%q0 : !quake.qref) : i1
-        quake.mz(%q1 : !quake.qref) : i1
+        quake.h %q0 : (!quake.ref) -> ()
+        quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+        quake.mz %q0 : (!quake.ref) -> i1
+        quake.mz %q1 : (!quake.ref) -> i1
         return
     }
 }

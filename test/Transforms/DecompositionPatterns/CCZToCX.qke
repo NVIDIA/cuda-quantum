@@ -1,0 +1,82 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -pass-pipeline='builtin.module(quake-decomposition{enable-patterns=CCZToCX})' %s | FileCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(quake-decomposition{enable-patterns=CCZToCX})' %s | CircuitCheck %s
+
+
+// Test the decomposition pattern with different control types. The FileCheck
+// part of this test only cares about the sequence of operations. Correcteness
+// is checked by CircuitCheck.
+
+// CHECK-LABEL: func.func @qref_control
+func.func @qref_control(%c0: !quake.ref, %c1: !quake.ref, %t: !quake.ref) {
+  quake.z [%c0, %c1] %t : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  // CHECK: quake.x
+  // CHECK-NEXT: quake.t
+  // CHECK-NEXT: quake.x
+  // CHECK-NEXT: quake.t
+  // CHECK-NEXT: quake.x
+  // CHECK-NEXT: quake.t
+  // CHECK-NEXT: quake.x
+  // CHECK-NEXT: quake.t
+  // CHECK-NEXT: quake.x
+  // CHECK-NEXT: quake.t
+  // CHECK-NEXT: quake.x
+  // CHECK-NEXT: quake.t
+  // CHECK-NEXT: quake.t
+  return
+}
+
+// CHECK-LABEL: func.func @mixed_control
+func.func @mixed_control(%c0: !quake.ref, %c1: !quake.veq<1>, %t: !quake.ref) {
+  quake.z [%c0, %c1] %t : (!quake.ref, !quake.veq<1>, !quake.ref) -> ()
+  // CHECK: quake.x
+  // CHECK-NEXT: quake.t
+  // CHECK-NEXT: quake.x
+  // CHECK-NEXT: quake.t
+  // CHECK-NEXT: quake.x
+  // CHECK-NEXT: quake.t
+  // CHECK-NEXT: quake.x
+  // CHECK-NEXT: quake.t
+  // CHECK-NEXT: quake.x
+  // CHECK-NEXT: quake.t
+  // CHECK-NEXT: quake.x
+  // CHECK-NEXT: quake.t
+  // CHECK-NEXT: quake.t
+  return
+}
+
+// CHECK-LABEL: func.func @qvec_control
+func.func @qvec_control(%c: !quake.veq<2>, %t: !quake.ref) {
+  quake.z [%c] %t : (!quake.veq<2>, !quake.ref) -> ()
+  // CHECK: quake.x
+  // CHECK-NEXT: quake.t
+  // CHECK-NEXT: quake.x
+  // CHECK-NEXT: quake.t
+  // CHECK-NEXT: quake.x
+  // CHECK-NEXT: quake.t
+  // CHECK-NEXT: quake.x
+  // CHECK-NEXT: quake.t
+  // CHECK-NEXT: quake.x
+  // CHECK-NEXT: quake.t
+  // CHECK-NEXT: quake.x
+  // CHECK-NEXT: quake.t
+  // CHECK-NEXT: quake.t
+  return
+}
+
+// CHECK-LABEL: func.func @negated_controls
+func.func @negated_controls(%c0: !quake.ref, %c1: !quake.ref, %t: !quake.ref) {
+  // CHECK-NOT: quake.z
+  quake.z [%c0, %c1 neg [false, true]] %t : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.z [%c0, %c1 neg [true, false]] %t : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.z [%c0, %c1 neg [true, true]] %t : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+

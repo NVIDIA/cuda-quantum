@@ -38,7 +38,7 @@
 *.out
 *.app
 **/out/
-/*build/
+/*build*/
 /*Build/
 /plugins/
 /other_library_builds/
@@ -88,3 +88,6 @@ simulators/
 
 # macOS
 .DS_Store
+
+# JetBrains IDE files
+.idea

@@ -1,17 +1,17 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
 #include <cudaq/algorithm.h>
 
 struct deuteron_n3_ansatz {
   void operator()(double x0, double x1) __qpu__ {
-    cudaq::qreg q(3);
+    cudaq::qvector q(3);
     x(q[0]);
     ry(x0, q[1]);
     ry(x1, q[2]);
@@ -52,10 +52,10 @@ CUDAQ_TEST(ObserveResult, checkSimple) {
   printf("Energy from observe_result with shots %lf\n", obs_res2.exp_val_z());
   obs_res2.dump();
 
-  for (std::size_t i = 0; i < h.n_terms(); i++)
-    if (!h[i].is_identity())
-      printf("Fine-grain data access: %s = %lf\n", h[i].to_string().data(),
-             obs_res2.exp_val_z(h[i]));
+  for (const auto &term : h) // td::size_t i = 0; i < h.num_terms(); i++)
+    if (!term.is_identity())
+      printf("Fine-grain data access: %s = %lf\n", term.to_string().data(),
+             obs_res2.exp_val_z(term));
 
   auto x0x1Counts = obs_res2.counts(x(0) * x(1));
   x0x1Counts.dump();

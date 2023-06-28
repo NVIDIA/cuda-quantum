@@ -1,0 +1,68 @@
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      cache_key:
+        required: true
+        type: string
+      tar_archive:
+        required: true
+        type: string
+    outputs:
+      image_hash:
+        description: "The name and digest of the deployed docker image that can be used to retrieve it independently of any tag updates."
+        value: ${{ jobs.deployment.outputs.image_hash }}
+
+name: Deploy image to container registry
+
+jobs:
+  deployment:
+    name: Deployment
+    runs-on: ubuntu-latest
+    permissions: write-all
+
+    outputs:
+      image_hash: ${{ steps.push_image.outputs.image_hash }}
+
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ vars.deployment_url }}
+
+    steps:
+      - name: Load tar cache
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ inputs.tar_archive }}
+          key: ${{ inputs.cache_key }}
+          fail-on-cache-miss: true
+
+      - name: Log in to the container registry
+        uses: docker/login-action@v2
+        if: vars.registry != ''
+        with:
+          registry: ${{ vars.registry }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Push image
+        id: push_image
+        run: |
+          # Note that this may change the digest compared to the digest produced during build
+          # (the saved docker format has its own manifest that doesn't necessarily have the same bit-by-bit format...)
+          loaded=`docker load --input ${{ inputs.tar_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+
+          image_name=`echo $loaded | cut -d ":" -f 1`
+          digest_id=`docker push $image_name --all-tags | grep -o 'digest:\ssha256:\S*' | cut -d ":" -f 3`
+
+          image_hash=${image_name}@sha256:$digest_id
+          echo "image_hash=$image_hash" >> $GITHUB_OUTPUT
+
+      - name: Clean up
+        run: |
+          gh extension install actions/gh-actions-cache
+          echo "Deleting cache $key"
+          gh actions-cache delete ${{ inputs.cache_key }} -R ${{ github.repository }} --confirm
+        env:
+          GH_TOKEN: ${{ github.token }}

@@ -1,23 +1,20 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
-
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-#pragma GCC diagnostic ignored "-Wdeprecated-enum-enum-conversion"
+ ******************************************************************************/
 
 #include "cudaq/matrix.h"
-#include <Eigen/Dense>
-#include <fmt/core.h>
+#include "common/EigenDense.h"
+#include "common/FmtCore.h"
 #include <iostream>
 
 namespace cudaq {
 
 /// @brief Hash function for an Eigen::MatrixXcd
-struct complex_matrix_hash : std::unary_function<Eigen::MatrixXcd, size_t> {
+struct complex_matrix_hash {
   std::size_t operator()(const Eigen::MatrixXcd &matrix) const {
     size_t seed = 0;
     for (Eigen::Index i = 0; i < matrix.size(); ++i) {

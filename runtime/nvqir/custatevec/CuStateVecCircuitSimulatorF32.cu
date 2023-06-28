@@ -11,8 +11,8 @@
 /// Register this Simulator with NVQIR.
 template<>
 std::string CuStateVecCircuitSimulator<float>::name() const {
-  return "custatevec-f32";
+  return "custatevec-fp32";
 }
-NVQIR_REGISTER_SIMULATOR(CuStateVecCircuitSimulator<float>, custatevec_f32)
+NVQIR_REGISTER_SIMULATOR(CuStateVecCircuitSimulator<float>, custatevec_fp32)
 
 #undef __NVQIR_CUSTATEVEC_TOGGLE_CREATE

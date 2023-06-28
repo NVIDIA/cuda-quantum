@@ -4,12 +4,13 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #ifndef CUDAQ_DIALECT_CC_TYPES
 #define CUDAQ_DIALECT_CC_TYPES
 
 include "cudaq/Optimizer/Dialect/CC/CCDialect.td"
+include "mlir/Interfaces/DataLayoutInterfaces.td"
 include "mlir/IR/AttrTypeBase.td"
 
 //===----------------------------------------------------------------------===//
@@ -45,6 +46,94 @@ def cc_PointerType : CCType<"Pointer", "ptr"> {
     TypeBuilderWithInferredContext<(ins "mlir::Type":$elementType), [{
       return Base::get(elementType.getContext(), elementType);
     }]>,
+    TypeBuilder<(ins), [{
+      return $_get($_ctxt, mlir::NoneType::get($_ctxt));
+    }]>
+  ];
+}
+
+//===----------------------------------------------------------------------===//
+// StructType
+//===----------------------------------------------------------------------===//
+
+def cc_StructType : CCType<"Struct", "struct",
+    [DeclareTypeInterfaceMethods<DataLayoutTypeInterface>]> {
+  let summary = "Primitive aggregate C/C++ type.";
+  let description = [{
+    A struct is first-class type for an aggregate tuple value composed of
+    multiple ordered subvalues of any type. A value of type struct need not be
+    a memory object like an array.
+
+    A subobject is indexed by position from `0` to `N-1`, where `N` is the
+    number of members in the struct.
+  }];
+
+  let parameters = (ins
+    "mlir::StringAttr":$name,
+    ArrayRefParameter<"mlir::Type">:$members,
+    "bool":$opaque,
+    "bool":$packed
+  );
+
+  let hasCustomAssemblyFormat = 1;
+
+  let builders = [
+    TypeBuilder<(ins CArg<"llvm::StringRef">:$name,
+                 CArg<"bool", "true">:$isOpaque), [{
+      return $_get($_ctxt, mlir::StringAttr::get($_ctxt, name),
+                   llvm::ArrayRef<mlir::Type>{}, isOpaque, /*isPacked=*/false);
+    }]>,
+    TypeBuilder<(ins CArg<"llvm::StringRef">:$name,
+                 CArg<"llvm::ArrayRef<mlir::Type>">:$members,
+                 CArg<"bool", "false">:$isPacked), [{
+      return $_get($_ctxt, mlir::StringAttr::get($_ctxt, name), members,
+                   /*isOpaque=*/false, isPacked);
+    }]>,
+    TypeBuilder<(ins CArg<"llvm::ArrayRef<mlir::Type>">:$members,
+                 CArg<"bool", "false">:$isPacked), [{
+      return $_get($_ctxt, mlir::StringAttr{}, members, /*isOpaque=*/false,
+                   isPacked);
+    }]>
+  ];
+}
+
+//===----------------------------------------------------------------------===//
+// ArrayType
+//===----------------------------------------------------------------------===//
+
+def cc_ArrayType : CCType<"Array", "array"> {
+  let summary = "Primitive C-like, one-dimensional sequential type.";
+  let description = [{
+    A value in memory of type `!cc.array` is similar to a `!cc.pointer` but
+    allows 0-based indexing into a sequence of values. A `!cc.pointer` by
+    contrast points to a single object.
+
+    A value of type `!cc.array` should ordinarily be an object in memory. This
+    is transitive in nature, so any aggregate that recursively has a member of
+    `!cc.array` should itself reside in memory. More precisely, loading an array
+    into a register is not portable.
+
+    See also the StdVectorType type as another aggregate sequence of values.
+  }];
+
+  let parameters = (ins
+    "mlir::Type":$elementType,
+    "ArrayType::SizeType":$size
+  );
+
+  let hasCustomAssemblyFormat = 1;
+
+  let extraClassDeclaration = [{
+    using SizeType = std::int64_t;
+    static constexpr SizeType unknownSize = mlir::ShapedType::kDynamic;
+
+    bool isUnknownSize() const { return getSize() == unknownSize; }
+  }];
+
+  let builders = [
+    TypeBuilderWithInferredContext<(ins "mlir::Type":$elementType), [{
+      return Base::get(elementType.getContext(), elementType, unknownSize);
+    }]>
   ];
 }
 
@@ -69,7 +158,7 @@ def cc_LambdaType : CCType<"Lambda", "lambda"> {
   let builders = [
     TypeBuilderWithInferredContext<(ins "mlir::FunctionType":$signature), [{
       return Base::get(signature.getContext(), signature);
-    }]>,
+    }]>
   ];
 
   let extraClassDeclaration = [{
@@ -106,7 +195,7 @@ def cc_StdVectorType : CCType<"Stdvec", "stdvec"> {
   let builders = [
     TypeBuilderWithInferredContext<(ins "mlir::Type":$elementType), [{
       return Base::get(elementType.getContext(), elementType);
-    }]>,
+    }]>
   ];
 }
 

@@ -1,14 +1,16 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #pragma once
 
-#include "ExecutionContext.h"
+#include "common/ExecutionContext.h"
+#include "common/QuditIdTracker.h"
+
 #include <algorithm>
 #include <atomic>
 #include <cassert>
@@ -17,13 +19,10 @@
 #include <memory>
 #include <numeric>
 #include <vector>
-///
+
 /// This file defines the various types that we will use
 /// throughout the NVQIR library. Specifically, we will define
 /// the QIR specification types here (Qubit, Array, TuplePtr, Result, etc.)
-/// as well as C++ types that our library will leverage (ExecutionResult,
-/// QubitIdTracker)
-///
 
 // The TuplePtr is just a i8 pointer.
 using TuplePtr = int8_t *;
@@ -100,49 +99,3 @@ enum Pauli : int8_t {
   Pauli_Z,
   Pauli_Y,
 };
-
-namespace nvqir {
-
-/// The QubitIdTracker is a utility class that keeps
-/// track of available qubit ids and provides and API to
-/// get new qubit ids from the available set and return them
-/// for future use.
-class QubitIdTracker {
-
-  /// Available qubit indices
-  std::deque<std::size_t> availableIndices;
-
-  /// Total qubits available
-  std::size_t totalQubits;
-
-public:
-  /// The Constructor
-  QubitIdTracker() {
-    // FIXME calculate the memory available
-    totalQubits = 30;
-    for (std::size_t i = 0; i < totalQubits; i++) {
-      availableIndices.push_back(i);
-    }
-  }
-
-  /// Get the next available qubit index
-  std::size_t getNextIndex() {
-    assert(!availableIndices.empty() && "No more qubits available.");
-    auto next = availableIndices.front();
-    availableIndices.pop_front();
-    return next;
-  }
-
-  /// At qubit deallocation, return the qubit index
-  void returnIndex(std::size_t idx) {
-    availableIndices.push_front(idx);
-    std::sort(availableIndices.begin(), availableIndices.end());
-  }
-
-  /// Get the number of remaining available qubit ids
-  std::size_t numAvailable() { return availableIndices.size(); }
-
-  /// Get the total number of qubit ids available
-  std::size_t totalNumQubits() { return totalQubits; }
-};
-} // namespace nvqir

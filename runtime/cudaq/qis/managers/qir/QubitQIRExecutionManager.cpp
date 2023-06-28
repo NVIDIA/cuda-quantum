@@ -1,15 +1,14 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
-#include "common/ExecutionContext.h"
+#include "QIRForwards.h"
 #include "common/Logger.h"
-
-#include "cudaq/qis/execution_manager.h"
+#include "cudaq/qis/managers/BasicExecutionManager.h"
 #include "cudaq/qis/qudit.h"
 #include "cudaq/spin_op.h"
 #include "cudaq/utils/cudaq_utils.h"
@@ -21,87 +20,16 @@
 #include <sstream>
 #include <stack>
 
-// Define some stubs for the QIR opaque types
-class Array;
-class Qubit;
-class Result;
-using TuplePtr = int8_t *;
-
-/// QIR QIS Extern Declarations
-extern "C" {
-Array *__quantum__rt__array_concatenate(Array *, Array *);
-void __quantum__rt__array_release(Array *);
-int8_t *__quantum__rt__array_get_element_ptr_1d(Array *q, uint64_t);
-int64_t __quantum__rt__array_get_size_1d(Array *);
-Array *__quantum__rt__array_create_1d(int, int64_t);
-void __quantum__qis__exp__body(Array *paulis, double angle, Array *qubits);
-void __quantum__qis__measure__body(Array *, Array *);
-Qubit *__quantum__rt__qubit_allocate();
-void __quantum__rt__qubit_release(Qubit *);
-void __quantum__rt__setExecutionContext(cudaq::ExecutionContext *);
-void __quantum__rt__resetExecutionContext();
-
-void __quantum__qis__reset(Qubit *);
-
-void __quantum__qis__h(Qubit *q);
-void __quantum__qis__h__ctl(Array *ctls, Qubit *q);
-
-void __quantum__qis__x(Qubit *q);
-void __quantum__qis__x__ctl(Array *ctls, Qubit *q);
-
-void __quantum__qis__y(Qubit *q);
-void __quantum__qis__y__ctl(Array *ctls, Qubit *q);
-
-void __quantum__qis__z(Qubit *q);
-void __quantum__qis__z__ctl(Array *ctls, Qubit *q);
-
-void __quantum__qis__t(Qubit *q);
-void __quantum__qis__t__ctl(Array *ctls, Qubit *q);
-void __quantum__qis__tdg(Qubit *q);
-void __quantum__qis__tdg__ctl(Array *ctls, Qubit *q);
-
-void __quantum__qis__s(Qubit *q);
-void __quantum__qis__s__ctl(Array *ctls, Qubit *q);
-void __quantum__qis__sdg(Qubit *q);
-void __quantum__qis__sdg__ctl(Array *ctls, Qubit *q);
-
-void __quantum__qis__rx(double, Qubit *q);
-void __quantum__qis__rx__ctl(double, Array *ctls, Qubit *q);
-
-void __quantum__qis__ry(double, Qubit *q);
-void __quantum__qis__ry__ctl(double, Array *ctls, Qubit *q);
-
-void __quantum__qis__rz(double, Qubit *q);
-void __quantum__qis__rz__ctl(double, Array *ctls, Qubit *q);
-
-void __quantum__qis__r1(double, Qubit *q);
-void __quantum__qis__r1__ctl(double, Array *ctls, Qubit *q);
-
-void __quantum__qis__swap(Qubit *, Qubit *);
-void __quantum__qis__cphase(double x, Qubit *src, Qubit *tgt);
-
-Result *__quantum__qis__mz(Qubit *);
-}
-
 namespace {
-Array *spinToArray(cudaq::spin_op &);
+Array *spinToArray(const cudaq::spin_op &);
 
 /// The QIRQubitQISManager will implement allocation, deallocation, and
 /// quantum instruction application via calls to the extern declared QIR
 /// runtime library functions.
-class QIRQubitQISManager : public cudaq::ExecutionManager {
+class QIRExecutionManager : public cudaq::BasicExecutionManager {
 private:
-  using Instruction = std::tuple<std::string, std::vector<double>, Array *,
-                                 std::vector<std::size_t>>;
-  using InstructionQueue = std::queue<Instruction>;
-  cudaq::ExecutionContext *ctx;
-  std::vector<std::size_t> contextQubitIdsForDeletion;
-
   /// Each CUDA Quantum qubit id will map to a QIR Qubit pointer
   std::map<std::size_t, Qubit *> qubits;
-
-  InstructionQueue instructionQueue;
-  std::stack<InstructionQueue> adjointQueueStack;
 
   /// The QIR function application map. Each element of
   /// this map exposes a functor that takes a parameter vector, control
@@ -172,15 +100,12 @@ private:
            }},
           {"swap",
            [](std::vector<double> d, Array *a, std::vector<Qubit *> &q) {
-             __quantum__qis__swap(q[0], q[1]);
-           }},
-          {"cphase",
-           [](std::vector<double> d, Array *a, std::vector<Qubit *> &q) {
-             __quantum__qis__cphase(d[0], q[0], q[1]);
+             a != nullptr ? __quantum__qis__swap__ctl(a, q[0], q[1])
+                          : __quantum__qis__swap(q[0], q[1]);
            }}};
 
   /// Utility to convert a vector of qubits into an opaque Array pointer
-  Array *vectorToArray(const std::vector<std::size_t> &ctrls) {
+  Array *vectorToArray(const std::vector<cudaq::QuditInfo> &ctrls) {
     if (ctrls.empty()) {
       return nullptr;
     }
@@ -191,7 +116,7 @@ private:
     for (std::size_t i = 0; i < ctrls.size(); i++) {
       Qubit **qq = reinterpret_cast<Qubit **>(
           __quantum__rt__array_get_element_ptr_1d(a, i));
-      *qq = qubits[ctrls[i]];
+      *qq = qubits[ctrls[i].id];
     }
 
     // Return
@@ -211,241 +136,107 @@ private:
     __quantum__rt__array_release(a);
   }
 
-public:
-  virtual ~QIRQubitQISManager() {}
+protected:
+  /// @brief To improve `qudit` allocation, we defer
+  /// single `qudit` allocation requests until the first
+  /// encountered `apply` call.
+  std::vector<cudaq::QuditInfo> requestedAllocations;
 
-  void setExecutionContext(cudaq::ExecutionContext *_ctx) override {
-    ctx = _ctx;
-    __quantum__rt__setExecutionContext(_ctx);
-    // If we set a new exec context, make sure we clear any old instructions.
-    while (!instructionQueue.empty()) {
-      instructionQueue.pop();
+  /// @brief Allocate all requested `qudits`.
+  void flushRequestedAllocations() {
+    if (requestedAllocations.empty())
+      return;
+
+    allocateQudits(requestedAllocations);
+    requestedAllocations.clear();
+  }
+
+  void allocateQudit(const cudaq::QuditInfo &q) override {
+    requestedAllocations.emplace_back(2, q.id);
+  }
+
+  void allocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
+    auto *qa = __quantum__rt__qubit_allocate_array(qudits.size());
+    for (std::size_t i = 0; i < qudits.size(); i++) {
+      Qubit **qq = reinterpret_cast<Qubit **>(
+          __quantum__rt__array_get_element_ptr_1d(qa, i));
+      qubits.insert({qudits[i].id, *qq});
     }
   }
 
-  void resetExecutionContext() override {
-    synchronize();
-    std::string_view ctx_name = "";
-    if (ctx)
-      ctx_name = ctx->name;
+  void deallocateQudit(const cudaq::QuditInfo &q) override {
+    if (!qubits.count(q.id))
+      return;
+    __quantum__rt__qubit_release(qubits[q.id]);
+    qubits.erase(q.id);
+  }
 
-    if (ctx_name == "observe" || ctx_name == "sample" ||
-        ctx_name == "extract-state") {
-      for (auto &q : contextQubitIdsForDeletion) {
-        __quantum__rt__qubit_release(qubits[q]);
-        qubits.erase(q);
-        returnIndex(q);
-      }
-      contextQubitIdsForDeletion.clear();
-    }
+  void deallocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
+    std::vector<std::size_t> local;
+    std::transform(qudits.begin(), qudits.end(), std::back_inserter(local),
+                   [](auto &&el) { return el.id; });
 
+    __quantum__rt__deallocate_all(local.size(), local.data());
+
+    // remove from the qubits map
+    for (auto &q : qudits)
+      qubits.erase(q.id);
+  }
+
+  void handleExecutionContextChanged() override {
+    requestedAllocations.clear();
+    __quantum__rt__setExecutionContext(executionContext);
+  }
+
+  void handleExecutionContextEnded() override {
     __quantum__rt__resetExecutionContext();
-    ctx = nullptr;
   }
 
-  /// Override getAvailableIndex to allocate the Qubit *
-  std::size_t getAvailableIndex() override {
-    auto new_id = getNextIndex();
-    Qubit *qubit = __quantum__rt__qubit_allocate();
+  void executeInstruction(const Instruction &instruction) override {
+    flushRequestedAllocations();
 
-    qubits.insert({new_id, qubit});
-    return new_id;
-  }
+    // Get the data, create the Qubit* targets
+    auto [gateName, p, c, q] = instruction;
 
-  /// Overriding returnQubit in order to release the Qubit *
-  void returnQubit(const std::size_t &qid) override {
-    if (!ctx) {
-      __quantum__rt__qubit_release(qubits[qid]);
-      qubits.erase(qid);
-      returnIndex(qid);
-      return;
-    }
+    std::vector<Qubit *> qqs;
+    std::transform(
+        q.begin(), q.end(), std::back_inserter(qqs),
+        [&, qqs](const cudaq::QuditInfo &q) mutable { return qubits[q.id]; });
 
-    std::string_view ctx_name = "";
-    if (ctx)
-      ctx_name = ctx->name;
+    auto ctmp = vectorToArray(c);
 
-    // Handle the case where we are sampling with an implicit
-    // measure on the entire register.
-    if (ctx && (ctx_name == "observe" || ctx_name == "sample" ||
-                ctx_name == "extract-state")) {
-      contextQubitIdsForDeletion.push_back(qid);
-      return;
-    }
-
-    __quantum__rt__qubit_release(qubits[qid]);
-    qubits.erase(qid);
-    returnIndex(qid);
-    if (numAvailable() == totalNumQudits()) {
-      if (ctx && ctx_name == "observe") {
-        while (!instructionQueue.empty())
-          instructionQueue.pop();
-      }
+    // Run the QIR QIS function
+    qir_qis_q_funcs[gateName](p, ctmp, qqs);
+    if (ctmp != nullptr) {
+      auto s = __quantum__rt__array_get_size_1d(ctmp);
+      clearArray(ctmp, s);
     }
   }
 
-  std::vector<std::size_t> extra_control_qubit_ids;
-  bool inAdjointRegion = false;
-  void startAdjointRegion() override { adjointQueueStack.emplace(); }
-
-  void endAdjointRegion() override {
-    // Get the top queue and remove it
-    auto adjointQueue = adjointQueueStack.top();
-    adjointQueueStack.pop();
-
-    // Reverse it
-    [](InstructionQueue &q) {
-      std::stack<Instruction> s;
-      while (!q.empty()) {
-        s.push(q.front());
-        q.pop();
-      }
-      while (!s.empty()) {
-        q.push(s.top());
-        s.pop();
-      }
-    }(adjointQueue);
-
-    while (!adjointQueue.empty()) {
-      auto front = adjointQueue.front();
-      adjointQueue.pop();
-      if (adjointQueueStack.empty()) {
-        instructionQueue.push(front);
-      } else {
-        adjointQueueStack.top().push(front);
-      }
-    }
-  }
-
-  void startCtrlRegion(std::vector<std::size_t> &control_qubits) override {
-    for (auto &c : control_qubits) {
-      extra_control_qubit_ids.push_back(c);
-    }
-  }
-
-  void endCtrlRegion(const std::size_t n_controls) override {
-    // extra_control_qubits.erase(end - n_controls, end);
-    extra_control_qubit_ids.resize(extra_control_qubit_ids.size() - n_controls);
-  }
-
-  /// The goal for apply is to create a new element of the
-  /// instruction queue (a tuple).
-  void apply(const std::string_view gateName,
-             const std::vector<double> &&params,
-             std::span<std::size_t> controls, std::span<std::size_t> targets,
-             bool isAdjoint = false) override {
-    cudaq::ScopedTrace trace("QIRExecManager::apply", gateName, params,
-                             controls, targets, isAdjoint);
-
-    // Make a copy of the name that we can mutate if necessary
-    std::string mutable_name(gateName);
-
-    // Make a copy of the params that we can mutate
-    std::vector<double> mutable_params = params;
-
-    // Create an array of controls, we will
-    // prepend any extra controls if in a control region
-    std::vector<std::size_t> mutable_controls;
-    for (auto &e : extra_control_qubit_ids) {
-      mutable_controls.push_back(e);
-    }
-    for (auto &e : controls) {
-      mutable_controls.push_back(e);
-    }
-
-    std::vector<std::size_t> mutable_targets;
-    for (auto &t : targets) {
-      mutable_targets.push_back(t);
-    }
-
-    // Get the ctrls Array* , could be nullptr
-    auto ctrls_a = vectorToArray(mutable_controls);
-
-    if (!qir_qis_q_funcs.count(mutable_name)) {
-      std::stringstream ss;
-      ss << mutable_name << " is an invalid quantum instruction.";
-      throw std::invalid_argument(ss.str());
-    }
-
-    if (isAdjoint || !adjointQueueStack.empty()) {
-      for (std::size_t i = 0; i < params.size(); i++) {
-        mutable_params[i] = -1.0 * params[i];
-      }
-      if (mutable_name == "t") {
-        mutable_name = "tdg";
-      } else if (mutable_name == "s") {
-        mutable_name = "sdg";
-      }
-    }
-    if (!adjointQueueStack.empty()) {
-      // Add to the adjoint instruction queue
-      adjointQueueStack.top().emplace(std::make_tuple(
-          mutable_name, mutable_params, ctrls_a, mutable_targets));
-    } else {
-      // Add to the instruction queue
-      instructionQueue.emplace(std::make_tuple(
-          std::move(mutable_name), mutable_params, ctrls_a, mutable_targets));
-    }
-  }
-
-  void synchronize() override {
-    while (!instructionQueue.empty()) {
-      auto instruction = instructionQueue.front();
-
-      // Get the data, create the Qubit* targets
-      auto [gateName, p, c, q] = instruction;
-
-      std::vector<Qubit *> qqs;
-      std::transform(
-          q.begin(), q.end(), std::back_inserter(qqs),
-          [&, qqs](const std::size_t &q) mutable { return qubits[q]; });
-
-      // Run the QIR QIS function
-      qir_qis_q_funcs[gateName](p, c, qqs);
-      if (c != nullptr) {
-        auto s = __quantum__rt__array_get_size_1d(c);
-        clearArray(c, s);
-      }
-      instructionQueue.pop();
-    }
-  }
-
-  int measure(const std::size_t &target) override {
-    // We hit a measure, need to exec / clear instruction queue
-    synchronize();
-
-    // Instruction executed, run the measure call
-    auto res_ptr = __quantum__qis__mz(qubits[target]);
+  int measureQudit(const cudaq::QuditInfo &q) override {
+    flushRequestedAllocations();
+    auto res_ptr = __quantum__qis__mz(qubits[q.id]);
     auto res = *reinterpret_cast<bool *>(res_ptr);
     return res ? 1 : 0;
   }
 
-  cudaq::SpinMeasureResult measure(cudaq::spin_op &op) override {
-    synchronize();
-    // FIXME need to remove QIR things from spin_op
+  void measureSpinOp(const cudaq::spin_op &op) override {
+    flushRequestedAllocations();
     Array *term_arr = spinToArray(op);
     __quantum__qis__measure__body(term_arr, nullptr);
-    // auto counts_raw = ctx->extract_results();
-    auto exp = ctx->expectationValue;
-    auto data = ctx->result;
-    return std::make_pair(exp.value(), data);
   }
 
-  void resetQubit(const std::size_t &id) override {
-    __quantum__qis__reset(qubits[id]);
-  }
+public:
+  QIRExecutionManager() = default;
+  virtual ~QIRExecutionManager() {}
 
-  void exp(std::vector<std::size_t> &&q, double theta,
-           cudaq::spin_op &op) override {
-    synchronize();
-    Array *term = spinToArray(op);
-    auto qubits = vectorToArray(q);
-    __quantum__qis__exp__body(term, theta, qubits);
-    clearArray(qubits, q.size());
+  void resetQudit(const cudaq::QuditInfo &id) override {
+    flushRequestedAllocations();
+    __quantum__qis__reset(qubits[id.id]);
   }
 };
 
-Array *spinToArray(cudaq::spin_op &op) {
+Array *spinToArray(const cudaq::spin_op &op) {
   // How to pack the data???
   // add all term data as correct pointer to double for x,y,z,or I.
   // After each term add a pointer to real part of term coeff,
@@ -453,9 +244,9 @@ Array *spinToArray(cudaq::spin_op &op) {
   // End the data array with the number of terms in the list
   // x0 y1 - y0 x1 would be
   // 1 3 coeff.real coeff.imag 3 1 coeff.real coeff.imag NTERMS
-  auto n_qubits = op.n_qubits(); // data[0].size() / 2.;
-  auto n_terms = op.n_terms();   // data.size();
-  auto data = op.get_bsf();
+  auto n_qubits = op.num_qubits(); // data[0].size() / 2.;
+  auto n_terms = op.num_terms();   // data.size();
+  auto [data, coeffs] = op.get_raw_data();
 
   auto arr = __quantum__rt__array_create_1d(
       sizeof(double), n_qubits * n_terms + 2 * n_terms + 1);
@@ -468,11 +259,11 @@ Array *spinToArray(cudaq::spin_op &op) {
           __quantum__rt__array_get_element_ptr_1d(arr, i * row_size + j);
       auto ptr_el = reinterpret_cast<double *>(ptr);
       if (j == n_qubits) {
-        *ptr_el = op.get_term_coefficient(i).real();
+        *ptr_el = coeffs[i].real();
         continue;
       }
       if (j == n_qubits + 1) {
-        *ptr_el = op.get_term_coefficient(i).imag();
+        *ptr_el = coeffs[i].imag();
         break;
       }
 
@@ -500,4 +291,4 @@ Array *spinToArray(cudaq::spin_op &op) {
 
 } // namespace
 
-CUDAQ_REGISTER_EXECUTION_MANAGER(QIRQubitQISManager)
+CUDAQ_REGISTER_EXECUTION_MANAGER(QIRExecutionManager)

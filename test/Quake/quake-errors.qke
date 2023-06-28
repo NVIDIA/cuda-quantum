@@ -330,11 +330,11 @@ func.func @test() {
 
 %neg = arith.constant -5 : i32
 // expected-error @+1 {{expected a non-negative integer size}}
-%0 = quake.alloca(%neg : i32) : !quake.qvec<?>
+%0 = quake.alloca !quake.veq<?>[%neg : i32]
 
 // -----
 
 %two = arith.constant 2 : i32
-// expected-error @+1 {{expected operand size to match QVecType size}}
-%0 = quake.alloca(%two : i32) : !quake.qvec<4>
+// expected-error @+1 {{unexpected size operand}}
+%0 = quake.alloca !quake.veq<4>[%two : i32]
      

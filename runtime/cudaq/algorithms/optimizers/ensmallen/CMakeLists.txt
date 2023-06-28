@@ -24,6 +24,12 @@ target_include_directories(${LIBRARY_NAME} SYSTEM
              ${CUDAQ_TPLS_DIR}/ensmallen/include)
 target_link_libraries(${LIBRARY_NAME} PRIVATE BLAS::BLAS)
 
+if (NOT APPLE)
+  # Don't export BLAS symbols to prevent symbol clashes.
+  # Exclude-libs is not supported on macOs
+  target_link_options(${LIBRARY_NAME} PRIVATE -Wl,--exclude-libs,ALL)
+endif()
+
 install (FILES ensmallen.h DESTINATION include/cudaq/algorithms/optimizers/)
 
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-ensmallen-targets DESTINATION lib)

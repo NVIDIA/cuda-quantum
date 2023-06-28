@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
 #include <cudaq/algorithm.h>
@@ -13,7 +13,7 @@
 #include <cmath>
 
 struct iqft {
-  void operator()(cudaq::qspan<> &q) __qpu__ {
+  void operator()(cudaq::qview<> &q) __qpu__ {
     int N = q.size();
     // Swap qubits
     for (int i = 0; i < N / 2; ++i) {
@@ -25,7 +25,7 @@ struct iqft {
       int j = i + 1;
       for (int y = i; y >= 0; --y) {
         const double theta = -M_PI / std::pow(2.0, j - y);
-        cphase(theta, q[j], q[y]);
+        r1<cudaq::ctrl>(theta, q[j], q[y]);
       }
     }
 
@@ -43,7 +43,7 @@ struct qpe {
   __qpu__ void operator()(const int n_c, const int n_q, StatePrep state_prep,
                           Oracle oracle) {
     // Allocate a register of qubits
-    cudaq::qreg q(n_c + n_q);
+    cudaq::qvector q(n_c + n_q);
 
     // Extract sub-registers, one for the counting qubits
     // another for the eigenstate register
@@ -89,7 +89,7 @@ struct qpeWithForwarding {
   __qpu__ void operator()(const int n_c, const int n_q, xOp &&state_prep,
                           tgate &&oracle) {
     // Allocate a register of qubits
-    cudaq::qreg q(n_c + n_q);
+    cudaq::qvector q(n_c + n_q);
 
     // Extract sub-registers, one for the counting qubits
     // another for the eigenstate register

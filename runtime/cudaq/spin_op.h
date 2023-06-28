@@ -1,16 +1,16 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #pragma once
-#include <complex>
 
 #include "matrix.h"
 #include "utils/cudaq_utils.h"
+#include <complex>
 #include <functional>
 #include <map>
 
@@ -85,24 +85,92 @@ enum class pauli { I, X, Y, Z };
 
 namespace spin {
 
-/// @brief Return a spin_op == to I on the idx qubit
+/// @brief Return a spin_op == to I on the `idx` qubit
 spin_op i(const std::size_t idx);
 
-/// @brief Return a spin_op == X on the idx qubit
+/// @brief Return a spin_op == X on the `idx` qubit
 spin_op x(const std::size_t idx);
 
-/// @brief Return a spin_op == Y on the idx qubit
+/// @brief Return a spin_op == Y on the `idx` qubit
 spin_op y(const std::size_t idx);
 
-/// @brief Return a spin_op == Z on the idx qubit
+/// @brief Return a spin_op == Z on the `idx` qubit
 spin_op z(const std::size_t idx);
 } // namespace spin
 
-/// @brief The spin_op represents a general sum of pauli tensor products.
+/// @brief The spin_op represents a general sum of Pauli tensor products.
 /// It exposes the typical algebraic operations that allow programmers to
-/// define primitive pauli operators and use them to compose larger, more
-/// complex pauli tensor products and sums thereof.
+/// define primitive Pauli operators and use them to compose larger, more
+/// complex Pauli tensor products and sums thereof.
 class spin_op {
+public:
+  /// @brief We represent the spin_op terms in binary symplectic form,
+  /// i.e. each term is a vector of 1s and 0s of size 2 * nQubits,
+  /// where the first n elements represent X, the next n elements
+  /// represent Z, and X=Z=1 -> Y on site i, X=1, Z=0 -> X on site i,
+  /// and X=0, Z=1 -> Z on site i.
+  using spin_op_term = std::vector<bool>;
+  using key_type = spin_op_term;
+  using mapped_type = std::complex<double>;
+
+  bool empty() const { return terms.empty(); }
+
+  template <typename QualifiedSpinOp>
+  struct iterator {
+
+    using _iter_type =
+        std::unordered_map<spin_op_term, std::complex<double>>::iterator;
+    using _const_iter_type =
+        std::unordered_map<spin_op_term, std::complex<double>>::const_iterator;
+    using iter_type =
+        std::conditional_t<std::is_same_v<QualifiedSpinOp, spin_op>, _iter_type,
+                           _const_iter_type>;
+    iterator(iterator &&) = default;
+
+    iterator(iter_type i) : iter(i) {}
+    ~iterator() {
+      for (auto &c : created) {
+        auto *ptr = c.release();
+        delete ptr;
+      }
+      created.clear();
+    }
+
+    QualifiedSpinOp &operator*() {
+      // We have to store pointers to spin_op terms here
+      // so that we can return references or pointers to them
+      // based on the current state of the unordered_map iterator.
+      created.emplace_back(std::make_unique<spin_op>(*iter));
+      return *created.back();
+    }
+
+    QualifiedSpinOp *operator->() {
+      created.emplace_back(std::make_unique<spin_op>(*iter));
+      return created.back().get();
+    }
+
+    iterator &operator++() {
+      iter++;
+      return *this;
+    }
+    iterator &operator++(int) {
+      iterator &tmp = *this;
+      ++(*this);
+      return tmp;
+    }
+
+    friend bool operator==(const iterator &a, const iterator &b) {
+      return a.iter == b.iter;
+    };
+    friend bool operator!=(const iterator &a, const iterator &b) {
+      return a.iter != b.iter;
+    };
+
+  private:
+    iter_type iter;
+    std::vector<std::unique_ptr<spin_op>> created;
+  };
+
 private:
   /// We want these creation functions to have access to
   /// spin_op constructors that programmers don't need
@@ -111,23 +179,11 @@ private:
   friend spin_op spin::y(const std::size_t);
   friend spin_op spin::z(const std::size_t);
 
-  /// @brief We represent the spin_op in binary symplectic form,
-  /// i.e. each term is a vector of 1s and 0s of size 2 * nQubits,
-  /// where the first n elements represent X, the next n elements
-  /// represent Z, and X=Z=1 -> Y on site i, X=1, Z=0 -> X on site i,
-  /// and X=0, Z=1 -> Z on site i.
-  using BinarySymplecticForm = std::vector<std::vector<bool>>;
+  /// @brief The spin_op representation. The spin_op is equivalent
+  /// to a mapping of unique terms to their term coefficient.
+  std::unordered_map<spin_op_term, std::complex<double>> terms;
 
-  /// @brief The spin_op representation
-  BinarySymplecticForm data;
-
-  /// @brief The coefficients for each term in the spin_op
-  std::vector<std::complex<double>> coefficients;
-
-  /// @brief The number of qubits this spin_op is on
-  std::size_t m_n_qubits = 1;
-
-  /// @brief Utility map that takes the pauli enum to a string representation
+  /// @brief Utility map that takes the Pauli enum to a string representation
   std::map<pauli, std::string> pauli_to_str{
       {pauli::I, "I"}, {pauli::X, "X"}, {pauli::Y, "Y"}, {pauli::Z, "Z"}};
 
@@ -135,42 +191,65 @@ private:
   /// a larger number of qubits.
   void expandToNQubits(const std::size_t nQubits);
 
-  /// @brief Internal constructor, takes the Pauli type, the qubit site, and the
-  /// term coefficient. Constructs a spin_op of one pauli on one qubit.
+public:
+  /// @brief The constructor, takes a single term / coefficient pair
+  spin_op(std::pair<const spin_op_term, std::complex<double>> &termData);
+
+  /// @brief The constructor, takes a single term / coefficient constant pair
+  spin_op(const std::pair<const spin_op_term, std::complex<double>> &termData);
+
+  /// @brief Constructor, takes the Pauli type, the qubit site, and the
+  /// term coefficient. Constructs a `spin_op` of one Pauli on one qubit.
   spin_op(pauli, const std::size_t id, std::complex<double> coeff = 1.0);
 
-  /// @brief Internal constructor, constructs from existing binary symplectic
-  /// form data and term coefficients.
-  spin_op(BinarySymplecticForm bsf, std::vector<std::complex<double>> coeffs);
+  /// @brief Constructor, takes the binary representation of a single term and
+  /// its coefficient.
+  spin_op(const spin_op_term &term, const std::complex<double> &coeff);
 
-public:
-  /// @brief Return a new spin_op from the user-provided binary symplectic data.
-  static spin_op
-  from_binary_symplectic(BinarySymplecticForm &data,
-                         std::vector<std::complex<double>> &coeffs) {
-    return spin_op(data, coeffs);
-  }
+  /// @brief Constructor, takes a full set of terms for the composite spin op
+  /// as an unordered_map mapping individual terms to their coefficient.
+  spin_op(const std::unordered_map<spin_op_term, std::complex<double>> &_terms);
 
-  /// @brief Return a random spin_op on nQubits composed of nTerms.
+  /// @brief Construct from a vector of term data.
+  spin_op(const std::vector<spin_op_term> &bsf,
+          const std::vector<std::complex<double>> &coeffs);
+
+  /// @brief Return a random spin operator acting on the specified number of
+  /// qubits and composed of the given number of terms.
   static spin_op random(std::size_t nQubits, std::size_t nTerms);
 
   /// @brief Constructor, creates the identity term
   spin_op();
+
+  /// @brief Construct the identity term on the given number of qubits.
+  spin_op(std::size_t numQubits);
 
   /// @brief Copy constructor
   spin_op(const spin_op &o);
 
   /// @brief Construct this spin_op from a serialized representation.
   /// Specifically, this encoding is via a vector of doubles. The encoding is
-  /// as follows: for each term, a list of doubles where the ith element is
+  /// as follows: for each term, a list of doubles where element `i` is
   /// a 3.0 for a Y, a 1.0 for a X, and a 2.0 for a Z on qubit i, followed by
-  /// the real and imag part of the coefficient. Each term is appended to the
-  /// array forming one large 1d array of doubles. The array is ended with the
-  /// total number of terms represented as a double.
+  /// the real and imaginary part of the coefficient. Each term is appended to
+  /// the array forming one large 1d array of doubles. The array is ended with
+  /// the total number of terms represented as a double.
   spin_op(std::vector<double> &data_rep, std::size_t nQubits);
 
   /// The destructor
   ~spin_op() = default;
+
+  /// @brief Return iterator to start of spin_op terms.
+  iterator<spin_op> begin();
+
+  /// @brief Return iterator to end of spin_op terms.
+  iterator<spin_op> end();
+
+  /// @brief Return constant iterator to start of `spin_op` terms.
+  iterator<const spin_op> begin() const;
+
+  /// @brief Return constant iterator to end of `spin_op` terms.
+  iterator<const spin_op> end() const;
 
   /// @brief Set the provided spin_op equal to this one and return *this.
   spin_op &operator=(const spin_op &);
@@ -222,20 +301,19 @@ public:
     return std::move(lhs);
   }
 
-  /// @brief Return the ith term of this spin_op (by value).
-  spin_op operator[](const std::size_t termIdx) const;
-
   /// @brief Return the number of qubits this spin_op is on
-  std::size_t n_qubits() const;
+  std::size_t num_qubits() const;
 
   /// @brief Return the number of terms in this spin_op
-  std::size_t n_terms() const;
+  std::size_t num_terms() const;
 
-  /// @brief Return the coefficient on the ith term in this spin_op
-  std::complex<double> get_term_coefficient(const std::size_t idx) const;
+  /// @brief For a spin_op with 1 term, get that terms' coefficient.
+  /// Throws an exception for spin_ops with > 1 terms.
+  std::complex<double> get_coefficient() const;
 
   /// @brief Return the binary symplectic form data
-  BinarySymplecticForm get_bsf() const;
+  std::pair<std::vector<spin_op_term>, std::vector<std::complex<double>>>
+  get_raw_data() const;
 
   /// @brief Is this spin_op == to the identity
   bool is_identity() const;
@@ -250,21 +328,17 @@ public:
   /// spin_op. (see the constructor for the encoding)
   std::vector<double> getDataRepresentation();
 
-  /// @brief Return all term coefficients in this spin_op
-  std::vector<std::complex<double>> get_coefficients() const;
-
-  /// @brief Return a new spin_op made up of a sum of spin_op terms
-  /// where the first term is the one at startIdx, and the remaining terms
-  /// are the next count terms.
-  spin_op slice(const std::size_t startIdx, const std::size_t count);
+  /// @brief Return a vector of spin_op representing a distribution of the
+  /// terms in this spin_op into equally sized chunks.
+  std::vector<spin_op> distribute_terms(std::size_t numChunks) const;
 
   /// @brief Apply the give functor on each term of this spin_op. This method
   /// can enable general reductions via lambda capture variables.
   void for_each_term(std::function<void(spin_op &)> &&) const;
 
-  /// @brief Apply the functor on each pauli in this 1-term spin_op. An
+  /// @brief Apply the functor on each Pauli in this 1-term spin_op. An
   /// exception is thrown if there are more than 1 terms. Users should pass a
-  /// functor that takes the pauli type and the qubit index.
+  /// functor that takes the `pauli` type and the qubit index.
   void for_each_pauli(std::function<void(pauli, std::size_t)> &&) const;
 
   /// @brief Return a dense matrix representation of this
