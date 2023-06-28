@@ -8,7 +8,7 @@ Install the Docker Image
 ++++++++++++++++++++++++++++++++++++
 
 Docker images for all CUDA Quantum releases are available on the `NGC Container Registry`_.
-The image for the latest version under development is built from source on our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`.
+The image for the latest version under development is built from source on our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`_.
 
 .. _NGC Container Registry: https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum
 
@@ -56,7 +56,7 @@ This will give you terminal access to the created container, for example
     If you have NVIDIA GPUs available and NVIDIA Docker correctly configured, 
     you can add :code:`--gpus all` to the :code:`docker run` command to expose all available GPUs 
     to the container, or :code:`--gpus '"device=1"'` to select a specific GPU device.
-    Unless you specify this flag, you will not be able to compile to the :code:`--qpu cuquantum`
+    Unless you specify this flag, you will not be able to compile to the :code:`--target nvidia`
     target. 
 
 .. note:: 
@@ -133,7 +133,7 @@ run command), try out the 30 qubit version of this example.
 
 .. code-block:: console 
 
-    nvq++ examples/cpp/basics/cuquantum_backends.cpp --qpu cuquantum 
+    nvq++ examples/cpp/basics/cuquantum_backends.cpp --target nvidia 
     ./a.out 
 
 .. _page: using/cudaq.html

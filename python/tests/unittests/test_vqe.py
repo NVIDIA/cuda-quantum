@@ -174,7 +174,8 @@ def test_vqe_two_qubit_list(optimizer, kernel_two_qubit_vqe_list,
 @pytest.mark.parametrize(
     "gradient",
     [cudaq.gradients.CentralDifference(),
-     cudaq.gradients.ParameterShift()])
+     cudaq.gradients.ParameterShift(),
+     cudaq.gradients.ForwardDifference()])
 def test_vqe_two_qubit_float_gradients(optimizer, gradient,
                                        kernel_two_qubit_vqe_float,
                                        hamiltonian_2q):
@@ -222,7 +223,8 @@ def test_vqe_two_qubit_float_gradients(optimizer, gradient,
 @pytest.mark.parametrize(
     "gradient",
     [cudaq.gradients.CentralDifference(),
-     cudaq.gradients.ParameterShift()])
+     cudaq.gradients.ParameterShift(),
+     cudaq.gradients.ForwardDifference()])
 def test_vqe_two_qubit_list_gradients(optimizer, gradient,
                                       kernel_two_qubit_vqe_list,
                                       hamiltonian_2q):
@@ -308,6 +310,7 @@ def test_vqe_three_qubit_list(optimizer, kernel_three_qubit_vqe_list,
     "gradient",
     [
         cudaq.gradients.CentralDifference(),
+        cudaq.gradients.ForwardDifference(),
         # FIXME: cudaq.gradients.ParameterShift()
     ])
 def test_vqe_three_qubit_float_gradients(optimizer, gradient,
@@ -352,6 +355,7 @@ def test_vqe_three_qubit_float_gradients(optimizer, gradient,
     "gradient",
     [
         cudaq.gradients.CentralDifference(),
+        cudaq.gradients.ForwardDifference(),
         # FIXME: cudaq.gradients.ParameterShift()
     ])
 def test_vqe_three_qubit_list_gradients(optimizer, gradient,

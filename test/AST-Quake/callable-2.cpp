@@ -37,8 +37,7 @@ struct test5_caller {
 };
 
 // CHECK-LABEL: func.func @__nvqpp__mlirgen__test5_callee
-// CHECK-SAME:   (%[[VAL_0:.*]]: !cc.lambda<(!quake.ref) -> ()>,
-// CHECK-SAME:   %[[VAL_1:.*]]: !quake.veq<?>)
+// CHECK-SAME:   (%[[VAL_0:.*]]: !cc.lambda<(!quake.ref) -> ()>{{.*}}, %[[VAL_1:.*]]: !quake.veq<?>{{.*}})
 // CHECK:           %[[VAL_4:.*]] = quake.extract_ref %
 // CHECK:           cc.call_callable %[[VAL_0]], %[[VAL_4]] : (!cc.lambda<(!quake.ref) -> ()>, !quake.ref) -> ()
 // CHECK:           %[[VAL_7:.*]] = quake.extract_ref %
@@ -48,7 +47,7 @@ struct test5_caller {
 // CHECK:           return
 
 // CHECK-LABEL: func.func @__nvqpp__mlirgen__test5_callable
-// CHECK-SAME:   (%[[VAL_0:.*]]: !quake.ref)
+// CHECK-SAME:   (%[[VAL_0:.*]]: !quake.ref{{.*}})
 // CHECK:           quake.h %[[VAL_0]]
 // CHECK:           quake.x %[[VAL_0]]
 // CHECK:           quake.z %[[VAL_0]]
@@ -56,7 +55,7 @@ struct test5_caller {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test5_caller
 // CHECK-SAME: () attributes
 // CHECK:           %[[VAL_5:.*]] = cc.create_lambda {
-// CHECK:           ^bb0(%[[VAL_6:.*]]: !quake.ref):
+// CHECK:           ^bb0(%[[VAL_6:.*]]: !quake.ref
 // CHECK:             func.call @__nvqpp__mlirgen__test5_callable{{.*}}(%[[VAL_6]]) : (!quake.ref) -> ()
 // CHECK:           } : !cc.lambda<(!quake.ref) -> ()>
 // CHECK:           call @__nvqpp__mlirgen__test5_callee{{.*}}(%[[VAL_5]], %{{.*}}) : (!cc.lambda<(!quake.ref) -> ()>, !quake.veq<?>) -> ()

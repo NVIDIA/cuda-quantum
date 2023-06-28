@@ -229,10 +229,9 @@ static Value toIntegerImpl(OpBuilder &builder, Location loc, Value bitVec) {
   Value negOne = builder.create<arith::ConstantIntOp>(loc, -1, i32Ty);
 
   // Create int i = 0;
-  auto memRefTy = MemRefType::get(std::nullopt, i32Ty);
-  Value stackSlot = builder.create<memref::AllocaOp>(loc, memRefTy);
+  Value stackSlot = builder.create<cudaq::cc::AllocaOp>(loc, i32Ty);
   Value zeroInt = builder.create<arith::ConstantIntOp>(loc, 0, i32Ty);
-  builder.create<memref::StoreOp>(loc, zeroInt, stackSlot);
+  builder.create<cudaq::cc::StoreOp>(loc, zeroInt, stackSlot);
 
   // Create the for loop
   Value rank = builder.create<arith::IndexCastOp>(loc, builder.getIndexType(),
@@ -271,8 +270,7 @@ static Value toIntegerImpl(OpBuilder &builder, Location loc, Value bitVec) {
         bitElement = builder.create<arith::MulIOp>(loc, negOne, bitElement);
 
         // -bits[k] ^ i
-        Value integer =
-            builder.create<memref::LoadOp>(loc, ValueRange(stackSlot));
+        Value integer = builder.create<cudaq::cc::LoadOp>(loc, stackSlot);
         Value leftPart =
             builder.create<arith::XOrIOp>(loc, bitElement, integer);
 
@@ -281,9 +279,9 @@ static Value toIntegerImpl(OpBuilder &builder, Location loc, Value bitVec) {
 
         // i ^ andVal
         Value result = builder.create<arith::XOrIOp>(loc, integer, andVal);
-        builder.create<memref::StoreOp>(loc, result, stackSlot);
+        builder.create<cudaq::cc::StoreOp>(loc, result, stackSlot);
       });
-  return builder.create<memref::LoadOp>(loc, ValueRange(stackSlot));
+  return builder.create<cudaq::cc::LoadOp>(loc, stackSlot);
 }
 
 static void castToSameType(OpBuilder builder, Location loc,
@@ -339,10 +337,10 @@ static SmallVector<Value> convertKernelArgs(OpBuilder &builder, Location loc,
       result.push_back(v);
       continue;
     }
-    if (auto memrefTy = dyn_cast<MemRefType>(vTy))
-      if (memrefTy.getElementType() == kTy) {
+    if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(vTy))
+      if (ptrTy.getElementType() == kTy) {
         // Promote pass-by-reference to pass-by-value.
-        auto load = builder.create<memref::LoadOp>(loc, v);
+        auto load = builder.create<cudaq::cc::LoadOp>(loc, v);
         result.push_back(load);
         continue;
       }
@@ -428,42 +426,42 @@ bool QuakeBridgeVisitor::VisitUnaryOperator(clang::UnaryOperator *x) {
   switch (x->getOpcode()) {
   case clang::UnaryOperatorKind::UO_PostInc: {
     auto var = popValue();
-    auto loaded = builder.create<memref::LoadOp>(loc, var);
+    auto loaded = builder.create<cc::LoadOp>(loc, var);
     auto incremented = builder.create<arith::AddIOp>(
         loc, loaded,
         getConstantInt(builder, loc, 1,
                        loaded.getType().getIntOrFloatBitWidth()));
-    builder.create<memref::StoreOp>(loc, incremented, var);
+    builder.create<cc::StoreOp>(loc, incremented, var);
     return pushValue(loaded);
   }
   case clang::UnaryOperatorKind::UO_PreInc: {
     auto var = popValue();
-    auto loaded = builder.create<memref::LoadOp>(loc, var);
+    auto loaded = builder.create<cc::LoadOp>(loc, var);
     auto incremented = builder.create<arith::AddIOp>(
         loc, loaded,
         getConstantInt(builder, loc, 1,
                        loaded.getType().getIntOrFloatBitWidth()));
-    builder.create<memref::StoreOp>(loc, incremented, var);
+    builder.create<cc::StoreOp>(loc, incremented, var);
     return pushValue(incremented);
   }
   case clang::UnaryOperatorKind::UO_PostDec: {
     auto var = popValue();
-    auto loaded = builder.create<memref::LoadOp>(loc, var);
+    auto loaded = builder.create<cc::LoadOp>(loc, var);
     auto decremented = builder.create<arith::SubIOp>(
         loc, loaded,
         getConstantInt(builder, loc, 1,
                        loaded.getType().getIntOrFloatBitWidth()));
-    builder.create<memref::StoreOp>(loc, decremented, var);
+    builder.create<cc::StoreOp>(loc, decremented, var);
     return pushValue(loaded);
   }
   case clang::UnaryOperatorKind::UO_PreDec: {
     auto var = popValue();
-    auto loaded = builder.create<memref::LoadOp>(loc, var);
+    auto loaded = builder.create<cc::LoadOp>(loc, var);
     auto decremented = builder.create<arith::SubIOp>(
         loc, loaded,
         getConstantInt(builder, loc, 1,
                        loaded.getType().getIntOrFloatBitWidth()));
-    builder.create<memref::StoreOp>(loc, decremented, var);
+    builder.create<cc::StoreOp>(loc, decremented, var);
     return pushValue(decremented);
   }
   case clang::UnaryOperatorKind::UO_LNot: {
@@ -792,7 +790,7 @@ bool QuakeBridgeVisitor::VisitBinaryOperator(clang::BinaryOperator *x) {
 
   switch (x->getOpcode()) {
   case clang::BinaryOperatorKind::BO_Assign: {
-    builder.create<memref::StoreOp>(loc, rhs, lhs);
+    builder.create<cc::StoreOp>(loc, rhs, lhs);
     return pushValue(lhs);
   }
   case clang::BinaryOperatorKind::BO_AddAssign:
@@ -1106,10 +1104,10 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     return pushValue(builder.create<math::PowFOp>(loc, base, power));
   }
 
-  // Dealing with our vector -> memref conversions.
-  // If we have some θ with the type `std::vector<double/float/int>`, and in the
-  // kernel, θ.size() is called, we need to convert that to memref.dim. For
-  // θ.empty(), we convert to memref.dim > 0.
+  // Dealing with our std::vector as a view data structures. If we have some θ
+  // with the type `std::vector<double/float/int>`, and in the kernel, θ.size()
+  // is called, we need to convert that to loading the size field of the pair.
+  // For θ.empty(), the size is loaded and compared to zero.
   if (isInClassInNamespace(func, "vector", "std")) {
     // Get the size of the std::vector.
     auto svec = popValue();
@@ -1133,9 +1131,9 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
 
   if (isInClassInNamespace(func, "_Bit_reference", "std")) {
     auto loadFromReference = [&](mlir::Value ref) -> Value {
-      if (auto mrTy = dyn_cast<MemRefType>(ref.getType())) {
+      if (auto mrTy = dyn_cast<cc::PointerType>(ref.getType())) {
         assert(mrTy.getElementType() == builder.getI1Type());
-        return builder.create<memref::LoadOp>(loc, ref);
+        return builder.create<cc::LoadOp>(loc, ref);
       }
       return ref;
     };

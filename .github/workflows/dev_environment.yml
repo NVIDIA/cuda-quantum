@@ -7,6 +7,9 @@ on:
       build_target:
         required: false
         type: string
+      build_args:
+        required: false
+        type: string
       registry_cache_from:
         required: false
         type: string
@@ -31,9 +34,6 @@ on:
       additional_local_caches:
         required: false
         type: string
-      base_image:
-        required: false
-        type: string
       toolchain:
         required: false
         type: string
@@ -48,12 +48,9 @@ on:
         required: false
         type: string
     outputs:
-      image_name:
-        description: "The full name of the built docker image."
-        value: ${{ jobs.finalize.outputs.image_name }}
-      digests:
-        description: "The digests of the docker image(s) that were deployed to the registry."
-        value: ${{ jobs.finalize.outputs.digests }}
+      image_hash:
+        description: "The name and digest of the docker image that was deployed to the registry, which can be used to retrieve it independently of any tag updates."
+        value: ${{ jobs.finalize.outputs.image_hash }}
       cache_key:
         description: "The cache key to retrieve a tar archive containing the built image(s)."
         value: ${{ jobs.finalize.outputs.cache_key }}
@@ -98,8 +95,8 @@ jobs:
           image_title=cuda-quantum-`echo $image_id | cut -d "." -f 1`
           image_name=${{ vars.registry || 'ghcr.io' }}/${repo_owner,,}/$image_title
           toolchain=${{ inputs.toolchain }}
-          tag_prefix=${toolchain:+$toolchain-}
-          tag_suffix=`echo $image_id | cut -s -d "." -f 2- | xargs -I "%" echo .% | tr . -`
+          tag_prefix=`echo $image_id | cut -s -d "." -f 2- | xargs -I "%" echo %. | tr . -`${toolchain:+$toolchain-}
+          tag_suffix=""
 
           if ${{ inputs.pull_request_number != '' }}; then
             custom_tags="type=raw,value=pr-${{ inputs.pull_request_number }}"
@@ -173,15 +170,15 @@ jobs:
           toolchain=${{ inputs.toolchain }}
           registry_cache=ghcr.io/${{ needs.metadata.outputs.owner }}/buildcache-cuda-quantum
           nvidia_registry_cache=ghcr.io/nvidia/buildcache-cuda-quantum
-          registry_cache_base=${{ inputs.registry_cache_from || github.event.pull_request.base.ref || 'main' }}
-          cache_id=$(echo ${{ needs.metadata.outputs.image_id }} | tr . -)${toolchain:+-$toolchain}
+          registry_cache_base=$(echo ${{ inputs.registry_cache_from || github.event.pull_request.base.ref || 'main' }} | tr / -)
+          cache_id=$(echo ${{ needs.metadata.outputs.image_id }}${toolchain:+-$toolchain} | tr . -)
 
           local_buildcache_path="/tmp/.buildcache-${cache_id}"
           local_buildcache_key_suffix="-$(git rev-parse HEAD)"
           if ${{ inputs.pull_request_number != '' }}; then
             local_buildcache_key="${{ inputs.pull_request_number }}/merge-cuda-quantum-${cache_id}"
           else
-            local_cache_from=${{ inputs.local_cache_from || github.ref_name }}
+            local_cache_from=$(echo ${{ inputs.local_cache_from || github.ref_name }} | tr . -)
             if ${{ inputs.local_cache_from == '' && github.event.pull_request.merged == true }}; then
               local_cache_from=${{ github.event.pull_request.number }}/merge
             fi
@@ -192,7 +189,8 @@ jobs:
           cache_from_registry="type=registry,ref=${registry_cache}-${cache_id}:${registry_cache_base}"
           cache_from_nvidia_registry="type=registry,ref=${nvidia_registry_cache}-${cache_id}:${registry_cache_base}"
           if ${{ inputs.registry_cache_update || inputs.registry_cache_update_only }}; then
-            build_cache="type=registry,ref=${registry_cache}-${cache_id}:${{ github.ref_name }}"
+            registry_cache_target=$(echo ${{ github.ref_name }} | tr / -)
+            build_cache="type=registry,ref=${registry_cache}-${cache_id}:$registry_cache_target"
             cache_to="${build_cache},mode=max,ignore-error=false"
           elif ${{ inputs.create_local_cache }}; then
             # In general, using the build cache from the registry/parent branch is the quickest.
@@ -231,9 +229,9 @@ jobs:
           file: ./docker/${{ needs.metadata.outputs.dockerfile }}
           target: ${{ inputs.build_target }}
           build-args: |
-            base_image=${{ inputs.base_image }}
             toolchain=${{ inputs.toolchain }}
             llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
+            ${{ inputs.build_args }}
           load: false
           tags: ${{ needs.metadata.outputs.image_tags }}
           labels: ${{ needs.metadata.outputs.image_labels }}
@@ -286,8 +284,7 @@ jobs:
     needs: [metadata, build, deployment]
 
     outputs:
-      image_name: ${{ fromJson(steps.write_json.outputs.result).image_name }}
-      digests: ${{ fromJson(steps.write_json.outputs.result).digests }}
+      image_hash: ${{ fromJson(steps.write_json.outputs.result).image_hash }}
       cache_key: ${{ fromJson(steps.write_json.outputs.result).cache_key }}
       tar_archive: ${{ fromJson(steps.write_json.outputs.result).tar_archive }}
       build_cache: ${{ fromJson(steps.write_json.outputs.result).build_cache }}
@@ -299,8 +296,7 @@ jobs:
           matrix-step-name: ${{ inputs.matrix_key && 'dev_environment' }}
           matrix-key: ${{ inputs.matrix_key }}
           outputs: |
-            image_name: ${{ needs.metadata.outputs.image_name }}
-            digests: ${{ needs.deployment.outputs.digests }}
+            image_hash: ${{ needs.deployment.outputs.image_hash }}
             cache_key: ${{ needs.build.outputs.tar_cache }}
             tar_archive: ${{ needs.build.outputs.tar_archive }}
             build_cache: ${{ needs.build.outputs.build_cache }}

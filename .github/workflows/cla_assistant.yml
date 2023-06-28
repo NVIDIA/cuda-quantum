@@ -16,7 +16,7 @@ jobs:
         uses: cla-assistant/github-action@v2.1.3-beta
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          PERSONAL_ACCESS_TOKEN : ${{ secrets.CLA_BOT_ACCESS_TOKEN }}
+          PERSONAL_ACCESS_TOKEN : ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
         with:
           remote-organization-name: NVIDIA
           remote-repository-name: cuda-quantum

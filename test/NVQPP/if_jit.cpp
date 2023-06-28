@@ -6,24 +6,23 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "PassDetails.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/Todo.h"
-#include "mlir/IR/Dominance.h"
-#include "mlir/IR/IRMapping.h"
-#include "mlir/Transforms/DialectConversion.h"
-#include "mlir/Transforms/Passes.h"
+// This code is from Issue 296.
 
-using namespace mlir;
+// RUN: nvq++ %s --target quantinuum --emulate -o %t.x && %t.x | FileCheck %s
 
-namespace {
-class MemToRegPass : public cudaq::opt::CCMemToRegBase<MemToRegPass> {
-public:
-  void runOnOperation() override {}
-};
-} // namespace
+// CHECK: { 0:{{[0-9]+}} }
 
-std::unique_ptr<mlir::Pass> cudaq::opt::createCCMemToRegPass() {
-  return std::make_unique<MemToRegPass>();
+#include <cudaq.h>
+
+__qpu__ void foo(bool value) {
+  cudaq::qubit q;
+  if (value)
+    x(q);
+  mz(q);
+}
+
+int main() {
+  auto result = cudaq::sample(100, foo, true);
+  result.dump();
+  return 0;
 }

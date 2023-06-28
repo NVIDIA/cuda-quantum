@@ -128,10 +128,9 @@ void QuakeBridgeVisitor::addArgumentSymbols(
                      quake::RefType, quake::VeqType>()) {
         symbolTable.insert(name, entryBlock->getArgument(index));
       } else {
-        auto memRefTy = MemRefType::get(std::nullopt, parmTy);
-        auto stackSlot = builder.create<memref::AllocaOp>(loc, memRefTy);
-        builder.create<memref::StoreOp>(loc, entryBlock->getArgument(index),
-                                        stackSlot);
+        auto stackSlot = builder.create<cc::AllocaOp>(loc, parmTy);
+        builder.create<cc::StoreOp>(loc, entryBlock->getArgument(index),
+                                    stackSlot);
         symbolTable.insert(name, stackSlot);
       }
     }
@@ -347,8 +346,7 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
   // Variable is of some basic type not already handled. Create a local stack
   // slot in which to save the value. This stack slot is the variable in the
   // memory domain.
-  Value alloca = builder.create<memref::AllocaOp>(
-      loc, MemRefType::get(ArrayRef<int64_t>{}, type));
+  Value alloca = builder.create<cc::AllocaOp>(loc, type);
   if (x->getInit()) {
     auto initValue = popValue();
 
@@ -363,12 +361,12 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
           type.getIntOrFloatBitWidth()) {
         // FIXME: Use zero-extend if this is unsigned!
         initValue = builder.create<arith::ExtSIOp>(
-            loc, alloca.getType().cast<MemRefType>().getElementType(),
+            loc, alloca.getType().cast<cc::PointerType>().getElementType(),
             initValue);
       } else if (initValue.getType().getIntOrFloatBitWidth() >
                  type.getIntOrFloatBitWidth()) {
         initValue = builder.create<arith::TruncIOp>(
-            loc, alloca.getType().cast<MemRefType>().getElementType(),
+            loc, alloca.getType().cast<cc::PointerType>().getElementType(),
             initValue);
       }
     } else if (initValue.getType().isa<IntegerType>() &&
@@ -377,7 +375,7 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
       initValue = builder.create<arith::SIToFPOp>(loc, type, initValue);
     }
     // FIXME: Add more conversions!
-    builder.create<memref::StoreOp>(loc, initValue, alloca);
+    builder.create<cc::StoreOp>(loc, initValue, alloca);
   }
   symbolTable.insert(x->getName(), alloca);
   return pushValue(alloca);

@@ -103,7 +103,7 @@ bool QuakeBridgeVisitor::VisitCompoundAssignOperator(
     TODO_loc(loc, "assignment operator");
   }();
 
-  builder.create<mlir::memref::StoreOp>(loc, result, lhsPtr);
+  builder.create<cudaq::cc::StoreOp>(loc, result, lhsPtr);
   return pushValue(lhsPtr);
 }
 
@@ -189,19 +189,18 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *stmt) {
       if (failed(irBuilder.loadIntrinsic(module, "__nvqpp_vectorCopyCtor")))
         module.emitError("failed to load intrinsic");
       auto eleTy = vecTy.getElementType();
-      Value resBuff = builder.create<cc::StdvecDataOp>(
-          loc, cudaq::cc::PointerType::get(mlirContext), result);
+      auto ptrTy = cudaq::cc::PointerType::get(builder.getI8Type());
+      Value resBuff = builder.create<cc::StdvecDataOp>(loc, ptrTy, result);
       std::size_t byteWidth = (eleTy.getIntOrFloatBitWidth() + 7) / 8;
       Value dynSize =
           builder.create<cc::StdvecSizeOp>(loc, builder.getI64Type(), result);
       auto eleSize = builder.create<arith::ConstantOp>(
           loc, builder.getI64Type(), builder.getI64IntegerAttr(byteWidth));
-      Value heapCopy = builder
-                           .create<func::CallOp>(
-                               loc, cudaq::cc::PointerType::get(mlirContext),
-                               "__nvqpp_vectorCopyCtor",
-                               ValueRange{resBuff, dynSize, eleSize})
-                           .getResult(0);
+      Value heapCopy =
+          builder
+              .create<func::CallOp>(loc, ptrTy, "__nvqpp_vectorCopyCtor",
+                                    ValueRange{resBuff, dynSize, eleSize})
+              .getResult(0);
       result = builder.create<cc::StdvecInitOp>(loc, resTy,
                                                 ValueRange{heapCopy, dynSize});
     }

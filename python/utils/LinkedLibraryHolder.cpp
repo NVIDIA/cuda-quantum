@@ -11,7 +11,6 @@
 #include "cudaq/platform.h"
 #include "nvqir/CircuitSimulator.h"
 #include <fstream>
-#include <iostream>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <regex>
@@ -31,40 +30,6 @@ constexpr static const char PLATFORM_LIBRARY[] = "PLATFORM_LIBRARY=";
 constexpr static const char NVQIR_SIMULATION_BACKEND[] =
     "NVQIR_SIMULATION_BACKEND=";
 constexpr static const char TARGET_DESCRIPTION[] = "TARGET_DESCRIPTION=";
-
-#if defined(__APPLE__) && defined(__MACH__)
-#include <mach-o/dyld.h>
-#else
-#include <link.h>
-#endif
-
-struct CUDAQLibraryData {
-  std::string path;
-};
-
-#if defined(__APPLE__) && defined(__MACH__)
-static void getCUDAQLibraryPath(CUDAQLibraryData *data) {
-  auto nLibs = _dyld_image_count();
-  for (uint32_t i = 0; i < nLibs; i++) {
-    auto ptr = _dyld_get_image_name(i);
-    std::string libName(ptr);
-    if (libName.find("cudaq-common") != std::string::npos) {
-      auto casted = static_cast<CUDAQLibraryData *>(data);
-      casted->path = std::string(ptr);
-    }
-  }
-}
-#else
-static int getCUDAQLibraryPath(struct dl_phdr_info *info, size_t size,
-                               void *data) {
-  std::string libraryName(info->dlpi_name);
-  if (libraryName.find("cudaq-common") != std::string::npos) {
-    auto casted = static_cast<CUDAQLibraryData *>(data);
-    casted->path = std::string(info->dlpi_name);
-  }
-  return 0;
-}
-#endif
 
 std::size_t RuntimeTarget::num_qpus() {
   auto &platform = cudaq::get_platform();
@@ -134,13 +99,13 @@ void findAvailableTargets(
 LinkedLibraryHolder::LinkedLibraryHolder() {
   cudaq::info("Init infrastructure for pythonic builder.");
 
-  CUDAQLibraryData data;
+  cudaq::__internal__::CUDAQLibraryData data;
 #if defined(__APPLE__) && defined(__MACH__)
   libSuffix = "dylib";
-  getCUDAQLibraryPath(&data);
+  cudaq::__internal__::getCUDAQLibraryPath(&data);
 #else
   libSuffix = "so";
-  dl_iterate_phdr(getCUDAQLibraryPath, &data);
+  dl_iterate_phdr(cudaq::__internal__::getCUDAQLibraryPath, &data);
 #endif
 
   std::filesystem::path nvqirLibPath{data.path};
@@ -167,11 +132,13 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
                        dlopen(p.string().c_str(), RTLD_GLOBAL | RTLD_NOW));
 
   // We will always load the RemoteRestQPU plugin in Python.
+  // It will be built when CURL and OpenSSL are present.
   auto potentialPath =
       cudaqLibPath / fmt::format("libcudaq-rest-qpu.{}", libSuffix);
-  libHandles.emplace(
-      potentialPath.string(),
-      dlopen(potentialPath.string().c_str(), RTLD_GLOBAL | RTLD_NOW));
+  void *restQpuLibHandle =
+      dlopen(potentialPath.string().c_str(), RTLD_GLOBAL | RTLD_NOW);
+  if (restQpuLibHandle)
+    libHandles.emplace(potentialPath.string(), restQpuLibHandle);
 
   // Search for all simulators and create / store them
   for (const auto &library :
@@ -187,13 +154,6 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
       auto idx = simName.find_last_of(".");
       simName = simName.substr(0, idx);
 
-      // FIXME until we have a better handle on MPI init / finalize
-      // we can't load these
-      if (simName == "tensornet" || simName == "cuquantum_mgpu") {
-        simulators.emplace(simName, nullptr);
-        continue;
-      }
-
       // Store the dlopen handles
       auto iter = libHandles.find(path.string());
       if (iter == libHandles.end())
@@ -201,12 +161,8 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
                                                  RTLD_GLOBAL | RTLD_NOW));
 
       // Load the plugin and get the CircuitSimulator.
-      std::string symbolName = fmt::format("getCircuitSimulator_{}", simName);
-      auto *simulator =
-          getUniquePluginInstance<nvqir::CircuitSimulator>(symbolName);
-
       cudaq::info("Found simulator plugin {}.", simName);
-      simulators.emplace(simName, simulator);
+      availableSimulators.push_back(simName);
 
     } else if (fileName.find("cudaq-platform-") != std::string::npos) {
       // store all available platforms.
@@ -224,18 +180,14 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
                                                  RTLD_GLOBAL | RTLD_NOW));
 
       // Load the plugin and get the CircuitSimulator.
-      std::string symbolName =
-          fmt::format("getQuantumPlatform_{}", platformName);
-      auto *platform =
-          getUniquePluginInstance<cudaq::quantum_platform>(symbolName);
-      platforms.emplace(platformName, platform);
+      availablePlatforms.push_back(platformName);
       cudaq::info("Found platform plugin {}.", platformName);
     }
   }
 
   // We'll always start off with the default platform and the QPP simulator
-  __nvqir__setCircuitSimulator(simulators["qpp"]);
-  setQuantumPlatformInternal(platforms["default"]);
+  __nvqir__setCircuitSimulator(getSimulator("qpp"));
+  setQuantumPlatformInternal(getPlatform("default"));
   targets.emplace("default",
                   RuntimeTarget{"default", "qpp", "default",
                                 "Default OpenMP CPU-only simulated QPU."});
@@ -246,9 +198,31 @@ LinkedLibraryHolder::~LinkedLibraryHolder() {
     dlclose(handle);
 }
 
+nvqir::CircuitSimulator *
+LinkedLibraryHolder::getSimulator(const std::string &simName) {
+  auto end = availableSimulators.end();
+  auto iter = std::find(availableSimulators.begin(), end, simName);
+  if (iter == end)
+    throw std::runtime_error("Invalid simulator requested: " + simName);
+
+  return getUniquePluginInstance<nvqir::CircuitSimulator>(
+      std::string("getCircuitSimulator_") + simName);
+}
+
+quantum_platform *
+LinkedLibraryHolder::getPlatform(const std::string &platformName) {
+  auto end = availablePlatforms.end();
+  auto iter = std::find(availablePlatforms.begin(), end, platformName);
+  if (iter == end)
+    throw std::runtime_error("Invalid platform requested: " + platformName);
+
+  return getUniquePluginInstance<quantum_platform>(
+      std::string("getQuantumPlatform_") + platformName);
+}
+
 void LinkedLibraryHolder::resetTarget() {
-  __nvqir__setCircuitSimulator(simulators["qpp"]);
-  setQuantumPlatformInternal(platforms["default"]);
+  __nvqir__setCircuitSimulator(getSimulator("qpp"));
+  setQuantumPlatformInternal(getPlatform("default"));
   currentTarget = "default";
 }
 
@@ -289,8 +263,8 @@ void LinkedLibraryHolder::setTarget(
   cudaq::info("Setting target={} (sim={}, platform={})", targetName,
               target.simulatorName, target.platformName);
 
-  __nvqir__setCircuitSimulator(simulators[target.simulatorName]);
-  auto *platform = platforms[target.platformName];
+  __nvqir__setCircuitSimulator(getSimulator(target.simulatorName));
+  auto *platform = getPlatform(target.platformName);
 
   // Pack the config into the backend string name
   std::string backendConfigStr = targetName;

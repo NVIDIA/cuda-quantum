@@ -55,11 +55,11 @@ protected:
   /// @brief Map of path strings to loaded library handles.
   std::unordered_map<std::string, void *> libHandles;
 
-  /// @brief Map of available simulators
-  std::unordered_map<std::string, nvqir::CircuitSimulator *> simulators;
+  /// @brief Vector of available simulators
+  std::vector<std::string> availableSimulators;
 
-  /// @brief Map of available platforms
-  std::unordered_map<std::string, quantum_platform *> platforms;
+  /// @brief Vector of available platforms
+  std::vector<std::string> availablePlatforms;
 
   /// @brief Map of available targets.
   std::unordered_map<std::string, RuntimeTarget> targets;
@@ -70,6 +70,12 @@ protected:
 public:
   LinkedLibraryHolder();
   ~LinkedLibraryHolder();
+
+  /// @brief Return the registered simulator with the given name.
+  nvqir::CircuitSimulator *getSimulator(const std::string &name);
+
+  /// @brief Return the registered quantum_platform with the given name.
+  quantum_platform *getPlatform(const std::string &name);
 
   /// @brief Return the available runtime target with given name.
   /// Throws an exception if no target available with that name.
