@@ -19,6 +19,8 @@ LLVM_DIR=${LLVM_DIR:-/opt/llvm}
 CPR_DIR=${CPR_DIR:-/cpr/install}
 BLAS_PATH=${BLAS_PATH:-/usr/lib64/libblas.a}
 
+echo "Installing required packages for python wheel..."
+
 # Run the script from the top-level of the repo
 working_dir=`pwd`
 this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
@@ -43,8 +45,7 @@ fi
 export LLVM_DIR=$LLVM_DIR
 
 # Get necessary pacakges from apt.
-apt-get update && apt-get install -y --no-install-recommends build-essential wget gfortran python3.10-venv
-
+apt-get update && apt-get install -y --no-install-recommends build-essential wget gfortran python3 python3-pip python3.10-venv 
 if [ ! -d "$CPR_DIR" ]; then
   echo "Did not find a libcpr install dir"
   echo "Installing libcpr"
