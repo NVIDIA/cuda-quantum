@@ -69,10 +69,10 @@ to indicating its purpose.
 ## Testing and debugging
 
 CUDA Quantum tests are categorized as unit tests on runtime library code and
-FileCheck tests on compiler code output. All code added under the runtime
+`FileCheck` tests on compiler code output. All code added under the runtime
 libraries should have an accompanying test added to the appropriate spot in the
 `unittests` folder. All code that directly impacts compiler code should have an
-accompanying FileCheck test. These tests are located in the `test` folder.
+accompanying `FileCheck` test. These tests are located in the `test` folder.
 
 When running a CUDA Quantum executable locally, the verbosity of the output can
 be configured by setting the `CUDAQ_LOG_LEVEL` environment variable. Setting its

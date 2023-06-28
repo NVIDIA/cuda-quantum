@@ -26,6 +26,7 @@ header:
     - '**/.*/**'
     - '**/Doxyfile.in'
     - 'docs/sphinx/examples'
+    - 'CITATION.cff'
     - 'LICENSE'
     - 'NOTICE'
     - 'build'

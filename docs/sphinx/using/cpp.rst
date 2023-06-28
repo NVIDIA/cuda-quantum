@@ -14,7 +14,7 @@ CUDA Quantum kernels are any typed callable in the language that is annotated wi
 simple "Hello World" example, specifically a CUDA Quantum kernel that prepares a GHZ state on a programmer-specified number of qubits. 
 
 .. literalinclude:: ../examples/cpp/basics/static_kernel.cpp
-   :language: cpp
+    :language: cpp
 
 Here we see that we can define a custom :code:`struct` that is templated on a :code:`size_t` parameter. 
 Our kernel expression is free to use this template parameter in the allocation of a 
@@ -32,8 +32,8 @@ To compile and execute this code, we run the following
 
 .. code:: bash 
 
-    nvq++ static_kernel.cpp -o ghz.x 
-    ./ghz.x 
+    nvq++ static_kernel.cpp -o ghz.x
+    ./ghz.x
 
 Computing Expectation Values 
 ------------------------------
@@ -43,7 +43,7 @@ of quantum spin operators with respect to a parameterized CUDA Quantum kernel. L
 at an example of this:
 
 .. literalinclude:: ../examples/cpp/basics/expectation_values.cpp
-   :language: cpp
+    :language: cpp
 
 Here we define a parameterized CUDA Quantum kernel, a callable type named :code:`ansatz` that takes as 
 input a single angle :code:`theta`. This angle is used as part of a single :code:`ry` rotation. 
@@ -71,7 +71,7 @@ on an arbitrary number of control qubits. For this scenario, our general unitary
 by another pre-defined CUDA Quantum kernel expression. Let's take a look at the following example:
 
 .. literalinclude:: ../examples/cpp/basics/multi_controlled_operations.cpp
-   :language: cpp
+    :language: cpp
 
 In this example, we show 2 distinct ways for generating a Toffoli operation. The first one in host code 
 is the definition of a CUDA Quantum lambda that synthesizes a Toffoli via the general multi-control functionality 
@@ -88,23 +88,23 @@ To compile and execute this code, we run the following
 
 .. code:: bash 
 
-    nvq++ multi_controlled_operations.cpp -o mcx.x 
-    ./mcx.x 
+    nvq++ multi_controlled_operations.cpp -o mcx.x
+    ./mcx.x
 
 Simulations with cuQuantum
-----------------------------
+-----------------------------------
 
 CUDA Quantum provides native support for cuQuantum-accelerated state vector and tensor network 
 simulations. Let's take a look at an example that is too large for a standard CPU-only simulator, but 
 can be trivially simulated via a NVIDIA GPU-accelerated backend:
 
 .. literalinclude:: ../examples/cpp/basics/cuquantum_backends.cpp
-   :language: cpp
+    :language: cpp
 
 Here we generate a GHZ state on 30 qubits. To run with the built-in cuQuantum state 
 vector support, we pass the :code:`--target nvidia` flag at compile time:
 
 .. code:: bash 
 
-    nvq++ --target nvidia cuquantum_backends.cpp -o ghz.x 
-    ./ghz.x 
+    nvq++ --target nvidia cuquantum_backends.cpp -o ghz.x
+    ./ghz.x

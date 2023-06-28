@@ -34,9 +34,9 @@ Here is a simple example demonstrating this
     // We will launch asynchronous sampling tasks
     // and will store the results immediately as a future 
     // we can query at some later point
-    std::vector<async_sample_result> countFutures;
+    std::vector<cudaq::async_sample_result> countFutures;
     for (std::size_t i = 0; i < num_qpus; i++) {
-      countFutures.emplace_back(cudaq::sample_async(i, 5 /*runtimeParam*/));
+      countFutures.emplace_back(cudaq::sample_async(i, kernelToBeSampled, 5 /*runtimeParam*/));
     }
 
     // 
