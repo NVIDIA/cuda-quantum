@@ -9,7 +9,7 @@
 import sys
 
 from ._pycudaq import *
-from .domains import *
+# from .domains import *
 
 initKwargs = {'target': 'default'}
 
