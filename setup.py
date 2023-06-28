@@ -22,7 +22,7 @@ __version__ = "0.0.3"
 # the `egg_info` subcommand (arbitrary choice).
 if (sys.argv[1] == 'egg_info'):
     script_path = os.getcwd() + "/scripts/install_wheel_dependencies.sh"
-    # os.system(f"bash {script_path}")
+    os.system(f"bash {script_path}")
 
 # FIXME: Linux machines default to dist-packages unless the `--user` flag is provided to
 # the pip install. We hard-code everything to site-packages in the meantime and require the
