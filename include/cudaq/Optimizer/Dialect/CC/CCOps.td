@@ -188,7 +188,7 @@ def cc_LoopOp : CCOp<"loop",
   }];
 
   let arguments = (ins
-    Variadic<AnyType>:$initArgs,
+    Variadic<AnyType>:$initialArgs,
     BoolAttr:$post_condition
   );
   let results = (outs Variadic<AnyType>:$results);
@@ -198,6 +198,7 @@ def cc_LoopOp : CCOp<"loop",
     AnyRegion:$stepRegion
   );
 
+  let hasCanonicalizer = 1;
   let hasCustomAssemblyFormat = 1;
   let hasVerifier = 1;
 
@@ -475,8 +476,8 @@ def cc_ReturnOp : CCOp<"return", [Pure, ReturnLike, Terminator,
 // Global transfers of control.
 //===----------------------------------------------------------------------===//
 
-def cc_UnwindBreakOp : CCOp<"unwind_break", [ 
-        ParentOneOf<["IfOp", "ScopeOp"]>]> {
+def cc_UnwindBreakOp : CCOp<"unwind_break", [
+        ParentOneOf<["IfOp", "ScopeOp"]>, JumpWithUnwind]> {
   let summary = "Non-local break (exiting) branch with unwind semantics.";
   let description = [{
     An UnwindBreakOp may imply unwinding the stack frame for the current
@@ -536,8 +537,8 @@ def cc_UnwindBreakOp : CCOp<"unwind_break", [
   let hasCanonicalizer = 1;
 }
 
-def cc_UnwindContinueOp : CCOp<"unwind_continue", [ 
-        ParentOneOf<["IfOp", "ScopeOp"]>]> {
+def cc_UnwindContinueOp : CCOp<"unwind_continue", [
+        ParentOneOf<["IfOp", "ScopeOp"]>, JumpWithUnwind]> {
   let summary = "Non-local continue branch with unwind semantics.";
   let description = [{
     An UnwindContinueOp may imply unwinding the stack frame for the current
@@ -598,8 +599,8 @@ def cc_UnwindContinueOp : CCOp<"unwind_continue", [
   let hasCanonicalizer = 1;
 }
 
-def cc_UnwindReturnOp : CCOp<"unwind_return", [ 
-        ParentOneOf<["LoopOp", "IfOp", "ScopeOp"]>]> {
+def cc_UnwindReturnOp : CCOp<"unwind_return", [
+        ParentOneOf<["LoopOp", "IfOp", "ScopeOp"]>, JumpWithUnwind]> {
   let summary = "Non-local return (exiting) branch with unwind semantics.";
   let description = [{
     An UnwindReturnOp may imply unwinding the stack frame for the current
@@ -819,8 +820,9 @@ def cc_InsertValueOp : CCOp<"insert_value", [Pure]> {
     Example:
 
     ```mlir
-      %s = cc.insert_value %r, %i [1, 0] : (!cc.struct<{i32, !cc.struct<{i16,
-           f32, i64}>}>, i16) -> !cc.struct<{i32, !cc.struct<{i16, f32, i64}>}>
+      %s = cc.insert_value %i16, %r[1, 0] :
+           (!cc.struct<{i32, !cc.struct<{i16, f32}>}>, i16) ->
+           !cc.struct<{i32, !cc.struct<{i16, f32}>}>
     ```
   }];
 
@@ -925,6 +927,19 @@ def cc_CastOp : CCOp<"cast", [Pure]> {
     ( `signed` $sint^ ):( ( `unsigned` $zint^ )? )? $value `:`
       functional-type(operands, results) attr-dict
   }];
+
+  let builders = [
+    OpBuilder<(ins "mlir::Type":$resTy, "mlir::Value":$value), [{
+      return build($_builder, $_state, resTy, value, {}, {});
+    }]>,
+    OpBuilder<(ins "mlir::Type":$resTy, "mlir::Value":$value,
+        "CastOpMode":$mode), [{
+      auto unitAttr = mlir::UnitAttr::get($_builder.getContext());
+      if (mode == CastOpMode::Signed)
+        return build($_builder, $_state, resTy, value, /*signed=*/unitAttr, {});
+      return build($_builder, $_state, resTy, value, {}, /*unsigned=*/unitAttr);
+    }]>
+  ];
 }
 
 //===----------------------------------------------------------------------===//

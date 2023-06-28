@@ -18,16 +18,32 @@ failed=0
 skipped=0
 samples=0
 
+if [ -x "$(command -v nvidia-smi)" ] && [ "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" != "" ]; 
+then gpu_available=true
+else gpu_available=false
+fi
+
+if $gpu_available; 
+then echo "GPU detected." && nvidia-smi
+else echo "No GPU detected."
+fi 
+
 requested_backends=`\
     echo "default"
     for target in $@; \
     do echo "$target"; \
     done`
 
+# remote_rest targets are automatically filtered
 available_backends=`\
     echo "default"
     for file in $(ls $CUDA_QUANTUM_PATH/targets/*.config); \
-    do basename $file | cut -d "." -f 1; \
+    do
+        platform=$(cat $file | grep "PLATFORM_QPU=")
+        if [ "${platform#PLATFORM_QPU=}" != "remote_rest" ] \
+           && ($gpu_available || [ "$(cat $file | grep "GPU_REQUIREMENTS")" == "" ]); then \
+            basename $file | cut -d "." -f 1; \
+        fi; \
     done`
 
 missing_backend=false
@@ -54,7 +70,7 @@ echo "Testing backends:"
 echo "$requested_backends"
 echo
 
-if $missing_backend; 
+if $missing_backend || [ "$available_backends" == "" ]; 
 then
     echo "Abort due to missing backend configuration."
     exit 1 

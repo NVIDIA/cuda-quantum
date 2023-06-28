@@ -4,7 +4,7 @@ To learn more about how to use CUDA Quantum, please take a look at the [CUDA
 Quantum Documentation][cuda_quantum_docs]. The page also contains [installation
 instructions][official_install] for released packages.
 
-[cuda_quantum_docs]: https://nvidia.github.io/cuda-quantum/
+[cuda_quantum_docs]: https://nvidia.github.io/cuda-quantum/latest
 [official_install]: https://nvidia.github.io/cuda-quantum/latest/install.html
 
 This document contains instructions for how to build CUDA Quantum from source.

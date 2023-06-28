@@ -22,7 +22,6 @@
 #include "mlir/Conversion/LLVMCommon/Pattern.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Conversion/MathToLLVM/MathToLLVM.h"
-#include "mlir/Conversion/MemRefToLLVM/MemRefToLLVM.h"
 #include "mlir/Conversion/SCFToControlFlow/SCFToControlFlow.h"
 #include "mlir/Target/LLVMIR/ModuleTranslation.h"
 #include "mlir/Transforms/DialectConversion.h"
@@ -980,6 +979,22 @@ public:
   }
 };
 
+class ExtractValueOpPattern
+    : public ConvertOpToLLVMPattern<cudaq::cc::ExtractValueOp> {
+public:
+  using Base = ConvertOpToLLVMPattern<cudaq::cc::ExtractValueOp>;
+  using Base::Base;
+
+  LogicalResult
+  matchAndRewrite(cudaq::cc::ExtractValueOp extract, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto toTy = getTypeConverter()->convertType(extract.getType());
+    rewriter.replaceOpWithNewOp<LLVM::ExtractValueOp>(
+        extract, toTy, adaptor.getContainer(), adaptor.getPosition());
+    return success();
+  }
+};
+
 class FuncToPtrOpPattern
     : public ConvertOpToLLVMPattern<cudaq::cc::FuncToPtrOp> {
 public:
@@ -991,8 +1006,25 @@ public:
   matchAndRewrite(cudaq::cc::FuncToPtrOp ftp, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto operands = adaptor.getOperands();
-    auto toTy = ftp.getType();
+    auto toTy = getTypeConverter()->convertType(ftp.getType());
     rewriter.replaceOpWithNewOp<LLVM::BitcastOp>(ftp, toTy, operands);
+    return success();
+  }
+};
+
+class InsertValueOpPattern
+    : public ConvertOpToLLVMPattern<cudaq::cc::InsertValueOp> {
+public:
+  using Base = ConvertOpToLLVMPattern<cudaq::cc::InsertValueOp>;
+  using Base::Base;
+
+  LogicalResult
+  matchAndRewrite(cudaq::cc::InsertValueOp insert, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto toTy = getTypeConverter()->convertType(insert.getType());
+    rewriter.replaceOpWithNewOp<LLVM::InsertValueOp>(
+        insert, toTy, adaptor.getContainer(), adaptor.getValue(),
+        adaptor.getPosition());
     return success();
   }
 };
@@ -1256,12 +1288,17 @@ public:
         return type;
       return LLVM::LLVMArrayType::get(eleTy, type.getSize());
     });
+    typeConverter.addConversion([&](cudaq::cc::StructType type) -> Type {
+      SmallVector<Type> members;
+      for (auto t : type.getMembers())
+        members.push_back(typeConverter.convertType(t));
+      return LLVM::LLVMStructType::getLiteral(context, members);
+    });
     RewritePatternSet patterns(context);
 
     populateAffineToStdConversionPatterns(patterns);
     arith::populateArithToLLVMConversionPatterns(typeConverter, patterns);
     populateMathToLLVMConversionPatterns(typeConverter, patterns);
-    populateMemRefToLLVMConversionPatterns(typeConverter, patterns);
 
     populateSCFToControlFlowConversionPatterns(patterns);
     cf::populateControlFlowToLLVMConversionPatterns(typeConverter, patterns);
@@ -1273,7 +1310,8 @@ public:
         AllocaOpRewrite, AllocaOpPattern, CallableClosureOpPattern,
         CallableFuncOpPattern, CastOpPattern, ComputePtrOpPattern,
         ConcatOpRewrite, DeallocOpRewrite, ExtractQubitOpRewrite,
-        FuncToPtrOpPattern, InstantiateCallableOpPattern, LoadOpPattern,
+        ExtractValueOpPattern, FuncToPtrOpPattern, InsertValueOpPattern,
+        InstantiateCallableOpPattern, LoadOpPattern,
         MeasureRewrite<quake::MzOp>, OneTargetRewrite<quake::HOp>,
         OneTargetRewrite<quake::XOp>, OneTargetRewrite<quake::YOp>,
         OneTargetRewrite<quake::ZOp>, OneTargetRewrite<quake::SOp>,

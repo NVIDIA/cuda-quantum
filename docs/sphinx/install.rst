@@ -4,19 +4,19 @@ CUDA Quantum Open Beta Installation
 Docker Image
 --------------------
 
-Install the Public Beta Docker Image
+Install the Docker Image
 ++++++++++++++++++++++++++++++++++++
-This public beta release of CUDA Quantum is being deployed via 
-a provided Docker image. 
-The image :code:`nvcr.io/nvidia/cuda-quantum:0.3.0` is available on the 
-`NGC Container Registry`_.
-Currently, the image is available for :code:`x86_64,amd64` platforms only.
+
+Docker images for all CUDA Quantum releases are available on the `NGC Container Registry`_.
+The image for the latest version under development is built from source on our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`_.
 
 .. _NGC Container Registry: https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum
 
+To download the latest version on the main branch of our GitHub repository, for example, use the command
+
 .. code-block:: console
 
-    docker pull nvcr.io/nvidia/cuda-quantum:0.3.0
+    docker pull ghcr.io/nvidia/cuda-quantum:latest
 
 .. _use-cuda-quantum-in-terminal:
 
@@ -27,16 +27,15 @@ The container can be run using the following command
 
 .. code-block:: console
 
-    docker run -it --name cuda-quantum nvcr.io/nvidia/cuda-quantum:0.3.0
+    docker run -it --name cuda-quantum <image_name>
 
-This will give you terminal access to the created container, but you are free to attach 
-an existing VSCode IDE to it.
+replacing :code:`<image_name>` with the name and tag of the image you downloaded.
 
-(what you'll see) 
+This will give you terminal access to the created container, for example
 
 .. code-block:: console 
 
-    user@host:~$ docker run -it --name cuda-quantum nvcr.io/nvidia/cuda-quantum:0.3.0
+    user@host:~$ docker run -it --name cuda-quantum ghcr.io/nvidia/cuda-quantum:latest
     To run a command as administrator (user "root"), use "sudo <command>".
     See "man sudo_root" for details.
 
@@ -44,13 +43,11 @@ an existing VSCode IDE to it.
     NVIDIA CUDA Quantum
     =========================
 
-    CUDA Quantum Version 0.3.0
+    Version: latest
 
     Copyright (c) 2023 NVIDIA Corporation & Affiliates
     All rights reserved.
 
-    cudaq@container:~$ ls
-    README.md  examples
     cudaq@container:~$ ls examples/
     cpp  python
 
@@ -59,7 +56,7 @@ an existing VSCode IDE to it.
     If you have NVIDIA GPUs available and NVIDIA Docker correctly configured, 
     you can add :code:`--gpus all` to the :code:`docker run` command to expose all available GPUs 
     to the container, or :code:`--gpus '"device=1"'` to select a specific GPU device.
-    Unless you specify this flag, you will not be able to compile to the :code:`--qpu cuquantum`
+    Unless you specify this flag, you will not be able to compile to the :code:`--target nvidia`
     target. 
 
 .. note:: 
@@ -81,12 +78,12 @@ To do so, install the `Dev Containers extension`_:
 .. image:: _static/devContainersExtension.png 
 
 Follow the steps :ref:`above<use-cuda-quantum-in-terminal>` to start the container. 
-Open VS Code and navigate to the Remote Explorer. You should see the running cuda-quantum dev container listed there.
+Open VS Code and navigate to the Remote Explorer. You should see the running cuda-quantum development container listed there.
 
 .. image:: _static/attachToDevContainer.png 
 
 Click on :code:`Attach to Container`. A new VS Code instance will open in that container. Open the `/home/cudaq`
-folder to see the README and the CUDA Quantum examples that are included in the container. To run the examples, 
+folder to see the `README.md` file and the CUDA Quantum examples that are included in the container. To run the examples, 
 open a terminal by going to the Terminal menu and select :code:`New Terminal`. 
 
 .. image:: _static/openTerminal.png 
@@ -104,7 +101,7 @@ or run the Python examples using the Python interpreter.
 
     VS Code extensions that you have installed locally, such as e.g. an extension for Jupyter notebooks, 
     may not be automatically active in the container environment. You may need to install your preferred 
-    extension in the container environment for all of your dev tools to be available.
+    extension in the container environment for all of your development tools to be available.
 
 
 Build CUDA Quantum from Source
@@ -121,7 +118,7 @@ With the CUDA Quantum Docker image installed and a container up and running, che
 Using CUDA Quantum page_. To run the examples codes in the container, checkout the Compiling
 and Executing section here_. 
 
-Once in the VSCode IDE or in the terminal for the container in headless mode, you'll 
+Once in the VS Code IDE or in the terminal for the container in headless mode, you'll 
 notice there is an :code:`examples/` folder. These examples are provided to 
 get you started with CUDA Quantum and understanding the programming and execution model. 
 Start of by trying to compile a simple one, like :code:`examples/cpp/basics/static_kernel.cpp`
@@ -136,7 +133,7 @@ run command), try out the 30 qubit version of this example.
 
 .. code-block:: console 
 
-    nvq++ examples/cpp/basics/cuquantum_backends.cpp --qpu cuquantum 
+    nvq++ examples/cpp/basics/cuquantum_backends.cpp --target nvidia 
     ./a.out 
 
 .. _page: using/cudaq.html

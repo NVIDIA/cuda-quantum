@@ -1,0 +1,95 @@
+on:
+  workflow_dispatch:
+    inputs:
+      artifacts_url:
+        required: true
+        type: string
+        description: 'The url to the artifacts that contain the docs to publish.'
+      artifact_name:
+        required: false
+        type: string
+        default: cuda_quantum_docs
+        description: 'The name of the artifact that contain the docs to publish.'
+      version:
+        required: true
+        type: string
+        description: 'The version that the documentation corresponds to, e.g. 0.3.1 or latest.'
+  workflow_run:
+    branches:
+      - 'main'
+      - 'releases/*'
+    workflows:
+      - Deployments
+    types:
+      - completed
+
+name: Docs publishing
+
+concurrency:
+    group: ${{ github.workflow }} # only one docs publishing can be run at a time, since all docs are published to the same location!
+    cancel-in-progress: false
+
+jobs:
+  publish_docs:
+    name: Publish documentation
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+
+    permissions:
+      contents: write
+  
+    environment:
+      name: github-pages
+      url: ${{ vars.deployment_url }}
+  
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ vars.live_branch }}
+          token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+
+      - name: Push docs update
+        run: |
+          if ${{ github.event_name == 'workflow_dispatch' }}; then
+            target_folder=${{ inputs.version }}
+          elif ${{ github.event.workflow_run.head_branch == 'main' }}; then
+            target_folder=latest
+          else
+            target_folder=`echo ${{ github.event.workflow_run.head_branch }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
+          fi
+
+          artifacts_url=${{ (github.event_name == 'workflow_dispatch' && inputs.artifacts_url) || github.event.workflow_run.artifacts_url }}
+          artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
+          artifact_name=${{ (github.event_name == 'workflow_dispatch' && inputs.artifact_name) || 'cuda_quantum_docs' }}
+
+          status=1
+          for artifact in `echo "$artifacts"`; do
+            name=`echo $artifact | jq -r '.name'`
+            if [ "$name" == "$artifact_name" ]; then
+              url=`echo $artifact | jq -r '.url'`
+              gh api $url > cuda_quantum_docs.zip
+
+              rm -rf "$target_folder"
+              unzip -d "$target_folder" cuda_quantum_docs.zip
+              rm -rf cuda_quantum_docs.zip
+
+              git config --global user.name "cuda-quantum-bot"
+              git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
+
+              bash create_redirects.sh >> $GITHUB_STEP_SUMMARY
+              git add "$target_folder"
+
+              if ${{ github.event_name == 'workflow_dispatch' }}; then
+                git commit -m "Docs update triggered manually for version ${{ inputs.version }} (artifacts url: ${{ inputs.artifacts_url }}, artifact name: ${{ inputs.artifact_name }})."
+              else
+                git commit --allow-empty -m "Docs update triggered by deployment on head branch ${{ github.event.workflow_run.head_branch }}, commit ${{ github.event.workflow_run.head_sha }}."
+              fi
+              git pull --no-edit && git push
+
+              status=0
+            fi
+          done
+          exit $status
+        env:
+          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
