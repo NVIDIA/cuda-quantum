@@ -27,8 +27,7 @@ if (sys.argv[1] == 'egg_info'):
 # FIXME: Linux machines default to dist-packages unless the `--user` flag is provided to
 # the pip install. We hard-code everything to site-packages in the meantime and require the
 # user to install with `--user`.
-# cmake_install_dir=f"lib/python{sys.version_info[0]}.{sys.version_info[1]}/site-packages/cudaq"
-cmake_install_dir="cudaq"
+cmake_install_dir=f"lib/python{sys.version_info[0]}.{sys.version_info[1]}/site-packages/cudaq"
 
 skbuild.setup(
     name="cuda-quantum",
@@ -37,7 +36,7 @@ skbuild.setup(
                  "domains": "python/cudaq/domains",
                  "chemistry": "python/cudaq/domains/chemistry",
     },
-    packages=setuptools.find_packages(where="python/cudaq", include=["*"]),
+    packages=setuptools.find_packages(where="python", include=["*"]),
     zip_safe=False,
     python_requires=">=3.8",
     cmake_install_dir=cmake_install_dir,
@@ -51,7 +50,7 @@ skbuild.setup(
         "-DLLVM_DIR=/opt/llvm",
         # "-DLLVM_DIR={}".format(os.environ["LLVM_DIR"])
         # if "LLVM_DIR" in os.environ else "/opt/llvm",
-         "-DOPENSSL_USE_STATIC_LIBS=TRUE",
+        "-DOPENSSL_USE_STATIC_LIBS=TRUE",
         "-DCMAKE_EXE_LINKER_FLAGS='-static-libgcc -static-libstdc++'",
         "-DCMAKE_SHARED_LINKER_FLAGS='-static-libgcc -static-libstdc++'",
         "-DOPENSSL_ROOT_DIR=/usr/local/ssl", 
