@@ -75,9 +75,15 @@ destructor
 discretization
 discretize
 discretized
+eigensolver
+eigensolvers
 eigenstate
+eigenstates
+eigenvalue
+eigenvalues
+eigenvector
+eigenvectors
 enqueues
-ensmallen
 entangler
 entanglers
 enum
@@ -94,6 +100,8 @@ precomputed
 prepend
 quantize
 quantized
+optimizer
+optimizers
 qubit
 qubits
 qudit
