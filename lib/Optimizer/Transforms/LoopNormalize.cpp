@@ -63,12 +63,7 @@ public:
     Value diff = rewriter.create<arith::SubIOp>(loc, upper, c.initialValue);
     Value disp = rewriter.create<arith::AddIOp>(loc, diff, step);
     auto cmpOp = cast<arith::CmpIOp>(c.compareOp);
-    auto isUnsignedPred = cudaq::opt::isUnsignedPredicate(cmpOp.getPredicate());
-    auto up1 = [&]() -> Value {
-      if (isUnsignedPred)
-        return rewriter.create<arith::DivUIOp>(loc, disp, step);
-      return rewriter.create<arith::DivSIOp>(loc, disp, step);
-    }();
+    Value up1 = rewriter.create<arith::DivSIOp>(loc, disp, step);
     Value noLoopCond = rewriter.create<arith::CmpIOp>(
         loc, arith::CmpIPredicate::sgt, up1, zero);
     Value newUpper =

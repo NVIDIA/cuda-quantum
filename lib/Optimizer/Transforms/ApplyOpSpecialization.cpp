@@ -444,10 +444,7 @@ public:
       iters = builder.create<arith::AddIOp>(loc, iters, adj);
     }
     iters = builder.create<arith::AddIOp>(loc, iters, newStepVal);
-    if (cudaq::opt::isUnsignedPredicate(pred))
-      iters = builder.create<arith::DivUIOp>(loc, iters, newStepVal);
-    else
-      iters = builder.create<arith::DivSIOp>(loc, iters, newStepVal);
+    iters = builder.create<arith::DivSIOp>(loc, iters, newStepVal);
     Value noLoopCond = builder.create<arith::CmpIOp>(
         loc, arith::CmpIPredicate::sgt, iters, zero);
     iters = builder.create<arith::SelectOp>(loc, iters.getType(), noLoopCond,
