@@ -32,8 +32,8 @@ To compile and execute this code, we run the following
 
 .. code:: bash 
 
-    nvq++ static_kernel.cpp -o ghz.x 
-    ./ghz.x 
+   nvq++ static_kernel.cpp -o ghz.x
+   ./ghz.x
 
 Computing Expectation Values 
 ------------------------------
@@ -88,23 +88,23 @@ To compile and execute this code, we run the following
 
 .. code:: bash 
 
-    nvq++ multi_controlled_operations.cpp -o mcx.x 
-    ./mcx.x 
+   nvq++ multi_controlled_operations.cpp -o mcx.x 
+   ./mcx.x
 
-Simulations with :code:`cuQuantum`
+Simulations with cuQuantum
 -----------------------------------
 
-CUDA Quantum provides native support for :code:`cuQuantum`-accelerated state vector and tensor network 
+CUDA Quantum provides native support for cuQuantum-accelerated state vector and tensor network 
 simulations. Let's take a look at an example that is too large for a standard CPU-only simulator, but 
 can be trivially simulated via a NVIDIA GPU-accelerated backend:
 
 .. literalinclude:: ../examples/cpp/basics/cuquantum_backends.cpp
    :language: cpp
 
-Here we generate a GHZ state on 30 qubits. To run with the built-in :code:`cuQuantum` state 
+Here we generate a GHZ state on 30 qubits. To run with the built-in cuQuantum state 
 vector support, we pass the :code:`--target nvidia` flag at compile time:
 
 .. code:: bash 
 
-    nvq++ --target nvidia cuquantum_backends.cpp -o ghz.x 
-    ./ghz.x 
+   nvq++ --target nvidia cuquantum_backends.cpp -o ghz.x
+   ./ghz.x

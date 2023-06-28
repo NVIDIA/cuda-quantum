@@ -15,15 +15,15 @@ a similar manner as classical C++ compilers:
 
 .. code-block:: console
 
-  nvq++ simple.cpp -o simple.x (optional... -I /header/path -L /library/path -lfoo)
-  ./simple.x 
+    nvq++ simple.cpp -o simple.x (optional... -I /header/path -L /library/path -lfoo)
+    ./simple.x
 
 One can specify the target quantum architecture to target with the :code:`--target` flag:
 
 .. code-block:: console 
 
-  nvq++ simple.cpp --target nvidia 
-  ./a.out 
+    nvq++ simple.cpp --target nvidia
+    ./a.out
 
 The :code:`nvidia` target architecture will configure the executable to run 
 on GPU-enabled simulation resources accelerated by cuQuantum. 

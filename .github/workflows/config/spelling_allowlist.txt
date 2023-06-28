@@ -59,6 +59,7 @@ canonicalization
 canonicalize
 canonicalizer
 canonicalizes
+cuQuantum
 codebase
 composable
 controlled
