@@ -62,3 +62,16 @@ func.func @cccz(%c0: !quake.ref,  %c1: !quake.ref, %c2: !quake.ref, %t: !quake.r
   quake.z [%c0, %c1, %c2] %t : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
   return
 }
+
+// Make sure that non-controlled ops will be left alone.
+// CHECK-LABEL: func.func @bug_291
+func.func @bug_291(%c: !quake.veq<3>, %t: !quake.ref) {
+  // CHECK: quake.alloca !quake.ref
+  // CHECK-NOT: quake.alloca !quake.ref
+  // CHECK: quake.h
+  quake.h %t : (!quake.ref) -> ()
+  // CHECK: quake.extract_ref
+  quake.x [%c] %t : (!quake.veq<3>, !quake.ref) -> ()
+  quake.x [%c] %t : (!quake.veq<3>, !quake.ref) -> ()
+  return
+}

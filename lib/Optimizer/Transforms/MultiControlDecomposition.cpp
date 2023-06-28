@@ -113,11 +113,11 @@ LogicalResult Decomposer::v_decomposition(quake::OperatorInterface op) {
 
   // We only decompose operations with multiple controls.
   if (controls.size() <= 1)
-    return success();
+    return failure();
 
   // We don't decompose CCX and CCZ as they are handle by another pass.
   if (controls.size() == 2 && isa<quake::XOp, quake::ZOp>(op))
-    return success();
+    return failure();
 
   // Operator info
   Location loc = op->getLoc();

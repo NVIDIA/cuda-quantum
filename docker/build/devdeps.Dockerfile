@@ -111,7 +111,6 @@ ENV PATH="$PATH:$LLVM_INSTALL_PREFIX/bin/"
 # as part of the LLVM build and compile against that instead of libstdc++.
 RUN apt-get update && apt-get install -y --no-install-recommends libstdc++-12-dev \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
-ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:/usr/include/c++/11/:/usr/include/x86_64-linux-gnu/c++/11"
 
 # Install the C/C++ compiler toolchain with which the LLVM dependencies have
 # been built. CUDA Quantum needs to be built with that same toolchain. We use

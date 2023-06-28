@@ -22,7 +22,7 @@ One can specify the target quantum architecture to target with the :code:`--targ
 
 .. code-block:: console 
 
-  nvq++ simple.cpp --qpu nvidia 
+  nvq++ simple.cpp --target nvidia 
   ./a.out 
 
 The :code:`nvidia` target architecture will configure the executable to run 

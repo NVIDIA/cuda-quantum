@@ -54,6 +54,10 @@ public:
   /// Get the number of qubits for the current QPU
   std::size_t get_num_qubits();
 
+  /// @brief Return true if this platform exposes multiple QPUs and
+  /// supports parallel distribution of quantum tasks.
+  virtual bool supports_task_distribution() const { return false; }
+
   /// Get the number of qubits for the QPU with ID qpu_id
   std::size_t get_num_qubits(std::size_t qpu_id);
 

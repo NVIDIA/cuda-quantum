@@ -190,7 +190,57 @@ void unset_noise();
 /// @brief Utility function for clearing the shots
 void clear_shots(const std::size_t nShots);
 
+namespace mpi {
+
+/// @brief Initialize MPI if available. This function
+/// is a no-op if there CUDA Quantum has not been built
+/// against MPI.
+void initialize();
+
+/// @brief Initialize MPI if available. This function
+/// is a no-op if there CUDA Quantum has not been built
+/// against MPI. Takes program arguments as input.
+void initialize(int argc, char **argv);
+
+/// @brief Return the rank of the calling process.
+int rank();
+
+/// @brief Return the number of MPI ranks.
+int num_ranks();
+
+/// @brief Return true if MPI is already initialized, false otherwise.
+bool is_initialized();
+
+double allreduce_double_add(double localValue);
+
+namespace details {
+#define CUDAQ_ALL_REDUCE_DEF(TYPE, BINARY)                                     \
+  TYPE allReduce(const TYPE &, const BINARY<TYPE> &);
+
+CUDAQ_ALL_REDUCE_DEF(float, std::plus)
+CUDAQ_ALL_REDUCE_DEF(float, std::multiplies)
+
+CUDAQ_ALL_REDUCE_DEF(double, std::plus)
+CUDAQ_ALL_REDUCE_DEF(double, std::multiplies)
+
+} // namespace details
+
+/// @brief Reduce all values across ranks with the specified binary function.
+template <typename T, typename BinaryFunction>
+T all_reduce(const T &localValue, const BinaryFunction &function) {
+  return details::allReduce(localValue, function);
+}
+
+/// @brief Finalize MPI. This function
+/// is a no-op if there CUDA Quantum has not been built
+/// against MPI.
+void finalize();
+
+} // namespace mpi
+
 } // namespace cudaq
 
 // Users should get sample by default
 #include "cudaq/algorithms/sample.h"
+// Users should get observe by default
+#include "cudaq/algorithms/observe.h"

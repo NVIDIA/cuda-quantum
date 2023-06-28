@@ -38,8 +38,8 @@ jobs:
           devdeps_image=`echo $loaded | cut -d ":" -f 1`
           devdeps_tag=`echo $loaded | cut -d ":" -f 2`
 
-          docker build -t cuda-quantum-dev:local -f docker/build/cudaqdev.Dockerfile . \
-            --build-arg build_environment=$devdeps_image --build-arg env_tag=$devdeps_tag \
+          docker build -t cuda-quantum-dev:local -f docker/build/cudaq.dev.Dockerfile . \
+            --build-arg base_image=${devdeps_image}:${devdeps_tag} \
             --build-arg install="CMAKE_BUILD_TYPE=Debug"
           
           tag_prefix=`echo $devdeps_tag | cut -d "_" -f 1`

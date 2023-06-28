@@ -8,7 +8,6 @@
 
 // RUN: cudaq-opt %s | cudaq-opt | FileCheck %s
 
-module {
 func.func @test_old_for() {
   %1 = memref.alloc() : memref<i32>
   %zero = arith.constant 0 : i32
@@ -37,6 +36,33 @@ func.func @test_old_for() {
   }
   func.return
 }
+
+// CHECK-LABEL:   func.func @test_old_for() {
+// CHECK:           %[[VAL_0:.*]] = memref.alloc() : memref<i32>
+// CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
+// CHECK:           memref.store %[[VAL_1]], %[[VAL_0]][] : memref<i32>
+// CHECK:           cc.loop while {
+// CHECK:             %[[VAL_2:.*]] = memref.load %[[VAL_0]][] : memref<i32>
+// CHECK:             %[[VAL_3:.*]] = arith.constant 10 : i32
+// CHECK:             %[[VAL_4:.*]] = arith.cmpi slt, %[[VAL_2]], %[[VAL_3]] : i32
+// CHECK:             cc.condition %[[VAL_4]]
+// CHECK:           } do {
+// CHECK:             %[[VAL_5:.*]] = memref.load %[[VAL_0]][] : memref<i32>
+// CHECK:             %[[VAL_6:.*]] = arith.constant 5 : i32
+// CHECK:             %[[VAL_7:.*]] = arith.cmpi slt, %[[VAL_5]], %[[VAL_6]] : i32
+// CHECK:             cf.cond_br %[[VAL_7]], ^bb1, ^bb2
+// CHECK:           ^bb1:
+// CHECK:             cc.break
+// CHECK:           ^bb2:
+// CHECK:             cc.continue
+// CHECK:           } step {
+// CHECK:             %[[VAL_8:.*]] = arith.constant 12 : i32
+// CHECK:             %[[VAL_9:.*]] = memref.load %[[VAL_0]][] : memref<i32>
+// CHECK:             %[[VAL_10:.*]] = arith.addi %[[VAL_8]], %[[VAL_9]] : i32
+// CHECK:             memref.store %[[VAL_10]], %[[VAL_0]][] : memref<i32>
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }
 
 func.func @test_scoped_for() {
   cc.scope {
@@ -69,6 +95,35 @@ func.func @test_scoped_for() {
   }
   func.return
 }
+
+// CHECK-LABEL:   func.func @test_scoped_for() {
+// CHECK:           cc.scope {
+// CHECK:             %[[VAL_0:.*]] = memref.alloc() : memref<i32>
+// CHECK:             %[[VAL_1:.*]] = arith.constant 0 : i32
+// CHECK:             memref.store %[[VAL_1]], %[[VAL_0]][] : memref<i32>
+// CHECK:             cc.loop while {
+// CHECK:               %[[VAL_2:.*]] = memref.load %[[VAL_0]][] : memref<i32>
+// CHECK:               %[[VAL_3:.*]] = arith.constant 10 : i32
+// CHECK:               %[[VAL_4:.*]] = arith.cmpi slt, %[[VAL_2]], %[[VAL_3]] : i32
+// CHECK:               cc.condition %[[VAL_4]]
+// CHECK:             } do {
+// CHECK:               %[[VAL_5:.*]] = memref.load %[[VAL_0]][] : memref<i32>
+// CHECK:               %[[VAL_6:.*]] = arith.constant 5 : i32
+// CHECK:               %[[VAL_7:.*]] = arith.cmpi slt, %[[VAL_5]], %[[VAL_6]] : i32
+// CHECK:               cf.cond_br %[[VAL_7]], ^bb1, ^bb2
+// CHECK:             ^bb1:
+// CHECK:               cc.break
+// CHECK:             ^bb2:
+// CHECK:               cc.continue
+// CHECK:             } step {
+// CHECK:               %[[VAL_8:.*]] = arith.constant 12 : i32
+// CHECK:               %[[VAL_9:.*]] = memref.load %[[VAL_0]][] : memref<i32>
+// CHECK:               %[[VAL_10:.*]] = arith.addi %[[VAL_8]], %[[VAL_9]] : i32
+// CHECK:               memref.store %[[VAL_10]], %[[VAL_0]][] : memref<i32>
+// CHECK:             }
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }
 
 func.func @test_scoped_for_with_args() {
   cc.scope {
@@ -105,145 +160,6 @@ func.func @test_scoped_for_with_args() {
 
 func.func private @getI32() -> i32
 
-func.func @test_do_while() {
-  %1 = memref.alloc() : memref<i32>
-  %zero = arith.constant 0 : i32
-  memref.store %zero, %1[] : memref<i32>
-  cc.loop do {
-    ^bb0:
-      %8 = func.call @getI32() : () -> i32
-      memref.store %8, %1[] : memref<i32>
-      cc.continue
-  } while {
-    %3 = arith.constant 1 : i1
-    cc.condition %3
-  }
-  func.return
-}
-
-func.func @test_do_while_with_args() {
-  %1 = memref.alloc() : memref<i32>
-  %zero = arith.constant 0 : i32
-  memref.store %zero, %1[] : memref<i32>
-  cc.loop do ((%i = %zero) -> i32) {
-      %8 = func.call @getI32() : () -> i32
-      memref.store %i, %1[] : memref<i32>
-      cc.continue %i : i32
-  } while {
-    ^bb9(%arg0 : i32):
-      %3 = arith.constant 1 : i32
-      %33 = arith.constant 97 : i32
-      %34 = arith.addi %arg0, %3 : i32
-      %35 = arith.cmpi slt, %34, %33 : i32
-      cc.condition %35 (%34 : i32)
-  }
-  func.return
-}
-
-func.func @test_while() {
-  %1 = memref.alloc() : memref<i32>
-  %zero = arith.constant 0 : i32
-  memref.store %zero, %1[] : memref<i32>
-  cc.loop while {
-    %3 = arith.constant 1 : i1
-    cc.condition %3
-  } do {
-    ^bb0:
-      %8 = func.call @getI32() : () -> i32
-      memref.store %8, %1[] : memref<i32>
-      cc.continue
-  }
-  func.return
-}
-
-func.func @test_if_else(%c : i1) {
-  %1 = memref.alloc() : memref<i32>
-  %zero = arith.constant 0 : i32
-  memref.store %zero, %1[] : memref<i32>
-  cc.if (%c) {
-    ^bb0:
-      %3 = arith.constant 1 : i1
-      cc.continue
-  } else {
-    ^bb1:
-      %8 = func.call @getI32() : () -> i32
-      cf.br ^bb2
-    ^bb2:
-      cc.continue
-  }
-  func.return
-}
-
-func.func @test_if(%c : i1) {
-  %1 = memref.alloc() : memref<i32>
-  %zero = arith.constant 0 : i32
-  memref.store %zero, %1[] : memref<i32>
-  cc.if (%c) {
-    ^bb1:
-      %8 = func.call @getI32() : () -> i32
-      cf.br ^bb2
-    ^bb2:
-      cc.continue
-  }
-  func.return
-}
-
-// CHECK-LABEL:   func.func @test_old_for() {
-// CHECK:           %[[VAL_0:.*]] = memref.alloc() : memref<i32>
-// CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
-// CHECK:           memref.store %[[VAL_1]], %[[VAL_0]][] : memref<i32>
-// CHECK:           cc.loop while {
-// CHECK:             %[[VAL_2:.*]] = memref.load %[[VAL_0]][] : memref<i32>
-// CHECK:             %[[VAL_3:.*]] = arith.constant 10 : i32
-// CHECK:             %[[VAL_4:.*]] = arith.cmpi slt, %[[VAL_2]], %[[VAL_3]] : i32
-// CHECK:             cc.condition %[[VAL_4]]
-// CHECK:           } do {
-// CHECK:             %[[VAL_5:.*]] = memref.load %[[VAL_0]][] : memref<i32>
-// CHECK:             %[[VAL_6:.*]] = arith.constant 5 : i32
-// CHECK:             %[[VAL_7:.*]] = arith.cmpi slt, %[[VAL_5]], %[[VAL_6]] : i32
-// CHECK:             cf.cond_br %[[VAL_7]], ^bb1, ^bb2
-// CHECK:           ^bb1:
-// CHECK:             cc.break
-// CHECK:           ^bb2:
-// CHECK:             cc.continue
-// CHECK:           } step {
-// CHECK:             %[[VAL_8:.*]] = arith.constant 12 : i32
-// CHECK:             %[[VAL_9:.*]] = memref.load %[[VAL_0]][] : memref<i32>
-// CHECK:             %[[VAL_10:.*]] = arith.addi %[[VAL_8]], %[[VAL_9]] : i32
-// CHECK:             memref.store %[[VAL_10]], %[[VAL_0]][] : memref<i32>
-// CHECK:           }
-// CHECK:           return
-// CHECK:         }
-
-// CHECK-LABEL:   func.func @test_scoped_for() {
-// CHECK:           cc.scope {
-// CHECK:             %[[VAL_0:.*]] = memref.alloc() : memref<i32>
-// CHECK:             %[[VAL_1:.*]] = arith.constant 0 : i32
-// CHECK:             memref.store %[[VAL_1]], %[[VAL_0]][] : memref<i32>
-// CHECK:             cc.loop while {
-// CHECK:               %[[VAL_2:.*]] = memref.load %[[VAL_0]][] : memref<i32>
-// CHECK:               %[[VAL_3:.*]] = arith.constant 10 : i32
-// CHECK:               %[[VAL_4:.*]] = arith.cmpi slt, %[[VAL_2]], %[[VAL_3]] : i32
-// CHECK:               cc.condition %[[VAL_4]]
-// CHECK:             } do {
-// CHECK:               %[[VAL_5:.*]] = memref.load %[[VAL_0]][] : memref<i32>
-// CHECK:               %[[VAL_6:.*]] = arith.constant 5 : i32
-// CHECK:               %[[VAL_7:.*]] = arith.cmpi slt, %[[VAL_5]], %[[VAL_6]] : i32
-// CHECK:               cf.cond_br %[[VAL_7]], ^bb1, ^bb2
-// CHECK:             ^bb1:
-// CHECK:               cc.break
-// CHECK:             ^bb2:
-// CHECK:               cc.continue
-// CHECK:             } step {
-// CHECK:               %[[VAL_8:.*]] = arith.constant 12 : i32
-// CHECK:               %[[VAL_9:.*]] = memref.load %[[VAL_0]][] : memref<i32>
-// CHECK:               %[[VAL_10:.*]] = arith.addi %[[VAL_8]], %[[VAL_9]] : i32
-// CHECK:               memref.store %[[VAL_10]], %[[VAL_0]][] : memref<i32>
-// CHECK:             }
-// CHECK:           }
-// CHECK:           return
-// CHECK:         }
-
 // CHECK-LABEL:   func.func @test_scoped_for_with_args() {
 // CHECK:           cc.scope {
 // CHECK:             %[[VAL_0:.*]] = memref.alloc() : memref<i32>
@@ -276,7 +192,24 @@ func.func @test_if(%c : i1) {
 // CHECK:           }
 // CHECK:           return
 // CHECK:         }
-// CHECK:         func.func private @getI32() -> i32
+
+// CHECK-LABEL:   func.func private @getI32() -> i32
+
+func.func @test_do_while() {
+  %1 = memref.alloc() : memref<i32>
+  %zero = arith.constant 0 : i32
+  memref.store %zero, %1[] : memref<i32>
+  cc.loop do {
+    ^bb0:
+      %8 = func.call @getI32() : () -> i32
+      memref.store %8, %1[] : memref<i32>
+      cc.continue
+  } while {
+    %3 = arith.constant 1 : i1
+    cc.condition %3
+  }
+  func.return
+}
 
 // CHECK-LABEL:   func.func @test_do_while() {
 // CHECK:           %[[VAL_0:.*]] = memref.alloc() : memref<i32>
@@ -291,6 +224,25 @@ func.func @test_if(%c : i1) {
 // CHECK:           }
 // CHECK:           return
 // CHECK:         }
+
+func.func @test_do_while_with_args() {
+  %1 = memref.alloc() : memref<i32>
+  %zero = arith.constant 0 : i32
+  memref.store %zero, %1[] : memref<i32>
+  cc.loop do ((%i = %zero) -> i32) {
+      %8 = func.call @getI32() : () -> i32
+      memref.store %i, %1[] : memref<i32>
+      cc.continue %i : i32
+  } while {
+    ^bb9(%arg0 : i32):
+      %3 = arith.constant 1 : i32
+      %33 = arith.constant 97 : i32
+      %34 = arith.addi %arg0, %3 : i32
+      %35 = arith.cmpi slt, %34, %33 : i32
+      cc.condition %35 (%34 : i32)
+  }
+  func.return
+}
 
 // CHECK-LABEL:   func.func @test_do_while_with_args() {
 // CHECK:           %[[VAL_0:.*]] = memref.alloc() : memref<i32>
@@ -311,6 +263,22 @@ func.func @test_if(%c : i1) {
 // CHECK:           return
 // CHECK:         }
 
+func.func @test_while() {
+  %1 = memref.alloc() : memref<i32>
+  %zero = arith.constant 0 : i32
+  memref.store %zero, %1[] : memref<i32>
+  cc.loop while {
+    %3 = arith.constant 1 : i1
+    cc.condition %3
+  } do {
+    ^bb0:
+      %8 = func.call @getI32() : () -> i32
+      memref.store %8, %1[] : memref<i32>
+      cc.continue
+  }
+  func.return
+}
+
 // CHECK-LABEL:   func.func @test_while() {
 // CHECK:           %[[VAL_0:.*]] = memref.alloc() : memref<i32>
 // CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
@@ -325,6 +293,24 @@ func.func @test_if(%c : i1) {
 // CHECK:           }
 // CHECK:           return
 // CHECK:         }
+
+func.func @test_if_else(%c : i1) {
+  %1 = memref.alloc() : memref<i32>
+  %zero = arith.constant 0 : i32
+  memref.store %zero, %1[] : memref<i32>
+  cc.if (%c) {
+    ^bb0:
+      %3 = arith.constant 1 : i1
+      cc.continue
+  } else {
+    ^bb1:
+      %8 = func.call @getI32() : () -> i32
+      cf.br ^bb2
+    ^bb2:
+      cc.continue
+  }
+  func.return
+}
 
 // CHECK-LABEL:   func.func @test_if_else(
 // CHECK-SAME:                            %[[VAL_0:.*]]: i1) {
@@ -341,6 +327,20 @@ func.func @test_if(%c : i1) {
 // CHECK:           }
 // CHECK:           return
 // CHECK:         }
+
+func.func @test_if(%c : i1) {
+  %1 = memref.alloc() : memref<i32>
+  %zero = arith.constant 0 : i32
+  memref.store %zero, %1[] : memref<i32>
+  cc.if (%c) {
+    ^bb1:
+      %8 = func.call @getI32() : () -> i32
+      cf.br ^bb2
+    ^bb2:
+      cc.continue
+  }
+  func.return
+}
 
 // CHECK-LABEL:   func.func @test_if(
 // CHECK-SAME:                       %[[VAL_0:.*]]: i1) {
@@ -385,4 +385,45 @@ func.func @test_if_else_thread(%c : i1) -> i32 {
 // CHECK:           return %[[VAL_3]] : i32
 // CHECK:         }
 
+func.func @empty_step() {
+  %c1_i32 = arith.constant 1 : i32
+  %0 = arith.extsi %c1_i32 : i32 to i64
+  %1 = quake.alloca !quake.veq<?>[%0 : i64]
+  cc.scope {
+    %c3_i32 = arith.constant 3 : i32
+    %3 = arith.extsi %c3_i32 : i32 to i64
+    %4 = cc.alloca i64
+    cc.store %3, %4 : !cc.ptr<i64>
+    cc.loop while {
+      %5 = cc.load %4 : !cc.ptr<i64>
+      %c1_i64 = arith.constant 1 : i64
+      %6 = arith.subi %5, %c1_i64 : i64
+      cc.store %6, %4 : !cc.ptr<i64>
+      %c0_i32 = arith.constant 0 : i32
+      %7 = arith.extsi %c0_i32 : i32 to i64
+      %8 = arith.cmpi ugt, %5, %7 : i64
+      cc.condition %8
+    } do {
+      %c0_i32 = arith.constant 0 : i32
+      %5 = arith.extsi %c0_i32 : i32 to i64
+      %6 = quake.extract_ref %1[%5] : (!quake.veq<?>, i64) -> !quake.ref
+      quake.x %6 : (!quake.ref) -> ()
+      cc.continue
+    } step {
+    }
+  }
+  %2 = quake.mz %1 : (!quake.veq<?>) -> !cc.stdvec<i1>
+  return
 }
+
+// CHECK-LABEL:   func.func @empty_step() {
+// CHECK:           cc.scope {
+// CHECK:             cc.loop while {
+// CHECK:               cc.condition %
+// CHECK:             } do {
+// CHECK:               quake.x
+// CHECK:               cc.continue
+// CHECK:             }
+// CHECK:           }
+// CHECK:           quake.mz
+// CHECK:         }

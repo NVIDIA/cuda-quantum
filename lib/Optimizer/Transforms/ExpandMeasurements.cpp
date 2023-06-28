@@ -126,7 +126,7 @@ public:
     target.addDynamicallyLegalOp<quake::MzOp>(
         [](quake::MzOp x) { return usesIndividualQubit(x); });
     if (failed(applyPartialConversion(op, target, std::move(patterns)))) {
-      emitError(op->getLoc(), "error expanding measurements\n");
+      op->emitOpError("could not expand measurements");
       signalPassFailure();
     }
   }

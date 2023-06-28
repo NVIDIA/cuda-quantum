@@ -87,13 +87,14 @@ public:
   /// Compute the current iterations gradient vector and update the
   /// provided vector<double reference (dx).
   virtual void compute(const std::vector<double> &x, std::vector<double> &dx,
-                       spin_op &h, double exp_h) = 0;
+                       spin_op &h, double funcAtX) = 0;
 
   /// Compute the gradient vector for the provided objective function, `func`,
   /// at the given set of parameters, `x`.
   virtual std::vector<double>
   compute(const std::vector<double> &x,
-          std::function<double(std::vector<double>)> &func) = 0;
+          const std::function<double(std::vector<double>)> &func,
+          double funcAtX) = 0;
 
   virtual ~gradient() = default;
 };

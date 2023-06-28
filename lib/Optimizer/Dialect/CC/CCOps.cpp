@@ -328,6 +328,8 @@ Region &cudaq::cc::LoopOp::getLoopBody() { return getBodyRegion(); }
 // block is properly terminated.
 static void ensureStepTerminator(OpBuilder &builder, OperationState &result,
                                  Region *stepRegion) {
+  if (stepRegion->empty())
+    return;
   auto *block = &stepRegion->back();
   auto addContinue = [&]() {
     OpBuilder::InsertionGuard guard(builder);
@@ -372,7 +374,7 @@ void cudaq::cc::LoopOp::build(OpBuilder &builder, OperationState &result,
 }
 
 LogicalResult cudaq::cc::LoopOp::verify() {
-  const auto initArgsSize = getInitArgs().size();
+  const auto initArgsSize = getInitialArgs().size();
   if (getResults().size() != initArgsSize)
     return emitOpError("size of init args and outputs must be equal");
   if (getWhileRegion().front().getArguments().size() != initArgsSize)
@@ -557,7 +559,108 @@ void cudaq::cc::LoopOp::getSuccessorRegions(
 
 OperandRange
 cudaq::cc::LoopOp::getSuccessorEntryOperands(std::optional<unsigned> index) {
-  return getInitArgs();
+  return getInitialArgs();
+}
+
+namespace {
+// If an argument to a LoopOp traverses the loop unchanged then it is invariant
+// across all iterations of the loop and can be hoisted out of the loop. This
+// pattern detects invariant arguments and removes them from the LoopOp. This
+// performs the following rewrite, where the notation `⟦x := y⟧` means all uses
+// of `x` are replaced with `y`.
+//
+//    %result = cc.loop while ((%invariant = %1) -> (T)) {
+//      ...
+//      cc.condition %cond(%invariant : T)
+//    } do {
+//    ^bb1(%invariant : T):
+//      ...
+//      cc.continue %invariant : T
+//    } step {
+//    ^bb1(%invariant : T):
+//      ...
+//      cc.continue %invariant : T
+//    }
+//  ──────────────────────────────────────
+//    cc.loop while {
+//      ...⟦%invariant := %1⟧...
+//      cc.condition %cond
+//    } do {
+//    ^bb1:
+//      ...⟦%invariant := %1⟧...
+//      cc.continue
+//    } step {
+//    ^bb1:
+//      ...⟦%invariant := %1⟧...
+//      cc.continue
+//    }
+//    ...⟦%result := %1⟧...
+
+struct HoistLoopInvariantArgs : public OpRewritePattern<cudaq::cc::LoopOp> {
+  using Base = OpRewritePattern<cudaq::cc::LoopOp>;
+  using Base::Base;
+
+  LogicalResult matchAndRewrite(cudaq::cc::LoopOp loop,
+                                PatternRewriter &rewriter) const override {
+    // 1. Find all the terminators.
+    SmallVector<Operation *> terminators;
+    for (auto *reg : loop.getRegions())
+      for (auto &block : *reg)
+        if (block.hasNoSuccessors())
+          terminators.push_back(block.getTerminator());
+
+    // 2. Determine if any arguments are invariant.
+    SmallVector<bool> invariants;
+    bool hasInvariants = false;
+    for (auto iter : llvm::enumerate(loop.getInitialArgs())) {
+      bool isInvar = true;
+      auto i = iter.index();
+      for (auto *term : terminators) {
+        Value blkArg = term->getBlock()->getParent()->front().getArgument(i);
+        if (auto cond = dyn_cast<cudaq::cc::ConditionOp>(term)) {
+          if (cond.getResults()[i] != blkArg)
+            isInvar = false;
+        } else if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(term)) {
+          if (cont.getOperands()[i] != blkArg)
+            isInvar = false;
+        } else if (auto brk = dyn_cast<cudaq::cc::BreakOp>(term)) {
+          if (brk.getOperands()[i] != blkArg)
+            isInvar = false;
+        }
+        if (!isInvar)
+          break;
+      }
+      if (isInvar)
+        hasInvariants = true;
+      invariants.push_back(isInvar);
+    }
+
+    // 3. For each invariant argument replace the uses with the original
+    // invariant value throughout.
+    if (hasInvariants) {
+      for (auto iter : llvm::enumerate(invariants)) {
+        if (iter.value()) {
+          auto i = iter.index();
+          Value initialVal = loop.getInitialArgs()[i];
+          loop.getResult(i).replaceAllUsesWith(initialVal);
+          for (auto *reg : loop.getRegions()) {
+            if (reg->empty())
+              continue;
+            auto &entry = reg->front();
+            entry.getArgument(i).replaceAllUsesWith(initialVal);
+          }
+        }
+      }
+    }
+
+    return success();
+  }
+};
+} // namespace
+
+void cudaq::cc::LoopOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
+                                                    MLIRContext *context) {
+  patterns.add<HoistLoopInvariantArgs>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -757,6 +860,8 @@ void cudaq::cc::IfOp::print(OpAsmPrinter &p) {
 
 static void ensureIfRegionTerminator(OpBuilder &builder, OperationState &result,
                                      Region *ifRegion) {
+  if (ifRegion->empty())
+    return;
   auto *block = &ifRegion->back();
   if (!block)
     return;

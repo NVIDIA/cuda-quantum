@@ -60,6 +60,9 @@ function show_help {
 --emit-qir=<file> | -emit-qir=<file>
 	Emit the QIR output to <file>.
 
+--emulate | -emulate
+   For physical, remote QPU execution, enable local emulation for testing. 
+
 --platform=<lib> | -platform=<lib>
 	Set the platform library name to <lib>.
 
@@ -136,6 +139,7 @@ llvm_version="@LLVM_VERSION_MAJOR@.@LLVM_VERSION_MINOR@.@LLVM_VERSION_PATCH@"
 llvm_suffix="@NVQPP_LLVM_EXECUTABLE_SUFFIX@"
 
 IS_RELOCATABLE_INSTALL=@CUDAQ_RELOCATABLE_BOOL@
+INCLUDES=""
 
 # If we are a relocatable package, then we
 # want to re-divert llvm_install_dir to the install_dir
@@ -150,6 +154,7 @@ if [ ! -f "${install_dir}/include/cudaq.h" ]; then
 	# the build directory for testing.
 	if [ "@CMAKE_BINARY_DIR@" == "${install_dir}" ]; then
 		CUDAQ_INCLUDE_PATH="@CMAKE_SOURCE_DIR@/runtime"
+		INCLUDES="-I @CMAKE_SOURCE_DIR@/tpls/fmt/include"
 	else
 		error_exit "Invalid CUDA Quantum install configuration."
 	fi
@@ -176,7 +181,6 @@ if ${IS_RELOCATABLE_INSTALL}; then
 fi
 
 CUDAQ_IS_APPLE=@CUDAQ_IS_APPLE@
-INCLUDES=""
 LINKER_PATH=
 NVQPP_LD_PATH=${NVQPP_LD_PATH:-"@NVQPP_LD_PATH@"}
 if [ -f "$NVQPP_LD_PATH" ]; then
@@ -208,6 +212,7 @@ fi
 NVQIR_SIMULATION_BACKEND="qpp"
 NVQIR_LIBS="-lnvqir -lnvqir-"
 
+CUDAQ_EMULATE_REMOTE=false
 CLANG_VERBOSE=
 OUTPUTOPTS=
 OUTPUTFILE=
@@ -261,16 +266,18 @@ while [ $# -ne 0 ]; do
 		EMIT_QIR="$2"
 		shift
 		;;
+	--emulate | -emulate)
+		CUDAQ_EMULATE_REMOTE=true
+		;;
 	--list-targets)
 		LIST_TARGETS=true
-		shift
 		;;
 	--platform | -platform)
 		PLATFORM_LIBRARY="$2"
 		shift
 		;;
 	--load | -load)
-	    LINKLIBS="${LINKLIBS} -lcudaq-$2"
+		LINKLIBS="${LINKLIBS} -lcudaq-$2"
 		shift 
 		;;
 	--cmake-host-compiler)
@@ -278,9 +285,8 @@ while [ $# -ne 0 ]; do
 		shift
 		;;
 	-g)
-	    COMPILER_FLAGS="${COMPILER_FLAGS} -g"
+		COMPILER_FLAGS="${COMPILER_FLAGS} -g"
 		CUDAQ_QUAKE_DEBUG="-g"
-		shift
 		;;
 	--enable-mlir)
 		LIBRARY_MODE=false
@@ -330,7 +336,7 @@ while [ $# -ne 0 ]; do
 		shift
 		;;
 	-D*)
-	    DEFINED_VAR=$1 
+		DEFINED_VAR=$1 
 		PREPROCESSOR_DEFINES="${PREPROCESSOR_DEFINES} -D ${DEFINED_VAR:2}"
 		;;
 	-L)
@@ -407,7 +413,7 @@ if [ -n "${TARGET_CONFIG}" ]; then
 		if ${GEN_TARGET_BACKEND}; then
 			# Add a function that will run before main
 			# and set the target backend on the quantum_platform
-			TARGET_CONFIG="${TARGET_CONFIG}${PLATFORM_EXTRA_ARGS}"
+			TARGET_CONFIG="${TARGET_CONFIG};emulate;${CUDAQ_EMULATE_REMOTE}${PLATFORM_EXTRA_ARGS}"
 			OUTFILENAME=$(mktemp nvqppGenTargetBackend.XXXXXX.o)
 			run ${CXX} -DNVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"" -o $OUTFILENAME -c -x c++ ${install_dir}/targets/backendConfig.cpp
 			OBJS_TO_MERGE="${OUTFILENAME}"
@@ -445,7 +451,7 @@ if ${ENABLE_LAMBDA_LIFTING}; then
 fi
 if ${ENABLE_APPLY_SPECIALIZATION}; then
 	RUN_OPT=true
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "canonicalize,apply-op-specialization")
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(memtoreg{quantum=0}),canonicalize,apply-op-specialization")
 fi
 if ${ENABLE_KERNEL_EXECUTION}; then
 	RUN_OPT=true

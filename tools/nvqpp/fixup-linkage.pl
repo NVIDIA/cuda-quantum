@@ -51,6 +51,14 @@ while (<F>) {
 	    }
 	}
     }
+    if ($_ =~ /^define dso_local /) {
+	LINE: for $name (@functions) {
+	    if ($_ =~ /^define dso_local (.*)\Q$name/) {
+		$_ = "define linkonce_odr dso_preemptable $1$name$'";
+		last LINE;
+	    }
+	}
+    }
     print G;
 }
 close G;

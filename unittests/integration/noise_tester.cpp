@@ -151,7 +151,7 @@ CUDAQ_TEST(NoiseTest, checkCNOT) {
   cudaq::noise_model noise;
   noise.add_channel<cudaq::types::x>({0, 1}, cnotNoise);
   cudaq::set_noise(noise);
-  auto counts = cudaq::sample(bell{});
+  auto counts = cudaq::sample(10000, bell{});
   counts.dump();
   EXPECT_TRUE(counts.size() > 2);
 }

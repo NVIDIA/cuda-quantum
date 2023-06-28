@@ -19,7 +19,7 @@ simple "Hello World" example, specifically a CUDA Quantum kernel that prepares a
 Here we see that we can define a custom :code:`struct` that is templated on a :code:`size_t` parameter. 
 Our kernel expression is free to use this template parameter in the allocation of a 
 compile-time-known register of qubits. Within the kernel, we are free to apply various quantum operations, 
-like a hadamard on qubit 0 :code:`h(q[0])`. Controlled operations are **modifications** of single-qubit 
+like a Hadamard on qubit 0 :code:`h(q[0])`. Controlled operations are **modifications** of single-qubit 
 operations, like the :code:`x<cudaq::ctrl>(q[0],q[1])` operation to affect a controlled-X. We 
 can measure single qubits or entire registers. 
 
@@ -48,7 +48,7 @@ at an example of this:
 Here we define a parameterized CUDA Quantum kernel, a callable type named :code:`ansatz` that takes as 
 input a single angle :code:`theta`. This angle is used as part of a single :code:`ry` rotation. 
 
-In host code, we define a Hamiltonian operator we are interested in via the CUDA Quantun :code:`spin_op` type. 
+In host code, we define a Hamiltonian operator we are interested in via the CUDA Quantum :code:`spin_op` type. 
 CUDA Quantum provides a generic function :code:`cudaq::observe` which takes a parameterized 
 kernel, the :code:`spin_op` whose expectation value we wish to compute, and the runtime 
 parameters at which we evaluate the parameterized kernel. 
@@ -102,9 +102,9 @@ can be trivially simulated via a NVIDIA GPU-accelerated backend:
    :language: cpp
 
 Here we generate a GHZ state on 30 qubits. To run with the built-in cuQuantum state 
-vector support, we pass the :code:`--qpu cuquantum` flag at compile time:
+vector support, we pass the :code:`--target nvidia` flag at compile time:
 
 .. code:: bash 
 
-    nvq++ --qpu cuquantum cuquantum_backends.cpp -o ghz.x 
+    nvq++ --target nvidia cuquantum_backends.cpp -o ghz.x 
     ./ghz.x 

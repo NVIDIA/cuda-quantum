@@ -20,6 +20,7 @@ target_link_libraries(test_quantinuum
   cudaq-mlir-runtime
   cudaq-rest-qpu
   cudaq-spin 
+  nvqir nvqir-qpp
   cudaq-platform-default 
   gtest_main)
 

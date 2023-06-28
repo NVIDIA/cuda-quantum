@@ -262,7 +262,7 @@ QuakeValue QuakeValue::slice(const std::size_t startIdx,
 
 mlir::Value QuakeValue::getValue() const { return value->asMLIR(); }
 
-QuakeValue QuakeValue::operator-() {
+QuakeValue QuakeValue::operator-() const {
   auto v = value->asMLIR();
   if (!v.getType().isIntOrFloat())
     throw std::runtime_error("Can only negate double/float QuakeValues.");

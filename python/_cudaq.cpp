@@ -19,6 +19,9 @@
 #include "runtime/cudaq/spin/py_matrix.h"
 #include "runtime/cudaq/spin/py_spin_op.h"
 #include "utils/LinkedLibraryHolder.h"
+#include "utils/TestingUtils.h"
+
+#include "cudaq.h"
 
 PYBIND11_MODULE(_pycudaq, mod) {
   static cudaq::LinkedLibraryHolder holder;
@@ -42,6 +45,16 @@ PYBIND11_MODULE(_pycudaq, mod) {
       },
       "");
 
+  auto mpiSubmodule = mod.def_submodule("mpi");
+  mpiSubmodule.def(
+      "initialize", []() { cudaq::mpi::initialize(); },
+      "Initialize MPI if available.");
+  mpiSubmodule.def(
+      "is_initialized", []() { return cudaq::mpi::is_initialized(); },
+      "Return true if MPI has already been initialized.");
+  mpiSubmodule.def(
+      "finalize", []() { cudaq::mpi::finalize(); }, "Finalize MPI.");
+
   cudaq::bindRuntimeTarget(mod, holder);
   cudaq::bindBuilder(mod);
   cudaq::bindQuakeValue(mod);
@@ -57,4 +70,5 @@ PYBIND11_MODULE(_pycudaq, mod) {
   cudaq::bindPyState(mod);
   auto kernelSubmodule = mod.def_submodule("kernels");
   cudaq::bindChemistry(kernelSubmodule);
+  cudaq::bindTestUtils(mod, holder);
 }

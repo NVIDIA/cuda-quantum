@@ -47,4 +47,13 @@ public:
   }
 };
 
+template <typename ConcreteType>
+class JumpWithUnwind
+    : public mlir::OpTrait::TraitBase<ConcreteType, JumpWithUnwind> {
+public:
+  static mlir::LogicalResult verifyTrait(mlir::Operation *op) {
+    return mlir::success();
+  }
+};
+
 } // namespace cudaq

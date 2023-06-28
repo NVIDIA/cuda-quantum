@@ -169,5 +169,5 @@ Then given any CUDA Quantum source file, you can compile and target your backend
 
 .. code:: bash 
 
-    nvq++ file.cpp --qpu MySimulator 
+    nvq++ file.cpp --target MySimulator 
     ./a.out 

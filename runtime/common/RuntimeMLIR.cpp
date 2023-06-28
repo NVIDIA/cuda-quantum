@@ -201,4 +201,38 @@ void registerToIQMJsonTranslation() {
         return cudaq::translateToIQMJson(op, output);
       });
 }
+
+ExecutionEngine *createQIRJITEngine(ModuleOp &moduleOp) {
+  ExecutionEngineOptions opts;
+  opts.transformer = [](llvm::Module *m) { return llvm::ErrorSuccess(); };
+  opts.jitCodeGenOptLevel = llvm::CodeGenOpt::None;
+  opts.llvmModuleBuilder =
+      [&](Operation *module,
+          llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
+    llvmContext.setOpaquePointers(false);
+
+    auto *context = module->getContext();
+    PassManager pm(context);
+    std::string errMsg;
+    llvm::raw_string_ostream errOs(errMsg);
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
+    pm.addPass(cudaq::opt::createConvertToQIRPass());
+    if (failed(pm.run(module)))
+      throw std::runtime_error(
+          "[createQIRJITEngine] Lowering to QIR for remote emulation failed.");
+
+    auto llvmModule = translateModuleToLLVMIR(module, llvmContext);
+    if (!llvmModule)
+      throw std::runtime_error(
+          "[createQIRJITEngine] Lowering to LLVM IR failed.");
+
+    ExecutionEngine::setupTargetTriple(llvmModule.get());
+    return llvmModule;
+  };
+
+  auto jitOrError = ExecutionEngine::create(moduleOp, opts);
+  assert(!!jitOrError && "ExecutionEngine creation failed.");
+  return jitOrError.get().release();
+}
+
 } // namespace cudaq

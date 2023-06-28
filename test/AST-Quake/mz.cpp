@@ -66,7 +66,7 @@ struct VectorOfDynamicVeq {
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__VectorOfDynamicVeq(
-// CHECK-SAME:           %[[VAL_0:.*]]: i32, %[[VAL_1:.*]]: i32) -> !cc.stdvec<i1> attributes {
+// CHECK-SAME:           %[[VAL_0:.*]]: i32{{.*}}, %[[VAL_1:.*]]: i32{{.*}}) -> !cc.stdvec<i1> attributes {
 // CHECK:           %[[VAL_2:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_2]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_3:.*]] = cc.alloca i32

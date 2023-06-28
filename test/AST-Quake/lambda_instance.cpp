@@ -33,7 +33,7 @@ struct test0 {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__
 // CHECK-SAME:        5test0
-// CHECK-SAME:        %[[VAL_0:.*]]: !quake.ref)
+// CHECK-SAME:        %[[VAL_0:.*]]: !quake.ref{{.*}})
 // CHECK:           quake.x %[[VAL_0]] :
 // CHECK:           return
 // CHECK:         }
@@ -56,7 +56,7 @@ struct test1 {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__
 // CHECK-SAME:        5test1
-// CHECK-SAME:        %[[VAL_0:.*]]: !quake.ref)
+// CHECK-SAME:        %[[VAL_0:.*]]: !quake.ref{{.*}})
 // CHECK:           quake.x %[[VAL_0]] :
 // CHECK:           return
 // CHECK:         }
@@ -89,8 +89,7 @@ struct test2b {
 // CHECK:           return
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__instance_test2a
-// CHECK-SAME:       (%[[VAL_0:.*]]: !cc.lambda<(!quake.ref) -> ()>,
-// CHECK-SAME:        %[[VAL_1:.*]]: !quake.veq<?>)
+// CHECK-SAME:       (%[[VAL_0:.*]]: !cc.lambda<(!quake.ref) -> ()>{{.*}}, %[[VAL_1:.*]]: !quake.veq<?>{{.*}})
 // CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_1]][%{{.*}}] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:           call @__nvqpp__mlirgen__{{.*}}test2b{{.*}}(%[[VAL_4]]) : (!quake.ref) -> ()
 // CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_1]][%{{.*}}] : (!quake.veq<?>, i64) -> !quake.ref
@@ -99,7 +98,7 @@ struct test2b {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__
 // CHECK-SAME:        6test2b
-// CHECK-SAME:        %[[VAL_0:.*]]: !quake.ref)
+// CHECK-SAME:        %[[VAL_0:.*]]: !quake.ref{{.*}})
 // CHECK:           quake.h %[[VAL_0]] :
 // CHECK:           quake.y %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           return
@@ -135,8 +134,7 @@ struct test2c {
 // CHECK:           return
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__instance_test2a_c
-// CHECK-SAME:       (%[[VAL_0:.*]]: !cc.lambda<(!quake.ref) -> ()>,
-// CHECK-SAME:        %[[VAL_1:.*]]: !quake.veq<?>)
+// CHECK-SAME:       (%[[VAL_0:.*]]: !cc.lambda<(!quake.ref) -> ()>{{.*}}, %[[VAL_1:.*]]: !quake.veq<?>{{.*}})
 // CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_1]][%{{.*}}] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:           call @__nvqpp__mlirgen__{{.*}}test2c{{.*}}(%[[VAL_4]]) : (!quake.ref) -> ()
 // CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_1]][%{{.*}}] : (!quake.veq<?>, i64) -> !quake.ref
@@ -146,7 +144,7 @@ struct test2c {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__
 // CHECK-SAME:        6test2c
-// CHECK-SAME:        %[[VAL_0:.*]]: !quake.ref)
+// CHECK-SAME:        %[[VAL_0:.*]]: !quake.ref{{.*}})
 // CHECK:           quake.h %[[VAL_0]]
 // CHECK:           quake.z %[[VAL_0]]
 // CHECK:           quake.h %[[VAL_0]]
@@ -174,8 +172,7 @@ struct test3 {
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test3a
-// CHECK-SAME:       (%[[VAL_0:.*]]: !cc.lambda<(!quake.ref) -> ()>,
-// CHECK-SAME:        %[[VAL_1:.*]]: !quake.veq<?>) attributes {"cudaq-kernel"} {
+// CHECK-SAME:       (%[[VAL_0:.*]]: !cc.lambda<(!quake.ref) -> ()>{{.*}}, %[[VAL_1:.*]]: !quake.veq<?>{{.*}}) attributes
 // CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_3:.*]] = arith.extsi %[[VAL_2]] : i32 to i64
 // CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_1]]{{\[}}%[[VAL_3]]] : (!quake.veq<?>, i64) -> !quake.ref
@@ -193,7 +190,7 @@ struct test3 {
 // CHECK:           %[[VAL_1:.*]] = arith.extsi %[[VAL_0]] : i32 to i64
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<?>[%[[VAL_1]] : i64]
 // CHECK:           %[[VAL_3:.*]] = cc.create_lambda {
-// CHECK:           ^bb0(%[[VAL_4:.*]]: !quake.ref):
+// CHECK:           ^bb0(%[[VAL_4:.*]]: !quake.ref
 // CHECK:             cc.scope {
 // CHECK:               quake.h %[[VAL_4]]
 // CHECK:               quake.z %[[VAL_4]]

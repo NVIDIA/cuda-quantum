@@ -21,7 +21,7 @@ struct t1 {
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__t1
-// CHECK-SAME:        (%[[VAL_0:.*]]: !cc.stdvec<f64>) -> i1 attributes {{{.*}}"cudaq-entrypoint"{{.*}}} {
+// CHECK-SAME:        (%[[VAL_0:.*]]: !cc.stdvec<f64>{{.*}}) -> i1 attributes {{{.*}}"cudaq-entrypoint"{{.*}}} {
 // CHECK:           %[[VAL_13:.*]] = quake.mz %{{.*}} : (!quake.veq<?>) -> !cc.stdvec<i1>
 // CHECK:           %[[VAL_14:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_15:.*]] = arith.extsi %[[VAL_14]] : i32 to i64

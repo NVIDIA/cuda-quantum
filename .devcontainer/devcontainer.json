@@ -1,9 +1,8 @@
 {
 	"name": "cuda-quantum-dev",
 	"build": {
-		"dockerfile": "../docker/build/cudaqdev.Dockerfile",
+		"dockerfile": "../docker/build/cudaq.dev.Dockerfile",
 		"args": { 
-			"env_tag": "llvm-main",
 			"destination": "workspaces/host"
 		}
 	},

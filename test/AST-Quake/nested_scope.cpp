@@ -68,7 +68,7 @@ struct test3 {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test2
-// CHECK-SAME:         (%[[VAL_0:.*]]: i32)
+// CHECK-SAME:         (%[[VAL_0:.*]]: i32{{.*}})
 // CHECK:           %[[VAL_1:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i32
@@ -86,7 +86,7 @@ struct test3 {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test3
-// CHECK-SAME:         (%[[VAL_0:.*]]: f64)
+// CHECK-SAME:         (%[[VAL_0:.*]]: f64{{.*}})
 // CHECK:           %[[VAL_1:.*]] = cc.alloca f64
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<f64>
 // CHECK:           %[[VAL_2:.*]] = arith.constant 3.14

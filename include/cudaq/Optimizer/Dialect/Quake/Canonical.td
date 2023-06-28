@@ -36,7 +36,8 @@ def ForwardConstantVeqSizePattern : Pat<
 
 def SizeIsPresentPred : Constraint<CPred<
       "$0.size() == 1 &&"
-      " dyn_cast_or_null<mlir::arith::ConstantIntOp>($0[0].getDefiningOp())">>;
+      "isa<mlir::arith::ConstantIntOp, mlir::arith::ConstantIndexOp>("
+      "  $0[0].getDefiningOp())">>;
 
 def createAllocaOp : NativeCodeCall<
       "quake::createConstantAlloca($_builder, $_loc, $0, $1)">;
@@ -51,7 +52,7 @@ def FuseConstantToAllocaPattern : Pat<
 
 def createExtractRefOp : NativeCodeCall<
       "$_builder.create<quake::ExtractRefOp>($_loc, $0,"
-      " cast<mlir::arith::ConstantIntOp>($1[0].getDefiningOp()).getValue()."
+      " cast<mlir::arith::ConstantOp>($1[0].getDefiningOp()).getValue()."
       " cast<mlir::IntegerAttr>().getInt())">;
 
 // %2 = constant 10 : i32

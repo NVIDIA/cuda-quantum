@@ -104,8 +104,8 @@ public:
   /// and VeqType.
   QuakeValue operator[](const QuakeValue &idx);
 
-  /// @brief Negate this QuakeValue
-  QuakeValue operator-();
+  /// @brief Return the negation of this QuakeValue
+  QuakeValue operator-() const;
 
   /// @brief Multiply this QuakeValue by the given double.
   QuakeValue operator*(const double);

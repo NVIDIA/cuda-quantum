@@ -9,7 +9,7 @@
 // RUN: cudaq-quake --emit-llvm-file %s | FileCheck %s
 
 // CHECK-LABEL: func.func @__nvqpp__mlirgen__function_testFunc
-// CHECK-SAME:    (%[[VAL_0:.*]]: !quake.ref)
+// CHECK-SAME:    (%[[VAL_0:.*]]: !quake.ref{{.*}})
 // CHECK: quake.h %[[VAL_0]] :
 // CHECK: %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> i1
 // CHECK: return

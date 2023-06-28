@@ -12,7 +12,7 @@
 
 // CHECK: module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__super{{.*}} = "_ZN5superclEd"}} {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__super
-// CHECK-SAME: (%[[arg0:.*]]: f64) -> i1
+// CHECK-SAME: (%[[arg0:.*]]: f64{{.*}}) -> i1
 // CHECK:     %[[V0:.*]] = cc.alloca f64
 // CHECK:     cc.store %[[arg0]], %[[V0]] : !cc.ptr<f64>
 // CHECK:     %[[V1:.*]] = quake.alloca !quake.ref

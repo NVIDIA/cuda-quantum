@@ -120,6 +120,8 @@ Algorithms
 .. doxygenclass:: cudaq::gradients::parameter_shift
     :members:
 
+.. doxygenclass:: cudaq::gradients::forward_difference
+    :members:
 
 Platform
 =========

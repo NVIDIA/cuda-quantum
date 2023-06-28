@@ -20,8 +20,7 @@ jobs:
       - uses: actions/checkout@v3
       - id: parse
         run: |
-          first_char=`echo "${{ github.event.comment.body }}" | head -n 1 | xargs | cut -c 1`
-          if [ "$first_char" == "/" ]; then
+          if ${{ startsWith(github.event.comment.body, '/') }}; then
             echo "react=true" >> $GITHUB_OUTPUT
             command=$(echo "${{ github.event.comment.body }}" | head -n 1 | xargs | cut -d " " -f 1)
 
