@@ -59,13 +59,13 @@ canonicalization
 canonicalize
 canonicalizer
 canonicalizes
-cuQuantum
 codebase
 composable
 controlled
 coprocessor
 coprocessors
 copyable
+cuQuantum
 deallocate
 deallocated
 deallocates
