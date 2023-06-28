@@ -405,13 +405,6 @@ public:
     return builder.create<arith::ConstantOp>(loc, attr, ty);
   }
 
-  /// Does boundary test defines a semi-open interval?
-  static bool isSemiOpenPredicate(arith::CmpIPredicate p) {
-    return p == arith::CmpIPredicate::ult || p == arith::CmpIPredicate::slt ||
-           p == arith::CmpIPredicate::ugt || p == arith::CmpIPredicate::sgt ||
-           p == arith::CmpIPredicate::ne;
-  }
-
   /// Clone the LoopOp, \p loop, and return a new LoopOp that runs the loop
   /// backwards. The loop is assumed to be a simple monotonic loop (a generator
   /// of a monotonic indexing function). The loop control could be in either the
@@ -442,7 +435,7 @@ public:
     auto cmpOp = cast<arith::CmpIOp>(loopComponents->compareOp);
     auto pred = cmpOp.getPredicate();
     auto one = createIntConstant(builder, loc, iters.getType(), 1);
-    if (isSemiOpenPredicate(pred)) {
+    if (cudaq::opt::isSemiOpenPredicate(pred)) {
       Value negStepCond = builder.create<arith::CmpIOp>(
           loc, arith::CmpIPredicate::slt, newStepVal, zero);
       auto negOne = createIntConstant(builder, loc, iters.getType(), -1);
@@ -451,7 +444,10 @@ public:
       iters = builder.create<arith::AddIOp>(loc, iters, adj);
     }
     iters = builder.create<arith::AddIOp>(loc, iters, newStepVal);
-    iters = builder.create<arith::DivSIOp>(loc, iters, newStepVal);
+    if (cudaq::opt::isUnsignedPredicate(pred))
+      iters = builder.create<arith::DivUIOp>(loc, iters, newStepVal);
+    else
+      iters = builder.create<arith::DivSIOp>(loc, iters, newStepVal);
     Value noLoopCond = builder.create<arith::CmpIOp>(
         loc, arith::CmpIPredicate::sgt, iters, zero);
     iters = builder.create<arith::SelectOp>(loc, iters.getType(), noLoopCond,

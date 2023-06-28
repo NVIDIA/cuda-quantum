@@ -147,16 +147,27 @@ def LambdaLifting : Pass<"lambda-lifting", "mlir::ModuleOp"> {
   let constructor = "cudaq::opt::createLambdaLiftingPass()";
 }
 
+def LoopNormalize : Pass<"cc-loop-normalize"> {
+  let summary = "Normalize classical compute (C++) loops.";
+  let description = [{
+    Transform a monotonic loop with constant step (slope) into an invariant loop
+    or, if the bounds are constant, a simple counted loop.
+  }];
+
+  let dependentDialects = ["mlir::arith::ArithDialect"];
+}
+
 def LoopUnroll : Pass<"cc-loop-unroll"> {
   let summary = "Unroll classical compute (C++) loops.";
   let description = [{
     If a cc.loop op is a simple, constant counted loop, it can be fully
     unrolled into <i>n</i> copies of the body of the loop.
 
-    The full-unroll option controls whether not being able to unroll all loops
-    is a pass failure. This is necessary when synthesizing/compiling kernels
-    that will be converted to QIR base profile: we need to guarantee that all
-    loops have been unrolled.
+    The signal-failure option controls whether not being able to unroll all
+    loops should be handled as a pass failure. This is necessary when
+    synthesizing quantum circuits from CUDA Quantum kernels, such as when
+    generating a QIR base profile. A quantum circuit requires all loops be
+    completely unrolled.
   }];
 
   let dependentDialects = ["mlir::arith::ArithDialect",
@@ -165,8 +176,8 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
   let options = [
     Option<"threshold", "maximum-iterations", "std::size_t",
       /*default=*/"50", "Maximum iterations to unroll.">,
-    Option<"full_unroll", "full-unroll", "bool", /*default=*/"false",
-           "Pass will fail if it can't unroll all loops.">
+    Option<"signalFailure", "signal-failure", "bool", /*default=*/"false",
+           "Signal failure if pass can't unroll all loops.">
   ];
 }
 

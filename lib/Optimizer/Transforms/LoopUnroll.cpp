@@ -42,6 +42,13 @@ static std::optional<std::size_t> unrollLoopByValue(cudaq::cc::LoopOp loop) {
   return std::nullopt;
 }
 
+static bool exceedsThresholdValue(cudaq::cc::LoopOp loop,
+                                  std::size_t threshold) {
+  if (auto valOpt = unrollLoopByValue(loop))
+    return *valOpt >= threshold;
+  return true;
+}
+
 namespace {
 
 /// We fully unroll a counted loop (so marked with the counted attribute) as
@@ -54,13 +61,17 @@ namespace {
 /// After this pass, all loops marked counted will be unrolled or marked
 /// invariant. An invariant loop means the loop must execute exactly some
 /// specific number of times, even if that number is only known at runtime.
-class UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
-public:
-  using Base = OpRewritePattern<cudaq::cc::LoopOp>;
-  using Base::Base;
+struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
+  explicit UnrollCountedLoop(MLIRContext *ctx, std::size_t t)
+      : OpRewritePattern(ctx), threshold(t) {}
 
   LogicalResult matchAndRewrite(cudaq::cc::LoopOp loop,
                                 PatternRewriter &rewriter) const override {
+    if (!cudaq::opt::isaCountedLoop(loop))
+      return loop.emitOpError("not a simple counted loop");
+    if (exceedsThresholdValue(loop, threshold))
+      return loop.emitOpError("loop bounds exceed iteration threshold");
+
     // At this point, we're ready to unroll the loop and replace it with a
     // sequence of blocks. Each block will receive a block argument that is the
     // iteration number. The original cc.loop will be replaced by a constant,
@@ -127,6 +138,8 @@ public:
     auto attr = rewriter.getIntegerAttr(ty, val);
     return rewriter.create<arith::ConstantOp>(loc, ty, attr);
   }
+
+  std::size_t threshold;
 };
 
 /// The loop unrolling pass will fully unroll a `cc::LoopOp` when the loop is
@@ -141,41 +154,18 @@ public:
     auto *op = getOperation();
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
-    patterns.insert<UnrollCountedLoop>(ctx);
+    patterns.insert<UnrollCountedLoop>(ctx, threshold);
     ConversionTarget target(*ctx);
     target.addDynamicallyLegalOp<cudaq::cc::LoopOp>(
         [&](cudaq::cc::LoopOp loop) {
-          return !cudaq::opt::isaCountedLoop(loop) ||
-                 exceedsThresholdValue(loop);
+          return !signalFailure && (!cudaq::opt::isaCountedLoop(loop) ||
+                                    exceedsThresholdValue(loop, threshold));
         });
     target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
     if (failed(applyPartialConversion(op, target, std::move(patterns)))) {
-      emitError(op->getLoc(), "could not unroll cc.loop\n");
+      op->emitOpError("could not unroll loop");
       signalPassFailure();
     }
-    if (full_unroll) {
-      bool fail = false;
-      op->walk([&](cudaq::cc::LoopOp loop) {
-        fail = true;
-        if (!cudaq::opt::isaCountedLoop(loop))
-          loop.emitError("cannot unroll non-counted loop.");
-        else if (exceedsThresholdValue(loop))
-          loop.emitError(
-              "cannot unroll loop that exceeds iteration threshold.");
-        else
-          loop.emitError("cannot unroll loop.");
-      });
-      if (fail) {
-        emitError(op->getLoc(), "could not unroll all loops.\n");
-        signalPassFailure();
-      }
-    }
-  }
-
-  bool exceedsThresholdValue(cudaq::cc::LoopOp loop) {
-    if (auto valOpt = unrollLoopByValue(loop))
-      return *valOpt >= threshold;
-    return true;
   }
 };
 } // namespace
