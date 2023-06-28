@@ -66,9 +66,8 @@ matrix:
       - open: '^\s*\.\.'
         close: '$'
       # Ignore words after colon deliminated configurations
-      - open: ' {3}:'
-        close: ':\s*\S*$'
-        content: '[A-Za-z_-]*?'
+      - open: ' {3}:[A-Za-z_-]+:'
+        close: '$'
       # Ignore words between two colons, e.g. :maxdepth:
       - open: '(^|\s):'
         close: ':(\s|$)'
