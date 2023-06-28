@@ -94,14 +94,14 @@ instantiation
 instantiations
 namespace
 natively
+optimizer
+optimizers
 parallelization
 precompute
 precomputed
 prepend
 quantize
 quantized
-optimizer
-optimizers
 qubit
 qubits
 qudit
