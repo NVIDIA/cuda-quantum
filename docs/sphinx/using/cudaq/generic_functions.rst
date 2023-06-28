@@ -84,7 +84,7 @@ Another useful CUDA Quantum function in the variational context is
 (with suitable characteristics noted in the Specification), a user-provided 
 :code:`cudaq::spin_op` defining a general quantum mechanical spin operator, and
 any kernel runtime arguments to return the expected value of the spin operator 
-with respect to the kernel ansatz at the provided runtime arameters. It can be 
+with respect to the kernel ansatz at the provided runtime parameters. It can be 
 used in the following manner:
 
 .. code-block:: cpp 
