@@ -63,7 +63,7 @@ if (NOT SKBUILD)
   install(DIRECTORY domains/chemistry/ DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq/domains)
 else()
   install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX})
-  install(FILES domains/__init__.py DESTINATION ${CMAKE_INSTALL_PREFIX}/domains/)
+  install(FILES domains/__init__.py DESTINATION ${CMAKE_INSTALL_PREFIX}/domains)
   install(DIRECTORY domains/chemistry/ DESTINATION ${CMAKE_INSTALL_PREFIX}/domains/chemistry)
 endif()
 
