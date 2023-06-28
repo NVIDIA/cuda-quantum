@@ -4,12 +4,10 @@
 src="https://developer.nvidia.com/sites/default/files/akamai/nvidia-cuquantum-icon.svg"
 />
 
-<img
-align="left"
+<a href="https://zenodo.org/badge/latestdoi/614026597"><img align="left"
+src="https://zenodo.org/badge/614026597.svg" alt="DOI"></a> <img align="left"
 src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/deployments.yml/badge.svg?event=workflow_dispatch&branch=main"
-/>
-<img
-align="left"
+/> <img align="left"
 src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/publish_docs.yml/badge.svg?branch=main"
 /><br/>
 
