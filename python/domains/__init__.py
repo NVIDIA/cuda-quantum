@@ -6,17 +6,4 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import sys
-
-from ._pycudaq import *
-from .domains import *
-
-initKwargs = {'target': 'default'}
-
-if '-target' in sys.argv:
-    initKwargs['target'] = sys.argv[sys.argv.index('-target') + 1]
-
-if '--target' in sys.argv:
-    initKwargs['target'] = sys.argv[sys.argv.index('--target') + 1]
-
-initialize_cudaq(**initKwargs)
+from .chemistry import chemistry
