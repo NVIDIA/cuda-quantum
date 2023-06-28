@@ -10,7 +10,7 @@ cuQuantum single-GPU
 ++++++++++++++++++++++++++++++++++
 
 The :code:`nvidia` target provides a state vector simulator accelerated with 
-the :ref:`cuStateVec` library. 
+the :code:`cuStateVec` library. 
 
 To specify the use of the :code:`nvidia` target, pass the following command line 
 options to :code:`nvq++`
