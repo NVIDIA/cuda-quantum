@@ -16,7 +16,7 @@ src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/publish_docs.yml/b
 The CUDA Quantum Platform for hybrid quantum-classical computers enables
 integration and programming of quantum processing units (QPUs), GPUs, and CPUs
 in one system. This repository contains the source code for all C++ and Python
-tools provided by the CUDA Quantum toolkit, including the NVQ++ compiler, the
+tools provided by the CUDA Quantum toolkit, including the `nvq++` compiler, the
 CUDA Quantum runtime, as well as a selection of integrated CPU and GPU backends
 for rapid application development and testing.
 
