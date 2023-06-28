@@ -56,7 +56,14 @@ discretization
 discretize
 discretized
 discretized
+eigensolver
+eigensolvers
 eigenstate
+eigenstates
+eigenvalue
+eigenvalues
+eigenvector
+eigenvectors
 entangler
 entanglers
 et
@@ -64,6 +71,8 @@ executables
 instantiation
 instantiations
 namespace
+optimizer
+optimizers
 qubit
 qubits
 qudit
@@ -78,4 +87,3 @@ unitary
 variadic
 variational
 workflow
-foo
