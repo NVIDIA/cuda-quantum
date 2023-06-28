@@ -63,11 +63,11 @@ private:
                                 SmallVectorImpl<Value> &newControls,
                                 SmallVectorImpl<bool> &negatedControls);
 
-  void checkAndAddAncillas(Location loc, std::size_t numAncillas);
+  ArrayRef<Value> getAncillas(Location loc, std::size_t numAncillas);
 
   OpBuilder builder;
   Block *entryBlock;
-  SmallVector<Value> ancillas;
+  SmallVector<Value> allocatedAncillas;
 };
 
 } // namespace
@@ -95,11 +95,13 @@ Decomposer::extractControls(quake::OperatorInterface op,
   return success();
 }
 
-void Decomposer::checkAndAddAncillas(Location loc, std::size_t numAncillas) {
+ArrayRef<Value> Decomposer::getAncillas(Location loc, std::size_t numAncillas) {
   OpBuilder::InsertionGuard g(builder);
   builder.setInsertionPointToStart(entryBlock);
-  for (size_t i = ancillas.size(); i < numAncillas; ++i)
-    ancillas.push_back(builder.create<quake::AllocaOp>(loc));
+  // If we don't have enough ancillas, allocate new more.
+  for (size_t i = allocatedAncillas.size(); i < numAncillas; ++i)
+    allocatedAncillas.push_back(builder.create<quake::AllocaOp>(loc));
+  return {allocatedAncillas.begin(), allocatedAncillas.begin() + numAncillas};
 }
 
 LogicalResult Decomposer::v_decomposition(quake::OperatorInterface op) {
@@ -130,13 +132,13 @@ LogicalResult Decomposer::v_decomposition(quake::OperatorInterface op) {
   size_t requiredAncillas = isa<quake::XOp, quake::ZOp>(op)
                                 ? controls.size() - 2
                                 : controls.size() - 1;
-  checkAndAddAncillas(loc, requiredAncillas);
+  auto ancillas = getAncillas(loc, requiredAncillas);
 
   // Compute intermediate results
   SmallVector<Operation *> toCleanup;
   std::array<Value, 2> cs = {controls[0], controls[1]};
   toCleanup.push_back(builder.create<quake::XOp>(loc, cs, ancillas[0]));
-  if (!negatedControls.empty() && (negatedControls[0] || negatedControls[0]))
+  if (!negatedControls.empty() && (negatedControls[0] || negatedControls[1]))
     toCleanup.back()->setAttr("negated_qubit_controls",
                               builder.getDenseBoolArrayAttr(
                                   {negatedControls[0], negatedControls[1]}));
@@ -149,7 +151,7 @@ LogicalResult Decomposer::v_decomposition(quake::OperatorInterface op) {
   }
 
   // Compute output
-  if (isa<quake::XOp, quake::ZOp>(op)) {
+  if (!isa<quake::XOp, quake::ZOp>(op)) {
     createOperator(loc, name, parameters, ancillas.back(), targets, builder);
   } else {
     cs = {controls.back(), ancillas.back()};
