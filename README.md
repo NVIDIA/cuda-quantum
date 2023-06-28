@@ -4,6 +4,15 @@
 src="https://developer.nvidia.com/sites/default/files/akamai/nvidia-cuquantum-icon.svg"
 />
 
+<img
+align="left"
+src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/deployments.yml/badge.svg?event=workflow_dispatch&branch=main"
+/>
+<img
+align="left"
+src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/publish_docs.yml/badge.svg?branch=main"
+/><br/>
+
 The CUDA Quantum Platform for hybrid quantum-classical computers enables
 integration and programming of quantum processing units (QPUs), GPUs, and CPUs
 in one system. This repository contains the source code for all C++ and Python
@@ -27,15 +36,6 @@ instructions](./Building.md).
 [official_install]: https://nvidia.github.io/cuda-quantum/latest/install.html
 [github_packages]:
     https://github.com/orgs/NVIDIA/packages?repo_name=cuda-quantum
-
-<img
-align="right"
-src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/deployments.yml/badge.svg?event=workflow_dispatch&branch=main"
-/>
-<img
-align="right"
-src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/publish_docs.yml/badge.svg?branch=main"
-/><br/>
 
 ## Contributing
 
