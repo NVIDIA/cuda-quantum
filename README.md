@@ -28,6 +28,15 @@ instructions](./Building.md).
 [github_packages]:
     https://github.com/orgs/NVIDIA/packages?repo_name=cuda-quantum
 
+<img
+align="right"
+src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/deployments.yml/badge.svg?event=workflow_dispatch&branch=main"
+/>
+<img
+align="right"
+src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/publish_docs.yml/badge.svg?branch=main"
+/><br/>
+
 ## Contributing
 
 There are many ways in which you can get involved with CUDA Quantum. If you are
@@ -57,15 +66,3 @@ Conduct](./Code_of_Conduct.md) violations, please reach out to
 
 [cuda_quantum_discussions]: https://github.com/NVIDIA/cuda-quantum/discussions
 [cuda_quantum_issues]: https://github.com/NVIDIA/cuda-quantum/issues
-
-<a
-href="https://github.com/NVIDIA/cuda-quantum/actions/workflows/deployments.yml"><img
-align="right"
-src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/deployments.yml/badge.svg?event=workflow_dispatch&branch=main"
-/></a><br/>
-
-<a
-href="https://github.com/NVIDIA/cuda-quantum/actions/workflows/publish_docs.yml"><img
-align="right"
-src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/publish_docs.yml/badge.svg?branch=main"
-/></a><br/>
