@@ -14,7 +14,7 @@ changelog:
     - title: Breaking Changes 🛠
       labels:
         - "breaking change"
-    - title: Documentation Updates
+    - title: Documentation Updates ✏️
       labels:
         - "documentation"
     - title: Other Changes
