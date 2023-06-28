@@ -91,6 +91,7 @@ void addPipelineToQIR(PassManager &pm) {
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLoweringPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerToCFGPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll());
