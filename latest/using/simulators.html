@@ -307,7 +307,7 @@
 <section id="cuquantum-single-gpu">
 <h3>cuQuantum single-GPU<a class="headerlink" href="#cuquantum-single-gpu" title="Permalink to this heading">¶</a></h3>
 <p>The <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target provides a state vector simulator accelerated with
-the cuStateVec library.</p>
+the <code class="code docutils literal notranslate"><span class="pre">cuStateVec</span></code> library.</p>
 <p>To specify the use of the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target, pass the following command line
 options to <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code></p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w"> </span>src.cpp<span class="w"> </span>...
@@ -323,7 +323,7 @@ switch to <code class="code docutils literal notranslate"><span class="pre">FP64
 <section id="cuquantum-multi-node-multi-gpu">
 <h3>cuQuantum multi-node multi-GPU<a class="headerlink" href="#cuquantum-multi-node-multi-gpu" title="Permalink to this heading">¶</a></h3>
 <p>The <code class="code docutils literal notranslate"><span class="pre">cuquantum_mgpu</span></code> target provides a state vector simulator accelerated with
-the cuStateVec library but with support for Multi-Node, Multi-GPU distribution of the
+the <code class="code docutils literal notranslate"><span class="pre">cuStateVec</span></code> library but with support for Multi-Node, Multi-GPU distribution of the
 state vector.</p>
 <p>To specify the use of the <code class="code docutils literal notranslate"><span class="pre">cuquantum_mgpu</span></code> target, pass the following command line
 options to <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code></p>
@@ -348,16 +348,16 @@ simulator that will be used.</p>
 <section id="id1">
 <h3>cuQuantum multi-node multi-GPU<a class="headerlink" href="#id1" title="Permalink to this heading">¶</a></h3>
 <p>The <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> target provides a tensor-network simulator accelerated with
-the cuTensorNet library. This backend is currently available for use from C++ and supports
+the <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> library. This backend is currently available for use from C++ and supports
 Multi-Node, Multi-GPU distribution of tensor operations required to evaluate and simulate the circuit.</p>
 <p>This backend exposes a set of environment variables to configure specific aspects of the simulation:</p>
 <ul class="simple">
-<li><p><strong>CUDAQ_CUTN_HOST_RAM=8</strong>: Prescribes the size of the CPU Host RAM allocated by each MPI process (defaults to 4 GB). A rule of thumb is to give each MPI process the same amount of CPU Host RAM as the RAM size of the GPU assigned to it. If there is more CPU RAM available, it is fine to further increase this number.</p></li>
-<li><p><strong>CUDAQ_CUTN_REDUCED_PRECISION=1</strong>: Activates reduced precision arithmetic, specifically reduces the precision from FP64 to FP32.</p></li>
-<li><p><strong>CUDAQ_CUTN_LOG_LEVEL=1</strong>: Activates logging (for debugging purposes), the larger the integer, the more detailed the logging will be.</p></li>
-<li><p><strong>CUDA_VISIBLE_DEVICES=X</strong>: Makes the process only see GPU X on multi-GPU nodes. Each MPI process must only see its own dedicated GPU. For example, if you run 8 MPI processes on a DGX system with 8 GPUs, each MPI process should be assigned its own dedicated GPU via CUDA_VISIBLE_DEVICES when invoking mpirun (or mpiexec) commands. This can be done via invoking a bash script instead of the binary directly, and then using MPI library specific environment variables inside that script (e.g., OMPI_COMM_WORLD_LOCAL_RANK).</p></li>
-<li><p><strong>OMP_PLACES=cores</strong>: Set this environment variable to improve CPU parallelization.</p></li>
-<li><p><strong>OMP_NUM_THREADS=X</strong>: To enable CPU parallelization, set X to X = NUMBER_OF_CORES_PER_NODE/NUMBER_OF_GPUS_PER_NODE.</p></li>
+<li><p><strong>`CUDAQ_CUTN_HOST_RAM=8`</strong>: Prescribes the size of the CPU Host RAM allocated by each MPI process (defaults to 4 GB). A rule of thumb is to give each MPI process the same amount of CPU Host RAM as the RAM size of the GPU assigned to it. If there is more CPU RAM available, it is fine to further increase this number.</p></li>
+<li><p><strong>`CUDAQ_CUTN_REDUCED_PRECISION=1`</strong>: Activates reduced precision arithmetic, specifically reduces the precision from <code class="code docutils literal notranslate"><span class="pre">FP64</span></code> to <code class="code docutils literal notranslate"><span class="pre">FP32</span></code>.</p></li>
+<li><p><strong>`CUDAQ_CUTN_LOG_LEVEL=1`</strong>: Activates logging (for debugging purposes), the larger the integer, the more detailed the logging will be.</p></li>
+<li><p><strong>`CUDA_VISIBLE_DEVICES=X`</strong>: Makes the process only see GPU X on multi-GPU nodes. Each MPI process must only see its own dedicated GPU. For example, if you run 8 MPI processes on a DGX system with 8 GPUs, each MPI process should be assigned its own dedicated GPU via CUDA_VISIBLE_DEVICES when invoking <code class="code docutils literal notranslate"><span class="pre">mpirun</span></code> (or <code class="code docutils literal notranslate"><span class="pre">mpiexec</span></code>) commands. This can be done via invoking a bash script instead of the binary directly, and then using MPI library specific environment variables inside that script (e.g., <code class="code docutils literal notranslate"><span class="pre">OMPI_COMM_WORLD_LOCAL_RANK</span></code>).</p></li>
+<li><p><strong>`OMP_PLACES=cores`</strong>: Set this environment variable to improve CPU parallelization.</p></li>
+<li><p><strong>`OMP_NUM_THREADS=X`</strong>: To enable CPU parallelization, set X to <code class="code docutils literal notranslate"><span class="pre">NUMBER_OF_CORES_PER_NODE/NUMBER_OF_GPUS_PER_NODE</span></code>.</p></li>
 </ul>
 <p>A note on <strong>CUDA_VISIBLE_DEVICES</strong>: This environment variable should <strong>always</strong> be set before using the <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code>
 backend if you have multiple GPUs available. With OpenMPI, you can run a multi-GPU quantum circuit simulation like this:</p>
