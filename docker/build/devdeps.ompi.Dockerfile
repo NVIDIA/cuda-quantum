@@ -19,8 +19,10 @@ FROM nvidia/cuda:11.8.0-devel-ubuntu22.04
 SHELL ["/bin/bash", "-c"]
 ARG DEBIAN_FRONTEND=noninteractive
 
+ARG TARGETARCH
 ENV CUDA_INSTALL_PREFIX=/usr/local/cuda-11.8
 ENV COMMON_COMPILER_FLAGS="-march=x86-64-v3 -mtune=generic -O2 -pipe"
+ENV COMMON_COMPILER_FLAGS_ARM="-march=native -mtune=generic -O2 -pipe"
 
 # 1 - Install basic tools needed for the builds
 
@@ -36,10 +38,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV PMI_INSTALL_PREFIX=/usr/local/pmi
 RUN mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://download.schedmd.com/slurm/slurm-21.08.8.tar.bz2 \
     && tar -x -f /var/tmp/slurm-21.08.8.tar.bz2 -C /var/tmp -j && cd /var/tmp/slurm-21.08.8 \
-    &&  CC=gcc CFLAGS="$COMMON_COMPILER_FLAGS" \
-        CXX=g++ CXXFLAGS="$COMMON_COMPILER_FLAGS" \
-        F77=gfortran F90=gfortran FFLAGS="$COMMON_COMPILER_FLAGS" \
-        FC=gfortran FCFLAGS="$COMMON_COMPILER_FLAGS" \
+    && export common_flags=$([ "$TARGETARCH" == "arm64" ] && echo "$COMMON_COMPILER_FLAGS_ARM" || echo "$COMMON_COMPILER_FLAGS") \
+    &&  CC=gcc CFLAGS="$common_flags" \
+        CXX=g++ CXXFLAGS="$common_flags" \
+        F77=gfortran F90=gfortran FFLAGS="$common_flags" \
+        FC=gfortran FCFLAGS="$common_flags" \
         LDFLAGS=-Wl,--as-needed \
         ./configure --prefix="$PMI_INSTALL_PREFIX" \
     && make -C contribs/pmi2 install \
@@ -80,10 +83,11 @@ RUN mkdir -p /var/tmp && cd /var/tmp \
     && git clone https://github.com/openucx/ucx.git ucx && cd /var/tmp/ucx \
     && git checkout v1.13.1 \
     && ./autogen.sh \
-    &&  CC=gcc CFLAGS="$COMMON_COMPILER_FLAGS" \
-        CXX=g++ CXXFLAGS="$COMMON_COMPILER_FLAGS" \
-        F77=gfortran F90=gfortran FFLAGS="$COMMON_COMPILER_FLAGS" \
-        FC=gfortran FCFLAGS="$COMMON_COMPILER_FLAGS" \
+    && export common_flags=$([ "$TARGETARCH" == "arm64" ] && echo "$COMMON_COMPILER_FLAGS_ARM" || echo "$COMMON_COMPILER_FLAGS") \
+    &&  CC=gcc CFLAGS="$common_flags" \
+        CXX=g++ CXXFLAGS="$common_flags" \
+        F77=gfortran F90=gfortran FFLAGS="$common_flags" \
+        FC=gfortran FCFLAGS="$common_flags" \
         LDFLAGS=-Wl,--as-needed \
         ./configure --prefix="$UCX_INSTALL_PREFIX" \
             --with-cuda="$CUDA_INSTALL_PREFIX" --with-gdrcopy="$GDRCOPY_INSTALL_PREFIX" \
@@ -99,10 +103,11 @@ RUN mkdir -p /var/tmp && cd /var/tmp \
 ENV MUNGE_INSTALL_PREFIX=/usr/local/munge
 RUN mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://github.com/dun/munge/releases/download/munge-0.5.14/munge-0.5.14.tar.xz \
     && tar -x -f /var/tmp/munge-0.5.14.tar.xz -C /var/tmp -J && cd /var/tmp/munge-0.5.14 \
-    &&  CC=gcc CFLAGS="$COMMON_COMPILER_FLAGS" \
-        CXX=g++ CXXFLAGS="$COMMON_COMPILER_FLAGS" \
-        F77=gfortran F90=gfortran FFLAGS="$COMMON_COMPILER_FLAGS" \
-        FC=gfortran FCFLAGS="$COMMON_COMPILER_FLAGS" \
+    && export common_flags=$([ "$TARGETARCH" == "arm64" ] && echo "$COMMON_COMPILER_FLAGS_ARM" || echo "$COMMON_COMPILER_FLAGS") \
+    &&  CC=gcc CFLAGS="$common_flags" \
+        CXX=g++ CXXFLAGS="$common_flags" \
+        F77=gfortran F90=gfortran FFLAGS="$common_flags" \
+        FC=gfortran FCFLAGS="$common_flags" \
         LDFLAGS=-Wl,--as-needed \
         ./configure --prefix="$MUNGE_INSTALL_PREFIX" \
     && make -j$(nproc) && make -j$(nproc) install \
@@ -115,10 +120,11 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
         hwloc libevent-dev \
     && mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://github.com/openpmix/openpmix/releases/download/v3.2.3/pmix-3.2.3.tar.gz \
     && tar -x -f /var/tmp/pmix-3.2.3.tar.gz -C /var/tmp -z && cd /var/tmp/pmix-3.2.3 \
-    &&  CC=gcc CFLAGS="$COMMON_COMPILER_FLAGS" \
-        CXX=g++ CXXFLAGS="$COMMON_COMPILER_FLAGS" \
-        F77=gfortran F90=gfortran FFLAGS="$COMMON_COMPILER_FLAGS" \
-        FC=gfortran FCFLAGS="$COMMON_COMPILER_FLAGS" \
+    && export common_flags=$([ "$TARGETARCH" == "arm64" ] && echo "$COMMON_COMPILER_FLAGS_ARM" || echo "$COMMON_COMPILER_FLAGS") \
+    &&  CC=gcc CFLAGS="$common_flags" \
+        CXX=g++ CXXFLAGS="$common_flags" \
+        F77=gfortran F90=gfortran FFLAGS="$common_flags" \
+        FC=gfortran FCFLAGS="$common_flags" \
         LDFLAGS=-Wl,--as-needed \
         ./configure --prefix="$PMIX_INSTALL_PREFIX" \
             --with-munge="$MUNGE_INSTALL_PREFIX" \
@@ -139,10 +145,11 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
     && git clone https://github.com/open-mpi/ompi.git ompi && cd /var/tmp/ompi \
     && git checkout v4.1.4 \
     && ./autogen.pl \
-    &&  CC=gcc CFLAGS="$COMMON_COMPILER_FLAGS" \
-        CXX=g++ CXXFLAGS="$COMMON_COMPILER_FLAGS" \
-        F77=gfortran F90=gfortran FFLAGS="$COMMON_COMPILER_FLAGS" \
-        FC=gfortran FCFLAGS="$COMMON_COMPILER_FLAGS" \
+    && export common_flags=$([ "$TARGETARCH" == "arm64" ] && echo "$COMMON_COMPILER_FLAGS_ARM" || echo "$COMMON_COMPILER_FLAGS") \
+    &&  CC=gcc CFLAGS="$common_flags" \
+        CXX=g++ CXXFLAGS="$common_flags" \
+        F77=gfortran F90=gfortran FFLAGS="$common_flags" \
+        FC=gfortran FCFLAGS="$common_flags" \
         LDFLAGS=-Wl,--as-needed \
         ./configure --prefix="$OPENMPI_INSTALL_PREFIX" \
             --disable-getpwuid --disable-static \
