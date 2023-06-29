@@ -58,15 +58,9 @@ target_link_libraries(_pycudaq
 if (NOT SKBUILD)
   install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq)
   install(DIRECTORY cudaq DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq)
-  # Install the domains subpackages to the proper location.
-  # install(FILES domains/__init__.py DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq/domains)
-  # install(DIRECTORY domains/chemistry DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq/domains/chemistry)
 else()
   install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX})
-  # install(DIRECTORY cudaq/domains DESTINATION ${CMAKE_INSTALL_PREFIX}/domains)
-  # install(FILES cudaq/domains/__init__.py DESTINATION ${CMAKE_INSTALL_PREFIX}/domains)
-  # install(DIRECTORY cudaq/domains/chemistry DESTINATION ${CMAKE_INSTALL_PREFIX}/domains/chemistry)
-  # install(FILES cudaq/domains/chemistry/__init__.py DESTINATION ${CMAKE_INSTALL_PREFIX}/domains/chemistry)
+  install(DIRECTORY cudaq/domains DESTINATION ${CMAKE_INSTALL_PREFIX})
 endif()
 
 if(APPLE)
