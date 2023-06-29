@@ -57,6 +57,9 @@ target_link_libraries(_pycudaq
 if (NOT SKBUILD)
   install(DIRECTORY cudaq DESTINATION ${CMAKE_INSTALL_PREFIX})
   install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq)
+  # Also install these to the build directory for testing.
+  install(DIRECTORY cudaq DESTINATION ${CMAKE_BINARY_DIR}/python)
+  install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX}/python/cudaq)
 else()
   install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX})
   install(DIRECTORY cudaq/domains DESTINATION ${CMAKE_INSTALL_PREFIX})
