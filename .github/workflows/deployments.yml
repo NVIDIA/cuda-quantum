@@ -98,7 +98,7 @@ jobs:
       build_args: |
         base_image=${{ needs.config.outputs.base_image }}
         ompidev_image=${{ needs.openmpi.outputs.image_hash }}
-      registry_cache_update: ${{ github.event_name == 'workflow_dispatch' && inputs.update_registry_cache }}
+      registry_cache_update: true
       environment: ghcr-deployment
 
   docker_image:
