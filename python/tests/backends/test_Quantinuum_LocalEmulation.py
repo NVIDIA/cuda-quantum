@@ -5,11 +5,17 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
+import os
+import sys
+import time
 
-import cudaq, pytest, os, time
-from cudaq import spin
-from mock_quantinuum import startServer
+import pytest 
 from multiprocessing import Process
+
+import cudaq
+from cudaq import spin 
+
+from utils.mock_qpu.quantinuum import startServer
 
 # Define the port for the mock server
 port = 62448
