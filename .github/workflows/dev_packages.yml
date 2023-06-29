@@ -105,6 +105,7 @@ jobs:
             exit 1
           fi
 
+          echo "base_image=$base_image" >> $GITHUB_OUTPUT
           echo "tar_cache=tar-cudaqdev-${image_tag}-${{ github.sha }}" >> $GITHUB_OUTPUT
           echo "tar_archive=/tmp/cuda-quantum-dev.tar" >> $GITHUB_OUTPUT
 
@@ -117,7 +118,7 @@ jobs:
           context: .
           file: ./docker/build/cudaq.dev.Dockerfile
           build-args: |
-            base_image=$base_image
+            base_image=${{ steps.dev_image.outputs.base_image }}
             install="CMAKE_BUILD_TYPE=Release FORCE_COMPILE_GPU_COMPONENTS=true"
           load: false
           tags: ${{ steps.metadata.outputs.tags }}
