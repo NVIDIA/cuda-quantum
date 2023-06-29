@@ -10,11 +10,11 @@ import os
 import sys
 import time
 
-import pytest 
+import pytest
 from multiprocessing import Process
 
 import cudaq
-from cudaq import spin 
+from cudaq import spin
 
 from utils.mock_qpu.quantinuum import startServer
 
