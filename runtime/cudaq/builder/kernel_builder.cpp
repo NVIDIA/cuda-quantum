@@ -625,16 +625,19 @@ ExecutionEngine *jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   });
 
   PassManager pm(context);
+  pm.addPass(createInlinerPass());
   pm.addPass(createCanonicalizerPass());
   OpPassManager &optPM = pm.nest<func::FuncOp>();
-  pm.addPass(cudaq::opt::createExpandMeasurementsPass());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
   optPM.addPass(cudaq::opt::createClassicalMemToReg());
   pm.addPass(createCanonicalizerPass());
+  pm.addPass(cudaq::opt::createExpandMeasurementsPass());
   pm.addPass(cudaq::opt::createLoopUnroll());
   pm.addPass(createCanonicalizerPass());
-  pm.addPass(createInlinerPass());
+  optPM.addPass(cudaq::opt::createQuakeAddDeallocs());
+  optPM.addPass(cudaq::opt::createQuakeAddMetadata());
+  optPM.addPass(cudaq::opt::createUnwindLoweringPass());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
 
@@ -646,15 +649,12 @@ ExecutionEngine *jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
         "cudaq::builder failed to JIT compile the Quake representation.");
 
   // Continue on...
-  pm.addPass(createInlinerPass());
-  optPM.addPass(cudaq::opt::createQuakeAddDeallocs());
-  optPM.addPass(cudaq::opt::createQuakeAddMetadata());
   pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader(/*genAsQuake=*/true));
   pm.addPass(cudaq::opt::createGenerateKernelExecution());
   optPM.addPass(cudaq::opt::createLowerToCFGPass());
+  pm.addPass(cudaq::opt::createConvertToQIRPass());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
-  pm.addPass(cudaq::opt::createConvertToQIRPass());
 
   if (failed(pm.run(module)))
     throw std::runtime_error(
