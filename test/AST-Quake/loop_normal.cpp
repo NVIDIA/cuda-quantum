@@ -109,3 +109,90 @@ __qpu__ void foo4() {
 // CHECK:           ^bb0(%[[VAL_14:.*]]: i32):
 // CHECK:             %[[VAL_15:.*]] = arith.addi %[[VAL_14]], %[[VAL_2]] : i32
 
+__qpu__ void foo5() {
+  cudaq::qubit q;
+  for (int i = 0; i < 9; i += 2)
+    x(q);
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_foo5
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 5 : i32
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i32
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i32
+// CHECK-DAG:       %[[VAL_3:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_4:.*]] = cc.loop while ((%[[VAL_5:.*]] = %[[VAL_2]]) -> (i32)) {
+// CHECK:             %[[VAL_6:.*]] = arith.cmpi ne, %[[VAL_5]], %[[VAL_0]] : i32
+// CHECK:             cc.condition %[[VAL_6]](%[[VAL_5]] : i32)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_7:.*]]: i32):
+// CHECK:             quake.x %[[VAL_3]] : (!quake.ref) -> ()
+// CHECK:             cc.continue %[[VAL_7]] : i32
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_8:.*]]: i32):
+// CHECK:             %[[VAL_9:.*]] = arith.addi %[[VAL_8]], %[[VAL_1]] : i32
+// CHECK:             cc.continue %[[VAL_9]] : i32
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }
+
+__qpu__ void foo6() {
+  cudaq::qubit q;
+  for (int i = -2; i < 16; i += 4)
+    x(q);
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_foo6
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 5 : i32
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i32
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i32
+// CHECK-DAG:       %[[VAL_3:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_4:.*]] = cc.loop while ((%[[VAL_5:.*]] = %[[VAL_2]]) -> (i32)) {
+// CHECK:             %[[VAL_6:.*]] = arith.cmpi ne, %[[VAL_5]], %[[VAL_0]] : i32
+// CHECK:             cc.condition %[[VAL_6]](%[[VAL_5]] : i32)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_7:.*]]: i32):
+// CHECK:             quake.x %[[VAL_3]] : (!quake.ref) -> ()
+// CHECK:             cc.continue %[[VAL_7]] : i32
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_8:.*]]: i32):
+// CHECK:             %[[VAL_9:.*]] = arith.addi %[[VAL_8]], %[[VAL_1]] : i32
+// CHECK:             cc.continue %[[VAL_9]] : i32
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }
+
+__qpu__ void negative1() {
+  cudaq::qubit q;
+  for (int i = 5; i < 5; i += 4)
+    x(q);
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_negative1
+// CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i32
+// CHECK:           %[[VAL_3:.*]] = cc.loop while ((%[[VAL_4:.*]] = %[[VAL_0]]) -> (i32)) {
+// CHECK:             %[[VAL_5:.*]] = arith.cmpi ne, %[[VAL_4]], %[[VAL_0]] : i32
+// CHECK:             cc.condition %[[VAL_5]](%[[VAL_4]] : i32)
+
+__qpu__ void negative2() {
+  cudaq::qubit q;
+  for (int i = 5; i <= 4; i += 32)
+    x(q);
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_negative2
+// CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i32
+// CHECK:           %[[VAL_3:.*]] = cc.loop while ((%[[VAL_4:.*]] = %[[VAL_0]]) -> (i32)) {
+// CHECK:             %[[VAL_5:.*]] = arith.cmpi ne, %[[VAL_4]], %[[VAL_0]] : i32
+// CHECK:             cc.condition %[[VAL_5]](%[[VAL_4]] : i32)
+
+__qpu__ void negative3() {
+  cudaq::qubit q;
+  for (int i = -10; i < -1; i += -2)
+    x(q);
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_negative3
+// CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i32
+// CHECK:           %[[VAL_3:.*]] = cc.loop while ((%[[VAL_4:.*]] = %[[VAL_0]]) -> (i32)) {
+// CHECK:             %[[VAL_5:.*]] = arith.cmpi ne, %[[VAL_4]], %[[VAL_0]] : i32
+// CHECK:             cc.condition %[[VAL_5]](%[[VAL_4]] : i32)

@@ -67,6 +67,10 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
 
   LogicalResult matchAndRewrite(cudaq::cc::LoopOp loop,
                                 PatternRewriter &rewriter) const override {
+    // When the signalFailure flag is set, all loops are matched since that flag
+    // requires that all LoopOp operations be rewritten. Despite the setting of
+    // this flag, it may not be possible to fully unroll every LoopOp anyway.
+    // Check for cases that are clearly not going to be unrolled.
     if (!cudaq::opt::isaCountedLoop(loop))
       return loop.emitOpError("not a simple counted loop");
     if (exceedsThresholdValue(loop, threshold))
