@@ -6,5 +6,4 @@ ADD tests/ghz.cpp /
 ENV TERM xterm
 ENV PATH "${PATH}:/root/.local/bin"
 RUN python3 -m pip install --user wheels/cudaq-0.0.3-cp310-cp310-linux_x86_64.whl
-RUN python3 -c "import cudaq"
-RUN python3 -c "import cudaq; circ = cudaq.make_kernel() ; print(circ.to_quake())"
+RUN python3 -m pytest python/tests
