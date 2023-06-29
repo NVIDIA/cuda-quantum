@@ -343,8 +343,8 @@ jobs:
       packages: write
 
     outputs:
-      tar_cache: ${{ steps.cudaq_image.outputs.tar_cache }}
-      tar_archive: ${{ steps.cudaq_image.outputs.tar_archive }}
+      tar_cache: ${{ steps.prereqs.outputs.tar_cache }}
+      tar_archive: ${{ steps.prereqs.outputs.tar_archive }}
       image_hash: '${{ needs.metadata.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}'
 
     environment:
