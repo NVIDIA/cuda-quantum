@@ -56,13 +56,13 @@ target_link_libraries(_pycudaq
       fmt::fmt-header-only)
 
 if (NOT SKBUILD)
+  install(DIRECTORY cudaq DESTINATION ${CMAKE_INSTALL_PREFIX})
   install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq)
-  install(DIRECTORY cudaq DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq)
 else()
   install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX})
   install(DIRECTORY cudaq/domains DESTINATION ${CMAKE_INSTALL_PREFIX})
 endif()
-
+    
 if(APPLE)
   set_target_properties(
      _pycudaq PROPERTIES INSTALL_RPATH "@loader_path/lib")
