@@ -31,6 +31,7 @@ jobs:
       contents: read
 
     outputs:
+      #owner: ${{ steps.metadata.outputs.owner }}
       image_name: ${{ steps.metadata.outputs.image_name }}
       image_tag: ${{ steps.metadata.outputs.image_tag }}
 
@@ -50,6 +51,7 @@ jobs:
             image_tag=`echo ${{ github.ref_name }} | tr '/' '-'`
           fi
 
+          #echo "owner=${repo_owner,,}" >> $GITHUB_OUTPUT
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
           echo "image_tag=$image_tag" >> $GITHUB_OUTPUT
 
@@ -77,13 +79,22 @@ jobs:
           key: ${{ inputs.devdeps_cache }}
           fail-on-cache-miss: true
 
-      - name: Build CUDA Quantum
+      - name: Extract metadata
+        id: metadata
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ needs.metadata.outputs.image_name }}-dev
+          flavor:
+            latest=false
+          tags: |
+            type=raw,value=${{ needs.metadata.outputs.image_tag }}
+          labels: |
+            org.opencontainers.image.title=cuda-quantum-dev
+            org.opencontainers.image.description=Dev environment for CUDA Quantum
+
+      - name: Load prerequisites
         id: dev_image
         run: |
-          image_name=${{ needs.metadata.outputs.image_name }}-dev
-          image_tag=${{ needs.metadata.outputs.image_tag }}
-          tar_archive=/tmp/cuda-quantum-dev.tar
-
           if ${{ steps.restore.outcome != 'skipped' }}; then
             base_image=`docker load --input ${{ inputs.devdeps_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
           elif ${{ inputs.devdeps_image != '' }}; then
@@ -94,15 +105,25 @@ jobs:
             exit 1
           fi
 
-          docker build -t $image_name:$image_tag -f docker/build/cudaq.dev.Dockerfile . \
-            --build-arg base_image=$base_image \
-            --build-arg install="CMAKE_BUILD_TYPE=Release FORCE_COMPILE_GPU_COMPONENTS=true"
-
-          docker builder prune --all --force
-          docker save $image_name:$image_tag > $tar_archive
-
           echo "tar_cache=tar-cudaqdev-${image_tag}-${{ github.sha }}" >> $GITHUB_OUTPUT
-          echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
+          echo "tar_archive=/tmp/cuda-quantum-dev.tar" >> $GITHUB_OUTPUT
+
+      - name: Set up buildx runner
+        uses: docker/setup-buildx-action@v2
+  
+      - name: Build CUDA Quantum
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./docker/build/cudaq.dev.Dockerfile
+          build-args: |
+            base_image=$base_image
+            install="CMAKE_BUILD_TYPE=Release FORCE_COMPILE_GPU_COMPONENTS=true"
+          load: false
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          platforms: linux/amd64
+          outputs: type=docker,dest=${{ steps.dev_image.outputs.tar_archive }}
 
       - name: Cache cuda-quantum-dev image
         uses: actions/cache/save@v3
