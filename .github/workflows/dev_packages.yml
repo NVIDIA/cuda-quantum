@@ -31,7 +31,7 @@ jobs:
       contents: read
 
     outputs:
-      #owner: ${{ steps.metadata.outputs.owner }}
+      owner: ${{ steps.metadata.outputs.owner }}
       image_name: ${{ steps.metadata.outputs.image_name }}
       image_tag: ${{ steps.metadata.outputs.image_tag }}
 
@@ -51,7 +51,7 @@ jobs:
             image_tag=`echo ${{ github.ref_name }} | tr '/' '-'`
           fi
 
-          #echo "owner=${repo_owner,,}" >> $GITHUB_OUTPUT
+          echo "owner=${repo_owner,,}" >> $GITHUB_OUTPUT
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
           echo "image_tag=$image_tag" >> $GITHUB_OUTPUT
 
@@ -128,7 +128,7 @@ jobs:
 
       - name: Set up buildx runner
         uses: docker/setup-buildx-action@v2
-  
+
       - name: Build CUDA Quantum
         id: docker_build
         uses: docker/build-push-action@v4
@@ -256,41 +256,83 @@ jobs:
   ompi_image:
     name: Open MPI
     if: inputs.ompidev_image
+    needs: metadata
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     outputs:
-      tar_cache: ${{ steps.open_mpi.outputs.tar_cache }}
-      tar_archive: ${{ steps.open_mpi.outputs.tar_archive }}
+      tar_cache: ${{ steps.build_info.outputs.tar_cache }}
+      tar_archive: ${{ steps.build_info.outputs.tar_archive }}
+      image_hash: '${{ steps.build_info.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}'
 
+    environment:
+      name: ${{ inputs.environment || 'default' }}
+      url: ${{ vars.deployment_url }}
+  
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: OpenMPI installation
-        id: open_mpi
+      - name: Log in to the container registry
+        if: inputs.environment && vars.registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ vars.registry }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Determine build arguments
+        id: build_info
         run: |
-          tar_archive=/tmp/open-mpi.tar
-          docker pull ${{ inputs.ompidev_image }}
+          image_name=${{ vars.registry || 'ghcr.io' }}/${{ needs.metadata.outputs.owner }}/open-mpi
+          echo "image_name=$image_name" >> $GITHUB_OUTPUT
+          echo "image_tag=${{ needs.metadata.outputs.image_tag }}" >> $GITHUB_OUTPUT
+          if ${{ inputs.environment == '' }}; then
+            tar_archive=/tmp/open-mpi.tar
+            echo "tar_cache=tar-ompi-${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
+            echo "docker_output='type=docker,dest=$tar_archive'" >> $GITHUB_OUTPUT
+          fi
 
-          docker build -t open-mpi:local -f docker/build/devdeps.ext.Dockerfile . \
-            --build-arg ompidev_image=${{ inputs.ompidev_image }} \
-            --build-arg cuda_packages=cuda-runtime-11-8 \
-            --build-arg base_image=ubuntu:22.04
+      - name: Extract metadata
+        id: metadata
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ steps.build_info.outputs.image_name }}
+          flavor:
+            latest=false
+          tags: |
+            type=raw,value=${{ steps.build_info.outputs.image_tag }}
+          labels: |
+            org.opencontainers.image.title=open-mpi
+            org.opencontainers.image.description=Open MPI dependencies of CUDA Quantum
 
-          docker image rm ${{ inputs.ompidev_image }}
-          docker builder prune --all --force
-          docker save open-mpi:local > $tar_archive
+      - name: Set up buildx runner
+        uses: docker/setup-buildx-action@v2
 
-          echo "tar_cache=tar-ompi-${{ github.sha }}" >> $GITHUB_OUTPUT
-          echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
+      - name: Build Open MPI
+        id: docker_build
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./docker/build/devdeps.ext.Dockerfile
+          build-args: |
+            ompidev_image=${{ inputs.ompidev_image }}
+            cuda_packages=cuda-runtime-11-8
+            base_image=ubuntu:22.04
+          push: ${{ inputs.environment }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          platforms: linux/amd64
+          outputs: ${{ steps.build_info.outputs.docker_output }}
 
       - name: Cache cuda-quantum image
+        if: steps.build_info.outputs.tar_cache && steps.build_info.outputs.tar_archive
         uses: actions/cache/save@v3
         with:
-          path: ${{ steps.open_mpi.outputs.tar_archive }}
-          key: ${{ steps.open_mpi.outputs.tar_cache }}
+          path: ${{ steps.build_info.outputs.tar_archive }}
+          key: ${{ steps.build_info.outputs.tar_cache }}
 
   cudaq_image:
     name: Docker image
@@ -320,7 +362,7 @@ jobs:
 
       - name: Restore OpenMPI build
         id: restore_openmpi
-        if: needs.ompi_image.result != 'skipped'
+        if: needs.ompi_image.outputs.tar_cache && needs.ompi_image.outputs.tar_archive
         uses: actions/cache/restore@v3
         with:
           path: ${{ needs.ompi_image.outputs.tar_archive }}
@@ -334,10 +376,13 @@ jobs:
           image_tag=${{ needs.metadata.outputs.image_tag }}
           tar_archive=/tmp/cuda-quantum.tar
 
-          if ${{ steps.restore_openmpi.outcome != 'skipped' }}; then
+          if ${{ needs.ompi_image.result == 'skipped' }}; then
+            base_image=ubuntu:22.04
+          elif ${{ steps.restore_openmpi.outcome != 'skipped' }}; then
             base_image=`docker load --input ${{ needs.ompi_image.outputs.tar_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
           else
-            base_image=ubuntu:22.04
+            docker pull ${{ needs.ompi_image.outputs.image_hash }}
+            base_image=${{ needs.ompi_image.outputs.image_hash }}
           fi
 
           if ${{ steps.restore_cudaqdev.outcome != 'skipped' }}; then
@@ -401,19 +446,18 @@ jobs:
 
   clean_up:
     name: Prepare cache clean-up
-    needs: [cudaqdev_image, cudaq_image, documentation]
+    needs: [cudaqdev_image, cudaq_image, ompi_image, documentation]
     runs-on: ubuntu-latest
-    if: always() # need to clean up even if the workflow is cancelled or fails
+    # We need to clean up even if the workflow is cancelled or fails.
+    if: always()
 
     steps:
       - name: Save cache keys
         id: workflow_inputs
         run: |
           keys=${{ needs.ompi_image.outputs.tar_cache }}
-          if ${{ inputs.environment == '' }}; then
-            keys+=" ${{ needs.cudaqdev_image.outputs.tar_cache }}"
-            keys+=" ${{ needs.cudaq_image.outputs.tar_cache }}"
-          fi
+          keys+=" ${{ needs.cudaqdev_image.outputs.tar_cache }}"
+          keys+=" ${{ needs.cudaq_image.outputs.tar_cache }}"
           echo "$keys" >> cache_keys.txt
 
       - uses: actions/upload-artifact@v3
