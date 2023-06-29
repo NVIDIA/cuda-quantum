@@ -37,25 +37,19 @@ skbuild.setup(
     zip_safe=False,
     python_requires=">=3.8",
     cmake_install_dir=cmake_install_dir,
-    # FIXME: Remove hard-coding on zlib and libcpr path.
     cmake_args=[
-        "-DCUDAQ_ENABLE_PYTHON=TRUE",
-        "-DBLAS_LIBRARIES=/usr/lib64/libblas.a",
-        "-DCMAKE_INSTALL_LIBDIR=lib",
-        "-DCUDAQ_DISABLE_CPP_FRONTEND=ON",
-        "-DCUDAQ_BUILD_TESTS=FALSE",
-        "-DCMAKE_COMPILE_WARNING_AS_ERROR=OFF",
+        "-DCUDAQ_ENABLE_PYTHON=TRUE", "-DBLAS_LIBRARIES=/usr/lib64/libblas.a",
+        "-DCMAKE_INSTALL_LIBDIR=lib", "-DCUDAQ_DISABLE_CPP_FRONTEND=ON",
+        "-DCUDAQ_BUILD_TESTS=FALSE", "-DCMAKE_COMPILE_WARNING_AS_ERROR=OFF",
         "-DCUSTATEVEC_ROOT={}".format(os.environ["CUSTATEVEC_ROOT"])
         if "CUSTATEVEC_ROOT" in os.environ else "",
-        "-DLLVM_DIR={}".format(os.environ["LLVM_DIR"])
-        if "LLVM_DIR" in os.environ else "/opt/llvm",
-        "-DOPENSSL_USE_STATIC_LIBS=TRUE",
+        "-DLLVM_DIR={}".format(os.environ["LLVM_DIR"]) if "LLVM_DIR"
+        in os.environ else "/opt/llvm", "-DOPENSSL_USE_STATIC_LIBS=TRUE",
         "-DCMAKE_EXE_LINKER_FLAGS='-static-libgcc -static-libstdc++'",
         "-DCMAKE_SHARED_LINKER_FLAGS='-static-libgcc -static-libstdc++'",
         "-DOPENSSL_ROOT_DIR=/usr/local/ssl",
-        "-DCUDAQ_CPR_INSTALL={}".format(os.environ["CPR_DIR"]) if "CPR_DIR" in os.environ else "/cpr/install",
-        # "-DZLIB_ROOT={}".format(os.environ["CUDAQ_CPR_INSTALL"]) if "CUDAQ_CPR_INSTALL" in os.environ else "/cpr/install",
-        # "-DZLIB_USE_STATIC_LIBS=TRUE",
+        "-DCUDAQ_CPR_INSTALL={}".format(os.environ["CPR_DIR"])
+        if "CPR_DIR" in os.environ else "/cpr/install",
         "-DCUDAQ_BUILD_RELOCATABLE_PACKAGE=TRUE"
     ],
     setup_requires=["numpy", "pytest", "scikit-build", "setuptools"])

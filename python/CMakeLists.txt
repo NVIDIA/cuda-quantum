@@ -7,7 +7,6 @@
 # ============================================================================ #
 
 set(LIBRARY_NAME _pycudaq)
-set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
 find_package(Python COMPONENTS Interpreter)
 
@@ -67,8 +66,8 @@ if(APPLE)
   set_target_properties(
      _pycudaq PROPERTIES INSTALL_RPATH "@loader_path/lib")
 else()
-  set_target_properties(_pycudaq PROPERTIES INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib)
-                                          # "$ORIGIN/lib")
+  set_target_properties(
+    _pycudaq PROPERTIES INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib)
 endif()
 
 if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
