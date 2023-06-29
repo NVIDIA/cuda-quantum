@@ -4,6 +4,10 @@ on:
       dockerfile:
         required: true
         type: string
+      platforms:
+        type: string
+        required: false
+        default: linux/amd64,linux/arm64
       build_target:
         required: false
         type: string
@@ -238,7 +242,7 @@ jobs:
             ${{ inputs.build_args }}
           tags: ${{ needs.metadata.outputs.image_tags }}
           labels: ${{ needs.metadata.outputs.image_labels }}
-          platforms: linux/amd64
+          platforms: ${{ inputs.platforms }}
           cache-from: |
             ${{ inputs.additional_build_caches }}
             ${{ steps.cache.outputs.cache_from_gh }}

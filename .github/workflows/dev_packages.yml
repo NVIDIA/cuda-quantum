@@ -1,6 +1,10 @@
 on:
   workflow_call:
     inputs:
+      platforms:
+        type: string
+        required: false
+        default: linux/amd64,linux/arm64
       ompidev_image:
         required: false
         type: string
@@ -139,7 +143,7 @@ jobs:
             install="CMAKE_BUILD_TYPE=Release FORCE_COMPILE_GPU_COMPONENTS=true"
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
-          platforms: linux/amd64
+          platforms: ${{ inputs.platforms }}
           push: ${{ inputs.environment != '' }}
           outputs: type=docker,dest=${{ steps.prereqs.outputs.tar_archive }}
 
@@ -321,7 +325,7 @@ jobs:
             base_image=ubuntu:22.04
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
-          platforms: linux/amd64
+          platforms: ${{ inputs.platforms }}
           push: ${{ inputs.environment != '' }}
           outputs: type=docker,dest=${{ steps.build_info.outputs.tar_archive }}
 
@@ -432,7 +436,7 @@ jobs:
             release_version=${{ needs.metadata.outputs.image_tag }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
-          platforms: linux/amd64
+          platforms: ${{ inputs.platforms }}
           push: ${{ inputs.environment != '' }}
           outputs: type=docker,dest=${{ steps.prereqs.outputs.tar_archive }}
 
