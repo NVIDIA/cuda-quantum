@@ -138,7 +138,7 @@ jobs:
           build-args: |
             base_image=${{ steps.dev_image.outputs.base_image }}
             install="CMAKE_BUILD_TYPE=Release FORCE_COMPILE_GPU_COMPONENTS=true"
-          push: ${{ inputs.environment }}
+          push: ${{ inputs.environment != '' }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: linux/amd64
@@ -321,7 +321,7 @@ jobs:
             ompidev_image=${{ inputs.ompidev_image }}
             cuda_packages=cuda-runtime-11-8
             base_image=ubuntu:22.04
-          push: ${{ inputs.environment }}
+          push: ${{ inputs.environment != '' }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: linux/amd64
@@ -346,10 +346,23 @@ jobs:
     outputs:
       tar_cache: ${{ steps.cudaq_image.outputs.tar_cache }}
       tar_archive: ${{ steps.cudaq_image.outputs.tar_archive }}
+      image_hash: '${{ needs.metadata.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}'
+
+    environment:
+      name: ${{ inputs.environment || 'default' }}
+      url: ${{ vars.deployment_url }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
+      - name: Log in to the container registry
+        if: inputs.environment && vars.registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ vars.registry }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
 
       - name: Restore release build
         id: restore_cudaqdev
@@ -369,13 +382,22 @@ jobs:
           key: ${{ needs.ompi_image.outputs.tar_cache }}
           fail-on-cache-miss: true
 
-      - name: Build cuda-quantum image
-        id: cudaq_image
-        run: |
-          image_name=${{ needs.metadata.outputs.image_name }}
-          image_tag=${{ needs.metadata.outputs.image_tag }}
-          tar_archive=/tmp/cuda-quantum.tar
+      - name: Extract metadata
+        id: metadata
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ needs.metadata.outputs.image_name }}
+          flavor:
+            latest=false
+          tags: |
+            type=raw,value=${{ needs.metadata.outputs.image_tag }}
+          labels: |
+            org.opencontainers.image.title=cuda-quantum
+            org.opencontainers.image.description=CUDA Quantum toolkit for heterogeneous quantum-classical workflows
 
+      - name: Load prerequisites
+        id: prereqs
+        run: |
           if ${{ needs.ompi_image.result == 'skipped' }}; then
             base_image=ubuntu:22.04
           elif ${{ steps.restore_openmpi.outcome != 'skipped' }}; then
@@ -392,33 +414,67 @@ jobs:
             cudaqdev_image=${{ needs.cudaqdev_image.outputs.image_hash }}
           fi
 
-          docker build -t $image_name:$image_tag -f docker/release/cudaq.Dockerfile . \
-            --build-arg cudaqdev_image=$cudaqdev_image \
-            --build-arg base_image=$base_image \
-            --build-arg release_version=$image_tag
+          echo "base_image=$base_image" >> $GITHUB_OUTPUT
+          echo "cudaqdev_image=$cudaqdev_image" >> $GITHUB_OUTPUT
+          if ${{ inputs.environment == '' }}; then
+            tar_archive=/tmp/cuda-quantum.tar
+            echo "tar_cache=tar-cudaq-${image_tag}-${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
+            echo "docker_output='type=docker,dest=$tar_archive'" >> $GITHUB_OUTPUT
+          fi
 
-          rm -rf "${{ needs.ompi_image.outputs.tar_archive }}"
-          rm -rf "${{ needs.cudaqdev_image.outputs.tar_archive }}"
-          docker image rm $base_image
-          docker image rm $cudaqdev_image
-          docker image prune --force
-          docker container prune --force
-          docker volume prune --force
-          docker builder prune --all --force
-          docker save $image_name:$image_tag > $tar_archive
-
-          echo "tar_cache=tar-cudaq-${image_tag}-${{ github.sha }}" >> $GITHUB_OUTPUT
-          echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
+      - name: Build cuda-quantum image
+        id: docker_build
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./docker/release/cudaq.Dockerfile
+          build-args: |
+            cudaqdev_image=${{ steps.prereqs.outputs.cudaqdev_image }}
+            base_image=${{ steps.prereqs.outputs.base_image }}
+            release_version=${{ needs.metadata.outputs.image_tag }}
+          push: ${{ inputs.environment != '' }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          platforms: linux/amd64
+          outputs: ${{ steps.prereqs.outputs.docker_output }}
 
       - name: Cache cuda-quantum image
+        if: steps.prereqs.outputs.tar_cache && steps.prereqs.outputs.tar_archive
         uses: actions/cache/save@v3
         with:
-          path: ${{ steps.cudaq_image.outputs.tar_archive }}
-          key: ${{ steps.cudaq_image.outputs.tar_cache }}
+          path: ${{ steps.prereqs.outputs.tar_archive }}
+          key: ${{ steps.prereqs.outputs.tar_cache }}
+
+  validation:
+    name: Validation
+    needs: [metadata, cudaq_image]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Load cuda-quantum image
+        id: restore
+        if: needs.cudaq_image.outputs.tar_cache && needs.cudaq_image.outputs.tar_archive
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ needs.cudaq_image.outputs.tar_archive }}
+          key: ${{ needs.cudaq_image.outputs.tar_cache }}
+          fail-on-cache-miss: true
 
       - name: Validate cuda-quantum image
         run: |
-          docker run --rm -dit --name cuda-quantum ${{ needs.metadata.outputs.image_name }}:${{ needs.metadata.outputs.image_tag }}
+          if ${{ steps.restore.outcome != 'skipped' }}; then
+            docker load --input ${{ needs.cudaq_image.outputs.tar_archive }}
+            cudaq_image=${{ needs.metadata.outputs.image_name }}:${{ needs.metadata.outputs.image_tag }}
+          else
+            docker pull ${{ needs.cudaq_image.outputs.image_hash }}
+            cudaq_image=${{ needs.cudaq_image.outputs.image_hash }}
+          fi
+
+          docker run --rm -dit --name cuda-quantum $cudaq_image
           docker cp scripts/validate_container.sh cuda-quantum:"/home/cudaq/validate_container.sh"
           docker exec -e TERM=xterm cuda-quantum bash validate_container.sh > /tmp/validation.out
           docker stop cuda-quantum
@@ -434,19 +490,9 @@ jobs:
             echo '```' >> $GITHUB_STEP_SUMMARY
           fi
 
-  cudaq_deployment:
-    name: Deploy image
-    if: inputs.environment
-    needs: cudaq_image
-    uses: ./.github/workflows/deploy_to_registry.yml
-    with:
-      environment: ${{ inputs.environment }}
-      cache_key: ${{ needs.cudaq_image.outputs.tar_cache }}
-      tar_archive: ${{ needs.cudaq_image.outputs.tar_archive }}
-
   clean_up:
     name: Prepare cache clean-up
-    needs: [cudaqdev_image, cudaq_image, ompi_image, documentation]
+    needs: [cudaqdev_image, cudaq_image, ompi_image, documentation, validation]
     runs-on: ubuntu-latest
     # We need to clean up even if the workflow is cancelled or fails.
     if: always()
