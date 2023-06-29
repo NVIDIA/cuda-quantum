@@ -104,7 +104,7 @@ jobs:
   docker_image:
     name: Create Packages
     needs: [extdevdeps, openmpi]
-    uses: ./.github/workflows/build_packages.yml
+    uses: ./.github/workflows/dev_packages.yml
     secrets: inherit
     with:
       ompidev_image: ${{ needs.openmpi.outputs.image_hash }}

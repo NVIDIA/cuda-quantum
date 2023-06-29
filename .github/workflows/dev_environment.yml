@@ -124,7 +124,6 @@ jobs:
             prefix=${{ steps.build_info.outputs.tag_prefix }},onlatest=true
             suffix=${{ steps.build_info.outputs.tag_suffix }},onlatest=true
           tags: |
-            # workflow dispatch is covered by these
             type=schedule,enable=${{ inputs.pull_request_number == '' }},pattern=nightly
             type=ref,enable=${{ inputs.pull_request_number == '' }},event=branch
             type=ref,enable=${{ inputs.pull_request_number == '' }},prefix=${{ steps.build_info.outputs.tag_prefix }}pr-,event=pr
