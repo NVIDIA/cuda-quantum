@@ -11,9 +11,18 @@
 # Usage: 
 # This script is called in the file `/cuda-quantum/setup.py` and is responsible
 # for installing all dependencies needed to build a python wheel or to pip install
-# the python bindings from source. It expects to be run on the Ubuntu Dev Image, 
-# otherwise refer to the installation steps in `build_cudaq.sh` for any further 
-# missing dependencies.
+# the python bindings from source. 
+# This script is also called by `build_wheel.sh`, which is the script for generating
+# and distributing our python wheels.
+
+# Usage: 
+# `bash install_wheel_dependencies.sh`
+# -or-
+# `LLVM_DIR=/path/to/llvm/lib/cmake/llvm  CPR_DIR=/path/to/cpr/install BLAS_PATH=/path/to/libblas.a bash install_wheel_dependencies.sh`
+
+# Prerequisites:
+# It expects to be run on the Ubuntu Dev Image, otherwise refer to the installation 
+# steps in `build_cudaq.sh` for any further missing dependencies.
 
 LLVM_DIR=${LLVM_DIR:-/opt/llvm}
 CPR_DIR=${CPR_DIR:-/cpr/install}
