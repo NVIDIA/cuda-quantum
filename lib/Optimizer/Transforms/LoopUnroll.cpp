@@ -26,27 +26,22 @@ inline std::pair<Block *, Block *> findCloneRange(Block *first, Block *last) {
   return {first->getNextNode(), last->getPrevNode()};
 }
 
-static std::optional<std::size_t>
+static std::size_t
 unrollLoopByValue(cudaq::cc::LoopOp loop,
                   const cudaq::opt::LoopComponents &components) {
-  auto v = components.compareValue;
-  if (auto c = v.getDefiningOp<arith::ConstantOp>())
-    if (auto ia = dyn_cast<IntegerAttr>(c.getValue()))
-      return ia.getInt();
-  return std::nullopt;
+  auto c = components.compareValue.getDefiningOp<arith::ConstantOp>();
+  return cast<IntegerAttr>(c.getValue()).getInt();
 }
 
-static std::optional<std::size_t> unrollLoopByValue(cudaq::cc::LoopOp loop) {
-  if (auto components = cudaq::opt::getLoopComponents(loop))
-    return unrollLoopByValue(loop, *components);
-  return std::nullopt;
+static std::size_t unrollLoopByValue(cudaq::cc::LoopOp loop) {
+  auto components = cudaq::opt::getLoopComponents(loop);
+  return unrollLoopByValue(loop, *components);
 }
 
 static bool exceedsThresholdValue(cudaq::cc::LoopOp loop,
                                   std::size_t threshold) {
-  if (auto valOpt = unrollLoopByValue(loop))
-    return *valOpt >= threshold;
-  return true;
+  auto upperBound = unrollLoopByValue(loop);
+  return upperBound >= threshold;
 }
 
 namespace {
@@ -82,17 +77,11 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
     // the total number of iterations.
     // TODO: Allow the threading of other block arguments to the result.
     auto components = cudaq::opt::getLoopComponents(loop);
-    if (!components)
-      return loop.emitOpError("loop analysis unexpectedly failed");
-    auto unrollByOpt = unrollLoopByValue(loop, *components);
-    if (!unrollByOpt)
-      return loop.emitOpError("expected a counted loop");
-    std::size_t unrollBy = *unrollByOpt;
+    assert(components && "counted loop must have components");
+    auto unrollBy = unrollLoopByValue(loop, *components);
     if (components->isClosedIntervalForm())
       ++unrollBy;
     Type inductionTy = loop.getOperands()[components->induction].getType();
-    if (!isa<IntegerType, IndexType>(inductionTy))
-      return loop.emitOpError("induction must be integral type");
     LLVM_DEBUG(llvm::dbgs()
                << "unrolling loop by " << unrollBy << " iterations\n");
     auto loc = loop.getLoc();
@@ -166,10 +155,8 @@ public:
                                     exceedsThresholdValue(loop, threshold));
         });
     target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
-    if (failed(applyPartialConversion(op, target, std::move(patterns)))) {
-      op->emitOpError("could not unroll loop");
+    if (failed(applyPartialConversion(op, target, std::move(patterns))))
       signalPassFailure();
-    }
   }
 };
 } // namespace
