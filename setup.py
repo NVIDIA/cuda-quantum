@@ -1,9 +1,10 @@
-# ******************************************************************************
-# Copyright (c) 2022 NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
-#
-# This program and the accompanying materials are made available under the
-# terms of the MIT License which accompanies this distribution.
-# ******************************************************************************
+# ============================================================================ #
+# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
 import os
 import sys
 try:
@@ -16,7 +17,7 @@ import setuptools
 
 __version__ = "0.0.3"
 
-# The setup.py script gets called twice when installing from source
+# The `setup.py` script gets called twice when installing from source
 # with `pip install .` . Once for the `egg_info` subcommand and another
 # for `install`. We will only install the missing dependencies once, for
 # the `egg_info` subcommand (arbitrary choice).

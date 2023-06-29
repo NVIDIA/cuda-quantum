@@ -1,5 +1,13 @@
 #!/bin/bash 
 
+# ============================================================================ #
+# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
 # Build and test Manylinux Python Wheels run with 
 #
 # ./build_and_test.sh 
