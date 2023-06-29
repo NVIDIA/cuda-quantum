@@ -72,7 +72,8 @@ jobs:
     name: Prepare cache clean-up
     runs-on: ubuntu-latest
     needs: [config, build_and_test, docker_image]
-    if: always() # need to clean up even if the workflow is cancelled or fails
+    # We need to clean up even if the workflow is cancelled or fails.
+    if: always()
 
     steps:
       - name: Save cache keys
