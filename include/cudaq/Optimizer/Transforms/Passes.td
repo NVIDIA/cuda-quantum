@@ -163,10 +163,11 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
     If a cc.loop op is a simple, constant counted loop, it can be fully
     unrolled into <i>n</i> copies of the body of the loop.
 
-    The signal-failure option controls whether to signal a failure if all loops
-    cannot be fully unrolled. This is necessary when synthesizing quantum
-    circuits from CUDA Quantum kernels, such as when generating a QIR base
-    profile. A quantum circuit requires all loops be completely unrolled.
+    The signal-failure-if-any-loop-cannot-be-completely-unrolled option controls
+    whether to signal a failure if all loops cannot be fully unrolled. This is
+    necessary when synthesizing quantum circuits from CUDA Quantum kernels, such
+    as when generating a QIR base profile. A quantum circuit requires all loops
+    be completely unrolled.
   }];
 
   let dependentDialects = ["mlir::arith::ArithDialect",
@@ -175,8 +176,9 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
   let options = [
     Option<"threshold", "maximum-iterations", "std::size_t",
       /*default=*/"50", "Maximum iterations to unroll.">,
-    Option<"signalFailure", "signal-failure", "bool", /*default=*/"false",
-           "Signal failure if pass can't unroll all loops.">
+    Option<"signalFailure",
+      "signal-failure-if-any-loop-cannot-be-completely-unrolled", "bool",
+      /*default=*/"false", "Signal failure if pass can't unroll all loops.">
   ];
 }
 
