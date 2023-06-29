@@ -251,7 +251,7 @@ jobs:
             ${{ steps.cache.outputs.cache_from_registry }}
             ${{ steps.cache.outputs.cache_from_nvidia_registry }}
           cache-to: ${{ steps.cache.outputs.cache_to }}
-          push: ${{ inputs.environment && ! inputs.registry_cache_update_only }}
+          push: ${{ inputs.environment && ! inputs.registry_cache_update_only || false }}
           outputs: ${{ steps.cache.outputs.docker_output }}
 
       # See also https://github.com/moby/buildkit/issues/1896
