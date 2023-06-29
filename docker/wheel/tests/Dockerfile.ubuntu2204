@@ -1,3 +1,11 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
 FROM ubuntu:22.04
 
 RUN apt-get update && apt-get install -y python3 python3-pip 

@@ -1,3 +1,11 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
 # DOCKER_BUILDKIT=1 docker build -t nvidia/cudaq_manylinux_test --network host . --output out
 FROM nvidia/cudaq_manylinux_deps as buildStage 
 
