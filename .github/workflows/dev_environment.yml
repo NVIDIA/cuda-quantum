@@ -4,6 +4,10 @@ on:
       dockerfile:
         required: true
         type: string
+      platforms:
+        type: string
+        required: false
+        default: linux/amd64,linux/arm64
       build_target:
         required: false
         type: string
@@ -146,6 +150,11 @@ jobs:
       tar_cache: ${{ steps.cache.outputs.tar_cache }}
       tar_archive: ${{ steps.cache.outputs.tar_archive }}
       build_cache: ${{ steps.cache.outputs.build_cache }}
+      image_hash: '${{ needs.metadata.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}'
+
+    environment:
+      name: ${{ inputs.environment || 'default' }}
+      url: ${{ vars.deployment_url }}
 
     steps:
       - name: Checkout repository
@@ -206,9 +215,11 @@ jobs:
           echo "cache_from_nvidia_registry=$cache_from_nvidia_registry" >> $GITHUB_OUTPUT
           echo "cache_to=$cache_to" >> $GITHUB_OUTPUT
           echo "build_cache=$build_cache" >> $GITHUB_OUTPUT
-          if ${{ ! inputs.registry_cache_update_only }}; then
+          if ${{ inputs.environment == '' && ! inputs.registry_cache_update_only }}; then
+            tar_archive=/tmp/${{ needs.metadata.outputs.image_id }}.tar
             echo "tar_cache=tar-${cache_id}${local_buildcache_key_suffix}" >> $GITHUB_OUTPUT
-            echo "tar_archive=/tmp/${{ needs.metadata.outputs.image_id }}.tar" >> $GITHUB_OUTPUT
+            echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
+            echo "docker_output='type=docker,dest=$tar_archive'" >> $GITHUB_OUTPUT
           fi
 
       - name: Check out local cache
@@ -221,7 +232,7 @@ jobs:
             ${{ steps.cache.outputs.local_buildcache_key }}
 
       - name: Build ${{ needs.metadata.outputs.image_title }} image
-        id: build_image
+        id: docker_build
         uses: docker/build-push-action@v4
         with:
           context: .
@@ -231,17 +242,17 @@ jobs:
             toolchain=${{ inputs.toolchain }}
             llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
             ${{ inputs.build_args }}
-          load: false
           tags: ${{ needs.metadata.outputs.image_tags }}
           labels: ${{ needs.metadata.outputs.image_labels }}
-          platforms: linux/amd64
+          platforms: ${{ inputs.platforms }}
           cache-from: |
             ${{ inputs.additional_build_caches }}
             ${{ steps.cache.outputs.cache_from_gh }}
             ${{ steps.cache.outputs.cache_from_registry }}
             ${{ steps.cache.outputs.cache_from_nvidia_registry }}
           cache-to: ${{ steps.cache.outputs.cache_to }}
-          outputs: type=docker,dest=${{ steps.cache.outputs.tar_archive }}
+          push: ${{ inputs.environment && ! inputs.registry_cache_update_only }}
+          outputs: ${{ steps.cache.outputs.docker_output }}
 
       # See also https://github.com/moby/buildkit/issues/1896
       - name: Clean up local cache
@@ -260,27 +271,17 @@ jobs:
           key: ${{ steps.cache.outputs.local_buildcache_key }}${{ steps.cache.outputs.local_buildcache_key_suffix }}
 
       - name: Cache ${{ needs.metadata.outputs.image_title }} image
+        if: steps.cache.outputs.tar_cache && steps.cache.outputs.tar_archive
         uses: actions/cache/save@v3
-        if: ${{ ! inputs.registry_cache_update_only }}
         with:
           path: ${{ steps.cache.outputs.tar_archive }}
           key: ${{ steps.cache.outputs.tar_cache }}
-
-  deployment:
-    name: Deployment
-    if: ${{ inputs.environment && ! inputs.registry_cache_update_only }}
-    needs: build
-    uses: ./.github/workflows/deploy_to_registry.yml
-    with:
-      environment: ${{ inputs.environment }}
-      cache_key: ${{ needs.build.outputs.tar_cache }}
-      tar_archive: ${{ needs.build.outputs.tar_archive }}
 
   finalize:
     name: Finalize
     runs-on: ubuntu-latest
     if: always() && !cancelled()
-    needs: [metadata, build, deployment]
+    needs: [metadata, build]
 
     outputs:
       image_hash: ${{ fromJson(steps.write_json.outputs.result).image_hash }}
@@ -295,7 +296,7 @@ jobs:
           matrix-step-name: ${{ inputs.matrix_key && 'dev_environment' }}
           matrix-key: ${{ inputs.matrix_key }}
           outputs: |
-            image_hash: ${{ needs.deployment.outputs.image_hash }}
+            image_hash: ${{ needs.build.outputs.image_hash }}
             cache_key: ${{ needs.build.outputs.tar_cache }}
             tar_archive: ${{ needs.build.outputs.tar_archive }}
             build_cache: ${{ needs.build.outputs.build_cache }}
