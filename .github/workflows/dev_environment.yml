@@ -7,7 +7,7 @@ on:
       platforms:
         type: string
         required: false
-        default: linux/amd64,linux/arm64
+        default: linux/amd64
       build_target:
         required: false
         type: string

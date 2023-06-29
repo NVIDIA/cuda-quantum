@@ -4,7 +4,7 @@ on:
       platforms:
         type: string
         required: false
-        default: linux/amd64,linux/arm64
+        default: linux/amd64
       ompidev_image:
         required: false
         type: string
