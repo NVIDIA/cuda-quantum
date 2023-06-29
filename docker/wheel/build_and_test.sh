@@ -1,15 +1,14 @@
 #!/bin/bash 
 
-# Build and test Manylinux Python Wheels
-# run with (use your private git ssh ke)
+# Build and test Manylinux Python Wheels run with 
 #
-# ./build_and_test.sh ~/.ssh/id_ed25519
+# ./build_and_test.sh 
 
 export DOCKER_BUILDKIT=1
 # remove old wheels
 rm -rf out/*
 # build the wheels
-docker build -t nvidia/cudaq_manylinux_build --network host --build-arg SSH_PRIVATE_KEY="$(cat $1)" . --output out 
+docker build -t nvidia/cudaq_manylinux_build --network host . --output out 
 # test the wheels 
 docker build -t nvidia/cudaq_manylinux_test --network host -f tests/Dockerfile.ubuntu2204 . 
 # cleanup
