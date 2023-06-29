@@ -94,7 +94,7 @@ private:
               if (auto bitcast =
                       load.getOperand().getDefiningOp<LLVM::BitcastOp>()) {
                 std::optional<Value> constVal;
-                std::size_t allocOffset;
+                std::size_t allocOffset = 0u;
                 if (auto call =
                         bitcast.getOperand().getDefiningOp<LLVM::CallOp>()) {
                   auto iter = data.allocationOffsets.find(
