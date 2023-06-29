@@ -219,7 +219,7 @@ jobs:
             tar_archive=/tmp/${{ needs.metadata.outputs.image_id }}.tar
             echo "tar_cache=tar-${cache_id}${local_buildcache_key_suffix}" >> $GITHUB_OUTPUT
             echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
-            echo "docker_output='type=docker,dest=$tar_archive'" >> $GITHUB_OUTPUT
+            echo "docker_output=type=docker,dest=$tar_archive" >> $GITHUB_OUTPUT
           fi
 
       - name: Check out local cache
