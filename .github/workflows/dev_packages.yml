@@ -125,8 +125,10 @@ jobs:
 
           echo "base_image=$base_image" >> $GITHUB_OUTPUT
           if ${{ inputs.environment == '' }}; then
+            tar_archive=/tmp/cuda-quantum-dev.tar
             echo "tar_cache=tar-cudaqdev-${image_tag}-${{ github.sha }}" >> $GITHUB_OUTPUT
-            echo "tar_archive=/tmp/cuda-quantum-dev.tar" >> $GITHUB_OUTPUT
+            echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
+            echo "docker_output='type=docker,dest=$tar_archive'" >> $GITHUB_OUTPUT
           fi
 
       - name: Set up buildx runner
@@ -145,7 +147,7 @@ jobs:
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}
           push: ${{ inputs.environment != '' }}
-          outputs: type=docker,dest=${{ steps.prereqs.outputs.tar_archive }}
+          outputs: ${{ steps.prereqs.outputs.docker_output }}
 
       - name: Cache cuda-quantum-dev image
         if: steps.prereqs.outputs.tar_cache && steps.prereqs.outputs.tar_archive
@@ -293,8 +295,10 @@ jobs:
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
           echo "image_tag=${{ needs.metadata.outputs.image_tag }}" >> $GITHUB_OUTPUT
           if ${{ inputs.environment == '' }}; then
+            tar_archive=/tmp/open-mpi.tar
             echo "tar_cache=tar-ompi-${{ github.sha }}" >> $GITHUB_OUTPUT
-            echo "tar_archive=/tmp/open-mpi.tar" >> $GITHUB_OUTPUT
+            echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
+            echo "docker_output='type=docker,dest=$tar_archive'" >> $GITHUB_OUTPUT
           fi
 
       - name: Extract metadata
@@ -327,7 +331,7 @@ jobs:
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}
           push: ${{ inputs.environment != '' }}
-          outputs: type=docker,dest=${{ steps.build_info.outputs.tar_archive }}
+          outputs: ${{ steps.build_info.outputs.docker_output }}
 
       - name: Cache cuda-quantum image
         if: steps.build_info.outputs.tar_cache && steps.build_info.outputs.tar_archive
@@ -420,8 +424,10 @@ jobs:
           echo "base_image=$base_image" >> $GITHUB_OUTPUT
           echo "cudaqdev_image=$cudaqdev_image" >> $GITHUB_OUTPUT
           if ${{ inputs.environment == '' }}; then
+            tar_archive=/tmp/cuda-quantum.tar
             echo "tar_cache=tar-cudaq-${image_tag}-${{ github.sha }}" >> $GITHUB_OUTPUT
-            echo "tar_archive=/tmp/cuda-quantum.tar" >> $GITHUB_OUTPUT
+            echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
+            echo "docker_output='type=docker,dest=$tar_archive'" >> $GITHUB_OUTPUT
           fi
 
       - name: Build cuda-quantum image
@@ -438,7 +444,7 @@ jobs:
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}
           push: ${{ inputs.environment != '' }}
-          outputs: type=docker,dest=${{ steps.prereqs.outputs.tar_archive }}
+          outputs: ${{ steps.prereqs.outputs.docker_output }}
 
       - name: Cache cuda-quantum image
         if: steps.prereqs.outputs.tar_cache && steps.prereqs.outputs.tar_archive

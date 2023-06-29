@@ -216,8 +216,10 @@ jobs:
           echo "cache_to=$cache_to" >> $GITHUB_OUTPUT
           echo "build_cache=$build_cache" >> $GITHUB_OUTPUT
           if ${{ inputs.environment == '' && ! inputs.registry_cache_update_only }}; then
+            tar_archive=/tmp/${{ needs.metadata.outputs.image_id }}.tar
             echo "tar_cache=tar-${cache_id}${local_buildcache_key_suffix}" >> $GITHUB_OUTPUT
-            echo "tar_archive=/tmp/${{ needs.metadata.outputs.image_id }}.tar" >> $GITHUB_OUTPUT
+            echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
+            echo "docker_output='type=docker,dest=$tar_archive'" >> $GITHUB_OUTPUT
           fi
 
       - name: Check out local cache
@@ -250,7 +252,7 @@ jobs:
             ${{ steps.cache.outputs.cache_from_nvidia_registry }}
           cache-to: ${{ steps.cache.outputs.cache_to }}
           push: ${{ inputs.environment && ! inputs.registry_cache_update_only }}
-          outputs: type=docker,dest=${{ steps.cache.outputs.tar_archive }}
+          outputs: ${{ steps.cache.outputs.docker_output }}
 
       # See also https://github.com/moby/buildkit/issues/1896
       - name: Clean up local cache
