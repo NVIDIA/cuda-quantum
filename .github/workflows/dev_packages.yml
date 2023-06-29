@@ -61,10 +61,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      packages: write
 
     outputs:
-      tar_cache: ${{ steps.dev_image.outputs.tar_cache }}
-      tar_archive: ${{ steps.dev_image.outputs.tar_archive }}
+      tar_cache: ${{ steps.prereqs.outputs.tar_cache }}
+      tar_archive: ${{ steps.prereqs.outputs.tar_archive }}
       image_hash: '${{ needs.metadata.outputs.image_name }}-dev@${{ steps.docker_build.outputs.digest }}'
 
     environment:
@@ -106,7 +107,7 @@ jobs:
             org.opencontainers.image.description=Dev environment for CUDA Quantum
 
       - name: Load prerequisites
-        id: dev_image
+        id: prereqs
         run: |
           if ${{ steps.restore.outcome != 'skipped' }}; then
             base_image=`docker load --input ${{ inputs.devdeps_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
@@ -120,10 +121,8 @@ jobs:
 
           echo "base_image=$base_image" >> $GITHUB_OUTPUT
           if ${{ inputs.environment == '' }}; then
-            tar_archive=/tmp/cuda-quantum-dev.tar
             echo "tar_cache=tar-cudaqdev-${image_tag}-${{ github.sha }}" >> $GITHUB_OUTPUT
-            echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
-            echo "docker_output='type=docker,dest=$tar_archive'" >> $GITHUB_OUTPUT
+            echo "tar_archive=/tmp/cuda-quantum-dev.tar" >> $GITHUB_OUTPUT
           fi
 
       - name: Set up buildx runner
@@ -136,20 +135,20 @@ jobs:
           context: .
           file: ./docker/build/cudaq.dev.Dockerfile
           build-args: |
-            base_image=${{ steps.dev_image.outputs.base_image }}
+            base_image=${{ steps.prereqs.outputs.base_image }}
             install="CMAKE_BUILD_TYPE=Release FORCE_COMPILE_GPU_COMPONENTS=true"
-          push: ${{ inputs.environment != '' }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: linux/amd64
-          outputs: ${{ steps.dev_image.outputs.docker_output }}
+          push: ${{ inputs.environment != '' }}
+          outputs: type=docker,dest=${{ steps.prereqs.outputs.tar_archive }}
 
       - name: Cache cuda-quantum-dev image
-        if: steps.dev_image.outputs.tar_cache && steps.dev_image.outputs.tar_archive
+        if: steps.prereqs.outputs.tar_cache && steps.prereqs.outputs.tar_archive
         uses: actions/cache/save@v3
         with:
-          path: ${{ steps.dev_image.outputs.tar_archive }}
-          key: ${{ steps.dev_image.outputs.tar_cache }}
+          path: ${{ steps.prereqs.outputs.tar_archive }}
+          key: ${{ steps.prereqs.outputs.tar_cache }}
 
   documentation:
     name: Documentation
@@ -260,6 +259,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      packages: write
 
     outputs:
       tar_cache: ${{ steps.build_info.outputs.tar_cache }}
@@ -289,10 +289,8 @@ jobs:
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
           echo "image_tag=${{ needs.metadata.outputs.image_tag }}" >> $GITHUB_OUTPUT
           if ${{ inputs.environment == '' }}; then
-            tar_archive=/tmp/open-mpi.tar
             echo "tar_cache=tar-ompi-${{ github.sha }}" >> $GITHUB_OUTPUT
-            echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
-            echo "docker_output='type=docker,dest=$tar_archive'" >> $GITHUB_OUTPUT
+            echo "tar_archive=/tmp/open-mpi.tar" >> $GITHUB_OUTPUT
           fi
 
       - name: Extract metadata
@@ -321,11 +319,11 @@ jobs:
             ompidev_image=${{ inputs.ompidev_image }}
             cuda_packages=cuda-runtime-11-8
             base_image=ubuntu:22.04
-          push: ${{ inputs.environment != '' }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: linux/amd64
-          outputs: ${{ steps.build_info.outputs.docker_output }}
+          push: ${{ inputs.environment != '' }}
+          outputs: type=docker,dest=${{ steps.build_info.outputs.tar_archive }}
 
       - name: Cache cuda-quantum image
         if: steps.build_info.outputs.tar_cache && steps.build_info.outputs.tar_archive
@@ -342,6 +340,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      packages: write
 
     outputs:
       tar_cache: ${{ steps.cudaq_image.outputs.tar_cache }}
@@ -417,10 +416,8 @@ jobs:
           echo "base_image=$base_image" >> $GITHUB_OUTPUT
           echo "cudaqdev_image=$cudaqdev_image" >> $GITHUB_OUTPUT
           if ${{ inputs.environment == '' }}; then
-            tar_archive=/tmp/cuda-quantum.tar
             echo "tar_cache=tar-cudaq-${image_tag}-${{ github.sha }}" >> $GITHUB_OUTPUT
-            echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
-            echo "docker_output='type=docker,dest=$tar_archive'" >> $GITHUB_OUTPUT
+            echo "tar_archive=/tmp/cuda-quantum.tar" >> $GITHUB_OUTPUT
           fi
 
       - name: Build cuda-quantum image
@@ -433,11 +430,11 @@ jobs:
             cudaqdev_image=${{ steps.prereqs.outputs.cudaqdev_image }}
             base_image=${{ steps.prereqs.outputs.base_image }}
             release_version=${{ needs.metadata.outputs.image_tag }}
-          push: ${{ inputs.environment != '' }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: linux/amd64
-          outputs: ${{ steps.prereqs.outputs.docker_output }}
+          push: ${{ inputs.environment != '' }}
+          outputs: type=docker,dest=${{ steps.prereqs.outputs.tar_archive }}
 
       - name: Cache cuda-quantum image
         if: steps.prereqs.outputs.tar_cache && steps.prereqs.outputs.tar_archive
