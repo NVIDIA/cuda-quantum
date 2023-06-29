@@ -4,8 +4,7 @@
 Programmers may use pip to handle the installation of the CUDA Quantum Python API 
 and any of the dependencies needed to do so. This may be done either from source or
 through our binary wheel distribution. We currently support the following operating 
-systems:
-* Linux
+systems: Linux.
 
 ### Pip Wheels
 Under Construction! Not yet distributing wheels.
@@ -24,7 +23,8 @@ cd cuda-quantum
 pip install . --user
 ```
 This will install any dependencies and build the necessary pieces of the CUDA Quantum 
-repository through cmake. It will then install the 
+repository through cmake. It will then install the `cuda-quantum` python package to your
+pip package manager.
 
 ### Build entirely from source
 If you would like to avoid the use of pip, or you want to build the entire C++ API with the
@@ -33,3 +33,13 @@ path to point to the installation directory:
 ```
 export PYTHONPATH=$PYTHONPATH:/path/to/cudaq/install
 ```
+
+## Getting started 
+You should now be able to import CUDA Quantum and get started building quantum programs in Python!
+```
+import cudaq 
+
+kernel = cudaq.make_kernel()
+```
+
+To see more examples, go to (LINK), or check out the Python API reference (LINK).

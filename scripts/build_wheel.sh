@@ -48,7 +48,7 @@ cd "$repo_root"
 
 # TODO: Set the srcdir here to dump the wheels and all extra files into a contained folder.
 # Build the wheel only (no sdist). 
-# The setup.py file will call `wheel_dependencies.sh` and 
+# The setup.py file will call `install_wheel_dependencies.sh` and 
 # handle all dependency installation for someone using our
 # Docker image.
 python3.10 -m build --wheel
