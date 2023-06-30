@@ -144,7 +144,7 @@ jobs:
             tar_archive=/tmp/cuda-quantum-dev.tar
             echo "tar_cache=tar-cudaqdev-${{ needs.metadata.outputs.image_tag }}-${{ github.sha }}" >> $GITHUB_OUTPUT
             echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
-            echo "docker_output='type=docker,dest=$tar_archive'" >> $GITHUB_OUTPUT
+            echo "docker_output=type=docker,dest=$tar_archive" >> $GITHUB_OUTPUT
           fi
 
       - name: Set up buildx runner
@@ -316,7 +316,7 @@ jobs:
             tar_archive=/tmp/open-mpi.tar
             echo "tar_cache=tar-ompi-${{ github.sha }}" >> $GITHUB_OUTPUT
             echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
-            echo "docker_output='type=docker,dest=$tar_archive'" >> $GITHUB_OUTPUT
+            echo "docker_output=type=docker,dest=$tar_archive" >> $GITHUB_OUTPUT
           fi
 
       - name: Extract metadata
@@ -459,7 +459,7 @@ jobs:
             tar_archive=/tmp/cuda-quantum.tar
             echo "tar_cache=tar-cudaq-${image_tag}-${{ github.sha }}" >> $GITHUB_OUTPUT
             echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
-            echo "docker_output='type=docker,dest=$tar_archive'" >> $GITHUB_OUTPUT
+            echo "docker_output=type=docker,dest=$tar_archive" >> $GITHUB_OUTPUT
           fi
 
       - name: Set up buildx runner
