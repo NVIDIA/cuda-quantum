@@ -1,0 +1,327 @@
+on:
+  workflow_call:
+    inputs:
+      platforms:
+        type: string
+        required: false
+        default: linux/amd64
+      cudaqdev_image:
+        required: false
+        type: string
+      cudaqdev_cache:
+        required: false
+        type: string
+      cudaqdev_archive:
+        required: false
+        type: string
+      ompidev_image:
+        required: false
+        type: string
+      environment:
+        required: false
+        type: string
+    outputs:
+      image_hash:
+        description: "The name and digest of the docker image that was deployed to the registry, which can be used to retrieve it independently of any tag updates."
+        value: ${{ jobs.cudaq_image.outputs.image_hash }}
+      cache_key:
+        description: "The cache key to retrieve a tar archive containing the built image(s)."
+        value: ${{ jobs.cudaq_image.outputs.tar_cache }}
+      tar_archive:
+        description: "The location of the tar archive in the cache."
+        value: ${{ jobs.cudaq_image.outputs.tar_archive }}
+
+name: Release Packages
+
+jobs:
+  ompi_image:
+    name: Open MPI
+    if: inputs.ompidev_image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      tar_cache: ${{ steps.build_info.outputs.tar_cache }}
+      tar_archive: ${{ steps.build_info.outputs.tar_archive }}
+      image_hash: ${{ steps.build_info.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
+
+    environment:
+      name: ${{ inputs.environment || 'default' }}
+      url: ${{ vars.deployment_url }}
+  
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Log in to the container registry
+        if: inputs.environment && vars.registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ vars.registry }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Determine build arguments
+        id: build_info
+        run: |
+          repo_owner=${{ github.repository_owner }}
+          image_name=${{ vars.registry || 'ghcr.io' }}/${repo_owner,,}/open-mpi
+          echo "image_name=$image_name" >> $GITHUB_OUTPUT
+
+          docker pull ${{ inputs.ompidev_image }} # to get the tag
+          dev_tag=`docker inspect ${{ inputs.ompidev_image }} --format='{{.Config.Labels}}' | grep -o image.version:[A-Za-z0-9_-]* | cut -d : -f 2`
+          echo "image_tag=${dev_tag#ompi-}" >> $GITHUB_OUTPUT
+
+          if ${{ inputs.environment == '' }}; then
+            tar_archive=/tmp/open-mpi.tar
+            echo "tar_cache=tar-ompi-${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
+            echo "docker_output=type=docker,dest=$tar_archive" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Extract metadata
+        id: metadata
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ steps.build_info.outputs.image_name }}
+          flavor:
+            latest=false
+          tags: |
+            type=raw,value=${{ steps.build_info.outputs.image_tag }}
+          labels: |
+            org.opencontainers.image.title=open-mpi
+            org.opencontainers.image.description=Open MPI dependencies of CUDA Quantum
+
+      - name: Set up buildx runner
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Open MPI
+        id: docker_build
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./docker/build/devdeps.ext.Dockerfile
+          build-args: |
+            ompidev_image=${{ inputs.ompidev_image }}
+            cuda_packages=cuda-runtime-11-8
+            base_image=ubuntu:22.04
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          platforms: ${{ inputs.platforms }}
+          push: ${{ inputs.environment != '' }}
+          outputs: ${{ steps.build_info.outputs.docker_output }}
+
+      - name: Cache cuda-quantum image
+        if: steps.build_info.outputs.tar_cache && steps.build_info.outputs.tar_archive
+        uses: actions/cache/save@v3
+        with:
+          path: ${{ steps.build_info.outputs.tar_archive }}
+          key: ${{ steps.build_info.outputs.tar_cache }}
+
+  cudaq_image:
+    name: Docker image
+    needs: ompi_image
+    # Force this job to run even when some of the dependencies above are skipped.
+    if: always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      tar_cache: ${{ steps.prereqs.outputs.tar_cache }}
+      tar_archive: ${{ steps.prereqs.outputs.tar_archive }}
+      image_hash: ${{ steps.prereqs.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
+
+    environment:
+      name: ${{ inputs.environment || 'default' }}
+      url: ${{ vars.deployment_url }}
+
+    # Needed for making local images available to the docker/build-push-action.
+    # See also https://stackoverflow.com/a/63927832.
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Log in to the container registry
+        if: inputs.environment && vars.registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ vars.registry }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Restore release build
+        id: restore_cudaqdev
+        if: inputs.cudaqdev_cache && inputs.cudaqdev_archive
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ inputs.cudaqdev_archive }}
+          key: ${{ inputs.cudaqdev_cache }}
+          fail-on-cache-miss: true
+
+      - name: Restore OpenMPI build
+        id: restore_openmpi
+        if: needs.ompi_image.outputs.tar_cache && needs.ompi_image.outputs.tar_archive
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ needs.ompi_image.outputs.tar_archive }}
+          key: ${{ needs.ompi_image.outputs.tar_cache }}
+          fail-on-cache-miss: true
+
+      - name: Load prerequisites
+        id: prereqs
+        run: |
+          if ${{ needs.ompi_image.result == 'skipped' }}; then
+            base_image=ubuntu:22.04
+          elif ${{ steps.restore_openmpi.outcome != 'skipped' }}; then
+            base_image=`docker load --input ${{ needs.ompi_image.outputs.tar_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+            # Push the image to the local registry to make it available within
+            # the containered environment that docker/build-push-action uses.
+            docker push $base_image
+          else
+            docker pull ${{ needs.ompi_image.outputs.image_hash }}
+            base_image=${{ needs.ompi_image.outputs.image_hash }}
+          fi
+
+          if ${{ steps.restore_cudaqdev.outcome != 'skipped' }}; then
+            cudaqdev_image=`docker load --input ${{ inputs.cudaqdev_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+            # Push the image to the local registry to make it available within
+            # the containered environment that docker/build-push-action uses.
+            docker push $cudaqdev_image
+          elif ${{ inputs.cudaqdev_image != '' }}; then
+            docker pull ${{ inputs.cudaqdev_image }}
+            cudaqdev_image=${{ inputs.cudaqdev_image }}
+          else
+            echo "Missing configuration for cuda-quantum-dev image. Either specify the image (i.e. provide cudaqdev_image) or cache (i.e. provide cudaqdev_cache and cudaqdev_archive) that should be used for the build." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+          repo_owner=${{ github.repository_owner }}
+          image_name=${{ vars.registry || 'ghcr.io' }}/${repo_owner,,}/cuda-quantum
+          dev_tag=`docker inspect $cudaqdev_image --format='{{.Config.Labels}}' | grep -o image.version:[A-Za-z0-9_-]* | cut -d : -f 2`
+
+          echo "image_tag=${dev_tag#dev-}" >> $GITHUB_OUTPUT
+          echo "image_name="$image_name" >> $GITHUB_OUTPUT
+          echo "base_image=$base_image" >> $GITHUB_OUTPUT
+          echo "cudaqdev_image=$cudaqdev_image" >> $GITHUB_OUTPUT
+
+          if ${{ inputs.environment == '' }}; then
+            tar_archive=/tmp/cuda-quantum.tar
+            echo "tar_cache=tar-cudaq-${image_tag}-${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
+            echo "docker_output=type=docker,dest=$tar_archive" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Extract metadata
+        id: metadata
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ steps.prereqs.outputs.image_name }}
+          flavor:
+            latest=false
+          tags: |
+            type=raw,value=${{ steps.prereqs.outputs.image_tag }}
+          labels: |
+            org.opencontainers.image.title=cuda-quantum
+            org.opencontainers.image.description=CUDA Quantum toolkit for heterogeneous quantum-classical workflows
+
+      - name: Set up buildx runner
+        uses: docker/setup-buildx-action@v2
+        with:
+          driver-opts: network=host
+
+      - name: Build cuda-quantum image
+        id: docker_build
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./docker/release/cudaq.Dockerfile
+          build-args: |
+            cudaqdev_image=${{ steps.prereqs.outputs.cudaqdev_image }}
+            base_image=${{ steps.prereqs.outputs.base_image }}
+            release_version=${{ steps.prereqs.outputs.image_tag }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          platforms: ${{ inputs.platforms }}
+          push: ${{ inputs.environment != '' }}
+          outputs: ${{ steps.prereqs.outputs.docker_output }}
+
+      - name: Cache cuda-quantum image
+        if: steps.prereqs.outputs.tar_cache && steps.prereqs.outputs.tar_archive
+        uses: actions/cache/save@v3
+        with:
+          path: ${{ steps.prereqs.outputs.tar_archive }}
+          key: ${{ steps.prereqs.outputs.tar_cache }}
+
+  validation:
+    name: Validation
+    needs: cudaq_image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Load cuda-quantum image
+        id: restore
+        if: needs.cudaq_image.outputs.tar_cache && needs.cudaq_image.outputs.tar_archive
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ needs.cudaq_image.outputs.tar_archive }}
+          key: ${{ needs.cudaq_image.outputs.tar_cache }}
+          fail-on-cache-miss: true
+
+      - name: Validate cuda-quantum image
+        run: |
+          if ${{ steps.restore.outcome != 'skipped' }}; then
+            cudaq_image=`docker load --input ${{ needs.cudaq_image.outputs.tar_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+          else
+            docker pull ${{ needs.cudaq_image.outputs.image_hash }}
+            cudaq_image=${{ needs.cudaq_image.outputs.image_hash }}
+          fi
+
+          docker run --rm -dit --name cuda-quantum $cudaq_image
+          docker cp scripts/validate_container.sh cuda-quantum:"/home/cudaq/validate_container.sh"
+          docker exec -e TERM=xterm cuda-quantum bash validate_container.sh > /tmp/validation.out
+          docker stop cuda-quantum
+
+      - name: Create job summary
+        if: always() && !cancelled()
+        run: |
+          if [ -f /tmp/validation.out ]; then
+            echo "## Validation" >> $GITHUB_STEP_SUMMARY
+            echo "The validation of the cuda-quantum image produced the following output:" >> $GITHUB_STEP_SUMMARY
+            echo '```text' >> $GITHUB_STEP_SUMMARY
+            cat /tmp/validation.out >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+  clean_up:
+    name: Prepare cache clean-up
+    needs: [ompi_image, cudaq_image]
+    runs-on: ubuntu-latest
+    # We need to clean up even if the workflow is cancelled or fails.
+    if: always()
+
+    steps:
+      - name: Save cache keys
+        id: workflow_inputs
+        run: |
+          keys=${{ needs.ompi_image.outputs.tar_cache }}
+          echo "$keys" >> cache_keys.txt
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: cache_keys_rel_packages
+          path: cache_keys.txt
+          retention-days: 1
+          if-no-files-found: error
