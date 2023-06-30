@@ -67,7 +67,9 @@ jobs:
           docker pull ${{ inputs.ompidev_image }} # to get the tag
           dev_tag=`docker inspect ${{ inputs.ompidev_image }} --format='{{.Config.Labels}}' | grep -o image.version:[A-Za-z0-9_-]* | cut -d : -f 2`
           echo "image_tag=${dev_tag#ompi-}" >> $GITHUB_OUTPUT
-
+          docker image rm ${{ inputs.ompidev_image }}
+          docker image prune --force
+          
           if ${{ inputs.environment == '' }}; then
             tar_archive=/tmp/open-mpi.tar
             echo "tar_cache=tar-ompi-${{ github.sha }}" >> $GITHUB_OUTPUT
@@ -163,12 +165,11 @@ jobs:
         id: prereqs
         run: |
           if ${{ steps.restore.outcome != 'skipped' }}; then
-            base_image=`docker load --input ${{ inputs.devdeps_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+            base_image=`docker load --input "${{ inputs.devdeps_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
             # Push the image to the local registry to make it available within
             # the containered environment that docker/build-push-action uses.
             docker push $base_image
           elif ${{ inputs.devdeps_image != '' }}; then
-            docker pull ${{ inputs.devdeps_image }}
             base_image=${{ inputs.devdeps_image }}
           else
             echo "Missing configuration for development dependencies. Either specify the image (i.e. provide devdeps_image) or cache (i.e. provide devdeps_cache and devdeps_archive) that should be used for the build." >> $GITHUB_STEP_SUMMARY
@@ -262,7 +263,7 @@ jobs:
         id: docs_build
         run: |
           if ${{ steps.restore.outcome != 'skipped' }}; then
-            cudaqdev_image=`docker load --input ${{ needs.cudaqdev_image.outputs.tar_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+            cudaqdev_image=`docker load --input "${{ needs.cudaqdev_image.outputs.tar_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
           else
             docker pull ${{ needs.cudaqdev_image.outputs.image_hash }}
             cudaqdev_image=${{ needs.cudaqdev_image.outputs.image_hash }}
@@ -402,22 +403,22 @@ jobs:
           if ${{ needs.ompi_image.result == 'skipped' }}; then
             base_image=ubuntu:22.04
           elif ${{ steps.restore_openmpi.outcome != 'skipped' }}; then
-            base_image=`docker load --input ${{ needs.ompi_image.outputs.tar_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+            base_image=`docker load --input "${{ needs.ompi_image.outputs.tar_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
             # Push the image to the local registry to make it available within
             # the containered environment that docker/build-push-action uses.
             docker push $base_image
+            rm -rf "${{ needs.ompi_image.outputs.tar_archive }}"
           else
-            docker pull ${{ needs.ompi_image.outputs.image_hash }}
             base_image=${{ needs.ompi_image.outputs.image_hash }}
           fi
 
           if ${{ steps.restore_cudaqdev.outcome != 'skipped' }}; then
-            cudaqdev_image=`docker load --input ${{ needs.cudaqdev_image.outputs.tar_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+            cudaqdev_image=`docker load --input "${{ needs.cudaqdev_image.outputs.tar_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
             # Push the image to the local registry to make it available within
             # the containered environment that docker/build-push-action uses.
             docker push $cudaqdev_image
+            rm -rf "${{ needs.cudaqdev_image.outputs.tar_archive }}"
           else
-            docker pull ${{ needs.cudaqdev_image.outputs.image_hash }}
             cudaqdev_image=${{ needs.cudaqdev_image.outputs.image_hash }}
           fi
 
@@ -499,7 +500,7 @@ jobs:
       - name: Validate cuda-quantum image
         run: |
           if ${{ steps.restore.outcome != 'skipped' }}; then
-            cudaq_image=`docker load --input ${{ needs.cudaq_image.outputs.tar_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+            cudaq_image=`docker load --input "${{ needs.cudaq_image.outputs.tar_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
           else
             docker pull ${{ needs.cudaq_image.outputs.image_hash }}
             cudaq_image=${{ needs.cudaq_image.outputs.image_hash }}
