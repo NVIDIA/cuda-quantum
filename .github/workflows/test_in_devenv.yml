@@ -20,6 +20,12 @@ jobs:
     permissions:
       contents: read
 
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
