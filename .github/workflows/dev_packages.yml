@@ -447,7 +447,7 @@ jobs:
             cudaqdev_image=`docker load --input ${{ needs.cudaqdev_image.outputs.tar_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
             # Push the image to the local registry to make it available within
             # the containered environment that docker/build-push-action uses.
-            docker push $base_image
+            docker push $cudaqdev_image
           else
             docker pull ${{ needs.cudaqdev_image.outputs.image_hash }}
             cudaqdev_image=${{ needs.cudaqdev_image.outputs.image_hash }}
