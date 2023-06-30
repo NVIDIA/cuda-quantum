@@ -39,6 +39,11 @@ jobs:
       image_name: ${{ steps.metadata.outputs.image_name }}
       image_tag: ${{ steps.metadata.outputs.image_tag }}
 
+    # Needed for access to environment variables (like the registry name).
+    environment:
+      name: ${{ inputs.environment || 'default' }}
+      url: ${{ vars.deployment_url }}
+
     steps:
       - name: Determine metadata
         id: metadata
@@ -75,7 +80,15 @@ jobs:
     environment:
       name: ${{ inputs.environment || 'default' }}
       url: ${{ vars.deployment_url }}
-  
+
+    # Needed for making local images available to the docker/build-push-action.
+    # See also https://stackoverflow.com/a/63927832.
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -115,6 +128,9 @@ jobs:
         run: |
           if ${{ steps.restore.outcome != 'skipped' }}; then
             base_image=`docker load --input ${{ inputs.devdeps_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+            # Push the image to the local registry to make it available within
+            # the containered environment that docker/build-push-action uses.
+            docker push $base_image
           elif ${{ inputs.devdeps_image != '' }}; then
             docker pull ${{ inputs.devdeps_image }}
             base_image=${{ inputs.devdeps_image }}
@@ -357,6 +373,14 @@ jobs:
       name: ${{ inputs.environment || 'default' }}
       url: ${{ vars.deployment_url }}
 
+    # Needed for making local images available to the docker/build-push-action.
+    # See also https://stackoverflow.com/a/63927832.
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -407,6 +431,9 @@ jobs:
             base_image=ubuntu:22.04
           elif ${{ steps.restore_openmpi.outcome != 'skipped' }}; then
             base_image=`docker load --input ${{ needs.ompi_image.outputs.tar_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+            # Push the image to the local registry to make it available within
+            # the containered environment that docker/build-push-action uses.
+            docker push $base_image
           else
             docker pull ${{ needs.ompi_image.outputs.image_hash }}
             base_image=${{ needs.ompi_image.outputs.image_hash }}
@@ -414,6 +441,9 @@ jobs:
 
           if ${{ steps.restore_cudaqdev.outcome != 'skipped' }}; then
             cudaqdev_image=`docker load --input ${{ needs.cudaqdev_image.outputs.tar_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+            # Push the image to the local registry to make it available within
+            # the containered environment that docker/build-push-action uses.
+            docker push $base_image
           else
             docker pull ${{ needs.cudaqdev_image.outputs.image_hash }}
             cudaqdev_image=${{ needs.cudaqdev_image.outputs.image_hash }}

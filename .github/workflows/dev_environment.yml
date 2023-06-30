@@ -84,6 +84,11 @@ jobs:
       image_labels: ${{ steps.metadata.outputs.labels }}
       llvm_commit: ${{ steps.build_info.outputs.llvm_commit }}
 
+    # Needed for access to environment variables (like the registry name).
+    environment:
+      name: ${{ inputs.environment || 'default' }}
+      url: ${{ vars.deployment_url }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
