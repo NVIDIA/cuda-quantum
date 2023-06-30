@@ -155,7 +155,7 @@ jobs:
       tar_cache: ${{ steps.cache.outputs.tar_cache }}
       tar_archive: ${{ steps.cache.outputs.tar_archive }}
       build_cache: ${{ steps.cache.outputs.build_cache }}
-      image_hash: '${{ needs.metadata.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}'
+      image_hash: ${{ needs.metadata.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
 
     environment:
       name: ${{ inputs.environment || 'default' }}

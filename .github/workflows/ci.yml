@@ -61,9 +61,9 @@ jobs:
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
   docker_image:
-    name: Create Packages
+    name: Create Docker images
     needs: config
-    uses: ./.github/workflows/dev_packages.yml
+    uses: ./.github/workflows/docker_images.yml
     with:
       devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key.llvm }}
       devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive.llvm }}

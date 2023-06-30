@@ -41,6 +41,7 @@ RUN mkdir -p /usr/local/cuquantum && \
 FROM $base_image
 SHELL ["/bin/bash", "-c"]
 ENV SHELL=/bin/bash LANG=C.UTF-8 LC_ALL=C.UTF-8
+ENV UCX_LOG_LEVEL=error
 
 # When a dialogue box would be needed during install, assume default configurations.
 # Set here to avoid setting it for all install commands. 
