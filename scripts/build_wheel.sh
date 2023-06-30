@@ -41,7 +41,7 @@ rm -rf dist
 rm -rf wheelhouse
 
 # Call the dependency script.
-LLVM_DIR=LLVM_DIR CPR_DIR=CPR_DIR BLAS_PATH=BLAS_PATH bash /cuda-quantum/scripts/install_wheel_dependencies.sh
+LLVM_DIR=$LLVM_DIR CPR_DIR=$CPR_DIR BLAS_PATH=$BLAS_PATH bash /cuda-quantum/scripts/install_wheel_dependencies.sh
 
 # Return to the outer level of CUDA Quantum to build the wheel off of setup.py
 cd "$repo_root"
@@ -52,5 +52,7 @@ cd "$repo_root"
 # handle all dependency installation for someone using our
 # Docker image.
 python3.10 -m build --wheel
+
+
 
 cd "$working_dir"

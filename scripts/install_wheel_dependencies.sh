@@ -36,6 +36,20 @@ this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 repo_root=$(cd "$this_file_dir" && git rev-parse --show-toplevel)
 cd "$repo_root"
 
+# Check if apt-get exists on the system. If not, at this time,
+# we assume we're in the manylinux image. 
+apt-get update 
+if [ $? -eq 0 ]; then
+    echo "Found apt-get in: "
+    echo which apt-get 
+    echo "Updating apt and installing needed packages..."
+    apt-get install -y --no-install-recommends build-essential python3.10-venv gfortran
+else
+    echo "Could not find apt-get. Doing nothing..."
+    # Maybe need to install wget here. TBD.
+    # yes | dnf check-update && dnf upgrade
+fi
+
 # Clone the submodules (skipping llvm)
 echo "Cloning submodules..."
 git -c submodule.tpls/llvm.update=none submodule update --init --recursive
@@ -53,8 +67,6 @@ else
 fi
 export LLVM_DIR=$LLVM_DIR
 
-# Get necessary pacakges from apt.
-apt-get update && apt-get install -y --no-install-recommends build-essential wget gfortran python3 python3-pip python3.10-venv 
 if [ ! -d "$CPR_DIR" ]; then
   echo "Did not find a libcpr install dir"
   echo "Installing libcpr"
@@ -93,9 +105,6 @@ else
   echo "Found libblas.a"
 fi
 cd "$repo_root"
-
-# Check for pip and install
-# wget https://bootstrap.pypa.io/get-pip.py && python3.10 ./get-pip.py
 
 # FIXME: Hard-coded on python3.10
 # Install the python build package via pip
