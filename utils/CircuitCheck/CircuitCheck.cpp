@@ -86,6 +86,7 @@ int main(int argc, char **argv) {
     if (failed(computeUnitary(checkFunc, checkUnitary)) ||
         failed(computeUnitary(inputFunc, inputUnitary))) {
       llvm::errs() << "Cannot compute unitary for " << opName.str() << ".\n";
+      exitStatus = EXIT_FAILURE;
       continue;
     }
 
