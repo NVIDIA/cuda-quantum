@@ -427,7 +427,7 @@ jobs:
           dev_tag=`docker inspect $cudaqdev_image --format='{{.Config.Labels}}' | grep -o image.version:[A-Za-z0-9_-]* | cut -d : -f 2`
 
           echo "image_tag=${dev_tag#dev-}" >> $GITHUB_OUTPUT
-          echo "image_name="$image_name" >> $GITHUB_OUTPUT
+          echo "image_name=$image_name" >> $GITHUB_OUTPUT
           echo "base_image=$base_image" >> $GITHUB_OUTPUT
           echo "cudaqdev_image=$cudaqdev_image" >> $GITHUB_OUTPUT
 
