@@ -33,6 +33,7 @@ concurrency:
 jobs:
   devdeps:
     if: github.event_name != 'pull_request_target' || github.event.pull_request.merged == true
+    name: Build dev dependencies
     strategy:
       matrix:
         toolchain: [llvm, clang16, gcc12]
@@ -89,6 +90,7 @@ jobs:
 
   openmpi:
     if: github.event_name != 'pull_request_target'
+    name: Build Open MPI
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.ompi.Dockerfile
@@ -97,6 +99,7 @@ jobs:
       environment: ghcr-deployment
 
   extdevdeps:
+    name: Create dev environment
     uses: ./.github/workflows/dev_environment.yml
     needs: [config, openmpi]
     with:
@@ -110,9 +113,9 @@ jobs:
       environment: ghcr-deployment
 
   docker_image:
-    name: Create Packages
+    name: Create Docker images
     needs: [extdevdeps, openmpi]
-    uses: ./.github/workflows/dev_packages.yml
+    uses: ./.github/workflows/docker_images.yml
     secrets: inherit
     with:
       platforms: ${{ inputs.platforms }}
