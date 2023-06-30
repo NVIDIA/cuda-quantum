@@ -34,12 +34,11 @@ jobs:
       - name: Build CUDA Quantum
         id: cudaq_build
         run: |
-          loaded=`docker load --input ${{ inputs.devdeps_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
-          devdeps_image=`echo $loaded | cut -d ":" -f 1`
-          devdeps_tag=`echo $loaded | cut -d ":" -f 2`
+          base_image=`docker load --input ${{ inputs.devdeps_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+          devdeps_tag=`echo $base_image | rev | cut -d ":" -f 1 | rev`
 
           docker build -t cuda-quantum-dev:local -f docker/build/cudaq.dev.Dockerfile . \
-            --build-arg base_image=${devdeps_image}:${devdeps_tag} \
+            --build-arg base_image=$base_image \
             --build-arg install="CMAKE_BUILD_TYPE=Debug"
           
           tag_prefix=`echo $devdeps_tag | cut -d "_" -f 1`
