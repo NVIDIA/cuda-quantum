@@ -1,0 +1,57 @@
+workflow:
+  name: 'Staging'
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "bot/data" && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-dev@sha256:\S+$/'
+      variables:
+        resource_group: cuda-quantum-dev
+    # FIXME: remove
+    - when: always
+
+default:
+  tags: 
+    - os/linux
+  timeout: 1h
+  interruptible: true
+
+stages:
+  - build
+  - deploy
+
+MGMN SV Simulator:
+  stage: build
+  dependencies: []
+  # FIXME: uncomment
+  #image: $CI_COMMIT_TITLE
+  tags:
+    - hostname/xpl-dvt-55
+  resource_group: $resource_group
+  interruptible: false
+  artifacts:
+    name: binaries
+    paths:
+      - artifacts/cuquantum/
+      - artifacts/cudaq/
+    expire_in: 1 day
+  script:
+    # FIXME: REMOVE
+    - mkdir -p artifacts/cuquantum/ && mkdir -p artifacts/cudaq/ && exit 0
+    - echo "Checking out commit $CUDAQ_MGMN_SVSIM_COMMIT on $CI_SERVER_HOST/$CUDAQ_MGMN_SVSIM_REPO."
+    - mkdir cudaq_mgmn_svsim && cd cudaq_mgmn_svsim && git init
+    - git fetch --depth 1 https://$READ_ACCESS_TOKEN:$READ_ACCESS_TOKEN@$CI_SERVER_HOST/$CUDAQ_MGMN_SVSIM_REPO $CUDAQ_MGMN_SVSIM_COMMIT && git checkout FETCH_HEAD
+    - bash build.sh $READ_ACCESS_TOKEN
+    - cd .. && rm -rf cudaq_mgmn_svsim
+    - mkdir -p artifacts/cuquantum && cp -r "$CUQUANTUM_INSTALL_PREFIX"/* artifacts/cuquantum
+    - mkdir -p artifacts/cudaq && cp -r "$CUDAQ_INSTALL_PREFIX"/* artifacts/cudaq
+    - ls "$CUDAQ_INSTALL_PREFIX"/targets/*.config
+
+Push to GitHub:
+  stage: deploy
+  dependencies: 
+    - MGMN SV Simulator
+  tags:
+    - os/linux
+  resource_group: $resource_group
+  interruptible: false
+  script:
+    # I doubt this works...
+    - gh release list -R https://github.com/NVIDIA/cuda-quantum
