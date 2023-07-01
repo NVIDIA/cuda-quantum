@@ -29,9 +29,6 @@ createGenerateDeviceCodeLoader(bool genAsQuake = false);
 /// quantum calls to direct quantum calls.
 std::unique_ptr<mlir::Pass> createAggressiveEarlyInlining();
 
-/// Create the pass to convert indirect calls to direct calls.
-std::unique_ptr<mlir::Pass> createConvertToDirectCalls();
-
 std::unique_ptr<mlir::Pass> createApplyOpSpecializationPass();
 std::unique_ptr<mlir::Pass>
 createApplyOpSpecializationPass(bool computeActionOpt);

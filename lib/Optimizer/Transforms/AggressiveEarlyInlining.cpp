@@ -12,12 +12,39 @@
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/Pass/PassManager.h"
-#include "mlir/Transforms/DialectConversion.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
+
+namespace cudaq::opt {
+#define GEN_PASS_DEF_CONVERTTODIRECTCALLS
+#define GEN_PASS_DEF_CHECKKERNELCALLS
+#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+} // namespace cudaq::opt
 
 #define DEBUG_TYPE "aggressive-early-inlining"
 
 using namespace mlir;
+
+static bool isIndirectFunc(llvm::StringRef funcName,
+                           llvm::StringMap<llvm::StringRef> indirectMap) {
+  return indirectMap.find(funcName) != indirectMap.end();
+}
+
+// Return the inverted mangled name map.
+static std::optional<llvm::StringMap<llvm::StringRef>>
+getConversionMap(ModuleOp module) {
+  llvm::StringMap<llvm::StringRef> result;
+  if (auto mangledNameMap =
+          module->getAttrOfType<DictionaryAttr>("quake.mangled_name_map")) {
+    for (auto namedAttr : mangledNameMap) {
+      auto key = namedAttr.getName();
+      auto val = namedAttr.getValue().cast<StringAttr>().getValue();
+      result.insert({val, key});
+    }
+    return result;
+  }
+  return {};
+}
 
 namespace {
 
@@ -30,6 +57,9 @@ public:
 
   LogicalResult matchAndRewrite(func::CallOp op,
                                 PatternRewriter &rewriter) const override {
+    if (!isIndirectFunc(op.getCallee(), indirectMap))
+      return failure();
+
     rewriter.startRootUpdate(op);
     auto callee = op.getCallee();
     llvm::StringRef directName = indirectMap[callee];
@@ -44,57 +74,57 @@ private:
 };
 
 /// Translate indirect calls to direct calls.
-class ConvertToDirectCallsPass
-    : public cudaq::opt::ConvertToDirectCallsBase<ConvertToDirectCallsPass> {
+class ConvertToDirectCalls
+    : public cudaq::opt::impl::ConvertToDirectCallsBase<ConvertToDirectCalls> {
 public:
-  ConvertToDirectCallsPass() = default;
+  using ConvertToDirectCallsBase::ConvertToDirectCallsBase;
 
   void runOnOperation() override {
     auto op = getOperation();
     auto *ctx = &getContext();
     auto module = op->template getParentOfType<ModuleOp>();
-    auto indirectMap = getConversionMap(module);
+    if (auto indirectMapOpt = getConversionMap(module)) {
+      LLVM_DEBUG(llvm::dbgs() << "Processing: " << op << '\n');
+      RewritePatternSet patterns(ctx);
+      patterns.insert<RewriteCall>(ctx, *indirectMapOpt);
+      if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns))))
+        signalPassFailure();
+    }
+  }
+};
 
-    LLVM_DEBUG(llvm::dbgs() << "Processing: " << op << '\n');
-    RewritePatternSet patterns(ctx);
-    patterns.insert<RewriteCall>(ctx, indirectMap);
-    ConversionTarget target(*ctx);
+/// Check that all calls to quantum kernels have been inlined.
+class CheckKernelCalls
+    : public cudaq::opt::impl::CheckKernelCallsBase<CheckKernelCalls> {
+public:
+  using CheckKernelCallsBase::CheckKernelCallsBase;
 
-    target.addDynamicallyLegalOp<func::CallOp>([&](func::CallOp op) {
-      return !isIndirectFunc(op.getCallee(), indirectMap);
+  void runOnOperation() override {
+    func::FuncOp func = getOperation();
+    if (func.empty() || !func->hasAttr("cudaq-kernel"))
+      return;
+
+    auto module = func->template getParentOfType<ModuleOp>();
+    bool passFailed = false;
+    func.walk([&](func::CallOp call) {
+      auto callee = call.getCallee();
+      if (auto *decl = module.lookupSymbol(callee))
+        if (decl->hasAttr("cudaq-kernel")) {
+          call.emitOpError("kernel call was not inlined, "
+                           "possible recursion in call tree");
+          passFailed = true;
+        }
     });
 
-    if (failed(applyPartialConversion(op, target, std::move(patterns))))
+    if (passFailed)
       signalPassFailure();
-  }
-
-  static bool isIndirectFunc(llvm::StringRef funcName,
-                             llvm::StringMap<llvm::StringRef> indirectMap) {
-    return indirectMap.find(funcName) != indirectMap.end();
-  }
-
-  // Return the inverted mangled name map.
-  static llvm::StringMap<llvm::StringRef> getConversionMap(ModuleOp module) {
-    llvm::StringMap<llvm::StringRef> result;
-    auto mangledNameMap =
-        module->getAttrOfType<DictionaryAttr>("quake.mangled_name_map");
-    for (auto namedAttr : mangledNameMap) {
-      auto key = namedAttr.getName();
-      auto val = namedAttr.getValue().cast<StringAttr>().getValue();
-      result.insert({val, key});
-    }
-    return result;
   }
 };
 
 } // namespace
 
-std::unique_ptr<Pass> cudaq::opt::createConvertToDirectCalls() {
-  return std::make_unique<ConvertToDirectCallsPass>();
-}
-
 static void defaultInlinerOptPipeline(OpPassManager &pm) {
-  pm.addPass(cudaq::opt::createConvertToDirectCalls());
+  pm.addPass(createCanonicalizerPass());
 }
 
 std::unique_ptr<Pass> cudaq::opt::createAggressiveEarlyInlining() {

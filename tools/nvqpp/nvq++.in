@@ -459,7 +459,10 @@ if ${ENABLE_KERNEL_EXECUTION}; then
 fi
 if ${ENABLE_AGGRESSIVE_EARLY_INLINE}; then
 	RUN_OPT=true
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "inline{default-pipeline=func.func(indirect-to-direct-calls)}")
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(indirect-to-direct-calls),inline")
+	if ${DO_LINK}; then
+		OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(check-kernel-calls)")
+	fi
 fi
 if ${ENABLE_DEVICE_CODE_LOADERS}; then
 	RUN_OPT=true
