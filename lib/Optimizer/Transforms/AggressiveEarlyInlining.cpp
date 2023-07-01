@@ -101,7 +101,7 @@ public:
 
   void runOnOperation() override {
     func::FuncOp func = getOperation();
-    if (func.empty() || !func->hasAttr("cudaq-kernel"))
+    if (func.empty() || !func->hasAttr(cudaq::kernelAttrName))
       return;
 
     auto module = func->template getParentOfType<ModuleOp>();
@@ -109,7 +109,7 @@ public:
     func.walk([&](func::CallOp call) {
       auto callee = call.getCallee();
       if (auto *decl = module.lookupSymbol(callee))
-        if (decl->hasAttr("cudaq-kernel")) {
+        if (decl->hasAttr(cudaq::kernelAttrName)) {
           call.emitOpError("kernel call was not inlined, "
                            "possible recursion in call tree");
           passFailed = true;
