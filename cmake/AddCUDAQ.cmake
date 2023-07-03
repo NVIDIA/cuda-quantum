@@ -79,5 +79,5 @@ endfunction()
 
 function(add_target_config name)
   install(FILES ${name}.config DESTINATION targets)
-  file(COPY ${name}.config DESTINATION ${CMAKE_BINARY_DIR}/targets)
+  configure_file(${name}.config ${CMAKE_BINARY_DIR}/targets/${name}.config COPYONLY)
 endfunction()
