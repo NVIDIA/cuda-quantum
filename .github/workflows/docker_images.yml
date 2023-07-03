@@ -152,7 +152,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
-      - name: Restore environment
+      - name: Restore dev environment
         if: inputs.devdeps_cache && inputs.devdeps_archive
         id: restore
         uses: actions/cache/restore@v3
@@ -388,6 +388,17 @@ jobs:
           key: ${{ needs.cudaqdev_image.outputs.tar_cache }}
           fail-on-cache-miss: true
 
+      # To push cuda-quantum-dev to a local registry, we need to populate the registry 
+      # with the needed dependencies, i.e. the images that cuda-quantum-dev uses.
+      - name: Restore dev environment
+        if: inputs.devdeps_cache && inputs.devdeps_archive && steps.restore_cudaqdev.outcome != 'skipped'
+        id: restore_devdeps
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ inputs.devdeps_archive }}
+          key: ${{ inputs.devdeps_cache }}
+          fail-on-cache-miss: true
+
       - name: Restore OpenMPI build
         id: restore_openmpi
         if: needs.ompi_image.outputs.tar_cache && needs.ompi_image.outputs.tar_archive
@@ -409,7 +420,16 @@ jobs:
             docker push $base_image
             rm -rf "${{ needs.ompi_image.outputs.tar_archive }}"
           else
+            docker pull ${{ needs.ompi_image.outputs.image_hash }}
             base_image=${{ needs.ompi_image.outputs.image_hash }}
+          fi
+
+          # To push cuda-quantum-dev to a local registry, we need to populate the registry 
+          # with the needed dependencies, i.e. the images that cuda-quantum-dev uses.
+          if ${{ steps.restore_devdeps.outcome != 'skipped' }}; then
+            devdeps_image=`docker load --input "${{ inputs.devdeps_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+            docker push $devdeps_image
+            rm -rf "${{ inputs.devdeps_archive }}"
           fi
 
           if ${{ steps.restore_cudaqdev.outcome != 'skipped' }}; then
@@ -419,12 +439,16 @@ jobs:
             docker push $cudaqdev_image
             rm -rf "${{ needs.cudaqdev_image.outputs.tar_archive }}"
           else
+            docker pull ${{ needs.cudaqdev_image.outputs.image_hash }}
             cudaqdev_image=${{ needs.cudaqdev_image.outputs.image_hash }}
           fi
 
           repo_owner=${{ github.repository_owner }}
           image_name=${{ vars.registry || 'ghcr.io' }}/${repo_owner,,}/cuda-quantum
           dev_tag=`docker inspect $cudaqdev_image --format='{{.Config.Labels}}' | grep -o image.version:[A-Za-z0-9_-]* | cut -d : -f 2`
+          docker image rm ${{ needs.cudaqdev_image.outputs.image_hash }}
+          docker image rm ${{ needs.ompi_image.outputs.image_hash }}
+          docker image prune --force
 
           echo "image_tag=${dev_tag#dev-}" >> $GITHUB_OUTPUT
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
