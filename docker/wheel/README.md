@@ -21,11 +21,18 @@ of the STATIC_LIBZ and LIBZ_PATH arguments from the cmake install. I have not ha
 to test if it works by reinserting them, but that is my best guess at the moment for the 
 issue.
 
+2. I have the manylinux container cloning the wheel branch of my fork. Once the first
+wheel PR is merged, that will need to be replaced. 
+
+3. The branch I'm writing this README from was originally branched off of my wheel branch.
+That may cause a nightmare of issues with resolving commits, so I may just port all of these 
+changes to a new branch once the first PR is merged into main.
+
 #### Follow Up PR's
 
-2. Particularly when it comes to integrating this with the CI, there may need to be some
+1. Particularly when it comes to integrating this with the CI, there may need to be some
 refactoring on this wheel directory. 
 
-3. CI integration.
+2. CI integration.
 
-4. Uploading/distribution.
+3. Uploading/distribution.
