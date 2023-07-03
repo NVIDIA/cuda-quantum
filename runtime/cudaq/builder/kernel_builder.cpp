@@ -156,31 +156,94 @@ bool isArgStdVec(std::vector<QuakeValue> &args, std::size_t idx) {
   return args[idx].isStdVec();
 }
 
+/// @brief Search the given `FuncOp` for all `CallOps` recursively.
+/// If found, see if the called function is in the current `ModuleOp`
+/// for this `kernel_builder`, if so do nothing. If it is not found,
+/// then find it in the other `ModuleOp`, clone it, and add it to this
+/// `ModuleOp`.
+void addAllCalledFunctionRecursively(
+    func::FuncOp &function, ModuleOp &currentModule,
+    mlir::OwningOpRef<mlir::ModuleOp> &otherModule) {
+
+  std::function<void(func::FuncOp func)> visitAllCallOps;
+  visitAllCallOps = [&](func::FuncOp func) {
+    func.walk([&](func::CallOp callOp) {
+      // Don't add if we already have it
+      if (currentModule.lookupSymbol<func::FuncOp>(callOp.getCallee()))
+        return WalkResult::skip();
+
+      // Get the called function, make sure it exists
+      auto calledFunction =
+          otherModule->lookupSymbol<func::FuncOp>(callOp.getCallee());
+      if (!calledFunction)
+        throw std::runtime_error(
+            "Invalid called function, cannot find in ModuleOp (" +
+            callOp.getCallee().str() + ")");
+
+      // Add the called function to the list
+      auto cloned = calledFunction.clone();
+      currentModule.push_back(cloned);
+
+      // Visit that new function and see if we have
+      // more call operations.
+      visitAllCallOps(cloned);
+
+      // Once done, return.
+      return WalkResult::advance();
+    });
+  };
+
+  // Collect all called functions
+  visitAllCallOps(function);
+}
+
+/// @brief Get a the function with the given name. First look in the
+/// current `ModuleOp` for this `kernel_builder`, if found return it as is. If
+/// not found, find it in the other `kernel_builder` `ModuleOp` and return a
+/// clone of it. Throw an exception if no kernel with the given name is found
+func::FuncOp
+cloneOrGetFunction(StringRef name, ModuleOp &currentModule,
+                   mlir::OwningOpRef<mlir::ModuleOp> &otherModule) {
+  if (auto func = currentModule.lookupSymbol<func::FuncOp>(name))
+    return func;
+
+  if (auto func = otherModule->lookupSymbol<func::FuncOp>(name)) {
+    auto cloned = func.clone();
+    currentModule.push_back(cloned);
+    return cloned;
+  }
+
+  throw std::runtime_error("Could not find function with name " + name.str());
+}
+
 void call(ImplicitLocOpBuilder &builder, std::string &name,
           std::string &quakeCode, std::vector<QuakeValue> &values) {
   // Create a ModuleOp from the other kernel's quake code
   auto otherModule =
       mlir::parseSourceString<mlir::ModuleOp>(quakeCode, builder.getContext());
 
-  // Get the function with the kernel name we care about
-  auto otherFunc = otherModule->lookupSymbol<mlir::func::FuncOp>(
-      std::string(cudaq::runtime::cudaqGenPrefixName) + name);
-
-  // Clone it
-  auto cloned = otherFunc.clone();
-
   // Get our current module
   auto block = builder.getBlock();
   auto function = block->getParentOp();
   auto currentModule = function->getParentOfType<ModuleOp>();
 
-  // Add the other kernel to this ModuleOp
-  currentModule.push_back(cloned);
+  // We need to clone the function we care about, we need
+  // any other functions it calls, so store it in a vector
+  std::vector<func::FuncOp> functions;
+
+  // Get the function with the kernel name we care about.
+  auto properName = std::string(cudaq::runtime::cudaqGenPrefixName) + name;
+  auto otherFuncCloned =
+      cloneOrGetFunction(properName, currentModule, otherModule);
+
+  // We need to recursively find all CallOps and
+  // add their Callee FuncOps to the current Module
+  addAllCalledFunctionRecursively(otherFuncCloned, currentModule, otherModule);
 
   // Map the QuakeValues to MLIR Values
   SmallVector<Value> mlirValues;
   for (std::size_t i = 0; auto &v : values) {
-    Type argType = cloned.getArgumentTypes()[i];
+    Type argType = otherFuncCloned.getArgumentTypes()[i];
     Value value = v.getValue();
     Type inType = value.getType();
     auto inAsVeqTy = inType.dyn_cast_or_null<quake::VeqType>();
@@ -206,7 +269,7 @@ void call(ImplicitLocOpBuilder &builder, std::string &name,
   }
 
   // Hook up the call op
-  builder.create<func::CallOp>(cloned, mlirValues);
+  builder.create<func::CallOp>(otherFuncCloned, mlirValues);
 }
 
 void applyControlOrAdjoint(ImplicitLocOpBuilder &builder, std::string &name,
@@ -217,31 +280,23 @@ void applyControlOrAdjoint(ImplicitLocOpBuilder &builder, std::string &name,
   auto otherModule =
       mlir::parseSourceString<mlir::ModuleOp>(quakeCode, builder.getContext());
 
-  // Get the function with the kernel name we care about
-  auto otherFunc = otherModule->lookupSymbol<mlir::func::FuncOp>(
-      std::string(cudaq::runtime::cudaqGenPrefixName) + name);
-
   // Get our current module
   auto block = builder.getBlock();
   auto function = block->getParentOp();
   auto currentModule = function->getParentOfType<ModuleOp>();
 
-  func::FuncOp cloned;
-  auto doWeHaveIt = currentModule.lookupSymbol<func::FuncOp>(
-      std::string(cudaq::runtime::cudaqGenPrefixName) + name);
-  if (!doWeHaveIt) {
-    // Clone it
-    cloned = otherFunc.clone();
+  // Get the function with the kernel name we care about.
+  auto properName = std::string(cudaq::runtime::cudaqGenPrefixName) + name;
+  auto otherFuncCloned =
+      cloneOrGetFunction(properName, currentModule, otherModule);
 
-    // Add the other kernel to this ModuleOp
-    currentModule.push_back(cloned);
-  } else {
-    cloned = doWeHaveIt;
-  }
+  // We need to recursively find all CallOps and
+  // add their Callee FuncOps to the current Module
+  addAllCalledFunctionRecursively(otherFuncCloned, currentModule, otherModule);
 
   SmallVector<Value> mlirValues;
   for (std::size_t i = 0; auto &v : values) {
-    Type argType = cloned.getArgumentTypes()[i];
+    Type argType = otherFuncCloned.getArgumentTypes()[i];
     Value value = v.getValue();
     Type inType = value.getType();
     auto inAsVeqTy = inType.dyn_cast_or_null<quake::VeqType>();
