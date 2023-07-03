@@ -414,9 +414,12 @@ jobs:
           fi
 
           if ${{ steps.restore_cudaqdev.outcome != 'skipped' }}; then
+            loaded=`docker load --input "${{ needs.cudaqdev_image.outputs.tar_archive }}"`
+            cat "$loaded" >> $GITHUB_STEP_SUMMARY
             cudaqdev_image=`docker load --input "${{ needs.cudaqdev_image.outputs.tar_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
             # Push the image to the local registry to make it available within
             # the containered environment that docker/build-push-action uses.
+            echo "pushing dev image $cudaqdev_image" >> $GITHUB_STEP_SUMMARY
             docker push $cudaqdev_image
             rm -rf "${{ needs.cudaqdev_image.outputs.tar_archive }}"
           else
