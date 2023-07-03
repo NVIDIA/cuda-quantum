@@ -8,10 +8,11 @@ source or through our binary wheel distribution. We currently support the
 following operating systems: Linux.
 
 ### Pip Wheels
+
 Under Construction! Not yet distributing wheels.
 Programmers may install CUDA Quantum via the command line:
 
-```
+```console
 pip install cuda-quantum --user
 ```
 
@@ -22,7 +23,7 @@ is installed in the local `site-packages` folder.
 
 You may also install from source as follows:
 
-```
+```console
 git clone https://github.com/NVIDIA/cuda-quantum.git
 cd cuda-quantum
 pip install . --user
@@ -38,7 +39,7 @@ If you would like to avoid the use of pip, or you want to build the entire C++ A
 with the Python API, follow the [installation instructions][official_install]. You
 may then export your python path to point to the installation directory:
 
-```
+```console
 export PYTHONPATH=$PYTHONPATH:/path/to/cudaq/install
 ```
 
@@ -49,7 +50,7 @@ export PYTHONPATH=$PYTHONPATH:/path/to/cudaq/install
 You should now be able to import CUDA Quantum and start building quantum programs
 in Python!
 
-```
+```console
 import cudaq
 
 kernel = cudaq.make_kernel()
