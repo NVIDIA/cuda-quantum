@@ -265,7 +265,7 @@ jobs:
           git pull --no-edit && git push
 
   cudaq_image:
-    name: Docker image
+    name: cuda-quantum (release)
     needs: ompi_image
     # Force this job to run even when some of the dependencies above are skipped.
     if: always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
@@ -399,7 +399,7 @@ jobs:
           context: .
           file: ./docker/build/cudaq.dev.Dockerfile
           build-args: |
-            base_image=${{ steps.prereqs.outputs.base_image }}
+            base_image=${{ steps.prereqs.outputs.devdeps_image }}
             install="CMAKE_BUILD_TYPE=Release FORCE_COMPILE_GPU_COMPONENTS=true"
           tags: ${{ steps.cudaqdev_metadata.outputs.tags }}
           labels: ${{ steps.cudaqdev_metadata.outputs.labels }}
