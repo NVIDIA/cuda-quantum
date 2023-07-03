@@ -49,14 +49,33 @@ Push to GitHub:
   dependencies: 
     - MGMN SV Simulator
   tags:
-    - os/linux
+    - hostname/xpl-dvt-55
   resource_group: $resource_group
   interruptible: false
   script:
-    - type -p curl >/dev/null || (apt update && apt install curl -y)
-    - curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+    - type -p curl >/dev/null || (apt-get update && apt-get install -y --no-install-recommends curl)
+    - apt-get update && apt-get install -y --no-install-recommends ca-certificates && update-ca-certificates
+    - curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg --connect-timeout 300 | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
     - chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
     - echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-    - apt update && apt install gh -y
-    - export GH_TOKEN=$GITHUB_TOKEN
-    - gh release list -R https://github.com/NVIDIA/cuda-quantum
+    - apt-get update && apt-get install -y --no-install-recommends gh
+    - upstream_url=https://github.com/NVIDIA/cuda-quantum && export GH_TOKEN=$GITHUB_TOKEN
+    - if [ -z "$(git remote -v | grep upstream)" ]; 
+      then git remote add upstream ${upstream_url}.git;
+      fi
+    - cudaqdev_digest=${CI_COMMIT_TITLE#ghcr.io/nvidia/cuda-quantum-dev@}
+    - package_id=${cudaqdev_digest#sha256:}
+    - source_commit=`cat deployments/staging/cuda-quantum-dev/$package_id | grep -s -o 'source-sha:\s*\S*' | rev | cut -d ' ' -f 1 | cut -d ':' -f 1 | rev`
+    - if [ -z "$(gh release list | grep -s $package_id)" ];
+      then \
+        rel_notes="This release draft is managed by cd processes."; \
+        rel_notes+=$(echo "<br/>GitHub commit [$source_commit]($upstream_url/tree/$source_commit)"); \
+        gh release create $package_id --title $package_id \
+        --target $source_commit -R $upstream_url \
+        --draft --prerelease --generate-notes --notes "$rel_notes";
+      fi
+    - additional_notes="Release edited by [GitLab pipeline]($CI_PIPELINE_URL)." && \
+      additional_notes+=$(echo "<br/>Triggered based on [this commit]($upstream_url/commit/$CI_COMMIT_SHA).")
+    - existing_notes=`gh release view $package_id --json body --jq .body` && \
+      gh release edit $package_id -R $upstream_url \
+        --notes "$existing_notes<br/><br/>$additional_notes"
