@@ -108,4 +108,4 @@ cd "$repo_root"
 
 # FIXME: Hard-coded on python3.10
 # Install the python build package via pip
-python3.10 -m pip install build
+python3.10 -m pip install build pytest scikit-build auditwheel

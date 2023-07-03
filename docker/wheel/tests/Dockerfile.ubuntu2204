@@ -9,8 +9,12 @@
 FROM ubuntu:22.04
 
 RUN apt-get update && apt-get install -y python3 python3-pip 
+# Pull down CUDA-Quantum so that we can run the pytest unit suite
+# with the installed wheel.
+RUN git clone -b wheel https://github.com/NVIDIA/cuda-quantum && cd cuda-quantum
+# TODO: Will have to either generalize this copy of the wheel,
+# or swap out the platform specific piece here with "_manylinux_..."
 ADD out/cudaq-0.0.3-cp310-cp310-linux_x86_64.whl /wheels/
-ADD tests/ghz.cpp /
 ENV TERM xterm
 ENV PATH "${PATH}:/root/.local/bin"
 RUN python3 -m pip install --user wheels/cudaq-0.0.3-cp310-cp310-linux_x86_64.whl
