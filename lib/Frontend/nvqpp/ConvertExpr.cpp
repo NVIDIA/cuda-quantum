@@ -1802,17 +1802,14 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     //   auto ty = genType(x->getType());
     auto ty = cc::StructType::get(builder.getContext(),
                                   ArrayRef<Type>{builder.getIntegerType(8)});
-    auto ptrTy = opt::factory::getPointerType(ty);
-    auto oneAttr = builder.getI64IntegerAttr(1);
-    auto i64Ty = builder.getIntegerType(64);
-    auto one = builder.create<arith::ConstantOp>(loc, i64Ty, oneAttr);
-    auto mem = builder.create<cc::AllocaOp>(loc, ptrTy, ValueRange{one});
+    auto mem = builder.create<cc::AllocaOp>(loc, ty);
     // FIXME: Using Ctor_Complete for mangled name generation blindly here.
     // Is there a programmatic way of determining which enum to use from the
     // AST?
     auto mangledName =
         cxxMangledDeclName(clang::GlobalDecl{ctor, clang::Ctor_Complete});
-    auto funcTy = FunctionType::get(builder.getContext(), TypeRange{ptrTy}, {});
+    auto funcTy =
+        FunctionType::get(builder.getContext(), TypeRange{mem.getType()}, {});
     auto func = getOrAddFunc(loc, mangledName, funcTy).first;
     // FIXME: The ctor may not be the default ctor. Get all the args.
     builder.create<func::CallOp>(loc, func, ValueRange{mem});
