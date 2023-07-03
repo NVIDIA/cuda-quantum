@@ -48,7 +48,7 @@ spin_op fromOpenFermionQubitOperator(const py::object &op) {
 class PySCFPackageDriver : public MoleculePackageDriver {
 protected:
   /// @brief The name of the chemistry python module.
-  constexpr static const char ChemistryModuleName[] = "domains.chemistry";
+  constexpr static const char ChemistryModuleName[] = "cudaq.domains.chemistry";
 
   /// @brief The name of the function we'll use to drive PySCF.
   constexpr static const char CreatorFunctionName[] =

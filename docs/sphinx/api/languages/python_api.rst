@@ -1,7 +1,7 @@
 CUDA Quantum Python API
 ******************************
 
-.. automodule:: _pycudaq
+.. automodule:: cudaq
 
 Program Construction
 =============================

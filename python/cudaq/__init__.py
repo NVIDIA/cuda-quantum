@@ -6,9 +6,17 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_test(NAME py-cudaq-tests 
-        COMMAND ${Python_EXECUTABLE} -m pytest 
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-set_tests_properties(py-cudaq-tests PROPERTIES 
-                    ENVIRONMENT 
-                    "PYTHONPATH=$ENV{PYTHONPATH}:${CMAKE_BINARY_DIR}/python")  
+import sys
+
+from ._pycudaq import *
+from .domains import chemistry
+
+initKwargs = {'target': 'default'}
+
+if '-target' in sys.argv:
+    initKwargs['target'] = sys.argv[sys.argv.index('-target') + 1]
+
+if '--target' in sys.argv:
+    initKwargs['target'] = sys.argv[sys.argv.index('--target') + 1]
+
+initialize_cudaq(**initKwargs)

@@ -108,6 +108,7 @@ option(CUDAQ_BUILD_RELOCATABLE_PACKAGE "Make CUDA Quantum install tree relocatab
 option(CUDAQ_TEST_MOCK_SERVERS "Enable Remote QPU Tests via Mock Servers." OFF)
 option(CUDAQ_DISABLE_RUNTIME "Build without the CUDA Quantum runtime, just the compiler toolchain." OFF)
 option(CUDAQ_SKIP_MPI "Do not build with MPI, even when it is available." OFF)
+option(CUDAQ_DISABLE_CPP_FRONTEND "Build without the CUDA Quantum C++ Clang-based Frontend." OFF)
 
 if (CUDAQ_BUILD_RELOCATABLE_PACKAGE) 
   if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -361,7 +362,10 @@ add_subdirectory(lib)
 if (NOT CUDAQ_DISABLE_RUNTIME)
   add_subdirectory(runtime)
 endif()
-add_subdirectory(tools)
+if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
+  add_subdirectory(tools)
+endif()
+
 add_subdirectory(utils)
 
 # Python setup
