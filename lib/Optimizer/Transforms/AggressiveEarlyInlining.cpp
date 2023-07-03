@@ -127,7 +127,22 @@ static void defaultInlinerOptPipeline(OpPassManager &pm) {
   pm.addPass(createCanonicalizerPass());
 }
 
-std::unique_ptr<Pass> cudaq::opt::createAggressiveEarlyInlining() {
+/// Run the passes in the correct order.
+/// 1) Convert calls between kernels to direct calls (on the QPU).
+/// 2) Aggressively inline all calls.
+/// 3) Detect if kernel inlining has failed and left behind calls to kernels.
+/// Such a failure is most likely a sign that there is a cycle in the call
+/// graph.
+void cudaq::opt::addAggressiveEarlyInlining(OpPassManager &pm) {
   llvm::StringMap<OpPassManager> opPipelines;
-  return createInlinerPass(opPipelines, defaultInlinerOptPipeline);
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createConvertToDirectCalls());
+  pm.addPass(createInlinerPass(opPipelines, defaultInlinerOptPipeline));
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCheckKernelCalls());
+}
+
+void cudaq::opt::registerAggressiveEarlyInlining() {
+  PassPipelineRegistration<>(
+      "aggressive-early-inlining",
+      "Convert calls between kernels to direct calls and inline functions.",
+      addAggressiveEarlyInlining);
 }

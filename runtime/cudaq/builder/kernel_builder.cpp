@@ -625,9 +625,7 @@ ExecutionEngine *jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
 
   PassManager pm(context);
   OpPassManager &optPM = pm.nest<func::FuncOp>();
-  optPM.addPass(cudaq::opt::createConvertToDirectCalls());
-  pm.addPass(cudaq::opt::createAggressiveEarlyInlining());
-  optPM.addPass(cudaq::opt::createCheckKernelCalls());
+  cudaq::opt::addAggressiveEarlyInlining(pm);
   pm.addPass(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
   optPM.addPass(cudaq::opt::createClassicalMemToReg());
