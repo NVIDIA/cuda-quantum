@@ -445,6 +445,9 @@ jobs:
   documentation:
     name: Documentation
     needs: cudaq_image
+    # Unfortunately, we basically inherit this from the cudaq_image job;
+    # all jobs that depend on it will need to add the same condition.
+    if: always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -519,6 +522,9 @@ jobs:
   validation:
     name: Validation
     needs: cudaq_image
+    # Unfortunately, we basically inherit this from the cudaq_image job;
+    # all jobs that depend on it will need to add the same condition.
+    if: always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
 
     steps:
