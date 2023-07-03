@@ -16,7 +16,6 @@ import numpy as np
 import cudaq
 
 
-
 def test_kernel_adjoint_no_args():
     """
     Tests the adjoint of a kernel that takes no arguments.
@@ -340,7 +339,6 @@ def test_sample_adjoint_qreg():
 # CHECK:           } {counted}
 # CHECK:           return
 # CHECK:         }
-
 
 # leave for gdb debugging
 if __name__ == "__main__":

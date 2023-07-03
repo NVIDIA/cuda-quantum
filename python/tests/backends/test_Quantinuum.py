@@ -25,6 +25,7 @@ pytest.skip(
     "This file produces a segmentation fault on the CI but not locally. Issue is filed.",
     allow_module_level=True)
 
+
 def assert_close(got) -> bool:
     return got < -1.1 and got > -2.2
 

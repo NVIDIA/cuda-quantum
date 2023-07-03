@@ -15,6 +15,7 @@ import numpy as np
 
 import cudaq
 
+
 def test_kernel_conditional():
     """
     Test the conditional measurement functionality of `cudaq.Kernel`.
@@ -119,7 +120,6 @@ def test_kernel_conditional_with_sample():
 # CHECK:           }
 # CHECK:           return
 # CHECK:         }
-
 
 # leave for gdb debugging
 if __name__ == "__main__":

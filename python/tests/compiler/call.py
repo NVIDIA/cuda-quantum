@@ -15,6 +15,7 @@ import numpy as np
 
 import cudaq
 
+
 def test_kernel_apply_call_no_args():
     """
     Tests that we can call a non-parameterized kernel (`other_kernel`), 
@@ -198,7 +199,6 @@ def test_kernel_apply_call_list_args():
 # CHECK:           quake.rx (%[[VAL_3]]) %[[VAL_1]] : (f64,
 # CHECK:           return
 # CHECK:         }
-
 
 # leave for gdb debugging
 if __name__ == "__main__":
