@@ -17,7 +17,7 @@ import setuptools
 
 __version__ = "0.0.3"
 
-# The `setup.py` script gets called twice when installing from source
+# The setup script gets called twice when installing from source
 # with `pip install .` . Once for the `egg_info` subcommand and another
 # for `install`. We will only install the missing dependencies once, for
 # the `egg_info` subcommand (arbitrary choice).

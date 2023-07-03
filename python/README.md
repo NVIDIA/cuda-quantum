@@ -28,18 +28,22 @@ pip package manager.
 
 ### Build entirely from source
 If you would like to avoid the use of pip, or you want to build the entire C++ API with the
-Python API, follow the installation instructions here (TODO). You may then export your python
-path to point to the installation directory:
+Python API, follow the [installation instructions][official install]. You may then export your python path to point to the installation directory:
 ```
 export PYTHONPATH=$PYTHONPATH:/path/to/cudaq/install
 ```
 
+[official_install]: https://nvidia.github.io/cuda-quantum/latest/install.html
+
 ## Getting started 
-You should now be able to import CUDA Quantum and get started building quantum programs in Python!
+You should now be able to import CUDA Quantum and start building quantum programs in Python!
 ```
 import cudaq 
 
 kernel = cudaq.make_kernel()
 ```
 
-To see more examples, go to (LINK), or check out the Python API reference (LINK).
+To see more examples, [go to][python examples], or check out the [Python API reference][python api reference].
+
+[python examples]: https://nvidia.github.io/cuda-quantum/latest/using/python.html
+[python api reference]: https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html
