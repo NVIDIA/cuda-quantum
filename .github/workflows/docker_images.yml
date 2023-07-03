@@ -171,8 +171,8 @@ jobs:
             docker push $base_image
             rm -rf "${{ inputs.devdeps_archive }}"
           elif ${{ inputs.devdeps_image != '' }}; then
-            docker pull $base_image
             base_image=${{ inputs.devdeps_image }}
+            docker pull $base_image
           else
             echo "Missing configuration for development dependencies. Either specify the image (i.e. provide devdeps_image) or cache (i.e. provide devdeps_cache and devdeps_archive) that should be used for the build." >> $GITHUB_STEP_SUMMARY
             exit 1
