@@ -152,7 +152,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
-      - name: Restore environment
+      - name: Restore dev environment
         if: inputs.devdeps_cache && inputs.devdeps_archive
         id: restore
         uses: actions/cache/restore@v3
@@ -388,6 +388,17 @@ jobs:
           key: ${{ needs.cudaqdev_image.outputs.tar_cache }}
           fail-on-cache-miss: true
 
+      # To push cuda-quantum-dev to a local registry, we need to populate the registry 
+      # with the needed dependencies, i.e. the images that cuda-quantum-dev uses.
+      - name: Restore dev environment
+        if: inputs.devdeps_cache && inputs.devdeps_archive && steps.restore_cudaqdev.outcome != 'skipped'
+        id: restore_devdeps
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ inputs.devdeps_archive }}
+          key: ${{ inputs.devdeps_cache }}
+          fail-on-cache-miss: true
+
       - name: Restore OpenMPI build
         id: restore_openmpi
         if: needs.ompi_image.outputs.tar_cache && needs.ompi_image.outputs.tar_archive
@@ -413,13 +424,18 @@ jobs:
             base_image=${{ needs.ompi_image.outputs.image_hash }}
           fi
 
+          # To push cuda-quantum-dev to a local registry, we need to populate the registry 
+          # with the needed dependencies, i.e. the images that cuda-quantum-dev uses.
+          if ${{ steps.restore_devdeps.outcome != 'skipped' }}; then
+            devdeps_image=`docker load --input "${{ inputs.devdeps_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+            docker push $devdeps_image
+            rm -rf "${{ inputs.devdeps_archive }}"
+          fi
+
           if ${{ steps.restore_cudaqdev.outcome != 'skipped' }}; then
-            loaded=`docker load --input "${{ needs.cudaqdev_image.outputs.tar_archive }}"`
-            cat "$loaded" >> $GITHUB_STEP_SUMMARY
             cudaqdev_image=`docker load --input "${{ needs.cudaqdev_image.outputs.tar_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
             # Push the image to the local registry to make it available within
             # the containered environment that docker/build-push-action uses.
-            echo "pushing dev image $cudaqdev_image" >> $GITHUB_STEP_SUMMARY
             docker push $cudaqdev_image
             rm -rf "${{ needs.cudaqdev_image.outputs.tar_archive }}"
           else
