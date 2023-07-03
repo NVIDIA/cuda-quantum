@@ -348,9 +348,8 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, const std::size_t nQubits) {
   cudaq::info("kernel_builder allocating {} qubits", nQubits);
 
   auto context = builder.getContext();
-  Value qubits = builder.create<quake::AllocaOp>(
-      quake::VeqType::get(context, nQubits),
-      builder.create<arith::ConstantIntOp>(nQubits, 32));
+  Value qubits =
+      builder.create<quake::AllocaOp>(quake::VeqType::get(context, nQubits));
 
   return QuakeValue(builder, qubits);
 }
