@@ -32,11 +32,12 @@ MGMN SV Simulator:
     - echo "Checking out commit $CUDAQ_MGMN_SVSIM_COMMIT on $CI_SERVER_HOST/$CUDAQ_MGMN_SVSIM_REPO."
     - mkdir cudaq_mgmn_svsim && cd cudaq_mgmn_svsim && git init
     - git fetch --depth 1 https://$READ_ACCESS_TOKEN:$READ_ACCESS_TOKEN@$CI_SERVER_HOST/$CUDAQ_MGMN_SVSIM_REPO $CUDAQ_MGMN_SVSIM_COMMIT && git checkout FETCH_HEAD
-    - bash build.sh $READ_ACCESS_TOKEN
+    - (bash build.sh $READ_ACCESS_TOKEN && built=true) || built=false
     - cd .. && rm -rf cudaq_mgmn_svsim
     - mkdir -p artifacts/mgmn_svsim/cuquantum && cp -r "$CUQUANTUM_INSTALL_PREFIX"/* artifacts/mgmn_svsim/cuquantum
     - mkdir -p artifacts/mgmn_svsim/cudaq && cp -r "$CUDAQ_INSTALL_PREFIX"/* artifacts/mgmn_svsim/cudaq
     - ls "$CUDAQ_INSTALL_PREFIX"/targets/*.config
+    - if $built; then `exit 0`; else `exit 1`; fi
 
 Push to GitHub:
   stage: deploy
@@ -48,7 +49,7 @@ Push to GitHub:
   interruptible: false
   script:
     - type -p curl >/dev/null || (apt-get update && apt-get install -y --no-install-recommends curl)
-    - apt-get update && apt-get install -y --no-install-recommends ca-certificates && update-ca-certificates
+    - apt-get update && apt-get install -y --no-install-recommends zip ca-certificates && update-ca-certificates
     - curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg --connect-timeout 300 | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
     - chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
     - echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
@@ -60,18 +61,19 @@ Push to GitHub:
     - cudaqdev_digest=${CI_COMMIT_TITLE#ghcr.io/nvidia/cuda-quantum-dev@}
     - package_id=${cudaqdev_digest#sha256:}
     - source_commit=`cat deployments/staging/cuda-quantum-dev/$package_id | grep -s -o 'source-sha:\s*\S*' | rev | cut -d ' ' -f 1 | cut -d ':' -f 1 | rev`
-    - if [ -z "$(gh release list | grep -s $package_id)" ];
-      then \
-        rel_notes="This release draft is managed by cd processes."; \
-        rel_notes+=$(echo "<br/>GitHub commit [$source_commit]($upstream_url/tree/$source_commit)"); \
-        gh release create $package_id --title $package_id \
-        --target $source_commit -R $upstream_url \
-        --draft --prerelease --generate-notes --notes "$rel_notes";
+    - |
+      if [ -z "$(gh release list | grep -s $package_id)" ];
+      then
+        rel_notes="This release draft is managed by cd processes."
+        rel_notes+=$(echo "<br/>GitHub commit [$source_commit]($upstream_url/tree/$source_commit)")
+        gh release create $package_id --title $package_id
+          --target $source_commit -R $upstream_url
+          --draft --prerelease --generate-notes --notes "$rel_notes"
       fi
-    - cd artifacts && zip -r mgmn_svsim.zip mgmn_svsim && \
-      gh release upload $package_id -R $upstream_url mgmn_svsim.zip --clobber
-    - additional_notes="Release edited by [GitLab pipeline]($CI_PIPELINE_URL)." && \
+    - cd artifacts && zip -r mgmn_svsim.zip mgmn_svsim
+    - gh release upload $package_id -R $upstream_url mgmn_svsim.zip --clobber
+    - additional_notes="Release edited by [GitLab pipeline]($CI_PIPELINE_URL)." &&
       additional_notes+=$(echo "<br/>Triggered based on [this commit]($upstream_url/commit/$CI_COMMIT_SHA).")
-    - existing_notes=`gh release view $package_id --json body --jq .body` && \
-      gh release edit $package_id -R $upstream_url \
+    - existing_notes=`gh release view $package_id --json body --jq .body`
+    - gh release edit $package_id -R $upstream_url
         --notes "$existing_notes<br/><br/>$additional_notes"
