@@ -169,7 +169,9 @@ jobs:
             # Push the image to the local registry to make it available within
             # the containered environment that docker/build-push-action uses.
             docker push $base_image
+            rm -rf "${{ inputs.devdeps_archive }}"
           elif ${{ inputs.devdeps_image != '' }}; then
+            docker pull $base_image
             base_image=${{ inputs.devdeps_image }}
           else
             echo "Missing configuration for development dependencies. Either specify the image (i.e. provide devdeps_image) or cache (i.e. provide devdeps_cache and devdeps_archive) that should be used for the build." >> $GITHUB_STEP_SUMMARY
@@ -179,6 +181,7 @@ jobs:
           repo_owner=${{ github.repository_owner }}
           image_name=${{ vars.registry || 'ghcr.io' }}/${repo_owner,,}/cuda-quantum-dev
           image_tag=`docker inspect $base_image --format='{{.Config.Labels}}' | grep -o image.version:[A-Za-z0-9_-]* | cut -d : -f 2`
+          docker image rm $base_image
           docker image prune --force
 
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
