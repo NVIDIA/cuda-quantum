@@ -66,8 +66,8 @@ Push to GitHub:
       then
         rel_notes="This release draft is managed by cd processes."
         rel_notes+=$(echo "<br/>GitHub commit [$source_commit]($upstream_url/tree/$source_commit)")
-        gh release create $package_id --title $package_id
-          --target $source_commit -R $upstream_url
+        gh release create $package_id --title $package_id \
+          --target $source_commit -R $upstream_url \
           --draft --prerelease --generate-notes --notes "$rel_notes"
       fi
     - cd artifacts && zip -r mgmn_svsim.zip mgmn_svsim
