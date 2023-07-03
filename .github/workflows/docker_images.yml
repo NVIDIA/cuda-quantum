@@ -255,13 +255,15 @@ jobs:
 
       - name: Push staging info
         run: |
+          cudaqdev_hash=${{ needs.cudaqdev_image.outputs.image_hash }}
           staging_dir=deployments/staging/cuda-quantum-dev
-          mkdir -p "$staging_dir" && echo "source-sha: ${{ github.sha }}" >> "$staging_dir/${{ needs.cudaqdev_image.outputs.image_hash }}"
+          package_id=${cudaqdev_hash#ghcr.io/nvidia/cuda-quantum-dev@sha256:}
+          mkdir -p "$staging_dir" && echo "source-sha: ${{ github.sha }}" >> "$staging_dir/$package_id"
           git add "$staging_dir"
 
           git config --global user.name "cuda-quantum-bot"
           git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
-          git commit --allow-empty -m "${{ needs.cudaqdev_image.outputs.image_hash }}"
+          git commit --allow-empty -m "$cudaqdev_hash"
           git pull --no-edit && git push
 
   cudaq_image:
@@ -404,8 +406,7 @@ jobs:
           tags: ${{ steps.cudaqdev_metadata.outputs.tags }}
           labels: ${{ steps.cudaqdev_metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}
-          load: ${{ inputs.environment == '' }}
-          push: ${{ inputs.environment != '' }}
+          push: true
 
       - name: Extract cuda-quantum metadata
         id: metadata
