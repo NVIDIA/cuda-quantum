@@ -33,7 +33,7 @@ FROM $cudaqdev_image as cudaqbuild
 # match the paths in the dev image.
 RUN mkdir /usr/local/cudaq_assets && cd /usr/local/cudaq_assets && \
     mkdir -p llvm/bin && mkdir -p llvm/lib && mkdir cuquantum && \
-    mv "$LLVM_INSTALL_PREFIX/bin/"clang* "/usr/local/cudaq_assets/llvm/bin/" && rm -rf "/usr/local/cudaq_assets/llvm/bin/"clang-format* \
+    mv "$LLVM_INSTALL_PREFIX/bin/"clang* "/usr/local/cudaq_assets/llvm/bin/" && rm -rf "/usr/local/cudaq_assets/llvm/bin/"clang-format* && \
     mv "$LLVM_INSTALL_PREFIX/lib/"clang* "/usr/local/cudaq_assets/llvm/lib/" && \
     mv "$LLVM_INSTALL_PREFIX/bin/llc" "/usr/local/cudaq_assets/llvm/bin/llc" && \
     mv "$LLVM_INSTALL_PREFIX/bin/lld" "/usr/local/cudaq_assets/llvm/bin/lld" && \
@@ -81,7 +81,7 @@ COPY --from=cudaqbuild "/usr/local/cudaq_assets" "$CUDA_QUANTUM_PATH/assets"
 # expected locations. The CUDQ Quantum installation contains an xml file that lists these.
 ADD ./scripts/migrate_assets.sh "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
 RUN bash "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh" "$CUDA_QUANTUM_PATH/assets" \
-    && find "$CUDA_QUANTUM_PATH/assets" -type d | xargs -n1 | tac | xargs rmdir \
+    && rm -rf "$CUDA_QUANTUM_PATH/assets" \
     && rm "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
 
 ENV PATH "${PATH}:$CUDA_QUANTUM_PATH/bin"
