@@ -31,9 +31,10 @@ FROM $cudaqdev_image as cudaqbuild
 # The rather ugly work around to achieve encapsulation is to make a copy here were we have
 # access to the environment variables, so that the hardcoded paths in this file don't need to 
 # match the paths in the dev image.
-RUN mkdir /usr/local/cudaq_assets && \
-    mv "$LLVM_INSTALL_PREFIX/bin/clang++" "/usr/local/cudaq_assets/llvm/bin/clang++" && \
-    mv "$LLVM_INSTALL_PREFIX/lib/clang" "/usr/local/cudaq_assets/llvm/lib/clang" && \
+RUN mkdir /usr/local/cudaq_assets && cd /usr/local/cudaq_assets && \
+    mkdir -p llvm/bin && mkdir -p llvm/lib && mkdir cuquantum && \
+    mv "$LLVM_INSTALL_PREFIX/bin/"clang* "/usr/local/cudaq_assets/llvm/bin/" && rm -rf "/usr/local/cudaq_assets/llvm/bin/"clang-format* \
+    mv "$LLVM_INSTALL_PREFIX/lib/"clang* "/usr/local/cudaq_assets/llvm/lib/" && \
     mv "$LLVM_INSTALL_PREFIX/bin/llc" "/usr/local/cudaq_assets/llvm/bin/llc" && \
     mv "$LLVM_INSTALL_PREFIX/bin/lld" "/usr/local/cudaq_assets/llvm/bin/lld" && \
     mv "$LLVM_INSTALL_PREFIX/bin/ld.lld" "/usr/local/cudaq_assets/llvm/bin/ld.lld" && \
@@ -72,15 +73,15 @@ ENV CUDA_QUANTUM_VERSION=$release_version
 ENV CUDA_QUANTUM_PATH="/opt/nvidia/cudaq"
 
 COPY --from=cudaqbuild "/usr/local/cudaq/" "$CUDA_QUANTUM_PATH"
-COPY --from=cudaqbuild "/usr/local/cudaq_assets" "/opt/nvidia/cudaq_assets"
+COPY --from=cudaqbuild "/usr/local/cudaq_assets" "$CUDA_QUANTUM_PATH/assets"
 
 # For now, the CUDA Quantum build hardcodes certain paths and hence expects to find its 
 # dependencies in specific locations. While a relocatable installation of CUDA Quantum should 
 # be a good/better option in the future, for now we make sure to copy the dependencies to the 
 # expected locations. The CUDQ Quantum installation contains an xml file that lists these.
 ADD ./scripts/migrate_assets.sh "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
-RUN bash "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh" "/usr/local/cudaq_assets" "$CUDA_QUANTUM_PATH/build_config.xml" \
-    && find "/usr/local/cudaq_assets" -type d | xargs -n1 | tac | xargs rmdir \
+RUN bash "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh" "$CUDA_QUANTUM_PATH/assets" "$CUDA_QUANTUM_PATH/build_config.xml" \
+    && find "$CUDA_QUANTUM_PATH/assets" -type d | xargs -n1 | tac | xargs rmdir \
     && rm "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
 
 ENV PATH "${PATH}:$CUDA_QUANTUM_PATH/bin"
