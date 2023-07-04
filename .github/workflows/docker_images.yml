@@ -444,7 +444,10 @@ jobs:
 
   documentation:
     name: Documentation
-    needs: cudaq_image
+    needs: [cudaqdev_image, cudaq_image]
+    # Unfortunately, we basically inherit this from the cudaq_image job;
+    # all jobs that depend on it will need to add the same condition.
+    if: always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -453,8 +456,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Restore cuda-quantum
-        id: restore
+      - name: Restore CUDA Quantum build
+        id: restore_cudaqdev
+        if: needs.cudaqdev_image.outputs.tar_cache && needs.cudaqdev_image.outputs.tar_archive
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ needs.cudaqdev_image.outputs.tar_archive }}
+          key: ${{ needs.cudaqdev_image.outputs.tar_cache }}
+          fail-on-cache-miss: true
+
+      - name: Restore CUDA Quantum image
+        id: restore_cudaq
         if: needs.cudaq_image.outputs.tar_cache && needs.cudaq_image.outputs.tar_archive
         uses: actions/cache/restore@v3
         with:
@@ -465,17 +477,26 @@ jobs:
       - name: Build documentation
         id: docs_build
         run: |
-          if ${{ steps.restore.outcome != 'skipped' }}; then
+          if ${{ steps.restore_cudaq.outcome != 'skipped' }}; then
             cudaq_image=`docker load --input "${{ needs.cudaq_image.outputs.tar_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
           else
-            docker pull ${{ needs.cudaq_image.outputs.image_hash }}
             cudaq_image=${{ needs.cudaq_image.outputs.image_hash }}
+            docker pull $cudaq_image
           fi
 
           image_tag=`docker inspect $cudaq_image --format='{{.Config.Labels}}' | grep -o image.version:[A-Za-z0-9_-]* | cut -d : -f 2`
           docs_version="CUDA_QUANTUM_VERSION=$image_tag"
+          docker image rm $cudaq_image
+          docker image prune --force
 
-          docker run --rm -dit --name cuda-quantum-dev $cudaq_image
+          if ${{ steps.restore_cudaqdev.outcome != 'skipped' }}; then
+            cudaqdev_image=`docker load --input "${{ needs.cudaqdev_image.outputs.tar_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+          else
+            cudaqdev_image=${{ needs.cudaqdev_image.outputs.image_hash }}
+            docker pull $cudaqdev_image
+          fi
+
+          docker run --rm -dit --name cuda-quantum-dev $cudaqdev_image
           (docker exec cuda-quantum-dev bash -c "export $docs_version && bash scripts/build_docs.sh" && built=true) || built=false
           if $built; then docker cp cuda-quantum-dev:"/usr/local/cudaq/docs/." docs; \
           else docker cp cuda-quantum-dev:"/workspaces/cuda-quantum/build/." /tmp/build; fi
@@ -519,6 +540,9 @@ jobs:
   validation:
     name: Validation
     needs: cudaq_image
+    # Unfortunately, we basically inherit this from the cudaq_image job;
+    # all jobs that depend on it will need to add the same condition.
+    if: always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
 
     steps:
