@@ -65,7 +65,7 @@ jobs:
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
 
           docker pull ${{ inputs.ompidev_image }} # to get the tag
-          dev_tag=`docker inspect ${{ inputs.ompidev_image }} --format='{{.Config.Labels}}' | grep -o image.version:[A-Za-z0-9_-]* | cut -d : -f 2`
+          dev_tag=`docker inspect ${{ inputs.ompidev_image }} --format='{{json .Config.Labels}}' | jq '."org.opencontainers.image.version"'`
           echo "image_tag=${dev_tag#ompi-}" >> $GITHUB_OUTPUT
           docker image rm ${{ inputs.ompidev_image }}
           docker image prune --force
@@ -180,7 +180,7 @@ jobs:
 
           repo_owner=${{ github.repository_owner }}
           image_name=${{ vars.registry || 'ghcr.io' }}/${repo_owner,,}/cuda-quantum-dev
-          image_tag=`docker inspect $base_image --format='{{.Config.Labels}}' | grep -o image.version:[A-Za-z0-9_-]* | cut -d : -f 2`
+          image_tag=`docker inspect $base_image --format='{{json .Config.Labels}}' | jq '."org.opencontainers.image.version"'`
           docker image rm $base_image
           docker image prune --force
 
@@ -484,7 +484,7 @@ jobs:
             docker pull $cudaq_image
           fi
 
-          image_tag=`docker inspect $cudaq_image --format='{{.Config.Labels}}' | grep -o image.version:[A-Za-z0-9_-]* | cut -d : -f 2`
+          image_tag=`docker inspect $cudaq_image --format='{{json .Config.Labels}}' | jq '."org.opencontainers.image.version"'`
           docs_version="CUDA_QUANTUM_VERSION=$image_tag"
           docker image rm $cudaq_image
           docker image prune --force

@@ -12,7 +12,7 @@ on:
         default: false
       platforms:
         type: string
-        description: The platforms to build the docker images for.
+        description: The platforms to build the Docker images for.
         required: false
         default: linux/amd64
   # We need write permissions for packages to update the build caches of GHCR.
