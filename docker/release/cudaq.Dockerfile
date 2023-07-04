@@ -80,7 +80,7 @@ COPY --from=cudaqbuild "/usr/local/cudaq_assets" "$CUDA_QUANTUM_PATH/assets"
 # be a good/better option in the future, for now we make sure to copy the dependencies to the 
 # expected locations. The CUDQ Quantum installation contains an xml file that lists these.
 ADD ./scripts/migrate_assets.sh "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
-RUN bash "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh" "$CUDA_QUANTUM_PATH/assets" "$CUDA_QUANTUM_PATH/build_config.xml" \
+RUN bash "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh" "$CUDA_QUANTUM_PATH/assets" \
     && find "$CUDA_QUANTUM_PATH/assets" -type d | xargs -n1 | tac | xargs rmdir \
     && rm "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
 

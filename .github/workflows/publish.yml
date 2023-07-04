@@ -1,0 +1,152 @@
+on:
+  workflow_dispatch:
+    inputs:
+      platforms:
+        type: string
+        description: The platforms to build the Docker images for.
+        required: false
+        default: linux/amd64
+      release_id:
+        type: string
+        description: The release id on GitHub from which to download the assets.
+        required: true
+      cudaq_image:
+        type: string
+        required: true
+        description: The CUDA Quantum Docker image to which additional assets should be added.
+  workflow_run:
+    workflows:
+      - Deployments
+    types:
+      - completed
+
+name: Publishing
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  cudaq_hpc:
+    name: CUDA Quantum Docker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image_hash: ${{ steps.release_info.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
+
+    environment:
+      name: ghcr-deployment
+      url: ${{ vars.deployment_url }}
+
+    steps:
+      - name: Download artifacts
+        id: artifacts
+        if: github.event_name == 'workflow_run'
+        run: |
+          artifacts_url=${{ github.event.workflow_run.artifacts_url }}
+          artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
+
+          for artifact in `echo "$artifacts"`; do
+            name=`echo $artifact | jq -r '.name'`
+            if [ "$name" == "build_info" ]; then
+              url=`echo $artifact | jq -r '.url'`
+              gh api $url > build_info.zip
+              unzip -d build_info build_info.zip
+              for file in `find build_info/ -type f`; do
+                cat "$file" >> build_info.txt
+              done
+              rm -rf build_info build_info.zip
+            fi
+          done
+          echo "build_info=build_info.txt" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Determine build info
+        id: args
+        run: |
+          if ${{ steps.artifacts.outcome != 'skipped' }}; then
+            build_info=`cat ${{ steps.artifacts.outputs.build_info }}`
+            release_id=`echo "$build_info" | grep -o 'release-id: \S*' | cut -d ' ' -f 2`
+            cudaq_image=`echo "$build_info" | grep -o 'cuda-quantum-image: \S*' | cut -d ' ' -f 2`
+            platforms=`echo "$build_info" | grep -o 'platforms: \S*' | cut -d ' ' -f 2`
+          else
+            cudaq_image=${{ inputs.cudaq_image }}
+            release_id=${{ inputs.release_id }}
+            platforms=${{ inputs.platforms }}
+          fi
+
+          echo "cudaq_image=$cudaq_image" >> $GITHUB_OUTPUT
+          echo "release_id=$release_id" >> $GITHUB_OUTPUT
+          echo "platforms=$platforms" >> $GITHUB_OUTPUT
+
+      - name: Retrieve assets
+        id: release_info
+        run: |
+          base_image=${{ steps.args.outputs.cudaq_image }}
+          docker pull $base_image
+          repo_owner=${{ github.repository_owner }}
+          image_name=${{ vars.registry || 'ghcr.io' }}/${repo_owner,,}/cuda-quantum
+          base_tag=`docker inspect $base_image --format='{{json .Config.Labels}}' | jq '."org.opencontainers.image.version"'`
+          image_title=`docker inspect $base_image --format='{{json .Config.Labels}}' | jq '."org.opencontainers.image.title"'`
+          image_description=`docker inspect $base_image --format='{{json .Config.Labels}}' | jq '."org.opencontainers.image.description"'`
+          docker image rm $base_image
+          docker image prune --force
+
+          assets_folder=assets && release_id=${{ steps.args.outputs.release_id }}
+          while [ -z "$(gh release list | grep -s $release_id)" ]; do echo "waiting for assets..." && sleep 300; done
+          gh release download $release_id --dir "$assets_folder" -R ${{ github.repository }}
+          cd "$assets_folder" && unzip mgmn_svsim.zip && rm mgmn_svsim.zip && cd -
+          github_commit=`gh release view $release_id -R ${{ github.repository }} --json targetCommitish --jq .targetCommitish`
+
+          echo "image_name=$image_name" >> $GITHUB_OUTPUT
+          echo "image_tag=${base_tag}-hpc" >> $GITHUB_OUTPUT
+          echo "image_title=$image_title" >> $GITHUB_OUTPUT
+          echo "image_description=$image_description" >> $GITHUB_OUTPUT
+          echo "base_image=$base_image" >> $GITHUB_OUTPUT
+          echo "github_commit=$github_commit" >> $GITHUB_OUTPUT
+          echo "assets_folder=$assets_folder" >> $GITHUB_OUTPUT
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ steps.release_info.outputs.github_commit }}
+
+      - name: Log in to the container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ vars.registry }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Set up buildx runner
+        uses: docker/setup-buildx-action@v2
+
+      - name: Extract cuda-quantum metadata
+        id: metadata
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ steps.release_info.outputs.image_name }}
+          flavor: latest=false
+          tags: type=raw,value=${{ steps.release_info.outputs.image_tag }}
+          labels: |
+            org.opencontainers.image.title=${{ steps.release_info.outputs.image_title }}
+            org.opencontainers.image.description=${{ steps.release_info.outputs.image_description }}
+
+      - name: Build cuda-quantum image
+        id: docker_build
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./docker/release/cudaq.ext.Dockerfile
+          build-args: |
+            base_image=${{ steps.release_info.outputs.base_image }}
+            assets=${{ steps.release_info.outputs.assets_folder }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          platforms: ${{ steps.args.outputs.platforms }}
+          push: true

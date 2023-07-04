@@ -65,7 +65,7 @@ jobs:
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
 
           docker pull ${{ inputs.ompidev_image }} # to get the tag
-          dev_tag=`docker inspect ${{ inputs.ompidev_image }} --format='{{.Config.Labels}}' | grep -o image.version:[A-Za-z0-9_-]* | cut -d : -f 2`
+          dev_tag=`docker inspect ${{ inputs.ompidev_image }} --format='{{json .Config.Labels}}' | jq '."org.opencontainers.image.version"'`
           echo "image_tag=${dev_tag#ompi-}" >> $GITHUB_OUTPUT
           docker image rm ${{ inputs.ompidev_image }}
           docker image prune --force
@@ -180,7 +180,7 @@ jobs:
 
           repo_owner=${{ github.repository_owner }}
           image_name=${{ vars.registry || 'ghcr.io' }}/${repo_owner,,}/cuda-quantum-dev
-          image_tag=`docker inspect $base_image --format='{{.Config.Labels}}' | grep -o image.version:[A-Za-z0-9_-]* | cut -d : -f 2`
+          image_tag=`docker inspect $base_image --format='{{json .Config.Labels}}' | jq '."org.opencontainers.image.version"'`
           docker image rm $base_image
           docker image prune --force
 
@@ -232,39 +232,6 @@ jobs:
         with:
           path: ${{ steps.prereqs.outputs.tar_archive }}
           key: ${{ steps.prereqs.outputs.tar_cache }}
-
-  staging:
-    name: Staging
-    needs: cudaqdev_image
-    runs-on: ubuntu-latest
-    if: inputs.environment
-
-    permissions:
-      contents: write
-
-    environment:
-      name: ${{ inputs.environment }}
-      url: ${{ vars.deployment_url }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ vars.data_branch }}
-          token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
-
-      - name: Push staging info
-        run: |
-          cudaqdev_hash=${{ needs.cudaqdev_image.outputs.image_hash }}
-          staging_dir=deployments/staging/cuda-quantum-dev
-          package_id=${cudaqdev_hash#ghcr.io/nvidia/cuda-quantum-dev@sha256:}
-          mkdir -p "$staging_dir" && echo "source-sha: ${{ github.sha }}" >> "$staging_dir/$package_id"
-          git add "$staging_dir"
-
-          git config --global user.name "cuda-quantum-bot"
-          git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
-          git commit --allow-empty -m "$cudaqdev_hash"
-          git pull --no-edit && git push
 
   cudaq_image:
     name: cuda-quantum (release)
@@ -484,7 +451,7 @@ jobs:
             docker pull $cudaq_image
           fi
 
-          image_tag=`docker inspect $cudaq_image --format='{{.Config.Labels}}' | grep -o image.version:[A-Za-z0-9_-]* | cut -d : -f 2`
+          image_tag=`docker inspect $cudaq_image --format='{{json .Config.Labels}}' | jq '."org.opencontainers.image.version"'`
           docs_version="CUDA_QUANTUM_VERSION=$image_tag"
           docker image rm $cudaq_image
           docker image prune --force
@@ -582,6 +549,58 @@ jobs:
             cat /tmp/validation.out >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
           fi
+
+  staging:
+    name: Staging
+    needs: [cudaqdev_image, cudaq_image, validation]
+    runs-on: ubuntu-latest
+    # Unfortunately, we basically inherit this from the cudaq_image job;
+    # all jobs that depend on it will need to add the same condition.
+    if: always() && inputs.environment && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+
+    permissions:
+      contents: write
+
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ vars.deployment_url }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ vars.data_branch }}
+          token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+
+      - name: Push staging info
+        id: staging
+        run: |
+          cudaqdev_hash=${{ needs.cudaqdev_image.outputs.image_hash }}
+          cudaq_hash=${{ needs.cudaq_image.outputs.image_hash }}
+          release_id=${cudaq_hash#ghcr.io/nvidia/cuda-quantum-dev@sha256:}
+          info_file="deployments/staging/cuda-quantum-dev/$release_id"
+          echo "info_file=$info_file" >> $GITHUB_OUTPUT
+
+          mkdir -p "$(dirname "$info_file")"
+          echo "release-id: $release_id" > "$info_file"
+          echo "source-sha: ${{ github.sha }}" >> "$info_file"
+          echo "cuda-quantum-dev-image: $cudaqdev_hash"  >> "$info_file"
+          echo "cuda-quantum-image: $cudaq_hash" >> "$info_file"
+          echo "platforms: ${{ inputs.platforms }}" >> "$info_file"
+          git add "$info_file"
+
+          git config --global user.name "cuda-quantum-bot"
+          git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
+          git commit --allow-empty -m "$cudaqdev_hash"
+          git pull --no-edit && git push
+
+      - name: Upload build info
+        uses: actions/upload-artifact@v3
+        with:
+          name: build_info # changing the artifact name requires updating other workflows
+          path: ${{ steps.staging.outputs.info_file }}
+          retention-days: 30
+          if-no-files-found: error
 
   clean_up:
     name: Prepare cache clean-up
