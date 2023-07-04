@@ -577,7 +577,7 @@ jobs:
         run: |
           cudaqdev_hash=${{ needs.cudaqdev_image.outputs.image_hash }}
           cudaq_hash=${{ needs.cudaq_image.outputs.image_hash }}
-          release_id=${cudaq_hash#ghcr.io/nvidia/cuda-quantum-dev@sha256:}
+          release_id=`echo $cudaq_hash | rev | cut -d ':' -f 1 | rev`
           info_file="deployments/staging/cuda-quantum-dev/$release_id"
           echo "info_file=$info_file" >> $GITHUB_OUTPUT
 
