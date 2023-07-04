@@ -30,6 +30,7 @@ jobs:
   cudaq_hpc:
     name: CUDA Quantum Docker image
     runs-on: ubuntu-latest
+    timeout-minutes: 100
     permissions:
       contents: read
       packages: write
@@ -65,7 +66,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - name: Build arguments
+      - name: Determine build info
         id: args
         run: |
           if ${{ steps.artifacts.outcome != 'skipped' }}; then
@@ -83,7 +84,7 @@ jobs:
           echo "release_id=$release_id" >> $GITHUB_OUTPUT
           echo "platforms=$platforms" >> $GITHUB_OUTPUT
 
-      - name: Release info
+      - name: Retrieve assets
         id: release_info
         run: |
           base_image=${{ steps.args.outputs.cudaq_image }}
@@ -97,8 +98,9 @@ jobs:
           docker image prune --force
 
           assets_folder=assets && release_id=${{ steps.args.outputs.release_id }}
+          while [ -z "$(gh release list | grep -s $release_id)" ]; do echo "waiting for assets..." && sleep 300; done
           gh release download $release_id --dir "$assets_folder" -R ${{ github.repository }}
-          cd assets/ && unzip mgmn_svsim.zip && rm mgmn_svsim.zip && cd ..
+          cd "$assets_folder" && unzip mgmn_svsim.zip && rm mgmn_svsim.zip && cd -
           github_commit=`gh release view $release_id -R ${{ github.repository }} --json targetCommitish --jq .targetCommitish`
 
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
