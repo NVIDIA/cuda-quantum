@@ -43,8 +43,6 @@ function move_artifacts {
             echo -e "\tadding file $2/$file"
             mkdir -p "$(dirname "$2/$file")"
             mv "$file" "$2/$file"
-        else
-            echo -e "\tskipping file $2/$file"
         fi; 
     done
     for symlink in `find -L . -xtype l`;
@@ -68,6 +66,9 @@ CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$CUDA_QUANTUM_PATH"}
 
 assets=${1:-"$CUDAQ_INSTALL_PREFIX"}
 build_config=${2:-"$assets/build_config.xml"}
+if [ ! -f "$build_config" ]; then 
+    build_config="$CUDAQ_INSTALL_PREFIX/build_config.xml"
+fi
 
 echo "Migrating assets in $assets."
 echo "Using build configuration $build_config."
