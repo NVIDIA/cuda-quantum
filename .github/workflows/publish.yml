@@ -29,6 +29,7 @@ concurrency:
 jobs:
   cudaq_hpc:
     name: CUDA Quantum Docker image
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 100
     permissions:

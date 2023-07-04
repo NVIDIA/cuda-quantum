@@ -43,13 +43,16 @@ function move_artifacts {
             echo -e "\tadding file $2/$file"
             mkdir -p "$(dirname "$2/$file")"
             mv "$file" "$2/$file"
-        fi; 
+        fi
     done
     for symlink in `find -L . -xtype l`;
     do
-        echo -e "\tadding symbolic link $2/$symlink"
-        mkdir -p "$(dirname "$2/$symlink")"
-        mv "$symlink" "$2/$symlink"
+        if [ ! -f "$2/$symlink" ]; 
+        then
+            echo -e "\tadding symbolic link $2/$symlink"
+            mkdir -p "$(dirname "$2/$symlink")"
+            mv "$symlink" "$2/$symlink"
+        fi
     done
     for symlink in `find -L $2 -xtype l`;
     do
