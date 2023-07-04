@@ -43,8 +43,8 @@ function move_artifacts {
             echo -e "\tadding file $2/$file"
             mkdir -p "$(dirname "$2/$file")"
             mv "$file" "$2/$file"
-        #else
-            #echo -e "\tskipping file $2/$file"
+        else
+            echo -e "\tskipping file $2/$file"
         fi; 
     done
     for symlink in `find -L . -xtype l`;
