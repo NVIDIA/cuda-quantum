@@ -91,9 +91,9 @@ jobs:
           docker pull $base_image
           repo_owner=${{ github.repository_owner }}
           image_name=${{ vars.registry || 'ghcr.io' }}/${repo_owner,,}/cuda-quantum
-          base_tag=`docker inspect $base_image --format='{{json .Config.Labels}}' | jq '."org.opencontainers.image.version"'`
-          image_title=`docker inspect $base_image --format='{{json .Config.Labels}}' | jq '."org.opencontainers.image.title"'`
-          image_description=`docker inspect $base_image --format='{{json .Config.Labels}}' | jq '."org.opencontainers.image.description"'`
+          base_tag=`docker inspect $base_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"'`
+          image_title=`docker inspect $base_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.title"'`
+          image_description=`docker inspect $base_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.description"'`
           docker image rm $base_image
           docker image prune --force
 
