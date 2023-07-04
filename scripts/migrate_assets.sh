@@ -35,14 +35,30 @@
 
 function move_artifacts {
     cd "$1"
+    echo "Updating $2 with artifacts in $1:"
     for file in `find . -type f`; 
     do 
         if [ ! -f "$2/$file" ]; 
         then 
             echo -e "\tadding file $2/$file"
-            mkdir -p "$(dirname "$2/$file")" 
+            mkdir -p "$(dirname "$2/$file")"
             mv "$file" "$2/$file"
+        else
+            echo -e "\tskipping file $2/$file"
         fi; 
+    done
+    for symlink in `find -L . -xtype l`;
+    do
+        echo -e "\tadding symbolic link $2/$symlink"
+        mkdir -p "$(dirname "$2/$symlink")"
+        mv "$symlink" "$2/$symlink"
+    done
+    for symlink in `find -L $2 -xtype l`;
+    do
+        if [ ! -e "$symlink" ] ; then
+            echo "Error: broken symbolic link $symlink pointing to $(readlink -f $symlink)." 1>&2;
+            exit 1
+        fi
     done
     cd - > /dev/null
 }
@@ -52,6 +68,10 @@ CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$CUDA_QUANTUM_PATH"}
 
 assets=${1:-"$CUDAQ_INSTALL_PREFIX"}
 build_config=${2:-"$assets/build_config.xml"}
+
+echo "Migrating assets in $assets."
+echo "Using build configuration $build_config."
+
 rdom () { local IFS=\> ; read -d \< E C ;} && \
 while rdom; do
     if [ "$E" = "LLVM_INSTALL_PREFIX" ] && [ -d "$assets/llvm" ]; then
@@ -60,7 +80,7 @@ while rdom; do
         move_artifacts "$assets/cuquantum" "$C"
     elif [ "$E" = "CUTENSOR_INSTALL_PREFIX" ] && [ -d "$assets/cutensor" ]; then
         move_artifacts "$assets/cuquantum" "$C"
-    elif [ -d "$assets/$E" ]; then
+    elif [ -d "$assets/$E" ] && [ -n "$C" ]; then
         move_artifacts "$assets/$E" "$C"
     fi
 done < "$build_config"
