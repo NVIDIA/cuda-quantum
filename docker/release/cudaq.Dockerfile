@@ -31,12 +31,14 @@ FROM $cudaqdev_image as cudaqbuild
 # The rather ugly work around to achieve encapsulation is to make a copy here were we have
 # access to the environment variables, so that the hardcoded paths in this file don't need to 
 # match the paths in the dev image.
-RUN if [ "$LLVM_INSTALL_PREFIX" != "/usr/local/llvm" ]; then mv "$LLVM_INSTALL_PREFIX" /usr/local/llvm; fi
-RUN if [ "$CUDAQ_INSTALL_PREFIX" != "/usr/local/cudaq" ]; then mv "$CUDAQ_INSTALL_PREFIX" /usr/local/cudaq; fi
-RUN mkdir -p /usr/local/cuquantum && \
-    if [ "$CUQUANTUM_INSTALL_PREFIX" != "/usr/local/cuquantum" ] && [ -d "$CUQUANTUM_INSTALL_PREFIX" ]; then \
-        mv "$CUQUANTUM_INSTALL_PREFIX"/* /usr/local/cuquantum; \
-    fi
+RUN mkdir /usr/local/cudaq_assets && \
+    mv "$LLVM_INSTALL_PREFIX/bin/clang++" "/usr/local/cudaq_assets/llvm/bin/clang++" && \
+    mv "$LLVM_INSTALL_PREFIX/lib/clang" "/usr/local/cudaq_assets/llvm/lib/clang" && \
+    mv "$LLVM_INSTALL_PREFIX/bin/llc" "/usr/local/cudaq_assets/llvm/bin/llc" && \
+    mv "$LLVM_INSTALL_PREFIX/bin/lld" "/usr/local/cudaq_assets/llvm/bin/lld" && \
+    mv "$LLVM_INSTALL_PREFIX/bin/ld.lld" "/usr/local/cudaq_assets/llvm/bin/ld.lld" && \
+    if [ -d "$CUQUANTUM_INSTALL_PREFIX" ]; then mv "$CUQUANTUM_INSTALL_PREFIX"/* "/usr/local/cudaq_assets/cuquantum"; fi && \
+    if [ "$CUDAQ_INSTALL_PREFIX" != "/usr/local/cudaq" ]; then mv "$CUDAQ_INSTALL_PREFIX" "/usr/local/cudaq"; fi
 
 FROM $base_image
 SHELL ["/bin/bash", "-c"]
@@ -69,30 +71,21 @@ ARG release_version=
 ENV CUDA_QUANTUM_VERSION=$release_version
 ENV CUDA_QUANTUM_PATH="/opt/nvidia/cudaq"
 
-COPY --from=cudaqbuild "/usr/local/llvm/bin/clang++" "$CUDA_QUANTUM_PATH/llvm/bin/clang++"
-COPY --from=cudaqbuild "/usr/local/llvm/lib/clang" "$CUDA_QUANTUM_PATH/llvm/lib/clang"
-COPY --from=cudaqbuild "/usr/local/llvm/bin/llc" "$CUDA_QUANTUM_PATH/llvm/bin/llc"
-COPY --from=cudaqbuild "/usr/local/llvm/bin/lld" "$CUDA_QUANTUM_PATH/llvm/bin/lld"
-COPY --from=cudaqbuild "/usr/local/llvm/bin/ld.lld" "$CUDA_QUANTUM_PATH/llvm/bin/ld.lld"
-COPY --from=cudaqbuild "/usr/local/cuquantum/" "$CUDA_QUANTUM_PATH/cuquantum/"
 COPY --from=cudaqbuild "/usr/local/cudaq/" "$CUDA_QUANTUM_PATH"
-
-ENV PATH "${PATH}:$CUDA_QUANTUM_PATH/bin"
-ENV PYTHONPATH "${PYTHONPATH}:$CUDA_QUANTUM_PATH"
-ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CUDA_QUANTUM_PATH/lib"
+COPY --from=cudaqbuild "/usr/local/cudaq_assets" "/opt/nvidia/cudaq_assets"
 
 # For now, the CUDA Quantum build hardcodes certain paths and hence expects to find its 
 # dependencies in specific locations. While a relocatable installation of CUDA Quantum should 
 # be a good/better option in the future, for now we make sure to copy the dependencies to the 
 # expected locations. The CUDQ Quantum installation contains an xml file that lists these.
-RUN rdom () { local IFS=\> ; read -d \< E C ;} && \
-    while rdom; do \
-        if [ "$E" = "LLVM_INSTALL_PREFIX" ]; then \
-            mkdir -p "$C" && mv "$CUDA_QUANTUM_PATH/llvm"/* "$C"; \
-        elif [ "$E" = "CUQUANTUM_INSTALL_PREFIX" ] && [ -n "$(ls -A $CUDA_QUANTUM_PATH/cuquantum)" ]; then \
-            mkdir -p "$C" && mv "$CUDA_QUANTUM_PATH/cuquantum"/* "$C"; \
-        fi \
-    done < "$CUDA_QUANTUM_PATH/build_config.xml"
+ADD ./scripts/migrate_assets.sh "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
+RUN bash "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh" "/usr/local/cudaq_assets" "$CUDA_QUANTUM_PATH/build_config.xml" \
+    && find "/usr/local/cudaq_assets" -type d | xargs -n1 | tac | xargs rmdir \
+    && rm "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
+
+ENV PATH "${PATH}:$CUDA_QUANTUM_PATH/bin"
+ENV PYTHONPATH "${PYTHONPATH}:$CUDA_QUANTUM_PATH"
+ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CUDA_QUANTUM_PATH/lib"
 
 # Include additional readmes and samples that are distributed with the image.
 
