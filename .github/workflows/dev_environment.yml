@@ -87,7 +87,7 @@ jobs:
     # Needed for access to environment variables (like the registry name).
     environment:
       name: ${{ inputs.environment || 'default' }}
-      url: ${{ vars.deployment_url || 'https://github.com/NVIDIA/cuda-quantum/actions' }}
+      url: ${{ vars.deployment_url || github.repository }}
 
     steps:
       - name: Checkout repository
@@ -160,7 +160,7 @@ jobs:
 
     environment:
       name: ${{ inputs.environment || 'default' }}
-      url: ${{ vars.deployment_url || 'https://github.com/NVIDIA/cuda-quantum/actions' }}
+      url: ${{ vars.deployment_url || github.repository }}
 
     steps:
       - name: Checkout repository
