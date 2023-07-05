@@ -35,6 +35,12 @@ requested_backends=`\
     do echo "$target"; \
     done`
 
+installed_backends=`\
+    echo "default"
+    for file in $(ls $CUDA_QUANTUM_PATH/targets/*.config); \
+    do basename $file | cut -d "." -f 1; \
+    done`
+
 # remote_rest targets are automatically filtered
 available_backends=`\
     echo "default"
@@ -64,7 +70,10 @@ else
 fi
 
 echo
-echo "Detected backends:"
+echo "Installed backends:"
+echo "$installed_backends"
+echo
+echo "Available backends:"
 echo "$available_backends"
 echo
 echo "Testing backends:"

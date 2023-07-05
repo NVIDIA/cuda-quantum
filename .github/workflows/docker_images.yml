@@ -544,6 +544,9 @@ jobs:
           docker cp scripts/validate_container.sh cuda-quantum:"/home/cudaq/validate_container.sh"
           docker exec -e TERM=xterm cuda-quantum bash validate_container.sh > /tmp/validation.out
           docker stop cuda-quantum
+          if ${{ inputs.ompidev_image != '' }} && [ "$(cat /tmp/validation.out | grep '^nvidia$')" != "nvidia" ]; then
+            echo "Missing installation for nvidia backend." && exit 1
+          fi
 
       - name: Create job summary
         if: always() && !cancelled()
