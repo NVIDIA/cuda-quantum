@@ -167,18 +167,28 @@ void addAllCalledFunctionRecursively(
 
   std::function<void(func::FuncOp func)> visitAllCallOps;
   visitAllCallOps = [&](func::FuncOp func) {
-    func.walk([&](func::CallOp callOp) {
+    func.walk([&](Operation *op) {
+      // Check if this is a CallOp or ApplyOp
+      StringRef calleeName;
+      if (auto callOp = dyn_cast<func::CallOp>(op))
+        calleeName = callOp.getCallee();
+      else if (auto applyOp = dyn_cast<quake::ApplyOp>(op))
+        calleeName = applyOp.getCalleeAttrNameStr();
+
+      // We don't have a CallOp or an ApplyOp, drop out
+      if (calleeName.empty())
+        return WalkResult::skip();
+
       // Don't add if we already have it
-      if (currentModule.lookupSymbol<func::FuncOp>(callOp.getCallee()))
+      if (currentModule.lookupSymbol<func::FuncOp>(calleeName))
         return WalkResult::skip();
 
       // Get the called function, make sure it exists
-      auto calledFunction =
-          otherModule->lookupSymbol<func::FuncOp>(callOp.getCallee());
+      auto calledFunction = otherModule->lookupSymbol<func::FuncOp>(calleeName);
       if (!calledFunction)
         throw std::runtime_error(
             "Invalid called function, cannot find in ModuleOp (" +
-            callOp.getCallee().str() + ")");
+            calleeName.str() + ")");
 
       // Add the called function to the list
       auto cloned = calledFunction.clone();
