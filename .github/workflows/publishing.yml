@@ -57,14 +57,27 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
+      - name: Wait for assets
+        id: assets
+        run: |
+          release_id=${{ inputs.release_id || steps.artifacts.outputs.release_id }}
+          while [ -z "$(gh release list | grep -s $release_id)" ]; do echo "waiting for assets..." && sleep 300; done
+          github_commit=`gh release view $release_id -R ${{ github.repository }} --json targetCommitish --jq .targetCommitish`
+
+          echo "release_id=$release_id" >> $GITHUB_OUTPUT
+          echo "github_commit=$github_commit" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ steps.assets.outputs.github_commit }}
+
       - name: Retrieve assets
         id: release_info
         run: |
-          release_id=${{ inputs.release_id || steps.artifacts.outputs.release_id }}
-          while [ -z "$(gh release list -R ${{ github.repository }} | grep -s $release_id)" ]; do echo "waiting for assets..." && sleep 300; done
-          github_commit=`gh release view $release_id -R ${{ github.repository }} --json targetCommitish --jq .targetCommitish`
-
-          assets_folder=assets
+          assets_folder=assets && release_id=${{ steps.assets.outputs.release_id }}
           gh release download $release_id --dir "$assets_folder" -R ${{ github.repository }}
           cd "$assets_folder" && unzip mgmn_svsim.zip && rm mgmn_svsim.zip
           platforms=`cat build_info* | grep -o 'platforms: \S*' | cut -d ' ' -f 2`
@@ -90,15 +103,9 @@ jobs:
           echo "cudaq_image=$cudaq_image" >> $GITHUB_OUTPUT
           echo "cudaqdev_image=$cudaqdev_image" >> $GITHUB_OUTPUT
           echo "cudaqdevdeps_image=$cudaqdevdeps_image" >> $GITHUB_OUTPUT
-          echo "github_commit=$github_commit" >> $GITHUB_OUTPUT
           echo "assets_folder=$assets_folder" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
-
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ steps.release_info.outputs.github_commit }}
 
       - name: Log in to the container registry
         uses: docker/login-action@v2
@@ -160,7 +167,7 @@ jobs:
 
           # Delete the draft release that was used to share artifacts and
           # build information between GitLab and GitHub, or trigger publishing.
-          release_id=${{ steps.release_info.outputs.release_id }}
+          release_id=${{ steps.assets.outputs.release_id }}
           gh release view $release_id --json body --jq .body >> $GITHUB_STEP_SUMMARY
           if [ -z "$release_title" ]; then
             gh release delete $release_id -R ${{ github.repository }} -y --cleanup-tag
