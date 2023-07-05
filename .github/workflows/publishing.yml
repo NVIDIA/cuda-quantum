@@ -61,7 +61,7 @@ jobs:
         id: release_info
         run: |
           release_id=${{ inputs.release_id || steps.artifacts.outputs.release_id }}
-          while [ -z "$(gh release list | grep -s $release_id)" ]; do echo "waiting for assets..." && sleep 300; done
+          while [ -z "$(gh release list -R ${{ github.repository }} | grep -s $release_id)" ]; do echo "waiting for assets..." && sleep 300; done
           github_commit=`gh release view $release_id -R ${{ github.repository }} --json targetCommitish --jq .targetCommitish`
 
           assets_folder=assets
