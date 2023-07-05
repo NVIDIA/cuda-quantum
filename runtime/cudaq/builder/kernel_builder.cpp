@@ -287,10 +287,14 @@ void adjoint(ImplicitLocOpBuilder &builder, std::string &name,
 
 void forLoop(ImplicitLocOpBuilder &builder, Value &startVal, Value &end,
              std::function<void(QuakeValue &)> &body) {
-  Value subtracted =
-      builder.create<arith::SubIOp>(end.getType(), end, startVal);
-  Value totalIters =
-      builder.create<arith::IndexCastOp>(builder.getIndexType(), subtracted);
+  auto idxTy = builder.getIndexType();
+  Value castEnd = isa<IndexType>(end.getType())
+                      ? end
+                      : builder.create<arith::IndexCastOp>(idxTy, end);
+  Value castStart = isa<IndexType>(startVal.getType())
+                        ? startVal
+                        : builder.create<arith::IndexCastOp>(idxTy, startVal);
+  Value totalIters = builder.create<arith::SubIOp>(idxTy, castEnd, castStart);
   cudaq::opt::factory::createCountedLoop(
       builder, builder.getLoc(), totalIters,
       [&](OpBuilder &nestedBuilder, Location nestedLoc, Region &,
