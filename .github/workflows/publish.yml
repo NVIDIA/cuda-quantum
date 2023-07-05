@@ -111,6 +111,8 @@ jobs:
           echo "base_image=$base_image" >> $GITHUB_OUTPUT
           echo "github_commit=$github_commit" >> $GITHUB_OUTPUT
           echo "assets_folder=$assets_folder" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -151,3 +153,59 @@ jobs:
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: ${{ steps.args.outputs.platforms }}
           push: true
+
+      - name: Checkout data branch
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ vars.data_branch }}
+          token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+
+      - name: Clean up
+        run: |
+          assets_folder="${{ steps.release_info.outputs.assets_folder }}"
+          data_commit=`cat "$assets_folder"/build_info* | grep -o 'data-commit: \S*' | cut -d ' ' -f 2`
+          release_title=`cat "$assets_folder"/build_info* | grep -o 'publish: \S*' | cut -d ' ' -f 2`
+          cudaqhpc_image=${{ steps.release_info.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
+
+          # Clean up (i.e. revert) the staging commit on the data branch
+          # that was used to trigger the GitLab pipeline.
+          if $(git cat-file -e $data_commit^{commit} 2> /dev/null); then
+            git revert $data_commit --no-edit
+            git pull --no-edit && git push
+          else 
+            echo "Data commit retrieved from build_info does not exist."
+            exit 1
+          fi
+
+          # Update or delete the draft release that was used to share
+          # artifacts and build information between GitLab and GitHub.
+          release_id=${{ steps.args.outputs.release_id }}
+          gh release view $release_id --json body --jq .body >> $GITHUB_STEP_SUMMARY
+          if [ -z "$release_title" ]; then
+            gh release delete $release_id -R ${{ github.repository }} -y --cleanup-tag
+            echo "Deleted release $release_id."
+          else
+            for file in `ls "${{ steps.release_info.outputs.assets_folder }}"/build_info*`; do 
+              gh release delete-asset $release_id `basename -- "$file"` -y
+            done
+
+            cudaq_image=`cat "$assets_folder"/build_info* | grep -o 'cuda-quantum-image: \S*' | cut -d ' ' -f 2`
+            cudaqdev_image=`cat "$assets_folder"/build_info* | grep -o 'cuda-quantum-dev-image: \S*' | cut -d ' ' -f 2`
+            cudaqdevdeps_image=`cat "$assets_folder"/build_info* | grep -o 'cuda-quantum-devdeps-image: \S*' | cut -d ' ' -f 2`
+
+            gh release view $release_id --json body --jq .body > rel_notes.txt
+            header_length=`cat rel_notes.txt | grep -n "Release notes generated" | cut -d ':' -f 1`
+            echo -e "The following images are available for ${{ steps.args.outputs.platforms }}:\n" > new_notes.txt
+            echo "- cuda-quantum (base image): $cudaq_image" >> new_notes.txt
+            echo "- cuda-quantum (with hpc components): $cudaqhpc_image" >> new_notes.txt
+            echo "- cuda-quantum-dev (for extension development): $cudaqdev_image" >> new_notes.txt
+            echo "- cuda-quantum-devdeps (development dependencies only): $cudaqdevdeps_image" >> new_notes.txt
+            (echo && tail -n +$header_length rel_notes.txt) >> new_notes.txt
+            gh release edit $release_id -R $upstream_url --notes-file new_notes.txt
+
+            version=`echo "$release_title" | egrep -o "([0-9]{1,}\.)+[0-9]{1,}([A-Za-z0-9_\-\.]*)"`
+            gh release edit $release_id -R ${{ github.repository }} --title "$release_title" --tag $version
+            echo "Release is ready for publishing."
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
