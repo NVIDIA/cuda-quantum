@@ -79,6 +79,7 @@ Push to GitHub:
     - gh release upload $release_id -R $upstream_url build_info.txt --clobber
     - additional_notes="Release edited by [GitLab pipeline]($CI_PIPELINE_URL)." &&
       additional_notes+=$(echo "<br/>Triggered based on [this commit]($upstream_url/commit/$CI_COMMIT_SHA).")
-    - existing_notes=`gh release view $release_id --json body --jq .body`
-    - gh release edit $release_id -R $upstream_url
-        --notes "$existing_notes<br/><br/>$additional_notes"
+    - gh release view $release_id --json body --jq .body > rel_notes.txt
+    - header_length=`cat rel_notes.txt | grep -n "Release notes generated" | cut -d ':' -f 1`
+    - (head -n $(($header_length - 1)) rel_notes.txt && echo -e "\n$additional_notes\n" && tail -n +$header_length rel_notes.txt) > new_notes.txt
+    - gh release edit $release_id -R $upstream_url --notes-file new_notes.txt
