@@ -10,7 +10,7 @@
 
 // RUN: nvq++ %s --target quantinuum --emulate -o %t.x && %t.x | FileCheck %s
 
-// CHECK: { {{[1-9][0-9]*}}:{{[1-9][0-9]*}} }
+// CHECK: { 1:100 }
 
 #include <cudaq.h>
 
