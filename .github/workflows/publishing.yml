@@ -61,7 +61,7 @@ jobs:
         id: assets
         run: |
           release_id=${{ inputs.release_id || steps.artifacts.outputs.release_id }}
-          while [ -z "$(gh release list | grep -s $release_id)" ]; do echo "waiting for assets..." && sleep 300; done
+          while [ -z "$(gh release list -R ${{ github.repository }} | grep -s $release_id)" ]; do echo "waiting for assets..." && sleep 300; done
           github_commit=`gh release view $release_id -R ${{ github.repository }} --json targetCommitish --jq .targetCommitish`
 
           echo "release_id=$release_id" >> $GITHUB_OUTPUT
@@ -78,12 +78,14 @@ jobs:
         id: release_info
         run: |
           assets_folder=assets && release_id=${{ steps.assets.outputs.release_id }}
-          gh release download $release_id --dir "$assets_folder" -R ${{ github.repository }}
-          cd "$assets_folder" && unzip mgmn_svsim.zip && rm mgmn_svsim.zip
+          gh release download $release_id --dir "$assets_folder" -R ${{ github.repository }} && cd "$assets_folder"
           platforms=`cat build_info* | grep -o 'platforms: \S*' | cut -d ' ' -f 2`
           cudaq_image=`cat build_info* | grep -o 'cuda-quantum-image: \S*' | cut -d ' ' -f 2`
           cudaqdev_image=`cat build_info* | grep -o 'cuda-quantum-dev-image: \S*' | cut -d ' ' -f 2`
           cudaqdevdeps_image=`cat build_info* | grep -o 'cuda-quantum-devdeps-image: \S*' | cut -d ' ' -f 2`
+          data_commit=`cat build_info* | grep -o 'data-commit: \S*' | cut -d ' ' -f 2`
+          release_title=`cat build_info* | grep -o 'publish: \S*' | cut -d ' ' -f 2`
+          unzip mgmn_svsim.zip && rm mgmn_svsim.zip && cd -
 
           docker pull $cudaq_image
           repo_owner=${{ github.repository_owner }}
@@ -104,6 +106,8 @@ jobs:
           echo "cudaqdev_image=$cudaqdev_image" >> $GITHUB_OUTPUT
           echo "cudaqdevdeps_image=$cudaqdevdeps_image" >> $GITHUB_OUTPUT
           echo "assets_folder=$assets_folder" >> $GITHUB_OUTPUT
+          echo "data_commit=$data_commit" >> $GITHUB_OUTPUT
+          echo "release=$release_title" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
@@ -142,45 +146,11 @@ jobs:
           platforms: ${{ steps.release_info.outputs.platforms }}
           push: true
 
-      - name: Checkout data branch
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ vars.data_branch }}
-          token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
-
-      - name: Clean up
-        id: cleanup
-        run: |
-          assets_folder="${{ steps.release_info.outputs.assets_folder }}"
-          data_commit=`cat "$assets_folder"/build_info* | grep -o 'data-commit: \S*' | cut -d ' ' -f 2`
-          release_title=`cat "$assets_folder"/build_info* | grep -o 'publish: \S*' | cut -d ' ' -f 2`
-
-          # Clean up (i.e. revert) the staging commit on the data branch
-          # that was used to trigger the GitLab pipeline.
-          if $(git cat-file -e $data_commit^{commit} 2> /dev/null); then
-            git revert $data_commit --no-edit
-            git pull --no-edit && git push
-          else 
-            echo "Data commit retrieved from build_info does not exist."
-            exit 1
-          fi
-
-          # Delete the draft release that was used to share artifacts and
-          # build information between GitLab and GitHub, or trigger publishing.
-          release_id=${{ steps.assets.outputs.release_id }}
-          gh release view $release_id --json body --jq .body >> $GITHUB_STEP_SUMMARY
-          if [ -z "$release_title" ]; then
-            gh release delete $release_id -R ${{ github.repository }} -y --cleanup-tag
-            echo "Deleted release $release_id."
-          else
-            echo "release=$release_title" >> $GITHUB_OUTPUT
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
-
       - name: Publish release
-        if: steps.cleanup.outputs.release
+        id: publish_release
+        if: steps.release_info.outputs.release
         run: |
+          release_id=${{ steps.assets.outputs.release_id }}
           for file in `ls "${{ steps.release_info.outputs.assets_folder }}"/build_info*`; do 
             gh release delete-asset $release_id `basename -- "$file"` -y
           done
@@ -195,9 +165,40 @@ jobs:
           (echo && tail -n +$header_length rel_notes.txt) >> new_notes.txt
           gh release edit $release_id -R $upstream_url --notes-file new_notes.txt
 
-          version=`echo "${{ steps.cleanup.outputs.release }}" | egrep -o "([0-9]{1,}\.)+[0-9]{1,}([A-Za-z0-9_\-\.]*)"`
+          version=`echo "${{ steps.release_info.outputs.release }}" | egrep -o "([0-9]{1,}\.)+[0-9]{1,}([A-Za-z0-9_\-\.]*)"`
           prerelease=`([ "$(echo $version | egrep -o '([0-9]{1,}\.)+[0-9]{1,}')" == "$version" ] && echo false) || echo true`
-          gh release edit $release_id -R ${{ github.repository }} --title "${{ steps.cleanup.outputs.release }}" --tag $version --prerelease=$prerelease # --draft=false
+          gh release edit $release_id -R ${{ github.repository }} --title "${{ steps.release_info.outputs.release }}" --tag $version --prerelease=$prerelease # --draft=false
           echo "Release is ready for publishing." # FIXME: uncomment above and update this.
+        env:
+          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+
+      - name: Checkout data branch
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ vars.data_branch }}
+          token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+
+      - name: Clean up
+        id: cleanup
+        run: |
+          # Clean up (i.e. revert) the staging commit on the data branch
+          # that was used to trigger the GitLab pipeline.
+          data_commit=${{ steps.release_info.outputs.data_commit }}
+          if $(git cat-file -e $data_commit^{commit} 2> /dev/null); then
+            git revert $data_commit --no-edit
+            git pull --no-edit && git push
+          else 
+            echo "Data commit retrieved from build_info does not exist."
+            exit 1
+          fi
+
+          # Delete the draft release that was used to share artifacts and
+          # build information between GitLab and GitHub, or trigger publishing.
+          release_id=${{ steps.assets.outputs.release_id }}
+          gh release view $release_id --json body --jq .body >> $GITHUB_STEP_SUMMARY
+          if ${{ steps.publish_release.outcome == 'skipped' }}; then
+            gh release delete $release_id -R ${{ github.repository }} -y --cleanup-tag
+            echo "Deleted release $release_id."
+          fi
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
