@@ -12,7 +12,7 @@ FROM $base_image
 USER root
 
 ARG assets=./assets
-COPY "$assets" "$CUDA_QUANTUM_PATH/assets"
+COPY "$assets" "$CUDA_QUANTUM_PATH/assets/"
 
 ADD ./scripts/migrate_assets.sh "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
 RUN for folder in `find "$CUDA_QUANTUM_PATH/assets"/* -maxdepth 0 -type d`; \
