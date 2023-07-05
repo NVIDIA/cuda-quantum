@@ -24,10 +24,10 @@ struct baz {
 
 struct foo {
   template <typename CallableKernel>
-  __qpu__ void operator()(CallableKernel &&func) {
-    cudaq::qubit q;
-    func(q);
-    mz(q);
+  __qpu__ void operator()(CallableKernel &&func, int size) {
+    cudaq::qreg q(size);
+    func(q[0]);
+    mz(q[0]);
   }
 };
 
@@ -36,7 +36,7 @@ int main() {
   // auto result = cudaq::sample(1000, foo{}, &bar);
 
   // QuakeSynth don't support:
-  auto result = cudaq::sample(1000, foo{}, baz{});
+  auto result = cudaq::sample(1000, foo{}, baz{}, /*qreg size*/ 1);
   for (auto &&[bits, counts] : result) {
     std::cout << bits << " : " << counts << '\n';
   }
