@@ -11,7 +11,7 @@ on:
     types:
       - completed
 
-name: Publishing
+name: Packages
 
 concurrency:
   group: ${{ github.workflow }}

@@ -8,7 +8,9 @@ src="https://developer.nvidia.com/sites/default/files/akamai/nvidia-cuquantum-ic
 src="https://zenodo.org/badge/614026597.svg" alt="DOI"></a> <img align="left"
 src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/deployments.yml/badge.svg?event=workflow_dispatch&branch=main"
 /> <img align="left"
-src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/publish_docs.yml/badge.svg?branch=main"
+src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/publishing.yml/badge.svg?branch=main"
+/> <img align="left"
+src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/documentation.yml/badge.svg?branch=main"
 /><br/>
 
 The CUDA Quantum Platform for hybrid quantum-classical computers enables
