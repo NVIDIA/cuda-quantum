@@ -619,4 +619,6 @@ inline bool isInClassInNamespace(const clang::Decl *x,
   return false;
 }
 
+bool isInExternC(const clang::GlobalDecl &x);
+
 } // namespace cudaq
