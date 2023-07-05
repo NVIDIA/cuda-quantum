@@ -73,8 +73,10 @@ Push to GitHub:
       fi
     - cd artifacts && zip -r mgmn_svsim.zip mgmn_svsim
     - gh release upload $release_id -R $upstream_url mgmn_svsim.zip --clobber
+    - echo "$build_info" > build_info.txt && (echo -n "data-commit:" && echo " $CI_COMMIT_SHA") >> build_info.txt
+    - gh release upload $release_id -R $upstream_url build_info.txt --clobber
     - additional_notes="Release edited by [GitLab pipeline]($CI_PIPELINE_URL)." &&
       additional_notes+=$(echo "<br/>Triggered based on [this commit]($upstream_url/commit/$CI_COMMIT_SHA).")
-    - existing_notes=`gh release view $package_id --json body --jq .body`
-    - gh release edit $package_id -R $upstream_url
+    - existing_notes=`gh release view $release_id --json body --jq .body`
+    - gh release edit $release_id -R $upstream_url
         --notes "$existing_notes<br/><br/>$additional_notes"
