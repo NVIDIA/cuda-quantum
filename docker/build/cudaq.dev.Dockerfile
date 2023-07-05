@@ -44,7 +44,7 @@ ARG install=
 RUN if [ -n "$install" ]; \
     then \
         expected_prefix=$CUDAQ_INSTALL_PREFIX; \
-        export $install; \
+        install=`echo $install | xargs` && export $install; \
         bash scripts/build_cudaq.sh -v; \
         if [ ! "$?" -eq "0" ]; then \
             exit 1; \
