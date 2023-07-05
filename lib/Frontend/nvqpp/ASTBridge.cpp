@@ -354,7 +354,7 @@ void ASTBridgeAction::ASTBridgeConsumer::addFunctionDecl(
   OpBuilder::InsertionGuard guard(build);
   build.setInsertionPointToEnd(module->getBody());
   if (isa<clang::CXXMethodDecl>(funcDecl))
-     funcTy = cudaq::opt::factory::toCpuSideFuncType(funcTy);
+    funcTy = cudaq::opt::factory::toCpuSideFuncType(funcTy);
   auto func = build.create<func::FuncOp>(loc, funcName, funcTy,
                                          ArrayRef<NamedAttribute>{});
   func.setPrivate();
