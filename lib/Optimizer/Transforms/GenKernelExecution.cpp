@@ -523,6 +523,13 @@ public:
       if (inTy.isa<cudaq::cc::LambdaType, cudaq::cc::StructType>()) {
         /* do nothing */
       } else if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(inTy)) {
+        // This block only considers stdvec< builtin >, which have been
+        // mapped to ptr< builtin >. But now we also want callable structs
+        // represented as pointers in the new entry point. So skip this
+        // block if this is a pointer to a struct.
+        if (dyn_cast<cudaq::cc::StructType>(ptrTy.getElementType()))
+          continue;
+
         // FIXME: for now assume this is a std::vector<`eleTy`>
         // FIXME: call the `size` member function. For expediency, assume this
         // is an std::vector and the size is the scaled delta between the

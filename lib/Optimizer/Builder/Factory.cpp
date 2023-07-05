@@ -145,6 +145,10 @@ FunctionType factory::toCpuSideFuncType(FunctionType funcTy) {
     if (auto memrefTy = dyn_cast<cudaq::cc::StdvecType>(inTy))
       inputTys.push_back(cudaq::cc::PointerType::get(
           stlVectorType(memrefTy.getElementType())));
+      else if (auto structTy = dyn_cast<cudaq::cc::StructType>(inTy))
+        // cc.struct args are callable (at this point), need them as pointers
+        // for the new entry point
+        inputTys.push_back(cudaq::cc::PointerType::get(structTy));
     else if (auto memrefTy = dyn_cast<quake::VeqType>(inTy))
       inputTys.push_back(cudaq::cc::PointerType::get(stlVectorType(
           IntegerType::get(ctx, /*FIXME sizeof a pointer?*/ 64))));
