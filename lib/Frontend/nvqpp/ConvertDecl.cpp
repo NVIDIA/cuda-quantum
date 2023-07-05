@@ -116,16 +116,16 @@ void QuakeBridgeVisitor::addArgumentSymbols(
     auto index = arg.index();
     auto *argVal = arg.value();
     auto name = argVal->getName();
-    if (entryBlock->getArgument(index).getType().isa<OpaqueType>()) {
+    if (isa<OpaqueType>(entryBlock->getArgument(index).getType())) {
       // This is a reference type, we want to forward the value.
       symbolTable.insert(name, entryBlock->getArgument(index));
     } else {
       // Transform pass-by-value arguments to stack slots.
       auto loc = toLocation(argVal);
       auto parmTy = entryBlock->getArgument(index).getType();
-      if (parmTy.isa<cc::LambdaType, cc::StdvecType, cc::ArrayType,
-                     cc::StructType, LLVM::LLVMStructType, FunctionType,
-                     quake::RefType, quake::VeqType>()) {
+      if (isa<cc::LambdaType, cc::StdvecType, cc::ArrayType, cc::StructType,
+              LLVM::LLVMStructType, FunctionType, quake::RefType,
+              quake::VeqType>(parmTy)) {
         symbolTable.insert(name, entryBlock->getArgument(index));
       } else {
         auto stackSlot = builder.create<cc::AllocaOp>(loc, parmTy);
@@ -361,7 +361,7 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
     mz->setAttr("registerName", builder.getStringAttr(x->getName()));
 
   assert(initValue && "initializer value must be lowered");
-  if (initValue.getType().isa<IntegerType>() && type.isa<IntegerType>()) {
+  if (isa<IntegerType>(initValue.getType()) && isa<IntegerType>(type)) {
     if (initValue.getType().getIntOrFloatBitWidth() <
         type.getIntOrFloatBitWidth()) {
       // FIXME: Use zero-extend if this is unsigned!
@@ -370,7 +370,7 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
                type.getIntOrFloatBitWidth()) {
       initValue = builder.create<arith::TruncIOp>(loc, type, initValue);
     }
-  } else if (initValue.getType().isa<IntegerType>() && type.isa<FloatType>()) {
+  } else if (isa<IntegerType>(initValue.getType()) && isa<FloatType>(type)) {
     // FIXME: Use UIToFP if this is unsigned!
     initValue = builder.create<arith::SIToFPOp>(loc, type, initValue);
   }
