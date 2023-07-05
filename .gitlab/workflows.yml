@@ -62,14 +62,16 @@ Push to GitHub:
     - build_info=`cat deployments/staging/cuda-quantum-dev/${cudaqdev_digest#sha256:}`
     - release_id=`echo "$build_info" | grep -s -o 'release-id:\s*\S*' | rev | cut -d ' ' -f 1 | cut -d ':' -f 1 | rev`
     - source_commit=`echo "$build_info" | grep -s -o 'source-sha:\s*\S*' | rev | cut -d ' ' -f 1 | cut -d ':' -f 1 | rev`
+    - versions=`gh release list -R $upstream_url --exclude-drafts --exclude-pre-releases | egrep -o "([0-9]{1,}\.)+[0-9]{1,}\S*" | sort -r -V`
+    - latest_tag=`echo $versions | cut -d ' ' -f 1`
     - |
       if [ -z "$(gh release list | grep -s $release_id)" ];
       then
         rel_notes="This release draft is managed by cd processes."
         rel_notes+=$(echo "<br/>GitHub commit [$source_commit]($upstream_url/tree/$source_commit)")
-        gh release create $release_id --title $release_id \
-          --target $source_commit -R $upstream_url \
-          --draft --prerelease --generate-notes --notes "$rel_notes"
+        gh release create $release_id --title $release_id -R $upstream_url \
+          --target $source_commit --draft --prerelease \
+          --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
       fi
     - cd artifacts && zip -r mgmn_svsim.zip mgmn_svsim
     - gh release upload $release_id -R $upstream_url mgmn_svsim.zip --clobber
