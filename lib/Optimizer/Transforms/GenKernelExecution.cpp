@@ -528,9 +528,9 @@ public:
         // mapped to ptr< builtin >. But now we also want callable structs
         // represented as pointers in the new entry point. so skip this
         // block if this is a pointer to a struct.
-        if (dyn_cast<cudaq::cc::StructType>(ptrTy.getElementType())) {
+        if (dyn_cast<cudaq::cc::StructType>(ptrTy.getElementType()))
           continue;
-        }
+
         // FIXME: for now assume this is a std::vector<`eleTy`>
         // FIXME: call the `size` member function. For expediency, assume this
         // is an std::vector and the size is the scaled delta between the
