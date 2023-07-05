@@ -633,7 +633,6 @@ ExecutionEngine *jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   optPM.addPass(cudaq::opt::createClassicalMemToReg());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
-  pm.addPass(cudaq::opt::createLoopNormalize());
   pm.addPass(cudaq::opt::createLoopUnroll());
   pm.addPass(createCanonicalizerPass());
   optPM.addPass(cudaq::opt::createQuakeAddDeallocs());
