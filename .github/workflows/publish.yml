@@ -1,19 +1,10 @@
 on:
   workflow_dispatch:
     inputs:
-      platforms:
-        type: string
-        description: The platforms to build the Docker images for.
-        required: false
-        default: linux/amd64
       release_id:
         type: string
         description: The release id on GitHub from which to download the assets.
         required: true
-      cudaq_image:
-        type: string
-        required: true
-        description: The CUDA Quantum Docker image to which additional assets should be added.
   workflow_run:
     workflows:
       - Deployments
@@ -35,9 +26,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-
-    outputs:
-      image_hash: ${{ steps.release_info.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
 
     environment:
       name: ghcr-deployment
@@ -63,54 +51,48 @@ jobs:
               rm -rf build_info build_info.zip
             fi
           done
-          echo "build_info=build_info.txt" >> $GITHUB_OUTPUT
+
+          release_id=`cat build_info.txt | grep -o 'release-id: \S*' | cut -d ' ' -f 2`
+          rm build_info.txt && echo "release_id=$release_id" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ github.token }}
-
-      - name: Determine build info
-        id: args
-        run: |
-          if ${{ steps.artifacts.outcome != 'skipped' }}; then
-            build_info=`cat ${{ steps.artifacts.outputs.build_info }}`
-            release_id=`echo "$build_info" | grep -o 'release-id: \S*' | cut -d ' ' -f 2`
-            cudaq_image=`echo "$build_info" | grep -o 'cuda-quantum-image: \S*' | cut -d ' ' -f 2`
-            platforms=`echo "$build_info" | grep -o 'platforms: \S*' | cut -d ' ' -f 2`
-          else
-            cudaq_image=${{ inputs.cudaq_image }}
-            release_id=${{ inputs.release_id }}
-            platforms=${{ inputs.platforms }}
-          fi
-
-          echo "cudaq_image=$cudaq_image" >> $GITHUB_OUTPUT
-          echo "release_id=$release_id" >> $GITHUB_OUTPUT
-          echo "platforms=$platforms" >> $GITHUB_OUTPUT
 
       - name: Retrieve assets
         id: release_info
         run: |
-          base_image=${{ steps.args.outputs.cudaq_image }}
-          docker pull $base_image
+          release_id=${{ inputs.release_id || steps.artifacts.outputs.release_id }}
+          while [ -z "$(gh release list | grep -s $release_id)" ]; do echo "waiting for assets..." && sleep 300; done
+          github_commit=`gh release view $release_id -R ${{ github.repository }} --json targetCommitish --jq .targetCommitish`
+
+          assets_folder=assets
+          gh release download $release_id --dir "$assets_folder" -R ${{ github.repository }}
+          cd "$assets_folder" && unzip mgmn_svsim.zip && rm mgmn_svsim.zip
+          platforms=`cat build_info* | grep -o 'platforms: \S*' | cut -d ' ' -f 2`
+          cudaq_image=`cat build_info* | grep -o 'cuda-quantum-image: \S*' | cut -d ' ' -f 2`
+          cudaqdev_image=`cat build_info* | grep -o 'cuda-quantum-dev-image: \S*' | cut -d ' ' -f 2`
+          cudaqdevdeps_image=`cat build_info* | grep -o 'cuda-quantum-devdeps-image: \S*' | cut -d ' ' -f 2`
+
+          docker pull $cudaq_image
           repo_owner=${{ github.repository_owner }}
           image_name=${{ vars.registry || 'ghcr.io' }}/${repo_owner,,}/cuda-quantum
-          base_tag=`docker inspect $base_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"'`
-          image_title=`docker inspect $base_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.title"'`
-          image_description=`docker inspect $base_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.description"'`
-          docker image rm $base_image
+          base_tag=`docker inspect $cudaq_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"'`
+          image_title=`docker inspect $cudaq_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.title"'`
+          image_description=`docker inspect $cudaq_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.description"'`
+          docker image rm $cudaq_image
           docker image prune --force
-
-          assets_folder=assets && release_id=${{ steps.args.outputs.release_id }}
-          while [ -z "$(gh release list | grep -s $release_id)" ]; do echo "waiting for assets..." && sleep 300; done
-          gh release download $release_id --dir "$assets_folder" -R ${{ github.repository }}
-          cd "$assets_folder" && unzip mgmn_svsim.zip && rm mgmn_svsim.zip && cd -
-          github_commit=`gh release view $release_id -R ${{ github.repository }} --json targetCommitish --jq .targetCommitish`
 
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
           echo "image_tag=${base_tag}-hpc" >> $GITHUB_OUTPUT
           echo "image_title=$image_title" >> $GITHUB_OUTPUT
           echo "image_description=$image_description" >> $GITHUB_OUTPUT
-          echo "base_image=$base_image" >> $GITHUB_OUTPUT
+          echo "platforms=$platforms" >> $GITHUB_OUTPUT
+          echo "cudaq_image=$cudaq_image" >> $GITHUB_OUTPUT
+          echo "cudaqdev_image=$cudaqdev_image" >> $GITHUB_OUTPUT
+          echo "cudaqdevdeps_image=$cudaqdevdeps_image" >> $GITHUB_OUTPUT
           echo "github_commit=$github_commit" >> $GITHUB_OUTPUT
           echo "assets_folder=$assets_folder" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -145,9 +127,69 @@ jobs:
           context: .
           file: ./docker/release/cudaq.ext.Dockerfile
           build-args: |
-            base_image=${{ steps.release_info.outputs.base_image }}
+            base_image=${{ steps.release_info.outputs.cudaq_image }}
             assets=${{ steps.release_info.outputs.assets_folder }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
-          platforms: ${{ steps.args.outputs.platforms }}
+          platforms: ${{ steps.release_info.outputs.platforms }}
           push: true
+
+      - name: Checkout data branch
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ vars.data_branch }}
+          token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+
+      - name: Clean up
+        id: cleanup
+        run: |
+          assets_folder="${{ steps.release_info.outputs.assets_folder }}"
+          data_commit=`cat "$assets_folder"/build_info* | grep -o 'data-commit: \S*' | cut -d ' ' -f 2`
+          release_title=`cat "$assets_folder"/build_info* | grep -o 'publish: \S*' | cut -d ' ' -f 2`
+
+          # Clean up (i.e. revert) the staging commit on the data branch
+          # that was used to trigger the GitLab pipeline.
+          if $(git cat-file -e $data_commit^{commit} 2> /dev/null); then
+            git revert $data_commit --no-edit
+            git pull --no-edit && git push
+          else 
+            echo "Data commit retrieved from build_info does not exist."
+            exit 1
+          fi
+
+          # Delete the draft release that was used to share artifacts and
+          # build information between GitLab and GitHub, or trigger publishing.
+          release_id=${{ steps.release_info.outputs.release_id }}
+          gh release view $release_id --json body --jq .body >> $GITHUB_STEP_SUMMARY
+          if [ -z "$release_title" ]; then
+            gh release delete $release_id -R ${{ github.repository }} -y --cleanup-tag
+            echo "Deleted release $release_id."
+          else
+            echo "release=$release_title" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+
+      - name: Publish release
+        if: steps.cleanup.outputs.release
+        run: |
+          for file in `ls "${{ steps.release_info.outputs.assets_folder }}"/build_info*`; do 
+            gh release delete-asset $release_id `basename -- "$file"` -y
+          done
+
+          gh release view $release_id --json body --jq .body > rel_notes.txt
+          header_length=`cat rel_notes.txt | grep -n "Release notes generated" | cut -d ':' -f 1`
+          echo -e "The following images are available for ${{ steps.release_info.outputs.platforms }}:\n" > new_notes.txt
+          echo "- cuda-quantum (base image): ${{ steps.release_info.outputs.cudaq_image }}" >> new_notes.txt
+          echo "- cuda-quantum (with hpc components): ${{ steps.release_info.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}" >> new_notes.txt
+          echo "- cuda-quantum-dev (for extension development): ${{ steps.release_info.outputs.cudaqdev_image }}" >> new_notes.txt
+          echo "- cuda-quantum-devdeps (development dependencies only): ${{ steps.release_info.outputs.cudaqdevdeps_image }}" >> new_notes.txt
+          (echo && tail -n +$header_length rel_notes.txt) >> new_notes.txt
+          gh release edit $release_id -R $upstream_url --notes-file new_notes.txt
+
+          version=`echo "${{ steps.cleanup.outputs.release }}" | egrep -o "([0-9]{1,}\.)+[0-9]{1,}([A-Za-z0-9_\-\.]*)"`
+          prerelease=`([ "$(echo $version | egrep -o '([0-9]{1,}\.)+[0-9]{1,}')" == "$version" ] && echo false) || echo true`
+          gh release edit $release_id -R ${{ github.repository }} --title "${{ steps.cleanup.outputs.release }}" --tag $version --prerelease=$prerelease # --draft=false
+          echo "Release is ready for publishing." # FIXME: uncomment above and update this.
+        env:
+          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}

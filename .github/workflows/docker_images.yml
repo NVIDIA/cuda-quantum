@@ -20,6 +20,9 @@ on:
       environment:
         required: false
         type: string
+      create_release:
+        required: false
+        type: string
     secrets:
       REPO_BOT_ACCESS_TOKEN:
         description: 'Access token used for deployments.'
@@ -584,9 +587,11 @@ jobs:
 
           mkdir -p "$(dirname "$info_file")"
           echo "release-id: $release_id" > "$info_file"
+          echo "publish: ${{ inputs.create_release }}" > "$info_file"
           echo "source-sha: ${{ github.sha }}" >> "$info_file"
           echo "cuda-quantum-dev-image: $cudaqdev_hash"  >> "$info_file"
           echo "cuda-quantum-image: $cudaq_hash" >> "$info_file"
+          echo "cuda-quantum-devdeps-image: ${{ inputs.devdeps_image }}" >> "$info_file"
           echo "platforms: ${{ inputs.platforms }}" >> "$info_file"
           git add "$info_file"
 
