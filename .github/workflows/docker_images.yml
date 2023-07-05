@@ -46,7 +46,7 @@ jobs:
 
     environment:
       name: ${{ inputs.environment || 'default' }}
-      url: ${{ vars.deployment_url }}
+      url: ${{ vars.deployment_url || 'https://github.com/NVIDIA/cuda-quantum/actions' }}
   
     steps:
       - name: Checkout repository
@@ -64,7 +64,8 @@ jobs:
         id: build_info
         run: |
           repo_owner=${{ github.repository_owner }}
-          image_name=${{ vars.registry || 'ghcr.io' }}/${repo_owner,,}/open-mpi
+          registry=${{ vars.registry || 'localhost:5000' }}
+          image_name=$registry/${repo_owner,,}/open-mpi
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
 
           docker pull ${{ inputs.ompidev_image }} # to get the tag
@@ -133,7 +134,7 @@ jobs:
 
     environment:
       name: ${{ inputs.environment || 'default' }}
-      url: ${{ vars.deployment_url }}
+      url: ${{ vars.deployment_url || 'https://github.com/NVIDIA/cuda-quantum/actions' }}
 
     # Needed for making local images available to the docker/build-push-action.
     # See also https://stackoverflow.com/a/63927832.
@@ -182,7 +183,8 @@ jobs:
           fi
 
           repo_owner=${{ github.repository_owner }}
-          image_name=${{ vars.registry || 'ghcr.io' }}/${repo_owner,,}/cuda-quantum-dev
+          registry=${{ vars.registry || 'localhost:5000' }}
+          image_name=$registry/${repo_owner,,}/cuda-quantum-dev
           image_tag=`docker inspect $base_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"'`
           docker image rm $base_image
           docker image prune --force
@@ -253,7 +255,7 @@ jobs:
 
     environment:
       name: ${{ inputs.environment || 'default' }}
-      url: ${{ vars.deployment_url }}
+      url: ${{ vars.deployment_url || 'https://github.com/NVIDIA/cuda-quantum/actions' }}
 
     # Needed for making local images available to the docker/build-push-action.
     # See also https://stackoverflow.com/a/63927832.
@@ -325,7 +327,8 @@ jobs:
 
           docker image prune --force
           repo_owner=${{ github.repository_owner }}
-          image_name=${{ vars.registry || 'ghcr.io' }}/${repo_owner,,}/cuda-quantum
+          registry=${{ vars.registry || 'localhost:5000' }}
+          image_name=$registry/${repo_owner,,}/cuda-quantum
           if ${{ github.event.pull_request.number != '' }}; then
             image_tag=pr-${{ github.event.pull_request.number }}
           elif ${{ github.ref_type == 'branch' && github.ref_name == 'main' }}; then
