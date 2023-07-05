@@ -57,7 +57,6 @@ LogicalResult runQuakeSynth(std::string_view kernelName, void *rawArgs,
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   pm.addPass(createCanonicalizerPass());
-  pm.addPass(cudaq::opt::createLoopNormalize());
   pm.addPass(cudaq::opt::createLoopUnroll());
   pm.addPass(createCanonicalizerPass());
   return pm.run(*module);
