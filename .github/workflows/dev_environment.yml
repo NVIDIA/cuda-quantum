@@ -98,6 +98,7 @@ jobs:
       - name: Determine build arguments
         id: build_info
         run: |
+          registry=${{ vars.registry }}
           repo_owner=${{ github.repository_owner }}
           build_target=${{ inputs.build_target }}
           image_id=`basename ${{ inputs.dockerfile }} .Dockerfile`${build_target:+.$build_target}
