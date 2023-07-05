@@ -188,7 +188,8 @@ jobs:
           gh release edit $release_id -R $upstream_url --notes-file new_notes.txt
 
           version=`echo "${{ steps.cleanup.outputs.release }}" | egrep -o "([0-9]{1,}\.)+[0-9]{1,}([A-Za-z0-9_\-\.]*)"`
-          gh release edit $release_id -R ${{ github.repository }} --title "${{ steps.cleanup.outputs.release }}" --tag $version
-          echo "Release is ready for publishing."
+          prerelease=`([ "$(echo $version | egrep -o '([0-9]{1,}\.)+[0-9]{1,}')" == "$version" ] && echo false) || echo true`
+          gh release edit $release_id -R ${{ github.repository }} --title "${{ steps.cleanup.outputs.release }}" --tag $version --prerelease=$prerelease # --draft=false
+          echo "Release is ready for publishing." # FIXME: uncomment above and update this.
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
