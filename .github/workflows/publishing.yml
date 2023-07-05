@@ -177,6 +177,7 @@ jobs:
         with:
           ref: ${{ vars.data_branch }}
           token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+          fetch-depth: 0
 
       - name: Clean up
         id: cleanup
