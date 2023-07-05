@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 // RUN: nvq++ -v %s -o %basename_t.x --target quantinuum --emulate && ./%basename_t.x | FileCheck %s
-// XFAIL: *
 
 #include <cudaq.h>
 #include <iostream>
