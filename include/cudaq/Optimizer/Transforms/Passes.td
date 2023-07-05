@@ -35,6 +35,16 @@ def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
   ];
 }
 
+def CheckKernelCalls : Pass<"check-kernel-calls", "mlir::func::FuncOp"> {
+  let summary = "Check calls between quantum kernels have been inlined.";
+  let description = [{
+    The aggressive inlining pass should fully inline any calls between quantum
+    kernels. Any residual calls will be because the call graph contains cycles.
+    This pass checks that there are no residual calls and print a diagnostic if
+    any are found.
+  }];
+}
+
 def CombineQuantumAllocations :
     Pass<"combine-quantum-alloc", "mlir::func::FuncOp"> {
   let summary = "Combines quake alloca operations.";
@@ -63,8 +73,6 @@ def ConvertToDirectCalls :
     quantum code will call other quantum code directly and without going
     indirectly through the launch kernel runtime.
   }];
-
-  let constructor = "cudaq::opt::createConvertToDirectCalls()";
 }
 
 def ExpandMeasurements : Pass<"expand-measurements"> {

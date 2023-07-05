@@ -287,10 +287,14 @@ void adjoint(ImplicitLocOpBuilder &builder, std::string &name,
 
 void forLoop(ImplicitLocOpBuilder &builder, Value &startVal, Value &end,
              std::function<void(QuakeValue &)> &body) {
-  Value subtracted =
-      builder.create<arith::SubIOp>(end.getType(), end, startVal);
-  Value totalIters =
-      builder.create<arith::IndexCastOp>(builder.getIndexType(), subtracted);
+  auto idxTy = builder.getIndexType();
+  Value castEnd = isa<IndexType>(end.getType())
+                      ? end
+                      : builder.create<arith::IndexCastOp>(idxTy, end);
+  Value castStart = isa<IndexType>(startVal.getType())
+                        ? startVal
+                        : builder.create<arith::IndexCastOp>(idxTy, startVal);
+  Value totalIters = builder.create<arith::SubIOp>(idxTy, castEnd, castStart);
   cudaq::opt::factory::createCountedLoop(
       builder, builder.getLoc(), totalIters,
       [&](OpBuilder &nestedBuilder, Location nestedLoc, Region &,
@@ -348,9 +352,8 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, const std::size_t nQubits) {
   cudaq::info("kernel_builder allocating {} qubits", nQubits);
 
   auto context = builder.getContext();
-  Value qubits = builder.create<quake::AllocaOp>(
-      quake::VeqType::get(context, nQubits),
-      builder.create<arith::ConstantIntOp>(nQubits, 32));
+  Value qubits =
+      builder.create<quake::AllocaOp>(quake::VeqType::get(context, nQubits));
 
   return QuakeValue(builder, qubits);
 }
@@ -625,9 +628,8 @@ ExecutionEngine *jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   });
 
   PassManager pm(context);
-  pm.addPass(createInlinerPass());
-  pm.addPass(createCanonicalizerPass());
   OpPassManager &optPM = pm.nest<func::FuncOp>();
+  cudaq::opt::addAggressiveEarlyInlining(pm);
   pm.addPass(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
   optPM.addPass(cudaq::opt::createClassicalMemToReg());

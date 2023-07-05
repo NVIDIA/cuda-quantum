@@ -524,15 +524,29 @@ public:
   void genNewHostEntryPoint(Location loc, OpBuilder &builder,
                             StringAttr mangledAttr, FunctionType funcTy,
                             Type structTy, LLVM::GlobalOp kernName,
-                            func::FuncOp thunk) {
+                            func::FuncOp thunk, ModuleOp module) {
     auto *ctx = builder.getContext();
     auto i64Ty = builder.getIntegerType(64);
     auto zeroAttr = builder.getI64IntegerAttr(0);
     auto offset = funcTy.getNumInputs();
     auto thunkTy = getThunkType(ctx);
     auto structPtrTy = cudaq::cc::PointerType::get(structTy);
-    auto rewriteEntry = builder.create<func::FuncOp>(
-        loc, mangledAttr.getValue(), toLLVMFuncType(funcTy));
+    FunctionType newFuncTy;
+    if (auto *decl = module.lookupSymbol(mangledAttr.getValue())) {
+      auto func = dyn_cast<func::FuncOp>(decl);
+      if (func && func.empty()) {
+        // Do not add any hidden arguments like a `this` pointer.
+        newFuncTy = func.getFunctionType();
+        func.erase();
+      } else {
+        decl->emitOpError("object preventing generation of host entry point");
+        return;
+      }
+    } else {
+      newFuncTy = toLLVMFuncType(funcTy);
+    }
+    auto rewriteEntry =
+        builder.create<func::FuncOp>(loc, mangledAttr.getValue(), newFuncTy);
     auto insPt = builder.saveInsertionPoint();
     auto *rewriteEntryBlock = rewriteEntry.addEntryBlock();
     builder.setInsertionPointToStart(rewriteEntryBlock);
@@ -781,7 +795,7 @@ public:
       // Generate a new mangled function on the host side to call the
       // callback function.
       genNewHostEntryPoint(loc, builder, mangledAttr, funcTy, structTy,
-                           kernName, thunk);
+                           kernName, thunk, module);
 
       // Generate a function at startup to register this kernel as having
       // been processed for kernel execution.

@@ -25,12 +25,11 @@ std::unique_ptr<mlir::Pass> createGenerateKernelExecution();
 std::unique_ptr<mlir::Pass>
 createGenerateDeviceCodeLoader(bool genAsQuake = false);
 
-/// Create an inlining pass with a nested pipeline that transforms any indirect
-/// quantum calls to direct quantum calls.
-std::unique_ptr<mlir::Pass> createAggressiveEarlyInlining();
-
-/// Create the pass to convert indirect calls to direct calls.
-std::unique_ptr<mlir::Pass> createConvertToDirectCalls();
+/// Add a pass pipeline to transform call between kernels to direct calls that
+/// do not go through the runtime layers, inline all calls, and detect if calls
+/// to kernels remain in the fully inlined into entry point kernel.
+void addAggressiveEarlyInlining(mlir::OpPassManager &pm);
+void registerAggressiveEarlyInlining();
 
 std::unique_ptr<mlir::Pass> createApplyOpSpecializationPass();
 std::unique_ptr<mlir::Pass>
