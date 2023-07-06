@@ -263,8 +263,7 @@ while [ $# -ne 0 ]; do
 		shift
 		;;
 	--emit-qir | -emit-qir)
-		EMIT_QIR="$2"
-		shift
+		EMIT_QIR=true
 		;;
 	--emulate | -emulate)
 		CUDAQ_EMULATE_REMOTE=true

@@ -32,6 +32,7 @@ void addBaseProfilePipeline(mlir::PassManager &pm);
 
 // Use the addBaseProfilePipeline() for the following passes.
 std::unique_ptr<mlir::Pass> createQIRToBaseProfilePass();
+std::unique_ptr<mlir::Pass> verifyBaseProfilePass();
 std::unique_ptr<mlir::Pass> createBaseProfilePreparationPass();
 std::unique_ptr<mlir::Pass> createConvertToQIRFuncPass();
 
