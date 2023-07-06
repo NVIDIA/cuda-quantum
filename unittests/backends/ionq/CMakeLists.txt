@@ -25,4 +25,4 @@ target_link_libraries(test_ionq
 
 
 configure_file("IonQStartServerAndTest.sh.in" "${CMAKE_BINARY_DIR}/unittests/backends/ionq/IonQStartServerAndTest.sh" @ONLY)
-add_test(NAME ionq-tests COMMAND ./IonQStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/ionq/)
+add_test(NAME ionq-tests COMMAND bash IonQStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/ionq/)
