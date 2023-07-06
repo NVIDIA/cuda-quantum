@@ -10,6 +10,7 @@ import cudaq, os, pytest, random, timeit
 from cudaq import spin
 import numpy as np
 
+
 def testMPI():
     cudaq.mpi.initialize()
 
@@ -20,7 +21,7 @@ def testMPI():
 
     if not cudaq.has_target('nvidia'):
         return
-    
+
     cudaq.set_target('nvidia-mqpu')
 
     target = cudaq.get_target()
@@ -39,12 +40,16 @@ def testMPI():
 
     # Get the `cudaq.ObserveResult` back from `cudaq.observe()`.
     # No shots provided.
-    result_no_shots = cudaq.observe(kernel, hamiltonian, 0.59, execution=cudaq.par.mpi)
+    result_no_shots = cudaq.observe(kernel,
+                                    hamiltonian,
+                                    0.59,
+                                    execution=cudaq.par.mpi)
     expectation_value_no_shots = result_no_shots.expectation_z()
     assert np.isclose(want_expectation_value, expectation_value_no_shots)
 
     cudaq.reset_target()
     cudaq.mpi.finalize()
+
 
 # leave for gdb debugging
 if __name__ == "__main__":

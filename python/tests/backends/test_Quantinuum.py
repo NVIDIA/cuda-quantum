@@ -6,13 +6,24 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq, pytest, os, time
-from cudaq import spin
-from mock_quantinuum import startServer
+import os
+import sys
+import time
+
+import pytest
 from multiprocessing import Process
+
+import cudaq
+from cudaq import spin
+
+from utils.mock_qpu.quantinuum import startServer
 
 # Define the port for the mock server
 port = 62444
+
+pytest.skip(
+    "This file produces a segmentation fault on the CI but not locally. See https://github.com/NVIDIA/cuda-quantum/issues/303.",
+    allow_module_level=True)
 
 
 def assert_close(got) -> bool:

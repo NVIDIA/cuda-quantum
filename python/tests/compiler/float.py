@@ -35,7 +35,6 @@ def test_make_kernel_float():
 # CHECK:           return
 # CHECK:         }
 
-
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
