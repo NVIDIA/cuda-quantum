@@ -57,7 +57,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - name: Wait for assets
+      - name: Wait for release
         id: assets
         run: |
           release_id=${{ inputs.release_id || steps.artifacts.outputs.release_id }}
@@ -163,7 +163,7 @@ jobs:
           echo "- cuda-quantum-dev (for extension development): ${{ steps.release_info.outputs.cudaqdev_image }}" >> new_notes.txt
           echo "- cuda-quantum-devdeps (development dependencies only): ${{ steps.release_info.outputs.cudaqdevdeps_image }}" >> new_notes.txt
           (echo && tail -n +$header_length rel_notes.txt) >> new_notes.txt
-          gh release edit $release_id -R $upstream_url --notes-file new_notes.txt
+          gh release edit $release_id -R ${{ github.repository }} --notes-file new_notes.txt
 
           version=`echo "${{ steps.release_info.outputs.release }}" | egrep -o "([0-9]{1,}\.)+[0-9]{1,}([A-Za-z0-9_\-\.]*)"`
           prerelease=`([ "$(echo $version | egrep -o '([0-9]{1,}\.)+[0-9]{1,}')" == "$version" ] && echo false) || echo true`
