@@ -11,7 +11,7 @@
 # We'll need the requests and llvm module
 @Python_EXECUTABLE@ -m pip install requests llvmlite --user 
 # Launch the fake server
-PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/mock_qpu/ionq/mock_ionq.py &
+PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/mock_qpu/ionq/__init__.py &
 # we'll need the process id to kill it
 pid=$(echo "$!")
 sleep 1
