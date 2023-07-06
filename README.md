@@ -4,14 +4,20 @@
 src="https://developer.nvidia.com/sites/default/files/akamai/nvidia-cuquantum-icon.svg"
 />
 
-<a href="https://zenodo.org/badge/latestdoi/614026597"><img align="left"
-src="https://zenodo.org/badge/614026597.svg" alt="DOI"></a> <img align="left"
+<img align="left"
 src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/deployments.yml/badge.svg?event=workflow_dispatch&branch=main"
-/> <img align="left"
+/>
+
+<img align="left"
 src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/publishing.yml/badge.svg?branch=main"
-/> <img align="left"
+/>
+
+<img align="left"
 src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/documentation.yml/badge.svg?branch=main"
-/><br/>
+/> <br/>
+
+<a href="https://zenodo.org/badge/latestdoi/614026597"><img align="left"
+src="https://zenodo.org/badge/614026597.svg" alt="DOI"></a><br/>
 
 The CUDA Quantum Platform for hybrid quantum-classical computers enables
 integration and programming of quantum processing units (QPUs), GPUs, and CPUs

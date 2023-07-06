@@ -16,7 +16,6 @@ import numpy as np
 import cudaq
 
 
-
 def test_make_kernel_list():
     """
     Test `cudaq.make_kernel` with a list of floats as parameters.
@@ -35,7 +34,6 @@ def test_make_kernel_list():
 # CHECK-SAME:    %[[VAL_0:.*]]: !cc.stdvec<f64>) {
 # CHECK:           return
 # CHECK:         }
-
 
 # leave for gdb debugging
 if __name__ == "__main__":

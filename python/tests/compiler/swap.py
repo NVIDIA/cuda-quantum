@@ -12,6 +12,7 @@ import pytest
 
 import cudaq
 
+
 def test_swap_2q():
     """
     Tests the simple case of swapping the states of two qubits.
@@ -65,4 +66,3 @@ def test_swap_2q():
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
     pytest.main([loc, "-rP"])
-

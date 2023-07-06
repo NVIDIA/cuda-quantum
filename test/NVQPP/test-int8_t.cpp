@@ -7,25 +7,26 @@
  ******************************************************************************/
 
 // RUN: nvq++ -v %s -o %basename_t.x --target quantinuum --emulate && ./%basename_t.x | FileCheck %s
-// XFAIL: *
 
 #include <cudaq.h>
 #include <iostream>
 
-__qpu__ void variable_qreg(std::uint8_t value) {
-  cudaq::qreg qubits(value);
-  mz(qubits);
-}
+struct variable_qreg {
+  __qpu__ void operator()(std::uint8_t value) {
+    cudaq::qreg qubits(value);
+    mz(qubits);
+  }
+};
 
 int main() {
   for (auto i = 1; i < 5; ++i) {
-    auto result = cudaq::sample(1000, variable_qreg, i);
+    auto result = cudaq::sample(1000, variable_qreg{}, i);
     std::cout << result.most_probable() << '\n';
   }
   return 0;
 }
 
 // CHECK: 0
-// CHECK-NEXT: 00
-// CHECK-NEXT: 000
-// CHECK-NEXT: 0000
+// CHECK: 00
+// CHECK: 000
+// CHECK: 0000

@@ -16,7 +16,6 @@ import numpy as np
 import cudaq
 
 
-
 def test_make_kernel_mixed_args():
     """
     Test `cudaq.make_kernel` with arguments of different types.
