@@ -25,3 +25,8 @@ int main() {
   }
   return 0;
 }
+
+// CHECK: 0
+// CHECK: 00
+// CHECK: 000
+// CHECK: 0000
