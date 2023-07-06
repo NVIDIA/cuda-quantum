@@ -6,6 +6,11 @@ on:
 name: Clean up
 
 jobs:
+  # We use environments to deploy to a public registry after PRs are merged.
+  # Since we use the same workflows during CI, a default environment that defines
+  # the necessary variables is used instead. Unfortunately, this automatically
+  # also creates an (unwanted) deployment, which we delete with this job.
+  # See also https://github.com/actions/runner/issues/2120
   deployments:
     name: Deployments
     runs-on: ubuntu-latest

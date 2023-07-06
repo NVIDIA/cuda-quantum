@@ -6,23 +6,33 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// This code is from Issue 296.
-
-// RUN: nvq++ %s --target quantinuum --emulate -o %t.x && %t.x | FileCheck %s
-
-// CHECK: { 1:100 }
+// RUN: nvq++ -v %s -o %basename_t.x --target quantinuum --emulate && ./%basename_t.x | FileCheck %s
+// XFAIL: *
 
 #include <cudaq.h>
+#include <iostream>
 
-__qpu__ void foo(bool value) {
-  cudaq::qubit q;
-  if (value)
-    x(q);
-  mz(q);
+__qpu__ void bar(cudaq::qspan<> qubits) {
+  auto controls = qubits.front(qubits.size() - 1);
+  auto &target = qubits.back();
+  x<cudaq::ctrl>(controls, target);
+}
+
+__qpu__ void foo() {
+  cudaq::qreg qubits(4);
+  x(qubits);
+  bar(qubits);
+  mz(qubits);
 }
 
 int main() {
-  auto result = cudaq::sample(100, foo, true);
-  result.dump();
+  auto result = cudaq::sample(1000, foo);
+  std::cout << result.size() << '\n';
+  for (auto &&[bits, counts] : result) {
+    std::cout << bits << '\n';
+  }
   return 0;
 }
+
+//CHECK: 1
+//CHECK-NEXT: 1110
