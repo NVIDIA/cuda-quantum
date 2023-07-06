@@ -115,6 +115,7 @@ subclass
 subclassed
 subclasses
 subclassing
+subcommand
 subfolder
 submodule
 subscriptable

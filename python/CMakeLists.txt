@@ -7,7 +7,6 @@
 # ============================================================================ #
 
 set(LIBRARY_NAME _pycudaq)
-set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
 find_package(Python COMPONENTS Interpreter)
 
@@ -55,23 +54,28 @@ target_link_libraries(_pycudaq
       cudaq-platform-default 
       fmt::fmt-header-only)
 
-install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX})
-install(FILES cudaq.py DESTINATION ${CMAKE_INSTALL_PREFIX})
-install(FILES domains/chemistry.py DESTINATION ${CMAKE_INSTALL_PREFIX}/domains/)
-
+if (NOT SKBUILD)
+  install(DIRECTORY cudaq DESTINATION ${CMAKE_INSTALL_PREFIX})
+  install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq)
+  # Also install these to the build directory for testing.
+  install(DIRECTORY cudaq DESTINATION ${CMAKE_BINARY_DIR}/python)
+  install(TARGETS _pycudaq DESTINATION ${CMAKE_BINARY_DIR}/python/cudaq)
+else()
+  install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX})
+  install(DIRECTORY cudaq/domains DESTINATION ${CMAKE_INSTALL_PREFIX})
+endif()
+    
 if(APPLE)
   set_target_properties(
-     _pycudaq PROPERTIES INSTALL_RPATH "@loader_path/${CMAKE_INSTALL_LIBDIR}")
+     _pycudaq PROPERTIES INSTALL_RPATH "@loader_path/lib")
 else()
-  set_target_properties(_pycudaq PROPERTIES INSTALL_RPATH
-                                          "$ORIGIN/${CMAKE_INSTALL_LIBDIR}")
+  set_target_properties(
+    _pycudaq PROPERTIES INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib)
 endif()
 
-# Copy to the build dir for testing
-file(COPY cudaq.py DESTINATION ${CMAKE_BINARY_DIR}/python)
-file(COPY domains/chemistry.py DESTINATION ${CMAKE_BINARY_DIR}/python/domains)
-
-add_subdirectory(domains/plugins)
+if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
+  add_subdirectory(runtime/cudaq/domains/plugins)
+endif()
 
 # Do we have pytest and numpy? 
 execute_process(COMMAND ${Python_EXECUTABLE} -m pytest --version

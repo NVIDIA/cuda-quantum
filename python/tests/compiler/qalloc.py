@@ -16,7 +16,6 @@ import numpy as np
 import cudaq
 
 
-
 def test_kernel_qalloc_empty():
     """
     Test `cudaq.Kernel.qalloc()` when no arguments are provided.

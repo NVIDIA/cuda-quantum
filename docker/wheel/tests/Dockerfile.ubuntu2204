@@ -6,17 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import sys
+FROM ubuntu:22.04
 
-from _pycudaq import *
-from domains import chemistry
-
-initKwargs = {'target': 'default'}
-
-if '-target' in sys.argv:
-    initKwargs['target'] = sys.argv[sys.argv.index('-target') + 1]
-
-if '--target' in sys.argv:
-    initKwargs['target'] = sys.argv[sys.argv.index('--target') + 1]
-
-initialize_cudaq(**initKwargs)
+RUN apt-get update && apt-get install -y python3 python3-pip 
+ADD out/cudaq-0.0.3-cp310-cp310-linux_x86_64.whl /wheels/
+ADD tests/ghz.cpp /
+ENV TERM xterm
+ENV PATH "${PATH}:/root/.local/bin"
+RUN python3 -m pip install --user wheels/cudaq-0.0.3-cp310-cp310-linux_x86_64.whl
+RUN python3 -m pytest python/tests

@@ -15,6 +15,7 @@ import numpy as np
 
 import cudaq
 
+
 def test_kernel_2q():
     """
     Test the `cudaq.Kernel` on each two-qubit gate (controlled 
@@ -95,7 +96,6 @@ def test_kernel_3q():
 # CHECK:           quake.s [%[[VAL_5]], %[[VAL_6]]] %[[VAL_4]] : (!quake.ref, !quake.ref, !quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
-
 
 # leave for gdb debugging
 if __name__ == "__main__":

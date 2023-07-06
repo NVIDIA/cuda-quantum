@@ -15,6 +15,7 @@ import numpy as np
 
 import cudaq
 
+
 def test_kernel_measure_1q():
     """
     Test the measurement instruction for `cudaq.Kernel` by applying
@@ -126,7 +127,6 @@ def test_kernel_measure_qreg():
 # CHECK:           } {counted}
 # CHECK:           return
 # CHECK:         }
-
 
 # leave for gdb debugging
 if __name__ == "__main__":
