@@ -282,6 +282,8 @@ bool QuakeBridgeVisitor::VisitElaboratedType(clang::ElaboratedType *t) {
     return pushType(builder.getI64Type());
   if (matchTypeName("std", "_Bit_reference", name, /*toEnd=*/true))
     return pushType(builder.getI1Type());
+  if (matchTypeName("std", "uint8_t", name, /*toEnd=*/true))
+    return pushType(builder.getI8Type());
   if (matchTypeName("std", "function", name)) {
     // Note: technically this is a wrapper around a Callable and not exactly a
     // lambda. (Callables are a generalization of closures, functions,
