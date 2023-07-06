@@ -313,31 +313,6 @@ public:
     return argsCreatorFunc;
   }
 
-  /// @brief Return true if the given type corresponds to a
-  /// std-vector type according to our convention. The convention
-  /// is a ptr<struct<ptr<T>, ptr<T>, ptr<T>>>.
-  bool isStdVecArg(Type type) {
-    auto ptrTy = dyn_cast<cudaq::cc::PointerType>(type);
-    if (!ptrTy)
-      return false;
-
-    auto elementTy = ptrTy.getElementType();
-    auto structTy = dyn_cast<cudaq::cc::StructType>(elementTy);
-    if (!structTy)
-      return false;
-
-    auto memberTys = structTy.getMembers();
-    if (memberTys.size() != 3)
-      return false;
-
-    for (std::size_t i = 0; i < 3; i++)
-      if (!dyn_cast<cudaq::cc::PointerType>(memberTys[i]))
-        return false;
-
-    // This is a stdvec type to us.
-    return true;
-  }
-
   /// Generate the thunk function. This function is called by the library
   /// callback function to "unpack" the arguments and pass them to the kernel
   /// function on the QPU side. The thunk will also save any return values to
@@ -547,7 +522,7 @@ public:
       auto off = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{idx});
       if (inTy.isa<cudaq::cc::LambdaType, cudaq::cc::StructType>()) {
         /* do nothing */
-      } else if (isStdVecArg(inTy)) {
+      } else if (cudaq::opt::factory::isStdVecArg(inTy)) {
         auto ptrTy = dyn_cast<cudaq::cc::PointerType>(inTy);
         // FIXME: call the `size` member function. For expediency, assume this
         // is an std::vector and the size is the scaled delta between the
