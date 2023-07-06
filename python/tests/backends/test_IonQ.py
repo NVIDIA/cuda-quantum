@@ -8,7 +8,7 @@
 
 import cudaq, pytest, os, time
 from cudaq import spin
-from mock_ionq import startServer
+from utils.mock_qpu.ionq import startServer
 from multiprocessing import Process
 
 # Define the port for the mock server
