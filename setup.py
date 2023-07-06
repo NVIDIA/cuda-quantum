@@ -15,7 +15,7 @@ except ImportError:
 import skbuild
 import setuptools
 
-__version__ = "0.0.3"
+__version__ = "0.3.0"
 
 # The setup script gets called twice when installing from source
 # with `pip install .` . Once for the `egg_info` subcommand and another
