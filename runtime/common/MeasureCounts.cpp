@@ -51,6 +51,14 @@ ExecutionResult &ExecutionResult::operator=(ExecutionResult &other) {
   return *this;
 }
 
+std::vector<std::string> ExecutionResult::getSequentialData() {
+  if (sequentialData.empty())
+    for (auto &[k, v] : counts)
+      std::fill_n(std::back_inserter(sequentialData), v, k);
+
+  return sequentialData;
+}
+
 void ExecutionResult::appendResult(std::string bitString, std::size_t count) {
   auto iter = counts.find(bitString);
   if (iter == counts.end())
@@ -58,7 +66,7 @@ void ExecutionResult::appendResult(std::string bitString, std::size_t count) {
   else
     iter->second += count;
 
-  sequentialData.push_back(bitString);
+  std::fill_n(std::back_inserter(sequentialData), count, bitString);
 }
 
 bool ExecutionResult::operator==(const ExecutionResult &result) const {
