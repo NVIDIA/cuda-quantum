@@ -31,7 +31,6 @@ def startUpMockServer():
     cudaq.set_target(
         "ionq",
         url="http://localhost:{}".format(port),
-        qpu="simulator",
         credentials=credsName,
     )
 
