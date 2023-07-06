@@ -369,6 +369,7 @@ jobs:
 
       - name: Build cuda-quantum-dev image (release)
         id: release_build
+        if: success() && !cancelled()
         uses: docker/build-push-action@v4
         with:
           context: .
@@ -394,6 +395,7 @@ jobs:
 
       - name: Build cuda-quantum image
         id: docker_build
+        if: success() && !cancelled()
         uses: docker/build-push-action@v4
         with:
           context: .
