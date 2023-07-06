@@ -26,7 +26,7 @@ if (sys.argv[1] == 'egg_info'):
     os.system(f"bash {script_path}")
 
 # FIXME: support installation without --user flag
-# GitHub issue: https://github.com/NVIDIA/cuda-quantum/issues/125 
+# GitHub issue: https://github.com/NVIDIA/cuda-quantum/issues/125
 # Linux machines default to dist-packages unless the `--user` flag is provided to
 # the pip install. We hard-code everything to site-packages in the meantime and require the
 # user to install with `--user`.
