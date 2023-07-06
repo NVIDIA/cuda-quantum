@@ -18,7 +18,7 @@ std::string backendStringTemplate =
     "ionq;emulate;false;url;http://localhost:{};credentials;{}";
 
 CUDAQ_TEST(IonQTester, checkSampleSync) {
-  setenv("IONQ_API_KEY","00000000000000000000000000000000",0);
+  setenv("IONQ_API_KEY", "00000000000000000000000000000000",0);
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppIonQ.config";
   auto backendString =
@@ -38,7 +38,7 @@ CUDAQ_TEST(IonQTester, checkSampleSync) {
 }
 
 CUDAQ_TEST(IonQTester, checkSampleAsync) {
-  setenv("IONQ_API_KEY","00000000000000000000000000000000",0);
+  setenv("IONQ_API_KEY", "00000000000000000000000000000000",0);
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppIonQ.config";
   auto backendString =
@@ -58,7 +58,7 @@ CUDAQ_TEST(IonQTester, checkSampleAsync) {
 }
 
 CUDAQ_TEST(IonQTester, checkSampleAsyncLoadFromFile) {
-  setenv("IONQ_API_KEY","00000000000000000000000000000000",0);
+  setenv("IONQ_API_KEY", "00000000000000000000000000000000",0);
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppIonQ.config";
   auto backendString =
@@ -94,7 +94,7 @@ CUDAQ_TEST(IonQTester, checkSampleAsyncLoadFromFile) {
 }
 
 CUDAQ_TEST(IonQTester, checkObserveSync) {
-  setenv("IONQ_API_KEY","00000000000000000000000000000000",0);
+  setenv("IONQ_API_KEY", "00000000000000000000000000000000",0);
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppIonQ.config";
   auto backendString =
@@ -120,7 +120,7 @@ CUDAQ_TEST(IonQTester, checkObserveSync) {
 }
 
 CUDAQ_TEST(IonQTester, checkObserveAsync) {
-  setenv("IONQ_API_KEY","00000000000000000000000000000000",0);
+  setenv("IONQ_API_KEY", "00000000000000000000000000000000",0);
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppIonQ.config";
   auto backendString =
@@ -148,7 +148,7 @@ CUDAQ_TEST(IonQTester, checkObserveAsync) {
 }
 
 CUDAQ_TEST(IonQTester, checkObserveAsyncLoadFromFile) {
-  setenv("IONQ_API_KEY","00000000000000000000000000000000",0);
+  setenv("IONQ_API_KEY", "00000000000000000000000000000000",0);
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppIonQ.config";
   auto backendString =
