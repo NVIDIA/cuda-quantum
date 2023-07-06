@@ -200,7 +200,7 @@ jobs:
           release_id=${{ steps.assets.outputs.release_id }}
           gh release view $release_id --json body --jq .body >> $GITHUB_STEP_SUMMARY
           if ${{ steps.publish_release.outcome == 'skipped' }}; then
-            gh release delete $release_id -R ${{ github.repository }} -y --cleanup-tag
+            gh release delete $release_id -R ${{ github.repository }} -y
             echo "Deleted release $release_id."
           fi
         env:
