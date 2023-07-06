@@ -14,19 +14,23 @@ import cudaq
 
 openfermion_pyscf = pytest.importorskip('openfermionpyscf')
 
+
 def test_HamiltonianGenH2Sto3g():
 
-    geometry = [('H', (0.,0.,0.)), ('H', (0.,0.,.7474))]
-    molecule, data = cudaq.chemistry.create_molecular_hamiltonian(geometry, 'sto-3g', 1, 0)
+    geometry = [('H', (0., 0., 0.)), ('H', (0., 0., .7474))]
+    molecule, data = cudaq.chemistry.create_molecular_hamiltonian(
+        geometry, 'sto-3g', 1, 0)
     energy = molecule.to_matrix().minimal_eigenvalue()
     assert np.isclose(energy, -1.137, rtol=1e-3)
 
 
 def test_HamiltonianGenH2631g():
-    geometry = [('H', (0.,0.,0.)), ('H', (0.,0.,.7474))]
-    molecule, data = cudaq.chemistry.create_molecular_hamiltonian(geometry, '6-31g', 1, 0)
+    geometry = [('H', (0., 0., 0.)), ('H', (0., 0., .7474))]
+    molecule, data = cudaq.chemistry.create_molecular_hamiltonian(
+        geometry, '6-31g', 1, 0)
     energy = molecule.to_matrix().minimal_eigenvalue()
-    assert np.isclose(energy, -1.1516, rtol=1e-3)  
+    assert np.isclose(energy, -1.1516, rtol=1e-3)
+
 
 def testUCCSD():
     geometry = [('H', (0., 0., 0.)), ('H', (0., 0., .7474))]
@@ -49,9 +53,13 @@ def testUCCSD():
 
     # Run VQE
     optimizer = cudaq.optimizers.COBYLA()
-    energy, params = cudaq.vqe(kernel, molecule, optimizer, parameter_count=num_parameters)
+    energy, params = cudaq.vqe(kernel,
+                               molecule,
+                               optimizer,
+                               parameter_count=num_parameters)
     print(energy, params)
     assert np.isclose(-1.137, energy, rtol=1e-3)
+
 
 # leave for gdb debugging
 if __name__ == "__main__":

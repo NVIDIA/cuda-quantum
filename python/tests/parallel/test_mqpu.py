@@ -26,7 +26,7 @@ def testLargeProblem():
     # This is not large, but we don't want our CI testing
     # to take up too much time, if you want to see more
     # of the speedup increase the number of terms. I usually
-    # set it to 12 and 100000. Here we are just testing the 
+    # set it to 12 and 100000. Here we are just testing the
     # mechanics.
     nQubits = 4
     nTerms = 1000
@@ -109,6 +109,7 @@ def testAccuracy():
     assert assert_close(want_expectation_value, expectation_value_no_shots)
 
     cudaq.reset_target()
+
 
 # leave for gdb debugging
 if __name__ == "__main__":
