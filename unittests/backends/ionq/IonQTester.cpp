@@ -11,13 +11,14 @@
 #include "cudaq/algorithm.h"
 #include <fstream>
 #include <gtest/gtest.h>
+#include <stdlib.h>
 
 std::string mockPort = "62454";
 std::string backendStringTemplate =
     "ionq;emulate;false;url;http://localhost:{};credentials;{}";
 
 CUDAQ_TEST(IonQTester, checkSampleSync) {
-  os.environ["IONQ_API_KEY"] = "00000000000000000000000000000000"
+  setenv("IONQ_API_KEY","00000000000000000000000000000000",0);
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppIonQ.config";
   auto backendString =
@@ -37,7 +38,7 @@ CUDAQ_TEST(IonQTester, checkSampleSync) {
 }
 
 CUDAQ_TEST(IonQTester, checkSampleAsync) {
-  os.environ["IONQ_API_KEY"] = "00000000000000000000000000000000"
+  setenv("IONQ_API_KEY","00000000000000000000000000000000",0);
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppIonQ.config";
   auto backendString =
@@ -57,7 +58,7 @@ CUDAQ_TEST(IonQTester, checkSampleAsync) {
 }
 
 CUDAQ_TEST(IonQTester, checkSampleAsyncLoadFromFile) {
-  os.environ["IONQ_API_KEY"] = "00000000000000000000000000000000"
+  setenv("IONQ_API_KEY","00000000000000000000000000000000",0);
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppIonQ.config";
   auto backendString =
@@ -93,7 +94,7 @@ CUDAQ_TEST(IonQTester, checkSampleAsyncLoadFromFile) {
 }
 
 CUDAQ_TEST(IonQTester, checkObserveSync) {
-  os.environ["IONQ_API_KEY"] = "00000000000000000000000000000000"
+  setenv("IONQ_API_KEY","00000000000000000000000000000000",0);
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppIonQ.config";
   auto backendString =
@@ -119,7 +120,7 @@ CUDAQ_TEST(IonQTester, checkObserveSync) {
 }
 
 CUDAQ_TEST(IonQTester, checkObserveAsync) {
-  os.environ["IONQ_API_KEY"] = "00000000000000000000000000000000"
+  setenv("IONQ_API_KEY","00000000000000000000000000000000",0);
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppIonQ.config";
   auto backendString =
@@ -147,7 +148,7 @@ CUDAQ_TEST(IonQTester, checkObserveAsync) {
 }
 
 CUDAQ_TEST(IonQTester, checkObserveAsyncLoadFromFile) {
-  os.environ["IONQ_API_KEY"] = "00000000000000000000000000000000"
+  setenv("IONQ_API_KEY","00000000000000000000000000000000",0);
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppIonQ.config";
   auto backendString =
