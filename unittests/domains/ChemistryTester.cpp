@@ -120,3 +120,50 @@ CUDAQ_TEST(H2MoleculeTester, checkUCCSD) {
     EXPECT_NEAR(min_eigenvalue.imag(), 0.0, 1e-9);
   }
 }
+
+CUDAQ_TEST(H2MoleculeTester, checkHWE) {
+
+  cudaq::molecular_geometry geometry{{"H", {0., 0., 0.}},
+                                     {"H", {0., 0., .7474}}};
+  auto molecule = cudaq::create_molecule(geometry, "sto-3g", 1, 0);
+
+  auto H = molecule.hamiltonian;
+  std::size_t numQubits = H.num_qubits();
+  std::size_t numLayers = 4;
+  auto numParams = cudaq::num_hwe_parameters(numQubits, numLayers);
+  EXPECT_EQ(40, numParams);
+  cudaq::optimizers::cobyla optimizer;
+  optimizer.max_eval = 1000;
+
+  std::vector<double> optParams;
+  {
+    auto ansatz = [&](std::vector<double> thetas) __qpu__ {
+      cudaq::qvector q(numQubits);
+      x(q[0]);
+      x(q[1]);
+      cudaq::hwe(q, numLayers, thetas);
+    };
+
+    std::vector<double> params = cudaq::random_vector(-3.0, 3.0, numParams);
+    std::vector<double> zeros(numParams);
+    auto res2 = cudaq::observe(ansatz, H, zeros);
+    std::cout << "HF = " << res2.exp_val_z() << "\n";
+    EXPECT_NEAR(-1.116, res2.exp_val_z(), 1e-3);
+
+    auto res = cudaq::vqe(ansatz, H, optimizer, numParams);
+    EXPECT_NEAR(-1.137, std::get<0>(res), 1e-3);
+    optParams = std::get<1>(res);
+  }
+
+  {
+    auto ansatz = [&](std::vector<double> thetas) __qpu__ {
+      cudaq::qvector q(numQubits);
+      x(q[0]);
+      x(q[1]);
+      cudaq::hwe(q, numLayers, {{0, 1}, {1, 2}, {2, 3}}, thetas);
+    };
+
+    double res = cudaq::observe(ansatz, H, optParams);
+    EXPECT_NEAR(-1.137, res, 1e-3);
+  }
+}
