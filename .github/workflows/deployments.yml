@@ -51,7 +51,7 @@ jobs:
       matrix_key: ${{ matrix.toolchain }}
       registry_cache_update: ${{ github.event_name == 'workflow_dispatch' && inputs.update_registry_cache }}
       registry_cache_update_only: ${{ github.event.pull_request.merged == true }}
-      environment: ${{ (github.event.pull_request.merged == true && '') || 'ghcr-deployment' }}
+      environment: ${{ (github.event.pull_request.merged != true && 'ghcr-deployment') || '' }}
 
   dispatch:
     if: github.event_name == 'pull_request_target'
