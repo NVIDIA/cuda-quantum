@@ -452,6 +452,16 @@ Location toSourceLocation(MLIRContext *ctx, clang::ASTContext *astCtx,
   auto file = srcMgr.getFilename(spellingLoc);
   return FileLineColLoc::get(ctx, file, line, column);
 }
+
+// Determine if this global has `extern "C"` linkage.
+bool isInExternC(const clang::GlobalDecl &x) {
+  if (auto *funcDecl = dyn_cast<clang::FunctionDecl>(x.getDecl()))
+    return funcDecl->isExternC();
+  if (auto *varDecl = dyn_cast<clang::VarDecl>(x.getDecl()))
+    return varDecl->isExternC();
+  return false;
+}
+
 } // namespace cudaq
 
 namespace cudaq::details {
@@ -468,6 +478,11 @@ std::string getCxxMangledTypeName(clang::QualType ty,
 
 std::string getCxxMangledDeclName(clang::GlobalDecl decl,
                                   clang::ItaniumMangleContext *mangler) {
+  if (isInExternC(decl)) {
+    if (auto *funcDecl = dyn_cast<clang::FunctionDecl>(decl.getDecl()))
+      return funcDecl->getName().str();
+    reportClangError(decl.getDecl(), mangler, "unexpected global");
+  }
   std::string s;
   llvm::raw_string_ostream os(s);
   mangler->mangleCXXName(decl, os);
