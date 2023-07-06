@@ -46,7 +46,7 @@ jobs:
 
     environment:
       name: ${{ inputs.environment || 'default' }}
-      url: ${{ vars.deployment_url || github.repository }}
+      url: ${{ vars.deployment_url || format('https://github.com/{0}', github.repository) }}
   
     steps:
       - name: Checkout repository
@@ -134,7 +134,7 @@ jobs:
 
     environment:
       name: ${{ inputs.environment || 'default' }}
-      url: ${{ vars.deployment_url || github.repository }}
+      url: ${{ vars.deployment_url || format('https://github.com/{0}', github.repository) }}
 
     # Needed for making local images available to the docker/build-push-action.
     # See also https://stackoverflow.com/a/63927832.
@@ -255,7 +255,7 @@ jobs:
 
     environment:
       name: ${{ inputs.environment || 'default' }}
-      url: ${{ vars.deployment_url || github.repository }}
+      url: ${{ vars.deployment_url || format('https://github.com/{0}', github.repository) }}
 
     # Needed for making local images available to the docker/build-push-action.
     # See also https://stackoverflow.com/a/63927832.
@@ -369,6 +369,7 @@ jobs:
 
       - name: Build cuda-quantum-dev image (release)
         id: release_build
+        if: success() && !cancelled()
         uses: docker/build-push-action@v4
         with:
           context: .
@@ -394,6 +395,7 @@ jobs:
 
       - name: Build cuda-quantum image
         id: docker_build
+        if: success() && !cancelled()
         uses: docker/build-push-action@v4
         with:
           context: .
