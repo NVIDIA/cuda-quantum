@@ -170,6 +170,13 @@ void QuakeSynthesizer::runOnOperation() {
               return builder.create<arith::ConstantIntOp>(
                   builder.getUnknownLoc(), *concrete, 1);
             });
+      } else if (type == builder.getIntegerType(8)) {
+        synthesizeRuntimeArgument<std::uint8_t>(
+            builder, argument, args, offset, sizeof(std::uint8_t),
+            [](OpBuilder &builder, std::uint8_t *concrete) {
+              return builder.create<arith::ConstantIntOp>(
+                  builder.getUnknownLoc(), *concrete, 8);
+            });
       } else if (type == builder.getIntegerType(32)) {
         synthesizeRuntimeArgument<int>(
             builder, argument, args, offset, sizeof(int),
