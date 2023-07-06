@@ -26,7 +26,7 @@ no-duplicate-heading:
 
 # Allow selective inline markdown
 no-inline-html:
-  allowed_elements: [br, h1, sup, sub]
+  allowed_elements: [br, h1, sup, sub, a]
 
 # Allow exclamation mark and question marks in headings
 no-emphasis-as-heading:

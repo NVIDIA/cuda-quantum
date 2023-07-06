@@ -1,0 +1,43 @@
+on:
+  workflow_dispatch:
+  schedule:
+  - cron: "*/5 * * * *"
+
+name: Clean up
+
+jobs:
+  # We use environments to deploy to a public registry after PRs are merged.
+  # Since we use the same workflows during CI, a default environment that defines
+  # the necessary variables is used instead. Unfortunately, this automatically
+  # also creates an (unwanted) deployment, which we delete with this job.
+  # See also https://github.com/actions/runner/issues/2120
+  deployments:
+    name: Deployments
+    runs-on: ubuntu-latest
+    permissions:
+      deployments: write
+
+    steps:
+      - uses: actions/github-script@v6
+        with:
+          script: |
+            const deployments = await github.rest.repos.listDeployments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              environment: 'default'
+            });
+            await Promise.all(
+              deployments.data.map(async (deployment) => {
+                await github.rest.repos.createDeploymentStatus({ 
+                owner: context.repo.owner, 
+                repo: context.repo.repo, 
+                deployment_id: deployment.id, 
+                state: 'inactive' 
+                });
+                return github.rest.repos.deleteDeployment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                deployment_id: deployment.id
+                });
+              })
+            );

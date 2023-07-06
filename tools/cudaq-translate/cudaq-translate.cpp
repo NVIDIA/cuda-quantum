@@ -85,14 +85,16 @@ using namespace mlir;
 // Pipeline builder to convert Quake to QIR.
 template <bool BaseProfile = false>
 void addPipelineToQIR(PassManager &pm) {
-  pm.addPass(createInlinerPass());
+  cudaq::opt::addAggressiveEarlyInlining(pm);
   pm.addPass(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLoweringPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerToCFGPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());

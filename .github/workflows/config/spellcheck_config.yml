@@ -65,6 +65,9 @@ matrix:
       # Ignore lines that start with two dots
       - open: '^\s*\.\.'
         close: '$'
+      # Ignore words after colon deliminated configurations
+      - open: ' {3}:[A-Za-z_-]+:'
+        close: '$'
       # Ignore words between two colons, e.g. :maxdepth:
       - open: '(^|\s):'
         close: ':(\s|$)'

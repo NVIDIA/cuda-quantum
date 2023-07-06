@@ -459,7 +459,11 @@ if ${ENABLE_KERNEL_EXECUTION}; then
 fi
 if ${ENABLE_AGGRESSIVE_EARLY_INLINE}; then
 	RUN_OPT=true
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "inline{default-pipeline=func.func(indirect-to-direct-calls)}")
+	if ${DO_LINK}; then
+		OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "aggressive-early-inlining")
+	else
+		OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(indirect-to-direct-calls),inline")
+	fi
 fi
 if ${ENABLE_DEVICE_CODE_LOADERS}; then
 	RUN_OPT=true
@@ -468,7 +472,7 @@ if ${ENABLE_DEVICE_CODE_LOADERS}; then
 fi
 if ${ENABLE_LOWER_TO_CFG}; then
 	RUN_OPT=true
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "expand-measurements,func.func(lower-to-cfg)")
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(unwind-lowering),expand-measurements,func.func(lower-to-cfg)")
 fi
 if ${RUN_OPT}; then
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "canonicalize,cse")
