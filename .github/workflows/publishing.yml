@@ -186,6 +186,8 @@ jobs:
           # that was used to trigger the GitLab pipeline.
           data_commit=${{ steps.release_info.outputs.data_commit }}
           if $(git cat-file -e $data_commit^{commit} 2> /dev/null); then
+            git config --global user.name "cuda-quantum-bot"
+            git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
             git revert $data_commit --no-edit
             git pull --no-edit && git push
           else 
