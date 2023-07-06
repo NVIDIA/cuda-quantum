@@ -102,5 +102,10 @@ bool hasHiddenSRet(mlir::FunctionType funcTy);
 /// convert some results to `sret` pointers, etc.
 mlir::FunctionType toCpuSideFuncType(mlir::FunctionType funcTy);
 
+/// @brief Return true if the given type corresponds to a
+/// std-vector type according to our convention. The convention
+/// is a ptr<struct<ptr<T>, ptr<T>, ptr<T>>>.
+bool isStdVecArg(mlir::Type type);
+
 } // namespace opt::factory
 } // namespace cudaq

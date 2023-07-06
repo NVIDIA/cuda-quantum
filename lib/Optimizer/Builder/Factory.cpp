@@ -164,4 +164,26 @@ FunctionType factory::toCpuSideFuncType(FunctionType funcTy) {
   return FunctionType::get(ctx, inputTys, funcTy.getResults());
 }
 
+bool factory::isStdVecArg(Type type) {
+  auto ptrTy = dyn_cast<cudaq::cc::PointerType>(type);
+  if (!ptrTy)
+    return false;
+
+  auto elementTy = ptrTy.getElementType();
+  auto structTy = dyn_cast<cudaq::cc::StructType>(elementTy);
+  if (!structTy)
+    return false;
+
+  auto memberTys = structTy.getMembers();
+  if (memberTys.size() != 3)
+    return false;
+
+  for (std::size_t i = 0; i < 3; i++)
+    if (!dyn_cast<cudaq::cc::PointerType>(memberTys[i]))
+      return false;
+
+  // This is a stdvec type to us.
+  return true;
+}
+
 } // namespace cudaq::opt
