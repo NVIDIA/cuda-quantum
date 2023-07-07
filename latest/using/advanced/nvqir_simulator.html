@@ -376,7 +376,7 @@ by leveraging the cuQuantum library.</p>
 <p>The strategy for extending this class is to create a new <code class="code docutils literal notranslate"><span class="pre">cpp</span></code> implementation file with the same name as your
 subtype class name. In this file, you will subclass the <code class="code docutils literal notranslate"><span class="pre">CircuitSimulatorBase&lt;FloatType&gt;</span></code> and implement the methods in
 the above table. Finally, the subclass must be registered with the NVQIR library so that it
-can be picked up and used when a user specifies <code class="code docutils literal notranslate"><span class="pre">nvq++</span> <span class="pre">-qpu</span> <span class="pre">mySimulator</span> <span class="pre">...</span></code> from the command line (or <code class="code docutils literal notranslate"><span class="pre">cudaq.set_qpu('mySimulator')</span></code> in Python.)
+can be picked up and used when a user specifies <code class="code docutils literal notranslate"><span class="pre">nvq++</span> <span class="pre">--target</span> <span class="pre">mySimulator</span> <span class="pre">...</span></code> from the command line (or <code class="code docutils literal notranslate"><span class="pre">cudaq.set_target('mySimulator')</span></code> in Python.)
 Type registration can be performed with a provided NVQIR macro</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">NVQIR_REGISTER_SIMULATOR</span><span class="p">(</span><span class="n">MySimulatorClassName</span><span class="p">,</span><span class="w"> </span><span class="n">mySimulator</span><span class="p">)</span>
 </pre></div>
