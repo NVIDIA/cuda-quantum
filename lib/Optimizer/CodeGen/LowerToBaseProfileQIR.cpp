@@ -33,10 +33,11 @@ static std::size_t getNumQubits(LLVM::CallOp callOp) {
   auto sizeOperand = callOp.getOperand(0);
   auto defOp = sizeOperand.getDefiningOp();
   // walk back up to the defining op, has to be a constant
-  while (!dyn_cast<LLVM::ConstantOp>(defOp))
+  while (defOp && !dyn_cast<LLVM::ConstantOp>(defOp))
     defOp = defOp->getOperand(0).getDefiningOp();
-  auto constVal = dyn_cast<LLVM::ConstantOp>(defOp).getValue();
-  return constVal.cast<IntegerAttr>().getValue().getLimitedValue();
+  if (auto constOp = dyn_cast_or_null<LLVM::ConstantOp>(defOp))
+    return constOp.getValue().cast<IntegerAttr>().getValue().getLimitedValue();
+  TODO_loc(callOp.getLoc(), "cannot compute number of qubits allocated");
 }
 
 namespace {
@@ -96,8 +97,9 @@ private:
                 std::size_t allocOffset = 0u;
                 if (auto call =
                         bitcast.getOperand().getDefiningOp<LLVM::CallOp>()) {
-                  auto iter = data.allocationOffsets.find(
-                      call.getOperand(0).getDefiningOp());
+                  auto *callOp0 = call.getOperand(0).getDefiningOp();
+                  auto iter = callOp0 ? data.allocationOffsets.find(callOp0)
+                                      : data.allocationOffsets.end();
                   if (iter != data.allocationOffsets.end()) {
                     allocOffset = iter->second;
                     if (auto c = call.getOperand(1)
@@ -106,8 +108,9 @@ private:
                     } else {
                       // Skip over any potential intermediate cast.
                       auto *defOp = call.getOperand(1).getDefiningOp();
-                      if (isa<LLVM::ZExtOp, LLVM::SExtOp, LLVM::PtrToIntOp,
-                              LLVM::BitcastOp, LLVM::TruncOp>(defOp))
+                      if (isa_and_nonnull<LLVM::ZExtOp, LLVM::SExtOp,
+                                          LLVM::PtrToIntOp, LLVM::BitcastOp,
+                                          LLVM::TruncOp>(defOp))
                         constVal = defOp->getOperand(0);
                     }
                   }
