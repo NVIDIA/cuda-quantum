@@ -38,6 +38,16 @@ def QIRToBaseQIRPrep : Pass<"qir-to-base-qir-prep", "mlir::ModuleOp"> {
   let constructor = "cudaq::opt::createBaseProfilePreparationPass()";
 }
 
+def VerifyBaseProfile : Pass<"verify-base-profile", "mlir::LLVM::LLVMFuncOp"> {
+  let summary = "Verify that the output conforms to the base profile";
+  let description = [{
+    This pass scans over functions in the LLVM-IR dialect to make sure they
+    conform to the QIR base profile.
+  }];
+
+  let constructor = "cudaq::opt::verifyBaseProfilePass()";
+}
+
 def QIRToBaseQIRFunc : Pass<"quake-to-base-qir-func",
                             "mlir::LLVM::LLVMFuncOp"> {
   let summary = "Analyze kernels and add attributes and record calls.";
