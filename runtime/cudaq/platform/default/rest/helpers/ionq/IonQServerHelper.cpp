@@ -125,7 +125,7 @@ IonQServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   job["shots"] = static_cast<int>(shots);
   job["input"]["format"] = "qir";
   job["input"]["data"] = circuitCodes.front().code;
-  
+
   // Return a tuple containing the job path, headers, and the job message
   return std::make_tuple(backendConfig.at("job_path"), getHeaders(),
                          std::vector<ServerMessage>{job});
