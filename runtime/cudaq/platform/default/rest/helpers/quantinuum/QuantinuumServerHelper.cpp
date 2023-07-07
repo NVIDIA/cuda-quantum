@@ -174,7 +174,6 @@ QuantinuumServerHelper::generateRequestHeader() const {
       {"Authorization", apiKey},
       {"Content-Type", "application/json"},
       {"Connection", "keep-alive"},
-      {"Host", "localhost"},
       {"Accept", "*/*"}};
   return headers;
 }
