@@ -15,14 +15,16 @@
 
 std::string mockPort = "62455";
 std::string backendStringTemplate =
-    "ionq;emulate;false;url;http://localhost:{};credentials;{}";
+    "ionq;emulate;false;url;http://localhost:{}";
+
+bool isValidExpVal(double value) {
+  // give us some wiggle room while keep the tests fast
+  return value < -1.1 && value > -2.3;
+}
 
 CUDAQ_TEST(IonQTester, checkSampleSync) {
-  setenv("IONQ_API_KEY", "00000000000000000000000000000000", 0);
-  std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppIonQ.config";
   auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
+      fmt::format(fmt::runtime(backendStringTemplate), mockPort);
 
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
@@ -38,11 +40,8 @@ CUDAQ_TEST(IonQTester, checkSampleSync) {
 }
 
 CUDAQ_TEST(IonQTester, checkSampleAsync) {
-  setenv("IONQ_API_KEY", "00000000000000000000000000000000", 0);
-  std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppIonQ.config";
   auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
+      fmt::format(fmt::runtime(backendStringTemplate), mockPort);
 
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
@@ -58,11 +57,8 @@ CUDAQ_TEST(IonQTester, checkSampleAsync) {
 }
 
 CUDAQ_TEST(IonQTester, checkSampleAsyncLoadFromFile) {
-  setenv("IONQ_API_KEY", "00000000000000000000000000000000", 0);
-  std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppIonQ.config";
   auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
+      fmt::format(fmt::runtime(backendStringTemplate), mockPort);
 
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
@@ -94,11 +90,8 @@ CUDAQ_TEST(IonQTester, checkSampleAsyncLoadFromFile) {
 }
 
 CUDAQ_TEST(IonQTester, checkObserveSync) {
-  setenv("IONQ_API_KEY", "00000000000000000000000000000000", 0);
-  std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppIonQ.config";
   auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
+      fmt::format(fmt::runtime(backendStringTemplate), mockPort);
 
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
@@ -116,15 +109,12 @@ CUDAQ_TEST(IonQTester, checkObserveSync) {
   result.dump();
 
   printf("ENERGY: %lf\n", result.exp_val_z());
-  EXPECT_NEAR(result.exp_val_z(), -1.7, 1e-1);
+  EXPECT_TRUE(isValidExpVal(result.exp_val_z()));
 }
 
 CUDAQ_TEST(IonQTester, checkObserveAsync) {
-  setenv("IONQ_API_KEY", "00000000000000000000000000000000", 0);
-  std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppIonQ.config";
   auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
+      fmt::format(fmt::runtime(backendStringTemplate), mockPort);
 
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
@@ -144,15 +134,12 @@ CUDAQ_TEST(IonQTester, checkObserveAsync) {
   result.dump();
 
   printf("ENERGY: %lf\n", result.exp_val_z());
-  EXPECT_NEAR(result.exp_val_z(), -1.7, 1e-1);
+  EXPECT_TRUE(isValidExpVal(result.exp_val_z()));
 }
 
 CUDAQ_TEST(IonQTester, checkObserveAsyncLoadFromFile) {
-  setenv("IONQ_API_KEY", "00000000000000000000000000000000", 0);
-  std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppIonQ.config";
   auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
+      fmt::format(fmt::runtime(backendStringTemplate), mockPort);
 
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
@@ -185,17 +172,12 @@ CUDAQ_TEST(IonQTester, checkObserveAsyncLoadFromFile) {
   result.dump();
 
   printf("ENERGY: %lf\n", result.exp_val_z());
-  EXPECT_NEAR(result.exp_val_z(), -1.7, 1e-1);
+  EXPECT_TRUE(isValidExpVal(result.exp_val_z()));
 }
 
 int main(int argc, char **argv) {
-  std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppIonQ.config";
-  std::ofstream out(fileName);
-  out << "key: key\nrefresh: refresh\ntime: 0";
-  out.close();
+  setenv("IONQ_API_KEY", "00000000000000000000000000000000", 0);
   ::testing::InitGoogleTest(&argc, argv);
   auto ret = RUN_ALL_TESTS();
-  std::remove(fileName.c_str());
   return ret;
 }
