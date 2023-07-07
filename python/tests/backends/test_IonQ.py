@@ -14,6 +14,9 @@ from multiprocessing import Process
 # Define the port for the mock server
 port = 62444
 
+pytest.skip(
+    "This file produces a segmentation fault on the CI but not locally. See https://github.com/NVIDIA/cuda-quantum/issues/303.",
+    allow_module_level=True)
 
 def assert_close(want, got, tolerance=1.0e-5) -> bool:
     return abs(want - got) < tolerance
