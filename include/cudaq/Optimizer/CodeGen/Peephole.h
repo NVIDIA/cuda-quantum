@@ -41,7 +41,7 @@ inline mlir::Value createMeasureCall(mlir::PatternRewriter &builder,
   auto op = cast<mlir::LLVM::CallOp>(result.getDefiningOp());
   auto ptrTy = cudaq::opt::getResultType(builder.getContext());
   if (auto intAttr =
-          dyn_cast<mlir::IntegerAttr>(op->getAttr(resultIndexName))) {
+          dyn_cast_or_null<mlir::IntegerAttr>(op->getAttr(resultIndexName))) {
     auto constOp = builder.create<mlir::LLVM::ConstantOp>(loc, intAttr);
     auto cast = builder.create<mlir::LLVM::IntToPtrOp>(loc, ptrTy, constOp);
     builder.create<mlir::LLVM::CallOp>(
