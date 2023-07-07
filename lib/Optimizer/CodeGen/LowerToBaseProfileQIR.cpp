@@ -191,20 +191,24 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
       Value idx = builder.create<LLVM::ConstantOp>(loc, i64Ty, rec.first);
       Value ptr = builder.create<LLVM::IntToPtrOp>(loc, resultTy, idx);
       auto regName = [&]() -> Value {
+        StringAttr regNameAttr;
+        // If we don't have a register name, create a default one
+        if (!rec.second)
+          regNameAttr = builder.getStringAttr("r" + std::to_string(rec.first));
+        else
+          regNameAttr = rec.second;
+
+        // Note: it should be the case that this string literal has already
+        // been added to the IR, so this step does not actually update the
+        // module.
         auto charPtrTy = cudaq::opt::getCharPointerType(builder.getContext());
-        if (rec.second) {
-          // Note: it should be the case that this string literal has already
-          // been added to the IR, so this step does not actually update the
-          // module.
-          auto globl =
-              builder.genCStringLiteralAppendNul(loc, module, rec.second);
-          auto addrOf = builder.create<LLVM::AddressOfOp>(
-              loc, cudaq::opt::factory::getPointerType(globl.getType()),
-              globl.getName());
-          return builder.create<LLVM::BitcastOp>(loc, charPtrTy, addrOf);
-        }
-        Value zero = builder.create<LLVM::ConstantOp>(loc, i64Ty, 0);
-        return builder.create<LLVM::IntToPtrOp>(loc, charPtrTy, zero);
+
+        auto globl =
+            builder.genCStringLiteralAppendNul(loc, module, regNameAttr);
+        auto addrOf = builder.create<LLVM::AddressOfOp>(
+            loc, cudaq::opt::factory::getPointerType(globl.getType()),
+            globl.getName());
+        return builder.create<LLVM::BitcastOp>(loc, charPtrTy, addrOf);
       }();
       builder.create<LLVM::CallOp>(loc, TypeRange{},
                                    cudaq::opt::QIRBaseProfileRecordOutput,
