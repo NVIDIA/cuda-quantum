@@ -97,9 +97,6 @@ jobs:
       - name: Set up buildx runner
         uses: docker/setup-buildx-action@v2
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-
       - name: Build Open MPI
         id: docker_build
         uses: docker/build-push-action@v4
@@ -207,9 +204,6 @@ jobs:
         uses: docker/setup-buildx-action@v2
         with:
           driver-opts: network=host
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
 
       - name: Extract metadata
         id: metadata
@@ -361,9 +355,6 @@ jobs:
         uses: docker/setup-buildx-action@v2
         with:
           driver-opts: network=host
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
 
       - name: Extract cuda-quantum-dev metadata
         id: cudaqdev_metadata
