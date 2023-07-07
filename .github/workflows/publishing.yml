@@ -13,10 +13,6 @@ on:
 
 name: Packages
 
-concurrency:
-  group: ${{ github.workflow }}
-  cancel-in-progress: false
-
 jobs:
   cudaq_hpc:
     name: CUDA Quantum Docker image
