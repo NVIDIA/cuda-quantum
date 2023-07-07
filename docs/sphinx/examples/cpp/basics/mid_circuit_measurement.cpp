@@ -1,9 +1,7 @@
 // Compile and run with:
 // ```
-// nvq++ mid_circuit_measurement.cpp --enable-mlir -o teleport.x && ./teleport.x
+// nvq++ mid_circuit_measurement.cpp -o teleport.x && ./teleport.x
 // ```
-// Note MLIR-based compilation must be enabled to detect
-// mid-circuit measurement and affect simulation accordingly.
 
 #include <cudaq.h>
 

@@ -10,7 +10,7 @@
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/IR/PatternMatch.h"
-#include "mlir/Transforms/DialectConversion.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 
 namespace cudaq::opt {
@@ -57,8 +57,9 @@ namespace {
 /// invariant. An invariant loop means the loop must execute exactly some
 /// specific number of times, even if that number is only known at runtime.
 struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
-  explicit UnrollCountedLoop(MLIRContext *ctx, std::size_t t)
-      : OpRewritePattern(ctx), threshold(t) {}
+  explicit UnrollCountedLoop(MLIRContext *ctx, std::size_t t, bool sf, bool &pf)
+      : OpRewritePattern(ctx), threshold(t), signalFailure(sf), passFailed(pf) {
+  }
 
   LogicalResult matchAndRewrite(cudaq::cc::LoopOp loop,
                                 PatternRewriter &rewriter) const override {
@@ -66,10 +67,20 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
     // requires that all LoopOp operations be rewritten. Despite the setting of
     // this flag, it may not be possible to fully unroll every LoopOp anyway.
     // Check for cases that are clearly not going to be unrolled.
-    if (!cudaq::opt::isaCountedLoop(loop))
-      return loop.emitOpError("not a simple counted loop");
-    if (exceedsThresholdValue(loop, threshold))
-      return loop.emitOpError("loop bounds exceed iteration threshold");
+    if (!cudaq::opt::isaCountedLoop(loop)) {
+      if (signalFailure) {
+        loop.emitOpError("not a simple counted loop");
+        passFailed = true;
+      }
+      return failure();
+    }
+    if (exceedsThresholdValue(loop, threshold)) {
+      if (signalFailure) {
+        loop.emitOpError("loop bounds exceed iteration threshold");
+        passFailed = true;
+      }
+      return failure();
+    }
 
     // At this point, we're ready to unroll the loop and replace it with a
     // sequence of blocks. Each block will receive a block argument that is the
@@ -133,6 +144,8 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
   }
 
   std::size_t threshold;
+  bool signalFailure;
+  bool &passFailed;
 };
 
 /// The loop unrolling pass will fully unroll a `cc::LoopOp` when the loop is
@@ -147,16 +160,14 @@ public:
     auto *op = getOperation();
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
-    patterns.insert<UnrollCountedLoop>(ctx, threshold);
-    ConversionTarget target(*ctx);
-    target.addDynamicallyLegalOp<cudaq::cc::LoopOp>(
-        [&](cudaq::cc::LoopOp loop) {
-          return !signalFailure && (!cudaq::opt::isaCountedLoop(loop) ||
-                                    exceedsThresholdValue(loop, threshold));
-        });
-    target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
-    if (failed(applyPartialConversion(op, target, std::move(patterns))))
+    bool passFailed = false;
+    patterns.insert<UnrollCountedLoop>(ctx, threshold, signalFailure,
+                                       passFailed);
+    if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns))) ||
+        passFailed) {
+      emitError(UnknownLoc::get(ctx), "did not unroll loops");
       signalPassFailure();
+    }
   }
 };
 } // namespace

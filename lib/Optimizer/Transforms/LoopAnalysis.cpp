@@ -40,13 +40,26 @@ using namespace mlir;
 /// likely these loops cannot be converted to static control flow and would thus
 /// need to be expanded at runtime.
 
+static Value peelCastOps(Value v) {
+  Operation *defOp = nullptr;
+  for (; (defOp = v.getDefiningOp());) {
+    if (isa<arith::IndexCastOp, cudaq::cc::CastOp>(defOp))
+      v = defOp->getOperand(0);
+    else
+      break;
+  }
+  return v;
+}
+
 static bool isaConstant(Value v) {
+  v = peelCastOps(v);
   if (auto c = v.getDefiningOp<arith::ConstantOp>())
     return isa<IntegerAttr>(c.getValue());
   return false;
 }
 
 static bool isaConstantOf(Value v, std::int64_t hasVal) {
+  v = peelCastOps(v);
   if (auto c = v.getDefiningOp<arith::ConstantOp>())
     if (auto ia = dyn_cast<IntegerAttr>(c.getValue()))
       return ia.getInt() == hasVal;
@@ -142,6 +155,13 @@ bool opt::hasMonotonicControlInduction(cc::LoopOp loop, LoopComponents *lcp) {
   return false;
 }
 
+static bool allExitsAreContinue(Region &reg) {
+  for (auto &block : reg)
+    if (block.hasNoSuccessors() && !isa<cc::ContinueOp>(block.getTerminator()))
+      return false;
+  return true;
+}
+
 bool opt::isaMonotonicLoop(Operation *op, LoopComponents *lcp) {
   if (auto loopOp = dyn_cast_or_null<cc::LoopOp>(op)) {
     // Cannot be a `while` or `do while` loop.
@@ -151,8 +171,7 @@ bool opt::isaMonotonicLoop(Operation *op, LoopComponents *lcp) {
     // This is a `for` loop and must have a body with a continue terminator.
     // Currently, only a single basic block is allowed to keep things simple.
     // This is in keeping with our definition of structured control flow.
-    return !reg.empty() && reg.hasOneBlock() &&
-           isa<cc::ContinueOp>(reg.front().getTerminator()) &&
+    return !reg.empty() && allExitsAreContinue(reg) &&
            hasMonotonicControlInduction(loopOp, lcp);
   }
   return false;
@@ -241,13 +260,22 @@ std::optional<opt::LoopComponents> opt::getLoopComponents(cc::LoopOp loop) {
 
   if (loop.hasStep()) {
     // Loop has a step region, so look for the step op.
+    // as in: `for (i = 0; i < n; i++) ...`
     if (auto stepPosOpt = scanRegionForStep(loop.getStepRegion()))
       result.induction = *stepPosOpt;
   }
-  // If step has not been found, look in the body region.
-  if (!result.stepOp)
+  if (!result.stepOp) {
+    // If step has not been found, look in the body region.
+    // as in: `for (i = 0; i < n;) { ... i++; }`
     if (auto stepPosOpt = scanRegionForStep(loop.getBodyRegion()))
       result.induction = *stepPosOpt;
+  }
+  if (!result.stepOp) {
+    // If step has still not been found, look in the while region.
+    // as in: `for (i = n; i-- > 0;) ...`
+    if (auto stepPosOpt = scanRegionForStep(loop.getWhileRegion()))
+      result.induction = *stepPosOpt;
+  }
   if (!result.stepOp)
     return {};
 

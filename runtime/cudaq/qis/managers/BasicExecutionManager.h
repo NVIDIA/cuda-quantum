@@ -269,6 +269,9 @@ public:
   }
 
   int measure(const cudaq::QuditInfo &target) override {
+    if (isInTracerMode())
+      return 0;
+
     // We hit a measure, need to exec / clear instruction queue
     synchronize();
 
@@ -284,6 +287,8 @@ public:
   }
 
   void reset(const QuditInfo &target) override {
+    if (isInTracerMode())
+      return;
     // We hit a reset, need to exec / clear instruction queue
     synchronize();
     resetQudit(target);

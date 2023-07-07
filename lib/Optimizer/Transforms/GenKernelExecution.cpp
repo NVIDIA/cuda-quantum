@@ -522,8 +522,8 @@ public:
       auto off = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{idx});
       if (inTy.isa<cudaq::cc::LambdaType, cudaq::cc::StructType>()) {
         /* do nothing */
-      } else if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(inTy)) {
-        // FIXME: for now assume this is a std::vector<`eleTy`>
+      } else if (cudaq::opt::factory::isStdVecArg(inTy)) {
+        auto ptrTy = dyn_cast<cudaq::cc::PointerType>(inTy);
         // FIXME: call the `size` member function. For expediency, assume this
         // is an std::vector and the size is the scaled delta between the
         // first two pointers. Use the unscaled size for now.
@@ -532,6 +532,8 @@ public:
                                                          stVal, sizeBytes, off);
         extraBytes = builder.create<arith::AddIOp>(loc, extraBytes, sizeBytes);
         hasTrailingData = true;
+      } else if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(inTy)) {
+        /*do nothing*/
       } else {
         stVal = builder.create<cudaq::cc::InsertValueOp>(loc, stVal.getType(),
                                                          stVal, arg, off);
