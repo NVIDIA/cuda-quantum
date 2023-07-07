@@ -136,7 +136,7 @@ public:
 
   /// @brief Return true if the current backend is a simulator
   /// @return
-  bool isSimulator() override { return false; }
+  bool isSimulator() override { return emulate; }
 
   /// @brief Return true if the current backend supports conditional feedback
   bool supportsConditionalFeedback() override { return false; }
@@ -149,7 +149,7 @@ public:
 
   /// Clear the number of shots
   void clearShots() override { nShots = std::nullopt; }
-  virtual bool isRemote() override { return true; }
+  virtual bool isRemote() override { return !emulate; }
 
   /// Store the execution context for launchKernel
   void setExecutionContext(cudaq::ExecutionContext *context) override {
