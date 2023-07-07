@@ -15,7 +15,9 @@
 
 namespace cudaq {
 bool kernelHasConditionalFeedback(const std::string &);
-
+namespace __internal__ {
+bool isKernelGenerated(const std::string &);
+}
 /// @brief Return type for asynchronous sampling.
 using async_sample_result = async_result<sample_result>;
 
@@ -47,6 +49,33 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   // conditionals on measure results
   ctx->hasConditionalsOnMeasureResults =
       cudaq::kernelHasConditionalFeedback(kernelName);
+
+#ifdef CUDAQ_LIBRARY_MODE
+  // If we have a kernel that has its quake code registered, we
+  // won't check for if statements with the tracer.
+  auto isRegistered = cudaq::__internal__::isKernelGenerated(kernelName);
+
+  // One extra check to see if we have mid-circuit
+  // measures in library mode
+  if (!isRegistered && !ctx->hasConditionalsOnMeasureResults) {
+    // Trace the kernel function
+    ExecutionContext context("tracer");
+    auto &platform = get_platform();
+    platform.set_exec_ctx(&context);
+    wrappedKernel();
+    platform.reset_exec_ctx();
+    // In trace mode, if we have a measure result
+    // that is passed to an if statement, then
+    // we'll have collected registernames
+    if (!context.registerNames.empty()) {
+      // append new register names to the main sample context
+      for (std::size_t i = 0; i < context.registerNames.size(); ++i)
+        ctx->registerNames.emplace_back("auto_register_" + std::to_string(i));
+
+      ctx->hasConditionalsOnMeasureResults = true;
+    }
+  }
+#endif
 
   // Indicate that this is an async exec
   ctx->asyncExec = futureResult != nullptr;

@@ -60,10 +60,10 @@ struct test3 {
 // CHECK:             %[[VAL_3:.*]] = arith.constant 3.14
 // CHECK:             cc.store %[[VAL_3]], %[[VAL_2]] : !cc.ptr<f64>
 // CHECK:             %[[VAL_4:.*]] = cc.load %[[VAL_2]] : !cc.ptr<f64>
-// CHECK:             func.call @_Z3foo(%[[VAL_4]]) : (f64) -> ()
+// CHECK:             func.call @foo(%[[VAL_4]]) : (f64) -> ()
 // CHECK:           }
 // CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_0]] : !cc.ptr<i32>
-// CHECK:           call @_Z3bar(%[[VAL_5]]) : (i32) -> ()
+// CHECK:           call @bar(%[[VAL_5]]) : (i32) -> ()
 // CHECK:           return
 // CHECK:         }
 
@@ -78,10 +78,10 @@ struct test3 {
 // CHECK:             %[[VAL_4:.*]] = arith.constant 3.14
 // CHECK:             cc.store %[[VAL_4]], %[[VAL_3]] : !cc.ptr<f64>
 // CHECK:             %[[VAL_5:.*]] = cc.load %[[VAL_3]] : !cc.ptr<f64>
-// CHECK:             func.call @_Z3foo(%[[VAL_5]]) : (f64) -> ()
+// CHECK:             func.call @foo(%[[VAL_5]]) : (f64) -> ()
 // CHECK:           }
 // CHECK:           %[[VAL_6:.*]] = cc.load %[[VAL_1]] : !cc.ptr<i32>
-// CHECK:           call @_Z3bar(%[[VAL_6]]) : (i32) -> ()
+// CHECK:           call @bar(%[[VAL_6]]) : (i32) -> ()
 // CHECK:           return
 // CHECK:         }
 
@@ -102,7 +102,7 @@ struct test3 {
 // CHECK:               cc.condition %[[VAL_7]]
 // CHECK:             } do {
 // CHECK:                 %[[VAL_8:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i32>
-// CHECK:                 func.call @_Z3bar(%[[VAL_8]]) : (i32) -> ()
+// CHECK:                 func.call @bar(%[[VAL_8]]) : (i32) -> ()
 // CHECK:             } step {
 // CHECK:               %[[VAL_9:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i32>
 // CHECK:               %[[VAL_10:.*]] = arith.constant 1 : i32
@@ -111,7 +111,7 @@ struct test3 {
 // CHECK:             }
 // CHECK:           }
 // CHECK:           %[[VAL_12:.*]] = cc.load %[[VAL_1]] : !cc.ptr<f64>
-// CHECK:           call @_Z3foo(%[[VAL_12]]) : (f64) -> ()
+// CHECK:           call @foo(%[[VAL_12]]) : (f64) -> ()
 // CHECK:           return
 // CHECK:         }
 
