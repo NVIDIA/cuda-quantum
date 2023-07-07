@@ -5,6 +5,5 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-
-add_subdirectory(ionq)
-add_subdirectory(quantinuum)
+target_sources(cudaq-rest-qpu PRIVATE IonQServerHelper.cpp)
+add_target_config(ionq)
