@@ -78,7 +78,6 @@ public:
 void IonQServerHelper::initialize(BackendConfig config) {
   cudaq::info("Initializing IonQ Backend.");
   // Move the passed config into the member variable backendConfig
-  backendConfig = std::move(config);
   // Set the necessary configuration variables for the IonQ API
   backendConfig["url"] = config.find("url") != config.end()
                              ? config["url"]
@@ -124,8 +123,9 @@ IonQServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   job["target"] = backendConfig.at("target");
   job["qubits"] = backendConfig.at("qubits");
   job["shots"] = static_cast<int>(shots);
-  job["input"] = {{"format", "qir"}, {"data", circuitCodes.front().code}};
-
+  job["input"]["format"] = "qir";
+  job["input"]["data"] = circuitCodes.front().code;
+  
   // Return a tuple containing the job path, headers, and the job message
   return std::make_tuple(backendConfig.at("job_path"), getHeaders(),
                          std::vector<ServerMessage>{job});
