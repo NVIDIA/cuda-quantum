@@ -39,6 +39,7 @@ Executor::execute(std::vector<KernelExecution> &codesToExecute) {
   }
 
   auto config = serverHelper->getConfig();
+  config.insert({"shots", std::to_string(shots)});
   std::string name = serverHelper->name();
   return details::future(ids, name, config);
 }
