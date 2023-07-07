@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 #include "common/Logger.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
@@ -118,17 +118,21 @@ IonQServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   if (!keyExists("target") || !keyExists("qubits") || !keyExists("job_path"))
     throw std::runtime_error("Key doesn't exist in backendConfig.");
 
-  // Construct the job message
-  ServerMessage job;
-  job["target"] = backendConfig.at("target");
-  job["qubits"] = backendConfig.at("qubits");
-  job["shots"] = static_cast<int>(shots);
-  job["input"]["format"] = "qir";
-  job["input"]["data"] = circuitCodes.front().code;
+  std::vector<ServerMessage> jobs;
+  for (auto &circuitCode : circuitCodes) {
+    // Construct the job message
+    ServerMessage job;
+    job["target"] = backendConfig.at("target");
+    job["qubits"] = backendConfig.at("qubits");
+    job["shots"] = static_cast<int>(shots);
+    job["input"]["format"] = "qir";
+    job["input"]["data"] = circuitCode.code;
+    jobs.push_back(job);
+  }
 
   // Return a tuple containing the job path, headers, and the job message
-  return std::make_tuple(backendConfig.at("job_path"), getHeaders(),
-                         std::vector<ServerMessage>{job});
+  auto ret = std::make_tuple(backendConfig.at("job_path"), getHeaders(), jobs);
+  return ret;
 }
 
 // From a server message, extract the job ID
@@ -138,7 +142,8 @@ std::string IonQServerHelper::extractJobId(ServerMessage &postResponse) {
     throw std::runtime_error("ServerMessage doesn't contain 'id' key.");
 
   // Return the job ID from the response
-  return postResponse.at("id");
+  auto ret = postResponse.at("id");
+  return ret;
 }
 
 // Construct the path to get a job
@@ -152,8 +157,9 @@ std::string IonQServerHelper::constructGetJobPath(ServerMessage &postResponse) {
     throw std::runtime_error("Key 'url' doesn't exist in backendConfig.");
 
   // Return the job path
-  return backendConfig.at("url") +
+  auto ret = backendConfig.at("url") +
          postResponse.at("results_url").get<std::string>();
+  return ret;
 }
 
 // Overloaded version of constructGetJobPath for jobId input
@@ -162,7 +168,8 @@ std::string IonQServerHelper::constructGetJobPath(std::string &jobId) {
     throw std::runtime_error("Key 'job_path' doesn't exist in backendConfig.");
 
   // Return the job path
-  return backendConfig.at("job_path") + "?id=" + jobId;
+  auto ret = backendConfig.at("job_path") + "?id=" + jobId;
+  return ret;
 }
 
 // Construct the path to get the results of a job
@@ -214,7 +221,8 @@ bool IonQServerHelper::jobIsDone(ServerMessage &getJobResponse) {
         "ServerMessage doesn't contain 'status' key in the first job.");
 
   // Return whether the job is completed
-  return jobs[0].at("status").get<std::string>() == "completed";
+  auto ret = jobs[0].at("status").get<std::string>() == "completed";
+  return ret;
 }
 
 // Process the results from a job
@@ -237,7 +245,8 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse) {
   // Create an execution result
   cudaq::ExecutionResult executionResult(counts);
   // Return a sample result
-  return cudaq::sample_result(executionResult);
+  auto ret = cudaq::sample_result(executionResult);
+  return ret;
 }
 
 // Get the headers for the API requests
@@ -251,6 +260,7 @@ RestHeaders IonQServerHelper::getHeaders() {
   headers["Authorization"] = "apiKey " + backendConfig.at("token");
   headers["Content-Type"] = "application/json";
   headers["User-Agent"] = backendConfig.at("user_agent");
+
   // Return the headers
   return headers;
 }
