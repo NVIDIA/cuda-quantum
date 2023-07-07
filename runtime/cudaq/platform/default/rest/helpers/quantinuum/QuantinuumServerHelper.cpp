@@ -143,7 +143,15 @@ std::string QuantinuumServerHelper::constructGetJobPath(std::string &jobId) {
 }
 
 bool QuantinuumServerHelper::jobIsDone(ServerMessage &getJobResponse) {
-  return getJobResponse["status"].get<std::string>() == "completed";
+  auto status = getJobResponse["status"].get<std::string>();
+  if (status == "failed") {
+    std::string msg = "";
+    if (getJobResponse.count("error"))
+      msg = getJobResponse["error"]["text"].get<std::string>();
+    throw std::runtime_error("Job failed to execute msg = [" + msg + "]");
+  }
+
+  return status == "completed";
 }
 
 cudaq::sample_result
@@ -170,6 +178,8 @@ QuantinuumServerHelper::processResults(ServerMessage &postJobResponse) {
 
 std::map<std::string, std::string>
 QuantinuumServerHelper::generateRequestHeader() const {
+  std::string apiKey, refreshKey, timeStr;
+  searchAPIKey(apiKey, refreshKey, timeStr);
   std::map<std::string, std::string> headers{
       {"Authorization", apiKey},
       {"Content-Type", "application/json"},
