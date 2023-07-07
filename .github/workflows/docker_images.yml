@@ -248,7 +248,7 @@ jobs:
     name: cuda-quantum (release)
     needs: ompi_image
     # Force this job to run even when some of the dependencies above are skipped.
-    if: always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+    if: always() && !cancelled() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -431,7 +431,7 @@ jobs:
     needs: [cudaqdev_image, cudaq_image]
     # Unfortunately, we basically inherit this from the cudaq_image job;
     # all jobs that depend on it will need to add the same condition.
-    if: always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+    if: always() && !cancelled() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -526,7 +526,7 @@ jobs:
     needs: cudaq_image
     # Unfortunately, we basically inherit this from the cudaq_image job;
     # all jobs that depend on it will need to add the same condition.
-    if: always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+    if: always() && !cancelled() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
 
     steps:
@@ -576,7 +576,7 @@ jobs:
     runs-on: ubuntu-latest
     # Unfortunately, we basically inherit this from the cudaq_image job;
     # all jobs that depend on it will need to add the same condition.
-    if: always() && inputs.environment && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+    if: always() && !cancelled() && inputs.environment && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
 
     permissions:
       contents: write
