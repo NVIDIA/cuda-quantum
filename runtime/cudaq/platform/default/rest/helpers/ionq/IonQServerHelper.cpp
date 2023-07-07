@@ -158,7 +158,7 @@ std::string IonQServerHelper::constructGetJobPath(ServerMessage &postResponse) {
 
   // Return the job path
   auto ret = backendConfig.at("url") +
-         postResponse.at("results_url").get<std::string>();
+             postResponse.at("results_url").get<std::string>();
   return ret;
 }
 
