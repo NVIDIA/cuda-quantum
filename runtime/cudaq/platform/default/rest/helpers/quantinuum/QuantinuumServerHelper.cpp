@@ -179,7 +179,7 @@ QuantinuumServerHelper::processResults(ServerMessage &postJobResponse) {
 std::map<std::string, std::string>
 QuantinuumServerHelper::generateRequestHeader() const {
   std::string apiKey, refreshKey, timeStr;
-  searchAPIKey(apiKey, refreshKey, timeStr);
+  searchAPIKey(apiKey, refreshKey, timeStr, userSpecifiedCredentials);
   std::map<std::string, std::string> headers{
       {"Authorization", apiKey},
       {"Content-Type", "application/json"},
