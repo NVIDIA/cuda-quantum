@@ -8,9 +8,7 @@
 
 // This code is from Issue 251.
 
-// RUN: nvq++ --enable-mlir -v %s --target quantinuum --emulate -o %t.x && %t.x | FileCheck %s
-
-// CHECK: Test: { 0:{{[0-9]+}} 1:{{[0-9]+}} }
+// RUN: nvq++ -v %s --target quantinuum --emulate -o %t.x && %t.x | FileCheck %s
 
 #include <cudaq.h>
 #include <iostream>
@@ -25,7 +23,10 @@ struct ak2 {
 
 int main() {
   auto counts = cudaq::sample(ak2{});
-  std::cout << "Test: ";
-  counts.dump();
+  for (auto& [k,v] : counts) 
+    std::cout << k << " : " << v << "\n";
   return 0;
 }
+
+// CHECK-DAG: 0 : {{[0-9]+}}
+// CHECK-DAG: 1 : {{[0-9]+}}
