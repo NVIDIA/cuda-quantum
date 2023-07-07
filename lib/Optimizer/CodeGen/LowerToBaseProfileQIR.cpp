@@ -35,8 +35,8 @@ static std::size_t getNumQubits(LLVM::CallOp callOp) {
   // walk back up to the defining op, has to be a constant
   while (defOp && !dyn_cast<LLVM::ConstantOp>(defOp))
     defOp = defOp->getOperand(0).getDefiningOp();
-  if (auto constVal = dyn_cast_or_null<LLVM::ConstantOp>(defOp).getValue())
-    return constVal.cast<IntegerAttr>().getValue().getLimitedValue();
+  if (auto constOp = dyn_cast_or_null<LLVM::ConstantOp>(defOp))
+    return constOp.getValue().cast<IntegerAttr>().getValue().getLimitedValue();
   TODO_loc(callOp.getLoc(), "cannot compute number of qubits allocated");
 }
 
