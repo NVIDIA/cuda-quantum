@@ -171,6 +171,9 @@ jobs:
       - name: Set up buildx runner
         uses: docker/setup-buildx-action@v2
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
       - name: Log in to GitHub CR
         uses: docker/login-action@v2
         with:
@@ -182,10 +185,11 @@ jobs:
         id: cache
         run: |
           toolchain=${{ inputs.toolchain }}
+          platform_id=`echo "${{ inputs.platforms }}" | tr -d ' ' | tr / - | tr ',' -`
           registry_cache=ghcr.io/${{ needs.metadata.outputs.owner }}/buildcache-cuda-quantum
           nvidia_registry_cache=ghcr.io/nvidia/buildcache-cuda-quantum
           registry_cache_base=$(echo ${{ inputs.registry_cache_from || github.event.pull_request.base.ref || 'main' }} | tr / -)
-          cache_id=$(echo ${{ needs.metadata.outputs.image_id }}${toolchain:+-$toolchain} | tr . -)
+          cache_id=$(echo ${{ needs.metadata.outputs.image_id }}${toolchain:+-$toolchain}${platform_id:+-$platform_id} | tr . -)
 
           local_buildcache_path="/tmp/.buildcache-${cache_id}"
           local_buildcache_key_suffix="-$(git rev-parse HEAD)"

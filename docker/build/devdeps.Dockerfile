@@ -22,15 +22,6 @@
 # toolchain, add support for it to the install_toolchain.sh script. If the toolchain is set to llvm, 
 # then the toolchain will be built from source.
 
-# Build additional tools needed for CUDA Quantum documentation generation.
-FROM ubuntu:22.04 as doxygenbuild
-RUN apt-get update && apt-get install -y wget unzip make cmake flex bison gcc g++ python3 \
-    && wget https://github.com/doxygen/doxygen/archive/9a5686aeebff882ebda518151bc5df9d757ea5f7.zip -q -O repo.zip \
-    && unzip repo.zip && mv doxygen* repo && rm repo.zip \
-    && cmake -G "Unix Makefiles" repo && cmake --build . --target install --config Release \
-    && rm -rf repo && apt-get remove -y wget unzip make cmake flex bison gcc g++ python3 \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
-
 FROM ubuntu:22.04 as llvmbuild
 SHELL ["/bin/bash", "-c"]
 
@@ -79,16 +70,6 @@ RUN source /opt/llvm/bootstrap/init_command.sh && \
         bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
     && rm -rf /llvm-project 
 
-# We use a newer version of cmake that is only available via the Kitware apt repository.
-FROM ubuntu:22.04 as cmakebuild
-RUN apt-get update && apt-get install -y wget unzip make gcc g++ libssl-dev \
-    && wget https://github.com/Kitware/CMake/releases/download/v3.26.3/cmake-3.26.3.zip -q \
-    && unzip cmake-3.26.3.zip && rm cmake-3.26.3.zip \
-    && cd cmake-3.26.3 && ./bootstrap --prefix=/usr/local/cmake-3.26/ \
-    && make -j$(nproc) && make -j$(nproc) install && cd .. \
-    && rm -rf cmake-3.26.3 && apt-get remove -y wget unzip make gcc g++ libssl-dev \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
-
 FROM ubuntu:22.04
 SHELL ["/bin/bash", "-c"]
 
@@ -97,10 +78,6 @@ SHELL ["/bin/bash", "-c"]
 # Given as arg to make sure that this value is only set during build but not in the launched container.
 ARG DEBIAN_FRONTEND=noninteractive
 ENV HOME=/home SHELL=/bin/bash LANG=C.UTF-8 LC_ALL=C.UTF-8
-
-# Copy over doxygen.
-COPY --from=doxygenbuild /usr/local/bin/doxygen /usr/local/bin/doxygen
-ENV PATH="${PATH}:/usr/local/bin"
 
 # Copy over the llvm build dependencies.
 COPY --from=llvmbuild /opt/llvm /opt/llvm
@@ -126,7 +103,11 @@ ENV CC="$LLVM_INSTALL_PREFIX/bootstrap/cc"
 ENV CXX="$LLVM_INSTALL_PREFIX/bootstrap/cxx"
 
 # Install additional dependencies required to build and test CUDA Quantum.
-COPY --from=cmakebuild /usr/local/cmake-3.26/ /usr/local/cmake-3.26/
+RUN apt-get update && apt-get install --no-install-recommends -y wget \
+    && wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-x86_64.tar.gz \
+    && tar xf cmake-3.26.4* && mv cmake-3.26.4-linux-x86_64/ /usr/local/cmake-3.26/ && rm -rf cmake-3.26.4* \
+    && apt-get remove -y wget \
+    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 ENV PATH="${PATH}:/usr/local/cmake-3.26/bin"
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git ninja-build libcurl4-openssl-dev libssl-dev \
@@ -142,3 +123,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN python3 -m pip install --no-cache-dir \
     sphinx==5.3.0 sphinx_rtd_theme==1.2.0 sphinx-reredirects==0.1.2 \
     enum-tools[sphinx] breathe==4.34.0 myst-parser==1.0.0
+RUN apt-get update && apt-get install --no-install-recommends -y wget \
+    && wget https://www.doxygen.nl/files/doxygen-1.9.7.linux.bin.tar.gz \
+    && tar xf doxygen-1.9.7* && mv doxygen-1.9.7/bin/* /usr/local/bin/ && rm -rf doxygen-1.9.7* \
+    && apt-get remove -y wget \
+    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
+ENV PATH="${PATH}:/usr/local/bin"
