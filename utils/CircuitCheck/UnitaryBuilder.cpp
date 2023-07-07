@@ -20,24 +20,30 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
       if (allocateQubits(arg) == WalkResult::interrupt())
         return failure();
   }
+  // We need to keep track of which qubits are ancillas. Hence, we save the
+  // current number of qubits and consider any local allocations as ancillas.
+  const std::size_t numQubits = getNumQubits();
+
   SmallVector<Complex, 16> matrix;
   SmallVector<Qubit, 16> qubits;
   auto result = func.walk([&](Operation *op) {
-    if (auto allocOp = dyn_cast<quake::AllocaOp>(op)) {
+    if (auto allocOp = dyn_cast<quake::AllocaOp>(op))
       return allocateQubits(allocOp.getResult());
-    }
-    if (auto extractOp = dyn_cast<quake::ExtractRefOp>(op)) {
+    if (auto extractOp = dyn_cast<quake::ExtractRefOp>(op))
       return visitExtractOp(extractOp);
-    }
     if (auto optor = dyn_cast<quake::OperatorInterface>(op)) {
       optor.getOperatorMatrix(matrix);
       // If the operator couldn't produce a matrix, stop the walk.
-      if (matrix.empty())
+      if (matrix.empty()) {
+        optor.emitOpError("Couldn't produce matrix.");
         return WalkResult::interrupt();
+      }
       // If we can't get the qubits involved in this operation, stop the walk
       if (failed(getQubits(optor.getControls(), qubits)) ||
-          failed(getQubits(optor.getTargets(), qubits)))
+          failed(getQubits(optor.getTargets(), qubits))) {
+        optor.emitOpError("Couldn't get the qubits.");
         return WalkResult::interrupt();
+      }
 
       if (optor.getNegatedControls())
         negatedControls(*optor.getNegatedControls(), qubits);
@@ -52,7 +58,9 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
     }
     return WalkResult::advance();
   });
-  return failure(result.wasInterrupted());
+  if (result.wasInterrupted())
+    return failure();
+  return deallocateAncillas(numQubits);
 }
 
 //===----------------------------------------------------------------------===//
@@ -62,12 +70,14 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
 WalkResult UnitaryBuilder::visitExtractOp(quake::ExtractRefOp op) {
   Value veq = op.getVeq();
   ArrayRef<unsigned> qubits = qubitMap[veq];
-  size_t index = 0;
+  std::size_t index = 0;
   // We need to check whether the index is a "raw" index or not.
   if (op.hasConstantIndex())
     index = op.getRawIndex();
-  else if (failed(getValueAsInt(op.getIndex(), index)))
+  else if (failed(getValueAsInt(op.getIndex(), index))) {
+    op.emitError("Failed to get index as a integer.");
     return WalkResult::interrupt();
+  }
   auto [entry, _] = qubitMap.try_emplace(op.getResult());
   entry->second.push_back(qubits[index]);
   return WalkResult::advance();
@@ -79,18 +89,20 @@ WalkResult UnitaryBuilder::allocateQubits(Value value) {
     return WalkResult::interrupt();
   auto &qubits = entry->second;
   if (auto veq = dyn_cast<quake::VeqType>(value.getType())) {
-    if (!veq.hasSpecifiedSize())
+    if (!veq.hasSpecifiedSize()) {
+      value.getDefiningOp()->emitError("Veq doesn't have a specified size.");
       return WalkResult::interrupt();
+    }
     qubits.resize(veq.getSize());
-    std::iota(entry->second.begin(), entry->second.end(), getNextQubit());
+    std::iota(entry->second.begin(), entry->second.end(), getNumQubits());
   } else {
-    qubits.push_back(getNextQubit());
+    qubits.push_back(getNumQubits());
   }
   growMatrix(qubits.size());
   return WalkResult::advance();
 }
 
-LogicalResult UnitaryBuilder::getValueAsInt(Value value, size_t &result) {
+LogicalResult UnitaryBuilder::getValueAsInt(Value value, std::size_t &result) {
   if (auto op =
           dyn_cast_if_present<arith::ConstantIntOp>(value.getDefiningOp()))
     if (auto index = dyn_cast<IntegerAttr>(op.getValue())) {
@@ -126,6 +138,28 @@ void UnitaryBuilder::negatedControls(ArrayRef<bool> negatedControls,
   for (auto [isNegated, qubit] : llvm::zip(negatedControls, qubits))
     if (isNegated)
       applyMatrix({0, 1, 1, 0}, qubit); // Apply pauli-x to the qubit
+}
+
+LogicalResult UnitaryBuilder::deallocateAncillas(std::size_t numQubits) {
+  if (matrix.rows() == (1 << numQubits))
+    return success();
+  const std::size_t size = (1ULL << numQubits);
+  UMatrix newMatrix = matrix.block(0, 0, size, size);
+  for (std::size_t i = 0; i < (1ULL << (getNumQubits() - numQubits)); ++i)
+    matrix.block(i * size, i * size, size, size).setZero();
+
+  // If the resulting matrix is not zero, we have dirty ancillas.
+  auto applyTolerance = [](cudaq::UnitaryBuilder::UMatrix &m) {
+    m = (1e-12 < m.array().abs()).select(m, 0.0f);
+  };
+  applyTolerance(matrix);
+  if (!matrix.isZero()) {
+    llvm::errs() << "Failed to clean up ancilla qubits.\n";
+    return failure();
+  }
+
+  matrix.swap(newMatrix);
+  return success();
 }
 
 //===----------------------------------------------------------------------===//
@@ -233,7 +267,7 @@ indicies(ArrayRef<UnitaryBuilder::Qubit> qubits,
   for (unsigned i = 0u, end = qubits.size(); i < end; ++i) {
     unsigned n = (1u << i);
     unsigned bit = (1u << qubits[i]);
-    for (size_t j = 0; j < n; j++)
+    for (std::size_t j = 0; j < n; j++)
       result.at(n + j) = result.at(j) | bit;
   }
   return result;
@@ -257,16 +291,17 @@ void UnitaryBuilder::applyMatrix(ArrayRef<Complex> u, unsigned numTargets,
   llvm::sort(qubitsSorted);
 
   auto *m = matrix.data();
-  const size_t dim = (1u << numTargets);
-  for (size_t k = 0u, end = (matrix.size() >> qubits.size()); k < end; ++k) {
+  const std::size_t dim = (1u << numTargets);
+  for (std::size_t k = 0u, end = (matrix.size() >> qubits.size()); k < end;
+       ++k) {
     auto idx = indicies(qubits, qubitsSorted, k);
     SmallVector<Complex, 8> cache(dim, 0);
-    for (size_t i = 0; i < dim; i++) {
+    for (std::size_t i = 0; i < dim; i++) {
       cache[i] = m[idx.at(i)];
       m[idx.at(i)] = 0.;
     }
-    for (size_t i = 0; i < dim; i++)
-      for (size_t j = 0; j < dim; j++)
+    for (std::size_t i = 0; i < dim; i++)
+      for (std::size_t j = 0; j < dim; j++)
         m[idx.at(i)] += u[i + dim * j] * cache[j];
   }
 }

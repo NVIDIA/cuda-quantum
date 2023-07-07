@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #pragma once
 
@@ -43,14 +43,6 @@ inline mlir::Type getPointerType(mlir::Type ty) {
 /// Return the LLVM-IR dialect type: `[length x i8]`.
 inline mlir::Type getStringType(mlir::MLIRContext *ctx, std::size_t length) {
   return mlir::LLVM::LLVMArrayType::get(mlir::IntegerType::get(ctx, 8), length);
-}
-
-/// Return a 1D MemRefType with a non-constant size.
-inline mlir::MemRefType getDynamicSize1DMemRef(mlir::Type elementType) {
-  // -1 is used to indicate that the size is dynamic.
-  constexpr int DYNAMIC = -1;
-  mlir::ArrayRef<int64_t> shape = {DYNAMIC};
-  return mlir::MemRefType::get(shape, elementType);
 }
 
 /// Return the QPU-side version of a `std::vector<T>` when lowered to a plain
@@ -102,6 +94,18 @@ createCountedLoop(mlir::OpBuilder &builder, mlir::Location loc,
                   llvm::function_ref<void(mlir::OpBuilder &, mlir::Location,
                                           mlir::Region &, mlir::Block &)>
                       bodyBuilder);
+
+bool hasHiddenSRet(mlir::FunctionType funcTy);
+
+/// Convert the function type \p funcTy to a signature compatible with the code
+/// on the CPU side. This will add hidden arguments, such as the `this` pointer,
+/// convert some results to `sret` pointers, etc.
+mlir::FunctionType toCpuSideFuncType(mlir::FunctionType funcTy);
+
+/// @brief Return true if the given type corresponds to a
+/// std-vector type according to our convention. The convention
+/// is a ptr<struct<ptr<T>, ptr<T>, ptr<T>>>.
+bool isStdVecArg(mlir::Type type);
 
 } // namespace opt::factory
 } // namespace cudaq

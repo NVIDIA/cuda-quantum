@@ -132,11 +132,13 @@ QuakeValue QuakeValue::operator[](const std::size_t idx) {
 
   Type eleTy = vectorValue.getType().cast<cc::StdvecType>().getElementType();
 
-  Type elePtrTy = LLVM::LLVMPointerType::get(eleTy);
-  Value vecPtr = opBuilder.create<cc::StdvecDataOp>(elePtrTy, vectorValue);
-  Value eleAddr =
-      opBuilder.create<LLVM::GEPOp>(elePtrTy, vecPtr, ValueRange{indexVar});
-  Value loaded = opBuilder.create<LLVM::LoadOp>(eleAddr);
+  auto arrPtrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
+  Value vecPtr = opBuilder.create<cc::StdvecDataOp>(arrPtrTy, vectorValue);
+  Type elePtrTy = cc::PointerType::get(eleTy);
+  std::int32_t idx32 = static_cast<std::int32_t>(idx);
+  Value eleAddr = opBuilder.create<cc::ComputePtrOp>(
+      elePtrTy, vecPtr, ArrayRef<cc::ComputePtrArg>{idx32});
+  Value loaded = opBuilder.create<cc::LoadOp>(eleAddr);
   auto ret = extractedFromIndex.emplace(
       std::make_pair(idx, QuakeValue(opBuilder, loaded)));
   return ret.first->second;
@@ -181,11 +183,11 @@ QuakeValue QuakeValue::operator[](const QuakeValue &idx) {
 
   Type eleTy = vectorValue.getType().cast<cc::StdvecType>().getElementType();
 
-  Type elePtrTy = LLVM::LLVMPointerType::get(eleTy);
+  Type elePtrTy = cc::PointerType::get(eleTy);
   Value vecPtr = opBuilder.create<cc::StdvecDataOp>(elePtrTy, vectorValue);
-  Value eleAddr =
-      opBuilder.create<LLVM::GEPOp>(elePtrTy, vecPtr, ValueRange{indexVar});
-  Value loaded = opBuilder.create<LLVM::LoadOp>(eleAddr);
+  Value eleAddr = opBuilder.create<cc::ComputePtrOp>(
+      elePtrTy, vecPtr, ArrayRef<cc::ComputePtrArg>{indexVar});
+  Value loaded = opBuilder.create<cc::LoadOp>(eleAddr);
   auto ret = extractedFromValue.emplace(
       std::make_pair(opaquePtr, QuakeValue(opBuilder, loaded)));
   return ret.first->second;
@@ -237,15 +239,15 @@ QuakeValue QuakeValue::slice(const std::size_t startIdx,
 
   // must be a stdvec type
   auto svecTy = dyn_cast<cc::StdvecType>(vectorValue.getType());
-  auto ptrTy = opt::factory::getPointerType(opBuilder.getContext());
+  auto ptrTy = cc::PointerType::get(opBuilder.getI8Type());
   auto vecPtr = opBuilder.create<cc::StdvecDataOp>(ptrTy, vectorValue);
   auto bits = svecTy.getElementType().getIntOrFloatBitWidth();
   assert(bits > 0);
   auto scale = opBuilder.create<arith::ConstantIntOp>((bits + 7) / 8,
                                                       startIdxValue.getType());
-  auto offset = opBuilder.create<arith::MulIOp>(scale, startIdxValue);
-  auto ptr =
-      opBuilder.create<LLVM::GEPOp>(ptrTy, vecPtr, ArrayRef<Value>{offset});
+  Value offset = opBuilder.create<arith::MulIOp>(scale, startIdxValue);
+  auto ptr = opBuilder.create<cc::ComputePtrOp>(
+      ptrTy, vecPtr, ArrayRef<cc::ComputePtrArg>{offset});
   Value subVecInit = opBuilder.create<cc::StdvecInitOp>(vectorValue.getType(),
                                                         ptr, countValue);
 
@@ -260,7 +262,7 @@ QuakeValue QuakeValue::slice(const std::size_t startIdx,
 
 mlir::Value QuakeValue::getValue() const { return value->asMLIR(); }
 
-QuakeValue QuakeValue::operator-() {
+QuakeValue QuakeValue::operator-() const {
   auto v = value->asMLIR();
   if (!v.getType().isIntOrFloat())
     throw std::runtime_error("Can only negate double/float QuakeValues.");

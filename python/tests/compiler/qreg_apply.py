@@ -15,6 +15,7 @@ import numpy as np
 
 import cudaq
 
+
 def test_kernel_qreg():
     """
     Test the `cudaq.Kernel` on each non-parameterized single qubit gate.

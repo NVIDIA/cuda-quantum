@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
 #include <cudaq/algorithm.h>
@@ -30,7 +30,7 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
 
     // Create the kernel, can be passed to cudaq algorithms
     // just like a declared kernel type. Instantiate
-    // invalidates the qreg reference you have.
+    // invalidates the qvector reference you have.
     double exp = cudaq::observe(ansatz, h, .59);
     printf("<H2> = %lf\n", exp);
     EXPECT_NEAR(exp, -1.748795, 1e-2);
@@ -130,6 +130,119 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     counts.dump();
     EXPECT_TRUE(counts.begin()->first == "101");
   }
+
+  {
+    // Check controlled parametric gates (constant angle)
+    auto cnot_builder = cudaq::make_kernel();
+    auto q = cnot_builder.qalloc(2);
+    cnot_builder.x(q);
+    // Rx(pi) == X
+    cnot_builder.rx<cudaq::ctrl>(M_PI, q[0], q[1]);
+    cnot_builder.mz(q);
+
+    auto counts = cudaq::sample(cnot_builder);
+    counts.dump();
+    EXPECT_EQ(counts.size(), 1);
+    EXPECT_TRUE(counts.begin()->first == "10");
+  }
+
+  {
+    // Check controlled parametric gates (QuakeValue angle)
+    auto [cnot_builder, theta] = cudaq::make_kernel<double>();
+    auto q = cnot_builder.qalloc(2);
+    cnot_builder.x(q);
+    // controlled-Rx(theta)
+    cnot_builder.rx<cudaq::ctrl>(theta, q[0], q[1]);
+    cnot_builder.mz(q);
+    // assign theta = pi; controlled-Rx(pi) == CNOT
+    auto counts = cudaq::sample(cnot_builder, M_PI);
+    counts.dump();
+    EXPECT_EQ(counts.size(), 1);
+    EXPECT_TRUE(counts.begin()->first == "10");
+  }
+
+  {
+    // Check adjoint parametric gates (constant angles)
+    auto rx_builder = cudaq::make_kernel();
+    auto q = rx_builder.qalloc();
+    // Rx(pi) == X
+    rx_builder.rx<cudaq::adj>(-M_PI_2, q);
+    rx_builder.rx(M_PI_2, q);
+    rx_builder.mz(q);
+
+    auto counts = cudaq::sample(rx_builder);
+    counts.dump();
+    EXPECT_EQ(counts.size(), 1);
+    EXPECT_TRUE(counts.begin()->first == "1");
+  }
+
+  {
+    // Check adjoint parametric gates (constant angles, implicit type
+    // conversion)
+    auto rx_builder = cudaq::make_kernel();
+    auto q = rx_builder.qalloc();
+    // float -> double implicit type conversion
+    rx_builder.rx<cudaq::adj>(-M_PI_4f32, q);
+    rx_builder.rx(M_PI_4f32, q);
+    // long double -> double implicit type conversion
+    const long double pi_4_ld = M_PI / 4.0;
+    rx_builder.rx<cudaq::adj>(-pi_4_ld, q);
+    rx_builder.rx(pi_4_ld, q);
+    rx_builder.mz(q);
+    // Rx(pi) == X (four pi/4 rotations)
+    auto counts = cudaq::sample(rx_builder);
+    counts.dump();
+    EXPECT_EQ(counts.size(), 1);
+    EXPECT_TRUE(counts.begin()->first == "1");
+  }
+
+  {
+    // Check adjoint parametric gates (QuakeValue angle)
+    auto [rx_builder, angle] = cudaq::make_kernel<double>();
+    auto q = rx_builder.qalloc();
+    rx_builder.rx<cudaq::adj>(-angle, q);
+    rx_builder.rx(angle, q);
+    rx_builder.mz(q);
+    // angle = pi/2 => equivalent to Rx(pi) == X
+    auto counts = cudaq::sample(rx_builder, M_PI_2);
+    counts.dump();
+    EXPECT_EQ(counts.size(), 1);
+    EXPECT_TRUE(counts.begin()->first == "1");
+  }
+}
+
+CUDAQ_TEST(BuilderTester, checkSwap) {
+  // Simple two-qubit swap.
+  {
+    auto kernel = cudaq::make_kernel();
+    auto q = kernel.qalloc(2);
+    // 0th qubit into the 1-state.
+    kernel.x(q[0]);
+    // Swap their states and measure.
+    kernel.swap(q[0], q[1]);
+    // Measure.
+    kernel.mz(q);
+
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    EXPECT_NEAR(counts.count("01"), 1000, 0);
+  }
+
+  // Simple two-qubit swap.
+  {
+    auto kernel = cudaq::make_kernel();
+    auto q = kernel.qalloc(2);
+    // 1st qubit into the 1-state.
+    kernel.x(q[1]);
+    // Swap their states and measure.
+    kernel.swap(q[0], q[1]);
+    // Measure.
+    kernel.mz(q);
+
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    EXPECT_NEAR(counts.count("10"), 1000, 0);
+  }
 }
 
 CUDAQ_TEST(BuilderTester, checkConditional) {
@@ -170,9 +283,9 @@ CUDAQ_TEST(BuilderTester, checkQubitArg) {
   EXPECT_EQ(counts.size(), 2);
 }
 
-CUDAQ_TEST(BuilderTester, checkQregArg) {
-  auto [kernel, qregArg] = cudaq::make_kernel<cudaq::qreg<>>();
-  kernel.h(qregArg);
+CUDAQ_TEST(BuilderTester, checkQvecArg) {
+  auto [kernel, qvectorArg] = cudaq::make_kernel<cudaq::qvector<>>();
+  kernel.h(qvectorArg);
 
   printf("%s", kernel.to_quake().c_str());
 
@@ -226,12 +339,6 @@ CUDAQ_TEST(BuilderTester, checkStdVecValidate) {
 
   // This is not ok
   EXPECT_ANY_THROW({ kernel(std::vector<double>{M_PI}); });
-
-  // Must provide the number of parameters that were extracted
-  EXPECT_ANY_THROW({
-    auto counts =
-        cudaq::sample(kernel, std::vector<double>{M_PI, M_PI_2, M_PI});
-  });
 }
 
 CUDAQ_TEST(BuilderTester, checkIsArgStdVec) {
@@ -281,7 +388,7 @@ CUDAQ_TEST(BuilderTester, checkKernelControl) {
   printf("< 1 | H | 1 > = %lf\n", counts.exp_val_z());
   EXPECT_NEAR(counts.exp_val_z(), -1.0 / std::sqrt(2.0), 1e-1);
 
-  // Demonstrate can control on qreg
+  // Demonstrate can control on qvector
   auto kernel = cudaq::make_kernel();
   auto ctrls = kernel.qalloc(2);
   auto tgt = kernel.qalloc();
@@ -371,6 +478,16 @@ CUDAQ_TEST(BuilderTester, checkReset) {
     counts.dump();
     EXPECT_EQ(counts.size(), 1);
     EXPECT_EQ(counts.begin()->first, "00");
+  }
+  {
+    auto entryPoint = cudaq::make_kernel();
+    auto q = entryPoint.qalloc(2);
+    entryPoint.x(q);
+    entryPoint.reset(q[0]);
+    entryPoint.mz(q);
+    auto counts = cudaq::sample(entryPoint);
+    EXPECT_EQ(counts.size(), 1);
+    EXPECT_EQ(counts.begin()->first, "01");
   }
 }
 
@@ -495,4 +612,28 @@ CUDAQ_TEST(BuilderTester, checkMidCircuitMeasure) {
     EXPECT_EQ(counts.count("1", "hello2"), 0);
     EXPECT_EQ(counts.count("0", "hello2"), 1000);
   }
+}
+
+CUDAQ_TEST(BuilderTester, checkNestedKernelCall) {
+  auto [kernel1, qubit1] = cudaq::make_kernel<cudaq::qubit>();
+  auto [kernel2, qubit2] = cudaq::make_kernel<cudaq::qubit>();
+  kernel2.call(kernel1, qubit2);
+  auto kernel3 = cudaq::make_kernel();
+  auto qreg3 = kernel3.qalloc(1);
+  auto qubit3 = qreg3[0];
+  kernel3.call(kernel2, qubit3);
+  auto quake = kernel3.to_quake();
+  std::cout << quake;
+
+  auto count = [](const std::string &str, const std::string &substr) {
+    std::size_t n = 0, pos = 0;
+    while ((pos = str.find(substr, pos)) != std::string::npos) {
+      ++n;
+      pos += substr.length();
+    }
+    return n;
+  };
+
+  EXPECT_EQ(count(quake, "func.func"), 3);
+  EXPECT_EQ(count(quake, "call @__nvqpp__"), 2);
 }

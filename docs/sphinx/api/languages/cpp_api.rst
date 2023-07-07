@@ -53,6 +53,8 @@ Common
 .. doxygenclass:: cudaq::complex_matrix
     :members:
 
+.. doxygenclass:: cudaq::Resources
+
 .. doxygentypedef:: cudaq::complex_matrix::value_type
 
 Noise Modeling 
@@ -118,6 +120,8 @@ Algorithms
 .. doxygenclass:: cudaq::gradients::parameter_shift
     :members:
 
+.. doxygenclass:: cudaq::gradients::forward_difference
+    :members:
 
 Platform
 =========

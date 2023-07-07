@@ -1,0 +1,95 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(quake-multicontrol-decomposition))' %s | FileCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(quake-multicontrol-decomposition))' %s | CircuitCheck %s
+
+// CHECK-LABEL: func.func @ccr1
+func.func @ccr1(%c0: !quake.ref, %c1: !quake.ref, %t: !quake.ref) {
+  %0 = arith.constant 1.57079632679489660 : f64
+  // CHECK-NOT: quake.r1 (%{{.*}})[%{{.*}}, %{{.*}}] %{{.*}}
+  quake.r1 (%0)[%c0, %c1] %t : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @cccr1
+func.func @cccr1(%c0: !quake.ref,  %c1: !quake.ref, %c2: !quake.ref, %t: !quake.ref) {
+  %0 = arith.constant 1.57079632679489660 : f64
+  // CHECK-NOT: quake.r1 (%{{.*}})[%{{.*}}, %{{.*}}, %{{.*}}] %{{.*}}
+  quake.r1 (%0)[%c0, %c1, %c2] %t : (f64, !quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @cccx
+func.func @cccx(%c0: !quake.ref,  %c1: !quake.ref, %c2: !quake.ref, %t: !quake.ref) {
+  // CHECK-NOT: quake.x [%{{.*}}, %{{.*}}, %{{.*}}] %{{.*}}
+  quake.x [%c0, %c1, %c2] %t : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @cccx_negated_controls
+func.func @cccx_negated_controls(%c0: !quake.ref,  %c1: !quake.ref, %c2: !quake.ref, %t: !quake.ref) {
+  // CHECK-NOT: quake.x [%{{.*}}, %{{.*}}, %{{.*}} neg [true, false, true]] %{{.*}}
+  quake.x [%c0, %c1, %c2 neg [true, false, true]] %t : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @c4x_negated_controls
+func.func @c4x_negated_controls(%c0: !quake.ref,  %c1: !quake.ref, %c2: !quake.ref, %c3: !quake.ref, %t: !quake.ref) {
+  // CHECK-NOT: quake.x [%{{.*}}, %{{.*}}, %{{.*}}, %{{.*}} neg [false, true, true, false]] %{{.*}}
+  quake.x [%c0, %c1, %c2, %c3 neg [false, true, true, false]] %t : (!quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @cccx_veq
+func.func @cccx_veq(%c: !quake.veq<3>, %t: !quake.ref) {
+  // CHECK-NOT: quake.x [%{{.*}}] %{{.*}} : (!quake.veq<3>, !quake.qref) -> ()
+  quake.x [%c] %t : (!quake.veq<3>, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @shared_ancilla
+func.func @shared_ancilla(%c: !quake.veq<3>, %t: !quake.ref) {
+  // CHECK: quake.alloca !quake.ref
+  // CHECK-NOT: quake.alloca !quake.ref
+  // CHECK: quake.extract_ref
+  quake.x [%c] %t : (!quake.veq<3>, !quake.ref) -> ()
+  quake.x [%c] %t : (!quake.veq<3>, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @shared_ancilla_2
+func.func @shared_ancilla_2(%c0: !quake.ref,  %c1: !quake.ref, %c2: !quake.ref, %c3: !quake.ref, %t: !quake.ref) {
+  // CHECK-NOT: quake.x [%{{.*}}, %{{.*}}, %{{.*}}, %{{.*}}] %{{.*}}
+  // CHECK-NOT: quake.z [%{{.*}}, %{{.*}}, %{{.*}}] %{{.*}}
+  // This will need two ancillas
+  quake.x [%c0, %c1, %c2, %c3] %t : (!quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  // This will need one ancilla
+  quake.z [%c0, %c1, %c2] %t : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @cccz
+func.func @cccz(%c0: !quake.ref,  %c1: !quake.ref, %c2: !quake.ref, %t: !quake.ref) {
+  // CHECK-NOT: quake.z [%{{.*}}, %{{.*}}, %{{.*}}] %{{.*}}
+  quake.z [%c0, %c1, %c2] %t : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// Make sure that non-controlled ops will be left alone.
+// CHECK-LABEL: func.func @bug_291
+func.func @bug_291(%c: !quake.veq<3>, %t: !quake.ref) {
+  // CHECK: quake.alloca !quake.ref
+  // CHECK-NOT: quake.alloca !quake.ref
+  // CHECK: quake.h
+  quake.h %t : (!quake.ref) -> ()
+  // CHECK: quake.extract_ref
+  quake.x [%c] %t : (!quake.veq<3>, !quake.ref) -> ()
+  quake.x [%c] %t : (!quake.veq<3>, !quake.ref) -> ()
+  return
+}

@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #pragma once
 
@@ -36,7 +36,8 @@ public:
   /// function, `func`, passed in by the user.
   std::vector<double>
   compute(const std::vector<double> &x,
-          std::function<double(std::vector<double>)> &func) override {
+          const std::function<double(std::vector<double>)> &func,
+          double funcAtX) override {
     std::vector<double> dx(x.size());
     auto tmpX = x;
     for (std::size_t i = 0; i < x.size(); i++) {

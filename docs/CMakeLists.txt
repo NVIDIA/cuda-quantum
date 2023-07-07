@@ -11,7 +11,7 @@ function(add_nvqpp_test TEST_NAME SOURCE_LOCATION)
   NAME
     nvqpp_${TEST_NAME}
   COMMAND
-    bash -c "${CMAKE_BINARY_DIR}/bin/nvq++ ${ARGV2} ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/examples/cpp/${SOURCE_LOCATION} -o ${TEST_NAME} ;\
+    bash -c "${CMAKE_BINARY_DIR}/bin/nvq++ ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/examples/cpp/${SOURCE_LOCATION} -o ${TEST_NAME} ;\
               ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME}"
   )
 endfunction()
@@ -20,7 +20,7 @@ add_nvqpp_test(GHZ basics/static_kernel.cpp)
 add_nvqpp_test(MultiControlOps basics/multi_controlled_operations.cpp)
 add_nvqpp_test(ExpVals basics/expectation_values.cpp)
 # We need quake to help with mid-circuit measurements
-add_nvqpp_test(MidCircuitMeasurements basics/mid_circuit_measurement.cpp --enable-mlir)
+add_nvqpp_test(MidCircuitMeasurements basics/mid_circuit_measurement.cpp)
 add_nvqpp_test(PhaseEstimation algorithms/phase_estimation.cpp)
 add_nvqpp_test(Grover algorithms/grover.cpp)
 add_nvqpp_test(QAOA algorithms/qaoa_maxcut.cpp)
@@ -39,7 +39,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
     NAME
       nvqpp_cuquantum
     COMMAND
-      bash -c "${CMAKE_BINARY_DIR}/bin/nvq++ -qpu cuquantum ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/examples/cpp/basics/cuquantum_backends.cpp -o CuQuantumBackend ;\
+      bash -c "${CMAKE_BINARY_DIR}/bin/nvq++ --target nvidia ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/examples/cpp/basics/cuquantum_backends.cpp -o CuQuantumBackend ;\
                 ${CMAKE_CURRENT_BINARY_DIR}/CuQuantumBackend"
     )
 endif()

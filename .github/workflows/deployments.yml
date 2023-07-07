@@ -1,5 +1,25 @@
 on:
+  # We update the build caches during the pull_request_target event, 
+  # and deploy the images via workflow dispatch on branches with deployment permissions.
+  # A dispatch event is automatically triggered when the pull_request_target event
+  # triggers the workflow.
   workflow_dispatch:
+    inputs:
+      update_registry_cache:
+        type: boolean
+        description: Create or update the build caches on the container registry.
+        required: false
+        default: false
+      platforms:
+        type: string
+        description: The platforms to build the Docker images for.
+        required: false
+        default: linux/amd64
+      create_release:
+        type: string
+        description: The version number of the release (e.g. 0.3.0). The version must not exist already.
+        required: false
+        default: ''
   # We need write permissions for packages to update the build caches of GHCR.
   # Make sure no external code is checked out as part of this workflow.
   pull_request_target:
@@ -8,22 +28,17 @@ on:
     branches:
       - 'main'
       - 'releases/*'
-  # We update the build caches during the pull_request_target event, 
-  # and deploy the images during pushes to branches with deployment permissions.
-  push:
-    branches:
-      - 'main'
-      - 'releases/*'
 
-name: Push dev images and update caches
+name: Deployments # do not change name without updating workflow_run triggers
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.base.ref || github.event.ref_name }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.base.ref || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
   devdeps:
     if: github.event_name != 'pull_request_target' || github.event.pull_request.merged == true
+    name: Build dev dependencies
     strategy:
       matrix:
         toolchain: [llvm, clang16, gcc12]
@@ -31,10 +46,31 @@ jobs:
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.Dockerfile
+      platforms: ${{ inputs.platforms }}
       toolchain: ${{ matrix.toolchain }}
       matrix_key: ${{ matrix.toolchain }}
+      registry_cache_update: ${{ github.event_name == 'workflow_dispatch' && inputs.update_registry_cache }}
       registry_cache_update_only: ${{ github.event.pull_request.merged == true }}
-      environment: ghcr-deployment
+      environment: ${{ (github.event.pull_request.merged != true && 'ghcr-deployment') || '' }}
+
+  dispatch:
+    if: github.event_name == 'pull_request_target'
+    name: Dispatch deployments
+    runs-on: ubuntu-latest
+    needs: devdeps
+
+    steps:
+      - uses: actions/github-script@v6
+        with:
+          # We want this dispatch to trigger additional workflows.
+          github-token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+          script: |
+            github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'deployments.yml',
+              ref: '${{ github.event.pull_request.base.ref }}',
+            })
 
   # This job is needed only when using the cloudposse GitHub action to read
   # the output of a matrix job. This is a workaround due to current GitHub
@@ -48,7 +84,8 @@ jobs:
 
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
-      base_image: ${{ steps.package_config.outputs.base_image }}
+      base_image: ${{ fromJson(steps.read_json.outputs.result).image_hash.llvm }}
+      toolchain: llvm
 
     steps:
       - uses: cloudposse/github-action-matrix-outputs-read@0.1.1
@@ -56,30 +93,38 @@ jobs:
         with:
           matrix-step-name: dev_environment
 
-      - id: package_config
-        run: |
-          llvm_image_name=${{ fromJson(steps.read_json.outputs.result).image_name.llvm }}
-          llvm_digests=${{ fromJson(steps.read_json.outputs.result).digests.llvm }}
-          if [ "$llvm_image_name" != "" ] && [ "$llvm_digests" != "" ]; then
-            base_image=${llvm_image_name}@$(echo $llvm_digests | cut -d ";" -f 1)
-            echo "base_image=$base_image" >> $GITHUB_OUTPUT
-          fi
+  openmpi:
+    if: github.event_name != 'pull_request_target'
+    name: Build Open MPI
+    uses: ./.github/workflows/dev_environment.yml
+    with:
+      dockerfile: build/devdeps.ompi.Dockerfile
+      platforms: ${{ inputs.platforms }}
+      registry_cache_update: true
+      environment: ghcr-deployment
 
   extdevdeps:
-    if: github.event_name != 'pull_request_target'
+    name: Create dev environment
     uses: ./.github/workflows/dev_environment.yml
-    needs: config
+    needs: [config, openmpi]
     with:
       dockerfile: build/devdeps.ext.Dockerfile
-      toolchain: llvm
-      base_image: ${{ needs.config.outputs.base_image }}
+      platforms: ${{ inputs.platforms }}
+      toolchain: ${{ needs.config.outputs.toolchain }}
+      build_args: |
+        base_image=${{ needs.config.outputs.base_image }}
+        ompidev_image=${{ needs.openmpi.outputs.image_hash }}
+      registry_cache_update: true
       environment: ghcr-deployment
 
   docker_image:
-    name: Create Packages
-    needs: extdevdeps
-    uses: ./.github/workflows/build_packages.yml
+    name: Create Docker images
+    needs: [extdevdeps, openmpi]
+    uses: ./.github/workflows/docker_images.yml
+    secrets: inherit
     with:
-      devdeps_cache: ${{ needs.extdevdeps.outputs.cache_key }}
-      devdeps_archive: ${{ needs.extdevdeps.outputs.tar_archive }}
+      platforms: ${{ inputs.platforms }}
+      ompidev_image: ${{ needs.openmpi.outputs.image_hash }}
+      devdeps_image: ${{ needs.extdevdeps.outputs.image_hash }}
       environment: ghcr-deployment
+      create_release: ${{ inputs.create_release }}

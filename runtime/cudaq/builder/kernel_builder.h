@@ -1,15 +1,16 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #pragma once
 
 #include "cudaq/qis/modifiers.h"
 #include "cudaq/qis/qreg.h"
+#include "cudaq/qis/qvector.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <cstring>
 #include <functional>
@@ -43,6 +44,15 @@ std::string get_quake_by_name(const std::string &);
 template <typename T>
 concept NumericType = requires(T param) { std::is_floating_point_v<T>; };
 
+/// @brief Define a Quake-constructable floating point value concept
+// i.e., it could be a `QuakeValue` type or a floating point number (convertible
+// to a `QuakeValue` with `ConstantFloatOp`).
+template <typename T>
+concept QuakeValueOrNumericType = requires(T param) {
+  std::is_floating_point_v<T> ||
+      std::is_same_v<std::remove_cvref_t<T>, QuakeValue>;
+};
+
 /// @brief Define a floating point concept
 template <typename T>
 concept IntegralType = requires(T param) { std::is_integral_v<T>; };
@@ -55,11 +65,12 @@ concept KernelBuilderArgTypeIsValid =
 // If you want to add to the list of valid kernel argument types
 // first add it here, then add `details::mapArgToType()` function
 #define CUDAQ_VALID_BUILDER_ARGS_FOLD()                                        \
-  requires(KernelBuilderArgTypeIsValid<                                        \
-               Args, float, double, std::size_t, int, std::vector<int>,        \
-               std::vector<float>, std::vector<std::size_t>,                   \
-               std::vector<double>, cudaq::qubit, cudaq::qreg<>> &&            \
-           ...)
+  requires(                                                                    \
+      KernelBuilderArgTypeIsValid<                                             \
+          Args, float, double, std::size_t, int, std::vector<int>,             \
+          std::vector<float>, std::vector<std::size_t>, std::vector<double>,   \
+          cudaq::qubit, cudaq::qreg<>, cudaq::qvector<>> &&                    \
+      ...)
 
 namespace details {
 
@@ -114,6 +125,9 @@ KernelBuilderType mapArgToType(cudaq::qubit &e);
 /// @brief  Map a `qreg` to a `KernelBuilderType`
 KernelBuilderType mapArgToType(cudaq::qreg<> &e);
 
+/// @brief  Map a qvector to a `KernelBuilderType`
+KernelBuilderType mapArgToType(cudaq::qvector<> &e);
+
 /// @brief Initialize the `MLIRContext`, return the raw
 /// pointer which we'll wrap in an `unique_ptr`.
 MLIRContext *initializeContext();
@@ -137,13 +151,13 @@ void deleteBuilder(ImplicitLocOpBuilder *builder);
 /// also given to the `unique_ptr`
 void deleteJitEngine(ExecutionEngine *jit);
 
-/// @brief Allocate a single qubit
+/// @brief Allocate a single `qubit`
 QuakeValue qalloc(ImplicitLocOpBuilder &builder);
 
-/// @brief Allocate a `qubit` or a `qreg`.
+/// @brief Allocate a `qvector`.
 QuakeValue qalloc(ImplicitLocOpBuilder &builder, const std::size_t nQubits);
 
-/// @brief Allocate a `qreg` from existing `QuakeValue` size
+/// @brief Allocate a `qvector` from existing `QuakeValue` size
 QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &size);
 
 // In the following macros + instantiations, we define the functions
@@ -177,7 +191,10 @@ CUDAQ_DETAILS_MEASURE_DECLARATION(mx)
 CUDAQ_DETAILS_MEASURE_DECLARATION(my)
 CUDAQ_DETAILS_MEASURE_DECLARATION(mz)
 
-void reset(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQreg);
+void swap(ImplicitLocOpBuilder &builder, const std::vector<QuakeValue> &ctrls,
+          const std::vector<QuakeValue> &targets, bool adjoint = false);
+
+void reset(ImplicitLocOpBuilder &builder, const QuakeValue &qubitOrQvec);
 
 void c_if(ImplicitLocOpBuilder &builder, QuakeValue &conditional,
           std::function<void()> &thenFunctor);
@@ -436,24 +453,27 @@ public:
     QuakeValue v(*opBuilder, param);                                           \
     details::NAME(*opBuilder, v, empty, qubit);                                \
   }                                                                            \
-  template <NumericType ConstantParameter>                                     \
-  void NAME(ConstantParameter &&constant, QuakeValue qubit) {                  \
-    NAME(constant, qubit);                                                     \
-  }                                                                            \
-  template <typename mod,                                                      \
+  template <typename mod, QuakeValueOrNumericType ParamT,                      \
             typename =                                                         \
                 typename std::enable_if_t<std::is_same_v<mod, cudaq::adj>>>    \
-  void NAME(QuakeValue parameter, QuakeValue qubit) {                          \
-    NAME(-parameter, qubit);                                                   \
+  void NAME(const ParamT &parameter, QuakeValue qubit) {                       \
+    if constexpr (std::is_floating_point_v<ParamT>)                            \
+      NAME(QuakeValue(*opBuilder, -parameter), qubit);                         \
+    else                                                                       \
+      NAME(-parameter, qubit);                                                 \
   }                                                                            \
-  template <typename mod, typename... QubitValues,                             \
+  template <typename mod, QuakeValueOrNumericType ParamT,                      \
+            typename... QubitValues,                                           \
             typename = typename std::enable_if_t<sizeof...(QubitValues) >= 2>> \
-  void NAME(QuakeValue parameter, QubitValues... args) {                       \
+  void NAME(const ParamT &parameter, QubitValues... args) {                    \
     std::vector<QuakeValue> values{args...};                                   \
     if constexpr (std::is_same_v<mod, cudaq::ctrl>) {                          \
       std::vector<QuakeValue> ctrls(values.begin(), values.end() - 1);         \
       auto &target = values.back();                                            \
-      NAME(parameter, ctrls, target);                                          \
+      if constexpr (std::is_floating_point_v<ParamT>)                          \
+        NAME(QuakeValue(*opBuilder, parameter), ctrls, target);                \
+      else                                                                     \
+        NAME(parameter, ctrls, target);                                        \
       return;                                                                  \
     }                                                                          \
   }
@@ -464,8 +484,8 @@ public:
   CUDAQ_BUILDER_ADD_ONE_QUBIT_PARAM(r1)
 
 #define CUDAQ_BUILDER_ADD_MEASURE(NAME)                                        \
-  QuakeValue NAME(QuakeValue qubitOrQreg) {                                    \
-    return details::NAME(*opBuilder, qubitOrQreg);                             \
+  QuakeValue NAME(QuakeValue qubitOrQvec) {                                    \
+    return details::NAME(*opBuilder, qubitOrQvec);                             \
   }                                                                            \
   auto NAME(QuakeValue qubit, const std::string &regName) {                    \
     return details::NAME(*opBuilder, qubit, regName);                          \
@@ -491,8 +511,16 @@ public:
   CUDAQ_BUILDER_ADD_MEASURE(my)
   CUDAQ_BUILDER_ADD_MEASURE(mz)
 
+  /// @brief SWAP operation for swapping the quantum states of qubits.
+  /// Currently only support swaps between two qubits.
+  void swap(const QuakeValue &first, const QuakeValue &second) {
+    const std::vector<QuakeValue> empty;
+    const std::vector<QuakeValue> &qubits{first, second};
+    details::swap(*opBuilder, empty, qubits);
+  }
+
   /// @brief Reset the given qubit or qubits.
-  void reset(QuakeValue &qubit) { details::reset(*opBuilder, qubit); }
+  void reset(const QuakeValue &qubit) { details::reset(*opBuilder, qubit); }
 
   /// @brief Apply a conditional statement on a
   /// measure result, if true apply the `thenFunctor`.

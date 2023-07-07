@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "common/ExecutionContext.h"
 #include "common/Logger.h"
@@ -88,7 +88,7 @@ public:
             sum += term.get_coefficient().real();
           else {
             auto [exp, data] = cudaq::measure(term);
-            results.emplace_back(data.to_map(), term.to_string(), exp);
+            results.emplace_back(data.to_map(), term.to_string(false), exp);
             sum += term.get_coefficient().real() * exp;
           }
         });
@@ -132,6 +132,8 @@ public:
     platformNumQPUs = platformQPUs.size();
     platformCurrentQPU = 0;
   }
+
+  bool supports_task_distribution() const override { return true; }
 };
 } // namespace
 

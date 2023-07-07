@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
 #include "common/ExecutionContext.h"
@@ -29,6 +29,7 @@ using TuplePtr = int8_t *;
 
 // Quantum instruction set - quantum intrinsic operations
 void __quantum__qis__swap(Qubit *src, Qubit *tgt);
+void __quantum__qis__swap__ctl(Array *ctrls, Qubit *q, Qubit *r);
 void __quantum__qis__cnot(Qubit *src, Qubit *tgt);
 void __quantum__qis__cz(Qubit *src, Qubit *tgt);
 void __quantum__qis__cphase(double x, Qubit *src, Qubit *tgt);
@@ -123,6 +124,7 @@ CUDAQ_TEST(NVQIRTester, checkQuantumIntrinsics) {
   auto q = src;
   auto ctls = __quantum__rt__array_slice_1d(qubits, 2, 1, 2);
   __quantum__qis__swap(src, tgt);
+  __quantum__qis__swap__ctl(ctls, src, tgt);
   __quantum__qis__cnot(src, tgt);
   __quantum__qis__cphase(2.2, src, tgt);
   __quantum__qis__h(q);
@@ -135,7 +137,7 @@ CUDAQ_TEST(NVQIRTester, checkQuantumIntrinsics) {
   __quantum__qis__t(q);
   __quantum__qis__t__ctl(ctls, q);
   __quantum__qis__tdg(q);
-  // __quantum__qis__reset(q);
+  __quantum__qis__reset(q);
   __quantum__qis__x(q);
   __quantum__qis__x__ctl(ctls, q);
   __quantum__qis__y(q);
@@ -150,9 +152,91 @@ CUDAQ_TEST(NVQIRTester, checkQuantumIntrinsics) {
   __quantum__rt__finalize();
 }
 
-// FIXME: Disabling test as qpp is the only backend capable
-// of resetting qubits right now.
-#if 0
+CUDAQ_TEST(NVQIRTester, checkSWAP) {
+  // Simple SWAP.
+  {
+    __quantum__rt__initialize(0, nullptr);
+    auto qubits = __quantum__rt__qubit_allocate_array(3);
+    Qubit *q0 = *reinterpret_cast<Qubit **>(
+        __quantum__rt__array_get_element_ptr_1d(qubits, 0));
+    Qubit *q1 = *reinterpret_cast<Qubit **>(
+        __quantum__rt__array_get_element_ptr_1d(qubits, 1));
+
+    // Place qubit 0 in the 1-state.
+    __quantum__qis__x(q0);
+
+    // Swap qubits 0 and 1.
+    __quantum__qis__swap(q0, q1);
+
+    assert(*__quantum__qis__mz(q0) == 0);
+    assert(*__quantum__qis__mz(q1) == 1);
+
+    __quantum__rt__qubit_release_array(qubits);
+    __quantum__rt__finalize();
+  }
+
+  // SWAP with a single ctrl qubit in 0 state.
+  {
+    __quantum__rt__initialize(0, nullptr);
+    auto ctrls = __quantum__rt__qubit_allocate_array(1);
+    auto qubits = __quantum__rt__qubit_allocate_array(2);
+    // Qubit *ctrl = *reinterpret_cast<Qubit **>(
+    //     __quantum__rt__array_get_element_ptr_1d(ctrls, 0));
+    Qubit *q0 = *reinterpret_cast<Qubit **>(
+        __quantum__rt__array_get_element_ptr_1d(qubits, 0));
+    Qubit *q1 = *reinterpret_cast<Qubit **>(
+        __quantum__rt__array_get_element_ptr_1d(qubits, 1));
+
+    // Place qubit 0 in the 1-state.
+    __quantum__qis__x(q1);
+
+    // Swap qubits 0 and 1 based on state of the single ctrl.
+    __quantum__qis__swap__ctl(ctrls, q0, q1);
+
+    assert(*__quantum__qis__mz(q0) == 0);
+    assert(*__quantum__qis__mz(q1) == 1);
+
+    __quantum__rt__qubit_release_array(ctrls);
+    __quantum__rt__qubit_release_array(qubits);
+    __quantum__rt__finalize();
+  }
+
+  // SWAP with three ctrl qubits in 1 state.
+  {
+    __quantum__rt__initialize(0, nullptr);
+    auto ctrls = __quantum__rt__qubit_allocate_array(3);
+    Qubit *ctrl0 = *reinterpret_cast<Qubit **>(
+        __quantum__rt__array_get_element_ptr_1d(ctrls, 0));
+    Qubit *ctrl1 = *reinterpret_cast<Qubit **>(
+        __quantum__rt__array_get_element_ptr_1d(ctrls, 1));
+    Qubit *ctrl2 = *reinterpret_cast<Qubit **>(
+        __quantum__rt__array_get_element_ptr_1d(ctrls, 2));
+    auto qubits = __quantum__rt__qubit_allocate_array(2);
+    Qubit *q0 = *reinterpret_cast<Qubit **>(
+        __quantum__rt__array_get_element_ptr_1d(qubits, 0));
+    Qubit *q1 = *reinterpret_cast<Qubit **>(
+        __quantum__rt__array_get_element_ptr_1d(qubits, 1));
+
+    // Place controls in 1 state.
+    __quantum__qis__x(ctrl0);
+    __quantum__qis__x(ctrl1);
+    __quantum__qis__x(ctrl2);
+
+    // Place qubit 1 in the 1-state.
+    __quantum__qis__x(q1);
+
+    // Swap qubits 0 and 1 based on state of the single ctrl.
+    __quantum__qis__swap__ctl(ctrls, q0, q1);
+
+    assert(*__quantum__qis__mz(q0) == 1);
+    assert(*__quantum__qis__mz(q1) == 0);
+
+    __quantum__rt__qubit_release_array(ctrls);
+    __quantum__rt__qubit_release_array(qubits);
+    __quantum__rt__finalize();
+  }
+}
+
 CUDAQ_TEST(NVQIRTester, checkQubitReset) {
   // Initialize two qubits in the 0-state.
   __quantum__rt__initialize(0, nullptr);
@@ -161,20 +245,21 @@ CUDAQ_TEST(NVQIRTester, checkQubitReset) {
       __quantum__rt__array_get_element_ptr_1d(qubits, 0));
   Qubit *q2 = *reinterpret_cast<Qubit **>(
       __quantum__rt__array_get_element_ptr_1d(qubits, 1));
-  
+
   // Place both qubits in the 1-state with X-gates.
   __quantum__qis__x(q1);
   __quantum__qis__x(q2);
   assert(*__quantum__qis__mz(q1) == 1);
   assert(*__quantum__qis__mz(q2) == 1);
 
-  // Reset just one of the qubits and confirm the other 
+  // Reset just one of the qubits and confirm the other
   // remains untouched.
   __quantum__qis__reset(q1);
   assert(*__quantum__qis__mz(q1) == 0);
   assert(*__quantum__qis__mz(q2) == 1);
+
+  __quantum__rt__qubit_release_array(qubits);
 }
-#endif
 
 Qubit *extract_qubit(Array *a, int idx) {
   auto q_raw_ptr = __quantum__rt__array_get_element_ptr_1d(a, idx);

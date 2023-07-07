@@ -38,6 +38,16 @@ def QIRToBaseQIRPrep : Pass<"qir-to-base-qir-prep", "mlir::ModuleOp"> {
   let constructor = "cudaq::opt::createBaseProfilePreparationPass()";
 }
 
+def VerifyBaseProfile : Pass<"verify-base-profile", "mlir::LLVM::LLVMFuncOp"> {
+  let summary = "Verify that the output conforms to the base profile";
+  let description = [{
+    This pass scans over functions in the LLVM-IR dialect to make sure they
+    conform to the QIR base profile.
+  }];
+
+  let constructor = "cudaq::opt::verifyBaseProfilePass()";
+}
+
 def QIRToBaseQIRFunc : Pass<"quake-to-base-qir-func",
                             "mlir::LLVM::LLVMFuncOp"> {
   let summary = "Analyze kernels and add attributes and record calls.";
@@ -76,54 +86,6 @@ def QIRToBaseQIR : Pass<"qir-to-base-qir"> {
            /*default=*/"10",
            "Seed the worklist in general top-down order">
   ];
-}
-
-def IQMGateSetMapper : Pass<"iqm-gate-set-mapping", "mlir::func::FuncOp"> {
-  let summary = "Convert gates to IQM mappings.";
-  let description = [{
-    This pass converts the standard gates to the IQM mapping gates. The
-    supported gates are phased R and CZ.
-  }];
-
-  let constructor = "cudaq::opt::createIQMGateSetMapping()";
-}
-
-def R1DecompositionGateSetMapper : Pass<"r1-decomposition-gate-set-mapping",
-                                        "mlir::func::FuncOp"> {
-  let summary =
-    "Decompose controlled-R1 gates to controlled-Z plus local rotations.";
-  let description = [{
-    Maps a controlled R1 on a single control qubit to a controlled Z rotation
-    on a single control qubit.
-  }];
-
-  let constructor = "cudaq::opt::createR1DecompositionGateSetMapping()";
-}
-
-def RnDecompositionGateSetMapper : Pass<"rn-decomposition-gate-set-mapping",
-                                        "mlir::func::FuncOp"> {
-  let summary =
-    "Decompose R[XYZ] gates to control-X and single qubit rotations.";
-  let description = [{
-    Maps controlled rotations with a single control qubit to CNOTs and single
-    qubit rotations.
-  }];
-
-  let constructor = "cudaq::opt::createRnDecompositionGateSetMapping()";
-}
-
-def QuantinuumGateSetMapper : Pass<"quantinuum-gate-set-mapping",
-                                   "mlir::func::FuncOp"> {
-  let summary = "Convert gates to Quantinuum backend mappings.";
-  let description = [{
-    Maps a controlled R1 on a single control qubit to a controlled Z rotation
-    on a single control qubit.
-
-    Maps controlled rotations with a single control qubit to CNOTs and single
-    qubit rotations.
-  }];
-
-  let constructor = "cudaq::opt::createQuantinuumGateSetMapping()";
 }
 
 #endif // CUDAQ_OPT_OPTIMIZER_CODEGEN_PASSES

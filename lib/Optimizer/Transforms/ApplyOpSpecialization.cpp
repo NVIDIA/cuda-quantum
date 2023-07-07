@@ -6,25 +6,25 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "LoopAnalysis.h"
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/Characteristics.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Todo.h"
 #include "llvm/Support/Debug.h"
-#include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/SCF/IR/SCF.h"
 #include "mlir/IR/Dominance.h"
 #include "mlir/IR/IRMapping.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"
 
-#define DEBUG_TYPE "quake-apply-rewrite"
+#define DEBUG_TYPE "apply-op-specialization"
 
 using namespace mlir;
 
 namespace {
-/// A quake.apply can indicate any of the following: a regular call to a
+/// A Quake ApplyOp can indicate any of the following: a regular call to a
 /// Callable (kernel), a call to a variant of a Callable with some control
 /// qubits, a call to a variant of a Callable in adjoint form, or a call to a
 /// Callable that is both adjoint and has control qubits.
@@ -135,176 +135,6 @@ static std::string getVariantFunctionName(quake::ApplyOp apply,
   return calleeName;
 }
 
-// We expect the loop control value to have the following form.
-//
-//   %final = cc.loop while ((%iter = %initial) -> (iN)) {
-//     ...
-//     %cond = arith.cmpi {<.<=,!=,>=,>}, %iter, %bound : iN
-//     cc.condition %cond (%iter : iN)
-//   } do {
-//    ^bb1(%iter : iN):
-//     ...
-//     cc.continue %iter : iN
-//   } step {
-//    ^bb2(%iter : iN):
-//     ...
-//     %next = arith.{addi,subi} %iter, %step : iN
-//     cc.continue %next : iN
-//   }
-//
-// with the additional requirement that none of the `...` sections can modify
-// the value of `%bound` or `%step`. Those values are invariant if there are
-// no side-effects in the loop Op (no store or call operations) and these values
-// do not depend on a block argument.
-// FIXME: assumes only the LCV is passed as a Value.
-static bool hasMonotonicPHIControl(cudaq::cc::LoopOp loop) {
-  if (loop.getInitArgs().empty() || loop.getResults().empty())
-    return false;
-  auto &whileBlock = loop.getWhileRegion().back();
-  auto condition = dyn_cast<cudaq::cc::ConditionOp>(whileBlock.back());
-  if (!condition || whileBlock.getArguments()[0] != condition.getResults()[0])
-    return false;
-  auto *cmpOp = condition.getCondition().getDefiningOp();
-  if (std::find(cmpOp->getOperands().begin(), cmpOp->getOperands().end(),
-                whileBlock.getArguments()[0]) == cmpOp->getOperands().end())
-    return false;
-  auto &bodyBlock = loop.getBodyRegion().back();
-  auto bodyTermOp = dyn_cast<cudaq::cc::ContinueOp>(bodyBlock.back());
-  if (!bodyTermOp || (bodyBlock.getArguments()[0] != bodyTermOp.getOperand(0)))
-    return false;
-  auto &stepBlock = loop.getStepRegion().back();
-  auto backedgeOp = dyn_cast<cudaq::cc::ContinueOp>(stepBlock.back());
-  if (!backedgeOp)
-    return false;
-  auto *mutateOp = backedgeOp.getOperand(0).getDefiningOp();
-  if (!isa<arith::AddIOp, arith::SubIOp>(mutateOp) ||
-      std::find(mutateOp->getOperands().begin(), mutateOp->getOperands().end(),
-                stepBlock.getArguments()[0]) == mutateOp->getOperands().end())
-    return false;
-  // FIXME: should verify %bound, %step are loop invariant.
-  return true;
-}
-
-// From the comparison Op in the while block, gather a list of all the scalar
-// temporaries that are referenced. One of these should be the induction
-// variable that controls the loop.
-static SmallVector<Operation *> populateComparisonTemps(Operation *cmpOp,
-                                                        Block &whileBlock) {
-  SmallVector<Operation *> results;
-  SmallVector<Operation *> worklist = {cmpOp};
-  do {
-    auto *op = worklist.back();
-    worklist.pop_back();
-    if (auto loadOp = dyn_cast<memref::LoadOp>(op)) {
-      auto *defOp = loadOp.getMemRef().getDefiningOp();
-      if (auto alloc = dyn_cast_or_null<memref::AllocaOp>(defOp)) {
-        auto memrefTy = alloc.getType();
-        // Induction must be a scalar integral type.
-        if (memrefTy.getShape().empty() &&
-            memrefTy.getElementType().isa<IntegerType>())
-          results.push_back(defOp);
-      }
-    } else {
-      for (auto val : op->getOperands())
-        if (auto *def = val.getDefiningOp();
-            def && def->getBlock() == &whileBlock)
-          worklist.push_back(def);
-    }
-  } while (!worklist.empty());
-  return results;
-}
-
-// We expect the loop control value to have the following form.
-//
-//   cc.loop while {
-//     ...
-//     %0 = memref.load %iter[] : memref<iN>
-//     %1 = arith.cmpi {<,<=,!=,>=,>}, %0, %bound : iN
-//     cc.condition %1
-//   } do {
-//     ...
-//   } step {
-//     ...
-//     %0 = memref.load %iter[] : memref<iN>
-//     %1 = arith.{addi,subi} %0, %step : iN
-//     memref.store %1, %iter[] : memref<iN>
-//   }
-//
-// with the additional requirement that none of the `...` sections can modify
-// the value of `%bound` or `%step`. Those values are invariant if there are
-// no side-effects in the loop Op (no store or call operations) and these values
-// do not depend on a block argument.
-static bool hasMonotonicLCV(cudaq::cc::LoopOp loop) {
-  if (!loop.getInitArgs().empty() && !loop.getResults().empty())
-    return false;
-  auto &whileBlock = loop.getWhileRegion().back();
-  auto condition = dyn_cast<cudaq::cc::ConditionOp>(whileBlock.back());
-  if (!condition)
-    return false;
-  auto *cmpOp = condition.getCondition().getDefiningOp();
-  auto compare = dyn_cast_or_null<arith::CmpIOp>(cmpOp);
-  if (!compare)
-    return false;
-  // Collect any loads for the expressions into compare in the while region.
-  SmallVector<Operation *> comparisonTemps =
-      populateComparisonTemps(cmpOp, whileBlock);
-  auto &stepBlock = loop.getStepRegion().back();
-  // Search loads in step region. Exactly one must match that in the while
-  // region and be mutated by a store to itself.
-  auto matchedWhileVariable = [&]() {
-    unsigned count = 0;
-    for (auto &op : llvm::reverse(stepBlock))
-      if (auto storeOp = dyn_cast<memref::StoreOp>(op))
-        if (std::find(comparisonTemps.begin(), comparisonTemps.end(),
-                      storeOp.getMemRef().getDefiningOp()) !=
-            comparisonTemps.end())
-          if (auto *def = storeOp.getValue().getDefiningOp())
-            if (isa<arith::AddIOp, arith::SubIOp>(def))
-              for (auto defOpnd : def->getOperands()) // exactly 2
-                if (auto loadOp =
-                        dyn_cast<memref::LoadOp>(defOpnd.getDefiningOp()))
-                  if (storeOp.getMemRef().getDefiningOp() ==
-                      loadOp.getMemRef().getDefiningOp())
-                    ++count;
-    return count == 1;
-  }();
-  if (!matchedWhileVariable)
-    return false;
-  // FIXME: should verify %bound, %step are loop invariant.
-  return true;
-}
-
-// Check that there is a lcv for the loop and that the generated function is
-// monotonic and constant slope.
-// Check for either a closed form value passed as a block argument via the
-// backedge of the loop (as from mem2reg) or a memory-bound variable.
-static bool hasMonotonicControlInduction(cudaq::cc::LoopOp loop) {
-  return hasMonotonicLCV(loop) || hasMonotonicPHIControl(loop);
-}
-
-// A monotonic loop is defined to be a loop that will execute some bounded
-// number of iterations that can be predetermined before the loop, in fact,
-// executes. A loop such as `for(i = 0; i < n; ++i)` is a monotonic loop that
-// must execute
-//   n : if n > 0
-//   0 : if n <= 0
-// iterations. Early exits (break statements) are not permitted.
-static bool isaMonotonicLoop(Operation &op) {
-  if (auto loopOp = dyn_cast<cudaq::cc::LoopOp>(op)) {
-    // Cannot be a `while` or `do while` loop.
-    if (loopOp.isPostConditional() || !loopOp.hasStep())
-      return false;
-    auto &reg = loopOp.getBodyRegion();
-    // This is a `for` loop and must have a body with a continue terminator.
-    // Currently, only a single basic block is allowed to keep things simple.
-    // This is in keeping with our definition of structured control flow.
-    return !reg.empty() && reg.hasOneBlock() &&
-           isa<cudaq::cc::ContinueOp>(reg.front().getTerminator()) &&
-           hasMonotonicControlInduction(loopOp);
-  }
-  return false;
-}
-
 // Returns true if this region contains unstructured control flow. Branches
 // between basic blocks in a Region are defined to be unstructured. A Region
 // with a single Block which contains cc.scope, cc.loop and cc.if, which
@@ -320,7 +150,9 @@ static bool regionHasUnstructuredControlFlow(Region &region) {
   for (auto &op : block) {
     if (op.getNumRegions() == 0)
       continue;
-    if (!isa<cudaq::cc::IfOp>(op) && !isaMonotonicLoop(op) &&
+    if (op.hasTrait<cudaq::JumpWithUnwind>())
+      return true;
+    if (!isa<cudaq::cc::IfOp>(op) && !cudaq::opt::isaMonotonicLoop(&op) &&
         op.getNumRegions() > 1)
       return true; // Op has multiple regions but is not a known Op.
     for (auto &reg : op.getRegions())
@@ -551,17 +383,22 @@ public:
   }
 
   static Value cloneRootSubexpression(OpBuilder &builder, Block &block,
-                                      Value root) {
-    if (auto *op = root.getDefiningOp())
+                                      Value root, cudaq::cc::LoopOp loop) {
+    if (auto *op = root.getDefiningOp()) {
       if (op->getBlock() == &block) {
         for (Value v : op->getOperands())
-          cloneRootSubexpression(builder, block, v);
+          cloneRootSubexpression(builder, block, v, loop);
         return builder.clone(*op)->getResult(0);
       }
+      return root;
+    }
+    auto blkArg = cast<BlockArgument>(root);
+    if (blkArg.getOwner() == &block)
+      return loop.getInitialArgs()[blkArg.getArgNumber()];
     return root;
   }
 
-  // Build an arith.constant Op for an integral type (including index).
+  /// Build an `Arith::ConstantOp` for an integral type (including index).
   static Value createIntConstant(OpBuilder &builder, Location loc, Type ty,
                                  std::int64_t val) {
     auto attr = builder.getIntegerAttr(ty, val);
@@ -575,125 +412,53 @@ public:
   /// loop invariant.
   static cudaq::cc::LoopOp cloneReversedLoop(OpBuilder &builder,
                                              cudaq::cc::LoopOp loop) {
-    auto loc = loop.getLoc();
-    // Recover the different subexpressions from the loop. Given:
-    //
-    //   for (int i = A; i `cmp` B; i = i `bump` C) ...
-    //
-    // Get references to each of: `i`, A, B, C, `cmp`, and `bump` regardless of
-    // the loop structure.
-    bool inductionIsValue = hasMonotonicPHIControl(loop);
-    auto &whileRegion = loop.getWhileRegion();
-    auto condOp = cast<cudaq::cc::ConditionOp>(whileRegion.back().back());
-    auto cmpOp = cast<arith::CmpIOp>(condOp.getCondition().getDefiningOp());
-    auto pair0 = [&]() -> std::pair<Operation *, Operation *> {
-      if (!inductionIsValue) {
-        auto comparisonTemps =
-            populateComparisonTemps(cmpOp, whileRegion.back());
-        for (auto &op : llvm::reverse(loop.getStepRegion().back())) {
-          if (auto storeOp = dyn_cast<memref::StoreOp>(op)) {
-            auto *storeTo = storeOp.getMemRef().getDefiningOp();
-            if (std::find(comparisonTemps.begin(), comparisonTemps.end(),
-                          storeTo) != comparisonTemps.end())
-              return {storeTo, storeOp.getValue().getDefiningOp()};
-          }
-        }
-      }
-      return {};
-    }();
-    auto inductionVar{pair0.first};
-    auto stepOp{pair0.second};
-    Value initialValue =
-        inductionIsValue
-            ? loop.getInitArgs()[0]
-            : builder.create<memref::LoadOp>(loc, inductionVar->getResult(0));
-    auto inductionOnLhs = [&](auto binOp) -> Value {
-      if (auto load = dyn_cast<memref::LoadOp>(binOp.getLhs().getDefiningOp()))
-        if (load.getMemRef().getDefiningOp() == inductionVar)
-          return binOp.getRhs();
-      return {};
-    };
-    auto oppositeOfInduction = [&](auto binOp) -> Value {
-      if (auto result = inductionOnLhs(binOp))
-        return result;
-      [[maybe_unused]] auto load =
-          dyn_cast<memref::LoadOp>(binOp.getRhs().getDefiningOp());
-      assert(load && load.getMemRef().getDefiningOp() == inductionVar);
-      return binOp.getLhs();
-    };
-    Value terminalValue = [&]() {
-      if (inductionIsValue) {
-        if (cmpOp.getLhs() == loop.getWhileRegion().front().getArgument(0))
-          return cmpOp.getRhs();
-        assert(cmpOp.getRhs() == loop.getWhileRegion().front().getArgument(0));
-        return cmpOp.getLhs();
-      }
-      return oppositeOfInduction(cmpOp);
-    }();
-    auto trip0 = [&]() -> std::tuple<Value, bool, bool> {
-      if (inductionIsValue) {
-        auto contOp =
-            dyn_cast<cudaq::cc::ContinueOp>(loop.getStepRegion().back().back());
-        stepOp = contOp.getOperand(0).getDefiningOp();
-        if (auto addOp = dyn_cast<arith::AddIOp>(stepOp)) {
-          if (addOp.getLhs() == loop.getStepRegion().back().getArgument(0))
-            return {addOp.getRhs(), true, false};
-          assert(addOp.getRhs() == loop.getStepRegion().back().getArgument(0));
-          return {addOp.getLhs(), true, true};
-        }
-        auto subOp = cast<arith::SubIOp>(stepOp);
-        return {subOp.getRhs(), false, false};
-      }
-      if (auto addOp = dyn_cast<arith::AddIOp>(stepOp)) {
-        auto stepVal = oppositeOfInduction(addOp);
-        return {stepVal, true, addOp.getLhs() == stepVal};
-      }
-      auto subOp = cast<arith::SubIOp>(stepOp);
-      auto result = inductionOnLhs(subOp);
-      assert(result && "induction variable expected on lhs of subtraction");
-      return {result, false, false};
-    }();
-    auto stepValue{std::get<0>(trip0)};
-    auto stepIsAnAddOp{std::get<1>(trip0)};
-    auto commuteTheAddOp{std::get<2>(trip0)};
+    auto loopComponents = cudaq::opt::getLoopComponents(loop);
+    assert(loopComponents && "could not determine components of loop");
+    auto stepIsAnAddOp = loopComponents->stepIsAnAddOp();
+    auto commuteTheAddOp = loopComponents->shouldCommuteStepOp();
 
     // Now rewrite the loop to run in reverse. `builder` is set at the point we
     // want to insert the new loop.
-    Value newTermVal = cloneRootSubexpression(
-        builder, loop.getWhileRegion().back(), terminalValue);
-    Value newStepVal =
-        cloneRootSubexpression(builder, loop.getStepRegion().back(), stepValue);
+    auto loc = loop.getLoc();
+    Value newTermVal =
+        cloneRootSubexpression(builder, loop.getWhileRegion().back(),
+                               loopComponents->compareValue, loop);
+    Value newStepVal = cloneRootSubexpression(
+        builder, loop.getStepRegion().back(), loopComponents->stepValue, loop);
     auto zero = createIntConstant(builder, loc, newStepVal.getType(), 0);
     if (!stepIsAnAddOp) {
       // Negate the step value when arith.subi.
       newStepVal = builder.create<arith::SubIOp>(loc, zero, newStepVal);
     }
-    Value iters = builder.create<arith::SubIOp>(loc, newTermVal, initialValue);
+    Value iters = builder.create<arith::SubIOp>(
+        loc, newTermVal, loop.getInitialArgs()[loopComponents->induction]);
+    auto cmpOp = cast<arith::CmpIOp>(loopComponents->compareOp);
     auto pred = cmpOp.getPredicate();
-    // FIXME: This assumes the unsigned value range, if used, for the loop fits
-    // within the signed value range of the type of the induction.
-    if (pred == arith::CmpIPredicate::ule ||
-        pred == arith::CmpIPredicate::sle ||
-        pred == arith::CmpIPredicate::uge || pred == arith::CmpIPredicate::sge)
-      iters = builder.create<arith::AddIOp>(loc, iters, newStepVal);
+    auto one = createIntConstant(builder, loc, iters.getType(), 1);
+    if (cudaq::opt::isSemiOpenPredicate(pred)) {
+      Value negStepCond = builder.create<arith::CmpIOp>(
+          loc, arith::CmpIPredicate::slt, newStepVal, zero);
+      auto negOne = createIntConstant(builder, loc, iters.getType(), -1);
+      Value adj = builder.create<arith::SelectOp>(loc, iters.getType(),
+                                                  negStepCond, one, negOne);
+      iters = builder.create<arith::AddIOp>(loc, iters, adj);
+    }
+    iters = builder.create<arith::AddIOp>(loc, iters, newStepVal);
     iters = builder.create<arith::DivSIOp>(loc, iters, newStepVal);
     Value noLoopCond = builder.create<arith::CmpIOp>(
         loc, arith::CmpIPredicate::sgt, iters, zero);
     iters = builder.create<arith::SelectOp>(loc, iters.getType(), noLoopCond,
                                             iters, zero);
-    auto one = createIntConstant(builder, loc, iters.getType(), 1);
-    Value adjustIters = builder.create<arith::SubIOp>(loc, iters, one);
-    Value nStep = builder.create<arith::MulIOp>(loc, adjustIters, newStepVal);
-    Value newInitVal = builder.create<arith::AddIOp>(loc, initialValue, nStep);
+    Value lastIter = builder.create<arith::SubIOp>(loc, iters, one);
+    Value nStep = builder.create<arith::MulIOp>(loc, lastIter, newStepVal);
+    Value newInitVal =
+        builder.create<arith::AddIOp>(loc, loopComponents->initialValue, nStep);
 
     // Create the list of input arguments to loop. We're going to add an
     // argument to the end that is the number of iterations left to execute.
-    SmallVector<Value> inputs;
-    if (inductionIsValue)
-      inputs.push_back(newInitVal);
-    else
-      builder.create<memref::StoreOp>(loc, newInitVal,
-                                      inductionVar->getResult(0));
+    SmallVector<Value> inputs = loop.getInitialArgs();
+    assert(loopComponents->induction < inputs.size());
+    inputs[loopComponents->induction] = newInitVal;
     inputs.push_back(iters);
 
     // Create the new LoopOp. This requires threading the new value that is the
@@ -736,40 +501,24 @@ public:
         },
         [&](OpBuilder &builder, Location loc, Region &region) {
           IRMapping dummyMap;
-          if (!inductionIsValue) {
-            // In memory case, create the new op before doing the clone and
-            // before we lose track of which op is the step op.
-            OpBuilder::InsertionGuard guard(builder);
-            builder.setInsertionPoint(stepOp);
-            IRRewriter rewriter(builder);
-            if (stepIsAnAddOp)
-              rewriter.replaceOpWithNewOp<arith::SubIOp>(
-                  stepOp, stepOp->getOperand(commuteTheAddOp ? 1 : 0),
-                  stepOp->getOperand(commuteTheAddOp ? 0 : 1));
-            else
-              rewriter.replaceOpWithNewOp<arith::AddIOp>(
-                  stepOp, stepOp->getOperand(0), stepOp->getOperand(1));
-          }
           loop.getStepRegion().cloneInto(&region, dummyMap);
           Block &entry = region.front();
           entry.addArgument(iters.getType(), loc);
           auto contOp = cast<cudaq::cc::ContinueOp>(region.back().back());
           IRRewriter rewriter(builder);
           rewriter.setInsertionPoint(contOp);
-          SmallVector<Value> args;
-          if (inductionIsValue) {
-            // In the value case, replace after the clone since we need to
-            // thread the new value and it's trivial to find the stepOp.
-            auto *stepOp = contOp.getOperand(0).getDefiningOp();
-            auto newBump = [&]() -> Value {
-              if (stepIsAnAddOp)
-                return rewriter.create<arith::SubIOp>(
-                    loc, stepOp->getOperand(commuteTheAddOp ? 1 : 0),
-                    stepOp->getOperand(commuteTheAddOp ? 0 : 1));
-              return rewriter.create<arith::AddIOp>(loc, stepOp->getOperands());
-            }();
-            args.push_back(newBump);
-          }
+          SmallVector<Value> args = contOp.getOperands();
+          // In the value case, replace after the clone since we need to
+          // thread the new value and it's trivial to find the stepOp.
+          auto *stepOp = contOp.getOperand(0).getDefiningOp();
+          auto newBump = [&]() -> Value {
+            if (stepIsAnAddOp)
+              return rewriter.create<arith::SubIOp>(
+                  loc, stepOp->getOperand(commuteTheAddOp ? 1 : 0),
+                  stepOp->getOperand(commuteTheAddOp ? 0 : 1));
+            return rewriter.create<arith::AddIOp>(loc, stepOp->getOperands());
+          }();
+          args[loopComponents->induction] = newBump;
           auto one = createIntConstant(rewriter, loc, iters.getType(), 1);
           args.push_back(rewriter.create<arith::SubIOp>(
               loc, entry.getArguments().back(), one));
@@ -809,6 +558,7 @@ public:
       if (auto loopOp = dyn_cast<cudaq::cc::LoopOp>(op)) {
         LLVM_DEBUG(llvm::dbgs() << "moving loop: " << loopOp << ".\n");
         auto newLoopOp = cloneReversedLoop(builder, loopOp);
+        LLVM_DEBUG(llvm::dbgs() << "  to: " << newLoopOp << ".\n");
         op->replaceAllUsesWith(newLoopOp->getResults().drop_back());
         op->erase();
         invert(newLoopOp.getBodyRegion());

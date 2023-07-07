@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
@@ -207,8 +207,13 @@ static LogicalResult emitOperation(Emitter &emitter, func::FuncOp op) {
 }
 
 static LogicalResult emitOperation(Emitter &emitter, quake::ExtractRefOp op) {
+  std::optional<int64_t> index = std::nullopt;
+  if (op.hasConstantIndex())
+    index = op.getConstantIndex();
+  else
+    index = getIndexValueAsInt(op.getIndex());
+
   auto veqName = emitter.getOrAssignName(op.getVeq());
-  auto index = getIndexValueAsInt(op.getIndex());
   auto qrefName = llvm::formatv("{0}[{1}]", veqName, *index);
   emitter.getOrAssignName(op.getRef(), qrefName);
   return success();

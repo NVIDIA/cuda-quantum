@@ -215,8 +215,9 @@ def test_kernel_control_list_args(qubit_count):
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
 # CHECK-SAME:                                                                   %[[VAL_0:.*]]: !cc.stdvec<f64>) {
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
-# CHECK:           %[[VAL_2:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<f64>) -> !llvm.ptr<f64>
-# CHECK:           %[[VAL_3:.*]] = llvm.load %[[VAL_2]] : !llvm.ptr<f64>
+# CHECK:           %[[VAL_2:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
+# CHECK:           %[[VAL_4:.*]] = cc.compute_ptr %[[VAL_2]][0] : (!cc.ptr<!cc.array<f64 x ?>>) -> !cc.ptr<f64>
+# CHECK:           %[[VAL_3:.*]] = cc.load %[[VAL_4]] : !cc.ptr<f64>
 # CHECK:           quake.rx (%[[VAL_3]]) %[[VAL_1]] : (f64, !quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
@@ -231,8 +232,9 @@ def test_kernel_control_list_args(qubit_count):
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
 # CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<f64>) {
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
-# CHECK:           %[[VAL_2:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<f64>) -> !llvm.ptr<f64>
-# CHECK:           %[[VAL_3:.*]] = llvm.load %[[VAL_2]] : !llvm.ptr<f64>
+# CHECK:           %[[VAL_2:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
+# CHECK:           %[[VAL_4:.*]] = cc.compute_ptr %[[VAL_2]][0] : (!cc.ptr<!cc.array<f64 x ?>>) -> !cc.ptr<f64>
+# CHECK:           %[[VAL_3:.*]] = cc.load %[[VAL_4]] : !cc.ptr<f64>
 # CHECK:           quake.rx (%[[VAL_3]]) %[[VAL_1]] : (f64, !quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
@@ -331,7 +333,6 @@ def test_sample_control_qreg_args():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
 # CHECK:           %[[VAL_0:.*]] = arith.constant 2 : index
-# CHECK:           %[[VAL_1:.*]] = arith.constant 2 : i64
 # CHECK:           %[[VAL_2:.*]] = arith.constant 1 : index
 # CHECK:           %[[VAL_3:.*]] = arith.constant 0 : index
 # CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<2>
@@ -340,7 +341,7 @@ def test_sample_control_qreg_args():
 # CHECK:           quake.x %[[VAL_7]] : (!quake.ref) -> ()
 # CHECK:           quake.x %[[VAL_6]] : (!quake.ref) -> ()
 # CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}{{\[}}%[[VAL_5]]] %[[VAL_6]] : (!quake.veq<2>, !quake.ref) -> ()
-# CHECK:           %[[VAL_8:.*]] = llvm.alloca %[[VAL_1]] x i1 : (i64) -> !llvm.ptr<i1>
+# CHECK:           %[[VAL_8:.*]] = cc.alloca !cc.array<i1 x 2>
 # CHECK:           %[[VAL_9:.*]] = cc.loop while ((%[[VAL_10:.*]] = %[[VAL_3]]) -> (index)) {
 # CHECK:             %[[VAL_11:.*]] = arith.cmpi slt, %[[VAL_10]], %[[VAL_0]] : index
 # CHECK:             cc.condition %[[VAL_11]](%[[VAL_10]] : index)
@@ -349,8 +350,8 @@ def test_sample_control_qreg_args():
 # CHECK:             %[[VAL_13:.*]] = quake.extract_ref %[[VAL_5]][%[[VAL_12]]] : (!quake.veq<2>, index) -> !quake.ref
 # CHECK:             %[[VAL_14:.*]] = quake.mz %[[VAL_13]] : (!quake.ref) -> i1
 # CHECK:             %[[VAL_15:.*]] = arith.index_cast %[[VAL_12]] : index to i64
-# CHECK:             %[[VAL_16:.*]] = llvm.getelementptr %[[VAL_8]]{{\[}}%[[VAL_15]]] : (!llvm.ptr<i1>, i64) -> !llvm.ptr<i1>
-# CHECK:             llvm.store %[[VAL_14]], %[[VAL_16]] : !llvm.ptr<i1>
+# CHECK:             %[[VAL_16:.*]] = cc.compute_ptr %[[VAL_8]][%[[VAL_15]]] : (!cc.ptr<!cc.array<i1 x 2>>, i64) -> !cc.ptr<i1>
+# CHECK:             cc.store %[[VAL_14]], %[[VAL_16]] : !cc.ptr<i1>
 # CHECK:             cc.continue %[[VAL_12]] : index
 # CHECK:           } step {
 # CHECK:           ^bb0(%[[VAL_17:.*]]: index):
@@ -429,8 +430,7 @@ def test_sample_apply_call_control():
 # CHECK:           return
 # CHECK:         }
 
-
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
-    pytest.main([loc, "-rP" ])
+    pytest.main([loc, "-rP"])

@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 #include "molecule.h"
 #include "MoleculePackageDriver.h"
 #include "cudaq/utils/cudaq_utils.h"
@@ -15,6 +15,15 @@
 LLVM_INSTANTIATE_REGISTRY(cudaq::MoleculePackageDriver::RegistryType)
 
 namespace cudaq {
+
+std::string molecular_geometry::name() const {
+  std::string ret = "";
+  for (auto &a : atoms)
+    ret += a.name;
+
+  return ret;
+}
+
 one_body_integrals::one_body_integrals(const std::vector<std::size_t> &shape)
     : shape(shape) {
   assert(shape.size() == 2);

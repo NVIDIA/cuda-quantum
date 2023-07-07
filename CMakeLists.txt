@@ -107,6 +107,8 @@ option(CUDAQ_ENABLE_RPC_LOGGING "Enable verbose printout for client/server qpud 
 option(CUDAQ_BUILD_RELOCATABLE_PACKAGE "Make CUDA Quantum install tree relocatable, system headers included." OFF)
 option(CUDAQ_TEST_MOCK_SERVERS "Enable Remote QPU Tests via Mock Servers." OFF)
 option(CUDAQ_DISABLE_RUNTIME "Build without the CUDA Quantum runtime, just the compiler toolchain." OFF)
+option(CUDAQ_SKIP_MPI "Do not build with MPI, even when it is available." OFF)
+option(CUDAQ_DISABLE_CPP_FRONTEND "Build without the CUDA Quantum C++ Clang-based Frontend." OFF)
 
 if (CUDAQ_BUILD_RELOCATABLE_PACKAGE) 
   if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -340,6 +342,14 @@ endif()
 find_package(CURL COMPONENTS HTTP HTTPS QUIET) 
 find_package(OpenSSL QUIET)
 
+# Optionally build with MPI
+if (NOT CUDAQ_SKIP_MPI)
+  find_package(MPI COMPONENTS CXX)
+  if (MPI_FOUND) 
+    message(STATUS "MPI CXX Found: ${MPIEXEC}")
+  endif()
+endif()
+
 # Directory setup
 # ==============================================================================
 if (CUDAQ_ENABLE_PYTHON)
@@ -352,7 +362,10 @@ add_subdirectory(lib)
 if (NOT CUDAQ_DISABLE_RUNTIME)
   add_subdirectory(runtime)
 endif()
-add_subdirectory(tools)
+if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
+  add_subdirectory(tools)
+endif()
+
 add_subdirectory(utils)
 
 # Python setup
@@ -360,7 +373,16 @@ add_subdirectory(utils)
 if(CUDAQ_BUILD_TESTS)
   set(INSTALL_GTEST OFF)
   add_subdirectory(tpls/googletest-src)
-  target_compile_options(gtest PRIVATE -Wno-covered-switch-default)
+  # Bug in GCC 12 leads to spurious warnings (-Wrestrict)
+  # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105329
+  if (CMAKE_COMPILER_IS_GNUCXX 
+    AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12.0.0 
+    AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13.0.0)
+    target_compile_options(gtest PUBLIC --param=evrp-mode=legacy)
+  endif()
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    target_compile_options(gtest PUBLIC -Wno-covered-switch-default)
+  endif()
   include(GoogleTest)
   include(CTest)
   if (NOT CUDAQ_DISABLE_RUNTIME)

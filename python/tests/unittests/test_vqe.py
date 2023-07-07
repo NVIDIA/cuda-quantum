@@ -123,7 +123,7 @@ def test_vqe_two_qubit_float(optimizer, kernel_two_qubit_vqe_float,
         optimizer,
         parameter_count=1,
         argument_mapper=lambda parameter_vector: parameter_vector[0],
-        shots=100)
+        shots=-1)
 
     # Known minimal expectation value for this system:
     want_expectation_value = -1.7487948611472093
@@ -146,10 +146,10 @@ def test_vqe_two_qubit_list(optimizer, kernel_two_qubit_vqe_list,
     """
     # Should be able to call this by passing a function that returns a kernel:
     got_expectation, got_parameters = cudaq.vqe(kernel_two_qubit_vqe_list,
-                                               hamiltonian_2q,
-                                               optimizer,
-                                               parameter_count=1,
-                                               shots=100)
+                                                hamiltonian_2q,
+                                                optimizer,
+                                                parameter_count=1,
+                                                shots=-1)
 
     # Known minimal expectation value for this system:
     want_expectation_value = -1.7487948611472093
@@ -172,10 +172,11 @@ def test_vqe_two_qubit_list(optimizer, kernel_two_qubit_vqe_list,
         cudaq.optimizers.GradientDescent(),
         cudaq.optimizers.SGD(),
     ])
-@pytest.mark.parametrize(
-    "gradient",
-    [cudaq.gradients.CentralDifference(),
-     cudaq.gradients.ParameterShift()])
+@pytest.mark.parametrize("gradient", [
+    cudaq.gradients.CentralDifference(),
+    cudaq.gradients.ParameterShift(),
+    cudaq.gradients.ForwardDifference()
+])
 def test_vqe_two_qubit_float_gradients(optimizer, gradient,
                                        kernel_two_qubit_vqe_float,
                                        hamiltonian_2q):
@@ -198,7 +199,7 @@ def test_vqe_two_qubit_float_gradients(optimizer, gradient,
         optimizer=optimizer,
         parameter_count=1,
         argument_mapper=argument_map,
-        shots=100)
+        shots=-1)
 
     # Known minimal expectation value for this system:
     want_expectation_value = -1.7487948611472093
@@ -221,10 +222,11 @@ def test_vqe_two_qubit_float_gradients(optimizer, gradient,
         cudaq.optimizers.GradientDescent(),
         cudaq.optimizers.SGD(),
     ])
-@pytest.mark.parametrize(
-    "gradient",
-    [cudaq.gradients.CentralDifference(),
-     cudaq.gradients.ParameterShift()])
+@pytest.mark.parametrize("gradient", [
+    cudaq.gradients.CentralDifference(),
+    cudaq.gradients.ParameterShift(),
+    cudaq.gradients.ForwardDifference()
+])
 def test_vqe_two_qubit_list_gradients(optimizer, gradient,
                                       kernel_two_qubit_vqe_list,
                                       hamiltonian_2q):
@@ -234,12 +236,13 @@ def test_vqe_two_qubit_list_gradients(optimizer, gradient,
     `Kernel` and `Callable` overloads.
     """
     # Should be able to call this by passing a function that returns a kernel:
-    got_expectation, got_parameters = cudaq.vqe(kernel=kernel_two_qubit_vqe_list,
-                                               gradient_strategy=gradient,
-                                               spin_operator=hamiltonian_2q,
-                                               optimizer=optimizer,
-                                               parameter_count=1,
-                                               shots=100)
+    got_expectation, got_parameters = cudaq.vqe(
+        kernel=kernel_two_qubit_vqe_list,
+        gradient_strategy=gradient,
+        spin_operator=hamiltonian_2q,
+        optimizer=optimizer,
+        parameter_count=1,
+        shots=-1)
 
     # Known minimal expectation value for this system:
     want_expectation_value = -1.7487948611472093
@@ -281,9 +284,9 @@ def test_vqe_three_qubit_list(optimizer, kernel_three_qubit_vqe_list,
                               hamiltonian_3q):
     # Should be able to call this by passing a function that returns a kernel:
     got_expectation, got_parameters = cudaq.vqe(kernel_three_qubit_vqe_list,
-                                               hamiltonian_3q,
-                                               optimizer,
-                                               parameter_count=2)
+                                                hamiltonian_3q,
+                                                optimizer,
+                                                parameter_count=2)
 
     # Known minimal expectation value for this system:
     want_expectation_value = -2.045375
@@ -310,6 +313,7 @@ def test_vqe_three_qubit_list(optimizer, kernel_three_qubit_vqe_list,
     "gradient",
     [
         cudaq.gradients.CentralDifference(),
+        cudaq.gradients.ForwardDifference(),
         # FIXME: cudaq.gradients.ParameterShift()
     ])
 def test_vqe_three_qubit_float_gradients(optimizer, gradient,
@@ -324,11 +328,11 @@ def test_vqe_three_qubit_float_gradients(optimizer, gradient,
     optimizer.max_iterations = 100
     # Should be able to call this by passing a function that returns a kernel:
     got_expectation, got_parameters = cudaq.vqe(kernel=kernel_three_qubit_vqe,
-                                               gradient_strategy=gradient,
-                                               spin_operator=hamiltonian_3q,
-                                               optimizer=optimizer,
-                                               parameter_count=2,
-                                               argument_mapper=argument_map)
+                                                gradient_strategy=gradient,
+                                                spin_operator=hamiltonian_3q,
+                                                optimizer=optimizer,
+                                                parameter_count=2,
+                                                argument_mapper=argument_map)
 
     # Known minimal expectation value for this system:
     want_expectation_value = -2.045375
@@ -355,6 +359,7 @@ def test_vqe_three_qubit_float_gradients(optimizer, gradient,
     "gradient",
     [
         cudaq.gradients.CentralDifference(),
+        cudaq.gradients.ForwardDifference(),
         # FIXME: cudaq.gradients.ParameterShift()
     ])
 def test_vqe_three_qubit_list_gradients(optimizer, gradient,

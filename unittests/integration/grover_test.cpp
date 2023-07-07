@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
 #include <cudaq/algorithm.h>
@@ -31,7 +31,7 @@ struct run_grover {
   template <typename CallableKernel>
   __qpu__ auto operator()(const int n_qubits, const int n_iterations,
                           CallableKernel &&oracle) {
-    cudaq::qreg q(n_qubits);
+    cudaq::qvector q(n_qubits);
     h(q);
     for (int i = 0; i < n_iterations; i++) {
       oracle(q);
@@ -42,7 +42,7 @@ struct run_grover {
 };
 
 struct oracle {
-  void operator()(cudaq::qreg<> &q) __qpu__ {
+  void operator()(cudaq::qvector<> &q) __qpu__ {
     cz(q[0], q[2]);
     cz(q[1], q[2]);
   }

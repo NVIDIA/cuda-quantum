@@ -32,7 +32,7 @@ matrix:
       - open: '(^|\s)[a-z]+-'
         close: '(?=.)'
       # Ignore paths of files (recognized by them having a file extension)
-      - open: '(^|\s)([A-Za-z_\\\/]+\.)+'
+      - open: '([A-Za-z_\\\/]+\.)+'
         close: '($|(?=[^a-z]))'
         content: '\S+?'
 
@@ -65,6 +65,13 @@ matrix:
       # Ignore lines that start with two dots
       - open: '^\s*\.\.'
         close: '$'
+      # Ignore words after colon deliminated configurations
+      - open: ' {3}:[A-Za-z_-]+:'
+        close: '$'
+      # Ignore words between two colons, e.g. :maxdepth:
+      - open: '(^|\s):'
+        close: ':(\s|$)'
+        content: '[A-Za-z_-]*?'
       # Ignore word prefixes, e.g. "pre-" in pre-computed
       - open: '(^|\s)[a-z]+-'
         close: '(?=.)'
@@ -117,7 +124,7 @@ matrix:
       # Ignore comments of the form `/*...*/` since they are used to annotate argument names
       - open: '\/\*'
         close: '\*\/'
-        content: \S*?
+        content: '\S*?'
       # Ignore end of line comments
       - open: '(^|\s)\/\/\s'
         close: '$'

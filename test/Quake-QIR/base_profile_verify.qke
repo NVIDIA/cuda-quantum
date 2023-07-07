@@ -1,0 +1,31 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: (cudaq-translate --convert-to=qir-base %s 2>&1 || true) | FileCheck %s
+
+func.func @__nvqpp__mlirgen__function_init_state._Z10init_statev() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %cst = arith.constant 2.000000e+00 : f64
+  %cst_0 = arith.constant 1.000000e+00 : f64
+  %c3_i32 = arith.constant 3 : i32
+  %0 = call @_ZSt4sqrtIiEN9__gnu_cxx11__enable_ifIXsr12__is_integerIT_EE7__valueEdE6__typeES2_(%c3_i32) : (i32) -> f64
+  %1 = arith.divf %cst_0, %0 : f64
+  %2 = call @acos(%1) : (f64) -> f64
+  %3 = arith.mulf %2, %cst : f64
+  %4 = quake.alloca !quake.veq<2>
+  %5 = quake.extract_ref %4[0] : (!quake.veq<2>) -> !quake.ref
+  quake.ry (%3) %5 : (f64, !quake.ref) -> ()
+  %6 = quake.extract_ref %4[1] : (!quake.veq<2>) -> !quake.ref
+  quake.h [%5] %6 : (!quake.ref, !quake.ref) -> ()
+  quake.x %6 : (!quake.ref) -> ()
+  return
+}
+func.func private @_ZSt4sqrtIiEN9__gnu_cxx11__enable_ifIXsr12__is_integerIT_EE7__valueEdE6__typeES2_(i32) -> f64
+func.func private @acos(f64) -> f64
+
+// CHECK: unexpected call in QIR base profile
+// CHECK: unexpected call in QIR base profile

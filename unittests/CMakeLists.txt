@@ -14,7 +14,6 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   integration/adjoint_tester.cpp
   integration/builder_tester.cpp
   integration/ccnot_tester.cpp
-  # integration/deuteron_exp_inst.cpp
   integration/deuteron_variational_tester.cpp
   integration/ghz_nisq_tester.cpp
   integration/gradient_tester.cpp
@@ -36,6 +35,7 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   qis/QubitQISTester.cpp
   common/MeasureCountsTester.cpp
   common/NoiseModelTester.cpp
+  integration/tracer_tester.cpp
 )
 
 # Make it so we can get function symbols
@@ -90,6 +90,27 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
     nvqir-custatevec-fp64
     gtest_main)
     gtest_discover_tests(test_mqpu)
+
+    if (MPI_CXX_FOUND)
+      # Count the number of GPUs
+      execute_process(COMMAND bash -c "nvidia-smi --list-gpus | wc -l" OUTPUT_VARIABLE NGPUS)
+      # Only build this test if we have more than 1 GPU
+      if (${NGPUS} GREATER_EQUAL 2)
+        add_executable(test_mpi main.cpp mqpu/mpi_mqpu_tester.cpp)
+        if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+          target_link_options(test_mpi PRIVATE -Wl,--no-as-needed)
+        endif()
+        target_link_libraries(test_mpi
+            PRIVATE 
+            cudaq
+            cudaq-platform-mqpu
+            nvqir-custatevec-fp32
+            gtest_main)
+          configure_file("mqpu/run_mpi.sh.in"
+                    "${CMAKE_BINARY_DIR}/unittests/run_mpi.sh" @ONLY)
+        add_test(NAME MPITest COMMAND ${MPIEXEC} --allow-run-as-root -np 2 ${CMAKE_BINARY_DIR}/unittests/run_mpi.sh)
+      endif()
+    endif() 
 endif() 
 
 # Create an executable for SpinOp UnitTests
@@ -149,8 +170,17 @@ if (CUDAQ_ENABLE_PYTHON)
     cudaq-chemistry
     cudaq-pyscf
     gtest_main)
-  gtest_discover_tests(test_domains PROPERTIES 
-         ENVIRONMENT 
-         "PYTHONPATH=$ENV{PYTHONPATH}:${CMAKE_BINARY_DIR}/python")
+  gtest_discover_tests(test_domains
+    TEST_SUFFIX _Sampling
+    PROPERTIES
+      ENVIRONMENT
+        "PYTHONPATH=$ENV{PYTHONPATH}:${CMAKE_BINARY_DIR}/python")
+  gtest_discover_tests(test_domains
+    TEST_SUFFIX _Observe
+    PROPERTIES
+      ENVIRONMENT
+        "PYTHONPATH=$ENV{PYTHONPATH}:${CMAKE_BINARY_DIR}/python"
+      ENVIRONMENT
+        "CUDAQ_OBSERVE_FROM_SAMPLING=false")
 endif()
 

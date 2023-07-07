@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include <pybind11/stl.h>
 
@@ -344,8 +344,25 @@ void bindKernel(py::module &mod) {
       ADD_BUILDER_PARAM_QIS_METHOD(rx)
       ADD_BUILDER_PARAM_QIS_METHOD(ry)
       ADD_BUILDER_PARAM_QIS_METHOD(rz)
+      ADD_BUILDER_PARAM_QIS_METHOD(r1)
       // clang-format on
 
+      /// @brief Bind the SWAP gate.
+      .def(
+          "swap",
+          [](kernel_builder<> &self, const QuakeValue &first,
+             const QuakeValue &second) { return self.swap(first, second); },
+          py::arg("first"), py::arg("second"),
+          "Swap the states of the provided qubits.\n "
+          "\n.. code-block:: python\n\n"
+          "  # Example:\n"
+          "  kernel = cudaq.make_kernel()\n"
+          "  # Allocate qubit/s to the `kernel`.\n"
+          "  qubits = kernel.qalloc(2)\n"
+          "  # Place the 0th qubit in the 1-state.\n"
+          "  kernel.x(qubits[0])\n\n"
+          "  # Swap their states.\n"
+          "  kernel.swap(qubits[0], qubits[1])\n")
       /// @brief Allow for conditional statements on measurements.
       .def(
           "c_if",

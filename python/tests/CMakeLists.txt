@@ -8,8 +8,6 @@
 
 # Tests that generate MLIR and are run through both pytest and FileCheck.
 add_subdirectory(compiler)
-# Unit tests that are run exclusively through pytest.
-add_subdirectory(unittests)     
 
 if (NOT CUDAQ_TEST_MOCK_SERVERS)
   message(STATUS "CUDAQ_TEST_MOCK_SERVERS=FALSE, skipping Python remote QPU tests.")
@@ -58,6 +56,3 @@ if (NOT ${PYDANTIC_result} EQUAL 0)
 endif()
 
 message(STATUS "CUDAQ_TEST_MOCK_SERVERS=TRUE and dependent modules available, building Python remote QPU tests.")
-
-# Test the mock QPU servers
-add_subdirectory(backends)

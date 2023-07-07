@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 // Simple test to make sure the tool is built and has basic functionality.
 
@@ -12,7 +12,7 @@
 // RUN: FileCheck --check-prefixes=CHECK-LLVM %s < simple.ll
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ghz
-// CHECK-SAME:        (%[[VAL_0:.*]]: i32)
+// CHECK-SAME:        (%[[VAL_0:.*]]: i32{{.*}})
 // CHECK-VISIT:     %[[VAL_1:.*]] = memref.alloca() : memref<i32>
 // CHECK-VISIT:     memref.store %[[VAL_0]], %[[VAL_1]][] : memref<i32>
 // CHECK-VISIT:     %[[VAL_2:.*]] = memref.load %[[VAL_1]][] : memref<i32>

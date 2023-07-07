@@ -1,4 +1,4 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -10,6 +10,7 @@
 
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Todo.h"
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/GlobalDecl.h"
@@ -22,7 +23,6 @@
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
-#include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
@@ -308,8 +308,8 @@ public:
   /// type. Otherwise, just returns \p val.
   mlir::Value loadLValue(mlir::Value val) {
     auto valTy = val.getType();
-    if (valTy.isa<mlir::MemRefType>())
-      return builder.create<mlir::memref::LoadOp>(val.getLoc(), val);
+    if (valTy.isa<cudaq::cc::PointerType>())
+      return builder.create<cudaq::cc::LoadOp>(val.getLoc(), val);
     if (valTy.isa<mlir::LLVM::LLVMPointerType>())
       return builder.create<mlir::LLVM::LoadOp>(val.getLoc(), val);
     return val;
@@ -502,7 +502,7 @@ private:
 /// The ASTBridgeAction enables the insertion of a custom ASTConsumer to the
 /// Clang AST analysis / processing workflow. The nested ASTBridgeConsumer
 /// drives the process of walking the Clang AST and translate pertinent nodes to
-/// an MLIR Op tree containing Quantum, Standard, Memref, and LLVM operations.
+/// an MLIR Op tree containing Quake, CC, and other MLIR dialect operations.
 /// This Action will generate this MLIR Module and rewrite the input source code
 /// (using the Clang Rewriter system) to define quantum kernels as extern.
 class ASTBridgeAction : public clang::ASTFrontendAction {
@@ -552,6 +552,11 @@ public:
 
     mlir::Value getConstantInt(mlir::Location loc, const uint64_t value,
                                const int bitwidth = 64);
+
+    /// Add a declaration to the module for the function, \p funcDecl.
+    void addFunctionDecl(const clang::FunctionDecl *funcDecl,
+                         details::QuakeBridgeVisitor &visitor,
+                         mlir::FunctionType funcTy);
 
   public:
     ASTBridgeConsumer(clang::CompilerInstance &compiler,
@@ -613,5 +618,7 @@ inline bool isInClassInNamespace(const clang::Decl *x,
       return cli->getName().equals(className) && isInNamespace(cld, nsName);
   return false;
 }
+
+bool isInExternC(const clang::GlobalDecl &x);
 
 } // namespace cudaq

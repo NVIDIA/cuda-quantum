@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
 
@@ -18,7 +18,7 @@ inline std::vector<int> range(int N) {
 
 struct ghz {
   auto operator()(int N) __qpu__ {
-    cudaq::qreg q(N);
+    cudaq::qvector q(N);
     h(q[0]);
     for (auto i : range(N - 1)) {
       x<cudaq::ctrl>(q[i], q[i + 1]);

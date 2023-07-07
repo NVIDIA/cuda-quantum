@@ -35,7 +35,7 @@ struct ctrlHeisenberg {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__heisenbergU(
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ctrlHeisenberg(
-// CHECK-SAME:        %{{.*}}: i32) attributes
+// CHECK-SAME:        %{{.*}}: i32{{.*}}) attributes
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_8:.*]] = quake.concat %[[VAL_2]], %[[VAL_3]] : (!quake.ref, !quake.ref) -> !quake.veq<2>
@@ -108,7 +108,7 @@ __qpu__ void qnppx2(double theta, cudaq::qubit &q, cudaq::qubit &r,
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_qnppx2
-// CHECK-SAME:       %{{[^:]*}}: f64, %[[VAL_1:.*]]: !quake.ref, %[[VAL_2:.*]]: !quake.ref, %[[VAL_3:.*]]: !quake.ref, %[[VAL_4:.*]]: !quake.ref)
+// CHECK-SAME:       %{{[^:]*}}: f64{{.*}}, %[[VAL_1:.*]]: !quake.ref{{.*}}, %[[VAL_2:.*]]: !quake.ref{{.*}}, %[[VAL_3:.*]]: !quake.ref{{.*}}, %[[VAL_4:.*]]: !quake.ref{{.*}})
 // CHECK:           %[[VAL_7:.*]] = quake.concat %[[VAL_1]], %[[VAL_4]] : (!quake.ref, !quake.ref) -> !quake.veq<2>
 // CHECK:           quake.x %[[VAL_4]]
 // CHECK:           quake.apply @__nvqpp__mlirgen__givens[%[[VAL_7]]] %{{.*}}, %[[VAL_2]], %[[VAL_3]] : (!quake.veq<2>, f64, !quake.ref, !quake.ref) -> ()

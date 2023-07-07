@@ -1,16 +1,17 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #pragma once
 
 #include "Future.h"
 #include "MeasureCounts.h"
 #include "NoiseModel.h"
+#include "Resources.h"
 #include <optional>
 #include <string_view>
 
@@ -65,6 +66,10 @@ public:
   /// simulation clients to extract the underlying simulation data.
   State simulationData;
 
+  /// @brief When run under the tracer context, persist the
+  /// traced quantum resources here.
+  Resources kernelResources;
+
   /// @brief The name of the kernel being executed.
   std::string kernelName = "";
 
@@ -75,6 +80,10 @@ public:
   /// @brief For batch execution, the total number of
   /// batch iterations.
   std::size_t totalIterations = 0;
+
+  /// @brief For mid-circuit measurements in library mode
+  /// keep track of the register names.
+  std::vector<std::string> registerNames;
 
   /// @brief The Constructor, takes the name of the context
   /// @param n The name of the context

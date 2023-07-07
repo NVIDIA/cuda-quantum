@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
@@ -92,7 +92,7 @@ optimization_result pyVQE(kernel_builder<> &kernel, cudaq::gradient &gradient,
     double energy = get_expected_value(x);
     printf("<H> = %lf\n", energy);
     if (requires_grad) {
-      grad_vec = gradient.compute(x, get_expected_value);
+      grad_vec = gradient.compute(x, get_expected_value, energy);
     }
     return energy;
   });
@@ -127,7 +127,7 @@ optimization_result pyVQE(kernel_builder<> &kernel, cudaq::gradient &gradient,
     double energy = get_expected_value(x);
     printf("<H> = %lf\n", energy);
     if (requires_grad) {
-      grad_vec = gradient.compute(x, get_expected_value);
+      grad_vec = gradient.compute(x, get_expected_value, energy);
     }
     return energy;
   });

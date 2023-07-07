@@ -1,14 +1,15 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
+#include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"
 #include "mlir/Dialect/Utils/StructuredOpsUtils.h"
@@ -18,6 +19,302 @@
 #include "mlir/IR/TypeUtilities.h"
 
 using namespace mlir;
+
+template <typename R>
+R getParentOfType(Operation *op) {
+  do {
+    op = op->getParentOp();
+    if (auto r = dyn_cast_or_null<R>(op))
+      return r;
+  } while (op);
+  return {};
+}
+
+//===----------------------------------------------------------------------===//
+// AddressOfOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult
+cudaq::cc::AddressOfOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
+  Operation *op = symbolTable.lookupSymbolIn(
+      getParentOfType<ModuleOp>(getOperation()), getGlobalNameAttr());
+
+  // TODO: add globals?
+  auto function = dyn_cast_or_null<func::FuncOp>(op);
+  if (!function)
+    return emitOpError("must reference a global defined by 'func.func'");
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
+// AllocaOp
+//===----------------------------------------------------------------------===//
+
+void cudaq::cc::AllocaOp::print(OpAsmPrinter &p) {
+  p << ' ' << getElementType();
+  if (auto size = getSeqSize())
+    p << '[' << size << " : " << size.getType() << ']';
+}
+
+ParseResult cudaq::cc::AllocaOp::parse(OpAsmParser &parser,
+                                       OperationState &result) {
+  Type eleTy;
+  if (parser.parseType(eleTy))
+    return failure();
+  result.addAttribute("elementType", TypeAttr::get(eleTy));
+  Type resTy;
+  if (succeeded(parser.parseOptionalLSquare())) {
+    OpAsmParser::UnresolvedOperand operand;
+    Type operTy;
+    if (parser.parseOperand(operand) || parser.parseColonType(operTy) ||
+        parser.parseRSquare() ||
+        parser.resolveOperand(operand, operTy, result.operands))
+      return failure();
+    resTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
+  } else {
+    resTy = cc::PointerType::get(eleTy);
+  }
+  if (!resTy || parser.parseOptionalAttrDict(result.attributes) ||
+      parser.addTypeToList(resTy, result.types))
+    return failure();
+  return success();
+}
+
+OpFoldResult cudaq::cc::AllocaOp::fold(ArrayRef<Attribute> params) {
+  if (params.size() == 1) {
+    // If allocating a contiguous block of elements and the size of the block is
+    // a constant, fold the size into the cc.array type and allocate a constant
+    // sized block.
+    if (auto intAttr = dyn_cast_or_null<IntegerAttr>(params[0])) {
+      auto size = intAttr.getInt();
+      if (size > 0) {
+        auto resTy = cast<cc::ArrayType>(
+            cast<cc::PointerType>(getType()).getElementType());
+        auto arrTy = cc::ArrayType::get(resTy.getContext(),
+                                        resTy.getElementType(), size);
+        getOperation()->setAttr("elementType", TypeAttr::get(arrTy));
+        getResult().setType(cc::PointerType::get(arrTy));
+        getOperation()->eraseOperand(0);
+        return getResult();
+      }
+    }
+  }
+  return nullptr;
+}
+
+//===----------------------------------------------------------------------===//
+// CastOp
+//===----------------------------------------------------------------------===//
+
+OpFoldResult cudaq::cc::CastOp::fold(ArrayRef<Attribute>) {
+  // If cast is a nop, just forward the argument to the uses.
+  if (getType() == getValue().getType())
+    return getValue();
+  return nullptr;
+}
+
+LogicalResult cudaq::cc::CastOp::verify() {
+  auto inTy = getValue().getType();
+  auto outTy = getType();
+
+  // Make sure sint/zint are properly used.
+  if (getSint() || getZint()) {
+    if (getSint() && getZint())
+      return emitOpError("cannot be both signed and unsigned.");
+    if ((isa<IntegerType>(inTy) && isa<IntegerType>(outTy)) ||
+        (isa<FloatType>(inTy) && isa<IntegerType>(outTy)) ||
+        (isa<IntegerType>(inTy) && isa<FloatType>(outTy))) {
+      // ok, do nothing.
+    } else {
+      return emitOpError("signed (unsigned) may only be applied to integer to "
+                         "integer or integer to/from float.");
+    }
+  }
+
+  // Make sure this cast can be translated to one of LLVM's instructions.
+  if (isa<IntegerType>(inTy) || isa<IntegerType>(outTy)) {
+    // Check casts to and from integer types.
+    if (isa<IntegerType>(inTy) && isa<IntegerType>(outTy)) {
+      // trunc, sext, zext, nop
+      auto iTy1 = cast<IntegerType>(inTy);
+      auto iTy2 = cast<IntegerType>(outTy);
+      if ((iTy1.getWidth() < iTy2.getWidth()) && !getSint() && !getZint())
+        return emitOpError("integer extension must be signed or unsigned.");
+    } else if (isa<IntegerType>(inTy) && isa<cc::PointerType>(outTy)) {
+      // ok: inttoptr
+    } else if (isa<cc::PointerType>(inTy) && isa<IntegerType>(outTy)) {
+      // ok: ptrtoint
+    } else if (isa<IntegerType>(inTy) && isa<FloatType>(outTy)) {
+      if (!getSint() && !getZint()) {
+        // bitcast
+        auto iTy1 = cast<IntegerType>(inTy);
+        auto fTy2 = cast<FloatType>(outTy);
+        if (iTy1.getWidth() != fTy2.getWidth())
+          return emitOpError("bitcast must be same number of bits.");
+      } else {
+        // ok: sitofp, uitofp
+      }
+    } else if (isa<FloatType>(inTy) && isa<IntegerType>(outTy)) {
+      if (!getSint() && !getZint()) {
+        // bitcast
+        auto iTy1 = cast<IntegerType>(outTy);
+        auto fTy2 = cast<FloatType>(inTy);
+        if (iTy1.getWidth() != fTy2.getWidth())
+          return emitOpError("bitcast must be same number of bits.");
+      } else {
+        // ok: fptosi, fptoui
+      }
+    } else {
+      return emitOpError("invalid integer cast.");
+    }
+  } else if (isa<FloatType>(inTy) && isa<FloatType>(outTy)) {
+    // ok, floating-point casts: fptrunc, fpext, nop
+  } else if (isa<cc::PointerType, LLVM::LLVMPointerType>(inTy) &&
+             isa<cc::PointerType, LLVM::LLVMPointerType>(outTy)) {
+    // ok, pointer casts: bitcast, nop
+  } else {
+    // Could support a bitcast of a float with pointer size bits to/from a
+    // pointer, but that doesn't seem like it would be very common.
+    return emitOpError("invalid cast.");
+  }
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
+// ComputePtrOp
+//===----------------------------------------------------------------------===//
+
+static ParseResult
+parseComputePtrIndices(OpAsmParser &parser,
+                       SmallVectorImpl<OpAsmParser::UnresolvedOperand> &indices,
+                       DenseI32ArrayAttr &rawConstantIndices) {
+  SmallVector<int32_t> constantIndices;
+
+  auto idxParser = [&]() -> ParseResult {
+    int32_t constantIndex;
+    OptionalParseResult parsedInteger =
+        parser.parseOptionalInteger(constantIndex);
+    if (parsedInteger.has_value()) {
+      if (failed(parsedInteger.value()))
+        return failure();
+      constantIndices.push_back(constantIndex);
+      return success();
+    }
+
+    constantIndices.push_back(LLVM::GEPOp::kDynamicIndex);
+    return parser.parseOperand(indices.emplace_back());
+  };
+  if (parser.parseCommaSeparatedList(idxParser))
+    return failure();
+
+  rawConstantIndices =
+      DenseI32ArrayAttr::get(parser.getContext(), constantIndices);
+  return success();
+}
+
+static void printComputePtrIndices(OpAsmPrinter &printer,
+                                   cudaq::cc::ComputePtrOp computePtrOp,
+                                   OperandRange indices,
+                                   DenseI32ArrayAttr rawConstantIndices) {
+  llvm::interleaveComma(cudaq::cc::ComputePtrIndicesAdaptor<OperandRange>(
+                            rawConstantIndices, indices),
+                        printer, [&](PointerUnion<IntegerAttr, Value> cst) {
+                          if (Value val = cst.dyn_cast<Value>())
+                            printer.printOperand(val);
+                          else
+                            printer << cst.get<IntegerAttr>().getInt();
+                        });
+}
+
+void cudaq::cc::ComputePtrOp::build(OpBuilder &builder, OperationState &result,
+                                    Type resultType, Value basePtr,
+                                    ValueRange indices,
+                                    ArrayRef<NamedAttribute> attrs) {
+  build(builder, result, resultType, basePtr,
+        SmallVector<ComputePtrArg>(indices), attrs);
+}
+
+static void
+destructureIndices(Type currType, ArrayRef<cudaq::cc::ComputePtrArg> indices,
+                   SmallVectorImpl<std::int32_t> &rawConstantIndices,
+                   SmallVectorImpl<Value> &dynamicIndices) {
+  for (const cudaq::cc::ComputePtrArg &iter : indices) {
+    if (Value val = iter.dyn_cast<Value>()) {
+      rawConstantIndices.push_back(cudaq::cc::ComputePtrOp::kDynamicIndex);
+      dynamicIndices.push_back(val);
+    } else {
+      rawConstantIndices.push_back(
+          iter.get<cudaq::cc::ComputePtrConstantIndex>());
+    }
+
+    currType =
+        TypeSwitch<Type, Type>(currType)
+            .Case([](cudaq::cc::ArrayType containerType) {
+              return containerType.getElementType();
+            })
+            .Case([&](cudaq::cc::StructType structType) -> Type {
+              int64_t memberIndex = rawConstantIndices.back();
+              if (memberIndex >= 0 && static_cast<std::size_t>(memberIndex) <
+                                          structType.getMembers().size())
+                return structType.getMembers()[memberIndex];
+              return {};
+            })
+            .Default(Type{});
+  }
+}
+
+void cudaq::cc::ComputePtrOp::build(OpBuilder &builder, OperationState &result,
+                                    Type resultType, Value basePtr,
+                                    ArrayRef<ComputePtrArg> cpArgs,
+                                    ArrayRef<NamedAttribute> attrs) {
+  SmallVector<int32_t> rawConstantIndices;
+  SmallVector<Value> dynamicIndices;
+  Type elementType = cast<cc::PointerType>(basePtr.getType()).getElementType();
+  destructureIndices(elementType, cpArgs, rawConstantIndices, dynamicIndices);
+
+  result.addTypes(resultType);
+  result.addAttributes(attrs);
+  result.addAttribute(getRawConstantIndicesAttrName(result.name),
+                      builder.getDenseI32ArrayAttr(rawConstantIndices));
+  result.addOperands(basePtr);
+  result.addOperands(dynamicIndices);
+}
+
+OpFoldResult cudaq::cc::ComputePtrOp::fold(ArrayRef<Attribute> params) {
+  if (getDynamicIndices().empty())
+    return nullptr;
+  SmallVector<std::tuple<Attribute, std::int32_t>> pairs;
+  for (auto p : llvm::zip(params.drop_front(), getRawConstantIndices()))
+    pairs.push_back(p);
+  auto dynIter = getDynamicIndices().begin();
+  SmallVector<int32_t> newConstantIndices;
+  SmallVector<Value> newIndices;
+  bool changed = false;
+  for (auto [paramAttr, index] : pairs) {
+    if (index == kDynamicIndex) {
+      std::int32_t newVal;
+      if (paramAttr) {
+        newVal = cast<IntegerAttr>(paramAttr).getInt();
+        changed = true;
+      } else {
+        newVal = index;
+        newIndices.push_back(*dynIter);
+      }
+      newConstantIndices.push_back(newVal);
+      dynIter++;
+    } else {
+      newConstantIndices.push_back(index);
+    }
+  }
+  if (changed) {
+    assert(newConstantIndices.size() == getRawConstantIndices().size());
+    assert(newIndices.size() < getDynamicIndices().size());
+    getDynamicIndicesMutable().assign(newIndices);
+    setRawConstantIndices(newConstantIndices);
+    return Value{*this};
+  }
+  return nullptr;
+}
 
 //===----------------------------------------------------------------------===//
 // LoopOp
@@ -31,6 +328,8 @@ Region &cudaq::cc::LoopOp::getLoopBody() { return getBodyRegion(); }
 // block is properly terminated.
 static void ensureStepTerminator(OpBuilder &builder, OperationState &result,
                                  Region *stepRegion) {
+  if (stepRegion->empty())
+    return;
   auto *block = &stepRegion->back();
   auto addContinue = [&]() {
     OpBuilder::InsertionGuard guard(builder);
@@ -75,7 +374,7 @@ void cudaq::cc::LoopOp::build(OpBuilder &builder, OperationState &result,
 }
 
 LogicalResult cudaq::cc::LoopOp::verify() {
-  const auto initArgsSize = getInitArgs().size();
+  const auto initArgsSize = getInitialArgs().size();
   if (getResults().size() != initArgsSize)
     return emitOpError("size of init args and outputs must be equal");
   if (getWhileRegion().front().getArguments().size() != initArgsSize)
@@ -260,7 +559,108 @@ void cudaq::cc::LoopOp::getSuccessorRegions(
 
 OperandRange
 cudaq::cc::LoopOp::getSuccessorEntryOperands(std::optional<unsigned> index) {
-  return getInitArgs();
+  return getInitialArgs();
+}
+
+namespace {
+// If an argument to a LoopOp traverses the loop unchanged then it is invariant
+// across all iterations of the loop and can be hoisted out of the loop. This
+// pattern detects invariant arguments and removes them from the LoopOp. This
+// performs the following rewrite, where the notation `⟦x := y⟧` means all uses
+// of `x` are replaced with `y`.
+//
+//    %result = cc.loop while ((%invariant = %1) -> (T)) {
+//      ...
+//      cc.condition %cond(%invariant : T)
+//    } do {
+//    ^bb1(%invariant : T):
+//      ...
+//      cc.continue %invariant : T
+//    } step {
+//    ^bb1(%invariant : T):
+//      ...
+//      cc.continue %invariant : T
+//    }
+//  ──────────────────────────────────────
+//    cc.loop while {
+//      ...⟦%invariant := %1⟧...
+//      cc.condition %cond
+//    } do {
+//    ^bb1:
+//      ...⟦%invariant := %1⟧...
+//      cc.continue
+//    } step {
+//    ^bb1:
+//      ...⟦%invariant := %1⟧...
+//      cc.continue
+//    }
+//    ...⟦%result := %1⟧...
+
+struct HoistLoopInvariantArgs : public OpRewritePattern<cudaq::cc::LoopOp> {
+  using Base = OpRewritePattern<cudaq::cc::LoopOp>;
+  using Base::Base;
+
+  LogicalResult matchAndRewrite(cudaq::cc::LoopOp loop,
+                                PatternRewriter &rewriter) const override {
+    // 1. Find all the terminators.
+    SmallVector<Operation *> terminators;
+    for (auto *reg : loop.getRegions())
+      for (auto &block : *reg)
+        if (block.hasNoSuccessors())
+          terminators.push_back(block.getTerminator());
+
+    // 2. Determine if any arguments are invariant.
+    SmallVector<bool> invariants;
+    bool hasInvariants = false;
+    for (auto iter : llvm::enumerate(loop.getInitialArgs())) {
+      bool isInvar = true;
+      auto i = iter.index();
+      for (auto *term : terminators) {
+        Value blkArg = term->getBlock()->getParent()->front().getArgument(i);
+        if (auto cond = dyn_cast<cudaq::cc::ConditionOp>(term)) {
+          if (cond.getResults()[i] != blkArg)
+            isInvar = false;
+        } else if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(term)) {
+          if (cont.getOperands()[i] != blkArg)
+            isInvar = false;
+        } else if (auto brk = dyn_cast<cudaq::cc::BreakOp>(term)) {
+          if (brk.getOperands()[i] != blkArg)
+            isInvar = false;
+        }
+        if (!isInvar)
+          break;
+      }
+      if (isInvar)
+        hasInvariants = true;
+      invariants.push_back(isInvar);
+    }
+
+    // 3. For each invariant argument replace the uses with the original
+    // invariant value throughout.
+    if (hasInvariants) {
+      for (auto iter : llvm::enumerate(invariants)) {
+        if (iter.value()) {
+          auto i = iter.index();
+          Value initialVal = loop.getInitialArgs()[i];
+          loop.getResult(i).replaceAllUsesWith(initialVal);
+          for (auto *reg : loop.getRegions()) {
+            if (reg->empty())
+              continue;
+            auto &entry = reg->front();
+            entry.getArgument(i).replaceAllUsesWith(initialVal);
+          }
+        }
+      }
+    }
+
+    return success();
+  }
+};
+} // namespace
+
+void cudaq::cc::LoopOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
+                                                    MLIRContext *context) {
+  patterns.add<HoistLoopInvariantArgs>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -460,6 +860,8 @@ void cudaq::cc::IfOp::print(OpAsmPrinter &p) {
 
 static void ensureIfRegionTerminator(OpBuilder &builder, OperationState &result,
                                      Region *ifRegion) {
+  if (ifRegion->empty())
+    return;
   auto *block = &ifRegion->back();
   if (!block)
     return;

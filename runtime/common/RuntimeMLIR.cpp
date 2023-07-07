@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "RuntimeMLIR.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
@@ -95,6 +95,7 @@ std::unique_ptr<MLIRContext> initializeMLIR() {
     registerToQIRTranslation();
     registerToOpenQASMTranslation();
     registerToIQMJsonTranslation();
+    cudaq::opt::registerTargetPipelines();
     mlirLLVMInitialized = true;
   }
 
@@ -103,7 +104,8 @@ std::unique_ptr<MLIRContext> initializeMLIR() {
 
   DialectRegistry registry;
   registry.insert<arith::ArithDialect, AffineDialect, LLVM::LLVMDialect,
-                  quake::QuakeDialect, cc::CCDialect, func::FuncDialect>();
+                  memref::MemRefDialect, quake::QuakeDialect, cc::CCDialect,
+                  func::FuncDialect>();
   auto context = std::make_unique<MLIRContext>(registry);
   context->loadAllAvailableDialects();
   registerLLVMDialectTranslation(*context);
@@ -199,4 +201,38 @@ void registerToIQMJsonTranslation() {
         return cudaq::translateToIQMJson(op, output);
       });
 }
+
+ExecutionEngine *createQIRJITEngine(ModuleOp &moduleOp) {
+  ExecutionEngineOptions opts;
+  opts.transformer = [](llvm::Module *m) { return llvm::ErrorSuccess(); };
+  opts.jitCodeGenOptLevel = llvm::CodeGenOpt::None;
+  opts.llvmModuleBuilder =
+      [&](Operation *module,
+          llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
+    llvmContext.setOpaquePointers(false);
+
+    auto *context = module->getContext();
+    PassManager pm(context);
+    std::string errMsg;
+    llvm::raw_string_ostream errOs(errMsg);
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
+    pm.addPass(cudaq::opt::createConvertToQIRPass());
+    if (failed(pm.run(module)))
+      throw std::runtime_error(
+          "[createQIRJITEngine] Lowering to QIR for remote emulation failed.");
+
+    auto llvmModule = translateModuleToLLVMIR(module, llvmContext);
+    if (!llvmModule)
+      throw std::runtime_error(
+          "[createQIRJITEngine] Lowering to LLVM IR failed.");
+
+    ExecutionEngine::setupTargetTriple(llvmModule.get());
+    return llvmModule;
+  };
+
+  auto jitOrError = ExecutionEngine::create(moduleOp, opts);
+  assert(!!jitOrError && "ExecutionEngine creation failed.");
+  return jitOrError.get().release();
+}
+
 } // namespace cudaq

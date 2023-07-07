@@ -20,7 +20,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__t = "_Z1tv"}} {
   func.func @__nvqpp__mlirgen__t() attributes {"cudaq-entrypoint"} {
     %c5_i32 = arith.constant 5 : i32
     %0 = arith.extsi %c5_i32 : i32 to i64
-    %1 = quake.alloca[%0 : i64] !quake.veq<?>
+    %1 = quake.alloca !quake.veq<?>[%0 : i64]
     %2 = cc.create_lambda {
       cc.scope {
         %c0_i32 = arith.constant 0 : i32

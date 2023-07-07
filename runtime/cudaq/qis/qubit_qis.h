@@ -1,17 +1,19 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #pragma once
 
 #include "common/MeasureCounts.h"
 #include "cudaq/spin_op.h"
 #include "modifiers.h"
+#include "qarray.h"
 #include "qreg.h"
+#include "qvector.h"
 #include <functional>
 
 #define __qpu__ __attribute__((annotate("quantum")))
@@ -275,32 +277,32 @@ inline void ct(qubit &q, qubit &r) { t<cudaq::ctrl>(q, r); }
 inline void ccx(qubit &q, qubit &r, qubit &s) { x<cudaq::ctrl>(q, r, s); }
 
 /// @brief Measure an individual qubit, return 0,1 as `bool`
-inline bool mz(qubit &q) {
+inline measure_result mz(qubit &q) {
   return getExecutionManager()->measure({q.n_levels(), q.id()});
 }
 
 /// @brief Measure an individual qubit in `x` basis, return 0,1 as `bool`
-inline bool mx(qubit &q) {
+inline measure_result mx(qubit &q) {
   h(q);
   return getExecutionManager()->measure({q.n_levels(), q.id()});
 }
 
 // Measure an individual qubit in `y` basis, return 0,1 as `bool`
-inline bool my(qubit &q) {
+inline measure_result my(qubit &q) {
   s<adj>(q);
   h(q);
   return getExecutionManager()->measure({q.n_levels(), q.id()});
 }
 
 inline void reset(qubit &q) {
-  getExecutionManager()->resetQudit({q.n_levels(), q.id()});
+  getExecutionManager()->reset({q.n_levels(), q.id()});
 }
 
 // Measure all qubits in the range, return vector of 0,1
 template <typename QubitRange>
   requires(std::ranges::range<QubitRange>)
-std::vector<bool> mz(QubitRange &q) {
-  std::vector<bool> b; //(q.size());
+std::vector<measure_result> mz(QubitRange &q) {
+  std::vector<measure_result> b;
   for (auto &qq : q) {
     b.push_back(mz(qq));
   }
@@ -308,14 +310,14 @@ std::vector<bool> mz(QubitRange &q) {
 }
 
 template <typename... Qs>
-std::vector<bool> mz(qubit &q, Qs &&...qs);
+std::vector<measure_result> mz(qubit &q, Qs &&...qs);
 
 template <typename QubitRange, typename... Qs>
   requires(std::ranges::range<QubitRange>)
-std::vector<bool> mz(QubitRange &qr, Qs &&...qs) {
-  std::vector<bool> result = mz(qr);
+std::vector<measure_result> mz(QubitRange &qr, Qs &&...qs) {
+  std::vector<measure_result> result = mz(qr);
   auto rest = mz(std::forward<Qs>(qs)...);
-  if constexpr (std::is_same_v<decltype(rest), bool>) {
+  if constexpr (std::is_same_v<decltype(rest), measure_result>) {
     result.push_back(rest);
   } else {
     result.insert(result.end(), rest.begin(), rest.end());
@@ -324,10 +326,10 @@ std::vector<bool> mz(QubitRange &qr, Qs &&...qs) {
 }
 
 template <typename... Qs>
-std::vector<bool> mz(qubit &q, Qs &&...qs) {
-  std::vector<bool> result = {mz(q)};
+std::vector<measure_result> mz(qubit &q, Qs &&...qs) {
+  std::vector<measure_result> result = {mz(q)};
   auto rest = mz(std::forward<Qs>(qs)...);
-  if constexpr (std::is_same_v<decltype(rest), bool>) {
+  if constexpr (std::is_same_v<decltype(rest), measure_result>) {
     result.push_back(rest);
   } else {
     result.insert(result.end(), rest.begin(), rest.end());
@@ -348,7 +350,7 @@ inline SpinMeasureResult measure(cudaq::spin_op &term) {
 
 // Cast a measure register to an int64_t.
 // This function is classic control code that may run on a QPU.
-inline int64_t to_integer(std::vector<bool> bits) {
+inline int64_t to_integer(std::vector<measure_result> bits) {
   int64_t ret = 0;
   for (std::size_t i = 0; i < bits.size(); i++) {
     if (bits[i]) {

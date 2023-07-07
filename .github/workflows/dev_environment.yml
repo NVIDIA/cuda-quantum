@@ -4,7 +4,14 @@ on:
       dockerfile:
         required: true
         type: string
+      platforms:
+        type: string
+        required: false
+        default: linux/amd64
       build_target:
+        required: false
+        type: string
+      build_args:
         required: false
         type: string
       registry_cache_from:
@@ -17,6 +24,10 @@ on:
         required: false
         type: boolean
         default: false
+      registry_cache_update:
+        required: false
+        type: boolean
+        default: false
       registry_cache_update_only:
         required: false
         type: boolean
@@ -25,9 +36,6 @@ on:
         required: false
         type: string
       additional_local_caches:
-        required: false
-        type: string
-      base_image:
         required: false
         type: string
       toolchain:
@@ -44,12 +52,9 @@ on:
         required: false
         type: string
     outputs:
-      image_name:
-        description: "The full name of the built docker image."
-        value: ${{ jobs.finalize.outputs.image_name }}
-      digests:
-        description: "The digests of the docker image(s) that were deployed to the registry."
-        value: ${{ jobs.finalize.outputs.digests }}
+      image_hash:
+        description: "The name and digest of the docker image that was deployed to the registry, which can be used to retrieve it independently of any tag updates."
+        value: ${{ jobs.finalize.outputs.image_hash }}
       cache_key:
         description: "The cache key to retrieve a tar archive containing the built image(s)."
         value: ${{ jobs.finalize.outputs.cache_key }}
@@ -79,6 +84,11 @@ jobs:
       image_labels: ${{ steps.metadata.outputs.labels }}
       llvm_commit: ${{ steps.build_info.outputs.llvm_commit }}
 
+    # Needed for access to environment variables (like the registry name).
+    environment:
+      name: ${{ inputs.environment || 'default' }}
+      url: ${{ vars.deployment_url || format('https://github.com/{0}', github.repository) }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -89,13 +99,14 @@ jobs:
         id: build_info
         run: |
           repo_owner=${{ github.repository_owner }}
+          registry=${{ vars.registry || 'localhost:5000' }}
           build_target=${{ inputs.build_target }}
           image_id=`basename ${{ inputs.dockerfile }} .Dockerfile`${build_target:+.$build_target}
           image_title=cuda-quantum-`echo $image_id | cut -d "." -f 1`
-          image_name=${{ vars.registry || 'ghcr.io' }}/${repo_owner,,}/$image_title
+          image_name=$registry/${repo_owner,,}/$image_title
           toolchain=${{ inputs.toolchain }}
-          tag_prefix=${toolchain:+$toolchain-}
-          tag_suffix=`echo $image_id | cut -s -d "." -f 2- | xargs -I "%" echo .% | tr . -`
+          tag_prefix=`echo $image_id | cut -s -d "." -f 2- | xargs -I "%" echo %. | tr . -`${toolchain:+$toolchain-}
+          tag_suffix=""
 
           if ${{ inputs.pull_request_number != '' }}; then
             custom_tags="type=raw,value=pr-${{ inputs.pull_request_number }}"
@@ -123,7 +134,6 @@ jobs:
             prefix=${{ steps.build_info.outputs.tag_prefix }},onlatest=true
             suffix=${{ steps.build_info.outputs.tag_suffix }},onlatest=true
           tags: |
-            # workflow dispatch is covered by these
             type=schedule,enable=${{ inputs.pull_request_number == '' }},pattern=nightly
             type=ref,enable=${{ inputs.pull_request_number == '' }},event=branch
             type=ref,enable=${{ inputs.pull_request_number == '' }},prefix=${{ steps.build_info.outputs.tag_prefix }}pr-,event=pr
@@ -146,6 +156,11 @@ jobs:
       tar_cache: ${{ steps.cache.outputs.tar_cache }}
       tar_archive: ${{ steps.cache.outputs.tar_archive }}
       build_cache: ${{ steps.cache.outputs.build_cache }}
+      image_hash: ${{ needs.metadata.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
+
+    environment:
+      name: ${{ inputs.environment || 'default' }}
+      url: ${{ vars.deployment_url || format('https://github.com/{0}', github.repository) }}
 
     steps:
       - name: Checkout repository
@@ -169,15 +184,15 @@ jobs:
           toolchain=${{ inputs.toolchain }}
           registry_cache=ghcr.io/${{ needs.metadata.outputs.owner }}/buildcache-cuda-quantum
           nvidia_registry_cache=ghcr.io/nvidia/buildcache-cuda-quantum
-          registry_cache_base=${{ inputs.registry_cache_from || github.event.pull_request.base.ref || 'main' }}
-          cache_id=$(echo ${{ needs.metadata.outputs.image_id }} | tr . -)${toolchain:+-$toolchain}
+          registry_cache_base=$(echo ${{ inputs.registry_cache_from || github.event.pull_request.base.ref || 'main' }} | tr / -)
+          cache_id=$(echo ${{ needs.metadata.outputs.image_id }}${toolchain:+-$toolchain} | tr . -)
 
           local_buildcache_path="/tmp/.buildcache-${cache_id}"
           local_buildcache_key_suffix="-$(git rev-parse HEAD)"
           if ${{ inputs.pull_request_number != '' }}; then
             local_buildcache_key="${{ inputs.pull_request_number }}/merge-cuda-quantum-${cache_id}"
           else
-            local_cache_from=${{ inputs.local_cache_from || github.ref_name }}
+            local_cache_from=$(echo ${{ inputs.local_cache_from || github.ref_name }} | tr . -)
             if ${{ inputs.local_cache_from == '' && github.event.pull_request.merged == true }}; then
               local_cache_from=${{ github.event.pull_request.number }}/merge
             fi
@@ -187,8 +202,9 @@ jobs:
           cache_from_gh="type=local,src=${local_buildcache_path}"
           cache_from_registry="type=registry,ref=${registry_cache}-${cache_id}:${registry_cache_base}"
           cache_from_nvidia_registry="type=registry,ref=${nvidia_registry_cache}-${cache_id}:${registry_cache_base}"
-          if ${{ inputs.registry_cache_update_only }}; then
-            build_cache="type=registry,ref=${registry_cache}-${cache_id}:${{ github.ref_name }}"
+          if ${{ inputs.registry_cache_update || inputs.registry_cache_update_only }}; then
+            registry_cache_target=$(echo ${{ github.ref_name }} | tr / -)
+            build_cache="type=registry,ref=${registry_cache}-${cache_id}:$registry_cache_target"
             cache_to="${build_cache},mode=max,ignore-error=false"
           elif ${{ inputs.create_local_cache }}; then
             # In general, using the build cache from the registry/parent branch is the quickest.
@@ -205,9 +221,11 @@ jobs:
           echo "cache_from_nvidia_registry=$cache_from_nvidia_registry" >> $GITHUB_OUTPUT
           echo "cache_to=$cache_to" >> $GITHUB_OUTPUT
           echo "build_cache=$build_cache" >> $GITHUB_OUTPUT
-          if ${{ ! inputs.registry_cache_update_only }}; then
+          if ${{ inputs.environment == '' && ! inputs.registry_cache_update_only }}; then
+            tar_archive=/tmp/${{ needs.metadata.outputs.image_id }}.tar
             echo "tar_cache=tar-${cache_id}${local_buildcache_key_suffix}" >> $GITHUB_OUTPUT
-            echo "tar_archive=/tmp/${{ needs.metadata.outputs.image_id }}.tar" >> $GITHUB_OUTPUT
+            echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
+            echo "docker_output=type=docker,dest=$tar_archive" >> $GITHUB_OUTPUT
           fi
 
       - name: Check out local cache
@@ -220,27 +238,27 @@ jobs:
             ${{ steps.cache.outputs.local_buildcache_key }}
 
       - name: Build ${{ needs.metadata.outputs.image_title }} image
-        id: build_image
+        id: docker_build
         uses: docker/build-push-action@v4
         with:
           context: .
           file: ./docker/${{ needs.metadata.outputs.dockerfile }}
           target: ${{ inputs.build_target }}
           build-args: |
-            base_image=${{ inputs.base_image }}
             toolchain=${{ inputs.toolchain }}
             llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
-          load: false
+            ${{ inputs.build_args }}
           tags: ${{ needs.metadata.outputs.image_tags }}
           labels: ${{ needs.metadata.outputs.image_labels }}
-          platforms: linux/amd64
+          platforms: ${{ inputs.platforms }}
           cache-from: |
             ${{ inputs.additional_build_caches }}
             ${{ steps.cache.outputs.cache_from_gh }}
             ${{ steps.cache.outputs.cache_from_registry }}
             ${{ steps.cache.outputs.cache_from_nvidia_registry }}
           cache-to: ${{ steps.cache.outputs.cache_to }}
-          outputs: type=docker,dest=${{ steps.cache.outputs.tar_archive }}
+          push: ${{ inputs.environment && ! inputs.registry_cache_update_only || false }}
+          outputs: ${{ steps.cache.outputs.docker_output }}
 
       # See also https://github.com/moby/buildkit/issues/1896
       - name: Clean up local cache
@@ -259,31 +277,20 @@ jobs:
           key: ${{ steps.cache.outputs.local_buildcache_key }}${{ steps.cache.outputs.local_buildcache_key_suffix }}
 
       - name: Cache ${{ needs.metadata.outputs.image_title }} image
+        if: steps.cache.outputs.tar_cache && steps.cache.outputs.tar_archive
         uses: actions/cache/save@v3
-        if: ${{ ! inputs.registry_cache_update_only }}
         with:
           path: ${{ steps.cache.outputs.tar_archive }}
           key: ${{ steps.cache.outputs.tar_cache }}
-
-  deployment:
-    name: Deployment
-    if: ${{ inputs.environment && ! inputs.registry_cache_update_only }}
-    needs: build
-    uses: ./.github/workflows/deploy_to_registry.yml
-    with:
-      environment: ${{ inputs.environment }}
-      cache_key: ${{ needs.build.outputs.tar_cache }}
-      tar_archive: ${{ needs.build.outputs.tar_archive }}
 
   finalize:
     name: Finalize
     runs-on: ubuntu-latest
     if: always() && !cancelled()
-    needs: [metadata, build, deployment]
+    needs: [metadata, build]
 
     outputs:
-      image_name: ${{ fromJson(steps.write_json.outputs.result).image_name }}
-      digests: ${{ fromJson(steps.write_json.outputs.result).digests }}
+      image_hash: ${{ fromJson(steps.write_json.outputs.result).image_hash }}
       cache_key: ${{ fromJson(steps.write_json.outputs.result).cache_key }}
       tar_archive: ${{ fromJson(steps.write_json.outputs.result).tar_archive }}
       build_cache: ${{ fromJson(steps.write_json.outputs.result).build_cache }}
@@ -295,8 +302,7 @@ jobs:
           matrix-step-name: ${{ inputs.matrix_key && 'dev_environment' }}
           matrix-key: ${{ inputs.matrix_key }}
           outputs: |
-            image_name: ${{ needs.metadata.outputs.image_name }}
-            digests: ${{ needs.deployment.outputs.digests }}
+            image_hash: ${{ needs.build.outputs.image_hash }}
             cache_key: ${{ needs.build.outputs.tar_cache }}
             tar_archive: ${{ needs.build.outputs.tar_archive }}
             build_cache: ${{ needs.build.outputs.build_cache }}

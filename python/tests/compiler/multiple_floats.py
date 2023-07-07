@@ -16,7 +16,6 @@ import numpy as np
 import cudaq
 
 
-
 def test_make_kernel_multiple_floats():
     """
     Test `cudaq.make_kernel` with multiple parameters.
@@ -35,7 +34,6 @@ def test_make_kernel_multiple_floats():
 # CHECK-SAME:    %[[VAL_1:.*]]: f64) {
 # CHECK:           return
 # CHECK:         }
-
 
 # leave for gdb debugging
 if __name__ == "__main__":

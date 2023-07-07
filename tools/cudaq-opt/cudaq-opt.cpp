@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
@@ -53,6 +53,8 @@ int main(int argc, char **argv) {
   mlir::registerAllPasses();
   cudaq::opt::registerOptCodeGenPasses();
   cudaq::opt::registerOptTransformsPasses();
+  cudaq::opt::registerAggressiveEarlyInlining();
+  cudaq::opt::registerTargetPipelines();
 
   // See if we have been asked to load a pass plugin,
   // if so load it.

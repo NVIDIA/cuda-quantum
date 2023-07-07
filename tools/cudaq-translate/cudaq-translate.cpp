@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
@@ -85,14 +85,19 @@ using namespace mlir;
 // Pipeline builder to convert Quake to QIR.
 template <bool BaseProfile = false>
 void addPipelineToQIR(PassManager &pm) {
-  pm.addPass(createInlinerPass());
+  cudaq::opt::addAggressiveEarlyInlining(pm);
   pm.addPass(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerToCFGPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   pm.addPass(createCanonicalizerPass());
+  pm.addPass(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLoweringPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerToCFGPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
-  pm.addNestedPass<func::FuncOp>(createLoopUnrollPass(
-      /*unrollFactor=*/-1, /*unrollUpToFactor=*/false, /*unrollFull=*/true));
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll());
+  pm.addPass(createCanonicalizerPass());
+  pm.addPass(createCSEPass());
   pm.addPass(cudaq::opt::createConvertToQIRPass());
   pm.addPass(createCanonicalizerPass());
   if constexpr (BaseProfile) {

@@ -28,8 +28,8 @@ func.func @static.mz_test() {
 
 func.func @dynamic.mz_test(%arg0 : i32, %arg1 : i32) {
   %0 = quake.alloca  !quake.ref
-  %1 = quake.alloca[%arg0 : i32]  !quake.veq<?>
-  %2 = quake.alloca [%arg1 : i32] !quake.veq<?>
+  %1 = quake.alloca !quake.veq<?>[%arg0 : i32]
+  %2 = quake.alloca !quake.veq<?>[%arg1 : i32]
   %3 = quake.alloca  !quake.ref
   quake.mz %0, %1, %2, %3 : (!quake.ref, !quake.veq<?>, !quake.veq<?>, !quake.ref) -> !cc.stdvec<i1>
   return
@@ -38,8 +38,8 @@ func.func @dynamic.mz_test(%arg0 : i32, %arg1 : i32) {
 // CHECK-LABEL:   func.func @dynamic.mz_test(
 // CHECK-SAME:        %[[VAL_0:.*]]: i32, %[[VAL_1:.*]]: i32) {
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
-// CHECK:           %[[VAL_3:.*]] = quake.alloca[%[[VAL_0]] : i32] !quake.veq<?>
-// CHECK:           %[[VAL_4:.*]] = quake.alloca[%[[VAL_1]] : i32] !quake.veq<?>
+// CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<?>[%[[VAL_0]] : i32]
+// CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.veq<?>[%[[VAL_1]] : i32]
 // CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_6:.*]] = quake.mz %[[VAL_2]], %[[VAL_3]], %[[VAL_4]], %[[VAL_5]] : (!quake.ref, !quake.veq<?>, !quake.veq<?>, !quake.ref) -> !cc.stdvec<i1>
 // CHECK:           return

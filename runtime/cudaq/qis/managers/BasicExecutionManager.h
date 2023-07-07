@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "common/ExecutionContext.h"
 #include "common/Logger.h"
@@ -27,6 +27,11 @@ namespace cudaq {
 /// measurement, allocation, and deallocation, and execution context handling
 /// (e.g. sampling)
 class BasicExecutionManager : public cudaq::ExecutionManager {
+private:
+  bool isInTracerMode() {
+    return executionContext && executionContext->name == "tracer";
+  }
+
 protected:
   /// @brief An instruction is composed of a operation name,
   /// a optional set of rotation parameters, control qudits, and
@@ -91,6 +96,10 @@ protected:
   /// @brief Measure the state in the basis described by the given `spin_op`.
   virtual void measureSpinOp(const cudaq::spin_op &op) = 0;
 
+  /// @brief Subtype-specific method for performing qudit reset.
+  /// @param q Qudit to reset
+  virtual void resetQudit(const QuditInfo &q) = 0;
+
 public:
   BasicExecutionManager() = default;
   virtual ~BasicExecutionManager() = default;
@@ -105,27 +114,34 @@ public:
 
   void resetExecutionContext() override {
     synchronize();
-    std::string_view ctx_name = "";
-    if (executionContext)
-      ctx_name = executionContext->name;
+
+    if (!executionContext)
+      return;
+
+    if (isInTracerMode()) {
+      for (auto &q : contextQuditIdsForDeletion)
+        returnIndex(q.id);
+
+      contextQuditIdsForDeletion.clear();
+      return;
+    }
 
     // Do any final post-processing before
     // we deallocate the qudits
     handleExecutionContextEnded();
 
-    if (ctx_name == "observe" || ctx_name == "sample" ||
-        ctx_name == "extract-state") {
-      deallocateQudits(contextQuditIdsForDeletion);
-      for (auto &q : contextQuditIdsForDeletion)
-        returnIndex(q.id);
+    deallocateQudits(contextQuditIdsForDeletion);
+    for (auto &q : contextQuditIdsForDeletion)
+      returnIndex(q.id);
 
-      contextQuditIdsForDeletion.clear();
-    }
+    contextQuditIdsForDeletion.clear();
     executionContext = nullptr;
   }
 
   std::size_t getAvailableIndex(std::size_t quditLevels) override {
     auto new_id = getNextIndex();
+    if (isInTracerMode())
+      return new_id;
     allocateQudit({quditLevels, new_id});
     return new_id;
   }
@@ -137,26 +153,12 @@ public:
       return;
     }
 
-    std::string_view ctx_name = "";
-    if (executionContext)
-      ctx_name = executionContext->name;
-
-    // Handle the case where we are sampling with an implicit
-    // measure on the entire register.
-    if (executionContext && (ctx_name == "observe" || ctx_name == "sample" ||
-                             ctx_name == "extract-state")) {
-      contextQuditIdsForDeletion.push_back(qid);
+    if (isInTracerMode()) {
+      returnIndex(qid.id);
       return;
     }
 
-    deallocateQudit(qid);
-    returnIndex(qid.id);
-    if (numAvailable() == totalNumQudits()) {
-      if (executionContext && ctx_name == "observe") {
-        while (!instructionQueue.empty())
-          instructionQueue.pop();
-      }
-    }
+    contextQuditIdsForDeletion.push_back(qid);
   }
 
   void startAdjointRegion() override { adjointQueueStack.emplace(); }
@@ -202,8 +204,7 @@ public:
 
   /// The goal for apply is to create a new element of the
   /// instruction queue (a tuple).
-  void apply(const std::string_view gateName,
-             const std::vector<double> &&params,
+  void apply(const std::string_view gateName, const std::vector<double> &params,
              const std::vector<cudaq::QuditInfo> &controls,
              const std::vector<cudaq::QuditInfo> &targets,
              bool isAdjoint = false) override {
@@ -224,42 +225,53 @@ public:
       mutable_controls.push_back(e);
 
     std::vector<cudaq::QuditInfo> mutable_targets;
-    for (auto &t : targets) {
+    for (auto &t : targets)
       mutable_targets.push_back(t);
-    }
 
     if (isAdjoint || !adjointQueueStack.empty()) {
-      for (std::size_t i = 0; i < params.size(); i++) {
+      for (std::size_t i = 0; i < params.size(); i++)
         mutable_params[i] = -1.0 * params[i];
-      }
-      if (mutable_name == "t") {
+      if (gateName == "t")
         mutable_name = "tdg";
-      } else if (mutable_name == "s") {
+      else if (gateName == "s")
         mutable_name = "sdg";
-      }
     }
 
     if (!adjointQueueStack.empty()) {
       // Add to the adjoint instruction queue
       adjointQueueStack.top().emplace(std::make_tuple(
           mutable_name, mutable_params, mutable_controls, mutable_targets));
-    } else {
-      // Add to the instruction queue
-      instructionQueue.emplace(std::make_tuple(std::move(mutable_name),
-                                               mutable_params, mutable_controls,
-                                               mutable_targets));
+      return;
     }
+
+    // Add to the instruction queue
+    instructionQueue.emplace(std::make_tuple(std::move(mutable_name),
+                                             mutable_params, mutable_controls,
+                                             mutable_targets));
   }
 
   void synchronize() override {
     while (!instructionQueue.empty()) {
       auto instruction = instructionQueue.front();
-      executeInstruction(instruction);
+      if (isInTracerMode()) {
+        auto [gateName, params, controls, targets] = instruction;
+        std::vector<std::size_t> controlIds;
+        std::transform(controls.begin(), controls.end(),
+                       std::back_inserter(controlIds),
+                       [](const auto &el) { return el.id; });
+        executionContext->kernelResources.appendInstruction(
+            cudaq::Resources::Instruction(gateName, controlIds, targets[0].id));
+      } else {
+        executeInstruction(instruction);
+      }
       instructionQueue.pop();
     }
   }
 
   int measure(const cudaq::QuditInfo &target) override {
+    if (isInTracerMode())
+      return 0;
+
     // We hit a measure, need to exec / clear instruction queue
     synchronize();
 
@@ -272,6 +284,14 @@ public:
     measureSpinOp(op);
     return std::make_pair(executionContext->expectationValue.value(),
                           executionContext->result);
+  }
+
+  void reset(const QuditInfo &target) override {
+    if (isInTracerMode())
+      return;
+    // We hit a reset, need to exec / clear instruction queue
+    synchronize();
+    resetQudit(target);
   }
 };
 

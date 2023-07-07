@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
 #include <cudaq/algorithm.h>
@@ -151,7 +151,7 @@ CUDAQ_TEST(NoiseTest, checkCNOT) {
   cudaq::noise_model noise;
   noise.add_channel<cudaq::types::x>({0, 1}, cnotNoise);
   cudaq::set_noise(noise);
-  auto counts = cudaq::sample(bell{});
+  auto counts = cudaq::sample(10000, bell{});
   counts.dump();
   EXPECT_TRUE(counts.size() > 2);
 }

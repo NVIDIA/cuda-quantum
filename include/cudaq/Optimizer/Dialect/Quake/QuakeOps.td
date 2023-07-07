@@ -80,11 +80,14 @@ def quake_AllocaOp : QuakeOp<"alloca", [MemoryEffects<[MemAlloc, MemWrite]>]> {
     }]>,
     OpBuilder<(ins "size_t":$size), [{
       return build($_builder, $_state, $_builder.getType<VeqType>(size), {});
+    }]>,
+    OpBuilder<(ins "mlir::Type":$ty), [{
+      return build($_builder, $_state, ty, {});
     }]>
   ];
 
   let assemblyFormat = [{
-    (`[` $size^ `:` type($size)`]`)? qualified(type($ref_or_vec)) attr-dict
+    qualified(type($ref_or_vec)) (`[` $size^ `:` type($size) `]`)? attr-dict
   }];
 
   let hasCanonicalizer = 1;
@@ -473,7 +476,109 @@ def quake_NullWireOp : QuakeOp<"null_wire", [Pure]> {
 }
 
 //===----------------------------------------------------------------------===//
-// Base quantum operations
+// Reset
+//===----------------------------------------------------------------------===//
+
+def quake_ResetOp : QuakeOp<"reset", [QuantumGate,
+    DeclareOpInterfaceMethods<MemoryEffectsOpInterface>]> {
+  let summary = "Reset the wire to the |0> (|0..0>) state.";
+  let description = [{
+    The `quake.reset` operation resets a wire to the |0> (|0..0>) state. It
+    may take an argument that is either a reference to a wire, type `!ref`,
+    or a wire, type `!wire`.
+
+    Example:
+    ```mlir
+      quake.reset %0 : (!quake.ref) -> ()
+      %2 = quake.reset %1 : (!quake.wire) -> !quake.wire
+    ```
+  }];
+
+  let arguments = (ins AnyQType:$targets);
+  let results = (outs Variadic<WireType>);
+  let assemblyFormat = [{
+     $targets `:` functional-type(operands, results) attr-dict
+  }];
+
+  let extraClassDeclaration = [{
+    void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::
+        EffectInstance<mlir::MemoryEffects::Effect>> &effects) {
+      quake::getOperatorEffectsImpl(effects, {}, getTargets());
+    }
+  }];
+}
+
+//===----------------------------------------------------------------------===//
+// Measurements
+//===----------------------------------------------------------------------===//
+
+class Measurement<string mnemonic> : QuakeOp<mnemonic,
+    [DeclareOpInterfaceMethods<MemoryEffectsOpInterface>, QuantumMeasure]> {
+  let arguments = (ins
+    Variadic<AnyQType>:$targets,
+    OptionalAttr<StrAttr>:$registerName
+  );
+  let results = (outs AnyTypeOf<[I1, StdvecOf<[I1]>]>:$bits);
+
+  let assemblyFormat = [{
+    $targets `:` functional-type(operands, results) attr-dict
+  }];
+
+  code OpBaseDeclaration = [{
+    void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::EffectInstance<
+      mlir::MemoryEffects::Effect>> &effects) {
+      quake::getOperatorEffectsImpl(effects, {}, getTargets());
+    }
+  }];
+
+  let hasVerifier = 1;
+}
+
+def MxOp : Measurement<"mx"> {
+  let summary = "Measurement along the x-axis";
+  let description = [{
+    The `mx` operation measures the state of qubits into classical bits
+    represented by a `i1` (or a vector of `i1`), along the x-axis.
+
+    The state of the qubits is collapsed into one of the computational basis
+    states, i.e., either |0> or |1>. A `reset` operation can guarantee that the
+    qubit returns to a |0> state, and thus it can be used for further
+    computation. Another option is to deallocate the qubit using `dealloc`.
+  }];
+  let extraClassDeclaration = OpBaseDeclaration;
+}
+
+def MyOp : Measurement<"my"> {
+  let summary = "Measurement along the y-axis";
+  let description = [{
+    The `my` operation measures the state of qubits into classical bits
+    represented by a `i1` (or a vector of `i1`), along the y-axis.
+
+    The state of the qubit is collapsed into one of the computational basis
+    states, i.e., either |0> or |1>. A `reset` operation can guarantee that the
+    qubit returns to a |0> state, and thus it can be used for further
+    computation. Another option is to deallocate the qubit using `dealloc`.
+  }];
+  let extraClassDeclaration = OpBaseDeclaration;
+}
+
+def MzOp : Measurement<"mz"> {
+  let summary = "Measurement along the z-axis";
+  let description = [{
+    The `mz` operation measures the state of qubits into a classical bits
+    represented by a `i1` (or a vector of `i1`), along the z-axis---the
+    so-called computational basis.
+
+    The state of the qubit is collapsed into one of the computational basis
+    states, i.e., either |0> or |1>. A `reset` operation can guarantee that the
+    qubit returns to a |0> state, and thus it can be used for further
+    computation. Another option is to deallocate the qubit using `dealloc`.
+  }];
+  let extraClassDeclaration = OpBaseDeclaration;
+}
+
+//===----------------------------------------------------------------------===//
+// Quantum operators (gates)
 //===----------------------------------------------------------------------===//
 
 class QuakeOperator<string mnemonic, list<Trait> traits = []>
@@ -544,7 +649,11 @@ class QuakeOperator<string mnemonic, list<Trait> traits = []>
     $targets `:` functional-type(operands, results) attr-dict
   }];
 
-  code OpBaseDeclaration = [{
+  code extraClassDeclaration = [{
+    //===------------------------------------------------------------------===//
+    // MemoryEffects interface
+    //===------------------------------------------------------------------===//
+
     void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::EffectInstance<
       mlir::MemoryEffects::Effect>> &effects) {
       quake::getOperatorEffectsImpl(effects, getControls(), getTargets());
@@ -562,22 +671,15 @@ class QuakeOperator<string mnemonic, list<Trait> traits = []>
 
     mlir::Value getParameter(unsigned i = 0u) { return getParameters()[i]; }
 
-    /// If the parameter is known at compilation-time, set the result value and
-    /// returns success. Otherwise, returns failure.
-    mlir::LogicalResult getParameterAsDouble(double& result, unsigned i = 0) {
-      auto paramDefOp = getParameter(i).getDefiningOp();
-      if (!paramDefOp)
-        return mlir::failure();
-      if (auto constOp = mlir::dyn_cast<mlir::arith::ConstantOp>(paramDefOp)) {
-        if (auto value = dyn_cast<mlir::FloatAttr>(constOp.getValue())) {
-          result = value.getValueAsDouble();
-          return mlir::success();
-        }
-      }
-      return mlir::failure();
-    }
-
     mlir::Value getTarget(unsigned i = 0u) { return getTargets()[i]; }
+
+    //===------------------------------------------------------------------===//
+    // Operator interface
+    //===------------------------------------------------------------------===//
+
+    using Matrix = mlir::SmallVectorImpl<std::complex<double>>;
+
+    void getOperatorMatrix(Matrix &matrix);
   }];
 }
 
@@ -594,118 +696,14 @@ class TwoTargetOp<string mnemonic, list<Trait> traits = []> :
                 traits)>;
 
 //===----------------------------------------------------------------------===//
-// Pauli instructions
-//===----------------------------------------------------------------------===//
-
-def XOp : OneTargetOp<"x", [Hermitian]> {
-  let summary = "Pauli-X operation (aka, NOT)";
-  let description = [{
-    Matrix representation:
-    ```
-    X = | 0  1 |
-        | 1  0 |
-    ```
-
-    Circuit symbol:
-    ```
-        ┌───┐
-    q: ─┤ X ├─
-        └───┘
-    ```
-  }];
-  let extraClassDeclaration = OpBaseDeclaration # [{
-    //===------------------------------------------------------------------===//
-    // Operator interface
-    //===------------------------------------------------------------------===//
-    using Matrix = mlir::SmallVectorImpl<std::complex<double>>;
-
-    /// Set `matrix` to the operator's unitary matrix as a column-major array.
-    void getOperatorMatrix(Matrix &matrix) {
-      matrix.assign({0, 1, 1, 0});
-    }
-
-    bool isClifford() {
-      return getControls().size() < 2;
-    }
-  }];
-}
-
-def YOp : OneTargetOp<"y", [Hermitian]> {
-  let summary = "Pauli-Y operation";
-  let description = [{
-    Matrix representation:
-    ```
-    Y = | 0  -i |
-        | i   0 |
-    ```
-
-    Circuit symbol:
-    ```
-        ┌───┐
-    q: ─┤ Y ├─
-        └───┘
-    ```
-  }];
-  let extraClassDeclaration = OpBaseDeclaration # [{
-    //===------------------------------------------------------------------===//
-    // Operator interface
-    //===------------------------------------------------------------------===//
-    using Matrix = mlir::SmallVectorImpl<std::complex<double>>;
-
-    /// Set `matrix` to the operator's unitary matrix as a column-major array.
-    void getOperatorMatrix(Matrix &matrix) {
-      using namespace std::complex_literals;
-      matrix.assign({0, 1i, -1i, 0});
-    }
-
-    bool isClifford() {
-      return getControls().size() < 2;
-    }
-  }];
-}
-
-def ZOp : OneTargetOp<"z", [Hermitian]> {
-  let summary = "Pauli-Z operation.";
-  let description = [{
-    Matrix representation:
-    ```
-    Z = | 1   0 |
-        | 0  -1 |
-    ```
-
-    Circuit symbol:
-    ```
-        ┌───┐
-    q: ─┤ Z ├─
-        └───┘
-    ```
-  }];
-  let extraClassDeclaration = OpBaseDeclaration # [{
-    //===------------------------------------------------------------------===//
-    // Operator interface
-    //===------------------------------------------------------------------===//
-    using Matrix = mlir::SmallVectorImpl<std::complex<double>>;
-
-    /// Set `matrix` to the operator's unitary matrix as a column-major array.
-    void getOperatorMatrix(Matrix &matrix) {
-      matrix.assign({1, 0, 0, -1});
-    }
-
-    bool isClifford() {
-      return getControls().size() < 2;
-    }
-  }];
-}
-
-//===----------------------------------------------------------------------===//
-// Clifford+T instructions (Pauli's are also part of the Clifford group)
+// Quantum operators (gates)
 //===----------------------------------------------------------------------===//
 
 def HOp : OneTargetOp<"h", [Hermitian]> {
   let summary = "Hadamard operation";
   let description = [{
-    This is a pi rotation about the X+Z axis, and has the effect of changing
-    computation basis from |0> (|1>) to |+> (|->) and vice-versa.  Meaning that
+    This is a pi rotation about the X+Z axis, and has the effect of changing the
+    computation basis from |0> (|1>) to |+> (|->) and vice-versa, meaning that
     it enables one to create a superposition of basis states.
 
     Matrix representation:
@@ -716,26 +714,101 @@ def HOp : OneTargetOp<"h", [Hermitian]> {
 
     Circuit symbol:
     ```
-        ┌───┐
-    q: ─┤ H ├─
-        └───┘
+     ┌───┐
+    ─┤ H ├─
+     └───┘
     ```
   }];
-  let extraClassDeclaration = OpBaseDeclaration # [{
-    //===------------------------------------------------------------------===//
-    // Operator interface
-    //===------------------------------------------------------------------===//
-    using Matrix = mlir::SmallVectorImpl<std::complex<double>>;
+}
 
-    /// Set `matrix` to the operator's unitary matrix as a column-major array.
-    void getOperatorMatrix(Matrix &matrix) {
-      using namespace llvm::numbers;
-      matrix.assign({inv_sqrt2, inv_sqrt2, inv_sqrt2, -inv_sqrt2});
-    }
+def PhasedRxOp : QuakeOperator<"phased_rx",
+                   [NumParameters<2>, NumTargets<1>, Rotation]> {
+  let summary = "an arbitrary rotation θ around the cos(φ)x + sin(φ)y axis";
+  let description = [{
+    Matrix representation:
+    ```
+    PhasedRx(ϴ,φ) = |        cos(ϴ/2)        -iexp(-iφ) * sin(ϴ/2) |
+                    | -iexp(iφ)) * sin(ϴ/2)         cos(ϴ/2)       |
+    ```
 
-    bool isClifford() {
-      return getControls().size() == 0;
-    }
+    Circuit symbol:
+    ```
+     ┌───────────────┐
+    ─┤ PhasedRx(ϴ,φ) ├─
+     └───────────────┘
+    ```
+  }];
+}
+
+def R1Op : OneTargetParamOp<"r1", [Rotation]> {
+  let summary = "an arbitrary rotation about the |1> state";
+  let description = [{
+    Matrix representation:
+    ```
+    R1(λ) = | 1     0    |
+            | 0  exp(iλ) |
+    ```
+
+    Circuit symbol:
+    ```
+     ┌───────┐
+    ─┤ R1(λ) ├─
+     └───────┘
+    ```
+  }];
+}
+
+def RxOp : OneTargetParamOp<"rx", [Rotation]> {
+  let summary = "an arbitrary rotation about the X axis";
+  let description = [{
+    Matrix representation:
+    ```
+    Rx(ϴ) = |  cos(ϴ/2)  -isin(ϴ/2) |
+            | -isin(ϴ/2)  cos(ϴ/2)  |
+    ```
+
+    Circuit symbol:
+    ```
+     ┌───────┐
+    ─┤ Rx(ϴ) ├─
+     └───────┘
+    ```
+  }];
+}
+
+def RyOp : OneTargetParamOp<"ry", [Rotation]> {
+  let summary = "an arbitrary rotation about the Y axis";
+  let description = [{
+    Matrix representation:
+    ```
+    Ry(ϴ) = | cos(ϴ/2)  -sin(ϴ/2) |
+            | sin(ϴ/2)   cos(ϴ/2) |
+    ```
+
+    Circuit symbol:
+    ```
+     ┌───────┐
+    ─┤ Ry(ϴ) ├─
+     └───────┘
+    ```
+  }];
+}
+
+def RzOp : OneTargetParamOp<"rz", [Rotation]> {
+  let summary = "an arbitrary rotation about the Z axis";
+  let description = [{
+    Matrix representation:
+    ```
+    Rz(λ) = | exp(-iλ/2)      0     |
+            |     0       exp(iλ/2) |
+    ```
+
+    Circuit symbol:
+    ```
+     ┌───────┐
+    ─┤ Rz(λ) ├─
+     └───────┘
+    ```
   }];
 }
 
@@ -752,65 +825,10 @@ def SOp : OneTargetOp<"s"> {
 
     Circuit symbol:
     ```
-        ┌───┐
-    q: ─┤ S ├─
-        └───┘
+     ┌───┐
+    ─┤ S ├─
+     └───┘
     ```
-  }];
-  let extraClassDeclaration = OpBaseDeclaration # [{
-    //===------------------------------------------------------------------===//
-    // Operator interface
-    //===------------------------------------------------------------------===//
-    using Matrix = mlir::SmallVectorImpl<std::complex<double>>;
-
-    /// Set `matrix` to the operator's unitary matrix as a column-major array.
-    void getOperatorMatrix(Matrix &matrix) {
-      using namespace llvm::numbers;
-      using namespace std::complex_literals;
-      if (getIsAdj())
-        matrix.assign({1, 0, 0, -1i});
-      else
-        matrix.assign({1, 0, 0, 1i});
-    }
-
-    bool isClifford() {
-      return getControls().size() == 0;
-    }
-  }];
-}
-
-def TOp : OneTargetOp<"t"> {
-  let summary = "T operation";
-  let description = [{
-    This operation applies to its target a π/4 rotation about the Z axis.
-
-    Matrix representation:
-    ```
-    T = | 1      0     |
-        | 0  exp(iπ/4) |
-    ```
-
-    Circuit symbol:
-    ```
-        ┌───┐
-    q: ─┤ T ├─
-        └───┘
-    ```
-  }];
-  let extraClassDeclaration = OpBaseDeclaration # [{
-    //===------------------------------------------------------------------===//
-    // Operator interface
-    //===------------------------------------------------------------------===//
-    using Matrix = mlir::SmallVectorImpl<std::complex<double>>;
-
-    /// Set `matrix` to the operator's unitary matrix as a column-major array.
-    void getOperatorMatrix(Matrix &matrix) {
-      using namespace llvm::numbers;
-      if (getIsAdj())
-        matrix.assign({1, 0, 0, {inv_sqrt2, -inv_sqrt2}});
-      else
-        matrix.assign({1, 0, 0, {inv_sqrt2, inv_sqrt2}});
-    }
   }];
 }
 
@@ -829,244 +847,32 @@ def SwapOp : TwoTargetOp<"swap", [Hermitian]> {
 
     Circuit symbol:
     ```
-    q: ─X─
-        │
-    q: ─X─
+    ─X─
+     │
+    ─X─
     ```
-  }];
-  let extraClassDeclaration = OpBaseDeclaration # [{
-    //===------------------------------------------------------------------===//
-    // Operator interface
-    //===------------------------------------------------------------------===//
-    using Matrix = mlir::SmallVectorImpl<std::complex<double>>;
-
-    /// Set `matrix` to the operator's unitary matrix as a column-major array.
-    void getOperatorMatrix(Matrix &matrix) {
-      matrix.assign({1, 0, 0, 0,
-                     0, 0, 1, 0,
-                     0, 1, 0, 0,
-                     0, 0, 0, 1});
-    }
-
-    bool isClifford() {
-      return getControls().size() == 0;
-    }
   }];
 }
 
-//===----------------------------------------------------------------------===//
-// Arbitrary rotation instructions
-//===----------------------------------------------------------------------===//
-
-def R1Op : OneTargetParamOp<"r1", [Rotation]> {
-  let summary = "an arbitrary rotation about the |1> state";
+def TOp : OneTargetOp<"t"> {
+  let summary = "T operation";
   let description = [{
+    This operation applies to its target a π/4 rotation about the Z axis.
+
     Matrix representation:
     ```
-    R1(λ) = | 1     0    |
-            | 0  exp(iλ) |
+    T = | 1      0     |
+        | 0  exp(iπ/4) |
     ```
 
     Circuit symbol:
     ```
-        ┌───────┐
-    q: ─┤ R1(λ) ├─
-        └───────┘
+     ┌───┐
+    ─┤ T ├─
+     └───┘
     ```
-  }];
-  let extraClassDeclaration = OpBaseDeclaration # [{
-    //===------------------------------------------------------------------===//
-    // Operator interface
-    //===------------------------------------------------------------------===//
-    using Matrix = mlir::SmallVectorImpl<std::complex<double>>;
-
-    /// Set `matrix` to the operator's unitary matrix as a column-major array if
-    /// it can be computed at compilation time, i.e., if the parameter is a
-    /// compile-time constant.
-    void getOperatorMatrix(Matrix &matrix) {
-      using namespace std::complex_literals;
-      double theta;
-      if (failed(getParameterAsDouble(theta)))
-        return;
-      if (getIsAdj())
-        theta *= -1;
-      matrix.assign({1, 0, 0, std::exp(theta * 1i)});
-    }
   }];
 }
-
-def RxOp : OneTargetParamOp<"rx", [Rotation]> {
-  let summary = "an arbitrary rotation about the X axis";
-  let description = [{
-    Matrix representation:
-    ```
-    Rx(ϴ) =  exp(-(i * ϴ/2) * X) = |  cos(ϴ/2)  -isin(ϴ/2) |
-                                   | -isin(ϴ/2)  cos(ϴ/2)  |
-    ```
-
-    Circuit symbol:
-    ```
-        ┌───────┐
-    q: ─┤ Rx(ϴ) ├─
-        └───────┘
-    ```
-  }];
-  let extraClassDeclaration = OpBaseDeclaration # [{
-    //===------------------------------------------------------------------===//
-    // Operator interface
-    //===------------------------------------------------------------------===//
-    using Matrix = mlir::SmallVectorImpl<std::complex<double>>;
-
-    /// Set `matrix` to the operator's unitary matrix as a column-major array if
-    /// it can be computed at compilation time, i.e., if the parameter is a
-    /// compile-time constant.
-    void getOperatorMatrix(Matrix &matrix) {
-      using namespace std::complex_literals;
-      double theta;
-      if (failed(getParameterAsDouble(theta)))
-        return;
-      if (getIsAdj())
-        theta *= -1;
-      matrix.assign({      std::cos(theta / 2.), -1i * std::sin(theta / 2.),
-                     -1i * std::sin(theta / 2.), std::cos(theta / 2.)});
-    }
-  }];
-}
-
-def PhasedRxOp : QuakeOperator<"phased_rx",
-                   [NumParameters<2>, NumTargets<1>, Rotation]> {
-  let summary = "Phased rx gate. Two parameters and one target qubit.";
-  let description = [{
-    Matrix representation:
-    ```
-    PhasedRx(ϴ,φ) = |        cos(ϴ/2)        -iexp(-iφ) * sin(ϴ/2) |
-                    | -iexp(iφ)) * sin(ϴ/2)         cos(ϴ/2)       |
-    ```
-
-    Circuit symbol:
-    ```
-        ┌───────────────┐
-    q: ─┤ PhasedRx(ϴ,φ) ├─
-        └───────────────┘
-    ```
-  }];
-  let extraClassDeclaration = OpBaseDeclaration # [{
-    //===------------------------------------------------------------------===//
-    // Operator interface
-    //===------------------------------------------------------------------===//
-    using Matrix = mlir::SmallVectorImpl<std::complex<double>>;
-
-    /// Set `matrix` to the operator's unitary matrix as a column-major array if
-    /// it can be computed at compilation time, i.e., if the parameter is a
-    /// compile-time constant.
-    void getOperatorMatrix(Matrix &matrix) {
-      using namespace std::complex_literals;
-
-      // Get parameters
-      double theta;
-      double phi;
-      if (failed(getParameterAsDouble(theta)) ||
-          failed(getParameterAsDouble(phi, /*i =*/1)))
-        return;
-
-      if (getIsAdj())
-        theta *= -1;
-
-      matrix.assign({
-        std::cos(theta / 2.),
-        -1i * std::exp(1i * phi ) * std::sin(theta / 2.),
-        -1i * std::exp(-1i * phi) * std::sin(theta / 2.),
-        std::cos(theta / 2.)
-      });
-    }
-  }];
-}
-
-def RyOp : OneTargetParamOp<"ry", [Rotation]> {
-  let summary = "an arbitrary rotation about the Y axis";
-  let description = [{
-    Matrix representation:
-    ```
-    Ry(ϴ) = exp(-(i * ϴ/2) * Y) = | cos(ϴ/2)  -sin(ϴ/2) |
-                                  | sin(ϴ/2)   cos(ϴ/2) |
-    ```
-
-    Circuit symbol:
-    ```
-        ┌───────┐
-    q: ─┤ Ry(ϴ) ├─
-        └───────┘
-    ```
-  }];
-  let extraClassDeclaration = OpBaseDeclaration # [{
-    //===------------------------------------------------------------------===//
-    // Operator interface
-    //===------------------------------------------------------------------===//
-    using Matrix = mlir::SmallVectorImpl<std::complex<double>>;
-
-    /// Set `matrix` to the operator's unitary matrix as a column-major array if
-    /// it can be computed at compilation time, i.e., if the parameter is a
-    /// compile-time constant.
-    void getOperatorMatrix(Matrix &matrix) {
-      // Get parameter
-      double theta;
-      if (failed(getParameterAsDouble(theta)))
-        return;
-
-      if (getIsAdj())
-        theta *= -1;
-
-      matrix.assign({std::cos(theta / 2.), std::sin(theta / 2.),
-                     -std::sin(theta / 2.), std::cos(theta / 2.)});
-    }
-  }];
-}
-
-def RzOp : OneTargetParamOp<"rz", [Rotation]> {
-  let summary = "an arbitrary rotation about the Z axis";
-  let description = [{
-    Matrix representation:
-    ```
-    Rz(λ) = exp(-iλ/2 * Z) = | exp(-iλ/2)      0     |
-                             |     0       exp(iλ/2) |
-    ```
-
-    Circuit symbol:
-    ```
-        ┌───────┐
-    q: ─┤ Rz(λ) ├─
-        └───────┘
-    ```
-  }];
-  let extraClassDeclaration = OpBaseDeclaration # [{
-    //===------------------------------------------------------------------===//
-    // Operator interface
-    //===------------------------------------------------------------------===//
-    using Matrix = mlir::SmallVectorImpl<std::complex<double>>;
-
-    /// Set `matrix` to the operator's unitary matrix as a column-major array if
-    /// it can be computed at compilation time, i.e., if the parameter is a
-    /// compile-time constant.
-    void getOperatorMatrix(Matrix &matrix) {
-      using namespace std::complex_literals;
-
-      // Get parameter
-      double theta;
-      if (failed(getParameterAsDouble(theta)))
-        return;
-
-      if (getIsAdj())
-        theta *= -1;
-
-      matrix.assign({std::exp(-1i * theta / 2.), 0,
-                     0, std::exp(1i * theta / 2.)});
-    }
-  }];
-}
-
-//===----------------------------------------------------------------------===//
-// Universal intructions
-//===----------------------------------------------------------------------===//
 
 def U2Op : QuakeOperator<"u2", [NumParameters<2>, NumTargets<1>, Rotation]> {
   let summary = "generic rotation about the X+Z axis";
@@ -1081,43 +887,10 @@ def U2Op : QuakeOperator<"u2", [NumParameters<2>, NumTargets<1>, Rotation]> {
 
     Circuit symbol:
     ```
-        ┌─────────┐
-    q: ─┤ U2(φ,λ) ├─
-        └─────────┘
+     ┌─────────┐
+    ─┤ U2(φ,λ) ├─
+     └─────────┘
     ```
-  }];
-  let extraClassDeclaration = OpBaseDeclaration # [{
-    //===------------------------------------------------------------------===//
-    // Operator interface
-    //===------------------------------------------------------------------===//
-    using Matrix = mlir::SmallVectorImpl<std::complex<double>>;
-
-    /// Set `matrix` to the operator's unitary matrix as a column-major array if
-    /// it can be computed at compilation time, i.e., if the parameter is a
-    /// compile-time constant.
-    void getOperatorMatrix(Matrix &matrix) {
-      using namespace llvm::numbers;
-      using namespace std::complex_literals;
-
-      // Get parameters
-      double phi;
-      double lambda;
-      if (failed(getParameterAsDouble(phi)) ||
-          failed(getParameterAsDouble(lambda, /*i =*/1)))
-        return;
-
-      if (getIsAdj()) {
-        phi *= -1;
-        lambda *= -1;
-      }
-
-      matrix.assign({
-        inv_sqrt2,
-        inv_sqrt2 * std::exp(phi * 1i),
-        -inv_sqrt2 * std::exp(lambda * 1i),
-        inv_sqrt2 * std::exp(1i * (phi + lambda))
-      });
-    }
   }];
 }
 
@@ -1136,148 +909,65 @@ def U3Op : QuakeOperator<"u3", [NumParameters<3>, NumTargets<1>, Rotation]> {
 
     Circuit symbol:
     ```
-        ┌───────────┐
-    q: ─┤ U3(ϴ,φ,λ) ├─
-        └───────────┘
+     ┌───────────┐
+    ─┤ U3(ϴ,φ,λ) ├─
+     └───────────┘
     ```
   }];
-  let extraClassDeclaration = OpBaseDeclaration # [{
-    //===------------------------------------------------------------------===//
-    // Operator interface
-    //===------------------------------------------------------------------===//
-    using Matrix = mlir::SmallVectorImpl<std::complex<double>>;
-
-    /// Set `matrix` to the operator's unitary matrix as a column-major array if
-    /// it can be computed at compilation time, i.e., if the parameter is a
-    /// compile-time constant.
-    void getOperatorMatrix(Matrix &matrix) {
-      using namespace std::complex_literals;
-
-      // Get parameters
-      double theta;
-      double phi;
-      double lambda;
-      if (failed(getParameterAsDouble(theta)) ||
-          failed(getParameterAsDouble(phi, /*i =*/1)) ||
-          failed(getParameterAsDouble(lambda, /*i =*/2)))
-        return;
-
-      if (getIsAdj()) {
-        theta *= -1;
-        phi *= -1;
-        lambda *= -1;
-      }
-
-      matrix.assign({
-        std::cos(theta / 2.),
-        std::exp(phi * 1i) * std::sin(theta / 2.),
-        -std::exp(lambda * 1i) * std::sin(theta / 2.),
-        std::exp(1i * (phi + lambda)) * std::cos(theta / 2.)
-      });
-    }
-  }];
 }
 
-//===----------------------------------------------------------------------===//
-// Reset
-//===----------------------------------------------------------------------===//
-
-def quake_ResetOp : QuakeOp<"reset", [QuantumGate,
-    DeclareOpInterfaceMethods<MemoryEffectsOpInterface>]> {
-  let summary = "Reset the wire to the |0> (|0..0>) state.";
+def XOp : OneTargetOp<"x", [Hermitian]> {
+  let summary = "Pauli-X operation (aka, NOT)";
   let description = [{
-    The `quake.reset` operation resets a wire to the |0> (|0..0>) state. It
-    may take an argument that is either a reference to a wire, type `!ref`,
-    or a wire, type `!wire`.
+    Matrix representation:
+    ```
+    X = | 0  1 |
+        | 1  0 |
+    ```
 
-    Example:
-    ```mlir
-      quake.reset %0 : (!quake.ref) -> ()
-      %2 = quake.reset %1 : (!quake.wire) -> !quake.wire
+    Circuit symbol:
+    ```
+     ┌───┐
+    ─┤ X ├─
+     └───┘
     ```
   }];
-
-  let arguments = (ins AnyQType:$targets);
-  let results = (outs Variadic<WireType>);
-  let assemblyFormat = [{
-     $targets `:` functional-type(operands, results) attr-dict
-  }];
-
-  let extraClassDeclaration = [{
-    void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::
-        EffectInstance<mlir::MemoryEffects::Effect>> &effects) {
-      quake::getOperatorEffectsImpl(effects, {}, getTargets());
-    }
-  }];
 }
 
-//===----------------------------------------------------------------------===//
-// Measurements
-//===----------------------------------------------------------------------===//
-
-class Measurement<string mnemonic> : QuakeOp<mnemonic,
-    [DeclareOpInterfaceMethods<MemoryEffectsOpInterface>, QuantumMeasure]> {
-  let arguments = (ins
-    Variadic<AnyQType>:$targets,
-    OptionalAttr<StrAttr>:$registerName
-  );
-  let results = (outs AnyTypeOf<[I1, StdvecOf<[I1]>]>:$bits);
-
-  let assemblyFormat = [{
-    $targets `:` functional-type(operands, results) attr-dict
-  }];
-
-  code OpBaseDeclaration = [{
-    void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::EffectInstance<
-      mlir::MemoryEffects::Effect>> &effects) {
-      quake::getOperatorEffectsImpl(effects, {}, getTargets());
-    }
-  }];
-
-  let hasVerifier = 1;
-}
-
-def MxOp : Measurement<"mx"> {
-  let summary = "Measure a single qubit along the x-axis";
+def YOp : OneTargetOp<"y", [Hermitian]> {
+  let summary = "Pauli-Y operation";
   let description = [{
-    The `mx` operation measures the state of qubits into classical bits
-    represented by a `i1` (or a vector of `i1`), along the x-axis.
+    Matrix representation:
+    ```
+    Y = | 0  -i |
+        | i   0 |
+    ```
 
-    The state of the qubits is collapsed into one of the computational basis
-    states, i.e., either |0> or |1>.  A `reset` operation can guarantee that the
-    qubit returns to a |0> state, and thus it can be used for further
-    computation.  Another option is to deallocate the qubit using `dealloc`.
+    Circuit symbol:
+    ```
+     ┌───┐
+    ─┤ Y ├─
+     └───┘
+    ```
   }];
-  let extraClassDeclaration = OpBaseDeclaration;
 }
 
-def MyOp : Measurement<"my"> {
-  let summary = "Measure a single qubit along the y-axis";
+def ZOp : OneTargetOp<"z", [Hermitian]> {
+  let summary = "Pauli-Z operation.";
   let description = [{
-    The `mx` operation measures the state of qubits into classical bits
-    represented by a `i1` (or a vector of `i1`), along the y-axis.
+    Matrix representation:
+    ```
+    Z = | 1   0 |
+        | 0  -1 |
+    ```
 
-    The state of the qubit is collapsed into one of the computational basis
-    states, i.e., either |0> or |1>.  A `reset` operation can guarantee that the
-    qubit returns to a |0> state, and thus it can be used for further
-    computation.  Another option is to deallocate the qubit using `dealloc`.
+    Circuit symbol:
+    ```
+     ┌───┐
+    ─┤ Z ├─
+     └───┘
+    ```
   }];
-  let extraClassDeclaration = OpBaseDeclaration;
-}
-
-def MzOp : Measurement<"mz"> {
-  let summary = "Measure a single qubit along the z-axis";
-  let description = [{
-    The `mz` operation measures the state of qubits into a classical bits
-    represented by a `i1` (or a vector of `i1`), along the z-axis---the
-    so-called computational basis.
-
-    The state of the qubit is collapsed into one of the computational basis
-    states, i.e., either |0> or |1>.  A `reset` operation can guarantee that the
-    qubit returns to a |0> state, and thus it can be used for further
-    computation.  Another option is to deallocate the qubit using `dealloc`.
-  }];
-  let extraClassDeclaration = OpBaseDeclaration;
 }
 
 #endif // CUDAQ_OPTIMIZER_DIALECT_QUAKE_OPS

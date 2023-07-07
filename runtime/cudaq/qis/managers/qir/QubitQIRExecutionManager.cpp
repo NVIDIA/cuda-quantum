@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "QIRForwards.h"
 #include "common/Logger.h"
@@ -184,6 +184,7 @@ protected:
   }
 
   void handleExecutionContextChanged() override {
+    requestedAllocations.clear();
     __quantum__rt__setExecutionContext(executionContext);
   }
 
@@ -213,12 +214,14 @@ protected:
   }
 
   int measureQudit(const cudaq::QuditInfo &q) override {
+    flushRequestedAllocations();
     auto res_ptr = __quantum__qis__mz(qubits[q.id]);
     auto res = *reinterpret_cast<bool *>(res_ptr);
     return res ? 1 : 0;
   }
 
   void measureSpinOp(const cudaq::spin_op &op) override {
+    flushRequestedAllocations();
     Array *term_arr = spinToArray(op);
     __quantum__qis__measure__body(term_arr, nullptr);
   }
@@ -228,6 +231,7 @@ public:
   virtual ~QIRExecutionManager() {}
 
   void resetQudit(const cudaq::QuditInfo &id) override {
+    flushRequestedAllocations();
     __quantum__qis__reset(qubits[id.id]);
   }
 };

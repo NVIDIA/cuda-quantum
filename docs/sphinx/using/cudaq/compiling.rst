@@ -6,7 +6,7 @@ intermediate representation, quantum circuit optimization, placement, and routin
 and lowering to LLVM-based representations (e.g. the QIR) for binary object 
 creation and linking. The compiler supports a number of modes, simulators, and 
 target quantum architectures, all of which can be configured with command line flags. 
-All the usual compiler flags provided by compilers like :code:`clang++`` and :code:`gcc` are also 
+All the usual compiler flags provided by compilers like :code:`clang++` and :code:`gcc` are also 
 available for creating hybrid quantum-classical applications and libraries (e.g. 
 linker flags and include header search paths). 
 
@@ -15,15 +15,15 @@ a similar manner as classical C++ compilers:
 
 .. code-block:: console
 
-  nvq++ simple.cpp -o simple.x (optional... -I /header/path -L /library/path -lfoo)
-  ./simple.x 
+    nvq++ simple.cpp -o simple.x (optional... -I /header/path -L /library/path -lfoo)
+    ./simple.x
 
 One can specify the target quantum architecture to target with the :code:`--target` flag:
 
 .. code-block:: console 
 
-  nvq++ simple.cpp --qpu nvidia 
-  ./a.out 
+    nvq++ simple.cpp --target nvidia
+    ./a.out
 
 The :code:`nvidia` target architecture will configure the executable to run 
 on GPU-enabled simulation resources accelerated by cuQuantum. 

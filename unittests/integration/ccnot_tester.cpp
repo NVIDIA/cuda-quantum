@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
 #include <cudaq/algorithm.h>
@@ -12,7 +12,7 @@
 // Demonstrate we can perform multi-controlled operations
 struct ccnot_test {
   void operator()() __qpu__ {
-    cudaq::qreg q(3);
+    cudaq::qvector q(3);
 
     x(q);
     x(q[1]);
@@ -33,7 +33,7 @@ struct nested_ctrl {
   void operator()() __qpu__ {
     auto apply_x = [](cudaq::qubit &r) { x(r); };
 
-    cudaq::qreg q(3);
+    cudaq::qvector q(3);
     // Create 101
     x(q);
     x(q[1]);
@@ -56,7 +56,7 @@ struct nested_ctrl {
 
 CUDAQ_TEST(CCNOTTester, checkSimple) {
   auto ccnot = []() {
-    cudaq::qreg q(3);
+    cudaq::qvector q(3);
 
     // Apply X to the following qubits
     x(q[0], q[2]);

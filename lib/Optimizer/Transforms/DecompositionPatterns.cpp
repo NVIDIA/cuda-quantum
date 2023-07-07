@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "DecompositionPatterns.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
@@ -131,6 +131,45 @@ struct HToPhasedRx : public OpRewritePattern<quake::HOp> {
     parameters[0] = pi;
     parameters[1] = zero;
     rewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
+
+    rewriter.eraseOp(op);
+    return success();
+  }
+};
+
+// quake.h control, target
+// ───────────────────────────────────
+// quake.s target;
+// quake.h target;
+// quake.t target;
+// quake.x control, target;
+// quake.t<adj> target;
+// quake.h target;
+// quake.s<adj> target;
+struct CHToCX : public OpRewritePattern<quake::HOp> {
+  using OpRewritePattern<quake::HOp>::OpRewritePattern;
+
+  void initialize() { setDebugName("CHToCX"); }
+
+  LogicalResult matchAndRewrite(quake::HOp op,
+                                PatternRewriter &rewriter) const override {
+    if (!quake::isAllReferences(op))
+      return failure();
+    if (failed(checkNumControls(op, 1)))
+      return failure();
+
+    // Op info
+    Location loc = op->getLoc();
+    Value control = op.getControls()[0];
+    Value target = op.getTarget();
+
+    rewriter.create<quake::SOp>(loc, target);
+    rewriter.create<quake::HOp>(loc, target);
+    rewriter.create<quake::TOp>(loc, target);
+    rewriter.create<quake::XOp>(loc, control, target);
+    rewriter.create<quake::TOp>(loc, /*isAdj=*/true, target);
+    rewriter.create<quake::HOp>(loc, target);
+    rewriter.create<quake::SOp>(loc, /*isAdj=*/true, target);
 
     rewriter.eraseOp(op);
     return success();
@@ -917,6 +956,7 @@ void cudaq::populateWithAllDecompositionPatterns(RewritePatternSet &patterns) {
   patterns.insert<
     // HOp patterns
     HToPhasedRx,
+    CHToCX,
     // SOp patterns
     SToPhasedRx,
     // TOp patterns
