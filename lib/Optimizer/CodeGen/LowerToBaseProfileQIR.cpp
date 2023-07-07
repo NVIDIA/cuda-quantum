@@ -106,8 +106,9 @@ private:
                     } else {
                       // Skip over any potential intermediate cast.
                       auto *defOp = call.getOperand(1).getDefiningOp();
-                      if (isa<LLVM::ZExtOp, LLVM::SExtOp, LLVM::PtrToIntOp,
-                              LLVM::BitcastOp, LLVM::TruncOp>(defOp))
+                      if (isa_and_nonnull<LLVM::ZExtOp, LLVM::SExtOp,
+                                          LLVM::PtrToIntOp, LLVM::BitcastOp,
+                                          LLVM::TruncOp>(defOp))
                         constVal = defOp->getOperand(0);
                     }
                   }
