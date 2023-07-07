@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+import cudaq
 from fastapi import FastAPI, Request, HTTPException, Header
 from typing import Optional, Union
 import uvicorn, uuid, json, base64, ctypes
@@ -15,13 +16,16 @@ from llvmlite import binding as llvm
 # Define the REST Server App
 app = FastAPI()
 
+class Input(BaseModel):
+    format:str 
+    data: str
 
 # Jobs look like the following type
 class Job(BaseModel):
-    name: str
-    program: str
-    count: int
-
+    target: str
+    qubits: str
+    shots: int
+    input: Input
 
 # Keep track of Job Ids to their Names
 createdJobs = {}
@@ -57,7 +61,7 @@ def getNumRequiredQubits(function):
 @app.post("/login")
 async def login(token: Union[str, None] = Header(alias="Authorization",
                                                  default=None)):
-    if 'token' == None:
+    if token == None:
         raise HTTPException(status_code(401), detail="Credentials not provided")
     return {"id-token": "hello", "refresh-token": "refreshToken"}
 
@@ -65,19 +69,19 @@ async def login(token: Union[str, None] = Header(alias="Authorization",
 # Here we expose a way to post jobs,
 # Must have a Access Token, Job Program must be Adaptive Profile
 # with EntryPoint tag
-@app.post("/job")
+@app.post("/v0.3/jobs")
 async def postJob(job: Job,
                   token: Union[str, None] = Header(alias="Authorization",
                                                    default=None)):
     global createdJobs, shots
 
-    if 'token' == None:
+    if token == None:
         raise HTTPException(status_code(401), detail="Credentials not provided")
 
-    print('Posting job with name = ', job.name, job.count)
-    name = job.name
+    print('Posting job with shots = ', job.shots)
     newId = str(uuid.uuid4())
-    program = job.program
+    shots = job.shots
+    program = job.input.data
     decoded = base64.b64decode(program)
     m = llvm.module.parse_bitcode(decoded)
     mstr = str(m)
@@ -102,38 +106,48 @@ async def postJob(job: Job,
 
     # Invoke the Kernel
     cudaq.testing.toggleBaseProfile()
-    qubits, context = cudaq.testing.initialize(numQubitsRequired, job.count)
+    qubits, context = cudaq.testing.initialize(numQubitsRequired, job.shots)
     kernel()
     results = cudaq.testing.finalize(qubits, context)
     results.dump()
-    createdJobs[newId] = (name, results)
+    createdJobs[newId] = results
 
     engine.remove_module(m)
 
     # Job "created", return the id
-    return {"job": newId}
+    return {"id": newId, "jobs":{"status":"running"}}
 
 
 # Retrieve the job, simulate having to wait by counting to 3
 # until we return the job results
-@app.get("/job/{jobId}")
-async def getJob(jobId: str):
-    global countJobGetRequests, createdJobs, shots
+@app.get("/v0.3/jobs")
+async def getJob(id: str):
+    global countJobGetRequests, createdJobs
 
     # Simulate asynchronous execution
     if countJobGetRequests < 3:
         countJobGetRequests += 1
-        return {"status": "running"}
+        return {"jobs": [{"status": "running"}]}
 
     countJobGetRequests = 0
-    name, counts = createdJobs[jobId]
-    retData = []
-    for bits, count in counts.items():
-        retData += [bits] * count
-
-    res = {"status": "completed", "results": {"mz0": retData}}
+    res = {"jobs": [{"status": "completed", "results_url":"/v0.3/jobs/{}/results".format(id)}]}
     return res
 
+@app.get("/v0.3/jobs/{jobId}/results")
+async def getResults(jobId: str):
+    global countJobGetRequests, createdJobs
+
+    counts = createdJobs[jobId]
+    counts.dump()
+    retData = {}
+    N = 0
+    for bits, count in counts.items():
+        N+=count
+    for bits, count in counts.items():
+        retData[bits] = float(count/N)
+
+    res = retData
+    return res
 
 def startServer(port):
     uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")
