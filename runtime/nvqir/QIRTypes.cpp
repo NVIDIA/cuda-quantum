@@ -83,7 +83,8 @@ std::vector<int64_t> getRangeValues(Array *in_array, const Range &in_range) {
     assert(in_range.step > 0);
     std::vector<int64_t> result;
     for (int64_t i = start_idx; i <= end_idx; i += in_range.step) {
-      result.emplace_back(i);
+      auto qubit = *reinterpret_cast<Qubit **>((*in_array)[i]);
+      result.emplace_back(qubit->idx);
     }
     return result;
   }
@@ -95,7 +96,8 @@ std::vector<int64_t> getRangeValues(Array *in_array, const Range &in_range) {
   std::vector<int64_t> result;
   assert(in_range.step < 0);
   for (int64_t i = start_idx; i >= end_idx; i += in_range.step) {
-    result.emplace_back(i);
+    auto qubit = *reinterpret_cast<Qubit **>((*in_array)[i]);
+    result.emplace_back(qubit->idx);
   }
   return result;
 }

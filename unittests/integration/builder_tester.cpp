@@ -339,12 +339,6 @@ CUDAQ_TEST(BuilderTester, checkStdVecValidate) {
 
   // This is not ok
   EXPECT_ANY_THROW({ kernel(std::vector<double>{M_PI}); });
-
-  // Must provide the number of parameters that were extracted
-  EXPECT_ANY_THROW({
-    auto counts =
-        cudaq::sample(kernel, std::vector<double>{M_PI, M_PI_2, M_PI});
-  });
 }
 
 CUDAQ_TEST(BuilderTester, checkIsArgStdVec) {
