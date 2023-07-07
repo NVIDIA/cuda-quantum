@@ -223,6 +223,10 @@ public:
     // Set the qpu name
     qpuName = mutableBackend;
 
+    // If we are emulating we do not need to setup a server helper.
+    if (emulate)
+      return;
+
     // Create the ServerHelper for this QPU and give it the backend config
     serverHelper = cudaq::registry::get<cudaq::ServerHelper>(qpuName);
     serverHelper->initialize(backendConfig);
