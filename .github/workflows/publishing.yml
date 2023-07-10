@@ -16,7 +16,7 @@ name: Packages
 jobs:
   cudaq_hpc:
     name: CUDA Quantum Docker image
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.actor.name == 'cuda-quantum-bot')
     runs-on: ubuntu-latest
     timeout-minutes: 100
     permissions:

@@ -8,8 +8,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# We'll need the requests and llvm module
-@Python_EXECUTABLE@ -m pip install requests llvmlite --user 
 # Launch the fake server
 PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/mock_qpu/quantinuum/__init__.py &
 # we'll need the process id to kill it
