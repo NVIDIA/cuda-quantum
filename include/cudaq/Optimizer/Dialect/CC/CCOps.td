@@ -1087,6 +1087,9 @@ def cc_CreateLambdaOp : CCOp<"create_lambda",
     unsigned getNumResults() {
       return getType().getSignature().getNumResults();
     }
+
+    mlir::Region &getBody() { return getInitRegion(); }
+    llvm::StringRef getName() { return "*lambda*"; }
   }];
 }
 
