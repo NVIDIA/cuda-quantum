@@ -706,21 +706,24 @@ public:
     std::vector<Type> funcTypes{cudaq::opt::getQubitType(context)};
     std::vector<Value> args{adaptor.getOperands().front()};
 
-    // If no register name is supplied, make one up.
+    bool appendName;
     if (regName) {
       // Change the function name
       qFunctionName += "__to__register";
+      // Append a string type argument
+      funcTypes.push_back(
+          LLVM::LLVMPointerType::get(rewriter.getIntegerType(8)));
+      appendName = true;
     } else {
+      // If no register name is supplied, make one up.
       static unsigned counter = 0u;
       regName = rewriter.getStringAttr("r" + std::to_string(counter++));
+      appendName = false;
     }
     // Get the name
     auto regNameAttr = regName.cast<StringAttr>();
     auto regNameStr = regNameAttr.getValue().str();
     std::string regNameGlobalStr = regNameStr;
-
-    // Append a string type argument
-    funcTypes.push_back(LLVM::LLVMPointerType::get(rewriter.getIntegerType(8)));
 
     // Write to the module body
     auto insertPoint = rewriter.saveInsertionPoint();
@@ -742,7 +745,8 @@ public:
         loc, cudaq::opt::factory::getPointerType(context), regNameRef);
 
     // Append to the args list
-    args.push_back(castedRegNameRef);
+    if (appendName)
+      args.push_back(castedRegNameRef);
 
     FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
         qFunctionName, cudaq::opt::getResultType(context),

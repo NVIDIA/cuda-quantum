@@ -28,7 +28,7 @@
 // CHECK:         tail call void @__quantum__qis__h(%[[VAL_11]]* %[[VAL_12]])
 // CHECK: tail call void (i64, void (%Array*, %Qubit*)*, ...) @invokeWithControlQubits(i64 1, void (%Array*, %Qubit*)* nonnull @__quantum__qis__x__ctl, %Qubit* %[[VAL_12]], %Qubit* %[[VAL_15]])
 // CHECK:         tail call void @__quantum__qis__rx(double 4.300000e-01, %[[VAL_11]]* %[[VAL_12]])
-// CHECK:         %[[VAL_16:.*]] = tail call %Result* @__quantum__qis__mz(%[[VAL_11]]* %[[VAL_12]]
+// CHECK:         %[[VAL_16:.*]] = tail call %Result* @__quantum__qis__mz(%[[VAL_11]]* %[[VAL_12]])
 // CHECK-DAG:     tail call void @__quantum__rt__qubit_release_array(%[[VAL_6]]* %[[VAL_5]])
 // CHECK-DAG:     tail call void @__quantum__rt__qubit_release_array(%[[VAL_6]]* %[[VAL_7]])
 // CHECK-DAG:     tail call void @__quantum__rt__qubit_release_array(%[[VAL_6]]* %[[VAL_8]])
