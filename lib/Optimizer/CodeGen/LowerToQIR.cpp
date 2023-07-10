@@ -706,42 +706,43 @@ public:
     std::vector<Type> funcTypes{cudaq::opt::getQubitType(context)};
     std::vector<Value> args{adaptor.getOperands().front()};
 
-    // Call a different measure function if we have a classical register name
+    // If no register name is supplied, make one up.
     if (regName) {
-      // Get the name
-      auto regNameAttr = regName.cast<StringAttr>();
-      auto regNameStr = regNameAttr.getValue().str();
-      std::string regNameGlobalStr = regNameStr;
-
       // Change the function name
       qFunctionName += "__to__register";
-
-      // Append a string type argument
-      funcTypes.push_back(
-          LLVM::LLVMPointerType::get(rewriter.getIntegerType(8)));
-
-      // Write to the module body
-      auto insertPoint = rewriter.saveInsertionPoint();
-      rewriter.setInsertionPointToStart(parentModule.getBody());
-
-      // Create the register name global
-      auto builder = cudaq::IRBuilder::atBlockEnd(parentModule.getBody());
-      auto regNameGlobal =
-          builder.genCStringLiteralAppendNul(loc, parentModule, regNameStr);
-
-      // Shift back to the function
-      rewriter.restoreInsertionPoint(insertPoint);
-
-      // Get the string address and bit cast
-      auto regNameRef = rewriter.create<LLVM::AddressOfOp>(
-          loc, cudaq::opt::factory::getPointerType(regNameGlobal.getType()),
-          regNameGlobal.getSymName());
-      auto castedRegNameRef = rewriter.create<LLVM::BitcastOp>(
-          loc, cudaq::opt::factory::getPointerType(context), regNameRef);
-
-      // Append to the args list
-      args.push_back(castedRegNameRef);
+    } else {
+      static unsigned counter = 0u;
+      regName = rewriter.getStringAttr("r" + std::to_string(counter++));
     }
+    // Get the name
+    auto regNameAttr = regName.cast<StringAttr>();
+    auto regNameStr = regNameAttr.getValue().str();
+    std::string regNameGlobalStr = regNameStr;
+
+    // Append a string type argument
+    funcTypes.push_back(LLVM::LLVMPointerType::get(rewriter.getIntegerType(8)));
+
+    // Write to the module body
+    auto insertPoint = rewriter.saveInsertionPoint();
+    rewriter.setInsertionPointToStart(parentModule.getBody());
+
+    // Create the register name global
+    auto builder = cudaq::IRBuilder::atBlockEnd(parentModule.getBody());
+    auto regNameGlobal =
+        builder.genCStringLiteralAppendNul(loc, parentModule, regNameStr);
+
+    // Shift back to the function
+    rewriter.restoreInsertionPoint(insertPoint);
+
+    // Get the string address and bit cast
+    auto regNameRef = rewriter.create<LLVM::AddressOfOp>(
+        loc, cudaq::opt::factory::getPointerType(regNameGlobal.getType()),
+        regNameGlobal.getSymName());
+    auto castedRegNameRef = rewriter.create<LLVM::BitcastOp>(
+        loc, cudaq::opt::factory::getPointerType(context), regNameRef);
+
+    // Append to the args list
+    args.push_back(castedRegNameRef);
 
     FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
         qFunctionName, cudaq::opt::getResultType(context),
