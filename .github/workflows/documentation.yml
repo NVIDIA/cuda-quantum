@@ -23,7 +23,7 @@ on:
     types:
       - completed
 
-name: Docs publishing
+name: Documentation
 
 concurrency:
     group: ${{ github.workflow }} # only one docs publishing can be run at a time, since all docs are published to the same location!

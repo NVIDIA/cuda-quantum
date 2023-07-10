@@ -85,58 +85,6 @@ public:
     return cudaq::cc::StructType::get(ctx, eleTys);
   }
 
-  // FIXME: We should get the underlying structure of a std::vector from the
-  // AST. For expediency, we just construct the expected type directly here.
-  cudaq::cc::StructType stlVectorType(Type eleTy) {
-    MLIRContext *ctx = eleTy.getContext();
-    auto elePtrTy = cudaq::cc::PointerType::get(eleTy);
-    SmallVector<Type> eleTys = {elePtrTy, elePtrTy, elePtrTy};
-    return cudaq::cc::StructType::get(ctx, eleTys);
-  }
-
-  bool hasHiddenSRet(FunctionType funcTy) {
-    return funcTy.getNumResults() == 1 &&
-           funcTy.getResult(0).isa<cudaq::cc::StdvecType>();
-  }
-
-  FunctionType toLLVMFuncType(FunctionType funcTy) {
-    auto *ctx = funcTy.getContext();
-    // In the default case, there is always a default "this" argument to the
-    // kernel entry function. The CUDA Quantum language spec doesn't allow the
-    // kernel object to contain data members (yet), so we can ignore this
-    // pointer.
-    auto ptrTy = cudaq::cc::PointerType::get(IntegerType::get(ctx, 8));
-    SmallVector<Type> inputTys = {ptrTy};
-    bool hasSRet = false;
-    if (hasHiddenSRet(funcTy)) {
-      // When the kernel is returning a std::vector<T> result, the result is
-      // returned via a sret argument in the first position. When this argument
-      // is added, the this pointer becomes the second argument. Both are opaque
-      // pointers at this point.
-      inputTys.push_back(ptrTy);
-      hasSRet = true;
-    }
-
-    // Add all the explicit (not hidden) arguments after the hidden ones.
-    for (auto inTy : funcTy.getInputs()) {
-      if (auto memrefTy = dyn_cast<cudaq::cc::StdvecType>(inTy))
-        inputTys.push_back(cudaq::cc::PointerType::get(
-            stlVectorType(memrefTy.getElementType())));
-      else if (auto memrefTy = dyn_cast<quake::VeqType>(inTy))
-        inputTys.push_back(cudaq::cc::PointerType::get(stlVectorType(
-            IntegerType::get(ctx, /*FIXME sizeof a pointer?*/ 64))));
-      else
-        inputTys.push_back(inTy);
-    }
-
-    // Handle the result type. We only add a result type when there is a result
-    // and it hasn't been converted to a hidden sret argument.
-    if (funcTy.getNumResults() == 0 || hasSRet)
-      return FunctionType::get(ctx, inputTys, {});
-    assert(funcTy.getNumResults() == 1);
-    return FunctionType::get(ctx, inputTys, funcTy.getResults());
-  }
-
   FunctionType getThunkType(MLIRContext *ctx) {
     auto ptrTy = cudaq::cc::PointerType::get(IntegerType::get(ctx, 8));
     return FunctionType::get(
@@ -517,6 +465,15 @@ public:
                                  ArrayRef<Value>{castSret, castData, size});
   }
 
+  static MutableArrayRef<BlockArgument>
+  dropAnyHiddenArguments(MutableArrayRef<BlockArgument> args,
+                         FunctionType funcTy) {
+    if (!args.empty() && isa<cudaq::cc::PointerType>(args[0].getType()))
+      return args.drop_front(cudaq::opt::factory::hasHiddenSRet(funcTy) ? 2
+                                                                        : 1);
+    return args;
+  }
+
   /// Generate an all new entry point body, calling launchKernel in the runtime
   /// library. Pass along the thunk, so the runtime can call the quantum
   /// circuit. These entry points are `operator()` member functions in a class,
@@ -524,15 +481,29 @@ public:
   void genNewHostEntryPoint(Location loc, OpBuilder &builder,
                             StringAttr mangledAttr, FunctionType funcTy,
                             Type structTy, LLVM::GlobalOp kernName,
-                            func::FuncOp thunk) {
+                            func::FuncOp thunk, ModuleOp module) {
     auto *ctx = builder.getContext();
     auto i64Ty = builder.getIntegerType(64);
     auto zeroAttr = builder.getI64IntegerAttr(0);
     auto offset = funcTy.getNumInputs();
     auto thunkTy = getThunkType(ctx);
     auto structPtrTy = cudaq::cc::PointerType::get(structTy);
-    auto rewriteEntry = builder.create<func::FuncOp>(
-        loc, mangledAttr.getValue(), toLLVMFuncType(funcTy));
+    FunctionType newFuncTy;
+    if (auto *decl = module.lookupSymbol(mangledAttr.getValue())) {
+      auto func = dyn_cast<func::FuncOp>(decl);
+      if (func && func.empty()) {
+        // Do not add any hidden arguments like a `this` pointer.
+        newFuncTy = func.getFunctionType();
+        func.erase();
+      } else {
+        decl->emitOpError("object preventing generation of host entry point");
+        return;
+      }
+    } else {
+      newFuncTy = cudaq::opt::factory::toCpuSideFuncType(funcTy);
+    }
+    auto rewriteEntry =
+        builder.create<func::FuncOp>(loc, mangledAttr.getValue(), newFuncTy);
     auto insPt = builder.saveInsertionPoint();
     auto *rewriteEntryBlock = rewriteEntry.addEntryBlock();
     builder.setInsertionPointToStart(rewriteEntryBlock);
@@ -543,17 +514,16 @@ public:
     auto zero = builder.create<arith::ConstantOp>(loc, i64Ty, zeroAttr);
     Value extraBytes = zero;
     bool hasTrailingData = false;
-    for (auto inp :
-         llvm::enumerate(rewriteEntryBlock->getArguments().drop_front(
-             hasHiddenSRet(funcTy) ? 2 : 1))) {
+    for (auto inp : llvm::enumerate(dropAnyHiddenArguments(
+             rewriteEntryBlock->getArguments(), funcTy))) {
       Value arg = inp.value();
       Type inTy = arg.getType();
       std::int64_t idx = inp.index();
       auto off = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{idx});
       if (inTy.isa<cudaq::cc::LambdaType, cudaq::cc::StructType>()) {
         /* do nothing */
-      } else if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(inTy)) {
-        // FIXME: for now assume this is a std::vector<`eleTy`>
+      } else if (cudaq::opt::factory::isStdVecArg(inTy)) {
+        auto ptrTy = dyn_cast<cudaq::cc::PointerType>(inTy);
         // FIXME: call the `size` member function. For expediency, assume this
         // is an std::vector and the size is the scaled delta between the
         // first two pointers. Use the unscaled size for now.
@@ -562,6 +532,8 @@ public:
                                                          stVal, sizeBytes, off);
         extraBytes = builder.create<arith::AddIOp>(loc, extraBytes, sizeBytes);
         hasTrailingData = true;
+      } else if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(inTy)) {
+        /*do nothing*/
       } else {
         stVal = builder.create<cudaq::cc::InsertValueOp>(loc, stVal.getType(),
                                                          stVal, arg, off);
@@ -781,7 +753,7 @@ public:
       // Generate a new mangled function on the host side to call the
       // callback function.
       genNewHostEntryPoint(loc, builder, mangledAttr, funcTy, structTy,
-                           kernName, thunk);
+                           kernName, thunk, module);
 
       // Generate a function at startup to register this kernel as having
       // been processed for kernel execution.

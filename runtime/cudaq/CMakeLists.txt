@@ -17,6 +17,7 @@ add_library(${LIBRARY_NAME}
          SHARED cudaq.cpp 
                 algorithms/state.cpp
                 platform/quantum_platform.cpp 
+                qis/execution_manager.cpp
                 utils/cudaq_utils.cpp)
 
 target_include_directories(${LIBRARY_NAME}

@@ -27,10 +27,10 @@ RUN ls && ls && ls && git clone -b wheel https://github.com/NVIDIA/cuda-quantum 
     && rm -rf /root/.ssh 
 
 RUN ls
-RUN cd cuda-quantum
+RUN cd cuda-quantum \
     && export LLVM_DIR=/opt/llvm \
     && export CUDAQ_CPR_INSTALL=/cpr/install \
-    && bash scripts/build_wheel.sh 
+    && bash scripts/build_wheel.sh \
     && docker/wheel/auditwheel -v repair dist/cuda_quantum-0.0.3-cp310-cp310-linux_x86_64.whl
     # TODO: Pass the output wheel off to uploading. Might actually run this step from the file
     # that we actually test the wheel in, instead of at this point.

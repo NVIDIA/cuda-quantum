@@ -8,5 +8,6 @@
 
 #pragma once
 
+#include "chemistry/hwe.h"
 #include "chemistry/molecule.h"
 #include "chemistry/uccsd.h"

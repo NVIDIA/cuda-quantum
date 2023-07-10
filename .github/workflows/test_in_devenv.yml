@@ -34,12 +34,11 @@ jobs:
       - name: Build CUDA Quantum
         id: cudaq_build
         run: |
-          loaded=`docker load --input ${{ inputs.devdeps_archive }} | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
-          devdeps_image=`echo $loaded | cut -d ":" -f 1`
-          devdeps_tag=`echo $loaded | cut -d ":" -f 2`
+          base_image=`docker load --input "${{ inputs.devdeps_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+          devdeps_tag=`echo $base_image | rev | cut -d ":" -f 1 | rev`
 
           docker build -t cuda-quantum-dev:local -f docker/build/cudaq.dev.Dockerfile . \
-            --build-arg base_image=${devdeps_image}:${devdeps_tag} \
+            --build-arg base_image=$base_image \
             --build-arg install="CMAKE_BUILD_TYPE=Debug"
           
           tag_prefix=`echo $devdeps_tag | cut -d "_" -f 1`
@@ -48,22 +47,34 @@ jobs:
       - name: Test CUDA Quantum
         uses: addnab/docker-run-action@v3
         with:
-            image: cuda-quantum-dev:local
-            shell: bash
-            run: |
-                cd $CUDAQ_REPO_ROOT
-                ctest --output-on-failure --test-dir build -E ctest-nvqpp
-                RESULT_A=$?
-                /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
-                RESULT_B=$?
-                if [ $RESULT_A -eq 0 ] && [ $RESULT_B -eq 0 ]
-                then
-                  exit 0
-                else 
-                  echo "ctest failure status = " $RESULT_A
-                  echo "llvm-lit failure status = " $RESULT_B
-                  exit 1
-                fi 
+          image: cuda-quantum-dev:local
+          shell: bash
+          run: |
+            cd $CUDAQ_REPO_ROOT
+            ctest --output-on-failure --test-dir build -E ctest-nvqpp
+            ctest_status=$?
+            /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
+            lit_status=$?
+            if [ ! $ctest_status -eq 0 ] || [ ! $lit_status -eq 0 ]; then
+              echo "ctest status = " $ctest_status
+              echo "llvm-lit status = " $lit_status
+              exit 1
+            fi 
+
+      - name: Test CUDA Quantum (Python)
+        uses: addnab/docker-run-action@v3
+        with:
+          image: cuda-quantum-dev:local
+          shell: bash
+          run: |
+            cd $CUDAQ_REPO_ROOT
+            pip install . --user -vvv
+            python3 -m pytest python/tests/
+            pytest_status=$?
+            if [ ! $pytest_status -eq 0 ]; then
+              echo "pytest status = " $pytest_status
+              exit 1
+            fi 
 
       - name: Save environment
         id: env_save

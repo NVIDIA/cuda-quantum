@@ -1,7 +1,8 @@
 changelog:
   exclude:
     labels:
-      - duplicate
+      - "duplicate"
+      - "needs triage"
     authors:
       - cuda-quantum-bot
   categories:

@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "LoopAnalysis.h"
+#include "mlir/IR/Dominance.h"
 
 using namespace mlir;
 
@@ -39,13 +40,26 @@ using namespace mlir;
 /// likely these loops cannot be converted to static control flow and would thus
 /// need to be expanded at runtime.
 
+static Value peelCastOps(Value v) {
+  Operation *defOp = nullptr;
+  for (; (defOp = v.getDefiningOp());) {
+    if (isa<arith::IndexCastOp, cudaq::cc::CastOp>(defOp))
+      v = defOp->getOperand(0);
+    else
+      break;
+  }
+  return v;
+}
+
 static bool isaConstant(Value v) {
+  v = peelCastOps(v);
   if (auto c = v.getDefiningOp<arith::ConstantOp>())
     return isa<IntegerAttr>(c.getValue());
   return false;
 }
 
 static bool isaConstantOf(Value v, std::int64_t hasVal) {
+  v = peelCastOps(v);
   if (auto c = v.getDefiningOp<arith::ConstantOp>())
     if (auto ia = dyn_cast<IntegerAttr>(c.getValue()))
       return ia.getInt() == hasVal;
@@ -68,7 +82,46 @@ static bool validCountedLoopIntervalForm(arith::CmpIOp cmp,
          (allowClosedInterval && isClosedIntervalForm(p));
 }
 
+// If the value, v, dominates the loop then it is invariant by definition. Block
+// arguments that are, in fact, a threaded invariant value should have been
+// converted to their dominating definition by the canonicalization pass.
+static bool isLoopInvariant(ArrayRef<Value> vs, cudaq::cc::LoopOp loop) {
+  DominanceInfo dom(loop->getParentOfType<func::FuncOp>());
+  for (auto v : vs)
+    if (!dom.dominates(v, loop.getOperation()))
+      return false;
+  return true;
+}
+
+/// Returns a pair `(true, stepValue)` if and only if the operation, \p op, is
+/// an induction computation (integer add or subtract). Otherwise returns
+/// `(false, null)`.
+static std::pair<bool, Value> isInductionOn(unsigned offset, Operation *op,
+                                            ArrayRef<BlockArgument> args) {
+  if (auto addOp = dyn_cast_or_null<arith::AddIOp>(op)) {
+    if (addOp.getLhs() == args[offset])
+      return {true, addOp.getRhs()};
+    if (addOp.getRhs() == args[offset])
+      return {true, addOp.getLhs()};
+  } else if (auto subOp = dyn_cast_or_null<arith::SubIOp>(op)) {
+    if (subOp.getLhs() == args[offset])
+      return {true, subOp.getRhs()};
+  }
+  return {false, Value{}};
+}
+
 namespace cudaq {
+
+bool opt::isSemiOpenPredicate(arith::CmpIPredicate p) {
+  return p == arith::CmpIPredicate::ult || p == arith::CmpIPredicate::slt ||
+         p == arith::CmpIPredicate::ugt || p == arith::CmpIPredicate::sgt ||
+         p == arith::CmpIPredicate::ne;
+}
+
+bool opt::isUnsignedPredicate(arith::CmpIPredicate p) {
+  return p == arith::CmpIPredicate::ult || p == arith::CmpIPredicate::ule ||
+         p == arith::CmpIPredicate::ugt || p == arith::CmpIPredicate::uge;
+}
 
 // We expect the loop control value to have the following form.
 //
@@ -91,36 +144,25 @@ namespace cudaq {
 // the value of `%bound` or `%step`. Those values are invariant if there are
 // no side-effects in the loop Op (no store or call operations) and these values
 // do not depend on a block argument.
-// FIXME: assumes only the LCV is passed as a Value.
-bool opt::hasMonotonicControlInduction(cc::LoopOp loop) {
+bool opt::hasMonotonicControlInduction(cc::LoopOp loop, LoopComponents *lcp) {
   if (loop.getInitialArgs().empty() || loop.getResults().empty())
     return false;
-  auto &whileBlock = loop.getWhileRegion().back();
-  auto condition = dyn_cast<cc::ConditionOp>(whileBlock.back());
-  if (!condition || whileBlock.getArguments()[0] != condition.getResults()[0])
-    return false;
-  auto *cmpOp = condition.getCondition().getDefiningOp();
-  if (std::find(cmpOp->getOperands().begin(), cmpOp->getOperands().end(),
-                whileBlock.getArguments()[0]) == cmpOp->getOperands().end())
-    return false;
-  auto &bodyBlock = loop.getBodyRegion().back();
-  auto bodyTermOp = dyn_cast<cc::ContinueOp>(bodyBlock.back());
-  if (!bodyTermOp || (bodyBlock.getArguments()[0] != bodyTermOp.getOperand(0)))
-    return false;
-  auto &stepBlock = loop.getStepRegion().back();
-  auto backedgeOp = dyn_cast<cc::ContinueOp>(stepBlock.back());
-  if (!backedgeOp)
-    return false;
-  auto *mutateOp = backedgeOp.getOperand(0).getDefiningOp();
-  if (!isa<arith::AddIOp, arith::SubIOp>(mutateOp) ||
-      std::find(mutateOp->getOperands().begin(), mutateOp->getOperands().end(),
-                stepBlock.getArguments()[0]) == mutateOp->getOperands().end())
-    return false;
-  // FIXME: should verify %bound, %step are loop invariant.
+  if (auto c = getLoopComponents(loop)) {
+    if (lcp)
+      *lcp = *c;
+    return isLoopInvariant({c->compareValue, c->stepValue}, loop);
+  }
+  return false;
+}
+
+static bool allExitsAreContinue(Region &reg) {
+  for (auto &block : reg)
+    if (block.hasNoSuccessors() && !isa<cc::ContinueOp>(block.getTerminator()))
+      return false;
   return true;
 }
 
-bool opt::isaMonotonicLoop(Operation *op) {
+bool opt::isaMonotonicLoop(Operation *op, LoopComponents *lcp) {
   if (auto loopOp = dyn_cast_or_null<cc::LoopOp>(op)) {
     // Cannot be a `while` or `do while` loop.
     if (loopOp.isPostConditional() || !loopOp.hasStep())
@@ -129,25 +171,36 @@ bool opt::isaMonotonicLoop(Operation *op) {
     // This is a `for` loop and must have a body with a continue terminator.
     // Currently, only a single basic block is allowed to keep things simple.
     // This is in keeping with our definition of structured control flow.
-    return !reg.empty() && reg.hasOneBlock() &&
-           isa<cc::ContinueOp>(reg.front().getTerminator()) &&
-           hasMonotonicControlInduction(loopOp);
+    return !reg.empty() && allExitsAreContinue(reg) &&
+           hasMonotonicControlInduction(loopOp, lcp);
+  }
+  return false;
+}
+
+bool opt::isaInvariantLoop(const LoopComponents &c, bool allowClosedInterval) {
+  if (isaConstantOf(c.initialValue, 0) && isaConstantOf(c.stepValue, 1) &&
+      isa<arith::AddIOp>(c.stepOp)) {
+    auto cmp = cast<arith::CmpIOp>(c.compareOp);
+    return validCountedLoopIntervalForm(cmp, allowClosedInterval);
+  }
+  return false;
+}
+
+bool opt::isaInvariantLoop(cc::LoopOp loop, bool allowClosedInterval,
+                           LoopComponents *lcp) {
+  LoopComponents c;
+  if (isaMonotonicLoop(loop.getOperation(), &c)) {
+    if (lcp)
+      *lcp = c;
+    return isaInvariantLoop(c, allowClosedInterval);
   }
   return false;
 }
 
 bool opt::isaCountedLoop(cc::LoopOp loop, bool allowClosedInterval) {
-  if (isaMonotonicLoop(loop.getOperation())) {
-    if (auto components = getLoopComponents(loop)) {
-      auto &c = *components;
-      if (isaConstantOf(c.initialValue, 0) && isaConstant(c.compareValue) &&
-          isaConstantOf(c.stepValue, 1) && isa<arith::AddIOp>(c.stepOp)) {
-        auto cmp = cast<arith::CmpIOp>(c.compareOp);
-        return validCountedLoopIntervalForm(cmp, allowClosedInterval);
-      }
-    }
-  }
-  return false;
+  LoopComponents c;
+  return isaInvariantLoop(loop, allowClosedInterval, &c) &&
+         isaConstant(c.compareValue);
 }
 
 bool opt::LoopComponents::stepIsAnAddOp() { return isa<arith::AddIOp>(stepOp); }
@@ -162,20 +215,6 @@ bool opt::LoopComponents::shouldCommuteStepOp() {
 bool opt::LoopComponents::isClosedIntervalForm() {
   auto cmp = cast<arith::CmpIOp>(compareOp);
   return ::isClosedIntervalForm(cmp.getPredicate());
-}
-
-static std::pair<bool, Value> isInductionOn(unsigned offset, Operation *op,
-                                            ArrayRef<BlockArgument> args) {
-  if (auto addOp = dyn_cast_or_null<arith::AddIOp>(op)) {
-    if (addOp.getLhs() == args[offset])
-      return {true, addOp.getRhs()};
-    if (addOp.getRhs() == args[offset])
-      return {true, addOp.getLhs()};
-  } else if (auto subOp = dyn_cast_or_null<arith::SubIOp>(op)) {
-    if (subOp.getLhs() == args[offset])
-      return {true, subOp.getRhs()};
-  }
-  return {false, Value{}};
 }
 
 std::optional<opt::LoopComponents> opt::getLoopComponents(cc::LoopOp loop) {
@@ -221,17 +260,37 @@ std::optional<opt::LoopComponents> opt::getLoopComponents(cc::LoopOp loop) {
 
   if (loop.hasStep()) {
     // Loop has a step region, so look for the step op.
+    // as in: `for (i = 0; i < n; i++) ...`
     if (auto stepPosOpt = scanRegionForStep(loop.getStepRegion()))
       result.induction = *stepPosOpt;
   }
-  // If step has not been found, look in the body region.
-  if (!result.stepOp)
+  if (!result.stepOp) {
+    // If step has not been found, look in the body region.
+    // as in: `for (i = 0; i < n;) { ... i++; }`
     if (auto stepPosOpt = scanRegionForStep(loop.getBodyRegion()))
       result.induction = *stepPosOpt;
+  }
+  if (!result.stepOp) {
+    // If step has still not been found, look in the while region.
+    // as in: `for (i = n; i-- > 0;) ...`
+    if (auto stepPosOpt = scanRegionForStep(loop.getWhileRegion()))
+      result.induction = *stepPosOpt;
+  }
   if (!result.stepOp)
     return {};
 
   result.initialValue = loop.getInitialArgs()[result.induction];
+
+  // TODO: The comparison operation requires that the induction value appear
+  // explicitly on one side of the comparison. That is, it is required that the
+  // comparison look like `i < exp` where `i` is the induction value. This could
+  // be relaxed to allow invariant expressions on each side, such as, `i + 1 <
+  // exp`. This relaxation to invariant expressions would require some
+  // transformations to normalize the comparison operation. Taking the example,
+  // this would transform to `i < exp - 1`.
+  // A second possible extension is to detect \em{conditionally iterated} loops
+  // and open those up to further analysis and transformations such as loop
+  // unrolling.
   if (cmpOp.getLhs() ==
       loop.getWhileRegion().front().getArgument(result.induction))
     result.compareValue = cmpOp.getRhs();

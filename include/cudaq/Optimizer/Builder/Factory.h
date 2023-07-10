@@ -95,5 +95,17 @@ createCountedLoop(mlir::OpBuilder &builder, mlir::Location loc,
                                           mlir::Region &, mlir::Block &)>
                       bodyBuilder);
 
+bool hasHiddenSRet(mlir::FunctionType funcTy);
+
+/// Convert the function type \p funcTy to a signature compatible with the code
+/// on the CPU side. This will add hidden arguments, such as the `this` pointer,
+/// convert some results to `sret` pointers, etc.
+mlir::FunctionType toCpuSideFuncType(mlir::FunctionType funcTy);
+
+/// @brief Return true if the given type corresponds to a
+/// std-vector type according to our convention. The convention
+/// is a ptr<struct<ptr<T>, ptr<T>, ptr<T>>>.
+bool isStdVecArg(mlir::Type type);
+
 } // namespace opt::factory
 } // namespace cudaq

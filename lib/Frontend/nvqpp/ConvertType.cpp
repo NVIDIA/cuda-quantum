@@ -222,6 +222,11 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
       return pushType(quake::VeqType::getUnsized(ctx));
     if (name.equals("ctrl"))
       return true;
+    if (name.equals("qarray") || name.equals("qvector") ||
+        name.equals("qview")) {
+      reportClangError(x, mangler, "type is not yet implemented");
+      return pushType(NoneType::get(ctx));
+    }
     TODO("unhandled type, " + name + ", in cudaq namespace");
   }
   if (cudaq::isInNamespace(x, "std")) {
@@ -282,6 +287,8 @@ bool QuakeBridgeVisitor::VisitElaboratedType(clang::ElaboratedType *t) {
     return pushType(builder.getI64Type());
   if (matchTypeName("std", "_Bit_reference", name, /*toEnd=*/true))
     return pushType(builder.getI1Type());
+  if (matchTypeName("std", "uint8_t", name, /*toEnd=*/true))
+    return pushType(builder.getI8Type());
   if (matchTypeName("std", "function", name)) {
     // Note: technically this is a wrapper around a Callable and not exactly a
     // lambda. (Callables are a generalization of closures, functions,
@@ -299,6 +306,13 @@ bool QuakeBridgeVisitor::VisitElaboratedType(clang::ElaboratedType *t) {
         quake::VeqType::get(context, getQregArraySize(t->getNamedType())));
   if (matchTypeName("cudaq", "qspan", name))
     return pushType(quake::VeqType::get(context, 0));
+  if (matchTypeName("cudaq", "qarray", name) ||
+      matchTypeName("cudaq", "qvector", name) ||
+      matchTypeName("cudaq", "qview", name)) {
+    reportClangError(t->getAsRecordDecl(), mangler,
+                     "type is not yet implemented");
+    return pushType(NoneType::get(context));
+  }
   // N.B.: always traversing the desugared type leads to infinite recursion.
   LLVM_DEBUG(llvm::dbgs() << " skipping elaborated type: " << name << '\n';
              t->dump(llvm::dbgs(), *astContext));

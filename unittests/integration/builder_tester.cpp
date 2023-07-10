@@ -339,12 +339,6 @@ CUDAQ_TEST(BuilderTester, checkStdVecValidate) {
 
   // This is not ok
   EXPECT_ANY_THROW({ kernel(std::vector<double>{M_PI}); });
-
-  // Must provide the number of parameters that were extracted
-  EXPECT_ANY_THROW({
-    auto counts =
-        cudaq::sample(kernel, std::vector<double>{M_PI, M_PI_2, M_PI});
-  });
 }
 
 CUDAQ_TEST(BuilderTester, checkIsArgStdVec) {
@@ -618,4 +612,28 @@ CUDAQ_TEST(BuilderTester, checkMidCircuitMeasure) {
     EXPECT_EQ(counts.count("1", "hello2"), 0);
     EXPECT_EQ(counts.count("0", "hello2"), 1000);
   }
+}
+
+CUDAQ_TEST(BuilderTester, checkNestedKernelCall) {
+  auto [kernel1, qubit1] = cudaq::make_kernel<cudaq::qubit>();
+  auto [kernel2, qubit2] = cudaq::make_kernel<cudaq::qubit>();
+  kernel2.call(kernel1, qubit2);
+  auto kernel3 = cudaq::make_kernel();
+  auto qreg3 = kernel3.qalloc(1);
+  auto qubit3 = qreg3[0];
+  kernel3.call(kernel2, qubit3);
+  auto quake = kernel3.to_quake();
+  std::cout << quake;
+
+  auto count = [](const std::string &str, const std::string &substr) {
+    std::size_t n = 0, pos = 0;
+    while ((pos = str.find(substr, pos)) != std::string::npos) {
+      ++n;
+      pos += substr.length();
+    }
+    return n;
+  };
+
+  EXPECT_EQ(count(quake, "func.func"), 3);
+  EXPECT_EQ(count(quake, "call @__nvqpp__"), 2);
 }

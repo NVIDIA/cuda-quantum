@@ -263,8 +263,7 @@ while [ $# -ne 0 ]; do
 		shift
 		;;
 	--emit-qir | -emit-qir)
-		EMIT_QIR="$2"
-		shift
+		EMIT_QIR=true
 		;;
 	--emulate | -emulate)
 		CUDAQ_EMULATE_REMOTE=true
@@ -459,7 +458,11 @@ if ${ENABLE_KERNEL_EXECUTION}; then
 fi
 if ${ENABLE_AGGRESSIVE_EARLY_INLINE}; then
 	RUN_OPT=true
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "inline{default-pipeline=func.func(indirect-to-direct-calls)}")
+	if ${DO_LINK}; then
+		OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "aggressive-early-inlining")
+	else
+		OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(indirect-to-direct-calls),inline")
+	fi
 fi
 if ${ENABLE_DEVICE_CODE_LOADERS}; then
 	RUN_OPT=true
@@ -482,7 +485,7 @@ for i in ${SRCS}; do
 	# If LIBRARY_MODE explicitly requested, then
 	# simply compile with the classical compiler.
 	if ${LIBRARY_MODE}; then
-		run ${CMAKE_FALLBACK_HOST_CXX} ${COMPILER_FLAGS} ${INCLUDES} -o ${file}.o -c $i
+		run ${CMAKE_FALLBACK_HOST_CXX} ${COMPILER_FLAGS} -DCUDAQ_LIBRARY_MODE ${INCLUDES} -o ${file}.o -c $i
 		OBJS="${OBJS} ${file}.o"
 		# Go to the next iteration, maybe there
 		# will be cudaq kernels there

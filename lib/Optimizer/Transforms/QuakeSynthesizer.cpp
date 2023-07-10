@@ -170,6 +170,13 @@ void QuakeSynthesizer::runOnOperation() {
               return builder.create<arith::ConstantIntOp>(
                   builder.getUnknownLoc(), *concrete, 1);
             });
+      } else if (type == builder.getIntegerType(8)) {
+        synthesizeRuntimeArgument<std::uint8_t>(
+            builder, argument, args, offset, sizeof(std::uint8_t),
+            [](OpBuilder &builder, std::uint8_t *concrete) {
+              return builder.create<arith::ConstantIntOp>(
+                  builder.getUnknownLoc(), *concrete, 8);
+            });
       } else if (type == builder.getIntegerType(32)) {
         synthesizeRuntimeArgument<int>(
             builder, argument, args, offset, sizeof(int),
@@ -205,6 +212,10 @@ void QuakeSynthesizer::runOnOperation() {
         vectorSize /= sizeof(double);
         offset += sizeof(std::size_t);
         stdVecSizes.push_back(vectorSize);
+      } else if (isa<cudaq::cc::StructType>(type)) {
+        // The struct type ends up as a i64 in the thunk kernel
+        // args pointer, so just skip ahead.
+        offset += sizeof(std::size_t);
       } else {
         type.dump();
         TODO("We cannot synthesize this type of argument yet.");

@@ -15,7 +15,7 @@ except ImportError:
 import skbuild
 import setuptools
 
-__version__ = "0.0.3"
+__version__ = "0.3.0"
 
 # The `setup.py` script gets called twice when installing from source
 # with `pip install .` . Once for the `egg_info` subcommand and another
@@ -25,7 +25,9 @@ if (sys.argv[1] == 'egg_info'):
     script_path = os.getcwd() + "/scripts/install_wheel_dependencies.sh"
     os.system(f"bash {script_path}")
 
-# FIXME: Linux machines default to dist-packages unless the `--user` flag is provided to
+# FIXME: support installation without --user flag
+# GitHub issue: https://github.com/NVIDIA/cuda-quantum/issues/125
+# Linux machines default to dist-packages unless the `--user` flag is provided to
 # the pip install. We hard-code everything to site-packages in the meantime and require the
 # user to install with `--user`.
 cmake_install_dir = f"lib/python{sys.version_info[0]}.{sys.version_info[1]}/site-packages/cudaq"
@@ -44,13 +46,14 @@ skbuild.setup(
         "-DCUDAQ_BUILD_TESTS=FALSE", "-DCMAKE_COMPILE_WARNING_AS_ERROR=OFF",
         "-DCUSTATEVEC_ROOT={}".format(os.environ["CUSTATEVEC_ROOT"])
         if "CUSTATEVEC_ROOT" in os.environ else "",
-        "-DLLVM_DIR={}".format(os.environ["LLVM_DIR"] if "LLVM_DIR"
-        in os.environ else "/opt/llvm"), "-DOPENSSL_USE_STATIC_LIBS=TRUE",
+        "-DLLVM_DIR={}".format(os.environ["LLVM_DIR"] if "LLVM_DIR" in
+                               os.environ else "/opt/llvm"),
+        "-DOPENSSL_USE_STATIC_LIBS=TRUE",
         "-DCMAKE_EXE_LINKER_FLAGS='-static-libgcc -static-libstdc++'",
         "-DCMAKE_SHARED_LINKER_FLAGS='-static-libgcc -static-libstdc++'",
         "-DOPENSSL_ROOT_DIR=/usr/local/ssl",
-        "-DCUDAQ_CPR_INSTALL={}".format(os.environ["CPR_DIR"]
-        if "CPR_DIR" in os.environ else "/cpr/install"),
+        "-DCUDAQ_CPR_INSTALL={}".format(os.environ["CPR_DIR"] if "CPR_DIR" in
+                                        os.environ else "/cpr/install"),
         "-DCUDAQ_BUILD_RELOCATABLE_PACKAGE=TRUE"
     ],
     setup_requires=["numpy", "pytest", "scikit-build", "setuptools"])

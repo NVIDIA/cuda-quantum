@@ -10,7 +10,7 @@
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/IR/PatternMatch.h"
-#include "mlir/Transforms/DialectConversion.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 
 namespace cudaq::opt {
@@ -26,20 +26,22 @@ inline std::pair<Block *, Block *> findCloneRange(Block *first, Block *last) {
   return {first->getNextNode(), last->getPrevNode()};
 }
 
-static std::optional<std::size_t>
+static std::size_t
 unrollLoopByValue(cudaq::cc::LoopOp loop,
                   const cudaq::opt::LoopComponents &components) {
-  auto v = components.compareValue;
-  if (auto c = v.getDefiningOp<arith::ConstantOp>())
-    if (auto ia = dyn_cast<IntegerAttr>(c.getValue()))
-      return ia.getInt();
-  return std::nullopt;
+  auto c = components.compareValue.getDefiningOp<arith::ConstantOp>();
+  return cast<IntegerAttr>(c.getValue()).getInt();
 }
 
-static std::optional<std::size_t> unrollLoopByValue(cudaq::cc::LoopOp loop) {
-  if (auto components = cudaq::opt::getLoopComponents(loop))
-    return unrollLoopByValue(loop, *components);
-  return std::nullopt;
+static std::size_t unrollLoopByValue(cudaq::cc::LoopOp loop) {
+  auto components = cudaq::opt::getLoopComponents(loop);
+  return unrollLoopByValue(loop, *components);
+}
+
+static bool exceedsThresholdValue(cudaq::cc::LoopOp loop,
+                                  std::size_t threshold) {
+  auto upperBound = unrollLoopByValue(loop);
+  return upperBound >= threshold;
 }
 
 namespace {
@@ -54,30 +56,43 @@ namespace {
 /// After this pass, all loops marked counted will be unrolled or marked
 /// invariant. An invariant loop means the loop must execute exactly some
 /// specific number of times, even if that number is only known at runtime.
-class UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
-public:
-  using Base = OpRewritePattern<cudaq::cc::LoopOp>;
-  using Base::Base;
+struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
+  explicit UnrollCountedLoop(MLIRContext *ctx, std::size_t t, bool sf, bool &pf)
+      : OpRewritePattern(ctx), threshold(t), signalFailure(sf), passFailed(pf) {
+  }
 
   LogicalResult matchAndRewrite(cudaq::cc::LoopOp loop,
                                 PatternRewriter &rewriter) const override {
+    // When the signalFailure flag is set, all loops are matched since that flag
+    // requires that all LoopOp operations be rewritten. Despite the setting of
+    // this flag, it may not be possible to fully unroll every LoopOp anyway.
+    // Check for cases that are clearly not going to be unrolled.
+    if (!cudaq::opt::isaCountedLoop(loop)) {
+      if (signalFailure) {
+        loop.emitOpError("not a simple counted loop");
+        passFailed = true;
+      }
+      return failure();
+    }
+    if (exceedsThresholdValue(loop, threshold)) {
+      if (signalFailure) {
+        loop.emitOpError("loop bounds exceed iteration threshold");
+        passFailed = true;
+      }
+      return failure();
+    }
+
     // At this point, we're ready to unroll the loop and replace it with a
     // sequence of blocks. Each block will receive a block argument that is the
     // iteration number. The original cc.loop will be replaced by a constant,
     // the total number of iterations.
     // TODO: Allow the threading of other block arguments to the result.
     auto components = cudaq::opt::getLoopComponents(loop);
-    if (!components)
-      return loop.emitOpError("loop analysis unexpectedly failed");
-    auto unrollByOpt = unrollLoopByValue(loop, *components);
-    if (!unrollByOpt)
-      return loop.emitOpError("expected a counted loop");
-    std::size_t unrollBy = *unrollByOpt;
+    assert(components && "counted loop must have components");
+    auto unrollBy = unrollLoopByValue(loop, *components);
     if (components->isClosedIntervalForm())
       ++unrollBy;
     Type inductionTy = loop.getOperands()[components->induction].getType();
-    if (!isa<IntegerType, IndexType>(inductionTy))
-      return loop.emitOpError("induction must be integral type");
     LLVM_DEBUG(llvm::dbgs()
                << "unrolling loop by " << unrollBy << " iterations\n");
     auto loc = loop.getLoc();
@@ -127,6 +142,10 @@ public:
     auto attr = rewriter.getIntegerAttr(ty, val);
     return rewriter.create<arith::ConstantOp>(loc, ty, attr);
   }
+
+  std::size_t threshold;
+  bool signalFailure;
+  bool &passFailed;
 };
 
 /// The loop unrolling pass will fully unroll a `cc::LoopOp` when the loop is
@@ -141,41 +160,14 @@ public:
     auto *op = getOperation();
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
-    patterns.insert<UnrollCountedLoop>(ctx);
-    ConversionTarget target(*ctx);
-    target.addDynamicallyLegalOp<cudaq::cc::LoopOp>(
-        [&](cudaq::cc::LoopOp loop) {
-          return !cudaq::opt::isaCountedLoop(loop) ||
-                 exceedsThresholdValue(loop);
-        });
-    target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
-    if (failed(applyPartialConversion(op, target, std::move(patterns)))) {
-      emitError(op->getLoc(), "could not unroll cc.loop\n");
+    bool passFailed = false;
+    patterns.insert<UnrollCountedLoop>(ctx, threshold, signalFailure,
+                                       passFailed);
+    if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns))) ||
+        passFailed) {
+      emitError(UnknownLoc::get(ctx), "did not unroll loops");
       signalPassFailure();
     }
-    if (full_unroll) {
-      bool fail = false;
-      op->walk([&](cudaq::cc::LoopOp loop) {
-        fail = true;
-        if (!cudaq::opt::isaCountedLoop(loop))
-          loop.emitError("cannot unroll non-counted loop.");
-        else if (exceedsThresholdValue(loop))
-          loop.emitError(
-              "cannot unroll loop that exceeds iteration threshold.");
-        else
-          loop.emitError("cannot unroll loop.");
-      });
-      if (fail) {
-        emitError(op->getLoc(), "could not unroll all loops.\n");
-        signalPassFailure();
-      }
-    }
-  }
-
-  bool exceedsThresholdValue(cudaq::cc::LoopOp loop) {
-    if (auto valOpt = unrollLoopByValue(loop))
-      return *valOpt >= threshold;
-    return true;
   }
 };
 } // namespace

@@ -553,6 +553,11 @@ public:
     mlir::Value getConstantInt(mlir::Location loc, const uint64_t value,
                                const int bitwidth = 64);
 
+    /// Add a declaration to the module for the function, \p funcDecl.
+    void addFunctionDecl(const clang::FunctionDecl *funcDecl,
+                         details::QuakeBridgeVisitor &visitor,
+                         mlir::FunctionType funcTy);
+
   public:
     ASTBridgeConsumer(clang::CompilerInstance &compiler,
                       mlir::OwningOpRef<mlir::ModuleOp> &_module,
@@ -613,5 +618,7 @@ inline bool isInClassInNamespace(const clang::Decl *x,
       return cli->getName().equals(className) && isInNamespace(cld, nsName);
   return false;
 }
+
+bool isInExternC(const clang::GlobalDecl &x);
 
 } // namespace cudaq

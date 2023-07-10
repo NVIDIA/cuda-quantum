@@ -360,32 +360,43 @@ protected:
     // sample-conditional context
     if (executionContext && executionContext->name == "sample" &&
         executionContext->hasConditionalsOnMeasureResults) {
+      std::string mutableRegisterName = registerName;
 
-      cudaq::info("Handling Sampling With Conditionals: {}, {}, {}", qubitIdx,
-                  bitResult, registerName);
       // If no registerName, we'll just sample normally
       if (registerName.empty()) {
-        sampleQubits.push_back(qubitIdx);
-        return;
+        // Either this is library mode and we have register names attached
+        // to the execution context
+        if (midCircuitSampleResults.size() <
+            executionContext->registerNames.size()) {
+          mutableRegisterName =
+              executionContext->registerNames[midCircuitSampleResults.size()];
+        } else {
+          // or no register names, in which case we'll just treat it as
+          // a regular sampled qubit and drop out
+          sampleQubits.push_back(qubitIdx);
+          return;
+        }
       }
 
+      cudaq::info("Handling Sampling With Conditionals: {}, {}, {}", qubitIdx,
+                  bitResult, mutableRegisterName);
       // See if we've observed this register before, if not
       // start a vector of bit results, if we have, add the
       // bit result to the existing vector
-      auto iter = midCircuitSampleResults.find(registerName);
+      auto iter = midCircuitSampleResults.find(mutableRegisterName);
       if (iter == midCircuitSampleResults.end())
-        midCircuitSampleResults.emplace(registerName,
+        midCircuitSampleResults.emplace(mutableRegisterName,
                                         std::vector<std::string>{bitResult});
       else
         iter->second.push_back(bitResult);
 
       // If this register is the same as last time, then we are
       // writing to a bit vector register (auto var = mz(qreg))
-      if (lastMidCircuitRegisterName == registerName)
-        vectorRegisters.push_back(registerName);
+      if (lastMidCircuitRegisterName == mutableRegisterName)
+        vectorRegisters.push_back(mutableRegisterName);
 
       // Store the last register name
-      lastMidCircuitRegisterName = registerName;
+      lastMidCircuitRegisterName = mutableRegisterName;
     }
   }
 

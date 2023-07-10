@@ -15,6 +15,7 @@ import numpy as np
 
 import cudaq
 
+
 def test_kernel_non_param_1q():
     """
     Test the `cudaq.Kernel` on each non-parameterized single qubit gate.
@@ -53,8 +54,6 @@ def test_kernel_non_param_1q():
 # CHECK:         }
 
 
-
-
 def test_kernel_param_1q():
     """
     Test the `cudaq.Kernel` on each single-qubit, parameterized gate.
@@ -89,7 +88,6 @@ def test_kernel_param_1q():
 # CHECK:           quake.r1 (%[[VAL_0]]) %[[VAL_1]] : (f64, !quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
-
 
 # leave for gdb debugging
 if __name__ == "__main__":

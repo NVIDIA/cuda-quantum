@@ -11,7 +11,6 @@
 #include "cudaq/builder/kernel_builder.h"
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include <iostream>
 
 namespace cudaq {
 using SingleIndices = std::vector<std::size_t>;

@@ -53,6 +53,4 @@ cd "$repo_root"
 # Docker image.
 python3.10 -m build --wheel
 
-
-
 cd "$working_dir"

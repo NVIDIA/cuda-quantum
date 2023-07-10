@@ -142,7 +142,7 @@ void cudaq::registry::deviceCodeHolderAdd(const char *key, const char *code) {
 // including adding the trampoline to call the runtime to launch the kernel.
 //===----------------------------------------------------------------------===//
 
-static std::vector<std::string_view> kernelRegistry;
+static std::vector<std::string> kernelRegistry;
 
 static std::map<std::string, cudaq::KernelArgsCreator> argsCreators;
 static std::map<std::string, std::string> lambdaNames;
