@@ -23,7 +23,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__t1 = "_ZN2t1clEv"
 }
 
 // CHECK-LABEL: define void @__nvqpp__mlirgen__t1()
-// CHECK: tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Result*
+// CHECK: tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Result* null)
 // CHECK: tail call void @__quantum__rt__array_start_record_output()
 // CHECK: tail call void @__quantum__rt__result_record_output(%Result* null, i8* nonnull
 // CHECK: tail call void @__quantum__rt__array_end_record_output()
