@@ -102,10 +102,24 @@ RUN source "$LLVM_INSTALL_PREFIX/bootstrap/init_command.sh" \
 ENV CC="$LLVM_INSTALL_PREFIX/bootstrap/cc"
 ENV CXX="$LLVM_INSTALL_PREFIX/bootstrap/cxx"
 
+# Install additional tools for CUDA Quantum documentation generation.
+RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certificates \
+    && wget https://www.doxygen.nl/files/doxygen-1.9.7.linux.bin.tar.gz \
+    && tar xf doxygen-1.9.7* && mv doxygen-1.9.7/bin/* /usr/local/bin/ && rm -rf doxygen-1.9.7* \
+    # NOTE: apt-get remove -y ca-certificates also remove python3-pip.
+    && apt-get remove -y wget ca-certificates \
+    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
+ENV PATH="${PATH}:/usr/local/bin"
+RUN apt-get update && apt-get install -y --no-install-recommends python3-pip \
+    && python3 -m pip install --no-cache-dir \
+        sphinx==5.3.0 sphinx_rtd_theme==1.2.0 sphinx-reredirects==0.1.2 \
+        enum-tools[sphinx] breathe==4.34.0 myst-parser==1.0.0
+
 # Install additional dependencies required to build and test CUDA Quantum.
 RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certificates \
     && wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-x86_64.tar.gz \
     && tar xf cmake-3.26.4* && mv cmake-3.26.4-linux-x86_64/ /usr/local/cmake-3.26/ && rm -rf cmake-3.26.4* \
+    # NOTE: apt-get remove -y ca-certificates also remove python3-pip.
     && apt-get remove -y wget ca-certificates \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 ENV PATH="${PATH}:/usr/local/cmake-3.26/bin"
@@ -118,14 +132,3 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         fastapi uvicorn pydantic requests llvmlite \
         scipy==1.10.1 openfermionpyscf==0.5 \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Install additional tools for CUDA Quantum documentation generation.
-RUN python3 -m pip install --no-cache-dir \
-    sphinx==5.3.0 sphinx_rtd_theme==1.2.0 sphinx-reredirects==0.1.2 \
-    enum-tools[sphinx] breathe==4.34.0 myst-parser==1.0.0
-RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certificates \
-    && wget https://www.doxygen.nl/files/doxygen-1.9.7.linux.bin.tar.gz \
-    && tar xf doxygen-1.9.7* && mv doxygen-1.9.7/bin/* /usr/local/bin/ && rm -rf doxygen-1.9.7* \
-    && apt-get remove -y wget ca-certificates \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
-ENV PATH="${PATH}:/usr/local/bin"
