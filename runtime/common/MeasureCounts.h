@@ -95,7 +95,7 @@ struct ExecutionResult {
   /// @param count
   void appendResult(std::string bitString, std::size_t count);
 
-  std::vector<std::string> getSequentialData() { return sequentialData; }
+  std::vector<std::string> getSequentialData();
 };
 
 /// @brief The sample_result abstraction wraps a set of `ExecutionResult`s for

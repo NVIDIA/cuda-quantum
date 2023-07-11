@@ -8,8 +8,8 @@
 
 // RUN: nvq++ -v %s -o %basename_t.x --target quantinuum --emulate && ./%basename_t.x | FileCheck %s
 
-#include <cudaq.h>
 #include <algorithm>
+#include <cudaq.h>
 #include <iostream>
 
 __qpu__ void reflect_uniform(cudaq::qreg<> &qubits) {
@@ -43,19 +43,29 @@ __qpu__ void grover() {
 
 int main() {
   auto result = cudaq::sample(1000, grover);
-  // Didn't work:
-  // std::vector<std::string> strings = result.sequential_data();
   std::vector<std::string> strings;
   for (auto &&[bits, count] : result) {
     strings.push_back(bits);
   }
-  std::sort(strings.begin(), strings.end(), [&](auto& a, auto& b) {
+  std::sort(strings.begin(), strings.end(), [&](auto &a, auto &b) {
     return result.count(a) > result.count(b);
   });
   std::cout << strings[0] << '\n';
   std::cout << strings[1] << '\n';
+
+  std::vector<std::string> stringSeq = result.sequential_data();
+  std::sort(stringSeq.begin(), stringSeq.end(), [&](auto &a, auto &b) {
+    return result.count(a) > result.count(b);
+  });
+  auto last = std::unique(stringSeq.begin(), stringSeq.end());
+  stringSeq.erase(last, stringSeq.end());
+
+  std::cout << stringSeq[0] << '\n';
+  std::cout << stringSeq[1] << '\n';
   return 0;
 }
 
+// CHECK-DAG: 1001
+// CHECK-DAG: 0110
 // CHECK-DAG: 1001
 // CHECK-DAG: 0110

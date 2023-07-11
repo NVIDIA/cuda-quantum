@@ -482,10 +482,12 @@ protected:
                                  ? 1
                                  : executionContext->shots);
 
-    if (registerNameToMeasuredQubit.empty()) {
+    if (registerNameToMeasuredQubit.empty() ||
+        (registerNameToMeasuredQubit.size() == 1 &&
+         registerNameToMeasuredQubit.begin()->first ==
+             cudaq::GlobalRegisterName)) {
       executionContext->result.append(execResult);
     } else {
-
       for (auto &[regName, qubits] : registerNameToMeasuredQubit) {
         // Find the position of the qubits we have in the result bit string
         // Create a map of qubit to bit string location

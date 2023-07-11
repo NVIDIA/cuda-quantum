@@ -44,8 +44,6 @@ __qpu__ void grover() {
 
 int main() {
   auto result = cudaq::sample(1000, grover);
-  // Didn't work:
-  // std::vector<std::string> strings = result.sequential_data();
   std::vector<std::string> strings;
   for (auto &&[bits, count] : result) {
     strings.push_back(bits);
