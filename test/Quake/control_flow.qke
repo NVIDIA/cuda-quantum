@@ -1,0 +1,261 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --unwind-lowering %s | cudaq-opt --canonicalize | FileCheck %s
+
+func.func @test1(%i : i32) -> f32 {
+  %v1 = quake.alloca !quake.veq<4>
+  %five = arith.constant 5 : i32
+  %pi = arith.constant 3.14159265 : f32
+  %b1 = arith.cmpi slt, %i, %five : i32
+  cc.if (%b1) {
+    cc.scope {
+      %v2 = quake.alloca !quake.veq<5>
+      // deallocate %v2, %v1 and return from function
+      cc.unwind_return %pi : f32
+      cc.continue
+    }
+    cc.continue
+  } else {
+    cc.scope {
+      %v3 = quake.alloca !quake.veq<6>
+      cc.continue
+    }
+    cc.continue
+  }
+  %two = arith.constant 2.0 : f32
+  cf.br ^bb3
+ ^bb3:
+  %pd2 = arith.divf %pi, %two : f32
+  return %pd2 : f32
+} 
+
+// CHECK-LABEL:   func.func @test1(
+// CHECK-SAME:      %[[VAL_0:.*]]: i32) -> f32 {
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1.57079637 : f32
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 3.14159274 : f32
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 5 : i32
+// CHECK-DAG:       %[[VAL_4:.*]] = quake.alloca !quake.veq<4>
+// CHECK:           %[[VAL_5:.*]] = arith.cmpi slt, %[[VAL_0]], %[[VAL_3]] : i32
+// CHECK:           cf.cond_br %[[VAL_5]], ^bb1, ^bb2
+// CHECK:         ^bb1:
+// CHECK:           %[[VAL_6:.*]] = quake.alloca !quake.veq<5>
+// CHECK:           quake.dealloc %[[VAL_6]] : !quake.veq<5>
+// CHECK:           quake.dealloc %[[VAL_4]] : !quake.veq<4>
+// CHECK:           return %[[VAL_2]] : f32
+// CHECK:         ^bb2:
+// CHECK:           cc.scope {
+// CHECK:             %[[VAL_7:.*]] = quake.alloca !quake.veq<6>
+// CHECK:           }
+// CHECK:           quake.dealloc %[[VAL_4]] : !quake.veq<4>
+// CHECK:           return %[[VAL_1]] : f32
+
+func.func @test2(%i : i32) {
+  %v1 = quake.alloca !quake.veq<4>
+  %five = arith.constant 5 : i32
+  %1 = cc.loop while ((%j = %i) -> i32) {
+    %ten = arith.constant 10 : i32
+    %8 = arith.cmpi slt, %j, %ten : i32
+    cc.condition %8 (%j : i32)
+  } do {
+   ^bb0(%j : i32):
+    cc.scope {
+      %b1 = arith.cmpi slt, %j, %five : i32
+      cf.cond_br %b1, ^bb1, ^bb2
+     ^bb1:
+      %v2 = quake.alloca !quake.veq<5>
+      // deallocate %v2 and jump to ^bb8 with argument 5
+      cc.unwind_continue %five : i32
+      cc.continue
+     ^bb2:
+      %v3 = quake.alloca !quake.veq<6>
+      cc.continue
+    }
+    cc.continue %j : i32
+  } step {
+    ^bb8(%j : i32):
+      %4 = arith.constant 12 : i32
+      %6 = arith.addi %4, %j : i32
+      cc.continue %6 : i32
+  }
+  return
+} 
+
+// CHECK-LABEL:   func.func @test2(
+// CHECK-SAME:      %[[VAL_0:.*]]: i32) {
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 12 : i32
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 10 : i32
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 5 : i32
+// CHECK-DAG:       %[[VAL_4:.*]] = quake.alloca !quake.veq<4>
+// CHECK:           cf.br ^bb1(%[[VAL_0]] : i32)
+// CHECK:         ^bb1(%[[VAL_5:.*]]: i32):
+// CHECK:           %[[VAL_6:.*]] = arith.cmpi slt, %[[VAL_5]], %[[VAL_2]] : i32
+// CHECK:           cf.cond_br %[[VAL_6]], ^bb2(%[[VAL_5]] : i32), ^bb6
+// CHECK:         ^bb2(%[[VAL_7:.*]]: i32):
+// CHECK:           %[[VAL_8:.*]] = arith.cmpi slt, %[[VAL_7]], %[[VAL_3]] : i32
+// CHECK:           cf.cond_br %[[VAL_8]], ^bb3, ^bb4
+// CHECK:         ^bb3:
+// CHECK:           %[[VAL_9:.*]] = quake.alloca !quake.veq<5>
+// CHECK:           quake.dealloc %[[VAL_9]] : !quake.veq<5>
+// CHECK:           cf.br ^bb5(%[[VAL_3]] : i32)
+// CHECK:         ^bb4:
+// CHECK:           %[[VAL_10:.*]] = quake.alloca !quake.veq<6>
+// CHECK:           quake.dealloc %[[VAL_10]] : !quake.veq<6>
+// CHECK:           cf.br ^bb5(%[[VAL_7]] : i32)
+// CHECK:         ^bb5(%[[VAL_11:.*]]: i32):
+// CHECK:           %[[VAL_12:.*]] = arith.addi %[[VAL_11]], %[[VAL_1]] : i32
+// CHECK:           cf.br ^bb1(%[[VAL_12]] : i32)
+// CHECK:         ^bb6:
+// CHECK:           return
+
+func.func @test3(%i : i32) {
+  %v1 = quake.alloca !quake.veq<4>
+  %five = arith.constant 5 : i32
+  %1 = cc.loop while ((%j = %i) -> i32) {
+    %ten = arith.constant 10 : i32
+    %8 = arith.cmpi slt, %j, %ten : i32
+    cc.condition %8 (%j : i32)
+  } do {
+   ^bb0(%j : i32):
+    cc.scope {
+      %b1 = arith.cmpi slt, %j, %five : i32
+      cf.cond_br %b1, ^bb1, ^bb2
+     ^bb1:
+      %v3 = quake.alloca !quake.veq<6>
+      cc.continue
+     ^bb2:
+      %v2 = quake.alloca !quake.veq<5>
+      // deallocate %v2 and exit loop
+      cc.unwind_break %five : i32
+      cc.continue
+    }
+    cc.continue %j : i32
+  } step {
+    ^bb8(%j : i32):
+      %4 = arith.constant 12 : i32
+      %6 = arith.addi %4, %j : i32
+      cc.continue %6 : i32
+  }
+  cf.br ^bb3
+ ^bb3:
+  return
+} 
+
+// CHECK-LABEL:   func.func @test3(
+// CHECK-SAME:      %[[VAL_0:.*]]: i32) {
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 12 : i32
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 10 : i32
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 5 : i32
+// CHECK-DAG:       %[[VAL_4:.*]] = quake.alloca !quake.veq<4>
+// CHECK:           cf.br ^bb1(%[[VAL_0]] : i32)
+// CHECK:         ^bb1(%[[VAL_5:.*]]: i32):
+// CHECK:           %[[VAL_6:.*]] = arith.cmpi slt, %[[VAL_5]], %[[VAL_2]] : i32
+// CHECK:           cf.cond_br %[[VAL_6]], ^bb2(%[[VAL_5]] : i32), ^bb5
+// CHECK:         ^bb2(%[[VAL_7:.*]]: i32):
+// CHECK:           %[[VAL_8:.*]] = arith.cmpi slt, %[[VAL_7]], %[[VAL_3]] : i32
+// CHECK:           cf.cond_br %[[VAL_8]], ^bb3, ^bb4
+// CHECK:         ^bb3:
+// CHECK:           %[[VAL_9:.*]] = quake.alloca !quake.veq<6>
+// CHECK:           quake.dealloc %[[VAL_9]] : !quake.veq<6>
+// CHECK:           %[[VAL_10:.*]] = arith.addi %[[VAL_7]], %[[VAL_1]] : i32
+// CHECK:           cf.br ^bb1(%[[VAL_10]] : i32)
+// CHECK:         ^bb4:
+// CHECK:           %[[VAL_11:.*]] = quake.alloca !quake.veq<5>
+// CHECK:           quake.dealloc %[[VAL_11]] : !quake.veq<5>
+// CHECK:           cf.br ^bb5
+// CHECK:         ^bb5:
+// CHECK:           return
+
+func.func @test4() {
+  %veq = quake.alloca !quake.veq<5>
+  %zero = arith.constant 0 : i32
+  %2 = cc.loop while ((%i = %zero) -> i32) {
+    %ten = arith.constant 10 : i32
+    %8 = arith.cmpi slt, %i, %ten : i32
+    cc.condition %8 (%i : i32)
+  } do {
+    ^bb0(%i : i32):
+      %five = arith.constant 5 : i32
+      %18 = arith.cmpi slt, %i, %five : i32
+      cf.cond_br %18, ^bb1, ^bb2
+    ^bb1:
+      cc.break %i : i32
+    ^bb2:
+      cc.scope {
+        %92 = quake.alloca !quake.ref
+	cf.br ^bb24
+       ^bb23:
+        %93 = quake.alloca !quake.ref
+        %94 = arith.constant 26 : i32
+        %104 = arith.cmpi eq, %i, %94 : i32
+        cc.if (%104) {
+	  // dealloc %92 and %93, jump to return
+          cc.unwind_return
+        }
+        cc.continue
+       ^bb24:
+        %9 = arith.constant 25 : i32
+        %10 = arith.cmpi eq, %i, %9 : i32
+        cc.if (%10) {
+	  // dealloc %92, jump to ^bb8
+          cc.unwind_continue %i : i32
+        }
+	cf.br ^bb23
+      }
+      cc.continue %i : i32
+  } step {
+    ^bb8(%i : i32):
+      %4 = arith.constant 12 : i32
+      %6 = arith.addi %4, %i : i32
+      cc.continue %6 : i32
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @test4() {
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 12 : i32
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 25 : i32
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 26 : i32
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 5 : i32
+// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 10 : i32
+// CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 0 : i32
+// CHECK-DAG:       %[[VAL_6:.*]] = quake.alloca !quake.veq<5>
+// CHECK:           cf.br ^bb1(%[[VAL_5]] : i32)
+// CHECK:         ^bb1(%[[VAL_7:.*]]: i32):
+// CHECK:           %[[VAL_8:.*]] = arith.cmpi slt, %[[VAL_7]], %[[VAL_4]] : i32
+// CHECK:           cf.cond_br %[[VAL_8]], ^bb2(%[[VAL_7]] : i32), ^bb9
+// CHECK:         ^bb2(%[[VAL_9:.*]]: i32):
+// CHECK:           %[[VAL_10:.*]] = arith.cmpi slt, %[[VAL_9]], %[[VAL_3]] : i32
+// CHECK:           cf.cond_br %[[VAL_10]], ^bb9, ^bb3
+// CHECK:         ^bb3:
+// CHECK:           %[[VAL_11:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_12:.*]] = arith.cmpi eq, %[[VAL_9]], %[[VAL_1]] : i32
+// CHECK:           cf.cond_br %[[VAL_12]], ^bb7(%[[VAL_9]] : i32), ^bb4
+// CHECK:         ^bb4:
+// CHECK:           %[[VAL_13:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_14:.*]] = arith.cmpi eq, %[[VAL_9]], %[[VAL_2]] : i32
+// CHECK:           cf.cond_br %[[VAL_14]], ^bb6, ^bb5
+// CHECK:         ^bb5:
+// CHECK:           quake.dealloc %[[VAL_13]] : !quake.ref
+// CHECK:           quake.dealloc %[[VAL_11]] : !quake.ref
+// CHECK:           cf.br ^bb8(%[[VAL_9]] : i32)
+// CHECK:         ^bb6:
+// CHECK:           quake.dealloc %[[VAL_13]] : !quake.ref
+// CHECK:           quake.dealloc %[[VAL_11]] : !quake.ref
+// CHECK:           quake.dealloc %[[VAL_6]] : !quake.veq<5>
+// CHECK:           return
+// CHECK:         ^bb7(%[[VAL_15:.*]]: i32):
+// CHECK:           quake.dealloc %[[VAL_11]] : !quake.ref
+// CHECK:           cf.br ^bb8(%[[VAL_15]] : i32)
+// CHECK:         ^bb8(%[[VAL_16:.*]]: i32):
+// CHECK:           %[[VAL_17:.*]] = arith.addi %[[VAL_16]], %[[VAL_0]] : i32
+// CHECK:           cf.br ^bb1(%[[VAL_17]] : i32)
+// CHECK:         ^bb9:
+// CHECK:           quake.dealloc %[[VAL_6]] : !quake.veq<5>
+// CHECK:           return
+// CHECK:         }
