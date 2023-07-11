@@ -104,8 +104,8 @@ std::unique_ptr<MLIRContext> initializeMLIR() {
 
   DialectRegistry registry;
   registry.insert<arith::ArithDialect, AffineDialect, LLVM::LLVMDialect,
-                  memref::MemRefDialect, quake::QuakeDialect, cc::CCDialect,
-                  func::FuncDialect>();
+                  math::MathDialect, memref::MemRefDialect, quake::QuakeDialect,
+                  cc::CCDialect, func::FuncDialect>();
   auto context = std::make_unique<MLIRContext>(registry);
   context->loadAllAvailableDialects();
   registerLLVMDialectTranslation(*context);
