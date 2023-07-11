@@ -18,33 +18,18 @@
 # libz linking, so my next steps will be to add those back in and check
 # again.
 
-# DOCKER_BUILDKIT=1 docker build -t nvidia/cudaq_manylinux_test . --output out
-FROM nvidia/cudaq_manylinux_deps as buildStage 
+# DOCKER_BUILDKIT=1 docker build -t nvidia/cudaq_manylinux_build -f docker/wheel/Dockerfile . --output out
+FROM docker.io/nvidia/cudaq_manylinux_deps:local as buildStage 
 
 ARG workspace=.
 ARG destination=cuda-quantum
 ADD "$workspace" "$destination"
 
+RUN cd cuda-quantum && bash scripts/build_wheel.sh && \
+    if [ ! "$?" -eq "0" ]; then exit 1; fi
 RUN cd cuda-quantum \
-    && export LLVM_DIR=/opt/llvm \
-    && export CUDAQ_CPR_INSTALL=/cpr/install \
-    && bash scripts/build_wheel.sh
-#RUN cd cuda-quantum \
-#    && python3.10 docker/wheel/auditwheel -v repair dist/cuda_quantum-0.3.0-cp310-cp310-linux_x86_64.whl
-
-# Also in: _skbuild/linux-x86_64-3.10/cmake-build/lib/
-# No longer needed (?): LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/cuda-quantum/_skbuild/linux-x86_64-3.10/cmake-install/lib/python3.10/site-packages/cudaq/lib/" 
-# python3.10 docker/wheel/auditwheel -v repair dist/cuda_quantum-0.3.0-cp310-cp310-linux_x86_64.whl
+    && python3.10 docker/wheel/auditwheel -v repair dist/cuda_quantum-*-linux_x86_64.whl
 
 # Use this with DOCKER_BUILDKIT=1
-#FROM scratch AS exportStage 
-#COPY --from=buildStage /cuda-quantum/dist/*.whl . 
-
-# FIXME GETTING AN OUTPUT
-# Fixed-up wheel written to /cuda-quantum/wheelhouse/cuda_quantum-0.3.0-cp310-cp310-manylinux_2_28_x86_64.whl
-
-# TODO: 
-# - check we can install it on the manylinux compatible oses
-# - figure out what to do with the libgomp1 dependency
-# - check that other simulators work as well...
-# - find out if we can avoid the --user flag
+FROM scratch
+COPY --from=buildStage /cuda-quantum/wheelhouse/*manylinux*x86_64.whl . 

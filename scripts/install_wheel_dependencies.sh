@@ -18,14 +18,13 @@
 # Usage: 
 # `bash install_wheel_dependencies.sh`
 # -or-
-# `LLVM_DIR=/path/to/llvm/lib/cmake/llvm  CPR_DIR=/path/to/cpr/install BLAS_PATH=/path/to/libblas.a bash install_wheel_dependencies.sh`
+# `LLVM_INSTALL_PREFIX=/path/to/llvm BLAS_PATH=/path/to/libblas.a bash install_wheel_dependencies.sh`
 
 # Prerequisites:
 # It expects to be run on the Ubuntu Dev Image, otherwise refer to the installation 
 # steps in `build_cudaq.sh` for any further missing dependencies.
 
-LLVM_DIR=${LLVM_DIR:-/opt/llvm}
-CPR_DIR=${CPR_DIR:-/cpr/install}
+LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/opt/llvm}
 BLAS_PATH=${BLAS_PATH:-/usr/lib64/libblas.a}
 
 echo "Installing required packages for python wheel..."
@@ -54,7 +53,7 @@ fi
 echo "Cloning submodules..."
 git -c submodule.tpls/llvm.update=none submodule update --init --recursive
 
-if [ ! -d "$LLVM_DIR" ]; then
+if [ ! -d "$LLVM_INSTALL_PREFIX" ]; then
   echo "Could not find llvm libraries."
   # Build llvm libraries from source and install them in the install directory
   llvm_build_script=`pwd`/scripts/build_llvm.sh
@@ -63,35 +62,10 @@ if [ ! -d "$LLVM_DIR" ]; then
 else 
   echo "Configured C compiler: $CC"
   echo "Configured C++ compiler: $CXX"
-  echo "LLVM directory: $LLVM_DIR"
+  echo "LLVM directory: $LLVM_INSTALL_PREFIX"
 fi
-export LLVM_DIR=$LLVM_DIR
+export LLVM_INSTALL_PREFIX=$LLVM_INSTALL_PREFIX
 
-if [ ! -d "$CPR_DIR" ]; then
-  echo "Did not find a libcpr install dir"
-  echo "Installing libcpr"
-  
-  # Install in same parent directory as cuda-quantum.
-  cd "$repo_root" && cd /
-  echo `pwd`
-
-  echo "Cloning libcpr"
-  git clone https://github.com/libcpr/cpr
-  echo "Building libcpr"
-  cd cpr && rm -rf build && mkdir build && cd build
-  cmake .. -G Ninja -DCPR_FORCE_USE_SYSTEM_CURL=FALSE 
-                    -DCMAKE_INSTALL_LIBDIR=lib 
-                    -DOPENSSL_USE_STATIC_LIBS=TRUE 
-                    -DBUILD_SHARED_LIBS=FALSE 
-                    -DOPENSSL_ROOT_DIR=/usr/local/ssl 
-                    -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE 
-                    -DCMAKE_INSTALL_PREFIX=$CPR_DIR
-  
-  ninja install
-else 
-  echo "libcpr directory: $CPR_DIR"
-fi
-export CPR_DIR=$CPR_DIR
 cd "$repo_root"
 
 if [ ! -f "$BLAS_PATH" ]; then

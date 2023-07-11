@@ -14,12 +14,28 @@
 # Usage:
 #   bash build_and_test.sh 
 
-# Remove old outputs.
+#manylinux_image=quay.io/pypa/manylinux_2_28_aarch64
+manylinux_image=quay.io/pypa/manylinux_2_28_x86_64
+# FIXME: LLVM SUBMODULE IS ON THE WRONG COMMIT...
+#llvm_commit=$(git rev-parse @:tpls/llvm)
+llvm_commit=c0b45fef155fbe3f17f9a6f99074682c69545488
+docker build -t docker.io/nvidia/cudaq_manylinux_deps:local -f docker/build/devdeps.manylinux.Dockerfile . \
+    --build-arg llvm_commit=$llvm_commit \
+    --build-arg manylinux_image=$manylinux_image
+
 rm -rf out/*
-# Build the manylinux dependency image.
-DOCKER_BUILDKIT=1 docker build -t nvidia/cudaq_manylinux_build -f docker/wheel/Dockerfile . --output out
-# Test the wheels in a fresh Ubuntu image. This will install the wheel that was built
-# in the manylinux container, then run the pytest suite using the cuda-quantum pip package.
-DOCKER_BUILDKIT=1 docker build -t nvidia/cudaq_manylinux_test -f docker/wheel/tests/Dockerfile.ubuntu2204 . 
-# Cleanup.
-docker rmi -f nvidia/cudaq_manylinux_test nvidia/cudaq_manylinux_build 
+DOCKER_BUILDKIT=1 \
+docker build -t nvidia/cudaq_manylinux_build -f docker/build/cudaq.wheel.Dockerfile . \
+    --output out
+
+# docker rmi -f nvidia/cudaq_manylinux_test nvidia/cudaq_manylinux_build 
+
+container_id=`docker run -itd --rm ubuntu:22.04 | grep -e '.*$'`
+docker cp out/cuda_quantum-*-manylinux_*_x86_64.whl $container_id:/tmp/
+docker cp docs/sphinx/examples/python $container_id:/tmp/
+docker attach $container_id
+apt-get update && apt-get install -y --no-install-recommends libgomp1 python3 python3-pip
+pip install /tmp/cuda_quantum-*-manylinux_*_x86_64.whl --user && pip install numpy
+python3 -c "import cudaq"
+for file in `ls /tmp/python/`; do python3 /tmp/python/$file; done
+exit && docker stop $container_id

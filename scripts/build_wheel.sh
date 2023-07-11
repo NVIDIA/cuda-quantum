@@ -16,16 +16,14 @@
 # Usage: 
 # `bash build_wheel.sh`
 # -or-
-# `LLVM_DIR=/path/to/llvm/lib/cmake/llvm  CPR_DIR=/path/to/cpr/install BLAS_PATH=/path/to/libblas.a  bash build_wheel.sh`
+# `LLVM_INSTALL_PREFIX=/path/to/llvm bash build_wheel.sh`
 #
 # Prerequisites:
 # All tools required to run this script are installed when using the dev container definition
 # in this repository. Any remaining dependencies are automatically installed here through a
 # call to `scripts/wheel_dependencies.sh`. 
 
-LLVM_DIR=${LLVM_DIR:-/opt/llvm}
-CPR_DIR=${CPR_DIR:-/cpr/install}
-BLAS_PATH=${BLAS_PATH:-/usr/lib64/libblas.a}
+LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/opt/llvm}
 
 # Run the script from the top-level of the repo
 working_dir=`pwd`
@@ -41,7 +39,8 @@ rm -rf dist
 rm -rf wheelhouse
 
 # Call the dependency script.
-LLVM_DIR=$LLVM_DIR CPR_DIR=$CPR_DIR BLAS_PATH=$BLAS_PATH bash /cuda-quantum/scripts/install_wheel_dependencies.sh
+LLVM_INSTALL_PREFIX=$LLVM_INSTALL_PREFIX bash /cuda-quantum/scripts/install_wheel_dependencies.sh
+llvm_lib_dir=`"$LLVM_INSTALL_PREFIX/bin/llvm-config" --libdir 2>/dev/null`
 
 # Return to the outer level of CUDA Quantum to build the wheel off of setup.py
 cd "$repo_root"
@@ -51,6 +50,6 @@ cd "$repo_root"
 # The setup.py file will call `install_wheel_dependencies.sh` and 
 # handle all dependency installation for someone using our
 # Docker image.
-python3.10 -m build --wheel
+LLVM_DIR="$llvm_lib_dir/cmake/llvm" python3.10 -m build --wheel
 
 cd "$working_dir"
