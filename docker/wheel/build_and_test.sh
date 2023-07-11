@@ -14,13 +14,12 @@
 # Usage:
 #   bash build_and_test.sh 
 
-export DOCKER_BUILDKIT=1
 # Remove old outputs.
 rm -rf out/*
 # Build the manylinux dependency image.
-docker build -t nvidia/cudaq_manylinux_build --network host . --output out
+DOCKER_BUILDKIT=1 docker build -t nvidia/cudaq_manylinux_build -f docker/wheel/Dockerfile . --output out
 # Test the wheels in a fresh Ubuntu image. This will install the wheel that was built
 # in the manylinux container, then run the pytest suite using the cuda-quantum pip package.
-docker build -t nvidia/cudaq_manylinux_test --network host -f tests/Dockerfile.ubuntu2204 . 
+DOCKER_BUILDKIT=1 docker build -t nvidia/cudaq_manylinux_test -f docker/wheel/tests/Dockerfile.ubuntu2204 . 
 # Cleanup.
 docker rmi -f nvidia/cudaq_manylinux_test nvidia/cudaq_manylinux_build 

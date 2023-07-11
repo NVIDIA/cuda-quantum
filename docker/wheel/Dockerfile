@@ -18,23 +18,33 @@
 # libz linking, so my next steps will be to add those back in and check
 # again.
 
-# DOCKER_BUILDKIT=1 docker build -t nvidia/cudaq_manylinux_test --network host . --output out
+# DOCKER_BUILDKIT=1 docker build -t nvidia/cudaq_manylinux_test . --output out
 FROM nvidia/cudaq_manylinux_deps as buildStage 
 
-# Pull down CUDA-Quantum to build the wheel off of.
-RUN ls && ls && ls && git clone -b wheel https://github.com/NVIDIA/cuda-quantum \
-    && cd cuda-quantum && git -c submodule.tpls/llvm.update=none submodule update --init --recursive \
-    && rm -rf /root/.ssh 
+ARG workspace=.
+ARG destination=cuda-quantum
+ADD "$workspace" "$destination"
 
-RUN ls
 RUN cd cuda-quantum \
     && export LLVM_DIR=/opt/llvm \
     && export CUDAQ_CPR_INSTALL=/cpr/install \
-    && bash scripts/build_wheel.sh \
-    && docker/wheel/auditwheel -v repair dist/cuda_quantum-0.0.3-cp310-cp310-linux_x86_64.whl
-    # TODO: Pass the output wheel off to uploading. Might actually run this step from the file
-    # that we actually test the wheel in, instead of at this point.
+    && bash scripts/build_wheel.sh
+#RUN cd cuda-quantum \
+#    && python3.10 docker/wheel/auditwheel -v repair dist/cuda_quantum-0.3.0-cp310-cp310-linux_x86_64.whl
+
+# Also in: _skbuild/linux-x86_64-3.10/cmake-build/lib/
+# No longer needed (?): LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/cuda-quantum/_skbuild/linux-x86_64-3.10/cmake-install/lib/python3.10/site-packages/cudaq/lib/" 
+# python3.10 docker/wheel/auditwheel -v repair dist/cuda_quantum-0.3.0-cp310-cp310-linux_x86_64.whl
 
 # Use this with DOCKER_BUILDKIT=1
-FROM scratch AS exportStage 
-COPY --from=buildStage /cuda-quantum/dist/*.whl . 
+#FROM scratch AS exportStage 
+#COPY --from=buildStage /cuda-quantum/dist/*.whl . 
+
+# FIXME GETTING AN OUTPUT
+# Fixed-up wheel written to /cuda-quantum/wheelhouse/cuda_quantum-0.3.0-cp310-cp310-manylinux_2_28_x86_64.whl
+
+# TODO: 
+# - check we can install it on the manylinux compatible oses
+# - figure out what to do with the libgomp1 dependency
+# - check that other simulators work as well...
+# - find out if we can avoid the --user flag

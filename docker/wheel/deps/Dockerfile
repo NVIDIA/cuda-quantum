@@ -10,7 +10,7 @@
 # then installs the dependencies needed on top of that for building
 # the CUDA-Quantum pip wheel.
 
-FROM quay.io/pypa/manylinux_2_28_x86_64 AS buildStage
+FROM quay.io/pypa/manylinux_2_28_x86_64
 
 RUN dnf -y install ninja-build && python3.10 -m pip install cmake lit --user 
 ENV DEBIAN_FRONTEND=noninteractive \

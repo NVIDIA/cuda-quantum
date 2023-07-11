@@ -8,16 +8,26 @@
 
 FROM ubuntu:22.04
 
-RUN apt-get update && apt-get install -y python3 python3-pip git
+RUN apt-get update && apt-get install -y --no-install-recommends \
+python3 python3-pip git
 # TODO: Will have to either generalize this copy of the wheel,
 # or swap out the platform specific piece here with "_manylinux_..."
 # For now, I've been manually copying the wheel file into this image from
 # my terminal.
-# ADD out/cudaq-0.0.3-cp310-cp310-linux_x86_64.whl /wheels/
+# ADD out/cudaq-0.3.0-cp310-cp310-linux_x86_64.whl /wheels/
 ENV TERM xterm
 ENV PATH "${PATH}:/root/.local/bin"
+# RUN pip install cudaq_wheel.whl --user
+# ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(python3 -m site --user-site)/cudaq/lib"
+# apt-get install -y libgomp1
 RUN python3 -m pip install pytest
 # Pull down CUDA-Quantum so that we can run the pytest unit suite
 # with the installed wheel.
 RUN git clone -b wheel https://github.com/anthony-santana/cuda-quantum.git
 RUN cd /cuda-quantum && mkdir wheels
+
+# apt-get update && apt-get install -y --no-install-recommends \
+#   libgomp1 python3 python3-pip
+# pip install cudaq_wheel.whl --user
+# export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(python3 -m site --user-site)/cudaq/lib"
+# pip install numpy
