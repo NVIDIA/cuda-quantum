@@ -75,9 +75,6 @@ if (CUDAQ_UPPERCASE_CMAKE_BUILD_TYPE STREQUAL "DEBUG")
   target_compile_definitions(${LIBRARY_NAME} PUBLIC CUDAQ_DEBUG)
 endif()
 
-# Configure the rpath
-cudaq_library_set_rpath(${LIBRARY_NAME})
-
 # Install the target
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-common-targets DESTINATION lib)
 install(EXPORT cudaq-common-targets
@@ -123,7 +120,5 @@ target_link_libraries(cudaq-mlir-runtime
     MLIRTargetLLVMIRExport
     MLIRLLVMCommonConversion
     MLIRLLVMToLLVMIRTranslation)
-
-cudaq_library_set_rpath(cudaq-mlir-runtime)
 
 install(TARGETS cudaq-mlir-runtime DESTINATION lib)

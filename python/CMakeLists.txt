@@ -64,14 +64,6 @@ else()
   install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX})
   install(DIRECTORY cudaq/domains DESTINATION ${CMAKE_INSTALL_PREFIX})
 endif()
-    
-if(APPLE)
-  set_target_properties(
-     _pycudaq PROPERTIES INSTALL_RPATH "@loader_path/lib")
-else()
-  set_target_properties(
-    _pycudaq PROPERTIES INSTALL_RPATH "$ORIGIN/lib")
-endif()
 
 if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
   add_subdirectory(runtime/cudaq/domains/plugins)

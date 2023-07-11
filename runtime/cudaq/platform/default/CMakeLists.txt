@@ -25,8 +25,6 @@ target_include_directories(${LIBRARY_NAME}
 target_link_libraries(${LIBRARY_NAME}
   PUBLIC pthread cudaq-em-qir cudaq-spin cudaq-common PRIVATE fmt::fmt-header-only)
 
-cudaq_library_set_rpath(${LIBRARY_NAME})
-
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-platform-default-targets DESTINATION lib)
 
