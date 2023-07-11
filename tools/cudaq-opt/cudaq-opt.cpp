@@ -54,6 +54,7 @@ int main(int argc, char **argv) {
   cudaq::opt::registerOptCodeGenPasses();
   cudaq::opt::registerOptTransformsPasses();
   cudaq::opt::registerAggressiveEarlyInlining();
+  cudaq::opt::registerUnrollingPipeline();
   cudaq::opt::registerTargetPipelines();
 
   // See if we have been asked to load a pass plugin,

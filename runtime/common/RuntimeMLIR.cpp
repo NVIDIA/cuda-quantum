@@ -81,37 +81,6 @@ TranslateFromMLIRRegistration::TranslateFromMLIRRegistration(
   registerTranslation(name, description, function);
 }
 
-void registerToQIRTranslation();
-void registerToOpenQASMTranslation();
-void registerToIQMJsonTranslation();
-
-std::unique_ptr<MLIRContext> initializeMLIR() {
-  if (!mlirLLVMInitialized) {
-    llvm::InitializeNativeTarget();
-    llvm::InitializeNativeTargetAsmPrinter();
-    registerAllPasses();
-    cudaq::opt::registerOptCodeGenPasses();
-    cudaq::opt::registerOptTransformsPasses();
-    registerToQIRTranslation();
-    registerToOpenQASMTranslation();
-    registerToIQMJsonTranslation();
-    cudaq::opt::registerTargetPipelines();
-    mlirLLVMInitialized = true;
-  }
-
-  // if (!llvmContext)
-  //   llvmContext = std::make_unique<llvm::LLVMContext>();
-
-  DialectRegistry registry;
-  registry.insert<arith::ArithDialect, AffineDialect, LLVM::LLVMDialect,
-                  math::MathDialect, memref::MemRefDialect, quake::QuakeDialect,
-                  cc::CCDialect, func::FuncDialect>();
-  auto context = std::make_unique<MLIRContext>(registry);
-  context->loadAllAvailableDialects();
-  registerLLVMDialectTranslation(*context);
-  return context;
-}
-
 bool setupTargetTriple(llvm::Module *llvmModule) {
   // Setup the machine properties from the current architecture.
   auto targetTriple = llvm::sys::getDefaultTargetTriple();
@@ -200,6 +169,31 @@ void registerToIQMJsonTranslation() {
       [](Operation *op, raw_ostream &output) {
         return cudaq::translateToIQMJson(op, output);
       });
+}
+
+std::unique_ptr<MLIRContext> initializeMLIR() {
+  if (!mlirLLVMInitialized) {
+    llvm::InitializeNativeTarget();
+    llvm::InitializeNativeTargetAsmPrinter();
+    registerAllPasses();
+    cudaq::opt::registerOptCodeGenPasses();
+    cudaq::opt::registerOptTransformsPasses();
+    registerToQIRTranslation();
+    registerToOpenQASMTranslation();
+    registerToIQMJsonTranslation();
+    cudaq::opt::registerUnrollingPipeline();
+    cudaq::opt::registerTargetPipelines();
+    mlirLLVMInitialized = true;
+  }
+
+  DialectRegistry registry;
+  registry.insert<arith::ArithDialect, AffineDialect, LLVM::LLVMDialect,
+                  memref::MemRefDialect, quake::QuakeDialect, cc::CCDialect,
+                  func::FuncDialect>();
+  auto context = std::make_unique<MLIRContext>(registry);
+  context->loadAllAvailableDialects();
+  registerLLVMDialectTranslation(*context);
+  return context;
 }
 
 ExecutionEngine *createQIRJITEngine(ModuleOp &moduleOp) {
