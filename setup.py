@@ -10,19 +10,19 @@ import sys
 try:
     import skbuild
 except ImportError:
-    print("Trying to install required module: skbuild")
+    print("Installing required package scikit-build.")
     os.system(f"{sys.executable} -m pip install scikit-build")
 import skbuild
 import setuptools
 
-__version__ = "0.3.0"
+__version__ = os.getenv("CUDA_QUANTUM_VERSION")
 
 # The `setup.py` script gets called twice when installing from source
 # with `pip install .` . Once for the `egg_info` subcommand and another
-# for `install`. We will only install the missing dependencies once, for
-# the `egg_info` subcommand (arbitrary choice).
+# for `install`. We will only install the missing dependencies once.
 if (sys.argv[1] == 'egg_info'):
     script_path = os.getcwd() + "/scripts/install_wheel_dependencies.sh"
+    # FIXME: this doesn't fail if the install fails
     os.system(f"bash {script_path}")
 
 # FIXME: support installation without --user flag
@@ -42,17 +42,17 @@ skbuild.setup(
     cmake_install_dir=cmake_install_dir,
     cmake_args=[
         "-DCUDAQ_ENABLE_PYTHON=TRUE",
-        "-DBLAS_LIBRARIES=/usr/lib64/libblas.a",
-        "-DCMAKE_INSTALL_LIBDIR=lib",
-        "-DCUDAQ_DISABLE_CPP_FRONTEND=ON",
+        "-DCUDAQ_BUILD_SELFCONTAINED=TRUE",
+        "-DCUDAQ_DISABLE_CPP_FRONTEND=TRUE",
         "-DCUDAQ_BUILD_TESTS=FALSE",
-        "-DCMAKE_COMPILE_WARNING_AS_ERROR=ON",
         "-DCUSTATEVEC_ROOT={}".format(os.environ["CUSTATEVEC_ROOT"])
-        if "CUSTATEVEC_ROOT" in os.environ else "",
+            if "CUSTATEVEC_ROOT" in os.environ else "",
         "-DLLVM_DIR={}/lib/cmake/llvm".format(os.environ["LLVM_INSTALL_PREFIX"])
-        if "LLVM_INSTALL_PREFIX" in os.environ else "",
-        "-DOPENSSL_USE_STATIC_LIBS=TRUE",
-        "-DOPENSSL_ROOT_DIR=/usr/local/ssl",
-        "-DCUDAQ_BUILD_RELOCATABLE_PACKAGE=TRUE"
-    ],
-    setup_requires=["numpy", "pytest", "scikit-build", "setuptools"])
+            if "LLVM_INSTALL_PREFIX" in os.environ else "",
+        # OpenSSL and BLAS are dependencies. 
+        # OPENSSL_ROOT_DIR and BLAS_LIBRARIES can be set to define their installation location
+        "-DOPENSSL_ROOT_DIR={}".format(os.environ["OPENSSL_ROOT_DIR"])
+            if "OPENSSL_ROOT_DIR" in os.environ else "",
+        "-DBLAS_LIBRARIES={}".format(os.environ["BLAS_LIBRARIES"])
+            if "BLAS_LIBRARIES" in os.environ else "",
+    ])

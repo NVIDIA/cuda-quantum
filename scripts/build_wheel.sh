@@ -40,8 +40,6 @@ rm -rf wheelhouse
 
 # TODO: Set the srcdir here to dump the wheels and all extra files into a contained folder.
 # Build the wheel only (no sdist). 
-# The setup.py file will call `install_wheel_dependencies.sh` and 
-# handle all dependency installation for someone using our
-# Docker image.
+# The setup.py file handles installation of dependencies if necessary.
 LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" python3.10 -m build --wheel
 status=$? && cd "$working_dir" && exit $status

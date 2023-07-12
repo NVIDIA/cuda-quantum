@@ -19,12 +19,18 @@
 # again.
 
 # DOCKER_BUILDKIT=1 docker build -t nvidia/cudaq_manylinux_build -f docker/wheel/Dockerfile . --output out
-FROM docker.io/nvidia/cudaq_manylinux_deps:local as buildStage 
+FROM docker.io/nvidia/cudaq_manylinux_deps:no-zlib as buildStage 
+
+ARG release_version=
+ENV CUDA_QUANTUM_VERSION=$release_version
 
 ARG workspace=.
 ARG destination=cuda-quantum
 ADD "$workspace" "$destination"
 
+RUN dnf remove -y ninja-build cmake && \
+    dnf -y install ninja-build && \ 
+    python3.10 -m pip install cmake lit --user 
 RUN cd cuda-quantum && bash scripts/build_wheel.sh && \
     if [ ! "$?" -eq "0" ]; then exit 1; fi
 RUN python3.10 -m pip install auditwheel && cd cuda-quantum \

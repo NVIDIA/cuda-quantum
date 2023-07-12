@@ -105,6 +105,7 @@ endif()
 option(CUDAQ_BUILD_TESTS "Build cudaq tests" ON)
 option(CUDAQ_ENABLE_RPC_LOGGING "Enable verbose printout for client/server qpud connection." OFF)
 option(CUDAQ_BUILD_RELOCATABLE_PACKAGE "Make CUDA Quantum install tree relocatable, system headers included." OFF)
+option(CUDAQ_BUILD_SELFCONTAINED "Statically link all dependencies and create a relocatable installation folder." OFF)
 option(CUDAQ_TEST_MOCK_SERVERS "Enable Remote QPU Tests via Mock Servers." OFF)
 option(CUDAQ_DISABLE_RUNTIME "Build without the CUDA Quantum runtime, just the compiler toolchain." OFF)
 option(CUDAQ_SKIP_MPI "Do not build with MPI, even when it is available." OFF)
@@ -116,9 +117,17 @@ SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 SET(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/lib/plugins:$ORIGIN/../lib:$ORIGIN/../lib/plugins")
 
+if (CUDAQ_BUILD_SELFCONTAINED)
+  # Using -static-libgcc -static-libstdc++ offers finer control here if needed.
+  # At the time of writing, there wasn't any benefit to using those over -static.
+  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
+  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static")
+  # If the above if modified to something more granular, we need the line below.
+  SET(OPENSSL_USE_STATIC_LIBS TRUE)
+  SET(CUDAQ_BUILD_RELOCATABLE_PACKAGE TRUE)
+endif()
+
 if (CUDAQ_BUILD_RELOCATABLE_PACKAGE)
-  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
-  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libgcc -static-libstdc++")
   if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     message(FATAL_ERROR "You must provide an install prefix if you are building the relocatable package.")
   endif()

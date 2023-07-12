@@ -45,12 +45,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates openssl apt-utils \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
-# Install prerequisites for building LLVM
+# Install prerequisites for building LLVM.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ninja-build cmake python3 \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
-# Clone the LLVM source code
+# Clone the LLVM source code.
 RUN apt-get update && apt-get install -y --no-install-recommends git \
     && mkdir /llvm-project && cd /llvm-project && git init \
     && git remote add origin https://github.com/llvm/llvm-project \
