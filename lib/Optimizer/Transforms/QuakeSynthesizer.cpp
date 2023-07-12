@@ -20,8 +20,6 @@
 
 using namespace mlir;
 
-namespace {
-
 /// Replace a BlockArgument of a specific type with a concrete instantiation of
 /// that type, and add the generation of that constant as an MLIR Op to the
 /// beginning of the function. For example
@@ -70,48 +68,59 @@ void synthesizeRuntimeArgument(
   argument.replaceAllUsesWith(runtimeArg);
 }
 
-LogicalResult synthesizeVectorArgument(OpBuilder &builder,
-                                       BlockArgument &argument,
-                                       std::vector<double> &vec) {
+static LogicalResult synthesizeVectorArgument(OpBuilder &builder,
+                                              BlockArgument &argument,
+                                              std::vector<double> &vec) {
   // Here we assume the CSE pass has run and
   // there is one stdvecDataOp.
-  auto stdvecDataOp = *argument.getUsers().begin();
-  for (auto user : stdvecDataOp->getUsers()) {
+  auto stdvecDataOp =
+      cast<cudaq::cc::StdvecDataOp>(*argument.getUsers().begin());
+  stdvecDataOp.dump();
+  SmallVector<Operation *> cleanUps;
+  for (auto *user : stdvecDataOp->getUsers()) {
+    user->dump();
     // could be a load, or a getelementptr.
     // if load, the index is 0
     // if getelementptr, then we get the index there to use
     if (auto loadOp = dyn_cast_or_null<cudaq::cc::LoadOp>(user)) {
       llvm::APFloat f(vec[0]);
       Value runtimeParam = builder.create<arith::ConstantFloatOp>(
-          builder.getUnknownLoc(), f, builder.getF64Type());
+          argument.getLoc(), f, builder.getF64Type());
       // Replace with the constant value, remove the load
       loadOp.replaceAllUsesWith(runtimeParam);
-      loadOp.erase();
+      cleanUps.push_back(loadOp);
     } else if (auto gepOp = dyn_cast_or_null<cudaq::cc::ComputePtrOp>(user)) {
       auto index = gepOp.getRawConstantIndices()[0];
       if (index < 0)
         return gepOp.emitError("pointer + offset is not a constant");
       llvm::APFloat f(vec[index]);
       Value runtimeParam = builder.create<arith::ConstantFloatOp>(
-          builder.getUnknownLoc(), f, builder.getF64Type());
-      auto loadOp =
-          dyn_cast_or_null<cudaq::cc::LoadOp>(*gepOp->getUsers().begin());
-      if (!loadOp)
-        return loadOp.emitError(
-            "Unknown gep/load configuration for quake-synth.");
-      // Replace and remove the ops
-      loadOp.replaceAllUsesWith(runtimeParam);
-      loadOp.erase();
-      gepOp->erase();
+          argument.getLoc(), f, builder.getF64Type());
+      for (auto *u : gepOp->getUsers()) {
+        if (auto loadOp = dyn_cast<cudaq::cc::LoadOp>(u)) {
+          // Replace and remove the ops
+          loadOp.replaceAllUsesWith(runtimeParam);
+          cleanUps.push_back(loadOp);
+        } else {
+          return loadOp.emitError(
+              "Unknown gep/load configuration for quake-synth.");
+        }
+      }
+      cleanUps.push_back(gepOp);
+    } else {
+      return user->emitError("unexpected use of std::vector<T>::data()");
     }
   }
   // Remove the stdvecdata op, drop all uses of the block argument
+  for (Operation *o : cleanUps)
+    o->erase();
   stdvecDataOp->dropAllUses();
   argument.dropAllUses();
   stdvecDataOp->erase();
   return success();
 }
 
+namespace {
 class QuakeSynthesizer
     : public cudaq::opt::QuakeSynthesizeBase<QuakeSynthesizer> {
 protected:
@@ -224,8 +233,8 @@ void QuakeSynthesizer::runOnOperation() {
       }
     }
 
-    // For any std vec arguments, we now know the sizes
-    // let's replace the block arg with the actual vector element data.
+    // For any `std::vector` arguments, we now know the sizes so let's replace
+    // the block arg with the actual vector element data.
     for (std::size_t idx = 0; auto &stdVecSize : stdVecSizes) {
       double *ptr = (double *)(((char *)args) + offset);
       std::vector<double> v(ptr, ptr + stdVecSize);
