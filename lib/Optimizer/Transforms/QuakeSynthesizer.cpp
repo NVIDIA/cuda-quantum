@@ -71,50 +71,61 @@ void synthesizeRuntimeArgument(
 static LogicalResult synthesizeVectorArgument(OpBuilder &builder,
                                               BlockArgument &argument,
                                               std::vector<double> &vec) {
-  // Here we assume the CSE pass has run and
-  // there is one stdvecDataOp.
-  auto stdvecDataOp =
-      cast<cudaq::cc::StdvecDataOp>(*argument.getUsers().begin());
-  SmallVector<Operation *> cleanUps;
-  for (auto *user : stdvecDataOp->getUsers()) {
-    // could be a load, or a getelementptr.
-    // if load, the index is 0
-    // if getelementptr, then we get the index there to use
-    if (auto loadOp = dyn_cast_or_null<cudaq::cc::LoadOp>(user)) {
-      llvm::APFloat f(vec[0]);
-      Value runtimeParam = builder.create<arith::ConstantFloatOp>(
-          argument.getLoc(), f, builder.getF64Type());
-      // Replace with the constant value, remove the load
-      loadOp.replaceAllUsesWith(runtimeParam);
-      cleanUps.push_back(loadOp);
-    } else if (auto gepOp = dyn_cast_or_null<cudaq::cc::ComputePtrOp>(user)) {
-      auto index = gepOp.getRawConstantIndices()[0];
-      if (index < 0)
-        return gepOp.emitError("pointer + offset is not a constant");
-      llvm::APFloat f(vec[index]);
-      Value runtimeParam = builder.create<arith::ConstantFloatOp>(
-          argument.getLoc(), f, builder.getF64Type());
-      for (auto *u : gepOp->getUsers()) {
-        if (auto loadOp = dyn_cast<cudaq::cc::LoadOp>(u)) {
-          // Replace and remove the ops
+  auto *ctx = builder.getContext();
+  assert(isa<cudaq::cc::StdvecType>(argument.getType()));
+  auto eleTy = cast<cudaq::cc::StdvecType>(argument.getType()).getElementType();
+  auto arrayAttr = builder.getF64ArrayAttr(vec);
+  builder.setInsertionPointToStart(argument.getOwner());
+  auto conArray = builder.create<cudaq::cc::ConstantArrayOp>(
+      argument.getLoc(), cudaq::cc::ArrayType::get(ctx, eleTy, vec.size()),
+      arrayAttr);
+  auto replaceLoads = [&](cudaq::cc::ComputePtrOp gepOp,
+                          Value newVal) -> LogicalResult {
+    for (auto *u : gepOp->getUsers()) {
+      if (auto loadOp = dyn_cast<cudaq::cc::LoadOp>(u)) {
+        loadOp.replaceAllUsesWith(newVal);
+        continue;
+      }
+      return gepOp.emitError("Unknown gep/load configuration for quake-synth.");
+    }
+    return success();
+  };
+  for (auto *argUser : argument.getUsers()) {
+    if (auto stdvecDataOp = dyn_cast<cudaq::cc::StdvecDataOp>(argUser)) {
+      for (auto *dataUser : stdvecDataOp->getUsers()) {
+        // could be a load, or a getelementptr.
+        // if load, the index is 0
+        // if getelementptr, then we get the index there to use
+        if (auto loadOp = dyn_cast<cudaq::cc::LoadOp>(dataUser)) {
+          llvm::APFloat f(vec[0]);
+          Value runtimeParam = builder.create<arith::ConstantFloatOp>(
+              argument.getLoc(), f, builder.getF64Type());
+          // Replace with the constant value
           loadOp.replaceAllUsesWith(runtimeParam);
-          cleanUps.push_back(loadOp);
+          continue;
+        }
+        if (auto gepOp = dyn_cast<cudaq::cc::ComputePtrOp>(dataUser)) {
+          auto index = gepOp.getRawConstantIndices()[0];
+          if (index == cudaq::cc::ComputePtrOp::kDynamicIndex) {
+            builder.setInsertionPoint(gepOp);
+            Value getEle = builder.create<cudaq::cc::GetConstantElementOp>(
+                gepOp.getLoc(), eleTy, conArray, gepOp.getDynamicIndices()[0]);
+            if (failed(replaceLoads(gepOp, getEle)))
+              return failure();
+            continue;
+          }
+          llvm::APFloat f(vec[index]);
+          Value runtimeParam = builder.create<arith::ConstantFloatOp>(
+              argument.getLoc(), f, builder.getF64Type());
+          if (failed(replaceLoads(gepOp, runtimeParam)))
+            return failure();
         } else {
-          return loadOp.emitError(
-              "Unknown gep/load configuration for quake-synth.");
+          return dataUser->emitError(
+              "unexpected use of std::vector<T>::data()");
         }
       }
-      cleanUps.push_back(gepOp);
-    } else {
-      return user->emitError("unexpected use of std::vector<T>::data()");
     }
   }
-  // Remove the stdvecdata op, drop all uses of the block argument
-  for (Operation *o : cleanUps)
-    o->erase();
-  stdvecDataOp->dropAllUses();
-  argument.dropAllUses();
-  stdvecDataOp->erase();
   return success();
 }
 
@@ -233,8 +244,11 @@ void QuakeSynthesizer::runOnOperation() {
 
     // For any `std::vector` arguments, we now know the sizes so let's replace
     // the block arg with the actual vector element data.
+    // For any std vec arguments, we now know the sizes
+    // let's replace the block arg with the actual vector element data.
+    double *ptr = (double *)(((char *)args) + offset);
     for (std::size_t idx = 0; auto &stdVecSize : stdVecSizes) {
-      double *ptr = (double *)(((char *)args) + offset);
+      // FIXME: this only works with std::vector<double> for now.
       std::vector<double> v(ptr, ptr + stdVecSize);
       if (failed(synthesizeVectorArgument(builder, arguments[idx++], v))) {
         emitError(module.getLoc(), "Quake Synthesis failed for stdvec type.\n");
@@ -245,8 +259,10 @@ void QuakeSynthesizer::runOnOperation() {
     // Remove the old arguments.
     auto numArgs = funcOp.getNumArguments();
     BitVector argsToErase(numArgs);
-    for (std::size_t argIndex = 0; argIndex < numArgs; ++argIndex)
+    for (std::size_t argIndex = 0; argIndex < numArgs; ++argIndex) {
       argsToErase.set(argIndex);
+      funcOp.getBody().front().getArgument(argIndex).dropAllUses();
+    }
     funcOp.eraseArguments(argsToErase);
   }
 }
