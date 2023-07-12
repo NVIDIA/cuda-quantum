@@ -172,13 +172,14 @@ public:
 };
 } // namespace
 
-void cudaq::opt::addUnrollingPipeline(OpPassManager &pm) {
+void cudaq::opt::createUnrollingPipeline(OpPassManager &pm, unsigned threshold,
+                                         bool signalFailure) {
   pm.addPass(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createClassicalMemToReg());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createLoopNormalize());
   pm.addPass(createCanonicalizerPass());
-  constexpr LoopUnrollOptions luo{/*threshold=*/50, /*signalFailure=*/true};
+  LoopUnrollOptions luo{threshold, signalFailure};
   pm.addPass(createLoopUnroll(luo));
   pm.addPass(createCanonicalizerPass());
 }
