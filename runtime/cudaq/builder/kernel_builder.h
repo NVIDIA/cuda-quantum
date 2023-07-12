@@ -173,6 +173,8 @@ CUDAQ_DETAILS_QIS_DECLARATION(t)
 CUDAQ_DETAILS_QIS_DECLARATION(x)
 CUDAQ_DETAILS_QIS_DECLARATION(y)
 CUDAQ_DETAILS_QIS_DECLARATION(z)
+CUDAQ_DETAILS_QIS_DECLARATION(sdg)
+CUDAQ_DETAILS_QIS_DECLARATION(tdg)
 
 #define CUDAQ_DETAILS_ONEPARAM_QIS_DECLARATION(NAME)                           \
   void NAME(ImplicitLocOpBuilder &builder, QuakeValue &parameter,              \
@@ -438,6 +440,8 @@ public:
   CUDAQ_BUILDER_ADD_ONE_QUBIT_OP(x)
   CUDAQ_BUILDER_ADD_ONE_QUBIT_OP(y)
   CUDAQ_BUILDER_ADD_ONE_QUBIT_OP(z)
+  CUDAQ_BUILDER_ADD_ONE_QUBIT_OP(sdg)
+  CUDAQ_BUILDER_ADD_ONE_QUBIT_OP(tdg)
 
 #define CUDAQ_BUILDER_ADD_ONE_QUBIT_PARAM(NAME)                                \
   void NAME(QuakeValue parameter, QuakeValue qubit) {                          \

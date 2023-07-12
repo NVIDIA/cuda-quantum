@@ -13,6 +13,11 @@
 #include <cudaq/optimizers.h>
 #include <regex>
 
+
+
+
+#include <iostream>
+
 CUDAQ_TEST(BuilderTester, checkSimple) {
   {
     using namespace cudaq::spin;
@@ -130,6 +135,55 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     auto counts = cudaq::sample(ccnot_builder);
     counts.dump();
     EXPECT_TRUE(counts.begin()->first == "101");
+  }
+
+  // Check the built-in adjoint S-gate (sdg)
+  {
+    std::cout << "\n\n\n\nin sdg test.\n";
+
+    auto builder = cudaq::make_kernel();
+    auto q = builder.qalloc();
+    // Place qubit in the 1-state.
+    builder.x(q);
+    // Rotate around Z by -pi/2
+    builder.s(q);
+    builder.sdg(q);
+    builder.mz(q);
+
+    auto counts = cudaq::sample(builder);
+    counts.dump();
+  }
+
+    {
+    std::cout << "\n\n\n\nin sdg test x.\n";
+
+    auto builder = cudaq::make_kernel();
+    auto q = builder.qalloc();
+    // Place qubit in the 1-state.
+    builder.x(q);
+    // Rotate around Z by -pi/2
+    // builder.s(q);
+    builder.sdg(q);
+    builder.mx(q);
+
+    auto counts = cudaq::sample(builder);
+    counts.dump();
+  }
+
+  // Check the built-in adjoint T-gate (tdg)
+  {
+    std::cout << "\n\n\n\nin tdg test.\n";
+    
+    auto builder = cudaq::make_kernel();
+    auto q = builder.qalloc();
+    // Place qubit in the 1-state.
+    builder.x(q);
+    // Rotate around Z by -pi/2
+    builder.tdg(q);
+    builder.mz(q);
+
+    auto counts = cudaq::sample(builder);
+    counts.dump();
   }
 
   {

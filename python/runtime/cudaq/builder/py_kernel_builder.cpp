@@ -340,6 +340,8 @@ void bindKernel(py::module &mod) {
       ADD_BUILDER_QIS_METHOD(z)
       ADD_BUILDER_QIS_METHOD(t)
       ADD_BUILDER_QIS_METHOD(s)
+      ADD_BUILDER_QIS_METHOD(sdg)
+      ADD_BUILDER_QIS_METHOD(tdg)
       /// @brief Bind parameterized single-qubit gates.
       ADD_BUILDER_PARAM_QIS_METHOD(rx)
       ADD_BUILDER_PARAM_QIS_METHOD(ry)
