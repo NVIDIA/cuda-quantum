@@ -36,7 +36,7 @@ void registerAggressiveEarlyInlining();
 /// expanded to eliminate control flow. This pipeline will raise an error if any
 /// loop in the module cannot be fully unrolled.
 void createUnrollingPipeline(mlir::OpPassManager &pm, unsigned threshold,
-                          bool signalFailure);
+                             bool signalFailure);
 inline void addUnrollingPipeline(mlir::OpPassManager &pm) {
   // Set defaults used by registerUnrollingPipeline()
   createUnrollingPipeline(pm, /*threshold=*/50, /*signalFailure=*/true);
