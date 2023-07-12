@@ -20,7 +20,7 @@ __version__ = os.getenv("CUDA_QUANTUM_VERSION")
 # The `setup.py` script gets called twice when installing from source
 # with `pip install .` . Once for the `egg_info` subcommand and another
 # for `install`. We will only install the missing dependencies once.
-if (sys.argv[1] == 'egg_info'):
+if (sys.argv[1] != 'egg_info'):
     script_path = os.getcwd() + "/scripts/install_wheel_dependencies.sh"
     # FIXME: this doesn't fail if the install fails
     os.system(f"bash {script_path}")

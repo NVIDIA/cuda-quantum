@@ -7,8 +7,6 @@
 # ============================================================================ #
 
 # This Dockerfile is the endpoint for the manylinux workflow.
-# It will pull in the manylinux dependency image from `deps/Dockerfile`,
-# then pulls down CUDA-Quantum and calls `scripts/build_wheel.sh`.
 
 # Under construction: 
 # We will have to run auditwheel on the output wheel to change 
@@ -28,14 +26,23 @@ ARG workspace=.
 ARG destination=cuda-quantum
 ADD "$workspace" "$destination"
 
-RUN dnf remove -y ninja-build cmake && \
-    dnf -y install ninja-build && \ 
-    python3.10 -m pip install cmake lit --user 
-RUN cd cuda-quantum && bash scripts/build_wheel.sh && \
-    if [ ! "$?" -eq "0" ]; then exit 1; fi
-RUN python3.10 -m pip install auditwheel && cd cuda-quantum \
-    && python3.10 docker/wheel/auditwheel -v repair dist/cuda_quantum-*-linux_x86_64.whl
+RUN installed_versions=$(for python in `ls /usr/local/bin/python*`; do \
+        $python --version | cut -d ' ' -f 2 | egrep -o '^3\.[0-9]+'; \
+    done | sort -V) && \
+    valid_version=$(for v in $installed_versions; do \
+        comp=$(echo -e "$v\n3.8" | sort -V); \
+        if [ "$comp" != "${comp#3.8}" ]; then echo python$v; fi \
+    done) && \
+    # We need a newer cmake version than what is available with dnf. 
+    dnf remove -y cmake && python3.10 -m pip install cmake; \
+    cd cuda-quantum && \
+    for python in $valid_version; do \
+        echo "Building wheel for $python."; \
+        LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" $python -m build --wheel; \
+        $python -m pip install auditwheel; \
+        $python docker/wheel/auditwheel -v repair dist/cuda_quantum-*-linux_*.whl; \
+    done
 
 # Use this with DOCKER_BUILDKIT=1
 FROM scratch
-COPY --from=buildStage /cuda-quantum/wheelhouse/*manylinux*x86_64.whl . 
+COPY --from=buildStage /cuda-quantum/wheelhouse/*manylinux*.whl . 

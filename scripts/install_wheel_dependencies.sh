@@ -12,8 +12,6 @@
 # This script is called in the file `/cuda-quantum/setup.py` and is responsible
 # for installing all dependencies needed to build a python wheel or to pip install
 # the python bindings from source. 
-# This script is also called by `build_wheel.sh`, which is the script for generating
-# and distributing our python wheels.
 
 # Usage: 
 # `bash install_wheel_dependencies.sh`
@@ -42,8 +40,7 @@ if [ $? -eq 0 ]; then
     echo "Found apt-get in: "
     echo which apt-get 
     echo "Updating apt and installing needed packages..."
-    apt-get install -y --no-install-recommends build-essential python3.10-venv gfortran 
-    # FIXME: setuptools? -> install via pip in setup.py if needed
+    apt-get install -y --no-install-recommends build-essential python3-venv gfortran 
 else
     echo "Could not find apt-get. Doing nothing..."
     # Maybe need to install wget here. TBD.
@@ -75,7 +72,3 @@ else
   echo "Found libblas.a"
 fi
 cd "$repo_root"
-
-# FIXME: Hard-coded on python3.10
-# Install the python build package via pip
-LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" python3.10 -m pip install build pytest scikit-build
