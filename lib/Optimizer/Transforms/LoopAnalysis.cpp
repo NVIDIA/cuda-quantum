@@ -43,7 +43,8 @@ using namespace mlir;
 static Value peelCastOps(Value v) {
   Operation *defOp = nullptr;
   for (; (defOp = v.getDefiningOp());) {
-    if (isa<arith::IndexCastOp, cudaq::cc::CastOp>(defOp))
+    if (isa<arith::IndexCastOp, arith::ExtSIOp, arith::ExtUIOp,
+            cudaq::cc::CastOp>(defOp))
       v = defOp->getOperand(0);
     else
       break;
@@ -291,10 +292,10 @@ std::optional<opt::LoopComponents> opt::getLoopComponents(cc::LoopOp loop) {
   // A second possible extension is to detect \em{conditionally iterated} loops
   // and open those up to further analysis and transformations such as loop
   // unrolling.
-  if (cmpOp.getLhs() ==
+  if (peelCastOps(cmpOp.getLhs()) ==
       loop.getWhileRegion().front().getArgument(result.induction))
     result.compareValue = cmpOp.getRhs();
-  else if (cmpOp.getRhs() ==
+  else if (peelCastOps(cmpOp.getRhs()) ==
            loop.getWhileRegion().front().getArgument(result.induction))
     result.compareValue = cmpOp.getLhs();
   else

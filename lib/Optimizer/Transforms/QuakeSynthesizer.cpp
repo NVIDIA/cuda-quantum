@@ -89,6 +89,8 @@ LogicalResult synthesizeVectorArgument(OpBuilder &builder,
       loadOp.erase();
     } else if (auto gepOp = dyn_cast_or_null<cudaq::cc::ComputePtrOp>(user)) {
       auto index = gepOp.getRawConstantIndices()[0];
+      if (index < 0)
+        return gepOp.emitError("pointer + offset is not a constant");
       llvm::APFloat f(vec[index]);
       Value runtimeParam = builder.create<arith::ConstantFloatOp>(
           builder.getUnknownLoc(), f, builder.getF64Type());

@@ -171,3 +171,22 @@ public:
   }
 };
 } // namespace
+
+void cudaq::opt::createUnrollingPipeline(OpPassManager &pm, unsigned threshold,
+                                         bool signalFailure) {
+  pm.addPass(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createClassicalMemToReg());
+  pm.addPass(createCanonicalizerPass());
+  pm.addPass(createLoopNormalize());
+  pm.addPass(createCanonicalizerPass());
+  LoopUnrollOptions luo{threshold, signalFailure};
+  pm.addPass(createLoopUnroll(luo));
+  pm.addPass(createCanonicalizerPass());
+}
+
+void cudaq::opt::registerUnrollingPipeline() {
+  PassPipelineRegistration<>(
+      "unrolling-pipeline",
+      "Fully unroll loops that can be completely unrolled.",
+      addUnrollingPipeline);
+}
