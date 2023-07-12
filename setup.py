@@ -41,16 +41,17 @@ skbuild.setup(
     python_requires=">=3.8",
     cmake_install_dir=cmake_install_dir,
     cmake_args=[
-        "-DCUDAQ_ENABLE_PYTHON=TRUE", "-DBLAS_LIBRARIES=/usr/lib64/libblas.a",
-        "-DCMAKE_INSTALL_LIBDIR=lib", "-DCUDAQ_DISABLE_CPP_FRONTEND=ON",
-        "-DCUDAQ_BUILD_TESTS=FALSE", "-DCMAKE_COMPILE_WARNING_AS_ERROR=ON",
+        "-DCUDAQ_ENABLE_PYTHON=TRUE",
+        "-DBLAS_LIBRARIES=/usr/lib64/libblas.a",
+        "-DCMAKE_INSTALL_LIBDIR=lib",
+        "-DCUDAQ_DISABLE_CPP_FRONTEND=ON",
+        "-DCUDAQ_BUILD_TESTS=FALSE",
+        "-DCMAKE_COMPILE_WARNING_AS_ERROR=ON",
         "-DCUSTATEVEC_ROOT={}".format(os.environ["CUSTATEVEC_ROOT"])
         if "CUSTATEVEC_ROOT" in os.environ else "",
-        "-DLLVM_DIR={}".format(os.environ["LLVM_DIR"])
-        if "LLVM_DIR" in os.environ else "",
+        "-DLLVM_DIR={}/lib/cmake/llvm".format(os.environ["LLVM_INSTALL_PREFIX"])
+        if "LLVM_INSTALL_PREFIX" in os.environ else "",
         "-DOPENSSL_USE_STATIC_LIBS=TRUE",
-        "-DCMAKE_EXE_LINKER_FLAGS='-static-libgcc -static-libstdc++'",
-        "-DCMAKE_SHARED_LINKER_FLAGS='-static-libgcc -static-libstdc++'",
         "-DOPENSSL_ROOT_DIR=/usr/local/ssl",
         "-DCUDAQ_BUILD_RELOCATABLE_PACKAGE=TRUE"
     ],

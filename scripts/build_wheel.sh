@@ -38,18 +38,10 @@ rm -rf python/cuda_quantum.egg-info
 rm -rf dist
 rm -rf wheelhouse
 
-# Call the dependency script.
-LLVM_INSTALL_PREFIX=$LLVM_INSTALL_PREFIX bash /cuda-quantum/scripts/install_wheel_dependencies.sh
-llvm_lib_dir=`"$LLVM_INSTALL_PREFIX/bin/llvm-config" --libdir 2>/dev/null`
-
-# Return to the outer level of CUDA Quantum to build the wheel off of setup.py
-cd "$repo_root"
-
 # TODO: Set the srcdir here to dump the wheels and all extra files into a contained folder.
 # Build the wheel only (no sdist). 
 # The setup.py file will call `install_wheel_dependencies.sh` and 
 # handle all dependency installation for someone using our
 # Docker image.
-LLVM_DIR="$llvm_lib_dir/cmake/llvm" python3.10 -m build --wheel
-
-cd "$working_dir"
+LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" python3.10 -m build --wheel
+status=$? && cd "$working_dir" && exit $status

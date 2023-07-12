@@ -49,10 +49,6 @@ else
     # yes | dnf check-update && dnf upgrade
 fi
 
-# Clone the submodules (skipping llvm)
-echo "Cloning submodules..."
-git -c submodule.tpls/llvm.update=none submodule update --init --recursive
-
 if [ ! -d "$LLVM_INSTALL_PREFIX" ]; then
   echo "Could not find llvm libraries."
   # Build llvm libraries from source and install them in the install directory
@@ -64,7 +60,6 @@ else
   echo "Configured C++ compiler: $CXX"
   echo "LLVM directory: $LLVM_INSTALL_PREFIX"
 fi
-export LLVM_INSTALL_PREFIX=$LLVM_INSTALL_PREFIX
 
 cd "$repo_root"
 
@@ -82,4 +77,4 @@ cd "$repo_root"
 
 # FIXME: Hard-coded on python3.10
 # Install the python build package via pip
-python3.10 -m pip install build pytest scikit-build auditwheel
+LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" python3.10 -m pip install build pytest scikit-build

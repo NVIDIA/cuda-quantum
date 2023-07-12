@@ -38,4 +38,4 @@ apt-get update && apt-get install -y --no-install-recommends libgomp1 python3 py
 pip install /tmp/cuda_quantum-*-manylinux_*_x86_64.whl --user && pip install numpy
 python3 -c "import cudaq"
 for file in `ls /tmp/python/`; do python3 /tmp/python/$file; done
-exit && docker stop $container_id
+exit

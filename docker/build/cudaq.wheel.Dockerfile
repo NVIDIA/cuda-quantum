@@ -27,7 +27,7 @@ ADD "$workspace" "$destination"
 
 RUN cd cuda-quantum && bash scripts/build_wheel.sh && \
     if [ ! "$?" -eq "0" ]; then exit 1; fi
-RUN cd cuda-quantum \
+RUN python3.10 -m pip install auditwheel && cd cuda-quantum \
     && python3.10 docker/wheel/auditwheel -v repair dist/cuda_quantum-*-linux_x86_64.whl
 
 # Use this with DOCKER_BUILDKIT=1

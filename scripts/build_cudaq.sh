@@ -63,10 +63,6 @@ this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 repo_root=$(cd "$this_file_dir" && git rev-parse --show-toplevel)
 cd "$repo_root"
 
-# Clone the submodules (skipping llvm)
-echo "Cloning submodules..."
-git -c submodule.tpls/llvm.update=none submodule update --init --recursive
-
 llvm_config="$LLVM_INSTALL_PREFIX/bin/llvm-config"
 llvm_lib_dir=`"$llvm_config" --libdir 2>/dev/null`
 if [ ! -d "$llvm_lib_dir" ]; then
@@ -131,7 +127,6 @@ cmake_args="-G Ninja "$repo_root" \
   -DLLVM_DIR="$llvm_lib_dir/cmake/llvm" \
   -DNVQPP_LD_PATH="$NVQPP_LD_PATH" \
   -DCMAKE_BUILD_TYPE=$build_configuration \
-  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
   -DCUDAQ_ENABLE_PYTHON=TRUE \
   -DCUDAQ_TEST_MOCK_SERVERS=TRUE \
   -DCMAKE_EXE_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
