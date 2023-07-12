@@ -75,10 +75,8 @@ static LogicalResult synthesizeVectorArgument(OpBuilder &builder,
   // there is one stdvecDataOp.
   auto stdvecDataOp =
       cast<cudaq::cc::StdvecDataOp>(*argument.getUsers().begin());
-  stdvecDataOp.dump();
   SmallVector<Operation *> cleanUps;
   for (auto *user : stdvecDataOp->getUsers()) {
-    user->dump();
     // could be a load, or a getelementptr.
     // if load, the index is 0
     // if getelementptr, then we get the index there to use
