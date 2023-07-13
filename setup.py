@@ -31,15 +31,18 @@ if (sys.argv[1] != 'egg_info'):
 # the pip install. We hard-code everything to site-packages in the meantime and require the
 # user to install with `--user`.
 cmake_install_dir = f"lib/python{sys.version_info[0]}.{sys.version_info[1]}/site-packages/cudaq"
+packages=setuptools.find_packages(where="python", include=["cudaq"])
 
 skbuild.setup(
     name="cuda-quantum",
     version=__version__,
     package_dir={"cudaq": "python/cudaq"},
-    packages=setuptools.find_packages(where="python", include=["cudaq"]),
-    zip_safe=False,
+    packages=packages,
+    cmake_with_sdist=True, # we use cmake to pull some third party libraries 
     python_requires=">=3.8",
-    cmake_install_dir=cmake_install_dir,
+    #data_files=[ ("", "_pycudaq.*"), ],
+    #cmake_install_dir="data",
+    cmake_minimum_required_version="3.26",
     cmake_args=[
         "-DCUDAQ_ENABLE_PYTHON=TRUE",
         "-DCUDAQ_BUILD_SELFCONTAINED=TRUE",

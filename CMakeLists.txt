@@ -127,12 +127,6 @@ if (CUDAQ_BUILD_SELFCONTAINED)
   SET(CUDAQ_BUILD_RELOCATABLE_PACKAGE TRUE)
 endif()
 
-if (CUDAQ_BUILD_RELOCATABLE_PACKAGE)
-  if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-    message(FATAL_ERROR "You must provide an install prefix if you are building the relocatable package.")
-  endif()
-endif()
-
 include(ExternalProject)
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -306,9 +300,9 @@ else()
     foreach(dir ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
       if (${dir} MATCHES ".*/c.*/v1") 
         # Copy the bundled c++ includes from theClang install to ours
-        file(COPY ${dir} DESTINATION ${CMAKE_INSTALL_PREFIX}/include/c++/)
+        file(COPY ${dir} DESTINATION include/c++/)
         # We want the driver to include the bundled C++ headers from Clang
-        set(CUDAQ_CXX_NVQPP_INCLUDE_STR "${CUDAQ_CXX_NVQPP_INCLUDE_STR} -I ${CMAKE_INSTALL_PREFIX}/include/c++/v1")
+        set(CUDAQ_CXX_NVQPP_INCLUDE_STR "${CUDAQ_CXX_NVQPP_INCLUDE_STR} -I include/c++/v1")
       elseif(${dir} MATCHES ".*sdk/usr/include") 
         # We want the driver to include the SDK/usr/include dir
         set(CUDAQ_CXX_NVQPP_INCLUDE_STR "${CUDAQ_CXX_NVQPP_INCLUDE_STR} -I ${dir}")
@@ -416,7 +410,7 @@ endif()
 
 if (CUDAQ_BUILD_RELOCATABLE_PACKAGE) 
   # Grab the Clang system headers / resource-dir
-  install(DIRECTORY ${LLVM_BINARY_DIR}/lib/clang/ DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/clang)
+  install(DIRECTORY ${LLVM_BINARY_DIR}/lib/clang/ DESTINATION lib/clang)
 
   # Install the executables we need
   install(PROGRAMS ${LLVM_BINARY_DIR}/bin/llc DESTINATION bin)
