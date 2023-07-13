@@ -16,9 +16,7 @@
 
 #manylinux_image=quay.io/pypa/manylinux_2_28_aarch64
 manylinux_image=quay.io/pypa/manylinux_2_28_x86_64
-# FIXME: LLVM SUBMODULE IS ON THE WRONG COMMIT...
-#llvm_commit=$(git rev-parse @:tpls/llvm)
-llvm_commit=c0b45fef155fbe3f17f9a6f99074682c69545488
+llvm_commit=$(git rev-parse @:tpls/llvm)
 docker build -t docker.io/nvidia/cudaq_manylinux_deps:no-zlib -f docker/build/devdeps.manylinux.Dockerfile . \
     --build-arg llvm_commit=$llvm_commit \
     --build-arg manylinux_image=$manylinux_image

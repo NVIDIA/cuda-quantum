@@ -40,7 +40,7 @@ if [ $? -eq 0 ]; then
     echo "Found apt-get in: "
     echo which apt-get 
     echo "Updating apt and installing needed packages..."
-    apt-get install -y --no-install-recommends build-essential python3-venv gfortran 
+    apt-get install -y --no-install-recommends wget build-essential python3-venv gfortran 
 else
     echo "Could not find apt-get. Doing nothing..."
     # Maybe need to install wget here. TBD.

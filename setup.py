@@ -41,19 +41,18 @@ skbuild.setup(
     cmake_with_sdist=True, # we use cmake to pull some third party libraries 
     python_requires=">=3.8",
     #data_files=[ ("", "_pycudaq.*"), ],
-    #cmake_install_dir="data",
+    cmake_install_dir=cmake_install_dir,
     cmake_minimum_required_version="3.26",
     cmake_args=[
         "-DCUDAQ_ENABLE_PYTHON=TRUE",
-        "-DCUDAQ_BUILD_SELFCONTAINED=TRUE",
         "-DCUDAQ_DISABLE_CPP_FRONTEND=TRUE",
         "-DCUDAQ_BUILD_TESTS=FALSE",
+        "-DCUDAQ_BUILD_SELFCONTAINED={}".format(os.environ["CUDAQ_BUILD_SELFCONTAINED"])
+            if "CUDAQ_BUILD_SELFCONTAINED" in os.environ else "",
         "-DCUSTATEVEC_ROOT={}".format(os.environ["CUSTATEVEC_ROOT"])
             if "CUSTATEVEC_ROOT" in os.environ else "",
         "-DLLVM_DIR={}/lib/cmake/llvm".format(os.environ["LLVM_INSTALL_PREFIX"])
             if "LLVM_INSTALL_PREFIX" in os.environ else "",
-        # OpenSSL and BLAS are dependencies. 
-        # OPENSSL_ROOT_DIR and BLAS_LIBRARIES can be set to define their installation location
         "-DOPENSSL_ROOT_DIR={}".format(os.environ["OPENSSL_ROOT_DIR"])
             if "OPENSSL_ROOT_DIR" in os.environ else "",
         "-DBLAS_LIBRARIES={}".format(os.environ["BLAS_LIBRARIES"])

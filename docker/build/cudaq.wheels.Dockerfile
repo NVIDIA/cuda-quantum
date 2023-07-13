@@ -38,7 +38,8 @@ RUN installed_versions=$(for python in `ls /usr/local/bin/python*`; do \
     cd cuda-quantum && \
     for python in $valid_version; do \
         echo "Building wheel for $python."; \
-        LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" $python -m build --wheel; \
+        CUDAQ_BUILD_SELFCONTAINED=ON LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
+        $python -m build --wheel; \
         $python -m pip install auditwheel; \
         $python docker/wheel/auditwheel -v repair dist/cuda_quantum-*-linux_*.whl; \
     done
