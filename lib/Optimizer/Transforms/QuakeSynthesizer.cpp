@@ -17,6 +17,7 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "mlir/Transforms/RegionUtils.h"
 
 using namespace mlir;
 
@@ -143,129 +144,139 @@ public:
   QuakeSynthesizer() = default;
   QuakeSynthesizer(std::string_view kernel, void *a)
       : kernelName(kernel), args(a) {}
+
   mlir::ModuleOp getModule() { return getOperation(); }
-  void runOnOperation() override final;
+
+  void runOnOperation() override final {
+    auto module = getModule();
+    if (args == nullptr || kernelName.empty()) {
+      emitError(
+          module.getLoc(),
+          "Quake Synthesis requires runtime arguments and the kernel name.\n");
+      signalPassFailure();
+    }
+
+    for (auto &op : *module.getBody()) {
+      // Get the function we care about (the one with kernelName)
+      auto funcOp = dyn_cast<func::FuncOp>(op);
+      if (!funcOp)
+        continue;
+
+      if (!funcOp.getName().startswith(cudaq::runtime::cudaqGenPrefixName +
+                                       kernelName))
+        continue;
+
+      // Create the builder and get the function arguments.
+      // We will remove these arguments and replace with constant ops
+      auto builder = OpBuilder::atBlockBegin(&funcOp.getBody().front());
+      auto arguments = funcOp.getArguments();
+
+      // Keep track of the stdVec sizes.
+      std::vector<std::size_t> stdVecSizes;
+
+      // For each argument, get the type and synthesize
+      // the runtime constant value.
+      std::size_t offset = 0;
+      for (auto &argument : arguments) {
+        // Get the argument type
+        auto type = argument.getType();
+
+        // Based on the type, we want to replace it
+        // with a concrete constant op.
+        if (type == builder.getIntegerType(1)) {
+          synthesizeRuntimeArgument<bool>(
+              builder, argument, args, offset, sizeof(bool),
+              [](OpBuilder &builder, bool *concrete) {
+                return builder.create<arith::ConstantIntOp>(
+                    builder.getUnknownLoc(), *concrete, 1);
+              });
+        } else if (type == builder.getIntegerType(8)) {
+          synthesizeRuntimeArgument<std::uint8_t>(
+              builder, argument, args, offset, sizeof(std::uint8_t),
+              [](OpBuilder &builder, std::uint8_t *concrete) {
+                return builder.create<arith::ConstantIntOp>(
+                    builder.getUnknownLoc(), *concrete, 8);
+              });
+        } else if (type == builder.getIntegerType(32)) {
+          synthesizeRuntimeArgument<int>(
+              builder, argument, args, offset, sizeof(int),
+              [](OpBuilder &builder, int *concrete) {
+                return builder.create<arith::ConstantIntOp>(
+                    builder.getUnknownLoc(), *concrete, 32);
+              });
+        } else if (type == builder.getIntegerType(64)) {
+          synthesizeRuntimeArgument<long>(
+              builder, argument, args, offset, sizeof(long),
+              [](OpBuilder &builder, long *concrete) {
+                return builder.create<arith::ConstantIntOp>(
+                    builder.getUnknownLoc(), *concrete, 64);
+              });
+        } else if (type == builder.getF32Type()) {
+          synthesizeRuntimeArgument<float>(
+              builder, argument, args, offset, type.getIntOrFloatBitWidth() / 8,
+              [](OpBuilder &builder, float *concrete) {
+                llvm::APFloat f(*concrete);
+                return builder.create<arith::ConstantFloatOp>(
+                    builder.getUnknownLoc(), f, builder.getF32Type());
+              });
+        } else if (type == builder.getF64Type()) {
+          synthesizeRuntimeArgument<double>(
+              builder, argument, args, offset, type.getIntOrFloatBitWidth() / 8,
+              [](OpBuilder &builder, double *concrete) {
+                llvm::APFloat f(*concrete);
+                return builder.create<arith::ConstantFloatOp>(
+                    builder.getUnknownLoc(), f, builder.getF64Type());
+              });
+        } else if (isa<cudaq::cc::StdvecType>(type)) {
+          std::size_t vectorSize = *(std::size_t *)(((char *)args) + offset);
+          vectorSize /= sizeof(double);
+          offset += sizeof(std::size_t);
+          stdVecSizes.push_back(vectorSize);
+        } else if (isa<cudaq::cc::StructType>(type)) {
+          // The struct type ends up as a i64 in the thunk kernel
+          // args pointer, so just skip ahead.
+          offset += sizeof(std::size_t);
+        } else {
+          type.dump();
+          TODO("We cannot synthesize this type of argument yet.");
+        }
+      }
+
+      // For any `std::vector` arguments, we now know the sizes so let's replace
+      // the block arg with the actual vector element data.
+      // For any std vec arguments, we now know the sizes
+      // let's replace the block arg with the actual vector element data.
+      double *ptr = (double *)(((char *)args) + offset);
+      for (std::size_t idx = 0; auto &stdVecSize : stdVecSizes) {
+        // FIXME: this only works with std::vector<double> for now.
+        std::vector<double> v(ptr, ptr + stdVecSize);
+        if (failed(synthesizeVectorArgument(builder, arguments[idx++], v))) {
+          funcOp.emitError("Quake Synthesis failed for stdvec type.");
+          signalPassFailure();
+        }
+      }
+
+      // Clean up dead code.
+      {
+        IRRewriter rewriter(builder);
+        (void)simplifyRegions(rewriter, {funcOp.getBody()});
+      }
+
+      // Remove the old arguments.
+      auto numArgs = funcOp.getNumArguments();
+      BitVector argsToErase(numArgs);
+      for (std::size_t argIndex = 0; argIndex < numArgs; ++argIndex) {
+        argsToErase.set(argIndex);
+        if (!funcOp.getBody().front().getArgument(argIndex).getUses().empty()) {
+          funcOp.emitError("argument(s) still in use after synthesis.");
+          signalPassFailure();
+          return;
+        }
+      }
+      funcOp.eraseArguments(argsToErase);
+    }
+  }
 };
-
-void QuakeSynthesizer::runOnOperation() {
-  auto module = getModule();
-  if (args == nullptr || kernelName.empty()) {
-    emitError(
-        module.getLoc(),
-        "Quake Synthesis requires runtime arguments and the kernel name.\n");
-    signalPassFailure();
-  }
-
-  for (auto &op : *module.getBody()) {
-    // Get the function we care about (the one with kernelName)
-    auto funcOp = dyn_cast<func::FuncOp>(op);
-    if (!funcOp)
-      continue;
-
-    if (!funcOp.getName().startswith(cudaq::runtime::cudaqGenPrefixName +
-                                     kernelName))
-      continue;
-
-    // Create the builder and get the function arguments.
-    // We will remove these arguments and replace with constant ops
-    auto builder = OpBuilder::atBlockBegin(&funcOp.getBody().front());
-    auto arguments = funcOp.getArguments();
-
-    // Keep track of the stdVec sizes.
-    std::vector<std::size_t> stdVecSizes;
-
-    // For each argument, get the type and synthesize
-    // the runtime constant value.
-    std::size_t offset = 0;
-    for (auto &argument : arguments) {
-      // Get the argument type
-      auto type = argument.getType();
-
-      // Based on the type, we want to replace it
-      // with a concrete constant op.
-      if (type == builder.getIntegerType(1)) {
-        synthesizeRuntimeArgument<bool>(
-            builder, argument, args, offset, sizeof(bool),
-            [](OpBuilder &builder, bool *concrete) {
-              return builder.create<arith::ConstantIntOp>(
-                  builder.getUnknownLoc(), *concrete, 1);
-            });
-      } else if (type == builder.getIntegerType(8)) {
-        synthesizeRuntimeArgument<std::uint8_t>(
-            builder, argument, args, offset, sizeof(std::uint8_t),
-            [](OpBuilder &builder, std::uint8_t *concrete) {
-              return builder.create<arith::ConstantIntOp>(
-                  builder.getUnknownLoc(), *concrete, 8);
-            });
-      } else if (type == builder.getIntegerType(32)) {
-        synthesizeRuntimeArgument<int>(
-            builder, argument, args, offset, sizeof(int),
-            [](OpBuilder &builder, int *concrete) {
-              return builder.create<arith::ConstantIntOp>(
-                  builder.getUnknownLoc(), *concrete, 32);
-            });
-      } else if (type == builder.getIntegerType(64)) {
-        synthesizeRuntimeArgument<long>(
-            builder, argument, args, offset, sizeof(long),
-            [](OpBuilder &builder, long *concrete) {
-              return builder.create<arith::ConstantIntOp>(
-                  builder.getUnknownLoc(), *concrete, 64);
-            });
-      } else if (type == builder.getF32Type()) {
-        synthesizeRuntimeArgument<float>(
-            builder, argument, args, offset, type.getIntOrFloatBitWidth() / 8,
-            [](OpBuilder &builder, float *concrete) {
-              llvm::APFloat f(*concrete);
-              return builder.create<arith::ConstantFloatOp>(
-                  builder.getUnknownLoc(), f, builder.getF32Type());
-            });
-      } else if (type == builder.getF64Type()) {
-        synthesizeRuntimeArgument<double>(
-            builder, argument, args, offset, type.getIntOrFloatBitWidth() / 8,
-            [](OpBuilder &builder, double *concrete) {
-              llvm::APFloat f(*concrete);
-              return builder.create<arith::ConstantFloatOp>(
-                  builder.getUnknownLoc(), f, builder.getF64Type());
-            });
-      } else if (isa<cudaq::cc::StdvecType>(type)) {
-        std::size_t vectorSize = *(std::size_t *)(((char *)args) + offset);
-        vectorSize /= sizeof(double);
-        offset += sizeof(std::size_t);
-        stdVecSizes.push_back(vectorSize);
-      } else if (isa<cudaq::cc::StructType>(type)) {
-        // The struct type ends up as a i64 in the thunk kernel
-        // args pointer, so just skip ahead.
-        offset += sizeof(std::size_t);
-      } else {
-        type.dump();
-        TODO("We cannot synthesize this type of argument yet.");
-      }
-    }
-
-    // For any `std::vector` arguments, we now know the sizes so let's replace
-    // the block arg with the actual vector element data.
-    // For any std vec arguments, we now know the sizes
-    // let's replace the block arg with the actual vector element data.
-    double *ptr = (double *)(((char *)args) + offset);
-    for (std::size_t idx = 0; auto &stdVecSize : stdVecSizes) {
-      // FIXME: this only works with std::vector<double> for now.
-      std::vector<double> v(ptr, ptr + stdVecSize);
-      if (failed(synthesizeVectorArgument(builder, arguments[idx++], v))) {
-        emitError(module.getLoc(), "Quake Synthesis failed for stdvec type.\n");
-        signalPassFailure();
-      }
-    }
-
-    // Remove the old arguments.
-    auto numArgs = funcOp.getNumArguments();
-    BitVector argsToErase(numArgs);
-    for (std::size_t argIndex = 0; argIndex < numArgs; ++argIndex) {
-      argsToErase.set(argIndex);
-      funcOp.getBody().front().getArgument(argIndex).dropAllUses();
-    }
-    funcOp.eraseArguments(argsToErase);
-  }
-}
 
 } // namespace
 
