@@ -244,8 +244,6 @@ public:
 
       // For any `std::vector` arguments, we now know the sizes so let's replace
       // the block arg with the actual vector element data.
-      // For any std vec arguments, we now know the sizes
-      // let's replace the block arg with the actual vector element data.
       double *ptr = (double *)(((char *)args) + offset);
       for (std::size_t idx = 0; auto &stdVecSize : stdVecSizes) {
         // FIXME: this only works with std::vector<double> for now.
