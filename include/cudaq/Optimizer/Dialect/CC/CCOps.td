@@ -902,7 +902,7 @@ def cc_ConstantArrayOp : CCOp<"const_array", [Pure]> {
   );
   let results = (outs cc_ArrayType:$arrayType);
   let assemblyFormat = [{
-    $constantValues `:` type($arrayType) attr-dict
+    $constantValues `:` qualified(type($arrayType)) attr-dict
   }];
 }
 
