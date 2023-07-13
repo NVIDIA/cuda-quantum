@@ -494,15 +494,15 @@ CUDAQ_ONE_QUBIT_IMPL(x, XOp)
 CUDAQ_ONE_QUBIT_IMPL(y, YOp)
 CUDAQ_ONE_QUBIT_IMPL(z, ZOp)
 
-// For the sdg and tdg gates, we re-use the definitions for the 
+// For the sdg and tdg gates, we re-use the definitions for the
 // conventional s and t gates, but with `adjoint` set to true.
 void sdg(ImplicitLocOpBuilder &builder, std::vector<QuakeValue> &ctrls,
-            const QuakeValue &target, bool adjoint) {
+         const QuakeValue &target, bool adjoint) {
   s(builder, ctrls, target, /*adjoint*/ true);
 }
 
 void tdg(ImplicitLocOpBuilder &builder, std::vector<QuakeValue> &ctrls,
-            const QuakeValue &target, bool adjoint) {
+         const QuakeValue &target, bool adjoint) {
   t(builder, ctrls, target, /*adjoint*/ true);
 }
 

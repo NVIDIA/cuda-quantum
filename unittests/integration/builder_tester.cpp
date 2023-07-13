@@ -13,11 +13,6 @@
 #include <cudaq/optimizers.h>
 #include <regex>
 
-
-
-
-#include <iostream>
-
 CUDAQ_TEST(BuilderTester, checkSimple) {
   {
     using namespace cudaq::spin;
@@ -137,53 +132,159 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     EXPECT_TRUE(counts.begin()->first == "101");
   }
 
-  // Check the built-in adjoint S-gate (sdg)
+  // Check the built-in adjoint S-gate (sdg) on a qubit
+  // that begins in the 0-state.
   {
-    std::cout << "\n\n\n\nin sdg test.\n";
-
     auto builder = cudaq::make_kernel();
     auto q = builder.qalloc();
-    // Place qubit in the 1-state.
-    builder.x(q);
-    // Rotate around Z by -pi/2
-    builder.s(q);
+    // Place qubit in superposition state.
+    builder.h(q);
+    // Rotate around Z by -pi/2, twice. Total rotation of -pi.
     builder.sdg(q);
+    builder.sdg(q);
+    // Apply another hadamard.
+    builder.h(q);
     builder.mz(q);
 
     auto counts = cudaq::sample(builder);
     counts.dump();
+
+    // Since the qubit began in the 0-state, it should
+    // now be in the 1-state.
+    EXPECT_EQ(counts.count("1"), 1000);
   }
 
-    {
-    std::cout << "\n\n\n\nin sdg test x.\n";
-
+  // Check the built-in adjoint S-gate (sdg) on a qubit
+  // that begins in the 1-state.
+  {
     auto builder = cudaq::make_kernel();
     auto q = builder.qalloc();
     // Place qubit in the 1-state.
     builder.x(q);
+    // Superposition.
+    builder.h(q);
     // Rotate around Z by -pi/2
-    // builder.s(q);
     builder.sdg(q);
-    builder.mx(q);
+    builder.sdg(q);
+    // Another Hadamard
+    builder.h(q);
+    builder.mz(q);
 
     auto counts = cudaq::sample(builder);
     counts.dump();
+
+    // Since the qubit began in the 1-state, it should
+    // now be in the 0-state.
+    EXPECT_EQ(counts.count("0"), 1000);
   }
 
-  // Check the built-in adjoint T-gate (tdg)
+  // Check that the adjoint of the sdg gate is equivalent to an
+  // s gate.
   {
-    std::cout << "\n\n\n\nin tdg test.\n";
-    
     auto builder = cudaq::make_kernel();
     auto q = builder.qalloc();
-    // Place qubit in the 1-state.
-    builder.x(q);
-    // Rotate around Z by -pi/2
+    // Place qubit in superposition state.
+    builder.h(q);
+    // Rotate around Z by -pi/2, twice. Total rotation of -pi.
+    builder.sdg(q);
+    builder.sdg(q);
+    // Rotate back around by pi with the adjoint of the sdg gate.
+    // Should negate the original sdg rotations.
+    builder.sdg<cudaq::adj>(q);
+    builder.sdg<cudaq::adj>(q);
+    // Apply another hadamard.
+    builder.h(q);
+    builder.mz(q);
+
+    auto counts = cudaq::sample(builder);
+    counts.dump();
+
+    // Qubit should still be in the 0-state.
+    EXPECT_EQ(counts.count("0"), 1000);
+  }
+
+  // Check the built-in adjoint T-gate (tdg) on a qubit
+  // that begins in the 0-state.
+  {
+    auto builder = cudaq::make_kernel();
+    auto q = builder.qalloc();
+    // Superposition.
+    builder.h(q);
+    // Rotate around Z by -pi/4, four times. Should be the
+    // equivalent of a phase rotation of -pi.
     builder.tdg(q);
+    builder.tdg(q);
+    builder.tdg(q);
+    builder.tdg(q);
+    // Another Hadamard
+    builder.h(q);
     builder.mz(q);
 
     auto counts = cudaq::sample(builder);
     counts.dump();
+
+    // Since the qubit began in the 0-state, it should
+    // now be in the 1-state.
+    EXPECT_EQ(counts.count("1"), 1000);
+  }
+
+  // Check the built-in adjoint T-gate (tdg) on a qubit
+  // that begins in the 1-state.
+  {
+    auto builder = cudaq::make_kernel();
+    auto q = builder.qalloc();
+    // Place qubit in the 1-state.
+    builder.x(q);
+    // Superposition.
+    builder.h(q);
+    // Rotate around Z by -pi/4, four times. Should be the
+    // equivalent of a phase rotation of -pi.
+    builder.tdg(q);
+    builder.tdg(q);
+    builder.tdg(q);
+    builder.tdg(q);
+    // Another Hadamard
+    builder.h(q);
+    builder.mz(q);
+
+    auto counts = cudaq::sample(builder);
+    counts.dump();
+
+    // Since the qubit began in the 1-state, it should
+    // now be in the 0-state.
+    EXPECT_EQ(counts.count("0"), 1000);
+  }
+
+  // Check that the adjoint of the sdg gate is equivalent to a
+  // t gate.
+  {
+    auto builder = cudaq::make_kernel();
+    auto q = builder.qalloc();
+    // Place qubit in the 1-state.
+    builder.x(q);
+    // Superposition.
+    builder.h(q);
+    // Rotate around Z by -pi/4, four times. Should be the
+    // equivalent of a phase rotation of pi.
+    builder.tdg(q);
+    builder.tdg(q);
+    builder.tdg(q);
+    builder.tdg(q);
+    // Rotate back around by pi with the adjoint of the tdg gate.
+    // Should negate the original tdg rotations.
+    builder.tdg<cudaq::adj>(q);
+    builder.tdg<cudaq::adj>(q);
+    builder.tdg<cudaq::adj>(q);
+    builder.tdg<cudaq::adj>(q);
+    // Apply another hadamard.
+    builder.h(q);
+    builder.mz(q);
+
+    auto counts = cudaq::sample(builder);
+    counts.dump();
+
+    // Qubit should still be in the 1-state.
+    EXPECT_EQ(counts.count("1"), 1000);
   }
 
   {

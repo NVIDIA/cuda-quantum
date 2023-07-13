@@ -22,8 +22,10 @@ Program Construction
     .. automethod:: h
     .. automethod:: ch
     .. automethod:: s
+    .. automethod:: sdg
     .. automethod:: cs
     .. automethod:: t
+    .. automethod:: tdg
     .. automethod:: ct
     .. automethod:: rx
     .. automethod:: ry
