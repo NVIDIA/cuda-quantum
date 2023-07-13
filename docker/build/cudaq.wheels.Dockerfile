@@ -27,7 +27,7 @@ ARG destination=cuda-quantum
 ADD "$workspace" "$destination"
 
 RUN installed_versions=$(for python in `ls /usr/local/bin/python*`; do \
-        $python --version | cut -d ' ' -f 2 | egrep -o '^3\.[0-9]+'; \
+        $python --version | cut -d ' ' -f 2 | egrep -o '^3\.10'; \
     done | sort -V) && \
     valid_version=$(for v in $installed_versions; do \
         comp=$(echo -e "$v\n3.8" | sort -V); \

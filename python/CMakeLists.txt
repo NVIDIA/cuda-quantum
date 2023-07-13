@@ -7,7 +7,11 @@
 # ============================================================================ #
 
 set(LIBRARY_NAME _pycudaq)
-SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../../lib:$ORIGIN/../../lib/plugins")
+if (NOT SKBUILD)
+  SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../../lib:$ORIGIN/../../lib/plugins")
+else()
+  SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../cuda_quantum.libs")
+endif()
 
 find_package(Python COMPONENTS Interpreter)
 
@@ -62,9 +66,8 @@ if (NOT SKBUILD)
   install(DIRECTORY cudaq DESTINATION ${CMAKE_BINARY_DIR}/python)
   install(TARGETS _pycudaq DESTINATION ${CMAKE_BINARY_DIR}/python/cudaq)
 else()
-  # FIXME: this should be ${CMAKE_INSTALL_PREFIX} - it should be . (current dir)
-  install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX})
-  install(DIRECTORY cudaq/domains DESTINATION ${CMAKE_INSTALL_PREFIX})
+  install(TARGETS _pycudaq DESTINATION .)
+  install(DIRECTORY cudaq/domains DESTINATION .)
 endif()
 
 if (NOT CUDAQ_DISABLE_CPP_FRONTEND)

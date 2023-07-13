@@ -44,6 +44,7 @@ skbuild.setup(
     cmake_install_dir=cmake_install_dir,
     cmake_minimum_required_version="3.26",
     cmake_args=[
+        "-DCMAKE_COMPILE_WARNING_AS_ERROR=OFF", # FIXME
         "-DCUDAQ_ENABLE_PYTHON=TRUE",
         "-DCUDAQ_DISABLE_CPP_FRONTEND=TRUE",
         "-DCUDAQ_BUILD_TESTS=FALSE",

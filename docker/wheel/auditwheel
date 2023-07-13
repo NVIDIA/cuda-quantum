@@ -18,8 +18,8 @@ libs = [
     "libnvqir.so",
     ]
 
-for p in POLICIES:
-    p['lib_whitelist'].extend(libs)
+#for p in POLICIES:
+#    p['lib_whitelist'].extend(libs)
 
 if __name__ == "__main__":
     sys.exit(main())
