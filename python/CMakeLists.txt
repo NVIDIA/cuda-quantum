@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 set(LIBRARY_NAME _pycudaq)
+SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../../lib:$ORIGIN/../../lib/plugins")
 
 find_package(Python COMPONENTS Interpreter)
 

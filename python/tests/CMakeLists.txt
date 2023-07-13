@@ -19,7 +19,6 @@ execute_process(COMMAND ${Python_EXECUTABLE} -c "import fastapi"
   ERROR_VARIABLE FASTAPI_error
   RESULT_VARIABLE FASTAPI_result)
 
-
 execute_process(COMMAND ${Python_EXECUTABLE} -c "import pydantic"
   OUTPUT_VARIABLE PYDANTIC_output
   ERROR_VARIABLE PYDANTIC_error

@@ -39,4 +39,3 @@ add_lit_testsuites(PYCUDAQ ${CMAKE_CURRENT_SOURCE_DIR}
 add_test(NAME py-cudaq-tests-quake
   COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target check-py-cudaq
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
-set_tests_properties(py-cudaq-tests-quake PROPERTIES ENVIRONMENT "PYTHONPATH=$ENV{PYTHONPATH}:${CMAKE_BINARY_DIR}/python")
