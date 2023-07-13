@@ -30,7 +30,7 @@ def test_kernel_apply_call_no_args():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
 # CHECK:           call @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() : () -> ()
 # CHECK:           return
 # CHECK:         }
@@ -56,7 +56,7 @@ def test_kernel_apply_call_qubit_args():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 # CHECK:           call @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%[[VAL_0]]) : (!quake.ref) -> ()
 # CHECK:           return
@@ -71,7 +71,7 @@ def test_kernel_apply_call_qubit_args():
 
 def test_kernel_apply_call_qreg_args():
     """
-    Tests that we can call another kernel that's parameterized 
+    Tests that we can call another kernel that's parameterized
     by a qubit (`other_kernel`), from a :class:`Kernel`.
     """
     other_kernel, other_qreg = cudaq.make_kernel(cudaq.qreg)
@@ -83,7 +83,7 @@ def test_kernel_apply_call_qreg_args():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<5>
 # CHECK:           %[[VAL_1:.*]] = quake.relax_size %[[VAL_0]] : (!quake.veq<5>) -> !quake.veq<?>
 # CHECK:           call @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%[[VAL_1]]) : (!quake.veq<?>) -> ()
@@ -128,7 +128,7 @@ def test_kernel_apply_call_float_args():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
-# CHECK-SAME:      %[[VAL_0:.*]]: f64) {
+# CHECK-SAME:      %[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint"} {
 # CHECK:           call @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%[[VAL_0]]) : (f64) -> ()
 # CHECK:           return
 # CHECK:         }
@@ -158,7 +158,7 @@ def test_kernel_apply_call_int_args():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
-# CHECK-SAME:      %[[VAL_0:.*]]: i32) {
+# CHECK-SAME:      %[[VAL_0:.*]]: i32) attributes {"cudaq-entrypoint"} {
 # CHECK:           call @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%[[VAL_0]]) : (i32) -> ()
 # CHECK:           return
 # CHECK:         }
@@ -185,7 +185,7 @@ def test_kernel_apply_call_list_args():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
-# CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<f64>) {
+# CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<f64>) attributes {"cudaq-entrypoint"} {
 # CHECK:           call @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%[[VAL_0]]) : (!cc.stdvec<f64>) -> ()
 # CHECK:           return
 # CHECK:         }

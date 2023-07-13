@@ -11,6 +11,7 @@
 #include <cudaq/algorithms/gradients/central_difference.h>
 #include <cudaq/builder.h>
 #include <cudaq/optimizers.h>
+#include <regex>
 
 CUDAQ_TEST(BuilderTester, checkSimple) {
   {
@@ -636,4 +637,14 @@ CUDAQ_TEST(BuilderTester, checkNestedKernelCall) {
 
   EXPECT_EQ(count(quake, "func.func"), 3);
   EXPECT_EQ(count(quake, "call @__nvqpp__"), 2);
+}
+
+CUDAQ_TEST(BuilderTester, checkEntryPointAttribute) {
+  auto kernel = cudaq::make_kernel();
+  auto quake = kernel.to_quake();
+  std::cout << quake;
+
+  std::regex functionDecleration(
+      R"(func\.func @__nvqpp__mlirgen\w+\(\) attributes \{"cudaq-entrypoint"\})");
+  EXPECT_TRUE(std::regex_search(quake, functionDecleration));
 }

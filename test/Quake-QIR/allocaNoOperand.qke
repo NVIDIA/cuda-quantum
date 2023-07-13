@@ -47,10 +47,10 @@ module {
 // CHECK:         tail call void @__quantum__qis__s(%[[VAL_4]]* %[[VAL_11]])
 // CHECK: tail call void (i64, void (%Array*, %Qubit*)*, ...) @invokeWithControlQubits(i64 1, void (%Array*, %Qubit*)* nonnull @__quantum__qis__x__ctl, %Qubit* %[[VAL_11]], %Qubit* %[[VAL_5]])
 // CHECK:         tail call void @__quantum__qis__h(%[[VAL_4]]* %[[VAL_11]])
-// CHECK:         %[[VAL_15:.*]] = tail call %[[VAL_16:.*]]* @__quantum__qis__mz(%[[VAL_4]]* %[[VAL_5]])
-// CHECK:         %[[VAL_17:.*]] = tail call %[[VAL_16]]* @__quantum__qis__mz(%[[VAL_4]]* %[[VAL_8]])
-// CHECK:         %[[VAL_18:.*]] = tail call %[[VAL_16]]* @__quantum__qis__mz(%[[VAL_4]]* %[[VAL_14]])
-// CHECK:         %[[VAL_19:.*]] = tail call %[[VAL_16]]* @__quantum__qis__mz(%[[VAL_4]]* %[[VAL_11]])
+// CHECK:         %[[VAL_15:.*]] = tail call %Result* @__quantum__qis__mz(%[[VAL_4]]* %[[VAL_5]])
+// CHECK:         %[[VAL_17:.*]] = tail call %Result* @__quantum__qis__mz(%[[VAL_4]]* %[[VAL_8]])
+// CHECK:         %[[VAL_18:.*]] = tail call %Result* @__quantum__qis__mz(%[[VAL_4]]* %[[VAL_14]])
+// CHECK:         %[[VAL_19:.*]] = tail call %Result* @__quantum__qis__mz(%[[VAL_4]]* %[[VAL_11]])
 // CHECK:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_1]]* %[[VAL_0]])
 // CHECK:         ret void
     %0 = quake.alloca !quake.veq<4>
