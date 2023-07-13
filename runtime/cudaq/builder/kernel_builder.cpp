@@ -192,6 +192,8 @@ void addAllCalledFunctionRecursively(
 
       // Add the called function to the list
       auto cloned = calledFunction.clone();
+      // Remove entrypoint attribute if it exists
+      cloned->removeAttr(cudaq::entryPointAttrName);
       currentModule.push_back(cloned);
 
       // Visit that new function and see if we have
@@ -219,6 +221,8 @@ cloneOrGetFunction(StringRef name, ModuleOp &currentModule,
 
   if (auto func = otherModule->lookupSymbol<func::FuncOp>(name)) {
     auto cloned = func.clone();
+    // Remove entrypoint attribute if it exists
+    cloned->removeAttr(cudaq::entryPointAttrName);
     currentModule.push_back(cloned);
     return cloned;
   }
@@ -656,6 +660,20 @@ bool hasAnyQubitTypes(FunctionType funcTy) {
   return false;
 }
 
+void tagEntryPoint(ImplicitLocOpBuilder &builder, ModuleOp &module,
+                   StringRef symbolName) {
+  module.walk([&](func::FuncOp function) {
+    if (function.empty())
+      return WalkResult::advance();
+    if (!function->hasAttr(cudaq::entryPointAttrName) &&
+        !hasAnyQubitTypes(function.getFunctionType()) &&
+        (symbolName.empty() || function.getSymName().equals(symbolName)))
+      function->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
+
+    return WalkResult::advance();
+  });
+}
+
 ExecutionEngine *jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
                          std::string kernelName,
                          std::vector<std::string> extraLibPaths) {
@@ -682,15 +700,7 @@ ExecutionEngine *jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   module->setAttr("quake.mangled_name_map", mapAttr);
 
   // Tag as an entrypoint if it is one
-  module.walk([&](func::FuncOp function) {
-    if (function.empty())
-      return WalkResult::advance();
-    if (!function->hasAttr(cudaq::entryPointAttrName) &&
-        !hasAnyQubitTypes(function.getFunctionType()))
-      function->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
-
-    return WalkResult::advance();
-  });
+  tagEntryPoint(builder, module, StringRef{});
 
   PassManager pm(context);
   OpPassManager &optPM = pm.nest<func::FuncOp>();
@@ -855,6 +865,10 @@ std::string to_quake(ImplicitLocOpBuilder &builder) {
       tmpBuilder.create<func::ReturnOp>(tmpBuilder.getUnknownLoc());
     }
   });
+
+  func::FuncOp unwrappedParentFunc = llvm::cast<func::FuncOp>(parentFunc);
+  llvm::StringRef symName = unwrappedParentFunc.getSymName();
+  tagEntryPoint(builder, clonedModule, symName);
 
   // Clean up the code for print out
   PassManager pm(clonedModule.getContext());
