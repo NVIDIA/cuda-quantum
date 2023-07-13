@@ -25,7 +25,7 @@ docker build -t docker.io/nvidia/cudaq_manylinux_deps:no-zlib -f docker/build/de
 
 rm -rf out/*
 DOCKER_BUILDKIT=1 \
-docker build -t nvidia/cudaq_manylinux_build -f docker/build/cudaq.wheel.Dockerfile . \
+docker build -t nvidia/cudaq_manylinux_build -f docker/build/cudaq.wheels.Dockerfile . \
     --build-arg release_version=0.4.0 \
     --output out
 
@@ -35,7 +35,7 @@ container_id=`docker run -itd --rm ubuntu:22.04 | grep -e '.*$'`
 docker cp out/cuda_quantum-*-manylinux_*_x86_64.whl $container_id:/tmp/
 docker cp docs/sphinx/examples/python $container_id:/tmp/
 docker attach $container_id
-apt-get update && apt-get install -y --no-install-recommends python3 python3-pip # libgomp1
+apt-get update && apt-get install -y --no-install-recommends python3 python3-pip libgomp1
 pip install /tmp/cuda_quantum-*-manylinux_*_x86_64.whl --user && python3 -c "import cudaq"
 pip install numpy && for file in `ls /tmp/python/`; do python3 /tmp/python/$file; done
 exit
