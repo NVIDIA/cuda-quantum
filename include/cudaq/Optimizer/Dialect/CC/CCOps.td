@@ -894,7 +894,7 @@ def cc_ConstantArrayOp : CCOp<"const_array", [Pure]> {
     Example:
 
     ```mlir
-      %arrCon = cc.const_array [1.0, 2.0] : !cc.array<f64, 2>
+      %arrCon = cc.const_array [1.0, 2.0] : !cc.array<f64 x 2>
     ```
   }];
   let arguments = (ins
@@ -919,7 +919,7 @@ def cc_GetConstantElementOp : CCOp<"get_const_element", [Pure]> {
     Example:
 
     ```mlir
-      %arrCon = cc.get_const_element %4[%5] : (!cc.array<f64, 2>, i32) -> f64
+      %arrCon = cc.get_const_element %4[%5] : (!cc.array<f64 x 2>, i32) -> f64
     ```
   }];
 
