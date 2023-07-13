@@ -884,6 +884,57 @@ def cc_ComputePtrOp : CCOp<"compute_ptr", [Pure]> {
   }];
 }
 
+def cc_ConstantArrayOp : CCOp<"const_array", [Pure]> {
+  let summary = "A one dimensional array of constant values.";
+  let description = [{
+    A ConstantArrayOp is used to create a constant value that is an aggregate of
+    type !cc.array<T,n> and is composed of constant values. The aggregate has a
+    constant length.
+
+    Example:
+
+    ```mlir
+      %arrCon = cc.const_array [1.0, 2.0] : !cc.array<f64 x 2>
+    ```
+  }];
+  let arguments = (ins
+    ArrayAttr:$constantValues
+  );
+  let results = (outs cc_ArrayType:$arrayType);
+  let assemblyFormat = [{
+    $constantValues `:` qualified(type($arrayType)) attr-dict
+  }];
+}
+
+def cc_GetConstantElementOp : CCOp<"get_const_element", [Pure]> {
+  let summary = "Get a constant value from a constant array.";
+  let description = [{
+    A GetConstantElementOp is used to extract a constant value from an aggregate
+    of type !cc.array<T,n>. The aggregate must be built by a `cc.const_array`
+    operation. The offset of the element must be between 0 and the length of the
+    array minus 1 (inclusive). Any other value has undefined behavior. If the
+    offset is a constant, this operation can be folded into a scalar constant
+    (or a cc.undef operation).
+
+    Example:
+
+    ```mlir
+      %arrCon = cc.get_const_element %4[%5] : (!cc.array<f64 x 2>, i32) -> f64
+    ```
+  }];
+
+  let arguments = (ins
+    cc_ArrayType:$constantArray,
+    AnySignlessInteger:$offset
+  );
+  let results = (outs AnyType);
+  let hasFolder = 1;
+
+  let assemblyFormat = [{
+    $constantArray `,` $offset `:` functional-type(operands, results) attr-dict
+  }];
+}
+
 //===----------------------------------------------------------------------===//
 // Cast operation.
 //===----------------------------------------------------------------------===//
