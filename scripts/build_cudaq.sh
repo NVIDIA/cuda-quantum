@@ -61,27 +61,9 @@ OPTIND=$__optind__
 working_dir=`pwd`
 this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 repo_root=$(cd "$this_file_dir" && git rev-parse --show-toplevel)
-cd "$repo_root"
 
-llvm_config="$LLVM_INSTALL_PREFIX/bin/llvm-config"
-llvm_lib_dir=`"$llvm_config" --libdir 2>/dev/null`
-if [ ! -d "$llvm_lib_dir" ]; then
-  echo "Could not find llvm libraries."
-
-  # Build llvm libraries from source and install them in the install directory
-  llvm_build_script=`pwd`/scripts/build_llvm.sh
-  cd "$working_dir" && source "$llvm_build_script" -c $build_configuration && cd "$repo_root"
-  (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
-
-  llvm_lib_dir=`"$llvm_config" --libdir 2>/dev/null`
-  if [ ! -d "$llvm_lib_dir" ]; then
-    echo "Failed to find llvm libraries directory $llvm_lib_dir."
-    if $is_sourced; then return 1; else exit 1; fi
-  fi
-else 
-  echo "Configured C compiler: $CC"
-  echo "Configured C++ compiler: $CXX"
-fi
+source "$this_file_dir/install_prerequisites.sh"
+(return 0 2>/dev/null) && is_sourced=true || is_sourced=false
 
 # Check if a suitable CUDA version is installed
 cuda_version=`nvcc --version 2>/dev/null | grep -o 'release [0-9]*\.[0-9]*' | cut -d ' ' -f 2`
@@ -123,7 +105,6 @@ fi
 echo "Preparing CUDA Quantum build with LLVM installation in $LLVM_INSTALL_PREFIX..."
 cmake_args="-G Ninja "$repo_root" \
   -DCMAKE_INSTALL_PREFIX="$CUDAQ_INSTALL_PREFIX" \
-  -DLLVM_DIR="$llvm_lib_dir/cmake/llvm" \
   -DNVQPP_LD_PATH="$NVQPP_LD_PATH" \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DCUDAQ_ENABLE_PYTHON=TRUE \
@@ -133,9 +114,11 @@ cmake_args="-G Ninja "$repo_root" \
   -DCMAKE_SHARED_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
   $custatevec_flag"
 if $verbose; then 
-  cmake $cmake_args
+  # FIXME: LLVM_DIR FOR BOTH INSTEAD? (IF lib is lib64?)
+  LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" cmake $cmake_args
 else
-  cmake $cmake_args 2> logs/cmake_error.txt 1> logs/cmake_output.txt
+  LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" cmake $cmake_args \
+    2> logs/cmake_error.txt 1> logs/cmake_output.txt
 fi
 
 # Build and install CUDAQ
