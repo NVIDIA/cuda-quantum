@@ -11,7 +11,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/IR/IRMapping.h"
-#include "mlir/Transforms/DialectConversion.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 
 namespace cudaq::opt {
@@ -23,6 +23,15 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
+// Return true if \p loop is not monotonic or it is an invariant loop.
+// Normalization is to be done on any loop that is monotonic and not
+// invariant (which includes loops that are already in counted form).
+static bool isNotMonotonicOrInvariant(cudaq::cc::LoopOp loop) {
+  cudaq::opt::LoopComponents c;
+  return !cudaq::opt::isaMonotonicLoop(loop, &c) ||
+         cudaq::opt::isaInvariantLoop(c, /*allowClosedInterval=*/true);
+}
+
 namespace {
 class LoopPat : public OpRewritePattern<cudaq::cc::LoopOp> {
 public:
@@ -30,6 +39,9 @@ public:
 
   LogicalResult matchAndRewrite(cudaq::cc::LoopOp loop,
                                 PatternRewriter &rewriter) const override {
+    if (isNotMonotonicOrInvariant(loop))
+      return failure();
+
     // loop is monotonic but not invariant.
     LLVM_DEBUG(llvm::dbgs() << "loop before normalization: " << loop << '\n');
     auto componentsOpt = cudaq::opt::getLoopComponents(loop);
@@ -40,13 +52,18 @@ public:
     // 1) Set initial value to 0.
     auto ty = c.initialValue.getType();
     rewriter.startRootUpdate(loop);
-    auto zero = rewriter.create<arith::ConstantIntOp>(loc, 0, ty);
+    auto createConstantOp = [&](std::int64_t val) -> Value {
+      if (ty == rewriter.getIndexType())
+        return rewriter.create<arith::ConstantIndexOp>(loc, val);
+      return rewriter.create<arith::ConstantIntOp>(loc, val, ty);
+    };
+    auto zero = createConstantOp(0);
     loop->setOperand(c.induction, zero);
 
     // 2) Compute the number of iterations as an invariant. `iterations = max(0,
     // (upper - lower + step) / step)`.
     Value upper = c.compareValue;
-    auto one = rewriter.create<arith::ConstantIntOp>(loc, 1, ty);
+    auto one = createConstantOp(1);
     Value step = c.stepValue;
     if (!c.stepIsAnAddOp())
       step = rewriter.create<arith::SubIOp>(loc, zero, step);
@@ -55,7 +72,7 @@ public:
       // well as countup loops.
       Value negStepCond = rewriter.create<arith::CmpIOp>(
           loc, arith::CmpIPredicate::slt, step, zero);
-      auto negOne = rewriter.create<arith::ConstantIntOp>(loc, -1, ty);
+      auto negOne = createConstantOp(-1);
       Value adj =
           rewriter.create<arith::SelectOp>(loc, ty, negStepCond, negOne, one);
       upper = rewriter.create<arith::SubIOp>(loc, upper, adj);
@@ -112,15 +129,7 @@ public:
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     patterns.insert<LoopPat>(ctx);
-    ConversionTarget target(*ctx);
-    target.addDynamicallyLegalOp<cudaq::cc::LoopOp>(
-        [&](cudaq::cc::LoopOp loop) {
-          cudaq::opt::LoopComponents c;
-          return !cudaq::opt::isaMonotonicLoop(loop, &c) ||
-                 cudaq::opt::isaInvariantLoop(c, /*allowClosedInterval=*/true);
-        });
-    target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
-    if (failed(applyPartialConversion(op, target, std::move(patterns)))) {
+    if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns)))) {
       op->emitOpError("could not normalize loop");
       signalPassFailure();
     }
