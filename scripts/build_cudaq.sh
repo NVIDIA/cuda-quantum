@@ -114,7 +114,6 @@ cmake_args="-G Ninja "$repo_root" \
   -DCMAKE_SHARED_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
   $custatevec_flag"
 if $verbose; then 
-  # FIXME: LLVM_DIR FOR BOTH INSTEAD? (IF lib is lib64?)
   LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" cmake $cmake_args
 else
   LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" cmake $cmake_args \
