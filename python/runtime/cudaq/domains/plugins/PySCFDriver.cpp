@@ -12,6 +12,9 @@
 namespace py = pybind11;
 using namespace cudaq;
 
+namespace cudaq {
+extern bool disallowPlatformModification;
+}
 namespace {
 
 /// @brief Reference to the pybind11 scoped interpreter
@@ -74,8 +77,14 @@ public:
       pyGeometry[counter++] = py::make_tuple(atom.name, coordinate);
     }
 
+    // We don't want to modify the platform, indicate so
+    cudaq::disallowPlatformModification = true;
+
     // Import the cudaq python chemistry module
     auto cudaqModule = py::module_::import(ChemistryModuleName);
+
+    // Reset it
+    cudaq::disallowPlatformModification = true;
 
     // Setup the active space if requested.
     py::object nElectrons = py::none();

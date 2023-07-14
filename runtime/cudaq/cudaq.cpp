@@ -176,6 +176,8 @@ bool cudaq::__internal__::isLibraryMode(const std::string &kernelname) {
 //===----------------------------------------------------------------------===//
 
 namespace cudaq {
+bool disallowPlatformModification = false;
+
 void set_target_backend(const char *backend) {
   std::string backendName(backend);
   auto &platform = cudaq::get_platform();

@@ -22,6 +22,7 @@
 #include <thread>
 
 namespace cudaq {
+extern bool disallowPlatformModification;
 
 // These functions are defined elsewhere, but
 // we are going to use them here.
@@ -32,6 +33,8 @@ inline static constexpr std::string_view GetQuantumPlatformSymbol =
     "getQuantumPlatform";
 
 void setQuantumPlatformInternal(quantum_platform *p) {
+  if (disallowPlatformModification)
+    return;
   cudaq::info("external caller setting the platform.");
   platform = p;
 }
