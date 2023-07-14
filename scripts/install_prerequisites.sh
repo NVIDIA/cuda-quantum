@@ -9,13 +9,17 @@
 # ============================================================================ #
 
 # Usage: 
-# This script installs all dependencies needed to build pip install python 
-# bindings from source. 
-
+# This script builds and installs a minimal set of dependencies needed to build 
+# CUDA Quantum from source. 
+#
 # Usage: 
-# `bash install_wheel_dependencies.sh`
-# -or-
-# `LLVM_INSTALL_PREFIX=/path/to/llvm BLAS_PATH=/path/to/libblas.a bash install_wheel_dependencies.sh`
+# source install_prerequisites.sh
+#
+# The necessary LLVM components will be installed in the location defined by the
+# LLVM_INSTALL_PREFIX if they do not already exist in that location.
+# OpenBLAS will be built from source and installed the location defined by the
+# BLAS_INSTALL_PREFIX, unless BLAS_LIBRARIES is set, and BLAS_LIBRARIES will be
+# set to the appropriate location.
 
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/opt/llvm}
 BLAS_INSTALL_PREFIX=${BLAS_INSTALL_PREFIX:-/opt/OpenBLAS}
@@ -36,8 +40,12 @@ function remove_temp_installs {
 }
 
 trap remove_temp_installs EXIT
-
 this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
+
+if [ ! -x "$(command -v cmake)" ]; then
+    apt-get update && apt-get install -y --no-install-recommends cmake
+    APT_UNINSTALL="$APT_UNINSTALL $2"
+fi
 if [ "$CC" == "" ] && [ "$CXX" == "" ]; then
   source "$this_file_dir/install_tool.sh" -t gcc12
 fi
