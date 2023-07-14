@@ -221,15 +221,25 @@ bool opt::LoopComponents::isClosedIntervalForm() {
 std::optional<opt::LoopComponents> opt::getLoopComponents(cc::LoopOp loop) {
   opt::LoopComponents result;
   auto &whileRegion = loop.getWhileRegion();
+  auto &whileEntry = whileRegion.front();
   auto condOp = cast<cc::ConditionOp>(whileRegion.back().back());
   result.compareOp = condOp.getCondition().getDefiningOp();
   auto cmpOp = cast<arith::CmpIOp>(result.compareOp);
 
+  auto argumentToCompare = [&](unsigned idx) -> bool {
+    return (peelCastOps(cmpOp.getLhs()) == whileEntry.getArgument(idx)) ||
+           (peelCastOps(cmpOp.getRhs()) == whileEntry.getArgument(idx));
+  };
   auto scanRegionForStep = [&](Region &reg) -> std::optional<unsigned> {
-    std::optional<unsigned> res;
+    // Pre-scan to make sure all terminators are ContinueOp.
+    for (auto &block : reg)
+      if (block.hasNoSuccessors())
+        if (!isa<cc::ContinueOp>(block.back()))
+          return {};
+
     for (auto &block : reg) {
       if (block.hasNoSuccessors()) {
-        if (auto contOp = dyn_cast<cc::ContinueOp>(block.back())) {
+        if (auto contOp = cast<cc::ContinueOp>(block.back())) {
           // Find an argument to the ContinueOp that is an integral induction
           // and updated by a step value.
           for (auto pr : llvm::enumerate(contOp.getOperands())) {
@@ -238,21 +248,16 @@ std::optional<opt::LoopComponents> opt::getLoopComponents(cc::LoopOp loop) {
                   isa<arith::AddIOp, arith::SubIOp>(defOp)) {
                 auto ps = isInductionOn(pr.index(), defOp,
                                         reg.front().getArguments());
-                if (ps.first) {
+                if (ps.first && argumentToCompare(pr.index())) {
                   // Set the step value and step op here.
                   result.stepValue = ps.second;
                   result.stepOp = defOp;
                   result.stepRegion = &reg;
-                  if (!res)
-                    res = pr.index();
-                  else
-                    return {}; // LoopOp has unexpected induction(s).
+                  return pr.index();
                 }
               }
             }
           }
-        } else {
-          return {}; // LoopOp is malformed.
         }
       }
     }
@@ -274,7 +279,7 @@ std::optional<opt::LoopComponents> opt::getLoopComponents(cc::LoopOp loop) {
   if (!result.stepOp) {
     // If step has still not been found, look in the while region.
     // as in: `for (i = n; i-- > 0;) ...`
-    if (auto stepPosOpt = scanRegionForStep(loop.getWhileRegion()))
+    if (auto stepPosOpt = scanRegionForStep(whileRegion))
       result.induction = *stepPosOpt;
   }
   if (!result.stepOp)
@@ -292,11 +297,10 @@ std::optional<opt::LoopComponents> opt::getLoopComponents(cc::LoopOp loop) {
   // A second possible extension is to detect \em{conditionally iterated} loops
   // and open those up to further analysis and transformations such as loop
   // unrolling.
-  if (peelCastOps(cmpOp.getLhs()) ==
-      loop.getWhileRegion().front().getArgument(result.induction))
+  if (peelCastOps(cmpOp.getLhs()) == whileEntry.getArgument(result.induction))
     result.compareValue = cmpOp.getRhs();
   else if (peelCastOps(cmpOp.getRhs()) ==
-           loop.getWhileRegion().front().getArgument(result.induction))
+           whileEntry.getArgument(result.induction))
     result.compareValue = cmpOp.getLhs();
   else
     return {};
