@@ -138,6 +138,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         fastapi uvicorn pydantic llvmlite \
         scipy==1.10.1 openfermionpyscf==0.5 \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
+ENV BLAS_LIBRARIES=/usr/lib/x86_64-linux-gnu/blas/libblas.a
 
 # Install additional tools for CUDA Quantum documentation generation.
 RUN python3 -m pip install --no-cache-dir \
