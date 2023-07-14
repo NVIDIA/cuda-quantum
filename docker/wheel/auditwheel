@@ -3,9 +3,7 @@ import sys
 from auditwheel.main import main
 from auditwheel.policy import _POLICIES as POLICIES
 
-# Do not include the OpenMP lib required by nvqir-qpp
 libs = [
-    "libgomp.so.1", 
     "libcudaq-builder.so",
     "libcudaq.so",
     "libcudaq-common.so",

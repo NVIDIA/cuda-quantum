@@ -10,6 +10,7 @@ set(LIBRARY_NAME _pycudaq)
 if (NOT SKBUILD)
   SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../../lib:$ORIGIN/../../lib/plugins")
 else()
+  #SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../cuda_quantum.libs:$ORIGIN/../../../../lib:$ORIGIN/../../../../lib/plugins")
   SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../cuda_quantum.libs")
 endif()
 
@@ -31,7 +32,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
   set(CMAKE_BUILD_TYPE "Debug")
 endif()
 pybind11_add_module(_pycudaq 
-                     _cudaq.cpp 
+                     cudaq/_cudaq.cpp 
                      utils/LinkedLibraryHolder.cpp 
                      utils/TestingUtils.cpp
                      runtime/cudaq/builder/py_kernel_builder.cpp
@@ -66,8 +67,8 @@ if (NOT SKBUILD)
   install(DIRECTORY cudaq DESTINATION ${CMAKE_BINARY_DIR}/python)
   install(TARGETS _pycudaq DESTINATION ${CMAKE_BINARY_DIR}/python/cudaq)
 else()
-  install(TARGETS _pycudaq DESTINATION .)
-  install(DIRECTORY cudaq/domains DESTINATION .)
+  install(TARGETS _pycudaq LIBRARY DESTINATION python/cudaq)
+  install(DIRECTORY cudaq/domains DESTINATION python/cudaq)
 endif()
 
 if (NOT CUDAQ_DISABLE_CPP_FRONTEND)

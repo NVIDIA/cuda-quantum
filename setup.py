@@ -13,7 +13,6 @@ except ImportError:
     print("Installing required package scikit-build.")
     os.system(f"{sys.executable} -m pip install scikit-build")
 import skbuild
-import setuptools
 
 __version__ = os.getenv("CUDA_QUANTUM_VERSION")
 
@@ -25,24 +24,17 @@ if (sys.argv[1] != 'egg_info'):
     # FIXME: this doesn't fail if the install fails
     os.system(f"bash {script_path}")
 
-# FIXME: support installation without --user flag
-# GitHub issue: https://github.com/NVIDIA/cuda-quantum/issues/125
-# Linux machines default to dist-packages unless the `--user` flag is provided to
-# the pip install. We hard-code everything to site-packages in the meantime and require the
-# user to install with `--user`.
-cmake_install_dir = f"lib/python{sys.version_info[0]}.{sys.version_info[1]}/site-packages/cudaq"
-packages=setuptools.find_packages(where="python", include=["cudaq"])
-
 skbuild.setup(
     name="cuda-quantum",
     version=__version__,
-    package_dir={"cudaq": "python/cudaq"},
-    packages=packages,
-    cmake_with_sdist=True, # we use cmake to pull some third party libraries 
+    description="Python bindings for the CUDA Quantum toolkit for heterogeneous quantum-classical workflows",
+    author='NVIDIA',
+    license="Apache-2.0",
+    packages= ['cudaq'],
+    package_dir={"": "python"},
     python_requires=">=3.8",
-    #data_files=[ ("", "_pycudaq.*"), ],
-    cmake_install_dir=cmake_install_dir,
     cmake_minimum_required_version="3.26",
+    cmake_with_sdist=True, # we use cmake to pull some third party libraries 
     cmake_args=[
         "-DCMAKE_COMPILE_WARNING_AS_ERROR=OFF", # FIXME
         "-DCUDAQ_ENABLE_PYTHON=TRUE",
