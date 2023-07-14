@@ -111,6 +111,24 @@ option(CUDAQ_DISABLE_RUNTIME "Build without the CUDA Quantum runtime, just the c
 option(CUDAQ_SKIP_MPI "Do not build with MPI, even when it is available." OFF)
 option(CUDAQ_DISABLE_CPP_FRONTEND "Build without the CUDA Quantum C++ Clang-based Frontend." OFF)
 
+# We allow to pick up certain build configurations directly from the environment,
+# since this facilitates some of the packaging (e.g. python packages built based on the pyproject.toml).
+if(NOT CUDAQ_BUILD_SELFCONTAINED)
+  SET(CUDAQ_BUILD_SELFCONTAINED $ENV{CUDAQ_BUILD_SELFCONTAINED})
+endif()
+if(NOT LLVM_DIR AND EXISTS "$ENV{LLVM_INSTALL_PREFIX}/lib/cmake/llvm")
+  SET(LLVM_DIR "$ENV{LLVM_INSTALL_PREFIX}/lib/cmake/llvm")
+endif()
+if(NOT CUSTATEVEC_ROOT)
+  SET(CUSTATEVEC_ROOT "$ENV{CUQUANTUM_INSTALL_PREFIX}")
+endif()
+if(NOT OPENSSL_ROOT_DIR)
+  SET(OPENSSL_ROOT_DIR "$ENV{OPENSSL_INSTALL_PREFIX}")
+endif()
+if(NOT BLAS_LIBRARIES)
+  SET(BLAS_LIBRARIES "$ENV{BLAS_LIBRARIES}")
+endif()
+
 SET(CMAKE_SKIP_BUILD_RPATH FALSE)
 SET(CMAKE_SKIP_INSTALL_RPATH FALSE)
 SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)

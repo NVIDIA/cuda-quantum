@@ -41,9 +41,9 @@ RUN export CMAKE_EXE_LINKER_FLAGS="-static-libgcc -static-libstdc++" && \
 RUN dnf check-update && dnf install -y --nobest --setopt=install_weak_deps=False \
         glibc-static zlib-static perl-core \
     && dnf clean all
-ENV OPENSSL_ROOT_DIR=/usr/local/ssl
+ENV OPENSSL_INSTALL_PREFIX=/usr/local/ssl
 RUN git clone https://github.com/openssl/openssl && cd openssl \
-    && ./config --prefix="$OPENSSL_ROOT_DIR" --openssldir="$OPENSSL_ROOT_DIR" -static zlib \
+    && ./config --prefix="$OPENSSL_INSTALL_PREFIX" --openssldir="$OPENSSL_INSTALL_PREFIX" -static zlib \
     && make install && cd .. && rm -rf openssl
 ENV BLAS_LIBRARIES=/usr/lib64/libblas.a
 RUN dnf check-update && dnf install -y --nobest --setopt=install_weak_deps=False wget \

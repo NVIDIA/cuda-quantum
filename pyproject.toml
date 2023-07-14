@@ -9,6 +9,7 @@ requires-python = ">=3.8"
 license = { file="LICENSE" }
 
 [project.urls]
+Homepage = "https://developer.nvidia.com/cuda-quantum"
 Documentation = "https://nvidia.github.io/cuda-quantum"
 Repository = "https://github.com/NVIDIA/cuda-quantum"
 Releases = "https://nvidia.github.io/cuda-quantum/latest/releases.html"
@@ -33,10 +34,6 @@ cmake.args = [
     "-DCUDAQ_ENABLE_PYTHON=TRUE",
     "-DCUDAQ_DISABLE_CPP_FRONTEND=TRUE",
     "-DCUDAQ_BUILD_TESTS=FALSE",
-    "-DCUDAQ_BUILD_SELFCONTAINED=TRUE",
-    "-DLLVM_DIR=/opt/llvm/lib/cmake/llvm",
-    "-DOPENSSL_ROOT_DIR=/usr/local/ssl",
-    "-DBLAS_LIBRARIES=/usr/lib64/libblas.a",
 ]
 
 [tool.setuptools_scm]
