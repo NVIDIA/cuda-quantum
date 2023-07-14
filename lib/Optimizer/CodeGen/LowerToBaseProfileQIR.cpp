@@ -119,7 +119,7 @@ private:
                       callOp0 = callOp0->getOperand(0).getDefiningOp();
                     } else {
                       callOp0->emitError("cannot compute offset");
-		      callOp0 = nullptr;
+                      callOp0 = nullptr;
                     }
                   }
                   auto iter = callOp0 ? data.allocationOffsets.find(callOp0)
