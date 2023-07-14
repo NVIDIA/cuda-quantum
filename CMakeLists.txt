@@ -420,7 +420,7 @@ if (CUDAQ_BUILD_RELOCATABLE_PACKAGE)
     install(PROGRAMS ${LLVM_BINARY_DIR}/bin/llc DESTINATION bin)
     # install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang-${CUDAQ_LLVM_VERSION} DESTINATION bin)
     # install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang DESTINATION bin)
-    install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang++ DESTINATION bin)
+    # install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang++ DESTINATION bin)
   endif()
 
 endif()
