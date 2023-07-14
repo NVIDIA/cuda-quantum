@@ -32,6 +32,8 @@ def test_kernel_non_param_1q():
     kernel.z(qubit[0])
     kernel.t(qubit[0])
     kernel.s(qubit[0])
+    kernel.tdg(qubit[0])
+    kernel.sdg(qubit[0])
     kernel()
     # Kernel arguments should still be an empty list.
     assert kernel.arguments == []
@@ -50,6 +52,8 @@ def test_kernel_non_param_1q():
 # CHECK:           quake.z %[[VAL_0]] : (!quake.ref) -> ()
 # CHECK:           quake.t %[[VAL_0]] : (!quake.ref) -> ()
 # CHECK:           quake.s %[[VAL_0]] : (!quake.ref) -> ()
+# CHECK:           quake.t<adj>  %[[VAL_0]] : (!quake.ref) -> ()
+# CHECK:           quake.s<adj>  %[[VAL_0]] : (!quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
 
