@@ -26,7 +26,7 @@ Releases = "https://nvidia.github.io/cuda-quantum/latest/releases.html"
 chemistry = [ "scipy==1.10.1", "openfermionpyscf==0.5" ]
 
 [build-system]
-requires = ["scikit-build-core"]
+requires = ["scikit-build-core", "cmake>=3.26"]
 build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]

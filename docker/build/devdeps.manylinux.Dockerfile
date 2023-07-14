@@ -37,6 +37,14 @@ RUN export CMAKE_EXE_LINKER_FLAGS="-static-libgcc -static-libstdc++" && \
     && bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
     && rm -rf /llvm-project && rm /scripts/build_llvm.sh
 
+# Build OpenBLAS from source with OpenMP enabled.
+ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
+RUN dnf check-update && dnf install -y --nobest --setopt=install_weak_deps=False wget \
+    && CC=gcc CXX=g++ LLVM_INSTALL_PREFIX=/opt/llvm BLAS_INSTALL_PREFIX=/usr/local/openblas \
+        bash /scripts/install_prerequisites.sh \
+    && dnf remove -y wget && dnf clean all
+ENV BLAS_LIBRARIES=/usr/local/openblas/lib/libopenblas.a
+
 # Install additional dependencies required to build the CUDA Quantum wheel.
 RUN dnf check-update && dnf install -y --nobest --setopt=install_weak_deps=False \
         glibc-static zlib-static perl-core \
@@ -45,10 +53,3 @@ ENV OPENSSL_INSTALL_PREFIX=/usr/local/ssl
 RUN git clone https://github.com/openssl/openssl && cd openssl \
     && ./config --prefix="$OPENSSL_INSTALL_PREFIX" --openssldir="$OPENSSL_INSTALL_PREFIX" -static zlib \
     && make install && cd .. && rm -rf openssl
-ENV BLAS_LIBRARIES=/usr/lib64/libblas.a
-RUN dnf check-update && dnf install -y --nobest --setopt=install_weak_deps=False wget \
-    && wget http://www.netlib.org/blas/blas-3.11.0.tgz \
-    && tar -xzvf blas-3.11.0.tgz && cd BLAS-3.11.0 \
-    && make && mv blas_LINUX.a "$BLAS_LIBRARIES" \
-    && cd .. && rm -rf blas-3.11.0.tgz BLAS-3.11.0 \
-    && dnf remove -y wget && dnf clean all

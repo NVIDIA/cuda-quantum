@@ -18,7 +18,29 @@
 # `LLVM_INSTALL_PREFIX=/path/to/llvm BLAS_PATH=/path/to/libblas.a bash install_wheel_dependencies.sh`
 
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/opt/llvm}
-BLAS_PATH=${BLAS_PATH:-/usr/lib64/libblas.a}
+BLAS_INSTALL_PREFIX=${BLAS_INSTALL_PREFIX:-/opt/OpenBLAS}
+
+function temp_install_if_command_unknown {
+    if [ ! -x "$(command -v $1)" ]; then
+        apt-get install -y --no-install-recommends $2
+        APT_UNINSTALL="$APT_UNINSTALL $2"
+    fi
+}
+
+function remove_temp_installs {
+  if [ "$APT_UNINSTALL" != "" ]; then
+      echo "Uninstalling packages used for bootstrapping: $APT_UNINSTALL"
+      apt-get remove -y $APT_UNINSTALL && apt-get autoremove -y
+      unset APT_UNINSTALL
+  fi
+}
+
+trap remove_temp_installs EXIT
+
+this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
+if [ "$CC" == "" ] && [ "$CXX" == "" ]; then
+  source "$this_file_dir/install_tool.sh" -t gcc12
+fi
 
 llvm_config="$LLVM_INSTALL_PREFIX/bin/llvm-config"
 llvm_lib_dir=`"$llvm_config" --libdir 2>/dev/null`
@@ -26,7 +48,7 @@ if [ ! -d "$llvm_lib_dir" ]; then
   echo "Could not find llvm libraries."
 
   # Build llvm libraries from source and install them in the install directory
-  source "$(git rev-parse --show-toplevel)/scripts/build_llvm.sh"
+  source "$this_file_dir/build_llvm.sh"
   (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
 
   llvm_lib_dir=`"$llvm_config" --libdir 2>/dev/null`
@@ -39,12 +61,14 @@ else
   echo "Configured C++ compiler: $CXX"
 fi
 
-# TODO: 
-#wget -q https://github.com/xianyi/OpenBLAS/releases/download/v0.3.23/OpenBLAS-0.3.23.tar.gz
-#tar -xf OpenBLAS-0.3.23.tar.gz && cd OpenBLAS-0.3.23
-#... && make USE_OPENMP=1 && make install
-# mv blas_LINUX.a "$BLAS_PATH"
+if [ "$BLAS_LIBRARIES" == '' ] && [ ! -f "$BLAS_INSTALL_PREFIX/lib/libopenblas.a" ]; then
+  temp_install_if_command_unknown wget wget
+  temp_install_if_command_unknown make make
 
-# TODO: what to do about the compiler prerequisites?
-# apt-get update && apt-get install -y --no-install-recommends \
-#    wget build-essential python3-venv gfortran 
+  wget -q https://github.com/xianyi/OpenBLAS/releases/download/v0.3.23/OpenBLAS-0.3.23.tar.gz
+  tar -xf OpenBLAS-0.3.23.tar.gz && cd OpenBLAS-0.3.23
+  # FIXME: set USE_OPENMP to 1 after enabling it in the llvm build.
+  make USE_OPENMP=0 && make install PREFIX="$BLAS_INSTALL_PREFIX"
+  export BLAS_LIBRARIES="$BLAS_INSTALL_PREFIX/lib/libopenblas.a"
+  cd .. && rm -rf OpenBLAS-0.3.23.tar.gz OpenBLAS-0.3.23
+fi
