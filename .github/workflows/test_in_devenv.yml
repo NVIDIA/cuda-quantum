@@ -58,7 +58,7 @@ jobs:
               echo "pytest status = " $pytest_status
               exit 1
             fi 
-            pip uninstall cuda-quantum
+            yes Y | pip uninstall cuda-quantum
 
       - name: Test CUDA Quantum
         uses: addnab/docker-run-action@v3
