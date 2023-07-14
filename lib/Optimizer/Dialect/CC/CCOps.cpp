@@ -317,6 +317,34 @@ OpFoldResult cudaq::cc::ComputePtrOp::fold(ArrayRef<Attribute> params) {
 }
 
 //===----------------------------------------------------------------------===//
+// GetConstantElementOp
+//===----------------------------------------------------------------------===//
+
+// If this operation has a constant offset, then the value can be looked up in
+// the constant array and used as a scalar value directly.
+OpFoldResult cudaq::cc::GetConstantElementOp::fold(ArrayRef<Attribute> params) {
+  if (auto intAttr = dyn_cast_or_null<IntegerAttr>(params[1])) {
+    auto offset = intAttr.getInt();
+    auto conArr = getConstantArray().getDefiningOp<ConstantArrayOp>();
+    if (!conArr)
+      return nullptr;
+    cudaq::cc::ArrayType arrTy = conArr.getType();
+    if (arrTy.isUnknownSize())
+      return nullptr;
+    auto arrSize = arrTy.getSize();
+    OpBuilder builder(getContext());
+    builder.setInsertionPoint(getOperation());
+    if (offset < arrSize) {
+      auto fc = cast<FloatAttr>(conArr.getConstantValues()[offset]).getValue();
+      auto f64Ty = builder.getF64Type();
+      Value val = builder.create<arith::ConstantFloatOp>(getLoc(), fc, f64Ty);
+      return val;
+    }
+  }
+  return nullptr;
+}
+
+//===----------------------------------------------------------------------===//
 // LoopOp
 //===----------------------------------------------------------------------===//
 
