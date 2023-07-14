@@ -80,6 +80,7 @@ RUN source /opt/llvm/bootstrap/init_command.sh && \
     && rm -rf /llvm-project 
 
 # Build OpenBLAS from source with OpenMP enabled.
+FROM llvmbuild as prereqs
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
 RUN source /opt/llvm/bootstrap/init_command.sh && \
     LLVM_INSTALL_PREFIX=/opt/llvm BLAS_INSTALL_PREFIX=/usr/local/openblas \
@@ -142,7 +143,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         fastapi uvicorn pydantic llvmlite \
         scipy==1.10.1 openfermionpyscf==0.5 \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
-COPY --from=llvmbuild /usr/local/openblas/ /usr/local/openblas/
+COPY --from=prereqs /usr/local/openblas/ /usr/local/openblas/
 ENV BLAS_LIBRARIES=/usr/local/openblas/lib/libopenblas.a
 COPY --from=cmakebuild /usr/local/cmake-3.26/ /usr/local/cmake-3.26/
 ENV PATH="${PATH}:/usr/local/cmake-3.26/bin"
