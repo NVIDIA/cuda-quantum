@@ -79,14 +79,6 @@ RUN source /opt/llvm/bootstrap/init_command.sh && \
         bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
     && rm -rf /llvm-project 
 
-# Build OpenBLAS from source with OpenMP enabled.
-FROM llvmbuild as prereqs
-ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
-RUN source /opt/llvm/bootstrap/init_command.sh && \
-    LLVM_INSTALL_PREFIX=/opt/llvm BLAS_INSTALL_PREFIX=/usr/local/openblas \
-        bash /scripts/install_prerequisites.sh \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
-
 # We use a newer version of cmake that is only available via the Kitware apt repository.
 FROM ubuntu:22.04 as cmakebuild
 RUN apt-get update && apt-get install -y wget unzip make gcc g++ libssl-dev \
@@ -135,18 +127,17 @@ ENV CC="$LLVM_INSTALL_PREFIX/bootstrap/cc"
 ENV CXX="$LLVM_INSTALL_PREFIX/bootstrap/cxx"
 
 # Install additional dependencies required to build and test CUDA Quantum.
+COPY --from=cmakebuild /usr/local/cmake-3.26/ /usr/local/cmake-3.26/
+ENV PATH="${PATH}:/usr/local/cmake-3.26/bin"
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git ninja-build libcurl4-openssl-dev libssl-dev \
         python3 python3-pip libpython3-dev \
+        libblas-dev \
     && python3 -m pip install --no-cache-dir \
         lit pytest numpy \
         fastapi uvicorn pydantic llvmlite \
         scipy==1.10.1 openfermionpyscf==0.5 \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
-COPY --from=prereqs /usr/local/openblas/ /usr/local/openblas/
-ENV BLAS_LIBRARIES=/usr/local/openblas/lib/libopenblas.a
-COPY --from=cmakebuild /usr/local/cmake-3.26/ /usr/local/cmake-3.26/
-ENV PATH="${PATH}:/usr/local/cmake-3.26/bin"
 
 # Install additional tools for CUDA Quantum documentation generation.
 RUN python3 -m pip install --no-cache-dir \
