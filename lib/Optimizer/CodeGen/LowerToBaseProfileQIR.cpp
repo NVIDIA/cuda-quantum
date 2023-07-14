@@ -407,20 +407,27 @@ struct VerifyBaseProfilePass
     : public cudaq::opt::VerifyBaseProfileBase<VerifyBaseProfilePass> {
 
   void runOnOperation() override {
-    auto func = getOperation();
+    LLVM::LLVMFuncOp func = getOperation();
     bool passFailed = false;
     if (!func->hasAttr(cudaq::entryPointAttrName))
       return;
-    func.walk([&](LLVM::CallOp call) {
-      auto funcName = call.getCalleeAttr().getValue();
-      if (!funcName.startswith("__quantum_")) {
-        call.emitOpError("unexpected call in QIR base profile");
+    func.walk([&](Operation *op) {
+      if (auto call = dyn_cast<LLVM::CallOp>(op)) {
+        auto funcName = call.getCalleeAttr().getValue();
+        if (!funcName.startswith("__quantum_")) {
+          call.emitOpError("unexpected call in QIR base profile");
+          passFailed = true;
+        }
+      } else if (isa<LLVM::BrOp, LLVM::CondBrOp, LLVM::ResumeOp,
+                     LLVM::UnreachableOp, LLVM::SwitchOp>(op)) {
+        op->emitOpError("QIR base profile does not support control-flow");
         passFailed = true;
       }
     });
     if (passFailed) {
       emitError(func.getLoc(),
-                "function " + func.getName() + " not in base profile QIR");
+                "function " + func.getName() +
+                    " not compatible with the QIR base profile.");
       signalPassFailure();
     }
   }
@@ -431,10 +438,17 @@ std::unique_ptr<Pass> cudaq::opt::verifyBaseProfilePass() {
   return std::make_unique<VerifyBaseProfilePass>();
 }
 
-// The various passes defined here should be added as a pipeline.
-void cudaq::opt::addBaseProfilePipeline(PassManager &pm) {
+// The various passes defined here should be added as a pass pipeline.
+void cudaq::opt::addBaseProfilePipeline(OpPassManager &pm) {
   pm.addPass(createBaseProfilePreparationPass());
   pm.addNestedPass<LLVM::LLVMFuncOp>(createConvertToQIRFuncPass());
   pm.addPass(createQIRToBaseProfilePass());
   pm.addNestedPass<LLVM::LLVMFuncOp>(verifyBaseProfilePass());
+}
+
+void cudaq::opt::registerBaseProfilePipeline() {
+  PassPipelineRegistration<>(
+      "base-profile-pipeline",
+      "Pass pipeline to generate code for the QIR base profile.",
+      addBaseProfilePipeline);
 }

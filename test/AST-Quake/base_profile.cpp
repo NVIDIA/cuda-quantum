@@ -22,16 +22,15 @@ struct kernel {
         auto b0 = mz(q[0]);
         auto b1 = mz(q[1]);
 
-        if (b1) x(q[2]);
-        if (b0) z(q[2]);
     }
 };
 
-// CHECK-LABEL: define void @__nvqpp__mlirgen__kernel
-// CHECK-SAME: ()
-// CHECK: tail call void @__quantum__qis__mz__body(%Qubit* null, %Result* null)
-// CHECK: %[[VAL_2:.*]] = tail call i1 @__quantum__qis__read_result__body(%Result* null)
-// CHECK: tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Result* nonnull inttoptr (i64 1 to %Result*))
-// CHECK: %[[VAL_3:.*]] = tail call i1 @__quantum__qis__read_result__body(%Result* nonnull inttoptr (i64 1 to %Result*))
-// CHECK: br i1 %[[VAL_3]], label %[[VAL_4:.*]], label %[[VAL_5:.*]]
-// CHECK: br i1 %[[VAL_2]], label %[[VAL_7:.*]], label %[[VAL_8:.*]]
+// CHECK-LABEL: define void @__nvqpp__mlirgen__kernel()
+// CHECK:         tail call void @__quantum__qis__mz__body(%{{.*}}* null, %{{.*}}* null)
+// CHECK:         tail call void @__quantum__qis__mz__body(%{{.*}}* nonnull inttoptr (i64 1 to %{{.*}}*), %{{.*}}* nonnull inttoptr (i64 1 to %{{.*}}*))
+// CHECK:         tail call void @__quantum__rt__array_start_record_output()
+// CHECK:         tail call void @__quantum__rt__result_record_output(%{{.*}}* null, i8* nonnull getelementptr inbounds ([3 x i8], [3 x i8]* @cstr.623000, i64 0, i64 0))
+// CHECK:         tail call void @__quantum__rt__result_record_output(%{{.*}}* nonnull inttoptr (i64 1 to %{{.*}}*), i8* nonnull getelementptr inbounds ([3 x i8], [3 x i8]* @cstr.623100, i64 0, i64 0))
+// CHECK:         tail call void @__quantum__rt__array_end_record_output()
+
+
