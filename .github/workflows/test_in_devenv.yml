@@ -44,6 +44,22 @@ jobs:
           tag_prefix=`echo $devdeps_tag | cut -d "_" -f 1`
           echo "tag_prefix=$tag_prefix" >> $GITHUB_OUTPUT
 
+      - name: Test CUDA Quantum (Python)
+        uses: addnab/docker-run-action@v3
+        with:
+          image: cuda-quantum-dev:local
+          shell: bash
+          run: |
+            cd $CUDAQ_REPO_ROOT
+            pip install . --user -vvv
+            python3 -m pytest python/tests/
+            pytest_status=$?
+            if [ ! $pytest_status -eq 0 ]; then
+              echo "pytest status = " $pytest_status
+              exit 1
+            fi 
+            pip uninstall cuda-quantum
+
       - name: Test CUDA Quantum
         uses: addnab/docker-run-action@v3
         with:
@@ -58,21 +74,6 @@ jobs:
             if [ ! $ctest_status -eq 0 ] || [ ! $lit_status -eq 0 ]; then
               echo "ctest status = " $ctest_status
               echo "llvm-lit status = " $lit_status
-              exit 1
-            fi 
-
-      - name: Test CUDA Quantum (Python)
-        uses: addnab/docker-run-action@v3
-        with:
-          image: cuda-quantum-dev:local
-          shell: bash
-          run: |
-            cd $CUDAQ_REPO_ROOT
-            pip install . --user -vvv
-            python3 -m pytest python/tests/
-            pytest_status=$?
-            if [ ! $pytest_status -eq 0 ]; then
-              echo "pytest status = " $pytest_status
               exit 1
             fi 
 
