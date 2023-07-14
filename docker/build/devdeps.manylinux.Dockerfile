@@ -6,9 +6,13 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# This Dockerfile builds the most recent manylinux image for x86_64,
-# then installs the dependencies needed on top of that for building
-# the CUDA-Quantum pip wheel.
+# This file builds the development environment that contains the necessary development 
+# dependencies for building a CUDA Quantum Python wheel. It does not include the CUDA,
+# OpenMPI and other dependencies that some of the simulator backends require.
+#
+# Usage:
+# Must be built from the repo root with:
+#   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:manylinux -f docker/build/devdeps.manylinux.Dockerfile .
 
 ARG manylinux_image=quay.io/pypa/manylinux_2_28_x86_64
 FROM $manylinux_image

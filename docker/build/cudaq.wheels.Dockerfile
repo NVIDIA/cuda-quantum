@@ -6,18 +6,15 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# This Dockerfile is the endpoint for the manylinux workflow.
+# This file is used to build CUDA Quantum Python wheels.
+# Build with buildkit to get the wheels as output instead of the image.
+#
+# Usage:
+# Must be built from the repo root with:
+#   DOCKER_BUILDKIT=1 docker build -f docker/build/cudaq.wheels.Dockerfile . --output out
 
-# Under construction: 
-# We will have to run auditwheel on the output wheel to change 
-# its distribution name to manylinux. Without much time to debug,
-# this returns an error about missing the libcudaq-spin .so file.
-# I belive this could be due to the fact that I've removed the static
-# libz linking, so my next steps will be to add those back in and check
-# again.
-
-# DOCKER_BUILDKIT=1 docker build -t nvidia/cudaq_manylinux_build -f docker/wheel/Dockerfile . --output out
-FROM docker.io/nvidia/cudaq_manylinux_deps:no-zlib as buildStage 
+ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:manylinux
+FROM base_image as wheelbuild
 
 ARG release_version=
 ENV CUDA_QUANTUM_VERSION=$release_version
@@ -46,6 +43,5 @@ RUN installed_versions=$(for python in `ls /usr/local/bin/python*`; do \
         $python -m auditwheel -v repair dist/cuda_quantum-*linux_*.whl; \
     done
 
-# Use this with DOCKER_BUILDKIT=1
 FROM scratch
-COPY --from=buildStage /cuda-quantum/wheelhouse/*manylinux*.whl . 
+COPY --from=wheelbuild /cuda-quantum/wheelhouse/*manylinux*.whl . 
