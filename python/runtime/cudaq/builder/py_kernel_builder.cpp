@@ -340,14 +340,27 @@ void bindKernel(py::module &mod) {
       ADD_BUILDER_QIS_METHOD(z)
       ADD_BUILDER_QIS_METHOD(t)
       ADD_BUILDER_QIS_METHOD(s)
-      ADD_BUILDER_QIS_METHOD(sdg)
-      ADD_BUILDER_QIS_METHOD(tdg)
       /// @brief Bind parameterized single-qubit gates.
       ADD_BUILDER_PARAM_QIS_METHOD(rx)
       ADD_BUILDER_PARAM_QIS_METHOD(ry)
       ADD_BUILDER_PARAM_QIS_METHOD(rz)
       ADD_BUILDER_PARAM_QIS_METHOD(r1)
       // clang-format on
+
+      .def(
+          "sdg",
+          [](kernel_builder<> &self, const QuakeValue &target) {
+            return self.s<cudaq::adj>(qubit);
+          },
+          "Apply a rotation on the z-axis of -90 degrees to the given target "
+          "qubit/s.\n")
+      .def(
+          "tdg",
+          [](kernel_builder<> &self, const QuakeValue &target) {
+            return self.t<cudaq::adj>(qubit);
+          },
+          "Apply a rotation on the z-axis of -45 degrees to the given target "
+          "qubit/s.\n")
 
       /// @brief Bind the SWAP gate.
       .def(
