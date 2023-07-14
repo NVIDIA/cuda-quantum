@@ -1333,9 +1333,8 @@ public:
     target.addLegalDialect<LLVM::LLVMDialect>();
     target.addLegalOp<ModuleOp>();
 
-    if (failed(applyFullConversion(getModule(), target, std::move(patterns)))) {
+    if (failed(applyFullConversion(getModule(), target, std::move(patterns))))
       signalPassFailure();
-    }
   }
 };
 
