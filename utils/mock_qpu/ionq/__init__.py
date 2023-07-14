@@ -18,7 +18,7 @@ app = FastAPI()
 
 
 class Input(BaseModel):
-    format:str
+    format: str
     data: str
 
 
