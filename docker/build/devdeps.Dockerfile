@@ -134,10 +134,6 @@ ENV CC="$LLVM_INSTALL_PREFIX/bootstrap/cc"
 ENV CXX="$LLVM_INSTALL_PREFIX/bootstrap/cxx"
 
 # Install additional dependencies required to build and test CUDA Quantum.
-COPY --from=cmakebuild /usr/local/cmake-3.26/ /usr/local/cmake-3.26/
-ENV PATH="${PATH}:/usr/local/cmake-3.26/bin"
-COPY --from=llvmbuild /usr/local/openblas/ /usr/local/openblas/
-ENV BLAS_LIBRARIES=/usr/local/openblas/lib/libopenblas.a
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git ninja-build libcurl4-openssl-dev libssl-dev \
         python3 python3-pip libpython3-dev \
@@ -146,6 +142,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         fastapi uvicorn pydantic llvmlite \
         scipy==1.10.1 openfermionpyscf==0.5 \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
+COPY --from=llvmbuild /usr/local/openblas/ /usr/local/openblas/
+ENV BLAS_LIBRARIES=/usr/local/openblas/lib/libopenblas.a
+COPY --from=cmakebuild /usr/local/cmake-3.26/ /usr/local/cmake-3.26/
+ENV PATH="${PATH}:/usr/local/cmake-3.26/bin"
 
 # Install additional tools for CUDA Quantum documentation generation.
 RUN python3 -m pip install --no-cache-dir \
