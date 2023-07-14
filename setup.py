@@ -25,21 +25,8 @@ if (sys.argv[1] != 'egg_info'):
     os.system(f"bash {script_path}")
 
 skbuild.setup(
-    name="cuda-quantum",
-    version=__version__,
-    description="Python bindings for the CUDA Quantum toolkit for heterogeneous quantum-classical workflows",
-    author='NVIDIA',
-    license="Apache-2.0",
-    packages= ['cudaq'],
-    package_dir={"": "python"},
-    python_requires=">=3.8",
-    cmake_minimum_required_version="3.26",
     cmake_with_sdist=True, # we use cmake to pull some third party libraries 
     cmake_args=[
-        "-DCMAKE_COMPILE_WARNING_AS_ERROR=OFF", # FIXME
-        "-DCUDAQ_ENABLE_PYTHON=TRUE",
-        "-DCUDAQ_DISABLE_CPP_FRONTEND=TRUE",
-        "-DCUDAQ_BUILD_TESTS=FALSE",
         "-DCUDAQ_BUILD_SELFCONTAINED={}".format(os.environ["CUDAQ_BUILD_SELFCONTAINED"])
             if "CUDAQ_BUILD_SELFCONTAINED" in os.environ else "",
         "-DCUSTATEVEC_ROOT={}".format(os.environ["CUSTATEVEC_ROOT"])

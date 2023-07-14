@@ -21,6 +21,7 @@ FROM docker.io/nvidia/cudaq_manylinux_deps:no-zlib as buildStage
 
 ARG release_version=
 ENV CUDA_QUANTUM_VERSION=$release_version
+ENV SETUPTOOLS_SCM_PRETEND_VERSION=$CUDA_QUANTUM_VERSION
 
 ARG workspace=.
 ARG destination=cuda-quantum
@@ -41,7 +42,8 @@ RUN installed_versions=$(for python in `ls /usr/local/bin/python*`; do \
         CUDAQ_BUILD_SELFCONTAINED=ON LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
         $python -m build --wheel; \
         $python -m pip install auditwheel; \
-        $python docker/wheel/auditwheel -v repair dist/cuda_quantum-*-linux_*.whl; \
+        LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/_skbuild/lib" \
+        $python -m auditwheel -v repair dist/cuda_quantum-*linux_*.whl; \
     done
 
 # Use this with DOCKER_BUILDKIT=1
