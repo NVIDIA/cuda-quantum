@@ -13,7 +13,7 @@ namespace py = pybind11;
 using namespace cudaq;
 
 namespace cudaq {
-extern bool disallowPlatformModification;
+extern bool disallowTargetModification;
 }
 namespace {
 
@@ -78,13 +78,13 @@ public:
     }
 
     // We don't want to modify the platform, indicate so
-    cudaq::disallowPlatformModification = true;
+    cudaq::disallowTargetModification = true;
 
     // Import the cudaq python chemistry module
     auto cudaqModule = py::module_::import(ChemistryModuleName);
 
     // Reset it
-    cudaq::disallowPlatformModification = true;
+    cudaq::disallowTargetModification = false;
 
     // Setup the active space if requested.
     py::object nElectrons = py::none();
