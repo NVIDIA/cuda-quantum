@@ -97,6 +97,7 @@ SHELL ["/bin/bash", "-c"]
 # Given as arg to make sure that this value is only set during build but not in the launched container.
 ARG DEBIAN_FRONTEND=noninteractive
 ENV HOME=/home SHELL=/bin/bash LANG=C.UTF-8 LC_ALL=C.UTF-8
+ENV SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0
 
 # Copy over doxygen.
 COPY --from=doxygenbuild /usr/local/bin/doxygen /usr/local/bin/doxygen
