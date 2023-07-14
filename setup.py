@@ -54,6 +54,7 @@ skbuild.setup(
         "-DOPENSSL_ROOT_DIR=/usr/local/ssl",
         "-DCUDAQ_CPR_INSTALL={}".format(os.environ["CPR_DIR"] if "CPR_DIR" in
                                         os.environ else "/cpr/install"),
-        "-DCUDAQ_BUILD_RELOCATABLE_PACKAGE=TRUE"
+        "-DCUDAQ_BUILD_RELOCATABLE_PACKAGE=TRUE",
+        "-DCUDAQ_WHEEL_BUILD=TRUE"
     ],
     setup_requires=["numpy", "pytest", "scikit-build", "setuptools"])

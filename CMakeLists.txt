@@ -399,12 +399,28 @@ if (CUDAQ_ENABLE_PYTHON)
 endif()
 
 if (CUDAQ_BUILD_RELOCATABLE_PACKAGE) 
-  # Grab the Clang system headers / resource-dir
-  install(DIRECTORY ${LLVM_BINARY_DIR}/lib/clang/ DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/clang)
 
-  # Install the executables we need
-  install(PROGRAMS ${LLVM_BINARY_DIR}/bin/llc DESTINATION bin)
-  install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang-${CUDAQ_LLVM_VERSION} DESTINATION bin)
-  install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang DESTINATION bin)
-  install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang++ DESTINATION bin)
+  # Someone could build with python `CUDAQ_ENABLE_PYTHON=TRUE` while also
+  # wanting the C++ code relocatable. For our wheel builds, however, we only
+  # need a subset of the following installs. 
+  if (NOT CUDAQ_WHEEL_BUILD)
+    # Grab the Clang system headers / resource-dir
+    install(DIRECTORY ${LLVM_BINARY_DIR}/lib/clang/ DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/clang)
+
+    # Install the executables we need
+    install(PROGRAMS ${LLVM_BINARY_DIR}/bin/llc DESTINATION bin)
+    install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang-${CUDAQ_LLVM_VERSION} DESTINATION bin)
+    install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang DESTINATION bin)
+    install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang++ DESTINATION bin)
+  else()
+    # Grab the Clang system headers / resource-dir
+    # install(DIRECTORY ${LLVM_BINARY_DIR}/lib/clang/ DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/clang)
+
+    # Install the executables we need
+    install(PROGRAMS ${LLVM_BINARY_DIR}/bin/llc DESTINATION bin)
+    # install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang-${CUDAQ_LLVM_VERSION} DESTINATION bin)
+    # install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang DESTINATION bin)
+    install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang++ DESTINATION bin)
+  endif()
+
 endif()
