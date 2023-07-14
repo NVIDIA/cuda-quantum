@@ -176,6 +176,9 @@ bool cudaq::__internal__::isLibraryMode(const std::string &kernelname) {
 //===----------------------------------------------------------------------===//
 
 namespace cudaq {
+
+/// @brief Global boolean that disables
+/// target modification.
 bool disallowTargetModification = false;
 
 void set_target_backend(const char *backend) {

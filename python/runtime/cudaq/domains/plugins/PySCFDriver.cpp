@@ -12,9 +12,12 @@
 namespace py = pybind11;
 using namespace cudaq;
 
+/// @brief Reference to boolean flag that
+/// will turn off target modification in the Python bindings.
 namespace cudaq {
 extern bool disallowTargetModification;
 }
+
 namespace {
 
 /// @brief Reference to the pybind11 scoped interpreter

@@ -24,6 +24,9 @@ void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *);
 }
 
 namespace cudaq {
+
+/// @brief Keep an eye out for requests to ignore
+/// target modification.
 extern bool disallowTargetModification;
 
 void setQuantumPlatformInternal(quantum_platform *p);
@@ -259,8 +262,11 @@ bool LinkedLibraryHolder::hasTarget(const std::string &name) {
 void LinkedLibraryHolder::setTarget(
     const std::string &targetName,
     std::map<std::string, std::string> extraConfig) {
+  // Do not set the default target if the disallow
+  // flag has been set.
   if (cudaq::disallowTargetModification)
     return;
+
   auto iter = targets.find(targetName);
   if (iter == targets.end())
     throw std::runtime_error("Invalid target name (" + targetName + ").");
