@@ -1569,18 +1569,28 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
 
     if (funcName.equals("slice_vector")) {
       auto svecTy = dyn_cast<cc::StdvecType>(args[0].getType());
+      auto eleTy = svecTy.getElementType();
       assert(svecTy && "first argument must be std::vector");
-      auto ptrTy = cc::PointerType::get(builder.getContext());
-      auto vecPtr = builder.create<cc::StdvecDataOp>(loc, ptrTy, args[0]);
-      auto bits = svecTy.getElementType().getIntOrFloatBitWidth();
-      assert(bits > 0);
-      auto scale = builder.create<arith::ConstantIntOp>(loc, (bits + 7) / 8,
-                                                        args[1].getType());
-      auto offset = builder.create<arith::MulIOp>(loc, scale, args[1]);
+      Value offset = args[1];
+      Type ptrTy;
+      Value vecPtr;
+      if (eleTy == builder.getI1Type()) {
+        eleTy = cc::ArrayType::get(builder.getI8Type());
+        ptrTy = cc::PointerType::get(eleTy);
+        vecPtr = builder.create<cc::StdvecDataOp>(loc, ptrTy, args[0]);
+        auto bits = svecTy.getElementType().getIntOrFloatBitWidth();
+        assert(bits > 0);
+        auto scale = builder.create<arith::ConstantIntOp>(loc, (bits + 7) / 8,
+                                                          args[1].getType());
+        offset = builder.create<arith::MulIOp>(loc, scale, args[1]);
+      } else {
+        ptrTy = cc::PointerType::get(eleTy);
+        vecPtr = builder.create<cc::StdvecDataOp>(loc, ptrTy, args[0]);
+      }
       auto ptr = builder.create<cc::ComputePtrOp>(loc, ptrTy, vecPtr,
                                                   ArrayRef<Value>{offset});
-      return pushValue(builder.create<cc::StdvecInitOp>(loc, args[0].getType(),
-                                                        ptr, args[2]));
+      return pushValue(
+          builder.create<cc::StdvecInitOp>(loc, svecTy, ptr, args[2]));
     }
 
     TODO_loc(loc, "unknown function, " + funcName + ", in cudaq namespace");
