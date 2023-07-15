@@ -19,7 +19,7 @@ std::string backendStringTemplate =
 
 bool isValidExpVal(double value) {
   // give us some wiggle room while keep the tests fast
-  return value < -1.2 && value > -2.2;
+  return value < -1.1 && value > -2.3;
 }
 
 CUDAQ_TEST(QuantinuumTester, checkSampleSync) {

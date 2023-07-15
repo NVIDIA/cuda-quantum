@@ -27,8 +27,6 @@ target_link_libraries(${LIBRARY_NAME}
     fmt::fmt-header-only 
     ${CUDA_LIBRARIES})
 
-cudaq_library_set_rpath(${LIBRARY_NAME})
-
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-platform-mqpu-targets DESTINATION lib)
 
