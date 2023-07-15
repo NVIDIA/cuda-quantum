@@ -159,7 +159,9 @@ endif()
 # using `CUDAQ_LLVM_VERSION`, e.g. "-DCUDAQ_LLVM_VERSION=15".  Note that this
 # version variable is set to the latest LLVM version by default, and setting it
 # to an older version might break the project.
-find_package(LLVM ${CUDAQ_LLVM_VERSION} CONFIG QUIET)
+message (STATUS "HELLO WORLD ${LLVM_DIR}")
+find_package(LLVM ${CUDAQ_LLVM_VERSION} CONFIG)
+message (STATUS "HELLO WORLD ${LLVM_BINARY_DIR}")
 
 if(NOT LLVM_DIR)
   message(STATUS "LLVM_DIR not found, will try with llvm-config executable.")
@@ -235,7 +237,12 @@ if(NOT Clang_DIR)
   set(Clang_DIR ${LLVM_BINARY_DIR}/lib/cmake/clang)
 endif()
 
-find_package(Clang REQUIRED CONFIG)
+find_package(Clang CONFIG)
+
+if (NOT Clang_FOUND) 
+  message(STATUS "Clang not found, turning off C++ Frontend.")
+  set (CUDAQ_DISABLE_CPP_FRONTEND ON)
+endif()
 
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 message(STATUS "Using ClangConfig.cmake in: ${Clang_DIR}")
@@ -390,9 +397,7 @@ add_subdirectory(lib)
 if (NOT CUDAQ_DISABLE_RUNTIME)
   add_subdirectory(runtime)
 endif()
-if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
   add_subdirectory(tools)
-endif()
 
 add_subdirectory(utils)
 
