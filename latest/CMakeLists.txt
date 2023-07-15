@@ -62,9 +62,6 @@ function(add_pycudaq_test TEST_NAME SOURCE_LOCATION)
   COMMAND
     ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/examples/python/${SOURCE_LOCATION}
   )
-  set_tests_properties(pycudaq_${TEST_NAME} PROPERTIES 
-                    ENVIRONMENT 
-                    "PYTHONPATH=$ENV{PYTHONPATH}:${CMAKE_BINARY_DIR}/python")  
 endfunction()
 
 add_pycudaq_test(Intro intro.py)
