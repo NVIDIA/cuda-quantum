@@ -35,8 +35,6 @@ macro (nvqir_create_cusv_plugin LIBRARY_NAME SOURCE_FILENAME)
                 ${CUSTATEVEC_STATIC_LIB}
                 ${CUDA_LIBRARIES} cublas )
 
-  cudaq_library_set_rpath(${LIBRARY_NAME})
-
   install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 
 endmacro()

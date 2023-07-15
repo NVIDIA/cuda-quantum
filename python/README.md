@@ -9,15 +9,11 @@ following operating systems: Linux.
 
 ### Pip Wheels
 
-Under Construction! Not yet distributing wheels.
 Programmers may install CUDA Quantum via the command line:
 
 ```console
-pip install cuda-quantum --user
+pip install cuda-quantum
 ```
-
-Note the `--user` flag is required for users on Linux, to ensure the package
-is installed in the local `site-packages` folder.
 
 ### Pip install from source
 

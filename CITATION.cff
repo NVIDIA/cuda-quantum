@@ -9,4 +9,3 @@ repository-code: "https://github.com/NVIDIA/cuda-quantum"
 type: software
 url: "https://github.com/NVIDIA/cuda-quantum"
 # doi: 
-# version: 0.3.0

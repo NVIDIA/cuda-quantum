@@ -20,7 +20,7 @@
 # CUQUANTUM_INSTALL_PREFIX=/path/to/dir bash scripts/build_cudaq.sh
 #
 # Prerequisites:
-# - git, ninja-build, cmake, python3, libpython3-dev, libstdc++-12-dev, libblas-dev (all available via apt install)
+# - git, ninja-build, python3, libpython3-dev, libstdc++-12-dev (all available via apt install)
 # - LLVM binaries, libraries, and headers as built by scripts/build_llvm.sh.
 # - To include simulator backends that use cuQuantum the packages cuquantum and cuquantum-dev are needed. 
 # - Additional python dependencies for running and testing: lit pytest numpy (available via pip install)
@@ -61,31 +61,9 @@ OPTIND=$__optind__
 working_dir=`pwd`
 this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 repo_root=$(cd "$this_file_dir" && git rev-parse --show-toplevel)
-cd "$repo_root"
 
-# Clone the submodules (skipping llvm)
-echo "Cloning submodules..."
-git -c submodule.tpls/llvm.update=none submodule update --init --recursive
-
-llvm_config="$LLVM_INSTALL_PREFIX/bin/llvm-config"
-llvm_lib_dir=`"$llvm_config" --libdir 2>/dev/null`
-if [ ! -d "$llvm_lib_dir" ]; then
-  echo "Could not find llvm libraries."
-
-  # Build llvm libraries from source and install them in the install directory
-  llvm_build_script=`pwd`/scripts/build_llvm.sh
-  cd "$working_dir" && source "$llvm_build_script" -c $build_configuration && cd "$repo_root"
-  (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
-
-  llvm_lib_dir=`"$llvm_config" --libdir 2>/dev/null`
-  if [ ! -d "$llvm_lib_dir" ]; then
-    echo "Failed to find llvm libraries directory $llvm_lib_dir."
-    if $is_sourced; then return 1; else exit 1; fi
-  fi
-else 
-  echo "Configured C compiler: $CC"
-  echo "Configured C++ compiler: $CXX"
-fi
+source "$this_file_dir/install_prerequisites.sh"
+(return 0 2>/dev/null) && is_sourced=true || is_sourced=false
 
 # Check if a suitable CUDA version is installed
 cuda_version=`nvcc --version 2>/dev/null | grep -o 'release [0-9]*\.[0-9]*' | cut -d ' ' -f 2`
@@ -126,22 +104,20 @@ fi
 # (utils are needed for custom testing tools, e.g. CircuitCheck)
 echo "Preparing CUDA Quantum build with LLVM installation in $LLVM_INSTALL_PREFIX..."
 cmake_args="-G Ninja "$repo_root" \
-  -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
   -DCMAKE_INSTALL_PREFIX="$CUDAQ_INSTALL_PREFIX" \
-  -DLLVM_DIR="$llvm_lib_dir/cmake/llvm" \
   -DNVQPP_LD_PATH="$NVQPP_LD_PATH" \
   -DCMAKE_BUILD_TYPE=$build_configuration \
-  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
   -DCUDAQ_ENABLE_PYTHON=TRUE \
-  -DCUDAQ_TEST_MOCK_SERVERS=TRUE \
+  -DCUDAQ_TEST_MOCK_SERVERS=FALSE \
   -DCMAKE_EXE_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
   -DCMAKE_MODULE_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
   -DCMAKE_SHARED_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
   $custatevec_flag"
 if $verbose; then 
-  cmake $cmake_args
+  LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" cmake $cmake_args
 else
-  cmake $cmake_args 2> logs/cmake_error.txt 1> logs/cmake_output.txt
+  LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" cmake $cmake_args \
+    2> logs/cmake_error.txt 1> logs/cmake_output.txt
 fi
 
 # Build and install CUDAQ

@@ -82,6 +82,7 @@ __pycache__/
 docs/sphinx/_doxygen
 docs/sphinx/_mdgen
 **/_build/*
+_version.py
 
 # third party integrations
 simulators/

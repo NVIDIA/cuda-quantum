@@ -12,7 +12,7 @@ from utils.mock_qpu.ionq import startServer
 from multiprocessing import Process
 
 # Define the port for the mock server
-port = 62444
+port = 62455
 
 pytest.skip(
     "This file produces a segmentation fault on the CI but not locally. See https://github.com/NVIDIA/cuda-quantum/issues/303.",

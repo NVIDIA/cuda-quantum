@@ -19,7 +19,6 @@ execute_process(COMMAND ${Python_EXECUTABLE} -c "import fastapi"
   ERROR_VARIABLE FASTAPI_error
   RESULT_VARIABLE FASTAPI_result)
 
-
 execute_process(COMMAND ${Python_EXECUTABLE} -c "import pydantic"
   OUTPUT_VARIABLE PYDANTIC_output
   ERROR_VARIABLE PYDANTIC_error
@@ -36,22 +35,22 @@ execute_process(COMMAND ${Python_EXECUTABLE} -c "import uvicorn"
   RESULT_VARIABLE UVICORN_result)
 
 if (NOT ${FASTAPI_result} EQUAL 0) 
-  message(WARNING "CUDA Quantum Python Warning - CUDAQ_TEST_MOCK_SERVERS=TRUE but fastapi module not found. Skipping Python remote QPU tests.")
+  message(FATAL_ERROR "CUDA Quantum Python Warning - CUDAQ_TEST_MOCK_SERVERS=TRUE but fastapi module not found. Skipping Python remote QPU tests.")
   return()
 endif()
 
 if (NOT ${UVICORN_result} EQUAL 0) 
-  message(WARNING "CUDA Quantum Python Warning - CUDAQ_TEST_MOCK_SERVERS=TRUE but uvicorn module not found. Skipping Python remote QPU tests.")
+  message(FATAL_ERROR "CUDA Quantum Python Warning - CUDAQ_TEST_MOCK_SERVERS=TRUE but uvicorn module not found. Skipping Python remote QPU tests.")
   return()
 endif()
 
 if (NOT ${LLVMLITE_result} EQUAL 0) 
-  message(WARNING "CUDA Quantum Python Warning - CUDAQ_TEST_MOCK_SERVERS=TRUE but llvmlite module not found. Skipping Python remote QPU tests.")
+  message(FATAL_ERROR "CUDA Quantum Python Warning - CUDAQ_TEST_MOCK_SERVERS=TRUE but llvmlite module not found. Skipping Python remote QPU tests.")
   return()
 endif()
 
 if (NOT ${PYDANTIC_result} EQUAL 0) 
-  message(WARNING "CUDA Quantum Python Warning - CUDAQ_TEST_MOCK_SERVERS=TRUE but pydantic module not found. Skipping Python remote QPU tests.")
+  message(FATAL_ERROR "CUDA Quantum Python Warning - CUDAQ_TEST_MOCK_SERVERS=TRUE but pydantic module not found. Skipping Python remote QPU tests.")
   return()
 endif()
 

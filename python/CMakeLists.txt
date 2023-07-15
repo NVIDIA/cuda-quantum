@@ -7,6 +7,11 @@
 # ============================================================================ #
 
 set(LIBRARY_NAME _pycudaq)
+if (NOT SKBUILD)
+  SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../../lib:$ORIGIN/../../lib/plugins")
+else()
+  SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../cuda_quantum.libs")
+endif()
 
 find_package(Python COMPONENTS Interpreter)
 
@@ -26,7 +31,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
   set(CMAKE_BUILD_TYPE "Debug")
 endif()
 pybind11_add_module(_pycudaq 
-                     _cudaq.cpp 
+                     cudaq/_cudaq.cpp 
                      utils/LinkedLibraryHolder.cpp 
                      utils/TestingUtils.cpp
                      runtime/cudaq/builder/py_kernel_builder.cpp
@@ -55,22 +60,13 @@ target_link_libraries(_pycudaq
       fmt::fmt-header-only)
 
 if (NOT SKBUILD)
-  install(DIRECTORY cudaq DESTINATION ${CMAKE_INSTALL_PREFIX})
-  install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq)
+  install(DIRECTORY cudaq DESTINATION .)
+  install(TARGETS _pycudaq DESTINATION cudaq)
   # Also install these to the build directory for testing.
   install(DIRECTORY cudaq DESTINATION ${CMAKE_BINARY_DIR}/python)
   install(TARGETS _pycudaq DESTINATION ${CMAKE_BINARY_DIR}/python/cudaq)
 else()
-  install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX})
-  install(DIRECTORY cudaq/domains DESTINATION ${CMAKE_INSTALL_PREFIX})
-endif()
-    
-if(APPLE)
-  set_target_properties(
-     _pycudaq PROPERTIES INSTALL_RPATH "@loader_path/lib")
-else()
-  set_target_properties(
-    _pycudaq PROPERTIES INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib)
+  install(TARGETS _pycudaq LIBRARY DESTINATION cudaq)
 endif()
 
 if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
@@ -92,6 +88,6 @@ if(CUDAQ_BUILD_TESTS)
     message(STATUS "Pytest and Numpy found, building Python tests.")
     add_subdirectory(tests)
   else()
-    message(WARNING "CUDA Quantum Python Warning - CUDAQ_BUILD_TESTS=TRUE but can't find numpy or pytest modules required for testing.")
+    message(FATAL_ERROR "CUDA Quantum Python Warning - CUDAQ_BUILD_TESTS=TRUE but can't find numpy or pytest modules required for testing.")
   endif()
 endif()

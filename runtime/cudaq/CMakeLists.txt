@@ -35,8 +35,6 @@ if (MPI_CXX_FOUND)
   target_link_libraries(${LIBRARY_NAME} PRIVATE MPI::MPI_CXX)
 endif()
 
-cudaq_library_set_rpath(${LIBRARY_NAME})
-
 add_subdirectory(qis/managers)
 add_subdirectory(algorithms)
 add_subdirectory(platform)
