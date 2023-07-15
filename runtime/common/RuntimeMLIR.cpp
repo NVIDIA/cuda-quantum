@@ -126,10 +126,7 @@ void registerToQIRTranslation() {
         PassManager pm(context);
         std::string errMsg;
         llvm::raw_string_ostream errOs(errMsg);
-        std::string qirBasePipelineConfig =
-            "quake-to-qir,qir-to-base-qir-prep,"
-            "llvm.func(quake-to-base-qir-func),qir-to-base-qir,"
-            "llvm.func(verify-base-profile)";
+        auto qirBasePipelineConfig = "quake-to-qir,base-profile-pipeline";
         if (failed(parsePassPipeline(qirBasePipelineConfig, pm, errOs)))
           return failure();
         if (failed(pm.run(op)))
@@ -182,6 +179,7 @@ std::unique_ptr<MLIRContext> initializeMLIR() {
     registerToOpenQASMTranslation();
     registerToIQMJsonTranslation();
     cudaq::opt::registerUnrollingPipeline();
+    cudaq::opt::registerBaseProfilePipeline();
     cudaq::opt::registerTargetPipelines();
     mlirLLVMInitialized = true;
   }
@@ -210,11 +208,11 @@ ExecutionEngine *createQIRJITEngine(ModuleOp &moduleOp) {
     std::string errMsg;
     llvm::raw_string_ostream errOs(errMsg);
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
+    pm.addPass(createCanonicalizerPass());
     pm.addPass(cudaq::opt::createConvertToQIRPass());
     if (failed(pm.run(module)))
       throw std::runtime_error(
           "[createQIRJITEngine] Lowering to QIR for remote emulation failed.");
-
     auto llvmModule = translateModuleToLLVMIR(module, llvmContext);
     if (!llvmModule)
       throw std::runtime_error(
