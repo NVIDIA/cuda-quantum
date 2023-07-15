@@ -60,8 +60,8 @@ target_link_libraries(_pycudaq
       fmt::fmt-header-only)
 
 if (NOT SKBUILD)
-  install(DIRECTORY cudaq DESTINATION ${CMAKE_INSTALL_PREFIX})
-  install(TARGETS _pycudaq DESTINATION ${CMAKE_INSTALL_PREFIX}/cudaq)
+  install(DIRECTORY cudaq DESTINATION .)
+  install(TARGETS _pycudaq DESTINATION cudaq)
   # Also install these to the build directory for testing.
   install(DIRECTORY cudaq DESTINATION ${CMAKE_BINARY_DIR}/python)
   install(TARGETS _pycudaq DESTINATION ${CMAKE_BINARY_DIR}/python/cudaq)
