@@ -40,6 +40,21 @@ static std::size_t getNumQubits(LLVM::CallOp callOp) {
   TODO_loc(callOp.getLoc(), "cannot compute number of qubits allocated");
 }
 
+static bool isQIRSliceCall(Operation *op) {
+  if (auto call = dyn_cast_or_null<LLVM::CallOp>(op)) {
+    StringRef funcName = call.getCalleeAttr().getValue();
+    return funcName.equals(cudaq::opt::QIRArraySlice);
+  }
+  return false;
+}
+
+static std::optional<std::int64_t> sliceLowerBound(Operation *op) {
+  Value low = op->getOperand(2);
+  if (auto con = low.getDefiningOp<LLVM::ConstantOp>())
+    return con.getValue().cast<IntegerAttr>().getInt();
+  return {};
+}
+
 namespace {
 struct FunctionAnalysisData {
   std::size_t nQubits = 0;
@@ -88,38 +103,45 @@ private:
             auto iter = data.allocationOffsets.find(allocCall.getOperation());
             if (iter != data.allocationOffsets.end())
               optQb = iter->second;
-          } else {
-            if (auto load =
-                    callOp.getOperand(0).getDefiningOp<LLVM::LoadOp>()) {
-              if (auto bitcast =
-                      load.getOperand().getDefiningOp<LLVM::BitcastOp>()) {
-                std::optional<Value> constVal;
-                std::size_t allocOffset = 0u;
-                if (auto call =
-                        bitcast.getOperand().getDefiningOp<LLVM::CallOp>()) {
-                  auto *callOp0 = call.getOperand(0).getDefiningOp();
-                  auto iter = callOp0 ? data.allocationOffsets.find(callOp0)
-                                      : data.allocationOffsets.end();
-                  if (iter != data.allocationOffsets.end()) {
-                    allocOffset = iter->second;
-                    if (auto c = call.getOperand(1)
-                                     .getDefiningOp<LLVM::ConstantOp>()) {
-                      constVal = c;
-                    } else {
-                      // Skip over any potential intermediate cast.
-                      auto *defOp = call.getOperand(1).getDefiningOp();
-                      if (isa_and_nonnull<LLVM::ZExtOp, LLVM::SExtOp,
-                                          LLVM::PtrToIntOp, LLVM::BitcastOp,
-                                          LLVM::TruncOp>(defOp))
-                        constVal = defOp->getOperand(0);
-                    }
+          } else if (auto load =
+                         callOp.getOperand(0).getDefiningOp<LLVM::LoadOp>()) {
+            if (auto bitcast =
+                    load.getOperand().getDefiningOp<LLVM::BitcastOp>()) {
+              std::optional<Value> constVal;
+              std::size_t allocOffset = 0u;
+              if (auto call =
+                      bitcast.getOperand().getDefiningOp<LLVM::CallOp>()) {
+                auto *callOp0 = call.getOperand(0).getDefiningOp();
+                while (isQIRSliceCall(callOp0)) {
+                  if (auto optOff = sliceLowerBound(callOp0)) {
+                    allocOffset += *optOff;
+                    callOp0 = callOp0->getOperand(0).getDefiningOp();
+                  } else {
+                    callOp0->emitError("cannot compute offset");
+                    callOp0 = nullptr;
                   }
                 }
-                if (constVal)
-                  if (auto incr = constVal->getDefiningOp<LLVM::ConstantOp>())
-                    optQb = allocOffset +
-                            incr.getValue().cast<IntegerAttr>().getInt();
+                auto iter = callOp0 ? data.allocationOffsets.find(callOp0)
+                                    : data.allocationOffsets.end();
+                if (iter != data.allocationOffsets.end()) {
+                  allocOffset += iter->second;
+                  auto o1 = call.getOperand(1);
+                  if (auto c = o1.getDefiningOp<LLVM::ConstantOp>()) {
+                    constVal = c;
+                  } else {
+                    // Skip over any potential intermediate cast.
+                    auto *defOp = o1.getDefiningOp();
+                    if (isa_and_nonnull<LLVM::ZExtOp, LLVM::SExtOp,
+                                        LLVM::PtrToIntOp, LLVM::BitcastOp,
+                                        LLVM::TruncOp>(defOp))
+                      constVal = defOp->getOperand(0);
+                  }
+                }
               }
+              if (constVal)
+                if (auto incr = constVal->getDefiningOp<LLVM::ConstantOp>())
+                  optQb = allocOffset +
+                          incr.getValue().cast<IntegerAttr>().getInt();
             }
           }
           if (optQb) {
