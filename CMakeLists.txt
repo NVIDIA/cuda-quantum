@@ -159,7 +159,7 @@ endif()
 # using `CUDAQ_LLVM_VERSION`, e.g. "-DCUDAQ_LLVM_VERSION=15".  Note that this
 # version variable is set to the latest LLVM version by default, and setting it
 # to an older version might break the project.
-find_package(LLVM ${CUDAQ_LLVM_VERSION} CONFIG)
+find_package(LLVM ${CUDAQ_LLVM_VERSION} CONFIG QUIET)
 
 if(NOT LLVM_DIR)
   message(STATUS "LLVM_DIR not found, will try with llvm-config executable.")
