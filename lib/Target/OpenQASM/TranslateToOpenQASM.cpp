@@ -160,6 +160,9 @@ static LogicalResult emitOperation(Emitter &emitter, quake::ApplyOp op) {
 }
 
 static LogicalResult emitOperation(Emitter &emitter, func::FuncOp op) {
+  if (op.isPrivate())
+    return success();
+
   // In Quake's reference semantics form, kernels only return classical types.
   // Thus, we check whether the numbers of results is zero or not.
   if (op.getNumResults() > 0)
