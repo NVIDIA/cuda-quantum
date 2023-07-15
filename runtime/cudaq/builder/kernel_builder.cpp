@@ -42,6 +42,9 @@ void altLaunchKernel(const char *kernelName, void (*kernelFunc)(void *),
 
 namespace cudaq::details {
 
+/// @brief Track unique measurement register names.
+static std::size_t regCounter = 0;
+
 KernelBuilderType mapArgToType(double &e) {
   return KernelBuilderType(
       [](MLIRContext *ctx) { return Float64Type::get(ctx); });
@@ -510,8 +513,6 @@ CUDAQ_ONE_QUBIT_PARAM_IMPL(rx, RxOp)
 CUDAQ_ONE_QUBIT_PARAM_IMPL(ry, RyOp)
 CUDAQ_ONE_QUBIT_PARAM_IMPL(rz, RzOp)
 CUDAQ_ONE_QUBIT_PARAM_IMPL(r1, R1Op)
-
-static std::size_t regCounter = 0;
 
 template <typename QuakeMeasureOp>
 QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
