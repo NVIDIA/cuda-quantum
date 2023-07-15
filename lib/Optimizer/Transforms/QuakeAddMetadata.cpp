@@ -50,10 +50,10 @@ private:
     QuakeMetadata data;
     funcOp->walk([&](Operation *op) {
       // Strategy:
-      // Look for MzOps, if the return value is used by a StoreOp
+      // Look for Measure Ops, if the return value is used by a StoreOp
       // then get the memref.alloca value. Any loads from that alloca
       // that are used by conditionals is what we are looking for.
-      if (!isa<quake::MzOp>(op))
+      if (!isa<quake::MxOp, quake::MyOp, quake::MzOp>(op))
         return WalkResult::skip();
 
       // Get the return bit value
@@ -120,20 +120,45 @@ private:
       // Handle auto reg = mz(q); reset(q)
       // don't necessarily need conditional statements
       funcOp->walk([&](Operation *op) {
-        if (!isa<quake::MzOp>(op))
+        if (!isa<quake::MxOp, quake::MyOp, quake::MzOp>(op))
           return WalkResult::skip();
 
-        auto mzOp = dyn_cast<quake::MzOp>(op);
-        if (mzOp.getRegisterName().has_value()) {
-          for (auto measuredQubit : mzOp.getTargets()) {
-            for (auto user : measuredQubit.getUsers()) {
-              if (dyn_cast<quake::ResetOp>(user)) {
-                data.hasConditionalsOnMeasure = true;
-                return WalkResult::interrupt();
+        if (auto mxOp = dyn_cast<quake::MxOp>(op))
+          if (mxOp.getRegisterName().has_value()) {
+            for (auto measuredQubit : mxOp.getTargets()) {
+              for (auto user : measuredQubit.getUsers()) {
+                if (dyn_cast<quake::ResetOp>(user)) {
+                  data.hasConditionalsOnMeasure = true;
+                  return WalkResult::interrupt();
+                }
               }
             }
           }
-        }
+
+        if (auto myOp = dyn_cast<quake::MyOp>(op))
+          if (myOp.getRegisterName().has_value()) {
+            for (auto measuredQubit : myOp.getTargets()) {
+              for (auto user : measuredQubit.getUsers()) {
+                if (dyn_cast<quake::ResetOp>(user)) {
+                  data.hasConditionalsOnMeasure = true;
+                  return WalkResult::interrupt();
+                }
+              }
+            }
+          }
+
+        if (auto mzOp = dyn_cast<quake::MzOp>(op))
+          if (mzOp.getRegisterName().has_value()) {
+            for (auto measuredQubit : mzOp.getTargets()) {
+              for (auto user : measuredQubit.getUsers()) {
+                if (dyn_cast<quake::ResetOp>(user)) {
+                  data.hasConditionalsOnMeasure = true;
+                  return WalkResult::interrupt();
+                }
+              }
+            }
+          }
+
         return WalkResult::advance();
       });
     }

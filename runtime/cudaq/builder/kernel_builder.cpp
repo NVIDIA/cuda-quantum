@@ -511,6 +511,8 @@ CUDAQ_ONE_QUBIT_PARAM_IMPL(ry, RyOp)
 CUDAQ_ONE_QUBIT_PARAM_IMPL(rz, RzOp)
 CUDAQ_ONE_QUBIT_PARAM_IMPL(r1, R1Op)
 
+static std::size_t regCounter = 0;
+
 template <typename QuakeMeasureOp>
 QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
                         std::string regName) {
@@ -519,6 +521,9 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
     throw std::runtime_error("Invalid parameter passed to mz.");
 
   cudaq::info("kernel_builder apply measurement");
+
+  if (regName.empty())
+    regName = "auto_register_" + std::to_string(regCounter++);
 
   auto i1Ty = builder.getI1Type();
   if (type.isa<quake::RefType>()) {
