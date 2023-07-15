@@ -126,16 +126,16 @@ void registerToQIRTranslation() {
         PassManager pm(context);
         std::string errMsg;
         llvm::raw_string_ostream errOs(errMsg);
-        std::string qirBasePipelineConfig = "quake-to-qir,qir-to-base-qir-prep,"
-                                            "llvm.func(quake-to-base-qir-func),"
-                                            "qir-to-base-qir";
+        std::string qirBasePipelineConfig =
+            "quake-to-qir,qir-to-base-qir-prep,"
+            "llvm.func(quake-to-base-qir-func),qir-to-base-qir,"
+            "llvm.func(verify-base-profile)";
         if (failed(parsePassPipeline(qirBasePipelineConfig, pm, errOs)))
           return failure();
         if (failed(pm.run(op)))
           return failure();
 
-        std::unique_ptr<llvm::LLVMContext> llvmContext =
-            std::make_unique<llvm::LLVMContext>();
+        auto llvmContext = std::make_unique<llvm::LLVMContext>();
         llvmContext->setOpaquePointers(false);
         auto llvmModule = translateModuleToLLVMIR(op, *llvmContext);
         cudaq::optimizeLLVM(llvmModule.get());

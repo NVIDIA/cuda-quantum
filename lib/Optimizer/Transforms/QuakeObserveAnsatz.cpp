@@ -163,7 +163,10 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
       // do nothing for z or identities
 
       // get the qubit value
-      auto qubitVal = iter->second.qubitValues.find(i)->second;
+      auto seek = iter->second.qubitValues.find(i);
+      if (seek == iter->second.qubitValues.end())
+        continue;
+      auto qubitVal = seek->second;
 
       // append the measurement basis change ops
       appendMeasurement(basis, builder, loc, qubitVal);
@@ -172,10 +175,10 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
         qubitsToMeasure.push_back(qubitVal);
     }
 
-    for (auto &qubitToMeasure : qubitsToMeasure)
+    for (auto &qubitToMeasure : qubitsToMeasure) {
       // add the measure
-      builder.create<quake::MzOp>(loc, builder.getIntegerType(1),
-                                  qubitToMeasure);
+      builder.create<quake::MzOp>(loc, builder.getI1Type(), qubitToMeasure);
+    }
 
     rewriter.finalizeRootUpdate(funcOp);
     return success();
