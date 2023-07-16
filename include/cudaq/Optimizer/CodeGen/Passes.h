@@ -28,7 +28,8 @@ void registerConvertToQIRPass();
 
 /// Convert (generic) QIR to the Base Profile QIR for a specific target.
 /// TODO: Decide how to convey the selected target information.
-void addBaseProfilePipeline(mlir::PassManager &pm);
+void addBaseProfilePipeline(mlir::OpPassManager &pm);
+void registerBaseProfilePipeline();
 
 // Use the addBaseProfilePipeline() for the following passes.
 std::unique_ptr<mlir::Pass> createQIRToBaseProfilePass();
