@@ -523,9 +523,6 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
 
   cudaq::info("kernel_builder apply measurement");
 
-  // if (regName.empty())
-  //   regName = "auto_register_" + std::to_string(regCounter++);
-
   auto i1Ty = builder.getI1Type();
   if (type.isa<quake::RefType>()) {
     Value measureResult = builder.template create<QuakeMeasureOp>(
