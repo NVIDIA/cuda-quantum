@@ -31,6 +31,23 @@ struct QuakeMetadata {
 /// @brief We'll define a type mapping a Quake Function to its metadata
 using QuakeFunctionInfo = DenseMap<Operation *, QuakeMetadata>;
 
+/// @brief If the operation is a Measurement, check if its
+/// qubits are used in a subsequent reset operation,
+/// return true if so.
+template <typename MeasureT>
+bool checkIsMeasureAndReset(Operation *op, QuakeMetadata &data) {
+  if (auto mxOp = dyn_cast<MeasureT>(op))
+    if (mxOp.getRegisterName().has_value())
+      for (auto measuredQubit : mxOp.getTargets())
+        for (auto user : measuredQubit.getUsers())
+          if (dyn_cast<quake::ResetOp>(user)) {
+            data.hasConditionalsOnMeasure = true;
+            return true;
+          }
+
+  return false;
+}
+
 /// The analysis on an a Quake function which will attach
 /// metadata under certain situations.
 struct QuakeFunctionAnalysis {
@@ -50,10 +67,10 @@ private:
     QuakeMetadata data;
     funcOp->walk([&](Operation *op) {
       // Strategy:
-      // Look for MzOps, if the return value is used by a StoreOp
+      // Look for Measure Ops, if the return value is used by a StoreOp
       // then get the memref.alloca value. Any loads from that alloca
       // that are used by conditionals is what we are looking for.
-      if (!isa<quake::MzOp>(op))
+      if (!isa<quake::MxOp, quake::MyOp, quake::MzOp>(op))
         return WalkResult::skip();
 
       // Get the return bit value
@@ -120,20 +137,19 @@ private:
       // Handle auto reg = mz(q); reset(q)
       // don't necessarily need conditional statements
       funcOp->walk([&](Operation *op) {
-        if (!isa<quake::MzOp>(op))
+        if (!isa<quake::MxOp, quake::MyOp, quake::MzOp>(op))
           return WalkResult::skip();
 
-        auto mzOp = dyn_cast<quake::MzOp>(op);
-        if (mzOp.getRegisterName().has_value()) {
-          for (auto measuredQubit : mzOp.getTargets()) {
-            for (auto user : measuredQubit.getUsers()) {
-              if (dyn_cast<quake::ResetOp>(user)) {
-                data.hasConditionalsOnMeasure = true;
-                return WalkResult::interrupt();
-              }
-            }
-          }
-        }
+        // Return true if Reset on measured qubit,
+        // if so just drop out because we'll have the function
+        // tagged no matter what
+        if (checkIsMeasureAndReset<quake::MxOp>(op, data))
+          return WalkResult::interrupt();
+        if (checkIsMeasureAndReset<quake::MyOp>(op, data))
+          return WalkResult::interrupt();
+        if (checkIsMeasureAndReset<quake::MzOp>(op, data))
+          return WalkResult::interrupt();
+
         return WalkResult::advance();
       });
     }

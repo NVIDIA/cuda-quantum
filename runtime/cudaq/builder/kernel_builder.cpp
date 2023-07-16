@@ -42,6 +42,9 @@ void altLaunchKernel(const char *kernelName, void (*kernelFunc)(void *),
 
 namespace cudaq::details {
 
+/// @brief Track unique measurement register names.
+static std::size_t regCounter = 0;
+
 KernelBuilderType mapArgToType(double &e) {
   return KernelBuilderType(
       [](MLIRContext *ctx) { return Float64Type::get(ctx); });
@@ -609,9 +612,26 @@ void swap(ImplicitLocOpBuilder &builder, const std::vector<QuakeValue> &ctrls,
   builder.create<quake::SwapOp>(adjoint, ValueRange(), ctrlValues, qubitValues);
 }
 
+template <typename MeasureTy>
+void checkAndUpdateRegName(MeasureTy &measure) {
+  auto regName = measure.getRegisterName();
+  if (!regName.has_value() || regName.value().empty()) {
+    auto regNameUpdate = "auto_register_" + std::to_string(regCounter++);
+    measure.setRegisterName(regNameUpdate);
+  }
+}
+
 void c_if(ImplicitLocOpBuilder &builder, QuakeValue &conditional,
           std::function<void()> &thenFunctor) {
   auto value = conditional.getValue();
+
+  if (auto mxOp = value.getDefiningOp<quake::MxOp>())
+    checkAndUpdateRegName(mxOp);
+  else if (auto myOp = value.getDefiningOp<quake::MyOp>())
+    checkAndUpdateRegName(myOp);
+  else if (auto mzOp = value.getDefiningOp<quake::MzOp>())
+    checkAndUpdateRegName(mzOp);
+
   auto type = value.getType();
   if (!type.isa<mlir::IntegerType>() || type.getIntOrFloatBitWidth() != 1)
     throw std::runtime_error("Invalid result type passed to c_if.");
