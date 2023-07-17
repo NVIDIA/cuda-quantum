@@ -235,7 +235,11 @@ if(NOT Clang_DIR)
   set(Clang_DIR ${LLVM_BINARY_DIR}/lib/cmake/clang)
 endif()
 
-find_package(Clang REQUIRED CONFIG)
+find_package(Clang CONFIG)
+if (NOT Clang_FOUND) 
+  message(STATUS "Clang not found, turning off C++ Frontend.")
+  set (CUDAQ_DISABLE_CPP_FRONTEND ON)
+endif()
 
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 message(STATUS "Using ClangConfig.cmake in: ${Clang_DIR}")
@@ -390,9 +394,7 @@ add_subdirectory(lib)
 if (NOT CUDAQ_DISABLE_RUNTIME)
   add_subdirectory(runtime)
 endif()
-if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
   add_subdirectory(tools)
-endif()
 
 add_subdirectory(utils)
 

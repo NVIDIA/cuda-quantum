@@ -22,13 +22,22 @@ configure_lit_site_cfg(
 set(NVQPP_TEST_PARAMS
   nvqpp_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg.py)
 
-set(NVQPP_TEST_DEPENDS
-  cudaq-quake
-  cudaq-opt
-  cudaq-translate
+if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
+  set(NVQPP_TEST_DEPENDS
+    cudaq-quake
+    cudaq-opt
+    cudaq-translate
 
-  CircuitCheck
-  FileCheck)
+    CircuitCheck
+    FileCheck)
+else() 
+  set(NVQPP_TEST_DEPENDS
+    cudaq-opt
+    cudaq-translate
+
+    CircuitCheck
+    FileCheck)
+endif()
 
 add_custom_target(nvqpp-test-depends DEPENDS ${NVQPP_TEST_DEPENDS})
 
