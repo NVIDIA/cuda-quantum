@@ -12,6 +12,12 @@
 namespace py = pybind11;
 using namespace cudaq;
 
+/// @brief Reference to boolean flag that
+/// will turn off target modification in the Python bindings.
+namespace cudaq {
+extern bool disallowTargetModification;
+}
+
 namespace {
 
 /// @brief Reference to the pybind11 scoped interpreter
@@ -74,8 +80,14 @@ public:
       pyGeometry[counter++] = py::make_tuple(atom.name, coordinate);
     }
 
+    // We don't want to modify the platform, indicate so
+    cudaq::disallowTargetModification = true;
+
     // Import the cudaq python chemistry module
     auto cudaqModule = py::module_::import(ChemistryModuleName);
+
+    // Reset it
+    cudaq::disallowTargetModification = false;
 
     // Setup the active space if requested.
     py::object nElectrons = py::none();

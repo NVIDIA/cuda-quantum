@@ -659,6 +659,8 @@ func.func @cc_struct() {
 // CHECK:           cc.store %[[VAL_6]], %[[VAL_7]] : !cc.ptr<!cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}>>
 // CHECK:           %[[VAL_8:.*]] = cc.compute_ptr %[[VAL_7]][1, 4, 3] : (!cc.ptr<!cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}>>) -> !cc.ptr<i64>
 // CHECK:           %[[VAL_9:.*]] = cc.compute_ptr %[[VAL_7]][1, %[[VAL_4]], 1] : (!cc.ptr<!cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}>>, i32) -> !cc.ptr<i16>
+// CHECK:           %[[VAL_10:.*]] = cc.const_array [1.000000e+00, 2.000000e+00] : !cc.array<f32 x 2>
+// CHECK:           %[[VAL_11:.*]] = cc.get_const_element %[[VAL_10]], %[[VAL_4]] : (!cc.array<f32 x 2>, i32) -> f32
 // CHECK:           return
 // CHECK:         }
 
@@ -673,5 +675,7 @@ func.func @cc_indexing(%arg0 : !cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f
   cc.store %3, %ss : !cc.ptr<!cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}>>
   %p = cc.compute_ptr %ss[1, 4, 3] : (!cc.ptr<!cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}>>) -> !cc.ptr<i64>
   %q = cc.compute_ptr %ss[1, %one, 1] : (!cc.ptr<!cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f32, i64}> x 100>}>>, i32) -> !cc.ptr<i16>
+  %arr = cc.const_array [1.0, 2.0] : !cc.array<f32 x 2>
+  %ele = cc.get_const_element %arr, %one : (!cc.array<f32 x 2>, i32) -> f32
   return
 }

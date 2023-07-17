@@ -347,6 +347,21 @@ void bindKernel(py::module &mod) {
       ADD_BUILDER_PARAM_QIS_METHOD(r1)
       // clang-format on
 
+      .def(
+          "sdg",
+          [](kernel_builder<> &self, const QuakeValue &target) {
+            return self.s<cudaq::adj>(target);
+          },
+          "Apply a rotation on the z-axis of -90 degrees to the given target "
+          "qubit/s.\n")
+      .def(
+          "tdg",
+          [](kernel_builder<> &self, const QuakeValue &target) {
+            return self.t<cudaq::adj>(target);
+          },
+          "Apply a rotation on the z-axis of -45 degrees to the given target "
+          "qubit/s.\n")
+
       /// @brief Bind the SWAP gate.
       .def(
           "swap",

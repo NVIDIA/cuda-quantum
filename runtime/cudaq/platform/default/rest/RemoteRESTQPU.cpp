@@ -244,6 +244,8 @@ public:
     // Get the quake representation of the kernel
     auto quakeCode = cudaq::get_quake_by_name(kernelName);
     auto m_module = parseSourceString<ModuleOp>(quakeCode, &context);
+    if (!m_module)
+      throw std::runtime_error("module cannot be parsed");
 
     // Extract the kernel name
     auto func = m_module->lookupSymbol<mlir::func::FuncOp>(

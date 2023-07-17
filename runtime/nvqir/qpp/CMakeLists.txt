@@ -29,13 +29,10 @@ macro (AddQppBackend LIBRARY_NAME SOURCE_FILE)
 
   if(APPLE)
     set_target_properties(${LIBRARY_NAME}
-      PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib;${LLVM_BINARY_DIR}/lib")
-    set_target_properties(${LIBRARY_NAME}
-      PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+      PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${LLVM_BINARY_DIR}/lib")
   else()
     set_target_properties(${LIBRARY_NAME}
-      PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib:${LLVM_BINARY_DIR}/lib")
-    set_target_properties(${LIBRARY_NAME} PROPERTIES LINK_FLAGS "-shared")
+      PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${LLVM_BINARY_DIR}/lib")
   endif()
 
   target_link_libraries(${LIBRARY_NAME} PUBLIC ${QPP_DEPENDENCIES} PRIVATE 

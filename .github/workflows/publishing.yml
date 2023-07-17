@@ -57,9 +57,6 @@ jobs:
         id: assets
         run: |
           release_id=${{ inputs.release_id || steps.artifacts.outputs.release_id }}
-          while [ -z "$(gh release list -R ${{ github.repository }} | grep -s $release_id)" ];
-          do echo "waiting for assets..." && sleep 300; 
-          done && sleep 300 # upload may take a while...
           github_commit=`gh release view $release_id -R ${{ github.repository }} --json targetCommitish --jq .targetCommitish`
 
           echo "release_id=$release_id" >> $GITHUB_OUTPUT
@@ -76,14 +73,19 @@ jobs:
         id: release_info
         run: |
           assets_folder=assets && release_id=${{ steps.assets.outputs.release_id }}
-          gh release download $release_id --dir "$assets_folder" -R ${{ github.repository }} && cd "$assets_folder"
+          mkdir "$assets_folder" && cd "$assets_folder"
+          while [ -z `ls | egrep '^build_info'` ]; do
+            gh release download $release_id -R ${{ github.repository }}
+            sleep 30 # waiting for assets to be created...
+          done
+
           platforms=`cat build_info* | grep -o 'platforms: \S*' | cut -d ' ' -f 2`
           cudaq_image=`cat build_info* | grep -o 'cuda-quantum-image: \S*' | cut -d ' ' -f 2`
           cudaqdev_image=`cat build_info* | grep -o 'cuda-quantum-dev-image: \S*' | cut -d ' ' -f 2`
           cudaqdevdeps_image=`cat build_info* | grep -o 'cuda-quantum-devdeps-image: \S*' | cut -d ' ' -f 2`
           data_commit=`cat build_info* | grep -o 'data-commit: \S*' | cut -d ' ' -f 2`
           release_title=`cat build_info* | grep -o 'publish: \S*' | cut -d ' ' -f 2`
-          unzip mgmn_svsim.zip && rm mgmn_svsim.zip && cd -
+          for file in `ls *zip`; do unzip "$file" && rm "$file"; done && cd -
 
           docker pull $cudaq_image
           repo_owner=${{ github.repository_owner }}

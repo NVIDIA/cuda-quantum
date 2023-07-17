@@ -5,11 +5,11 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-import cudaq
 
-from fastapi import FastAPI, Request, HTTPException, Header
-from typing import Optional, Union
-import uvicorn, uuid, json, base64, ctypes
+import cudaq
+from fastapi import FastAPI, HTTPException, Header
+from typing import Union
+import uvicorn, uuid, base64, ctypes
 from pydantic import BaseModel
 from llvmlite import binding as llvm
 

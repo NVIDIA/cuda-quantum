@@ -42,6 +42,9 @@ void altLaunchKernel(const char *kernelName, void (*kernelFunc)(void *),
 
 namespace cudaq::details {
 
+/// @brief Track unique measurement register names.
+static std::size_t regCounter = 0;
+
 KernelBuilderType mapArgToType(double &e) {
   return KernelBuilderType(
       [](MLIRContext *ctx) { return Float64Type::get(ctx); });
@@ -192,6 +195,8 @@ void addAllCalledFunctionRecursively(
 
       // Add the called function to the list
       auto cloned = calledFunction.clone();
+      // Remove entrypoint attribute if it exists
+      cloned->removeAttr(cudaq::entryPointAttrName);
       currentModule.push_back(cloned);
 
       // Visit that new function and see if we have
@@ -219,6 +224,8 @@ cloneOrGetFunction(StringRef name, ModuleOp &currentModule,
 
   if (auto func = otherModule->lookupSymbol<func::FuncOp>(name)) {
     auto cloned = func.clone();
+    // Remove entrypoint attribute if it exists
+    cloned->removeAttr(cudaq::entryPointAttrName);
     currentModule.push_back(cloned);
     return cloned;
   }
@@ -609,9 +616,26 @@ void swap(ImplicitLocOpBuilder &builder, const std::vector<QuakeValue> &ctrls,
   builder.create<quake::SwapOp>(adjoint, ValueRange(), ctrlValues, qubitValues);
 }
 
+template <typename MeasureTy>
+void checkAndUpdateRegName(MeasureTy &measure) {
+  auto regName = measure.getRegisterName();
+  if (!regName.has_value() || regName.value().empty()) {
+    auto regNameUpdate = "auto_register_" + std::to_string(regCounter++);
+    measure.setRegisterName(regNameUpdate);
+  }
+}
+
 void c_if(ImplicitLocOpBuilder &builder, QuakeValue &conditional,
           std::function<void()> &thenFunctor) {
   auto value = conditional.getValue();
+
+  if (auto mxOp = value.getDefiningOp<quake::MxOp>())
+    checkAndUpdateRegName(mxOp);
+  else if (auto myOp = value.getDefiningOp<quake::MyOp>())
+    checkAndUpdateRegName(myOp);
+  else if (auto mzOp = value.getDefiningOp<quake::MzOp>())
+    checkAndUpdateRegName(mzOp);
+
   auto type = value.getType();
   if (!type.isa<mlir::IntegerType>() || type.getIntOrFloatBitWidth() != 1)
     throw std::runtime_error("Invalid result type passed to c_if.");
@@ -656,6 +680,20 @@ bool hasAnyQubitTypes(FunctionType funcTy) {
   return false;
 }
 
+void tagEntryPoint(ImplicitLocOpBuilder &builder, ModuleOp &module,
+                   StringRef symbolName) {
+  module.walk([&](func::FuncOp function) {
+    if (function.empty())
+      return WalkResult::advance();
+    if (!function->hasAttr(cudaq::entryPointAttrName) &&
+        !hasAnyQubitTypes(function.getFunctionType()) &&
+        (symbolName.empty() || function.getSymName().equals(symbolName)))
+      function->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
+
+    return WalkResult::advance();
+  });
+}
+
 ExecutionEngine *jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
                          std::string kernelName,
                          std::vector<std::string> extraLibPaths) {
@@ -682,15 +720,7 @@ ExecutionEngine *jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   module->setAttr("quake.mangled_name_map", mapAttr);
 
   // Tag as an entrypoint if it is one
-  module.walk([&](func::FuncOp function) {
-    if (function.empty())
-      return WalkResult::advance();
-    if (!function->hasAttr(cudaq::entryPointAttrName) &&
-        !hasAnyQubitTypes(function.getFunctionType()))
-      function->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
-
-    return WalkResult::advance();
-  });
+  tagEntryPoint(builder, module, StringRef{});
 
   PassManager pm(context);
   OpPassManager &optPM = pm.nest<func::FuncOp>();
@@ -855,6 +885,10 @@ std::string to_quake(ImplicitLocOpBuilder &builder) {
       tmpBuilder.create<func::ReturnOp>(tmpBuilder.getUnknownLoc());
     }
   });
+
+  func::FuncOp unwrappedParentFunc = llvm::cast<func::FuncOp>(parentFunc);
+  llvm::StringRef symName = unwrappedParentFunc.getSymName();
+  tagEntryPoint(builder, clonedModule, symName);
 
   // Clean up the code for print out
   PassManager pm(clonedModule.getContext());

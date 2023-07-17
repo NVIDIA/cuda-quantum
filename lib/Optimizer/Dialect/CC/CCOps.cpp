@@ -316,6 +316,139 @@ OpFoldResult cudaq::cc::ComputePtrOp::fold(ArrayRef<Attribute> params) {
   return nullptr;
 }
 
+namespace {
+// Address arithmetic for pointers to arrays is additive.
+struct FuseAddressArithmetic
+    : public OpRewritePattern<cudaq::cc::ComputePtrOp> {
+  using Base = OpRewritePattern<cudaq::cc::ComputePtrOp>;
+  using Base::Base;
+
+  LogicalResult matchAndRewrite(cudaq::cc::ComputePtrOp ptrOp,
+                                PatternRewriter &rewriter) const override {
+    auto base = ptrOp.getBase();
+    auto checkIsPtrToArr = [&](Type ty) -> bool {
+      auto ptrTy = dyn_cast<cudaq::cc::PointerType>(ty);
+      if (!ptrTy)
+        return false;
+      return true; // isa<cudaq::cc::ArrayType>(ptrTy.getElementType());
+    };
+    if (!checkIsPtrToArr(base.getType()))
+      return success();
+    if (auto origPtr =
+            ptrOp.getBase().getDefiningOp<cudaq::cc::ComputePtrOp>()) {
+      if (!checkIsPtrToArr(origPtr.getBase().getType()))
+        return success();
+      if (ptrOp.getRawConstantIndices().size() != 1 ||
+          origPtr.getRawConstantIndices().size() != 1)
+        return success();
+      auto myOffset = ptrOp.getRawConstantIndices()[0];
+      auto inOffset = origPtr.getRawConstantIndices()[0];
+      auto extractConstant = [&](cudaq::cc::ComputePtrOp thisOp,
+                                 std::int64_t othOffset) -> Value {
+        auto v1 = thisOp.getDynamicIndices()[0];
+        auto v1Ty = v1.getType();
+        auto offAttr = IntegerAttr::get(v1Ty, othOffset);
+        auto loc = thisOp.getLoc();
+        auto newOff = rewriter.create<arith::ConstantOp>(loc, offAttr, v1Ty);
+        return rewriter.create<arith::AddIOp>(loc, newOff, v1);
+      };
+      if (myOffset == cudaq::cc::ComputePtrOp::kDynamicIndex) {
+        if (inOffset == cudaq::cc::ComputePtrOp::kDynamicIndex) {
+          Value sum = rewriter.create<arith::AddIOp>(
+              ptrOp.getLoc(), ptrOp.getDynamicIndices()[0],
+              origPtr.getDynamicIndices()[0]);
+          rewriter.replaceOpWithNewOp<cudaq::cc::ComputePtrOp>(
+              ptrOp, ptrOp.getType(), origPtr.getBase(),
+              ArrayRef<cudaq::cc::ComputePtrArg>{sum});
+          return success();
+        }
+        auto sum = extractConstant(ptrOp, inOffset);
+        rewriter.replaceOpWithNewOp<cudaq::cc::ComputePtrOp>(
+            ptrOp, ptrOp.getType(), origPtr.getBase(),
+            ArrayRef<cudaq::cc::ComputePtrArg>{sum});
+        return success();
+      }
+      if (inOffset == cudaq::cc::ComputePtrOp::kDynamicIndex) {
+        auto sum = extractConstant(origPtr, myOffset);
+        rewriter.replaceOpWithNewOp<cudaq::cc::ComputePtrOp>(
+            ptrOp, ptrOp.getType(), origPtr.getBase(),
+            ArrayRef<cudaq::cc::ComputePtrArg>{sum});
+        return success();
+      }
+      rewriter.replaceOpWithNewOp<cudaq::cc::ComputePtrOp>(
+          ptrOp, ptrOp.getType(), origPtr.getBase(),
+          ArrayRef<cudaq::cc::ComputePtrArg>{myOffset + inOffset});
+    }
+    return success();
+  }
+};
+} // namespace
+
+void cudaq::cc::ComputePtrOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<FuseAddressArithmetic>(context);
+}
+
+//===----------------------------------------------------------------------===//
+// GetConstantElementOp
+//===----------------------------------------------------------------------===//
+
+// If this operation has a constant offset, then the value can be looked up in
+// the constant array and used as a scalar value directly.
+OpFoldResult cudaq::cc::GetConstantElementOp::fold(ArrayRef<Attribute> params) {
+  if (auto intAttr = dyn_cast_or_null<IntegerAttr>(params[1])) {
+    auto offset = intAttr.getInt();
+    auto conArr = getConstantArray().getDefiningOp<ConstantArrayOp>();
+    if (!conArr)
+      return nullptr;
+    cudaq::cc::ArrayType arrTy = conArr.getType();
+    if (arrTy.isUnknownSize())
+      return nullptr;
+    auto arrSize = arrTy.getSize();
+    OpBuilder builder(getContext());
+    builder.setInsertionPoint(getOperation());
+    if (offset < arrSize) {
+      auto fc = cast<FloatAttr>(conArr.getConstantValues()[offset]).getValue();
+      auto f64Ty = builder.getF64Type();
+      Value val = builder.create<arith::ConstantFloatOp>(getLoc(), fc, f64Ty);
+      return val;
+    }
+  }
+  return nullptr;
+}
+
+//===----------------------------------------------------------------------===//
+// StdvecDataOp
+//===----------------------------------------------------------------------===//
+
+namespace {
+struct FuseStdvecInitData : public OpRewritePattern<cudaq::cc::StdvecDataOp> {
+  using Base = OpRewritePattern<cudaq::cc::StdvecDataOp>;
+  using Base::Base;
+
+  LogicalResult matchAndRewrite(cudaq::cc::StdvecDataOp data,
+                                PatternRewriter &rewriter) const override {
+    // Bypass the std::vector wrappers for the creation of an abstract
+    // subvector. This is possible because copies of std::vector data aren't
+    // created but instead passed around like std::span objects. Specifically, a
+    // pointer to the data and a length. Thus the pointer wrapped by stdvec_init
+    // and unwrapped by stdvec_data is the same pointer value. This pattern will
+    // arise after inlining, for example.
+    if (auto ini = data.getStdvec().getDefiningOp<cudaq::cc::StdvecInitOp>()) {
+      Value cast = rewriter.create<cudaq::cc::CastOp>(
+          data.getLoc(), data.getType(), ini.getBuffer());
+      rewriter.replaceOp(data, cast);
+    }
+    return success();
+  }
+};
+} // namespace
+
+void cudaq::cc::StdvecDataOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<FuseStdvecInitData>(context);
+}
+
 //===----------------------------------------------------------------------===//
 // LoopOp
 //===----------------------------------------------------------------------===//

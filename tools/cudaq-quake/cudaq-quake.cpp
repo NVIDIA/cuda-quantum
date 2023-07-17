@@ -12,6 +12,7 @@
 /// other MLIR dialects as well. These other dialects are convenient but not the
 /// salient part of this tool.)
 #include <filesystem>
+#include <sstream>
 
 #include "cudaq/Frontend/nvqpp/ASTBridge.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
@@ -395,6 +396,17 @@ int main(int argc, char **argv) {
   if (astDump) {
     clArgs.push_back("-Xclang");
     clArgs.push_back("-ast-dump");
+  }
+
+  // Allow a user to specify extra args for clang via
+  // an environment variable.
+  if (auto extraArgs = std::getenv("CUDAQ_CLANG_EXTRA_ARGS")) {
+    std::stringstream ss;
+    ss << extraArgs;
+    std::string part;
+    std::vector<std::string> localArgs;
+    while (std::getline(ss, part, ' '))
+      clArgs.push_back(part);
   }
 
   // Set the mangled kernel names map.

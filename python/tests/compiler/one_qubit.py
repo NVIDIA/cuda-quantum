@@ -32,6 +32,8 @@ def test_kernel_non_param_1q():
     kernel.z(qubit[0])
     kernel.t(qubit[0])
     kernel.s(qubit[0])
+    kernel.tdg(qubit[0])
+    kernel.sdg(qubit[0])
     kernel()
     # Kernel arguments should still be an empty list.
     assert kernel.arguments == []
@@ -41,7 +43,7 @@ def test_kernel_non_param_1q():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
 # CHECK:           %0 = quake.alloca !quake.veq<1>
 # CHECK:           %[[VAL_0:.*]] = quake.extract_ref %0[0] : (!quake.veq<1>) -> !quake.ref
 # CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
@@ -50,6 +52,8 @@ def test_kernel_non_param_1q():
 # CHECK:           quake.z %[[VAL_0]] : (!quake.ref) -> ()
 # CHECK:           quake.t %[[VAL_0]] : (!quake.ref) -> ()
 # CHECK:           quake.s %[[VAL_0]] : (!quake.ref) -> ()
+# CHECK:           quake.t<adj>  %[[VAL_0]] : (!quake.ref) -> ()
+# CHECK:           quake.s<adj>  %[[VAL_0]] : (!quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
 
@@ -79,7 +83,7 @@ def test_kernel_param_1q():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
-# CHECK-SAME:                                                                   %[[VAL_0:.*]]: f64) {
+# CHECK-SAME:                                                                   %[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint"} {
 # CHECK:           %0 = quake.alloca !quake.veq<1>
 # CHECK:           %[[VAL_1:.*]] = quake.extract_ref %0[0] : (!quake.veq<1>) -> !quake.ref
 # CHECK:           quake.rx (%[[VAL_0]]) %[[VAL_1]] : (f64, !quake.ref) -> ()
