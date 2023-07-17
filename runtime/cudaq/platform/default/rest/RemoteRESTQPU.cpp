@@ -200,8 +200,13 @@ public:
     emulate = iter != backendConfig.end() && iter->second == "true";
 
     // Print the IR if requested
-    iter = backendConfig.find("printIR");
-    printIR = iter != backendConfig.end() && iter->second == "true";
+    if (auto cudaqPrintJITResult = std::getenv("CUDAQ_DUMP_JIT_IR")) {
+      std::string tmp(cudaqPrintJITResult);
+      std::transform(tmp.begin(), tmp.end(), tmp.begin(),
+                     [](unsigned char c) { return std::tolower(c); });
+      if (tmp == "1" || tmp == "on" || tmp == "true" || tmp == "yes")
+        printIR = true;
+    }
 
     /// Once we know the backend, we should search for the config file
     /// from there we can get the URL/PORT and the required MLIR pass

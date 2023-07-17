@@ -39,7 +39,7 @@ def startUpMockServer():
     f.close()
 
     # Set the targeted QPU
-    cudaq.set_target('quantinuum', printIR=True,
+    cudaq.set_target('quantinuum',
                      url='http://localhost:{}'.format(port),
                      credentials=credsName)
 

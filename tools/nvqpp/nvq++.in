@@ -63,9 +63,6 @@ function show_help {
 --emulate | -emulate
    For physical, remote QPU execution, enable local emulation for testing. 
 
---print-ir | -print-ir 
-   For physical, remote QPU execution, print the IR before submission. 
-
 --platform=<lib> | -platform=<lib>
 	Set the platform library name to <lib>.
 
@@ -215,7 +212,6 @@ fi
 NVQIR_SIMULATION_BACKEND="qpp"
 NVQIR_LIBS="-lnvqir -lnvqir-"
 
-CUDAQ_PRINT_IR=false
 CUDAQ_EMULATE_REMOTE=false
 CLANG_VERBOSE=
 OUTPUTOPTS=
@@ -271,9 +267,6 @@ while [ $# -ne 0 ]; do
 		;;
 	--emulate | -emulate)
 		CUDAQ_EMULATE_REMOTE=true
-		;;
-	--print-ir | -print-ir)
-		CUDAQ_PRINT_IR=true
 		;;
 	--list-targets)
 		LIST_TARGETS=true
@@ -419,7 +412,7 @@ if [ -n "${TARGET_CONFIG}" ]; then
 		if ${GEN_TARGET_BACKEND}; then
 			# Add a function that will run before main
 			# and set the target backend on the quantum_platform
-			TARGET_CONFIG="${TARGET_CONFIG};emulate;${CUDAQ_EMULATE_REMOTE};printIR;${CUDAQ_PRINT_IR}${PLATFORM_EXTRA_ARGS}"
+			TARGET_CONFIG="${TARGET_CONFIG};emulate;${CUDAQ_EMULATE_REMOTE}${PLATFORM_EXTRA_ARGS}"
 			OUTFILENAME=$(mktemp nvqppGenTargetBackend.XXXXXX.o)
 			run ${CXX} -DNVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"" -o $OUTFILENAME -c -x c++ ${install_dir}/targets/backendConfig.cpp
 			OBJS_TO_MERGE="${OUTFILENAME}"
