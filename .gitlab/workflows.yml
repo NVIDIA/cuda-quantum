@@ -55,7 +55,7 @@ Tensornet Simulator:
     - mkdir cudaq_tensornet && cd cudaq_tensornet && git init
     - git fetch --depth 1 https://$READ_ACCESS_TOKEN:$READ_ACCESS_TOKEN@$CI_SERVER_HOST/$CUDAQ_TENSORNET_REPO $CUDAQ_TENSORNET_COMMIT && git checkout FETCH_HEAD
     - (bash build.sh $READ_ACCESS_TOKEN && built=true) || built=false
-    - mkdir -p artifacts/tensornet && mv artifacts/* artifacts/tensornet/
+    - mv artifacts tensornet && mkdir -p artifacts/tensornet && mv tensornet/* artifacts/tensornet
     - cd .. && rm -rf cudaq_tensornet
     - if $built; then `exit 0`; else `exit 1`; fi
 
