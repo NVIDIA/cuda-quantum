@@ -114,7 +114,7 @@ def test_kernel_conditional_with_sample():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 # CHECK:           quake.x %[[VAL_0]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> i1 {registerName = ""}
+# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> i1 {registerName = "auto_register_0"}
 # CHECK:           cc.if(%[[VAL_1]]) {
 # CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
 # CHECK:           }

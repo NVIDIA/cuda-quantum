@@ -869,6 +869,7 @@ def cc_ComputePtrOp : CCOp<"compute_ptr", [Pure]> {
   }];
 
   let hasFolder = 1;
+  let hasCanonicalizer = 1;
 
   let builders = [
     OpBuilder<(ins "mlir::Type":$resultType, "mlir::Value":$basePtr,
@@ -928,7 +929,9 @@ def cc_GetConstantElementOp : CCOp<"get_const_element", [Pure]> {
     AnySignlessInteger:$offset
   );
   let results = (outs AnyType);
+
   let hasFolder = 1;
+  //let hasVerifier = 1; // FIXME: output type must match incoming const array
 
   let assemblyFormat = [{
     $constantArray `,` $offset `:` functional-type(operands, results) attr-dict
@@ -1018,7 +1021,10 @@ def cc_StdvecInitOp : CCOp<"stdvec_init", [Pure]> {
     ```
   }];
 
-  let arguments = (ins AnyPointerType:$buffer, AnyInteger:$length);
+  let arguments = (ins
+    AnyPointerType:$buffer,
+    AnyInteger:$length
+  );
   let results = (outs cc_StdVectorType:$stdvec);
 
   let assemblyFormat = [{
@@ -1039,6 +1045,8 @@ def cc_StdvecDataOp : CCOp<"stdvec_data", [Pure]> {
 
   let arguments = (ins cc_StdVectorType:$stdvec);
   let results = (outs AnyPointerType:$data);
+
+  let hasCanonicalizer = 1;
 
   let assemblyFormat = [{
     $stdvec `:` functional-type(operands, results) attr-dict

@@ -40,6 +40,21 @@ static std::size_t getNumQubits(LLVM::CallOp callOp) {
   TODO_loc(callOp.getLoc(), "cannot compute number of qubits allocated");
 }
 
+static bool isQIRSliceCall(Operation *op) {
+  if (auto call = dyn_cast_or_null<LLVM::CallOp>(op)) {
+    StringRef funcName = call.getCalleeAttr().getValue();
+    return funcName.equals(cudaq::opt::QIRArraySlice);
+  }
+  return false;
+}
+
+static std::optional<std::int64_t> sliceLowerBound(Operation *op) {
+  Value low = op->getOperand(2);
+  if (auto con = low.getDefiningOp<LLVM::ConstantOp>())
+    return con.getValue().cast<IntegerAttr>().getInt();
+  return {};
+}
+
 namespace {
 struct FunctionAnalysisData {
   std::size_t nQubits = 0;
@@ -88,38 +103,45 @@ private:
             auto iter = data.allocationOffsets.find(allocCall.getOperation());
             if (iter != data.allocationOffsets.end())
               optQb = iter->second;
-          } else {
-            if (auto load =
-                    callOp.getOperand(0).getDefiningOp<LLVM::LoadOp>()) {
-              if (auto bitcast =
-                      load.getOperand().getDefiningOp<LLVM::BitcastOp>()) {
-                std::optional<Value> constVal;
-                std::size_t allocOffset = 0u;
-                if (auto call =
-                        bitcast.getOperand().getDefiningOp<LLVM::CallOp>()) {
-                  auto *callOp0 = call.getOperand(0).getDefiningOp();
-                  auto iter = callOp0 ? data.allocationOffsets.find(callOp0)
-                                      : data.allocationOffsets.end();
-                  if (iter != data.allocationOffsets.end()) {
-                    allocOffset = iter->second;
-                    if (auto c = call.getOperand(1)
-                                     .getDefiningOp<LLVM::ConstantOp>()) {
-                      constVal = c;
-                    } else {
-                      // Skip over any potential intermediate cast.
-                      auto *defOp = call.getOperand(1).getDefiningOp();
-                      if (isa_and_nonnull<LLVM::ZExtOp, LLVM::SExtOp,
-                                          LLVM::PtrToIntOp, LLVM::BitcastOp,
-                                          LLVM::TruncOp>(defOp))
-                        constVal = defOp->getOperand(0);
-                    }
+          } else if (auto load =
+                         callOp.getOperand(0).getDefiningOp<LLVM::LoadOp>()) {
+            if (auto bitcast =
+                    load.getOperand().getDefiningOp<LLVM::BitcastOp>()) {
+              std::optional<Value> constVal;
+              std::size_t allocOffset = 0u;
+              if (auto call =
+                      bitcast.getOperand().getDefiningOp<LLVM::CallOp>()) {
+                auto *callOp0 = call.getOperand(0).getDefiningOp();
+                while (isQIRSliceCall(callOp0)) {
+                  if (auto optOff = sliceLowerBound(callOp0)) {
+                    allocOffset += *optOff;
+                    callOp0 = callOp0->getOperand(0).getDefiningOp();
+                  } else {
+                    callOp0->emitError("cannot compute offset");
+                    callOp0 = nullptr;
                   }
                 }
-                if (constVal)
-                  if (auto incr = constVal->getDefiningOp<LLVM::ConstantOp>())
-                    optQb = allocOffset +
-                            incr.getValue().cast<IntegerAttr>().getInt();
+                auto iter = callOp0 ? data.allocationOffsets.find(callOp0)
+                                    : data.allocationOffsets.end();
+                if (iter != data.allocationOffsets.end()) {
+                  allocOffset += iter->second;
+                  auto o1 = call.getOperand(1);
+                  if (auto c = o1.getDefiningOp<LLVM::ConstantOp>()) {
+                    constVal = c;
+                  } else {
+                    // Skip over any potential intermediate cast.
+                    auto *defOp = o1.getDefiningOp();
+                    if (isa_and_nonnull<LLVM::ZExtOp, LLVM::SExtOp,
+                                        LLVM::PtrToIntOp, LLVM::BitcastOp,
+                                        LLVM::TruncOp>(defOp))
+                      constVal = defOp->getOperand(0);
+                  }
+                }
               }
+              if (constVal)
+                if (auto incr = constVal->getDefiningOp<LLVM::ConstantOp>())
+                  optQb = allocOffset +
+                          incr.getValue().cast<IntegerAttr>().getInt();
             }
           }
           if (optQb) {
@@ -385,20 +407,27 @@ struct VerifyBaseProfilePass
     : public cudaq::opt::VerifyBaseProfileBase<VerifyBaseProfilePass> {
 
   void runOnOperation() override {
-    auto func = getOperation();
+    LLVM::LLVMFuncOp func = getOperation();
     bool passFailed = false;
     if (!func->hasAttr(cudaq::entryPointAttrName))
       return;
-    func.walk([&](LLVM::CallOp call) {
-      auto funcName = call.getCalleeAttr().getValue();
-      if (!funcName.startswith("__quantum_")) {
-        call.emitOpError("unexpected call in QIR base profile");
+    func.walk([&](Operation *op) {
+      if (auto call = dyn_cast<LLVM::CallOp>(op)) {
+        auto funcName = call.getCalleeAttr().getValue();
+        if (!funcName.startswith("__quantum_")) {
+          call.emitOpError("unexpected call in QIR base profile");
+          passFailed = true;
+        }
+      } else if (isa<LLVM::BrOp, LLVM::CondBrOp, LLVM::ResumeOp,
+                     LLVM::UnreachableOp, LLVM::SwitchOp>(op)) {
+        op->emitOpError("QIR base profile does not support control-flow");
         passFailed = true;
       }
     });
     if (passFailed) {
       emitError(func.getLoc(),
-                "function " + func.getName() + " not in base profile QIR");
+                "function " + func.getName() +
+                    " not compatible with the QIR base profile.");
       signalPassFailure();
     }
   }
@@ -409,10 +438,17 @@ std::unique_ptr<Pass> cudaq::opt::verifyBaseProfilePass() {
   return std::make_unique<VerifyBaseProfilePass>();
 }
 
-// The various passes defined here should be added as a pipeline.
-void cudaq::opt::addBaseProfilePipeline(PassManager &pm) {
+// The various passes defined here should be added as a pass pipeline.
+void cudaq::opt::addBaseProfilePipeline(OpPassManager &pm) {
   pm.addPass(createBaseProfilePreparationPass());
   pm.addNestedPass<LLVM::LLVMFuncOp>(createConvertToQIRFuncPass());
   pm.addPass(createQIRToBaseProfilePass());
   pm.addNestedPass<LLVM::LLVMFuncOp>(verifyBaseProfilePass());
+}
+
+void cudaq::opt::registerBaseProfilePipeline() {
+  PassPipelineRegistration<>(
+      "base-profile-pipeline",
+      "Pass pipeline to generate code for the QIR base profile.",
+      addBaseProfilePipeline);
 }

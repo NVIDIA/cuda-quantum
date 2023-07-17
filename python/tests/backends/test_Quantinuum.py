@@ -19,7 +19,7 @@ from cudaq import spin
 from utils.mock_qpu.quantinuum import startServer
 
 # Define the port for the mock server
-port = 62444
+port = 62454
 
 pytest.skip(
     "This file produces a segmentation fault on the CI but not locally. See https://github.com/NVIDIA/cuda-quantum/issues/303.",

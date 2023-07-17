@@ -7,18 +7,20 @@
 # ============================================================================ #
 
 import cudaq
-from fastapi import FastAPI, Request, HTTPException, Header
-from typing import Optional, Union
-import uvicorn, uuid, json, base64, ctypes
+from fastapi import FastAPI, HTTPException, Header
+from typing import Union
+import uvicorn, uuid, base64, ctypes
 from pydantic import BaseModel
 from llvmlite import binding as llvm
 
 # Define the REST Server App
 app = FastAPI()
 
+
 class Input(BaseModel):
-    format:str 
+    format: str
     data: str
+
 
 # Jobs look like the following type
 class Job(BaseModel):
@@ -26,6 +28,7 @@ class Job(BaseModel):
     qubits: str
     shots: int
     input: Input
+
 
 # Keep track of Job Ids to their Names
 createdJobs = {}
@@ -115,7 +118,7 @@ async def postJob(job: Job,
     engine.remove_module(m)
 
     # Job "created", return the id
-    return {"id": newId, "jobs":{"status":"running"}}
+    return {"id": newId, "jobs": {"status": "running"}}
 
 
 # Retrieve the job, simulate having to wait by counting to 3
@@ -130,8 +133,14 @@ async def getJob(id: str):
         return {"jobs": [{"status": "running"}]}
 
     countJobGetRequests = 0
-    res = {"jobs": [{"status": "completed", "results_url":"/v0.3/jobs/{}/results".format(id)}]}
+    res = {
+        "jobs": [{
+            "status": "completed",
+            "results_url": "/v0.3/jobs/{}/results".format(id)
+        }]
+    }
     return res
+
 
 @app.get("/v0.3/jobs/{jobId}/results")
 async def getResults(jobId: str):
@@ -142,12 +151,13 @@ async def getResults(jobId: str):
     retData = {}
     N = 0
     for bits, count in counts.items():
-        N+=count
+        N += count
     for bits, count in counts.items():
-        retData[bits] = float(count/N)
+        retData[bits] = float(count / N)
 
     res = retData
     return res
+
 
 def startServer(port):
     uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")

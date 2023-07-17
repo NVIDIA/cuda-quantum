@@ -45,12 +45,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates openssl apt-utils \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
-# Install prerequisites for building LLVM
+# Install prerequisites for building LLVM.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ninja-build cmake python3 \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
-# Clone the LLVM source code
+# Clone the LLVM source code.
 RUN apt-get update && apt-get install -y --no-install-recommends git \
     && mkdir /llvm-project && cd /llvm-project && git init \
     && git remote add origin https://github.com/llvm/llvm-project \
@@ -97,6 +97,7 @@ SHELL ["/bin/bash", "-c"]
 # Given as arg to make sure that this value is only set during build but not in the launched container.
 ARG DEBIAN_FRONTEND=noninteractive
 ENV HOME=/home SHELL=/bin/bash LANG=C.UTF-8 LC_ALL=C.UTF-8
+ENV SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0
 
 # Copy over doxygen.
 COPY --from=doxygenbuild /usr/local/bin/doxygen /usr/local/bin/doxygen
@@ -137,6 +138,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         fastapi uvicorn pydantic llvmlite \
         scipy==1.10.1 openfermionpyscf==0.5 \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
+ENV BLAS_LIBRARIES=/usr/lib/x86_64-linux-gnu/blas/libblas.a
 
 # Install additional tools for CUDA Quantum documentation generation.
 RUN python3 -m pip install --no-cache-dir \

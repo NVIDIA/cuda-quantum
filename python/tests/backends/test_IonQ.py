@@ -12,11 +12,12 @@ from utils.mock_qpu.ionq import startServer
 from multiprocessing import Process
 
 # Define the port for the mock server
-port = 62444
+port = 62455
 
 pytest.skip(
     "This file produces a segmentation fault on the CI but not locally. See https://github.com/NVIDIA/cuda-quantum/issues/303.",
     allow_module_level=True)
+
 
 def assert_close(want, got, tolerance=1.0e-5) -> bool:
     return abs(want - got) < tolerance
@@ -109,13 +110,9 @@ def test_ionq_observe():
     kernel.cx(qreg[1], qreg[0])
 
     # Define its spin Hamiltonian.
-    hamiltonian = (
-        5.907
-        - 2.1433 * spin.x(0) * spin.x(1)
-        - 2.1433 * spin.y(0) * spin.y(1)
-        + 0.21829 * spin.z(0)
-        - 6.125 * spin.z(1)
-    )
+    hamiltonian = (5.907 - 2.1433 * spin.x(0) * spin.x(1) -
+                   2.1433 * spin.y(0) * spin.y(1) + 0.21829 * spin.z(0) -
+                   6.125 * spin.z(1))
 
     # Run the observe task on IonQ synchronously
     res = cudaq.observe(kernel, hamiltonian, 0.59)

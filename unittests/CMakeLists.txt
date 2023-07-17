@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 set (CMAKE_CXX_FLAGS
      "${CMAKE_CXX_FLAGS} -Wno-attributes -Wno-ctad-maybe-unsupported")
 
@@ -171,15 +172,10 @@ if (CUDAQ_ENABLE_PYTHON)
     cudaq-pyscf
     gtest_main)
   gtest_discover_tests(test_domains
-    TEST_SUFFIX _Sampling
-    PROPERTIES
-      ENVIRONMENT
-        "PYTHONPATH=$ENV{PYTHONPATH}:${CMAKE_BINARY_DIR}/python")
+    TEST_SUFFIX _Sampling)
   gtest_discover_tests(test_domains
     TEST_SUFFIX _Observe
     PROPERTIES
-      ENVIRONMENT
-        "PYTHONPATH=$ENV{PYTHONPATH}:${CMAKE_BINARY_DIR}/python"
       ENVIRONMENT
         "CUDAQ_OBSERVE_FROM_SAMPLING=false")
 endif()

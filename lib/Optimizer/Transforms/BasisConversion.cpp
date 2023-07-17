@@ -14,6 +14,7 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/Threading.h"
+#include "mlir/InitAllDialects.h"
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
 #include "mlir/Transforms/DialectConversion.h"
 
@@ -59,7 +60,7 @@ struct BasisTarget : public ConversionTarget {
     }
 
     addLegalDialect<func::FuncDialect, arith::ArithDialect,
-                    cudaq::cc::CCDialect>();
+                    cf::ControlFlowDialect, cudaq::cc::CCDialect>();
     addDynamicallyLegalDialect<quake::QuakeDialect>([&](Operation *op) {
       if (auto optor = dyn_cast<quake::OperatorInterface>(op)) {
         auto name = optor->getName().stripDialect();
