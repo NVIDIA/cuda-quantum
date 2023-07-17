@@ -69,7 +69,12 @@ jobs:
           shell: bash
           run: |
             cd $CUDAQ_REPO_ROOT
-            pip install . --user -vvv
+            pip install . -vvv
+            pip_build_status=$?
+            if [ ! $pip_build_status -eq 0 ]; then
+              echo "pip build status = " $pip_build_status
+              exit 1
+            fi 
             python3 -m pytest python/tests/
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then

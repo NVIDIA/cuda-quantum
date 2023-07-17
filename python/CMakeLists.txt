@@ -32,20 +32,20 @@ if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
 endif()
 pybind11_add_module(_pycudaq 
                      cudaq/_cudaq.cpp 
-                     utils/LinkedLibraryHolder.cpp 
-                     utils/TestingUtils.cpp
-                     runtime/cudaq/builder/py_kernel_builder.cpp
-                     runtime/cudaq/builder/py_QuakeValue.cpp
-                     runtime/cudaq/algorithms/py_observe.cpp
-                     runtime/cudaq/algorithms/py_sample.cpp
-                     runtime/cudaq/algorithms/py_optimizer.cpp
-                     runtime/cudaq/algorithms/py_state.cpp
-                     runtime/cudaq/algorithms/py_vqe.cpp
-                     runtime/cudaq/spin/py_matrix.cpp
-                     runtime/cudaq/spin/py_spin_op.cpp
-                     runtime/cudaq/kernels/py_chemistry.cpp
-                     runtime/common/py_ObserveResult.cpp
-                     runtime/common/py_SampleResult.cpp                     
+                    #  utils/LinkedLibraryHolder.cpp 
+                    #  utils/TestingUtils.cpp
+                    #  runtime/cudaq/builder/py_kernel_builder.cpp
+                    #  runtime/cudaq/builder/py_QuakeValue.cpp
+                    #  runtime/cudaq/algorithms/py_observe.cpp
+                    #  runtime/cudaq/algorithms/py_sample.cpp
+                    #  runtime/cudaq/algorithms/py_optimizer.cpp
+                    #  runtime/cudaq/algorithms/py_state.cpp
+                    #  runtime/cudaq/algorithms/py_vqe.cpp
+                    #  runtime/cudaq/spin/py_matrix.cpp
+                    #  runtime/cudaq/spin/py_spin_op.cpp
+                    #  runtime/cudaq/kernels/py_chemistry.cpp
+                    #  runtime/common/py_ObserveResult.cpp
+                    #  runtime/common/py_SampleResult.cpp                     
                      runtime/common/py_NoiseModel.cpp)
 
 target_compile_options(_pycudaq PRIVATE -Wno-attributes)                     
