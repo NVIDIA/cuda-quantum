@@ -6,7 +6,8 @@ The hardware vendors currently available in CUDA Quantum are as follows.
 IonQ
 ==================================
 
-### Setting Credentials
+Setting Credentials
+###################
 
 To execute programs on IonQ hardware from either C++ or Python, CUDA Quantum
 will look for an API key stored in the `IONQ_API_KEY` environment variable. 
@@ -34,7 +35,9 @@ and will go through the same credential scheme as discussed in the C++ case.
 
     cudaq.set_target('ionq')
 
-### Specifying the QPU
+Specifying the QPU
+###################
+
 By default, the IonQ target will use the :code:`simulator` QPU.
 To specify which IonQ QPU to use, set the :code:`qpu` parameter.
 A list of available QPUs can be found `in the API documentation <https://docs.ionq.com/#tag/jobs>`_.
@@ -51,10 +54,13 @@ Note: A "target" in :code:`cudaq` refers to a quantum compute provider, such as 
 However, IonQ's docs use the term "target" to refer to specific QPUs themselves.
 
 
+
+
 Quantinuum 
 ==================================
 
-### Setting Credentials
+Setting Credentials
+###################
 
 To execute programs on Quantinuum hardware from either C++ or Python, CUDA Quantum 
 will look for a credentials file stored in your home directory. This file
