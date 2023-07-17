@@ -41,6 +41,7 @@ std::unique_ptr<mlir::Pass> createConvertToQIRFuncPass();
 void registerTargetPipelines();
 
 // declarative passes
+#define GEN_PASS_DECL
 #define GEN_PASS_REGISTRATION
 #include "cudaq/Optimizer/CodeGen/Passes.h.inc"
 

@@ -126,7 +126,8 @@ void registerToQIRTranslation() {
         PassManager pm(context);
         std::string errMsg;
         llvm::raw_string_ostream errOs(errMsg);
-        auto qirBasePipelineConfig = "quake-to-qir,base-profile-pipeline";
+        auto qirBasePipelineConfig =
+            "promote-qubit-allocation,quake-to-qir,base-profile-pipeline";
         if (failed(parsePassPipeline(qirBasePipelineConfig, pm, errOs)))
           return failure();
         if (failed(pm.run(op)))
@@ -209,6 +210,7 @@ ExecutionEngine *createQIRJITEngine(ModuleOp &moduleOp) {
     llvm::raw_string_ostream errOs(errMsg);
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
     pm.addPass(createCanonicalizerPass());
+    pm.addPass(cudaq::opt::createPromoteRefToVeqAlloc());
     pm.addPass(cudaq::opt::createConvertToQIRPass());
     if (failed(pm.run(module)))
       throw std::runtime_error(
