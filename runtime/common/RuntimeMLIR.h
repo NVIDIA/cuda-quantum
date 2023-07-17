@@ -22,6 +22,9 @@ class Module;
 }
 
 namespace cudaq {
+using TranslateFromMLIRFunction = std::function<mlir::LogicalResult(
+    mlir::Operation *, llvm::raw_string_ostream &, bool)>;
+
 /// @brief Initialize MLIR with CUDA Quantum dialects and return the
 /// MLIRContext.
 std::unique_ptr<mlir::MLIRContext> initializeMLIR();
@@ -40,8 +43,7 @@ mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp);
 class Translation {
 public:
   Translation() = default;
-  Translation(mlir::TranslateFromMLIRFunction function,
-              llvm::StringRef description)
+  Translation(TranslateFromMLIRFunction function, llvm::StringRef description)
       : function(std::move(function)), description(description) {}
 
   /// Return the description of this translation.
@@ -49,13 +51,14 @@ public:
 
   /// Invoke the translation function with the given input and output streams.
   mlir::LogicalResult operator()(mlir::Operation *op,
-                                 llvm::raw_ostream &output) const {
-    return function(op, output);
+                                 llvm::raw_string_ostream &output,
+                                 bool printIR) const {
+    return function(op, output, printIR);
   }
 
 private:
   /// The underlying translation function.
-  mlir::TranslateFromMLIRFunction function;
+  TranslateFromMLIRFunction function;
 
   /// The description of the translation.
   llvm::StringRef description;
@@ -66,7 +69,7 @@ cudaq::Translation &getTranslation(llvm::StringRef name);
 struct TranslateFromMLIRRegistration {
   TranslateFromMLIRRegistration(
       llvm::StringRef name, llvm::StringRef description,
-      const mlir::TranslateFromMLIRFunction &function);
+      const cudaq::TranslateFromMLIRFunction &function);
 };
 
 } // namespace cudaq

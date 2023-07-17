@@ -101,6 +101,9 @@ protected:
   /// execution locally.
   bool emulate = false;
 
+  /// @brief Flag indicating whether we should print the IR.
+  bool printIR = false;
+
   /// @brief If we are emulating locally, keep track
   /// of JIT engines for invoking the kernels.
   std::vector<ExecutionEngine *> jitEngines;
@@ -195,6 +198,10 @@ public:
     // Turn on emulation mode if requested
     auto iter = backendConfig.find("emulate");
     emulate = iter != backendConfig.end() && iter->second == "true";
+
+    // Print the IR if requested
+    iter = backendConfig.find("printIR");
+    printIR = iter != backendConfig.end() && iter->second == "true";
 
     /// Once we know the backend, we should search for the config file
     /// from there we can get the URL/PORT and the required MLIR pass
@@ -339,7 +346,7 @@ public:
       std::string codeStr;
       {
         llvm::raw_string_ostream outStr(codeStr);
-        if (failed(translation(moduleOpI, outStr)))
+        if (failed(translation(moduleOpI, outStr, printIR)))
           throw std::runtime_error("Could not successfully translate to " +
                                    codegenTranslation + ".");
       }

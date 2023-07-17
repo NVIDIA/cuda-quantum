@@ -350,11 +350,16 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
       [&](const cudaq::RuntimeTarget &target, py::kwargs extraConfig) {
         std::map<std::string, std::string> config;
         for (auto &[key, value] : extraConfig) {
-          if (!py::isinstance<py::str>(value))
+          std::string strValue = "";
+          if (py::isinstance<py::bool_>(value))
+            strValue = value.cast<py::bool_>() ? "true" : "false";
+          else if (py::isinstance<py::str>(value))
+            strValue = value.cast<std::string>();
+          else
             throw std::runtime_error(
-                "QPU kwargs config value must be a string.");
+                "QPU kwargs config value must be cast-able to a string.");
 
-          config.emplace(key.cast<std::string>(), value.cast<std::string>());
+          config.emplace(key.cast<std::string>(), strValue);
         }
         holder.setTarget(target.name, config);
       },
@@ -366,11 +371,16 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
       [&](const std::string &name, py::kwargs extraConfig) {
         std::map<std::string, std::string> config;
         for (auto &[key, value] : extraConfig) {
-          if (!py::isinstance<py::str>(value))
+          std::string strValue = "";
+          if (py::isinstance<py::bool_>(value))
+            strValue = value.cast<py::bool_>() ? "true" : "false";
+          else if (py::isinstance<py::str>(value))
+            strValue = value.cast<std::string>();
+          else
             throw std::runtime_error(
-                "QPU kwargs config value must be a string.");
+                "QPU kwargs config value must be cast-able to a string.");
 
-          config.emplace(key.cast<std::string>(), value.cast<std::string>());
+          config.emplace(key.cast<std::string>(), strValue);
         }
         holder.setTarget(name, config);
       },
