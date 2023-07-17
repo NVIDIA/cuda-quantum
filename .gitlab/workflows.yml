@@ -39,10 +39,35 @@ MGMN SV Simulator:
     - ls "$CUDAQ_INSTALL_PREFIX"/targets/*.config
     - if $built; then `exit 0`; else `exit 1`; fi
 
+Tensornet Simulator:
+  stage: build
+  dependencies: []
+  image: $CI_COMMIT_TITLE
+  tags:
+    - hostname/xpl-dvt-55
+  resource_group: $resource_group
+  interruptible: false
+  artifacts:
+    paths:
+      - artifacts/tensornet/cuquantum/
+      - artifacts/tensornet/cudaq/
+    expire_in: 1 day
+  script:
+    - echo "Checking out commit $CUDAQ_TENSORNET_COMMIT on $CI_SERVER_HOST/$CUDAQ_TENSORNET_REPO."
+    - mkdir cudaq_tensornet && cd cudaq_tensornet && git init
+    - git fetch --depth 1 https://$READ_ACCESS_TOKEN:$READ_ACCESS_TOKEN@$CI_SERVER_HOST/$CUDAQ_TENSORNET_REPO $CUDAQ_TENSORNET_COMMIT && git checkout FETCH_HEAD
+    - (bash build.sh $READ_ACCESS_TOKEN && built=true) || built=false
+    - cd .. && rm -rf cudaq_tensornet
+    - mkdir -p artifacts/tensornet/cuquantum && cp -r "$CUQUANTUM_INSTALL_PREFIX"/* artifacts/tensornet/cuquantum
+    - mkdir -p artifacts/tensornet/cudaq && cp -r "$CUDAQ_INSTALL_PREFIX"/* artifacts/tensornet/cudaq
+    - ls "$CUDAQ_INSTALL_PREFIX"/targets/*.config
+    - if $built; then `exit 0`; else `exit 1`; fi
+
 Push to GitHub:
   stage: deploy
   dependencies: 
     - MGMN SV Simulator
+    - Tensornet Simulator
   tags:
     - hostname/xpl-dvt-55
   resource_group: $resource_group
@@ -73,8 +98,9 @@ Push to GitHub:
           --target $source_commit --draft --prerelease \
           --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
       fi
-    - cd artifacts && zip -r mgmn_svsim.zip mgmn_svsim
+    - cd artifacts && zip -r mgmn_svsim.zip mgmn_svsim && zip -r tensornet.zip tensornet
     - gh release upload $release_id -R $upstream_url mgmn_svsim.zip --clobber
+    - gh release upload $release_id -R $upstream_url tensornet.zip --clobber
     - echo "$build_info" > build_info.txt && (echo -n "data-commit:" && echo " $CI_COMMIT_SHA") >> build_info.txt
     - gh release upload $release_id -R $upstream_url build_info.txt --clobber
     - additional_notes="Release edited by [GitLab pipeline]($CI_PIPELINE_URL)." &&
