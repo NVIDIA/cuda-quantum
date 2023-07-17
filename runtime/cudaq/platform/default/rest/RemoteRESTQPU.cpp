@@ -151,6 +151,16 @@ public:
   void clearShots() override { nShots = std::nullopt; }
   virtual bool isRemote() override { return !emulate; }
 
+  /// @brief Set the noise model, only allow this for
+  /// emulation.
+  void setNoiseModel(cudaq::noise_model *model) override {
+    if (!emulate)
+      throw std::runtime_error(
+          "Noise modeling is not allowed on remote physical quantum backends.");
+
+    noiseModel = model;
+  }
+
   /// Store the execution context for launchKernel
   void setExecutionContext(cudaq::ExecutionContext *context) override {
     if (!context)
