@@ -11,14 +11,15 @@ IonQ
 To execute programs on IonQ hardware from either C++ or Python, CUDA Quantum
 will look for an API key stored in the `IONQ_API_KEY` environment variable. 
 This may be set as follows, replacing the string with the API key generated
-from your IonQ account.
+from your `IonQ account <https://cloud.ionq.com/>`_.
 
 .. code:: bash
+
   export IONQ_API_KEY="ionq_generated_api_key"
 
 For C++, it's straightforward to control the target QPU via the `--target`
 argument to `nvq++`. This will look for the `IONQ_API_KEY` in your environment,
-validate it with the IonQ API, and submit any quantum kernel executions within
+authenticate it with the IonQ API, and submit any quantum kernel executions within
 the file to the hardware.
 
 .. code:: bash 
@@ -33,6 +34,21 @@ and will go through the same credential scheme as discussed in the C++ case.
 
     cudaq.set_target('ionq')
 
+### Specifying the QPU
+By default, the IonQ target will use the :code:`simulator` QPU.
+To specify which IonQ QPU to use, set the :code:`qpu` parameter.
+A list of available QPUs can be found `in the API documentation <https://docs.ionq.com/#tag/jobs>`_.
+
+.. code:: c
+
+    auto &platform = cudaq::get_platform();
+    platform.setTargetBackend("ionq;qpu;qpu.aria-1");
+
+.. code:: python
+    cudaq.set_target("ionq", qpu="qpu.aria-1")
+
+Note: A "target" in :code:`cudaq` refers to a quantum compute provider, such as :code:`ionq`.
+However, IonQ's docs use the term "target" to refer to specific QPUs themselves.
 
 
 Quantinuum 
@@ -56,7 +72,7 @@ password with your Quantinuum login credentials.
   export CUDAQ_QUANTINUUM_CREDENTIALS=$HOME/.quantinuum_config
 
 For C++, the `--target` argument may be set to "quantinuum". `nvq++` will grab 
-the credentials from your home directory, validate them with the Quantinuum API, 
+the credentials from your home directory, authenticate them with the Quantinuum API, 
 and submit any quantum kernel executions to the hardware.
 
 .. code:: bash 
