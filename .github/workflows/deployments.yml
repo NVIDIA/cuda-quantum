@@ -10,6 +10,10 @@ on:
         description: Create or update the build caches on the container registry.
         required: false
         default: false
+      cache_base:
+        required: false
+        type: string
+        description: 'The name of the branch to use as cache base.'
       platforms:
         type: string
         description: The platforms to build the Docker images for.
@@ -49,6 +53,7 @@ jobs:
       platforms: ${{ inputs.platforms }}
       toolchain: ${{ matrix.toolchain }}
       matrix_key: ${{ matrix.toolchain }}
+      registry_cache_from: ${{ inputs.cache_base }}
       registry_cache_update: ${{ github.event_name == 'workflow_dispatch' && inputs.update_registry_cache }}
       registry_cache_update_only: ${{ github.event.pull_request.merged == true }}
       environment: ${{ (github.event.pull_request.merged != true && 'ghcr-deployment') || '' }}
@@ -100,6 +105,7 @@ jobs:
     with:
       dockerfile: build/devdeps.ompi.Dockerfile
       platforms: ${{ inputs.platforms }}
+      registry_cache_from: ${{ inputs.cache_base || github.ref_name }}
       registry_cache_update: true
       environment: ghcr-deployment
 
@@ -114,6 +120,7 @@ jobs:
       build_args: |
         base_image=${{ needs.config.outputs.base_image }}
         ompidev_image=${{ needs.openmpi.outputs.image_hash }}
+      registry_cache_from: ${{ inputs.cache_base || github.ref_name }}
       registry_cache_update: true
       environment: ghcr-deployment
 
