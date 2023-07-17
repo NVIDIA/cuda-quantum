@@ -60,7 +60,6 @@ jobs:
               echo "llvm-lit status = " $lit_status
               exit 1
             fi 
-            export PYTHONPATH=""
 
       - name: Test CUDA Quantum (Python)
         uses: addnab/docker-run-action@v3
@@ -69,6 +68,7 @@ jobs:
           shell: bash
           run: |
             cd $CUDAQ_REPO_ROOT
+            export PYTHONPATH=""
             pip install . -vvv
             pip_build_status=$?
             if [ ! $pip_build_status -eq 0 ]; then
