@@ -25,8 +25,7 @@ MGMN SV Simulator:
   interruptible: false
   artifacts:
     paths:
-      - artifacts/mgmn_svsim/cuquantum/
-      - artifacts/mgmn_svsim/cudaq/
+      - artifacts/mgmn_svsim/
     expire_in: 1 day
   script:
     - echo "Checking out commit $CUDAQ_MGMN_SVSIM_COMMIT on $CI_SERVER_HOST/$CUDAQ_MGMN_SVSIM_REPO."
@@ -49,18 +48,15 @@ Tensornet Simulator:
   interruptible: false
   artifacts:
     paths:
-      - artifacts/tensornet/cuquantum/
-      - artifacts/tensornet/cudaq/
+      - artifacts/tensornet/
     expire_in: 1 day
   script:
     - echo "Checking out commit $CUDAQ_TENSORNET_COMMIT on $CI_SERVER_HOST/$CUDAQ_TENSORNET_REPO."
     - mkdir cudaq_tensornet && cd cudaq_tensornet && git init
     - git fetch --depth 1 https://$READ_ACCESS_TOKEN:$READ_ACCESS_TOKEN@$CI_SERVER_HOST/$CUDAQ_TENSORNET_REPO $CUDAQ_TENSORNET_COMMIT && git checkout FETCH_HEAD
     - (bash build.sh $READ_ACCESS_TOKEN && built=true) || built=false
+    - mkdir -p artifacts/tensornet && mv artifacts/* artifacts/tensornet/
     - cd .. && rm -rf cudaq_tensornet
-    - mkdir -p artifacts/tensornet/cuquantum && cp -r "$CUQUANTUM_INSTALL_PREFIX"/* artifacts/tensornet/cuquantum
-    - mkdir -p artifacts/tensornet/cudaq && cp -r "$CUDAQ_INSTALL_PREFIX"/* artifacts/tensornet/cudaq
-    - ls "$CUDAQ_INSTALL_PREFIX"/targets/*.config
     - if $built; then `exit 0`; else `exit 1`; fi
 
 Push to GitHub:
