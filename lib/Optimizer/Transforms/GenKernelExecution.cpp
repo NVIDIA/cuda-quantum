@@ -13,7 +13,6 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Todo.h"
-#include "clang/Basic/Version.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/ToolOutputFile.h"

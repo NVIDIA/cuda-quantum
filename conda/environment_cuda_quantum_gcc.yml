@@ -1,0 +1,28 @@
+name: cuda-quantum 
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+# build tools
+  - cmake=3.26
+  - ninja
+  - python=3.9.*
+  - gxx_linux-64=11.3  # [linux]
+# llvm deps
+  - llvmdev=16.0.6
+  - llvmlite=0.40.1
+  - mlir=16.0.6
+# python deps
+  - numpy
+  - ipython
+  - pytest
+# doc tools
+  - sphinx
+  - sphinx_rtd_theme
+  - breathe
+  - enum_tools
+  - sphinx-toolbox
+  - filelock
+  - myst-parser
+  - fastapi
+  - uvicorn

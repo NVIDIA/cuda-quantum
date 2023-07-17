@@ -7,10 +7,12 @@
 # ============================================================================ #
 
 set(LIBRARY_NAME _pycudaq)
-if (NOT SKBUILD)
-  SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../../lib:$ORIGIN/../../lib/plugins")
-else()
-  SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../cuda_quantum.libs")
+if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  if (NOT SKBUILD)
+    SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../../lib:$ORIGIN/../../lib/plugins")
+  else()
+    SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../cuda_quantum.libs")
+  endif()
 endif()
 
 find_package(Python COMPONENTS Interpreter)

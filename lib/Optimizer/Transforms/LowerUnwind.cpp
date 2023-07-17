@@ -323,7 +323,9 @@ struct ScopeOpPattern : public OpRewritePattern<cudaq::cc::ScopeOp> {
   LogicalResult matchAndRewrite(cudaq::cc::ScopeOp scope,
                                 PatternRewriter &rewriter) const override {
     auto iter = infoMap.opParentMap.find(scope.getOperation());
+    static_cast<void>(iter);
     assert(iter != infoMap.opParentMap.end() && iter->second.asPrimitive);
+    static_cast<void>(iter);
     LLVM_DEBUG(llvm::dbgs() << "replacing scope @" << scope.getLoc() << '\n');
     auto loc = scope.getLoc();
     auto *initBlock = rewriter.getInsertionBlock();
@@ -714,6 +716,7 @@ struct UnwindReturnOpPattern
                                 PatternRewriter &rewriter) const override {
     auto iter = infoMap.opParentMap.find(retOp.getOperation());
     assert(iter != infoMap.opParentMap.end());
+    static_cast<void>(iter);
     auto *blk = rewriter.getInsertionBlock();
     auto pos = rewriter.getInsertionPoint();
     rewriter.splitBlock(blk, std::next(pos));

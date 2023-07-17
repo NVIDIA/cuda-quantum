@@ -10,6 +10,7 @@ SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 set (CMAKE_CXX_FLAGS
      "${CMAKE_CXX_FLAGS} -Wno-attributes -Wno-ctad-maybe-unsupported")
 
+
 set(CUDAQ_RUNTIME_TEST_SOURCES 
   # Integration tests
   integration/adjoint_tester.cpp
@@ -49,8 +50,9 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
   string(REPLACE "-" "_" NVQIR_BACKEND_OUT ${NVQIR_BACKEND})
   add_executable(${TEST_EXE_NAME} main.cpp ${CUDAQ_RUNTIME_TEST_SOURCES} ${EXTRA_BACKEND_TESTER})
   target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DNVQIR_BACKEND_NAME=${NVQIR_BACKEND_OUT})
+  target_compile_definitions(${TEST_EXE_NAME} PRIVATE __MATH_LONG_DOUBLE_CONSTANTS)
   target_include_directories(${TEST_EXE_NAME} PRIVATE .)
-  # On GCC, the default is --as-needed for linking, and therefore the 
+  # On GCC, the default is --as-needed for linking, and therefore the
   # nvqir-simulation plugin may not get picked up. This works as is on clang 
   # But here we add it purposefully to avoid that bug. 
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
@@ -162,7 +164,6 @@ if (CUDAQ_ENABLE_PYTHON)
   endif()
   target_compile_definitions(test_domains PRIVATE -DNVQIR_BACKEND_NAME=qpp)
   target_include_directories(test_domains PRIVATE .)
-  set_property(TARGET test_domains PROPERTY ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/python")
   target_link_libraries(test_domains
     PRIVATE 
     cudaq
@@ -173,6 +174,11 @@ if (CUDAQ_ENABLE_PYTHON)
     cudaq-pyscf
     gtest_main)
   gtest_discover_tests(test_domains
-    TEST_SUFFIX _Sampling PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/python")
+    TEST_SUFFIX _Sampling)
+  gtest_discover_tests(test_domains
+    TEST_SUFFIX _Observe
+    PROPERTIES
+      ENVIRONMENT
+        "CUDAQ_OBSERVE_FROM_SAMPLING=false")
 endif()
 
