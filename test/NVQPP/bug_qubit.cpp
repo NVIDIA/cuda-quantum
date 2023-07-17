@@ -9,6 +9,7 @@
 // This code is from Issue 251.
 
 // RUN: nvq++ --enable-mlir -v %s --target quantinuum --emulate -o %t.x && %t.x | FileCheck %s
+// RUN: cudaq-quake %s | cudaq-opt --promote-qubit-allocation | FileCheck --check-prefixes=MLIR %s
 
 // CHECK: Test: { 0:{{[0-9]+}} 1:{{[0-9]+}} }
 
@@ -22,6 +23,11 @@ struct ak2 {
     mz(q);
   }
 };
+
+// MLIR-LABEL:   func.func @__nvqpp__mlirgen__ak2()
+// MLIR-NOT:       quake.alloca !quake.ref
+// MLIR:           %[[VAL_0:.*]] = quake.alloca !quake.veq<1>
+// MLIR-NEXT:      %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<1>) -> !quake.ref
 
 int main() {
   auto counts = cudaq::sample(ak2{});
