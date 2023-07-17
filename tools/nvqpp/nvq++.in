@@ -152,7 +152,7 @@ CUDAQ_INCLUDE_PATH="${install_dir}/include"
 if [ ! -f "${install_dir}/include/cudaq.h" ]; then
 	# If the header is not there, then we are likely in
 	# the build directory for testing.
-	if [ "@CMAKE_BINARY_DIR@" == "${install_dir}" ]; then
+	if [ "@CMAKE_BINARY_DIR@" -ef "${install_dir}" ]; then
 		CUDAQ_INCLUDE_PATH="@CMAKE_SOURCE_DIR@/runtime"
 		INCLUDES="-I @CMAKE_SOURCE_DIR@/tpls/fmt/include"
 	else
@@ -171,7 +171,7 @@ if [ -d "${llvm_install_dir}/bin" -a \
 fi
 
 # Compiler and linker flags
-COMPILER_FLAGS="-std=c++20 -I${CUDAQ_INCLUDE_PATH}"
+COMPILER_FLAGS="-std=c++20 -I${CUDAQ_INCLUDE_PATH} ${CUDAQ_CLANG_EXTRA_ARGS}"
 CLANG_RESOURCE_DIR=""
 # If we are a relocatable package, we want to
 # add compiler flags that will point clang to our repackaged
