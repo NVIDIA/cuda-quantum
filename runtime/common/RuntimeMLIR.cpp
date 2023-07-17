@@ -81,37 +81,6 @@ TranslateFromMLIRRegistration::TranslateFromMLIRRegistration(
   registerTranslation(name, description, function);
 }
 
-void registerToQIRTranslation();
-void registerToOpenQASMTranslation();
-void registerToIQMJsonTranslation();
-
-std::unique_ptr<MLIRContext> initializeMLIR() {
-  if (!mlirLLVMInitialized) {
-    llvm::InitializeNativeTarget();
-    llvm::InitializeNativeTargetAsmPrinter();
-    registerAllPasses();
-    cudaq::opt::registerOptCodeGenPasses();
-    cudaq::opt::registerOptTransformsPasses();
-    registerToQIRTranslation();
-    registerToOpenQASMTranslation();
-    registerToIQMJsonTranslation();
-    cudaq::opt::registerTargetPipelines();
-    mlirLLVMInitialized = true;
-  }
-
-  // if (!llvmContext)
-  //   llvmContext = std::make_unique<llvm::LLVMContext>();
-
-  DialectRegistry registry;
-  registry.insert<arith::ArithDialect, AffineDialect, LLVM::LLVMDialect,
-                  memref::MemRefDialect, quake::QuakeDialect, cc::CCDialect,
-                  func::FuncDialect>();
-  auto context = std::make_unique<MLIRContext>(registry);
-  context->loadAllAvailableDialects();
-  registerLLVMDialectTranslation(*context);
-  return context;
-}
-
 bool setupTargetTriple(llvm::Module *llvmModule) {
   // Setup the machine properties from the current architecture.
   auto targetTriple = llvm::sys::getDefaultTargetTriple();
@@ -157,16 +126,13 @@ void registerToQIRTranslation() {
         PassManager pm(context);
         std::string errMsg;
         llvm::raw_string_ostream errOs(errMsg);
-        std::string qirBasePipelineConfig = "quake-to-qir,qir-to-base-qir-prep,"
-                                            "llvm.func(quake-to-base-qir-func),"
-                                            "qir-to-base-qir";
+        auto qirBasePipelineConfig = "quake-to-qir,base-profile-pipeline";
         if (failed(parsePassPipeline(qirBasePipelineConfig, pm, errOs)))
           return failure();
         if (failed(pm.run(op)))
           return failure();
 
-        std::unique_ptr<llvm::LLVMContext> llvmContext =
-            std::make_unique<llvm::LLVMContext>();
+        auto llvmContext = std::make_unique<llvm::LLVMContext>();
         llvmContext->setOpaquePointers(false);
         auto llvmModule = translateModuleToLLVMIR(op, *llvmContext);
         cudaq::optimizeLLVM(llvmModule.get());
@@ -202,6 +168,32 @@ void registerToIQMJsonTranslation() {
       });
 }
 
+std::unique_ptr<MLIRContext> initializeMLIR() {
+  if (!mlirLLVMInitialized) {
+    llvm::InitializeNativeTarget();
+    llvm::InitializeNativeTargetAsmPrinter();
+    registerAllPasses();
+    cudaq::opt::registerOptCodeGenPasses();
+    cudaq::opt::registerOptTransformsPasses();
+    registerToQIRTranslation();
+    registerToOpenQASMTranslation();
+    registerToIQMJsonTranslation();
+    cudaq::opt::registerUnrollingPipeline();
+    cudaq::opt::registerBaseProfilePipeline();
+    cudaq::opt::registerTargetPipelines();
+    mlirLLVMInitialized = true;
+  }
+
+  DialectRegistry registry;
+  registry.insert<arith::ArithDialect, LLVM::LLVMDialect, math::MathDialect,
+                  memref::MemRefDialect, quake::QuakeDialect, cc::CCDialect,
+                  func::FuncDialect>();
+  auto context = std::make_unique<MLIRContext>(registry);
+  context->loadAllAvailableDialects();
+  registerLLVMDialectTranslation(*context);
+  return context;
+}
+
 ExecutionEngine *createQIRJITEngine(ModuleOp &moduleOp) {
   ExecutionEngineOptions opts;
   opts.transformer = [](llvm::Module *m) { return llvm::ErrorSuccess(); };
@@ -216,11 +208,11 @@ ExecutionEngine *createQIRJITEngine(ModuleOp &moduleOp) {
     std::string errMsg;
     llvm::raw_string_ostream errOs(errMsg);
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
+    pm.addPass(createCanonicalizerPass());
     pm.addPass(cudaq::opt::createConvertToQIRPass());
     if (failed(pm.run(module)))
       throw std::runtime_error(
           "[createQIRJITEngine] Lowering to QIR for remote emulation failed.");
-
     auto llvmModule = translateModuleToLLVMIR(module, llvmContext);
     if (!llvmModule)
       throw std::runtime_error(

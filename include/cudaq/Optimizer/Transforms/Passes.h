@@ -31,6 +31,18 @@ createGenerateDeviceCodeLoader(bool genAsQuake = false);
 void addAggressiveEarlyInlining(mlir::OpPassManager &pm);
 void registerAggressiveEarlyInlining();
 
+/// Add a pass pipeline to apply the requisite passes to fully unroll loops.
+/// When converting to a quantum circuit, the static control program is fully
+/// expanded to eliminate control flow. This pipeline will raise an error if any
+/// loop in the module cannot be fully unrolled.
+void createUnrollingPipeline(mlir::OpPassManager &pm, unsigned threshold,
+                             bool signalFailure);
+inline void addUnrollingPipeline(mlir::OpPassManager &pm) {
+  // Set defaults used by registerUnrollingPipeline()
+  createUnrollingPipeline(pm, /*threshold=*/50, /*signalFailure=*/true);
+}
+void registerUnrollingPipeline();
+
 std::unique_ptr<mlir::Pass> createApplyOpSpecializationPass();
 std::unique_ptr<mlir::Pass>
 createApplyOpSpecializationPass(bool computeActionOpt);
