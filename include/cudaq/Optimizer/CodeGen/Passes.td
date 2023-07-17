@@ -11,6 +11,15 @@
 
 include "mlir/Pass/PassBase.td"
 
+def PromoteRefToVeqAlloc : Pass<"promote-qubit-allocation"> {
+  let summary = "Promote single qubit allocations.";
+  let description = [{
+    This pass converts all single qubit allocations in the quake dialect to
+    allocations of vectors of qubits of length one. This conversion makes all
+    allocations uniform for the conversion to QIR.
+  }];
+}
+
 def QuakeToQIR : Pass<"quake-to-qir", "mlir::ModuleOp"> {
   let summary = "Lower Quake to QIR.";
   let description = [{

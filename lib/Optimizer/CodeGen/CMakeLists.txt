@@ -14,6 +14,7 @@ add_cudaq_library(OptCodeGen
   LowerToBaseProfileQIR.cpp
   LowerToQIR.cpp
   Passes.cpp
+  RefToVeqAlloc.cpp
 
   DEPENDS
     CCDialect
