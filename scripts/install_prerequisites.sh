@@ -52,18 +52,16 @@ if [ "$CC" == "" ] && [ "$CXX" == "" ]; then
   source "$this_file_dir/install_tool.sh" -t gcc12
 fi
 
-llvm_config="$LLVM_INSTALL_PREFIX/bin/llvm-config"
-llvm_lib_dir=`"$llvm_config" --libdir 2>/dev/null`
-if [ ! -d "$llvm_lib_dir" ]; then
+llvm_dir="$LLVM_INSTALL_PREFIX/lib/cmake/llvm"
+if [ ! -d "$llvm_dir" ]; then
   echo "Could not find llvm libraries."
 
   # Build llvm libraries from source and install them in the install directory
   source "$this_file_dir/build_llvm.sh"
   (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
 
-  llvm_lib_dir=`"$llvm_config" --libdir 2>/dev/null`
-  if [ ! -d "$llvm_lib_dir" ]; then
-    echo "Failed to find llvm libraries directory $llvm_lib_dir."
+  if [ ! -d "$llvm_dir" ]; then
+    echo "Failed to find directory $llvm_dir."
     if $is_sourced; then return 1; else exit 1; fi
   fi
 else 
@@ -91,8 +89,7 @@ if [ ! -f "$OPENBLAS_INSTALL_PREFIX/lib/libopenblas.a" ]; then
 
   wget https://github.com/xianyi/OpenBLAS/releases/download/v0.3.23/OpenBLAS-0.3.23.tar.gz
   tar -xf OpenBLAS-0.3.23.tar.gz && cd OpenBLAS-0.3.23
-  # FIXME: set USE_OPENMP to 1 after enabling it in the llvm build.
-  make USE_OPENMP=0 && make install PREFIX="$OPENBLAS_INSTALL_PREFIX"
+  make USE_OPENMP=1 && make install PREFIX="$OPENBLAS_INSTALL_PREFIX"
   cd .. && rm -rf OpenBLAS-0.3.23*
 fi
 
