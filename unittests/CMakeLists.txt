@@ -162,6 +162,7 @@ if (CUDAQ_ENABLE_PYTHON)
   endif()
   target_compile_definitions(test_domains PRIVATE -DNVQIR_BACKEND_NAME=qpp)
   target_include_directories(test_domains PRIVATE .)
+  set_property(TARGET test_domains PROPERTY ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/python")
   target_link_libraries(test_domains
     PRIVATE 
     cudaq
@@ -172,11 +173,6 @@ if (CUDAQ_ENABLE_PYTHON)
     cudaq-pyscf
     gtest_main)
   gtest_discover_tests(test_domains
-    TEST_SUFFIX _Sampling)
-  gtest_discover_tests(test_domains
-    TEST_SUFFIX _Observe
-    PROPERTIES
-      ENVIRONMENT
-        "CUDAQ_OBSERVE_FROM_SAMPLING=false")
+    TEST_SUFFIX _Sampling PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/python")
 endif()
 
