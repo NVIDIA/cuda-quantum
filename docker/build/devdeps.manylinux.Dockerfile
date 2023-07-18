@@ -36,8 +36,8 @@ ENV LLVM_INSTALL_PREFIX=/opt/llvm
 ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
 RUN dnf check-update && dnf install -y --nobest --setopt=install_weak_deps=False \
         ninja-build cmake \
-    export CMAKE_EXE_LINKER_FLAGS="-static-libgcc -static-libstdc++" && \
-    export CMAKE_SHARED_LINKER_FLAGS="-static-libgcc -static-libstdc++" \
+    && export CMAKE_EXE_LINKER_FLAGS="-static-libgcc -static-libstdc++" \
+    && export CMAKE_SHARED_LINKER_FLAGS="-static-libgcc -static-libstdc++" \
     && bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
     && dnf remove -y ninja-build cmake && dnf clean all \
     && rm -rf /llvm-project && rm /scripts/build_llvm.sh
