@@ -74,7 +74,7 @@ FROM ubuntu:22.04 as prereqs
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
 RUN apt-get update && apt-get install --no-install-recommends -y ca-certificates \
     && export OPENBLAS_INSTALL_PREFIX=/usr/local/openblas \
-    && exprot OPENSSL_INSTALL_PREFIX=/usr/local/openssl \
+    && export OPENSSL_INSTALL_PREFIX=/usr/local/openssl \
     && bash /scripts/install_prerequisites.sh \
     && apt-get remove -y ca-certificates \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
