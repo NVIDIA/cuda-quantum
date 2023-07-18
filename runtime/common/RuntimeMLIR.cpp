@@ -121,7 +121,7 @@ void optimizeLLVM(llvm::Module *module) {
 void registerToQIRTranslation() {
   cudaq::TranslateFromMLIRRegistration reg(
       "qir", "translate from quake to qir adaptive",
-      [](Operation *op, raw_ostream &output) {
+      [](Operation *op, llvm::raw_string_ostream &output, bool printIR) {
         auto context = op->getContext();
         PassManager pm(context);
         std::string errMsg;
@@ -141,6 +141,9 @@ void registerToQIRTranslation() {
           throw std::runtime_error(
               "Failed to setup the llvm module target triple.");
 
+        if (printIR)
+          llvm::errs() << *llvmModule;
+
         // Map the LLVM Module to Bitcode that can be submitted
         llvm::SmallString<1024> bitCodeMem;
         llvm::raw_svector_ostream os(bitCodeMem);
@@ -153,19 +156,25 @@ void registerToQIRTranslation() {
 void registerToOpenQASMTranslation() {
   cudaq::TranslateFromMLIRRegistration reg(
       "qasm2", "translate from quake to openQASM 2.0",
-      [](Operation *op, raw_ostream &output) {
+      [](Operation *op, llvm::raw_string_ostream &output, bool printIR) {
         PassManager pm(op->getContext());
         if (failed(pm.run(op)))
           throw std::runtime_error("Lowering failed.");
-        return cudaq::translateToOpenQASM(op, output);
+        auto passed = cudaq::translateToOpenQASM(op, output);
+        if (printIR)
+          llvm::errs() << output.str();
+        return passed;
       });
 }
 
 void registerToIQMJsonTranslation() {
   cudaq::TranslateFromMLIRRegistration reg(
       "iqm", "translate from quake to IQM's json format",
-      [](Operation *op, raw_ostream &output) {
-        return cudaq::translateToIQMJson(op, output);
+      [](Operation *op, llvm::raw_string_ostream &output, bool printIR) {
+        auto passed = cudaq::translateToIQMJson(op, output);
+        if (printIR)
+          llvm::errs() << output.str();
+        return passed;
       });
 }
 
