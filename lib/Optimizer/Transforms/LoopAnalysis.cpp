@@ -111,6 +111,91 @@ static std::pair<bool, Value> isInductionOn(unsigned offset, Operation *op,
   return {false, Value{}};
 }
 
+// TODO: consider caching the results.
+static BlockArgument getLinearExpr(Value expr,
+                                   cudaq::opt::LoopComponents &result,
+                                   cudaq::cc::LoopOp loop) {
+  auto v = peelCastOps(expr);
+  if (auto ba = dyn_cast<BlockArgument>(v)) {
+    // Trivial expression: bare argument.
+    return ba;
+  }
+  auto checkAndSet = [&](Value va, Value vb, Value &saved) -> BlockArgument {
+    auto vl = peelCastOps(va);
+    if (auto ba = dyn_cast<BlockArgument>(vl);
+        ba && isLoopInvariant(vb, loop)) {
+      saved = vb;
+      return ba;
+    }
+    return {};
+  };
+  auto scaledIteration = [&](Value v) -> BlockArgument {
+    if (auto mulOp = v.getDefiningOp<arith::MulIOp>()) {
+      result.reciprocalScale = false;
+      if (auto ba =
+              checkAndSet(mulOp.getLhs(), mulOp.getRhs(), result.scaleValue))
+        return ba;
+      return checkAndSet(mulOp.getRhs(), mulOp.getLhs(), result.scaleValue);
+    }
+    if (auto divOp = v.getDefiningOp<arith::DivUIOp>()) {
+      result.reciprocalScale = true;
+      return checkAndSet(divOp.getLhs(), divOp.getRhs(), result.scaleValue);
+    }
+    if (auto divOp = v.getDefiningOp<arith::DivSIOp>()) {
+      result.reciprocalScale = true;
+      return checkAndSet(divOp.getLhs(), divOp.getRhs(), result.scaleValue);
+    }
+    return {};
+  };
+  if (auto addOp = expr.getDefiningOp<arith::AddIOp>()) {
+    result.negatedAddend = false;
+    result.minusOneMult = false;
+    if (auto ba =
+            checkAndSet(addOp.getLhs(), addOp.getRhs(), result.addendValue))
+      return ba;
+    if (auto ba = scaledIteration(addOp.getLhs());
+        ba && isLoopInvariant({addOp.getRhs()}, loop)) {
+      result.addendValue = addOp.getRhs();
+      return ba;
+    }
+    if (auto ba =
+            checkAndSet(addOp.getRhs(), addOp.getLhs(), result.addendValue))
+      return ba;
+    if (auto ba = scaledIteration(addOp.getRhs());
+        ba && isLoopInvariant({addOp.getLhs()}, loop)) {
+      result.addendValue = addOp.getLhs();
+      return ba;
+    }
+    return {};
+  }
+  if (auto subOp = expr.getDefiningOp<arith::SubIOp>()) {
+    if (auto ba =
+            checkAndSet(subOp.getLhs(), subOp.getRhs(), result.addendValue)) {
+      result.negatedAddend = true;
+      return ba;
+    }
+    if (auto ba = scaledIteration(subOp.getLhs());
+        ba && isLoopInvariant({subOp.getRhs()}, loop)) {
+      result.addendValue = subOp.getRhs();
+      result.negatedAddend = true;
+      return ba;
+    }
+    if (auto ba =
+            checkAndSet(subOp.getRhs(), subOp.getLhs(), result.addendValue)) {
+      result.minusOneMult = true;
+      return ba;
+    }
+    if (auto ba = scaledIteration(subOp.getRhs());
+        ba && isLoopInvariant({subOp.getLhs()}, loop)) {
+      result.addendValue = subOp.getLhs();
+      result.minusOneMult = true;
+      return ba;
+    }
+    return {};
+  }
+  return scaledIteration(expr);
+}
+
 namespace cudaq {
 
 bool opt::isSemiOpenPredicate(arith::CmpIPredicate p) {
@@ -151,7 +236,8 @@ bool opt::hasMonotonicControlInduction(cc::LoopOp loop, LoopComponents *lcp) {
   if (auto c = getLoopComponents(loop)) {
     if (lcp)
       *lcp = *c;
-    return isLoopInvariant({c->compareValue, c->stepValue}, loop);
+    if (isLoopInvariant({c->compareValue, c->stepValue}, loop))
+      return (bool)getLinearExpr(c->getCompareInduction(), *c, loop);
   }
   return false;
 }
@@ -204,6 +290,11 @@ bool opt::isaCountedLoop(cc::LoopOp loop, bool allowClosedInterval) {
          isaConstant(c.compareValue);
 }
 
+Value opt::LoopComponents::getCompareInduction() {
+  auto cmpOp = cast<arith::CmpIOp>(compareOp);
+  return cmpOp.getLhs() == compareValue ? cmpOp.getRhs() : cmpOp.getLhs();
+}
+
 bool opt::LoopComponents::stepIsAnAddOp() { return isa<arith::AddIOp>(stepOp); }
 
 bool opt::LoopComponents::shouldCommuteStepOp() {
@@ -218,6 +309,8 @@ bool opt::LoopComponents::isClosedIntervalForm() {
   return ::isClosedIntervalForm(cmp.getPredicate());
 }
 
+bool opt::LoopComponents::isLinearExpr() { return addendValue || scaleValue; }
+
 std::optional<opt::LoopComponents> opt::getLoopComponents(cc::LoopOp loop) {
   opt::LoopComponents result;
   auto &whileRegion = loop.getWhileRegion();
@@ -227,8 +320,10 @@ std::optional<opt::LoopComponents> opt::getLoopComponents(cc::LoopOp loop) {
   auto cmpOp = cast<arith::CmpIOp>(result.compareOp);
 
   auto argumentToCompare = [&](unsigned idx) -> bool {
-    return (peelCastOps(cmpOp.getLhs()) == whileEntry.getArgument(idx)) ||
-           (peelCastOps(cmpOp.getRhs()) == whileEntry.getArgument(idx));
+    return (getLinearExpr(cmpOp.getLhs(), result, loop) ==
+            whileEntry.getArgument(idx)) ||
+           (getLinearExpr(cmpOp.getRhs(), result, loop) ==
+            whileEntry.getArgument(idx));
   };
   auto scanRegionForStep = [&](Region &reg) -> std::optional<unsigned> {
     // Pre-scan to make sure all terminators are ContinueOp.
@@ -297,9 +392,10 @@ std::optional<opt::LoopComponents> opt::getLoopComponents(cc::LoopOp loop) {
   // A second possible extension is to detect \em{conditionally iterated} loops
   // and open those up to further analysis and transformations such as loop
   // unrolling.
-  if (peelCastOps(cmpOp.getLhs()) == whileEntry.getArgument(result.induction))
+  if (getLinearExpr(cmpOp.getLhs(), result, loop) ==
+      whileEntry.getArgument(result.induction))
     result.compareValue = cmpOp.getRhs();
-  else if (peelCastOps(cmpOp.getRhs()) ==
+  else if (getLinearExpr(cmpOp.getRhs(), result, loop) ==
            whileEntry.getArgument(result.induction))
     result.compareValue = cmpOp.getLhs();
   else
