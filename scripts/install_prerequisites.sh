@@ -17,12 +17,14 @@
 #
 # The necessary LLVM components will be installed in the location defined by the
 # LLVM_INSTALL_PREFIX if they do not already exist in that location.
-# OpenBLAS will be built from source and installed the location defined by the
-# BLAS_INSTALL_PREFIX, unless BLAS_LIBRARIES is set, and BLAS_LIBRARIES will be
-# set to the appropriate location.
+# If OpenBLAS is not found, it will be built from source and installed the location
+# defined by the OPENBLAS_INSTALL_PREFIX.
+# If OpenSSL is not found, it will be built from source and installed the location
+# defined by the OPENSSL_INSTALL_PREFIX.
 
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/opt/llvm}
-BLAS_INSTALL_PREFIX=${BLAS_INSTALL_PREFIX:-/usr/local}
+OPENBLAS_INSTALL_PREFIX=${OPENBLAS_INSTALL_PREFIX:-/usr/local}
+OPENSSL_INSTALL_PREFIX=${OPENSSL_INSTALL_PREFIX:-/usr/local}
 
 function temp_install_if_command_unknown {
     if [ ! -x "$(command -v $1)" ]; then
@@ -69,14 +71,26 @@ else
   echo "Configured C++ compiler: $CXX"
 fi
 
-blas_found=`cmake --find-package -DNAME=OpenBLAS -DCOMPILER_ID=GNU -DLANGUAGE=C -DMODE=EXIST | grep -i "OpenBLAS found"`
-if [ -z "$blas_found" ]; then
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$OPENBLAS_INSTALL_PREFIX/lib"
+openblas_found=`cmake --find-package -DNAME=OpenBLAS -DCOMPILER_ID=GNU -DLANGUAGE=C -DMODE=EXIST | grep -i "OpenBLAS found"`
+if [ -z "$openblas_found" ]; then
   temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
 
   wget -q https://github.com/xianyi/OpenBLAS/releases/download/v0.3.23/OpenBLAS-0.3.23.tar.gz
   tar -xf OpenBLAS-0.3.23.tar.gz && cd OpenBLAS-0.3.23
   # FIXME: set USE_OPENMP to 1 after enabling it in the llvm build.
-  make USE_OPENMP=0 && make install PREFIX="$BLAS_INSTALL_PREFIX"
+  make USE_OPENMP=0 && make install PREFIX="$OPENBLAS_INSTALL_PREFIX"
   cd .. && rm -rf OpenBLAS-0.3.23.tar.gz OpenBLAS-0.3.23
+fi
+
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$OPENSSL_INSTALL_PREFIX/lib"
+openssl_found=`cmake --find-package -DNAME=OpenSSL -DCOMPILER_ID=GNU -DLANGUAGE=C -DMODE=EXIST | grep -i "OpenBLAS found"`
+if [ -z "$openssl_found" ]; then
+  temp_install_if_command_unknown git git
+  temp_install_if_command_unknown make make
+
+  git clone https://github.com/openssl/openssl && cd openssl
+  ./config --prefix="$OPENSSL_INSTALL_PREFIX" --openssldir="$OPENSSL_INSTALL_PREFIX" -static zlib
+  make install && cd .. && rm -rf openssl
 fi

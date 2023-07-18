@@ -32,9 +32,6 @@ ARG toolchain=llvm
 # Set here to avoid setting it for all install commands. 
 # Given as arg to make sure that this value is only set during build but not in the launched container.
 ARG DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        ca-certificates openssl apt-utils \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # Install prerequisites for building LLVM.
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -105,8 +102,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends libstdc++-12-de
 
 # Build and install OpenBLAS with OpenMP enabled.
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
-ENV BLAS_INSTALL_PREFIX=/usr/local/openblas
-ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$BLAS_INSTALL_PREFIX/lib"
+ENV OPENBLAS_INSTALL_PREFIX=/usr/local/openblas
+ENV OPENSSL_INSTALL_PREFIX=/usr/local/ssl
+ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$OPENBLAS_INSTALL_PREFIX/lib:$OPENSSL_INSTALL_PREFIX/lib"
 RUN bash /scripts/install_prerequisites.sh
 
 # Install additional tools for CUDA Quantum documentation generation.
@@ -131,7 +129,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certifi
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 ENV PATH="${PATH}:/usr/local/cmake-3.26/bin"
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        git ninja-build libcurl4-openssl-dev libssl-dev \
+        git ninja-build libcurl4-openssl-dev \
         python3 python3-pip libpython3-dev \
     && python3 -m pip install --no-cache-dir \
         lit pytest numpy \

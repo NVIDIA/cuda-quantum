@@ -368,8 +368,8 @@ if(CMAKE_CUDA_COMPILER)
 endif()
 
 # Check for CURL and OpenSSL
-find_package(CURL COMPONENTS HTTP HTTPS QUIET) 
-find_package(OpenSSL QUIET)
+find_package(CURL COMPONENTS HTTP HTTPS) 
+find_package(OpenSSL)
 
 # Optionally build with MPI
 if (NOT CUDAQ_SKIP_MPI)

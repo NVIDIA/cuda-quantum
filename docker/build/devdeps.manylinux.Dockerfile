@@ -42,19 +42,16 @@ RUN dnf check-update && dnf install -y --nobest --setopt=install_weak_deps=False
     && dnf remove -y ninja-build cmake && dnf clean all \
     && rm -rf /llvm-project && rm /scripts/build_llvm.sh
 
-# Build OpenBLAS from source with OpenMP enabled.
-ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
-ENV BLAS_INSTALL_PREFIX=/usr/local/openblas
-ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$BLAS_INSTALL_PREFIX/lib"
-RUN dnf check-update && dnf install -y --nobest --setopt=install_weak_deps=False wget \
-    && bash /scripts/install_prerequisites.sh \
-    && dnf remove -y wget && dnf clean all
-
 # Install additional dependencies required to build the CUDA Quantum wheel.
 RUN dnf check-update && dnf install -y --nobest --setopt=install_weak_deps=False \
         glibc-static perl-core \
     && dnf clean all
+
+# Build OpenBLAS from source with OpenMP enabled.
+ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
+ENV OPENBLAS_INSTALL_PREFIX=/usr/local/openblas
 ENV OPENSSL_INSTALL_PREFIX=/usr/local/ssl
-RUN git clone https://github.com/openssl/openssl && cd openssl \
-    && ./config --prefix="$OPENSSL_INSTALL_PREFIX" --openssldir="$OPENSSL_INSTALL_PREFIX" -static zlib \
-    && make install && cd .. && rm -rf openssl
+ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$OPENBLAS_INSTALL_PREFIX/lib:$OPENSSL_INSTALL_PREFIX/lib"
+RUN dnf check-update && dnf install -y --nobest --setopt=install_weak_deps=False wget \
+    && bash /scripts/install_prerequisites.sh \
+    && dnf remove -y wget && dnf clean all
