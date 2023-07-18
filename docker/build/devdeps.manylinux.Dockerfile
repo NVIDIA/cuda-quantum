@@ -52,7 +52,7 @@ ENV BLAS_LIBRARIES=/usr/local/openblas/lib/libopenblas.a
 
 # Install additional dependencies required to build the CUDA Quantum wheel.
 RUN dnf check-update && dnf install -y --nobest --setopt=install_weak_deps=False \
-        glibc-static zlib-static perl-core \
+        glibc-static perl-core \
     && dnf clean all
 ENV OPENSSL_INSTALL_PREFIX=/usr/local/ssl
 RUN git clone https://github.com/openssl/openssl && cd openssl \
