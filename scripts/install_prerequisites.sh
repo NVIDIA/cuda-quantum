@@ -71,6 +71,16 @@ else
   echo "Configured C++ compiler: $CXX"
 fi
 
+if [ ! -x "$(command -v ar)" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/llvm-ar")" ]; then
+    ln -s "$LLVM_INSTALL_PREFIX/bin/llvm-ar" /usr/bin/ar
+    created_ld_sym_link=$?
+    if [ "$created_ld_sym_link" = "" ] || [ ! "$created_ld_sym_link" -eq "0" ]; then
+        echo "Failed to find ar or llvm-ar."
+    else 
+        echo "Setting llvm-ar as the default ar."
+    fi
+fi
+
 export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$OPENBLAS_INSTALL_PREFIX/lib"
 openblas_found=`cmake --find-package -DNAME=OpenBLAS -DCOMPILER_ID=GNU -DLANGUAGE=C -DMODE=EXIST | grep -i "OpenBLAS found"`
 if [ -z "$openblas_found" ]; then
