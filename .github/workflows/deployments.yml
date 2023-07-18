@@ -19,6 +19,11 @@ on:
         description: The platforms to build the Docker images for.
         required: false
         default: linux/amd64
+      manylinux_image:
+        type: string
+        description: The base image to use when building Python wheels.
+        required: false
+        default: quay.io/pypa/manylinux_2_28_x86_64:latest
       create_release:
         type: string
         description: The version number of the release (e.g. 0.3.0). The version must not exist already.
@@ -64,11 +69,26 @@ jobs:
       registry_cache_update_only: ${{ github.event.pull_request.merged == true }}
       environment: ${{ (github.event.pull_request.merged != true && 'ghcr-deployment') || '' }}
 
+  wheeldeps:
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created) || (github.event_name == 'pull_request_target' && github.event.pull_request.merged == true)
+    name: Build wheel dependencies
+    uses: ./.github/workflows/dev_environment.yml
+    with:
+      dockerfile: build/devdeps.manylinux.Dockerfile
+      platforms: ${{ inputs.platforms }}
+      toolchain: gcc12 # set by the dockerfile and not configurable
+      build_args: |
+        manylinux_image=${{ inputs.manylinux_image }}
+      registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base }}
+      registry_cache_update: ${{ github.event_name == 'workflow_dispatch' && inputs.update_registry_cache }}
+      registry_cache_update_only: ${{ github.event.pull_request.merged == true }}
+      environment: ${{ (github.event.pull_request.merged != true && 'ghcr-deployment') || '' }}
+
   dispatch:
     if: github.event_name == 'pull_request_target'
     name: Dispatch deployments
     runs-on: ubuntu-latest
-    needs: devdeps
+    needs: [devdeps, wheeldeps]
 
     steps:
       - uses: actions/github-script@v6
