@@ -80,7 +80,7 @@ jobs:
   python_wheels:
     name: Create Python wheels
     needs: wheeldeps
-    uses: ./.github/workflows/python_wheel.yml
+    uses: ./.github/workflows/python_wheels.yml
     with:
       devdeps_cache: ${{ needs.wheeldeps.outputs.cache_key }}
       devdeps_archive: ${{ needs.wheeldeps.outputs.tar_archive }}
