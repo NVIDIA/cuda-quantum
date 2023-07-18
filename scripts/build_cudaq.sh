@@ -106,6 +106,7 @@ echo "Preparing CUDA Quantum build with LLVM installation in $LLVM_INSTALL_PREFI
 cmake_args="-G Ninja "$repo_root" \
   -DCMAKE_INSTALL_PREFIX="$CUDAQ_INSTALL_PREFIX" \
   -DNVQPP_LD_PATH="$NVQPP_LD_PATH" \
+  -DBLAS_LIB=OPENBLAS \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DCUDAQ_ENABLE_PYTHON=TRUE \
   -DCUDAQ_TEST_MOCK_SERVERS=FALSE \

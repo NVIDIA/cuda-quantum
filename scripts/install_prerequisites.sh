@@ -13,7 +13,7 @@
 # CUDA Quantum from source. 
 #
 # Usage: 
-# source install_prerequisites.sh
+# bash install_prerequisites.sh
 #
 # The necessary LLVM components will be installed in the location defined by the
 # LLVM_INSTALL_PREFIX if they do not already exist in that location.
@@ -22,7 +22,7 @@
 # set to the appropriate location.
 
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/opt/llvm}
-BLAS_INSTALL_PREFIX=${BLAS_INSTALL_PREFIX:-/opt/OpenBLAS}
+BLAS_INSTALL_PREFIX=${BLAS_INSTALL_PREFIX:-/usr/local}
 
 function temp_install_if_command_unknown {
     if [ ! -x "$(command -v $1)" ]; then
@@ -69,7 +69,7 @@ else
   echo "Configured C++ compiler: $CXX"
 fi
 
-if [ "$BLAS_LIBRARIES" == '' ] && [ ! -f "$BLAS_INSTALL_PREFIX/lib/libopenblas.a" ]; then
+if [ ! -f "$BLAS_INSTALL_PREFIX/lib/libopenblas.a" ]; then
   temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
 
@@ -77,6 +77,5 @@ if [ "$BLAS_LIBRARIES" == '' ] && [ ! -f "$BLAS_INSTALL_PREFIX/lib/libopenblas.a
   tar -xf OpenBLAS-0.3.23.tar.gz && cd OpenBLAS-0.3.23
   # FIXME: set USE_OPENMP to 1 after enabling it in the llvm build.
   make USE_OPENMP=0 && make install PREFIX="$BLAS_INSTALL_PREFIX"
-  export BLAS_LIBRARIES="$BLAS_INSTALL_PREFIX/lib/libopenblas.a"
   cd .. && rm -rf OpenBLAS-0.3.23.tar.gz OpenBLAS-0.3.23
 fi

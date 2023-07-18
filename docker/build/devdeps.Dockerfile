@@ -85,11 +85,6 @@ COPY --from=llvmbuild /opt/llvm /opt/llvm
 ENV LLVM_INSTALL_PREFIX=/opt/llvm
 ENV PATH="$PATH:$LLVM_INSTALL_PREFIX/bin/"
 
-# Install the C++ standard library. We could alternatively build libc++ 
-# as part of the LLVM build and compile against that instead of libstdc++.
-RUN apt-get update && apt-get install -y --no-install-recommends libstdc++-12-dev \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
-
 # Install the C/C++ compiler toolchain with which the LLVM dependencies have
 # been built. CUDA Quantum needs to be built with that same toolchain. We use
 # a wrapper script so that the path that we set CC and CXX to is independent 
@@ -102,6 +97,19 @@ RUN source "$LLVM_INSTALL_PREFIX/bootstrap/init_command.sh" \
     && chmod +x "$LLVM_INSTALL_PREFIX/bootstrap/cxx"
 ENV CC="$LLVM_INSTALL_PREFIX/bootstrap/cc"
 ENV CXX="$LLVM_INSTALL_PREFIX/bootstrap/cxx"
+
+# Install the C++ standard library. We could alternatively build libc++ 
+# as part of the LLVM build and compile against that instead of libstdc++.
+RUN apt-get update && apt-get install -y --no-install-recommends libstdc++-12-dev \
+    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Build and install OpenBLAS with OpenMP enabled.
+ENV BLAS_INSTALL_PREFIX=/usr/local/openblas
+ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
+RUN apt-get update && apt-get install --no-install-recommends -y wget \
+    && bash /scripts/install_prerequisites.sh \
+    && apt-get remove -y wget \
+    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install additional tools for CUDA Quantum documentation generation.
 RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certificates \
@@ -127,10 +135,8 @@ ENV PATH="${PATH}:/usr/local/cmake-3.26/bin"
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git ninja-build libcurl4-openssl-dev libssl-dev \
         python3 python3-pip libpython3-dev \
-        libblas-dev \
     && python3 -m pip install --no-cache-dir \
         lit pytest numpy \
         fastapi uvicorn pydantic requests llvmlite \
         scipy==1.10.1 openfermionpyscf==0.5 \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
-ENV BLAS_LIBRARIES=/usr/lib/x86_64-linux-gnu/blas/libblas.a
