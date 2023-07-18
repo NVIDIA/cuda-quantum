@@ -220,9 +220,14 @@ bool IonQServerHelper::jobIsDone(ServerMessage &getJobResponse) {
     throw std::runtime_error(
         "ServerMessage doesn't contain 'status' key in the first job.");
 
+  // Throw a runtime error if the job has failed
+  if (jobs[0].at("status").get<std::string>() == "failed")
+    throw std::runtime_error(
+        "The job failed upon submission. Check the job submission in your IonQ "
+        "account for more information.");
+
   // Return whether the job is completed
-  auto ret = jobs[0].at("status").get<std::string>() == "completed";
-  return ret;
+  return jobs[0].at("status").get<std::string>() == "completed";
 }
 
 // Process the results from a job
