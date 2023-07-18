@@ -42,6 +42,8 @@ cmake.args = [
     "-DCUDAQ_ENABLE_PYTHON=TRUE",
     "-DCUDAQ_DISABLE_CPP_FRONTEND=TRUE",
     "-DCUDAQ_BUILD_TESTS=FALSE",
+    "-DBLAS_LIBRARIES=/usr/local/openblas/lib/libopenblas.a",
+    "-DOPENSSL_ROOT_DIR=/usr/local/openssl",
 ]
 
 [tool.setuptools_scm]

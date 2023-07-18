@@ -81,9 +81,8 @@ if [ ! -x "$(command -v ar)" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/l
     fi
 fi
 
-export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$OPENBLAS_INSTALL_PREFIX/lib"
-openblas_found=`cmake --find-package -DNAME=OpenBLAS -DCOMPILER_ID=GNU -DLANGUAGE=C -DMODE=EXIST | grep -i "OpenBLAS found"`
-if [ -z "$openblas_found" ]; then
+if [ ! -f "$OPENBLAS_INSTALL_PREFIX/lib/libopenblas.a" ]; then
+  apt-get update
   temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
 
@@ -94,9 +93,8 @@ if [ -z "$openblas_found" ]; then
   cd .. && rm -rf OpenBLAS-0.3.23*
 fi
 
-export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$OPENSSL_INSTALL_PREFIX/lib"
-openssl_found=`cmake --find-package -DNAME=OpenSSL -DCOMPILER_ID=GNU -DLANGUAGE=C -DMODE=EXIST | grep -i "OpenBLAS found"`
-if [ -z "$openssl_found" ]; then
+if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(ls -A "$OPENSSL_INSTALL_PREFIX")" ]; then
+  apt-get update
   temp_install_if_command_unknown git git
   temp_install_if_command_unknown make make
 

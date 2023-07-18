@@ -34,7 +34,7 @@ jobs:
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.manylinux.Dockerfile
-      toolchain: gcc12 # set by the dockerfile and not configurable
+      toolchain: x86_64 # FIXME: 2_28_x86_64?
       build_args: |
         manylinux_image=quay.io/pypa/manylinux_2_28_x86_64:latest
 
@@ -76,6 +76,14 @@ jobs:
     with:
       devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key.llvm }}
       devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive.llvm }}
+
+  python_wheels:
+    name: Create Python wheels
+    needs: wheeldeps
+    uses: ./.github/workflows/python_wheel.yml
+    with:
+      devdeps_cache: ${{ needs.wheeldeps.outputs.cache_key }}
+      devdeps_archive: ${{ needs.wheeldeps.outputs.tar_archive }}
 
   clean_up:
     name: Prepare cache clean-up

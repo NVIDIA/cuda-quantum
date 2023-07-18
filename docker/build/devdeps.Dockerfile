@@ -106,8 +106,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends libstdc++-12-de
 # Build and install OpenBLAS with OpenMP enabled.
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
 ENV OPENBLAS_INSTALL_PREFIX=/usr/local/openblas
-ENV OPENSSL_INSTALL_PREFIX=/usr/local/ssl
-ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$OPENBLAS_INSTALL_PREFIX/lib:$OPENSSL_INSTALL_PREFIX/lib"
+ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
+ENV OPENSSL_ROOT_DIR="$OPENSSL_INSTALL_PREFIX"
 RUN apt-get update && apt-get install --no-install-recommends -y ca-certificates \
     && bash /scripts/install_prerequisites.sh \
     # NOTE: apt-get remove -y ca-certificates also remove python3-pip.

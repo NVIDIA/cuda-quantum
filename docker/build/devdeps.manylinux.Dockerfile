@@ -50,8 +50,7 @@ RUN dnf check-update && dnf install -y --nobest --setopt=install_weak_deps=False
 # Build OpenBLAS from source with OpenMP enabled.
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
 ENV OPENBLAS_INSTALL_PREFIX=/usr/local/openblas
-ENV OPENSSL_INSTALL_PREFIX=/usr/local/ssl
-ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$OPENBLAS_INSTALL_PREFIX/lib:$OPENSSL_INSTALL_PREFIX/lib"
+ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
 RUN dnf check-update && dnf install -y --nobest --setopt=install_weak_deps=False wget \
     && bash /scripts/install_prerequisites.sh \
     && dnf remove -y wget && dnf clean all
