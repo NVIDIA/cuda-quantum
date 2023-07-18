@@ -29,6 +29,15 @@ jobs:
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.toolchain }}
 
+  wheeldeps:
+    name: Load wheel dependencies
+    uses: ./.github/workflows/dev_environment.yml
+    with:
+      dockerfile: build/devdeps.manylinux.Dockerfile
+      toolchain: gcc12 # set by the dockerfile and not configurable
+      build_args: |
+        manylinux_image=quay.io/pypa/manylinux_2_28_x86_64:latest
+
   # This job is needed only when using the cloudposse GitHub action to read
   # the output of a matrix job. This is a workaround due to current GitHub
   # limitations that may not be needed if the work started here concludes:

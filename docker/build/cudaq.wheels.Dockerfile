@@ -32,7 +32,7 @@ RUN installed_versions=$(for python in `ls /usr/local/bin/python*`; do \
         if [ "$comp" != "${comp#3.8}" ]; then echo python$v; fi \
     done) && \
     # We need a newer cmake version than what is available with dnf. 
-    dnf remove -y cmake && python3.10 -m pip install cmake; \
+    python3.10 -m pip install cmake; \
     cd cuda-quantum && \
     for python in $valid_version; do \
         echo "Building wheel for $python."; \
