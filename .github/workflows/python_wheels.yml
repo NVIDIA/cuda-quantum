@@ -17,11 +17,6 @@ on:
         environment:
           required: false
           type: string
-        #create_release  FIXME: what to do with this? 
-      secrets:
-        REPO_BOT_ACCESS_TOKEN:
-          description: 'Access token used for deployments.'
-          required: false
 
 name: Python wheels
 
@@ -65,9 +60,19 @@ jobs:
 
           devenv_tag=`docker inspect $base_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"'`
           cache_id=`echo $devenv_tag-${{ inputs.python_version }} | tr . -`
-          wheel_path=/tmp/wheels/python${{ inputs.python_version }}
-          mkdir -p "$wheel_path"
+          wheel_path=/tmp/pycudaq && mkdir -p "$wheel_path"
 
+          if ${{ github.event.pull_request.number != '' }}; then
+            cudaq_version=pr-${{ github.event.pull_request.number }}
+          elif ${{ github.ref_type == 'branch' && github.ref_name == 'main' }}; then
+            cudaq_version=latest
+          elif ${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') }}; then
+            cudaq_version=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
+          else
+            cudaq_version=`echo ${{ github.ref_name }} | tr '/' '-'`
+          fi
+        
+          echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
           echo "base_image=$base_image" >> $GITHUB_OUTPUT
           echo "docker_output=type=local,dest=$wheel_path" >> $GITHUB_OUTPUT
           echo "wheel_cache=wheel-cudaq-$cache_id-${{ github.sha }}" >> $GITHUB_OUTPUT
@@ -84,7 +89,7 @@ jobs:
           file: ./docker/build/cudaq.wheel.Dockerfile
           build-args: |
             base_image=${{ steps.prereqs.outputs.base_image }}
-            release_version=...
+            release_version=${{ steps.prereqs.outputs.cudaq_version }}
           outputs: ${{ steps.prereqs.outputs.docker_output }}
 
       - name: Cache wheel
@@ -95,6 +100,7 @@ jobs:
 
 #  publish_wheel:
 #    name: Publish Python ${{ inputs.python_version }} wheel
+#    if: inputs.environment
 #    runs-on: ubuntu-latest
 #    needs: build_wheel
 #    permissions:
@@ -104,3 +110,29 @@ jobs:
 #    environment:
 #      name: ${{ inputs.environment || 'default' }}
 #      url: ${{ vars.deployment_url || format('https://github.com/{0}', github.repository) }}
+
+  validation:
+    name: Prepare cache clean-up
+    needs: build_wheel # + publish wheel
+    runs-on: ubuntu-latest
+
+  clean_up:
+    name: Prepare cache clean-up
+    needs: build_wheel # + publish wheel
+    runs-on: ubuntu-latest
+    # We need to clean up even if the workflow is cancelled or fails.
+    if: always()
+
+    steps:
+      - name: Save cache keys
+        id: workflow_inputs
+        run: |
+          keys=${{ needs.build_wheel.outputs.wheel_cache }}
+          echo "$keys" >> cache_keys.txt
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: cache_keys_wheels
+          path: cache_keys.txt
+          retention-days: 1
+          if-no-files-found: error

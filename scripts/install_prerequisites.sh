@@ -36,7 +36,7 @@ function temp_install_if_command_unknown {
 function remove_temp_installs {
   if [ "$APT_UNINSTALL" != "" ]; then
       echo "Uninstalling packages used for bootstrapping: $APT_UNINSTALL"
-      apt-get remove -y $APT_UNINSTALL && apt-get autoremove -y
+      apt-get remove -y $APT_UNINSTALL && apt-get autoremove -y --purge
       unset APT_UNINSTALL
   fi
 }

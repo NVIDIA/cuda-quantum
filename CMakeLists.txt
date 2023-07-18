@@ -122,6 +122,9 @@ endif()
 if(NOT CUSTATEVEC_ROOT)
   SET(CUSTATEVEC_ROOT "$ENV{CUQUANTUM_INSTALL_PREFIX}")
 endif()
+if(NOT OPENSSL_ROOT_DIR)	
+  SET(OPENSSL_ROOT_DIR "$ENV{OPENSSL_INSTALL_PREFIX}")	
+endif()
 
 SET(CMAKE_SKIP_BUILD_RPATH FALSE)
 SET(CMAKE_SKIP_INSTALL_RPATH FALSE)
@@ -129,13 +132,14 @@ SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 SET(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/lib/plugins:$ORIGIN/../lib:$ORIGIN/../lib/plugins")
 
+SET(BLA_STATIC ON)
+SET(OPENSSL_USE_STATIC_LIBS TRUE)
+
 if (CUDAQ_BUILD_SELFCONTAINED)
   # Using -static-libgcc -static-libstdc++ offers finer control here if needed.
   # At the time of writing, there wasn't any benefit to using those over -static.
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
   SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static")
-  # If the above if modified to something more granular, we need the line below.
-  SET(OPENSSL_USE_STATIC_LIBS TRUE)
   SET(CUDAQ_BUILD_RELOCATABLE_PACKAGE TRUE)
 endif()
 

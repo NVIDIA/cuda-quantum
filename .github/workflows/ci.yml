@@ -88,7 +88,7 @@ jobs:
   clean_up:
     name: Prepare cache clean-up
     runs-on: ubuntu-latest
-    needs: [config, build_and_test, docker_image]
+    needs: [config, build_and_test, docker_image, wheeldeps, python_wheels]
     # We need to clean up even if the workflow is cancelled or fails.
     if: always()
 
@@ -99,6 +99,7 @@ jobs:
           set -e
           key_matrix='${{ needs.config.outputs.json }}'
           keys=`echo $key_matrix | jq '.cache_key | to_entries | .[].value' --raw-output`
+          keys+=" ${{ needs.wheeldeps.outputs.cache_key }}"
           echo "$keys" >> cache_keys.txt
 
       - uses: actions/upload-artifact@v3
