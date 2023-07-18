@@ -26,7 +26,7 @@ static LogicalResult translateOperatorName(quake::OperatorInterface optor,
                                            StringRef &name) {
   StringRef qkeName = optor->getName().stripDialect();
   if (optor.getControls().size() == 0) {
-    name = StringSwitch<StringRef>(qkeName).Case("r1", "cu1").Default(qkeName);
+    name = StringSwitch<StringRef>(qkeName).Case("r1", "u1").Default(qkeName);
   } else if (optor.getControls().size() == 1) {
     name = StringSwitch<StringRef>(qkeName)
                .Case("h", "ch")
