@@ -12,12 +12,19 @@
 
 namespace cudaq::opt {
 
+// Loops that are transformed into normal form have this attribute.
+static constexpr char NormalizedLoopAttr[] = "normalized";
+
 struct LoopComponents {
   LoopComponents() = default;
+
+  // Get the induction expression of the comparison.
+  mlir::Value getCompareInduction();
 
   bool stepIsAnAddOp();
   bool shouldCommuteStepOp();
   bool isClosedIntervalForm();
+  bool isLinearExpr();
 
   unsigned induction = 0;
   mlir::Value initialValue;
@@ -26,6 +33,18 @@ struct LoopComponents {
   mlir::Region *stepRegion = nullptr;
   mlir::Operation *stepOp = nullptr;
   mlir::Value stepValue;
+
+  // For algebraic manipulation of linear expressions.
+  // The comparison may involve a linear expression on the induction side of the
+  // expression. So a comparison of the form `m * i + b < u` can be normalized
+  // if all terms are loop invariant except for the induction `i`. If
+  // `isLinearExpr` is false, there is no linear expression and the other fields
+  // are not germane. (`u` is `compareValue` above.)
+  bool negatedAddend = false;   // b is -b; b is subtracted.
+  bool reciprocalScale = false; // m is 1/m; m is a divisor.
+  bool minusOneMult = false;    // -1 * m; from b - m * i
+  mlir::Value addendValue;      // b value
+  mlir::Value scaleValue;       // m value
 };
 
 /// Does boundary test defines a semi-open interval?
