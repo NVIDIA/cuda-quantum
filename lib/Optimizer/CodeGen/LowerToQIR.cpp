@@ -716,7 +716,7 @@ public:
     std::vector<Value> args{adaptor.getOperands().front()};
 
     bool appendName;
-    if (regName) {
+    if (regName && !regName.cast<StringAttr>().getValue().empty()) {
       // Change the function name
       qFunctionName += "__to__register";
       // Append a string type argument
