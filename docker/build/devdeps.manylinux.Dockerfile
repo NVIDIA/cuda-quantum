@@ -44,11 +44,11 @@ RUN dnf check-update && dnf install -y --nobest --setopt=install_weak_deps=False
 
 # Build OpenBLAS from source with OpenMP enabled.
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
+ENV BLAS_INSTALL_PREFIX=/usr/local/openblas
+ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$BLAS_INSTALL_PREFIX/lib"
 RUN dnf check-update && dnf install -y --nobest --setopt=install_weak_deps=False wget \
-    && CC=gcc CXX=g++ LLVM_INSTALL_PREFIX=/opt/llvm BLAS_INSTALL_PREFIX=/usr/local/openblas \
-        bash /scripts/install_prerequisites.sh \
+    && bash /scripts/install_prerequisites.sh \
     && dnf remove -y wget && dnf clean all
-ENV BLAS_LIBRARIES=/usr/local/openblas/lib/libopenblas.a
 
 # Install additional dependencies required to build the CUDA Quantum wheel.
 RUN dnf check-update && dnf install -y --nobest --setopt=install_weak_deps=False \

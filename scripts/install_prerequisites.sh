@@ -69,7 +69,8 @@ else
   echo "Configured C++ compiler: $CXX"
 fi
 
-if [ ! -f "$BLAS_INSTALL_PREFIX/lib/libopenblas.a" ]; then
+blas_found=`cmake --find-package -DNAME=OpenBLAS -DCOMPILER_ID=GNU -DLANGUAGE=C -DMODE=EXIST | grep -i "OpenBLAS found"`
+if [ -z "$blas_found" ]; then
   temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
 

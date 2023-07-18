@@ -104,12 +104,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends libstdc++-12-de
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Build and install OpenBLAS with OpenMP enabled.
-ENV BLAS_INSTALL_PREFIX=/usr/local/openblas
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
-RUN apt-get update && apt-get install --no-install-recommends -y wget \
-    && bash /scripts/install_prerequisites.sh \
-    && apt-get remove -y wget \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
+ENV BLAS_INSTALL_PREFIX=/usr/local/openblas
+ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$BLAS_INSTALL_PREFIX/lib"
+RUN bash /scripts/install_prerequisites.sh
 
 # Install additional tools for CUDA Quantum documentation generation.
 RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certificates \
