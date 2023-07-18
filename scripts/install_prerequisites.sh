@@ -89,7 +89,7 @@ if [ ! -f "$OPENBLAS_INSTALL_PREFIX/lib/libopenblas.a" ]; then
 
   wget https://github.com/xianyi/OpenBLAS/releases/download/v0.3.23/OpenBLAS-0.3.23.tar.gz
   tar -xf OpenBLAS-0.3.23.tar.gz && cd OpenBLAS-0.3.23
-  make USE_OPENMP=0 && make install PREFIX="$OPENBLAS_INSTALL_PREFIX"
+  make USE_OPENMP=1 && make install PREFIX="$OPENBLAS_INSTALL_PREFIX"
   cd .. && rm -rf OpenBLAS-0.3.23*
 fi
 
