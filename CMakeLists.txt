@@ -391,9 +391,7 @@ add_subdirectory(lib)
 if (NOT CUDAQ_DISABLE_RUNTIME)
   add_subdirectory(runtime)
 endif()
-if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
-  add_subdirectory(tools)
-endif()
+add_subdirectory(tools)
 add_subdirectory(utils)
 
 # Python setup
@@ -426,7 +424,7 @@ if (CUDAQ_ENABLE_PYTHON)
   add_subdirectory(python)
 endif()
 
-if (CUDAQ_BUILD_RELOCATABLE_PACKAGE) 
+if (CUDAQ_BUILD_RELOCATABLE_PACKAGE AND NOT CUDAQ_DISABLE_CPP_FRONTEND) 
   # Grab the Clang system headers / resource-dir
   install(DIRECTORY ${LLVM_BINARY_DIR}/lib/clang/ DESTINATION lib/clang)
 
