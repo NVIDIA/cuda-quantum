@@ -77,7 +77,7 @@ if [ -z "$openblas_found" ]; then
   temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
 
-  wget -q https://github.com/xianyi/OpenBLAS/releases/download/v0.3.23/OpenBLAS-0.3.23.tar.gz
+  wget https://github.com/xianyi/OpenBLAS/releases/download/v0.3.23/OpenBLAS-0.3.23.tar.gz
   tar -xf OpenBLAS-0.3.23.tar.gz && cd OpenBLAS-0.3.23
   # FIXME: set USE_OPENMP to 1 after enabling it in the llvm build.
   make USE_OPENMP=0 && make install PREFIX="$OPENBLAS_INSTALL_PREFIX"
@@ -90,7 +90,7 @@ if [ -z "$openssl_found" ]; then
   temp_install_if_command_unknown git git
   temp_install_if_command_unknown make make
 
-  wget -q https://www.openssl.org/source/openssl-3.1.1.tar.gz
+  wget https://www.openssl.org/source/openssl-3.1.1.tar.gz
   tar -xf openssl-3.1.1.tar.gz && cd openssl-3.1.1
   ./config no-zlib --prefix="$OPENSSL_INSTALL_PREFIX" --openssldir="$OPENSSL_INSTALL_PREFIX"
   make install && cd .. && rm -rf openssl-3.1.1*
