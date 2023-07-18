@@ -70,6 +70,15 @@ RUN source /opt/llvm/bootstrap/init_command.sh && \
         bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
     && rm -rf /llvm-project 
 
+FROM ubuntu:22.04 as prereqs
+ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
+RUN apt-get update && apt-get install --no-install-recommends -y ca-certificates \
+    && export OPENBLAS_INSTALL_PREFIX=/usr/local/openblas \
+    && exprot OPENSSL_INSTALL_PREFIX=/usr/local/openssl \
+    && bash /scripts/install_prerequisites.sh \
+    && apt-get remove -y ca-certificates \
+    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 FROM ubuntu:22.04
 SHELL ["/bin/bash", "-c"]
 
@@ -103,16 +112,12 @@ ENV CXX="$LLVM_INSTALL_PREFIX/bootstrap/cxx"
 RUN apt-get update && apt-get install -y --no-install-recommends libstdc++-12-dev \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Build and install OpenBLAS with OpenMP enabled.
-ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
+# Copy over other prerequisites we build from source.
+COPY --from=prereqs /usr/local/openblas /usr/local/openblas
+COPY --from=prereqs /usr/local/openssl /usr/local/openssl
 ENV OPENBLAS_INSTALL_PREFIX=/usr/local/openblas
 ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
 ENV OPENSSL_ROOT_DIR="$OPENSSL_INSTALL_PREFIX"
-RUN apt-get update && apt-get install --no-install-recommends -y ca-certificates \
-    && bash /scripts/install_prerequisites.sh \
-    # NOTE: apt-get remove -y ca-certificates also remove python3-pip.
-    && apt-get remove -y ca-certificates \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install additional tools for CUDA Quantum documentation generation.
 RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certificates \

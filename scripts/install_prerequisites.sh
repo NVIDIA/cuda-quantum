@@ -85,6 +85,9 @@ if [ ! -f "$OPENBLAS_INSTALL_PREFIX/lib/libopenblas.a" ]; then
   apt-get update
   temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
+  temp_install_if_command_unknown gcc gcc
+  temp_install_if_command_unknown g++ g++
+  temp_install_if_command_unknown gfortran gfortran
 
   wget https://github.com/xianyi/OpenBLAS/releases/download/v0.3.23/OpenBLAS-0.3.23.tar.gz
   tar -xf OpenBLAS-0.3.23.tar.gz && cd OpenBLAS-0.3.23

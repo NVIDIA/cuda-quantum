@@ -111,11 +111,6 @@ jobs:
 #      name: ${{ inputs.environment || 'default' }}
 #      url: ${{ vars.deployment_url || format('https://github.com/{0}', github.repository) }}
 
-  validation:
-    name: Prepare cache clean-up
-    needs: build_wheel # + publish wheel
-    runs-on: ubuntu-latest
-
   clean_up:
     name: Prepare cache clean-up
     needs: build_wheel # + publish wheel
