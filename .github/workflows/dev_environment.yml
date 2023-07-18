@@ -181,7 +181,8 @@ jobs:
       - name: Create cache locations
         id: cache
         run: |
-          toolchain=${{ inputs.toolchain }}
+          # FIXME: remove the x86_64 -> gcc12 conversion (done to preserve a cache)
+          toolchain=${{ inputs.toolchain == 'x86_64' && 'gcc12' || inputs.toolchain }}
           platform_id=`echo "${{ inputs.platforms }}" | tr -d ' ' | tr / - | tr ',' -`
           if [ "$platform_id" == "linux-amd64" ]; then unset platform_id; fi
           registry_cache=ghcr.io/${{ needs.metadata.outputs.owner }}/buildcache-cuda-quantum
