@@ -59,12 +59,63 @@ jobs:
               echo "ctest status = " $ctest_status
               echo "llvm-lit status = " $lit_status
               exit 1
-            fi 
+            fi
 
-      - name: Test CUDA Quantum (Python)
+      - name: Save environment
+        id: env_save
+        if: inputs.export_environment
+        run: |
+          output_directory=/tmp
+          filename=${{ steps.cudaq_build.outputs.tag_prefix }}_build
+
+          docker run --name cuda-quantum-dev cuda-quantum-dev:local
+          docker export cuda-quantum-dev > $output_directory/$filename.tar
+          docker rm -f cuda-quantum-dev
+    
+          echo "filename=$filename" >> $GITHUB_OUTPUT
+          echo "output_directory=$output_directory" >> $GITHUB_OUTPUT
+
+      - name: Upload environment
+        uses: actions/upload-artifact@v3
+        if: inputs.export_environment
+        with:
+          name: ${{ steps.env_save.outputs.filename }}
+          path: ${{ steps.env_save.outputs.output_directory }}/${{ steps.env_save.outputs.filename }}.tar
+          retention-days: 1
+
+  build_and_test_python:
+    name: Dev environment (Python)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Restore environment
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ inputs.devdeps_archive }}
+          key: ${{ inputs.devdeps_cache }}
+          fail-on-cache-miss: true
+
+      - name: Set up dev environment
+        id: dev_env
+        run: |
+          base_image=`docker load --input "${{ inputs.devdeps_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+          devdeps_tag=`echo $base_image | rev | cut -d ":" -f 1 | rev`
+
+          docker build -t dev_env:local -f docker/build/cudaq.dev.Dockerfile . \
+            --build-arg base_image=$base_image 
+
+          tag_prefix=`echo $devdeps_tag | cut -d "_" -f 1`
+          echo "tag_prefix=py_$tag_prefix" >> $GITHUB_OUTPUT
+
+      - name: Build and test CUDA Quantum (Python)
         uses: addnab/docker-run-action@v3
         with:
-          image: cuda-quantum-dev:local
+          image: dev_env:local
           shell: bash
           run: |
             cd $CUDAQ_REPO_ROOT
@@ -81,11 +132,11 @@ jobs:
         if: inputs.export_environment
         run: |
           output_directory=/tmp
-          filename=${{ steps.cudaq_build.outputs.tag_prefix }}_build
+          filename=${{ steps.dev_env.outputs.tag_prefix }}_build
 
-          docker run --name cuda-quantum-dev cuda-quantum-dev:local
-          docker export cuda-quantum-dev > $output_directory/$filename.tar
-          docker rm -f cuda-quantum-dev
+          docker run --name dev_env dev_env:local
+          docker export dev_env > $output_directory/$filename.tar
+          docker rm -f dev_env
     
           echo "filename=$filename" >> $GITHUB_OUTPUT
           echo "output_directory=$output_directory" >> $GITHUB_OUTPUT
