@@ -227,8 +227,7 @@ bool IonQServerHelper::jobIsDone(ServerMessage &getJobResponse) {
         "account for more information.");
 
   // Return whether the job is completed
-  auto ret = jobs[0].at("status").get<std::string>() == "completed";
-  return ret;
+  return jobs[0].at("status").get<std::string>() == "completed";
 }
 
 // Process the results from a job
