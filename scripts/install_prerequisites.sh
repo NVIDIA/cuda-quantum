@@ -81,7 +81,7 @@ if [ -z "$openblas_found" ]; then
   tar -xf OpenBLAS-0.3.23.tar.gz && cd OpenBLAS-0.3.23
   # FIXME: set USE_OPENMP to 1 after enabling it in the llvm build.
   make USE_OPENMP=0 && make install PREFIX="$OPENBLAS_INSTALL_PREFIX"
-  cd .. && rm -rf OpenBLAS-0.3.23.tar.gz OpenBLAS-0.3.23
+  cd .. && rm -rf OpenBLAS-0.3.23*
 fi
 
 export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$OPENSSL_INSTALL_PREFIX/lib"
@@ -90,7 +90,8 @@ if [ -z "$openssl_found" ]; then
   temp_install_if_command_unknown git git
   temp_install_if_command_unknown make make
 
-  git clone https://github.com/openssl/openssl && cd openssl
+  wget -q https://www.openssl.org/source/openssl-3.1.1.tar.gz
+  tar -xf openssl-3.1.1.tar.gz && cd openssl-3.1.1
   ./config --prefix="$OPENSSL_INSTALL_PREFIX" --openssldir="$OPENSSL_INSTALL_PREFIX" -static zlib
-  make install && cd .. && rm -rf openssl
+  make install && cd .. && rm -rf openssl-3.1.1*
 fi
