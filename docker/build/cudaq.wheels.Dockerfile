@@ -14,7 +14,7 @@
 #   DOCKER_BUILDKIT=1 docker build -f docker/build/cudaq.wheels.Dockerfile . --output out
 
 ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:manylinux
-FROM base_image as wheelbuild
+FROM $base_image as wheelbuild
 
 ARG release_version=
 ENV CUDA_QUANTUM_VERSION=$release_version
