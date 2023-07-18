@@ -45,8 +45,8 @@ jobs:
             Checking out source code from head `${{ steps.pr_info.outputs.source_label }}` (sha: ${{ steps.pr_info.outputs.source_sha }}).
           edit-mode: append
 
-  run_ci:
-    name: Create caches
+  devdeps_caches:
+    name: Cache dev dependencies
     needs: config
     strategy:
       matrix:
@@ -60,9 +60,23 @@ jobs:
       registry_cache_from: ${{ needs.config.outputs.target_branch }}
       pull_request_number: ${{ needs.config.outputs.pull_request_number }}
 
+  wheeldeps_caches:
+    name: Cache wheel dependencies
+    needs: config
+    uses: ./.github/workflows/dev_environment.yml
+    with:
+      dockerfile: build/devdeps.manylinux.Dockerfile
+      toolchain: gcc12 # set by the dockerfile and not configurable
+      build_args: |
+        manylinux_image=quay.io/pypa/manylinux_2_28_x86_64:latest
+      create_local_cache: true
+      registry_cache_from: ${{ needs.config.outputs.target_branch }}
+      pull_request_number: ${{ needs.config.outputs.pull_request_number }}
+
   finalize:
     name: Indicate completion
     runs-on: ubuntu-latest
+    needs: [devdeps_caches, wheeldeps_caches]
     steps:
       - name: Add reaction to comment
         if: inputs.comment_id
