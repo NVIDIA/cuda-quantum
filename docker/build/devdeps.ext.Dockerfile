@@ -121,10 +121,10 @@ ENV CUQUANTUM_INSTALL_PREFIX="$CUQUANTUM_INSTALL_PREFIX"
 ENV LD_LIBRARY_PATH="$CUQUANTUM_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
 
 RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
-    && wget https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-x86_64/cuquantum-linux-x86_64-22.11.0.13-archive.tar.xz \
-    && tar xf cuquantum-linux-x86_64-22.11.0.13-archive.tar.xz \
-    && mkdir -p /opt/nvidia && mv cuquantum-linux-x86_64-22.11.0.13-archive "$CUQUANTUM_INSTALL_PREFIX" \
-    && cd / && rm -rf cuquantum-linux-x86_64-22.11.0.13-archive.tar.xz \
+    && wget https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-x86_64/cuquantum-linux-x86_64-23.06.0.7_cuda11-archive.tar.xz \
+    && tar xf cuquantum-linux-x86_64-23.06.0.7_cuda11-archive.tar.xz \
+    && mkdir -p /opt/nvidia && mv cuquantum-linux-x86_64-23.06.0.7_cuda11-archive "$CUQUANTUM_INSTALL_PREFIX" \
+    && cd / && rm -rf cuquantum-linux-x86_64-23.06.0.7_cuda11-archive.tar.xz \
     && apt-get remove -y xz-utils \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
@@ -135,10 +135,10 @@ ENV CUTENSOR_INSTALL_PREFIX="$CUTENSOR_INSTALL_PREFIX"
 ENV LD_LIBRARY_PATH="$CUTENSOR_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
 
 RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
-    && wget https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor/linux-x86_64/libcutensor-linux-x86_64-1.6.2.3-archive.tar.xz \
-    && tar xf libcutensor-linux-x86_64-1.6.2.3-archive.tar.xz && cd libcutensor-linux-x86_64-1.6.2.3-archive \
+    && wget https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor/linux-x86_64/libcutensor-linux-x86_64-1.7.0.1-archive.tar.xz \
+    && tar xf libcutensor-linux-x86_64-1.7.0.1-archive.tar.xz && cd libcutensor-linux-x86_64-1.7.0.1-archive \
     && mkdir -p "$CUTENSOR_INSTALL_PREFIX" && mv include "$CUTENSOR_INSTALL_PREFIX" && mv lib/11 "$CUTENSOR_INSTALL_PREFIX/lib" \
-    && cd / && rm -rf libcutensor-linux-x86_64-1.6.2.3-archive* \
+    && cd / && rm -rf libcutensor-linux-x86_64-1.7.0.1-archive* \
     && apt-get remove -y xz-utils \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
