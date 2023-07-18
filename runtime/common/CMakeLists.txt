@@ -39,9 +39,9 @@ if (CMAKE_COMPILER_IS_GNUCXX
   target_compile_options(${LIBRARY_NAME} PUBLIC --param=evrp-mode=legacy)
 endif()
 
-# We can only build the RestClient support if we have Curl+OpenSSL
-if(CURL_FOUND AND OPENSSL_FOUND)
-  message(STATUS "Curl and OpenSSL Found, building REST Client.")
+# We can only build the RestClient support if we have OpenSSL
+if(OPENSSL_FOUND)
+  message(STATUS "OpenSSL Found, building REST Client.")
 
   include(FetchContent)
   FetchContent_Declare(cpr GIT_REPOSITORY https://github.com/libcpr/cpr.git
@@ -49,7 +49,7 @@ if(CURL_FOUND AND OPENSSL_FOUND)
 
   # These variables are set for the cpr build, should 
   # be local scope for this directory.
-  set(CPR_FORCE_USE_SYSTEM_CURL ON CACHE BOOL "")
+  set(CPR_FORCE_USE_SYSTEM_CURL FALSE)
   set(BUILD_SHARED_LIBS OFF)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-covered-switch-default")
   if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
@@ -65,7 +65,7 @@ if(CURL_FOUND AND OPENSSL_FOUND)
 
   target_sources(${LIBRARY_NAME} PRIVATE RestClient.cpp)
   target_link_libraries(${LIBRARY_NAME} PRIVATE cpr::cpr)
-  target_compile_definitions(${LIBRARY_NAME} PRIVATE -DCUDAQ_CURL_AVAILABLE)
+  target_compile_definitions(${LIBRARY_NAME} PRIVATE -DCUDAQ_RESTCLIENT_AVAILABLE)
 endif()
 
 

@@ -368,9 +368,8 @@ if(CMAKE_CUDA_COMPILER)
   message(STATUS "Cuda language found. Will build NVIDIA Platform.")
 endif()
 
-# Check for CURL and OpenSSL
-find_package(CURL COMPONENTS HTTP HTTPS) 
-find_package(OpenSSL)
+# Check for OpenSSL
+find_package(OpenSSL REQUIRED)
 
 # Optionally build with MPI
 if (NOT CUDAQ_SKIP_MPI)

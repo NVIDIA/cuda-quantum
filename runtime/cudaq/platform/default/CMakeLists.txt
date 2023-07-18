@@ -33,7 +33,7 @@ install(EXPORT cudaq-platform-default-targets
         NAMESPACE cudaq::
         DESTINATION lib/cmake/cudaq)
 
-if (CURL_FOUND AND OPENSSL_FOUND)
+if (OPENSSL_FOUND)
   add_subdirectory(rest)
 endif()
 
