@@ -92,6 +92,6 @@ if [ -z "$openssl_found" ]; then
 
   wget -q https://www.openssl.org/source/openssl-3.1.1.tar.gz
   tar -xf openssl-3.1.1.tar.gz && cd openssl-3.1.1
-  ./config --prefix="$OPENSSL_INSTALL_PREFIX" --openssldir="$OPENSSL_INSTALL_PREFIX" -static zlib
+  ./config no-zlib --prefix="$OPENSSL_INSTALL_PREFIX" --openssldir="$OPENSSL_INSTALL_PREFIX"
   make install && cd .. && rm -rf openssl-3.1.1*
 fi
