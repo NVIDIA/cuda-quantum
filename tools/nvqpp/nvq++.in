@@ -374,7 +374,8 @@ while [ $# -ne 0 ]; do
 		SRCS="${SRCS} $1"
 		;;
 	*)
-		echo "argument $1 is ignored" >&2
+		#FIXME: issue #258
+		#echo "argument $1 is ignored" >&2
 		ARGS="${ARGS} $1"
 		;;
 	esac
