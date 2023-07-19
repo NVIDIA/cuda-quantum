@@ -82,7 +82,7 @@ jobs:
     needs: wheeldeps
     strategy:
       matrix:
-        python_version: ['3.8', '3.11']
+        python_version: ['3.8', '3.10']
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
     with:
