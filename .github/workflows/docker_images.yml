@@ -475,7 +475,7 @@ jobs:
           (docker exec cuda-quantum-dev bash -c "export $docs_version && bash scripts/build_docs.sh" && built=true) || built=false
           if $built; then docker cp cuda-quantum-dev:"/usr/local/cudaq/docs/." docs; \
           else docker cp cuda-quantum-dev:"/workspaces/cuda-quantum/build/." /tmp/build; fi
-          docker stop cuda-quantum-dev && docker image rm $cudaqdev_image
+          docker stop cuda-quantum-dev
           if $built; then `exit 0`; else `exit 1`; fi
 
           html_files=`find docs/api/ -type f -name "*.html"`
