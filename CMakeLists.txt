@@ -122,11 +122,8 @@ endif()
 if(NOT CUSTATEVEC_ROOT)
   SET(CUSTATEVEC_ROOT "$ENV{CUQUANTUM_INSTALL_PREFIX}")
 endif()
-if(NOT OPENSSL_ROOT_DIR)
-  SET(OPENSSL_ROOT_DIR "$ENV{OPENSSL_INSTALL_PREFIX}")
-endif()
-if(NOT BLAS_LIBRARIES)
-  SET(BLAS_LIBRARIES "$ENV{BLAS_LIBRARIES}")
+if(NOT OPENSSL_ROOT_DIR)	
+  SET(OPENSSL_ROOT_DIR "$ENV{OPENSSL_INSTALL_PREFIX}")	
 endif()
 
 SET(CMAKE_SKIP_BUILD_RPATH FALSE)
@@ -135,13 +132,16 @@ SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 SET(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/lib/plugins:$ORIGIN/../lib:$ORIGIN/../lib/plugins")
 
+SET(BLA_STATIC ON)
+if(NOT DEFINED OPENSSL_USE_STATIC_LIBS)
+  SET(OPENSSL_USE_STATIC_LIBS TRUE)
+endif()
+
 if (CUDAQ_BUILD_SELFCONTAINED)
   # Using -static-libgcc -static-libstdc++ offers finer control here if needed.
   # At the time of writing, there wasn't any benefit to using those over -static.
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
   SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static")
-  # If the above if modified to something more granular, we need the line below.
-  SET(OPENSSL_USE_STATIC_LIBS TRUE)
   SET(CUDAQ_BUILD_RELOCATABLE_PACKAGE TRUE)
 endif()
 
@@ -366,9 +366,8 @@ if(CMAKE_CUDA_COMPILER)
   message(STATUS "Cuda language found. Will build NVIDIA Platform.")
 endif()
 
-# Check for CURL and OpenSSL
-find_package(CURL COMPONENTS HTTP HTTPS QUIET) 
-find_package(OpenSSL QUIET)
+# Check for OpenSSL
+find_package(OpenSSL)
 
 # Optionally build with MPI
 if (NOT CUDAQ_SKIP_MPI)
@@ -390,10 +389,9 @@ add_subdirectory(lib)
 if (NOT CUDAQ_DISABLE_RUNTIME)
   add_subdirectory(runtime)
 endif()
-if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
+if (NOT CUDAQ_DISABLE_TOOLS)
   add_subdirectory(tools)
 endif()
-
 add_subdirectory(utils)
 
 # Python setup
@@ -426,7 +424,7 @@ if (CUDAQ_ENABLE_PYTHON)
   add_subdirectory(python)
 endif()
 
-if (CUDAQ_BUILD_RELOCATABLE_PACKAGE) 
+if (CUDAQ_BUILD_RELOCATABLE_PACKAGE AND NOT CUDAQ_DISABLE_CPP_FRONTEND) 
   # Grab the Clang system headers / resource-dir
   install(DIRECTORY ${LLVM_BINARY_DIR}/lib/clang/ DESTINATION lib/clang)
 

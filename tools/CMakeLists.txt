@@ -6,8 +6,11 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_subdirectory(nvqpp)
-add_subdirectory(cudaq-lsp-server)
 add_subdirectory(cudaq-opt)
-add_subdirectory(cudaq-quake)
 add_subdirectory(cudaq-translate)
+
+if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
+  add_subdirectory(cudaq-quake)
+  add_subdirectory(nvqpp)
+  add_subdirectory(cudaq-lsp-server)
+endif()

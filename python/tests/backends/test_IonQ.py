@@ -6,17 +6,22 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+
 import cudaq, pytest, os, time
 from cudaq import spin
-from utils.mock_qpu.ionq import startServer
 from multiprocessing import Process
-
-# Define the port for the mock server
-port = 62455
+try:
+    from utils.mock_qpu.ionq import startServer
+except:
+    print("Mock qpu not available, skipping IonQ tests.")
+    # TODO: Once we remove the general skip below, it should go here.
 
 pytest.skip(
     "This file produces a segmentation fault on the CI but not locally. See https://github.com/NVIDIA/cuda-quantum/issues/303.",
     allow_module_level=True)
+
+# Define the port for the mock server
+port = 62455
 
 
 def assert_close(want, got, tolerance=1.0e-5) -> bool:

@@ -1,0 +1,232 @@
+on:
+  workflow_call:
+    inputs:
+      python_version:
+        type: string
+        required: false
+        default: '3.10'
+      devdeps_image:
+        required: false
+        type: string
+      devdeps_cache:
+        required: false
+        type: string
+      devdeps_archive:
+        required: false
+        type: string
+
+name: Python wheels
+
+jobs:
+  build_wheel:
+    name: Build Python ${{ inputs.python_version }} wheel
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    outputs:
+      wheel_cache: ${{ steps.prereqs.outputs.wheel_cache }}
+      wheel_path: ${{ steps.prereqs.outputs.wheel_path }}
+
+    # Needed for making local images available to the docker/build-push-action.
+    # See also https://stackoverflow.com/a/63927832.
+    services:
+        registry:
+          image: registry:2
+          ports:
+            - 5000:5000
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Restore build environment
+        if: inputs.devdeps_cache && inputs.devdeps_archive
+        id: restore
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ inputs.devdeps_archive }}
+          key: ${{ inputs.devdeps_cache }}
+          fail-on-cache-miss: true
+
+      - name: Load prerequisites
+        id: prereqs
+        run: |
+          if ${{ steps.restore.outcome != 'skipped' }}; then
+            base_image=`docker load --input "${{ inputs.devdeps_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+            # Push the image to the local registry to make it available within
+            # the containered environment that docker/build-push-action uses.
+            docker push $base_image
+            rm -rf "${{ inputs.devdeps_archive }}"
+          elif ${{ inputs.devdeps_image != '' }}; then
+            base_image=${{ inputs.devdeps_image }}
+            docker pull $base_image
+          else
+            echo "Missing configuration for development dependencies. Either specify the image (i.e. provide devdeps_image) or cache (i.e. provide devdeps_cache and devdeps_archive) that should be used for the build." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+          devenv_tag=`docker inspect $base_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"'`
+          docker image rm $base_image && docker image prune --force
+          cache_id=`echo ${{ inputs.python_version }}-$devenv_tag | tr . -`
+          wheel_path=/tmp/pycudaq && mkdir -p "$wheel_path"
+
+          if ${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') }}; then
+            cudaq_version=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
+          else
+            cudaq_version=0.0.0
+          fi
+        
+          echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
+          echo "base_image=$base_image" >> $GITHUB_OUTPUT
+          echo "docker_output=type=local,dest=$wheel_path" >> $GITHUB_OUTPUT
+          echo "cache_id=$cache_id" >> $GITHUB_OUTPUT
+          echo "wheel_cache=pycudaq-$cache_id-${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "wheel_path=$wheel_path" >> $GITHUB_OUTPUT
+
+      - name: Set up buildx runner
+        uses: docker/setup-buildx-action@v2
+        with:
+            driver-opts: network=host
+
+      - name: Build wheel
+        id: wheel_build
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./docker/build/cudaq.wheel.Dockerfile
+          build-args: |
+            base_image=${{ steps.prereqs.outputs.base_image }}
+            release_version=${{ steps.prereqs.outputs.cudaq_version }}
+            python_version=${{ inputs.python_version }}
+          outputs: ${{ steps.prereqs.outputs.docker_output }}
+
+      - name: Upload wheel
+        uses: actions/upload-artifact@v3
+        with:
+          name: pycudaq-${{ steps.prereqs.outputs.cache_id }} # do not change this prefix without adjusting other workflows
+          path: ${{ steps.prereqs.outputs.wheel_path }}
+          retention-days: 5
+          if-no-files-found: error
+
+      - name: Cache wheel
+        uses: actions/cache/save@v3
+        with:
+          path: ${{ steps.prereqs.outputs.wheel_path }}
+          key: ${{ steps.prereqs.outputs.wheel_cache }}
+
+  validation:
+    name: Validate wheel
+    needs: build_wheel
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    strategy:
+      matrix:
+        os_image: ['ubuntu:22.04']
+        pip_install_flags: ['', '--user']
+      fail-fast: false
+  
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Load cuda-quantum wheel
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ needs.build_wheel.outputs.wheel_path }}
+          key: ${{ needs.build_wheel.outputs.wheel_cache }}
+          fail-on-cache-miss: true
+
+      - name: Install wheel in clean environment
+        run: |
+          echo 'FROM ${{ matrix.os_image }}' > validation.Dockerfile
+          echo 'ARG DEBIAN_FRONTEND=noninteractive' >> validation.Dockerfile
+          echo 'RUN apt-get update && apt-get install -y software-properties-common python3-pip'  >> validation.Dockerfile
+          echo 'RUN add-apt-repository ppa:deadsnakes/ppa && apt-get update \' >> validation.Dockerfile
+          echo '    && apt-get install -y python${{ inputs.python_version }} python${{ inputs.python_version }}-distutils' >> validation.Dockerfile
+          echo 'RUN python${{ inputs.python_version }} -m pip install numpy pytest' >> validation.Dockerfile
+
+          mv ${{ needs.build_wheel.outputs.wheel_path }}/cuda_quantum-*-manylinux_*_x86_64.whl .
+          wheelname=`echo cuda_quantum-*-manylinux_*_x86_64.whl`
+          echo "COPY $wheelname /tmp/$wheelname" >> validation.Dockerfile
+          echo 'COPY docs/sphinx/examples/python /tmp/examples/' >> validation.Dockerfile
+          echo 'COPY python/tests /tmp/tests/' >> validation.Dockerfile
+          echo "RUN python${{ inputs.python_version }} -m pip install ${{ matrix.pip_install_flags }} /tmp/$wheelname" >> validation.Dockerfile
+
+          docker build -t wheel_validation:local -f validation.Dockerfile .
+          docker run --rm -dit --name wheel-validation wheel_validation:local
+          (docker exec wheel-validation python${{ inputs.python_version }} -c "import cudaq") && imported=true || imported=false
+          docker stop wheel-validation
+
+          if ! $imported; then echo "Failed to import cudaq module." >> /tmp/validation.out
+          else echo "Successfully imported cudaq module." >> /tmp/validation.out; fi
+
+      - name: Run Python tests
+        uses: addnab/docker-run-action@v3
+        with:
+          image: wheel_validation:local
+          shell: bash
+          run: |
+            python${{ inputs.python_version }} -m pytest /tmp/tests/
+            pytest_status=$?
+            if [ ! $pytest_status -eq 0 ]; then
+              echo "pytest status = " $pytest_status
+              exit 1
+            fi
+
+      - name: Validate Python examples
+        run: |
+          docker run --rm -dit --name wheel-validation wheel_validation:local
+          validation_passed=true
+
+          for file in `ls docs/sphinx/examples/python`; do
+            echo "__Example ${file}:__" >> /tmp/validation.out
+
+            (docker exec wheel-validation bash -c "python${{ inputs.python_version }} /tmp/examples/$file" >> /tmp/validation.out) && success=true || success=false
+            if $success; then 
+              echo "Executed successfully." >> /tmp/validation.out
+            else
+              echo "Failed." >> /tmp/validation.out
+              validation_passed=false
+            fi
+          done
+
+          docker stop wheel-validation
+          if [ ! $validation_passed ]; then exit 1; fi
+
+      - name: Create job summary
+        if: always() && !cancelled() 
+        run: |
+          if [ -f /tmp/validation.out ]; then
+            if [ -n "${{ matrix.pip_install_flags }}" ]; then 
+                installation_details="(installed with ${{ matrix.pip_install_flags }})"
+            else 
+                installation_details="(default installation)"
+            fi
+            echo "## Validation on ${{ matrix.os_image }} $installation_details" >> $GITHUB_STEP_SUMMARY
+            echo "The validation of the cuda-quantum Python wheel produced the following output:" >> $GITHUB_STEP_SUMMARY
+            cat /tmp/validation.out >> $GITHUB_STEP_SUMMARY
+          fi
+
+  clean_up:
+    name: Prepare cache clean-up
+    needs: [build_wheel, validation]
+    runs-on: ubuntu-latest
+    # We need to clean up even if the workflow is cancelled or fails.
+    if: always()
+
+    steps:
+      - name: Save cache keys
+        id: workflow_inputs
+        run: |
+          keys=${{ needs.build_wheel.outputs.wheel_cache }}
+          echo "$keys" >> cache_keys.txt
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: cache_keys_wheels
+          path: cache_keys.txt
+          retention-days: 1
+          if-no-files-found: error

@@ -18,7 +18,7 @@ sample_result future::get() {
   if (wrapsFutureSampling)
     return inFuture.get();
 
-#ifdef CUDAQ_CURL_AVAILABLE
+#ifdef CUDAQ_RESTCLIENT_AVAILABLE
   RestClient client;
   auto serverHelper = registry::get<ServerHelper>(qpuName);
   serverHelper->initialize(serverConfig);
@@ -44,7 +44,7 @@ sample_result future::get() {
   return sample_result(results);
 #else
   throw std::runtime_error("cudaq::details::future::get() requires REST Client "
-                           "but CUDA Quantum not built with CURL support.");
+                           "but CUDA Quantum was built without it.");
   return sample_result();
 #endif
 }

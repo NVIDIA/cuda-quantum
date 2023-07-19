@@ -41,6 +41,9 @@ RUN mkdir /usr/local/cudaq_assets && cd /usr/local/cudaq_assets && \
     if [ -d "$CUQUANTUM_INSTALL_PREFIX" ]; then mv "$CUQUANTUM_INSTALL_PREFIX"/* "/usr/local/cudaq_assets/cuquantum"; fi && \
     if [ "$CUDAQ_INSTALL_PREFIX" != "/usr/local/cudaq" ]; then mv "$CUDAQ_INSTALL_PREFIX" "/usr/local/cudaq"; fi
 
+# We should be able to relocate this as long as we define the OPENSSL_ROOT_DIR environment variable.
+RUN if [ "$OPENSSL_INSTALL_PREFIX" != "/usr/local/openssl" ]; then mv "$OPENSSL_INSTALL_PREFIX" "/usr/local/openssl"; fi
+
 FROM $base_image
 SHELL ["/bin/bash", "-c"]
 ENV SHELL=/bin/bash LANG=C.UTF-8 LC_ALL=C.UTF-8
@@ -51,15 +54,17 @@ ENV UCX_LOG_LEVEL=error
 # Given as arg to make sure that this value is only set during build but not in the launched container.
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        ca-certificates openssl wget git sudo vim \
+        ca-certificates wget git sudo vim \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # Install CUDA Quantum runtime dependencies.
 
+ENV OPENSSL_ROOT_DIR="/opt/openssl"
+COPY --from=cudaqbuild "/usr/local/openssl/" "$OPENSSL_ROOT_DIR"
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 python3-pip libpython3-dev \
         libstdc++-12-dev \
-        libcurl4-openssl-dev libssl-dev \
+        libcurl4-openssl-dev \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && python3 -m pip install --no-cache-dir numpy \
     && ln -s /bin/python3 /bin/python

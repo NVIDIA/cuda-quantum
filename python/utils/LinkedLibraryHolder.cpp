@@ -132,7 +132,6 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
                        dlopen(p.string().c_str(), RTLD_GLOBAL | RTLD_NOW));
 
   // We will always load the RemoteRestQPU plugin in Python.
-  // It will be built when CURL and OpenSSL are present.
   auto potentialPath =
       cudaqLibPath / fmt::format("libcudaq-rest-qpu.{}", libSuffix);
   void *restQpuLibHandle =
