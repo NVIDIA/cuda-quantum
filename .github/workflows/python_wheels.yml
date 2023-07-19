@@ -1,22 +1,19 @@
 on:
-    workflow_call:
-      inputs:
-        python_version:
-          type: string
-          required: false
-          default: '3.10'
-        devdeps_image:
-          required: false
-          type: string
-        devdeps_cache:
-          required: false
-          type: string
-        devdeps_archive:
-          required: false
-          type: string
-        environment:
-          required: false
-          type: string
+  workflow_call:
+    inputs:
+      python_version:
+        type: string
+        required: false
+        default: '3.10'
+      devdeps_image:
+        required: false
+        type: string
+      devdeps_cache:
+        required: false
+        type: string
+      devdeps_archive:
+        required: false
+        type: string
 
 name: Python wheels
 
@@ -145,6 +142,7 @@ jobs:
       - name: Install wheel in clean environment
         run: |
           echo 'FROM ${{ matrix.os_image }}' > validation.Dockerfile
+          echo 'ARG DEBIAN_FRONTEND=noninteractive' >> validation.Dockerfile
           echo 'RUN apt-get update && apt-get install -y software-properties-common python3-pip'  >> validation.Dockerfile
           echo 'RUN add-apt-repository ppa:deadsnakes/ppa && apt-get update \' >> validation.Dockerfile
           echo '    && apt-get install -y python${{ inputs.python_version }}' >> validation.Dockerfile

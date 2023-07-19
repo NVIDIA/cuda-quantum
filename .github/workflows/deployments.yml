@@ -177,6 +177,4 @@ jobs:
     secrets: inherit
     with:
       python_version: ${{ matrix.python_version }}
-      devdeps_cache: ${{ needs.wheeldeps.outputs.cache_key }}
-      devdeps_archive: ${{ needs.wheeldeps.outputs.tar_archive }}
-      environment: ghcr-deployment
+      devdeps_image: ${{ needs.wheeldeps.outputs.image_hash }}
