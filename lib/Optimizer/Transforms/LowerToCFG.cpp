@@ -259,9 +259,9 @@ public:
     if (hasElse)
       rewriter.inlineRegionBefore(ifOp.getElseRegion(), endBlock);
     rewriter.setInsertionPointToEnd(initBlock);
-    rewriter.replaceOpWithNewOp<cf::CondBranchOp>(ifOp, ifOp.getCondition(),
-                                                  thenBlock, ValueRange{},
-                                                  elseBlock, ValueRange{});
+    rewriter.create<cf::CondBranchOp>(loc, ifOp.getCondition(), thenBlock,
+                                      ValueRange{}, elseBlock, ValueRange{});
+    rewriter.replaceOp(ifOp, endBlock->getArguments());
     return success();
   }
 
