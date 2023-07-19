@@ -193,7 +193,7 @@ jobs:
             fi
           done
 
-          docker stop wheel-validation && docker image rm wheel_validation:local
+          docker stop wheel-validation
           if [ ! $validation_passed ]; then exit 1; fi
 
       - name: Create job summary
