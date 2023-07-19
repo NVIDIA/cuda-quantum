@@ -163,41 +163,31 @@ jobs:
             exit 1
           fi
 
+          echo "## Validation" >> $GITHUB_STEP_SUMMARY
+          echo "The validation of the cuda-quantum Python wheel produced the following output:" >> $GITHUB_STEP_SUMMARY
+
           docker build -t wheel_validation:local -f validation.Dockerfile .
           docker run --rm -dit --name wheel-validation wheel_validation:local
-          (docker exec wheel-validation python3.10 -c "import cuda_quantum") && imported=true || imported=false
-          if $imported; then `exit 0`; else `exit 1`; fi
-          docker stop wheel-validation && docker image rm wheel_validation:local
+          (docker exec wheel-validation python${{ inputs.python_version }} -c "import cuda_quantum") && imported=true || imported=false >>
 
-          #for file in `ls /tmp/python/`; do
-          #  python3 /tmp/python/$file >> /tmp/validation.out
-          #done
-          #exit && docker cp $container_id:/tmp/validation.out /tmp/validation.out
-          #docker container rm $container_id
+          if ! $imported; then echo "Failed to import cudaq module." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Successfully imported cudaq module." >> $GITHUB_STEP_SUMMARY
+            validation_passed=true
 
-      - name: Create job summary
-        if: always() && !cancelled()
-        run: |
-          if [ -f /tmp/validation.out ]; then
-            echo "## Validation" >> $GITHUB_STEP_SUMMARY
-            echo "The validation of the cuda-quantum Python wheel produced the following output:" >> $GITHUB_STEP_SUMMARY
-            echo '```text' >> $GITHUB_STEP_SUMMARY
-            cat /tmp/validation.out >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
+            for file in `ls docs/sphinx/examples/python`; do
+              echo "__Example ${file}:__" >> $GITHUB_STEP_SUMMARY
+
+              (docker exec wheel-validation bash -c "python${{ inputs.python_version }} /tmp/python/$file" >> $GITHUB_STEP_SUMMARY) && success=true || success=false
+              if $success; then 
+                  echo "Executed successfully." >> $GITHUB_STEP_SUMMARY
+              else
+                  echo "Failed." >> $GITHUB_STEP_SUMMARY
+                  validation_passed=false
+              fi
+            done
           fi
-
-#  publish_wheel:
-#    name: Publish Python ${{ inputs.python_version }} wheel
-#    if: inputs.environment
-#    runs-on: ubuntu-latest
-#    needs: build_wheel
-#    permissions:
-#      contents: read
-#      packages: write
-#
-#    environment:
-#      name: ${{ inputs.environment || 'default' }}
-#      url: ${{ vars.deployment_url || format('https://github.com/{0}', github.repository) }}
+          docker stop wheel-validation && docker image rm wheel_validation:local
 
   clean_up:
     name: Prepare cache clean-up
