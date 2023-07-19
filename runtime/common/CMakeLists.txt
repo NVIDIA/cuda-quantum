@@ -51,7 +51,6 @@ if(OPENSSL_FOUND)
   # be local scope for this directory.
   set(CPR_FORCE_USE_SYSTEM_CURL FALSE)
   set(BUILD_SHARED_LIBS OFF)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-covered-switch-default")
   if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
     set(CMAKE_BUILD_TYPE "Debug")
   endif()
