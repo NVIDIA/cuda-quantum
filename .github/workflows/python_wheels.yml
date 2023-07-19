@@ -71,18 +71,20 @@ jobs:
 
           devenv_tag=`docker inspect $base_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"'`
           docker image rm $base_image && docker image prune --force
-          cache_id=`echo $devenv_tag-${{ inputs.python_version }} | tr . -`
+          cache_id=`echo ${{ inputs.python_version }}-$devenv_tag | tr . -`
           wheel_path=/tmp/pycudaq && mkdir -p "$wheel_path"
 
           if ${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') }}; then
             cudaq_version=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
+          else
+            cudaq_version=0.0.0
           fi
         
           echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
           echo "base_image=$base_image" >> $GITHUB_OUTPUT
           echo "docker_output=type=local,dest=$wheel_path" >> $GITHUB_OUTPUT
           echo "cache_id=$cache_id" >> $GITHUB_OUTPUT
-          echo "wheel_cache=wheel-cudaq-$cache_id-${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "wheel_cache=pycudaq-$cache_id-${{ github.sha }}" >> $GITHUB_OUTPUT
           echo "wheel_path=$wheel_path" >> $GITHUB_OUTPUT
 
       - name: Set up buildx runner
@@ -141,8 +143,9 @@ jobs:
           docker cp docs/sphinx/examples/python $container_id:/tmp/
 
           if ${{ steps.restore.outcome != 'skipped' }}; then
-            docker cp out/cuda_quantum-*-manylinux_*_x86_64.whl $container_id:/tmp/
-            wheel=/tmp/cuda_quantum-*-manylinux_*_x86_64.whl
+            wheelname=cuda_quantum-*-manylinux_*_x86_64.whl
+            docker cp ${{ needs.build_wheel.outputs.wheel_path }}/$wheelname $container_id:/tmp/
+            wheel=/tmp/$wheelname
           else
             echo "Not yet implemented"
             exit 1
