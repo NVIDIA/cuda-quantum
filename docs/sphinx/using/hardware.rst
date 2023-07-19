@@ -7,69 +7,83 @@ IonQ
 ==================================
 
 Setting Credentials
-###################
+```````````````````
 
-To execute programs on IonQ hardware from either C++ or Python, CUDA Quantum
-will look for an API key stored in the `IONQ_API_KEY` environment variable. 
-This may be set as follows, replacing the string with the API key generated
-from your `IonQ account <https://cloud.ionq.com/>`_.
+Programmers of CUDA Quantum may access the `IonQ Quantum Cloud
+<https://cloud.ionq.com/>` from either C++ or Python. Simply generate
+an API key from your `IonQ account <https://cloud.ionq.com/>`_ and export
+it as an environment variable:
 
 .. code:: bash
 
   export IONQ_API_KEY="ionq_generated_api_key"
 
-For C++, it's straightforward to control the target QPU via the `--target`
-argument to `nvq++`. This will look for the `IONQ_API_KEY` in your environment,
-authenticate it with the IonQ API, and submit any quantum kernel executions within
-the file to the hardware.
+For developers in C++, you can indicate to ``nvq++`` that your quantum
+kernels will be executed in the IonQ Cloud via the ``--target`` flag.
 
-.. code:: bash 
+.. code:: bash
 
     nvq++ --target ionq src.cpp ...
 
-In python, the target may be controlled with the `cudaq.set_target()` [TODO: LINK]
-function. This will set the target for any kernel executions within the file, 
-and will go through the same credential scheme as discussed in the C++ case. 
+This will take the API key and handle all authentication with, and submission to,
+the IonQ QPU.
 
-.. code:: python 
+For python developers, the target may be controlled with the `cudaq.set_target()`
+[TODO: LINK] function. This is functionally equivalent to the ``nvq++`` target,
+and will handle the submission of all quantum kernels to IonQ.
+
+.. code:: python
 
     cudaq.set_target('ionq')
 
 Specifying the QPU
-###################
+``````````````````
 
-By default, the IonQ target will use the :code:`simulator` QPU.
-To specify which IonQ QPU to use, set the :code:`qpu` parameter.
-A list of available QPUs can be found `in the API documentation <https://docs.ionq.com/#tag/jobs>`_.
+At this time, programmer control over the QPU is currently under construction.
 
-.. code:: c
+.. By default, the IonQ target will use the :code:`simulator` QPU.
+.. To specify which IonQ QPU to use, set the :code:`qpu` parameter.
+.. A list of available QPUs can be found `in the API documentation
+.. <https://docs.ionq.com/#tag/jobs>`_.
 
-    auto &platform = cudaq::get_platform();
-    platform.setTargetBackend("ionq;qpu;qpu.aria-1");
-
-.. code:: python
-    cudaq.set_target("ionq", qpu="qpu.aria-1")
+.. .. code:: python
+..     cudaq.set_target("ionq", qpu="qpu.aria-1")
 
 Note: A "target" in :code:`cudaq` refers to a quantum compute provider, such as :code:`ionq`.
-However, IonQ's docs use the term "target" to refer to specific QPUs themselves.
+However, IonQ's documentation uses the term "target" to refer to specific QPU's themselves.
 
 
+Examples
+````````
+
+C++
+....
+
+.. literalinclude:: ../examples/cpp/targets/ionq.cpp
+    :language: cpp
+
+Python
+.......
+
+.. literalinclude:: ../examples/targets/ionq.py
+   :language: python
 
 
-Quantinuum 
+Quantinuum
 ==================================
 
 Setting Credentials
-###################
+```````````````````
 
-To execute programs on Quantinuum hardware from either C++ or Python, CUDA Quantum 
-will look for a credentials file stored in your home directory. This file
-may be generated with the following script, replacing the email and 
-password with your Quantinuum login credentials.
+Programmers of CUDA Quantum may access the Quantinuum API from either
+C++ or Python. Quantinuum requires a credential configuration file
+in your ``$HOME`` directory. This may be generated as follows, replacing
+the ``email`` and ``credentials`` in the first line with your Quantinuum
+account details.
 
-.. code:: bash 
-  # May need to install: `apt-get update && apt-get install curl jq`
-  curl -X POST -H "Content Type: application/json" -d '{ "email":"<your_alias>@nvidia.com","password":"<your_password>" }' https://qapi.quantinuum.com/v1/login > $HOME/credentials.json
+.. code:: bash
+  # May need to run: `apt-get update && apt-get install curl jq`
+  curl -X POST -H "Content Type: application/json" -d '{ "email":"<your_alias>@email.com","password":"<your_password>" }' https://qapi.quantinuum.com/v1/login > $HOME/credentials.json
   id_token=`cat $HOME/credentials.json | jq -r '."id-token"'`
   refresh_token=`cat $HOME/credentials.json | jq -r '."refresh-token"'`
   echo "key: $id_token" >> $HOME/.quantinuum_config
@@ -77,20 +91,55 @@ password with your Quantinuum login credentials.
   echo "refresh: $refresh_token" >> $HOME/.quantinuum_config
   export CUDAQ_QUANTINUUM_CREDENTIALS=$HOME/.quantinuum_config
 
-For C++, the `--target` argument may be set to "quantinuum". `nvq++` will grab 
-the credentials from your home directory, authenticate them with the Quantinuum API, 
+For C++, the `--target` argument may be set to "quantinuum". `nvq++` will grab
+the credentials from your home directory, authenticate them with the Quantinuum API,
 and submit any quantum kernel executions to the hardware.
 
-.. code:: bash 
+.. code:: bash
 
     nvq++ --target quantinuum src.cpp ...
 
 In python, the target may be controlled with the `cudaq.set_target()` [TODO: LINK]
-function. This will set the target for any kernel executions within the file, 
-and will go through the same credential scheme as discussed in the C++ case. 
+function. This will set the target for any kernel executions within the file,
+and will go through the same credential scheme as discussed in the C++ case.
 
-.. code:: python 
+.. code:: python
 
     cudaq.set_target('quantinuum')
 
-For full examples in C++, see here [TODO: LINK], and here [TODO: LINK] for Python.
+Specifying the QPU
+``````````````````
+
+The ``quantinuum`` target will select a Quantinuum emulator by default.
+To specify a different QPU, this may be done in ``nvq++`` as
+
+.. code:: bash
+
+    nvq++ --target quantinuum -quantinuum-machine H1-2 src.cpp ...
+
+where ``H1-2`` is an example of a physical QPU. The hardware specific
+emulator may be accessed by appending an "E" to the end (e.g, ``H1-2E``).
+
+At this time, control over the QPU for Python is under construction. 
+
+.. In python, this may be done by setting the :code:`machine` parameter.
+
+.. .. code:: python
+
+..     cudaq.set_target('quantinuum', machine='H1-2')
+
+
+Examples
+````````
+
+C++
+....
+
+.. literalinclude:: ../examples/targets/quantinuum.cpp
+    :language: cpp
+
+Python 
+.......
+
+.. literalinclude:: ../examples/targets/quantinuum.py
+   :language: python
