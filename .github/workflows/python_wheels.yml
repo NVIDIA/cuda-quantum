@@ -74,14 +74,8 @@ jobs:
           cache_id=`echo $devenv_tag-${{ inputs.python_version }} | tr . -`
           wheel_path=/tmp/pycudaq && mkdir -p "$wheel_path"
 
-          if ${{ github.event.pull_request.number != '' }}; then
-            cudaq_version=pr-${{ github.event.pull_request.number }}
-          elif ${{ github.ref_type == 'branch' && github.ref_name == 'main' }}; then
-            cudaq_version=latest
-          elif ${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') }}; then
+          if ${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') }}; then
             cudaq_version=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
-          else
-            cudaq_version=`echo ${{ github.ref_name }} | tr '/' '-'`
           fi
         
           echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
@@ -147,7 +141,7 @@ jobs:
           docker cp docs/sphinx/examples/python $container_id:/tmp/
 
           if ${{ steps.restore.outcome != 'skipped' }}; then
-            docker cp out/cuda_quantum-*-manylinux_*_x86_64.whl $container_id:/tmp/            
+            docker cp out/cuda_quantum-*-manylinux_*_x86_64.whl $container_id:/tmp/
             wheel=/tmp/cuda_quantum-*-manylinux_*_x86_64.whl
           else
             echo "Not yet implemented"
@@ -157,7 +151,8 @@ jobs:
           docker attach $container_id
           apt-get update && apt-get install -y --no-install-recommends python3 python3-pip
           pip install $wheel --user && python3 -c "import cudaq"
-          pip install numpy && for file in `ls /tmp/python/`; 
+          pip install numpy 
+          for file in `ls /tmp/python/`; 
           do python3 /tmp/python/$file; 
           done
           exit
