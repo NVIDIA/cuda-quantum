@@ -184,7 +184,7 @@ jobs:
           for file in `ls docs/sphinx/examples/python`; do
             echo "__Example ${file}:__" >> /tmp/validation.out
 
-            (docker exec wheel-validation bash -c "python${{ inputs.python_version }} /tmp/python/$file" >> /tmp/validation.out) && success=true || success=false
+            (docker exec wheel-validation bash -c "python${{ inputs.python_version }} /tmp/examples/$file" >> /tmp/validation.out) && success=true || success=false
             if $success; then 
               echo "Executed successfully." >> /tmp/validation.out
             else
