@@ -1,0 +1,7 @@
+release-id: 4046480068bfc6ccf4e14fabfe9ed9440427fef8fc3ba67c2be9b2b72ff742f9
+publish: 
+source-sha: b1d6014b9c258131bb4d575cdcb5a1508600a430
+cuda-quantum-dev-image: ghcr.io/nvidia/cuda-quantum-dev@sha256:40dbf4af6388e77bdf4656da7ee3b1a7d5aa91aff98f400ad1bebc42853b95c8
+cuda-quantum-image: ghcr.io/nvidia/cuda-quantum@sha256:4046480068bfc6ccf4e14fabfe9ed9440427fef8fc3ba67c2be9b2b72ff742f9
+cuda-quantum-devdeps-image: ghcr.io/nvidia/cuda-quantum-devdeps@sha256:12efa2d28a711f698470922f87adbd4f7a5c2ea02e21996dd7b48474f6e3b911
+platforms: linux/amd64
