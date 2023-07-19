@@ -177,3 +177,6 @@ jobs:
     with:
       python_version: ${{ matrix.python_version }}
       devdeps_image: ${{ needs.wheeldeps.outputs.image_hash }}
+      # TODO: upload wheels to test-pypi - the push to pypi itself
+      # should be done only by the publishing when creating a release.
+      # environment: pypi-deployment
