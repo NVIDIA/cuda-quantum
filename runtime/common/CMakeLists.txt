@@ -58,14 +58,7 @@ if(OPENSSL_FOUND)
   FetchContent_GetProperties(cpr)
   if(NOT cpr_POPULATED)
     FetchContent_Populate(cpr)
-
-    file(GLOB_RECURSE CPR_SRC_FILES "${cpr_SOURCE_DIR}/*.c" "${cpr_SOURCE_DIR}/*.cpp" "${cpr_SOURCE_DIR}/*.h")
-    set_source_files_properties(
-      ${CPR_SRC_FILES}
-      PROPERTIES
-      COMPILE_FLAGS "-Wno-error"
-    )
-
+    set(CMAKE_COMPILE_WARNING_AS_ERROR OFF)
     add_subdirectory(${cpr_SOURCE_DIR} ${cpr_BINARY_DIR} EXCLUDE_FROM_ALL)
   endif()
 
