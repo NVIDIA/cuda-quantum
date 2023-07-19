@@ -118,7 +118,7 @@ jobs:
           path: ${{ steps.prereqs.outputs.wheel_path }}
           key: ${{ steps.prereqs.outputs.wheel_cache }}
 
-  validate_ubuntu_2204:
+  validation:
     name: Validate wheel
     needs: build_wheel
     runs-on: ubuntu-latest
@@ -128,6 +128,7 @@ jobs:
     strategy:
       matrix:
         os_image: ['ubuntu:22.04']
+        pip_install_flags: ['', '--user']
       fail-fast: false
   
     steps:
@@ -143,7 +144,7 @@ jobs:
           key: ${{ needs.build_wheel.outputs.wheel_cache }}
           fail-on-cache-miss: true
 
-      - name: Validate cuda-quantum wheel
+      - name: Create clean environment
         run: |
           echo 'FROM ${{ matrix.os_image }}' > validation.Dockerfile
           echo 'RUN apt-get update && apt-get install -y software-properties-common python3-pip'  >> validation.Dockerfile
@@ -157,13 +158,20 @@ jobs:
             mv ${{ needs.build_wheel.outputs.wheel_path }}/$wheelname .
             echo "COPY $wheelname /tmp/$wheelname" >> validation.Dockerfile
             echo 'ARG pip_flags=' >> validation.Dockerfile
-            echo 'RUN python${{ inputs.python_version }} -m pip install ${pip_flags} '"/tmp/$wheelname" >> validation.Dockerfile
+            echo "RUN python${{ inputs.python_version }} -m pip install ${{ matrix.pip_install_flags }} /tmp/$wheelname" >> validation.Dockerfile
           else
             echo "Not yet implemented"
             exit 1
           fi
 
-          echo "## Validation" >> $GITHUB_STEP_SUMMARY
+      - name: Validate cuda-quantum wheel
+        run: |
+          if [ -n "${{ matrix.pip_install_flags }}" ]; then 
+            installation_details="(installed with ${{ matrix.pip_install_flags }})"
+          else 
+            installation_details="(default installation)"
+          fi
+          echo "## Validation on ${{ matrix.os_image }} $installation_details" >> $GITHUB_STEP_SUMMARY
           echo "The validation of the cuda-quantum Python wheel produced the following output:" >> $GITHUB_STEP_SUMMARY
 
           docker build -t wheel_validation:local -f validation.Dockerfile .
@@ -191,7 +199,7 @@ jobs:
 
   clean_up:
     name: Prepare cache clean-up
-    needs: [build_wheel, validate_ubuntu_2204] # + publish wheel
+    needs: [build_wheel, validation]
     runs-on: ubuntu-latest
     # We need to clean up even if the workflow is cancelled or fails.
     if: always()
