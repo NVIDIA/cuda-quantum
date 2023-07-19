@@ -47,9 +47,17 @@ if(OPENSSL_FOUND)
   FetchContent_Declare(cpr GIT_REPOSITORY https://github.com/libcpr/cpr.git
                          GIT_TAG 871ed52d350214a034f6ef8a3b8f51c5ce1bd400) 
 
+  find_package(CURL COMPONENTS HTTP HTTPS QUIET)
+
   # These variables are set for the cpr build, should 
   # be local scope for this directory.
-  set(CPR_FORCE_USE_SYSTEM_CURL FALSE)
+  if (CURL_FOUND)
+    message(STATUS "Curl found. Using system curl for CPR.")
+    set(CPR_FORCE_USE_SYSTEM_CURL ON CACHE BOOL "")
+  else()
+    message(STATUS "Curl not found. Building curl for CPR.")
+    set(CPR_FORCE_USE_SYSTEM_CURL OFF CACHE BOOL "")
+  endif()
   set(BUILD_SHARED_LIBS OFF)
   if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
     set(CMAKE_BUILD_TYPE "Debug")
@@ -63,7 +71,6 @@ if(OPENSSL_FOUND)
 
   target_sources(${LIBRARY_NAME} PRIVATE RestClient.cpp)
   target_link_libraries(${LIBRARY_NAME} PRIVATE cpr::cpr)
-  target_compile_options(${LIBRARY_NAME} PRIVATE -Wno-covered-switch-default -Wno-error)
   target_compile_definitions(${LIBRARY_NAME} PRIVATE -DCUDAQ_RESTCLIENT_AVAILABLE)
 endif()
 
