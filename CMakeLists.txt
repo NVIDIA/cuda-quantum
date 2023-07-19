@@ -133,14 +133,16 @@ SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 SET(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/lib/plugins:$ORIGIN/../lib:$ORIGIN/../lib/plugins")
 
 SET(BLA_STATIC ON)
+if(NOT DEFINED OPENSSL_USE_STATIC_LIBS)
+  SET(OPENSSL_USE_STATIC_LIBS TRUE)
+endif()
+
 if (CUDAQ_BUILD_SELFCONTAINED)
   # Using -static-libgcc -static-libstdc++ offers finer control here if needed.
   # At the time of writing, there wasn't any benefit to using those over -static.
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
   SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static")
   SET(CUDAQ_BUILD_RELOCATABLE_PACKAGE TRUE)
-  # If we use more fine grained flags above, we need to make sure to set this.
-  SET(OPENSSL_USE_STATIC_LIBS TRUE)
 endif()
 
 include(ExternalProject)
