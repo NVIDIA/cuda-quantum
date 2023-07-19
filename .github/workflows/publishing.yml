@@ -167,6 +167,8 @@ jobs:
         if: steps.release_info.outputs.release
         run: |
           release_id=${{ steps.assets.outputs.release_id }}
+          cd "${{ steps.release_info.outputs.assets_folder }}" && zip -r wheelhouse.zip wheelhouse
+          gh release upload $release_id -R ${{ github.repository }} wheelhouse.zip --clobber && cd -
           for file in `ls "${{ steps.release_info.outputs.assets_folder }}"/build_info*`; do 
             gh release delete-asset $release_id `basename -- "$file"` -y
           done
