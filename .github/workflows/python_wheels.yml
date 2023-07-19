@@ -157,11 +157,11 @@ jobs:
 
           docker build -t wheel_validation:local -f validation.Dockerfile .
           docker run --rm -dit --name wheel-validation wheel_validation:local
-          (docker exec wheel-validation python${{ inputs.python_version }} -c "import cuda_quantum") && imported=true || imported=false
+          (docker exec wheel-validation python${{ inputs.python_version }} -c "import cudaq") && imported=true || imported=false
           docker stop wheel-validation
 
           if ! $imported; then echo "Failed to import cudaq module." >> /tmp/validation.out
-          else echo "Successfully imported cudaq module." >> /tmp/validation.out
+          else echo "Successfully imported cudaq module." >> /tmp/validation.out; fi
 
       - name: Run Python tests
         uses: addnab/docker-run-action@v3
