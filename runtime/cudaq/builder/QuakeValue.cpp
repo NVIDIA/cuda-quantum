@@ -239,13 +239,27 @@ QuakeValue QuakeValue::slice(const std::size_t startIdx,
 
   // must be a stdvec type
   auto svecTy = dyn_cast<cc::StdvecType>(vectorValue.getType());
-  auto ptrTy = cc::PointerType::get(opBuilder.getI8Type());
-  auto vecPtr = opBuilder.create<cc::StdvecDataOp>(ptrTy, vectorValue);
-  auto bits = svecTy.getElementType().getIntOrFloatBitWidth();
-  assert(bits > 0);
-  auto scale = opBuilder.create<arith::ConstantIntOp>((bits + 7) / 8,
-                                                      startIdxValue.getType());
-  Value offset = opBuilder.create<arith::MulIOp>(scale, startIdxValue);
+  auto eleTy = svecTy.getElementType();
+  assert(!isa<cc::ArrayType>(eleTy));
+  Type ptrTy;
+  Value vecPtr;
+  Value offset;
+  if (eleTy == opBuilder.getI1Type()) {
+    // This is a workaround for when we go to LLVM. This workaround should
+    // actually appear in CodeGen when lowering this to the LLVM-IR dialect.
+    auto newEleTy = cc::ArrayType::get(opBuilder.getI8Type());
+    ptrTy = cc::PointerType::get(newEleTy);
+    vecPtr = opBuilder.create<cc::StdvecDataOp>(ptrTy, vectorValue);
+    auto bits = svecTy.getElementType().getIntOrFloatBitWidth();
+    assert(bits > 0);
+    auto scale = opBuilder.create<arith::ConstantIntOp>(
+        (bits + 7) / 8, startIdxValue.getType());
+    offset = opBuilder.create<arith::MulIOp>(scale, startIdxValue);
+  } else {
+    ptrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
+    vecPtr = opBuilder.create<cc::StdvecDataOp>(ptrTy, vectorValue);
+    offset = startIdxValue;
+  }
   auto ptr = opBuilder.create<cc::ComputePtrOp>(
       ptrTy, vecPtr, ArrayRef<cc::ComputePtrArg>{offset});
   Value subVecInit = opBuilder.create<cc::StdvecInitOp>(vectorValue.getType(),
