@@ -31,7 +31,7 @@ module {
 // CHECK:    %[[VAL_5:.*]] = load %Qubit*, %Qubit** %[[VAL_3]], align 8
 // CHECK:    tail call void @__quantum__qis__h(%Qubit* %[[VAL_5]])
 // CHECK:    %[[VAL_7:.*]] = tail call %Result* @__quantum__qis__mz(%Qubit* %[[VAL_5]])
-// CHECK:    tail call void @__quantum__qis__sdg(%Qubit* %[[VAL_5]])
+// CHECK:    tail call void @__quantum__qis__s__adj(%Qubit* %[[VAL_5]])
 // CHECK:    tail call void @__quantum__qis__h(%Qubit* %[[VAL_5]])
 // CHECK:    %[[VAL_9:.*]] = tail call %Result* @__quantum__qis__mz(%Qubit* %[[VAL_5]])
 // CHECK:    tail call void @__quantum__rt__qubit_release_array(%Array* %[[VAL_0]])

@@ -15,7 +15,9 @@
 #include "mlir/Support/LLVM.h"
 
 inline bool needsToBeRenamed(mlir::StringRef name) {
-  return name.startswith(cudaq::opt::QIRQISPrefix) && !name.endswith("__body");
+  return name.startswith(cudaq::opt::QIRQISPrefix) &&
+         !name.endswith("__body") && !name.endswith("__adj") &&
+         !name.endswith("__ctl");
 }
 
 inline bool callToInvokeWithXCtrlOneTarget(mlir::StringRef callee,
