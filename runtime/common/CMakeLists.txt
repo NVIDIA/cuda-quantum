@@ -49,14 +49,15 @@ if(OPENSSL_FOUND)
 
   find_package(CURL COMPONENTS HTTP HTTPS QUIET)
 
+  # FIXME: 
   # These variables are set for the cpr build, should 
   # be local scope for this directory.
   if (CURL_FOUND)
     message(STATUS "Curl found. Using system curl for CPR.")
-    set(CPR_FORCE_USE_SYSTEM_CURL ON CACHE BOOL "")
+    set(CPR_FORCE_USE_SYSTEM_CURL TRUE)
   else()
     message(STATUS "Curl not found. Building curl for CPR.")
-    set(CPR_FORCE_USE_SYSTEM_CURL OFF CACHE BOOL "")
+    set(CPR_FORCE_USE_SYSTEM_CURL FALSE)
   endif()
   set(BUILD_SHARED_LIBS OFF)
   if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
