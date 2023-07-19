@@ -255,6 +255,16 @@ ONE_QUBIT_QIS_FUNCTION(s);
 ONE_QUBIT_QIS_FUNCTION(tdg);
 ONE_QUBIT_QIS_FUNCTION(sdg);
 
+void __quantum__qis__t__adj(Qubit *qubit) {
+  auto targetIdx = qubitToSizeT(qubit);
+  nvqir::getCircuitSimulatorInternal()->tdg(targetIdx);
+}
+
+void __quantum__qis__s__adj(Qubit *qubit) {
+  auto targetIdx = qubitToSizeT(qubit);
+  nvqir::getCircuitSimulatorInternal()->sdg(targetIdx);
+}
+
 #define ONE_QUBIT_PARAM_QIS_FUNCTION(GATENAME)                                 \
   void QIS_FUNCTION_NAME(GATENAME)(double param, Qubit *qubit) {               \
     auto targetIdx = qubitToSizeT(qubit);                                      \
