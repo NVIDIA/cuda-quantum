@@ -146,7 +146,7 @@ jobs:
           echo 'RUN apt-get update && apt-get install -y software-properties-common python3-pip'  >> validation.Dockerfile
           echo 'RUN add-apt-repository ppa:deadsnakes/ppa && apt-get update \' >> validation.Dockerfile
           echo '    && apt-get install -y python${{ inputs.python_version }} python${{ inputs.python_version }}-distutils' >> validation.Dockerfile
-          echo 'RUN python${{ inputs.python_version }} -m pip install numpy' >> validation.Dockerfile
+          echo 'RUN python${{ inputs.python_version }} -m pip install numpy pytest' >> validation.Dockerfile
 
           mv ${{ needs.build_wheel.outputs.wheel_path }}/cuda_quantum-*-manylinux_*_x86_64.whl .
           wheelname=`echo cuda_quantum-*-manylinux_*_x86_64.whl`
