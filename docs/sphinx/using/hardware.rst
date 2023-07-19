@@ -59,13 +59,13 @@ Examples
 C++
 ....
 
-.. literalinclude:: ../examples/cpp/targets/ionq.cpp
+.. literalinclude:: ../examples/cpp/ionq
     :language: cpp
 
 Python
 .......
 
-.. literalinclude:: ../examples/targets/ionq.py
+.. literalinclude:: ../examples/python/ionq
    :language: python
 
 
@@ -82,7 +82,8 @@ the ``email`` and ``credentials`` in the first line with your Quantinuum
 account details.
 
 .. code:: bash
-  # May need to run: `apt-get update && apt-get install curl jq`
+
+  # You may need to run: `apt-get update && apt-get install curl jq`
   curl -X POST -H "Content Type: application/json" -d '{ "email":"<your_alias>@email.com","password":"<your_password>" }' https://qapi.quantinuum.com/v1/login > $HOME/credentials.json
   id_token=`cat $HOME/credentials.json | jq -r '."id-token"'`
   refresh_token=`cat $HOME/credentials.json | jq -r '."refresh-token"'`
@@ -135,11 +136,11 @@ Examples
 C++
 ....
 
-.. literalinclude:: ../examples/targets/quantinuum.cpp
+.. literalinclude:: ../examples/cpp/quantinuum
     :language: cpp
 
 Python 
 .......
 
-.. literalinclude:: ../examples/targets/quantinuum.py
+.. literalinclude:: ../examples/python/quantinuum
    :language: python

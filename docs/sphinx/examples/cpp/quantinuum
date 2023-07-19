@@ -4,6 +4,8 @@
 // ```
 // Assumes a valid set of credentials have been stored. 
 
+#include <cudaq.h>
+
 // Define a simple quantum kernel to execute on Quantinuum.
 struct ghz {
   // Maximally entangled state between 5 qubits.
@@ -28,5 +30,6 @@ int main() {
   auto future = cudaq::sample_async(ghz{});
   // ... classical code to execute in the meantime ...
   auto async_counts = future.get();
+  // TODO: We can also persist the future results to a file.
   async_counts.dump();
 }
