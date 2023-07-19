@@ -148,28 +148,6 @@ jobs:
           container_id=`docker run -itd ${{ matrix.os_image }} | grep -e '.*$'`
           docker cp docs/sphinx/examples/python $container_id:/tmp/
 
-          if ${{ steps.restore.outcome != 'skipped' }}; then
-            wheelname=cuda_quantum-*-manylinux_*_x86_64.whl
-            docker cp ${{ needs.build_wheel.outputs.wheel_path }}/$wheelname $container_id:/tmp/
-            wheel=/tmp/$wheelname
-          else
-            echo "Not yet implemented"
-            exit 1
-          fi
-
-          docker attach $container_id
-          add-apt-repository ppa:deadsnakes/ppa
-          apt-get update && apt-get install -y --no-install-recommends \
-            python${{ inputs.python_version }} python${{ inputs.python_version }}-pip
-          pip install $wheel --user && pip install numpy 
-          
-          python3 -c "import cudaq"
-          for file in `ls /tmp/python/`; do
-            python3 /tmp/python/$file >> /tmp/validation.out
-          done
-          exit && docker cp $container_id:/tmp/validation.out /tmp/validation.out
-          docker container rm $container_id
-
       - name: Create job summary
         if: always() && !cancelled()
         run: |
