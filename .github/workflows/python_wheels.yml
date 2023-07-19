@@ -104,7 +104,7 @@ jobs:
       - name: Upload wheel
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ steps.prereqs.outputs.cache_id }}
+          name: pycudaq-${{ steps.prereqs.outputs.cache_id }} # do not change this prefix without adjusting other workflows
           path: ${{ steps.prereqs.outputs.wheel_path }}
           retention-days: 5
           if-no-files-found: error
@@ -145,7 +145,7 @@ jobs:
           echo 'ARG DEBIAN_FRONTEND=noninteractive' >> validation.Dockerfile
           echo 'RUN apt-get update && apt-get install -y software-properties-common python3-pip'  >> validation.Dockerfile
           echo 'RUN add-apt-repository ppa:deadsnakes/ppa && apt-get update \' >> validation.Dockerfile
-          echo '    && apt-get install -y python${{ inputs.python_version }}' >> validation.Dockerfile
+          echo '    && apt-get install -y python${{ inputs.python_version }} python${{ inputs.python_version }}-distutils' >> validation.Dockerfile
           echo 'RUN python${{ inputs.python_version }} -m pip install numpy' >> validation.Dockerfile
 
           mv ${{ needs.build_wheel.outputs.wheel_path }}/cuda_quantum-*-manylinux_*_x86_64.whl .
@@ -199,14 +199,16 @@ jobs:
       - name: Create job summary
         if: always() && !cancelled() 
         run: |
-          if [ -n "${{ matrix.pip_install_flags }}" ]; then 
-            installation_details="(installed with ${{ matrix.pip_install_flags }})"
-          else 
-            installation_details="(default installation)"
+          if [ -f /tmp/validation.out ]; then
+            if [ -n "${{ matrix.pip_install_flags }}" ]; then 
+                installation_details="(installed with ${{ matrix.pip_install_flags }})"
+            else 
+                installation_details="(default installation)"
+            fi
+            echo "## Validation on ${{ matrix.os_image }} $installation_details" >> $GITHUB_STEP_SUMMARY
+            echo "The validation of the cuda-quantum Python wheel produced the following output:" >> $GITHUB_STEP_SUMMARY
+            cat /tmp/validation.out >> $GITHUB_STEP_SUMMARY
           fi
-          echo "## Validation on ${{ matrix.os_image }} $installation_details" >> $GITHUB_STEP_SUMMARY
-          echo "The validation of the cuda-quantum Python wheel produced the following output:" >> $GITHUB_STEP_SUMMARY
-          cat /tmp/validation.out >> $GITHUB_STEP_SUMMARY
 
   clean_up:
     name: Prepare cache clean-up

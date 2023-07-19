@@ -174,7 +174,6 @@ jobs:
         python_version: ['3.8', '3.9', '3.10', '3.11', '3.12']
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
-    secrets: inherit
     with:
       python_version: ${{ matrix.python_version }}
       devdeps_image: ${{ needs.wheeldeps.outputs.image_hash }}
