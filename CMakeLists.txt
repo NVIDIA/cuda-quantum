@@ -369,7 +369,7 @@ if(CMAKE_CUDA_COMPILER)
 endif()
 
 # Check for OpenSSL
-find_package(OpenSSL REQUIRED)
+find_package(OpenSSL)
 
 # Optionally build with MPI
 if (NOT CUDAQ_SKIP_MPI)
