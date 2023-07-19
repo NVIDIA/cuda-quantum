@@ -119,12 +119,17 @@ jobs:
           key: ${{ steps.prereqs.outputs.wheel_cache }}
 
   validate_ubuntu_2204:
-    name: Validate wheel on Ubuntu 22.04
+    name: Validate wheel
     needs: build_wheel
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
+    strategy:
+      matrix:
+        os_image: ['ubuntu:22.04']
+      fail-fast: false
+  
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -140,7 +145,7 @@ jobs:
 
       - name: Validate cuda-quantum wheel
         run: |
-          container_id=`docker run -itd ubuntu:22.04 | grep -e '.*$'`
+          container_id=`docker run -itd ${{ matrix.os_image }} | grep -e '.*$'`
           docker cp docs/sphinx/examples/python $container_id:/tmp/
 
           if ${{ steps.restore.outcome != 'skipped' }}; then

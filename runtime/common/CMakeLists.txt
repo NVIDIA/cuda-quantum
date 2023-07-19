@@ -63,6 +63,7 @@ if(OPENSSL_FOUND)
 
   target_sources(${LIBRARY_NAME} PRIVATE RestClient.cpp)
   target_link_libraries(${LIBRARY_NAME} PRIVATE cpr::cpr)
+  target_compile_options(${LIBRARY_NAME} PRIVATE -Wno-covered-switch-default -Wno-error)
   target_compile_definitions(${LIBRARY_NAME} PRIVATE -DCUDAQ_RESTCLIENT_AVAILABLE)
 endif()
 
