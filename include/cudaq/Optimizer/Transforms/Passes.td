@@ -182,8 +182,8 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
                            "mlir::cf::ControlFlowDialect"];
 
   let options = [
-    Option<"threshold", "maximum-iterations", "std::size_t",
-      /*default=*/"50", "Maximum iterations to unroll.">,
+    Option<"threshold", "maximum-iterations", "unsigned", /*default=*/"50",
+      "Maximum iterations to unroll.">,
     Option<"signalFailure",
       "signal-failure-if-any-loop-cannot-be-completely-unrolled", "bool",
       /*default=*/"false", "Signal failure if pass can't unroll all loops.">

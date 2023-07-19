@@ -57,9 +57,8 @@ namespace {
 /// invariant. An invariant loop means the loop must execute exactly some
 /// specific number of times, even if that number is only known at runtime.
 struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
-  explicit UnrollCountedLoop(MLIRContext *ctx, std::size_t t, bool sf, bool &pf)
-      : OpRewritePattern(ctx), threshold(t), signalFailure(sf), passFailed(pf) {
-  }
+  explicit UnrollCountedLoop(MLIRContext *ctx, std::size_t t, bool sf)
+      : OpRewritePattern(ctx), threshold(t), signalFailure(sf) {}
 
   LogicalResult matchAndRewrite(cudaq::cc::LoopOp loop,
                                 PatternRewriter &rewriter) const override {
@@ -68,17 +67,13 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
     // this flag, it may not be possible to fully unroll every LoopOp anyway.
     // Check for cases that are clearly not going to be unrolled.
     if (!cudaq::opt::isaCountedLoop(loop)) {
-      if (signalFailure) {
+      if (signalFailure)
         loop.emitOpError("not a simple counted loop");
-        passFailed = true;
-      }
       return failure();
     }
     if (exceedsThresholdValue(loop, threshold)) {
-      if (signalFailure) {
+      if (signalFailure)
         loop.emitOpError("loop bounds exceed iteration threshold");
-        passFailed = true;
-      }
       return failure();
     }
 
@@ -145,7 +140,6 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
 
   std::size_t threshold;
   bool signalFailure;
-  bool &passFailed;
 };
 
 /// The loop unrolling pass will fully unroll a `cc::LoopOp` when the loop is
@@ -157,17 +151,45 @@ public:
   using LoopUnrollBase::LoopUnrollBase;
 
   void runOnOperation() override {
-    auto *op = getOperation();
     auto *ctx = &getContext();
-    RewritePatternSet patterns(ctx);
-    bool passFailed = false;
-    patterns.insert<UnrollCountedLoop>(ctx, threshold, signalFailure,
-                                       passFailed);
-    if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns))) ||
-        passFailed) {
+    auto *op = getOperation();
+    auto numLoops = countLoopOps(op);
+    if (numLoops) {
+      PassManager pm(ctx);
+      pm.addPass(createCanonicalizerPass());
+      RewritePatternSet patterns(ctx);
+      patterns.insert<UnrollCountedLoop>(ctx, threshold,
+                                         /*signalFailure=*/false);
+      FrozenRewritePatternSet frozen(std::move(patterns));
+      // Iterate over the loops until a fixed-point is reached. Some loops can
+      // only be unrolled if other loops are unrolled first and the constants
+      // iteratively propagated.
+      do {
+        (void)applyPatternsAndFoldGreedily(op, frozen);
+        if (failed(pm.run(op)))
+          break;
+      } while (loopsWereUnrolled(op, numLoops));
+    }
+    if (numLoops && signalFailure) {
+      RewritePatternSet patterns(ctx);
+      patterns.insert<UnrollCountedLoop>(ctx, threshold, signalFailure);
+      (void)applyPatternsAndFoldGreedily(op, std::move(patterns));
       emitError(UnknownLoc::get(ctx), "did not unroll loops");
       signalPassFailure();
     }
+  }
+
+  static bool loopsWereUnrolled(Operation *op, unsigned &numLoops) {
+    auto oldNumLoops = numLoops;
+    numLoops = countLoopOps(op);
+    return oldNumLoops > numLoops;
+  }
+
+  static unsigned countLoopOps(Operation *op) {
+    unsigned result = 0;
+    op->walk([&](cudaq::cc::LoopOp loop) { result++; });
+    LLVM_DEBUG(llvm::dbgs() << "Total number of loops: " << result << '\n');
+    return result;
   }
 };
 } // namespace
@@ -181,7 +203,6 @@ void cudaq::opt::createUnrollingPipeline(OpPassManager &pm, unsigned threshold,
   pm.addPass(createCanonicalizerPass());
   LoopUnrollOptions luo{threshold, signalFailure};
   pm.addPass(createLoopUnroll(luo));
-  pm.addPass(createCanonicalizerPass());
 }
 
 void cudaq::opt::registerUnrollingPipeline() {
