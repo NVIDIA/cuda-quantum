@@ -71,7 +71,9 @@ else()
   install(TARGETS _pycudaq LIBRARY DESTINATION cudaq)
 endif()
 
-add_subdirectory(runtime/cudaq/domains/plugins)
+if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
+  add_subdirectory(runtime/cudaq/domains/plugins)
+endif()
 
 # Do we have pytest and numpy? 
 execute_process(COMMAND ${Python_EXECUTABLE} -m pytest --version

@@ -6,4 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_subdirectory(chemistry)
+if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
+  add_subdirectory(chemistry)
+endif()
