@@ -561,6 +561,7 @@ jobs:
             echo '```' >> $GITHUB_STEP_SUMMARY
           fi
 
+  # TODO: move this into the deployment workflow (would be cleaner)
   staging:
     name: Staging
     needs: [cudaqdev_image, cudaq_image, validation]

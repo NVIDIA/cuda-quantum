@@ -136,35 +136,70 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Load cuda-quantum wheel
-        id: restore
-        if: needs.build_wheel.outputs.wheel_cache && needs.build_wheel.outputs.wheel_path
         uses: actions/cache/restore@v3
         with:
           path: ${{ needs.build_wheel.outputs.wheel_path }}
           key: ${{ needs.build_wheel.outputs.wheel_cache }}
           fail-on-cache-miss: true
 
-      - name: Create clean environment
+      - name: Install wheel in clean environment
         run: |
           echo 'FROM ${{ matrix.os_image }}' > validation.Dockerfile
           echo 'RUN apt-get update && apt-get install -y software-properties-common python3-pip'  >> validation.Dockerfile
           echo 'RUN add-apt-repository ppa:deadsnakes/ppa && apt-get update \' >> validation.Dockerfile
           echo '    && apt-get install -y python${{ inputs.python_version }}' >> validation.Dockerfile
           echo 'RUN python${{ inputs.python_version }} -m pip install numpy' >> validation.Dockerfile
-          echo 'COPY docs/sphinx/examples/python /tmp/python/' >> validation.Dockerfile
 
-          if ${{ steps.restore.outcome != 'skipped' }}; then
-            wheelname=`echo cuda_quantum-*-manylinux_*_x86_64.whl`
-            mv ${{ needs.build_wheel.outputs.wheel_path }}/$wheelname .
-            echo "COPY $wheelname /tmp/$wheelname" >> validation.Dockerfile
-            echo 'ARG pip_flags=' >> validation.Dockerfile
-            echo "RUN python${{ inputs.python_version }} -m pip install ${{ matrix.pip_install_flags }} /tmp/$wheelname" >> validation.Dockerfile
-          else
-            echo "Not yet implemented"
-            exit 1
-          fi
+          mv ${{ needs.build_wheel.outputs.wheel_path }}/cuda_quantum-*-manylinux_*_x86_64.whl .
+          wheelname=`echo cuda_quantum-*-manylinux_*_x86_64.whl`
+          echo "COPY $wheelname /tmp/$wheelname" >> validation.Dockerfile
+          echo 'COPY docs/sphinx/examples/python /tmp/examples/' >> validation.Dockerfile
+          echo 'COPY python/tests /tmp/tests/' >> validation.Dockerfile
+          echo "RUN python${{ inputs.python_version }} -m pip install ${{ matrix.pip_install_flags }} /tmp/$wheelname" >> validation.Dockerfile
 
-      - name: Validate cuda-quantum wheel
+          docker build -t wheel_validation:local -f validation.Dockerfile .
+          docker run --rm -dit --name wheel-validation wheel_validation:local
+          (docker exec wheel-validation python${{ inputs.python_version }} -c "import cuda_quantum") && imported=true || imported=false
+          docker stop wheel-validation
+
+          if ! $imported; then echo "Failed to import cudaq module." >> /tmp/validation.out
+          else echo "Successfully imported cudaq module." >> /tmp/validation.out
+
+      - name: Run Python tests
+        uses: addnab/docker-run-action@v3
+        with:
+          image: wheel_validation:local
+          shell: bash
+          run: |
+            python3 -m pytest /tmp/tests/
+            pytest_status=$?
+            if [ ! $pytest_status -eq 0 ]; then
+              echo "pytest status = " $pytest_status
+              exit 1
+            fi
+
+      - name: Validate Python examples
+        run: |
+          docker run --rm -dit --name wheel-validation wheel_validation:local
+          validation_passed=true
+
+          for file in `ls docs/sphinx/examples/python`; do
+            echo "__Example ${file}:__" >> /tmp/validation.out
+
+            (docker exec wheel-validation bash -c "python${{ inputs.python_version }} /tmp/python/$file" >> /tmp/validation.out) && success=true || success=false
+            if $success; then 
+              echo "Executed successfully." >> /tmp/validation.out
+            else
+              echo "Failed." >> /tmp/validation.out
+              validation_passed=false
+            fi
+          done
+
+          docker stop wheel-validation && docker image rm wheel_validation:local
+          if [ ! $validation_passed ]; then exit 1; fi
+
+      - name: Create job summary
+        if: always() && !cancelled() 
         run: |
           if [ -n "${{ matrix.pip_install_flags }}" ]; then 
             installation_details="(installed with ${{ matrix.pip_install_flags }})"
@@ -173,29 +208,7 @@ jobs:
           fi
           echo "## Validation on ${{ matrix.os_image }} $installation_details" >> $GITHUB_STEP_SUMMARY
           echo "The validation of the cuda-quantum Python wheel produced the following output:" >> $GITHUB_STEP_SUMMARY
-
-          docker build -t wheel_validation:local -f validation.Dockerfile .
-          docker run --rm -dit --name wheel-validation wheel_validation:local
-          (docker exec wheel-validation python${{ inputs.python_version }} -c "import cuda_quantum") && imported=true || imported=false >>
-
-          if ! $imported; then echo "Failed to import cudaq module." >> $GITHUB_STEP_SUMMARY
-          else
-            echo "Successfully imported cudaq module." >> $GITHUB_STEP_SUMMARY
-            validation_passed=true
-
-            for file in `ls docs/sphinx/examples/python`; do
-              echo "__Example ${file}:__" >> $GITHUB_STEP_SUMMARY
-
-              (docker exec wheel-validation bash -c "python${{ inputs.python_version }} /tmp/python/$file" >> $GITHUB_STEP_SUMMARY) && success=true || success=false
-              if $success; then 
-                  echo "Executed successfully." >> $GITHUB_STEP_SUMMARY
-              else
-                  echo "Failed." >> $GITHUB_STEP_SUMMARY
-                  validation_passed=false
-              fi
-            done
-          fi
-          docker stop wheel-validation && docker image rm wheel_validation:local
+          cat /tmp/validation.out >> $GITHUB_STEP_SUMMARY
 
   clean_up:
     name: Prepare cache clean-up
