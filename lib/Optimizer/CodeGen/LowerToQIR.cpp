@@ -356,12 +356,11 @@ public:
     auto context = parentModule->getContext();
     std::string qirQisPrefix(cudaq::opt::QIRQISPrefix);
     std::string instName = instOp->getName().stripDialect().str();
-    if (!instOp->template hasTrait<cudaq::Hermitian>() && instOp.getIsAdj())
-      instName += "dg";
 
     if (numControls == 0) {
       // There are no control bits, so call the function directly.
-      auto qirFunctionName = qirQisPrefix + instName;
+      auto qirFunctionName =
+          qirQisPrefix + instName + (instOp.getIsAdj() ? "__adj" : "");
       FlatSymbolRefAttr symbolRef =
           cudaq::opt::factory::createLLVMFunctionSymbol(
               qirFunctionName, /*return type=*/LLVM::LLVMVoidType::get(context),
