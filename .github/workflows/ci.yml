@@ -80,8 +80,13 @@ jobs:
   python_wheels:
     name: Create Python wheels
     needs: wheeldeps
+    strategy:
+      matrix:
+        python_version: [3.8, 3.9, 3.10, 3.11, 3.12]
+      fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
     with:
+      python_version: ${{ matrix.python_version }}
       devdeps_cache: ${{ needs.wheeldeps.outputs.cache_key }}
       devdeps_archive: ${{ needs.wheeldeps.outputs.tar_archive }}
 
