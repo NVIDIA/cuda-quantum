@@ -179,4 +179,7 @@ jobs:
       devdeps_image: ${{ needs.wheeldeps.outputs.image_hash }}
       # TODO: upload wheels to test-pypi - the push to pypi itself
       # should be done only by the publishing when creating a release.
+      # See also: 
+      # https://github.com/pypa/gh-action-pypi-publish
+      # https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
       # environment: pypi-deployment
