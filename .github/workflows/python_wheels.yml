@@ -145,8 +145,33 @@ jobs:
 
       - name: Validate cuda-quantum wheel
         run: |
-          container_id=`docker run -itd ${{ matrix.os_image }} | grep -e '.*$'`
-          docker cp docs/sphinx/examples/python $container_id:/tmp/
+          echo 'FROM ${{ matrix.os_image }}' > validation.Dockerfile
+          echo 'RUN apt-get update && apt-get install -y software-properties-common'  >> validation.Dockerfile
+          echo 'RUN add-apt-repository ppa:deadsnakes/ppa && apt-get update \' >> validation.Dockerfile
+          echo '    && apt-get install -y python${{ inputs.python_version }} python${{ inputs.python_version }}-pip' >> validation.Dockerfile
+          echo 'RUN python${{ inputs.python_version }} -m pip install numpy' >> validation.Dockerfile
+          echo 'COPY docs/sphinx/examples/python /tmp/python/' >> validation.Dockerfile
+
+          if ${{ steps.restore.outcome != 'skipped' }}; then
+            wheelname=cuda_quantum-*-manylinux_*_x86_64.whl
+            mv ${{ needs.build_wheel.outputs.wheel_path }}/$wheelname .
+            echo "COPY $wheelname /tmp/$wheelname" >> validation.Dockerfile
+          else
+            echo "Not yet implemented"
+            exit 1
+          fi
+
+          docker build -t wheel_validation:local -f validation.Dockerfile .
+          docker run --rm -dit --name wheel-validation wheel_validation:local
+          #(docker exec cuda-quantum-dev bash -c "export $docs_version && bash scripts/#build_docs.sh" && built=true) || built=false
+          docker stop wheel-validation
+
+          #python3 -c "import cudaq"
+          #for file in `ls /tmp/python/`; do
+          #  python3 /tmp/python/$file >> /tmp/validation.out
+          #done
+          #exit && docker cp $container_id:/tmp/validation.out /tmp/validation.out
+          #docker container rm $container_id
 
       - name: Create job summary
         if: always() && !cancelled()
