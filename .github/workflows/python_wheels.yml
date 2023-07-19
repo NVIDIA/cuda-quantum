@@ -101,6 +101,7 @@ jobs:
           build-args: |
             base_image=${{ steps.prereqs.outputs.base_image }}
             release_version=${{ steps.prereqs.outputs.cudaq_version }}
+            python_version=${{ inputs.python_version }}
           outputs: ${{ steps.prereqs.outputs.docker_output }}
 
       - name: Upload wheel
