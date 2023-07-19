@@ -391,7 +391,9 @@ add_subdirectory(lib)
 if (NOT CUDAQ_DISABLE_RUNTIME)
   add_subdirectory(runtime)
 endif()
-add_subdirectory(tools)
+if (NOT CUDAQ_DISABLE_TOOLS)
+  add_subdirectory(tools)
+endif()
 add_subdirectory(utils)
 
 # Python setup
