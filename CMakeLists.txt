@@ -110,6 +110,7 @@ option(CUDAQ_TEST_MOCK_SERVERS "Enable Remote QPU Tests via Mock Servers." OFF)
 option(CUDAQ_DISABLE_RUNTIME "Build without the CUDA Quantum runtime, just the compiler toolchain." OFF)
 option(CUDAQ_SKIP_MPI "Do not build with MPI, even when it is available." OFF)
 option(CUDAQ_DISABLE_CPP_FRONTEND "Build without the CUDA Quantum C++ Clang-based Frontend." OFF)
+option(CUDAQ_WHEEL_BUILD "Build CUDA Quantum as a relocatable package, using the minimal build requirements for a python wheel." OFF)
 
 # We allow to pick up certain build configurations directly from the environment,
 # since this facilitates some of the packaging (e.g. python packages built based on the pyproject.toml).
@@ -429,12 +430,18 @@ if (CUDAQ_ENABLE_PYTHON)
 endif()
 
 if (CUDAQ_BUILD_RELOCATABLE_PACKAGE) 
-  # Grab the Clang system headers / resource-dir
-  install(DIRECTORY ${LLVM_BINARY_DIR}/lib/clang/ DESTINATION lib/clang)
+  if (NOT CUDAQ_WHEEL_BUILD)
+    # Grab the Clang system headers / resource-dir
+    install(DIRECTORY ${LLVM_BINARY_DIR}/lib/clang/ DESTINATION lib/clang)
 
-  # Install the executables we need
-  install(PROGRAMS ${LLVM_BINARY_DIR}/bin/llc DESTINATION bin)
-  install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang-${CUDAQ_LLVM_VERSION} DESTINATION bin)
-  install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang DESTINATION bin)
-  install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang++ DESTINATION bin)
+    # Install the executables we need
+    install(PROGRAMS ${LLVM_BINARY_DIR}/bin/llc DESTINATION bin)
+    install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang-${CUDAQ_LLVM_VERSION} DESTINATION bin)
+    install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang DESTINATION bin)
+    install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang++ DESTINATION bin)
+  else()
+    # Only need `clang++` if this relocatable package is for the wheel.
+    install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang++ DESTINATION bin)
+  endif()
+
 endif()

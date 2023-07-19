@@ -7,8 +7,12 @@
 # ============================================================================ #
 
 add_subdirectory(cudaq-lsp-server)
-add_subdirectory(cudaq-opt)
-add_subdirectory(cudaq-translate)
+# If we're building a python wheel, don't include 
+# `cudaq-opt` or `cudaq-translate` in the build.
+if (NOT CUDAQ_WHEEL_BUILD)
+  add_subdirectory(cudaq-opt)
+  add_subdirectory(cudaq-translate)
+endif()
 
 if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
   add_subdirectory(cudaq-quake)
