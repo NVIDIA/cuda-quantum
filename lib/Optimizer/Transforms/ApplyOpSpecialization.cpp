@@ -598,9 +598,8 @@ public:
           op->setAttr("is_adj", builder.getUnitAttr());
       }
 
-      auto *newOp = builder.clone(*op, mapper);
+      [[maybe_unused]] auto *newOp = builder.clone(*op, mapper);
       assert(newOp->getNumResults() == 0);
-      static_cast<void>(newOp);
       op->erase();
     }
   }

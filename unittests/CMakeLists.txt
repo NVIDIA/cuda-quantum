@@ -10,8 +10,7 @@ SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 set (CMAKE_CXX_FLAGS
      "${CMAKE_CXX_FLAGS} -Wno-attributes -Wno-ctad-maybe-unsupported")
 
-
-set(CUDAQ_RUNTIME_TEST_SOURCES 
+set(CUDAQ_RUNTIME_TEST_SOURCES
   # Integration tests
   integration/adjoint_tester.cpp
   integration/builder_tester.cpp
