@@ -19,6 +19,7 @@ Hadamard
 Hadamards
 Hamiltonian
 Hamiltonians
+IonQ
 JIT
 Kraus
 LLVM
@@ -40,6 +41,7 @@ QPU
 QPUs
 QTX
 Quake
+Quantinuum
 Toffoli
 VQE
 Vazirani
@@ -91,9 +93,11 @@ entanglers
 enum
 et
 executables
+https
 inlining
 instantiation
 instantiations
+json
 namespace
 natively
 optimizer
@@ -102,6 +106,8 @@ parallelization
 precompute
 precomputed
 prepend
+qapi
+quantinuum
 quantize
 quantized
 qubit

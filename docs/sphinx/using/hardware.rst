@@ -45,7 +45,6 @@ Example
 .......
 
 .. literalinclude:: ../examples/cpp/ionq
-
     :language: cpp
 
 
@@ -81,7 +80,6 @@ Example
 ........
 
 .. literalinclude:: ../examples/python/ionq
-
    :language: python
 
 
@@ -139,7 +137,6 @@ Example
 .......
 
 .. literalinclude:: ../examples/cpp/quantinuum
-
     :language: cpp
 
 
@@ -166,9 +163,8 @@ At this time, control over the Quantinuum QPU for Python is under construction.
 ..     cudaq.set_target('quantinuum', machine='H1-2')
 
 
-Examples
-........
+Example
+.......
 
 .. literalinclude:: ../examples/python/quantinuum
-
    :language: python
