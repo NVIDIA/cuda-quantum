@@ -70,8 +70,7 @@ RUN source /opt/llvm/bootstrap/init_command.sh && \
         bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
     && rm -rf /llvm-project 
 
-FROM ubuntu:22.04 as prereqs
-COPY --from=llvmbuild /opt/llvm/lib/cmake/llvm /opt/llvm/lib/cmake/llvm
+FROM llvmbuild as prereqs
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
 RUN apt-get update && apt-get install --no-install-recommends -y ca-certificates \
     && export LLVM_INSTALL_PREFIX=/opt/llvm \

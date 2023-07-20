@@ -79,7 +79,6 @@ if [ ! -x "$(command -v ar)" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/l
     fi
 fi
 
-/usr/lib/x86_64-linux-gnu/
 if [ ! -f "$OPENBLAS_INSTALL_PREFIX/libopenblas.a" ] && [ ! -f "$OPENBLAS_INSTALL_PREFIX/lib/libopenblas.a" ]; then
   apt-get update && apt-get install -y --no-install-recommends libopenblas-dev
   if [ "$OPENBLAS_INSTALL_PREFIX" != "/usr/lib/x86_64-linux-gnu" ]; then
