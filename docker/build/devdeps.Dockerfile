@@ -76,9 +76,6 @@ RUN apt-get update && apt-get install --no-install-recommends -y ca-certificates
     && export LLVM_INSTALL_PREFIX=/opt/llvm \
     && export OPENBLAS_INSTALL_PREFIX=/usr/local/openblas \
     && export OPENSSL_INSTALL_PREFIX=/usr/local/openssl \
-    # Making sure that anything that is build from source when installing additional
-    # prerequisites is built using the same toolchain as CUDA Quantum by default.
-    && source /opt/llvm/bootstrap/init_command.sh \
     && bash /scripts/install_prerequisites.sh \
     && apt-get remove -y ca-certificates \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
