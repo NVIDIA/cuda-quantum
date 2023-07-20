@@ -98,7 +98,7 @@ fi
 
 if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(ls -A "$OPENSSL_INSTALL_PREFIX")" ]; then
   apt-get update
-  temp_install_if_command_unknown git git
+  temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
 
   wget https://www.openssl.org/source/openssl-3.1.1.tar.gz
