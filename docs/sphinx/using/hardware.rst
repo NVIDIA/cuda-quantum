@@ -18,6 +18,10 @@ it as an environment variable:
 
   export IONQ_API_KEY="ionq_generated_api_key"
 
+
+C++
+```
+
 For developers in C++, you can indicate to ``nvq++`` that your quantum
 kernels will be executed in the IonQ Cloud via the ``--target`` flag.
 
@@ -28,7 +32,28 @@ kernels will be executed in the IonQ Cloud via the ``--target`` flag.
 This will take the API key and handle all authentication with, and submission to,
 the IonQ QPU.
 
-For python developers, the target may be controlled with the :ref:`cudaq.set_target()`
+Note: A "target" in :code:`cudaq` refers to a quantum compute provider, such as :code:`ionq`.
+However, IonQ's documentation uses the term "target" to refer to specific QPU's themselves.
+
+Specifying the QPU
+'''''''''''''''''''
+
+At this time, programmer control over the IonQ QPU is under construction.
+
+
+Example
+.......
+
+.. literalinclude:: ../examples/cpp/ionq
+
+    :language: cpp
+
+
+
+Python
+```````
+
+For python developers, the target may be controlled with the :ref:`cudaq::set_target()`
 function. This is functionally equivalent to the ``nvq++`` target,
 and will handle the submission of all quantum kernels to IonQ.
 
@@ -36,10 +61,13 @@ and will handle the submission of all quantum kernels to IonQ.
 
     cudaq.set_target('ionq')
 
-Specifying the QPU
-``````````````````
+Note: A "target" in :code:`cudaq` refers to a quantum compute provider, such as :code:`ionq`.
+However, IonQ's documentation uses the term "target" to refer to specific QPU's themselves.
 
-At this time, programmer control over the QPU is currently under construction.
+Specifying the QPU
+'''''''''''''''''''
+
+At this time, programmer control over the IonQ QPU is under construction.
 
 .. By default, the IonQ target will use the :code:`simulator` QPU.
 .. To specify which IonQ QPU to use, set the :code:`qpu` parameter.
@@ -49,22 +77,8 @@ At this time, programmer control over the QPU is currently under construction.
 .. .. code:: python
 ..     cudaq.set_target("ionq", qpu="qpu.aria-1")
 
-Note: A "target" in :code:`cudaq` refers to a quantum compute provider, such as :code:`ionq`.
-However, IonQ's documentation uses the term "target" to refer to specific QPU's themselves.
-
-
-Examples
-````````
-
-C++
-....
-
-.. literalinclude:: ../examples/cpp/ionq
-
-    :language: cpp
-
-Python
-.......
+Example
+........
 
 .. literalinclude:: ../examples/python/ionq
 
@@ -94,6 +108,10 @@ account details.
   echo "refresh: $refresh_token" >> $HOME/.quantinuum_config
   export CUDAQ_QUANTINUUM_CREDENTIALS=$HOME/.quantinuum_config
 
+
+C++
+````
+
 For C++, the ``--target`` argument may be set to "quantinuum". ``nvq++`` will grab
 the credentials from your home directory, authenticate them with the Quantinuum API,
 and submit any quantum kernel executions to the hardware.
@@ -102,16 +120,9 @@ and submit any quantum kernel executions to the hardware.
 
     nvq++ --target quantinuum src.cpp ...
 
-In python, the target may be controlled with the :ref:`cudaq.set_target()`
-function. This will set the target for any kernel executions within the file,
-and will go through the same credential scheme as discussed in the C++ case.
-
-.. code:: python
-
-    cudaq.set_target('quantinuum')
 
 Specifying the QPU
-``````````````````
+'''''''''''''''''''
 
 The ``quantinuum`` target will select a Quantinuum emulator by default.
 To specify a different QPU, this may be done in ``nvq++`` as
@@ -123,7 +134,30 @@ To specify a different QPU, this may be done in ``nvq++`` as
 where ``H1-2`` is an example of a physical QPU. Hardware specific
 emulators may be accessed by appending an "E" to the end (e.g, ``H1-2E``).
 
-At this time, control over the QPU for Python is under construction. 
+
+Example
+.......
+
+.. literalinclude:: ../examples/cpp/quantinuum
+
+    :language: cpp
+
+
+Python 
+```````
+
+In python, the target may be controlled with the ``cudaq.set_target()``
+function. This will set the target for any kernel executions within the file,
+and will go through the same credential scheme as discussed in the C++ case.
+
+.. code:: python
+
+    cudaq.set_target('quantinuum')
+
+Specifying the QPU
+'''''''''''''''''''
+
+At this time, control over the Quantinuum QPU for Python is under construction. 
 
 .. In python, this may be done by setting the :code:`machine` parameter.
 
@@ -133,17 +167,7 @@ At this time, control over the QPU for Python is under construction.
 
 
 Examples
-````````
-
-C++
-....
-
-.. literalinclude:: ../examples/cpp/quantinuum
-
-    :language: cpp
-
-Python 
-.......
+........
 
 .. literalinclude:: ../examples/python/quantinuum
 
