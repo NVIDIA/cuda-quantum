@@ -92,8 +92,8 @@ if [ ! -f "$OPENBLAS_INSTALL_PREFIX/libopenblas.a" ] && [ ! -f "$OPENBLAS_INSTAL
   # Additionally, if we build from source it would be nice to build with OpenMP support
   # if OpenMP is available. Note that clang and gcc work with different OpenMP libraries
   # (libgomp vs libomp), and clang cannot work with libgomp.
-  # Download location: 
-  # https://github.com/xianyi/OpenBLAS/releases/download/v0.3.23/OpenBLAS-0.3.23.tar.gz
+  # Download location: https://github.com/xianyi/OpenBLAS/releases/download/v0.3.23/OpenBLAS-0.3.23.tar.gz
+  # Build with OpenMP: make USE_OPENMP=0 && make install PREFIX="$OPENBLAS_INSTALL_PREFIX"
 fi
 
 if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(ls -A "$OPENSSL_INSTALL_PREFIX")" ]; then
