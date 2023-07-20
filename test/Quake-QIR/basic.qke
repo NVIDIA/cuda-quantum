@@ -21,8 +21,8 @@ module {
 // CHECK:         %[[VAL_1:.*]] = zext i32 %[[VAL_0]] to i64
 // CHECK:         %[[VAL_2:.*]] = tail call %[[VAL_3:.*]]* @__quantum__rt__qubit_allocate_array(i64 %[[VAL_1]])
 // CHECK:         %[[VAL_4:.*]] = tail call %[[VAL_3]]* @__quantum__rt__qubit_allocate_array(i64 2)
-// CHECK:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_3]]* %[[VAL_4]])
-// CHECK:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_3]]* %[[VAL_2]])
+// CHECK-DAG:     tail call void @__quantum__rt__qubit_release_array(%[[VAL_3]]* %[[VAL_4]])
+// CHECK-DAG:     tail call void @__quantum__rt__qubit_release_array(%[[VAL_3]]* %[[VAL_2]])
 // CHECK:         ret void
 // CHECK:       }
 
