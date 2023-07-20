@@ -80,18 +80,27 @@ if [ ! -x "$(command -v ar)" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/l
 fi
 
 if [ ! -f "$OPENBLAS_INSTALL_PREFIX/libopenblas.a" ] && [ ! -f "$OPENBLAS_INSTALL_PREFIX/lib/libopenblas.a" ]; then
-  apt-get update && apt-get install -y --no-install-recommends libopenblas-dev
-  if [ "$OPENBLAS_INSTALL_PREFIX" != "/usr/lib/x86_64-linux-gnu" ]; then
-    ln -s "/usr/lib/x86_64-linux-gnu/libopenblas.a" "$OPENBLAS_INSTALL_PREFIX/libopenblas.a"
-  fi
+  # Alternatively to building from source, the following prebuilt packages meet our needs:
+  #   apt-get install libopenblas-dev
+  #   dnf install openblas-static
 
-  # We could build this from source, but we need a fortran compiler to do so.
-  # Building from source, we end up with slight incompatibilities if we are not careful.
-  # Additionally, if we build from source it would be nice to build with OpenMP support
-  # if OpenMP is available. Note that clang and gcc work with different OpenMP libraries
-  # (libgomp vs libomp), and clang cannot work with libgomp.
-  # Download location: https://github.com/xianyi/OpenBLAS/releases/download/v0.3.23/OpenBLAS-0.3.23.tar.gz
-  # Build with OpenMP: make USE_OPENMP=0 && make install PREFIX="$OPENBLAS_INSTALL_PREFIX"
+  apt-get update
+  temp_install_if_command_unknown wget wget
+  temp_install_if_command_unknown make make
+  temp_install_if_command_unknown gcc gcc
+  temp_install_if_command_unknown g++ g++
+  temp_install_if_command_unknown gfortran gfortran
+
+  wget https://github.com/xianyi/OpenBLAS/releases/download/v0.3.21/OpenBLAS-0.3.21.tar.gz
+  tar -xf OpenBLAS-0.3.21.tar.gz && cd OpenBLAS-0.3.21
+
+  # TODO: gcc and clang work with different OpenMP libraries (libgomp vs libomp).
+  # To enable OpenMP support here we need to build it with the same compiler toolchain
+  # as we build CUDA Quantum with to ensure we link against the OpenMP library supported
+  # by that compiler. OpenMP support is disabled until we add the tools to build this 
+  # with each toolchains in the dev images.
+  make USE_OPENMP=0 && make install PREFIX="$OPENBLAS_INSTALL_PREFIX"
+  cd .. && rm -rf OpenBLAS-0.3.21*
 fi
 
 if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(ls -A "$OPENSSL_INSTALL_PREFIX"/openssl*)" ]; then

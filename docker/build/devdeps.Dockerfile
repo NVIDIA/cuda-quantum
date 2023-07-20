@@ -72,19 +72,13 @@ RUN source /opt/llvm/bootstrap/init_command.sh && \
 
 FROM llvmbuild as prereqs
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
-# Making sure that anything that is build from source when installing additional
-# prerequisites is built using the same toolchain as we build CUDA Quantum with.
-RUN source "/opt/llvm/bootstrap/init_command.sh" \
-    && echo -e '#!/bin/bash\n"'$CC'" "$@"' > "/opt/llvm/bootstrap/cc" \
-    && echo -e '#!/bin/bash\n"'$CXX'" "$@"' > "/opt/llvm/bootstrap/cxx" \
-    && chmod +x "/opt/llvm/bootstrap/cc" \
-    && chmod +x "/opt/llvm/bootstrap/cxx"
-ENV CC="/opt/llvm/bootstrap/cc"
-ENV CXX="/opt/llvm/bootstrap/cxx"
 RUN apt-get update && apt-get install --no-install-recommends -y ca-certificates \
     && export LLVM_INSTALL_PREFIX=/opt/llvm \
-    && export OPENBLAS_INSTALL_PREFIX=/usr/lib/x86_64-linux-gnu \
+    && export OPENBLAS_INSTALL_PREFIX=/usr/local/openblas \
     && export OPENSSL_INSTALL_PREFIX=/usr/local/openssl \
+    # Making sure that anything that is build from source when installing additional
+    # prerequisites is built using the same toolchain as we build CUDA Quantum with.
+    && source /opt/llvm/bootstrap/init_command.sh \
     && bash /scripts/install_prerequisites.sh \
     && apt-get remove -y ca-certificates \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -123,12 +117,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends libstdc++-12-de
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy over additional prerequisites.
-ENV OPENBLAS_INSTALL_PREFIX=/usr/lib/x86_64-linux-gnu
+ENV OPENBLAS_INSTALL_PREFIX=/usr/local/openblas
 ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
 ENV OPENSSL_ROOT_DIR="$OPENSSL_INSTALL_PREFIX"
-COPY --from=prereqs "$OPENBLAS_INSTALL_PREFIX" "$OPENBLAS_INSTALL_PREFIX"
-COPY --from=prereqs "$OPENSSL_INSTALL_PREFIX" "$OPENSSL_INSTALL_PREFIX"
-RUN ln -s "$OPENBLAS_INSTALL_PREFIX/openblas-pthread/libopenblas.a" /usr/lib64/libopenblas.a
+COPY --from=prereqs /usr/local/openblas "$OPENBLAS_INSTALL_PREFIX"
+COPY --from=prereqs /usr/local/openssl "$OPENSSL_INSTALL_PREFIX"
 
 # Install additional tools for CUDA Quantum documentation generation.
 RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certificates \

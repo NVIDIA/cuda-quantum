@@ -42,7 +42,7 @@ cmake.args = [
     "-DCUDAQ_DISABLE_CPP_FRONTEND=TRUE",
     "-DCUDAQ_DISABLE_TOOLS=TRUE",
     "-DCUDAQ_BUILD_TESTS=FALSE",
-    "-DBLAS_LIBRARIES=/usr/lib64/libopenblas.a",
+    "-DBLAS_LIBRARIES=/usr/local/openblas/lib/libopenblas.a",
     "-DOPENSSL_ROOT_DIR=/usr/local/openssl",
 ]
 
