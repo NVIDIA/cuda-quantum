@@ -16,14 +16,16 @@ kernel.mz(qubits[1])
 # Print out the kernel instructions before submitting.
 print(kernel)
 
-# Option A: Execute on IonQ and print out the results.
+# Execute on IonQ and print out the results.
+
+# Option A:
 # By using the synchronous `cudaq.sample`, the execution of
 # any remaining classical code in the file will occur only
 # after the job has been returned from IonQ.
 counts = cudaq.sample(kernel)
 print(counts)
 
-# Option B: Execute on IonQ and print out the results.
+# Option B:
 # By using the asynchronous `cudaq.sample_async`, the remaining
 # classical code will be executed while the job is being handled
 # by IonQ. This is ideal when submitting via a queue over
@@ -31,5 +33,15 @@ print(counts)
 future = cudaq.sample_async(kernel)
 # ... more classical code to run ...
 async_counts = future.get()
+
+# We can also convert the future to a string and write it to file.
+file = open("future.txt", "a")
+file.write(str(async_counts))
+file.close()
+
+# This allows us to grab the file at a later time and convert it
+# back to a `cudaq::AsyncSampleResult` 
+same_file = open("future.txt", "r")
+future_read_in = cudaq.AsyncSampleResult(str(same_file.read()))
 
 print(async_counts)
