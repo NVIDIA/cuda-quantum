@@ -156,23 +156,32 @@ bool QuantinuumServerHelper::jobIsDone(ServerMessage &getJobResponse) {
 
 cudaq::sample_result
 QuantinuumServerHelper::processResults(ServerMessage &postJobResponse) {
-  // results come back as results :{ "regName" : ['00','01',...], "regName2":
-  // [...]}
+  // Results come back as a map of vectors. Each map key corresponds to a qubit
+  // and its corresponding vector holds the measurement results in each shot:
+  //      { "results" : { "r0" : ["0", "0", ...],
+  //                      "r1" : ["1", "0", ...]  } }
   auto results = postJobResponse["results"];
-  std::vector<ExecutionResult> srs;
-  for (auto &result : results.items()) {
-    cudaq::CountsDictionary counts;
-    auto regName = result.key();
-    auto bitResults = result.value().get<std::vector<std::string>>();
-    for (auto &bitResult : bitResults) {
-      if (counts.count(bitResult))
-        counts[bitResult]++;
-      else
-        counts.insert({bitResult, 1});
-    }
 
-    srs.emplace_back(counts);
+  // For each shot, we concatenate the measurements results of all qubits.
+  auto begin = results.begin();
+  std::vector<std::string> bitstrings =
+      begin.value().get<std::vector<std::string>>();
+  for (auto it = ++begin, end = results.end(); it != end; ++it) {
+    auto bitResults = it.value().get<std::vector<std::string>>();
+    for (size_t i = 0; auto &bit : bitResults)
+      bitstrings[i++] += bit;
   }
+
+  cudaq::CountsDictionary counts;
+  for (auto &b : bitstrings) {
+    if (counts.count(b))
+      counts[b]++;
+    else
+      counts.insert({b, 1});
+  }
+
+  std::vector<ExecutionResult> srs;
+  srs.emplace_back(counts);
   return sample_result(srs);
 }
 
