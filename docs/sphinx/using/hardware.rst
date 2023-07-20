@@ -52,7 +52,7 @@ Example
 Python
 ```````
 
-For python developers, the target may be controlled with the :ref:`cudaq::set_target()`
+For python developers, the target may be controlled with the ``cudaq::set_target()``
 function. This is functionally equivalent to the ``nvq++`` target,
 and will handle the submission of all quantum kernels to IonQ.
 
