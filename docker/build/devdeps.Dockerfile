@@ -124,11 +124,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends libstdc++-12-de
 
 # Copy over additional prerequisites.
 ENV OPENBLAS_INSTALL_PREFIX=/usr/lib/x86_64-linux-gnu
-COPY /usr/lib/x86_64-linux-gnu/libopenblas.a /usr/lib64/libopenblas.a
 ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
 ENV OPENSSL_ROOT_DIR="$OPENSSL_INSTALL_PREFIX"
 COPY --from=prereqs "$OPENBLAS_INSTALL_PREFIX" "$OPENBLAS_INSTALL_PREFIX"
 COPY --from=prereqs "$OPENSSL_INSTALL_PREFIX" "$OPENSSL_INSTALL_PREFIX"
+RUN ln -s /usr/lib/x86_64-linux-gnu/libopenblas.a /usr/lib64/libopenblas.a
 
 # Install additional tools for CUDA Quantum documentation generation.
 RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certificates \
