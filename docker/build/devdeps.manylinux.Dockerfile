@@ -44,7 +44,7 @@ RUN dnf check-update && dnf install -y --nobest --setopt=install_weak_deps=False
 
 # Install additional dependencies required to build the CUDA Quantum wheel.
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
-ENV OPENBLAS_INSTALL_PREFIX=/usr/local/openblas
+ENV BLAS_INSTALL_PREFIX=/usr/local/blas
 ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
 RUN dnf check-update && dnf install -y --nobest --setopt=install_weak_deps=False \
         glibc-static perl-core wget \

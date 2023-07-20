@@ -74,7 +74,7 @@ FROM llvmbuild as prereqs
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
 RUN apt-get update && apt-get install --no-install-recommends -y ca-certificates \
     && export LLVM_INSTALL_PREFIX=/opt/llvm \
-    && export OPENBLAS_INSTALL_PREFIX=/usr/local/openblas \
+    && export BLAS_INSTALL_PREFIX=/usr/local/blas \
     && export OPENSSL_INSTALL_PREFIX=/usr/local/openssl \
     && bash /scripts/install_prerequisites.sh \
     && apt-get remove -y ca-certificates \
@@ -114,10 +114,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends libstdc++-12-de
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy over additional prerequisites.
-ENV OPENBLAS_INSTALL_PREFIX=/usr/local/openblas
+ENV BLAS_INSTALL_PREFIX=/usr/local/blas
 ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
 ENV OPENSSL_ROOT_DIR="$OPENSSL_INSTALL_PREFIX"
-COPY --from=prereqs /usr/local/openblas "$OPENBLAS_INSTALL_PREFIX"
+COPY --from=prereqs /usr/local/blas "$BLAS_INSTALL_PREFIX"
 COPY --from=prereqs /usr/local/openssl "$OPENSSL_INSTALL_PREFIX"
 
 # Install additional tools for CUDA Quantum documentation generation.

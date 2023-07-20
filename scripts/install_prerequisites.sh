@@ -17,13 +17,13 @@
 #
 # The necessary LLVM components will be installed in the location defined by the
 # LLVM_INSTALL_PREFIX if they do not already exist in that location.
-# If OpenBLAS is not found, it will be built from source and installed the location
-# defined by the OPENBLAS_INSTALL_PREFIX.
+# If BLAS is not found, it will be built from source and installed the location
+# defined by the BLAS_INSTALL_PREFIX.
 # If OpenSSL is not found, it will be built from source and installed the location
 # defined by the OPENSSL_INSTALL_PREFIX.
 
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/opt/llvm}
-OPENBLAS_INSTALL_PREFIX=${OPENBLAS_INSTALL_PREFIX:-/usr/lib64}
+BLAS_INSTALL_PREFIX=${BLAS_INSTALL_PREFIX:-/usr/local/blas}
 OPENSSL_INSTALL_PREFIX=${OPENSSL_INSTALL_PREFIX:-/usr/lib/ssl}
 
 function temp_install_if_command_unknown {
@@ -41,6 +41,7 @@ function remove_temp_installs {
   fi
 }
 
+set -e
 trap remove_temp_installs EXIT
 this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 
@@ -79,11 +80,7 @@ if [ ! -x "$(command -v ar)" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/l
     fi
 fi
 
-if [ ! -f "$OPENBLAS_INSTALL_PREFIX/libopenblas.a" ] && [ ! -f "$OPENBLAS_INSTALL_PREFIX/lib/libopenblas.a" ]; then
-  # Alternatively to building from source, the following prebuilt packages meet our needs:
-  #   apt-get install libopenblas-dev
-  #   dnf install openblas-static
-
+if [ ! -f "$BLAS_INSTALL_PREFIX/libblas.a" ] && [ ! -f "$BLAS_INSTALL_PREFIX/lib/libblas.a" ]; then
   apt-get update
   temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
@@ -91,16 +88,10 @@ if [ ! -f "$OPENBLAS_INSTALL_PREFIX/libopenblas.a" ] && [ ! -f "$OPENBLAS_INSTAL
   temp_install_if_command_unknown g++ g++
   temp_install_if_command_unknown gfortran gfortran
 
-  wget https://github.com/xianyi/OpenBLAS/releases/download/v0.3.21/OpenBLAS-0.3.21.tar.gz
-  tar -xf OpenBLAS-0.3.21.tar.gz && cd OpenBLAS-0.3.21
-
-  # TODO: gcc and clang work with different OpenMP libraries (libgomp vs libomp).
-  # To enable OpenMP support here we need to build it with the same compiler toolchain
-  # as we build CUDA Quantum with to ensure we link against the OpenMP library supported
-  # by that compiler. OpenMP support is disabled until we add the tools to build this 
-  # with each toolchains in the dev images.
-  make USE_OPENMP=0 && make install PREFIX="$OPENBLAS_INSTALL_PREFIX"
-  cd .. && rm -rf OpenBLAS-0.3.21*
+  # See also: https://github.com/NVIDIA/cuda-quantum/issues/452
+  wget http://www.netlib.org/blas/blas-3.11.0.tgz
+  tar -xzvf blas-3.11.0.tgz && cd BLAS-3.11.0
+  make && mv blas_LINUX.a "$BLAS_INSTALL_PREFIX/libblas.a"
 fi
 
 if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(ls -A "$OPENSSL_INSTALL_PREFIX"/openssl*)" ]; then
