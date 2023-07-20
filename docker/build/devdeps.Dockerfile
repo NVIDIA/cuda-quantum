@@ -75,7 +75,7 @@ COPY --from=llvmbuild /opt/llvm/lib/cmake/llvm /opt/llvm/lib/cmake/llvm
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
 RUN apt-get update && apt-get install --no-install-recommends -y ca-certificates \
     && export LLVM_INSTALL_PREFIX=/opt/llvm \
-    && export OPENBLAS_INSTALL_PREFIX=/usr/local/openblas \
+    && export OPENBLAS_INSTALL_PREFIX=/usr/lib/x86_64-linux-gnu \
     && export OPENSSL_INSTALL_PREFIX=/usr/local/openssl \
     && bash /scripts/install_prerequisites.sh \
     && apt-get remove -y ca-certificates \
@@ -114,12 +114,12 @@ ENV CXX="$LLVM_INSTALL_PREFIX/bootstrap/cxx"
 RUN apt-get update && apt-get install -y --no-install-recommends libstdc++-12-dev \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Copy over other prerequisites we build from source.
-COPY --from=prereqs /usr/local/openblas /usr/local/openblas
-COPY --from=prereqs /usr/local/openssl /usr/local/openssl
-ENV OPENBLAS_INSTALL_PREFIX=/usr/local/openblas
+# Copy over additional prerequisites.
+ENV OPENBLAS_INSTALL_PREFIX=/usr/lib/x86_64-linux-gnu
 ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
 ENV OPENSSL_ROOT_DIR="$OPENSSL_INSTALL_PREFIX"
+COPY --from=prereqs "$OPENBLAS_INSTALL_PREFIX" "$OPENBLAS_INSTALL_PREFIX"
+COPY --from=prereqs "$OPENSSL_INSTALL_PREFIX" "$OPENSSL_INSTALL_PREFIX"
 
 # Install additional tools for CUDA Quantum documentation generation.
 RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certificates \
