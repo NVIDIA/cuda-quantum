@@ -8,6 +8,7 @@ COBYLA
 CPU
 CPUs
 CUDA
+CUDAQ
 DGX
 DOI
 Fourier
@@ -64,6 +65,7 @@ canonicalizer
 canonicalizes
 codebase
 composable
+config
 controlled
 coprocessor
 coprocessors
