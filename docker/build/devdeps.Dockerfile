@@ -77,7 +77,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y ca-certificates
     && export OPENBLAS_INSTALL_PREFIX=/usr/local/openblas \
     && export OPENSSL_INSTALL_PREFIX=/usr/local/openssl \
     # Making sure that anything that is build from source when installing additional
-    # prerequisites is built using the same toolchain as we build CUDA Quantum with.
+    # prerequisites is built using the same toolchain as CUDA Quantum by default.
     && source /opt/llvm/bootstrap/init_command.sh \
     && bash /scripts/install_prerequisites.sh \
     && apt-get remove -y ca-certificates \
