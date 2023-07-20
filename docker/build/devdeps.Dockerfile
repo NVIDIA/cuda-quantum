@@ -72,6 +72,15 @@ RUN source /opt/llvm/bootstrap/init_command.sh && \
 
 FROM llvmbuild as prereqs
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
+# Making sure that anything that is build from source when installing additional
+# prerequisites is built using the same toolchain as we build CUDA Quantum with.
+RUN source "$LLVM_INSTALL_PREFIX/bootstrap/init_command.sh" \
+    && echo -e '#!/bin/bash\n"'$CC'" "$@"' > "$LLVM_INSTALL_PREFIX/bootstrap/cc" \
+    && echo -e '#!/bin/bash\n"'$CXX'" "$@"' > "$LLVM_INSTALL_PREFIX/bootstrap/cxx" \
+    && chmod +x "$LLVM_INSTALL_PREFIX/bootstrap/cc" \
+    && chmod +x "$LLVM_INSTALL_PREFIX/bootstrap/cxx"
+ENV CC="$LLVM_INSTALL_PREFIX/bootstrap/cc"
+ENV CXX="$LLVM_INSTALL_PREFIX/bootstrap/cxx"
 RUN apt-get update && apt-get install --no-install-recommends -y ca-certificates \
     && export LLVM_INSTALL_PREFIX=/opt/llvm \
     && export OPENBLAS_INSTALL_PREFIX=/usr/lib/x86_64-linux-gnu \

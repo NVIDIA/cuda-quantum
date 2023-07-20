@@ -49,7 +49,7 @@ if [ ! -x "$(command -v cmake)" ]; then
     APT_UNINSTALL="$APT_UNINSTALL $2"
 fi
 if [ "$CC" == "" ] && [ "$CXX" == "" ]; then
-  source "$this_file_dir/install_tool.sh" -t gcc12
+  source "$this_file_dir/install_toolchain.sh" -t gcc12
 fi
 
 llvm_dir="$LLVM_INSTALL_PREFIX/lib/cmake/llvm"
@@ -86,8 +86,7 @@ if [ ! -f "$OPENBLAS_INSTALL_PREFIX/libopenblas.a" ] && [ ! -f "$OPENBLAS_INSTAL
   fi
 
   # We could build this from source, but we need a fortran compiler to do so.
-  # If we build OpenBLAS with a different compiler than CUDA Quantum, we can end up
-  # with slight incompatibilities it seems.
+  # Building from source, we end up with slight incompatibilities if we are not careful.
   # Additionally, if we build from source it would be nice to build with OpenMP support
   # if OpenMP is available. Note that clang and gcc work with different OpenMP libraries
   # (libgomp vs libomp), and clang cannot work with libgomp.
