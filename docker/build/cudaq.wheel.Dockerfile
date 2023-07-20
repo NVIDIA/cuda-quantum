@@ -14,7 +14,7 @@
 #   DOCKER_BUILDKIT=1 docker build -f docker/build/cudaq.wheels.Dockerfile . --output out
 
 ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:manylinux
-FROM base_image as wheelbuild
+FROM $base_image as wheelbuild
 
 ARG release_version=
 ENV CUDA_QUANTUM_VERSION=$release_version
@@ -24,24 +24,13 @@ ARG workspace=.
 ARG destination=cuda-quantum
 ADD "$workspace" "$destination"
 
-RUN installed_versions=$(for python in `ls /usr/local/bin/python*`; do \
-        $python --version | cut -d ' ' -f 2 | egrep -o '^3\.10'; \
-    done | sort -V) && \
-    valid_version=$(for v in $installed_versions; do \
-        comp=$(echo -e "$v\n3.8" | sort -V); \
-        if [ "$comp" != "${comp#3.8}" ]; then echo python$v; fi \
-    done) && \
-    # We need a newer cmake version than what is available with dnf. 
-    dnf remove -y cmake && python3.10 -m pip install cmake; \
-    cd cuda-quantum && \
-    for python in $valid_version; do \
-        echo "Building wheel for $python."; \
-        CUDAQ_BUILD_SELFCONTAINED=ON LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
-        $python -m build --wheel; \
-        $python -m pip install auditwheel; \
-        LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/_skbuild/lib" \
-        $python -m auditwheel -v repair dist/cuda_quantum-*linux_*.whl; \
-    done
+ARG python_version=3.10
+RUN echo "Building wheel for python${python_version}." \
+    && cd cuda-quantum && python=python${python_version} \
+    && $python -m pip install cmake auditwheel \
+    && CUDAQ_BUILD_SELFCONTAINED=ON $python -m build --wheel \
+    && LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/_skbuild/lib" \
+        $python -m auditwheel -v repair dist/cuda_quantum-*linux_*.whl
 
 FROM scratch
 COPY --from=wheelbuild /cuda-quantum/wheelhouse/*manylinux*.whl . 
