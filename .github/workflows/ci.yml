@@ -90,19 +90,6 @@ jobs:
       devdeps_cache: ${{ needs.wheeldeps.outputs.cache_key }}
       devdeps_archive: ${{ needs.wheeldeps.outputs.tar_archive }}
 
-  python_wheels:
-    name: Create Python wheels
-    needs: wheeldeps
-    strategy:
-      matrix:
-        python_version: ['3.8', '3.10']
-      fail-fast: false
-    uses: ./.github/workflows/python_wheels.yml
-    with:
-      python_version: ${{ matrix.python_version }}
-      devdeps_cache: ${{ needs.wheeldeps.outputs.cache_key }}
-      devdeps_archive: ${{ needs.wheeldeps.outputs.tar_archive }}
-
   clean_up:
     name: Prepare cache clean-up
     runs-on: ubuntu-latest
