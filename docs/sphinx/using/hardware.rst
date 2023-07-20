@@ -10,7 +10,7 @@ Setting Credentials
 ```````````````````
 
 Programmers of CUDA Quantum may access the `IonQ Quantum Cloud
-<https://cloud.ionq.com/>` from either C++ or Python. Simply generate
+<https://cloud.ionq.com/>`_ from either C++ or Python. Simply generate
 an API key from your `IonQ account <https://cloud.ionq.com/>`_ and export
 it as an environment variable:
 
@@ -28,8 +28,8 @@ kernels will be executed in the IonQ Cloud via the ``--target`` flag.
 This will take the API key and handle all authentication with, and submission to,
 the IonQ QPU.
 
-For python developers, the target may be controlled with the `cudaq.set_target()`
-[TODO: LINK] function. This is functionally equivalent to the ``nvq++`` target,
+For python developers, the target may be controlled with the :ref:`cudaq.set_target()`
+function. This is functionally equivalent to the ``nvq++`` target,
 and will handle the submission of all quantum kernels to IonQ.
 
 .. code:: python
@@ -60,12 +60,14 @@ C++
 ....
 
 .. literalinclude:: ../examples/cpp/ionq
+
     :language: cpp
 
 Python
 .......
 
 .. literalinclude:: ../examples/python/ionq
+
    :language: python
 
 
@@ -92,7 +94,7 @@ account details.
   echo "refresh: $refresh_token" >> $HOME/.quantinuum_config
   export CUDAQ_QUANTINUUM_CREDENTIALS=$HOME/.quantinuum_config
 
-For C++, the `--target` argument may be set to "quantinuum". `nvq++` will grab
+For C++, the ``--target`` argument may be set to "quantinuum". ``nvq++`` will grab
 the credentials from your home directory, authenticate them with the Quantinuum API,
 and submit any quantum kernel executions to the hardware.
 
@@ -100,7 +102,7 @@ and submit any quantum kernel executions to the hardware.
 
     nvq++ --target quantinuum src.cpp ...
 
-In python, the target may be controlled with the `cudaq.set_target()` [TODO: LINK]
+In python, the target may be controlled with the :ref:`cudaq.set_target()`
 function. This will set the target for any kernel executions within the file,
 and will go through the same credential scheme as discussed in the C++ case.
 
@@ -118,8 +120,8 @@ To specify a different QPU, this may be done in ``nvq++`` as
 
     nvq++ --target quantinuum -quantinuum-machine H1-2 src.cpp ...
 
-where ``H1-2`` is an example of a physical QPU. The hardware specific
-emulator may be accessed by appending an "E" to the end (e.g, ``H1-2E``).
+where ``H1-2`` is an example of a physical QPU. Hardware specific
+emulators may be accessed by appending an "E" to the end (e.g, ``H1-2E``).
 
 At this time, control over the QPU for Python is under construction. 
 
@@ -137,10 +139,12 @@ C++
 ....
 
 .. literalinclude:: ../examples/cpp/quantinuum
+
     :language: cpp
 
 Python 
 .......
 
 .. literalinclude:: ../examples/python/quantinuum
+
    :language: python
