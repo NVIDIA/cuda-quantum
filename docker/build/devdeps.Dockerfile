@@ -124,6 +124,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends libstdc++-12-de
 
 # Copy over additional prerequisites.
 ENV OPENBLAS_INSTALL_PREFIX=/usr/lib/x86_64-linux-gnu
+RUN ln -s /usr/lib/x86_64-linux-gnu/libopenblas.a /usr/lib64/libopenblas.a
 ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
 ENV OPENSSL_ROOT_DIR="$OPENSSL_INSTALL_PREFIX"
 COPY --from=prereqs "$OPENBLAS_INSTALL_PREFIX" "$OPENBLAS_INSTALL_PREFIX"
