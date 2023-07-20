@@ -53,11 +53,12 @@ public:
 
   LogicalResult matchAndRewrite(quake::AllocaOp alloc,
                                 PatternRewriter &rewriter) const override {
+    Type refTy = quake::RefType::get(rewriter.getContext());
     for (auto p : llvm::enumerate(analysis.allocations)) {
       if (alloc == p.value()) {
         auto i = p.index();
         auto &os = analysis.offsetSizes[i];
-        if (os.second == 1) {
+        if (alloc.getType() == refTy) {
           [[maybe_unused]] Value ext =
               rewriter.replaceOpWithNewOp<quake::ExtractRefOp>(
                   alloc, analysis.newAlloc, os.first);
