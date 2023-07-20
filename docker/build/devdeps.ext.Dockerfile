@@ -27,8 +27,7 @@ SHELL ["/bin/bash", "-c"]
 # Set here to avoid setting it for all install commands. 
 # Given as arg to make sure that this value is only set during build but not in the launched container.
 ARG DEBIAN_FRONTEND=noninteractive
-RUN apt update && apt-get install -y --no-install-recommends \
-        ca-certificates openssl wget \
+RUN apt update && apt-get install -y --no-install-recommends ca-certificates wget \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # Install Mellanox OFED runtime dependencies.

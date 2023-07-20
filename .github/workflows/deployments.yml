@@ -14,11 +14,17 @@ on:
         required: false
         type: string
         description: 'The name of the branch to use as cache base.'
+        default: main
       platforms:
         type: string
         description: The platforms to build the Docker images for.
         required: false
         default: linux/amd64
+      manylinux_image:
+        type: string
+        description: The base image to use when building Python wheels.
+        required: false
+        default: quay.io/pypa/manylinux_2_28_x86_64:latest
       create_release:
         type: string
         description: The version number of the release (e.g. 0.3.0). The version must not exist already.
@@ -64,11 +70,26 @@ jobs:
       registry_cache_update_only: ${{ github.event.pull_request.merged == true }}
       environment: ${{ (github.event.pull_request.merged != true && 'ghcr-deployment') || '' }}
 
+  wheeldeps:
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created) || (github.event_name == 'pull_request_target' && github.event.pull_request.merged == true)
+    name: Build wheel dependencies
+    uses: ./.github/workflows/dev_environment.yml
+    with:
+      dockerfile: build/devdeps.manylinux.Dockerfile
+      platforms: ${{ inputs.platforms }}
+      toolchain: x86_64
+      build_args: |
+        manylinux_image=${{ inputs.manylinux_image }}
+      registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base }}
+      registry_cache_update: ${{ github.event_name == 'workflow_dispatch' && inputs.update_registry_cache }}
+      registry_cache_update_only: ${{ github.event.pull_request.merged == true }}
+      environment: ${{ (github.event.pull_request.merged != true && 'ghcr-deployment') || '' }}
+
   dispatch:
     if: github.event_name == 'pull_request_target'
     name: Dispatch deployments
     runs-on: ubuntu-latest
-    needs: devdeps
+    needs: [devdeps, wheeldeps]
 
     steps:
       - uses: actions/github-script@v6
@@ -81,6 +102,9 @@ jobs:
               repo: context.repo.repo,
               workflow_id: 'deployments.yml',
               ref: '${{ github.event.pull_request.base.ref }}',
+              inputs: {
+                cache_base: '${{ github.event.pull_request.base.ref }}',
+              },
             })
 
   # This job is needed only when using the cloudposse GitHub action to read
@@ -111,7 +135,7 @@ jobs:
     with:
       dockerfile: build/devdeps.ompi.Dockerfile
       platforms: ${{ inputs.platforms }}
-      registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base || github.ref_name }}
+      registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base }}
       registry_cache_update: true
       environment: ghcr-deployment
 
@@ -126,11 +150,11 @@ jobs:
       build_args: |
         base_image=${{ needs.config.outputs.base_image }}
         ompidev_image=${{ needs.openmpi.outputs.image_hash }}
-      registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base || github.ref_name }}
+      registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base }}
       registry_cache_update: true
       environment: ghcr-deployment
 
-  docker_image:
+  docker_images:
     name: Create Docker images
     needs: [extdevdeps, openmpi]
     uses: ./.github/workflows/docker_images.yml
@@ -141,3 +165,21 @@ jobs:
       devdeps_image: ${{ needs.extdevdeps.outputs.image_hash }}
       environment: ghcr-deployment
       create_release: ${{ inputs.create_release }}
+
+  python_wheels:
+    name: Create Python wheels
+    needs: wheeldeps
+    strategy:
+      matrix:
+        python_version: ['3.8', '3.9', '3.10', '3.11']
+      fail-fast: false
+    uses: ./.github/workflows/python_wheels.yml
+    with:
+      python_version: ${{ matrix.python_version }}
+      devdeps_image: ${{ needs.wheeldeps.outputs.image_hash }}
+      # TODO: upload wheels to test-pypi - the push to pypi itself
+      # should be done only by the publishing when creating a release.
+      # See also: 
+      # https://github.com/pypa/gh-action-pypi-publish
+      # https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
+      # environment: pypi-deployment
