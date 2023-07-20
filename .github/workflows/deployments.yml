@@ -119,8 +119,8 @@ jobs:
 
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
-      base_image: ${{ fromJson(steps.read_json.outputs.result).image_hash.llvm }}
-      toolchain: llvm
+      base_image: ${{ fromJson(steps.read_json.outputs.result).image_hash.gcc12 }}
+      toolchain: gcc12
 
     steps:
       - uses: cloudposse/github-action-matrix-outputs-read@0.1.1
