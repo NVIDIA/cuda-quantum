@@ -109,6 +109,7 @@ struct ConcatSizePattern : public OpRewritePattern<quake::ConcatOp> {
         if (!veqTy.hasSpecifiedSize())
           return failure();
         sum += veqTy.getSize();
+        continue;
       }
       assert(isa<quake::RefType>(opnd.getType()));
       sum++;
