@@ -1,6 +1,7 @@
 # Welcome to the CUDA Quantum Python API
 
 ## Installing CUDA Quantum
+
 To pull down the CUDA Quantum Python wheel distribution, simply run:
 ```console
 pip install cuda-quantum
@@ -40,6 +41,7 @@ result = cudaq.sample(kernel)
 ```
 
 ## Documentation 
+
 To see more examples, go to [python examples][python_examples], or check out the
 [Python API reference][python_api_reference].
 
