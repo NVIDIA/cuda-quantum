@@ -123,10 +123,10 @@ account details.
 C++
 ````
 
-For C++, the ``--target`` argument may be set to "quantinuum". ``nvq++`` will grab
+For C++, the ``--target`` argument may be set to ``quantinuum``. ``nvq++`` will grab
 the credentials from your home directory, authenticate them with the Quantinuum API,
 and submit any quantum kernel executions to the hardware. By default, the QPU is set
-to Quantinuum's syntax checker. This is helpful for determining the validity of your
+to the Quantinuum syntax checker. This is helpful for determining the validity of your
 kernel before submitting to a physical QPU. 
 
 .. code:: bash

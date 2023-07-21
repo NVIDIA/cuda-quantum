@@ -30,8 +30,8 @@ export PYTHONPATH=$PYTHONPATH:/path/to/cudaq/install
 
 ## Running CUDA Quantum
 
-You should now be able to import CUDA Quantum and start building quantum programs in
-Python!
+You should now be able to import CUDA Quantum and start building quantum programs
+in Python!
 
 ```console
 import cudaq
@@ -44,7 +44,7 @@ kernel.mz()
 result = cudaq.sample(kernel)
 ```
 
-## Documentation 
+## Documentation
 
 To see more examples, go to [python examples][python_examples], or check out the
 [Python API reference][python_api_reference].

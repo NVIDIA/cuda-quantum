@@ -105,7 +105,6 @@ parallelization
 precompute
 precomputed
 prepend
-quantinuum
 quantize
 quantized
 qubit
