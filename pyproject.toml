@@ -37,12 +37,13 @@ metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
 cmake.minimum-version = "3.26"
 cmake.build-type = "Release"
 cmake.verbose = false
-cmake.args = [ 
+cmake.args = [
+    "-DCMAKE_COMPILE_WARNING_AS_ERROR=OFF", # FIXME
     "-DCUDAQ_ENABLE_PYTHON=TRUE",
     "-DCUDAQ_DISABLE_CPP_FRONTEND=TRUE",
     "-DCUDAQ_DISABLE_TOOLS=TRUE",
     "-DCUDAQ_BUILD_TESTS=FALSE",
-    "-DBLAS_LIBRARIES=/usr/local/openblas/lib/libopenblas.a",
+    "-DBLAS_LIBRARIES=/usr/local/blas/libblas.a",
     "-DOPENSSL_ROOT_DIR=/usr/local/openssl",
 ]
 
