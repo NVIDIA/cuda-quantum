@@ -96,10 +96,9 @@ if [ ! -f "$BLAS_INSTALL_PREFIX/libblas.a" ] && [ ! -f "$BLAS_INSTALL_PREFIX/lib
 fi
 
 if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(ls -A "$OPENSSL_INSTALL_PREFIX"/openssl*)" ]; then
-  apt-get update
+  apt-get update && apt-get install perl
   temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
-  temp_install_if_command_unknown perl perl
 
   wget https://www.openssl.org/source/openssl-3.1.1.tar.gz
   tar -xf openssl-3.1.1.tar.gz && cd openssl-3.1.1
