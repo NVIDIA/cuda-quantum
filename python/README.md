@@ -40,7 +40,7 @@ result = cudaq.sample(kernel)
 ```
 
 ## Documentation 
-To see more examples, [go to][python_examples], or check out the
+To see more examples, go to [python examples][python_examples], or check out the
 [Python API reference][python_api_reference].
 
 [python_examples]: https://nvidia.github.io/cuda-quantum/latest/using/python.html
