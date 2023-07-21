@@ -36,6 +36,8 @@
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/opt/llvm}
 CUQUANTUM_INSTALL_PREFIX=${CUQUANTUM_INSTALL_PREFIX:-/opt/nvidia/cuquantum}
 CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$HOME/.cudaq"}
+BLAS_INSTALL_PREFIX=${BLAS_INSTALL_PREFIX:-/usr/local/blas}
+BLAS_LIBRARIES=${BLAS_LIBRARIES:-"$BLAS_INSTALL_PREFIX/libblas.a"}
 
 # Process command line arguments
 (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
@@ -108,8 +110,8 @@ cmake_args="-G Ninja "$repo_root" \
   -DNVQPP_LD_PATH="$NVQPP_LD_PATH" \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DCUDAQ_ENABLE_PYTHON=TRUE \
-  -DBLAS_LIBRARIES="${OPENBLAS_INSTALL_PREFIX:+$OPENBLAS_INSTALL_PREFIX/lib/libopenblas.a}" \
   -DCUDAQ_TEST_MOCK_SERVERS=FALSE \
+  -DBLAS_LIBRARIES="${BLAS_LIBRARIES}" \
   -DCMAKE_EXE_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
   -DCMAKE_MODULE_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
   -DCMAKE_SHARED_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \

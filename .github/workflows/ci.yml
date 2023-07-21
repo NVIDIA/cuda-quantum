@@ -74,8 +74,8 @@ jobs:
     needs: config
     uses: ./.github/workflows/docker_images.yml
     with:
-      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key.llvm }}
-      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive.llvm }}
+      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key.gcc12 }}
+      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive.gcc12 }}
 
   python_wheels:
     name: Create Python wheels

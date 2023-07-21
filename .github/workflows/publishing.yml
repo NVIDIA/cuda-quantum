@@ -1,9 +1,9 @@
 on:
   workflow_dispatch:
     inputs:
-      release_id:
+      deployment_id:
         type: string
-        description: The release id on GitHub from which to download the assets.
+        description: The workflow id of the deployment that triggered the release creation.
         required: true
   workflow_run:
     workflows:
@@ -30,9 +30,12 @@ jobs:
     steps:
       - name: Download artifacts
         id: artifacts
-        if: github.event_name == 'workflow_run'
         run: |
-          artifacts_url=${{ github.event.workflow_run.artifacts_url }}
+          if ${{ inputs.deployment_id }}; then
+            artifacts_url=https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ inputs.deployment_id }}/artifacts
+          else
+            artifacts_url=${{ github.event.workflow_run.artifacts_url }}
+          fi
           artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
           wheelhouse="$(pwd)/wheels"
           mkdir -p "$wheelhouse"
@@ -68,7 +71,7 @@ jobs:
       - name: Wait for release
         id: assets
         run: |
-          release_id=${{ inputs.release_id || steps.artifacts.outputs.release_id }}
+          release_id=${{ steps.artifacts.outputs.release_id }}
           github_commit=`gh release view $release_id -R ${{ github.repository }} --json targetCommitish --jq .targetCommitish`
 
           echo "release_id=$release_id" >> $GITHUB_OUTPUT
