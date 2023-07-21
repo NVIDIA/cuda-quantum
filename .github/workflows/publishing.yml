@@ -224,7 +224,7 @@ jobs:
 
           # Delete the draft release that was used to share artifacts and
           # build information between GitLab and GitHub, or trigger publishing.
-          release_id=${{ steps.assets.outputs.release_id }}
+          release_id=${{ steps.release_info.outputs.release || steps.assets.outputs.release_id }}
           gh release view $release_id --json body --jq .body >> $GITHUB_STEP_SUMMARY
           if ${{ steps.publish_release.outcome == 'skipped' }}; then
             gh release delete $release_id -R ${{ github.repository }} -y
