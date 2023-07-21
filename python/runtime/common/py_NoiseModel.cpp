@@ -38,11 +38,11 @@ void bindNoiseModel(py::module &mod) {
           "Clear backend simulation from any existing noise models.");
 
   py::class_<kraus_op>(mod, "KrausOperator", py::buffer_protocol(),
-                      """
+                      R"(
                       The KrausOperator is represented by a matrix and 
                       serves as an element of a quantum channel such that 
                       Sum Ki Ki^dag = I.
-                      """
+                      )"
                       )
       .def_buffer([](kraus_op &op) -> py::buffer_info {
         return py::buffer_info(op.data.data(), sizeof(complex),
