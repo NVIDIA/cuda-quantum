@@ -87,6 +87,7 @@ A list of available QPUs can be found `in the API documentation
 <https://docs.ionq.com/#tag/jobs>`_.
 
 .. code:: python
+  
     cudaq.set_target("ionq", qpu="qpu.aria-1")
 
 Example
