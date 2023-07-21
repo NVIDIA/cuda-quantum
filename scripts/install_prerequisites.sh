@@ -92,6 +92,7 @@ if [ ! -f "$BLAS_INSTALL_PREFIX/libblas.a" ] && [ ! -f "$BLAS_INSTALL_PREFIX/lib
   wget http://www.netlib.org/blas/blas-3.11.0.tgz
   tar -xzvf blas-3.11.0.tgz && cd BLAS-3.11.0
   make && mkdir -p "$BLAS_INSTALL_PREFIX" && mv blas_LINUX.a "$BLAS_INSTALL_PREFIX/libblas.a"
+  remove_temp_installs
 fi
 
 if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(ls -A "$OPENSSL_INSTALL_PREFIX"/openssl*)" ]; then
@@ -104,4 +105,5 @@ if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(ls -A "$OPENSSL_INSTALL_PREFIX"
   tar -xf openssl-3.1.1.tar.gz && cd openssl-3.1.1
   ./config no-zlib --prefix="$OPENSSL_INSTALL_PREFIX" --openssldir="$OPENSSL_INSTALL_PREFIX"
   make install && cd .. && rm -rf openssl-3.1.1*
+  remove_temp_installs
 fi
