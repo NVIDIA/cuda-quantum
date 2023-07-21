@@ -15,9 +15,9 @@
 __qpu__ void cccx_measure_cleanup() {
   cudaq::qreg qubits(4);
   // Initialize
+  x(qubits[0]);
   x(qubits[1]);
   x(qubits[2]);
-  x(qubits[3]);
 
   // Compute AND-operation
   cudaq::qubit ancilla;
@@ -44,8 +44,9 @@ __qpu__ void cccx_measure_cleanup() {
 }
 
 int main() {
-  auto result = cudaq::sample(1000, cccx_measure_cleanup);
+  auto result = cudaq::sample(10, cccx_measure_cleanup);
   std::cout << result.most_probable() << '\n';
+  result.dump();
   return 0;
 }
 
