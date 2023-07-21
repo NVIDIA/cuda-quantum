@@ -28,12 +28,12 @@ struct cnot_coupling {
 };
 
 /// @brief Utility function generation default coupling for the HWE ansatz.
-inline std::vector<cnot_coupling> default_cnotCoupling(std::size_t numQubits) {
+inline std::vector<cnot_coupling> default_cnot_coupling(std::size_t numQubits) {
   std::vector<cnot_coupling> cnotCoupling;
-  cnotCoupling.reserve(numQubits-1);  
-  for (std::size_t q = 0; q < numQubits - 1; q++) {
-      cnotCoupling.push_back( {q, q + 1} );
-  }
+  cnotCoupling.reserve(numQubits - 1);
+  for (std::size_t q = 0; q < numQubits - 1; q++)
+    cnotCoupling.push_back({q, q + 1});
+
   return cnotCoupling;
 }
 
@@ -42,7 +42,8 @@ inline std::vector<cnot_coupling> default_cnotCoupling(std::size_t numQubits) {
 /// qubits the state is on, the number of layers, the vector of variational
 /// parameters and the CNOT couplers.
 __qpu__ void hwe(cudaq::qview<> qubits, std::size_t numLayers,
-                 std::vector<double> parameters, const std::vector<cnot_coupling> &cnotCoupling) {
+                 std::vector<double> parameters,
+                 const std::vector<cnot_coupling> &cnotCoupling) {
   std::size_t numQubits = qubits.size();
 
   for (std::size_t thetaCounter = 0, i = 0; i < numQubits; i++) {
@@ -51,7 +52,8 @@ __qpu__ void hwe(cudaq::qview<> qubits, std::size_t numLayers,
     thetaCounter += 2;
   }
 
-  for (std::size_t thetaCounter = numQubits * 2, layer = 0; layer < numLayers; layer++) {
+  for (std::size_t thetaCounter = numQubits * 2, layer = 0; layer < numLayers;
+       layer++) {
     for (auto &cnot : cnotCoupling)
       x<cudaq::ctrl>(qubits[cnot.source], qubits[cnot.target]);
 
@@ -63,27 +65,28 @@ __qpu__ void hwe(cudaq::qview<> qubits, std::size_t numLayers,
   }
 }
 
-
 /// @brief This CUDA Quantum kernel implements the hardware-efficient ansatz
 /// from Kandala et. al [https://arxiv.org/abs/1704.05018]. It takes the
 /// qubits the state is on, the number of layers, and the vector of
 /// variational parameters. Uses default CNOT couplers.
-__qpu__ void hwe(cudaq::qview<> qubits, std::size_t numLayers, std::vector<double> parameters) {
+__qpu__ void hwe(cudaq::qview<> qubits, std::size_t numLayers,
+                 std::vector<double> parameters) {
   std::size_t numQubits = qubits.size();
 
   // generate default cnotCoupling and forward the call
-  std::vector<cnot_coupling> cnotCoupling = default_cnotCoupling(numQubits);
+  std::vector<cnot_coupling> cnotCoupling = default_cnot_coupling(numQubits);
   hwe(qubits, numLayers, parameters, cnotCoupling);
 }
 
-
-/// @brief This function creates the hardware-efficient ansatz from Kandala et. al 
-/// [https://arxiv.org/abs/1704.05018] on an existing kernel_builder instance. 
-/// It takes the qubits the state is on, the number of qubits and layers, the 
-/// vector of variational parameters and the CNOT couplers as input as a QuakeValue.
+/// @brief This function creates the hardware-efficient ansatz from Kandala et.
+/// al [https://arxiv.org/abs/1704.05018] on an existing kernel_builder
+/// instance. It takes the qubits the state is on, the number of qubits and
+/// layers, the vector of variational parameters and the CNOT couplers as input
+/// as a QuakeValue.
 template <typename KernelBuilder>
-void hwe(KernelBuilder &kernel, QuakeValue &qubits, std::size_t numQubits, std::size_t numLayers, 
-         QuakeValue &parameters, const std::vector<cnot_coupling> &cnotCoupling) {
+void hwe(KernelBuilder &kernel, QuakeValue &qubits, std::size_t numQubits,
+         std::size_t numLayers, QuakeValue &parameters,
+         const std::vector<cnot_coupling> &cnotCoupling) {
 
   for (std::size_t thetaCounter = 0, i = 0; i < numQubits; i++) {
     kernel.ry(parameters[thetaCounter], qubits[i]);
@@ -91,10 +94,11 @@ void hwe(KernelBuilder &kernel, QuakeValue &qubits, std::size_t numQubits, std::
     thetaCounter += 2;
   }
 
-  for (std::size_t thetaCounter = numQubits * 2, layer = 0; layer < numLayers; layer++) {
-    for (auto &cnot : cnotCoupling){
+  for (std::size_t thetaCounter = numQubits * 2, layer = 0; layer < numLayers;
+       layer++) {
+    for (auto &cnot : cnotCoupling)
       kernel.template x<cudaq::ctrl>(qubits[cnot.source], qubits[cnot.target]);
-    }
+
     for (std::size_t q = 0; q < numQubits; q++) {
       kernel.ry(parameters[thetaCounter], qubits[q]);
       kernel.rz(parameters[thetaCounter + 1], qubits[q]);
@@ -103,17 +107,16 @@ void hwe(KernelBuilder &kernel, QuakeValue &qubits, std::size_t numQubits, std::
   }
 }
 
-
-/// @brief This function creates the hardware-efficient ansatz from Kandala et. al 
-/// [https://arxiv.org/abs/1704.05018] on an existing kernel_builder instance. 
-/// It takes the qubits the state is on, the number of layers, 
-/// and the vector of variational parameters as input as a QuakeValue.
+/// @brief This function creates the hardware-efficient ansatz from Kandala et.
+/// al [https://arxiv.org/abs/1704.05018] on an existing kernel_builder
+/// instance. It takes the qubits the state is on, the number of layers, and the
+/// vector of variational parameters as input as a QuakeValue.
 template <typename KernelBuilder>
-void hwe(KernelBuilder &kernel, QuakeValue &qubits, std::size_t numQubits, 
+void hwe(KernelBuilder &kernel, QuakeValue &qubits, std::size_t numQubits,
          std::size_t numLayers, QuakeValue &parameters) {
 
   // generate default cnotCoupling and forward the call
-  std::vector<cnot_coupling> cnotCoupling = default_cnotCoupling(numQubits);
+  std::vector<cnot_coupling> cnotCoupling = default_cnot_coupling(numQubits);
   hwe(kernel, qubits, numQubits, numLayers, parameters, cnotCoupling);
 }
 
