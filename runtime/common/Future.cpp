@@ -89,7 +89,7 @@ std::istream &operator>>(std::istream &is, future &f) {
   try {
     is >> j;
   } catch (std::exception &ex) {
-    throw std::runtime_error("Failed to read job json into a cudaq::future.");
+    throw std::runtime_error("Formatting error; could not parse input as json.");
   }
   f.jobs = j["jobs"].get<std::vector<future::Job>>();
   f.qpuName = j["qpu"].get<std::string>();
