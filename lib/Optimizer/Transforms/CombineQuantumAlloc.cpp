@@ -23,6 +23,14 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
+static Value createCast(PatternRewriter &rewriter, Location loc, Value inVal) {
+  auto i64Ty = rewriter.getI64Type();
+  if (inVal.getType() == rewriter.getIndexType())
+    return rewriter.create<arith::IndexCastOp>(loc, i64Ty, inVal);
+  return rewriter.create<cudaq::cc::CastOp>(loc, i64Ty, inVal,
+                                            cudaq::cc::CastOpMode::Unsigned);
+}
+
 namespace {
 struct Analysis {
   Analysis() = default;
@@ -45,11 +53,12 @@ public:
 
   LogicalResult matchAndRewrite(quake::AllocaOp alloc,
                                 PatternRewriter &rewriter) const override {
+    Type refTy = quake::RefType::get(rewriter.getContext());
     for (auto p : llvm::enumerate(analysis.allocations)) {
       if (alloc == p.value()) {
         auto i = p.index();
         auto &os = analysis.offsetSizes[i];
-        if (os.second == 1) {
+        if (alloc.getType() == refTy) {
           [[maybe_unused]] Value ext =
               rewriter.replaceOpWithNewOp<quake::ExtractRefOp>(
                   alloc, analysis.newAlloc, os.first);
@@ -105,11 +114,8 @@ public:
           loc, extract.getConstantIndex(), low.getType());
       offset = rewriter.create<arith::AddIOp>(loc, cv, low);
     } else {
-      Value cast1 = rewriter.create<cudaq::cc::CastOp>(
-          loc, rewriter.getI64Type(), extract.getIndex(),
-          cudaq::cc::CastOpMode::Unsigned);
-      Value cast2 = rewriter.create<cudaq::cc::CastOp>(
-          loc, rewriter.getI64Type(), low, cudaq::cc::CastOpMode::Unsigned);
+      Value cast1 = createCast(rewriter, loc, extract.getIndex());
+      Value cast2 = createCast(rewriter, loc, low);
       offset = rewriter.create<arith::AddIOp>(loc, cast1, cast2);
     }
     rewriter.replaceOpWithNewOp<quake::ExtractRefOp>(extract, subvec.getVeq(),
@@ -129,15 +135,9 @@ public:
       return failure();
 
     auto loc = subvec.getLoc();
-    Value cast1 = rewriter.create<cudaq::cc::CastOp>(
-        loc, rewriter.getI64Type(), prior.getLow(),
-        cudaq::cc::CastOpMode::Unsigned);
-    Value cast2 = rewriter.create<cudaq::cc::CastOp>(
-        loc, rewriter.getI64Type(), subvec.getLow(),
-        cudaq::cc::CastOpMode::Unsigned);
-    Value cast3 = rewriter.create<cudaq::cc::CastOp>(
-        loc, rewriter.getI64Type(), subvec.getHigh(),
-        cudaq::cc::CastOpMode::Unsigned);
+    Value cast1 = createCast(rewriter, loc, prior.getLow());
+    Value cast2 = createCast(rewriter, loc, subvec.getLow());
+    Value cast3 = createCast(rewriter, loc, subvec.getHigh());
     Value sum1 = rewriter.create<arith::AddIOp>(loc, cast1, cast2);
     Value sum2 = rewriter.create<arith::AddIOp>(loc, cast1, cast3);
     auto veqTy = subvec.getType();

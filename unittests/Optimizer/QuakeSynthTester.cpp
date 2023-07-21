@@ -76,7 +76,9 @@ LogicalResult lowerToLLVMDialect(ModuleOp module) {
   optPM.addPass(cudaq::opt::createQuakeAddDeallocs());
   optPM.addPass(cudaq::opt::createQuakeAddMetadata());
   optPM.addPass(cudaq::opt::createLowerToCFGPass());
-  pm.addPass(cudaq::opt::createPromoteRefToVeqAlloc());
+  optPM.addPass(cudaq::opt::createCombineQuantumAllocations());
+  pm.addPass(createCanonicalizerPass());
+  pm.addPass(createCSEPass());
   pm.addPass(cudaq::opt::createConvertToQIRPass());
   return pm.run(module);
 }
