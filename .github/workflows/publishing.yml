@@ -31,7 +31,7 @@ jobs:
       - name: Download artifacts
         id: artifacts
         run: |
-          if ${{ inputs.deployment_id }}; then
+          if ${{ inputs.deployment_id != '' }}; then
             artifacts_url=https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ inputs.deployment_id }}/artifacts
           else
             artifacts_url=${{ github.event.workflow_run.artifacts_url }}
