@@ -74,7 +74,7 @@ jobs:
           release_id=${{ steps.artifacts.outputs.release_id }}
           while [ -z "$(gh release list -R ${{ github.repository }} | grep -s $release_id)" ];
           do echo "waiting for assets..." && sleep 300; 
-          done
+          done && sleep 300 # gh release download fails if there is nothing to download...
           github_commit=`gh release view $release_id -R ${{ github.repository }} --json targetCommitish --jq .targetCommitish`
 
           echo "release_id=$release_id" >> $GITHUB_OUTPUT
