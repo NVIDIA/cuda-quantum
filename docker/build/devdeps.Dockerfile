@@ -72,8 +72,7 @@ RUN source /opt/llvm/bootstrap/init_command.sh && \
 
 FROM llvmbuild as prereqs
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
-RUN apt-get update && apt-get install --no-install-recommends -y ca-certificates \
-    && export LLVM_INSTALL_PREFIX=/opt/llvm \
+RUN export LLVM_INSTALL_PREFIX=/opt/llvm \
     && export BLAS_INSTALL_PREFIX=/usr/local/blas \
     && export OPENSSL_INSTALL_PREFIX=/usr/local/openssl \
     && bash /scripts/install_prerequisites.sh \
