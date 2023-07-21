@@ -70,12 +70,14 @@ RUN source /opt/llvm/bootstrap/init_command.sh && \
         bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
     && rm -rf /llvm-project 
 
-FROM llvmbuild as prereqs
+# Todo: 
+# - remove http://apt.llvm.org/jammy/ in the install_toolchain.sh and use
+#   FROM llvmbuild as prereqs
+# - uncomment the source /opt/llvm/bootstrap/init_command.sh below
+FROM ubuntu:22.04 as prereqs
+COPY --from=llvmbuild /opt/llvm /opt/llvm
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
-# Todo: removing http://apt.llvm.org/jammy/ should be done by install_toolchain.
-RUN apt-get install -y --no-install-recommends software-properties-common \
-    && add-apt-repository --remove http://apt.llvm.org/jammy/ \
-    && apt-get remove -y software-properties-common && apt-get autoremove -y \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
     && export LLVM_INSTALL_PREFIX=/opt/llvm \
     && export BLAS_INSTALL_PREFIX=/usr/local/blas \
     && export OPENSSL_INSTALL_PREFIX=/usr/local/openssl \
