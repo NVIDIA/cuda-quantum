@@ -81,7 +81,10 @@ if [ ! -x "$(command -v ar)" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/l
 fi
 
 if [ ! -f "$BLAS_INSTALL_PREFIX/libblas.a" ] && [ ! -f "$BLAS_INSTALL_PREFIX/lib/libblas.a" ]; then
-  apt-get update
+  if [ -x "$(command -v apt-get)" ]; then
+    apt-get update
+  fi
+
   temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
   temp_install_if_command_unknown gcc gcc
@@ -97,7 +100,10 @@ if [ ! -f "$BLAS_INSTALL_PREFIX/libblas.a" ] && [ ! -f "$BLAS_INSTALL_PREFIX/lib
 fi
 
 if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(ls -A "$OPENSSL_INSTALL_PREFIX"/openssl*)" ]; then
-  apt-get update && apt-get install -y --no-install-recommends perl
+  if [ -x "$(command -v apt-get)" ]; then
+    apt-get update && apt-get install -y --no-install-recommends perl
+  fi
+
   temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
 
