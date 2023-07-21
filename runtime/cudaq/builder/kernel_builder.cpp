@@ -720,10 +720,10 @@ ExecutionEngine *jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader(/*genAsQuake=*/true));
   pm.addPass(cudaq::opt::createGenerateKernelExecution());
   optPM.addPass(cudaq::opt::createLowerToCFGPass());
-  pm.addPass(cudaq::opt::createPromoteRefToVeqAlloc());
-  pm.addPass(cudaq::opt::createConvertToQIRPass());
+  optPM.addPass(cudaq::opt::createCombineQuantumAllocations());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
+  pm.addPass(cudaq::opt::createConvertToQIRPass());
 
   if (failed(pm.run(module)))
     throw std::runtime_error(

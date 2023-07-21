@@ -65,7 +65,7 @@ if(OPENSSL_FOUND)
   FetchContent_GetProperties(cpr)
   if(NOT cpr_POPULATED)
     FetchContent_Populate(cpr)
-    add_subdirectory(${cpr_SOURCE_DIR} ${cpr_BINARY_DIR} EXCLUDE_FROM_ALL SYSTEM)
+    add_subdirectory(${cpr_SOURCE_DIR} ${cpr_BINARY_DIR} EXCLUDE_FROM_ALL)
     target_compile_options(cpr PRIVATE "-w")
   endif()
 
