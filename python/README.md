@@ -3,12 +3,15 @@
 ## Installing CUDA Quantum
 
 To pull down the CUDA Quantum Python wheel distribution, simply run:
+
 ```console
 pip install cuda-quantum
 ```
+
 At this time, wheels are distributed for Linux operating systems only.
 
 To build a source distribution of the Python API through pip:
+
 ```console
 git clone https://github.com/NVIDIA/cuda-quantum.git
 cd cuda-quantum
