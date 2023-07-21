@@ -98,9 +98,10 @@ void addPipelineToQIR(PassManager &pm) {
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
-  pm.addPass(cudaq::opt::createPromoteRefToVeqAlloc());
-  pm.addPass(cudaq::opt::createConvertToQIRPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
   pm.addPass(createCanonicalizerPass());
+  pm.addPass(createCSEPass());
+  pm.addPass(cudaq::opt::createConvertToQIRPass());
   if constexpr (BaseProfile) {
     cudaq::opt::addBaseProfilePipeline(pm);
   }
