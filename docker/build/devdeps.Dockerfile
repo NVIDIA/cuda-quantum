@@ -71,8 +71,9 @@ RUN source /opt/llvm/bootstrap/init_command.sh && \
     && rm -rf /llvm-project 
 
 # Todo: 
-# remove http://apt.llvm.org/jammy/ in the install_toolchain.sh and use
-# FROM llvmbuild as prereqs
+# - remove http://apt.llvm.org/jammy/ in the install_toolchain.sh and use
+#   FROM llvmbuild as prereqs
+# - uncomment the source /opt/llvm/bootstrap/init_command.sh below
 FROM ubuntu:22.04 as prereqs
 SHELL ["/bin/bash", "-c"]
 COPY --from=llvmbuild /opt/llvm /opt/llvm
@@ -83,7 +84,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
     && export OPENSSL_INSTALL_PREFIX=/usr/local/openssl \
     # Making sure that anything that is build from source when installing additional
     # prerequisites is built using the same toolchain as CUDA Quantum by default.
-    && source /opt/llvm/bootstrap/init_command.sh \
+    # && source /opt/llvm/bootstrap/init_command.sh \
     && bash /scripts/install_prerequisites.sh \
     && apt-get remove -y ca-certificates \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
