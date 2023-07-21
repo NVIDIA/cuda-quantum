@@ -96,7 +96,7 @@ if [ ! -f "$BLAS_INSTALL_PREFIX/libblas.a" ] && [ ! -f "$BLAS_INSTALL_PREFIX/lib
 fi
 
 if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(ls -A "$OPENSSL_INSTALL_PREFIX"/openssl*)" ]; then
-  apt-get update && apt-get install perl
+  apt-get update && apt-get install -y --no-install-recommends perl
   temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
 
