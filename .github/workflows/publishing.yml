@@ -106,7 +106,7 @@ jobs:
               unzip -d pycudaq pycudaq.zip && cd pycudaq
               for wheel in `ls *.whl`; do
                 echo "Adding wheel $wheel."
-                mv $wheel "$assets_folder/wheelhouse/$wheel"
+                mv $wheel "../$assets_folder/wheelhouse/$wheel"
               done
               cd .. && rm -rf pycudaq*
             fi
