@@ -214,7 +214,7 @@ void QuantinuumServerHelper::refreshTokens(bool force_refresh) {
     std::ofstream out(credentialsPath);
     out << "key:" << apiKey << '\n';
     out << "refresh:" << refreshKey << '\n';
-    out << "time:" << now.time_since_epoch().count() << '\n';
+    out << "time:" << timeStr << '\n';
   }
 
   // We first check how much time has elapsed since the
@@ -229,7 +229,6 @@ void QuantinuumServerHelper::refreshTokens(bool force_refresh) {
   // If we are getting close to an 30 min, then we will refresh
   bool needsRefresh = secondsDuration.count() * (1. / 1800.) > .85;
   if (needsRefresh || force_refresh) {
-    // if (quantinuumVerbose)
     cudaq::info("Refreshing id-token");
     std::stringstream ss;
     ss << "\"refresh-token\":\"" << refreshKey << "\"";
