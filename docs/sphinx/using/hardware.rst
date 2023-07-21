@@ -1,7 +1,8 @@
 CUDA Quantum Hardware Backends
 *********************************
 
-The hardware vendors currently available in CUDA Quantum are as follows.
+CUDA Quantum support submission to a set of hardware providers. 
+To submit to a hardware backend, you need an account with the respective provider.
 
 IonQ
 ==================================
@@ -102,7 +103,6 @@ account details.
   id_token=`cat $HOME/credentials.json | jq -r '."id-token"'`
   refresh_token=`cat $HOME/credentials.json | jq -r '."refresh-token"'`
   echo "key: $id_token" >> $HOME/.quantinuum_config
-  echo "time: 0" >> $HOME/.quantinuum_config
   echo "refresh: $refresh_token" >> $HOME/.quantinuum_config
   export CUDAQ_QUANTINUUM_CREDENTIALS=$HOME/.quantinuum_config
 
