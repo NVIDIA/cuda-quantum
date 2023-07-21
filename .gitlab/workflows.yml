@@ -32,10 +32,8 @@ MGMN SV Simulator:
     - mkdir cudaq_mgmn_svsim && cd cudaq_mgmn_svsim && git init
     - git fetch --depth 1 https://$READ_ACCESS_TOKEN:$READ_ACCESS_TOKEN@$CI_SERVER_HOST/$CUDAQ_MGMN_SVSIM_REPO $CUDAQ_MGMN_SVSIM_COMMIT && git checkout FETCH_HEAD
     - (bash build.sh $READ_ACCESS_TOKEN && built=true) || built=false
+    - mkdir -p ../artifacts/mgmn_svsim && mv artifacts/* ../artifacts/mgmn_svsim
     - cd .. && rm -rf cudaq_mgmn_svsim
-    - mkdir -p artifacts/mgmn_svsim/cuquantum && cp -r "$CUQUANTUM_INSTALL_PREFIX"/* artifacts/mgmn_svsim/cuquantum
-    - mkdir -p artifacts/mgmn_svsim/cudaq && cp -r "$CUDAQ_INSTALL_PREFIX"/* artifacts/mgmn_svsim/cudaq
-    - ls "$CUDAQ_INSTALL_PREFIX"/targets/*.config
     - if $built; then `exit 0`; else `exit 1`; fi
 
 Tensornet Simulator:
