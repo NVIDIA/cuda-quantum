@@ -74,6 +74,7 @@ RUN source /opt/llvm/bootstrap/init_command.sh && \
 # remove http://apt.llvm.org/jammy/ in the install_toolchain.sh and use
 # FROM llvmbuild as prereqs
 FROM ubuntu:22.04 as prereqs
+SHELL ["/bin/bash", "-c"]
 COPY --from=llvmbuild /opt/llvm /opt/llvm
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
