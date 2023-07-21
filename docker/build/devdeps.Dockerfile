@@ -73,9 +73,9 @@ RUN source /opt/llvm/bootstrap/init_command.sh && \
 FROM llvmbuild as prereqs
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
 # Todo: removing http://apt.llvm.org/jammy/ should be done by install_toolchain.
-RUN apt-get install software-properties-common \
+RUN apt-get install -y --no-install-recommends software-properties-common \
     && add-apt-repository --remove http://apt.llvm.org/jammy/ \
-    && apt-get remove -y software-properties-common && apt-get autoremove \
+    && apt-get remove -y software-properties-common && apt-get autoremove -y \
     && export LLVM_INSTALL_PREFIX=/opt/llvm \
     && export BLAS_INSTALL_PREFIX=/usr/local/blas \
     && export OPENSSL_INSTALL_PREFIX=/usr/local/openssl \
