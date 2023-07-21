@@ -87,7 +87,7 @@ A list of available QPUs can be found `in the API documentation
 <https://docs.ionq.com/#tag/jobs>`_.
 
 .. code:: python
-  
+
     cudaq.set_target("ionq", qpu="qpu.aria-1")
 
 Example
@@ -111,13 +111,13 @@ account details.
 
 .. code:: bash
 
-  # You may need to run: `apt-get update && apt-get install curl jq`
-  curl -X POST -H "Content Type: application/json" -d '{ "email":"<your_alias>@email.com","password":"<your_password>" }' https://qapi.quantinuum.com/v1/login > $HOME/credentials.json
-  id_token=`cat $HOME/credentials.json | jq -r '."id-token"'`
-  refresh_token=`cat $HOME/credentials.json | jq -r '."refresh-token"'`
-  echo "key: $id_token" >> $HOME/.quantinuum_config
-  echo "refresh: $refresh_token" >> $HOME/.quantinuum_config
-  export CUDAQ_QUANTINUUM_CREDENTIALS=$HOME/.quantinuum_config
+    # You may need to run: `apt-get update && apt-get install curl jq`
+    curl -X POST -H "Content Type: application/json" -d '{ "email":"<your_alias>@email.com","password":"<your_password>" }' https://qapi.quantinuum.com/v1/login > $HOME/credentials.json
+    id_token=`cat $HOME/credentials.json | jq -r '."id-token"'`
+    refresh_token=`cat $HOME/credentials.json | jq -r '."refresh-token"'`
+    echo "key: $id_token" >> $HOME/.quantinuum_config
+    echo "refresh: $refresh_token" >> $HOME/.quantinuum_config
+    export CUDAQ_QUANTINUUM_CREDENTIALS=$HOME/.quantinuum_config
 
 
 C++

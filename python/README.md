@@ -30,7 +30,8 @@ export PYTHONPATH=$PYTHONPATH:/path/to/cudaq/install
 
 ## Running CUDA Quantum
 
-You should now be able to import CUDA Quantum and start building quantum programs in Python!
+You should now be able to import CUDA Quantum and start building quantum programs in
+Python!
 
 ```console
 import cudaq
@@ -57,11 +58,11 @@ There are many ways in which you can get involved with CUDA Quantum. If you are
 interested in developing quantum applications with CUDA Quantum, this repository
 is a great place to get started! For more information about contributing to the
 CUDA Quantum platform, please take a look at
-[Contributing.md](./Contributing.md).
+[Contributing.md](../Contributing.md).
 
 ## License
 
-The code in this repository is licensed under [Apache License 2.0](./LICENSE).
+The code in this repository is licensed under [Apache License 2.0](../LICENSE).
 
 Contributing a pull request to this repository requires accepting the
 Contributor License Agreement (CLA) declaring that you have the right to, and
@@ -75,7 +76,7 @@ need to do this once.
 Please let us know your feedback and ideas for the CUDA Quantum platform in the
 [Discussions][cuda_quantum_discussions] tab of this repository, or file an
 [issue][cuda_quantum_issues]. To report security concerns or [Code of
-Conduct](./Code_of_Conduct.md) violations, please reach out to
+Conduct](../Code_of_Conduct.md) violations, please reach out to
 [cuda-quantum@nvidia.com](mailto:cuda-quantum@nvidia.com).
 
 [cuda_quantum_discussions]: https://github.com/NVIDIA/cuda-quantum/discussions
