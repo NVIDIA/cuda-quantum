@@ -1,7 +1,7 @@
 CUDA Quantum Hardware Backends
 *********************************
 
-CUDA Quantum support submission to a set of hardware providers. 
+CUDA Quantum supports submission to a set of hardware providers. 
 To submit to a hardware backend, you need an account with the respective provider.
 
 IonQ
@@ -39,7 +39,7 @@ However, IonQ's documentation uses the term "target" to refer to specific QPU's 
 Specifying the QPU
 '''''''''''''''''''
 
-At this time, programmer control over the IonQ QPU is under construction.
+At this time, programmer control over the IonQ QPU is under construction in ``nvq++``.
 
 
 Example
@@ -47,7 +47,6 @@ Example
 
 .. literalinclude:: ../examples/cpp/ionq
     :language: cpp
-
 
 
 Python
@@ -61,21 +60,34 @@ and will handle the submission of all quantum kernels to IonQ.
 
     cudaq.set_target('ionq')
 
+To emulate the IonQ machine locally, without submitting through the cloud,
+you can also set the ``emulate`` flag to ``True``.
+
+.. code:: python
+
+    cudaq.set_target('ionq', emulate=True)
+
+To select the number of shots for the kernel execution, this may be done through
+the ``shots_count`` argument to ``cudaq.sample`` or ``cudaq.observe``. By default,
+the ``shots_count`` is set to 1000.
+
+.. code:: python 
+
+    cudaq.sample(kernel, shots_count=10000)
+
 Note: A "target" in :code:`cudaq` refers to a quantum compute provider, such as :code:`ionq`.
 However, IonQ's documentation uses the term "target" to refer to specific QPU's themselves.
 
 Specifying the QPU
 '''''''''''''''''''
 
-At this time, programmer control over the IonQ QPU is under construction.
+By default, the IonQ target will use the :code:`simulator` QPU.
+To specify which IonQ QPU to use, set the :code:`qpu` parameter.
+A list of available QPUs can be found `in the API documentation
+<https://docs.ionq.com/#tag/jobs>`_.
 
-.. By default, the IonQ target will use the :code:`simulator` QPU.
-.. To specify which IonQ QPU to use, set the :code:`qpu` parameter.
-.. A list of available QPUs can be found `in the API documentation
-.. <https://docs.ionq.com/#tag/jobs>`_.
-
-.. .. code:: python
-..     cudaq.set_target("ionq", qpu="qpu.aria-1")
+.. code:: python
+    cudaq.set_target("ionq", qpu="qpu.aria-1")
 
 Example
 ........
@@ -112,7 +124,9 @@ C++
 
 For C++, the ``--target`` argument may be set to "quantinuum". ``nvq++`` will grab
 the credentials from your home directory, authenticate them with the Quantinuum API,
-and submit any quantum kernel executions to the hardware.
+and submit any quantum kernel executions to the hardware. By default, the QPU is set
+to Quantinuum's syntax checker. This is helpful for determining the validity of your
+kernel before submitting to a physical QPU. 
 
 .. code:: bash
 
@@ -127,10 +141,12 @@ To specify a different QPU, this may be done in ``nvq++`` as
 
 .. code:: bash
 
-    nvq++ --target quantinuum -quantinuum-machine H1-2 src.cpp ...
+    nvq++ --target quantinuum --quantinuum-machine H1-2 src.cpp ...
 
 where ``H1-2`` is an example of a physical QPU. Hardware specific
 emulators may be accessed by appending an "E" to the end (e.g, ``H1-2E``).
+For a comprehensive list of available backends, refer to your `Quantinuum user account
+<https://um.qapi.quantinuum.com/user>`_.
 
 
 Example
@@ -151,16 +167,31 @@ and will go through the same credential scheme as discussed in the C++ case.
 
     cudaq.set_target('quantinuum')
 
+To emulate the Quantinuum machine locally, without submitting through the cloud,
+you can also set the ``emulate`` flag to ``True``.
+
+.. code:: python
+
+    cudaq.set_target('quantinuum', emulate=True)
+
+To select the number of shots for the kernel execution, this may be done through
+the ``shots_count`` argument to ``cudaq.sample`` or ``cudaq.observe``. By default,
+the ``shots_count`` is set to 1000.
+
+.. code:: python 
+
+    cudaq.sample(kernel, shots_count=10000)
+
+
 Specifying the QPU
 '''''''''''''''''''
 
-At this time, control over the Quantinuum QPU for Python is under construction. 
+In Python, specification of the QPU may be done by setting the :code:`machine` 
+parameter of the target.
 
-.. In python, this may be done by setting the :code:`machine` parameter.
+.. code:: python
 
-.. .. code:: python
-
-..     cudaq.set_target('quantinuum', machine='H1-2')
+    cudaq.set_target('quantinuum', machine='H1-2')
 
 
 Example

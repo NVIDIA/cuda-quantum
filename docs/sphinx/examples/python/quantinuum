@@ -2,8 +2,7 @@ import cudaq
 
 # You only have to set the target once! No need to redefine it
 # for every execution call on your kernel.
-# To use different targets in the same file, you must update
-# it via another call to `cudaq.set_target()`
+# By default, we will submit to the Quantinuum syntax checker.
 cudaq.set_target("quantinuum")
 
 # Create the kernel we'd like to execute on Quantinuum
@@ -20,8 +19,15 @@ kernel.mz(qubits[1])
 # By using the synchronous `cudaq.sample`, the execution of
 # any remaining classical code in the file will occur only
 # after the job has been returned from Quantinuum.
-counts = cudaq.sample(kernel)
-print(counts)
+# For now, we'll just use the synchronous call to get a syntax
+# check from Quantinuum.
+syntax_check = cudaq.sample(kernel)
+if (syntax_check):
+  print("Syntax check passed! Kernel is ready for submission.")
+
+# Now we can update the target to the Quantinuum emulator and 
+# execute our program.
+cudaq.set_target("quantinuum", machine="H1-2E")
 
 # Option B:
 # By using the asynchronous `cudaq.sample_async`, the remaining
