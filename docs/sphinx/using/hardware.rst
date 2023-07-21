@@ -137,17 +137,21 @@ kernel before submitting to a physical QPU.
 Specifying the QPU
 '''''''''''''''''''
 
-The ``quantinuum`` target will select a Quantinuum emulator by default.
-To specify a different QPU, this may be done in ``nvq++`` as
+The ``quantinuum`` target will select the Quantinuum syntax checker by default.
+To specify a particular QPU, or "machine", this may be done in ``nvq++`` as
 
 .. code:: bash
 
     nvq++ --target quantinuum --quantinuum-machine H1-2 src.cpp ...
 
 where ``H1-2`` is an example of a physical QPU. Hardware specific
-emulators may be accessed by appending an "E" to the end (e.g, ``H1-2E``).
-For a comprehensive list of available backends, refer to your `Quantinuum user account
-<https://um.qapi.quantinuum.com/user>`_.
+emulators may be accessed by appending an ``E`` to the end (e.g, ``H1-2E``). For 
+access to the syntax checker for the provided machine, you may append an ``SC`` 
+to the end (e.g, ``H1-1SC``).
+
+For a comprehensive list of available machines, login to your `Quantinuum user account
+<https://um.qapi.quantinuum.com/user>`_ and navigate to the "Account" tab, where you should
+find a table titled "Machines".
 
 
 Example
@@ -169,7 +173,8 @@ and will go through the same credential scheme as discussed in the C++ case.
     cudaq.set_target('quantinuum')
 
 To emulate the Quantinuum machine locally, without submitting through the cloud,
-you can also set the ``emulate`` flag to ``True``.
+you can also set the ``emulate`` flag to ``True``. This noise-free emulation will
+emit 
 
 .. code:: python
 
@@ -193,6 +198,15 @@ parameter of the target.
 .. code:: python
 
     cudaq.set_target('quantinuum', machine='H1-2')
+
+where ``H1-2`` is an example of a physical QPU. Hardware specific
+emulators may be accessed by appending an ``E`` to the end (e.g, ``H1-2E``). For 
+access to the syntax checker for the provided machine, you may append an ``SC`` 
+to the end (e.g, ``H1-1SC``).
+
+For a comprehensive list of available machines, login to your `Quantinuum user account
+<https://um.qapi.quantinuum.com/user>`_ and navigate to the "Account" tab, where you should
+find a table titled "Machines".
 
 
 Example

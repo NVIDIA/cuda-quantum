@@ -5,6 +5,7 @@
 // Assumes a valid set of credentials have been stored. 
 
 #include <cudaq.h>
+#include <fstream>
 
 // Define a simple quantum kernel to execute on Quantinuum.
 struct ghz {
@@ -20,21 +21,12 @@ struct ghz {
 };
 
 int main() {
-  // Submit to Quantinuum synchronously. E.g, wait for the job
-  // result to be returned before proceeding. 
-  auto counts = cudaq::sample(ghz{});
-  counts.dump();
-
   // Submit to Quantinuum asynchronously. E.g, continue executing
   // code in the file until the job has been returned.
   auto future = cudaq::sample_async(ghz{});
   // ... classical code to execute in the meantime ...
 
-  // Can either grab the future result as soon as it's ready:
-  auto async_counts_now = future.get();
-  async_counts_now.dump();
-
-  // Or write it to file:
+  // Can write the future to file:
   {
     std::ofstream out("saveMe.json");
     out << future;
@@ -46,6 +38,11 @@ int main() {
   in >> readIn;
 
   // Get the results of the read in future.
-  auto async_counts_later = readIn.get();
-  async_counts_later.dump();
+  auto async_counts = readIn.get();
+  async_counts.dump();
+
+  // OR: Submit to Quantinuum synchronously. E.g, wait for the job
+  // result to be returned before proceeding. 
+  auto counts = cudaq::sample(ghz{});
+  counts.dump();
 }

@@ -15,7 +15,7 @@ To build a source distribution of the Python API through pip:
 ```console
 git clone https://github.com/NVIDIA/cuda-quantum.git
 cd cuda-quantum
-pip install . 
+./scripts/install_prerequisites.sh && pip install . 
 ```
 
 If you would like to build the entire C++ and Python API's from source,
@@ -55,26 +55,24 @@ To see more examples, go to [python examples][python_examples], or check out the
 ## Contributing
 
 There are many ways in which you can get involved with CUDA Quantum. If you are
-interested in developing quantum applications with CUDA Quantum, this repository
+interested in developing quantum applications with CUDA Quantum, our [github][github_link]
 is a great place to get started! For more information about contributing to the
 CUDA Quantum platform, please take a look at
 [Contributing.md](../Contributing.md).
 
 ## License
 
-The code in this repository is licensed under [Apache License 2.0](../LICENSE).
+CUDA Quantum is an open source project. The source code is avilable on 
+[github][github_link] and licensed under [Apache License 2.0](../LICENSE).
+By downloading NVIDIA CUDA Quantum, you accept the terms and conditions of
+the NVIDIA End User License Agreement.
 
-Contributing a pull request to this repository requires accepting the
-Contributor License Agreement (CLA) declaring that you have the right to, and
-actually do, grant us the rights to use your contribution. A CLA-bot will
-automatically determine whether you need to provide a CLA and decorate the PR
-appropriately. Simply follow the instructions provided by the bot. You will only
-need to do this once.
+[github_link]: https://github.com/NVIDIA/cuda-quantum/
 
 ## Feedback
 
 Please let us know your feedback and ideas for the CUDA Quantum platform in the
-[Discussions][cuda_quantum_discussions] tab of this repository, or file an
+[Discussions][cuda_quantum_discussions] tab of our [github][github], or file an
 [issue][cuda_quantum_issues]. To report security concerns or [Code of
 Conduct](../Code_of_Conduct.md) violations, please reach out to
 [cuda-quantum@nvidia.com](mailto:cuda-quantum@nvidia.com).

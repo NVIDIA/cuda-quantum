@@ -13,7 +13,7 @@ kernel.cx(qubits[0], qubits[1])
 kernel.mz(qubits[0])
 kernel.mz(qubits[1])
 
-# Execute on Quantinuum and print out the results.
+# Submit to Quantinuum's endpoint and confirm the program is valid.
 
 # Option A:
 # By using the synchronous `cudaq.sample`, the execution of

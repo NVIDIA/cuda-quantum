@@ -17,13 +17,6 @@ kernel.mz(qubits[1])
 # Execute on IonQ and print out the results.
 
 # Option A:
-# By using the synchronous `cudaq.sample`, the execution of
-# any remaining classical code in the file will occur only
-# after the job has been returned from IonQ.
-counts = cudaq.sample(kernel)
-print(counts)
-
-# Option B:
 # By using the asynchronous `cudaq.sample_async`, the remaining
 # classical code will be executed while the job is being handled
 # by IonQ. This is ideal when submitting via a queue over
@@ -45,3 +38,10 @@ same_async_results = cudaq.AsyncSampleResult(str(same_file.read()))
 
 same_async_counts = same_async_results.get()
 print(async_counts)
+
+# Option B:
+# By using the synchronous `cudaq.sample`, the execution of
+# any remaining classical code in the file will occur only
+# after the job has been returned from IonQ.
+counts = cudaq.sample(kernel)
+print(counts)
