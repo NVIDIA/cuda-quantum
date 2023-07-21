@@ -7,7 +7,6 @@
 # ============================================================================ #
 
 import cudaq, pytest, os, time
-from cudaq import spin
 from mock_iqm_server import startServer
 from mock_iqm_cortex_cli import write_a_mock_tokens_file
 from multiprocessing import Process
@@ -48,10 +47,8 @@ def test_iqm_sample():
     kernel.cx(qubits[0], qubits[1])
     kernel.mz(qubits[0])
     kernel.mz(qubits[1])
-    print(kernel)
 
     counts = cudaq.sample(kernel)
-    print(counts)
     assert len(counts) == 4
     assert "00" in counts
     assert "11" in counts
@@ -63,7 +60,6 @@ def test_iqm_sample():
     assert "11" in counts
 
     future = cudaq.sample_async(kernel)
-    print(future)
 
     futureAsString = str(future)
 

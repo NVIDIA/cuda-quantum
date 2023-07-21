@@ -36,10 +36,10 @@ protected:
   RestHeaders generateRequestHeader() const;
 
   /// @brief Parse cortex-cli tokens.json for the API access token
-  std::string readApiToken() const {
+  std::optional<std::string> readApiToken() const {
     if(!tokensFilePath.has_value()) {
       cudaq::info("tokensFilePath is not set, assuming no authentication is required");
-      return "";
+      return std::nullopt;
     }
 
     std::string unwrappedTokensFilePath = tokensFilePath.value();
@@ -156,7 +156,7 @@ public:
 
 ServerJobPayload
 IQMServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
-  std::vector<ServerMessage> messages; // ServerMessage is actually nlohmann::json
+  std::vector<ServerMessage> messages;
   ServerMessage message = ServerMessage::object();
   message["circuits"] = ServerMessage::array();
   message["shots"] = shots;
@@ -180,11 +180,11 @@ std::string IQMServerHelper::extractJobId(ServerMessage &postResponse) {
 }
 
 std::string IQMServerHelper::constructGetJobPath(ServerMessage &postResponse) {
-  return "jobs" + postResponse["id"].get<std::string>() + "/results/counts";
+  return "jobs" + postResponse["id"].get<std::string>() + "/counts";
 }
 
 std::string IQMServerHelper::constructGetJobPath(std::string &jobId) {
-  return iqmServerUrl + "jobs/" + jobId + "/results/counts";
+  return iqmServerUrl + "jobs/" + jobId + "/counts";
 }
 
 bool IQMServerHelper::jobIsDone(ServerMessage &getJobResponse) {
@@ -206,15 +206,17 @@ IQMServerHelper::processResults(ServerMessage &postJobResponse) {
     throw std::runtime_error("Job status: " + jobStatus + ", reason: " + jobMessage);
   }
 
-  auto counts = postJobResponse["counts"];
+  auto counts = postJobResponse["counts_batch"];
   if (counts.is_null()) {
     throw std::runtime_error("No counts in the response");
   }
 
   // assume there is only one measurement and everything goes into the GlobalRegisterName of `sample_results`
   std::vector<ExecutionResult> srs;
-  auto parsedCounts = counts.get<std::unordered_map<std::string, std::size_t>>();
-  srs.push_back(ExecutionResult(parsedCounts));
+
+  for (auto &counts : counts.get<std::vector<ServerMessage>>()) {
+    srs.push_back(ExecutionResult(counts["counts"].get<std::unordered_map<std::string, std::size_t>>()));
+  }
 
   return sample_result(srs);
 }
@@ -224,11 +226,14 @@ IQMServerHelper::processResults(ServerMessage &postJobResponse) {
 std::map<std::string, std::string>
 IQMServerHelper::generateRequestHeader() const {
   std::map<std::string, std::string> headers{
-      {"Authorization", "Bearer " + readApiToken()},
       {"Content-Type", "application/json"},
       {"Connection", "keep-alive"},
       {"Host", "localhost"},
       {"Accept", "*/*"}};
+  auto apiToken = readApiToken();
+  if (apiToken.has_value()) {
+    headers["Authorization"] = "Bearer " + apiToken.value();
+  };
   return headers;
 }
 

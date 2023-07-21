@@ -33,6 +33,9 @@ CUDAQ_TEST(IQMTester, executeOneMeasuredQubitProgram) {
 
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
+  kernel.x(qubit[0]);
+  kernel.y(qubit[0]);
+  kernel.z(qubit[0]);
   kernel.h(qubit[0]);
   kernel.mz(qubit[0]);
 

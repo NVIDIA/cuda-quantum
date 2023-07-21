@@ -5,14 +5,12 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-import cudaq
-
 import asyncio
 import uuid
-from fastapi import FastAPI, Request, HTTPException, Header
-from typing import Optional, Union
-import uvicorn, uuid, json, base64, ctypes
-from pydantic import BaseModel, Field
+from fastapi import FastAPI, Request, HTTPException
+from typing import Optional
+import uvicorn, uuid
+from pydantic import BaseModel
 
 # Use IQM Client Tools to verify data structures
 import iqm_client
@@ -30,14 +28,21 @@ qubit_connectivity = []  # TBA
 app = FastAPI()
 
 
+class Counts(BaseModel):
+    """State histogram"""
+
+    measurement_keys: list[str]
+    counts: dict[str, int]
+
+
 # Keep job artifacts
 class Job(BaseModel):
-    """Store Job stuff"""
+    """Job information"""
 
     id: str
     status: iqm_client.Status
     result: Optional[iqm_client.RunResult] = None
-    counts: Optional[dict[str, int]] = None
+    counts_batch: Optional[list[Counts]] = None
     metadata: iqm_client.Metadata
 
 
@@ -62,7 +67,7 @@ def generate_measurement_strings(n, bs=""):
 
 
 async def compile_and_submit_job(job: Job):
-    """Anaylze measurements and construct corresponding counts"""
+    """Analyze measurements and construct corresponding counts"""
     request = job.metadata.request
     circuits = request.circuits
 
@@ -117,9 +122,12 @@ async def compile_and_submit_job(job: Job):
 
     # populate counts according to amount of qubits in each measurement
     qubits_in_measurement = len(measured_qubits)
-    job.counts = {}
-    for measurement_string in generate_measurement_strings(qubits_in_measurement):
-        job.counts[measurement_string] = 1
+    counts = {
+        measurement_string: 1
+        for measurement_string in generate_measurement_strings(qubits_in_measurement)
+    }
+
+    job.counts_batch = [Counts(counts=counts, measurement_keys=["mk1"])]
 
     job.status = iqm_client.Status.READY
     job.result = iqm_client.RunResult(status=job.status, metadata=job.metadata)
@@ -185,7 +193,7 @@ async def get_jobs_status(job_id: str, request: Request) -> iqm_client.Status:
     return createdJobs[job_id].status
 
 
-@app.get("/jobs/{job_id}/results/counts")
+@app.get("/jobs/{job_id}/counts")
 async def get_jobs(job_id: str, request: Request):
     """Get the result of a job"""
     access_token = request.headers.get("Authorization")
@@ -201,7 +209,7 @@ async def get_jobs(job_id: str, request: Request):
     results = {
         "status": job.status,
         "message": job.result.message if job.result and job.result.message else None,
-        "counts": job.counts,
+        "counts_batch": job.counts_batch,
     }
 
     return results
