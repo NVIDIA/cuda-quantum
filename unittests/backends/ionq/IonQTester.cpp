@@ -15,7 +15,8 @@
 
 std::string mockPort = "62455";
 std::string backendStringTemplate =
-    "ionq;emulate;false;url;http://localhost:{}";
+    "ionq;emulate;false;url;http://"
+    "localhost:{};api_key;00000000000000000000000000000000";
 
 bool isValidExpVal(double value) {
   // give us some wiggle room while keep the tests fast
@@ -176,7 +177,6 @@ CUDAQ_TEST(IonQTester, checkObserveAsyncLoadFromFile) {
 }
 
 int main(int argc, char **argv) {
-  setenv("IONQ_API_KEY", "00000000000000000000000000000000", 0);
   ::testing::InitGoogleTest(&argc, argv);
   auto ret = RUN_ALL_TESTS();
   return ret;

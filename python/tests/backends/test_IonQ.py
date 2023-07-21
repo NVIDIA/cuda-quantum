@@ -31,7 +31,6 @@ def assert_close(want, got, tolerance=1.0e-5) -> bool:
 @pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
     # TODO: Support passing credentials via config file
-    os.environ["IONQ_API_KEY"] = "00000000000000000000000000000000"
     credsName = "{}/FakeConfig.config".format(os.environ["HOME"])
     f = open(credsName, "w")
     f.write("key: {}\nrefresh: {}\ntime: 0".format("hello", "rtoken"))
@@ -41,6 +40,7 @@ def startUpMockServer():
     cudaq.set_target(
         "ionq",
         url="http://localhost:{}".format(port),
+        api_key="00000000000000000000000000000000",
         credentials=credsName,
     )
 

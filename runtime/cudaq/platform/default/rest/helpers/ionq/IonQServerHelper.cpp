@@ -88,7 +88,9 @@ void IonQServerHelper::initialize(BackendConfig config) {
       config.find("qpu") != config.end() ? config["qpu"] : "simulator";
   backendConfig["qubits"] = 29;
   // Retrieve the API key from the environment variables
-  backendConfig["token"] = getEnvVar("IONQ_API_KEY");
+  backendConfig["token"] = config.find("api_key") != config.end()
+                             ? config["api_key"]
+                             : getEnvVar("IONQ_API_KEY");
   // Construct the API job path
   backendConfig["job_path"] =
       backendConfig["url"] + '/' + backendConfig["version"] + "/jobs";
