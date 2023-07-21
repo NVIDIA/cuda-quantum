@@ -106,6 +106,7 @@ fi
 # (utils are needed for custom testing tools, e.g. CircuitCheck)
 echo "Preparing CUDA Quantum build with LLVM installation in $LLVM_INSTALL_PREFIX..."
 cmake_args="-G Ninja "$repo_root" \
+  -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF \
   -DCMAKE_INSTALL_PREFIX="$CUDAQ_INSTALL_PREFIX" \
   -DNVQPP_LD_PATH="$NVQPP_LD_PATH" \
   -DCMAKE_BUILD_TYPE=$build_configuration \
