@@ -61,7 +61,7 @@ and will handle the submission of all quantum kernels to IonQ.
     cudaq.set_target('ionq')
 
 To emulate the IonQ machine locally, without submitting through the cloud,
-you can also set the ``emulate`` flag to ``True``. This will emity any target 
+you can also set the ``emulate`` flag to ``True``. This will emit any target 
 specific compiler warnings and diagnostics, before running a noise free emulation.
 
 .. code:: python
@@ -174,7 +174,7 @@ and will go through the same credential scheme as discussed in the C++ case.
     cudaq.set_target('quantinuum')
 
 To emulate the Quantinuum machine locally, without submitting through the cloud,
-you can also set the ``emulate`` flag to ``True``. This will emity any target 
+you can also set the ``emulate`` flag to ``True``. This will emit any target 
 specific compiler warnings and diagnostics, before running a noise free emulation.
 
 .. code:: python
