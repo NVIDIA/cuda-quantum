@@ -72,9 +72,13 @@ RUN source /opt/llvm/bootstrap/init_command.sh && \
 
 FROM llvmbuild as prereqs
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
-RUN export LLVM_INSTALL_PREFIX=/opt/llvm \
+RUN add-apt-repository --remove http://apt.llvm.org/jammy/ \
+    && export LLVM_INSTALL_PREFIX=/opt/llvm \
     && export BLAS_INSTALL_PREFIX=/usr/local/blas \
     && export OPENSSL_INSTALL_PREFIX=/usr/local/openssl \
+    # Making sure that anything that is build from source when installing additional
+    # prerequisites is built using the same toolchain as CUDA Quantum by default.
+    && source /opt/llvm/bootstrap/init_command.sh \
     && bash /scripts/install_prerequisites.sh \
     && apt-get remove -y ca-certificates \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
