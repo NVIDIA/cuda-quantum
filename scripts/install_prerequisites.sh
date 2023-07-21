@@ -17,14 +17,14 @@
 #
 # The necessary LLVM components will be installed in the location defined by the
 # LLVM_INSTALL_PREFIX if they do not already exist in that location.
-# If OpenBLAS is not found, it will be built from source and installed the location
-# defined by the OPENBLAS_INSTALL_PREFIX.
+# If BLAS is not found, it will be built from source and installed the location
+# defined by the BLAS_INSTALL_PREFIX.
 # If OpenSSL is not found, it will be built from source and installed the location
 # defined by the OPENSSL_INSTALL_PREFIX.
 
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/opt/llvm}
-OPENBLAS_INSTALL_PREFIX=${OPENBLAS_INSTALL_PREFIX:-/usr/local}
-OPENSSL_INSTALL_PREFIX=${OPENSSL_INSTALL_PREFIX:-/usr/local}
+BLAS_INSTALL_PREFIX=${BLAS_INSTALL_PREFIX:-/usr/local/blas}
+OPENSSL_INSTALL_PREFIX=${OPENSSL_INSTALL_PREFIX:-/usr/lib/ssl}
 
 function temp_install_if_command_unknown {
     if [ ! -x "$(command -v $1)" ]; then
@@ -41,6 +41,7 @@ function remove_temp_installs {
   fi
 }
 
+set -e
 trap remove_temp_installs EXIT
 this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 
@@ -49,7 +50,7 @@ if [ ! -x "$(command -v cmake)" ]; then
     APT_UNINSTALL="$APT_UNINSTALL $2"
 fi
 if [ "$CC" == "" ] && [ "$CXX" == "" ]; then
-  source "$this_file_dir/install_tool.sh" -t gcc12
+  source "$this_file_dir/install_toolchain.sh" -t gcc12
 fi
 
 llvm_dir="$LLVM_INSTALL_PREFIX/lib/cmake/llvm"
@@ -79,7 +80,7 @@ if [ ! -x "$(command -v ar)" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/l
     fi
 fi
 
-if [ ! -f "$OPENBLAS_INSTALL_PREFIX/lib/libopenblas.a" ]; then
+if [ ! -f "$BLAS_INSTALL_PREFIX/libblas.a" ] && [ ! -f "$BLAS_INSTALL_PREFIX/lib/libblas.a" ]; then
   apt-get update
   temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
@@ -87,25 +88,22 @@ if [ ! -f "$OPENBLAS_INSTALL_PREFIX/lib/libopenblas.a" ]; then
   temp_install_if_command_unknown g++ g++
   temp_install_if_command_unknown gfortran gfortran
 
-  wget https://github.com/xianyi/OpenBLAS/releases/download/v0.3.23/OpenBLAS-0.3.23.tar.gz
-  tar -xf OpenBLAS-0.3.23.tar.gz && cd OpenBLAS-0.3.23
-
-  # TODO: gcc and clang work with different OpenMP libraries (libgomp vs libomp).
-  # To enable OpenMP support here we need to build it with the same compiler toolchain
-  # as we build CUDA Quantum with to ensure we link against the OpenMP library supported
-  # by that compiler. OpenMP support is disabled until we add the tools to build this 
-  # with each toolchains in the dev images.
-  make USE_OPENMP=0 && make install PREFIX="$OPENBLAS_INSTALL_PREFIX"
-  cd .. && rm -rf OpenBLAS-0.3.23*
+  # See also: https://github.com/NVIDIA/cuda-quantum/issues/452
+  wget http://www.netlib.org/blas/blas-3.11.0.tgz
+  tar -xzvf blas-3.11.0.tgz && cd BLAS-3.11.0
+  make && mkdir -p "$BLAS_INSTALL_PREFIX" && mv blas_LINUX.a "$BLAS_INSTALL_PREFIX/libblas.a"
+  cd .. && rm -rf blas-3.11.0.tgz BLAS-3.11.0
+  remove_temp_installs
 fi
 
-if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(ls -A "$OPENSSL_INSTALL_PREFIX")" ]; then
-  apt-get update
-  temp_install_if_command_unknown git git
+if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(ls -A "$OPENSSL_INSTALL_PREFIX"/openssl*)" ]; then
+  apt-get update && apt-get install -y --no-install-recommends perl
+  temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
 
   wget https://www.openssl.org/source/openssl-3.1.1.tar.gz
   tar -xf openssl-3.1.1.tar.gz && cd openssl-3.1.1
   ./config no-zlib --prefix="$OPENSSL_INSTALL_PREFIX" --openssldir="$OPENSSL_INSTALL_PREFIX"
   make install && cd .. && rm -rf openssl-3.1.1*
+  remove_temp_installs
 fi

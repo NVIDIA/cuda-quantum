@@ -116,8 +116,9 @@ ENV UCX_TLS=rc,cuda_copy,cuda_ipc,gdr_copy,sm
 # Install cuQuantum libraries.
 
 ARG CUQUANTUM_INSTALL_PREFIX=/opt/nvidia/cuquantum
-ENV CUQUANTUM_INSTALL_PREFIX="$CUQUANTUM_INSTALL_PREFIX"
+ENV CUQUANTUM_ROOT="$CUQUANTUM_INSTALL_PREFIX"
 ENV LD_LIBRARY_PATH="$CUQUANTUM_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
+ENV CPATH="$CUQUANTUM_INSTALL_PREFIX/include:$CPATH"
 
 RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
     && wget https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-x86_64/cuquantum-linux-x86_64-23.06.0.7_cuda11-archive.tar.xz \
@@ -130,8 +131,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
 # Install cuTensor libraries.
 
 ARG CUTENSOR_INSTALL_PREFIX=/opt/nvidia/cutensor
-ENV CUTENSOR_INSTALL_PREFIX="$CUTENSOR_INSTALL_PREFIX"
+ENV CUTENSOR_ROOT="$CUTENSOR_INSTALL_PREFIX"
 ENV LD_LIBRARY_PATH="$CUTENSOR_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
+ENV CPATH="$CUTENSOR_INSTALL_PREFIX/include:$CPATH"
 
 RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
     && wget https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor/linux-x86_64/libcutensor-linux-x86_64-1.7.0.1-archive.tar.xz \
