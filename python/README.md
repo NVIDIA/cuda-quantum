@@ -2,7 +2,8 @@
 
 ## Installing CUDA Quantum
 
-CUDA Quantum Python wheels are available on [PyPI.org](https://pypi.org/project/cuda-quantum). To install the latest release, simply run
+CUDA Quantum Python wheels are available on [PyPI.org](https://pypi.org/project/cuda-quantum). 
+To install the latest release, simply run
 
 ```console
 pip install cuda-quantum
