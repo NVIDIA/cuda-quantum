@@ -20,7 +20,8 @@ Bernstein-Vazirani
 
 Bernstein Vazirani is an algorithm for finding the bitstring encoded in a given function. 
 
-For the original source of this algorithm, see: https://epubs.siam.org/doi/10.1137/S0097539796300921
+For the original source of this algorithm, see 
+`this publication<https://epubs.siam.org/doi/10.1137/S0097539796300921>`__.
 
 In this example, we generate a random bitstring, encode it into an inner-product oracle, then we simulate the kernel and return the most probable bitstring from its execution.
 
@@ -39,7 +40,7 @@ Let's take a look at how we can use CUDA Quantum's built-in `vqe` module to run 
 
 Let's look at a more advanced examples.
 
-As an alternative to `cudaq.vqe`, we can also use the `cudaq.optimizers` suite on its own to write custom variational algorithm routines. Much of this can be slightly modified for use with third-party optimizers, such as scipy.
+As an alternative to `cudaq.vqe`, we can also use the `cudaq.optimizers` suite on its own to write custom variational algorithm routines. Much of this can be slightly modified for use with third-party optimizers, such as `scipy`.
 
 .. literalinclude:: ../examples/python/advanced_vqe.py
    :language: python
@@ -47,7 +48,7 @@ As an alternative to `cudaq.vqe`, we can also use the `cudaq.optimizers` suite o
 Quantum Approximate Optimization Algorithm
 -------------------------------------------
 
-Let's now see how we can leverage the VQE algorithm to compute the maxcut of a rectangular graph.
+Let's now see how we can leverage the VQE algorithm to compute the Max-Cut of a rectangular graph.
 
 .. literalinclude:: ../examples/python/qaoa_maxcut.py
    :language: python

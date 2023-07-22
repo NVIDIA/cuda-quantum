@@ -2,7 +2,7 @@
 // ```
 // nvq++ --target quantinuum quantinuum.cpp -o out.x && ./out.x
 // ```
-// Assumes a valid set of credentials have been stored. 
+// Assumes a valid set of credentials have been stored.
 
 #include <cudaq.h>
 #include <fstream>
@@ -42,7 +42,7 @@ int main() {
   async_counts.dump();
 
   // OR: Submit to Quantinuum synchronously. E.g, wait for the job
-  // result to be returned before proceeding. 
+  // result to be returned before proceeding.
   auto counts = cudaq::sample(ghz{});
   counts.dump();
 }
