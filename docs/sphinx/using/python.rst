@@ -21,7 +21,7 @@ Bernstein-Vazirani
 Bernstein Vazirani is an algorithm for finding the bitstring encoded in a given function. 
 
 For the original source of this algorithm, see 
-`this publication<https://epubs.siam.org/doi/10.1137/S0097539796300921>`__.
+`this publication <https://epubs.siam.org/doi/10.1137/S0097539796300921>`__.
 
 In this example, we generate a random bitstring, encode it into an inner-product oracle, then we simulate the kernel and return the most probable bitstring from its execution.
 
@@ -59,7 +59,7 @@ Using Quantum Hardware Providers
 -----------------------------------
 
 CUDA Quantum contains support for using a set of hardware providers. 
-For more information about executing quantum kernels on different hardware backends, please take a look at :doc:`/using/hardware.rst`.
+For more information about executing quantum kernels on different hardware backends, please take a look at :doc:`hardware.rst`.
 
 The following code illustrates how run kernels on Quantinuum's backends.
 

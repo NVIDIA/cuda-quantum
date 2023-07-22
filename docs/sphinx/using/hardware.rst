@@ -60,9 +60,8 @@ emulators may be accessed by appending an ``E`` to the end (e.g, ``H1-2E``). For
 access to the syntax checker for the provided machine, you may append an ``SC`` 
 to the end (e.g, ``H1-1SC``).
 
-For a comprehensive list of available machines, login to your `Quantinuum user account
-<https://um.qapi.quantinuum.com/user>`_ and navigate to the "Account" tab, where you should
-find a table titled "Machines".
+For a comprehensive list of available machines, login to your `Quantinuum user account <https://um.qapi.quantinuum.com/user>`__ 
+and navigate to the "Account" tab, where you should find a table titled "Machines".
 
 To emulate the Quantinuum machine locally, without submitting through the cloud,
 you can also pass the ``--emulate`` flag to ``nvq++``. This will emit any target 
@@ -100,9 +99,8 @@ emulators may be accessed by appending an ``E`` to the end (e.g, ``H1-2E``). For
 access to the syntax checker for the provided machine, you may append an ``SC`` 
 to the end (e.g, ``H1-1SC``).
 
-For a comprehensive list of available machines, login to your `Quantinuum user account
-<https://um.qapi.quantinuum.com/user>`_ and navigate to the "Account" tab, where you should
-find a table titled "Machines".
+For a comprehensive list of available machines, login to your `Quantinuum user account <https://um.qapi.quantinuum.com/user>`__ 
+and navigate to the "Account" tab, where you should find a table titled "Machines".
 
 To emulate the Quantinuum machine locally, without submitting through the cloud,
 you can also set the ``emulate`` flag to ``True``. This will emit any target 
@@ -130,8 +128,8 @@ Setting Credentials
 `````````````````````````
 
 Programmers of CUDA Quantum may access the `IonQ Quantum Cloud
-<https://cloud.ionq.com/>`_ from either C++ or Python. Generate
-an API key from your `IonQ account <https://cloud.ionq.com/>`_ and export
+<https://cloud.ionq.com/>`__ from either C++ or Python. Generate
+an API key from your `IonQ account <https://cloud.ionq.com/>`__ and export
 it as an environment variable:
 
 .. code:: bash
@@ -167,8 +165,8 @@ to specify which machine to submit quantum kernels to:
 where ``qpu.aria-1`` is an example of a physical QPU.
 
 A list of available QPUs can be found `in the API documentation
-<https://docs.ionq.com/#tag/jobs>`_. To see which backends are available 
-with your subscription login to your `IonQ account<https://cloud.ionq.com/jobs>`_.
+<https://docs.ionq.com/#tag/jobs>`__. To see which backends are available 
+with your subscription login to your `IonQ account <https://cloud.ionq.com/jobs>`__.
 
 To emulate the IonQ machine locally, without submitting through the cloud,
 you can also pass the ``--emulate`` flag to ``nvq++``. This will emit any target 
@@ -207,8 +205,8 @@ To specify which IonQ QPU to use, set the :code:`qpu` parameter.
 where ``qpu.aria-1`` is an example of a physical QPU.
 
 A list of available QPUs can be found `in the API documentation
-<https://docs.ionq.com/#tag/jobs>`_. To see which backends are available 
-with your subscription login to your `IonQ account<https://cloud.ionq.com/jobs>`_.
+<https://docs.ionq.com/#tag/jobs>`__. To see which backends are available 
+with your subscription login to your `IonQ account <https://cloud.ionq.com/jobs>`__.
 
 To emulate the IonQ machine locally, without submitting through the cloud,
 you can also set the ``emulate`` flag to ``True``. This will emit any target 
