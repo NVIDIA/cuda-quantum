@@ -173,8 +173,9 @@ public:
         (void)applyPatternsAndFoldGreedily(op, frozen);
         if (failed(pm.run(op)))
           break;
-      } while (loopsWereUnrolled(op, numLoops, progress));
+      } while (progress);
     }
+    numLoops = countLoopOps(op);
     if (numLoops && signalFailure) {
       RewritePatternSet patterns(ctx);
       patterns.insert<UnrollCountedLoop>(ctx, threshold, signalFailure,
@@ -183,13 +184,6 @@ public:
       emitError(UnknownLoc::get(ctx), "did not unroll loops");
       signalPassFailure();
     }
-  }
-
-  static bool loopsWereUnrolled(Operation *op, unsigned &numLoops,
-                                unsigned progress) {
-    auto oldNumLoops = numLoops;
-    numLoops = numLoops >= progress ? numLoops - progress : 0;
-    return oldNumLoops > numLoops;
   }
 
   static unsigned countLoopOps(Operation *op) {
