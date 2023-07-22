@@ -28,6 +28,12 @@ template <typename ConcreteType>
 class QuantumTrait : public OpTrait::TraitBase<ConcreteType, QuantumTrait> {};
 } // namespace quake
 
+static bool isQuakeOperation(Operation *op) {
+  if (auto *dialect = op->getDialect())
+    return dialect->getNamespace().equals("quake");
+  return false;
+}
+
 //===----------------------------------------------------------------------===//
 // AllocaOp
 //===----------------------------------------------------------------------===//
@@ -84,6 +90,50 @@ void quake::AllocaOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
 }
 
 //===----------------------------------------------------------------------===//
+// Concat
+//===----------------------------------------------------------------------===//
+
+namespace {
+struct ConcatSizePattern : public OpRewritePattern<quake::ConcatOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::ConcatOp concat,
+                                PatternRewriter &rewriter) const override {
+    if (concat.getType().hasSpecifiedSize())
+      return failure();
+
+    // Walk the arguments and sum them, if possible.
+    std::size_t sum = 0;
+    for (auto opnd : concat.getQbits()) {
+      if (auto veqTy = dyn_cast<quake::VeqType>(opnd.getType())) {
+        if (!veqTy.hasSpecifiedSize())
+          return failure();
+        sum += veqTy.getSize();
+        continue;
+      }
+      assert(isa<quake::RefType>(opnd.getType()));
+      sum++;
+    }
+
+    // Leans into the relax_size canonicalization pattern.
+    auto *ctx = rewriter.getContext();
+    auto loc = concat.getLoc();
+    auto newTy = quake::VeqType::get(ctx, sum);
+    Value newOp =
+        rewriter.create<quake::ConcatOp>(loc, newTy, concat.getQbits());
+    auto noSizeTy = quake::VeqType::getUnsized(ctx);
+    rewriter.replaceOpWithNewOp<quake::RelaxSizeOp>(concat, noSizeTy, newOp);
+    return success();
+  };
+};
+} // namespace
+
+void quake::ConcatOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
+                                                  MLIRContext *context) {
+  patterns.add<ConcatSizePattern>(context);
+}
+
+//===----------------------------------------------------------------------===//
 // ExtractRef
 //===----------------------------------------------------------------------===//
 
@@ -117,9 +167,39 @@ static void printRawIndex(OpAsmPrinter &printer, quake::ExtractRefOp refOp,
     printer << rawIndex.getValue();
 }
 
+namespace {
+// %2 = quake.concat %1 : (!quake.ref) -> !quake.veq<1>
+// %3 = quake.extract_ref %2[0] : (!quake.veq<1>) -> !quake.ref
+// quake.* %3 ...
+// ───────────────────────────────────────────
+// quake.* %1 ...
+struct ForwardConcatExtractSingleton
+    : public OpRewritePattern<quake::ExtractRefOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::ExtractRefOp extract,
+                                PatternRewriter &rewriter) const override {
+    if (auto concat = extract.getVeq().getDefiningOp<quake::ConcatOp>())
+      if (concat.getType().getSize() == 1 && extract.hasConstantIndex() &&
+          extract.getConstantIndex() == 0) {
+        assert(concat.getQbits().size() == 1 && concat.getQbits()[0]);
+        extract.getResult().replaceUsesWithIf(
+            concat.getQbits()[0], [&](OpOperand &use) {
+              if (Operation *user = use.getOwner())
+                return isQuakeOperation(user);
+              return false;
+            });
+        return success();
+      }
+    return failure();
+  }
+};
+} // namespace
+
 void quake::ExtractRefOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<FuseConstantToExtractRefPattern>(context);
+  patterns.add<FuseConstantToExtractRefPattern, ForwardConcatExtractSingleton>(
+      context);
 }
 
 LogicalResult quake::ExtractRefOp::verify() {
@@ -159,8 +239,7 @@ struct ForwardRelaxedSizePattern : public RewritePattern {
     Value result = relax.getResult();
     result.replaceUsesWithIf(inpVec, [&](OpOperand &use) {
       if (Operation *user = use.getOwner())
-        if (auto *dialect = user->getDialect())
-          return dialect->getNamespace() == "quake";
+        return isQuakeOperation(user);
       return false;
     });
     return success();
