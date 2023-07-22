@@ -59,7 +59,7 @@ struct qpe {
 
     // Perform `ctrl-U^j`
     for (int i = 0; i < nCountingQubits; ++i) {
-      for (int j = 0; j < (1UL << i); ++j) {
+      for (int j = 0; j < (1 << i); ++j) {
         cudaq::control(oracle, counting_qubits[i], state_register);
       }
     }
