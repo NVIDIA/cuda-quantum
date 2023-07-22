@@ -37,3 +37,8 @@ the :code:`myCudaQApp` folder)
 
 If you run the :code:`ninja` command with :code:`--verbose` you'll see that 
 :code:`nvq++` was used to compile and link the executable. 
+
+.. note:: 
+
+    If you would like to add include paths to the :code:`nvq++` CMake target, please 
+    add :code:`set(CMAKE_INCLUDE_FLAG_CUDAQ "-I")`. 
