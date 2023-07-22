@@ -103,7 +103,7 @@ __qpu__ void foo4() {
 // CHECK:             %[[VAL_8:.*]] = arith.cmpi ne, %[[VAL_7]], %[[VAL_1]] : i32
 // CHECK:           ^bb0(%[[VAL_9:.*]]: i32):
 // CHECK:             %[[VAL_10:.*]] = arith.muli %[[VAL_9]], %[[VAL_3]] : i32
-// CHECK:             %[[VAL_11:.*]] = arith.addi %[[VAL_10]], %[[VAL_0]] : i32
+// CHECK:             %[[VAL_11:.*]] = arith.subi %[[VAL_0]], %[[VAL_10]]  : i32
 // CHECK:             %[[VAL_12:.*]] = arith.extsi %[[VAL_11]] : i32 to i64
 // CHECK:             %[[VAL_13:.*]] = quake.extract_ref %{{.*}}[%[[VAL_12]]] : (!quake.veq<10>, i64) -> !quake.ref
 // CHECK:           ^bb0(%[[VAL_14:.*]]: i32):
