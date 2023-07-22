@@ -92,25 +92,7 @@ jobs:
           cudaqdevdeps_image=`cat build_info* | grep -o 'cuda-quantum-devdeps-image: \S*' | cut -d ' ' -f 2`
           data_commit=`cat build_info* | grep -o 'data-commit: \S*' | cut -d ' ' -f 2`
           release_title=`cat build_info* | grep -o 'publish: \S*' | cut -d ' ' -f 2`
-          for file in `ls *zip`; do unzip "$file" && rm "$file"; done
-
-          mkdir -p wheelhouse && cd -
-          artifacts_url=${{ steps.artifacts.outputs.artifacts_url }}
-          artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
-
-          for artifact in `echo "$artifacts"`; do
-            name=`echo $artifact | jq -r '.name'`
-            if [ "${name#pycudaq-}" != "$name" ]; then
-              url=`echo $artifact | jq -r '.url'`
-              gh api $url > pycudaq.zip
-              unzip -d pycudaq pycudaq.zip && cd pycudaq
-              for wheel in `ls *.whl`; do
-                echo "Adding wheel $wheel."
-                mv $wheel "../$assets_folder/wheelhouse/$wheel"
-              done
-              cd .. && rm -rf pycudaq*
-            fi
-          done
+          for file in `ls *zip`; do unzip "$file" && rm "$file"; done && cd -
 
           docker pull $cudaq_image
           repo_owner=${{ github.repository_owner }}
@@ -176,7 +158,25 @@ jobs:
         if: steps.release_info.outputs.release
         run: |
           release_id=${{ steps.assets.outputs.release_id }}
-          cd "${{ steps.release_info.outputs.assets_folder }}" && zip -r wheelhouse.zip wheelhouse
+          artifacts_url=${{ steps.artifacts.outputs.artifacts_url }}
+          artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
+
+          cd "${{ steps.release_info.outputs.assets_folder }}" && mkdir -p wheelhouse
+          for artifact in `echo "$artifacts"`; do
+            name=`echo $artifact | jq -r '.name'`
+            if [ "${name#pycudaq-}" != "$name" ]; then
+              url=`echo $artifact | jq -r '.url'`
+              gh api $url > pycudaq.zip
+              unzip -d pycudaq pycudaq.zip && cd pycudaq
+              for wheel in `ls *.whl`; do
+                echo "Adding wheel $wheel."
+                mv $wheel "../$assets_folder/wheelhouse/$wheel"
+              done
+              cd .. && rm -rf pycudaq*
+            fi
+          done
+
+          zip -r wheelhouse.zip wheelhouse
           gh release upload $release_id -R ${{ github.repository }} wheelhouse.zip --clobber && cd -
           for file in `ls "${{ steps.release_info.outputs.assets_folder }}"/build_info*`; do 
             gh release delete-asset $release_id `basename -- "$file"` -y
