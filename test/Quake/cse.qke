@@ -41,5 +41,20 @@ module {
     quake.x [%4] %1   : (!quake.ref, !quake.ref) -> ()
     return
   }
+
+// CHECK-LABEL:   func.func @test_2() -> i1 {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> i1
+// CHECK:           return %[[VAL_1]] : i1
+// CHECK:         }
+
+  func.func @test_2() -> i1 {
+    %1 = quake.alloca !quake.ref
+    %2 = quake.concat %1 : (!quake.ref) -> !quake.veq<?>
+    %zero = arith.constant 0 : i32
+    %3 = quake.extract_ref %2[%zero] : (!quake.veq<?>, i32) -> !quake.ref
+    %4 = quake.mz %3 : (!quake.ref) -> i1
+    return %4 : i1
+  }
 }
 
