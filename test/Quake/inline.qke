@@ -31,7 +31,7 @@ func.func @__nvqpp__mlirgen____nvqppBuilderKernel_367535629127(%arg0: !quake.ref
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
 // CHECK:           quake.x %[[VAL_0]]
 // CHECK:           quake.h %[[VAL_1]]
-// CHECK:           %[[VAL_2:.*]] = quake.concat %[[VAL_1]] : (!quake.ref) -> !quake.veq<?>
+// CHECK:           %[[VAL_2:.*]] = quake.concat %[[VAL_1]] : (!quake.ref) -> !quake.veq<1>
 // CHECK:           quake.x [%[[VAL_2]]] %[[VAL_0]] :
 // CHECK:           quake.h %[[VAL_1]] :
 // CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_1]] : (!quake.ref) -> i1 {registerName = ""}
