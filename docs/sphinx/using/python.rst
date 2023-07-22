@@ -2,12 +2,13 @@
 CUDA Quantum in Python
 ======================
 
-Examples for running CUDA Quantum programs written in Python on the statevector simulator included in the `cudaq` package.
+Welcome to CUDA Quantum!
+This is a introduction by example for using CUDA Quantum in Python. 
 
 Introduction
 --------------------------------
 
-Welcome to CUDA Quantum! We're going to take a look at how to construct quantum programs through CUDA Quantum's `Kernel` API.
+We're going to take a look at how to construct quantum programs through CUDA Quantum's `Kernel` API.
 
 When you create a `Kernel` and invoke its methods, a quantum program is constructed that can then be executed by calling, for example, `cudaq::sample`. Let's take a closer look!
 
@@ -49,4 +50,22 @@ Quantum Approximate Optimization Algorithm
 Let's now see how we can leverage the VQE algorithm to compute the maxcut of a rectangular graph.
 
 .. literalinclude:: ../examples/python/qaoa_maxcut.py
+   :language: python
+
+.. _python-examples-for-hardware-providers:
+
+Using Quantum Hardware Providers
+-----------------------------------
+
+CUDA Quantum contains support for using a set of hardware providers. 
+For more information about executing quantum kernels on different hardware backends, please take a look at :doc:`/using/hardware.rst`.
+
+The following code illustrates how run kernels on Quantinuum's backends.
+
+.. literalinclude:: ../examples/python/providers/quantinuum.py
+   :language: python
+
+The following code illustrates how run kernels on IonQ's backends.
+
+.. literalinclude:: ../examples/python/providers/ionq.py
    :language: python

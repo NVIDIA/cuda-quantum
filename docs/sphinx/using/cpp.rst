@@ -2,8 +2,8 @@
 CUDA Quantum in C++
 ======================
 
-Here we seek to get the new user started with some basic C++ examples 
-using CUDA Quantum. 
+Welcome to CUDA Quantum!
+This is a introduction by example for using CUDA Quantum in C++. 
 
 Introduction
 --------------------------------
@@ -108,3 +108,21 @@ vector support, we pass the :code:`--target nvidia` flag at compile time:
 
     nvq++ --target nvidia cuquantum_backends.cpp -o ghz.x
     ./ghz.x
+
+.. _cpp-examples-for-hardware-providers:
+
+Using Quantum Hardware Providers
+-----------------------------------
+
+CUDA Quantum contains support for using a set of hardware providers. 
+For more information about executing quantum kernels on different hardware backends, please take a look at :doc:`/using/hardware.rst`.
+
+The following code illustrates how run kernels on Quantinuum's backends.
+
+.. literalinclude:: ../examples/cpp/providers/quantinuum.cpp
+    :language: cpp
+
+The following code illustrates how run kernels on IonQ's backends.
+
+.. literalinclude:: ../examples/cpp/providers/ionq.cpp
+    :language: cpp

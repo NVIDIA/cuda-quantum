@@ -72,9 +72,7 @@ specific compiler warnings and diagnostics, before running a noise free emulatio
 
     nvq++ --emulate --target quantinuum src.cpp
 
-
-.. literalinclude:: ../examples/cpp/quantinuum
-    :language: cpp
+To see a complete example for using Quantinuum's backends, take a look at our :ref:`C++ examples<cpp-examples-for-hardware-providers>`.
 
 
 Submission from Python
@@ -122,9 +120,7 @@ the ``shots_count`` is set to 1000.
 
     cudaq.sample(kernel, shots_count=10000)
 
-
-.. literalinclude:: ../examples/python/quantinuum
-   :language: python
+To see a complete example for using Quantinuum's backends, take a look at our :ref:`Python examples<python-examples-for-hardware-providers>`.
 
 
 IonQ
@@ -168,9 +164,6 @@ to specify which machine to submit quantum kernels to:
 
     nvq++ --target ionq --ionq-machine qpu.aria-1 src.cpp ...
 
-.. literalinclude:: ../examples/cpp/ionq
-    :language: cpp
-
 where ``qpu.aria-1`` is an example of a physical QPU.
 
 A list of available QPUs can be found `in the API documentation
@@ -184,6 +177,8 @@ specific compiler diagnostics, before running a noise free emulation.
 .. code:: bash
 
     nvq++ --emulate --target ionq src.cpp
+
+To see a complete example for using IonQ's backends, take a look at our :ref:`C++ examples<cpp-examples-for-hardware-providers>`.
 
 Submission from Python
 `````````````````````````
@@ -231,6 +226,4 @@ the ``shots_count`` is set to 1000.
 
     cudaq.sample(kernel, shots_count=10000)
 
-
-.. literalinclude:: ../examples/python/ionq
-   :language: python
+To see a complete example for using IonQ's backends, take a look at our :ref:`Python examples<python-examples-for-hardware-providers>`.
