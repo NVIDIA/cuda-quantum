@@ -228,6 +228,7 @@ matrix:
       docstrings: true
       comments: true
       strings: false
+      group_comments: true
   - pyspelling.filters.context:
       context_visible_first: true
       escapes: '\\[\\`~]'
