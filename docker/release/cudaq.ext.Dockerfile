@@ -19,4 +19,9 @@ RUN for folder in `find "$CUDA_QUANTUM_PATH/assets"/* -maxdepth 0 -type d`; \
     do bash "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh" "$folder" && rm -rf "$folder"; done \
     && rm "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
 
+# Install additional runtime dependencies.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        cuda-nvtx-11-8 libcusolver-dev-11-8 libopenblas-openmp-dev \
+    && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 USER cudaq
