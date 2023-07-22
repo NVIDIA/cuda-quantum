@@ -161,23 +161,23 @@ jobs:
           artifacts_url=${{ steps.artifacts.outputs.artifacts_url }}
           artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
 
-          cd "${{ steps.release_info.outputs.assets_folder }}" && mkdir -p wheelhouse
+          mkdir -p wheelhouse
           for artifact in `echo "$artifacts"`; do
             name=`echo $artifact | jq -r '.name'`
             if [ "${name#pycudaq-}" != "$name" ]; then
               url=`echo $artifact | jq -r '.url'`
-              gh api $url > pycudaq.zip
-              unzip -d pycudaq pycudaq.zip && cd pycudaq
+              gh api $url > _pycudaq.zip
+              unzip -d _pycudaq _pycudaq.zip && cd _pycudaq
               for wheel in `ls *.whl`; do
                 echo "Adding wheel $wheel."
-                mv $wheel "../$assets_folder/wheelhouse/$wheel"
+                mv $wheel "../wheelhouse/$wheel"
               done
-              cd .. && rm -rf pycudaq*
+              cd .. && rm -rf _pycudaq*
             fi
           done
 
           zip -r wheelhouse.zip wheelhouse
-          gh release upload $release_id -R ${{ github.repository }} wheelhouse.zip --clobber && cd -
+          gh release upload $release_id -R ${{ github.repository }} wheelhouse.zip --clobber
           for file in `ls "${{ steps.release_info.outputs.assets_folder }}"/build_info*`; do 
             gh release delete-asset $release_id `basename -- "$file"` -y
           done
