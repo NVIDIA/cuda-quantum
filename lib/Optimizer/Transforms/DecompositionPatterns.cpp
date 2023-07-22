@@ -137,6 +137,35 @@ struct HToPhasedRx : public OpRewritePattern<quake::HOp> {
   }
 };
 
+// quake.swap a, b
+// ───────────────────────────────────
+// quake.cnot b, a;
+// quake.cnot a, b;
+// quake.cnot b, a;
+struct SwapToCX : public OpRewritePattern<quake::SwapOp> {
+  using OpRewritePattern<quake::SwapOp>::OpRewritePattern;
+
+  void initialize() { setDebugName("SwapToCX"); }
+
+  LogicalResult matchAndRewrite(quake::SwapOp op,
+                                PatternRewriter &rewriter) const override {
+    if (!quake::isAllReferences(op))
+      return failure();
+
+    // Op info
+    Location loc = op->getLoc();
+    Value a = op.getTarget(0);
+    Value b = op.getTarget(1);
+
+    rewriter.create<quake::XOp>(loc, b, a);
+    rewriter.create<quake::XOp>(loc, a, b);
+    rewriter.create<quake::XOp>(loc, b, a);
+
+    rewriter.eraseOp(op);
+    return success();
+  }
+};
+
 // quake.h control, target
 // ───────────────────────────────────
 // quake.s target;
@@ -982,7 +1011,9 @@ void cudaq::populateWithAllDecompositionPatterns(RewritePatternSet &patterns) {
     RyToPhasedRx,
     // RzOp patterns
     CRzToCX,
-    RzToPhasedRx
+    RzToPhasedRx,
+    // Swap
+    SwapToCX
   >(patterns.getContext());
   // clang-format on
 }
