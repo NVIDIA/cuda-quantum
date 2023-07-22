@@ -23,9 +23,9 @@ kernel.mz(qubits[1])
 # check from Quantinuum.
 syntax_check = cudaq.sample(kernel)
 if (syntax_check):
-  print("Syntax check passed! Kernel is ready for submission.")
+    print("Syntax check passed! Kernel is ready for submission.")
 
-# Now we can update the target to the Quantinuum emulator and 
+# Now we can update the target to the Quantinuum emulator and
 # execute our program.
 cudaq.set_target("quantinuum", machine="H1-2E")
 
@@ -45,7 +45,7 @@ file.write(str(future))
 file.close()
 
 # This allows us to grab the file at a later time and convert it
-# back to a `cudaq::AsyncSampleResult` 
+# back to a `cudaq::AsyncSampleResult`
 same_file = open("future.txt", "r")
 same_async_results = cudaq.AsyncSampleResult(str(same_file.read()))
 

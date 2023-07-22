@@ -32,7 +32,7 @@ file.write(str(future))
 file.close()
 
 # This allows us to grab the file at a later time and convert it
-# back to a `cudaq::AsyncSampleResult` 
+# back to a `cudaq::AsyncSampleResult`
 same_file = open("future.txt", "r")
 same_async_results = cudaq.AsyncSampleResult(str(same_file.read()))
 
