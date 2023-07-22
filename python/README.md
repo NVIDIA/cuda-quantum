@@ -62,7 +62,7 @@ CUDA Quantum platform, please take a look at
 
 ## License
 
-CUDA Quantum is an open source project. The source code is avilable on 
+CUDA Quantum is an open source project. The source code is avilable on
 [github][github_link] and licensed under [Apache License 2.0](../LICENSE).
 By downloading NVIDIA CUDA Quantum, you accept the terms and conditions of
 the NVIDIA End User License Agreement.
@@ -72,10 +72,10 @@ the NVIDIA End User License Agreement.
 ## Feedback
 
 Please let us know your feedback and ideas for the CUDA Quantum platform in the
-[Discussions][cuda_quantum_discussions] tab of our [github][github], or file an
-[issue][cuda_quantum_issues]. To report security concerns or [Code of
-Conduct](../Code_of_Conduct.md) violations, please reach out to
-[cuda-quantum@nvidia.com](mailto:cuda-quantum@nvidia.com).
+[Discussions][discussions] tab of our [GitHub repository][github_repo], or file an
+[issue][cuda_quantum_issues]. To report security concerns please reach
+out to [cuda-quantum@nvidia.com](mailto:cuda-quantum@nvidia.com).
 
-[cuda_quantum_discussions]: https://github.com/NVIDIA/cuda-quantum/discussions
+[discussions]: https://github.com/NVIDIA/cuda-quantum/discussions
 [cuda_quantum_issues]: https://github.com/NVIDIA/cuda-quantum/issues
+[github_repo]: https://github.com/NVIDIA/cuda-quantum
