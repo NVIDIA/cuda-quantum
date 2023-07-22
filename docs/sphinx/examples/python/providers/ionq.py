@@ -6,7 +6,7 @@ import cudaq
 # it via another call to `cudaq.set_target()`
 cudaq.set_target("ionq")
 
-# Create the kernel we'd like to execute on IonQ
+# Create the kernel we'd like to execute on IonQ.
 kernel = cudaq.make_kernel()
 qubits = kernel.qalloc(2)
 kernel.h(qubits[0])
@@ -21,23 +21,24 @@ kernel.mz(qubits[1])
 # classical code will be executed while the job is being handled
 # by IonQ. This is ideal when submitting via a queue over
 # the cloud.
-future = cudaq.sample_async(kernel)
+async_results = cudaq.sample_async(kernel)
 # ... more classical code to run ...
-async_counts = future.get()
-print(async_counts)
 
-# We can also convert the future to a string and write it to file.
+# We can either retrieve the results later in the program with
+# async_counts = async_results.get()
+# or wee can also write the job reference (async_results) to a
+# file and load it later or from a different process.
 file = open("future.txt", "w")
-file.write(str(future))
+file.write(str(async_results))
 file.close()
 
-# This allows us to grab the file at a later time and convert it
-# back to a `cudaq::AsyncSampleResult`
+# We can later read the file content and retrieve the job
+# information and results.
 same_file = open("future.txt", "r")
-same_async_results = cudaq.AsyncSampleResult(str(same_file.read()))
+retrieved_async_results = cudaq.AsyncSampleResult(str(same_file.read()))
 
-same_async_counts = same_async_results.get()
-print(async_counts)
+counts = retrieved_async_results.get()
+print(counts)
 
 # Option B:
 # By using the synchronous `cudaq.sample`, the execution of

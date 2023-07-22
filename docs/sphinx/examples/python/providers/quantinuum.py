@@ -5,7 +5,7 @@ import cudaq
 # By default, we will submit to the Quantinuum syntax checker.
 cudaq.set_target("quantinuum")
 
-# Create the kernel we'd like to execute on Quantinuum
+# Create the kernel we'd like to execute on Quantinuum.
 kernel = cudaq.make_kernel()
 qubits = kernel.qalloc(2)
 kernel.h(qubits[0])
@@ -18,9 +18,9 @@ kernel.mz(qubits[1])
 # Option A:
 # By using the synchronous `cudaq.sample`, the execution of
 # any remaining classical code in the file will occur only
-# after the job has been returned from Quantinuum.
-# For now, we'll just use the synchronous call to get a syntax
-# check from Quantinuum.
+# after the job has been executed by the Quantinuum service.
+# We will use the synchronous call to submit to the syntax
+# checker to confirm the validity of the program.
 syntax_check = cudaq.sample(kernel)
 if (syntax_check):
     print("Syntax check passed! Kernel is ready for submission.")
@@ -34,20 +34,21 @@ cudaq.set_target("quantinuum", machine="H1-2E")
 # classical code will be executed while the job is being handled
 # by Quantinuum. This is ideal when submitting via a queue over
 # the cloud.
-future = cudaq.sample_async(kernel)
+async_results = cudaq.sample_async(kernel)
 # ... more classical code to run ...
-async_counts = future.get()
-print(async_counts)
 
-# We can also convert the future to a string and write it to file.
+# We can either retrieve the results later in the program with
+# async_counts = async_results.get()
+# or wee can also write the job reference (async_results) to a
+# file and load it later or from a different process.
 file = open("future.txt", "w")
-file.write(str(future))
+file.write(str(async_results))
 file.close()
 
-# This allows us to grab the file at a later time and convert it
-# back to a `cudaq::AsyncSampleResult`
+# We can later read the file content and retrieve the job
+# information and results.
 same_file = open("future.txt", "r")
-same_async_results = cudaq.AsyncSampleResult(str(same_file.read()))
+retrieved_async_results = cudaq.AsyncSampleResult(str(same_file.read()))
 
-same_async_counts = same_async_results.get()
-print(same_async_counts)
+counts = retrieved_async_results.get()
+print(counts)
