@@ -9,9 +9,10 @@
 [project]
 name = "cuda-quantum"
 dynamic = ["version"]
-keywords = [ "CUDA Quantum", "Quantum Computing", "CUDA", "quantum" ]
+keywords = [ "cuda-quantum", "cuda", "quantum", "quantum computing", "nvidia", "high-performance computing" ]
 description="Python bindings for the CUDA Quantum toolkit for heterogeneous quantum-classical workflows."
 authors = [{name = "NVIDIA Corporation & Affiliates"}]
+maintainers = [{name = "NVIDIA Corporation & Affiliates"}]
 readme = "python/README.md"
 requires-python = ">=3.8"
 license = { file="LICENSE" }
