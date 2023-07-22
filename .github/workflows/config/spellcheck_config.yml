@@ -34,7 +34,7 @@ matrix:
       # Ignore apostrophy-s endings of words (e.g. NVIDIA's)
       - open: '(?=\S)'
         close: '($|(?=[^a-z]))'
-        content: '\'s'
+        content: '\u0027s'
       # Ignore paths of files (recognized by them having a file extension)
       - open: '([A-Za-z_\\\/]+\.)+'
         close: '($|(?=[^a-z]))'
@@ -79,7 +79,7 @@ matrix:
       # Ignore apostrophy-s endings of words (e.g. NVIDIA's)
       - open: '(?=\S)'
         close: '($|(?=[^a-z]))'
-        content: '\'s'
+        content: '\u0027s'
       # Ignore word prefixes, e.g. "pre-" in pre-computed
       - open: '(^|\s)[a-z]+-'
         close: '(?=.)'
