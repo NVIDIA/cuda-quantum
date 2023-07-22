@@ -1,10 +1,11 @@
 // Compile and run with:
 // ```
-// nvq++ --target quantinuum --quantinuum-machine H1-2E quantinuum.cpp -o out.x && ./out.x
+// nvq++ --target quantinuum --quantinuum-machine H1-2E quantinuum.cpp -o out.x
+// ./out.x
 // ```
 // Assumes a valid set of credentials have been stored.
 // To first confirm the correctness of the program locally,
-// Add a --emulate to the nvq++ command above.
+// Add a --emulate to the `nvq++` command above.
 
 #include <cudaq.h>
 #include <fstream>

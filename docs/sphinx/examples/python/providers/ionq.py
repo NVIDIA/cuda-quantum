@@ -25,9 +25,11 @@ async_results = cudaq.sample_async(kernel)
 # ... more classical code to run ...
 
 # We can either retrieve the results later in the program with
+# ```
 # async_counts = async_results.get()
-# or wee can also write the job reference (async_results) to a
-# file and load it later or from a different process.
+# ```
+# or wee can also write the job reference (`async_results`) to
+# a file and load it later or from a different process.
 file = open("future.txt", "w")
 file.write(str(async_results))
 file.close()
