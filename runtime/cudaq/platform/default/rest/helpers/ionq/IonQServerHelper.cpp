@@ -82,8 +82,8 @@ void IonQServerHelper::initialize(BackendConfig config) {
   backendConfig["url"] = config.find("url") != config.end()
                              ? config["url"]
                              : "https://api.ionq.co";
-  backendConfig["version"] = "v0.3";
-  backendConfig["user_agent"] = "cudaq/0.3.0";
+  backendConfig["version"] = "v0.4";
+  backendConfig["user_agent"] = "cudaq/0.4.0";
   backendConfig["target"] =
       config.find("qpu") != config.end() ? config["qpu"] : "simulator";
   backendConfig["qubits"] = 29;
