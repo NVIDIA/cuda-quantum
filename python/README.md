@@ -1,4 +1,4 @@
-# Welcome to the CUDA Quantum Python API
+f# Welcome to the CUDA Quantum Python API
 
 CUDA Quantum is a comprehensive framework for quantum programming. It features:
 
@@ -76,11 +76,6 @@ about contributing to the CUDA Quantum platform, please take a look at
 [Contributing.md](../Contributing.md).
 
 ## License
-
-The PennyLane-Lightning-GPU plugin is free and open source, released under the
-Apache License, Version 2.0. The PennyLane-Lightning-GPU plugin makes use of the
-NVIDIA cuQuantum SDK headers to enable the device bindings to PennyLane, which
-are held to their own respective license.
 
 CUDA Quantum is an open source project. The source code is available on
 [GitHub][github_link] and licensed under [Apache License 2.0](../LICENSE). CUDA
