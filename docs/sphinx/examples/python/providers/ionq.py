@@ -11,8 +11,10 @@ kernel = cudaq.make_kernel()
 qubits = kernel.qalloc(2)
 kernel.h(qubits[0])
 kernel.cx(qubits[0], qubits[1])
-kernel.mz(qubits[0])
-kernel.mz(qubits[1])
+
+# Note: All qubits will be measured at the end upon performing
+# the sampling. You may encounter a preflight error on IonQ
+# backends if you include explicit measurements.
 
 # Execute on IonQ and print out the results.
 
