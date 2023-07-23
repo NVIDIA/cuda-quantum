@@ -132,6 +132,7 @@
 <li class="toctree-l3"><a class="reference internal" href="cpp.html#computing-expectation-values">Computing Expectation Values</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cpp.html#multi-control-synthesis">Multi-control Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cpp.html#simulations-with-cuquantum">Simulations with cuQuantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cpp.html#using-quantum-hardware-providers">Using Quantum Hardware Providers</a></li>
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">   CUDA Quantum in Python</a><ul>
@@ -139,6 +140,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#bernstein-vazirani">Bernstein-Vazirani</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#variational-quantum-eigensolver">Variational Quantum Eigensolver</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#quantum-approximate-optimization-algorithm">Quantum Approximate Optimization Algorithm</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#using-quantum-hardware-providers">Using Quantum Hardware Providers</a></li>
 </ul>
 </li>
 </ul>
@@ -152,6 +154,21 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="simulators.html#tensor-network-simulators">Tensor Network Simulators</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="simulators.html#id1">cuQuantum multi-node multi-GPU</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="hardware.html">   Hardware Backends</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="hardware.html#quantinuum">Quantinuum</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="hardware.html#setting-credentials">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware.html#submission-from-c">Submission from C++</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware.html#submission-from-python">Submission from Python</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="hardware.html#ionq">IonQ</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="hardware.html#id1">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware.html#id2">Submission from C++</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware.html#id3">Submission from Python</a></li>
 </ul>
 </li>
 </ul>
@@ -302,10 +319,11 @@
              
   <section id="cuda-quantum-in-python">
 <h1>CUDA Quantum in Python<a class="headerlink" href="#cuda-quantum-in-python" title="Permalink to this heading">¶</a></h1>
-<p>Examples for running CUDA Quantum programs written in Python on the statevector simulator included in the <code class="code docutils literal notranslate"><span class="pre">cudaq</span></code> package.</p>
+<p>Welcome to CUDA Quantum!
+This is a introduction by example for using CUDA Quantum in Python.</p>
 <section id="introduction">
 <h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this heading">¶</a></h2>
-<p>Welcome to CUDA Quantum! We’re going to take a look at how to construct quantum programs through CUDA Quantum’s <code class="code docutils literal notranslate"><span class="pre">Kernel</span></code> API.</p>
+<p>We’re going to take a look at how to construct quantum programs through CUDA Quantum’s <code class="code docutils literal notranslate"><span class="pre">Kernel</span></code> API.</p>
 <p>When you create a <code class="code docutils literal notranslate"><span class="pre">Kernel</span></code> and invoke its methods, a quantum program is constructed that can then be executed by calling, for example, <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code>. Let’s take a closer look!</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
 
@@ -345,7 +363,8 @@
 <section id="bernstein-vazirani">
 <h2>Bernstein-Vazirani<a class="headerlink" href="#bernstein-vazirani" title="Permalink to this heading">¶</a></h2>
 <p>Bernstein Vazirani is an algorithm for finding the bitstring encoded in a given function.</p>
-<p>For the original source of this algorithm, see: <a class="reference external" href="https://epubs.siam.org/doi/10.1137/S0097539796300921">https://epubs.siam.org/doi/10.1137/S0097539796300921</a></p>
+<p>For the original source of this algorithm, see
+<a class="reference external" href="https://epubs.siam.org/doi/10.1137/S0097539796300921">this publication</a>.</p>
 <p>In this example, we generate a random bitstring, encode it into an inner-product oracle, then we simulate the kernel and return the most probable bitstring from its execution.</p>
 <p>If all goes well, the state measured with the highest probability should be our hidden bitstring!</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
@@ -469,7 +488,7 @@
 </pre></div>
 </div>
 <p>Let’s look at a more advanced examples.</p>
-<p>As an alternative to <code class="code docutils literal notranslate"><span class="pre">cudaq.vqe</span></code>, we can also use the <code class="code docutils literal notranslate"><span class="pre">cudaq.optimizers</span></code> suite on its own to write custom variational algorithm routines. Much of this can be slightly modified for use with third-party optimizers, such as scipy.</p>
+<p>As an alternative to <code class="code docutils literal notranslate"><span class="pre">cudaq.vqe</span></code>, we can also use the <code class="code docutils literal notranslate"><span class="pre">cudaq.optimizers</span></code> suite on its own to write custom variational algorithm routines. Much of this can be slightly modified for use with third-party optimizers, such as <code class="code docutils literal notranslate"><span class="pre">scipy</span></code>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
 <span class="kn">from</span> <span class="nn">cudaq</span> <span class="kn">import</span> <span class="n">spin</span>
 
@@ -543,7 +562,7 @@
 </section>
 <section id="quantum-approximate-optimization-algorithm">
 <h2>Quantum Approximate Optimization Algorithm<a class="headerlink" href="#quantum-approximate-optimization-algorithm" title="Permalink to this heading">¶</a></h2>
-<p>Let’s now see how we can leverage the VQE algorithm to compute the maxcut of a rectangular graph.</p>
+<p>Let’s now see how we can leverage the VQE algorithm to compute the Max-Cut of a rectangular graph.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
 <span class="kn">from</span> <span class="nn">cudaq</span> <span class="kn">import</span> <span class="n">spin</span>
 
@@ -616,6 +635,123 @@
 <span class="c1"># Sample the circuit using the optimized parameters</span>
 <span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel_qaoa</span><span class="p">(),</span> <span class="n">optimal_parameters</span><span class="p">)</span>
 <span class="n">counts</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="using-quantum-hardware-providers">
+<span id="python-examples-for-hardware-providers"></span><h2>Using Quantum Hardware Providers<a class="headerlink" href="#using-quantum-hardware-providers" title="Permalink to this heading">¶</a></h2>
+<p>CUDA Quantum contains support for using a set of hardware providers.
+For more information about executing quantum kernels on different hardware backends, please take a look at <a class="reference internal" href="hardware.html"><span class="doc">CUDA Quantum Hardware Backends</span></a>.</p>
+<p>The following code illustrates how run kernels on Quantinuum’s backends.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+
+<span class="c1"># You only have to set the target once! No need to redefine it</span>
+<span class="c1"># for every execution call on your kernel.</span>
+<span class="c1"># By default, we will submit to the Quantinuum syntax checker.</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;quantinuum&quot;</span><span class="p">)</span>
+
+<span class="c1"># Create the kernel we&#39;d like to execute on Quantinuum.</span>
+<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="n">qubits</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+<span class="c1"># Submit to Quantinuum&#39;s endpoint and confirm the program is valid.</span>
+
+<span class="c1"># Option A:</span>
+<span class="c1"># By using the synchronous `cudaq.sample`, the execution of</span>
+<span class="c1"># any remaining classical code in the file will occur only</span>
+<span class="c1"># after the job has been executed by the Quantinuum service.</span>
+<span class="c1"># We will use the synchronous call to submit to the syntax</span>
+<span class="c1"># checker to confirm the validity of the program.</span>
+<span class="n">syntax_check</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+<span class="k">if</span> <span class="p">(</span><span class="n">syntax_check</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Syntax check passed! Kernel is ready for submission.&quot;</span><span class="p">)</span>
+
+<span class="c1"># Now we can update the target to the Quantinuum emulator and</span>
+<span class="c1"># execute our program.</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;quantinuum&quot;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s2">&quot;H1-2E&quot;</span><span class="p">)</span>
+
+<span class="c1"># Option B:</span>
+<span class="c1"># By using the asynchronous `cudaq.sample_async`, the remaining</span>
+<span class="c1"># classical code will be executed while the job is being handled</span>
+<span class="c1"># by Quantinuum. This is ideal when submitting via a queue over</span>
+<span class="c1"># the cloud.</span>
+<span class="n">async_results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+<span class="c1"># ... more classical code to run ...</span>
+
+<span class="c1"># We can either retrieve the results later in the program with</span>
+<span class="c1"># ```</span>
+<span class="c1"># async_counts = async_results.get()</span>
+<span class="c1"># ```</span>
+<span class="c1"># or wee can also write the job reference (`async_results`) to</span>
+<span class="c1"># a file and load it later or from a different process.</span>
+<span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+<span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">async_results</span><span class="p">))</span>
+<span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<span class="c1"># We can later read the file content and retrieve the job</span>
+<span class="c1"># information and results.</span>
+<span class="n">same_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+<span class="n">retrieved_async_results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">AsyncSampleResult</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">same_file</span><span class="o">.</span><span class="n">read</span><span class="p">()))</span>
+
+<span class="n">counts</span> <span class="o">=</span> <span class="n">retrieved_async_results</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The following code illustrates how run kernels on IonQ’s backends.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+
+<span class="c1"># You only have to set the target once! No need to redefine it</span>
+<span class="c1"># for every execution call on your kernel.</span>
+<span class="c1"># To use different targets in the same file, you must update</span>
+<span class="c1"># it via another call to `cudaq.set_target()`</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;ionq&quot;</span><span class="p">)</span>
+
+<span class="c1"># Create the kernel we&#39;d like to execute on IonQ.</span>
+<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="n">qubits</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+<span class="c1"># Execute on IonQ and print out the results.</span>
+
+<span class="c1"># Option A:</span>
+<span class="c1"># By using the asynchronous `cudaq.sample_async`, the remaining</span>
+<span class="c1"># classical code will be executed while the job is being handled</span>
+<span class="c1"># by IonQ. This is ideal when submitting via a queue over</span>
+<span class="c1"># the cloud.</span>
+<span class="n">async_results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+<span class="c1"># ... more classical code to run ...</span>
+
+<span class="c1"># We can either retrieve the results later in the program with</span>
+<span class="c1"># ```</span>
+<span class="c1"># async_counts = async_results.get()</span>
+<span class="c1"># ```</span>
+<span class="c1"># or wee can also write the job reference (`async_results`) to</span>
+<span class="c1"># a file and load it later or from a different process.</span>
+<span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+<span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">async_results</span><span class="p">))</span>
+<span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<span class="c1"># We can later read the file content and retrieve the job</span>
+<span class="c1"># information and results.</span>
+<span class="n">same_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+<span class="n">retrieved_async_results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">AsyncSampleResult</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">same_file</span><span class="o">.</span><span class="n">read</span><span class="p">()))</span>
+
+<span class="n">counts</span> <span class="o">=</span> <span class="n">retrieved_async_results</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
+
+<span class="c1"># Option B:</span>
+<span class="c1"># By using the synchronous `cudaq.sample`, the execution of</span>
+<span class="c1"># any remaining classical code in the file will occur only</span>
+<span class="c1"># after the job has been returned from IonQ.</span>
+<span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
