@@ -115,7 +115,7 @@ Using Quantum Hardware Providers
 -----------------------------------
 
 CUDA Quantum contains support for using a set of hardware providers. 
-For more information about executing quantum kernels on different hardware backends, please take a look at :doc:`hardware.rst`.
+For more information about executing quantum kernels on different hardware backends, please take a look at :doc:`hardware`.
 
 The following code illustrates how run kernels on Quantinuum's backends.
 
