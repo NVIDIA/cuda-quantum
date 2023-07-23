@@ -17,6 +17,7 @@ for the quantum acceleration of existing heterogeneous computing architectures.
       Advanced Topics  <using/advanced.rst>
       Examples <using/examples.rst>
       Simulator Backends <using/simulators.rst>
+      Hardware Backends <using/hardware.rst>
       Specifications <specification/index.rst>
       API Reference <api/api.rst>
       Other Versions <versions.rst>

@@ -19,7 +19,9 @@ Hadamard
 Hadamards
 Hamiltonian
 Hamiltonians
+IonQ
 JIT
+JSON
 Kraus
 LLVM
 MLIR
@@ -40,6 +42,7 @@ QPU
 QPUs
 QTX
 Quake
+Quantinuum
 Toffoli
 VQE
 Vazirani
