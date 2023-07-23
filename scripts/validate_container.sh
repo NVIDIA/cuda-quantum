@@ -90,21 +90,28 @@ echo "============================="
 echo "==      Python Tests       =="
 echo "============================="
 
-for ex in `find examples -name *.py`;
+for ex in `find examples -name '*.py'`;
 do 
     filename=$(basename -- "$ex")
     filename="${filename%.*}"
     echo "Testing $filename:"
     echo "Source: $ex"
     let "samples+=1"
-    python $ex 1> /dev/null
-    status=$?
-    echo "Exited with code $status"
-    if [ "$status" -eq "0" ]; then 
-        let "passed+=1"
+
+    if [[ "$ex" == *"ionq"* ]] || [[ "$ex" == *"quantinuum"* ]];
+    then 
+        let "skipped+=1"
+        echo "Skipped.";
     else
-        let "failed+=1"
-    fi 
+        python $ex 1> /dev/null
+        status=$?
+        echo "Exited with code $status"
+        if [ "$status" -eq "0" ]; then 
+            let "passed+=1"
+        else
+            let "failed+=1"
+        fi 
+    fi
     echo "============================="
 done
 
@@ -112,7 +119,7 @@ echo "============================="
 echo "==        C++ Tests        =="
 echo "============================="
 
-for ex in `find examples -name *.cpp`;
+for ex in `find examples -name '*.cpp'`;
 do
     filename=$(basename -- "$ex")
     filename="${filename%.*}"
@@ -121,7 +128,12 @@ do
     let "samples+=1"
     for t in $requested_backends
     do
-        if [[ "$ex" == *"cuquantum"* ]];
+        if [[ "$ex" == *"ionq"* ]] || [[ "$ex" == *"quantinuum"* ]];
+        then 
+            let "skipped+=1"
+            echo "Skipping $t target.";
+
+        elif [[ "$ex" == *"cuquantum"* ]];
         then 
             let "skipped+=1"
             echo "Skipping $t target.";
@@ -135,7 +147,9 @@ do
             echo "Testing on $t target..."
             if [ "$t" == "default" ]; then 
                 nvq++ $ex
+                dummy=1
             else
+                dummy=1
                 nvq++ $ex --target $t
             fi
             ./a.out &> /dev/null
