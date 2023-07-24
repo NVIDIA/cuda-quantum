@@ -28,7 +28,6 @@ void bindChemistry(py::module &mod) {
           "number of hwe parameters.");
   // use explicit overload as we have two overloaded signatures, i.e. with and
   // without CNOT couplers
-  //   mod.def("hwe_cnot", &cudaq::hwe_cnot<kernel_builder<>>,
   mod.def(
       "hwe",
       [](kernel_builder<> &kernel, QuakeValue &qubits, std::size_t numQubits,
