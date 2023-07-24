@@ -110,10 +110,10 @@ License at <https://github.com/libcpr/cpr/blob/master/LICENSE>
 
 ----------------------------------------------------------------
 
-Open BLAS - BSD-3-Clause
-<https://www.openblas.net/>
+BLAS - custom license
+<https://netlib.org/blas/>
 
-License at <https://github.com/xianyi/OpenBLAS/blob/develop/LICENSE>
+See also <https://netlib.org/blas/#_licensing>
 
 ----------------------------------------------------------------
 

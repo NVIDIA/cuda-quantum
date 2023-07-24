@@ -39,7 +39,7 @@ void createUnrollingPipeline(mlir::OpPassManager &pm, unsigned threshold,
                              bool signalFailure);
 inline void addUnrollingPipeline(mlir::OpPassManager &pm) {
   // Set defaults used by registerUnrollingPipeline()
-  createUnrollingPipeline(pm, /*threshold=*/50, /*signalFailure=*/true);
+  createUnrollingPipeline(pm, /*threshold=*/1028, /*signalFailure=*/true);
 }
 void registerUnrollingPipeline();
 

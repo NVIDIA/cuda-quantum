@@ -113,6 +113,8 @@ def quake_ConcatOp : QuakeOp<"concat", [Pure]> {
   let assemblyFormat = [{
     $qbits attr-dict `:` functional-type(operands, results)
   }];
+
+  let hasCanonicalizer = 1;
 }
 
 // A ComputeActionOp will be transformed into a series of CallOps.

@@ -57,8 +57,9 @@ namespace {
 /// invariant. An invariant loop means the loop must execute exactly some
 /// specific number of times, even if that number is only known at runtime.
 struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
-  explicit UnrollCountedLoop(MLIRContext *ctx, std::size_t t, bool sf)
-      : OpRewritePattern(ctx), threshold(t), signalFailure(sf) {}
+  explicit UnrollCountedLoop(MLIRContext *ctx, std::size_t t, bool sf,
+                             unsigned &p)
+      : OpRewritePattern(ctx), threshold(t), signalFailure(sf), progress(p) {}
 
   LogicalResult matchAndRewrite(cudaq::cc::LoopOp loop,
                                 PatternRewriter &rewriter) const override {
@@ -129,6 +130,7 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
 
     LLVM_DEBUG(llvm::dbgs() << "after unrolling a loop:\n";
                lastBranch->getParentOfType<func::FuncOp>().dump());
+    progress++;
     return success();
   }
 
@@ -140,6 +142,7 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
 
   std::size_t threshold;
   bool signalFailure;
+  unsigned &progress;
 };
 
 /// The loop unrolling pass will fully unroll a `cc::LoopOp` when the loop is
@@ -154,35 +157,33 @@ public:
     auto *ctx = &getContext();
     auto *op = getOperation();
     auto numLoops = countLoopOps(op);
+    unsigned progress = 0;
     if (numLoops) {
       PassManager pm(ctx);
       pm.addPass(createCanonicalizerPass());
       RewritePatternSet patterns(ctx);
       patterns.insert<UnrollCountedLoop>(ctx, threshold,
-                                         /*signalFailure=*/false);
+                                         /*signalFailure=*/false, progress);
       FrozenRewritePatternSet frozen(std::move(patterns));
       // Iterate over the loops until a fixed-point is reached. Some loops can
       // only be unrolled if other loops are unrolled first and the constants
       // iteratively propagated.
       do {
+        progress = 0;
         (void)applyPatternsAndFoldGreedily(op, frozen);
         if (failed(pm.run(op)))
           break;
-      } while (loopsWereUnrolled(op, numLoops));
+      } while (progress);
     }
+    numLoops = countLoopOps(op);
     if (numLoops && signalFailure) {
       RewritePatternSet patterns(ctx);
-      patterns.insert<UnrollCountedLoop>(ctx, threshold, signalFailure);
+      patterns.insert<UnrollCountedLoop>(ctx, threshold, signalFailure,
+                                         progress);
       (void)applyPatternsAndFoldGreedily(op, std::move(patterns));
       emitError(UnknownLoc::get(ctx), "did not unroll loops");
       signalPassFailure();
     }
-  }
-
-  static bool loopsWereUnrolled(Operation *op, unsigned &numLoops) {
-    auto oldNumLoops = numLoops;
-    numLoops = countLoopOps(op);
-    return oldNumLoops > numLoops;
   }
 
   static unsigned countLoopOps(Operation *op) {

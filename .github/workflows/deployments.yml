@@ -79,7 +79,7 @@ jobs:
       platforms: ${{ inputs.platforms }}
       toolchain: x86_64
       build_args: |
-        manylinux_image=${{ inputs.manylinux_image }}
+        manylinux_image=${{ inputs.manylinux_image || 'quay.io/pypa/manylinux_2_28_x86_64:latest' }}
       registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base }}
       registry_cache_update: ${{ github.event_name == 'workflow_dispatch' && inputs.update_registry_cache }}
       registry_cache_update_only: ${{ github.event.pull_request.merged == true }}
@@ -119,8 +119,8 @@ jobs:
 
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
-      base_image: ${{ fromJson(steps.read_json.outputs.result).image_hash.llvm }}
-      toolchain: llvm
+      base_image: ${{ fromJson(steps.read_json.outputs.result).image_hash.gcc12 }}
+      toolchain: gcc12
 
     steps:
       - uses: cloudposse/github-action-matrix-outputs-read@0.1.1
@@ -167,6 +167,7 @@ jobs:
       create_release: ${{ inputs.create_release }}
 
   python_wheels:
+    if: github.event_name != 'pull_request_target'
     name: Create Python wheels
     needs: wheeldeps
     strategy:

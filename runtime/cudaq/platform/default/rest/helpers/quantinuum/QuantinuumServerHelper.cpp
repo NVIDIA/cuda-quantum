@@ -114,9 +114,9 @@ QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   }
 
   // Get the tokens we need
-  refreshTokens();
   credentialsPath =
       searchAPIKey(apiKey, refreshKey, timeStr, userSpecifiedCredentials);
+  refreshTokens();
 
   // Get the headers
   RestHeaders headers = generateRequestHeader();
@@ -206,38 +206,43 @@ void QuantinuumServerHelper::refreshTokens(bool force_refresh) {
   std::mutex m;
   std::lock_guard<std::mutex> l(m);
   RestClient client;
-  if (!timeStr.empty()) {
-    // We first check how much time has elapsed since the
-    // existing refresh key was created
-    std::int64_t timeAsLong = std::stol(timeStr);
-    std::chrono::high_resolution_clock::duration d(timeAsLong);
-    std::chrono::high_resolution_clock::time_point oldTime(d);
-    auto now = std::chrono::high_resolution_clock::now();
-    auto secondsDuration =
-        1e-3 *
-        std::chrono::duration_cast<std::chrono::milliseconds>(now - oldTime);
+  auto now = std::chrono::high_resolution_clock::now();
 
-    // If we are getting close to an 30 min, then we will refresh
-    bool needsRefresh = secondsDuration.count() * (1. / 1800.) > .85;
-    if (needsRefresh || force_refresh) {
-      // if (quantinuumVerbose)
-      cudaq::info("Refreshing id-token");
-      std::stringstream ss;
-      ss << "\"refresh-token\":\"" << refreshKey << "\"";
-      auto headers = generateRequestHeader();
-      nlohmann::json j;
-      j["refresh-token"] = refreshKey;
-      auto response_json = client.post(baseUrl, "login", j, headers);
-      std::cout << response_json.dump() << "\n";
-      apiKey = response_json["id-token"].get<std::string>();
-      refreshKey = response_json["refresh-token"].get<std::string>();
-      std::ofstream out(credentialsPath);
-      out << "key:" << apiKey << '\n';
-      out << "refresh:" << refreshKey << '\n';
-      out << "time:" << now.time_since_epoch().count() << '\n';
-      out.close();
-      timeStr = std::to_string(now.time_since_epoch().count());
-    }
+  // If the time string is empty, let's add it
+  if (timeStr.empty()) {
+    timeStr = std::to_string(now.time_since_epoch().count());
+    std::ofstream out(credentialsPath);
+    out << "key:" << apiKey << '\n';
+    out << "refresh:" << refreshKey << '\n';
+    out << "time:" << timeStr << '\n';
+  }
+
+  // We first check how much time has elapsed since the
+  // existing refresh key was created
+  std::int64_t timeAsLong = std::stol(timeStr);
+  std::chrono::high_resolution_clock::duration d(timeAsLong);
+  std::chrono::high_resolution_clock::time_point oldTime(d);
+  auto secondsDuration =
+      1e-3 *
+      std::chrono::duration_cast<std::chrono::milliseconds>(now - oldTime);
+
+  // If we are getting close to an 30 min, then we will refresh
+  bool needsRefresh = secondsDuration.count() * (1. / 1800.) > .85;
+  if (needsRefresh || force_refresh) {
+    cudaq::info("Refreshing id-token");
+    std::stringstream ss;
+    ss << "\"refresh-token\":\"" << refreshKey << "\"";
+    auto headers = generateRequestHeader();
+    nlohmann::json j;
+    j["refresh-token"] = refreshKey;
+    auto response_json = client.post(baseUrl, "login", j, headers);
+    apiKey = response_json["id-token"].get<std::string>();
+    refreshKey = response_json["refresh-token"].get<std::string>();
+    std::ofstream out(credentialsPath);
+    out << "key:" << apiKey << '\n';
+    out << "refresh:" << refreshKey << '\n';
+    out << "time:" << now.time_since_epoch().count() << '\n';
+    timeStr = std::to_string(now.time_since_epoch().count());
   }
 }
 
