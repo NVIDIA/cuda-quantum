@@ -16,6 +16,7 @@
 #include "llvm/Support/FormatAdapters.h"
 
 #include <algorithm>
+#include <cmath>
 #include <numeric>
 
 using namespace mlir;

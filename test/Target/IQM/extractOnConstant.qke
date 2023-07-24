@@ -27,8 +27,8 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__super = "_ZN5supe
 // CHECK:     "instructions": [
 // CHECK:         {
 // CHECK:             "args": {
-// CHECK:                 "angle_t": 1.5707963267948966,
-// CHECK:                 "phase_t": 1.5707963267948966
+// CHECK:                 "angle_t": 0.25,
+// CHECK:                 "phase_t": 0.25
 // CHECK:             },
 // CHECK:             "name": "phased_rx",
 // CHECK:             "qubits": [
@@ -37,7 +37,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__super = "_ZN5supe
 // CHECK:         },
 // CHECK:         {
 // CHECK:             "args": {
-// CHECK:                 "angle_t": 3.141592653589793,
+// CHECK:                 "angle_t": 0.5,
 // CHECK:                 "phase_t": 0.0
 // CHECK:             },
 // CHECK:             "name": "phased_rx",
