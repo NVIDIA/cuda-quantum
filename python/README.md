@@ -1,4 +1,4 @@
-f# Welcome to the CUDA Quantum Python API
+# Welcome to the CUDA Quantum Python API
 
 CUDA Quantum is a comprehensive framework for quantum programming. It features:
 
