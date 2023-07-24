@@ -167,6 +167,7 @@ jobs:
       create_release: ${{ inputs.create_release }}
 
   python_wheels:
+    if: github.event_name != 'pull_request_target'
     name: Create Python wheels
     needs: wheeldeps
     strategy:

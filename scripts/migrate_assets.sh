@@ -83,8 +83,8 @@ while rdom; do
     elif [ "$E" = "CUQUANTUM_INSTALL_PREFIX" ] && [ -d "$assets/cuquantum" ]; then
         move_artifacts "$assets/cuquantum" "$C"
     elif [ "$E" = "CUTENSOR_INSTALL_PREFIX" ] && [ -d "$assets/cutensor" ]; then
-        move_artifacts "$assets/cuquantum" "$C"
-    elif [ -d "$assets/$E" ] && [ -n "$C" ]; then
+        move_artifacts "$assets/cutensor" "$C"
+    elif [ -d "$assets/$E" ] && [ -n "$(echo $C | tr -d ' ')" ]; then
         move_artifacts "$assets/$E" "$C"
     fi
 done < "$build_config"
