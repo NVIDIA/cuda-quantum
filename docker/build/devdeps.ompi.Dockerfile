@@ -59,18 +59,18 @@ RUN wget -qO - https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox | ap
         librdmacm-dev librdmacm1 \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
-# 4 - Install GDRCOPY version 2.1
-
+# 4 - Install GDRCOPY version 2.3.1
+ENV GDRCOPY_VERSION=2.3.1 
 ENV GDRCOPY_INSTALL_PREFIX=/usr/local/gdrcopy
 RUN apt-get update -y && apt-get install -y --no-install-recommends \
         autoconf automake \
         libgcrypt20-dev libnuma-dev libtool \
-    && mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://github.com/NVIDIA/gdrcopy/archive/v2.1.tar.gz \
-    && tar -x -f /var/tmp/v2.1.tar.gz -C /var/tmp -z && cd /var/tmp/gdrcopy-2.1 \
+    && mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://github.com/NVIDIA/gdrcopy/archive/v${GDRCOPY_VERSION}.tar.gz \
+    && tar -x -f /var/tmp/v${GDRCOPY_VERSION}.tar.gz -C /var/tmp -z && cd /var/tmp/gdrcopy-${GDRCOPY_VERSION} \
     && mkdir -p "$GDRCOPY_INSTALL_PREFIX/include" "$GDRCOPY_INSTALL_PREFIX/lib64" \
     && make PREFIX="$GDRCOPY_INSTALL_PREFIX" lib lib_install \
     && echo "$GDRCOPY_INSTALL_PREFIX/lib64" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig \
-    && rm -rf /var/tmp/gdrcopy-2.1 /var/tmp/v2.1.tar.gz \
+    && rm -rf /var/tmp/gdrcopy-${GDRCOPY_VERSION} /var/tmp/v${GDRCOPY_VERSION}.tar.gz \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 ENV CPATH="$GDRCOPY_INSTALL_PREFIX/include:$CPATH"

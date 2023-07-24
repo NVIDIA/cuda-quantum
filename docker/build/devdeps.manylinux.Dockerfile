@@ -14,7 +14,9 @@
 # Must be built from the repo root with:
 #   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:manylinux -f docker/build/devdeps.manylinux.Dockerfile .
 
-ARG manylinux_image=quay.io/pypa/manylinux_2_28_x86_64:latest
+# arch is aarch64 or x86_64
+ARG arch=x86_64
+ARG manylinux_image=quay.io/pypa/manylinux_2_28_${arch}:latest
 FROM $manylinux_image
 
 ARG llvm_commit

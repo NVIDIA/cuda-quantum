@@ -27,14 +27,14 @@ SHELL ["/bin/bash", "-c"]
 # Set here to avoid setting it for all install commands. 
 # Given as arg to make sure that this value is only set during build but not in the launched container.
 ARG DEBIAN_FRONTEND=noninteractive
-RUN apt update && apt-get install -y --no-install-recommends ca-certificates wget \
+RUN apt update && apt-get install -y --no-install-recommends ca-certificates wget xz-utils \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # Install Mellanox OFED runtime dependencies.
 
 RUN apt-get update && apt-get install -y --no-install-recommends gnupg \
-    && wget -qO - https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox | apt-key add - \
-    && mkdir -p /etc/apt/sources.list.d && wget -q -nc --no-check-certificate -P /etc/apt/sources.list.d https://linux.mellanox.com/public/repo/mlnx_ofed/5.3-1.0.0.1/ubuntu20.04/mellanox_mlnx_ofed.list \
+    && wget -qO - "https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox" | apt-key add - \
+    && mkdir -p /etc/apt/sources.list.d && wget -q -nc --no-check-certificate -P /etc/apt/sources.list.d "https://linux.mellanox.com/public/repo/mlnx_ofed/5.3-1.0.0.1/ubuntu20.04/mellanox_mlnx_ofed.list" \
     && apt-get update -y && apt-get install -y --no-install-recommends \
         ibverbs-providers ibverbs-utils \
         libibmad5 libibumad3 libibverbs1 librdmacm1 \
@@ -121,34 +121,38 @@ ENV CUQUANTUM_ROOT="$CUQUANTUM_INSTALL_PREFIX"
 ENV LD_LIBRARY_PATH="$CUQUANTUM_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
 ENV CPATH="$CUQUANTUM_INSTALL_PREFIX/include:$CPATH"
 
-RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
-    && wget https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-x86_64/cuquantum-linux-x86_64-23.06.0.7_cuda11-archive.tar.xz \
-    && tar xf cuquantum-linux-x86_64-23.06.0.7_cuda11-archive.tar.xz \
-    && mkdir -p /opt/nvidia && mv cuquantum-linux-x86_64-23.06.0.7_cuda11-archive "$CUQUANTUM_INSTALL_PREFIX" \
-    && cd / && rm -rf cuquantum-linux-x86_64-23.06.0.7_cuda11-archive.tar.xz \
-    && apt-get remove -y xz-utils \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
+# CUDA expects sbsa for aarch64 but x86_64 for x86_64
+RUN echo -e '#!/bin/bash\nif [[ $(uname -m) == aarch64 ]]\nthen\n\techo sbsa\nelse\n\techo x86_64\nfi' > /usr/bin/getArch \ 
+  && chmod +x /usr/bin/getArch \
+  && echo "Arch set to $(getArch) and has $(uname -m) CPU" 
+
+# Install cuquantum, which includes custatevector and cutensornet
+ARG CUQUANTUM_VERSION=23.06.0.7_cuda11
+RUN wget -q "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-$(getArch)/cuquantum-linux-$(getArch)-${CUQUANTUM_VERSION}-archive.tar.xz" \
+    && mkdir -p ${CUQUANTUM_INSTALL_PREFIX} \
+    && tar -xpJf cuquantum-linux-$(getArch)-${CUQUANTUM_VERSION}-archive.tar.xz --strip-components 1 -C ${CUQUANTUM_INSTALL_PREFIX} \
+    && rm cuquantum-linux-$(getArch)-${CUQUANTUM_VERSION}-archive.tar.xz
 
 # Install cuTensor libraries.
-
+ARG CUTENSOR_VERSION=1.7.0.1
 ARG CUTENSOR_INSTALL_PREFIX=/opt/nvidia/cutensor
 ENV CUTENSOR_INSTALL_PREFIX="$CUTENSOR_INSTALL_PREFIX"
 ENV CUTENSOR_ROOT="$CUTENSOR_INSTALL_PREFIX"
 ENV LD_LIBRARY_PATH="$CUTENSOR_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
 ENV CPATH="$CUTENSOR_INSTALL_PREFIX/include:$CPATH"
 
-RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
-    && wget https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor/linux-x86_64/libcutensor-linux-x86_64-1.7.0.1-archive.tar.xz \
-    && tar xf libcutensor-linux-x86_64-1.7.0.1-archive.tar.xz && cd libcutensor-linux-x86_64-1.7.0.1-archive \
-    && mkdir -p "$CUTENSOR_INSTALL_PREFIX" && mv include "$CUTENSOR_INSTALL_PREFIX" && mv lib/11 "$CUTENSOR_INSTALL_PREFIX/lib" \
-    && cd / && rm -rf libcutensor-linux-x86_64-1.7.0.1-archive* \
-    && apt-get remove -y xz-utils \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
+RUN wget -q "https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor/linux-$(getArch)/libcutensor-linux-$(getArch)-${CUTENSOR_VERSION}-archive.tar.xz" \
+    && mkdir -p ${CUTENSOR_INSTALL_PREFIX} \
+    && tar -xpJf libcutensor-linux-$(getArch)-${CUTENSOR_VERSION}-archive.tar.xz \
+    && cd libcutensor-linux-$(getArch)-${CUTENSOR_VERSION}-archive \
+    && mv include ${CUTENSOR_INSTALL_PREFIX} \
+    && mv lib/11 ${CUTENSOR_INSTALL_PREFIX}/lib/ \
+    && rm -r ../libcutensor-linux-$(getArch)-${CUTENSOR_VERSION}-archive*
 
 # Install CUDA 11.8.
 
 ARG cuda_packages="cuda-cudart-11-8 cuda-compiler-11-8 libcublas-dev-11-8"
-RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.0-1_all.deb \
+RUN wget -q "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/$(getArch)/cuda-keyring_1.0-1_all.deb" \
     && dpkg -i cuda-keyring_1.0-1_all.deb \
     && apt-get update && apt-get install -y --no-install-recommends $cuda_packages \
     && rm cuda-keyring_1.0-1_all.deb \
@@ -159,9 +163,9 @@ RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86
 # As long as the container is launched with the --gpu=all flag, the GPUs remain accessible and CUDA
 # is fully functional. See also https://github.com/NVIDIA/nvidia-docker/issues/1699.
 RUN rm -rf \
-    /usr/lib/x86_64-linux-gnu/libcuda.so* \
-    /usr/lib/x86_64-linux-gnu/libnvcuvid.so* \
-    /usr/lib/x86_64-linux-gnu/libnvidia-*.so* \
+    /usr/lib/$(uname -m)-linux-gnu/libcuda.so* \
+    /usr/lib/$(uname -m)-linux-gnu/libnvcuvid.so* \
+    /usr/lib/$(uname -m)-linux-gnu/libnvidia-*.so* \
     /usr/lib/firmware \
     /usr/local/cuda/compat/lib
 
