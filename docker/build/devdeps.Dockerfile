@@ -169,6 +169,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 python3-pip libpython3-dev \
     && python3 -m pip install --no-cache-dir \
         lit pytest numpy \
-        fastapi uvicorn pydantic requests llvmlite \
+        fastapi uvicorn pydantic requests llvmlite iqm_client \
         scipy==1.10.1 openfermionpyscf==0.5 \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*

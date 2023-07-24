@@ -10,18 +10,16 @@
 
 // RUN: nvq++ %s --target iqm --emulate --iqm-qpu-architecture Apollo -o %t.x && %t.x | FileCheck %s
 
+// CHECK: { 0:{{[0-9]+}} 1:{{[0-9]+}} }
+
 template <std::size_t N>
 struct ghz {
   auto operator()() __qpu__ {
     cudaq::qreg<N> q;
     h(q[0]);
-
-    // FIXME: an std::runtime_error exception when using --emulate
-    // loc("for_loop.cpp":17:5): error: failed to legalize operation 'quake.phased_rx'
     for (int i = 0; i < N - 1; i++) {
       x<cudaq::ctrl>(q[i], q[i + 1]);
     }
-
     mz(q[0]);
   }
 };
@@ -33,5 +31,3 @@ int main() {
   counts.dump();
   return 0;
 }
-
-// CHECK: { 0:{{[0-9]+}}, 1:{{[0-9]+}} }

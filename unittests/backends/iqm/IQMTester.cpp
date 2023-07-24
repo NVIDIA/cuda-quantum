@@ -7,9 +7,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include <gtest/gtest.h>
-#include <gmock/gmock.h>
 #include <gmock/gmock-matchers.h>
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
 
 #include "CUDAQTestUtils.h"
 #include "common/FmtCore.h"
@@ -21,8 +21,8 @@
 
 // the mock server has Apollo architecture
 
-std::string backendStringTemplate =
-    "iqm;emulate;false;qpu-architecture;{};url;http://localhost:9100"; // add architecture
+std::string backendStringTemplate = "iqm;emulate;false;qpu-architecture;{};url;"
+                                    "http://localhost:9100"; // add architecture
 
 CUDAQ_TEST(IQMTester, executeOneMeasuredQubitProgram) {
   std::string arch = "Apollo";
@@ -71,12 +71,9 @@ CUDAQ_TEST(IQMTester, executeNoMeasurementsProgram) {
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
 
-  EXPECT_THAT(
-    [&](){
-      auto counts = cudaq::sample(kernel);
-    },
-    testing::ThrowsMessage<std::runtime_error>(testing::HasSubstr("Circuit contains no measurements"))
-  );
+  EXPECT_THAT([&]() { auto counts = cudaq::sample(kernel); },
+              testing::ThrowsMessage<std::runtime_error>(
+                  testing::HasSubstr("Circuit contains no measurements")));
 }
 
 CUDAQ_TEST(IQMTester, executeLoopOverQubitsProgram) {
@@ -92,18 +89,16 @@ CUDAQ_TEST(IQMTester, executeLoopOverQubitsProgram) {
   auto qubit = kernel.qalloc(N);
   kernel.h(qubit[0]);
 
-  kernel.for_loop(0, N - 1, [&](auto i) {
-    kernel.x<cudaq::ctrl>(qubit[i], qubit[i + 1]);
-  });
+  kernel.for_loop(
+      0, N - 1, [&](auto i) { kernel.x<cudaq::ctrl>(qubit[i], qubit[i + 1]); });
   kernel.mz(qubit[0]);
 
-  // Connectivity constructed with the above loop does not match Apollo, so we do not expect to get any counts
+  // Connectivity constructed with the above loop does not match Apollo, so we
+  // do not expect to get any counts
   EXPECT_THAT(
-    [&](){
-      auto counts = cudaq::sample(kernel);
-    },
-    testing::ThrowsMessage<std::runtime_error>(testing::HasSubstr("Some circuits in the batch have gates between uncoupled qubits"))
-  );
+      [&]() { auto counts = cudaq::sample(kernel); },
+      testing::ThrowsMessage<std::runtime_error>(testing::HasSubstr(
+          "Some circuits in the batch have gates between uncoupled qubits")));
 }
 
 CUDAQ_TEST(IQMTester, executeMultipleMeasuredQubitsProgram) {
@@ -128,40 +123,43 @@ CUDAQ_TEST(IQMTester, executeMultipleMeasuredQubitsProgram) {
 
 CUDAQ_TEST(IQMTester, architectureMismatched) {
   EXPECT_THAT(
-    [](){
-      std::string arch = "Adonis";
-      auto backendString = fmt::format(fmt::runtime(backendStringTemplate), arch);
-      auto &platform = cudaq::get_platform();
-      platform.setTargetBackend(backendString);
-    },
-    testing::ThrowsMessage<std::runtime_error>(testing::StrEq("IQM QPU architecture mismatch: Adonis != Apollo"))
-  );
+      []() {
+        std::string arch = "Adonis";
+        auto backendString =
+            fmt::format(fmt::runtime(backendStringTemplate), arch);
+        auto &platform = cudaq::get_platform();
+        platform.setTargetBackend(backendString);
+      },
+      testing::ThrowsMessage<std::runtime_error>(
+          testing::StrEq("IQM QPU architecture mismatch: Adonis != Apollo")));
 }
 
 CUDAQ_TEST(IQMTester, iqmServerUrlEnvOverride) {
   EXPECT_THAT(
-    [](){
-      setenv("IQM_SERVER_URL", "fake-fake-fake", true);
-      std::string arch = "Apollo";
-      auto backendString = fmt::format(fmt::runtime(backendStringTemplate), arch);
-      auto &platform = cudaq::get_platform();
-      platform.setTargetBackend(backendString);
-    },
-    testing::ThrowsMessage<std::runtime_error>(testing::HasSubstr("Could not resolve host: fake-fake-fake"))
-  );
+      []() {
+        setenv("IQM_SERVER_URL", "fake-fake-fake", true);
+        std::string arch = "Apollo";
+        auto backendString =
+            fmt::format(fmt::runtime(backendStringTemplate), arch);
+        auto &platform = cudaq::get_platform();
+        platform.setTargetBackend(backendString);
+      },
+      testing::ThrowsMessage<std::runtime_error>(
+          testing::HasSubstr("Could not resolve host: fake-fake-fake")));
 }
 
 CUDAQ_TEST(IQMTester, tokenFilePathEnvOverride) {
   EXPECT_THAT(
-    [](){
-      setenv("IQM_TOKENS_FILE", "fake-fake-fake", true);
-      std::string arch = "Apollo";
-      auto backendString = fmt::format(fmt::runtime(backendStringTemplate), arch);
-      auto &platform = cudaq::get_platform();
-      platform.setTargetBackend(backendString);
-    },
-    testing::ThrowsMessage<std::runtime_error>(testing::HasSubstr("Unable to open tokens file: fake-fake-fake"))
-  );
+      []() {
+        setenv("IQM_TOKENS_FILE", "fake-fake-fake", true);
+        std::string arch = "Apollo";
+        auto backendString =
+            fmt::format(fmt::runtime(backendStringTemplate), arch);
+        auto &platform = cudaq::get_platform();
+        platform.setTargetBackend(backendString);
+      },
+      testing::ThrowsMessage<std::runtime_error>(
+          testing::HasSubstr("Unable to open tokens file: fake-fake-fake")));
 }
 
 int main(int argc, char **argv) {

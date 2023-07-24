@@ -37,7 +37,12 @@ execute_process(COMMAND ${Python_EXECUTABLE} -c "import uvicorn"
   ERROR_VARIABLE UVICORN_error
   RESULT_VARIABLE UVICORN_result)
 
-if (NOT ${FASTAPI_result} EQUAL 0) 
+execute_process(COMMAND ${Python_EXECUTABLE} -c "import iqm_client"
+  OUTPUT_VARIABLE IQM_CLIENT_output
+  ERROR_VARIABLE IQM_CLIENT_error
+  RESULT_VARIABLE IQM_CLIENT_result)
+
+if (NOT ${FASTAPI_result} EQUAL 0)
   message(FATAL_ERROR "CUDA Quantum Python Warning - CUDAQ_TEST_MOCK_SERVERS=TRUE but fastapi module not found. Skipping Python remote QPU tests.")
   return()
 endif()
@@ -54,6 +59,11 @@ endif()
 
 if (NOT ${PYDANTIC_result} EQUAL 0) 
   message(FATAL_ERROR "CUDA Quantum Python Warning - CUDAQ_TEST_MOCK_SERVERS=TRUE but pydantic module not found. Skipping Python remote QPU tests.")
+  return()
+endif()
+
+if (NOT ${IQM_CLIENT_result} EQUAL 0)
+  message(FATAL_ERROR "CUDA Quantum Python Warning - CUDAQ_TEST_MOCK_SERVERS=TRUE but iqm_client module not found. Skipping Python remote QPU tests.")
   return()
 endif()
 
