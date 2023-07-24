@@ -92,6 +92,11 @@ void IonQServerHelper::initialize(BackendConfig config) {
   // Construct the API job path
   backendConfig["job_path"] =
       backendConfig["url"] + '/' + backendConfig["version"] + "/jobs";
+  // Enable error mitigation
+  if (config.find("error_mitigation") != config.end())
+    backendConfig["error_mitigation"] = config["error_mitigation"];
+  if (config.find("sharpen") != config.end())
+    backendConfig["sharpen"] = config["sharpen"];
 }
 
 // Retrieve an environment variable
@@ -127,6 +132,9 @@ IonQServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     job["shots"] = static_cast<int>(shots);
     job["input"]["format"] = "qir";
     job["input"]["data"] = circuitCode.code;
+    // Include error mitigation configuration if set in backendConfig
+    if (keyExists("debias"))
+      job["error_mitigation"]["debias"] = backendConfig["debias"].get<bool>();
     jobs.push_back(job);
   }
 
@@ -197,8 +205,15 @@ std::string IonQServerHelper::constructGetResultsPath(std::string &jobId) {
   if (!keyExists("job_path"))
     throw std::runtime_error("Key 'job_path' doesn't exist in backendConfig.");
 
+  // Construct the results path
+  std::string resultsPath = backendConfig.at("job_path") + jobId + "/results";
+
+  // If sharpen is true, add it to the query parameters
+  if (keyExists("sharpen") && backendConfig["sharpen"].get<bool>())
+    resultsPath += "?sharpen=true";
+
   // Return the results path
-  return backendConfig.at("job_path") + jobId + "/results";
+  return resultsPath;
 }
 
 // Get the results from a given path
