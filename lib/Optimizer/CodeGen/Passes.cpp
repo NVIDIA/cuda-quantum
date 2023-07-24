@@ -22,6 +22,7 @@ static void addQuantinuumPipeline(OpPassManager &pm) {
   BasisConversionPassOptions options;
   options.basis = basis;
   pm.addPass(createBasisConversionPass(options));
+  pm.addPass(cudaq::opt::createQuantinuumNaiveR1ToRz());
 }
 
 static void addIQMPipeline(OpPassManager &pm) {
