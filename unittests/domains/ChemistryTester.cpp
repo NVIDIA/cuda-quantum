@@ -160,7 +160,7 @@ CUDAQ_TEST(H2MoleculeTester, checkHWE) {
       cudaq::qvector q(numQubits);
       x(q[0]);
       x(q[1]);
-      cudaq::hwe(q, numLayers, {{0, 1}, {1, 2}, {2, 3}}, thetas);
+      cudaq::hwe(q, numLayers, thetas, {{0, 1}, {1, 2}, {2, 3}});
     };
 
     double res = cudaq::observe(ansatz, H, optParams);
