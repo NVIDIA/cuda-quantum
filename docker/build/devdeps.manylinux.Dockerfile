@@ -56,6 +56,7 @@ RUN dnf check-update && dnf install -y --nobest --setopt=install_weak_deps=False
     && dnf remove -y wget && dnf clean all
 
 # Install CUDA 11.8.
+# Note that pip packages are available for all necessary runtime components.
 RUN export arch=x86_64 && export distro=rhel8 \
     && dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/$distro/$arch/cuda-$distro.repo \
     && dnf clean expire-cache \

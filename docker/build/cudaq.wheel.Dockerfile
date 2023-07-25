@@ -26,8 +26,10 @@ ADD "$workspace" "$destination"
 ARG python_version=3.10
 RUN echo "Building wheel for python${python_version}." \
     && cd cuda-quantum && python=python${python_version} \
-    && $python -m pip install cmake auditwheel cuquantum==23.6.0 \
-    && cuquantum_location=`$python -m pip show cuquantum | grep -e 'Location: .*$'` \
+    && $python -m pip install --no-cache-dir \
+        cmake auditwheel \
+        cuquantum-cu11==23.6.0 \
+    && cuquantum_location=`$python -m pip show cuquantum-cu11 | grep -e 'Location: .*$'` \
     && export CUQUANTUM_INSTALL_PREFIX="${cuquantum_location#Location: }/cuquantum" \
     && ln -s $CUQUANTUM_INSTALL_PREFIX/lib/libcustatevec.so.1 $CUQUANTUM_INSTALL_PREFIX/lib/libcustatevec.so \
     && ln -s $CUQUANTUM_INSTALL_PREFIX/lib/libcutensornet.so.2 $CUQUANTUM_INSTALL_PREFIX/lib/libcutensornet.so \
