@@ -127,9 +127,10 @@ IonQServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   for (auto &circuitCode : circuitCodes) {
     // Construct the job message
     ServerMessage job;
+    job["name"] = circuitCode.name;
     job["target"] = backendConfig.at("target");
     job["qubits"] = backendConfig.at("qubits");
-    job["shots"] = static_cast<int>(shots);
+    job["shots"] = shots;
     job["input"]["format"] = "qir";
     job["input"]["data"] = circuitCode.code;
     // Include error mitigation configuration if set in backendConfig
