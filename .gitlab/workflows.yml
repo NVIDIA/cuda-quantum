@@ -3,7 +3,7 @@ workflow:
   rules:
     - if: '$CI_COMMIT_BRANCH == "bot/data" && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-dev@sha256:\S+$/'
       variables:
-        resource_group: cuda-quantum-dev
+        resource_group: $CI_COMMIT_TITLE
 
 default:
   tags: 
