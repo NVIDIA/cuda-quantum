@@ -229,18 +229,18 @@ public:
     return true;
   }
 
-  bool TraverseCallableExpr(clang::CallableExpr *x) {
+  bool TraverseCallableExpr(clang::LambdaExpr *x) {
     bool saveQuantumTypesNotAllowed = quantumTypesNotAllowed;
-    // Rationale: a callable expression may be passed from classical C++ code into
-    // a quantum kernel. It is therefore natural to allow the callable expression
-    // to use quantum types.
+    // Rationale: a callable expression may be passed from classical C++ code
+    // into a quantum kernel. It is therefore natural to allow the callable
+    // expression to use quantum types.
     quantumTypesNotAllowed = false;
-    auto result = Base::TraverseCallableExpr(x);
+    auto result = Base::TraverseLambdaExpr(x);
     quantumTypesNotAllowed = saveQuantumTypesNotAllowed;
     return result;
   }
 
-  bool VisitCallableExpr(clang::CallableExpr *callable) {
+  bool VisitCallableExpr(clang::LambdaExpr *callable) {
     if (ignoreTemplate)
       return true;
     if (const auto *cxxMethodDecl = callable->getCallOperator())

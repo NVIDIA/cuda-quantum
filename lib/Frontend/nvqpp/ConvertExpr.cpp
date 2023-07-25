@@ -1028,7 +1028,7 @@ bool QuakeBridgeVisitor::VisitMaterializeTemporaryExpr(
 }
 
 bool QuakeBridgeVisitor::TraverseCallableExpr(clang::LambdaExpr *x,
-                                            DataRecursionQueue *q) {
+                                              DataRecursionQueue *q) {
   auto loc = toLocation(x->getSourceRange());
   auto *ctx = builder.getContext();
   bool result = true;

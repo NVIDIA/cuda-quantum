@@ -23,7 +23,8 @@
 using namespace mlir;
 
 static constexpr char liftedCallablePrefix[] = "__nvqpp__lifted.callable.";
-static constexpr char thunkCallablePrefix[] = "__nvqpp__callable.thunk.callable.";
+static constexpr char thunkCallablePrefix[] =
+    "__nvqpp__callable.thunk.callable.";
 
 inline std::string getLiftedCallableName(unsigned counter) {
   return liftedCallablePrefix + std::to_string(counter);
@@ -32,10 +33,12 @@ inline std::string getThunkCallableName(unsigned counter) {
   return thunkCallablePrefix + std::to_string(counter);
 }
 
-inline SymbolRefAttr getLiftedCallableSymbol(MLIRContext *ctx, unsigned counter) {
+inline SymbolRefAttr getLiftedCallableSymbol(MLIRContext *ctx,
+                                             unsigned counter) {
   return SymbolRefAttr::get(ctx, getLiftedCallableName(counter));
 }
-inline SymbolRefAttr getThunkCallableSymbol(MLIRContext *ctx, unsigned counter) {
+inline SymbolRefAttr getThunkCallableSymbol(MLIRContext *ctx,
+                                            unsigned counter) {
   return SymbolRefAttr::get(ctx, getThunkCallableName(counter));
 }
 
@@ -47,8 +50,8 @@ struct CallableExprInfo {
 
 using CallableOpAnalysisInfo = llvm::DenseMap<Operation *, CallableExprInfo>;
 
-/// This analysis scans the IR for `cc::CreateCallableOp`s and gives each a unique
-/// number.
+/// This analysis scans the IR for `cc::CreateCallableOp`s and gives each a
+/// unique number.
 struct CallableOpAnalysis {
   MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(CallableOpAnalysis)
 
@@ -62,8 +65,8 @@ private:
   void performAnalysis(Operation *op) {
     op->walk([&](cudaq::cc::CreateCallableOp appOp) {
       SmallVector<Value> freeValues;
-      // Walk over the body of the CreateCallableOp and find all the free values.
-      // Add each of them to the list.
+      // Walk over the body of the CreateCallableOp and find all the free
+      // values. Add each of them to the list.
       appOp.walk([&](Operation *op) {
         auto addFreeValue = [&](Value oper) {
           bool found = false;
@@ -86,7 +89,8 @@ private:
               if (argCallable != appOp)
                 addFreeValue(oper);
             } else {
-              if (argOp->getParentOfType<cudaq::cc::CreateCallableOp>() != appOp)
+              if (argOp->getParentOfType<cudaq::cc::CreateCallableOp>() !=
+                  appOp)
                 addFreeValue(oper);
             }
           } else {
@@ -277,14 +281,16 @@ public:
         }
         callableArgs.append(thunk.getArguments().begin() + 1,
                             thunk.getArguments().end());
-        auto result = build.create<func::CallOp>(
-            loc, sig.getResults(), getLiftedCallableName(counter), callableArgs);
+        auto result = build.create<func::CallOp>(loc, sig.getResults(),
+                                                 getLiftedCallableName(counter),
+                                                 callableArgs);
         build.create<func::ReturnOp>(loc, sig.getResults(),
                                      result.getResults());
       }
 
-      // Create a new callable function to lift the expression into. This function
-      // should be inlined into the callable thunk function, if any, ultimately.
+      // Create a new callable function to lift the expression into. This
+      // function should be inlined into the callable thunk function, if any,
+      // ultimately.
       {
         OpBuilder::InsertionGuard guard(build);
         SmallVector<Type> argTys(freeValues.getTypes().begin(),

@@ -1063,9 +1063,9 @@ void cudaq::cc::IfOp::getSuccessorRegions(
 //===----------------------------------------------------------------------===//
 
 void cudaq::cc::CreateCallableOp::build(OpBuilder &builder,
-                                      OperationState &result,
-                                      cudaq::cc::CallableType callableTy,
-                                      BodyBuilderFn bodyBuilder) {
+                                        OperationState &result,
+                                        cudaq::cc::CallableType callableTy,
+                                        BodyBuilderFn bodyBuilder) {
   auto *bodyRegion = result.addRegion();
   bodyRegion->push_back(new Block);
   result.addTypes(TypeRange{callableTy});
@@ -1091,7 +1091,7 @@ void cudaq::cc::CreateCallableOp::print(OpAsmPrinter &p) {
 }
 
 ParseResult cudaq::cc::CreateCallableOp::parse(OpAsmParser &parser,
-                                             OperationState &result) {
+                                               OperationState &result) {
   auto *body = result.addRegion();
   Type callableTy;
   if (parser.parseRegion(*body, /*arguments=*/{}, /*argTypes=*/{}) ||
@@ -1100,7 +1100,8 @@ ParseResult cudaq::cc::CreateCallableOp::parse(OpAsmParser &parser,
     return failure();
   result.addAttribute("signature", TypeAttr::get(callableTy));
   result.addTypes(callableTy);
-  CreateCallableOp::ensureTerminator(*body, parser.getBuilder(), result.location);
+  CreateCallableOp::ensureTerminator(*body, parser.getBuilder(),
+                                     result.location);
   return success();
 }
 
@@ -1319,7 +1320,8 @@ LogicalResult cudaq::cc::UnwindReturnOp::verify() {
         "arity of arguments and function/callable result mismatch");
   for (auto p : llvm::zip(getOperands().getTypes(), resultTypes))
     if (std::get<0>(p) != std::get<1>(p))
-      return emitOpError("argument type mismatch with function/callable result");
+      return emitOpError(
+          "argument type mismatch with function/callable result");
   return success();
 }
 

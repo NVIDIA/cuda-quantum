@@ -337,7 +337,8 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
   }
 
   if (auto callableTy = dyn_cast<cc::CallableType>(type)) {
-    // Variable is of !cc.callable type. Callables are always in the value domain.
+    // Variable is of !cc.callable type. Callables are always in the value
+    // domain.
     auto callable = popValue();
     symbolTable.insert(name, callable);
     return pushValue(callable);
