@@ -18,8 +18,6 @@ ARG manylinux_image=quay.io/pypa/manylinux_2_28_x86_64:latest
 FROM $manylinux_image
 
 ARG llvm_commit
-ENV CC=/opt/rh/gcc-toolset-12/root/usr/bin/gcc
-ENV CXX=/opt/rh/gcc-toolset-12/root/usr/bin/g++
 
 # When a dialogue box would be needed during install, assume default configurations.
 # Set here to avoid setting it for all install commands. 
@@ -30,6 +28,12 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN mkdir /llvm-project && cd /llvm-project && git init \
     && git remote add origin https://github.com/llvm/llvm-project \
     && git fetch origin --depth=1 $llvm_commit && git reset --hard FETCH_HEAD
+
+# Use the gcc-11 toolchain to be compatible with cuda-11.8.
+RUN dnf check-update && dnf install -y --nobest --setopt=install_weak_deps=False gcc-toolset-11.x86_64 \
+    && dnf clean all
+ENV CC=/opt/rh/gcc-toolset-11/root/usr/bin/gcc
+ENV CXX=/opt/rh/gcc-toolset-11/root/usr/bin/g++
 
 # Build the the LLVM libraries and compiler toolchain needed to build CUDA Quantum
 ENV LLVM_INSTALL_PREFIX=/opt/llvm
@@ -50,3 +54,17 @@ RUN dnf check-update && dnf install -y --nobest --setopt=install_weak_deps=False
         glibc-static perl-core wget \
     && bash /scripts/install_prerequisites.sh \
     && dnf remove -y wget && dnf clean all
+
+# Install CUDA 11.8.
+RUN export arch=x86_64 && export distro=rhel8 \
+    && dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/$distro/$arch/cuda-$distro.repo \
+    && dnf clean expire-cache \
+    && dnf check-update && dnf install -y --nobest --setopt=install_weak_deps=False \
+        cuda-compiler-11-8.x86_64 cuda-cudart-devel-11-8.x86_64 libcublas-devel-11-8.x86_64
+
+ENV CUDA_INSTALL_PREFIX=/usr/local/cuda-11.8
+ENV CUDA_HOME="$CUDA_INSTALL_PREFIX"
+ENV CUDA_ROOT="$CUDA_INSTALL_PREFIX"
+ENV CUDA_PATH="$CUDA_INSTALL_PREFIX"
+ENV PATH="${CUDA_INSTALL_PREFIX}/lib64/:${CUDA_INSTALL_PREFIX}/bin:${PATH}"
+ENV LD_LIBRARY_PATH="${CUDA_INSTALL_PREFIX}/lib64:${LD_LIBRARY_PATH}"
