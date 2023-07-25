@@ -234,8 +234,14 @@ bool kernelHasConditionalFeedback(const std::string &kernelName) {
 
 void set_shots(const std::size_t nShots) {
   auto &platform = cudaq::get_platform();
-  platform.set_shots(nShots);
+  try {
+    platform.set_shots(nShots);
+  } catch (const std::exception &e) {
+    // Assuming platform has setShots method
+    platform.setShots(nShots);
+  }
 }
+
 void clear_shots(const std::size_t nShots) {
   auto &platform = cudaq::get_platform();
   platform.clear_shots();
