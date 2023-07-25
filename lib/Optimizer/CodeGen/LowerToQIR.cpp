@@ -37,7 +37,7 @@
 
 using namespace mlir;
 
-static LLVM::LLVMStructType lambdaAsPairOfPointers(MLIRContext *context) {
+static LLVM::LLVMStructType callableAsPairOfPointers(MLIRContext *context) {
   auto ptrTy =
       cudaq::opt::factory::getPointerType(IntegerType::get(context, 8));
   SmallVector<Type> pairOfPointers = {ptrTy, ptrTy};
@@ -1072,7 +1072,7 @@ public:
     auto tuplePtrTy = cudaq::opt::factory::getPointerType(tupleTy);
     auto tmp = rewriter.create<LLVM::AllocaOp>(loc, tuplePtrTy, one);
     rewriter.create<LLVM::StoreOp>(loc, tupleVal, tmp);
-    auto tupleArgTy = lambdaAsPairOfPointers(ctx);
+    auto tupleArgTy = callableAsPairOfPointers(ctx);
     Value tupleArg = rewriter.create<LLVM::UndefOp>(loc, tupleArgTy);
     auto module = callable->getParentOfType<ModuleOp>();
     auto calledFunc = module.lookupSymbol<func::FuncOp>(callable.getCallee());
@@ -1277,8 +1277,8 @@ public:
         [&](quake::VeqType type) { return cudaq::opt::getArrayType(context); });
     typeConverter.addConversion(
         [&](quake::RefType type) { return cudaq::opt::getQubitType(context); });
-    typeConverter.addConversion([&](cudaq::cc::LambdaType type) {
-      return lambdaAsPairOfPointers(type.getContext());
+    typeConverter.addConversion([&](cudaq::cc::CallableType type) {
+      return callableAsPairOfPointers(type.getContext());
     });
     typeConverter.addConversion([&](cudaq::cc::StdvecType type) {
       return cudaq::opt::factory::stdVectorImplType(type.getElementType());

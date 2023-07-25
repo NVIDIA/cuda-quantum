@@ -93,8 +93,8 @@ function show_help {
 --[no-]quake-apply-specialization
 	Enable/disable specialization of quake.apply ops.
 
---[no-]lambda-lifting
-	Enable/disable lambda lifting pass.
+--[no-]callable-lifting
+	Enable/disable callable lifting pass.
 
 --save-temps
 	Save temporary files.
@@ -225,7 +225,7 @@ ENABLE_KERNEL_EXECUTION=true
 ENABLE_AGGRESSIVE_EARLY_INLINE=true
 ENABLE_LOWER_TO_CFG=true
 ENABLE_APPLY_SPECIALIZATION=true
-ENABLE_LAMBDA_LIFTING=true
+ENABLE_CALLABLE_LIFTING=true
 DELETE_TEMPS=true
 TARGET_CONFIG=
 EMIT_QIR=false
@@ -317,11 +317,11 @@ while [ $# -ne 0 ]; do
 	--quake-apply-specialization)
 		ENABLE_APPLY_SPECIALIZATION=true
 		;;
-	--no-lambda-lifting)
-		ENABLE_LAMBDA_LIFTING=false
+	--no-callable-lifting)
+		ENABLE_CALLABLE_LIFTING=false
 		;;
-	--lambda-lifting)
-		ENABLE_LAMBDA_LIFTING=true
+	--callable-lifting)
+		ENABLE_CALLABLE_LIFTING=true
 		;;
 	--save-temps)
 		DELETE_TEMPS=false
@@ -445,9 +445,9 @@ fi
 
 RUN_OPT=false
 OPT_PASSES=
-if ${ENABLE_LAMBDA_LIFTING}; then
+if ${ENABLE_CALLABLE_LIFTING}; then
 	RUN_OPT=true
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "canonicalize,lambda-lifting")
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "canonicalize,callable-lifting")
 fi
 if ${ENABLE_APPLY_SPECIALIZATION}; then
 	RUN_OPT=true

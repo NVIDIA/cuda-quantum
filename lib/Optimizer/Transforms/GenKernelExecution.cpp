@@ -29,8 +29,8 @@ using namespace mlir;
 
 namespace {
 // Define some constant function name strings.
-static constexpr const char cudaqRegisterLambdaName[] =
-    "cudaqRegisterLambdaName";
+static constexpr const char cudaqRegisterCallableName[] =
+    "cudaqRegisterCallableName";
 static constexpr const char cudaqRegisterArgsCreator[] =
     "cudaqRegisterArgsCreator";
 static constexpr const char cudaqRegisterKernelName[] =
@@ -64,7 +64,7 @@ public:
     SmallVector<Type> eleTys;
     // Add all argument types, translating std::vector to a length.
     for (auto inTy : funcTy.getInputs()) {
-      if (inTy.isa<cudaq::cc::LambdaType, cudaq::cc::StructType>())
+      if (inTy.isa<cudaq::cc::CallableType, cudaq::cc::StructType>())
         eleTys.push_back(IntegerType::get(ctx, 64));
       else if (inTy.isa<cudaq::cc::StdvecType, quake::VeqType>())
         eleTys.push_back(IntegerType::get(ctx, 64));
@@ -73,7 +73,7 @@ public:
     }
     // Add all result types, translating std::vector to a length.
     for (auto outTy : funcTy.getResults()) {
-      if (outTy.isa<cudaq::cc::LambdaType, cudaq::cc::StructType>()) {
+      if (outTy.isa<cudaq::cc::CallableType, cudaq::cc::StructType>()) {
         eleTys.push_back(IntegerType::get(ctx, 64));
       } else if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(outTy)) {
         eleTys.push_back(cudaq::cc::PointerType::get(vecTy.getElementType()));
@@ -357,7 +357,7 @@ public:
       Type inTy = inp.value();
       std::int64_t idx = inp.index();
       auto off = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{idx});
-      if (inTy.isa<cudaq::cc::LambdaType, cudaq::cc::StructType>()) {
+      if (inTy.isa<cudaq::cc::CallableType, cudaq::cc::StructType>()) {
         auto undef = builder.create<cudaq::cc::UndefOp>(loc, inTy);
         args.push_back(undef);
       } else if (inTy.isa<cudaq::cc::StdvecType, quake::VeqType>()) {
@@ -520,7 +520,7 @@ public:
       Type inTy = arg.getType();
       std::int64_t idx = inp.index();
       auto off = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{idx});
-      if (inTy.isa<cudaq::cc::LambdaType, cudaq::cc::StructType>()) {
+      if (inTy.isa<cudaq::cc::CallableType, cudaq::cc::StructType>()) {
         /* do nothing */
       } else if (cudaq::opt::factory::isStdVecArg(inTy)) {
         auto ptrTy = dyn_cast<cudaq::cc::PointerType>(inTy);
@@ -784,7 +784,7 @@ public:
           loc, std::nullopt, cudaqRegisterArgsCreator,
           ValueRange{castKernRef, castLoadArgsCreator});
 
-      // Check if this is a lambda mangled name
+      // Check if this is a callable mangled name
       auto demangledPtr = abi::__cxa_demangle(
           mangledAttr.getValue().str().c_str(), nullptr, nullptr, nullptr);
       if (demangledPtr) {
@@ -796,35 +796,35 @@ public:
           builder.setInsertionPointToStart(module.getBody());
 
           // Create the function if it doesn't already exist.
-          if (!module.lookupSymbol<LLVM::LLVMFuncOp>(cudaqRegisterLambdaName))
+          if (!module.lookupSymbol<LLVM::LLVMFuncOp>(cudaqRegisterCallableName))
             builder.create<LLVM::LLVMFuncOp>(
-                module.getLoc(), cudaqRegisterLambdaName,
+                module.getLoc(), cudaqRegisterCallableName,
                 LLVM::LLVMFunctionType::get(
                     cudaq::opt::factory::getVoidType(ctx),
                     {cudaq::opt::factory::getPointerType(ctx),
                      cudaq::opt::factory::getPointerType(ctx)}));
 
-          // Create this global name, it is unique for any lambda
+          // Create this global name, it is unique for any callable
           // bc classNameStr contains the parentFunc + varName
-          auto lambdaName = builder.create<LLVM::GlobalOp>(
+          auto callableName = builder.create<LLVM::GlobalOp>(
               loc,
               cudaq::opt::factory::getStringType(ctx, demangledName.size() + 1),
               /*isConstant=*/true, LLVM::Linkage::External,
-              classNameStr + ".lambdaName",
+              classNameStr + ".callableName",
               builder.getStringAttr(demangledName + '\0'), /*alignment=*/0);
 
           builder.restoreInsertionPoint(insertPoint);
-          auto lambdaRef = builder.create<LLVM::AddressOfOp>(
-              loc, cudaq::opt::factory::getPointerType(lambdaName.getType()),
-              lambdaName.getSymName());
+          auto callableRef = builder.create<LLVM::AddressOfOp>(
+              loc, cudaq::opt::factory::getPointerType(callableName.getType()),
+              callableName.getSymName());
 
-          auto castLambdaRef = builder.create<cudaq::cc::CastOp>(
-              loc, cudaq::opt::factory::getPointerType(ctx), lambdaRef);
+          auto castCallableRef = builder.create<cudaq::cc::CastOp>(
+              loc, cudaq::opt::factory::getPointerType(ctx), callableRef);
           auto castKernelRef = builder.create<cudaq::cc::CastOp>(
               loc, cudaq::opt::factory::getPointerType(ctx), castKernRef);
           builder.create<LLVM::CallOp>(
-              loc, std::nullopt, cudaqRegisterLambdaName,
-              ValueRange{castLambdaRef, castKernelRef});
+              loc, std::nullopt, cudaqRegisterCallableName,
+              ValueRange{castCallableRef, castKernelRef});
         }
       }
 

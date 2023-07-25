@@ -175,7 +175,7 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *stmt) {
     if (auto *block = builder.getBlock())
       if (auto *region = block->getParent())
         if (auto *op = region->getParentOp())
-          return isa<func::FuncOp, cc::CreateLambdaOp>(op);
+          return isa<func::FuncOp, cc::CreateCallableOp>(op);
     return false;
   }();
   if (stmt->getRetValue()) {

@@ -44,7 +44,7 @@ static bool isMemoryDef(Operation *op) {
 }
 
 static bool isFunctionEntryBlock(Block *block) {
-  if (isa<func::FuncOp, cudaq::cc::CreateLambdaOp>(block->getParentOp()))
+  if (isa<func::FuncOp, cudaq::cc::CreateCallableOp>(block->getParentOp()))
     return block->isEntryBlock();
   return false;
 }
@@ -335,7 +335,7 @@ public:
     // changed. In the latter case, \p parent will be updated to thread through
     // any values that are promoted because of possible modification in the
     // regions of \p parent.
-    bool isCallableOp = isa<func::FuncOp, cudaq::cc::CreateLambdaOp>(parent);
+    bool isCallableOp = isa<func::FuncOp, cudaq::cc::CreateCallableOp>(parent);
 
     DenseMap<Block *, SmallVector<Value>> blockArgsMap;
     SmallPtrSet<Block *, 4> blocksVisited;

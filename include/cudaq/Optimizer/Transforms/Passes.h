@@ -37,7 +37,7 @@ std::unique_ptr<mlir::Pass> createApplyOpSpecializationPass();
 std::unique_ptr<mlir::Pass>
 createApplyOpSpecializationPass(bool computeActionOpt);
 std::unique_ptr<mlir::Pass> createExpandMeasurementsPass();
-std::unique_ptr<mlir::Pass> createLambdaLiftingPass();
+std::unique_ptr<mlir::Pass> createCallableLiftingPass();
 std::unique_ptr<mlir::Pass> createLowerToCFGPass();
 std::unique_ptr<mlir::Pass> createQuakeAddMetadata();
 std::unique_ptr<mlir::Pass> createQuakeAddDeallocs();
