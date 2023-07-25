@@ -64,8 +64,29 @@ double nlopt_wrapper_call(const std::vector<double> &x,
     double optF;                                                               \
     try {                                                                      \
       _opt.optimize(x, optF);                                                  \
+    } catch (const ::nlopt::roundoff_limited &e) {                             \
+      throw std::runtime_error(                                                \
+          "NLOpt error: round-off errors limited progress (" +                 \
+          std::string(e.what()) +                                              \
+          "). \nConsider changing the stopping criteria (e.g., reducing "      \
+          "max_eval or increasing f_tol) and/or increase the number of "       \
+          "measurement shots.");                                               \
+    } catch (::nlopt::forced_stop & e) {                                       \
+      throw std::runtime_error("NLOpt forced termination: " +                  \
+                               std::string(e.what()));                         \
+    } catch (std::invalid_argument & e) {                                      \
+      throw std::invalid_argument(                                             \
+          "Invalid NLOpt arguments (e.g. lower bounds "                        \
+          "are bigger than upper bounds): " +                                  \
+          std::string(e.what()));                                              \
+    } catch (std::bad_alloc & e) {                                             \
+      throw std::runtime_error("NLOpt ran out of memory.");                    \
+    } catch (std::runtime_error & e) {                                         \
+      throw std::runtime_error("NLOpt runtime error: " +                       \
+                               std::string(e.what()));                         \
     } catch (std::exception & e) {                                             \
-      throw e;                                                                 \
+      throw std::runtime_error("Unknown NLOpt error: " +                       \
+                               std::string(e.what()));                         \
     }                                                                          \
     return std::make_tuple(optF, x);                                           \
   }
