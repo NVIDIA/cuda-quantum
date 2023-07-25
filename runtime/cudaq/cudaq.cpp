@@ -194,7 +194,7 @@ bool cudaq::__internal__::isLibraryMode(const std::string &kernelname) {
 //===----------------------------------------------------------------------===//
 
 namespace nvqir {
-extern void setRandomSeed(std::size_t);
+void setRandomSeed(std::size_t);
 }
 
 namespace cudaq {
