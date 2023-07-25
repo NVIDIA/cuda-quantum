@@ -38,7 +38,7 @@ static void addIQMPipeline(OpPassManager &pm) {
 static void addIonQPipeline(OpPassManager &pm) {
   using namespace cudaq::opt;
   std::string basis[] = {
-      "h",  "s", "t", "r1", "rx",   "ry",
+      "h",  "s", "t", "rx", "ry",
       "rz", "x", "y", "z",  "x(1)", // TODO set to ms, gpi, gpi2
   };
   BasisConversionPassOptions options;
