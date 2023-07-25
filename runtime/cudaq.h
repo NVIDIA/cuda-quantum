@@ -190,6 +190,8 @@ void unset_noise();
 /// @brief Utility function for clearing the shots
 void clear_shots(const std::size_t nShots);
 
+/// @brief Set a seed for any random number
+/// generators used in backend simulations.
 void set_random_seed(std::size_t seed);
 
 namespace mpi {
