@@ -20,14 +20,6 @@ def PromoteRefToVeqAlloc : Pass<"promote-qubit-allocation"> {
   }];
 }
 
-def QuantinuumNaiveR1ToRz : Pass<"quantinuum-r1-to-rz"> {
-  let summary = "Convert R1 to Rz after basis conversion.";
-  let description = [{
-    This pass converts all R1 operations to Rz operations. This is only valid 
-    after the basis conversion pass which should remove any ctrl-R1 operations.
-  }];
-}
-
 def QuakeToQIR : Pass<"quake-to-qir", "mlir::ModuleOp"> {
   let summary = "Lower Quake to QIR.";
   let description = [{
