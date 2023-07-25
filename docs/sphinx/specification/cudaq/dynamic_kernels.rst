@@ -101,7 +101,7 @@ Here is a simple example how one might build a CUDA Quantum kernel dynamically.
     auto qubits = kernel.qalloc(2);
     kernel.h(qubits[0]);
     kernel.x<cudaq::ctrl>(qubits[0], qubits[1]);
-    kernel.mz();
+    kernel.mz(qubits);
     
     // See algorithmic primitives section for more on sample
     auto counts = cudaq::sample(kernel);
