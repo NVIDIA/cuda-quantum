@@ -71,20 +71,20 @@ double nlopt_wrapper_call(const std::vector<double> &x,
           "). \nConsider changing the stopping criteria (e.g., reducing "      \
           "max_eval or increasing f_tol) and/or increase the number of "       \
           "measurement shots.");                                               \
-    } catch (::nlopt::forced_stop & e) {                                       \
+    } catch (const ::nlopt::forced_stop &e) {                                  \
       throw std::runtime_error("NLOpt forced termination: " +                  \
                                std::string(e.what()));                         \
-    } catch (std::invalid_argument & e) {                                      \
+    } catch (const std::invalid_argument &e) {                                 \
       throw std::invalid_argument(                                             \
           "Invalid NLOpt arguments (e.g. lower bounds "                        \
           "are bigger than upper bounds): " +                                  \
           std::string(e.what()));                                              \
-    } catch (std::bad_alloc & e) {                                             \
+    } catch (const std::bad_alloc &e) {                                        \
       throw std::runtime_error("NLOpt ran out of memory.");                    \
-    } catch (std::runtime_error & e) {                                         \
+    } catch (const std::runtime_error &e) {                                    \
       throw std::runtime_error("NLOpt runtime error: " +                       \
                                std::string(e.what()));                         \
-    } catch (std::exception & e) {                                             \
+    } catch (const std::exception &e) {                                        \
       throw std::runtime_error("Unknown NLOpt error: " +                       \
                                std::string(e.what()));                         \
     }                                                                          \
