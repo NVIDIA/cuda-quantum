@@ -8,6 +8,7 @@
 
 #include "TestingUtils.h"
 #include "common/PluginUtils.h"
+#include "cudaq.h"
 #include "cudaq/platform.h"
 #include "nvqir/CircuitSimulator.h"
 #include <fstream>
@@ -15,7 +16,6 @@
 #include <pybind11/stl.h>
 #include <regex>
 #include <sstream>
-
 namespace py = pybind11;
 
 namespace nvqir {
@@ -43,6 +43,7 @@ void bindTestUtils(py::module &mod, LinkedLibraryHolder &holder) {
       "initialize", [&](std::size_t numQubits, std::size_t numShots) {
         cudaq::ExecutionContext *context =
             new cudaq::ExecutionContext("sample", numShots);
+        cudaq::set_random_seed(13);
         holder.getSimulator("qpp")->setExecutionContext(context);
         return std::make_tuple(
             holder.getSimulator("qpp")->allocateQubits(numQubits), context);

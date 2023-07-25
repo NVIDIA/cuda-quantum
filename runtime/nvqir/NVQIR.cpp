@@ -81,6 +81,10 @@ CircuitSimulator *getCircuitSimulatorInternal() {
   return simulator;
 }
 
+void setRandomSeed(std::size_t seed) {
+  getCircuitSimulatorInternal()->setRandomSeed(seed);
+}
+
 thread_local static bool isBaseProfile = false;
 void toggleBaseProfile() { isBaseProfile = !isBaseProfile; }
 
@@ -363,6 +367,8 @@ Result *__quantum__qis__mz__to__register(Qubit *q, const char *name) {
   auto b = nvqir::getCircuitSimulatorInternal()->mz(qI, regName);
   return b ? ResultOne : ResultZero;
 }
+
+bool __quantum__qis__read_result__body(Result *r) { return false; }
 
 void __quantum__rt__array_start_record_output() {}
 void __quantum__rt__array_end_record_output() {}

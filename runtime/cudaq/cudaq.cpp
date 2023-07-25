@@ -23,6 +23,7 @@
 
 namespace nvqir {
 void tearDownBeforeMPIFinalize();
+void setRandomSeed(std::size_t);
 }
 
 namespace cudaq::mpi {
@@ -267,6 +268,8 @@ void unset_noise() {
   auto &platform = cudaq::get_platform();
   platform.set_noise(nullptr);
 }
+
+void set_random_seed(std::size_t seed) { nvqir::setRandomSeed(seed); }
 } // namespace cudaq
 
 namespace cudaq::support {
