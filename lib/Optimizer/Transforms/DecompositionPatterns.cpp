@@ -148,7 +148,8 @@ struct R1ToRz : public OpRewritePattern<quake::R1Op> {
       return failure();
 
     rewriter.replaceOpWithNewOp<quake::RzOp>(
-        r1Op, r1Op.getParameters(), r1Op.getControls(), r1Op.getTargets());
+        r1Op, r1Op.isAdj(), r1Op.getParameters(), r1Op.getControls(),
+        r1Op.getTargets());
     return success();
   }
 };
