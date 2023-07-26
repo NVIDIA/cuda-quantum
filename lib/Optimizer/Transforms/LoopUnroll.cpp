@@ -193,9 +193,7 @@ public:
     return result;
   }
 };
-} // namespace
 
-namespace {
 /// Unrolling pass pipeline command-line options. These options are similar to
 /// the LoopUnroll pass options, but have different default settings.
 struct UnrollPipelineOptions
