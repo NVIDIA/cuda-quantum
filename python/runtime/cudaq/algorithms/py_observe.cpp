@@ -275,29 +275,31 @@ void bindObserve(py::module &mod) {
       py::arg("shots_count") = defaultShotsValue,
       py::arg("noise_model") = py::none(), py::arg("execution") = py::none(),
       R"#(Compute the expected value of the `spin_operator` with respect to 
-      the `kernel`. If the kernel accepts arguments, it will be evaluated 
-      with respect to `kernel(*arguments)`. Each argument in `arguments` provided
-      can be a list or ndarray of arguments of the specified kernel argument
-      type, and in this case, the `observe` functionality will be broadcasted over
-      all argument sets and a list of `observe_result` instances will be returned.
-      Args:
-        kernel (:class:`Kernel`): The :class:`Kernel` to evaluate the 
-          expectation value with respect to.
-        spin_operator (:class:`SpinOperator`): The Hermitian spin operator to 
-          calculate the expectation of.
-        *arguments (Optional[Any]): The concrete values to evaluate the 
-          kernel function at. Leave empty if the kernel doesn't accept any arguments.
-        shots_count (Optional[int]): The number of shots to use for QPU 
-          execution. Defaults to -1 implying no shots-based sampling. Key-word only.
-        noise_model (Optional[`NoiseModel`]): The optional :class:`NoiseModel` to add 
-          noise to the kernel execution on the simulator. Defaults to an empty 
-          noise model.
-      Returns:
-        :class:`ObserveResult` : A data-type containing the expectation value 
-          of the `spin_operator` with respect to the `kernel(*arguments)`, 
-          or a list of such results in the case of `observe` function broadcasting. If 
-          `shots_count` was provided, the :class:`ObserveResult` will also contain a 
-          :class:`SampleResult` dictionary.)#");
+the `kernel`. If the kernel accepts arguments, it will be evaluated 
+with respect to `kernel(*arguments)`. Each argument in `arguments` provided
+can be a list or ndarray of arguments of the specified kernel argument
+type, and in this case, the `observe` functionality will be broadcasted over
+all argument sets and a list of `observe_result` instances will be returned.
+
+Args:
+  kernel (:class:`Kernel`): The :class:`Kernel` to evaluate the 
+    expectation value with respect to.
+  spin_operator (:class:`SpinOperator`): The Hermitian spin operator to 
+    calculate the expectation of.
+  *arguments (Optional[Any]): The concrete values to evaluate the 
+    kernel function at. Leave empty if the kernel doesn't accept any arguments.
+  shots_count (Optional[int]): The number of shots to use for QPU 
+    execution. Defaults to -1 implying no shots-based sampling. Key-word only.
+  noise_model (Optional[`NoiseModel`]): The optional :class:`NoiseModel` to add 
+    noise to the kernel execution on the simulator. Defaults to an empty 
+    noise model.
+
+Returns:
+  :class:`ObserveResult` : A data-type containing the expectation value 
+    of the `spin_operator` with respect to the `kernel(*arguments)`, 
+    or a list of such results in the case of `observe` function broadcasting. If 
+    `shots_count` was provided, the :class:`ObserveResult` will also contain a 
+    :class:`SampleResult` dictionary.)#");
 
   /// Expose observe_async, can optionally take the qpu_id to target.
   mod.def(
@@ -319,28 +321,30 @@ void bindObserve(py::module &mod) {
       py::arg("shots_count") = defaultShotsValue,
       py::arg("noise_model") = py::none(),
       R"#(Compute the expected value of the `spin_operator` with respect to 
-      the `kernel` asynchronously. If the kernel accepts arguments, it will 
-      be evaluated with respect to `kernel(*arguments)`. When targeting a
-      quantum platform with more than one QPU, the optional `qpu_id` allows
-      for control over which QPU to enable. Will return a future whose results
-      can be retrieved via `future.get()`.
-      Args:
-        kernel (:class:`Kernel`): The :class:`Kernel` to evaluate the 
-          expectation value with respect to.
-        spin_operator (:class:`SpinOperator`): The Hermitian spin operator to 
-          calculate the expectation of.
-        *arguments (Optional[Any]): The concrete values to evaluate the 
-          kernel function at. Leave empty if the kernel doesn't accept any arguments.
-        qpu_id (Optional[int]): The optional identification for which QPU on 
-          the platform to target. Defaults to zero. Key-word only.
-        shots_count (Optional[int]): The number of shots to use for QPU 
-          execution. Defaults to -1 implying no shots-based sampling. Key-word only.
-        noise_model (Optional[`NoiseModel`]): The optional 
-          :class:`NoiseModel` to add noise to the kernel execution on the simulator.
-            Defaults to an empty noise model.
-      Returns:
-        :class:`AsyncObserveResult` : A future containing the result of the 
-          call to observe.)#");
+the `kernel` asynchronously. If the kernel accepts arguments, it will 
+be evaluated with respect to `kernel(*arguments)`. When targeting a
+quantum platform with more than one QPU, the optional `qpu_id` allows
+for control over which QPU to enable. Will return a future whose results
+can be retrieved via `future.get()`.
+
+Args:
+  kernel (:class:`Kernel`): The :class:`Kernel` to evaluate the 
+    expectation value with respect to.
+  spin_operator (:class:`SpinOperator`): The Hermitian spin operator to 
+    calculate the expectation of.
+  *arguments (Optional[Any]): The concrete values to evaluate the 
+    kernel function at. Leave empty if the kernel doesn't accept any arguments.
+  qpu_id (Optional[int]): The optional identification for which QPU on 
+    the platform to target. Defaults to zero. Key-word only.
+  shots_count (Optional[int]): The number of shots to use for QPU 
+    execution. Defaults to -1 implying no shots-based sampling. Key-word only.
+  noise_model (Optional[`NoiseModel`]): The optional 
+    :class:`NoiseModel` to add noise to the kernel execution on the simulator.
+    Defaults to an empty noise model.
+
+Returns:
+  :class:`AsyncObserveResult` : A future containing the result of the 
+    call to observe.)#");
 
   mod.def(
       "observe_n",
