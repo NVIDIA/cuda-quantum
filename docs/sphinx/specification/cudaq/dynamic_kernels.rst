@@ -91,7 +91,7 @@ kernel creation and argument value extraction is via standard C++
 Once the kernel is created, the programmer is free to build up the kernel expression 
 using the exposed API. There are methods for qubit allocation, quantum operation 
 invocation, control and adjoint synthesis, and conditional branching based on 
-boolean values. 
+`boolean` values. 
 
 Here is a simple example how one might build a CUDA Quantum kernel dynamically. 
 
@@ -101,7 +101,7 @@ Here is a simple example how one might build a CUDA Quantum kernel dynamically.
     auto qubits = kernel.qalloc(2);
     kernel.h(qubits[0]);
     kernel.x<cudaq::ctrl>(qubits[0], qubits[1]);
-    kernel.mz();
+    kernel.mz(qubits);
     
     // See algorithmic primitives section for more on sample
     auto counts = cudaq::sample(kernel);
