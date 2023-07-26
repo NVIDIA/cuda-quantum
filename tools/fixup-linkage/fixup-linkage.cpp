@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
       pos = (ms == "internal") ? sizeof("define internal") - 1
                                : sizeof("define dso_local") - 1;
       outFile << "define linkonce_odr dso_preemptable" << line.substr(pos)
-                << std::endl;
+              << std::endl;
       replaced = true;
       break;
     }
