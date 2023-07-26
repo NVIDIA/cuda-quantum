@@ -367,8 +367,8 @@ auto observe_async(QuantumKernel &&kernel, spin_op &H, Args &&...args) {
 /// from the execution of every argument set and returned.
 template <typename QuantumKernel, typename... Args>
   requires ObserveCallValid<QuantumKernel, Args...>
-std::vector<observe_result> observe_n(QuantumKernel &&kernel, spin_op H,
-                                      ArgumentSet<Args...> &&params) {
+std::vector<observe_result> observe(QuantumKernel &&kernel, spin_op H,
+                                    ArgumentSet<Args...> &&params) {
   // Get the platform and query the number of quantum computers
   auto &platform = cudaq::get_platform();
   auto numQpus = platform.num_qpus();
@@ -404,9 +404,81 @@ std::vector<observe_result> observe_n(QuantumKernel &&kernel, spin_op H,
 /// allows the number of circuit executions (shots) to be specified.
 template <typename QuantumKernel, typename... Args>
   requires ObserveCallValid<QuantumKernel, Args...>
-std::vector<observe_result> observe_n(std::size_t shots, QuantumKernel &&kernel,
-                                      spin_op H,
-                                      ArgumentSet<Args...> &&params) {
+std::vector<observe_result> observe(std::size_t shots, QuantumKernel &&kernel,
+                                    spin_op H, ArgumentSet<Args...> &&params) {
+  // Get the platform and query the number of quantum computers
+  auto &platform = cudaq::get_platform();
+  auto numQpus = platform.num_qpus();
+
+  // Create the functor that will broadcast the observations across
+  // all requested argument sets provided.
+  details::BroadcastFunctorType<observe_result, Args...> functor =
+      [&](std::size_t qpuId, std::size_t counter, std::size_t N,
+          Args &...singleIterParameters) -> observe_result {
+    auto kernelName = cudaq::getKernelName(kernel);
+    auto ret =
+        details::runObservation(
+            [&kernel, ... args = std::forward<decltype(singleIterParameters)>(
+                          singleIterParameters)]() mutable { kernel(args...); },
+            H, platform, shots, kernelName, qpuId, nullptr, counter, N)
+            .value();
+    return ret;
+  };
+
+  // Broadcast the executions and return the results.
+  return details::broadcastFunctionOverArguments<observe_result, Args...>(
+      numQpus, platform, functor, params);
+}
+
+/// @brief Run the standard observe functionality over a set of `N`
+/// argument packs. For a kernel with signature `void(Args...)`, this
+/// function takes as input a set of `vector<Arg>...`, a vector for
+/// each argument type in the kernel signature. The vectors must be of
+/// equal length, and the `i-th` element of each vector is used `i-th`
+/// execution of the standard observe function. Results are collected
+/// from the execution of every argument set and returned.
+template <typename QuantumKernel, typename... Args>
+  requires ObserveCallValid<QuantumKernel, Args...>
+[[deprecated("Use observe() overload instead")]] std::vector<observe_result>
+observe_n(QuantumKernel &&kernel, spin_op H, ArgumentSet<Args...> &&params) {
+  // Get the platform and query the number of quantum computers
+  auto &platform = cudaq::get_platform();
+  auto numQpus = platform.num_qpus();
+
+  // Create the functor that will broadcast the observations across
+  // all requested argument sets provided.
+  details::BroadcastFunctorType<observe_result, Args...> functor =
+      [&](std::size_t qpuId, std::size_t counter, std::size_t N,
+          Args &...singleIterParameters) -> observe_result {
+    auto shots = platform.get_shots().value_or(-1);
+    auto kernelName = cudaq::getKernelName(kernel);
+    auto ret =
+        details::runObservation(
+            [&kernel, ... args = std::forward<decltype(singleIterParameters)>(
+                          singleIterParameters)]() mutable { kernel(args...); },
+            H, platform, shots, kernelName, qpuId, nullptr, counter, N)
+            .value();
+    return ret;
+  };
+
+  // Broadcast the executions and return the results.
+  return details::broadcastFunctionOverArguments<observe_result, Args...>(
+      numQpus, platform, functor, params);
+}
+
+/// @brief Run the standard observe functionality over a set of N
+/// argument packs. For a kernel with signature `void(Args...)`, this
+/// function takes as input a set of `vector<Arg>...`, a vector for
+/// each argument type in the kernel signature. The vectors must be of
+/// equal length, and the `i-th` element of each vector is used `i-th`
+/// execution of the standard observe function. Results are collected
+/// from the execution of every argument set and returned. This overload
+/// allows the number of circuit executions (shots) to be specified.
+template <typename QuantumKernel, typename... Args>
+  requires ObserveCallValid<QuantumKernel, Args...>
+[[deprecated("Use observe() overload instead")]] std::vector<observe_result>
+observe_n(std::size_t shots, QuantumKernel &&kernel, spin_op H,
+          ArgumentSet<Args...> &&params) {
   // Get the platform and query the number of quantum computers
   auto &platform = cudaq::get_platform();
   auto numQpus = platform.num_qpus();
