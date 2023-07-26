@@ -804,19 +804,19 @@ public:
                     {cudaq::opt::factory::getPointerType(ctx),
                      cudaq::opt::factory::getPointerType(ctx)}));
 
-          // Create this global name, it is unique for any Lambda
+          // Create this global name, it is unique for any lambda
           // bc classNameStr contains the parentFunc + varName
-          auto LambdaName = builder.create<LLVM::GlobalOp>(
+          auto lambdaName = builder.create<LLVM::GlobalOp>(
               loc,
               cudaq::opt::factory::getStringType(ctx, demangledName.size() + 1),
               /*isConstant=*/true, LLVM::Linkage::External,
-              classNameStr + ".LambdaName",
+              classNameStr + ".lambdaName",
               builder.getStringAttr(demangledName + '\0'), /*alignment=*/0);
 
           builder.restoreInsertionPoint(insertPoint);
-          auto LambdaRef = builder.create<LLVM::AddressOfOp>(
-              loc, cudaq::opt::factory::getPointerType(LambdaName.getType()),
-              LambdaName.getSymName());
+          auto lambdaRef = builder.create<LLVM::AddressOfOp>(
+              loc, cudaq::opt::factory::getPointerType(lambdaName.getType()),
+              lambdaName.getSymName());
 
           auto castLambdaRef = builder.create<cudaq::cc::CastOp>(
               loc, cudaq::opt::factory::getPointerType(ctx), lambdaRef);
