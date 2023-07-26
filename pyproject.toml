@@ -16,6 +16,10 @@ maintainers = [{name = "NVIDIA Corporation & Affiliates"}]
 readme = "python/README.md"
 requires-python = ">=3.8"
 license = { file="LICENSE" }
+dependencies = [
+  'custatevec-cu11 ~= 1.4',
+  'nvidia-cublas-cu11 ~= 11.11',
+]
 
 [project.urls]
 Homepage = "https://developer.nvidia.com/cuda-quantum"

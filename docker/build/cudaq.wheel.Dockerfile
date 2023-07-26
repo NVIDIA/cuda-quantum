@@ -38,7 +38,12 @@ RUN echo "Building wheel for python${python_version}." \
         CUDACXX="$CUDA_INSTALL_PREFIX/bin/nvcc" CUDAHOSTCXX=$CXX \
         $python -m build --wheel \
     && LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/_skbuild/lib" \
-        $python -m auditwheel -v repair dist/cuda_quantum-*linux_*.whl
+        $python -m auditwheel -v repair dist/cuda_quantum-*linux_*.whl \
+            --exclude libcustatevec.so.1 \
+            --exclude libcutensornet.so.2 \
+            --exclude libcublas.so.11 \
+            --exclude libcublasLt.so.11 \
+            --exclude libzstd.so.1
 
 FROM scratch
 COPY --from=wheelbuild /cuda-quantum/wheelhouse/*manylinux*.whl . 
