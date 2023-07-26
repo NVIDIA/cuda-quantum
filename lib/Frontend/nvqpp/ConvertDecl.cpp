@@ -74,7 +74,7 @@ bool QuakeBridgeVisitor::TraverseCXXMethodDecl(clang::CXXMethodDecl *x) {
       auto &de = astContext->getDiagnostics();
       const auto id =
           de.getCustomDiagID(clang::DiagnosticsEngine::Remark,
-                             "An inaccessible symbol in a callable expression "
+                             "An inaccessible symbol in a lambda expression "
                              "may be from an implicit capture of a variable "
                              "that is not present in a kernel marked __qpu__.");
       auto db = de.Report(x->getBeginLoc(), id);
