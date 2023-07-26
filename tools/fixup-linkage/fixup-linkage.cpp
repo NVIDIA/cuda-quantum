@@ -70,9 +70,9 @@ int main(int argc, char *argv[]) {
       if (pos == std::string::npos)
         continue;
       auto ms = (*iter)[1].str();
-      pos = (ms == "internal") ? sizeof("define internal") - 1
-                               : sizeof("define dso_local") - 1;
-      outFile << "define linkonce_odr dso_preemptable" << line.substr(pos)
+      pos = (ms == "internal") ? sizeof("define internal")
+                               : sizeof("define dso_local");
+      outFile << "define linkonce_odr dso_preemptable " << line.substr(pos)
               << std::endl;
       replaced = true;
       break;
