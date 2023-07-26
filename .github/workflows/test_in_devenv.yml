@@ -126,7 +126,7 @@ jobs:
               echo "pytest status = " $pytest_status
               exit 1
             fi
-            apt-get install -y gdb 
+            apt-get update && apt-get install -y gdb 
             for backendTest in python/tests/backends/*.py; do
               export PYTHONPATH=$PYTHONPATH:$PWD
               gdb -batch -ex "run" -ex "bt" --args python3 -m pytest $backendTest
