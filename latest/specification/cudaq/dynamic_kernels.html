@@ -407,13 +407,13 @@ kernel creation and argument value extraction is via standard C++
 <p>Once the kernel is created, the programmer is free to build up the kernel expression
 using the exposed API. There are methods for qubit allocation, quantum operation
 invocation, control and adjoint synthesis, and conditional branching based on
-boolean values.</p>
+<code class="code docutils literal notranslate"><span class="pre">boolean</span></code> values.</p>
 <p>Here is a simple example how one might build a CUDA Quantum kernel dynamically.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">kernel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">make_kernel</span><span class="p">();</span>
 <span class="k">auto</span><span class="w"> </span><span class="n">qubits</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kernel</span><span class="p">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
 <span class="n">kernel</span><span class="p">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
 <span class="n">kernel</span><span class="p">.</span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
-<span class="n">kernel</span><span class="p">.</span><span class="n">mz</span><span class="p">();</span>
+<span class="n">kernel</span><span class="p">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">);</span>
 
 <span class="c1">// See algorithmic primitives section for more on sample</span>
 <span class="k">auto</span><span class="w"> </span><span class="n">counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">);</span>
