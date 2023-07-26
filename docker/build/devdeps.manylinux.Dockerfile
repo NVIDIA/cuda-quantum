@@ -46,3 +46,26 @@ RUN dnf check-update && dnf install -y --nobest --setopt=install_weak_deps=False
     && dnf remove -y ninja-build cmake && dnf clean all \
     && rm -rf /llvm-project && rm /scripts/build_llvm.sh
 
+# Install additional dependencies required to build the CUDA Quantum wheel.
+ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
+ENV BLAS_INSTALL_PREFIX=/usr/local/blas
+ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
+RUN dnf check-update && dnf install -y --nobest --setopt=install_weak_deps=False \
+        glibc-static perl-core wget \
+    && bash /scripts/install_prerequisites.sh \
+    && dnf remove -y wget && dnf clean all
+
+# Install CUDA 11.8.
+# Note that pip packages are available for all necessary runtime components.
+RUN export arch=x86_64 && export distro=rhel8 \
+    && dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/$distro/$arch/cuda-$distro.repo \
+    && dnf clean expire-cache \
+    && dnf check-update && dnf install -y --nobest --setopt=install_weak_deps=False \
+        cuda-compiler-11-8.x86_64 cuda-cudart-devel-11-8.x86_64 libcublas-devel-11-8.x86_64
+
+ENV CUDA_INSTALL_PREFIX=/usr/local/cuda-11.8
+ENV CUDA_HOME="$CUDA_INSTALL_PREFIX"
+ENV CUDA_ROOT="$CUDA_INSTALL_PREFIX"
+ENV CUDA_PATH="$CUDA_INSTALL_PREFIX"
+ENV PATH="${CUDA_INSTALL_PREFIX}/lib64/:${CUDA_INSTALL_PREFIX}/bin:${PATH}"
+ENV LD_LIBRARY_PATH="${CUDA_INSTALL_PREFIX}/lib64:${LD_LIBRARY_PATH}"
