@@ -42,10 +42,12 @@ sample_result pySample(kernel_builder<> &builder, py::args args = {},
   if (noise)
     platform.set_noise(&*noise);
 
-  return details::runSampling(
-             [&]() mutable { builder.jitAndInvoke(argData.data()); }, platform,
-             kernelName, shots)
-      .value();
+  auto result = details::runSampling(
+                    [&]() mutable { builder.jitAndInvoke(argData.data()); },
+                    platform, kernelName, shots)
+                    .value();
+  platform.set_noise(nullptr);
+  return result;
 }
 
 /// @brief Broadcast the sample call over the list-like arguments provided.
@@ -73,7 +75,7 @@ pySampleN(kernel_builder<> &kernel, py::args args = {},
     currentIter++;
     results.push_back(ret);
   }
-
+  platform.set_noise(nullptr);
   return results;
 }
 
