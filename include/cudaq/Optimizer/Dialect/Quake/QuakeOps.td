@@ -729,14 +729,14 @@ def PhasedRxOp : QuakeOperator<"phased_rx",
   let description = [{
     Matrix representation:
     ```
-    PhasedRx(ϴ,φ) = |        cos(ϴ/2)        -iexp(-iφ) * sin(ϴ/2) |
-                    | -iexp(iφ)) * sin(ϴ/2)         cos(ϴ/2)       |
+    PhasedRx(θ,φ) = |        cos(θ/2)        -iexp(-iφ) * sin(θ/2) |
+                    | -iexp(iφ)) * sin(θ/2)         cos(θ/2)       |
     ```
 
     Circuit symbol:
     ```
      ┌───────────────┐
-    ─┤ PhasedRx(ϴ,φ) ├─
+    ─┤ PhasedRx(θ,φ) ├─
      └───────────────┘
     ```
   }];
@@ -765,14 +765,14 @@ def RxOp : OneTargetParamOp<"rx", [Rotation]> {
   let description = [{
     Matrix representation:
     ```
-    Rx(ϴ) = |  cos(ϴ/2)  -isin(ϴ/2) |
-            | -isin(ϴ/2)  cos(ϴ/2)  |
+    Rx(θ) = |  cos(θ/2)  -isin(θ/2) |
+            | -isin(θ/2)  cos(θ/2)  |
     ```
 
     Circuit symbol:
     ```
      ┌───────┐
-    ─┤ Rx(ϴ) ├─
+    ─┤ Rx(θ) ├─
      └───────┘
     ```
   }];
@@ -783,14 +783,14 @@ def RyOp : OneTargetParamOp<"ry", [Rotation]> {
   let description = [{
     Matrix representation:
     ```
-    Ry(ϴ) = | cos(ϴ/2)  -sin(ϴ/2) |
-            | sin(ϴ/2)   cos(ϴ/2) |
+    Ry(θ) = | cos(θ/2)  -sin(θ/2) |
+            | sin(θ/2)   cos(θ/2) |
     ```
 
     Circuit symbol:
     ```
      ┌───────┐
-    ─┤ Ry(ϴ) ├─
+    ─┤ Ry(θ) ├─
      └───────┘
     ```
   }];
@@ -899,20 +899,20 @@ def U2Op : QuakeOperator<"u2", [NumParameters<2>, NumTargets<1>, Rotation]> {
 def U3Op : QuakeOperator<"u3", [NumParameters<3>, NumTargets<1>, Rotation]> {
   let summary = "the universal three-parameters operator";
   let description = [{
-    The three parameters are Euler angles: ϴ, φ, and λ.
+    The three parameters are Euler angles: θ, φ, and λ.
 
     NOTE: U3 is a generalization of U2 that covers all single-qubit rotations.
 
     Matrix representation:
     ```
-    U3(ϴ,φ,λ) = | cos(ϴ/2)            -exp(iλ) * sin(ϴ/2)       |
-                | exp(iφ) * sin(ϴ/2)   exp(i(λ + φ)) * cos(ϴ/2) |
+    U3(θ,φ,λ) = | cos(θ/2)            -exp(iλ) * sin(θ/2)       |
+                | exp(iφ) * sin(θ/2)   exp(i(λ + φ)) * cos(θ/2) |
     ```
 
     Circuit symbol:
     ```
      ┌───────────┐
-    ─┤ U3(ϴ,φ,λ) ├─
+    ─┤ U3(θ,φ,λ) ├─
      └───────────┘
     ```
   }];
