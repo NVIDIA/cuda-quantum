@@ -84,6 +84,11 @@ CircuitSimulator *getCircuitSimulatorInternal() {
 thread_local static bool isBaseProfile = false;
 void toggleBaseProfile() { isBaseProfile = !isBaseProfile; }
 
+/// @brief Tell the simulator we are about to finalize MPI.
+void tearDownBeforeMPIFinalize() {
+  getCircuitSimulatorInternal()->tearDownBeforeMPIFinalize();
+}
+
 /// @brief Store allocated Array pointers
 thread_local static std::vector<std::unique_ptr<Array>> allocatedArrays;
 

@@ -34,6 +34,16 @@ mlir::Value createSizedSubVecOp(mlir::PatternRewriter &builder,
                                 mlir::Value inVec, mlir::Value lo,
                                 mlir::Value hi);
 
+void getResetEffectsImpl(
+    mlir::SmallVectorImpl<
+        mlir::SideEffects::EffectInstance<mlir::MemoryEffects::Effect>>
+        &effects,
+    mlir::ValueRange targets);
+void getMeasurementEffectsImpl(
+    mlir::SmallVectorImpl<
+        mlir::SideEffects::EffectInstance<mlir::MemoryEffects::Effect>>
+        &effects,
+    mlir::ValueRange targets);
 void getOperatorEffectsImpl(
     mlir::SmallVectorImpl<
         mlir::SideEffects::EffectInstance<mlir::MemoryEffects::Effect>>

@@ -505,7 +505,7 @@ def quake_ResetOp : QuakeOp<"reset", [QuantumGate,
   let extraClassDeclaration = [{
     void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::
         EffectInstance<mlir::MemoryEffects::Effect>> &effects) {
-      quake::getOperatorEffectsImpl(effects, {}, getTargets());
+      quake::getResetEffectsImpl(effects, getTargets());
     }
   }];
 }
@@ -529,7 +529,7 @@ class Measurement<string mnemonic> : QuakeOp<mnemonic,
   code OpBaseDeclaration = [{
     void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::EffectInstance<
       mlir::MemoryEffects::Effect>> &effects) {
-      quake::getOperatorEffectsImpl(effects, {}, getTargets());
+      quake::getMeasurementEffectsImpl(effects, getTargets());
     }
   }];
 
