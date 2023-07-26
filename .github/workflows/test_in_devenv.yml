@@ -125,9 +125,11 @@ jobs:
             if [ ! $pytest_status -eq 0 ]; then
               echo "pytest status = " $pytest_status
               exit 1
-            fi 
+            fi
+            apt-get install -y gdb 
             for backendTest in python/tests/backends/*.py; do
-              python3 -m pytest $backendTest
+              export PYTHONPATH=$PYTHONPATH:$PWD
+              gdb -batch -ex "run" -ex "bt" --args python3 -m pytest $backendTest
               pytest_status=$?
               if [ ! $pytest_status -eq 0 ]; then
                 echo "pytest $backendTest status = " $pytest_status
