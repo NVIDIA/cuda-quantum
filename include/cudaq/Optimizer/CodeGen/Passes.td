@@ -83,18 +83,6 @@ def QIRToBaseQIR : Pass<"qir-to-base-qir"> {
   }];
 
   let constructor = "cudaq::opt::createQIRToBaseProfilePass()";
-
-  let options = [
-    Option<"topDownProcessingEnabled", "top-down", "bool",
-           /*default=*/"true",
-           "Seed the worklist in general top-down order">,
-    Option<"enableRegionSimplification", "region-simplify", "bool",
-           /*default=*/"true",
-           "Seed the worklist in general top-down order">,
-    Option<"maxIterations", "max-iterations", "int64_t",
-           /*default=*/"10",
-           "Seed the worklist in general top-down order">
-  ];
 }
 
 #endif // CUDAQ_OPT_OPTIMIZER_CODEGEN_PASSES
