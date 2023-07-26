@@ -626,7 +626,7 @@ bool QuakeBridgeVisitor::VisitImplicitCastExpr(clang::ImplicitCastExpr *x) {
         return true;
       }
     }
-    // Enable implicit conversion of callable -> std::function, which are both
+    // Enable implicit conversion of lambda -> std::function, which are both
     // cc::CallableType.
     if (toTy.isa<cc::CallableType>()) {
       auto subExpr = x->getSubExpr();
@@ -992,7 +992,7 @@ bool QuakeBridgeVisitor::VisitMaterializeTemporaryExpr(
   auto loc = toLocation(x->getSourceRange());
   auto ty = genType(x->getType());
 
-  // The following cases are callable expressions and quantum data. In those cases,
+  // The following cases are λ expressions and quantum data. In those cases,
   // there is nothing to materialize, so we can just pass the Value on the top
   // of the stack.
   if (isa<cc::CallableType>(ty)) {
@@ -1027,20 +1027,20 @@ bool QuakeBridgeVisitor::VisitMaterializeTemporaryExpr(
   return pushValue(builder.create<cc::UndefOp>(loc, ty));
 }
 
-bool QuakeBridgeVisitor::TraverseCallableExpr(clang::LambdaExpr *x,
-                                              DataRecursionQueue *q) {
+bool QuakeBridgeVisitor::TraverseLambdaExpr(clang::LambdaExpr *x,
+                                            DataRecursionQueue *q) {
   auto loc = toLocation(x->getSourceRange());
   auto *ctx = builder.getContext();
   bool result = true;
   if (!x->explicit_captures().empty()) {
-    // Callable expression with explicit capture list is not supported yet.
-    TODO_x(loc, x, mangler, "callable expression with explicit captures");
+    // Lambda expression with explicit capture list is not supported yet.
+    TODO_x(loc, x, mangler, "lambda expression with explicit captures");
   }
-  auto callableInstance = builder.create<cc::CreateCallableOp>(
+  auto lambdaInstance = builder.create<cc::CreateLambdaOp>(
       loc, cc::CallableType::get(ctx, getFunctionType(x->getCallOperator())),
       [&](OpBuilder &builder, Location loc) {
         // FIXME: the capture list, etc. should be visited in an appropriate
-        // context here, not as part of lowering the body of the callable.
+        // context here, not as part of lowering the body of the lambda.
         auto *entryBlock = builder.getInsertionBlock();
         SymbolTableScope argsScope(symbolTable);
         addArgumentSymbols(entryBlock, x->getCallOperator()->parameters());
@@ -1050,7 +1050,7 @@ bool QuakeBridgeVisitor::TraverseCallableExpr(clang::LambdaExpr *x,
         }
         builder.create<cc::ReturnOp>(loc);
       });
-  pushValue(callableInstance);
+  pushValue(lambdaInstance);
   return result;
 }
 
@@ -1420,8 +1420,8 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       if (auto ty = dyn_cast<cc::CallableType>(calleeValue.getType())) {
         // In order to autogenerate the control form of the called kernel, we
         // have to be able to determine precisely which kernel is being called
-        // at this point. If this is a local callable expression, it is handled
-        // elsewhere. If this is a callable expression argument, then we have to
+        // at this point. If this is a local lambda expression, it is handled
+        // elsewhere. If this is a lambda expression argument, then we have to
         // recover it or give a compilation error.
         auto *tyPtr = x->getArg(0)->getType().getTypePtr();
         auto *recTy = dyn_cast<clang::RecordType>(tyPtr);
@@ -1440,9 +1440,9 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         }
         auto *decl = recTy->getDecl();
         if (decl->isLambda()) {
-          auto *callableClass = cast<clang::CXXRecordDecl>(decl);
+          auto *lambdaClass = cast<clang::CXXRecordDecl>(decl);
           auto mangledName =
-              generateCudaqKernelName(findCallOperator(callableClass));
+              generateCudaqKernelName(findCallOperator(lambdaClass));
           calleeSymbol = SymbolRefAttr::get(ctx, mangledName);
           auto funcTy = ty.getSignature();
           inlinedStartControlNegations();
@@ -1453,7 +1453,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
                                          kernelArgs);
           return inlinedFinishControlNegations();
         }
-        TODO_loc(loc, "value has !cc.callable type but decl isn't a callable");
+        TODO_loc(loc, "value has !cc.lambda type but decl isn't a lambda");
       }
       TODO_loc(loc, "unexpected callable argument");
     }
@@ -1462,7 +1462,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       // Expect the following declaration from qubit_qis.h:
       //
       // template <typename QuantumKernel, typename... Args>
-      //   requires isLambdaVoidKernel<QuantumKernel, Args...>
+      //   requires isCallableVoidKernel<QuantumKernel, Args...>
       // void adjoint(QuantumKernel &&kernel, Args &&...args);
       //
       // The first argument must be an instance of a Callable and a quantum
@@ -1516,8 +1516,8 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       if (auto ty = dyn_cast<cc::CallableType>(calleeValue.getType())) {
         // In order to autogenerate the control form of the called kernel, we
         // have to be able to determine precisely which kernel is being called
-        // at this point. If this is a local callable expression, it is handled
-        // elsewhere. If this is a callable expression argument, then we have to
+        // at this point. If this is a local lambda expression, it is handled
+        // elsewhere. If this is a lambda expression argument, then we have to
         // recover it or give a compilation error.
         auto *tyPtr = x->getArg(0)->getType().getTypePtr();
         auto *recTy = dyn_cast<clang::RecordType>(tyPtr);
@@ -1536,9 +1536,9 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         }
         auto *decl = recTy->getDecl();
         if (decl->isLambda()) {
-          auto *callableClass = cast<clang::CXXRecordDecl>(decl);
+          auto *lambdaClass = cast<clang::CXXRecordDecl>(decl);
           auto mangledName =
-              generateCudaqKernelName(findCallOperator(callableClass));
+              generateCudaqKernelName(findCallOperator(lambdaClass));
           auto calleeSymbol =
               SymbolRefAttr::get(builder.getContext(), mangledName);
           auto funcTy = ty.getSignature();
@@ -1548,7 +1548,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
               loc, funcTy.getResults(), calleeSymbol,
               /*isAdjoint=*/true, ValueRange{}, kernelArgs);
         }
-        TODO_loc(loc, "value has !cc.callable type but decl isn't a callable");
+        TODO_loc(loc, "value has !cc.lambda type but decl isn't a lambda");
       }
       TODO_loc(loc, "adjoint does not appear to be on a user-defined kernel");
     }
@@ -1798,7 +1798,7 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
         return true;
       }
       if (ctorName == "function") {
-        // Are we converting a callable expr to a std::function?
+        // Are we converting a lambda expr to a std::function?
         auto backTy = peekValue().getType();
         if (backTy.isa<cc::CallableType>()) {
           // Skip this constructor (for now).
@@ -1832,7 +1832,7 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
           }
           auto kernelCallTy = getFunctionType(callOperDecl);
           auto kernelName = generateCudaqKernelName(callOperDecl);
-          return pushValue(builder.create<cc::CreateCallableOp>(
+          return pushValue(builder.create<cc::CreateLambdaOp>(
               loc, cc::CallableType::get(kernelCallTy),
               [&](OpBuilder &builder, Location loc) {
                 auto args = builder.getBlock()->getArguments();

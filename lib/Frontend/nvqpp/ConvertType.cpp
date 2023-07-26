@@ -115,8 +115,8 @@ static bool isArithmeticSequenceType(Type t) {
 static bool isKernelSignatureType(FunctionType t);
 
 static bool isKernelCallable(Type t) {
-  if (auto callableTy = dyn_cast<cudaq::cc::CallableType>(t))
-    return isKernelSignatureType(callableTy.getSignature());
+  if (auto lambdaTy = dyn_cast<cudaq::cc::CallableType>(t))
+    return isKernelSignatureType(lambdaTy.getSignature());
   return false;
 }
 
@@ -179,7 +179,7 @@ bool QuakeBridgeVisitor::TraverseUsingType(clang::UsingType *t) {
 bool QuakeBridgeVisitor::TraverseRecordType(clang::RecordType *t) {
   auto *recDecl = t->getDecl();
   if (recDecl->isLambda()) {
-    // Traverse implicit code will traverse inline callables.
+    // Traverse implicit code will traverse inline lambdas.
     visitImplicitCode = t->getDecl()->isLambda();
     return TraverseCXXRecordDecl(cast<clang::CXXRecordDecl>(recDecl));
   }
@@ -193,26 +193,26 @@ bool QuakeBridgeVisitor::TraverseRecordType(clang::RecordType *t) {
   return result;
 }
 
-bool QuakeBridgeVisitor::convertToCallable() {
+bool QuakeBridgeVisitor::convertToLambda() {
   // Should be called from a Visit...() method.
   if (isa<cudaq::cc::CallableType>(peekType()))
     return true;
   auto funcTy = dyn_cast<FunctionType>(popType());
   assert(funcTy &&
-         "callable expression should be convertible from function type");
+         "lambda expression should be convertible from function type");
   return pushType(cudaq::cc::CallableType::get(builder.getContext(), funcTy));
 }
 
 bool QuakeBridgeVisitor::VisitCXXRecordDecl(clang::CXXRecordDecl *x) {
   if (x->isLambda())
-    return convertToCallable();
+    return convertToLambda();
   return true;
 }
 
 bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
   auto *ctx = builder.getContext();
   if (x->isLambda())
-    return convertToCallable();
+    return convertToLambda();
   auto name = x->getIdentifier()->getName();
   if (cudaq::isInNamespace(x, "cudaq")) {
     // Types from the `cudaq` namespace.
@@ -291,9 +291,9 @@ bool QuakeBridgeVisitor::VisitElaboratedType(clang::ElaboratedType *t) {
     return pushType(builder.getI8Type());
   if (matchTypeName("std", "function", name)) {
     // Note: technically this is a wrapper around a Callable and not exactly a
-    // callable. (Callables are a generalization of closures, functions,
+    // lambda. (Callables are a generalization of closures, functions,
     // methods, etc.) Do we want to refine our CC type system here? For
-    // expedience, pretend Callables and callables are "the same".
+    // expedience, pretend Callables and lambdas are "the same".
     auto fnTy = dyn_cast<FunctionType>(popType());
     assert(fnTy);
     return pushType(cudaq::cc::CallableType::get(context, fnTy));
