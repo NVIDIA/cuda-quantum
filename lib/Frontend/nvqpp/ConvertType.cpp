@@ -240,7 +240,7 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
     LLVM_DEBUG(llvm::dbgs()
                << "in std namespace, " << name << " is not matched\n");
   }
-  auto isLambda = [&]() {
+  auto isCallable = [&]() {
     if (auto *cxxRec = dyn_cast<clang::CXXRecordDecl>(x))
       for (auto *meth : cxxRec->methods())
         if (meth->getOverloadedOperator() ==
@@ -252,8 +252,8 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
     return std::count_if(x->field_begin(), x->field_end(),
                          [](auto) { return true; });
   };
-  if (isLambda()) {
-    // This is not a callable CXXRecord, but it is a callable. So there will be
+  if (isCallable()) {
+    // This is not a lambda CXXRecord, but it is a callable. So there will be
     // a function signature on the stack here that needs to be popped off.
     [[maybe_unused]] auto ty = popType();
     assert(isa<FunctionType>(ty) && fieldCount() == 0);
@@ -478,7 +478,7 @@ QuakeBridgeVisitor::getFunctionType(const clang::FunctionDecl *x,
       return {};
     }
     for (auto [t, p] : llvm::zip(funcTy.getInputs(), x->parameters())) {
-      // Structs, callables, functions are valid callable objects. Also pure
+      // Structs, lambdas, functions are valid callable objects. Also pure
       // device kernels may take veq and/or ref arguments.
       if (isArithmeticType(t) || isArithmeticSequenceType(t) ||
           isQuantumType(t) || isKernelCallable(t) || isFunctionCallable(t) ||

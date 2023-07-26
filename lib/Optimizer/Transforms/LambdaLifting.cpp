@@ -18,55 +18,52 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"
 
-#define DEBUG_TYPE "quake-callable-lifting"
+#define DEBUG_TYPE "quake-lambda-lifting"
 
 using namespace mlir;
 
-static constexpr char liftedCallablePrefix[] = "__nvqpp__lifted.callable.";
-static constexpr char thunkCallablePrefix[] =
-    "__nvqpp__callable.thunk.callable.";
+static constexpr char liftedLambdaPrefix[] = "__nvqpp__lifted.lambda.";
+static constexpr char thunkLambdaPrefix[] = "__nvqpp__callable.thunk.lambda.";
 
-inline std::string getLiftedCallableName(unsigned counter) {
-  return liftedCallablePrefix + std::to_string(counter);
+inline std::string getLiftedLambdaName(unsigned counter) {
+  return liftedLambdaPrefix + std::to_string(counter);
 }
-inline std::string getThunkCallableName(unsigned counter) {
-  return thunkCallablePrefix + std::to_string(counter);
+inline std::string getThunkLambdaName(unsigned counter) {
+  return thunkLambdaPrefix + std::to_string(counter);
 }
 
-inline SymbolRefAttr getLiftedCallableSymbol(MLIRContext *ctx,
-                                             unsigned counter) {
-  return SymbolRefAttr::get(ctx, getLiftedCallableName(counter));
+inline SymbolRefAttr getLiftedLambdaSymbol(MLIRContext *ctx, unsigned counter) {
+  return SymbolRefAttr::get(ctx, getLiftedLambdaName(counter));
 }
-inline SymbolRefAttr getThunkCallableSymbol(MLIRContext *ctx,
-                                            unsigned counter) {
-  return SymbolRefAttr::get(ctx, getThunkCallableName(counter));
+inline SymbolRefAttr getThunkLambdaSymbol(MLIRContext *ctx, unsigned counter) {
+  return SymbolRefAttr::get(ctx, getThunkLambdaName(counter));
 }
 
 namespace {
-struct CallableExprInfo {
+struct LambdaExprInfo {
   unsigned counter;              ///< Unique counter value;
-  SmallVector<Value> freeValues; ///< values that are free in callable
+  SmallVector<Value> freeValues; ///< values that are free in lambda
 };
 
-using CallableOpAnalysisInfo = llvm::DenseMap<Operation *, CallableExprInfo>;
+using LambdaOpAnalysisInfo = llvm::DenseMap<Operation *, LambdaExprInfo>;
 
-/// This analysis scans the IR for `cc::CreateCallableOp`s and gives each a
-/// unique number.
-struct CallableOpAnalysis {
-  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(CallableOpAnalysis)
+/// This analysis scans the IR for `cc::CreateLambdaOp`s and gives each a unique
+/// number.
+struct LambdaOpAnalysis {
+  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(LambdaOpAnalysis)
 
-  CallableOpAnalysis(ModuleOp op) : module(op) {
+  LambdaOpAnalysis(ModuleOp op) : module(op) {
     performAnalysis(op.getOperation());
   }
 
-  CallableOpAnalysisInfo getAnalysisInfo() const { return infoMap; }
+  LambdaOpAnalysisInfo getAnalysisInfo() const { return infoMap; }
 
 private:
   void performAnalysis(Operation *op) {
-    op->walk([&](cudaq::cc::CreateCallableOp appOp) {
+    op->walk([&](cudaq::cc::CreateLambdaOp appOp) {
       SmallVector<Value> freeValues;
-      // Walk over the body of the CreateCallableOp and find all the free
-      // values. Add each of them to the list.
+      // Walk over the body of the CreateLambdaOp and find all the free values.
+      // Add each of them to the list.
       appOp.walk([&](Operation *op) {
         auto addFreeValue = [&](Value oper) {
           bool found = false;
@@ -80,17 +77,16 @@ private:
         };
         for (Value oper : op->getOperands()) {
           if (auto *operOp = oper.getDefiningOp()) {
-            if (operOp->getParentOfType<cudaq::cc::CreateCallableOp>() != appOp)
+            if (operOp->getParentOfType<cudaq::cc::CreateLambdaOp>() != appOp)
               addFreeValue(oper);
           } else if (auto arg = dyn_cast<BlockArgument>(oper)) {
             auto *argOp = arg.getOwner()->getParentOp();
-            auto argCallable = dyn_cast<cudaq::cc::CreateCallableOp>(argOp);
-            if (argCallable) {
-              if (argCallable != appOp)
+            auto argLambda = dyn_cast<cudaq::cc::CreateLambdaOp>(argOp);
+            if (argLambda) {
+              if (argLambda != appOp)
                 addFreeValue(oper);
             } else {
-              if (argOp->getParentOfType<cudaq::cc::CreateCallableOp>() !=
-                  appOp)
+              if (argOp->getParentOfType<cudaq::cc::CreateLambdaOp>() != appOp)
                 addFreeValue(oper);
             }
           } else {
@@ -98,15 +94,15 @@ private:
           }
         }
       });
-      // Add this CreateCallableOp to the map with its unique number and list of
+      // Add this CreateLambdaOp to the map with its unique number and list of
       // free values.
-      CallableExprInfo info = {counter++, freeValues};
+      LambdaExprInfo info = {counter++, freeValues};
       infoMap.insert(std::make_pair(appOp.getOperation(), std::move(info)));
     });
   }
 
   ModuleOp module;
-  CallableOpAnalysisInfo infoMap;
+  LambdaOpAnalysisInfo infoMap;
   unsigned counter = 0;
 };
 
@@ -115,7 +111,7 @@ private:
 struct ComputeActionOpPattern
     : public OpRewritePattern<quake::ComputeActionOp> {
   explicit ComputeActionOpPattern(MLIRContext *ctx,
-                                  const CallableOpAnalysisInfo &info)
+                                  const LambdaOpAnalysisInfo &info)
       : OpRewritePattern(ctx), infoMap(info) {}
 
   LogicalResult matchAndRewrite(quake::ComputeActionOp comAct,
@@ -139,7 +135,7 @@ struct ComputeActionOpPattern
   SymbolRefAttr getCallee(MLIRContext *ctx, Value val) const {
     if (auto *op = val.getDefiningOp())
       if (auto iter = infoMap.find(op); iter != infoMap.end())
-        return getLiftedCallableSymbol(ctx, iter->second.counter);
+        return getLiftedLambdaSymbol(ctx, iter->second.counter);
     return {};
   }
 
@@ -150,7 +146,7 @@ struct ComputeActionOpPattern
     return {};
   }
 
-  const CallableOpAnalysisInfo &infoMap;
+  const LambdaOpAnalysisInfo &infoMap;
 };
 
 /// Convert a call of a callable expression. A callable expression differs from
@@ -173,7 +169,7 @@ struct CallCallableOpPattern
     auto closureTy = closure.getType();
 
     // For a callable, call the trampoline with the closure data.
-    if (auto lambTy = dyn_cast<cudaq::cc::CallableType>(closureTy)) {
+    if (auto lambTy = dyn_cast<cudaq::cc::LambdaType>(closureTy)) {
       auto dynFunc = rewriter.create<cudaq::cc::CallableFuncOp>(
           loc, call.getFunctionType(), closure);
       rewriter.replaceOpWithNewOp<func::CallIndirectOp>(call, dynFunc,
@@ -193,23 +189,23 @@ struct CallCallableOpPattern
   }
 };
 
-class CallableLiftingPass
-    : public cudaq::opt::CallableLiftingBase<CallableLiftingPass> {
+class LambdaLiftingPass
+    : public cudaq::opt::LambdaLiftingBase<LambdaLiftingPass> {
 public:
   void runOnOperation() override {
     ModuleOp module = getOperation();
     auto *ctx = module.getContext();
-    CallableOpAnalysis analysis(module);
-    auto callableInfo = analysis.getAnalysisInfo();
-    if (!callableInfo.empty()) {
-      // (1) Lift the callable expressions to first-class functions.
-      liftAllCallables(callableInfo);
-      LLVM_DEBUG(llvm::dbgs() << "After all callables lifted:\n"
+    LambdaOpAnalysis analysis(module);
+    auto lambdaInfo = analysis.getAnalysisInfo();
+    if (!lambdaInfo.empty()) {
+      // (1) Lift the lambda expressions to first-class functions.
+      liftAllLambdas(lambdaInfo);
+      LLVM_DEBUG(llvm::dbgs() << "After all lambdas lifted:\n"
                               << module << '\n');
 
-      // (2) Rewrite the users of callable expressions.
+      // (2) Rewrite the users of lambda expressions.
       RewritePatternSet patterns(ctx);
-      patterns.insert<ComputeActionOpPattern>(ctx, callableInfo);
+      patterns.insert<ComputeActionOpPattern>(ctx, lambdaInfo);
       patterns.insert<CallCallableOpPattern>(ctx);
       ConversionTarget target(*ctx);
       target.addLegalDialect<quake::QuakeDialect, cudaq::cc::CCDialect,
@@ -217,13 +213,13 @@ public:
       target.addIllegalOp<quake::ComputeActionOp, cudaq::cc::CallCallableOp>();
 
       if (failed(applyPartialConversion(module, target, std::move(patterns)))) {
-        emitError(module.getLoc(), "failed to lift callables");
+        emitError(module.getLoc(), "failed to lift lambdas");
         signalPassFailure();
       }
     }
   }
 
-  /// Scan the module for callable expressions. For each callable expression, we
+  /// Scan the module for lambda expressions. For each lambda expression, we
   /// perform the following tasks.
   ///
   /// 1. Create a local struct, <i>s</i>.
@@ -231,26 +227,26 @@ public:
   /// 3. Insert any free values into <i>s</i>.
   /// 4. Replace op with a cc.instantiate_callable.
   /// 5. Create the callable thunk function to unpack <i>s</i>.
-  /// 6. Create the lifted function, a copy of the cc.create_callable.
-  void liftAllCallables(CallableOpAnalysisInfo &infoMap) {
+  /// 6. Create the lifted function, a copy of the cc.create_lambda.
+  void liftAllLambdas(LambdaOpAnalysisInfo &infoMap) {
     auto module = getOperation();
     auto *ctx = module.getContext();
     IRRewriter rewriter(ctx);
     rewriter.startRootUpdate(module);
-    CallableOpAnalysisInfo newInfoMap(infoMap);
-    for (auto &[op, callableInfo] : infoMap) {
-      auto callable = dyn_cast<cudaq::cc::CreateCallableOp>(op);
-      assert(callable && "must be a cc.create_callable");
-      auto loc = callable.getLoc();
-      auto iter = infoMap.find(callable.getOperation());
+    LambdaOpAnalysisInfo newInfoMap(infoMap);
+    for (auto &[op, lambdaInfo] : infoMap) {
+      auto lambda = dyn_cast<cudaq::cc::CreateLambdaOp>(op);
+      assert(lambda && "must be a cc.create_lambda");
+      auto loc = lambda.getLoc();
+      auto iter = infoMap.find(lambda.getOperation());
       if (iter == infoMap.end()) {
-        emitError(callable.getLoc(), "callable expression not analyzed");
+        emitError(lambda.getLoc(), "lambda expression not analyzed");
         signalPassFailure();
         return;
       }
-      rewriter.setInsertionPoint(callable);
-      cudaq::cc::CallableType callableTy = callable.getType();
-      auto sig = callableTy.getSignature();
+      rewriter.setInsertionPoint(lambda);
+      cudaq::cc::LambdaType lambdaTy = lambda.getType();
+      auto sig = lambdaTy.getSignature();
       auto counter = iter->second.counter;
       ValueRange freeValues = iter->second.freeValues;
 
@@ -258,17 +254,17 @@ public:
       OpBuilder build(module.getBodyRegion());
 
       // Create callable thunk function. This function binds free variables to
-      // captured values in the closure then tail calls the lifted callable.
+      // captured values in the closure then tail calls the lifted lambda.
       SmallVector<NamedAttribute> emptyDict;
       build.setInsertionPointToEnd(module.getBody());
       {
         OpBuilder::InsertionGuard guard(build);
         SmallVector<Type> argTys;
-        argTys.push_back(callableTy);
+        argTys.push_back(lambdaTy);
         argTys.append(sig.getInputs().begin(), sig.getInputs().end());
         auto funTy = FunctionType::get(ctx, argTys, sig.getResults());
         auto thunk = build.create<func::FuncOp>(
-            loc, getThunkCallableName(counter), funTy, emptyDict);
+            loc, getThunkLambdaName(counter), funTy, emptyDict);
         thunk.setPrivate();
         auto *entry = thunk.addEntryBlock();
         build.setInsertionPointToEnd(entry);
@@ -281,16 +277,14 @@ public:
         }
         callableArgs.append(thunk.getArguments().begin() + 1,
                             thunk.getArguments().end());
-        auto result = build.create<func::CallOp>(loc, sig.getResults(),
-                                                 getLiftedCallableName(counter),
-                                                 callableArgs);
+        auto result = build.create<func::CallOp>(
+            loc, sig.getResults(), getLiftedLambdaName(counter), callableArgs);
         build.create<func::ReturnOp>(loc, sig.getResults(),
                                      result.getResults());
       }
 
-      // Create a new callable function to lift the expression into. This
-      // function should be inlined into the callable thunk function, if any,
-      // ultimately.
+      // Create a new lambda function to lift the expression into. This function
+      // should be inlined into the callable thunk function, if any, ultimately.
       {
         OpBuilder::InsertionGuard guard(build);
         SmallVector<Type> argTys(freeValues.getTypes().begin(),
@@ -299,15 +293,15 @@ public:
         auto funTy = FunctionType::get(ctx, argTys, sig.getResults());
         build.setInsertionPointToEnd(module.getBody());
         auto func = build.create<func::FuncOp>(
-            loc, getLiftedCallableName(counter), funTy, emptyDict);
+            loc, getLiftedLambdaName(counter), funTy, emptyDict);
         func.setPrivate();
         auto *entry = func.addEntryBlock();
         // Add entry block, block arguments for free variables to a renaming
         // map.
         IRMapping blockAndValueMap;
         // TODO: Block mapping doesn't appear to work as expected.
-        // auto *callableEntry = &callable.getRegion().front();
-        // blockAndValueMap.map(callableEntry, entry);
+        // auto *lambdaEntry = &lambda.getRegion().front();
+        // blockAndValueMap.map(lambdaEntry, entry);
 
         // Add free variables to value map.
         for (auto i : llvm::enumerate(freeValues))
@@ -315,12 +309,12 @@ public:
         auto freeOffset = freeValues.size();
         // Add arguments to value map with adjusted positions.
         for (auto i :
-             llvm::enumerate(callable.getRegion().front().getArguments())) {
+             llvm::enumerate(lambda.getRegion().front().getArguments())) {
           blockAndValueMap.map(i.value(),
                                entry->getArgument(i.index() + freeOffset));
         }
-        // Clone the callable's region into the new function.
-        rewriter.cloneRegionBefore(callable.getRegion(), func.getRegion(),
+        // Clone the lambda's region into the new function.
+        rewriter.cloneRegionBefore(lambda.getRegion(), func.getRegion(),
                                    func.getRegion().end(), blockAndValueMap);
         build.setInsertionPointToEnd(entry);
         auto nextBlockIter = ++func.getBlocks().begin();
@@ -329,11 +323,11 @@ public:
       }
 
       SymbolRefAttr closureSymbol =
-          FlatSymbolRefAttr::get(ctx, getThunkCallableName(counter));
+          FlatSymbolRefAttr::get(ctx, getThunkLambdaName(counter));
       auto instantiate =
           rewriter.replaceOpWithNewOp<cudaq::cc::InstantiateCallableOp>(
-              callable, callableTy, closureSymbol, freeValues);
-      newInfoMap[instantiate.getOperation()] = callableInfo;
+              lambda, lambdaTy, closureSymbol, freeValues);
+      newInfoMap[instantiate.getOperation()] = lambdaInfo;
       LLVM_DEBUG(llvm::dbgs() << module << '\n');
     }
     rewriter.finalizeRootUpdate(module);
@@ -343,6 +337,6 @@ public:
 };
 } // namespace
 
-std::unique_ptr<mlir::Pass> cudaq::opt::createCallableLiftingPass() {
-  return std::make_unique<CallableLiftingPass>();
+std::unique_ptr<mlir::Pass> cudaq::opt::createLambdaLiftingPass() {
+  return std::make_unique<LambdaLiftingPass>();
 }

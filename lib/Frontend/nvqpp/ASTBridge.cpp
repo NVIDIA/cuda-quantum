@@ -229,21 +229,21 @@ public:
     return true;
   }
 
-  bool TraverseCallableExpr(clang::LambdaExpr *x) {
+  bool TraverseLambdaExpr(clang::LambdaExpr *x) {
     bool saveQuantumTypesNotAllowed = quantumTypesNotAllowed;
-    // Rationale: a callable expression may be passed from classical C++ code
-    // into a quantum kernel. It is therefore natural to allow the callable
-    // expression to use quantum types.
+    // Rationale: a lambda expression may be passed from classical C++ code into
+    // a quantum kernel. It is therefore natural to allow the lambda expression
+    // to use quantum types.
     quantumTypesNotAllowed = false;
     auto result = Base::TraverseLambdaExpr(x);
     quantumTypesNotAllowed = saveQuantumTypesNotAllowed;
     return result;
   }
 
-  bool VisitCallableExpr(clang::LambdaExpr *callable) {
+  bool VisitLambdaExpr(clang::LambdaExpr *lambda) {
     if (ignoreTemplate)
       return true;
-    if (const auto *cxxMethodDecl = callable->getCallOperator())
+    if (const auto *cxxMethodDecl = lambda->getCallOperator())
       if (const auto *f = cxxMethodDecl->getAsFunction()->getDefinition();
           f && cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(f))
         processQpu(cudaq::details::getTagNameOfFunctionDecl(f, mangler), f);

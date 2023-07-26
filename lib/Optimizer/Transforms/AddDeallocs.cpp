@@ -209,21 +209,21 @@ struct DeallocPattern : public OpRewritePattern<A> {
 };
 
 using FuncDeallocPattern = DeallocPattern<func::FuncOp, func::ReturnOp>;
-using CallableDeallocPattern =
-    DeallocPattern<cudaq::cc::CreateCallableOp, cudaq::cc::ReturnOp>;
+using LambdaDeallocPattern =
+    DeallocPattern<cudaq::cc::CreateLambdaOp, cudaq::cc::ReturnOp>;
 using ScopeDeallocPattern =
     DeallocPattern<cudaq::cc::ScopeOp, cudaq::cc::ContinueOp>;
 
-/// This pass adds quake.dealloc operations to functions and callable
-/// expressions to deallocate any quantum objects as allocated with quake.alloca
-/// operations. Unlike classical objects that are stack allocated, quantum
-/// objects must be explicitly deallocated in final code generation, etc.
+/// This pass adds quake.dealloc operations to functions and λ expressions to
+/// deallocate any quantum objects as allocated with quake.alloca operations.
+/// Unlike classical objects that are stack allocated, quantum objects must be
+/// explicitly deallocated in final code generation, etc.
 ///
 /// It is the responsibility of this pass to add the deallocations in cases
 /// where there is only high-level structured control-flow present.
-/// Specifically, a operations of type func.func, cc.scope, and
-/// cc.create_callable may have quake.alloca operations which are not paired
-/// with quake.dealloc operations.
+/// Specifically, a operations of type func.func, cc.scope, and cc.create_lambda
+/// may have quake.alloca operations which are not paired with quake.dealloc
+/// operations.
 ///
 /// This pass should be run <em>after</em> the UnwindLowering pass, which adds
 /// dealloc ops along non-trivial control paths in the presence of global jumps.
@@ -252,11 +252,12 @@ public:
     auto *ctx = funcOp.getContext();
     DominanceInfo dom(funcOp);
     RewritePatternSet patterns(ctx);
-    patterns.insert<FuncDeallocPattern, ScopeDeallocPattern,
-                    CallableDeallocPattern>(ctx, allocInfo, dom);
+    patterns
+        .insert<FuncDeallocPattern, ScopeDeallocPattern, LambdaDeallocPattern>(
+            ctx, allocInfo, dom);
     ConversionTarget target(*ctx);
     target.addDynamicallyLegalOp<func::FuncOp, cudaq::cc::ScopeOp,
-                                 cudaq::cc::CreateCallableOp>(
+                                 cudaq::cc::CreateLambdaOp>(
         [&](Operation *op) { return !allocInfo.needsDeallocations(op); });
     target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
     if (failed(applyPartialConversion(funcOp, target, std::move(patterns)))) {

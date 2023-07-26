@@ -290,7 +290,7 @@ public:
       OpBuilder builder(op);
       if (op->hasTrait<cudaq::QuantumGate>()) {
         // If op is in a λ expr where the control is not needed, then skip it.
-        if (auto parent = op->getParentOfType<cudaq::cc::CreateCallableOp>())
+        if (auto parent = op->getParentOfType<cudaq::cc::CreateLambdaOp>())
           if (controlNotNeeded.count(parent))
             return;
 
@@ -349,7 +349,7 @@ public:
     }
     if (cudaq::opt::internal::hasCharacteristic(
             [](Operation &op) {
-              return isa<cudaq::cc::CreateCallableOp,
+              return isa<cudaq::cc::CreateLambdaOp,
                          cudaq::cc::InstantiateCallableOp>(op);
             },
             *func.getOperation())) {

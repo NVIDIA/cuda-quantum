@@ -99,10 +99,10 @@ namespace details {
 std::string getCxxMangledDeclName(clang::GlobalDecl decl,
                                   clang::ItaniumMangleContext *mangler);
 
-/// Use the name mangler to create a unique name for this type. Used with
-/// callable expressions. The unique name will also be available to the
-/// programmer through the use of `typeid(callable).name()` for introspection,
-/// looking up the kernel code.
+/// Use the name mangler to create a unique name for this type. Used with lambda
+/// expressions. The unique name will also be available to the programmer
+/// through the use of `typeid(lambda).name()` for introspection, looking up the
+/// kernel code.
 std::string getCxxMangledTypeName(clang::QualType ty,
                                   clang::ItaniumMangleContext *mangler);
 
@@ -249,8 +249,8 @@ public:
   bool TraverseBinaryOperator(clang::BinaryOperator *x,
                               DataRecursionQueue *q = nullptr);
   bool TraverseCallExpr(clang::CallExpr *x, DataRecursionQueue *q = nullptr);
-  bool TraverseCallableExpr(clang::LambdaExpr *x,
-                            DataRecursionQueue *q = nullptr);
+  bool TraverseLambdaExpr(clang::LambdaExpr *x,
+                          DataRecursionQueue *q = nullptr);
 
   bool isVectorOfQubitRefs(clang::CXXConstructExpr *x);
   bool visitFunctionDeclAsCallArg(clang::FunctionDecl *x);
@@ -276,8 +276,8 @@ public:
   /// Convert \p t, a builtin type, to the corresponding MLIR type.
   mlir::Type builtinTypeToType(const clang::BuiltinType *t);
 
-  /// Helper to convert a FunctionType to a CallableType.
-  bool convertToCallable();
+  /// Helper to convert a FunctionType to a LambdaType.
+  bool convertToLambda();
 
   bool shouldVisitImplicitCode() {
     bool result = visitImplicitCode;

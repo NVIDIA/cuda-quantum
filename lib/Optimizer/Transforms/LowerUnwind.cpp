@@ -66,7 +66,7 @@ struct UnwindOpAnalysis {
 
 private:
   Operation *getParent(Operation *p) {
-    return (!p || isa<func::FuncOp, cudaq::cc::CreateCallableOp>(p))
+    return (!p || isa<func::FuncOp, cudaq::cc::CreateLambdaOp>(p))
                ? nullptr
                : p->getParentOp();
   }
@@ -84,7 +84,7 @@ private:
            !isa<cudaq::cc::LoopOp>(parent) && !asPrimitive;
            parent = parent->getParentOp())
         asPrimitive =
-            isa<func::FuncOp, cudaq::cc::CreateCallableOp, cudaq::cc::ScopeOp>(
+            isa<func::FuncOp, cudaq::cc::CreateLambdaOp, cudaq::cc::ScopeOp>(
                 parent);
     }
     auto *op = unwindOp.getOperation();
@@ -149,7 +149,7 @@ private:
     // 3) Find scopes that contain quantum allocations.
     DenseMap<Operation *, SmallVector<Operation *>> scopeAllocMap;
     for (auto &pr : infoMap.opParentMap) {
-      if (isa<func::FuncOp, cudaq::cc::ScopeOp, cudaq::cc::CreateCallableOp>(
+      if (isa<func::FuncOp, cudaq::cc::ScopeOp, cudaq::cc::CreateLambdaOp>(
               pr.first)) {
         SmallVector<Operation *> allocas;
         for (auto &region : pr.first->getRegions())
@@ -468,8 +468,8 @@ struct FuncLikeOpPattern : public OpRewritePattern<OP> {
 };
 
 using FuncOpPattern = FuncLikeOpPattern<func::FuncOp, func::ReturnOp>;
-using CreateCallableOpPattern =
-    FuncLikeOpPattern<cudaq::cc::CreateCallableOp, cudaq::cc::ReturnOp>;
+using CreateLambdaOpPattern =
+    FuncLikeOpPattern<cudaq::cc::CreateLambdaOp, cudaq::cc::ReturnOp>;
 
 /// An `if` statement that contains an unwind macro is always lowered to a
 /// primitive CFG. The presence or absence of scopes between the unwind op and
@@ -790,7 +790,7 @@ public:
     patterns.insert<UnwindBreakOpPattern, UnwindContinueOpPattern,
                     UnwindReturnOpPattern, IfOpPattern, LoopOpPattern>(
         ctx, unwindInfo);
-    patterns.insert<FuncOpPattern, CreateCallableOpPattern, ScopeOpPattern>(
+    patterns.insert<FuncOpPattern, CreateLambdaOpPattern, ScopeOpPattern>(
         ctx, unwindInfo, domInfo);
     ConversionTarget target(*ctx);
     target.addIllegalOp<cudaq::cc::UnwindBreakOp, cudaq::cc::UnwindContinueOp,
@@ -802,7 +802,7 @@ public:
         return true;
       return !iter->second.asPrimitive;
     });
-    target.addDynamicallyLegalOp<func::FuncOp, cudaq::cc::CreateCallableOp>(
+    target.addDynamicallyLegalOp<func::FuncOp, cudaq::cc::CreateLambdaOp>(
         [&](Operation *op) {
           if (!unwindInfo.opParentMap.count(op))
             return true;

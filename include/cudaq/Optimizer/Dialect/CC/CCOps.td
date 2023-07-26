@@ -432,7 +432,7 @@ def cc_BreakOp : CCOp<"break",
 }
 
 def cc_ReturnOp : CCOp<"return", [Pure, ReturnLike, Terminator,
-        ParentOneOf<["mlir::func::FuncOp", "CreateCallableOp"]>]> {
+        ParentOneOf<["mlir::func::FuncOp", "CreateLambdaOp"]>]> {
   let summary = "Return (exiting) branch.";
   let description = [{
     A ReturnOp returns control from the current activation of a λ expression to
@@ -442,13 +442,13 @@ def cc_ReturnOp : CCOp<"return", [Pure, ReturnLike, Terminator,
     callable.
 
     ```mlir
-      %callable = cc.create_callable {
+      %lambda = cc.create_lambda {
        ^entry(%arg0 : i32):
         ...
         cc.return
-      } : !cc.callable<(i32) -> ()>
+      } : !cc.lambda<(i32) -> ()>
       ...
-      cc.call_callable %callable, %20 : (!cc.callable<(i32) -> ()>, i32) -> ()
+      cc.call_callable %lambda, %20 : (!cc.lambda<(i32) -> ()>, i32) -> ()
     ```
   }];
 
@@ -1099,29 +1099,29 @@ def cc_FuncToPtrOp : CCOp<"func_ptr", [Pure]> {
 }
 
 //===----------------------------------------------------------------------===//
-// Callable expressions.
+// Lambda (λ) expressions.
 //===----------------------------------------------------------------------===//
 
-def cc_CreateCallableOp : CCOp<"create_callable",
+def cc_CreateLambdaOp : CCOp<"create_lambda",
         [AutomaticAllocationScope, RecursiveMemoryEffects,
          SingleBlockImplicitTerminator<"cudaq::cc::ReturnOp">]> {
-  let summary = "Create an abstract callable.";
+  let summary = "Create a lambda expression as an abstract callable.";
   let description = [{
-    A CreateCallableOp creates a callable expression. This is a Callable
+    A CreateLambdaOp creates a λ expression. A λ expression is a Callable
     instance that may have associated data (or data references) that it
     captures. Currently, captured data is implied by using values from the
-    parent operation's regions in the body of the CreateCallableOp.
+    parent operation's regions in the body of the CreateLambdaOp.
 
     Example:
 
     ```mlir
-      %callable = cc.create_callable {
+      %lambda = cc.create_lambda {
        ^entry(%arg0 : i32):
         ...
         cc.return
-      } : !cc.callable<(i32) -> ()>
+      } : !cc.lambda<(i32) -> ()>
       ...
-      cc.call_callable %callable, %20 : (!cc.callable<(i32) -> ()>, i32) -> ()
+      cc.call_callable %lambda, %20 : (!cc.lambda<(i32) -> ()>, i32) -> ()
     ```
   }];
 
@@ -1148,7 +1148,7 @@ def cc_CreateCallableOp : CCOp<"create_callable",
     }
 
     mlir::Region &getBody() { return getInitRegion(); }
-    llvm::StringRef getName() { return "*callable*"; }
+    llvm::StringRef getName() { return "*lambda*"; }
   }];
 }
 
@@ -1172,23 +1172,23 @@ def cc_CallCallableOp : CCOp<"call_callable", [CallOpInterface]> {
     (`operator()`) and a `this` pointer to the captured data. In this case, all
     values captured in the closure are data members of the instance.
 
-    For a callable expression, the call target will involve creating an object
+    For a λ expression callable, the call target will involve creating an object
     at the instantiation site (InstantiateCallableOp). This object will capture
     a pointer to a trampoline function and construct a tuple for all captured
     variables. The compiler-generated trampoline will know how to unpack the
-    tuple and call the ultimate outlined callable function with the unpacked
+    tuple and call the ultimate outlined lambda function with the unpacked
     captured variables passed as individual arguments.
 
     Example:
 
     ```mlir
-      %callable = cc.create_callable {
+      %lambda = cc.create_lambda {
        ^entry(%arg0 : i32):
         ...
         cc.return
-      } : !cc.callable<(i32) -> ()>
+      } : !cc.lambda<(i32) -> ()>
       ...
-      cc.call_callable %callable, %20 : (!cc.callable<(i32) -> ()>, i32) -> ()
+      cc.call_callable %lambda, %20 : (!cc.lambda<(i32) -> ()>, i32) -> ()
     ```
   }];
 
@@ -1225,46 +1225,46 @@ def cc_CallCallableOp : CCOp<"call_callable", [CallOpInterface]> {
 def cc_InstantiateCallableOp : CCOp<"instantiate_callable", [Pure]> {
   let summary = "Construction of a callable object.";
   let description = [{
-    An InstantiateCallableOp is created by the compiler when lifting a callable
-    expression, i.e. a CreateCallableOp. The CreateCallableOp is replaced at its
+    An InstantiateCallableOp is created by the compiler when lifting a λ
+    expression, i.e. a CreateLambdaOp. The CreateLambdaOp is replaced at its
     definition site by an InstantiateCallableOp. It is also replaced by a pair
-    of functions, a trampoline and the code from the CreateCallableOp's body.
+    of functions, a trampoline and the code from the CreateLambdaOp's body.
 
     The InstantiateCallableOp constructs a pair. The pair is a pointer to the
     associated currying trampoline function and a tuple of the captured values.
 
     Example:
 
-    Take the following callable expression.
+    Take the following λ expression.
 
     ```mlir
       %88 = ... : f64
       ...
-      %callable = cc.create_callable {
+      %lambda = cc.create_lambda {
        ^entry(%arg0 : i32):
         ... %88 ...
         cc.return
-      } : !cc.callable<(i32) -> ()>
+      } : !cc.lambda<(i32) -> ()>
     ```
 
-    Since this callable expression captures the value %88 from the parent, we have to
-    instantiate a closure that includes this %88 value when we lift the callable.
-    The lifted callable is given the name `@lifted_callable.54` in the following. A
+    Since this λ expression captures the value %88 from the parent, we have to
+    instantiate a closure that includes this %88 value when we lift the λ.
+    The lifted λ is given the name `@lifted_lambda.54` in the following. A
     second function, `@stub.54`, unpacks the closure into arguments to the new
-    outlined callable function in the following example.
+    outlined λ function in the following example.
 
     ```mlir
-      %callable = cc.instantiate_callable @trampoline.54(%88) : (f64) -> !cc.callable<(i32) -> ()>
+      %lambda = cc.instantiate_callable @trampoline.54(%88) : (f64) -> !cc.lambda<(i32) -> ()>
       ...
 
       // Trampoline function
-      func.func private @trampoline.54(%arg0: !cc.callable<(i32) -> ()>, %arg1: i32) {
-        %0 = cc.callable_closure %arg0: !cc.callable<(i32) -> ()> -> f64
-        call @lifted_callable.54(%0, %arg1) : (f64, i32) -> ()
+      func.func private @trampoline.54(%arg0: !cc.lambda<(i32) -> ()>, %arg1: i32) {
+        %0 = cc.callable_closure %arg0: !cc.lambda<(i32) -> ()> -> f64
+        call @lifted_lambda.54(%0, %arg1) : (f64, i32) -> ()
       }
 
-      // Outlined body of original callable
-      func.func private @lifted_callable.54(%88: f64, %arg0: i32) {
+      // Outlined body of original lambda
+      func.func private @lifted_lambda.54(%88: f64, %arg0: i32) {
        ^entry:
         ... %88 ...
         cc.return
@@ -1296,10 +1296,10 @@ def cc_CallableFuncOp : CCOp<"callable_func", [Pure]> {
     Example:
 
     ```mlir
-      %0 = ... : !cc.callable<(i32) -> i8>
+      %0 = ... : !cc.lambda<(i32) -> i8>
       %1 = ... : i32
-      %2 = cc.callable_func %0 : (!cc.callable<(i32) -> i8>) -> ((!cc.callable<(i32) -> i8>, i32) -> i8)
-      %3 = call_indirect %2(%0, %1) : (!cc.callable<(i32) -> i8>, i32) -> i8
+      %2 = cc.callable_func %0 : (!cc.lambda<(i32) -> i8>) -> ((!cc.lambda<(i32) -> i8>, i32) -> i8)
+      %3 = call_indirect %2(%0, %1) : (!cc.lambda<(i32) -> i8>, i32) -> i8
     ```
 
     See also InstantiateCallableOp, CallableClosureOp.
@@ -1320,7 +1320,7 @@ def cc_CallableClosureOp : CCOp<"callable_closure", [Pure]> {
     CallableClosureOp can be used to retrieve the closure (data) from the
     callable object.
 
-    For a callable instantiated from a callable expression, the closure is unpacked
+    For a callable instantiated from a λ expression, the closure is unpacked
     and returned as transparently as a set of values. This is possible because
     a closure has a compile-time constant number of values and cannot be
     extended dynamically.
@@ -1334,10 +1334,10 @@ def cc_CallableClosureOp : CCOp<"callable_closure", [Pure]> {
     Example:
 
     ```mlir
-      %0 = ... !cc.callable<(i32) -> i8>
+      %0 = ... !cc.lambda<(i32) -> i8>
       %1 = ... : i32
-      %2:2 = cc.callable_closure %0 : (!cc.callable<(i32) -> i8>) -> (!quake.wire, i1)
-      %3 = call @lifted_callable.72(%2#0, %2#1, %1) : (!quake.wire, i1, i32) -> i8
+      %2:2 = cc.callable_closure %0 : (!cc.lambda<(i32) -> i8>) -> (!quake.wire, i1)
+      %3 = call @lifted_lambda.72(%2#0, %2#1, %1) : (!quake.wire, i1, i32) -> i8
     ```
 
     See also CallableFuncOp, InstantiateCallableOp.

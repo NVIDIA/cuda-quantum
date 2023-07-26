@@ -992,7 +992,7 @@ bool QuakeBridgeVisitor::VisitMaterializeTemporaryExpr(
   auto loc = toLocation(x->getSourceRange());
   auto ty = genType(x->getType());
 
-  // The following cases are λ expressions and quantum data. In those cases,
+  // The following cases are callable expressions and quantum data. In those cases,
   // there is nothing to materialize, so we can just pass the Value on the top
   // of the stack.
   if (isa<cc::CallableType>(ty)) {

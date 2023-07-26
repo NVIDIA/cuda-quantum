@@ -1059,18 +1059,18 @@ void cudaq::cc::IfOp::getSuccessorRegions(
 }
 
 //===----------------------------------------------------------------------===//
-// CreateCallableOp
+// CreateLambdaOp
 //===----------------------------------------------------------------------===//
 
-void cudaq::cc::CreateCallableOp::build(OpBuilder &builder,
-                                        OperationState &result,
-                                        cudaq::cc::CallableType callableTy,
-                                        BodyBuilderFn bodyBuilder) {
+void cudaq::cc::CreateLambdaOp::build(OpBuilder &builder,
+                                      OperationState &result,
+                                      cudaq::cc::CallableType lambdaTy,
+                                      BodyBuilderFn bodyBuilder) {
   auto *bodyRegion = result.addRegion();
   bodyRegion->push_back(new Block);
-  result.addTypes(TypeRange{callableTy});
+  result.addTypes(TypeRange{lambdaTy});
   auto &bodyBlock = bodyRegion->front();
-  auto argTys = callableTy.getSignature().getInputs();
+  auto argTys = lambdaTy.getSignature().getInputs();
   SmallVector<Location> locations(argTys.size(), result.location);
   bodyBlock.addArguments(argTys, locations);
   OpBuilder::InsertionGuard guard(builder);
@@ -1079,7 +1079,7 @@ void cudaq::cc::CreateCallableOp::build(OpBuilder &builder,
     bodyBuilder(builder, result.location);
 }
 
-void cudaq::cc::CreateCallableOp::print(OpAsmPrinter &p) {
+void cudaq::cc::CreateLambdaOp::print(OpAsmPrinter &p) {
   p << ' ';
   bool hasArgs = getRegion().getNumArguments() != 0;
   bool hasRes =
@@ -1090,18 +1090,17 @@ void cudaq::cc::CreateCallableOp::print(OpAsmPrinter &p) {
   p.printOptionalAttrDict((*this)->getAttrs(), {"signature"});
 }
 
-ParseResult cudaq::cc::CreateCallableOp::parse(OpAsmParser &parser,
-                                               OperationState &result) {
+ParseResult cudaq::cc::CreateLambdaOp::parse(OpAsmParser &parser,
+                                             OperationState &result) {
   auto *body = result.addRegion();
-  Type callableTy;
+  Type lambdaTy;
   if (parser.parseRegion(*body, /*arguments=*/{}, /*argTypes=*/{}) ||
-      parser.parseColonType(callableTy) ||
+      parser.parseColonType(lambdaTy) ||
       parser.parseOptionalAttrDict(result.attributes))
     return failure();
-  result.addAttribute("signature", TypeAttr::get(callableTy));
-  result.addTypes(callableTy);
-  CreateCallableOp::ensureTerminator(*body, parser.getBuilder(),
-                                     result.location);
+  result.addAttribute("signature", TypeAttr::get(lambdaTy));
+  result.addTypes(lambdaTy);
+  CreateLambdaOp::ensureTerminator(*body, parser.getBuilder(), result.location);
   return success();
 }
 
@@ -1112,8 +1111,8 @@ ParseResult cudaq::cc::CreateCallableOp::parse(OpAsmParser &parser,
 LogicalResult cudaq::cc::CallCallableOp::verify() {
   FunctionType funcTy;
   auto ty = getCallee().getType();
-  if (auto callableTy = dyn_cast<cudaq::cc::CallableType>(ty))
-    funcTy = callableTy.getSignature();
+  if (auto lambdaTy = dyn_cast<cudaq::cc::CallableType>(ty))
+    funcTy = lambdaTy.getSignature();
   else if (auto fTy = dyn_cast<FunctionType>(ty))
     funcTy = fTy;
   else
@@ -1144,9 +1143,9 @@ LogicalResult cudaq::cc::CallCallableOp::verify() {
 LogicalResult cudaq::cc::ReturnOp::verify() {
   auto *op = getOperation();
   auto resultTypes = [&]() {
-    if (auto func = op->getParentOfType<CreateCallableOp>()) {
-      auto callableTy = cast<CallableType>(func->getResult(0).getType());
-      return SmallVector<Type>(callableTy.getSignature().getResults());
+    if (auto func = op->getParentOfType<CreateLambdaOp>()) {
+      auto lambdaTy = cast<CallableType>(func->getResult(0).getType());
+      return SmallVector<Type>(lambdaTy.getSignature().getResults());
     }
     if (auto func = op->getParentOfType<func::FuncOp>())
       return SmallVector<Type>(func.getResultTypes());
@@ -1157,7 +1156,7 @@ LogicalResult cudaq::cc::ReturnOp::verify() {
   if (getNumOperands() != resultTypes.size())
     return emitOpError("has ")
            << getNumOperands()
-           << " operands, but enclosing function/callable returns "
+           << " operands, but enclosing function/lambda returns "
            << resultTypes.size();
   for (auto ep :
        llvm::enumerate(llvm::zip(getOperands().getTypes(), resultTypes))) {
@@ -1166,7 +1165,7 @@ LogicalResult cudaq::cc::ReturnOp::verify() {
     if (std::get<0>(p) != std::get<1>(p))
       return emitOpError("type of return operand ")
              << i << " (" << std::get<0>(p)
-             << ") doesn't match function/callable result type ("
+             << ") doesn't match function/lambda result type ("
              << std::get<1>(p) << ')';
   }
   return success();
@@ -1304,9 +1303,9 @@ LogicalResult cudaq::cc::UnwindReturnOp::verify() {
   bool foundFunc = true;
   auto *op = getOperation();
   auto resultTypes = [&]() {
-    if (auto func = op->getParentOfType<CreateCallableOp>()) {
-      auto callableTy = cast<CallableType>(func->getResult(0).getType());
-      return SmallVector<Type>(callableTy.getSignature().getResults());
+    if (auto func = op->getParentOfType<CreateLambdaOp>()) {
+      auto lambdaTy = cast<CallableType>(func->getResult(0).getType());
+      return SmallVector<Type>(lambdaTy.getSignature().getResults());
     }
     if (auto func = op->getParentOfType<func::FuncOp>())
       return SmallVector<Type>(func.getResultTypes());
@@ -1314,14 +1313,13 @@ LogicalResult cudaq::cc::UnwindReturnOp::verify() {
     return SmallVector<Type>();
   }();
   if (!foundFunc)
-    return emitOpError("cannot find nearest enclosing function/callable");
+    return emitOpError("cannot find nearest enclosing function/lambda");
   if (getOperands().size() != resultTypes.size())
     return emitOpError(
-        "arity of arguments and function/callable result mismatch");
+        "arity of arguments and function/lambda result mismatch");
   for (auto p : llvm::zip(getOperands().getTypes(), resultTypes))
     if (std::get<0>(p) != std::get<1>(p))
-      return emitOpError(
-          "argument type mismatch with function/callable result");
+      return emitOpError("argument type mismatch with function/lambda result");
   return success();
 }
 
