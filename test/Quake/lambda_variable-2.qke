@@ -10,20 +10,20 @@
 // RUN: cudaq-opt --lambda-lifting --canonicalize %s | cudaq-translate --convert-to=qir | FileCheck --check-prefixes=QIR %s
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_b(
-// CHECK-SAME:        %[[VAL_0:.*]]: !cc.lambda<() -> ()>)
+// CHECK-SAME:        %[[VAL_0:.*]]: !cc.callable<() -> ()>)
 // CHECK:           return
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_a()
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<4>
-// CHECK:           %[[VAL_2:.*]] = cc.instantiate_callable @__nvqpp__callable.thunk.lambda.0(%[[VAL_0]]) : (!quake.veq<4>) -> !cc.lambda<() -> ()>
-// CHECK:           call @__nvqpp__mlirgen__kernel_b(%[[VAL_2]]) : (!cc.lambda<() -> ()>) -> ()
+// CHECK:           %[[VAL_2:.*]] = cc.instantiate_callable @__nvqpp__callable.thunk.lambda.0(%[[VAL_0]]) : (!quake.veq<4>) -> !cc.callable<() -> ()>
+// CHECK:           call @__nvqpp__mlirgen__kernel_b(%[[VAL_2]]) : (!cc.callable<() -> ()>) -> ()
 // CHECK:           return
 // CHECK:         }
 
 // CHECK-LABEL:   func.func private @__nvqpp__callable.thunk.lambda.0(
-// CHECK-SAME:        %[[VAL_0:.*]]: !cc.lambda<() -> ()>) {
-// CHECK:           %[[VAL_1:.*]] = cc.callable_closure %[[VAL_0]] : (!cc.lambda<() -> ()>) -> !quake.veq<4>
+// CHECK-SAME:        %[[VAL_0:.*]]: !cc.callable<() -> ()>) {
+// CHECK:           %[[VAL_1:.*]] = cc.callable_closure %[[VAL_0]] : (!cc.callable<() -> ()>) -> !quake.veq<4>
 // CHECK:           call @__nvqpp__lifted.lambda.0(%[[VAL_1]]) : (!quake.veq<4>) -> ()
 // CHECK:           return
 // CHECK:         }
@@ -72,7 +72,7 @@
 // QIR:         call void @__quantum__qis__h(
 
 module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel_a = "_ZN8kernel_aclEv", __nvqpp__mlirgen__kernel_b = "_ZN8kernel_bclEOSt8functionIFvvEE"}} {
-  func.func @__nvqpp__mlirgen__kernel_b(%arg0: !cc.lambda<() -> ()>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  func.func @__nvqpp__mlirgen__kernel_b(%arg0: !cc.callable<() -> ()>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     return
   }
   func.func @__nvqpp__mlirgen__kernel_a() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
@@ -102,8 +102,8 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel_a = "_ZN8k
           }
         }
       }
-    } : !cc.lambda<() -> ()>
-    call @__nvqpp__mlirgen__kernel_b(%5) : (!cc.lambda<() -> ()>) -> ()
+    } : !cc.callable<() -> ()>
+    call @__nvqpp__mlirgen__kernel_b(%5) : (!cc.callable<() -> ()>) -> ()
     return
   }
 }

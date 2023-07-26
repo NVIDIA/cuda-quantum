@@ -32,13 +32,13 @@
           quake.h %12 : (!quake.ref) -> ()
         }
       }
-    } : !cc.lambda<() -> ()>
+    } : !cc.callable<() -> ()>
     %9 = cc.create_lambda {
       cc.scope {
         quake.z [%4] %7 : (!quake.veq<?>, !quake.ref) -> ()
       }
-    } : !cc.lambda<() -> ()>
-    quake.compute_action %8, %9 : !cc.lambda<() -> ()>, !cc.lambda<() -> ()>
+    } : !cc.callable<() -> ()>
+    quake.compute_action %8, %9 : !cc.callable<() -> ()>, !cc.callable<() -> ()>
     return
   }
 
@@ -51,11 +51,11 @@
 // CHECK:               %[[VAL_16:.*]] = quake.extract_ref
 // CHECK:               quake.h %[[VAL_16]]
 // CHECK:             }
-// CHECK:           } : !cc.lambda<() -> ()>
+// CHECK:           } : !cc.callable<() -> ()>
 // CHECK:           %[[VAL_17:.*]] = cc.create_lambda {
 // CHECK-NOT:       cc.scope
 // CHECK:             quake.z [%{{.*}}] %{{.*}} :
-// CHECK:           } : !cc.lambda<() -> ()>
+// CHECK:           } : !cc.callable<() -> ()>
 // CHECK:           quake.compute_action
 // CHECK:           return
 

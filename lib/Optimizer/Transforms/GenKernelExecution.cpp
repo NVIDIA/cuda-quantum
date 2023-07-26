@@ -29,8 +29,8 @@ using namespace mlir;
 
 namespace {
 // Define some constant function name strings.
-static constexpr const char cudaqRegisterCallableName[] =
-    "cudaqRegisterCallableName";
+static constexpr const char cudaqRegisterLambdaName[] =
+    "cudaqRegisterLambdaName";
 static constexpr const char cudaqRegisterArgsCreator[] =
     "cudaqRegisterArgsCreator";
 static constexpr const char cudaqRegisterKernelName[] =
@@ -784,7 +784,7 @@ public:
           loc, std::nullopt, cudaqRegisterArgsCreator,
           ValueRange{castKernRef, castLoadArgsCreator});
 
-      // Check if this is a callable mangled name
+      // Check if this is a lambda mangled name
       auto demangledPtr = abi::__cxa_demangle(
           mangledAttr.getValue().str().c_str(), nullptr, nullptr, nullptr);
       if (demangledPtr) {
@@ -796,35 +796,35 @@ public:
           builder.setInsertionPointToStart(module.getBody());
 
           // Create the function if it doesn't already exist.
-          if (!module.lookupSymbol<LLVM::LLVMFuncOp>(cudaqRegisterCallableName))
+          if (!module.lookupSymbol<LLVM::LLVMFuncOp>(cudaqRegisterLambdaName))
             builder.create<LLVM::LLVMFuncOp>(
-                module.getLoc(), cudaqRegisterCallableName,
+                module.getLoc(), cudaqRegisterLambdaName,
                 LLVM::LLVMFunctionType::get(
                     cudaq::opt::factory::getVoidType(ctx),
                     {cudaq::opt::factory::getPointerType(ctx),
                      cudaq::opt::factory::getPointerType(ctx)}));
 
-          // Create this global name, it is unique for any callable
+          // Create this global name, it is unique for any Lambda
           // bc classNameStr contains the parentFunc + varName
-          auto callableName = builder.create<LLVM::GlobalOp>(
+          auto LambdaName = builder.create<LLVM::GlobalOp>(
               loc,
               cudaq::opt::factory::getStringType(ctx, demangledName.size() + 1),
               /*isConstant=*/true, LLVM::Linkage::External,
-              classNameStr + ".callableName",
+              classNameStr + ".LambdaName",
               builder.getStringAttr(demangledName + '\0'), /*alignment=*/0);
 
           builder.restoreInsertionPoint(insertPoint);
-          auto callableRef = builder.create<LLVM::AddressOfOp>(
-              loc, cudaq::opt::factory::getPointerType(callableName.getType()),
-              callableName.getSymName());
+          auto LambdaRef = builder.create<LLVM::AddressOfOp>(
+              loc, cudaq::opt::factory::getPointerType(LambdaName.getType()),
+              LambdaName.getSymName());
 
-          auto castCallableRef = builder.create<cudaq::cc::CastOp>(
-              loc, cudaq::opt::factory::getPointerType(ctx), callableRef);
+          auto castLambdaRef = builder.create<cudaq::cc::CastOp>(
+              loc, cudaq::opt::factory::getPointerType(ctx), lambdaRef);
           auto castKernelRef = builder.create<cudaq::cc::CastOp>(
               loc, cudaq::opt::factory::getPointerType(ctx), castKernRef);
           builder.create<LLVM::CallOp>(
-              loc, std::nullopt, cudaqRegisterCallableName,
-              ValueRange{castCallableRef, castKernelRef});
+              loc, std::nullopt, cudaqRegisterLambdaName,
+              ValueRange{castLambdaRef, castKernelRef});
         }
       }
 
