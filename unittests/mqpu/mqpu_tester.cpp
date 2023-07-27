@@ -22,7 +22,7 @@ TEST(MQPUTester, checkSimple) {
     x<cudaq::ctrl>(r, q);
   };
 
-  double result = cudaq::observe<cudaq::par::thread>(ansatz, h, 0.59);
+  double result = cudaq::observe<cudaq::execution::thread>(ansatz, h, 0.59);
   EXPECT_NEAR(result, -1.7487, 1e-3);
   printf("Get energy directly as double %lf\n", result);
 }
@@ -84,8 +84,8 @@ TEST(MQPUTester, checkLarge) {
   std::shuffle(cnot_pairs.begin(), cnot_pairs.end(), g);
 
   auto t1 = std::chrono::high_resolution_clock::now();
-  cudaq::observe<cudaq::par::thread>(kernel, H, nQubits, nLayers, cnot_pairs,
-                                     execParams);
+  cudaq::observe<cudaq::execution::thread>(kernel, H, nQubits, nLayers,
+                                           cnot_pairs, execParams);
   auto t2 = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double, std::milli> ms_double = t2 - t1;
   printf("Time %lf s\n", ms_double.count() * 1e-3);

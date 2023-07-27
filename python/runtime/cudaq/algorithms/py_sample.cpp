@@ -46,7 +46,7 @@ sample_result pySample(kernel_builder<> &builder, py::args args = {},
                     [&]() mutable { builder.jitAndInvoke(argData.data()); },
                     platform, kernelName, shots)
                     .value();
-  platform.set_noise(nullptr);
+  platform.reset_noise();
   return result;
 }
 
@@ -75,7 +75,7 @@ pySampleN(kernel_builder<> &kernel, py::args args = {},
     currentIter++;
     results.push_back(ret);
   }
-  platform.set_noise(nullptr);
+  platform.reset_noise();
   return results;
 }
 
@@ -237,25 +237,25 @@ Returns:
       py::arg("kernel"), py::kw_only(), py::arg("shots_count") = 1000,
       py::arg("noise_model") = py::none(),
       R"#(Broadcast the sample function over the input argument set.
-      For each argument type in the kernel signature, you must provide a
-      list of arguments of that type. This function samples the state of
-      the provided `kernel` at each set of arguments provided for the
-      specified number of circuit executions (`shots_count`).
-      Args:
-        kernel (:class:`Kernel`): The :class:`Kernel` to execute `shots_count` 
-           times on the QPU.
-        *arguments (Optional[Any]): The concrete values to evaluate the 
-           kernel. Each argument must be a list of instances of the
-           type specified by the kernel signature. Leave empty if the kernel
-           doesn't accept any arguments.
-        shots_count (Optional[int]): The number of kernel executions on the QPU.
-           Defaults to 1000. Key-word only.
-        noise_model (Optional[`NoiseModel`]): The optional :class:`NoiseModel`
-           to add noise to the kernel execution on the simulator. Defaults to an empty 
-           noise model.
-      Returns:
-        `list[SampleResult]` : A list of dictionary containing the measurement count
-           for each invocation of sample for the :class:`Kernel`.)#");
+For each argument type in the kernel signature, you must provide a
+list of arguments of that type. This function samples the state of
+the provided `kernel` at each set of arguments provided for the
+specified number of circuit executions (`shots_count`).
+Args:
+  kernel (:class:`Kernel`): The :class:`Kernel` to execute `shots_count` 
+      times on the QPU.
+  *arguments (Optional[Any]): The concrete values to evaluate the 
+      kernel. Each argument must be a list of instances of the
+      type specified by the kernel signature. Leave empty if the kernel
+      doesn't accept any arguments.
+  shots_count (Optional[int]): The number of kernel executions on the QPU.
+      Defaults to 1000. Key-word only.
+  noise_model (Optional[`NoiseModel`]): The optional :class:`NoiseModel`
+      to add noise to the kernel execution on the simulator. Defaults to an empty 
+      noise model.
+Returns:
+  `list[SampleResult]` : A list of dictionary containing the measurement count
+      for each invocation of sample for the :class:`Kernel`.)#");
 }
 
 } // namespace cudaq

@@ -32,7 +32,7 @@ T all_reduce(const T &, const Func &);
 /// @brief Return type for asynchronous observation.
 using async_observe_result = async_result<observe_result>;
 
-namespace par {
+namespace execution {
 /// @brief Multi-GPU Multi-Node (MPI)
 /// Distribution Type for observe
 struct mpi {};
@@ -40,7 +40,7 @@ struct mpi {};
 /// @brief Single node, multi-GPU
 struct thread {};
 
-} // namespace par
+} // namespace execution
 
 /// @brief Define a combined sample function validation concept.
 /// These concepts provide much better error messages than old-school SFINAE
@@ -222,7 +222,7 @@ observe_result observe(std::size_t shots, QuantumKernel &&kernel, spin_op H,
         "of observe() expectation value computations.");
 
   auto nQpus = platform.num_qpus();
-  if constexpr (std::is_same_v<DistributionType, par::thread>) {
+  if constexpr (std::is_same_v<DistributionType, execution::thread>) {
     if (nQpus == 1)
       printf(
           "[cudaq::observe warning] distributed observe requested but only 1 "
@@ -235,7 +235,7 @@ observe_result observe(std::size_t shots, QuantumKernel &&kernel, spin_op H,
                                std::forward<Args>(args)...);
         },
         H, nQpus);
-  } else if (std::is_same_v<DistributionType, par::mpi>) {
+  } else if (std::is_same_v<DistributionType, execution::mpi>) {
 
     // This is an MPI distribution, where each node has N GPUs.
     if (!mpi::is_initialized())

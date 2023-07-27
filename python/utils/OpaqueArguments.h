@@ -222,9 +222,8 @@ inline bool isBroadcastRequest(kernel_builder<> &builder, py::args &args) {
 
   auto arg = args[0];
   // Just need to check the leading argument
-  if (py::isinstance<py::list>(arg))
-    if (!builder.isArgStdVec(0))
-      return true;
+  if (py::isinstance<py::list>(arg) && !builder.isArgStdVec(0))
+    return true;
 
   if (py::hasattr(arg, "tolist")) {
     if (!py::hasattr(arg, "shape"))

@@ -7,6 +7,8 @@
  ******************************************************************************/
 
 #include "cudaq.h"
+#include "cudaq/Todo.h"
+
 #include <pybind11/eval.h>
 #include <pybind11/stl.h>
 #include <variant>
@@ -56,7 +58,7 @@ observe_result pyObserve(kernel_builder<> &kernel, spin_op &spin_operator,
                     },
                     spin_operator, platform, shots, name)
                     .value();
-  platform.set_noise(nullptr);
+  platform.reset_noise();
   return result;
 }
 
@@ -74,6 +76,8 @@ observe_result pyObservePar(const PyParType &type, kernel_builder<> &kernel,
         "of observe() expectation value computations.");
 
   // FIXME Handle noise modeling with parallel distribution.
+  if (noise)
+    TODO("Handle Noise Models with python parallel distribution.");
 
   // TODO: would like to handle errors in the case that
   // `kernel.num_qubits() >= spin_operator.num_qubits()`
@@ -153,7 +157,7 @@ pyObserveN(kernel_builder<> &kernel, spin_op &op, py::args args = {},
     results.push_back(ret);
   }
 
-  platform.set_noise(nullptr);
+  platform.reset_noise();
 
   return results;
 }
@@ -194,16 +198,18 @@ async_observe_result pyObserveAsync(kernel_builder<> &kernel,
 }
 
 void bindObserve(py::module &mod) {
-  auto parallelSubmodule = mod.def_submodule("par");
+  auto parallelSubmodule = mod.def_submodule("execution");
 
-  py::class_<cudaq::par::mpi>(
+  py::class_<cudaq::execution::mpi>(
       parallelSubmodule, "mpi",
-      "Type indicating that observe execution should distribute term "
-      "expectation value computation amongst available MPI ranks and GPUs.");
-  py::class_<cudaq::par::thread>(
+      "Type indicating that the :func:`observe` function should distribute its "
+      "expectation value computations accross available MPI ranks and GPUs for "
+      "each term.");
+  py::class_<cudaq::execution::thread>(
       parallelSubmodule, "thread",
-      "Type indicating that observe execution should distribute term "
-      "expectation value computation amongst available GPUs via standard C++ "
+      "Type indicating that the :func:`observe` function should distribute its "
+      "term "
+      "expectation value computations across available GPUs via standard C++ "
       "threads.");
 
   mod.def(
