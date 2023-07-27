@@ -1,25 +1,15 @@
-# Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES
-#
-# SPDX-License-Identifier: BSD-3-Clause
-
+# ============================================================================ #
+# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
 
 from importlib.metadata import distribution
 import os.path
 
-
-def find_package_location(package_name):
-    path = None
-    try:
-        path = _find_package_location_by_license(package_name)
-    except:
-        pass
-    if path is None:
-        path = _find_package_location_by_root(package_name)
-    return path
-
-
 def _find_package_location_by_root(package_name):
-    """This should not fail, unless the package is not installed."""
     dist = distribution(package_name)
     roots = set()
     for f in dist.files:
@@ -31,7 +21,6 @@ def _find_package_location_by_root(package_name):
 
 
 def _find_package_location_by_license(package_name):
-    """This function assumes a file named LICENSE is placed at the package root."""
     dist = distribution(package_name)
     for f in dist.files:
         if str(f).endswith("LICENSE"):
@@ -43,28 +32,14 @@ def _find_package_location_by_license(package_name):
     return path
 
 
-def get_library_path(library, cuda_major=11):
-    if library in ("cuda-runtime", "cublas", "cusolver", "cusparse"):
-        package_name = f"nvidia-{library}-cu{cuda_major}"
-        subdir = library.replace("-", "_")
-    elif library in ("cutensor", "custatevec", "cutensornet"):
-        package_name = f"{library}-cu{cuda_major}"
-        subdir = ""
-    else:
-        raise NotImplementedError(f"library {library} is not recognized")
+def get_library_path(package_name):
+    subdir = ""
+    if package_name.startswith("nvidia-"):
+        subdir = "-".join(package_name.split("-")[1:-1])
 
-    dirname = os.path.join(find_package_location(package_name), subdir)
-    assert os.path.isdir(dirname)
-    return dirname
+    try: package_location = _find_package_location_by_license(package_name)
+    except: package_location = _find_package_location_by_root(package_name)
 
-
-def get_include_path(library, cuda_major=11):
-    dirname = os.path.join(get_library_path(library, cuda_major), "include")
-    assert os.path.isdir(dirname)
-    return dirname
-
-
-def get_link_path(library, cuda_major=11):
-    dirname = os.path.join(get_library_path(library, cuda_major), "lib")
+    dirname = os.path.join(package_location, subdir, "lib")
     assert os.path.isdir(dirname)
     return dirname

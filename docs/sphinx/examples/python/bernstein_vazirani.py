@@ -67,16 +67,18 @@ def bernstein_vazirani(qubit_count: int):
 # larger number of qubits compared the CPU-only backend.
 
 # Depending on the available memory on your GPU, you can
-# set the number of qubits to around 30 qubits, and uncomment
+# set the number of qubits to around 30 qubits, and un-comment
 # the `cudaq.set_target(nvidia)` line.
 
-# Note: Without setting the target to the nvidia backend,
+# Note: Without setting the target to the `nvidia` backend,
 # a 30 qubit simulation simply seems to hang; that is
 # because it takes a long time for the CPU-only backend
 # to handle this number of qubits!
 
-qubit_count = 5 # set to around 30 qubits for nvidia target
-#cudaq.set_target("nvidia")
+qubit_count = 5 # set to around 30 qubits for `nvidia` target
+# ```
+# cudaq.set_target("nvidia")
+# ```
 
 kernel, hidden_bitstring = bernstein_vazirani(qubit_count)
 result = cudaq.sample(kernel)
