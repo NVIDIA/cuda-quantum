@@ -466,7 +466,7 @@ def quake_WrapOp : QuakeOp<"wrap"> {
   let hasCanonicalizer = 1;
 }
 
-def quake_NullWireOp : QuakeOp<"null_wire", [Pure]> {
+def quake_NullWireOp : QuakeOp<"null_wire", []> {
   let summary = "Initial state of a wire.";
   let description = [{
     |0> - the initial state of a wire when first constructed. A wire is assumed
