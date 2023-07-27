@@ -10,7 +10,15 @@
 import cudaq, pytest, os, time
 from cudaq import spin
 from multiprocessing import Process
-from utils.mock_qpu.ionq import startServer
+try:
+    from utils.mock_qpu.ionq import startServer
+except:
+    print("Mock qpu not available, skipping IonQ tests.")
+    # TODO: Once we remove the general skip below, it should go here.
+
+pytest.skip(
+    "This file produces a segmentation fault on the CI but not locally. See https://github.com/NVIDIA/cuda-quantum/issues/303.",
+    allow_module_level=True)
 
 # Define the port for the mock server
 port = 62455
