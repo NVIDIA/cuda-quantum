@@ -1277,7 +1277,7 @@ public:
         [&](quake::VeqType type) { return cudaq::opt::getArrayType(context); });
     typeConverter.addConversion(
         [&](quake::RefType type) { return cudaq::opt::getQubitType(context); });
-    typeConverter.addConversion([&](cudaq::cc::LambdaType type) {
+    typeConverter.addConversion([&](cudaq::cc::CallableType type) {
       return lambdaAsPairOfPointers(type.getContext());
     });
     typeConverter.addConversion([&](cudaq::cc::StdvecType type) {

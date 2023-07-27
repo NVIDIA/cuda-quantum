@@ -123,7 +123,7 @@ void QuakeBridgeVisitor::addArgumentSymbols(
       // Transform pass-by-value arguments to stack slots.
       auto loc = toLocation(argVal);
       auto parmTy = entryBlock->getArgument(index).getType();
-      if (isa<cc::LambdaType, cc::StdvecType, cc::ArrayType, cc::StructType,
+      if (isa<cc::CallableType, cc::StdvecType, cc::ArrayType, cc::StructType,
               LLVM::LLVMStructType, FunctionType, quake::RefType,
               quake::VeqType>(parmTy)) {
         symbolTable.insert(name, entryBlock->getArgument(index));
@@ -336,11 +336,12 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
     }
   }
 
-  if (auto lambdaTy = dyn_cast<cc::LambdaType>(type)) {
-    // Variable is of !cc.lambda type. Lambdas are always in the value domain.
-    auto lambda = popValue();
-    symbolTable.insert(name, lambda);
-    return pushValue(lambda);
+  if (auto callableTy = dyn_cast<cc::CallableType>(type)) {
+    // Variable is of !cc.callable type. Callables are always in the value
+    // domain.
+    auto callable = popValue();
+    symbolTable.insert(name, callable);
+    return pushValue(callable);
   }
 
   // Variable is of some basic type not already handled. Create a local stack
