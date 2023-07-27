@@ -12,14 +12,15 @@ from ._packages import *
 
 if not "CUDAQ_DYNLIBS" in os.environ:
     try:
-        cublas_libs=get_library_path("nvidia-cublas-cu11")
-        cublas_path=os.path.join(cublas_libs, "libcublas.so.11")
-        cublasLt_path=os.path.join(cublas_libs, "libcublasLt.so.11")
+        cublas_libs = get_library_path("nvidia-cublas-cu11")
+        cublas_path = os.path.join(cublas_libs, "libcublas.so.11")
+        cublasLt_path = os.path.join(cublas_libs, "libcublasLt.so.11")
 
-        custatevec_libs=get_library_path("custatevec-cu11")
-        custatevec_path=os.path.join(custatevec_libs, "libcustatevec.so.1")
+        custatevec_libs = get_library_path("custatevec-cu11")
+        custatevec_path = os.path.join(custatevec_libs, "libcustatevec.so.1")
 
-        os.environ["CUDAQ_DYNLIBS"] = f"{cublasLt_path}:{cublas_path}:{custatevec_path}"
+        os.environ[
+            "CUDAQ_DYNLIBS"] = f"{cublasLt_path}:{cublas_path}:{custatevec_path}"
     except RuntimeError:
         pass
 

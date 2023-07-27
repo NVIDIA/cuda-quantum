@@ -75,7 +75,7 @@ def bernstein_vazirani(qubit_count: int):
 # because it takes a long time for the CPU-only backend
 # to handle this number of qubits!
 
-qubit_count = 5 # set to around 30 qubits for `nvidia` target
+qubit_count = 5  # set to around 30 qubits for `nvidia` target
 # ```
 # cudaq.set_target("nvidia")
 # ```
