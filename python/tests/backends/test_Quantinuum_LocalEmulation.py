@@ -11,9 +11,6 @@ import cudaq, pytest, os, time
 from cudaq import spin
 from multiprocessing import Process
 
-pytest.skip(
-    "This file produces a segmentation fault on the CI but not locally. See also https://github.com/NVIDIA/cuda-quantum/issues/303.",
-    allow_module_level=True)
 
 def assert_close(got) -> bool:
     return got < -1.5 and got > -1.9
