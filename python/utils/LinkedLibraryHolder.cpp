@@ -132,7 +132,7 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
       cudaqLibPath / fmt::format("libnvqir.{}", libSuffix),
       cudaqLibPath / fmt::format("libcudaq.{}", libSuffix)};
 
-  const char *statevec_dynlibs_var = std::getenv("CUSTATEVEC_DYNLIBS");
+  const char *statevec_dynlibs_var = std::getenv("CUDAQ_DYNLIBS");
   if (statevec_dynlibs_var != nullptr) {
     std::string statevec_dynlib; 
     std::stringstream ss((std::string(statevec_dynlibs_var)));
