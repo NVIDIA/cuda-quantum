@@ -24,7 +24,7 @@
 namespace nvqir {
 void tearDownBeforeMPIFinalize();
 void setRandomSeed(std::size_t);
-}
+} // namespace nvqir
 
 namespace cudaq::mpi {
 
