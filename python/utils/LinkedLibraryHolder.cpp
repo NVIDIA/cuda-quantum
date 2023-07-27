@@ -136,7 +136,7 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
   if (statevec_dynlibs_var != nullptr) {
     std::string statevec_dynlib;
     std::stringstream ss((std::string(statevec_dynlibs_var)));
-    while(std::getline(ss, statevec_dynlib, ':')) {
+    while (std::getline(ss, statevec_dynlib, ':')) {
       cudaq::info("Init: add custatevec dynamic library path {}.",
                   statevec_dynlib);
       libPaths.push_back(statevec_dynlib);
