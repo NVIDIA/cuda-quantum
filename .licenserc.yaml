@@ -30,6 +30,7 @@ header:
     - 'LICENSE'
     - 'NOTICE'
     - 'build'
+    - 'examples'
     - 'tpls'
     - 'docs/sphinx/_templates'
     - 'runtime/cudaq/algorithms/optimizers/nlopt/nlopt-src'
