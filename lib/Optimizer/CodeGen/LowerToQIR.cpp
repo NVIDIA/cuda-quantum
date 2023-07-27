@@ -273,24 +273,24 @@ public:
   }
 };
 
-class SubvecOpRewrite : public ConvertOpToLLVMPattern<quake::SubVecOp> {
+class SubveqOpRewrite : public ConvertOpToLLVMPattern<quake::SubVeqOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
   LogicalResult
-  matchAndRewrite(quake::SubVecOp subvec, OpAdaptor adaptor,
+  matchAndRewrite(quake::SubVeqOp subveq, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-    auto loc = subvec->getLoc();
-    auto parentModule = subvec->getParentOfType<ModuleOp>();
+    auto loc = subveq->getLoc();
+    auto parentModule = subveq->getParentOfType<ModuleOp>();
     auto *context = parentModule->getContext();
-    constexpr auto rtSubvecFuncName = cudaq::opt::QIRArraySlice;
+    constexpr auto rtSubveqFuncName = cudaq::opt::QIRArraySlice;
     auto arrayTy = cudaq::opt::getArrayType(context);
     auto resultTy = arrayTy;
 
     auto i32Ty = rewriter.getIntegerType(32);
     auto i64Ty = rewriter.getIntegerType(64);
     FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
-        rtSubvecFuncName, arrayTy, {arrayTy, i32Ty, i64Ty, i64Ty, i64Ty},
+        rtSubveqFuncName, arrayTy, {arrayTy, i32Ty, i64Ty, i64Ty, i64Ty},
         parentModule);
 
     Value lowArg = adaptor.getOperands()[1];
@@ -309,7 +309,7 @@ public:
     auto one32 = rewriter.create<arith::ConstantIntOp>(loc, 1, i32Ty);
     auto one64 = rewriter.create<arith::ConstantIntOp>(loc, 1, i64Ty);
     rewriter.replaceOpWithNewOp<LLVM::CallOp>(
-        subvec, resultTy, symbolRef,
+        subveq, resultTy, symbolRef,
         ValueRange{inArr, one32, lowArg, one64, highArg});
     return success();
   }
@@ -1335,7 +1335,7 @@ public:
         OneTargetTwoParamRewrite<quake::U2Op>,
         OneTargetTwoParamRewrite<quake::U3Op>, ResetRewrite<quake::ResetOp>,
         StdvecDataOpPattern, StdvecInitOpPattern, StdvecSizeOpPattern,
-        StoreOpPattern, SubvecOpRewrite, TwoTargetRewrite<quake::SwapOp>,
+        StoreOpPattern, SubveqOpRewrite, TwoTargetRewrite<quake::SwapOp>,
         UndefOpPattern>(typeConverter);
 
     target.addLegalDialect<LLVM::LLVMDialect>();
