@@ -630,7 +630,8 @@ class QuakeOperator<string mnemonic, list<Trait> traits = []>
     OpBuilder<(ins "bool":$is_adj,
                    "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$targets), [{
-      return build($_builder, $_state, is_adj, mlir::ValueRange{}, controls, targets);
+      return build($_builder, $_state, is_adj, mlir::ValueRange{}, controls,
+                   targets);
     }]>,
     OpBuilder<(ins "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$targets), [{
