@@ -138,16 +138,16 @@ def cc_ArrayType : CCType<"Array", "array"> {
 }
 
 //===----------------------------------------------------------------------===//
-// LambdaType
+// CallableType
 //===----------------------------------------------------------------------===//
 
-def cc_LambdaType : CCType<"Lambda", "lambda"> {
-  let summary = "Proxy for a C++ lambda instance in cc";
+def cc_CallableType : CCType<"Callable", "callable"> {
+  let summary = "Proxy for a C++ callable instance in cc";
   let description = [{
-    A kernel may be a template function that takes a lambda as an argument.
-    The type of these lambda instances is this proxy lambda type. The
-    instantiated template instance will resolve the lambda instance, and this
-    resolved instance of the lambda will be lowered in the specialized template
+    A kernel may be a template function that takes a callable as an argument.
+    The type of these callable instances is this proxy callable type. The
+    instantiated template instance will resolve the callable instance, and this
+    resolved instance of the callable will be lowered in the specialized template
     function.
   }];
   
@@ -162,8 +162,8 @@ def cc_LambdaType : CCType<"Lambda", "lambda"> {
   ];
 
   let extraClassDeclaration = [{
-    /// Create a lambda type without a signature. This is for prototyping only.
-    [[deprecated]] static LambdaType getNoSignature(mlir::MLIRContext *ctx);
+    /// Create a callable type without a signature. This is for prototyping only.
+    [[deprecated]] static CallableType getNoSignature(mlir::MLIRContext *ctx);
   }];
 }
 

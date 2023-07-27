@@ -64,7 +64,7 @@ public:
     SmallVector<Type> eleTys;
     // Add all argument types, translating std::vector to a length.
     for (auto inTy : funcTy.getInputs()) {
-      if (inTy.isa<cudaq::cc::LambdaType, cudaq::cc::StructType>())
+      if (inTy.isa<cudaq::cc::CallableType, cudaq::cc::StructType>())
         eleTys.push_back(IntegerType::get(ctx, 64));
       else if (inTy.isa<cudaq::cc::StdvecType, quake::VeqType>())
         eleTys.push_back(IntegerType::get(ctx, 64));
@@ -73,7 +73,7 @@ public:
     }
     // Add all result types, translating std::vector to a length.
     for (auto outTy : funcTy.getResults()) {
-      if (outTy.isa<cudaq::cc::LambdaType, cudaq::cc::StructType>()) {
+      if (outTy.isa<cudaq::cc::CallableType, cudaq::cc::StructType>()) {
         eleTys.push_back(IntegerType::get(ctx, 64));
       } else if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(outTy)) {
         eleTys.push_back(cudaq::cc::PointerType::get(vecTy.getElementType()));
@@ -357,7 +357,7 @@ public:
       Type inTy = inp.value();
       std::int64_t idx = inp.index();
       auto off = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{idx});
-      if (inTy.isa<cudaq::cc::LambdaType, cudaq::cc::StructType>()) {
+      if (inTy.isa<cudaq::cc::CallableType, cudaq::cc::StructType>()) {
         auto undef = builder.create<cudaq::cc::UndefOp>(loc, inTy);
         args.push_back(undef);
       } else if (inTy.isa<cudaq::cc::StdvecType, quake::VeqType>()) {
@@ -520,7 +520,7 @@ public:
       Type inTy = arg.getType();
       std::int64_t idx = inp.index();
       auto off = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{idx});
-      if (inTy.isa<cudaq::cc::LambdaType, cudaq::cc::StructType>()) {
+      if (inTy.isa<cudaq::cc::CallableType, cudaq::cc::StructType>()) {
         /* do nothing */
       } else if (cudaq::opt::factory::isStdVecArg(inTy)) {
         auto ptrTy = dyn_cast<cudaq::cc::PointerType>(inTy);

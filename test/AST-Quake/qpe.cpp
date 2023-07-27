@@ -265,7 +265,7 @@ int main() {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__instance_qpe
-// CHECK-SAME:      (%[[VAL_0:.*]]: i32{{.*}}, %[[VAL_1:.*]]: i32{{.*}}, %[[VAL_2:.*]]: !cc.lambda<(!quake.veq<?>) -> ()>{{.*}}, %[[VAL_3:.*]]: !cc.struct<"tgate" {}>{{.*}}) attributes
+// CHECK-SAME:      (%[[VAL_0:.*]]: i32{{.*}}, %[[VAL_1:.*]]: i32{{.*}}, %[[VAL_2:.*]]: !cc.callable<(!quake.veq<?>) -> ()>{{.*}}, %[[VAL_3:.*]]: !cc.struct<"tgate" {}>{{.*}}) attributes
 // CHECK:           %[[VAL_4:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_4]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_5:.*]] = cc.alloca i32
