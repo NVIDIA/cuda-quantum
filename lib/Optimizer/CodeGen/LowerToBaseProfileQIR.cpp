@@ -21,6 +21,8 @@
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 
+#define DEBUG_TYPE "qir-base-profile"
+
 /// This file maps full QIR to the Base Profile QIR. It is generally assumed
 /// that the input QIR here will be generated after the quake-synth pass,
 /// thereby greatly simplifying the transformations required here.
@@ -55,6 +57,8 @@ static std::optional<std::int64_t> sliceLowerBound(Operation *op) {
   return {};
 }
 
+static constexpr char StartingOffsetAttrName[] = "StartingOffset";
+
 namespace {
 struct FunctionAnalysisData {
   std::size_t nQubits = 0;
@@ -70,7 +74,7 @@ using FunctionAnalysisInfo = DenseMap<Operation *, FunctionAnalysisData>;
 struct FunctionProfileAnalysis {
   MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(FunctionProfileAnalysis)
 
-  FunctionProfileAnalysis(Operation *op) { performAnalysis(op); }
+  explicit FunctionProfileAnalysis(Operation *op) { performAnalysis(op); }
 
   const FunctionAnalysisInfo &getAnalysisInfo() const { return infoMap; }
 
@@ -81,96 +85,98 @@ private:
     if (!funcOp)
       return;
     FunctionAnalysisData data;
-    funcOp->walk([&](Operation *op) {
-      if (auto callOp = dyn_cast<LLVM::CallOp>(op)) {
-        StringRef funcName = callOp.getCalleeAttr().getValue();
-        auto addAllocation = [&](auto incrementBy) {
-          // Maybe add an allocation, setting its offset, and the total number
-          // of qubits.
-          if (data.allocationOffsets.find(callOp) ==
-              data.allocationOffsets.end()) {
-            data.allocationOffsets[callOp] = data.nQubits;
-            data.nQubits += incrementBy();
-          }
-        };
+    funcOp->walk([&](LLVM::CallOp callOp) {
+      StringRef funcName = callOp.getCalleeAttr().getValue();
 
-        if (funcName.equals(cudaq::opt::QIRMeasure) ||
-            // FIXME Store the register names for the record_output functions
-            funcName.equals(cudaq::opt::QIRMeasureToRegister)) {
-          std::optional<std::size_t> optQb;
-          if (auto allocCall =
-                  callOp.getOperand(0).getDefiningOp<LLVM::CallOp>()) {
-            auto iter = data.allocationOffsets.find(allocCall.getOperation());
-            if (iter != data.allocationOffsets.end())
-              optQb = iter->second;
-          } else if (auto load =
-                         callOp.getOperand(0).getDefiningOp<LLVM::LoadOp>()) {
-            if (auto bitcast =
-                    load.getOperand().getDefiningOp<LLVM::BitcastOp>()) {
-              std::optional<Value> constVal;
-              std::size_t allocOffset = 0u;
-              if (auto call =
-                      bitcast.getOperand().getDefiningOp<LLVM::CallOp>()) {
-                auto *callOp0 = call.getOperand(0).getDefiningOp();
-                while (isQIRSliceCall(callOp0)) {
-                  if (auto optOff = sliceLowerBound(callOp0)) {
-                    allocOffset += *optOff;
-                    callOp0 = callOp0->getOperand(0).getDefiningOp();
-                  } else {
-                    callOp0->emitError("cannot compute offset");
-                    callOp0 = nullptr;
-                  }
-                }
-                auto iter = callOp0 ? data.allocationOffsets.find(callOp0)
-                                    : data.allocationOffsets.end();
-                if (iter != data.allocationOffsets.end()) {
-                  allocOffset += iter->second;
-                  auto o1 = call.getOperand(1);
-                  if (auto c = o1.getDefiningOp<LLVM::ConstantOp>()) {
-                    constVal = c;
-                  } else {
-                    // Skip over any potential intermediate cast.
-                    auto *defOp = o1.getDefiningOp();
-                    if (isa_and_nonnull<LLVM::ZExtOp, LLVM::SExtOp,
-                                        LLVM::PtrToIntOp, LLVM::BitcastOp,
-                                        LLVM::TruncOp>(defOp))
-                      constVal = defOp->getOperand(0);
-                  }
+      // For every allocation call, create a range of integers to uniquely
+      // identify the qubits in the allocation.
+      auto addAllocation = [&](auto incrementBy) {
+        // Maybe add an allocation, setting its offset, and the total number
+        // of qubits.
+        if (data.allocationOffsets.find(callOp) ==
+            data.allocationOffsets.end()) {
+          data.allocationOffsets[callOp] = data.nQubits;
+          data.nQubits += incrementBy();
+        }
+      };
+
+      if (funcName.equals(cudaq::opt::QIRArrayQubitAllocateArray)) {
+        addAllocation([&]() { return getNumQubits(callOp); });
+      } else if (funcName.equals(cudaq::opt::QIRQubitAllocate)) {
+        addAllocation([]() { return 1; });
+      } else if (funcName.equals(cudaq::opt::QIRMeasure) ||
+                 // FIXME Store the register names for the record_output
+                 // functions
+                 funcName.equals(cudaq::opt::QIRMeasureToRegister)) {
+        std::optional<std::size_t> optQb;
+        if (auto allocCall =
+                callOp.getOperand(0).getDefiningOp<LLVM::CallOp>()) {
+          auto iter = data.allocationOffsets.find(allocCall.getOperation());
+          if (iter != data.allocationOffsets.end())
+            optQb = iter->second;
+        } else if (auto load =
+                       callOp.getOperand(0).getDefiningOp<LLVM::LoadOp>()) {
+          if (auto bitcast =
+                  load.getOperand().getDefiningOp<LLVM::BitcastOp>()) {
+            std::optional<Value> constVal;
+            std::size_t allocOffset = 0u;
+            if (auto call =
+                    bitcast.getOperand().getDefiningOp<LLVM::CallOp>()) {
+              auto *callOp0 = call.getOperand(0).getDefiningOp();
+              while (isQIRSliceCall(callOp0)) {
+                if (auto optOff = sliceLowerBound(callOp0)) {
+                  allocOffset += *optOff;
+                  callOp0 = callOp0->getOperand(0).getDefiningOp();
+                } else {
+                  callOp0->emitError("cannot compute offset");
+                  callOp0 = nullptr;
                 }
               }
-              if (constVal)
-                if (auto incr = constVal->getDefiningOp<LLVM::ConstantOp>())
-                  optQb = allocOffset +
-                          incr.getValue().cast<IntegerAttr>().getInt();
+              auto iter = callOp0 ? data.allocationOffsets.find(callOp0)
+                                  : data.allocationOffsets.end();
+              if (iter != data.allocationOffsets.end()) {
+                allocOffset += iter->second;
+                auto o1 = call.getOperand(1);
+                if (auto c = o1.getDefiningOp<LLVM::ConstantOp>()) {
+                  constVal = c;
+                } else {
+                  // Skip over any potential intermediate cast.
+                  auto *defOp = o1.getDefiningOp();
+                  if (isa_and_nonnull<LLVM::ZExtOp, LLVM::SExtOp,
+                                      LLVM::PtrToIntOp, LLVM::BitcastOp,
+                                      LLVM::TruncOp>(defOp))
+                    constVal = defOp->getOperand(0);
+                }
+              }
             }
+            if (constVal)
+              if (auto incr = constVal->getDefiningOp<LLVM::ConstantOp>())
+                optQb =
+                    allocOffset + incr.getValue().cast<IntegerAttr>().getInt();
           }
-          if (optQb) {
-            auto qb = *optQb;
-            auto iter = data.resultPtrValues.find(qb);
-            auto *ctx = callOp.getContext();
-            auto intTy = IntegerType::get(ctx, 64);
-            if (iter == data.resultPtrValues.end()) {
-              auto resIdx = IntegerAttr::get(intTy, data.nResults);
-              callOp->setAttr(resultIndexName, resIdx);
-              auto regName = [&]() -> StringAttr {
-                if (auto nameAttr = callOp->getAttr("registerName")
-                                        .dyn_cast_or_null<StringAttr>())
-                  return nameAttr;
-                return {};
-              }();
-              data.resultPtrValues.insert(
-                  std::make_pair(qb, std::make_pair(data.nResults++, regName)));
-            } else {
-              auto resIdx = IntegerAttr::get(intTy, iter->second.first);
-              callOp->setAttr(resultIndexName, resIdx);
-            }
+        }
+        if (optQb) {
+          auto qb = *optQb;
+          auto iter = data.resultPtrValues.find(qb);
+          auto *ctx = callOp.getContext();
+          auto intTy = IntegerType::get(ctx, 64);
+          if (iter == data.resultPtrValues.end()) {
+            auto resIdx = IntegerAttr::get(intTy, data.nResults);
+            callOp->setAttr(resultIndexName, resIdx);
+            auto regName = [&]() -> StringAttr {
+              if (auto nameAttr = callOp->getAttr("registerName")
+                                      .dyn_cast_or_null<StringAttr>())
+                return nameAttr;
+              return {};
+            }();
+            data.resultPtrValues.insert(
+                std::make_pair(qb, std::make_pair(data.nResults++, regName)));
           } else {
-            callOp.emitError("could not trace offset value");
+            auto resIdx = IntegerAttr::get(intTy, iter->second.first);
+            callOp->setAttr(resultIndexName, resIdx);
           }
-        } else if (funcName.equals(cudaq::opt::QIRArrayQubitAllocateArray)) {
-          addAllocation([&]() { return getNumQubits(callOp); });
-        } else if (funcName.equals(cudaq::opt::QIRQubitAllocate)) {
-          addAllocation([]() { return 1; });
+        } else {
+          callOp.emitError("could not trace offset value");
         }
       }
     });
@@ -245,6 +251,30 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
   const FunctionAnalysisInfo &infoMap;
 };
 
+struct AddCallAttribute : public OpRewritePattern<LLVM::CallOp> {
+  explicit AddCallAttribute(MLIRContext *ctx, const FunctionAnalysisInfo &info)
+      : OpRewritePattern(ctx), infoMap(info) {}
+
+  LogicalResult matchAndRewrite(LLVM::CallOp op,
+                                PatternRewriter &rewriter) const override {
+    // Rewrite the exit block.
+    // Add attributes to the function.
+    auto iter = infoMap.find(op->getParentOfType<LLVM::LLVMFuncOp>());
+    assert(iter != infoMap.end());
+    auto &info = iter->second;
+    auto startIter = info.allocationOffsets.find(op.getOperation());
+    assert(startIter != info.allocationOffsets.end());
+    auto startVal = startIter->second;
+    rewriter.startRootUpdate(op);
+    op->setAttr(StartingOffsetAttrName,
+                rewriter.getIntegerAttr(rewriter.getI64Type(), startVal));
+    rewriter.finalizeRootUpdate(op);
+    return success();
+  }
+
+  const FunctionAnalysisInfo &infoMap;
+};
+
 /// QIR to Base Profile QIR on the function level.
 ///
 /// With FuncOps, we want to add attributes to the function op and also add
@@ -261,7 +291,7 @@ struct QIRToBaseQIRFuncPass
     RewritePatternSet patterns(ctx);
     const auto &analysis = getAnalysis<FunctionProfileAnalysis>();
     const auto &funcAnalysisInfo = analysis.getAnalysisInfo();
-    patterns.insert<AddFuncAttribute>(ctx, funcAnalysisInfo);
+    patterns.insert<AddFuncAttribute, AddCallAttribute>(ctx, funcAnalysisInfo);
     ConversionTarget target(*ctx);
     target.addLegalDialect<LLVM::LLVMDialect>();
     target.addDynamicallyLegalOp<LLVM::LLVMFuncOp>([](LLVM::LLVMFuncOp op) {
@@ -269,6 +299,13 @@ struct QIRToBaseQIRFuncPass
       // applied, then it is illegal.
       return op.empty() || op.getPassthroughAttr();
     });
+    target.addDynamicallyLegalOp<LLVM::CallOp>([](LLVM::CallOp op) {
+      StringRef funcName = op.getCalleeAttr().getValue();
+      return (!funcName.equals(cudaq::opt::QIRArrayQubitAllocateArray) &&
+              !funcName.equals(cudaq::opt::QIRQubitAllocate)) ||
+             op->hasAttr(StartingOffsetAttrName);
+    });
+
     if (failed(applyPartialConversion(op, target, std::move(patterns)))) {
       emitError(op.getLoc(), "failed to convert to QIR base profile");
       signalPassFailure();
@@ -284,6 +321,54 @@ std::unique_ptr<Pass> cudaq::opt::createConvertToQIRFuncPass() {
 //===----------------------------------------------------------------------===//
 
 namespace {
+// Here we are replacing loads from calls to QIRArrayGetElementPtr1d or
+// QIRQubitAllocate with a unique qubit index. Each allocated qubit was already
+// assigned an index in the prep pass.
+struct ArrayGetElementPtrConv : public OpRewritePattern<LLVM::LoadOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(LLVM::LoadOp op,
+                                PatternRewriter &rewriter) const override {
+    auto bc = op.getAddr().getDefiningOp<LLVM::BitcastOp>();
+    if (!bc)
+      return failure();
+    auto call = bc.getArg().getDefiningOp<LLVM::CallOp>();
+    if (!call)
+      return failure();
+    auto loc = op.getLoc();
+    if (call.getCallee()->equals(cudaq::opt::QIRArrayGetElementPtr1d)) {
+      auto *alloc = call.getOperand(0).getDefiningOp();
+      if (!alloc->hasAttr(StartingOffsetAttrName))
+        return failure();
+      Value disp = call.getOperand(1);
+      Value off = rewriter.create<LLVM::ConstantOp>(
+          loc, disp.getType(), alloc->getAttr(StartingOffsetAttrName));
+      Value qubit = rewriter.create<LLVM::AddOp>(loc, off, disp);
+      rewriter.replaceOpWithNewOp<LLVM::IntToPtrOp>(op, op.getType(), qubit);
+      return success();
+    }
+    return failure();
+  }
+};
+
+struct CallAlloc : public OpRewritePattern<LLVM::CallOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(LLVM::CallOp call,
+                                PatternRewriter &rewriter) const override {
+    if (!call.getCallee()->equals(cudaq::opt::QIRQubitAllocate))
+      return failure();
+    if (!call->hasAttr(StartingOffsetAttrName))
+      return failure();
+    auto loc = call.getLoc();
+    Value qubit = rewriter.create<LLVM::ConstantOp>(
+        loc, rewriter.getI64Type(), call->getAttr(StartingOffsetAttrName));
+    auto resTy = call.getResult().getType();
+    rewriter.replaceOpWithNewOp<LLVM::IntToPtrOp>(call, resTy, qubit);
+    return success();
+  }
+};
+
 /// QIR to the Base Profile QIR
 ///
 /// This pass converts patterns in LLVM-IR dialect using QIR calls, etc. into a
@@ -292,44 +377,24 @@ namespace {
 /// profile. The patterns are defined in Peephole.td.
 struct QIRToBaseProfileQIRPass
     : public cudaq::opt::QIRToBaseQIRBase<QIRToBaseProfileQIRPass> {
-  QIRToBaseProfileQIRPass() = default;
-  QIRToBaseProfileQIRPass(const GreedyRewriteConfig &config,
-                          ArrayRef<std::string> disabledPatterns,
-                          ArrayRef<std::string> enabledPatterns) {
-    this->topDownProcessingEnabled = config.useTopDownTraversal;
-    this->enableRegionSimplification = config.enableRegionSimplification;
-    this->maxIterations = config.maxIterations;
-    this->disabledPatterns = disabledPatterns;
-    this->enabledPatterns = enabledPatterns;
-  }
-
-  /// Initialize the canonicalizer by building the set of patterns used during
-  /// execution.
-  LogicalResult initialize(MLIRContext *context) override {
-    RewritePatternSet owningPatterns(context);
-    owningPatterns.insert<AddrOfCisToBase, ArrayGetElementPtrConv, CalleeConv,
-                          EraseArrayAlloc, EraseArrayRelease, EraseDeadArrayGEP,
-                          LoadMeasureResult, MeasureCallConv,
-                          MeasureToRegisterCallConv, XCtrlOneTargetToCNot>(
-        context);
-    patterns = FrozenRewritePatternSet(std::move(owningPatterns),
-                                       disabledPatterns, enabledPatterns);
-    return success();
-  }
+  explicit QIRToBaseProfileQIRPass() = default;
 
   void runOnOperation() override {
-    GreedyRewriteConfig config;
-    config.useTopDownTraversal = topDownProcessingEnabled;
-    config.enableRegionSimplification = enableRegionSimplification;
-    config.maxIterations = maxIterations;
-    if (failed(applyPatternsAndFoldGreedily(getOperation(), patterns, config)))
+    auto *op = getOperation();
+    LLVM_DEBUG(llvm::dbgs() << "Before base profile:\n" << *op << '\n');
+    auto *context = &getContext();
+    RewritePatternSet patterns(context);
+    patterns.insert<AddrOfCisToBase, ArrayGetElementPtrConv, CallAlloc,
+                    CalleeConv, EraseArrayAlloc, EraseArrayRelease,
+                    EraseDeadArrayGEP, LoadMeasureResult, MeasureCallConv,
+                    MeasureToRegisterCallConv, XCtrlOneTargetToCNot>(context);
+    if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns))))
       signalPassFailure();
+    LLVM_DEBUG(llvm::dbgs() << "After base profile:\n" << *op << '\n');
   }
 
 private:
   FrozenRewritePatternSet patterns;
-  ArrayRef<std::string> disabledPatterns;
-  ArrayRef<std::string> enabledPatterns;
 };
 } // namespace
 
@@ -354,12 +419,14 @@ struct BaseProfilePreparationPass
     ModuleOp module = getOperation();
     auto *ctx = module.getContext();
 
-    // Add cnot declaration as it may be referenced after peepholes run.
+    // Add cnot declaration as it may be
+    // referenced after peepholes run.
     cudaq::opt::factory::createLLVMFunctionSymbol(
         cudaq::opt::QIRCnot, LLVM::LLVMVoidType::get(ctx),
         {cudaq::opt::getQubitType(ctx), cudaq::opt::getQubitType(ctx)}, module);
 
-    // Add measure_body as it has a different signature than measure.
+    // Add measure_body as it has a different
+    // signature than measure.
     cudaq::opt::factory::createLLVMFunctionSymbol(
         cudaq::opt::QIRMeasureBody, LLVM::LLVMVoidType::get(ctx),
         {cudaq::opt::getQubitType(ctx), cudaq::opt::getResultType(ctx)},
@@ -368,7 +435,8 @@ struct BaseProfilePreparationPass
         cudaq::opt::QIRReadResultBody, IntegerType::get(ctx, 1),
         {cudaq::opt::getResultType(ctx)}, module);
 
-    // Add record functions for any measurements.
+    // Add record functions for any
+    // measurements.
     cudaq::opt::factory::createLLVMFunctionSymbol(
         cudaq::opt::QIRBaseProfileStartRecordOutput,
         LLVM::LLVMVoidType::get(ctx), {}, module);
@@ -380,7 +448,9 @@ struct BaseProfilePreparationPass
         {cudaq::opt::getResultType(ctx), cudaq::opt::getCharPointerType(ctx)},
         module);
 
-    // Add functions `__quantum__qis__*__body` for all functions matching
+    // Add functions
+    // `__quantum__qis__*__body` for all
+    // functions matching
     // `__quantum__qis__*` that are found.
     for (auto &global : module)
       if (auto func = dyn_cast<LLVM::LLVMFuncOp>(global))
@@ -421,7 +491,8 @@ struct VerifyBaseProfilePass
           return WalkResult::advance();
         }
 
-        // Check that qubits are unique values.
+        // Check that qubits are unique
+        // values.
         const std::size_t numOpnds = call.getNumOperands();
         auto qubitTy = cudaq::opt::getQubitType(ctx);
         if (numOpnds > 0)

@@ -20,6 +20,11 @@
 
 #ifdef CUDAQ_HAS_MPI
 #include <mpi.h>
+
+namespace nvqir {
+void tearDownBeforeMPIFinalize();
+}
+
 namespace cudaq::mpi {
 
 void initialize() {
@@ -79,6 +84,18 @@ CUDAQ_ALL_REDUCE_IMPL(double, MPI_DOUBLE, std::multiplies, MPI_PROD)
 void finalize() {
   if (rank() == 0)
     cudaq::info("Finalizing MPI.");
+
+  // Inform the simulator that we are
+  // about to run MPI Finalize
+  nvqir::tearDownBeforeMPIFinalize();
+
+  // Check if finalize has been called.
+  int isFinalized;
+  MPI_Finalized(&isFinalized);
+  if (isFinalized)
+    return;
+
+  // Finalize
   int mpi_error = MPI_Finalize();
   assert(mpi_error == MPI_SUCCESS && "MPI_Finalize failed.");
 }

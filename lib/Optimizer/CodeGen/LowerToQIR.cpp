@@ -81,8 +81,8 @@ public:
     StringRef qir_qubit_array_allocate = cudaq::opt::QIRArrayQubitAllocateArray;
     auto array_qbit_type = cudaq::opt::getArrayType(context);
     FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
-        qir_qubit_array_allocate, array_qbit_type,
-        {rewriter.getIntegerType(64)}, parentModule);
+        qir_qubit_array_allocate, array_qbit_type, {rewriter.getI64Type()},
+        parentModule);
 
     // AllocaOp could have a size operand, or the size could
     // be compile time known and encoded in the veq return type.
