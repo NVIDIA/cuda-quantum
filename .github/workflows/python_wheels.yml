@@ -177,7 +177,7 @@ jobs:
             fi
             apt-get update && apt-get install -y git 
             git clone https://github.com/nvidia/cuda-quantum
-            export PYTHONPATH=$PYTHONPATH:$PWD/cuda-quantum
+            cd cuda-quantum
             for backendTest in /tmp/tests/backends/*.py; do 
               python${{ inputs.python_version }} -m pytest $backendTest
               pytest_status=$?
