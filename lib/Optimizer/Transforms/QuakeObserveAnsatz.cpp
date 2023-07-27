@@ -37,7 +37,7 @@ void appendMeasurement(MeasureBasis &basis, OpBuilder &builder, Location &loc,
     Value rotation =
         builder.create<arith::ConstantFloatOp>(loc, d, builder.getF64Type());
     ValueRange params = {rotation};
-    builder.create<quake::RyOp>(loc, params, std::nullopt, targets);
+    builder.create<quake::RyOp>(loc, params, ValueRange{}, targets);
   }
 }
 
