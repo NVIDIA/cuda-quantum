@@ -136,8 +136,8 @@ def quake_ComputeActionOp : QuakeOp<"compute_action"> {
 
   let arguments = (ins
     UnitAttr:$is_dagger,
-    cc_LambdaType:$compute,
-    cc_LambdaType:$action
+    cc_CallableType:$compute,
+    cc_CallableType:$action
   );
 
   let assemblyFormat = [{

@@ -115,7 +115,7 @@ static bool isArithmeticSequenceType(Type t) {
 static bool isKernelSignatureType(FunctionType t);
 
 static bool isKernelCallable(Type t) {
-  if (auto lambdaTy = dyn_cast<cudaq::cc::LambdaType>(t))
+  if (auto lambdaTy = dyn_cast<cudaq::cc::CallableType>(t))
     return isKernelSignatureType(lambdaTy.getSignature());
   return false;
 }
@@ -195,12 +195,12 @@ bool QuakeBridgeVisitor::TraverseRecordType(clang::RecordType *t) {
 
 bool QuakeBridgeVisitor::convertToLambda() {
   // Should be called from a Visit...() method.
-  if (isa<cudaq::cc::LambdaType>(peekType()))
+  if (isa<cudaq::cc::CallableType>(peekType()))
     return true;
   auto funcTy = dyn_cast<FunctionType>(popType());
   assert(funcTy &&
          "lambda expression should be convertible from function type");
-  return pushType(cudaq::cc::LambdaType::get(builder.getContext(), funcTy));
+  return pushType(cudaq::cc::CallableType::get(builder.getContext(), funcTy));
 }
 
 bool QuakeBridgeVisitor::VisitCXXRecordDecl(clang::CXXRecordDecl *x) {
@@ -296,7 +296,7 @@ bool QuakeBridgeVisitor::VisitElaboratedType(clang::ElaboratedType *t) {
     // expedience, pretend Callables and lambdas are "the same".
     auto fnTy = dyn_cast<FunctionType>(popType());
     assert(fnTy);
-    return pushType(cudaq::cc::LambdaType::get(context, fnTy));
+    return pushType(cudaq::cc::CallableType::get(context, fnTy));
   }
   if (matchTypeName("cudaq", "qubit", name, /*toEnd=*/true) ||
       matchTypeName("cudaq", "qudit<2UL>", name, /*toEnd=*/true))
@@ -408,7 +408,7 @@ bool QuakeBridgeVisitor::VisitPointerType(clang::PointerType *t) {
 bool QuakeBridgeVisitor::VisitLValueReferenceType(
     clang::LValueReferenceType *t) {
   auto eleTy = popType();
-  if (isa<cc::LambdaType, cc::StdvecType, quake::VeqType, quake::RefType>(
+  if (isa<cc::CallableType, cc::StdvecType, quake::VeqType, quake::RefType>(
           eleTy))
     return pushType(eleTy);
   return pushType(cc::PointerType::get(eleTy));
@@ -418,7 +418,7 @@ bool QuakeBridgeVisitor::VisitRValueReferenceType(
     clang::RValueReferenceType *t) {
   auto eleTy = popType();
   // FIXME: LLVMStructType is promoted as a temporary workaround.
-  if (isa<cc::LambdaType, cc::StdvecType, cc::ArrayType, cc::StructType,
+  if (isa<cc::CallableType, cc::StdvecType, cc::ArrayType, cc::StructType,
           quake::VeqType, quake::RefType, LLVM::LLVMStructType>(eleTy))
     return pushType(eleTy);
   return pushType(cc::PointerType::get(eleTy));

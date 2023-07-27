@@ -17,7 +17,7 @@ include "cudaq/Optimizer/Dialect/CC/CCTypes.td"
 def AnyPointerType : Type<CPred<"$_self.isa<mlir::LLVM::LLVMPointerType,"
                           "cudaq::cc::PointerType>()">, "any pointer type">;
 
-def AnyCallableType : Type<CPred<"$_self.isa<cudaq::cc::LambdaType, "
+def AnyCallableType : Type<CPred<"$_self.isa<cudaq::cc::CallableType, "
                           "mlir::FunctionType>()">, "any callable type">;
 
 def AnyAggregateType : Type<CPred<"$_self.isa<cudaq::cc::StructType, "
@@ -1125,13 +1125,13 @@ def cc_CreateLambdaOp : CCOp<"create_lambda",
     ```
   }];
 
-  let results = (outs cc_LambdaType:$signature);
+  let results = (outs cc_CallableType:$signature);
   let regions = (region SizedRegion<1>:$initRegion);
   let hasCustomAssemblyFormat = 1;
 
   let builders = [
       OpBuilder<(ins
-        "cudaq::cc::LambdaType":$signature,
+        "cudaq::cc::CallableType":$signature,
         CArg<"llvm::function_ref<void(mlir::OpBuilder &, mlir::Location)>",
            "nullptr">)>];
 
@@ -1278,7 +1278,7 @@ def cc_InstantiateCallableOp : CCOp<"instantiate_callable", [Pure]> {
     SymbolRefAttr:$callee,
     Variadic<AnyType>:$closure_data
   );
-  let results = (outs cc_LambdaType:$signature);
+  let results = (outs cc_CallableType:$signature);
 
   let assemblyFormat = [{
     $callee `(` $closure_data `)`
@@ -1305,7 +1305,7 @@ def cc_CallableFuncOp : CCOp<"callable_func", [Pure]> {
     See also InstantiateCallableOp, CallableClosureOp.
   }];
 
-  let arguments = (ins cc_LambdaType:$callable);
+  let arguments = (ins cc_CallableType:$callable);
   let results = (outs FunctionType:$function);
 
   let assemblyFormat = [{
@@ -1343,7 +1343,7 @@ def cc_CallableClosureOp : CCOp<"callable_closure", [Pure]> {
     See also CallableFuncOp, InstantiateCallableOp.
   }];
 
-  let arguments = (ins cc_LambdaType:$callable);
+  let arguments = (ins cc_CallableType:$callable);
   let results = (outs Variadic<AnyType>:$closure_data);
 
   let assemblyFormat = [{

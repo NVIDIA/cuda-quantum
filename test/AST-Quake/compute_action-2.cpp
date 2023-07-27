@@ -49,11 +49,11 @@ struct ctrlHeisenberg {
 // CHECK:                   } do {
 // CHECK:                     %[[VAL_28:.*]] = cc.create_lambda {
 // CHECK:                       quake.x [%{{.*}}] %{{.*}} : (!quake.ref, !quake.ref) -> ()
-// CHECK:                     } : !cc.lambda<() -> ()>
+// CHECK:                     } : !cc.callable<() -> ()>
 // CHECK:                     %[[VAL_36:.*]] = cc.create_lambda {
 // CHECK:                       quake.rz (%{{.*}}) [%[[VAL_0]]] %{{.*}} : (f64, !quake.veq<?>, !quake.ref) -> ()
-// CHECK:                     } : !cc.lambda<() -> ()>
-// CHECK:                     quake.compute_action %[[VAL_28]], %[[VAL_36]] : !cc.lambda<() -> ()>, !cc.lambda<() -> ()>
+// CHECK:                     } : !cc.callable<() -> ()>
+// CHECK:                     quake.compute_action %[[VAL_28]], %[[VAL_36]] : !cc.callable<() -> ()>, !cc.callable<() -> ()>
 // CHECK:                     cc.continue
 // CHECK:                   } step {
 // CHECK:                   }

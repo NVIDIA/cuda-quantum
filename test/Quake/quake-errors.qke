@@ -17,7 +17,7 @@ func.func @test() {
   %0 = cc.create_lambda {
     // expected-error @+1 {{has 0 operands, but enclosing function/lambda returns 1}}
     cc.return
-  } : !cc.lambda<() -> i32>
+  } : !cc.callable<() -> i32>
 }
 
 // -----
@@ -27,7 +27,7 @@ func.func @test() {
     %1 = cc.undef f64
     // expected-error @+1 {{return operand 0 ('f64') doesn't match function/lambda result type ('i32')}}
     cc.return %1 : f64
-  } : !cc.lambda<() -> i32>
+  } : !cc.callable<() -> i32>
 }
 
 // -----
@@ -42,7 +42,7 @@ func.func @test() {
     }
     %2 = cc.undef i32
     cc.return %2 : i32
-  } : !cc.lambda<() -> i32>
+  } : !cc.callable<() -> i32>
 }
 
 // -----

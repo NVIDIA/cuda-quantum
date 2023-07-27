@@ -135,14 +135,14 @@ void cc::ArrayType::print(AsmPrinter &printer) const {
 
 namespace cudaq {
 
-cc::LambdaType cc::LambdaType::getNoSignature(MLIRContext *ctx) {
-  return LambdaType::get(ctx, FunctionType::get(ctx, {}, {}));
+cc::CallableType cc::CallableType::getNoSignature(MLIRContext *ctx) {
+  return CallableType::get(ctx, FunctionType::get(ctx, {}, {}));
 }
 
 //===----------------------------------------------------------------------===//
 
 void cc::CCDialect::registerTypes() {
-  addTypes<ArrayType, LambdaType, PointerType, StdvecType, StructType>();
+  addTypes<ArrayType, CallableType, PointerType, StdvecType, StructType>();
 }
 
 } // namespace cudaq
