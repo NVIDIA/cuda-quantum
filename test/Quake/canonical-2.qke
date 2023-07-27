@@ -16,7 +16,7 @@
     %c0_i64 = arith.constant 0 : i64
     %c1_i64 = arith.constant 1 : i64
     %3 = arith.subi %2, %c1_i64 : i64
-    %4 = quake.subvec %arg0, %c0_i64, %3 : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
+    %4 = quake.subveq %arg0, %c0_i64, %3 : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
     %5 = quake.vec_size %arg0 : (!quake.veq<?>) -> i64
     %c1_i64_0 = arith.constant 1 : i64
     %6 = arith.subi %5, %c1_i64_0 : i64
