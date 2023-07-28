@@ -21,10 +21,6 @@ from utils.mock_qpu.oqc import startServer
 # Define the port for the mock server
 port = 62444
 
-pytest.skip(
-    "This file produces a segmentation fault on the CI but not locally. See https://github.com/NVIDIA/cuda-quantum/issues/303.",
-    allow_module_level=True)
-
 
 def assert_close(got) -> bool:
     return got < -1.1 and got > -2.2
