@@ -28,7 +28,7 @@ struct SliceTest {
 // CHECK:           %[[VAL_11:.*]] = arith.constant 1 : i64
 // CHECK:           %[[VAL_12:.*]] = arith.addi %{{.*}}, %{{.*}} : i64
 // CHECK:           %[[VAL_13:.*]] = arith.subi %[[VAL_12]], %[[VAL_11]] : i64
-// CHECK:           %[[VAL_14:.*]] = quake.subvec %[[VAL_6]], %{{.*}}, %[[VAL_13]] : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
+// CHECK:           %[[VAL_14:.*]] = quake.subveq %[[VAL_6]], %{{.*}}, %[[VAL_13]] : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
 // CHECK:           call @{{.*}}other{{.*}}(%[[VAL_14]]) : (!quake.veq<?>) -> ()
 // CHECK:           return
 // CHECK:         }

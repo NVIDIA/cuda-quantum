@@ -292,10 +292,10 @@ def quake_RelaxSizeOp : QuakeOp<"relax_size", [Pure]> {
   let hasCanonicalizer = 1;
 }
 
-def quake_SubVecOp : QuakeOp<"subvec", [Pure]> {
+def quake_SubVeqOp : QuakeOp<"subveq", [Pure]> {
   let summary = "Extract a subvector from a veq reference value.";
   let description = [{
-    The `subvec` operation returns a subvector of references, type
+    The `subveq` operation returns a subvector of references, type
     `!quake.veq<N>` from a vector of references, type `!quake.veq<M>`, where
     `M >= N`.
 
@@ -310,7 +310,7 @@ def quake_SubVecOp : QuakeOp<"subvec", [Pure]> {
     ```mlir
       %0 = arith.constant 2 : i32
       %1 = arith.constant 6 : i32
-      %qr = quake.subvec %qv, %0, %1 : (!quake.veq<?>, i32, i32) ->
+      %qr = quake.subveq %qv, %0, %1 : (!quake.veq<?>, i32, i32) ->
                                         !quake.veq<5>
     ```
   }];
