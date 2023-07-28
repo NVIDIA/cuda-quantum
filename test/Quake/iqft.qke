@@ -40,7 +40,7 @@
 // CHECK:     %[[C1:.*]] = arith.constant 1 : i32
 // CHECK:     %[[C2:.*]] = arith.constant 2 : i32
 // CHECK:     %c-1_i32 = arith.constant -1 : i32
-// CHECK:     %0 = quake.vec_size %arg0 : (!quake.veq<?>) -> i64
+// CHECK:     %0 = quake.veq_size %arg0 : (!quake.veq<?>) -> i64
 // CHECK:     %1 = arith.trunci %0 : i64 to i32
 // CHECK:     %2 = arith.subi %1, %[[C1]] : i32
 // CHECK:     %3 = arith.index_cast %2 : i32 to index
@@ -86,7 +86,7 @@ module {
         %c0 = arith.constant 0 : i32
         %c2 = arith.constant 2 : i32
         %cn1 = arith.constant -1 : i32
-        %nn = quake.vec_size %arg0 : (!quake.veq<?>) -> i64
+        %nn = quake.veq_size %arg0 : (!quake.veq<?>) -> i64
         %n = arith.trunci %nn : i64 to i32
         %nm1 = arith.subi %n, %c1 : i32
         %nm1idx = arith.index_cast %nm1 : i32 to index
