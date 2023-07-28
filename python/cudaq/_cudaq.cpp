@@ -18,8 +18,9 @@
 #include "runtime/cudaq/kernels/py_chemistry.h"
 #include "runtime/cudaq/spin/py_matrix.h"
 #include "runtime/cudaq/spin/py_spin_op.h"
+#include "runtime/cudaq/target/py_runtime_target.h"
+#include "runtime/cudaq/target/py_testing_utils.h"
 #include "utils/LinkedLibraryHolder.h"
-#include "utils/TestingUtils.h"
 
 #include "cudaq.h"
 
