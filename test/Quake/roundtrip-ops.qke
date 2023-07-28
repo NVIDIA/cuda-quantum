@@ -34,7 +34,7 @@ func.func @quantum_ops() {
   %9 = quake.relax_size %6         : (!quake.veq<5>) -> !quake.veq<?>
   %z = arith.constant 0 : index
   %10 = quake.subveq %5, %z, %i : (!quake.veq<?>, index, i64) -> !quake.veq<?>
-  %11 = quake.vec_size %5 : (!quake.veq<?>) -> index
+  %11 = quake.veq_size %5 : (!quake.veq<?>) -> index
 
   // Reference/dereference
   quake.reset %4 : (!quake.ref) -> ()
@@ -162,7 +162,7 @@ func.func @quantum_ops() {
 // CHECK:           %[[VAL_12:.*]] = quake.relax_size %[[VAL_9]] : (!quake.veq<5>) -> !quake.veq<?>
 // CHECK:           %[[VAL_13:.*]] = arith.constant 0 : index
 // CHECK:           %[[VAL_14:.*]] = quake.subveq %[[VAL_8]], %[[VAL_13]], %[[VAL_7]] : (!quake.veq<?>, index, i64) -> !quake.veq<?>
-// CHECK:           %[[VAL_15:.*]] = quake.vec_size %[[VAL_8]] : (!quake.veq<?>) -> index
+// CHECK:           %[[VAL_15:.*]] = quake.veq_size %[[VAL_8]] : (!quake.veq<?>) -> index
 // CHECK:           quake.reset %[[VAL_5]] : (!quake.ref) -> ()
 // CHECK:           %[[VAL_16:.*]] = quake.null_wire
 // CHECK:           %[[VAL_17:.*]] = quake.unwrap %[[VAL_5]] : (!quake.ref) -> !quake.wire

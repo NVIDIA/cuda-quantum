@@ -333,7 +333,7 @@ def quake_SubVeqOp : QuakeOp<"subveq", [Pure]> {
 // VeqSizeOp
 //===----------------------------------------------------------------------===//
 
-def quake_VeqSizeOp : QuakeOp<"vec_size", [Pure]> {
+def quake_VeqSizeOp : QuakeOp<"veq_size", [Pure]> {
   let summary = "Return the size of a veq.";
   let description = [{
     Returns the size of a value of type `!quake.veq<n>`. If the vector has a
