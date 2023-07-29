@@ -27,7 +27,7 @@ def createConstantOp : NativeCodeCall<
       "  $_builder.getIntegerAttr($0.getType(),"
       "   $1.getType().cast<quake::VeqType>().getSize()))">;
 
-// %4 = quake.veq_size(%3 : !quake.veq<10>) : 164
+// %4 = quake.veq_size %3 : (!quake.veq<10>) -> 164
 // ────────────────────────────────────────────────
 // %4 = constant 10 : i64
 def ForwardConstantVeqSizePattern : Pat<
@@ -43,7 +43,7 @@ def createAllocaOp : NativeCodeCall<
       "quake::createConstantAlloca($_builder, $_loc, $0, $1)">;
 
 // %2 = constant 10 : i32
-// %3 = quake.alloca [%2 : i32] !quake.veq<?>
+// %3 = quake.alloca !quake.veq<?>[%2 : i32]
 // ───────────────────────────────────────────
 // %3 = quake.alloca !quake.veq<10>
 def FuseConstantToAllocaPattern : Pat<
