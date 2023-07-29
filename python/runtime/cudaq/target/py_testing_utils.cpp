@@ -8,11 +8,11 @@
 
 #include "py_testing_utils.h"
 #include "LinkedLibraryHolder.h"
+#include "cudaq.h"
 #include "cudaq/platform.h"
 #include "nvqir/CircuitSimulator.h"
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-
 namespace py = pybind11;
 
 namespace nvqir {
@@ -40,6 +40,7 @@ void bindTestUtils(py::module &mod, LinkedLibraryHolder &holder) {
       "initialize", [&](std::size_t numQubits, std::size_t numShots) {
         cudaq::ExecutionContext *context =
             new cudaq::ExecutionContext("sample", numShots);
+        cudaq::set_random_seed(13);
         holder.getSimulator("qpp")->setExecutionContext(context);
         return std::make_tuple(
             holder.getSimulator("qpp")->allocateQubits(numQubits), context);
