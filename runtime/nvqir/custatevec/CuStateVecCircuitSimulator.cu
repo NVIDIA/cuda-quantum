@@ -45,12 +45,12 @@ namespace {
 /// @param num_samples
 /// @param max_value
 /// @return
-static std::vector<double> randomValues(uint64_t num_samples,
-                                        double max_value) {
+static std::vector<double> randomValues(uint64_t num_samples, double max_value,
+                                        std::optional<std::size_t> seed) {
   std::vector<double> rs;
   rs.reserve(num_samples);
   std::random_device rd;
-  std::mt19937 rgen(rd());
+  std::mt19937 rgen(seed.value_or(rd()));
   std::uniform_real_distribution<double> distr(0.0, max_value);
   for (uint64_t i = 0; i < num_samples; ++i) {
     rs.emplace_back(distr(rgen));
@@ -133,6 +133,9 @@ protected:
 
   /// @brief Count the number of resets.
   int nResets = 0;
+
+  /// @brief User may optionally provide a random seed.
+  std::optional<std::size_t> seed = std::nullopt;
 
   custatevecComputeType_t cuStateVecComputeType = CUSTATEVEC_COMPUTE_64F;
   cudaDataType_t cuStateVecCudaDataType = CUDA_C_64F;
@@ -330,13 +333,15 @@ public:
   /// The destructor
   virtual ~CuStateVecCircuitSimulator() = default;
 
+  void setRandomSeed(std::size_t randomSeed) override { seed = randomSeed; }
+
   /// @brief Measure operation
   /// @param qubitIdx
   /// @return
   bool measureQubit(const std::size_t qubitIdx) override {
     const int basisBits[] = {(int)qubitIdx};
     int parity;
-    double rand = randomValues(1, 1.0)[0];
+    double rand = randomValues(1, 1.0, seed)[0];
     HANDLE_ERROR(custatevecMeasureOnZBasis(
         handle, deviceStateVector, cuStateVecCudaDataType, nQubitsAllocated,
         &parity, basisBits, /*N Bits*/ 1, rand,
@@ -352,7 +357,7 @@ public:
     nResets++;
     const int basisBits[] = {(int)qubitIdx};
     int parity;
-    double rand = randomValues(1, 1.0)[0];
+    double rand = randomValues(1, 1.0, seed)[0];
     HANDLE_ERROR(custatevecMeasureOnZBasis(
         handle, deviceStateVector, cuStateVecCudaDataType, nQubitsAllocated,
         &parity, basisBits, /*N Bits*/ 1, rand,
@@ -469,7 +474,7 @@ public:
     }
 
     // Grab some random seed values and create the sampler
-    auto randomValues_ = randomValues(shots, 1.0);
+    auto randomValues_ = randomValues(shots, 1.0, seed);
     custatevecSamplerDescriptor_t sampler;
     HANDLE_ERROR(custatevecSamplerCreate(
         handle, deviceStateVector, cuStateVecCudaDataType, nQubitsAllocated,

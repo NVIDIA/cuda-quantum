@@ -45,6 +45,9 @@ PYBIND11_MODULE(_pycudaq, mod) {
       },
       "");
 
+  mod.def("set_random_seed", &cudaq::set_random_seed,
+          "Provide the seed for backend quantum kernel simulation.");
+
   auto mpiSubmodule = mod.def_submodule("mpi");
   mpiSubmodule.def(
       "initialize", []() { cudaq::mpi::initialize(); },
