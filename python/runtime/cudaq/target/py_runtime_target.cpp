@@ -8,14 +8,12 @@
 
 #include "py_runtime_target.h"
 #include "LinkedLibraryHolder.h"
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
 #include "common/FmtCore.h"
 #include "common/Logger.h"
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
-
-namespace cudaq
-{
+namespace cudaq {
 
 void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
 
