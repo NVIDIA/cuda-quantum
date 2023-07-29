@@ -25,7 +25,7 @@ constexpr int defaultShotsValue = -1;
 /// @brief Functions for running `cudaq::observe()` from python.
 /// Exposing pyObserve in the header for use elsewhere in the bindings.
 observe_result pyObserve(kernel_builder<> &kernel, spin_op &spin_operator,
-                         py::args args = {}, int shots = -1,
+                         py::args args = {}, int shots = defaultShotsValue,
                          std::optional<noise_model> noise = std::nullopt);
 async_observe_result pyObserveAsync(kernel_builder<> &kernel,
                                     spin_op &spin_operator, py::args args,

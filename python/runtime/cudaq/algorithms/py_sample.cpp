@@ -106,11 +106,11 @@ void bindSample(py::module &mod) {
   py::class_<async_sample_result>(
       mod, "AsyncSampleResult",
       R"#(A data-type containing the results of a call to :func:`sample_async`. 
-      The `AsyncSampleResult` models a future-like type, whose 
-      :class:`SampleResult` may be returned via an invocation of the `get` method. This 
-      kicks off a wait on the current thread until the results are available.
-      See `future <https://en.cppreference.com/w/cpp/thread/future>`_ 
-      for more information on this programming pattern.)#")
+The `AsyncSampleResult` models a future-like type, whose 
+:class:`SampleResult` may be returned via an invocation of the `get` method. This 
+kicks off a wait on the current thread until the results are available.
+See `future <https://en.cppreference.com/w/cpp/thread/future>`_ 
+for more information on this programming pattern.)#")
       .def(py::init([](std::string inJson) {
         async_sample_result f;
         std::istringstream is(inJson);
@@ -158,8 +158,8 @@ void bindSample(py::module &mod) {
         // Return a single value if res.size() == 1
         if (res.size() == 1)
           return {res[0]};
-        else
-          return {res};
+
+        return {res};
       },
       py::arg("kernel"), py::kw_only(), py::arg("shots_count") = 1000,
       py::arg("noise_model") = py::none(),
