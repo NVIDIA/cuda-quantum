@@ -6,16 +6,13 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "TestingUtils.h"
-#include "common/PluginUtils.h"
+#include "py_testing_utils.h"
+#include "LinkedLibraryHolder.h"
 #include "cudaq.h"
 #include "cudaq/platform.h"
 #include "nvqir/CircuitSimulator.h"
-#include <fstream>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include <regex>
-#include <sstream>
 namespace py = pybind11;
 
 namespace nvqir {

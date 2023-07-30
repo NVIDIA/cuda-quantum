@@ -199,10 +199,6 @@ void setRandomSeed(std::size_t);
 
 namespace cudaq {
 
-/// @brief Global boolean that disables
-/// target modification.
-bool disallowTargetModification = false;
-
 void set_target_backend(const char *backend) {
   std::string backendName(backend);
   auto &platform = cudaq::get_platform();
