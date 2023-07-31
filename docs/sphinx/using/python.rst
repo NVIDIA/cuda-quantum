@@ -86,6 +86,15 @@ The following code illustrates how to run a simulation with a custom noise model
 
 .. _python-examples-for-hardware-providers:
 
+
+Hybrid Quantum Neural Networks 
+-------------------------------------------
+
+.. literalinclude:: ../examples/python/hybrid_qnns.ipynb
+   :language: python
+
+
+
 Using Quantum Hardware Providers
 -----------------------------------
 
