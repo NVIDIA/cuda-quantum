@@ -1,0 +1,261 @@
+/*************************************************************** -*- C++ -*- ***
+ * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ *******************************************************************************/
+#include "photonics_qis.h"
+// #include "common/ExecutionContext.h"
+// #include "common/Logger.h"
+
+#include "cudaq/qis/managers/BasicExecutionManager.h"
+#include "cudaq/qis/qudit.h"
+#include "cudaq/spin_op.h"
+#include "cudaq/utils/cudaq_utils.h"
+#include "qpp.h"
+#include <cmath>
+#include <complex>
+#include <cstring>
+#include <functional>
+#include <iostream>
+#include <map>
+#include <queue>
+#include <sstream>
+#include <stack>
+
+namespace cudaq {
+
+class PhotonicsExecutionManager : public cudaq::BasicExecutionManager {
+private:
+  qpp::ket state;
+
+  std::unordered_map<std::string, std::function<void(const Instruction &)>>
+      instructions;
+
+  std::vector<cudaq::QuditInfo> sampleQudits;
+
+protected:
+  void allocateQudit(const cudaq::QuditInfo &q) override {
+    if (state.size() == 0) {
+      // qubit will give [1,0], qutrit will give [1,0,0]
+      state = qpp::ket::Zero(q.levels);
+      state(0) = 1.0;
+      return;
+    }
+
+    qpp::ket zeroState = qpp::ket::Zero(q.levels);
+    zeroState(0) = 1.0;
+    state = qpp::kron(state, zeroState);
+  }
+
+  void allocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {}
+
+  void deallocateQudit(const cudaq::QuditInfo &q) override {}
+
+  void deallocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {}
+
+  void handleExecutionContextChanged() override {}
+
+  void handleExecutionContextEnded() override {
+    if (executionContext && executionContext->name == "sample") {
+      std::vector<std::size_t> ids;
+      for (auto &s : sampleQudits) {
+        ids.push_back(s.id);
+      }
+      auto sampleResult =
+          qpp::sample(1000000, state, ids, sampleQudits.begin()->levels);
+
+      for (auto [result, count] : sampleResult) {
+        std::cout << fmt::format("Sample {} : {}", result, count) << "\n";
+      }
+    }
+  }
+
+  void executeInstruction(const Instruction &instruction) override {
+    auto operation = instructions[std::get<0>(instruction)];
+    operation(instruction);
+  }
+
+  int measureQudit(const cudaq::QuditInfo &q) override {
+    if (executionContext && executionContext->name == "sample") {
+      sampleQudits.push_back(q);
+      return 0;
+    }
+
+    // If here, then we care about the result bit, so compute it.
+    const auto measurement_tuple = qpp::measure(
+        state, qpp::cmat::Identity(q.levels, q.levels), {q.id},
+        /*qudit dimension=*/q.levels, /*destructive measmt=*/false);
+    const auto measurement_result = std::get<qpp::RES>(measurement_tuple);
+    const auto &post_meas_states = std::get<qpp::ST>(measurement_tuple);
+    const auto &collapsed_state = post_meas_states[measurement_result];
+    state = Eigen::Map<const qpp::ket>(collapsed_state.data(),
+                                       collapsed_state.size());
+
+    cudaq::info("Measured qubit {} -> {}", q.id, measurement_result);
+    return measurement_result;
+  }
+
+  void measureSpinOp(const cudaq::spin_op &) override {}
+
+  void resetQudit(const cudaq::QuditInfo &id) override {}
+
+  double _fast_factorial(int n) {
+    std::vector<double> FACTORIAL_TABLE = {
+        1.,
+        1.,
+        2.,
+        6.,
+        24.,
+        120.,
+        720.,
+        5040.,
+        40320.,
+        362880.,
+        3628800.,
+        39916800.,
+        479001600.,
+        6227020800.,
+        87178291200.,
+        1307674368000.,
+        20922789888000.,
+        355687428096000.,
+        6402373705728000.,
+        121645100408832000.,
+        2432902008176640000.,
+        51090942171709440000.,
+        1124000727777607680000.,
+        25852016738884976640000.,
+        620448401733239439360000.,
+        15511210043330985984000000.,
+        403291461126605635584000000.,
+        10888869450418352160768000000.,
+        304888344611713860501504000000.,
+        8841761993739701954543616000000.,
+        265252859812191058636308480000000.,
+    };
+    if (n >
+        30) { // We do not expect to get 30 photons in the loop at the same time
+      throw std::invalid_argument("received invalid value, n <= 30");
+    }
+    return FACTORIAL_TABLE[n];
+  }
+
+  int _kron(int a, int b) {
+    if (a == b)
+      return 1;
+    else
+      return 0;
+  }
+
+  bool _isclose(double a, double b, double rtol = 1e-08, double atol = 1e-9) {
+    return abs(a - b) <= (atol + rtol * abs(b));
+  }
+
+  double _calc_beamsplitter_elem(int N1, int N2, int n1, int n2, double theta) {
+
+    const double t = cos(theta); // reflection and transmission coeffients
+    const double r = sin(theta);
+    double sum = 0;
+    for (int k = 0; k <= n1; ++k) {
+      int l = N1 - k;
+      if (l >= 0 && l <= n2) {
+        // int term4 = _kron(N1, k + l); //* kron(N1 + N2, n1 + n2);
+
+        double term1 = pow(r, (n1 - k + l)) * pow(t, (n2 + k - l));
+        if (term1 == 0) {
+          continue;
+        }
+        double term2 = pow((-1), (l)) *
+                       (sqrt(_fast_factorial(n1)) * sqrt(_fast_factorial(n2)) *
+                        sqrt(_fast_factorial(N1)) * sqrt(_fast_factorial(N2)));
+        double term3 = (_fast_factorial(k) * _fast_factorial(n1 - k) *
+                        _fast_factorial(l) * _fast_factorial(n2 - l));
+        double term = term1 * term2 / term3;
+        sum += term;
+      } else {
+        continue;
+      }
+    }
+
+    return sum;
+  }
+
+  void beamsplitter(const double theta, qpp::cmat &BS) {
+    int d = sqrt(BS.rows());
+    //     """Returns a matrix representing a beam splitter
+    for (int n1 = 0; n1 < d; ++n1) {
+      for (int n2 = 0; n2 < d; ++n2) {
+        int nxx = n1 + n2;
+        int nxd = std::min(nxx + 1, d);
+        for (int N1 = 0; N1 < nxd; ++N1) {
+          int N2 = nxx - N1;
+          if (N2 >= nxd) {
+            continue;
+          } else {
+
+            BS(n1 * d + n2, N1 * d + N2) =
+                _calc_beamsplitter_elem(N1, N2, n1, n2, theta);
+          }
+        }
+      }
+    }
+  }
+
+public:
+  PhotonicsExecutionManager() {
+
+    instructions.emplace("plusGate", [&](const Instruction &inst) {
+      auto &[gateName, params, controls, qudits] = inst;
+      auto target = qudits[0];
+      int d = target.levels;
+      qpp::cmat u{qpp::cmat::Zero(d, d)};
+      u(0, d - 1) = 1;
+      for (int i = 1; i < d; i++) {
+        u(i, i - 1) = 1;
+      }
+      cudaq::info("Applying plusGate on {}<{}>", target.id, target.levels);
+      state = qpp::applyCTRL(state, u, {}, {target.id}, target.levels);
+    });
+
+    instructions.emplace("beamSplitterGate", [&](const Instruction &inst) {
+      auto &[gateName, params, controls, qudits] = inst;
+      auto target1 = qudits[0];
+      auto target2 = qudits[1];
+      size_t d = target1.levels;
+      const double theta = params[0];
+      qpp::cmat BS{qpp::cmat::Zero(d * d, d * d)};
+      beamsplitter(theta, BS);
+      cudaq::info("Applying beamSplitterGate on {}<{} and {}<{}>", target1.id,
+                  target1.levels, target2.id, target2.levels);
+      state = qpp::apply(state, BS, {target1.id, target2.id}, d);
+    });
+
+    instructions.emplace("phaseShiftGate", [&](const Instruction &inst) {
+      auto &[gateName, params, controls, qudits] = inst;
+      auto target = qudits[0];
+      size_t d = target.levels;
+      const double phi = params[0];
+      qpp::cmat PS{qpp::cmat::Identity(d, d)};
+      const std::complex<double> i(0.0, 1.0);
+      for (size_t n = 0; n < d; n++) {
+        PS(n, n) = std::exp(n * phi * i);
+      }
+      cudaq::info("Applying phaseShiftGate on {}<{}>", target.id,
+                  target.levels);
+      state = qpp::applyCTRL(state, PS, {}, {target.id}, target.levels);
+    });
+  }
+
+  virtual ~PhotonicsExecutionManager() = default;
+
+  // cudaq::SpinMeasureResult measure(cudaq::spin_op &op) override {
+  //   return cudaq::SpinMeasureResult();
+  // }
+
+}; // PhotonicsExecutionManager
+
+} // namespace cudaq
+
+CUDAQ_REGISTER_EXECUTION_MANAGER(PhotonicsExecutionManager)
