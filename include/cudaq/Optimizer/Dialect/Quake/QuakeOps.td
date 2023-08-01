@@ -973,4 +973,32 @@ def ZOp : OneTargetOp<"z", [Hermitian]> {
   }];
 }
 
+def CutStatePrepOp : QuakeOp<"cut_state_prep", []> {
+ let summary = "General state preparation placeholder node.";
+  let description = [{
+    This node represents a placeholder node for the Quake Circuit 
+    Cutting workflow. This node should not be lowered to executable 
+    LLVM, but should instead be searched and replaced with concrete 
+    state preparation operations generating |0>, |1>, |+>, and |i>. 
+  }];
+  
+  let arguments = (ins WireType:$qubit);
+  let results = (outs WireType:$result);
+  let assemblyFormat = "$qubit attr-dict `:` type($result)";
+}
+
+def CutMeasureOp : QuakeOp<"cut_measure", []> {
+  let summary = "General measurement placeholder node.";
+  let description = [{
+    This node represents a placeholder node for the Quake Circuit 
+    Cutting workflow. This node should not be lowered to executable 
+    LLVM, but should instead be searched and replaced with concrete 
+    measurement operations, measuring X, Y, Z.
+  }];
+  
+  let arguments = (ins WireType:$qubit);
+  let results = (outs);
+  let assemblyFormat = "$qubit attr-dict";
+}
+
 #endif // CUDAQ_OPTIMIZER_DIALECT_QUAKE_OPS

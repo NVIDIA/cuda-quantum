@@ -1,0 +1,42 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt %s --cut-quake=k=3 --canonicalize | FileCheck %s 
+
+
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__function_threeQubits._Z11threeQubitsv = "_Z11threeQubitsv"}} {
+  func.func @__nvqpp__mlirgen__function_threeQubits._Z11threeQubitsv() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    %cst = arith.constant 3.000000e+00 : f64
+    %cst_0 = arith.constant 2.000000e+00 : f64
+    %cst_1 = arith.constant 1.000000e+00 : f64
+    %0 = quake.null_wire
+    %1 = quake.null_wire
+    %2 = quake.null_wire
+    %3 = quake.rx (%cst_1) %0 : (f64, !quake.wire) -> !quake.wire
+    %4 = quake.ry (%cst_0) %1 : (f64, !quake.wire) -> !quake.wire
+    %5 = quake.rx (%cst) %2 : (f64, !quake.wire) -> !quake.wire
+    %6 = quake.z [%3] %4 : (!quake.wire, !quake.wire) -> !quake.wire
+    %7 = quake.z [%6] %5 : (!quake.wire, !quake.wire) -> !quake.wire
+    %8 = quake.ry (%cst_1) %3 : (f64, !quake.wire) -> !quake.wire
+    %9 = cc.alloca !cc.array<i1 x 3>
+    %10 = quake.mz %8 : (!quake.wire) -> i1
+    %11 = cc.compute_ptr %9[0] : (!cc.ptr<!cc.array<i1 x 3>>) -> !cc.ptr<i1>
+    cc.store %10, %11 : !cc.ptr<i1>
+    %12 = quake.mz %6 : (!quake.wire) -> i1
+    %13 = cc.compute_ptr %9[1] : (!cc.ptr<!cc.array<i1 x 3>>) -> !cc.ptr<i1>
+    cc.store %12, %13 : !cc.ptr<i1>
+    %14 = quake.mz %7 : (!quake.wire) -> i1
+    %15 = cc.compute_ptr %9[2] : (!cc.ptr<!cc.array<i1 x 3>>) -> !cc.ptr<i1>
+    cc.store %14, %15 : !cc.ptr<i1>
+    return
+  }
+}
+
+// CHECK: func.func @__nvqpp__mlirgen__function_threeQubits._Z11threeQubitsv.partition_0() 
+// CHECK: func.func @__nvqpp__mlirgen__function_threeQubits._Z11threeQubitsv.partition_1() 
+// CHECK: func.func @__nvqpp__mlirgen__function_threeQubits._Z11threeQubitsv.partition_2() 

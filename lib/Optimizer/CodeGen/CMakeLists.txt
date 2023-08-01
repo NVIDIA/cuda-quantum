@@ -10,11 +10,14 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-braced-scalar-init")
 endif()
 
+include_directories(/opt/metis/include)
+
 add_cudaq_library(OptCodeGen
   LowerToBaseProfileQIR.cpp
   LowerToQIR.cpp
   Passes.cpp
   RefToVeqAlloc.cpp
+  QuakeCircuitCutPass.cpp
 
   DEPENDS
     CCDialect
@@ -30,3 +33,5 @@ add_cudaq_library(OptCodeGen
     OptimBuilder
     QuakeDialect
 )
+
+target_link_libraries(OptCodeGen PRIVATE /opt/metis/lib/libmetis.so /opt/gklib/lib/libGKlib.a)

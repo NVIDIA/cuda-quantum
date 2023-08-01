@@ -26,6 +26,10 @@ namespace cudaq::opt {
 std::unique_ptr<mlir::Pass> createConvertToQIRPass();
 void registerConvertToQIRPass();
 
+std::unique_ptr<mlir::Pass> createQuakeCircuitCutPass();
+std::unique_ptr<mlir::Pass>
+createQuakeCircuitCutPass(std::size_t numPartitions);
+
 /// Convert (generic) QIR to the Base Profile QIR for a specific target.
 /// TODO: Decide how to convey the selected target information.
 void addBaseProfilePipeline(mlir::OpPassManager &pm);

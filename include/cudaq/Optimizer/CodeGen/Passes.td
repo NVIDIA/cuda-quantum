@@ -32,6 +32,24 @@ def QuakeToQIR : Pass<"quake-to-qir", "mlir::ModuleOp"> {
   let constructor = "cudaq::opt::createConvertToQIRPass()";
 }
 
+def QuakeCircuitCut : Pass<"cut-quake", "mlir::ModuleOp"> {
+  let summary = "Cut the single Quake code into multiple Quake codes for circuit cutting use cases.";
+  let description = [{
+    Partitions a ModuleOp with a single FuncOp containing Quake code in the 
+    value-semantic model (wires) to a ModuleOp with multiple FuncOps representing the 
+    Quake code (quantum circuit) cut into k sub-circuits with inserted measure and 
+    state preparation nodes. The resultant circuits can be used as part of a 
+    circuit cutting simulation workflow. 
+  }];
+
+  let constructor = "cudaq::opt::createQuakeCircuitCutPass()";
+
+  let options = [
+    Option<"numPartitions", "k", "std::size_t",
+      /*default=*/"2", "The number of partitions.">
+  ];
+}
+
 def QIRToBaseQIRPrep : Pass<"qir-to-base-qir-prep", "mlir::ModuleOp"> {
   let summary = "Prepare the IR for rewriting to the base profile";
   let description = [{
