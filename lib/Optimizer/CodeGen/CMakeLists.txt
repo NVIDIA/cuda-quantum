@@ -10,31 +10,54 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-braced-scalar-init")
 endif()
 
-add_cudaq_library(OptCodeGen
-  LowerToBaseProfileQIR.cpp
-  LowerToQIR.cpp
-  Passes.cpp
-  RefToVeqAlloc.cpp
-
-  DEPENDS
-    CCDialect
-    OptCodeGenPassIncGen
-    OptPeepholeIncGen
-    OptTransformsPassIncGen
-    CUDAQTargetOpenQASM
-    QuakeDialect
-    
-  LINK_LIBS PUBLIC
-    CCDialect
-    MLIRIR
-    OptimBuilder
-    QuakeDialect
-)
-
 find_package(METIS)
 if (METIS_FOUND)
   message(STATUS "Metis found, building QuakeCircuitCutPass.")
-  target_sources(OptCodeGen PRIVATE QuakeCircuitCutPass.cpp)
-  target_link_libraries(OptCodeGen PRIVATE ${METIS_LIBRARIES} ${METIS_LIBRARY_DIRS}/libGKlib.a)
+
+  add_cudaq_library(OptCodeGen
+    LowerToBaseProfileQIR.cpp
+    LowerToQIR.cpp
+    Passes.cpp
+    RefToVeqAlloc.cpp
+    QuakeCircuitCutPass.cpp
+
+    DEPENDS
+      CCDialect
+      OptCodeGenPassIncGen
+      OptPeepholeIncGen
+      OptTransformsPassIncGen
+      CUDAQTargetOpenQASM
+      QuakeDialect
+      
+    LINK_LIBS PUBLIC
+      CCDialect
+      MLIRIR
+      OptimBuilder
+      QuakeDialect
+  )
+
   target_include_directories(OptCodeGen PRIVATE ${METIS_INCLUDE_DIRS})
+  target_link_libraries(OptCodeGen PRIVATE ${METIS_LIBRARIES} ${METIS_LIBRARY_DIRS}/libGKlib.a)
+else()
+  add_cudaq_library(OptCodeGen
+    LowerToBaseProfileQIR.cpp
+    LowerToQIR.cpp
+    Passes.cpp
+    RefToVeqAlloc.cpp
+
+    DEPENDS
+      CCDialect
+      OptCodeGenPassIncGen
+      OptPeepholeIncGen
+      OptTransformsPassIncGen
+      CUDAQTargetOpenQASM
+      QuakeDialect
+      
+    LINK_LIBS PUBLIC
+      CCDialect
+      MLIRIR
+      OptimBuilder
+      QuakeDialect
+  )
 endif()
+

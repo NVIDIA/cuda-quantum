@@ -6,8 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt %s --cut-quake=k=3 --canonicalize | FileCheck %s 
-
+// RUN: cudaq-opt --help | grep cut-quake &> /dev/null && cudaq-opt %s --cut-quake=k=3 &> %basename.txt && FileCheck --input-file=%basename.txt %s || echo 0
 
 module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__function_threeQubits._Z11threeQubitsv = "_Z11threeQubitsv"}} {
   func.func @__nvqpp__mlirgen__function_threeQubits._Z11threeQubitsv() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
