@@ -24,6 +24,9 @@
 
 #include "cudaq.h"
 
+#include <pybind11/stl.h>
+#include <pybind11/stl_bind.h>
+
 PYBIND11_MODULE(_pycudaq, mod) {
   static cudaq::LinkedLibraryHolder holder;
 
@@ -53,6 +56,19 @@ PYBIND11_MODULE(_pycudaq, mod) {
   mpiSubmodule.def(
       "initialize", []() { cudaq::mpi::initialize(); },
       "Initialize MPI if available.");
+  mpiSubmodule.def(
+      "rank", []() { return cudaq::mpi::rank(); }, "");
+  mpiSubmodule.def(
+      "num_ranks", []() { return cudaq::mpi::num_ranks(); }, "");
+  mpiSubmodule.def(
+      "all_gather",
+      [](std::size_t globalVectorSize, std::vector<double> &local) {
+        std::vector<double> global(globalVectorSize);
+        cudaq::mpi::all_gather(global, local);
+        return global;
+      },
+      "");
+  // mpiSubmodule.def("rank", []() { return cudaq::mpi::all_reduce(); }, "");
   mpiSubmodule.def(
       "is_initialized", []() { return cudaq::mpi::is_initialized(); },
       "Return true if MPI has already been initialized.");
