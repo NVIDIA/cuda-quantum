@@ -133,19 +133,34 @@ target_link_libraries(test_spin
   gtest_main)
 gtest_discover_tests(test_spin)
 
-# build the test qudit execution manager
-add_subdirectory(qudit)
-add_executable(test_qudit main.cpp qudit/SimpleQuditTester.cpp)
+# # build the test qudit execution manager
+# add_subdirectory(qudit)
+# add_executable(test_qudit main.cpp qudit/SimpleQuditTester.cpp)
+# if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+#   target_link_options(test_qudit PRIVATE -Wl,--no-as-needed)
+# endif()
+# target_link_libraries(test_qudit
+#   PRIVATE 
+#   cudaq
+#   cudaq-platform-default
+#   cudaq-em-qudit
+#   gtest_main)
+# gtest_discover_tests(test_qudit)
+
+# build the test photonics execution manager
+# add_subdirectory(photonics)
+add_executable(test_photonics main.cpp photonics/PhotonicsTester.cpp)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_qudit PRIVATE -Wl,--no-as-needed)
+  target_link_options(test_photonics PRIVATE -Wl,--no-as-needed)
 endif()
-target_link_libraries(test_qudit
+target_link_libraries(test_photonics
   PRIVATE 
   cudaq
   cudaq-platform-default
-  cudaq-em-qudit
+  cudaq-em-photonics
   gtest_main)
-gtest_discover_tests(test_qudit)
+gtest_discover_tests(test_photonics)
+
 
 add_subdirectory(backends)
 add_subdirectory(Optimizer)
