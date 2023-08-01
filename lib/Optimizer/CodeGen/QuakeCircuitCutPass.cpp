@@ -548,11 +548,28 @@ std::unique_ptr<Pass> cudaq::opt::createQuakeCircuitCutPass(std::size_t n) {
 
 #else
 
+class QuakeCircuitCutUnavailable : public OperationPass<mlir::ModuleOp> {
+public:
+  QuakeCircuitCutUnavailable()
+      : OperationPass<mlir::ModuleOp>(
+            TypeID::get<QuakeCircuitCutUnavailable>()) {}
+  static constexpr StringLiteral getArgumentName() {
+    return StringLiteral("invalid-pass-no-metis");
+  }
+  StringRef getArgument() const override { return "invalid-pass-no-metis"; }
+  StringRef getName() const override { return "QuakeCircuitCut"; }
+  void runOnOperation() override {}
+  std::unique_ptr<Pass> clonePass() const override {
+    return std::make_unique<QuakeCircuitCutUnavailable>(*this);
+  }
+  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(QuakeCircuitCutUnavailable)
+};
+
 std::unique_ptr<Pass> cudaq::opt::createQuakeCircuitCutPass() {
-  return nullptr;
+  return std::make_unique<QuakeCircuitCutUnavailable>();
 }
 
 std::unique_ptr<Pass> cudaq::opt::createQuakeCircuitCutPass(std::size_t n) {
-  return nullptr;
+  return std::make_unique<QuakeCircuitCutUnavailable>();
 }
 #endif
