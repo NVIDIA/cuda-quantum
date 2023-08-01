@@ -15,7 +15,6 @@ add_cudaq_library(OptCodeGen
   LowerToQIR.cpp
   Passes.cpp
   RefToVeqAlloc.cpp
-  QuakeCircuitCutPass.cpp
 
   DEPENDS
     CCDialect
