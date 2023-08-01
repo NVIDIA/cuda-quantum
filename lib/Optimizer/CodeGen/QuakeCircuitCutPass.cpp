@@ -12,6 +12,9 @@
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 
+using namespace mlir;
+
+#ifdef CUDAQ_HAS_METIS
 #include <metis.h>
 
 #define DEBUG_TYPE "cut-quake"
@@ -20,8 +23,6 @@ namespace cudaq::opt {
 #define GEN_PASS_DEF_QUAKECIRCUITCUT
 #include "cudaq/Optimizer/CodeGen/Passes.h.inc"
 } // namespace cudaq::opt
-
-using namespace mlir;
 
 namespace {
 
@@ -544,3 +545,14 @@ std::unique_ptr<Pass> cudaq::opt::createQuakeCircuitCutPass() {
 std::unique_ptr<Pass> cudaq::opt::createQuakeCircuitCutPass(std::size_t n) {
   return std::make_unique<QuakeCircuitCutPass>(n);
 }
+
+#else
+
+std::unique_ptr<Pass> cudaq::opt::createQuakeCircuitCutPass() {
+  return nullptr;
+}
+
+std::unique_ptr<Pass> cudaq::opt::createQuakeCircuitCutPass(std::size_t n) {
+  return nullptr;
+}
+#endif
