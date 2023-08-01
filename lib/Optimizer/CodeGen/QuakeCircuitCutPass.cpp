@@ -86,7 +86,7 @@ struct GraphNodeHash {
 
 /// @brief We represent directed acylic graphs as a
 /// collection of GraphNodes, with each GraphNode mapping
-/// to a vector of GraphNodes that it connects too (representative of
+/// to a vector of GraphNodes that it connects to (representative of
 /// its edges)
 using Graph =
     std::unordered_map<GraphNode, std::vector<GraphNode>, GraphNodeHash>;
@@ -105,7 +105,7 @@ void dumpGraph(Graph &graph) {
   LLVM_DEBUG(llvm::dbgs() << "\n");
 }
 
-/// @brief Sort the nodes in the Graph by unique ID. Write teh
+/// @brief Sort the nodes in the Graph by unique ID. Write the
 /// sorted GraphNodes to the input vector reference.
 void sortNodes(Graph &graph, std::vector<GraphNode> &sortedNodes) {
   for (auto &[node, edges] : graph)
@@ -117,7 +117,7 @@ void sortNodes(Graph &graph, std::vector<GraphNode> &sortedNodes) {
 }
 
 /// @brief Map one of our Graph data types to a the METIS
-/// input format, (CSR). Must be converted from DAG to Undirected
+/// input format, (CSR). Must be converted from DAG to Undirected first
 std::tuple<std::vector<idx_t>, std::vector<idx_t>> toMetis(Graph graph) {
 
   // Convert to undirected version of the graph
@@ -211,7 +211,6 @@ void createGraph(func::FuncOp &quakeFunc, Graph &graph) {
         auto user = *iter;
         auto &nextNode = mapper.at(user);
         graph[lastNode].push_back(nextNode);
-        // graph[nextNode].push_back(lastNode);
         lastNode = nextNode;
         ++iter;
       }
@@ -223,7 +222,7 @@ void createGraph(func::FuncOp &quakeFunc, Graph &graph) {
   dumpGraph(graph);
 }
 
-/// @brief Given the number of partitions and the coloring of hte
+/// @brief Given the number of partitions and the coloring of the
 /// graph nodes, return a vector of graphs, where each one represents
 /// a partition of the Graph.
 std::vector<Graph> createPartitionGraphs(Graph &graph, std::size_t k,
@@ -488,16 +487,7 @@ public:
     Graph graph;
     createGraph(quakeFunc, graph);
 
-    // Order the nodes in a map of node Id to their edges
-    std::map<std::size_t, std::vector<std::size_t>> orderedMap;
-    for (auto &[node, edges] : graph) {
-      std::vector<std::size_t> edgesVec;
-      std::transform(edges.begin(), edges.end(), std::back_inserter(edgesVec),
-                     [](auto &&el) { return el.uniqueId; });
-      orderedMap.insert({node.uniqueId, edgesVec});
-    }
-
-    // Convert this Ordered Map Rep to Metis input deck
+    // Convert this graph rep to Metis input deck
     idx_t nNodes = graph.size(), nWeights = 1, objval, k = numPartitions;
     real_t im = 10.0; // FIXME This is a magic number...
 
@@ -538,12 +528,9 @@ public:
       dumpGraph(g);
     }
 
-    auto loc = quakeFunc.getLoc();
-
-    // func::FuncOp graphToQuake(Block* body, Graph& graph)
     // For each graph, order the nodes and re-number from 0,..,N
     for (std::size_t i = 0; auto &g : graphs)
-      graphToQuake(moduleOp, g, loc,
+      graphToQuake(moduleOp, g, quakeFunc.getLoc(),
                    quakeFunc.getName().str() + ".partition_" +
                        std::to_string(i++));
   }
