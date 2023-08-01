@@ -34,4 +34,10 @@ add_cudaq_library(OptCodeGen
     QuakeDialect
 )
 
-target_link_libraries(OptCodeGen PRIVATE /opt/metis/lib/libmetis.so /opt/gklib/lib/libGKlib.a)
+find_package(METIS)
+if (METIS_FOUND)
+  message(STATUS "Metis found, building QuakeCircuitCutPass.")
+  target_sources(OptCodeGen PRIVATE QuakeCircuitCutPass.cpp)
+  target_link_libraries(OptCodeGen PRIVATE ${METIS_LIBRARIES} ${METIS_LIBRARY_DIRS}/libGKlib.a)
+  target_include_directories(OptCodeGen PRIVATE ${METIS_INCLUDE_DIRS})
+endif()
