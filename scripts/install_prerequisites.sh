@@ -113,3 +113,21 @@ if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(ls -A "$OPENSSL_INSTALL_PREFIX"
   make install && cd .. && rm -rf openssl-3.1.1*
   remove_temp_installs
 fi
+
+if [ ! -f "$METIS_INSTALL_PREFIX/lib/libmetis.a" ]; then
+  if [ -x "$(command -v apt-get)" ]; then
+    apt-get update
+  fi
+
+  temp_install_if_command_unknown git git
+  temp_install_if_command_unknown make make
+  temp_install_if_command_unknown gcc gcc
+
+  git clone https://github.com/KarypisLab/GKlib
+  cd GKlib && make config cc=gcc prefix=$METIS_INSTALL_PREFIX openmp=set 
+  make -j install && cd ../
+  git clone https://github.com/KarypisLab/METIS
+  cd METIS && make config cc=gcc prefix=$METIS_INSTALL_PREFIX gklib_path=$METIS_INSTALL_PREFIX 
+  make -j install && cd .. && rm -rf GKlib && rm -rf METIS
+  remove_temp_installs
+fi
