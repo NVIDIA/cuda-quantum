@@ -18,8 +18,9 @@
 #include "runtime/cudaq/kernels/py_chemistry.h"
 #include "runtime/cudaq/spin/py_matrix.h"
 #include "runtime/cudaq/spin/py_spin_op.h"
+#include "runtime/cudaq/target/py_runtime_target.h"
+#include "runtime/cudaq/target/py_testing_utils.h"
 #include "utils/LinkedLibraryHolder.h"
-#include "utils/TestingUtils.h"
 
 #include "cudaq.h"
 
@@ -44,6 +45,9 @@ PYBIND11_MODULE(_pycudaq, mod) {
         }
       },
       "");
+
+  mod.def("set_random_seed", &cudaq::set_random_seed,
+          "Provide the seed for backend quantum kernel simulation.");
 
   auto mpiSubmodule = mod.def_submodule("mpi");
   mpiSubmodule.def(

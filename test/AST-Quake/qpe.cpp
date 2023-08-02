@@ -103,7 +103,7 @@ int main() {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_iqft
 // CHECK-SAME:        (%[[VAL_0:.*]]: !quake.veq<?>{{.*}}) attributes {"cudaq-kernel"} {
-// CHECK:           %[[VAL_1:.*]] = quake.vec_size %[[VAL_0]] : (!quake.veq<?>) -> i64
+// CHECK:           %[[VAL_1:.*]] = quake.veq_size %[[VAL_0]] : (!quake.veq<?>) -> i64
 // CHECK:           %[[VAL_2:.*]] = arith.trunci %[[VAL_1]] : i64 to i32
 // CHECK:           %[[VAL_3:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_2]], %[[VAL_3]] : !cc.ptr<i32>
@@ -222,7 +222,7 @@ int main() {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__tgate
 // CHECK-SAME:        (%[[VAL_0:.*]]: !quake.veq<?>{{.*}}) attributes
-// CHECK:           %[[VAL_3:.*]] = quake.vec_size %[[VAL_0]] : (!quake.veq<?>) -> i64
+// CHECK:           %[[VAL_3:.*]] = quake.veq_size %[[VAL_0]] : (!quake.veq<?>) -> i64
 // CHECK:           %[[VAL_4:.*]] = arith.index_cast %[[VAL_3]] : i64 to index
 // CHECK:           %[[VAL_1:.*]] = arith.constant 0 : index
 // CHECK:           %[[VAL_2:.*]] = arith.constant 1 : index
@@ -244,7 +244,7 @@ int main() {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Z4mainE3$_0
 // CHECK-SAME:        (%[[VAL_0:.*]]: !quake.veq<?>
-// CHECK:           %[[VAL_3:.*]] = quake.vec_size %[[VAL_0]] : (!quake.veq<?>) -> i64
+// CHECK:           %[[VAL_3:.*]] = quake.veq_size %[[VAL_0]] : (!quake.veq<?>) -> i64
 // CHECK:           %[[VAL_4:.*]] = arith.index_cast %[[VAL_3]] : i64 to index
 // CHECK:           %[[VAL_1:.*]] = arith.constant 0 : index
 // CHECK:           %[[VAL_2:.*]] = arith.constant 1 : index
@@ -280,16 +280,16 @@ int main() {
 // CHECK:           %[[VAL_13:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_14:.*]] = arith.constant 1 : i64
 // CHECK:           %[[VAL_15:.*]] = arith.subi %[[VAL_12]], %[[VAL_14]] : i64
-// CHECK:           %[[VAL_16:.*]] = quake.subvec %[[VAL_10]], %[[VAL_13]], %[[VAL_15]] : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
+// CHECK:           %[[VAL_16:.*]] = quake.subveq %[[VAL_10]], %[[VAL_13]], %[[VAL_15]] : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
 // CHECK:           %[[VAL_17:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_18:.*]] = arith.extsi %[[VAL_17]] : i32 to i64
-// CHECK:           %[[VAL_19:.*]] = quake.vec_size %[[VAL_10]] : (!quake.veq<?>) -> i64
+// CHECK:           %[[VAL_19:.*]] = quake.veq_size %[[VAL_10]] : (!quake.veq<?>) -> i64
 // CHECK:           %[[VAL_20:.*]] = arith.constant 1 : i64
 // CHECK:           %[[VAL_21:.*]] = arith.subi %[[VAL_19]], %[[VAL_20]] : i64
 // CHECK:           %[[VAL_22:.*]] = arith.subi %[[VAL_19]], %[[VAL_18]] : i64
-// CHECK:           %[[VAL_23:.*]] = quake.subvec %[[VAL_10]], %[[VAL_22]], %[[VAL_21]] : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
+// CHECK:           %[[VAL_23:.*]] = quake.subveq %[[VAL_10]], %[[VAL_22]], %[[VAL_21]] : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
 // CHECK:           call @__nvqpp__mlirgen__Z4mainE3$_0(%[[VAL_23]]) : (!quake.veq<?>) -> ()
-// CHECK:           %[[VAL_24:.*]] = quake.vec_size %[[VAL_16]] : (!quake.veq<?>) -> i64
+// CHECK:           %[[VAL_24:.*]] = quake.veq_size %[[VAL_16]] : (!quake.veq<?>) -> i64
 // CHECK:           %[[VAL_25:.*]] = arith.index_cast %[[VAL_24]] : i64 to index
 // CHECK:           %[[VAL_26:.*]] = arith.constant 0 : index
 // CHECK:           %[[VAL_27:.*]] = arith.constant 1 : index

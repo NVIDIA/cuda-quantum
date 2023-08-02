@@ -68,10 +68,10 @@ maybeUnpackOperands(OpBuilder &builder, Location loc, ValueRange operands) {
     // The canonicalizer will compute a constant size, if possible.
     auto unsizedVeqTy = quake::VeqType::getUnsized(builder.getContext());
     // Get the subvector of all qubits excluding the last one: controls.
-    Value ctrlSubvec =
-        builder.create<quake::SubVecOp>(loc, unsizedVeqTy, target, zero, last);
+    Value ctrlSubveq =
+        builder.create<quake::SubVeqOp>(loc, unsizedVeqTy, target, zero, last);
     return std::make_pair(SmallVector<Value>{qTarg},
-                          SmallVector<Value>{ctrlSubvec});
+                          SmallVector<Value>{ctrlSubveq});
   }
   return std::make_pair(SmallVector<Value>{target}, SmallVector<Value>{});
 }
@@ -1173,7 +1173,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
             auto offset = builder.create<arith::SubIOp>(loc, qrSize, one);
             auto unsizedVecTy =
                 quake::VeqType::getUnsized(builder.getContext());
-            return pushValue(builder.create<quake::SubVecOp>(
+            return pushValue(builder.create<quake::SubVeqOp>(
                 loc, unsizedVecTy, qregArg, zero, offset));
           }
           assert(actArgs.size() == 0);
@@ -1195,7 +1195,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
                 builder.create<arith::SubIOp>(loc, qrSize, actArgs.front());
             auto unsizedVecTy =
                 quake::VeqType::getUnsized(builder.getContext());
-            return pushValue(builder.create<quake::SubVecOp>(
+            return pushValue(builder.create<quake::SubVeqOp>(
                 loc, unsizedVecTy, qregArg, startOff, endOff));
           }
           assert(actArgs.size() == 0);
@@ -1215,7 +1215,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           Value offset = builder.create<arith::AddIOp>(loc, start, count);
           offset = builder.create<arith::SubIOp>(loc, offset, one);
           auto unsizedVecTy = quake::VeqType::getUnsized(builder.getContext());
-          return pushValue(builder.create<quake::SubVecOp>(
+          return pushValue(builder.create<quake::SubVeqOp>(
               loc, unsizedVecTy, qregArg, start, offset));
         }
     }

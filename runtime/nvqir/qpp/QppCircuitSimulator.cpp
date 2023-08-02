@@ -167,6 +167,10 @@ public:
   QppCircuitSimulator() = default;
   virtual ~QppCircuitSimulator() = default;
 
+  void setRandomSeed(std::size_t seed) override {
+    qpp::RandomDevices::get_instance().get_prng().seed(seed);
+  }
+
   bool canHandleObserve() override {
     // Do not compute <H> from matrix if shots based sampling requested
     if (executionContext &&

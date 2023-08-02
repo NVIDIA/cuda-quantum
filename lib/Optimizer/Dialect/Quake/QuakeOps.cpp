@@ -252,10 +252,10 @@ void quake::RelaxSizeOp::getCanonicalizationPatterns(
 }
 
 //===----------------------------------------------------------------------===//
-// SubVecOp
+// SubVeqOp
 //===----------------------------------------------------------------------===//
 
-Value quake::createSizedSubVecOp(PatternRewriter &builder, Location loc,
+Value quake::createSizedSubVeqOp(PatternRewriter &builder, Location loc,
                                  OpResult result, Value inVec, Value lo,
                                  Value hi) {
   auto vecTy = result.getType().cast<quake::VeqType>();
@@ -267,13 +267,13 @@ Value quake::createSizedSubVecOp(PatternRewriter &builder, Location loc,
   };
   std::size_t size = getVal(hi) - getVal(lo) + 1u;
   auto szVecTy = quake::VeqType::get(ctx, size);
-  auto subvec = builder.create<quake::SubVecOp>(loc, szVecTy, inVec, lo, hi);
-  return builder.create<quake::RelaxSizeOp>(loc, vecTy, subvec);
+  auto subveq = builder.create<quake::SubVeqOp>(loc, szVecTy, inVec, lo, hi);
+  return builder.create<quake::RelaxSizeOp>(loc, vecTy, subveq);
 }
 
-void quake::SubVecOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
+void quake::SubVeqOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                   MLIRContext *context) {
-  patterns.add<FuseConstantToSubvecPattern>(context);
+  patterns.add<FuseConstantToSubveqPattern>(context);
 }
 
 //===----------------------------------------------------------------------===//

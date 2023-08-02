@@ -58,6 +58,10 @@ public:
   /// simulation strategies that support noise modeling.
   virtual void setNoiseModel(cudaq::noise_model &noise) = 0;
 
+  virtual void setRandomSeed(std::size_t seed) {
+    // do nothing
+  }
+
   /// @brief Compute the expected value of the given spin op
   /// with respect to the current state, <psi | H | psi>.
   virtual cudaq::ExecutionResult observe(const cudaq::spin_op &term) = 0;

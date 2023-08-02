@@ -44,7 +44,7 @@ __qpu__ double test4(cudaq::qspan<> a, cudaq::qspan<> b) {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test1
 // CHECK-SAME:        %[[VAL_0:.*]]: !quake.veq<?>{{.*}}, %[[VAL_1:.*]]: !quake.veq<?>{{.*}})
-// CHECK:           %[[VAL_2:.*]] = quake.vec_size %[[VAL_0]] : (!quake.veq<?>) -> i64
+// CHECK:           %[[VAL_2:.*]] = quake.veq_size %[[VAL_0]] : (!quake.veq<?>) -> i64
 // CHECK:           %[[VAL_3:.*]] = arith.trunci %[[VAL_2]] : i64 to i32
 // CHECK:           %[[VAL_4:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_3]], %[[VAL_4]] : !cc.ptr<i32>
@@ -76,7 +76,7 @@ __qpu__ double test4(cudaq::qspan<> a, cudaq::qspan<> b) {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test2
 // CHECK-SAME:        %[[VAL_0:.*]]: !quake.veq<?>{{.*}}, %[[VAL_1:.*]]: !quake.veq<?>{{.*}})
-// CHECK:           %[[VAL_2:.*]] = quake.vec_size %[[VAL_0]] : (!quake.veq<?>) -> i64
+// CHECK:           %[[VAL_2:.*]] = quake.veq_size %[[VAL_0]] : (!quake.veq<?>) -> i64
 // CHECK:           %[[VAL_3:.*]] = arith.trunci %[[VAL_2]] : i64 to i32
 // CHECK:           %[[VAL_4:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_3]], %[[VAL_4]] : !cc.ptr<i32>
@@ -106,7 +106,7 @@ __qpu__ double test4(cudaq::qspan<> a, cudaq::qspan<> b) {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test3
 // CHECK-SAME:        %[[VAL_0:.*]]: !quake.veq<?>{{.*}}, %[[VAL_1:.*]]: !quake.veq<?>{{.*}})
-// CHECK:           %[[VAL_2:.*]] = quake.vec_size %[[VAL_0]] : (!quake.veq<?>) -> i64
+// CHECK:           %[[VAL_2:.*]] = quake.veq_size %[[VAL_0]] : (!quake.veq<?>) -> i64
 // CHECK:           %[[VAL_3:.*]] = arith.trunci %[[VAL_2]] : i64 to i32
 // CHECK:           %[[VAL_4:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_3]], %[[VAL_4]] : !cc.ptr<i32>
@@ -136,7 +136,7 @@ __qpu__ double test4(cudaq::qspan<> a, cudaq::qspan<> b) {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test4
 // CHECK-SAME:        %[[VAL_0:.*]]: !quake.veq<?>{{.*}}, %[[VAL_1:.*]]: !quake.veq<?>{{.*}}) -> f64
-// CHECK:           %[[VAL_2:.*]] = quake.vec_size %[[VAL_0]] : (!quake.veq<?>) -> i64
+// CHECK:           %[[VAL_2:.*]] = quake.veq_size %[[VAL_0]] : (!quake.veq<?>) -> i64
 // CHECK:           %[[VAL_3:.*]] = arith.trunci %[[VAL_2]] : i64 to i32
 // CHECK:           %[[VAL_4:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_3]], %[[VAL_4]] : !cc.ptr<i32>

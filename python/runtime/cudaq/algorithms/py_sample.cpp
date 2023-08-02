@@ -17,6 +17,7 @@
 #include "cudaq/platform.h"
 
 #include "common/ExecutionContext.h"
+#include "common/Logger.h"
 #include "common/MeasureCounts.h"
 
 namespace cudaq {
