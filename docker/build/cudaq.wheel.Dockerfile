@@ -13,7 +13,7 @@
 # Must be built from the repo root with:
 #   DOCKER_BUILDKIT=1 docker build -f docker/build/cudaq.wheel.Dockerfile . --output out
 
-ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:manylinux
+ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:manylinux-x86_64-main
 FROM $base_image as wheelbuild
 
 ARG release_version=

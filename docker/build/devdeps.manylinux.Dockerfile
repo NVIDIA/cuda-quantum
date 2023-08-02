@@ -51,9 +51,10 @@ ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
 ENV BLAS_INSTALL_PREFIX=/usr/local/blas
 ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
 RUN dnf check-update && dnf install -y --nobest --setopt=install_weak_deps=False \
-        glibc-static perl-core wget \
+        glibc-static perl-core wget cmake \
     && bash /scripts/install_prerequisites.sh \
-    && dnf remove -y wget && dnf clean all
+    && dnf remove -y wget cmake && dnf clean all \
+    && rm -rf /scripts/install_prerequisites.sh
 
 # Install CUDA 11.8.
 # Note that pip packages are available for all necessary runtime components.
