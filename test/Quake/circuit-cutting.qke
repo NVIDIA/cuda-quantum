@@ -6,7 +6,14 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: if [ ! -f %cudaq_lib_dir/partitioners/libcudaq-partitioner-metis.so ] ; then cudaq-opt %s --cut-quake=k=3 --load-cudaq-plugin %cudaq_lib_dir/partitioners/libcudaq-partitioner-metis.so %s | FileCheck %s ; else echo 0 ; fi
+// Only run this test if the metis plugin is available 
+
+// RUN: export METIS_PLUGIN=%cudaq_lib_dir/partitioners/libcudaq-partitioner-metis%cudaq_plugin_ext
+// RUN: if [ ! -f ${METIS_PLUGIN} ] ; \
+// RUN: then \
+// RUN:    cudaq-opt %s --cut-quake=k=3 --load-cudaq-plugin ${METIS_PLUGIN} %s \
+// RUN:    | FileCheck %s ; \
+// RUN: else echo 0 ; fi
 
 module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__function_threeQubits._Z11threeQubitsv = "_Z11threeQubitsv"}} {
   func.func @__nvqpp__mlirgen__function_threeQubits._Z11threeQubitsv() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
