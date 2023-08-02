@@ -57,9 +57,11 @@ PYBIND11_MODULE(_pycudaq, mod) {
       "initialize", []() { cudaq::mpi::initialize(); },
       "Initialize MPI if available.");
   mpiSubmodule.def(
-      "rank", []() { return cudaq::mpi::rank(); }, "");
+      "rank", []() { return cudaq::mpi::rank(); },
+      "Return the rank of this process.");
   mpiSubmodule.def(
-      "num_ranks", []() { return cudaq::mpi::num_ranks(); }, "");
+      "num_ranks", []() { return cudaq::mpi::num_ranks(); },
+      "Return the total number of ranks.");
   mpiSubmodule.def(
       "all_gather",
       [](std::size_t globalVectorSize, std::vector<double> &local) {
@@ -67,7 +69,8 @@ PYBIND11_MODULE(_pycudaq, mod) {
         cudaq::mpi::all_gather(global, local);
         return global;
       },
-      "");
+      "Gather and scatter the `local` list, returning a concatenation of all "
+      "lists across all ranks. The total global list size must be provided.");
   mpiSubmodule.def(
       "is_initialized", []() { return cudaq::mpi::is_initialized(); },
       "Return true if MPI has already been initialized.");
