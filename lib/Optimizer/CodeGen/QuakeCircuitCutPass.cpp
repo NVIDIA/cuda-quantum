@@ -332,10 +332,11 @@ public:
     createGraph(quakeFunc, graph);
 
     // Get the desired partitioner
-    auto partitioner = cudaq::registry::get<cudaq::GraphPartitioner>("metis");
+    auto partitioner =
+        cudaq::registry::get<cudaq::GraphPartitioner>(graphPartitioner);
     if (!partitioner) {
-      moduleOp.emitError(
-          "Invalid partitioner, cannot perform Quake Circuit Cutting.");
+      moduleOp.emitError("Invalid partitioner (" + graphPartitioner +
+                         "), cannot perform Quake Circuit Cutting.");
       signalPassFailure();
       return;
     }

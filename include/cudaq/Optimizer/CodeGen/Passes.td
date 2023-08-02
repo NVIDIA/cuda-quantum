@@ -46,7 +46,9 @@ def QuakeCircuitCut : Pass<"cut-quake", "mlir::ModuleOp"> {
 
   let options = [
     Option<"numPartitions", "k", "std::size_t",
-      /*default=*/"2", "The number of partitions.">
+      /*default=*/"2", "The number of partitions.">,
+    Option<"graphPartitioner", "partitioner", "std::string",
+      /*default=*/"\"metis\"", "The name of the GraphPartitioner plugin.">
   ];
 }
 
