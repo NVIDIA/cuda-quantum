@@ -70,11 +70,11 @@ public:
             alloc.getLoc(), os.first, rewriter.getI64Type());
         Value hi = rewriter.create<arith::ConstantIntOp>(
             alloc.getLoc(), os.first + os.second - 1, rewriter.getI64Type());
-        [[maybe_unused]] Value subvec =
-            rewriter.replaceOpWithNewOp<quake::SubVecOp>(
+        [[maybe_unused]] Value subveq =
+            rewriter.replaceOpWithNewOp<quake::SubVeqOp>(
                 alloc, alloc.getType(), analysis.newAlloc, lo, hi);
         LLVM_DEBUG(llvm::dbgs()
-                   << "replace " << alloc << " with " << subvec << '\n');
+                   << "replace " << alloc << " with " << subveq << '\n');
         return success();
       }
     }
@@ -91,7 +91,7 @@ public:
   // Replace a pattern such as:
   // ```
   //   %1 = ... : !quake.veq<4>
-  //   %2 = quake.subvec %1, %c2, %c3 : (!quake.veq<4>, i32, i32) ->
+  //   %2 = quake.subveq %1, %c2, %c3 : (!quake.veq<4>, i32, i32) ->
   //        !quake.veq<2>
   //   %3 = quake.extract_ref %2[0] : (!quake.veq<2>) -> !quake.ref
   // ```
@@ -102,13 +102,13 @@ public:
   // ```
   LogicalResult matchAndRewrite(quake::ExtractRefOp extract,
                                 PatternRewriter &rewriter) const override {
-    auto subvec = extract.getVeq().getDefiningOp<quake::SubVecOp>();
-    if (!subvec || isa<quake::SubVecOp>(subvec.getVeq().getDefiningOp()))
+    auto subveq = extract.getVeq().getDefiningOp<quake::SubVeqOp>();
+    if (!subveq || isa<quake::SubVeqOp>(subveq.getVeq().getDefiningOp()))
       return failure();
 
     Value offset;
     auto loc = extract.getLoc();
-    Value low = subvec.getLow();
+    Value low = subveq.getLow();
     if (extract.hasConstantIndex()) {
       Value cv = rewriter.create<arith::ConstantIntOp>(
           loc, extract.getConstantIndex(), low.getType());
@@ -118,30 +118,30 @@ public:
       Value cast2 = createCast(rewriter, loc, low);
       offset = rewriter.create<arith::AddIOp>(loc, cast1, cast2);
     }
-    rewriter.replaceOpWithNewOp<quake::ExtractRefOp>(extract, subvec.getVeq(),
+    rewriter.replaceOpWithNewOp<quake::ExtractRefOp>(extract, subveq.getVeq(),
                                                      offset);
     return success();
   }
 };
 
-class SubVecPat : public OpRewritePattern<quake::SubVecOp> {
+class SubVeqPat : public OpRewritePattern<quake::SubVeqOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(quake::SubVecOp subvec,
+  LogicalResult matchAndRewrite(quake::SubVeqOp subveq,
                                 PatternRewriter &rewriter) const override {
-    auto prior = subvec.getVeq().getDefiningOp<quake::SubVecOp>();
+    auto prior = subveq.getVeq().getDefiningOp<quake::SubVeqOp>();
     if (!prior)
       return failure();
 
-    auto loc = subvec.getLoc();
+    auto loc = subveq.getLoc();
     Value cast1 = createCast(rewriter, loc, prior.getLow());
-    Value cast2 = createCast(rewriter, loc, subvec.getLow());
-    Value cast3 = createCast(rewriter, loc, subvec.getHigh());
+    Value cast2 = createCast(rewriter, loc, subveq.getLow());
+    Value cast3 = createCast(rewriter, loc, subveq.getHigh());
     Value sum1 = rewriter.create<arith::AddIOp>(loc, cast1, cast2);
     Value sum2 = rewriter.create<arith::AddIOp>(loc, cast1, cast3);
-    auto veqTy = subvec.getType();
-    rewriter.replaceOpWithNewOp<quake::SubVecOp>(subvec, veqTy, prior.getVeq(),
+    auto veqTy = subveq.getType();
+    rewriter.replaceOpWithNewOp<quake::SubVeqOp>(subveq, veqTy, prior.getVeq(),
                                                  sum1, sum2);
     return success();
   }
@@ -189,16 +189,16 @@ public:
     analysis.newAlloc = rewriter.create<quake::AllocaOp>(loc, veqTy);
 
     // 3. Greedily replace the uses of the original alloca ops with uses of
-    // partitions of the new alloca op. Replace subvec of subvec with a single
-    // new subvec. Replace extract from subvec with extract from original
+    // partitions of the new alloca op. Replace subveq of subveq with a single
+    // new subveq. Replace extract from subveq with extract from original
     // veq.
     {
       RewritePatternSet patterns(ctx);
       patterns.insert<AllocaPat>(ctx, analysis);
-      patterns.insert<ExtractPat, SubVecPat>(ctx);
+      patterns.insert<ExtractPat, SubVeqPat>(ctx);
       if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
                                               std::move(patterns)))) {
-        func.emitOpError("combining alloca, subvec, and extract ops failed");
+        func.emitOpError("combining alloca, subveq, and extract ops failed");
         signalPassFailure();
       }
     }

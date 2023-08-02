@@ -53,7 +53,7 @@
 // CHECK-VISIT:         memref.store %[[VAL_25]], %[[VAL_9]][] : memref<i32>
 // CHECK-VISIT:       }
 // CHECK-VISIT:     }
-// CHECK-VISIT:     %[[VAL_26:.*]] = quake.vec_size(%[[VAL_4]] : !quake.veq<?>) : i64
+// CHECK-VISIT:     %[[VAL_26:.*]] = quake.veq_size(%[[VAL_4]] : !quake.veq<?>) : i64
 // CHECK-VISIT:     %[[VAL_27:.*]] = arith.index_cast %[[VAL_26]] : i64 to index
 // CHECK-VISIT:     %[[VAL_28:.*]] = arith.constant 0 : index
 // CHECK-VISIT:     affine.for %[[VAL_29:.*]] = affine_map<(d0) -> (d0)>(%[[VAL_28]]) to affine_map<(d0) -> (d0)>(%[[VAL_27]]) {

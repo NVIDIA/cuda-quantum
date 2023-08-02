@@ -161,12 +161,24 @@ jobs:
           image: wheel_validation:local
           shell: bash
           run: |
-            python${{ inputs.python_version }} -m pytest /tmp/tests/
+            python${{ inputs.python_version }} -m pytest --ignore /tmp/tests/backends /tmp/tests/
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then
               echo "pytest status = " $pytest_status
               exit 1
             fi
+            apt-get update && apt-get install -y git 
+            git clone https://github.com/nvidia/cuda-quantum
+            cd cuda-quantum
+            python${{ inputs.python_version }} -m pip install --user fastapi uvicorn llvmlite 
+            for backendTest in /tmp/tests/backends/*.py; do 
+              python${{ inputs.python_version }} -m pytest $backendTest
+              pytest_status=$?
+              if [ ! $pytest_status -eq 0 ]; then
+                echo "pytest $backendTest status = " $pytest_status
+                exit 1
+              fi
+            done 
 
       - name: Validate Python examples
         run: |

@@ -23,7 +23,8 @@
 
 namespace nvqir {
 void tearDownBeforeMPIFinalize();
-}
+void setRandomSeed(std::size_t);
+} // namespace nvqir
 
 namespace cudaq::mpi {
 
@@ -192,11 +193,11 @@ bool cudaq::__internal__::isLibraryMode(const std::string &kernelname) {
 
 //===----------------------------------------------------------------------===//
 
-namespace cudaq {
+namespace nvqir {
+void setRandomSeed(std::size_t);
+}
 
-/// @brief Global boolean that disables
-/// target modification.
-bool disallowTargetModification = false;
+namespace cudaq {
 
 void set_target_backend(const char *backend) {
   std::string backendName(backend);
@@ -267,6 +268,8 @@ void unset_noise() {
   auto &platform = cudaq::get_platform();
   platform.set_noise(nullptr);
 }
+
+void set_random_seed(std::size_t seed) { nvqir::setRandomSeed(seed); }
 } // namespace cudaq
 
 namespace cudaq::support {

@@ -29,14 +29,13 @@ enum class MeasureBasis { I, X, Y, Z };
 void appendMeasurement(MeasureBasis &basis, OpBuilder &builder, Location &loc,
                        Value &qubit) {
   SmallVector<Value> targets{qubit};
-  ValueRange controls;
   if (basis == MeasureBasis::X) {
-    builder.create<quake::HOp>(loc, controls, targets);
+    builder.create<quake::HOp>(loc, ValueRange{}, targets);
   } else if (basis == MeasureBasis::Y) {
     llvm::APFloat d(M_PI_2);
     Value rotation =
         builder.create<arith::ConstantFloatOp>(loc, d, builder.getF64Type());
-    ValueRange params = {rotation};
+    SmallVector<Value> params{rotation};
     builder.create<quake::RyOp>(loc, params, ValueRange{}, targets);
   }
 }

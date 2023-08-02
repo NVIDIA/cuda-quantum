@@ -39,7 +39,7 @@ func.func @test3() {
   %2 = arith.constant 4 : i64
   %3 = arith.constant 7 : i64
   // This subvec veq<?> can be reified to veq<4>
-  %4 = quake.subvec %1, %2, %3 : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
+  %4 = quake.subveq %1, %2, %3 : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
   %5 = arith.constant 2 : i64
   %6 = quake.extract_ref %4[%5] : (!quake.veq<?>,i64) -> !quake.ref
   quake.h %6 : (!quake.ref) -> ()
@@ -50,7 +50,7 @@ func.func @test3() {
 // CHECK:           %[[VAL_1:.*]] = arith.constant 7 : i64
 // CHECK:           %[[VAL_2:.*]] = arith.constant 4 : i64
 // CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<10>
-// CHECK:           %[[VAL_4:.*]] = quake.subvec %[[VAL_3]], %[[VAL_2]], %[[VAL_1]] : (!quake.veq<10>, i64, i64) -> !quake.veq<4>
+// CHECK:           %[[VAL_4:.*]] = quake.subveq %[[VAL_3]], %[[VAL_2]], %[[VAL_1]] : (!quake.veq<10>, i64, i64) -> !quake.veq<4>
 // CHECK:           %[[VAL_5:.*]] = quake.extract_ref %[[VAL_4]][2] : (!quake.veq<4>) -> !quake.ref
 // CHECK:           quake.h %[[VAL_5]] : (!quake.ref) -> ()
 // CHECK:           return
