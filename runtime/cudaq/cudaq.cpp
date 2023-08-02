@@ -133,6 +133,8 @@ CUDAQ_ALL_REDUCE_IMPL(double, std::multiplies)
 
 } // namespace details
 
+void all_gather(std::vector<double> &global, std::vector<double> &local) {}
+
 void finalize() {}
 
 } // namespace cudaq::mpi
