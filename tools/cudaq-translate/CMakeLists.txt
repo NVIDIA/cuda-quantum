@@ -38,6 +38,7 @@ target_link_libraries(cudaq-translate
   OptTransforms
   CUDAQTargetOpenQASM
   CUDAQTargetIQM
+  CUDAQSupport
   QuakeDialect
 )
 

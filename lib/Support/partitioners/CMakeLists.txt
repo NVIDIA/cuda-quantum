@@ -6,21 +6,9 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_mlir_library(CUDAQSupport
-  Plugin.cpp
-  GraphPartitioner.cpp
+find_package(METIS)
+if (METIS_FOUND)
+  message(STATUS "Metis found, building QuakeCircuitCutPass.")
+  add_subdirectory(metis)
+endif()
 
-  ADDITIONAL_HEADER_DIRS
-  ${MLIR_MAIN_INCLUDE_DIR}/mlir/Pass
-
-  DEPENDS
-  mlir-generic-headers
-
-  LINK_LIBS PUBLIC
-  MLIRAnalysis
-  MLIRIR
-  LLVMSupport
-  cudaq-common
-  )
-
-add_subdirectory(partitioners)

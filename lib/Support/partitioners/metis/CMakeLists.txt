@@ -6,21 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_mlir_library(CUDAQSupport
-  Plugin.cpp
-  GraphPartitioner.cpp
-
-  ADDITIONAL_HEADER_DIRS
-  ${MLIR_MAIN_INCLUDE_DIR}/mlir/Pass
-
-  DEPENDS
-  mlir-generic-headers
-
-  LINK_LIBS PUBLIC
-  MLIRAnalysis
-  MLIRIR
-  LLVMSupport
-  cudaq-common
-  )
-
-add_subdirectory(partitioners)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/partitioners)
+add_library(cudaq-partitioner-metis SHARED MetisGraphPartitioner.cpp)
+target_include_directories(cudaq-partitioner-metis PRIVATE ${METIS_INCLUDE_DIRS})
+target_link_libraries(cudaq-partitioner-metis PRIVATE ${METIS_LIBRARIES} ${METIS_LIBRARY_DIRS}/libGKlib.a cudaq-common LLVMSupport MLIRIR CUDAQSupport)
+install(TARGETS cudaq-partitioner-metis DESTINATION lib/partitioners)

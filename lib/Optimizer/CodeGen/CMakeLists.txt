@@ -30,12 +30,5 @@ add_cudaq_library(OptCodeGen
     MLIRIR
     OptimBuilder
     QuakeDialect
+    cudaq-common
 )
-
-find_package(METIS)
-if (METIS_FOUND)
-  message(STATUS "Metis found, building QuakeCircuitCutPass.")
-  target_include_directories(OptCodeGen PRIVATE ${METIS_INCLUDE_DIRS})
-  target_link_libraries(OptCodeGen PRIVATE ${METIS_LIBRARIES} ${METIS_LIBRARY_DIRS}/libGKlib.a)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCUDAQ_HAS_METIS")
-endif()

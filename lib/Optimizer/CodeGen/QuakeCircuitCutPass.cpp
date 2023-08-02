@@ -9,15 +9,12 @@
 #include "PassDetails.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "cudaq/Support/GraphPartioner.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 
 using namespace mlir;
-
-#ifdef CUDAQ_HAS_METIS
-#include <metis.h>
-
-#define DEBUG_TYPE "cut-quake"
+using namespace cudaq;
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_QUAKECIRCUITCUT
@@ -25,131 +22,6 @@ namespace cudaq::opt {
 } // namespace cudaq::opt
 
 namespace {
-
-/// @brief A GraphNode represents a single vertex
-/// in a directed acyclic graph. It keeps track of the
-/// MLIR Operation it represents, a unique integer ID, and
-/// an optional string name.
-struct GraphNode {
-  /// @brief The MLIR Operation this GraphNode represents.
-  Operation *op;
-
-  /// @brief Unique ID for this node
-  std::size_t uniqueId = 0;
-
-  /// @brief The name of this Graph Node.
-  std::string name = "";
-
-  /// @brief Move constructor
-  GraphNode(GraphNode &&) = default;
-
-  /// @brief Copy Constructor
-  GraphNode(const GraphNode &other)
-      : op(other.op), uniqueId(other.uniqueId), name(other.name) {}
-
-  /// @brief Constructor, create from MLIR Operation and unique ID
-  GraphNode(Operation *o, std::size_t i) : op(o), uniqueId(i) {}
-
-  /// @brief Constructor, create from name and unique ID
-  GraphNode(std::string n, std::size_t i) : op(nullptr), uniqueId(i), name(n) {}
-
-  /// @brief Assignment operator
-  GraphNode &operator=(const GraphNode &other) {
-    op = other.op;
-    uniqueId = other.uniqueId;
-    name = other.name;
-    return *this;
-  }
-
-  /// @brief Return true if this GraphNode is equal to the input GraphNode.
-  bool operator==(const GraphNode &node) const {
-    return op == node.op && uniqueId == node.uniqueId;
-  }
-
-  /// @brief Return the name of this GraphNode
-  std::string getName() const {
-    if (op == nullptr)
-      return name + ":" + std::to_string(uniqueId);
-
-    return op->getName().getStringRef().str() + ":" + std::to_string(uniqueId);
-  }
-};
-
-/// @brief Hash functor for GraphNodes in a unordered_map
-struct GraphNodeHash {
-  std::size_t operator()(const GraphNode &node) const {
-    std::size_t seed = reinterpret_cast<intptr_t>(node.op);
-    seed ^= std::hash<std::size_t>()(node.uniqueId) + 0x9e3779b9 + (seed << 6) +
-            (seed >> 2);
-    return seed;
-  }
-};
-
-/// @brief We represent directed acylic graphs as a
-/// collection of GraphNodes, with each GraphNode mapping
-/// to a vector of GraphNodes that it connects to (representative of
-/// its edges)
-using Graph =
-    std::unordered_map<GraphNode, std::vector<GraphNode>, GraphNodeHash>;
-
-/// @brief Dump the given graph to stderr.
-void dumpGraph(Graph &graph) {
-  for (auto &[node, edges] : graph) {
-    std::string name = node.getName();
-    LLVM_DEBUG(llvm::dbgs() << name << " --> [");
-    for (std::size_t i = 0; auto &e : edges) {
-      LLVM_DEBUG(llvm::dbgs()
-                 << e.getName() << (i++ == edges.size() - 1 ? "" : ", "));
-    }
-    LLVM_DEBUG(llvm::dbgs() << "]\n");
-  }
-  LLVM_DEBUG(llvm::dbgs() << "\n");
-}
-
-/// @brief Sort the nodes in the Graph by unique ID. Write the
-/// sorted GraphNodes to the input vector reference.
-void sortNodes(Graph &graph, std::vector<GraphNode> &sortedNodes) {
-  for (auto &[node, edges] : graph)
-    sortedNodes.push_back(node);
-  std::sort(sortedNodes.begin(), sortedNodes.end(),
-            [](const GraphNode &n, const GraphNode &m) {
-              return n.uniqueId < m.uniqueId;
-            });
-}
-
-/// @brief Map one of our Graph data types to a the METIS
-/// input format, (CSR). Must be converted from DAG to Undirected first
-std::tuple<std::vector<idx_t>, std::vector<idx_t>> toMetis(Graph graph) {
-
-  // Convert to undirected version of the graph
-  for (auto &[node, edges] : graph) {
-    // auto edges = graph[node];
-    for (auto &otherNode : edges) {
-      auto &otherEdges = graph[otherNode];
-      if (std::find(otherEdges.begin(), otherEdges.end(), node) ==
-          otherEdges.end())
-        otherEdges.push_back(node);
-    }
-  }
-
-  LLVM_DEBUG(llvm::dbgs() << "\n\nUndirected View:\n");
-  dumpGraph(graph);
-
-  // Sort the nodes
-  std::vector<GraphNode> nodes;
-  sortNodes(graph, nodes);
-
-  std::map<std::size_t, std::vector<std::size_t>> toUndirected;
-  std::vector<idx_t> xAdj(1), adj;
-  for (std::size_t numVertices = 0; auto &node : nodes) {
-    auto edges = graph[node];
-    auto numEdges = edges.size();
-    for (std::size_t i = 0; i < numEdges; i++)
-      adj.emplace_back(edges[i].uniqueId);
-    xAdj.emplace_back(xAdj[numVertices++] + numEdges);
-  }
-  return std::make_tuple(xAdj, adj);
-}
 
 /// @brief Given a Quake FuncOp, map it to a Graph.
 void createGraph(func::FuncOp &quakeFunc, Graph &graph) {
@@ -221,35 +93,6 @@ void createGraph(func::FuncOp &quakeFunc, Graph &graph) {
 
   LLVM_DEBUG(llvm::dbgs() << "\n\nGraph data:\n");
   dumpGraph(graph);
-}
-
-/// @brief Given the number of partitions and the coloring of the
-/// graph nodes, return a vector of graphs, where each one represents
-/// a partition of the Graph.
-std::vector<Graph> createPartitionGraphs(Graph &graph, std::size_t k,
-                                         std::vector<idx_t> &part) {
-
-  std::map<std::size_t, Graph> partitioned;
-  for (std::size_t i = 0; i < k; i++)
-    partitioned.insert({i, Graph{}});
-
-  for (auto &[node, edges] : graph) {
-    auto p = part[node.uniqueId];
-    auto &g = partitioned[p];
-
-    g.insert({node, edges});
-  }
-
-  // Convert to a vector
-  std::vector<Graph> graphs;
-  for (auto &[id, g] : partitioned)
-    graphs.emplace_back(g);
-
-  LLVM_DEBUG(llvm::dbgs() << "Partitioned Graphs:\n");
-  for (auto &[p, g] : partitioned)
-    dumpGraph(g);
-
-  return graphs;
 }
 
 /// @brief For each partitioned graph, add the requisite
@@ -488,39 +331,20 @@ public:
     Graph graph;
     createGraph(quakeFunc, graph);
 
-    // Convert this graph rep to Metis input deck
-    idx_t nNodes = graph.size(), nWeights = 1, objval, k = numPartitions;
-    real_t im = 10.0; // FIXME This is a magic number...
-
-    // Map our graph to the Metis input format (CSR)
-    auto [xAdj, adj] = toMetis(graph);
-    for (auto &x : xAdj)
-      LLVM_DEBUG(llvm::dbgs() << x << " ");
-    LLVM_DEBUG(llvm::dbgs() << "\n");
-    for (auto &x : adj)
-      LLVM_DEBUG(llvm::dbgs() << x << " ");
-    LLVM_DEBUG(llvm::dbgs() << "\n\n");
-
-    // Weights of vertices
-    // if all weights are equal then can be set to NULL
-    std::vector<idx_t> vwgt(nNodes * nWeights, 1), part(nNodes, 0);
-
-    // Partition the graph into k parts
-    [[maybe_unused]] int ret = METIS_PartGraphKway(
-        &nNodes, &nWeights, xAdj.data(), adj.data(), NULL, NULL, NULL, &k, NULL,
-        &im, NULL, &objval, part.data());
-
-    for (unsigned part_i = 0; part_i < part.size(); part_i++) {
-      LLVM_DEBUG(llvm::dbgs() << "Node " << part_i << " is in partition "
-                              << part[part_i] << "\n");
+    // Get the desired partitioner
+    auto partitioner = cudaq::registry::get<cudaq::GraphPartitioner>("metis");
+    if (!partitioner) {
+      moduleOp.emitError(
+          "Invalid partitioner, cannot perform Quake Circuit Cutting.");
+      signalPassFailure();
+      return;
     }
-    LLVM_DEBUG(llvm::dbgs() << "\n");
 
-    // Create new Graphs for each partition
-    auto graphs = createPartitionGraphs(graph, k, part);
+    // Partition the graph
+    auto graphs = partitioner->partition(graph, numPartitions);
 
     // Append Measure and StatePrep nodes
-    std::size_t nodeId = nNodes;
+    std::size_t nodeId = graph.size();
     addMeasureAndStatePrepNodes(nodeId, graphs);
 
     LLVM_DEBUG(llvm::dbgs() << "\nMeasure/StatePrep Graphs:\n");
@@ -545,31 +369,3 @@ std::unique_ptr<Pass> cudaq::opt::createQuakeCircuitCutPass() {
 std::unique_ptr<Pass> cudaq::opt::createQuakeCircuitCutPass(std::size_t n) {
   return std::make_unique<QuakeCircuitCutPass>(n);
 }
-
-#else
-
-class QuakeCircuitCutUnavailable : public OperationPass<mlir::ModuleOp> {
-public:
-  QuakeCircuitCutUnavailable()
-      : OperationPass<mlir::ModuleOp>(
-            TypeID::get<QuakeCircuitCutUnavailable>()) {}
-  static constexpr StringLiteral getArgumentName() {
-    return StringLiteral("invalid-pass-no-metis");
-  }
-  StringRef getArgument() const override { return "invalid-pass-no-metis"; }
-  StringRef getName() const override { return "QuakeCircuitCut"; }
-  void runOnOperation() override {}
-  std::unique_ptr<Pass> clonePass() const override {
-    return std::make_unique<QuakeCircuitCutUnavailable>(*this);
-  }
-  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(QuakeCircuitCutUnavailable)
-};
-
-std::unique_ptr<Pass> cudaq::opt::createQuakeCircuitCutPass() {
-  return std::make_unique<QuakeCircuitCutUnavailable>();
-}
-
-std::unique_ptr<Pass> cudaq::opt::createQuakeCircuitCutPass(std::size_t n) {
-  return std::make_unique<QuakeCircuitCutUnavailable>();
-}
-#endif

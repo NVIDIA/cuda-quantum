@@ -114,6 +114,7 @@ target_link_libraries(cudaq-mlir-runtime
     ${conversion_libs}
     OptTransforms
     CUDAQTargetIQM
+    CUDAQSupport
     MLIRTranslateLib
     MLIRIR
     MLIRParser
