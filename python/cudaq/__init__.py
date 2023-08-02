@@ -21,7 +21,7 @@ if not "CUDAQ_DYNLIBS" in os.environ:
 
         os.environ[
             "CUDAQ_DYNLIBS"] = f"{cublasLt_path}:{cublas_path}:{custatevec_path}"
-    except RuntimeError:
+    except:
         pass
 
 from ._pycudaq import *
