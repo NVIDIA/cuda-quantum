@@ -68,7 +68,6 @@ PYBIND11_MODULE(_pycudaq, mod) {
         return global;
       },
       "");
-  // mpiSubmodule.def("rank", []() { return cudaq::mpi::all_reduce(); }, "");
   mpiSubmodule.def(
       "is_initialized", []() { return cudaq::mpi::is_initialized(); },
       "Return true if MPI has already been initialized.");
