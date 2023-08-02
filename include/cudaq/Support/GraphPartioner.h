@@ -120,5 +120,6 @@ public:
   /// @brief Partition the input graph into `numPartitions`.
   virtual std::vector<Graph> partition(const Graph &graph,
                                        std::size_t numPartitions) = 0;
+  virtual ~GraphPartitioner() = default;
 };
 } // namespace cudaq

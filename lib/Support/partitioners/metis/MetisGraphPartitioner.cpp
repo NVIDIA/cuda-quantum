@@ -81,6 +81,8 @@ private:
   }
 
 public:
+  virtual ~MetisGraphPartitioner() = default;
+
   std::vector<cudaq::Graph> partition(const Graph &graph,
                                       std::size_t numPartitions) override {
 
