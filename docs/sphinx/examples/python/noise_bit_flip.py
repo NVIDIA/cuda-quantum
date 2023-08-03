@@ -17,7 +17,7 @@ noise = cudaq.NoiseModel()
 # Bit flip channel with `0.0` probability of the qubit flipping 180 degrees.
 bit_flip_zero = cudaq.BitFlipChannel(0.0)
 # We will apply this first channel to any X-gate on qubit 0. Meaning,
-# for each X-gate on the 0th qubit, the qubit will have a `0.0`
+# for each X-gate on the 0-th qubit, the qubit will have a `0.0`
 # probability of undergoing an extra X-180 rotation.
 noise.add_channel('x', [0], bit_flip_zero)
 

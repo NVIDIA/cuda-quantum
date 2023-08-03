@@ -4,9 +4,9 @@ import cudaq
 cudaq.set_target('density-matrix-cpu')
 
 # CUDA Quantum supports several different models of noise. In this case,
-# we will examine the modeling of energy disspitation within our system
+# we will examine the modeling of energy dissipation within our system
 # via environmental interactions. The result of this "amplitude damping"
-# is to return the qubit to the |0> state with a user-specified probabilty.
+# is to return the qubit to the |0> state with a user-specified probability.
 
 # We will begin by defining an empty noise model that we will add
 # these damping channels to.
@@ -16,7 +16,7 @@ noise = cudaq.NoiseModel()
 # decaying to the ground state.
 amplitude_damping_zero = cudaq.AmplitudeDampingChannel(0.0)
 # We will apply this first channel to any X-gate on qubit 0. Meaning,
-# for each X-gate on the 0th qubit, the qubit will have a `0.0`
+# for each X-gate on the 0-th qubit, the qubit will have a `0.0`
 # probability of decaying to the ground state.
 noise.add_channel('x', [0], amplitude_damping_zero)
 
@@ -52,7 +52,7 @@ noisy_result.dump()
 # that the noise has successfully impacted the system.
 
 # To confirm this, we can run the simulation again without noise.
-# The 0th qubit should still be in the |1> state, but qubit 1 will
+# The 0-th qubit should still be in the |1> state, but qubit 1 will
 # now have a 50/50 mix of measurements between |0> and |1>.
 noiseless_result = cudaq.sample(kernel)
 noiseless_result.dump()
