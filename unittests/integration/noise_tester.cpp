@@ -175,6 +175,16 @@ CUDAQ_TEST(NoiseTest, checkDepolType) {
   EXPECT_EQ(2, counts.size());
 }
 
+CUDAQ_TEST(NoiseTest, checkDepolTypeSimple) {
+  cudaq::depolarization_channel depol(1.);
+  cudaq::noise_model noise;
+  noise.add_channel<cudaq::types::x>({0}, depol);
+  cudaq::set_noise(noise);
+  auto counts = cudaq::sample(xOp{});
+  counts.dump();
+  EXPECT_EQ(1, counts.size());
+}
+
 CUDAQ_TEST(NoiseTest, checkAmpDampType) {
   cudaq::amplitude_damping_channel ad(.25);
   cudaq::noise_model noise;
@@ -187,8 +197,19 @@ CUDAQ_TEST(NoiseTest, checkAmpDampType) {
   EXPECT_NEAR(counts.probability("1"), .75, .1);
 }
 
+CUDAQ_TEST(NoiseTest, checkAmpDampTypeSimple) {
+  cudaq::amplitude_damping_channel ad(1.);
+  cudaq::noise_model noise;
+  noise.add_channel<cudaq::types::x>({0}, ad);
+  cudaq::set_noise(noise);
+  auto counts = cudaq::sample(xOp{});
+  counts.dump();
+  EXPECT_EQ(1, counts.size());
+  EXPECT_NEAR(counts.probability("0"), 1., .1);
+}
+
 CUDAQ_TEST(NoiseTest, checkBitFlipType) {
-  cudaq::amplitude_damping_channel bf(.1);
+  cudaq::bit_flip_channel bf(.1);
   cudaq::noise_model noise;
   noise.add_channel<cudaq::types::x>({0}, bf);
   cudaq::set_noise(noise);
@@ -198,4 +219,36 @@ CUDAQ_TEST(NoiseTest, checkBitFlipType) {
   EXPECT_NEAR(counts.probability("0"), .1, .1);
   EXPECT_NEAR(counts.probability("1"), .9, .1);
 }
+
+CUDAQ_TEST(NoiseTest, checkBitFlipTypeSimple) {
+  cudaq::bit_flip_channel bf(1.);
+  cudaq::noise_model noise;
+  noise.add_channel<cudaq::types::x>({0}, bf);
+  cudaq::set_noise(noise);
+  auto counts = cudaq::sample(xOp{});
+  counts.dump();
+  EXPECT_EQ(1, counts.size());
+  EXPECT_NEAR(counts.probability("0"), 1., .1);
+}
+
+CUDAQ_TEST(NoiseTest, checkPhaseFlipType) {
+
+  auto kernel = []() __qpu__ {
+    cudaq::qubit q;
+    h(q);
+    z(q);
+    h(q);
+    mz(q);
+  };
+
+  cudaq::phase_flip_channel pf(1.);
+  cudaq::noise_model noise;
+  noise.add_channel<cudaq::types::z>({0}, pf);
+  cudaq::set_noise(noise);
+  auto counts = cudaq::sample(kernel);
+  counts.dump();
+  EXPECT_EQ(1, counts.size());
+  EXPECT_NEAR(counts.probability("0"), 1., .1);
+}
+
 #endif
