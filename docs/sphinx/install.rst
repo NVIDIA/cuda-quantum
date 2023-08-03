@@ -115,7 +115,7 @@ To install the latest release using `pip <https://pypi.org/project/pip/>`__, run
 
 .. code-block:: console
 
-    pip install cuda-quantum
+    python3 -m pip install cuda-quantum
 
 There are currently no source distributions available on PyPI, but you can download the source code 
 for all releases `here <https://github.com/NVIDIA/cuda-quantum/releases>`__. 

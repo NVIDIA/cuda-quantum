@@ -18,6 +18,7 @@
 #include <dlfcn.h>
 #include <map>
 #include <regex>
+#include <signal.h>
 #include <string>
 #include <vector>
 
@@ -283,6 +284,21 @@ int num_available_gpus() {
   return 0;
 #endif
 }
+
+namespace __internal__ {
+void cudaqCtrlCHandler(int signal) {
+  printf(" CTRL-C caught in cudaq runtime.\n");
+  std::exit(1);
+}
+
+__attribute__((constructor)) void startSigIntHandler() {
+  struct sigaction sigIntHandler;
+  sigIntHandler.sa_handler = cudaqCtrlCHandler;
+  sigemptyset(&sigIntHandler.sa_mask);
+  sigIntHandler.sa_flags = 0;
+  sigaction(SIGINT, &sigIntHandler, NULL);
+}
+} // namespace __internal__
 
 } // namespace cudaq
 
