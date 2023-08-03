@@ -43,6 +43,6 @@ counts.dump()
 
 # With noise, our Z-gate will effectively be cancelled out due
 # to the presence of a phase flip error on the gate with a 
-# probability of `1.0`.
+# probability of `1.0`. This will put us back in the |0> state.
 noisy_counts = cudaq.sample(kernel, noise_model=noise)
 noisy_counts.dump()

@@ -47,11 +47,21 @@ void bindNoiseModel(py::module &mod) {
           [](noise_model &self, std::string &opName,
              std::vector<std::size_t> &qubits, kraus_channel &channel) {
             self.add_channel(opName, qubits, channel);
-          },
+          }, py::arg("operator"), py::arg("qubits"), py::arg("channel"),
           R"(Add the given :class:`KrausChannel` to be applied after invocation
           of the specified quantum operation.
           
-          TODO...
+          Args:
+
+            operator (str): 
+            
+            qubits (List[int]):
+
+            channel (cudaq.KrausChannel): 
+
+          Returns:
+
+            
           
           )")
       .def(
@@ -59,7 +69,7 @@ void bindNoiseModel(py::module &mod) {
           [](noise_model self, const std::string &op,
              std::vector<std::size_t> qubits) {
             return self.get_channels(op, qubits);
-          },
+          }, py::arg("operator"), py::arg("qubits"),
           "Return the :class:`KrausChannel`'s that make up this noise model.");
 }
 

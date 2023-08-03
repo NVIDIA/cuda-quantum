@@ -39,4 +39,3 @@ counts.dump()
 # mix between the |0> and |1> states.
 noisy_counts = cudaq.sample(kernel, noise_model=noise)
 noisy_counts.dump()
-
