@@ -10,7 +10,7 @@
 #define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
 
 #include "common/Logger.h"
-#ifdef CUDA_FOUND
+#ifdef CUDAQ_HAS_CUDA
 #include "cuda_runtime_api.h"
 #endif
 #include "cudaq/platform.h"
@@ -275,7 +275,7 @@ void unset_noise() {
 void set_random_seed(std::size_t seed) { nvqir::setRandomSeed(seed); }
 
 int num_available_gpus() {
-#ifdef CUDA_FOUND
+#ifdef CUDAQ_HAS_CUDA
   int nDevices; 
   cudaGetDeviceCount(&nDevices); 
   return nDevices;
