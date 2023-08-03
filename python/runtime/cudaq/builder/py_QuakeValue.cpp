@@ -63,6 +63,7 @@ void bindQuakeValue(py::module &mod) {
                  
                Args:
                  start (int) : The index to begin the slice from.
+                 
                  count (int) : The number of elements to extract after the `start` index.
                    
                Returns:

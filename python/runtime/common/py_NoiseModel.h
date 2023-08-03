@@ -12,5 +12,5 @@ namespace py = pybind11;
 
 namespace cudaq {
 /// @brief Bind the cudaq::noise_model data-type to Python.
-void bindNoiseModel(py::module &mod);
+void bindNoise(py::module &mod);
 } // namespace cudaq

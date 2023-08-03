@@ -37,6 +37,33 @@ void bindNoiseModel(py::module &mod) {
   mod.def("unset_noise", &unset_noise,
           "Clear backend simulation from any existing noise models.");
 
+  py::class_<noise_model>(
+      mod, "NoiseModel",
+      "The `NoiseModel` defines a set of :class:`KrausChannel`'s applied to "
+      "specific qubits after the invocation of specified quantum operations.")
+      .def(py::init<>(), "Construct an empty noise model.")
+      .def(
+          "add_channel",
+          [](noise_model &self, std::string &opName,
+             std::vector<std::size_t> &qubits, kraus_channel &channel) {
+            self.add_channel(opName, qubits, channel);
+          },
+          R"(Add the given :class:`KrausChannel` to be applied after invocation
+          of the specified quantum operation.
+          
+          TODO...
+          
+          )")
+      .def(
+          "get_channels",
+          [](noise_model self, const std::string &op,
+             std::vector<std::size_t> qubits) {
+            return self.get_channels(op, qubits);
+          },
+          "Return the :class:`KrausChannel`'s that make up this noise model.");
+}
+
+void bindKrausOp(py::module &mod) {
   py::class_<kraus_op>(
       mod, "KrausOperator", py::buffer_protocol(),
       "The KrausOperator is represented by a matrix and serves as an element "
@@ -60,7 +87,9 @@ void bindNoiseModel(py::module &mod) {
       .def_readonly("col_count", &kraus_op::nCols,
                     "The number of columns in the matrix representation of "
                     "this KrausOperator.");
+}
 
+void bindNoiseChannels(py::module & mod) {
   py::class_<kraus_channel>(
       mod, "KrausChannel",
       "The KrausChannel is composed of a list of :class:`KrausOperator`'s and "
@@ -91,34 +120,14 @@ void bindNoiseModel(py::module &mod) {
       .def("append", &kraus_channel::push_back,
            "Add a KrausOperator to this :class:`KrausChannel`.");
 
-  py::class_<noise_model>(
-      mod, "NoiseModel",
-      "The `NoiseModel` defines a set of :class:`KrausChannel`'s applied to "
-      "specific qubits after the invocation of specified quantum operations.")
-      .def(py::init<>(), "Construct an empty noise model.")
-      .def(
-          "add_channel",
-          [](noise_model &self, std::string &opName,
-             std::vector<std::size_t> &qubits, kraus_channel &channel) {
-            self.add_channel(opName, qubits, channel);
-          },
-          R"(Add the given :class:`KrausChannel` to be applied after invocation
-          of the specified quantum operation.
-          
-          TODO...
-          
-          )");
-  .def(
-      "get_channels",
-      [](noise_model self, const std::string &op,
-         std::vector<std::size_t> qubits) {
-        return self.get_channels(op, qubits);
-      },
-      "Return the KrausChannels that make up this noise model.");
-
-  py::class_<depolarization_channel, kraus_channel>(mod,
-                                                    "DepolarizationChannel")
-      .def(py::init<double>());
+  py::class_<depolarization_channel, kraus_channel>(
+      mod, "DepolarizationChannel",
+      "Models the decoherence of the qubit state and phase into a mixture "
+      "of the computational basis states, |0> and |1>. Its constructor "
+      "expects a float value, `probability`, representing the probability "
+      "that this decay will occur. The qubit will remain untouched, "
+      "therefore, with a probability of `1 - probability`.")
+      .def(py::init<double>(), py::arg("probability"));
 
   py::class_<amplitude_damping_channel, kraus_channel>(
       mod, "AmplitudeDampingChannel",
@@ -147,4 +156,11 @@ void bindNoiseModel(py::module &mod) {
       "phase remaining untouched is therefore `1 - probability`.")
       .def(py::init<double>(), py::arg("probability"));
 }
+
+void bindNoise(py::module &mod) {
+  bindNoiseModel(mod);
+  bindKrausOp(mod);
+  bindNoiseChannels(mod);
+}
+
 } // namespace cudaq

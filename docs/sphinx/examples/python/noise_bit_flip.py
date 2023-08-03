@@ -41,6 +41,9 @@ kernel.x(qubits[0])
 # It will remain in the |1> state with a probability of `1 - p = 0.0`.
 kernel.x(qubits[1])
 
+# Measure.
+kernel.mz(qubits)
+
 # Now we're ready to run the noisy simulation of our kernel.
 # Note: We must pass the noise model to sample via key-word.
 noisy_result = cudaq.sample(kernel, noise_model=noise)
