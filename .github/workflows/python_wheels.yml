@@ -26,7 +26,6 @@ jobs:
 
     outputs:
       artifact_name: ${{ steps.prereqs.outputs.artifact_name }}
-      wheelhouse: ${{ steps.prereqs.outputs.wheelhouse }}
 
     # Needed for making local images available to the docker/build-push-action.
     # See also https://stackoverflow.com/a/63927832.
@@ -69,8 +68,8 @@ jobs:
           devenv_tag=`docker inspect $base_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"'`
           docker image rm $base_image && docker image prune --force
           cache_id=`echo ${{ inputs.python_version }}-$devenv_tag | tr . -`
-          wheelhouse=/tmp/wheels && mkdir -p "$wheelhouse"
 
+          mkdir -p "/tmp/wheels"
           if ${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') }}; then
             cudaq_version=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
           else
@@ -79,8 +78,7 @@ jobs:
         
           echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
           echo "base_image=$base_image" >> $GITHUB_OUTPUT
-          echo "docker_output=type=local,dest=$wheelhouse" >> $GITHUB_OUTPUT
-          echo "wheelhouse=$wheelhouse" >> $GITHUB_OUTPUT
+          echo "docker_output=type=local,dest=/tmp/wheels" >> $GITHUB_OUTPUT
           # do not change this prefix without adjusting other workflows
           echo "artifact_name=pycudaq-$cache_id" >> $GITHUB_OUTPUT
 
@@ -105,7 +103,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: ${{ steps.prereqs.outputs.artifact_name }}
-          path: ${{ steps.prereqs.outputs.wheelhouse }}
+          path: /tmp/wheels
           retention-days: 5
           if-no-files-found: error
 
@@ -140,7 +138,6 @@ jobs:
           echo '    && apt-get install -y python${{ inputs.python_version }} python${{ inputs.python_version }}-distutils' >> validation.Dockerfile
           echo 'RUN python${{ inputs.python_version }} -m pip install numpy pytest' >> validation.Dockerfile
 
-          mv ${{ needs.build_wheel.outputs.wheelhouse }}/cuda_quantum-*-manylinux_*_x86_64.whl .
           wheelname=`echo cuda_quantum-*-manylinux_*_x86_64.whl`
           echo "COPY $wheelname /tmp/$wheelname" >> validation.Dockerfile
           echo 'COPY docs/sphinx/examples/python /tmp/examples/' >> validation.Dockerfile
