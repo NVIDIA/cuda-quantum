@@ -13,7 +13,7 @@ The latest version of CUDA Quantum is on the main branch of our `GitHub reposito
 CUDA Quantum is now available on PyPI!
 The 0.4.0 release adds support for quantum kernel execution on Quantinuum and IonQ backends. For more information, see :doc:`hardware`.
 
-The 0.4.0 PyPI release does not yet include multi-gpu and tensornet backends.  
+The 0.4.0 PyPI release does not yet include all of the GPU-based backends.
 The fully featured version is available as a Docker image for `linux/amd64` platforms.
 
 - `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum>`__
