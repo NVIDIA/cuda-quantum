@@ -30,6 +30,7 @@ target_link_libraries(${LIBRARY_NAME}
   PUBLIC dl cudaq-spin cudaq-common cudaq-nlopt cudaq-ensmallen
   PRIVATE nvqir fmt::fmt-header-only)
 
+target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDA_FOUND)
 if (MPI_CXX_FOUND)
   target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_HAS_MPI)
   target_link_libraries(${LIBRARY_NAME} PRIVATE MPI::MPI_CXX)

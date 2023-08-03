@@ -10,6 +10,9 @@
 #define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
 
 #include "common/Logger.h"
+#ifdef CUDA_FOUND
+#include "cuda_runtime_api.h"
+#endif
 #include "cudaq/platform.h"
 #include "cudaq/utils/registry.h"
 #include <dlfcn.h>
@@ -270,6 +273,17 @@ void unset_noise() {
 }
 
 void set_random_seed(std::size_t seed) { nvqir::setRandomSeed(seed); }
+
+int num_available_gpus() {
+#ifdef CUDA_FOUND
+  int nDevices; 
+  cudaGetDeviceCount(&nDevices); 
+  return nDevices;
+#else
+  return 0;
+#endif
+}
+
 } // namespace cudaq
 
 namespace cudaq::support {

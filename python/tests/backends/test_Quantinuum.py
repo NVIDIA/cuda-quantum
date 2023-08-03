@@ -10,7 +10,11 @@
 import cudaq, pytest, os, time
 from cudaq import spin
 from multiprocessing import Process
-from utils.mock_qpu.quantinuum import startServer
+try:
+    from utils.mock_qpu.quantinuum import startServer
+except:
+    print("Mock qpu not available, skipping Quantinuum tests.")
+    pytest.skip("Mock qpu not available.", allow_module_level=True)
 
 # Define the port for the mock server
 port = 62454

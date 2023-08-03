@@ -77,7 +77,7 @@ def bernstein_vazirani(qubit_count: int):
 
 qubit_count = 5  # set to around 30 qubits for `nvidia` target
 # ```
-# cudaq.set_target("nvidia")
+cudaq.set_target("nvidia")
 # ```
 
 kernel, hidden_bitstring = bernstein_vazirani(qubit_count)

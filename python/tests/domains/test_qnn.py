@@ -12,6 +12,11 @@ import numpy as np
 
 import cudaq
 
+skipIfNoMQPU = pytest.mark.skipif(
+    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-mqpu')),
+    reason="nvidia-mqpu backend not available"
+)
+
 
 def test_simpleObserveN_QNN():
     qubit_count = 2
@@ -49,10 +54,8 @@ def test_simpleObserveN_QNN():
     assert np.isclose(data[-2], 0.54314517)
     assert np.isclose(data[-1], 0.33752631)
 
-
+@skipIfNoMQPU
 def test_observeAsync_QNN():
-    if not cudaq.has_target('nvidia-mqpu'):
-        return
     target = cudaq.get_target('nvidia-mqpu')
 
     cudaq.set_target(target)
