@@ -62,6 +62,41 @@ observe_result pyObserve(kernel_builder<> &kernel, spin_op &spin_operator,
   return result;
 }
 
+/// @brief Asynchronously run `cudaq::observe` on the provided kernel and
+/// spin operator.
+async_observe_result pyObserveAsync(kernel_builder<> &kernel,
+                                    spin_op &spin_operator, py::args args = {},
+                                    std::size_t qpu_id = defaultQpuIdValue,
+                                    int shots = defaultShotsValue) {
+
+  // Ensure the user input is correct.
+  auto validatedArgs = validateInputArguments(kernel, args);
+  std::hash<std::string> hasher;
+
+  // Create a unique integer key that combines the kernel name
+  // and the validated args.
+  std::size_t uniqueHash = hasher(kernel.name()) + hasher(py::str(args));
+
+  // Add the opaque args to the holder and pack the args into it
+  asyncArgsHolder.emplace(uniqueHash, std::make_unique<OpaqueArguments>());
+  packArgs(*asyncArgsHolder.at(uniqueHash).get(), validatedArgs);
+
+  // TODO: would like to handle errors in the case that
+  // `kernel.num_qubits() >= spin_operator.num_qubits()`
+  kernel.jitCode();
+  auto name = kernel.name();
+  // Get the platform, first check that the given qpu_id is valid
+  auto &platform = cudaq::get_platform();
+
+  // Launch the asynchronous execution.
+  return details::runObservationAsync(
+      [&kernel, uniqueHash]() mutable {
+        auto &argData = asyncArgsHolder.at(uniqueHash);
+        kernel.jitAndInvoke(argData->data());
+      },
+      spin_operator, platform, shots, name, qpu_id);
+}
+
 /// @brief Run `cudaq::observe` on the provided kernel and spin operator.
 observe_result pyObservePar(const PyParType &type, kernel_builder<> &kernel,
                             spin_op &spin_operator, py::args args = {},
@@ -160,41 +195,6 @@ pyObserveN(kernel_builder<> &kernel, spin_op &op, py::args args = {},
   platform.reset_noise();
 
   return results;
-}
-
-/// @brief Asynchronously run `cudaq::observe` on the provided kernel and
-/// spin operator.
-async_observe_result pyObserveAsync(kernel_builder<> &kernel,
-                                    spin_op &spin_operator, py::args args = {},
-                                    std::size_t qpu_id = defaultQpuIdValue,
-                                    int shots = defaultShotsValue) {
-
-  // Ensure the user input is correct.
-  auto validatedArgs = validateInputArguments(kernel, args);
-  std::hash<std::string> hasher;
-
-  // Create a unique integer key that combines the kernel name
-  // and the validated args.
-  std::size_t uniqueHash = hasher(kernel.name()) + hasher(py::str(args));
-
-  // Add the opaque args to the holder and pack the args into it
-  asyncArgsHolder.emplace(uniqueHash, std::make_unique<OpaqueArguments>());
-  packArgs(*asyncArgsHolder.at(uniqueHash).get(), validatedArgs);
-
-  // TODO: would like to handle errors in the case that
-  // `kernel.num_qubits() >= spin_operator.num_qubits()`
-  kernel.jitCode();
-  auto name = kernel.name();
-  // Get the platform, first check that the given qpu_id is valid
-  auto &platform = cudaq::get_platform();
-
-  // Launch the asynchronous execution.
-  return details::runObservationAsync(
-      [&kernel, uniqueHash]() mutable {
-        auto &argData = asyncArgsHolder.at(uniqueHash);
-        kernel.jitAndInvoke(argData->data());
-      },
-      spin_operator, platform, shots, name, qpu_id);
 }
 
 void bindObserve(py::module &mod) {
