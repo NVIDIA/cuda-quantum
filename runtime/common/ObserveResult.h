@@ -69,7 +69,15 @@ public:
   double exp_val_z(SpinOpType term) {
     static_assert(std::is_same_v<spin_op, std::remove_reference_t<SpinOpType>>,
                   "Must provide a one term spin_op");
-    return data.exp_val_z(term.to_string(false));
+    // Pauli == Pauli II..III
+    // e.g. someone might check for <Z>, which
+    // on more than 1 qubit can be <ZIII...III>
+    auto numQubits = spinOp.num_qubits();
+    auto termStr = term.to_string(false);
+    if (!data.has_expectation(termStr) && termStr.size() == 1 && numQubits > 1)
+      for (std::size_t i = 1; i < numQubits; i++)
+        termStr += "I";
+    return data.exp_val_z(termStr);
   }
 
   /// @brief Return the counts data for the given spin_op
