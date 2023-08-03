@@ -277,8 +277,8 @@ void set_random_seed(std::size_t seed) { nvqir::setRandomSeed(seed); }
 
 int num_available_gpus() {
 #ifdef CUDAQ_HAS_CUDA
-  int nDevices; 
-  cudaGetDeviceCount(&nDevices); 
+  int nDevices;
+  cudaGetDeviceCount(&nDevices);
   return nDevices;
 #else
   return 0;

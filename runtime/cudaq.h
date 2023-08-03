@@ -195,7 +195,7 @@ void clear_shots(const std::size_t nShots);
 void set_random_seed(std::size_t seed);
 
 /// @brief The number of available GPUs.
-int num_available_gpus(); 
+int num_available_gpus();
 
 namespace mpi {
 

@@ -126,8 +126,7 @@ public:
     }
 
     if (nDevices == 0)
-      throw std::runtime_error(
-        "No GPUs available to instantiate platform.");
+      throw std::runtime_error("No GPUs available to instantiate platform.");
 
     // Add a QPU for each GPU.
     for (int i = 0; i < nDevices; i++)
