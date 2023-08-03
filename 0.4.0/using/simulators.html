@@ -98,6 +98,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../install.html#use-cuda-quantum-in-vs-code">Use CUDA Quantum in VS Code</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#python-wheels">Python wheels</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#build-cuda-quantum-from-source">Build CUDA Quantum from Source</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#next-steps">Next Steps</a></li>
 </ul>
@@ -339,16 +340,16 @@ switch to <code class="code docutils literal notranslate"><span class="pre">FP64
 </section>
 <section id="cuquantum-multi-node-multi-gpu">
 <h3>cuQuantum multi-node multi-GPU<a class="headerlink" href="#cuquantum-multi-node-multi-gpu" title="Permalink to this heading">¶</a></h3>
-<p>The <code class="code docutils literal notranslate"><span class="pre">nvidia_mgpu</span></code> target provides a state vector simulator accelerated with
+<p>The <code class="code docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> target provides a state vector simulator accelerated with
 the <code class="code docutils literal notranslate"><span class="pre">cuStateVec</span></code> library but with support for Multi-Node, Multi-GPU distribution of the
 state vector.</p>
-<p>To specify the use of the <code class="code docutils literal notranslate"><span class="pre">nvidia_mgpu</span></code> target, pass the following command line
+<p>To specify the use of the <code class="code docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> target, pass the following command line
 options to <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code></p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>nvidia_mgpu<span class="w"> </span>src.cpp<span class="w"> </span>...
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>nvidia-mgpu<span class="w"> </span>src.cpp<span class="w"> </span>...
 </pre></div>
 </div>
 <p>In python, this can be specified with</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;nvidia_mgpu&#39;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;nvidia-mgpu&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>

@@ -98,6 +98,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../install.html#use-cuda-quantum-in-vs-code">Use CUDA Quantum in VS Code</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#python-wheels">Python wheels</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#build-cuda-quantum-from-source">Build CUDA Quantum from Source</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#next-steps">Next Steps</a></li>
 </ul>
@@ -521,14 +522,14 @@ simulations. Let’s take a look at an example that is too large for a standard 
 can be trivially simulated via a NVIDIA GPU-accelerated backend:</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Compile and run with:</span>
 <span class="c1">// ```</span>
-<span class="c1">// nvq++ cuquantum_backends.cpp -o dyn.x -qpu cuquantum &amp;&amp; ./dyn.x</span>
+<span class="c1">// nvq++ cuquantum_backends.cpp -o dyn.x --target nvidia &amp;&amp; ./dyn.x</span>
 <span class="c1">// ```</span>
 
 <span class="c1">// This example is meant to demonstrate the cuQuantum</span>
-<span class="c1">// target and its ability to easily handle a larger number</span>
-<span class="c1">// of qubits compared the CPU-only backend.</span>
+<span class="c1">// GPU-accelerated backends and their ability to easily handle</span>
+<span class="c1">// a larger number of qubits compared the CPU-only backend.</span>
 
-<span class="c1">// Without the `-qpu cuquantum` flag, this seems to hang, i.e.</span>
+<span class="c1">// Without the `--target nvidia` flag, this seems to hang, i.e.</span>
 <span class="c1">// it takes a long time for the CPU-only backend to handle</span>
 <span class="c1">// this number of qubits.</span>
 
