@@ -32,3 +32,5 @@ install(EXPORT cudaq-em-photonics-targets
         FILE CUDAQEmPhotonicsTargets.cmake
         NAMESPACE cudaq::
         DESTINATION lib/cmake/cudaq)
+
+add_target_config(photonics)

@@ -9,7 +9,7 @@
 #include <gtest/gtest.h>
 
 #include "cudaq.h"
-#include "cudaq/qis/managers/photonics/photonics_qis.h"
+#include "cudaq/photonics.h"
 
 TEST(PhotonicsTester, checkSimple) {
 
