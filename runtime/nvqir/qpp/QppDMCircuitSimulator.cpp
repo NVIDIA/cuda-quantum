@@ -112,6 +112,8 @@ public:
     return cudaq::State{{stateDimension, stateDimension},
                         {state.data(), state.data() + state.size()}};
   }
+
+  NVQIR_SIMULATOR_CLONE_IMPL(QppNoiseCircuitSimulator)
 };
 
 } // namespace

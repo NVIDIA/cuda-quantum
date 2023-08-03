@@ -43,7 +43,7 @@ def testMPI():
     result_no_shots = cudaq.observe(kernel,
                                     hamiltonian,
                                     0.59,
-                                    execution=cudaq.par.mpi)
+                                    execution=cudaq.parallel.mpi)
     expectation_value_no_shots = result_no_shots.expectation_z()
     assert np.isclose(want_expectation_value, expectation_value_no_shots)
 
