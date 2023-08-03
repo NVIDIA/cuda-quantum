@@ -73,7 +73,7 @@ def testLargeProblem():
 
     # Parallel Execution
     start = timeit.default_timer()
-    e = cudaq.observe(kernel, H, execParams, execution=cudaq.par.thread)
+    e = cudaq.observe(kernel, H, execParams, execution=cudaq.parallel.thread)
     stop = timeit.default_timer()
     print("mqpu time = ", (stop - start))
     assert assert_close(e.expectation_z(), e.expectation_z())
@@ -104,7 +104,7 @@ def testAccuracy():
 
     # Get the `cudaq.ObserveResult` back from `cudaq.observe()`.
     # No shots provided.
-    result_no_shots = cudaq.observe(kernel, hamiltonian, 0.59)
+    result_no_shots = cudaq.observe(kernel, hamiltonian, 0.59, execution=cudaq.parallel.thread)
     expectation_value_no_shots = result_no_shots.expectation_z()
     assert assert_close(want_expectation_value, expectation_value_no_shots)
 
