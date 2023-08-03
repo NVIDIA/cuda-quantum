@@ -103,6 +103,25 @@ or run the Python examples using the Python interpreter.
     may not be automatically active in the container environment. You may need to install your preferred 
     extension in the container environment for all of your development tools to be available.
 
+Python wheels
+--------------------
+
+CUDA Quantum Python wheels are available on [PyPI.org](https://pypi.org/project/cuda-quantum). 
+The CUDA Quantum Python wheels contain the Python API and core components of
+CUDA Quantum. For more information about available packages and documentation,
+see :doc:`versions`.
+
+To install the latest release using `pip <https://pypi.org/project/pip/>`__, run
+
+.. code-block:: console
+
+    pip install cuda-quantum
+
+There are currently no source distributions available on PyPI, but you can download the source code 
+for all releases `here <https://github.com/NVIDIA/cuda-quantum/releases>`__. 
+For more information about building a CUDA Quantum Python wheel from source, see the 
+`README <https://github.com/NVIDIA/cuda-quantum/blob/main/python/README.md>`__.
+
 
 Build CUDA Quantum from Source
 ------------------------------
