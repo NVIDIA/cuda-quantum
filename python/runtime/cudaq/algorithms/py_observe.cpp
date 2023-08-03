@@ -198,14 +198,14 @@ pyObserveN(kernel_builder<> &kernel, spin_op &op, py::args args = {},
 }
 
 void bindObserve(py::module &mod) {
-  auto parallelSubmodule = mod.def_submodule("execution");
+  auto parallelSubmodule = mod.def_submodule("parallel");
 
-  py::class_<cudaq::execution::mpi>(
+  py::class_<cudaq::parallel::mpi>(
       parallelSubmodule, "mpi",
       "Type indicating that the :func:`observe` function should distribute its "
       "expectation value computations accross available MPI ranks and GPUs for "
       "each term.");
-  py::class_<cudaq::execution::thread>(
+  py::class_<cudaq::parallel::thread>(
       parallelSubmodule, "thread",
       "Type indicating that the :func:`observe` function should distribute its "
       "term "
