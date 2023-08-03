@@ -1,13 +1,13 @@
 // Compile and run with:
 // ```
-// nvq++ cuquantum_backends.cpp -o dyn.x -qpu cuquantum && ./dyn.x
+// nvq++ cuquantum_backends.cpp -o dyn.x --target nvidia && ./dyn.x
 // ```
 
 // This example is meant to demonstrate the cuQuantum
-// target and its ability to easily handle a larger number
-// of qubits compared the CPU-only backend.
+// GPU-accelerated backends and their ability to easily handle
+// a larger number of qubits compared the CPU-only backend.
 
-// Without the `-qpu cuquantum` flag, this seems to hang, i.e.
+// Without the `--target nvidia` flag, this seems to hang, i.e.
 // it takes a long time for the CPU-only backend to handle
 // this number of qubits.
 
