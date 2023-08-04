@@ -139,6 +139,8 @@ public:
     std::string configContents((std::istreambuf_iterator<char>(configFile)),
                                std::istreambuf_iterator<char>());
 
+    platformQPUs.clear();
+    platformQPUs.emplace_back(std::make_unique<DefaultQPU>())
     auto lines = cudaq::split(configContents, '\n');
     for (auto &line : lines) {
       if (line.find(platformQPU) != std::string::npos) {
