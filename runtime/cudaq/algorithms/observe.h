@@ -232,7 +232,7 @@ std::vector<observe_result> observe(QuantumKernel &&kernel,
                     },
                     op, platform, shots, kernelName)
                     .value();
-                    
+
   // Convert back to a vector of results
   std::vector<observe_result> results;
   for (auto &o : termList)
