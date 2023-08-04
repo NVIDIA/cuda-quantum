@@ -3,9 +3,9 @@ CUDA Quantum Python API
 
 .. automodule:: cudaq
 
-    .. automethod:: initialize_cudaq
-    .. automethod:: num_available_gpus
-    .. automethod:: set_random_seed
+    .. automethod:: cudaq::initialize_cudaq
+    .. automethod:: cudaq::num_available_gpus
+    .. automethod:: cudaq::set_random_seed
 
 Program Construction
 =============================

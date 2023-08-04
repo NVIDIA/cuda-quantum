@@ -44,7 +44,7 @@ PYBIND11_MODULE(_pycudaq, mod) {
             holder.setTarget(value);
         }
       },
-      "");
+      "Initialize the CUDA Quantum environment.");
 
   mod.def("set_random_seed", &cudaq::set_random_seed,
           "Provide the seed for backend quantum kernel simulation.");

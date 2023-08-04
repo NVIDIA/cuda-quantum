@@ -115,8 +115,8 @@ public:
   /// variable, and if found, will change from the DefaultQPU to the QPU subtype
   /// specified by that variable.
   void setTargetBackend(const std::string &backend) override {
-    std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
-    auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
+    platformQPUs.clear();
+    platformQPUs.emplace_back(std::make_unique<DefaultQPU>());
 
     cudaq::info("Backend string is {}", backend);
     auto mutableBackend = backend;
@@ -124,6 +124,8 @@ public:
       mutableBackend = cudaq::split(mutableBackend, ';')[0];
     }
 
+    std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
+    auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
     std::string fileName = mutableBackend + std::string(".config");
 
     /// Once we know the backend, we should search for the config file
@@ -139,8 +141,6 @@ public:
     std::string configContents((std::istreambuf_iterator<char>(configFile)),
                                std::istreambuf_iterator<char>());
 
-    platformQPUs.clear();
-    platformQPUs.emplace_back(std::make_unique<DefaultQPU>());
     auto lines = cudaq::split(configContents, '\n');
     for (auto &line : lines) {
       if (line.find(platformQPU) != std::string::npos) {
