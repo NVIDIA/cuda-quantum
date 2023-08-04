@@ -9,7 +9,7 @@ dependencies:
   - python=3.9.*
   - gxx_linux-64=11.3  # [linux]
 # llvm deps
-  - llvmdev=16.0.6
+  - clangdev=16.0.6
   - llvmlite=0.40.1
   - mlir=16.0.6
 # python deps
