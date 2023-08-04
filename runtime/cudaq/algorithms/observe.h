@@ -11,6 +11,7 @@
 #include "cudaq/spin_op.h"
 
 #include <functional>
+#include <ranges>
 #include <type_traits>
 #include <vector>
 
@@ -201,6 +202,43 @@ observe_result observe(QuantumKernel &&kernel, spin_op H, Args &&...args) {
              },
              H, platform, shots, kernelName)
       .value();
+}
+
+/// @brief Compute the expected value of every `spin_op` provided in
+/// `SpinOpContainer` (a range concept) with respect to `kernel(Args...)`.
+/// Return a `std::vector<observe_result>`.
+template <typename QuantumKernel, typename SpinOpContainer, typename... Args>
+  requires ObserveCallValid<QuantumKernel, Args...> &&
+           std::ranges::range<SpinOpContainer>
+std::vector<observe_result> observe(QuantumKernel &&kernel,
+                                    const SpinOpContainer &termList,
+                                    Args &&...args) {
+  // Run this SHOTS times
+  auto &platform = cudaq::get_platform();
+  auto shots = platform.get_shots().value_or(-1);
+  auto kernelName = cudaq::getKernelName(kernel);
+
+  // Convert all spin_ops to a single summed spin_op
+  cudaq::spin_op op;
+  for (auto &o : termList)
+    op += o;
+  // the constructor for spin_op starts the op as the identity, remove that
+  op -= spin_op();
+
+  // Run the observation
+  auto result = details::runObservation(
+                    [&kernel, ... args = std::forward<Args>(args)]() mutable {
+                      kernel(args...);
+                    },
+                    op, platform, shots, kernelName)
+                    .value();
+                    
+  // Convert back to a vector of results
+  std::vector<observe_result> results;
+  for (auto &o : termList)
+    results.emplace_back(result.exp_val_z(o), o, result.counts(o));
+
+  return results;
 }
 
 /// @brief Compute the expected value of `H` with respect to `kernel(Args...)`.
