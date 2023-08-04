@@ -99,6 +99,7 @@ inlining
 instantiation
 instantiations
 namespace
+namespaces
 natively
 optimizer
 optimizers
