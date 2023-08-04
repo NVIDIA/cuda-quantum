@@ -31,7 +31,7 @@ listReachableFunctions(clang::CallGraphNode *cgn) {
   llvm::SmallVector<clang::Decl *> result;
   for (auto call : *cgn) {
     auto *decl = call.Callee->getDecl();
-    if (auto *nd = dyn_cast<clang::NamedDecl>(decl)) {
+    if ([[maybe_unused]] auto *nd = dyn_cast<clang::NamedDecl>(decl)) {
       LLVM_DEBUG(llvm::dbgs() << "adding function: "
                               << nd->getQualifiedNameAsString() << '\n');
     }

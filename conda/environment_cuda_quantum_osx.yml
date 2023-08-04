@@ -12,6 +12,7 @@ dependencies:
   - clangdev=16.0.6
   - llvmlite=0.40.1
   - mlir=16.0.6
+  - lit=16.0.6
 # python deps
   - numpy
   - ipython

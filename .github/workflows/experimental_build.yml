@@ -16,12 +16,6 @@ jobs:
           source ~/.zshrc
           conda env create -f conda/environment_cuda_quantum_osx.yml --name cuda-quantum
           conda activate cuda-quantum
-          # error: default label in switch which covers all enumeration values [-Werror,-Wcovered-switch-default] - patch this
-          git -c submodule.tpls/llvm.update=none submodule update --init --recursive
-          mv scripts/patch_googletest_v1.12.0.txt tpls/googletest-src
-          cd tpls/googletest-src
-          git apply patch_googletest_v1.12.0.txt
-          cd -
           mkdir -p build && cd build
           bash ../scripts/build_and_run.sh
   build-and-test-linux:

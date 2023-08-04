@@ -21,7 +21,7 @@ add_library(${LIBRARY_NAME}
                 utils/cudaq_utils.cpp)
 
 target_include_directories(${LIBRARY_NAME}
-  PUBLIC $<INSTALL_INTERFACE:include>
+  PUBLIC
            $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
            $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
   PRIVATE .)
