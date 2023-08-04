@@ -3,6 +3,10 @@ CUDA Quantum Python API
 
 .. automodule:: cudaq
 
+    .. automethod:: initialize_cudaq
+    .. automethod:: num_available_gpus
+    .. automethod:: set_random_seed
+
 Program Construction
 =============================
 
@@ -39,9 +43,6 @@ Program Construction
     .. automethod:: adjoint
     .. automethod:: control
     .. automethod:: apply_call
-    
-    
-
     
 Kernel Execution
 =============================

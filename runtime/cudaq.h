@@ -184,6 +184,7 @@ void set_shots(const std::size_t nShots);
 
 /// @brief Set a custom noise model for simulation
 void set_noise(cudaq::noise_model &model);
+
 /// @brief Remove an existing noise model from simulation.
 void unset_noise();
 

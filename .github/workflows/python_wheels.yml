@@ -158,7 +158,7 @@ jobs:
           image: wheel_validation:local
           shell: bash
           run: |
-            python${{ inputs.python_version }} -m pytest /tmp/tests/
+            python${{ inputs.python_version }} -m pytest -v /tmp/tests/
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then
               echo "pytest status = " $pytest_status

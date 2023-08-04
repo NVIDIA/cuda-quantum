@@ -146,8 +146,31 @@ Namespaces
 .. doxygennamespace:: cudaq
     :desc-only:
 
+.. doxygenfunction:: cudaq::num_available_gpus
+
+.. doxygenfunction:: cudaq::set_random_seed
+
+.. doxygenfunction:: cudaq::set_noise
+
+.. doxygenfunction:: cudaq::unset_noise
+
 .. doxygennamespace:: cudaq::details
     :desc-only:
 
 .. doxygennamespace:: cudaq::registry
     :desc-only:
+
+.. doxygennamespace:: cudaq::mpi
+    :desc-only:
+
+.. doxygenfunction:: cudaq::mpi::initialize
+
+.. doxygenfunction:: cudaq::mpi::is_initialized
+
+.. doxygenfunction:: cudaq::mpi::finalize
+
+.. doxygenfunction:: cudaq::mpi::rank
+
+.. doxygenfunction:: cudaq::mpi::num_ranks
+
+.. doxygenfunction:: cudaq::mpi::all_reduce
