@@ -471,7 +471,8 @@ protected:
 
     // Sort the qubit indices
     std::sort(sampleQubits.begin(), sampleQubits.end());
-    std::unique(sampleQubits.begin(), sampleQubits.end());
+    [[maybe_unused]] auto unique_end = std::unique(sampleQubits.begin(), sampleQubits.end());
+    // non unique elements still exit
 
     cudaq::info("Sampling the current state, with measure qubits = {}",
                 sampleQubits);
