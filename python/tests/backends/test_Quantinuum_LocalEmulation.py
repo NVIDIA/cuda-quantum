@@ -16,7 +16,7 @@ def assert_close(got) -> bool:
     return got < -1.5 and got > -1.9
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="function", autouse=True)
 def startUpMockServer():
     # We need a Fake Credentials Config file
     credsName = '{}/FakeConfig2.config'.format(os.environ["HOME"])

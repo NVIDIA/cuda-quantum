@@ -43,7 +43,7 @@ def test_simpleObserveN_QNN():
     for q1, q2 in zip(qubits_list[0::2], qubits_list[1::2]):
         kernel.cz(qubits[q1], qubits[q2])
 
-    exp_vals = cudaq.observe_n(kernel, h, parameters)
+    exp_vals = cudaq.observe(kernel, h, parameters)
     assert len(exp_vals) == samples_count
     data = np.asarray([e.expectation_z() for e in exp_vals])
     # Test a collection of computed exp vals.
@@ -95,3 +95,9 @@ def test_observeAsync_QNN():
     assert np.allclose(np.asarray([0.44686155, 0.50145603]),
                        np.asarray(expvals))
     cudaq.reset_target()
+
+
+# leave for gdb debugging
+if __name__ == "__main__":
+    loc = os.path.abspath(__file__)
+    pytest.main([loc, "-rP"])
