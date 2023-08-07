@@ -13,11 +13,10 @@ import numpy as np
 
 import cudaq
 
-cudaq.set_target('density-matrix-cpu')
-
 
 def test_depolarization_channel():
-
+    """Tests the depolarization channel in the case of a non-zero probability."""
+    cudaq.set_target('density-matrix-cpu')
     circuit = cudaq.make_kernel()
     q = circuit.qalloc()
     circuit.x(q)
@@ -41,9 +40,13 @@ def test_depolarization_channel():
     assert (len(counts) == 1)
     assert ('1' in counts)
 
+    cudaq.unset_noise()
+    cudaq.reset_target()
+
 
 def test_depolarization_channel_simple():
     """Tests the depolarization channel in the case of `probability = 1.0`"""
+    cudaq.set_target('density-matrix-cpu')
     kernel = cudaq.make_kernel()
     qubit = kernel.qalloc()
     noise = cudaq.NoiseModel()
@@ -61,17 +64,26 @@ def test_depolarization_channel_simple():
 
     # Without noise, the qubit should still be in the |1> state.
     counts = cudaq.sample(kernel)
-    assert (counts["1"] == 1000)
+    want_counts = 1000
+    got_counts = counts["1"]
+    assert got_counts == want_counts
 
     # With noise, the measurements should be a roughly 50/50
     # mix between the |0> and |1> states.
     noisy_counts = cudaq.sample(kernel, noise_model=noise)
-    assert (np.isclose(noisy_counts.probability("0"), 0.5, atol=.1))
-    assert (np.isclose(noisy_counts.probability("1"), 0.5, atol=.1))
+    want_probability = 0.5
+    got_zero_probability = noisy_counts.probability("0")
+    got_one_probability = noisy_counts.probability("1")
+    assert np.isclose(got_zero_probability, want_probability, atol=.1)
+    assert np.isclose(got_one_probability, want_probability, atol=.1)
+
+    cudaq.unset_noise()
+    cudaq.reset_target()
 
 
 def test_amplitude_damping_simple():
     """Tests the amplitude damping channel in the case of `probability = 1.0`"""
+    cudaq.set_target('density-matrix-cpu')
     noise = cudaq.NoiseModel()
     # Amplitude damping channel with `1.0` probability of the qubit
     # decaying to the ground state.
@@ -89,16 +101,25 @@ def test_amplitude_damping_simple():
     # Without noise, the qubit will now have a 50/50 mix of measurements
     # between |0> and |1>.
     counts = cudaq.sample(kernel)
-    assert (np.isclose(counts.probability("0"), 0.5, atol=.1))
-    assert (np.isclose(counts.probability("1"), 0.5, atol=.1))
+    want_probability = 0.5
+    got_zero_probability = counts.probability("0")
+    got_one_probability = counts.probability("1")
+    assert np.isclose(got_zero_probability, want_probability, atol=.1)
+    assert np.isclose(got_one_probability, want_probability, atol=.1)
 
     # With noise, all measurements should be in the |0> state,
     noisy_counts = cudaq.sample(kernel, noise_model=noise)
-    assert (noisy_counts["0"] == 1000)
+    want_counts = 1000
+    got_counts = noisy_counts["0"]
+    assert (got_counts == want_counts)
+
+    cudaq.unset_noise()
+    cudaq.reset_target()
 
 
 def test_phase_flip_simple():
     """Tests the phase flip channel in the case of `probability = 1.0`"""
+    cudaq.set_target('density-matrix-cpu')
     noise = cudaq.NoiseModel()
     # Phase flip channel with `1.0` probability of the qubit
     # undergoing a phase rotation of 180 degrees (π).
@@ -120,11 +141,17 @@ def test_phase_flip_simple():
     # state due to the phase rotation between the two hadamard
     # gates.
     counts = cudaq.sample(kernel)
-    assert (counts["1"] == 1000)
+    want_counts = 1000
+    got_one_counts = counts["1"]
+    assert got_one_counts == want_counts
 
     # With noise, should be in the |0> state.
     noisy_counts = cudaq.sample(kernel, noise_model=noise)
-    assert (noisy_counts["0"] == 1000)
+    got_zero_counts = noisy_counts["0"]
+    assert got_zero_counts == want_counts
+
+    cudaq.unset_noise()
+    cudaq.reset_target()
 
 
 def test_bit_flip_simple():
@@ -132,6 +159,7 @@ def test_bit_flip_simple():
     Tests the bit flip channel with the probability at `0.0` on qubit 0, 
     and `1.0` on qubit 1.
     """
+    cudaq.set_target('density-matrix-cpu')
     noise = cudaq.NoiseModel()
     # Bit flip channel with `0.0` probability of the qubit flipping 180 degrees.
     bit_flip_zero = cudaq.BitFlipChannel(0.0)
@@ -154,15 +182,40 @@ def test_bit_flip_simple():
 
     # Without noise, both qubits in the |1> state.
     counts = cudaq.sample(kernel)
-    assert (counts["11"] == 1000)
+    counts.dump()
+    want_counts = 1000
+    got_one_one_counts = counts["11"]
+    assert got_one_one_counts == want_counts
 
     # With noise, the state should be |1><0| == |10>
-    noisy_result = cudaq.sample(kernel, noise_model=noise)
-    assert (counts["10"] == 1000)
+    noisy_counts = cudaq.sample(kernel, noise_model=noise)
+    noisy_counts.dump()
+    got_one_zero_counts = noisy_counts["10"]
+    assert got_one_zero_counts == want_counts
+
+    cudaq.unset_noise()
+    cudaq.reset_target()
+
+
+def test_Bit():
+    cudaq.set_target('density-matrix-cpu')
+    noise = cudaq.NoiseModel()
+    # Bit flip channel with `0.0` probability of the qubit flipping 180 degrees.
+    bit_flip = cudaq.BitFlipChannel(1.0)
+    noise.add_channel('x', [0], bit_flip)
+
+    kernel = cudaq.make_kernel()
+    qubit = kernel.qalloc()
+    # This will bring the qubit to the |1> state.
+    # Remains with a probability of `1 - p = 0.0`.
+    kernel.x(qubit)
+    noisy_counts = cudaq.sample(kernel, noise_model=noise)
+    noisy_counts.dump()
 
 
 def test_kraus_channel():
-
+    """Tests the Kraus Channel with a series of custom Kraus Operators."""
+    cudaq.set_target('density-matrix-cpu')
     k0 = np.array([[0.05773502691896258, 0.0], [0., -0.05773502691896258]],
                   dtype=np.complex128)
     k1 = np.array([[0., 0.05773502691896258], [0.05773502691896258, 0.]],
@@ -172,22 +225,24 @@ def test_kraus_channel():
     k3 = np.array([[0.99498743710662, 0.0], [0., 0.99498743710662]],
                   dtype=np.complex128)
 
-    depol = cudaq.KrausChannel([k0, k1, k2, k3])
+    depolarization = cudaq.KrausChannel([k0, k1, k2, k3])
 
-    assert ((depol[0] == k0).all())
-    assert ((depol[1] == k1).all())
-    assert ((depol[2] == k2).all())
-    assert ((depol[3] == k3).all())
+    assert ((depolarization[0] == k0).all())
+    assert ((depolarization[1] == k1).all())
+    assert ((depolarization[2] == k2).all())
+    assert ((depolarization[3] == k3).all())
 
     noise = cudaq.NoiseModel()
-    noise.add_channel('x', [0], depol)
+    noise.add_channel('x', [0], depolarization)
     cudaq.set_noise(noise)
     circuit = cudaq.make_kernel()
     q = circuit.qalloc()
     circuit.x(q)
 
     counts = cudaq.sample(circuit)
-    assert (len(counts) == 2)
+    want_count_length = 2
+    got_count_length = len(counts)
+    assert (got_count_length == want_count_length)
     assert ('0' in counts)
     assert ('1' in counts)
 
