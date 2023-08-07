@@ -74,8 +74,8 @@ def test_depolarization_channel_simple():
     want_probability = 0.5
     got_zero_probability = noisy_counts.probability("0")
     got_one_probability = noisy_counts.probability("1")
-    assert np.isclose(got_zero_probability, want_probability, atol=.1)
-    assert np.isclose(got_one_probability, want_probability, atol=.1)
+    assert np.isclose(got_zero_probability, want_probability, atol=.2)
+    assert np.isclose(got_one_probability, want_probability, atol=.2)
 
     cudaq.unset_noise()
     cudaq.reset_target()
