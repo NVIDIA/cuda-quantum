@@ -13,10 +13,10 @@ cudaq.set_target('density-matrix-cpu')
 noise = cudaq.NoiseModel()
 
 # Bit flip channel with `1.0` probability of the qubit flipping 180 degrees.
-bit_flip_one = cudaq.BitFlipChannel(1.0)
+bit_flip = cudaq.BitFlipChannel(1.0)
 # We will apply this channel to any X gate on the qubit, giving each X-gate
 # a probability of `1.0` of undergoing an extra X-gate.
-noise.add_channel('x', [0], bit_flip_one)
+noise.add_channel('x', [0], bit_flip)
 
 # Now we may define our simple kernel function and allocate a register
 # of qubits to it.
