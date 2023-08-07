@@ -254,24 +254,31 @@ void findApiKeyInFile(std::string &apiKey, const std::string &path,
 
   std::vector<std::string> lines;
   lines = cudaq::split(contents, '\n');
-  for (auto l : lines) {
-    if (l.find("key") != std::string::npos) {
-      std::vector<std::string> s = cudaq::split(l, ':');
-      auto key = s[1];
-      cudaq::trim(key);
-      apiKey = key;
-    } else if (l.find("refresh") != std::string::npos) {
-      std::vector<std::string> s = cudaq::split(l, ':');
-      auto key = s[1];
-      cudaq::trim(key);
-      refreshKey = key;
-    } else if (l.find("time") != std::string::npos) {
-      std::vector<std::string> s = cudaq::split(l, ':');
-      auto key = s[1];
-      cudaq::trim(key);
-      timeStr = key;
-    }
+  for (const std::string &l : lines) {
+    std::vector<std::string> keyAndValue = cudaq::split(l, ':');
+    if (keyAndValue.size() != 2)
+      throw std::runtime_error("Ill-formed configuration file (" + path +
+                               "). Key-value pairs must be in `<key> : "
+                               "<value>` format. (One per line)");
+    cudaq::trim(keyAndValue[0]);
+    cudaq::trim(keyAndValue[1]);
+    if (keyAndValue[0] == "key")
+      apiKey = keyAndValue[1];
+    else if (keyAndValue[0] == "refresh")
+      refreshKey = keyAndValue[1];
+    else if (keyAndValue[0] == "time")
+      timeStr = keyAndValue[1];
+    else
+      throw std::runtime_error(
+          "Unknown key in configuration file: " + keyAndValue[0] + ".");
   }
+  if (apiKey.empty())
+    throw std::runtime_error("Empty API key in configuration file (" + path +
+                             ").");
+  if (refreshKey.empty())
+    throw std::runtime_error("Empty refresh key in configuration file (" +
+                             path + ").");
+  // The `time` key is not required.
 }
 
 /// Search for the API key
