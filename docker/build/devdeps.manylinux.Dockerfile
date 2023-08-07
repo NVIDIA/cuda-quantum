@@ -50,7 +50,6 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False \
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
 ENV BLAS_INSTALL_PREFIX=/usr/local/blas
 ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
-ENV METIS_INSTALL_PREFIX=/opt/metis
 RUN dnf check-update && dnf install -y --nobest --setopt=install_weak_deps=False \
         glibc-static perl-core wget cmake \
     && bash /scripts/install_prerequisites.sh \

@@ -82,7 +82,7 @@ ADD ./scripts/install_toolchain.sh /scripts/install_toolchain.sh
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
     && export LLVM_INSTALL_PREFIX=/opt/llvm \
     && export BLAS_INSTALL_PREFIX=/usr/local/blas \
-    && export METIS_INSTALL_PREFIX=/opt/metis \
+    && export METIS_INSTALL_PREFIX=/usr/local/metis \
     && export OPENSSL_INSTALL_PREFIX=/usr/local/openssl \
     # Making sure that anything that is build from source when installing additional
     # prerequisites is built using the same toolchain as CUDA Quantum by default.
@@ -127,11 +127,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends libstdc++-12-de
 # Copy over additional prerequisites.
 ENV BLAS_INSTALL_PREFIX=/usr/local/blas
 ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
-ENV OPENSSL_ROOT_DIR="$OPENSSL_INSTALL_PREFIX"
-ENV METIS_INSTALL_PREFIX=/opt/metis
+ENV METIS_INSTALL_PREFIX=/usr/local/metis
 COPY --from=prereqs /usr/local/blas "$BLAS_INSTALL_PREFIX"
 COPY --from=prereqs /usr/local/openssl "$OPENSSL_INSTALL_PREFIX"
-COPY --from=prereqs /opt/metis "$METIS_INSTALL_PREFIX"
+COPY --from=prereqs /usr/local/metis "$METIS_INSTALL_PREFIX"
 
 # Install additional tools for CUDA Quantum documentation generation.
 RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certificates \

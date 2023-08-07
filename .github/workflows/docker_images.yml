@@ -224,7 +224,7 @@ jobs:
           file: ./docker/build/cudaq.dev.Dockerfile
           build-args: |
             base_image=${{ steps.prereqs.outputs.base_image }}
-            install="CMAKE_BUILD_TYPE=Debug FORCE_COMPILE_GPU_COMPONENTS=true"
+            install="CMAKE_BUILD_TYPE=Debug FORCE_COMPILE_GPU_COMPONENTS=true METIS_INSTALL_PREFIX="
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}
@@ -376,7 +376,7 @@ jobs:
           file: ./docker/build/cudaq.dev.Dockerfile
           build-args: |
             base_image=${{ steps.prereqs.outputs.devdeps_image }}
-            install="CMAKE_BUILD_TYPE=Release FORCE_COMPILE_GPU_COMPONENTS=true"
+            install="CMAKE_BUILD_TYPE=Release FORCE_COMPILE_GPU_COMPONENTS=true METIS_INSTALL_PREFIX="
           tags: ${{ steps.cudaqdev_metadata.outputs.tags }}
           labels: ${{ steps.cudaqdev_metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}

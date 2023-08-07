@@ -46,10 +46,12 @@ trap remove_temp_installs EXIT
 this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 
 if [ ! -x "$(command -v cmake)" ]; then
-    apt-get update && apt-get install -y --no-install-recommends cmake
-    APT_UNINSTALL="$APT_UNINSTALL $2"
+  echo "Install cmake..."
+  apt-get update && apt-get install -y --no-install-recommends cmake
+  APT_UNINSTALL="$APT_UNINSTALL $2"
 fi
 if [ "$CC" == "" ] && [ "$CXX" == "" ]; then
+  echo "Install gcc-12 toolchain..."
   source "$this_file_dir/install_toolchain.sh" -t gcc12
 fi
 
@@ -81,6 +83,7 @@ if [ ! -x "$(command -v ar)" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/l
 fi
 
 if [ ! -f "$BLAS_INSTALL_PREFIX/libblas.a" ] && [ ! -f "$BLAS_INSTALL_PREFIX/lib/libblas.a" ]; then
+  echo "Build and install blas..."
   if [ -x "$(command -v apt-get)" ]; then
     apt-get update
   fi
@@ -92,7 +95,7 @@ if [ ! -f "$BLAS_INSTALL_PREFIX/libblas.a" ] && [ ! -f "$BLAS_INSTALL_PREFIX/lib
   temp_install_if_command_unknown gfortran gfortran
 
   # See also: https://github.com/NVIDIA/cuda-quantum/issues/452
-  wget http://www.netlib.org/blas/blas-3.11.0.tgz
+  wget -q http://www.netlib.org/blas/blas-3.11.0.tgz
   tar -xzvf blas-3.11.0.tgz && cd BLAS-3.11.0
   make && mkdir -p "$BLAS_INSTALL_PREFIX" && mv blas_LINUX.a "$BLAS_INSTALL_PREFIX/libblas.a"
   cd .. && rm -rf blas-3.11.0.tgz BLAS-3.11.0
@@ -100,6 +103,7 @@ if [ ! -f "$BLAS_INSTALL_PREFIX/libblas.a" ] && [ ! -f "$BLAS_INSTALL_PREFIX/lib
 fi
 
 if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(ls -A "$OPENSSL_INSTALL_PREFIX"/openssl*)" ]; then
+  echo "Build and install openssl..."
   if [ -x "$(command -v apt-get)" ]; then
     apt-get update && apt-get install -y --no-install-recommends perl
   fi
@@ -107,27 +111,38 @@ if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(ls -A "$OPENSSL_INSTALL_PREFIX"
   temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
 
-  wget https://www.openssl.org/source/openssl-3.1.1.tar.gz
+  wget -q https://www.openssl.org/source/openssl-3.1.1.tar.gz
   tar -xf openssl-3.1.1.tar.gz && cd openssl-3.1.1
   ./config no-zlib --prefix="$OPENSSL_INSTALL_PREFIX" --openssldir="$OPENSSL_INSTALL_PREFIX"
   make install && cd .. && rm -rf openssl-3.1.1*
   remove_temp_installs
 fi
 
-if [ ! -f "$METIS_INSTALL_PREFIX/lib/libmetis.a" ]; then
+if [ -n "$METIS_INSTALL_PREFIX" ] && [ ! -f "$METIS_INSTALL_PREFIX/lib/libmetis.a" ]; then
+  echo "Build and install metis..."
   if [ -x "$(command -v apt-get)" ]; then
     apt-get update
   fi
 
-  temp_install_if_command_unknown git git
+  temp_install_if_command_unknown wget wget
+  temp_install_if_command_unknown unzip unzip
   temp_install_if_command_unknown make make
   temp_install_if_command_unknown gcc gcc
 
-  git clone https://github.com/KarypisLab/GKlib
-  cd GKlib && make config cc=gcc prefix=$METIS_INSTALL_PREFIX openmp=set 
-  make -j install && cd ../
-  git clone https://github.com/KarypisLab/METIS
-  cd METIS && make config cc=gcc prefix=$METIS_INSTALL_PREFIX gklib_path=$METIS_INSTALL_PREFIX 
-  make -j install && cd .. && rm -rf GKlib && rm -rf METIS
+  wget https://github.com/KarypisLab/GKlib/archive/8bd6bad750b2b0d90800c632cf18e8ee93ad72d7.zip -qO gklib.zip
+  unzip gklib.zip && cd GKlib-8bd6bad750b2b0d90800c632cf18e8ee93ad72d7
+  make config cc=gcc prefix=$METIS_INSTALL_PREFIX openmp=set
+  make -j install && cd .. && rm -rf GKlib* gklib.zip
+
+  wget https://github.com/KarypisLab/METIS/archive/e0f1b88b8efcb24ffa0ec55eabb78fbe61e58ae7.zip -qO metis.zip
+  unzip metis.zip && cd METIS-e0f1b88b8efcb24ffa0ec55eabb78fbe61e58ae7
+  make config cc=gcc prefix=$METIS_INSTALL_PREFIX gklib_path=$METIS_INSTALL_PREFIX 
+  make -j install && cd .. && rm -rf METIS* metis.zip
   remove_temp_installs
+fi
+
+# Temp installs of other compiler toolchain may overwrite settings.
+# A better approach would be to build everything with the same toolchain.
+if [ -f "$LLVM_INSTALL_PREFIX/bootstrap/init_command.sh" ]; then
+  source "$LLVM_INSTALL_PREFIX/bootstrap/init_command.sh" 1> /dev/null
 fi
