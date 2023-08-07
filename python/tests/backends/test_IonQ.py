@@ -42,6 +42,8 @@ def startUpMockServer():
 
     # Kill the server
     p.terminate()
+    cudaq.reset_target()
+
 
 def test_ionq_sample():
     # Create the kernel we'd like to execute on IonQ

@@ -48,6 +48,7 @@ def startUpMockServer():
     # Kill the server, remove the file
     p.terminate()
     os.remove(credsName)
+    cudaq.reset_target()
 
 
 def test_quantinuum_sample():
