@@ -9,9 +9,9 @@
 // Only run this test if the metis plugin is available 
 
 // RUN: export METIS_PLUGIN=%cudaq_lib_dir/partitioners/libcudaq-partitioner-metis%cudaq_plugin_ext ; \
-// RUN: if [ ! -f ${METIS_PLUGIN} ] ; \
+// RUN: if [ -f "${METIS_PLUGIN}" ] ; \
 // RUN: then \
-// RUN:    cudaq-opt %s --cut-quake=k=3 --load-cudaq-plugin ${METIS_PLUGIN} %s \
+// RUN:    cudaq-opt --cut-quake=k=3 --load-cudaq-plugin ${METIS_PLUGIN} %s \
 // RUN:    | FileCheck %s ; \
 // RUN: else echo 0 ; fi
 
