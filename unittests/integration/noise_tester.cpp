@@ -182,7 +182,9 @@ CUDAQ_TEST(NoiseTest, checkDepolTypeSimple) {
   cudaq::set_noise(noise);
   auto counts = cudaq::sample(xOp{});
   counts.dump();
-  EXPECT_EQ(1, counts.size());
+  EXPECT_EQ(2, counts.size());
+  EXPECT_NEAR(counts.probability("0"), .50, .2);
+  EXPECT_NEAR(counts.probability("1"), .50, .2);
 }
 
 CUDAQ_TEST(NoiseTest, checkAmpDampType) {
