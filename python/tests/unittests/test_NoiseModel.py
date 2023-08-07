@@ -197,22 +197,6 @@ def test_bit_flip_simple():
     cudaq.reset_target()
 
 
-def test_Bit():
-    cudaq.set_target('density-matrix-cpu')
-    noise = cudaq.NoiseModel()
-    # Bit flip channel with `0.0` probability of the qubit flipping 180 degrees.
-    bit_flip = cudaq.BitFlipChannel(1.0)
-    noise.add_channel('x', [0], bit_flip)
-
-    kernel = cudaq.make_kernel()
-    qubit = kernel.qalloc()
-    # This will bring the qubit to the |1> state.
-    # Remains with a probability of `1 - p = 0.0`.
-    kernel.x(qubit)
-    noisy_counts = cudaq.sample(kernel, noise_model=noise)
-    noisy_counts.dump()
-
-
 def test_kraus_channel():
     """Tests the Kraus Channel with a series of custom Kraus Operators."""
     cudaq.set_target('density-matrix-cpu')
