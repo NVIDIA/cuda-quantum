@@ -81,3 +81,8 @@ function(add_target_config name)
   install(FILES ${name}.config DESTINATION targets)
   configure_file(${name}.config ${CMAKE_BINARY_DIR}/targets/${name}.config COPYONLY)
 endfunction()
+
+function(add_cudaq_partitioner_plugin_install name)
+  install(TARGETS ${name} DESTINATION lib/partitioners)
+  set_property(GLOBAL APPEND PROPERTY CUDAQ_PARTITIONER_PLUGINS ${name})
+endfunction()

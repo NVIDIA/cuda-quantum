@@ -10,5 +10,7 @@ find_package(METIS)
 if (METIS_FOUND)
   message(STATUS "Metis found, building MetisGraphPartitioner for QuakeCircuitCutPass.")
   add_subdirectory(metis)
+else()
+  message(STATUS "Metis not found, no graph partitioner will be built for QuakeCircuitCutPass.")
 endif()
 

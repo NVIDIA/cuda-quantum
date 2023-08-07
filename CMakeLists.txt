@@ -401,8 +401,6 @@ if (NOT CUDAQ_DISABLE_TOOLS)
 endif()
 add_subdirectory(utils)
 
-# Python setup
-# ==============================================================================
 if(CUDAQ_BUILD_TESTS)
   set(INSTALL_GTEST OFF)
   add_subdirectory(tpls/googletest-src)
@@ -422,8 +420,15 @@ if(CUDAQ_BUILD_TESTS)
     add_subdirectory(unittests)
     add_subdirectory(docs)
   endif()
+
+  # Exposed as variables for testing purposes
+  get_property(partitioner_plugins GLOBAL PROPERTY CUDAQ_PARTITIONER_PLUGINS)
+  set(CUDAQ_PARTITIONER_PLUGINS "${partitioner_plugins}")
   add_subdirectory(test)
 endif()
+
+# Python setup
+# ==============================================================================
 
 # Users may specify  `-DCUDAQ_ENABLE_PYTHON=TRUE`, otherwise the python bindings
 # will not be built.

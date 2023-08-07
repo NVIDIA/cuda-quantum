@@ -45,6 +45,13 @@ llvm_config.use_default_substitutions()
 # Ask `llvm-config` about asserts
 llvm_config.feature_config([('--assertion-mode', {'ON': 'asserts'})])
 
+# Allow to require specific build targets
+config.partitioner_plugins = frozenset(
+    [p for p in config.cudaq_partitioner_plugins.split(';') if p])
+if len(config.partitioner_plugins) > 0:
+    config.available_features.add('partitioner-plugins')
+    config.substitutions.append(('%cudaq_partitioner_plugins', ' '.join(config.partitioner_plugins)))
+
 config.targets = frozenset(config.targets_to_build.split())
 for arch in config.targets_to_build.split():
     config.available_features.add(arch.lower() + '-registered-target')

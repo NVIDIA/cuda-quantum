@@ -8,12 +8,18 @@
 
 // Only run this test if the metis plugin is available 
 
-// RUN: export METIS_PLUGIN=%cudaq_lib_dir/partitioners/libcudaq-partitioner-metis%cudaq_plugin_ext ; \
-// RUN: if [ -f "${METIS_PLUGIN}" ] ; \
-// RUN: then \
-// RUN:    cudaq-opt --cut-quake=k=3 --load-cudaq-plugin ${METIS_PLUGIN} %s \
-// RUN:    | FileCheck %s ; \
-// RUN: else echo 0 ; fi
+// REQUIRES: partitioner-plugins
+// RUN: outcome=0
+// RUN: for plugin in %cudaq_partitioner_plugins; do \
+// RUN:   echo "Using partitioner plugin " $plugin; \
+// RUN:   cudaq-opt %s --cut-quake=k=3 \
+// RUN:     --load-cudaq-plugin %cudaq_lib_dir/partitioners/lib$plugin%cudaq_plugin_ext \
+// RUN:   | FileCheck %s; \
+// RUN:   if [ $? -eq 0 ]; then echo "Succeeded."; \
+// RUN:   else echo "Failed." && outcome=$(($outcome + 1)); \
+// RUN:   fi; \
+// RUN: done
+// RUN: exit $outcome
 
 module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__function_threeQubits._Z11threeQubitsv = "_Z11threeQubitsv"}} {
   func.func @__nvqpp__mlirgen__function_threeQubits._Z11threeQubitsv() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
