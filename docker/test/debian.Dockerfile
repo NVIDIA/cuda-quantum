@@ -8,6 +8,7 @@
 
 ARG os_version=12
 FROM debian:$os_version
+SHELL ["/bin/bash", "-c"]
 
 ARG python_version=3.11
 ARG pip_install_flags="--user"
