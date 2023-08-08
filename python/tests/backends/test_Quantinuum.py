@@ -46,12 +46,12 @@ def startUpMockServer():
 
 
 @pytest.fixture(scope="function", autouse=True)
-def configureTarget(credsName):
+def configureTarget(startUpMockServer):
 
     # Set the targeted QPU
     cudaq.set_target('quantinuum',
                      url='http://localhost:{}'.format(port),
-                     credentials=credsName)
+                     credentials=startUpMockServer)
 
     yield "Running the test."
     cudaq.reset_target()
