@@ -5,7 +5,6 @@
             "version": 3.8,
             "operating_systems": 
             [
-                "ubuntu:20.04",
                 "fedora:38"
             ]
         },
@@ -13,7 +12,6 @@
             "version": 3.9,
             "operating_systems": 
             [
-                "ubuntu:20.04",
                 "debian:11",
                 "fedora:38"
             ]
