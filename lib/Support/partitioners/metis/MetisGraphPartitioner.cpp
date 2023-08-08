@@ -5,6 +5,7 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Support/GraphPartioner.h"
 #include "cudaq/Support/Plugin.h"
 
@@ -89,9 +90,30 @@ public:
     // Convert this graph rep to Metis input deck
     idx_t nNodes = graph.size(), nWeights = 1, objval, k = numPartitions;
     real_t im = 10.0; // FIXME This is a magic number...
+    bool hasMeasures = false;
+    for (auto &[node, edges] : graph)
+      if (isa<quake::MxOp, quake::MyOp, quake::MzOp>(node.op)) {
+        hasMeasures = true;
+        break;
+      }
+
+    // To get a better partitioning, it helps
+    // to append measure nodes if they are not there.
+    Graph copy = graph;
+    if (!hasMeasures) {
+      for (auto iter = copy.begin(); iter != copy.end(); ++iter) {
+        if (iter->second.empty() && iter->first.op != nullptr) {
+          GraphNode n("tmp_mz", nNodes++);
+          copy.insert({n, std::vector<GraphNode>{}});
+          iter->second.push_back(n);
+        }
+      }
+    }
+
+    dumpGraph(copy);
 
     // Map our graph to the Metis input format (CSR)
-    auto [xAdj, adj] = toMetis(graph);
+    auto [xAdj, adj] = toMetis(copy);
     for (auto &x : xAdj)
       LLVM_DEBUG(llvm::dbgs() << x << " ");
     LLVM_DEBUG(llvm::dbgs() << "\n");

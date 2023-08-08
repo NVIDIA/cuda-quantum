@@ -23,11 +23,21 @@ namespace cudaq::opt {
 
 namespace {
 
+bool isUsedAsControl(OpResult opResult, OperandRange operands) {
+  if (operands.size() == 1)
+    return false;
+
+  if (opResult == operands.back())
+    return false;
+
+  return true;
+}
+
 /// @brief Given a Quake FuncOp, map it to a Graph.
 void createGraph(func::FuncOp &quakeFunc, Graph &graph) {
 
   // Track Operation* to the GraphNode representing it
-  std::map<void *, GraphNode> mapper;
+  std::map<Operation *, GraphNode> mapper;
 
   // Track node Ids.
   std::size_t id = 0;
@@ -51,42 +61,13 @@ void createGraph(func::FuncOp &quakeFunc, Graph &graph) {
     if (isa<quake::NullWireOp, quake::OperatorInterface>(op)) {
       auto &thisNode = mapper.at(op);
       auto users = op->getUsers();
-
-      if (op->hasOneUse()) {
-        // in this case we have an op that produces a qubit,
-        // and that qubit is used as a target.
-        auto otherNode = *users.begin();
-
-        // Get the GraphNode for the user of this op
-        auto &connectedGraphNode = mapper.at(otherNode);
-
-        // connect them i to j
-        graph[thisNode].push_back(connectedGraphNode);
-        return WalkResult::advance();
-      }
-
-      // here we have an op that is ultimately used as a target
-      // but is also used by one or many controls. So we really have one Wire
-      // that we want to thread through the node that is using it as a control,
-      // and connect up the nodes along the way
-      auto lastNode = thisNode;
-
-      // Need to reverse the ordering.
-      // FIXME Check with Eric on this one
-      std::vector<Operation *> opList;
       for (auto user : users)
-        opList.emplace_back(user);
-      std::reverse(opList.begin(), opList.end());
-
-      // Walk the wire, connecting up the graph as we go
-      auto iter = opList.begin();
-      while (iter != opList.end()) {
-        auto user = *iter;
-        auto &nextNode = mapper.at(user);
-        graph[lastNode].push_back(nextNode);
-        lastNode = nextNode;
-        ++iter;
-      }
+        if (isUsedAsControl(user->getResult(0),
+                            mapper.at(user).op->getOperands()))
+          // keep control nodes at the beginning of the vector
+          graph[thisNode].insert(graph[thisNode].begin(), mapper.at(user));
+        else
+          graph[thisNode].emplace_back(mapper.at(user));
     }
     return WalkResult::advance();
   });
@@ -174,51 +155,65 @@ void graphToQuake(ModuleOp &moduleOp, Graph &graph, Location loc,
   sortNodes(graph, nodes);
 
   // Construct a map that takes GraphNode IDs to a vector
-  // of input Values / Operands. This vector should be valid
-  // since we are topologically sorted.
-  std::map<std::size_t, std::vector<Value>> nodeInputValues;
+  // of input target / control Values.
+  std::map<Operation *, std::vector<Value>> nodeInputControlValues;
+  std::map<Operation *, std::vector<Value>> nodeInputTargetValues;
 
-  // Helper utility function to append a Value to the
-  // node's vector of input Values / Operands
-  auto appendValueToNodeValues = [&nodeInputValues](
-                                     Graph &localGraph, GraphNode &node,
-                                     const std::vector<Value> &values) {
-    auto &edges = localGraph[node];
-    for (std::size_t i = 0; auto &edge : edges) {
-      auto iter = nodeInputValues.find(edge.uniqueId);
-      if (iter == nodeInputValues.end())
-        nodeInputValues.insert({edge.uniqueId, std::vector<Value>{values[i]}});
-      else
-        iter->second.push_back(values[i]);
-      i++;
-    }
+  // Lambda for inserting into the control target maps.
+  auto checkAndInsert = [](std::map<Operation *, std::vector<Value>> &input,
+                           Operation *op, Value value) {
+    auto iter = input.find(op);
+    if (iter == input.end())
+      input.insert({op, std::vector<Value>{value}});
+    else
+      iter->second.push_back(value);
   };
 
   // Loop over the sorted Graph Nodes.
   for (auto &node : nodes) {
     // Handle Measure Node
     if (!node.op && node.getName().find("MeasureNode") != std::string::npos) {
-      auto input = nodeInputValues[node.uniqueId];
+      auto input = nodeInputTargetValues[node.op];
       builder.create<quake::CutMeasureOp>(loc, input[0]);
       continue;
     }
 
     // Handle State Prep Node
     if (!node.op && node.getName().find("StatePrepNode") != std::string::npos) {
-      Value qubit =
-          builder.create<quake::NullWireOp>(loc, quake::WireType::get(ctx));
-      // FIXME Create the quake StatePrep node
-      qubit = builder.create<quake::CutStatePrepOp>(
-          loc, quake::WireType::get(ctx), qubit);
-      appendValueToNodeValues(graph, node, {qubit});
+
+      Value qubit = builder.create<quake::CutStatePrepOp>(
+          loc, quake::WireType::get(ctx),
+          builder.create<quake::NullWireOp>(loc, quake::WireType::get(ctx)));
+
+      for (auto &edge : graph[node]) {
+        // FIXME, need to figure out if StatePrepNode result is
+        // connected as a control or target, this information can only
+        // come from the corresponding cut_measure node on the other graph.
+        checkAndInsert(nodeInputTargetValues, edge.op, qubit);
+      }
       continue;
     }
 
     // Handle the NullWireOp qubit creation
     if (isa<quake::NullWireOp>(node.op)) {
-      appendValueToNodeValues(
-          graph, node,
-          {builder.create<quake::NullWireOp>(loc, quake::WireType::get(ctx))});
+      // Create the new NullWireOp, get its return Value
+      Value newQubit =
+          builder.create<quake::NullWireOp>(loc, quake::WireType::get(ctx));
+
+      // Now we loop through all connections to this node and
+      // look and see if this Value is used as a Control or a Target, and
+      // add it to the appropriate map.
+      for (auto &edge : graph[node]) {
+        bool isControl = edge.op == nullptr
+                             ? false
+                             : isUsedAsControl(node.op->getResult(0),
+                                               edge.op->getOperands());
+        if (isControl)
+          checkAndInsert(nodeInputControlValues, edge.op, newQubit);
+        else
+          checkAndInsert(nodeInputTargetValues, edge.op, newQubit);
+      }
+
       continue;
     }
 
@@ -232,25 +227,32 @@ void graphToQuake(ModuleOp &moduleOp, Graph &graph, Location loc,
         builder.insert(arithConstantOp);
       }
 
-      for (auto &v : nodeInputValues[node.uniqueId])
+      for (auto &v : nodeInputControlValues[node.op])
+        operands.push_back(v);
+
+      for (auto &v : nodeInputTargetValues[node.op])
         operands.push_back(v);
 
       cloned->setOperands(operands);
+      auto result = cloned->getResult(0);
+      for (auto &edge : graph[node]) {
+        bool isControl = edge.op == nullptr
+                             ? false
+                             : isUsedAsControl(node.op->getResult(0),
+                                               edge.op->getOperands());
+        if (isControl)
+          checkAndInsert(nodeInputControlValues, edge.op, result);
+        else
+          checkAndInsert(nodeInputTargetValues, edge.op, result);
+      }
 
-      // Is the result the connection or is it a control qubit?
-      std::vector<Value> values{cloned->getResult(0)};
-      if (auto qOp = dyn_cast<quake::OperatorInterface>(cloned))
-        if (!qOp.getControls().empty())
-          values.insert(values.begin(), *qOp.getControls().begin());
-
-      appendValueToNodeValues(graph, node, values);
       builder.insert(cloned);
       continue;
     }
 
     if (isa<quake::MxOp, quake::MyOp, quake::MzOp>(node.op)) {
       auto cloned = node.op->clone();
-      cloned->setOperands(nodeInputValues[node.uniqueId]);
+      cloned->setOperands(nodeInputTargetValues[node.op]);
       builder.insert(cloned);
       continue;
     }
