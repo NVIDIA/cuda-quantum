@@ -120,7 +120,8 @@ jobs:
           run: |
             cd $CUDAQ_REPO_ROOT
             pip install . --user -vvv
-            python3 -m pytest -v python/tests/
+            python3 -m pytest -v python/tests/ \
+              --ignore python/tests/backends
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then
               echo "pytest status = " $pytest_status

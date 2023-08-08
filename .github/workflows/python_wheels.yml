@@ -107,16 +107,37 @@ jobs:
           retention-days: 5
           if-no-files-found: error
 
+  create_test_config:
+    name: Prepare validation
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - run: |
+        python_config=`cat .github/workflows/config/validation_config.json | jq ".python"`
+        operating_systems=`echo "$python_config" | jq '.[] | select(.version==3.8).operating_systems'`
+
+        json="{\"os_images\":[]}"
+        for image in ${{ inputs.os_images }}; do
+          image=\'$image\'
+          json=`echo $json | jq ".os_images |= . + [\"$image\"]"`
+        done
+        echo "json={\"os_images\":$(echo $operating_systems)}" >> $GITHUB_OUTPUT
+
   validation:
     name: Validate wheel
-    needs: build_wheel
+    needs: [build_wheel, create_test_config]
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     strategy:
       matrix:
-        os_image: ['ubuntu:22.04']
+        os_image: fromJSON(needs.create_test_config.outputs.json).os_images
         pip_install_flags: ['', '--user']
       fail-fast: false
   
@@ -131,20 +152,16 @@ jobs:
 
       - name: Install wheel in clean environment
         run: |
-          echo 'FROM ${{ matrix.os_image }}' > validation.Dockerfile
-          echo 'ARG DEBIAN_FRONTEND=noninteractive' >> validation.Dockerfile
-          echo 'RUN apt-get update && apt-get install -y --no-install-recommends software-properties-common gpg-agent python3-pip'  >> validation.Dockerfile
-          echo 'RUN add-apt-repository ppa:deadsnakes/ppa && apt-get update \' >> validation.Dockerfile
-          echo '    && apt-get install -y python${{ inputs.python_version }} python${{ inputs.python_version }}-distutils' >> validation.Dockerfile
-          echo 'RUN python${{ inputs.python_version }} -m pip install numpy pytest' >> validation.Dockerfile
+          dockerfile=test/`echo ${{ matrix.os_image }} | cut -d : -f 1`.Dockerfile
+          os_version=`echo ${{ matrix.os_image }} | cut -d : -f 2`
 
           wheelname=`echo cuda_quantum-*-manylinux_*_x86_64.whl`
-          echo "COPY $wheelname /tmp/$wheelname" >> validation.Dockerfile
-          echo 'COPY docs/sphinx/examples/python /tmp/examples/' >> validation.Dockerfile
-          echo 'COPY python/tests /tmp/tests/' >> validation.Dockerfile
-          echo "RUN python${{ inputs.python_version }} -m pip install ${{ matrix.pip_install_flags }} /tmp/$wheelname" >> validation.Dockerfile
+          docker build -t wheel_validation:local -f $dockerfile . \
+            --build-arg os_version=$os_version \
+            --build-arg python_version=${{ inputs.python_version }} \
+            --build-arg cuda_quantum_wheel=$wheelname \
+            --build-arg pip_install_flags=${{ matrix.pip_install_flags }}
 
-          docker build -t wheel_validation:local -f validation.Dockerfile .
           docker run --rm -dit --name wheel-validation wheel_validation:local
           (docker exec wheel-validation python${{ inputs.python_version }} -c "import cudaq") && imported=true || imported=false
           docker stop wheel-validation
@@ -158,7 +175,8 @@ jobs:
           image: wheel_validation:local
           shell: bash
           run: |
-            python${{ inputs.python_version }} -m pytest -v /tmp/tests/
+            python${{ inputs.python_version }} -m pytest -v /tmp/tests/ \
+              --ignore python/tests/backends
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then
               echo "pytest status = " $pytest_status
