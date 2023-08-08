@@ -30,7 +30,8 @@
             "operating_systems": 
             [
                 "ubuntu:22.04",
-                "fedora:38"
+                "fedora:38",
+                "redhat/ubi9:9.2"
             ]
         }
     ]
