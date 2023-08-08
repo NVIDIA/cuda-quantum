@@ -244,6 +244,9 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="python_api.html">Python API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="python_api.html#cudaq.initialize_cudaq"><code class="docutils literal notranslate"><span class="pre">initialize_cudaq()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python_api.html#cudaq.num_available_gpus"><code class="docutils literal notranslate"><span class="pre">num_available_gpus()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python_api.html#cudaq.set_random_seed"><code class="docutils literal notranslate"><span class="pre">set_random_seed()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="python_api.html#program-construction">Program Construction</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.make_kernel"><code class="docutils literal notranslate"><span class="pre">make_kernel()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.Kernel"><code class="docutils literal notranslate"><span class="pre">Kernel</span></code></a></li>
@@ -258,12 +261,13 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="python_api.html#backend-configuration">Backend Configuration</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.set_noise"><code class="docutils literal notranslate"><span class="pre">set_noise()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.unset_noise"><code class="docutils literal notranslate"><span class="pre">unset_noise()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.set_target"><code class="docutils literal notranslate"><span class="pre">set_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.has_target"><code class="docutils literal notranslate"><span class="pre">has_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.get_target"><code class="docutils literal notranslate"><span class="pre">get_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.get_targets"><code class="docutils literal notranslate"><span class="pre">get_targets()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.set_target"><code class="docutils literal notranslate"><span class="pre">set_target()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.reset_target"><code class="docutils literal notranslate"><span class="pre">reset_target()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.set_noise"><code class="docutils literal notranslate"><span class="pre">set_noise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.unset_noise"><code class="docutils literal notranslate"><span class="pre">unset_noise()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="python_api.html#data-types">Data Types</a><ul>
@@ -2702,6 +2706,30 @@
 <span id="_CPPv35cudaq"></span><span id="_CPPv25cudaq"></span><span id="cudaq"></span><span class="target" id="namespacecudaq"></span><span class="k"><span class="pre">namespace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">cudaq</span></span></span><a class="headerlink" href="#_CPPv45cudaq" title="Permalink to this definition">¶</a><br /></dt>
 <dd></dd></dl>
 
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq18num_available_gpusEv">
+<span id="_CPPv3N5cudaq18num_available_gpusEv"></span><span id="_CPPv2N5cudaq18num_available_gpusEv"></span><span id="cudaq::num_available_gpus"></span><span class="target" id="cudaq_8h_1a1f10ecfee89d8754d4e899d178aa1040"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">num_available_gpus</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq18num_available_gpusEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>The number of available GPUs. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15set_random_seedENSt6size_tE">
+<span id="_CPPv3N5cudaq15set_random_seedENSt6size_tE"></span><span id="_CPPv2N5cudaq15set_random_seedENSt6size_tE"></span><span id="cudaq::set_random_seed__std::s"></span><span class="target" id="cudaq_8h_1a0635ad8b98868ed14865bab138e23ff0"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">set_random_seed</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">seed</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15set_random_seedENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set a seed for any random number generators used in backend simulations. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq9set_noiseERN5cudaq11noise_modelE">
+<span id="_CPPv3N5cudaq9set_noiseERN5cudaq11noise_modelE"></span><span id="_CPPv2N5cudaq9set_noiseERN5cudaq11noise_modelE"></span><span id="cudaq::set_noise__cudaq::noise_modelR"></span><span class="target" id="cudaq_8h_1a29a2fd140ac6b2296a73c2dbdbc2c08a"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">set_noise</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq11noise_modelE" title="cudaq::noise_model"><span class="n"><span class="pre">noise_model</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">model</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq9set_noiseERN5cudaq11noise_modelE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set a custom noise model for simulation. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq11unset_noiseEv">
+<span id="_CPPv3N5cudaq11unset_noiseEv"></span><span id="_CPPv2N5cudaq11unset_noiseEv"></span><span id="cudaq::unset_noise"></span><span class="target" id="cudaq_8h_1afbecd5e530b3ef32c7872b87541c0a43"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">unset_noise</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq11unset_noiseEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Remove an existing noise model from simulation. </p>
+</dd></dl>
+
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq7detailsE">
 <span id="_CPPv3N5cudaq7detailsE"></span><span id="_CPPv2N5cudaq7detailsE"></span><span id="cudaq::details"></span><span class="target" id="namespacecudaq_1_1details"></span><span class="k"><span class="pre">namespace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">details</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq7detailsE" title="Permalink to this definition">¶</a><br /></dt>
@@ -2711,6 +2739,58 @@
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq8registryE">
 <span id="_CPPv3N5cudaq8registryE"></span><span id="_CPPv2N5cudaq8registryE"></span><span id="cudaq::registry"></span><span class="target" id="namespacecudaq_1_1registry"></span><span class="k"><span class="pre">namespace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">registry</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq8registryE" title="Permalink to this definition">¶</a><br /></dt>
 <dd></dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq3mpiE">
+<span id="_CPPv3N5cudaq3mpiE"></span><span id="_CPPv2N5cudaq3mpiE"></span><span id="cudaq::mpi"></span><span class="target" id="namespacecudaq_1_1mpi"></span><span class="k"><span class="pre">namespace</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mpi</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq3mpiE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq3mpi10initializeEv">
+<span id="_CPPv3N5cudaq3mpi10initializeEv"></span><span id="_CPPv2N5cudaq3mpi10initializeEv"></span><span id="cudaq::mpi::initialize"></span><span class="target" id="cudaq_8h_1a9d165737129a8ca7423ce1e0b0c9ca7e"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq3mpiE" title="cudaq::mpi"><span class="n"><span class="pre">mpi</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3mpi10initializeEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Initialize MPI if available. This function is a no-op if there CUDA Quantum has not been built against MPI. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq3mpi10initializeEiPPc">
+<span id="_CPPv3N5cudaq3mpi10initializeEiPPc"></span><span id="_CPPv2N5cudaq3mpi10initializeEiPPc"></span><span id="cudaq::mpi::initialize__i.cPP"></span><span class="target" id="cudaq_8h_1a6c944ecd26dfb16504034fb023a04a99"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq3mpiE" title="cudaq::mpi"><span class="n"><span class="pre">mpi</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">argc</span></span>, <span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">argv</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3mpi10initializeEiPPc" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Initialize MPI if available. This function is a no-op if there CUDA Quantum has not been built against MPI. Takes program arguments as input. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq3mpi14is_initializedEv">
+<span id="_CPPv3N5cudaq3mpi14is_initializedEv"></span><span id="_CPPv2N5cudaq3mpi14is_initializedEv"></span><span id="cudaq::mpi::is_initialized"></span><span class="target" id="cudaq_8h_1a2c7d083e6db96bf244206e1da6f44774"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq3mpiE" title="cudaq::mpi"><span class="n"><span class="pre">mpi</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">is_initialized</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3mpi14is_initializedEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Return true if MPI is already initialized, false otherwise. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq3mpi8finalizeEv">
+<span id="_CPPv3N5cudaq3mpi8finalizeEv"></span><span id="_CPPv2N5cudaq3mpi8finalizeEv"></span><span id="cudaq::mpi::finalize"></span><span class="target" id="cudaq_8h_1adbce8f0a621b7c6073e3f358d452b5ed"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq3mpiE" title="cudaq::mpi"><span class="n"><span class="pre">mpi</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">finalize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3mpi8finalizeEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Finalize MPI. This function is a no-op if there CUDA Quantum has not been built against MPI. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq3mpi4rankEv">
+<span id="_CPPv3N5cudaq3mpi4rankEv"></span><span id="_CPPv2N5cudaq3mpi4rankEv"></span><span id="cudaq::mpi::rank"></span><span class="target" id="cudaq_8h_1ae314e6dc9f293eebe6b9dcb44efef7c3"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq3mpiE" title="cudaq::mpi"><span class="n"><span class="pre">mpi</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">rank</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3mpi4rankEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Return the rank of the calling process. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq3mpi9num_ranksEv">
+<span id="_CPPv3N5cudaq3mpi9num_ranksEv"></span><span id="_CPPv2N5cudaq3mpi9num_ranksEv"></span><span id="cudaq::mpi::num_ranks"></span><span class="target" id="cudaq_8h_1ae3a3c06ca899063fbabb0f0c936d3c41"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq3mpiE" title="cudaq::mpi"><span class="n"><span class="pre">mpi</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">num_ranks</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3mpi9num_ranksEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Return the number of MPI ranks. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK4Func">
+<span id="_CPPv3I00EN5cudaq3mpi10all_reduceERK1TRK4Func"></span><span id="_CPPv2I00EN5cudaq3mpi10all_reduceERK1TRK4Func"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Func</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="observe_8h_1a872bbab143f7cd999c07290b023ecb81"></span><a class="reference internal" href="#_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK4Func" title="cudaq::mpi::all_reduce::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq3mpiE" title="cudaq::mpi"><span class="n"><span class="pre">mpi</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">all_reduce</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK4Func" title="cudaq::mpi::all_reduce::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&amp;</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK4Func" title="cudaq::mpi::all_reduce::Func"><span class="n"><span class="pre">Func</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK4Func" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK14BinaryFunction">
+<span id="_CPPv3I00EN5cudaq3mpi10all_reduceERK1TRK14BinaryFunction"></span><span id="_CPPv2I00EN5cudaq3mpi10all_reduceERK1TRK14BinaryFunction"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BinaryFunction</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="cudaq_8h_1acf510f9fe029c39b4d475c75fb876dc3"></span><a class="reference internal" href="#_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK14BinaryFunction" title="cudaq::mpi::all_reduce::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq3mpiE" title="cudaq::mpi"><span class="n"><span class="pre">mpi</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">all_reduce</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK14BinaryFunction" title="cudaq::mpi::all_reduce::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">localValue</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK14BinaryFunction" title="cudaq::mpi::all_reduce::BinaryFunction"><span class="n"><span class="pre">BinaryFunction</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">function</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK14BinaryFunction" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Reduce all values across ranks with the specified binary function. </p>
+</dd></dl>
 
 </section>
 </section>

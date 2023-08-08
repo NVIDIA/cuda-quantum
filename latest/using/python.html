@@ -244,6 +244,9 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api/languages/python_api.html">Python API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#cudaq.initialize_cudaq"><code class="docutils literal notranslate"><span class="pre">initialize_cudaq()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#cudaq.num_available_gpus"><code class="docutils literal notranslate"><span class="pre">num_available_gpus()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#cudaq.set_random_seed"><code class="docutils literal notranslate"><span class="pre">set_random_seed()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#program-construction">Program Construction</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.make_kernel"><code class="docutils literal notranslate"><span class="pre">make_kernel()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.Kernel"><code class="docutils literal notranslate"><span class="pre">Kernel</span></code></a></li>
@@ -258,12 +261,13 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#backend-configuration">Backend Configuration</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.set_noise"><code class="docutils literal notranslate"><span class="pre">set_noise()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.unset_noise"><code class="docutils literal notranslate"><span class="pre">unset_noise()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.set_target"><code class="docutils literal notranslate"><span class="pre">set_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.has_target"><code class="docutils literal notranslate"><span class="pre">has_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.get_target"><code class="docutils literal notranslate"><span class="pre">get_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.get_targets"><code class="docutils literal notranslate"><span class="pre">get_targets()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.set_target"><code class="docutils literal notranslate"><span class="pre">set_target()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.reset_target"><code class="docutils literal notranslate"><span class="pre">reset_target()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.set_noise"><code class="docutils literal notranslate"><span class="pre">set_noise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.unset_noise"><code class="docutils literal notranslate"><span class="pre">unset_noise()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#data-types">Data Types</a><ul>
@@ -432,10 +436,27 @@ This is a introduction by example for using CUDA Quantum in Python.</p>
     <span class="k">return</span> <span class="n">kernel</span><span class="p">,</span> <span class="n">hidden_bitstring</span>
 
 
-<span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">5</span>
-<span class="n">kernel</span><span class="p">,</span> <span class="n">hidden_bitstring</span> <span class="o">=</span> <span class="n">bernstein_vazirani</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
+<span class="c1"># If you have a NVIDIA GPU you can use this example to see</span>
+<span class="c1"># that the GPU-accelerated backends can easily handle a</span>
+<span class="c1"># larger number of qubits compared the CPU-only backend.</span>
 
+<span class="c1"># Depending on the available memory on your GPU, you can</span>
+<span class="c1"># set the number of qubits to around 30 qubits, and un-comment</span>
+<span class="c1"># the `cudaq.set_target(nvidia)` line.</span>
+
+<span class="c1"># Note: Without setting the target to the `nvidia` backend,</span>
+<span class="c1"># a 30 qubit simulation simply seems to hang; that is</span>
+<span class="c1"># because it takes a long time for the CPU-only backend</span>
+<span class="c1"># to handle this number of qubits!</span>
+
+<span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">5</span>  <span class="c1"># set to around 30 qubits for `nvidia` target</span>
+<span class="c1"># ```</span>
+<span class="c1"># cudaq.set_target(&quot;nvidia&quot;)</span>
+<span class="c1"># ```</span>
+
+<span class="n">kernel</span><span class="p">,</span> <span class="n">hidden_bitstring</span> <span class="o">=</span> <span class="n">bernstein_vazirani</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
 <span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;encoded bitstring = </span><span class="si">{</span><span class="n">hidden_bitstring</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;measured state = </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">most_probable</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Were we successful? </span><span class="si">{</span><span class="n">hidden_bitstring</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">result</span><span class="o">.</span><span class="n">most_probable</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>

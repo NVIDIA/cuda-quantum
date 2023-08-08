@@ -244,6 +244,9 @@
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Python API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#cudaq.initialize_cudaq"><code class="docutils literal notranslate"><span class="pre">initialize_cudaq()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cudaq.num_available_gpus"><code class="docutils literal notranslate"><span class="pre">num_available_gpus()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cudaq.set_random_seed"><code class="docutils literal notranslate"><span class="pre">set_random_seed()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#program-construction">Program Construction</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.make_kernel"><code class="docutils literal notranslate"><span class="pre">make_kernel()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.Kernel"><code class="docutils literal notranslate"><span class="pre">Kernel</span></code></a></li>
@@ -258,12 +261,13 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#backend-configuration">Backend Configuration</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#cudaq.set_noise"><code class="docutils literal notranslate"><span class="pre">set_noise()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#cudaq.unset_noise"><code class="docutils literal notranslate"><span class="pre">unset_noise()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#cudaq.set_target"><code class="docutils literal notranslate"><span class="pre">set_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.has_target"><code class="docutils literal notranslate"><span class="pre">has_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.get_target"><code class="docutils literal notranslate"><span class="pre">get_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.get_targets"><code class="docutils literal notranslate"><span class="pre">get_targets()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.set_target"><code class="docutils literal notranslate"><span class="pre">set_target()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.reset_target"><code class="docutils literal notranslate"><span class="pre">reset_target()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.set_noise"><code class="docutils literal notranslate"><span class="pre">set_noise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.unset_noise"><code class="docutils literal notranslate"><span class="pre">unset_noise()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#data-types">Data Types</a><ul>
@@ -320,6 +324,33 @@
              
   <section id="module-cudaq">
 <span id="cuda-quantum-python-api"></span><h1>CUDA Quantum Python API<a class="headerlink" href="#module-cudaq" title="Permalink to this heading">¶</a></h1>
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.initialize_cudaq">
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">initialize_cudaq</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.initialize_cudaq" title="Permalink to this definition">¶</a></dt>
+<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">initialize_cudaq</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<p>Initialize the CUDA Quantum environment.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.num_available_gpus">
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">num_available_gpus</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.num_available_gpus" title="Permalink to this definition">¶</a></dt>
+<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">int</span>
+</pre></div>
+</div>
+<p>The number of available GPUs detected on the system.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.set_random_seed">
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">set_random_seed</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.set_random_seed" title="Permalink to this definition">¶</a></dt>
+<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">set_random_seed</span><span class="p">(</span><span class="n">arg0</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<p>Provide the seed for backend quantum kernel simulation.</p>
+</dd></dl>
+
 <section id="program-construction">
 <h2>Program Construction<a class="headerlink" href="#program-construction" title="Permalink to this heading">¶</a></h2>
 <dl class="py function">
@@ -1652,44 +1683,6 @@ Defaults to an empty noise model.</p></li>
 <section id="backend-configuration">
 <h2>Backend Configuration<a class="headerlink" href="#backend-configuration" title="Permalink to this heading">¶</a></h2>
 <dl class="py function">
-<dt class="sig sig-object py" id="cudaq.set_noise">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">set_noise</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.set_noise" title="Permalink to this definition">¶</a></dt>
-<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">set_noise</span><span class="p">(</span><span class="n">arg0</span><span class="p">:</span> <span class="n">cudaq</span><span class="p">::</span><span class="n">noise_model</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
-</pre></div>
-</div>
-<p>Set the underlying noise model.</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="cudaq.unset_noise">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">unset_noise</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.unset_noise" title="Permalink to this definition">¶</a></dt>
-<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">unset_noise</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
-</pre></div>
-</div>
-<p>Clear backend simulation from any existing noise models.</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="cudaq.set_target">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">set_target</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.set_target" title="Permalink to this definition">¶</a></dt>
-<dd><p>Overloaded function.</p>
-<ol class="arabic">
-<li><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">set_target</span><span class="p">(</span><span class="n">arg0</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">_pycudaq</span><span class="o">.</span><span class="n">Target</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
-</pre></div>
-</div>
-</li>
-</ol>
-<p>Set the <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code> to be used for CUDA Quantum kernel execution. Can provide optional, target-specific configuration data via Python kwargs.</p>
-<ol class="arabic" start="2">
-<li><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">set_target</span><span class="p">(</span><span class="n">arg0</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
-</pre></div>
-</div>
-</li>
-</ol>
-<p>Set the <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code> with given name to be used for CUDA Quantum kernel execution. Can provide optional, target-specific configuration data via Python kwargs.</p>
-</dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="cudaq.has_target">
 <span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">has_target</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.has_target" title="Permalink to this definition">¶</a></dt>
 <dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">has_target</span><span class="p">(</span><span class="n">arg0</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
@@ -1725,6 +1718,53 @@ Defaults to an empty noise model.</p></li>
 </pre></div>
 </div>
 <p>Return all available <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code> instances on the current system.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cudaq.set_target">
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">set_target</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.set_target" title="Permalink to this definition">¶</a></dt>
+<dd><p>Overloaded function.</p>
+<ol class="arabic">
+<li><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">set_target</span><span class="p">(</span><span class="n">arg0</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">_pycudaq</span><span class="o">.</span><span class="n">Target</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</li>
+</ol>
+<p>Set the <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code> to be used for CUDA Quantum kernel execution. Can provide optional, target-specific configuration data via Python kwargs.</p>
+<ol class="arabic" start="2">
+<li><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">set_target</span><span class="p">(</span><span class="n">arg0</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</li>
+</ol>
+<p>Set the <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code> with given name to be used for CUDA Quantum kernel execution. Can provide optional, target-specific configuration data via Python kwargs.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cudaq.reset_target">
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">reset_target</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.reset_target" title="Permalink to this definition">¶</a></dt>
+<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">reset_target</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<p>Reset the current <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code> to the default.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cudaq.set_noise">
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">set_noise</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.set_noise" title="Permalink to this definition">¶</a></dt>
+<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">set_noise</span><span class="p">(</span><span class="n">arg0</span><span class="p">:</span> <span class="n">cudaq</span><span class="p">::</span><span class="n">noise_model</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<p>Set the underlying noise model.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cudaq.unset_noise">
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">unset_noise</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.unset_noise" title="Permalink to this definition">¶</a></dt>
+<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">unset_noise</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<p>Clear backend simulation from any existing noise models.</p>
 </dd></dl>
 
 </section>

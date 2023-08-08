@@ -3,6 +3,10 @@ CUDA Quantum Python API
 
 .. automodule:: cudaq
 
+    .. automethod:: cudaq::initialize_cudaq
+    .. automethod:: cudaq::num_available_gpus
+    .. automethod:: cudaq::set_random_seed
+
 Program Construction
 =============================
 
@@ -40,9 +44,6 @@ Program Construction
     .. automethod:: control
     .. automethod:: apply_call
     
-    
-
-    
 Kernel Execution
 =============================
 
@@ -55,12 +56,13 @@ Kernel Execution
 Backend Configuration
 =============================
 
-.. autofunction:: cudaq::set_noise
-.. autofunction:: cudaq::unset_noise
-.. autofunction:: cudaq::set_target
 .. autofunction:: cudaq::has_target
 .. autofunction:: cudaq::get_target
 .. autofunction:: cudaq::get_targets
+.. autofunction:: cudaq::set_target
+.. autofunction:: cudaq::reset_target
+.. autofunction:: cudaq::set_noise
+.. autofunction:: cudaq::unset_noise
 
 Data Types
 =============================
