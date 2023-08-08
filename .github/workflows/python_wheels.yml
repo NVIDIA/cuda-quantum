@@ -113,11 +113,15 @@ jobs:
     permissions:
       contents: read
 
+    outputs:
+      json: "${{ steps.config.outputs.json }}"
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - run: |
+      - id: config
+        run: |
           python_config=`cat .github/workflows/config/validation_config.json | jq ".python"`
           operating_systems=`echo "$python_config" | jq '.[] | select(.version==${{ inputs.python_version }}).operating_systems'`
 
@@ -128,7 +132,8 @@ jobs:
           done
           echo "json={\"os_images\":$(echo $operating_systems)}" >> $GITHUB_OUTPUT
 
-          echo "${{ fromJSON(needs.create_test_config.outputs.json).os_images }}" >> $GITHUB_STEP_SUMMARY
+      - run: |
+          echo "${{ fromJSON(steps.config.outputs.json).os_images }}" >> $GITHUB_STEP_SUMMARY
 
   validation:
     name: Validate wheel
