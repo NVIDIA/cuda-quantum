@@ -32,4 +32,4 @@ COPY $cuda_quantum_wheel /tmp/$cuda_quantum_wheel
 COPY docs/sphinx/examples/python /tmp/examples/
 COPY python/tests /tmp/tests/
 
-RUN cudaq/bin/python${python_version} -m pip install ${pip_install_flags} /tmp/$cuda_quantum_wheel
+RUN python${python_version} -m pip install ${pip_install_flags} /tmp/$cuda_quantum_wheel
