@@ -134,8 +134,7 @@ public:
     cudaq::info("Config file path = {}", configFilePath.string());
 
     // Don't try to load something that doesn't exist.
-    if (!std::filesystem::exists(configFilePath))
-    {
+    if (!std::filesystem::exists(configFilePath)) {
       platformQPUs.front()->setTargetBackend(backend);
       return;
     }
