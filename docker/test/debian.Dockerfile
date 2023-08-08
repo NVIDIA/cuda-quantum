@@ -17,8 +17,12 @@ ARG preinstalled_modules="numpy pytest"
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python${python_version} python${python_version}-venv
-RUN python${python_version} -m venv /usr/local/venvs/cudaq \
-    && source /usr/local/venvs/cudaq/bin/activate
+
+# We need to make sure the virtual Python environment remains
+# activated for all subsequent commands.
+ENV VIRTUAL_ENV=/opt/venv
+RUN python${python_version} -m venv "$VIRTUAL_ENV"
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 RUN if [ -n "$preinstalled_modules" ]; then \
         echo $preinstalled_modules | xargs python${python_version} -m pip install; \
     fi
