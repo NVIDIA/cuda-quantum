@@ -128,6 +128,8 @@ jobs:
           done
           echo "json={\"os_images\":$(echo $operating_systems)}" >> $GITHUB_OUTPUT
 
+          echo "${{ fromJSON(needs.create_test_config.outputs.json).os_images }}" >> $GITHUB_STEP_SUMMARY
+
   validation:
     name: Validate wheel
     needs: [build_wheel, create_test_config]
