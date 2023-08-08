@@ -14,6 +14,7 @@
             "operating_systems": 
             [
                 "ubuntu:20.04",
+                "debian:11",
                 "fedora:38"
             ]
         },
@@ -30,6 +31,7 @@
             "operating_systems": 
             [
                 "ubuntu:22.04",
+                "debian:12",
                 "fedora:38",
                 "redhat/ubi9:9.2"
             ]

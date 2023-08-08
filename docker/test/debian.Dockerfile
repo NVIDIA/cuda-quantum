@@ -6,21 +6,22 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-ARG os_version=ubi9:9.2
-FROM redhat/$os_version
+ARG os_version=12
+FROM debian:$os_version
 
 ARG python_version=3.11
 ARG pip_install_flags="--user"
 
 ARG DEBIAN_FRONTEND=noninteractive
-RUN dnf install -y --nobest --setopt=install_weak_deps=False \
-        python${python_version}.x86_64
-RUN python${python_version} -m ensurepip --upgrade \
-    && python${python_version} -m pip install ${pip_install_flags} numpy pytest
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python${python_version} python${python_version}-venv
+RUN python${python_version} -m venv /usr/local/venvs/cudaq \
+    && source /usr/local/venvs/cudaq/bin/activate
+RUN python${python_version} -m pip install ${pip_install_flags} numpy pytest
 
 ARG cuda_quantum_wheel=cuda_quantum-0.0.0-cp310-cp310-manylinux_2_28_x86_64.whl
 COPY $cuda_quantum_wheel /tmp/$cuda_quantum_wheel
 COPY docs/sphinx/examples/python /tmp/examples/
 COPY python/tests /tmp/tests/
 
-RUN python${python_version} -m pip install ${pip_install_flags} /tmp/$cuda_quantum_wheel
+RUN cudaq/bin/python${python_version} -m pip install ${pip_install_flags} /tmp/$cuda_quantum_wheel
