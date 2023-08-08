@@ -32,7 +32,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__t = "_Z1tv"}} {
         %7 = quake.extract_ref %1[%6] : (!quake.veq<?>,i64) -> !quake.ref
         quake.x %7 : (!quake.ref) -> ()
       }
-    } : !cc.lambda<() -> ()>
+    } : !cc.callable<() -> ()>
     %3 = cc.create_lambda {
       cc.scope {
         %c2_i32 = arith.constant 2 : i32
@@ -40,8 +40,8 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__t = "_Z1tv"}} {
         %5 = quake.extract_ref %1[%4] : (!quake.veq<?>,i64) -> !quake.ref
         quake.h %5 : (!quake.ref) -> ()
       }
-    } : !cc.lambda<() -> ()>
-    quake.compute_action %2, %3 : !cc.lambda<() -> ()>, !cc.lambda<() -> ()>
+    } : !cc.callable<() -> ()>
+    quake.compute_action %2, %3 : !cc.callable<() -> ()>, !cc.callable<() -> ()>
     return
   }
 }

@@ -98,9 +98,15 @@ public:
   /// Set the current QPU via its device ID.
   void set_current_qpu(const std::size_t device_id);
 
+  /// @brief Return true if the QPU is remote.
   bool is_remote(const std::size_t qpuId = 0);
 
+  /// @brief Set the noise model for future invocations of
+  /// quantum kernels.
   void set_noise(noise_model *model);
+
+  /// @brief Turn off any noise models.
+  void reset_noise();
 
   /// Enqueue an asynchronous sampling task.
   std::future<sample_result> enqueueAsyncTask(const std::size_t qpu_id,

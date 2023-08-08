@@ -81,8 +81,17 @@ CircuitSimulator *getCircuitSimulatorInternal() {
   return simulator;
 }
 
+void setRandomSeed(std::size_t seed) {
+  getCircuitSimulatorInternal()->setRandomSeed(seed);
+}
+
 thread_local static bool isBaseProfile = false;
 void toggleBaseProfile() { isBaseProfile = !isBaseProfile; }
+
+/// @brief Tell the simulator we are about to finalize MPI.
+void tearDownBeforeMPIFinalize() {
+  getCircuitSimulatorInternal()->tearDownBeforeMPIFinalize();
+}
 
 /// @brief Store allocated Array pointers
 thread_local static std::vector<std::unique_ptr<Array>> allocatedArrays;
@@ -91,8 +100,6 @@ thread_local static std::vector<std::unique_ptr<Array>> allocatedArrays;
 thread_local static std::vector<std::unique_ptr<Qubit>> allocatedSingleQubits;
 
 /// @brief Utility function mapping qubit ids to a QIR Array pointer
-/// @param idxs
-/// @return
 Array *vectorSizetToArray(std::vector<std::size_t> &idxs) {
   auto newArray = std::make_unique<Array>(idxs.size(), sizeof(std::size_t));
   for (std::size_t i = 0; i < idxs.size(); i++) {
@@ -105,8 +112,6 @@ Array *vectorSizetToArray(std::vector<std::size_t> &idxs) {
 }
 
 /// @brief Utility function mapping a QIR Array pointer to a vector of ids
-/// @param arr
-/// @return
 std::vector<std::size_t> arrayToVectorSizeT(Array *arr) {
   std::vector<std::size_t> ret;
   for (std::size_t i = 0; i < arr->size(); i++) {
@@ -118,8 +123,6 @@ std::vector<std::size_t> arrayToVectorSizeT(Array *arr) {
 }
 
 /// @brief Utility function mapping a QIR Qubit pointer to its id
-/// @param q
-/// @return
 std::size_t qubitToSizeT(Qubit *q) {
   if (isBaseProfile)
     return (intptr_t)q;
@@ -134,8 +137,6 @@ using namespace nvqir;
 extern "C" {
 
 /// @brief QIR Initialization function
-/// @param argc
-/// @param argv
 void __quantum__rt__initialize(int argc, int8_t **argv) {
   if (!initialized) {
     // We may need this init function later....
@@ -149,7 +150,6 @@ void __quantum__rt__finalize() {
 }
 
 /// @brief Set the Execution Context
-/// @param context
 void __quantum__rt__setExecutionContext(cudaq::ExecutionContext *ctx) {
   __quantum__rt__initialize(0, nullptr);
 
@@ -170,8 +170,6 @@ void __quantum__rt__resetExecutionContext() {
 }
 
 /// @brief QIR function for allocated a qubit array
-/// @param size number of qubits to allocate
-/// @return
 Array *__quantum__rt__qubit_allocate_array(uint64_t size) {
   cudaq::ScopedTrace trace("NVQIR::qubit_allocate_array", size);
   __quantum__rt__initialize(0, nullptr);
@@ -180,7 +178,6 @@ Array *__quantum__rt__qubit_allocate_array(uint64_t size) {
 }
 
 /// @brief Once done, release the QIR qubit array
-/// @param arr
 void __quantum__rt__qubit_release_array(Array *arr) {
   cudaq::ScopedTrace trace("NVQIR::qubit_release_array", arr->size());
   for (std::size_t i = 0; i < arr->size(); i++) {
@@ -200,7 +197,6 @@ void __quantum__rt__qubit_release_array(Array *arr) {
 }
 
 /// @brief Allocate a single QIR Qubit
-/// @return
 Qubit *__quantum__rt__qubit_allocate() {
   cudaq::ScopedTrace trace("NVQIR::allocate_qubit");
   __quantum__rt__initialize(0, nullptr);
@@ -211,7 +207,6 @@ Qubit *__quantum__rt__qubit_allocate() {
 }
 
 /// @brief Once done, release that qubit
-/// @param q
 void __quantum__rt__qubit_release(Qubit *q) {
   cudaq::ScopedTrace trace("NVQIR::release_qubit");
   nvqir::getCircuitSimulatorInternal()->deallocate(q->idx);
@@ -358,6 +353,8 @@ Result *__quantum__qis__mz__to__register(Qubit *q, const char *name) {
   auto b = nvqir::getCircuitSimulatorInternal()->mz(qI, regName);
   return b ? ResultOne : ResultZero;
 }
+
+bool __quantum__qis__read_result__body(Result *r) { return false; }
 
 void __quantum__rt__array_start_record_output() {}
 void __quantum__rt__array_end_record_output() {}

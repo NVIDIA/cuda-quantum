@@ -60,6 +60,37 @@ def testUCCSD():
     print(energy, params)
     assert np.isclose(-1.137, energy, rtol=1e-3)
 
+def testHWE():
+    geometry = [('H', (0., 0., 0.)), ('H', (0., 0., .7474))]
+    molecule, data = cudaq.chemistry.create_molecular_hamiltonian(
+        geometry, 'sto-3g', 1, 0)
+
+    # Get the number of qubits
+    numQubits = 2 * data.n_orbitals
+
+    # select number of repeating layers in ansatz
+    numLayers = 4
+
+    # create the ansatz
+    kernel, thetas = cudaq.make_kernel(list)
+    qubits = kernel.qalloc(numQubits)
+    # hartree fock
+    kernel.x(qubits[0])
+    kernel.x(qubits[1])
+    cudaq.kernels.hwe(kernel, qubits, numQubits, numLayers, thetas)
+
+    num_parameters = cudaq.kernels.num_hwe_parameters(numQubits, numLayers)
+    assert np.equal(40, num_parameters)
+
+    # Run VQE
+    optimizer = cudaq.optimizers.COBYLA()
+    energy, params = cudaq.vqe(kernel,
+                               molecule,
+                               optimizer,
+                               parameter_count=num_parameters)
+    print(energy, params)
+    assert np.isclose(-1.137, energy, rtol=1e-3)
+
 
 # leave for gdb debugging
 if __name__ == "__main__":

@@ -18,13 +18,16 @@
 namespace py = pybind11;
 
 namespace cudaq {
+
+/// @brief Default shots value set to -1
+inline constexpr int defaultShotsValue = -1;
+
 /// @brief Functions for running `cudaq::observe()` from python.
 /// Exposing pyObserve in the header for use elsewhere in the bindings.
 observe_result pyObserve(kernel_builder<> &kernel, spin_op &spin_operator,
-                         py::args args, int shots);
-async_observe_result pyObserveAsync(kernel_builder<> &kernel,
-                                    spin_op &spin_operator, py::args args,
-                                    std::size_t qpu_id, int shots);
+                         py::args args = {}, int shots = defaultShotsValue,
+                         std::optional<noise_model> noise = std::nullopt);
+
 /// @brief Expose binding of `cudaq::observe()` and `cudaq::observe_async` to
 /// python.
 void bindObserve(py::module &mod);

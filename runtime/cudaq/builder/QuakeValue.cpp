@@ -232,9 +232,9 @@ QuakeValue QuakeValue::slice(const std::size_t startIdx,
     Value offset = opBuilder.create<arith::AddIOp>(startIdxValue, countValue);
     offset = opBuilder.create<arith::SubIOp>(offset, one);
     auto sizedVecTy = quake::VeqType::get(opBuilder.getContext(), count);
-    Value subVec = opBuilder.create<quake::SubVecOp>(sizedVecTy, vectorValue,
+    Value subVeq = opBuilder.create<quake::SubVeqOp>(sizedVecTy, vectorValue,
                                                      startIdxValue, offset);
-    return QuakeValue(opBuilder, subVec);
+    return QuakeValue(opBuilder, subVeq);
   }
 
   // must be a stdvec type
@@ -262,7 +262,7 @@ QuakeValue QuakeValue::slice(const std::size_t startIdx,
   }
   auto ptr = opBuilder.create<cc::ComputePtrOp>(
       ptrTy, vecPtr, ArrayRef<cc::ComputePtrArg>{offset});
-  Value subVecInit = opBuilder.create<cc::StdvecInitOp>(vectorValue.getType(),
+  Value subVeqInit = opBuilder.create<cc::StdvecInitOp>(vectorValue.getType(),
                                                         ptr, countValue);
 
   // If this is a slice, then we know we have
@@ -271,7 +271,7 @@ QuakeValue QuakeValue::slice(const std::size_t startIdx,
   for (std::size_t i = startIdx; i < startIdx + count; i++)
     value->addUniqueExtraction(i);
 
-  return QuakeValue(opBuilder, subVecInit);
+  return QuakeValue(opBuilder, subVeqInit);
 }
 
 mlir::Value QuakeValue::getValue() const { return value->asMLIR(); }

@@ -137,6 +137,23 @@ struct HToPhasedRx : public OpRewritePattern<quake::HOp> {
   }
 };
 
+// Naive mapping of R1 to Rz, ignoring the global phase.
+// This is only expected to work with full inlining and
+// quake apply specialization.
+struct R1ToRz : public OpRewritePattern<quake::R1Op> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(quake::R1Op r1Op,
+                                PatternRewriter &rewriter) const override {
+    if (!r1Op.getControls().empty())
+      return failure();
+
+    rewriter.replaceOpWithNewOp<quake::RzOp>(
+        r1Op, r1Op.isAdj(), r1Op.getParameters(), r1Op.getControls(),
+        r1Op.getTargets());
+    return success();
+  }
+};
+
 // quake.swap a, b
 // ───────────────────────────────────
 // quake.cnot b, a;
@@ -1003,6 +1020,7 @@ void cudaq::populateWithAllDecompositionPatterns(RewritePatternSet &patterns) {
     // R1Op patterns
     CR1ToCX,
     R1ToPhasedRx,
+    R1ToRz,
     // RxOp patterns
     CRxToCX,
     RxToPhasedRx,

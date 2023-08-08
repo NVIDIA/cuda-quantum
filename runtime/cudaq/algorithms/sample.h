@@ -342,8 +342,8 @@ auto sample_async(QuantumKernel &&kernel, Args &&...args) {
 /// from the execution of every argument set and returned.
 template <typename QuantumKernel, typename... Args>
   requires SampleCallValid<QuantumKernel, Args...>
-std::vector<sample_result> sample_n(QuantumKernel &&kernel,
-                                    ArgumentSet<Args...> &&params) {
+std::vector<sample_result> sample(QuantumKernel &&kernel,
+                                  ArgumentSet<Args...> &&params) {
   // Get the platform and query the number of qpus
   auto &platform = cudaq::get_platform();
   auto numQpus = platform.num_qpus();
@@ -379,8 +379,81 @@ std::vector<sample_result> sample_n(QuantumKernel &&kernel,
 /// allows the number of circuit executions (shots) to be specified.
 template <typename QuantumKernel, typename... Args>
   requires SampleCallValid<QuantumKernel, Args...>
-std::vector<sample_result> sample_n(std::size_t shots, QuantumKernel &&kernel,
-                                    ArgumentSet<Args...> &&params) {
+std::vector<sample_result> sample(std::size_t shots, QuantumKernel &&kernel,
+                                  ArgumentSet<Args...> &&params) {
+  // Get the platform and query the number of qpus
+  auto &platform = cudaq::get_platform();
+  auto numQpus = platform.num_qpus();
+
+  // Create the functor that will broadcast the sampling tasks across
+  // all requested argument sets provided.
+  details::BroadcastFunctorType<sample_result, Args...> functor =
+      [&](std::size_t qpuId, std::size_t counter, std::size_t N,
+          Args &...singleIterParameters) -> sample_result {
+    auto kernelName = cudaq::getKernelName(kernel);
+    auto ret =
+        details::runSampling(
+            [&kernel, ... args = std::forward<decltype(singleIterParameters)>(
+                          singleIterParameters)]() mutable { kernel(args...); },
+            platform, kernelName, shots, qpuId, nullptr, counter, N)
+            .value();
+    return ret;
+  };
+
+  // Broadcast the executions and return the results.
+  return details::broadcastFunctionOverArguments<sample_result, Args...>(
+      numQpus, platform, functor, params);
+}
+
+/// @brief Run the standard sample functionality over a set of N
+/// argument packs. For a kernel with signature void(Args...), this
+/// function takes as input a set of vector<Arg>..., a vector for
+/// each argument type in the kernel signature. The vectors must be of
+/// equal length, and the ith element of each vector is used ith
+/// execution of the standard sample function. Results are collected
+/// from the execution of every argument set and returned.
+template <typename QuantumKernel, typename... Args>
+  requires SampleCallValid<QuantumKernel, Args...>
+[[deprecated("Use sample() overload instead")]] std::vector<sample_result>
+sample_n(QuantumKernel &&kernel, ArgumentSet<Args...> &&params) {
+  // Get the platform and query the number of qpus
+  auto &platform = cudaq::get_platform();
+  auto numQpus = platform.num_qpus();
+
+  // Create the functor that will broadcast the sampling tasks across
+  // all requested argument sets provided.
+  details::BroadcastFunctorType<sample_result, Args...> functor =
+      [&](std::size_t qpuId, std::size_t counter, std::size_t N,
+          Args &...singleIterParameters) -> sample_result {
+    auto shots = platform.get_shots().value_or(1000);
+    auto kernelName = cudaq::getKernelName(kernel);
+    auto ret =
+        details::runSampling(
+            [&kernel, ... args = std::forward<decltype(singleIterParameters)>(
+                          singleIterParameters)]() mutable { kernel(args...); },
+            platform, kernelName, shots, qpuId, nullptr, counter, N)
+            .value();
+    return ret;
+  };
+
+  // Broadcast the executions and return the results.
+  return details::broadcastFunctionOverArguments<sample_result, Args...>(
+      numQpus, platform, functor, params);
+}
+
+/// @brief Run the standard sample functionality over a set of N
+/// argument packs. For a kernel with signature void(Args...), this
+/// function takes as input a set of vector<Arg>..., a vector for
+/// each argument type in the kernel signature. The vectors must be of
+/// equal length, and the ith element of each vector is used ith
+/// execution of the standard sample function. Results are collected
+/// from the execution of every argument set and returned. This overload
+/// allows the number of circuit executions (shots) to be specified.
+template <typename QuantumKernel, typename... Args>
+  requires SampleCallValid<QuantumKernel, Args...>
+[[deprecated("Use sample() overload instead")]] std::vector<sample_result>
+sample_n(std::size_t shots, QuantumKernel &&kernel,
+         ArgumentSet<Args...> &&params) {
   // Get the platform and query the number of qpus
   auto &platform = cudaq::get_platform();
   auto numQpus = platform.num_qpus();

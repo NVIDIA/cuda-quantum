@@ -58,7 +58,7 @@ struct test_two_control_call {
 // CHECK:               quake.h %[[VAL_1]]
 // CHECK:               quake.x %[[VAL_1]]
 // CHECK:             }
-// CHECK:           } : !cc.lambda<(!quake.ref) -> ()>
+// CHECK:           } : !cc.callable<(!quake.ref) -> ()>
 // CHECK:           %[[VAL_4:.*]] = arith.constant 4 : i64
 // CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<4>
 // CHECK:           %[[VAL_6:.*]] = quake.alloca !quake.ref

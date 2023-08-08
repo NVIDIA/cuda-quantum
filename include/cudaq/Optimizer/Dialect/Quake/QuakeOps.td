@@ -136,8 +136,8 @@ def quake_ComputeActionOp : QuakeOp<"compute_action"> {
 
   let arguments = (ins
     UnitAttr:$is_dagger,
-    cc_LambdaType:$compute,
-    cc_LambdaType:$action
+    cc_CallableType:$compute,
+    cc_CallableType:$action
   );
 
   let assemblyFormat = [{
@@ -292,10 +292,10 @@ def quake_RelaxSizeOp : QuakeOp<"relax_size", [Pure]> {
   let hasCanonicalizer = 1;
 }
 
-def quake_SubVecOp : QuakeOp<"subvec", [Pure]> {
+def quake_SubVeqOp : QuakeOp<"subveq", [Pure]> {
   let summary = "Extract a subvector from a veq reference value.";
   let description = [{
-    The `subvec` operation returns a subvector of references, type
+    The `subveq` operation returns a subvector of references, type
     `!quake.veq<N>` from a vector of references, type `!quake.veq<M>`, where
     `M >= N`.
 
@@ -310,7 +310,7 @@ def quake_SubVecOp : QuakeOp<"subvec", [Pure]> {
     ```mlir
       %0 = arith.constant 2 : i32
       %1 = arith.constant 6 : i32
-      %qr = quake.subvec %qv, %0, %1 : (!quake.veq<?>, i32, i32) ->
+      %qr = quake.subveq %qv, %0, %1 : (!quake.veq<?>, i32, i32) ->
                                         !quake.veq<5>
     ```
   }];
@@ -333,7 +333,7 @@ def quake_SubVecOp : QuakeOp<"subvec", [Pure]> {
 // VeqSizeOp
 //===----------------------------------------------------------------------===//
 
-def quake_VeqSizeOp : QuakeOp<"vec_size", [Pure]> {
+def quake_VeqSizeOp : QuakeOp<"veq_size", [Pure]> {
   let summary = "Return the size of a veq.";
   let description = [{
     Returns the size of a value of type `!quake.veq<n>`. If the vector has a
@@ -466,7 +466,7 @@ def quake_WrapOp : QuakeOp<"wrap"> {
   let hasCanonicalizer = 1;
 }
 
-def quake_NullWireOp : QuakeOp<"null_wire", [Pure]> {
+def quake_NullWireOp : QuakeOp<"null_wire", []> {
   let summary = "Initial state of a wire.";
   let description = [{
     |0> - the initial state of a wire when first constructed. A wire is assumed
@@ -505,7 +505,7 @@ def quake_ResetOp : QuakeOp<"reset", [QuantumGate,
   let extraClassDeclaration = [{
     void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::
         EffectInstance<mlir::MemoryEffects::Effect>> &effects) {
-      quake::getOperatorEffectsImpl(effects, {}, getTargets());
+      quake::getResetEffectsImpl(effects, getTargets());
     }
   }];
 }
@@ -529,7 +529,7 @@ class Measurement<string mnemonic> : QuakeOp<mnemonic,
   code OpBaseDeclaration = [{
     void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::EffectInstance<
       mlir::MemoryEffects::Effect>> &effects) {
-      quake::getOperatorEffectsImpl(effects, {}, getTargets());
+      quake::getMeasurementEffectsImpl(effects, getTargets());
     }
   }];
 
@@ -630,7 +630,8 @@ class QuakeOperator<string mnemonic, list<Trait> traits = []>
     OpBuilder<(ins "bool":$is_adj,
                    "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$targets), [{
-      return build($_builder, $_state, is_adj, mlir::ValueRange{}, controls, targets);
+      return build($_builder, $_state, is_adj, mlir::ValueRange{}, controls,
+                   targets);
     }]>,
     OpBuilder<(ins "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$targets), [{
@@ -729,14 +730,14 @@ def PhasedRxOp : QuakeOperator<"phased_rx",
   let description = [{
     Matrix representation:
     ```
-    PhasedRx(ϴ,φ) = |        cos(ϴ/2)        -iexp(-iφ) * sin(ϴ/2) |
-                    | -iexp(iφ)) * sin(ϴ/2)         cos(ϴ/2)       |
+    PhasedRx(θ,φ) = |        cos(θ/2)        -iexp(-iφ) * sin(θ/2) |
+                    | -iexp(iφ)) * sin(θ/2)         cos(θ/2)       |
     ```
 
     Circuit symbol:
     ```
      ┌───────────────┐
-    ─┤ PhasedRx(ϴ,φ) ├─
+    ─┤ PhasedRx(θ,φ) ├─
      └───────────────┘
     ```
   }];
@@ -765,14 +766,14 @@ def RxOp : OneTargetParamOp<"rx", [Rotation]> {
   let description = [{
     Matrix representation:
     ```
-    Rx(ϴ) = |  cos(ϴ/2)  -isin(ϴ/2) |
-            | -isin(ϴ/2)  cos(ϴ/2)  |
+    Rx(θ) = |  cos(θ/2)  -isin(θ/2) |
+            | -isin(θ/2)  cos(θ/2)  |
     ```
 
     Circuit symbol:
     ```
      ┌───────┐
-    ─┤ Rx(ϴ) ├─
+    ─┤ Rx(θ) ├─
      └───────┘
     ```
   }];
@@ -783,14 +784,14 @@ def RyOp : OneTargetParamOp<"ry", [Rotation]> {
   let description = [{
     Matrix representation:
     ```
-    Ry(ϴ) = | cos(ϴ/2)  -sin(ϴ/2) |
-            | sin(ϴ/2)   cos(ϴ/2) |
+    Ry(θ) = | cos(θ/2)  -sin(θ/2) |
+            | sin(θ/2)   cos(θ/2) |
     ```
 
     Circuit symbol:
     ```
      ┌───────┐
-    ─┤ Ry(ϴ) ├─
+    ─┤ Ry(θ) ├─
      └───────┘
     ```
   }];
@@ -899,20 +900,20 @@ def U2Op : QuakeOperator<"u2", [NumParameters<2>, NumTargets<1>, Rotation]> {
 def U3Op : QuakeOperator<"u3", [NumParameters<3>, NumTargets<1>, Rotation]> {
   let summary = "the universal three-parameters operator";
   let description = [{
-    The three parameters are Euler angles: ϴ, φ, and λ.
+    The three parameters are Euler angles: θ, φ, and λ.
 
     NOTE: U3 is a generalization of U2 that covers all single-qubit rotations.
 
     Matrix representation:
     ```
-    U3(ϴ,φ,λ) = | cos(ϴ/2)            -exp(iλ) * sin(ϴ/2)       |
-                | exp(iφ) * sin(ϴ/2)   exp(i(λ + φ)) * cos(ϴ/2) |
+    U3(θ,φ,λ) = | cos(θ/2)            -exp(iλ) * sin(θ/2)       |
+                | exp(iφ) * sin(θ/2)   exp(i(λ + φ)) * cos(θ/2) |
     ```
 
     Circuit symbol:
     ```
      ┌───────────┐
-    ─┤ U3(ϴ,φ,λ) ├─
+    ─┤ U3(θ,φ,λ) ├─
      └───────────┘
     ```
   }];

@@ -27,6 +27,7 @@ if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
     cudaq-quake
     cudaq-opt
     cudaq-translate
+    fixup-linkage
 
     CircuitCheck
     FileCheck)

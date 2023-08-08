@@ -46,10 +46,21 @@ public:
   /// apply them to the state.
   void flushGateQueue() { flushGateQueueImpl(); }
 
+  /// @brief Provide an opportunity for any tear-down
+  /// tasks before MPI Finalize is invoked. Here we leave
+  /// this unimplemented, it is meant for subclasses.
+  virtual void tearDownBeforeMPIFinalize() {
+    // do nothing
+  }
+
   /// @brief Set the current noise model to consider when
   /// simulating the state. This should be overridden by
   /// simulation strategies that support noise modeling.
   virtual void setNoiseModel(cudaq::noise_model &noise) = 0;
+
+  virtual void setRandomSeed(std::size_t seed) {
+    // do nothing
+  }
 
   /// @brief Compute the expected value of the given spin op
   /// with respect to the current state, <psi | H | psi>.

@@ -35,6 +35,7 @@ OpenMPI
 OpenQASM
 Pauli
 Paulis
+PyPI
 QAOA
 QIR
 QIS
