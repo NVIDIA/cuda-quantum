@@ -60,12 +60,25 @@ protected:
       for (auto &s : sampleQudits) {
         ids.push_back(s.id);
       }
+      auto shots = executionContext->shots;
       auto sampleResult =
-          qpp::sample(1000000, state, ids, sampleQudits.begin()->levels);
+          qpp::sample(shots, state, ids, sampleQudits.begin()->levels);
 
+      cudaq::ExecutionResult counts;
       for (auto [result, count] : sampleResult) {
-        std::cout << fmt::format("Sample {} : {}", result, count) << "\n";
+        std::stringstream bitstring;
+        for (const auto &quditRes : result) {
+          bitstring << quditRes;
+        }
+        // Add to the sample result
+        // in mid-circ sampling mode this will append 1 bitstring
+        counts.appendResult(bitstring.str(), count);
+        // Reset the state.
+        bitstring.str("");
+        bitstring.clear();
       }
+
+      executionContext->result.append(counts);
     }
   }
 
@@ -247,9 +260,10 @@ public:
 
   virtual ~PhotonicsExecutionManager() = default;
 
-  // cudaq::SpinMeasureResult measure(cudaq::spin_op &op) override {
-  //   return cudaq::SpinMeasureResult();
-  // }
+  cudaq::SpinMeasureResult measure(cudaq::spin_op &op) override {
+    throw "spin_op observation (cudaq::observe()) is not supported for this "
+          "photonics simulator";
+  }
 
 }; // PhotonicsExecutionManager
 
