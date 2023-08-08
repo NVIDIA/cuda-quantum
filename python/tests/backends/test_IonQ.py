@@ -23,9 +23,23 @@ def assert_close(got) -> bool:
     return got < -1.5 and got > -1.9
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
     os.environ["IONQ_API_KEY"] = "00000000000000000000000000000000"
+
+    # Launch the Mock Server
+    p = Process(target=startServer, args=(port,))
+    p.start()
+    time.sleep(1)
+
+    yield "Server started."
+
+    # Kill the server
+    p.terminate()
+
+
+@pytest.fixture(scope="function", autouse=True)
+def configureTarget():
 
     # Set the targeted QPU
     cudaq.set_target(
@@ -33,15 +47,7 @@ def startUpMockServer():
         url="http://localhost:{}".format(port)
     )
 
-    # Launch the Mock Server
-    p = Process(target=startServer, args=(port,))
-    p.start()
-    time.sleep(1)
-
-    yield "Running the tests."
-
-    # Kill the server
-    p.terminate()
+    yield "Running the test."
     cudaq.reset_target()
 
 

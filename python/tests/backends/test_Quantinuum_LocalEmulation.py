@@ -17,7 +17,7 @@ def assert_close(got) -> bool:
 
 
 @pytest.fixture(scope="function", autouse=True)
-def startUpMockServer():
+def configureTarget():
     # We need a Fake Credentials Config file
     credsName = '{}/FakeConfig2.config'.format(os.environ["HOME"])
     f = open(credsName, 'w')

@@ -23,7 +23,7 @@ def assert_close(got) -> bool:
     return got < -1.5 and got > -1.9
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
     # We need a Fake Credentials Config file
     credsName = '{}/QuantinuumFakeConfig.config'.format(os.environ["HOME"])
@@ -33,21 +33,27 @@ def startUpMockServer():
 
     cudaq.set_random_seed(13)
 
-    # Set the targeted QPU
-    cudaq.set_target('quantinuum',
-                     url='http://localhost:{}'.format(port),
-                     credentials=credsName)
-
     # Launch the Mock Server
     p = Process(target=startServer, args=(port,))
     p.start()
     time.sleep(1)
 
-    yield "Running the tests."
+    yield credsName
 
     # Kill the server, remove the file
     p.terminate()
     os.remove(credsName)
+
+
+@pytest.fixture(scope="function", autouse=True)
+def configureTarget(credsName):
+
+    # Set the targeted QPU
+    cudaq.set_target('quantinuum',
+                     url='http://localhost:{}'.format(port),
+                     credentials=credsName)
+
+    yield "Running the test."
     cudaq.reset_target()
 
 
