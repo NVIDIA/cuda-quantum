@@ -32,4 +32,6 @@ COPY $cuda_quantum_wheel /tmp/$cuda_quantum_wheel
 COPY docs/sphinx/examples/python /tmp/examples/
 COPY python/tests /tmp/tests/
 
+# Generally, we can't install with a --user flag in a virtual environment.
+RUN sed -i 's/include-system-site-packages = false/include-system-site-packages = true/' $VIRTUAL_ENV/pyvenv.cfg
 RUN python${python_version} -m pip install ${pip_install_flags} /tmp/$cuda_quantum_wheel
