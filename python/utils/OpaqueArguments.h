@@ -10,11 +10,14 @@
 
 #include "common/FmtCore.h"
 #include "cudaq/builder/kernel_builder.h"
+#include <chrono>
 #include <functional>
+#include <future>
 #include <pybind11/pybind11.h>
 #include <vector>
 
 namespace py = pybind11;
+using namespace std::chrono_literals;
 
 namespace cudaq {
 
@@ -207,6 +210,35 @@ inline void packArgs(OpaqueArguments &argData, py::args args) {
       });
     }
   }
+}
+
+/// @brief Return true if the given py::args represents a
+/// request for broadcasting sample or observe over all argument sets.
+/// Kernel arg types can be int, float, list, so
+/// we should check if args[i] is a list or ndarray.
+inline bool isBroadcastRequest(kernel_builder<> &builder, py::args &args) {
+  if (args.empty())
+    return false;
+
+  auto arg = args[0];
+  // Just need to check the leading argument
+  if (py::isinstance<py::list>(arg) && !builder.isArgStdVec(0))
+    return true;
+
+  if (py::hasattr(arg, "tolist")) {
+    if (!py::hasattr(arg, "shape"))
+      return false;
+
+    auto shape = arg.attr("shape").cast<py::tuple>();
+    if (shape.size() == 1 && !builder.isArgStdVec(0))
+      return true;
+
+    // // If shape is 2, then we know its a list of list
+    if (shape.size() == 2)
+      return true;
+  }
+
+  return false;
 }
 
 } // namespace cudaq

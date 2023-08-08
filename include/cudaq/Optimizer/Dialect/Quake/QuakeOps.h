@@ -29,11 +29,21 @@ mlir::Value createConstantAlloca(mlir::PatternRewriter &builder,
                                  mlir::Location loc, mlir::OpResult result,
                                  mlir::ValueRange args);
 
-mlir::Value createSizedSubVecOp(mlir::PatternRewriter &builder,
+mlir::Value createSizedSubVeqOp(mlir::PatternRewriter &builder,
                                 mlir::Location loc, mlir::OpResult result,
                                 mlir::Value inVec, mlir::Value lo,
                                 mlir::Value hi);
 
+void getResetEffectsImpl(
+    mlir::SmallVectorImpl<
+        mlir::SideEffects::EffectInstance<mlir::MemoryEffects::Effect>>
+        &effects,
+    mlir::ValueRange targets);
+void getMeasurementEffectsImpl(
+    mlir::SmallVectorImpl<
+        mlir::SideEffects::EffectInstance<mlir::MemoryEffects::Effect>>
+        &effects,
+    mlir::ValueRange targets);
 void getOperatorEffectsImpl(
     mlir::SmallVectorImpl<
         mlir::SideEffects::EffectInstance<mlir::MemoryEffects::Effect>>

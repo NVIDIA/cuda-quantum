@@ -597,7 +597,7 @@ def test_observe_n():
     circuit.ry(theta, q[1])
     circuit.cx(q[1], q[0])
 
-    results = cudaq.observe_n(circuit, hamiltonian, angles)
+    results = cudaq.observe(circuit, hamiltonian, angles)
     energies = np.array([r.expectation_z() for r in results])
     print(energies)
     expected = np.array([
@@ -639,7 +639,7 @@ def test_observe_n():
     runtimeAngles = np.random.uniform(low=-np.pi, high=np.pi, size=(50, 2))
     print(runtimeAngles)
 
-    results = cudaq.observe_n(kernel, hamiltonian, runtimeAngles[:, 0],
+    results = cudaq.observe(kernel, hamiltonian, runtimeAngles[:, 0],
                               runtimeAngles[:, 1])
     energies = np.array([r.expectation_z() for r in results])
     print(energies)
@@ -659,7 +659,7 @@ def test_observe_n():
     runtimeAngles = np.random.uniform(low=-np.pi, high=np.pi, size=(50, 2))
     print(runtimeAngles)
 
-    results = cudaq.observe_n(kernel, hamiltonian, runtimeAngles)
+    results = cudaq.observe(kernel, hamiltonian, runtimeAngles)
     energies = np.array([r.expectation_z() for r in results])
     print(energies)
     assert len(energies) == 50

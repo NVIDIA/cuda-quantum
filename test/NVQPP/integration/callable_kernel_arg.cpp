@@ -26,20 +26,24 @@ struct foo {
   __qpu__ void operator()(CallableKernel &&func, int size) {
     cudaq::qreg q(size);
     func(q[0]);
+
+// TODO: Extend measurement support for submissions to IonQ,
+// see https://github.com/NVIDIA/cuda-quantum/issues/512.
+#ifndef IONQ_TARGET
     mz(q[0]);
+#endif
   }
 };
 
 int main() {
-  // Not supported?:
-  // auto result = cudaq::sample(1000, foo{}, &bar);
-
-  // QuakeSynth don't support:
   auto result = cudaq::sample(1000, foo{}, baz{}, /*qreg size*/ 1);
-  for (auto &&[bits, counts] : result) {
-    std::cout << bits << " : " << counts << '\n';
-  }
+
+#ifndef SYNTAX_CHECK
+  std::cout << result.most_probable() << '\n';
+  assert("1" == result.most_probable());
+#endif
+
   return 0;
 }
 
-// CHECK: 1 : 1000
+// CHECK: 1

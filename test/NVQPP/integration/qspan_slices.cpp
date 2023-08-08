@@ -11,22 +11,33 @@
 #include <cudaq.h>
 #include <iostream>
 
-struct variable_qreg {
-  __qpu__ void operator()(std::uint8_t value) {
-    cudaq::qreg qubits(value);
-    mz(qubits);
-  }
-};
+__qpu__ void bar(cudaq::qspan<> qubits) {
+  auto controls = qubits.front(qubits.size() - 1);
+  auto &target = qubits.back();
+  x<cudaq::ctrl>(controls, target);
+}
+
+__qpu__ void foo() {
+  cudaq::qreg qubits(4);
+  x(qubits);
+  bar(qubits);
+
+// TODO: Extend measurement support for submissions to IonQ,
+// see https://github.com/NVIDIA/cuda-quantum/issues/512.
+#ifndef IONQ_TARGET
+  mz(qubits);
+#endif
+}
 
 int main() {
-  for (auto i = 1; i < 5; ++i) {
-    auto result = cudaq::sample(1000, variable_qreg{}, i);
-    std::cout << result.most_probable() << '\n';
-  }
+  auto result = cudaq::sample(1000, foo);
+
+#ifndef SYNTAX_CHECK
+  std::cout << result.most_probable() << '\n';
+  assert("1110" == result.most_probable());
+#endif
+
   return 0;
 }
 
-// CHECK: 0
-// CHECK: 00
-// CHECK: 000
-// CHECK: 0000
+//CHECK: 1110

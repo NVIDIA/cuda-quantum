@@ -10,22 +10,13 @@
 import cudaq, pytest, os, time
 from cudaq import spin
 from multiprocessing import Process
-try:
-    from utils.mock_qpu.ionq import startServer
-except:
-    print("Mock qpu not available, skipping IonQ tests.")
-    # TODO: Once we remove the general skip below, it should go here.
-
-pytest.skip(
-    "This file produces a segmentation fault on the CI but not locally. See https://github.com/NVIDIA/cuda-quantum/issues/303.",
-    allow_module_level=True)
+from utils.mock_qpu.ionq import startServer
 
 # Define the port for the mock server
 port = 62455
 
-
-def assert_close(want, got, tolerance=1.0e-5) -> bool:
-    return abs(want - got) < tolerance
+def assert_close(got) -> bool:
+    return got < -1.5 and got > -1.9
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -42,6 +33,7 @@ def startUpMockServer():
         url="http://localhost:{}".format(port),
         api_key="00000000000000000000000000000000",
         credentials=credsName,
+        url="http://localhost:{}".format(port)
     )
 
     # Launch the Mock Server
@@ -51,10 +43,8 @@ def startUpMockServer():
 
     yield "Running the tests."
 
-    # Kill the server, remove the file
+    # Kill the server
     p.terminate()
-    os.remove(credsName)
-
 
 def test_ionq_sample():
     # Create the kernel we'd like to execute on IonQ
@@ -119,14 +109,13 @@ def test_ionq_observe():
 
     # Run the observe task on IonQ synchronously
     res = cudaq.observe(kernel, hamiltonian, 0.59)
-    want_expectation_value = -1.71
-    assert assert_close(want_expectation_value, res.expectation_z(), 1e-2)
+    assert assert_close(res.expectation_z())
 
     # Launch it asynchronously, enters the job into the queue
     future = cudaq.observe_async(kernel, hamiltonian, 0.59)
     # Retrieve the results (since we're on a mock server)
     res = future.get()
-    assert assert_close(want_expectation_value, res.expectation_z(), 1e-2)
+    assert assert_close(res.expectation_z())
 
     # Launch the job async, job goes in the queue, and
     # we're free to dump the future to file
@@ -139,7 +128,7 @@ def test_ionq_observe():
     # the results from the term job ids.
     futureReadIn = cudaq.AsyncObserveResult(futureAsString, hamiltonian)
     res = futureReadIn.get()
-    assert assert_close(want_expectation_value, res.expectation_z(), 1e-2)
+    assert assert_close(res.expectation_z())
 
 
 # leave for gdb debugging

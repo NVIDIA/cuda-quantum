@@ -11,27 +11,36 @@
 // RUN: nvq++ --enable-mlir -v %s --target quantinuum --emulate -o %t.x && %t.x | FileCheck %s
 // RUN: cudaq-quake %s | cudaq-opt --promote-qubit-allocation | FileCheck --check-prefixes=MLIR %s
 
-// CHECK: Test: { 0:{{[0-9]+}} 1:{{[0-9]+}} }
-
 #include <cudaq.h>
 #include <iostream>
 
-struct ak2 {
+struct simple_x {
   void operator()() __qpu__ {
     cudaq::qubit q;
-    h(q);
+    x(q);
+
+// TODO: Extend measurement support for submissions to IonQ,
+// see https://github.com/NVIDIA/cuda-quantum/issues/512.
+#ifndef IONQ_TARGET
     mz(q);
+#endif
   }
 };
 
-// MLIR-LABEL:   func.func @__nvqpp__mlirgen__ak2()
+// MLIR-LABEL:   func.func @__nvqpp__mlirgen__simple_x()
 // MLIR-NOT:       quake.alloca !quake.ref
 // MLIR:           %[[VAL_0:.*]] = quake.alloca !quake.veq<1>
 // MLIR-NEXT:      %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<1>) -> !quake.ref
 
 int main() {
-  auto counts = cudaq::sample(ak2{});
-  std::cout << "Test: ";
-  counts.dump();
+  auto result = cudaq::sample(simple_x{});
+
+#ifndef SYNTAX_CHECK
+  std::cout << result.most_probable() << '\n';
+  assert("1" == result.most_probable());
+#endif
+
   return 0;
 }
+
+// CHECK: 1

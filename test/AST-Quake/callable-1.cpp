@@ -45,7 +45,7 @@ int main() {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__instance_MyKernel
-// CHECK-SAME:        (%[[VAL_0:.*]]: !cc.lambda<(!quake.veq<?>) -> ()>{{.*}}) attributes
+// CHECK-SAME:        (%[[VAL_0:.*]]: !cc.callable<(!quake.veq<?>) -> ()>{{.*}}) attributes
 // CHECK:           %[[VAL_1:.*]] = arith.constant 2 : i32
 // CHECK:           %[[VAL_2:.*]] = arith.extsi %[[VAL_1]] : i32 to i64
 // CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<?>[%[[VAL_2]] : i64]
