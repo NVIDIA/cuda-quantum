@@ -42,8 +42,7 @@ RUN echo "Building wheel for python${python_version}." \
             --exclude libcustatevec.so.1 \
             --exclude libcutensornet.so.2 \
             --exclude libcublas.so.11 \
-            --exclude libcublasLt.so.11 \
-            --exclude libzstd.so.1
+            --exclude libcublasLt.so.11
 
 FROM scratch
 COPY --from=wheelbuild /cuda-quantum/wheelhouse/*manylinux*.whl . 
