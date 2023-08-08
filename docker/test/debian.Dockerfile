@@ -11,7 +11,7 @@ FROM debian:$os_version
 SHELL ["/bin/bash", "-c"]
 
 ARG python_version=3.11
-ARG pip_install_flags="--user"
+ARG pip_install_flags=""
 ARG preinstalled_modules="numpy pytest"
 
 ARG DEBIAN_FRONTEND=noninteractive
@@ -32,6 +32,8 @@ COPY $cuda_quantum_wheel /tmp/$cuda_quantum_wheel
 COPY docs/sphinx/examples/python /tmp/examples/
 COPY python/tests /tmp/tests/
 
-# Generally, we can't install with a --user flag in a virtual environment.
-RUN sed -i 's/include-system-site-packages = false/include-system-site-packages = true/' $VIRTUAL_ENV/pyvenv.cfg
+RUN if [ -n "$pip_install_flags" ]; then \
+        # We can't install with a --user flag in a virtual environment unless we enable this.
+        sed -i 's/include-system-site-packages = false/include-system-site-packages = true/' $VIRTUAL_ENV/pyvenv.cfg; \
+    fi
 RUN python${python_version} -m pip install ${pip_install_flags} /tmp/$cuda_quantum_wheel
