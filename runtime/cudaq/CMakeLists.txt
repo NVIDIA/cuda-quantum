@@ -20,15 +20,32 @@ add_library(${LIBRARY_NAME}
                 qis/execution_manager.cpp
                 utils/cudaq_utils.cpp)
 
-target_include_directories(${LIBRARY_NAME}
-  PUBLIC $<INSTALL_INTERFACE:include>
-           $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
-           $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
-  PRIVATE .)
+if (CUDA_FOUND)
+  find_package(CUDA REQUIRED)
 
-target_link_libraries(${LIBRARY_NAME}
-  PUBLIC dl cudaq-spin cudaq-common cudaq-nlopt cudaq-ensmallen
-  PRIVATE nvqir fmt::fmt-header-only)
+  target_include_directories(${LIBRARY_NAME}
+    PUBLIC $<INSTALL_INTERFACE:include>
+            $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
+            $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
+            $<BUILD_INTERFACE:${CUDA_INCLUDE_DIRS}>
+    PRIVATE .)
+
+  target_link_libraries(${LIBRARY_NAME}
+    PUBLIC dl cudaq-spin cudaq-common cudaq-nlopt cudaq-ensmallen
+    PRIVATE nvqir fmt::fmt-header-only ${CUDA_LIBRARIES})
+
+  target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_HAS_CUDA)
+else()
+  target_include_directories(${LIBRARY_NAME}
+    PUBLIC $<INSTALL_INTERFACE:include>
+            $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
+            $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
+    PRIVATE .)
+
+  target_link_libraries(${LIBRARY_NAME}
+    PUBLIC dl cudaq-spin cudaq-common cudaq-nlopt cudaq-ensmallen
+    PRIVATE nvqir fmt::fmt-header-only)
+endif()
 
 if (MPI_CXX_FOUND)
   target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_HAS_MPI)

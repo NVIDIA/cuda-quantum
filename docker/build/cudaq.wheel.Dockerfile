@@ -11,14 +11,13 @@
 #
 # Usage:
 # Must be built from the repo root with:
-#   DOCKER_BUILDKIT=1 docker build -f docker/build/cudaq.wheels.Dockerfile . --output out
+#   DOCKER_BUILDKIT=1 docker build -f docker/build/cudaq.wheel.Dockerfile . --output out
 
-ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:manylinux
+ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:manylinux-x86_64-main
 FROM $base_image as wheelbuild
 
 ARG release_version=
 ENV CUDA_QUANTUM_VERSION=$release_version
-ENV SETUPTOOLS_SCM_PRETEND_VERSION=$CUDA_QUANTUM_VERSION
 
 ARG workspace=.
 ARG destination=cuda-quantum
@@ -27,10 +26,23 @@ ADD "$workspace" "$destination"
 ARG python_version=3.10
 RUN echo "Building wheel for python${python_version}." \
     && cd cuda-quantum && python=python${python_version} \
-    && $python -m pip install cmake auditwheel \
-    && CUDAQ_BUILD_SELFCONTAINED=ON $python -m build --wheel \
+    && $python -m pip install --no-cache-dir \
+        cmake auditwheel \
+        cuquantum-cu11==23.6.0 \
+    && cuquantum_location=`$python -m pip show cuquantum-cu11 | grep -e 'Location: .*$'` \
+    && export CUQUANTUM_INSTALL_PREFIX="${cuquantum_location#Location: }/cuquantum" \
+    && ln -s $CUQUANTUM_INSTALL_PREFIX/lib/libcustatevec.so.1 $CUQUANTUM_INSTALL_PREFIX/lib/libcustatevec.so \
+    && ln -s $CUQUANTUM_INSTALL_PREFIX/lib/libcutensornet.so.2 $CUQUANTUM_INSTALL_PREFIX/lib/libcutensornet.so \
+    &&  SETUPTOOLS_SCM_PRETEND_VERSION=${CUDA_QUANTUM_VERSION:-0.0.0} \
+        CUDAQ_BUILD_SELFCONTAINED=ON \
+        CUDACXX="$CUDA_INSTALL_PREFIX/bin/nvcc" CUDAHOSTCXX=$CXX \
+        $python -m build --wheel \
     && LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/_skbuild/lib" \
-        $python -m auditwheel -v repair dist/cuda_quantum-*linux_*.whl
+        $python -m auditwheel -v repair dist/cuda_quantum-*linux_*.whl \
+            --exclude libcustatevec.so.1 \
+            --exclude libcutensornet.so.2 \
+            --exclude libcublas.so.11 \
+            --exclude libcublasLt.so.11
 
 FROM scratch
 COPY --from=wheelbuild /cuda-quantum/wheelhouse/*manylinux*.whl . 
