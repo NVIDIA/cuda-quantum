@@ -234,8 +234,12 @@ LinkedLibraryHolder::getPlatform(const std::string &platformName) {
 }
 
 void LinkedLibraryHolder::resetTarget() {
+  // TODO: create config for default target and use setTarget("qpp") here,
+  // instead of having this be a code duplication of the logic below.
   __nvqir__setCircuitSimulator(getSimulator("qpp"));
-  setQuantumPlatformInternal(getPlatform("default"));
+  auto *platform = getPlatform("default");
+  platform->setTargetBackend("qpp");
+  setQuantumPlatformInternal(platform);
   currentTarget = "default";
 }
 

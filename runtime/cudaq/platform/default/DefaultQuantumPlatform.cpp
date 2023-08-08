@@ -135,7 +135,10 @@ public:
 
     // Don't try to load something that doesn't exist.
     if (!std::filesystem::exists(configFilePath))
+    {
+      platformQPUs.front()->setTargetBackend(backend);
       return;
+    }
 
     std::ifstream configFile(configFilePath.string());
     std::string configContents((std::istreambuf_iterator<char>(configFile)),
