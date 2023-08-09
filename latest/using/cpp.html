@@ -636,7 +636,19 @@ For more information about executing quantum kernels on different hardware backe
 <span class="c1">// ```</span>
 <span class="c1">// nvq++ --target ionq ionq.cpp -o out.x &amp;&amp; ./out.x</span>
 <span class="c1">// ```</span>
-<span class="c1">// Assumes a valid set of credentials have been stored.</span>
+<span class="c1">// This will submit the job to the IonQ ideal simulator target (default).</span>
+<span class="c1">// Alternatively, we can enable hardware noise model simulation by specifying</span>
+<span class="c1">// the `--ionq-noise-model`, e.g.,</span>
+<span class="c1">// ```</span>
+<span class="c1">// nvq++ --target ionq --ionq-machine simulator --ionq-noise-model aria-1</span>
+<span class="c1">// ionq.cpp -o out.x &amp;&amp; ./out.x</span>
+<span class="c1">// ```</span>
+<span class="c1">// where we set the noise model to mimic the &#39;aria-1&#39; hardware device.</span>
+<span class="c1">// Please refer to your IonQ Cloud dashboard for the list of simulator noise</span>
+<span class="c1">// models.</span>
+<span class="c1">// Note: `--ionq-machine simulator` is  optional since &#39;simulator&#39; is the</span>
+<span class="c1">// default configuration if not provided. Assumes a valid set of credentials</span>
+<span class="c1">// have been stored.</span>
 
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;fstream&gt;</span>
