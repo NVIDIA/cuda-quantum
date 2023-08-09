@@ -55,13 +55,13 @@ jobs:
           artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
           artifact_name=${{ (github.event_name == 'workflow_dispatch' && inputs.artifact_name) || 'cuda_quantum_docs' }}
 
-          status=${{ (github.event.workflow_run.event == 'pull_request' && 0) || 1 }}
+          docs_found=${{ github.event.workflow_run.event == 'pull_request' || false }}
           for artifact in `echo "$artifacts"`; do
             name=`echo $artifact | jq -r '.name'`
             if [ "$name" == "$artifact_name" ]; then
               url=`echo $artifact | jq -r '.url'`
               gh api $url > cuda_quantum_docs.zip
-              status=0 && echo "docs_archive=cuda_quantum_docs.zip" >> $GITHUB_OUTPUT
+              docs_found=true && echo "docs_archive=cuda_quantum_docs.zip" >> $GITHUB_OUTPUT
             elif [ "$name" == "metadata_ci" ]; then
               url=`echo $artifact | jq -r '.url'`
               gh api $url > metadata.zip
@@ -93,7 +93,7 @@ jobs:
           fi
 
           echo "target_folder=$target_folder" >> $GITHUB_OUTPUT
-          exit $status
+          if ! $docs_found; then exit 1; fi
         env:
           GH_TOKEN: ${{ github.token }}
 
