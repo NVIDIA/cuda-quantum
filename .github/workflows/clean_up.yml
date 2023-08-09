@@ -2,6 +2,9 @@ on:
   workflow_dispatch:
   schedule:
   - cron: "*/5 * * * *"
+  pull_request_target:
+    types:
+      - closed
 
 name: Clean up
 
@@ -41,3 +44,25 @@ jobs:
                 });
               })
             );
+
+  pr_cleanup:
+    name: Clean up documentation previews
+    if: github.event_name == 'pull_request_target'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ vars.preview_branch }}
+
+      - name: Delete preview folder
+        run: |
+          git config --global user.name "cuda-quantum-bot"
+          git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
+          git rm -r "${{ github.ref }}" --ignore-unmatch
+          git commit --allow-empty -m "Cleaning up docs preview for PR #${{ github.event.pull_request.number }}."
+          git pull --no-edit && git push

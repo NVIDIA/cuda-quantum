@@ -98,7 +98,7 @@ jobs:
     if: always()
 
     steps:
-      - name: Save cache keys
+      - name: Save cache keys and metadata
         id: workflow_inputs
         run: |
           set -e
@@ -106,10 +106,20 @@ jobs:
           keys=`echo $key_matrix | jq '.cache_key | to_entries | .[].value' --raw-output`
           keys+=" ${{ needs.wheeldeps.outputs.cache_key }}"
           echo "$keys" >> cache_keys.txt
+          echo "pr-number: ${{ github.event.pull_request.number }}" >> metadata.txt
 
-      - uses: actions/upload-artifact@v3
+      - name: Upload cache keys
+        uses: actions/upload-artifact@v3
         with:
           name: cache_keys_ci
           path: cache_keys.txt
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Upload metadata
+        uses: actions/upload-artifact@v3
+        with:
+          name: metadata_ci
+          path: metadata.txt
           retention-days: 1
           if-no-files-found: error
