@@ -14,26 +14,9 @@ on:
 name: Packages
 
 jobs:
-  workflow_info:
-    name: Workflow information
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - run: |
-          echo "triggering workflow: ${{ github.event.workflow_run.id }}$" >> $GITHUB_STEP_SUMMARY
-          echo "workflow conclusion: ${{ github.event.workflow_run.conclusion }}$" >> $GITHUB_STEP_SUMMARY
-          echo "pull request: ${{ github.event.workflow_run.pull_requests.number }}$" >> $GITHUB_STEP_SUMMARY
-          echo "deployment artifacts url: ${{ github.event.workflow_run.artifacts_url }}$" >> $GITHUB_STEP_SUMMARY
-          echo "deployment actor name: ${{ github.event.workflow_run.actor.name }}$" >> $GITHUB_STEP_SUMMARY
-          echo "deployment actor id: ${{ github.event.workflow_run.actor.id }}$" >> $GITHUB_STEP_SUMMARY
-          echo "deployment triggering actor name: ${{ github.event.workflow_run.triggering_actor.name }}$" >> $GITHUB_STEP_SUMMARY
-          echo "deployment triggering actor id: ${{ github.event.workflow_run.triggering_actor.id }}$" >> $GITHUB_STEP_SUMMARY
-
   cudaq_hpc:
     name: CUDA Quantum Docker image
-    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.actor.name == 'cuda-quantum-bot')
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.actor.id == '135836288')
     runs-on: ubuntu-latest
     timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && 360 || 100 }}
     permissions:
@@ -52,6 +35,7 @@ jobs:
             artifacts_url=https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ inputs.deployment_id }}/artifacts
           else
             artifacts_url=${{ github.event.workflow_run.artifacts_url }}
+            echo "Artifacts downloaded from https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}" >> $GITHUB_STEP_SUMMARY
           fi
           artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
 
