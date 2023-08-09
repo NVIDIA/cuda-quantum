@@ -115,7 +115,6 @@ jobs:
           fi
           git add "$target_folder"
           docs_changed=`git diff --cached --exit-code > /dev/null && echo false || echo true`
-          echo "docs_changed=$docs_changed" >> $GITHUB_OUTPUT
 
           if ${{ github.event_name == 'workflow_dispatch' }}; then
             git commit -m "Docs update triggered manually for version ${{ inputs.version }} (artifacts url: ${{ inputs.artifacts_url }}, artifact name: ${{ inputs.artifact_name }})."
