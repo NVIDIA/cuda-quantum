@@ -35,6 +35,7 @@ jobs:
 
     permissions:
       contents: write
+      issues: write
 
     environment:
       name: ${{ (github.event.workflow_run.event == 'pull_request' && 'default') || 'github-pages' }}
@@ -80,14 +81,15 @@ jobs:
 
           if ${{ github.event_name == 'workflow_dispatch' }}; then
             target_folder=${{ inputs.version }}
-          elif ${{ github.event.workflow_run.event == 'pull_request' }}; then
-            target_folder=$pr_base # will be checked in under a different folder in the preview
-          elif ${{ github.event.workflow_run.head_branch == 'main' }}; then
-            target_folder=latest
           else
-            head_branch=${{ github.event.workflow_run.head_branch }}
-            version=`echo ${head_branch#releases/} | egrep -o "^v?([0-9]{1,}\.)+[0-9]{1,}$"`
-            target_folder=${version#v}
+            # Docs will be checked in under a different folder in the preview.
+            head_branch=${pr_base:-${{ github.event.workflow_run.head_branch }}}
+            if [ "$head_branch" == "main" ]; then
+              target_folder=latest
+            else
+              version=`echo ${head_branch#releases/} | egrep -o "^v?([0-9]{1,}\.)+[0-9]{1,}$"`
+              target_folder=${version#v}
+            fi
           fi
 
           echo "target_folder=$target_folder" >> $GITHUB_OUTPUT
@@ -112,31 +114,30 @@ jobs:
             bash create_redirects.sh >> $GITHUB_STEP_SUMMARY
           fi
           git add "$target_folder"
+          docs_changed=`git diff --cached --exit-code > /dev/null && echo false || echo true`
 
           if ${{ github.event_name == 'workflow_dispatch' }}; then
             git commit -m "Docs update triggered manually for version ${{ inputs.version }} (artifacts url: ${{ inputs.artifacts_url }}, artifact name: ${{ inputs.artifact_name }})."
+          elif [ -n "$pr_number" ]; then
+            git commit --allow-empty -m "Docs preview for PR #$pr_number."
           else
             git commit --allow-empty -m "Docs update triggered by deployment on head branch ${{ github.event.workflow_run.head_branch }}, commit ${{ github.event.workflow_run.head_sha }}."
           fi
           git pull --no-edit && git push
 
-          branch_name=`git rev-parse --abbrev-ref HEAD`
-          preview_link=https://htmlpreview.github.io/?https://github.com/${{ github.repository }}/blob/${branch_name}/${target_folder}/index.html
-          echo "preview_link=$preview_link" >> $GITHUB_OUTPUT
-
-      - name: Check if docs changed
-        id: docs_info
-        if: steps.push_docs.outcome != 'skipped'
-        run: |
-          target_folder="${{ steps.artifacts.outputs.target_folder }}"
-          rm -rf "$target_folder"
-          unzip -d "$target_folder" "${{ steps.artifacts.outputs.docs_archive }}"
-          git add "$target_folder"
-          (git diff --cached --exit-code > /dev/null) && docs_changed=true || docs_changed=false
+          # For the docs preview, we determine whether docs changed compared to the eventual target folder.
+          if [ "$target_folder" != "${{ steps.artifacts.outputs.target_folder }}" ]; then
+            rm -rf "${{ steps.artifacts.outputs.target_folder }}"
+            mv "$target_folder" "${{ steps.artifacts.outputs.target_folder }}"
+            git add "${{ steps.artifacts.outputs.target_folder }}"
+            docs_changed=`git diff --cached --exit-code > /dev/null && echo false || echo true`
+          fi
 
           pr_comment='**CUDA Quantum Docs Bot:** '
           if $docs_changed; then
-            pr_comment+='A preview of the documentation can be found [here](${{ steps.push_docs.outputs.preview_link }}).'
+            branch_name=`git rev-parse --abbrev-ref HEAD`
+            preview_link=https://htmlpreview.github.io/?https://github.com/${{ github.repository }}/blob/${branch_name}/${target_folder}/index.html
+            pr_comment+='A preview of the documentation can be found [here]($preview_link).'
             echo "$pr_comment" >> $GITHUB_STEP_SUMMARY
           else
             pr_comment+='This PR contains no documentation changes.'
@@ -145,9 +146,9 @@ jobs:
           echo "pr_comment=$pr_comment" >> $GITHUB_OUTPUT
 
       - name: Comment on PR
-        if: steps.artifacts.outputs.pr_number != '' && steps.docs_info.outcome != 'skipped'
+        if: steps.artifacts.outputs.pr_number != '' && steps.push_docs.outcome != 'skipped'
         uses: peter-evans/create-or-update-comment@v3
         with:
           issue-number: ${{ steps.artifacts.outputs.pr_number }}
-          body: ${{ steps.docs_info.outputs.pr_comment }}
+          body: ${{ steps.push_docs.outputs.pr_comment }}
           edit-mode: replace
