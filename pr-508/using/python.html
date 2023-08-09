@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CUDA Quantum in Python &mdash; NVIDIA CUDA Quantum  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/cudaq_override.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/_static/cudaq_override.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="CUDA Quantum Simulation Backends" href="simulators.html" />
+    <link rel="prev" title="CUDA Quantum in C++" href="cpp.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" > 
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            NVIDIA CUDA Quantum
+          </a>
+              <div class="version">
+                pr-508
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+  <style>
+    /* Sidebar header (and topbar for mobile) */
+    .wy-side-nav-search, .wy-nav-top {
+      background: #76b900;
+    }
+
+    .wy-side-nav-search a:link, .wy-nav-top a:link {
+      color: #fff;
+    }
+    .wy-side-nav-search a:visited, .wy-nav-top a:visited {
+      color: #fff;
+    }
+    .wy-side-nav-search a:hover, .wy-nav-top a:hover {
+      color: #fff;
+    }
+
+    .wy-menu-vertical a:link, .wy-menu-vertical a:visited {
+      color: #d9d9d9
+    }
+
+    .wy-menu-vertical a:active {
+      background-color: #76b900
+    }
+
+    .wy-side-nav-search>div.version {
+      color: rgba(0, 0, 0, 0.3)
+    }
+
+    /* override table width restrictions */
+    .wy-table-responsive table td, .wy-table-responsive table th {
+        white-space: normal;
+    }
+
+    .wy-table-responsive {
+        margin-bottom: 24px;
+        max-width: 100%;
+        overflow: visible;
+    }
+  </style>
+  
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../install.html">   Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#docker-image">Docker Image</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../install.html#install-the-docker-image">Install the Docker Image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../install.html#use-cuda-quantum-in-a-terminal">Use CUDA Quantum in a Terminal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../install.html#use-cuda-quantum-in-vs-code">Use CUDA Quantum in VS Code</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#python-wheels">Python wheels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#build-cuda-quantum-from-source">Build CUDA Quantum from Source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#next-steps">Next Steps</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cudaq.html">   Learn the Basics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cudaq/prereqs.html">CUDA Quantum Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cudaq/compiling.html">Compiling CUDA Quantum Programs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cudaq/kernel.html">What is a CUDA Quantum Kernel?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cudaq/allocating_quantum_memory.html">Allocating Quantum Memory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cudaq/runtime_v_compile.html">Runtime Versus Compile-time Kernels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cudaq/generic_functions.html">Generic Library Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cudaq/builder.html">Creating Kernels at Runtime</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cudaq/variational.html">Variational Algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cudaq/platform.html">Asynchronous Execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cudaq/verbose_out.html">Debugging and Verbose Logging</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="advanced.html">   Advanced Topics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="advanced/nvqir_simulator.html">Create a new NVQIR Simulator</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="advanced/nvqir_simulator.html#circuitsimulator"><code class="code docutils literal notranslate"><span class="pre">CircuitSimulator</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="advanced/nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/cmake_app.html">Downstream CMake Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/cudaq_ir.html">Working with CUDA Quantum IR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/mlir_pass.html">Create an MLIR Pass for CUDA Quantum</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="examples.html">   Examples</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="cpp.html">   CUDA Quantum in C++</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cpp.html#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cpp.html#computing-expectation-values">Computing Expectation Values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cpp.html#multi-control-synthesis">Multi-control Synthesis</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cpp.html#simulations-with-cuquantum">Simulations with cuQuantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cpp.html#using-quantum-hardware-providers">Using Quantum Hardware Providers</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">   CUDA Quantum in Python</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#bernstein-vazirani">Bernstein-Vazirani</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#variational-quantum-eigensolver">Variational Quantum Eigensolver</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#quantum-approximate-optimization-algorithm">Quantum Approximate Optimization Algorithm</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#hybrid-quantum-neural-networks">Hybrid Quantum Neural Networks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#using-quantum-hardware-providers">Using Quantum Hardware Providers</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="simulators.html">   Simulator Backends</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="simulators.html#state-vector-simulators">State Vector Simulators</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="simulators.html#cuquantum-single-gpu">cuQuantum single-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simulators.html#cuquantum-multi-node-multi-gpu">cuQuantum multi-node multi-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="simulators.html#tensor-network-simulators">Tensor Network Simulators</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="simulators.html#id1">cuQuantum multi-node multi-GPU</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="hardware.html">   Hardware Backends</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="hardware.html#quantinuum">Quantinuum</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="hardware.html#setting-credentials">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware.html#submission-from-c">Submission from C++</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware.html#submission-from-python">Submission from Python</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="hardware.html#ionq">IonQ</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="hardware.html#id1">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware.html#id2">Submission from C++</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware.html#id3">Submission from Python</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../specification/index.html">   Specifications</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../specification/cudaq.html">   Language Specification</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/machine_model.html">1. Machine Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/namespace.html">2. Namespace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/types.html">3. Quantum Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/types.html#cudaq-qudit-levels">3.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::qudit&lt;Levels&gt;</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/types.html#cudaq-qubit">3.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/types.html#quantum-containers">3.3. Quantum Containers</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/operators.html">4. Quantum Operators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/operators.html#cudaq-spin-op">4.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::spin_op</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/operations.html">5. Quantum Operations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/operations.html#operations-on-cudaq-qubit">5.1. Operations on <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/kernels.html">6. Quantum Kernels</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/kernels.html#kernel-composability">6.1. Kernel Composability</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/kernels.html#allowed-kernel-classical-function-invocations">6.2. Allowed Kernel Classical Function Invocations</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/synthesis.html">7. Sub-circuit Synthesis</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/control_flow.html">8. Control Flow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/dynamic_kernels.html">9. Just-in-Time Kernel Creation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/patterns.html">10. Quantum Patterns</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/patterns.html#compute-action-uncompute">10.1. Compute-Action-Uncompute</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/platform.html">11. Platform</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html">12. Algorithmic Primitives</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html#cudaq-sample">12.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html#cudaq-observe">12.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/algorithmic_primitives.html#cudaq-gradient">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/examples.html">13. Example Programs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/examples.html#hello-world-simple-bell-state">13.1. Hello World - Simple Bell State</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/examples.html#ghz-state-preparation-and-sampling">13.2. GHZ State Preparation and Sampling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/examples.html#quantum-phase-estimation">13.3. Quantum Phase Estimation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/examples.html#deuteron-binding-energy-parameter-sweep">13.4. Deuteron Binding Energy Parameter Sweep</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/examples.html#grover-s-algorithm">13.5. Grover’s Algorithm</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/examples.html#iterative-phase-estimation">13.6. Iterative Phase Estimation</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../specification/quake-dialect.html">   Quake Specification</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../specification/quake-dialect.html#general-introduction">General Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../specification/quake-dialect.html#motivation">Motivation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../specification/quake-dialect.html#quake-types">Quake Types</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api/api.html">   API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../api/languages/cpp_api.html">C++ API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/languages/cpp_api.html#operators">Operators</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/languages/cpp_api.html#quantum">Quantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/languages/cpp_api.html#common">Common</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/languages/cpp_api.html#noise-modeling">Noise Modeling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/languages/cpp_api.html#kernel-builder">Kernel Builder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/languages/cpp_api.html#algorithms">Algorithms</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/languages/cpp_api.html#platform">Platform</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/languages/cpp_api.html#namespaces">Namespaces</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api/languages/python_api.html">Python API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#cudaq.initialize_cudaq"><code class="docutils literal notranslate"><span class="pre">initialize_cudaq()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#cudaq.num_available_gpus"><code class="docutils literal notranslate"><span class="pre">num_available_gpus()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#cudaq.set_random_seed"><code class="docutils literal notranslate"><span class="pre">set_random_seed()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#program-construction">Program Construction</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.make_kernel"><code class="docutils literal notranslate"><span class="pre">make_kernel()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.Kernel"><code class="docutils literal notranslate"><span class="pre">Kernel</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#kernel-execution">Kernel Execution</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.sample_async"><code class="docutils literal notranslate"><span class="pre">sample_async()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.observe"><code class="docutils literal notranslate"><span class="pre">observe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.observe_async"><code class="docutils literal notranslate"><span class="pre">observe_async()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#backend-configuration">Backend Configuration</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.has_target"><code class="docutils literal notranslate"><span class="pre">has_target()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.get_target"><code class="docutils literal notranslate"><span class="pre">get_target()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.get_targets"><code class="docutils literal notranslate"><span class="pre">get_targets()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.set_target"><code class="docutils literal notranslate"><span class="pre">set_target()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.reset_target"><code class="docutils literal notranslate"><span class="pre">reset_target()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.set_noise"><code class="docutils literal notranslate"><span class="pre">set_noise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.unset_noise"><code class="docutils literal notranslate"><span class="pre">unset_noise()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#data-types">Data Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.QuakeValue"><code class="docutils literal notranslate"><span class="pre">QuakeValue</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.SpinOperator"><code class="docutils literal notranslate"><span class="pre">SpinOperator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.spin.i"><code class="docutils literal notranslate"><span class="pre">spin.i()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.spin.x"><code class="docutils literal notranslate"><span class="pre">spin.x()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.spin.y"><code class="docutils literal notranslate"><span class="pre">spin.y()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.spin.z"><code class="docutils literal notranslate"><span class="pre">spin.z()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.SampleResult"><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.ObserveResult"><code class="docutils literal notranslate"><span class="pre">ObserveResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.AsyncObserveResult"><code class="docutils literal notranslate"><span class="pre">AsyncObserveResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.OptimizationResult"><code class="docutils literal notranslate"><span class="pre">OptimizationResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#optimizers">Optimizers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#gradients">Gradients</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#noisy-simulation">Noisy Simulation</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">   Other Versions</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">NVIDIA CUDA Quantum</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="examples.html">CUDA Quantum by Example</a></li>
+      <li class="breadcrumb-item active">CUDA Quantum in Python</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/using/python.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="cuda-quantum-in-python">
+<h1>CUDA Quantum in Python<a class="headerlink" href="#cuda-quantum-in-python" title="Permalink to this heading">¶</a></h1>
+<p>Welcome to CUDA Quantum!
+This is a introduction by example for using CUDA Quantum in Python.</p>
+<section id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this heading">¶</a></h2>
+<p>We’re going to take a look at how to construct quantum programs through CUDA Quantum’s <code class="code docutils literal notranslate"><span class="pre">Kernel</span></code> API.</p>
+<p>When you create a <code class="code docutils literal notranslate"><span class="pre">Kernel</span></code> and invoke its methods, a quantum program is constructed that can then be executed by calling, for example, <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code>. Let’s take a closer look!</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+
+<span class="c1"># We begin by defining the `Kernel` that we will construct our</span>
+<span class="c1"># program with.</span>
+<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+
+<span class="c1"># Next, we can allocate qubits to the kernel via `qalloc(qubit_count)`.</span>
+<span class="c1"># An empty call to `qalloc` will return a single qubit.</span>
+<span class="n">qubit</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+
+<span class="c1"># Now we can begin adding instructions to apply to this qubit!</span>
+<span class="c1"># Here we&#39;ll just add every non-parameterized</span>
+<span class="c1"># single qubit gate that is supported by CUDA Quantum.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">t</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+
+<span class="c1"># Next, we add a measurement to the kernel so that we can sample</span>
+<span class="c1"># the measurement results on our simulator!</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+
+<span class="c1"># Finally, we can execute this kernel on the state vector simulator</span>
+<span class="c1"># by calling `cudaq.sample`. This will execute the provided kernel</span>
+<span class="c1"># `shots_count` number of times and return the sampled distribution</span>
+<span class="c1"># as a `cudaq.SampleResult` dictionary.</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+
+<span class="c1"># Now let&#39;s take a look at the `SampleResult` we&#39;ve gotten back!</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>  <span class="c1"># or result.dump()</span>
+</pre></div>
+</div>
+</section>
+<section id="bernstein-vazirani">
+<h2>Bernstein-Vazirani<a class="headerlink" href="#bernstein-vazirani" title="Permalink to this heading">¶</a></h2>
+<p>Bernstein Vazirani is an algorithm for finding the bitstring encoded in a given function.</p>
+<p>For the original source of this algorithm, see
+<a class="reference external" href="https://epubs.siam.org/doi/10.1137/S0097539796300921">this publication</a>.</p>
+<p>In this example, we generate a random bitstring, encode it into an inner-product oracle, then we simulate the kernel and return the most probable bitstring from its execution.</p>
+<p>If all goes well, the state measured with the highest probability should be our hidden bitstring!</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+<span class="kn">import</span> <span class="nn">random</span>
+
+
+<span class="k">def</span> <span class="nf">random_bitstring</span><span class="p">(</span><span class="n">length</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+    <span class="n">bitstring</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">bit</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">length</span><span class="p">):</span>
+        <span class="n">bitstring</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">bitstring</span>
+
+
+<span class="k">def</span> <span class="nf">oracle</span><span class="p">(</span><span class="n">kernel</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">Kernel</span><span class="p">,</span> <span class="n">register</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">QuakeValue</span><span class="p">,</span>
+           <span class="n">auxillary_qubit</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">QuakeValue</span><span class="p">,</span> <span class="n">hidden_bitstring</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The inner-product oracle for Bernstein Vazirani.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">bit</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">hidden_bitstring</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">bit</span> <span class="o">==</span> <span class="s2">&quot;0&quot;</span><span class="p">:</span>
+            <span class="c1"># Apply identity operation to the qubit if it&#39;s</span>
+            <span class="c1"># to be in the 0-state.</span>
+            <span class="c1"># In this case, we do nothing.</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Otherwise, apply a `cx` gate with the current qubit as</span>
+            <span class="c1"># the control and the auxillary qubit as the target.</span>
+            <span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">control</span><span class="o">=</span><span class="n">register</span><span class="p">[</span><span class="n">index</span><span class="p">],</span> <span class="n">target</span><span class="o">=</span><span class="n">auxillary_qubit</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">bernstein_vazirani</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns a kernel implementing the Bernstein Vazirani algorithm</span>
+<span class="sd">    for a random, hidden bitstring.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+    <span class="c1"># Allocate the specified number of qubits - this</span>
+    <span class="c1"># corresponds to the length of the hidden bitstring.</span>
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
+    <span class="c1"># Allocate an extra auxillary qubit.</span>
+    <span class="n">auxillary_qubit</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+
+    <span class="c1"># Prepare the auxillary qubit.</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">auxillary_qubit</span><span class="p">)</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">auxillary_qubit</span><span class="p">)</span>
+
+    <span class="c1"># Place the rest of the register in a superposition state.</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
+
+    <span class="c1"># Generate a random, hidden bitstring for the oracle</span>
+    <span class="c1"># to encode. Note: we define the bitstring here so</span>
+    <span class="c1"># as to be able to return it for verification.</span>
+    <span class="n">hidden_bitstring</span> <span class="o">=</span> <span class="n">random_bitstring</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
+
+    <span class="c1"># Query the oracle.</span>
+    <span class="n">oracle</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">auxillary_qubit</span><span class="p">,</span> <span class="n">hidden_bitstring</span><span class="p">)</span>
+
+    <span class="c1"># Apply another set of Hadamards to the register.</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
+
+    <span class="c1"># Apply measurement gates to just the `qubits`</span>
+    <span class="c1"># (excludes the auxillary qubit).</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">kernel</span><span class="p">,</span> <span class="n">hidden_bitstring</span>
+
+
+<span class="c1"># If you have a NVIDIA GPU you can use this example to see</span>
+<span class="c1"># that the GPU-accelerated backends can easily handle a</span>
+<span class="c1"># larger number of qubits compared the CPU-only backend.</span>
+
+<span class="c1"># Depending on the available memory on your GPU, you can</span>
+<span class="c1"># set the number of qubits to around 30 qubits, and un-comment</span>
+<span class="c1"># the `cudaq.set_target(nvidia)` line.</span>
+
+<span class="c1"># Note: Without setting the target to the `nvidia` backend,</span>
+<span class="c1"># a 30 qubit simulation simply seems to hang; that is</span>
+<span class="c1"># because it takes a long time for the CPU-only backend</span>
+<span class="c1"># to handle this number of qubits!</span>
+
+<span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">5</span>  <span class="c1"># set to around 30 qubits for `nvidia` target</span>
+<span class="c1"># ```</span>
+<span class="c1"># cudaq.set_target(&quot;nvidia&quot;)</span>
+<span class="c1"># ```</span>
+
+<span class="n">kernel</span><span class="p">,</span> <span class="n">hidden_bitstring</span> <span class="o">=</span> <span class="n">bernstein_vazirani</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;encoded bitstring = </span><span class="si">{</span><span class="n">hidden_bitstring</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;measured state = </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">most_probable</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Were we successful? </span><span class="si">{</span><span class="n">hidden_bitstring</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">result</span><span class="o">.</span><span class="n">most_probable</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="variational-quantum-eigensolver">
+<h2>Variational Quantum Eigensolver<a class="headerlink" href="#variational-quantum-eigensolver" title="Permalink to this heading">¶</a></h2>
+<p>Let’s take a look at how we can use CUDA Quantum’s built-in <code class="code docutils literal notranslate"><span class="pre">vqe</span></code> module to run our own custom VQE routines! Given a parameterized quantum kernel, a system spin Hamiltonian, and one of CUDA Quantum’s optimizers, <code class="code docutils literal notranslate"><span class="pre">cudaq.vqe</span></code> will find and return the optimal set of parameters that minimize the energy, &lt;Z&gt;, of the system.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+<span class="kn">from</span> <span class="nn">cudaq</span> <span class="kn">import</span> <span class="n">spin</span>
+
+<span class="c1"># We begin by defining the spin Hamiltonian for the system that we are working</span>
+<span class="c1"># with. This is achieved through the use of `cudaq.SpinOperator`&#39;s, which allow</span>
+<span class="c1"># for the convenient creation of complex Hamiltonians out of Pauli spin operators.</span>
+<span class="n">hamiltonian</span> <span class="o">=</span> <span class="mf">5.907</span> <span class="o">-</span> <span class="mf">2.1433</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mf">2.1433</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span>
+    <span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mf">.21829</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="mf">6.125</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="c1"># Next, using the `cudaq.Kernel`, we define the variational quantum circuit</span>
+<span class="c1"># that we&#39;d like to use as an ansatz.</span>
+<span class="c1"># Create a kernel that takes a list of floats as a function argument.</span>
+<span class="n">kernel</span><span class="p">,</span> <span class="n">thetas</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+<span class="c1"># Allocate 2 qubits.</span>
+<span class="n">qubits</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="c1"># Apply an `ry` gate that is parameterized by the first</span>
+<span class="c1"># `QuakeValue` entry of our list, `thetas`.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">ry</span><span class="p">(</span><span class="n">thetas</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="c1"># Note: the kernel must not contain measurement instructions.</span>
+
+<span class="c1"># The last thing we need is to pick an optimizer from the suite of `cudaq.optimizers`.</span>
+<span class="c1"># We can optionally tune this optimizer through its initial parameters, iterations,</span>
+<span class="c1"># optimization bounds, etc. before passing it to `cudaq.vqe`.</span>
+<span class="n">optimizer</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">COBYLA</span><span class="p">()</span>
+<span class="c1"># optimizer.max_iterations = ...</span>
+<span class="c1"># optimizer...</span>
+
+<span class="c1"># Finally, we can pass all of that into `cudaq.vqe` and it will automatically run our</span>
+<span class="c1"># optimization loop and return a tuple of the minimized eigenvalue of our `spin_operator`</span>
+<span class="c1"># and the list of optimal variational parameters.</span>
+<span class="n">energy</span><span class="p">,</span> <span class="n">parameter</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">vqe</span><span class="p">(</span>
+    <span class="n">kernel</span><span class="o">=</span><span class="n">kernel</span><span class="p">,</span>
+    <span class="n">spin_operator</span><span class="o">=</span><span class="n">hamiltonian</span><span class="p">,</span>
+    <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span>
+    <span class="c1"># list of parameters has length of 1:</span>
+    <span class="n">parameter_count</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">minimized &lt;H&gt; = </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">energy</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;optimal theta = </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">parameter</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="mi">3</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Let’s look at a more advanced examples.</p>
+<p>As an alternative to <code class="code docutils literal notranslate"><span class="pre">cudaq.vqe</span></code>, we can also use the <code class="code docutils literal notranslate"><span class="pre">cudaq.optimizers</span></code> suite on its own to write custom variational algorithm routines. Much of this can be slightly modified for use with third-party optimizers, such as <code class="code docutils literal notranslate"><span class="pre">scipy</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+<span class="kn">from</span> <span class="nn">cudaq</span> <span class="kn">import</span> <span class="n">spin</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="c1"># We will be optimizing over a custom objective function that takes a vector</span>
+<span class="c1"># of parameters as input and returns either the cost as a single float,</span>
+<span class="c1"># or in a tuple of (cost, gradient_vector) depending on the optimizer used.</span>
+
+<span class="c1"># In this case, we will use the spin Hamiltonian and ansatz from `simple_vqe.py`</span>
+<span class="c1"># and find the `thetas` that minimize the expectation value of the system.</span>
+<span class="n">hamiltonian</span> <span class="o">=</span> <span class="mf">5.907</span> <span class="o">-</span> <span class="mf">2.1433</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mf">2.1433</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span>
+    <span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mf">.21829</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="mf">6.125</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="n">kernel</span><span class="p">,</span> <span class="n">thetas</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+<span class="n">qubits</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">ry</span><span class="p">(</span><span class="n">thetas</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+<span class="c1"># Define the optimizer that we&#39;d like to use.</span>
+<span class="n">optimizer</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">Adam</span><span class="p">()</span>
+
+<span class="c1"># Since we&#39;ll be using a gradient-based optimizer, we can leverage</span>
+<span class="c1"># CUDA Quantum&#39;s gradient helper class to automatically compute the gradient</span>
+<span class="c1"># vector for us. The use of this class for gradient calculations is</span>
+<span class="c1"># purely optional and can be replaced with your own custom gradient</span>
+<span class="c1"># routine.</span>
+<span class="n">gradient</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">gradients</span><span class="o">.</span><span class="n">CentralDifference</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">objective_function</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
+                       <span class="n">hamiltonian</span><span class="o">=</span><span class="n">hamiltonian</span><span class="p">,</span>
+                       <span class="n">gradient_strategy</span><span class="o">=</span><span class="n">gradient</span><span class="p">,</span>
+                       <span class="n">kernel</span><span class="o">=</span><span class="n">kernel</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Note: the objective function may also take extra arguments, provided they</span>
+<span class="sd">    are passed into the function as default arguments in python.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Call `cudaq.observe` on the spin operator and ansatz at the</span>
+    <span class="c1"># optimizer provided parameters. This will allow us to easily</span>
+    <span class="c1"># extract the expectation value of the entire system in the</span>
+    <span class="c1"># z-basis.</span>
+
+    <span class="c1"># We define the call to `cudaq.observe` here as a lambda to</span>
+    <span class="c1"># allow it to be passed into the gradient strategy as a</span>
+    <span class="c1"># function. If you were using a gradient-free optimizer,</span>
+    <span class="c1"># you could purely define `cost = cudaq.observe().expectation_z()`.</span>
+    <span class="n">get_result</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">parameter_vector</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span>
+        <span class="n">kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">parameter_vector</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">expectation_z</span><span class="p">()</span>
+    <span class="c1"># `cudaq.observe` returns a `cudaq.ObserveResult` that holds the</span>
+    <span class="c1"># counts dictionary and the `expectation_z`.</span>
+    <span class="n">cost</span> <span class="o">=</span> <span class="n">get_result</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&lt;H&gt; = </span><span class="si">{</span><span class="n">cost</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="c1"># Compute the gradient vector using `cudaq.gradients.STRATEGY.compute()`.</span>
+    <span class="n">gradient_vector</span> <span class="o">=</span> <span class="n">gradient_strategy</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">,</span> <span class="n">get_result</span><span class="p">,</span>
+                                                <span class="n">cost</span><span class="p">)</span>
+
+    <span class="c1"># Return the (cost, gradient_vector) tuple.</span>
+    <span class="k">return</span> <span class="n">cost</span><span class="p">,</span> <span class="n">gradient_vector</span>
+
+
+<span class="n">energy</span><span class="p">,</span> <span class="n">parameter</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span><span class="n">dimensions</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                                       <span class="n">function</span><span class="o">=</span><span class="n">objective_function</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">minimized &lt;H&gt; = </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">energy</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;optimal theta = </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">parameter</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="mi">3</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="quantum-approximate-optimization-algorithm">
+<h2>Quantum Approximate Optimization Algorithm<a class="headerlink" href="#quantum-approximate-optimization-algorithm" title="Permalink to this heading">¶</a></h2>
+<p>Let’s now see how we can leverage the VQE algorithm to compute the Max-Cut of a rectangular graph.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+<span class="kn">from</span> <span class="nn">cudaq</span> <span class="kn">import</span> <span class="n">spin</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="c1"># Here we build up a kernel for QAOA with `p` layers, with each layer</span>
+<span class="c1"># containing the alternating set of unitaries corresponding to the problem</span>
+<span class="c1"># and the mixer Hamiltonians. The algorithm leverages the VQE algorithm</span>
+<span class="c1"># to compute the Max-Cut of a rectangular graph illustrated below.</span>
+
+<span class="c1">#       v0  0---------------------0 v1</span>
+<span class="c1">#           |                     |</span>
+<span class="c1">#           |                     |</span>
+<span class="c1">#           |                     |</span>
+<span class="c1">#           |                     |</span>
+<span class="c1">#       v3  0---------------------0 v2</span>
+<span class="c1"># The Max-Cut for this problem is 0101 or 1010.</span>
+
+<span class="c1"># The problem Hamiltonian</span>
+<span class="n">hamiltonian</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> \
+       <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+
+<span class="c1"># Problem parameters.</span>
+<span class="n">qubit_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="n">layer_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">parameter_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">layer_count</span>
+
+
+<span class="k">def</span> <span class="nf">kernel_qaoa</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">Kernel</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;QAOA ansatz for Max-Cut&quot;&quot;&quot;</span>
+    <span class="n">kernel</span><span class="p">,</span> <span class="n">thetas</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">qreg</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
+
+    <span class="c1"># Create superposition</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qreg</span><span class="p">)</span>
+
+    <span class="c1"># Loop over the layers</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">layer_count</span><span class="p">):</span>
+        <span class="c1"># Loop over the qubits</span>
+        <span class="c1"># Problem unitary</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">):</span>
+            <span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qreg</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">qreg</span><span class="p">[(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">qubit_count</span><span class="p">])</span>
+            <span class="n">kernel</span><span class="o">.</span><span class="n">rz</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">thetas</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">qreg</span><span class="p">[(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">qubit_count</span><span class="p">])</span>
+            <span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qreg</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">qreg</span><span class="p">[(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">qubit_count</span><span class="p">])</span>
+
+        <span class="c1"># Mixer unitary</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">):</span>
+            <span class="n">kernel</span><span class="o">.</span><span class="n">rx</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">thetas</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="n">layer_count</span><span class="p">],</span> <span class="n">qreg</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">kernel</span>
+
+
+<span class="c1"># Specify the optimizer and its initial parameters.</span>
+<span class="n">optimizer</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">COBYLA</span><span class="p">()</span>
+<span class="n">optimizer</span><span class="o">.</span><span class="n">initial_parameters</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">8.0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">8.0</span><span class="p">,</span>
+                                                 <span class="n">parameter_count</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Initial parameters = &quot;</span><span class="p">,</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">initial_parameters</span><span class="p">)</span>
+
+<span class="c1"># Pass the kernel, spin operator, and optimizer to `cudaq.vqe`.</span>
+<span class="n">optimal_expectation</span><span class="p">,</span> <span class="n">optimal_parameters</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">vqe</span><span class="p">(</span>
+    <span class="n">kernel</span><span class="o">=</span><span class="n">kernel_qaoa</span><span class="p">(),</span>
+    <span class="n">spin_operator</span><span class="o">=</span><span class="n">hamiltonian</span><span class="p">,</span>
+    <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span>
+    <span class="n">parameter_count</span><span class="o">=</span><span class="n">parameter_count</span><span class="p">)</span>
+
+<span class="c1"># Print the optimized value and its parameters</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Optimal value = &quot;</span><span class="p">,</span> <span class="n">optimal_expectation</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Optimal parameters = &quot;</span><span class="p">,</span> <span class="n">optimal_parameters</span><span class="p">)</span>
+
+<span class="c1"># Sample the circuit using the optimized parameters</span>
+<span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel_qaoa</span><span class="p">(),</span> <span class="n">optimal_parameters</span><span class="p">)</span>
+<span class="n">counts</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="hybrid-quantum-neural-networks">
+<span id="python-examples-for-hardware-providers"></span><h2>Hybrid Quantum Neural Networks<a class="headerlink" href="#hybrid-quantum-neural-networks" title="Permalink to this heading">¶</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+ <span class="s2">&quot;cells&quot;</span><span class="p">:</span> <span class="p">[</span>
+  <span class="p">{</span>
+   <span class="s2">&quot;attachments&quot;</span><span class="p">:</span> <span class="p">{},</span>
+   <span class="s2">&quot;cell_type&quot;</span><span class="p">:</span> <span class="s2">&quot;markdown&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="p">{},</span>
+   <span class="s2">&quot;source&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">&quot;# Hybrid Quantum Neural Networks </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;The example below highlights a hybrid quantum neural network workflow with CUDA Quantum and Pytorch where both layers are GPU accelerated to maximise performance. </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;&lt;!-- ![hybrid](hybrid.png) --&gt;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;&lt;img src=</span><span class="se">\&quot;</span><span class="s2">hybrid.png</span><span class="se">\&quot;</span><span class="s2"> alt=</span><span class="se">\&quot;</span><span class="s2">hybrid</span><span class="se">\&quot;</span><span class="s2"> width=</span><span class="se">\&quot;</span><span class="s2">600</span><span class="se">\&quot;</span><span class="s2">&gt;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+   <span class="p">]</span>
+  <span class="p">},</span>
+  <span class="p">{</span>
+   <span class="s2">&quot;attachments&quot;</span><span class="p">:</span> <span class="p">{},</span>
+   <span class="s2">&quot;cell_type&quot;</span><span class="p">:</span> <span class="s2">&quot;markdown&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="p">{},</span>
+   <span class="s2">&quot;source&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">&quot;We perform binary classification on the MNIST dataset where data flows through the neural network architecture to the quantum circuit whose output is used to classify hand written digits.&quot;</span>
+   <span class="p">]</span>
+  <span class="p">},</span>
+  <span class="p">{</span>
+   <span class="s2">&quot;cell_type&quot;</span><span class="p">:</span> <span class="s2">&quot;code&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;execution_count&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+   <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="p">{},</span>
+   <span class="s2">&quot;outputs&quot;</span><span class="p">:</span> <span class="p">[],</span>
+   <span class="s2">&quot;source&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">&quot;# Import the relevant packages</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;import numpy as np</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;import matplotlib.pyplot as plt</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;import torch</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;from torch.autograd import Function</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;from torchvision import datasets, transforms</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;import torch.optim as optim</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;import torch.nn as nn</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;import torch.nn.functional as F</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;import cudaq</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;from cudaq import spin&quot;</span>
+   <span class="p">]</span>
+  <span class="p">},</span>
+  <span class="p">{</span>
+   <span class="s2">&quot;cell_type&quot;</span><span class="p">:</span> <span class="s2">&quot;code&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;execution_count&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+   <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="p">{},</span>
+   <span class="s2">&quot;outputs&quot;</span><span class="p">:</span> <span class="p">[],</span>
+   <span class="s2">&quot;source&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">&quot;# GPU utilities</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;cudaq.set_target(</span><span class="se">\&quot;</span><span class="s2">nvidia</span><span class="se">\&quot;</span><span class="s2">)  # Set CUDAQ to run on GPUs</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;torch.cuda.is_available()  # If this is True then the NVIDIA drivers are correctly installed</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;torch.cuda.device_count()  # Counts the number of GPUs available</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;torch.cuda.current_device()</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;torch.cuda.get_device_name(0)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;device = torch.device(</span><span class="se">\&quot;</span><span class="s2">cuda:0</span><span class="se">\&quot;</span><span class="s2"> if torch.cuda.is_available() else </span><span class="se">\&quot;</span><span class="s2">cpu</span><span class="se">\&quot;</span><span class="s2">)&quot;</span>
+   <span class="p">]</span>
+  <span class="p">},</span>
+  <span class="p">{</span>
+   <span class="s2">&quot;cell_type&quot;</span><span class="p">:</span> <span class="s2">&quot;code&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;execution_count&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+   <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="p">{},</span>
+   <span class="s2">&quot;outputs&quot;</span><span class="p">:</span> <span class="p">[],</span>
+   <span class="s2">&quot;source&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">&quot;# Training set</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;n_samples = 140</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;X_train = datasets.MNIST(</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    root=</span><span class="se">\&quot;</span><span class="s2">./data</span><span class="se">\&quot;</span><span class="s2">,</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    train=True,</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    download=True,</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    transform=transforms.Compose([transforms.ToTensor()]),</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;# Leaving only labels 0 and 1</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;idx = np.append(</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    np.where(X_train.targets == 0)[0][:n_samples],</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    np.where(X_train.targets == 1)[0][:n_samples],</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;X_train.data = X_train.data[idx]</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;X_train.targets = X_train.targets[idx]</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;train_loader = torch.utils.data.DataLoader(X_train, batch_size=1, shuffle=True)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;# Test set</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;n_samples = 70</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;X_test = datasets.MNIST(</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    root=</span><span class="se">\&quot;</span><span class="s2">./data</span><span class="se">\&quot;</span><span class="s2">,</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    train=False,</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    download=True,</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    transform=transforms.Compose([transforms.ToTensor()]),</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;idx = np.append(</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    np.where(X_test.targets == 0)[0][:n_samples],</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    np.where(X_test.targets == 1)[0][:n_samples],</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;X_test.data = X_test.data[idx]</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;X_test.targets = X_test.targets[idx]</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;test_loader = torch.utils.data.DataLoader(X_test, batch_size=1, shuffle=True)&quot;</span>
+   <span class="p">]</span>
+  <span class="p">},</span>
+  <span class="p">{</span>
+   <span class="s2">&quot;cell_type&quot;</span><span class="p">:</span> <span class="s2">&quot;code&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;execution_count&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+   <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="p">{},</span>
+   <span class="s2">&quot;outputs&quot;</span><span class="p">:</span> <span class="p">[],</span>
+   <span class="s2">&quot;source&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">&quot;class QuantumCircuit:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    </span><span class="se">\&quot;\&quot;\&quot;</span><span class="s2">This class defines the quantum circuit structure and the run method which is used to calculate an expectation value</span><span class="se">\&quot;\&quot;\&quot;\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    def __init__(self, n_qubits: int):</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        </span><span class="se">\&quot;\&quot;\&quot;</span><span class="s2">Define the quantum circuit in CUDA Quantum</span><span class="se">\&quot;\&quot;\&quot;\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        kernel, thetas = cudaq.make_kernel(list)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        self.kernel = kernel</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        self.theta = thetas</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        qubits = kernel.qalloc(n_qubits)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        self.kernel.h(qubits)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        # Variational gate parameters which are optimised during training</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        kernel.ry(thetas[0], qubits[0])</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        kernel.rx(thetas[1], qubits[0])</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    def run(self, thetas: torch.tensor) -&gt; torch.tensor:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        </span><span class="se">\&quot;\&quot;\&quot;</span><span class="s2">Excetute the quantum circuit to output an expectation value</span><span class="se">\&quot;\&quot;\&quot;\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        expectation = torch.tensor(</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;            cudaq.observe(self.kernel, spin.z(0), thetas).expectation_z(), device=device</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        )</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        return expectation&quot;</span>
+   <span class="p">]</span>
+  <span class="p">},</span>
+  <span class="p">{</span>
+   <span class="s2">&quot;cell_type&quot;</span><span class="p">:</span> <span class="s2">&quot;code&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;execution_count&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+   <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="p">{},</span>
+   <span class="s2">&quot;outputs&quot;</span><span class="p">:</span> <span class="p">[],</span>
+   <span class="s2">&quot;source&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">&quot;class QuantumFunction(Function):</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    </span><span class="se">\&quot;\&quot;\&quot;</span><span class="s2">Allows the quantum circuit to pass data through it and compute the gradients</span><span class="se">\&quot;\&quot;\&quot;\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    @staticmethod</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    def forward(ctx, thetas: torch.tensor, quantum_circuit, shift) -&gt; torch.tensor:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        # Save shift and quantum_circuit in context to use in backward</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        ctx.shift = shift</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        ctx.quantum_circuit = quantum_circuit</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        # Calculate exp_val</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        expectation_z = ctx.quantum_circuit.run(thetas)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        ctx.save_for_backward(thetas, expectation_z)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        return expectation_z</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    @staticmethod</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    def backward(ctx, grad_output):</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        </span><span class="se">\&quot;\&quot;\&quot;</span><span class="s2">Backward pass computation via finite difference parameter shift</span><span class="se">\&quot;\&quot;\&quot;\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        thetas, expectation_z = ctx.saved_tensors</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        gradients = torch.zeros(len(thetas), device=device)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        for i in range(len(thetas)):</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;            shift_right = torch.clone(thetas)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;            shift_right[i] += ctx.shift</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;            shift_left = torch.clone(thetas)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;            shift_left[i] -= ctx.shift</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;            expectation_right = ctx.quantum_circuit.run(shift_right)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;            expectation_left = ctx.quantum_circuit.run(shift_left)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;            gradients[i] = 0.5 * (expectation_right - expectation_left)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        return gradients * grad_output.float(), None, None&quot;</span>
+   <span class="p">]</span>
+  <span class="p">},</span>
+  <span class="p">{</span>
+   <span class="s2">&quot;cell_type&quot;</span><span class="p">:</span> <span class="s2">&quot;code&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;execution_count&quot;</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span>
+   <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="p">{},</span>
+   <span class="s2">&quot;outputs&quot;</span><span class="p">:</span> <span class="p">[],</span>
+   <span class="s2">&quot;source&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">&quot;class QuantumLayer(nn.Module):</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    </span><span class="se">\&quot;\&quot;\&quot;</span><span class="s2">Encapsulates a quantum circuit and a quantum function into a quantum layer</span><span class="se">\&quot;\&quot;\&quot;\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    def __init__(self, shift: torch.tensor):</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        super(QuantumLayer, self).__init__()</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        self.quantum_circuit = QuantumCircuit(1)  # 1 qubit quantum circuit</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        self.shift = shift</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    def forward(self, input):</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        ans = QuantumFunction.apply(input, self.quantum_circuit, self.shift)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        return ans&quot;</span>
+   <span class="p">]</span>
+  <span class="p">},</span>
+  <span class="p">{</span>
+   <span class="s2">&quot;cell_type&quot;</span><span class="p">:</span> <span class="s2">&quot;code&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;execution_count&quot;</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>
+   <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="p">{},</span>
+   <span class="s2">&quot;outputs&quot;</span><span class="p">:</span> <span class="p">[],</span>
+   <span class="s2">&quot;source&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">&quot;class Net(nn.Module):</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    def __init__(self):</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        super(Net, self).__init__()</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        # Neural network structure</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        self.conv1 = nn.Conv2d(1, 6, kernel_size=5)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        self.conv2 = nn.Conv2d(6, 16, kernel_size=5)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        self.dropout = nn.Dropout2d()</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        self.fc1 = nn.Linear(256, 64)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        self.fc2 = nn.Linear(64, 2)  # Output a 2D tensor since we have 2 variational parameters in our quantum circuit</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        self.hybrid = QuantumLayer(torch.tensor(np.pi / 2))  # Input is the magnitude of the parameter shifts to calculate gradients</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    def forward(self, x):</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        x = F.relu(self.conv1(x))</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        x = F.max_pool2d(x, 2)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        x = F.relu(self.conv2(x))</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        x = F.max_pool2d(x, 2)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        x = self.dropout(x)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        x = x.view(1, -1)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        x = F.relu(self.fc1(x))</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        x = self.fc2(x).reshape(-1)  # Reshapes required to satisfy input dimensions to CUDAQ</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        x = self.hybrid(x).reshape(-1)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        return torch.cat((x, 1 - x), -1).unsqueeze(0)&quot;</span>
+   <span class="p">]</span>
+  <span class="p">},</span>
+  <span class="p">{</span>
+   <span class="s2">&quot;cell_type&quot;</span><span class="p">:</span> <span class="s2">&quot;code&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;execution_count&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+   <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="p">{},</span>
+   <span class="s2">&quot;outputs&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="p">{</span>
+     <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;stdout&quot;</span><span class="p">,</span>
+     <span class="s2">&quot;output_type&quot;</span><span class="p">:</span> <span class="s2">&quot;stream&quot;</span><span class="p">,</span>
+     <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="p">[</span>
+      <span class="s2">&quot;Training [5%]</span><span class="se">\t</span><span class="s2">Loss: -1.0986</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;Training [10%]</span><span class="se">\t</span><span class="s2">Loss: -1.3482</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;Training [15%]</span><span class="se">\t</span><span class="s2">Loss: -1.3649</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;Training [20%]</span><span class="se">\t</span><span class="s2">Loss: -1.4101</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;Training [25%]</span><span class="se">\t</span><span class="s2">Loss: -1.4127</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;Training [30%]</span><span class="se">\t</span><span class="s2">Loss: -1.4262</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;Training [35%]</span><span class="se">\t</span><span class="s2">Loss: -1.4399</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;Training [40%]</span><span class="se">\t</span><span class="s2">Loss: -1.4596</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;Training [45%]</span><span class="se">\t</span><span class="s2">Loss: -1.4620</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;Training [50%]</span><span class="se">\t</span><span class="s2">Loss: -1.4616</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;Training [55%]</span><span class="se">\t</span><span class="s2">Loss: -1.4750</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;Training [60%]</span><span class="se">\t</span><span class="s2">Loss: -1.4765</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;Training [65%]</span><span class="se">\t</span><span class="s2">Loss: -1.4842</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;Training [70%]</span><span class="se">\t</span><span class="s2">Loss: -1.4899</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;Training [75%]</span><span class="se">\t</span><span class="s2">Loss: -1.4887</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;Training [80%]</span><span class="se">\t</span><span class="s2">Loss: -1.4924</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;Training [85%]</span><span class="se">\t</span><span class="s2">Loss: -1.4928</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;Training [90%]</span><span class="se">\t</span><span class="s2">Loss: -1.4887</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;Training [95%]</span><span class="se">\t</span><span class="s2">Loss: -1.4911</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;Training [100%]</span><span class="se">\t</span><span class="s2">Loss: -1.4884</span><span class="se">\n</span><span class="s2">&quot;</span>
+     <span class="p">]</span>
+    <span class="p">}</span>
+   <span class="p">],</span>
+   <span class="s2">&quot;source&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">&quot;# We move our model to the CUDA device to minimise data transfer between GPU and CPU</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;model = Net().to(device)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;optimizer = optim.Adam(model.parameters(), lr=0.001)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;loss_func = nn.NLLLoss().to(device)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;epochs = 20</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;epoch_loss = []</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;model.train()</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;for epoch in range(epochs):</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    batch_loss = 0.0</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    for batch_idx, (data, target) in enumerate(train_loader):  # batch training</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        optimizer.zero_grad()</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        data, target = data.to(device), target.to(device)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        # Forward pass</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        output = model(data).to(device)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        # Calculating loss</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        loss = loss_func(output, target).to(device)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        # Backward pass</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        loss.backward()</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        # Optimize the weights</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        optimizer.step()</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        batch_loss += loss.item()</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    epoch_loss.append(batch_loss / batch_idx)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    print(</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        </span><span class="se">\&quot;</span><span class="s2">Training [</span><span class="si">{:.0f}</span><span class="s2">%]</span><span class="se">\\</span><span class="s2">tLoss: </span><span class="si">{:.4f}</span><span class="se">\&quot;</span><span class="s2">.format(</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;            100.0 * (epoch + 1) / epochs, epoch_loss[-1]</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        )</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    )&quot;</span>
+   <span class="p">]</span>
+  <span class="p">},</span>
+  <span class="p">{</span>
+   <span class="s2">&quot;cell_type&quot;</span><span class="p">:</span> <span class="s2">&quot;code&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;execution_count&quot;</span><span class="p">:</span> <span class="mi">9</span><span class="p">,</span>
+   <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="p">{},</span>
+   <span class="s2">&quot;outputs&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="p">{</span>
+     <span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;text/plain&quot;</span><span class="p">:</span> <span class="p">[</span>
+       <span class="s2">&quot;Text(0, 0.5, &#39;Neg Log Likelihood Loss&#39;)&quot;</span>
+      <span class="p">]</span>
+     <span class="p">},</span>
+     <span class="s2">&quot;execution_count&quot;</span><span class="p">:</span> <span class="mi">9</span><span class="p">,</span>
+     <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="p">{},</span>
+     <span class="s2">&quot;output_type&quot;</span><span class="p">:</span> <span class="s2">&quot;execute_result&quot;</span>
+    <span class="p">},</span>
+    <span class="p">{</span>
+     <span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;image/png&quot;</span><span class="p">:</span> <span class="s2">&quot;iVBORw0KGgoAAAANSUhEUgAAAksAAAHHCAYAAACvJxw8AAAAOXRFWHRTb2Z0d2FyZQBNYXRwbG90bGliIHZlcnNpb24zLjcuMiwgaHR0cHM6Ly9tYXRwbG90bGliLm9yZy8pXeV/AAAACXBIWXMAAA9hAAAPYQGoP6dpAABqoUlEQVR4nO3deVhUZf8G8HtmgGEf9i1xQVRMUckt3E0Ss9zTNHMpX7dccutV318uWEZWlqZlvWVi5dvqkllZLqippKbglhAuiAqIiAz7wMyc3x/A6AgMMzALA/fnus4Vc+Y5Z76HE83dc57zHJEgCAKIiIiIqEpiSxdAREREVJ8xLBERERHpwLBEREREpAPDEhEREZEODEtEREREOjAsEREREenAsERERESkA8MSERERkQ4MS0REREQ6MCwRmVhKSgpEIhHefffdOu1n8uTJaN68ud6fFxMTU6fPs2aHDh2CSCTCoUOHDN6Wvz8iehjDElG5mJgYiEQi/PXXX1W+369fP7Rv397MVZlORaAQiUQ4ffp0pfcnT54MZ2dnrXX9+vWDSCTCkCFDKrXXJxROnjxZ85m6lsmTJ9f5+KzZ7du3sWjRIoSEhMDR0RFOTk7o3Lkz3njjDeTk5Fi6PKJGx8bSBRCRfj799FOo1WqT7HvlypX46aef9G6/Z88enD59Gp07dzboc6ZPn46IiAjN62vXrmH58uWYNm0aevfurVnfsmVLg/b7sD59+qCoqAh2dnYGb9usWTMUFRXB1ta2TjXU1qlTpzB48GDk5+fjhRde0PyO//rrL7z11ls4cuQIfv/9d4vURtRYMSwR1XMFBQVwcnIy2Zd3p06dsGfPHpw5cwaPPfZYje2bNm2KvLw8REVFYffu3QZ9Vnh4OMLDwzWv//rrLyxfvhzh4eF44YUXqt2u4negL7FYDHt7e4NqqyASiWq9bV3l5ORgxIgRkEgkiI+PR0hIiNb7q1evxqeffmqR2oxFqVRCrVbXKsgSWQovwxHVUt++fdGxY8cq32vTpg0iIyMrrX///ffRrFkzODg4oG/fvrhw4YLW+xWXvq5cuYLBgwfDxcUF48eP17z38JilnJwcTJ48GTKZDG5ubpg0aZLBl2nmzJkDd3d3rFy5Uq/2Li4umD9/Pn766SecOXPGoM/SR8Xl0MOHD+Pll1+Gj48PmjRpAgC4fv06Xn75ZbRp0wYODg7w9PTE6NGjkZKSorWPqsYsVVxG/fvvv9G/f384OjrikUcewdtvv621bVVjlirOy61btzB8+HA4OzvD29sbixYtgkql0tr+7t27mDBhAlxdXTXn5OzZs3qNg/rkk09w69YtvPfee5WCEgD4+vritdde01r30UcfoV27dpBKpQgICMCsWbMq/Tugz7Hfvn0bNjY2iIqKqvS5SUlJEIlE2Lhxo2ZdTk4O5s2bh8DAQEilUgQHB2PNmjVavZ8PXppdt24dWrZsCalUir///htA2Xnq0qUL7O3t0bJlS3zyySdYuXIlRCJRpRq++uordO7cGQ4ODvDw8MDYsWNx48YNg4+zQnFxMVauXInWrVvD3t4e/v7+GDlyJK5cuaJpo1arsW7dOrRr1w729vbw9fXF9OnTce/evUr7o4aNPUtED5HL5cjKyqq0vrS0VOv1hAkTMHXqVFy4cEFrLNOpU6fwzz//VPpS++KLL5CXl4dZs2ahuLgY69evxxNPPIHz58/D19dX006pVCIyMhK9evXCu+++C0dHxyrrFAQBw4YNw9GjRzFjxgy0bdsWO3fuxKRJkww6XldXV8yfPx/Lly/Xu3fplVdewfvvv4+VK1ca3Lukr5dffhne3t5Yvnw5CgoKAJT9bo8fP46xY8eiSZMmSElJwaZNm9CvXz/8/fff1f6uKty7dw+DBg3CyJEjMWbMGPzwww9YvHgxQkND8dRTT+ncVqVSITIyEt27d8e7776L/fv3Y+3atWjZsiVmzpwJoOzLdciQITh58iRmzpyJkJAQ/Pjjj3qfk927d8PBwQHPPvusXu1XrlyJqKgoREREYObMmUhKSsKmTZtw6tQpHDt2TKs3sqZj9/X1Rd++ffHdd99hxYoVWp/z7bffQiKRYPTo0QCAwsJC9O3bF7du3cL06dPRtGlTHD9+HEuXLkV6ejrWrVuntf2WLVtQXFyMadOmQSqVwsPDA/Hx8Rg0aBD8/f0RFRUFlUqFVatWwdvbu9Jxrl69GsuWLcOYMWPwr3/9C3fu3MGGDRvQp08fxMfHw83NTe/jBMrO5TPPPIMDBw5g7NixeOWVV5CXl4d9+/bhwoULmsvA06dPR0xMDF588UXMnTsX165dw8aNGxEfH1/p90sNnEBEgiAIwpYtWwQAOpd27dpp2ufk5Aj29vbC4sWLtfYzd+5cwcnJScjPzxcEQRCuXbsmABAcHByEmzdvatqdOHFCACDMnz9fs27SpEkCAGHJkiWV6ps0aZLQrFkzzetdu3YJAIS3335bs06pVAq9e/cWAAhbtmzRebyxsbECAOH7778XcnJyBHd3d2Ho0KFan+fk5KS1Td++fTW/g6ioKAGAcPr0aa3jfOedd3R+7oNOnTpVqdaK89CrVy9BqVRqtS8sLKy0j7i4OAGA8MUXX1Q6ttjYWK3aH26nUCgEPz8/YdSoUZp1FcfxYE0V52XVqlVanx0WFiZ07txZ83r79u0CAGHdunWadSqVSnjiiSf0Oifu7u5Cx44ddbapkJmZKdjZ2QkDBw4UVCqVZv3GjRsFAMLnn39u8LF/8sknAgDh/PnzWp/16KOPCk888YTm9euvvy44OTkJ//zzj1a7JUuWCBKJREhNTRUE4f7v0tXVVcjMzNRqO2TIEMHR0VG4deuWZl1ycrJgY2MjPPjVlJKSIkgkEmH16tVa258/f16wsbHRWq/vcX7++ecCAOG9994THqZWqwVBEIQ//vhDACBs27ZN6/29e/dWuZ4aNl6GI3rIhx9+iH379lVaOnTooNVOJpNh2LBh+PrrryEIAoCy/2P99ttvMXz48EpjbIYPH45HHnlE87pbt27o3r07fvnll0o1VPRU6PLLL7/AxsZGq61EIsGcOXMMOt6KY5k3bx52796N+Ph4vbZ55ZVX4O7uXuVlG2OYOnUqJBKJ1joHBwfNz6Wlpbh79y6Cg4Ph5uam1yVBZ2dnrbFRdnZ26NatG65evapXTTNmzNB63bt3b61t9+7dC1tbW0ydOlWzTiwWY9asWXrtPzc3Fy4uLnq13b9/P0pKSjBv3jyIxff/Uz516lS4urri559/1mqvz7GPHDkSNjY2+PbbbzXrLly4gL///hvPPfecZt3333+P3r17w93dHVlZWZolIiICKpUKR44c0frsUaNGafUYqVQq7N+/H8OHD0dAQIBmfXBwcKUevh07dkCtVmPMmDFan+Xn54dWrVohNjbW4OPcvn07vLy8qvxbqbgE+P3330Mmk+HJJ5/U+tzOnTvD2dm50udSw8bLcEQP6datG7p06VJpfcUXw4MmTpyIb7/9Fn/88Qf69OmD/fv34/bt25gwYUKl7Vu1alVpXevWrfHdd99prbOxsdGM0dHl+vXr8Pf3r3R7f5s2bWrctioPXlr78ccfa2xfEbBWrFiB+Ph4uLu71+pzq9OiRYtK64qKihAdHY0tW7bg1q1bmpAKlF0+rUmTJk0qjYdxd3fHuXPnatzW3t6+0iUid3d3rfErFefk4cuBwcHBNe4fKLskmpeXp1fb69evA6h8vu3s7BAUFKR5v4I+x+7l5YUBAwbgu+++w+uvvw6g7BKcjY0NRo4cqWmXnJyMc+fOVXnJDAAyMzO1Xj98LjMzM1FUVFTl7+XhdcnJyRAEocq/HwCVLoXpc5xXrlxBmzZtYGNT/VdgcnIy5HI5fHx8qnz/4WOkho1hiagOIiMj4evri6+++gp9+vTBV199BT8/P63b4w0llUq1egrMpSL8rFy50qDepffffx9RUVGVxqnU1YO9SBXmzJmDLVu2YN68eQgPD4dMJoNIJMLYsWP1mlbh4Z6qCg+GLkO3NaaQkBAkJCSgpKTE6HeL6XvsY8eOxYsvvoiEhAR06tQJ3333HQYMGAAvLy9NG7VajSeffBL//ve/q9xn69attV5XdS71pVarIRKJ8Ouvv1Z5DA//z0JdzvHDn+vj44Nt27ZV+X51QZEaJoYlojqQSCR4/vnnERMTgzVr1mDXrl1VXj4Cyv5P9WH//POPXrNyV6VZs2Y4cOAA8vPztb4wkpKSarU/AJg3bx7WrVuHqKgorUGz1XkwYBk6sLw2fvjhB0yaNAlr167VrCsuLq43EzU2a9YMsbGxKCws1Opdunz5sl7bDxkyBHFxcdi+fTvGjRtX42cBZec7KChIs76kpATXrl2rdWAfPnw4pk+frrkU988//2Dp0qVabVq2bIn8/Pxaf4aPjw/s7e2r/L08vK5ly5YQBAEtWrSoFMJqq2XLljhx4gRKS0urHaTdsmVL7N+/Hz179qxT2KOGgWOWiOpowoQJuHfvHqZPn66ZSLAqu3btwq1btzSvT548iRMnTtR4F1Z1Bg8eDKVSiU2bNmnWqVQqbNiwoVb7A+6Hnx9//BEJCQl6bTNv3jy4ublh1apVtf5cfUkkkko9BBs2bKh0+76lREZGorS0VGsuJLVajQ8//FCv7WfMmAF/f38sXLgQ//zzT6X3MzMz8cYbbwAAIiIiYGdnhw8++EDrd7J582bI5XI8/fTTtToGNzc3REZG4rvvvsM333wDOzs7DB8+XKvNmDFjEBcXh99++63S9jk5OVAqlTo/QyKRICIiArt27UJaWppm/eXLl/Hrr79qtR05ciQkEgmioqIqnXtBEHD37l0Dj7BsDFVWVpbWVAgP7hMoO0aVSqW5HPkgpVJZbwI6mQd7lojqKCwsDO3bt8f333+Ptm3bVnvrfXBwMHr16oWZM2dCoVBg3bp18PT0rPZSRk2GDBmCnj17YsmSJUhJScGjjz6KHTt26DV2R5eKS2tnz57VayJImUyGV155xWQDvR/0zDPP4Msvv4RMJsOjjz6KuLg47N+/H56enib/bH0MHz4c3bp1w8KFC3H58mWEhIRg9+7dyM7OBoAq5w96kLu7O3bu3InBgwejU6dOWjN4nzlzBl9//bVmUk9vb28sXboUUVFRGDRoEIYOHYqkpCR89NFH6Nq1q85JPmvy3HPP4YUXXsBHH32EyMjISr2Mr776Knbv3o1nnnkGkydPRufOnVFQUIDz58/jhx9+QEpKitZlu6qsXLkSv//+O3r27ImZM2dCpVJh48aNaN++vVZQb9myJd544w0sXboUKSkpGD58OFxcXHDt2jXs3LkT06ZNw6JFiww6vokTJ+KLL77AggULcPLkSfTu3RsFBQXYv38/Xn75ZQwbNgx9+/bF9OnTER0djYSEBAwcOBC2trZITk7G999/j/Xr1+s9xQNZP4YlIiOYOHEi/v3vf1c5sPvBNmKxGOvWrUNmZia6deuGjRs3wt/fv1afKRaLsXv3bsybNw9fffUVRCIRhg4dirVr1yIsLKy2hwI3NzfMmzfPoPBTcfmurkGtJuvXr4dEIsG2bdtQXFyMnj17Yv/+/VVOAGoJEokEP//8M1555RVs3boVYrEYI0aMwIoVK9CzZ0+9Zgbv3r07Lly4gHfeeQc///wzvvzyS4jFYrRt2xZLlizB7NmzNW1XrlwJb29vbNy4EfPnz4eHhwemTZuGN998s05zAA0dOhQODg7Iy8vTuguugqOjIw4fPow333wT33//Pb744gu4urqidevWiIqKgkwmq/EzOnfujF9//RWLFi3CsmXLEBgYiFWrVuHSpUtITEzUartkyRK0bt1aMz4OAAIDAzFw4EAMHTrU4OOTSCT45ZdfsHr1avzvf//D9u3b4enpiV69eiE0NFTT7uOPP0bnzp3xySef4D//+Q9sbGzQvHlzvPDCC+jZs6fBn0vWSyQYOuqNiCpZv3495s+fj5SUFDRt2tTS5VA9s2vXLowYMQJHjx7ll2wNhg8fjosXL1Y5xo/IUjhmiaiOBEHA5s2b0bdvXwYlQlFRkdbrinFkrq6ues2O3pg8/LtKTk7GL7/8gn79+lmmIKJq8DIcUS0VFBRg9+7diI2Nxfnz5/Wam4gavjlz5qCoqAjh4eFQKBTYsWMHjh8/jjfffJN3VT0kKCgIkydP1swLtWnTJtjZ2dV6HB+RqfAyHFEtpaSkoEWLFnBzc8PLL7+M1atXW7okqgf+97//Ye3atbh8+TKKi4sRHByMmTNnao01ojIvvvgiYmNjkZGRAalUivDwcLz55pvsgaN6h2GJiIiISAeOWSIiIiLSgWGJiIiISAcO8DYCtVqNtLQ0uLi41DjpHBEREdUPgiAgLy8PAQEBOp/JybBkBGlpaQgMDLR0GURERFQLN27cQJMmTap9n2HJCFxcXACU/bJdXV0tXA0RERHpIzc3F4GBgZrv8eowLBlBxaU3V1dXhiUiIiIrU9MQGg7wJiIiItKBYYmIiIhIB4YlIiIiIh0YloiIiIh0YFgiIiIi0oFhiYiIiEgHhiUiIiIiHRiWiIiIiHRgWCIiIiLSgWGJiIiISAeGJSIiIiIdrCYsrV69Gj169ICjoyPc3Nz02mbHjh0YOHAgPD09IRKJkJCQUKlNcXExZs2aBU9PTzg7O2PUqFG4ffu2cYsnIiIiq2U1YamkpASjR4/GzJkz9d6moKAAvXr1wpo1a6ptM3/+fPz000/4/vvvcfjwYaSlpWHkyJHGKLnOikpUuHonH3nFpZYuhYiIqNGysXQB+oqKigIAxMTE6L3NhAkTAAApKSlVvi+Xy7F582b873//wxNPPAEA2LJlC9q2bYs///wTjz/+eJ1qrqvnP/sT8ak52DT+MTwV6m/RWoiIiBorq+lZMoXTp0+jtLQUERERmnUhISFo2rQp4uLiqt1OoVAgNzdXazGFAJkDACBdXmyS/RMREVHNGnVYysjIgJ2dXaUxUL6+vsjIyKh2u+joaMhkMs0SGBhokvr8ZPYAgHR5kUn2T0RERDWzaFhasmQJRCKRziUxMdGSJVZp6dKlkMvlmuXGjRsm+Rx/TVhizxIREZGlWHTM0sKFCzF58mSdbYKCgkz2+X5+figpKUFOTo5W79Lt27fh5+dX7XZSqRRSqdRkdVUIcONlOCIiIkuzaFjy9vaGt7e3xT6/c+fOsLW1xYEDBzBq1CgAQFJSElJTUxEeHm6xuipUXIbLYFgiIiKyGKu5Gy41NRXZ2dlITU2FSqXSzJkUHBwMZ2dnAGWDs6OjozFixAgA0LRPS0sDUBaEgLIeJT8/P8hkMkyZMgULFiyAh4cHXF1dMWfOHISHh1v8Tjjg/gDvjNxiqNQCJGKRhSsiIiJqfKwmLC1fvhxbt27VvA4LCwMAxMbGol+/fgDKwpBcLte02b17N1588UXN67FjxwIAVqxYgZUrVwIA3n//fYjFYowaNQoKhQKRkZH46KOPTHw0+vF2kUIiFkGlFpCVr4Cvq72lSyIiImp0RIIgCJYuwtrl5uZCJpNBLpfD1dXVqPvuEX0AafJi7Hy5B8Kauht130RERI2Zvt/fjXrqAGvgxzviiIiILIphqZ7z5x1xREREFsWwVM/5l49TSs/hxJRERESWwLBUz2l6lnLZs0RERGQJDEv1XICMPUtERESWxLBUz3FiSiIiIstiWKrnKh55cjtPAZWaszwQERGZG8NSPeflLIVN+cSUd/IUli6HiIio0WFYquckYpFm5u40OcctERERmRvDkhXQTEyZw3FLRERE5sawZAX8NbN4s2eJiIjI3BiWrIA/H3lCRERkMQxLVsBfVnZHHKcPICIiMj+GJSsQ4MYB3kRERJbCsGQF/NizREREZDEMS1ag4pEnt3OLoVSpLVwNERFR48KwZAU8yyemVAvAnXxOTElERGRODEtWQGtiSs61REREZFYMS1aCcy0RERFZBsOSlfB34yBvIiIiS2BYshIVPUu8DEdERGReDEtWoiIsZeTyMhwREZE5MSxZiYpZvNmzREREZF4MS1ZC07PEMUtERERmxbBkJfzLH3mSmceJKYmIiMyJYclKeDlJYSspm5gyM48TUxIREZkLw5KVED8wMSXnWiIiIjIfhiUrwukDiIiIzI9hyYpU3BHHQd5ERETmw7BkRTQ9S7wMR0REZDYMS1aE0wcQERGZn9WEpdWrV6NHjx5wdHSEm5ubXtvs2LEDAwcOhKenJ0QiERISEiq16devH0QikdYyY8YM4xZvJBXPh0tjWCIiIjIbqwlLJSUlGD16NGbOnKn3NgUFBejVqxfWrFmjs93UqVORnp6uWd5+++26lmsS93uWeBmOiIjIXGwsXYC+oqKiAAAxMTF6bzNhwgQAQEpKis52jo6O8PPzq21pZlMxwDszT4FSlRq2EqvJukRERFaL37YAtm3bBi8vL7Rv3x5Lly5FYWGhpUuqkqeTHWwlIgicmJKIiMhsrKZnyVSef/55NGvWDAEBATh37hwWL16MpKQk7Nixo9ptFAoFFIr7YSU3N9ccpUIsFsFPZo8b2UVIzynCI+VjmIiIiMh0LNqztGTJkkqDqx9eEhMTTVrDtGnTEBkZidDQUIwfPx5ffPEFdu7ciStXrlS7TXR0NGQymWYJDAw0aY0P8nflIG8iIiJzsmjP0sKFCzF58mSdbYKCgsxTTLnu3bsDAC5fvoyWLVtW2Wbp0qVYsGCB5nVubq7ZAlPFA3U5yJuIiMg8LBqWvL294e3tbckSKqmYXsDf37/aNlKpFFKp1EwVafPjI0+IiIjMymrGLKWmpiI7OxupqalQqVSaUBMcHAxnZ2cAQEhICKKjozFixAgA0LRPS0sDACQlJQEA/Pz84OfnhytXruB///sfBg8eDE9PT5w7dw7z589Hnz590KFDB/MfpB4C+MgTIiIis7KasLR8+XJs3bpV8zosLAwAEBsbi379+gEoC0NyuVzTZvfu3XjxxRc1r8eOHQsAWLFiBVauXAk7Ozvs378f69atQ0FBAQIDAzFq1Ci89tprZjii2qnoWUrnZTgiIiKzEAmCIFi6CGuXm5sLmUwGuVwOV1dXk37W+ZtyDNl4FD4uUpz8vwiTfhYREVFDpu/3N+dZsjIVA7zv5CtQolRbuBoiIqKGj2HJyng42sFOIi6fmJLjloiIiEyNYcnKVExMCQDpHORNRERkcgxLVuj+9AEc5E1ERGRqDEtWKEBWMTEle5aIiIhMjWHJCvmVz7XEy3BERESmx7BkhQLcONcSERGRuTAsWSE/Vw7wJiIiMheGJSsU4MbLcERERObCsGSF/MsHeGdxYkoiIiKTY1iyQh5OdrCzKZuY8nYue5eIiIhMiWHJColEIk3vEi/FERERmRbDkpW6P8ibd8QRERGZEsOSleIgbyIiIvNgWLJSmufD8ZEnREREJsWwZKUCOGaJiIjILBiWrBQfeUJERGQeDEtWinfDERERmQfDkpWqGOCdla+AQqmycDVEREQNF8OSlXJ3tIXUpuz0ZeYqLFwNERFRw8WwZKUenJgyjXfEERERmQzDkhXz47glIiIik2NYsmIBvCOOiIjI5BiWrNj9niVehiMiIjIVhiUr5s9HnhAREZkcw5IV8+fDdImIiEyOYcmK+buVhaUM9iwRERGZDMOSFasY4J2VX8KJKYmIiEyEYcmKuT0wMeVtOSemJCIiMgWGJSsmEok0jz1J47glIiIik2BYsnJ+HORNRERkUgxLVq5ikDenDyAiIjINqwlLq1evRo8ePeDo6Ag3N7ca25eWlmLx4sUIDQ2Fk5MTAgICMHHiRKSlpWm1y87Oxvjx4+Hq6go3NzdMmTIF+fn5JjoK46t4Plx6DsMSERGRKVhNWCopKcHo0aMxc+ZMvdoXFhbizJkzWLZsGc6cOYMdO3YgKSkJQ4cO1Wo3fvx4XLx4Efv27cOePXtw5MgRTJs2zRSHYBL+fOQJERGRSdlYugB9RUVFAQBiYmL0ai+TybBv3z6tdRs3bkS3bt2QmpqKpk2b4tKlS9i7dy9OnTqFLl26AAA2bNiAwYMH491330VAQIBRj8EU/PnIEyIiIpOymp4lY5DL5RCJRJrLeHFxcXBzc9MEJQCIiIiAWCzGiRMnqt2PQqFAbm6u1mIpFT1LnJiSiIjINAwOS0VFRSgsLNS8vn79OtatW4fff//dqIUZW3FxMRYvXoxx48bB1dUVAJCRkQEfHx+tdjY2NvDw8EBGRka1+4qOjoZMJtMsgYGBJq1dl4DyAd53C0pQXMqJKYmIiIzN4LA0bNgwfPHFFwCAnJwcdO/eHWvXrsWwYcOwadMmg/a1ZMkSiEQinUtiYqKhJVZSWlqKMWPGQBAEg2usytKlSyGXyzXLjRs36rzP2pI52MLetnxiylz2LhERERmbwWOWzpw5g/fffx8A8MMPP8DX1xfx8fHYvn07li9frvcAbABYuHAhJk+erLNNUFCQoSVqqQhK169fx8GDBzW9SgDg5+eHzMxMrfZKpRLZ2dnw8/Ordp9SqRRSqbROdRmLSCRCgMwBV7MKkJZTjGaeTpYuiYiIqEExOCwVFhbCxcUFAPD7779j5MiREIvFePzxx3H9+nWD9uXt7Q1vb29DS9BbRVBKTk5GbGwsPD09td4PDw9HTk4OTp8+jc6dOwMADh48CLVaje7du5usLmPzk9njalYBB3kTERGZgMGX4YKDg7Fr1y7cuHEDv/32GwYOHAgAyMzM1Oq1MbbU1FQkJCQgNTUVKpUKCQkJSEhI0JoTKSQkBDt37gRQFpSeffZZ/PXXX9i2bRtUKhUyMjKQkZGBkpISAEDbtm0xaNAgTJ06FSdPnsSxY8cwe/ZsjB071iruhKvA6QOIiIhMx+CepeXLl+P555/H/PnzMWDAAISHhwMo62UKCwszeoEPfu7WrVs1rys+KzY2Fv369QMAJCUlQS6XAwBu3bqF3bt3AwA6deqkta8Ht9m2bRtmz56NAQMGQCwWY9SoUfjggw9MdhymwOkDiIiITEckCIJg6EYZGRlIT09Hx44dIRaXdU6dPHkSrq6uCAkJMXqR9V1ubi5kMhnkcrlJe9eqs+3EdfzfzguIaOuDzyZ1NfvnExERWSN9v79rNSmln5+fZgB0bm4uDh48iDZt2jTKoFQfVPQspfGRJ0REREZn8JilMWPGYOPGjQDK5lzq0qULxowZgw4dOmD79u1GL5BqppmYklMHEBERGZ3BYenIkSPo3bs3AGDnzp0QBAE5OTn44IMP8MYbbxi9QKpZRc9SNiemJCIiMjqDw5JcLoeHhwcAYO/evRg1ahQcHR3x9NNPIzk52egFUs1kDrZwsJUA4GNPiIiIjM3gsBQYGIi4uDgUFBRg7969mqkD7t27B3t7e6MXSDUTiUTwL3/sSRrviCMiIjIqg8PSvHnzMH78eDRp0gQBAQGaW/CPHDmC0NBQY9dHetJMH8BB3kREREZl8N1wL7/8Mrp164YbN27gySef1EwdEBQUxDFLFsRB3kRERKZRq6kDunTpgi5dukAQBAiCAJFIhKefftrYtZEB7k8fwMtwRERExmTwZTgA+OKLLxAaGgoHBwc4ODigQ4cO+PLLL41dGxlA07PEAd5ERERGZXDP0nvvvYdly5Zh9uzZ6NmzJwDg6NGjmDFjBrKysjB//nyjF0k10/QsMSwREREZlcFhacOGDdi0aRMmTpyoWTd06FC0a9cOK1euZFiykIq74TJ4NxwREZFRGXwZLj09HT169Ki0vkePHkhPTzdKUWQ4f9eyy3D3CktRVMKJKYmIiIzF4LAUHByM7777rtL6b7/9Fq1atTJKUWQ4VwcbONqVT0zJO+KIiIiMxuDLcFFRUXjuuedw5MgRzZilY8eO4cCBA1WGKDIPkUgEf5k9rtwpQHpOEVp4OVm6JCIiogbB4J6lUaNG4cSJE/Dy8sKuXbuwa9cueHl54eTJkxgxYoQpaiQ9VdwRx0HeRERExlOreZY6d+6Mr776SmtdZmYm3nzzTfznP/8xSmFkuIo74jjIm4iIyHhqNc9SVdLT07Fs2TJj7Y5qgdMHEBERGZ/RwhJZnr8bJ6YkIiIyNoalBsSPjzwhIiIyOoalBiSAD9MlIiIyOr0HeC9YsEDn+3fu3KlzMVQ3FT1LOeUTUzqUz7tEREREtad3WIqPj6+xTZ8+fepUDNWNq70NnOwkKChRIV1ehCBvZ0uXREREZPX0DkuxsbGmrIOMQCQSwd/NAZcz85EuL2ZYIiIiMgKOWWpg/DnIm4iIyKgYlhqY+xNTcpA3ERGRMTAsNTB+fOQJERGRUTEsNTABfOQJERGRUTEsNTAV0weks2eJiIjIKPS6G+7cuXN677BDhw61LobqLqD8kScMS0RERMahV1jq1KkTRCIRBEGASCTS2ValUhmlMKqdip4leVEpCkuUcLTTe3YIIiIiqoJel+GuXbuGq1ev4tq1a9i+fTtatGiBjz76CPHx8YiPj8dHH32Eli1bYvv27aaul2rgam8LZ2lZQGLvEhERUd3p1e3QrFkzzc+jR4/GBx98gMGDB2vWdejQAYGBgVi2bBmGDx9u9CLJMP4yeyRn5iM9pxgtOTElERFRnRg8wPv8+fNo0aJFpfUtWrTA33//bZSiqrJ69Wr06NEDjo6OcHNzq7F9aWkpFi9ejNDQUDg5OSEgIAATJ05EWlqaVrvmzZtDJBJpLW+99ZaJjsI8Ki7FpfGOOCIiojozOCy1bdsW0dHRKCkp0awrKSlBdHQ02rZta9TiHlRSUoLRo0dj5syZerUvLCzEmTNnsGzZMpw5cwY7duxAUlIShg4dWqntqlWrkJ6erlnmzJlj7PLNKqB8riVOTElERFR3Bo/+/fjjjzFkyBA0adJEc+fbuXPnIBKJ8NNPPxm9wApRUVEAgJiYGL3ay2Qy7Nu3T2vdxo0b0a1bN6SmpqJp06aa9S4uLvDz8zNarZZ2f/oA9iwRERHVlcE9S926dcPVq1fxxhtvoEOHDujQoQNWr16Nq1evolu3bqao0WjkcjlEIlGly3hvvfUWPD09ERYWhnfeeQdKpVLnfhQKBXJzc7WW+iTAjXMtERERGUut7it3cnLCtGnTjF2LSRUXF2Px4sUYN24cXF1dNevnzp2Lxx57DB4eHjh+/DiWLl2K9PR0vPfee9XuKzo6WtPTVR9VPPIkPYdhiYiIqK5qNYP3lStXMGfOHERERCAiIgKvvPIKrly5YvB+lixZUmlw9cNLYmJibUrUUlpaijFjxkAQBGzatEnrvQULFqBfv37o0KEDZsyYgbVr12LDhg1QKBTV7m/p0qWQy+Wa5caNG3Wu0ZgCeBmOiIjIaAzuWfrtt98wdOhQdOrUCT179gQAHDt2DJ988gl++uknPPnkk3rva+HChZg8ebLONkFBQYaWqKUiKF2/fh0HDx7U6lWqSvfu3aFUKpGSkoI2bdpU2UYqlUIqldapLlOqGLOUW6xEgUIJJyknpiQiIqotg79FlyxZgvnz51e6vX7JkiVYvHixQWHJ29sb3t7ehpagt4qglJycjNjYWHh6eta4TUJCAsRiMXx8fExWl6m52NvCRWqDPIUS6fJiBPtwriUiIqLaMvgy3KVLlzBlypRK61966SWTzrOUmpqKhIQEpKamQqVSISEhAQkJCcjPz9e0CQkJwc6dOwGUBaVnn30Wf/31F7Zt2waVSoWMjAxkZGRopj2Ii4vDunXrcPbsWVy9ehXbtm3D/Pnz8cILL8Dd3d1kx2IOvCOOiIjIOAzuWfL29kZCQgJatWqltT4hIcGkvTHLly/H1q1bNa/DwsIAALGxsejXrx8AICkpCXK5HABw69Yt7N69G0DZs+0eVLGNVCrFN998g5UrV0KhUKBFixaYP38+FixYYLLjMBd/NwfNLN5ERERUewaHpalTp2LatGm4evUqevToAaBszNKaNWtMGjJiYmJqnGNJEATNz82bN9d6XZXHHnsMf/75pzHKq3fuD/JmWCIiIqoLg8PSsmXL4OLigrVr12Lp0qUAgICAAKxcuRJz5841eoFUO7wMR0REZBwGhyWRSIT58+dj/vz5yMvLA1A2AzbVLxWPPGHPEhERUd3U+p7yO3fuICkpCUDZwGovLy+jFUV1x54lIiIi4zD4briCggK89NJL8Pf3R58+fdCnTx/4+/tjypQpKCwsNEWNVAt85AkREZFxGByWFixYgMOHD+Onn35CTk4OcnJy8OOPP+Lw4cNYuHChKWqkWqh45ElesRL5Ct3PuiMiIqLqGXwZbvv27fjhhx80t+sDwODBg+Hg4IAxY8ZUepwIWYaz1AYu9jbIK1YiQ16EYB+OKyMiIqoNg3uWCgsL4evrW2m9j48PL8PVM/7l45bSONcSERFRrRkclsLDw7FixQoUF9//Ai4qKkJUVBTCw8ONWhzVjb/mjjgO8iYiIqotgy/DrV+/HpGRkWjSpAk6duwIADh79izs7e3x22+/Gb1Aqj0O8iYiIqo7g8NS+/btkZycjG3btiExMREAMG7cOIwfPx4ODg5GL5Bqz8+1vGeJl+GIiIhqrVbzLDk6OmLq1KnGroWMzL+iZymXYYmIiKi2ahWWkpOTERsbi8zMTKjVaq33li9fbpTCqO4qBnin53DMEhERUW0ZHJY+/fRTzJw5E15eXvDz84NIJNK8JxKJGJbqkYoB3hkcs0RERFRrBoelN954A6tXr8bixYtNUQ8ZUUXPUp5CibziUrjY21q4IiIiIutj8NQB9+7dw+jRo01RCxmZk9QGrvZleZi9S0RERLVjcFgaPXo0fv/9d1PUQiZQcSkujWGJiIioVvS6DPfBBx9ofg4ODsayZcvw559/IjQ0FLa22pd25s6da9wKqU783eyRdDuPg7yJiIhqSa+w9P7772u9dnZ2xuHDh3H48GGt9SKRiGGpnrk/izd7loiIiGpDr7B07do1U9dBJqKZPoCPPCEiIqoVg8cskXW5H5bYs0RERFQbevUsLViwAK+//jqcnJywYMECnW3fe+89oxRGxsHLcERERHWjV1iKj49HaWmp5ufqPDhBJdUPFY884dQBREREtaNXWIqNja3yZ6r/Ki7D5SuUyC0uhSsnpiQiIjIIxyw1cI52NpA5lAUk9i4REREZTq+epZEjR+q9wx07dtS6GDINf5k95EWlSMspQmtfF0uXQ0REZFX0CksymczUdZAJ+cvskZiRx0HeREREtaBXWNqyZYup6yAT8nfjHXFERES1VasxS0qlEvv378cnn3yCvLw8AEBaWhry8/ONWhwZh79r+VxLfOQJERGRwfTqWXrQ9evXMWjQIKSmpkKhUODJJ5+Ei4sL1qxZA4VCgY8//tgUdVIdVPQsZeSyZ4mIiMhQBvcsvfLKK+jSpQvu3bsHBwcHzfoRI0bgwIEDRi2OjKNi+oA09iwREREZzOCepT/++APHjx+HnZ2d1vrmzZvj1q1bRiuMjOfBR54IgsDJQ4mIiAxgcM+SWq2GSqWqtP7mzZtwcTHdbemrV69Gjx494OjoCDc3N722WblyJUJCQuDk5AR3d3dERETgxIkTWm2ys7Mxfvx4uLq6ws3NDVOmTGlwY68qHnlSWKJCbrHSwtUQERFZF4PD0sCBA7Fu3TrNa5FIhPz8fKxYsQKDBw82Zm1aSkpKMHr0aMycOVPvbVq3bo2NGzfi/PnzOHr0KJo3b46BAwfizp07mjbjx4/HxYsXsW/fPuzZswdHjhzBtGnTTHEIFuNgJ4GbIyemJCIiqg2RIAiCIRvcvHkTkZGREAQBycnJ6NKlC5KTk+Hl5YUjR47Ax8fHVLUCAGJiYjBv3jzk5OQYvG1ubi5kMhn279+PAQMG4NKlS3j00Udx6tQpdOnSBQCwd+9eDB48GDdv3kRAQIBB+5XL5XB1dTW4LnMYtO4IEjPysOXFrujfxrTniIiIyBro+/1t8JilJk2a4OzZs/j2229x9uxZ5OfnY8qUKRg/frzWgO/6pqSkBP/9738hk8nQsWNHAEBcXBzc3Nw0QQkAIiIiIBaLceLECYwYMcJS5RpdgJtD2cSUOexZIiIiMoTBYenrr7/GuHHjMH78eIwfP17rvVdffRXvvPOO0Yozhj179mDs2LEoLCyEv78/9u3bBy8vLwBARkZGpZ4wGxsbeHh4ICMjo9p9KhQKKBQKzevc3FzTFG9EFYO8M+S8I46IiMgQBo9ZmjlzJn799ddK6+fPn4+vvvrKoH0tWbIEIpFI55KYmGhoiVr69++PhIQEHD9+HIMGDcKYMWOQmZlZp31GR0dDJpNplsDAwDrtzxw00wdwzBIREZFBDA5L27Ztw7hx43D06FHNujlz5uC7775DbGysQftauHAhLl26pHMJCgoytEQtTk5OCA4OxuOPP47NmzfDxsYGmzdvBgD4+flVCk5KpRLZ2dnw8/Ordp9Lly6FXC7XLDdu3KhTjeZQcUccB3gTEREZxuDLcE8//TQ++ugjDB06FPv27cPmzZvx448/IjY2Fq1btzZoX97e3vD29ja0hDpRq9WaS2jh4eHIycnB6dOn0blzZwDAwYMHoVar0b1792r3IZVKIZVKzVKvsdzvWeJlOCIiIkMYHJYA4Pnnn0dOTg569uwJb29vHD58GMHBwcauTUtqaiqys7ORmpoKlUqFhIQEAEBwcDCcnZ0BACEhIYiOjsaIESNQUFCA1atXY+jQofD390dWVhY+/PBD3Lp1C6NHjwYAtG3bFoMGDcLUqVPx8ccfo7S0FLNnz8bYsWP1vhPOWmgeecKJKYmIiAyiV1hasGBBleu9vb3x2GOP4aOPPtKse++994xT2UOWL1+OrVu3al6HhYUBAGJjY9GvXz8AQFJSEuRyOQBAIpEgMTERW7duRVZWFjw9PdG1a1f88ccfaNeunWY/27Ztw+zZszFgwACIxWKMGjUKH3zwgUmOwZL8yh+mW1iiQm6RErLyeZeIiIhIN73mWerfv79+OxOJcPDgwToXZW2sYZ4lAAhb9TvuFZZi77zeCPGrv3USERGZg1HnWTJ04DbVT34yB9wrLEV6TjHDEhERkZ4MvhuOrFcAB3kTEREZTK+epZEjRyImJgaurq4YOXKkzrY7duwwSmFkfH6aiSk5fQAREZG+9ApLMplMc/eUTCYzaUFkOgHld8Sl8ZEnREREetMrLG3ZsqXKn8m6aB55ksvLcERERPoy2pilc+fOwc7Ozli7IxOouAzHh+kSERHpz2hhSRAEKJVKY+2OTCCg/JEn6eUTUxIREVHNjHo3HGeFrt8qepaKSlWQF5VauBoiIiLrwKkDGhF7Wwk8nMoulabzjjgiIiK96P1suNzcXJ3v5+Xl1bkYMj0/V3tkF5QgXV6Etv6cmJKIiKgmeoclNzc3nZfZ+HBW6xDgZo+/03M5fQAREZGe9A5LfORJw8CJKYmIiAyjd1jq27evKesgM/EvvyOOjzwhIiLSDwd4NzIBbuxZIiIiMgTDUiPj53p/riUiIiKqGcNSI1PRs5QuL+LElERERHpgWGpkfF3LwlJxqRo5hZyYkoiIqCYMS42Mva0EnpyYkoiISG963w1XYcSIEVXOpyQSiWBvb4/g4GA8//zzaNOmjVEKJOPzk9njbvnElI8GcGJKIiIiXQzuWZLJZDh48CDOnDkDkUgEkUiE+Ph4HDx4EEqlEt9++y06duyIY8eOmaJeMoL70wewZ4mIiKgmBvcs+fn54fnnn8fGjRshFpdlLbVajVdeeQUuLi745ptvMGPGDCxevBhHjx41esFUd/6aiSk51xIREVFNDO5Z2rx5M+bNm6cJSgAgFosxZ84c/Pe//4VIJMLs2bNx4cIFoxZKxuNfcUccH3lCRERUI4PDklKpRGJiYqX1iYmJUKlUAAB7e3s+J64eC5BxriUiIiJ9GXwZbsKECZgyZQr+85//oGvXrgCAU6dO4c0338TEiRMBAIcPH0a7du2MWykZTcXz4dJ5GY6IiKhGBoel999/H76+vnj77bdx+/ZtAICvry/mz5+PxYsXAwAGDhyIQYMGGbdSMpoHe5YEQWAvIBERkQ4ioQ7TOOfm5gIAXF0b9+3nubm5kMlkkMvlVvG7UChVaPPaXgDAmWVPwqN83iUiIqLGRN/v71pPSnnnzh2cO3cO586dQ1ZWVm13QxYgtZHAy7liYkpeiiMiItLF4LBUUFCAl156Cf7+/ujTpw/69OkDf39/TJkyBYWFhaaokUxAM26Jd8QRERHpZHBYWrBgAQ4fPoyffvoJOTk5yMnJwY8//ojDhw9j4cKFpqiRTMBfM26JPUtERES6GDzAe/v27fjhhx/Qr18/zbrBgwfDwcEBY8aMwaZNm4xZH5mIv+aOOPYsERER6WJwz1JhYSF8fX0rrffx8eFlOCviz7mWiIiI9GJwWAoPD8eKFStQXHz/S7aoqAhRUVEIDw83anFkOgFunGuJiIhIHwaHpfXr1+PYsWNo0qQJBgwYgAEDBiAwMBDHjh3D+vXrTVEjAGD16tXo0aMHHB0d4ebmptc2K1euREhICJycnODu7o6IiAicOHFCq03z5s01DwSuWN566y0THEH94ufKy3BERET6MHjMUvv27ZGcnIxt27ZpHnsybtw4jB8/Hg4ODkYvsEJJSQlGjx6N8PBwbN68Wa9tWrdujY0bNyIoKAhFRUV4//33MXDgQFy+fBne3t6adqtWrcLUqVM1r11cXIxef30T4MaJKYmIiPRhcFgCAEdHR61wAQBXr17FjBkz8PvvvxulsIdFRUUBAGJiYvTe5vnnn9d6/d5772Hz5s04d+4cBgwYoFnv4uICPz8/o9RpLXxcpZCIRShRqjH3mwS89nRb+Jb3NhEREdF9tZ6U8mF5eXk4cOCAsXZndCUlJfjvf/8LmUyGjh07ar331ltvwdPTE2FhYXjnnXegVCp17kuhUCA3N1drsTZSGwkWDmwNsQj46Wwannj3ED49chWlKrWlSyMiIqpXjBaW6qs9e/bA2dkZ9vb2eP/997Fv3z54eXlp3p87dy6++eYbxMbGYvr06XjzzTfx73//W+c+o6OjIZPJNEtgYKCpD8MkXu4XjN2zeyGsqRsKSlRY/cslDF7/B45f4YzsREREFer0bLgHnT17Fo899hhUKpXe2yxZsgRr1qzR2ebSpUsICQnRvI6JicG8efOQk5Oj12cUFBQgPT0dWVlZ+PTTT3Hw4EGcOHECPj4+Vbb//PPPMX36dOTn50MqlVbZRqFQQKFQaF7n5uYiMDDQap4N9zC1WsAPZ27irV8TkV1QAgAY0jEA/ze4rWambyIiooZG32fDWTQs3blzB3fv3tXZJigoCHZ29x/0amhYelirVq3w0ksvYenSpVW+f/HiRbRv3x6JiYlo06aNXvu0tgfpVkdeWIq1+5Lw1Z/XoRYAJzsJXolohRd7toCtpMF3QhIRUSOj7/e33gO8w8LCdN4xVZsJKb29vbXuSjMHtVqt1Sv0sISEBIjF4mp7nhoymaMtVg1rjzFdArH8xws4k5qDN39JxHd/3cSqoe3QI9ir5p0QERE1MHqHpeHDh5uwjJqlpqYiOzsbqampUKlUSEhIAAAEBwfD2dkZABASEoLo6GiMGDECBQUFWL16NYYOHQp/f39kZWXhww8/xK1btzB69GgAQFxcHE6cOIH+/fvDxcUFcXFxmD9/Pl544QW4u7tb6lAtrv0jMvwwowe2l1+au5yZj+c/O4GnO/jjtafbamb/JiIiagyMdhnO1CZPnoytW7dWWh8bG6t5Tp1IJMKWLVswefJkFBcX4/nnn8eJEyeQlZUFT09PdO3aFa+99hq6du0KADhz5gxefvllJCYmQqFQoEWLFpgwYQIWLFhQ7XilqjSUy3BVkReW4r19Sfiy/NKco50Ecwe0wks9W8DOhpfmiIjIepl9zFJj1pDDUoWLaXIs//EiTl+/BwBo6e2EVcPaoycvzRERkZViWDKjxhCWgLK75nbE30L0L5dwt/yuuadD/fHaM7w0R0RE1kff729eRyG9icUiPNu5CQ4u6ofJPZpDLAJ+Pp+OAWsPY9OhKyhRckJLIiJqeNizZASNpWfpYRfT5Fjx40X8VX5pLsjbCauGtkevVrw0R0RE9R8vw5lRYw1LACAIAnacuYXoXy8hK7/s0tzgUD+89vSjmof1EhER1UcmC0sffPBB1TsSiWBvb4/g4GD06dMHEonEsIqtWGMOSxXkRaV4f98/+CIuBWoBcLCVYM6AYPyrVxDvmiMionrJZGGpRYsWuHPnDgoLCzVzEd27dw+Ojo5wdnZGZmYmgoKCEBsba7XPTDMUw9J9f6flYsXuCziVUnZprncrL3zxUjedE5oSERFZgskGeL/55pvo2rUrkpOTcffuXdy9exf//PMPunfvjvXr1yM1NRV+fn6YP39+nQ6ArNOjAa74bno43hvTEfa2YvyRnIXtZ25ZuiwiIqJaM7hnqWXLlti+fTs6deqktT4+Ph6jRo3C1atXcfz4cYwaNQrp6enGrLXeYs9S1TYduoI1exPh4WSHAwv6wt3JruaNiIiIzMRkPUvp6elQKpWV1iuVSmRkZAAAAgICkJeXZ+iuqYH5V+8WaO3rjOyCErz9W6KlyyEiIqoVg8NS//79MX36dMTHx2vWxcfHY+bMmXjiiScAAOfPn0eLFi2MVyVZJVuJGG8MDwUAfH3yBk5fz7ZwRURERIYzOCxt3rwZHh4e6Ny5M6RSKaRSKbp06QIPDw9s3rwZAODs7Iy1a9cavViyPt1aeGBMlyYAgP/beQGlKk5cSURE1qXW8ywlJibin3/+AQC0adMGbdq0MWph1oRjlnTLLijBgLWHcK+wFP8ZHIJpfVpauiQiIiLTP+4kKCgIbdq0weDBgxt1UKKaeTjZYengtgCA9/cl41ZOkYUrIiIi0p/BYamwsBBTpkyBo6Mj2rVrh9TUVADAnDlz8NZbbxm9QGoYnn2sCbo2d0dRqQord1+0dDlERER6MzgsLV26FGfPnsWhQ4dgb2+vWR8REYFvv/3WqMVRwyEWi/DG8FDYiEXY9/dt7Pv7tqVLIiIi0ovBYWnXrl3YuHEjevXqpTUrc7t27XDlyhWjFkcNSxs/F/yrdxAAYOXuiygsqTwFBRERUX1jcFi6c+cOfHx8Kq0vKCjgIy2oRnMHBOMRNwfcyinC+gPJli6HiIioRgaHpS5duuDnn3/WvK4ISJ999hnCw8ONVxk1SI52Nlg1rB0AYPMf15CYkWvhioiIiHSzMXSDN998E0899RT+/vtvKJVKrF+/Hn///TeOHz+Ow4cPm6JGamAGtPVFZDtf/HbxNl7beQHfTQ+HWMxeSSIiqp8M7lnq1asXEhISoFQqERoait9//x0+Pj6Ii4tD586dTVEjNUArhrSDo50Ef12/h+9P37B0OURERNWq9aSUdB8npaydT49cxepfLsHN0RYHF/aDBx+0S0REZmTySSmJ6mpyz+YI8XNBTmEpon+5ZOlyiIiIqqR3WBKLxZBIJDoXGxuDh0BRI2YrEWP1iLIH7X5/+iZOXL1r4YqIiIgq0zvd7Ny5s9r34uLi8MEHH0Ct5kNSyTCdm7ljXLem+PpkKl7bdQE/z+0NOxt2eBIRUf2hd1gaNmxYpXVJSUlYsmQJfvrpJ4wfPx6rVq0yanHUOCwe1Aa/X8xAcmY+Pjt6FS/3C7Z0SURERBq1+l/4tLQ0TJ06FaGhoVAqlUhISMDWrVvRrFkzY9dHjYCbox3+7+myB+1+cCAZN7ILLVwRERHRfQaFJblcjsWLFyM4OBgXL17EgQMH8NNPP6F9+/amqo8aiRFhj+DxIA8Ul6qxYvdF8CZNIiKqL/QOS2+//TaCgoKwZ88efP311zh+/Dh69+5tytqoERGJyh60aysR4WBiJn67yAftEhFR/aD3PEtisRgODg6IiIiARCKptt2OHTuMVpy14DxLxvPub0nYGHsZ/jJ77FvQF85S3mFJRESmoe/3t97fRBMnTuSDcsnkZj8RjN1n05CaXYh1+/7Ba888aumSiIiokeMM3kbAniXjOpSUiclbTkEiFmH37J5oFyCzdElERNQAcQZvslr92vjg6VB/qNQCXtt1AWo18zwREVmO1YSl1atXo0ePHnB0dISbm5vB28+YMQMikQjr1q3TWp+dnY3x48fD1dUVbm5umDJlCvLz841TNNXasmcehbPUBvGpOfjmFB+0S0RElmM1YamkpASjR4/GzJkzDd52586d+PPPPxEQEFDpvfHjx+PixYvYt28f9uzZgyNHjmDatGnGKJnqwE9mj4UDWwMA3vr1ErLyFRauiIiIGiurCUtRUVGYP38+QkNDDdru1q1bmDNnDrZt2wZbW1ut9y5duoS9e/fis88+Q/fu3dGrVy9s2LAB33zzDdLS0oxZPtXChMeboV2AK3KLlXjzZz5ol4iILMNqwlJtqNVqTJgwAa+++iratWtX6f24uDi4ubmhS5cumnUREREQi8U4ceJEtftVKBTIzc3VWsj4bMoftCsSATvib+H4lSxLl0RERI1Qgw5La9asgY2NDebOnVvl+xkZGfDx8dFaZ2NjAw8PD2RkZFS73+joaMhkMs0SGBho1Lrpvk6Bbnihe9ljdF7bdQEKpcrCFRERUWNj0bC0ZMkSiEQinUtiYmKt9n369GmsX78eMTExRp8faunSpZDL5Zrlxg0OQDalRZFt4OUsxdU7Bfjv4auWLoeIiBoZi06PvHDhQkyePFlnm6CgoFrt+48//kBmZiaaNm2qWadSqbBw4UKsW7cOKSkp8PPzQ2ZmptZ2SqUS2dnZ8PPzq3bfUqkUUqm0VnWR4WQOtlj2TFu88k0CNsZextBOAWjm6WTpsoiIqJGwaFjy9vaGt7e3SfY9YcIEREREaK2LjIzEhAkT8OKLLwIAwsPDkZOTg9OnT6Nz584AgIMHD0KtVqN79+4mqYtqZ2jHAHz/100cvZyF5T9eRMyLXTmjPBERmYXVjFlKTU1FQkICUlNToVKpkJCQgISEBK05kUJCQrBz504AgKenJ9q3b6+12Nraws/PD23atAEAtG3bFoMGDcLUqVNx8uRJHDt2DLNnz8bYsWOrnGaALEckEmHVsHawk4hx+J87+OV89WPKiIiIjMlqwtLy5csRFhaGFStWID8/H2FhYQgLC8Nff/2laZOUlAS5XG7Qfrdt24aQkBAMGDAAgwcPRq9evfDf//7X2OWTEQR5O2Nmv5YAgKifLiKvuNTCFRERUWPAZ8MZAZ8NZz7FpSoMWncEKXcLMblHc6wcWnlKCCIiIn3o+/1t0TFLRIayt5Xg9eHtMWHzSXwRlwIA8JfZw8dVCm9ne3i7SOHtIoWbgy3EYo5pIiKiumNYIqvTu5U3hnYMwO6zaYg5nlJlGxuxCF7O0vIQJdWEKG+XstcPhisHO4l5D4CIiKwKwxJZpXdGd0C3Fh64frcAd/IUuJOvKPtnngL3CkuhVAvIyC1GRm5xjftyltpoQpT3A+GquacTnnzUF3Y2VjO0j4iITIBhiayS1EaCFx5vVuV7JUo17hYokJmrqBSkHnydmVeM4lI18hVK5CuUuJZVUGlfATJ7TO/bEs91DYS9LXugiIgaIw7wNgIO8LZOgiAgX6GsFKLKgpQCR/65g8w8BQDA20WKab2DMP7xpnC04/9jEBE1BPp+fzMsGQHDUsNUXKrC96dv4uNDV3ArpwgA4O5oi3/1DsKE8GZwtbe1cIVERFQXDEtmxLDUsJUo1dgVfwsfHrqM63cLAQCu9jaY3LMFXurZHG6OdhaukIiIaoNhyYwYlhoHpUqNPefSsTH2Mi5nls0c72QnwYTw5vhX7xbwcubzAomIrAnDkhkxLDUuarWA3y5mYMPBy/g7PRcAYG8rxvPdmmFanyD4yewtXCEREemDYcmMGJYaJ0EQcDAxEx8cvIyzN3IAAHYSMUZ3aYIZfVsi0MPRsgUSEZFODEtmxLDUuAmCgKOXs7Dh4GWcvJYNoGxSzBFhj+Dl/sFo4eVk4QqJiKgqDEtmxLBEFU5cvYuNsZfxR3IWAEAsAoZ0DMCs/sFo7eti4eqIiOhBDEtmxLBEDzuTeg8fHryMA4mZmnWD2vlh9hPBaP+IzIKVERFRBYYlM2JYoupcuCXHh7GX8euFDM26J0J8MPuJYDzW1N2ClREREcOSGTEsUU3+uZ2Hj2IvY/fZNKjL/+J6BXth7oBW6NbCw7LFERE1UgxLZsSwRPq6llWATYcuY8eZW1CWp6bHgzwwd0ArhAd5QiQSWbhCIqLGg2HJjBiWyFA3sgux6fAVfP/XDZSqyv4EuzUvC009gxmaiIjMgWHJjBiWqLbScorw8eEr+ObkDZSo1ACAx5q6Ye6AVujb2puhiYjIhBiWzIhhieoqQ16MT45cwf9OpEKhLAtNHZvIMHdAKzwR4sPQRERkAgxLZsSwRMaSmVeMT49cxZd/XkdxaVloav+IK+Y+0QpPPurL0EREZEQMS2bEsETGlpWvwKd/XMWXcddRWKICALT1d8XcJ4IR2c4PYjFDExFRXTEsmRHDEplKdkEJNh+9iq3HryNfoQQAtPZ1xpwnWmFwqD8kDE1ERLXGsGRGDEtkajmFJfj8WAq2HLuGvOKy0BTs44w5TwTjmQ4BDE1ERLXAsGRGDEtkLvKiUsQcS8Hmo1eRWx6agrycMKt/MIZ1CoCNRGzhComIrAfDkhkxLJG55RWX4ou46/j0j6vIKSwFADT1cMTs/sEY8dgjsGVoIiKqEcOSGTEskaXkK5T4sjw0ZReUAACauDvg5X7BeLZzE9jZMDQREVWHYcmMGJbI0gpLlNj2Zyo+OXIVWfkKAECInwvWje2EED/+O0lEVBWGJTNiWKL6oqhEha9PpuLD2Mu4W1ACOxsxlgwKweQezTndABHRQ/T9/mYfPVED4mAnwUu9WmDvvD54IsQHJUo1Vu35G5O2nERmbrGlyyMiskoMS0QNkLeLFJsndcHrw9vD3laMP5KzELnuCH67mGHp0oiIrA7DElEDJRKJMOHxZtgzpxfaBbjiXmEppn95Gku2n0NB+QSXRERUM6sJS6tXr0aPHj3g6OgINzc3g7efMWMGRCIR1q1bp7W+efPmEIlEWstbb71lnKKJ6oFgHxfsfLknZvRtCZEI+ObUDTz9wR9IuJFj6dKIiKyC1YSlkpISjB49GjNnzjR42507d+LPP/9EQEBAle+vWrUK6enpmmXOnDl1LZeoXrGzEWPJUyH4378eh7/MHil3CzFq03FsOJAMlZr3eBAR6WI1YSkqKgrz589HaGioQdvdunULc+bMwbZt22Bra1tlGxcXF/j5+WkWJycnY5RMVO+Et/TE3lf64JkO/lCpBazd9w+e+yQON7ILLV0aEVG9ZTVhqTbUajUmTJiAV199Fe3atau23VtvvQVPT0+EhYXhnXfegVKpezyHQqFAbm6u1kJkLWSOttgwLgzvjekIZ6kN/rp+D0+t/wM7ztwEZxIhIqqsQYelNWvWwMbGBnPnzq22zdy5c/HNN98gNjYW06dPx5tvvol///vfOvcbHR0NmUymWQIDA41dOpFJiUQijHysCX59pTe6NHNHvkKJBd+dxZyv4yEvf3wKERGVsWhYWrJkSaXB1Q8viYmJtdr36dOnsX79esTExEAkqn4yvgULFqBfv37o0KEDZsyYgbVr12LDhg1QKBTVbrN06VLI5XLNcuPGjVrVSGRpgR6O+Gba41j4ZGtIxCLsOZeOp9YfQdyVu5YujYio3rDoDN537tzB3bu6/6McFBQEOzs7zeuYmBjMmzcPOTk5Ordbt24dFixYALH4fh5UqVQQi8UIDAxESkpKldtdvHgR7du3R2JiItq0aaPXcXAGb2oI4lPvYf63CUi5WwiRCJjepyUWPNmaz5cjogZL3+9vGzPWVIm3tze8vb1Nsu8JEyYgIiJCa11kZCQmTJiAF198sdrtEhISIBaL4ePjY5K6iOqrsKbu+Hlub6z66W98+9cNfHz4Co5evoN1z4Uh2MfZ0uUREVmMRcOSIVJTU5GdnY3U1FSoVCokJCQAAIKDg+HsXPYf8pCQEERHR2PEiBHw9PSEp6en1j5sbW3h5+en6TGKi4vDiRMn0L9/f7i4uCAuLg7z58/HCy+8AHd3d7MeH1F94CS1wZpnO6B/iA+W7DiHC7dy8cyGP/B/Tz+KF7o31XlJm4ioobKasLR8+XJs3bpV8zosLAwAEBsbi379+gEAkpKSIJfL9d6nVCrFN998g5UrV0KhUKBFixaYP38+FixYYNTaiazNoPZ+CGvqhkXfn8UfyVlYtusCDiVmYs2zHeDlLLV0eUREZmXRMUsNBccsUUOlVgvYcjwFa/YmokSphpezHd55tiP6h/AyNRFZP32/vxmWjIBhiRq6xIxcvPJ1ApJu5wEAnu/eFE+08YGnsx28nKXwdLaDo53VdFQTEQFgWDIrhiVqDIpLVVizNxFbjqVU+b6DrQSeznbwdJbCy8lO87On0/1A5elU9k8PJzvYSniXHRFZFsOSGTEsUWPyR/IdbD2egtu5CmQXlOBOvgIlSrXB+5E52Jb1TJUHqIow5eVsB2d7G6jUgEqthlItQPXAoqz0s1qrrfqBNg+/rljX1t8Fk3o05/grokaOYcmMGJaoMRMEAQUlKtzNVyArvwR38xW4W/DgP0twt0CBu/klyMovQXaBAvXh2b32tmKM7doU0/sGwV/mYOlyiMgCGJbMiGGJSH9qtYCcotJKYUoTtPJLUFCihEQsgo1YBIlmEcNGLIJYVL5eIqr0WlLxs1gMiRiabSQPLGpBwPYzt3D2Rg4AwFYiwqjHmmBmv5Zo5smHaBM1JgxLZsSwRGRdBEHAsct3seFgMk5cywYAiEXAkI4BmNU/GK19XSxcIRGZA8OSGTEsEVmvv1KysTH2Mg4l3dGsi2zni9n9WyG0icyClRGRqTEsmRHDEpH1O39Tjg9jL2PvxQzNuj6tvTG7fzC6tfCwYGVEZCoMS2bEsETUcCTfzsNHh65g99k0qMpHondr4YHZ/YPRu5UXH/lC1IAwLJkRwxJRw5N6txCbDl/BD6dvoFRV9p/Jjk1kmNU/GBFtfSEWMzQRWTuGJTNiWCJquNLlRfjvkav4+mQqikvL5pNq4+uCl/u3xDMdAiBhaCKyWgxLZsSwRNTwZeUr8PnRa/gi7jryFUoAQHNPR8zs1xIjwprAzoYzkhNZG4YlM2JYImo85IWl2BqXgs+PXUNOYSkAIEBmj+l9W+K5roGwt5VYuEIi0hfDkhkxLBE1PgUKJf53IhX//eMq7uQpAABezlL8q3cLdGnmDiepDZylNnCxt4GT1IbPwiOqhxiWzIhhiajxKi5V4fvTN/HxoSu4lVNUbTt7WzGcpbZwlkrgbF8WpJyltuVhSqL52bk8ZDmVBy1nqQ2c7W3gUv5PB1sJ78gjMhKGJTNiWCKiUpUau+Jv4dtTN5CVr0C+Qom8YiUUtXjIsC72tmJ0be6Bvq290ae1N1r5ODM8EdUSw5IZMSwRUXVKVWoUlAenfEX58tDPeeX/LChfV/a6FPkKJQoUKuSV/1zVA4j9XO3Ru5UX+rT2Rq9gL7g72Zn/IImsFMOSGTEsEZGpCYKAolIVbt4rwh/JWTjyzx2cuHZXM50BAIhEQIdHZOhT3uvUKdCNY6WIdGBYMiOGJSKyhOJSFU6lZGvCU2JGntb7LlIbhLf0RJ/W3ujb2huBHo4WqpSofmJYMiOGJSKqD27nFuPIP3dwJDkLR5Pv4F751AYVmns6lvU6tfLG4y094Sy1sVClRPUDw5IZMSwRUX2jVgu4kCYvC0//ZOFM6j0oHxj0ZCsR4bGm7ppep0f9XfkIF2p0GJbMiGGJiOq7vOJSxF25iyPJZeEpNbtQ631PJzv0auWFni290CFQhmBvZ9hwvBM1cAxLZsSwRETWJiWrAH8k38Hhf7IQdyULBSUqrfcdbCVoF+CKDk3c0KGJDB2ayNDc04m9T9SgMCyZEcMSEVmzEqUa8an3cCT5Dv5KuYcLt+SVwhNQNmC8/SMydAiUocMjZSGqibsD53kiq8WwZEYMS0TUkKjVAq5m5ePcTXn5koOLablVTrDp7miL0CZu6NhEhtBHZOgY6AZfV3sLVE1kOIYlM2JYIqKGTqlS45/b+Th/Kwdnb8px/qYciRm5KFVV/grxcZGWX7pzQ2gTGTo8IoOns1TvzxIEAQqlGoUlKhSWKFFUoir/WYXiUtX99aX31xeVKFGiVMPH1R6BHo5o6uGIZh6OcHO0bZQ9X8WlKqRmF+LqnQJcyyrA9bsFsJWI4elsBy9nKbzK/+lZ/rOz1MZivyeFUoU7eQpk5imQmavAnbzi+6/zFMjMK0ZmrgKfTuyCjoFuRv1sfb+/ed8oERHVyEYixqMBrng0wBXPdS1bp1CqkJieh3O35Dh/Mwfnbsrxz+08ZOYpsP9SJvZfytRs/4ibAzo0kcHV3haFpWXh5n7QUaGwVImiEnXZ+lIVjPW/8S5SG014aurpeP9nD0c84uYAOxvrHcSuUgtIyynC1awCXLuTj2tZBWU/ZxXgVk6RQb9DqY1YE6I8tf55P1iVhSs7uDvaQaLH2LUChbI8ABVrBZ87uQ+EoDwFch6a4qI6GbnF6Kj/IRkVe5aMgD1LRERlikpUuJhWdvnu/C05zt7MwdU7BbXen52NGI52EjjaSuBgJ4GjnQ0c7CRwsJXA0a5iXdl6G7EIGbnFuJFdiNTsQtzOVejct0gEBMgcEOjhoAlQD4YpDyc7i/dKCYKAO/kKXCvvIXowEKXeLUSJqvpnD7pIbRDk7YQWXk5o5ukEtSAgK78EWfkK3M1XICu/BHfzFVWOT9NFLAI8nOw04cnLWQpXe1vcKyxBZp6irFcot9ig/dpKRPBxsYe3ixQ+LlL4uErh7WwPH9fy1y72aOHtZPS5wXgZzowYloiIqpdbXIqLt3Jx4ZYcJSq1VtAp+9nmgdDzQCiylejVg1Gd4lIVbt4rC06pdwuRml2E1OxCTZgqKtX9Ze5kJ0GghyOaeZaFJz+ZA2wlIohFItiIRRCLRZCIRLApXycRly8P/iwub//Adg+vk4jL1t8rLCkLQw8Eo2tZBchXKKut0c5GjOaejmjh5YQWXs4I8nJCi/KA5Kln2CsqUSErX1EeosrDVEEJ7uSV/TMrT6FZd6+wxKAeK0c7iSbseD8QfCoCUcXPlrpcyrBkRgxLRETWRSjvZXkwPF2/e//njNxiS5eoIRIBTdwd7oehB5YAN4c6BUpDKVVqZBeWICuvBHcL7gcseVEpZA628HEtD0IuUvi42tf7WeI5ZomIiKgaIpEI3i5SeLtI0bmZe6X3i8sfWlwRnlKzC5GZp4BKrYZKLdxfBGjWqdWAUq1+YF3ZnYVKtRpqAVrbKdUC1IKgtc5JanM/DJX3DgV5OSHQwxH2thIL/JYqs5GIy3uDGtcdjwxLRERED7G3lSDYxxnBPs6WLoXqAau5DWD16tXo0aMHHB0d4ebmptc2kydPhkgk0loGDRqk1SY7Oxvjx4+Hq6sr3NzcMGXKFOTn55vgCIiIiMgaWU1YKikpwejRozFz5kyDths0aBDS09M1y9dff631/vjx43Hx4kXs27cPe/bswZEjRzBt2jRjlk5ERERWzGouw0VFRQEAYmJiDNpOKpXCz8+vyvcuXbqEvXv34tSpU+jSpQsAYMOGDRg8eDDeffddBAQE1KlmIiIisn5W07NUW4cOHYKPjw/atGmDmTNn4u7du5r34uLi4ObmpglKABAREQGxWIwTJ05Uu0+FQoHc3FythYiIiBqmBh2WBg0ahC+++AIHDhzAmjVrcPjwYTz11FNQqcrm1sjIyICPj4/WNjY2NvDw8EBGRka1+42OjoZMJtMsgYGBJj0OIiIishyLhqUlS5ZUGoD98JKYmFjr/Y8dOxZDhw5FaGgohg8fjj179uDUqVM4dOhQnepeunQp5HK5Zrlx40ad9kdERET1l0XHLC1cuBCTJ0/W2SYoKMhonxcUFAQvLy9cvnwZAwYMgJ+fHzIzM7XaKJVKZGdnVzvOCSgbByWV6v9QSCIiIrJeFg1L3t7e8Pb2Ntvn3bx5E3fv3oW/vz8AIDw8HDk5OTh9+jQ6d+4MADh48CDUajW6d+9utrqIiIio/rKaMUupqalISEhAamoqVCoVEhISkJCQoDUnUkhICHbu3AkAyM/Px6uvvoo///wTKSkpOHDgAIYNG4bg4GBERkYCANq2bYtBgwZh6tSpOHnyJI4dO4bZs2dj7NixvBOOiIiIAFjR1AHLly/H1q1bNa/DwsIAALGxsejXrx8AICkpCXK5HAAgkUhw7tw5bN26FTk5OQgICMDAgQPx+uuva11C27ZtG2bPno0BAwZALBZj1KhR+OCDD8x3YERERFSv8UG6RsAH6RIREVkffb+/reYyHBEREZElMCwRERER6cCwRERERKSD1Qzwrs8qhn3xsSdERETWo+J7u6bh2wxLRpCXlwcAfOwJERGRFcrLy4NMJqv2fd4NZwRqtRppaWlwcXGBSCQy2n5zc3MRGBiIGzduNIq77BrT8fJYG67GdLw81oarsRyvIAjIy8tDQEAAxOLqRyaxZ8kIxGIxmjRpYrL9u7q6Nuh/WR/WmI6Xx9pwNabj5bE2XI3heHX1KFXgAG8iIiIiHRiWiIiIiHRgWKrHpFIpVqxYofV4loasMR0vj7XhakzHy2NtuBrb8daEA7yJiIiIdGDPEhEREZEODEtEREREOjAsEREREenAsERERESkA8OShX344Ydo3rw57O3t0b17d5w8eVJn+++//x4hISGwt7dHaGgofvnlFzNVWjfR0dHo2rUrXFxc4OPjg+HDhyMpKUnnNjExMRCJRFqLvb29mSquvZUrV1aqOyQkROc21npeAaB58+aVjlckEmHWrFlVtrem83rkyBEMGTIEAQEBEIlE2LVrl9b7giBg+fLl8Pf3h4ODAyIiIpCcnFzjfg39uzcHXcdaWlqKxYsXIzQ0FE5OTggICMDEiRORlpamc5+1+Vswh5rO6+TJkyvVPWjQoBr3Wx/PK1Dz8Vb19ysSifDOO+9Uu8/6em5NhWHJgr799lssWLAAK1aswJkzZ9CxY0dERkYiMzOzyvbHjx/HuHHjMGXKFMTHx2P48OEYPnw4Lly4YObKDXf48GHMmjULf/75J/bt24fS0lIMHDgQBQUFOrdzdXVFenq6Zrl+/bqZKq6bdu3aadV99OjRatta83kFgFOnTmkd6759+wAAo0ePrnYbazmvBQUF6NixIz788MMq33/77bfxwQcf4OOPP8aJEyfg5OSEyMhIFBcXV7tPQ//uzUXXsRYWFuLMmTNYtmwZzpw5gx07diApKQlDhw6tcb+G/C2YS03nFQAGDRqkVffXX3+tc5/19bwCNR/vg8eZnp6Ozz//HCKRCKNGjdK53/p4bk1GIIvp1q2bMGvWLM1rlUolBAQECNHR0VW2HzNmjPD0009rrevevbswffp0k9ZpCpmZmQIA4fDhw9W22bJliyCTycxXlJGsWLFC6Nixo97tG9J5FQRBeOWVV4SWLVsKarW6yvet9bwCEHbu3Kl5rVarBT8/P+Gdd97RrMvJyRGkUqnw9ddfV7sfQ//uLeHhY63KyZMnBQDC9evXq21j6N+CJVR1rJMmTRKGDRtm0H6s4bwKgn7ndtiwYcITTzyhs401nFtjYs+ShZSUlOD06dOIiIjQrBOLxYiIiEBcXFyV28TFxWm1B4DIyMhq29dncrkcAODh4aGzXX5+Ppo1a4bAwEAMGzYMFy9eNEd5dZacnIyAgAAEBQVh/PjxSE1NrbZtQzqvJSUl+Oqrr/DSSy/pfKi0tZ7XB127dg0ZGRla504mk6F79+7Vnrva/N3XV3K5HCKRCG5ubjrbGfK3UJ8cOnQIPj4+aNOmDWbOnIm7d+9W27Yhndfbt2/j559/xpQpU2psa63ntjYYliwkKysLKpUKvr6+Wut9fX2RkZFR5TYZGRkGta+v1Go15s2bh549e6J9+/bVtmvTpg0+//xz/Pjjj/jqq6+gVqvRo0cP3Lx504zVGq579+6IiYnB3r17sWnTJly7dg29e/dGXl5ele0bynkFgF27diEnJweTJ0+uto21nteHVZwfQ85dbf7u66Pi4mIsXrwY48aN0/mQVUP/FuqLQYMG4YsvvsCBAwewZs0aHD58GE899RRUKlWV7RvKeQWArVu3wsXFBSNHjtTZzlrPbW3ZWLoAanxmzZqFCxcu1Hh9Ozw8HOHh4ZrXPXr0QNu2bfHJJ5/g9ddfN3WZtfbUU09pfu7QoQO6d++OZs2a4bvvvtPr/9as2ebNm/HUU08hICCg2jbWel6pTGlpKcaMGQNBELBp0yadba31b2Hs2LGan0NDQ9GhQwe0bNkShw4dwoABAyxYmel9/vnnGD9+fI03XVjrua0t9ixZiJeXFyQSCW7fvq21/vbt2/Dz86tyGz8/P4Pa10ezZ8/Gnj17EBsbiyZNmhi0ra2tLcLCwnD58mUTVWcabm5uaN26dbV1N4TzCgDXr1/H/v378a9//cug7az1vFacH0POXW3+7uuTiqB0/fp17Nu3T2evUlVq+luor4KCguDl5VVt3dZ+Xiv88ccfSEpKMvhvGLDec6svhiULsbOzQ+fOnXHgwAHNOrVajQMHDmj9X/eDwsPDtdoDwL59+6ptX58IgoDZs2dj586dOHjwIFq0aGHwPlQqFc6fPw9/f38TVGg6+fn5uHLlSrV1W/N5fdCWLVvg4+ODp59+2qDtrPW8tmjRAn5+flrnLjc3FydOnKj23NXm776+qAhKycnJ2L9/Pzw9PQ3eR01/C/XVzZs3cffu3Wrrtubz+qDNmzejc+fO6Nixo8HbWuu51ZulR5g3Zt98840glUqFmJgY4e+//xamTZsmuLm5CRkZGYIgCMKECROEJUuWaNofO3ZMsLGxEd59913h0qVLwooVKwRbW1vh/PnzljoEvc2cOVOQyWTCoUOHhPT0dM1SWFioafPw8UZFRQm//fabcOXKFeH06dPC2LFjBXt7e+HixYuWOAS9LVy4UDh06JBw7do14dixY0JERITg5eUlZGZmCoLQsM5rBZVKJTRt2lRYvHhxpfes+bzm5eUJ8fHxQnx8vABAeO+994T4+HjNHWBvvfWW4ObmJvz444/CuXPnhGHDhgktWrQQioqKNPt44oknhA0bNmhe1/R3bym6jrWkpEQYOnSo0KRJEyEhIUHrb1ihUGj28fCx1vS3YCm6jjUvL09YtGiREBcXJ1y7dk3Yv3+/8NhjjwmtWrUSiouLNfuwlvMqCDX/eywIgiCXywVHR0dh06ZNVe7DWs6tqTAsWdiGDRuEpk2bCnZ2dkK3bt2EP//8U/Ne3759hUmTJmm1/+6774TWrVsLdnZ2Qrt27YSff/7ZzBXXDoAqly1btmjaPHy88+bN0/xufH19hcGDBwtnzpwxf/EGeu655wR/f3/Bzs5OeOSRR4TnnntOuHz5sub9hnReK/z2228CACEpKanSe9Z8XmNjY6v897bieNRqtbBs2TLB19dXkEqlwoABAyr9Dpo1ayasWLFCa52uv3tL0XWs165dq/ZvODY2VrOPh4+1pr8FS9F1rIWFhcLAgQMFb29vwdbWVmjWrJkwderUSqHHWs6rINT877EgCMInn3wiODg4CDk5OVXuw1rOramIBEEQTNp1RURERGTFOGaJiIiISAeGJSIiIiIdGJaIiIiIdGBYIiIiItKBYYmIiIhIB4YlIiIiIh0YloiIiIh0YFgiIotq3rw51q1bp3f7Q4cOQSQSIScnx2Q11WcrV65Ep06dLF0GUaPCsEREehGJRDqXlStX1mq/p06dwrRp0/Ru36NHD6Snp0Mmk9Xq8/T1cCiLiYmBm5ubST/zYSKRCLt27dJat2jRokrPEiQi07KxdAFEZB3S09M1P3/77bdYvnw5kpKSNOucnZ01PwuCAJVKBRubmv8T4+3tbVAddnZ2VvUk94epVCqIRCKIxbX7f1VnZ2et3zURmR57lohIL35+fppFJpNBJBJpXicmJsLFxQW//vorOnfuDKlUiqNHj+LKlSsYNmwYfH194ezsjK5du2L//v1a+334MpxIJMJnn32GESNGwNHREa1atcLu3bs171fX4/Pbb7+hbdu2cHZ2xqBBg7TCnVKpxNy5c+Hm5gZPT08sXrwYkyZNwvDhw/U69kOHDuHFF1+EXC6v1JOmUCiwaNEiPPLII3ByckL37t1x6NAhzbYV9e3evRuPPvoopFIpUlNTcerUKTz55JPw8vKCTCZD3759cebMGa3fCwCMGDECIpFI8/rhy3BqtRqrVq1CkyZNIJVK0alTJ+zdu1fzfkpKCkQiEXbs2IH+/fvD0dERHTt2RFxcnKbN9evXMWTIELi7u8PJyQnt2rXDL7/8otfvhqgxYFgiIqNZsmQJ3nrrLVy6dAkdOnRAfn4+Bg8ejAMHDiA+Ph6DBg3CkCFDkJqaqnM/UVFRGDNmDM6dO4fBgwdj/PjxyM7OrrZ9YWEh3n33XXz55Zc4cuQIUlNTsWjRIs37a9aswbZt27BlyxYcO3YMubm5lS5v6dKjRw+sW7cOrq6uSE9PR3p6umb/s2fPRlxcHL755hucO3cOo0ePxqBBg5CcnKxV35o1a/DZZ5/h4sWL8PHxQV5eHiZNmoSjR4/izz//RKtWrTB48GDk5eUBKLs8CQBbtmxBenq65vXD1q9fj7Vr1+Ldd9/FuXPnEBkZiaFDh2p9PgD83//9HxYtWoSEhAS0bt0a48aNg1KpBADMmjULCoUCR44cwfnz57FmzRr2XhE9yMIP8iUiK7RlyxZBJpNpXlc81XzXrl01btuuXTthw4YNmtfNmjUT3n//fc1rAMJrr72meZ2fny8AEH799Vetz7p3756mFgBaTzz/8MMPBV9fX81rX19f4Z133tG8ViqVQtOmTYVhw4ZVW2dVn/PgMQuCIFy/fl2QSCTCrVu3tNYPGDBAWLp0qVZ9CQkJ1f9SBEFQqVSCi4uL8NNPP2n9Lnbu3KnVbsWKFULHjh01rwMCAoTVq1drtenatavw8ssvC4IgCNeuXRMACJ999pnm/YsXLwoAhEuXLgmCIAihoaHCypUrddZH1JixZ4mIjKZLly5ar/Pz87Fo0SK0bdsWbm5ucHZ2xqVLl2rsWerQoYPmZycnJ7i6uiIzM7Pa9o6OjmjZsqXmtb+/v6a9XC7H7du30a1bN837EokEnTt3NujYqnL+/HmoVCq0bt1aM5bI2dkZhw8fxpUrVzTt7OzstI4JAG7fvo2pU6eiVatWkMlkcHV1RX5+fo2/mwfl5uYiLS0NPXv21Frfs2dPXLp0SWvdg5/v7+8PAJrf0dy5c/HGG2+gZ8+eWLFiBc6dO6d3DUSNAQd4E5HRODk5ab1etGgR9u3bh3fffRfBwcFwcHDAs88+i5KSEp37sbW11XotEomgVqsNai8IgoHVGy4/Px8SiQSnT5+GRCLReu/By1gODg4QiURa70+aNAl3797F+vXr0axZM0ilUoSHh9f4u6mtB39HFbVU/E7/9a9/ITIyEj///DN+//13REdHY+3atZgzZ45JaiGyNuxZIiKTOXbsGCZPnowRI0YgNDQUfn5+SElJMWsNMpkMvr6+WmN+VCqV1mBqfdjZ2UGlUmmtCwsLg0qlQmZmJoKDg7WWmu7YO3bsGObOnYvBgwejXbt2kEqlyMrK0mpja2tb6TMf5OrqioCAABw7dqzSvh999FGDji8wMBAzZszAjh07sHDhQnz66acGbU/UkLFniYhMplWrVtixYweGDBkCkUiEZcuW6ewhMpU5c+YgOjoawcHBCAkJwYYNG3Dv3r1KvT26NG/eHPn5+Thw4AA6duwIR0dHtG7dGuPHj8fEiROxdu1ahIWF4c6dOzhw4AA6dOiAp59+utr9tWrVCl9++SW6dOmC3NxcvPrqq3BwcKj0mQcOHEDPnj0hlUrh7u5eaT+vvvoqVqxYgZYtW6JTp07YsmULEhISsG3bNr2Pbd68eXjqqafQunVr3Lt3D7GxsWjbtq3e2xM1dOxZIiKTee+99+Du7o4ePXpgyJAhiIyMxGOPPWb2OhYvXoxx48Zh4sSJCA8Ph7OzMyIjI2Fvb6/3Pnr06IEZM2bgueeeg7e3N95++20AZXerTZw4EQsXLkSbNm0wfPhwnDp1Ck2bNtW5v82bN+PevXt47LHHMGHCBMydOxc+Pj5abdauXYt9+/YhMDAQYWFhVe5n7ty5WLBgARYuXIjQ0FDs3bsXu3fvRqtWrfQ+NpVKhVmzZqFt27YYNGgQWrdujY8++kjv7YkaOpFgjgv7RET1iFqtRtu2bTFmzBi8/vrrli6HiOo5XoYjogbv+vXr+P3339G3b18oFAps3LgR165dw/PPP2/p0ojICvAyHBE1eGKxGDExMejatSt69uyJ8+fPY//+/RyXQ0R64WU4IiIiIh3Ys0RERESkA8MSERERkQ4MS0REREQ6MCwRERER6cCwRERERKQDwxIRERGRDgxLRERERDowLBERERHpwLBEREREpMP/A34O+rby0xUPAAAAAElFTkSuQmCC&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;text/plain&quot;</span><span class="p">:</span> <span class="p">[</span>
+       <span class="s2">&quot;&lt;Figure size 640x480 with 1 Axes&gt;&quot;</span>
+      <span class="p">]</span>
+     <span class="p">},</span>
+     <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="p">{},</span>
+     <span class="s2">&quot;output_type&quot;</span><span class="p">:</span> <span class="s2">&quot;display_data&quot;</span>
+    <span class="p">}</span>
+   <span class="p">],</span>
+   <span class="s2">&quot;source&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">&quot;plt.plot(epoch_loss)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;plt.title(</span><span class="se">\&quot;</span><span class="s2">Hybrid NN Training Convergence</span><span class="se">\&quot;</span><span class="s2">)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;plt.xlabel(</span><span class="se">\&quot;</span><span class="s2">Training Iterations</span><span class="se">\&quot;</span><span class="s2">)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;plt.ylabel(</span><span class="se">\&quot;</span><span class="s2">Neg Log Likelihood Loss</span><span class="se">\&quot;</span><span class="s2">)&quot;</span>
+   <span class="p">]</span>
+  <span class="p">},</span>
+  <span class="p">{</span>
+   <span class="s2">&quot;cell_type&quot;</span><span class="p">:</span> <span class="s2">&quot;code&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;execution_count&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+   <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="p">{},</span>
+   <span class="s2">&quot;outputs&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="p">{</span>
+     <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;stdout&quot;</span><span class="p">,</span>
+     <span class="s2">&quot;output_type&quot;</span><span class="p">:</span> <span class="s2">&quot;stream&quot;</span><span class="p">,</span>
+     <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="p">[</span>
+      <span class="s2">&quot;Performance on test data:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Accuracy: 100.0%</span><span class="se">\n</span><span class="s2">&quot;</span>
+     <span class="p">]</span>
+    <span class="p">}</span>
+   <span class="p">],</span>
+   <span class="s2">&quot;source&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">&quot;# Testing on the test set</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;model.eval()</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;with torch.no_grad():</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    correct = 0</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    for batch_idx, (data, target) in enumerate(test_loader):</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        data, target = data.to(device), target.to(device)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        output = model(data).to(device)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        pred = output.argmax(dim=1, keepdim=True)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        correct += pred.eq(target.view_as(pred)).sum().item()</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        loss = loss_func(output, target)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        epoch_loss.append(loss.item())</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    print(</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        </span><span class="se">\&quot;</span><span class="s2">Performance on test data:</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">tAccuracy: </span><span class="si">{:.1f}</span><span class="s2">%</span><span class="se">\&quot;</span><span class="s2">.format(</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;            correct / len(test_loader) * 100</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;        )</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;    )&quot;</span>
+   <span class="p">]</span>
+  <span class="p">}</span>
+ <span class="p">],</span>
+ <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="p">{</span>
+  <span class="s2">&quot;kernelspec&quot;</span><span class="p">:</span> <span class="p">{</span>
+   <span class="s2">&quot;display_name&quot;</span><span class="p">:</span> <span class="s2">&quot;Python 3 (ipykernel)&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;language&quot;</span><span class="p">:</span> <span class="s2">&quot;python&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;python3&quot;</span>
+  <span class="p">},</span>
+  <span class="s2">&quot;language_info&quot;</span><span class="p">:</span> <span class="p">{</span>
+   <span class="s2">&quot;codemirror_mode&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;ipython&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;version&quot;</span><span class="p">:</span> <span class="mi">3</span>
+   <span class="p">},</span>
+   <span class="s2">&quot;file_extension&quot;</span><span class="p">:</span> <span class="s2">&quot;.py&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;mimetype&quot;</span><span class="p">:</span> <span class="s2">&quot;text/x-python&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;python&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;nbconvert_exporter&quot;</span><span class="p">:</span> <span class="s2">&quot;python&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;pygments_lexer&quot;</span><span class="p">:</span> <span class="s2">&quot;ipython3&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;version&quot;</span><span class="p">:</span> <span class="s2">&quot;3.10.6&quot;</span>
+  <span class="p">},</span>
+  <span class="s2">&quot;orig_nbformat&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+  <span class="s2">&quot;vscode&quot;</span><span class="p">:</span> <span class="p">{</span>
+   <span class="s2">&quot;interpreter&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;hash&quot;</span><span class="p">:</span> <span class="s2">&quot;31f2aee4e71d21fbe5cf8b01ff0e069b9275f58929596ceb00d14d90e3e16cd6&quot;</span>
+   <span class="p">}</span>
+  <span class="p">}</span>
+ <span class="p">},</span>
+ <span class="s2">&quot;nbformat&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+ <span class="s2">&quot;nbformat_minor&quot;</span><span class="p">:</span> <span class="mi">2</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="using-quantum-hardware-providers">
+<h2>Using Quantum Hardware Providers<a class="headerlink" href="#using-quantum-hardware-providers" title="Permalink to this heading">¶</a></h2>
+<p>CUDA Quantum contains support for using a set of hardware providers.
+For more information about executing quantum kernels on different hardware backends, please take a look at <a class="reference internal" href="hardware.html"><span class="doc">CUDA Quantum Hardware Backends</span></a>.</p>
+<p>The following code illustrates how run kernels on Quantinuum’s backends.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+
+<span class="c1"># You only have to set the target once! No need to redefine it</span>
+<span class="c1"># for every execution call on your kernel.</span>
+<span class="c1"># By default, we will submit to the Quantinuum syntax checker.</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;quantinuum&quot;</span><span class="p">)</span>
+
+<span class="c1"># Create the kernel we&#39;d like to execute on Quantinuum.</span>
+<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="n">qubits</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+<span class="c1"># Submit to Quantinuum&#39;s endpoint and confirm the program is valid.</span>
+
+<span class="c1"># Option A:</span>
+<span class="c1"># By using the synchronous `cudaq.sample`, the execution of</span>
+<span class="c1"># any remaining classical code in the file will occur only</span>
+<span class="c1"># after the job has been executed by the Quantinuum service.</span>
+<span class="c1"># We will use the synchronous call to submit to the syntax</span>
+<span class="c1"># checker to confirm the validity of the program.</span>
+<span class="n">syntax_check</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+<span class="k">if</span> <span class="p">(</span><span class="n">syntax_check</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Syntax check passed! Kernel is ready for submission.&quot;</span><span class="p">)</span>
+
+<span class="c1"># Now we can update the target to the Quantinuum emulator and</span>
+<span class="c1"># execute our program.</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;quantinuum&quot;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s2">&quot;H1-2E&quot;</span><span class="p">)</span>
+
+<span class="c1"># Option B:</span>
+<span class="c1"># By using the asynchronous `cudaq.sample_async`, the remaining</span>
+<span class="c1"># classical code will be executed while the job is being handled</span>
+<span class="c1"># by Quantinuum. This is ideal when submitting via a queue over</span>
+<span class="c1"># the cloud.</span>
+<span class="n">async_results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+<span class="c1"># ... more classical code to run ...</span>
+
+<span class="c1"># We can either retrieve the results later in the program with</span>
+<span class="c1"># ```</span>
+<span class="c1"># async_counts = async_results.get()</span>
+<span class="c1"># ```</span>
+<span class="c1"># or wee can also write the job reference (`async_results`) to</span>
+<span class="c1"># a file and load it later or from a different process.</span>
+<span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+<span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">async_results</span><span class="p">))</span>
+<span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<span class="c1"># We can later read the file content and retrieve the job</span>
+<span class="c1"># information and results.</span>
+<span class="n">same_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+<span class="n">retrieved_async_results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">AsyncSampleResult</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">same_file</span><span class="o">.</span><span class="n">read</span><span class="p">()))</span>
+
+<span class="n">counts</span> <span class="o">=</span> <span class="n">retrieved_async_results</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The following code illustrates how run kernels on IonQ’s backends.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+
+<span class="c1"># You only have to set the target once! No need to redefine it</span>
+<span class="c1"># for every execution call on your kernel.</span>
+<span class="c1"># To use different targets in the same file, you must update</span>
+<span class="c1"># it via another call to `cudaq.set_target()`</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;ionq&quot;</span><span class="p">)</span>
+
+<span class="c1"># Create the kernel we&#39;d like to execute on IonQ.</span>
+<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="n">qubits</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+<span class="c1"># Note: All qubits will be measured at the end upon performing</span>
+<span class="c1"># the sampling. You may encounter a pre-flight error on IonQ</span>
+<span class="c1"># backends if you include explicit measurements.</span>
+
+<span class="c1"># Execute on IonQ and print out the results.</span>
+
+<span class="c1"># Option A:</span>
+<span class="c1"># By using the asynchronous `cudaq.sample_async`, the remaining</span>
+<span class="c1"># classical code will be executed while the job is being handled</span>
+<span class="c1"># by IonQ. This is ideal when submitting via a queue over</span>
+<span class="c1"># the cloud.</span>
+<span class="n">async_results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+<span class="c1"># ... more classical code to run ...</span>
+
+<span class="c1"># We can either retrieve the results later in the program with</span>
+<span class="c1"># ```</span>
+<span class="c1"># async_counts = async_results.get()</span>
+<span class="c1"># ```</span>
+<span class="c1"># or wee can also write the job reference (`async_results`) to</span>
+<span class="c1"># a file and load it later or from a different process.</span>
+<span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+<span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">async_results</span><span class="p">))</span>
+<span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<span class="c1"># We can later read the file content and retrieve the job</span>
+<span class="c1"># information and results.</span>
+<span class="n">same_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+<span class="n">retrieved_async_results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">AsyncSampleResult</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">same_file</span><span class="o">.</span><span class="n">read</span><span class="p">()))</span>
+
+<span class="n">counts</span> <span class="o">=</span> <span class="n">retrieved_async_results</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
+
+<span class="c1"># Option B:</span>
+<span class="c1"># By using the synchronous `cudaq.sample`, the execution of</span>
+<span class="c1"># any remaining classical code in the file will occur only</span>
+<span class="c1"># after the job has been returned from IonQ.</span>
+<span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="cpp.html" class="btn btn-neutral float-left" title="CUDA Quantum in C++" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="simulators.html" class="btn btn-neutral float-right" title="CUDA Quantum Simulation Backends" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, NVIDIA Corporation &amp; Affiliates.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(false);
+      });
+  </script>  
+
+  <style>
+  a:link, a:visited {
+    color: #76b900;
+  }
+
+  a:hover {
+    color: #8c0;
+  }
+
+  .rst-content dl:not(.docutils) dt {
+    background: rgba(118, 185, 0, 0.1);
+    color: rgba(59,93,0,1);
+    border-top: solid 3px rgba(59,93,0,1);
+  }
+  </style>
+  
+
+</body>
+</html>
