@@ -76,9 +76,10 @@ Returns:
       /// binary operators (see: cudaq::spin_op bindings). Instead,
       /// we bind the functions manually.
       /// Multiplication overloads:
-      .def("__mul__", py::overload_cast<const double>(&QuakeValue::operator*),
-           py::arg("other"),
-           R"#(Return the product of `self` (:class:`QuakeValue`) with `other` (float).
+      .def(
+          "__mul__", py::overload_cast<const double>(&QuakeValue::operator*),
+          py::arg("other"),
+          R"#(Return the product of `self` (:class:`QuakeValue`) with `other` (float).
 
 Raises:
 	RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
@@ -116,9 +117,10 @@ Raises:
 	kernel, value = cudaq.make_kernel(float)
 	new_value: QuakeValue = 5.0 * value)#")
       // Addition overloads:
-      .def("__add__", py::overload_cast<const double>(&QuakeValue::operator+),
-           py::arg("other"),
-           R"#(Return the sum of `self` (:class:`QuakeValue`) and `other` (float).
+      .def(
+          "__add__", py::overload_cast<const double>(&QuakeValue::operator+),
+          py::arg("other"),
+          R"#(Return the sum of `self` (:class:`QuakeValue`) and `other` (float).
 
 Raises:
 	RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
@@ -128,9 +130,10 @@ Raises:
 	# Example:
 	kernel, value = cudaq.make_kernel(float)
 	new_value: QuakeValue = value + 5.0)#")
-      .def("__add__", py::overload_cast<QuakeValue>(&QuakeValue::operator+),
-           py::arg("other"),
-           R"#(Return the sum of `self` (:class:`QuakeValue`) and `other` (:class:`QuakeValue`).
+      .def(
+          "__add__", py::overload_cast<QuakeValue>(&QuakeValue::operator+),
+          py::arg("other"),
+          R"#(Return the sum of `self` (:class:`QuakeValue`) and `other` (:class:`QuakeValue`).
 
 Raises:
 	RuntimeError: if the underlying :class:`QuakeValue` type is not the same type as `self`.
@@ -167,9 +170,10 @@ Raises:
 	kernel, value = cudaq.make_kernel(float)
 	new_value: QuakeValue = 5.0 + value)#")
       // Subtraction overloads:
-      .def("__sub__", py::overload_cast<const double>(&QuakeValue::operator-),
-           py::arg("other"),
-           R"#(Return the difference of `self` (:class:`QuakeValue`) and `other` (float).
+      .def(
+          "__sub__", py::overload_cast<const double>(&QuakeValue::operator-),
+          py::arg("other"),
+          R"#(Return the difference of `self` (:class:`QuakeValue`) and `other` (float).
 
 Raises:
 	RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
@@ -179,9 +183,10 @@ Raises:
 	# Example:
 	kernel, value = cudaq.make_kernel(float)
 	new_value: QuakeValue = value - 5.0)#")
-      .def("__sub__", py::overload_cast<QuakeValue>(&QuakeValue::operator-),
-           py::arg("other"),
-           R"#(Return the difference of `self` (:class:`QuakeValue`) and `other` (:class:`QuakeValue`).
+      .def(
+          "__sub__", py::overload_cast<QuakeValue>(&QuakeValue::operator-),
+          py::arg("other"),
+          R"#(Return the difference of `self` (:class:`QuakeValue`) and `other` (:class:`QuakeValue`).
 
 Raises:
 	RuntimeError: if the underlying :class:`QuakeValue` type is not the same type as `self`.
@@ -191,9 +196,10 @@ Raises:
 	# Example:
 	kernel, values = cudaq.make_kernel(list)
 	new_value: QuakeValue = values[0] - values[1])#")
-      .def("__sub__", py::overload_cast<int>(&QuakeValue::operator-),
-           py::arg("other"),
-           R"#(Return the difference of `self` (:class:`QuakeValue`) and `other` (int).
+      .def(
+          "__sub__", py::overload_cast<int>(&QuakeValue::operator-),
+          py::arg("other"),
+          R"#(Return the difference of `self` (:class:`QuakeValue`) and `other` (int).
 
 Raises:
 	RuntimeError: if the underlying :class:`QuakeValue` type is not a int.

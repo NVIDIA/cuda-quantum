@@ -84,7 +84,8 @@ void bindKrausOp(py::module &mod) {
              extractKrausData(info, v.data());
              return kraus_op(v);
            }),
-           "Create a :class:`KrausOperator` from a buffer of data, like a numpy array.")
+           "Create a :class:`KrausOperator` from a buffer of data, like a "
+           "numpy array.")
       .def_readonly("row_count", &kraus_op::nRows,
                     "The number of rows in the matrix representation of this "
                     ":class:`KrausOperator`.")
@@ -94,10 +95,10 @@ void bindKrausOp(py::module &mod) {
 }
 
 void bindNoiseChannels(py::module &mod) {
-  py::class_<kraus_channel>(
-      mod, "KrausChannel",
-      "The `KrausChannel` is composed of a list of :class:`KrausOperator`'s and "
-      "is applied to a specific qubit or set of qubits.")
+  py::class_<kraus_channel>(mod, "KrausChannel",
+                            "The `KrausChannel` is composed of a list of "
+                            ":class:`KrausOperator`'s and "
+                            "is applied to a specific qubit or set of qubits.")
       .def(py::init<std::vector<kraus_op>>(),
            "Create a :class:`KrausChannel` composed of a list of "
            ":class:`KrausOperator`'s.")
