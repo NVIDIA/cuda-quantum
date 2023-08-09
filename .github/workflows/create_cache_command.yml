@@ -103,8 +103,8 @@ jobs:
           keys+=" ${{ needs.wheeldeps_caches.outputs.cache_key }}"
           gh extension install actions/gh-actions-cache
           for key in $keys; do
-            echo "Deleting cache $key"
-            gh actions-cache delete $key -R ${{ github.repository }} --confirm
+            (gh actions-cache delete $key -R ${{ github.repository }} --confirm && echo "Deleted cache $key") \
+            || echo "Cache $key not found"
           done
         env:
           GH_TOKEN: ${{ github.token }}
