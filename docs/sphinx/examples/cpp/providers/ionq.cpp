@@ -4,7 +4,7 @@
 // ```
 // This will submit the job to the IonQ ideal simulator target (default).
 // Alternatively, we can enable hardware noise model simulation by specifying
-// the --ionq-noise-model, e.g.,
+// the `--ionq-noise-model`, e.g.,
 // ```
 // nvq++ --target ionq --ionq-machine simulator --ionq-noise-model aria-1
 // ionq.cpp -o out.x && ./out.x
