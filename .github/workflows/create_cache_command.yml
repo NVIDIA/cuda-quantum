@@ -59,6 +59,8 @@ jobs:
       create_local_cache: true
       registry_cache_from: ${{ needs.config.outputs.target_branch }}
       pull_request_number: ${{ needs.config.outputs.pull_request_number }}
+      # needed only for the cloudposse GitHub action
+      matrix_key: ${{ matrix.toolchain }}
 
   wheeldeps_caches:
     name: Cache wheel dependencies

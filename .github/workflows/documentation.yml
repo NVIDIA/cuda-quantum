@@ -60,9 +60,7 @@ jobs:
             if [ "$name" == "$artifact_name" ]; then
               url=`echo $artifact | jq -r '.url'`
               gh api $url > cuda_quantum_docs.zip
-              unzip -d "/tmp/docs" cuda_quantum_docs.zip
-              rm -rf cuda_quantum_docs.zip
-              status=0 && echo "docs=/tmp/docs" >> $GITHUB_OUTPUT
+              status=0 && echo "docs_archive=cuda_quantum_docs.zip" >> $GITHUB_OUTPUT
             elif [ "$name" == "metadata_ci" ]; then
               url=`echo $artifact | jq -r '.url'`
               gh api $url > metadata.zip
@@ -99,13 +97,14 @@ jobs:
 
       - name: Push docs update
         id: push_docs
-        if: steps.artifacts.outputs.docs != ''
+        if: steps.artifacts.outputs.docs_archive != ''
         run: |
           pr_number=${{ steps.artifacts.outputs.pr_number }}
           target_folder=${pr_number:+pr-$pr_number}
           target_folder="${target_folder:-${{ steps.artifacts.outputs.target_folder }}}"
           rm -rf "$target_folder" && mkdir -p "$target_folder"
-          mv "${{ steps.artifacts.outputs.docs }}"/* "$target_folder"
+          unzip -d "/tmp/docs" "${{ steps.artifacts.outputs.docs_archive }}"
+          mv /tmp/docs/* "$target_folder"
 
           git config --global user.name "cuda-quantum-bot"
           git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
@@ -132,7 +131,8 @@ jobs:
         run: |
           target_folder="${{ steps.artifacts.outputs.target_folder }}"
           rm -rf "$target_folder" && mkdir -p "$target_folder"
-          mv "${{ steps.artifacts.outputs.docs }}"/* "$target_folder"
+          unzip -d "/tmp/docs" "${{ steps.artifacts.outputs.docs_archive }}"
+          mv /tmp/docs/* "$target_folder"
           git add "$target_folder"
           (git diff --cached --exit-code > /dev/null) && docs_changed=true || docs_changed=false
 
