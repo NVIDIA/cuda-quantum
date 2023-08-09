@@ -107,6 +107,7 @@ jobs:
           keys+=" ${{ needs.wheeldeps.outputs.cache_key }}"
           echo "$keys" >> cache_keys.txt
           echo "pr-number: ${{ github.event.pull_request.number }}" >> metadata.txt
+          echo "pr-base: ${{ github.event.pull_request.base.ref }}" >> metadata.txt
 
       - name: Upload cache keys
         uses: actions/upload-artifact@v3
