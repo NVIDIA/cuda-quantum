@@ -16,6 +16,7 @@ import cudaq
 
 def test_depolarization_channel():
     """Tests the depolarization channel in the case of a non-zero probability."""
+    cudaq.set_random_seed(13)
     cudaq.set_target('density-matrix-cpu')
     circuit = cudaq.make_kernel()
     q = circuit.qalloc()
@@ -43,6 +44,7 @@ def test_depolarization_channel():
 
 def test_depolarization_channel_simple():
     """Tests the depolarization channel in the case of `probability = 1.0`"""
+    cudaq.set_random_seed(13)
     cudaq.set_target('density-matrix-cpu')
     kernel = cudaq.make_kernel()
     qubit = kernel.qalloc()

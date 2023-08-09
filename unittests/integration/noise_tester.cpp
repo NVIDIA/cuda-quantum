@@ -166,6 +166,7 @@ CUDAQ_TEST(NoiseTest, checkExceptions) {
 }
 
 CUDAQ_TEST(NoiseTest, checkDepolType) {
+  cudaq::set_random_seed(13);
   cudaq::depolarization_channel depol(.1);
   cudaq::noise_model noise;
   noise.add_channel<cudaq::types::x>({0}, depol);
@@ -176,6 +177,7 @@ CUDAQ_TEST(NoiseTest, checkDepolType) {
 }
 
 CUDAQ_TEST(NoiseTest, checkDepolTypeSimple) {
+  cudaq::set_random_seed(13);
   cudaq::depolarization_channel depol(1.);
   cudaq::noise_model noise;
   noise.add_channel<cudaq::types::x>({0}, depol);

@@ -7,7 +7,7 @@ on:
       syntax_check:
         type: boolean
         required: true
-        description: 'Run syntax checker.'
+        description: 'Run syntax checker (Quantinuum).'
       target:
         description: 'Target'
         required: true
@@ -15,6 +15,7 @@ on:
         type: choice
         options:
           - none
+          - ionq
           - quantinuum
       target_machine:
         type: string
@@ -66,9 +67,14 @@ jobs:
       - name: Submit to ${{ inputs.target }}
         if: inputs.target != 'none'
         run: |
+          if ${{inputs.target == 'ionq'}}; then
+            export IONQ_API_KEY="${{ secrets.IONQ_API_KEY }}"
+            # TODO: remove this flag once https://github.com/NVIDIA/cuda-quantum/issues/512 is addressed.
+            export IONQ_FLAG="-DIONQ_TARGET"
+          fi
           for filename in test/NVQPP/integration/*.cpp; do
             [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
-            nvq++ -v $filename --target ${{ inputs.target }} --${{ inputs.target }}-machine ${{ inputs.target_machine }}
+            nvq++ -v $IONQ_FLAG $filename --target ${{ inputs.target }} --${{ inputs.target }}-machine ${{ inputs.target_machine }}
             CUDAQ_LOG_LEVEL=info ./a.out
           done
         shell: bash

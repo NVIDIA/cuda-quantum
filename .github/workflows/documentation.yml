@@ -15,81 +15,140 @@ on:
         type: string
         description: 'The version that the documentation corresponds to, e.g. 0.3.1 or latest.'
   workflow_run:
-    branches:
-      - 'main'
-      - 'releases/*'
     workflows:
       - Deployments
+      - CI
     types:
       - completed
 
 name: Documentation
 
 concurrency:
-    group: ${{ github.workflow }} # only one docs publishing can be run at a time, since all docs are published to the same location!
+    group: ${{ github.workflow }}${{ github.event.workflow_run.name }} # only one docs publishing can be run at a time, since all docs are published to the same location!
     cancel-in-progress: false
 
 jobs:
   publish_docs:
     name: Publish documentation
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.event == 'pull_request' || github.event.workflow_run.conclusion == 'success'
 
     permissions:
       contents: write
-  
+      issues: write
+
     environment:
-      name: github-pages
-      url: ${{ vars.deployment_url }}
+      name: ${{ (github.event.workflow_run.event == 'pull_request' && 'default') || 'github-pages' }}
+      url: ${{ vars.deployment_url || format('https://github.com/{0}', github.repository) }}
   
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          ref: ${{ vars.live_branch }}
-          token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+          ref: ${{ (github.event.workflow_run.event == 'pull_request' && vars.preview_branch) || vars.live_branch }}
+          token: ${{ (github.event.workflow_run.event == 'pull_request' && github.token) || secrets.REPO_BOT_ACCESS_TOKEN }}
 
-      - name: Push docs update
+      - name: Download artifacts
+        id: artifacts
         run: |
-          if ${{ github.event_name == 'workflow_dispatch' }}; then
-            target_folder=${{ inputs.version }}
-          elif ${{ github.event.workflow_run.head_branch == 'main' }}; then
-            target_folder=latest
-          else
-            target_folder=`echo ${{ github.event.workflow_run.head_branch }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
-          fi
-
           artifacts_url=${{ (github.event_name == 'workflow_dispatch' && inputs.artifacts_url) || github.event.workflow_run.artifacts_url }}
           artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
           artifact_name=${{ (github.event_name == 'workflow_dispatch' && inputs.artifact_name) || 'cuda_quantum_docs' }}
 
-          status=1
+          docs_found=${{ github.event.workflow_run.event == 'pull_request' || false }}
           for artifact in `echo "$artifacts"`; do
             name=`echo $artifact | jq -r '.name'`
             if [ "$name" == "$artifact_name" ]; then
               url=`echo $artifact | jq -r '.url'`
               gh api $url > cuda_quantum_docs.zip
-
-              rm -rf "$target_folder"
-              unzip -d "$target_folder" cuda_quantum_docs.zip
-              rm -rf cuda_quantum_docs.zip
-
-              git config --global user.name "cuda-quantum-bot"
-              git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
-
-              bash create_redirects.sh >> $GITHUB_STEP_SUMMARY
-              git add "$target_folder"
-
-              if ${{ github.event_name == 'workflow_dispatch' }}; then
-                git commit -m "Docs update triggered manually for version ${{ inputs.version }} (artifacts url: ${{ inputs.artifacts_url }}, artifact name: ${{ inputs.artifact_name }})."
-              else
-                git commit --allow-empty -m "Docs update triggered by deployment on head branch ${{ github.event.workflow_run.head_branch }}, commit ${{ github.event.workflow_run.head_sha }}."
-              fi
-              git pull --no-edit && git push
-
-              status=0
+              docs_found=true && echo "docs_archive=cuda_quantum_docs.zip" >> $GITHUB_OUTPUT
+            elif [ "$name" == "metadata_ci" ]; then
+              url=`echo $artifact | jq -r '.url'`
+              gh api $url > metadata.zip
+              unzip -d metadata metadata.zip
+              for file in `find metadata/ -type f`; do
+                cat "$file" >> metadata.txt
+              done
+              rm -rf metadata metadata.zip
             fi
           done
-          exit $status
+
+          if [ -f metadata.txt ]; then
+            pr_number=`cat metadata.txt | grep -o 'pr-number: \S*' | cut -d ' ' -f 2`
+            pr_base=`cat metadata.txt | grep -o 'pr-base: \S*' | cut -d ' ' -f 2`
+            rm metadata.txt && echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
+          fi
+
+          if ${{ github.event_name == 'workflow_dispatch' }}; then
+            target_folder=${{ inputs.version }}
+          else
+            # Docs will be checked in under a different folder in the preview.
+            head_branch=${pr_base:-${{ github.event.workflow_run.head_branch }}}
+            if [ "$head_branch" == "main" ]; then
+              target_folder=latest
+            else
+              version=`echo ${head_branch#releases/} | egrep -o "^v?([0-9]{1,}\.)+[0-9]{1,}$"`
+              target_folder=${version#v}
+            fi
+          fi
+
+          echo "target_folder=$target_folder" >> $GITHUB_OUTPUT
+          if ! $docs_found; then exit 1; fi
         env:
-          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Push docs update
+        id: push_docs
+        if: steps.artifacts.outputs.docs_archive != ''
+        run: |
+          pr_number=${{ steps.artifacts.outputs.pr_number }}
+          target_folder=${pr_number:+pr-$pr_number}
+          target_folder="${target_folder:-${{ steps.artifacts.outputs.target_folder }}}"
+          rm -rf "$target_folder"
+          unzip -d "$target_folder" "${{ steps.artifacts.outputs.docs_archive }}"
+
+          git config --global user.name "cuda-quantum-bot"
+          git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
+
+          if [ -f create_redirects.sh ]; then
+            bash create_redirects.sh >> $GITHUB_STEP_SUMMARY
+          fi
+          git add "$target_folder"
+          docs_changed=`git diff --cached --exit-code > /dev/null && echo false || echo true`
+
+          if ${{ github.event_name == 'workflow_dispatch' }}; then
+            git commit -m "Docs update triggered manually for version ${{ inputs.version }} (artifacts url: ${{ inputs.artifacts_url }}, artifact name: ${{ inputs.artifact_name }})."
+          elif [ -n "$pr_number" ]; then
+            git commit --allow-empty -m "Docs preview for PR #$pr_number."
+          else
+            git commit --allow-empty -m "Docs update triggered by deployment on head branch ${{ github.event.workflow_run.head_branch }}, commit ${{ github.event.workflow_run.head_sha }}."
+          fi
+          git pull --no-edit && git push
+
+          # For the docs preview, we determine whether docs changed compared to the eventual target folder.
+          if [ "$target_folder" != "${{ steps.artifacts.outputs.target_folder }}" ]; then
+            rm -rf "${{ steps.artifacts.outputs.target_folder }}"
+            mv "$target_folder" "${{ steps.artifacts.outputs.target_folder }}"
+            git add "${{ steps.artifacts.outputs.target_folder }}"
+            docs_changed=`git diff --cached --exit-code > /dev/null && echo false || echo true`
+          fi
+
+          pr_comment='**CUDA Quantum Docs Bot:** '
+          if $docs_changed; then
+            branch_name=`git rev-parse --abbrev-ref HEAD`
+            preview_link=https://htmlpreview.github.io/?https://github.com/${{ github.repository }}/blob/${branch_name}/${target_folder}/index.html
+            pr_comment+='A preview of the documentation can be found [here]($preview_link).'
+            echo "$pr_comment" >> $GITHUB_STEP_SUMMARY
+          else
+            pr_comment+='This PR contains no documentation changes.'
+            echo "No documentation changes." >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "pr_comment=$pr_comment" >> $GITHUB_OUTPUT
+
+      - name: Comment on PR
+        if: steps.artifacts.outputs.pr_number != '' && steps.push_docs.outcome != 'skipped'
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          issue-number: ${{ steps.artifacts.outputs.pr_number }}
+          body: ${{ steps.push_docs.outputs.pr_comment }}
+          edit-mode: replace
