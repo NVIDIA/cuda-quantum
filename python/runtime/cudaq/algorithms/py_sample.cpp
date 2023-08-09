@@ -240,6 +240,7 @@ For each argument type in the kernel signature, you must provide a
 list of arguments of that type. This function samples the state of
 the provided `kernel` at each set of arguments provided for the
 specified number of circuit executions (`shots_count`).
+
 Args:
   kernel (:class:`Kernel`): The :class:`Kernel` to execute `shots_count` 
       times on the QPU.
@@ -252,6 +253,7 @@ Args:
   noise_model (Optional[`NoiseModel`]): The optional :class:`NoiseModel`
       to add noise to the kernel execution on the simulator. Defaults to an empty 
       noise model.
+      
 Returns:
   `list[SampleResult]`: 
   A list of dictionary containing the measurement count for each invocation

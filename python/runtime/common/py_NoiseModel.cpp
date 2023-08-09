@@ -60,7 +60,7 @@ Args:
       .def(
           "get_channels",
           [](noise_model self, const std::string &op,
-             std::vector<std::size_t> qubits) {
+             std::vector<std::size_t> &qubits) {
             return self.get_channels(op, qubits);
           },
           py::arg("operator"), py::arg("qubits"),
@@ -70,7 +70,7 @@ Args:
 void bindKrausOp(py::module &mod) {
   py::class_<kraus_op>(
       mod, "KrausOperator", py::buffer_protocol(),
-      "The KrausOperator is represented by a matrix and serves as an element "
+      "The `KrausOperator` is represented by a matrix and serves as an element "
       "of a quantum channel such that :code:`Sum Ki Ki^dag = I.`")
       .def_buffer([](kraus_op &op) -> py::buffer_info {
         return py::buffer_info(op.data.data(), sizeof(complex),
@@ -84,19 +84,19 @@ void bindKrausOp(py::module &mod) {
              extractKrausData(info, v.data());
              return kraus_op(v);
            }),
-           "Create a KrausOperator from a buffer of data, like a numpy array.")
+           "Create a :class:`KrausOperator` from a buffer of data, like a numpy array.")
       .def_readonly("row_count", &kraus_op::nRows,
                     "The number of rows in the matrix representation of this "
-                    "KrausOperator.")
+                    ":class:`KrausOperator`.")
       .def_readonly("col_count", &kraus_op::nCols,
                     "The number of columns in the matrix representation of "
-                    "this KrausOperator.");
+                    "this :class:`KrausOperator`.");
 }
 
 void bindNoiseChannels(py::module &mod) {
   py::class_<kraus_channel>(
       mod, "KrausChannel",
-      "The KrausChannel is composed of a list of :class:`KrausOperator`'s and "
+      "The `KrausChannel` is composed of a list of :class:`KrausOperator`'s and "
       "is applied to a specific qubit or set of qubits.")
       .def(py::init<std::vector<kraus_op>>(),
            "Create a :class:`KrausChannel` composed of a list of "
@@ -122,7 +122,7 @@ void bindNoiseChannels(py::module &mod) {
           "Return the :class:`KrausOperator` at the given index in this "
           ":class:`KrausChannel`.")
       .def("append", &kraus_channel::push_back,
-           "Add a KrausOperator to this :class:`KrausChannel`.");
+           "Add a :class:`KrausOperator` to this :class:`KrausChannel`.");
 
   py::class_<depolarization_channel, kraus_channel>(
       mod, "DepolarizationChannel",

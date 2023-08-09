@@ -205,7 +205,7 @@ void bindSpinOperator(py::module &mod) {
       // `double` - `cudaq.SpinOperator`
       .def(double() - py::self,
            "Subtract a `SpinOperator` from the given double "
-           "and return result as a new `cudaq.v=SpinOperator`.")
+           "and return result as a new `cudaq.SpinOperator`.")
       // `cudaq.SpinOperator` * `cudaq.SpinOperator`
       .def(py::self * py::self,
            "Multiply the given `cudaq.SpinOperator`'s together "
