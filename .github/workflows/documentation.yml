@@ -146,21 +146,10 @@ jobs:
           fi
           echo "pr_comment=$pr_comment" >> $GITHUB_OUTPUT
 
-      - name: Find existing PR comment
-        id: comment
-        if: false
-        # Todo: replace the condition above with
-        # steps.artifacts.outputs.pr_number != ''
-        uses: peter-evans/find-comment@v2
-        with:
-          issue-number: ${{ steps.artifacts.outputs.pr_number }}
-          body-includes: '**CUDA Quantum Docs Bot:**'
-
       - name: Comment on PR
         if: steps.artifacts.outputs.pr_number != '' && steps.docs_info.outcome != 'skipped'
         uses: peter-evans/create-or-update-comment@v3
         with:
-          comment-id: ${{ steps.comment.outputs.comment-id }}
           issue-number: ${{ steps.artifacts.outputs.pr_number }}
           body: ${{ steps.docs_info.outputs.pr_comment }}
           edit-mode: replace
