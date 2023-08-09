@@ -16,7 +16,7 @@ noise = cudaq.NoiseModel()
 # decaying to the ground state.
 amplitude_damping = cudaq.AmplitudeDampingChannel(1.0)
 # We will apply this channel to any Hadamard gate on the qubit.
-# Meaning, after each Hadamard on the qubit, there will be a 
+# Meaning, after each Hadamard on the qubit, there will be a
 # probability of `1.0` that the qubit decays back to ground.
 noise.add_channel('h', [0], amplitude_damping)
 
@@ -41,7 +41,7 @@ noisy_result.dump()
 # that the noise has successfully impacted the system.
 
 # To confirm this, we can run the simulation again without noise.
-# The qubit will now have a 50/50 mix of measurements between 
+# The qubit will now have a 50/50 mix of measurements between
 # |0> and |1>.
 noiseless_result = cudaq.sample(kernel)
 noiseless_result.dump()

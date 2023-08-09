@@ -1,9 +1,9 @@
-import cudaq 
+import cudaq
 
 # Set the target to our density matrix simulator.
 cudaq.set_target('density-matrix-cpu')
 
-# CUDA Quantum supports several different models of noise. In this 
+# CUDA Quantum supports several different models of noise. In this
 # case, we will examine the modeling of depolarization noise. This
 # depolarization will result in the qubit state decaying into a mix
 # of the basis states, |0> and |1>, with a user provided probability.
@@ -16,11 +16,11 @@ noise = cudaq.NoiseModel()
 # being scrambled.
 depolarization = cudaq.DepolarizationChannel(1.0)
 # We will apply the channel to any Y-gate on qubit 0. Meaning,
-# for each Y-gate on our qubit, the qubit will have a `1.0` 
+# for each Y-gate on our qubit, the qubit will have a `1.0`
 # probability of decaying into a mixed state.
 noise.add_channel('y', [0], depolarization)
 
-# Now we may define our simple kernel function and allocate 
+# Now we may define our simple kernel function and allocate
 # a qubit to it.
 kernel = cudaq.make_kernel()
 qubit = kernel.qalloc()
