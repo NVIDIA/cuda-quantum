@@ -25,8 +25,7 @@ jobs:
       contents: read
 
     outputs:
-      wheel_cache: ${{ steps.prereqs.outputs.wheel_cache }}
-      wheel_path: ${{ steps.prereqs.outputs.wheel_path }}
+      artifact_name: ${{ steps.prereqs.outputs.artifact_name }}
 
     # Needed for making local images available to the docker/build-push-action.
     # See also https://stackoverflow.com/a/63927832.
@@ -69,8 +68,8 @@ jobs:
           devenv_tag=`docker inspect $base_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"'`
           docker image rm $base_image && docker image prune --force
           cache_id=`echo ${{ inputs.python_version }}-$devenv_tag | tr . -`
-          wheel_path=/tmp/pycudaq && mkdir -p "$wheel_path"
 
+          mkdir -p "/tmp/wheels"
           if ${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') }}; then
             cudaq_version=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
           else
@@ -79,10 +78,9 @@ jobs:
         
           echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
           echo "base_image=$base_image" >> $GITHUB_OUTPUT
-          echo "docker_output=type=local,dest=$wheel_path" >> $GITHUB_OUTPUT
-          echo "cache_id=$cache_id" >> $GITHUB_OUTPUT
-          echo "wheel_cache=pycudaq-$cache_id-${{ github.sha }}" >> $GITHUB_OUTPUT
-          echo "wheel_path=$wheel_path" >> $GITHUB_OUTPUT
+          echo "docker_output=type=local,dest=/tmp/wheels" >> $GITHUB_OUTPUT
+          # do not change this prefix without adjusting other workflows
+          echo "artifact_name=pycudaq-$cache_id" >> $GITHUB_OUTPUT
 
       - name: Set up buildx runner
         uses: docker/setup-buildx-action@v2
@@ -104,27 +102,46 @@ jobs:
       - name: Upload wheel
         uses: actions/upload-artifact@v3
         with:
-          name: pycudaq-${{ steps.prereqs.outputs.cache_id }} # do not change this prefix without adjusting other workflows
-          path: ${{ steps.prereqs.outputs.wheel_path }}
+          name: ${{ steps.prereqs.outputs.artifact_name }}
+          path: /tmp/wheels
           retention-days: 5
           if-no-files-found: error
 
-      - name: Cache wheel
-        uses: actions/cache/save@v3
-        with:
-          path: ${{ steps.prereqs.outputs.wheel_path }}
-          key: ${{ steps.prereqs.outputs.wheel_cache }}
+  create_test_config:
+    name: Prepare validation
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    outputs:
+      json: "${{ steps.config.outputs.json }}"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - id: config
+        run: |
+          python_config=`cat .github/workflows/config/validation_config.json | jq ".python"`
+          operating_systems=`echo "$python_config" | jq '.[] | select(.version==${{ inputs.python_version }}).operating_systems'`
+
+          json="{\"os_images\":[]}"
+          for image in ${{ inputs.os_images }}; do
+            image=\'$image\'
+            json=`echo $json | jq ".os_images |= . + [\"$image\"]"`
+          done
+          echo "json={\"os_images\":$(echo $operating_systems)}" >> $GITHUB_OUTPUT
 
   validation:
     name: Validate wheel
-    needs: build_wheel
+    needs: [build_wheel, create_test_config]
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     strategy:
       matrix:
-        os_image: ['ubuntu:22.04']
+        os_image: ${{ fromJSON(needs.create_test_config.outputs.json).os_images }}
         pip_install_flags: ['', '--user']
       fail-fast: false
   
@@ -133,29 +150,23 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Load cuda-quantum wheel
-        uses: actions/cache/restore@v3
+        uses: actions/download-artifact@v3
         with:
-          path: ${{ needs.build_wheel.outputs.wheel_path }}
-          key: ${{ needs.build_wheel.outputs.wheel_cache }}
-          fail-on-cache-miss: true
+          name: ${{ needs.build_wheel.outputs.artifact_name }}
 
       - name: Install wheel in clean environment
         run: |
-          echo 'FROM ${{ matrix.os_image }}' > validation.Dockerfile
-          echo 'ARG DEBIAN_FRONTEND=noninteractive' >> validation.Dockerfile
-          echo 'RUN apt-get update && apt-get install -y software-properties-common python3-pip'  >> validation.Dockerfile
-          echo 'RUN add-apt-repository ppa:deadsnakes/ppa && apt-get update \' >> validation.Dockerfile
-          echo '    && apt-get install -y python${{ inputs.python_version }} python${{ inputs.python_version }}-distutils' >> validation.Dockerfile
-          echo 'RUN python${{ inputs.python_version }} -m pip install numpy pytest' >> validation.Dockerfile
+          os_image=${{ matrix.os_image }}
+          distr=`echo $os_image | cut -d : -f 1 | cut -d / -f 1`
+          os_version=`echo ${os_image#$distr} | cut -c2-`
 
-          mv ${{ needs.build_wheel.outputs.wheel_path }}/cuda_quantum-*-manylinux_*_x86_64.whl .
           wheelname=`echo cuda_quantum-*-manylinux_*_x86_64.whl`
-          echo "COPY $wheelname /tmp/$wheelname" >> validation.Dockerfile
-          echo 'COPY docs/sphinx/examples/python /tmp/examples/' >> validation.Dockerfile
-          echo 'COPY python/tests /tmp/tests/' >> validation.Dockerfile
-          echo "RUN python${{ inputs.python_version }} -m pip install ${{ matrix.pip_install_flags }} /tmp/$wheelname" >> validation.Dockerfile
+          docker build -t wheel_validation:local -f "docker/test/$distr.Dockerfile" . \
+            --build-arg os_version=$os_version \
+            --build-arg python_version=${{ inputs.python_version }} \
+            --build-arg cuda_quantum_wheel=$wheelname \
+            --build-arg pip_install_flags=${{ matrix.pip_install_flags }}
 
-          docker build -t wheel_validation:local -f validation.Dockerfile .
           docker run --rm -dit --name wheel-validation wheel_validation:local
           (docker exec wheel-validation python${{ inputs.python_version }} -c "import cudaq") && imported=true || imported=false
           docker stop wheel-validation
@@ -169,20 +180,22 @@ jobs:
           image: wheel_validation:local
           shell: bash
           run: |
-            python${{ inputs.python_version }} -m pytest --ignore /tmp/tests/backends /tmp/tests/
+            python${{ inputs.python_version }} -m pytest -v /tmp/tests/ \
+              --ignore python/tests/backends
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then
               echo "pytest status = " $pytest_status
               exit 1
             fi
-            apt-get update && apt-get install -y git 
-            git clone https://github.com/nvidia/cuda-quantum
-            cd cuda-quantum
+
             python${{ inputs.python_version }} -m pip install --user fastapi uvicorn llvmlite 
             for backendTest in /tmp/tests/backends/*.py; do 
               python${{ inputs.python_version }} -m pytest $backendTest
               pytest_status=$?
-              if [ ! $pytest_status -eq 0 ]; then
+
+              # Exit code 5 indicates that no tests were collected,
+              # i.e. all tests in this file were skipped.
+              if [ ! $pytest_status -eq 0 ] && [ ! $pytest_status -eq 5 ]; then
                 echo "pytest $backendTest status = " $pytest_status
                 exit 1
               fi
@@ -221,24 +234,3 @@ jobs:
             echo "The validation of the cuda-quantum Python wheel produced the following output:" >> $GITHUB_STEP_SUMMARY
             cat /tmp/validation.out >> $GITHUB_STEP_SUMMARY
           fi
-
-  clean_up:
-    name: Prepare cache clean-up
-    needs: [build_wheel, validation]
-    runs-on: ubuntu-latest
-    # We need to clean up even if the workflow is cancelled or fails.
-    if: always()
-
-    steps:
-      - name: Save cache keys
-        id: workflow_inputs
-        run: |
-          keys=${{ needs.build_wheel.outputs.wheel_cache }}
-          echo "$keys" >> cache_keys.txt
-
-      - uses: actions/upload-artifact@v3
-        with:
-          name: cache_keys_wheels
-          path: cache_keys.txt
-          retention-days: 1
-          if-no-files-found: error

@@ -30,7 +30,7 @@ PluginPointerType *getUniquePluginInstance(const std::string_view symbolName) {
       (GetPluginFunction)(intptr_t)dlsym(handle, symbolName.data());
   if (!fcn)
     throw std::runtime_error(
-        "Could not load the requested plugin. (possible link error)");
+        fmt::format("Could not load the requested plugin. \n{}\n", dlerror()));
 
   cudaq::info("Successfully loaded the plugin.");
   return fcn();

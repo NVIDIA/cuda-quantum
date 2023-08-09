@@ -10,11 +10,15 @@
 #define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
 
 #include "common/Logger.h"
+#ifdef CUDAQ_HAS_CUDA
+#include "cuda_runtime_api.h"
+#endif
 #include "cudaq/platform.h"
 #include "cudaq/utils/registry.h"
 #include <dlfcn.h>
 #include <map>
 #include <regex>
+#include <signal.h>
 #include <string>
 #include <vector>
 
@@ -277,6 +281,30 @@ void unset_noise() {
 }
 
 void set_random_seed(std::size_t seed) { nvqir::setRandomSeed(seed); }
+
+int num_available_gpus() {
+  int nDevices = 0;
+#ifdef CUDAQ_HAS_CUDA
+  cudaGetDeviceCount(&nDevices);
+#endif
+  return nDevices;
+}
+
+namespace __internal__ {
+void cudaqCtrlCHandler(int signal) {
+  printf(" CTRL-C caught in cudaq runtime.\n");
+  std::exit(1);
+}
+
+__attribute__((constructor)) void startSigIntHandler() {
+  struct sigaction sigIntHandler;
+  sigIntHandler.sa_handler = cudaqCtrlCHandler;
+  sigemptyset(&sigIntHandler.sa_mask);
+  sigIntHandler.sa_flags = 0;
+  sigaction(SIGINT, &sigIntHandler, NULL);
+}
+} // namespace __internal__
+
 } // namespace cudaq
 
 namespace cudaq::support {
