@@ -367,7 +367,7 @@ if(CMAKE_CUDA_COMPILER)
   set(CUDA_FOUND TRUE)
   set(CMAKE_CUDA_STANDARD 17)
   set(CMAKE_CUDA_STANDARD_REQUIRED TRUE)
-  message(STATUS "Cuda language found. Will build NVIDIA Platform.")
+  message(STATUS "Cuda language found.")
 endif()
 
 # Check for OpenSSL

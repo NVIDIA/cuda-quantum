@@ -16,8 +16,8 @@ def assert_close(got) -> bool:
     return got < -1.5 and got > -1.9
 
 
-@pytest.fixture(scope="session", autouse=True)
-def startUpMockServer():
+@pytest.fixture(scope="function", autouse=True)
+def configureTarget():
     # We need a Fake Credentials Config file
     credsName = '{}/FakeConfig2.config'.format(os.environ["HOME"])
     f = open(credsName, 'w')
@@ -31,6 +31,7 @@ def startUpMockServer():
 
     # remove the file
     os.remove(credsName)
+    cudaq.reset_target()
 
 
 def test_quantinuum_sample():
@@ -83,7 +84,7 @@ def test_quantinuum_observe():
 
     # Launch it asynchronously, enters the job into the queue
     future = cudaq.observe_async(kernel, hamiltonian, .59, shots_count=100000)
-    # Retrieve the results (since we're on a mock server)
+    # Retrieve the results (since we're emulating)
     res = future.get()
     assert assert_close(res.expectation_z())
 

@@ -15,6 +15,7 @@
 #include <fstream>
 #include <regex>
 #include <sstream>
+#include <string>
 
 // Our hook into configuring the NVQIR backend.
 extern "C" {
@@ -124,6 +125,17 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
       cudaqLibPath / fmt::format("libnvqir.{}", libSuffix),
       cudaqLibPath / fmt::format("libcudaq.{}", libSuffix)};
 
+  const char *statevec_dynlibs_var = std::getenv("CUDAQ_DYNLIBS");
+  if (statevec_dynlibs_var != nullptr) {
+    std::string statevec_dynlib;
+    std::stringstream ss((std::string(statevec_dynlibs_var)));
+    while (std::getline(ss, statevec_dynlib, ':')) {
+      cudaq::info("Init: add custatevec dynamic library path {}.",
+                  statevec_dynlib);
+      libPaths.push_back(statevec_dynlib);
+    }
+  }
+
   // Load all the defaults
   for (auto &p : libPaths)
     libHandles.emplace(p.string(),
@@ -222,8 +234,12 @@ LinkedLibraryHolder::getPlatform(const std::string &platformName) {
 }
 
 void LinkedLibraryHolder::resetTarget() {
+  // TODO: create config for default target and use setTarget("qpp") here,
+  // instead of having this be a code duplication of the logic below.
   __nvqir__setCircuitSimulator(getSimulator("qpp"));
-  setQuantumPlatformInternal(getPlatform("default"));
+  auto *platform = getPlatform("default");
+  platform->setTargetBackend("qpp");
+  setQuantumPlatformInternal(platform);
   currentTarget = "default";
 }
 

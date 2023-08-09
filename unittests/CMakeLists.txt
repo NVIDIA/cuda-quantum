@@ -75,9 +75,13 @@ create_tests_with_backend(dm "")
 
 # FIXME Check that we have GPUs. Could be in a 
 # Docker environment built with CUDA, but no --gpus flag
-# or no gpus on the system. 
+# or no gpus on the system.
 if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
   create_tests_with_backend(custatevec-fp32 "")
+  # Given that the fp32 and fp64 difference is largely inherited
+  # from a dependency, we omit fp64 tests here and rely on the 
+  # dependency to to validate that functionality.
+  # create_tests_with_backend(custatevec-fp64 "")
   
   add_executable(test_mqpu main.cpp mqpu/mqpu_tester.cpp)
   # Need to force the link to nvqir-qpp here if gcc.

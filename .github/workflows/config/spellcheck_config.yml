@@ -148,6 +148,9 @@ matrix:
       # Ignore multiline content between three or more backticks
       - open: '(?s)(?P<open>\s*`{3,})\S*\s*$'
         close: '(?P=open)$'
+      # Ignore multiline content fenced by \code ... \endcode
+      - open: '(?s)^\s*(\\code)'
+        close: '\\endcode$'
       # Ignore content between inline backticks
       - open: '(?P<open>`+)'
         close: '(?P=open)'
