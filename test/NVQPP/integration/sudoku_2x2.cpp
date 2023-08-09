@@ -11,6 +11,7 @@
 #include <cudaq.h>
 #include <algorithm>
 #include <iostream>
+#include <unordered_set>
 
 __qpu__ void reflect_uniform(cudaq::qreg<> &qubits) {
   h(qubits);
@@ -34,18 +35,22 @@ __qpu__ void grover() {
   h(ancilla);
   h(qubits); // uniform initialization
 
-  // Don't work?:
-  for (int i = 0; i < 2; ++i) {
-    oracle(qubits, ancilla);
-    reflect_uniform(qubits);
-  }
+  oracle(qubits, ancilla);
+  reflect_uniform(qubits);
+  oracle(qubits, ancilla);
+  reflect_uniform(qubits);
+
+// TODO: Extend measurement support for submissions to IonQ,
+// see https://github.com/NVIDIA/cuda-quantum/issues/512.
+#ifndef IONQ_TARGET
   mz(qubits);
+#endif
 };
 
 int main() {
   auto result = cudaq::sample(1000, grover);
-  // Didn't work:
-  // std::vector<std::string> strings = result.sequential_data();
+
+#ifndef SYNTAX_CHECK
   std::vector<std::string> strings;
   for (auto &&[bits, count] : result) {
     strings.push_back(bits);
@@ -55,6 +60,12 @@ int main() {
   });
   std::cout << strings[0] << '\n';
   std::cout << strings[1] << '\n';
+
+  std::unordered_set<std::string> most_probable{strings[0], strings[1]};
+  assert(most_probable.count("1001") == 1);
+  assert(most_probable.count("0110") == 1);
+#endif
+
   return 0;
 }
 

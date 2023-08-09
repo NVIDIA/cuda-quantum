@@ -120,16 +120,21 @@ jobs:
           run: |
             cd $CUDAQ_REPO_ROOT
             pip install . --user -vvv
-            python3 -m pytest --ignore python/tests/backends python/tests/
+            python3 -m pytest -v python/tests/ \
+              --ignore python/tests/backends
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then
               echo "pytest status = " $pytest_status
               exit 1
             fi
+
             for backendTest in python/tests/backends/*.py; do
               python3 -m pytest $backendTest
               pytest_status=$?
-              if [ ! $pytest_status -eq 0 ]; then
+
+              # Exit code 5 indicates that no tests were collected,
+              # i.e. all tests in this file were skipped.
+              if [ ! $pytest_status -eq 0 ] && [ ! $pytest_status -eq 5 ]; then
                 echo "pytest $backendTest status = " $pytest_status
                 exit 1
               fi 

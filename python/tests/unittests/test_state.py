@@ -18,6 +18,7 @@ def assert_close(want, got, tolerance=1.e-5) -> bool:
 
 
 def test_simple_statevector():
+    cudaq.set_target('default')
 
     circuit = cudaq.make_kernel()
     q = circuit.qalloc(2)
