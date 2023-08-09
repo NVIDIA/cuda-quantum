@@ -114,10 +114,20 @@ jobs:
 
           if ${{ github.event_name == 'workflow_dispatch' }}; then
             git commit -m "Docs update triggered manually for version ${{ inputs.version }} (artifacts url: ${{ inputs.artifacts_url }}, artifact name: ${{ inputs.artifact_name }})."
+            docs_changed=true
           else
+            (git diff --cached --exit-code > /dev/null) && docs_changed=true || docs_changed=false
             git commit --allow-empty -m "Docs update triggered by deployment on head branch ${{ github.event.workflow_run.head_branch }}, commit ${{ github.event.workflow_run.head_sha }}."
           fi
           git pull --no-edit && git push
+
+          pr_comment='**CUDA Quantum Docs Bot:** '
+          if $docs_changed; then
+            pr_comment+='A preview of the documentation can be found [here](https://htmlpreview.github.io/?https://github.com/${{ github.repository }}/blob/${{ vars.preview_branch }}/${target_folder}/index.html)'
+          else
+            pr_comment+='This PR contains no documentation changes.'
+          fi
+          echo "pr_comment=$pr_comment" >> $GITHUB_OUTPUT
 
       - name: Find existing PR comment
         id: comment
@@ -127,7 +137,7 @@ jobs:
         uses: peter-evans/find-comment@v2
         with:
           issue-number: ${{ steps.artifacts.outputs.pr_number }}
-          body-includes: '**CUDA Quantum Bot:** A preview of the documentation'
+          body-includes: '**CUDA Quantum Docs Bot:**'
 
       - name: Comment on PR
         if: steps.artifacts.outputs.pr_number != '' && steps.push_docs.outcome != 'skipped'
@@ -135,6 +145,5 @@ jobs:
         with:
           comment-id: ${{ steps.comment.outputs.comment-id }}
           issue-number: ${{ steps.artifacts.outputs.pr_number }}
-          body: |
-            **CUDA Quantum Bot:** A preview of the documentation can be found [here](https://htmlpreview.github.io/?https://github.com/${{ github.repository }}/blob/${{ vars.preview_branch }}/${{ steps.artifacts.outputs.target_folder }}/index.html).
+          body: ${{ steps.push_docs.outputs.pr_comment }}
           edit-mode: replace
