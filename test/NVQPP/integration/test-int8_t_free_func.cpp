@@ -6,32 +6,35 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ -v %s -o %basename_t.x --target quantinuum --emulate && ./%basename_t.x | FileCheck %s
+// RUN: nvq++ --target quantinuum --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
 
 #include <cudaq.h>
 #include <iostream>
 
-__qpu__ void bar(cudaq::qspan<> qubits) {
-  auto controls = qubits.front(qubits.size() - 1);
-  auto &target = qubits.back();
-  x<cudaq::ctrl>(controls, target);
-}
+__qpu__ void variable_qreg(std::uint8_t value) {
+  cudaq::qreg qubits(value);
 
-__qpu__ void foo() {
-  cudaq::qreg qubits(4);
-  x(qubits);
-  bar(qubits);
+// TODO: Extend measurement support for submissions to IonQ,
+// see https://github.com/NVIDIA/cuda-quantum/issues/512.
+#ifndef IONQ_TARGET
   mz(qubits);
+#endif
 }
 
 int main() {
-  auto result = cudaq::sample(1000, foo);
-  std::cout << result.size() << '\n';
-  for (auto &&[bits, counts] : result) {
-    std::cout << bits << '\n';
+  for (auto i = 1; i < 5; ++i) {
+    auto result = cudaq::sample(1000, variable_qreg, i);
+
+#ifndef SYNTAX_CHECK
+    std::cout << result.most_probable() << '\n';
+    assert(std::string(i, '0') == result.most_probable());
+#endif
   }
+
   return 0;
 }
 
-//CHECK: 1
-//CHECK-NEXT: 1110
+// CHECK: 0
+// CHECK-NEXT: 00
+// CHECK-NEXT: 000
+// CHECK-NEXT: 0000

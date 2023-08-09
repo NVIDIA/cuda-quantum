@@ -858,11 +858,6 @@ public:
     QuantumOperation gate;
     cudaq::info(gateToString(gate.name(), controls, angles, targets));
     enqueueGate(gate.name(), gate.getGate(angles), controls, targets, angles);
-    if (executionContext && executionContext->noiseModel) {
-      std::vector<std::size_t> noiseQubits{controls.begin(), controls.end()};
-      noiseQubits.insert(noiseQubits.end(), targets.begin(), targets.end());
-      applyNoiseChannel(gate.name(), noiseQubits);
-    }
   }
 
 #define CIRCUIT_SIMULATOR_ONE_QUBIT(NAME)                                      \

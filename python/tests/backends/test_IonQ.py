@@ -10,7 +10,11 @@
 import cudaq, pytest, os, time
 from cudaq import spin
 from multiprocessing import Process
-from utils.mock_qpu.ionq import startServer
+try:
+    from utils.mock_qpu.ionq import startServer
+except:
+    print("Mock qpu not available, skipping IonQ tests.")
+    pytest.skip("Mock qpu not available.", allow_module_level=True)
 
 # Define the port for the mock server
 port = 62455
@@ -23,21 +27,29 @@ def assert_close(got) -> bool:
 def startUpMockServer():
     os.environ["IONQ_API_KEY"] = "00000000000000000000000000000000"
 
+    # Launch the Mock Server
+    p = Process(target=startServer, args=(port,))
+    p.start()
+    time.sleep(1)
+
+    yield "Server started."
+
+    # Kill the server
+    p.terminate()
+
+
+@pytest.fixture(scope="function", autouse=True)
+def configureTarget():
+
     # Set the targeted QPU
     cudaq.set_target(
         "ionq",
         url="http://localhost:{}".format(port)
     )
 
-    # Launch the Mock Server
-    p = Process(target=startServer, args=(port,))
-    p.start()
-    time.sleep(1)
+    yield "Running the test."
+    cudaq.reset_target()
 
-    yield "Running the tests."
-
-    # Kill the server
-    p.terminate()
 
 def test_ionq_sample():
     # Create the kernel we'd like to execute on IonQ

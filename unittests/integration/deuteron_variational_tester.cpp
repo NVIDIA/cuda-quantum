@@ -47,7 +47,7 @@ CUDAQ_TEST(D2VariationalTester, checkBroadcast) {
     x<cudaq::ctrl>(q[1], q[0]);
   };
 
-  auto results = cudaq::observe_n(
+  auto results = cudaq::observe(
       ansatz, h, cudaq::make_argset(params, std::vector(params.size(), 2)));
 
   std::vector<double> expected{
@@ -67,7 +67,7 @@ CUDAQ_TEST(D2VariationalTester, checkBroadcast) {
   // Expect that providing the wrong number of args in the vector will
   // throw an exception.
   EXPECT_ANY_THROW({
-    auto results = cudaq::observe_n(
+    auto results = cudaq::observe(
         ansatz, h,
         cudaq::make_argset(params, std::vector(params.size() + 1, 2)));
   });

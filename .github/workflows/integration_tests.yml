@@ -1,0 +1,74 @@
+name: Nightly integration tests
+
+# Run on request and every day at 3 AM UTC
+on:
+  workflow_dispatch:
+    inputs:
+      syntax_check:
+        type: boolean
+        required: true
+        description: 'Run syntax checker.'
+      target:
+        description: 'Target'
+        required: true
+        default: 'none'
+        type: choice
+        options:
+          - none
+          - quantinuum
+      target_machine:
+        type: string
+        required: false
+        description: 'Target machine (e.g., H1-1E).'
+  schedule:
+    - cron: 0 3 * * *
+
+jobs:
+  integration_test:
+    name: Intergration test
+    runs-on: ubuntu-latest
+    environment: backend-validation
+    container:
+      image: ghcr.io/nvidia/cuda-quantum:latest-hpc
+      options: --user root
+
+    steps:
+      - name: Get commit SHA
+        id: commit-sha
+        run: |
+          echo "sha=$(cat $CUDA_QUANTUM_PATH/assets/build_info.txt | grep -o 'source-sha: \S*' | cut -d ' ' -f 2)" >> $GITHUB_OUTPUT
+
+      - name: Get code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ steps.commit-sha.outputs.sha }}
+          fetch-depth: 1
+
+      - name: Setup quantinum account
+        if: github.event_name == 'schedule' || inputs.syntax_check || inputs.target == 'quantinuum'
+        run: |
+          curl -X POST -H "Content Type: application/json" -d '{ "email":"${{ secrets.BACKEND_LOGIN_EMAIL }}","password":"${{ secrets.QUANTINUUM_PASSWORD }}" }' https://qapi.quantinuum.com/v1/login > credentials.json
+          id_token=`cat credentials.json | jq -r '."id-token"'`
+          refresh_token=`cat credentials.json | jq -r '."refresh-token"'`
+          echo "key: $id_token" > ~/.quantinuum_config
+          echo "refresh: $refresh_token" >> ~/.quantinuum_config
+
+      - name: QIR syntax check (Quantinuum)
+        if: inputs.syntax_check || github.event_name == 'schedule'
+        run: |
+          for filename in test/NVQPP/integration/*.cpp; do
+            [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
+            nvq++ -v $filename -DSYNTAX_CHECK --target quantinuum --quantinuum-machine H1-1SC
+            CUDAQ_LOG_LEVEL=info ./a.out
+          done
+        shell: bash
+
+      - name: Submit to ${{ inputs.target }}
+        if: inputs.target != 'none'
+        run: |
+          for filename in test/NVQPP/integration/*.cpp; do
+            [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
+            nvq++ -v $filename --target ${{ inputs.target }} --${{ inputs.target }}-machine ${{ inputs.target_machine }}
+            CUDAQ_LOG_LEVEL=info ./a.out
+          done
+        shell: bash

@@ -31,7 +31,7 @@ TEST(MPIObserveTester, checkSimple) {
     x<cudaq::ctrl>(r, q);
   };
 
-  double result = cudaq::observe<cudaq::par::mpi>(ansatz, h, 0.59);
+  double result = cudaq::observe<cudaq::parallel::mpi>(ansatz, h, 0.59);
   if (cudaq::mpi::rank() == 0) {
     EXPECT_NEAR(result, -1.7487, 1e-3);
     printf("Get energy directly as double %lf\n", result);
