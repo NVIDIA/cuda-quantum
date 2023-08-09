@@ -87,6 +87,9 @@ void IonQServerHelper::initialize(BackendConfig config) {
   backendConfig["target"] =
       config.find("qpu") != config.end() ? config["qpu"] : "simulator";
   backendConfig["qubits"] = 29;
+  // Retrieve the noise model setting (if provided)
+  if (config.find("noise") != config.end())
+    backendConfig["noise_model"] = config["noise"];
   // Retrieve the API key from the environment variables
   backendConfig["token"] = getEnvVar("IONQ_API_KEY");
   // Construct the API job path
@@ -123,6 +126,18 @@ IonQServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     // Construct the job message
     ServerMessage job;
     job["target"] = backendConfig.at("target");
+    // Add noise model config to the JSON job request
+    if (keyExists("noise_model")) {
+      if (backendConfig.at("target") == "simulator") {
+        nlohmann::json noiseModel;
+        noiseModel["model"] = backendConfig.at("noise_model");
+        job["noise"] = noiseModel;
+      } else {
+        printf("IonQ noise model setting is only valid for the 'simulator' "
+               "ionq-machine target. This will be ignored.\n");
+      }
+    }
+
     job["qubits"] = backendConfig.at("qubits");
     job["shots"] = static_cast<int>(shots);
     job["input"]["format"] = "qir";

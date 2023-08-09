@@ -2,7 +2,19 @@
 // ```
 // nvq++ --target ionq ionq.cpp -o out.x && ./out.x
 // ```
-// Assumes a valid set of credentials have been stored.
+// This will submit the job to the IonQ ideal simulator target (default).
+// Alternatively, we can enable hardware noise model simulation by specifying
+// the --ionq-noise-model, e.g.,
+// ```
+// nvq++ --target ionq --ionq-machine simulator --ionq-noise-model aria-1
+// ionq.cpp -o out.x && ./out.x
+// ```
+// where we set the noise model to mimic the 'aria-1' hardware device.
+// Please refer to your IonQ Cloud dashboard for the list of simulator noise
+// models.
+// Note: `--ionq-machine simulator` is  optional since 'simulator' is the
+// default configuration if not provided. Assumes a valid set of credentials
+// have been stored.
 
 #include <cudaq.h>
 #include <fstream>
