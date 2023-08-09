@@ -102,9 +102,8 @@ jobs:
           pr_number=${{ steps.artifacts.outputs.pr_number }}
           target_folder=${pr_number:+pr-$pr_number}
           target_folder="${target_folder:-${{ steps.artifacts.outputs.target_folder }}}"
-          rm -rf "$target_folder" && mkdir -p "$target_folder"
-          unzip -d "/tmp/docs" "${{ steps.artifacts.outputs.docs_archive }}"
-          mv /tmp/docs/* "$target_folder"
+          rm -rf "$target_folder"
+          unzip -d "$target_folder" "${{ steps.artifacts.outputs.docs_archive }}"
 
           git config --global user.name "cuda-quantum-bot"
           git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
@@ -130,9 +129,8 @@ jobs:
         if: steps.push_docs.outcome != 'skipped'
         run: |
           target_folder="${{ steps.artifacts.outputs.target_folder }}"
-          rm -rf "$target_folder" && mkdir -p "$target_folder"
-          unzip -d "/tmp/docs" "${{ steps.artifacts.outputs.docs_archive }}"
-          mv /tmp/docs/* "$target_folder"
+          rm -rf "$target_folder"
+          unzip -d "$target_folder" "${{ steps.artifacts.outputs.docs_archive }}"
           git add "$target_folder"
           (git diff --cached --exit-code > /dev/null) && docs_changed=true || docs_changed=false
 
