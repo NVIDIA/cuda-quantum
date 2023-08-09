@@ -56,19 +56,18 @@ void bindQuakeValue(py::module &mod) {
           ":class:`QuakeValue`.\n")
       .def(
           "slice", &QuakeValue::slice, py::arg("start"), py::arg("count"),
-          R"(Return a slice of the given :class:`QuakeValue` as a new :class:`QuakeValue`. 
-          
-               Note:
-                 The underlying :class:`QuakeValue` must be a `list` or `veq`.
-                 
-               Args:
-                 start (int) : The index to begin the slice from.
-                 
-                 count (int) : The number of elements to extract after the `start` index.
-                   
-               Returns:
-                 :class:`QuakeValue` : A new `QuakeValue` containing a slice of `self` from
-                                         the `start`-th element to `start + count`-th element.)")
+          R"#(Return a slice of the given :class:`QuakeValue` as a new :class:`QuakeValue`. 
+
+Note:
+  The underlying :class:`QuakeValue` must be a `list` or `veq`.
+     
+Args:
+  start (int): The index to begin the slice from.   
+  count (int): The number of elements to extract after the `start` index.
+     
+Returns:
+  :class:`QuakeValue`: A new `QuakeValue` containing a slice of `self` 
+  from the `start`-th element to `start + count`-th element.)#")
       /// @brief Bind the binary operators on `QuakeValue` class. Note:
       /// these are incompatible with the pybind11 built-in
       /// binary operators (see: cudaq::spin_op bindings). Instead,

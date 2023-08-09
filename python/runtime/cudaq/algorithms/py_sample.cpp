@@ -186,10 +186,9 @@ Args:
     an empty noise model.
 
 Returns:
-  :class:`SampleResult` or `list[SampleResult]`: A dictionary containing the measurement count
-      results for the :class:`Kernel`, or a list of such results in the 
-      case of `sample` function broadcasting. 
-      )#");
+  :class:`SampleResult` or `list[SampleResult]`: 
+  A dictionary containing the measurement count results for the :class:`Kernel`, 
+  or a list of such results in the case of `sample` function broadcasting.)#");
 
   mod.def(
       "sample_async",
@@ -216,8 +215,8 @@ Args:
     on the platform to target. Defaults to zero. Key-word only.
 
 Returns:
-  :class:`AsyncSampleResult` : A dictionary containing the measurement 
-    count results for the :class:`Kernel`.)#");
+  :class:`AsyncSampleResult`: 
+  A dictionary containing the measurement count results for the :class:`Kernel`.)#");
 
   mod.def(
       "sample_n",
@@ -254,8 +253,9 @@ Args:
       to add noise to the kernel execution on the simulator. Defaults to an empty 
       noise model.
 Returns:
-  `list[SampleResult]` : A list of dictionary containing the measurement count
-      for each invocation of sample for the :class:`Kernel`.)#");
+  `list[SampleResult]`: 
+  A list of dictionary containing the measurement count for each invocation
+  of sample for the :class:`Kernel`.)#");
 }
 
 } // namespace cudaq

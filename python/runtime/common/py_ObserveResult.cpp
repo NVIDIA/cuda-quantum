@@ -20,33 +20,30 @@ namespace cudaq {
 void bindObserveResult(py::module &mod) {
   py::class_<observe_result>(
       mod, "ObserveResult",
-      R"(A data-type containing the results of a call to :func:`observe`. 
-      
-      This includes any measurement counts data, as well as the global expectation
-      "value of the user-defined `spin_operator`.)")
+      "A data-type containing the results of a call to :func:`observe`. "
+      "This includes any measurement counts data, as well as the global "
+      "expectation value of the user-defined `spin_operator`.\n")
       /// @brief Bind the member functions of `cudaq.ObserveResult`.
       .def("dump", &observe_result::dump,
            "Dump the raw data from the :class:`SampleResult` that are stored "
            "in :class:`ObserveResult` to the terminal.")
-      .def("counts", &observe_result::raw_data,
-           R"(Returns:
-          :class:`SampleResult` : A dictionary containing the measurement 
-          results from the experiment. 
-          The result for each individual term of the `spin_operator` is stored 
-          in its own measurement register. 
-          Each register name corresponds to the string representation of the 
-          spin term (without any coefficients).)")
+      .def(
+          "counts", &observe_result::raw_data,
+          "Returns a :class:`SampleResult` dictionary with the measurement "
+          "results from the experiment. The result for each individual term of "
+          "the `spin_operator` is stored in its own measurement register. "
+          "Each register name corresponds to the string representation of the "
+          "spin term (without any coefficients).\n")
       .def("counts", &observe_result::counts<spin_op>, py::arg("sub_term"),
-           R"(Given a `sub_term` of the global `spin_operator` that was passed 
-          to :func:`observe`, return its measurement counts.
-          
-          Args:
-          sub_term (:class:`SpinOperator`): An individual sub-term of the
-          `spin_operator`.
-          
-          Returns:
-          :class:`SampleResult` : The measurement counts data for the 
-          individual `sub_term`.")")
+           R"#(Given a `sub_term` of the global `spin_operator` that was passed 
+to :func:`observe`, return its measurement counts.
+
+Args:
+  sub_term (:class:`SpinOperator`): An individual sub-term of the 
+    `spin_operator`.
+
+Returns:
+  :class:`SampleResult`: The measurement counts data for the individual `sub_term`.)#")
       .def(
           "expectation_z",
           [](observe_result &self) { return self.exp_val_z(); },
@@ -58,20 +55,20 @@ void bindObserveResult(py::module &mod) {
             return self.exp_val_z(spin_term);
           },
           py::arg("sub_term"),
-          R"(Return the expectation value of an individual `sub_term` of the 
-          global `spin_operator` that was passed to :func:`observe`.
-          
-          Args:
-          sub_term (:class:`SpinOperator`): An individual sub-term of the
-          `spin_operator`.
-          
-          Returns:
-          float : The expectation value of the `sub_term` with respect to 
-          the :class:`Kernel` that was passed to :func:`observe`.)");
+          R"#(Return the expectation value of an individual `sub_term` of the 
+global `spin_operator` that was passed to :func:`observe`.
+
+Args:
+  sub_term (:class:`SpinOperator`): An individual sub-term of the 
+    `spin_operator`.
+
+Returns:
+  float : The expectation value of the `sub_term` with respect to the 
+  :class:`Kernel` that was passed to :func:`observe`.)#");
 
   py::class_<async_observe_result>(
       mod, "AsyncObserveResult",
-      R"(A data-type containing the results of a call to :func:`observe_async`. 
+      R"#(A data-type containing the results of a call to :func:`observe_async`. 
       
       The `AsyncObserveResult` contains a future, whose :class:`ObserveResult` 
       may be returned via an invocation of the `get` method. 
@@ -79,7 +76,7 @@ void bindObserveResult(py::module &mod) {
       This kicks off a wait on the current thread until the results are available.
       
       See `future <https://en.cppreference.com/w/cpp/thread/future>` 
-      for more information on this programming pattern.)")
+      for more information on this programming pattern.)#")
       .def(py::init([](std::string inJson, spin_op &op) {
         async_observe_result f(&op);
         std::istringstream is(inJson);

@@ -151,6 +151,9 @@ Gradients
 .. autoclass:: cudaq.gradients::CentralDifference
     :members:
 
+.. autoclass:: cudaq.gradients::ForwardDifference
+    :members:
+
 .. autoclass:: cudaq.gradients::ParameterShift
     :members:
 
@@ -162,9 +165,20 @@ Noisy Simulation
     :special-members: __init__
 
 .. autoclass:: cudaq::BitFlipChannel
+    :members:
+    :special-members: __init__
+
 .. autoclass:: cudaq::PhaseFlipChannel
+    :members:
+    :special-members: __init__
+
 .. autoclass:: cudaq::DepolarizationChannel
+    :members:
+    :special-members: __init__
+
 .. autoclass:: cudaq::AmplitudeDampingChannel
+    :members:
+    :special-members: __init__
 
 .. autoclass:: cudaq::KrausChannel
     :members:

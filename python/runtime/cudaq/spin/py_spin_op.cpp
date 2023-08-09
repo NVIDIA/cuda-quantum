@@ -81,7 +81,8 @@ void bindSpinOperator(py::module &mod) {
            "Create from OpenFermion QubitOperator.")
 
       /// @brief Bind the member functions.
-      .def("get_raw_data", &cudaq::spin_op::get_raw_data, "")
+      .def("get_raw_data", &cudaq::spin_op::get_raw_data,
+           "Return the raw data of this `SpinOperator`.")
       .def("get_term_count", &cudaq::spin_op::num_terms,
            "Return the number of terms in this `SpinOperator`.")
       .def("get_qubit_count", &cudaq::spin_op::num_qubits,
@@ -141,17 +142,13 @@ void bindSpinOperator(py::module &mod) {
            "represented as a double.")
       .def("to_matrix", &spin_op::to_matrix,
            "Return `self` as a :class:`ComplexMatrix`.")
-      .def("to_sparse_matrix", &spin_op::to_sparse_matrix,
-           "Return `self` as a sparse matrix representation. This "
-           "representation is a `Tuple[list[complex],list[int], list[int]]`, "
-           "encoding the non-zero values, rows, and columns of the matrix. "
-           "This format is supported by `scipy.sparse.csr_array`.")
       .def(
           "__iter__",
           [](spin_op &self) {
             return py::make_iterator(self.begin(), self.end());
           },
-          py::keep_alive<0, 1>())
+          py::keep_alive<0, 1>(),
+          "Loop through each term of this `SpinOperator`.")
       /// @brief Bind overloaded operators that are in-place on
       /// `cudaq.SpinOperator`.
       // `this_spin_op` += `cudaq.SpinOperator`

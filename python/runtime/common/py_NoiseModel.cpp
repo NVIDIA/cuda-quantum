@@ -47,29 +47,23 @@ void bindNoiseModel(py::module &mod) {
           [](noise_model &self, std::string &opName,
              std::vector<std::size_t> &qubits, kraus_channel &channel) {
             self.add_channel(opName, qubits, channel);
-          }, py::arg("operator"), py::arg("qubits"), py::arg("channel"),
-          R"(Add the given :class:`KrausChannel` to be applied after invocation
-          of the specified quantum operation.
-          
-          Args:
+          },
+          py::arg("operator"), py::arg("qubits"), py::arg("channel"),
+          R"#(Add the given :class:`KrausChannel` to be applied after invocation 
+of the specified quantum operation.
 
-            operator (str): 
-            
-            qubits (List[int]):
-
-            channel (cudaq.KrausChannel): 
-
-          Returns:
-
-            
-          
-          )")
+Args:
+  operator (str): The quantum operator to apply the noise channel to.
+  qubits (List[int]): The qubit/s to apply the noise channel to.
+  channel (cudaq.KrausChannel): The :class:`KrausChannel` to apply 
+    to the specified `operator` on the specified `qubits`.)#")
       .def(
           "get_channels",
           [](noise_model self, const std::string &op,
              std::vector<std::size_t> qubits) {
             return self.get_channels(op, qubits);
-          }, py::arg("operator"), py::arg("qubits"),
+          },
+          py::arg("operator"), py::arg("qubits"),
           "Return the :class:`KrausChannel`'s that make up this noise model.");
 }
 
@@ -99,7 +93,7 @@ void bindKrausOp(py::module &mod) {
                     "this KrausOperator.");
 }
 
-void bindNoiseChannels(py::module & mod) {
+void bindNoiseChannels(py::module &mod) {
   py::class_<kraus_channel>(
       mod, "KrausChannel",
       "The KrausChannel is composed of a list of :class:`KrausOperator`'s and "
@@ -133,11 +127,13 @@ void bindNoiseChannels(py::module & mod) {
   py::class_<depolarization_channel, kraus_channel>(
       mod, "DepolarizationChannel",
       "Models the decoherence of the qubit state and phase into a mixture "
-      "of the computational basis states, |0> and |1>. Its constructor "
+      "of the computational basis states, `|0>` and `|1>`. Its constructor "
       "expects a float value, `probability`, representing the probability "
       "that this decay will occur. The qubit will remain untouched, "
       "therefore, with a probability of `1 - probability`.")
-      .def(py::init<double>(), py::arg("probability"));
+      .def(py::init<double>(), py::arg("probability"),
+           "Initialize the `DepolarizationChannel` with the provided "
+           "`probability`.");
 
   py::class_<amplitude_damping_channel, kraus_channel>(
       mod, "AmplitudeDampingChannel",
@@ -146,7 +142,9 @@ void bindNoiseChannels(py::module & mod) {
       "representing the probablity that the qubit will decay to its ground "
       "state. The probability of the qubit remaining in the same state is "
       "therefore `1 - probability`.")
-      .def(py::init<double>(), py::arg("probability"));
+      .def(py::init<double>(), py::arg("probability"),
+           "Initialize the `AmplitudeDampingChannel` with the provided "
+           "`probability`.");
 
   py::class_<bit_flip_channel, kraus_channel>(
       mod, "BitFlipChannel",
@@ -156,7 +154,8 @@ void bindNoiseChannels(py::module & mod) {
       "probability of a random X-180 rotation being applied to the qubit. The "
       "probability of the qubit remaining in the same state is therefore `1 - "
       "probability`.")
-      .def(py::init<double>(), py::arg("probability"));
+      .def(py::init<double>(), py::arg("probability"),
+           "Initialize the `BitFlipChannel` with the provided `probability`.");
 
   py::class_<phase_flip_channel, kraus_channel>(
       mod, "PhaseFlipChannel",
@@ -164,7 +163,9 @@ void bindNoiseChannels(py::module & mod) {
       "float value, `probability`, representing the probability of a random "
       "Z-180 rotation being applied to the qubit. The probability of the qubit "
       "phase remaining untouched is therefore `1 - probability`.")
-      .def(py::init<double>(), py::arg("probability"));
+      .def(
+          py::init<double>(), py::arg("probability"),
+          "Initialize the `PhaseFlipChannel` with the provided `probability`.");
 }
 
 void bindNoise(py::module &mod) {
