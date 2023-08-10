@@ -36,6 +36,7 @@ jobs:
     permissions:
       contents: write
       issues: write
+      pull-requests: write
 
     environment:
       name: ${{ (github.event.workflow_run.event == 'pull_request' && 'default') || 'github-pages' }}
