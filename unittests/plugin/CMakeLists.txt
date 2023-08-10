@@ -6,20 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_cudaq_dialect_library(QuakeDialect
-  QuakeDialect.cpp
-  QuakeInterfaces.cpp
-  QuakeOps.cpp
-  QuakeTypes.cpp
-
-  DEPENDS
-  QuakeDialectIncGen
-  QuakeOpsIncGen
-  QuakeTypesIncGen
-  CanonicalIncGen
-
-  LINK_LIBS
-  CCDialect
-  MLIRFuncDialect
-  MLIRIR
-)
+add_llvm_pass_plugin(CustomPassPlugin CustomPassPlugin.cpp)
+get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
+get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
+target_link_libraries(CustomPassPlugin PRIVATE ${dialect_libs} ${conversion_libs})
