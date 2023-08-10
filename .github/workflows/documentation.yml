@@ -138,7 +138,7 @@ jobs:
           if $docs_changed; then
             branch_name=`git rev-parse --abbrev-ref HEAD`
             preview_link=https://htmlpreview.github.io/?https://github.com/${{ github.repository }}/blob/${branch_name}/${target_folder}/index.html
-            pr_comment+='A preview of the documentation can be found [here]($preview_link).'
+            pr_comment+="A preview of the documentation can be found [here]($preview_link)."
             echo "$pr_comment" >> $GITHUB_STEP_SUMMARY
           else
             pr_comment+='This PR contains no documentation changes.'
