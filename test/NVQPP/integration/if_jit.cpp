@@ -6,25 +6,34 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ -v %s -o %basename_t.x --target quantinuum --emulate && ./%basename_t.x | FileCheck %s
+// This code is from Issue 296.
+
+// RUN: nvq++ %s --target quantinuum --emulate -o %t.x && %t.x | FileCheck %s
 
 #include <cudaq.h>
 #include <iostream>
 
-__qpu__ void variable_qreg(unsigned value) {
-  cudaq::qreg qubits(value);
-  mz(qubits);
+__qpu__ void foo(bool value) {
+  cudaq::qubit q;
+  if (value)
+    x(q);
+
+// TODO: Extend measurement support for submissions to IonQ,
+// see https://github.com/NVIDIA/cuda-quantum/issues/512.
+#ifndef IONQ_TARGET
+  mz(q);
+#endif
 }
 
 int main() {
-  for (auto i = 1; i < 5; ++i) {
-    auto result = cudaq::sample(1000, variable_qreg, i);
-    std::cout << result.most_probable() << '\n';
-  }
+  auto result = cudaq::sample(100, foo, true);
+
+#ifndef SYNTAX_CHECK
+  std::cout << result.most_probable() << '\n';
+  assert("1" == result.most_probable());
+#endif
+
   return 0;
 }
 
-// CHECK: 0
-// CHECK-NEXT: 00
-// CHECK-NEXT: 000
-// CHECK-NEXT: 0000
+// CHECK: 1

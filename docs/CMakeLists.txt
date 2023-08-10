@@ -19,7 +19,6 @@ endfunction()
 add_nvqpp_test(GHZ basics/static_kernel.cpp)
 add_nvqpp_test(MultiControlOps basics/multi_controlled_operations.cpp)
 add_nvqpp_test(ExpVals basics/expectation_values.cpp)
-# We need quake to help with mid-circuit measurements
 add_nvqpp_test(MidCircuitMeasurements basics/mid_circuit_measurement.cpp)
 add_nvqpp_test(PhaseEstimation algorithms/phase_estimation.cpp)
 add_nvqpp_test(Grover algorithms/grover.cpp)

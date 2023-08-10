@@ -169,7 +169,7 @@ struct CallCallableOpPattern
     auto closureTy = closure.getType();
 
     // For a callable, call the trampoline with the closure data.
-    if (auto lambTy = dyn_cast<cudaq::cc::LambdaType>(closureTy)) {
+    if (auto lambTy = dyn_cast<cudaq::cc::CallableType>(closureTy)) {
       auto dynFunc = rewriter.create<cudaq::cc::CallableFuncOp>(
           loc, call.getFunctionType(), closure);
       rewriter.replaceOpWithNewOp<func::CallIndirectOp>(call, dynFunc,
@@ -245,7 +245,7 @@ public:
         return;
       }
       rewriter.setInsertionPoint(lambda);
-      cudaq::cc::LambdaType lambdaTy = lambda.getType();
+      cudaq::cc::CallableType lambdaTy = lambda.getType();
       auto sig = lambdaTy.getSignature();
       auto counter = iter->second.counter;
       ValueRange freeValues = iter->second.freeValues;

@@ -184,11 +184,19 @@ void set_shots(const std::size_t nShots);
 
 /// @brief Set a custom noise model for simulation
 void set_noise(cudaq::noise_model &model);
+
 /// @brief Remove an existing noise model from simulation.
 void unset_noise();
 
 /// @brief Utility function for clearing the shots
 void clear_shots(const std::size_t nShots);
+
+/// @brief Set a seed for any random number
+/// generators used in backend simulations.
+void set_random_seed(std::size_t seed);
+
+/// @brief The number of available GPUs.
+int num_available_gpus();
 
 namespace mpi {
 

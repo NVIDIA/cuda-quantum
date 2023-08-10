@@ -114,9 +114,9 @@ QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   }
 
   // Get the tokens we need
-  refreshTokens();
   credentialsPath =
       searchAPIKey(apiKey, refreshKey, timeStr, userSpecifiedCredentials);
+  refreshTokens();
 
   // Get the headers
   RestHeaders headers = generateRequestHeader();
@@ -156,23 +156,32 @@ bool QuantinuumServerHelper::jobIsDone(ServerMessage &getJobResponse) {
 
 cudaq::sample_result
 QuantinuumServerHelper::processResults(ServerMessage &postJobResponse) {
-  // results come back as results :{ "regName" : ['00','01',...], "regName2":
-  // [...]}
+  // Results come back as a map of vectors. Each map key corresponds to a qubit
+  // and its corresponding vector holds the measurement results in each shot:
+  //      { "results" : { "r0" : ["0", "0", ...],
+  //                      "r1" : ["1", "0", ...]  } }
   auto results = postJobResponse["results"];
-  std::vector<ExecutionResult> srs;
-  for (auto &result : results.items()) {
-    cudaq::CountsDictionary counts;
-    auto regName = result.key();
-    auto bitResults = result.value().get<std::vector<std::string>>();
-    for (auto &bitResult : bitResults) {
-      if (counts.count(bitResult))
-        counts[bitResult]++;
-      else
-        counts.insert({bitResult, 1});
-    }
 
-    srs.emplace_back(counts);
+  // For each shot, we concatenate the measurements results of all qubits.
+  auto begin = results.begin();
+  std::vector<std::string> bitstrings =
+      begin.value().get<std::vector<std::string>>();
+  for (auto it = ++begin, end = results.end(); it != end; ++it) {
+    auto bitResults = it.value().get<std::vector<std::string>>();
+    for (size_t i = 0; auto &bit : bitResults)
+      bitstrings[i++] += bit;
   }
+
+  cudaq::CountsDictionary counts;
+  for (auto &b : bitstrings) {
+    if (counts.count(b))
+      counts[b]++;
+    else
+      counts.insert({b, 1});
+  }
+
+  std::vector<ExecutionResult> srs;
+  srs.emplace_back(counts);
   return sample_result(srs);
 }
 
@@ -197,38 +206,43 @@ void QuantinuumServerHelper::refreshTokens(bool force_refresh) {
   std::mutex m;
   std::lock_guard<std::mutex> l(m);
   RestClient client;
-  if (!timeStr.empty()) {
-    // We first check how much time has elapsed since the
-    // existing refresh key was created
-    std::int64_t timeAsLong = std::stol(timeStr);
-    std::chrono::high_resolution_clock::duration d(timeAsLong);
-    std::chrono::high_resolution_clock::time_point oldTime(d);
-    auto now = std::chrono::high_resolution_clock::now();
-    auto secondsDuration =
-        1e-3 *
-        std::chrono::duration_cast<std::chrono::milliseconds>(now - oldTime);
+  auto now = std::chrono::high_resolution_clock::now();
 
-    // If we are getting close to an 30 min, then we will refresh
-    bool needsRefresh = secondsDuration.count() * (1. / 1800.) > .85;
-    if (needsRefresh || force_refresh) {
-      // if (quantinuumVerbose)
-      cudaq::info("Refreshing id-token");
-      std::stringstream ss;
-      ss << "\"refresh-token\":\"" << refreshKey << "\"";
-      auto headers = generateRequestHeader();
-      nlohmann::json j;
-      j["refresh-token"] = refreshKey;
-      auto response_json = client.post(baseUrl, "login", j, headers);
-      std::cout << response_json.dump() << "\n";
-      apiKey = response_json["id-token"].get<std::string>();
-      refreshKey = response_json["refresh-token"].get<std::string>();
-      std::ofstream out(credentialsPath);
-      out << "key:" << apiKey << '\n';
-      out << "refresh:" << refreshKey << '\n';
-      out << "time:" << now.time_since_epoch().count() << '\n';
-      out.close();
-      timeStr = std::to_string(now.time_since_epoch().count());
-    }
+  // If the time string is empty, let's add it
+  if (timeStr.empty()) {
+    timeStr = std::to_string(now.time_since_epoch().count());
+    std::ofstream out(credentialsPath);
+    out << "key:" << apiKey << '\n';
+    out << "refresh:" << refreshKey << '\n';
+    out << "time:" << timeStr << '\n';
+  }
+
+  // We first check how much time has elapsed since the
+  // existing refresh key was created
+  std::int64_t timeAsLong = std::stol(timeStr);
+  std::chrono::high_resolution_clock::duration d(timeAsLong);
+  std::chrono::high_resolution_clock::time_point oldTime(d);
+  auto secondsDuration =
+      1e-3 *
+      std::chrono::duration_cast<std::chrono::milliseconds>(now - oldTime);
+
+  // If we are getting close to an 30 min, then we will refresh
+  bool needsRefresh = secondsDuration.count() * (1. / 1800.) > .85;
+  if (needsRefresh || force_refresh) {
+    cudaq::info("Refreshing id-token");
+    std::stringstream ss;
+    ss << "\"refresh-token\":\"" << refreshKey << "\"";
+    auto headers = generateRequestHeader();
+    nlohmann::json j;
+    j["refresh-token"] = refreshKey;
+    auto response_json = client.post(baseUrl, "login", j, headers);
+    apiKey = response_json["id-token"].get<std::string>();
+    refreshKey = response_json["refresh-token"].get<std::string>();
+    std::ofstream out(credentialsPath);
+    out << "key:" << apiKey << '\n';
+    out << "refresh:" << refreshKey << '\n';
+    out << "time:" << now.time_since_epoch().count() << '\n';
+    timeStr = std::to_string(now.time_since_epoch().count());
   }
 }
 
@@ -240,24 +254,31 @@ void findApiKeyInFile(std::string &apiKey, const std::string &path,
 
   std::vector<std::string> lines;
   lines = cudaq::split(contents, '\n');
-  for (auto l : lines) {
-    if (l.find("key") != std::string::npos) {
-      std::vector<std::string> s = cudaq::split(l, ':');
-      auto key = s[1];
-      cudaq::trim(key);
-      apiKey = key;
-    } else if (l.find("refresh") != std::string::npos) {
-      std::vector<std::string> s = cudaq::split(l, ':');
-      auto key = s[1];
-      cudaq::trim(key);
-      refreshKey = key;
-    } else if (l.find("time") != std::string::npos) {
-      std::vector<std::string> s = cudaq::split(l, ':');
-      auto key = s[1];
-      cudaq::trim(key);
-      timeStr = key;
-    }
+  for (const std::string &l : lines) {
+    std::vector<std::string> keyAndValue = cudaq::split(l, ':');
+    if (keyAndValue.size() != 2)
+      throw std::runtime_error("Ill-formed configuration file (" + path +
+                               "). Key-value pairs must be in `<key> : "
+                               "<value>` format. (One per line)");
+    cudaq::trim(keyAndValue[0]);
+    cudaq::trim(keyAndValue[1]);
+    if (keyAndValue[0] == "key")
+      apiKey = keyAndValue[1];
+    else if (keyAndValue[0] == "refresh")
+      refreshKey = keyAndValue[1];
+    else if (keyAndValue[0] == "time")
+      timeStr = keyAndValue[1];
+    else
+      throw std::runtime_error(
+          "Unknown key in configuration file: " + keyAndValue[0] + ".");
   }
+  if (apiKey.empty())
+    throw std::runtime_error("Empty API key in configuration file (" + path +
+                             ").");
+  if (refreshKey.empty())
+    throw std::runtime_error("Empty refresh key in configuration file (" +
+                             path + ").");
+  // The `time` key is not required.
 }
 
 /// Search for the API key

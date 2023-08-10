@@ -18,6 +18,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Support/Verifier.h"
+#include "cudaq/Support/Version.h"
 #include "nvqpp_config.h"
 #include "clang/CodeGen/BackendUtil.h"
 #include "clang/CodeGen/CodeGenAction.h"
@@ -261,9 +262,12 @@ std::string getExecutablePath(const char *argv0, bool canonicalPrefixes) {
 //===----------------------------------------------------------------------===//
 
 int main(int argc, char **argv) {
+  // Set the bug report message to indicate users should file issues on
+  // nvidia/cuda-quantum
+  llvm::setBugReportMsg(cudaq::bugReportMsg);
 
-  // First we need the location of this cudaq-quake executable
-  // so that we can get the install path
+  // We need the location of this cudaq-quake executable so that we can get the
+  // install path
   std::string executablePath = getExecutablePath(argv[0], true);
   std::filesystem::path cudaqQuakePath{executablePath};
   auto installBinPath = cudaqQuakePath.parent_path();

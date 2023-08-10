@@ -5,32 +5,19 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-import os
-import sys
-import time
 
-import pytest
+
+import cudaq, pytest, os, time
+from cudaq import spin
 from multiprocessing import Process
 
-import cudaq
-from cudaq import spin
 
-from utils.mock_qpu.quantinuum import startServer
-
-pytest.skip(
-    "This file produces a segmentation fault on the CI but not locally. See also https://github.com/NVIDIA/cuda-quantum/issues/303.",
-    allow_module_level=True)
-
-# Define the port for the mock server
-port = 62448
+def assert_close(got) -> bool:
+    return got < -1.5 and got > -1.9
 
 
-def assert_close(want, got, tolerance=1.e-5) -> bool:
-    return abs(want - got) < tolerance
-
-
-@pytest.fixture(scope="session", autouse=True)
-def startUpMockServer():
+@pytest.fixture(scope="function", autouse=True)
+def configureTarget():
     # We need a Fake Credentials Config file
     credsName = '{}/FakeConfig2.config'.format(os.environ["HOME"])
     f = open(credsName, 'w')
@@ -40,19 +27,16 @@ def startUpMockServer():
     # Set the targeted QPU
     cudaq.set_target('quantinuum', emulate='true')
 
-    # Launch the Mock Server
-    p = Process(target=startServer, args=(port,))
-    p.start()
-    time.sleep(1)
-
     yield "Running the tests."
 
-    # Kill the server, remove the file
-    p.terminate()
+    # remove the file
     os.remove(credsName)
+    cudaq.reset_target()
 
 
 def test_quantinuum_sample():
+    cudaq.set_random_seed(13)
+
     # Create the kernel we'd like to execute on Quantinuum
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(2)
@@ -82,6 +66,7 @@ def test_quantinuum_sample():
 
 
 def test_quantinuum_observe():
+    cudaq.set_random_seed(13)
     # Create the parameterized ansatz
     kernel, theta = cudaq.make_kernel(float)
     qreg = kernel.qalloc(2)
@@ -95,14 +80,13 @@ def test_quantinuum_observe():
 
     # Run the observe task on quantinuum synchronously
     res = cudaq.observe(kernel, hamiltonian, .59, shots_count=100000)
-    want_expectation_value = -1.71
-    assert assert_close(want_expectation_value, res.expectation_z(), 1e-1)
+    assert assert_close(res.expectation_z())
 
     # Launch it asynchronously, enters the job into the queue
     future = cudaq.observe_async(kernel, hamiltonian, .59, shots_count=100000)
-    # Retrieve the results (since we're on a mock server)
+    # Retrieve the results (since we're emulating)
     res = future.get()
-    assert assert_close(want_expectation_value, res.expectation_z(), 1e-1)
+    assert assert_close(res.expectation_z())
 
 
 # leave for gdb debugging

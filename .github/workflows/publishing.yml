@@ -1,9 +1,9 @@
 on:
   workflow_dispatch:
     inputs:
-      release_id:
+      deployment_id:
         type: string
-        description: The release id on GitHub from which to download the assets.
+        description: The workflow id of the deployment that triggered the release creation.
         required: true
   workflow_run:
     workflows:
@@ -16,9 +16,9 @@ name: Packages
 jobs:
   cudaq_hpc:
     name: CUDA Quantum Docker image
-    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.actor.name == 'cuda-quantum-bot')
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.actor.id == '135836288')
     runs-on: ubuntu-latest
-    timeout-minutes: 100
+    timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && 360 || 100 }}
     permissions:
       contents: read
       packages: write
@@ -30,9 +30,13 @@ jobs:
     steps:
       - name: Download artifacts
         id: artifacts
-        if: github.event_name == 'workflow_run'
         run: |
-          artifacts_url=${{ github.event.workflow_run.artifacts_url }}
+          if ${{ inputs.deployment_id != '' }}; then
+            artifacts_url=https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ inputs.deployment_id }}/artifacts
+          else
+            artifacts_url=${{ github.event.workflow_run.artifacts_url }}
+            echo "Artifacts downloaded from https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}" >> $GITHUB_STEP_SUMMARY
+          fi
           artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
 
           for artifact in `echo "$artifacts"`; do
@@ -50,13 +54,17 @@ jobs:
 
           release_id=`cat build_info.txt | grep -o 'release-id: \S*' | cut -d ' ' -f 2`
           rm build_info.txt && echo "release_id=$release_id" >> $GITHUB_OUTPUT
+          echo "artifacts_url=$artifacts_url" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ github.token }}
 
       - name: Wait for release
         id: assets
         run: |
-          release_id=${{ inputs.release_id || steps.artifacts.outputs.release_id }}
+          release_id=${{ steps.artifacts.outputs.release_id }}
+          while [ -z "$(gh release list -R ${{ github.repository }} | grep -s $release_id)" ];
+          do echo "waiting for assets..." && sleep 300; 
+          done
           github_commit=`gh release view $release_id -R ${{ github.repository }} --json targetCommitish --jq .targetCommitish`
 
           echo "release_id=$release_id" >> $GITHUB_OUTPUT
@@ -75,7 +83,7 @@ jobs:
           assets_folder=assets && release_id=${{ steps.assets.outputs.release_id }}
           mkdir "$assets_folder" && cd "$assets_folder"
           while [ -z `ls | egrep '^build_info'` ]; do
-            gh release download $release_id -R ${{ github.repository }}
+            (gh release download $release_id -R ${{ github.repository }}) || true
             sleep 30 # waiting for assets to be created...
           done
 
@@ -151,6 +159,26 @@ jobs:
         if: steps.release_info.outputs.release
         run: |
           release_id=${{ steps.assets.outputs.release_id }}
+          artifacts_url=${{ steps.artifacts.outputs.artifacts_url }}
+          artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
+
+          mkdir -p wheelhouse
+          for artifact in `echo "$artifacts"`; do
+            name=`echo $artifact | jq -r '.name'`
+            if [ "${name#pycudaq-}" != "$name" ]; then
+              url=`echo $artifact | jq -r '.url'`
+              gh api $url > _pycudaq.zip
+              unzip -d _pycudaq _pycudaq.zip && cd _pycudaq
+              for wheel in `ls *.whl`; do
+                echo "Adding wheel $wheel."
+                mv $wheel "../wheelhouse/$wheel"
+              done
+              cd .. && rm -rf _pycudaq*
+            fi
+          done
+
+          zip -r wheelhouse.zip wheelhouse
+          gh release upload $release_id -R ${{ github.repository }} wheelhouse.zip --clobber
           for file in `ls "${{ steps.release_info.outputs.assets_folder }}"/build_info*`; do 
             gh release delete-asset $release_id `basename -- "$file"` -y
           done
@@ -197,7 +225,7 @@ jobs:
 
           # Delete the draft release that was used to share artifacts and
           # build information between GitLab and GitHub, or trigger publishing.
-          release_id=${{ steps.assets.outputs.release_id }}
+          release_id=${{ steps.release_info.outputs.release || steps.assets.outputs.release_id }}
           gh release view $release_id --json body --jq .body >> $GITHUB_STEP_SUMMARY
           if ${{ steps.publish_release.outcome == 'skipped' }}; then
             gh release delete $release_id -R ${{ github.repository }} -y

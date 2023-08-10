@@ -46,10 +46,21 @@ public:
   /// apply them to the state.
   void flushGateQueue() { flushGateQueueImpl(); }
 
+  /// @brief Provide an opportunity for any tear-down
+  /// tasks before MPI Finalize is invoked. Here we leave
+  /// this unimplemented, it is meant for subclasses.
+  virtual void tearDownBeforeMPIFinalize() {
+    // do nothing
+  }
+
   /// @brief Set the current noise model to consider when
   /// simulating the state. This should be overridden by
   /// simulation strategies that support noise modeling.
   virtual void setNoiseModel(cudaq::noise_model &noise) = 0;
+
+  virtual void setRandomSeed(std::size_t seed) {
+    // do nothing
+  }
 
   /// @brief Compute the expected value of the given spin op
   /// with respect to the current state, <psi | H | psi>.
@@ -471,7 +482,8 @@ protected:
 
     // Sort the qubit indices
     std::sort(sampleQubits.begin(), sampleQubits.end());
-    std::unique(sampleQubits.begin(), sampleQubits.end());
+    auto last = std::unique(sampleQubits.begin(), sampleQubits.end());
+    sampleQubits.erase(last, sampleQubits.end());
 
     cudaq::info("Sampling the current state, with measure qubits = {}",
                 sampleQubits);
@@ -847,11 +859,6 @@ public:
     QuantumOperation gate;
     cudaq::info(gateToString(gate.name(), controls, angles, targets));
     enqueueGate(gate.name(), gate.getGate(angles), controls, targets, angles);
-    if (executionContext && executionContext->noiseModel) {
-      std::vector<std::size_t> noiseQubits{controls.begin(), controls.end()};
-      noiseQubits.insert(noiseQubits.end(), targets.begin(), targets.end());
-      applyNoiseChannel(gate.name(), noiseQubits);
-    }
   }
 
 #define CIRCUIT_SIMULATOR_ONE_QUBIT(NAME)                                      \

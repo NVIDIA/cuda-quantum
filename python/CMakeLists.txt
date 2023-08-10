@@ -5,6 +5,7 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
+add_subdirectory(utils)
 
 set(LIBRARY_NAME _pycudaq)
 if (NOT SKBUILD)
@@ -32,8 +33,8 @@ if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
 endif()
 pybind11_add_module(_pycudaq 
                      cudaq/_cudaq.cpp 
-                     utils/LinkedLibraryHolder.cpp 
-                     utils/TestingUtils.cpp
+                     runtime/cudaq/target/py_runtime_target.cpp 
+                     runtime/cudaq/target/py_testing_utils.cpp
                      runtime/cudaq/builder/py_kernel_builder.cpp
                      runtime/cudaq/builder/py_QuakeValue.cpp
                      runtime/cudaq/algorithms/py_observe.cpp
@@ -57,7 +58,7 @@ target_link_libraries(_pycudaq
       cudaq-builder 
       cudaq-em-qir 
       cudaq-platform-default 
-      fmt::fmt-header-only)
+      cudaq-py-utils)
 
 if (NOT SKBUILD)
   install(DIRECTORY cudaq DESTINATION .)
@@ -71,7 +72,9 @@ else()
   install(TARGETS _pycudaq LIBRARY DESTINATION cudaq)
 endif()
 
-add_subdirectory(runtime/cudaq/domains/plugins)
+if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
+  add_subdirectory(runtime/cudaq/domains/plugins)
+endif()
 
 # Do we have pytest and numpy? 
 execute_process(COMMAND ${Python_EXECUTABLE} -m pytest --version

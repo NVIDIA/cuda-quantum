@@ -6,53 +6,55 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import os
-import sys
-import time
 
-import pytest
-from multiprocessing import Process
-
-import cudaq
+import cudaq, pytest, os, time
 from cudaq import spin
-
-from utils.mock_qpu.quantinuum import startServer
+from multiprocessing import Process
+try:
+    from utils.mock_qpu.quantinuum import startServer
+except:
+    print("Mock qpu not available, skipping Quantinuum tests.")
+    pytest.skip("Mock qpu not available.", allow_module_level=True)
 
 # Define the port for the mock server
 port = 62454
 
-pytest.skip(
-    "This file produces a segmentation fault on the CI but not locally. See https://github.com/NVIDIA/cuda-quantum/issues/303.",
-    allow_module_level=True)
-
-
 def assert_close(got) -> bool:
-    return got < -1.1 and got > -2.2
+    return got < -1.5 and got > -1.9
 
 
 @pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
     # We need a Fake Credentials Config file
-    credsName = '{}/FakeConfig.config'.format(os.environ["HOME"])
+    credsName = '{}/QuantinuumFakeConfig.config'.format(os.environ["HOME"])
     f = open(credsName, 'w')
     f.write('key: {}\nrefresh: {}\ntime: 0'.format("hello", "rtoken"))
     f.close()
 
-    # Set the targeted QPU
-    cudaq.set_target('quantinuum',
-                     url='http://localhost:{}'.format(port),
-                     credentials=credsName)
+    cudaq.set_random_seed(13)
 
     # Launch the Mock Server
     p = Process(target=startServer, args=(port,))
     p.start()
     time.sleep(1)
 
-    yield "Running the tests."
+    yield credsName
 
     # Kill the server, remove the file
     p.terminate()
     os.remove(credsName)
+
+
+@pytest.fixture(scope="function", autouse=True)
+def configureTarget(startUpMockServer):
+
+    # Set the targeted QPU
+    cudaq.set_target('quantinuum',
+                     url='http://localhost:{}'.format(port),
+                     credentials=startUpMockServer)
+
+    yield "Running the test."
+    cudaq.reset_target()
 
 
 def test_quantinuum_sample():
@@ -69,6 +71,7 @@ def test_quantinuum_sample():
     # server. In reality you'd probably not want to
     # do this with the remote job queue.
     counts = cudaq.sample(kernel)
+    counts.dump()
     assert (len(counts) == 2)
     assert ('00' in counts)
     assert ('11' in counts)
@@ -117,7 +120,6 @@ def test_quantinuum_observe():
 
     # Run the observe task on quantinuum synchronously
     res = cudaq.observe(kernel, hamiltonian, .59)
-    want_expectation_value = -1.71
     assert assert_close(res.expectation_z())
 
     # Launch it asynchronously, enters the job into the queue

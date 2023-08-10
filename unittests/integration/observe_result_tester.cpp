@@ -62,3 +62,32 @@ CUDAQ_TEST(ObserveResult, checkSimple) {
   EXPECT_TRUE(x0x1Counts.size() == 4);
   platform.clear_shots();
 }
+
+CUDAQ_TEST(ObserveResult, checkExpValBug) {
+
+  auto kernel = []() __qpu__ {
+    cudaq::qreg qubits(3);
+    rx(0.531, qubits[0]);
+    ry(0.9, qubits[1]);
+    rx(0.3, qubits[2]);
+    cz(qubits[0], qubits[1]);
+    ry(-0.4, qubits[0]);
+    cz(qubits[1], qubits[2]);
+  };
+  using namespace cudaq::spin;
+
+  auto hamiltonian = z(0) + z(1);
+
+  auto result = cudaq::observe(kernel, hamiltonian);
+  auto exp = result.exp_val_z(z(0));
+  printf("exp %lf \n", exp);
+  EXPECT_NEAR(exp, .79, 1e-1);
+
+  exp = result.exp_val_z(z(1));
+  printf("exp %lf \n", exp);
+  EXPECT_NEAR(exp, .62, 1e-1);
+
+  exp = result.exp_val_z(z(0) * i(1));
+  printf("exp %lf \n", exp);
+  EXPECT_NEAR(exp, .79, 1e-1);
+}

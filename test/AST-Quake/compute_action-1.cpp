@@ -33,7 +33,7 @@ void t() __qpu__ {
 // CHECK:           %[[VAL_10:.*]] = cc.create_lambda {
 // CHECK:               quake.h %{{.*}}
 // CHECK:           }
-// CHECK:           quake.compute_action %[[VAL_3]], %[[VAL_10]] : !cc.lambda<() -> ()>, !cc.lambda<() -> ()>
+// CHECK:           quake.compute_action %[[VAL_3]], %[[VAL_10]] : !cc.callable<() -> ()>, !cc.callable<() -> ()>
 // CHECK:           return
 // CHECK:         }
 
@@ -46,7 +46,7 @@ void t() __qpu__ {
 // DAGGER:           %[[VAL_10:.*]] = cc.create_lambda {
 // DAGGER:               quake.h %{{.*}}
 // DAGGER:           }
-// DAGGER:           quake.compute_action<dag> %[[VAL_3]], %[[VAL_10]] : !cc.lambda<() -> ()>, !cc.lambda<() -> ()>
+// DAGGER:           quake.compute_action<dag> %[[VAL_3]], %[[VAL_10]] : !cc.callable<() -> ()>, !cc.callable<() -> ()>
 // DAGGER:           return
 // DAGGER:         }
 

@@ -19,7 +19,9 @@ Hadamard
 Hadamards
 Hamiltonian
 Hamiltonians
+IonQ
 JIT
+JSON
 Kraus
 LLVM
 MLIR
@@ -33,6 +35,7 @@ OpenMPI
 OpenQASM
 Pauli
 Paulis
+PyPI
 QAOA
 QIR
 QIS
@@ -40,6 +43,7 @@ QPU
 QPUs
 QTX
 Quake
+Quantinuum
 Toffoli
 VQE
 Vazirani
@@ -95,6 +99,7 @@ inlining
 instantiation
 instantiations
 namespace
+namespaces
 natively
 optimizer
 optimizers

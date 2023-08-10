@@ -139,7 +139,11 @@ public:
       rewriter.setInsertionPointToStart(entry);
       Value induct = entry->getArgument(c.induction);
       auto mul = rewriter.create<arith::MulIOp>(loc, induct, c.stepValue);
-      Value newInd = rewriter.create<arith::AddIOp>(loc, mul, c.initialValue);
+      Value newInd;
+      if (c.stepIsAnAddOp())
+        newInd = rewriter.create<arith::AddIOp>(loc, c.initialValue, mul);
+      else
+        newInd = rewriter.create<arith::SubIOp>(loc, c.initialValue, mul);
       if (c.isLinearExpr()) {
         if (c.scaleValue) {
           if (c.reciprocalScale)

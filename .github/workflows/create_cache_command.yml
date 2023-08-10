@@ -59,6 +59,8 @@ jobs:
       create_local_cache: true
       registry_cache_from: ${{ needs.config.outputs.target_branch }}
       pull_request_number: ${{ needs.config.outputs.pull_request_number }}
+      # needed only for the cloudposse GitHub action
+      matrix_key: ${{ matrix.toolchain }}
 
   wheeldeps_caches:
     name: Cache wheel dependencies
@@ -77,11 +79,32 @@ jobs:
     name: Indicate completion
     runs-on: ubuntu-latest
     needs: [devdeps_caches, wheeldeps_caches]
+    # We need to clean up even if the workflow is cancelled or fails.
+    if: always()
+
     steps:
       - name: Add reaction to comment
-        if: inputs.comment_id
+        if: inputs.comment_id && success()
         uses: peter-evans/create-or-update-comment@v3
         with:
           comment-id: ${{ inputs.comment_id }}
           reactions-edit-mode: append
           reactions: hooray
+
+      - uses: cloudposse/github-action-matrix-outputs-read@0.1.1
+        id: read_json
+        with:
+          matrix-step-name: dev_environment
+
+      - run: |
+          set -e
+          key_matrix='${{ steps.read_json.outputs.result }}'
+          keys=`echo $key_matrix | jq '.cache_key | to_entries | .[].value' --raw-output`
+          keys+=" ${{ needs.wheeldeps_caches.outputs.cache_key }}"
+          gh extension install actions/gh-actions-cache
+          for key in $keys; do
+            (gh actions-cache delete $key -R ${{ github.repository }} --confirm && echo "Deleted cache $key") \
+            || echo "Cache $key not found"
+          done
+        env:
+          GH_TOKEN: ${{ github.token }}

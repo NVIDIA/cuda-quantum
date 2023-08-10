@@ -29,6 +29,22 @@ CUDAQ_TEST(D2VariationalTester, checkSimple) {
   double energy = cudaq::observe(ansatz2{}, h, .59);
   printf("Energy is %lf\n", energy);
   EXPECT_NEAR(energy, -1.7487, 1e-3);
+
+  std::vector<cudaq::spin_op> asList;
+  h.for_each_term([&](cudaq::spin_op &term) {
+    if (!term.is_identity())
+      asList.push_back(term);
+  });
+
+  // Test that we can osberve a list.
+  auto results = cudaq::observe(ansatz2{}, asList, .59);
+  double test = 5.907;
+  for (auto &r : results) {
+    test += r.exp_val_z() * r.get_spin().get_coefficient().real();
+  }
+
+  printf("TEST: %lf\n", test);
+  EXPECT_NEAR(energy, -1.7487, 1e-3);
 }
 
 CUDAQ_TEST(D2VariationalTester, checkBroadcast) {
@@ -47,7 +63,7 @@ CUDAQ_TEST(D2VariationalTester, checkBroadcast) {
     x<cudaq::ctrl>(q[1], q[0]);
   };
 
-  auto results = cudaq::observe_n(
+  auto results = cudaq::observe(
       ansatz, h, cudaq::make_argset(params, std::vector(params.size(), 2)));
 
   std::vector<double> expected{
@@ -67,7 +83,7 @@ CUDAQ_TEST(D2VariationalTester, checkBroadcast) {
   // Expect that providing the wrong number of args in the vector will
   // throw an exception.
   EXPECT_ANY_THROW({
-    auto results = cudaq::observe_n(
+    auto results = cudaq::observe(
         ansatz, h,
         cudaq::make_argset(params, std::vector(params.size() + 1, 2)));
   });

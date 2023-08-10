@@ -18,7 +18,7 @@ sample_result future::get() {
   if (wrapsFutureSampling)
     return inFuture.get();
 
-#ifdef CUDAQ_CURL_AVAILABLE
+#ifdef CUDAQ_RESTCLIENT_AVAILABLE
   RestClient client;
   auto serverHelper = registry::get<ServerHelper>(qpuName);
   serverHelper->initialize(serverConfig);
@@ -44,7 +44,7 @@ sample_result future::get() {
   return sample_result(results);
 #else
   throw std::runtime_error("cudaq::details::future::get() requires REST Client "
-                           "but CUDA Quantum not built with CURL support.");
+                           "but CUDA Quantum was built without it.");
   return sample_result();
 #endif
 }
@@ -74,7 +74,7 @@ future &future::operator=(future &&other) {
 std::ostream &operator<<(std::ostream &os, future &f) {
   if (f.wrapsFutureSampling)
     throw std::runtime_error(
-        "Cannot persist a cudaq::future that wraps a std::future.");
+        "Cannot persist a cudaq::future for a local kernel execution.");
 
   nlohmann::json j;
   j["jobs"] = f.jobs;
@@ -86,7 +86,12 @@ std::ostream &operator<<(std::ostream &os, future &f) {
 
 std::istream &operator>>(std::istream &is, future &f) {
   nlohmann::json j;
-  is >> j;
+  try {
+    is >> j;
+  } catch (std::exception &ex) {
+    throw std::runtime_error(
+        "Formatting error; could not parse input as json.");
+  }
   f.jobs = j["jobs"].get<std::vector<future::Job>>();
   f.qpuName = j["qpu"].get<std::string>();
   f.serverConfig = j["config"].get<std::map<std::string, std::string>>();

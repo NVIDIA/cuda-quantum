@@ -27,8 +27,7 @@ SHELL ["/bin/bash", "-c"]
 # Set here to avoid setting it for all install commands. 
 # Given as arg to make sure that this value is only set during build but not in the launched container.
 ARG DEBIAN_FRONTEND=noninteractive
-RUN apt update && apt-get install -y --no-install-recommends \
-        ca-certificates openssl wget \
+RUN apt update && apt-get install -y --no-install-recommends ca-certificates wget \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # Install Mellanox OFED runtime dependencies.
@@ -118,7 +117,9 @@ ENV UCX_TLS=rc,cuda_copy,cuda_ipc,gdr_copy,sm
 
 ARG CUQUANTUM_INSTALL_PREFIX=/opt/nvidia/cuquantum
 ENV CUQUANTUM_INSTALL_PREFIX="$CUQUANTUM_INSTALL_PREFIX"
+ENV CUQUANTUM_ROOT="$CUQUANTUM_INSTALL_PREFIX"
 ENV LD_LIBRARY_PATH="$CUQUANTUM_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
+ENV CPATH="$CUQUANTUM_INSTALL_PREFIX/include:$CPATH"
 
 RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
     && wget https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-x86_64/cuquantum-linux-x86_64-23.06.0.7_cuda11-archive.tar.xz \
@@ -132,7 +133,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
 
 ARG CUTENSOR_INSTALL_PREFIX=/opt/nvidia/cutensor
 ENV CUTENSOR_INSTALL_PREFIX="$CUTENSOR_INSTALL_PREFIX"
+ENV CUTENSOR_ROOT="$CUTENSOR_INSTALL_PREFIX"
 ENV LD_LIBRARY_PATH="$CUTENSOR_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
+ENV CPATH="$CUTENSOR_INSTALL_PREFIX/include:$CPATH"
 
 RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
     && wget https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor/linux-x86_64/libcutensor-linux-x86_64-1.7.0.1-archive.tar.xz \
@@ -168,3 +171,4 @@ ENV CUDA_ROOT="$CUDA_INSTALL_PREFIX"
 ENV CUDA_PATH="$CUDA_INSTALL_PREFIX"
 ENV PATH="${CUDA_INSTALL_PREFIX}/lib64/:${CUDA_INSTALL_PREFIX}/bin:${PATH}"
 ENV LD_LIBRARY_PATH="${CUDA_INSTALL_PREFIX}/lib64:${CUDA_INSTALL_PREFIX}/extras/CUPTI/lib64:${LD_LIBRARY_PATH}"
+ENV CPATH="$CPATH:$CUDA_INSTALL_PREFIX/targets/x86_64-linux/include/"

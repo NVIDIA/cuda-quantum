@@ -51,6 +51,8 @@ void quantum_platform::set_noise(noise_model *model) {
   platformQPU->setNoiseModel(model);
 }
 
+void quantum_platform::reset_noise() { set_noise(nullptr); }
+
 std::future<sample_result>
 quantum_platform::enqueueAsyncTask(const std::size_t qpu_id,
                                    KernelExecutionTask &task) {

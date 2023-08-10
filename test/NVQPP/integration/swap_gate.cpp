@@ -8,30 +8,31 @@
 
 // RUN: nvq++ -v %s -o %basename_t.x --target quantinuum --emulate && ./%basename_t.x | FileCheck %s
 
-#include <cudaq.h>
+#include "cudaq.h"
 #include <iostream>
 
-__qpu__ void bar(cudaq::qspan<> qubits) {
-  auto controls = qubits.front(qubits.size() - 1);
-  auto &target = qubits.back();
-  x<cudaq::ctrl>(controls, target);
-}
-
-__qpu__ void foo() {
-  cudaq::qreg qubits(4);
-  x(qubits);
-  bar(qubits);
-  mz(qubits);
-}
-
 int main() {
-  auto result = cudaq::sample(1000, foo);
-  std::cout << result.size() << '\n';
-  for (auto &&[bits, counts] : result) {
-    std::cout << bits << '\n';
-  }
+
+  auto swapKernel = []() __qpu__ {
+    cudaq::qreg q(2);
+    x(q[0]);
+    swap(q[0], q[1]);
+
+// TODO: Extend measurement support for submissions to IonQ,
+// see https://github.com/NVIDIA/cuda-quantum/issues/512.
+#ifndef IONQ_TARGET
+    mz(q);
+#endif
+  };
+
+  auto counts = cudaq::sample(swapKernel);
+
+#ifndef SYNTAX_CHECK
+  std::cout << counts.most_probable() << '\n';
+  assert("01" == counts.most_probable());
+#endif
+
   return 0;
 }
 
-//CHECK: 1
-//CHECK-NEXT: 1110
+// CHECK: 01

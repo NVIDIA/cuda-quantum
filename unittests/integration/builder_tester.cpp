@@ -213,6 +213,8 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
 }
 
 CUDAQ_TEST(BuilderTester, checkSwap) {
+  cudaq::set_random_seed(13);
+
   // Simple two-qubit swap.
   {
     auto kernel = cudaq::make_kernel();
@@ -247,6 +249,7 @@ CUDAQ_TEST(BuilderTester, checkSwap) {
 }
 
 CUDAQ_TEST(BuilderTester, checkConditional) {
+  cudaq::set_random_seed(13);
   auto kernel = cudaq::make_kernel();
   auto q = kernel.qalloc(2);
   kernel.h(q[0]);
@@ -351,6 +354,7 @@ CUDAQ_TEST(BuilderTester, checkIsArgStdVec) {
 }
 
 CUDAQ_TEST(BuilderTester, checkKernelControl) {
+  cudaq::set_random_seed(13);
 
   auto [xPrep, qubitIn] = cudaq::make_kernel<cudaq::qubit>();
   xPrep.x(qubitIn);
