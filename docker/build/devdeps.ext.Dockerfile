@@ -27,7 +27,7 @@ SHELL ["/bin/bash", "-c"]
 # Set here to avoid setting it for all install commands. 
 # Given as arg to make sure that this value is only set during build but not in the launched container.
 ARG DEBIAN_FRONTEND=noninteractive
-RUN apt update && apt-get install -y --no-install-recommends ca-certificates wget xz-utils \
+RUN apt update && apt-get install -y --no-install-recommends ca-certificates wget \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # Install Mellanox OFED runtime dependencies.
@@ -123,31 +123,33 @@ ENV CPATH="$CUQUANTUM_INSTALL_PREFIX/include:$CPATH"
 
 # CUDA expects sbsa for aarch64 but x86_64 for x86_64
 RUN echo -e '#!/bin/bash\nif [[ $(uname -m) == aarch64 ]]\nthen\n\techo sbsa\nelse\n\techo x86_64\nfi' > /usr/bin/getArch \ 
-  && chmod +x /usr/bin/getArch \
-  && echo "Arch set to $(getArch) and has $(uname -m) CPU" 
+    && chmod +x /usr/bin/getArch \
+    && echo "Arch set to $(getArch) and has $(uname -m) CPU" 
 
-# Install cuquantum, which includes custatevector and cutensornet
-ARG CUQUANTUM_VERSION=23.06.0.7_cuda11
-RUN wget -q "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-$(getArch)/cuquantum-linux-$(getArch)-${CUQUANTUM_VERSION}-archive.tar.xz" \
-    && mkdir -p ${CUQUANTUM_INSTALL_PREFIX} \
-    && tar -xpJf cuquantum-linux-$(getArch)-${CUQUANTUM_VERSION}-archive.tar.xz --strip-components 1 -C ${CUQUANTUM_INSTALL_PREFIX} \
-    && rm cuquantum-linux-$(getArch)-${CUQUANTUM_VERSION}-archive.tar.xz
+ENV CUQUANTUM_VERSION=23.06.0.7_cuda11
+RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
+    && wget -q "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-$(getArch)/cuquantum-linux-$(getArch)-23.06.0.7_cuda11-archive.tar.xz" \
+    && mkdir -p "$CUQUANTUM_INSTALL_PREFIX" && tar xf cuquantum-linux-$(getArch)-$CUQUANTUM_VERSION-archive.tar.xz --strip-components 1 -C "$CUQUANTUM_INSTALL_PREFIX" \
+    && rm cuquantum-linux-$(getArch)-$CUQUANTUM_VERSION-archive.tar.xz \
+    && apt-get remove -y xz-utils \
+    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # Install cuTensor libraries.
-ARG CUTENSOR_VERSION=1.7.0.1
+
 ARG CUTENSOR_INSTALL_PREFIX=/opt/nvidia/cutensor
 ENV CUTENSOR_INSTALL_PREFIX="$CUTENSOR_INSTALL_PREFIX"
 ENV CUTENSOR_ROOT="$CUTENSOR_INSTALL_PREFIX"
 ENV LD_LIBRARY_PATH="$CUTENSOR_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
 ENV CPATH="$CUTENSOR_INSTALL_PREFIX/include:$CPATH"
 
-RUN wget -q "https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor/linux-$(getArch)/libcutensor-linux-$(getArch)-${CUTENSOR_VERSION}-archive.tar.xz" \
-    && mkdir -p ${CUTENSOR_INSTALL_PREFIX} \
-    && tar -xpJf libcutensor-linux-$(getArch)-${CUTENSOR_VERSION}-archive.tar.xz \
-    && cd libcutensor-linux-$(getArch)-${CUTENSOR_VERSION}-archive \
-    && mv include ${CUTENSOR_INSTALL_PREFIX} \
-    && mv lib/11 ${CUTENSOR_INSTALL_PREFIX}/lib/ \
-    && rm -r ../libcutensor-linux-$(getArch)-${CUTENSOR_VERSION}-archive*
+ENV CUTENSOR_VERSION=1.7.0.1
+RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
+    && wget -q "https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor/linux-$(getArch)/libcutensor-linux-$(getArch)-$CUTENSOR_VERSION-archive.tar.xz" \
+    && tar xf libcutensor-linux-$(getArch)-$CUTENSOR_VERSION-archive.tar.xz && cd libcutensor-linux-$(getArch)-$CUTENSOR_VERSION-archive \
+    && mkdir -p "$CUTENSOR_INSTALL_PREFIX" && mv include "$CUTENSOR_INSTALL_PREFIX" && mv lib/11 "$CUTENSOR_INSTALL_PREFIX/lib" \
+    && cd / && rm -rf libcutensor-linux-$(getArch)-$CUTENSOR_VERSION-archive* \
+    && apt-get remove -y xz-utils \
+    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # Install CUDA 11.8.
 
