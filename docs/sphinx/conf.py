@@ -54,6 +54,7 @@ extensions = [
     'breathe',
     'enum_tools.autoenum',     # for pretty-print Python enums
     'myst_parser',             # for including markdown files
+    "nbsphinx",                # for supporting jupyter notebooks 
 ]
 
 imgmath_latex_preamble = r'\usepackage{braket}'
