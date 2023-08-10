@@ -66,7 +66,7 @@ Let's now see how we can leverage the VQE algorithm to compute the Max-Cut of a 
 Hybrid Quantum Neural Networks 
 -------------------------------------------
 
-:: ../examples/python/hybrid_qnns.ipynb
+.. :: ../examples/python/hybrid_qnns.ipynb
    :language: python
 
 
