@@ -97,7 +97,7 @@ The following code illustrates how to run a simulation with a custom noise model
 Hybrid Quantum Neural Networks 
 -------------------------------------------
 
-:: ../examples/python/hybrid_qnns.ipynb
+.. :: ../examples/python/hybrid_qnns.ipynb
    :language: python
 
 
