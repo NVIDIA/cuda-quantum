@@ -14,9 +14,12 @@
 # Must be built from the repo root with:
 #   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:manylinux -f docker/build/devdeps.manylinux.Dockerfile .
 
-ARG manylinux_image=quay.io/pypa/manylinux_2_28_x86_64:latest
+ARG arch=x86_64
+ARG manylinux_image=quay.io/pypa/manylinux_2_28_$arch:latest
 FROM $manylinux_image
 
+ARG arch=x86_64
+ARG distro=rhel8
 ARG llvm_commit
 
 # When a dialogue box would be needed during install, assume default configurations.
@@ -30,7 +33,7 @@ RUN mkdir /llvm-project && cd /llvm-project && git init \
     && git fetch origin --depth=1 $llvm_commit && git reset --hard FETCH_HEAD
 
 # Use the gcc-11 toolchain to be compatible with cuda-11.8.
-RUN dnf install -y --nobest --setopt=install_weak_deps=False gcc-toolset-11.x86_64 \
+RUN dnf install -y --nobest --setopt=install_weak_deps=False gcc-toolset-11.$arch \
     && dnf clean all
 ENV CC=/opt/rh/gcc-toolset-11/root/usr/bin/gcc
 ENV CXX=/opt/rh/gcc-toolset-11/root/usr/bin/g++
@@ -58,11 +61,10 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False \
 
 # Install CUDA 11.8.
 # Note that pip packages are available for all necessary runtime components.
-RUN export arch=x86_64 && export distro=rhel8 \
-    && dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/$distro/$arch/cuda-$distro.repo \
+RUN dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/$distro/$arch/cuda-$distro.repo \
     && dnf clean expire-cache \
     && dnf install -y --nobest --setopt=install_weak_deps=False \
-        cuda-compiler-11-8.x86_64 cuda-cudart-devel-11-8.x86_64 libcublas-devel-11-8.x86_64
+        cuda-compiler-11-8.$arch cuda-cudart-devel-11-8.$arch libcublas-devel-11-8.$arch
 
 ENV CUDA_INSTALL_PREFIX=/usr/local/cuda-11.8
 ENV CUDA_HOME="$CUDA_INSTALL_PREFIX"
@@ -70,4 +72,3 @@ ENV CUDA_ROOT="$CUDA_INSTALL_PREFIX"
 ENV CUDA_PATH="$CUDA_INSTALL_PREFIX"
 ENV PATH="${CUDA_INSTALL_PREFIX}/lib64/:${CUDA_INSTALL_PREFIX}/bin:${PATH}"
 ENV LD_LIBRARY_PATH="${CUDA_INSTALL_PREFIX}/lib64:${LD_LIBRARY_PATH}"
-ENV CPATH="$CPATH:$CUDA_INSTALL_PREFIX/targets/x86_64-linux/include/"
