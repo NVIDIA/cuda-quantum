@@ -1571,11 +1571,13 @@ on the platform to target. Defaults to zero. Key-word only.</p></li>
 <dl class="py function">
 <dt class="sig sig-object py" id="cudaq.observe">
 <span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">observe</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.observe" title="Permalink to this definition">¶</a></dt>
-<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">_pycudaq</span><span class="o">.</span><span class="n">Kernel</span><span class="p">,</span> <span class="n">spin_operator</span><span class="p">:</span> <span class="n">cudaq</span><span class="p">::</span><span class="n">spin_op</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">shots_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">noise_model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">cudaq</span><span class="p">::</span><span class="n">noise_model</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">execution</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">type</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">cudaq</span><span class="p">::</span><span class="n">observe_result</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">cudaq</span><span class="p">::</span><span class="n">observe_result</span><span class="p">]]</span>
+<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">_pycudaq</span><span class="o">.</span><span class="n">Kernel</span><span class="p">,</span> <span class="n">spin_operator</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">cudaq</span><span class="p">::</span><span class="n">spin_op</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">cudaq</span><span class="p">::</span><span class="n">spin_op</span><span class="p">]],</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">shots_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">noise_model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">cudaq</span><span class="p">::</span><span class="n">noise_model</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">execution</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">type</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">cudaq</span><span class="p">::</span><span class="n">observe_result</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">cudaq</span><span class="p">::</span><span class="n">observe_result</span><span class="p">]]</span>
 </pre></div>
 </div>
 <p>Compute the expected value of the <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> with respect to
-the <code class="code docutils literal notranslate"><span class="pre">kernel</span></code>. If the kernel accepts arguments, it will be evaluated
+the <code class="code docutils literal notranslate"><span class="pre">kernel</span></code>. If the input <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> is a list of <code class="code docutils literal notranslate"><span class="pre">SpinOperator</span></code> then compute
+the expected value of every operator in the list and return a list of results.
+If the kernel accepts arguments, it will be evaluated
 with respect to <code class="code docutils literal notranslate"><span class="pre">kernel(*arguments)</span></code>. Each argument in <code class="code docutils literal notranslate"><span class="pre">arguments</span></code> provided
 can be a list or ndarray of arguments of the specified kernel argument
 type, and in this case, the <code class="code docutils literal notranslate"><span class="pre">observe</span></code> functionality will be broadcasted over
@@ -1585,8 +1587,8 @@ all argument sets and a list of <code class="code docutils literal notranslate">
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>kernel</strong> (<a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a>) – The <a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a> to evaluate the
 expectation value with respect to.</p></li>
-<li><p><strong>spin_operator</strong> (<a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinOperator</span></code></a>) – The Hermitian spin operator to
-calculate the expectation of.</p></li>
+<li><p><strong>spin_operator</strong> (<a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinOperator</span></code></a> or <code class="code docutils literal notranslate"><span class="pre">list[SpinOperator]</span></code>) – The Hermitian spin operator to
+calculate the expectation of, or a list of such operators.</p></li>
 <li><p><strong>*arguments</strong> (<em>Optional</em><em>[</em><em>Any</em><em>]</em>) – The concrete values to evaluate the
 kernel function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
 <li><p><strong>shots_count</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a><em>]</em>) – The number of shots to use for QPU
@@ -2723,6 +2725,15 @@ for more information on this programming pattern.</p>
 <dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.11)">float</a></p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.ObserveResult.get_spin">
+<span class="sig-name descname"><span class="pre">get_spin</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.ObserveResult.get_spin" title="Permalink to this definition">¶</a></dt>
+<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">get_spin</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">_pycudaq</span><span class="o">.</span><span class="n">ObserveResult</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cudaq</span><span class="p">::</span><span class="n">spin_op</span>
+</pre></div>
+</div>
+<p>Return the <code class="code docutils literal notranslate"><span class="pre">SpinOperator</span></code> corresponding to this <code class="code docutils literal notranslate"><span class="pre">ObserveResult</span></code>.</p>
 </dd></dl>
 
 </dd></dl>
