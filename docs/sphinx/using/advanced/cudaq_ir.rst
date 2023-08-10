@@ -129,14 +129,14 @@ is typically produced just-in-time when the structure of the circuit is fully kn
 
 You will notice that there are a number of CUDA Quantum executable tools installed as part 
 of this open beta release. These tools are directly related to the generation, 
-processing, optimization, and lowering of the core NVQ++ compiler representations.
+processing, optimization, and lowering of the core :code:`nvq++` compiler representations.
 The tools available are 
 
 1. :code:`cudaq-quake` - Lower C++ to Quake, can also output classical LLVM IR file
 2. :code:`cudaq-opt` - Process Quake with various MLIR Passes
 3. :code:`cudaq-translate` - Lower Quake to external representations like QIR (or Base Profile QIR)
 
-CUDA Quantum and NVQ++ rely on Quake for the core quantum intermediate representation. 
+CUDA Quantum and :code:`nvq++` rely on Quake for the core quantum intermediate representation.
 Quake represents an IR closer to the CUDA Quantum source language and models qubits and
 quantum instructions via memory semantics. Quake can be fully dynamic and in
 that sense represents a quantum circuit template or generator. With runtime 
