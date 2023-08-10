@@ -199,11 +199,16 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
     rewriter.startRootUpdate(op);
     const auto &info = iter->second;
     // QIR functions need certain attributes, add them here.
+    // TODO: Update schema_id with valid value
     auto arrAttr = rewriter.getArrayAttr(ArrayRef<Attribute>{
-        rewriter.getStringAttr("EntryPoint"),
+        rewriter.getStringAttr("entry_point"),
+        rewriter.getStrArrayAttr({"qir_profiles", "base_profile"}),
+        rewriter.getStrArrayAttr({"output_labeling_schema", "schema_id"}),
         rewriter.getStrArrayAttr(
+            // TODO: change to required_num_qubits once providers support it
             {"requiredQubits", std::to_string(info.nQubits)}),
         rewriter.getStrArrayAttr(
+            // TODO: change to required_num_results once providers support it
             {"requiredResults", std::to_string(info.nResults)})});
     op.setPassthroughAttr(arrAttr);
 

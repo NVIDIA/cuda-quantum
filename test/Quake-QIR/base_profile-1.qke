@@ -43,5 +43,5 @@ module {
     %8 = quake.mz %5 : (!quake.ref) -> i1
     return
   }
-  // CHECK: attributes #0 = { "EntryPoint" "requiredQubits"="3" "requiredResults"="3" }
+  // CHECK: attributes #0 = { "entry_point" "output_labeling_schema"="schema_id" "qir_profiles"="base_profile" "requiredQubits"="3" "requiredResults"="3" }
 }

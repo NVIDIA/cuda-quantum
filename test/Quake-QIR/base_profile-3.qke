@@ -29,4 +29,4 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__t1 = "_ZN2t1clEv"
 // CHECK: tail call void @__quantum__rt__array_end_record_output()
 // CHECK: ret void
 
-// CHECK: { "EntryPoint" "requiredQubits"="2" "requiredResults"="1" }
+// CHECK: { "entry_point" "output_labeling_schema"="schema_id" "qir_profiles"="base_profile" "requiredQubits"="2" "requiredResults"="1" }

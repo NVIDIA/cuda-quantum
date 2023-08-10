@@ -119,8 +119,11 @@ void optimizeLLVM(llvm::Module *module) {
 }
 
 void registerToQIRTranslation() {
+  const uint32_t qir_major_version = 1;
+  const uint32_t qir_minor_version = 0;
+
   cudaq::TranslateFromMLIRRegistration reg(
-      "qir", "translate from quake to qir adaptive",
+      "qir", "translate from quake to qir base profile",
       [](Operation *op, llvm::raw_string_ostream &output, bool printIR) {
         auto context = op->getContext();
         PassManager pm(context);
@@ -137,6 +140,19 @@ void registerToQIRTranslation() {
         auto llvmContext = std::make_unique<llvm::LLVMContext>();
         llvmContext->setOpaquePointers(false);
         auto llvmModule = translateModuleToLLVMIR(op, *llvmContext);
+
+        // Add required module flags for the Base Profile
+        llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                                  "qir_major_version", qir_major_version);
+        llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Max,
+                                  "qir_minor_version", qir_minor_version);
+        auto falseValue =
+            llvm::ConstantInt::getFalse(llvm::Type::getInt1Ty(*llvmContext));
+        llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                                  "dynamic_qubit_management", falseValue);
+        llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                                  "dynamic_result_management", falseValue);
+
         cudaq::optimizeLLVM(llvmModule.get());
         if (!cudaq::setupTargetTriple(llvmModule.get()))
           throw std::runtime_error(
