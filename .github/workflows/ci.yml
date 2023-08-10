@@ -4,10 +4,12 @@ on:
       export_environment:
         type: boolean
         description: Export the build environment as tar artifact that can be imported with Docker.
-  pull_request:
+  # The GitHub application copy-pr-bot copies the source code for every pull request
+  # into the repository. Approving such upstream pushes effectively marks code as trusted,
+  # and is necessary to use the self-hosted NVIDIA runners.
+  push:
     branches:
-      - 'main'
-      - 'releases/*'
+      - "pull-request/[0-9]+"
 
 name: CI # do not change name without updating workflow_run triggers
 
@@ -20,14 +22,16 @@ jobs:
     name: Load dependencies
     strategy:
       matrix:
+        platform: [amd64, arm64]
         toolchain: [llvm, clang16, gcc12]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.Dockerfile
+      platforms: linux/${{ matrix.platform }}
       toolchain: ${{ matrix.toolchain }}
       # needed only for the cloudposse GitHub action
-      matrix_key: ${{ matrix.toolchain }}
+      matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}
 
   wheeldeps:
     name: Load wheel dependencies
@@ -61,12 +65,14 @@ jobs:
     needs: config
     strategy:
       matrix:
+        platform: [amd64, arm64]
         toolchain: [llvm, clang16, gcc12]
       fail-fast: false
     uses: ./.github/workflows/test_in_devenv.yml
     with:
-      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}', matrix.toolchain)] }}
-      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}', matrix.toolchain)] }}
+      runner: ${{ (matrix.platform == 'arm64' && 'linux-arm64-cpu4') || 'ubuntu-latest' }}
+      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
+      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
   docker_image:
@@ -74,8 +80,8 @@ jobs:
     needs: config
     uses: ./.github/workflows/docker_images.yml
     with:
-      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key.gcc12 }}
-      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive.gcc12 }}
+      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key.amd64-gcc12 }}
+      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive.amd64-gcc12 }}
 
   python_wheels:
     name: Create Python wheels

@@ -1,6 +1,10 @@
 on:
   workflow_call:
     inputs:
+      runner:
+        required: false
+        type: string
+        default: ubuntu-latest
       devdeps_cache:
         required: true
         type: string
@@ -16,7 +20,7 @@ name: Run CI within the dev environment container
 jobs:
   build_and_test:
     name: Dev environment (Debug)
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner }}
     permissions:
       contents: read
 
@@ -85,7 +89,7 @@ jobs:
 
   build_and_test_python:
     name: Dev environment (Python)
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner }}
     permissions:
       contents: read
 
