@@ -15,6 +15,13 @@ When you create a `Kernel` and invoke its methods, a quantum program is construc
 .. literalinclude:: ../examples/python/intro.py
    :language: python
 
+Single Qubit Variational Program 
+--------------------------------
+
+:: ../examples/python/Single Qubit Rotation.ipynb
+   :language: python
+
+
 Bernstein-Vazirani
 --------------------------------
 
@@ -90,7 +97,7 @@ The following code illustrates how to run a simulation with a custom noise model
 Hybrid Quantum Neural Networks 
 -------------------------------------------
 
-.. literalinclude:: ../examples/python/hybrid_qnns.ipynb
+:: ../examples/python/hybrid_qnns.ipynb
    :language: python
 
 
