@@ -50,17 +50,19 @@ jobs:
     needs: config
     strategy:
       matrix:
+        platform: [amd64, arm64]
         toolchain: [llvm, clang16, gcc12]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
+      platforms: linux/${{ matrix.platform }}
       dockerfile: build/devdeps.Dockerfile
       toolchain: ${{ matrix.toolchain }}
       create_local_cache: true
       registry_cache_from: ${{ needs.config.outputs.target_branch }}
       pull_request_number: ${{ needs.config.outputs.pull_request_number }}
       # needed only for the cloudposse GitHub action
-      matrix_key: ${{ matrix.toolchain }}
+      matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}
 
   wheeldeps_caches:
     name: Cache wheel dependencies
@@ -68,8 +70,10 @@ jobs:
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.manylinux.Dockerfile
-      toolchain: gcc12 # set by the dockerfile and not configurable
+      toolchain: x86_64
       build_args: |
+        arch=x86_64
+        distro=rhel8
         manylinux_image=quay.io/pypa/manylinux_2_28_x86_64:latest
       create_local_cache: true
       registry_cache_from: ${{ needs.config.outputs.target_branch }}
