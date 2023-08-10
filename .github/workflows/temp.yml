@@ -8,4 +8,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          echo "Hello"
+          echo "Hello from a change"
