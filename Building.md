@@ -49,13 +49,6 @@ To use or develop GPU-based simulators, you will need to make sure you have a
 suitable NVIDIA GPU with the [latest driver][nvidia_driver] installed. You can
 confirm the GPU is properly detected running the command `nvidia-smi`.
 
-If you are working in our development container, please add a `--gpus=all` flag
-to the list of `runArgs` in the
-[.devcontainer/devcontainer.json](.devcontainer/devcontainer.json) file and
-relaunch the container. It is unfortunately not possible to define a development
-container that enables GPU support depending on the system configuration (see
-[this issue](https://github.com/airo-ugent/airo-ros/issues/17)).
-
 If you are not working in our development container, you may need to specify the
 correct path to your cuQuantum installation by setting the environment variable
 `CUQUANTUM_INSTALL_PREFIX`.
