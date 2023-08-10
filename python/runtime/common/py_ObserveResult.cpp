@@ -27,6 +27,8 @@ void bindObserveResult(py::module &mod) {
       .def("dump", &observe_result::dump,
            "Dump the raw data from the :class:`SampleResult` that are stored "
            "in :class:`ObserveResult` to the terminal.\n")
+      .def("get_spin", &observe_result::get_spin,
+           "Return the `SpinOperator` corresponding to this `ObserveResult`.")
       .def(
           "counts", &observe_result::raw_data,
           "Returns a :class:`SampleResult` dictionary with the measurement "
