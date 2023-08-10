@@ -18,8 +18,9 @@
 #include "runtime/cudaq/kernels/py_chemistry.h"
 #include "runtime/cudaq/spin/py_matrix.h"
 #include "runtime/cudaq/spin/py_spin_op.h"
+#include "runtime/cudaq/target/py_runtime_target.h"
+#include "runtime/cudaq/target/py_testing_utils.h"
 #include "utils/LinkedLibraryHolder.h"
-#include "utils/TestingUtils.h"
 
 #include "cudaq.h"
 
@@ -43,7 +44,13 @@ PYBIND11_MODULE(_pycudaq, mod) {
             holder.setTarget(value);
         }
       },
-      "");
+      "Initialize the CUDA Quantum environment.");
+
+  mod.def("set_random_seed", &cudaq::set_random_seed,
+          "Provide the seed for backend quantum kernel simulation.");
+
+  mod.def("num_available_gpus", &cudaq::num_available_gpus,
+          "The number of available GPUs detected on the system.");
 
   auto mpiSubmodule = mod.def_submodule("mpi");
   mpiSubmodule.def(

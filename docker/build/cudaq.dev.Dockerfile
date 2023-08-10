@@ -22,7 +22,7 @@
 # see a message along the lines of "no GPU detected" during the CUDA Quantum build.
 # Please install the necessary prerequisites listed in the CUDA Quantum build script,
 # or use a suitable base image, to enable developing these components.
-ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:llvm-main
+ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:ext-gcc12-main
 FROM $base_image
 
 ENV CUDAQ_REPO_ROOT=/workspaces/cuda-quantum

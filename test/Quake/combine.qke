@@ -142,9 +142,9 @@ func.func @c() {
   %1 = quake.alloca !quake.veq<4>
   %c2 = arith.constant 2 : i64
   %c3 = arith.constant 3 : i64
-  %2 = quake.subvec %1, %c2, %c3 : (!quake.veq<4>, i64, i64) -> !quake.veq<2>
+  %2 = quake.subveq %1, %c2, %c3 : (!quake.veq<4>, i64, i64) -> !quake.veq<2>
   %c1 = arith.constant 1 : i64
-  %3 = quake.subvec %2, %c1, %c1 : (!quake.veq<2>, i64, i64) -> !quake.veq<1>
+  %3 = quake.subveq %2, %c1, %c1 : (!quake.veq<2>, i64, i64) -> !quake.veq<1>
   %4 = quake.extract_ref %3 [0] : (!quake.veq<1>) -> !quake.ref
   quake.x %4 : (!quake.ref) -> ()
   return
@@ -159,8 +159,8 @@ func.func @c() {
 
 func.func @d(%c2: i64, %c3: i64, %c1: i64, %off: i16) {
   %1 = quake.alloca !quake.veq<4>
-  %2 = quake.subvec %1, %c2, %c3 : (!quake.veq<4>, i64, i64) -> !quake.veq<2>
-  %3 = quake.subvec %2, %c1, %c1 : (!quake.veq<2>, i64, i64) -> !quake.veq<1>
+  %2 = quake.subveq %1, %c2, %c3 : (!quake.veq<4>, i64, i64) -> !quake.veq<2>
+  %3 = quake.subveq %2, %c1, %c1 : (!quake.veq<2>, i64, i64) -> !quake.veq<1>
   %4 = quake.extract_ref %3 [%off] : (!quake.veq<1>, i16) -> !quake.ref
   quake.x %4 : (!quake.ref) -> ()
   return

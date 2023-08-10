@@ -193,22 +193,43 @@ public:
     return result;
   }
 };
+
+/// Unrolling pass pipeline command-line options. These options are similar to
+/// the LoopUnroll pass options, but have different default settings.
+struct UnrollPipelineOptions
+    : public PassPipelineOptions<UnrollPipelineOptions> {
+  PassOptions::Option<unsigned> threshold{
+      *this, "threshold",
+      llvm::cl::desc("Maximum iterations to unroll. (default: 1024)"),
+      llvm::cl::init(1024)};
+  PassOptions::Option<bool> signalFailure{
+      *this, "signal-failure-if-any-loop-cannot-be-completely-unrolled",
+      llvm::cl::desc(
+          "Signal failure if pass can't unroll all loops. (default: true)"),
+      llvm::cl::init(true)};
+};
 } // namespace
 
-void cudaq::opt::createUnrollingPipeline(OpPassManager &pm, unsigned threshold,
-                                         bool signalFailure) {
+/// Add a pass pipeline to apply the requisite passes to fully unroll loops.
+/// When converting to a quantum circuit, the static control program is fully
+/// expanded to eliminate control flow. This pipeline will raise an error if any
+/// loop in the module cannot be fully unrolled and signalFailure is set.
+static void createUnrollingPipeline(OpPassManager &pm, unsigned threshold,
+                                    bool signalFailure) {
   pm.addPass(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(createClassicalMemToReg());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   pm.addPass(createCanonicalizerPass());
-  pm.addPass(createLoopNormalize());
+  pm.addPass(cudaq::opt::createLoopNormalize());
   pm.addPass(createCanonicalizerPass());
-  LoopUnrollOptions luo{threshold, signalFailure};
-  pm.addPass(createLoopUnroll(luo));
+  cudaq::opt::LoopUnrollOptions luo{threshold, signalFailure};
+  pm.addPass(cudaq::opt::createLoopUnroll(luo));
 }
 
 void cudaq::opt::registerUnrollingPipeline() {
-  PassPipelineRegistration<>(
+  PassPipelineRegistration<UnrollPipelineOptions>(
       "unrolling-pipeline",
       "Fully unroll loops that can be completely unrolled.",
-      addUnrollingPipeline);
+      [](OpPassManager &pm, const UnrollPipelineOptions &upo) {
+        createUnrollingPipeline(pm, upo.threshold, upo.signalFailure);
+      });
 }

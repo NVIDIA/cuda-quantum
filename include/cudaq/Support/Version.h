@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -6,23 +6,15 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// This code is from Issue 296.
+#pragma once
 
-// RUN: nvq++ %s --target quantinuum --emulate -o %t.x && %t.x | FileCheck %s
+namespace cudaq {
 
-// CHECK: { 1:100 }
+// TODO: const char *getVersion();
 
-#include <cudaq.h>
+/// A generic bug report message.
+constexpr const char *bugReportMsg =
+    "PLEASE submit a bug report to https://github.com/NVIDIA/cuda-quantum and "
+    "include the crash backtrace.\n";
 
-__qpu__ void foo(bool value) {
-  cudaq::qubit q;
-  if (value)
-    x(q);
-  mz(q);
-}
-
-int main() {
-  auto result = cudaq::sample(100, foo, true);
-  result.dump();
-  return 0;
-}
+} // namespace cudaq

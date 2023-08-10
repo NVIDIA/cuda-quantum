@@ -10,6 +10,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "cudaq/Support/Version.h"
 #include "cudaq/Target/IQM/IQMJsonEmitter.h"
 #include "cudaq/Target/OpenQASM/OpenQASMEmitter.h"
 #include "cudaq/Todo.h"
@@ -17,6 +18,7 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ErrorOr.h"
 #include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Support/PrettyStackTrace.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/ToolOutputFile.h"
@@ -115,6 +117,10 @@ static void checkErrorCode(const std::error_code &ec) {
 }
 
 int main(int argc, char **argv) {
+  // Set the bug report message to indicate users should file issues on
+  // nvidia/cuda-quantum
+  llvm::setBugReportMsg(cudaq::bugReportMsg);
+
   registerAsmPrinterCLOptions();
   registerMLIRContextCLOptions();
   registerPassManagerCLOptions();

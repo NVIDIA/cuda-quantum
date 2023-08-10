@@ -41,24 +41,6 @@ namespace {
     }                                                                          \
   };
 
-/// @brief Generate a vector of random values
-/// @param num_samples
-/// @param max_value
-/// @return
-static std::vector<double> randomValues(uint64_t num_samples,
-                                        double max_value) {
-  std::vector<double> rs;
-  rs.reserve(num_samples);
-  std::random_device rd;
-  std::mt19937 rgen(rd());
-  std::uniform_real_distribution<double> distr(0.0, max_value);
-  for (uint64_t i = 0; i < num_samples; ++i) {
-    rs.emplace_back(distr(rgen));
-  }
-  std::sort(rs.begin(), rs.end());
-  return rs;
-}
-
 /// @brief Initialize the device state vector to the |0...0> state
 /// @param sv
 /// @param dim
@@ -136,6 +118,20 @@ protected:
 
   custatevecComputeType_t cuStateVecComputeType = CUSTATEVEC_COMPUTE_64F;
   cudaDataType_t cuStateVecCudaDataType = CUDA_C_64F;
+  std::random_device randomDevice;
+  std::mt19937 randomEngine;
+
+  /// @brief Generate a vector of random values
+  std::vector<double> randomValues(uint64_t num_samples, double max_value) {
+    std::vector<double> rs;
+    rs.reserve(num_samples);
+    std::uniform_real_distribution<double> distr(0.0, max_value);
+    for (uint64_t i = 0; i < num_samples; ++i) {
+      rs.emplace_back(distr(randomEngine));
+    }
+    std::sort(rs.begin(), rs.end());
+    return rs;
+  }
 
   /// @brief Convert the pauli rotation gate name to a CUSTATEVEC_PAULI Type
   /// @param type
@@ -325,10 +321,15 @@ public:
     }
 
     cudaFree(0);
+    randomEngine = std::mt19937(randomDevice());
   }
 
   /// The destructor
   virtual ~CuStateVecCircuitSimulator() = default;
+
+  void setRandomSeed(std::size_t randomSeed) override {
+    randomEngine = std::mt19937(randomSeed);
+  }
 
   /// @brief Measure operation
   /// @param qubitIdx

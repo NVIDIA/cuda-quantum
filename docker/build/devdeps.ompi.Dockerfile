@@ -148,18 +148,17 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
     && export common_flags=$([ "$TARGETARCH" == "arm64" ] && echo "$COMMON_COMPILER_FLAGS_ARM" || echo "$COMMON_COMPILER_FLAGS") \
     &&  CC=gcc CFLAGS="$common_flags" \
         CXX=g++ CXXFLAGS="$common_flags" \
-        F77=gfortran F90=gfortran FFLAGS="$common_flags" \
         FC=gfortran FCFLAGS="$common_flags" \
         LDFLAGS=-Wl,--as-needed \
         ./configure --prefix="$OPENMPI_INSTALL_PREFIX" \
             --disable-getpwuid --disable-static \
             --disable-debug --disable-mem-debug --disable-mem-profile --disable-memchecker \
             --enable-mca-no-build=btl-uct --enable-mpi1-compatibility --enable-oshmem \
+            --without-verbs \
             --with-cuda="$CUDA_INSTALL_PREFIX" \
             --with-slurm --with-pmi="$PMI_INSTALL_PREFIX" \
             --with-pmix="$PMIX_INSTALL_PREFIX" \
             --with-ucx="$UCX_INSTALL_PREFIX" \
-            --without-verbs \
     && make -j$(nproc) && make -j$(nproc) install \
     && rm -rf /var/tmp/ompi \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 

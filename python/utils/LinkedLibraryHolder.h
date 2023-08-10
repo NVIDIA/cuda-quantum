@@ -8,16 +8,11 @@
 
 #pragma once
 
-#include "common/FmtCore.h"
-#include "common/Logger.h"
 #include <filesystem>
 #include <map>
+#include <string>
 #include <unordered_map>
 #include <vector>
-
-#include <pybind11/pybind11.h>
-
-namespace py = pybind11;
 
 namespace nvqir {
 class CircuitSimulator;
@@ -45,6 +40,11 @@ struct RuntimeTarget {
 /// for the CUDA Quantum runtime within the Python runtime.
 class LinkedLibraryHolder {
 public:
+  /// @brief Global boolean that disables target modification.
+  /// This will turn off (bypass) target modification in the LinkedLibraryHolder
+  /// instance used by Python bindings.
+  static inline bool disallowTargetModification = false;
+
 protected:
   // Store the library suffix
   std::string libSuffix = "";
@@ -97,7 +97,4 @@ public:
   /// @brief Reset the target back to the default.
   void resetTarget();
 };
-
-void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder);
-
 } // namespace cudaq

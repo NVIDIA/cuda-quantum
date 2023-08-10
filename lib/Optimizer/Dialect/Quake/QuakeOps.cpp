@@ -252,10 +252,10 @@ void quake::RelaxSizeOp::getCanonicalizationPatterns(
 }
 
 //===----------------------------------------------------------------------===//
-// SubVecOp
+// SubVeqOp
 //===----------------------------------------------------------------------===//
 
-Value quake::createSizedSubVecOp(PatternRewriter &builder, Location loc,
+Value quake::createSizedSubVeqOp(PatternRewriter &builder, Location loc,
                                  OpResult result, Value inVec, Value lo,
                                  Value hi) {
   auto vecTy = result.getType().cast<quake::VeqType>();
@@ -267,13 +267,13 @@ Value quake::createSizedSubVecOp(PatternRewriter &builder, Location loc,
   };
   std::size_t size = getVal(hi) - getVal(lo) + 1u;
   auto szVecTy = quake::VeqType::get(ctx, size);
-  auto subvec = builder.create<quake::SubVecOp>(loc, szVecTy, inVec, lo, hi);
-  return builder.create<quake::RelaxSizeOp>(loc, vecTy, subvec);
+  auto subveq = builder.create<quake::SubVeqOp>(loc, szVecTy, inVec, lo, hi);
+  return builder.create<quake::RelaxSizeOp>(loc, vecTy, subveq);
 }
 
-void quake::SubVecOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
+void quake::SubVeqOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                   MLIRContext *context) {
-  patterns.add<FuseConstantToSubvecPattern>(context);
+  patterns.add<FuseConstantToSubveqPattern>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -536,10 +536,36 @@ bool cudaq::EnableInlinerInterface::isLegalToInline(Operation *call,
   return !(callable->hasAttr(cudaq::entryPointAttrName));
 }
 
-void quake::getOperatorEffectsImpl(
-    SmallVectorImpl<SideEffects::EffectInstance<MemoryEffects::Effect>>
-        &effects,
-    ValueRange controls, ValueRange targets) {
+using EffectsVectorImpl =
+    SmallVectorImpl<SideEffects::EffectInstance<MemoryEffects::Effect>>;
+
+/// For an operation with modeless effects, the operation always has effects on
+/// the control and target quantum operands, whether those operands are in
+/// reference or value form. A operation with modeless effects is not removed
+/// when its result(s) is (are) unused.
+inline static void getModelessEffectsImpl(EffectsVectorImpl &effects,
+                                          ValueRange controls,
+                                          ValueRange targets) {
+  for (auto v : controls)
+    effects.emplace_back(MemoryEffects::Read::get(), v,
+                         SideEffects::DefaultResource::get());
+  for (auto v : targets) {
+    effects.emplace_back(MemoryEffects::Read::get(), v,
+                         SideEffects::DefaultResource::get());
+    effects.emplace_back(MemoryEffects::Write::get(), v,
+                         SideEffects::DefaultResource::get());
+  }
+}
+
+/// For an operation with moded effects, the operation conditionally has effects
+/// on the control and target quantum operands. If those operands are in
+/// reference form, then the operation does have effects on those references.
+/// Control operands have a read effect, while target operands have both a read
+/// and write effect. If the operand is in value form, the operation introduces
+/// no effects on that operand.
+inline static void getModedEffectsImpl(EffectsVectorImpl &effects,
+                                       ValueRange controls,
+                                       ValueRange targets) {
   for (auto v : controls)
     if (isa<quake::RefType, quake::VeqType>(v.getType()))
       effects.emplace_back(MemoryEffects::Read::get(), v,
@@ -551,6 +577,24 @@ void quake::getOperatorEffectsImpl(
       effects.emplace_back(MemoryEffects::Write::get(), v,
                            SideEffects::DefaultResource::get());
     }
+}
+
+/// Quake reset has modeless effects.
+void quake::getResetEffectsImpl(EffectsVectorImpl &effects,
+                                ValueRange targets) {
+  getModelessEffectsImpl(effects, {}, targets);
+}
+
+/// Quake measurement operations have modeless effects.
+void quake::getMeasurementEffectsImpl(EffectsVectorImpl &effects,
+                                      ValueRange targets) {
+  getModelessEffectsImpl(effects, {}, targets);
+}
+
+/// Quake quantum operators have moded effects.
+void quake::getOperatorEffectsImpl(EffectsVectorImpl &effects,
+                                   ValueRange controls, ValueRange targets) {
+  getModedEffectsImpl(effects, controls, targets);
 }
 
 // This is a workaround for ODS generating these member function declarations

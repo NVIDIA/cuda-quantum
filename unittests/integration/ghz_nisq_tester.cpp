@@ -46,7 +46,7 @@ CUDAQ_TEST(GHZSampleTester, checkBroadcast) {
   std::vector<int> sizeVals(8);
   std::iota(sizeVals.begin(), sizeVals.end(), 3);
   {
-    auto allCounts = cudaq::sample_n(ghz{}, cudaq::make_argset(sizeVals));
+    auto allCounts = cudaq::sample(ghz{}, cudaq::make_argset(sizeVals));
 
     int counter = 0;
     std::string first0 = "000", first1 = "111";
@@ -63,7 +63,7 @@ CUDAQ_TEST(GHZSampleTester, checkBroadcast) {
   }
 
   {
-    auto allCounts = cudaq::sample_n(2000, ghz{}, cudaq::make_argset(sizeVals));
+    auto allCounts = cudaq::sample(2000, ghz{}, cudaq::make_argset(sizeVals));
 
     int counter = 0;
     std::string first0 = "000", first1 = "111";

@@ -18,8 +18,8 @@ endif ()
 string(REPLACE "." ";" CUDA_VERSION_LIST ${CMAKE_CUDA_COMPILER_VERSION})
 list(GET CUDA_VERSION_LIST 0 CUDA_MAJOR_VERSION)
 
-find_library(CUSTATEVEC_STATIC_LIB
-    NAMES custatevec_static
+find_library(CUSTATEVEC_LIB
+    NAMES custatevec
     HINTS
     ${CUSTATEVEC_ROOT}/${CUSTATEVEC_LIBDIR}
     ${CUSTATEVEC_ROOT}/${CUSTATEVEC_LIBDIR}/${CUDA_MAJOR_VERSION})
@@ -32,7 +32,7 @@ macro (nvqir_create_cusv_plugin LIBRARY_NAME SOURCE_FILENAME)
     ${CUSTATEVEC_ROOT}/include)
 
   target_link_libraries(${LIBRARY_NAME} PRIVATE fmt::fmt-header-only cudaq-common
-                ${CUSTATEVEC_STATIC_LIB}
+                ${CUSTATEVEC_LIB}
                 ${CUDA_LIBRARIES} cublas )
 
   install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
