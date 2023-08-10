@@ -99,11 +99,11 @@ jobs:
       - name: Determine build arguments
         id: build_info
         run: |
-          if [ -n "echo ${{ inputs.platforms }} | grep ," ]; then
+          if [ -n "$(echo ${{ inputs.platforms }} | grep ,)" ]; then
             error="There are currently no suitable runners configured for multi-platform builds."
             echo $error && echo $error >> $GITHUB_STEP_SUMMARY
             exit 1
-          elif [ -n "echo ${{ inputs.platforms }} | grep -i arm" ]; then
+          elif [ -n "$(echo ${{ inputs.platforms }} | grep -i arm)" ]; then
             echo "runner=linux-arm64-cpu4" >> $GITHUB_OUTPUT
           else
             echo "runner=ubuntu-latest" >> $GITHUB_OUTPUT
