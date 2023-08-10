@@ -482,7 +482,8 @@ protected:
 
     // Sort the qubit indices
     std::sort(sampleQubits.begin(), sampleQubits.end());
-    std::unique(sampleQubits.begin(), sampleQubits.end());
+    auto last = std::unique(sampleQubits.begin(), sampleQubits.end());
+    sampleQubits.erase(last, sampleQubits.end());
 
     cudaq::info("Sampling the current state, with measure qubits = {}",
                 sampleQubits);
