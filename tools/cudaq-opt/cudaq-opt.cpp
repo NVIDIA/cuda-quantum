@@ -12,6 +12,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Plugin.h"
+#include "cudaq/Support/Version.h"
 #include "llvm/Option/Option.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/InitLLVM.h"
@@ -50,6 +51,10 @@ static cl::list<std::string>
                 cl::desc("Load passes from plugin library"));
 
 int main(int argc, char **argv) {
+  // Set the bug report message to indicate users should file issues on
+  // nvidia/cuda-quantum
+  llvm::setBugReportMsg(cudaq::bugReportMsg);
+
   mlir::registerAllPasses();
   cudaq::opt::registerOptCodeGenPasses();
   cudaq::opt::registerOptTransformsPasses();
