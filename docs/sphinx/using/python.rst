@@ -18,7 +18,7 @@ When you create a `Kernel` and invoke its methods, a quantum program is construc
 Single Qubit Variational Program 
 --------------------------------
 
-:: ../examples/python/Single Qubit Rotation.ipynb
+.. :: ../examples/python/Single Qubit Rotation.ipynb
    :language: python
 
 
