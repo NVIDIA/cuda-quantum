@@ -119,7 +119,6 @@ jobs:
           image_name=$registry/${repo_owner,,}/$image_title
           toolchain=${{ inputs.toolchain }}
           platform_id=`echo "${{ inputs.platforms }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
-          if [ "$platform_id" == "amd64" ]; then unset platform_id; fi
           tag_prefix=`echo $image_id | cut -s -d "." -f 2- | xargs -I "%" echo %. | tr . -`${platform_id:+$platform_id-}${toolchain:+$toolchain-}
           tag_suffix=""
 
@@ -204,13 +203,10 @@ jobs:
       - name: Create cache locations
         id: cache
         run: |
-          # FIXME: remove the unset platform_id line, same above
-          toolchain=${{ inputs.toolchain }}
-          
           # FIXME: we need to revise the cache_id use here to have the multiplat build use the individual caches
 
+          toolchain=${{ inputs.toolchain }}
           platform_id=`echo "${{ inputs.platforms }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
-          if [ "$platform_id" == "linux-amd64" ]; then unset platform_id; fi
           registry_cache=ghcr.io/${{ needs.metadata.outputs.owner }}/buildcache-cuda-quantum
           nvidia_registry_cache=ghcr.io/nvidia/buildcache-cuda-quantum
           registry_cache_base=$(echo ${{ inputs.registry_cache_from || github.event.pull_request.base.ref || 'main' }} | tr / -)
