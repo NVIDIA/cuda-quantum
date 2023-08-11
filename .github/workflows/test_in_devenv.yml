@@ -42,7 +42,7 @@ jobs:
           devdeps_tag=`echo $base_image | rev | cut -d ":" -f 1 | rev`
 
           docker context create builder_context
-          docker buildx create --use builder_context
+          docker buildx create --context builder_context
           DOCKER_BUILDKIT=1 docker build --platform ${{ inputs.platform }} \
             -t cuda-quantum-dev:local -f docker/build/cudaq.dev.Dockerfile . \
             --build-arg base_image=$base_image \
@@ -114,7 +114,7 @@ jobs:
           devdeps_tag=`echo $base_image | rev | cut -d ":" -f 1 | rev`
 
           docker context create builder_context
-          docker buildx create --use builder_context
+          docker buildx create --context builder_context
           DOCKER_BUILDKIT=1 docker build --platform ${{ inputs.platform }} \
             -t dev_env:local -f docker/build/cudaq.dev.Dockerfile . \
             --build-arg base_image=$base_image 
