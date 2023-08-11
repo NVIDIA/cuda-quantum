@@ -104,9 +104,7 @@ jobs:
         id: build_info
         run: |
           if [ -n "$(echo ${{ inputs.platforms }} | grep ,)" ]; then
-            error="There are currently no suitable runners configured for multi-platform builds."
-            echo $error && echo $error >> $GITHUB_STEP_SUMMARY
-            exit 1
+            echo "runner=linux-amd64-cpu16" >> $GITHUB_OUTPUT
           elif [ -n "$(echo ${{ inputs.platforms }} | grep -i arm)" ]; then
             echo "runner=linux-arm64-cpu8" >> $GITHUB_OUTPUT
           else
@@ -120,18 +118,18 @@ jobs:
           image_title=cuda-quantum-`echo $image_id | cut -d "." -f 1`
           image_name=$registry/${repo_owner,,}/$image_title
           toolchain=${{ inputs.toolchain }}
-          platform_id=`echo "${{ inputs.platforms }}" | tr -d ' ' | tr / - | tr ',' -`
-          if [ "$platform_id" == "linux-amd64" ]; then unset platform_id; fi
+          platform_id=`echo "${{ inputs.platforms }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
+          if [ "$platform_id" == "amd64" ]; then unset platform_id; fi
           tag_prefix=`echo $image_id | cut -s -d "." -f 2- | xargs -I "%" echo %. | tr . -`${platform_id:+$platform_id-}${toolchain:+$toolchain-}
           tag_suffix=""
 
           if ${{ inputs.pull_request_commit != '' }}; then
-            custom_tags="type=raw,value=${{ inputs.pull_request_commit }}"
+            custom_tags="type=raw,value=${{ inputs.pull_request_commit }},priority=1000"
           elif ${{ github.event.pull_request.merged == true }}; then
-            custom_tags="type=raw,value=${{ github.event.pull_request.base.ref }}"
+            custom_tags="type=raw,value=${{ github.event.pull_request.base.ref }},priority=1000"
           elif ${{ inputs.pull_request_number != '' }} || [ -n "$(echo ${{ github.ref_name }} | grep pull-request/)"]; then
             pr_number=`echo ${{ github.ref_name }} | grep -o [0-9]*`
-            custom_tags="type=raw,value=pr-${pr_number:-${{ inputs.pull_request_number }}}"
+            custom_tags="type=raw,value=pr-${pr_number:-${{ inputs.pull_request_number }}},priority=1000"
           fi
 
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
@@ -154,7 +152,6 @@ jobs:
             prefix=${{ steps.build_info.outputs.tag_prefix }},onlatest=true
             suffix=${{ steps.build_info.outputs.tag_suffix }},onlatest=true
           tags: |
-            type=schedule,enable=${{ inputs.pull_request_number == '' }},pattern=nightly
             type=ref,enable=${{ inputs.pull_request_number == '' }},event=branch
             type=ref,enable=${{ inputs.pull_request_number == '' }},prefix=${{ steps.build_info.outputs.tag_prefix }}pr-,event=pr
             type=ref,enable=${{ inputs.pull_request_number == '' }},event=tag
@@ -207,8 +204,12 @@ jobs:
       - name: Create cache locations
         id: cache
         run: |
+          # FIXME: remove the unset platform_id line, same above
           toolchain=${{ inputs.toolchain }}
-          platform_id=`echo "${{ inputs.platforms }}" | tr -d ' ' | tr / - | tr ',' -`
+          
+          # FIXME: we need to revise the cache_id use here to have the multiplat build use the individual caches
+
+          platform_id=`echo "${{ inputs.platforms }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
           if [ "$platform_id" == "linux-amd64" ]; then unset platform_id; fi
           registry_cache=ghcr.io/${{ needs.metadata.outputs.owner }}/buildcache-cuda-quantum
           nvidia_registry_cache=ghcr.io/nvidia/buildcache-cuda-quantum

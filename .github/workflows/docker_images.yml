@@ -57,7 +57,7 @@ jobs:
             echo "build_docs=true" >> $GITHUB_OUTPUT
           fi
 
-          platform_id=`echo "${{ inputs.platforms }}" | tr -d ' ' | tr / - | tr ',' -`
+          platform_id=`echo "${{ inputs.platforms }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
           echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
 
   ompi_image:
