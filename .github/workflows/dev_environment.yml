@@ -253,8 +253,13 @@ jobs:
           echo "local_buildcache_key_suffix=$local_buildcache_key_suffix" >> $GITHUB_OUTPUT
           echo "local_buildcache_path=$local_buildcache_path" >> $GITHUB_OUTPUT
           echo "cache_from_gh=$cache_from_gh" >> $GITHUB_OUTPUT
-          echo "cache_from_registry=$cache_from_registry" >> $GITHUB_OUTPUT
-          echo "cache_from_nvidia_registry=$cache_from_nvidia_registry" >> $GITHUB_OUTPUT
+          {
+            echo 'cache_from_registry<<multiline'
+            echo $cache_from_registry
+            echo $cache_from_nvidia_registry
+            echo multiline
+          } >> $GITHUB_OUTPUT
+
           echo "cache_to=$cache_to" >> $GITHUB_OUTPUT
           echo "build_cache=$build_cache" >> $GITHUB_OUTPUT
           if ${{ inputs.environment == '' && ! inputs.registry_cache_update_only }}; then
@@ -291,7 +296,6 @@ jobs:
             ${{ inputs.additional_build_caches }}
             ${{ steps.cache.outputs.cache_from_gh }}
             ${{ steps.cache.outputs.cache_from_registry }}
-            ${{ steps.cache.outputs.cache_from_nvidia_registry }}
           cache-to: ${{ steps.cache.outputs.cache_to }}
           push: ${{ inputs.environment && ! inputs.registry_cache_update_only || false }}
           outputs: ${{ steps.cache.outputs.docker_output }}
