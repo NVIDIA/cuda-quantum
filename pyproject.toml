@@ -18,7 +18,7 @@ requires-python = ">=3.8"
 license = { file="LICENSE" }
 dependencies = [
   'custatevec-cu11 ~= 1.4',
-  'nvidia-cublas-cu11 ~= 11.11',
+  #'nvidia-cublas-cu11 ~= 11.11', no arm wheels...
 ]
 
 [project.urls]

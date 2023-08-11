@@ -11,7 +11,7 @@ FROM ubuntu:$os_version
 
 ARG python_version=3.10
 ARG pip_install_flags="--user"
-ARG preinstalled_modules="numpy pytest"
+ARG preinstalled_modules="numpy pytest nvidia-cublas-cu11"
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
