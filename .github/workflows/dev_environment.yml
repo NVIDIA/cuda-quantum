@@ -210,7 +210,7 @@ jobs:
           orig_gh_ref=${{ github.ref_name }}
           if [ "$orig_gh_ref" != "${orig_gh_ref#pull-request/}" ]; then
             # original branch prior to the move by copy-pr-bot
-            orig_gh_ref=merge/${orig_gh_ref#pull-request/}
+            orig_gh_ref=${orig_gh_ref#pull-request/}/merge
           fi
 
           local_buildcache_path="/tmp/.buildcache-${cache_id}"
