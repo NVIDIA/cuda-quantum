@@ -1,10 +1,10 @@
 on:
   workflow_call:
     inputs:
-      runner:
-        required: false
+      platform:
         type: string
-        default: ubuntu-latest
+        required: false
+        default: linux/amd64
       devdeps_cache:
         required: true
         type: string
@@ -20,7 +20,7 @@ name: Run CI within the dev environment container
 jobs:
   build_and_test:
     name: Dev environment (Debug)
-    runs-on: ${{ inputs.runner }}
+    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu4') || 'ubuntu-latest' }}
     permissions:
       contents: read
 
@@ -41,7 +41,10 @@ jobs:
           base_image=`docker load --input "${{ inputs.devdeps_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
           devdeps_tag=`echo $base_image | rev | cut -d ":" -f 1 | rev`
 
-          docker build -t cuda-quantum-dev:local -f docker/build/cudaq.dev.Dockerfile . \
+          docker context create builder_context
+          docker buildx create --use builder_context
+          DOCKER_BUILDKIT=1 docker build --platform ${{ inputs.platform }} \
+            -t cuda-quantum-dev:local -f docker/build/cudaq.dev.Dockerfile . \
             --build-arg base_image=$base_image \
             --build-arg install="CMAKE_BUILD_TYPE=Debug"
           
@@ -89,7 +92,7 @@ jobs:
 
   build_and_test_python:
     name: Dev environment (Python)
-    runs-on: ${{ inputs.runner }}
+    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu4') || 'ubuntu-latest' }}
     permissions:
       contents: read
 
@@ -110,7 +113,10 @@ jobs:
           base_image=`docker load --input "${{ inputs.devdeps_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
           devdeps_tag=`echo $base_image | rev | cut -d ":" -f 1 | rev`
 
-          docker build -t dev_env:local -f docker/build/cudaq.dev.Dockerfile . \
+          docker context create builder_context
+          docker buildx create --use builder_context
+          DOCKER_BUILDKIT=1 docker build --platform ${{ inputs.platform }} \
+            -t dev_env:local -f docker/build/cudaq.dev.Dockerfile . \
             --build-arg base_image=$base_image 
 
           tag_prefix=`echo $devdeps_tag | cut -d "_" -f 1`

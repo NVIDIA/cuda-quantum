@@ -72,7 +72,7 @@ jobs:
       fail-fast: false
     uses: ./.github/workflows/test_in_devenv.yml
     with:
-      runner: ${{ (matrix.platform == 'arm64' && 'linux-arm64-cpu4') || 'ubuntu-latest' }}
+      platform: linux/${{ matrix.platform }}
       devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
@@ -114,8 +114,9 @@ jobs:
           keys=`echo $key_matrix | jq '.cache_key | to_entries | .[].value' --raw-output`
           keys+=" ${{ needs.wheeldeps.outputs.cache_key }}"
           echo "$keys" >> cache_keys.txt
-          echo "pr-number: ${{ github.event.pull_request.number }}" >> metadata.txt
-          echo "pr-base: ${{ github.event.pull_request.base.ref }}" >> metadata.txt
+
+          pr_number=pr_number=`echo ${{ github.ref_name }} | grep pull-request/ | grep -o [0-9]*`
+          echo "pr-number: ${pr_number:-${{ github.event.pull_request.number }}}" >> metadata.txt
 
       - name: Upload cache keys
         uses: actions/upload-artifact@v3

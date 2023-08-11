@@ -116,11 +116,14 @@ jobs:
           image_title=cuda-quantum-`echo $image_id | cut -d "." -f 1`
           image_name=$registry/${repo_owner,,}/$image_title
           toolchain=${{ inputs.toolchain }}
-          tag_prefix=`echo $image_id | cut -s -d "." -f 2- | xargs -I "%" echo %. | tr . -`${toolchain:+$toolchain-}
+          platform_id=`echo "${{ inputs.platforms }}" | tr -d ' ' | tr / - | tr ',' -`
+          if [ "$platform_id" == "linux-amd64" ]; then unset platform_id; fi
+          tag_prefix=`echo $image_id | cut -s -d "." -f 2- | xargs -I "%" echo %. | tr . -`${platform_id:+$platform_id-}${toolchain:+$toolchain-}
           tag_suffix=""
 
-          if ${{ inputs.pull_request_number != '' }}; then
-            custom_tags="type=raw,value=pr-${{ inputs.pull_request_number }}"
+          if ${{ inputs.pull_request_number != '' }} || [ -n "$(echo ${{ github.ref_name }} | grep pull-request/)"]; then
+            pr_number=`echo ${{ github.ref_name }} | grep -o [0-9]*`
+            custom_tags="type=raw,value=pr-${pr_number:-${{ inputs.pull_request_number }}}"
           elif ${{ github.event.pull_request.merged == true }}; then
             custom_tags="type=raw,value=${{ github.event.pull_request.base.ref }}"
           fi
