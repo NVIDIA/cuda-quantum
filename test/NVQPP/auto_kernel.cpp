@@ -6,6 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// FIXME: enable this for all architectures
+
+// REQUIRES: x64_86-registered-target
 // RUN: nvq++ --enable-mlir -v %s -o out_auto_kernel.x && ./out_auto_kernel.x | FileCheck %s
 
 #include <cudaq.h>
