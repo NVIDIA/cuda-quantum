@@ -62,7 +62,7 @@ jobs:
     outputs:
       pull_request_number: ${{ steps.pr_info.outputs.pr_number }}
       pull_request_commit: ${{ steps.pr_info.outputs.pr_base }}
-      json: ${{ steps.build_info.outputs.json }}
+      platforms: ${{ steps.build_info.outputs.platforms }}
 
     steps:
       - name: Retrieve PR info
@@ -92,21 +92,21 @@ jobs:
       - name: Determine build info
         id: build_info
         run: |
-          json="{\"platform_ids\":[], \"platforms\":[]}"
+          platforms="{\"ids\":[]}"
           if ${{ inputs.platforms != '' }}; then
             platform_id=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr , -`
-            json=`echo $json | jq ".platform_ids |= . + [\"$platform_id\"]"`
+            platforms=`echo $platforms | jq ".ids |= . + [\"$platform_id\"]"`
             platform={\"$platform_id\":\"${{ inputs.platforms }}\"}
-            json=`echo $json | jq ".platforms |= . + [$platform]"`
+            platforms=`echo $platforms | jq ". |= . + $platform"`
           else
             for input in linux/arm64 linux/amd64; do
               platform_id=`echo $input | sed 's/linux\///g' | tr , -`
-              json=`echo $json | jq ".platform_ids |= . + [\"$platform_id\"]"`
+              platforms=`echo $platforms | jq ".ids |= . + [\"$platform_id\"]"`
               platform={\"$platform_id\":\"$input\"}
-              json=`echo $json | jq ".platforms |= . + [$platform]"`
+              platforms=`echo $platforms | jq ". |= . + $platform"`
             done
           fi
-          echo "json=$(echo $json)" >> $GITHUB_OUTPUT
+          echo "platforms=$(echo $platforms)" >> $GITHUB_OUTPUT
 
   devdeps:
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created) || github.event_name == 'workflow_run'
@@ -114,12 +114,12 @@ jobs:
     needs: metadata
     strategy:
       matrix:
-        platform: ${{ fromJson(needs.metadata.outputs.json).platform_ids }}
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
         toolchain: [llvm, clang16, gcc12]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
-      platforms: ${{ fromJson(needs.metadata.outputs.json).platforms[format('{0}', matrix.platform)] }}
+      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)] }}
       dockerfile: build/devdeps.Dockerfile
       toolchain: ${{ matrix.toolchain }}
       registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base }}
