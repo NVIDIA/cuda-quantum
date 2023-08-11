@@ -207,12 +207,19 @@ jobs:
           registry_cache_base=$(echo ${{ inputs.registry_cache_from || github.event.pull_request.base.ref || 'main' }} | tr / -)
           cache_id=$(echo ${{ needs.metadata.outputs.image_id }}${toolchain:+-$toolchain}${platform_id:+-$platform_id} | tr . -)
 
+          orig_gh_ref=${{ github.ref_name }}
+          if [ "$orig_gh_ref" != "${orig_gh_ref#pull-request/}" ]; then
+            # original branch prior to the move by copy-pr-bot
+            orig_gh_ref=merge/${orig_gh_ref#pull-request/}
+          fi
+
           local_buildcache_path="/tmp/.buildcache-${cache_id}"
           local_buildcache_key_suffix="-$(git rev-parse HEAD)"
           if ${{ inputs.pull_request_number != '' }}; then
             local_buildcache_key="${{ inputs.pull_request_number }}/merge-cuda-quantum-${cache_id}"
           else
-            local_cache_from=$(echo ${{ inputs.local_cache_from || github.ref_name }} | tr . -)
+            local_cache_from=${{ inputs.local_cache_from }}
+            local_cache_from=$(echo ${local_cache_from:-$orig_gh_ref} | tr . -)
             if ${{ inputs.local_cache_from == '' && github.event.pull_request.merged == true }}; then
               local_cache_from=${{ github.event.pull_request.number }}/merge
             fi
@@ -223,7 +230,7 @@ jobs:
           cache_from_registry="type=registry,ref=${registry_cache}-${cache_id}:${registry_cache_base}"
           cache_from_nvidia_registry="type=registry,ref=${nvidia_registry_cache}-${cache_id}:${registry_cache_base}"
           if ${{ inputs.registry_cache_update || inputs.registry_cache_update_only }}; then
-            registry_cache_target=$(echo ${{ github.ref_name }} | tr / -)
+            registry_cache_target=$(echo $orig_gh_ref | tr / -)
             build_cache="type=registry,ref=${registry_cache}-${cache_id}:$registry_cache_target"
             cache_to="${build_cache},mode=max,ignore-error=false"
           elif ${{ inputs.create_local_cache }}; then
