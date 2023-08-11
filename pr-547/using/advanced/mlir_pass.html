@@ -336,9 +336,6 @@ under <code class="code docutils literal notranslate"><span class="pre">lib</spa
 <code class="code docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code> file and a <code class="code docutils literal notranslate"><span class="pre">MyCustomPlugin.cpp</span></code> file. In the CMake file,
 add the following</p>
 <div class="highlight-cmake notranslate"><div class="highlight"><pre><span></span><span class="nb">add_llvm_pass_plugin</span><span class="p">(</span><span class="s">MyCustomPlugin</span><span class="w"> </span><span class="s">MyCustomPlugin.cpp</span><span class="p">)</span>
-<span class="nb">get_property</span><span class="p">(</span><span class="s">dialect_libs</span><span class="w"> </span><span class="s">GLOBAL</span><span class="w"> </span><span class="s">PROPERTY</span><span class="w"> </span><span class="s">MLIR_DIALECT_LIBS</span><span class="p">)</span>
-<span class="nb">get_property</span><span class="p">(</span><span class="s">conversion_libs</span><span class="w"> </span><span class="s">GLOBAL</span><span class="w"> </span><span class="s">PROPERTY</span><span class="w"> </span><span class="s">MLIR_CONVERSION_LIBS</span><span class="p">)</span>
-<span class="nb">target_link_libraries</span><span class="p">(</span><span class="s">MyCustomPlugin</span><span class="w"> </span><span class="s">PRIVATE</span><span class="w"> </span><span class="o">${</span><span class="nv">dialect_libs</span><span class="o">}</span><span class="w"> </span><span class="o">${</span><span class="nv">conversion_libs</span><span class="o">}</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Creating a CUDA Quantum IR pass starts with the implementation of an
@@ -354,7 +351,7 @@ a pass, start with the following template in the <code class="code docutils lite
 
 <span class="c1">// Here is an example MLIR Pass that one can write externally and</span>
 <span class="c1">// use via the cudaq-opt tool, with the --load-cudaq-plugin flag.</span>
-<span class="c1">// THe pass here is simple, replace Hadamard operations with S operations.</span>
+<span class="c1">// The pass here is simple, replace Hadamard operations with S operations.</span>
 
 <span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">mlir</span><span class="p">;</span>
 
