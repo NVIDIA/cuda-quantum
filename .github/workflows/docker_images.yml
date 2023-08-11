@@ -50,7 +50,7 @@ jobs:
           elif [ -n "$(echo ${{ inputs.platforms }} | grep -i arm)" ]; then
             echo "runner=linux-arm64-cpu8" >> $GITHUB_OUTPUT
           else
-            echo "runner=ubuntu-latest" >> $GITHUB_OUTPUT
+            echo "runner=linux-amd64-cpu8" >> $GITHUB_OUTPUT
           fi
 
           platform_id=`echo "${{ inputs.platforms }}" | tr -d ' ' | tr / - | tr ',' -`
