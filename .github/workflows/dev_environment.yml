@@ -98,7 +98,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          ref: "${{ (inputs.pull_request_number == '' && '') || inputs.pull_request_commit || format('refs/pull/{0}/merge', inputs.pull_request_number) }}"
+          ref: "${{ (inputs.pull_request_number != '' && (inputs.pull_request_commit || format('refs/pull/{0}/merge', inputs.pull_request_number))) || '' }}"
 
       - name: Determine build arguments
         id: build_info
@@ -186,7 +186,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          ref: "${{ (inputs.pull_request_number == '' && '') || inputs.pull_request_commit || format('refs/pull/{0}/merge', inputs.pull_request_number) }}"
+          ref: "${{ (inputs.pull_request_number != '' && (inputs.pull_request_commit || format('refs/pull/{0}/merge', inputs.pull_request_number))) || '' }}"
 
       - name: Set up context for buildx
         run: |
