@@ -40,18 +40,21 @@ jobs:
       runner: ${{ steps.info.outputs.runner }}
       platform_id: ${{ steps.info.outputs.platform_id }}
       platform_tag: ${{ steps.info.outputs.platform_tag }}
+      build_docs: ${{ steps.info.outputs.build_docs }}
     
     steps:
       - id: info
         run: |
           if [ -n "$(echo ${{ inputs.platforms }} | grep ,)" ]; then
             echo "runner=linux-amd64-cpu16" >> $GITHUB_OUTPUT
+            echo "build_docs=true" >> $GITHUB_OUTPUT
           elif [ -n "$(echo ${{ inputs.platforms }} | grep -i arm)" ]; then
             echo "runner=linux-arm64-cpu8" >> $GITHUB_OUTPUT
             echo "platform_tag=arm64" >> $GITHUB_OUTPUT
           else
             echo "runner=linux-amd64-cpu8" >> $GITHUB_OUTPUT
             echo "platform_tag=amd64" >> $GITHUB_OUTPUT
+            echo "build_docs=true" >> $GITHUB_OUTPUT
           fi
 
           platform_id=`echo "${{ inputs.platforms }}" | tr -d ' ' | tr / - | tr ',' -`
@@ -467,10 +470,10 @@ jobs:
 
   documentation:
     name: Documentation
-    needs: [cudaqdev_image, cudaq_image]
+    needs: [metadata, cudaqdev_image, cudaq_image]
     # Unfortunately, we basically inherit this from the cudaq_image job;
     # all jobs that depend on it will need to add the same condition.
-    if: always() && !cancelled() && inputs.platforms == 'linux/amd64' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+    if: always() && !cancelled() && needs.metadata.outputs.build_docs == 'true' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
     permissions:
       contents: read
