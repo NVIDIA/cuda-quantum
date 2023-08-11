@@ -183,14 +183,27 @@ jobs:
 
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
-      base_image: ${{ fromJson(steps.read_json.outputs.result).image_hash.llvm }}
-      toolchain: llvm
+      base_image: ${{ steps.build_info.outputs.base_image }}
+      toolchain: ${{ steps.build_info.outputs.toolchain }}
 
     steps:
       - uses: cloudposse/github-action-matrix-outputs-read@0.1.1
         id: read_json
         with:
           matrix-step-name: dev_environment
+
+      - name: Determine build info
+        id: build_info
+        run: |
+          if ${{ inputs.platforms != '' }}; then
+            platform_id=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr , -`
+          else
+            platform_id=amd64
+          fi
+          toolchain=llvm
+          base_image=${{ fromJson(steps.read_json.outputs.result).image_hash }} | jq -r ".$platform_id-$toolchain"
+          echo "toolchain=$toolchain" >> $GITHUB_OUTPUT
+          echo "base_image=$base_image" >> $GITHUB_OUTPUT
 
   openmpi:
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created)
