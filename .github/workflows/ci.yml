@@ -87,8 +87,8 @@ jobs:
     uses: ./.github/workflows/docker_images.yml
     with:
       platforms: linux/${{ matrix.platform }}
-      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-gcc12', matrix.platform)] }}
-      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-gcc12', matrix.platform)] }}
+      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-llvm', matrix.platform)] }}
+      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-llvm', matrix.platform)] }}
 
   python_wheels:
     name: Create Python wheels
