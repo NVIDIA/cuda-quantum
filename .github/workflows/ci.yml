@@ -80,10 +80,15 @@ jobs:
   docker_image:
     name: Create Docker images
     needs: config
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+      fail-fast: false
     uses: ./.github/workflows/docker_images.yml
     with:
-      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key.amd64-gcc12 }}
-      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive.amd64-gcc12 }}
+      platforms: linux/${{ matrix.platform }}
+      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-gcc12', matrix.platform)] }}
+      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-gcc12', matrix.platform)] }}
 
   python_wheels:
     name: Create Python wheels
