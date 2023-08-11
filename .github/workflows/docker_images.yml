@@ -103,7 +103,7 @@ jobs:
           
           if ${{ inputs.environment == '' }}; then
             tar_archive=/tmp/open-mpi.tar
-            echo "tar_cache=tar-ompi-${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "tar_cache=tar-ompi-${{ needs.metadata.outputs.platform_id }}-${{ github.sha }}" >> $GITHUB_OUTPUT
             echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
             echo "docker_output=type=docker,dest=$tar_archive" >> $GITHUB_OUTPUT
           fi
@@ -370,19 +370,20 @@ jobs:
           image_name=$registry/${repo_owner,,}/cuda-quantum
 
           platform_tag=${{ needs.metadata.outputs.platform_tag }}
+          image_tag=${platform_tag:+$platform_tag-}
           if ${{ github.event.pull_request.number != '' }} || [ -n "$(echo ${{ github.ref_name }} | grep pull-request/)" ]; then
             pr_number=`echo ${{ github.ref_name }} | grep -o [0-9]*`
-            image_tag=pr-${pr_number:-${{ github.event.pull_request.number }}}
+            image_tag+=pr-${pr_number:-${{ github.event.pull_request.number }}}
           elif ${{ github.ref_type == 'branch' && github.ref_name == 'main' }}; then
-            image_tag=latest
+            image_tag+=latest
           elif ${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') }}; then
-            image_tag=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
+            image_tag+=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
           else
-            image_tag=`echo ${{ github.ref_name }} | tr '/' '-'`
+            image_tag+=`echo ${{ github.ref_name }} | tr '/' '-'`
           fi
 
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
-          echo "image_tag=${platform_tag:+$platform_tag-}$image_tag" >> $GITHUB_OUTPUT
+          echo "image_tag=$image_tag" >> $GITHUB_OUTPUT
           echo "base_image=$base_image" >> $GITHUB_OUTPUT
           echo "devdeps_image=$devdeps_image" >> $GITHUB_OUTPUT
 
