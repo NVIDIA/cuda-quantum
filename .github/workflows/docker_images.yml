@@ -48,7 +48,7 @@ jobs:
             echo $error && echo $error >> $GITHUB_STEP_SUMMARY
             exit 1
           elif [ -n "$(echo ${{ inputs.platforms }} | grep -i arm)" ]; then
-            echo "runner=linux-arm64-cpu4" >> $GITHUB_OUTPUT
+            echo "runner=linux-arm64-cpu8" >> $GITHUB_OUTPUT
           else
             echo "runner=ubuntu-latest" >> $GITHUB_OUTPUT
           fi
