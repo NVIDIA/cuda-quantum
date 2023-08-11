@@ -145,8 +145,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3-pip \
 
 # Install additional dependencies required to build and test CUDA Quantum.
 RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certificates \
-    && wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-x86_64.tar.gz \
-    && tar xf cmake-3.26.4* && mv cmake-3.26.4-linux-x86_64/ /usr/local/cmake-3.26/ && rm -rf cmake-3.26.4* \
+    && wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-$(uname -m).tar.gz \
+    && tar xf cmake-3.26.4* && mv cmake-3.26.4-linux-$(uname -m)/ /usr/local/cmake-3.26/ && rm -rf cmake-3.26.4* \
     # NOTE: apt-get remove -y ca-certificates also remove python3-pip.
     && apt-get remove -y wget ca-certificates \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
