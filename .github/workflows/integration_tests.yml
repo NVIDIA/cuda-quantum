@@ -78,7 +78,7 @@ jobs:
         shell: bash
 
       - name: Submit to ${{ inputs.target }}
-        if: github.event_name == 'workflow_dispatch'
+        if:  inputs.target != 'none' && github.event_name == 'workflow_dispatch'
         run: |
           if ${{inputs.target == 'ionq'}}; then
             export IONQ_API_KEY="${{ secrets.IONQ_API_KEY }}"
