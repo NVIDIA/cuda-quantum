@@ -205,8 +205,8 @@ jobs:
     name: Build Open MPI
     uses: ./.github/workflows/dev_environment.yml
     with:
-      dockerfile: build/devdeps.ompi.Dockerfile
       platforms: ${{ inputs.platforms }}
+      dockerfile: build/devdeps.ompi.Dockerfile
       registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base }}
       registry_cache_update: true
       environment: ghcr-deployment
@@ -216,8 +216,8 @@ jobs:
     uses: ./.github/workflows/dev_environment.yml
     needs: [config, openmpi]
     with:
-      dockerfile: build/devdeps.ext.Dockerfile
       platforms: ${{ inputs.platforms }}
+      dockerfile: build/devdeps.ext.Dockerfile
       toolchain: ${{ needs.config.outputs.toolchain }}
       build_args: |
         base_image=${{ needs.config.outputs.base_image }}
