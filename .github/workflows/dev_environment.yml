@@ -48,6 +48,10 @@ on:
         required: false
         type: string
         description: The issue number of the pull request to check out. Permits to run the workflow from a different branch than the PR branch.
+      pull_request_commit:
+        required: false
+        type: string
+        description: The commit to check out. Only used when pull_request_number is set.
       environment:
         required: false
         type: string
@@ -94,7 +98,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          ref: "${{ (inputs.pull_request_number != '' && format('refs/pull/{0}/merge', inputs.pull_request_number)) || '' }}"
+          ref: "${{ (inputs.pull_request_number == '' && '') || inputs.pull_request_commit || format('refs/pull/{0}/merge', inputs.pull_request_number) }}"
 
       - name: Determine build arguments
         id: build_info
@@ -121,11 +125,13 @@ jobs:
           tag_prefix=`echo $image_id | cut -s -d "." -f 2- | xargs -I "%" echo %. | tr . -`${platform_id:+$platform_id-}${toolchain:+$toolchain-}
           tag_suffix=""
 
-          if ${{ inputs.pull_request_number != '' }} || [ -n "$(echo ${{ github.ref_name }} | grep pull-request/)"]; then
-            pr_number=`echo ${{ github.ref_name }} | grep -o [0-9]*`
-            custom_tags="type=raw,value=pr-${pr_number:-${{ inputs.pull_request_number }}}"
+          if ${{ inputs.pull_request_commit != '' }}; then
+            custom_tags="type=raw,value=${{ inputs.pull_request_commit }}"
           elif ${{ github.event.pull_request.merged == true }}; then
             custom_tags="type=raw,value=${{ github.event.pull_request.base.ref }}"
+          elif ${{ inputs.pull_request_number != '' }} || [ -n "$(echo ${{ github.ref_name }} | grep pull-request/)"]; then
+            pr_number=`echo ${{ github.ref_name }} | grep -o [0-9]*`
+            custom_tags="type=raw,value=pr-${pr_number:-${{ inputs.pull_request_number }}}"
           fi
 
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
@@ -180,7 +186,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          ref: "${{ (inputs.pull_request_number != '' && format('refs/pull/{0}/merge', inputs.pull_request_number)) || '' }}"
+          ref: "${{ (inputs.pull_request_number == '' && '') || inputs.pull_request_commit || format('refs/pull/{0}/merge', inputs.pull_request_number) }}"
 
       - name: Set up context for buildx
         run: |

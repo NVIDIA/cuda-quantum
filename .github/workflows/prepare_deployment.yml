@@ -1,0 +1,29 @@
+on:
+  pull_request_target:
+    types:
+      - closed
+    branches:
+      - 'main'
+      - 'releases/*'
+
+name: PR merged
+
+jobs:
+  pr_info:
+    name: Store PR info
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+    permissions: {}
+
+    steps:
+      - run: |
+          echo "pr-number: ${{ github.event.pull_request.number }}" >> metadata.txt
+          echo "pr-base: ${{ github.event.pull_request.base.ref }}" >> metadata.txt
+
+      - name: Upload metadata
+        uses: actions/upload-artifact@v3
+        with:
+          name: metadata_pr
+          path: metadata.txt
+          retention-days: 1
+          if-no-files-found: error
