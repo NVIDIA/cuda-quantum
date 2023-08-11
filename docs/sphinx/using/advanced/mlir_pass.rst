@@ -18,9 +18,6 @@ add the following
 .. code:: cmake 
 
     add_llvm_pass_plugin(MyCustomPlugin MyCustomPlugin.cpp)
-    get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
-    get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
-    target_link_libraries(MyCustomPlugin PRIVATE ${dialect_libs} ${conversion_libs})
 
 Creating a CUDA Quantum IR pass starts with the implementation of an 
 :code:`mlir::OperationPass`. A full discussion of the MLIR Pass infrastructure 
@@ -38,7 +35,7 @@ a pass, start with the following template in the :code:`MyCustomPlugin.cpp` file
 
   // Here is an example MLIR Pass that one can write externally and 
   // use via the cudaq-opt tool, with the --load-cudaq-plugin flag. 
-  // THe pass here is simple, replace Hadamard operations with S operations. 
+  // The pass here is simple, replace Hadamard operations with S operations. 
 
   using namespace mlir;
 

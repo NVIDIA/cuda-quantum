@@ -14,7 +14,7 @@
 
 // Here is an example MLIR Pass that one can write externally and
 // use via the cudaq-opt tool, with the --load-cudaq-plugin flag.
-// THe pass here is simple, replace Hadamard operations with S operations.
+// The pass here is simple, replace Hadamard operations with S operations.
 
 using namespace mlir;
 

@@ -23,3 +23,4 @@ add_cudaq_dialect_library(QuakeDialect
   MLIRFuncDialect
   MLIRIR
 )
+
