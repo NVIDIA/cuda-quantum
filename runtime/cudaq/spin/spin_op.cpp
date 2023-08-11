@@ -544,7 +544,7 @@ spin_op z(const std::size_t idx) { return spin_op(pauli::Z, idx); }
 std::vector<double> spin_op::getDataRepresentation() {
   std::vector<double> dataVec;
   for (auto &[term, coeff] : terms) {
-    auto nq = terms.size() / 2;
+    auto nq = term.size() / 2;
     for (std::size_t i = 0; i < nq; i++) {
       if (term[i] && term[i + nq]) {
         dataVec.push_back(3.);
