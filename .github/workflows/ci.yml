@@ -1,6 +1,11 @@
 on:
   workflow_dispatch:
     inputs:
+      cache_base:
+        required: false
+        type: string
+        description: 'The name of the branch to use as cache base.'
+        default: main
       export_environment:
         type: boolean
         description: Export the build environment as tar artifact that can be imported with Docker.
@@ -57,7 +62,7 @@ jobs:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/devdeps.Dockerfile
       toolchain: ${{ matrix.toolchain }}
-      registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
+      registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}
 
@@ -68,7 +73,7 @@ jobs:
     with:
       dockerfile: build/devdeps.manylinux.Dockerfile
       toolchain: x86_64
-      registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
+      registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       build_args: |
         arch=x86_64
         distro=rhel8
