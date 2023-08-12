@@ -19,8 +19,8 @@ struct kernel {
         x<cudaq::ctrl>(q[0], q[1]);
         h(q[0]);
 
-	    // This scope block is intentionally blank and is used for robustness testing.
-	    {}
+        // This scope block is intentionally blank and is used for robustness testing.
+        {}
 
         auto b0 = mz(q[0]);
         auto b1 = mz(q[1]);
