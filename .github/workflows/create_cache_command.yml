@@ -70,7 +70,7 @@ jobs:
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.manylinux.Dockerfile
-      toolchain: x86_64
+      toolchain: gcc11 # currently hardcoded in the image and not configurable
       build_args: |
         arch=x86_64
         distro=rhel8

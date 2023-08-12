@@ -72,7 +72,7 @@ jobs:
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.manylinux.Dockerfile
-      toolchain: x86_64
+      toolchain: gcc11 # currently hardcoded in the image and not configurable
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       build_args: |
         arch=x86_64

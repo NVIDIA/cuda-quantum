@@ -139,7 +139,7 @@ jobs:
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.manylinux.Dockerfile
-      toolchain: x86_64
+      toolchain: gcc11 # currently hardcoded in the image and not configurable
       build_args: |
         manylinux_image=${{ inputs.manylinux_image || 'quay.io/pypa/manylinux_2_28_x86_64:latest' }}
       registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base || needs.metadata.outputs.cache_base }}
