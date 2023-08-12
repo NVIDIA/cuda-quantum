@@ -74,6 +74,15 @@ jobs:
             fi
           done
 
+          run_id=`echo $artifacts_url | rev | cut -d / -f 2 | rev`
+          workflow_run=https://github.com/NVIDIA/cuda-quantum/actions/runs/$run_id
+          if $docs_found; then
+            echo "Downloaded $artifact_name artifact from $workflow_run." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Failed to find $artifact_name artifact from $workflow_run." >> $GITHUB_STEP_SUMMARY
+            exit 1;
+          fi
+
           if [ -f metadata.txt ]; then
             pr_number=`cat metadata.txt | grep -o 'pr-number: \S*' | cut -d ' ' -f 2`
             pr_base=`cat metadata.txt | grep -o 'pr-base: \S*' | cut -d ' ' -f 2`
@@ -81,26 +90,26 @@ jobs:
           fi
 
           if ${{ github.event_name == 'workflow_dispatch' }}; then
-            target_folder=${{ inputs.version }}
+            echo "target_folder=${{ inputs.version }}" >> $GITHUB_OUTPUT
           else
             # Docs will be checked in under a different folder in the preview.
             head_branch=${pr_base:-${{ github.event.workflow_run.head_branch }}}
             if [ "$head_branch" == "main" ]; then
-              target_folder=latest
+              echo "target_folder=latest" >> $GITHUB_OUTPUT
             else
               version=`echo ${head_branch#releases/} | egrep -o "^v?([0-9]{1,}\.)+[0-9]{1,}$"`
-              target_folder=${version#v}
+              echo "target_folder=${version#v}" >> $GITHUB_OUTPUT
+              if [ -z "${version:-$pr_number}" ]; then
+                echo "Unrecognized docs version. Documentation will not be published." >> $GITHUB_STEP_SUMMARY
+              fi
             fi
           fi
-
-          echo "target_folder=$target_folder" >> $GITHUB_OUTPUT
-          if ! $docs_found; then exit 1; fi
         env:
           GH_TOKEN: ${{ github.token }}
 
       - name: Push docs update
         id: push_docs
-        if: steps.artifacts.outputs.docs_archive != ''
+        if: steps.artifacts.outputs.docs_archive != '' && (steps.artifacts.outputs.target_folder != '' || steps.artifacts.outputs.pr_number != '')
         run: |
           pr_number=${{ steps.artifacts.outputs.pr_number }}
           target_folder=${pr_number:+pr-$pr_number}
