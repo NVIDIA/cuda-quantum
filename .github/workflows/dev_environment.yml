@@ -246,7 +246,7 @@ jobs:
           # Registry caches pull from a separate cache for each platform
           # but create a single joint cache for multi-platform builds.
 
-          platform_ids=$(echo $platforms |sed 's/linux\///g' | tr , ' ')
+          platform_ids=$(echo "${{ inputs.platforms }}" | sed 's/linux\///g' | tr , ' ')
           {
             echo 'cache_from_gh<<multiline'
             echo "type=local,src=${local_buildcache_path}"
