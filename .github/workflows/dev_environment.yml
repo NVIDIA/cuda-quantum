@@ -203,14 +203,11 @@ jobs:
       - name: Create cache locations
         id: cache
         run: |
-          # FIXME: we need to revise the cache_id use here to have the multiplat build use the individual caches
-
           toolchain=${{ inputs.toolchain }}
-          platform_id=`echo "${{ inputs.platforms }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
           registry_cache=ghcr.io/${{ needs.metadata.outputs.owner }}/buildcache-cuda-quantum
           nvidia_registry_cache=ghcr.io/nvidia/buildcache-cuda-quantum
           registry_cache_base=$(echo ${{ inputs.registry_cache_from || github.event.pull_request.base.ref || 'main' }} | tr / -)
-          cache_id=$(echo ${{ needs.metadata.outputs.image_id }}${toolchain:+-$toolchain}${platform_id:+-$platform_id} | tr . -)
+          cache_id=$(echo ${{ needs.metadata.outputs.image_id }}${toolchain:+-$toolchain} | tr . -)
 
           orig_gh_ref=${{ github.ref_name }}
           if [ "$orig_gh_ref" != "${orig_gh_ref#pull-request/}" ]; then
@@ -218,43 +215,55 @@ jobs:
             orig_gh_ref=${orig_gh_ref#pull-request/}/merge
           fi
 
-          local_buildcache_path="/tmp/.buildcache-${cache_id}"
+          # Local caches are always to and from a single location.
+
+          platform_id=`echo "${{ inputs.platforms }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
+          local_buildcache_path="/tmp/.buildcache.${{ needs.metadata.outputs.image_id }}"
           local_buildcache_key_suffix="-$(git rev-parse HEAD)"
+
           if ${{ inputs.pull_request_number != '' }}; then
-            local_buildcache_key="${{ inputs.pull_request_number }}/merge-cuda-quantum-${cache_id}"
+            local_buildcache_key="${{ inputs.pull_request_number }}/merge-cuda-quantum-${cache_id}-${platform_id}"
           else
             local_cache_from=${{ inputs.local_cache_from }}
             local_cache_from=$(echo ${local_cache_from:-$orig_gh_ref} | tr . -)
             if ${{ inputs.local_cache_from == '' && github.event.pull_request.merged == true }}; then
               local_cache_from=${{ github.event.pull_request.number }}/merge
             fi
-            local_buildcache_key="${local_cache_from}-cuda-quantum-${cache_id}"
+            local_buildcache_key="${local_cache_from}-cuda-quantum-${cache_id}-${platform_id}"
           fi
 
-          cache_from_gh="type=local,src=${local_buildcache_path}"
-          cache_from_registry="type=registry,ref=${registry_cache}-${cache_id}:${registry_cache_base}"
-          cache_from_nvidia_registry="type=registry,ref=${nvidia_registry_cache}-${cache_id}:${registry_cache_base}"
           if ${{ inputs.registry_cache_update || inputs.registry_cache_update_only }}; then
             registry_cache_target=$(echo $orig_gh_ref | tr / -)
-            build_cache="type=registry,ref=${registry_cache}-${cache_id}:$registry_cache_target"
+            build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_target"
             cache_to="${build_cache},mode=max,ignore-error=false"
           elif ${{ inputs.create_local_cache }}; then
             # In general, using the build cache from the registry/parent branch is the quickest.
             # We hence create a build cache only upon request.
-            build_cache="$local_buildcache_key"
+            build_cache="${local_buildcache_key}"
             cache_to="type=local,dest=${local_buildcache_path}-new,mode=max,ignore-error=true"
           fi
+
+          # Registry caches pull from a separate cache for each platform
+          # but create a single joint cache for multi-platform builds.
+
+          platform_ids=$(echo $platforms |sed 's/linux\///g' | tr , ' ')
+          {
+            echo 'cache_from_gh<<multiline'
+            echo "type=local,src=${local_buildcache_path}"
+            echo multiline
+          } >> $GITHUB_OUTPUT
+          {
+            echo 'cache_from_registry<<multiline'
+            for platform_id in $platform_ids; do
+              echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
+              echo "type=registry,ref=${nvidia_registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
+            done
+            echo multiline
+          } >> $GITHUB_OUTPUT
 
           echo "local_buildcache_key=$local_buildcache_key" >> $GITHUB_OUTPUT
           echo "local_buildcache_key_suffix=$local_buildcache_key_suffix" >> $GITHUB_OUTPUT
           echo "local_buildcache_path=$local_buildcache_path" >> $GITHUB_OUTPUT
-          echo "cache_from_gh=$cache_from_gh" >> $GITHUB_OUTPUT
-          {
-            echo 'cache_from_registry<<multiline'
-            echo $cache_from_registry
-            echo $cache_from_nvidia_registry
-            echo multiline
-          } >> $GITHUB_OUTPUT
 
           echo "cache_to=$cache_to" >> $GITHUB_OUTPUT
           echo "build_cache=$build_cache" >> $GITHUB_OUTPUT

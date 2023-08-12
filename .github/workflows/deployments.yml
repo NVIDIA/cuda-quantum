@@ -62,6 +62,7 @@ jobs:
     outputs:
       pull_request_number: ${{ steps.pr_info.outputs.pr_number }}
       pull_request_commit: ${{ steps.pr_info.outputs.pr_base }}
+      cache_base: ${{ steps.pr_info.outputs.pr_base }}
       platforms: ${{ steps.build_info.outputs.platforms }}
 
     steps:
@@ -122,7 +123,7 @@ jobs:
       platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)] }}
       dockerfile: build/devdeps.Dockerfile
       toolchain: ${{ matrix.toolchain }}
-      registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base }}
+      registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base || needs.metadata.outputs.cache_base }}
       registry_cache_update: ${{ github.event_name == 'workflow_dispatch' && inputs.update_registry_cache }}
       registry_cache_update_only: ${{ github.event_name == 'workflow_run' }}
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
@@ -141,7 +142,7 @@ jobs:
       toolchain: x86_64
       build_args: |
         manylinux_image=${{ inputs.manylinux_image || 'quay.io/pypa/manylinux_2_28_x86_64:latest' }}
-      registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base }}
+      registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base || needs.metadata.outputs.cache_base }}
       registry_cache_update: ${{ github.event_name == 'workflow_dispatch' && inputs.update_registry_cache }}
       registry_cache_update_only: ${{ github.event_name == 'workflow_run' }}
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
@@ -203,18 +204,19 @@ jobs:
   openmpi:
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created)
     name: Build Open MPI
+    needs: metadata
     uses: ./.github/workflows/dev_environment.yml
     with:
       platforms: ${{ inputs.platforms }}
       dockerfile: build/devdeps.ompi.Dockerfile
-      registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base }}
+      registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base || needs.metadata.outputs.cache_base }}
       registry_cache_update: true
       environment: ghcr-deployment
 
   extdevdeps:
     name: Create dev environment
     uses: ./.github/workflows/dev_environment.yml
-    needs: [config, openmpi]
+    needs: [metadata, config, openmpi]
     with:
       platforms: ${{ inputs.platforms }}
       dockerfile: build/devdeps.ext.Dockerfile
@@ -222,7 +224,7 @@ jobs:
       build_args: |
         base_image=${{ needs.config.outputs.base_image }}
         ompidev_image=${{ needs.openmpi.outputs.image_hash }}
-      registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base }}
+      registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base || needs.metadata.outputs.cache_base }}
       registry_cache_update: true
       environment: ghcr-deployment
 
