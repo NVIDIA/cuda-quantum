@@ -90,13 +90,13 @@ jobs:
         run: |
           platforms="{\"ids\":[]}"
           if ${{ inputs.platforms != '' }}; then
-            platform_id=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr , -`
+            platform_id=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' ' | tr , -`
             platforms=`echo $platforms | jq ".ids |= . + [\"$platform_id\"]"`
             platform={\"$platform_id\":\"${{ inputs.platforms }}\"}
             platforms=`echo $platforms | jq ". |= . + $platform"`
           else
             for input in linux/arm64 linux/amd64; do
-              platform_id=`echo $input | sed 's/linux\///g' | tr , -`
+              platform_id=`echo $input | sed 's/linux\///g' | tr -d ' ' | tr , -`
               platforms=`echo $platforms | jq ".ids |= . + [\"$platform_id\"]"`
               platform={\"$platform_id\":\"$input\"}
               platforms=`echo $platforms | jq ". |= . + $platform"`
@@ -148,7 +148,7 @@ jobs:
   dispatch:
     name: Dispatch deployments
     needs: [metadata, devdeps, wheeldeps]
-    if: github.event_name == 'workflow_run' && needs.metadata.outputs.pull_request_number != ''
+    if: github.event_name == 'workflow_run'
     runs-on: ubuntu-latest
 
     steps:
@@ -161,10 +161,10 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: 'deployments.yml',
-              ref: '${{ github.event.pull_request.base.ref || needs.metadata.outputs.pull_request_commit }}',
+              ref: '${{ needs.metadata.outputs.pull_request_commit }}',
               inputs: {
                 platforms: 'linux/arm64,linux/amd64'
-                cache_base: '${{ github.event.pull_request.base.ref || needs.metadata.outputs.pull_request_commit }}',
+                cache_base: '${{ needs.metadata.outputs.cache_base }}',
               },
             })
 
@@ -180,8 +180,8 @@ jobs:
 
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
-      base_image: ${{ fromJson(steps.read_json.outputs.result).image_hash[format('{0}-llvm', steps.build_info.outputs.platform_id)] }}
-      toolchain: llvm
+      base_image: ${{ fromJson(steps.read_json.outputs.result).image_hash[format('{0}-gcc12', steps.build_info.outputs.platform_id)] }}
+      toolchain: gcc12
 
     steps:
       - uses: cloudposse/github-action-matrix-outputs-read@0.1.1
@@ -192,7 +192,7 @@ jobs:
       - id: build_info
         run: |
           if ${{ inputs.platforms != '' }}; then
-            echo "platform_id=$(echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr , -)" >> $GITHUB_OUTPUT
+            echo "platform_id=$(echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' ' | tr , -)" >> $GITHUB_OUTPUT
           else
             echo "platform_id=amd64" >> $GITHUB_OUTPUT
           fi
