@@ -57,9 +57,11 @@ jobs:
     outputs:
       pull_request_number: ${{ steps.pr_info.outputs.pr_number }}
       pull_request_commit: ${{ steps.pr_info.outputs.pr_base }}
-      cache_base: ${{ steps.pr_info.outputs.pr_base }}
+      cache_base: ${{ steps.build_info.outputs.cache_base }}
+      update_cache: ${{ steps.build_info.outputs.update_cache }}
       platforms: ${{ steps.build_info.outputs.platforms }}
       requested_platforms: ${{ steps.build_info.outputs.requested_platforms }}
+      environment: ${{ steps.build_info.outputs.environment }}
 
     steps:
       - name: Retrieve PR info
@@ -105,8 +107,15 @@ jobs:
             done
           fi
 
-          echo "requested_platforms=$requested_platforms" >> $GITHUB_OUTPUT
+          cache_base=${{ (github.event_name == 'push' && 'main') || inputs.cache_base || steps.pr_info.outputs.pr_base }}
+          update_cache=${{ (github.event_name == 'workflow_dispatch' && inputs.update_registry_cache) || github.event_name == 'push' }}
+          environment=${{ (github.event_name != 'workflow_run' && 'ghcr-deployment') || '' }}
+
+          echo "cache_base=$cache_base" >> $GITHUB_OUTPUT
+          echo "update_cache=$update_cache" >> $GITHUB_OUTPUT
           echo "platforms=$(echo $platforms)" >> $GITHUB_OUTPUT
+          echo "requested_platforms=$requested_platforms" >> $GITHUB_OUTPUT
+          echo "environment=$environment" >> $GITHUB_OUTPUT
 
   devdeps:
     name: Build dev dependencies
@@ -122,12 +131,12 @@ jobs:
       platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)] }}
       dockerfile: build/devdeps.Dockerfile
       toolchain: ${{ matrix.toolchain }}
-      registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base || needs.metadata.outputs.cache_base }}
-      registry_cache_update: ${{ (github.event_name == 'workflow_dispatch' && inputs.update_registry_cache) || github.event_name == 'push' }}
+      registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
+      registry_cache_update: ${{ needs.metadata.outputs.update_cache }}
       registry_cache_update_only: ${{ github.event_name == 'workflow_run' }}
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
       pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
-      environment: ${{ (github.event_name != 'workflow_run' && 'ghcr-deployment') || '' }}
+      environment: ${{ needs.metadata.outputs.environment }}
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}
 
@@ -142,12 +151,12 @@ jobs:
       build_args: |
         manylinux_image=quay.io/pypa/manylinux_2_28_x86_64:latest
         distro=rhel8
-      registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base || needs.metadata.outputs.cache_base }}
-      registry_cache_update: ${{ (github.event_name == 'workflow_dispatch' && inputs.update_registry_cache) || github.event_name == 'push' }}
+      registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
+      registry_cache_update: ${{ needs.metadata.outputs.update_cache }}
       registry_cache_update_only: ${{ github.event_name == 'workflow_run' }}
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
       pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
-      environment: ${{ (github.event_name != 'workflow_run' && 'ghcr-deployment') || '' }}
+      environment: ${{ needs.metadata.outputs.environment }}
 
   openmpi:
     name: Build Open MPI
@@ -161,10 +170,10 @@ jobs:
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)] }}
       dockerfile: build/devdeps.ompi.Dockerfile
-      registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base || needs.metadata.outputs.cache_base }}
-      registry_cache_update: ${{ (github.event_name == 'workflow_dispatch' && inputs.update_registry_cache) || github.event_name == 'push' }}
+      registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
+      registry_cache_update: ${{ needs.metadata.outputs.update_cache }}
       registry_cache_update_only: ${{ github.event_name == 'workflow_run' }}
-      environment: ${{ (github.event_name != 'workflow_run' && 'ghcr-deployment') || '' }}
+      environment: ${{ needs.metadata.outputs.environment }}
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}
 
@@ -228,9 +237,9 @@ jobs:
       build_args: |
         base_image=${{ needs.config.outputs.base_image }}
         ompidev_image=${{ needs.openmpi.outputs.image_hash }}
-      registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base }}
-      registry_cache_update: true
-      environment: ghcr-deployment
+      registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
+      registry_cache_update: ${{ needs.metadata.outputs.update_cache }}
+      environment: ${{ needs.metadata.outputs.environment }}
 
   docker_images:
     name: Create Docker images
