@@ -44,9 +44,9 @@ RUN mkdir /llvm-project && cd /llvm-project && git init \
 # Using update-alternatives for c++ and cc could maybe be a better option.
 ENV LLVM_INSTALL_PREFIX=/opt/llvm
 RUN if [ "$toolchain" == 'gcc11' ]; then \
-        dev_tools=gcc-toolset-11 && $CC=$(which gcc | sed 's/[0-9]\{1,2\}/11/g') && CXX=$(which g++ | sed 's/[0-9]\{1,2\}/11/g'); \
+        dev_tools=gcc-toolset-11 && CC=$(which gcc | sed 's/[0-9]\{1,2\}/11/g') && CXX=$(which g++ | sed 's/[0-9]\{1,2\}/11/g'); \
     elif [ "$toolchain" == 'clang15' ]; then \
-        dev_tools=clang && $CC=$(which clang-15) && CXX=$(which clang++-15); \
+        dev_tools=clang && CC=$(which clang-15) && CXX=$(which clang++-15); \
     else echo "Toolchain not supported." && exit 1; \
     fi \
     && dnf install -y --nobest --setopt=install_weak_deps=False $dev_tools.$(uname -m) \
