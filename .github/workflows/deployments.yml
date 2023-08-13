@@ -132,7 +132,7 @@ jobs:
       dockerfile: build/devdeps.Dockerfile
       toolchain: ${{ matrix.toolchain }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
-      registry_cache_update: ${{ needs.metadata.outputs.update_cache }}
+      registry_cache_update: ${{ needs.metadata.outputs.update_cache == 'true' }}
       registry_cache_update_only: ${{ github.event_name == 'workflow_run' }}
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
       pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
@@ -152,7 +152,7 @@ jobs:
         manylinux_image=quay.io/pypa/manylinux_2_28_x86_64:latest
         distro=rhel8
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
-      registry_cache_update: ${{ needs.metadata.outputs.update_cache }}
+      registry_cache_update: ${{ needs.metadata.outputs.update_cache == 'true' }}
       registry_cache_update_only: ${{ github.event_name == 'workflow_run' }}
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
       pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
@@ -171,7 +171,7 @@ jobs:
       platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)] }}
       dockerfile: build/devdeps.ompi.Dockerfile
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
-      registry_cache_update: ${{ needs.metadata.outputs.update_cache }}
+      registry_cache_update: ${{ needs.metadata.outputs.update_cache == 'true' }}
       registry_cache_update_only: ${{ github.event_name == 'workflow_run' }}
       environment: ${{ needs.metadata.outputs.environment }}
       # needed only for the cloudposse GitHub action
@@ -238,7 +238,7 @@ jobs:
         base_image=${{ needs.config.outputs.base_image }}
         ompidev_image=${{ needs.openmpi.outputs.image_hash }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
-      registry_cache_update: ${{ needs.metadata.outputs.update_cache }}
+      registry_cache_update: ${{ needs.metadata.outputs.update_cache == 'true' }}
       environment: ${{ needs.metadata.outputs.environment }}
 
   docker_images:
