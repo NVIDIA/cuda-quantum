@@ -41,7 +41,6 @@ jobs:
 
     outputs:
       runner: ${{ steps.info.outputs.runner }}
-      platform_id: ${{ steps.info.outputs.platform_id }}
       platform_tag: ${{ steps.info.outputs.platform_tag }}
       build_docs: ${{ steps.info.outputs.build_docs }}
     
@@ -61,13 +60,10 @@ jobs:
             echo "build_docs=${{ inputs.build_docs != 'false' }}" >> $GITHUB_OUTPUT
           fi
 
-          platform_id=`echo "${{ inputs.platforms }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
-          echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
-
   ompi_image:
     name: open-mpi
-    if: inputs.ompidev_image
     needs: metadata
+    if: inputs.ompidev_image
     runs-on: ${{ needs.metadata.outputs.runner }}
     permissions:
       contents: read
@@ -110,7 +106,7 @@ jobs:
           
           if ${{ inputs.environment == '' }}; then
             tar_archive=/tmp/open-mpi.tar
-            echo "tar_cache=tar-ompi-${{ needs.metadata.outputs.platform_id }}-${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "tar_cache=tar-ompi-${{ needs.metadata.outputs.platform_tag }}-${{ github.sha }}" >> $GITHUB_OUTPUT
             echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
             echo "docker_output=type=docker,dest=$tar_archive" >> $GITHUB_OUTPUT
           fi
@@ -287,9 +283,9 @@ jobs:
   cudaq_image:
     name: cuda-quantum (release)
     needs: [metadata, ompi_image]
-    runs-on: ${{ needs.metadata.outputs.runner }}
     # Force this job to run even when some of the dependencies above are skipped.
     if: always() && !cancelled() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+    runs-on: ${{ needs.metadata.outputs.runner }}
     permissions:
       contents: read
       packages: write
@@ -570,10 +566,10 @@ jobs:
   validation:
     name: Validation
     needs: [metadata, cudaq_image]
-    runs-on: ${{ needs.metadata.outputs.runner }}
     # Unfortunately, we basically inherit this from the cudaq_image job;
     # all jobs that depend on it will need to add the same condition.
     if: always() && !cancelled() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+    runs-on: ${{ needs.metadata.outputs.runner }}
 
     steps:
       - name: Checkout repository
@@ -619,10 +615,10 @@ jobs:
   staging:
     name: Staging
     needs: [cudaqdev_image, cudaq_image, validation]
-    runs-on: ubuntu-latest
     # Unfortunately, we basically inherit this from the cudaq_image job;
     # all jobs that depend on it will need to add the same condition.
     if: always() && !cancelled() && inputs.environment && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+    runs-on: ubuntu-latest
 
     permissions:
       contents: write
@@ -674,9 +670,9 @@ jobs:
   clean_up:
     name: Prepare cache clean-up
     needs: [metadata, cudaqdev_image, cudaq_image, ompi_image, documentation, validation]
-    runs-on: ubuntu-latest
     # We need to clean up even if the workflow is cancelled or fails.
     if: always()
+    runs-on: ubuntu-latest
 
     steps:
       - name: Save cache keys
@@ -686,10 +682,14 @@ jobs:
           keys+=" ${{ needs.cudaq_image.outputs.tar_cache }}"
           keys+=" ${{ needs.ompi_image.outputs.tar_cache }}"
           echo "$keys" >> cache_keys.txt
+          
+          platform_tag=${{ needs.metadata.outputs.platform_tag }}
+          artifact_name=cache_keys${platform_tag:+_$platform_tag}_images
+          echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT
 
       - uses: actions/upload-artifact@v3
         with:
-          name: cache_keys_${{ needs.metadata.outputs.platform_id }}_images
+          name: ${{ steps.workflow_inputs.outputs.artifact_name }}
           path: cache_keys.txt
           retention-days: 1
           if-no-files-found: error
