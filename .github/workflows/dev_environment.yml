@@ -80,6 +80,7 @@ jobs:
 
     outputs:
       runner: ${{ steps.build_info.outputs.runner }}
+      platform_tag: ${{ steps.build_info.outputs.platform_tag }}
       dockerfile: ${{ steps.build_info.outputs.dockerfile }}
       owner: ${{ steps.build_info.outputs.owner }}
       image_name: ${{ steps.build_info.outputs.image_name }}
@@ -103,11 +104,16 @@ jobs:
       - name: Determine build arguments
         id: build_info
         run: |
-          if [ -n "$(echo ${{ inputs.platforms }} | grep ,)" ]; then
+          if [ -n "$(echo ${{ inputs.platforms }} | tr , ' ' | grep ' ')" ]; then
+            # multi-platform builds get no platform tag
             echo "runner=linux-amd64-cpu16" >> $GITHUB_OUTPUT
           elif [ -n "$(echo ${{ inputs.platforms }} | grep -i arm)" ]; then
+            platform_tag=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' '`
+            echo "platform_tag=$platform_tag" >> $GITHUB_OUTPUT
             echo "runner=linux-arm64-cpu8" >> $GITHUB_OUTPUT
           else
+            platform_tag=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' '`
+            echo "platform_tag=$platform_tag" >> $GITHUB_OUTPUT
             echo "runner=linux-amd64-cpu8" >> $GITHUB_OUTPUT
           fi
 
@@ -118,8 +124,7 @@ jobs:
           image_title=cuda-quantum-`echo $image_id | cut -d "." -f 1`
           image_name=$registry/${repo_owner,,}/$image_title
           toolchain=${{ inputs.toolchain }}
-          platform_id=`echo "${{ inputs.platforms }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
-          tag_prefix=`echo $image_id | cut -s -d "." -f 2- | xargs -I "%" echo %. | tr . -`${platform_id:+$platform_id-}${toolchain:+$toolchain-}
+          tag_prefix=`echo $image_id | cut -s -d "." -f 2- | xargs -I "%" echo %. | tr . -`${platform_tag:+$platform_tag-}${toolchain:+$toolchain-}
           tag_suffix=""
 
           if ${{ inputs.pull_request_commit != '' }}; then

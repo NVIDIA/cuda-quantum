@@ -47,16 +47,19 @@ jobs:
     steps:
       - id: info
         run: |
-          if [ -n "$(echo ${{ inputs.platforms }} | grep ,)" ]; then
+          if [ -n "$(echo ${{ inputs.platforms }} | tr , ' ' | grep ' ')" ]; then
+            # multi-platform builds get no platform tag
             echo "runner=linux-amd64-cpu16" >> $GITHUB_OUTPUT
             echo "build_docs=${{ inputs.build_docs != 'false' }}" >> $GITHUB_OUTPUT
           elif [ -n "$(echo ${{ inputs.platforms }} | grep -i arm)" ]; then
+            platform_tag=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' '`
+            echo "platform_tag=$platform_tag" >> $GITHUB_OUTPUT
             echo "runner=linux-arm64-cpu8" >> $GITHUB_OUTPUT
-            echo "platform_tag=arm64" >> $GITHUB_OUTPUT
             echo "build_docs=${{ inputs.build_docs == 'true' }}" >> $GITHUB_OUTPUT
           else
+            platform_tag=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' '`
+            echo "platform_tag=$platform_tag" >> $GITHUB_OUTPUT
             echo "runner=linux-amd64-cpu8" >> $GITHUB_OUTPUT
-            echo "platform_tag=amd64" >> $GITHUB_OUTPUT
             echo "build_docs=${{ inputs.build_docs != 'false' }}" >> $GITHUB_OUTPUT
           fi
 
