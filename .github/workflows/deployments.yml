@@ -105,9 +105,9 @@ jobs:
           echo "platforms=$(echo $platforms)" >> $GITHUB_OUTPUT
 
   devdeps:
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created) || github.event_name == 'workflow_run'
     name: Build dev dependencies
     needs: metadata
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created) || (github.event_name == 'workflow_run' && needs.metadata.outputs.pull_request_number != '')
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
@@ -128,9 +128,9 @@ jobs:
       matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}
 
   wheeldeps:
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created) || github.event_name == 'workflow_run'
     name: Build wheel dependencies
     needs: metadata
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created) || (github.event_name == 'workflow_run' && needs.metadata.outputs.pull_request_number != '')
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.manylinux.Dockerfile
@@ -146,10 +146,10 @@ jobs:
       environment: ${{ (github.event_name != 'workflow_run' && 'ghcr-deployment') || '' }}
 
   dispatch:
-    if: github.event_name == 'pull_request_target'
     name: Dispatch deployments
+    needs: [metadata, devdeps, wheeldeps]
+    if: github.event_name == 'workflow_run' && needs.metadata.outputs.pull_request_number != ''
     runs-on: ubuntu-latest
-    needs: [devdeps, wheeldeps]
 
     steps:
       - uses: actions/github-script@v6
@@ -173,10 +173,10 @@ jobs:
   # limitations that may not be needed if the work started here concludes:
   # https://github.com/actions/runner/pull/2477
   config:
-    if: github.event_name != 'pull_request_target' && github.event_name != 'workflow_run'
     name: Configure build
-    runs-on: ubuntu-latest
     needs: devdeps
+    if: github.event_name != 'workflow_run'
+    runs-on: ubuntu-latest
 
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
@@ -198,9 +198,9 @@ jobs:
           fi
 
   openmpi:
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created)
     name: Build Open MPI
     needs: metadata
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created)
     uses: ./.github/workflows/dev_environment.yml
     with:
       platforms: ${{ inputs.platforms }}
@@ -211,8 +211,8 @@ jobs:
 
   extdevdeps:
     name: Create dev environment
-    uses: ./.github/workflows/dev_environment.yml
     needs: [metadata, config, openmpi]
+    uses: ./.github/workflows/dev_environment.yml
     with:
       platforms: ${{ inputs.platforms }}
       dockerfile: build/devdeps.ext.Dockerfile
@@ -237,9 +237,9 @@ jobs:
       create_release: ${{ inputs.create_release }}
 
   python_wheels:
-    if: github.event_name != 'pull_request_target' && github.event_name != 'workflow_run'
     name: Create Python wheels
     needs: wheeldeps
+    if: github.event_name != 'workflow_run'
     strategy:
       matrix:
         python_version: ['3.8', '3.9', '3.10', '3.11']
