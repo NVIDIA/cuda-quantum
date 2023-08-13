@@ -41,7 +41,7 @@ jobs:
           pr_number=${pr_number:-${{ github.event.pull_request.number }}}
 
           if [ -n "$pr_number" ]; then
-            pr_base=`gh pr view 548 -R ${{ github.repository }} --json baseRefName --jq .baseRefName`
+            pr_base=`gh pr view $pr_number -R ${{ github.repository }} --json baseRefName --jq .baseRefName`
 
             echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
             echo "pr_base=$pr_base" >> $GITHUB_OUTPUT
@@ -72,12 +72,11 @@ jobs:
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.manylinux.Dockerfile
-      toolchain: gcc11 # currently hardcoded in the image and not configurable
+      toolchain: gcc11
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       build_args: |
-        arch=x86_64
-        distro=rhel8
         manylinux_image=quay.io/pypa/manylinux_2_28_x86_64:latest
+        distro=rhel8
 
   # This job is needed only when using the cloudposse GitHub action to read
   # the output of a matrix job. This is a workaround due to current GitHub

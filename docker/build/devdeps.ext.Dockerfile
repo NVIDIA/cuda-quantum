@@ -121,16 +121,12 @@ ENV CUQUANTUM_ROOT="$CUQUANTUM_INSTALL_PREFIX"
 ENV LD_LIBRARY_PATH="$CUQUANTUM_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
 ENV CPATH="$CUQUANTUM_INSTALL_PREFIX/include:$CPATH"
 
-# CUDA expects sbsa for aarch64 but x86_64 for x86_64
-RUN echo -e '#!/bin/bash\nif [[ $(uname -m) == aarch64 ]]\nthen\n\techo sbsa\nelse\n\techo x86_64\nfi' > /usr/bin/getArch \ 
-    && chmod +x /usr/bin/getArch \
-    && echo "Arch set to $(getArch) and has $(uname -m) CPU" 
-
 ENV CUQUANTUM_VERSION=23.06.0.7_cuda11
 RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
-    && wget -q "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-$(getArch)/cuquantum-linux-$(getArch)-23.06.0.7_cuda11-archive.tar.xz" \
-    && mkdir -p "$CUQUANTUM_INSTALL_PREFIX" && tar xf cuquantum-linux-$(getArch)-$CUQUANTUM_VERSION-archive.tar.xz --strip-components 1 -C "$CUQUANTUM_INSTALL_PREFIX" \
-    && rm cuquantum-linux-$(getArch)-$CUQUANTUM_VERSION-archive.tar.xz \
+    && arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
+    && wget -q "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-$arch_folder/cuquantum-linux-$arch_folder-23.06.0.7_cuda11-archive.tar.xz" \
+    && mkdir -p "$CUQUANTUM_INSTALL_PREFIX" && tar xf cuquantum-linux-$arch_folder-$CUQUANTUM_VERSION-archive.tar.xz --strip-components 1 -C "$CUQUANTUM_INSTALL_PREFIX" \
+    && rm cuquantum-linux-$arch_folder-$CUQUANTUM_VERSION-archive.tar.xz \
     && apt-get remove -y xz-utils \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
@@ -144,17 +140,19 @@ ENV CPATH="$CUTENSOR_INSTALL_PREFIX/include:$CPATH"
 
 ENV CUTENSOR_VERSION=1.7.0.1
 RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
-    && wget -q "https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor/linux-$(getArch)/libcutensor-linux-$(getArch)-$CUTENSOR_VERSION-archive.tar.xz" \
-    && tar xf libcutensor-linux-$(getArch)-$CUTENSOR_VERSION-archive.tar.xz && cd libcutensor-linux-$(getArch)-$CUTENSOR_VERSION-archive \
+    && arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
+    && wget -q "https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor/linux-$arch_folder/libcutensor-linux-$arch_folder-$CUTENSOR_VERSION-archive.tar.xz" \
+    && tar xf libcutensor-linux-$arch_folder-$CUTENSOR_VERSION-archive.tar.xz && cd libcutensor-linux-$arch_folder-$CUTENSOR_VERSION-archive \
     && mkdir -p "$CUTENSOR_INSTALL_PREFIX" && mv include "$CUTENSOR_INSTALL_PREFIX" && mv lib/11 "$CUTENSOR_INSTALL_PREFIX/lib" \
-    && cd / && rm -rf libcutensor-linux-$(getArch)-$CUTENSOR_VERSION-archive* \
+    && cd / && rm -rf libcutensor-linux-$arch_folder-$CUTENSOR_VERSION-archive* \
     && apt-get remove -y xz-utils \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # Install CUDA 11.8.
 
 ARG cuda_packages="cuda-cudart-11-8 cuda-compiler-11-8 libcublas-dev-11-8"
-RUN wget -q "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/$(getArch)/cuda-keyring_1.0-1_all.deb" \
+RUN arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
+    && wget -q "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/$arch_folder/cuda-keyring_1.0-1_all.deb" \
     && dpkg -i cuda-keyring_1.0-1_all.deb \
     && apt-get update && apt-get install -y --no-install-recommends $cuda_packages \
     && rm cuda-keyring_1.0-1_all.deb \

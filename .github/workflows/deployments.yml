@@ -20,11 +20,6 @@ on:
         description: The platforms to build the Docker images for.
         required: false
         default: linux/amd64
-      manylinux_image:
-        type: string
-        description: The base image to use when building Python wheels.
-        required: false
-        default: quay.io/pypa/manylinux_2_28_x86_64:latest
       create_release:
         type: string
         description: The version number of the release (e.g. 0.3.0). The version must not exist already.
@@ -139,9 +134,10 @@ jobs:
     uses: ./.github/workflows/dev_environment.yml
     with:
       dockerfile: build/devdeps.manylinux.Dockerfile
-      toolchain: gcc11 # currently hardcoded in the image and not configurable
+      toolchain: gcc11
       build_args: |
-        manylinux_image=${{ inputs.manylinux_image || 'quay.io/pypa/manylinux_2_28_x86_64:latest' }}
+        manylinux_image=quay.io/pypa/manylinux_2_28_x86_64:latest
+        distro=rhel8
       registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base || needs.metadata.outputs.cache_base }}
       registry_cache_update: ${{ github.event_name == 'workflow_dispatch' && inputs.update_registry_cache }}
       registry_cache_update_only: ${{ github.event_name == 'workflow_run' }}
