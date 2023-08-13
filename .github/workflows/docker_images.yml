@@ -20,6 +20,9 @@ on:
       environment:
         required: false
         type: string
+      build_docs:
+        required: false
+        type: string
       create_release:
         required: false
         type: string
@@ -47,14 +50,15 @@ jobs:
         run: |
           if [ -n "$(echo ${{ inputs.platforms }} | grep ,)" ]; then
             echo "runner=linux-amd64-cpu16" >> $GITHUB_OUTPUT
-            echo "build_docs=true" >> $GITHUB_OUTPUT
+            echo "build_docs=${{ inputs.build_docs != 'false' }}" >> $GITHUB_OUTPUT
           elif [ -n "$(echo ${{ inputs.platforms }} | grep -i arm)" ]; then
             echo "runner=linux-arm64-cpu8" >> $GITHUB_OUTPUT
             echo "platform_tag=arm64" >> $GITHUB_OUTPUT
+            echo "build_docs=${{ inputs.build_docs == 'true' }}" >> $GITHUB_OUTPUT
           else
             echo "runner=linux-amd64-cpu8" >> $GITHUB_OUTPUT
             echo "platform_tag=amd64" >> $GITHUB_OUTPUT
-            echo "build_docs=true" >> $GITHUB_OUTPUT
+            echo "build_docs=${{ inputs.build_docs != 'false' }}" >> $GITHUB_OUTPUT
           fi
 
           platform_id=`echo "${{ inputs.platforms }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`

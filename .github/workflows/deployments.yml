@@ -234,6 +234,7 @@ jobs:
       ompidev_image: ${{ needs.openmpi.outputs.image_hash }}
       devdeps_image: ${{ needs.extdevdeps.outputs.image_hash }}
       environment: ghcr-deployment
+      build_docs: true
       create_release: ${{ inputs.create_release }}
 
   python_wheels:
