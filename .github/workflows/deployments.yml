@@ -59,6 +59,7 @@ jobs:
       pull_request_commit: ${{ steps.pr_info.outputs.pr_base }}
       cache_base: ${{ steps.pr_info.outputs.pr_base }}
       platforms: ${{ steps.build_info.outputs.platforms }}
+      requested_platforms: ${{ steps.build_info.outputs.requested_platforms }}
 
     steps:
       - name: Retrieve PR info
@@ -88,8 +89,9 @@ jobs:
       - name: Determine build info
         id: build_info
         run: |
+          requested_platforms=${{ inputs.platforms || (github.event_name == 'push' && 'linux/amd64,linux/arm64') || '' }}
           platforms="{\"ids\":[]}"
-          if ${{ inputs.platforms != '' }}; then
+          if [ "$requested_platforms" != "" ]; then
             platform_id=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' ' | tr , -`
             platforms=`echo $platforms | jq ".ids |= . + [\"$platform_id\"]"`
             platform={\"$platform_id\":\"${{ inputs.platforms }}\"}
@@ -102,6 +104,8 @@ jobs:
               platforms=`echo $platforms | jq ". |= . + $platform"`
             done
           fi
+
+          echo "requested_platforms=$requested_platforms" >> $GITHUB_OUTPUT
           echo "platforms=$(echo $platforms)" >> $GITHUB_OUTPUT
 
   devdeps:
@@ -119,7 +123,7 @@ jobs:
       dockerfile: build/devdeps.Dockerfile
       toolchain: ${{ matrix.toolchain }}
       registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base || needs.metadata.outputs.cache_base }}
-      registry_cache_update: ${{ github.event_name == 'workflow_dispatch' && inputs.update_registry_cache }}
+      registry_cache_update: ${{ (github.event_name == 'workflow_dispatch' && inputs.update_registry_cache) || github.event_name == 'push' }}
       registry_cache_update_only: ${{ github.event_name == 'workflow_run' }}
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
       pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
@@ -139,15 +143,34 @@ jobs:
         manylinux_image=quay.io/pypa/manylinux_2_28_x86_64:latest
         distro=rhel8
       registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base || needs.metadata.outputs.cache_base }}
-      registry_cache_update: ${{ github.event_name == 'workflow_dispatch' && inputs.update_registry_cache }}
+      registry_cache_update: ${{ (github.event_name == 'workflow_dispatch' && inputs.update_registry_cache) || github.event_name == 'push' }}
       registry_cache_update_only: ${{ github.event_name == 'workflow_run' }}
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
       pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
       environment: ${{ (github.event_name != 'workflow_run' && 'ghcr-deployment') || '' }}
 
+  openmpi:
+    name: Build Open MPI
+    needs: metadata
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created) || (github.event_name == 'workflow_run' && needs.metadata.outputs.pull_request_number != '')
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+      fail-fast: false
+    uses: ./.github/workflows/dev_environment.yml
+    with:
+      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)] }}
+      dockerfile: build/devdeps.ompi.Dockerfile
+      registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base || needs.metadata.outputs.cache_base }}
+      registry_cache_update: ${{ (github.event_name == 'workflow_dispatch' && inputs.update_registry_cache) || github.event_name == 'push' }}
+      registry_cache_update_only: ${{ github.event_name == 'workflow_run' }}
+      environment: ${{ (github.event_name != 'workflow_run' && 'ghcr-deployment') || '' }}
+      # needed only for the cloudposse GitHub action
+      matrix_key: ${{ matrix.platform }}
+
   dispatch:
     name: Dispatch deployments
-    needs: [metadata, devdeps, wheeldeps]
+    needs: [metadata, devdeps, wheeldeps, openmpi]
     if: github.event_name == 'workflow_run'
     runs-on: ubuntu-latest
 
@@ -174,13 +197,13 @@ jobs:
   # https://github.com/actions/runner/pull/2477
   config:
     name: Configure build
-    needs: devdeps
+    needs: [metadata, devdeps]
     if: github.event_name != 'workflow_run'
     runs-on: ubuntu-latest
 
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
-      base_image: ${{ fromJson(steps.read_json.outputs.result).image_hash[format('{0}-gcc12', steps.build_info.outputs.platform_id)] }}
+      base_image: ${{ fromJson(steps.read_json.outputs.result).image_hash[format('{0}-gcc12', steps.build_info.outputs.platform_key)] }}
       toolchain: gcc12
 
     steps:
@@ -191,46 +214,31 @@ jobs:
 
       - id: build_info
         run: |
-          if ${{ inputs.platforms != '' }}; then
-            echo "platform_id=$(echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' ' | tr , -)" >> $GITHUB_OUTPUT
-          else
-            echo "platform_id=amd64" >> $GITHUB_OUTPUT
-          fi
-
-  openmpi:
-    name: Build Open MPI
-    needs: metadata
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created)
-    uses: ./.github/workflows/dev_environment.yml
-    with:
-      platforms: ${{ inputs.platforms }}
-      dockerfile: build/devdeps.ompi.Dockerfile
-      registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base || needs.metadata.outputs.cache_base }}
-      registry_cache_update: true
-      environment: ghcr-deployment
+          platform_key=`echo "${{ needs.metadata.outputs.requested_platforms }}" | sed 's/linux\///g' | tr -d ' ' | tr , -`
+          echo "platform_key=$platform_key" >> $GITHUB_OUTPUT
 
   extdevdeps:
     name: Create dev environment
     needs: [metadata, config, openmpi]
     uses: ./.github/workflows/dev_environment.yml
     with:
-      platforms: ${{ inputs.platforms }}
+      platforms: ${{ needs.metadata.outputs.requested_platforms }}
       dockerfile: build/devdeps.ext.Dockerfile
       toolchain: ${{ needs.config.outputs.toolchain }}
       build_args: |
         base_image=${{ needs.config.outputs.base_image }}
         ompidev_image=${{ needs.openmpi.outputs.image_hash }}
-      registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base || needs.metadata.outputs.cache_base }}
+      registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base }}
       registry_cache_update: true
       environment: ghcr-deployment
 
   docker_images:
     name: Create Docker images
-    needs: [extdevdeps, openmpi]
+    needs: [metadata, extdevdeps, openmpi]
     uses: ./.github/workflows/docker_images.yml
     secrets: inherit
     with:
-      platforms: ${{ inputs.platforms }}
+      platforms: ${{ needs.metadata.outputs.requested_platforms }}
       ompidev_image: ${{ needs.openmpi.outputs.image_hash }}
       devdeps_image: ${{ needs.extdevdeps.outputs.image_hash }}
       environment: ghcr-deployment
