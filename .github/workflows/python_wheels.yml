@@ -277,22 +277,29 @@ jobs:
       - name: Push staging info
         id: staging
         run: |
+          # The release id needs to be source-sha such that all external
+          # assets are added to the same (draft) release.
+          # The commit title of the staging commit needs to match
+          # the docker image that is used to build additional components.
+          # Using the image sha as the file name makes it easy to find.
+
           wheeldeps_hash=${{ inputs.devdeps_image }}
-          release_id=`echo $wheeldeps_hash | rev | cut -d ':' -f 1 | rev`
           file_id=`echo $wheeldeps_hash | rev | cut -d ':' -f 1 | rev`
           info_file="deployments/staging/python-wheels/$file_id"
           echo "info_file=$info_file" >> $GITHUB_OUTPUT
+          platform_id=`echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
+          echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
 
           mkdir -p "$(dirname "$info_file")" && rm -rf "$info_file"
-          echo "release-id: $release_id" >> "$info_file"
+          echo "release-id: ${{ github.sha }}" >> "$info_file"
           echo "source-sha: ${{ github.sha }}" >> "$info_file"
-          echo "cuda-quantum-wheeldeps-image: ${{ inputs.devdeps_image }}" >> "$info_file"
+          echo "wheeldeps-${platform_id}-image: $wheeldeps_hash" >> "$info_file"
           echo "platform: ${{ inputs.platform }}" >> "$info_file"
           git add "$info_file"
 
           git config --global user.name "cuda-quantum-bot"
           git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
-          git commit --allow-empty -m "${{ inputs.devdeps_image }}"
+          git commit --allow-empty -m "$wheeldeps_hash"
           
           # TODO: add clean up in publishing.yml and uncomment
           # git pull --no-edit && git push
@@ -300,7 +307,7 @@ jobs:
       - name: Upload build info
         uses: actions/upload-artifact@v3
         with:
-          name: python_info # changing the artifact name requires updating other workflows
+          name: python_info_${{ steps.staging.outputs.platform_id }} # changing the artifact name requires updating other workflows
           path: ${{ steps.staging.outputs.info_file }}
           retention-days: 30
           if-no-files-found: error

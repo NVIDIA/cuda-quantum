@@ -298,6 +298,7 @@ jobs:
         python_version: ['3.8', '3.9', '3.10', '3.11']
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
+    secrets: inherit
     with:
       platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       python_version: ${{ matrix.python_version }}
