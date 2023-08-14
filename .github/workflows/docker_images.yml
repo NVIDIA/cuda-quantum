@@ -487,7 +487,7 @@ jobs:
     # Unfortunately, we basically inherit this from the cudaq_image job;
     # all jobs that depend on it will need to add the same condition.
     if: always() && !cancelled() && needs.metadata.outputs.build_docs == 'true' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
-    runs-on: ubuntu-latest
+    runs-on: ${{ needs.metadata.outputs.runner }}
     permissions:
       contents: read
 
