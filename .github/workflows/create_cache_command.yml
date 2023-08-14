@@ -69,7 +69,7 @@ jobs:
     needs: config
     strategy:
       matrix:
-        platform: [amd64, arm64]
+        platform: [amd64] # ARM: [amd64, arm64]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
@@ -110,7 +110,6 @@ jobs:
           set -e
           key_matrix='${{ steps.read_json.outputs.result }}'
           keys=`echo $key_matrix | jq '.cache_key | to_entries | .[].value' --raw-output`
-          keys+=" ${{ needs.wheeldeps_caches.outputs.cache_key }}"
           gh extension install actions/gh-actions-cache
           for key in $keys; do
             (gh actions-cache delete $key -R ${{ github.repository }} --confirm && echo "Deleted cache $key") \

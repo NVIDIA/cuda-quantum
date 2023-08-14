@@ -71,7 +71,7 @@ jobs:
     needs: metadata
     strategy:
       matrix:
-        platform: [amd64, arm64]
+        platform: [amd64] # ARM: [amd64, arm64]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
@@ -136,7 +136,7 @@ jobs:
     needs: config
     strategy:
       matrix:
-        platform: [amd64, arm64]
+        platform: [amd64] # ARM: [amd64, arm64]
         python_version: ['3.9', '3.11']
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
@@ -160,7 +160,6 @@ jobs:
           set -e
           key_matrix='${{ needs.config.outputs.json }}'
           keys=`echo $key_matrix | jq '.cache_key | to_entries | .[].value' --raw-output`
-          keys+=" ${{ needs.wheeldeps.outputs.cache_key }}"
           echo "$keys" >> cache_keys.txt
 
           echo "pr-number: ${{ needs.metadata.outputs.pull_request_number }}" >> metadata.txt
