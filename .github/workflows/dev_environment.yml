@@ -274,7 +274,7 @@ jobs:
           echo "build_cache=$build_cache" >> $GITHUB_OUTPUT
           if ${{ inputs.environment == '' && ! inputs.registry_cache_update_only }}; then
             tar_archive=/tmp/${{ needs.metadata.outputs.image_id }}.tar
-            echo "tar_cache=tar-${cache_id}${local_buildcache_key_suffix}" >> $GITHUB_OUTPUT
+            echo "tar_cache=tar-${cache_id}-${platform_id}${local_buildcache_key_suffix}" >> $GITHUB_OUTPUT
             echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
             echo "docker_output=type=docker,dest=$tar_archive" >> $GITHUB_OUTPUT
           fi
