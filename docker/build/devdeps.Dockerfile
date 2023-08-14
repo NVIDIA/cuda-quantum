@@ -141,7 +141,7 @@ RUN if [ "$(uname -m)" == "x86_64" ]; then \
         && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*; \
     else \
         # Build from source (may need gcc g++ python3)
-        apt-get update && apt-get install -y wget unzip make cmake flex bison \
+        apt-get update && apt-get install -y wget unzip make cmake flex bison python3 \
         && wget https://github.com/doxygen/doxygen/archive/9a5686aeebff882ebda518151bc5df9d757ea5f7.zip -q -O repo.zip \
         && unzip repo.zip && mv doxygen* repo && rm repo.zip \
         && cmake -G "Unix Makefiles" repo && cmake --build . --target install --config Release \
