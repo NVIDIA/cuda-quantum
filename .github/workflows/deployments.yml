@@ -122,7 +122,7 @@ jobs:
       - name: Control prints
         run: |
           echo "${{ steps.build_info.outputs.multi_platform || steps.build_info.outputs.platforms }}"
-          echo "${{ fromJson(steps.build_info.outputs.multi_platform || steps.build_info.outputs.platforms)[format('{0}.docker_flag', 'amd64')] }}"
+          echo "${{ fromJson(steps.build_info.outputs.multi_platform || steps.build_info.outputs.platforms)[format('{0}', 'amd64')].docker_flag }}"
 
   devdeps:
     name: Build dev dependencies
@@ -135,7 +135,7 @@ jobs:
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
-      platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}.docker_flag', matrix.platform)] }}
+      platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.Dockerfile
       toolchain: ${{ matrix.toolchain }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
@@ -159,7 +159,7 @@ jobs:
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
-      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}.docker_flag', matrix.platform)] }}
+      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.manylinux.Dockerfile
       toolchain: gcc11
       build_args: |
@@ -184,7 +184,7 @@ jobs:
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
-      platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}.docker_flag', matrix.platform)] }}
+      platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.ompi.Dockerfile
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       registry_cache_update: ${{ needs.metadata.outputs.update_cache == 'true' }}
@@ -245,7 +245,7 @@ jobs:
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
-      platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}.docker_flag', matrix.platform)] }}
+      platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.ext.Dockerfile
       toolchain: ${{ needs.config.outputs.devdeps_toolchain }}
       build_args: |
@@ -285,7 +285,7 @@ jobs:
     uses: ./.github/workflows/docker_images.yml
     secrets: inherit
     with:
-      platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}.docker_flag', matrix.platform)] }}
+      platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       ompidev_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-ompi', matrix.platform)] }}
       devdeps_image: ${{ fromJson(needs.ext_config.outputs.json).image_hash[format('{0}-ext', matrix.platform)] }}
       environment: ghcr-deployment
@@ -302,7 +302,7 @@ jobs:
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
     with:
-      platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}.docker_flag', matrix.platform)] }}
+      platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       python_version: ${{ matrix.python_version }}
       devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-python', matrix.platform)] }}
       # TODO: upload wheels to test-pypi - the push to pypi itself
