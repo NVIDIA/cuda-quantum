@@ -131,12 +131,23 @@ COPY --from=prereqs /usr/local/blas "$BLAS_INSTALL_PREFIX"
 COPY --from=prereqs /usr/local/openssl "$OPENSSL_INSTALL_PREFIX"
 
 # Install additional tools for CUDA Quantum documentation generation.
-RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certificates \
-    && wget https://www.doxygen.nl/files/doxygen-1.9.7.linux.bin.tar.gz \
-    && tar xf doxygen-1.9.7* && mv doxygen-1.9.7/bin/* /usr/local/bin/ && rm -rf doxygen-1.9.7* \
-    # NOTE: apt-get remove -y ca-certificates also remove python3-pip.
-    && apt-get remove -y wget ca-certificates \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
+# Note that prebuilt binaries for doxygen are only available for x86_64
+RUN if [ "$(uname -m)" == "x86_64" ]; then \
+        apt-get update && apt-get install --no-install-recommends -y wget ca-certificates \
+        && wget https://www.doxygen.nl/files/doxygen-1.9.7.linux.bin.tar.gz \
+        && tar xf doxygen-1.9.7* && mv doxygen-1.9.7/bin/* /usr/local/bin/ && rm -rf doxygen-1.9.7* \
+        # NOTE: apt-get remove -y ca-certificates also remove python3-pip.
+        && apt-get remove -y wget ca-certificates \
+        && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*; \
+    else \
+        # Build from source (may need gcc g++ python3)
+        apt-get update && apt-get install -y wget unzip make cmake flex bison \
+        && wget https://github.com/doxygen/doxygen/archive/9a5686aeebff882ebda518151bc5df9d757ea5f7.zip -q -O repo.zip \
+        && unzip repo.zip && mv doxygen* repo && rm repo.zip \
+        && cmake -G "Unix Makefiles" repo && cmake --build . --target install --config Release \
+        && rm -rf repo && apt-get remove -y wget unzip make cmake flex bison \
+        && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*; \
+    fi
 ENV PATH="${PATH}:/usr/local/bin"
 RUN apt-get update && apt-get install -y --no-install-recommends python3-pip \
     && python3 -m pip install --no-cache-dir \
