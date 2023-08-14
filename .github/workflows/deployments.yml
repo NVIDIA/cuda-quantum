@@ -56,7 +56,7 @@ jobs:
 
     outputs:
       pull_request_number: ${{ steps.pr_info.outputs.pr_number }}
-      pull_request_commit: ${{ steps.pr_info.outputs.pr_base }}
+      pull_request_commit: ${{ steps.pr_info.outputs.merge_commit }}
       cache_base: ${{ steps.build_info.outputs.cache_base }}
       update_cache: ${{ steps.build_info.outputs.update_cache }}
       multi_platform: ${{ steps.build_info.outputs.multi_platform }}
@@ -82,9 +82,11 @@ jobs:
               done
               pr_number=`cat metadata.txt | grep -o 'pr-number: \S*' | cut -d ' ' -f 2`
               pr_base=`cat metadata.txt | grep -o 'pr-base: \S*' | cut -d ' ' -f 2`
+              merge_commit=`cat metadata.txt | grep -o 'source-sha: \S*' | cut -d ' ' -f 2`
               rm -rf metadata*
               echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
               echo "pr_base=$pr_base" >> $GITHUB_OUTPUT
+              echo "merge_commit=$merge_commit" >> $GITHUB_OUTPUT
             fi
           done
 
@@ -300,9 +302,4 @@ jobs:
       platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       python_version: ${{ matrix.python_version }}
       devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-python', matrix.platform)] }}
-      # TODO: upload wheels to test-pypi - the push to pypi itself
-      # should be done only by the publishing when creating a release.
-      # See also: 
-      # https://github.com/pypa/gh-action-pypi-publish
-      # https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
-      # environment: pypi-deployment
+      environment: ghcr-deployment

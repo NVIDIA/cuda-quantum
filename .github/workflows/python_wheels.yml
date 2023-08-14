@@ -18,6 +18,9 @@ on:
       devdeps_archive:
         required: false
         type: string
+      environment:
+        required: false
+        type: string
 
 name: Python wheels
 
@@ -246,3 +249,54 @@ jobs:
             echo "The validation of the cuda-quantum Python wheel produced the following output:" >> $GITHUB_STEP_SUMMARY
             cat /tmp/validation.out >> $GITHUB_STEP_SUMMARY
           fi
+
+  staging:
+    name: Staging
+    needs: [build_wheel, validation]
+    if: inputs.environment
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ vars.deployment_url }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ vars.data_branch }}
+          token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+
+      - name: Push staging info
+        id: staging
+        run: |
+          wheeldeps_hash=${{ inputs.devdeps_image }}
+          release_id=`echo $wheeldeps_hash | rev | cut -d ':' -f 1 | rev`
+          file_id=`echo $wheeldeps_hash | rev | cut -d ':' -f 1 | rev`
+          info_file="deployments/staging/python-wheels/$file_id"
+          echo "info_file=$info_file" >> $GITHUB_OUTPUT
+
+          mkdir -p "$(dirname "$info_file")" && rm -rf "$info_file"
+          echo "release-id: $release_id" >> "$info_file"
+          echo "source-sha: ${{ github.sha }}" >> "$info_file"
+          echo "cuda-quantum-wheeldeps-image: ${{ inputs.devdeps_image }}" >> "$info_file"
+          echo "platform: ${{ inputs.platform }}" >> "$info_file"
+          git add "$info_file"
+
+          git config --global user.name "cuda-quantum-bot"
+          git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
+          git commit --allow-empty -m "${{ inputs.devdeps_image }}"
+          
+          # TODO: add clean up in publishing.yml and uncomment
+          # git pull --no-edit && git push
+
+      - name: Upload build info
+        uses: actions/upload-artifact@v3
+        with:
+          name: python_info # changing the artifact name requires updating other workflows
+          path: ${{ steps.staging.outputs.info_file }}
+          retention-days: 30
+          if-no-files-found: error

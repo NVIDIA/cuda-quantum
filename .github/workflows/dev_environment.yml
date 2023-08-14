@@ -128,7 +128,7 @@ jobs:
           tag_suffix=""
 
           if ${{ inputs.pull_request_commit != '' }}; then
-            custom_tags="type=raw,value=${{ inputs.pull_request_commit }},priority=1000"
+            custom_tags="type=raw,value=${{ inputs.registry_cache_from || inputs.pull_request_commit }},priority=1000"
           elif ${{ github.event.pull_request.merged == true }}; then
             custom_tags="type=raw,value=${{ github.event.pull_request.base.ref }},priority=1000"
           elif ${{ inputs.pull_request_number != '' }} || [ -n "$(echo ${{ github.ref_name }} | grep pull-request/)" ]; then

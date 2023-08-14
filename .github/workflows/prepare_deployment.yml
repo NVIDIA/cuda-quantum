@@ -19,6 +19,7 @@ jobs:
       - run: |
           echo "pr-number: ${{ github.event.pull_request.number }}" >> metadata.txt
           echo "pr-base: ${{ github.event.pull_request.base.ref }}" >> metadata.txt
+          echo "source-sha: ${{ github.sha }}" >> metadata.txt
 
       - name: Upload metadata
         uses: actions/upload-artifact@v3

@@ -233,3 +233,12 @@ jobs:
           fi
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+
+  # TODO: 
+  # Create python wheels that include simulator extensions.
+  # Note that PyPI packages cannot be updated once pushed;
+  #  - Upload wheels to test-pypi when creating a release.
+  #  - The push to pypi itself should be done manually.
+  # See also: 
+  # https://github.com/pypa/gh-action-pypi-publish
+  # https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
