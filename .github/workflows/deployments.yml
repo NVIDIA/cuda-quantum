@@ -144,8 +144,13 @@ jobs:
     name: Build wheel dependencies
     needs: metadata
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created) || (github.event_name == 'workflow_run' && needs.metadata.outputs.pull_request_number != '')
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+      fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
+      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)] }}
       dockerfile: build/devdeps.manylinux.Dockerfile
       toolchain: gcc11
       build_args: |
@@ -157,6 +162,8 @@ jobs:
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
       pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
       environment: ${{ needs.metadata.outputs.environment }}
+      # needed only for the cloudposse GitHub action
+      matrix_key: ${{ matrix.platform }}-python
 
   openmpi:
     name: Build Open MPI
@@ -175,7 +182,7 @@ jobs:
       registry_cache_update_only: ${{ github.event_name == 'workflow_run' }}
       environment: ${{ needs.metadata.outputs.environment }}
       # needed only for the cloudposse GitHub action
-      matrix_key: ${{ matrix.platform }}
+      matrix_key: ${{ matrix.platform }}-ompi
 
   dispatch:
     name: Dispatch deployments
@@ -206,14 +213,16 @@ jobs:
   # https://github.com/actions/runner/pull/2477
   config:
     name: Configure build
-    needs: [metadata, devdeps]
+    needs: [metadata, devdeps, wheeldeps]
     if: github.event_name != 'workflow_run'
     runs-on: ubuntu-latest
 
     outputs:
-      json: "${{ steps.read_json.outputs.result }}"
-      base_image: ${{ fromJson(steps.read_json.outputs.result).image_hash[format('{0}-gcc12', steps.build_info.outputs.platform_key)] }}
-      toolchain: gcc12
+      devdeps_toolchain: gcc12
+      devdeps_image: ${{ fromJson(steps.read_json.outputs.result).image_hash[format('{0}-gcc12', steps.build_info.outputs.platform_key)] }}
+      ompi_image: ${{ fromJson(steps.read_json.outputs.result).image_hash[format('{0}-ompi', steps.build_info.outputs.platform_key)] }}
+      wheeldeps_image: ${{ fromJson(steps.read_json.outputs.result).image_hash[format('{0}-python', steps.build_info.outputs.platform_key)] }}
+      platforms: ${{ steps.build_info.outputs.platforms }}
 
     steps:
       - uses: cloudposse/github-action-matrix-outputs-read@0.1.1
@@ -223,8 +232,18 @@ jobs:
 
       - id: build_info
         run: |
-          platform_key=`echo "${{ needs.metadata.outputs.requested_platforms }}" | sed 's/linux\///g' | tr -d ' ' | tr , -`
+          requested_platforms="${{ needs.metadata.outputs.requested_platforms }}"
+          platform_key=`echo "$requested_platforms" | sed 's/linux\///g' | tr -d ' ' | tr , -`
           echo "platform_key=$platform_key" >> $GITHUB_OUTPUT
+
+          platforms="{\"ids\":[]}"
+          for input in `echo "$requested_platforms" | tr , ' '`; do
+            platform_id=`echo $input | sed 's/linux\///g' | tr -d ' ' | tr , -`
+            platforms=`echo $platforms | jq ".ids |= . + [\"$platform_id\"]"`
+            platform={\"$platform_id\":\"$input\"}
+            platforms=`echo $platforms | jq ". |= . + $platform"`
+          done
+          echo "platforms=$(echo $platforms)" >> $GITHUB_OUTPUT
 
   extdevdeps:
     name: Create dev environment
@@ -233,22 +252,22 @@ jobs:
     with:
       platforms: ${{ needs.metadata.outputs.requested_platforms }}
       dockerfile: build/devdeps.ext.Dockerfile
-      toolchain: ${{ needs.config.outputs.toolchain }}
+      toolchain: ${{ needs.config.outputs.devdeps_toolchain }}
       build_args: |
-        base_image=${{ needs.config.outputs.base_image }}
-        ompidev_image=${{ needs.openmpi.outputs.image_hash }}
+        base_image=${{ needs.config.outputs.devdeps_image }}
+        ompidev_image=${{ needs.config.outputs.ompi_image }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       registry_cache_update: ${{ needs.metadata.outputs.update_cache == 'true' }}
       environment: ${{ needs.metadata.outputs.environment }}
 
   docker_images:
     name: Create Docker images
-    needs: [metadata, extdevdeps, openmpi]
+    needs: [metadata, config, extdevdeps, openmpi]
     uses: ./.github/workflows/docker_images.yml
     secrets: inherit
     with:
       platforms: ${{ needs.metadata.outputs.requested_platforms }}
-      ompidev_image: ${{ needs.openmpi.outputs.image_hash }}
+      ompidev_image: ${{ needs.config.outputs.ompi_image }}
       devdeps_image: ${{ needs.extdevdeps.outputs.image_hash }}
       environment: ghcr-deployment
       build_docs: true
@@ -256,16 +275,17 @@ jobs:
 
   python_wheels:
     name: Create Python wheels
-    needs: wheeldeps
-    if: github.event_name != 'workflow_run'
+    needs: [metadata, config]
     strategy:
       matrix:
+        platform: ${{ fromJson(needs.config.outputs.platforms).ids }}
         python_version: ['3.8', '3.9', '3.10', '3.11']
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
     with:
+      platform: ${{ fromJson(needs.config.outputs.platforms)[format('{0}', matrix.platform)] }}
       python_version: ${{ matrix.python_version }}
-      devdeps_image: ${{ needs.wheeldeps.outputs.image_hash }}
+      devdeps_image: ${{ needs.config.outputs.wheeldeps_image }}
       # TODO: upload wheels to test-pypi - the push to pypi itself
       # should be done only by the publishing when creating a release.
       # See also: 

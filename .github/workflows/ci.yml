@@ -49,7 +49,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-  setup:
+  devdeps:
     name: Load dependencies
     needs: metadata
     strategy:
@@ -69,14 +69,21 @@ jobs:
   wheeldeps:
     name: Load wheel dependencies
     needs: metadata
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+      fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
+      platforms: linux/${{ matrix.platform }}
       dockerfile: build/devdeps.manylinux.Dockerfile
       toolchain: gcc11
-      registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       build_args: |
         manylinux_image=quay.io/pypa/manylinux_2_28_x86_64:latest
         distro=rhel8
+      registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
+      # needed only for the cloudposse GitHub action
+      matrix_key: ${{ matrix.platform }}-python
 
   # This job is needed only when using the cloudposse GitHub action to read
   # the output of a matrix job. This is a workaround due to current GitHub
@@ -85,7 +92,7 @@ jobs:
   config:
     name: Configure build
     runs-on: ubuntu-latest
-    needs: setup
+    needs: [devdeps, wheeldeps]
 
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
@@ -126,16 +133,18 @@ jobs:
 
   python_wheels:
     name: Create Python wheels
-    needs: wheeldeps
+    needs: config
     strategy:
       matrix:
+        platform: [amd64, arm64]
         python_version: ['3.9', '3.11']
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
     with:
+      platform: linux/${{ matrix.platform }}
       python_version: ${{ matrix.python_version }}
-      devdeps_cache: ${{ needs.wheeldeps.outputs.cache_key }}
-      devdeps_archive: ${{ needs.wheeldeps.outputs.tar_archive }}
+      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-python', matrix.platform)] }}
+      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-python', matrix.platform)] }}
 
   clean_up:
     name: Prepare cache clean-up
