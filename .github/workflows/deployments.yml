@@ -95,14 +95,17 @@ jobs:
           platforms="{\"ids\":[]}"
           if [ "$requested_platforms" != "" ]; then
             platform_id=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' ' | tr , -`
+            platform_arch=`([ "$platform_id" == "amd64" ] && echo x86_64) || ([ "$platform_id" == "arm64" ] && echo aarch64) || echo any`
             platforms=`echo $platforms | jq ".ids |= . + [\"$platform_id\"]"`
             platform={\"$platform_id\":\"${{ inputs.platforms }}\"}
+            platform={\"$platform_id\":{\"docker_flag\":\"${{ inputs.platforms }}\",\"arch\":\"$platform_arch\"}}
             platforms=`echo $platforms | jq ". |= . + $platform"`
           else
             for input in linux/arm64 linux/amd64; do
               platform_id=`echo $input | sed 's/linux\///g' | tr -d ' ' | tr , -`
+              platform_arch=`([ "$platform_id" == "amd64" ] && echo x86_64) || ([ "$platform_id" == "arm64" ] && echo aarch64) || echo any`
               platforms=`echo $platforms | jq ".ids |= . + [\"$platform_id\"]"`
-              platform={\"$platform_id\":\"$input\"}
+              platform={\"$platform_id\":{\"docker_flag\":\"$input\",\"arch\":\"$platform_arch\"}}
               platforms=`echo $platforms | jq ". |= . + $platform"`
             done
           fi
@@ -128,7 +131,7 @@ jobs:
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
-      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)] }}
+      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}.docker_flag', matrix.platform)] }}
       dockerfile: build/devdeps.Dockerfile
       toolchain: ${{ matrix.toolchain }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
@@ -150,11 +153,11 @@ jobs:
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
-      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)] }}
+      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}.docker_flag', matrix.platform)] }}
       dockerfile: build/devdeps.manylinux.Dockerfile
       toolchain: gcc11
       build_args: |
-        manylinux_image=quay.io/pypa/manylinux_2_28_x86_64:latest
+        arch=${{ fromJson(needs.metadata.outputs.platforms)[format('{0}.arch', matrix.platform)] }}
         distro=rhel8
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       registry_cache_update: ${{ needs.metadata.outputs.update_cache == 'true' }}
@@ -175,7 +178,7 @@ jobs:
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
-      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)] }}
+      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}.docker_flag', matrix.platform)] }}
       dockerfile: build/devdeps.ompi.Dockerfile
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       registry_cache_update: ${{ needs.metadata.outputs.update_cache == 'true' }}
@@ -218,10 +221,10 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
+      json: "${{ steps.read_json.outputs.result }}"
       devdeps_toolchain: gcc12
       devdeps_image: ${{ fromJson(steps.read_json.outputs.result).image_hash[format('{0}-gcc12', steps.build_info.outputs.platform_key)] }}
       ompi_image: ${{ fromJson(steps.read_json.outputs.result).image_hash[format('{0}-ompi', steps.build_info.outputs.platform_key)] }}
-      wheeldeps_image: ${{ fromJson(steps.read_json.outputs.result).image_hash[format('{0}-python', steps.build_info.outputs.platform_key)] }}
       platforms: ${{ steps.build_info.outputs.platforms }}
 
     steps:
@@ -239,8 +242,9 @@ jobs:
           platforms="{\"ids\":[]}"
           for input in `echo "$requested_platforms" | tr , ' '`; do
             platform_id=`echo $input | sed 's/linux\///g' | tr -d ' ' | tr , -`
+            platform_arch=`([ "$platform_id" == "amd64" ] && echo x86_64) || ([ "$platform_id" == "arm64" ] && echo aarch64) || echo any`
             platforms=`echo $platforms | jq ".ids |= . + [\"$platform_id\"]"`
-            platform={\"$platform_id\":\"$input\"}
+            platform={\"$platform_id\":{\"docker_flag\":\"$input\",\"arch\":\"$platform_arch\"}}
             platforms=`echo $platforms | jq ". |= . + $platform"`
           done
           echo "platforms=$(echo $platforms)" >> $GITHUB_OUTPUT
@@ -283,9 +287,9 @@ jobs:
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
     with:
-      platform: ${{ fromJson(needs.config.outputs.platforms)[format('{0}', matrix.platform)] }}
+      platform: ${{ fromJson(needs.config.outputs.platforms)[format('{0}.docker_flag', matrix.platform)] }}
       python_version: ${{ matrix.python_version }}
-      devdeps_image: ${{ needs.config.outputs.wheeldeps_image }}
+      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-python', matrix.platform)] }}
       # TODO: upload wheels to test-pypi - the push to pypi itself
       # should be done only by the publishing when creating a release.
       # See also: 

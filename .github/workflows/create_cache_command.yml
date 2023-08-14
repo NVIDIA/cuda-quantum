@@ -77,7 +77,8 @@ jobs:
       dockerfile: build/devdeps.manylinux.Dockerfile
       toolchain: gcc11
       build_args: |
-        manylinux_image=quay.io/pypa/manylinux_2_28_x86_64:latest
+        manylinux_image=manylinux_2_28
+        arch=${{ (matrix.platform == 'arm64' && 'aarch64') || (matrix.platform == 'amd64' && 'x86_64') || 'any' }}
         distro=rhel8
       create_local_cache: true
       registry_cache_from: ${{ needs.config.outputs.target_branch }}
@@ -110,7 +111,6 @@ jobs:
           set -e
           key_matrix='${{ steps.read_json.outputs.result }}'
           keys=`echo $key_matrix | jq '.cache_key | to_entries | .[].value' --raw-output`
-          keys+=" ${{ needs.wheeldeps_caches.outputs.cache_key }}"
           gh extension install actions/gh-actions-cache
           for key in $keys; do
             (gh actions-cache delete $key -R ${{ github.repository }} --confirm && echo "Deleted cache $key") \

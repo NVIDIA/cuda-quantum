@@ -79,7 +79,8 @@ jobs:
       dockerfile: build/devdeps.manylinux.Dockerfile
       toolchain: gcc11
       build_args: |
-        manylinux_image=quay.io/pypa/manylinux_2_28_x86_64:latest
+        manylinux_image=manylinux_2_28
+        arch=${{ (matrix.platform == 'arm64' && 'aarch64') || (matrix.platform == 'amd64' && 'x86_64') || 'any' }}
         distro=rhel8
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       # needed only for the cloudposse GitHub action

@@ -19,8 +19,11 @@
 # CUDA Quantum. This image sets the CC and CXX environment variables to use that toolchain. 
 # Currently, clang15 and gcc11 are supported.
 
-ARG manylinux_image=quay.io/pypa/manylinux_2_28_x86_64:latest
-FROM $manylinux_image
+# There are currently no multi-platform manylinux images available.
+# See https://github.com/pypa/manylinux/issues/1306.
+ARG arch=x86_64
+ARG manylinux_image=manylinux_2_28
+FROM quay.io/pypa/${manylinux_image}_${arch}:latest
 
 ARG distro=rhel8
 ARG llvm_commit
