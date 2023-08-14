@@ -417,6 +417,11 @@ namespace {
 /// signatures of functions from the QIR ABI that may be called by the
 /// translation. This trivial pass only does this preparation work. It performs
 /// no analysis and does not rewrite function body's, etc.
+
+static const std::vector<std::string> measurementFunctionNames{
+    cudaq::opt::QIRMeasureBody, cudaq::opt::QIRMeasure,
+    cudaq::opt::QIRMeasureToRegister};
+
 struct BaseProfilePreparationPass
     : public cudaq::opt::QIRToBaseQIRPrepBase<BaseProfilePreparationPass> {
 
@@ -464,6 +469,18 @@ struct BaseProfilePreparationPass
               func.getName().str() + "__body",
               func.getFunctionType().getReturnType(),
               func.getFunctionType().getParams(), module);
+
+    // Apply irreversible attribute to measurement functions
+    for (auto &funcName : measurementFunctionNames) {
+      Operation *op = SymbolTable::lookupSymbolIn(module, funcName);
+      auto funcOp = llvm::dyn_cast_or_null<LLVM::LLVMFuncOp>(op);
+      if (funcOp) {
+        auto builder = OpBuilder(op);
+        auto arrAttr = builder.getArrayAttr(
+            ArrayRef<Attribute>{builder.getStringAttr("irreversible")});
+        funcOp.setPassthroughAttr(arrAttr);
+      }
+    }
   }
 };
 } // namespace
