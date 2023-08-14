@@ -827,7 +827,7 @@ void cudaq::cc::ScopeOp::print(OpAsmPrinter &p) {
 static void ensureScopeRegionTerminator(OpBuilder &builder,
                                         OperationState &result,
                                         Region *region) {
-  auto *block = &region->back();
+  auto *block = region->empty() ? nullptr : &region->back();
   if (!block)
     return;
   if (!block->empty()) {
