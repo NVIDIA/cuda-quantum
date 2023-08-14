@@ -21,6 +21,10 @@ on:
       environment:
         required: false
         type: string
+    secrets:
+      REPO_BOT_ACCESS_TOKEN:
+        description: 'Access token used for deployments.'
+        required: false
 
 name: Python wheels
 
