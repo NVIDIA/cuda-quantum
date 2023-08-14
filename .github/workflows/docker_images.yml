@@ -209,13 +209,16 @@ jobs:
         id: prereqs
         run: |
           if ${{ steps.restore.outcome != 'skipped' }}; then
-            base_image=`docker load --input "${{ inputs.devdeps_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+            load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
+            base_image=`echo "load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
+            echo "Base image: $base_image" >> $GITHUB_STEP_SUMMARY
             # Push the image to the local registry to make it available within
             # the containered environment that docker/build-push-action uses.
             docker push $base_image
             rm -rf "${{ inputs.devdeps_archive }}"
           elif ${{ inputs.devdeps_image != '' }}; then
             base_image=${{ inputs.devdeps_image }}
+            echo "Base image: $base_image" >> $GITHUB_STEP_SUMMARY
             docker pull $base_image
           else
             echo "Missing configuration for development dependencies. Either specify the image (i.e. provide devdeps_image) or cache (i.e. provide devdeps_cache and devdeps_archive) that should be used for the build." >> $GITHUB_STEP_SUMMARY
@@ -346,7 +349,9 @@ jobs:
           if ${{ needs.ompi_image.result == 'skipped' }}; then
             base_image=ubuntu:22.04
           elif ${{ steps.restore_openmpi.outcome != 'skipped' }}; then
-            base_image=`docker load --input "${{ needs.ompi_image.outputs.tar_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+            load_output=`docker load --input "${{ needs.ompi_image.outputs.tar_archive }}"`
+            base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
+            echo "Base image: $base_image" >> $GITHUB_STEP_SUMMARY
             # Push the image to the local registry to make it available within
             # the containered environment that docker/build-push-action uses.
             docker push $base_image
@@ -354,10 +359,13 @@ jobs:
             rm -rf "${{ needs.ompi_image.outputs.tar_archive }}"
           else
             base_image=${{ needs.ompi_image.outputs.image_hash }}
+            echo "Base image: $base_image" >> $GITHUB_STEP_SUMMARY
           fi
 
           if ${{ steps.restore_devdeps.outcome != 'skipped' }}; then
-            devdeps_image=`docker load --input "${{ inputs.devdeps_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+            load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
+            devdeps_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
+            echo "Devdeps image: $devdeps_image" >> $GITHUB_STEP_SUMMARY
             # Push the image to the local registry to make it available within
             # the containered environment that docker/build-push-action uses.
             docker push $devdeps_image
@@ -365,6 +373,7 @@ jobs:
             rm -rf "${{ inputs.devdeps_archive }}"
           elif ${{ inputs.devdeps_image != '' }}; then
             devdeps_image=${{ inputs.devdeps_image }}
+            echo "Devdeps image: $devdeps_image" >> $GITHUB_STEP_SUMMARY
           else
             echo "Missing configuration for development dependencies. Either specify the image (i.e. provide devdeps_image) or cache (i.e. provide devdeps_cache and devdeps_archive) that should be used for the build." >> $GITHUB_STEP_SUMMARY
             exit 1
@@ -507,7 +516,8 @@ jobs:
         id: docs_build
         run: |
           if ${{ steps.restore_cudaq.outcome != 'skipped' }}; then
-            cudaq_image=`docker load --input "${{ needs.cudaq_image.outputs.tar_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+            load_output=`docker load --input "${{ needs.cudaq_image.outputs.tar_archive }}"`
+            cudaq_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
           else
             cudaq_image=${{ needs.cudaq_image.outputs.image_hash }}
             docker pull $cudaq_image
@@ -519,7 +529,8 @@ jobs:
           docker image prune --force
 
           if ${{ steps.restore_cudaqdev.outcome != 'skipped' }}; then
-            cudaqdev_image=`docker load --input "${{ needs.cudaqdev_image.outputs.tar_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+            load_output=`docker load --input "${{ needs.cudaqdev_image.outputs.tar_archive }}"`
+            cudaqdev_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
           else
             cudaqdev_image=${{ needs.cudaqdev_image.outputs.image_hash }}
             docker pull $cudaqdev_image
@@ -590,7 +601,8 @@ jobs:
       - name: Validate cuda-quantum image
         run: |
           if ${{ steps.restore.outcome != 'skipped' }}; then
-            cudaq_image=`docker load --input "${{ needs.cudaq_image.outputs.tar_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+            load_output=`docker load --input "${{ needs.cudaq_image.outputs.tar_archive }}"`
+            cudaq_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
           else
             docker pull ${{ needs.cudaq_image.outputs.image_hash }}
             cudaq_image=${{ needs.cudaq_image.outputs.image_hash }}

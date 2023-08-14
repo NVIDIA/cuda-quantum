@@ -52,13 +52,16 @@ jobs:
         id: prereqs
         run: |
           if ${{ steps.restore.outcome != 'skipped' }}; then
-            base_image=`docker load --input "${{ inputs.devdeps_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+            load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
+            base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
+            echo "Base image: $base_image" >> $GITHUB_STEP_SUMMARY
             # Push the image to the local registry to make it available within
             # the containered environment that docker/build-push-action uses.
             docker push $base_image
             rm -rf "${{ inputs.devdeps_archive }}"
           elif ${{ inputs.devdeps_image != '' }}; then
             base_image=${{ inputs.devdeps_image }}
+            echo "Base image: $base_image" >> $GITHUB_STEP_SUMMARY
             docker pull $base_image
           else
             echo "Missing configuration for development dependencies. Either specify the image (i.e. provide devdeps_image) or cache (i.e. provide devdeps_cache and devdeps_archive) that should be used for the build." >> $GITHUB_STEP_SUMMARY
