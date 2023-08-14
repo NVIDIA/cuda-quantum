@@ -47,6 +47,7 @@ jobs:
           path: ${{ inputs.devdeps_archive }}
           key: ${{ inputs.devdeps_cache }}
           fail-on-cache-miss: true
+          enableCrossOsArchive: true
 
       - name: Load prerequisites
         id: prereqs
