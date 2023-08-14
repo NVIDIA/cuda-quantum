@@ -161,7 +161,6 @@ jobs:
           set -e
           key_matrix='${{ needs.config.outputs.json }}'
           keys=`echo $key_matrix | jq '.cache_key | to_entries | .[].value' --raw-output`
-          keys+=" ${{ needs.wheeldeps.outputs.cache_key }}"
           echo "$keys" >> cache_keys.txt
 
           echo "pr-number: ${{ needs.metadata.outputs.pull_request_number }}" >> metadata.txt

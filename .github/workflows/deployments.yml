@@ -119,6 +119,11 @@ jobs:
           echo "platforms=$(echo $platforms)" >> $GITHUB_OUTPUT
           echo "environment=$environment" >> $GITHUB_OUTPUT
 
+      - name: Control prints
+        run: |
+          echo "${{ steps.build_info.outputs.multi_platform || steps.build_info.outputs.platforms }}"
+          echo "${{ fromJson(steps.build_info.outputs.multi_platform || steps.build_info.outputs.platforms)[format('{0}.docker_flag', 'amd64')] }}"
+
   devdeps:
     name: Build dev dependencies
     needs: metadata
