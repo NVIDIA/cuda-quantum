@@ -91,7 +91,7 @@ jobs:
       - name: Determine build info
         id: build_info
         run: |
-          requested_platforms=${{ inputs.platforms || (github.event_name == 'push' && 'linux/amd64,linux/arm64') || 'linux/arm64 linux/amd64' }}
+          requested_platforms="${{ inputs.platforms || (github.event_name == 'push' && 'linux/amd64,linux/arm64') || 'linux/arm64 linux/amd64' }}"
           if [ -n "$(echo "$requested_platforms" | egrep ',')" ]; then
             multi_platform="{\"ids\":[]}"
             platform_flag=`echo "$requested_platforms" | tr -d ' '`
