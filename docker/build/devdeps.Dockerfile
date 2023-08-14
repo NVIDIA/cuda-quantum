@@ -94,7 +94,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 FROM ubuntu:22.04 as doxygenbuild
 RUN if [ "$(uname -m)" != "x86_64" ]; then \
         apt-get update && apt-get install -y wget unzip make cmake flex bison gcc g++ python3 \
-        && wget https://github.com/doxygen/doxygen/archive/9a5686aeebff882ebda518151bc5df9d757ea5f7.zip -q -O repo.zip \
+        # Fixed commit corresponding to release 1.9.7
+        && wget https://github.com/doxygen/doxygen/archive/6a2ce4d18b5af1ca501bcf585e4c8e2b2b353b0f.zip -q -O repo.zip \
         && unzip repo.zip && mv doxygen* repo && rm repo.zip \
         && cmake -G "Unix Makefiles" repo && cmake --build . --target install --config Release \
         && rm -rf repo && apt-get remove -y wget unzip make cmake flex bison gcc g++ python3 \
