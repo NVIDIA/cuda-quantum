@@ -101,7 +101,7 @@ jobs:
           fi
 
           platforms="{\"ids\":[]}"
-          for input in `echo "$requested_platforms" | tr , ' '`; do
+          for input in `echo "$requested_platforms" | tr , ' ' | tr ; ' '`; do
             platform_id=`echo $input | sed 's/linux\///g' | tr -d ' '`
             platform_arch=`([ "$platform_id" == "amd64" ] && echo x86_64) || ([ "$platform_id" == "arm64" ] && echo aarch64) || echo any`
             platforms=`echo $platforms | jq ".ids |= . + [\"$platform_id\"]"`
