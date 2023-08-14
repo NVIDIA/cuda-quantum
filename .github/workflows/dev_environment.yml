@@ -131,7 +131,7 @@ jobs:
             custom_tags="type=raw,value=${{ inputs.pull_request_commit }},priority=1000"
           elif ${{ github.event.pull_request.merged == true }}; then
             custom_tags="type=raw,value=${{ github.event.pull_request.base.ref }},priority=1000"
-          elif ${{ inputs.pull_request_number != '' }} || [ -n "$(echo ${{ github.ref_name }} | grep pull-request/)"]; then
+          elif ${{ inputs.pull_request_number != '' }} || [ -n "$(echo ${{ github.ref_name }} | grep pull-request/)" ]; then
             pr_number=`echo ${{ github.ref_name }} | grep -o [0-9]*`
             custom_tags="type=raw,value=pr-${pr_number:-${{ inputs.pull_request_number }}},priority=1000"
           fi
@@ -156,7 +156,7 @@ jobs:
             prefix=${{ steps.build_info.outputs.tag_prefix }},onlatest=true
             suffix=${{ steps.build_info.outputs.tag_suffix }},onlatest=true
           tags: |
-            type=ref,enable=${{ inputs.pull_request_number == '' }},event=branch
+            type=ref,enable=${{ steps.build_info.outputs.custom_tags == '' }},event=branch
             type=ref,enable=${{ inputs.pull_request_number == '' }},prefix=${{ steps.build_info.outputs.tag_prefix }}pr-,event=pr
             type=ref,enable=${{ inputs.pull_request_number == '' }},event=tag
             ${{ steps.build_info.outputs.custom_tags }}
