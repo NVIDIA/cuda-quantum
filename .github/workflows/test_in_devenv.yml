@@ -50,7 +50,6 @@ jobs:
           load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
           base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
           devdeps_tag=`echo $base_image | rev | cut -d ":" -f 1 | rev`
-          echo "Base image: $base_image" >> $GITHUB_STEP_SUMMARY
 
           DOCKER_BUILDKIT=1 docker build --platform ${{ inputs.platform }} \
             -t cuda-quantum-dev:local -f docker/build/cudaq.dev.Dockerfile . \
@@ -131,7 +130,6 @@ jobs:
           load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
           base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
           devdeps_tag=`echo $base_image | rev | cut -d ":" -f 1 | rev`
-          echo "Base image: $base_image" >> $GITHUB_STEP_SUMMARY
 
           DOCKER_BUILDKIT=1 docker build --platform ${{ inputs.platform }} \
             -t dev_env:local -f docker/build/cudaq.dev.Dockerfile . \
