@@ -59,8 +59,8 @@ jobs:
       pull_request_commit: ${{ steps.pr_info.outputs.pr_base }}
       cache_base: ${{ steps.build_info.outputs.cache_base }}
       update_cache: ${{ steps.build_info.outputs.update_cache }}
+      multi_platform: ${{ steps.build_info.outputs.multi_platform }}
       platforms: ${{ steps.build_info.outputs.platforms }}
-      requested_platforms: ${{ steps.build_info.outputs.requested_platforms }}
       environment: ${{ steps.build_info.outputs.environment }}
 
     steps:
@@ -91,24 +91,23 @@ jobs:
       - name: Determine build info
         id: build_info
         run: |
-          requested_platforms=${{ inputs.platforms || (github.event_name == 'push' && 'linux/amd64,linux/arm64') || '' }}
+          requested_platforms=${{ inputs.platforms || (github.event_name == 'push' && 'linux/amd64,linux/arm64') || 'linux/arm64 linux/amd64' }}
+          if [ -n "$(echo "$requested_platforms" | egrep ',')" ]; then
+            multi_platform="{\"ids\":[]}"
+            platform_flag=`echo "$requested_platforms" | tr -d ' '`
+            multi_platform=`echo $multi_platform | jq ".ids |= . + [\"multiplat\"]"`
+            platform={\"multiplat\":{\"docker_flag\":\"$platform_flag\",\"arch\":\"any\"}}
+            multi_platform=`echo $multi_platform | jq ". |= . + $platform"`
+          fi
+
           platforms="{\"ids\":[]}"
-          if [ "$requested_platforms" != "" ]; then
-            platform_id=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' ' | tr , -`
+          for input in `echo "$requested_platforms" | tr , ' '`; do
+            platform_id=`echo $input | sed 's/linux\///g' | tr -d ' '`
             platform_arch=`([ "$platform_id" == "amd64" ] && echo x86_64) || ([ "$platform_id" == "arm64" ] && echo aarch64) || echo any`
             platforms=`echo $platforms | jq ".ids |= . + [\"$platform_id\"]"`
-            platform={\"$platform_id\":\"${{ inputs.platforms }}\"}
-            platform={\"$platform_id\":{\"docker_flag\":\"${{ inputs.platforms }}\",\"arch\":\"$platform_arch\"}}
+            platform={\"$platform_id\":{\"docker_flag\":\"$input\",\"arch\":\"$platform_arch\"}}
             platforms=`echo $platforms | jq ". |= . + $platform"`
-          else
-            for input in linux/arm64 linux/amd64; do
-              platform_id=`echo $input | sed 's/linux\///g' | tr -d ' ' | tr , -`
-              platform_arch=`([ "$platform_id" == "amd64" ] && echo x86_64) || ([ "$platform_id" == "arm64" ] && echo aarch64) || echo any`
-              platforms=`echo $platforms | jq ".ids |= . + [\"$platform_id\"]"`
-              platform={\"$platform_id\":{\"docker_flag\":\"$input\",\"arch\":\"$platform_arch\"}}
-              platforms=`echo $platforms | jq ". |= . + $platform"`
-            done
-          fi
+          done
 
           cache_base=${{ (github.event_name == 'push' && 'main') || inputs.cache_base || steps.pr_info.outputs.pr_base }}
           update_cache=${{ (github.event_name == 'workflow_dispatch' && inputs.update_registry_cache) || github.event_name == 'push' }}
@@ -116,8 +115,8 @@ jobs:
 
           echo "cache_base=$cache_base" >> $GITHUB_OUTPUT
           echo "update_cache=$update_cache" >> $GITHUB_OUTPUT
+          echo "multi_platform=$(echo $multi_platform)" >> $GITHUB_OUTPUT
           echo "platforms=$(echo $platforms)" >> $GITHUB_OUTPUT
-          echo "requested_platforms=$requested_platforms" >> $GITHUB_OUTPUT
           echo "environment=$environment" >> $GITHUB_OUTPUT
 
   devdeps:
@@ -126,12 +125,12 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created) || (github.event_name == 'workflow_run' && needs.metadata.outputs.pull_request_number != '')
     strategy:
       matrix:
-        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+        platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
         toolchain: [llvm, clang16, gcc12]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
-      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}.docker_flag', matrix.platform)] }}
+      platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}.docker_flag', matrix.platform)] }}
       dockerfile: build/devdeps.Dockerfile
       toolchain: ${{ matrix.toolchain }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
@@ -149,6 +148,8 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created) || (github.event_name == 'workflow_run' && needs.metadata.outputs.pull_request_number != '')
     strategy:
       matrix:
+        # There are currently no multi-platform manylinux images available.
+        # See https://github.com/pypa/manylinux/issues/1306.
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
@@ -174,11 +175,11 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created) || (github.event_name == 'workflow_run' && needs.metadata.outputs.pull_request_number != '')
     strategy:
       matrix:
-        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+        platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
-      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}.docker_flag', matrix.platform)] }}
+      platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}.docker_flag', matrix.platform)] }}
       dockerfile: build/devdeps.ompi.Dockerfile
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       registry_cache_update: ${{ needs.metadata.outputs.update_cache == 'true' }}
@@ -216,16 +217,13 @@ jobs:
   # https://github.com/actions/runner/pull/2477
   config:
     name: Configure build
-    needs: [metadata, devdeps, wheeldeps]
+    needs: [devdeps, wheeldeps]
     if: github.event_name != 'workflow_run'
     runs-on: ubuntu-latest
 
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
       devdeps_toolchain: gcc12
-      devdeps_image: ${{ fromJson(steps.read_json.outputs.result).image_hash[format('{0}-gcc12', steps.build_info.outputs.platform_key)] }}
-      ompi_image: ${{ fromJson(steps.read_json.outputs.result).image_hash[format('{0}-ompi', steps.build_info.outputs.platform_key)] }}
-      platforms: ${{ steps.build_info.outputs.platforms }}
 
     steps:
       - uses: cloudposse/github-action-matrix-outputs-read@0.1.1
@@ -233,46 +231,58 @@ jobs:
         with:
           matrix-step-name: dev_environment
 
-      - id: build_info
-        run: |
-          requested_platforms="${{ needs.metadata.outputs.requested_platforms }}"
-          platform_key=`echo "$requested_platforms" | sed 's/linux\///g' | tr -d ' ' | tr , -`
-          echo "platform_key=$platform_key" >> $GITHUB_OUTPUT
-
-          platforms="{\"ids\":[]}"
-          for input in `echo "$requested_platforms" | tr , ' '`; do
-            platform_id=`echo $input | sed 's/linux\///g' | tr -d ' ' | tr , -`
-            platform_arch=`([ "$platform_id" == "amd64" ] && echo x86_64) || ([ "$platform_id" == "arm64" ] && echo aarch64) || echo any`
-            platforms=`echo $platforms | jq ".ids |= . + [\"$platform_id\"]"`
-            platform={\"$platform_id\":{\"docker_flag\":\"$input\",\"arch\":\"$platform_arch\"}}
-            platforms=`echo $platforms | jq ". |= . + $platform"`
-          done
-          echo "platforms=$(echo $platforms)" >> $GITHUB_OUTPUT
-
   extdevdeps:
     name: Create dev environment
     needs: [metadata, config, openmpi]
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
+      fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
-      platforms: ${{ needs.metadata.outputs.requested_platforms }}
+      platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}.docker_flag', matrix.platform)] }}
       dockerfile: build/devdeps.ext.Dockerfile
       toolchain: ${{ needs.config.outputs.devdeps_toolchain }}
       build_args: |
-        base_image=${{ needs.config.outputs.devdeps_image }}
-        ompidev_image=${{ needs.config.outputs.ompi_image }}
+        base_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', matrix.platform, needs.config.outputs.devdeps_toolchain)] }}
+        ompidev_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-ompi', matrix.platform)] }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       registry_cache_update: ${{ needs.metadata.outputs.update_cache == 'true' }}
       environment: ${{ needs.metadata.outputs.environment }}
+      # needed only for the cloudposse GitHub action
+      matrix_key: ${{ matrix.platform }}-ext
+
+  # This job is needed only when using the cloudposse GitHub action to read
+  # the output of a matrix job. This is a workaround due to current GitHub
+  # limitations that may not be needed if the work started here concludes:
+  # https://github.com/actions/runner/pull/2477
+  ext_config:
+    name: Configure build
+    needs: extdevdeps
+    runs-on: ubuntu-latest
+
+    outputs:
+      json: "${{ steps.read_json.outputs.result }}"
+
+    steps:
+      - uses: cloudposse/github-action-matrix-outputs-read@0.1.1
+        id: read_json
+        with:
+          matrix-step-name: dev_environment
 
   docker_images:
     name: Create Docker images
-    needs: [metadata, config, extdevdeps, openmpi]
+    needs: [metadata, config, ext_config]
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
+      fail-fast: false
     uses: ./.github/workflows/docker_images.yml
     secrets: inherit
     with:
-      platforms: ${{ needs.metadata.outputs.requested_platforms }}
-      ompidev_image: ${{ needs.config.outputs.ompi_image }}
-      devdeps_image: ${{ needs.extdevdeps.outputs.image_hash }}
+      platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}.docker_flag', matrix.platform)] }}
+      ompidev_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-ompi', matrix.platform)] }}
+      devdeps_image: ${{ fromJson(needs.ext_config.outputs.json).image_hash[format('{0}-ext', matrix.platform)] }}
       environment: ghcr-deployment
       build_docs: true
       create_release: ${{ inputs.create_release }}
@@ -282,12 +292,12 @@ jobs:
     needs: [metadata, config]
     strategy:
       matrix:
-        platform: ${{ fromJson(needs.config.outputs.platforms).ids }}
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
         python_version: ['3.8', '3.9', '3.10', '3.11']
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
     with:
-      platform: ${{ fromJson(needs.config.outputs.platforms)[format('{0}.docker_flag', matrix.platform)] }}
+      platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}.docker_flag', matrix.platform)] }}
       python_version: ${{ matrix.python_version }}
       devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-python', matrix.platform)] }}
       # TODO: upload wheels to test-pypi - the push to pypi itself
