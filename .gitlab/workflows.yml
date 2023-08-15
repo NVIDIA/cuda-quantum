@@ -123,7 +123,8 @@ Push to GitHub:
           --target $source_commit --draft --prerelease \
           --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
       fi
-    - cd artifacts && echo "$build_info" > build_info.txt && (echo -n "data-commit:" && echo " $CI_COMMIT_SHA") >> build_info.txt
+    - mkdir -p artifacts && cd artifacts 
+    - echo "$build_info" > build_info.txt && (echo -n "data-commit:" && echo " $CI_COMMIT_SHA") >> build_info.txt
     - if [ -d mgmn_svsim ]; then zip -r mgmn_svsim.zip mgmn_svsim && upload+="mgmn_svsim.zip "; fi
     - if [ -d tensornet ]; then zip -r tensornet.zip tensornet && upload+="tensornet.zip "; fi
     - echo $upload | xargs gh release upload $release_id -R $upstream_url --clobber build_info.txt
