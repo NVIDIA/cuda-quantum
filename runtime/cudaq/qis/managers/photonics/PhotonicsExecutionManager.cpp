@@ -46,7 +46,10 @@ protected:
     state = qpp::kron(state, zeroState);
   }
 
-  void allocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {}
+  void allocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
+    for (auto &q : qudits)
+      allocateQudit(q);
+  }
 
   void deallocateQudit(const cudaq::QuditInfo &q) override {}
 
@@ -73,12 +76,15 @@ protected:
         // Add to the sample result
         // in mid-circ sampling mode this will append 1 bitstring
         counts.appendResult(bitstring.str(), count);
-        // Reset the state.
+        // Reset the string.
         bitstring.str("");
         bitstring.clear();
       }
 
       executionContext->result.append(counts);
+      // Reset the state and qudits
+      state.resize(0);
+      sampleQudits.clear();
     }
   }
 

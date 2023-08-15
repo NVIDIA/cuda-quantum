@@ -47,7 +47,7 @@ TEST(PhotonicsTester, checkHOM) {
 
   struct HOM {
     // Hong–Ou–Mandel effect
-    auto operator()() __qpu__ {
+    auto operator()(double theta) __qpu__ {
 
       constexpr std::array<std::size_t, 2> input_state{1, 1};
 
@@ -58,34 +58,31 @@ TEST(PhotonicsTester, checkHOM) {
         }
       }
 
-      beamSplitterGate(quds[0], quds[1], M_PI / 4);
+      beamSplitterGate(quds[0], quds[1], theta);
       mz(quds);
     }
   };
 
-  struct HOM2 {
-    // Hong–Ou–Mandel effect
-    auto operator()() __qpu__ {
-
-      constexpr std::array<std::size_t, 2> input_state{1, 1};
-
-      cudaq::qreg<cudaq::dyn, 3> quds(2); // |00>
-      for (std::size_t i = 0; i < 2; i++) {
-        for (std::size_t j = 0; j < input_state[i]; j++) {
-          plusGate(quds[i]); // setting to  |11>
-        }
-      }
-
-      beamSplitterGate(quds[0], quds[1], M_PI / 6);
-      mz(quds);
-    }
-  };
-
-  auto counts = cudaq::sample(HOM{});
+  auto counts = cudaq::sample(HOM{}, M_PI / 4);
+  printf("Angle : %.2f \n", 180. / 4);
+  for (auto &[k, v] : counts) {
+    printf("Result / Count = %s : %lu\n", k.c_str(), v);
+  }
   EXPECT_EQ(counts.size(), 2);
 
-  auto counts2 = cudaq::sample(HOM2{});
+  auto counts2 = cudaq::sample(HOM{}, M_PI / 6);
+  printf("Angle : %.2f \n", 180. / 6);
+  for (auto &[k, v] : counts2) {
+    printf("Result / Count = %s : %lu\n", k.c_str(), v);
+  }
   EXPECT_EQ(counts2.size(), 3);
+
+  auto counts3 = cudaq::sample(HOM{}, M_PI / 5);
+  printf("Angle : %.2f \n", 180. / 5);
+  for (auto &[k, v] : counts3) {
+    printf("Result / Count = %s : %lu\n", k.c_str(), v);
+  }
+  EXPECT_EQ(counts3.size(), 3);
 }
 
 TEST(PhotonicsTester, checkMZI) {
