@@ -662,10 +662,13 @@ jobs:
           file_id=`echo $cudaqdev_hash | rev | cut -d ':' -f 1 | rev`
           info_file="deployments/staging/cuda-quantum-dev/$file_id"
           echo "info_file=$info_file" >> $GITHUB_OUTPUT
+          artifact_name=build_info
+          echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT
 
           mkdir -p "$(dirname "$info_file")" && rm -rf "$info_file"
           echo "release-id: ${{ github.sha }}" >> "$info_file"
           echo "source-sha: ${{ github.sha }}" >> "$info_file"
+          echo "build-info: $artifact_name" >> "$info_file"
           echo "cuda-quantum-dev-image: $cudaqdev_hash"  >> "$info_file"
           echo "cuda-quantum-image: $cudaq_hash" >> "$info_file"
           echo "cuda-quantum-devdeps-image: ${{ inputs.devdeps_image }}" >> "$info_file"
@@ -686,7 +689,7 @@ jobs:
       - name: Upload build info
         uses: actions/upload-artifact@v3
         with:
-          name: build_info # changing the artifact name requires updating other workflows
+          name: ${{ steps.staging.outputs.artifact_name }} # changing the artifact name requires updating other workflows
           path: ${{ steps.staging.outputs.info_file }}
           retention-days: 30
           if-no-files-found: error
