@@ -184,7 +184,7 @@ jobs:
             --build-arg os_version=$os_version \
             --build-arg python_version=${{ inputs.python_version }} \
             --build-arg cuda_quantum_wheel=$wheelname \
-            --build-arg preinstalled_modules="numpy pytest" \
+            --build-arg preinstalled_modules="numpy pytest pytest-faulthandler" \
             --build-arg pip_install_flags=${{ matrix.pip_install_flags }} \
             --build-arg optional_dependencies=$([ "$(uname -m)" == "x86_64" ] && echo cudart)
 
@@ -203,26 +203,13 @@ jobs:
           run: |
             # TODO: reenable the tests that are currently disabled on ARM.
             # See https://github.com/NVIDIA/cuda-quantum/issues/554.
-
-            if [ "$(uname -m)" == "aarch64" ]; then
-              test_files=`find /tmp/tests/ -name '*.py' -not -name '*.cfg.py' -not -path '/tmp/tests/backends/*'`
-            else
-              test_files=`find /tmp/tests/ -name '*.py' -not -name '*.cfg.py'`
+            python${{ inputs.python_version }} -m pytest -vs /tmp/tests/ \
+              --ignore python/tests/backends
+            pytest_status=$?
+            if [ ! $pytest_status -eq 0 ]; then
+              echo "pytest status = " $pytest_status
+              exit 1
             fi
-
-            # Running all tests sequentially to work around a pytest related crash (segfault) on arm.
-            python${{ inputs.python_version }} -m pip install --user fastapi uvicorn llvmlite 
-            for test in $test_files; do 
-              python${{ inputs.python_version }} -m pytest -v $test
-              pytest_status=$?
-
-              # Exit code 5 indicates that no tests were collected,
-              # i.e. all tests in this file were skipped.
-              if [ ! $pytest_status -eq 0 ] && [ ! $pytest_status -eq 5 ]; then
-                echo "::error file=python_wheels.yml::Python $test tests failed with status $pytest_status."
-                exit 1
-              fi
-            done 
 
       - name: Validate Python examples
         run: |
