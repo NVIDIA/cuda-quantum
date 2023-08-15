@@ -305,7 +305,7 @@ jobs:
           git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
           git commit --allow-empty -m "$wheeldeps_hash"
 
-          retry=5
+          git config pull.rebase true && retry=5
           while [ $retry -gt 0 ]; do
             git pull --no-edit
             git push && retry=0 || retry=$(($retry - 1))
