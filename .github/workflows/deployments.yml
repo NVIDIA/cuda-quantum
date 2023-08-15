@@ -115,11 +115,23 @@ jobs:
           update_cache=${{ (github.event_name == 'workflow_dispatch' && inputs.update_registry_cache) || github.event_name == 'push' }}
           environment=${{ (github.event_name != 'workflow_run' && 'ghcr-deployment') || '' }}
 
+          # Store deployment info
+          echo "source-sha: ${{ github.sha }}" >> deployment_info.txt
+          echo "publish: ${{ inputs.create_release }}" >> deployment_info.txt
+
           echo "cache_base=$cache_base" >> $GITHUB_OUTPUT
           echo "update_cache=$update_cache" >> $GITHUB_OUTPUT
           echo "multi_platform=$(echo $multi_platform)" >> $GITHUB_OUTPUT
           echo "platforms=$(echo $platforms)" >> $GITHUB_OUTPUT
           echo "environment=$environment" >> $GITHUB_OUTPUT
+
+      - name: Upload deployment info
+        uses: actions/upload-artifact@v3
+        with:
+          name: deployment_info # changing the artifact name requires updating other workflows
+          path: deployment_info.txt
+          retention-days: 30
+          if-no-files-found: error
 
   devdeps:
     name: Build dev dependencies
@@ -285,9 +297,8 @@ jobs:
       platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       ompidev_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-ompi', matrix.platform)] }}
       devdeps_image: ${{ fromJson(needs.ext_config.outputs.json).image_hash[format('{0}-ext', matrix.platform)] }}
-      environment: ghcr-deployment
       build_docs: true
-      create_release: ${{ inputs.create_release }}
+      environment: ghcr-deployment
 
   python_wheels:
     name: Create Python wheels

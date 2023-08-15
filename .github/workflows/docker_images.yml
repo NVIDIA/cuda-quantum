@@ -17,13 +17,10 @@ on:
       ompidev_image:
         required: false
         type: string
-      environment:
-        required: false
-        type: string
       build_docs:
         required: false
         type: string
-      create_release:
+      environment:
         required: false
         type: string
     secrets:
@@ -668,7 +665,6 @@ jobs:
 
           mkdir -p "$(dirname "$info_file")" && rm -rf "$info_file"
           echo "release-id: ${{ github.sha }}" >> "$info_file"
-          echo "publish: ${{ inputs.create_release }}" >> "$info_file"
           echo "source-sha: ${{ github.sha }}" >> "$info_file"
           echo "cuda-quantum-dev-image: $cudaqdev_hash"  >> "$info_file"
           echo "cuda-quantum-image: $cudaq_hash" >> "$info_file"
