@@ -108,8 +108,8 @@ Push to GitHub:
     - if [ -z "$(git remote -v | grep upstream)" ]; 
       then git remote add upstream ${upstream_url}.git;
       fi
-    - digest=${CI_COMMIT_TITLE#ghcr.io/nvidia/$staged@}
-    - build_info=`cat deployments/staging/$staged/${digest#sha256:}`
+    - digest=${CI_COMMIT_TITLE#ghcr.io/nvidia/$staged@} && info_file=${digest#sha256:}
+    - build_info=`cat deployments/staging/$staged/$info_file`
     - release_id=`echo "$build_info" | grep -s -o 'release-id:\s*\S*' | rev | cut -d ' ' -f 1 | cut -d ':' -f 1 | rev`
     - source_commit=`echo "$build_info" | grep -s -o 'source-sha:\s*\S*' | rev | cut -d ' ' -f 1 | cut -d ':' -f 1 | rev`
     - versions=`gh release list -R $upstream_url --exclude-drafts --exclude-pre-releases | egrep -o "([0-9]{1,}\.)+[0-9]{1,}\S*" | sort -r -V`
@@ -124,10 +124,10 @@ Push to GitHub:
           --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
       fi
     - mkdir -p artifacts && cd artifacts 
-    - echo "$build_info" > build_info.txt && (echo -n "data-commit:" && echo " $CI_COMMIT_SHA") >> build_info.txt
+    - echo "$build_info" > "$info_file" && (echo -n "data-commit:" && echo " $CI_COMMIT_SHA") >> "$info_file"
     - if [ -d mgmn_svsim ]; then zip -r mgmn_svsim.zip mgmn_svsim && upload+="mgmn_svsim.zip "; fi
     - if [ -d tensornet ]; then zip -r tensornet.zip tensornet && upload+="tensornet.zip "; fi
-    - echo $upload | xargs gh release upload $release_id -R $upstream_url --clobber build_info.txt
+    - echo $upload | xargs gh release upload $release_id -R $upstream_url --clobber "$info_file"
     - additional_notes="Release edited by [GitLab pipeline]($CI_PIPELINE_URL)." &&
       additional_notes+=$(echo "<br/>Triggered based on [this commit]($upstream_url/commit/$CI_COMMIT_SHA).")
     - gh release view $release_id --json body --jq .body > rel_notes.txt
