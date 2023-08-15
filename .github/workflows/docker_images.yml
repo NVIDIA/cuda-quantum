@@ -657,7 +657,8 @@ jobs:
           # assets are added to the same (draft) release.
           # The commit title of the staging commit needs to match
           # the docker image that is used to build additional components.
-          # Using the image sha as the file name makes it easy to find.
+          # Using the image sha as the file name and the docker image name
+          # as the folder is convenient for the GitLab CI.
 
           cudaqdev_hash=${{ needs.cudaqdev_image.outputs.image_hash }}
           cudaq_hash=${{ needs.cudaq_image.outputs.image_hash }}
