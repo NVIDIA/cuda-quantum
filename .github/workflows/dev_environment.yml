@@ -75,6 +75,7 @@ jobs:
       contents: read
 
     outputs:
+      runner: ${{ steps.build_info.outputs.runner }}
       dockerfile: ${{ steps.build_info.outputs.dockerfile }}
       owner: ${{ steps.build_info.outputs.owner }}
       image_name: ${{ steps.build_info.outputs.image_name }}
@@ -98,6 +99,16 @@ jobs:
       - name: Determine build arguments
         id: build_info
         run: |
+          if [ -n "$(echo ${{ inputs.platforms }} | grep ,)" ]; then
+            error="There are currently no suitable runners configured for multi-platform builds."
+            echo $error && echo $error >> $GITHUB_STEP_SUMMARY
+            exit 1
+          elif [ -n "$(echo ${{ inputs.platforms }} | grep -i arm)" ]; then
+            echo "runner=linux-arm64-cpu4" >> $GITHUB_OUTPUT
+          else
+            echo "runner=ubuntu-latest" >> $GITHUB_OUTPUT
+          fi
+
           repo_owner=${{ github.repository_owner }}
           registry=${{ vars.registry || 'localhost:5000' }}
           build_target=${{ inputs.build_target }}
@@ -145,8 +156,8 @@ jobs:
 
   build:
     name: Caching
-    runs-on: ubuntu-latest
     needs: metadata
+    runs-on: ${{ needs.metadata.outputs.runner }}
     timeout-minutes: 600
     permissions:
       contents: read
@@ -168,8 +179,14 @@ jobs:
         with:
           ref: "${{ (inputs.pull_request_number != '' && format('refs/pull/{0}/merge', inputs.pull_request_number)) || '' }}"
 
+      - name: Set up context for buildx
+        run: |
+          docker context create builder_context
+
       - name: Set up buildx runner
         uses: docker/setup-buildx-action@v2
+        with:
+          endpoint: builder_context
 
       - name: Log in to GitHub CR
         uses: docker/login-action@v2
