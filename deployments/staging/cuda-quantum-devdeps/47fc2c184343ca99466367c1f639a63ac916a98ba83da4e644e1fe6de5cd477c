@@ -1,0 +1,5 @@
+release-id: b350ee162ef274e60eb7e4ca8115c7716792429b
+source-sha: b350ee162ef274e60eb7e4ca8115c7716792429b
+build-info: python_info_amd64
+cuda-quantum-wheeldeps-image: ghcr.io/nvidia/cuda-quantum-devdeps@sha256:47fc2c184343ca99466367c1f639a63ac916a98ba83da4e644e1fe6de5cd477c
+platform: linux/amd64
