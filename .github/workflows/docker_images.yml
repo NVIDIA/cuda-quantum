@@ -680,6 +680,7 @@ jobs:
           while [ $retry -gt 0 ]; do
             git pull --no-edit
             git push && retry=0 || retry=$(($retry - 1))
+            if [ $retry -gt 0 ]; then sleep $(($RANDOM / 1000)); fi
           done
 
       - name: Upload build info

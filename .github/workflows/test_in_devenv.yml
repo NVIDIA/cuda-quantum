@@ -154,7 +154,7 @@ jobs:
             fi
 
             for backendTest in python/tests/backends/*.py; do
-              python3 -m pytest $backendTest
+              python3 -m pytest -v $backendTest
               pytest_status=$?
 
               # Exit code 5 indicates that no tests were collected,

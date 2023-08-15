@@ -232,6 +232,7 @@ jobs:
             while [ $retry -gt 0 ]; do
               git pull --no-edit
               git push && retry=0 || retry=$(($retry - 1))
+              if [ $retry -gt 0 ]; then sleep $(($RANDOM / 1000)); fi
             done            
           else 
             echo "::warning file=publishing.yml::Data commit retrieved from ${{ matrix.build_info }} does not exist."
@@ -360,6 +361,7 @@ jobs:
             while [ $retry -gt 0 ]; do
               git pull --no-edit
               git push && retry=0 || retry=$(($retry - 1))
+              if [ $retry -gt 0 ]; then sleep $(($RANDOM / 1000)); fi
             done            
           else 
             echo "::warning file=publishing.yml::Data commit retrieved from ${{ matrix.build_info }} does not exist."
