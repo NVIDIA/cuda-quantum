@@ -86,6 +86,11 @@ CUDAQ_ALL_REDUCE_IMPL(double, MPI_DOUBLE, std::multiplies, MPI_PROD)
 
 } // namespace details
 
+void all_gather(std::vector<double> &global, std::vector<double> &local) {
+  MPI_Allgather(local.data(), local.size(), MPI_DOUBLE, global.data(),
+                local.size(), MPI_DOUBLE, MPI_COMM_WORLD);
+}
+
 void finalize() {
   if (rank() == 0)
     cudaq::info("Finalizing MPI.");
@@ -131,6 +136,8 @@ CUDAQ_ALL_REDUCE_IMPL(double, std::plus)
 CUDAQ_ALL_REDUCE_IMPL(double, std::multiplies)
 
 } // namespace details
+
+void all_gather(std::vector<double> &global, std::vector<double> &local) {}
 
 void finalize() {}
 
