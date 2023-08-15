@@ -85,6 +85,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
+      - name: Wait for assets
+        run: |
+          for release_id in `echo ${{ steps.artifacts.outputs.releases }}`; do
+            while [ -z "$(gh release list -R ${{ github.repository }} | grep -s $release_id)" ];
+            do echo "Waiting for assets $release_id ..." && sleep 300; 
+            done
+          done
+        env:
+          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+
   cudaq_hpc:
     name: CUDA Quantum Docker image
     needs: assets
@@ -104,17 +114,6 @@ jobs:
       fail-fast: false
 
     steps:
-      - name: Wait for release
-        id: assets
-        run: |
-          release_id=${{ fromJson(needs.assets.outputs.docker_images)[format('{0}', matrix.build_info)].release_id }}
-          echo "release_id=$release_id" >> $GITHUB_OUTPUT
-          while [ -z "$(gh release list -R ${{ github.repository }} | grep -s $release_id)" ];
-          do echo "waiting for assets..." && sleep 300; 
-          done
-        env:
-          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
-
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
@@ -123,8 +122,8 @@ jobs:
       - name: Retrieve assets
         id: release_info
         run: |
-          assets_folder=assets && release_id=${{ steps.assets.outputs.release_id }}
-          mkdir "$assets_folder" && cd "$assets_folder"
+          release_id=${{ fromJson(needs.assets.outputs.docker_images)[format('{0}', matrix.build_info)].release_id }}
+          assets_folder=assets && mkdir "$assets_folder" && cd "$assets_folder"
           while [ -z `ls | egrep '^${{ matrix.build_info }}\.'` ]; do
             (gh release download $release_id -R ${{ github.repository }}) || true
             sleep 30 # waiting for assets to be created...
@@ -148,6 +147,7 @@ jobs:
           docker image rm $cudaq_image
           docker image prune --force
 
+          echo "release_id=$release_id" >> $GITHUB_OUTPUT
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
           echo "image_tag=${base_tag}-hpc" >> $GITHUB_OUTPUT
           echo "image_title=$image_title" >> $GITHUB_OUTPUT
@@ -198,7 +198,7 @@ jobs:
 
       - name: Update release information
         run: |
-          release_id=${{ steps.assets.outputs.release_id }}
+          release_id=${{ steps.release_info.outputs.release_id }}
           gh release view $release_id --json body --jq .body > rel_notes.txt
           header_length=`cat rel_notes.txt | grep -n "Release notes generated" | cut -d ':' -f 1`
           head -n $(($header_length - 1)) rel_notes.txt > new_notes.txt
@@ -255,17 +255,6 @@ jobs:
       fail-fast: false
 
     steps:
-      - name: Wait for release
-        id: assets
-        run: |
-          release_id=${{ fromJson(needs.assets.outputs.python_wheels)[format('{0}', matrix.build_info)].release_id }}
-          echo "release_id=$release_id" >> $GITHUB_OUTPUT
-          while [ -z "$(gh release list -R ${{ github.repository }} | grep -s $release_id)" ];
-          do echo "waiting for assets..." && sleep 300; 
-          done
-        env:
-          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
-
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
@@ -274,8 +263,8 @@ jobs:
       - name: Retrieve assets
         id: release_info
         run: |
-          assets_folder=assets && release_id=${{ steps.assets.outputs.release_id }}
-          mkdir "$assets_folder" && cd "$assets_folder"
+          release_id=${{ fromJson(needs.assets.outputs.python_wheels)[format('{0}', matrix.build_info)].release_id }}
+          assets_folder=assets && mkdir "$assets_folder" && cd "$assets_folder"
           while [ -z `ls | egrep '^${{ matrix.build_info }}\.'` ]; do
             (gh release download $release_id -R ${{ github.repository }}) || true
             sleep 30 # waiting for assets to be created...
@@ -289,6 +278,7 @@ jobs:
           data_commit=`cat $build_info | grep -o 'data-commit: \S*' | cut -d ' ' -f 2`
           for file in `ls *zip`; do unzip "$file" && rm "$file"; done && cd -
 
+          echo "release_id=$release_id" >> $GITHUB_OUTPUT
           echo "platform=$platform" >> $GITHUB_OUTPUT
           echo "platform_arch=$platform_arch" >> $GITHUB_OUTPUT
           echo "cudaqwheeldeps_image=$cudaqwheeldeps_image" >> $GITHUB_OUTPUT
@@ -330,7 +320,7 @@ jobs:
 
       - name: Update release information
         run: |
-          release_id=${{ steps.assets.outputs.release_id }}
+          release_id=${{ steps.release_info.outputs.release_id }}
           gh release view $release_id --json body --jq .body > rel_notes.txt
           header_length=`cat rel_notes.txt | grep -n "Release notes generated" | cut -d ':' -f 1`
           head -n $(($header_length - 1)) rel_notes.txt > new_notes.txt
@@ -394,7 +384,6 @@ jobs:
       # https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
       - name: Publish release
         id: publish_release
-        if: steps.release_info.outputs.release
         run: |
           for dir in `ls wheelhouse/`; do 
             mv "wheelhouse/$dir"/* wheelhouse/ && rmdir "wheelhouse/$dir"
