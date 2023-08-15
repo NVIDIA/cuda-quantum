@@ -184,7 +184,7 @@ jobs:
             --build-arg os_version=$os_version \
             --build-arg python_version=${{ inputs.python_version }} \
             --build-arg cuda_quantum_wheel=$wheelname \
-            --build-arg preinstalled_modules="numpy pytest pytest-faulthandler" \
+            --build-arg preinstalled_modules="numpy pytest" \
             --build-arg pip_install_flags=${{ matrix.pip_install_flags }} \
             --build-arg optional_dependencies=$([ "$(uname -m)" == "x86_64" ] && echo cudart)
 
@@ -201,15 +201,24 @@ jobs:
           image: wheel_validation:local
           shell: bash
           run: |
-            # TODO: reenable the tests that are currently disabled on ARM.
-            # See https://github.com/NVIDIA/cuda-quantum/issues/554.
-            python${{ inputs.python_version }} -m pytest -vs /tmp/tests/ \
+            python${{ inputs.python_version }} -m pytest -v /tmp/tests/ \
               --ignore python/tests/backends
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then
-              echo "pytest status = " $pytest_status
+              echo "::error file=python_wheel.yml::Python tests failed with status $pytest_status."
               exit 1
             fi
+            python${{ inputs.python_version }} -m pip install --user fastapi uvicorn llvmlite 
+            for backendTest in /tmp/tests/backends/*.py; do 
+              python${{ inputs.python_version }} -m pytest $backendTest
+              pytest_status=$?
+              # Exit code 5 indicates that no tests were collected,
+              # i.e. all tests in this file were skipped.
+              if [ ! $pytest_status -eq 0 ] && [ ! $pytest_status -eq 5 ]; then
+                echo "::error file=python_wheel.yml::Python $backendTest tests failed with status $pytest_status."
+                exit 1
+              fi
+            done
 
       - name: Validate Python examples
         run: |
