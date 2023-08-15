@@ -201,23 +201,16 @@ jobs:
           image: wheel_validation:local
           shell: bash
           run: |
-            python${{ inputs.python_version }} -m pytest -v /tmp/tests/ \
-              --ignore python/tests/backends
-            pytest_status=$?
-            if [ ! $pytest_status -eq 0 ]; then
-              echo "::error file=python_wheels.yml::Python tests failed with status $pytest_status."
-              exit 1
-            fi
-
+            # Running all tests sequentially to work around a pytest related crash (segfault) on arm.
             python${{ inputs.python_version }} -m pip install --user fastapi uvicorn llvmlite 
-            for backendTest in /tmp/tests/backends/*.py; do 
-              python${{ inputs.python_version }} -m pytest $backendTest
+            for test in /tmp/tests/*.py; do 
+              python${{ inputs.python_version }} -m pytest $test
               pytest_status=$?
 
               # Exit code 5 indicates that no tests were collected,
               # i.e. all tests in this file were skipped.
               if [ ! $pytest_status -eq 0 ] && [ ! $pytest_status -eq 5 ]; then
-                echo "::error file=python_wheels.yml::Python $backendTest tests failed with status $pytest_status."
+                echo "::error file=python_wheels.yml::Python $test tests failed with status $pytest_status."
                 exit 1
               fi
             done 
@@ -308,7 +301,6 @@ jobs:
           while [ $retry -gt 0 ]; do
             git pull --no-edit
             git push && retry=0 || retry=$(($retry - 1))
-            echo $retry
           done
 
       - name: Upload build info
