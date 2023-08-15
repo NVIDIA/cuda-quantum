@@ -294,7 +294,7 @@ jobs:
     needs: [metadata, config]
     strategy:
       matrix:
-        platform: [amd64] # ARM: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
         python_version: ['3.8', '3.9', '3.10', '3.11']
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
