@@ -90,7 +90,8 @@ Tensornet Simulator:
 
 Push to GitHub:
   only:
-    variables: $staged
+    variables:
+      - $staged
   stage: deploy
   tags:
     - hostname/xpl-dvt-55
