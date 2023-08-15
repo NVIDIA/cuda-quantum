@@ -21,7 +21,7 @@ public:
 
   /// @brief Compute the `forward_difference` gradient
   void compute(const std::vector<double> &x, std::vector<double> &dx,
-               spin_op &h, double funcAtX) override {
+               const spin_op &h, double funcAtX) override {
     auto tmpX = x;
     for (std::size_t i = 0; i < x.size(); i++) {
       // increase value to x_i + dx_i
