@@ -42,7 +42,7 @@ jobs:
           fi
           artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
 
-          function dowload {
+          function download {
             gh api $1 > info.zip
             unzip -d info info.zip
             for file in `find info/ -type f`; do
