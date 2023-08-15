@@ -99,7 +99,6 @@ jobs:
     name: CUDA Quantum Docker image
     needs: assets
     runs-on: ubuntu-latest
-    timeout-minutes: 180
     permissions:
       contents: read
       packages: write
