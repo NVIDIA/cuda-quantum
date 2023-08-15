@@ -124,9 +124,13 @@ void registerToQIRTranslation() {
 
   cudaq::TranslateFromMLIRRegistration reg(
       "qir", "translate from quake to qir base profile",
-      [](Operation *op, llvm::raw_string_ostream &output, bool printIR) {
+      [](Operation *op, llvm::raw_string_ostream &output, bool printIR,
+         bool printIntermediateIR) {
         auto context = op->getContext();
         PassManager pm(context);
+        if (printIntermediateIR) {
+          pm.enableIRPrinting();
+        }
         std::string errMsg;
         llvm::raw_string_ostream errOs(errMsg);
         auto qirBasePipelineConfig =
@@ -173,8 +177,12 @@ void registerToQIRTranslation() {
 void registerToOpenQASMTranslation() {
   cudaq::TranslateFromMLIRRegistration reg(
       "qasm2", "translate from quake to openQASM 2.0",
-      [](Operation *op, llvm::raw_string_ostream &output, bool printIR) {
+      [](Operation *op, llvm::raw_string_ostream &output, bool printIR,
+         bool printIntermediateIR) {
         PassManager pm(op->getContext());
+        if (printIntermediateIR) {
+          pm.enableIRPrinting();
+        }
         if (failed(pm.run(op)))
           throw std::runtime_error("Lowering failed.");
         auto passed = cudaq::translateToOpenQASM(op, output);
@@ -187,8 +195,14 @@ void registerToOpenQASMTranslation() {
 void registerToIQMJsonTranslation() {
   cudaq::TranslateFromMLIRRegistration reg(
       "iqm", "translate from quake to IQM's json format",
-      [](Operation *op, llvm::raw_string_ostream &output, bool printIR) {
+      [](Operation *op, llvm::raw_string_ostream &output, bool printIR,
+         bool printIntermediateIR) {
         auto passed = cudaq::translateToIQMJson(op, output);
+        // TODO printIntermediateIR not supported here yet
+        if (printIntermediateIR) {
+          llvm::errs() << "WARNING: printIntermediateIR not yet supported for "
+                          "IQM's json format\n";
+        }
         if (printIR)
           llvm::errs() << output.str();
         return passed;
