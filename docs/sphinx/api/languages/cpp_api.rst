@@ -166,5 +166,6 @@ Namespaces
 .. doxygenfunction:: cudaq::mpi::finalize
 .. doxygenfunction:: cudaq::mpi::rank
 .. doxygenfunction:: cudaq::mpi::num_ranks
+.. doxygenfunction:: cudaq::mpi::all_gather
 .. doxygenfunction:: cudaq::mpi::all_reduce(const T&, const Func&)
 .. doxygenfunction:: cudaq::mpi::all_reduce(const T &localValue, const BinaryFunction &function)

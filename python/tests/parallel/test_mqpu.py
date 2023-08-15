@@ -64,10 +64,8 @@ def testLargeProblem():
                                    high=np.pi,
                                    size=(nQubits *
                                          (3 * nLayers + 2),)).tolist()
-    warmUp = cudaq.make_kernel()
-    q = warmUp.qalloc()
-    warmUp.x(q)
-    warmUp()
+    # JIT and warm up
+    kernel(execParams)
 
     # Serial Execution
     start = timeit.default_timer()
