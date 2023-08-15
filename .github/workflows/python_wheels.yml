@@ -201,9 +201,16 @@ jobs:
           image: wheel_validation:local
           shell: bash
           run: |
+            # Backend tests are currently disabled on ARM.
+            if [ "$(uname -m)" == "aarch64" ]; then
+              test_files=`find /tmp/tests/ -name '*.py' -not -path '/tmp/tests/backends/*'`
+            else
+              test_files=`find /tmp/tests/ -name '*.py'`
+            fi
+
             # Running all tests sequentially to work around a pytest related crash (segfault) on arm.
             python${{ inputs.python_version }} -m pip install --user fastapi uvicorn llvmlite 
-            for test in `find /tmp/tests/ -name '*.py'`; do 
+            for test in $test_files; do 
               python${{ inputs.python_version }} -m pytest -v $test
               pytest_status=$?
 
