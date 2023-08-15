@@ -47,7 +47,7 @@ jobs:
     steps:
       - id: info
         run: |
-          if [ -n "$(echo ${{ inputs.platforms }} | tr , ' ' | grep ' ')" ]; then
+          if [ -n "$(echo ${{ inputs.platforms }} | grep ',')" ]; then
             # multi-platform builds get no platform tag
             echo "runner=linux-amd64-cpu16" >> $GITHUB_OUTPUT
             echo "build_docs=${{ inputs.build_docs != 'false' }}" >> $GITHUB_OUTPUT
@@ -633,7 +633,7 @@ jobs:
     needs: [cudaqdev_image, cudaq_image, validation]
     # Unfortunately, we basically inherit this from the cudaq_image job;
     # all jobs that depend on it will need to add the same condition.
-    if: always() && !cancelled() && inputs.environment && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+    if: always() && !cancelled() && inputs.environment && contains(inputs.platforms, ',') && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
 
     permissions:

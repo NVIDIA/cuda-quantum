@@ -104,7 +104,7 @@ jobs:
       - name: Determine build arguments
         id: build_info
         run: |
-          if [ -n "$(echo ${{ inputs.platforms }} | tr , ' ' | grep ' ')" ]; then
+          if [ -n "$(echo ${{ inputs.platforms }} | grep ',')" ]; then
             # multi-platform builds get no platform tag
             echo "runner=linux-amd64-cpu16" >> $GITHUB_OUTPUT
           elif [ -n "$(echo ${{ inputs.platforms }} | grep -i arm)" ]; then
