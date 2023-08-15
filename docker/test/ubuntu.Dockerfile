@@ -27,4 +27,4 @@ COPY docs/sphinx/examples/python /tmp/examples/
 COPY python/tests /tmp/tests/
 
 RUN python${python_version} -m pip install ${pip_install_flags} /tmp/$cuda_quantum_wheel
-RUN if [ -n "$optional_dependencies" ]; then python${python_version} -m pip install cuda-quantum[$optional_dependencies]
+RUN if [ -n "$optional_dependencies" ]; then python${python_version} -m pip install cuda-quantum[$optional_dependencies]; fi

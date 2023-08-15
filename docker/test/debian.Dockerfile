@@ -38,4 +38,4 @@ RUN if [ -n "$pip_install_flags" ]; then \
         sed -i 's/include-system-site-packages = false/include-system-site-packages = true/' $VIRTUAL_ENV/pyvenv.cfg; \
     fi
 RUN python${python_version} -m pip install ${pip_install_flags} /tmp/$cuda_quantum_wheel
-RUN if [ -n "$optional_dependencies" ]; then python${python_version} -m pip install cuda-quantum[$optional_dependencies]
+RUN if [ -n "$optional_dependencies" ]; then python${python_version} -m pip install cuda-quantum[$optional_dependencies]; fi
