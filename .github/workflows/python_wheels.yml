@@ -201,7 +201,9 @@ jobs:
           image: wheel_validation:local
           shell: bash
           run: |
-            # Backend tests are currently disabled on ARM.
+            # TODO: reenable the tests that are currently disabled on ARM.
+            # See https://github.com/NVIDIA/cuda-quantum/issues/554.
+
             if [ "$(uname -m)" == "aarch64" ]; then
               test_files=`find /tmp/tests/ -name '*.py' -not -name '*.cfg.py' -not -path '/tmp/tests/backends/*'`
             else
