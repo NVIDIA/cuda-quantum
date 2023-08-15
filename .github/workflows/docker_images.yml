@@ -675,7 +675,13 @@ jobs:
           git config --global user.name "cuda-quantum-bot"
           git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
           git commit --allow-empty -m "$cudaqdev_hash"
-          git pull --no-edit && git push
+
+          retry=5
+          while [ $retry -gt 0 ]; do
+            git pull --no-edit
+            bash foo.sh && retry=0 || retry=$(($retry - 1))
+            echo $retry
+          done
 
       - name: Upload build info
         uses: actions/upload-artifact@v3

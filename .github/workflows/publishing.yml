@@ -228,7 +228,12 @@ jobs:
             git config --global user.name "cuda-quantum-bot"
             git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
             git revert $data_commit --no-edit
-            git pull --no-edit && git push
+            retry=5
+            while [ $retry -gt 0 ]; do
+              git pull --no-edit
+              bash foo.sh && retry=0 || retry=$(($retry - 1))
+              echo $retry
+            done            
           else 
             echo "::warning file=publishing.yml::Data commit retrieved from ${{ matrix.build_info }} does not exist."
           fi
@@ -352,7 +357,12 @@ jobs:
             git config --global user.name "cuda-quantum-bot"
             git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
             git revert $data_commit --no-edit
-            git pull --no-edit && git push
+            retry=5
+            while [ $retry -gt 0 ]; do
+              git pull --no-edit
+              bash foo.sh && retry=0 || retry=$(($retry - 1))
+              echo $retry
+            done            
           else 
             echo "::warning file=publishing.yml::Data commit retrieved from ${{ matrix.build_info }} does not exist."
           fi
