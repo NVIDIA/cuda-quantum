@@ -25,9 +25,9 @@ stages:
 Metadata:
   stage: metadata
   script:
-    - echo "Commit branch: $CI_COMMIT_BRANCH"
-    - echo "Commit title: $CI_COMMIT_TITLE"
-    - echo "Staged: $staged"
+    - echo "Commit branch is $CI_COMMIT_BRANCH"
+    - echo "Commit title is $CI_COMMIT_TITLE"
+    - echo "Staged is set to $staged"
 
 Python Wheels:
   rules:
