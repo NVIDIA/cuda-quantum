@@ -108,8 +108,9 @@ Push to GitHub:
     - if [ -z "$(git remote -v | grep upstream)" ]; 
       then git remote add upstream ${upstream_url}.git;
       fi
-    - digest=${CI_COMMIT_TITLE#ghcr.io/nvidia/$staged@} && info_file=${digest#sha256:}
-    - build_info=`cat deployments/staging/$staged/$info_file`
+    - digest=${CI_COMMIT_TITLE#ghcr.io/nvidia/$staged@}
+    - build_info=`cat deployments/staging/$staged/${digest#sha256:}`
+    - info_file=`echo "$build_info" | grep -s -o 'build-info:\s*\S*' | rev | cut -d ' ' -f 1 | cut -d ':' -f 1 | rev`
     - release_id=`echo "$build_info" | grep -s -o 'release-id:\s*\S*' | rev | cut -d ' ' -f 1 | cut -d ':' -f 1 | rev`
     - source_commit=`echo "$build_info" | grep -s -o 'source-sha:\s*\S*' | rev | cut -d ' ' -f 1 | cut -d ':' -f 1 | rev`
     - versions=`gh release list -R $upstream_url --exclude-drafts --exclude-pre-releases | egrep -o "([0-9]{1,}\.)+[0-9]{1,}\S*" | sort -r -V`
@@ -123,7 +124,7 @@ Push to GitHub:
           --target $source_commit --draft --prerelease \
           --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
       fi
-    - mkdir -p artifacts && cd artifacts 
+    - mkdir -p artifacts && cd artifacts
     - echo "$build_info" > "$info_file" && (echo -n "data-commit:" && echo " $CI_COMMIT_SHA") >> "$info_file"
     - if [ -d mgmn_svsim ]; then zip -r mgmn_svsim.zip mgmn_svsim && upload+="mgmn_svsim.zip "; fi
     - if [ -d tensornet ]; then zip -r tensornet.zip tensornet && upload+="tensornet.zip "; fi
