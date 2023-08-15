@@ -307,7 +307,7 @@ jobs:
           retry=5
           while [ $retry -gt 0 ]; do
             git pull --no-edit
-            bash foo.sh && retry=0 || retry=$(($retry - 1))
+            git push && retry=0 || retry=$(($retry - 1))
             echo $retry
           done
 
