@@ -79,7 +79,7 @@ jobs:
           if $docs_found; then
             echo "Downloaded $artifact_name artifact from $workflow_run." >> $GITHUB_STEP_SUMMARY
           else
-            echo "Failed to find $artifact_name artifact from $workflow_run." >> $GITHUB_STEP_SUMMARY
+            echo "::error file=documentation.yml::Failed to find $artifact_name artifact from $workflow_run."
             exit 1;
           fi
 

@@ -75,7 +75,7 @@ jobs:
             echo "Base image: $base_image" >> $GITHUB_STEP_SUMMARY
             docker pull $base_image
           else
-            echo "Missing configuration for development dependencies. Either specify the image (i.e. provide devdeps_image) or cache (i.e. provide devdeps_cache and devdeps_archive) that should be used for the build." >> $GITHUB_STEP_SUMMARY
+            echo "::error file=python_wheels.yml::Missing configuration for development dependencies. Either specify the image (i.e. provide devdeps_image) or cache (i.e. provide devdeps_cache and devdeps_archive) that should be used for the build."
             exit 1
           fi
 
@@ -203,7 +203,7 @@ jobs:
               --ignore python/tests/backends
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then
-              echo "pytest status = " $pytest_status
+              echo "::error file=python_wheels.yml::Python tests failed with status $pytest_status."
               exit 1
             fi
 
@@ -215,7 +215,7 @@ jobs:
               # Exit code 5 indicates that no tests were collected,
               # i.e. all tests in this file were skipped.
               if [ ! $pytest_status -eq 0 ] && [ ! $pytest_status -eq 5 ]; then
-                echo "pytest $backendTest status = " $pytest_status
+                echo "::error file=python_wheels.yml::Python $backendTest tests failed with status $pytest_status."
                 exit 1
               fi
             done 

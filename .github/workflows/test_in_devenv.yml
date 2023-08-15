@@ -71,8 +71,7 @@ jobs:
             /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
             lit_status=$?
             if [ ! $ctest_status -eq 0 ] || [ ! $lit_status -eq 0 ]; then
-              echo "ctest status = " $ctest_status
-              echo "llvm-lit status = " $lit_status
+              echo "::error file=test_in_devenv.yml::C++ tests failed (ctest status $ctest_status, llvm-lit status $lit_status)."
               exit 1
             fi
 
@@ -150,7 +149,7 @@ jobs:
               --ignore python/tests/backends
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then
-              echo "pytest status = " $pytest_status
+              echo "::error file=test_in_devenv.yml::Python tests failed with status $pytest_status."
               exit 1
             fi
 
@@ -161,7 +160,7 @@ jobs:
               # Exit code 5 indicates that no tests were collected,
               # i.e. all tests in this file were skipped.
               if [ ! $pytest_status -eq 0 ] && [ ! $pytest_status -eq 5 ]; then
-                echo "pytest $backendTest status = " $pytest_status
+                echo "::error file=test_in_devenv.yml::Python $backendTest tests failed with status $pytest_status."
                 exit 1
               fi 
             done 

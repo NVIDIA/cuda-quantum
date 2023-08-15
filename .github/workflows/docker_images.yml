@@ -221,7 +221,7 @@ jobs:
             echo "Base image: $base_image" >> $GITHUB_STEP_SUMMARY
             docker pull $base_image
           else
-            echo "Missing configuration for development dependencies. Either specify the image (i.e. provide devdeps_image) or cache (i.e. provide devdeps_cache and devdeps_archive) that should be used for the build." >> $GITHUB_STEP_SUMMARY
+            echo "::error file=docker_images.yml::Missing configuration for development dependencies. Either specify the image (i.e. provide devdeps_image) or cache (i.e. provide devdeps_cache and devdeps_archive) that should be used for the build."
             exit 1
           fi
 
@@ -376,7 +376,7 @@ jobs:
             devdeps_image=${{ inputs.devdeps_image }}
             echo "Devdeps image: $devdeps_image" >> $GITHUB_STEP_SUMMARY
           else
-            echo "Missing configuration for development dependencies. Either specify the image (i.e. provide devdeps_image) or cache (i.e. provide devdeps_cache and devdeps_archive) that should be used for the build." >> $GITHUB_STEP_SUMMARY
+            echo "::error file=docker_images.yml::Missing configuration for development dependencies. Either specify the image (i.e. provide devdeps_image) or cache (i.e. provide devdeps_cache and devdeps_archive) that should be used for the build."
             exit 1
           fi
 
