@@ -97,7 +97,7 @@ jobs:
             if [ "$head_branch" == "main" ]; then
               echo "target_folder=latest" >> $GITHUB_OUTPUT
             else
-              version=`echo ${head_branch#releases/} | egrep -o "^v?([0-9]{1,}\.)+[0-9]{1,}$"`
+              version=`echo ${head_branch#releases/} | (egrep -o "^v?([0-9]{1,}\.)+[0-9]{1,}$" || true)`
               echo "target_folder=${version#v}" >> $GITHUB_OUTPUT
               if [ -z "${version:-$pr_number}" ]; then
                 echo "Unrecognized docs version. Documentation will not be published." >> $GITHUB_STEP_SUMMARY
