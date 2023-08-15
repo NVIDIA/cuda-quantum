@@ -203,7 +203,7 @@ jobs:
           run: |
             # Running all tests sequentially to work around a pytest related crash (segfault) on arm.
             python${{ inputs.python_version }} -m pip install --user fastapi uvicorn llvmlite 
-            for test in /tmp/tests/*.py; do 
+            for test in `find /tmp/tests/ -name '*.py'`; do 
               python${{ inputs.python_version }} -m pytest -v $test
               pytest_status=$?
 
