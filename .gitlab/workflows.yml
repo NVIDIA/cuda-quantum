@@ -4,6 +4,12 @@ workflow:
     - if: '$CI_COMMIT_BRANCH == "bot/data" && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-dev@sha256:\S+$/'
       variables:
         resource_group: $CI_COMMIT_TITLE
+        staged: "cuda-quantum-dev"
+    - if: '$CI_COMMIT_BRANCH == "bot/data" && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-devdeps@sha256:\S+$/'
+      variables:
+        resource_group: $CI_COMMIT_TITLE
+        staged: "cuda-quantum-devdeps"
+    - when: always
 
 default:
   tags: 
@@ -12,10 +18,33 @@ default:
   interruptible: true
 
 stages:
+  - metadata
   - build
   - deploy
 
+Metadata:
+  stage: metadata
+  script:
+    - echo "Commit branch: $CI_COMMIT_BRANCH"
+    - echo "Commit title: $CI_COMMIT_TITLE"
+    - echo "Staged: $staged"
+
+Python Wheels:
+  rules:
+    - if: $staged == "cuda-quantum-devdeps"
+  stage: build
+  dependencies: []
+  image: $CI_COMMIT_TITLE
+  tags:
+    - hostname/xpl-dvt-55
+  resource_group: $resource_group
+  interruptible: false
+  script:
+    - echo "Nothing implemented yet."
+
 MGMN SV Simulator:
+  rules:
+    - if: $staged == "cuda-quantum-dev"
   stage: build
   dependencies: []
   image: $CI_COMMIT_TITLE
@@ -37,6 +66,8 @@ MGMN SV Simulator:
     - if $built; then `exit 0`; else `exit 1`; fi
 
 Tensornet Simulator:
+  rules:
+    - if: $staged == "cuda-quantum-dev"
   stage: build
   dependencies: []
   image: $CI_COMMIT_TITLE
@@ -58,10 +89,9 @@ Tensornet Simulator:
     - if $built; then `exit 0`; else `exit 1`; fi
 
 Push to GitHub:
+  only:
+    variables: $staged
   stage: deploy
-  dependencies: 
-    - MGMN SV Simulator
-    - Tensornet Simulator
   tags:
     - hostname/xpl-dvt-55
   resource_group: $resource_group
@@ -77,8 +107,8 @@ Push to GitHub:
     - if [ -z "$(git remote -v | grep upstream)" ]; 
       then git remote add upstream ${upstream_url}.git;
       fi
-    - cudaqdev_digest=${CI_COMMIT_TITLE#ghcr.io/nvidia/cuda-quantum-dev@}
-    - build_info=`cat deployments/staging/cuda-quantum-dev/${cudaqdev_digest#sha256:}`
+    - digest=${CI_COMMIT_TITLE#ghcr.io/nvidia/$staged@}
+    - build_info=`cat deployments/staging/$staged/${digest#sha256:}`
     - release_id=`echo "$build_info" | grep -s -o 'release-id:\s*\S*' | rev | cut -d ' ' -f 1 | cut -d ':' -f 1 | rev`
     - source_commit=`echo "$build_info" | grep -s -o 'source-sha:\s*\S*' | rev | cut -d ' ' -f 1 | cut -d ':' -f 1 | rev`
     - versions=`gh release list -R $upstream_url --exclude-drafts --exclude-pre-releases | egrep -o "([0-9]{1,}\.)+[0-9]{1,}\S*" | sort -r -V`
@@ -92,9 +122,10 @@ Push to GitHub:
           --target $source_commit --draft --prerelease \
           --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
       fi
-    - cd artifacts && zip -r mgmn_svsim.zip mgmn_svsim && zip -r tensornet.zip tensornet && ls
-    - echo "$build_info" > build_info.txt && (echo -n "data-commit:" && echo " $CI_COMMIT_SHA") >> build_info.txt
-    - gh release upload $release_id -R $upstream_url mgmn_svsim.zip tensornet.zip build_info.txt --clobber
+    - cd artifacts && echo "$build_info" > build_info.txt && (echo -n "data-commit:" && echo " $CI_COMMIT_SHA") >> build_info.txt
+    - if [ -d mgmn_svsim ]; then zip -r mgmn_svsim.zip mgmn_svsim && upload+="mgmn_svsim.zip "; fi
+    - if [ -d tensornet ]; then zip -r tensornet.zip tensornet && upload+="tensornet.zip "; fi
+    - echo $upload | xargs gh release upload $release_id -R $upstream_url --clobber build_info.txt
     - additional_notes="Release edited by [GitLab pipeline]($CI_PIPELINE_URL)." &&
       additional_notes+=$(echo "<br/>Triggered based on [this commit]($upstream_url/commit/$CI_COMMIT_SHA).")
     - gh release view $release_id --json body --jq .body > rel_notes.txt
