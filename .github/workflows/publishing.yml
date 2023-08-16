@@ -5,6 +5,10 @@ on:
         type: string
         description: The workflow id of the deployment that triggered the release creation.
         required: true
+      assets_from_run:
+        type: string
+        description: Optional argument to facilitate rerunning a failed publishing without rebuilding the assets.
+        required: false
   workflow_run:
     workflows:
       - Deployments
@@ -79,11 +83,11 @@ jobs:
 
               # Make sure to push all staging commits to a separate branch
               # to ensure that a pipeline runs for each commit.
-              staging_branch=bot/${{ github.run_id }}/$name
+              staging_branch=bot/${{ inputs.assets_from_run || github.run_id }}/$name
 
               # Use a dedicated draft release for each set of assets to avoid issues
               # with race conditions when running artifacts builds concurrently.
-              release_id=${{ github.run_id }}_$name
+              release_id=${{ inputs.assets_from_run || github.run_id }}_$name
 
               releases+="$release_id "
               info={\"$name\":{\"release_id\":\"$release_id\",\"staging_branch\":\"$staging_branch\",\"runner\":\"$runner\"}}
@@ -111,6 +115,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
       - name: Trigger assets creation
+        if: inputs.assets_from_run == ''
         run: |
           # The commit title of the staging commit needs to match
           # the docker image that is used to build additional components.
@@ -275,7 +280,7 @@ jobs:
           staging_branch=${{ fromJson(needs.assets.outputs.docker_images)[format('{0}', matrix.info_file)].staging_branch }}
           git config --global user.name "cuda-quantum-bot"
           git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
-          git push --delete $staging_branch
+          git push origin --delete $staging_branch
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
@@ -343,7 +348,7 @@ jobs:
               url=`echo $artifact | jq -r '.url'`
               gh api $url > _pycudaq.zip
               unzip -d _pycudaq _pycudaq.zip && cd _pycudaq
-              for wheel in `ls cuda_quantum-*-manylinux_*_${{ steps.release_info.outputs.platform_arch }}.whl`; do
+              for wheel in `ls cuda_quantum-*-manylinux_*_${{ steps.release_info.outputs.platform_arch }}.whl 2> /dev/null`; do
                 echo "Adding wheel $wheel."
                 mv $wheel "/tmp/wheels/$wheel"
               done
@@ -380,7 +385,7 @@ jobs:
           staging_branch=${{ fromJson(needs.assets.outputs.python_wheels)[format('{0}', matrix.info_file)].staging_branch }}
           git config --global user.name "cuda-quantum-bot"
           git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
-          git push --delete $staging_branch
+          git push origin --delete $staging_branch
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
@@ -415,7 +420,7 @@ jobs:
           done
           zip -r wheelhouse.zip wheelhouse
 
-          release_id=${{ github.run_id }}
+          release_id=${{ inputs.assets_from_run || github.run_id }}
           release_title="${{ needs.assets.outputs.release_title }}"
           github_commit=${{ needs.assets.outputs.github_commit }}
           version=`echo "$release_title" | egrep -o "([0-9]{1,}\.)+[0-9]{1,}([A-Za-z0-9_\-\.]*)"`
