@@ -48,6 +48,10 @@ on:
         required: false
         type: string
         description: The issue number of the pull request to check out. Permits to run the workflow from a different branch than the PR branch.
+      pull_request_commit:
+        required: false
+        type: string
+        description: The commit to check out. Only used when pull_request_number is set.
       environment:
         required: false
         type: string
@@ -76,6 +80,7 @@ jobs:
 
     outputs:
       runner: ${{ steps.build_info.outputs.runner }}
+      platform_tag: ${{ steps.build_info.outputs.platform_tag }}
       dockerfile: ${{ steps.build_info.outputs.dockerfile }}
       owner: ${{ steps.build_info.outputs.owner }}
       image_name: ${{ steps.build_info.outputs.image_name }}
@@ -94,19 +99,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          ref: "${{ (inputs.pull_request_number != '' && format('refs/pull/{0}/merge', inputs.pull_request_number)) || '' }}"
+          ref: "${{ (inputs.pull_request_number != '' && (inputs.pull_request_commit || format('refs/pull/{0}/merge', inputs.pull_request_number))) || '' }}"
 
       - name: Determine build arguments
         id: build_info
         run: |
-          if [ -n "$(echo ${{ inputs.platforms }} | grep ,)" ]; then
-            error="There are currently no suitable runners configured for multi-platform builds."
-            echo $error && echo $error >> $GITHUB_STEP_SUMMARY
-            exit 1
+          if [ -n "$(echo ${{ inputs.platforms }} | grep ',')" ]; then
+            # multi-platform builds get no platform tag
+            echo "runner=linux-amd64-cpu16" >> $GITHUB_OUTPUT
           elif [ -n "$(echo ${{ inputs.platforms }} | grep -i arm)" ]; then
-            echo "runner=linux-arm64-cpu4" >> $GITHUB_OUTPUT
+            platform_tag=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' '`
+            echo "platform_tag=$platform_tag" >> $GITHUB_OUTPUT
+            echo "runner=linux-arm64-cpu8" >> $GITHUB_OUTPUT
           else
-            echo "runner=ubuntu-latest" >> $GITHUB_OUTPUT
+            platform_tag=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' '`
+            echo "platform_tag=$platform_tag" >> $GITHUB_OUTPUT
+            echo "runner=linux-amd64-cpu8" >> $GITHUB_OUTPUT
           fi
 
           repo_owner=${{ github.repository_owner }}
@@ -116,13 +124,16 @@ jobs:
           image_title=cuda-quantum-`echo $image_id | cut -d "." -f 1`
           image_name=$registry/${repo_owner,,}/$image_title
           toolchain=${{ inputs.toolchain }}
-          tag_prefix=`echo $image_id | cut -s -d "." -f 2- | xargs -I "%" echo %. | tr . -`${toolchain:+$toolchain-}
+          tag_prefix=`echo $image_id | cut -s -d "." -f 2- | xargs -I "%" echo %. | tr . -`${platform_tag:+$platform_tag-}${toolchain:+$toolchain-}
           tag_suffix=""
 
-          if ${{ inputs.pull_request_number != '' }}; then
-            custom_tags="type=raw,value=pr-${{ inputs.pull_request_number }}"
+          if ${{ inputs.pull_request_commit != '' }}; then
+            custom_tags="type=raw,value=${{ inputs.registry_cache_from || inputs.pull_request_commit }},priority=1000"
           elif ${{ github.event.pull_request.merged == true }}; then
-            custom_tags="type=raw,value=${{ github.event.pull_request.base.ref }}"
+            custom_tags="type=raw,value=${{ github.event.pull_request.base.ref }},priority=1000"
+          elif ${{ inputs.pull_request_number != '' }} || [ -n "$(echo ${{ github.ref_name }} | grep pull-request/)" ]; then
+            pr_number=`echo ${{ github.ref_name }} | grep -o [0-9]*`
+            custom_tags="type=raw,value=pr-${pr_number:-${{ inputs.pull_request_number }}},priority=1000"
           fi
 
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
@@ -145,8 +156,7 @@ jobs:
             prefix=${{ steps.build_info.outputs.tag_prefix }},onlatest=true
             suffix=${{ steps.build_info.outputs.tag_suffix }},onlatest=true
           tags: |
-            type=schedule,enable=${{ inputs.pull_request_number == '' }},pattern=nightly
-            type=ref,enable=${{ inputs.pull_request_number == '' }},event=branch
+            type=ref,enable=${{ steps.build_info.outputs.custom_tags == '' }},event=branch
             type=ref,enable=${{ inputs.pull_request_number == '' }},prefix=${{ steps.build_info.outputs.tag_prefix }}pr-,event=pr
             type=ref,enable=${{ inputs.pull_request_number == '' }},event=tag
             ${{ steps.build_info.outputs.custom_tags }}
@@ -177,7 +187,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          ref: "${{ (inputs.pull_request_number != '' && format('refs/pull/{0}/merge', inputs.pull_request_number)) || '' }}"
+          ref: "${{ (inputs.pull_request_number != '' && (inputs.pull_request_commit || format('refs/pull/{0}/merge', inputs.pull_request_number))) || '' }}"
 
       - name: Set up context for buildx
         run: |
@@ -198,52 +208,73 @@ jobs:
       - name: Create cache locations
         id: cache
         run: |
-          # FIXME: remove the x86_64 -> gcc12 conversion (done to preserve a cache)
-          toolchain=${{ inputs.toolchain == 'x86_64' && 'gcc12' || inputs.toolchain }}
-          platform_id=`echo "${{ inputs.platforms }}" | tr -d ' ' | tr / - | tr ',' -`
-          if [ "$platform_id" == "linux-amd64" ]; then unset platform_id; fi
+          toolchain=${{ inputs.toolchain }}
           registry_cache=ghcr.io/${{ needs.metadata.outputs.owner }}/buildcache-cuda-quantum
           nvidia_registry_cache=ghcr.io/nvidia/buildcache-cuda-quantum
           registry_cache_base=$(echo ${{ inputs.registry_cache_from || github.event.pull_request.base.ref || 'main' }} | tr / -)
-          cache_id=$(echo ${{ needs.metadata.outputs.image_id }}${toolchain:+-$toolchain}${platform_id:+-$platform_id} | tr . -)
+          cache_id=$(echo ${{ needs.metadata.outputs.image_id }}${toolchain:+-$toolchain} | tr . -)
 
-          local_buildcache_path="/tmp/.buildcache-${cache_id}"
+          orig_gh_ref=${{ github.ref_name }}
+          if [ "$orig_gh_ref" != "${orig_gh_ref#pull-request/}" ]; then
+            # original branch prior to the move by copy-pr-bot
+            orig_gh_ref=${orig_gh_ref#pull-request/}/merge
+          fi
+
+          # Local caches are always to and from a single location.
+
+          platform_id=`echo "${{ inputs.platforms }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
+          local_buildcache_path="/tmp/.buildcache.${{ needs.metadata.outputs.image_id }}"
           local_buildcache_key_suffix="-$(git rev-parse HEAD)"
+
           if ${{ inputs.pull_request_number != '' }}; then
-            local_buildcache_key="${{ inputs.pull_request_number }}/merge-cuda-quantum-${cache_id}"
+            local_buildcache_key="${{ inputs.pull_request_number }}/merge-cuda-quantum-${cache_id}-${platform_id}"
           else
-            local_cache_from=$(echo ${{ inputs.local_cache_from || github.ref_name }} | tr . -)
+            local_cache_from=${{ inputs.local_cache_from }}
+            local_cache_from=$(echo ${local_cache_from:-$orig_gh_ref} | tr . -)
             if ${{ inputs.local_cache_from == '' && github.event.pull_request.merged == true }}; then
               local_cache_from=${{ github.event.pull_request.number }}/merge
             fi
-            local_buildcache_key="${local_cache_from}-cuda-quantum-${cache_id}"
+            local_buildcache_key="${local_cache_from}-cuda-quantum-${cache_id}-${platform_id}"
           fi
 
-          cache_from_gh="type=local,src=${local_buildcache_path}"
-          cache_from_registry="type=registry,ref=${registry_cache}-${cache_id}:${registry_cache_base}"
-          cache_from_nvidia_registry="type=registry,ref=${nvidia_registry_cache}-${cache_id}:${registry_cache_base}"
           if ${{ inputs.registry_cache_update || inputs.registry_cache_update_only }}; then
-            registry_cache_target=$(echo ${{ github.ref_name }} | tr / -)
-            build_cache="type=registry,ref=${registry_cache}-${cache_id}:$registry_cache_target"
+            registry_cache_target=$(echo $orig_gh_ref | tr / -)
+            build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_target"
             cache_to="${build_cache},mode=max,ignore-error=false"
           elif ${{ inputs.create_local_cache }}; then
             # In general, using the build cache from the registry/parent branch is the quickest.
             # We hence create a build cache only upon request.
-            build_cache="$local_buildcache_key"
+            build_cache="${local_buildcache_key}"
             cache_to="type=local,dest=${local_buildcache_path}-new,mode=max,ignore-error=true"
           fi
+
+          # Registry caches pull from a separate cache for each platform
+          # but create a single joint cache for multi-platform builds.
+
+          platform_ids=$(echo "${{ inputs.platforms }}" | sed 's/linux\///g' | tr , ' ')
+          {
+            echo 'cache_from_gh<<multiline'
+            echo "type=local,src=${local_buildcache_path}"
+            echo multiline
+          } >> $GITHUB_OUTPUT
+          {
+            echo 'cache_from_registry<<multiline'
+            for platform_id in $platform_ids; do
+              echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
+              echo "type=registry,ref=${nvidia_registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
+            done
+            echo multiline
+          } >> $GITHUB_OUTPUT
 
           echo "local_buildcache_key=$local_buildcache_key" >> $GITHUB_OUTPUT
           echo "local_buildcache_key_suffix=$local_buildcache_key_suffix" >> $GITHUB_OUTPUT
           echo "local_buildcache_path=$local_buildcache_path" >> $GITHUB_OUTPUT
-          echo "cache_from_gh=$cache_from_gh" >> $GITHUB_OUTPUT
-          echo "cache_from_registry=$cache_from_registry" >> $GITHUB_OUTPUT
-          echo "cache_from_nvidia_registry=$cache_from_nvidia_registry" >> $GITHUB_OUTPUT
+
           echo "cache_to=$cache_to" >> $GITHUB_OUTPUT
           echo "build_cache=$build_cache" >> $GITHUB_OUTPUT
           if ${{ inputs.environment == '' && ! inputs.registry_cache_update_only }}; then
             tar_archive=/tmp/${{ needs.metadata.outputs.image_id }}.tar
-            echo "tar_cache=tar-${cache_id}${local_buildcache_key_suffix}" >> $GITHUB_OUTPUT
+            echo "tar_cache=tar-${cache_id}-${platform_id}${local_buildcache_key_suffix}" >> $GITHUB_OUTPUT
             echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
             echo "docker_output=type=docker,dest=$tar_archive" >> $GITHUB_OUTPUT
           fi
@@ -275,7 +306,6 @@ jobs:
             ${{ inputs.additional_build_caches }}
             ${{ steps.cache.outputs.cache_from_gh }}
             ${{ steps.cache.outputs.cache_from_registry }}
-            ${{ steps.cache.outputs.cache_from_nvidia_registry }}
           cache-to: ${{ steps.cache.outputs.cache_to }}
           push: ${{ inputs.environment && ! inputs.registry_cache_update_only || false }}
           outputs: ${{ steps.cache.outputs.docker_output }}
