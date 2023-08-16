@@ -107,7 +107,7 @@ jobs:
             cudaqdev_hash=`cat "$file.txt" | grep -o 'cuda-quantum-dev-image: \S*' | cut -d ' ' -f 2`
             file_id=`echo $cudaqdev_hash | rev | cut -d ':' -f 1 | rev`
             target_file="deployments/staging/cuda-quantum-dev/$file_id"
-            mv "$file.txt" "$target_file"
+            mkdir -p deployments/staging/cuda-quantum-dev && mv "$file.txt" "$target_file"
             git add "$target_file"
             git config --global user.name "cuda-quantum-bot"
             git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
@@ -121,7 +121,7 @@ jobs:
             wheeldeps_hash=`cat "$file.txt" | grep -o 'cuda-quantum-wheeldeps-image: \S*' | cut -d ' ' -f 2`
             file_id=`echo $wheeldeps_hash | rev | cut -d ':' -f 1 | rev`
             target_file="deployments/staging/cuda-quantum-devdeps/$file_id"
-            mv "$file.txt" "$target_file"
+            mkdir -p deployments/staging/cuda-quantum-devdeps && mv "$file.txt" "$target_file"
             git add "$target_file"
             git config --global user.name "cuda-quantum-bot"
             git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
