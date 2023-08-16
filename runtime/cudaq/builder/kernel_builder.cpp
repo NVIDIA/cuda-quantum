@@ -703,7 +703,7 @@ std::tuple<bool, ExecutionEngine *>
 jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
         std::map<ExecutionEngine *, std::size_t> &jitHash,
         std::string kernelName, std::vector<std::string> extraLibPaths) {
-  
+
   // Start of by getting the current ModuleOp
   auto block = builder.getBlock();
   auto *context = builder.getContext();
@@ -719,17 +719,16 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   auto moduleHash = std::hash<std::string>{}(modulePrintOut);
 
   if (jit) {
-    return std::make_tuple(false, jit);
     // Have we added more instructions
     // since the last time we jit the code?
     // If so, we need to delete this JIT engine
     // and create a new one.
-    // if (moduleHash == jitHash[jit])
-    //   return std::make_tuple(false, jit);
-    // else {
-    //   // need to redo the jit, remove the old one
-    //   jitHash.erase(jit);
-    // }
+    if (moduleHash == jitHash[jit])
+      return std::make_tuple(false, jit);
+    else {
+      // need to redo the jit, remove the old one
+      jitHash.erase(jit);
+    }
   }
 
   cudaq::info("kernel_builder running jitCode.");

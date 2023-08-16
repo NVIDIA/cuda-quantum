@@ -644,16 +644,8 @@ public:
                          kernelName, extraLibPaths);
     // If we had a jitEngine, but the code changed,
     // delete the one we had.
-    if (wasChanged) {
-      if (jitEngine) {
-        auto *ptr = jitEngine.release();
-        details::deleteJitEngine(ptr);
-      }
-
-      jitEngine = std::unique_ptr<ExecutionEngine, void (*)(ExecutionEngine *)>(
-          ptr, details::deleteJitEngine);
-      return;
-    }
+    if (jitEngine && wasChanged)
+      details::deleteJitEngine(jitEngine.release());
 
     // Store for the next time if we haven't already
     if (!jitEngine)
