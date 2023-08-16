@@ -118,29 +118,31 @@ jobs:
           current_branch=$(git rev-parse --abbrev-ref HEAD)
 
           function create_assets {
-            echo "asset-name: $1" >> "$1.txt"
+            release_id=`echo "$3" | jq -r ".release_id"`
+            staging_branch=`echo "$3" | jq -r ".staging_branch"`
+            staging_folder="deployments/staging/$2"
             image_hash=`cat "$1.txt" | grep -o "$2-image: \S*" | cut -d ' ' -f 2`
             file_id=`echo $image_hash | rev | cut -d ':' -f 1 | rev`
-            staging_folder="deployments/staging/$2"
+
+            echo "asset-name: $1" >> "$1.txt"
+            echo "release-id: $release_id" >> "$1.txt"
             mkdir -p "$staging_folder" && mv "$1.txt" "$staging_folder/$file_id"
 
-            echo "Pushing $1 to $3"
+            echo "Pushing $1 to $staging_branch"
             git add "$staging_folder" && git commit -m "$image_hash"
 
             # TODO: update GitLab pipeline to support arm builds
             if [ -z "$(echo $1 | grep arm)" ]; then
-              git push origin $current_branch:$3
+              git push origin $current_branch:$staging_branch
             fi
           }
 
           for file in ${{ join(fromJson(steps.artifacts.outputs.docker_images).info_files, ' ') }}; do
-            staging_branch=`echo '${{ steps.artifacts.outputs.docker_images }}' | jq -r ".$file.staging_branch"`
-            create_assets $file cuda-quantum-dev $staging_branch
+            create_assets $file cuda-quantum-dev '${{ steps.artifacts.outputs.docker_images }}'
           done
 
           for file in ${{ join(fromJson(steps.artifacts.outputs.python_wheels).info_files, ' ') }}; do
-            staging_branch=`echo '${{ steps.artifacts.outputs.python_wheels }}' | jq -r ".$file.staging_branch"`
-            create_assets $file cuda-quantum-wheeldeps $staging_branch
+            create_assets $file cuda-quantum-wheeldeps '${{ steps.artifacts.outputs.python_wheels }}'
           done
 
       - name: Wait for assets
