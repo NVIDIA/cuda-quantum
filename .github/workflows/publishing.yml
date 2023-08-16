@@ -68,7 +68,7 @@ jobs:
             url=`echo $artifact | jq -r '.url'`
 
             # TODO: update GitLab pipeline to support arm builds
-            if [ -z "$(echo $name | grep arm)" ]; then name=""; fi
+            if [ -n "$(echo $name | grep arm)" ]; then name=""; fi
 
             if [ "${name#build_info}" != "$name" ] || [ "${name#python_info}" != "$name" ]; then
               download "$url" "$name"
