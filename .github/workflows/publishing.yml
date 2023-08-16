@@ -61,13 +61,16 @@ jobs:
               release_id=`cat "$name.txt" | grep -o 'release-id: \S*' | cut -d ' ' -f 2`
               releases+="$release_id "
               info={\"$name\":{\"release_id\":\"$release_id\"}}
+              echo "info=(echo $info)"
             fi
             if [ "${name#build_info}" != "$name" ]; then
               docker_images=`echo $docker_images | jq ".build_info |= . + [\"$name\"]"`
               docker_images=`echo $docker_images | jq ". |= . + $info"`
+              echo "$name (docker): (echo $docker_images)"
             elif [ "${name#python_info}" != "$name" ]; then
               python_wheels=`echo $python_wheels | jq ".build_info |= . + [\"$name\"]"`
               python_wheels=`echo $python_wheels | jq ". |= . + $info"`
+              echo "$name (python): (echo $python_wheels)"
             elif [ "${name#deployment_info}" != "$name" ]; then
               download "$url" "$name"
               release_title=`cat "$name.txt" | grep -o 'publish: \S*' | cut -d ' ' -f 2`
@@ -75,6 +78,8 @@ jobs:
             fi
           done
 
+          echo "github_commit=$github_commit"
+          echo "release_title=$release_title"
           echo "docker_images=$(echo $docker_images)"
           echo "python_wheels=$(echo $python_wheels)"
 
@@ -310,6 +315,8 @@ jobs:
               cd .. && rm -rf _pycudaq*
             fi
           done
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Upload wheels
         uses: actions/upload-artifact@v3
