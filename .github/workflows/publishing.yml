@@ -134,7 +134,7 @@ jobs:
           }
 
           for file in ${{ join(fromJson(steps.artifacts.outputs.docker_images).info_files, ' ') }}; do
-            staging_branch=`echo '${{ steps.artifacts.outputs.docker_images }}' | jq -r ".$1.staging_branch"`
+            staging_branch=`echo '${{ steps.artifacts.outputs.docker_images }}' | jq -r ".$file.staging_branch"`
             create_assets $file cuda-quantum-dev $staging_branch
           done
 
