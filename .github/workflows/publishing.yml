@@ -132,7 +132,7 @@ jobs:
             sleep 30 # waiting for assets to be created...
           done
 
-          build_info=${{ matrix.info_file }}.*
+          build_info=${{ matrix.info_file }}*
           platforms=`cat $build_info | grep -o 'platforms: \S*' | cut -d ' ' -f 2`
           cudaq_image=`cat $build_info | grep -o 'cuda-quantum-image: \S*' | cut -d ' ' -f 2`
           cudaqdev_image=`cat $build_info | grep -o 'cuda-quantum-dev-image: \S*' | cut -d ' ' -f 2`
@@ -273,7 +273,7 @@ jobs:
             sleep 30 # waiting for assets to be created...
           done
 
-          build_info=${{ matrix.info_file }}.*
+          build_info=${{ matrix.info_file }}*
           platform=`cat $build_info | grep -o 'platform: \S*' | cut -d ' ' -f 2`
           platform_id=`echo $platform | sed 's/linux\///g' | tr -d ' '`
           platform_arch=`([ "$platform_id" == "amd64" ] && echo x86_64) || ([ "$platform_id" == "arm64" ] && echo aarch64) || echo any`
