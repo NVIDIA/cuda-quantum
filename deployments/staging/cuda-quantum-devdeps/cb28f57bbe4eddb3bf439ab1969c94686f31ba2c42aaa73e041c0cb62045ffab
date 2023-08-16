@@ -1,4 +1,0 @@
-release-id: a1ad3e738f06da6eab05a01486e3f4f5f7508ae9
-source-sha: a1ad3e738f06da6eab05a01486e3f4f5f7508ae9
-cuda-quantum-wheeldeps-image: ghcr.io/nvidia/cuda-quantum-devdeps@sha256:cb28f57bbe4eddb3bf439ab1969c94686f31ba2c42aaa73e041c0cb62045ffab
-platform: linux/amd64
