@@ -39,41 +39,54 @@ void createGraph(func::FuncOp &quakeFunc, Graph &graph) {
   // Track Operation* to the GraphNode representing it
   std::map<Operation *, GraphNode> mapper;
 
+  llvm::DenseMap<Value, Operation *> operandToDefinedOrLastUsed;
+
   // Track node Ids.
   std::size_t id = 0;
-
-  // First add |0> qubit nodes to start the graph,
-  // and then add all quantum operations as nodes
-  quakeFunc.walk([&](Operation *op) {
+  quakeFunc.walk([&](Operation *op) mutable {
     if (isa<quake::NullWireOp, quake::OperatorInterface, quake::MxOp,
             quake::MyOp, quake::MzOp>(op)) {
+      // Create the node
       GraphNode node{op, id++};
       graph.insert({node, std::vector<GraphNode>{}});
-
       // Also build a map so we can go from Operation* to GraphNode.
       mapper.insert({op, node});
+    } else
+      return WalkResult::advance();
+
+    // These are the first nodes, insert them and drop out,
+    // there are no input wires to process here.
+    if (isa<quake::NullWireOp>(op)) {
+      operandToDefinedOrLastUsed.insert({op->getResults().front(), op});
+      return WalkResult::advance();
     }
+
+    for (auto operand : op->getOperands()) {
+      if (isa<FloatType>(operand.getType()))
+        continue;
+      
+      // Get the last node that used this operand
+      auto *lastOpNode = operandToDefinedOrLastUsed[operand];
+
+      // Get as a GraphNode
+      auto &lastGraphNode = mapper.at(lastOpNode);
+
+      // Get the current Operations GraphNode representation
+      auto &thisGraphNode = mapper.at(op);
+
+      // Connect the nodes
+      graph[lastGraphNode].push_back(thisGraphNode);
+
+      // Update the mapping
+      operandToDefinedOrLastUsed[operand] = op;
+      operandToDefinedOrLastUsed.insert({op->getResults().front(), op});
+    }
+
     return WalkResult::advance();
   });
-
-  // Add the edges now
-  quakeFunc.walk([&](Operation *op) {
-    if (isa<quake::NullWireOp, quake::OperatorInterface>(op)) {
-      auto &thisNode = mapper.at(op);
-      auto users = op->getUsers();
-      for (auto user : users)
-        if (isUsedAsControl(user->getResult(0),
-                            mapper.at(user).op->getOperands()))
-          // keep control nodes at the beginning of the vector
-          graph[thisNode].insert(graph[thisNode].begin(), mapper.at(user));
-        else
-          graph[thisNode].emplace_back(mapper.at(user));
-    }
-    return WalkResult::advance();
-  });
-
   LLVM_DEBUG(llvm::dbgs() << "\n\nGraph data:\n");
   dumpGraph(graph);
+
 }
 
 /// @brief For each partitioned graph, add the requisite
