@@ -140,7 +140,7 @@ jobs:
 
           for file in ${{ join(fromJson(steps.artifacts.outputs.python_wheels).info_files, ' ') }}; do
             staging_branch=`echo '${{ steps.artifacts.outputs.python_wheels }}' | jq -r ".$file.staging_branch"`
-            create_assets $file cuda-quantum-dev $staging_branch
+            create_assets $file cuda-quantum-wheeldeps $staging_branch
           done
 
       - name: Wait for assets
