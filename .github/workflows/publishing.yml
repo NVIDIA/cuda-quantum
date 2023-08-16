@@ -68,6 +68,10 @@ jobs:
             url=`echo $artifact | jq -r '.url'`
             if [ "${name#build_info}" != "$name" ] || [ "${name#python_info}" != "$name" ]; then
               download "$url" "$name"
+              platforms=`cat "$name.txt" | egrep -o 'platforms?: \S*' | cut -d ' ' -f 2`
+              if [ -n "$(echo $platforms | grep ',')" ]; then runner=linux-amd64-cpu8
+              else runner=$(echo $platforms | tr / -)-cpu8
+              fi
 
               # Make sure to push all staging commits to a separate branch
               # to ensure that a pipeline runs for each commit.
@@ -78,7 +82,7 @@ jobs:
               release_id=${{ github.run_id }}_$name
 
               releases+="$release_id "
-              info={\"$name\":{\"release_id\":\"$release_id\",\"staging_branch\":\"$staging_branch\"}}
+              info={\"$name\":{\"release_id\":\"$release_id\",\"staging_branch\":\"$staging_branch\",\"runner\":\"$runner\"}}
             fi
             if [ "${name#build_info}" != "$name" ]; then
               docker_images=`echo $docker_images | jq ".info_files |= . + [\"$name\"]"`
@@ -113,30 +117,30 @@ jobs:
           git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
           current_branch=$(git rev-parse --abbrev-ref HEAD)
 
-          for file in ${{ join(fromJson(steps.artifacts.outputs.docker_images).info_files, ' ') }}; do
-            echo "asset-name: $file" >> "$file.txt"
-            cudaqdev_hash=`cat "$file.txt" | grep -o 'cuda-quantum-dev-image: \S*' | cut -d ' ' -f 2`
-            file_id=`echo $cudaqdev_hash | rev | cut -d ':' -f 1 | rev`
-            staging_folder="deployments/staging/cuda-quantum-dev"
-            mkdir -p "$staging_folder" && mv "$file.txt" "$staging_folder/$file_id"
+          function create_assets {
+            echo "asset-name: $1" >> "$1.txt"
+            image_hash=`cat "$1.txt" | grep -o '$2-image: \S*' | cut -d ' ' -f 2`
+            file_id=`echo $image_hash | rev | cut -d ':' -f 1 | rev`
+            staging_folder="deployments/staging/$2"
+            mkdir -p "$staging_folder" && mv "$1.txt" "$staging_folder/$file_id"
 
-            target_branch=`echo '${{ steps.artifacts.outputs.docker_images }}' | jq -r ".$file.staging_branch"`
-            echo "Pushing $file to $target_branch"
-            git add "$staging_folder" && git commit -m "$cudaqdev_hash"
-            git push origin $current_branch:$target_branch
+            echo "Pushing $1 to $3"
+            git add "$staging_folder" && git commit -m "$image_hash"
+
+            # TODO: update GitLab pipeline to support arm builds
+            if [ -z "$(echo $1 | grep arm)" ];
+              git push origin $current_branch:$3
+            fi
+          }
+
+          for file in ${{ join(fromJson(steps.artifacts.outputs.docker_images).info_files, ' ') }}; do
+            staging_branch=`echo '${{ steps.artifacts.outputs.docker_images }}' | jq -r ".$1.staging_branch"`
+            create_assets $file cuda-quantum-dev $staging_branch
           done
 
           for file in ${{ join(fromJson(steps.artifacts.outputs.python_wheels).info_files, ' ') }}; do
-            echo "asset-name: $file" >> "$file.txt"
-            wheeldeps_hash=`cat "$file.txt" | grep -o 'cuda-quantum-wheeldeps-image: \S*' | cut -d ' ' -f 2`
-            file_id=`echo $wheeldeps_hash | rev | cut -d ':' -f 1 | rev`
-            staging_folder="deployments/staging/cuda-quantum-dev"
-            mkdir -p "$staging_folder" && mv "$file.txt" "$staging_folder/$file_id"
-
-            target_branch=`echo '${{ steps.artifacts.outputs.python_wheels }}' | jq -r ".$file.staging_branch"`
-            echo "Pushing $file to $target_branch"
-            git add "$staging_folder" && git commit -m "$wheeldeps_hash"
-            git push origin $current_branch:$target_branch
+            staging_branch=`echo '${{ steps.artifacts.outputs.python_wheels }}' | jq -r ".$file.staging_branch"`
+            create_assets $file cuda-quantum-dev $staging_branch
           done
 
       - name: Wait for assets
