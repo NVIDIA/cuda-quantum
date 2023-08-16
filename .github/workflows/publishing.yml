@@ -51,8 +51,8 @@ jobs:
             rm -rf info info.zip
           }
 
-          docker_images="{\"build_info\":[]}"
-          python_wheels="{\"build_info\":[]}"
+          docker_images="{\"info_files\":[]}"
+          python_wheels="{\"info_files\":[]}"
           for artifact in `echo "$artifacts"`; do
             name=`echo $artifact | jq -r '.name'`
             url=`echo $artifact | jq -r '.url'`
@@ -61,16 +61,13 @@ jobs:
               release_id=`cat "$name.txt" | grep -o 'release-id: \S*' | cut -d ' ' -f 2`
               releases+="$release_id "
               info={\"$name\":{\"release_id\":\"$release_id\"}}
-              echo "info=(echo $info)"
             fi
             if [ "${name#build_info}" != "$name" ]; then
-              docker_images=`echo $docker_images | jq ".build_info |= . + [\"$name\"]"`
+              docker_images=`echo $docker_images | jq ".info_files |= . + [\"$name\"]"`
               docker_images=`echo $docker_images | jq ". |= . + $info"`
-              echo "$name (docker): (echo $docker_images)"
             elif [ "${name#python_info}" != "$name" ]; then
-              python_wheels=`echo $python_wheels | jq ".build_info |= . + [\"$name\"]"`
+              python_wheels=`echo $python_wheels | jq ".info_files |= . + [\"$name\"]"`
               python_wheels=`echo $python_wheels | jq ". |= . + $info"`
-              echo "$name (python): (echo $python_wheels)"
             elif [ "${name#deployment_info}" != "$name" ]; then
               download "$url" "$name"
               release_title=`cat "$name.txt" | grep -o 'publish: \S*' | cut -d ' ' -f 2`
@@ -116,7 +113,7 @@ jobs:
 
     strategy:
       matrix:
-        build_info: ${{ fromJson(needs.assets.outputs.docker_images).build_info }}
+        info_file: ${{ fromJson(needs.assets.outputs.docker_images).info_files }}
       fail-fast: false
 
     steps:
@@ -128,14 +125,14 @@ jobs:
       - name: Retrieve assets
         id: release_info
         run: |
-          release_id=${{ fromJson(needs.assets.outputs.docker_images)[format('{0}', matrix.build_info)].release_id }}
+          release_id=${{ fromJson(needs.assets.outputs.docker_images)[format('{0}', matrix.info_file)].release_id }}
           assets_folder=assets && mkdir "$assets_folder" && cd "$assets_folder"
-          while [ -z `ls | egrep '${{ matrix.build_info }}'` ]; do
+          while [ -z `ls | egrep '${{ matrix.info_file }}'` ]; do
             (gh release download $release_id -R ${{ github.repository }}) || true
             sleep 30 # waiting for assets to be created...
           done
 
-          build_info=${{ matrix.build_info }}.*
+          build_info=${{ matrix.info_file }}.*
           platforms=`cat $build_info | grep -o 'platforms: \S*' | cut -d ' ' -f 2`
           cudaq_image=`cat $build_info | grep -o 'cuda-quantum-image: \S*' | cut -d ' ' -f 2`
           cudaqdev_image=`cat $build_info | grep -o 'cuda-quantum-dev-image: \S*' | cut -d ' ' -f 2`
@@ -241,7 +238,7 @@ jobs:
               if [ $retry -gt 0 ]; then sleep $(($RANDOM / 1000)); fi
             done            
           else 
-            echo "::warning file=publishing.yml::Data commit retrieved from ${{ matrix.build_info }} does not exist."
+            echo "::warning file=publishing.yml::Data commit retrieved from ${{ matrix.info_file }} does not exist."
           fi
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
@@ -257,7 +254,7 @@ jobs:
 
     strategy:
       matrix:
-        build_info: ${{ fromJson(needs.assets.outputs.python_wheels).build_info }}
+        info_file: ${{ fromJson(needs.assets.outputs.python_wheels).info_files }}
       fail-fast: false
 
     steps:
@@ -269,14 +266,14 @@ jobs:
       - name: Retrieve assets
         id: release_info
         run: |
-          release_id=${{ fromJson(needs.assets.outputs.python_wheels)[format('{0}', matrix.build_info)].release_id }}
+          release_id=${{ fromJson(needs.assets.outputs.python_wheels)[format('{0}', matrix.info_file)].release_id }}
           assets_folder=assets && mkdir "$assets_folder" && cd "$assets_folder"
-          while [ -z `ls | egrep '${{ matrix.build_info }}'` ]; do
+          while [ -z `ls | egrep '${{ matrix.info_file }}'` ]; do
             (gh release download $release_id -R ${{ github.repository }}) || true
             sleep 30 # waiting for assets to be created...
           done
 
-          build_info=${{ matrix.build_info }}.*
+          build_info=${{ matrix.info_file }}.*
           platform=`cat $build_info | grep -o 'platform: \S*' | cut -d ' ' -f 2`
           platform_id=`echo $platform | sed 's/linux\///g' | tr -d ' '`
           platform_arch=`([ "$platform_id" == "amd64" ] && echo x86_64) || ([ "$platform_id" == "arm64" ] && echo aarch64) || echo any`
@@ -308,7 +305,7 @@ jobs:
               url=`echo $artifact | jq -r '.url'`
               gh api $url > _pycudaq.zip
               unzip -d _pycudaq _pycudaq.zip && cd _pycudaq
-              for wheel in `ls cuda_quantum-*-manylinux_*_${{ steps.release_info.outputs.platform_arch }}.whl`; do
+              for wheel in `find . -name 'cuda_quantum-*-manylinux_*_${{ steps.release_info.outputs.platform_arch }}.whl'`; do
                 echo "Adding wheel $wheel."
                 mv $wheel "/tmp/wheels/$wheel"
               done
@@ -362,7 +359,7 @@ jobs:
               if [ $retry -gt 0 ]; then sleep $(($RANDOM / 1000)); fi
             done            
           else 
-            echo "::warning file=publishing.yml::Data commit retrieved from ${{ matrix.build_info }} does not exist."
+            echo "::warning file=publishing.yml::Data commit retrieved from ${{ matrix.info_file }} does not exist."
           fi
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
