@@ -121,6 +121,7 @@ jobs:
             mkdir -p deployments/staging/cuda-quantum-dev && mv "$file.txt" "$target_file"
 
             target_branch=`${{ fromJson(steps.artifacts.outputs.docker_images) }} | jq -r ".$file.staging_branch"`
+            echo "Pushing $file to $target_branch"
             git add "$target_file"
             git commit -m "$cudaqdev_hash"
             git push $current_branch:$target_branch
@@ -134,6 +135,7 @@ jobs:
             mkdir -p deployments/staging/cuda-quantum-devdeps && mv "$file.txt" "$target_file"
 
             target_branch=`${{ fromJson(steps.artifacts.outputs.python_wheels) }} | jq -r ".$file.staging_branch"`
+            echo "Pushing $file to $target_branch"
             git add "$target_file"
             git commit -m "$wheeldeps_hash"
             git push $current_branch:$target_branch
