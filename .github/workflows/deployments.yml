@@ -19,7 +19,7 @@ on:
         type: string
         description: The platforms to build the Docker images for.
         required: false
-        default: linux/amd64
+        default: linux/amd64,linux/arm64
       create_release:
         type: string
         description: The version number of the release (e.g. 0.3.0). The version must not exist already.

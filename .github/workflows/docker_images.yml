@@ -677,7 +677,7 @@ jobs:
 
           git config --global user.name "cuda-quantum-bot"
           git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
-          git commit --allow-empty -m "$cudaqdev_hash"
+          git commit -m "$cudaqdev_hash"
 
           git config pull.rebase true && retry=5
           while [ $retry -gt 0 ]; do
