@@ -110,7 +110,7 @@ Push to GitHub:
       fi
     - digest=${CI_COMMIT_TITLE#ghcr.io/nvidia/$staged@}
     - build_info=`cat deployments/staging/$staged/${digest#sha256:}`
-    - info_file=`echo "$build_info" | grep -s -o 'build-info:\s*\S*' | rev | cut -d ' ' -f 1 | cut -d ':' -f 1 | rev`
+    - info_file=`echo "$build_info" | grep -s -o 'asset-name:\s*\S*' | rev | cut -d ' ' -f 1 | cut -d ':' -f 1 | rev`
     - release_id=`echo "$build_info" | grep -s -o 'release-id:\s*\S*' | rev | cut -d ' ' -f 1 | cut -d ':' -f 1 | rev`
     - source_commit=`echo "$build_info" | grep -s -o 'source-sha:\s*\S*' | rev | cut -d ' ' -f 1 | cut -d ':' -f 1 | rev`
     - versions=`gh release list -R $upstream_url --exclude-drafts --exclude-pre-releases | egrep -o "([0-9]{1,}\.)+[0-9]{1,}\S*" | sort -r -V`
