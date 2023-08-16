@@ -119,7 +119,7 @@ jobs:
 
           function create_assets {
             echo "asset-name: $1" >> "$1.txt"
-            image_hash=`cat "$1.txt" | grep -o '$2-image: \S*' | cut -d ' ' -f 2`
+            image_hash=`cat "$1.txt" | grep -o "$2-image: \S*" | cut -d ' ' -f 2`
             file_id=`echo $image_hash | rev | cut -d ':' -f 1 | rev`
             staging_folder="deployments/staging/$2"
             mkdir -p "$staging_folder" && mv "$1.txt" "$staging_folder/$file_id"
