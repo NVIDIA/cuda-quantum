@@ -118,10 +118,10 @@ jobs:
           current_branch=$(git rev-parse --abbrev-ref HEAD)
 
           function create_assets {
-            release_id=`echo "$3" | jq -r ".$1.release_id"`
-            staging_branch=`echo "$3" | jq -r ".$1.staging_branch"`
-            staging_folder="deployments/staging/$2"
-            image_hash=`cat "$1.txt" | grep -o "$2-image: \S*" | cut -d ' ' -f 2`
+            release_id=`echo "$4" | jq -r ".$1.release_id"`
+            staging_branch=`echo "$4" | jq -r ".$1.staging_branch"`
+            staging_folder="deployments/staging/$3"
+            image_hash=`cat "$1.txt" | grep -o "$2: \S*" | cut -d ' ' -f 2`
             file_id=`echo $image_hash | rev | cut -d ':' -f 1 | rev`
 
             echo "asset-name: $1" >> "$1.txt"
@@ -138,11 +138,11 @@ jobs:
           }
 
           for file in ${{ join(fromJson(steps.artifacts.outputs.docker_images).info_files, ' ') }}; do
-            create_assets $file cuda-quantum-dev '${{ steps.artifacts.outputs.docker_images }}'
+            create_assets $file cuda-quantum-dev-image cuda-quantum-dev '${{ steps.artifacts.outputs.docker_images }}'
           done
 
           for file in ${{ join(fromJson(steps.artifacts.outputs.python_wheels).info_files, ' ') }}; do
-            create_assets $file cuda-quantum-wheeldeps '${{ steps.artifacts.outputs.python_wheels }}'
+            create_assets $file cuda-quantum-wheeldeps-image cuda-quantum-devdeps '${{ steps.artifacts.outputs.python_wheels }}'
           done
 
       - name: Wait for assets
