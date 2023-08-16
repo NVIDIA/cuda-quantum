@@ -213,3 +213,35 @@ def test_tdg_1_state_negate():
 
     # Qubit should remain in 1-state.
     assert counts["1"] == 1000
+
+def test_can_progressively_build():
+
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc(2)
+    kernel.h(q[0])
+    print(kernel)
+    state = cudaq.get_state(kernel)
+    assert np.isclose(1. / np.sqrt(2.), state[0].real)
+    assert np.isclose(0., state[1].real)
+    assert np.isclose(1. / np.sqrt(2.), state[2].real)
+    assert np.isclose(0., state[3].real)
+
+    counts = cudaq.sample(kernel)
+    print(counts)
+    assert '10' in counts 
+    assert '00' in counts 
+
+    # Continue building the kernel
+    kernel.cx(q[0],q[1])
+    print(kernel)
+    state = cudaq.get_state(kernel)
+    assert np.isclose(1. / np.sqrt(2.), state[0].real)
+    assert np.isclose(0., state[1].real)
+    assert np.isclose(0., state[2].real)
+    assert np.isclose(1. / np.sqrt(2.), state[3].real)
+
+    counts = cudaq.sample(kernel)
+    print(counts)
+    assert '11' in counts 
+    assert '00' in counts 
+    

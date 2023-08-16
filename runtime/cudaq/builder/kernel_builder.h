@@ -208,9 +208,10 @@ void applyPasses(PassManager &);
 
 /// @brief Create the `ExecutionEngine` and return a raw
 /// pointer, which we will wrap in a `unique_ptr`
-ExecutionEngine *jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
-                         std::string kernelName,
-                         std::vector<std::string> extraLibPaths);
+std::tuple<bool, ExecutionEngine *>
+jitCode(ImplicitLocOpBuilder &, ExecutionEngine *,
+        std::map<ExecutionEngine *, std::size_t> &, std::string,
+        std::vector<std::string>);
 
 /// @brief Invoke the function with the given kernel name.
 void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
@@ -349,6 +350,8 @@ private:
   /// as a pointer here to keep implementation details
   /// out of CUDA Quantum code
   std::unique_ptr<ExecutionEngine, void (*)(ExecutionEngine *)> jitEngine;
+
+  std::map<ExecutionEngine *, std::size_t> jitEngineToModuleHash;
 
   /// @brief Name of the CUDA Quantum kernel Quake function
   std::string kernelName = "__nvqpp__mlirgen____nvqppBuilderKernel";
@@ -636,8 +639,22 @@ public:
   /// @brief Lower the Quake code to the LLVM Dialect, call
   /// `PassManager`.
   void jitCode(std::vector<std::string> extraLibPaths = {}) override {
-    auto *ptr = details::jitCode(*opBuilder, jitEngine.get(), kernelName,
-                                 extraLibPaths);
+    auto [wasChanged, ptr] =
+        details::jitCode(*opBuilder, jitEngine.get(), jitEngineToModuleHash,
+                         kernelName, extraLibPaths);
+    // If we had a jitEngine, but the code changed,
+    // delete the one we had.
+    if (wasChanged) {
+      if (jitEngine) {
+        auto *ptr = jitEngine.release();
+        details::deleteJitEngine(ptr);
+      }
+
+      jitEngine = std::unique_ptr<ExecutionEngine, void (*)(ExecutionEngine *)>(
+          ptr, details::deleteJitEngine);
+      return;
+    }
+
     // Store for the next time if we haven't already
     if (!jitEngine)
       jitEngine = std::unique_ptr<ExecutionEngine, void (*)(ExecutionEngine *)>(

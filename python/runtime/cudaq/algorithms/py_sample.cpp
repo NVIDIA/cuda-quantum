@@ -65,6 +65,7 @@ pySampleN(kernel_builder<> &kernel, py::args args = {},
 
   std::vector<sample_result> results;
   for (std::size_t currentIter = 0; auto &a : argSet) {
+    py::print("TEST HERE ", a);
     auto validatedArgs = validateInputArguments(kernel, a);
     OpaqueArguments argData;
     packArgs(argData, validatedArgs);

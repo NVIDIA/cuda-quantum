@@ -31,6 +31,7 @@
 #include "mlir/Target/LLVMIR/ModuleTranslation.h"
 #include "mlir/Transforms/Passes.h"
 
+#include <iostream>
 #include <numeric>
 
 using namespace mlir;
@@ -149,8 +150,12 @@ initializeBuilder(MLIRContext *context,
 
   cudaq::info("kernel_builder has {} arguments", arguments.size());
 
+  // Every Kernel should have a ReturnOp terminator,
+  // then we'll set the insertion point to right
+  // before it.
   opBuilder->setInsertionPointToStart(entryBlock);
-
+  auto terminator = opBuilder->create<func::ReturnOp>();
+  opBuilder->setInsertionPoint(terminator);
   return opBuilder;
 }
 void deleteBuilder(ImplicitLocOpBuilder *builder) { delete builder; }
@@ -694,23 +699,41 @@ void tagEntryPoint(ImplicitLocOpBuilder &builder, ModuleOp &module,
   });
 }
 
-ExecutionEngine *jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
-                         std::string kernelName,
-                         std::vector<std::string> extraLibPaths) {
-  if (jit)
-    return jit;
-
-  cudaq::info("kernel_builder running jitCode.");
-
+std::tuple<bool, ExecutionEngine *>
+jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
+        std::map<ExecutionEngine *, std::size_t> &jitHash,
+        std::string kernelName, std::vector<std::string> extraLibPaths) {
+  
+  // Start of by getting the current ModuleOp
   auto block = builder.getBlock();
-  if ((block->getOperations().empty() ||
-       !block->getOperations().back().hasTrait<OpTrait::IsTerminator>())) {
-    builder.create<func::ReturnOp>(builder.getUnknownLoc());
-  }
-
   auto *context = builder.getContext();
   auto function = block->getParentOp();
   auto currentModule = function->getParentOfType<ModuleOp>();
+
+  // Create a unique hash from that ModuleOp
+  std::string modulePrintOut;
+  {
+    llvm::raw_string_ostream os(modulePrintOut);
+    currentModule.print(os);
+  }
+  auto moduleHash = std::hash<std::string>{}(modulePrintOut);
+
+  if (jit) {
+    return std::make_tuple(false, jit);
+    // Have we added more instructions
+    // since the last time we jit the code?
+    // If so, we need to delete this JIT engine
+    // and create a new one.
+    // if (moduleHash == jitHash[jit])
+    //   return std::make_tuple(false, jit);
+    // else {
+    //   // need to redo the jit, remove the old one
+    //   jitHash.erase(jit);
+    // }
+  }
+
+  cudaq::info("kernel_builder running jitCode.");
+
   auto module = currentModule.clone();
   auto ctx = module.getContext();
   SmallVector<mlir::NamedAttribute> names;
@@ -815,7 +838,9 @@ ExecutionEngine *jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   auto kernelReg = reinterpret_cast<void (*)()>(*regFuncPtr);
   kernelReg();
 
-  return jit;
+  // Map this JIT Engine to its unique hash integer.
+  jitHash.insert({jit, moduleHash});
+  return std::make_tuple(true, jit);
 }
 
 void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
@@ -868,24 +893,6 @@ std::string to_quake(ImplicitLocOpBuilder &builder) {
   // look at the quake code. So we'll clone here, and add the return op (we have
   // to or the print out string will be invalid (verifier failed)).
   auto clonedModule = module.clone();
-
-  // Look for the main block in the functions we have
-  // add a return if it does not have one.
-  clonedModule.walk([](func::FuncOp func) {
-    Block &block = *func.getBlocks().begin();
-
-    auto tmpBuilder = OpBuilder::atBlockEnd(&block);
-
-    if (block.getOperations().empty()) {
-      // If no ops, add a Return
-      tmpBuilder.create<func::ReturnOp>(tmpBuilder.getUnknownLoc());
-    } else if (!block.getOperations()
-                    .back()
-                    .hasTrait<OpTrait::IsTerminator>()) {
-      // if last op is not the terminator, add the return.
-      tmpBuilder.create<func::ReturnOp>(tmpBuilder.getUnknownLoc());
-    }
-  });
 
   func::FuncOp unwrappedParentFunc = llvm::cast<func::FuncOp>(parentFunc);
   llvm::StringRef symName = unwrappedParentFunc.getSymName();
