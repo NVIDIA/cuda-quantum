@@ -68,10 +68,17 @@ jobs:
             url=`echo $artifact | jq -r '.url'`
             if [ "${name#build_info}" != "$name" ] || [ "${name#python_info}" != "$name" ]; then
               download "$url" "$name"
-              # Avoid issues with race conditions when running artifacts builds concurrently:
+
+              # Make sure to push all staging commits to a separate branch
+              # to ensure that a pipeline runs for each commit.
+              staging_branch=bot/${{ github.run_id }}/$name
+
+              # Use a dedicated draft release for each set of assets to avoid issues
+              # with race conditions when running artifacts builds concurrently.
               release_id=${{ github.run_id }}_$name
+
               releases+="$release_id "
-              info={\"$name\":{\"release_id\":\"$release_id\"}}
+              info={\"$name\":{\"release_id\":\"$release_id\",\"staging_branch\":\"$staging_branch\"}}
             fi
             if [ "${name#build_info}" != "$name" ]; then
               docker_images=`echo $docker_images | jq ".info_files |= . + [\"$name\"]"`
@@ -102,18 +109,21 @@ jobs:
           # Using the image sha as the file name and the docker image name
           # as the folder is convenient for the GitLab CI.
 
+          git config --global user.name "cuda-quantum-bot"
+          git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
+          current_branch=$(git rev-parse --abbrev-ref HEAD)
+
           for file in ${{ join(fromJson(steps.artifacts.outputs.docker_images).info_files, ' ') }}; do
             echo "asset-name: $file" >> "$file.txt"
             cudaqdev_hash=`cat "$file.txt" | grep -o 'cuda-quantum-dev-image: \S*' | cut -d ' ' -f 2`
             file_id=`echo $cudaqdev_hash | rev | cut -d ':' -f 1 | rev`
             target_file="deployments/staging/cuda-quantum-dev/$file_id"
             mkdir -p deployments/staging/cuda-quantum-dev && mv "$file.txt" "$target_file"
+
+            target_branch=`${{ fromJson(steps.artifacts.outputs.docker_images) }} | jq -r ".$file.staging_branch"`
             git add "$target_file"
-            git config --global user.name "cuda-quantum-bot"
-            git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
             git commit -m "$cudaqdev_hash"
-            git config pull.rebase true
-            git pull --no-edit && git push
+            git push $current_branch:$target_branch
           done
 
           for file in ${{ join(fromJson(steps.artifacts.outputs.python_wheels).info_files, ' ') }}; do
@@ -122,15 +132,12 @@ jobs:
             file_id=`echo $wheeldeps_hash | rev | cut -d ':' -f 1 | rev`
             target_file="deployments/staging/cuda-quantum-devdeps/$file_id"
             mkdir -p deployments/staging/cuda-quantum-devdeps && mv "$file.txt" "$target_file"
+
+            target_branch=`${{ fromJson(steps.artifacts.outputs.python_wheels) }} | jq -r ".$file.staging_branch"`
             git add "$target_file"
-            git config --global user.name "cuda-quantum-bot"
-            git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
             git commit -m "$wheeldeps_hash"
-            git config pull.rebase true
-            git pull --no-edit && git push
+            git push $current_branch:$target_branch
           done
-        env:
-          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Wait for assets
         run: |
@@ -180,7 +187,6 @@ jobs:
           cudaq_image=`cat $build_info | grep -o 'cuda-quantum-image: \S*' | cut -d ' ' -f 2`
           cudaqdev_image=`cat $build_info | grep -o 'cuda-quantum-dev-image: \S*' | cut -d ' ' -f 2`
           cudaqdevdeps_image=`cat $build_info | grep -o 'cuda-quantum-devdeps-image: \S*' | cut -d ' ' -f 2`
-          data_commit=`cat $build_info | grep -o 'data-commit: \S*' | cut -d ' ' -f 2`
           for file in `ls *zip`; do unzip "$file" && rm "$file"; done && cd -
 
           docker pull $cudaq_image
@@ -203,7 +209,6 @@ jobs:
           echo "cudaqdev_image=$cudaqdev_image" >> $GITHUB_OUTPUT
           echo "cudaqdevdeps_image=$cudaqdevdeps_image" >> $GITHUB_OUTPUT
           echo "assets_folder=$assets_folder" >> $GITHUB_OUTPUT
-          echo "data_commit=$data_commit" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
@@ -258,31 +263,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
-      - name: Checkout data branch
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ vars.data_branch }}
-          token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
-          fetch-depth: 0
-
       - name: Clean up
         run: |
-          # Clean up (i.e. revert) the staging commit on the data branch
-          # that was used to trigger the GitLab pipeline.
-          data_commit=${{ steps.release_info.outputs.data_commit }}
-          if $(git cat-file -e $data_commit^{commit} 2> /dev/null); then
-            git config --global user.name "cuda-quantum-bot"
-            git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
-            git revert $data_commit --no-edit
-            git config pull.rebase true && retry=5
-            while [ $retry -gt 0 ]; do
-              git pull --no-edit
-              git push && retry=0 || retry=$(($retry - 1))
-              if [ $retry -gt 0 ]; then sleep $(($RANDOM / 1000)); fi
-            done            
-          else 
-            echo "::warning file=publishing.yml::Data commit retrieved from ${{ matrix.info_file }} does not exist."
-          fi
+          # Clean up the staging branch that was used to trigger the GitLab pipeline.
+          staging_branch=${{ fromJson(needs.assets.outputs.docker_images)[format('{0}', matrix.info_file)].staging_branch }}
+          git config --global user.name "cuda-quantum-bot"
+          git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
+          git push --delete $staging_branch
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
@@ -321,7 +308,6 @@ jobs:
           platform_id=`echo $platform | sed 's/linux\///g' | tr -d ' '`
           platform_arch=`([ "$platform_id" == "amd64" ] && echo x86_64) || ([ "$platform_id" == "arm64" ] && echo aarch64) || echo any`
           cudaqwheeldeps_image=`cat $build_info | grep -o 'cuda-quantum-wheeldeps-image: \S*' | cut -d ' ' -f 2`
-          data_commit=`cat $build_info | grep -o 'data-commit: \S*' | cut -d ' ' -f 2`
           for file in `ls *zip`; do unzip "$file" && rm "$file"; done && cd -
 
           echo "platform=$platform"
@@ -333,7 +319,6 @@ jobs:
           echo "platform_arch=$platform_arch" >> $GITHUB_OUTPUT
           echo "cudaqwheeldeps_image=$cudaqwheeldeps_image" >> $GITHUB_OUTPUT
           echo "assets_folder=$assets_folder" >> $GITHUB_OUTPUT
-          echo "data_commit=$data_commit" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
@@ -383,31 +368,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
-      - name: Checkout data branch
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ vars.data_branch }}
-          token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
-          fetch-depth: 0
-
       - name: Clean up
         run: |
-          # Clean up (i.e. revert) the staging commit on the data branch
-          # that was used to trigger the GitLab pipeline.
-          data_commit=${{ steps.release_info.outputs.data_commit }}
-          if $(git cat-file -e $data_commit^{commit} 2> /dev/null); then
-            git config --global user.name "cuda-quantum-bot"
-            git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
-            git revert $data_commit --no-edit
-            git config pull.rebase true && retry=5
-            while [ $retry -gt 0 ]; do
-              git pull --no-edit
-              git push && retry=0 || retry=$(($retry - 1))
-              if [ $retry -gt 0 ]; then sleep $(($RANDOM / 1000)); fi
-            done            
-          else 
-            echo "::warning file=publishing.yml::Data commit retrieved from ${{ matrix.info_file }} does not exist."
-          fi
+          # Clean up the staging branch that was used to trigger the GitLab pipeline.
+          staging_branch=${{ fromJson(needs.assets.outputs.python_wheels)[format('{0}', matrix.info_file)].staging_branch }}
+          git config --global user.name "cuda-quantum-bot"
+          git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
+          git push --delete $staging_branch
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
