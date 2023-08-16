@@ -1,11 +1,11 @@
 workflow:
   name: 'Staging'
   rules:
-    - if: '$CI_COMMIT_BRANCH == "bot/data" && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-dev@sha256:\S+$/'
+    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-dev@sha256:\S+$/'
       variables:
         resource_group: $CI_COMMIT_TITLE
         staged: "cuda-quantum-dev"
-    - if: '$CI_COMMIT_BRANCH == "bot/data" && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-devdeps@sha256:\S+$/'
+    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-devdeps@sha256:\S+$/'
       variables:
         resource_group: $CI_COMMIT_TITLE
         staged: "cuda-quantum-devdeps"
