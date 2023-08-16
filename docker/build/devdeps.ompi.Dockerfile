@@ -60,6 +60,7 @@ RUN wget -qO - https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox | ap
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # 4 - Install GDRCOPY version 2.3.1
+
 ENV GDRCOPY_VERSION=2.3.1 
 ENV GDRCOPY_INSTALL_PREFIX=/usr/local/gdrcopy
 RUN apt-get update -y && apt-get install -y --no-install-recommends \
