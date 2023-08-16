@@ -21,10 +21,6 @@ on:
       environment:
         required: false
         type: string
-    secrets:
-      REPO_BOT_ACCESS_TOKEN:
-        description: 'Access token used for deployments.'
-        required: false
 
 name: Python wheels
 
@@ -259,58 +255,25 @@ jobs:
     needs: [build_wheel, validation]
     if: inputs.environment
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: write
-
-    environment:
-      name: ${{ inputs.environment }}
-      url: ${{ vars.deployment_url }}
+    permissions: {}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ vars.data_branch }}
-          token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
-
-      - name: Push staging info
+      - name: Create build info
         id: staging
         run: |
-          # The release id needs to be source-sha such that all external
-          # assets are added to the same (draft) release.
-          # The commit title of the staging commit needs to match
-          # the docker image that is used to build additional components.
-          # Using the image sha as the file name and the docker image name
-          # as the folder is convenient for the GitLab CI.
-
           wheeldeps_hash=${{ inputs.devdeps_image }}
-          file_id=`echo $wheeldeps_hash | rev | cut -d ':' -f 1 | rev`
-          info_file="deployments/staging/cuda-quantum-devdeps/$file_id"
-          echo "info_file=$info_file" >> $GITHUB_OUTPUT
           platform_id=`echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
           echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
           artifact_name=python_info_$platform_id
           echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT
+          info_file="$artifact_name.txt"
+          echo "info_file=$info_file" >> $GITHUB_OUTPUT
 
           mkdir -p "$(dirname "$info_file")" && rm -rf "$info_file"
-          echo "release-id: ${{ github.sha }}" >> "$info_file"
           echo "source-sha: ${{ github.sha }}" >> "$info_file"
           echo "build-info: $artifact_name" >> "$info_file"
           echo "cuda-quantum-wheeldeps-image: $wheeldeps_hash" >> "$info_file"
           echo "platform: ${{ inputs.platform }}" >> "$info_file"
-          git add "$info_file"
-
-          git config --global user.name "cuda-quantum-bot"
-          git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
-          git commit -m "$wheeldeps_hash"
-
-          git config pull.rebase true && retry=5
-          while [ $retry -gt 0 ]; do
-            git pull --no-edit
-            git push && retry=0 || retry=$(($retry - 1))
-            if [ $retry -gt 0 ]; then sleep $(($RANDOM / 1000)); fi
-          done
 
       - name: Upload build info
         uses: actions/upload-artifact@v3

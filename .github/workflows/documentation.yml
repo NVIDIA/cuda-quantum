@@ -133,6 +133,7 @@ jobs:
           else
             git commit --allow-empty -m "Docs update triggered by deployment on head branch ${{ github.event.workflow_run.head_branch }}, commit ${{ github.event.workflow_run.head_sha }}."
           fi
+          git config pull.rebase true
           git pull --no-edit && git push
 
           # For the docs preview, we determine whether docs changed compared to the eventual target folder.

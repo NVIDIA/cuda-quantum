@@ -22,6 +22,10 @@ jobs:
     permissions:
       contents: read
 
+    environment:
+      name: ghcr-deployment
+      url: ${{ vars.deployment_url }}
+
     outputs:
       artifacts_url: ${{ steps.artifacts.outputs.artifacts_url }}
       docker_images: ${{ steps.artifacts.outputs.docker_images }}
@@ -31,6 +35,12 @@ jobs:
       github_commit: ${{ steps.artifacts.outputs.github_commit }}
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ vars.data_branch }}
+          token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+
       - name: Download build info
         id: artifacts
         run: |
@@ -58,7 +68,8 @@ jobs:
             url=`echo $artifact | jq -r '.url'`
             if [ "${name#build_info}" != "$name" ] || [ "${name#python_info}" != "$name" ]; then
               download "$url" "$name"
-              release_id=`cat "$name.txt" | grep -o 'release-id: \S*' | cut -d ' ' -f 2`
+              # Avoid issues with race conditions when running artifacts builds concurrently:
+              release_id=${{ github.run_id }}_$name
               releases+="$release_id "
               info={\"$name\":{\"release_id\":\"$release_id\"}}
             fi
@@ -75,11 +86,6 @@ jobs:
             fi
           done
 
-          echo "github_commit=$github_commit"
-          echo "release_title=$release_title"
-          echo "docker_images=$(echo $docker_images)"
-          echo "python_wheels=$(echo $python_wheels)"
-
           echo "github_commit=$github_commit" >> $GITHUB_OUTPUT
           echo "release_title=$release_title" >> $GITHUB_OUTPUT
           echo "releases='$releases'" >> $GITHUB_OUTPUT
@@ -88,6 +94,41 @@ jobs:
           echo "artifacts_url=$artifacts_url" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ github.token }}
+
+      - name: Trigger assets creation
+        run: |
+          # The commit title of the staging commit needs to match
+          # the docker image that is used to build additional components.
+          # Using the image sha as the file name and the docker image name
+          # as the folder is convenient for the GitLab CI.
+
+          for file in ${{ fromJson(steps.artifacts.outputs.docker_images).info_files }}; do
+            cudaqdev_hash=`cat "$file.txt" | grep -o 'cuda-quantum-dev-image: \S*' | cut -d ' ' -f 2`
+            file_id=`echo $cudaqdev_hash | rev | cut -d ':' -f 1 | rev`
+            target_file="deployments/staging/cuda-quantum-dev/$file_id"
+            mv "$file.txt" "$target_file"
+            git add "$target_file"
+            git config --global user.name "cuda-quantum-bot"
+            git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
+            git commit -m "$cudaqdev_hash"
+            git config pull.rebase true
+            git pull --no-edit && git push
+          done
+
+          for file in ${{ fromJson(steps.artifacts.outputs.python_wheels).info_files }}; do
+            wheeldeps_hash=`cat "$file.txt" | grep -o 'cuda-quantum-wheeldeps-image: \S*' | cut -d ' ' -f 2`
+            file_id=`echo $wheeldeps_hash | rev | cut -d ':' -f 1 | rev`
+            target_file="deployments/staging/cuda-quantum-devdeps/$file_id"
+            mv "$file.txt" "$target_file"
+            git add "$target_file"
+            git config --global user.name "cuda-quantum-bot"
+            git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
+            git commit -m "$wheeldeps_hash"
+            git config pull.rebase true
+            git pull --no-edit && git push
+          done
+        env:
+          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Wait for assets
         run: |
