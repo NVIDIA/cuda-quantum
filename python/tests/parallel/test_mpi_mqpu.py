@@ -44,6 +44,12 @@ def testMPI():
     expectation_value_no_shots = result_no_shots.expectation_z()
     assert np.isclose(want_expectation_value, expectation_value_no_shots)
 
+    # Test all gather 
+    numRanks = cudaq.mpi.num_ranks()
+    local = [1.0]
+    globalList = cudaq.mpi.all_gather(numRanks, local)
+    assert len(globalList) == numRanks
+
     cudaq.reset_target()
     cudaq.mpi.finalize()
 

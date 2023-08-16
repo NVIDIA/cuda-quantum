@@ -64,8 +64,21 @@ jobs:
           done
         shell: bash
 
+      - name: Submit to IonQ Simulator
+        if: inputs.target == 'ionq' || github.event_name == 'schedule'
+        run: |
+          export IONQ_API_KEY="${{ secrets.IONQ_API_KEY }}"
+          # TODO: remove this flag once https://github.com/NVIDIA/cuda-quantum/issues/512 is addressed.
+          export IONQ_FLAG="-DIONQ_TARGET"
+          for filename in test/NVQPP/integration/*.cpp; do
+            [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
+            nvq++ -v $IONQ_FLAG $filename --target ionq
+            CUDAQ_LOG_LEVEL=info ./a.out
+          done
+        shell: bash
+
       - name: Submit to ${{ inputs.target }}
-        if: inputs.target != 'none'
+        if:  inputs.target != 'none' && github.event_name == 'workflow_dispatch'
         run: |
           if ${{inputs.target == 'ionq'}}; then
             export IONQ_API_KEY="${{ secrets.IONQ_API_KEY }}"

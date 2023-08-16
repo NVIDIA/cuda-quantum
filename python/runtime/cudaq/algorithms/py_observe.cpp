@@ -214,8 +214,9 @@ void bindObserve(py::module &mod) {
 
   mod.def(
       "observe",
-      [&](kernel_builder<> &kernel, spin_op &spin_operator, py::args arguments,
-          int shots, std::optional<noise_model> noise,
+      [&](kernel_builder<> &kernel,
+          std::variant<spin_op, std::vector<spin_op>> &spin_operator,
+          py::args arguments, int shots, std::optional<noise_model> noise,
           std::optional<py::type> execution)
           -> std::variant<observe_result, std::vector<observe_result>> {
         // Observe can be a single observe call, a parallel observe call,
@@ -269,19 +270,47 @@ void bindObserve(py::module &mod) {
         if (execution)
           applicatorKey = py::str(execution.value().attr("__name__"));
 
+        spin_op op;
+        auto spinVariantIndex = spin_operator.index();
+        if (spinVariantIndex == 1) {
+          for (auto &o : std::get<std::vector<spin_op>>(spin_operator))
+            op += o;
+          op -= spin_op();
+        } else {
+          op = std::get<spin_op>(spin_operator);
+        }
+
         // Run the observation task
-        auto res = applicator[applicatorKey](kernel, spin_operator, arguments,
-                                             shots, noise);
-        if (res.size() == 1)
-          return {res[0]};
-        else
-          return {res};
+        auto result =
+            applicator[applicatorKey](kernel, op, arguments, shots, noise);
+
+        // We can have a vector of observe_results here
+        if (result.size() == 1) {
+          // If we just have a single result, check that
+          // the input spin_operator was just a spin_op,
+          // if so return the result
+          if (spinVariantIndex == 0)
+            return {result[0]};
+
+          // if it was a list of spin_op, process the single result
+          // back into a vector of results.
+          std::vector<observe_result> results;
+          for (auto &o : std::get<std::vector<spin_op>>(spin_operator))
+            results.emplace_back(result[0].exp_val_z(o), o,
+                                 result[0].counts(o));
+          return results;
+        }
+
+        // Return the vector of results, this is for observe_n
+        return {result};
       },
       py::arg("kernel"), py::arg("spin_operator"), py::kw_only(),
       py::arg("shots_count") = defaultShotsValue,
       py::arg("noise_model") = py::none(), py::arg("execution") = py::none(),
       R"#(Compute the expected value of the `spin_operator` with respect to 
-the `kernel`. If the kernel accepts arguments, it will be evaluated 
+the `kernel`. If the input `spin_operator` is a list of `SpinOperator` then compute 
+the expected value of every operator in the list and return a list of results.
+If the kernel accepts arguments, it will be evaluated 
 with respect to `kernel(*arguments)`. Each argument in `arguments` provided
 can be a list or ndarray of arguments of the specified kernel argument
 type, and in this case, the `observe` functionality will be broadcasted over
@@ -290,8 +319,8 @@ all argument sets and a list of `observe_result` instances will be returned.
 Args:
   kernel (:class:`Kernel`): The :class:`Kernel` to evaluate the 
     expectation value with respect to.
-  spin_operator (:class:`SpinOperator`): The Hermitian spin operator to 
-    calculate the expectation of.
+  spin_operator (:class:`SpinOperator` or `list[SpinOperator]`): The Hermitian spin operator to 
+    calculate the expectation of, or a list of such operators.
   *arguments (Optional[Any]): The concrete values to evaluate the 
     kernel function at. Leave empty if the kernel doesn't accept any arguments.
   shots_count (Optional[int]): The number of shots to use for QPU 
