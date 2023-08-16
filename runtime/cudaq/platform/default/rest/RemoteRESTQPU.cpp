@@ -137,9 +137,8 @@ protected:
       std::string tmp(envVal);
       std::transform(tmp.begin(), tmp.end(), tmp.begin(),
                      [](unsigned char c) { return std::tolower(c); });
-      if (tmp == "1" || tmp == "on" || tmp == "true" || tmp == "yes") {
+      if (tmp == "1" || tmp == "on" || tmp == "true" || tmp == "yes")
         return true;
-      }
     }
     return defaultVal;
   }
@@ -390,9 +389,8 @@ public:
       std::string codeStr;
       {
         llvm::raw_string_ostream outStr(codeStr);
-        if (disableMLIRthreading) {
+        if (disableMLIRthreading)
           moduleOpI.getContext()->disableMultithreading();
-        }
         if (failed(
                 translation(moduleOpI, outStr, printIR, enablePrintIREachPass)))
           throw std::runtime_error("Could not successfully translate to " +

@@ -128,9 +128,8 @@ void registerToQIRTranslation() {
          bool printIntermediateIR) {
         auto context = op->getContext();
         PassManager pm(context);
-        if (printIntermediateIR) {
+        if (printIntermediateIR)
           pm.enableIRPrinting();
-        }
         std::string errMsg;
         llvm::raw_string_ostream errOs(errMsg);
         auto qirBasePipelineConfig =
@@ -180,9 +179,8 @@ void registerToOpenQASMTranslation() {
       [](Operation *op, llvm::raw_string_ostream &output, bool printIR,
          bool printIntermediateIR) {
         PassManager pm(op->getContext());
-        if (printIntermediateIR) {
+        if (printIntermediateIR)
           pm.enableIRPrinting();
-        }
         if (failed(pm.run(op)))
           throw std::runtime_error("Lowering failed.");
         auto passed = cudaq::translateToOpenQASM(op, output);
@@ -199,10 +197,9 @@ void registerToIQMJsonTranslation() {
          bool printIntermediateIR) {
         auto passed = cudaq::translateToIQMJson(op, output);
         // TODO printIntermediateIR not supported here yet
-        if (printIntermediateIR) {
+        if (printIntermediateIR)
           llvm::errs() << "WARNING: printIntermediateIR not yet supported for "
                           "IQM's json format\n";
-        }
         if (printIR)
           llvm::errs() << output.str();
         return passed;
