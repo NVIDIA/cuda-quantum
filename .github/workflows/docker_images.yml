@@ -643,7 +643,6 @@ jobs:
 
           mkdir -p "$(dirname "$info_file")" && rm -rf "$info_file"
           echo "source-sha: ${{ github.sha }}" >> "$info_file"
-          echo "build-info: $artifact_name" >> "$info_file"
           echo "cuda-quantum-dev-image: $cudaqdev_hash"  >> "$info_file"
           echo "cuda-quantum-image: $cudaq_hash" >> "$info_file"
           echo "cuda-quantum-devdeps-image: ${{ inputs.devdeps_image }}" >> "$info_file"

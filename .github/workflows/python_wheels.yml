@@ -271,7 +271,6 @@ jobs:
 
           mkdir -p "$(dirname "$info_file")" && rm -rf "$info_file"
           echo "source-sha: ${{ github.sha }}" >> "$info_file"
-          echo "build-info: $artifact_name" >> "$info_file"
           echo "cuda-quantum-wheeldeps-image: $wheeldeps_hash" >> "$info_file"
           echo "platform: ${{ inputs.platform }}" >> "$info_file"
 

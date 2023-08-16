@@ -103,6 +103,7 @@ jobs:
           # as the folder is convenient for the GitLab CI.
 
           for file in ${{ join(fromJson(steps.artifacts.outputs.docker_images).info_files, ' ') }}; do
+            echo "asset-name: $file" >> "$file.txt"
             cudaqdev_hash=`cat "$file.txt" | grep -o 'cuda-quantum-dev-image: \S*' | cut -d ' ' -f 2`
             file_id=`echo $cudaqdev_hash | rev | cut -d ':' -f 1 | rev`
             target_file="deployments/staging/cuda-quantum-dev/$file_id"
@@ -116,6 +117,7 @@ jobs:
           done
 
           for file in ${{ join(fromJson(steps.artifacts.outputs.python_wheels).info_files, ' ') }}; do
+            echo "asset-name: $file" >> "$file.txt"
             wheeldeps_hash=`cat "$file.txt" | grep -o 'cuda-quantum-wheeldeps-image: \S*' | cut -d ' ' -f 2`
             file_id=`echo $wheeldeps_hash | rev | cut -d ':' -f 1 | rev`
             target_file="deployments/staging/cuda-quantum-devdeps/$file_id"
