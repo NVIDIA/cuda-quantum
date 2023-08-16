@@ -66,6 +66,10 @@ jobs:
           for artifact in `echo "$artifacts"`; do
             name=`echo $artifact | jq -r '.name'`
             url=`echo $artifact | jq -r '.url'`
+
+            # TODO: update GitLab pipeline to support arm builds
+            if [ -z "$(echo $name | grep arm)" ]; then name=""; fi
+
             if [ "${name#build_info}" != "$name" ] || [ "${name#python_info}" != "$name" ]; then
               download "$url" "$name"
               platforms=`cat "$name.txt" | egrep -o 'platforms?: \S*' | cut -d ' ' -f 2`
@@ -130,11 +134,7 @@ jobs:
 
             echo "Pushing $1 to $staging_branch"
             git add "$staging_folder" && git commit -m "$image_hash"
-
-            # TODO: update GitLab pipeline to support arm builds
-            if [ -z "$(echo $1 | grep arm)" ]; then
-              git push origin $current_branch:$staging_branch
-            fi
+            git push origin $current_branch:$staging_branch
           }
 
           for file in ${{ join(fromJson(steps.artifacts.outputs.docker_images).info_files, ' ') }}; do
