@@ -128,7 +128,7 @@ jobs:
             git add "$staging_folder" && git commit -m "$image_hash"
 
             # TODO: update GitLab pipeline to support arm builds
-            if [ -z "$(echo $1 | grep arm)" ];
+            if [ -z "$(echo $1 | grep arm)" ]; then
               git push origin $current_branch:$3
             fi
           }
