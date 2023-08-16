@@ -118,8 +118,8 @@ jobs:
           current_branch=$(git rev-parse --abbrev-ref HEAD)
 
           function create_assets {
-            release_id=`echo "$3" | jq -r ".release_id"`
-            staging_branch=`echo "$3" | jq -r ".staging_branch"`
+            release_id=`echo "$3" | jq -r ".$1.release_id"`
+            staging_branch=`echo "$3" | jq -r ".$1.staging_branch"`
             staging_folder="deployments/staging/$2"
             image_hash=`cat "$1.txt" | grep -o "$2-image: \S*" | cut -d ' ' -f 2`
             file_id=`echo $image_hash | rev | cut -d ':' -f 1 | rev`
