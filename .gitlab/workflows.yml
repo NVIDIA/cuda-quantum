@@ -4,22 +4,18 @@ workflow:
     - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_BRANCH =~ /arm64/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-dev@sha256:\S+$/'
       variables:
         runner: os/linux-arm
-        resource_group: $CI_COMMIT_TITLE
         staged: "cuda-quantum-dev"
     - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-dev@sha256:\S+$/'
       variables:
         runner: hostname/xpl-dvt-55
-        resource_group: $CI_COMMIT_TITLE
         staged: "cuda-quantum-dev"
     - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_BRANCH =~ /arm64/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-devdeps@sha256:\S+$/'
       variables:
         runner: os/linux-arm
-        resource_group: $CI_COMMIT_TITLE
         staged: "cuda-quantum-devdeps"
     - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-devdeps@sha256:\S+$/'
       variables:
         runner: hostname/xpl-dvt-55
-        resource_group: $CI_COMMIT_TITLE
         staged: "cuda-quantum-devdeps"
     - when: always
 
@@ -49,7 +45,6 @@ Python Wheels:
   image: $CI_COMMIT_TITLE
   tags:
     - $runner
-  resource_group: $resource_group
   interruptible: false
   script:
     - echo "Nothing implemented yet."
@@ -62,7 +57,6 @@ MGMN SV Simulator:
   image: $CI_COMMIT_TITLE
   tags:
     - $runner
-  resource_group: $resource_group
   interruptible: false
   artifacts:
     paths:
@@ -85,7 +79,6 @@ Tensornet Simulator:
   image: $CI_COMMIT_TITLE
   tags:
     - $runner
-  resource_group: $resource_group
   interruptible: false
   artifacts:
     paths:
@@ -105,7 +98,6 @@ Push to GitHub:
     variables:
       - $staged
   stage: deploy
-  resource_group: $resource_group
   interruptible: false
   script:
     - type -p curl >/dev/null || (apt-get update && apt-get install -y --no-install-recommends curl)
