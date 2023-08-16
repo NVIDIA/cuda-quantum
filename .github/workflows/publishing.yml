@@ -60,7 +60,6 @@ jobs:
               download "$url" "$name"
               release_id=`cat "$name.txt" | grep -o 'release-id: \S*' | cut -d ' ' -f 2`
               releases+="$release_id "
-              platform=`cat "$name.txt" | grep -o 'platform: \S*' | cut -d ' ' -f 2`
               info={\"$name\":{\"release_id\":\"$release_id\"}}
             fi
             if [ "${name#build_info}" != "$name" ]; then
@@ -68,7 +67,7 @@ jobs:
               docker_images=`echo $docker_images | jq ". |= . + $info"`
             elif [ "${name#python_info}" != "$name" ]; then
               python_wheels=`echo $python_wheels | jq ".build_info |= . + [\"$name\"]"`
-              python_wheels=`echo $python_wheels | jq ". |= . + $platform"`
+              python_wheels=`echo $python_wheels | jq ". |= . + $info"`
             elif [ "${name#deployment_info}" != "$name" ]; then
               download "$url" "$name"
               release_title=`cat "$name.txt" | grep -o 'publish: \S*' | cut -d ' ' -f 2`
