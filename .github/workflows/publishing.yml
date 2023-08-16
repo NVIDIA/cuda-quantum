@@ -70,10 +70,6 @@ jobs:
           for artifact in `echo "$artifacts"`; do
             name=`echo $artifact | jq -r '.name'`
             url=`echo $artifact | jq -r '.url'`
-
-            # TODO: update GitLab pipeline to support arm builds
-            if [ -n "$(echo $name | grep arm)" ]; then name=""; fi
-
             if [ "${name#build_info}" != "$name" ] || [ "${name#python_info}" != "$name" ]; then
               download "$url" "$name"
               platforms=`cat "$name.txt" | egrep -o 'platforms?: \S*' | cut -d ' ' -f 2`
@@ -441,7 +437,7 @@ jobs:
     name: Clean up
     needs: [assets, cudaq_hpc, cudaq_wheels, create_release]
     # Force this job to run even when some of the dependencies above are skipped.
-    if: always() && !cancelled() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+    if: always() && !cancelled() && needs.assets.result != 'skipped' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
 
     environment:
@@ -449,6 +445,9 @@ jobs:
       url: ${{ vars.deployment_url }}
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
       - name: Clean up
         id: cleanup
         run: |
