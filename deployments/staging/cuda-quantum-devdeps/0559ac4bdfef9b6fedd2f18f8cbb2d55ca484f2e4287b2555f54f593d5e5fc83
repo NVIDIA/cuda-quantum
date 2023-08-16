@@ -1,6 +1,0 @@
-release-id: 431db6a6f559f9c75450883838d80d940f9b35e0
-source-sha: 431db6a6f559f9c75450883838d80d940f9b35e0
-build-info: python_info_amd64
-cuda-quantum-wheeldeps-image: ghcr.io/nvidia/cuda-quantum-devdeps@sha256:0559ac4bdfef9b6fedd2f18f8cbb2d55ca484f2e4287b2555f54f593d5e5fc83
-platform: linux/amd64
-asset-name: python_info_amd64
