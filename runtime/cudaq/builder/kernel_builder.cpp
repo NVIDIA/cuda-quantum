@@ -31,7 +31,6 @@
 #include "mlir/Target/LLVMIR/ModuleTranslation.h"
 #include "mlir/Transforms/Passes.h"
 
-#include <iostream>
 #include <numeric>
 
 using namespace mlir;

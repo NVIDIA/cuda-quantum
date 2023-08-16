@@ -308,7 +308,6 @@ void bindKernel(py::module &mod) {
       .def(
           "__call__",
           [&](kernel_builder<> &self, py::args arguments) {
-            py::print("HOWDY: ", arguments);
             auto validatedArgs = validateInputArguments(self, arguments);
             OpaqueArguments argData;
             packArgs(argData, validatedArgs);

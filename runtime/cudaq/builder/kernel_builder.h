@@ -351,6 +351,8 @@ private:
   /// out of CUDA Quantum code
   std::unique_ptr<ExecutionEngine, void (*)(ExecutionEngine *)> jitEngine;
 
+  /// @brief Map created ExecutionEngines to a unique hash of the
+  /// ModuleOp they derive from.
   std::map<ExecutionEngine *, std::size_t> jitEngineToModuleHash;
 
   /// @brief Name of the CUDA Quantum kernel Quake function
