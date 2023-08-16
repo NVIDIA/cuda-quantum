@@ -165,13 +165,26 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
 
       // Store the dlopen handles
       auto iter = libHandles.find(path.string());
-      if (iter == libHandles.end())
-        libHandles.emplace(path.string(), dlopen(path.string().c_str(),
-                                                 RTLD_GLOBAL | RTLD_NOW));
+      bool loadFailed = false;
+      if (iter == libHandles.end()) {
+        void *simLibHandle =
+            dlopen(path.string().c_str(), RTLD_GLOBAL | RTLD_NOW);
+        // Add simulator lib if successfully loaded.
+        // Note: there could be potential dlopen failures due to missing
+        // dependencies.
+        if (simLibHandle)
+          libHandles.emplace(path.string(), simLibHandle);
+        else
+          loadFailed = true;
+      }
 
-      // Load the plugin and get the CircuitSimulator.
-      cudaq::info("Found simulator plugin {}.", simName);
-      availableSimulators.push_back(simName);
+      if (!loadFailed) {
+        // Load the plugin and get the CircuitSimulator.
+        // Skip adding simulator name to the availableSimulators list if failed
+        // to load.
+        cudaq::info("Found simulator plugin {}.", simName);
+        availableSimulators.push_back(simName);
+      }
 
     } else if (fileName.find("cudaq-platform-") != std::string::npos) {
       // store all available platforms.
@@ -207,8 +220,10 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
 }
 
 LinkedLibraryHolder::~LinkedLibraryHolder() {
-  for (auto &[name, handle] : libHandles)
-    dlclose(handle);
+  for (auto &[name, handle] : libHandles) {
+    if (handle)
+      dlclose(handle);
+  }
 }
 
 nvqir::CircuitSimulator *
