@@ -1,19 +1,31 @@
 workflow:
   name: 'Staging'
   rules:
-    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-dev@sha256:\S+$/'
+    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_BRANCH =~ /arm64/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-dev@sha256:\S+$/'
       variables:
+        runner: os/linux-arm
         resource_group: $CI_COMMIT_TITLE
         staged: "cuda-quantum-dev"
+    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-dev@sha256:\S+$/'
+      variables:
+        runner: hostname/xpl-dvt-55
+        resource_group: $CI_COMMIT_TITLE
+        staged: "cuda-quantum-dev"
+    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_BRANCH =~ /arm64/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-devdeps@sha256:\S+$/'
+      variables:
+        runner: os/linux-arm
+        resource_group: $CI_COMMIT_TITLE
+        staged: "cuda-quantum-devdeps"
     - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-devdeps@sha256:\S+$/'
       variables:
+        runner: hostname/xpl-dvt-55
         resource_group: $CI_COMMIT_TITLE
         staged: "cuda-quantum-devdeps"
     - when: always
 
 default:
   tags: 
-    - os/linux
+    - hostname/xpl-dvt-55
   timeout: 1h
   interruptible: true
 
@@ -36,7 +48,7 @@ Python Wheels:
   dependencies: []
   image: $CI_COMMIT_TITLE
   tags:
-    - hostname/xpl-dvt-55
+    - $runner
   resource_group: $resource_group
   interruptible: false
   script:
@@ -49,7 +61,7 @@ MGMN SV Simulator:
   dependencies: []
   image: $CI_COMMIT_TITLE
   tags:
-    - hostname/xpl-dvt-55
+    - $runner
   resource_group: $resource_group
   interruptible: false
   artifacts:
@@ -72,7 +84,7 @@ Tensornet Simulator:
   dependencies: []
   image: $CI_COMMIT_TITLE
   tags:
-    - hostname/xpl-dvt-55
+    - $runner
   resource_group: $resource_group
   interruptible: false
   artifacts:
@@ -93,8 +105,6 @@ Push to GitHub:
     variables:
       - $staged
   stage: deploy
-  tags:
-    - hostname/xpl-dvt-55
   resource_group: $resource_group
   interruptible: false
   script:
