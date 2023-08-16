@@ -281,6 +281,10 @@ jobs:
           data_commit=`cat $build_info | grep -o 'data-commit: \S*' | cut -d ' ' -f 2`
           for file in `ls *zip`; do unzip "$file" && rm "$file"; done && cd -
 
+          echo "platform=$platform"
+          echo "platform_id=$platform_id"
+          echo "platform_arch=$platform_arch"
+  
           echo "release_id=$release_id" >> $GITHUB_OUTPUT
           echo "platform=$platform" >> $GITHUB_OUTPUT
           echo "platform_arch=$platform_arch" >> $GITHUB_OUTPUT
@@ -305,7 +309,7 @@ jobs:
               url=`echo $artifact | jq -r '.url'`
               gh api $url > _pycudaq.zip
               unzip -d _pycudaq _pycudaq.zip && cd _pycudaq
-              for wheel in `find . -name 'cuda_quantum-*-manylinux_*_${{ steps.release_info.outputs.platform_arch }}.whl'`; do
+              for wheel in `ls cuda_quantum-*-manylinux_*_${{ steps.release_info.outputs.platform_arch }}.whl`; do
                 echo "Adding wheel $wheel."
                 mv $wheel "/tmp/wheels/$wheel"
               done
