@@ -222,7 +222,7 @@ jobs:
               workflow_id: 'deployments.yml',
               ref: '${{ needs.metadata.outputs.pull_request_commit }}',
               inputs: {
-                platforms: 'linux/arm64,linux/amd64'
+                platforms: 'linux/arm64,linux/amd64',
                 cache_base: '${{ needs.metadata.outputs.cache_base }}',
               },
             })
