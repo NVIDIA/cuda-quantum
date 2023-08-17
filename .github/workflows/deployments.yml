@@ -89,6 +89,8 @@ jobs:
               echo "merge_commit=$merge_commit" >> $GITHUB_OUTPUT
             fi
           done
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Determine build info
         id: build_info
