@@ -263,7 +263,7 @@ jobs:
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: ${{ steps.release_info.outputs.platforms }}
-          push: ${{ inputs.image_tag != 'nightly-base' }}
+          push: ${{ inputs.image_tag == 'nightly-base' }}
 
       - name: Log in to the container registry
         id: redirect
@@ -300,7 +300,7 @@ jobs:
           tags: ${{ steps.updated_metadata.outputs.tags }}
           labels: ${{ steps.updated_metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}
-          push: ${{ inputs.image_tag != 'nightly-base' }}
+          push: ${{ inputs.image_tag == 'nightly-base' }}
 
       - name: Update release information
         run: |
