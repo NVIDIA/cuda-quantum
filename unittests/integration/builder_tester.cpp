@@ -661,8 +661,9 @@ CUDAQ_TEST(BuilderTester, checkCanProgressivelyBuild) {
   kernel.h(q[0]);
   auto state = cudaq::get_state(kernel);
   EXPECT_NEAR(M_SQRT1_2, state[0].real(), 1e-3);
-  EXPECT_NEAR(0.0, state[1].real(), 1e-3);
-  EXPECT_NEAR(M_SQRT1_2, state[2].real(), 1e-3);
+  // Handle sims with different endianness
+  EXPECT_TRUE(std::fabs(M_SQRT1_2 - state[1].real()) < 1e-3 ||
+              std::fabs(M_SQRT1_2 - state[2].real()) < 1e-3);
   EXPECT_NEAR(0.0, state[3].real(), 1e-3);
 
   auto counts = cudaq::sample(kernel);

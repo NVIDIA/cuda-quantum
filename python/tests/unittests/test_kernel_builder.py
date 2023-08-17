@@ -216,6 +216,7 @@ def test_tdg_1_state_negate():
 
 def test_can_progressively_build():
     """Tests that a kernel can be build progressively."""
+    cudaq.reset_target()
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(2)
     kernel.h(q[0])
