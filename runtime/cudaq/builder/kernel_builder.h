@@ -210,7 +210,7 @@ void applyPasses(PassManager &);
 /// pointer, which we will wrap in a `unique_ptr`
 std::tuple<bool, ExecutionEngine *>
 jitCode(ImplicitLocOpBuilder &, ExecutionEngine *,
-        std::map<ExecutionEngine *, std::size_t> &, std::string,
+        std::unordered_map<ExecutionEngine *, std::size_t> &, std::string,
         std::vector<std::string>);
 
 /// @brief Invoke the function with the given kernel name.
@@ -353,7 +353,7 @@ private:
 
   /// @brief Map created ExecutionEngines to a unique hash of the
   /// ModuleOp they derive from.
-  std::map<ExecutionEngine *, std::size_t> jitEngineToModuleHash;
+  std::unordered_map<ExecutionEngine *, std::size_t> jitEngineToModuleHash;
 
   /// @brief Name of the CUDA Quantum kernel Quake function
   std::string kernelName = "__nvqpp__mlirgen____nvqppBuilderKernel";

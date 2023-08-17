@@ -700,7 +700,7 @@ void tagEntryPoint(ImplicitLocOpBuilder &builder, ModuleOp &module,
 
 std::tuple<bool, ExecutionEngine *>
 jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
-        std::map<ExecutionEngine *, std::size_t> &jitHash,
+        std::unordered_map<ExecutionEngine *, std::size_t> &jitHash,
         std::string kernelName, std::vector<std::string> extraLibPaths) {
 
   // Start of by getting the current ModuleOp

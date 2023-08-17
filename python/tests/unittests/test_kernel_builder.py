@@ -215,7 +215,7 @@ def test_tdg_1_state_negate():
     assert counts["1"] == 1000
 
 def test_can_progressively_build():
-    """Tests that the a kernel can be build progressively."""
+    """Tests that a kernel can be build progressively."""
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(2)
     kernel.h(q[0])
