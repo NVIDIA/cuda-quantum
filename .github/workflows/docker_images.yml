@@ -380,6 +380,7 @@ jobs:
           image_short_name=${repo_owner,,}/cuda-quantum
           dev_image_name=${registry}/${image_short_name}-dev
           image_name=${ngc_registry:-$registry}/${image_short_name}
+          image_description="CUDA Quantum toolkit for heterogeneous quantum-classical workflows"
 
           platform_tag=${{ needs.metadata.outputs.platform_tag }}
           image_tag=${platform_tag:+$platform_tag-}
@@ -399,6 +400,7 @@ jobs:
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
           echo "image_tag=$image_tag" >> $GITHUB_OUTPUT
           echo "image_tag_suffix=-base" >> $GITHUB_OUTPUT
+          echo "image_description=$image_description" >> $GITHUB_OUTPUT
           echo "base_image=$base_image" >> $GITHUB_OUTPUT
           echo "devdeps_image=$devdeps_image" >> $GITHUB_OUTPUT
           echo "dev_image_name=$dev_image_name" >> $GITHUB_OUTPUT
@@ -467,7 +469,7 @@ jobs:
           tags: type=raw,value=${{ steps.prereqs.outputs.image_tag }}
           labels: |
             org.opencontainers.image.title=cuda-quantum
-            org.opencontainers.image.description=CUDA Quantum toolkit for heterogeneous quantum-classical workflows
+            org.opencontainers.image.description=${{ steps.prereqs.outputs.image_description }}
 
       - name: Build cuda-quantum image
         id: docker_build
@@ -505,7 +507,7 @@ jobs:
           password: ${{ github.token }}
 
       - name: Set up redirect
-        id: redirect
+        if: steps.redirect.outcome != 'skipped'
         run: |
           echo "FROM ${{ steps.prereqs.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}" >> redirect.Dockerfile
 
@@ -521,7 +523,7 @@ jobs:
           tags: type=raw,value=${{ steps.prereqs.outputs.image_tag }}
           labels: |
             org.opencontainers.image.title=cuda-quantum
-            org.opencontainers.image.description=CUDA Quantum toolkit for heterogeneous quantum-classical workflows
+            org.opencontainers.image.description=${{ steps.prereqs.outputs.image_description }}
 
       - name: Build cuda-quantum image redirect
         if: steps.redirect.outcome != 'skipped'
