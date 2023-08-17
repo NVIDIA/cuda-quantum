@@ -460,7 +460,7 @@ jobs:
         uses: docker/login-action@v2
         with:
           registry: nvcr.io
-          username: svc-cuda-quantum
+          username: '$oauthtoken'
           password: ${{ secrets.NGC_CREDENTIALS }}
 
       - name: Extract cuda-quantum metadata

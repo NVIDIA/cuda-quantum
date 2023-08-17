@@ -234,7 +234,7 @@ jobs:
         uses: docker/login-action@v2
         with:
           registry: ${{ steps.release_info.outputs.ngc_registry || vars.registry }}
-          username: ${{ (steps.release_info.outputs.ngc_registry != '' && 'svc-cuda-quantum') || github.actor }}
+          username: ${{ (steps.release_info.outputs.ngc_registry != '' && '$oauthtoken') || github.actor }}
           password: ${{ (steps.release_info.outputs.ngc_registry != '' && secrets.NGC_CREDENTIALS) || github.token }}
 
       - name: Set up buildx runner
