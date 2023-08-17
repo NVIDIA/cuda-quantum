@@ -212,7 +212,7 @@ jobs:
           echo "ngc_registry=$ngc_registry" >> $GITHUB_OUTPUT
           echo "image_short_name=$image_short_name" >> $GITHUB_OUTPUT
           echo "image_name=${ngc_registry:-$registry}/$image_short_name" >> $GITHUB_OUTPUT
-          echo "image_tag=${base_tag#-base}" >> $GITHUB_OUTPUT
+          echo "image_tag=${base_tag%-base}" >> $GITHUB_OUTPUT
           echo "image_title=$image_title" >> $GITHUB_OUTPUT
           echo "image_description=$image_description" >> $GITHUB_OUTPUT
           echo "platforms=$platforms" >> $GITHUB_OUTPUT
