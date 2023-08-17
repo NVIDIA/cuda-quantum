@@ -652,3 +652,35 @@ CUDAQ_TEST(BuilderTester, checkEntryPointAttribute) {
       R"(func\.func @__nvqpp__mlirgen\w+\(\) attributes \{"cudaq-entrypoint"\})");
   EXPECT_TRUE(std::regex_search(quake, functionDecleration));
 }
+
+#ifndef CUDAQ_BACKEND_DM
+
+CUDAQ_TEST(BuilderTester, checkCanProgressivelyBuild) {
+  auto kernel = cudaq::make_kernel();
+  auto q = kernel.qalloc(2);
+  kernel.h(q[0]);
+  auto state = cudaq::get_state(kernel);
+  EXPECT_NEAR(M_SQRT1_2, state[0].real(), 1e-3);
+  // Handle sims with different endianness
+  EXPECT_TRUE(std::fabs(M_SQRT1_2 - state[1].real()) < 1e-3 ||
+              std::fabs(M_SQRT1_2 - state[2].real()) < 1e-3);
+  EXPECT_NEAR(0.0, state[3].real(), 1e-3);
+
+  auto counts = cudaq::sample(kernel);
+  EXPECT_TRUE(counts.count("00") != 0);
+  EXPECT_TRUE(counts.count("10") != 0);
+
+  // Continue building the kernel
+  kernel.x<cudaq::ctrl>(q[0], q[1]);
+  state = cudaq::get_state(kernel);
+  EXPECT_NEAR(M_SQRT1_2, state[0].real(), 1e-3);
+  EXPECT_NEAR(0.0, state[1].real(), 1e-3);
+  EXPECT_NEAR(0.0, state[2].real(), 1e-3);
+  EXPECT_NEAR(M_SQRT1_2, state[3].real(), 1e-3);
+
+  counts = cudaq::sample(kernel);
+  EXPECT_TRUE(counts.count("00") != 0);
+  EXPECT_TRUE(counts.count("11") != 0);
+}
+
+#endif
