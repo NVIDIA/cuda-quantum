@@ -259,7 +259,7 @@ jobs:
           platforms: ${{ steps.release_info.outputs.platforms }}
           push: true
 
-      - name: Log in to GHCR
+      - name: Log in to the container registry
         id: redirect
         if: steps.release_info.outputs.ngc_registry != '' && vars.registry
         uses: docker/login-action@v2
