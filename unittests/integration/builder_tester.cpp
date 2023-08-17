@@ -653,6 +653,8 @@ CUDAQ_TEST(BuilderTester, checkEntryPointAttribute) {
   EXPECT_TRUE(std::regex_search(quake, functionDecleration));
 }
 
+#ifndef CUDAQ_BACKEND_DM
+
 CUDAQ_TEST(BuilderTester, checkCanProgressivelyBuild) {
   auto kernel = cudaq::make_kernel();
   auto q = kernel.qalloc(2);
@@ -679,3 +681,5 @@ CUDAQ_TEST(BuilderTester, checkCanProgressivelyBuild) {
   EXPECT_TRUE(counts.count("00") != 0);
   EXPECT_TRUE(counts.count("11") != 0);
 }
+
+#endif
