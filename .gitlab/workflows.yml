@@ -1,10 +1,6 @@
 workflow:
   name: 'Staging'
   rules:
-    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_BRANCH =~ /arm64/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-dev@sha256:\S+$/'
-      variables:
-        runner: os/linux-arm
-        staged: "cuda-quantum-dev"
     - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-dev@sha256:\S+$/'
       variables:
         runner: hostname/xpl-dvt-55
@@ -77,8 +73,11 @@ Tensornet Simulator:
   stage: build
   dependencies: []
   image: $CI_COMMIT_TITLE
+  parallel:
+    matrix:
+      - runner_tag: [hostname/xpl-dvt-55, os/linux-arm]
   tags:
-    - $runner
+    - $runner_tag
   interruptible: false
   artifacts:
     paths:
@@ -89,7 +88,7 @@ Tensornet Simulator:
     - mkdir cudaq_tensornet && cd cudaq_tensornet && git init
     - git fetch --depth 1 https://$READ_ACCESS_TOKEN:$READ_ACCESS_TOKEN@$CI_SERVER_HOST/$CUDAQ_TENSORNET_REPO $CUDAQ_TENSORNET_COMMIT && git checkout FETCH_HEAD
     - (bash build.sh $READ_ACCESS_TOKEN && built=true) || built=false
-    - mkdir -p ../artifacts/tensornet && mv artifacts/* ../artifacts/tensornet
+    - mkdir -p ../artifacts/tensornet/$(uname -m) && mv artifacts/* ../artifacts/tensornet/$(uname -m)
     - cd .. && rm -rf cudaq_tensornet
     - if $built; then `exit 0`; else `exit 1`; fi
 
