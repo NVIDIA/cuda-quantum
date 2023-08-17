@@ -376,7 +376,10 @@ jobs:
           docker image prune --force
           repo_owner=${{ github.repository_owner }}
           registry=${{ vars.registry || 'localhost:5000' }}
-          image_name=$registry/${repo_owner,,}/cuda-quantum
+          ngc_registry=${{ (inputs.environment && 'nvcr.io') || '' }}
+          image_short_name=${repo_owner,,}/cuda-quantum
+          dev_image_name=${registry}/${image_short_name}-dev
+          image_name=${ngc_registry:-$registry}/${image_short_name}
 
           platform_tag=${{ needs.metadata.outputs.platform_tag }}
           image_tag=${platform_tag:+$platform_tag-}
@@ -391,11 +394,14 @@ jobs:
             image_tag+=`echo ${{ github.ref_name }} | tr '/' '-'`
           fi
 
+          echo "registry=$registry" >> $GITHUB_OUTPUT
+          echo "image_short_name=$image_short_name" >> $GITHUB_OUTPUT
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
-          echo "image_tag_suffix=-base" >> $GITHUB_OUTPUT
           echo "image_tag=$image_tag" >> $GITHUB_OUTPUT
+          echo "image_tag_suffix=-base" >> $GITHUB_OUTPUT
           echo "base_image=$base_image" >> $GITHUB_OUTPUT
           echo "devdeps_image=$devdeps_image" >> $GITHUB_OUTPUT
+          echo "dev_image_name=$dev_image_name" >> $GITHUB_OUTPUT
 
           if ${{ inputs.environment == '' }}; then
             tar_archive=/tmp/cuda-quantum.tar
@@ -418,7 +424,7 @@ jobs:
         id: cudaqdev_metadata
         uses: docker/metadata-action@v4
         with:
-          images: ${{ steps.prereqs.outputs.image_name }}-dev
+          images: ${{ steps.prereqs.outputs.dev_image_name }}
           flavor: |
             latest=false
             suffix=${{ steps.prereqs.outputs.image_tag_suffix }},onlatest=true
@@ -442,8 +448,16 @@ jobs:
           platforms: ${{ inputs.platforms }}
           push: true
 
+      - name: Log in to NGC
+        if: inputs.environment
+        uses: docker/login-action@v2
+        with:
+          registry: nvcr.io
+          username: svc-cuda-quantum
+          password: ${{ secrets.NGC_CREDENTIALS }}
+
       - name: Extract cuda-quantum metadata
-        id: metadata
+        id: cudaq_metadata
         uses: docker/metadata-action@v4
         with:
           images: ${{ steps.prereqs.outputs.image_name }}
@@ -463,11 +477,11 @@ jobs:
           context: .
           file: ./docker/release/cudaq.Dockerfile
           build-args: |
-            cudaqdev_image=${{ steps.prereqs.outputs.image_name }}-dev@${{ steps.release_build.outputs.digest }}
+            cudaqdev_image=${{ steps.prereqs.outputs.dev_image_name }}@${{ steps.release_build.outputs.digest }}
             base_image=${{ steps.prereqs.outputs.base_image }}
             release_version=${{ steps.prereqs.outputs.image_tag }}
-          tags: ${{ steps.metadata.outputs.tags }}
-          labels: ${{ steps.metadata.outputs.labels }}
+          tags: ${{ steps.cudaq_metadata.outputs.tags }}
+          labels: ${{ steps.cudaq_metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}
           push: ${{ inputs.environment != '' }}
           outputs: ${{ steps.prereqs.outputs.docker_output }}
@@ -478,6 +492,47 @@ jobs:
         with:
           path: ${{ steps.prereqs.outputs.tar_archive }}
           key: ${{ steps.prereqs.outputs.tar_cache }}
+
+      # If the cuda-quantum image is initially pushed to ngc we recreate it
+      # and push it to the registry defined in the deployment environment
+      - name: Log in to the container registry
+        id: redirect
+        if: inputs.environment && vars.registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ vars.registry }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Set up redirect
+        id: redirect
+        run: |
+          echo "FROM ${{ steps.prereqs.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}" >> redirect.Dockerfile
+
+      - name: Update cuda-quantum metadata
+        id: updated_metadata
+        if: steps.redirect.outcome != 'skipped'
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ steps.prereqs.outputs.registry }}/${{ steps.prereqs.outputs.image_short_name }}
+          flavor: |
+            latest=false
+            suffix=${{ steps.prereqs.outputs.image_tag_suffix }},onlatest=true
+          tags: type=raw,value=${{ steps.prereqs.outputs.image_tag }}
+          labels: |
+            org.opencontainers.image.title=cuda-quantum
+            org.opencontainers.image.description=CUDA Quantum toolkit for heterogeneous quantum-classical workflows
+
+      - name: Build cuda-quantum image redirect
+        if: steps.redirect.outcome != 'skipped'
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: redirect.Dockerfile
+          tags: ${{ steps.updated_metadata.outputs.tags }}
+          labels: ${{ steps.updated_metadata.outputs.labels }}
+          platforms: ${{ inputs.platforms }}
+          push: true
 
   documentation:
     name: Documentation
