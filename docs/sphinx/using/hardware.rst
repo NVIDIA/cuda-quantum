@@ -235,11 +235,11 @@ Setting Credentials
 
 Programmers of CUDA Quantum may access the IQM Server from either C++ or Python. Following the `quick start guide <https://iqm-finland.github.io/cortex-cli/readme.html#using-cortex-cli>`__, install `iqm-cortex-cli` and login to initialize the tokens file.
 The path to the tokens file can either be passed explicitly via an environment variable or it will be loaded automatically if located in
-the default location ``~/.cache/iqm-cortex-cli/tokens.json``.
+the default location :code:`~/.cache/iqm-cortex-cli/tokens.json`.
 
 .. code:: bash
 
-  export IQM_TOKENS_FILE="path/to/tokens.json"
+    export IQM_TOKENS_FILE="path/to/tokens.json"
 
 Submission from C++
 `````````````````````````
