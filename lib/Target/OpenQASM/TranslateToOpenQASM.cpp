@@ -222,6 +222,17 @@ static LogicalResult emitOperation(Emitter &emitter, quake::ExtractRefOp op) {
   return success();
 }
 
+static LogicalResult emitOperation(Emitter &emitter, func::CallOp callOp) {
+  StringRef funcName = callOp.getCallee();
+  emitter.os << funcName;
+  emitter.os << ' ';
+  llvm::interleaveComma(callOp.getOperands(), emitter.os, [&](auto target) {
+    emitter.os << emitter.getOrAssignName(target);
+  });
+  emitter.os << ";\n";
+  return success();
+}
+
 static LogicalResult emitOperation(Emitter &emitter,
                                    quake::OperatorInterface optor) {
   // TODO: Handle adjoint for T and S
@@ -279,6 +290,7 @@ static LogicalResult emitOperation(Emitter &emitter, Operation &op) {
       // MLIR
       .Case<ModuleOp>([&](auto op) { return emitOperation(emitter, op); })
       .Case<func::FuncOp>([&](auto op) { return emitOperation(emitter, op); })
+      .Case<func::CallOp>([&](auto op) { return emitOperation(emitter, op); })
       // Quake
       .Case<ApplyOp>([&](auto op) { return emitOperation(emitter, op); })
       .Case<AllocaOp>([&](auto op) { return emitOperation(emitter, op); })
