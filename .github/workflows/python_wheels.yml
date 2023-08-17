@@ -1,6 +1,10 @@
 on:
   workflow_call:
     inputs:
+      platform:
+        type: string
+        required: false
+        default: linux/amd64
       python_version:
         type: string
         required: false
@@ -14,13 +18,16 @@ on:
       devdeps_archive:
         required: false
         type: string
+      environment:
+        required: false
+        type: string
 
 name: Python wheels
 
 jobs:
   build_wheel:
     name: Build Python ${{ inputs.python_version }} wheel
-    runs-on: ubuntu-latest
+    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
 
@@ -52,16 +59,19 @@ jobs:
         id: prereqs
         run: |
           if ${{ steps.restore.outcome != 'skipped' }}; then
-            base_image=`docker load --input "${{ inputs.devdeps_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+            load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
+            base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
+            echo "Base image: $base_image" >> $GITHUB_STEP_SUMMARY
             # Push the image to the local registry to make it available within
             # the containered environment that docker/build-push-action uses.
             docker push $base_image
             rm -rf "${{ inputs.devdeps_archive }}"
           elif ${{ inputs.devdeps_image != '' }}; then
             base_image=${{ inputs.devdeps_image }}
+            echo "Base image: $base_image" >> $GITHUB_STEP_SUMMARY
             docker pull $base_image
           else
-            echo "Missing configuration for development dependencies. Either specify the image (i.e. provide devdeps_image) or cache (i.e. provide devdeps_cache and devdeps_archive) that should be used for the build." >> $GITHUB_STEP_SUMMARY
+            echo "::error file=python_wheels.yml::Missing configuration for development dependencies. Either specify the image (i.e. provide devdeps_image) or cache (i.e. provide devdeps_cache and devdeps_archive) that should be used for the build."
             exit 1
           fi
 
@@ -82,10 +92,15 @@ jobs:
           # do not change this prefix without adjusting other workflows
           echo "artifact_name=pycudaq-$cache_id" >> $GITHUB_OUTPUT
 
+      - name: Set up context for buildx
+        run: |
+          docker context create builder_context
+
       - name: Set up buildx runner
         uses: docker/setup-buildx-action@v2
         with:
-            driver-opts: network=host
+          endpoint: builder_context
+          driver-opts: network=host
 
       - name: Build wheel
         id: wheel_build
@@ -135,7 +150,7 @@ jobs:
   validation:
     name: Validate wheel
     needs: [build_wheel, create_test_config]
-    runs-on: ubuntu-latest
+    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
 
@@ -160,12 +175,14 @@ jobs:
           distr=`echo $os_image | cut -d : -f 1 | cut -d / -f 1`
           os_version=`echo ${os_image#$distr} | cut -c2-`
 
-          wheelname=`echo cuda_quantum-*-manylinux_*_x86_64.whl`
+          wheelname=`echo cuda_quantum-*-manylinux_*_$(uname -m).whl`
           docker build -t wheel_validation:local -f "docker/test/$distr.Dockerfile" . \
             --build-arg os_version=$os_version \
             --build-arg python_version=${{ inputs.python_version }} \
             --build-arg cuda_quantum_wheel=$wheelname \
-            --build-arg pip_install_flags=${{ matrix.pip_install_flags }}
+            --build-arg preinstalled_modules="numpy pytest" \
+            --build-arg pip_install_flags=${{ matrix.pip_install_flags }} \
+            --build-arg optional_dependencies=$([ "$(uname -m)" == "x86_64" ] && echo cudart)
 
           docker run --rm -dit --name wheel-validation wheel_validation:local
           (docker exec wheel-validation python${{ inputs.python_version }} -c "import cudaq") && imported=true || imported=false
@@ -184,22 +201,20 @@ jobs:
               --ignore python/tests/backends
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then
-              echo "pytest status = " $pytest_status
+              echo "::error file=python_wheel.yml::Python tests failed with status $pytest_status."
               exit 1
             fi
-
             python${{ inputs.python_version }} -m pip install --user fastapi uvicorn llvmlite 
             for backendTest in /tmp/tests/backends/*.py; do 
               python${{ inputs.python_version }} -m pytest $backendTest
               pytest_status=$?
-
               # Exit code 5 indicates that no tests were collected,
               # i.e. all tests in this file were skipped.
               if [ ! $pytest_status -eq 0 ] && [ ! $pytest_status -eq 5 ]; then
-                echo "pytest $backendTest status = " $pytest_status
+                echo "::error file=python_wheel.yml::Python $backendTest tests failed with status $pytest_status."
                 exit 1
               fi
-            done 
+            done
 
       - name: Validate Python examples
         run: |
@@ -234,3 +249,35 @@ jobs:
             echo "The validation of the cuda-quantum Python wheel produced the following output:" >> $GITHUB_STEP_SUMMARY
             cat /tmp/validation.out >> $GITHUB_STEP_SUMMARY
           fi
+
+  staging:
+    name: Staging
+    needs: [build_wheel, validation]
+    if: inputs.environment
+    runs-on: ubuntu-latest
+    permissions: {}
+
+    steps:
+      - name: Create build info
+        id: staging
+        run: |
+          wheeldeps_hash=${{ inputs.devdeps_image }}
+          platform_id=`echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
+          echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
+          artifact_name=python_info_$platform_id
+          echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT
+          info_file="$artifact_name.txt"
+          echo "info_file=$info_file" >> $GITHUB_OUTPUT
+
+          mkdir -p "$(dirname "$info_file")" && rm -rf "$info_file"
+          echo "source-sha: ${{ github.sha }}" >> "$info_file"
+          echo "cuda-quantum-wheeldeps-image: $wheeldeps_hash" >> "$info_file"
+          echo "platform: ${{ inputs.platform }}" >> "$info_file"
+
+      - name: Upload build info
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.staging.outputs.artifact_name }} # changing the artifact name requires updating other workflows
+          path: ${{ steps.staging.outputs.info_file }}
+          retention-days: 30
+          if-no-files-found: error

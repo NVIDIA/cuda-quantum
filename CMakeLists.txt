@@ -141,7 +141,7 @@ if (CUDAQ_BUILD_SELFCONTAINED)
   # Using -static-libgcc -static-libstdc++ offers finer control here if needed.
   # At the time of writing, there wasn't any benefit to using those over -static.
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
-  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static")
+  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-pie")
   SET(CUDAQ_BUILD_RELOCATABLE_PACKAGE TRUE)
 endif()
 
