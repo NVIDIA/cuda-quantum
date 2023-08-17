@@ -292,6 +292,7 @@ jobs:
         platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
       fail-fast: false
     uses: ./.github/workflows/docker_images.yml
+    secrets: inherit
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       ompidev_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-ompi', matrix.platform)] }}
