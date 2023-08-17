@@ -17,24 +17,50 @@ on:
       ompidev_image:
         required: false
         type: string
+      build_docs:
+        required: false
+        type: string
       environment:
         required: false
         type: string
-      create_release:
-        required: false
-        type: string
-    secrets:
-      REPO_BOT_ACCESS_TOKEN:
-        description: 'Access token used for deployments.'
-        required: false
 
 name: Docker images
 
 jobs:
+  metadata:
+    name: Metadata
+    runs-on: ubuntu-latest
+    permissions: {}
+
+    outputs:
+      runner: ${{ steps.info.outputs.runner }}
+      platform_tag: ${{ steps.info.outputs.platform_tag }}
+      build_docs: ${{ steps.info.outputs.build_docs }}
+    
+    steps:
+      - id: info
+        run: |
+          if [ -n "$(echo ${{ inputs.platforms }} | grep ',')" ]; then
+            # multi-platform builds get no platform tag
+            echo "runner=linux-amd64-cpu16" >> $GITHUB_OUTPUT
+            echo "build_docs=${{ inputs.build_docs != 'false' }}" >> $GITHUB_OUTPUT
+          elif [ -n "$(echo ${{ inputs.platforms }} | grep -i arm)" ]; then
+            platform_tag=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' '`
+            echo "platform_tag=$platform_tag" >> $GITHUB_OUTPUT
+            echo "runner=linux-arm64-cpu8" >> $GITHUB_OUTPUT
+            echo "build_docs=${{ inputs.build_docs == 'true' }}" >> $GITHUB_OUTPUT
+          else
+            platform_tag=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' '`
+            echo "platform_tag=$platform_tag" >> $GITHUB_OUTPUT
+            echo "runner=linux-amd64-cpu8" >> $GITHUB_OUTPUT
+            echo "build_docs=${{ inputs.build_docs != 'false' }}" >> $GITHUB_OUTPUT
+          fi
+
   ompi_image:
     name: open-mpi
+    needs: metadata
     if: inputs.ompidev_image
-    runs-on: ubuntu-latest
+    runs-on: ${{ needs.metadata.outputs.runner }}
     permissions:
       contents: read
       packages: write
@@ -76,7 +102,7 @@ jobs:
           
           if ${{ inputs.environment == '' }}; then
             tar_archive=/tmp/open-mpi.tar
-            echo "tar_cache=tar-ompi-${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "tar_cache=tar-ompi-${{ needs.metadata.outputs.platform_tag }}-${{ github.sha }}" >> $GITHUB_OUTPUT
             echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
             echo "docker_output=type=docker,dest=$tar_archive" >> $GITHUB_OUTPUT
           fi
@@ -94,8 +120,14 @@ jobs:
             org.opencontainers.image.title=open-mpi
             org.opencontainers.image.description=Open MPI dependencies of CUDA Quantum
 
+      - name: Set up context for buildx
+        run: |
+          docker context create builder_context
+
       - name: Set up buildx runner
         uses: docker/setup-buildx-action@v2
+        with:
+          endpoint: builder_context
 
       - name: Build Open MPI
         id: docker_build
@@ -122,7 +154,8 @@ jobs:
 
   cudaqdev_image:
     name: cuda-quantum-dev (debug)
-    runs-on: ubuntu-latest
+    needs: metadata
+    runs-on: ${{ needs.metadata.outputs.runner }}
     permissions:
       contents: read
       packages: write
@@ -169,16 +202,19 @@ jobs:
         id: prereqs
         run: |
           if ${{ steps.restore.outcome != 'skipped' }}; then
-            base_image=`docker load --input "${{ inputs.devdeps_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+            load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
+            base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
+            echo "Base image: $base_image" >> $GITHUB_STEP_SUMMARY
             # Push the image to the local registry to make it available within
             # the containered environment that docker/build-push-action uses.
             docker push $base_image
             rm -rf "${{ inputs.devdeps_archive }}"
           elif ${{ inputs.devdeps_image != '' }}; then
             base_image=${{ inputs.devdeps_image }}
+            echo "Base image: $base_image" >> $GITHUB_STEP_SUMMARY
             docker pull $base_image
           else
-            echo "Missing configuration for development dependencies. Either specify the image (i.e. provide devdeps_image) or cache (i.e. provide devdeps_cache and devdeps_archive) that should be used for the build." >> $GITHUB_STEP_SUMMARY
+            echo "::error file=docker_images.yml::Missing configuration for development dependencies. Either specify the image (i.e. provide devdeps_image) or cache (i.e. provide devdeps_cache and devdeps_archive) that should be used for the build."
             exit 1
           fi
 
@@ -200,9 +236,14 @@ jobs:
             echo "docker_output=type=docker,dest=$tar_archive" >> $GITHUB_OUTPUT
           fi
 
+      - name: Set up context for buildx
+        run: |
+          docker context create builder_context
+
       - name: Set up buildx runner
         uses: docker/setup-buildx-action@v2
         with:
+          endpoint: builder_context
           driver-opts: network=host
 
       - name: Extract metadata
@@ -240,10 +281,10 @@ jobs:
 
   cudaq_image:
     name: cuda-quantum (release)
-    needs: ompi_image
+    needs: [metadata, ompi_image]
     # Force this job to run even when some of the dependencies above are skipped.
     if: always() && !cancelled() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
-    runs-on: ubuntu-latest
+    runs-on: ${{ needs.metadata.outputs.runner }}
     permissions:
       contents: read
       packages: write
@@ -301,7 +342,9 @@ jobs:
           if ${{ needs.ompi_image.result == 'skipped' }}; then
             base_image=ubuntu:22.04
           elif ${{ steps.restore_openmpi.outcome != 'skipped' }}; then
-            base_image=`docker load --input "${{ needs.ompi_image.outputs.tar_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+            load_output=`docker load --input "${{ needs.ompi_image.outputs.tar_archive }}"`
+            base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
+            echo "Base image: $base_image" >> $GITHUB_STEP_SUMMARY
             # Push the image to the local registry to make it available within
             # the containered environment that docker/build-push-action uses.
             docker push $base_image
@@ -309,10 +352,14 @@ jobs:
             rm -rf "${{ needs.ompi_image.outputs.tar_archive }}"
           else
             base_image=${{ needs.ompi_image.outputs.image_hash }}
+            echo "Base image: $base_image" >> $GITHUB_STEP_SUMMARY
           fi
 
           if ${{ steps.restore_devdeps.outcome != 'skipped' }}; then
-            devdeps_image=`docker load --input "${{ inputs.devdeps_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+            load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
+            echo "$load_output"
+            devdeps_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
+            echo "Devdeps image: $devdeps_image" >> $GITHUB_STEP_SUMMARY
             # Push the image to the local registry to make it available within
             # the containered environment that docker/build-push-action uses.
             docker push $devdeps_image
@@ -320,8 +367,9 @@ jobs:
             rm -rf "${{ inputs.devdeps_archive }}"
           elif ${{ inputs.devdeps_image != '' }}; then
             devdeps_image=${{ inputs.devdeps_image }}
+            echo "Devdeps image: $devdeps_image" >> $GITHUB_STEP_SUMMARY
           else
-            echo "Missing configuration for development dependencies. Either specify the image (i.e. provide devdeps_image) or cache (i.e. provide devdeps_cache and devdeps_archive) that should be used for the build." >> $GITHUB_STEP_SUMMARY
+            echo "::error file=docker_images.yml::Missing configuration for development dependencies. Either specify the image (i.e. provide devdeps_image) or cache (i.e. provide devdeps_cache and devdeps_archive) that should be used for the build."
             exit 1
           fi
 
@@ -329,14 +377,18 @@ jobs:
           repo_owner=${{ github.repository_owner }}
           registry=${{ vars.registry || 'localhost:5000' }}
           image_name=$registry/${repo_owner,,}/cuda-quantum
-          if ${{ github.event.pull_request.number != '' }}; then
-            image_tag=pr-${{ github.event.pull_request.number }}
+
+          platform_tag=${{ needs.metadata.outputs.platform_tag }}
+          image_tag=${platform_tag:+$platform_tag-}
+          if ${{ github.event.pull_request.number != '' }} || [ -n "$(echo ${{ github.ref_name }} | grep pull-request/)" ]; then
+            pr_number=`echo ${{ github.ref_name }} | grep -o [0-9]*`
+            image_tag+=pr-${pr_number:-${{ github.event.pull_request.number }}}
           elif ${{ github.ref_type == 'branch' && github.ref_name == 'main' }}; then
-            image_tag=latest
+            image_tag+=latest
           elif ${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') }}; then
-            image_tag=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
+            image_tag+=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
           else
-            image_tag=`echo ${{ github.ref_name }} | tr '/' '-'`
+            image_tag+=`echo ${{ github.ref_name }} | tr '/' '-'`
           fi
 
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
@@ -351,9 +403,14 @@ jobs:
             echo "docker_output=type=docker,dest=$tar_archive" >> $GITHUB_OUTPUT
           fi
 
+      - name: Set up context for buildx
+        run: |
+          docker context create builder_context
+
       - name: Set up buildx runner
         uses: docker/setup-buildx-action@v2
         with:
+          endpoint: builder_context
           driver-opts: network=host
 
       - name: Extract cuda-quantum-dev metadata
@@ -419,11 +476,11 @@ jobs:
 
   documentation:
     name: Documentation
-    needs: [cudaqdev_image, cudaq_image]
+    needs: [metadata, cudaqdev_image, cudaq_image]
     # Unfortunately, we basically inherit this from the cudaq_image job;
     # all jobs that depend on it will need to add the same condition.
-    if: always() && !cancelled() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
-    runs-on: ubuntu-latest
+    if: always() && !cancelled() && needs.metadata.outputs.build_docs == 'true' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+    runs-on: ${{ needs.metadata.outputs.runner }}
     permissions:
       contents: read
 
@@ -453,7 +510,8 @@ jobs:
         id: docs_build
         run: |
           if ${{ steps.restore_cudaq.outcome != 'skipped' }}; then
-            cudaq_image=`docker load --input "${{ needs.cudaq_image.outputs.tar_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+            load_output=`docker load --input "${{ needs.cudaq_image.outputs.tar_archive }}"`
+            cudaq_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
           else
             cudaq_image=${{ needs.cudaq_image.outputs.image_hash }}
             docker pull $cudaq_image
@@ -465,7 +523,8 @@ jobs:
           docker image prune --force
 
           if ${{ steps.restore_cudaqdev.outcome != 'skipped' }}; then
-            cudaqdev_image=`docker load --input "${{ needs.cudaqdev_image.outputs.tar_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+            load_output=`docker load --input "${{ needs.cudaqdev_image.outputs.tar_archive }}"`
+            cudaqdev_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
           else
             cudaqdev_image=${{ needs.cudaqdev_image.outputs.image_hash }}
             docker pull $cudaqdev_image
@@ -514,11 +573,11 @@ jobs:
 
   validation:
     name: Validation
-    needs: cudaq_image
+    needs: [metadata, cudaq_image]
     # Unfortunately, we basically inherit this from the cudaq_image job;
     # all jobs that depend on it will need to add the same condition.
     if: always() && !cancelled() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
-    runs-on: ubuntu-latest
+    runs-on: ${{ needs.metadata.outputs.runner }}
 
     steps:
       - name: Checkout repository
@@ -536,7 +595,8 @@ jobs:
       - name: Validate cuda-quantum image
         run: |
           if ${{ steps.restore.outcome != 'skipped' }}; then
-            cudaq_image=`docker load --input "${{ needs.cudaq_image.outputs.tar_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+            load_output=`docker load --input "${{ needs.cudaq_image.outputs.tar_archive }}"`
+            cudaq_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
           else
             docker pull ${{ needs.cudaq_image.outputs.image_hash }}
             cudaq_image=${{ needs.cudaq_image.outputs.image_hash }}
@@ -564,64 +624,44 @@ jobs:
   staging:
     name: Staging
     needs: [cudaqdev_image, cudaq_image, validation]
-    runs-on: ubuntu-latest
     # Unfortunately, we basically inherit this from the cudaq_image job;
     # all jobs that depend on it will need to add the same condition.
-    if: always() && !cancelled() && inputs.environment && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
-
-    permissions:
-      contents: write
-
-    environment:
-      name: ${{ inputs.environment }}
-      url: ${{ vars.deployment_url }}
+    if: always() && !cancelled() && inputs.environment && contains(inputs.platforms, ',') && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+    runs-on: ubuntu-latest
+    permissions: {}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ vars.data_branch }}
-          token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
-
-      - name: Push staging info
+      - name: Create build info
         id: staging
         run: |
           cudaqdev_hash=${{ needs.cudaqdev_image.outputs.image_hash }}
           cudaq_hash=${{ needs.cudaq_image.outputs.image_hash }}
-          release_id=`echo $cudaq_hash | rev | cut -d ':' -f 1 | rev`
-          file_id=`echo $cudaqdev_hash | rev | cut -d ':' -f 1 | rev`
-          info_file="deployments/staging/cuda-quantum-dev/$file_id"
+          artifact_name=build_info
+          echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT
+          info_file="$artifact_name.txt"
           echo "info_file=$info_file" >> $GITHUB_OUTPUT
 
           mkdir -p "$(dirname "$info_file")" && rm -rf "$info_file"
-          echo "release-id: $release_id" >> "$info_file"
-          echo "publish: ${{ inputs.create_release }}" >> "$info_file"
           echo "source-sha: ${{ github.sha }}" >> "$info_file"
           echo "cuda-quantum-dev-image: $cudaqdev_hash"  >> "$info_file"
           echo "cuda-quantum-image: $cudaq_hash" >> "$info_file"
           echo "cuda-quantum-devdeps-image: ${{ inputs.devdeps_image }}" >> "$info_file"
           echo "platforms: ${{ inputs.platforms }}" >> "$info_file"
-          git add "$info_file"
-
-          git config --global user.name "cuda-quantum-bot"
-          git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
-          git commit --allow-empty -m "$cudaqdev_hash"
-          git pull --no-edit && git push
 
       - name: Upload build info
         uses: actions/upload-artifact@v3
         with:
-          name: build_info # changing the artifact name requires updating other workflows
+          name: ${{ steps.staging.outputs.artifact_name }} # changing the artifact name requires updating other workflows
           path: ${{ steps.staging.outputs.info_file }}
           retention-days: 30
           if-no-files-found: error
 
   clean_up:
     name: Prepare cache clean-up
-    needs: [cudaqdev_image, cudaq_image, ompi_image, documentation, validation]
-    runs-on: ubuntu-latest
+    needs: [metadata, cudaqdev_image, cudaq_image, ompi_image, documentation, validation]
     # We need to clean up even if the workflow is cancelled or fails.
     if: always()
+    runs-on: ubuntu-latest
 
     steps:
       - name: Save cache keys
@@ -631,10 +671,14 @@ jobs:
           keys+=" ${{ needs.cudaq_image.outputs.tar_cache }}"
           keys+=" ${{ needs.ompi_image.outputs.tar_cache }}"
           echo "$keys" >> cache_keys.txt
+          
+          platform_tag=${{ needs.metadata.outputs.platform_tag }}
+          artifact_name=cache_keys${platform_tag:+_$platform_tag}_images
+          echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT
 
       - uses: actions/upload-artifact@v3
         with:
-          name: cache_keys_images
+          name: ${{ steps.workflow_inputs.outputs.artifact_name }}
           path: cache_keys.txt
           retention-days: 1
           if-no-files-found: error
