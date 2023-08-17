@@ -107,7 +107,7 @@ void bindSpinOperator(py::module &mod) {
           "random", &cudaq::spin_op::random,
           "Return a random SpinOperator on the given number of qubits and "
           "composed of the given number of terms.")
-      .def_static("from_word", &cudaq::spin_op::from_word,
+      .def_static("from_word", &cudaq::spin_op::from_word, py::arg("word"),
                   "Return a `SpinOperator` corresponding to the provided Pauli "
                   "word,  e.g. 'XYX' for a `SpinOperator` on 3 qubits with a X "
                   "support on the first and 3rd and Y support on the second..")
