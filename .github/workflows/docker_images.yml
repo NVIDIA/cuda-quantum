@@ -384,7 +384,7 @@ jobs:
             pr_number=`echo ${{ github.ref_name }} | grep -o [0-9]*`
             image_tag+=pr-${pr_number:-${{ github.event.pull_request.number }}}
           elif ${{ github.ref_type == 'branch' && github.ref_name == 'main' }}; then
-            image_tag+=latest
+            image_tag+=nightly
           elif ${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') }}; then
             image_tag+=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
           else
@@ -392,6 +392,7 @@ jobs:
           fi
 
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
+          echo "image_tag_suffix=-base" >> $GITHUB_OUTPUT
           echo "image_tag=$image_tag" >> $GITHUB_OUTPUT
           echo "base_image=$base_image" >> $GITHUB_OUTPUT
           echo "devdeps_image=$devdeps_image" >> $GITHUB_OUTPUT
@@ -418,7 +419,9 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: ${{ steps.prereqs.outputs.image_name }}-dev
-          flavor: latest=false
+          flavor: |
+            latest=false
+            suffix=${{ steps.prereqs.outputs.image_tag_suffix }},onlatest=true
           tags: type=raw,value=${{ steps.prereqs.outputs.image_tag }}
           labels: |
             org.opencontainers.image.title=cuda-quantum-dev
@@ -444,7 +447,9 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: ${{ steps.prereqs.outputs.image_name }}
-          flavor: latest=false
+          flavor: |
+            latest=false
+            suffix=${{ steps.prereqs.outputs.image_tag_suffix }},onlatest=true
           tags: type=raw,value=${{ steps.prereqs.outputs.image_tag }}
           labels: |
             org.opencontainers.image.title=cuda-quantum
