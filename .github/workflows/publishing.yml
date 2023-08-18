@@ -346,7 +346,7 @@ jobs:
           staging_branch=${{ fromJson(needs.assets.outputs.docker_images)[format('{0}', matrix.info_file)].staging_branch }}
           git config --global user.name "cuda-quantum-bot"
           git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
-          git push origin --delete $staging_branch
+          git push origin --delete $staging_branch || ${{ inputs.assets_from_run != '' && true || false }}
 
   cudaq_wheels:
     name: CUDA Quantum Python wheels
@@ -450,7 +450,7 @@ jobs:
           staging_branch=${{ fromJson(needs.assets.outputs.python_wheels)[format('{0}', matrix.info_file)].staging_branch }}
           git config --global user.name "cuda-quantum-bot"
           git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
-          git push origin --delete $staging_branch
+          git push origin --delete $staging_branch || ${{ inputs.assets_from_run != '' && true || false }}
 
   create_release:
     name: CUDA Quantum Release
