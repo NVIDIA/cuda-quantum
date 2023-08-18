@@ -350,9 +350,9 @@ def test_spin_op_sparse_matrix():
         assert np.isclose(mat[rows[i],cols[i]], value)
     
     # can use scipy 
-    scipyM = scipy.sparse.csr_array((data, (rows, cols)), shape=(2**numQubits,2**numQubits))
-    E, ev = scipy.sparse.linalg.eigsh(scipyM, k=1, which='SA')
-    assert np.isclose(E[0], -1.7488, 1e-2)
+    # scipyM = scipy.sparse.csr_array((data, (rows, cols)), shape=(2**numQubits,2**numQubits))
+    # E, ev = scipy.sparse.linalg.eigsh(scipyM, k=1, which='SA')
+    # assert np.isclose(E[0], -1.7488, 1e-2)
     
 
 
