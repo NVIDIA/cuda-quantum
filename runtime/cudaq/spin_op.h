@@ -218,6 +218,11 @@ public:
   /// qubits and composed of the given number of terms.
   static spin_op random(std::size_t nQubits, std::size_t nTerms);
 
+  /// @brief Return a `spin_op` representative of the input
+  /// Pauli word, e.g. XYX for a `spin_op` on 3 qubits with
+  /// a X support on the first and 3rd and Y support on the second.
+  static spin_op from_word(const std::string &pauliWord);
+
   /// @brief Constructor, creates the identity term
   spin_op();
 
