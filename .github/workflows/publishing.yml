@@ -287,7 +287,7 @@ jobs:
 
       - name: Set up redirect
         id: redirect
-        if: steps.release_info.outputs.ngc_registry != ''
+        if: steps.release_info.outputs.ngc_registry != '' && inputs.image_tag == 'nightly-base'
         run: |
           echo "FROM ${{ steps.release_info.outputs.image_name }}@${{ steps.cudaq_build.outputs.digest }}" >> redirect.Dockerfile
           echo "image_name=${{ steps.release_info.outputs.registry }}/${{ steps.release_info.outputs.image_short_name }}" >> $GITHUB_OUTPUT
