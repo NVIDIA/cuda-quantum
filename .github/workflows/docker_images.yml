@@ -149,6 +149,17 @@ jobs:
           push: ${{ inputs.environment != '' }}
           outputs: ${{ steps.build_info.outputs.docker_output }}
 
+      - name: Install Cosign
+        if: inputs.environment
+        uses: sigstore/cosign-installer@v3.1.1
+
+      - name: Sign image with GitHub OIDC Token
+        if: inputs.environment
+        env:
+          DIGEST: ${{ steps.docker_build.outputs.digest }}
+          TAGS: ${{ steps.metadata.outputs.tags }}
+        run: cosign sign --yes "${TAGS}@${DIGEST}"
+
       - name: Cache cuda-quantum image
         if: steps.build_info.outputs.tar_cache && steps.build_info.outputs.tar_archive
         uses: actions/cache/save@v3
@@ -276,6 +287,17 @@ jobs:
           push: ${{ inputs.environment != '' }}
           outputs: ${{ steps.prereqs.outputs.docker_output }}
 
+      - name: Install Cosign
+        if: inputs.environment
+        uses: sigstore/cosign-installer@v3.1.1
+
+      - name: Sign image with GitHub OIDC Token
+        if: inputs.environment
+        env:
+          DIGEST: ${{ steps.docker_build.outputs.digest }}
+          TAGS: ${{ steps.metadata.outputs.tags }}
+        run: cosign sign --yes "${TAGS}@${DIGEST}"
+
       - name: Cache cuda-quantum-dev image
         if: steps.prereqs.outputs.tar_cache && steps.prereqs.outputs.tar_archive
         uses: actions/cache/save@v3
@@ -296,7 +318,7 @@ jobs:
     outputs:
       tar_cache: ${{ steps.prereqs.outputs.tar_cache }}
       tar_archive: ${{ steps.prereqs.outputs.tar_archive }}
-      image_hash: ${{ steps.prereqs.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
+      image_hash: ${{ steps.prereqs.outputs.image_name }}@${{ steps.cudaq_build.outputs.digest }}
 
     environment:
       name: ${{ inputs.environment || 'default' }}
@@ -455,6 +477,17 @@ jobs:
           platforms: ${{ inputs.platforms }}
           push: true
 
+      - name: Install Cosign
+        if: inputs.environment
+        uses: sigstore/cosign-installer@v3.1.1
+
+      - name: Sign image with GitHub OIDC Token
+        if: inputs.environment
+        env:
+          DIGEST: ${{ steps.release_build.outputs.digest }}
+          TAGS: ${{ steps.cudaqdev_metadata.outputs.tags }}
+        run: cosign sign --yes "${TAGS}@${DIGEST}"
+
       - name: Log in to NGC
         if: steps.prereqs.outputs.ngc_registry != ''
         uses: docker/login-action@v2
@@ -477,7 +510,7 @@ jobs:
             org.opencontainers.image.description=${{ steps.prereqs.outputs.image_description }}
 
       - name: Build cuda-quantum image
-        id: docker_build
+        id: cudaq_build
         if: success() && !cancelled()
         uses: docker/build-push-action@v4
         with:
@@ -500,6 +533,13 @@ jobs:
           path: ${{ steps.prereqs.outputs.tar_archive }}
           key: ${{ steps.prereqs.outputs.tar_cache }}
 
+      - name: Sign image with GitHub OIDC Token
+        if: inputs.environment && steps.prereqs.outputs.ngc_registry == ''
+        env:
+          DIGEST: ${{ steps.cudaq_build.outputs.digest }}
+          TAGS: ${{ steps.cudaq_metadata.outputs.tags }}
+        run: cosign sign --yes "${TAGS}@${DIGEST}"
+
       # If the cuda-quantum image is initially pushed to ngc we recreate it
       # and push it to the registry defined in the deployment environment
       - name: Log in to the container registry
@@ -514,7 +554,7 @@ jobs:
       - name: Set up redirect
         if: steps.redirect.outcome != 'skipped'
         run: |
-          echo "FROM ${{ steps.prereqs.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}" >> redirect.Dockerfile
+          echo "FROM ${{ steps.prereqs.outputs.image_name }}@${{ steps.cudaq_build.outputs.digest }}" >> redirect.Dockerfile
 
       - name: Update cuda-quantum metadata
         id: updated_metadata
@@ -531,6 +571,7 @@ jobs:
             org.opencontainers.image.description=${{ steps.prereqs.outputs.image_description }}
 
       - name: Build cuda-quantum image redirect
+        id: docker_build
         if: steps.redirect.outcome != 'skipped'
         uses: docker/build-push-action@v4
         with:
@@ -540,6 +581,13 @@ jobs:
           labels: ${{ steps.updated_metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}
           push: true
+
+      - name: Sign image with GitHub OIDC Token
+        if: steps.redirect.outcome != 'skipped'
+        env:
+          DIGEST: ${{ steps.docker_build.outputs.digest }}
+          TAGS: ${{ steps.updated_metadata.outputs.tags }}
+        run: cosign sign --yes "${TAGS}@${DIGEST}"
 
   documentation:
     name: Documentation

@@ -215,6 +215,7 @@ jobs:
           docker image prune --force
 
           echo "release_id=$release_id" >> $GITHUB_OUTPUT
+          echo "registry=$registry" >> $GITHUB_OUTPUT
           echo "ngc_registry=$ngc_registry" >> $GITHUB_OUTPUT
           echo "image_short_name=$image_short_name" >> $GITHUB_OUTPUT
           echo "image_name=${ngc_registry:-$registry}/$image_short_name" >> $GITHUB_OUTPUT
@@ -252,7 +253,7 @@ jobs:
             org.opencontainers.image.description=${{ steps.release_info.outputs.image_description }}
 
       - name: Build cuda-quantum image
-        id: docker_build
+        id: cudaq_build
         uses: docker/build-push-action@v4
         with:
           context: .
@@ -265,9 +266,18 @@ jobs:
           platforms: ${{ steps.release_info.outputs.platforms }}
           push: ${{ inputs.image_tag == 'nightly-base' }}
 
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.1.1
+
+      - name: Sign image with GitHub OIDC Token
+        if: steps.release_info.outputs.ngc_registry == ''
+        env:
+          DIGEST: ${{ steps.cudaq_build.outputs.digest }}
+          TAGS: ${{ steps.metadata.outputs.tags }}
+        run: cosign sign --yes "${TAGS}@${DIGEST}"
+
       - name: Log in to the container registry
-        id: redirect
-        if: steps.release_info.outputs.ngc_registry != '' && vars.registry
+        if: vars.registry
         uses: docker/login-action@v2
         with:
           registry: ${{ vars.registry }}
@@ -275,16 +285,18 @@ jobs:
           password: ${{ github.token }}
 
       - name: Set up redirect
-        if: steps.redirect.outcome != 'skipped'
+        id: redirect
+        if: steps.release_info.outputs.ngc_registry != ''
         run: |
-          echo "FROM ${{ steps.release_info.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}" >> redirect.Dockerfile
+          echo "FROM ${{ steps.release_info.outputs.image_name }}@${{ steps.cudaq_build.outputs.digest }}" >> redirect.Dockerfile
+          echo "image_name=${{ steps.release_info.outputs.registry }}/${{ steps.release_info.outputs.image_short_name }}" >> $GITHUB_OUTPUT
 
       - name: Update cuda-quantum metadata
         id: updated_metadata
         if: steps.redirect.outcome != 'skipped'
         uses: docker/metadata-action@v4
         with:
-          images: ${{ vars.registry }}/${{ steps.release_info.outputs.image_short_name }}
+          images: ${{ steps.redirect.outputs.image_name }}
           flavor: latest=false
           tags: type=raw,value=${{ steps.release_info.outputs.image_tag }}
           labels: |
@@ -292,6 +304,7 @@ jobs:
             org.opencontainers.image.description=${{ steps.release_info.outputs.image_description }}
 
       - name: Build cuda-quantum image redirect
+        id: docker_build
         if: steps.redirect.outcome != 'skipped'
         uses: docker/build-push-action@v4
         with:
@@ -299,8 +312,15 @@ jobs:
           file: redirect.Dockerfile
           tags: ${{ steps.updated_metadata.outputs.tags }}
           labels: ${{ steps.updated_metadata.outputs.labels }}
-          platforms: ${{ inputs.platforms }}
+          platforms: ${{ steps.release_info.outputs.platforms }}
           push: ${{ inputs.image_tag == 'nightly-base' }}
+
+      - name: Sign image with GitHub OIDC Token
+        if: steps.redirect.outcome != 'skipped'
+        env:
+          DIGEST: ${{ steps.docker_build.outputs.digest }}
+          TAGS: ${{ steps.updated_metadata.outputs.tags }}
+        run: cosign sign --yes "${TAGS}@${DIGEST}"
 
       - name: Update release information
         run: |
@@ -308,9 +328,10 @@ jobs:
           gh release view $release_id --json body --jq .body > rel_notes.txt
           header_length=`cat rel_notes.txt | grep -n "Release notes generated" | cut -d ':' -f 1`
           head -n $(($header_length - 1)) rel_notes.txt > new_notes.txt
+          redirect=${{ steps.redirect.outputs.image_name }}
           echo -e "\nImages for ${{ steps.release_info.outputs.platforms }}:\n" >> new_notes.txt
           echo "- cuda-quantum (base image): ${{ steps.release_info.outputs.cudaq_image }}" >> new_notes.txt
-          echo "- cuda-quantum (with hpc components): ${{ steps.release_info.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}" >> new_notes.txt
+          echo "- cuda-quantum (with hpc components): ${{ steps.release_info.outputs.image_name }}@${{ steps.cudaq_build.outputs.digest }}${redirect:+ or $redirect@${{ steps.docker_build.outputs.digest }}}" >> new_notes.txt
           echo "- cuda-quantum-dev (for extension development): ${{ steps.release_info.outputs.cudaqdev_image }}" >> new_notes.txt
           echo "- cuda-quantum-devdeps (development dependencies only): ${{ steps.release_info.outputs.cudaqdevdeps_image }}" >> new_notes.txt
           (echo && tail -n +$header_length rel_notes.txt) >> new_notes.txt
