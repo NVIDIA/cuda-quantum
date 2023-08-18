@@ -498,7 +498,7 @@ jobs:
             --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
           gh release upload $release_id -R ${{ github.repository }} wheelhouse.zip --clobber
           gh release edit $release_id -R ${{ github.repository }} \
-            --title "$release_title" --tag $version --prerelease=$prerelease # --draft=false
+            --title "$release_title" --tag $version $prerelease # --draft=false
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
