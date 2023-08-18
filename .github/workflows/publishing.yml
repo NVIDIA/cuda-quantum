@@ -214,7 +214,7 @@ jobs:
           docker image prune --force
 
           registry=${{ vars.registry || 'localhost:5000' }}
-          if [ -n "$(echo "$platforms" | grep ',')" ]; then
+          if [ -n "$(echo "$platforms" | grep ',')" ] && ${{ secrets.secrets.NGC_CREDENTIALS != '' }}; then
             if [ "$image_tag" == "nightly" ] || ${{ needs.assets.outputs.publish }}; then
               ngc_registry=nvcr.io
             fi
