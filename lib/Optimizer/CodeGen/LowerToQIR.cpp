@@ -617,6 +617,7 @@ public:
 
     auto paramType = FloatType::getF64(context);
     tmpArgTypes.push_back(paramType);
+    tmpArgTypes.push_back(paramType);
     tmpArgTypes.push_back(qubitIndexType);
 
     FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
@@ -1329,6 +1330,7 @@ public:
         OneTargetRewrite<quake::XOp>, OneTargetRewrite<quake::YOp>,
         OneTargetRewrite<quake::ZOp>, OneTargetRewrite<quake::SOp>,
         OneTargetRewrite<quake::TOp>, OneTargetOneParamRewrite<quake::R1Op>,
+        OneTargetTwoParamRewrite<quake::PhasedRxOp>,
         OneTargetOneParamRewrite<quake::RxOp>,
         OneTargetOneParamRewrite<quake::RyOp>,
         OneTargetOneParamRewrite<quake::RzOp>,
