@@ -1,6 +1,6 @@
 // Compile and run with:
 // ```
-// nvq++ --target iqm iqm.cpp --iqm-qpu-architecture Adonis -o out.x && ./out.x
+// nvq++ --target iqm iqm.cpp --iqm-machine Adonis -o out.x && ./out.x
 // ```
 // Assumes a valid set of credentials have been stored.
 

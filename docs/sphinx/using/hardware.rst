@@ -245,25 +245,25 @@ Submission from C++
 `````````````````````````
 
 To target quantum kernel code for execution on an IQM Server,
-pass the ``--target iqm`` flag to the ``nvq++`` compiler, along with a specified ``--iqm-qpu-architecture``. 
+pass the ``--target iqm`` flag to the ``nvq++`` compiler, along with a specified ``--iqm-machine``.
 
-.. note:: 
-    The ``--iqm-qpu-architecture`` is  a mandatory argument. This provided architecture must match 
-    the device architecture that the program has been compiled against. The hardware architecture for a 
+.. note::
+    The ``--iqm-machine`` is  a mandatory argument. This provided architecture must match
+    the device architecture that the program has been compiled against. The hardware architecture for a
     specific IQM Server may be checked  via `https://<IQM server>/cocos/quantum- architecture`.
 
 .. code:: bash
 
-    nvq++ --target iqm --iqm-qpu-architecture Adonis src.cpp
+    nvq++ --target iqm --iqm-machine Adonis src.cpp
 
 Once the binary for a specific IQM QPU architecture is compiled, it can be executed against any IQM Server with the same QPU architecture:
 
 .. code:: bash
 
-    nvq++ --target iqm --iqm-qpu-architecture Adonis src.cpp -o program
+    nvq++ --target iqm --iqm-machine Adonis src.cpp -o program
     IQM_SERVER_URL=https://<Adonis IQM Server>/cocos program
 
-    # Executing the same program against an IQM Server with a different underlying QPU 
+    # Executing the same program against an IQM Server with a different underlying QPU
     # architecture will result in an error.
     IQM_SERVER_URL=https://<Apollo IQM Server>/cocos program
 
@@ -273,7 +273,7 @@ specific compiler diagnostics, before running a noise free emulation.
 
 .. code:: bash
 
-    nvq++ --emulate --target iqm --iqm-qpu-architecture Adonis src.cpp
+    nvq++ --emulate --target iqm --iqm-machine Adonis src.cpp
 
 To see a complete example for using IQM server backends, take a look at our :ref:`C++ examples<cpp-examples-for-hardware-providers>`.
 
