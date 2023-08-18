@@ -103,6 +103,8 @@ CUDAQ_TEST(KernelsTester, checkGetAlphaZ) {
   }
 }
 
+#ifndef CUDAQ_BACKEND_DM
+
 CUDAQ_TEST(KernelsTester, checkFromState) {
   {
     std::vector<std::complex<double>> state{.70710678, 0., 0., 0.70710678};
@@ -133,3 +135,5 @@ CUDAQ_TEST(KernelsTester, checkFromState) {
       EXPECT_NEAR(ss[i].real(), state[i].real(), 1e-3);
   }
 }
+
+#endif

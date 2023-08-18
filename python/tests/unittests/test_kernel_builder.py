@@ -247,6 +247,7 @@ def test_can_progressively_build():
     assert '00' in counts 
     
 def test_from_state():
+    cudaq.reset_target()
     state = np.asarray([.70710678, 0., 0., 0.70710678])
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(2)
