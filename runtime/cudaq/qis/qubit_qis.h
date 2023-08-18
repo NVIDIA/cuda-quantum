@@ -378,6 +378,9 @@ concept signature = std::is_convertible_v<T, std::function<Signature>>;
 template <typename T>
 concept takes_qubit = signature<T, void(qubit &)>;
 
+template <typename T>
+concept takes_qreg = signature<T, void(qreg<> &)>;
+
 // Control the given cudaq kernel on the given control qubit
 template <typename QuantumKernel, typename... Args>
   requires isCallableVoidKernel<QuantumKernel, Args...>
