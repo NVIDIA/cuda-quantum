@@ -139,11 +139,11 @@ spin_op::spin_op(const spin_op &o) : terms(o.terms) {}
 
 spin_op::spin_op(
     std::pair<const spin_op_term, std::complex<double>> &termData) {
-  terms.emplace(termData);
+  terms.insert(termData);
 }
 spin_op::spin_op(
     const std::pair<const spin_op_term, std::complex<double>> &termData) {
-  terms.emplace(termData);
+  terms.insert(termData);
 }
 
 spin_op::iterator<spin_op> spin_op::begin() {
@@ -249,6 +249,32 @@ spin_op spin_op::random(std::size_t nQubits, std::size_t nTerms) {
   return spin_op(randomTerms, coeffs);
 }
 
+spin_op spin_op::from_word(const std::string &word) {
+  auto numQubits = word.length();
+  spin_op_term term(2 * numQubits);
+  for (std::size_t i = 0; i < numQubits; i++) {
+    auto letter = word[i];
+    if (std::islower(letter))
+      letter = std::toupper(letter);
+
+    if (letter == 'Y') {
+      term[i] = true;
+      term[i + numQubits] = true;
+    } else if (letter == 'X') {
+      term[i] = true;
+    } else if (letter == 'Z') {
+      term[i + numQubits] = true;
+    } else {
+
+      if (letter != 'I')
+        throw std::runtime_error(
+            "Invalid Pauli for spin_op::from_word, must be X, Y, Z, or I.");
+    }
+  }
+
+  return spin_op(term, 1.0);
+}
+
 void spin_op::expandToNQubits(const std::size_t numQubits) {
   auto iter = terms.begin();
   while (iter != terms.end()) {
@@ -289,12 +315,6 @@ spin_op &spin_op::operator+=(const spin_op &v) noexcept {
 
   return *this;
 }
-
-// spin_op spin_op::operator[](const std::size_t term_idx) const {
-//   auto start = terms.begin();
-//   std::advance(start, term_idx);
-//   return spin_op(start->first, start->second);
-// }
 
 spin_op &spin_op::operator-=(const spin_op &v) noexcept {
   return operator+=(-1.0 * v);

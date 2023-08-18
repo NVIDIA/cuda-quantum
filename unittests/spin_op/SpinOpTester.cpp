@@ -23,6 +23,24 @@ TEST(SpinOpTester, checkEquality) {
   EXPECT_EQ(xx, xx);
 }
 
+TEST(SpinOpTester, checkFromWord) {
+  {
+    auto s = cudaq::spin_op::from_word("ZZZ");
+    std::cout << s.to_string() << "\n";
+    EXPECT_EQ(z(0) * z(1) * z(2), s);
+  }
+  {
+    auto s = cudaq::spin_op::from_word("XYX");
+    std::cout << s.to_string() << "\n";
+    EXPECT_EQ(x(0) * y(1) * x(2), s);
+  }
+  {
+    auto s = cudaq::spin_op::from_word("IZY");
+    std::cout << s.to_string() << "\n";
+    EXPECT_EQ(i(0) * z(1) * y(2), s);
+  }
+}
+
 TEST(SpinOpTester, checkAddition) {
   cudaq::spin_op op = x(10);
 

@@ -103,9 +103,14 @@ void bindSpinOperator(py::module &mod) {
       .def("distribute_terms", &cudaq::spin_op::distribute_terms,
            "Return a list of `SpinOperator` representing a distribution of the "
            "terms in this `SpinOperator` into equally sized chunks.")
-      .def_static("random", &cudaq::spin_op::random,
-                  "Return a random spin_op on the given number of qubits and "
-                  "composed of the given number of terms.")
+      .def_static(
+          "random", &cudaq::spin_op::random,
+          "Return a random SpinOperator on the given number of qubits and "
+          "composed of the given number of terms.")
+      .def_static("from_word", &cudaq::spin_op::from_word, py::arg("word"),
+                  "Return a `SpinOperator` corresponding to the provided Pauli "
+                  "word,  e.g. 'XYX' for a `SpinOperator` on 3 qubits with a X "
+                  "support on the first and 3rd and Y support on the second..")
       .def(
           "for_each_term",
           [](spin_op &self, py::function functor) {
