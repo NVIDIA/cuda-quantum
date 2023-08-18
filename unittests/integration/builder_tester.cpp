@@ -183,8 +183,8 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     auto rx_builder = cudaq::make_kernel();
     auto q = rx_builder.qalloc();
     // float -> double implicit type conversion
-    rx_builder.rx<cudaq::adj>(-M_PI_4f32, q);
-    rx_builder.rx(M_PI_4f32, q);
+    rx_builder.rx<cudaq::adj>(-M_PI_4, q);
+    rx_builder.rx(M_PI_4, q);
     // long double -> double implicit type conversion
     const long double pi_4_ld = M_PI / 4.0;
     rx_builder.rx<cudaq::adj>(-pi_4_ld, q);
