@@ -14,6 +14,8 @@ from multiprocessing import Process
 import cudaq
 from cudaq import spin
 import pytest
+
+iqm_client = pytest.importorskip("iqm_client")
 try:
     from utils.mock_qpu.iqm.mock_iqm_cortex_cli import write_a_mock_tokens_file
     from utils.mock_qpu.iqm.mock_iqm_server import startServer

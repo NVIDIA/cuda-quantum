@@ -8,8 +8,13 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# We'll use iqm-client tools to verify the request struct and generate responses
-@Python_EXECUTABLE@ -m pip install iqm-client --user
+# Check if iqm-client is installed, otherwise mark the test as skipped
+@Python_EXECUTABLE@ -c "import iqm_client" 2> /dev/null
+if [ $? -ne 0 ]; then
+    echo "iqm-client is not installed. It is required for testing IQM integration. Please install it using pip install iqm-client. Skipping IQM tests."
+    exit 77
+fi
+
 # Create fake auth tokens file
 tmp_file=$(mktemp)
 @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/mock_qpu/iqm/mock_iqm_cortex_cli.py $tmp_file
