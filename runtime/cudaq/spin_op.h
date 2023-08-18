@@ -349,6 +349,16 @@ public:
   /// @brief Return a dense matrix representation of this
   /// spin_op.
   complex_matrix to_matrix() const;
+
+  /// @brief Typedef for a vector of non-zero sparse matrix elements.
+  using csr_spmatrix =
+      std::tuple<std::vector<std::complex<double>>, std::vector<std::size_t>,
+                 std::vector<std::size_t>>;
+  // std::vector<std::tuple<std::size_t, std::size_t, std::complex<double>>>;
+
+  /// @brief Return a sparse matrix representation of this `spin_op`. The
+  /// return type encodes all non-zero `(row, col, value)` elements.
+  csr_spmatrix to_sparse_matrix() const;
 };
 
 /// @brief Add a double and a spin_op

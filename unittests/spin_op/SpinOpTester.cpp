@@ -149,6 +149,19 @@ TEST(SpinOpTester, canBuildDeuteron) {
   EXPECT_EQ(2, H.num_qubits());
 }
 
+TEST(SpinOpTester, checkGetSparseMatrix) {
+  auto H = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) + .21829 * z(0) -
+           6.125 * z(1);
+  auto matrix = H.to_matrix();
+  matrix.dump();
+  auto [values, rows, cols] = H.to_sparse_matrix();
+  for (std::size_t i = 0; auto &el : values) {
+    std::cout << rows[i] << ", " << cols[i] << ", " << el << "\n";
+    EXPECT_NEAR(matrix(rows[i], cols[i]).real(), el.real(), 1e-3);
+    i++;
+  }
+}
+
 TEST(SpinOpTester, checkGetMatrix) {
   auto H = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) + .21829 * z(0) -
            6.125 * z(1);
