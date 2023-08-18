@@ -40,6 +40,7 @@ jobs:
       runner: ${{ steps.info.outputs.runner }}
       platform_tag: ${{ steps.info.outputs.platform_tag }}
       build_docs: ${{ steps.info.outputs.build_docs }}
+      push_to_ngc: ${{ steps.info.outputs.push_to_ngc }}
     
     steps:
       - id: info
@@ -48,6 +49,7 @@ jobs:
             # multi-platform builds get no platform tag
             echo "runner=linux-amd64-cpu16" >> $GITHUB_OUTPUT
             echo "build_docs=${{ inputs.build_docs != 'false' }}" >> $GITHUB_OUTPUT
+            echo "push_to_ngc=${{ inputs.environment && secrets.NGC_CREDENTIALS != '' }}" >> $GITHUB_OUTPUT
           elif [ -n "$(echo ${{ inputs.platforms }} | grep -i arm)" ]; then
             platform_tag=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' '`
             echo "platform_tag=$platform_tag" >> $GITHUB_OUTPUT
@@ -405,7 +407,7 @@ jobs:
           docker image prune --force
           repo_owner=${{ github.repository_owner }}
           registry=${{ vars.registry || 'localhost:5000' }}
-          ngc_registry=${{ (inputs.environment && needs.metadata.outputs.platform_tag == '' && 'nvcr.io') || '' }}
+          ngc_registry=${{ (needs.metadata.outputs.push_to_ngc == 'true' && 'nvcr.io') || '' }}
           image_short_name=${repo_owner,,}/cuda-quantum
           dev_image_name=${registry}/${image_short_name}-dev
           image_name=${ngc_registry:-$registry}/${image_short_name}

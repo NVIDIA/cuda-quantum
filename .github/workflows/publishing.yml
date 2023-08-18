@@ -7,7 +7,7 @@ on:
         required: true
       assets_from_run:
         type: string
-        description: Optional argument to facilitate rerunning a failed publishing without rebuilding the assets.
+        description: Optional argument to facilitate rerunning a failed workflow without re-building the assets.
         required: false
       image_tag:
         type: string
@@ -35,11 +35,13 @@ jobs:
 
     outputs:
       artifacts_url: ${{ steps.artifacts.outputs.artifacts_url }}
+      github_commit: ${{ steps.artifacts.outputs.github_commit }}
       docker_images: ${{ steps.artifacts.outputs.docker_images }}
       python_wheels: ${{ steps.artifacts.outputs.python_wheels }}
       releases: ${{ steps.artifacts.outputs.releases }}
       release_title: ${{ steps.artifacts.outputs.release_title }}
-      github_commit: ${{ steps.artifacts.outputs.github_commit }}
+      release_version: ${{ steps.artifacts.outputs.release_version }}
+      publish: ${{ steps.artifacts.outputs.publish }}
 
     steps:
       - name: Checkout repository
@@ -99,14 +101,18 @@ jobs:
               python_wheels=`echo $python_wheels | jq ". |= . + $info"`
             elif [ "${name#deployment_info}" != "$name" ]; then
               download "$url" "$name"
-              release_title=`cat "$name.txt" | grep -o 'publish: \S*' | cut -d ' ' -f 2`
               github_commit=`cat "$name.txt" | grep -o 'source-sha: \S*' | cut -d ' ' -f 2`
+              release_title=`cat "$name.txt" | grep -o 'release-title: \S*' | cut -d ' ' -f 2`
+              release_version=`cat "$name.txt" | grep -o 'release-version: \S*' | cut -d ' ' -f 2`
+              publish=`cat "$name.txt" | grep -o 'publish-release: \S*' | cut -d ' ' -f 2`
             fi
           done
 
-          echo "github_commit=$github_commit" >> $GITHUB_OUTPUT
+          echo "publish=$publish" >> $GITHUB_OUTPUT
           echo "release_title=$release_title" >> $GITHUB_OUTPUT
+          echo "release_version=$release_version" >> $GITHUB_OUTPUT
           echo "releases='$releases'" >> $GITHUB_OUTPUT
+          echo "github_commit=$github_commit" >> $GITHUB_OUTPUT
           echo "docker_images=$(echo $docker_images)" >> $GITHUB_OUTPUT
           echo "python_wheels=$(echo $python_wheels)" >> $GITHUB_OUTPUT
           echo "artifacts_url=$artifacts_url" >> $GITHUB_OUTPUT
@@ -203,8 +209,6 @@ jobs:
 
           docker pull $cudaq_image
           repo_owner=${{ github.repository_owner }}
-          registry=${{ vars.registry || 'localhost:5000' }}
-          ngc_registry=$([ -n "$(echo "$platforms" | grep ',')" ] && echo nvcr.io)
           image_short_name=${repo_owner,,}/cuda-quantum
           base_tag=`docker inspect $cudaq_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"'`
           image_tag=${{ inputs.image_tag }}
@@ -214,6 +218,13 @@ jobs:
           image_description=`docker inspect $cudaq_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.description"'`
           docker image rm $cudaq_image
           docker image prune --force
+
+          registry=${{ vars.registry || 'localhost:5000' }}
+          if [ -n "$(echo "$platforms" | grep ',')" ]; then
+            if [ "$image_tag" == "nightly" ] || ${{ needs.assets.outputs.publish }}; then
+              ngc_registry=nvcr.io
+            fi
+          fi
 
           echo "release_id=$release_id" >> $GITHUB_OUTPUT
           echo "registry=$registry" >> $GITHUB_OUTPUT
@@ -475,8 +486,7 @@ jobs:
       # See also: 
       # https://github.com/pypa/gh-action-pypi-publish
       # https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
-      - name: Publish release
-        id: publish_release
+      - name: Create release
         run: |
           for dir in `ls wheelhouse/`; do 
             mv "wheelhouse/$dir"/* wheelhouse/ && rmdir "wheelhouse/$dir"
@@ -486,10 +496,10 @@ jobs:
           release_id=${{ inputs.assets_from_run || github.run_id }}
           release_title="${{ needs.assets.outputs.release_title }}"
           github_commit=${{ needs.assets.outputs.github_commit }}
-          version=`echo "$release_title" | egrep -o "([0-9]{1,}\.)+[0-9]{1,}([A-Za-z0-9_\-\.]*)"`
+          version=${{ needs.assets.outputs.release_version }}
           versions=`gh release list -R ${{ github.repository }} --exclude-drafts --exclude-pre-releases | egrep -o "([0-9]{1,}\.)+[0-9]{1,}\S*" | sort -r -V`
           latest_tag=`echo $versions | cut -d ' ' -f 1`
-          prerelease=`([ "$(echo $version | egrep -o '([0-9]{1,}\.)+[0-9]{1,}')" == "$version" ] && echo '') || echo '--prerelease'`
+          prerelease=`(${{ needs.assets.outputs.publish == 'true' }} && echo '') || echo '--prerelease'`
           
           rel_notes="Release created by workflow [${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})."
           rel_notes+=$(echo "<br/>GitHub commit [$github_commit](https://github.com/${{ github.repository }}/tree/$github_commit)")
