@@ -62,42 +62,8 @@ public:
   void resetExecutionContext() override {
     cudaq::info("MultiQPUPlatform::resetExecutionContext QPU {}", qpu_id);
     auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
-
     auto ctx = contexts[tid];
-    if (ctx && ctx->name == "observe") {
-      double sum = 0.0;
-      if (!ctx->spin.has_value())
-        throw std::runtime_error(
-            "Observe ExecutionContext specified without a cudaq::spin_op.");
-
-      std::vector<cudaq::ExecutionResult> results;
-      cudaq::spin_op &H = *ctx->spin.value();
-
-      // If the backend supports the observe task,
-      // let it compute the expectation value instead of
-      // manually looping over terms, applying basis change ops,
-      // and computing <ZZ..ZZZ>
-      if (ctx->canHandleObserve) {
-        auto [exp, data] = cudaq::measure(H);
-        results.emplace_back(data.to_map(), H.to_string(false), exp);
-        ctx->expectationValue = exp;
-        ctx->result = cudaq::sample_result(results);
-      } else {
-        H.for_each_term([&](cudaq::spin_op &term) {
-          if (term.is_identity())
-            sum += term.get_coefficient().real();
-          else {
-            auto [exp, data] = cudaq::measure(term);
-            results.emplace_back(data.to_map(), term.to_string(false), exp);
-            sum += term.get_coefficient().real() * exp;
-          }
-        });
-
-        ctx->expectationValue = sum;
-        ctx->result = cudaq::sample_result(sum, results);
-      }
-    }
-
+    handleObservation(ctx);
     cudaq::getExecutionManager()->resetExecutionContext();
     contexts[tid] = nullptr;
     contexts.erase(tid);
