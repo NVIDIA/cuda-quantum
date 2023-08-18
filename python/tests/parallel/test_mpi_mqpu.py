@@ -10,7 +10,6 @@ import cudaq, os, pytest, random, timeit
 from cudaq import spin
 import numpy as np
 
-cudaq.mpi.initialize()
 skipIfUnsupported = pytest.mark.skipif(
     not (cudaq.num_available_gpus() > 0 and cudaq.mpi.is_initialized() and cudaq.has_target('nvidia-mqpu')),
     reason="nvidia-mqpu backend not available or mpi not found"
@@ -20,6 +19,7 @@ skipIfUnsupported = pytest.mark.skipif(
 @skipIfUnsupported
 def testMPI():
     cudaq.set_target('nvidia-mqpu')
+    cudaq.mpi.initialize()
 
     target = cudaq.get_target()
     numQpus = target.num_qpus()
