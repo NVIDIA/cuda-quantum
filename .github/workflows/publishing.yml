@@ -38,7 +38,6 @@ jobs:
       releases: ${{ steps.artifacts.outputs.releases }}
       release_title: ${{ steps.artifacts.outputs.release_title }}
       release_version: ${{ steps.artifacts.outputs.release_version }}
-      publish: ${{ steps.artifacts.outputs.publish }}
 
     steps:
       - name: Checkout repository
@@ -101,11 +100,9 @@ jobs:
               github_commit=`cat "$name.txt" | grep -o 'source-sha: \S*' | cut -d ' ' -f 2`
               release_title=`cat "$name.txt" | grep -o 'release-title: \S*' | cut -d ' ' -f 2`
               release_version=`cat "$name.txt" | grep -o 'release-version: \S*' | cut -d ' ' -f 2`
-              publish=`cat "$name.txt" | grep -o 'publish-release: \S*' | cut -d ' ' -f 2`
             fi
           done
 
-          echo "publish=$publish" >> $GITHUB_OUTPUT
           echo "release_title=$release_title" >> $GITHUB_OUTPUT
           echo "release_version=$release_version" >> $GITHUB_OUTPUT
           echo "releases='$releases'" >> $GITHUB_OUTPUT
@@ -493,7 +490,7 @@ jobs:
           version=${{ needs.assets.outputs.release_version }}
           versions=`gh release list -R ${{ github.repository }} --exclude-drafts --exclude-pre-releases | egrep -o "([0-9]{1,}\.)+[0-9]{1,}\S*" | sort -r -V`
           latest_tag=`echo $versions | cut -d ' ' -f 1`
-          prerelease=`(${{ needs.assets.outputs.publish == 'true' }} && echo '') || echo '--prerelease'`
+          prerelease=`([ "$(echo $release_version | egrep -o '([0-9]{1,}\.)+[0-9]{1,}')" == "$release_version" ] && echo '') || echo '--prerelease'`
           
           rel_notes="Release created by workflow [${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})."
           rel_notes+=$(echo "<br/>GitHub commit [$github_commit](https://github.com/${{ github.repository }}/tree/$github_commit)")

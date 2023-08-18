@@ -63,7 +63,6 @@ jobs:
       multi_platform: ${{ steps.build_info.outputs.multi_platform }}
       platforms: ${{ steps.build_info.outputs.platforms }}
       environment: ${{ steps.build_info.outputs.environment }}
-      publish_release: ${{ steps.build_info.outputs.publish_release }}
 
     steps:
       - name: Retrieve PR info
@@ -122,15 +121,10 @@ jobs:
           # Store deployment info
           release_title="${{ inputs.create_release }}"
           release_version=`echo "$release_title" | (egrep -o "([0-9]{1,}\.)+[0-9]{1,}([A-Za-z0-9_\-\.]*)" || true)`
-          if [ "$release_version" != "" ]; then
-            publish_release=`([ "$(echo $release_version | egrep -o '([0-9]{1,}\.)+[0-9]{1,}')" == "$release_version" ] && echo 'true') || echo 'false'`
-            echo "publish_release=$publish_release" >> $GITHUB_OUTPUT
-          fi
 
           echo "source-sha: ${{ github.sha }}" >> deployment_info.txt
           echo "release-title: $release_title" >> deployment_info.txt
           echo "release-version: $release_version" >> deployment_info.txt
-          echo "publish-release: $publish_release" >> deployment_info.txt
 
           echo "cache_base=$cache_base" >> $GITHUB_OUTPUT
           echo "update_cache=$update_cache" >> $GITHUB_OUTPUT
@@ -306,7 +300,7 @@ jobs:
       fail-fast: false
     uses: ./.github/workflows/docker_images.yml
     secrets:
-      NGC_CREDENTIALS: ${{ (github.ref_name == 'main' || needs.metadata.outputs.publish_release == 'true') && secrets.NGC_CREDENTIALS || '' }}
+      NGC_CREDENTIALS: ${{ secrets.NGC_CREDENTIALS }}
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       ompidev_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-ompi', matrix.platform)] }}
