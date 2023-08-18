@@ -30,7 +30,7 @@ nlohmann::json RestClient::post(const std::string_view remoteUrl,
   auto r = cpr::Post(cpr::Url{actualPath}, cpr::Body(post.dump()), cprHeaders,
                      cpr::VerifySsl(false));
 
-  if (r.status_code > validHttpCode)
+  if (r.status_code > validHttpCode || r.status_code == 0)
     throw std::runtime_error("HTTP POST Error - status code " +
                              std::to_string(r.status_code) + ": " +
                              r.error.message + ": " + r.text);
@@ -52,6 +52,11 @@ nlohmann::json RestClient::get(const std::string_view remoteUrl,
   auto actualPath = std::string(remoteUrl) + std::string(path);
   auto r = cpr::Get(cpr::Url{actualPath}, cprHeaders, cprParams,
                     cpr::VerifySsl(false));
+
+  if (r.status_code > validHttpCode || r.status_code == 0)
+    throw std::runtime_error("HTTP GET Error - status code " +
+                             std::to_string(r.status_code) + ": " +
+                             r.error.message + ": " + r.text);
 
   return nlohmann::json::parse(r.text);
 }

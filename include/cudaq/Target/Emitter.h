@@ -56,8 +56,10 @@ struct Emitter {
   }
 
   /// Returns a new name by combining `prefix` and the number of values in scope
-  std::string createName(mlir::StringRef prefix = "var") {
-    return llvm::formatv("{0}{1}", prefix, valuesInScopeCount.top());
+  std::string createName(mlir::StringRef prefix = "var",
+                         int64_t index_offset = 0) {
+    return llvm::formatv("{0}{1}", prefix,
+                         valuesInScopeCount.top() + index_offset);
   }
 
   /// Return the existing name for a value, or assign `name` to it.

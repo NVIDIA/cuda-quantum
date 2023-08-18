@@ -15,6 +15,10 @@
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/FormatAdapters.h"
 
+#include <algorithm>
+#include <cmath>
+#include <numeric>
+
 using namespace mlir;
 
 namespace cudaq {
@@ -61,7 +65,7 @@ static LogicalResult emitOperation(nlohmann::json &json, Emitter &emitter,
 static LogicalResult emitOperation(nlohmann::json &json, Emitter &emitter,
                                    quake::AllocaOp op) {
   Value refOrVeq = op.getRefOrVec();
-  auto name = emitter.createName();
+  auto name = emitter.createName("QB", 1);
   emitter.getOrAssignName(refOrVeq, name);
   return success();
 }
@@ -76,7 +80,7 @@ static LogicalResult emitOperation(nlohmann::json &json, Emitter &emitter,
 
   if (!index.has_value())
     return op.emitError("cannot translate runtime index to IQM Json");
-  auto qrefName = llvm::formatv("{0}{1}", "QB", *index);
+  auto qrefName = llvm::formatv("{0}{1}", "QB", *index + 1);
   emitter.getOrAssignName(op.getRef(), qrefName);
   return success();
 }
@@ -91,21 +95,38 @@ static LogicalResult emitOperation(nlohmann::json &json, Emitter &emitter,
         "Invalid operation, code not lowered to IQM native gate set (" + name +
         ").");
 
-  json["name"] = name;
   std::vector<std::string> qubits;
-  for (auto target : optor.getTargets())
-    qubits.push_back(emitter.getOrAssignName(target).str());
-  json["qubits"] = qubits;
 
-  if (!optor.getParameters().empty()) {
-    // has to be 2 parameters
+  if (name == "z") {
+    if (optor.getControls().size() != 1)
+      optor.emitError(
+          "IQM gate set only supports Z gates with exactly one control.");
+    json["name"] = "cz";
+    json["args"] = nlohmann::json::object();
+    for (auto control : optor.getControls())
+      qubits.push_back(emitter.getOrAssignName(control).str());
+  } else {
+    json["name"] = name;
+
+    if (optor.getParameters().size() != 2)
+      optor.emitError("IQM phased_rx gate expects exactly two parameters.");
+
     auto parameter0 = getParameterValueAsDouble(optor.getParameters()[0]);
     auto parameter1 = getParameterValueAsDouble(optor.getParameters()[1]);
 
-    json["args"]["angle_t"] = *parameter0;
-    json["args"]["phase_t"] = *parameter1;
-  } else
-    json["args"] = nlohmann::json::object();
+    auto convertToFullTurns = [](double &angleInRadians) {
+      return angleInRadians / (2 * M_PI);
+    };
+    json["args"]["angle_t"] = convertToFullTurns(*parameter0);
+    json["args"]["phase_t"] = convertToFullTurns(*parameter1);
+  }
+
+  if (optor.getTargets().size() != 1)
+    optor.emitError("IQM operation " + name + " supports exactly one target.");
+
+  qubits.push_back(emitter.getOrAssignName(optor.getTargets().front()).str());
+
+  json["qubits"] = qubits;
 
   return success();
 }
@@ -118,6 +139,14 @@ static LogicalResult emitOperation(nlohmann::json &json, Emitter &emitter,
     qubits.push_back(emitter.getOrAssignName(target).str());
 
   json["qubits"] = qubits;
+  json["args"] = nlohmann::json::object();
+  auto join_lambda = [](std::string a, std::string b) {
+    return a + std::string("_") + b;
+  };
+  json["args"]["key"] =
+      "m_" + (qubits.empty() ? ""
+                             : std::accumulate(++qubits.begin(), qubits.end(),
+                                               *qubits.begin(), join_lambda));
   return success();
 }
 
@@ -138,10 +167,13 @@ static LogicalResult emitOperation(nlohmann::json &json, Emitter &emitter,
       .Case<func::ReturnOp>([&](auto op) { return success(); })
       .Case<arith::ConstantOp>([&](auto op) { return success(); })
       .Default([&](Operation *) -> LogicalResult {
-        // allow LLVM dialect ops (for storing measure results)
-        if (op.getName().getDialectNamespace().equals("llvm"))
+        // Allow LLVM and cc dialect ops (for storing measure results).
+        if (op.getName().getDialectNamespace().equals("llvm") ||
+            op.getName().getDialectNamespace().equals("cc") ||
+            op.getName().getDialectNamespace().equals("arith"))
           return success();
-        return op.emitOpError("unable to translate op to IQM Json");
+        return op.emitOpError() << "unable to translate op to IQM Json "
+                                << op.getName().getIdentifier().str();
       });
 }
 
