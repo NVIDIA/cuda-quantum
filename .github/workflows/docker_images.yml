@@ -419,7 +419,7 @@ jobs:
             pr_number=`echo ${{ github.ref_name }} | grep -o [0-9]*`
             image_tag+=pr-${pr_number:-${{ github.event.pull_request.number }}}
           elif ${{ github.ref_type == 'branch' && github.ref_name == 'main' }}; then
-            image_tag+=nightly
+            image_tag+=latest
           elif ${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') }}; then
             image_tag+=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
           else

@@ -215,7 +215,8 @@ jobs:
 
           registry=${{ vars.registry || 'localhost:5000' }}/${repo_owner,,}
           if [ -n "$(echo "$platforms" | grep ',')" ] && ${{ secrets.secrets.NGC_CREDENTIALS != '' }}; then
-            if [ "$image_tag" == "nightly" ] || ${{ needs.assets.outputs.publish }}; then
+            -n "$(echo $cudaq_image | (grep -e '^nvcr.io/' || true))"
+            if [ -n "$(echo $cudaq_image | (grep -e '^nvcr.io/' || true))" ]; then
               ngc_registry=nvcr.io/${repo_owner,,}/nightly
             fi
           fi
