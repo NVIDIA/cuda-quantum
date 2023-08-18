@@ -68,6 +68,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
 
     outputs:
       tar_cache: ${{ steps.build_info.outputs.tar_cache }}
@@ -174,6 +175,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
 
     outputs:
       tar_cache: ${{ steps.prereqs.outputs.tar_cache }}
@@ -314,6 +316,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
 
     outputs:
       tar_cache: ${{ steps.prereqs.outputs.tar_cache }}
