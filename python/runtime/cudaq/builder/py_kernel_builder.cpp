@@ -6,12 +6,14 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 
 #include "py_kernel_builder.h"
 #include "utils/OpaqueArguments.h"
 
 #include "cudaq/builder/kernel_builder.h"
+#include "cudaq/builder/kernels.h"
 #include "cudaq/platform.h"
 
 #include "common/ExecutionContext.h"
@@ -650,6 +652,14 @@ void bindKernel(py::module &mod) {
       .def("__str__", &kernel_builder<>::to_quake,
            "Return the :class:`Kernel` as a string in its MLIR representation "
            "using the Quake dialect.\n");
+
+  mod.def("from_state", [](kernel_builder<> &kernel, QuakeValue &qubits,
+                           py::array_t<std::complex<double>> &data,
+                           std::vector<std::size_t> &wires) {
+    std::vector<std::complex<double>> tmp(data.data(),
+                                          data.data() + data.size());
+    cudaq::from_state(kernel, qubits, tmp, wires);
+  });
 }
 
 void bindBuilder(py::module &mod) {

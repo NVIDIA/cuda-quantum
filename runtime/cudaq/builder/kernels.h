@@ -47,6 +47,8 @@ template <typename Kernel>
 void from_state(Kernel &&kernel, QuakeValue &qubits,
                 const std::span<std::complex<double>> data,
                 const std::vector<std::size_t> &wires) {
+  auto mutableWires = wires;
+  std::reverse(mutableWires.begin(), mutableWires.end());
   bool omegaNonZero = false;
   std::vector<double> omega, stateAbs;
   for (auto &d : data) {
@@ -58,8 +60,9 @@ void from_state(Kernel &&kernel, QuakeValue &qubits,
 
   for (std::size_t k = wires.size(); k > 0; k--) {
     auto alphaYk = details::getAlphaY(stateAbs, wires.size(), k);
-    std::vector<std::size_t> controls(wires.begin() + k, wires.end());
-    auto target = wires[k - 1];
+    std::vector<std::size_t> controls(mutableWires.begin() + k,
+                                      mutableWires.end());
+    auto target = mutableWires[k - 1];
     details::applyRotation(
         kernel,
         [](auto &&kernel, auto &&theta, auto &&qubit) {
@@ -71,7 +74,8 @@ void from_state(Kernel &&kernel, QuakeValue &qubits,
   if (omegaNonZero) {
     for (std::size_t k = wires.size(); k > 0; k--) {
       auto alphaZk = details::getAlphaZ(omega, wires.size(), k);
-      std::vector<std::size_t> controls(wires.begin() + k, wires.end());
+      std::vector<std::size_t> controls(mutableWires.begin() + k,
+                                        mutableWires.end());
       auto target = wires[k - 1];
       if (!alphaZk.empty())
         details::applyRotation(

@@ -246,3 +246,29 @@ def test_can_progressively_build():
     assert '11' in counts 
     assert '00' in counts 
     
+def test_from_state():
+    state = np.asarray([.70710678, 0., 0., 0.70710678])
+    kernel = cudaq.make_kernel()
+    qubits = kernel.qalloc(2)
+
+    cudaq.from_state(kernel, qubits, state, range(2))
+
+    print(kernel)
+    counts = cudaq.sample(kernel)
+    print(counts)
+    assert '11' in counts 
+    assert '00' in counts 
+    
+    from cudaq import spin 
+    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
+        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+    state = np.asarray([0., .292786, .956178, 0.])
+    kernel = cudaq.make_kernel()
+    qubits = kernel.qalloc(2)
+    cudaq.from_state(kernel, qubits, state, range(2))
+    energy = cudaq.observe(kernel, hamiltonian).expectation_z()
+    assert np.isclose(-1.748, energy, 1e-3)
+
+    ss = cudaq.get_state(kernel)
+    for i in range(4):
+      assert np.isclose(ss[i], state[i], 1e-3)

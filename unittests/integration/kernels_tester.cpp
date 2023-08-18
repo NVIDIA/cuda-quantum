@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
+#include "cudaq/algorithms/state.h"
 #include "cudaq/builder/kernels.h"
 #include <iostream>
 
@@ -61,7 +62,6 @@ CUDAQ_TEST(KernelsTester, checkGetAlphaY) {
     std::vector<double> expected{1.57079633};
     for (std::size_t i = 0; auto t : thetas) {
       EXPECT_NEAR(t, expected[i++], 1e-3);
-      std::cout << t << "\n";
     }
   }
 
@@ -71,7 +71,34 @@ CUDAQ_TEST(KernelsTester, checkGetAlphaY) {
     std::vector<double> expected{0.0, 3.14159265};
     for (std::size_t i = 0; auto t : thetas) {
       EXPECT_NEAR(t, expected[i++], 1e-3);
-      std::cout << t << "\n";
+    }
+  }
+}
+
+CUDAQ_TEST(KernelsTester, checkGetAlphaZ) {
+  {
+    std::vector<double> omega{0., 0., 0., 0., 0., 1.57079633, 3.14159265, 0.};
+    auto thetas = cudaq::details::getAlphaZ(omega, 3, 3);
+    std::vector<double> expected{1.17809725};
+    for (std::size_t i = 0; auto t : thetas) {
+      EXPECT_NEAR(t, expected[i++], 1e-3);
+    }
+  }
+  {
+    std::vector<double> omega{0., 0., 0., 0., 0., 1.57079633, 3.14159265, 0.};
+    auto thetas = cudaq::details::getAlphaZ(omega, 3, 2);
+    std::vector<double> expected{0., 0.78539816};
+    for (std::size_t i = 0; auto t : thetas) {
+      EXPECT_NEAR(t, expected[i++], 1e-3);
+    }
+  }
+
+  {
+    std::vector<double> omega{0., 0., 0., 0., 0., 1.57079633, 3.14159265, 0.};
+    auto thetas = cudaq::details::getAlphaZ(omega, 3, 1);
+    std::vector<double> expected{0., 0., 1.57079633, -3.14159265};
+    for (std::size_t i = 0; auto t : thetas) {
+      EXPECT_NEAR(t, expected[i++], 1e-3);
     }
   }
 }
@@ -87,5 +114,22 @@ CUDAQ_TEST(KernelsTester, checkFromState) {
     std::cout << kernel << "\n";
     auto counts = cudaq::sample(kernel);
     counts.dump();
+  }
+
+  {
+    std::vector<std::complex<double>> state{0., .292786, .956178, 0.};
+    auto kernel = cudaq::make_kernel();
+    auto qubits = kernel.qalloc(2);
+    cudaq::from_state(kernel, qubits, state, cudaq::range(2));
+    std::cout << kernel << "\n";
+    using namespace cudaq::spin;
+    auto H = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
+             .21829 * z(0) - 6.125 * z(1);
+    auto energy = cudaq::observe(kernel, H).exp_val_z();
+    EXPECT_NEAR(-1.748, energy, 1e-3);
+
+    auto ss = cudaq::get_state(kernel);
+    for (std::size_t i = 0; i < 4; i++)
+      EXPECT_NEAR(ss[i].real(), state[i].real(), 1e-3);
   }
 }

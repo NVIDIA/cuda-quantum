@@ -1,5 +1,6 @@
 #include "kernels.h"
 #include "common/EigenDense.h"
+#include <iostream>
 
 namespace cudaq::details {
 
@@ -73,8 +74,62 @@ std::vector<double> computeAngle(std::vector<double> alpha) {
 
 std::vector<double> getAlphaZ(const std::span<double> data,
                               std::size_t numQubits, std::size_t k) {
-  return {};
+
+  std::vector<std::vector<std::size_t>> in1, in2;
+  auto twoNmK = (1ULL << (numQubits - k)), twoKmOne = (1ULL << (k - 1));
+  for (std::size_t j = 1; j < twoNmK + 1; j++) {
+    std::vector<std::size_t> local;
+    for (std::size_t l = 1; l < twoKmOne + 1; l++)
+      local.push_back((2 * j - 1) * twoKmOne + l - 1);
+
+    in1.push_back(local);
+  }
+
+  for (std::size_t j = 1; j < twoNmK + 1; j++) {
+    std::vector<std::size_t> local;
+    for (std::size_t l = 1; l < twoKmOne + 1; l++)
+      local.push_back((2 * j - 2) * twoKmOne + l - 1);
+
+    in2.push_back(local);
+  }
+
+  std::vector<std::vector<double>> term1, term2;
+  for (std::size_t i = 0; auto &el : in1) {
+
+    std::vector<double> local1, local2;
+    for (auto &eel : el)
+      local1.push_back(data[eel]);
+    term1.push_back(local1);
+
+    for (auto &eel : in2[i])
+      local2.push_back(data[eel]);
+    term2.push_back(local2);
+
+    i++;
+  }
+
+  Eigen::MatrixXd term1Mat(term1.size(), term1[0].size()),
+      term2Mat(term2.size(), term2[0].size());
+  for (Eigen::Index i = 0; i < term1Mat.rows(); i++)
+    for (Eigen::Index j = 0; j < term1Mat.cols(); j++) {
+      term1Mat(i, j) = term1[i][j];
+      term2Mat(i, j) = term2[i][j];
+    }
+
+  Eigen::MatrixXd diff = (1. / (1ULL << (k - 1))) * (term1Mat - term2Mat);
+  std::vector<double> res(diff.rows());
+
+  for (Eigen::Index i = 0; i < diff.rows(); i++) {
+    double sum = 0.0;
+    for (Eigen::Index j = 0; j < diff.cols(); j++)
+      sum += diff(i, j);
+
+    res[i] = sum;
+  }
+
+  return res;
 }
+
 std::vector<double> getAlphaY(const std::span<double> data,
                               std::size_t numQubits, std::size_t k) {
   std::vector<std::vector<std::size_t>> inNum, inDenom;
