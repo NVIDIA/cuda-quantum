@@ -206,17 +206,17 @@ jobs:
 
           docker pull $cudaq_image
           repo_owner=${{ github.repository_owner }}
-          image_short_name=${repo_owner,,}/cuda-quantum
+          image_short_name=cuda-quantum
           base_tag=`docker inspect $cudaq_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"'`
           image_title=`docker inspect $cudaq_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.title"'`
           image_description=`docker inspect $cudaq_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.description"'`
           docker image rm $cudaq_image
           docker image prune --force
 
-          registry=${{ vars.registry || 'localhost:5000' }}
+          registry=${{ vars.registry || 'localhost:5000' }}/${repo_owner,,}
           if [ -n "$(echo "$platforms" | grep ',')" ] && ${{ secrets.secrets.NGC_CREDENTIALS != '' }}; then
             if [ "$image_tag" == "nightly" ] || ${{ needs.assets.outputs.publish }}; then
-              ngc_registry=nvcr.io
+              ngc_registry=nvcr.io/${repo_owner,,}/nightly
             fi
           fi
 
