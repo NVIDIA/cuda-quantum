@@ -178,6 +178,9 @@ sample_result::sample_result(double preComputedExp,
   // Create a spot for the pre-computed exp val
   sampleResults.emplace(GlobalRegisterName, preComputedExp);
 
+  if (results.empty())
+    return;
+
   for (auto &[bits, count] : results[0].counts)
     totalShots += count;
 }
