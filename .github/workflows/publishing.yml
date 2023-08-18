@@ -490,7 +490,7 @@ jobs:
           version=${{ needs.assets.outputs.release_version }}
           versions=`gh release list -R ${{ github.repository }} --exclude-drafts --exclude-pre-releases | egrep -o "([0-9]{1,}\.)+[0-9]{1,}\S*" | sort -r -V`
           latest_tag=`echo $versions | cut -d ' ' -f 1`
-          prerelease=`([ "$(echo $release_version | egrep -o '([0-9]{1,}\.)+[0-9]{1,}')" == "$release_version" ] && echo '') || echo '--prerelease'`
+          prerelease=`([ "$(echo $version | egrep -o '([0-9]{1,}\.)+[0-9]{1,}')" == "$version" ] && echo '') || echo '--prerelease'`
           
           rel_notes="Release created by workflow [${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})."
           rel_notes+=$(echo "<br/>GitHub commit [$github_commit](https://github.com/${{ github.repository }}/tree/$github_commit)")
