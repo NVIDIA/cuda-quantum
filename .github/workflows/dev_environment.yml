@@ -320,7 +320,7 @@ jobs:
         env:
           DIGEST: ${{ steps.docker_build.outputs.digest }}
           TAGS: ${{ needs.metadata.outputs.image_tags }}
-        run: cosign sign --yes "${TAGS}@${DIGEST}"
+        run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
       # See also https://github.com/moby/buildkit/issues/1896
       - name: Clean up local cache

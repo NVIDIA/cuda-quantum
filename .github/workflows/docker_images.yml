@@ -159,7 +159,7 @@ jobs:
         env:
           DIGEST: ${{ steps.docker_build.outputs.digest }}
           TAGS: ${{ steps.metadata.outputs.tags }}
-        run: cosign sign --yes "${TAGS}@${DIGEST}"
+        run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
       - name: Cache cuda-quantum image
         if: steps.build_info.outputs.tar_cache && steps.build_info.outputs.tar_archive
@@ -298,7 +298,7 @@ jobs:
         env:
           DIGEST: ${{ steps.docker_build.outputs.digest }}
           TAGS: ${{ steps.metadata.outputs.tags }}
-        run: cosign sign --yes "${TAGS}@${DIGEST}"
+        run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
       - name: Cache cuda-quantum-dev image
         if: steps.prereqs.outputs.tar_cache && steps.prereqs.outputs.tar_archive
@@ -489,7 +489,7 @@ jobs:
         env:
           DIGEST: ${{ steps.release_build.outputs.digest }}
           TAGS: ${{ steps.cudaqdev_metadata.outputs.tags }}
-        run: cosign sign --yes "${TAGS}@${DIGEST}"
+        run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
       - name: Log in to NGC
         if: steps.prereqs.outputs.ngc_registry != ''
@@ -541,7 +541,7 @@ jobs:
         env:
           DIGEST: ${{ steps.cudaq_build.outputs.digest }}
           TAGS: ${{ steps.cudaq_metadata.outputs.tags }}
-        run: cosign sign --yes "${TAGS}@${DIGEST}"
+        run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
       # If the cuda-quantum image is initially pushed to ngc we recreate it
       # and push it to the registry defined in the deployment environment
@@ -590,7 +590,7 @@ jobs:
         env:
           DIGEST: ${{ steps.docker_build.outputs.digest }}
           TAGS: ${{ steps.updated_metadata.outputs.tags }}
-        run: cosign sign --yes "${TAGS}@${DIGEST}"
+        run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
   documentation:
     name: Documentation
