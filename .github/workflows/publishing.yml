@@ -9,9 +9,6 @@ on:
         type: string
         description: Optional argument to facilitate rerunning a failed workflow without re-building the assets.
         required: false
-      image_tag:
-        type: string
-        required: false
   workflow_run:
     workflows:
       - Deployments
@@ -211,9 +208,6 @@ jobs:
           repo_owner=${{ github.repository_owner }}
           image_short_name=${repo_owner,,}/cuda-quantum
           base_tag=`docker inspect $cudaq_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"'`
-          image_tag=${{ inputs.image_tag }}
-          image_tag=${image_tag:-$base_tag}
-          image_tag=${image_tag%-base}
           image_title=`docker inspect $cudaq_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.title"'`
           image_description=`docker inspect $cudaq_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.description"'`
           docker image rm $cudaq_image
@@ -231,7 +225,7 @@ jobs:
           echo "ngc_registry=$ngc_registry" >> $GITHUB_OUTPUT
           echo "image_short_name=$image_short_name" >> $GITHUB_OUTPUT
           echo "image_name=${ngc_registry:-$registry}/$image_short_name" >> $GITHUB_OUTPUT
-          echo "image_tag=${image_tag}" >> $GITHUB_OUTPUT
+          echo "image_tag=${base_tag%-base}" >> $GITHUB_OUTPUT
           echo "image_title=$image_title" >> $GITHUB_OUTPUT
           echo "image_description=$image_description" >> $GITHUB_OUTPUT
           echo "platforms=$platforms" >> $GITHUB_OUTPUT
@@ -276,7 +270,7 @@ jobs:
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: ${{ steps.release_info.outputs.platforms }}
-          push: ${{ inputs.image_tag == 'nightly-base' }}
+          push: true
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3.1.1
@@ -325,7 +319,7 @@ jobs:
           tags: ${{ steps.updated_metadata.outputs.tags }}
           labels: ${{ steps.updated_metadata.outputs.labels }}
           platforms: ${{ steps.release_info.outputs.platforms }}
-          push: ${{ inputs.image_tag == 'nightly-base' }}
+          push: true
 
       - name: Sign image with GitHub OIDC Token
         if: steps.redirect.outcome != 'skipped'
