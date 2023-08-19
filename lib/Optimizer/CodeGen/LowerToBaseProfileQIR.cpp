@@ -389,9 +389,10 @@ struct QIRToBaseProfileQIRPass
     LLVM_DEBUG(llvm::dbgs() << "Before base profile:\n" << *op << '\n');
     auto *context = &getContext();
     RewritePatternSet patterns(context);
+    // Note: LoadMeasureResult is not compliant with the Base Profile
     patterns.insert<AddrOfCisToBase, ArrayGetElementPtrConv, CallAlloc,
                     CalleeConv, EraseArrayAlloc, EraseArrayRelease,
-                    EraseDeadArrayGEP, LoadMeasureResult, MeasureCallConv,
+                    EraseDeadArrayGEP, MeasureCallConv,
                     MeasureToRegisterCallConv, XCtrlOneTargetToCNot>(context);
     if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns))))
       signalPassFailure();

@@ -119,6 +119,41 @@ void optimizeLLVM(llvm::Module *module) {
     throw std::runtime_error("Failed to optimize LLVM IR ");
 }
 
+// Once a call to a function with irreversible attribute is seen, no more calls
+// to reversible functions are allowed.
+// Specification quote: "The only difference between these two blocks is that
+// the first one contains only calls to functions that are not marked as
+// irreversible by an attribute on the respective function declaration, whereas
+// the second one contains only calls to functions that perform irreversible
+// actions, i.e. measurements of the quantum state."
+mlir::LogicalResult verifyMeasurementOrdering(llvm::Module *llvmModule) {
+  bool irreversibleSeenYet = false;
+  for (llvm::Function &func : *llvmModule)
+    for (llvm::BasicBlock &block : func)
+      for (llvm::Instruction &inst : block) {
+        auto callInst = llvm::dyn_cast_or_null<llvm::CallBase>(&inst);
+
+        if (callInst && callInst->getCalledFunction()) {
+          auto calledFunc = callInst->getCalledFunction();
+          auto funcName = calledFunc->getName();
+          bool isIrreversible = calledFunc->hasFnAttribute("irreversible");
+          bool isReversible = !isIrreversible;
+          bool isOutputFunction =
+              funcName == cudaq::opt::QIRBaseProfileStartRecordOutput ||
+              funcName == cudaq::opt::QIRBaseProfileEndRecordOutput ||
+              funcName == cudaq::opt::QIRBaseProfileRecordOutput;
+          if (isReversible && !isOutputFunction && irreversibleSeenYet) {
+            llvm::errs() << "error: reversible function " << funcName
+                         << " came after irreversible function\n";
+            return failure();
+          }
+          if (isIrreversible)
+            irreversibleSeenYet = true;
+        }
+      }
+  return success();
+}
+
 // Verify that output recording calls
 // 1) Have the nonnull attribute on any i8* parameters
 // 2) Have unique names
@@ -237,6 +272,9 @@ void registerToQIRTranslation() {
           llvm::errs() << *llvmModule;
 
         if (failed(verifyOutputRecordingFunctions(llvmModule.get())))
+          return failure();
+
+        if (failed(verifyMeasurementOrdering(llvmModule.get())))
           return failure();
 
         // Map the LLVM Module to Bitcode that can be submitted
