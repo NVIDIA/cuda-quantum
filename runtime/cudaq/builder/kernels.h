@@ -11,8 +11,6 @@
 #include "kernel_builder.h"
 #include <complex>
 
-#include <iostream>
-
 namespace cudaq {
 
 namespace details {
