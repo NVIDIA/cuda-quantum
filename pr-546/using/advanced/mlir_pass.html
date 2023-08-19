@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Create your Own MLIR Pass &mdash; NVIDIA CUDA Quantum  documentation</title>
+  <title>Create your Own CUDA Quantum Compiler Pass &mdash; NVIDIA CUDA Quantum  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/cudaq_override.css" type="text/css" />
@@ -38,7 +38,7 @@
             NVIDIA CUDA Quantum
           </a>
               <div class="version">
-                pr-546
+                amd64-pr-546
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -318,7 +318,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../advanced.html">Advanced CUDA Quantum Topics</a></li>
-      <li class="breadcrumb-item active">Create your Own MLIR Pass</li>
+      <li class="breadcrumb-item active">Create your Own CUDA Quantum Compiler Pass</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../../_sources/using/advanced/mlir_pass.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -328,57 +328,90 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="create-your-own-mlir-pass">
-<h1>Create your Own MLIR Pass<a class="headerlink" href="#create-your-own-mlir-pass" title="Permalink to this heading">¶</a></h1>
+  <section id="create-your-own-cuda-quantum-compiler-pass">
+<h1>Create your Own CUDA Quantum Compiler Pass<a class="headerlink" href="#create-your-own-cuda-quantum-compiler-pass" title="Permalink to this heading">¶</a></h1>
 <p>The CUDA Quantum IR can be transformed, analyzed, or optimized
 using standard MLIR patterns and tools. CUDA Quantum provides a registration
 mechanism for the <code class="code docutils literal notranslate"><span class="pre">cudaq-opt</span></code> tool that allows one to create, load, and
 use custom MLIR passes on Quake code.</p>
+<p>CUDA Quantum MLIR Passes can only be created within an existing CUDA Quantum
+development environment. Therefore, you must clone the repository and add your
+Pass code as part of the existing CUDA Quantum CMake system.</p>
+<p>As an example, clone the repository and add the following directory structure
+under <code class="code docutils literal notranslate"><span class="pre">lib</span></code>, <code class="code docutils literal notranslate"><span class="pre">lib/Plugins/MyCustomPlugin/</span></code>. Within this directory create a
+<code class="code docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code> file and a <code class="code docutils literal notranslate"><span class="pre">MyCustomPlugin.cpp</span></code> file. In the CMake file,
+add the following</p>
+<div class="highlight-cmake notranslate"><div class="highlight"><pre><span></span><span class="nb">add_llvm_pass_plugin</span><span class="p">(</span><span class="s">MyCustomPlugin</span><span class="w"> </span><span class="s">MyCustomPlugin.cpp</span><span class="p">)</span>
+</pre></div>
+</div>
 <p>Creating a CUDA Quantum IR pass starts with the implementation of an
 <code class="code docutils literal notranslate"><span class="pre">mlir::OperationPass</span></code>. A full discussion of the MLIR Pass infrastructure
-is beyond the scope of this document, please see <a class="reference external" href="https://mlir.llvm.org/docs/PassManagement">MLIR Passes</a>. To create such
-a pass, start with the following template</p>
+is beyond the scope of this document, please see
+<a class="reference external" href="https://mlir.llvm.org/docs/PassManagement">MLIR Passes</a>. To create such
+a pass, start with the following template in the <code class="code docutils literal notranslate"><span class="pre">MyCustomPlugin.cpp</span></code> file</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/Optimizer/Dialect/Quake/QuakeDialect.h&quot;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/Optimizer/Dialect/Quake/QuakeOps.h&quot;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/Support/Plugin.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;llvm/Analysis/CallGraph.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;mlir/IR/BuiltinOps.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;mlir/Rewrite/FrozenRewritePatternSet.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;mlir/Transforms/DialectConversion.h&quot;</span>
+
+<span class="c1">// Here is an example MLIR Pass that one can write externally and</span>
+<span class="c1">// use via the cudaq-opt tool, with the --load-cudaq-plugin flag.</span>
+<span class="c1">// The pass here is simple, replace Hadamard operations with S operations.</span>
 
 <span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">mlir</span><span class="p">;</span>
 
 <span class="k">namespace</span><span class="w"> </span><span class="p">{</span>
 
-<span class="w">  </span><span class="k">class</span><span class="w"> </span><span class="nc">HelloWorldQuakePass</span>
-<span class="w">    </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">PassWrapper</span><span class="o">&lt;</span><span class="n">HelloWorldQuakePass</span><span class="p">,</span><span class="w"> </span><span class="n">OperationPass</span><span class="o">&lt;</span><span class="n">func</span><span class="o">::</span><span class="n">FuncOp</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="k">public</span><span class="o">:</span>
-<span class="w">    </span><span class="n">MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID</span><span class="p">(</span><span class="n">HelloWorldQuakePass</span><span class="p">)</span>
+<span class="k">struct</span><span class="w"> </span><span class="nc">ReplaceH</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">OpRewritePattern</span><span class="o">&lt;</span><span class="n">quake</span><span class="o">::</span><span class="n">HOp</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">OpRewritePattern</span><span class="o">::</span><span class="n">OpRewritePattern</span><span class="p">;</span>
+<span class="w">  </span><span class="n">LogicalResult</span><span class="w"> </span><span class="nf">matchAndRewrite</span><span class="p">(</span><span class="n">quake</span><span class="o">::</span><span class="n">HOp</span><span class="w"> </span><span class="n">hOp</span><span class="p">,</span>
+<span class="w">                                </span><span class="n">PatternRewriter</span><span class="w"> </span><span class="o">&amp;</span><span class="n">rewriter</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">rewriter</span><span class="p">.</span><span class="n">replaceOpWithNewOp</span><span class="o">&lt;</span><span class="n">quake</span><span class="o">::</span><span class="n">SOp</span><span class="o">&gt;</span><span class="p">(</span>
+<span class="w">        </span><span class="n">hOp</span><span class="p">,</span><span class="w"> </span><span class="n">hOp</span><span class="p">.</span><span class="n">isAdj</span><span class="p">(),</span><span class="w"> </span><span class="n">hOp</span><span class="p">.</span><span class="n">getParameters</span><span class="p">(),</span><span class="w"> </span><span class="n">hOp</span><span class="p">.</span><span class="n">getControls</span><span class="p">(),</span>
+<span class="w">        </span><span class="n">hOp</span><span class="p">.</span><span class="n">getTargets</span><span class="p">());</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">success</span><span class="p">();</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">};</span>
 
-<span class="w">    </span><span class="n">llvm</span><span class="o">::</span><span class="n">StringRef</span><span class="w"> </span><span class="n">getArgument</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="s">&quot;cudaq-hello-world-quake&quot;</span><span class="p">;</span>
-<span class="w">    </span><span class="p">}</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CustomPassPlugin</span>
+<span class="w">    </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">PassWrapper</span><span class="o">&lt;</span><span class="n">CustomPassPlugin</span><span class="p">,</span><span class="w"> </span><span class="n">OperationPass</span><span class="o">&lt;</span><span class="n">func</span><span class="o">::</span><span class="n">FuncOp</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+<span class="w">  </span><span class="n">MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID</span><span class="p">(</span><span class="n">CustomPassPlugin</span><span class="p">)</span>
 
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="n">runOnOperation</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">circuit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">getOperation</span><span class="p">();</span>
-<span class="w">      </span><span class="n">llvm</span><span class="o">::</span><span class="n">errs</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;-- dump the module</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span>
-<span class="w">      </span><span class="n">circuit</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
+<span class="w">  </span><span class="n">llvm</span><span class="o">::</span><span class="n">StringRef</span><span class="w"> </span><span class="n">getArgument</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s">&quot;cudaq-custom-pass&quot;</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">runOnOperation</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">circuit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">getOperation</span><span class="p">();</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ctx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">circuit</span><span class="p">.</span><span class="n">getContext</span><span class="p">();</span>
+
+<span class="w">    </span><span class="n">RewritePatternSet</span><span class="w"> </span><span class="nf">patterns</span><span class="p">(</span><span class="n">ctx</span><span class="p">);</span>
+<span class="w">    </span><span class="n">patterns</span><span class="p">.</span><span class="n">insert</span><span class="o">&lt;</span><span class="n">ReplaceH</span><span class="o">&gt;</span><span class="p">(</span><span class="n">ctx</span><span class="p">);</span>
+<span class="w">    </span><span class="n">ConversionTarget</span><span class="w"> </span><span class="nf">target</span><span class="p">(</span><span class="o">*</span><span class="n">ctx</span><span class="p">);</span>
+<span class="w">    </span><span class="n">target</span><span class="p">.</span><span class="n">addLegalDialect</span><span class="o">&lt;</span><span class="n">quake</span><span class="o">::</span><span class="n">QuakeDialect</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="w">    </span><span class="n">target</span><span class="p">.</span><span class="n">addIllegalOp</span><span class="o">&lt;</span><span class="n">quake</span><span class="o">::</span><span class="n">HOp</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">failed</span><span class="p">(</span><span class="n">applyPartialConversion</span><span class="p">(</span><span class="n">circuit</span><span class="p">,</span><span class="w"> </span><span class="n">target</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">patterns</span><span class="p">))))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">circuit</span><span class="p">.</span><span class="n">emitOpError</span><span class="p">(</span><span class="s">&quot;simple pass failed&quot;</span><span class="p">);</span>
+<span class="w">      </span><span class="n">signalPassFailure</span><span class="p">();</span>
 <span class="w">    </span><span class="p">}</span>
-<span class="w">  </span><span class="p">};</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">};</span>
 
 <span class="p">}</span><span class="w"> </span><span class="c1">// namespace</span>
 
-<span class="n">CUDAQ_REGISTER_MLIR_PASS</span><span class="p">(</span><span class="n">HelloWorldQuakePass</span><span class="p">)</span>
+<span class="n">CUDAQ_REGISTER_MLIR_PASS</span><span class="p">(</span><span class="n">CustomPassPlugin</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>The CMake to configure and build this is as follows</p>
-<div class="highlight-cmake notranslate"><div class="highlight"><pre><span></span><span class="nb">add_llvm_pass_plugin</span><span class="p">(</span><span class="s">HelloWorldQuakePass</span><span class="w"> </span><span class="s">HelloWorldQuakePass.cpp</span><span class="p">)</span>
-<span class="nb">get_property</span><span class="p">(</span><span class="s">dialect_libs</span><span class="w"> </span><span class="s">GLOBAL</span><span class="w"> </span><span class="s">PROPERTY</span><span class="w"> </span><span class="s">MLIR_DIALECT_LIBS</span><span class="p">)</span>
-<span class="nb">get_property</span><span class="p">(</span><span class="s">conversion_libs</span><span class="w"> </span><span class="s">GLOBAL</span><span class="w"> </span><span class="s">PROPERTY</span><span class="w"> </span><span class="s">MLIR_CONVERSION_LIBS</span><span class="p">)</span>
-<span class="nb">target_link_libraries</span><span class="p">(</span><span class="s">HelloWorldQuakePass</span><span class="w"> </span><span class="s">PRIVATE</span><span class="w"> </span><span class="o">${</span><span class="nv">dialect_libs</span><span class="o">}</span><span class="w"> </span><span class="o">${</span><span class="nv">conversion_libs</span><span class="o">}</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>Configure and building this <code class="code docutils literal notranslate"><span class="pre">HelloWorldQuakePass</span></code> will produce a
-library that can be loaded and used with <code class="code docutils literal notranslate"><span class="pre">cudaq-opt</span></code>.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cudaq-opt<span class="w"> </span>--load-pass-plugin<span class="w"> </span>HelloWorldQuakePass.so<span class="w"> </span>file.qke<span class="w"> </span>-cudaq-hello-world-quake
+<p>This example serves as a very simple template for creating custom MLIR
+Passes that analyze the CUDA Quantum Quake representation and perform
+some general transformation. In this example, we create a rewrite pattern
+that replaces <code class="code docutils literal notranslate"><span class="pre">Hadamard</span></code> operations with <code class="code docutils literal notranslate"><span class="pre">S</span></code> operations.</p>
+<p>Ensure that <code class="code docutils literal notranslate"><span class="pre">add_subdirectory(Plugins)</span></code> is in the <code class="code docutils literal notranslate"><span class="pre">lib/CMakeLists.txt</span></code> file,
+and also that there is a <code class="code docutils literal notranslate"><span class="pre">lib/Plugins/CMakeLists.txt</span></code> file that adds your
+plugin directory with <code class="code docutils literal notranslate"><span class="pre">add_subdirectory</span></code>.</p>
+<p>Then build CUDA Quantum and you will have a <code class="code docutils literal notranslate"><span class="pre">MyCustomPlugin.so</span></code> plugin library
+in the install. You can load the plugin and use it with <code class="code docutils literal notranslate"><span class="pre">cudaq-opt</span></code> as follows</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cudaq-opt<span class="w"> </span>--load-cudaq-plugin<span class="w"> </span>MyCustomPlugin.so<span class="w"> </span>file.qke<span class="w"> </span>-cudaq-custom-pass
 </pre></div>
 </div>
 </section>
