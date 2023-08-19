@@ -15,7 +15,6 @@ import collections
 import cudaq
 from cudaq import spin
 import numpy as np
-import scipy 
 
 def assert_close(want, got, tolerance=1.e-5) -> bool:
     return abs(want - got) < tolerance
