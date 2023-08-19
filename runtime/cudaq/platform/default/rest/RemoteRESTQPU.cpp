@@ -365,7 +365,7 @@ public:
             cudaq::opt::createQuakeObserveAnsatzPass(binarySymplecticForm[0]));
         if (failed(pm.run(tmpModuleOp)))
           throw std::runtime_error("Could not apply measurements to ansatz.");
-        runPassPipeline("canonicalize", tmpModuleOp);
+        runPassPipeline(passPipelineConfig, tmpModuleOp);
         modules.emplace_back(term.to_string(false), tmpModuleOp);
       }
     } else
@@ -376,8 +376,10 @@ public:
       // full QIR representation of the code. Then we'll map to
       // an LLVM Module, create a JIT ExecutionEngine pointer
       // and use that for execution
-      for (auto &[name, module] : modules)
-        jitEngines.emplace_back(cudaq::createQIRJITEngine(module));
+      for (auto &[name, module] : modules) {
+        auto clonedModule = module.clone();
+        jitEngines.emplace_back(cudaq::createQIRJITEngine(clonedModule));
+      }
     }
 
     // Get the code gen translation

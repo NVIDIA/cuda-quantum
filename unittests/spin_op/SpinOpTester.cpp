@@ -23,6 +23,24 @@ TEST(SpinOpTester, checkEquality) {
   EXPECT_EQ(xx, xx);
 }
 
+TEST(SpinOpTester, checkFromWord) {
+  {
+    auto s = cudaq::spin_op::from_word("ZZZ");
+    std::cout << s.to_string() << "\n";
+    EXPECT_EQ(z(0) * z(1) * z(2), s);
+  }
+  {
+    auto s = cudaq::spin_op::from_word("XYX");
+    std::cout << s.to_string() << "\n";
+    EXPECT_EQ(x(0) * y(1) * x(2), s);
+  }
+  {
+    auto s = cudaq::spin_op::from_word("IZY");
+    std::cout << s.to_string() << "\n";
+    EXPECT_EQ(i(0) * z(1) * y(2), s);
+  }
+}
+
 TEST(SpinOpTester, checkAddition) {
   cudaq::spin_op op = x(10);
 
@@ -129,6 +147,19 @@ TEST(SpinOpTester, canBuildDeuteron) {
 
   EXPECT_EQ(5, H.num_terms());
   EXPECT_EQ(2, H.num_qubits());
+}
+
+TEST(SpinOpTester, checkGetSparseMatrix) {
+  auto H = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) + .21829 * z(0) -
+           6.125 * z(1);
+  auto matrix = H.to_matrix();
+  matrix.dump();
+  auto [values, rows, cols] = H.to_sparse_matrix();
+  for (std::size_t i = 0; auto &el : values) {
+    std::cout << rows[i] << ", " << cols[i] << ", " << el << "\n";
+    EXPECT_NEAR(matrix(rows[i], cols[i]).real(), el.real(), 1e-3);
+    i++;
+  }
 }
 
 TEST(SpinOpTester, checkGetMatrix) {

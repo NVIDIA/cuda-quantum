@@ -1,6 +1,10 @@
 on:
   workflow_call:
     inputs:
+      platform:
+        type: string
+        required: false
+        default: linux/amd64
       devdeps_cache:
         required: true
         type: string
@@ -16,7 +20,7 @@ name: Run CI within the dev environment container
 jobs:
   build_and_test:
     name: Dev environment (Debug)
-    runs-on: ubuntu-latest
+    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
 
@@ -31,13 +35,24 @@ jobs:
           key: ${{ inputs.devdeps_cache }}
           fail-on-cache-miss: true
 
+      - name: Set up context for buildx
+        run: |
+          docker context create builder_context
+
+      - name: Set up buildx runner
+        uses: docker/setup-buildx-action@v2
+        with:
+          endpoint: builder_context
+
       - name: Build CUDA Quantum
         id: cudaq_build
         run: |
-          base_image=`docker load --input "${{ inputs.devdeps_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+          load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
+          base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
           devdeps_tag=`echo $base_image | rev | cut -d ":" -f 1 | rev`
 
-          docker build -t cuda-quantum-dev:local -f docker/build/cudaq.dev.Dockerfile . \
+          DOCKER_BUILDKIT=1 docker build --platform ${{ inputs.platform }} \
+            -t cuda-quantum-dev:local -f docker/build/cudaq.dev.Dockerfile . \
             --build-arg base_image=$base_image \
             --build-arg install="CMAKE_BUILD_TYPE=Debug"
           
@@ -56,8 +71,7 @@ jobs:
             /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
             lit_status=$?
             if [ ! $ctest_status -eq 0 ] || [ ! $lit_status -eq 0 ]; then
-              echo "ctest status = " $ctest_status
-              echo "llvm-lit status = " $lit_status
+              echo "::error file=test_in_devenv.yml::C++ tests failed (ctest status $ctest_status, llvm-lit status $lit_status)."
               exit 1
             fi
 
@@ -85,7 +99,7 @@ jobs:
 
   build_and_test_python:
     name: Dev environment (Python)
-    runs-on: ubuntu-latest
+    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
 
@@ -100,13 +114,24 @@ jobs:
           key: ${{ inputs.devdeps_cache }}
           fail-on-cache-miss: true
 
+      - name: Set up context for buildx
+        run: |
+          docker context create builder_context
+
+      - name: Set up buildx runner
+        uses: docker/setup-buildx-action@v2
+        with:
+          endpoint: builder_context
+
       - name: Set up dev environment
         id: dev_env
         run: |
-          base_image=`docker load --input "${{ inputs.devdeps_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
+          load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
+          base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
           devdeps_tag=`echo $base_image | rev | cut -d ":" -f 1 | rev`
 
-          docker build -t dev_env:local -f docker/build/cudaq.dev.Dockerfile . \
+          DOCKER_BUILDKIT=1 docker build --platform ${{ inputs.platform }} \
+            -t dev_env:local -f docker/build/cudaq.dev.Dockerfile . \
             --build-arg base_image=$base_image 
 
           tag_prefix=`echo $devdeps_tag | cut -d "_" -f 1`
@@ -119,23 +144,24 @@ jobs:
           shell: bash
           run: |
             cd $CUDAQ_REPO_ROOT
+            pip install iqm_client --user -vvv
             pip install . --user -vvv
             python3 -m pytest -v python/tests/ \
               --ignore python/tests/backends
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then
-              echo "pytest status = " $pytest_status
+              echo "::error file=test_in_devenv.yml::Python tests failed with status $pytest_status."
               exit 1
             fi
 
             for backendTest in python/tests/backends/*.py; do
-              python3 -m pytest $backendTest
+              python3 -m pytest -v $backendTest
               pytest_status=$?
 
               # Exit code 5 indicates that no tests were collected,
               # i.e. all tests in this file were skipped.
               if [ ! $pytest_status -eq 0 ] && [ ! $pytest_status -eq 5 ]; then
-                echo "pytest $backendTest status = " $pytest_status
+                echo "::error file=test_in_devenv.yml::Python $backendTest tests failed with status $pytest_status."
                 exit 1
               fi 
             done 

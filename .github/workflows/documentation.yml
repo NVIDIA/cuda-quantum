@@ -31,7 +31,7 @@ jobs:
   publish_docs:
     name: Publish documentation
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.event == 'pull_request' || github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.name == 'CI' || github.event.workflow_run.conclusion == 'success'
 
     permissions:
       contents: write
@@ -39,15 +39,15 @@ jobs:
       pull-requests: write
 
     environment:
-      name: ${{ (github.event.workflow_run.event == 'pull_request' && 'default') || 'github-pages' }}
+      name: ${{ (github.event.workflow_run.name == 'CI' && 'default') || 'github-pages' }}
       url: ${{ vars.deployment_url || format('https://github.com/{0}', github.repository) }}
   
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          ref: ${{ (github.event.workflow_run.event == 'pull_request' && vars.preview_branch) || vars.live_branch }}
-          token: ${{ (github.event.workflow_run.event == 'pull_request' && github.token) || secrets.REPO_BOT_ACCESS_TOKEN }}
+          ref: ${{ (github.event.workflow_run.name == 'CI' && vars.preview_branch) || vars.live_branch }}
+          token: ${{ (github.event.workflow_run.name == 'CI' && github.token) || secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Download artifacts
         id: artifacts
@@ -56,7 +56,7 @@ jobs:
           artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
           artifact_name=${{ (github.event_name == 'workflow_dispatch' && inputs.artifact_name) || 'cuda_quantum_docs' }}
 
-          docs_found=${{ github.event.workflow_run.event == 'pull_request' || false }}
+          docs_found=${{ github.event.workflow_run.name == 'CI' || false }}
           for artifact in `echo "$artifacts"`; do
             name=`echo $artifact | jq -r '.name'`
             if [ "$name" == "$artifact_name" ]; then
@@ -74,6 +74,15 @@ jobs:
             fi
           done
 
+          run_id=`echo $artifacts_url | rev | cut -d / -f 2 | rev`
+          workflow_run=https://github.com/${{ github.repository }}/actions/runs/$run_id
+          if $docs_found; then
+            echo "Downloaded $artifact_name artifact from $workflow_run." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "::error file=documentation.yml::Failed to find $artifact_name artifact from $workflow_run."
+            exit 1;
+          fi
+
           if [ -f metadata.txt ]; then
             pr_number=`cat metadata.txt | grep -o 'pr-number: \S*' | cut -d ' ' -f 2`
             pr_base=`cat metadata.txt | grep -o 'pr-base: \S*' | cut -d ' ' -f 2`
@@ -81,26 +90,26 @@ jobs:
           fi
 
           if ${{ github.event_name == 'workflow_dispatch' }}; then
-            target_folder=${{ inputs.version }}
+            echo "target_folder=${{ inputs.version }}" >> $GITHUB_OUTPUT
           else
             # Docs will be checked in under a different folder in the preview.
             head_branch=${pr_base:-${{ github.event.workflow_run.head_branch }}}
             if [ "$head_branch" == "main" ]; then
-              target_folder=latest
+              echo "target_folder=latest" >> $GITHUB_OUTPUT
             else
-              version=`echo ${head_branch#releases/} | egrep -o "^v?([0-9]{1,}\.)+[0-9]{1,}$"`
-              target_folder=${version#v}
+              version=`echo ${head_branch#releases/} | (egrep -o "^v?([0-9]{1,}\.)+[0-9]{1,}$" || true)`
+              echo "target_folder=${version#v}" >> $GITHUB_OUTPUT
+              if [ -z "${version:-$pr_number}" ]; then
+                echo "Unrecognized docs version. Documentation will not be published." >> $GITHUB_STEP_SUMMARY
+              fi
             fi
           fi
-
-          echo "target_folder=$target_folder" >> $GITHUB_OUTPUT
-          if ! $docs_found; then exit 1; fi
         env:
           GH_TOKEN: ${{ github.token }}
 
       - name: Push docs update
         id: push_docs
-        if: steps.artifacts.outputs.docs_archive != ''
+        if: steps.artifacts.outputs.docs_archive != '' && (steps.artifacts.outputs.target_folder != '' || steps.artifacts.outputs.pr_number != '')
         run: |
           pr_number=${{ steps.artifacts.outputs.pr_number }}
           target_folder=${pr_number:+pr-$pr_number}
@@ -124,6 +133,7 @@ jobs:
           else
             git commit --allow-empty -m "Docs update triggered by deployment on head branch ${{ github.event.workflow_run.head_branch }}, commit ${{ github.event.workflow_run.head_sha }}."
           fi
+          git config pull.rebase true
           git pull --no-edit && git push
 
           # For the docs preview, we determine whether docs changed compared to the eventual target folder.
@@ -148,6 +158,7 @@ jobs:
 
       - name: Comment on PR
         if: steps.artifacts.outputs.pr_number != '' && steps.push_docs.outcome != 'skipped'
+        continue-on-error: true # PR may be locked by the time this workflow runs if auto-merge is set to true
         uses: peter-evans/create-or-update-comment@v3
         with:
           issue-number: ${{ steps.artifacts.outputs.pr_number }}
