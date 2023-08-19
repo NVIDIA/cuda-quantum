@@ -9,6 +9,7 @@
 #include "RuntimeMLIR.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
+#include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
@@ -118,6 +119,75 @@ void optimizeLLVM(llvm::Module *module) {
     throw std::runtime_error("Failed to optimize LLVM IR ");
 }
 
+// Verify that output recording calls
+// 1) Have the nonnull attribute on any i8* parameters
+// 2) Have unique names
+mlir::LogicalResult verifyOutputCalls(llvm::CallBase *callInst,
+                                      std::set<std::string> &outputList) {
+  int iArg = 0;
+  for (auto &arg : callInst->args()) {
+    auto myArg = arg->getType();
+    auto ptrTy = dyn_cast_or_null<llvm::PointerType>(myArg);
+    // If we're dealing with the i8* parameters
+    if (ptrTy != nullptr &&
+        ptrTy->getNonOpaquePointerElementType()->isIntegerTy(8)) {
+      // Verify that it has the nonnull attribute
+      if (!callInst->paramHasAttr(iArg, llvm::Attribute::NonNull)) {
+        llvm::errs() << ": error - nonnull attribute is missing from i8* "
+                        "parameter of "
+                     << cudaq::opt::QIRBaseProfileRecordOutput << " function\n";
+        return failure();
+      }
+
+      // Lookup the string value from IR that looks like this:
+      // clang-format off
+      // i8* nonnull getelementptr inbounds ([3 x i8], [3 x i8]* @cstr.723000, i64 0, i64 0))
+      // clang-format on
+      auto constExpr = llvm::dyn_cast_or_null<llvm::ConstantExpr>(arg);
+      if (constExpr &&
+          constExpr->getOpcode() == llvm::Instruction::GetElementPtr) {
+        llvm::Value *globalValue = constExpr->getOperand(0);
+        auto globalVar =
+            llvm::dyn_cast_or_null<llvm::GlobalVariable>(globalValue);
+
+        // Get the string value of the output name and compare it against
+        // the previously identified names in outputList[].
+        if (globalVar && globalVar->hasInitializer()) {
+          auto constDataArray = llvm::dyn_cast_or_null<llvm::ConstantDataArray>(
+              globalVar->getInitializer());
+          if (constDataArray) {
+            std::string strValue = constDataArray->getAsCString().str();
+            if (outputList.find(strValue) != outputList.end()) {
+              llvm::errs() << ": error - duplicate output name (" << strValue
+                           << ") found!\n";
+              return failure();
+            }
+          }
+        }
+      }
+    }
+
+    iArg++;
+  }
+  return success();
+}
+
+// Loop over the recording output functions and verify their characteristics
+mlir::LogicalResult verifyOutputRecordingFunctions(llvm::Module *llvmModule) {
+  for (llvm::Function &func : *llvmModule) {
+    std::set<std::string> outputList;
+    for (llvm::BasicBlock &block : func)
+      for (llvm::Instruction &inst : block) {
+        auto callInst = llvm::dyn_cast_or_null<llvm::CallBase>(&inst);
+        if (callInst != nullptr && callInst->getCalledFunction()->getName() ==
+                                       cudaq::opt::QIRBaseProfileRecordOutput)
+          if (failed(verifyOutputCalls(callInst, outputList)))
+            return failure();
+      }
+  }
+  return success();
+}
+
 void registerToQIRTranslation() {
   const uint32_t qir_major_version = 1;
   const uint32_t qir_minor_version = 0;
@@ -156,6 +226,8 @@ void registerToQIRTranslation() {
         llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
                                   "dynamic_result_management", falseValue);
 
+        // Note: optimizeLLVM is the one that is setting nonnull attributes on
+        // the @__quantum__rt__result_record_output calls.
         cudaq::optimizeLLVM(llvmModule.get());
         if (!cudaq::setupTargetTriple(llvmModule.get()))
           throw std::runtime_error(
@@ -163,6 +235,9 @@ void registerToQIRTranslation() {
 
         if (printIR)
           llvm::errs() << *llvmModule;
+
+        if (failed(verifyOutputRecordingFunctions(llvmModule.get())))
+          return failure();
 
         // Map the LLVM Module to Bitcode that can be submitted
         llvm::SmallString<1024> bitCodeMem;
