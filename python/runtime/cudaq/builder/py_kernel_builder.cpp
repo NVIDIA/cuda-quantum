@@ -660,7 +660,9 @@ void bindKernel(py::module &mod) {
                                               data.data() + data.size());
         cudaq::from_state(kernel, qubits, tmp);
       },
-      py::arg("kernel"), py::arg("qubits"), py::arg("state"), "");
+      py::arg("kernel"), py::arg("qubits"), py::arg("state"),
+      "Decompose the input state vector to a set of controlled operations and "
+      "rotations.");
   mod.def(
       "from_state",
       [](py::array_t<std::complex<double>> &data) {
@@ -668,7 +670,9 @@ void bindKernel(py::module &mod) {
                                               data.data() + data.size());
         return cudaq::from_state(tmp);
       },
-      py::arg("state"), "");
+      py::arg("state"),
+      "Decompose the given state vector into a set of controlled operations "
+      "and rotations and return a valid, callable, CUDA Quantum kernel.");
 }
 
 void bindBuilder(py::module &mod) {
