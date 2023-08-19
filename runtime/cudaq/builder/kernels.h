@@ -11,6 +11,8 @@
 #include "kernel_builder.h"
 #include <complex>
 
+#include <iostream>
+
 namespace cudaq {
 
 namespace details {
@@ -60,8 +62,14 @@ std::vector<double> getAlphaY(const std::span<double> data,
 template <typename Kernel>
 void from_state(Kernel &&kernel, QuakeValue &qubits,
                 const std::span<std::complex<double>> data,
-                const std::vector<std::size_t> &qubitsIndices) {
-  auto mutableQubits = qubitsIndices;
+                std::size_t inNumQubits = 0) {
+  auto numQubits = qubits.constantSize().value_or(inNumQubits);
+  if (numQubits == 0)
+    throw std::runtime_error(
+        "[from_state] cannot infer size of input quantum register, please "
+        "specify the number of qubits via the from_state() final argument.");
+
+  auto mutableQubits = cudaq::range(numQubits);
   std::reverse(mutableQubits.begin(), mutableQubits.end());
   bool omegaNonZero = false;
   std::vector<double> omega, stateAbs;
@@ -101,4 +109,17 @@ void from_state(Kernel &&kernel, QuakeValue &qubits,
     }
   }
 }
+
+/// @brief Construct a CUDA Quantum kernel that produces the
+/// given state. This overload will return the `kernel_builder` as a
+/// `unique_ptr`.
+auto from_state(const std::span<std::complex<double>> data) {
+  auto numQubits = std::log2(data.size());
+  std::vector<details::KernelBuilderType> empty;
+  auto kernel = std::make_unique<kernel_builder<>>(empty);
+  auto qubits = kernel->qalloc(numQubits);
+  from_state(*kernel.get(), qubits, data);
+  return kernel;
+}
+
 } // namespace cudaq

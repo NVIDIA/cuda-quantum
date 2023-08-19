@@ -652,14 +652,23 @@ void bindKernel(py::module &mod) {
       .def("__str__", &kernel_builder<>::to_quake,
            "Return the :class:`Kernel` as a string in its MLIR representation "
            "using the Quake dialect.\n");
-
-  mod.def("from_state", [](kernel_builder<> &kernel, QuakeValue &qubits,
-                           py::array_t<std::complex<double>> &data,
-                           std::vector<std::size_t> &wires) {
-    std::vector<std::complex<double>> tmp(data.data(),
-                                          data.data() + data.size());
-    cudaq::from_state(kernel, qubits, tmp, wires);
-  });
+  mod.def(
+      "from_state",
+      [](kernel_builder<> &kernel, QuakeValue &qubits,
+         py::array_t<std::complex<double>> &data) {
+        std::vector<std::complex<double>> tmp(data.data(),
+                                              data.data() + data.size());
+        cudaq::from_state(kernel, qubits, tmp);
+      },
+      py::arg("kernel"), py::arg("qubits"), py::arg("state"), "");
+  mod.def(
+      "from_state",
+      [](py::array_t<std::complex<double>> &data) {
+        std::vector<std::complex<double>> tmp(data.data(),
+                                              data.data() + data.size());
+        return cudaq::from_state(tmp);
+      },
+      py::arg("state"), "");
 }
 
 void bindBuilder(py::module &mod) {

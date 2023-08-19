@@ -117,7 +117,7 @@ CUDAQ_TEST(KernelsTester, checkFromState) {
     auto kernel = cudaq::make_kernel();
     auto qubits = kernel.qalloc(2);
 
-    cudaq::from_state(kernel, qubits, state, cudaq::range(2));
+    cudaq::from_state(kernel, qubits, state);
 
     std::cout << kernel << "\n";
     auto counts = cudaq::sample(kernel);
@@ -128,7 +128,7 @@ CUDAQ_TEST(KernelsTester, checkFromState) {
     std::vector<std::complex<double>> state{0., .292786, .956178, 0.};
     auto kernel = cudaq::make_kernel();
     auto qubits = kernel.qalloc(2);
-    cudaq::from_state(kernel, qubits, state, cudaq::range(2));
+    cudaq::from_state(kernel, qubits, state);
     std::cout << kernel << "\n";
     using namespace cudaq::spin;
     auto H = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
@@ -139,6 +139,17 @@ CUDAQ_TEST(KernelsTester, checkFromState) {
     auto ss = cudaq::get_state(kernel);
     for (std::size_t i = 0; i < 4; i++)
       EXPECT_NEAR(ss[i].real(), state[i].real(), 1e-3);
+  }
+
+  {
+    std::vector<std::complex<double>> state{.70710678, 0., 0., 0.70710678};
+
+    // Return a kernel from the given state, this
+    // comes back as a unique_ptr.
+    auto kernel = cudaq::from_state(state);
+    std::cout << *kernel << "\n";
+    auto counts = cudaq::sample(*kernel);
+    counts.dump();
   }
 }
 
