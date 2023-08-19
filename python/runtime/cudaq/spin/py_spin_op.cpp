@@ -103,9 +103,14 @@ void bindSpinOperator(py::module &mod) {
       .def("distribute_terms", &cudaq::spin_op::distribute_terms,
            "Return a list of `SpinOperator` representing a distribution of the "
            "terms in this `SpinOperator` into equally sized chunks.")
-      .def_static("random", &cudaq::spin_op::random,
-                  "Return a random spin_op on the given number of qubits and "
-                  "composed of the given number of terms.")
+      .def_static(
+          "random", &cudaq::spin_op::random,
+          "Return a random SpinOperator on the given number of qubits and "
+          "composed of the given number of terms.")
+      .def_static("from_word", &cudaq::spin_op::from_word, py::arg("word"),
+                  "Return a `SpinOperator` corresponding to the provided Pauli "
+                  "word,  e.g. 'XYX' for a `SpinOperator` on 3 qubits with a X "
+                  "support on the first and 3rd and Y support on the second..")
       .def(
           "for_each_term",
           [](spin_op &self, py::function functor) {
@@ -134,7 +139,11 @@ void bindSpinOperator(py::module &mod) {
            "represented as a double.")
       .def("to_matrix", &spin_op::to_matrix,
            "Return `self` as a :class:`ComplexMatrix`.")
-
+      .def("to_sparse_matrix", &spin_op::to_sparse_matrix,
+           "Return `self` as a sparse matrix representation. This "
+           "representation is a `Tuple[list[complex],list[int], list[int]]`, "
+           "encoding the non-zero values, rows, and columns of the matrix. "
+           "This format is supported by `scipy.sparse.csr_array`.")
       .def(
           "__iter__",
           [](spin_op &self) {

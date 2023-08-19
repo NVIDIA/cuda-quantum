@@ -6,10 +6,5 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-find_package(Python COMPONENTS Interpreter)
-if (OPENSSL_FOUND AND Python_FOUND AND CUDAQ_TEST_MOCK_SERVERS)
-  add_subdirectory(quantinuum)
-  add_subdirectory(ionq)
-  add_subdirectory(iqm)
-endif()
-add_subdirectory(qpp_observe)
+add_llvm_pass_plugin(CustomPassPlugin CustomPassPlugin.cpp)
+

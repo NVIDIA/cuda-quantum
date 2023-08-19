@@ -56,6 +56,7 @@ jobs:
 
     outputs:
       pull_request_number: ${{ steps.pr_info.outputs.pr_number }}
+      pull_request_base: ${{ steps.pr_info.outputs.pr_base }}
       pull_request_commit: ${{ steps.pr_info.outputs.merge_commit }}
       cache_base: ${{ steps.build_info.outputs.cache_base }}
       update_cache: ${{ steps.build_info.outputs.update_cache }}
@@ -220,7 +221,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: 'deployments.yml',
-              ref: '${{ needs.metadata.outputs.pull_request_commit }}',
+              ref: '${{ needs.metadata.outputs.pull_request_base }}',
               inputs: {
                 platforms: 'linux/arm64,linux/amd64',
                 cache_base: '${{ needs.metadata.outputs.cache_base }}',

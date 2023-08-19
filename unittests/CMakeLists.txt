@@ -180,3 +180,5 @@ if (CUDAQ_ENABLE_PYTHON)
     TEST_SUFFIX _Sampling PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/python")
 endif()
 
+add_subdirectory(plugin)
+

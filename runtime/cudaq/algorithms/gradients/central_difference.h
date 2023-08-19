@@ -18,7 +18,7 @@ public:
   double step = 1e-4;
 
   void compute(const std::vector<double> &x, std::vector<double> &dx,
-               spin_op &h, double exp_h) override {
+               const spin_op &h, double exp_h) override {
     auto tmpX = x;
     for (std::size_t i = 0; i < x.size(); i++) {
       // increase value to x_i + dx_i
