@@ -16,7 +16,6 @@ import cudaq
 from cudaq import spin
 import numpy as np
 
-
 def assert_close(want, got, tolerance=1.e-5) -> bool:
     return abs(want - got) < tolerance
 
@@ -334,6 +333,26 @@ def test_spin_op_iter():
     for term in hamiltonian:
         count += 1
     assert count == 5
+
+def test_spin_op_sparse_matrix():
+    """
+    Test that the `cudaq.SpinOperator` can produce its sparse matrix representation 
+    and that we can use that matrix with standard python packages like numpy.
+    """
+    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
+        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+    numQubits = hamiltonian.get_qubit_count()
+    mat = hamiltonian.to_matrix()
+    data, rows, cols = hamiltonian.to_sparse_matrix()
+    for i, value in enumerate(data):
+        print(rows[i],cols[i],value)
+        assert np.isclose(mat[rows[i],cols[i]], value)
+    
+    # can use scipy 
+    # scipyM = scipy.sparse.csr_array((data, (rows, cols)), shape=(2**numQubits,2**numQubits))
+    # E, ev = scipy.sparse.linalg.eigsh(scipyM, k=1, which='SA')
+    # assert np.isclose(E[0], -1.7488, 1e-2)
+    
 
 
 def test_spin_op_from_word():
