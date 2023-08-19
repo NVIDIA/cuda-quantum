@@ -11,6 +11,12 @@
 #include "cudaq/builder/kernels.h"
 #include <iostream>
 
+namespace cudaq {
+namespace details {
+std::vector<std::string> grayCode(std::size_t);
+}
+} // namespace cudaq
+
 CUDAQ_TEST(KernelsTester, checkGrayCode) {
   {
     auto test = cudaq::details::grayCode(2);
@@ -39,7 +45,7 @@ CUDAQ_TEST(KernelsTester, checkGrayCode) {
 
 CUDAQ_TEST(KernelsTester, checkGenCtrlIndices) {
   {
-    auto test = cudaq::details::getControlIndicesFromGrayCode(2);
+    auto test = cudaq::details::getControlIndices(2);
     std::vector<std::size_t> expected{0, 1, 0, 1};
     EXPECT_EQ(test.size(), expected.size());
     EXPECT_EQ(test, expected);
@@ -49,7 +55,7 @@ CUDAQ_TEST(KernelsTester, checkGenCtrlIndices) {
                                       2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1,
                                       0, 3, 0, 1, 0, 2, 0, 1, 0, 4};
 
-    auto test = cudaq::details::getControlIndicesFromGrayCode(5);
+    auto test = cudaq::details::getControlIndices(5);
     EXPECT_EQ(test.size(), expected.size());
     EXPECT_EQ(test, expected);
   }

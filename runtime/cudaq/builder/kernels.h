@@ -15,11 +15,14 @@ namespace cudaq {
 
 namespace details {
 
-std::vector<std::string> grayCode(std::size_t rank);
-std::size_t mEntry(std::size_t row, std::size_t col);
+/// @brief Convert the provided angles to those rotation angles
+/// used for the gray code implementation.
 std::vector<double> computeAngle(std::vector<double> alpha);
-std::vector<std::size_t> getControlIndicesFromGrayCode(std::size_t grayRank);
 
+/// @brief Return the control indices dictated by the gray code implementation.
+std::vector<std::size_t> getControlIndices(std::size_t grayRank);
+
+/// @brief Apply a uniformly controlled rotation on the target qubit.
 template <typename Kernel, typename RotationFunctor>
 void applyRotation(Kernel &&kernel, RotationFunctor &&rotationFunctor,
                    QuakeValue qubits, std::vector<double> alpha,
@@ -31,24 +34,35 @@ void applyRotation(Kernel &&kernel, RotationFunctor &&rotationFunctor,
     return;
   }
 
-  auto ctrlIds = details::getControlIndicesFromGrayCode(gcRank);
+  auto ctrlIds = details::getControlIndices(gcRank);
   for (auto [i, ctrlIdx] : cudaq::enumerate(ctrlIds)) {
     rotationFunctor(kernel, thetas[i], qubits[target]);
     kernel.template x<cudaq::ctrl>(qubits[controls[ctrlIdx]], qubits[target]);
   }
 }
+
+/// @brief Return angles required to implement a controlled-Z rotation on
+/// the `kth` qubit.
 std::vector<double> getAlphaZ(const std::span<double> data,
                               std::size_t numQubits, std::size_t k);
+
+/// @brief Return angles required to implement a controlled-Y rotation on
+/// the `kth` qubit.
 std::vector<double> getAlphaY(const std::span<double> data,
                               std::size_t numQubits, std::size_t k);
 } // namespace details
 
+/// @brief Decompose the input state vector data to a set of
+/// controlled operations and rotations. This function takes as input
+/// a `kernel_builder` and appends the operations of the decomposition
+/// to its internal representation. This implementation follows the algorithm
+/// defined in `https://arxiv.org/pdf/quant-ph/0407010.pdf`.
 template <typename Kernel>
 void from_state(Kernel &&kernel, QuakeValue &qubits,
                 const std::span<std::complex<double>> data,
-                const std::vector<std::size_t> &wires) {
-  auto mutableWires = wires;
-  std::reverse(mutableWires.begin(), mutableWires.end());
+                const std::vector<std::size_t> &qubitsIndices) {
+  auto mutableQubits = qubitsIndices;
+  std::reverse(mutableQubits.begin(), mutableQubits.end());
   bool omegaNonZero = false;
   std::vector<double> omega, stateAbs;
   for (auto &d : data) {
@@ -58,11 +72,11 @@ void from_state(Kernel &&kernel, QuakeValue &qubits,
       omegaNonZero = true;
   }
 
-  for (std::size_t k = wires.size(); k > 0; k--) {
-    auto alphaYk = details::getAlphaY(stateAbs, wires.size(), k);
-    std::vector<std::size_t> controls(mutableWires.begin() + k,
-                                      mutableWires.end());
-    auto target = mutableWires[k - 1];
+  for (std::size_t k = mutableQubits.size(); k > 0; k--) {
+    auto alphaYk = details::getAlphaY(stateAbs, mutableQubits.size(), k);
+    std::vector<std::size_t> controls(mutableQubits.begin() + k,
+                                      mutableQubits.end());
+    auto target = mutableQubits[k - 1];
     details::applyRotation(
         kernel,
         [](auto &&kernel, auto &&theta, auto &&qubit) {
@@ -72,11 +86,11 @@ void from_state(Kernel &&kernel, QuakeValue &qubits,
   }
 
   if (omegaNonZero) {
-    for (std::size_t k = wires.size(); k > 0; k--) {
-      auto alphaZk = details::getAlphaZ(omega, wires.size(), k);
-      std::vector<std::size_t> controls(mutableWires.begin() + k,
-                                        mutableWires.end());
-      auto target = wires[k - 1];
+    for (std::size_t k = mutableQubits.size(); k > 0; k--) {
+      auto alphaZk = details::getAlphaZ(omega, mutableQubits.size(), k);
+      std::vector<std::size_t> controls(mutableQubits.begin() + k,
+                                        mutableQubits.end());
+      auto target = mutableQubits[k - 1];
       if (!alphaZk.empty())
         details::applyRotation(
             kernel,

@@ -37,7 +37,7 @@ std::vector<std::string> grayCode(std::size_t rank) {
   return g;
 }
 
-std::vector<std::size_t> getControlIndicesFromGrayCode(std::size_t grayRank) {
+std::vector<std::size_t> getControlIndices(std::size_t grayRank) {
   auto code = grayCode(grayRank);
   std::vector<std::size_t> ctrlIds;
   for (std::size_t i = 0; i < code.size(); i++) {
