@@ -2173,10 +2173,21 @@ count (int) : The number of elements to extract after the <code class="code docu
 <dd><p>The <a class="reference internal" href="#cudaq.ComplexMatrix" title="cudaq.ComplexMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a> is a thin wrapper around a matrix of complex&lt;double&gt; elements.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="cudaq.ComplexMatrix.__getitem__">
-<span class="sig-name descname"><span class="pre">__getitem__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.ComplexMatrix.__getitem__" title="Permalink to this definition">¶</a></dt>
-<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">_pycudaq</span><span class="o">.</span><span class="n">ComplexMatrix</span><span class="p">,</span> <span class="n">arg0</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">arg1</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">complex</span>
+<span class="sig-name descname"><span class="pre">__getitem__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.ComplexMatrix.__getitem__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Overloaded function.</p>
+<ol class="arabic">
+<li><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">_pycudaq</span><span class="o">.</span><span class="n">ComplexMatrix</span><span class="p">,</span> <span class="n">arg0</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">arg1</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">complex</span>
 </pre></div>
 </div>
+</li>
+</ol>
+<p>Return the matrix element at i, j.</p>
+<ol class="arabic" start="2">
+<li><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">_pycudaq</span><span class="o">.</span><span class="n">ComplexMatrix</span><span class="p">,</span> <span class="n">arg0</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">complex</span>
+</pre></div>
+</div>
+</li>
+</ol>
 <p>Return the matrix element at i, j.</p>
 </dd></dl>
 
@@ -2441,6 +2452,15 @@ count (int) : The number of elements to extract after the <code class="code docu
 </pre></div>
 </div>
 <p>Return <code class="code docutils literal notranslate"><span class="pre">self</span></code> as a <a class="reference internal" href="#cudaq.ComplexMatrix" title="cudaq.ComplexMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.SpinOperator.to_sparse_matrix">
+<span class="sig-name descname"><span class="pre">to_sparse_matrix</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SpinOperator.to_sparse_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">to_sparse_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">_pycudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">complex</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span>
+</pre></div>
+</div>
+<p>Return <code class="code docutils literal notranslate"><span class="pre">self</span></code> as a sparse matrix representation. This representation is a <code class="code docutils literal notranslate"><span class="pre">Tuple[list[complex],list[int],</span> <span class="pre">list[int]]</span></code>, encoding the non-zero values, rows, and columns of the matrix. This format is supported by <code class="code docutils literal notranslate"><span class="pre">scipy.sparse.csr_array</span></code>.</p>
 </dd></dl>
 
 <dl class="py method">
