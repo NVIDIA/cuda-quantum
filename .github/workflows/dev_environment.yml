@@ -172,6 +172,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
 
     outputs:
       tar_cache: ${{ steps.cache.outputs.tar_cache }}
@@ -309,6 +310,17 @@ jobs:
           cache-to: ${{ steps.cache.outputs.cache_to }}
           push: ${{ inputs.environment && ! inputs.registry_cache_update_only || false }}
           outputs: ${{ steps.cache.outputs.docker_output }}
+
+      - name: Install Cosign
+        if: inputs.environment
+        uses: sigstore/cosign-installer@v3.1.1
+
+      - name: Sign image with GitHub OIDC Token
+        if: inputs.environment
+        env:
+          DIGEST: ${{ steps.docker_build.outputs.digest }}
+          TAGS: ${{ needs.metadata.outputs.image_tags }}
+        run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
       # See also https://github.com/moby/buildkit/issues/1896
       - name: Clean up local cache
