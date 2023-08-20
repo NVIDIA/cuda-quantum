@@ -18,6 +18,7 @@
 #include "cudaq/Target/IQM/IQMJsonEmitter.h"
 #include "cudaq/Target/OpenQASM/OpenQASMEmitter.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
+#include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
 #include "llvm/MC/SubtargetFeature.h"
 #include "llvm/MC/TargetRegistry.h"
@@ -166,7 +167,7 @@ mlir::LogicalResult verifyOutputCalls(llvm::CallBase *callInst,
         ptrTy->getNonOpaquePointerElementType()->isIntegerTy(8)) {
       // Verify that it has the nonnull attribute
       if (!callInst->paramHasAttr(iArg, llvm::Attribute::NonNull)) {
-        llvm::errs() << ": error - nonnull attribute is missing from i8* "
+        llvm::errs() << "error - nonnull attribute is missing from i8* "
                         "parameter of "
                      << cudaq::opt::QIRBaseProfileRecordOutput << " function\n";
         return failure();
@@ -191,7 +192,7 @@ mlir::LogicalResult verifyOutputCalls(llvm::CallBase *callInst,
           if (constDataArray) {
             std::string strValue = constDataArray->getAsCString().str();
             if (outputList.find(strValue) != outputList.end()) {
-              llvm::errs() << ": error - duplicate output name (" << strValue
+              llvm::errs() << "error - duplicate output name (" << strValue
                            << ") found!\n";
               return failure();
             }
@@ -239,6 +240,37 @@ mlir::LogicalResult verifyOutputRecordingFunctions(llvm::Module *llvmModule) {
             return failure();
       }
   }
+  return success();
+}
+
+// Verify that only the allowed LLVM instructions are present
+mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule) {
+  for (llvm::Function &func : *llvmModule)
+    for (llvm::BasicBlock &block : func)
+      for (llvm::Instruction &inst : block) {
+        // Only call, br, and ret instructions are allowed at the top level.
+        if (!llvm::isa<llvm::CallBase>(inst) &&
+            !llvm::isa<llvm::BranchInst>(inst) &&
+            !llvm::isa<llvm::ReturnInst>(inst)) {
+          llvm::errs() << "error - invalid instruction found: " << inst << '\n';
+          return failure();
+        }
+        // Only inttoptr and getelementptr instructions are present as inlined
+        // call argument operations. These instructions may not be present
+        // unless they inlined call argument operations.
+        auto call = llvm::dyn_cast_or_null<llvm::CallBase>(&inst);
+        if (call)
+          for (auto &arg : call->args()) {
+            auto constExpr = llvm::dyn_cast_or_null<llvm::ConstantExpr>(arg);
+            if (constExpr &&
+                constExpr->getOpcode() != llvm::Instruction::GetElementPtr &&
+                constExpr->getOpcode() != llvm::Instruction::IntToPtr) {
+              llvm::errs() << "error - invalid instruction found: "
+                           << *constExpr << '\n';
+              return failure();
+            }
+          }
+      }
   return success();
 }
 
@@ -294,6 +326,9 @@ void registerToQIRTranslation() {
           return failure();
 
         if (failed(verifyMeasurementOrdering(llvmModule.get())))
+          return failure();
+
+        if (failed(verifyLLVMInstructions(llvmModule.get())))
           return failure();
 
         // Map the LLVM Module to Bitcode that can be submitted
