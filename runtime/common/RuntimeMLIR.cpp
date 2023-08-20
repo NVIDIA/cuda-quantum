@@ -205,6 +205,23 @@ mlir::LogicalResult verifyOutputCalls(llvm::CallBase *callInst,
   return success();
 }
 
+// Loop through the arguments in a call and verify that they are all constants
+mlir::LogicalResult verifyConstArguments(llvm::CallBase *callInst) {
+  int iArg = 0;
+  auto func = callInst ? callInst->getCalledFunction() : nullptr;
+  auto funcName = func ? func->getName() : "N/A";
+  for (auto &arg : callInst->args()) {
+    // Try casting to Constant Type. Fail if it's not a constant.
+    if (!dyn_cast_or_null<llvm::Constant>(arg)) {
+      llvm::errs() << "error: argument #" << iArg << " ('" << *arg
+                   << "') in call " << funcName << " is not a constant\n";
+      return failure();
+    }
+    iArg++;
+  }
+  return success();
+}
+
 // Loop over the recording output functions and verify their characteristics
 mlir::LogicalResult verifyOutputRecordingFunctions(llvm::Module *llvmModule) {
   for (llvm::Function &func : *llvmModule) {
@@ -212,8 +229,12 @@ mlir::LogicalResult verifyOutputRecordingFunctions(llvm::Module *llvmModule) {
     for (llvm::BasicBlock &block : func)
       for (llvm::Instruction &inst : block) {
         auto callInst = llvm::dyn_cast_or_null<llvm::CallBase>(&inst);
-        if (callInst != nullptr && callInst->getCalledFunction()->getName() ==
-                                       cudaq::opt::QIRBaseProfileRecordOutput)
+        auto func = callInst ? callInst->getCalledFunction() : nullptr;
+        // All call arguments must be constants
+        if (func && failed(verifyConstArguments(callInst)))
+          return failure();
+        // If it's an output function, do additional verification
+        if (func && func->getName() == cudaq::opt::QIRBaseProfileRecordOutput)
           if (failed(verifyOutputCalls(callInst, outputList)))
             return failure();
       }
