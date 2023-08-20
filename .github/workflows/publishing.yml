@@ -523,7 +523,7 @@ jobs:
         run: |
           # Delete the draft release(s) used to exchange data between GitLab and GitHub.
           for release_id in `echo ${{ needs.assets.outputs.releases }}`; do
-            if [ -z "$(gh release list | grep -s $release_id)" ]; then
+            if [ -n "$(gh release list | grep -s $release_id)" ]; then
               echo "## Draft Release $release_id:" >> $GITHUB_STEP_SUMMARY
               gh release view $release_id --json body --jq .body > rel_notes.txt
               header_length=`cat rel_notes.txt | grep -n "Release notes generated" | cut -d ':' -f 1`
