@@ -238,7 +238,7 @@ jobs:
   # https://github.com/actions/runner/pull/2477
   config:
     name: Configure build
-    needs: [devdeps, wheeldeps]
+    needs: [devdeps, wheeldeps, openmpi]
     if: github.event_name != 'workflow_run'
     runs-on: ubuntu-latest
 
