@@ -139,8 +139,6 @@ mlir::LogicalResult verifyMeasurementOrdering(llvm::Module *llvmModule) {
           bool isIrreversible = calledFunc->hasFnAttribute("irreversible");
           bool isReversible = !isIrreversible;
           bool isOutputFunction =
-              funcName == cudaq::opt::QIRBaseProfileStartRecordOutput ||
-              funcName == cudaq::opt::QIRBaseProfileEndRecordOutput ||
               funcName == cudaq::opt::QIRBaseProfileRecordOutput;
           if (isReversible && !isOutputFunction && irreversibleSeenYet) {
             llvm::errs() << "error: reversible function " << funcName

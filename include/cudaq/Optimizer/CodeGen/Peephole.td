@@ -150,32 +150,6 @@ def MeasureToRegisterCallConv : Pat<
 
 //===----------------------------------------------------------------------===//
 
-def HasI1PtrType : Constraint<CPred<
-    "$_self.getType() == cudaq::opt::factory::getPointerType("
-    "  mlir::IntegerType::get($_self.getContext(), 1))">>;
-
-def HasResultType : Constraint<CPred<
-    "$_self.getType() == cudaq::opt::getResultType($_self.getContext())">>;
-
-def IsaIntAttr : Constraint<CPred<"$_self.isa<mlir::IntegerAttr>()">>;
-    
-def CreateReadResultCall : NativeCodeCall<
-    "createReadResultCall($_builder, $_loc, $0)">;
-
-// %1 = llvm.constant 1
-// %2 = llvm.inttoptr %1 : i64 -> Result*
-// %3 = llvm.bitcast %2 : Result* -> i1*
-// %4 = llvm.load %3
-// ─────────────────────────────────────
-// %4 = call @read_result %2
-def LoadMeasureResult : Pat<
-    (LLVM_LoadOp:$load (LLVM_BitcastOp:$bitcast (LLVM_IntToPtrOp:$cast
-                       (LLVM_ConstantOp $attr))), $_, $_, $_, $_, $_, $_),
-    (CreateReadResultCall $cast),
-    [(HasI1PtrType:$bitcast), (HasResultType:$cast), (IsaIntAttr:$attr)]>;
-
-//===----------------------------------------------------------------------===//
-
 def ExpandMxOp : NativeCodeCall<
     "[&]() -> mlir::Value { using VR = mlir::ValueRange;"
     " $_builder.create<quake::HOp>($_loc, VR{$1});"

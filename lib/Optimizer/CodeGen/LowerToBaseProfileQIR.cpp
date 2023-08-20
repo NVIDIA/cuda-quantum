@@ -216,9 +216,6 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
     auto builder = cudaq::IRBuilder::atBlockTerminator(&op.getBody().back());
     auto loc = op.getBody().back().getTerminator()->getLoc();
 
-    builder.create<LLVM::CallOp>(loc, TypeRange{},
-                                 cudaq::opt::QIRBaseProfileStartRecordOutput,
-                                 ArrayRef<Value>{});
     auto resultTy = cudaq::opt::getResultType(rewriter.getContext());
     auto i64Ty = rewriter.getI64Type();
     auto module = op->getParentOfType<ModuleOp>();
@@ -246,9 +243,6 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
                                    cudaq::opt::QIRBaseProfileRecordOutput,
                                    ValueRange{ptr, regName});
     }
-    builder.create<LLVM::CallOp>(loc, TypeRange{},
-                                 cudaq::opt::QIRBaseProfileEndRecordOutput,
-                                 ArrayRef<Value>{});
     rewriter.finalizeRootUpdate(op);
     return success();
   }
@@ -442,18 +436,9 @@ struct BaseProfilePreparationPass
         cudaq::opt::QIRMeasureBody, LLVM::LLVMVoidType::get(ctx),
         {cudaq::opt::getQubitType(ctx), cudaq::opt::getResultType(ctx)},
         module);
-    cudaq::opt::factory::createLLVMFunctionSymbol(
-        cudaq::opt::QIRReadResultBody, IntegerType::get(ctx, 1),
-        {cudaq::opt::getResultType(ctx)}, module);
 
     // Add record functions for any
     // measurements.
-    cudaq::opt::factory::createLLVMFunctionSymbol(
-        cudaq::opt::QIRBaseProfileStartRecordOutput,
-        LLVM::LLVMVoidType::get(ctx), {}, module);
-    cudaq::opt::factory::createLLVMFunctionSymbol(
-        cudaq::opt::QIRBaseProfileEndRecordOutput, LLVM::LLVMVoidType::get(ctx),
-        {}, module);
     cudaq::opt::factory::createLLVMFunctionSymbol(
         cudaq::opt::QIRBaseProfileRecordOutput, LLVM::LLVMVoidType::get(ctx),
         {cudaq::opt::getResultType(ctx), cudaq::opt::getCharPointerType(ctx)},
