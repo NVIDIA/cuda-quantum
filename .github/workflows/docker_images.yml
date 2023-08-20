@@ -41,7 +41,12 @@ jobs:
       platform_tag: ${{ steps.info.outputs.platform_tag }}
       build_docs: ${{ steps.info.outputs.build_docs }}
       push_to_ngc: ${{ steps.info.outputs.push_to_ngc }}
-    
+
+    # Needed to define metadata depending on whether an environment secret is defined.
+    environment:
+      name: ${{ inputs.environment || 'default' }}
+      url: ${{ vars.deployment_url || format('https://github.com/{0}', github.repository) }}
+
     steps:
       - id: info
         run: |
