@@ -197,6 +197,7 @@ jobs:
           build_info=${{ matrix.info_file }}*
           platforms=`cat $build_info | grep -o 'platforms: \S*' | cut -d ' ' -f 2`
           cudaq_image=`cat $build_info | grep -o 'cuda-quantum-image: \S*' | cut -d ' ' -f 2`
+          cudaq_ngc_image=`cat $build_info | grep -o 'cuda-quantum-ngc-image: \S*' | cut -d ' ' -f 2`
           cudaqdev_image=`cat $build_info | grep -o 'cuda-quantum-dev-image: \S*' | cut -d ' ' -f 2`
           cudaqdevdeps_image=`cat $build_info | grep -o 'cuda-quantum-devdeps-image: \S*' | cut -d ' ' -f 2`
           for file in `ls *zip`; do unzip "$file" && rm "$file"; done && cd -
@@ -212,7 +213,7 @@ jobs:
 
           registry=${{ vars.registry || 'localhost:5000' }}/${repo_owner,,}
           if [ -n "$(echo "$platforms" | grep ',')" ] && ${{ secrets.secrets.NGC_CREDENTIALS != '' }}; then
-            if [ -n "$(echo $cudaq_image | (grep -e '^nvcr.io/' || true))" ]; then
+            if [ -n "$cudaq_ngc_image" ]; then
               ngc_registry=nvcr.io/${repo_owner,,}/cudaquantdev
             fi
           fi
