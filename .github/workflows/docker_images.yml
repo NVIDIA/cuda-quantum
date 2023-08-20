@@ -49,7 +49,9 @@ jobs:
             # multi-platform builds get no platform tag
             echo "runner=linux-amd64-cpu16" >> $GITHUB_OUTPUT
             echo "build_docs=${{ inputs.build_docs != 'false' }}" >> $GITHUB_OUTPUT
-            echo "push_to_ngc=${{ inputs.environment && secrets.NGC_CREDENTIALS != '' }}" >> $GITHUB_OUTPUT
+            is_versioned=${{ github.ref_type == 'tag' || github.ref_name == 'main' || startsWith(github.ref_name, 'releases/') }}
+            push_to_ngc=`${{ inputs.environment && secrets.NGC_CREDENTIALS != '' }} && $is_versioned && echo true || echo`
+            echo "push_to_ngc=$push_to_ngc" >> $GITHUB_OUTPUT
           elif [ -n "$(echo ${{ inputs.platforms }} | grep -i arm)" ]; then
             platform_tag=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' '`
             echo "platform_tag=$platform_tag" >> $GITHUB_OUTPUT
