@@ -34,7 +34,6 @@ jobs:
   metadata:
     name: Metadata
     runs-on: ubuntu-latest
-    permissions: {}
 
     outputs:
       runner: ${{ steps.info.outputs.runner }}
