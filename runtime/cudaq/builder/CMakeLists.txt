@@ -8,9 +8,10 @@
 
 set(LIBRARY_NAME cudaq-builder)
 
-add_library(cudaq-builder SHARED kernel_builder.cpp QuakeValue.cpp)
+add_library(cudaq-builder SHARED kernel_builder.cpp QuakeValue.cpp kernels.cpp)
 target_include_directories(cudaq-builder PUBLIC 
           $<INSTALL_INTERFACE:include> 
+          $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
           $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>)
 target_link_libraries(cudaq-builder
   PRIVATE

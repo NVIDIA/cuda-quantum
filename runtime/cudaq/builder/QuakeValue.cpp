@@ -209,6 +209,13 @@ QuakeValue QuakeValue::size() {
   return QuakeValue(opBuilder, ret);
 }
 
+std::optional<std::size_t> QuakeValue::constantSize() {
+  if (auto qvecTy = dyn_cast<quake::VeqType>(getValue().getType()))
+    return qvecTy.getSize();
+
+  return std::nullopt;
+}
+
 QuakeValue QuakeValue::slice(const std::size_t startIdx,
                              const std::size_t count) {
   Value vectorValue = value->asMLIR();
