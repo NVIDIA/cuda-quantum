@@ -17,7 +17,7 @@ namespace details {
 
 /// @brief Convert the provided angles to those rotation angles
 /// used for the gray code implementation.
-std::vector<double> computeAngle(std::vector<double> alpha);
+std::vector<double> computeAngle(const std::vector<double> &alpha);
 
 /// @brief Return the control indices dictated by the gray code implementation.
 std::vector<std::size_t> getControlIndices(std::size_t grayRank);
@@ -25,8 +25,9 @@ std::vector<std::size_t> getControlIndices(std::size_t grayRank);
 /// @brief Apply a uniformly controlled rotation on the target qubit.
 template <typename Kernel, typename RotationFunctor>
 void applyRotation(Kernel &&kernel, RotationFunctor &&rotationFunctor,
-                   QuakeValue qubits, std::vector<double> alpha,
-                   std::vector<std::size_t> controls, std::size_t target) {
+                   QuakeValue qubits, const std::vector<double> &alpha,
+                   const std::vector<std::size_t> &controls,
+                   std::size_t target) {
   auto thetas = computeAngle(alpha);
   auto gcRank = controls.size();
   if (gcRank == 0) {

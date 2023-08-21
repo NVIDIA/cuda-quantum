@@ -8,7 +8,6 @@
 
 #include "kernels.h"
 #include "common/EigenDense.h"
-#include <iostream>
 
 namespace cudaq::details {
 
@@ -61,7 +60,7 @@ std::size_t mEntry(std::size_t row, std::size_t col) {
   return std::pow(-1, sum_of_ones);
 }
 
-std::vector<double> computeAngle(std::vector<double> alpha) {
+std::vector<double> computeAngle(const std::vector<double> &alpha) {
   auto ln = alpha.size();
   std::size_t k = std::log2(ln);
 
@@ -71,8 +70,8 @@ std::vector<double> computeAngle(std::vector<double> alpha) {
     for (Eigen::Index j = 0; j < mTrans.cols(); j++)
       mTrans(i, j) = mEntry(i, j);
 
-  Eigen::VectorXd alphaVec =
-      Eigen::Map<Eigen::VectorXd>(alpha.data(), alpha.size());
+  Eigen::VectorXd alphaVec = Eigen::Map<Eigen::VectorXd>(
+      const_cast<double *>(alpha.data()), alpha.size());
   Eigen::VectorXd thetas = (1. / (1UL << k)) * mTrans.cast<double>() * alphaVec;
 
   std::vector<double> ret(thetas.size());
