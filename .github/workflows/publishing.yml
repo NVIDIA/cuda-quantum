@@ -7,7 +7,7 @@ on:
         required: true
       assets_from_run:
         type: string
-        description: Optional argument to facilitate rerunning a failed publishing without rebuilding the assets.
+        description: Optional argument to facilitate rerunning a failed workflow without re-building the assets.
         required: false
   workflow_run:
     workflows:
@@ -32,11 +32,12 @@ jobs:
 
     outputs:
       artifacts_url: ${{ steps.artifacts.outputs.artifacts_url }}
+      github_commit: ${{ steps.artifacts.outputs.github_commit }}
       docker_images: ${{ steps.artifacts.outputs.docker_images }}
       python_wheels: ${{ steps.artifacts.outputs.python_wheels }}
       releases: ${{ steps.artifacts.outputs.releases }}
       release_title: ${{ steps.artifacts.outputs.release_title }}
-      github_commit: ${{ steps.artifacts.outputs.github_commit }}
+      release_version: ${{ steps.artifacts.outputs.release_version }}
 
     steps:
       - name: Checkout repository
@@ -96,14 +97,16 @@ jobs:
               python_wheels=`echo $python_wheels | jq ". |= . + $info"`
             elif [ "${name#deployment_info}" != "$name" ]; then
               download "$url" "$name"
-              release_title=`cat "$name.txt" | grep -o 'publish: \S*' | cut -d ' ' -f 2`
               github_commit=`cat "$name.txt" | grep -o 'source-sha: \S*' | cut -d ' ' -f 2`
+              release_title=`cat "$name.txt" | grep -o 'release-title: \S*' | cut -d ' ' -f 2`
+              release_version=`cat "$name.txt" | grep -o 'release-version: \S*' | cut -d ' ' -f 2`
             fi
           done
 
-          echo "github_commit=$github_commit" >> $GITHUB_OUTPUT
           echo "release_title=$release_title" >> $GITHUB_OUTPUT
+          echo "release_version=$release_version" >> $GITHUB_OUTPUT
           echo "releases='$releases'" >> $GITHUB_OUTPUT
+          echo "github_commit=$github_commit" >> $GITHUB_OUTPUT
           echo "docker_images=$(echo $docker_images)" >> $GITHUB_OUTPUT
           echo "python_wheels=$(echo $python_wheels)" >> $GITHUB_OUTPUT
           echo "artifacts_url=$artifacts_url" >> $GITHUB_OUTPUT
@@ -163,6 +166,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
 
     environment:
       name: ghcr-deployment
@@ -193,23 +197,33 @@ jobs:
           build_info=${{ matrix.info_file }}*
           platforms=`cat $build_info | grep -o 'platforms: \S*' | cut -d ' ' -f 2`
           cudaq_image=`cat $build_info | grep -o 'cuda-quantum-image: \S*' | cut -d ' ' -f 2`
+          cudaq_ngc_image=`cat $build_info | grep -o 'cuda-quantum-ngc-image: \S*' | cut -d ' ' -f 2`
           cudaqdev_image=`cat $build_info | grep -o 'cuda-quantum-dev-image: \S*' | cut -d ' ' -f 2`
           cudaqdevdeps_image=`cat $build_info | grep -o 'cuda-quantum-devdeps-image: \S*' | cut -d ' ' -f 2`
           for file in `ls *zip`; do unzip "$file" && rm "$file"; done && cd -
 
           docker pull $cudaq_image
           repo_owner=${{ github.repository_owner }}
-          registry=${{ vars.registry || 'localhost:5000' }}
-          image_name=$registry/${repo_owner,,}/cuda-quantum
+          image_short_name=cuda-quantum
           base_tag=`docker inspect $cudaq_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"'`
           image_title=`docker inspect $cudaq_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.title"'`
           image_description=`docker inspect $cudaq_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.description"'`
           docker image rm $cudaq_image
           docker image prune --force
 
+          registry=${{ vars.registry || 'localhost:5000' }}/${repo_owner,,}
+          if [ -n "$(echo "$platforms" | grep ',')" ] && ${{ secrets.secrets.NGC_CREDENTIALS != '' }}; then
+            if [ -n "$cudaq_ngc_image" ]; then
+              ngc_registry=nvcr.io/${repo_owner,,}/cudaquantdev
+            fi
+          fi
+
           echo "release_id=$release_id" >> $GITHUB_OUTPUT
-          echo "image_name=$image_name" >> $GITHUB_OUTPUT
-          echo "image_tag=${base_tag}-hpc" >> $GITHUB_OUTPUT
+          echo "registry=$registry" >> $GITHUB_OUTPUT
+          echo "ngc_registry=$ngc_registry" >> $GITHUB_OUTPUT
+          echo "image_short_name=$image_short_name" >> $GITHUB_OUTPUT
+          echo "image_name=${ngc_registry:-$registry}/$image_short_name" >> $GITHUB_OUTPUT
+          echo "image_tag=${base_tag%-base}" >> $GITHUB_OUTPUT
           echo "image_title=$image_title" >> $GITHUB_OUTPUT
           echo "image_description=$image_description" >> $GITHUB_OUTPUT
           echo "platforms=$platforms" >> $GITHUB_OUTPUT
@@ -220,12 +234,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
-      - name: Log in to the container registry
+      - name: Log in to the registry
+        if: steps.release_info.outputs.ngc_registry || vars.registry
         uses: docker/login-action@v2
         with:
-          registry: ${{ vars.registry }}
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
+          registry: ${{ steps.release_info.outputs.ngc_registry || vars.registry }}
+          username: ${{ (steps.release_info.outputs.ngc_registry != '' && '$oauthtoken') || github.actor }}
+          password: ${{ (steps.release_info.outputs.ngc_registry != '' && secrets.NGC_CREDENTIALS) || github.token }}
 
       - name: Set up buildx runner
         uses: docker/setup-buildx-action@v2
@@ -242,7 +257,7 @@ jobs:
             org.opencontainers.image.description=${{ steps.release_info.outputs.image_description }}
 
       - name: Build cuda-quantum image
-        id: docker_build
+        id: cudaq_build
         uses: docker/build-push-action@v4
         with:
           context: .
@@ -255,15 +270,72 @@ jobs:
           platforms: ${{ steps.release_info.outputs.platforms }}
           push: true
 
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.1.1
+
+      - name: Sign image with GitHub OIDC Token
+        if: steps.release_info.outputs.ngc_registry == ''
+        env:
+          DIGEST: ${{ steps.cudaq_build.outputs.digest }}
+          TAGS: ${{ steps.metadata.outputs.tags }}
+        run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
+
+      - name: Log in to the container registry
+        if: vars.registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ vars.registry }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Set up redirect
+        id: redirect
+        if: steps.release_info.outputs.ngc_registry != ''
+        run: |
+          echo "FROM ${{ steps.release_info.outputs.image_name }}@${{ steps.cudaq_build.outputs.digest }}" >> redirect.Dockerfile
+          echo "image_name=${{ steps.release_info.outputs.registry }}/${{ steps.release_info.outputs.image_short_name }}" >> $GITHUB_OUTPUT
+
+      - name: Update cuda-quantum metadata
+        id: updated_metadata
+        if: steps.redirect.outcome != 'skipped'
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ steps.redirect.outputs.image_name }}
+          flavor: latest=false
+          tags: type=raw,value=${{ steps.release_info.outputs.image_tag }}
+          labels: |
+            org.opencontainers.image.title=${{ steps.release_info.outputs.image_title }}
+            org.opencontainers.image.description=${{ steps.release_info.outputs.image_description }}
+
+      - name: Build cuda-quantum image redirect
+        id: docker_build
+        if: steps.redirect.outcome != 'skipped'
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: redirect.Dockerfile
+          tags: ${{ steps.updated_metadata.outputs.tags }}
+          labels: ${{ steps.updated_metadata.outputs.labels }}
+          platforms: ${{ steps.release_info.outputs.platforms }}
+          push: true
+
+      - name: Sign image with GitHub OIDC Token
+        if: steps.redirect.outcome != 'skipped'
+        env:
+          DIGEST: ${{ steps.docker_build.outputs.digest }}
+          TAGS: ${{ steps.updated_metadata.outputs.tags }}
+        run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
+
       - name: Update release information
         run: |
           release_id=${{ steps.release_info.outputs.release_id }}
           gh release view $release_id --json body --jq .body > rel_notes.txt
           header_length=`cat rel_notes.txt | grep -n "Release notes generated" | cut -d ':' -f 1`
           head -n $(($header_length - 1)) rel_notes.txt > new_notes.txt
+          redirect=${{ steps.redirect.outputs.image_name }}
           echo -e "\nImages for ${{ steps.release_info.outputs.platforms }}:\n" >> new_notes.txt
           echo "- cuda-quantum (base image): ${{ steps.release_info.outputs.cudaq_image }}" >> new_notes.txt
-          echo "- cuda-quantum (with hpc components): ${{ steps.release_info.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}" >> new_notes.txt
+          echo "- cuda-quantum (with hpc components): ${{ steps.release_info.outputs.image_name }}@${{ steps.cudaq_build.outputs.digest }}${redirect:+ or $redirect@${{ steps.docker_build.outputs.digest }}}" >> new_notes.txt
           echo "- cuda-quantum-dev (for extension development): ${{ steps.release_info.outputs.cudaqdev_image }}" >> new_notes.txt
           echo "- cuda-quantum-devdeps (development dependencies only): ${{ steps.release_info.outputs.cudaqdevdeps_image }}" >> new_notes.txt
           (echo && tail -n +$header_length rel_notes.txt) >> new_notes.txt
@@ -277,7 +349,7 @@ jobs:
           staging_branch=${{ fromJson(needs.assets.outputs.docker_images)[format('{0}', matrix.info_file)].staging_branch }}
           git config --global user.name "cuda-quantum-bot"
           git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
-          git push origin --delete $staging_branch
+          git push origin --delete $staging_branch || ${{ inputs.assets_from_run != '' && true || false }}
 
   cudaq_wheels:
     name: CUDA Quantum Python wheels
@@ -381,7 +453,7 @@ jobs:
           staging_branch=${{ fromJson(needs.assets.outputs.python_wheels)[format('{0}', matrix.info_file)].staging_branch }}
           git config --global user.name "cuda-quantum-bot"
           git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
-          git push origin --delete $staging_branch
+          git push origin --delete $staging_branch || ${{ inputs.assets_from_run != '' && true || false }}
 
   create_release:
     name: CUDA Quantum Release
@@ -406,8 +478,7 @@ jobs:
       # See also: 
       # https://github.com/pypa/gh-action-pypi-publish
       # https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
-      - name: Publish release
-        id: publish_release
+      - name: Create release
         run: |
           for dir in `ls wheelhouse/`; do 
             mv "wheelhouse/$dir"/* wheelhouse/ && rmdir "wheelhouse/$dir"
@@ -417,8 +488,8 @@ jobs:
           release_id=${{ inputs.assets_from_run || github.run_id }}
           release_title="${{ needs.assets.outputs.release_title }}"
           github_commit=${{ needs.assets.outputs.github_commit }}
-          version=`echo "$release_title" | egrep -o "([0-9]{1,}\.)+[0-9]{1,}([A-Za-z0-9_\-\.]*)"`
-          versions=`gh release list -R $upstream_url --exclude-drafts --exclude-pre-releases | egrep -o "([0-9]{1,}\.)+[0-9]{1,}\S*" | sort -r -V`
+          version=${{ needs.assets.outputs.release_version }}
+          versions=`gh release list -R ${{ github.repository }} --exclude-drafts --exclude-pre-releases | egrep -o "([0-9]{1,}\.)+[0-9]{1,}\S*" | sort -r -V`
           latest_tag=`echo $versions | cut -d ' ' -f 1`
           prerelease=`([ "$(echo $version | egrep -o '([0-9]{1,}\.)+[0-9]{1,}')" == "$version" ] && echo '') || echo '--prerelease'`
           
@@ -429,7 +500,7 @@ jobs:
             --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
           gh release upload $release_id -R ${{ github.repository }} wheelhouse.zip --clobber
           gh release edit $release_id -R ${{ github.repository }} \
-            --title "$release_title" --tag $version --prerelease=$prerelease # --draft=false
+            --title "$release_title" --tag $version $prerelease # --draft=false
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
@@ -453,7 +524,7 @@ jobs:
         run: |
           # Delete the draft release(s) used to exchange data between GitLab and GitHub.
           for release_id in `echo ${{ needs.assets.outputs.releases }}`; do
-            if [ -z "$(gh release list | grep -s $release_id)" ]; then
+            if [ -n "$(gh release list | grep -s $release_id)" ]; then
               echo "## Draft Release $release_id:" >> $GITHUB_STEP_SUMMARY
               gh release view $release_id --json body --jq .body > rel_notes.txt
               header_length=`cat rel_notes.txt | grep -n "Release notes generated" | cut -d ':' -f 1`

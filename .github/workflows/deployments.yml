@@ -44,7 +44,7 @@ on:
 name: Deployments # do not change name without updating workflow_run triggers
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.base.ref || github.ref_name }}
+  group: ${{ github.workflow }}-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -119,8 +119,12 @@ jobs:
           environment=${{ (github.event_name != 'workflow_run' && 'ghcr-deployment') || '' }}
 
           # Store deployment info
+          release_title="${{ inputs.create_release }}"
+          release_version=`echo "$release_title" | (egrep -o "([0-9]{1,}\.)+[0-9]{1,}([A-Za-z0-9_\-\.]*)" || true)`
+
           echo "source-sha: ${{ github.sha }}" >> deployment_info.txt
-          echo "publish: ${{ inputs.create_release }}" >> deployment_info.txt
+          echo "release-title: $release_title" >> deployment_info.txt
+          echo "release-version: $release_version" >> deployment_info.txt
 
           echo "cache_base=$cache_base" >> $GITHUB_OUTPUT
           echo "update_cache=$update_cache" >> $GITHUB_OUTPUT
@@ -234,7 +238,7 @@ jobs:
   # https://github.com/actions/runner/pull/2477
   config:
     name: Configure build
-    needs: [devdeps, wheeldeps]
+    needs: [devdeps, wheeldeps, openmpi]
     if: github.event_name != 'workflow_run'
     runs-on: ubuntu-latest
 
@@ -295,6 +299,8 @@ jobs:
         platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
       fail-fast: false
     uses: ./.github/workflows/docker_images.yml
+    secrets:
+      NGC_CREDENTIALS: ${{ secrets.NGC_CREDENTIALS }}
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       ompidev_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-ompi', matrix.platform)] }}
