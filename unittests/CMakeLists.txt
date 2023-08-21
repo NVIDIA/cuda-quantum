@@ -34,6 +34,7 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   integration/get_state_tester.cpp
   qir/NVQIRTester.cpp
   qis/QubitQISTester.cpp
+  integration/kernels_tester.cpp
   common/MeasureCountsTester.cpp
   common/NoiseModelTester.cpp
   integration/tracer_tester.cpp

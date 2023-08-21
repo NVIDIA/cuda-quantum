@@ -16,6 +16,7 @@ CUDA Quantum Python API
 Program Construction
 =============================
 
+.. autofunction:: cudaq::from_state
 .. autofunction:: cudaq::make_kernel
 .. autoclass:: cudaq::Kernel
 
