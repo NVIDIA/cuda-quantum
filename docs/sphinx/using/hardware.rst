@@ -250,7 +250,7 @@ pass the ``--target iqm`` flag to the ``nvq++`` compiler, along with a specified
 .. note::
     The ``--iqm-machine`` is  a mandatory argument. This provided architecture must match
     the device architecture that the program has been compiled against. The hardware architecture for a
-    specific IQM Server may be checked  via `https://<IQM server>/cocos/quantum- architecture`.
+    specific IQM Server may be checked  via `https://<IQM server>/cocos/quantum-architecture`.
 
 .. code:: bash
 
