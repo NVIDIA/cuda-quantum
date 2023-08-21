@@ -38,7 +38,7 @@
             NVIDIA CUDA Quantum
           </a>
               <div class="version">
-                latest-base
+                latest
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -254,6 +254,7 @@
 <li class="toctree-l3"><a class="reference internal" href="python_api.html#cudaq.mpi.is_initialized"><code class="docutils literal notranslate"><span class="pre">is_initialized()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="python_api.html#cudaq.mpi.finalize"><code class="docutils literal notranslate"><span class="pre">finalize()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="python_api.html#program-construction">Program Construction</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.from_state"><code class="docutils literal notranslate"><span class="pre">from_state()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.make_kernel"><code class="docutils literal notranslate"><span class="pre">make_kernel()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.Kernel"><code class="docutils literal notranslate"><span class="pre">Kernel</span></code></a></li>
 </ul>
@@ -2045,6 +2046,12 @@
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq10QuakeValue4sizeEv">
 <span id="_CPPv3N5cudaq10QuakeValue4sizeEv"></span><span id="_CPPv2N5cudaq10QuakeValue4sizeEv"></span><span id="cudaq::QuakeValue::size"></span><span class="target" id="classcudaq_1_1QuakeValue_1af7d27118ed68e75175ab7e7927e16000"></span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">size</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq10QuakeValue4sizeEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>For a <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> with type StdVec or Veq, return the size <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq10QuakeValue12constantSizeEv">
+<span id="_CPPv3N5cudaq10QuakeValue12constantSizeEv"></span><span id="_CPPv2N5cudaq10QuakeValue12constantSizeEv"></span><span id="cudaq::QuakeValue::constantSize"></span><span class="target" id="classcudaq_1_1QuakeValue_1ab54c3d0ca18fc34f09e6e8f664cb6c67"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">constantSize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq10QuakeValue12constantSizeEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Return the constant size of this <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> if it is of Veq type. </p>
 </dd></dl>
 
 <dl class="cpp function">

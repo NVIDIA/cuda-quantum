@@ -38,7 +38,7 @@
             NVIDIA CUDA Quantum
           </a>
               <div class="version">
-                latest-base
+                latest
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -254,6 +254,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#cudaq.mpi.is_initialized"><code class="docutils literal notranslate"><span class="pre">is_initialized()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cudaq.mpi.finalize"><code class="docutils literal notranslate"><span class="pre">finalize()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#program-construction">Program Construction</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.from_state"><code class="docutils literal notranslate"><span class="pre">from_state()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.make_kernel"><code class="docutils literal notranslate"><span class="pre">make_kernel()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.Kernel"><code class="docutils literal notranslate"><span class="pre">Kernel</span></code></a></li>
 </ul>
@@ -413,6 +414,26 @@
 
 <section id="program-construction">
 <h2>Program Construction<a class="headerlink" href="#program-construction" title="Permalink to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="cudaq.from_state">
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">from_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.from_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Overloaded function.</p>
+<ol class="arabic">
+<li><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">from_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">_pycudaq</span><span class="o">.</span><span class="n">Kernel</span><span class="p">,</span> <span class="n">qubits</span><span class="p">:</span> <span class="n">cudaq</span><span class="p">::</span><span class="n">QuakeValue</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">complex128</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</li>
+</ol>
+<p>Decompose the input state vector to a set of controlled operations and rotations.</p>
+<ol class="arabic" start="2">
+<li><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">from_state</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">complex128</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">_pycudaq</span><span class="o">.</span><span class="n">Kernel</span>
+</pre></div>
+</div>
+</li>
+</ol>
+<p>Decompose the given state vector into a set of controlled operations and rotations and return a valid, callable, CUDA Quantum kernel.</p>
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="cudaq.make_kernel">
 <span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">make_kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.make_kernel" title="Permalink to this definition">¶</a></dt>
