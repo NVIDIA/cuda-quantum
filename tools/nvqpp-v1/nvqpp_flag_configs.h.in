@@ -1,0 +1,4 @@
+
+#pragma once
+const char *CUDAQ_INCLUDES_FLAGS[2] = {"-I@CMAKE_SOURCE_DIR@/runtime",
+                                       "-I@CMAKE_SOURCE_DIR@/tpls/fmt/include"};
