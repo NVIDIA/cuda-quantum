@@ -36,6 +36,9 @@ createdJobs = {}
 # Could how many times the client has requested the Job
 countJobGetRequests = 0
 
+# Save how many qubits were needed for each test (emulates real backend)
+numQubitsRequired = 0
+
 llvm.initialize()
 llvm.initialize_native_target()
 llvm.initialize_native_asmprinter()
@@ -76,7 +79,7 @@ async def login(token: Union[str, None] = Header(alias="Authorization",
 async def postJob(job: Job,
                   token: Union[str, None] = Header(alias="Authorization",
                                                    default=None)):
-    global createdJobs, shots
+    global createdJobs, shots, numQubitsRequired
 
     if token == None:
         raise HTTPException(status_code(401), detail="Credentials not provided")
@@ -125,7 +128,7 @@ async def postJob(job: Job,
 # until we return the job results
 @app.get("/v0.3/jobs")
 async def getJob(id: str):
-    global countJobGetRequests, createdJobs
+    global countJobGetRequests, createdJobs, numQubitsRequired
 
     # Simulate asynchronous execution
     if countJobGetRequests < 3:
@@ -136,6 +139,7 @@ async def getJob(id: str):
     res = {
         "jobs": [{
             "status": "completed",
+            "qubits": numQubitsRequired,
             "results_url": "/v0.3/jobs/{}/results".format(id)
         }]
     }
