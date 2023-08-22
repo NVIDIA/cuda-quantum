@@ -30,7 +30,7 @@
 #include "nvqpp_driver.h"
 #include <iostream>
 extern "C" {
-void get_this_executable_path() { return; }
+void getThisExecutablePath() { return; }
 }
 
 namespace {
@@ -134,30 +134,21 @@ private:
 } // namespace
 namespace cudaq {
 
-void preprocess_arguments(argv_storage &args) {
-  // const auto plugin_arg = "-Xclang";
-  // auto is_plugin_argument = [&](auto it) {
-  //   return llvm::StringRef(*std::prev(it)) == plugin_arg;
-  // };
-
-  // auto make_plugin_argument = [&](auto it) {
-  //   if (is_plugin_argument(it))
-  //     return it;
-  //   return std::next(args.insert(it, plugin_arg));
-  // };
+void preprocessArguments(ArgvStorage &args) {
+  // TODO
 }
-static void error_handler(void *user_data, const char *msg,
-                          bool get_crash_diag) {
-  auto &diags = *static_cast<clang::DiagnosticsEngine *>(user_data);
+
+static void errorHandler(void *userData, const char *msg, bool getCrashDiag) {
+  auto &diags = *static_cast<clang::DiagnosticsEngine *>(userData);
   diags.Report(clang::diag::err_drv_command_failure) << msg;
   llvm::sys::RunInterruptHandlers();
-  llvm::sys::Process::Exit(get_crash_diag ? 70 : 1);
+  llvm::sys::Process::Exit(getCrashDiag ? 70 : 1);
 }
 
-std::unique_ptr<clang::FrontendAction> create_frontend_action(
-    clang::CompilerInstance &ci, const cudaq_args &vargs,
+std::unique_ptr<clang::FrontendAction> createFrontendAction(
+    clang::CompilerInstance &ci, const CudaqArgs &vargs,
     mlir::OwningOpRef<mlir::ModuleOp> &module,
-    cudaq::ASTBridgeAction::MangledKernelNamesMap &cxx_mangled) {
+    cudaq::ASTBridgeAction::MangledKernelNamesMap &cxxMangled) {
   auto &opts = ci.getFrontendOpts();
   auto act = opts.ProgramAction;
 
@@ -169,17 +160,17 @@ std::unique_ptr<clang::FrontendAction> create_frontend_action(
     // AST action: no need to invoke CUDAQ
     return std::make_unique<clang::ASTPrintAction>();
   case (clang::frontend::ActionKind::EmitAssembly):
-    return std::make_unique<CudaQAction<clang::EmitAssemblyAction>>(
-        module, cxx_mangled);
+    return std::make_unique<CudaQAction<clang::EmitAssemblyAction>>(module,
+                                                                    cxxMangled);
   case (clang::frontend::ActionKind::EmitBC):
     return std::make_unique<CudaQAction<clang::EmitBCAction>>(module,
-                                                              cxx_mangled);
+                                                              cxxMangled);
   case (clang::frontend::ActionKind::EmitLLVM):
     return std::make_unique<CudaQAction<clang::EmitLLVMAction>>(module,
-                                                                cxx_mangled);
+                                                                cxxMangled);
   case (clang::frontend::ActionKind::EmitObj):
     return std::make_unique<CudaQAction<clang::EmitObjAction>>(module,
-                                                               cxx_mangled);
+                                                               cxxMangled);
   default:
     throw std::runtime_error("Not supported!!!");
   }
@@ -187,8 +178,8 @@ std::unique_ptr<clang::FrontendAction> create_frontend_action(
   return nullptr;
 }
 
-bool execute_compiler_invocation(clang::CompilerInstance *ci,
-                                 const cudaq_args &vargs) {
+bool executeCompilerInvocation(clang::CompilerInstance *ci,
+                               const CudaqArgs &vargs) {
   auto &opts = ci->getFrontendOpts();
 
   // -help.
@@ -225,8 +216,7 @@ bool execute_compiler_invocation(clang::CompilerInstance *ci,
   auto moduleOp = mlir::ModuleOp::create(builder.getUnknownLoc());
   mlir::OwningOpRef<mlir::ModuleOp> module(moduleOp);
   // Create and execute the frontend action.
-  auto action =
-      create_frontend_action(*ci, vargs, module, mangledKernelNameMap);
+  auto action = createFrontendAction(*ci, vargs, module, mangledKernelNameMap);
   if (!action)
     return false;
 
@@ -287,28 +277,28 @@ bool execute_compiler_invocation(clang::CompilerInstance *ci,
   return success;
 }
 
-int cc1(const cudaq_args &vargs, argv_t ccargs, arg_t tool, void *main_addr) {
+int cc1(const CudaqArgs &vargs, ArgvT ccargs, ArgT tool, void *mainAddr) {
   auto comp = std::make_unique<clang::CompilerInstance>();
   llvm::InitializeAllTargets();
   llvm::InitializeAllTargetMCs();
   llvm::InitializeAllAsmPrinters();
 
-  cudaq::buffered_diagnostics diags(ccargs);
+  cudaq::BufferedDiagnostics diags(ccargs);
   bool success = clang::CompilerInvocation::CreateFromArgs(
       comp->getInvocation(), ccargs, diags.engine, tool);
 
-  auto &frontend_opts = comp->getFrontendOpts();
-  auto &header_opts = comp->getHeaderSearchOpts();
+  auto &frontendOpts = comp->getFrontendOpts();
+  auto &headerOpts = comp->getHeaderSearchOpts();
 
-  if (frontend_opts.TimeTrace || !frontend_opts.TimeTracePath.empty()) {
-    frontend_opts.TimeTrace = 1;
-    llvm::timeTraceProfilerInitialize(frontend_opts.TimeTraceGranularity, tool);
+  if (frontendOpts.TimeTrace || !frontendOpts.TimeTracePath.empty()) {
+    frontendOpts.TimeTrace = 1;
+    llvm::timeTraceProfilerInitialize(frontendOpts.TimeTraceGranularity, tool);
   }
 
   // Infer the builtin include path if unspecified.
-  if (header_opts.UseBuiltinIncludes && header_opts.ResourceDir.empty()) {
-    header_opts.ResourceDir =
-        clang::CompilerInvocation::GetResourcesPath(tool, main_addr);
+  if (headerOpts.UseBuiltinIncludes && headerOpts.ResourceDir.empty()) {
+    headerOpts.ResourceDir =
+        clang::CompilerInvocation::GetResourcesPath(tool, mainAddr);
   }
 
   // Create the actual diagnostics engine.
@@ -319,7 +309,7 @@ int cc1(const cudaq_args &vargs, argv_t ccargs, arg_t tool, void *main_addr) {
   // Set an error handler, so that any LLVM backend diagnostics go through our
   // error handler.
   llvm::install_fatal_error_handler(
-      error_handler, static_cast<void *>(&comp->getDiagnostics()));
+      errorHandler, static_cast<void *>(&comp->getDiagnostics()));
 
   diags.flush();
   if (!success) {
@@ -330,7 +320,7 @@ int cc1(const cudaq_args &vargs, argv_t ccargs, arg_t tool, void *main_addr) {
   // Execute the frontend actions.
   try {
     llvm::TimeTraceScope TimeScope("ExecuteCompiler");
-    success = execute_compiler_invocation(comp.get(), vargs);
+    success = executeCompilerInvocation(comp.get(), vargs);
   } catch (...) {
     comp->setSema(nullptr);
     comp->setASTConsumer(nullptr);
@@ -346,23 +336,23 @@ int cc1(const cudaq_args &vargs, argv_t ccargs, arg_t tool, void *main_addr) {
   using small_string = llvm::SmallString<128>;
 
   if (llvm::timeTraceProfilerEnabled()) {
-    small_string path(frontend_opts.OutputFile);
+    small_string path(frontendOpts.OutputFile);
     llvm::sys::path::replace_extension(path, "json");
 
-    if (!frontend_opts.TimeTracePath.empty()) {
-      small_string trace_path(frontend_opts.TimeTracePath);
-      if (llvm::sys::fs::is_directory(trace_path)) {
-        llvm::sys::path::append(trace_path, llvm::sys::path::filename(path));
+    if (!frontendOpts.TimeTracePath.empty()) {
+      small_string tracePath(frontendOpts.TimeTracePath);
+      if (llvm::sys::fs::is_directory(tracePath)) {
+        llvm::sys::path::append(tracePath, llvm::sys::path::filename(path));
       }
 
-      path.assign(trace_path);
+      path.assign(tracePath);
     }
 
-    if (auto profiler_output = comp->createOutputFile(
+    if (auto profilerOutput = comp->createOutputFile(
             path.str(), /*Binary=*/false, /*RemoveFileOnSignal=*/false,
             /*useTemporary=*/false)) {
-      llvm::timeTraceProfilerWrite(*profiler_output);
-      profiler_output.reset();
+      llvm::timeTraceProfilerWrite(*profilerOutput);
+      profilerOutput.reset();
       llvm::timeTraceProfilerCleanup();
       comp->clearOutputFiles(false);
     }
@@ -370,20 +360,20 @@ int cc1(const cudaq_args &vargs, argv_t ccargs, arg_t tool, void *main_addr) {
   llvm::remove_fatal_error_handler();
 
   // When running with -disable-free, don't do any destruction or shutdown.
-  if (frontend_opts.DisableFree) {
+  if (frontendOpts.DisableFree) {
     llvm::BuryPointer(std::move(comp));
     return !success;
   }
 
   return !success;
 }
-std::pair<cudaq_args, argv_storage> filter_args(const argv_storage_base &args) {
-  cudaq_args vargs;
-  argv_storage rest;
+std::pair<CudaqArgs, ArgvStorage> filterArgs(const ArgvStorageBase &args) {
+  CudaqArgs vargs;
+  ArgvStorage rest;
   // TODO: just an idea
   for (auto arg : args) {
     if (std::string_view(arg).starts_with("cudaq-")) {
-      vargs.push_back(arg);
+      vargs.pushBack(arg);
     } else {
       rest.push_back(arg);
     }
@@ -392,22 +382,22 @@ std::pair<cudaq_args, argv_storage> filter_args(const argv_storage_base &args) {
   return {vargs, rest};
 }
 } // namespace cudaq
-static int execute_cc1_tool(argv_storage_base &cmd_args) {
+static int executeCc1Tool(ArgvStorageBase &cmdArgs) {
   llvm::cl::ResetAllOptionOccurrences();
-  llvm::BumpPtrAllocator pointer_allocator;
-  llvm::StringSaver saver(pointer_allocator);
+  llvm::BumpPtrAllocator pointerAllocator;
+  llvm::StringSaver saver(pointerAllocator);
   llvm::cl::ExpandResponseFiles(saver, &llvm::cl::TokenizeGNUCommandLine,
-                                cmd_args);
+                                cmdArgs);
 
-  llvm::StringRef tool = cmd_args[1];
+  llvm::StringRef tool = cmdArgs[1];
 
-  void *get_executable_path_ptr = (void *)(intptr_t)get_this_executable_path;
+  void *getExecutablePathPtr = (void *)(intptr_t)getThisExecutablePath;
 
-  auto [vargs, ccargs] = cudaq::filter_args(cmd_args);
+  auto [vargs, ccargs] = cudaq::filterArgs(cmdArgs);
 
   if (tool == "-cc1") {
-    auto ccargs_ref = llvm::ArrayRef(ccargs).slice(2);
-    return cudaq::cc1(vargs, ccargs_ref, cmd_args[0], get_executable_path_ptr);
+    auto ccargsRef = llvm::ArrayRef(ccargs).slice(2);
+    return cudaq::cc1(vargs, ccargsRef, cmdArgs[0], getExecutablePathPtr);
   }
 
   llvm::errs() << "error: unknown integrated tool '" << tool << "'. "
@@ -418,33 +408,32 @@ int main(int argc, char **argv) {
   try {
     // Initialize variables to call the driver
     llvm::InitLLVM x(argc, argv);
-    argv_storage cmd_args(argv, argv + argc);
+    ArgvStorage cmdArgs(argv, argv + argc);
     if (llvm::sys::Process::FixupStandardFileDescriptors()) {
       return 1;
     }
 
     llvm::InitializeAllTargets();
 
-    llvm::BumpPtrAllocator pointer_allocator;
-    llvm::StringSaver saver(pointer_allocator);
+    llvm::BumpPtrAllocator pointerAllocator;
+    llvm::StringSaver saver(pointerAllocator);
 
     // TODO: support both modes: now just do MLIR
 
     // Check if cudaq-front is in the frontend mode
-    auto first_arg = llvm::find_if(llvm::drop_begin(cmd_args),
-                                   [](auto a) { return a != nullptr; });
-    if (first_arg != cmd_args.end()) {
-      if (std::string_view(cmd_args[1]).starts_with("-cc1")) {
-        return execute_cc1_tool(cmd_args);
+    auto firstArg = llvm::find_if(llvm::drop_begin(cmdArgs),
+                                  [](auto a) { return a != nullptr; });
+    if (firstArg != cmdArgs.end()) {
+      if (std::string_view(cmdArgs[1]).starts_with("-cc1")) {
+        return executeCc1Tool(cmdArgs);
       }
     }
 
-    void *p = (void *)(intptr_t)get_this_executable_path;
-    const std::string driver_path =
-        llvm::sys::fs::getMainExecutable(cmd_args[0], p);
-    // std::cout << "Driver path: " << driver_path << "\n";
-    cudaq::preprocess_arguments(cmd_args);
-    cudaq::driver driver(driver_path, cmd_args, &execute_cc1_tool);
+    void *p = (void *)(intptr_t)getThisExecutablePath;
+    const std::string driverPath =
+        llvm::sys::fs::getMainExecutable(cmdArgs[0], p);
+    cudaq::preprocessArguments(cmdArgs);
+    cudaq::Driver driver(driverPath, cmdArgs, &executeCc1Tool);
     return driver.execute();
   } catch (std::exception &e) {
     llvm::errs() << "error: " << e.what() << '\n';

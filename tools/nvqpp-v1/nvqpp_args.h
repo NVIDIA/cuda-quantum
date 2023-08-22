@@ -12,42 +12,43 @@
 
 #include <vector>
 
-using arg_t = const char *;
-using argv_t = llvm::ArrayRef<arg_t>;
-using argv_storage = llvm::SmallVector<arg_t, 256>;
-using argv_storage_base = llvm::SmallVectorImpl<arg_t>;
-using exec_compile_t = int (*)(argv_storage_base &);
+using ArgT = const char *;
+using ArgvT = llvm::ArrayRef<ArgT>;
+using ArgvStorage = llvm::SmallVector<ArgT, 256>;
+using ArgvStorageBase = llvm::SmallVectorImpl<ArgT>;
+using ExecCompileFuncT = int (*)(ArgvStorageBase &);
 
 namespace cudaq {
 
-struct cudaq_args {
-  using option_list = std::vector<llvm::StringRef>;
-  using maybe_option_list = std::optional<option_list>;
+/// Skeleton for CUDA Quantum-specific arguments (on top of regular Clang args)
+struct CudaqArgs {
+  using OptionList = std::vector<llvm::StringRef>;
+  using MaybeOptionList = std::optional<OptionList>;
 
-  argv_storage args;
+  ArgvStorage args;
 
   // Detects the presence of an option in one of formats:
   // (1) -cudaq-"name"
   // (2) -cudaq-"name"="value"
-  bool has_option(llvm::StringRef opt) const {
+  bool hasOption(llvm::StringRef opt) const {
     // TODO
     return false;
   }
 
   // from option of form -cudaq-"name"="value" returns the "value"
-  std::optional<llvm::StringRef> get_option(llvm::StringRef opt) const {
+  std::optional<llvm::StringRef> getOption(llvm::StringRef opt) const {
     // TODO
     return std::optional<llvm::StringRef>();
   }
 
   // from option of form -cudaq-"name"="value1;value2;value3" returns list of
   // values
-  maybe_option_list get_options_list(llvm::StringRef opt) const {
+  MaybeOptionList getOptionsList(llvm::StringRef opt) const {
     // TODO
-    return maybe_option_list();
+    return MaybeOptionList();
   }
 
-  void push_back(arg_t arg) {
+  void pushBack(ArgT arg) {
     // TODO
   }
 };

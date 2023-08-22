@@ -1,4 +1,11 @@
 
+/****************************************************************-*- C++ -*-****
+ * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
 #pragma once
 const char *CUDAQ_INCLUDES_FLAGS[2] = {"-I@CMAKE_SOURCE_DIR@/runtime",
                                        "-I@CMAKE_SOURCE_DIR@/tpls/fmt/include"};

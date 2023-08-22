@@ -20,75 +20,77 @@
 #include "nvqpp_args.h"
 
 namespace cudaq {
-using diagnostics_engine = clang::DiagnosticsEngine;
+using DiagnosticsEngine = clang::DiagnosticsEngine;
 
 template <typename T>
-using llvm_cnt_ptr = llvm::IntrusiveRefCntPtr<T>;
+using LlvmCntPtr = llvm::IntrusiveRefCntPtr<T>;
 
 //
 // diagnostics options
 //
-struct diagnostics_options : llvm_cnt_ptr<clang::DiagnosticOptions> {
-  using base = llvm_cnt_ptr<clang::DiagnosticOptions>;
+struct DiagnosticsOptions : LlvmCntPtr<clang::DiagnosticOptions> {
+  using Base = LlvmCntPtr<clang::DiagnosticOptions>;
 
-  diagnostics_options(argv_t argv)
-      : base(clang::CreateAndPopulateDiagOpts(argv)) {}
+  DiagnosticsOptions(ArgvT argv)
+      : Base(clang::CreateAndPopulateDiagOpts(argv)) {}
 };
 
 //
 // diagnostics buffer
 //
-struct diagnostics_buffer {
-  using base = clang::TextDiagnosticBuffer;
+struct DiagnosticsBuffer {
+  using Base = clang::TextDiagnosticBuffer;
 
-  explicit diagnostics_buffer() : buffer(new base()) {}
+  explicit DiagnosticsBuffer() : buffer(new Base()) {}
 
-  base *get() { return buffer.get(); }
+  Base *get() { return buffer.get(); }
 
-  void flush(diagnostics_engine &engine) { buffer->FlushDiagnostics(engine); }
+  void flush(DiagnosticsEngine &engine) { buffer->FlushDiagnostics(engine); }
 
-  std::unique_ptr<base> buffer;
+  std::unique_ptr<Base> buffer;
 };
 
-struct diagnostics_printer {
-  using printer_base = clang::TextDiagnosticPrinter;
+//
+// Diagnostics printer
+//
+struct DiagnosticsPrinter {
+  using Base = clang::TextDiagnosticPrinter;
 
-  explicit diagnostics_printer(diagnostics_options &opts,
-                               const std::string &path)
-      : printer(new printer_base(llvm::errs(), opts.get())) {}
+  explicit DiagnosticsPrinter(DiagnosticsOptions &opts, const std::string &path)
+      : printer(new Base(llvm::errs(), opts.get())) {}
 
-  printer_base *get() { return printer.get(); }
+  Base *get() { return printer.get(); }
 
-  std::unique_ptr<printer_base> printer;
+  std::unique_ptr<Base> printer;
 };
 
 //
 // diagnostics
 //
-using ids = llvm_cnt_ptr<clang::DiagnosticIDs>;
+static LlvmCntPtr<clang::DiagnosticIDs> makeIds() {
+  return new clang::DiagnosticIDs();
+}
 
-static ids make_ids() { return new clang::DiagnosticIDs(); }
+struct BufferedDiagnostics {
 
-struct buffered_diagnostics {
-
-  explicit buffered_diagnostics(llvm::ArrayRef<const char *> argv)
-      : opts(argv), buffer(), engine(make_ids(), opts, buffer.get(), false) {
+  explicit BufferedDiagnostics(llvm::ArrayRef<const char *> argv)
+      : opts(argv), buffer(), engine(makeIds(), opts, buffer.get(), false) {
     clang::ProcessWarningOptions(engine, *opts, /* ReportDiags */ false);
   }
 
   void flush() { buffer.flush(engine); }
 
-  diagnostics_options opts;
-  diagnostics_buffer buffer;
-  diagnostics_engine engine;
+  DiagnosticsOptions opts;
+  DiagnosticsBuffer buffer;
+  DiagnosticsEngine engine;
 };
 
-struct errs_diagnostics {
+struct ErrorsDiagnostics {
 
-  explicit errs_diagnostics(llvm::ArrayRef<const char *> argv,
-                            const std::string &path)
+  explicit ErrorsDiagnostics(llvm::ArrayRef<const char *> argv,
+                             const std::string &path)
       : opts(argv), printer(opts, path),
-        engine(make_ids(), opts, printer.get(), false) {
+        engine(makeIds(), opts, printer.get(), false) {
     if (!opts->DiagnosticSerializationFile.empty()) {
       auto consumer = clang::serialized_diags::create(
           opts->DiagnosticSerializationFile, opts.get(),
@@ -103,9 +105,9 @@ struct errs_diagnostics {
 
   void finish() { engine.getClient()->finish(); }
 
-  diagnostics_options opts;
-  diagnostics_printer printer;
-  diagnostics_engine engine;
+  DiagnosticsOptions opts;
+  DiagnosticsPrinter printer;
+  DiagnosticsEngine engine;
 };
 
 } // namespace cudaq

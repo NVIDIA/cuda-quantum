@@ -30,36 +30,36 @@
 #include "llvm/TargetParser/Host.h"
 #include <iostream>
 namespace cudaq {
-struct driver {
-  argv_storage_base &cmd_args;
-  errs_diagnostics diag;
+struct Driver {
+  ArgvStorageBase &cmdArgs;
+  ErrorsDiagnostics diag;
   clang::driver::Driver drv;
-  exec_compile_t cc1_entry_point;
-  std::string cudaq_opt_exe;
-  std::string cudaq_translate_exe;
-  std::string cudaq_lib_path;
+  ExecCompileFuncT cc1EntryPoint;
+  std::string cudaqOptExe;
+  std::string cudaqTranslateExe;
+  std::string cudaqLibPath;
 
-  driver(const std::string &path, argv_storage_base &cmd_args,
-         exec_compile_t cc1)
-      : cmd_args(cmd_args), diag(cmd_args, path),
+  Driver(const std::string &path, ArgvStorageBase &cmdArgs,
+         ExecCompileFuncT cc1)
+      : cmdArgs(cmdArgs), diag(cmdArgs, path),
         drv(path, llvm::sys::getDefaultTargetTriple(), diag.engine,
             "nvq++ compiler"),
-        cc1_entry_point(cc1) {
+        cc1EntryPoint(cc1) {
     drv.ResourceDir = std::string(CLANG_RESOURCE_DIR);
-    set_install_dir(cmd_args);
+    setInstallDir(cmdArgs);
     // Add -std=c++20
-    cmd_args.insert(cmd_args.end(), "-std=c++20");
+    cmdArgs.insert(cmdArgs.end(), "-std=c++20");
     for (const char *include_flag : CUDAQ_INCLUDES_FLAGS)
-      cmd_args.insert(cmd_args.end(), include_flag);
+      cmdArgs.insert(cmdArgs.end(), include_flag);
   }
 
-  std::unique_ptr<clang::driver::Compilation> make_compilation() {
-    drv.CC1Main = cc1_entry_point;
+  std::unique_ptr<clang::driver::Compilation> makeCompilation() {
+    drv.CC1Main = cc1EntryPoint;
     return std::unique_ptr<clang::driver::Compilation>(
-        drv.BuildCompilation(cmd_args));
+        drv.BuildCompilation(cmdArgs));
   }
 
-  std::optional<clang::driver::Driver::ReproLevel> get_clang_repro_level(
+  std::optional<clang::driver::Driver::ReproLevel> getClangReproLevel(
       const std::unique_ptr<clang::driver::Compilation> &comp) const {
     std::optional<clang::driver::Driver::ReproLevel> level =
         clang::driver::Driver::ReproLevel::OnCrash;
@@ -90,30 +90,29 @@ struct driver {
   }
 
   const clang::driver::Command *
-  first_job(const std::unique_ptr<clang::driver::Compilation> &comp) {
+  firstJob(const std::unique_ptr<clang::driver::Compilation> &comp) {
     return &(*comp->getJobs().begin());
   }
 
-  using failing_commands =
+  using FailingCommands =
       llvm::SmallVector<std::pair<int, const clang::driver::Command *>, 4>;
 
   int execute() {
-    auto comp = make_compilation();
-    auto level = get_clang_repro_level(comp);
+    auto comp = makeCompilation();
+    auto level = getClangReproLevel(comp);
     if (!level) {
       return 1;
     }
     int result = 1;
-    bool is_crash = false;
-    clang::driver::Driver::CommandStatus command_status =
+    bool isCrash = false;
+    clang::driver::Driver::CommandStatus commandStatus =
         clang::driver::Driver::CommandStatus::Ok;
 
-    const clang::driver::Command *failing_command = nullptr;
+    const clang::driver::Command *failingCommand = nullptr;
     if (!comp->getJobs().empty()) {
-      failing_command = first_job(comp);
+      failingCommand = firstJob(comp);
     }
-    // drv.PrintHelp(true);
-    // drv.PrintActions(*comp);
+
     const auto sourceInputFileName = [&]() -> std::string {
       for (const auto &job : comp->getJobs()) {
         for (const auto &input : job.getInputInfos()) {
@@ -131,36 +130,36 @@ struct driver {
     const std::string quakeFileLl = sourceInputFileName + ".qir.ll";
     const std::string quakeFileObj = sourceInputFileName + ".qke.o";
     if (comp && !comp->containsError()) {
-      failing_commands failing;
-      bool quake_run = false;
+      FailingCommands failing;
+      bool quakeRun = false;
       for (auto &Job : comp->getJobs()) {
-        const clang::driver::Command *FailingCommand = nullptr;
+        const clang::driver::Command *failingCommand = nullptr;
 
         if (Job.getSource().getKind() ==
             clang::driver::Action::ActionClass::LinkJobClass) {
-          std::vector<std::string> obj_file_names;
+          std::vector<std::string> objFileNames;
           for (const auto &input : Job.getInputInfos()) {
             if (input.isFilename()) {
-              obj_file_names.emplace_back(input.getFilename());
+              objFileNames.emplace_back(input.getFilename());
             }
           }
           // Strategy: inject out qke object file in front of the list
-          llvm::opt::ArgStringList new_link_args;
+          llvm::opt::ArgStringList newLinkArgs;
           bool inserted = false;
           for (const auto &arg : Job.getArguments()) {
-            if (std::find(obj_file_names.begin(), obj_file_names.end(), arg) !=
-                    obj_file_names.end() &&
+            if (std::find(objFileNames.begin(), objFileNames.end(), arg) !=
+                    objFileNames.end() &&
                 !inserted) {
-              new_link_args.insert(new_link_args.end(),
-                                   strdup(quakeFileObj.c_str()));
+              newLinkArgs.insert(newLinkArgs.end(),
+                                 strdup(quakeFileObj.c_str()));
               inserted = true;
             }
-            new_link_args.insert(new_link_args.end(), arg);
+            newLinkArgs.insert(newLinkArgs.end(), arg);
           }
 
-          const std::string link_dir = std::string("-L") + cudaq_lib_path;
+          const std::string linkDir = std::string("-L") + cudaqLibPath;
           // FIXME: leak
-          new_link_args.insert(new_link_args.end(), strdup(link_dir.c_str()));
+          newLinkArgs.insert(newLinkArgs.end(), strdup(linkDir.c_str()));
           // TODO: handle target selection, just use qpp for now!
           const std::array<const char *, 11> CUDAQ_LINK_LIBS{
               "-lcudaq",
@@ -175,84 +174,82 @@ struct driver {
               "-lcudaq-platform-default",
               "-lnvqir-qpp"};
           for (const auto &linkLib : CUDAQ_LINK_LIBS)
-            new_link_args.insert(new_link_args.end(), linkLib);
+            newLinkArgs.insert(newLinkArgs.end(), linkLib);
 
-          const std::string rpath_dir = std::string("-rpath=") + cudaq_lib_path;
+          const std::string rpathDir = std::string("-rpath=") + cudaqLibPath;
           // FIXME: leak
-          new_link_args.insert(new_link_args.end(), strdup(rpath_dir.c_str()));
-          Job.replaceArguments(new_link_args);
+          newLinkArgs.insert(newLinkArgs.end(), strdup(rpathDir.c_str()));
+          Job.replaceArguments(newLinkArgs);
         }
 
-        if (int Res = comp->ExecuteCommand(Job, FailingCommand)) {
-          failing.push_back(std::make_pair(Res, FailingCommand));
+        if (int Res = comp->ExecuteCommand(Job, failingCommand)) {
+          failing.push_back(std::make_pair(Res, failingCommand));
           // bail out
           break;
         }
 
-        if (llvm::sys::fs::exists(quakeFile) && !quake_run) {
-          quake_run = true;
+        if (llvm::sys::fs::exists(quakeFile) && !quakeRun) {
+          quakeRun = true;
           // Run quake-opt
           // TODO: need to check the action requested (LLVM/Obj)
           {
-            clang::driver::InputInfoList InputInfos;
-            llvm::opt::ArgStringList CmdArgs;
-            CmdArgs.insert(CmdArgs.end(), "--canonicalize");
-            CmdArgs.insert(CmdArgs.end(), "--kernel-execution");
-            CmdArgs.insert(CmdArgs.end(), strdup(quakeFile.c_str()));
-            CmdArgs.insert(CmdArgs.end(), "-o");
-            CmdArgs.insert(CmdArgs.end(), strdup(quakeFileOpt.c_str()));
-            auto quake_opt_cmd = std::make_unique<clang::driver::Command>(
+            clang::driver::InputInfoList inputInfos;
+            llvm::opt::ArgStringList cmdArgs;
+            cmdArgs.insert(cmdArgs.end(), "--canonicalize");
+            cmdArgs.insert(cmdArgs.end(), "--kernel-execution");
+            cmdArgs.insert(cmdArgs.end(), strdup(quakeFile.c_str()));
+            cmdArgs.insert(cmdArgs.end(), "-o");
+            cmdArgs.insert(cmdArgs.end(), strdup(quakeFileOpt.c_str()));
+            auto quakeOptCmd = std::make_unique<clang::driver::Command>(
                 Job.getSource(), Job.getCreator(),
-                clang::driver::ResponseFileSupport::None(),
-                cudaq_opt_exe.c_str(), CmdArgs, InputInfos);
+                clang::driver::ResponseFileSupport::None(), cudaqOptExe.c_str(),
+                cmdArgs, inputInfos);
             // if (comp->getArgs().hasArg(clang::driver::options::OPT_v))
-            //   quake_opt_cmd->Print(llvm::errs(), "\n", true);
-            if (int Res =
-                    comp->ExecuteCommand(*quake_opt_cmd, FailingCommand)) {
-              failing.push_back(std::make_pair(Res, FailingCommand));
+            //   quakeOptCmd->Print(llvm::errs(), "\n", true);
+            if (int Res = comp->ExecuteCommand(*quakeOptCmd, failingCommand)) {
+              failing.push_back(std::make_pair(Res, failingCommand));
               // bail out
               break;
             }
           }
           {
             // Run quake-translate
-            clang::driver::InputInfoList InputInfos;
-            llvm::opt::ArgStringList CmdArgs;
-            CmdArgs.insert(CmdArgs.end(), "--convert-to=qir");
-            CmdArgs.insert(CmdArgs.end(), strdup(quakeFileOpt.c_str()));
-            CmdArgs.insert(CmdArgs.end(), "-o");
-            CmdArgs.insert(CmdArgs.end(), strdup(quakeFileLl.c_str()));
-            auto quake_opt_cmd = std::make_unique<clang::driver::Command>(
+            clang::driver::InputInfoList inputInfos;
+            llvm::opt::ArgStringList cmdArgs;
+            cmdArgs.insert(cmdArgs.end(), "--convert-to=qir");
+            cmdArgs.insert(cmdArgs.end(), strdup(quakeFileOpt.c_str()));
+            cmdArgs.insert(cmdArgs.end(), "-o");
+            cmdArgs.insert(cmdArgs.end(), strdup(quakeFileLl.c_str()));
+            auto quakeTranslateCmd = std::make_unique<clang::driver::Command>(
                 Job.getSource(), Job.getCreator(),
                 clang::driver::ResponseFileSupport::None(),
-                cudaq_translate_exe.c_str(), CmdArgs, InputInfos);
+                cudaqTranslateExe.c_str(), cmdArgs, inputInfos);
 
             if (int Res =
-                    comp->ExecuteCommand(*quake_opt_cmd, FailingCommand)) {
-              failing.push_back(std::make_pair(Res, FailingCommand));
+                    comp->ExecuteCommand(*quakeTranslateCmd, failingCommand)) {
+              failing.push_back(std::make_pair(Res, failingCommand));
               // bail out
               break;
             }
           }
           {
             // Run llc
-            clang::driver::InputInfoList InputInfos;
-            llvm::opt::ArgStringList CmdArgs;
-            CmdArgs.insert(CmdArgs.end(), "--relocation-model=pic");
-            CmdArgs.insert(CmdArgs.end(), "--filetype=obj");
-            CmdArgs.insert(CmdArgs.end(), "-O2");
-            CmdArgs.insert(CmdArgs.end(), strdup(quakeFileLl.c_str()));
-            CmdArgs.insert(CmdArgs.end(), "-o");
-            CmdArgs.insert(CmdArgs.end(), strdup(quakeFileObj.c_str()));
+            clang::driver::InputInfoList inputInfos;
+            llvm::opt::ArgStringList cmdArgs;
+            cmdArgs.insert(cmdArgs.end(), "--relocation-model=pic");
+            cmdArgs.insert(cmdArgs.end(), "--filetype=obj");
+            cmdArgs.insert(cmdArgs.end(), "-O2");
+            cmdArgs.insert(cmdArgs.end(), strdup(quakeFileLl.c_str()));
+            cmdArgs.insert(cmdArgs.end(), "-o");
+            cmdArgs.insert(cmdArgs.end(), strdup(quakeFileObj.c_str()));
             const std::string llcPath = std::string(LLVM_BIN_DIR) + "/llc";
-            auto quake_opt_cmd = std::make_unique<clang::driver::Command>(
+            auto llcCmd = std::make_unique<clang::driver::Command>(
                 Job.getSource(), Job.getCreator(),
                 clang::driver::ResponseFileSupport::None(),
-                strdup(llcPath.c_str()), CmdArgs, InputInfos);
+                strdup(llcPath.c_str()), cmdArgs, inputInfos);
 
-            if (int Res =
-                    comp->ExecuteCommand(*quake_opt_cmd, FailingCommand)) {
-              failing.push_back(std::make_pair(Res, FailingCommand));
+            if (int Res = comp->ExecuteCommand(*llcCmd, failingCommand)) {
+              failing.push_back(std::make_pair(Res, failingCommand));
               // bail out
               break;
             }
@@ -260,17 +257,17 @@ struct driver {
         }
       }
 
-      for (const auto &[cmd_result, cmd] : failing) {
-        failing_command = cmd;
+      for (const auto &[cmdResult, cmd] : failing) {
+        failingCommand = cmd;
         if (!result) {
-          result = cmd_result;
+          result = cmdResult;
         }
 
-        is_crash = cmd_result < 0 || cmd_result == 70;
-        command_status = is_crash ? clang::driver::Driver::CommandStatus::Crash
-                                  : clang::driver::Driver::CommandStatus::Error;
+        isCrash = cmdResult < 0 || cmdResult == 70;
+        commandStatus = isCrash ? clang::driver::Driver::CommandStatus::Crash
+                                : clang::driver::Driver::CommandStatus::Error;
 
-        if (is_crash) {
+        if (isCrash) {
           break;
         }
       }
@@ -279,19 +276,18 @@ struct driver {
     if (::getenv("FORCE_CLANG_DIAGNOSTICS_CRASH"))
       llvm::dbgs() << llvm::getBugReportMsg();
 
-    auto maybe_generate_compilation_diagnostics = [&] {
-      return drv.maybeGenerateCompilationDiagnostics(command_status, *level,
-                                                     *comp, *failing_command);
-    };
+    const auto maybeGenerateCompilationDiagnostics = [&] {
+      return drv.maybeGenerateCompilationDiagnostics(commandStatus, *level,
+                                                     *comp, *failingCommand);
+    }();
 
-    if (failing_command != nullptr &&
-        maybe_generate_compilation_diagnostics()) {
+    if (failingCommand != nullptr && maybeGenerateCompilationDiagnostics) {
       result = 1;
     }
 
     diag.finish();
 
-    if (is_crash) {
+    if (isCrash) {
       llvm::BuryPointer(llvm::TimerGroup::aquireDefaultGroup());
     } else {
       llvm::TimerGroup::printAll(llvm::errs());
@@ -303,58 +299,58 @@ struct driver {
     return result;
   }
 
-  void set_install_dir(argv_storage_base &argv) {
+  void setInstallDir(ArgvStorageBase &argv) {
     // Attempt to find the original path used to invoke the driver, to determine
     // the installed path. We do this manually, because we want to support that
     // path being a symlink.
-    llvm::SmallString<128> installed_path(argv[0]);
+    llvm::SmallString<128> installedPath(argv[0]);
 
     // Do a PATH lookup, if there are no directory components.
-    if (llvm::sys::path::filename(installed_path) == installed_path) {
+    if (llvm::sys::path::filename(installedPath) == installedPath) {
       if (auto tmp = llvm::sys::findProgramByName(
-              llvm::sys::path::filename(installed_path.str()))) {
-        installed_path = *tmp;
+              llvm::sys::path::filename(installedPath.str()))) {
+        installedPath = *tmp;
       }
     }
 
-    llvm::sys::fs::make_absolute(installed_path);
+    llvm::sys::fs::make_absolute(installedPath);
 
-    llvm::StringRef installed_path_parent(
-        llvm::sys::path::parent_path(installed_path));
-    if (llvm::sys::fs::exists(installed_path_parent)) {
-      drv.setInstalledDir(installed_path_parent);
+    llvm::StringRef installedPathParent(
+        llvm::sys::path::parent_path(installedPath));
+    if (llvm::sys::fs::exists(installedPathParent)) {
+      drv.setInstalledDir(installedPathParent);
 
       {
         llvm::SmallString<128> binPath =
-            llvm::sys::path::parent_path(installed_path);
+            llvm::sys::path::parent_path(installedPath);
         llvm::sys::path::append(binPath, "cudaq-opt");
         if (!llvm::sys::fs::exists(binPath)) {
           llvm::errs() << "nvq++ error: File not found: " << binPath << "\n";
           exit(1);
         }
-        cudaq_opt_exe = binPath.str();
+        cudaqOptExe = binPath.str();
       }
       {
         llvm::SmallString<128> binPath =
-            llvm::sys::path::parent_path(installed_path);
+            llvm::sys::path::parent_path(installedPath);
         llvm::sys::path::append(binPath, "cudaq-translate");
         if (!llvm::sys::fs::exists(binPath)) {
           llvm::errs() << "nvq++ error: File not found: " << binPath << "\n";
           exit(1);
         }
-        cudaq_translate_exe = binPath.str();
+        cudaqTranslateExe = binPath.str();
       }
       {
         llvm::SmallString<128> libPath =
             llvm::sys::path::parent_path(llvm::sys::path::parent_path(
-                llvm::sys::path::parent_path(installed_path)));
+                llvm::sys::path::parent_path(installedPath)));
         llvm::sys::path::append(libPath, "lib");
         if (!llvm::sys::fs::exists(libPath)) {
           llvm::errs() << "nvq++ error: Directory not found: " << libPath
                        << "\n";
           exit(1);
         }
-        cudaq_lib_path = libPath.str();
+        cudaqLibPath = libPath.str();
       }
     }
   }
