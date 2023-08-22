@@ -94,6 +94,27 @@ void quake::AllocaOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
 //===----------------------------------------------------------------------===//
 
 namespace {
+// %7 = quake.concat %4 : (!quake.veq<2>) -> !quake.veq<2>
+// ───────────────────────────────────────────
+// removed
+struct ConcatNoOpPattern : public OpRewritePattern<quake::ConcatOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::ConcatOp concat,
+                                PatternRewriter &rewriter) const override {
+    // Remove concat veq<N> -> veq<N>
+    auto qubitsToConcat = concat.getQbits();
+    if (qubitsToConcat.size() == 1 &&
+        qubitsToConcat.front().getType() == concat.getResult().getType() &&
+        concat->hasOneUse()) {
+
+      rewriter.replaceAllUsesWith(concat.getResult(), qubitsToConcat.front());
+      rewriter.eraseOp(concat);
+    }
+    return success();
+  }
+};
+
 struct ConcatSizePattern : public OpRewritePattern<quake::ConcatOp> {
   using OpRewritePattern::OpRewritePattern;
 
@@ -130,7 +151,7 @@ struct ConcatSizePattern : public OpRewritePattern<quake::ConcatOp> {
 
 void quake::ConcatOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                   MLIRContext *context) {
-  patterns.add<ConcatSizePattern>(context);
+  patterns.add<ConcatSizePattern, ConcatNoOpPattern>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -168,6 +189,33 @@ static void printRawIndex(OpAsmPrinter &printer, quake::ExtractRefOp refOp,
 }
 
 namespace {
+// %4 = quake.concat %2, %3 : (!quake.ref, !quake.ref) -> !quake.veq<2>
+// %7 = quake.extract_ref %4[0] : (!quake.veq<2>) -> !quake.ref
+// ───────────────────────────────────────────
+// replace all use with %2
+struct BackwardConcatExtractPattern
+    : public OpRewritePattern<quake::ExtractRefOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::ExtractRefOp extract,
+                                PatternRewriter &rewriter) const override {
+    auto veq = extract.getVeq();
+    auto concatOp = veq.getDefiningOp<quake::ConcatOp>();
+    if (concatOp && extract.hasConstantIndex()) {
+      auto index = extract.getConstantIndex();
+      auto concatQubits = concatOp.getQbits();
+      if (index < concatQubits.size()) {
+        auto qOpValue = concatQubits[index];
+        if (isa<quake::RefType>(qOpValue.getType())) {
+          rewriter.replaceAllUsesWith(extract.getResult(), qOpValue);
+          rewriter.eraseOp(extract);
+        }
+      }
+    }
+    return success();
+  }
+};
+
 // %2 = quake.concat %1 : (!quake.ref) -> !quake.veq<1>
 // %3 = quake.extract_ref %2[0] : (!quake.veq<1>) -> !quake.ref
 // quake.* %3 ...
@@ -198,8 +246,8 @@ struct ForwardConcatExtractSingleton
 
 void quake::ExtractRefOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<FuseConstantToExtractRefPattern, ForwardConcatExtractSingleton>(
-      context);
+  patterns.add<FuseConstantToExtractRefPattern, ForwardConcatExtractSingleton,
+               BackwardConcatExtractPattern>(context);
 }
 
 LogicalResult quake::ExtractRefOp::verify() {
