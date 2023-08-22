@@ -9,6 +9,7 @@
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
 #include "cudaq/utils/cudaq_utils.h"
+#include <bitset>
 #include <fstream>
 #include <thread>
 
@@ -248,11 +249,33 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse) {
   auto resultsGetPath = constructGetResultsPath(postJobResponse);
   // Get the results
   auto results = getResults(resultsGetPath);
+
+  // Get the number of qubits. This assumes the all qubits are measured, which
+  // is a safe assumption for now but may change in the future.
+  cudaq::debug("postJobResponse message: {}", postJobResponse.dump());
+  auto &jobs = postJobResponse.at("jobs");
+  if (!jobs[0].contains("qubits"))
+    throw std::runtime_error(
+        "ServerMessage doesn't tell us how many qubits there were");
+
+  auto nQubits = jobs[0].at("qubits").get<int>();
+  cudaq::debug("nQubits is : {}", nQubits);
+  cudaq::debug("Results message: {}", results.dump());
+
   cudaq::CountsDictionary counts;
 
   // Process the results
   for (const auto &element : results.items()) {
     std::string key = element.key();
+
+    // Convert base-10 ASCII key to bitstring and perform endian swap
+    uint64_t s = std::stoull(key);
+    assert(nQubits <= 64);
+    std::string newkey = std::bitset<64>(s).to_string();
+    newkey.erase(0, 64 - nQubits);
+    std::reverse(newkey.begin(), newkey.end()); // perform endian swap
+    key = newkey;
+
     double value = element.value().get<double>();
     std::size_t count = static_cast<std::size_t>(value * shots);
     counts[key] = count;
