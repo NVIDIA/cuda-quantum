@@ -109,6 +109,12 @@ struct ConcatNoOpPattern : public OpRewritePattern<quake::ConcatOp> {
     if (qubitsToConcat.size() > 1)
       return failure();
 
+    // We only want to handle veq -> veq here.
+    if (isa<quake::RefType>(qubitsToConcat.front().getType())) {
+      return failure();
+    }
+
+    // Do not handle anything where we don't know the sizes.
     auto retTy = concat.getResult().getType();
     if (auto veqTy = dyn_cast<quake::VeqType>(retTy))
       if (!veqTy.hasSpecifiedSize())
