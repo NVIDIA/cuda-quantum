@@ -23,12 +23,12 @@ using namespace cudaq;
 
 /// Translates operation names into OpenQASM gate names
 static LogicalResult translateOperatorName(quake::OperatorInterface optor,
-                                           std::string &name) {
-  std::string qkeName = optor->getName().stripDialect().str();
+                                           StringRef &name) {
+  StringRef qkeName = optor->getName().stripDialect();
   if (optor.getControls().size() == 0) {
-    name = StringSwitch<std::string>(qkeName).Case("r1", "u1").Default(qkeName);
+    name = StringSwitch<StringRef>(qkeName).Case("r1", "u1").Default(qkeName);
   } else if (optor.getControls().size() == 1) {
-    name = StringSwitch<std::string>(qkeName)
+    name = StringSwitch<StringRef>(qkeName)
                .Case("h", "ch")
                .Case("x", "cx")
                .Case("y", "cy")
@@ -39,7 +39,7 @@ static LogicalResult translateOperatorName(quake::OperatorInterface optor,
                .Case("rz", "crz")
                .Default("");
   } else if (optor.getControls().size() == 2) {
-    name = StringSwitch<std::string>(qkeName).Case("x", "ccx").Default("");
+    name = StringSwitch<StringRef>(qkeName).Case("x", "ccx").Default("");
   }
   if (name.empty())
     return failure();
@@ -236,15 +236,15 @@ static LogicalResult emitOperation(Emitter &emitter, func::CallOp callOp) {
 static LogicalResult emitOperation(Emitter &emitter,
                                    quake::OperatorInterface optor) {
   // Handle adjoint for T and S
-  std::string name = "";
+  StringRef name = "";
   if (failed(translateOperatorName(optor, name)))
     return optor.emitError(
         "cannot convert operation to CUDA Quantum Python API");
 
   if (optor.isAdj())
-    name = name + "dg";
-
-  emitter.os << name;
+    emitter.os << name << "dg";
+  else
+    emitter.os << name;
 
   if (failed(printParameters(emitter, optor.getParameters())))
     return optor.emitError("failed to emit parameters");

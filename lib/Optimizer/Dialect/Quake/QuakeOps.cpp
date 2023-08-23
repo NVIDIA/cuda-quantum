@@ -103,14 +103,20 @@ struct ConcatNoOpPattern : public OpRewritePattern<quake::ConcatOp> {
   LogicalResult matchAndRewrite(quake::ConcatOp concat,
                                 PatternRewriter &rewriter) const override {
     // Remove concat veq<N> -> veq<N>
+    // or
+    // concat ref -> ref
     auto qubitsToConcat = concat.getQbits();
-    if (qubitsToConcat.size() == 1 &&
-        qubitsToConcat.front().getType() == concat.getResult().getType() &&
-        concat->hasOneUse()) {
+    if (qubitsToConcat.size() > 1)
+      return failure();
 
-      rewriter.replaceAllUsesWith(concat.getResult(), qubitsToConcat.front());
-      rewriter.eraseOp(concat);
-    }
+    auto retTy = concat.getResult().getType();
+    if (auto veqTy = dyn_cast<quake::VeqType>(retTy))
+      if (!veqTy.hasSpecifiedSize())
+        // This could be a folded quake.relax_size op.
+        return failure();
+
+    rewriter.replaceAllUsesWith(concat.getResult(), qubitsToConcat.front());
+    rewriter.eraseOp(concat);
     return success();
   }
 };
@@ -193,7 +199,7 @@ namespace {
 // %7 = quake.extract_ref %4[0] : (!quake.veq<2>) -> !quake.ref
 // ───────────────────────────────────────────
 // replace all use with %2
-struct BackwardConcatExtractPattern
+struct ForwardConcatExtractPattern
     : public OpRewritePattern<quake::ExtractRefOp> {
   using OpRewritePattern::OpRewritePattern;
 
@@ -202,8 +208,15 @@ struct BackwardConcatExtractPattern
     auto veq = extract.getVeq();
     auto concatOp = veq.getDefiningOp<quake::ConcatOp>();
     if (concatOp && extract.hasConstantIndex()) {
-      auto index = extract.getConstantIndex();
+      // Don't run this canonicalization if any of the operands
+      // to concat are of type veq.
       auto concatQubits = concatOp.getQbits();
+      for (auto qOp : concatQubits)
+        if (isa<quake::VeqType>(qOp.getType()))
+          return failure();
+
+      // concat only has ref type operands.
+      auto index = extract.getConstantIndex();
       if (index < concatQubits.size()) {
         auto qOpValue = concatQubits[index];
         if (isa<quake::RefType>(qOpValue.getType())) {
@@ -247,7 +260,7 @@ struct ForwardConcatExtractSingleton
 void quake::ExtractRefOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
   patterns.add<FuseConstantToExtractRefPattern, ForwardConcatExtractSingleton,
-               BackwardConcatExtractPattern>(context);
+               ForwardConcatExtractPattern>(context);
 }
 
 LogicalResult quake::ExtractRefOp::verify() {
