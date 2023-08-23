@@ -115,8 +115,7 @@ struct ConcatNoOpPattern : public OpRewritePattern<quake::ConcatOp> {
         // This could be a folded quake.relax_size op.
         return failure();
 
-    rewriter.replaceAllUsesWith(concat.getResult(), qubitsToConcat.front());
-    rewriter.eraseOp(concat);
+    rewriter.replaceOp(concat, qubitsToConcat);
     return success();
   }
 };
@@ -219,10 +218,8 @@ struct ForwardConcatExtractPattern
       auto index = extract.getConstantIndex();
       if (index < concatQubits.size()) {
         auto qOpValue = concatQubits[index];
-        if (isa<quake::RefType>(qOpValue.getType())) {
-          rewriter.replaceAllUsesWith(extract.getResult(), qOpValue);
-          rewriter.eraseOp(extract);
-        }
+        if (isa<quake::RefType>(qOpValue.getType()))
+          rewriter.replaceOp(extract, {qOpValue});
       }
     }
     return success();
