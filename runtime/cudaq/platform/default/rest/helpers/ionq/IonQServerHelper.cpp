@@ -265,20 +265,17 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse) {
   cudaq::CountsDictionary counts;
 
   // Process the results
+  assert(nQubits <= 64);
   for (const auto &element : results.items()) {
-    std::string key = element.key();
-
     // Convert base-10 ASCII key to bitstring and perform endian swap
-    uint64_t s = std::stoull(key);
-    assert(nQubits <= 64);
+    uint64_t s = std::stoull(element.key());
     std::string newkey = std::bitset<64>(s).to_string();
-    newkey.erase(0, 64 - nQubits);
     std::reverse(newkey.begin(), newkey.end()); // perform endian swap
-    key = newkey;
+    newkey.resize(nQubits);
 
     double value = element.value().get<double>();
     std::size_t count = static_cast<std::size_t>(value * shots);
-    counts[key] = count;
+    counts[newkey] = count;
   }
 
   // Create an execution result
