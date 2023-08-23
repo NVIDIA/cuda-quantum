@@ -646,7 +646,7 @@ jobs:
           fi
 
           image_tag=`docker inspect $cudaq_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"'`
-          docs_version="CUDA_QUANTUM_VERSION=$image_tag"
+          docs_version="CUDA_QUANTUM_VERSION=${image_tag%-base}"
           docker image rm $cudaq_image
           docker image prune --force
 
