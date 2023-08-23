@@ -238,12 +238,15 @@ static LogicalResult emitOperation(Emitter &emitter,
   // Handle adjoint for T and S
   StringRef name = "";
   if (failed(translateOperatorName(optor, name)))
-    return optor.emitError(
-        "cannot convert operation to CUDA Quantum Python API");
+    return optor.emitError("cannot convert operation to OpenQASM 2.0.");
 
-  if (optor.isAdj())
+  if (optor.isAdj()) {
+    std::vector<std::string> validAdjointOps{"s", "t"};
+    if (std::find(validAdjointOps.begin(), validAdjointOps.end(), name.str()) ==
+        validAdjointOps.end())
+      return optor.emitError("cannot create adjoint for this operation.");
     emitter.os << name << "dg";
-  else
+  } else
     emitter.os << name;
 
   if (failed(printParameters(emitter, optor.getParameters())))
