@@ -135,7 +135,24 @@ private:
 namespace cudaq {
 
 void preprocessArguments(ArgvStorage &args) {
-  // TODO
+  const auto pluginArg = "-Xclang";
+  // Annotate nvq++ arguments as Clang plugin arguments to not be rejected as
+  // unknown arguments
+  auto isPluginArgument = [&](auto it) {
+    return llvm::StringRef(*std::prev(it)) == pluginArg;
+  };
+
+  auto makePluginArgument = [&](auto it) {
+    if (isPluginArgument(it))
+      return it;
+    return std::next(args.insert(it, pluginArg));
+  };
+
+  for (auto it = args.begin(); it != args.end(); it++) {
+    auto arg = llvm::StringRef(*it);
+    if (arg.startswith(cudaq::CudaqArgs::cudaqOptionPrefix))
+      it = makePluginArgument(it);
+  }
 }
 
 static void errorHandler(void *userData, const char *msg, bool getCrashDiag) {
@@ -146,7 +163,7 @@ static void errorHandler(void *userData, const char *msg, bool getCrashDiag) {
 }
 
 std::unique_ptr<clang::FrontendAction> createFrontendAction(
-    clang::CompilerInstance &ci, const CudaqArgs &vargs,
+    clang::CompilerInstance &ci, const CudaqArgs &cudaqArgs,
     mlir::OwningOpRef<mlir::ModuleOp> &module,
     cudaq::ASTBridgeAction::MangledKernelNamesMap &cxxMangled) {
   auto &opts = ci.getFrontendOpts();
@@ -179,7 +196,7 @@ std::unique_ptr<clang::FrontendAction> createFrontendAction(
 }
 
 bool executeCompilerInvocation(clang::CompilerInstance *ci,
-                               const CudaqArgs &vargs) {
+                               const CudaqArgs &cudaqArgs) {
   auto &opts = ci->getFrontendOpts();
 
   // -help.
@@ -216,7 +233,8 @@ bool executeCompilerInvocation(clang::CompilerInstance *ci,
   auto moduleOp = mlir::ModuleOp::create(builder.getUnknownLoc());
   mlir::OwningOpRef<mlir::ModuleOp> module(moduleOp);
   // Create and execute the frontend action.
-  auto action = createFrontendAction(*ci, vargs, module, mangledKernelNameMap);
+  auto action =
+      createFrontendAction(*ci, cudaqArgs, module, mangledKernelNameMap);
   if (!action)
     return false;
 
@@ -277,7 +295,7 @@ bool executeCompilerInvocation(clang::CompilerInstance *ci,
   return success;
 }
 
-int cc1(const CudaqArgs &vargs, ArgvT ccargs, ArgT tool, void *mainAddr) {
+int cc1(const CudaqArgs &cudaqArgs, ArgvT ccargs, ArgT tool, void *mainAddr) {
   auto comp = std::make_unique<clang::CompilerInstance>();
   llvm::InitializeAllTargets();
   llvm::InitializeAllTargetMCs();
@@ -320,7 +338,7 @@ int cc1(const CudaqArgs &vargs, ArgvT ccargs, ArgT tool, void *mainAddr) {
   // Execute the frontend actions.
   try {
     llvm::TimeTraceScope TimeScope("ExecuteCompiler");
-    success = executeCompilerInvocation(comp.get(), vargs);
+    success = executeCompilerInvocation(comp.get(), cudaqArgs);
   } catch (...) {
     comp->setSema(nullptr);
     comp->setASTConsumer(nullptr);
@@ -367,20 +385,6 @@ int cc1(const CudaqArgs &vargs, ArgvT ccargs, ArgT tool, void *mainAddr) {
 
   return !success;
 }
-std::pair<CudaqArgs, ArgvStorage> filterArgs(const ArgvStorageBase &args) {
-  CudaqArgs vargs;
-  ArgvStorage rest;
-  // TODO: just an idea
-  for (auto arg : args) {
-    if (std::string_view(arg).starts_with("cudaq-")) {
-      vargs.pushBack(arg);
-    } else {
-      rest.push_back(arg);
-    }
-  }
-
-  return {vargs, rest};
-}
 } // namespace cudaq
 static int executeCc1Tool(ArgvStorageBase &cmdArgs) {
   llvm::cl::ResetAllOptionOccurrences();
@@ -393,11 +397,11 @@ static int executeCc1Tool(ArgvStorageBase &cmdArgs) {
 
   void *getExecutablePathPtr = (void *)(intptr_t)getThisExecutablePath;
 
-  auto [vargs, ccargs] = cudaq::filterArgs(cmdArgs);
+  auto [cudaqArgs, ccargs] = cudaq::CudaqArgs::filterArgs(cmdArgs);
 
   if (tool == "-cc1") {
     auto ccargsRef = llvm::ArrayRef(ccargs).slice(2);
-    return cudaq::cc1(vargs, ccargsRef, cmdArgs[0], getExecutablePathPtr);
+    return cudaq::cc1(cudaqArgs, ccargsRef, cmdArgs[0], getExecutablePathPtr);
   }
 
   llvm::errs() << "error: unknown integrated tool '" << tool << "'. "
@@ -420,7 +424,7 @@ int main(int argc, char **argv) {
 
     // TODO: support both modes: now just do MLIR
 
-    // Check if cudaq-front is in the frontend mode
+    // Check if nvq++ is in the frontend mode
     auto firstArg = llvm::find_if(llvm::drop_begin(cmdArgs),
                                   [](auto a) { return a != nullptr; });
     if (firstArg != cmdArgs.end()) {

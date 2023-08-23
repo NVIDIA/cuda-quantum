@@ -51,6 +51,23 @@ struct Driver {
     cmdArgs.insert(cmdArgs.end(), "-std=c++20");
     for (const char *include_flag : CUDAQ_INCLUDES_FLAGS)
       cmdArgs.insert(cmdArgs.end(), include_flag);
+    preProcessCudaQArguments(cmdArgs);
+  }
+
+  void preProcessCudaQArguments(ArgvStorageBase &cmdArgs) {
+    auto [cudaqArgs, ccArgs] = CudaqArgs::filterArgs(cmdArgs);
+    if (cudaqArgs.hasOption("target")) {
+      if (auto targetOpt = cudaqArgs.getOption("target");
+          targetOpt.has_value()) {
+        llvm::StringRef targetName = cudaqArgs.getOption("target").value();
+        printf("TODO: target value = %s\n", targetName.data());
+        // TODO: support target-dependent additional obj file compilation
+      } else {
+        llvm::errs() << "Invalid target option: must be in the form "
+                        "'-cudaq-target=<name>'";
+        exit(1);
+      }
+    }
   }
 
   std::unique_ptr<clang::driver::Compilation> makeCompilation() {

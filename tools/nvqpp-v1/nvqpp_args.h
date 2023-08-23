@@ -19,37 +19,67 @@ using ArgvStorageBase = llvm::SmallVectorImpl<ArgT>;
 using ExecCompileFuncT = int (*)(ArgvStorageBase &);
 
 namespace cudaq {
-
 /// Skeleton for CUDA Quantum-specific arguments (on top of regular Clang args)
 struct CudaqArgs {
   using OptionList = std::vector<llvm::StringRef>;
   using MaybeOptionList = std::optional<OptionList>;
 
   ArgvStorage args;
+  // Systematically detect our arguments
+  // e.g., -cudaq-<option_flag> or -cudaq-<option_var_name>=<option_value>
+  static constexpr llvm::StringRef cudaqOptionPrefix = "-cudaq-";
+  static std::pair<CudaqArgs, ArgvStorage>
+  filterArgs(const ArgvStorageBase &args) {
+    CudaqArgs cudaqArgs;
+    ArgvStorage rest;
+    for (const auto &arg : args) {
+      if (std::string_view(arg).starts_with(CudaqArgs::cudaqOptionPrefix)) {
+        cudaqArgs.pushBack(arg);
+      } else {
+        rest.push_back(arg);
+      }
+    }
 
+    return {cudaqArgs, rest};
+  }
   // Detects the presence of an option in one of formats:
   // (1) -cudaq-"name"
   // (2) -cudaq-"name"="value"
   bool hasOption(llvm::StringRef opt) const {
     // TODO
-    return false;
+    return getOptionInternal(opt).has_value();
   }
 
   // from option of form -cudaq-"name"="value" returns the "value"
-  std::optional<llvm::StringRef> getOption(llvm::StringRef opt) const {
-    // TODO
-    return std::optional<llvm::StringRef>();
+  std::optional<llvm::StringRef> getOption(llvm::StringRef argName) const {
+    if (auto opt = getOptionInternal(argName)) {
+      if (auto [lhs, rhs] = opt->split('='); !rhs.empty())
+        return rhs;
+    }
+
+    return std::nullopt;
   }
 
   // from option of form -cudaq-"name"="value1;value2;value3" returns list of
   // values
-  MaybeOptionList getOptionsList(llvm::StringRef opt) const {
+  MaybeOptionList getOptionsList(llvm::StringRef argName) const {
     // TODO
     return MaybeOptionList();
   }
 
-  void pushBack(ArgT arg) {
-    // TODO
+  void pushBack(ArgT arg) { args.push_back(arg); }
+
+private:
+  std::optional<llvm::StringRef>
+  getOptionInternal(llvm::StringRef argName) const {
+    auto isOptWithName = [argName](llvm::StringRef arg) {
+      return arg.drop_front(cudaqOptionPrefix.size()).startswith(argName);
+    };
+
+    if (auto it = llvm::find_if(args, isOptWithName); it != args.end())
+      return llvm::StringRef(*it).drop_front(cudaqOptionPrefix.size());
+
+    return std::nullopt;
   }
 };
 } // namespace cudaq
