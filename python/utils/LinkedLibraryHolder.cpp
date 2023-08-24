@@ -178,7 +178,9 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
           loadFailed = true;
           // Retrieve the error message
           char *error_msg = dlerror();
-          cudaq::info("Failed to load NVQIR backend '{}' from {}. Error: {}", simName, path.string(), (error_msg ? std::string(error_msg) : "unknown.");
+          cudaq::info("Failed to load NVQIR backend '{}' from {}. Error: {}",
+                      simName, path.string(),
+                      (error_msg ? std::string(error_msg) : "unknown."));
         }
       }
 
