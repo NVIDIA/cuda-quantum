@@ -7,4 +7,5 @@
 # ============================================================================ #
 
 add_llvm_pass_plugin(CustomPassPlugin CustomPassPlugin.cpp)
-
+# Depends on QuakeDialect TableGen to use the generated `.h.inc` files.
+add_dependencies(CustomPassPlugin QuakeDialect)
