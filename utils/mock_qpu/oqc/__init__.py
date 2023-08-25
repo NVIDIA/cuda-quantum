@@ -20,15 +20,16 @@ from pydantic import BaseModel
 app = FastAPI()
 
 
-
 # Jobs look like the following type
 class Task(BaseModel):
     task_id: str
     program: str
     config: str
 
+
 class TaskBody(BaseModel):
     tasks: list[Task]
+
 
 class AuthModel(BaseModel):
     email: str
@@ -76,15 +77,17 @@ async def login(auth_info: AuthModel):
 # with EntryPoint tag
 @app.post("/tasks/submit")
 async def postJob(
-    tasks : Union[TaskBody, Task],
+    tasks: Union[TaskBody, Task],
     # access_token: Union[str, None] = Header(alias="Authorization",default=None)
 ):
     global createdJobs, shots
 
     # if access_token == None:
-        # raise HTTPException(status_code(401), detail="Credentials not provided")
+    # raise HTTPException(status_code(401), detail="Credentials not provided")
     if isinstance(tasks, Task):
-        tasks = TaskBody(tasks=[tasks,])
+        tasks = TaskBody(tasks=[
+            tasks,
+        ])
     for task in tasks.tasks:
         newId = task.task_id
         program = task.program
@@ -138,8 +141,9 @@ async def getJob(jobId: str):
 
     return {"results": retData}
 
+
 @app.post("/tasks")
-async def getJob(n = 1):
+async def getJob(n=1):
     return [uuid.uuid4() for _ in range(n)]
 
 
