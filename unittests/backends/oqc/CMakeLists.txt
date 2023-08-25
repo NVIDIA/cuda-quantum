@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_executable(test_oqc oqcTester.cpp)
+add_executable(test_oqc OQCTester.cpp)
 target_link_options(test_oqc PRIVATE -Wl,--no-as-needed)
 target_compile_definitions(test_oqc PRIVATE -DNVQIR_BACKEND_NAME=oqc)
 target_include_directories(test_oqc PRIVATE ../..)
@@ -23,4 +23,4 @@ target_link_libraries(test_oqc
 
 
 configure_file("OQCStartServerAndTest.sh.in" "${CMAKE_BINARY_DIR}/unittests/backends/oqc/OQCStartServerAndTest.sh" @ONLY)
-add_test(NAME oqc-tests COMMAND ./OQCServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/oqc/)
+add_test(NAME oqc-tests COMMAND ./OQCStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/oqc/)

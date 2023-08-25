@@ -172,8 +172,6 @@ CUDAQ_TEST(OQCTester, checkObserveAsyncLoadFromFile) {
 }
 
 int main(int argc, char **argv) {
-  out << "key: key\nrefresh: refresh\ntime: 0";
-  out.close();
   ::testing::InitGoogleTest(&argc, argv);
   auto ret = RUN_ALL_TESTS();
   std::remove(fileName.c_str());
