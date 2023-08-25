@@ -554,7 +554,7 @@ bool QuakeBridgeVisitor::VisitImplicitCastExpr(clang::ImplicitCastExpr *x) {
   }
   case clang::CastKind::CK_FloatingCast: {
     auto dstType = x->getType();
-    auto val = x->getSubExpr();
+    [[maybe_unused]] auto val = x->getSubExpr();
     assert(val->getType()->isFloatingType() && dstType->isFloatingType());
     auto value = popValue();
     auto toType = genType(dstType).cast<FloatType>();
