@@ -162,6 +162,8 @@ QuantinuumServerHelper::processResults(ServerMessage &postJobResponse) {
   //                      "r1" : ["1", "0", ...]  } }
   auto results = postJobResponse["results"];
 
+  cudaq::info("Results message: {}", results.dump());
+
   // For each shot, we concatenate the measurements results of all qubits.
   auto begin = results.begin();
   std::vector<std::string> bitstrings =

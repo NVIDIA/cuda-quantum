@@ -184,6 +184,33 @@ public:
       emitError(UnknownLoc::get(ctx), "did not unroll loops");
       signalPassFailure();
     }
+
+    // First get a count of the number of times a variable is used.
+    std::unordered_map<std::string, int> myCounts;
+    op->walk([&](mlir::Operation *walkOp) {
+      if (auto prevAttr = walkOp->getAttr("registerName")) {
+        auto varName = prevAttr.cast<StringAttr>().getValue().str();
+        myCounts[varName]++;
+      }
+    });
+
+    // Now apply new labels, appending a counter if necessary
+    std::unordered_map<std::string, int> myMap;
+    op->walk([&](mlir::Operation *walkOp) {
+      if (auto prevAttr = walkOp->getAttr("registerName")) {
+        auto varName = prevAttr.cast<StringAttr>().getValue().str();
+        if (myCounts[varName] > 1) {
+          auto strLen = std::to_string(myCounts[varName] - 1).size();
+          auto suffix = std::to_string(myMap[varName]++);
+          if (suffix.size() < strLen)
+            suffix = std::string(strLen - suffix.size(), '0') + suffix;
+          // Note Quantinuum can't support a ":" delimiter, so use '%'
+          auto newAttr = OpBuilder(walkOp->getContext())
+                             .getStringAttr(varName + "%" + suffix);
+          walkOp->setAttr("registerName", newAttr);
+        }
+      }
+    });
   }
 
   static unsigned countLoopOps(Operation *op) {

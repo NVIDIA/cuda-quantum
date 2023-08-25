@@ -233,7 +233,11 @@ public:
     std::regex pipeline("PLATFORM_LOWERING_CONFIG\\s*=\\s*\"(\\S+)\"");
     std::regex emissionType("CODEGEN_EMISSION\\s*=\\s*(\\S+)");
     std::smatch match;
-    for (const std::string &line : lines) {
+    for (std::string &line : lines) {
+      // Remove comments from the line
+      size_t pos = line.find('#');
+      if (pos != std::string::npos)
+        line = line.substr(0, pos);
       if (std::regex_search(line, match, pipeline)) {
         cudaq::info("Appending lowering pipeline: {}", match[1].str());
         passPipelineConfig += "," + match[1].str();
@@ -412,9 +416,21 @@ public:
               cudaq::getExecutionManager()->setExecutionContext(&context);
               invokeJITKernelAndRelease(localJIT[i], kernelName);
               cudaq::getExecutionManager()->resetExecutionContext();
-              results.emplace_back(context.result.to_map(),
-                                   codes.size() == 1 ? cudaq::GlobalRegisterName
-                                                     : codes[i].name);
+
+              // If there are multiple codes, this is likely a spin_op.
+              // If so, use the code name instead of the global register.
+              if (codes.size() > 1) {
+                results.emplace_back(context.result.to_map(), codes[i].name);
+                results.back().sequentialData =
+                    context.result.sequential_data();
+              } else {
+                // For each register, add the context results into result.
+                for (auto &regName : context.result.register_names()) {
+                  results.emplace_back(context.result.to_map(regName), regName);
+                  results.back().sequentialData =
+                      context.result.sequential_data(regName);
+                }
+              }
             }
             localJIT.clear();
             return cudaq::sample_result(results);
