@@ -173,7 +173,5 @@ CUDAQ_TEST(OQCTester, checkObserveAsyncLoadFromFile) {
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
-  auto ret = RUN_ALL_TESTS();
-  std::remove(fileName.c_str());
-  return ret;
+  return RUN_ALL_TESTS();
 }
