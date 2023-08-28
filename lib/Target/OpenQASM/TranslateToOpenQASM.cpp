@@ -222,16 +222,32 @@ static LogicalResult emitOperation(Emitter &emitter, quake::ExtractRefOp op) {
   return success();
 }
 
+static LogicalResult emitOperation(Emitter &emitter, func::CallOp callOp) {
+  StringRef funcName = callOp.getCallee();
+  emitter.os << funcName;
+  emitter.os << ' ';
+  llvm::interleaveComma(callOp.getOperands(), emitter.os, [&](auto target) {
+    emitter.os << emitter.getOrAssignName(target);
+  });
+  emitter.os << ";\n";
+  return success();
+}
+
 static LogicalResult emitOperation(Emitter &emitter,
                                    quake::OperatorInterface optor) {
-  // TODO: Handle adjoint for T and S
-  if (optor.isAdj())
-    return optor.emitError("cannot convert adjoint operations to OpenQASM 2.0");
-
-  StringRef name;
+  // Handle adjoint for T and S
+  StringRef name = "";
   if (failed(translateOperatorName(optor, name)))
-    return optor.emitError("cannot convert operation to OpenQASM 2.0");
-  emitter.os << name;
+    return optor.emitError("cannot convert operation to OpenQASM 2.0.");
+
+  if (optor.isAdj()) {
+    std::vector<std::string> validAdjointOps{"s", "t"};
+    if (std::find(validAdjointOps.begin(), validAdjointOps.end(), name.str()) ==
+        validAdjointOps.end())
+      return optor.emitError("cannot create adjoint for this operation.");
+    emitter.os << name << "dg";
+  } else
+    emitter.os << name;
 
   if (failed(printParameters(emitter, optor.getParameters())))
     return optor.emitError("failed to emit parameters");
@@ -279,6 +295,7 @@ static LogicalResult emitOperation(Emitter &emitter, Operation &op) {
       // MLIR
       .Case<ModuleOp>([&](auto op) { return emitOperation(emitter, op); })
       .Case<func::FuncOp>([&](auto op) { return emitOperation(emitter, op); })
+      .Case<func::CallOp>([&](auto op) { return emitOperation(emitter, op); })
       // Quake
       .Case<ApplyOp>([&](auto op) { return emitOperation(emitter, op); })
       .Case<AllocaOp>([&](auto op) { return emitOperation(emitter, op); })
