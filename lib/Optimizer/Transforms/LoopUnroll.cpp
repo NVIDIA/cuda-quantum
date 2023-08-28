@@ -186,22 +186,23 @@ public:
     }
 
     // First get a count of the number of times a variable is used.
-    std::unordered_map<std::string, int> myCounts;
+    std::unordered_map<std::string, int> varNameCounts;
     op->walk([&](mlir::Operation *walkOp) {
       if (auto prevAttr = walkOp->getAttr("registerName")) {
         auto varName = prevAttr.cast<StringAttr>().getValue().str();
-        myCounts[varName]++;
+        varNameCounts[varName]++;
       }
+      return WalkResult::advance();
     });
 
     // Now apply new labels, appending a counter if necessary
-    std::unordered_map<std::string, int> myMap;
+    std::unordered_map<std::string, int> varCounter;
     op->walk([&](mlir::Operation *walkOp) {
       if (auto prevAttr = walkOp->getAttr("registerName")) {
         auto varName = prevAttr.cast<StringAttr>().getValue().str();
-        if (myCounts[varName] > 1) {
-          auto strLen = std::to_string(myCounts[varName] - 1).size();
-          auto suffix = std::to_string(myMap[varName]++);
+        if (varNameCounts[varName] > 1) {
+          auto strLen = std::to_string(varNameCounts[varName] - 1).size();
+          auto suffix = std::to_string(varCounter[varName]++);
           if (suffix.size() < strLen)
             suffix = std::string(strLen - suffix.size(), '0') + suffix;
           // Note Quantinuum can't support a ":" delimiter, so use '%'
@@ -210,6 +211,7 @@ public:
           walkOp->setAttr("registerName", newAttr);
         }
       }
+      return WalkResult::advance();
     });
   }
 

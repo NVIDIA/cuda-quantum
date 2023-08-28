@@ -297,14 +297,16 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
           elementType.getIntOrFloatBitWidth() != 1)
         return true;
 
-      // Did this come from a stdvec init op? If not drop out
-      auto stdVecInit = initVec.getDefiningOp<cc::StdvecInitOp>();
+      // Assign registerName
       if (auto mx = initVec.getDefiningOp<quake::MxOp>())
         mx->setAttr("registerName", builder.getStringAttr(x->getName()));
       if (auto my = initVec.getDefiningOp<quake::MyOp>())
         my->setAttr("registerName", builder.getStringAttr(x->getName()));
       if (auto mz = initVec.getDefiningOp<quake::MzOp>())
         mz->setAttr("registerName", builder.getStringAttr(x->getName()));
+
+      // Did this come from a stdvec init op? If not drop out
+      auto stdVecInit = initVec.getDefiningOp<cc::StdvecInitOp>();
       if (!stdVecInit)
         return true;
 

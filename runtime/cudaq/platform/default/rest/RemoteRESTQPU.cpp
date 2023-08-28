@@ -230,14 +230,10 @@ public:
 
     // Loop through the file, extract the pass pipeline and CODEGEN Type
     auto lines = cudaq::split(configContents, '\n');
-    std::regex pipeline("PLATFORM_LOWERING_CONFIG\\s*=\\s*\"(\\S+)\"");
-    std::regex emissionType("CODEGEN_EMISSION\\s*=\\s*(\\S+)");
+    std::regex pipeline("^PLATFORM_LOWERING_CONFIG\\s*=\\s*\"(\\S+)\"");
+    std::regex emissionType("^CODEGEN_EMISSION\\s*=\\s*(\\S+)");
     std::smatch match;
     for (std::string &line : lines) {
-      // Remove comments from the line
-      size_t pos = line.find('#');
-      if (pos != std::string::npos)
-        line = line.substr(0, pos);
       if (std::regex_search(line, match, pipeline)) {
         cudaq::info("Appending lowering pipeline: {}", match[1].str());
         passPipelineConfig += "," + match[1].str();

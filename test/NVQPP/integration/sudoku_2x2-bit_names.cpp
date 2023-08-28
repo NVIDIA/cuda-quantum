@@ -54,6 +54,24 @@ int main() {
   auto result = cudaq::sample(1000, grover);
   result.dump();
 
+  // Make sure that the get_marginal() results for the individual register names
+  // match the subset of the bits from the global register.
+  // Note that this will fail if you only compile this in library mode.
+  auto numBits = result.begin()->first.size();
+  std::cout << "Checking " << numBits << " bits against global register\n";
+  for (size_t b = 0;  b < numBits; b++) {
+    auto regName = "groverQubits" + std::to_string(b);
+    auto valFromRegName = result.get_marginal({0}, regName);
+    auto valFromGlobal = result.get_marginal({b});
+    if (valFromRegName.to_map() != valFromGlobal.to_map()) {
+      std::cout << "--- MISMATCH DETECTED in bit " << b << " ---\n";
+      valFromRegName.dump();
+      valFromGlobal.dump();
+      // Mark test failure
+      assert(valFromRegName.to_map() == valFromGlobal.to_map());
+    }
+  }
+
 #ifndef SYNTAX_CHECK
   std::vector<std::string> strings;
   for (auto &&[bits, count] : result) {
