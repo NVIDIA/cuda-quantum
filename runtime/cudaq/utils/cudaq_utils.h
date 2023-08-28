@@ -66,22 +66,6 @@ inline static std::string getCUDAQLibraryPath() {
   return data.path;
 }
 
-template <typename T>
-class cudaq_pimpl {
-private:
-  std::unique_ptr<T> m;
-
-public:
-  cudaq_pimpl();
-  cudaq_pimpl(const cudaq_pimpl<T> &);
-  template <typename... Args>
-  cudaq_pimpl(Args &&...);
-  ~cudaq_pimpl();
-  T *operator->();
-  T *operator->() const;
-  T &operator*();
-};
-
 template <typename T, typename TIter = decltype(std::begin(std::declval<T>())),
           typename = decltype(std::end(std::declval<T>()))>
 constexpr auto enumerate(T &&iterable) {

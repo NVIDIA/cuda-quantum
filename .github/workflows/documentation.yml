@@ -31,7 +31,7 @@ jobs:
   publish_docs:
     name: Publish documentation
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.event == 'pull_request' || github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.name == 'CI' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.actor.id == '135836288')
 
     permissions:
       contents: write
@@ -39,15 +39,15 @@ jobs:
       pull-requests: write
 
     environment:
-      name: ${{ (github.event.workflow_run.event == 'pull_request' && 'default') || 'github-pages' }}
+      name: ${{ (github.event.workflow_run.name == 'CI' && 'default') || 'github-pages' }}
       url: ${{ vars.deployment_url || format('https://github.com/{0}', github.repository) }}
   
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          ref: ${{ (github.event.workflow_run.event == 'pull_request' && vars.preview_branch) || vars.live_branch }}
-          token: ${{ (github.event.workflow_run.event == 'pull_request' && github.token) || secrets.REPO_BOT_ACCESS_TOKEN }}
+          ref: ${{ (github.event.workflow_run.name == 'CI' && vars.preview_branch) || vars.live_branch }}
+          token: ${{ (github.event.workflow_run.name == 'CI' && github.token) || secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Download artifacts
         id: artifacts
@@ -56,7 +56,7 @@ jobs:
           artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
           artifact_name=${{ (github.event_name == 'workflow_dispatch' && inputs.artifact_name) || 'cuda_quantum_docs' }}
 
-          docs_found=${{ github.event.workflow_run.event == 'pull_request' || false }}
+          docs_found=${{ github.event.workflow_run.name == 'CI' || false }}
           for artifact in `echo "$artifacts"`; do
             name=`echo $artifact | jq -r '.name'`
             if [ "$name" == "$artifact_name" ]; then
@@ -158,6 +158,7 @@ jobs:
 
       - name: Comment on PR
         if: steps.artifacts.outputs.pr_number != '' && steps.push_docs.outcome != 'skipped'
+        continue-on-error: true # PR may be locked by the time this workflow runs if auto-merge is set to true
         uses: peter-evans/create-or-update-comment@v3
         with:
           issue-number: ${{ steps.artifacts.outputs.pr_number }}

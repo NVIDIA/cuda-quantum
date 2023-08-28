@@ -144,6 +144,7 @@ jobs:
           shell: bash
           run: |
             cd $CUDAQ_REPO_ROOT
+            pip install iqm_client --user -vvv
             pip install . --user -vvv
             python3 -m pytest -v python/tests/ \
               --ignore python/tests/backends

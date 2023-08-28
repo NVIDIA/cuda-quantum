@@ -6,12 +6,14 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 
 #include "py_kernel_builder.h"
 #include "utils/OpaqueArguments.h"
 
 #include "cudaq/builder/kernel_builder.h"
+#include "cudaq/builder/kernels.h"
 #include "cudaq/platform.h"
 
 #include "common/ExecutionContext.h"
@@ -650,6 +652,27 @@ void bindKernel(py::module &mod) {
       .def("__str__", &kernel_builder<>::to_quake,
            "Return the :class:`Kernel` as a string in its MLIR representation "
            "using the Quake dialect.\n");
+  mod.def(
+      "from_state",
+      [](kernel_builder<> &kernel, QuakeValue &qubits,
+         py::array_t<std::complex<double>> &data) {
+        std::vector<std::complex<double>> tmp(data.data(),
+                                              data.data() + data.size());
+        cudaq::from_state(kernel, qubits, tmp);
+      },
+      py::arg("kernel"), py::arg("qubits"), py::arg("state"),
+      "Decompose the input state vector to a set of controlled operations and "
+      "rotations.");
+  mod.def(
+      "from_state",
+      [](py::array_t<std::complex<double>> &data) {
+        std::vector<std::complex<double>> tmp(data.data(),
+                                              data.data() + data.size());
+        return cudaq::from_state(tmp);
+      },
+      py::arg("state"),
+      "Decompose the given state vector into a set of controlled operations "
+      "and rotations and return a valid, callable, CUDA Quantum kernel.");
 }
 
 void bindBuilder(py::module &mod) {

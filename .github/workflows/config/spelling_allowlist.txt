@@ -19,6 +19,7 @@ Hadamard
 Hadamards
 Hamiltonian
 Hamiltonians
+IQM
 IonQ
 JIT
 JSON
@@ -51,6 +52,7 @@ WSL
 adjoint
 al
 ansatz
+arity
 auxillary
 backend
 backends
@@ -70,6 +72,7 @@ controlled
 coprocessor
 coprocessors
 copyable
+cortex-cli
 cuQuantum
 deallocate
 deallocated

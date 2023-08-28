@@ -34,6 +34,7 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   integration/get_state_tester.cpp
   qir/NVQIRTester.cpp
   qis/QubitQISTester.cpp
+  integration/kernels_tester.cpp
   common/MeasureCountsTester.cpp
   common/NoiseModelTester.cpp
   integration/tracer_tester.cpp
@@ -179,4 +180,6 @@ if (CUDAQ_ENABLE_PYTHON)
   gtest_discover_tests(test_domains
     TEST_SUFFIX _Sampling PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/python")
 endif()
+
+add_subdirectory(plugin)
 

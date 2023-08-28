@@ -218,6 +218,11 @@ public:
   /// qubits and composed of the given number of terms.
   static spin_op random(std::size_t nQubits, std::size_t nTerms);
 
+  /// @brief Return a `spin_op` representative of the input
+  /// Pauli word, e.g. XYX for a `spin_op` on 3 qubits with
+  /// a X support on the first and 3rd and Y support on the second.
+  static spin_op from_word(const std::string &pauliWord);
+
   /// @brief Constructor, creates the identity term
   spin_op();
 
@@ -344,6 +349,15 @@ public:
   /// @brief Return a dense matrix representation of this
   /// spin_op.
   complex_matrix to_matrix() const;
+
+  /// @brief Typedef for a vector of non-zero sparse matrix elements.
+  using csr_spmatrix =
+      std::tuple<std::vector<std::complex<double>>, std::vector<std::size_t>,
+                 std::vector<std::size_t>>;
+
+  /// @brief Return a sparse matrix representation of this `spin_op`. The
+  /// return type encodes all non-zero `(row, col, value)` elements.
+  csr_spmatrix to_sparse_matrix() const;
 };
 
 /// @brief Add a double and a spin_op

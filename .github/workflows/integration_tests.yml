@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: backend-validation
     container:
-      image: ghcr.io/nvidia/cuda-quantum:latest-hpc
+      image: ghcr.io/nvidia/cuda-quantum:latest
       options: --user root
 
     steps:
@@ -70,7 +70,8 @@ jobs:
           export IONQ_API_KEY="${{ secrets.IONQ_API_KEY }}"
           # TODO: remove this flag once https://github.com/NVIDIA/cuda-quantum/issues/512 is addressed.
           export IONQ_FLAG="-DIONQ_TARGET"
-          for filename in test/NVQPP/integration/*.cpp; do
+          # Only the following tests are currently supported on IonQ
+          for filename in test/NVQPP/integration/{bug_qubit,callable_kernel_arg,if_jit}.cpp; do
             [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
             nvq++ -v $IONQ_FLAG $filename --target ionq
             CUDAQ_LOG_LEVEL=info ./a.out
@@ -78,7 +79,9 @@ jobs:
         shell: bash
 
       - name: Submit to ${{ inputs.target }}
-        if:  inputs.target != 'none' && github.event_name == 'workflow_dispatch'
+        # The full set of tests used by this step is currently only supported on Quantinuum.
+        # The IonQ-supported tests are tested by the step above.
+        if: inputs.target == 'quantinuum' && github.event_name == 'workflow_dispatch'
         run: |
           if ${{inputs.target == 'ionq'}}; then
             export IONQ_API_KEY="${{ secrets.IONQ_API_KEY }}"

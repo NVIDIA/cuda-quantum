@@ -23,6 +23,10 @@ on:
       environment:
         required: false
         type: string
+    secrets:
+      NGC_CREDENTIALS:
+        description: 'Credentials for deployments to NGC.'
+        required: false
 
 name: Docker images
 
@@ -36,7 +40,13 @@ jobs:
       runner: ${{ steps.info.outputs.runner }}
       platform_tag: ${{ steps.info.outputs.platform_tag }}
       build_docs: ${{ steps.info.outputs.build_docs }}
-    
+      push_to_ngc: ${{ steps.info.outputs.push_to_ngc }}
+
+    # Needed to define metadata depending on whether an environment secret is defined.
+    environment:
+      name: ${{ inputs.environment || 'default' }}
+      url: ${{ vars.deployment_url || format('https://github.com/{0}', github.repository) }}
+
     steps:
       - id: info
         run: |
@@ -44,6 +54,9 @@ jobs:
             # multi-platform builds get no platform tag
             echo "runner=linux-amd64-cpu16" >> $GITHUB_OUTPUT
             echo "build_docs=${{ inputs.build_docs != 'false' }}" >> $GITHUB_OUTPUT
+            is_versioned=${{ github.ref_type == 'tag' || github.ref_name == 'main' || startsWith(github.ref_name, 'releases/') }}
+            push_to_ngc=`${{ inputs.environment && secrets.NGC_CREDENTIALS != '' }} && $is_versioned && echo true || echo`
+            echo "push_to_ngc=$push_to_ngc" >> $GITHUB_OUTPUT
           elif [ -n "$(echo ${{ inputs.platforms }} | grep -i arm)" ]; then
             platform_tag=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' '`
             echo "platform_tag=$platform_tag" >> $GITHUB_OUTPUT
@@ -64,6 +77,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
 
     outputs:
       tar_cache: ${{ steps.build_info.outputs.tar_cache }}
@@ -145,6 +159,17 @@ jobs:
           push: ${{ inputs.environment != '' }}
           outputs: ${{ steps.build_info.outputs.docker_output }}
 
+      - name: Install Cosign
+        if: inputs.environment
+        uses: sigstore/cosign-installer@v3.1.1
+
+      - name: Sign image with GitHub OIDC Token
+        if: inputs.environment
+        env:
+          DIGEST: ${{ steps.docker_build.outputs.digest }}
+          TAGS: ${{ steps.metadata.outputs.tags }}
+        run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
+
       - name: Cache cuda-quantum image
         if: steps.build_info.outputs.tar_cache && steps.build_info.outputs.tar_archive
         uses: actions/cache/save@v3
@@ -159,6 +184,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
 
     outputs:
       tar_cache: ${{ steps.prereqs.outputs.tar_cache }}
@@ -272,6 +298,17 @@ jobs:
           push: ${{ inputs.environment != '' }}
           outputs: ${{ steps.prereqs.outputs.docker_output }}
 
+      - name: Install Cosign
+        if: inputs.environment
+        uses: sigstore/cosign-installer@v3.1.1
+
+      - name: Sign image with GitHub OIDC Token
+        if: inputs.environment
+        env:
+          DIGEST: ${{ steps.docker_build.outputs.digest }}
+          TAGS: ${{ steps.metadata.outputs.tags }}
+        run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
+
       - name: Cache cuda-quantum-dev image
         if: steps.prereqs.outputs.tar_cache && steps.prereqs.outputs.tar_archive
         uses: actions/cache/save@v3
@@ -288,11 +325,13 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
 
     outputs:
       tar_cache: ${{ steps.prereqs.outputs.tar_cache }}
       tar_archive: ${{ steps.prereqs.outputs.tar_archive }}
-      image_hash: ${{ steps.prereqs.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
+      image_hash: ${{ format('{0}/{1}@{2}', steps.prereqs.outputs.registry, steps.prereqs.outputs.image_short_name, steps.redirect_build.outputs.digest || steps.cudaq_build.outputs.digest) }}
+      ngc_image_hash: ${{ steps.prereqs.outputs.ngc_registry && format('{0}/{1}@{2}', steps.prereqs.outputs.ngc_registry, steps.prereqs.outputs.image_short_name, steps.cudaq_build.outputs.digest) || '' }}
 
     environment:
       name: ${{ inputs.environment || 'default' }}
@@ -375,8 +414,12 @@ jobs:
 
           docker image prune --force
           repo_owner=${{ github.repository_owner }}
-          registry=${{ vars.registry || 'localhost:5000' }}
-          image_name=$registry/${repo_owner,,}/cuda-quantum
+          registry=${{ vars.registry || 'localhost:5000' }}/${repo_owner,,}
+          ngc_registry=`${{ needs.metadata.outputs.push_to_ngc == 'true' }} && echo nvcr.io/${repo_owner,,}/cudaquantdev || echo ''`
+          image_short_name=cuda-quantum
+          dev_image_name=${registry}/${image_short_name}-dev
+          image_name=${ngc_registry:-$registry}/${image_short_name}
+          image_description="CUDA Quantum toolkit for heterogeneous quantum-classical workflows"
 
           platform_tag=${{ needs.metadata.outputs.platform_tag }}
           image_tag=${platform_tag:+$platform_tag-}
@@ -391,10 +434,16 @@ jobs:
             image_tag+=`echo ${{ github.ref_name }} | tr '/' '-'`
           fi
 
+          echo "registry=$registry" >> $GITHUB_OUTPUT
+          echo "ngc_registry=$ngc_registry" >> $GITHUB_OUTPUT
+          echo "image_short_name=$image_short_name" >> $GITHUB_OUTPUT
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
           echo "image_tag=$image_tag" >> $GITHUB_OUTPUT
+          echo "image_tag_suffix=-base" >> $GITHUB_OUTPUT
+          echo "image_description=$image_description" >> $GITHUB_OUTPUT
           echo "base_image=$base_image" >> $GITHUB_OUTPUT
           echo "devdeps_image=$devdeps_image" >> $GITHUB_OUTPUT
+          echo "dev_image_name=$dev_image_name" >> $GITHUB_OUTPUT
 
           if ${{ inputs.environment == '' }}; then
             tar_archive=/tmp/cuda-quantum.tar
@@ -417,8 +466,10 @@ jobs:
         id: cudaqdev_metadata
         uses: docker/metadata-action@v4
         with:
-          images: ${{ steps.prereqs.outputs.image_name }}-dev
-          flavor: latest=false
+          images: ${{ steps.prereqs.outputs.dev_image_name }}
+          flavor: |
+            latest=false
+            suffix=${{ steps.prereqs.outputs.image_tag_suffix }},onlatest=true
           tags: type=raw,value=${{ steps.prereqs.outputs.image_tag }}
           labels: |
             org.opencontainers.image.title=cuda-quantum-dev
@@ -439,30 +490,51 @@ jobs:
           platforms: ${{ inputs.platforms }}
           push: true
 
+      - name: Install Cosign
+        if: inputs.environment
+        uses: sigstore/cosign-installer@v3.1.1
+
+      - name: Sign image with GitHub OIDC Token
+        if: inputs.environment
+        env:
+          DIGEST: ${{ steps.release_build.outputs.digest }}
+          TAGS: ${{ steps.cudaqdev_metadata.outputs.tags }}
+        run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
+
+      - name: Log in to NGC
+        if: steps.prereqs.outputs.ngc_registry != ''
+        uses: docker/login-action@v2
+        with:
+          registry: nvcr.io
+          username: '$oauthtoken'
+          password: ${{ secrets.NGC_CREDENTIALS }}
+
       - name: Extract cuda-quantum metadata
-        id: metadata
+        id: cudaq_metadata
         uses: docker/metadata-action@v4
         with:
           images: ${{ steps.prereqs.outputs.image_name }}
-          flavor: latest=false
+          flavor: |
+            latest=false
+            suffix=${{ steps.prereqs.outputs.image_tag_suffix }},onlatest=true
           tags: type=raw,value=${{ steps.prereqs.outputs.image_tag }}
           labels: |
             org.opencontainers.image.title=cuda-quantum
-            org.opencontainers.image.description=CUDA Quantum toolkit for heterogeneous quantum-classical workflows
+            org.opencontainers.image.description=${{ steps.prereqs.outputs.image_description }}
 
       - name: Build cuda-quantum image
-        id: docker_build
+        id: cudaq_build
         if: success() && !cancelled()
         uses: docker/build-push-action@v4
         with:
           context: .
           file: ./docker/release/cudaq.Dockerfile
           build-args: |
-            cudaqdev_image=${{ steps.prereqs.outputs.image_name }}-dev@${{ steps.release_build.outputs.digest }}
+            cudaqdev_image=${{ steps.prereqs.outputs.dev_image_name }}@${{ steps.release_build.outputs.digest }}
             base_image=${{ steps.prereqs.outputs.base_image }}
             release_version=${{ steps.prereqs.outputs.image_tag }}
-          tags: ${{ steps.metadata.outputs.tags }}
-          labels: ${{ steps.metadata.outputs.labels }}
+          tags: ${{ steps.cudaq_metadata.outputs.tags }}
+          labels: ${{ steps.cudaq_metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}
           push: ${{ inputs.environment != '' }}
           outputs: ${{ steps.prereqs.outputs.docker_output }}
@@ -473,6 +545,62 @@ jobs:
         with:
           path: ${{ steps.prereqs.outputs.tar_archive }}
           key: ${{ steps.prereqs.outputs.tar_cache }}
+
+      - name: Sign image with GitHub OIDC Token
+        if: inputs.environment && steps.prereqs.outputs.ngc_registry == ''
+        env:
+          DIGEST: ${{ steps.cudaq_build.outputs.digest }}
+          TAGS: ${{ steps.cudaq_metadata.outputs.tags }}
+        run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
+
+      # If the cuda-quantum image is initially pushed to ngc we recreate it
+      # and push it to the registry defined in the deployment environment
+      - name: Log in to the container registry
+        if: vars.registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ vars.registry }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Set up redirect
+        id: redirect
+        if: steps.prereqs.outputs.ngc_registry != ''
+        run: |
+          echo "FROM ${{ steps.prereqs.outputs.image_name }}@${{ steps.cudaq_build.outputs.digest }}" >> redirect.Dockerfile
+
+      - name: Update cuda-quantum metadata
+        id: updated_metadata
+        if: steps.redirect.outcome != 'skipped'
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ steps.prereqs.outputs.registry }}/${{ steps.prereqs.outputs.image_short_name }}
+          flavor: |
+            latest=false
+            suffix=${{ steps.prereqs.outputs.image_tag_suffix }},onlatest=true
+          tags: type=raw,value=${{ steps.prereqs.outputs.image_tag }}
+          labels: |
+            org.opencontainers.image.title=cuda-quantum
+            org.opencontainers.image.description=${{ steps.prereqs.outputs.image_description }}
+
+      - name: Build cuda-quantum image redirect
+        id: redirect_build
+        if: steps.redirect.outcome != 'skipped'
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: redirect.Dockerfile
+          tags: ${{ steps.updated_metadata.outputs.tags }}
+          labels: ${{ steps.updated_metadata.outputs.labels }}
+          platforms: ${{ inputs.platforms }}
+          push: true
+
+      - name: Sign image with GitHub OIDC Token
+        if: steps.redirect.outcome != 'skipped'
+        env:
+          DIGEST: ${{ steps.redirect_build.outputs.digest }}
+          TAGS: ${{ steps.updated_metadata.outputs.tags }}
+        run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
   documentation:
     name: Documentation
@@ -518,7 +646,7 @@ jobs:
           fi
 
           image_tag=`docker inspect $cudaq_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"'`
-          docs_version="CUDA_QUANTUM_VERSION=$image_tag"
+          docs_version="CUDA_QUANTUM_VERSION=${image_tag%-base}"
           docker image rm $cudaq_image
           docker image prune --force
 
@@ -623,10 +751,10 @@ jobs:
 
   staging:
     name: Staging
-    needs: [cudaqdev_image, cudaq_image, validation]
+    needs: [metadata, cudaqdev_image, cudaq_image, validation]
     # Unfortunately, we basically inherit this from the cudaq_image job;
     # all jobs that depend on it will need to add the same condition.
-    if: always() && !cancelled() && inputs.environment && contains(inputs.platforms, ',') && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+    if: always() && !cancelled() && inputs.environment && needs.metadata.outputs.platform_tag == '' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
     permissions: {}
 
@@ -636,6 +764,7 @@ jobs:
         run: |
           cudaqdev_hash=${{ needs.cudaqdev_image.outputs.image_hash }}
           cudaq_hash=${{ needs.cudaq_image.outputs.image_hash }}
+          cudaq_ngc_hash=${{ needs.cudaq_image.outputs.ngc_image_hash }}
           artifact_name=build_info
           echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT
           info_file="$artifact_name.txt"
@@ -645,6 +774,7 @@ jobs:
           echo "source-sha: ${{ github.sha }}" >> "$info_file"
           echo "cuda-quantum-dev-image: $cudaqdev_hash"  >> "$info_file"
           echo "cuda-quantum-image: $cudaq_hash" >> "$info_file"
+          echo "cuda-quantum-ngc-image: $cudaq_ngc_hash" >> "$info_file"
           echo "cuda-quantum-devdeps-image: ${{ inputs.devdeps_image }}" >> "$info_file"
           echo "platforms: ${{ inputs.platforms }}" >> "$info_file"
 

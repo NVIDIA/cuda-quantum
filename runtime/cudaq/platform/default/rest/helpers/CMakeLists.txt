@@ -8,3 +8,4 @@
 
 add_subdirectory(ionq)
 add_subdirectory(quantinuum)
+add_subdirectory(iqm)
