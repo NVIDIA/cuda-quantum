@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s | cudaq-opt --canonicalize --lower-to-cfg | cudaq-translate --convert-to=qir-base -o - | FileCheck %s
+// RUN: cudaq-quake %s | cudaq-opt --lower-to-cfg | cudaq-translate --convert-to=qir-base -o - | FileCheck %s
 
 #include <cudaq.h>
 
@@ -24,7 +24,6 @@ struct kernel {
 
         auto b0 = mz(q[0]);
         auto b1 = mz(q[1]);
-
     }
 };
 

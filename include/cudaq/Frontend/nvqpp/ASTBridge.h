@@ -117,12 +117,27 @@ inline std::string getCudaqKernelName(const std::string &tag) {
 std::string getTagNameOfFunctionDecl(const clang::FunctionDecl *func,
                                      clang::ItaniumMangleContext *mangler);
 
+/// Is this a class that will be ignored by the bridge?
+/// FIXME: This is a bit of a hack to skip over certain AST nodes.
+bool ignoredClass(clang::RecordDecl *x);
+
 //===----------------------------------------------------------------------===//
 // QuakeBridgeVisitor
 //===----------------------------------------------------------------------===//
 
 /// QuakeBridgeVisitor is a visitor pattern for crawling over the AST and
 /// generating Quake, CC, and other MLIR dialects.
+///
+/// The general design is to walk the tree in a post-order traversal and
+/// assemble the IR from the leaves back down the tree. Traversals over types
+/// should push Type values to the type stack. Traversals over expressions
+/// should create IR in the ModuleOp as well as push subexpressions on the stack
+/// for parent nodes. A parent node always knows how many children it needs to
+/// be constructed correctly. The types of expressions are carried along with
+/// the expressions in the IR and need not be duplicated on the type stack.
+///
+/// Unfortunately, clang's RecursiveASTVisitor doesn't always visit nodes in the
+/// AST and can skip visiting types or even some expressions.
 class QuakeBridgeVisitor
     : public clang::RecursiveASTVisitor<QuakeBridgeVisitor> {
   using Base = clang::RecursiveASTVisitor<QuakeBridgeVisitor>;
@@ -158,13 +173,33 @@ public:
   // Decl nodes to lower to Quake.
   //===--------------------------------------------------------------------===//
 
-  bool TraverseCXXDeductionGuideDecl(clang::CXXDeductionGuideDecl *x);
-  bool TraverseCXXMethodDecl(clang::CXXMethodDecl *x);
-
-  // FunctionDecl
+  // FunctionDecl: use a custom traversal for function declarations and all
+  // subtypes of FunctionDecl.
   bool TraverseFunctionDecl(clang::FunctionDecl *x);
-  bool WalkUpFromFunctionDecl(clang::FunctionDecl *x);
+  bool WalkUpFromFunctionDecl(clang::FunctionDecl *x) {
+    // Do not walk up to the super classes of FunctionDecl.
+    return VisitFunctionDecl(x);
+  }
   bool VisitFunctionDecl(clang::FunctionDecl *x);
+  bool TraverseCXXDeductionGuideDecl(clang::CXXDeductionGuideDecl *x) {
+    if (inRecType)
+      return true;
+    return TraverseFunctionDecl(x);
+  }
+  bool TraverseCXXMethodDecl(clang::CXXMethodDecl *x) {
+    if (inRecType)
+      return true;
+    return TraverseFunctionDecl(x);
+  }
+  bool TraverseCXXConstructorDecl(clang::CXXConstructorDecl *x) {
+    return TraverseCXXMethodDecl(x);
+  }
+  bool TraverseCXXConversionDecl(clang::CXXConversionDecl *x) {
+    return TraverseCXXMethodDecl(x);
+  }
+  bool TraverseCXXDestructorDecl(clang::CXXDestructorDecl *x) {
+    return TraverseCXXMethodDecl(x);
+  }
 
   bool TraverseFunctionTemplateDecl(clang::FunctionTemplateDecl *x) {
     // Do not traverse unresolved template declarations.
@@ -175,12 +210,17 @@ public:
 
   // ParmVarDecl
   bool WalkUpFromParmVarDecl(clang::ParmVarDecl *x) {
+    // Prevent walking up to base classes.
     return VisitParmVarDecl(x);
   }
   bool VisitParmVarDecl(clang::ParmVarDecl *x);
 
   // VarDecl
-  bool WalkUpFromVarDecl(clang::VarDecl *x) { return VisitVarDecl(x); }
+  bool TraverseVarDecl(clang::VarDecl *x);
+  bool WalkUpFromVarDecl(clang::VarDecl *x) {
+    // Prevent walking up to base classes.
+    return VisitVarDecl(x);
+  }
   bool VisitVarDecl(clang::VarDecl *x);
 
   //===--------------------------------------------------------------------===//
@@ -197,11 +237,22 @@ public:
 
   bool VisitCompoundAssignOperator(clang::CompoundAssignOperator *x);
   bool VisitContinueStmt(clang::ContinueStmt *x);
+
+  template <bool postCondition, typename S>
+  bool traverseDoOrWhileStmt(S *x);
   bool TraverseDoStmt(clang::DoStmt *x, DataRecursionQueue *q = nullptr);
+  bool TraverseWhileStmt(clang::WhileStmt *x, DataRecursionQueue *q = nullptr);
+
   bool TraverseForStmt(clang::ForStmt *x, DataRecursionQueue *q = nullptr);
   bool TraverseIfStmt(clang::IfStmt *x, DataRecursionQueue *q = nullptr);
   bool VisitReturnStmt(clang::ReturnStmt *x);
-  bool TraverseWhileStmt(clang::WhileStmt *x, DataRecursionQueue *q = nullptr);
+  bool VisitCXXFunctionalCastExpr(clang::CXXFunctionalCastExpr *x) {
+    return true;
+  }
+  bool TraverseInitListExpr(clang::InitListExpr *x,
+                            DataRecursionQueue *q = nullptr);
+  bool TraverseCXXTemporaryObjectExpr(clang::CXXTemporaryObjectExpr *x,
+                                      DataRecursionQueue *q = nullptr);
 
   // These misc. statements are not (yet) handled by lowering.
   bool TraverseAsmStmt(clang::AsmStmt *x, DataRecursionQueue *q = nullptr);
@@ -231,13 +282,18 @@ public:
   bool VisitBinaryOperator(clang::BinaryOperator *x);
   bool VisitCallExpr(clang::CallExpr *x);
   bool VisitConditionalOperator(clang::ConditionalOperator *x);
+  bool TraverseCXXConstructExpr(clang::CXXConstructExpr *x,
+                                DataRecursionQueue *q = nullptr);
   bool VisitCXXConstructExpr(clang::CXXConstructExpr *x);
   bool VisitCXXTemporaryObjectExpr(clang::CXXTemporaryObjectExpr *x);
-  bool WalkUpFromCXXTemporaryObjectExpr(clang::CXXTemporaryObjectExpr *x);
   bool VisitCXXOperatorCallExpr(clang::CXXOperatorCallExpr *x);
   bool WalkUpFromCXXOperatorCallExpr(clang::CXXOperatorCallExpr *x);
+  bool TraverseDeclRefExpr(clang::DeclRefExpr *x,
+                           DataRecursionQueue *q = nullptr);
   bool VisitDeclRefExpr(clang::DeclRefExpr *x);
   bool VisitFloatingLiteral(clang::FloatingLiteral *x);
+  bool TraverseImplicitCastExpr(clang::ImplicitCastExpr *x,
+                                DataRecursionQueue *q = nullptr);
   bool VisitImplicitCastExpr(clang::ImplicitCastExpr *x);
   bool VisitInitListExpr(clang::InitListExpr *x);
   bool VisitIntegerLiteral(clang::IntegerLiteral *x);
@@ -245,29 +301,57 @@ public:
   bool VisitMaterializeTemporaryExpr(clang::MaterializeTemporaryExpr *x);
   bool VisitUnaryOperator(clang::UnaryOperator *x);
   bool VisitStringLiteral(clang::StringLiteral *x);
+  bool VisitCXXScalarValueInitExpr(clang::CXXScalarValueInitExpr *x);
 
+  bool TraverseMemberExpr(clang::MemberExpr *x,
+                          DataRecursionQueue *q = nullptr);
   bool TraverseBinaryOperator(clang::BinaryOperator *x,
                               DataRecursionQueue *q = nullptr);
-  bool TraverseCallExpr(clang::CallExpr *x, DataRecursionQueue *q = nullptr);
   bool TraverseLambdaExpr(clang::LambdaExpr *x,
                           DataRecursionQueue *q = nullptr);
-
-  bool isVectorOfQubitRefs(clang::CXXConstructExpr *x);
-  bool visitFunctionDeclAsCallArg(clang::FunctionDecl *x);
 
   //===--------------------------------------------------------------------===//
   // Type nodes to lower to Quake.
   //===--------------------------------------------------------------------===//
 
-  bool TraverseTypeLoc(clang::TypeLoc t);
-  bool TraverseTypedefType(clang::TypedefType *t);
-  bool TraverseUsingType(clang::UsingType *t);
-  bool TraverseRecordType(clang::RecordType *t);
+  bool TraverseTypedefType(clang::TypedefType *t) {
+    return TraverseType(t->desugar());
+  }
+  bool TraverseTypedefTypeLoc(clang::TypedefTypeLoc tl) {
+    return TraverseType(tl.getType());
+  }
+  bool TraverseUsingType(clang::UsingType *t) {
+    return TraverseType(t->getUnderlyingType());
+  }
+  bool TraverseUsingTypeLoc(clang::UsingTypeLoc tl) {
+    return TraverseType(tl.getType());
+  }
+  bool
+  TraverseTemplateSpecializationType(clang::TemplateSpecializationType *t) {
+    return TraverseType(t->desugar());
+  }
+  bool TraverseTypeOfExprType(clang::TypeOfExprType *t) {
+    // Do not visit the expression as it is has no semantics other than for
+    // inferring a type.
+    return true;
+  }
 
-  bool VisitCXXRecordDecl(clang::CXXRecordDecl *x);
+  bool TraverseRecordType(clang::RecordType *t);
+  bool interceptRecordDecl(clang::RecordDecl *x);
   bool VisitRecordDecl(clang::RecordDecl *x);
-  bool VisitFunctionProtoType(clang::FunctionProtoType *x);
-  bool VisitElaboratedType(clang::ElaboratedType *t);
+
+  // Type declarations to be converted to high-level Quake and CC types are
+  // either classified as Record, CXXRecord, or ClassTemplateSpecialization
+  // declarations. Other decls will be converted to cc.struct types.
+  // These traversals are explicitly called, so we must overload them.
+  template <typename D>
+  bool traverseAnyRecordDecl(D *x);
+  bool TraverseRecordDecl(clang::RecordDecl *x);
+  bool TraverseCXXRecordDecl(clang::CXXRecordDecl *x);
+  bool TraverseClassTemplateSpecializationDecl(
+      clang::ClassTemplateSpecializationDecl *x);
+
+  bool VisitFunctionProtoType(clang::FunctionProtoType *t);
   bool VisitBuiltinType(clang::BuiltinType *t);
   bool VisitPointerType(clang::PointerType *t);
   bool VisitLValueReferenceType(clang::LValueReferenceType *t);
@@ -276,24 +360,14 @@ public:
   /// Convert \p t, a builtin type, to the corresponding MLIR type.
   mlir::Type builtinTypeToType(const clang::BuiltinType *t);
 
-  /// Helper to convert a FunctionType to a LambdaType.
-  bool convertToLambda();
-
-  bool shouldVisitImplicitCode() {
-    bool result = visitImplicitCode;
-    visitImplicitCode = false;
-    return result;
-  }
-
-  bool shouldVisitTemplateInstantiations() {
-    bool result = visitTemplateInstantiations;
-    visitTemplateInstantiations = false;
-    return result;
-  }
+  bool shouldVisitImplicitCode() { return visitImplicitCode; }
+  bool shouldVisitTemplateInstantiations() { return inRecType; }
 
   //===--------------------------------------------------------------------===//
   // Misc.
   //===--------------------------------------------------------------------===//
+
+  void maybeAddCallOperationSignature(clang::Decl *x);
 
   /// Coerce an integer value, \p srcVal, to be the same width as \p dstTy.
   mlir::Value integerCoercion(mlir::Location loc,
@@ -315,15 +389,8 @@ public:
     return val;
   }
 
-  // Postorder is natural for expressions.
-  bool shouldTraversePostOrder() {
-    if (typeMode)
-      return true;
-    bool result = postOrderTraversal;
-    if (!result)
-      postOrderTraversal = true;
-    return result;
-  }
+  // The AST is visited in postorder.
+  bool shouldTraversePostOrder() { return true; }
 
   // Does the block have a proper terminator?
   static bool hasTerminator(mlir::Block &block);
@@ -353,6 +420,17 @@ public:
     return getCxxMangledTypeName(ty, mangler);
   }
 
+  /// Reset the visitor for the next top-level function to convert.
+  void resetNextTopLevelFunction() {
+    valueStack.clear();
+    typeStack.clear();
+  }
+
+  /// Generate a function declaration in the module.
+  bool generateFunctionDeclaration(mlir::StringRef funcName,
+                                   const clang::FunctionDecl *x);
+  bool doSyntaxChecks(const clang::FunctionDecl *x);
+
 private:
   /// Map the block arguments to the names of the function parameters.
   void addArgumentSymbols(mlir::Block *entryBlock,
@@ -363,6 +441,9 @@ private:
 
   /// Clear the current function name.
   void resetCurrentFunctionName() { loweredFuncName.clear(); }
+
+  /// Returns true if \p decl is a kernel entry point.
+  bool isKernelEntryPoint(const clang::FunctionDecl *decl);
 
   /// Returns true if \p decl is a function to lower to Quake.
   bool needToLowerFunction(const clang::FunctionDecl *decl);
@@ -377,34 +458,26 @@ private:
     return toSourceLocation(getMLIRContext(), getContext(), srcRange);
   }
 
-  /// Convert an AST QualType to a Type.
-  mlir::Type genType(const clang::QualType &ty);
-
   /// Add an entry block to FuncOp \p func corresponding to the AST FunctionDecl
   /// \p x.
   void createEntryBlock(mlir::func::FuncOp func, const clang::FunctionDecl *x);
-
-  /// Convert an AST FunctionDecl to a FunctionType. Specialization of genType.
-  std::optional<mlir::FunctionType>
-  getFunctionType(const clang::FunctionDecl *x, bool isKernel);
-
-  /// Get the signature of the function \p x.
-  mlir::FunctionType getFunctionType(const clang::FunctionDecl *x) {
-    auto optFuncTy = getFunctionType(x, /*isKernel=*/false);
-    assert(optFuncTy && "must return a function type");
-    return *optFuncTy;
-  }
 
   /// Returns the type name of an intercepted `operator[]` to the caller. If the
   /// `operator[]` is not being intercepted, then returns `std::nullopt`.
   std::optional<std::string>
   isInterceptedSubscriptOperator(clang::CXXOperatorCallExpr *x);
 
+  static mlir::FunctionType peelPointerFromFunction(mlir::Type ty);
+
+  static clang::FunctionDecl *
+  findCallOperator(const clang::CXXRecordDecl *decl);
+
 #ifndef NDEBUG
   // Debug versions have to be in the .cpp file which pulls in the LLVM debug
   // support code header, etc.
   bool pushValue(mlir::Value v);
   mlir::Value popValue();
+  mlir::SmallVector<mlir::Value> lastValues(unsigned n);
 #else
   // If not a debug build, inline these methods for efficiency.
   bool pushValue(mlir::Value v) {
@@ -416,10 +489,6 @@ private:
     valueStack.pop_back();
     return result;
   }
-#endif
-  // Return a copy of the Value on the top of the value stack.
-  mlir::Value peekValue() { return valueStack.back(); }
-
   /// Return the last `n` values from the stack in left-to-right (natural)
   /// order. For a call, `foo(a, b, c)` this can be used to return a list
   /// `[value_a value_b value_c]`.
@@ -430,6 +499,9 @@ private:
     valueStack.pop_back_n(n);
     return result;
   }
+#endif
+  // Return a copy of the Value on the top of the value stack.
+  mlir::Value peekValue() { return valueStack.back(); }
 
   mlir::MLIRContext *getMLIRContext() { return mlirContext; }
 
@@ -462,9 +534,7 @@ private:
   clang::ItaniumMangleContext *mangler;
   std::string loweredFuncName;
   llvm::SmallVector<mlir::Value> negations;
-  llvm::DenseSet<clang::DeclRefExpr *> declRefArgs;
-  /// Should traversal be postorder or preorder?
-  bool postOrderTraversal : 1 = true;
+  std::size_t typeStackDepth = 0;
   bool skipCompoundScope : 1 = false;
   bool isEntry : 1 = false;
   /// If there is a catastrophic error in the bridge (there is no rational way
@@ -487,11 +557,10 @@ private:
 
   /// Stack of Types built by the visitor. (right-to-left ordering)
   llvm::SmallVector<mlir::Type> typeStack;
-  llvm::SmallVector<clang::RecordType *> records;
+  llvm::DenseMap<clang::RecordType *, mlir::Type> records;
   bool visitImplicitCode : 1 = false;
-  bool visitTemplateInstantiations : 1 = false;
-  bool typeMode : 1 = false;
-  bool codeGenMethodDecl : 1 = false;
+  bool inRecType : 1 = false;
+  bool allowUnknownRecordType : 1 = false;
 };
 } // namespace details
 
@@ -585,6 +654,7 @@ protected:
 
 /// Return true if and only if \p x was declared at the top-level.
 inline bool isNotInANamespace(const clang::Decl *x) {
+  assert(x && "decl is null");
   auto *declCtx = x->getDeclContext();
   do {
     if (isa<clang::NamespaceDecl>(declCtx))
@@ -597,6 +667,7 @@ inline bool isNotInANamespace(const clang::Decl *x) {
 /// Return true if and only if \p x was declared in the namespace \p nsName.
 /// This test will "drill through" any nested namespaces in search of a match.
 inline bool isInNamespace(const clang::Decl *x, mlir::StringRef nsName) {
+  assert(x && "decl is null");
   auto *declCtx = x->getDeclContext();
   do {
     if (const auto *nsd = dyn_cast<clang::NamespaceDecl>(declCtx))
@@ -613,6 +684,7 @@ inline bool isInNamespace(const clang::Decl *x, mlir::StringRef nsName) {
 inline bool isInClassInNamespace(const clang::Decl *x,
                                  mlir::StringRef className,
                                  mlir::StringRef nsName) {
+  assert(x && "decl is null");
   if (const auto *cld = dyn_cast<clang::RecordDecl>(x->getDeclContext()))
     if (const auto *cli = cld->getIdentifier())
       return cli->getName().equals(className) && isInNamespace(cld, nsName);
@@ -620,5 +692,10 @@ inline bool isInClassInNamespace(const clang::Decl *x,
 }
 
 bool isInExternC(const clang::GlobalDecl &x);
+
+/// Is \p kindValue the `operator()` function?
+inline bool isCallOperator(clang::OverloadedOperatorKind kindValue) {
+  return kindValue == clang::OverloadedOperatorKind::OO_Call;
+}
 
 } // namespace cudaq

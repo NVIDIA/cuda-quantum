@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake -verify %s
+// RUN: cudaq-quake -verify %s -o /dev/null
 
 #include <cudaq.h>
 
@@ -21,7 +21,7 @@ int main() {
   int i;
   auto f = [&]() __qpu__ { // expected-remark{{An inaccessible symbol}}
     cudaq::qreg q(i); // expected-error{{symbol is not accessible in this kernel}}
-    mz(q);
+    mz(q); // expected-error{{symbol is not accessible in this kernel}}
   };
   Kernel{}(f);
   return 0;
