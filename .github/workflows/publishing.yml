@@ -12,6 +12,8 @@ on:
   workflow_run:
     workflows:
       - Deployments
+      # TEMP: To be removed!
+      - CI
     types:
       - completed
 
@@ -458,7 +460,9 @@ jobs:
   create_release:
     name: CUDA Quantum Release
     needs: [assets, cudaq_hpc, cudaq_wheels]
-    if: needs.assets.outputs.release_title
+    # FIXME: this is for testing purposes, always skipping the `create_release` job
+    # needs.assets.outputs.release_title
+    if: false 
     runs-on: ubuntu-latest
 
     environment:
