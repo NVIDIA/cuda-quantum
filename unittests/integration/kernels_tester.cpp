@@ -151,6 +151,33 @@ CUDAQ_TEST(KernelsTester, checkFromState) {
     auto counts = cudaq::sample(*kernel);
     counts.dump();
   }
+
+  {
+    // Random unitary state
+    const std::size_t numQubits = 2;
+    auto randHam = cudaq::spin_op::random(numQubits, numQubits * numQubits);
+    auto eigenVectors = randHam.to_matrix().eigenvectors();
+    // Map the ground state to a cudaq::state
+    std::vector<std::complex<double>> expectedData(eigenVectors.rows());
+    for (std::size_t i = 0; i < eigenVectors.rows(); i++)
+      expectedData[i] = eigenVectors(i, 0);
+    auto kernel = cudaq::make_kernel();
+    auto qubits = kernel.qalloc(numQubits);
+    cudaq::from_state(kernel, qubits, expectedData);
+    std::cout << kernel << "\n";
+    auto ss = cudaq::get_state(kernel);
+    const std::complex<double> globalPhase = [&]() {
+      // find the first non-zero element to compute the global phase factor
+      for (std::size_t i = 0; i < (1u << numQubits); i++)
+        if (std::abs(ss[i]) > 1e-3)
+          return expectedData[i] / ss[i];
+      // Something wrong (state vector all zeros!)
+      return std::complex<double>(0.0, 0.0);
+    }();
+    // Check the state (accounted for global phase)
+    for (std::size_t i = 0; i < (1u << numQubits); i++)
+      EXPECT_NEAR(std::abs(globalPhase * ss[i] - expectedData[i]), 0.0, 1e-6);
+  }
 }
 
 #endif
