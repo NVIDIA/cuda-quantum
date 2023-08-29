@@ -520,6 +520,10 @@ public:
   }
 
   cudaq::State getStateData() override {
+    // Handle empty state (e.g., no qubit allocation)
+    if (stateDimension == 0)
+      return cudaq::State{{stateDimension}, {}};
+
     std::vector<std::complex<ScalarType>> tmp(stateDimension);
     // Use custatevec accessor to retrieve the view
     custatevecAccessorDescriptor_t accessor;
