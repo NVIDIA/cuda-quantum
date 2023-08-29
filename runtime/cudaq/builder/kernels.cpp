@@ -48,7 +48,7 @@ std::vector<std::size_t> getControlIndices(std::size_t grayRank) {
   return ctrlIds;
 }
 
-std::size_t mEntry(std::size_t row, std::size_t col) {
+int mEntry(std::size_t row, std::size_t col) {
   auto b_and_g = row & ((col >> 1) ^ col);
   std::size_t sum_of_ones = 0;
   while (b_and_g > 0) {
