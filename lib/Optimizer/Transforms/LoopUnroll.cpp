@@ -15,6 +15,7 @@
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_LOOPUNROLL
+#define GEN_PASS_DEF_UPDATEREGISTERNAMES
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
@@ -184,6 +185,26 @@ public:
       emitError(UnknownLoc::get(ctx), "did not unroll loops");
       signalPassFailure();
     }
+  }
+
+  static unsigned countLoopOps(Operation *op) {
+    unsigned result = 0;
+    op->walk([&](cudaq::cc::LoopOp loop) { result++; });
+    LLVM_DEBUG(llvm::dbgs() << "Total number of loops: " << result << '\n');
+    return result;
+  }
+};
+
+/// After unrolling the loops, there may be duplicate registerName attributes in
+/// use. This pass will assign them unique names by appending a counter.
+class UpdateRegisterNamesPass
+    : public cudaq::opt::impl::UpdateRegisterNamesBase<
+          UpdateRegisterNamesPass> {
+public:
+  using UpdateRegisterNamesBase::UpdateRegisterNamesBase;
+
+  void runOnOperation() override {
+    auto *op = getOperation();
 
     // First get a count of the number of times a variable is used.
     std::unordered_map<std::string, int> varNameCounts;
@@ -213,13 +234,6 @@ public:
       }
       return WalkResult::advance();
     });
-  }
-
-  static unsigned countLoopOps(Operation *op) {
-    unsigned result = 0;
-    op->walk([&](cudaq::cc::LoopOp loop) { result++; });
-    LLVM_DEBUG(llvm::dbgs() << "Total number of loops: " << result << '\n');
-    return result;
   }
 };
 
@@ -252,6 +266,7 @@ static void createUnrollingPipeline(OpPassManager &pm, unsigned threshold,
   pm.addPass(createCanonicalizerPass());
   cudaq::opt::LoopUnrollOptions luo{threshold, signalFailure};
   pm.addPass(cudaq::opt::createLoopUnroll(luo));
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createUpdateRegisterNames());
 }
 
 void cudaq::opt::registerUnrollingPipeline() {
