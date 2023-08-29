@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s | cudaq-opt --pass-pipeline='builtin.module(expand-measurements,canonicalize,cc-loop-unroll,update-register-names,canonicalize)' | FileCheck %s
+// RUN: cudaq-quake %s | cudaq-opt --pass-pipeline='builtin.module(expand-measurements,unrolling-pipeline)' | FileCheck %s
 
 #include <cudaq.h>
 

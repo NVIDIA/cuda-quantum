@@ -154,6 +154,9 @@ public:
   void clearShots() override { nShots = std::nullopt; }
   virtual bool isRemote() override { return !emulate; }
 
+  /// @brief Return true if locally emulating a remote QPU
+  virtual bool isEmulated() override { return emulate; }
+
   /// @brief Set the noise model, only allow this for
   /// emulation.
   void setNoiseModel(cudaq::noise_model *model) override {

@@ -198,7 +198,6 @@ def UpdateRegisterNames : Pass<"update-register-names"> {
   }];
 }
 
-
 def LowerToCFG : Pass<"lower-to-cfg", "mlir::func::FuncOp"> {
   let summary = "Erase CLoop, CIf, etc. ops, replacing them with a CFG.";
   let description = [{
