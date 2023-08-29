@@ -92,7 +92,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64]
-        toolchain: [clang16]
+        toolchain: [llvm]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
