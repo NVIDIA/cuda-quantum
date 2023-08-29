@@ -2,9 +2,9 @@ coverage:
   status:
     project:
       default:
-        target: 50%
+        target: 70%
         threshold: 1%
 ignore:
-   - "tpl"
+   - "tpls"
 fixes:
    - "/workspaces/cuda-quantum::"
