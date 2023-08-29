@@ -3,7 +3,6 @@ workflow:
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-dev@sha256:\S+$/'
       variables:
-        runner: hostname/xpl-dvt-55
         staged: "cuda-quantum-dev"
     - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_BRANCH =~ /arm64/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-devdeps@sha256:\S+$/'
       variables:
@@ -42,8 +41,82 @@ Python Wheels:
   tags:
     - $runner
   interruptible: false
+  artifacts:
+    paths:
+      - artifacts
+    expire_in: 1 day
+  parallel:
+    matrix:
+      - python_version: ["3.8", "3.9", "3.10", "3.11"]
   script:
-    - echo "Nothing implemented yet."
+    - echo "Building wheel for python${python_version}." 
+    - export PATH=/opt/rh/gcc-toolset-11/root/usr/bin:$PATH
+    - export python=python${python_version} 
+    - $python -m pip install --no-cache-dir cmake auditwheel cuquantum-cu11==23.6.0 
+    - if [[ $(uname -i) == x86_64 ]]; then echo $python -m pip install --no-cache-dir nvidia-cusolver-cu11; fi 
+    - cuquantum_location=`$python -m pip show cuquantum-cu11 | grep -e 'Location:\ .*$'`
+    - echo $cuquantum_location
+    - export CUQUANTUM_INSTALL_PREFIX="${cuquantum_location#Location:\ }/cuquantum"
+    - echo $CUQUANTUM_INSTALL_PREFIX
+    - export CUQUANTUM_ROOT=$CUQUANTUM_INSTALL_PREFIX 
+    - export CUTENSOR_ROOT="${cuquantum_location#Location:\ }/cutensor"
+    - ln -s $CUQUANTUM_INSTALL_PREFIX/lib/libcustatevec.so.1 $CUQUANTUM_INSTALL_PREFIX/lib/libcustatevec.so 
+    - ln -s $CUQUANTUM_INSTALL_PREFIX/lib/libcutensornet.so.2 $CUQUANTUM_INSTALL_PREFIX/lib/libcutensornet.so 
+    - ln -s $CUTENSOR_ROOT/lib/libcutensor.so.1 $CUTENSOR_ROOT/lib/libcutensor.so
+    - export CUDAQ_INSTALL_PREFIX=/opt/nvidia/cudaq
+    - export PROJECT_SRCS_DIR=$PWD/.. 
+    # Retrieve the upstream CUDA Quantum commit
+    - digest=${CI_COMMIT_TITLE#ghcr.io/nvidia/$staged@}
+    - build_info=`cat deployments/staging/$staged/${digest#sha256:}`
+    - source_commit=`echo "$build_info" | grep -s -o 'source-sha:\s*\S*' | rev | cut -d ' ' -f 1 | cut -d ':' -f 1 | rev`
+    - export CUDAQ_COMMIT=$source_commit
+    - echo "Checking out CUDA Quantum commit $CUDAQ_COMMIT"
+    - cd $PROJECT_SRCS_DIR && rm -rf cuda-quantum
+    - mkdir cuda-quantum && cd cuda-quantum && git init
+    - git fetch --depth 1 https://github.com/NVIDIA/cuda-quantum.git $CUDAQ_COMMIT && git checkout FETCH_HEAD
+    # Build cuda-quantum in self-contained mode to serve as base for other backends
+    - mkdir build && cd build
+    - cmake .. 
+        -DCMAKE_INSTALL_PREFIX=$CUDAQ_INSTALL_PREFIX
+        -DBLAS_LIBRARIES=/usr/local/blas/libblas.a
+        -DOPENSSL_ROOT_DIR=/usr/local/openssl
+        -DCUDAQ_BUILD_TESTS=FALSE
+        -DCUDAQ_BUILD_SELFCONTAINED=ON
+        -DCUDAQ_DISABLE_CPP_FRONTEND=TRUE
+        -DCUDAQ_DISABLE_TOOLS=TRUE
+    - make -j$(nproc) install
+    - cp -R $CUDAQ_INSTALL_PREFIX/lib64/cmake/fmt $CUDAQ_INSTALL_PREFIX/lib/cmake
+    # Tensornet Simulator
+    - cd $PROJECT_SRCS_DIR
+    - echo "Checking out commit $CUDAQ_TENSORNET_COMMIT on $CI_SERVER_HOST/$CUDAQ_TENSORNET_REPO."
+    - mkdir cudaq_tensornet && cd cudaq_tensornet && git init
+    - git fetch --depth 1 https://$READ_ACCESS_TOKEN:$READ_ACCESS_TOKEN@$CI_SERVER_HOST/$CUDAQ_TENSORNET_REPO $CUDAQ_TENSORNET_COMMIT && git checkout FETCH_HEAD
+    - (bash build_wheel.sh $READ_ACCESS_TOKEN && built=true) || built=false
+    - if $built; then `exit 0`; else `exit 1`; fi
+    # MGMN SV  Simulator
+    - cd $PROJECT_SRCS_DIR
+    - echo "Checking out commit $CUDAQ_MGMN_SVSIM_COMMIT on $CI_SERVER_HOST/$CUDAQ_MGMN_SVSIM_REPO."
+    - mkdir cudaq_mgmn_svsim && cd cudaq_mgmn_svsim && git init
+    - git fetch --depth 1 https://$READ_ACCESS_TOKEN:$READ_ACCESS_TOKEN@$CI_SERVER_HOST/$CUDAQ_MGMN_SVSIM_REPO $CUDAQ_MGMN_SVSIM_COMMIT && git checkout FETCH_HEAD
+    - (bash build_wheel.sh $READ_ACCESS_TOKEN && built=true) || built=false
+    - if $built; then `exit 0`; else `exit 1`; fi
+    # Package the wheel
+    - cd $PROJECT_SRCS_DIR/cuda-quantum
+    # Add Tensornet and MGMN SV simulator to the packaged wheel
+    # via CUDAQ_EXTERNAL_NVQIR_SIMS cmake config
+    - export CUDAQ_EXTERNAL_NVQIR_SIMS="$PROJECT_SRCS_DIR/cudaq_tensornet/build/libnvqir-tensornet.so;$PROJECT_SRCS_DIR/cudaq_tensornet/build/tensornet.config;$PROJECT_SRCS_DIR/cudaq_mgmn_svsim/build/libnvqir-nvidia-mgpu.so;$PROJECT_SRCS_DIR/cudaq_mgmn_svsim/build/nvidia-mgpu.config"
+    - SETUPTOOLS_SCM_PRETEND_VERSION=${CUDA_QUANTUM_VERSION:-0.0.0} CUDAQ_BUILD_SELFCONTAINED=ON  CUDACXX="$CUDA_INSTALL_PREFIX/bin/nvcc" CUDAHOSTCXX=$CXX $python -m build --wheel
+    - LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/_skbuild/lib:dist/cuda_quantum-0.0.0/lib" $python -m auditwheel -v repair dist/cuda_quantum-*linux_*.whl 
+        --exclude libcustatevec.so.1 
+        --exclude libcutensornet.so.2 
+        --exclude libcublas.so.11 
+        --exclude libcublasLt.so.11 
+        --exclude libcusolver.so.11 
+        --exclude libcutensor.so.1 
+        --exclude libnvToolsExt.so.1 
+        --exclude libcudart.so.11.0
+    # Copy repaired wheel into the artifacts dir
+    - mkdir -p artifacts/wheels && cp wheelhouse/cuda_quantum-*linux_*.whl artifacts/wheels
 
 MGMN SV Simulator:
   rules:
@@ -51,19 +124,23 @@ MGMN SV Simulator:
   stage: build
   dependencies: []
   image: $CI_COMMIT_TITLE
+  parallel:
+    matrix:
+      - runner: [hostname/xpl-dvt-55, os/linux-arm]
   tags:
     - $runner
   interruptible: false
   artifacts:
     paths:
-      - artifacts/mgmn_svsim/
+      - artifacts/**/mgmn_svsim/
     expire_in: 1 day
   script:
+    - echo "Building mgmn_svsim for $(uname -m) architecture."
     - echo "Checking out commit $CUDAQ_MGMN_SVSIM_COMMIT on $CI_SERVER_HOST/$CUDAQ_MGMN_SVSIM_REPO."
     - mkdir cudaq_mgmn_svsim && cd cudaq_mgmn_svsim && git init
     - git fetch --depth 1 https://$READ_ACCESS_TOKEN:$READ_ACCESS_TOKEN@$CI_SERVER_HOST/$CUDAQ_MGMN_SVSIM_REPO $CUDAQ_MGMN_SVSIM_COMMIT && git checkout FETCH_HEAD
     - (bash build.sh $READ_ACCESS_TOKEN && built=true) || built=false
-    - mkdir -p ../artifacts/mgmn_svsim && mv artifacts/* ../artifacts/mgmn_svsim
+    - mkdir -p ../artifacts/$(uname -m)/mgmn_svsim && mv artifacts/* ../artifacts/$(uname -m)/mgmn_svsim
     - cd .. && rm -rf cudaq_mgmn_svsim
     - if $built; then `exit 0`; else `exit 1`; fi
 
@@ -75,9 +152,9 @@ Tensornet Simulator:
   image: $CI_COMMIT_TITLE
   parallel:
     matrix:
-      - runner_tag: [hostname/xpl-dvt-55, os/linux-arm]
+      - runner: [hostname/xpl-dvt-55, os/linux-arm]
   tags:
-    - $runner_tag
+    - $runner
   interruptible: false
   artifacts:
     paths:
@@ -127,8 +204,9 @@ Push to GitHub:
       fi
     - mkdir -p artifacts && cd artifacts
     - echo "$build_info" > "$info_file" && (echo -n "data-commit:" && echo " $CI_COMMIT_SHA") >> "$info_file"
-    - if [ -d mgmn_svsim ]; then zip -r mgmn_svsim.zip mgmn_svsim && upload+="mgmn_svsim.zip "; fi
-    - if [ -d tensornet ]; then zip -r tensornet.zip tensornet && upload+="tensornet.zip "; fi
+    - if [ -d x86_64 ]; then zip -r sims_amd64.zip x86_64 && upload+="sims_amd64.zip "; fi
+    - if [ -d aarch64 ]; then zip -r sims_aarch64.zip aarch64 && upload+="sims_aarch64.zip "; fi
+    - if [ -d wheels ]; then zip -r wheels.zip wheels && upload+="wheels.zip "; fi
     - echo $upload | xargs gh release upload $release_id -R $upstream_url --clobber "$info_file"
     - additional_notes="Release edited by [GitLab pipeline]($CI_PIPELINE_URL)." &&
       additional_notes+=$(echo "<br/>Triggered based on [this commit]($upstream_url/commit/$CI_COMMIT_SHA).")
