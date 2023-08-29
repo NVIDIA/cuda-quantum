@@ -73,8 +73,8 @@ coprocessor
 coprocessors
 copyable
 cortex-cli
-cudaq
 cuQuantum
+cudaq
 deallocate
 deallocated
 deallocates
