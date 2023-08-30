@@ -527,7 +527,7 @@ def quake_ResetOp : QuakeOp<"reset", [QuantumGate,
 // Sink
 //===----------------------------------------------------------------------===//
 
-def quake_SinkOp : QuakeOp<"sink", [QuantumGate]> {
+def quake_SinkOp : QuakeOp<"sink"> {
   let summary = "Sink for a qubit that is used but not measured.";
   let description = [{
     The `quake.sink` operation is used to mark a particular wire in the value
