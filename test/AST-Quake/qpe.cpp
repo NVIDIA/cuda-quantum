@@ -103,7 +103,7 @@ int main() {
 // clang-format off
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_iqft.
-// CHECK-SAME:      (%[[VAL_0:.*]]: !quake.veq<?>) attributes {"cudaq-kernel"} {
+// CHECK-SAME:      (%[[VAL_0:.*]]: !quake.veq<?>) attributes {"cudaq-kernel", no_this} {
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant -3.14{{.*}} : f64
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 2.0{{.*}} : f64
 // CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 1 : i32

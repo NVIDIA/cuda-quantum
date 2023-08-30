@@ -364,6 +364,8 @@ bool QuakeBridgeVisitor::generateFunctionDeclaration(
   auto funcTy = cast<FunctionType>(popType());
   [[maybe_unused]] auto fnPair = getOrAddFunc(loc, funcName, funcTy);
   assert(fnPair.first && "expected FuncOp to be created");
+  if (!isa<clang::CXXMethodDecl>(x) || x->isStatic())
+    fnPair.first->setAttr("no_this", builder.getUnitAttr());
   assert(typeStack.empty() && "expected type stack to be cleared");
   return true;
 }
@@ -402,10 +404,13 @@ void ASTBridgeAction::ASTBridgeConsumer::addFunctionDecl(
   OpBuilder build(module->getBodyRegion());
   OpBuilder::InsertionGuard guard(build);
   build.setInsertionPointToEnd(module->getBody());
-  if (isa<clang::CXXMethodDecl>(funcDecl))
-    funcTy = cudaq::opt::factory::toCpuSideFuncType(funcTy);
+  bool addThisPtr =
+      isa<clang::CXXMethodDecl>(funcDecl) && !funcDecl->isStatic();
+  funcTy = cudaq::opt::factory::toCpuSideFuncType(funcTy, addThisPtr);
   auto func = build.create<func::FuncOp>(loc, funcName, funcTy,
                                          ArrayRef<NamedAttribute>{});
+  if (!addThisPtr)
+    func->setAttr("no_this", build.getUnitAttr());
   func.setPrivate();
 }
 

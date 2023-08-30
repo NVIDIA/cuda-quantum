@@ -73,10 +73,10 @@ static cl::opt<bool>
     verifyMode("verify", cl::desc("Run in diagnostic verification mode."),
                cl::init(false));
 
-static cl::opt<bool>
-    noSimplify("no-simplify",
-               cl::desc("Run passes to simplify the code after the bridge."),
-               cl::init(false));
+static cl::opt<bool> noSimplify(
+    "no-simplify",
+    cl::desc("Disable passes to simplify the code after the bridge."),
+    cl::init(false));
 
 static cl::opt<bool> astDump("ast-dump", cl::desc("Dump the ast."),
                              cl::init(false));
@@ -459,8 +459,7 @@ int main(int argc, char **argv) {
     pm.addPass(std::make_unique<cudaq::VerifierPass>());
     if (!noSimplify) {
       pm.addPass(mlir::createCanonicalizerPass());
-      // FIXME: Workaround bug in regenerating the CPU side kernel entry.
-      // pm.addPass(mlir::createSymbolDCEPass());
+      pm.addPass(mlir::createSymbolDCEPass());
     }
     if (failed(pm.run(moduleOp))) {
       moduleOp->dump();

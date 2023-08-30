@@ -122,14 +122,18 @@ static cudaq::cc::StructType stlVectorType(Type eleTy) {
   return cudaq::cc::StructType::get(ctx, eleTys);
 }
 
-FunctionType factory::toCpuSideFuncType(FunctionType funcTy) {
+FunctionType factory::toCpuSideFuncType(FunctionType funcTy, bool addThisPtr) {
   auto *ctx = funcTy.getContext();
   // When the kernel comes from a class, there is always a default "this"
   // argument to the kernel entry function. The CUDA Quantum language spec
   // doesn't allow the kernel object to contain data members (yet), so we can
   // ignore the `this` pointer.
   auto ptrTy = cudaq::cc::PointerType::get(IntegerType::get(ctx, 8));
-  SmallVector<Type> inputTys = {ptrTy};
+  SmallVector<Type> inputTys;
+  // If this kernel is a plain old function or a static member function, we
+  // don't want to add a hidden `this` argument.
+  if (addThisPtr)
+    inputTys.push_back(ptrTy);
   bool hasSRet = false;
   if (factory::hasHiddenSRet(funcTy)) {
     // When the kernel is returning a std::vector<T> result, the result is
