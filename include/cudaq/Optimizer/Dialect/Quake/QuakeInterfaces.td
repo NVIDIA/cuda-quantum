@@ -101,7 +101,7 @@ def MeasurementInterface : OpInterface<"MeasurementInterface"> {
     InterfaceMethod<
       /*desc=*/ "Returns the register name, if any.",
       /*retType=*/ "std::optional<std::string>",
-      /*methodName=*/ "getOptRegisterName",
+      /*methodName=*/ "getOptionalRegisterName",
       /*args=*/ (ins),
       /*methodBody=*/ [{
         if (auto attr = $_op.getRegisterNameAttr())
