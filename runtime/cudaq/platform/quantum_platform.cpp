@@ -115,6 +115,10 @@ bool quantum_platform::is_remote(const std::size_t qpu_id) {
   return platformQPUs[qpu_id]->isRemote();
 }
 
+bool quantum_platform::is_emulated(const std::size_t qpu_id) const {
+  return platformQPUs[qpu_id]->isEmulated();
+}
+
 bool quantum_platform::supports_conditional_feedback(
     const std::size_t qpu_id) const {
   return platformQPUs[qpu_id]->supportsConditionalFeedback();

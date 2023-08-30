@@ -498,7 +498,12 @@ protected:
       executionContext->result.append(execResult);
     } else {
 
+      bool hasGlobal = false;
+
       for (auto &[regName, qubits] : registerNameToMeasuredQubit) {
+        if (regName == cudaq::GlobalRegisterName)
+          hasGlobal = true;
+
         // Find the position of the qubits we have in the result bit string
         // Create a map of qubit to bit string location
         std::unordered_map<std::size_t, std::size_t> qubitLocMap;
@@ -518,6 +523,33 @@ protected:
         }
 
         executionContext->result.append(tmp);
+      }
+
+      // Form the global register from a combination of the sorted register
+      // names. In the future, we may want to let the user customize
+      if (!hasGlobal) {
+        cudaq::ExecutionResult globalResult(cudaq::GlobalRegisterName);
+        std::vector<std::string> sortedRegNames =
+            executionContext->result.register_names();
+        std::sort(sortedRegNames.begin(), sortedRegNames.end());
+        for (size_t shot = 0; shot < executionContext->shots; shot++) {
+          std::string myResult;
+          for (auto regName : sortedRegNames) {
+            auto dataByShot = executionContext->result.sequential_data(regName);
+            if (shot < dataByShot.size())
+              myResult += dataByShot[shot];
+          }
+          globalResult.sequentialData.push_back(myResult);
+        }
+        // Count how often each occurrence happened (in the new sorted order)
+        cudaq::CountsDictionary myGlobalCountDict;
+        for (size_t shot = 0; shot < executionContext->shots; shot++)
+          myGlobalCountDict[globalResult.sequentialData[shot]]++;
+        for (auto &[bits, count] : myGlobalCountDict)
+          globalResult.appendResult(bits, count);
+
+        // Append the newly calculated globalResult into the result list
+        executionContext->result.append(globalResult);
       }
     }
 

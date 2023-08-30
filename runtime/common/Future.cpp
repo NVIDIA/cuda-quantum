@@ -37,8 +37,19 @@ sample_result future::get() {
       resultResponse = client.get(jobGetPath, "", headers);
     }
     auto c = serverHelper->processResults(resultResponse);
-    results.emplace_back(c.to_map(),
-                         jobs.size() == 1 ? GlobalRegisterName : id.second);
+
+    // If there are multiple jobs, this is likely a spin_op.
+    // If so, use the job name instead of the global register.
+    if (jobs.size() > 1) {
+      results.emplace_back(c.to_map(), id.second);
+      results.back().sequentialData = c.sequential_data();
+    } else {
+      // For each register, add the results into result.
+      for (auto &regName : c.register_names()) {
+        results.emplace_back(c.to_map(regName), regName);
+        results.back().sequentialData = c.sequential_data(regName);
+      }
+    }
   }
 
   return sample_result(results);

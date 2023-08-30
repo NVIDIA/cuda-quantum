@@ -119,6 +119,9 @@ public:
 
   virtual bool isRemote() { return false; }
 
+  /// Is this a local emulator of a remote QPU?
+  virtual bool isEmulated() { return false; }
+
   /// Enqueue a quantum task on the asynchronous execution queue.
   virtual void
   enqueue(QuantumTask &task) = 0; //{ execution_queue->enqueue(task); }
