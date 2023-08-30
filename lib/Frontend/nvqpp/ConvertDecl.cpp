@@ -211,7 +211,7 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
   }
 
   if (isInNamespace(x, "__gnu_cxx")) {
-    if (name.equals("__promote_2")) {
+    if (name.equals("__promote") || name.equals("__promote_2")) {
       // Recover the typedef in this class. Then find the canonical type
       // resolved for that typedef and push that as the type.
       [[maybe_unused]] unsigned depth = typeStack.size();

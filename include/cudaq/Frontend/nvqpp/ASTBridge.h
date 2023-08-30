@@ -335,6 +335,9 @@ public:
     // inferring a type.
     return true;
   }
+  bool TraverseNestedNameSpecifier(clang::NestedNameSpecifier *s) {
+    return true;
+  }
 
   bool TraverseRecordType(clang::RecordType *t);
   bool interceptRecordDecl(clang::RecordDecl *x);
