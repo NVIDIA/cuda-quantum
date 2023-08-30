@@ -18,7 +18,7 @@ endif()
 
 set(TOOL_NAME nvq++-v1)
 configure_file("nvqpp_flag_configs.h.in" "nvqpp_flag_configs.h" @ONLY)
-add_llvm_executable(${TOOL_NAME} nvqpp.cpp)
+add_llvm_executable(${TOOL_NAME} nvqpp.cpp nvqpp_args.cpp)
 llvm_map_components_to_libnames(LLVM_LIBS support target option)
 find_package(Clang REQUIRED CONFIG)
 set(CLANG_RESOURCE_DIR  ${LLVM_LIBRARY_DIR}/clang/${LLVM_VERSION_MAJOR})

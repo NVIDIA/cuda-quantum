@@ -7,6 +7,7 @@
  ******************************************************************************/
 #pragma once
 
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/InitLLVM.h"
 
@@ -82,4 +83,14 @@ private:
     return std::nullopt;
   }
 };
+
+// Generic interface for target specific args parsing,
+// e.g., implementation will consume its args and construct the
+// PLATFORM_EXTRA_ARGS for compiling the backendConfig.cpp.
+struct TargetPlatformArgs {
+  virtual std::string parsePlatformArgs(ArgvStorageBase &args) = 0;
+};
+
+std::shared_ptr<TargetPlatformArgs>
+getTargetPlatformArgs(const std::string &targetName);
 } // namespace cudaq

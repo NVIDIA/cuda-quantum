@@ -39,7 +39,9 @@ struct Driver {
   std::string cudaqTranslateExe;
   std::string cudaqLibPath;
   std::string cudaqTargetsPath;
-  std::string targetConfigureCmd;
+  std::string targetPlatformExtraArgs;
+  std::string targetConfig;
+  CudaqArgs cudaqArgs;
 
   Driver(const std::string &path, ArgvStorageBase &cmdArgs,
          ExecCompileFuncT cc1)
@@ -57,18 +59,16 @@ struct Driver {
   }
 
   void preProcessCudaQArguments(ArgvStorageBase &cmdArgs) {
-    auto [cudaqArgs, ccArgs] = CudaqArgs::filterArgs(cmdArgs);
+    std::tie(cudaqArgs, std::ignore) = CudaqArgs::filterArgs(cmdArgs);
     if (cudaqArgs.hasOption("target")) {
       if (auto targetOpt = cudaqArgs.getOption("target");
           targetOpt.has_value()) {
         llvm::StringRef targetName = cudaqArgs.getOption("target").value();
-        const llvm::Twine fileName = targetName + ".config";
-        llvm::SmallString<128> targetConfigFile(cudaqTargetsPath.c_str());
-        llvm::sys::path::append(targetConfigFile, fileName);
-        if (llvm::sys::fs::exists(targetConfigFile)) {
-          targetConfigureCmd = targetConfigFile.str();
-        }
-        // TODO: support target-dependent additional obj file compilation
+        targetConfig = targetName.str();
+        auto targetArgsHandler = cudaq::getTargetPlatformArgs(targetConfig);
+        if (targetArgsHandler)
+          targetPlatformExtraArgs =
+              targetArgsHandler->parsePlatformArgs(cmdArgs);
       } else {
         llvm::errs() << "Invalid target option: must be in the form "
                         "'-cudaq-target=<name>'";
@@ -158,7 +158,6 @@ struct Driver {
       bool quakeRun = false;
       for (auto &Job : comp->getJobs()) {
         const clang::driver::Command *failingCommand = nullptr;
-
         if (Job.getSource().getKind() ==
             clang::driver::Action::ActionClass::LinkJobClass) {
           std::vector<std::string> objFileNames;
@@ -205,32 +204,49 @@ struct Driver {
           newLinkArgs.insert(newLinkArgs.end(), strdup(rpathDir.c_str()));
           Job.replaceArguments(newLinkArgs);
         }
+        if (Job.getSource().getKind() ==
+                clang::driver::Action::ActionClass::AssembleJobClass &&
+            !targetConfig.empty()) {
+          // If this is an `Assemble` job, i.e., compile .o file,
+          // and there is a target config, compile backendConfig.cpp as well
+          clang::driver::Command compileBackendConfigCmd(Job);
+          llvm::opt::ArgStringList newArgs;
+          for (const auto &arg : compileBackendConfigCmd.getArguments()) {
+            if (std::equal(sourceInputFileName.rbegin(),
+                           sourceInputFileName.rend(),
+                           std::string(arg).rbegin())) {
+              const std::string backendConfigCppFile =
+                  cudaqTargetsPath + "/backendConfig.cpp";
+              newArgs.insert(newArgs.end(),
+                             strdup(backendConfigCppFile.c_str()));
+            } else {
+              newArgs.insert(newArgs.end(), arg);
+            }
+          }
+          const std::string targetConfigDef =
+              targetConfig + ";emulate;" +
+              (cudaqArgs.hasOption("emulate") ? "true" : "false") +
+              targetPlatformExtraArgs;
+          const std::string defArg =
+              std::string("-DNVQPP_TARGET_BACKEND_CONFIG=\"") +
+              targetConfigDef + "\"";
+          newArgs.insert(newArgs.end(), strdup(defArg.c_str()));
+
+          compileBackendConfigCmd.replaceArguments(newArgs);
+          if (int Res = comp->ExecuteCommand(compileBackendConfigCmd,
+                                             failingCommand)) {
+            failing.push_back(std::make_pair(Res, failingCommand));
+            // bail out
+            break;
+          }
+          // TODO: push this backendConfig obj to the list of obj files for
+          // linking!
+        }
 
         if (int Res = comp->ExecuteCommand(Job, failingCommand)) {
           failing.push_back(std::make_pair(Res, failingCommand));
           // bail out
           break;
-        }
-
-        if (!targetConfigureCmd.empty()) {
-          // Compile target config
-          clang::driver::InputInfoList inputInfos;
-          llvm::opt::ArgStringList cmdArgs;
-          cmdArgs.insert(cmdArgs.end(), strdup(targetConfigureCmd.c_str()));
-
-          // TODO: forward command line arguments...
-          //  ${COPY_INPUT_ARGS}
-          auto configCmd = std::make_unique<clang::driver::Command>(
-              Job.getSource(), Job.getCreator(),
-              clang::driver::ResponseFileSupport::None(), "/bin/bash", cmdArgs,
-              inputInfos);
-
-          if (int Res = comp->ExecuteCommand(*configCmd, failingCommand)) {
-            failing.push_back(std::make_pair(Res, failingCommand));
-            // bail out
-            break;
-          }
-          targetConfigureCmd.clear();
         }
 
         if (llvm::sys::fs::exists(quakeFile) && !quakeRun) {
