@@ -236,7 +236,7 @@ public:
     std::regex pipeline("^PLATFORM_LOWERING_CONFIG\\s*=\\s*\"(\\S+)\"");
     std::regex emissionType("^CODEGEN_EMISSION\\s*=\\s*(\\S+)");
     std::smatch match;
-    for (std::string &line : lines) {
+    for (const std::string &line : lines) {
       if (std::regex_search(line, match, pipeline)) {
         cudaq::info("Appending lowering pipeline: {}", match[1].str());
         passPipelineConfig += "," + match[1].str();

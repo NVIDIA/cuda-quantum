@@ -206,34 +206,33 @@ public:
   void runOnOperation() override {
     auto *op = getOperation();
 
-    // First get a count of the number of times a variable is used.
-    std::unordered_map<std::string, int> varNameCounts;
+    // First save the op's that contain a registerName attribute
+    DenseMap<StringRef, SmallVector<Operation *>> regOps;
     op->walk([&](mlir::Operation *walkOp) {
       if (auto prevAttr = walkOp->getAttr("registerName")) {
-        auto varName = prevAttr.cast<StringAttr>().getValue().str();
-        varNameCounts[varName]++;
+        auto registerName = prevAttr.cast<StringAttr>().getValue();
+        regOps[registerName].push_back(walkOp);
       }
       return WalkResult::advance();
     });
 
     // Now apply new labels, appending a counter if necessary
-    std::unordered_map<std::string, int> varCounter;
-    op->walk([&](mlir::Operation *walkOp) {
-      if (auto prevAttr = walkOp->getAttr("registerName")) {
-        auto varName = prevAttr.cast<StringAttr>().getValue().str();
-        if (varNameCounts[varName] > 1) {
-          auto strLen = std::to_string(varNameCounts[varName] - 1).size();
-          auto suffix = std::to_string(varCounter[varName]++);
+    for (auto &[registerName, opVec] : regOps) {
+      if (opVec.size() == 1)
+        continue; // don't rename individual qubit measurements
+      auto strLen = std::to_string(opVec.size()).size();
+      int bit = 0;
+      for (auto &regOp : opVec)
+        if (auto prevAttr = regOp->getAttr("registerName")) {
+          auto suffix = std::to_string(bit++);
           if (suffix.size() < strLen)
             suffix = std::string(strLen - suffix.size(), '0') + suffix;
           // Note Quantinuum can't support a ":" delimiter, so use '%'
-          auto newAttr = OpBuilder(walkOp->getContext())
-                             .getStringAttr(varName + "%" + suffix);
-          walkOp->setAttr("registerName", newAttr);
+          auto newAttr = OpBuilder(&getContext())
+                             .getStringAttr(registerName + "%" + suffix);
+          regOp->setAttr("registerName", newAttr);
         }
-      }
-      return WalkResult::advance();
-    });
+    }
   }
 };
 
