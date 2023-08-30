@@ -28,7 +28,7 @@
 #include "llvm/Support/Timer.h"
 #include "llvm/Support/VirtualFileSystem.h"
 #include "llvm/TargetParser/Host.h"
-#include <iostream>
+
 namespace cudaq {
 struct Driver {
   ArgvStorageBase &cmdArgs;
@@ -38,6 +38,8 @@ struct Driver {
   std::string cudaqOptExe;
   std::string cudaqTranslateExe;
   std::string cudaqLibPath;
+  std::string cudaqTargetsPath;
+  std::string targetConfigureCmd;
 
   Driver(const std::string &path, ArgvStorageBase &cmdArgs,
          ExecCompileFuncT cc1)
@@ -60,7 +62,12 @@ struct Driver {
       if (auto targetOpt = cudaqArgs.getOption("target");
           targetOpt.has_value()) {
         llvm::StringRef targetName = cudaqArgs.getOption("target").value();
-        printf("TODO: target value = %s\n", targetName.data());
+        const llvm::Twine fileName = targetName + ".config";
+        llvm::SmallString<128> targetConfigFile(cudaqTargetsPath.c_str());
+        llvm::sys::path::append(targetConfigFile, fileName);
+        if (llvm::sys::fs::exists(targetConfigFile)) {
+          targetConfigureCmd = targetConfigFile.str();
+        }
         // TODO: support target-dependent additional obj file compilation
       } else {
         llvm::errs() << "Invalid target option: must be in the form "
@@ -203,6 +210,27 @@ struct Driver {
           failing.push_back(std::make_pair(Res, failingCommand));
           // bail out
           break;
+        }
+
+        if (!targetConfigureCmd.empty()) {
+          // Compile target config
+          clang::driver::InputInfoList inputInfos;
+          llvm::opt::ArgStringList cmdArgs;
+          cmdArgs.insert(cmdArgs.end(), strdup(targetConfigureCmd.c_str()));
+
+          // TODO: forward command line arguments...
+          //  ${COPY_INPUT_ARGS}
+          auto configCmd = std::make_unique<clang::driver::Command>(
+              Job.getSource(), Job.getCreator(),
+              clang::driver::ResponseFileSupport::None(), "/bin/bash", cmdArgs,
+              inputInfos);
+
+          if (int Res = comp->ExecuteCommand(*configCmd, failingCommand)) {
+            failing.push_back(std::make_pair(Res, failingCommand));
+            // bail out
+            break;
+          }
+          targetConfigureCmd.clear();
         }
 
         if (llvm::sys::fs::exists(quakeFile) && !quakeRun) {
@@ -368,6 +396,10 @@ struct Driver {
           exit(1);
         }
         cudaqLibPath = libPath.str();
+        llvm::SmallString<128> targetsPath =
+            llvm::sys::path::parent_path(libPath);
+        llvm::sys::path::append(targetsPath, "targets");
+        cudaqTargetsPath = targetsPath.str();
       }
     }
   }
