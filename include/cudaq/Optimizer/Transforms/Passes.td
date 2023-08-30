@@ -191,7 +191,7 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
 }
 
 def UpdateRegisterNames : Pass<"update-register-names"> {
-  let summary = "Update register names";
+  let summary = "Update classical register names";
   let description = [{
     After loop unrolling, there may be duplicate registerName attributes. Run
     this pass to give them unique attribute values.
