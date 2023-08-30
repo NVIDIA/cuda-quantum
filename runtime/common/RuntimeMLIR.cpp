@@ -120,6 +120,31 @@ void optimizeLLVM(llvm::Module *module) {
     throw std::runtime_error("Failed to optimize LLVM IR ");
 }
 
+void applyWriteOnlyAttributes(llvm::Module *llvmModule) {
+  // Note that we only need to inspect QIRMeasureBody because MeasureCallConv
+  // and MeasureToRegisterCallConv have already been called, so only
+  // QIRMeasureBody remains.
+  const unsigned int arg_num = 1;
+
+  // Apply attribute to measurement function declaration
+  if (auto func = llvmModule->getFunction(cudaq::opt::QIRMeasureBody)) {
+    func->addParamAttr(arg_num, llvm::Attribute::WriteOnly);
+  }
+
+  // Apply to measurement function calls
+  for (llvm::Function &func : *llvmModule)
+    for (llvm::BasicBlock &block : func)
+      for (llvm::Instruction &inst : block) {
+        auto callInst = llvm::dyn_cast_or_null<llvm::CallBase>(&inst);
+        if (callInst && callInst->getCalledFunction()) {
+          auto calledFunc = callInst->getCalledFunction();
+          auto funcName = calledFunc->getName();
+          if (funcName == cudaq::opt::QIRMeasureBody)
+            callInst->addParamAttr(arg_num, llvm::Attribute::WriteOnly);
+        }
+      }
+}
+
 // Once a call to a function with irreversible attribute is seen, no more calls
 // to reversible functions are allowed.
 // Specification quote: "The only difference between these two blocks is that
@@ -299,6 +324,9 @@ void registerToQIRTranslation() {
         auto llvmContext = std::make_unique<llvm::LLVMContext>();
         llvmContext->setOpaquePointers(false);
         auto llvmModule = translateModuleToLLVMIR(op, *llvmContext);
+
+        // Apply required attributes for the Base Profile
+        applyWriteOnlyAttributes(llvmModule.get());
 
         // Add required module flags for the Base Profile
         llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
