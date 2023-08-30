@@ -514,8 +514,8 @@ def quake_ResetOp : QuakeOp<"reset", [QuantumGate,
 // Measurements
 //===----------------------------------------------------------------------===//
 
-class Measurement<string mnemonic> : QuakeOp<mnemonic,
-    [DeclareOpInterfaceMethods<MemoryEffectsOpInterface>, QuantumMeasure]> {
+class Measurement<string mnemonic> : QuakeOp<mnemonic, [MeasurementInterface,
+    QuantumMeasure, DeclareOpInterfaceMethods<MemoryEffectsOpInterface>]> {
   let arguments = (ins
     Variadic<AnyQType>:$targets,
     OptionalAttr<StrAttr>:$registerName
