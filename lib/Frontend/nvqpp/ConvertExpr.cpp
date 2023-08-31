@@ -951,7 +951,7 @@ bool QuakeBridgeVisitor::VisitMaterializeTemporaryExpr(
   // temporary memory location and push the address to the stack.
 
   // Is it already materialized in memory?
-  if (isa<cc::PointerType, cc::ArrayType>(ty))
+  if (isa<cc::PointerType>(ty))
     return true;
 
   // Materialize the value into a glvalue location in memory.
@@ -1660,21 +1660,12 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
       // are accessing it like theta[i].
       auto indexVar = popValue();
       auto svec = popValue();
-      Value eleAddr;
-      if (isa<cc::StdvecType>(svec.getType())) {
-        assert(svec.getType().isa<cc::StdvecType>());
-        auto eleTy = cast<cc::StdvecType>(svec.getType()).getElementType();
-        auto elePtrTy = cc::PointerType::get(eleTy);
-        auto vecPtr = builder.create<cc::StdvecDataOp>(loc, elePtrTy, svec);
-        eleAddr = builder.create<cc::ComputePtrOp>(loc, elePtrTy, vecPtr,
-                                                   ValueRange{indexVar});
-      } else if (auto arrTy = dyn_cast<cc::ArrayType>(svec.getType()))
-        eleAddr = builder.create<cc::GetConstantElementOp>(
-            loc, arrTy.getElementType(), svec, indexVar);
-
-      if (!eleAddr)
-        TODO_loc(loc, "unhandled array-like operator[] indexing.");
-
+      assert(svec.getType().isa<cc::StdvecType>());
+      auto eleTy = cast<cc::StdvecType>(svec.getType()).getElementType();
+      auto elePtrTy = cc::PointerType::get(eleTy);
+      auto vecPtr = builder.create<cc::StdvecDataOp>(loc, elePtrTy, svec);
+      auto eleAddr = builder.create<cc::ComputePtrOp>(loc, elePtrTy, vecPtr,
+                                                      ValueRange{indexVar});
       return replaceTOSValue(eleAddr);
     }
     if (typeName == "_Bit_reference" || typeName == "__bit_reference") {
