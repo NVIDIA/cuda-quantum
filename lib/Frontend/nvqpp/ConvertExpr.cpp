@@ -1974,6 +1974,9 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
         return true;
       }
 
+      // We check for vector constructors with 2 args, the first
+      // could be an initializer_list or an integer, while the
+      // second is the allocator
       if (ctorName == "vector" && x->getNumArgs() == 2) {
         // Here we create a lambda that will peel off the sugar types
         auto peelOffClangTypes = [&](clang::QualType type) {
@@ -2010,11 +2013,8 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
           }
         }
 
-        // Next check if its created from a size integer, we should have an
-        // integer value on the stack, and the constructor should have 2 args
-        // one for the size and another for the allocator
-
-        // Lets do a check on the first argument, make sure that when
+        // Next check if its created from a size integer
+        // Let's do a check on the first argument, make sure that when
         // we peel off all the typedefs that it is an integer
         if (auto builtInType =
                 dyn_cast<clang::BuiltinType>(desugared.getTypePtr())) {
