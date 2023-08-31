@@ -12,9 +12,9 @@
 namespace cudaq {
 class Driver {
   ArgvStorageBase &cmdArgs;
+  std::string driverPath;
   ErrorsDiagnostics diag;
   clang::driver::Driver drv;
-  ExecCompileFuncT cc1EntryPoint;
   std::string cudaqOptExe;
   std::string cudaqTranslateExe;
   std::string cudaqLibPath;
@@ -25,9 +25,9 @@ class Driver {
   std::string cudaqOptPipeline;
 
 public:
-  Driver(const std::string &path, ArgvStorageBase &cmdArgs,
-         ExecCompileFuncT cc1);
+  Driver(ArgvStorageBase &cmdArgs);
   int execute();
+  static int executeCC1Tool(ArgvStorageBase &cmdArgs);
 
 private:
   void preProcessCudaQArguments(ArgvStorageBase &cmdArgs);
@@ -36,5 +36,11 @@ private:
   std::optional<clang::driver::Driver::ReproLevel> getClangReproLevel(
       const std::unique_ptr<clang::driver::Compilation> &comp) const;
   void setInstallDir(ArgvStorageBase &argv);
+
+  static int cc1Main(const CudaqArgs &cudaqArgs, ArgvT ccargs, ArgT tool,
+                     void *mainAddr);
+
+  static bool executeCompilerInvocation(clang::CompilerInstance *ci,
+                                        const CudaqArgs &cudaqArgs);
 };
 } // namespace cudaq
