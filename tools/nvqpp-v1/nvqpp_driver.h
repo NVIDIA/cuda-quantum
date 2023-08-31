@@ -150,12 +150,17 @@ struct Driver {
       return "";
     }();
     const std::string quakeFile = sourceInputFileName + ".qke";
-    const std::string quakeFileOpt = quakeFile + ".opt";
-    const std::string quakeFileLl = sourceInputFileName + ".qir.ll";
-    const std::string quakeFileObj = sourceInputFileName + ".qke.o";
+    const std::string quakeFileOpt =
+        drv.CreateTempFile(*comp, sourceInputFileName, "opt");
+    const std::string quakeFileLl =
+        drv.CreateTempFile(*comp, sourceInputFileName, "ll");
+    const std::string quakeFileObj =
+        drv.CreateTempFile(*comp, sourceInputFileName + "-qke", "o");
     if (comp && !comp->containsError()) {
       FailingCommands failing;
       bool quakeRun = false;
+      std::vector<std::string> objFilesToMerge;
+
       for (auto &Job : comp->getJobs()) {
         const clang::driver::Command *failingCommand = nullptr;
         if (Job.getSource().getKind() ==
@@ -173,8 +178,9 @@ struct Driver {
             if (std::find(objFileNames.begin(), objFileNames.end(), arg) !=
                     objFileNames.end() &&
                 !inserted) {
-              newLinkArgs.insert(newLinkArgs.end(),
-                                 strdup(quakeFileObj.c_str()));
+              // Insert other object files, e.g., backend config and quake.
+              for (const auto &objFile : objFilesToMerge)
+                newLinkArgs.insert(newLinkArgs.end(), strdup(objFile.c_str()));
               inserted = true;
             }
             newLinkArgs.insert(newLinkArgs.end(), arg);
@@ -211,6 +217,13 @@ struct Driver {
           // and there is a target config, compile backendConfig.cpp as well
           clang::driver::Command compileBackendConfigCmd(Job);
           llvm::opt::ArgStringList newArgs;
+          const std::string outputFileName = Job.getOutputFilenames().front();
+          // $backendConfig-<target>-%%%%%%.o
+          const std::string prefix =
+              std::string("backendConfig-") + targetConfig;
+          const char *backendConfigObjFile =
+              drv.CreateTempFile(*comp, prefix, "o");
+          objFilesToMerge.emplace_back(backendConfigObjFile);
           for (const auto &arg : compileBackendConfigCmd.getArguments()) {
             if (std::equal(sourceInputFileName.rbegin(),
                            sourceInputFileName.rend(),
@@ -219,6 +232,8 @@ struct Driver {
                   cudaqTargetsPath + "/backendConfig.cpp";
               newArgs.insert(newArgs.end(),
                              strdup(backendConfigCppFile.c_str()));
+            } else if (std::string(arg) == outputFileName) {
+              newArgs.insert(newArgs.end(), backendConfigObjFile);
             } else {
               newArgs.insert(newArgs.end(), arg);
             }
@@ -250,6 +265,12 @@ struct Driver {
         }
 
         if (llvm::sys::fs::exists(quakeFile) && !quakeRun) {
+          // Track quake temp file to delete
+          // FIXME: don't use a separate file stream for quake output, use the
+          // driver::Compilation temp file system.
+          llvm::SmallString<128> quakeTmpFile(quakeFile);
+          llvm::sys::fs::make_absolute(quakeTmpFile);
+          comp->addTempFile(strdup(quakeTmpFile.c_str()));
           quakeRun = true;
           // Run quake-opt
           // TODO: need to check the action requested (LLVM/Obj)
@@ -314,6 +335,8 @@ struct Driver {
               // bail out
               break;
             }
+            // LLC succeed, add quake obj file
+            objFilesToMerge.emplace_back(quakeFileObj);
           }
         }
       }
