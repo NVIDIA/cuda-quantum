@@ -170,12 +170,14 @@ jobs:
           TAGS: ${{ steps.metadata.outputs.tags }}
         run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
-      - name: Cache cuda-quantum image
+      - name: Upload cuda-quantum image artifact
         if: steps.build_info.outputs.tar_cache && steps.build_info.outputs.tar_archive
-        uses: actions/cache/save@v3
+        uses: actions/upload-artifact@v3
         with:
+          name: ${{ steps.build_info.outputs.tar_cache }}
           path: ${{ steps.build_info.outputs.tar_archive }}
-          key: ${{ steps.build_info.outputs.tar_cache }}
+          retention-days: 5
+          if-no-files-found: error
 
   cudaqdev_image:
     name: cuda-quantum-dev (debug)
@@ -217,17 +219,15 @@ jobs:
 
       - name: Restore build environment
         if: inputs.devdeps_cache && inputs.devdeps_archive
-        id: restore
-        uses: actions/cache/restore@v3
+        uses:  actions/download-artifact@v3
         with:
-          path: ${{ inputs.devdeps_archive }}
-          key: ${{ inputs.devdeps_cache }}
-          fail-on-cache-miss: true
+          name: ${{ inputs.devdeps_cache }}
+          path: /tmp
 
       - name: Load prerequisites
         id: prereqs
         run: |
-          if ${{ steps.restore.outcome != 'skipped' }}; then
+          if true; then
             load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
             base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
             echo "Base image: $base_image" >> $GITHUB_STEP_SUMMARY
@@ -309,12 +309,14 @@ jobs:
           TAGS: ${{ steps.metadata.outputs.tags }}
         run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
-      - name: Cache cuda-quantum-dev image
+      - name: Upload cuda-quantum-dev image artifact
         if: steps.prereqs.outputs.tar_cache && steps.prereqs.outputs.tar_archive
-        uses: actions/cache/save@v3
+        uses: actions/upload-artifact@v3
         with:
+          name: ${{ steps.prereqs.outputs.tar_cache }}
           path: ${{ steps.prereqs.outputs.tar_archive }}
-          key: ${{ steps.prereqs.outputs.tar_cache }}
+          retention-days: 5
+          if-no-files-found: error
 
   cudaq_image:
     name: cuda-quantum (release)
@@ -359,17 +361,15 @@ jobs:
 
       - name: Restore build environment
         if: inputs.devdeps_cache && inputs.devdeps_archive
-        id: restore_devdeps
-        uses: actions/cache/restore@v3
+        uses:  actions/download-artifact@v3
         with:
-          path: ${{ inputs.devdeps_archive }}
-          key: ${{ inputs.devdeps_cache }}
-          fail-on-cache-miss: true
+          name: ${{ inputs.devdeps_cache }}
+          path: /tmp
 
       - name: Restore Open MPI dependencies
         id: restore_openmpi
         if: needs.ompi_image.outputs.tar_cache && needs.ompi_image.outputs.tar_archive
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v3 # Ignore Restore Open MPI dependencies for now
         with:
           path: ${{ needs.ompi_image.outputs.tar_archive }}
           key: ${{ needs.ompi_image.outputs.tar_cache }}
@@ -394,7 +394,7 @@ jobs:
             echo "Base image: $base_image" >> $GITHUB_STEP_SUMMARY
           fi
 
-          if ${{ steps.restore_devdeps.outcome != 'skipped' }}; then
+          if true; then
             load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
             echo "$load_output"
             devdeps_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
@@ -539,12 +539,14 @@ jobs:
           push: ${{ inputs.environment != '' }}
           outputs: ${{ steps.prereqs.outputs.docker_output }}
 
-      - name: Cache cuda-quantum image
+      - name: Upload cuda-quantum image artifact
         if: steps.prereqs.outputs.tar_cache && steps.prereqs.outputs.tar_archive
-        uses: actions/cache/save@v3
+        uses: actions/upload-artifact@v3
         with:
+          name: ${{ steps.prereqs.outputs.tar_cache }}
           path: ${{ steps.prereqs.outputs.tar_archive }}
-          key: ${{ steps.prereqs.outputs.tar_cache }}
+          retention-days: 5
+          if-no-files-found: error
 
       - name: Sign image with GitHub OIDC Token
         if: inputs.environment && steps.prereqs.outputs.ngc_registry == ''
@@ -617,27 +619,23 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Restore CUDA Quantum build
-        id: restore_cudaqdev
         if: needs.cudaqdev_image.outputs.tar_cache && needs.cudaqdev_image.outputs.tar_archive
-        uses: actions/cache/restore@v3
+        uses:  actions/download-artifact@v3
         with:
-          path: ${{ needs.cudaqdev_image.outputs.tar_archive }}
-          key: ${{ needs.cudaqdev_image.outputs.tar_cache }}
-          fail-on-cache-miss: true
+          name: ${{ needs.cudaqdev_image.outputs.tar_cache }}
+          path: /tmp
 
       - name: Restore CUDA Quantum image
-        id: restore_cudaq
         if: needs.cudaq_image.outputs.tar_cache && needs.cudaq_image.outputs.tar_archive
-        uses: actions/cache/restore@v3
+        uses:  actions/download-artifact@v3
         with:
-          path: ${{ needs.cudaq_image.outputs.tar_archive }}
-          key: ${{ needs.cudaq_image.outputs.tar_cache }}
-          fail-on-cache-miss: true
+          name: ${{ needs.cudaq_image.outputs.tar_cache }}
+          path: /tmp
 
       - name: Build documentation
         id: docs_build
         run: |
-          if ${{ steps.restore_cudaq.outcome != 'skipped' }}; then
+          if true; then
             load_output=`docker load --input "${{ needs.cudaq_image.outputs.tar_archive }}"`
             cudaq_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
           else
@@ -650,7 +648,7 @@ jobs:
           docker image rm $cudaq_image
           docker image prune --force
 
-          if ${{ steps.restore_cudaqdev.outcome != 'skipped' }}; then
+          if true; then
             load_output=`docker load --input "${{ needs.cudaqdev_image.outputs.tar_archive }}"`
             cudaqdev_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
           else
@@ -712,17 +710,15 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Load cuda-quantum image
-        id: restore
         if: needs.cudaq_image.outputs.tar_cache && needs.cudaq_image.outputs.tar_archive
-        uses: actions/cache/restore@v3
+        uses:  actions/download-artifact@v3
         with:
-          path: ${{ needs.cudaq_image.outputs.tar_archive }}
-          key: ${{ needs.cudaq_image.outputs.tar_cache }}
-          fail-on-cache-miss: true
+          name: ${{ needs.cudaq_image.outputs.tar_cache }}
+          path: /tmp
 
       - name: Validate cuda-quantum image
         run: |
-          if ${{ steps.restore.outcome != 'skipped' }}; then
+          if true; then
             load_output=`docker load --input "${{ needs.cudaq_image.outputs.tar_archive }}"`
             cudaq_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
           else

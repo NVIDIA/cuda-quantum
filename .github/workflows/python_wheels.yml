@@ -48,17 +48,15 @@ jobs:
 
       - name: Restore build environment
         if: inputs.devdeps_cache && inputs.devdeps_archive
-        id: restore
-        uses: actions/cache/restore@v3
+        uses: actions/download-artifact@v3
         with:
-          path: ${{ inputs.devdeps_archive }}
-          key: ${{ inputs.devdeps_cache }}
-          fail-on-cache-miss: true
+          name: ${{ inputs.devdeps_cache }}
+          path: /tmp
 
       - name: Load prerequisites
         id: prereqs
         run: |
-          if ${{ steps.restore.outcome != 'skipped' }}; then
+          if true; then
             load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
             base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
             echo "Base image: $base_image" >> $GITHUB_STEP_SUMMARY

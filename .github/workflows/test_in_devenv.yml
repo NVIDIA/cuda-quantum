@@ -28,12 +28,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Restore environment
-        uses: actions/cache/restore@v3
+      - name: Download artifact ${{ inputs.devdeps_archive }}
+        uses: actions/download-artifact@v3
         with:
-          path: ${{ inputs.devdeps_archive }}
-          key: ${{ inputs.devdeps_cache }}
-          fail-on-cache-miss: true
+          name: ${{ inputs.devdeps_cache }}
+          path: /tmp
 
       - name: Set up context for buildx
         run: |
@@ -107,12 +106,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Restore environment
-        uses: actions/cache/restore@v3
+      - name: Download artifact ${{ inputs.devdeps_archive }}
+        uses: actions/download-artifact@v3
         with:
-          path: ${{ inputs.devdeps_archive }}
-          key: ${{ inputs.devdeps_cache }}
-          fail-on-cache-miss: true
+          name: ${{ inputs.devdeps_cache }}
+          path: /tmp
 
       - name: Set up context for buildx
         run: |

@@ -95,14 +95,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: [devdeps, wheeldeps]
 
-    outputs:
-      json: "${{ steps.read_json.outputs.result }}"
-
     steps:
-      - uses: cloudposse/github-action-matrix-outputs-read@0.1.1
-        id: read_json
-        with:
-          matrix-step-name: dev_environment
+      - name: Dummy configuration step to sync steps
+        run: |
+          echo "Dummy configuration step"
 
   build_and_test:
     name: Build and test
@@ -115,8 +111,8 @@ jobs:
     uses: ./.github/workflows/test_in_devenv.yml
     with:
       platform: linux/${{ matrix.platform }}
-      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
-      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
+      devdeps_cache: tar-devdeps-${{ matrix.toolchain }}-${{ matrix.platform }}-${{ github.sha }}
+      devdeps_archive: /tmp/devdeps.tar
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
   docker_image:
@@ -129,8 +125,8 @@ jobs:
     uses: ./.github/workflows/docker_images.yml
     with:
       platforms: linux/${{ matrix.platform }}
-      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-llvm', matrix.platform)] }}
-      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-llvm', matrix.platform)] }}
+      devdeps_cache: tar-devdeps-llvm-${{ matrix.platform }}-${{ github.sha }}
+      devdeps_archive: /tmp/devdeps.tar
 
   python_wheels:
     name: Create Python wheels
@@ -144,8 +140,8 @@ jobs:
     with:
       platform: linux/${{ matrix.platform }}
       python_version: ${{ matrix.python_version }}
-      devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-python', matrix.platform)] }}
-      devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-python', matrix.platform)] }}
+      devdeps_cache: tar-devdeps-manylinux-gcc11-${{ matrix.platform }}-${{ github.sha }}
+      devdeps_archive: /tmp/devdeps.manylinux.tar
 
   clean_up:
     name: Prepare cache clean-up

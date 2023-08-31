@@ -281,7 +281,7 @@ jobs:
           fi
 
       - name: Check out local cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v3 # this fails most of the time, so ignore for now
         with:
           path: ${{ steps.cache.outputs.local_buildcache_path }}
           key: ${{ steps.cache.outputs.local_buildcache_key }}${{ steps.cache.outputs.local_buildcache_key_suffix }}
@@ -331,19 +331,23 @@ jobs:
             mv "$build_cache" "${{ steps.cache.outputs.local_buildcache_path }}"
           fi
 
-      - name: Upload build cache
+      - name: Upload build cache as artifact
         if: inputs.create_local_cache
-        uses: actions/cache/save@v3
+        uses: actions/upload-artifact@v3
         with:
+          name: ${{ steps.cache.outputs.local_buildcache_key }}${{ steps.cache.outputs.local_buildcache_key_suffix }}
           path: ${{ steps.cache.outputs.local_buildcache_path }}
-          key: ${{ steps.cache.outputs.local_buildcache_key }}${{ steps.cache.outputs.local_buildcache_key_suffix }}
+          retention-days: 5
+          if-no-files-found: error
 
-      - name: Cache ${{ needs.metadata.outputs.image_title }} image
+      - name: Upload artifact ${{ needs.metadata.outputs.image_title }}
         if: steps.cache.outputs.tar_cache && steps.cache.outputs.tar_archive
-        uses: actions/cache/save@v3
+        uses: actions/upload-artifact@v3
         with:
+          name: ${{ steps.cache.outputs.tar_cache }}
           path: ${{ steps.cache.outputs.tar_archive }}
-          key: ${{ steps.cache.outputs.tar_cache }}
+          retention-days: 5
+          if-no-files-found: error
 
   finalize:
     name: Finalize
