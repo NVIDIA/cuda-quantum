@@ -88,7 +88,15 @@ private:
 // e.g., implementation will consume its args and construct the
 // PLATFORM_EXTRA_ARGS for compiling the backendConfig.cpp.
 struct TargetPlatformArgs {
-  virtual std::string parsePlatformArgs(ArgvStorageBase &args) = 0;
+  struct Data {
+    bool genTargetBackend = false;
+    // Additional link flags, e.g., "-lcudaq-rest-qpu"
+    std::vector<std::string> linkFlags;
+    bool libraryMode = false;
+    // Extra args to be sent on as defines
+    std::string platformExtraArgs;
+  };
+  virtual Data parsePlatformArgs(ArgvStorageBase &args) = 0;
 };
 
 std::shared_ptr<TargetPlatformArgs>

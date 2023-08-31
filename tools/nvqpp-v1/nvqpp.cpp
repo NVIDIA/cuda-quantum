@@ -12,13 +12,19 @@
 #include "cudaq/Support/Version.h"
 #include "nvqpp_config.h"
 #include "nvqpp_diagnostics.h"
-
+#include "clang/CodeGen/CodeGenAction.h"
+#include "clang/Frontend/FrontendActions.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ErrorOr.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/InitLLVM.h"
 #include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Support/Process.h"
 #include "llvm/Support/Program.h"
+#include "llvm/Support/Signals.h"
+#include "llvm/Support/TargetSelect.h"
+#include "llvm/Support/TimeProfiler.h"
+#include "llvm/Support/Timer.h"
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -28,7 +34,6 @@
 
 #include "cudaq/Frontend/nvqpp/ASTBridge.h"
 #include "nvqpp_driver.h"
-#include <iostream>
 extern "C" {
 void getThisExecutablePath() { return; }
 }

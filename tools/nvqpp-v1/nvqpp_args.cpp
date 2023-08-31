@@ -10,7 +10,8 @@ namespace {
 // FIXME: these implementations should be located elsewhere (e.g., near the
 // ServerHelper impl), not here.
 struct IonQTargetPlatformArgs : public cudaq::TargetPlatformArgs {
-  virtual std::string parsePlatformArgs(ArgvStorageBase &args) override {
+  virtual cudaq::TargetPlatformArgs::Data
+  parsePlatformArgs(ArgvStorageBase &args) override {
     std::string platformExtraArgs;
     // Note: erase args within the loop
     for (auto it = args.begin(); it != args.end(); ++it) {
@@ -27,7 +28,12 @@ struct IonQTargetPlatformArgs : public cudaq::TargetPlatformArgs {
         it = args.erase(it, std::next(it, 2));
       }
     }
-    return platformExtraArgs;
+
+    return cudaq::TargetPlatformArgs::Data{.genTargetBackend = true,
+                                           .linkFlags = {"-lcudaq-rest-qpu"},
+                                           .libraryMode = false,
+                                           .platformExtraArgs =
+                                               platformExtraArgs};
   }
 };
 } // namespace
