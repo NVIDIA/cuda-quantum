@@ -8,7 +8,7 @@
 
 // Test for std::vector initializer_list constructor support
 
-// RUN: cudaq-quake %s | cudaq-opt --canonicalize | FileCheck %s
+// RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
 
 #include "cudaq.h"
 
