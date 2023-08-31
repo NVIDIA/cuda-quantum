@@ -631,6 +631,12 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
     return pushValue(callable);
   }
 
+  if (auto arrayType = dyn_cast<cc::ArrayType>(type)) {
+    auto array = popValue();
+    symbolTable.insert(name, array);
+    return pushValue(array);
+  }
+
   // Variable is of some basic type not already handled. Create a local stack
   // slot in which to save the value. This stack slot is the variable in the
   // memory domain.

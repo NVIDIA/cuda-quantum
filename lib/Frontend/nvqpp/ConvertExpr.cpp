@@ -951,7 +951,7 @@ bool QuakeBridgeVisitor::VisitMaterializeTemporaryExpr(
   // temporary memory location and push the address to the stack.
 
   // Is it already materialized in memory?
-  if (isa<cc::PointerType>(ty))
+  if (isa<cc::PointerType, cc::ArrayType>(ty))
     return true;
 
   // Materialize the value into a glvalue location in memory.
@@ -1660,12 +1660,21 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
       // are accessing it like theta[i].
       auto indexVar = popValue();
       auto svec = popValue();
-      assert(svec.getType().isa<cc::StdvecType>());
-      auto eleTy = cast<cc::StdvecType>(svec.getType()).getElementType();
-      auto elePtrTy = cc::PointerType::get(eleTy);
-      auto vecPtr = builder.create<cc::StdvecDataOp>(loc, elePtrTy, svec);
-      auto eleAddr = builder.create<cc::ComputePtrOp>(loc, elePtrTy, vecPtr,
-                                                      ValueRange{indexVar});
+      Value eleAddr;
+      if (isa<cc::StdvecType>(svec.getType())) {
+        assert(svec.getType().isa<cc::StdvecType>());
+        auto eleTy = cast<cc::StdvecType>(svec.getType()).getElementType();
+        auto elePtrTy = cc::PointerType::get(eleTy);
+        auto vecPtr = builder.create<cc::StdvecDataOp>(loc, elePtrTy, svec);
+        eleAddr = builder.create<cc::ComputePtrOp>(loc, elePtrTy, vecPtr,
+                                                   ValueRange{indexVar});
+      } else if (auto arrTy = dyn_cast<cc::ArrayType>(svec.getType()))
+        eleAddr = builder.create<cc::GetConstantElementOp>(
+            loc, arrTy.getElementType(), svec, indexVar);
+
+      if (!eleAddr)
+        TODO_loc(loc, "unhandled array-like operator[] indexing.");
+
       return replaceTOSValue(eleAddr);
     }
     if (typeName == "_Bit_reference" || typeName == "__bit_reference") {
@@ -1838,6 +1847,34 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
     // Pass initialization list with one member as a Ref.
     return pushValue(last[0]);
   }
+
+  // Handle initializer lists like {1.1, 2.2, 3.3,...}
+  // or the same for integers
+  bool isAllIntOrAllFloat = [&]() {
+    for (auto v : last)
+      if (!v.getType().isIntOrFloat())
+        return false;
+    return true;
+  }();
+  if (isAllIntOrAllFloat) {
+    SmallVector<Attribute> constantValues;
+    for (auto v : last) {
+      Type type = v.getType();
+      if (auto constantOp = v.getDefiningOp<arith::ConstantFloatOp>())
+        constantValues.push_back(
+            builder.getFloatAttr(type, constantOp.value()));
+      if (auto constantOp = v.getDefiningOp<arith::ConstantIntOp>())
+        constantValues.push_back(
+            builder.getIntegerAttr(type, constantOp.value()));
+    }
+    // Clear the types for the init expr
+    typeStack.clear();
+    return pushValue(builder.create<cc::ConstantArrayOp>(
+        loc,
+        cc::ArrayType::get(builder.getContext(), last.front().getType(), size),
+        builder.getArrayAttr(constantValues)));
+  }
+
   TODO_x(loc, x, mangler, "list initialization (not quantum ref)");
   return true;
 }
@@ -1948,6 +1985,14 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
         [[maybe_unused]] auto tosTy = peekValue().getType();
         assert((isa<quake::RefType, quake::VeqType>(tosTy)));
         return true;
+      }
+
+      if (ctorName == "vector") {
+        // This is a std::vector constructor, first we'll check if it
+        // is constructed from a constant initializer list
+        if (auto arrTy = dyn_cast<cc::ArrayType>(peekValue().getType()))
+          if (arrTy.getSize() != cc::ArrayType::unknownSize)
+            return true;
       }
     }
     if (ctor->isCopyConstructor())
