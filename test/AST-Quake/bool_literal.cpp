@@ -11,11 +11,6 @@
 
 #include <cudaq.h>
 
-// CHECK: quake.h %[[VAL_0:.*]] : (!quake.ref) -> ()
-// CHECK: %false = arith.constant false
-// CHECK: %[[VAL_1:.*]] = cc.alloca i1
-// CHECK: cc.store %false, %[[VAL_1]] : !cc.ptr<i1>
-
 struct testBoolLiteral {
   bool operator()() __qpu__ {
     cudaq::qubit q;
@@ -25,3 +20,15 @@ struct testBoolLiteral {
     return bit;
   }
 };
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__testBoolLiteral() -> i1 attributes
+// CHECK:           %[[VAL_0:.*]] = arith.constant false
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
+// CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_2:.*]] = cc.alloca i1
+// CHECK:           cc.store %[[VAL_0]], %[[VAL_2]] : !cc.ptr<i1>
+// CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_1]] : (!quake.ref) -> i1
+// CHECK:           cc.store %[[VAL_3]], %[[VAL_2]] : !cc.ptr<i1>
+// CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_2]] : !cc.ptr<i1>
+// CHECK:           return %[[VAL_4]] : i1
+

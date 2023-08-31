@@ -481,7 +481,8 @@ public:
   void genNewHostEntryPoint(Location loc, OpBuilder &builder,
                             StringAttr mangledAttr, FunctionType funcTy,
                             Type structTy, LLVM::GlobalOp kernName,
-                            func::FuncOp thunk, ModuleOp module) {
+                            func::FuncOp thunk, ModuleOp module,
+                            bool addThisPtr) {
     auto *ctx = builder.getContext();
     auto i64Ty = builder.getIntegerType(64);
     auto zeroAttr = builder.getI64IntegerAttr(0);
@@ -500,7 +501,7 @@ public:
         return;
       }
     } else {
-      newFuncTy = cudaq::opt::factory::toCpuSideFuncType(funcTy);
+      newFuncTy = cudaq::opt::factory::toCpuSideFuncType(funcTy, addThisPtr);
     }
     auto rewriteEntry =
         builder.create<func::FuncOp>(loc, mangledAttr.getValue(), newFuncTy);
@@ -753,7 +754,8 @@ public:
       // Generate a new mangled function on the host side to call the
       // callback function.
       genNewHostEntryPoint(loc, builder, mangledAttr, funcTy, structTy,
-                           kernName, thunk, module);
+                           kernName, thunk, module,
+                           !funcOp->hasAttr("no_this"));
 
       // Generate a function at startup to register this kernel as having
       // been processed for kernel execution.
