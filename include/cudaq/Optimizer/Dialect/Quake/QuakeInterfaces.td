@@ -108,6 +108,13 @@ def MeasurementInterface : OpInterface<"MeasurementInterface"> {
           return {attr.getValue().str()};
         return {};
       }]
+    >,
+    InterfaceMethod<
+      /*desc=*/ "Set the registerName attribute",
+      /*retType=*/ "void",
+      /*methodName=*/ "setRegisterName",
+      /*args=*/ (ins "llvm::StringRef":$name),
+      /*methodBody=*/ "$_op.setRegisterName(name);"
     >
   ];
 }
