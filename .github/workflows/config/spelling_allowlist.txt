@@ -74,6 +74,7 @@ coprocessors
 copyable
 cortex-cli
 cuQuantum
+cudaq
 deallocate
 deallocated
 deallocates
@@ -92,7 +93,9 @@ eigenvalue
 eigenvalues
 eigenvector
 eigenvectors
+enqueue
 enqueues
+enqueuing
 entangler
 entanglers
 enum
@@ -110,6 +113,8 @@ parallelization
 precompute
 precomputed
 prepend
+qplt
+qpu
 quantize
 quantized
 qubit
@@ -128,6 +133,7 @@ subfolder
 submodule
 subscriptable
 subtype
+subtyped
 subtypes
 subtyping
 symplectic

@@ -176,6 +176,9 @@ public:
   void clearShots() override { nShots = std::nullopt; }
   virtual bool isRemote() override { return !emulate; }
 
+  /// @brief Return true if locally emulating a remote QPU
+  virtual bool isEmulated() override { return emulate; }
+
   /// @brief Set the noise model, only allow this for
   /// emulation.
   void setNoiseModel(cudaq::noise_model *model) override {
@@ -258,8 +261,8 @@ public:
 
     // Loop through the file, extract the pass pipeline and CODEGEN Type
     auto lines = cudaq::split(configContents, '\n');
-    std::regex pipeline("PLATFORM_LOWERING_CONFIG\\s*=\\s*\"(\\S+)\"");
-    std::regex emissionType("CODEGEN_EMISSION\\s*=\\s*(\\S+)");
+    std::regex pipeline("^PLATFORM_LOWERING_CONFIG\\s*=\\s*\"(\\S+)\"");
+    std::regex emissionType("^CODEGEN_EMISSION\\s*=\\s*(\\S+)");
     std::smatch match;
     for (const std::string &line : lines) {
       if (std::regex_search(line, match, pipeline)) {
@@ -443,9 +446,21 @@ public:
               cudaq::getExecutionManager()->setExecutionContext(&context);
               invokeJITKernelAndRelease(localJIT[i], kernelName);
               cudaq::getExecutionManager()->resetExecutionContext();
-              results.emplace_back(context.result.to_map(),
-                                   codes.size() == 1 ? cudaq::GlobalRegisterName
-                                                     : codes[i].name);
+
+              // If there are multiple codes, this is likely a spin_op.
+              // If so, use the code name instead of the global register.
+              if (codes.size() > 1) {
+                results.emplace_back(context.result.to_map(), codes[i].name);
+                results.back().sequentialData =
+                    context.result.sequential_data();
+              } else {
+                // For each register, add the context results into result.
+                for (auto &regName : context.result.register_names()) {
+                  results.emplace_back(context.result.to_map(regName), regName);
+                  results.back().sequentialData =
+                      context.result.sequential_data(regName);
+                }
+              }
             }
             localJIT.clear();
             return cudaq::sample_result(results);

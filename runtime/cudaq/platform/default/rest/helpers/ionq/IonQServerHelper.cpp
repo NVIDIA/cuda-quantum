@@ -264,6 +264,8 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse) {
 
   cudaq::CountsDictionary counts;
 
+  cudaq::info("Results message: {}", results.dump());
+
   // Process the results
   assert(nQubits <= 64);
   for (const auto &element : results.items()) {
