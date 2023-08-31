@@ -581,8 +581,8 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
         return true;
 
       // Assign registerName
-      if (auto mz = initVec.getDefiningOp<quake::MeasurementInterface>())
-        mz.setRegisterName(builder.getStringAttr(x->getName()));
+      if (auto meas = initVec.getDefiningOp<quake::MeasurementInterface>())
+        meas.setRegisterName(builder.getStringAttr(x->getName()));
 
       // Did this come from a stdvec init op? If not drop out
       auto stdVecInit = initVec.getDefiningOp<cc::StdvecInitOp>();
