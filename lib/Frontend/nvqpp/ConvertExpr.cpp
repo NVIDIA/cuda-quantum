@@ -1839,14 +1839,16 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
     return pushValue(last[0]);
   }
 
-  // Handle initializer lists like {1.1, 2.2, 3.3,...}
-  // or the same for integers
+  // Check if all values here are Integer or Float Type
   bool isAllIntOrAllFloat = [&]() {
     for (auto v : last)
       if (!v.getType().isIntOrFloat())
         return false;
     return true;
   }();
+
+  // If these are integers or floats, then let's allocate
+  // some memory and store them there.
   if (isAllIntOrAllFloat) {
     // Clear the types for the init expr
     typeStack.clear();
@@ -1869,9 +1871,7 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
       builder.create<cc::StoreOp>(loc, v, ptr);
     }
 
-    // Create the stdvec_init op
-    return pushValue(builder.create<cc::StdvecInitOp>(
-        loc, cc::StdvecType::get(dataType), alloca, arrSize));
+    return pushValue(alloca);
   }
 
   TODO_x(loc, x, mangler, "list initialization (not quantum ref)");
@@ -1988,10 +1988,19 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
 
       if (ctorName == "vector") {
         // This is a std::vector constructor, first we'll check if it
-        // is constructed from a constant initializer list, if
-        // so the top value will have stdvec type, and we can just drop out
-        if (isa<cc::StdvecType>(peekValue().getType()))
-          return true;
+        // is constructed from a constant initializer list, in that case
+        // we'll have a AllocaOp at the top of the stack that allocates a
+        // ptr<array<TxC>>, where C is constant / known
+        if (auto alloca = dyn_cast<cc::AllocaOp>(peekValue().getDefiningOp())) {
+          auto asPtrType =
+              dyn_cast<cc::PointerType>(alloca.getAddress().getType());
+          if (auto arrayTy =
+                  dyn_cast<cc::ArrayType>(asPtrType.getElementType()))
+            if (alloca.getNumOperands() > 0)
+              return pushValue(builder.create<cc::StdvecInitOp>(
+                  loc, cc::StdvecType::get(arrayTy.getElementType()), alloca,
+                  alloca.getSeqSize()));
+        }
 
         // Next check if its created from a size integer
         if (peekValue().getType().isIntOrFloat()) {
@@ -2036,7 +2045,8 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     // 1) A unique object must be created, so the type must have a minimum of
     //    one byte.
     // 2) Allocate a new object.
-    // 3) Call the constructor passing the address of the allocation as `this`.
+    // 3) Call the constructor passing the address of the allocation as
+    // `this`.
 
     // FIXME: As this is now, the stack space isn't correctly sized. The
     // next line should be something like:
