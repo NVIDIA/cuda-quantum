@@ -6,30 +6,28 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "nvqpp_args.h"
-#include "llvm/ADT/Twine.h"
-
 namespace {
 // FIXME: these implementations should be located elsewhere (e.g., near the
 // ServerHelper impl), not here.
 struct IonQTargetPlatformArgs : public cudaq::TargetPlatformArgs {
   virtual std::string parsePlatformArgs(ArgvStorageBase &args) override {
-    llvm::Twine platformExtraArgs;
+    std::string platformExtraArgs;
     // Note: erase args within the loop
     for (auto it = args.begin(); it != args.end(); ++it) {
       auto arg = llvm::StringRef(*it);
       if (arg.equals("--ionq-machine")) {
-        platformExtraArgs.concat(
-            llvm::Twine(";qpu;", llvm::StringRef(*std::next(it))));
+        platformExtraArgs += std::string(";qpu;");
+        platformExtraArgs += std::string(*std::next(it));
         it = args.erase(it, std::next(it, 2));
       }
 
       if (arg.equals("--ionq-noise-model")) {
-        platformExtraArgs.concat(
-            llvm::Twine(";noise;", llvm::StringRef(*std::next(it))));
+        platformExtraArgs += std::string(";noise;");
+        platformExtraArgs += std::string(*std::next(it));
         it = args.erase(it, std::next(it, 2));
       }
     }
-    return platformExtraArgs.str();
+    return platformExtraArgs;
   }
 };
 } // namespace

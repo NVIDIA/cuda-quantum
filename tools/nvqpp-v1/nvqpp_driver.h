@@ -42,7 +42,7 @@ struct Driver {
   std::string targetPlatformExtraArgs;
   std::string targetConfig;
   CudaqArgs cudaqArgs;
-
+  std::string cudaqOptPipeline;
   Driver(const std::string &path, ArgvStorageBase &cmdArgs,
          ExecCompileFuncT cc1)
       : cmdArgs(cmdArgs), diag(cmdArgs, path),
@@ -75,6 +75,82 @@ struct Driver {
         exit(1);
       }
     }
+  }
+  std::string processOptPipeline(ArgvStorageBase &args, bool doLink) {
+    // Default options
+    struct PipelineOpt {
+      bool ENABLE_DEVICE_CODE_LOADERS = true;
+      bool ENABLE_KERNEL_EXECUTION = true;
+      bool ENABLE_AGGRESSIVE_EARLY_INLINE = true;
+      bool ENABLE_LOWER_TO_CFG = true;
+      bool ENABLE_APPLY_SPECIALIZATION = true;
+      bool ENABLE_LAMBDA_LIFTING = true;
+      // Run opt if any of the pass enabled.
+      bool runOpt() const {
+        return ENABLE_DEVICE_CODE_LOADERS || ENABLE_KERNEL_EXECUTION ||
+               ENABLE_AGGRESSIVE_EARLY_INLINE || ENABLE_LOWER_TO_CFG ||
+               ENABLE_APPLY_SPECIALIZATION || ENABLE_LAMBDA_LIFTING;
+      }
+    };
+
+#define CHECK_OPTION(ARG_IT, MEMBER_VAR, TRUE_OPTION, FALSE_OPTION)            \
+  {                                                                            \
+    auto arg = llvm::StringRef(*ARG_IT);                                       \
+    if (arg.equals(TRUE_OPTION)) {                                             \
+      opt.MEMBER_VAR = true;                                                   \
+      ARG_IT = args.erase(ARG_IT);                                             \
+    }                                                                          \
+    if (arg.equals(FALSE_OPTION)) {                                            \
+      opt.MEMBER_VAR = false;                                                  \
+      ARG_IT = args.erase(ARG_IT);                                             \
+    }                                                                          \
+  }
+    PipelineOpt opt;
+    // Note: erase args within the loop
+    for (auto it = args.begin(); it != args.end(); ++it) {
+      CHECK_OPTION(it, ENABLE_DEVICE_CODE_LOADERS, "--device-code-loading",
+                   "--no-device-code-loading");
+      CHECK_OPTION(it, ENABLE_KERNEL_EXECUTION, "--kernel-execution",
+                   "--no-kernel-execution");
+      CHECK_OPTION(it, ENABLE_AGGRESSIVE_EARLY_INLINE,
+                   "--aggressive-early-inline", "--no-aggressive-early-inline");
+      CHECK_OPTION(it, ENABLE_APPLY_SPECIALIZATION,
+                   "--quake-apply-specialization",
+                   "--no-quake-apply-specialization");
+      CHECK_OPTION(it, ENABLE_LAMBDA_LIFTING, "--lambda-lifting",
+                   "--no-lambda-lifting");
+    }
+
+    if (!opt.runOpt())
+      return "";
+    std::string optPasses;
+    const auto addPassToPipeline = [&optPasses](const std::string &passes) {
+      if (optPasses.empty())
+        optPasses = passes;
+      else
+        optPasses += (std::string(",") + passes);
+    };
+    if (opt.ENABLE_LAMBDA_LIFTING)
+      addPassToPipeline("canonicalize,lambda-lifting");
+    if (opt.ENABLE_APPLY_SPECIALIZATION)
+      addPassToPipeline("func.func(memtoreg{quantum=0}),canonicalize,apply-op-"
+                        "specialization");
+
+    if (opt.ENABLE_KERNEL_EXECUTION)
+      addPassToPipeline("kernel-execution");
+    if (opt.ENABLE_AGGRESSIVE_EARLY_INLINE)
+      addPassToPipeline(doLink ? "canonicalize,lambda-lifting"
+                               : "func.func(indirect-to-direct-calls),inline");
+    if (opt.ENABLE_DEVICE_CODE_LOADERS)
+      addPassToPipeline(
+          "func.func(quake-add-metadata),device-code-loader{use-quake=1}");
+
+    if (opt.ENABLE_LOWER_TO_CFG)
+      addPassToPipeline("func.func(unwind-lowering),expand-measurements,func."
+                        "func(lower-to-cfg)");
+
+    addPassToPipeline("canonicalize,cse");
+    return std::string("--pass-pipeline=builtin.module(") + optPasses + ")";
   }
 
   std::unique_ptr<clang::driver::Compilation> makeCompilation() {
@@ -137,6 +213,16 @@ struct Driver {
       failingCommand = firstJob(comp);
     }
 
+    const bool doLink = [&]() {
+      for (auto &Job : comp->getJobs()) {
+        if (Job.getSource().getKind() ==
+            clang::driver::Action::ActionClass::LinkJobClass)
+          return true;
+      }
+      return false;
+    }();
+
+    const std::string cudaqOptPipeline = processOptPipeline(cmdArgs, doLink);
     const auto sourceInputFileName = [&]() -> std::string {
       for (const auto &job : comp->getJobs()) {
         for (const auto &input : job.getInputInfos()) {
@@ -274,11 +360,10 @@ struct Driver {
           quakeRun = true;
           // Run quake-opt
           // TODO: need to check the action requested (LLVM/Obj)
-          {
+          if (!cudaqOptPipeline.empty()) {
             clang::driver::InputInfoList inputInfos;
             llvm::opt::ArgStringList cmdArgs;
-            cmdArgs.insert(cmdArgs.end(), "--canonicalize");
-            cmdArgs.insert(cmdArgs.end(), "--kernel-execution");
+            cmdArgs.insert(cmdArgs.end(), strdup(cudaqOptPipeline.c_str()));
             cmdArgs.insert(cmdArgs.end(), strdup(quakeFile.c_str()));
             cmdArgs.insert(cmdArgs.end(), "-o");
             cmdArgs.insert(cmdArgs.end(), strdup(quakeFileOpt.c_str()));
@@ -286,8 +371,6 @@ struct Driver {
                 Job.getSource(), Job.getCreator(),
                 clang::driver::ResponseFileSupport::None(), cudaqOptExe.c_str(),
                 cmdArgs, inputInfos);
-            // if (comp->getArgs().hasArg(clang::driver::options::OPT_v))
-            //   quakeOptCmd->Print(llvm::errs(), "\n", true);
             if (int Res = comp->ExecuteCommand(*quakeOptCmd, failingCommand)) {
               failing.push_back(std::make_pair(Res, failingCommand));
               // bail out
@@ -299,7 +382,13 @@ struct Driver {
             clang::driver::InputInfoList inputInfos;
             llvm::opt::ArgStringList cmdArgs;
             cmdArgs.insert(cmdArgs.end(), "--convert-to=qir");
-            cmdArgs.insert(cmdArgs.end(), strdup(quakeFileOpt.c_str()));
+            // If run opt -> chain the output file from cudaq-opt,
+            // otherwise, take the output file from quake.
+            if (!cudaqOptPipeline.empty())
+              cmdArgs.insert(cmdArgs.end(), strdup(quakeFileOpt.c_str()));
+            else
+              cmdArgs.insert(cmdArgs.end(), strdup(quakeFile.c_str()));
+
             cmdArgs.insert(cmdArgs.end(), "-o");
             cmdArgs.insert(cmdArgs.end(), strdup(quakeFileLl.c_str()));
             auto quakeTranslateCmd = std::make_unique<clang::driver::Command>(
