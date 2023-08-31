@@ -1857,22 +1857,30 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
     return true;
   }();
   if (isAllIntOrAllFloat) {
-    SmallVector<Attribute> constantValues;
-    for (auto v : last) {
-      Type type = v.getType();
-      if (auto constantOp = v.getDefiningOp<arith::ConstantFloatOp>())
-        constantValues.push_back(
-            builder.getFloatAttr(type, constantOp.value()));
-      if (auto constantOp = v.getDefiningOp<arith::ConstantIntOp>())
-        constantValues.push_back(
-            builder.getIntegerAttr(type, constantOp.value()));
-    }
     // Clear the types for the init expr
     typeStack.clear();
-    return pushValue(builder.create<cc::ConstantArrayOp>(
-        loc,
-        cc::ArrayType::get(builder.getContext(), last.front().getType(), size),
-        builder.getArrayAttr(constantValues)));
+
+    // This is a initlist on ints or floats, get which one
+    Type dataType = last.front().getType();
+
+    // Add the array size value
+    Value arrSize =
+        getConstantInt(builder, loc, last.size(), builder.getI64Type());
+
+    // Allocate the required memory chunk
+    Value alloca = builder.create<cc::AllocaOp>(loc, dataType, arrSize);
+
+    // Store the values in the allocated memory
+    for (std::size_t i = 0; auto v : last) {
+      Value ptr = builder.create<cc::ComputePtrOp>(
+          loc, cc::PointerType::get(dataType), alloca,
+          getConstantInt(builder, loc, i++, builder.getI64Type()));
+      builder.create<cc::StoreOp>(loc, v, ptr);
+    }
+
+    // Create the stdvec_init op
+    return pushValue(builder.create<cc::StdvecInitOp>(
+        loc, cc::StdvecType::get(dataType), alloca, arrSize));
   }
 
   TODO_x(loc, x, mangler, "list initialization (not quantum ref)");
@@ -1989,10 +1997,32 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
 
       if (ctorName == "vector") {
         // This is a std::vector constructor, first we'll check if it
-        // is constructed from a constant initializer list
-        if (auto arrTy = dyn_cast<cc::ArrayType>(peekValue().getType()))
-          if (arrTy.getSize() != cc::ArrayType::unknownSize)
-            return true;
+        // is constructed from a constant initializer list, if
+        // so the top value will have stdvec type, and we can just drop out
+        if (isa<cc::StdvecType>(peekValue().getType()))
+          return true;
+
+        // Next check if its created from a size integer
+        if (peekValue().getType().isIntOrFloat()) {
+          auto arrSize = popValue();
+          auto dataType = popType();
+
+          // create stdvec init op without a buffer.
+          // Allocate the required memory chunk
+          Value alloca = builder.create<cc::AllocaOp>(loc, dataType, arrSize);
+
+          // Create the stdvec_init op
+          return pushValue(builder.create<cc::StdvecInitOp>(
+              loc, cc::StdvecType::get(dataType), alloca, arrSize));
+        }
+
+        // Disallow any default vector construction bc we don't
+        // want any .push_back
+        if (ctor->isDefaultConstructor())
+          reportClangError(ctor, mangler,
+                           "Default std::vector<T> constructor within quantum "
+                           "kernel is not allowed "
+                           "(cannot resize the vector).");
       }
     }
     if (ctor->isCopyConstructor())
