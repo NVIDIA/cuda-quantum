@@ -114,10 +114,7 @@ def MeasurementInterface : OpInterface<"MeasurementInterface"> {
       /*retType=*/ "void",
       /*methodName=*/ "setRegisterName",
       /*args=*/ (ins "llvm::StringRef":$name),
-      /*methodBody=*/ [{
-        $_op->setAttr("registerName",
-                      mlir::OpBuilder($_op).getStringAttr(name));
-      }]
+      /*methodBody=*/ "$_op.setRegisterName(name);"
     >
   ];
 }
