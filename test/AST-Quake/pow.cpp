@@ -17,8 +17,7 @@ __qpu__ float magic_func(int i, int j, float f, float g) {
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_magic_func._Z10magic_funciiff(
-// CHECK:           %[[VAL_11:.*]] = arith.sitofp %{{.*}} : i32 to f64
-// CHECK:           %[[VAL_10:.*]] = math.fpowi %[[VAL_11]], %{{.*}} : f64, i32
+// CHECK:           %[[VAL_6:.*]] = math.ipowi %{{.*}}, %{{.*}} : i32
 // CHECK:           %[[VAL_16:.*]] = math.fpowi %{{.*}}, %{{.*}} : f32, i32
 // CHECK:           %[[VAL_20:.*]] = math.powf %{{.*}}, %{{.*}} : f32
 // CHECK:         }

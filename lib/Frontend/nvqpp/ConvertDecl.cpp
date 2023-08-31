@@ -10,6 +10,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Todo.h"
+#include <span>
 
 #define DEBUG_TYPE "lower-ast-decl"
 
@@ -17,10 +18,26 @@ using namespace mlir;
 
 namespace cudaq::details {
 
-bool QuakeBridgeVisitor::needToLowerFunction(const clang::FunctionDecl *decl) {
+// FIXME: ignoring these allocator classes rather than traversing them. It would
+// be better add them to the list of intercepted classes, but that code is
+// expected to push a type on the stack.
+bool ignoredClass(clang::RecordDecl *x) {
+  if (auto *ident = x->getIdentifier()) {
+    auto name = ident->getName();
+    // Kernels don't support allocators, although they are found in
+    // std::vector.
+    if (isInNamespace(x, "std"))
+      return name.equals("allocator_traits");
+    // Skip non-standard GNU helper classes.
+    if (isInNamespace(x, "__gnu_cxx"))
+      return name.equals("__alloc_traits");
+  }
+  return false;
+}
+
+bool QuakeBridgeVisitor::isKernelEntryPoint(const clang::FunctionDecl *decl) {
   if (!decl->hasBody())
     return false;
-  // Check if this is a kernel entry point.
   for (auto fdPair : functionsToEmit) {
     if (decl == fdPair.second) {
       // This is an entry point.
@@ -29,10 +46,19 @@ bool QuakeBridgeVisitor::needToLowerFunction(const clang::FunctionDecl *decl) {
       // Extend the mangled kernel names map.
       auto mangledFuncName = cxxMangledDeclName(decl);
       namesMap.insert({entryName, mangledFuncName});
-      valueStack.clear();
       return true;
     }
   }
+  return false;
+}
+
+bool QuakeBridgeVisitor::needToLowerFunction(const clang::FunctionDecl *decl) {
+  if (!decl->hasBody())
+    return false;
+
+  // Check if this is a kernel entry point.
+  if (isKernelEntryPoint(decl))
+    return true;
 
   if (LOWERING_TRANSITIVE_CLOSURE) {
     // Not a kernel entry point. Test to see if it is some other function we
@@ -42,7 +68,6 @@ bool QuakeBridgeVisitor::needToLowerFunction(const clang::FunctionDecl *decl) {
         // Create the function and set the builder.
         auto mangledFuncName = cxxMangledDeclName(decl);
         setCurrentFunctionName(mangledFuncName);
-        valueStack.clear();
         return true;
       }
     }
@@ -50,64 +75,6 @@ bool QuakeBridgeVisitor::needToLowerFunction(const clang::FunctionDecl *decl) {
 
   // Skip this function. It is not part of the call graph of QPU code.
   return false;
-}
-
-bool QuakeBridgeVisitor::TraverseCXXDeductionGuideDecl(
-    clang::CXXDeductionGuideDecl *x) {
-  postOrderTraversal = false;
-  if (!Base::TraverseCXXDeductionGuideDecl(x))
-    return true;
-  if (!hasTerminator(builder.getBlock()))
-    builder.create<func::ReturnOp>(toLocation(x));
-  return true;
-}
-
-bool QuakeBridgeVisitor::TraverseCXXMethodDecl(clang::CXXMethodDecl *x) {
-  if (typeMode) {
-    // Use the resolved type, not the syntactic type.
-    return TraverseType(x->getType());
-  }
-  codeGenMethodDecl = true;
-  postOrderTraversal = false;
-  if (!Base::TraverseCXXMethodDecl(x)) {
-    if (raisedError && x->getParent()->isLambda()) {
-      auto &de = astContext->getDiagnostics();
-      const auto id =
-          de.getCustomDiagID(clang::DiagnosticsEngine::Remark,
-                             "An inaccessible symbol in a lambda expression "
-                             "may be from an implicit capture of a variable "
-                             "that is not present in a kernel marked __qpu__.");
-      auto db = de.Report(x->getBeginLoc(), id);
-      const auto range = x->getSourceRange();
-      db.AddSourceRange(clang::CharSourceRange::getCharRange(range));
-      raisedError = false;
-    }
-    return true;
-  }
-  if (!hasTerminator(builder.getBlock()))
-    builder.create<func::ReturnOp>(toLocation(x));
-  return true;
-}
-
-bool QuakeBridgeVisitor::TraverseFunctionDecl(clang::FunctionDecl *x) {
-  postOrderTraversal = false;
-  if (!Base::TraverseFunctionDecl(x))
-    return true;
-  if (!typeMode && !hasTerminator(builder.getBlock()))
-    builder.create<func::ReturnOp>(toLocation(x));
-  return true;
-}
-
-bool QuakeBridgeVisitor::WalkUpFromFunctionDecl(clang::FunctionDecl *x) {
-  // Check if this function is one we want to lower to MLIR. If it is, enable
-  // lowering and visit this node.
-  if (needToLowerFunction(x)) {
-    LLVM_DEBUG(llvm::dbgs() << "found function to lower: "
-                            << x->getQualifiedNameAsString() << '\n');
-    return VisitFunctionDecl(x);
-  }
-  // Otherwise, we can skip the visit entirely.
-  return true;
 }
 
 void QuakeBridgeVisitor::addArgumentSymbols(
@@ -153,21 +120,156 @@ QuakeBridgeVisitor::getOrAddFunc(Location loc, StringRef funcName,
   if (func) {
     if (!func.empty()) {
       // Already lowered function func, skip it.
-      return {func, true};
+      return {func, /*defined=*/true};
     }
-  } else {
-    OpBuilder build(module.getBodyRegion());
-    OpBuilder::InsertionGuard guard(build);
-    build.setInsertionPointToEnd(module.getBody());
-    SmallVector<NamedAttribute> attrs;
-    func = build.create<func::FuncOp>(loc, funcName, funcTy, attrs);
-    func.setPrivate();
+    // Function was declared but not defined.
+    return {func, /*defined=*/false};
   }
-  return {func, false};
+  // Function not found, so add it to the module.
+  OpBuilder build(module.getBodyRegion());
+  OpBuilder::InsertionGuard guard(build);
+  build.setInsertionPointToEnd(module.getBody());
+  SmallVector<NamedAttribute> attrs;
+  func = build.create<func::FuncOp>(loc, funcName, funcTy, attrs);
+  func.setPrivate();
+  return {func, /*defined=*/false};
 }
 
-bool QuakeBridgeVisitor::VisitFunctionDecl(clang::FunctionDecl *x) {
-  if (typeMode)
+bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
+  // Some decls will be intercepted and replaced with high-level types in quake.
+  // Do this here to avoid traversing their fields, etc.
+  auto *ident = x->getIdentifier();
+  if (!ident || x->isLambda())
+    return false;
+  auto name = ident->getName();
+  auto *ctx = builder.getContext();
+  if (isInNamespace(x, "cudaq")) {
+    // Types from the `cudaq` namespace.
+    // A qubit is a qudit<LEVEL=2>.
+    if (name.equals("qudit") || name.equals("qubit"))
+      return pushType(quake::RefType::get(ctx));
+    // qreg<SIZE,LEVEL>, qarray<SIZE,LEVEL>, qspan<SIZE,LEVEL>
+    if (name.equals("qspan") || name.equals("qreg") || name.equals("qarray")) {
+      // If the first template argument is not `std::dynamic_extent` then we
+      // have a constant sized VeqType.
+      if (auto *tempSpec =
+              dyn_cast<clang::ClassTemplateSpecializationDecl>(x)) {
+        auto templArg = tempSpec->getTemplateArgs()[0];
+        assert(templArg.getKind() ==
+               clang::TemplateArgument::ArgKind::Integral);
+        std::int64_t size = templArg.getAsIntegral().getExtValue();
+        if (size != static_cast<std::int64_t>(std::dynamic_extent))
+          return pushType(quake::VeqType::get(ctx, size));
+      }
+      return pushType(quake::VeqType::getUnsized(ctx));
+    }
+    // qvector<LEVEL>, qview<LEVEL>
+    if (name.equals("qvector") || name.equals("qview"))
+      return pushType(quake::VeqType::getUnsized(ctx));
+    auto loc = toLocation(x);
+    TODO_loc(loc, "unhandled type, " + name + ", in cudaq namespace");
+  }
+  if (isInNamespace(x, "std")) {
+    if (name.equals("vector")) {
+      auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
+      // Traverse template argument 0 to get the vector's element type.
+      if (!TraverseType(cts->getTemplateArgs()[0].getAsType()))
+        return false;
+      return pushType(cc::StdvecType::get(ctx, popType()));
+    }
+    // std::vector<bool>   =>   cc.stdvec<i1>
+    if (name.equals("_Bit_reference")) {
+      // Reference to a bit in a std::vector<bool>. Promote to a value.
+      return pushType(builder.getI1Type());
+    }
+    if (name.equals("_Bit_type"))
+      return pushType(builder.getI64Type());
+    if (name.equals("function")) {
+      auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
+      // Traverse template argument 0 to get the function's signature.
+      if (!TraverseType(cts->getTemplateArgs()[0].getAsType()))
+        return false;
+      auto fnTy = cast<FunctionType>(popType());
+      return pushType(cc::CallableType::get(ctx, fnTy));
+    }
+    if (name.equals("reference_wrapper")) {
+      auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
+      // Traverse template argument 0 to get the function's signature.
+      if (!TraverseType(cts->getTemplateArgs()[0].getAsType()))
+        return false;
+      auto refTy = popType();
+      if (isa<quake::RefType, quake::VeqType>(refTy))
+        return pushType(refTy);
+      return pushType(cc::PointerType::get(ctx, refTy));
+    }
+    if (ignoredClass(x))
+      return true;
+    LLVM_DEBUG(llvm::dbgs()
+               << "in std namespace, " << name << " is not matched\n");
+  }
+
+  if (isInNamespace(x, "__gnu_cxx")) {
+    if (name.equals("__promote") || name.equals("__promote_2")) {
+      // Recover the typedef in this class. Then find the canonical type
+      // resolved for that typedef and push that as the type.
+      [[maybe_unused]] unsigned depth = typeStack.size();
+      for (auto *d : x->decls())
+        if (auto *tdDecl = dyn_cast<clang::TypedefDecl>(d)) {
+          auto qt = tdDecl->getUnderlyingType().getCanonicalType();
+          if (!TraverseType(qt))
+            return false;
+          break;
+        }
+      assert(typeStack.size() == depth + 1);
+      return true;
+    }
+  }
+  return false; /* not intercepted */
+}
+
+template <typename D>
+bool QuakeBridgeVisitor::traverseAnyRecordDecl(D *x) {
+  if (interceptRecordDecl(x))
+    return true;
+  if (x->isLambda()) {
+    // If this is a lambda, then push the function type on the type stack.
+    auto *funcDecl = findCallOperator(cast<clang::CXXRecordDecl>(x));
+    if (!TraverseType(funcDecl->getType())) {
+      auto loc = toLocation(funcDecl);
+      emitFatalError(loc, "expected type for call operator");
+    }
+    return pushType(cc::CallableType::get(cast<FunctionType>(popType())));
+  }
+  return false;
+}
+bool QuakeBridgeVisitor::TraverseRecordDecl(clang::RecordDecl *x) {
+  if (traverseAnyRecordDecl(x))
+    return true;
+  return Base::TraverseRecordDecl(x);
+}
+bool QuakeBridgeVisitor::TraverseCXXRecordDecl(clang::CXXRecordDecl *x) {
+  if (traverseAnyRecordDecl(x))
+    return true;
+  return Base::TraverseCXXRecordDecl(x);
+}
+bool QuakeBridgeVisitor::TraverseClassTemplateSpecializationDecl(
+    clang::ClassTemplateSpecializationDecl *x) {
+  if (traverseAnyRecordDecl(x))
+    return true;
+  return Base::TraverseClassTemplateSpecializationDecl(x);
+}
+
+bool QuakeBridgeVisitor::TraverseFunctionDecl(clang::FunctionDecl *x) {
+  // If we're already generating code (this FunctionDecl is nested), we only
+  // traverse the type, adding the function type to the type stack.
+  if (builder.getBlock()) {
+    if (!TraverseType(x->getType()))
+      return false;
+    return WalkUpFromFunctionDecl(x);
+  }
+
+  // If function is not on the list to be lowered, skip it.
+  if (!needToLowerFunction(x))
     return true;
   // If this function is a function template and not the specialization of the
   // function template, we skip it. We only want to lower template functions
@@ -175,44 +277,192 @@ bool QuakeBridgeVisitor::VisitFunctionDecl(clang::FunctionDecl *x) {
   if (x->getDescribedFunctionTemplate() &&
       !x->isFunctionTemplateSpecialization())
     return true;
-  // Create the function and set the builder.
+
+  LLVM_DEBUG(llvm::dbgs() << "found function to lower: "
+                          << x->getQualifiedNameAsString() << '\n');
+
+  // The following is copied/expanded from RecursiveASTVisitor, especially
+  // TraverseFunctionHelper(), since we can't call, override, or customize
+  // private methods.
+  for (unsigned i = 0; i < x->getNumTemplateParameterLists(); ++i) {
+    if (auto *TPL = x->getTemplateParameterList(i)) {
+      for (auto *D : *TPL)
+        if (!TraverseDecl(D))
+          return false;
+      if (auto *requiresClause = TPL->getRequiresClause())
+        if (!TraverseStmt(requiresClause))
+          return false;
+    }
+  }
+  if (!TraverseNestedNameSpecifierLoc(x->getQualifierLoc()))
+    return false;
+  if (!TraverseDeclarationNameInfo(x->getNameInfo()))
+    return false;
+
+  // If we're an explicit template specialization, iterate over the
+  // template args that were explicitly specified.  If we were doing
+  // this in typing order, we'd do it between the return type and
+  // the function args, but both are handled by the FunctionTypeLoc
+  // above, so we have to choose one side.  I've decided to do before.
+  if (const auto *FTSI = x->getTemplateSpecializationInfo()) {
+    if (FTSI->getTemplateSpecializationKind() != clang::TSK_Undeclared &&
+        FTSI->getTemplateSpecializationKind() !=
+            clang::TSK_ImplicitInstantiation) {
+      // A specialization might not have explicit template arguments if it
+      // has a templated return type and concrete arguments.
+      if (const auto *tali = FTSI->TemplateArgumentsAsWritten) {
+        auto *tal = tali->getTemplateArgs();
+        for (unsigned i = 0; i != tali->NumTemplateArgs; ++i)
+          if (!TraverseTemplateArgumentLoc(tal[i]))
+            return false;
+      }
+    }
+  }
+
+  // Traversing the typeloc data structure gives us the unresolved surface
+  // syntax, so a decl like `auto fn(auto p)` won't have reified types.
+  if (!TraverseType(x->getType()))
+    return false;
+
+  // Customization here.
+  // After we have the function's type and arguments, create the function and
+  // set the builder, if and only if this is a top-level visit to a kernel. If
+  // this is just a reference to a kernel, the lowering will happen at some
+  // point during the visit to each kernel in the compilation unit. Any
+  // referenced kernel should never naively be lowered in the context of the
+  // kernel being visited that contains the reference.
   auto funcName = getCurrentFunctionName();
   auto loc = toLocation(x);
-  assert(!funcName.empty() && "function name must not be empty");
+  if (funcName.empty())
+    return true;
+
   resetCurrentFunctionName();
   // At present, the bridge only lowers kernels.
-  auto optFuncTy = getFunctionType(x, /*isKernel=*/true);
-  if (!optFuncTy)
-    return false;
-  auto [func, alreadyDefined] = getOrAddFunc(loc, funcName, *optFuncTy);
-  if (alreadyDefined) {
-    // Already lowered function func, skip it. Returning false here skips the
-    // post-order traversal of the function declaration.
-    return false;
-  }
+  auto funcTy = cast<FunctionType>(popType());
+  auto [func, alreadyDefined] = getOrAddFunc(loc, funcName, funcTy);
+  if (alreadyDefined)
+    return true;
+
   LLVM_DEBUG(llvm::dbgs() << "created function: " << funcName << " : "
                           << func.getFunctionType() << '\n');
   func.setPublic();
   createEntryBlock(func, x);
   builder.setInsertionPointToEnd(&func.front());
   skipCompoundScope = true;
+
+  // Visit the trailing requires clause, if any.
+  if (auto *trailingRequiresClause = x->getTrailingRequiresClause())
+    if (!TraverseStmt(trailingRequiresClause))
+      return false;
+
+  if (auto *ctor = dyn_cast<clang::CXXConstructorDecl>(x)) {
+    // Constructor initializers.
+    for (auto *I : ctor->inits())
+      if (I->isWritten() || shouldVisitImplicitCode())
+        if (!TraverseConstructorInitializer(I))
+          return false;
+  }
+
+  bool VisitBody = x->isThisDeclarationADefinition() &&
+                   (!x->isDefaulted() || shouldVisitImplicitCode());
+
+  if (const auto *MD = dyn_cast<clang::CXXMethodDecl>(x))
+    if (const auto *RD = MD->getParent())
+      if (RD->isLambda() && declaresSameEntity(RD->getLambdaCallOperator(), MD))
+        VisitBody = VisitBody && getDerived().shouldVisitLambdaBody();
+
+  if (VisitBody) {
+    if (!TraverseStmt(x->getBody()))
+      return false;
+    // Body may contain using declarations whose shadows are parented to the
+    // FunctionDecl itself.
+    for (auto *Child : x->decls())
+      if (isa<clang::UsingShadowDecl>(Child))
+        if (!TraverseDecl(Child))
+          return false;
+  }
+  // Visit any attributes attached to this declaration.
+  for (auto *attr : x->attrs())
+    if (!TraverseAttr(attr))
+      return false;
+  // Do NOT WalkUpFromFunctionDecl(x);
+  if (auto *method = dyn_cast<clang::CXXMethodDecl>(x))
+    if (raisedError && method->getParent()->isLambda()) {
+      auto &de = astContext->getDiagnostics();
+      const auto id =
+          de.getCustomDiagID(clang::DiagnosticsEngine::Remark,
+                             "An inaccessible symbol in a lambda expression "
+                             "may be from an implicit capture of a variable "
+                             "that is not present in a kernel marked __qpu__.");
+      auto db = de.Report(method->getBeginLoc(), id);
+      const auto range = method->getSourceRange();
+      db.AddSourceRange(clang::CharSourceRange::getCharRange(range));
+      raisedError = false;
+    }
+  if (!hasTerminator(builder.getBlock()))
+    builder.create<func::ReturnOp>(toLocation(x));
+  builder.clearInsertionPoint();
   return true;
 }
 
-bool QuakeBridgeVisitor::VisitNamedDecl(clang::NamedDecl *x) {
-  if (typeMode)
-    return true;
-  if (!symbolTable.count(x->getName())) {
-    cudaq::emitFatalError(toLocation(x->getSourceRange()),
-                          "Cannot find " + x->getNameAsString() +
-                              " in the symbol table.");
+bool QuakeBridgeVisitor::VisitCXXScalarValueInitExpr(
+    clang::CXXScalarValueInitExpr *x) {
+  // This is the basis for a template function.
+  Type ty = peekType();
+  Value val = peekValue();
+  if (val.getType() != ty)
+    if (auto ptrTy = dyn_cast<cc::PointerType>(val.getType()))
+      if (ptrTy.getElementType() == ty) {
+        auto v = popValue();
+        auto loc = toLocation(x);
+        return pushValue(builder.create<cc::LoadOp>(loc, v));
+      }
+  return true;
+}
+
+bool QuakeBridgeVisitor::VisitFunctionDecl(clang::FunctionDecl *x) {
+  assert(builder.getBlock() && "must be generating code");
+  auto loc = toLocation(x);
+  auto kernName = [&]() {
+    if (isKernelEntryPoint(x))
+      return generateCudaqKernelName(x);
+    return cxxMangledDeclName(x);
+  }();
+  auto kernSym = SymbolRefAttr::get(builder.getContext(), kernName);
+  auto typeFromStack = peelPointerFromFunction(popType());
+  if (auto f = module.lookupSymbol<func::FuncOp>(kernSym)) {
+    auto fTy = f.getFunctionType();
+    assert(typeFromStack == fTy);
+    auto fSym = f.getSymNameAttr();
+    return pushValue(builder.create<func::ConstantOp>(loc, fTy, fSym));
   }
-  return pushValue(symbolTable.lookup(x->getName()));
+  auto funcOp = getOrAddFunc(loc, kernName, typeFromStack).first;
+  return pushValue(builder.create<func::ConstantOp>(
+      loc, funcOp.getFunctionType(), funcOp.getSymNameAttr()));
+}
+
+bool QuakeBridgeVisitor::VisitNamedDecl(clang::NamedDecl *x) {
+  if (!builder.getBlock() || inRecType) {
+    // This decl was reached walking a record type. We don't need to look up
+    // the symbol, it's just a field name in the type.
+    return true;
+  }
+  if (x->getIdentifier()) {
+    // 1. Look for symbol in the local scope.
+    if (!symbolTable.count(x->getName())) {
+      // 2. TODO: If the symbol isn't in the local scope, it is a global.
+      // Don't look for a global in the module here since we do not allow
+      // kernels to access globals at present.
+      cudaq::emitFatalError(toLocation(x->getSourceRange()),
+                            "Cannot find " + x->getNameAsString() +
+                                " in the symbol table.");
+    }
+    return pushValue(symbolTable.lookup(x->getName()));
+  }
+  return true;
 }
 
 bool QuakeBridgeVisitor::VisitParmVarDecl(clang::ParmVarDecl *x) {
-  if (typeMode)
-    return true;
   // If the builder has no insertion point, then this is a prototype.
   if (!builder.getBlock())
     return true;
@@ -229,16 +479,49 @@ bool QuakeBridgeVisitor::VisitParmVarDecl(clang::ParmVarDecl *x) {
   }
 
   // Something has gone very wrong.
-  x->dump();
+  LLVM_DEBUG(llvm::dbgs() << "parameter was not found\n"; x->dump());
   llvm::report_fatal_error(
       "parameters for the current function must already be entered in the "
       "symbol table, but this parameter wasn't found.");
 }
 
+// The traversal of a VarDecl may or may not visit a clang Type. If a Type
+// is visited, it will be pushed on the type stack. Track the type stack's
+// state here so that it can be restored to its original state.
+// FIXME? Another solution is to replicate all the Base traversal code here and
+// guarantee that a Type is pushed to the type stack.
+bool QuakeBridgeVisitor::TraverseVarDecl(clang::VarDecl *x) {
+  auto saveTypeStackDepth = typeStackDepth;
+  typeStackDepth = typeStack.size();
+  bool result = Base::TraverseVarDecl(x);
+  typeStackDepth = saveTypeStackDepth;
+  return result;
+}
+
 bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
-  if (typeMode)
-    return true;
-  auto type = genType(x->getType());
+  assert(typeStack.size() >= typeStackDepth &&
+         "types were unexpectedly removed for the variable");
+  Type type;
+  if (typeStack.size() > typeStackDepth) {
+    assert(typeStack.size() == typeStackDepth + 1 &&
+           "more than 1 type was added for the variable");
+    auto declType = popType();
+    // FIXME!
+    // Ideally, declType and type would be identical. However, they may come
+    // from different C++ syntax. For example, in
+    //     cudaq::qreg<N>::value_type &qbit = q.back();
+    // the back() call will return a `!quake.ref` type but the declared type
+    // of `qbit` will look like a reference (pointer) to memory.
+    // Sidestep this issue for now by just overriding with the initializer type.
+    if (x->hasInit())
+      type = peekValue().getType();
+    else
+      type = declType;
+  } else {
+    // The VarDecl's type was not visited, so infer the type from the
+    // initialization expression.
+    type = peekValue().getType();
+  }
   assert(type && "variable must have a valid type");
   auto loc = toLocation(x->getSourceRange());
   auto name = x->getName();
@@ -383,16 +666,32 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
     // FIXME: Use UIToFP if this is unsigned!
     initValue = builder.create<arith::SIToFPOp>(loc, type, initValue);
   }
+
   if (auto initObject = initValue.getDefiningOp<cc::AllocaOp>()) {
-    // Initialization expression already left an object in memory. This should
-    // be because an object was constructed. Just cast the memory address of the
-    // object to the expected type. TODO: this needs to also handle the case
-    // that an object must be cloned instread of casted.
-    Value cast =
-        builder.create<cc::CastOp>(loc, cc::PointerType::get(type), initObject);
+    // Initialization expression already left an object in memory. This could be
+    // because an object was constructed. TODO: this needs to also handle the
+    // case that an object must be cloned instead of casted.
+    assert(type == initObject.getType());
+    symbolTable.insert(x->getName(), initValue);
+    return pushValue(initValue);
+  }
+  auto qualTy = x->getType().getCanonicalType();
+  auto isStdvecBoolReference = [&](clang::QualType &qualTy) {
+    if (auto *recTy = dyn_cast<clang::RecordType>(qualTy.getTypePtr())) {
+      auto *recDecl = recTy->getDecl();
+      if (isInNamespace(recDecl, "std"))
+        return recDecl->getNameAsString() == "_Bit_reference";
+    }
+    return false;
+  };
+  if (isStdvecBoolReference(qualTy) || qualTy.getTypePtr()->isReferenceType()) {
+    // A similar case is when the C++ variable is a reference to a subobject.
+    assert(isa<cc::PointerType>(type));
+    Value cast = builder.create<cc::CastOp>(loc, type, initValue);
     symbolTable.insert(x->getName(), cast);
     return pushValue(cast);
   }
+
   // Initialization expression resulted in a value. Create a variable and save
   // that value to the variable's memory address.
   Value alloca = builder.create<cc::AllocaOp>(loc, type);
