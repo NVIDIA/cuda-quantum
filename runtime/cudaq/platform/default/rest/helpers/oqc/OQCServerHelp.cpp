@@ -21,14 +21,17 @@ class OQCServerHelper : public ServerHelper {
 private:
   /// @brief RestClient used for HTTP requests.
 
-  /// @brief Helper method to retrieve the value of an environment variable.
+  /// @brief Retrieve the value of an environment variable.
   std::string getEnvVar(const std::string &key) const;
 
-  /// @brief Helper method to check if a key exists in the configuration.
+  /// @brief Check if a key exists in the configuration.
   bool keyExists(const std::string &key) const;
 
-  std::vector<std::string> getJobID(int n);
+  /// @brief Create n requested tasks placeholders returning uuids for each
+  std::vector<std::string> createNTasks(int n);
 
+  /// @brief make a compiler config json string parameterising with number of
+  /// shots
   std::string makeConfig(int shots);
 
 public:
@@ -78,9 +81,8 @@ public:
   /// maps the results back to sample results.
   cudaq::sample_result processResults(ServerMessage &postJobResponse) override;
 
-  std::string get_from_config(BackendConfig config, std::string key);
-  std::string get_from_config(BackendConfig config, std::string key,
-                              std::string default_return);
+  std::string get_from_config(BackendConfig config, const std::string &key,
+                              const std::string &default_return = "");
 };
 
 // Initialize the OQC server helper with a given backend configuration
@@ -102,23 +104,11 @@ void OQCServerHelper::initialize(BackendConfig config) {
   backendConfig["job_path"] = "/tasks"; // backendConfig["url"] + "/tasks";
 }
 
-std::string OQCServerHelper::get_from_config(BackendConfig config,
-                                             std::string key,
-                                             std::string default_return) {
-  std::string output = OQCServerHelper::get_from_config(config, key);
-  if (output.empty()) {
-    return default_return;
-  }
-  return output;
-}
-
-std::string OQCServerHelper::get_from_config(BackendConfig config,
-                                             std::string key) {
+std::string
+OQCServerHelper::get_from_config(BackendConfig config, const std::string &key,
+                                 const std::string &default_return) {
   auto iter = backendConfig.find(key);
-  if (iter != backendConfig.end()) {
-    return iter->second;
-  }
-  return "";
+  return iter != backendConfig.end() ? iter->second : default_return;
 }
 
 // Retrieve an environment variable
@@ -138,13 +128,13 @@ bool OQCServerHelper::keyExists(const std::string &key) const {
   return backendConfig.find(key) != backendConfig.end();
 }
 
-std::vector<std::string> OQCServerHelper::getJobID(int n) {
+std::vector<std::string> OQCServerHelper::createNTasks(int n) {
   RestHeaders headers = OQCServerHelper::getHeaders();
   nlohmann::json j;
   std::vector<std::string> output;
   for (int i = 0; i < n; ++i) {
-    nlohmann::json_v3_11_1::json response = client.post(
-        backendConfig.at("url"), backendConfig.at("job_path"), j, headers);
+    auto response = client.post(backendConfig.at("url"),
+                                backendConfig.at("job_path"), j, headers);
     output.push_back(response[0]);
   }
   return output;
@@ -176,7 +166,7 @@ OQCServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     throw std::runtime_error("Key doesn't exist in backendConfig.");
   std::vector<ServerMessage> jobs(circuitCodes.size());
   std::vector<std::string> task_ids =
-      OQCServerHelper::getJobID(static_cast<int>(circuitCodes.size()));
+      OQCServerHelper::createNTasks(static_cast<int>(circuitCodes.size()));
 
   for (size_t i = 0; i < circuitCodes.size(); ++i) {
     nlohmann::json j;
@@ -198,7 +188,7 @@ OQCServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
 
 // From a server message, extract the job ID
 std::string OQCServerHelper::extractJobId(ServerMessage &postResponse) {
-  // If the response does not contain the key 'id', throw an exception
+
   if (!postResponse.contains("task_id"))
     return "";
 
