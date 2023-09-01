@@ -1838,8 +1838,33 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
     // Pass initialization list with one member as a Ref.
     return pushValue(last[0]);
   }
-  TODO_x(loc, x, mangler, "list initialization (not quantum ref)");
-  return true;
+
+  // Let's allocate some memory and store the init list elements there.
+
+  // Clear the types for the init expr, one for the vector<T> type
+  // and another for the type of the initializer_list elements
+  popType();
+  popType();
+
+  // This is a initlist on ints or floats, get which one
+  Type dataType = last.front().getType();
+
+  // Add the array size value
+  Value arrSize =
+      getConstantInt(builder, loc, last.size(), builder.getI64Type());
+
+  // Allocate the required memory chunk
+  Value alloca = builder.create<cc::AllocaOp>(loc, dataType, arrSize);
+
+  // Store the values in the allocated memory
+  for (std::size_t i = 0; auto v : last) {
+    Value ptr = builder.create<cc::ComputePtrOp>(
+        loc, cc::PointerType::get(dataType), alloca,
+        getConstantInt(builder, loc, i++, builder.getI64Type()));
+    builder.create<cc::StoreOp>(loc, v, ptr);
+  }
+
+  return pushValue(alloca);
 }
 
 bool QuakeBridgeVisitor::TraverseCXXConstructExpr(clang::CXXConstructExpr *x,
@@ -1949,7 +1974,60 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
         assert((isa<quake::RefType, quake::VeqType>(tosTy)));
         return true;
       }
+
+      // We check for vector constructors with 2 args, the first
+      // could be an initializer_list or an integer, while the
+      // second is the allocator
+      if (ctorName == "vector" && x->getNumArgs() == 2) {
+        // This is a std::vector constructor, first we'll check if it
+        // is constructed from a constant initializer list, in that case
+        // we'll have a AllocaOp at the top of the stack that allocates a
+        // ptr<array<TxC>>, where C is constant / known
+        auto desugared = x->getArg(0)->getType().getCanonicalType();
+        if (auto recordType =
+                dyn_cast<clang::RecordType>(desugared.getTypePtr()))
+          if (recordType->getDecl()->getName().equals("initializer_list")) {
+            auto allocation = popValue();
+            if (auto ptrTy = dyn_cast<cc::PointerType>(allocation.getType()))
+              if (auto arrayTy =
+                      dyn_cast<cc::ArrayType>(ptrTy.getElementType()))
+                if (auto definingOp = allocation.getDefiningOp<cc::AllocaOp>())
+                  return pushValue(builder.create<cc::StdvecInitOp>(
+                      loc, cc::StdvecType::get(arrayTy.getElementType()),
+                      allocation, definingOp.getSeqSize()));
+          }
+
+        // Next check if its created from a size integer
+        // Let's do a check on the first argument, make sure that when
+        // we peel off all the typedefs that it is an integer
+        if (auto builtInType =
+                dyn_cast<clang::BuiltinType>(desugared.getTypePtr()))
+          if (builtInType->isInteger() &&
+              isa<IntegerType>(peekValue().getType())) {
+            // This is an integer argument, and the value on the stack
+            // is an integer, so let's connect them up
+            auto arrSize = popValue();
+            auto dataType = popType();
+
+            // create stdvec init op without a buffer.
+            // Allocate the required memory chunk
+            Value alloca = builder.create<cc::AllocaOp>(loc, dataType, arrSize);
+
+            // Create the stdvec_init op
+            return pushValue(builder.create<cc::StdvecInitOp>(
+                loc, cc::StdvecType::get(dataType), alloca, arrSize));
+          }
+
+        // Disallow any default vector construction bc we don't
+        // want any .push_back
+        if (ctor->isDefaultConstructor())
+          reportClangError(ctor, mangler,
+                           "Default std::vector<T> constructor within quantum "
+                           "kernel is not allowed "
+                           "(cannot resize the vector).");
+      }
     }
+
     if (ctor->isCopyConstructor())
       if (auto *parent = ctor->getParent())
         if (parent->isLambda()) {
