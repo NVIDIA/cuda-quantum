@@ -23,6 +23,8 @@ class Driver {
   std::string targetConfig;
   CudaqArgs cudaqArgs;
   std::string cudaqOptPipeline;
+  // Storage of arg strings to have reliable const char*
+  mutable std::list<std::string> synthesizedArgStrings;
 
 public:
   Driver(ArgvStorageBase &cmdArgs);
@@ -30,6 +32,10 @@ public:
   static int executeCC1Tool(ArgvStorageBase &cmdArgs);
 
 private:
+  /// Construct a constant string pointer whose
+  /// lifetime will match that of the Driver.
+  const char *makeArgStringRef(llvm::StringRef argStr);
+
   void preProcessCudaQArguments(ArgvStorageBase &cmdArgs);
   std::string processOptPipeline(ArgvStorageBase &args, bool doLink);
   std::unique_ptr<clang::driver::Compilation> makeCompilation();

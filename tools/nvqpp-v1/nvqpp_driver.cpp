@@ -158,6 +158,11 @@ Driver::Driver(ArgvStorageBase &cmdArgs)
   preProcessCudaQArguments(cmdArgs);
 }
 
+const char *Driver::makeArgStringRef(llvm::StringRef argStr) {
+  synthesizedArgStrings.push_back(std::string(argStr));
+  return synthesizedArgStrings.back().c_str();
+}
+
 void Driver::preProcessCudaQArguments(ArgvStorageBase &cmdArgs) {
   std::tie(cudaqArgs, std::ignore) = CudaqArgs::filterArgs(cmdArgs);
   if (cudaqArgs.hasOption("target")) {
@@ -617,15 +622,14 @@ int Driver::execute() {
               !inserted) {
             // Insert other object files, e.g., backend config and quake.
             for (const auto &objFile : objFilesToMerge)
-              newLinkArgs.insert(newLinkArgs.end(), strdup(objFile.c_str()));
+              newLinkArgs.insert(newLinkArgs.end(), makeArgStringRef(objFile));
             inserted = true;
           }
           newLinkArgs.insert(newLinkArgs.end(), arg);
         }
 
         const std::string linkDir = std::string("-L") + cudaqLibPath;
-        // FIXME: leak
-        newLinkArgs.insert(newLinkArgs.end(), strdup(linkDir.c_str()));
+        newLinkArgs.insert(newLinkArgs.end(), makeArgStringRef(linkDir));
         const std::array<const char *, 9> CUDAQ_LINK_LIBS{
             "-lcudaq",         "-lcudaq-common",    "-lcudaq-mlir-runtime",
             "-lcudaq-builder", "-lcudaq-ensmallen", "-lcudaq-nlopt",
@@ -640,7 +644,7 @@ int Driver::execute() {
                 ? targetPlatformExtraArgs.nvqirSimulationBackend
                 : "qpp";
         const std::string backendLink = std::string("-lnvqir-") + nvqirBackend;
-        newLinkArgs.insert(newLinkArgs.end(), strdup(backendLink.c_str()));
+        newLinkArgs.insert(newLinkArgs.end(), makeArgStringRef(backendLink));
 
         const std::string platformName =
             (!targetConfig.empty() &&
@@ -649,15 +653,15 @@ int Driver::execute() {
                 : "default";
         const std::string platformLink =
             std::string("-lcudaq-platform-") + platformName;
-        newLinkArgs.insert(newLinkArgs.end(), strdup(platformLink.c_str()));
+        newLinkArgs.insert(newLinkArgs.end(), makeArgStringRef(platformLink));
 
         if (!targetConfig.empty() && targetPlatformExtraArgs.genTargetBackend)
           for (const auto &linkFlag : targetPlatformExtraArgs.linkFlags)
-            newLinkArgs.insert(newLinkArgs.end(), strdup(linkFlag.c_str()));
+            newLinkArgs.insert(newLinkArgs.end(), makeArgStringRef(linkFlag));
 
         const std::string rpathDir = std::string("-rpath=") + cudaqLibPath;
         // FIXME: leak
-        newLinkArgs.insert(newLinkArgs.end(), strdup(rpathDir.c_str()));
+        newLinkArgs.insert(newLinkArgs.end(), makeArgStringRef(rpathDir));
         Job.replaceArguments(newLinkArgs);
       } else {
         if (!cudaqArgs.hasOption("enable-mlir")) {
@@ -685,7 +689,8 @@ int Driver::execute() {
                          std::string(arg).rbegin())) {
             const std::string backendConfigCppFile =
                 cudaqTargetsPath + "/backendConfig.cpp";
-            newArgs.insert(newArgs.end(), strdup(backendConfigCppFile.c_str()));
+            newArgs.insert(newArgs.end(),
+                           makeArgStringRef(backendConfigCppFile));
           } else if (std::string(arg) == outputFileName) {
             newArgs.insert(newArgs.end(), backendConfigObjFile);
           } else {
@@ -699,7 +704,7 @@ int Driver::execute() {
         const std::string defArg =
             std::string("-DNVQPP_TARGET_BACKEND_CONFIG=\"") + targetConfigDef +
             "\"";
-        newArgs.insert(newArgs.end(), strdup(defArg.c_str()));
+        newArgs.insert(newArgs.end(), makeArgStringRef(defArg));
 
         compileBackendConfigCmd.replaceArguments(newArgs);
         if (int Res =
@@ -722,17 +727,17 @@ int Driver::execute() {
         // driver::Compilation temp file system.
         llvm::SmallString<128> quakeTmpFile(quakeFile);
         llvm::sys::fs::make_absolute(quakeTmpFile);
-        comp->addTempFile(strdup(quakeTmpFile.c_str()));
+        comp->addTempFile(makeArgStringRef(quakeTmpFile));
         quakeRun = true;
         // Run quake-opt
         // TODO: need to check the action requested (LLVM/Obj)
         if (!cudaqOptPipeline.empty()) {
           clang::driver::InputInfoList inputInfos;
           llvm::opt::ArgStringList cmdArgs;
-          cmdArgs.insert(cmdArgs.end(), strdup(cudaqOptPipeline.c_str()));
-          cmdArgs.insert(cmdArgs.end(), strdup(quakeFile.c_str()));
+          cmdArgs.insert(cmdArgs.end(), makeArgStringRef(cudaqOptPipeline));
+          cmdArgs.insert(cmdArgs.end(), makeArgStringRef(quakeFile));
           cmdArgs.insert(cmdArgs.end(), "-o");
-          cmdArgs.insert(cmdArgs.end(), strdup(quakeFileOpt.c_str()));
+          cmdArgs.insert(cmdArgs.end(), makeArgStringRef(quakeFileOpt));
           auto quakeOptCmd = std::make_unique<clang::driver::Command>(
               Job.getSource(), Job.getCreator(),
               clang::driver::ResponseFileSupport::None(), cudaqOptExe.c_str(),
@@ -751,12 +756,12 @@ int Driver::execute() {
           // If run opt -> chain the output file from cudaq-opt,
           // otherwise, take the output file from quake.
           if (!cudaqOptPipeline.empty())
-            cmdArgs.insert(cmdArgs.end(), strdup(quakeFileOpt.c_str()));
+            cmdArgs.insert(cmdArgs.end(), makeArgStringRef(quakeFileOpt));
           else
-            cmdArgs.insert(cmdArgs.end(), strdup(quakeFile.c_str()));
+            cmdArgs.insert(cmdArgs.end(), makeArgStringRef(quakeFile));
 
           cmdArgs.insert(cmdArgs.end(), "-o");
-          cmdArgs.insert(cmdArgs.end(), strdup(quakeFileLl.c_str()));
+          cmdArgs.insert(cmdArgs.end(), makeArgStringRef(quakeFileLl));
           auto quakeTranslateCmd = std::make_unique<clang::driver::Command>(
               Job.getSource(), Job.getCreator(),
               clang::driver::ResponseFileSupport::None(),
@@ -776,14 +781,14 @@ int Driver::execute() {
           cmdArgs.insert(cmdArgs.end(), "--relocation-model=pic");
           cmdArgs.insert(cmdArgs.end(), "--filetype=obj");
           cmdArgs.insert(cmdArgs.end(), "-O2");
-          cmdArgs.insert(cmdArgs.end(), strdup(quakeFileLl.c_str()));
+          cmdArgs.insert(cmdArgs.end(), makeArgStringRef(quakeFileLl));
           cmdArgs.insert(cmdArgs.end(), "-o");
-          cmdArgs.insert(cmdArgs.end(), strdup(quakeFileObj.c_str()));
+          cmdArgs.insert(cmdArgs.end(), makeArgStringRef(quakeFileObj));
           const std::string llcPath = std::string(LLVM_BIN_DIR) + "/llc";
           auto llcCmd = std::make_unique<clang::driver::Command>(
               Job.getSource(), Job.getCreator(),
               clang::driver::ResponseFileSupport::None(),
-              strdup(llcPath.c_str()), cmdArgs, inputInfos);
+              makeArgStringRef(llcPath), cmdArgs, inputInfos);
 
           if (int Res = comp->ExecuteCommand(*llcCmd, failingCommand)) {
             failing.push_back(std::make_pair(Res, failingCommand));
