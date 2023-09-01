@@ -1979,25 +1979,11 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
       // could be an initializer_list or an integer, while the
       // second is the allocator
       if (ctorName == "vector" && x->getNumArgs() == 2) {
-        // Here we create a lambda that will peel off the sugar types
-        auto peelOffClangTypes = [&](clang::QualType type) {
-          clang::QualType lastType = type;
-          while (true) {
-            type = type.getSingleStepDesugaredType(*astContext);
-            if (type == lastType)
-              break;
-            lastType = type;
-          }
-
-          return lastType;
-        };
-
         // This is a std::vector constructor, first we'll check if it
         // is constructed from a constant initializer list, in that case
         // we'll have a AllocaOp at the top of the stack that allocates a
         // ptr<array<TxC>>, where C is constant / known
-        auto type = x->getArg(0)->getType();
-        auto desugared = peelOffClangTypes(type);
+        auto desugared = x->getArg(0)->getType().getCanonicalType();
         if (auto recordType =
                 dyn_cast<clang::RecordType>(desugared.getTypePtr())) {
           if (recordType->getDecl()->getName().equals("initializer_list")) {
