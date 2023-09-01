@@ -1082,7 +1082,8 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     TODO_loc(loc, "unhandled std::vector member function, " + funcName);
   }
 
-  if (isInClassInNamespace(func, "_Bit_reference", "std")) {
+  if (isInClassInNamespace(func, "_Bit_reference", "std") ||
+      isInClassInNamespace(func, "__bit_reference", "std")) {
     // Calling std::_Bit_reference::method().
     auto loadFromReference = [&](mlir::Value ref) -> Value {
       if (auto mrTy = dyn_cast<cc::PointerType>(ref.getType())) {
@@ -1595,7 +1596,7 @@ std::optional<std::string> QuakeBridgeVisitor::isInterceptedSubscriptOperator(
         if (typeName == "vector")
           return {typeName};
       } else if (isInNamespace(decl, "std")) {
-        if (typeName == "_Bit_reference")
+        if (typeName == "_Bit_reference" || typeName == "__bit_reference")
           return {typeName};
       }
     }
@@ -1667,7 +1668,7 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
                                                       ValueRange{indexVar});
       return replaceTOSValue(eleAddr);
     }
-    if (typeName == "_Bit_reference") {
+    if (typeName == "_Bit_reference" || typeName == "__bit_reference") {
       // For vector<bool>, on the kernel side this is represented as a sequence
       // of byte-sized boolean values (true and false). On the host side, C++ is
       // likely going to pack the booleans as bits in words.
@@ -1949,6 +1950,14 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
         return true;
       }
     }
+    if (ctor->isCopyConstructor())
+      if (auto *parent = ctor->getParent())
+        if (parent->isLambda()) {
+          // Copy-ctor on a lambda. For now on the QPU device side, we do not
+          // make a copy of a lambda. Any capture data will be marshalled at
+          // runtime and passed as ordinary arguments via lambda lifting.
+          return true;
+        }
 
     // TODO: remove this when we can handle ctors more generally.
     if (!ctor->isDefaultConstructor()) {

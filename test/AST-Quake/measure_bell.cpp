@@ -119,9 +119,9 @@ struct libertybell {
 // CHECK:               %[[VAL_12:.*]] = quake.mz %[[VAL_4]] : (!quake.veq<2>) -> !cc.stdvec<i1>
 // CHECK:               %[[VAL_13:.*]] = cc.stdvec_data %[[VAL_12]] : (!cc.stdvec<i1>) -> !cc.ptr<i1>
 // CHECK:               %[[VAL_14:.*]] = cc.compute_ptr %[[VAL_13]][0] : (!cc.ptr<i1>) -> !cc.ptr<i1>
-// CHECK:               %[[VAL_15:.*]] = cc.compute_ptr %[[VAL_13]][1] : (!cc.ptr<i1>) -> !cc.ptr<i1>
-// CHECK:               %[[VAL_16:.*]] = cc.load %[[VAL_15]] : !cc.ptr<i1>
-// CHECK:               %[[VAL_17:.*]] = cc.load %[[VAL_14]] : !cc.ptr<i1>
+// CHECK-DAG:           %[[VAL_15:.*]] = cc.compute_ptr %[[VAL_13]][1] : (!cc.ptr<i1>) -> !cc.ptr<i1>
+// CHECK-DAG:           %[[VAL_16:.*]] = cc.load %[[VAL_15]] : !cc.ptr<i1>
+// CHECK-DAG:           %[[VAL_17:.*]] = cc.load %[[VAL_14]] : !cc.ptr<i1>
 // CHECK:               %[[VAL_18:.*]] = arith.cmpi eq, %[[VAL_17]], %[[VAL_16]] : i1
 // CHECK:               cc.if(%[[VAL_18]]) {
 // CHECK:                 %[[VAL_19:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
@@ -182,9 +182,9 @@ struct tinkerbell {
 // CHECK:               %[[VAL_12:.*]] = quake.mz %[[VAL_4]] : (!quake.veq<2>) -> !cc.stdvec<i1>
 // CHECK:               %[[VAL_13:.*]] = cc.stdvec_data %[[VAL_12]] : (!cc.stdvec<i1>) -> !cc.ptr<i1>
 // CHECK:               %[[VAL_14:.*]] = cc.compute_ptr %[[VAL_13]][0] : (!cc.ptr<i1>) -> !cc.ptr<i1>
-// CHECK:               %[[VAL_15:.*]] = cc.compute_ptr %[[VAL_13]][1] : (!cc.ptr<i1>) -> !cc.ptr<i1>
-// CHECK:               %[[VAL_16:.*]] = cc.load %[[VAL_15]] : !cc.ptr<i1>
-// CHECK:               %[[VAL_17:.*]] = cc.load %[[VAL_14]] : !cc.ptr<i1>
+// CHECK-DAG:           %[[VAL_15:.*]] = cc.compute_ptr %[[VAL_13]][1] : (!cc.ptr<i1>) -> !cc.ptr<i1>
+// CHECK-DAG:           %[[VAL_16:.*]] = cc.load %[[VAL_15]] : !cc.ptr<i1>
+// CHECK-DAG:           %[[VAL_17:.*]] = cc.load %[[VAL_14]] : !cc.ptr<i1>
 // CHECK:               %[[VAL_18:.*]] = arith.cmpi eq, %[[VAL_17]], %[[VAL_16]] : i1
 // CHECK:               cc.if(%[[VAL_18]]) {
 // CHECK:                 %[[VAL_19:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
