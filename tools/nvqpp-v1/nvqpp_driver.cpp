@@ -11,6 +11,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Support/Verifier.h"
 #include "nvqpp_flag_configs.h"
+#include "nvqpp_options.h"
 #include "clang/CodeGen/BackendUtil.h"
 #include "clang/CodeGen/CodeGenAction.h"
 #include "clang/Driver/Compilation.h"
@@ -419,13 +420,12 @@ static std::unique_ptr<clang::FrontendAction> createFrontendAction(
 bool Driver::executeCompilerInvocation(clang::CompilerInstance *ci,
                                        const CudaqArgs &cudaqArgs) {
   auto &opts = ci->getFrontendOpts();
-
-  // -help.
   if (opts.ShowHelp) {
-    clang::driver::getDriverOptTable().printHelp(
-        llvm::outs(), "nvq++ -cc1 [options] file...",
-        "NVQ++ Compiler: https://github.com/NVIDIA/cuda-quantum",
-        /*Include=*/clang::driver::options::CC1Option,
+    cudaq::nvqpp::options::getDriverOptTable().printHelp(
+        llvm::outs(),
+        /*Usage=*/"nvq++ [options] [host-compiler-options] file...",
+        /*Title*/ "NVQ++ Compiler: https://github.com/NVIDIA/cuda-quantum",
+        /*Include=*/0,
         /*Exclude=*/0, /*ShowAllAliases=*/false);
     return true;
   }
