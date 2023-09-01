@@ -499,8 +499,7 @@ struct VerifyBaseProfilePass
           return WalkResult::advance();
         }
 
-        // Check that qubits are unique
-        // values.
+        // Check that qubits are unique values.
         const std::size_t numOpnds = call.getNumOperands();
         auto qubitTy = cudaq::opt::getQubitType(ctx);
         if (numOpnds > 0)

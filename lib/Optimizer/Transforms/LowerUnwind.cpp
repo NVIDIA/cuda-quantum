@@ -83,9 +83,8 @@ private:
       for (Operation *parent = unwindOp->getParentOp();
            !isa<cudaq::cc::LoopOp>(parent) && !asPrimitive;
            parent = parent->getParentOp())
-        asPrimitive =
-            isa<func::FuncOp, cudaq::cc::CreateLambdaOp, cudaq::cc::ScopeOp>(
-                parent);
+        asPrimitive = isa<func::FuncOp, cudaq::cc::CreateLambdaOp,
+                          cudaq::cc::ScopeOp, cudaq::cc::IfOp>(parent);
     }
     auto *op = unwindOp.getOperation();
     infoMap.opParentMap.insert({op, {parent, asPrimitive}});
