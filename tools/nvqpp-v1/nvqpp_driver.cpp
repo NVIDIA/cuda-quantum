@@ -164,7 +164,8 @@ void Driver::preProcessCudaQArguments(ArgvStorageBase &cmdArgs) {
     if (auto targetOpt = cudaqArgs.getOption("target"); targetOpt.has_value()) {
       llvm::StringRef targetName = cudaqArgs.getOption("target").value();
       targetConfig = targetName.str();
-      auto targetArgsHandler = cudaq::getTargetPlatformArgs(targetConfig);
+      auto targetArgsHandler =
+          cudaq::getTargetPlatformArgs(targetConfig, cudaqTargetsPath);
       if (targetArgsHandler)
         targetPlatformExtraArgs = targetArgsHandler->parsePlatformArgs(cmdArgs);
     } else {
@@ -379,7 +380,7 @@ static std::unique_ptr<clang::FrontendAction> createFrontendAction(
     cudaq::ASTBridgeAction::MangledKernelNamesMap &cxxMangled) {
   auto &opts = ci.getFrontendOpts();
   auto act = opts.ProgramAction;
-
+  const bool mlirMode = cudaqArgs.hasOption("enable-mlir");
   switch (act) {
   case (clang::frontend::ActionKind::ASTDump):
     // AST action: no need to invoke CUDAQ
@@ -388,17 +389,21 @@ static std::unique_ptr<clang::FrontendAction> createFrontendAction(
     // AST action: no need to invoke CUDAQ
     return std::make_unique<clang::ASTPrintAction>();
   case (clang::frontend::ActionKind::EmitAssembly):
-    return std::make_unique<CudaQAction<clang::EmitAssemblyAction>>(module,
-                                                                    cxxMangled);
+    return mlirMode ? std::make_unique<CudaQAction<clang::EmitAssemblyAction>>(
+                          module, cxxMangled)
+                    : std::make_unique<clang::EmitAssemblyAction>();
   case (clang::frontend::ActionKind::EmitBC):
-    return std::make_unique<CudaQAction<clang::EmitBCAction>>(module,
-                                                              cxxMangled);
+    return mlirMode ? std::make_unique<CudaQAction<clang::EmitBCAction>>(
+                          module, cxxMangled)
+                    : std::make_unique<clang::EmitBCAction>();
   case (clang::frontend::ActionKind::EmitLLVM):
-    return std::make_unique<CudaQAction<clang::EmitLLVMAction>>(module,
-                                                                cxxMangled);
+    return mlirMode ? std::make_unique<CudaQAction<clang::EmitLLVMAction>>(
+                          module, cxxMangled)
+                    : std::make_unique<clang::EmitLLVMAction>();
   case (clang::frontend::ActionKind::EmitObj):
-    return std::make_unique<CudaQAction<clang::EmitObjAction>>(module,
-                                                               cxxMangled);
+    return mlirMode ? std::make_unique<CudaQAction<clang::EmitObjAction>>(
+                          module, cxxMangled)
+                    : std::make_unique<clang::EmitObjAction>();
   default:
     throw std::runtime_error("Not supported!!!");
   }
@@ -621,20 +626,31 @@ int Driver::execute() {
         const std::string linkDir = std::string("-L") + cudaqLibPath;
         // FIXME: leak
         newLinkArgs.insert(newLinkArgs.end(), strdup(linkDir.c_str()));
-        const std::array<const char *, 11> CUDAQ_LINK_LIBS{
-            "-lcudaq",
-            "-lcudaq-common",
-            "-lcudaq-mlir-runtime",
-            "-lcudaq-builder",
-            "-lcudaq-ensmallen",
-            "-lcudaq-nlopt",
-            "-lcudaq-spin",
-            "-lnvqir",
-            "-lcudaq-em-qir",
-            "-lcudaq-platform-default",
-            "-lnvqir-qpp"};
+        const std::array<const char *, 9> CUDAQ_LINK_LIBS{
+            "-lcudaq",         "-lcudaq-common",    "-lcudaq-mlir-runtime",
+            "-lcudaq-builder", "-lcudaq-ensmallen", "-lcudaq-nlopt",
+            "-lcudaq-spin",    "-lnvqir",           "-lcudaq-em-qir",
+        };
+
         for (const auto &linkLib : CUDAQ_LINK_LIBS)
           newLinkArgs.insert(newLinkArgs.end(), linkLib);
+        const std::string nvqirBackend =
+            (!targetConfig.empty() &&
+             !targetPlatformExtraArgs.nvqirSimulationBackend.empty())
+                ? targetPlatformExtraArgs.nvqirSimulationBackend
+                : "qpp";
+        const std::string backendLink = std::string("-lnvqir-") + nvqirBackend;
+        newLinkArgs.insert(newLinkArgs.end(), strdup(backendLink.c_str()));
+
+        const std::string platformName =
+            (!targetConfig.empty() &&
+             !targetPlatformExtraArgs.nvqirPlatform.empty())
+                ? targetPlatformExtraArgs.nvqirPlatform
+                : "default";
+        const std::string platformLink =
+            std::string("-lcudaq-platform-") + platformName;
+        newLinkArgs.insert(newLinkArgs.end(), strdup(platformLink.c_str()));
+
         if (!targetConfig.empty() && targetPlatformExtraArgs.genTargetBackend)
           for (const auto &linkFlag : targetPlatformExtraArgs.linkFlags)
             newLinkArgs.insert(newLinkArgs.end(), strdup(linkFlag.c_str()));
@@ -643,6 +659,12 @@ int Driver::execute() {
         // FIXME: leak
         newLinkArgs.insert(newLinkArgs.end(), strdup(rpathDir.c_str()));
         Job.replaceArguments(newLinkArgs);
+      } else {
+        if (!cudaqArgs.hasOption("enable-mlir")) {
+          auto currentArgs = Job.getArguments();
+          currentArgs.insert(currentArgs.end(), "-DCUDAQ_LIBRARY_MODE");
+          Job.replaceArguments(currentArgs);
+        }
       }
       if (Job.getSource().getKind() ==
               clang::driver::Action::ActionClass::AssembleJobClass &&

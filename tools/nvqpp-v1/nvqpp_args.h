@@ -10,7 +10,7 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/InitLLVM.h"
-
+#include <filesystem>
 #include <vector>
 
 using ArgT = const char *;
@@ -92,13 +92,16 @@ struct TargetPlatformArgs {
     bool genTargetBackend = false;
     // Additional link flags, e.g., "-lcudaq-rest-qpu"
     std::vector<std::string> linkFlags;
-    bool libraryMode = false;
+    bool libraryMode = true;
     // Extra args to be sent on as defines
     std::string platformExtraArgs;
+    std::string nvqirSimulationBackend;
+    std::string nvqirPlatform;
   };
   virtual Data parsePlatformArgs(ArgvStorageBase &args) = 0;
 };
 
 std::shared_ptr<TargetPlatformArgs>
-getTargetPlatformArgs(const std::string &targetName);
+getTargetPlatformArgs(const std::string &targetName,
+                      const std::filesystem::path &platformPath);
 } // namespace cudaq

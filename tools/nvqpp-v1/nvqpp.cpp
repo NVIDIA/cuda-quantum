@@ -35,6 +35,36 @@ void preprocessArguments(ArgvStorage &args) {
     if (arg.startswith(cudaq::CudaqArgs::cudaqOptionPrefix))
       it = makePluginArgument(it);
   }
+
+  auto [cudaqArgs, clangArgs] = CudaqArgs::filterArgs(args);
+  if (cudaqArgs.hasOption("target")) {
+    if (auto targetOpt = cudaqArgs.getOption("target"); targetOpt.has_value()) {
+      llvm::StringRef targetName = cudaqArgs.getOption("target").value();
+      llvm::SmallString<128> installedPath(args[0]);
+      if (llvm::sys::path::filename(installedPath) == installedPath)
+        if (auto tmp = llvm::sys::findProgramByName(
+                llvm::sys::path::filename(installedPath.str())))
+          installedPath = *tmp;
+      llvm::sys::fs::make_absolute(installedPath);
+      llvm::SmallString<128> platformPath = llvm::sys::path::parent_path(
+          llvm::sys::path::parent_path(installedPath));
+      llvm::sys::path::append(platformPath, "targets");
+      auto targetArgsHandler = cudaq::getTargetPlatformArgs(
+          targetName.str(), std::filesystem::path(platformPath.c_str()));
+      if (targetArgsHandler) {
+        auto targetPlatformExtraArgs =
+            targetArgsHandler->parsePlatformArgs(clangArgs);
+        if (!targetPlatformExtraArgs.libraryMode) {
+          args.insert(args.end(), "-Xclang");
+          args.insert(args.end(), "-cudaq-enable-mlir");
+        }
+      }
+    } else {
+      llvm::errs() << "Invalid target option: must be in the form "
+                      "'-cudaq-target=<name>'";
+      exit(1);
+    }
+  }
 }
 } // namespace cudaq
 
@@ -51,8 +81,6 @@ int main(int argc, char **argv) {
 
     llvm::BumpPtrAllocator pointerAllocator;
     llvm::StringSaver saver(pointerAllocator);
-
-    // TODO: support both modes: now just do MLIR
     auto firstArg = llvm::find_if(llvm::drop_begin(cmdArgs),
                                   [](auto a) { return a != nullptr; });
     if (firstArg != cmdArgs.end() &&
