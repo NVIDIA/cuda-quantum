@@ -178,7 +178,7 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       return pushType(cc::StdvecType::get(ctx, popType()));
     }
     // std::vector<bool>   =>   cc.stdvec<i1>
-    if (name.equals("_Bit_reference")) {
+    if (name.equals("_Bit_reference") || name.equals("__bit_reference")) {
       // Reference to a bit in a std::vector<bool>. Promote to a value.
       return pushType(builder.getI1Type());
     }
@@ -675,8 +675,10 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
   auto isStdvecBoolReference = [&](clang::QualType &qualTy) {
     if (auto *recTy = dyn_cast<clang::RecordType>(qualTy.getTypePtr())) {
       auto *recDecl = recTy->getDecl();
-      if (isInNamespace(recDecl, "std"))
-        return recDecl->getNameAsString() == "_Bit_reference";
+      if (isInNamespace(recDecl, "std")) {
+        auto name = recDecl->getNameAsString();
+        return name == "_Bit_reference" || name == "__bit_reference";
+      }
     }
     return false;
   };
