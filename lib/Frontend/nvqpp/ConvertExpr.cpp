@@ -1790,7 +1790,8 @@ bool QuakeBridgeVisitor::TraverseInitListExpr(clang::InitListExpr *x,
   }
 
   // If the initializer-list is possibly a Callable type, preemptively add the
-  // signature of call operation (`operator()`) to the Module if not present.
+  // signature of the call operation (`operator()`) to the Module if not
+  // present.
   if (auto *ty = x->getType().getTypePtr())
     if (auto *tyDecl = ty->getAsRecordDecl())
       maybeAddCallOperationSignature(tyDecl);
