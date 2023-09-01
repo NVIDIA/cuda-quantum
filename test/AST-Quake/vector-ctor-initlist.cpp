@@ -14,14 +14,14 @@
 
 __qpu__ void testDouble() {
   cudaq::qubit q;
-  std::vector<double> angle{M_PI_2, M_PI_4, M_PI};
+  std::vector<double> angle{M_PI_2, M_PI_4, 2*M_PI/40.};
   ry(angle[0], q);
   ry(angle[1], q);
   ry(angle[2], q);
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_testDouble._Z10testDoublev() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 3.1415926535897931 : f64
+// CHECK:           %[[VAL_0:.*]] = arith.constant 0.15707963267948966 : f64
 // CHECK:           %[[VAL_1:.*]] = arith.constant 0.78539816339744828 : f64
 // CHECK:           %[[VAL_2:.*]] = arith.constant 1.5707963267948966 : f64
 // CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.ref
