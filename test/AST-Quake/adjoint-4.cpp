@@ -26,9 +26,8 @@ __qpu__ void reflect_uni(cudaq::qreg<> &ctrls, cudaq::qreg<> &qubits,
 // CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: !quake.veq<?>, %[[VAL_2:.*]]: f64)
 // CHECK:           %[[VAL_3:.*]] = cc.alloca f64
 // CHECK:           cc.store %[[VAL_2]], %[[VAL_3]] : !cc.ptr<f64>
-// CHECK:           %[[VAL_4:.*]] = constant @__nvqpp__mlirgen__function_init_state.[[MANGLE:.*]] : (!quake.veq<?>, f64) -> ()
 // CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_3]] : !cc.ptr<f64>
-// CHECK:           quake.apply<adj> @__nvqpp__mlirgen__function_init_state.[[MANGLE]] %[[VAL_1]], %[[VAL_5]] : (!quake.veq<?>, f64) -> ()
+// CHECK:           quake.apply<adj> @__nvqpp__mlirgen__function_init_state.{{.*}} %[[VAL_1]], %[[VAL_5]] : (!quake.veq<?>, f64) -> ()
 // CHECK:           return
 // CHECK:         }
 

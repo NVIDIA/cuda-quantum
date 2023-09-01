@@ -13,7 +13,7 @@
 #include "llvm/Support/Debug.h"
 #include "mlir/IR/Builders.h"
 
-#define DEBUG_TYPE "ast-statement"
+#define DEBUG_TYPE "lower-ast-stmt"
 
 using namespace mlir;
 
@@ -26,22 +26,22 @@ bool QuakeBridgeVisitor::hasTerminator(Block &block) {
 bool QuakeBridgeVisitor::VisitBreakStmt(clang::BreakStmt *x) {
   // It is a C++ syntax error if a break statement is not in a loop or switch
   // statement. The bridge does not currently support switch statements.
-  if (!typeMode)
+  LLVM_DEBUG(llvm::dbgs() << "%% "; x->dump());
+  if (builder.getBlock())
     builder.create<cc::UnwindBreakOp>(toLocation(x));
   return true;
 }
 
 bool QuakeBridgeVisitor::VisitContinueStmt(clang::ContinueStmt *x) {
   // It is a C++ syntax error if a continue statement is not in a loop.
-  if (!typeMode)
+  LLVM_DEBUG(llvm::dbgs() << "%% "; x->dump());
+  if (builder.getBlock())
     builder.create<cc::UnwindContinueOp>(toLocation(x));
   return true;
 }
 
 bool QuakeBridgeVisitor::VisitCompoundAssignOperator(
     clang::CompoundAssignOperator *x) {
-  if (typeMode)
-    return true;
   auto loc = toLocation(x->getSourceRange());
   auto rhs = popValue();
   auto lhsPtr = popValue();
@@ -53,6 +53,7 @@ bool QuakeBridgeVisitor::VisitCompoundAssignOperator(
   else if (x->getType()->isFloatingType())
     rhs = floatingPointCoercion(loc, lhs.getType(), rhs);
 
+  LLVM_DEBUG(llvm::dbgs() << "%% "; x->dump());
   auto result = [&]() -> mlir::Value {
     switch (x->getOpcode()) {
     case clang::BinaryOperatorKind::BO_AddAssign: {
@@ -168,8 +169,6 @@ bool QuakeBridgeVisitor::TraverseSwitchStmt(clang::SwitchStmt *x,
 }
 
 bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *stmt) {
-  if (typeMode)
-    return true;
   auto loc = toLocation(stmt->getSourceRange());
   bool isFuncScope = [&]() {
     if (auto *block = builder.getBlock())
@@ -178,9 +177,15 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *stmt) {
           return isa<func::FuncOp, cc::CreateLambdaOp>(op);
     return false;
   }();
+  LLVM_DEBUG(llvm::dbgs() << "%% "; stmt->dump());
   if (stmt->getRetValue()) {
     auto result = popValue();
     auto resTy = result.getType();
+    if (isa<cc::PointerType>(resTy)) {
+      // Promote reference (T&) to value (T) on a return. (There is not
+      // necessarily an explicit cast or promotion node in the AST.)
+      result = builder.create<cc::LoadOp>(loc, result);
+    }
     if (auto vecTy = dyn_cast<cc::StdvecType>(resTy)) {
       // Returning vector data that was allocated on the stack is not valid.
       // Allocate space on the heap and make a copy of the vector instead. It
@@ -219,17 +224,24 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *stmt) {
 
 bool QuakeBridgeVisitor::TraverseCompoundStmt(clang::CompoundStmt *stmt,
                                               DataRecursionQueue *q) {
-  if (typeMode)
-    return true;
   auto loc = toLocation(stmt->getSourceRange());
   SymbolTableScope var_scope(symbolTable);
   if (skipCompoundScope) {
     skipCompoundScope = false;
-    for (auto *cs : stmt->body())
-      if (!TraverseStmt(static_cast<clang::Stmt *>(cs)))
-        return false;
-    if (!hasTerminator(builder.getBlock()))
-      builder.create<func::ReturnOp>(loc);
+    for (auto *cs : stmt->body()) {
+      LLVM_DEBUG(llvm::dbgs() << "[[[\n"; cs->dump());
+      if (TraverseStmt(static_cast<clang::Stmt *>(cs))) {
+        LLVM_DEBUG({
+          if (!typeStack.empty()) {
+            llvm::dbgs() << "\n\nERROR: type stack has garbage after stmt:\n";
+            for (auto t : llvm::reverse(typeStack))
+              t.dump();
+            typeStack.clear();
+          }
+          llvm::dbgs() << "]]]\n";
+        });
+      }
+    }
     return true;
   }
   bool result = true;
@@ -244,10 +256,9 @@ bool QuakeBridgeVisitor::TraverseCompoundStmt(clang::CompoundStmt *stmt,
   return result;
 }
 
-bool QuakeBridgeVisitor::TraverseDoStmt(clang::DoStmt *x,
-                                        DataRecursionQueue *q) {
-  // TODO: Merge this with the WhileStmt. The only difference is the
-  // postCondition attribute value amd tje WalkUpFrom call.
+// Shared implementation for lowering of `do while` and `while` loops.
+template <bool postCondition, typename S>
+bool QuakeBridgeVisitor::traverseDoOrWhileStmt(S *x) {
   bool result = true;
   auto loc = toLocation(x);
   auto *cond = x->getCond();
@@ -280,10 +291,20 @@ bool QuakeBridgeVisitor::TraverseDoStmt(clang::DoStmt *x,
     if (!hasTerminator(region.back()))
       builder.create<cc::ContinueOp>(loc);
   };
-  constexpr bool postCondition = true;
+  LLVM_DEBUG(llvm::dbgs() << "%% "; x->dump());
   builder.create<cc::LoopOp>(loc, ValueRange{}, postCondition, whileBuilder,
                              bodyBuilder);
   return result;
+}
+
+bool QuakeBridgeVisitor::TraverseDoStmt(clang::DoStmt *x,
+                                        DataRecursionQueue *) {
+  return traverseDoOrWhileStmt</*postCondition=*/true>(x);
+}
+
+bool QuakeBridgeVisitor::TraverseWhileStmt(clang::WhileStmt *x,
+                                           DataRecursionQueue *) {
+  return traverseDoOrWhileStmt</*postCondition=*/false>(x);
 }
 
 bool QuakeBridgeVisitor::TraverseIfStmt(clang::IfStmt *x,
@@ -308,6 +329,7 @@ bool QuakeBridgeVisitor::TraverseIfStmt(clang::IfStmt *x,
   };
   auto *cond = x->getCond();
   assert(cond && "if statement should have a condition");
+  LLVM_DEBUG(llvm::dbgs() << "%% "; x->dump());
   if (auto *init = x->getInit()) {
     builder.create<cc::ScopeOp>(loc, [&](OpBuilder &builder, Location loc) {
       SymbolTableScope varScope(symbolTable);
@@ -325,6 +347,7 @@ bool QuakeBridgeVisitor::TraverseIfStmt(clang::IfStmt *x,
       builder.create<cc::ContinueOp>(loc);
     });
   } else {
+    // If there is no initialization expression, skip creating an `if` scope.
     if (!TraverseStmt(cond))
       return false;
     if (x->getElse())
@@ -385,6 +408,7 @@ bool QuakeBridgeVisitor::TraverseForStmt(clang::ForStmt *x,
   };
 
   constexpr bool postCondition = false;
+  LLVM_DEBUG(llvm::dbgs() << "%% "; x->dump());
   if (auto *init = x->getInit()) {
     SymbolTableScope var_scope(symbolTable);
     builder.create<cc::ScopeOp>(loc, [&](OpBuilder &builder, Location loc) {
@@ -397,49 +421,10 @@ bool QuakeBridgeVisitor::TraverseForStmt(clang::ForStmt *x,
       builder.create<cc::ContinueOp>(loc);
     });
   } else {
+    // If there is no initialization expression, skip creating a `for` scope.
     builder.create<cc::LoopOp>(loc, ValueRange{}, postCondition, whileBuilder,
                                bodyBuilder);
   }
-  return result;
-}
-
-bool QuakeBridgeVisitor::TraverseWhileStmt(clang::WhileStmt *x,
-                                           DataRecursionQueue *q) {
-  bool result = true;
-  auto loc = toLocation(x);
-  auto *cond = x->getCond();
-  auto whileBuilder = [&](OpBuilder &builder, Location loc, Region &region) {
-    if (!result)
-      return;
-    region.push_back(new Block());
-    auto &bodyBlock = region.front();
-    OpBuilder::InsertionGuard guard(builder);
-    builder.setInsertionPointToStart(&bodyBlock);
-    if (!TraverseStmt(static_cast<clang::Stmt *>(cond))) {
-      result = false;
-      return;
-    }
-    auto val = popValue();
-    builder.create<cc::ConditionOp>(loc, val, ValueRange{});
-  };
-  auto *body = x->getBody();
-  auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &region) {
-    if (!result)
-      return;
-    region.push_back(new Block());
-    auto &bodyBlock = region.front();
-    OpBuilder::InsertionGuard guard(builder);
-    builder.setInsertionPointToStart(&bodyBlock);
-    if (!TraverseStmt(static_cast<clang::Stmt *>(body))) {
-      result = false;
-      return;
-    }
-    if (!hasTerminator(region.back()))
-      builder.create<cc::ContinueOp>(loc);
-  };
-  constexpr bool postCondition = false;
-  builder.create<cc::LoopOp>(loc, ValueRange{}, postCondition, whileBuilder,
-                             bodyBuilder);
   return result;
 }
 
