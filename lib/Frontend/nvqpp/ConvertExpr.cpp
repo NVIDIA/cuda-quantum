@@ -1985,26 +1985,23 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
         // ptr<array<TxC>>, where C is constant / known
         auto desugared = x->getArg(0)->getType().getCanonicalType();
         if (auto recordType =
-                dyn_cast<clang::RecordType>(desugared.getTypePtr())) {
+                dyn_cast<clang::RecordType>(desugared.getTypePtr()))
           if (recordType->getDecl()->getName().equals("initializer_list")) {
             auto allocation = popValue();
-            if (auto ptrTy = dyn_cast<cc::PointerType>(allocation.getType())) {
+            if (auto ptrTy = dyn_cast<cc::PointerType>(allocation.getType()))
               if (auto arrayTy =
-                      dyn_cast<cc::ArrayType>(ptrTy.getElementType())) {
+                      dyn_cast<cc::ArrayType>(ptrTy.getElementType()))
                 if (auto definingOp = allocation.getDefiningOp<cc::AllocaOp>())
                   return pushValue(builder.create<cc::StdvecInitOp>(
                       loc, cc::StdvecType::get(arrayTy.getElementType()),
                       allocation, definingOp.getSeqSize()));
-              }
-            }
           }
-        }
 
         // Next check if its created from a size integer
         // Let's do a check on the first argument, make sure that when
         // we peel off all the typedefs that it is an integer
         if (auto builtInType =
-                dyn_cast<clang::BuiltinType>(desugared.getTypePtr())) {
+                dyn_cast<clang::BuiltinType>(desugared.getTypePtr()))
           if (builtInType->isInteger() &&
               isa<IntegerType>(peekValue().getType())) {
             // This is an integer argument, and the value on the stack
@@ -2020,7 +2017,6 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
             return pushValue(builder.create<cc::StdvecInitOp>(
                 loc, cc::StdvecType::get(dataType), alloca, arrSize));
           }
-        }
 
         // Disallow any default vector construction bc we don't
         // want any .push_back
@@ -2031,6 +2027,7 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
                            "(cannot resize the vector).");
       }
     }
+
     if (ctor->isCopyConstructor())
       if (auto *parent = ctor->getParent())
         if (parent->isLambda()) {
