@@ -2006,7 +2006,7 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
         if (auto builtInType =
                 dyn_cast<clang::BuiltinType>(desugared.getTypePtr())) {
           if (builtInType->isInteger() &&
-              peekValue().getType().isIntOrFloat()) {
+              isa<IntegerType>(peekValue().getType())) {
             // This is an integer argument, and the value on the stack
             // is an integer, so let's connect them up
             auto arrSize = popValue();
