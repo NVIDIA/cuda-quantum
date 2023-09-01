@@ -21,9 +21,9 @@ __qpu__ void testDouble() {
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_testDouble._Z10testDoublev() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 0.15707963267948966 : f64
-// CHECK:           %[[VAL_1:.*]] = arith.constant 0.78539816339744828 : f64
-// CHECK:           %[[VAL_2:.*]] = arith.constant 1.5707963267948966 : f64
+// CHECK-DAG:           %[[VAL_0:.*]] = arith.constant 0.15707963267948966 : f64
+// CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 0.78539816339744828 : f64
+// CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 1.5707963267948966 : f64
 // CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_4:.*]] = cc.alloca !cc.array<f64 x 3>
 // CHECK:           %[[VAL_5:.*]] = cc.compute_ptr %[[VAL_4]][0] : (!cc.ptr<!cc.array<f64 x 3>>) -> !cc.ptr<f64>

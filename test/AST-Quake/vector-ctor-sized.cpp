@@ -24,8 +24,8 @@ __qpu__ void test() {
 
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test._Z4testv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 0.78539816339744828 : f64
-// CHECK:           %[[VAL_1:.*]] = arith.constant 1.5707963267948966 : f64
+// CHECK-DAG:           %[[VAL_0:.*]] = arith.constant 0.78539816339744828 : f64
+// CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 1.5707963267948966 : f64
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_3:.*]] = cc.alloca !cc.array<f64 x 2>
 // CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<f64 x 2>>) -> !cc.ptr<f64>
