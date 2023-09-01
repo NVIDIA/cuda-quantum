@@ -1841,9 +1841,10 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
 
   // Let's allocate some memory and store the init list elements there.
 
-  // Clear the types for the init expr
-  for (std::size_t i = 0; i < size; i++)
-    popType();
+  // Clear the types for the init expr, one for the vector<T> type
+  // and another for the type of the initializer_list elements
+  popType();
+  popType();
 
   // This is a initlist on ints or floats, get which one
   Type dataType = last.front().getType();
