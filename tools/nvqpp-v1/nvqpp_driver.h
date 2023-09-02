@@ -31,7 +31,9 @@ class Driver {
 
 public:
   Driver(ArgvStorageBase &cmdArgs);
+  /// Driver execution
   int execute();
+  /// Main entry to the CC1 frontend tool
   static int executeCC1Tool(ArgvStorageBase &cmdArgs);
   static std::string
   constructCudaqOptPipeline(const llvm::opt::InputArgList &clOptions);
@@ -40,20 +42,31 @@ private:
   /// Construct a constant string pointer whose
   /// lifetime will match that of the Driver.
   const char *makeArgStringRef(llvm::StringRef argStr);
-  /// Parse the given list of strings into an InputArgList.
-  // llvm::opt::InputArgList parseArgStrings(ArgvStorageBase &args);
+  /// Parse/filter nvq++ args.
+  // Strategy:
+  // - Parse CLI args into an InputArgList based on nvq++ options (tblgen).
+  // - Filter them out of the list of arguments passing to the clang driver (it
+  // will reject unknown arguments).
+  // - Once clang driver has built the compilation job list, re-inject arguments
+  // that are needed for the frontend (-cc1) in its invocation. e.g., the quake
+  // optimization options, etc.
   static std::pair<llvm::opt::InputArgList, llvm::opt::ArgStringList>
   preProcessCudaQArguments(ArgvStorageBase &cmdArgs);
+  /// Handle simple immediate actions without the need to construct a
+  /// 'Compilation' instance.
+  // e.g., show help, list targets, etc.
   bool handleImmediateArgs();
-
+  /// Construct/build the compilation pipeline (e.g., whether to do linking or
+  /// not).
+  // Passing the filter args list to the clang driver for it to build.
   std::unique_ptr<clang::driver::Compilation> makeCompilation();
   std::optional<clang::driver::Driver::ReproLevel> getClangReproLevel(
       const std::unique_ptr<clang::driver::Compilation> &comp) const;
+  /// Find/locate directories of the cudaq installation
   void setInstallDir(ArgvStorageBase &argv);
-
+  // nvq++ cc1 tool main
   static int cc1Main(const CudaqArgs &cudaqArgs, ArgvT ccargs, ArgT tool,
                      void *mainAddr);
-
   static bool executeCompilerInvocation(clang::CompilerInstance *ci,
                                         const CudaqArgs &cudaqArgs);
 };

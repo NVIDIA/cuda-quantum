@@ -14,6 +14,7 @@
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_ostream.h"
 
+// Main entry point to the nvq++ driver
 int main(int argc, char **argv) {
   try {
     // Initialize variables to call the driver
@@ -24,16 +25,17 @@ int main(int argc, char **argv) {
     }
 
     llvm::InitializeAllTargets();
-
     llvm::BumpPtrAllocator pointerAllocator;
     llvm::StringSaver saver(pointerAllocator);
     auto firstArg = llvm::find_if(llvm::drop_begin(cmdArgs),
                                   [](auto a) { return a != nullptr; });
+    // Handle re-entry with "-cc1" arg.
     if (firstArg != cmdArgs.end() &&
         std::string_view(cmdArgs[1]).starts_with("-cc1")) {
       return cudaq::Driver::executeCC1Tool(cmdArgs);
     }
 
+    // Main driver entry
     cudaq::Driver driver(cmdArgs);
     return driver.execute();
   } catch (std::exception &e) {

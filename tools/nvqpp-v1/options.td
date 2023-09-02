@@ -45,7 +45,9 @@ def list_targets  : Flag<["--"], "list-targets ">, HelpText<"ist the available t
 //===----------------------------------------------------------------------===//
 def enable_mlir: Flag<["--"], "enable-mlir">, Group<Quake_Compile_Group>,
   HelpText<"Enable and generate MLIR code for CUDA Quantum kernels.">, Flags<[NvqppOption]>;
-
+// Just emit Quake, no further compilation
+def emit_quake: Flag<["-", "--"], "emit-quake">, Group<Quake_Compile_Group>,
+  HelpText<"Generate and emit MLIR code for CUDA Quantum kernels.">, Flags<[NvqppOption, NvqppCC1Option]>;
 
 //===----------------------------------------------------------------------===//
 // Quake Opt Options

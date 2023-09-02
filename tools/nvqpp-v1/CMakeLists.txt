@@ -22,7 +22,7 @@ add_public_tablegen_target(NvqppDriverOptions)
 
 set(TOOL_NAME nvq++-v1)
 configure_file("nvqpp_flag_configs.h.in" "nvqpp_flag_configs.h" @ONLY)
-add_llvm_executable(${TOOL_NAME} nvqpp.cpp nvqpp_args.cpp nvqpp_driver.cpp nvqpp_options.cpp)
+add_llvm_executable(${TOOL_NAME} nvqpp.cpp nvqpp_args.cpp nvqpp_driver.cpp nvqpp_options.cpp frontend_actions.cpp)
 llvm_map_components_to_libnames(LLVM_LIBS support target option)
 find_package(Clang REQUIRED CONFIG)
 set(CLANG_RESOURCE_DIR  ${LLVM_LIBRARY_DIR}/clang/${LLVM_VERSION_MAJOR})
@@ -40,6 +40,7 @@ set(LLVM_LINK_COMPONENTS Support ${LLVM_TARGETS_TO_BUILD})
 llvm_update_compile_flags(${TOOL_NAME})
 target_link_libraries(${TOOL_NAME}
   PRIVATE
+  ${LLVM_LIBS} 
   ${dialect_libs}
   ${translation_libs}
   ${conversion_libs}
@@ -55,11 +56,12 @@ target_link_libraries(${TOOL_NAME}
   MLIRTargetLLVMIRExport
   MLIRLLVMCommonConversion
   MLIRLLVMToLLVMIRTranslation
+  clangBasic 
+  clangDriver 
   clangCodeGen
   clangFrontendTool
   clangFrontend
   fmt::fmt-header-only
-
   CCDialect
   QuakeDialect
   OptCodeGen
@@ -68,19 +70,4 @@ target_link_libraries(${TOOL_NAME}
 )
 
 mlir_check_all_link_libraries(${TOOL_NAME})
-
-
-
-target_link_libraries(${TOOL_NAME} PRIVATE
-  ${LLVM_LIBS} 
-  MLIRIR
-  MLIRParser
-  MLIRPass
-  MLIRSupport
-  clangBasic 
-  clangDriver 
-  clangFrontend
-
-)
-
 target_include_directories(${TOOL_NAME} PRIVATE . ${CMAKE_CURRENT_BINARY_DIR})
