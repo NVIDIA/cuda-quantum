@@ -295,19 +295,6 @@ static std::unique_ptr<clang::FrontendAction> createFrontendAction(
   auto act = opts.ProgramAction;
   const bool mlirMode =
       cudaqArgs.hasArg(cudaq::nvqpp::options::OPT_enable_mlir);
-
-  const auto outputFilename = [&]() -> std::string {
-    for (const auto &feInput : opts.Inputs) {
-      if (feInput.isFile()) {
-        llvm::SmallString<128> inputFile =
-            llvm::sys::path::filename(feInput.getFile());
-        return std::string(inputFile.c_str()) + ".qke";
-      }
-    }
-    return "";
-  }();
-
-  assert(!outputFilename.empty());
   switch (act) {
   case (clang::frontend::ActionKind::ASTDump):
     // AST action: no need to invoke CUDAQ
@@ -317,13 +304,13 @@ static std::unique_ptr<clang::FrontendAction> createFrontendAction(
     return std::make_unique<clang::ASTPrintAction>();
   case (clang::frontend::ActionKind::EmitLLVM):
     return mlirMode ? std::make_unique<CudaQAction<clang::EmitLLVMAction>>(
-                          module, context, cxxMangled,
-                          cudaq::nvqpp::OutputGen::EmitLlvm, outputFilename)
+                          ci, module, context, cxxMangled,
+                          cudaq::nvqpp::OutputGen::EmitLlvm)
                     : std::make_unique<clang::EmitLLVMAction>();
   case (clang::frontend::ActionKind::EmitObj):
     return mlirMode ? std::make_unique<CudaQAction<clang::EmitObjAction>>(
-                          module, context, cxxMangled,
-                          cudaq::nvqpp::OutputGen::EmitObject, outputFilename)
+                          ci, module, context, cxxMangled,
+                          cudaq::nvqpp::OutputGen::EmitObject)
                     : std::make_unique<clang::EmitObjAction>();
   default:
     throw std::runtime_error("Not supported!!!");
@@ -451,31 +438,13 @@ int Driver::execute() {
   }();
 
   const std::string cudaqOptPipeline = constructCudaqOptPipeline(doLink);
-  const auto sourceInputFileName = [&]() -> std::string {
-    for (const auto &job : comp->getJobs()) {
-      for (const auto &input : job.getInputInfos()) {
-        if (input.isFilename()) {
-          llvm::SmallString<128> inputFile =
-              llvm::sys::path::filename(input.getFilename());
-          return inputFile.c_str();
-        }
-      }
-    }
-    return "";
-  }();
-  const std::string quakeFile = sourceInputFileName + ".qke";
-  const std::string quakeFileOpt =
-      drv.CreateTempFile(*comp, sourceInputFileName, "opt");
-  const std::string quakeFileLl =
-      drv.CreateTempFile(*comp, sourceInputFileName, "ll");
-  const std::string quakeFileObj =
-      drv.CreateTempFile(*comp, sourceInputFileName + "-qke", "o");
+
   if (comp && !comp->containsError()) {
     llvm::SmallVector<std::pair<int, const clang::driver::Command *>, 4>
         failing;
-    bool quakeRun = false;
+    // bool quakeRun = false;
     std::vector<std::string> objFilesToMerge;
-
+    std::vector<std::string> sourceFiles;
     for (auto &Job : comp->getJobs()) {
       const clang::driver::Command *failingCommand = nullptr;
       if (Job.getSource().getKind() ==
@@ -485,6 +454,13 @@ int Driver::execute() {
           if (input.isFilename()) {
             objFileNames.emplace_back(input.getFilename());
           }
+        }
+        // Collect all the ".qke.o" output files
+        for (const auto &sourceFile : sourceFiles) {
+          // Some source files may not have kernel code => no quake output.
+          const auto quakeObjFile = sourceFile + ".qke.o";
+          if (llvm::sys::fs::exists(quakeObjFile))
+            objFilesToMerge.emplace_back(quakeObjFile);
         }
         // Strategy: inject out qke object file in front of the list
         llvm::opt::ArgStringList newLinkArgs;
@@ -555,6 +531,16 @@ int Driver::execute() {
 
         Job.replaceArguments(currentArgs);
       }
+      if (Job.getSource().getKind() ==
+          clang::driver::Action::ActionClass::AssembleJobClass) {
+        for (const auto &input : Job.getInputInfos()) {
+          if (input.isFilename()) {
+            llvm::SmallString<128> inputFile =
+                llvm::sys::path::filename(input.getFilename());
+            sourceFiles.emplace_back(inputFile);
+          }
+        }
+      }
 
       if (Job.getSource().getKind() ==
               clang::driver::Action::ActionClass::AssembleJobClass &&
@@ -564,6 +550,16 @@ int Driver::execute() {
         clang::driver::Command compileBackendConfigCmd(Job);
         llvm::opt::ArgStringList newArgs;
         const std::string outputFileName = Job.getOutputFilenames().front();
+        const auto sourceInputFileName = [&]() -> std::string {
+          for (const auto &input : Job.getInputInfos()) {
+            if (input.isFilename()) {
+              llvm::SmallString<128> inputFile =
+                  llvm::sys::path::filename(input.getFilename());
+              return inputFile.c_str();
+            }
+          }
+          return "";
+        }();
         // $backendConfig-<target>-%%%%%%.o
         const std::string prefix = std::string("backendConfig-") + targetConfig;
         const char *backendConfigObjFile =
@@ -608,84 +604,84 @@ int Driver::execute() {
         break;
       }
 
-      if (llvm::sys::fs::exists(quakeFile) && !quakeRun) {
-        // Track quake temp file to delete
-        // FIXME: don't use a separate file stream for quake output, use the
-        // driver::Compilation temp file system.
-        llvm::SmallString<128> quakeTmpFile(quakeFile);
-        llvm::sys::fs::make_absolute(quakeTmpFile);
-        comp->addTempFile(makeArgStringRef(quakeTmpFile));
-        quakeRun = true;
-        // Run quake-opt
-        // TODO: need to check the action requested (LLVM/Obj)
-        if (!cudaqOptPipeline.empty()) {
-          clang::driver::InputInfoList inputInfos;
-          llvm::opt::ArgStringList cmdArgs;
-          cmdArgs.insert(cmdArgs.end(), makeArgStringRef(cudaqOptPipeline));
-          cmdArgs.insert(cmdArgs.end(), makeArgStringRef(quakeFile));
-          cmdArgs.insert(cmdArgs.end(), "-o");
-          cmdArgs.insert(cmdArgs.end(), makeArgStringRef(quakeFileOpt));
-          auto quakeOptCmd = std::make_unique<clang::driver::Command>(
-              Job.getSource(), Job.getCreator(),
-              clang::driver::ResponseFileSupport::None(), cudaqOptExe.c_str(),
-              cmdArgs, inputInfos);
-          if (int Res = comp->ExecuteCommand(*quakeOptCmd, failingCommand)) {
-            failing.push_back(std::make_pair(Res, failingCommand));
-            // bail out
-            break;
-          }
-        }
-        {
-          // Run quake-translate
-          clang::driver::InputInfoList inputInfos;
-          llvm::opt::ArgStringList cmdArgs;
-          cmdArgs.insert(cmdArgs.end(), "--convert-to=qir");
-          // If run opt -> chain the output file from cudaq-opt,
-          // otherwise, take the output file from quake.
-          if (!cudaqOptPipeline.empty())
-            cmdArgs.insert(cmdArgs.end(), makeArgStringRef(quakeFileOpt));
-          else
-            cmdArgs.insert(cmdArgs.end(), makeArgStringRef(quakeFile));
+      // if (llvm::sys::fs::exists(quakeFile) && !quakeRun) {
+      //   // Track quake temp file to delete
+      //   // FIXME: don't use a separate file stream for quake output, use the
+      //   // driver::Compilation temp file system.
+      //   llvm::SmallString<128> quakeTmpFile(quakeFile);
+      //   llvm::sys::fs::make_absolute(quakeTmpFile);
+      //   comp->addTempFile(makeArgStringRef(quakeTmpFile));
+      //   quakeRun = true;
+      //   // Run quake-opt
+      //   // TODO: need to check the action requested (LLVM/Obj)
+      //   if (!cudaqOptPipeline.empty()) {
+      //     clang::driver::InputInfoList inputInfos;
+      //     llvm::opt::ArgStringList cmdArgs;
+      //     cmdArgs.insert(cmdArgs.end(), makeArgStringRef(cudaqOptPipeline));
+      //     cmdArgs.insert(cmdArgs.end(), makeArgStringRef(quakeFile));
+      //     cmdArgs.insert(cmdArgs.end(), "-o");
+      //     cmdArgs.insert(cmdArgs.end(), makeArgStringRef(quakeFileOpt));
+      //     auto quakeOptCmd = std::make_unique<clang::driver::Command>(
+      //         Job.getSource(), Job.getCreator(),
+      //         clang::driver::ResponseFileSupport::None(),
+      //         cudaqOptExe.c_str(), cmdArgs, inputInfos);
+      //     if (int Res = comp->ExecuteCommand(*quakeOptCmd, failingCommand)) {
+      //       failing.push_back(std::make_pair(Res, failingCommand));
+      //       // bail out
+      //       break;
+      //     }
+      //   }
+      //   {
+      //     // Run quake-translate
+      //     clang::driver::InputInfoList inputInfos;
+      //     llvm::opt::ArgStringList cmdArgs;
+      //     cmdArgs.insert(cmdArgs.end(), "--convert-to=qir");
+      //     // If run opt -> chain the output file from cudaq-opt,
+      //     // otherwise, take the output file from quake.
+      //     if (!cudaqOptPipeline.empty())
+      //       cmdArgs.insert(cmdArgs.end(), makeArgStringRef(quakeFileOpt));
+      //     else
+      //       cmdArgs.insert(cmdArgs.end(), makeArgStringRef(quakeFile));
 
-          cmdArgs.insert(cmdArgs.end(), "-o");
-          cmdArgs.insert(cmdArgs.end(), makeArgStringRef(quakeFileLl));
-          auto quakeTranslateCmd = std::make_unique<clang::driver::Command>(
-              Job.getSource(), Job.getCreator(),
-              clang::driver::ResponseFileSupport::None(),
-              cudaqTranslateExe.c_str(), cmdArgs, inputInfos);
+      //     cmdArgs.insert(cmdArgs.end(), "-o");
+      //     cmdArgs.insert(cmdArgs.end(), makeArgStringRef(quakeFileLl));
+      //     auto quakeTranslateCmd = std::make_unique<clang::driver::Command>(
+      //         Job.getSource(), Job.getCreator(),
+      //         clang::driver::ResponseFileSupport::None(),
+      //         cudaqTranslateExe.c_str(), cmdArgs, inputInfos);
 
-          if (int Res =
-                  comp->ExecuteCommand(*quakeTranslateCmd, failingCommand)) {
-            failing.push_back(std::make_pair(Res, failingCommand));
-            // bail out
-            break;
-          }
-        }
-        {
-          // Run llc
-          clang::driver::InputInfoList inputInfos;
-          llvm::opt::ArgStringList cmdArgs;
-          cmdArgs.insert(cmdArgs.end(), "--relocation-model=pic");
-          cmdArgs.insert(cmdArgs.end(), "--filetype=obj");
-          cmdArgs.insert(cmdArgs.end(), "-O2");
-          cmdArgs.insert(cmdArgs.end(), makeArgStringRef(quakeFileLl));
-          cmdArgs.insert(cmdArgs.end(), "-o");
-          cmdArgs.insert(cmdArgs.end(), makeArgStringRef(quakeFileObj));
-          const std::string llcPath = std::string(LLVM_BIN_DIR) + "/llc";
-          auto llcCmd = std::make_unique<clang::driver::Command>(
-              Job.getSource(), Job.getCreator(),
-              clang::driver::ResponseFileSupport::None(),
-              makeArgStringRef(llcPath), cmdArgs, inputInfos);
+      //     if (int Res =
+      //             comp->ExecuteCommand(*quakeTranslateCmd, failingCommand)) {
+      //       failing.push_back(std::make_pair(Res, failingCommand));
+      //       // bail out
+      //       break;
+      //     }
+      //   }
+      //   {
+      //     // Run llc
+      //     clang::driver::InputInfoList inputInfos;
+      //     llvm::opt::ArgStringList cmdArgs;
+      //     cmdArgs.insert(cmdArgs.end(), "--relocation-model=pic");
+      //     cmdArgs.insert(cmdArgs.end(), "--filetype=obj");
+      //     cmdArgs.insert(cmdArgs.end(), "-O2");
+      //     cmdArgs.insert(cmdArgs.end(), makeArgStringRef(quakeFileLl));
+      //     cmdArgs.insert(cmdArgs.end(), "-o");
+      //     cmdArgs.insert(cmdArgs.end(), makeArgStringRef(quakeFileObj));
+      //     const std::string llcPath = std::string(LLVM_BIN_DIR) + "/llc";
+      //     auto llcCmd = std::make_unique<clang::driver::Command>(
+      //         Job.getSource(), Job.getCreator(),
+      //         clang::driver::ResponseFileSupport::None(),
+      //         makeArgStringRef(llcPath), cmdArgs, inputInfos);
 
-          if (int Res = comp->ExecuteCommand(*llcCmd, failingCommand)) {
-            failing.push_back(std::make_pair(Res, failingCommand));
-            // bail out
-            break;
-          }
-          // LLC succeed, add quake obj file
-          objFilesToMerge.emplace_back(quakeFileObj);
-        }
-      }
+      //     if (int Res = comp->ExecuteCommand(*llcCmd, failingCommand)) {
+      //       failing.push_back(std::make_pair(Res, failingCommand));
+      //       // bail out
+      //       break;
+      //     }
+      //     // LLC succeed, add quake obj file
+      //     objFilesToMerge.emplace_back(quakeFileObj);
+      //   }
+      // }
     }
 
     for (const auto &[cmdResult, cmd] : failing) {

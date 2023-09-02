@@ -12,6 +12,8 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Support/Verifier.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "clang/Basic/TargetInfo.h"
+#include "clang/CodeGen/BackendUtil.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/ToolOutputFile.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
@@ -21,6 +23,7 @@
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
+
 namespace cudaq {
 namespace nvqpp {
 enum class OutputGen { EmitMlir, EmitLlvm, EmitObject };
@@ -29,17 +32,17 @@ enum class OutputGen { EmitMlir, EmitLlvm, EmitObject };
 /// Consumer that runs a pair of AST consumers at the same time.
 class CudaQASTConsumer : public clang::ASTConsumer {
 public:
-  CudaQASTConsumer(std::unique_ptr<clang::ASTConsumer> &consumer0,
+  CudaQASTConsumer(clang::CompilerInstance &ci, llvm::StringRef inFile,
+                   std::unique_ptr<clang::ASTConsumer> &consumer0,
                    std::unique_ptr<clang::ASTConsumer> &consumer1,
                    nvqpp::OutputGen genAction,
                    mlir::OwningOpRef<mlir::ModuleOp> &module,
                    mlir::MLIRContext *context,
                    MangledKernelNamesMap &kernelNames,
-                   const std::string &outFile,
                    const std::string &quakeOptPineline = "")
-      : outputAction(genAction), module(module), context(context),
-        kernelNames(kernelNames), outFileName(outFile),
-        optPineline(quakeOptPineline) {
+      : ci(ci), inFilename(llvm::sys::path::filename(inFile)),
+        outputAction(genAction), module(module), context(context),
+        kernelNames(kernelNames), optPineline(quakeOptPineline) {
     assert(consumer0 && consumer1 && "AST Consumers must be instantiated");
     consumers.emplace_back(consumer1.release());
     consumers.emplace_back(consumer0.release());
@@ -49,6 +52,7 @@ public:
     for (auto *p : consumers)
       delete p;
     consumers.clear();
+    llvm::BuryPointer(std::move(llvmModule));
   }
 
   // The following is boilerplate to override all the virtual functions that
@@ -154,9 +158,9 @@ private:
     mlir::registerLLVMDialectTranslation(*context);
 
     // Convert the module to LLVM IR in a new LLVM IR context.
-    llvm::LLVMContext llvmContext;
-    llvmContext.setOpaquePointers(false);
-    llvmModule = mlir::translateModuleToLLVMIR(module.get(), llvmContext);
+    llvmContext = std::make_unique<llvm::LLVMContext>();
+    llvmContext->setOpaquePointers(false);
+    llvmModule = mlir::translateModuleToLLVMIR(module.get(), *llvmContext);
     if (!llvmModule)
       throw("Failed to emit LLVM IR");
 
@@ -188,39 +192,63 @@ private:
         module.get()->setAttr(mangledKernelNameMapAttrName, mapAttr);
       }
 
-      std::error_code ec;
-      llvm::ToolOutputFile out(outFileName, ec, llvm::sys::fs::OF_None);
-      if (ec) {
-        llvm::errs() << "Failed to open output file '" << outFileName << "'\n";
-        return;
-      }
-
       // Running the verifier to make it easier to track down errors.
       mlir::PassManager pm(context);
       pm.addPass(std::make_unique<cudaq::VerifierPass>());
       if (mlir::failed(pm.run(module.get()))) {
         module.get()->dump();
         llvm::errs() << "Passes failed!\n";
-      } else {
+        exit(1);
+      }
+      // TODO: run cudaq-opt
+      if (outputAction == nvqpp::OutputGen::EmitMlir) {
+        // Write the MLIR output then exit
+        auto outputStream =
+            ci.createOutputFile(inFilename + ".qke", false, true, false);
         mlir::OpPrintingFlags opf;
         opf.enableDebugInfo(/*enable=*/true,
                             /*pretty=*/false);
-        module.get().print(out.os(), opf);
-        out.os() << '\n';
-        out.keep();
+        module.get().print(*outputStream, opf);
+        return;
       }
+
+      // MLIR -> LLVM translate
+      applyTranslate();
+      const auto emitAction = (outputAction == nvqpp::OutputGen::EmitLlvm)
+                                  ? clang::BackendAction::Backend_EmitLL
+                                  : clang::BackendAction::Backend_EmitObj;
+
+      const std::string fileNameSuffix =
+          (outputAction == nvqpp::OutputGen::EmitLlvm) ? ".qke.ll" : ".qke.o";
+      const bool isBinaryFile =
+          (outputAction == nvqpp::OutputGen::EmitLlvm) ? false : true;
+      // Emit
+      auto &headerSearchOpts = ci.getHeaderSearchOpts();
+      auto &codegenOpts = ci.getCodeGenOpts();
+      auto &targetOpts = ci.getTargetOpts();
+      auto &langOpts = ci.getLangOpts();
+      auto &diags = ci.getDiagnostics();
+      auto &targetInfo = ci.getTarget();
+      auto outputStream = ci.createOutputFile(inFilename + fileNameSuffix,
+                                              isBinaryFile, true, false);
+      clang::EmitBackendOutput(diags, headerSearchOpts, codegenOpts, targetOpts,
+                               langOpts, targetInfo.getDataLayoutString(),
+                               llvmModule.get(), emitAction,
+                               std::move(outputStream));
     }
   }
 
 private:
+  clang::CompilerInstance &ci;
+  std::string inFilename;
   llvm::SmallVector<clang::ASTConsumer *, 2> consumers;
   nvqpp::OutputGen outputAction;
   mlir::OwningOpRef<mlir::ModuleOp> &module;
   mlir::MLIRContext *context;
   MangledKernelNamesMap &kernelNames;
-  std::string outFileName;
   std::string optPineline;
   std::unique_ptr<llvm::Module> llvmModule;
+  std::unique_ptr<llvm::LLVMContext> llvmContext;
 };
 
 /// Action to create both the LLVM IR for the entire C++ compilation unit and
@@ -231,12 +259,13 @@ public:
   using Base = ClangFEAction;
   using MangledKernelNamesMap = cudaq::ASTBridgeAction::MangledKernelNamesMap;
 
-  CudaQAction(mlir::OwningOpRef<mlir::ModuleOp> &module,
+  CudaQAction(clang::CompilerInstance &ci,
+              mlir::OwningOpRef<mlir::ModuleOp> &module,
               mlir::MLIRContext *context, MangledKernelNamesMap &kernelNames,
-              nvqpp::OutputGen genAction, const std::string &outFile,
+              nvqpp::OutputGen genAction,
               const std::string &quakeOptPineline = "")
-      : mlirAction(module, kernelNames), module(module), context(context),
-        kernelNames(kernelNames), outputAction(genAction), outFilename(outFile),
+      : ci(ci), mlirAction(module, kernelNames), module(module),
+        context(context), kernelNames(kernelNames), outputAction(genAction),
         optPineline(quakeOptPineline) {}
   virtual ~CudaQAction() = default;
 
@@ -246,17 +275,17 @@ public:
     auto llvmConsumer = this->Base::CreateASTConsumer(ci, inFile);
     auto mlirConsumer = mlirAction.CreateASTConsumer(ci, inFile);
     return std::make_unique<CudaQASTConsumer>(
-        llvmConsumer, mlirConsumer, outputAction, module, context, kernelNames,
-        outFilename, optPineline);
+        ci, inFile, llvmConsumer, mlirConsumer, outputAction, module, context,
+        kernelNames, optPineline);
   }
 
 private:
+  clang::CompilerInstance &ci;
   cudaq::ASTBridgeAction mlirAction;
   mlir::OwningOpRef<mlir::ModuleOp> &module;
   mlir::MLIRContext *context;
   MangledKernelNamesMap &kernelNames;
   nvqpp::OutputGen outputAction;
-  std::string outFilename;
   std::string optPineline;
 };
 
