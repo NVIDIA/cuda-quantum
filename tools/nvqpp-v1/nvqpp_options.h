@@ -15,6 +15,11 @@ class OptTable;
 namespace cudaq {
 namespace nvqpp {
 namespace options {
+enum NvqppFlags {
+  NvqppOption = (1 << 20),
+  NvqppCC1Option = (1 << 21),
+};
+
 enum ID {
   OPT_INVALID = 0, // This is not an option ID.
 #define OPTION(PREFIX, NAME, ID, KIND, GROUP, ALIAS, ALIASARGS, FLAGS, PARAM,  \

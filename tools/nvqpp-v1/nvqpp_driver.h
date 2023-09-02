@@ -26,7 +26,6 @@ class Driver {
   std::string cudaqTargetsPath;
   TargetPlatformArgs::Data targetPlatformExtraArgs;
   std::string targetConfig;
-  std::string cudaqOptPipeline;
   // Storage of arg strings to have reliable const char*
   mutable std::list<std::string> synthesizedArgStrings;
 
@@ -34,6 +33,8 @@ public:
   Driver(ArgvStorageBase &cmdArgs);
   int execute();
   static int executeCC1Tool(ArgvStorageBase &cmdArgs);
+  static std::string
+  constructCudaqOptPipeline(const llvm::opt::InputArgList &clOptions);
 
 private:
   /// Construct a constant string pointer whose
@@ -45,7 +46,6 @@ private:
   preProcessCudaQArguments(ArgvStorageBase &cmdArgs);
   bool handleImmediateArgs();
 
-  std::string constructCudaqOptPipeline(bool doLink);
   std::unique_ptr<clang::driver::Compilation> makeCompilation();
   std::optional<clang::driver::Driver::ReproLevel> getClangReproLevel(
       const std::unique_ptr<clang::driver::Compilation> &comp) const;

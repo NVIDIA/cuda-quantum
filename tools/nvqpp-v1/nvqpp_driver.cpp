@@ -55,10 +55,6 @@ Driver::Driver(ArgvStorageBase &cmdArgs)
           "nvq++ compiler") {
   drv.ResourceDir = std::string(CLANG_RESOURCE_DIR);
   setInstallDir(cmdArgs);
-  // Add -std=c++20
-  cmdArgs.insert(cmdArgs.end(), "-std=c++20");
-  for (const char *include_flag : CUDAQ_INCLUDES_FLAGS)
-    cmdArgs.insert(cmdArgs.end(), include_flag);
   std::tie(clOptions, hostCompilerArgs) = preProcessCudaQArguments(cmdArgs);
   if (clOptions.hasArg(cudaq::nvqpp::options::OPT_target)) {
     const std::string targetName =
@@ -67,6 +63,11 @@ Driver::Driver(ArgvStorageBase &cmdArgs)
         cudaq::getTargetPlatformArgs(targetConfig, cudaqTargetsPath);
     targetPlatformExtraArgs = targetArgsHandler->parsePlatformArgs(cmdArgs);
   }
+  // Add -std=c++20
+  hostCompilerArgs.insert(hostCompilerArgs.end(), "-std=c++20");
+  // Add CUDAQ include paths
+  for (const char *include_flag : CUDAQ_INCLUDES_FLAGS)
+    hostCompilerArgs.insert(hostCompilerArgs.end(), include_flag);
 }
 
 const char *Driver::makeArgStringRef(llvm::StringRef argStr) {
@@ -86,23 +87,24 @@ Driver::preProcessCudaQArguments(ArgvStorageBase &args) {
         std::string(parsedArgs.getArgString(missingArgIndex)) + " missed " +
         std::to_string(missingArgCount) + " arguments.");
   }
-  // parsedArgs.print(llvm::outs());
   llvm::opt::ArgStringList clangArgs;
   for (const auto &arg : parsedArgs) {
     const bool isCudaqArgs =
         arg->getOption().isValid() &&
-        (arg->getOption().getKind() == llvm::opt::Option::FlagClass ||
-         arg->getOption().getKind() == llvm::opt::Option::SeparateClass ||
-         arg->getOption().getKind() == llvm::opt::Option::JoinedClass);
-    if (!isCudaqArgs) {
+        arg->getOption().hasFlag(
+            cudaq::nvqpp::options::NvqppFlags::NvqppOption);
+    // Forward those unhandled args to Clang.
+    if (!isCudaqArgs)
       arg->renderAsInput(parsedArgs, clangArgs);
-    }
   }
 
   return std::make_pair(std::move(parsedArgs), std::move(clangArgs));
 }
 
-std::string Driver::constructCudaqOptPipeline(bool doLink) {
+std::string
+Driver::constructCudaqOptPipeline(const llvm::opt::InputArgList &clOptions) {
+  const bool doLink = clOptions.hasArg(cudaq::nvqpp::options::OPT_do_link);
+
   // Default options
   struct PipelineOpt {
     bool ENABLE_DEVICE_CODE_LOADERS = true;
@@ -162,7 +164,7 @@ std::string Driver::constructCudaqOptPipeline(bool doLink) {
                       "func(lower-to-cfg)");
 
   addPassToPipeline("canonicalize,cse");
-  return std::string("--pass-pipeline=builtin.module(") + optPasses + ")";
+  return optPasses;
 }
 
 int Driver::executeCC1Tool(ArgvStorageBase &cmdArgs) {
@@ -295,6 +297,9 @@ static std::unique_ptr<clang::FrontendAction> createFrontendAction(
   auto act = opts.ProgramAction;
   const bool mlirMode =
       cudaqArgs.hasArg(cudaq::nvqpp::options::OPT_enable_mlir);
+  const std::string cudaqOptPipeline =
+      Driver::constructCudaqOptPipeline(cudaqArgs);
+
   switch (act) {
   case (clang::frontend::ActionKind::ASTDump):
     // AST action: no need to invoke CUDAQ
@@ -305,12 +310,12 @@ static std::unique_ptr<clang::FrontendAction> createFrontendAction(
   case (clang::frontend::ActionKind::EmitLLVM):
     return mlirMode ? std::make_unique<CudaQAction<clang::EmitLLVMAction>>(
                           ci, module, context, cxxMangled,
-                          cudaq::nvqpp::OutputGen::EmitLlvm)
+                          cudaq::nvqpp::OutputGen::EmitLlvm, cudaqOptPipeline)
                     : std::make_unique<clang::EmitLLVMAction>();
   case (clang::frontend::ActionKind::EmitObj):
     return mlirMode ? std::make_unique<CudaQAction<clang::EmitObjAction>>(
                           ci, module, context, cxxMangled,
-                          cudaq::nvqpp::OutputGen::EmitObject)
+                          cudaq::nvqpp::OutputGen::EmitObject, cudaqOptPipeline)
                     : std::make_unique<clang::EmitObjAction>();
   default:
     throw std::runtime_error("Not supported!!!");
@@ -350,6 +355,12 @@ bool Driver::executeCompilerInvocation(clang::CompilerInstance *ci,
     return false;
   cudaq::ASTBridgeAction::MangledKernelNamesMap mangledKernelNameMap;
   mlir::registerAllPasses();
+  cudaq::opt::registerOptCodeGenPasses();
+  cudaq::opt::registerOptTransformsPasses();
+  cudaq::opt::registerAggressiveEarlyInlining();
+  cudaq::opt::registerUnrollingPipeline();
+  cudaq::opt::registerBaseProfilePipeline();
+  cudaq::opt::registerTargetPipelines();
   mlir::DialectRegistry registry;
   mlir::registerAllDialects(registry);
   registry.insert<cudaq::cc::CCDialect, quake::QuakeDialect>();
@@ -436,8 +447,6 @@ int Driver::execute() {
     }
     return false;
   }();
-
-  const std::string cudaqOptPipeline = constructCudaqOptPipeline(doLink);
 
   if (comp && !comp->containsError()) {
     llvm::SmallVector<std::pair<int, const clang::driver::Command *>, 4>
@@ -529,6 +538,23 @@ int Driver::execute() {
         else
           currentArgs.insert(currentArgs.end(), "--enable-mlir");
 
+        // Forward CUDAQ front-end args (CC1) to be consumed by the front end
+        // action (e.g., Quake optimization)
+        for (const auto &arg : clOptions) {
+          const bool isCudaqCC1Args =
+              arg->getOption().isValid() &&
+              arg->getOption().hasFlag(
+                  cudaq::nvqpp::options::NvqppFlags::NvqppCC1Option);
+          if (isCudaqCC1Args) {
+            arg->print(llvm::outs());
+            arg->renderAsInput(clOptions, currentArgs);
+          }
+        }
+        // Notify the frontend that we'll do the linking (affecting certain
+        // Quake optimization passes)
+        if (doLink)
+          currentArgs.insert(currentArgs.end(), "--opt-do-link");
+
         Job.replaceArguments(currentArgs);
       }
       if (Job.getSource().getKind() ==
@@ -603,85 +629,6 @@ int Driver::execute() {
         // bail out
         break;
       }
-
-      // if (llvm::sys::fs::exists(quakeFile) && !quakeRun) {
-      //   // Track quake temp file to delete
-      //   // FIXME: don't use a separate file stream for quake output, use the
-      //   // driver::Compilation temp file system.
-      //   llvm::SmallString<128> quakeTmpFile(quakeFile);
-      //   llvm::sys::fs::make_absolute(quakeTmpFile);
-      //   comp->addTempFile(makeArgStringRef(quakeTmpFile));
-      //   quakeRun = true;
-      //   // Run quake-opt
-      //   // TODO: need to check the action requested (LLVM/Obj)
-      //   if (!cudaqOptPipeline.empty()) {
-      //     clang::driver::InputInfoList inputInfos;
-      //     llvm::opt::ArgStringList cmdArgs;
-      //     cmdArgs.insert(cmdArgs.end(), makeArgStringRef(cudaqOptPipeline));
-      //     cmdArgs.insert(cmdArgs.end(), makeArgStringRef(quakeFile));
-      //     cmdArgs.insert(cmdArgs.end(), "-o");
-      //     cmdArgs.insert(cmdArgs.end(), makeArgStringRef(quakeFileOpt));
-      //     auto quakeOptCmd = std::make_unique<clang::driver::Command>(
-      //         Job.getSource(), Job.getCreator(),
-      //         clang::driver::ResponseFileSupport::None(),
-      //         cudaqOptExe.c_str(), cmdArgs, inputInfos);
-      //     if (int Res = comp->ExecuteCommand(*quakeOptCmd, failingCommand)) {
-      //       failing.push_back(std::make_pair(Res, failingCommand));
-      //       // bail out
-      //       break;
-      //     }
-      //   }
-      //   {
-      //     // Run quake-translate
-      //     clang::driver::InputInfoList inputInfos;
-      //     llvm::opt::ArgStringList cmdArgs;
-      //     cmdArgs.insert(cmdArgs.end(), "--convert-to=qir");
-      //     // If run opt -> chain the output file from cudaq-opt,
-      //     // otherwise, take the output file from quake.
-      //     if (!cudaqOptPipeline.empty())
-      //       cmdArgs.insert(cmdArgs.end(), makeArgStringRef(quakeFileOpt));
-      //     else
-      //       cmdArgs.insert(cmdArgs.end(), makeArgStringRef(quakeFile));
-
-      //     cmdArgs.insert(cmdArgs.end(), "-o");
-      //     cmdArgs.insert(cmdArgs.end(), makeArgStringRef(quakeFileLl));
-      //     auto quakeTranslateCmd = std::make_unique<clang::driver::Command>(
-      //         Job.getSource(), Job.getCreator(),
-      //         clang::driver::ResponseFileSupport::None(),
-      //         cudaqTranslateExe.c_str(), cmdArgs, inputInfos);
-
-      //     if (int Res =
-      //             comp->ExecuteCommand(*quakeTranslateCmd, failingCommand)) {
-      //       failing.push_back(std::make_pair(Res, failingCommand));
-      //       // bail out
-      //       break;
-      //     }
-      //   }
-      //   {
-      //     // Run llc
-      //     clang::driver::InputInfoList inputInfos;
-      //     llvm::opt::ArgStringList cmdArgs;
-      //     cmdArgs.insert(cmdArgs.end(), "--relocation-model=pic");
-      //     cmdArgs.insert(cmdArgs.end(), "--filetype=obj");
-      //     cmdArgs.insert(cmdArgs.end(), "-O2");
-      //     cmdArgs.insert(cmdArgs.end(), makeArgStringRef(quakeFileLl));
-      //     cmdArgs.insert(cmdArgs.end(), "-o");
-      //     cmdArgs.insert(cmdArgs.end(), makeArgStringRef(quakeFileObj));
-      //     const std::string llcPath = std::string(LLVM_BIN_DIR) + "/llc";
-      //     auto llcCmd = std::make_unique<clang::driver::Command>(
-      //         Job.getSource(), Job.getCreator(),
-      //         clang::driver::ResponseFileSupport::None(),
-      //         makeArgStringRef(llcPath), cmdArgs, inputInfos);
-
-      //     if (int Res = comp->ExecuteCommand(*llcCmd, failingCommand)) {
-      //       failing.push_back(std::make_pair(Res, failingCommand));
-      //       // bail out
-      //       break;
-      //     }
-      //     // LLC succeed, add quake obj file
-      //     objFilesToMerge.emplace_back(quakeFileObj);
-      //   }
-      // }
     }
 
     for (const auto &[cmdResult, cmd] : failing) {

@@ -17,6 +17,7 @@
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/ToolOutputFile.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
+#include "mlir/ExecutionEngine/OptUtils.h"
 #include "mlir/InitAllPasses.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
@@ -170,13 +171,17 @@ private:
     mlir::ExecutionEngine::setupTargetTriple(llvmModule.get());
 
     // Optionally run an optimization pipeline over the llvm module.
-    // TODO: pass LLVM opt level
-    // auto optPipeline = makeOptimizingTransformer(optLevel, sizeLevel,
-    //                                              /*targetMachine=*/nullptr);
-    // if (auto err = optPipeline(llvmModule.get())) {
-    //   llvm::errs() << "Failed to optimize LLVM IR " << err << '\n';
-    //   std::exit(1);
-    // }
+    // Get the level from the compiler instance
+    auto &codegenOpts = ci.getCodeGenOpts();
+    const auto optLevel = codegenOpts.OptimizationLevel;
+    const auto sizeLevel = codegenOpts.OptimizeSize;
+    auto optPipeline =
+        mlir::makeOptimizingTransformer(optLevel, sizeLevel,
+                                        /*targetMachine=*/nullptr);
+    if (auto err = optPipeline(llvmModule.get())) {
+      llvm::errs() << "Failed to optimize LLVM IR " << err << '\n';
+      std::exit(1);
+    }
   }
 
   void emitOutput() {
@@ -200,7 +205,6 @@ private:
         llvm::errs() << "Passes failed!\n";
         exit(1);
       }
-      // TODO: run cudaq-opt
       if (outputAction == nvqpp::OutputGen::EmitMlir) {
         // Write the MLIR output then exit
         auto outputStream =
@@ -211,7 +215,8 @@ private:
         module.get().print(*outputStream, opf);
         return;
       }
-
+      // Apply cudaq-opt
+      applyOpt();
       // MLIR -> LLVM translate
       applyTranslate();
       const auto emitAction = (outputAction == nvqpp::OutputGen::EmitLlvm)
