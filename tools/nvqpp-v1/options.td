@@ -26,6 +26,15 @@ def IonQ_Group : OptionGroup<"<IonQ group>">, DocName<"IonQ flags">,
                    DocBrief<[{Flags controlling the behavior of IonQ target.}]>;
 
 //===----------------------------------------------------------------------===//
+// General Options
+//===----------------------------------------------------------------------===//
+def help : Flag<["-", "--"], "help">, HelpText<"Display available options">;
+def help_host_cxx : Flag<["-", "--"], "help-cxx-host">, HelpText<"Display available options of the host C++ compiler">;
+def emulate : Flag<["-", "--"], "emulate">, HelpText<"For physical, remote QPU execution, enable local emulation for testing.">;
+def target : Joined<["-", "--"], "target=">, HelpText<"Set the Target name.">;
+def list_targets  : Flag<["--"], "list-targets ">, HelpText<"ist the available targets NVQ++ can compile to.">;
+
+//===----------------------------------------------------------------------===//
 // Quake Options
 //===----------------------------------------------------------------------===//
 def enable_mlir: Flag<["--"], "enable-mlir">, Group<Quake_Compile_Group>,

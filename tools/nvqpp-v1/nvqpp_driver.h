@@ -9,9 +9,14 @@
 #include "nvqpp_args.h"
 #include "nvqpp_diagnostics.h"
 #include "clang/Driver/Driver.h"
+#include <iostream>
 namespace cudaq {
+using CudaqArgs = llvm::opt::InputArgList;
 class Driver {
-  ArgvStorageBase &cmdArgs;
+  /// Arguments originated from command line.
+  llvm::opt::InputArgList clOptions;
+  llvm::opt::ArgStringList hostCompilerArgs;
+  // ArgvStorageBase &cmdArgs;
   std::string driverPath;
   ErrorsDiagnostics diag;
   clang::driver::Driver drv;
@@ -21,7 +26,6 @@ class Driver {
   std::string cudaqTargetsPath;
   TargetPlatformArgs::Data targetPlatformExtraArgs;
   std::string targetConfig;
-  CudaqArgs cudaqArgs;
   std::string cudaqOptPipeline;
   // Storage of arg strings to have reliable const char*
   mutable std::list<std::string> synthesizedArgStrings;
@@ -35,9 +39,13 @@ private:
   /// Construct a constant string pointer whose
   /// lifetime will match that of the Driver.
   const char *makeArgStringRef(llvm::StringRef argStr);
+  /// Parse the given list of strings into an InputArgList.
+  // llvm::opt::InputArgList parseArgStrings(ArgvStorageBase &args);
+  static std::pair<llvm::opt::InputArgList, llvm::opt::ArgStringList>
+  preProcessCudaQArguments(ArgvStorageBase &cmdArgs);
+  bool handleImmediateArgs();
 
-  void preProcessCudaQArguments(ArgvStorageBase &cmdArgs);
-  std::string processOptPipeline(ArgvStorageBase &args, bool doLink);
+  std::string constructCudaqOptPipeline(bool doLink);
   std::unique_ptr<clang::driver::Compilation> makeCompilation();
   std::optional<clang::driver::Driver::ReproLevel> getClangReproLevel(
       const std::unique_ptr<clang::driver::Compilation> &comp) const;

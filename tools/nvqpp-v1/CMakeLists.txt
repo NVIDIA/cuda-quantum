@@ -30,10 +30,9 @@ set(LLVM_BIN_DIR  ${LLVM_LIBRARY_DIR}/../bin)
 target_compile_definitions(${TOOL_NAME} PRIVATE CLANG_RESOURCE_DIR="${CLANG_RESOURCE_DIR}")
 target_compile_definitions(${TOOL_NAME} PRIVATE LLVM_BIN_DIR="${LLVM_BIN_DIR}")
 
-
-
 get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
 get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
+get_property(translation_libs GLOBAL PROPERTY MLIR_TRANSLATION_LIBS)
 
 set(LLVM_LINK_COMPONENTS Support ${LLVM_TARGETS_TO_BUILD})
 
@@ -42,6 +41,7 @@ llvm_update_compile_flags(${TOOL_NAME})
 target_link_libraries(${TOOL_NAME}
   PRIVATE
   ${dialect_libs}
+  ${translation_libs}
   ${conversion_libs}
   MLIRIR
   MLIRParser
@@ -51,6 +51,7 @@ target_link_libraries(${TOOL_NAME}
   MLIROptLib
   MLIRExecutionEngine
   MLIRTransforms
+  MLIRExecutionEngine
   MLIRTargetLLVMIRExport
   MLIRLLVMCommonConversion
   MLIRLLVMToLLVMIRTranslation
@@ -61,6 +62,8 @@ target_link_libraries(${TOOL_NAME}
 
   CCDialect
   QuakeDialect
+  OptCodeGen
+  OptTransforms
   cudaq-mlirgen
 )
 

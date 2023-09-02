@@ -10,6 +10,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Support/Verifier.h"
+#include "nvqpp_fe_actions.h"
 #include "nvqpp_flag_configs.h"
 #include "nvqpp_options.h"
 #include "clang/CodeGen/BackendUtil.h"
@@ -40,112 +41,14 @@
 #include "mlir/InitAllPasses.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
+
 extern "C" {
 void getThisExecutablePath() { return; }
 }
-namespace {
-/// Consumer that runs a pair of AST consumers at the same time.
-class CudaQASTConsumer : public clang::ASTConsumer {
-public:
-  CudaQASTConsumer(std::unique_ptr<clang::ASTConsumer> &consumer0,
-                   std::unique_ptr<clang::ASTConsumer> &consumer1) {
-    assert(consumer0 && consumer1 && "AST Consumers must be instantiated");
-    consumers.emplace_back(consumer1.release());
-    consumers.emplace_back(consumer0.release());
-  }
 
-  virtual ~CudaQASTConsumer() {
-    for (auto *p : consumers)
-      delete p;
-    consumers.clear();
-  }
-
-  // The following is boilerplate to override all the virtual functions that
-  // appear in the union of the two AST consumers, namely clang::BackendConsumer
-  // and nvqpp::MLIRASTConsumer.
-  template <typename A, typename B>
-  inline void applyConsumers(void (clang::ASTConsumer::*fun)(A), B &&arg) {
-    for (auto *c : consumers)
-      (c->*fun)(arg);
-  }
-  void HandleTranslationUnit(clang::ASTContext &ctxt) override {
-    applyConsumers(&clang::ASTConsumer::HandleTranslationUnit, std::move(ctxt));
-  }
-  void HandleCXXStaticMemberVarInstantiation(clang::VarDecl *VD) override {
-    applyConsumers(&clang::ASTConsumer::HandleCXXStaticMemberVarInstantiation,
-                   std::move(VD));
-  }
-  void Initialize(clang::ASTContext &Ctx) override {
-    applyConsumers(&clang::ASTConsumer::Initialize, std::move(Ctx));
-  }
-  bool HandleTopLevelDecl(clang::DeclGroupRef D) override {
-    bool result = true;
-    for (auto *c : consumers)
-      result = result && c->HandleTopLevelDecl(D);
-    return result;
-  }
-  void HandleInlineFunctionDefinition(clang::FunctionDecl *D) override {
-    applyConsumers(&clang::ASTConsumer::HandleInlineFunctionDefinition,
-                   std::move(D));
-  }
-  void HandleInterestingDecl(clang::DeclGroupRef D) override {
-    applyConsumers(&clang::ASTConsumer::HandleInterestingDecl, std::move(D));
-  }
-  void HandleTagDeclDefinition(clang::TagDecl *D) override {
-    applyConsumers(&clang::ASTConsumer::HandleTagDeclDefinition, std::move(D));
-  }
-  void HandleTagDeclRequiredDefinition(const clang::TagDecl *D) override {
-    applyConsumers(&clang::ASTConsumer::HandleTagDeclRequiredDefinition,
-                   std::move(D));
-  }
-  void CompleteTentativeDefinition(clang::VarDecl *D) override {
-    applyConsumers(&clang::ASTConsumer::CompleteTentativeDefinition,
-                   std::move(D));
-  }
-  void CompleteExternalDeclaration(clang::VarDecl *D) override {
-    applyConsumers(&clang::ASTConsumer::CompleteExternalDeclaration,
-                   std::move(D));
-  }
-  void AssignInheritanceModel(clang::CXXRecordDecl *RD) override {
-    applyConsumers(&clang::ASTConsumer::AssignInheritanceModel, std::move(RD));
-  }
-  void HandleVTable(clang::CXXRecordDecl *RD) override {
-    applyConsumers(&clang::ASTConsumer::HandleVTable, std::move(RD));
-  }
-
-private:
-  llvm::SmallVector<clang::ASTConsumer *, 2> consumers;
-};
-
-/// Action to create both the LLVM IR for the entire C++ compilation unit and to
-/// translate the CUDA Quantum kernels.
-template <typename ClangFEAction>
-class CudaQAction : public ClangFEAction {
-public:
-  using Base = ClangFEAction;
-  using MangledKernelNamesMap = cudaq::ASTBridgeAction::MangledKernelNamesMap;
-
-  CudaQAction(mlir::OwningOpRef<mlir::ModuleOp> &module,
-              MangledKernelNamesMap &kernelNames)
-      : mlirAction(module, kernelNames) {}
-  virtual ~CudaQAction() = default;
-
-  std::unique_ptr<clang::ASTConsumer>
-  CreateASTConsumer(clang::CompilerInstance &ci,
-                    llvm::StringRef inFile) override {
-    auto llvmConsumer = this->Base::CreateASTConsumer(ci, inFile);
-    auto mlirConsumer = mlirAction.CreateASTConsumer(ci, inFile);
-    return std::make_unique<CudaQASTConsumer>(llvmConsumer, mlirConsumer);
-  }
-
-private:
-  cudaq::ASTBridgeAction mlirAction;
-};
-} // namespace
 namespace cudaq {
 Driver::Driver(ArgvStorageBase &cmdArgs)
-    : cmdArgs(cmdArgs),
-      driverPath(llvm::sys::fs::getMainExecutable(
+    : driverPath(llvm::sys::fs::getMainExecutable(
           cmdArgs[0], (void *)(intptr_t)getThisExecutablePath)),
       diag(cmdArgs, driverPath),
       drv(driverPath, llvm::sys::getDefaultTargetTriple(), diag.engine,
@@ -156,7 +59,14 @@ Driver::Driver(ArgvStorageBase &cmdArgs)
   cmdArgs.insert(cmdArgs.end(), "-std=c++20");
   for (const char *include_flag : CUDAQ_INCLUDES_FLAGS)
     cmdArgs.insert(cmdArgs.end(), include_flag);
-  preProcessCudaQArguments(cmdArgs);
+  std::tie(clOptions, hostCompilerArgs) = preProcessCudaQArguments(cmdArgs);
+  if (clOptions.hasArg(cudaq::nvqpp::options::OPT_target)) {
+    const std::string targetName =
+        clOptions.getLastArgValue(cudaq::nvqpp::options::OPT_target, "").str();
+    auto targetArgsHandler =
+        cudaq::getTargetPlatformArgs(targetConfig, cudaqTargetsPath);
+    targetPlatformExtraArgs = targetArgsHandler->parsePlatformArgs(cmdArgs);
+  }
 }
 
 const char *Driver::makeArgStringRef(llvm::StringRef argStr) {
@@ -164,24 +74,35 @@ const char *Driver::makeArgStringRef(llvm::StringRef argStr) {
   return synthesizedArgStrings.back().c_str();
 }
 
-void Driver::preProcessCudaQArguments(ArgvStorageBase &cmdArgs) {
-  std::tie(cudaqArgs, std::ignore) = CudaqArgs::filterArgs(cmdArgs);
-  if (cudaqArgs.hasOption("target")) {
-    if (auto targetOpt = cudaqArgs.getOption("target"); targetOpt.has_value()) {
-      llvm::StringRef targetName = cudaqArgs.getOption("target").value();
-      targetConfig = targetName.str();
-      auto targetArgsHandler =
-          cudaq::getTargetPlatformArgs(targetConfig, cudaqTargetsPath);
-      if (targetArgsHandler)
-        targetPlatformExtraArgs = targetArgsHandler->parsePlatformArgs(cmdArgs);
-    } else {
-      llvm::errs() << "Invalid target option: must be in the form "
-                      "'-cudaq-target=<name>'";
-      exit(1);
+std::pair<llvm::opt::InputArgList, llvm::opt::ArgStringList>
+Driver::preProcessCudaQArguments(ArgvStorageBase &args) {
+  unsigned missingArgIndex, missingArgCount;
+  llvm::opt::InputArgList parsedArgs =
+      cudaq::nvqpp::options::getDriverOptTable().ParseArgs(
+          args, missingArgIndex, missingArgCount);
+  // Check for missing argument error.
+  if (missingArgCount) {
+    throw std::invalid_argument(
+        std::string(parsedArgs.getArgString(missingArgIndex)) + " missed " +
+        std::to_string(missingArgCount) + " arguments.");
+  }
+  // parsedArgs.print(llvm::outs());
+  llvm::opt::ArgStringList clangArgs;
+  for (const auto &arg : parsedArgs) {
+    const bool isCudaqArgs =
+        arg->getOption().isValid() &&
+        (arg->getOption().getKind() == llvm::opt::Option::FlagClass ||
+         arg->getOption().getKind() == llvm::opt::Option::SeparateClass ||
+         arg->getOption().getKind() == llvm::opt::Option::JoinedClass);
+    if (!isCudaqArgs) {
+      arg->renderAsInput(parsedArgs, clangArgs);
     }
   }
+
+  return std::make_pair(std::move(parsedArgs), std::move(clangArgs));
 }
-std::string Driver::processOptPipeline(ArgvStorageBase &args, bool doLink) {
+
+std::string Driver::constructCudaqOptPipeline(bool doLink) {
   // Default options
   struct PipelineOpt {
     bool ENABLE_DEVICE_CODE_LOADERS = true;
@@ -198,33 +119,19 @@ std::string Driver::processOptPipeline(ArgvStorageBase &args, bool doLink) {
     }
   };
 
-#define CHECK_OPTION(ARG_IT, MEMBER_VAR, TRUE_OPTION, FALSE_OPTION)            \
+#define CHECK_OPTION(MEMBER_VAR, OPTION_FLAG_ON)                               \
   {                                                                            \
-    auto arg = llvm::StringRef(*ARG_IT);                                       \
-    if (arg.equals(TRUE_OPTION)) {                                             \
+    if (clOptions.hasArg(cudaq::nvqpp::options::OPT_##OPTION_FLAG_ON))         \
       opt.MEMBER_VAR = true;                                                   \
-      ARG_IT = args.erase(ARG_IT);                                             \
-    }                                                                          \
-    if (arg.equals(FALSE_OPTION)) {                                            \
+    if (clOptions.hasArg(cudaq::nvqpp::options::OPT_no_##OPTION_FLAG_ON))      \
       opt.MEMBER_VAR = false;                                                  \
-      ARG_IT = args.erase(ARG_IT);                                             \
-    }                                                                          \
   }
   PipelineOpt opt;
-  // Note: erase args within the loop
-  for (auto it = args.begin(); it != args.end(); ++it) {
-    CHECK_OPTION(it, ENABLE_DEVICE_CODE_LOADERS, "--device-code-loading",
-                 "--no-device-code-loading");
-    CHECK_OPTION(it, ENABLE_KERNEL_EXECUTION, "--kernel-execution",
-                 "--no-kernel-execution");
-    CHECK_OPTION(it, ENABLE_AGGRESSIVE_EARLY_INLINE,
-                 "--aggressive-early-inline", "--no-aggressive-early-inline");
-    CHECK_OPTION(it, ENABLE_APPLY_SPECIALIZATION,
-                 "--quake-apply-specialization",
-                 "--no-quake-apply-specialization");
-    CHECK_OPTION(it, ENABLE_LAMBDA_LIFTING, "--lambda-lifting",
-                 "--no-lambda-lifting");
-  }
+  CHECK_OPTION(ENABLE_DEVICE_CODE_LOADERS, device_code_loading);
+  CHECK_OPTION(ENABLE_KERNEL_EXECUTION, kernel_execution);
+  CHECK_OPTION(ENABLE_AGGRESSIVE_EARLY_INLINE, aggressive_early_inline);
+  CHECK_OPTION(ENABLE_APPLY_SPECIALIZATION, quake_apply_specialization);
+  CHECK_OPTION(ENABLE_LAMBDA_LIFTING, lambda_lifting);
 
   if (!opt.runOpt())
     return "";
@@ -266,7 +173,7 @@ int Driver::executeCC1Tool(ArgvStorageBase &cmdArgs) {
                                 cmdArgs);
 
   llvm::StringRef tool = cmdArgs[1];
-  auto [cudaqArgs, ccargs] = cudaq::CudaqArgs::filterArgs(cmdArgs);
+  auto [cudaqArgs, ccargs] = Driver::preProcessCudaQArguments(cmdArgs);
 
   if (tool == "-cc1") {
     auto ccargsRef = llvm::ArrayRef(ccargs).slice(2);
@@ -382,11 +289,25 @@ int Driver::cc1Main(const CudaqArgs &cudaqArgs, ArgvT ccargs, ArgT tool,
 
 static std::unique_ptr<clang::FrontendAction> createFrontendAction(
     clang::CompilerInstance &ci, const CudaqArgs &cudaqArgs,
-    mlir::OwningOpRef<mlir::ModuleOp> &module,
+    mlir::OwningOpRef<mlir::ModuleOp> &module, mlir::MLIRContext *context,
     cudaq::ASTBridgeAction::MangledKernelNamesMap &cxxMangled) {
   auto &opts = ci.getFrontendOpts();
   auto act = opts.ProgramAction;
-  const bool mlirMode = cudaqArgs.hasOption("enable-mlir");
+  const bool mlirMode =
+      cudaqArgs.hasArg(cudaq::nvqpp::options::OPT_enable_mlir);
+
+  const auto outputFilename = [&]() -> std::string {
+    for (const auto &feInput : opts.Inputs) {
+      if (feInput.isFile()) {
+        llvm::SmallString<128> inputFile =
+            llvm::sys::path::filename(feInput.getFile());
+        return std::string(inputFile.c_str()) + ".qke";
+      }
+    }
+    return "";
+  }();
+
+  assert(!outputFilename.empty());
   switch (act) {
   case (clang::frontend::ActionKind::ASTDump):
     // AST action: no need to invoke CUDAQ
@@ -394,21 +315,15 @@ static std::unique_ptr<clang::FrontendAction> createFrontendAction(
   case (clang::frontend::ActionKind::ASTPrint):
     // AST action: no need to invoke CUDAQ
     return std::make_unique<clang::ASTPrintAction>();
-  case (clang::frontend::ActionKind::EmitAssembly):
-    return mlirMode ? std::make_unique<CudaQAction<clang::EmitAssemblyAction>>(
-                          module, cxxMangled)
-                    : std::make_unique<clang::EmitAssemblyAction>();
-  case (clang::frontend::ActionKind::EmitBC):
-    return mlirMode ? std::make_unique<CudaQAction<clang::EmitBCAction>>(
-                          module, cxxMangled)
-                    : std::make_unique<clang::EmitBCAction>();
   case (clang::frontend::ActionKind::EmitLLVM):
     return mlirMode ? std::make_unique<CudaQAction<clang::EmitLLVMAction>>(
-                          module, cxxMangled)
+                          module, context, cxxMangled,
+                          cudaq::nvqpp::OutputGen::EmitLlvm, outputFilename)
                     : std::make_unique<clang::EmitLLVMAction>();
   case (clang::frontend::ActionKind::EmitObj):
     return mlirMode ? std::make_unique<CudaQAction<clang::EmitObjAction>>(
-                          module, cxxMangled)
+                          module, context, cxxMangled,
+                          cudaq::nvqpp::OutputGen::EmitObject, outputFilename)
                     : std::make_unique<clang::EmitObjAction>();
   default:
     throw std::runtime_error("Not supported!!!");
@@ -417,10 +332,8 @@ static std::unique_ptr<clang::FrontendAction> createFrontendAction(
   return nullptr;
 }
 
-bool Driver::executeCompilerInvocation(clang::CompilerInstance *ci,
-                                       const CudaqArgs &cudaqArgs) {
-  auto &opts = ci->getFrontendOpts();
-  if (opts.ShowHelp) {
+bool Driver::handleImmediateArgs() {
+  if (clOptions.hasArg(cudaq::nvqpp::options::OPT_help)) {
     cudaq::nvqpp::options::getDriverOptTable().printHelp(
         llvm::outs(),
         /*Usage=*/"nvq++ [options] [host-compiler-options] file...",
@@ -429,7 +342,12 @@ bool Driver::executeCompilerInvocation(clang::CompilerInstance *ci,
         /*Exclude=*/0, /*ShowAllAliases=*/false);
     return true;
   }
+  return false;
+}
 
+bool Driver::executeCompilerInvocation(clang::CompilerInstance *ci,
+                                       const CudaqArgs &cudaqArgs) {
+  auto &opts = ci->getFrontendOpts();
   // -version.
   //
   // FIXME: Use a better -version message?
@@ -454,60 +372,12 @@ bool Driver::executeCompilerInvocation(clang::CompilerInstance *ci,
   auto moduleOp = mlir::ModuleOp::create(builder.getUnknownLoc());
   mlir::OwningOpRef<mlir::ModuleOp> module(moduleOp);
   // Create and execute the frontend action.
-  auto action =
-      createFrontendAction(*ci, cudaqArgs, module, mangledKernelNameMap);
+  auto action = createFrontendAction(*ci, cudaqArgs, module, &context,
+                                     mangledKernelNameMap);
   if (!action)
     return false;
 
   bool success = ci->ExecuteAction(*action);
-
-  // module->dump();
-  const auto outputFilename = [&]() -> std::string {
-    for (const auto &feInput : opts.Inputs) {
-      if (feInput.isFile()) {
-        llvm::SmallString<128> inputFile =
-            llvm::sys::path::filename(feInput.getFile());
-        return std::string(inputFile.c_str()) + ".qke";
-      }
-    }
-    return "";
-  }();
-
-  assert(!outputFilename.empty());
-
-  std::error_code ec;
-  llvm::ToolOutputFile out(outputFilename, ec, llvm::sys::fs::OF_None);
-  if (ec) {
-    llvm::errs() << "Failed to open output file '" << outputFilename << "'\n";
-    return ec.value();
-  }
-  constexpr static const char mangledKernelNameMapAttrName[] =
-      "quake.mangled_name_map";
-  if (!moduleOp.getBody()->empty()) {
-    if (!mangledKernelNameMap.empty()) {
-      llvm::SmallVector<mlir::NamedAttribute> names;
-      for (auto [key, value] : mangledKernelNameMap)
-        names.emplace_back(mlir::StringAttr::get(&context, key),
-                           mlir::StringAttr::get(&context, value));
-      auto mapAttr = mlir::DictionaryAttr::get(&context, names);
-      moduleOp->setAttr(mangledKernelNameMapAttrName, mapAttr);
-    }
-
-    // Running the verifier to make it easier to track down errors.
-    mlir::PassManager pm(&context);
-    pm.addPass(std::make_unique<cudaq::VerifierPass>());
-    if (failed(pm.run(moduleOp))) {
-      moduleOp->dump();
-      llvm::errs() << "Passes failed!\n";
-    } else {
-      mlir::OpPrintingFlags opf;
-      opf.enableDebugInfo(/*enable=*/true,
-                          /*pretty=*/false);
-      moduleOp.print(out.os(), opf);
-      out.os() << '\n';
-      out.keep();
-    }
-  }
 
   if (opts.DisableFree) {
     llvm::BuryPointer(std::move(action));
@@ -519,7 +389,7 @@ bool Driver::executeCompilerInvocation(clang::CompilerInstance *ci,
 std::unique_ptr<clang::driver::Compilation> Driver::makeCompilation() {
   drv.CC1Main = Driver::executeCC1Tool;
   return std::unique_ptr<clang::driver::Compilation>(
-      drv.BuildCompilation(cmdArgs));
+      drv.BuildCompilation(hostCompilerArgs));
 }
 
 std::optional<clang::driver::Driver::ReproLevel> Driver::getClangReproLevel(
@@ -553,6 +423,9 @@ std::optional<clang::driver::Driver::ReproLevel> Driver::getClangReproLevel(
 }
 
 int Driver::execute() {
+  if (handleImmediateArgs())
+    return 0;
+
   auto comp = makeCompilation();
   auto level = getClangReproLevel(comp);
   if (!level) {
@@ -577,7 +450,7 @@ int Driver::execute() {
     return false;
   }();
 
-  const std::string cudaqOptPipeline = processOptPipeline(cmdArgs, doLink);
+  const std::string cudaqOptPipeline = constructCudaqOptPipeline(doLink);
   const auto sourceInputFileName = [&]() -> std::string {
     for (const auto &job : comp->getJobs()) {
       for (const auto &input : job.getInputInfos()) {
@@ -660,16 +533,29 @@ int Driver::execute() {
             newLinkArgs.insert(newLinkArgs.end(), makeArgStringRef(linkFlag));
 
         const std::string rpathDir = std::string("-rpath=") + cudaqLibPath;
-        // FIXME: leak
         newLinkArgs.insert(newLinkArgs.end(), makeArgStringRef(rpathDir));
         Job.replaceArguments(newLinkArgs);
       } else {
-        if (!cudaqArgs.hasOption("enable-mlir")) {
-          auto currentArgs = Job.getArguments();
+        auto currentArgs = Job.getArguments();
+        const bool libMode = [&]() {
+          // With target
+          if (clOptions.hasArg(cudaq::nvqpp::options::OPT_target)) {
+            // Use target setting (override CL options)
+            return targetPlatformExtraArgs.libraryMode;
+          } else {
+            // Use command line (with or without `--enable-mlir`)
+            return !clOptions.hasArg(cudaq::nvqpp::options::OPT_enable_mlir);
+          }
+        }();
+
+        if (libMode)
           currentArgs.insert(currentArgs.end(), "-DCUDAQ_LIBRARY_MODE");
-          Job.replaceArguments(currentArgs);
-        }
+        else
+          currentArgs.insert(currentArgs.end(), "--enable-mlir");
+
+        Job.replaceArguments(currentArgs);
       }
+
       if (Job.getSource().getKind() ==
               clang::driver::Action::ActionClass::AssembleJobClass &&
           !targetConfig.empty() && targetPlatformExtraArgs.genTargetBackend) {
@@ -699,7 +585,8 @@ int Driver::execute() {
         }
         const std::string targetConfigDef =
             targetConfig + ";emulate;" +
-            (cudaqArgs.hasOption("emulate") ? "true" : "false") +
+            (clOptions.hasArg(cudaq::nvqpp::options::OPT_emulate) ? "true"
+                                                                  : "false") +
             targetPlatformExtraArgs.platformExtraArgs;
         const std::string defArg =
             std::string("-DNVQPP_TARGET_BACKEND_CONFIG=\"") + targetConfigDef +
