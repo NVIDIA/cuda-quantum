@@ -25,6 +25,8 @@ int main(int argc, char **argv) {
     }
 
     llvm::InitializeAllTargets();
+    cudaq::registerAllTargets();
+
     llvm::BumpPtrAllocator pointerAllocator;
     llvm::StringSaver saver(pointerAllocator);
     auto firstArg = llvm::find_if(llvm::drop_begin(cmdArgs),

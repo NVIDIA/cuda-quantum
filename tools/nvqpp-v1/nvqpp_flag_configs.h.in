@@ -7,5 +7,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #pragma once
+// TODO: use runtime detection (i.e., location of the executable)
 const char *CUDAQ_INCLUDES_FLAGS[2] = {"-I@CMAKE_SOURCE_DIR@/runtime",
                                        "-I@CMAKE_SOURCE_DIR@/tpls/fmt/include"};

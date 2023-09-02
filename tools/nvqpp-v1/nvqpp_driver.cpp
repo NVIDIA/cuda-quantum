@@ -51,17 +51,36 @@ Driver::Driver(ArgvStorageBase &cmdArgs)
     : driverPath(llvm::sys::fs::getMainExecutable(
           cmdArgs[0], (void *)(intptr_t)getThisExecutablePath)),
       diag(cmdArgs, driverPath),
-      drv(driverPath, llvm::sys::getDefaultTargetTriple(), diag.engine,
-          "nvq++ compiler") {
-  drv.ResourceDir = std::string(CLANG_RESOURCE_DIR);
+      clangDriver(driverPath, llvm::sys::getDefaultTargetTriple(), diag.engine,
+                  "nvq++ compiler") {
+  clangDriver.ResourceDir = std::string(CLANG_RESOURCE_DIR);
   setInstallDir(cmdArgs);
   std::tie(clOptions, hostCompilerArgs) = preProcessCudaQArguments(cmdArgs);
   if (clOptions.hasArg(cudaq::nvqpp::options::OPT_target)) {
-    const std::string targetName =
+    const std::string clTargetName =
         clOptions.getLastArgValue(cudaq::nvqpp::options::OPT_target, "").str();
-    auto targetArgsHandler =
-        cudaq::getTargetPlatformArgs(targetConfig, cudaqTargetsPath);
-    targetPlatformExtraArgs = targetArgsHandler->parsePlatformArgs(cmdArgs);
+    auto target = TargetRegistry::lookupTarget(clTargetName);
+    if (target.has_value()) {
+      targetName = clTargetName;
+      targetPlatformExtraArgs =
+          target->generateConfig(clOptions, cudaqTargetsPath);
+
+      // Insert backend config to the list of files to compile
+      const std::string backendConfigCppFile =
+          cudaqTargetsPath + "/backendConfig.cpp";
+      hostCompilerArgs.insert(hostCompilerArgs.end(),
+                              makeArgStringRef(backendConfigCppFile));
+      const std::string targetConfigDef =
+          targetName + ";emulate;" +
+          (clOptions.hasArg(cudaq::nvqpp::options::OPT_emulate) ? "true"
+                                                                : "false") +
+          targetPlatformExtraArgs.platformExtraArgs;
+      const std::string defArg =
+          std::string("-DNVQPP_TARGET_BACKEND_CONFIG=\"") + targetConfigDef +
+          "\"";
+      hostCompilerArgs.insert(hostCompilerArgs.end(), makeArgStringRef(defArg));
+    } else
+      throw std::runtime_error("Unknown target: " + clTargetName);
   }
   // Add -std=c++20
   hostCompilerArgs.insert(hostCompilerArgs.end(), "-std=c++20");
@@ -399,9 +418,9 @@ bool Driver::executeCompilerInvocation(clang::CompilerInstance *ci,
 }
 
 std::unique_ptr<clang::driver::Compilation> Driver::makeCompilation() {
-  drv.CC1Main = Driver::executeCC1Tool;
+  clangDriver.CC1Main = Driver::executeCC1Tool;
   return std::unique_ptr<clang::driver::Compilation>(
-      drv.BuildCompilation(hostCompilerArgs));
+      clangDriver.BuildCompilation(hostCompilerArgs));
 }
 
 std::optional<clang::driver::Driver::ReproLevel> Driver::getClangReproLevel(
@@ -481,7 +500,6 @@ int Driver::execute() {
         }
       }
 
-      const clang::driver::Command *failingCommand = nullptr;
       if (Job.getSource().getKind() ==
           clang::driver::Action::ActionClass::LinkJobClass) {
         std::vector<std::string> objFileNames;
@@ -523,7 +541,7 @@ int Driver::execute() {
         for (const auto &linkLib : CUDAQ_LINK_LIBS)
           newLinkArgs.insert(newLinkArgs.end(), linkLib);
         const std::string nvqirBackend =
-            (!targetConfig.empty() &&
+            (!targetName.empty() &&
              !targetPlatformExtraArgs.nvqirSimulationBackend.empty())
                 ? targetPlatformExtraArgs.nvqirSimulationBackend
                 : "qpp";
@@ -531,7 +549,7 @@ int Driver::execute() {
         newLinkArgs.insert(newLinkArgs.end(), makeArgStringRef(backendLink));
 
         const std::string platformName =
-            (!targetConfig.empty() &&
+            (!targetName.empty() &&
              !targetPlatformExtraArgs.nvqirPlatform.empty())
                 ? targetPlatformExtraArgs.nvqirPlatform
                 : "default";
@@ -539,7 +557,7 @@ int Driver::execute() {
             std::string("-lcudaq-platform-") + platformName;
         newLinkArgs.insert(newLinkArgs.end(), makeArgStringRef(platformLink));
 
-        if (!targetConfig.empty() && targetPlatformExtraArgs.genTargetBackend)
+        if (!targetName.empty() && targetPlatformExtraArgs.genTargetBackend)
           for (const auto &linkFlag : targetPlatformExtraArgs.linkFlags)
             newLinkArgs.insert(newLinkArgs.end(), makeArgStringRef(linkFlag));
 
@@ -548,6 +566,8 @@ int Driver::execute() {
         Job.replaceArguments(newLinkArgs);
       } else {
         // Not a link job, i.e., frontend (cc1) job
+        // Prepare args for the dual visiting frontend in MLIR mode or library
+        // mode!
         auto currentArgs = Job.getArguments();
         const bool libMode = [&]() {
           if (clOptions.hasArg(cudaq::nvqpp::options::OPT_emit_quake))
@@ -586,67 +606,7 @@ int Driver::execute() {
 
         Job.replaceArguments(currentArgs);
       }
-
-      // Handle target backend compilation:
-      // we piggyback the main compile job and swap out the input and output
-      // args to do backendConfig.cpp compilation. This will ensure that it is
-      // compiled with the same settings (e.g., -fPIC)
-      if (Job.getSource().getKind() ==
-              clang::driver::Action::ActionClass::AssembleJobClass &&
-          !targetConfig.empty() && targetPlatformExtraArgs.genTargetBackend) {
-        // If this is an `Assemble` job, i.e., compile .o file,
-        // and there is a target config, compile backendConfig.cpp as well
-        clang::driver::Command compileBackendConfigCmd(Job);
-        llvm::opt::ArgStringList newArgs;
-        const std::string outputFileName = Job.getOutputFilenames().front();
-        const auto sourceInputFileName = [&]() -> std::string {
-          for (const auto &input : Job.getInputInfos()) {
-            if (input.isFilename()) {
-              llvm::SmallString<128> inputFile =
-                  llvm::sys::path::filename(input.getFilename());
-              return inputFile.c_str();
-            }
-          }
-          return "";
-        }();
-        // $backendConfig-<target>-%%%%%%.o
-        const std::string prefix = std::string("backendConfig-") + targetConfig;
-        const char *backendConfigObjFile =
-            drv.CreateTempFile(*comp, prefix, "o");
-        objFilesToMerge.emplace_back(backendConfigObjFile);
-        for (const auto &arg : compileBackendConfigCmd.getArguments()) {
-          if (std::equal(sourceInputFileName.rbegin(),
-                         sourceInputFileName.rend(),
-                         std::string(arg).rbegin())) {
-            const std::string backendConfigCppFile =
-                cudaqTargetsPath + "/backendConfig.cpp";
-            newArgs.insert(newArgs.end(),
-                           makeArgStringRef(backendConfigCppFile));
-          } else if (std::string(arg) == outputFileName) {
-            newArgs.insert(newArgs.end(), backendConfigObjFile);
-          } else {
-            newArgs.insert(newArgs.end(), arg);
-          }
-        }
-        const std::string targetConfigDef =
-            targetConfig + ";emulate;" +
-            (clOptions.hasArg(cudaq::nvqpp::options::OPT_emulate) ? "true"
-                                                                  : "false") +
-            targetPlatformExtraArgs.platformExtraArgs;
-        const std::string defArg =
-            std::string("-DNVQPP_TARGET_BACKEND_CONFIG=\"") + targetConfigDef +
-            "\"";
-        newArgs.insert(newArgs.end(), makeArgStringRef(defArg));
-
-        compileBackendConfigCmd.replaceArguments(newArgs);
-        if (int Res =
-                comp->ExecuteCommand(compileBackendConfigCmd, failingCommand)) {
-          failing.push_back(std::make_pair(Res, failingCommand));
-          // bail out
-          break;
-        }
-      }
-
+      const clang::driver::Command *failingCommand = nullptr;
       if (int Res = comp->ExecuteCommand(Job, failingCommand)) {
         failing.push_back(std::make_pair(Res, failingCommand));
         // bail out
@@ -674,8 +634,8 @@ int Driver::execute() {
     llvm::dbgs() << llvm::getBugReportMsg();
 
   const auto maybeGenerateCompilationDiagnostics = [&] {
-    return drv.maybeGenerateCompilationDiagnostics(commandStatus, *level, *comp,
-                                                   *failingCommand);
+    return clangDriver.maybeGenerateCompilationDiagnostics(
+        commandStatus, *level, *comp, *failingCommand);
   }();
 
   if (failingCommand != nullptr && maybeGenerateCompilationDiagnostics) {
@@ -715,28 +675,7 @@ void Driver::setInstallDir(ArgvStorageBase &argv) {
   llvm::StringRef installedPathParent(
       llvm::sys::path::parent_path(installedPath));
   if (llvm::sys::fs::exists(installedPathParent)) {
-    drv.setInstalledDir(installedPathParent);
-
-    {
-      llvm::SmallString<128> binPath =
-          llvm::sys::path::parent_path(installedPath);
-      llvm::sys::path::append(binPath, "cudaq-opt");
-      if (!llvm::sys::fs::exists(binPath)) {
-        llvm::errs() << "nvq++ error: File not found: " << binPath << "\n";
-        exit(1);
-      }
-      cudaqOptExe = binPath.str();
-    }
-    {
-      llvm::SmallString<128> binPath =
-          llvm::sys::path::parent_path(installedPath);
-      llvm::sys::path::append(binPath, "cudaq-translate");
-      if (!llvm::sys::fs::exists(binPath)) {
-        llvm::errs() << "nvq++ error: File not found: " << binPath << "\n";
-        exit(1);
-      }
-      cudaqTranslateExe = binPath.str();
-    }
+    clangDriver.setInstalledDir(installedPathParent);
     {
       llvm::SmallString<128> libPath =
           llvm::sys::path::parent_path(llvm::sys::path::parent_path(

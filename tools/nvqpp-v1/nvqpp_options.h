@@ -7,6 +7,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #pragma once
+#include "llvm/ADT/STLExtras.h"
+using ArgT = const char *;
+using ArgvT = llvm::ArrayRef<ArgT>;
+using ArgvStorage = llvm::SmallVector<ArgT, 256>;
+using ArgvStorageBase = llvm::SmallVectorImpl<ArgT>;
+
 namespace llvm {
 namespace opt {
 class OptTable;

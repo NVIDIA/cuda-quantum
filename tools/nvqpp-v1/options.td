@@ -31,6 +31,9 @@ def Quake_Opt_Group : OptionGroup<"<QuakeOpt group>">, DocName<"Quake Optimizati
 def IonQ_Group : OptionGroup<"<IonQ group>">, DocName<"IonQ flags">,
                    DocBrief<[{Flags controlling the behavior of IonQ target.}]>;
 
+def Quantinuum_Group: OptionGroup<"<Quantinuum group>">, DocName<"Quantinuum flags">,
+                   DocBrief<[{Flags controlling the behavior of Quantinuum target.}]>;
+
 //===----------------------------------------------------------------------===//
 // General Options
 //===----------------------------------------------------------------------===//
@@ -83,3 +86,13 @@ def ionq_machine : Separate<["--"], "ionq-machine">,
     HelpText<"Select the given IonQ backend target.">, Group<IonQ_Group>, Flags<[NvqppOption]>;
 def ionq_noise_model : Separate<["--"], "ionq-noise-model">, 
     HelpText<"Select the given IonQ noise model when using the simulator backend.">, Group<IonQ_Group>, Flags<[NvqppOption]>;
+
+
+//===----------------------------------------------------------------------===//
+// Quantinuum Options
+//===----------------------------------------------------------------------===//
+
+def quantinuum_url : Separate<["--"], "quantinuum-url">, 
+    HelpText<"Set the Quantinuum server URL.">, Group<Quantinuum_Group>, Flags<[NvqppOption]>;
+def quantinuum_machine : Separate<["--"], "quantinuum-machine">, 
+    HelpText<"Select the given Quantinuum backend target.">, Group<Quantinuum_Group>, Flags<[NvqppOption]>;

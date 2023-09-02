@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #pragma once
-#include "nvqpp_args.h"
 #include "nvqpp_diagnostics.h"
+#include "nvqpp_targets.h"
 #include "clang/Driver/Driver.h"
 #include <iostream>
 namespace cudaq {
@@ -16,16 +16,13 @@ class Driver {
   /// Arguments originated from command line.
   llvm::opt::InputArgList clOptions;
   llvm::opt::ArgStringList hostCompilerArgs;
-  // ArgvStorageBase &cmdArgs;
   std::string driverPath;
   ErrorsDiagnostics diag;
-  clang::driver::Driver drv;
-  std::string cudaqOptExe;
-  std::string cudaqTranslateExe;
+  clang::driver::Driver clangDriver;
   std::string cudaqLibPath;
   std::string cudaqTargetsPath;
-  TargetPlatformArgs::Data targetPlatformExtraArgs;
-  std::string targetConfig;
+  TargetPlatformConfig targetPlatformExtraArgs;
+  std::string targetName;
   // Storage of arg strings to have reliable const char*
   mutable std::list<std::string> synthesizedArgStrings;
 
