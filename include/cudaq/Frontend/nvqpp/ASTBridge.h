@@ -321,7 +321,7 @@ public:
     return TraverseType(tl.getType());
   }
   bool TraverseUsingType(clang::UsingType *t) {
-    return TraverseType(t->getUnderlyingType());
+    return TraverseType(t->desugar());
   }
   bool TraverseUsingTypeLoc(clang::UsingTypeLoc tl) {
     return TraverseType(tl.getType());
@@ -337,6 +337,9 @@ public:
   }
   bool TraverseNestedNameSpecifier(clang::NestedNameSpecifier *s) {
     return true;
+  }
+  bool TraverseDecltypeType(clang::DecltypeType *t) {
+    return TraverseType(t->desugar());
   }
 
   bool TraverseRecordType(clang::RecordType *t);

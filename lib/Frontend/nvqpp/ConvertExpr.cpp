@@ -1082,7 +1082,8 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     TODO_loc(loc, "unhandled std::vector member function, " + funcName);
   }
 
-  if (isInClassInNamespace(func, "_Bit_reference", "std")) {
+  if (isInClassInNamespace(func, "_Bit_reference", "std") ||
+      isInClassInNamespace(func, "__bit_reference", "std")) {
     // Calling std::_Bit_reference::method().
     auto loadFromReference = [&](mlir::Value ref) -> Value {
       if (auto mrTy = dyn_cast<cc::PointerType>(ref.getType())) {
@@ -1595,7 +1596,7 @@ std::optional<std::string> QuakeBridgeVisitor::isInterceptedSubscriptOperator(
         if (typeName == "vector")
           return {typeName};
       } else if (isInNamespace(decl, "std")) {
-        if (typeName == "_Bit_reference")
+        if (typeName == "_Bit_reference" || typeName == "__bit_reference")
           return {typeName};
       }
     }
@@ -1667,7 +1668,7 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
                                                       ValueRange{indexVar});
       return replaceTOSValue(eleAddr);
     }
-    if (typeName == "_Bit_reference") {
+    if (typeName == "_Bit_reference" || typeName == "__bit_reference") {
       // For vector<bool>, on the kernel side this is represented as a sequence
       // of byte-sized boolean values (true and false). On the host side, C++ is
       // likely going to pack the booleans as bits in words.
@@ -1780,33 +1781,49 @@ bool QuakeBridgeVisitor::TraverseInitListExpr(clang::InitListExpr *x,
                                               DataRecursionQueue *) {
   if (x->isSyntacticForm()) {
     // The syntactic form is the surface level syntax as typed by the user. This
-    // isn't really all the helpful during the lowering process. We want to deal
-    // with the semantic form. See below.
+    // isn't really all that helpful during the lowering process. We want to
+    // deal with the semantic form. See below.
     auto loc = toLocation(x);
     if (x->getNumInits() != 0)
       TODO_loc(loc, "initializer list containing elements");
     return true;
   }
 
+  // If the initializer-list is possibly a Callable type, preemptively add the
+  // signature of the call operation (`operator()`) to the Module if not
+  // present.
   if (auto *ty = x->getType().getTypePtr())
     if (auto *tyDecl = ty->getAsRecordDecl())
       maybeAddCallOperationSignature(tyDecl);
+
+  // Since an initializer-list can be empty (no objects), push the type on the
+  // type stack. This will allow VisitInitListExpr, etc. to know what to do when
+  // there are no values.
+  [[maybe_unused]] auto typeStackDepth = typeStack.size();
   if (!TraverseType(x->getType()))
     return false;
+  assert(typeStack.size() == typeStackDepth + 1 &&
+         "expected a type for initializer-list");
+
+  // Now visit the elements of the list, if any.
   for (auto *subStmt : x->children())
     if (!TraverseStmt(subStmt))
       return false;
-  return WalkUpFromInitListExpr(x);
+
+  // And finish the post-order traversal.
+  auto result = WalkUpFromInitListExpr(x);
+  assert(typeStack.size() == typeStackDepth && "expected type to be consumed");
+  return result;
 }
 
 bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
   auto loc = toLocation(x);
   auto size = x->getNumInits();
+  auto initListTy = popType();
   if (size == 0) {
     // TODO: Maybe check that this is an instance of a callable class, if it is
     // a CXXRecordType.
-    auto ty = popType();
-    return pushValue(builder.create<cc::AllocaOp>(loc, ty));
+    return pushValue(builder.create<cc::AllocaOp>(loc, initListTy));
   }
 
   // List has 1 or more members.
@@ -1837,8 +1854,33 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
     // Pass initialization list with one member as a Ref.
     return pushValue(last[0]);
   }
-  TODO_x(loc, x, mangler, "list initialization (not quantum ref)");
-  return true;
+
+  // Let's allocate some memory and store the init list elements there.
+  // Add the array size value
+  Value arrSize =
+      getConstantInt(builder, loc, last.size(), builder.getI64Type());
+
+  // Allocate the required memory chunk.
+  // TODO: If the type is correctly constructed here it will be something like
+  // !cc.array<i32 x 4>. If that is the case, then we can drop the creation of
+  // the `arrSize` value altogether here. The size must be a compile-time
+  // constant as this is coming from a semantic-form of an initializer-list.
+  Type eleTy = [&]() {
+    if (auto arrTy = dyn_cast<cc::ArrayType>(initListTy))
+      return arrTy.getElementType();
+    return initListTy;
+  }();
+  Value alloca = builder.create<cc::AllocaOp>(loc, eleTy, arrSize);
+
+  // Store the values in the allocated memory
+  for (std::size_t i = 0; auto v : last) {
+    Value ptr = builder.create<cc::ComputePtrOp>(
+        loc, cc::PointerType::get(eleTy), alloca,
+        getConstantInt(builder, loc, i++, builder.getI64Type()));
+    builder.create<cc::StoreOp>(loc, v, ptr);
+  }
+
+  return pushValue(alloca);
 }
 
 bool QuakeBridgeVisitor::TraverseCXXConstructExpr(clang::CXXConstructExpr *x,
@@ -1948,7 +1990,68 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
         assert((isa<quake::RefType, quake::VeqType>(tosTy)));
         return true;
       }
+
+      // We check for vector constructors with 2 args, the first
+      // could be an initializer_list or an integer, while the
+      // second is the allocator
+      if (ctorName == "vector" && x->getNumArgs() == 2) {
+        // This is a std::vector constructor, first we'll check if it
+        // is constructed from a constant initializer list, in that case
+        // we'll have a AllocaOp at the top of the stack that allocates a
+        // ptr<array<TxC>>, where C is constant / known
+        auto desugared = x->getArg(0)->getType().getCanonicalType();
+        if (auto recordType =
+                dyn_cast<clang::RecordType>(desugared.getTypePtr()))
+          if (recordType->getDecl()->getName().equals("initializer_list")) {
+            auto allocation = popValue();
+            if (auto ptrTy = dyn_cast<cc::PointerType>(allocation.getType()))
+              if (auto arrayTy =
+                      dyn_cast<cc::ArrayType>(ptrTy.getElementType()))
+                if (auto definingOp = allocation.getDefiningOp<cc::AllocaOp>())
+                  return pushValue(builder.create<cc::StdvecInitOp>(
+                      loc, cc::StdvecType::get(arrayTy.getElementType()),
+                      allocation, definingOp.getSeqSize()));
+          }
+
+        // Next check if its created from a size integer
+        // Let's do a check on the first argument, make sure that when
+        // we peel off all the typedefs that it is an integer
+        if (auto builtInType =
+                dyn_cast<clang::BuiltinType>(desugared.getTypePtr()))
+          if (builtInType->isInteger() &&
+              isa<IntegerType>(peekValue().getType())) {
+            // This is an integer argument, and the value on the stack
+            // is an integer, so let's connect them up
+            auto arrSize = popValue();
+            auto dataType = popType();
+
+            // create stdvec init op without a buffer.
+            // Allocate the required memory chunk
+            Value alloca = builder.create<cc::AllocaOp>(loc, dataType, arrSize);
+
+            // Create the stdvec_init op
+            return pushValue(builder.create<cc::StdvecInitOp>(
+                loc, cc::StdvecType::get(dataType), alloca, arrSize));
+          }
+
+        // Disallow any default vector construction bc we don't
+        // want any .push_back
+        if (ctor->isDefaultConstructor())
+          reportClangError(ctor, mangler,
+                           "Default std::vector<T> constructor within quantum "
+                           "kernel is not allowed "
+                           "(cannot resize the vector).");
+      }
     }
+
+    if (ctor->isCopyConstructor())
+      if (auto *parent = ctor->getParent())
+        if (parent->isLambda()) {
+          // Copy-ctor on a lambda. For now on the QPU device side, we do not
+          // make a copy of a lambda. Any capture data will be marshalled at
+          // runtime and passed as ordinary arguments via lambda lifting.
+          return true;
+        }
 
     // TODO: remove this when we can handle ctors more generally.
     if (!ctor->isDefaultConstructor()) {
