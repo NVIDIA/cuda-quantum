@@ -79,7 +79,8 @@ public:
 
   /// @brief Processes the server's response to a job retrieval request and
   /// maps the results back to sample results.
-  cudaq::sample_result processResults(ServerMessage &postJobResponse) override;
+  cudaq::sample_result processResults(ServerMessage &postJobResponse,
+                                      std::string &jobID) override;
 
   std::string get_from_config(BackendConfig config, const std::string &key,
                               const std::string &default_return = "");
@@ -91,15 +92,21 @@ void OQCServerHelper::initialize(BackendConfig config) {
   // Move the passed config into the member variable backendConfig
   backendConfig = std::move(config);
   // Set the necessary configuration variables for the OQC API
-  backendConfig["url"] = OQCServerHelper::get_from_config(config, "url");
+  backendConfig["url"] = OQCServerHelper::get_from_config(
+      config, "url", "https://sandbox.qcaas.oqc.app");
   backendConfig["version"] = "v0.3";
   backendConfig["user_agent"] = "cudaq/0.3.0";
   backendConfig["target"] = "Lucy";
   backendConfig["qubits"] = 8;
-  // Retrieve the API key from the environment variables
   backendConfig["email"] = OQCServerHelper::get_from_config(config, "email");
   backendConfig["password"] =
       OQCServerHelper::get_from_config(config, "password");
+  // Retrieve the email/password key from the environment variables
+  if (backendConfig["email"].empty())
+    backendConfig["email"] = getEnvVar("OQC_EMAIL");
+  if (backendConfig["password"].empty())
+    backendConfig["password"] = getEnvVar("OQC_PASSWORD");
+
   // Construct the API job path
   backendConfig["job_path"] = "/tasks"; // backendConfig["url"] + "/tasks";
 }
@@ -248,8 +255,20 @@ bool OQCServerHelper::jobIsDone(ServerMessage &getJobResponse) {
 
 // Process the results from a job
 cudaq::sample_result
-OQCServerHelper::processResults(ServerMessage &postJobResponse) {
+OQCServerHelper::processResults(ServerMessage &postJobResponse,
+                                std::string &jobId) {
 
+  if (postJobResponse["results"].is_null()) {
+    RestHeaders headers = getHeaders();
+    auto errorPath = backendConfig.at("url") + backendConfig["job_path"] + "/" +
+                     jobId + "/error";
+    cudaq::info(
+        "Null results received; fetching detailed error message here: {}",
+        errorPath);
+    ServerMessage errorMessage = client.get(errorPath, "", headers);
+    throw std::runtime_error("OQC backend error message: " +
+                             errorMessage.dump());
+  }
   cudaq::CountsDictionary counts = postJobResponse.at("results");
   // Create an execution result
   cudaq::ExecutionResult executionResult(counts);
@@ -265,19 +284,19 @@ RestHeaders OQCServerHelper::getHeaders() {
 
   // Construct the headers
   RestHeaders headers;
+  headers["Content-Type"] = "application/json";
 
   nlohmann::json j;
   j["email"] = backendConfig.at("email");
-
   j["password"] = backendConfig.at("password");
-
   nlohmann::json response =
-      client.post(backendConfig.at("url") + "/auth", "", j, headers);
-
+      client.post(backendConfig.at("url") + "/auth", "", j, headers,
+                  /*enableLossgging=*/false);
   std::string key = response.at("access_token");
+  backendConfig["access_token"] = key;
 
-  headers["Authorization"] = "Bearer " + key;
-  headers["Content-Type"] = "application/json";
+  headers["Authorization"] = "Bearer " + backendConfig["access_token"];
+
   // Return the headers
   return headers;
 }
