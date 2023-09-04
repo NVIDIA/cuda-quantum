@@ -101,6 +101,9 @@ public:
   /// @brief Return true if the QPU is remote.
   bool is_remote(const std::size_t qpuId = 0);
 
+  /// @brief Return true if QPU is locally emulating a remote QPU
+  bool is_emulated(const std::size_t qpuId = 0) const;
+
   /// @brief Set the noise model for future invocations of
   /// quantum kernels.
   void set_noise(noise_model *model);

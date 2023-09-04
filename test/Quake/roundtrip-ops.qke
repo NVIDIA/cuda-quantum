@@ -44,7 +44,9 @@ func.func @quantum_ops() {
   quake.wrap %18 to %4 : !quake.wire, !quake.ref
 
   // Control type conversion
-  %14 = quake.convert_ctrl %12 : (!quake.wire) -> !quake.control
+  %14 = quake.to_ctrl %12 : (!quake.wire) -> !quake.control
+  %a14 = quake.from_ctrl %14 : (!quake.control) -> !quake.wire
+  quake.sink %a14 : !quake.wire
 
   // Quantum operations, reference form
   quake.x %4 : (!quake.ref) -> ()
@@ -168,7 +170,9 @@ func.func @quantum_ops() {
 // CHECK:           %[[VAL_17:.*]] = quake.unwrap %[[VAL_5]] : (!quake.ref) -> !quake.wire
 // CHECK:           %[[VAL_18:.*]] = quake.reset %[[VAL_17]] : (!quake.wire) -> !quake.wire
 // CHECK:           quake.wrap %[[VAL_18]] to %[[VAL_5]] : !quake.wire, !quake.ref
-// CHECK:           %[[VAL_19:.*]] = quake.convert_ctrl %[[VAL_16]] : (!quake.wire) -> !quake.control
+// CHECK:           %[[VAL_19:.*]] = quake.to_ctrl %[[VAL_16]] : (!quake.wire) -> !quake.control
+// CHECK:           %[[WAL_19:.*]] = quake.from_ctrl %[[VAL_19]] : (!quake.control) -> !quake.wire
+// CHECK:           quake.sink %[[WAL_19]] : !quake.wire
 // CHECK:           quake.x %[[VAL_5]] : (!quake.ref) -> ()
 // CHECK:           quake.y %[[VAL_5]] : (!quake.ref) -> ()
 // CHECK:           quake.z %[[VAL_5]] : (!quake.ref) -> ()

@@ -6,15 +6,23 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake -verify %s
+// RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
 
 #include <cudaq.h>
 
-// expected-error@*{{type is not yet implemented}}
-__qpu__ void qview_test(cudaq::qview<> v) {} // expected-error{{kernel argument type not supported}}
+__qpu__ void qview_test(cudaq::qview<> v) {}
 
-// expected-error@*{{type is not yet implemented}}
-__qpu__ void qvector_test(cudaq::qvector<> v) {} // expected-error{{kernel argument type not supported}}
+__qpu__ void qvector_test(cudaq::qvector<> v) {}
 
-// expected-error@*{{type is not yet implemented}}
-__qpu__ void qarray_test(cudaq::qarray<4> a) {} // expected-error{{kernel argument type not supported}}
+__qpu__ void qarray_test(cudaq::qarray<4> a) {}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_qview_test
+// CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>)
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_qvector_test
+// CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>)
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_qarray_test
+// CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<4>)
+
+

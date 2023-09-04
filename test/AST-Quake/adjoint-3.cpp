@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // RUN: cudaq-quake %s | FileCheck %s
-// RUN: cudaq-quake %s | cudaq-opt --memtoreg=quantum=0 --canonicalize --apply-op-specialization | FileCheck --check-prefixes=ADJOINT %s
+// RUN: cudaq-quake %s | cudaq-opt --memtoreg=quantum=0 --canonicalize --apply-op-specialization | FileCheck --check-prefix=ADJOINT %s
 
 #include <cudaq.h>
 
@@ -55,12 +55,10 @@ struct QernelZero {
 // CHECK:             cc.loop while {
 // CHECK:               cc.condition %{{.*}}
 // CHECK:             } do {
-// CHECK:               cc.scope {
 // CHECK:                 quake.z %{{.*}}
 // CHECK:                 %[[VAL_23:.*]] = cc.load %[[VAL_5]] : !cc.ptr<f64>
 // CHECK:                 quake.apply<adj> @__nvqpp__mlirgen__statePrep_A{{.*}} %[[VAL_10]], %[[VAL_23]] : (!quake.veq<?>, f64) -> ()
 // CHECK:                 func.call @__nvqpp__mlirgen__statePrep_A{{.*}}(%[[VAL_10]], %{{.*}}) : (!quake.veq<?>, f64) -> ()
-// CHECK:               }
 // CHECK:               cc.continue
 // CHECK:             } step {
 
@@ -106,8 +104,7 @@ struct run_circuit {
 // ADJOINT:           %[[VAL_14:.*]] = quake.veq_size %[[VAL_13]] : (!quake.veq<?>) -> i64
 // ADJOINT:           %[[VAL_15:.*]] = arith.index_cast %[[VAL_14]] : i64 to index
 // ADJOINT:           %[[VAL_16:.*]] = arith.subi %[[VAL_9]], %[[VAL_7]] : i32
-// ADJOINT:           %[[VAL_17:.*]] = arith.sitofp %[[VAL_16]] : i32 to f64
-// ADJOINT:           %[[VAL_18:.*]] = math.powf %[[VAL_2]], %[[VAL_17]] : f64
+// ADJOINT:           %[[VAL_18:.*]] = math.fpowi %[[VAL_2]], %[[VAL_16]] : f64, i32
 // ADJOINT:           %[[VAL_19:.*]] = arith.divf %[[VAL_1]], %[[VAL_18]] : f64
 // ADJOINT:           %[[VAL_20:.*]] = arith.subi %[[VAL_9]], %[[VAL_7]] : i32
 // ADJOINT:           %[[VAL_21:.*]] = arith.extsi %[[VAL_20]] : i32 to i64
@@ -133,8 +130,7 @@ struct run_circuit {
 // ADJOINT:           ^bb0(%[[VAL_43:.*]]: i32, %[[VAL_44:.*]]: i32, %[[VAL_45:.*]]: f64, %[[VAL_46:.*]]: i32):
 // ADJOINT:             %[[VAL_47:.*]] = arith.subi %[[VAL_9]], %[[VAL_43]] : i32
 // ADJOINT:             %[[VAL_48:.*]] = arith.subi %[[VAL_47]], %[[VAL_7]] : i32
-// ADJOINT:             %[[VAL_49:.*]] = arith.sitofp %[[VAL_48]] : i32 to f64
-// ADJOINT:             %[[VAL_50:.*]] = math.powf %[[VAL_2]], %[[VAL_49]] : f64
+// ADJOINT:             %[[VAL_50:.*]] = math.fpowi %[[VAL_2]], %[[VAL_48]] : f64, i32
 // ADJOINT:             %[[VAL_51:.*]] = arith.divf %[[VAL_1]], %[[VAL_50]] : f64
 // ADJOINT:             %[[VAL_52:.*]] = arith.subi %[[VAL_43]], %[[VAL_7]] : i32
 // ADJOINT:             %[[VAL_53:.*]] = arith.extsi %[[VAL_52]] : i32 to i64

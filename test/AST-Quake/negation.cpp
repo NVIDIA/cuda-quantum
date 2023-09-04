@@ -17,22 +17,11 @@ struct NegationOperatorTest {
   }
 };
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__NegationOperatorTest
-// CHECK-SAME: () attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 3 : i32
-// CHECK:           %[[VAL_1:.*]] = arith.extsi %[[VAL_0]] : i32 to i64
-// CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<?>[%[[VAL_1]] : i64]
-// CHECK:           %[[VAL_3:.*]] = arith.constant 0 : i32
-// CHECK:           %[[VAL_4:.*]] = arith.extsi %[[VAL_3]] : i32 to i64
-// CHECK:           %[[VAL_5:.*]] = quake.extract_ref %[[VAL_2]][%[[VAL_4]]] : (!quake.veq<?>, i64) -> !quake.ref
-// CHECK:           %[[VAL_6:.*]] = arith.constant 1 : i32
-// CHECK:           %[[VAL_7:.*]] = arith.extsi %[[VAL_6]] : i32 to i64
-// CHECK:           %[[VAL_8:.*]] = quake.extract_ref %[[VAL_2]][%[[VAL_7]]] : (!quake.veq<?>, i64) -> !quake.ref
-// CHECK:           %[[VAL_9:.*]] = arith.constant 2 : i32
-// CHECK:           %[[VAL_10:.*]] = arith.extsi %[[VAL_9]] : i32 to i64
-// CHECK:           %[[VAL_11:.*]] = quake.extract_ref %[[VAL_2]][%[[VAL_10]]] : (!quake.veq<?>, i64) -> !quake.ref
-// CHECK:           quake.x [%[[VAL_5]], %[[VAL_8]] neg [true, false]] %[[VAL_11]] : (!quake.ref, !quake.ref, !quake.ref) -> ()
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__NegationOperatorTest()
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
+// CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][2] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           quake.x [%[[VAL_1]], %[[VAL_2]] neg [true, false]] %[[VAL_3]] : (!quake.ref, !quake.ref, !quake.ref) -> ()
 // CHECK:           return
-// CHECK:         }
-
 

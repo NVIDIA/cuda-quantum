@@ -24,6 +24,14 @@
 
 using namespace mlir;
 
+// This flag is useful when debugging and the lower-ast debug output crashes.
+// The MLIR printer will, for various reasons, spontaneously crash when printing
+// the full Op. Setting this to any value except `1` or `2` will attempt to
+// print values. Setting this to `1` prints only the Op's name, avoiding some
+// spurious crashes. Setting this to `2` omits trying to print the Values at
+// all, which will avoid any/all random crashes in the MLIR printer.
+llvm::cl::opt<unsigned> debugOpNameOnly("lower-ast-values", llvm::cl::init(0));
+
 // Generate a list (as a vector) of all the reachable functions recorded in the
 // call graph, \p cgn.
 static llvm::SmallVector<clang::Decl *>
@@ -307,22 +315,65 @@ private:
 };
 } // namespace
 
-namespace cudaq {
 #ifndef NDEBUG
-bool details::QuakeBridgeVisitor::pushValue(Value v) {
-  LLVM_DEBUG(llvm::dbgs() << "push value: " << v << '\n');
+namespace cudaq::details {
+bool QuakeBridgeVisitor::pushValue(Value v) {
+  LLVM_DEBUG(llvm::dbgs() << std::string(valueStack.size(), ' ')
+                          << "+push value: ";
+             if (debugOpNameOnly != 2) {
+               auto *defOp = v.getDefiningOp();
+               if (debugOpNameOnly == 1 && defOp)
+                 llvm::dbgs() << defOp->getName();
+               else
+                 llvm::dbgs() << v;
+             };
+             llvm::dbgs() << '\n');
   valueStack.push_back(v);
   return true;
 }
 
-Value details::QuakeBridgeVisitor::popValue() {
+Value QuakeBridgeVisitor::popValue() {
   Value result = peekValue();
-  LLVM_DEBUG(llvm::dbgs() << "pop value\n");
+  LLVM_DEBUG(
+      llvm::dbgs() << std::string(valueStack.size() - 1, ' ') << "-pop value: ";
+      auto *defOp = result.getDefiningOp();
+      if (debugOpNameOnly && defOp) llvm::dbgs() << defOp->getName() << '\n';
+      else llvm::dbgs() << result << '\n';);
   valueStack.pop_back();
   return result;
 }
+
+SmallVector<Value> QuakeBridgeVisitor::lastValues(unsigned n) {
+  assert(n <= valueStack.size() && "stack has fewer values than requested");
+  LLVM_DEBUG(llvm::dbgs() << std::string(valueStack.size() - n, ' ')
+                          << "-pop values <" << n << ">\n");
+  mlir::SmallVector<mlir::Value> result(valueStack.end() - n, valueStack.end());
+  valueStack.pop_back_n(n);
+  return result;
+}
+
+bool QuakeBridgeVisitor::generateFunctionDeclaration(
+    StringRef funcName, const clang::FunctionDecl *x) {
+  auto loc = toLocation(x);
+  allowUnknownRecordType = true;
+  if (!TraverseType(x->getType()))
+    emitFatalError(loc, "failed to generate type for kernel function");
+  allowUnknownRecordType = false;
+  if (!doSyntaxChecks(x))
+    return false;
+  auto funcTy = cast<FunctionType>(popType());
+  [[maybe_unused]] auto fnPair = getOrAddFunc(loc, funcName, funcTy);
+  assert(fnPair.first && "expected FuncOp to be created");
+  if (!isa<clang::CXXMethodDecl>(x) || x->isStatic())
+    fnPair.first->setAttr("no_this", builder.getUnitAttr());
+  assert(typeStack.empty() && "expected type stack to be cleared");
+  return true;
+}
+
+} // namespace cudaq::details
 #endif
 
+namespace cudaq {
 bool ASTBridgeAction::ASTBridgeConsumer::isQuantum(
     const clang::FunctionDecl *decl) {
   // Quantum kernels are Functions that are annotated with "quantum"
@@ -353,10 +404,13 @@ void ASTBridgeAction::ASTBridgeConsumer::addFunctionDecl(
   OpBuilder build(module->getBodyRegion());
   OpBuilder::InsertionGuard guard(build);
   build.setInsertionPointToEnd(module->getBody());
-  if (isa<clang::CXXMethodDecl>(funcDecl))
-    funcTy = cudaq::opt::factory::toCpuSideFuncType(funcTy);
+  bool addThisPtr =
+      isa<clang::CXXMethodDecl>(funcDecl) && !funcDecl->isStatic();
+  funcTy = cudaq::opt::factory::toCpuSideFuncType(funcTy, addThisPtr);
   auto func = build.create<func::FuncOp>(loc, funcName, funcTy,
                                          ArrayRef<NamedAttribute>{});
+  if (!addThisPtr)
+    func->setAttr("no_this", build.getUnitAttr());
   func.setPrivate();
 }
 
@@ -381,7 +435,18 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
       &astContext, ctx, builder, module.get(), symbol_table, functionsToEmit,
       reachableFuncs, cxx_mangled_kernel_names, ci, mangler);
 
-  // Lower each kernel entry function.
+  // First generate declarations for all kernels.
+  bool ok = true;
+  for (auto fdPair : functionsToEmit) {
+    std::string entryName = visitor.generateCudaqKernelName(fdPair);
+    ok &= visitor.generateFunctionDeclaration(entryName, fdPair.second);
+  }
+  if (!ok) {
+    // Syntax errors: stop processing the kernels.
+    return;
+  }
+
+  // Now lower each kernel function definition.
   for (auto fdPair : functionsToEmit) {
     SymbolTableScope var_scope(symbol_table);
     std::string entryName = visitor.generateCudaqKernelName(fdPair);
@@ -390,6 +455,7 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
     auto mangledFuncName = visitor.cxxMangledDeclName(fdPair.second);
     cxx_mangled_kernel_names.insert({entryName, mangledFuncName});
     LLVM_DEBUG(llvm::dbgs() << "lowering function: " << entryName << '\n');
+    visitor.resetNextTopLevelFunction();
     visitor.TraverseDecl(const_cast<clang::FunctionDecl *>(fdPair.second));
     if (auto func = module->lookupSymbol<func::FuncOp>(entryName)) {
       // Rationale: If a function marked as quantum code takes or returns

@@ -303,7 +303,7 @@ struct ForwardRelaxedSizePattern : public RewritePattern {
     Value result = relax.getResult();
     result.replaceUsesWithIf(inpVec, [&](OpOperand &use) {
       if (Operation *user = use.getOwner())
-        return isQuakeOperation(user);
+        return isQuakeOperation(user) && !isa<quake::ApplyOp>(user);
       return false;
     });
     return success();
