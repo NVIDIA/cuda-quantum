@@ -367,7 +367,7 @@ jobs:
               existing_layers=`$docker_manifest $remote_image@$platform_sha --format='{{json .}}' | jq '.layers[].digest'`
             fi
 
-            image_metadata=${{ fromJson(steps.docker_build.outcome.Metadata) }}
+            image_metadata=${{ steps.docker_build.outcome.Metadata }}
             echo "## $(echo "$image_metadata" | jq -r '."image.name"')" >> $GITHUB_STEP_SUMMARY
             echo "Image layers: " >> $GITHUB_STEP_SUMMARY
             echo "$expected_layers" >> $GITHUB_STEP_SUMMARY
