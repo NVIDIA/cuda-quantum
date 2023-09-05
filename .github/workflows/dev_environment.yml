@@ -81,6 +81,8 @@ jobs:
     outputs:
       runner: ${{ steps.build_info.outputs.runner }}
       platform_tag: ${{ steps.build_info.outputs.platform_tag }}
+      tag_prefix: ${{ steps.build_info.outputs.tag_prefix }}
+      tag_suffix: ${{ steps.build_info.outputs.tag_suffix }}
       dockerfile: ${{ steps.build_info.outputs.dockerfile }}
       owner: ${{ steps.build_info.outputs.owner }}
       image_name: ${{ steps.build_info.outputs.image_name }}
@@ -175,10 +177,10 @@ jobs:
       id-token: write
 
     outputs:
-      tar_cache: ${{ steps.cache.outputs.tar_cache }}
-      tar_archive: ${{ steps.cache.outputs.tar_archive }}
+      tar_cache: ${{ steps.cache_upload.outcome != 'skipped' && steps.cache.outputs.tar_cache || '' }}
+      tar_archive: ${{ steps.cache_upload.outcome != 'skipped' && steps.cache.outputs.tar_archive || '' }}
       build_cache: ${{ steps.cache.outputs.build_cache }}
-      image_hash: ${{ needs.metadata.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
+      image_hash: ${{ steps.uploaded_image.outputs.image_hash }}
 
     environment:
       name: ${{ inputs.environment || 'default' }}
@@ -206,7 +208,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
-      - name: Create cache locations
+      - name: Determine cache locations
         id: cache
         run: |
           toolchain=${{ inputs.toolchain }}
@@ -273,6 +275,7 @@ jobs:
 
           echo "cache_to=$cache_to" >> $GITHUB_OUTPUT
           echo "build_cache=$build_cache" >> $GITHUB_OUTPUT
+          echo "registry_cache_base=$registry_cache_base" >> $GITHUB_OUTPUT
           if ${{ inputs.environment == '' && ! inputs.registry_cache_update_only }}; then
             tar_archive=/tmp/${{ needs.metadata.outputs.image_id }}.tar
             echo "tar_cache=tar-${cache_id}-${platform_id}${local_buildcache_key_suffix}" >> $GITHUB_OUTPUT
@@ -338,8 +341,57 @@ jobs:
           path: ${{ steps.cache.outputs.local_buildcache_path }}
           key: ${{ steps.cache.outputs.local_buildcache_key }}${{ steps.cache.outputs.local_buildcache_key_suffix }}
 
+      - name: Check for existing image
+        id: uploaded_image
+        run: |
+          if ${{ inputs.environment && ! inputs.registry_cache_update_only || false }}; then
+            image_hash=${{ needs.metadata.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
+            echo "image_hash=$image_hash" >> $GITHUB_OUTPUT
+          elif ${{ steps.cache.outputs.docker_output != '' }}; then
+            # Check if an image with the same layers exists on the registry.
+            # If so, use that image instead of uploading a tar cache.
+            load_output=`docker load --input "${{ steps.cache.outputs.tar_archive }}"`
+            built_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
+            expected_layers=`docker inspect $built_image --format='{{json .RootFS}}' | jq '.Layers[]'`
+
+            # While we can inspect an image manifest without pulling the image using either
+            # `docker manifest inspect` for new enough docker versions, or `regctl image manifest`,
+            # the digests for the layers are computed based on the *compressed* layers (blobs on the registry).
+            # It is not possible to compare those to the layers listed for the local tar archive, 
+            # since inspecting the local image necessarily identifies layers based on the content of the 
+            # *uncompressed* archive. To compare a local image against one pushed to the registry, 
+            # we hence first need to download the one from the registry.
+            # See also:
+            # - https://stackoverflow.com/questions/61366738/how-are-the-docker-image-layer-ids-derived/69688979#69688979
+            # - https://github.com/docker/cli/issues/3350.
+
+            remote_image=ghcr.io/${{ needs.metadata.outputs.owner }}/${{ needs.metadata.outputs.image_title }}
+            remote_tag=${{ needs.metadata.outputs.tag_prefix }}${{ steps.cache.outputs.registry_cache_base }}${{ needs.metadata.outputs.tag_suffix }}
+            echo "Trying to pull remote tag $remote_image:$remote_tag."
+            docker pull $remote_image:$remote_tag || true
+            if [ "$(docker images -q $remote_image:$remote_tag 2> /dev/null)" == "" ]; then
+              platform_tag=${{ needs.metadata.outputs.platform_tag }}
+              remote_tag=`echo $remote_tag | sed s/"${platform_tag:+$platform_tag-}"//`
+              echo "Trying to pull remote tag $remote_image:$remote_tag."
+              docker pull $remote_image:$remote_tag || true
+            fi
+
+            if [ "$(docker images -q $remote_image:$remote_tag 2> /dev/null)" != "" ]; then
+              remote_hash=`docker inspect $remote_image:$remote_tag --format='{{index .RepoDigests 0}}'`
+              echo "Checking layers of pulled image $remote_hash."
+              existing_layers=`docker inspect $remote_hash --format='{{json .RootFS}}' | jq '.Layers[]'`
+
+              echo "Required image layers:" && echo "$expected_layers"
+              echo "Latest version on GHCR:" && echo "$existing_layers"
+              if [ "$expected_layers" == "$existing_layers" ]; then 
+                echo "image_hash=$remote_hash" >> $GITHUB_OUTPUT
+              fi  
+            fi
+          fi
+
       - name: Cache ${{ needs.metadata.outputs.image_title }} image
-        if: steps.cache.outputs.tar_cache && steps.cache.outputs.tar_archive
+        id: cache_upload
+        if: steps.cache.outputs.docker_output != '' && steps.uploaded_image.outputs.image_hash == ''
         uses: actions/cache/save@v3
         with:
           path: ${{ steps.cache.outputs.tar_archive }}
