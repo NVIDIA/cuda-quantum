@@ -935,7 +935,8 @@ struct EraseScopeWhenNotNeeded : public OpRewritePattern<cudaq::cc::ScopeOp> {
     for (auto &block : region)
       for (auto &op : block) {
         if (auto mem = dyn_cast<MemoryEffectOpInterface>(op))
-          return mem.hasEffect<MemoryEffects::Allocate>();
+          if (mem.hasEffect<MemoryEffects::Allocate>())
+            return true;
         for (auto &opReg : op.getRegions())
           if (hasAllocation(opReg))
             return true;
