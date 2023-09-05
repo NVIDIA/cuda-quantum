@@ -101,11 +101,11 @@ Driver::preProcessCudaQArguments(ArgvStorageBase &args) {
       cudaq::nvqpp::options::getDriverOptTable().ParseArgs(
           args, missingArgIndex, missingArgCount);
   // Check for missing argument error.
-  if (missingArgCount) {
+  if (missingArgCount)
     throw std::invalid_argument(
         std::string(parsedArgs.getArgString(missingArgIndex)) + " missed " +
         std::to_string(missingArgCount) + " arguments.");
-  }
+
   llvm::opt::ArgStringList clangArgs;
   for (const auto &arg : parsedArgs) {
     const bool isCudaqArgs =
@@ -236,15 +236,13 @@ int Driver::cc1Main(const CudaqArgs &cudaqArgs, ArgvT ccargs, ArgT tool,
   }
 
   // Infer the builtin include path if unspecified.
-  if (headerOpts.UseBuiltinIncludes && headerOpts.ResourceDir.empty()) {
+  if (headerOpts.UseBuiltinIncludes && headerOpts.ResourceDir.empty())
     headerOpts.ResourceDir =
         clang::CompilerInvocation::GetResourcesPath(tool, mainAddr);
-  }
 
   // Create the actual diagnostics engine.
-  if (comp->createDiagnostics(); !comp->hasDiagnostics()) {
+  if (comp->createDiagnostics(); !comp->hasDiagnostics())
     return 1;
-  }
 
   // Set an error handler, so that any LLVM backend diagnostics go through our
   // error handler.
@@ -281,9 +279,8 @@ int Driver::cc1Main(const CudaqArgs &cudaqArgs, ArgvT ccargs, ArgT tool,
 
     if (!frontendOpts.TimeTracePath.empty()) {
       small_string tracePath(frontendOpts.TimeTracePath);
-      if (llvm::sys::fs::is_directory(tracePath)) {
+      if (llvm::sys::fs::is_directory(tracePath))
         llvm::sys::path::append(tracePath, llvm::sys::path::filename(path));
-      }
 
       path.assign(tracePath);
     }
@@ -323,11 +320,11 @@ static std::unique_ptr<clang::FrontendAction> createFrontendAction(
   // llvm.
   const bool emitQuakeAction =
       cudaqArgs.hasArg(cudaq::nvqpp::options::OPT_emit_quake);
-  if (emitQuakeAction) {
+  if (emitQuakeAction)
     return std::make_unique<CudaQAction<clang::EmitLLVMAction>>(
         ci, module, context, cxxMangled, cudaq::nvqpp::OutputGen::EmitMlir,
         cudaqOptPipeline);
-  }
+
   switch (act) {
   case (clang::frontend::ActionKind::ASTDump):
     // AST action: no need to invoke CUDAQ
@@ -410,9 +407,8 @@ bool Driver::executeCompilerInvocation(clang::CompilerInstance *ci,
 
   bool success = ci->ExecuteAction(*action);
 
-  if (opts.DisableFree) {
+  if (opts.DisableFree)
     llvm::BuryPointer(std::move(action));
-  }
 
   return success;
 }
@@ -446,9 +442,8 @@ std::optional<clang::driver::Driver::ReproLevel> Driver::getClangReproLevel(
     }
   }
 
-  if (!!::getenv("FORCE_CLANG_DIAGNOSTICS_CRASH")) {
+  if (!!::getenv("FORCE_CLANG_DIAGNOSTICS_CRASH"))
     level = clang::driver::Driver::ReproLevel::Always;
-  }
 
   return level;
 }
@@ -459,18 +454,17 @@ int Driver::execute() {
 
   auto comp = makeCompilation();
   auto level = getClangReproLevel(comp);
-  if (!level) {
+  if (!level)
     return 1;
-  }
+
   int result = 1;
   bool isCrash = false;
   clang::driver::Driver::CommandStatus commandStatus =
       clang::driver::Driver::CommandStatus::Ok;
 
   const clang::driver::Command *failingCommand = nullptr;
-  if (!comp->getJobs().empty()) {
+  if (!comp->getJobs().empty())
     failingCommand = &(*comp->getJobs().begin());
-  }
 
   const bool doLink = [&]() {
     for (auto &Job : comp->getJobs()) {
@@ -504,9 +498,8 @@ int Driver::execute() {
           clang::driver::Action::ActionClass::LinkJobClass) {
         std::vector<std::string> objFileNames;
         for (const auto &input : Job.getInputInfos()) {
-          if (input.isFilename()) {
+          if (input.isFilename())
             objFileNames.emplace_back(input.getFilename());
-          }
         }
         // Collect all the ".qke.o" output files
         for (const auto &sourceFile : sourceFiles) {
@@ -616,17 +609,15 @@ int Driver::execute() {
 
     for (const auto &[cmdResult, cmd] : failing) {
       failingCommand = cmd;
-      if (!result) {
+      if (!result)
         result = cmdResult;
-      }
 
       isCrash = cmdResult < 0 || cmdResult == 70;
       commandStatus = isCrash ? clang::driver::Driver::CommandStatus::Crash
                               : clang::driver::Driver::CommandStatus::Error;
 
-      if (isCrash) {
+      if (isCrash)
         break;
-      }
     }
   }
 
@@ -638,9 +629,8 @@ int Driver::execute() {
         commandStatus, *level, *comp, *failingCommand);
   }();
 
-  if (failingCommand != nullptr && maybeGenerateCompilationDiagnostics) {
+  if (failingCommand != nullptr && maybeGenerateCompilationDiagnostics)
     result = 1;
-  }
 
   diag.finish();
 
@@ -665,9 +655,8 @@ void Driver::setInstallDir(ArgvStorageBase &argv) {
   // Do a PATH lookup, if there are no directory components.
   if (llvm::sys::path::filename(installedPath) == installedPath) {
     if (auto tmp = llvm::sys::findProgramByName(
-            llvm::sys::path::filename(installedPath.str()))) {
+            llvm::sys::path::filename(installedPath.str())))
       installedPath = *tmp;
-    }
   }
 
   llvm::sys::fs::make_absolute(installedPath);
