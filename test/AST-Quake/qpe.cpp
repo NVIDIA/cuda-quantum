@@ -226,7 +226,7 @@ int main() {
 // CHECK:           ^bb0(%[[VAL_10:.*]]: index):
 // CHECK:             %[[VAL_11:.*]] = arith.addi %[[VAL_10]], %[[VAL_1]] : index
 // CHECK:             cc.continue %[[VAL_11]] : index
-// CHECK:           } {counted}
+// CHECK:           } {invariant}
 // CHECK:           return
 // CHECK:         }
 
@@ -248,7 +248,7 @@ int main() {
 // CHECK:           ^bb0(%[[VAL_10:.*]]: index):
 // CHECK:             %[[VAL_11:.*]] = arith.addi %[[VAL_10]], %[[VAL_1]] : index
 // CHECK:             cc.continue %[[VAL_11]] : index
-// CHECK:           } {counted}
+// CHECK:           } {invariant}
 // CHECK:           return
 // CHECK:         }
 
@@ -294,7 +294,7 @@ int main() {
 // CHECK:           ^bb0(%[[VAL_34:.*]]: index):
 // CHECK:             %[[VAL_35:.*]] = arith.addi %[[VAL_34]], %[[VAL_6]] : index
 // CHECK:             cc.continue %[[VAL_35]] : index
-// CHECK:           } {counted}
+// CHECK:           } {invariant}
 // CHECK:           cc.scope {
 // CHECK:             %[[VAL_36:.*]] = cc.alloca i32
 // CHECK:             cc.store %[[VAL_5]], %[[VAL_36]] : !cc.ptr<i32>

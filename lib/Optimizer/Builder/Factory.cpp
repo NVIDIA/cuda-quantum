@@ -69,7 +69,7 @@ void factory::createGlobalCtorCall(ModuleOp mod, FlatSymbolRefAttr ctor) {
   builder.create<LLVM::GlobalCtorsOp>(loc, ctorAttr, prioAttr);
 }
 
-cudaq::cc::LoopOp factory::createCountedLoop(
+cudaq::cc::LoopOp factory::createInvariantLoop(
     OpBuilder &builder, Location loc, Value totalIterations,
     llvm::function_ref<void(OpBuilder &, Location, Region &, Block &)>
         bodyBuilder) {
@@ -104,7 +104,7 @@ cudaq::cc::LoopOp factory::createCountedLoop(
             builder.create<arith::AddIOp>(loc, block.getArgument(0), one);
         builder.create<cudaq::cc::ContinueOp>(loc, ValueRange{incr});
       });
-  loop->setAttr("counted", builder.getUnitAttr());
+  loop->setAttr("invariant", builder.getUnitAttr());
   return loop;
 }
 

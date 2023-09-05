@@ -371,7 +371,7 @@ void forLoop(ImplicitLocOpBuilder &builder, Value &startVal, Value &end,
                         ? startVal
                         : builder.create<arith::IndexCastOp>(idxTy, startVal);
   Value totalIters = builder.create<arith::SubIOp>(idxTy, castEnd, castStart);
-  cudaq::opt::factory::createCountedLoop(
+  cudaq::opt::factory::createInvariantLoop(
       builder, builder.getLoc(), totalIters,
       [&](OpBuilder &nestedBuilder, Location nestedLoc, Region &,
           Block &block) {
@@ -465,7 +465,7 @@ void handleOneQubitBroadcast(ImplicitLocOpBuilder &builder, Value veq,
 
     builder.create<QuakeOp>(loc, adjoint, ValueRange(), ValueRange(), ref);
   };
-  cudaq::opt::factory::createCountedLoop(builder, loc, rank, bodyBuilder);
+  cudaq::opt::factory::createInvariantLoop(builder, loc, rank, bodyBuilder);
 }
 
 template <typename QuakeOp>
@@ -540,7 +540,7 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
   Value size = builder.template create<arith::IndexCastOp>(
       builder.getIndexType(), vecSize);
   auto buff = builder.template create<cc::AllocaOp>(i1Ty, vecSize);
-  cudaq::opt::factory::createCountedLoop(
+  cudaq::opt::factory::createInvariantLoop(
       builder, builder.getLoc(), size,
       [&](OpBuilder &nestedBuilder, Location nestedLoc, Region &,
           Block &block) {
@@ -597,8 +597,8 @@ void reset(ImplicitLocOpBuilder &builder, const QuakeValue &qubitOrQvec) {
                                                       block.getArgument(0));
       builder.create<quake::ResetOp>(loc, TypeRange{}, ref);
     };
-    cudaq::opt::factory::createCountedLoop(builder, builder.getUnknownLoc(),
-                                           rank, bodyBuilder);
+    cudaq::opt::factory::createInvariantLoop(builder, builder.getUnknownLoc(),
+                                             rank, bodyBuilder);
     return;
   }
 

@@ -58,7 +58,7 @@ def test_swap_2q():
 # CHECK:           ^bb0(%[[VAL_16:.*]]: index):
 # CHECK:             %[[VAL_17:.*]] = arith.addi %[[VAL_16]], %[[VAL_2]] : index
 # CHECK:             cc.continue %[[VAL_17]] : index
-# CHECK:           } {counted}
+# CHECK:           } {invariant}
 # CHECK:           return
 # CHECK:         }
 

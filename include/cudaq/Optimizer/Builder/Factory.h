@@ -84,16 +84,16 @@ mlir::func::FuncOp createFunction(mlir::StringRef name,
 
 void createGlobalCtorCall(mlir::ModuleOp mod, mlir::FlatSymbolRefAttr ctor);
 
-/// Builds a simple counted loop. A simple counted loop is a loop that is
+/// Builds a simple invariant loop. A simple invariant loop is a loop that is
 /// guaranteed to execute the body of the loop \p totalIterations times. Early
 /// exits are not allowed. This builder threads the loop control value, which
 /// will be returned as the value \p totalIterations when the loop exits.
 cc::LoopOp
-createCountedLoop(mlir::OpBuilder &builder, mlir::Location loc,
-                  mlir::Value totalIterations,
-                  llvm::function_ref<void(mlir::OpBuilder &, mlir::Location,
-                                          mlir::Region &, mlir::Block &)>
-                      bodyBuilder);
+createInvariantLoop(mlir::OpBuilder &builder, mlir::Location loc,
+                    mlir::Value totalIterations,
+                    llvm::function_ref<void(mlir::OpBuilder &, mlir::Location,
+                                            mlir::Region &, mlir::Block &)>
+                        bodyBuilder);
 
 bool hasHiddenSRet(mlir::FunctionType funcTy);
 
