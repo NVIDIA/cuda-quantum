@@ -19,8 +19,11 @@ if not "CUDAQ_DYNLIBS" in os.environ:
         custatevec_libs = get_library_path("custatevec-cu11")
         custatevec_path = os.path.join(custatevec_libs, "libcustatevec.so.1")
 
+        cutensornet_libs = get_library_path("cutensornet-cu11")
+        cutensornet_path = os.path.join(cutensornet_libs, "libcutensornet.so.2")
+
         os.environ[
-            "CUDAQ_DYNLIBS"] = f"{cublasLt_path}:{cublas_path}:{custatevec_path}"
+            "CUDAQ_DYNLIBS"] = f"{cublasLt_path}:{cublas_path}:{custatevec_path}:{cutensornet_path}"
     except:
         pass
 
