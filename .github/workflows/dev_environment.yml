@@ -371,6 +371,16 @@ jobs:
               docker_manifest="$regctl image manifest"
               platform_sha=`$docker_manifest $remote_image@$remote_sha --format='{{json .}}' | jq -r '.manifests[] | select(.platform.architecture=="${{ needs.metadata.outputs.platform_tag }}").digest'`
               existing_layers=`$docker_manifest $remote_image@$platform_sha --format='{{json .}}' | jq '.layers[].digest'`
+
+              # With docker manifest inspect or regctl image manifest we get the sha of the compressed layers
+              # whereas the docker inspect command for the RootFS lists the sha for the uncompressed archive.
+              # See also https://stackoverflow.com/questions/61366738/how-are-the-docker-image-layer-ids-derived/69688979#69688979
+              # I haven't found a way to get the sha for the compressed layers for a local images, 
+              # and hence needed to download the one from the registry to compare the uncompressed ones.
+              # See also https://github.com/docker/cli/issues/3350.
+
+              docker pull $remote_image@$remote_sha
+              existing_layers=`docker inspect $remote_image@$remote_sha --format='{{json .RootFS}}' | jq '.Layers[]'`
             fi
 
             image_metadata=${{ steps.docker_build.outcome.Metadata }}
