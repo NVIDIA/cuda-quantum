@@ -357,12 +357,22 @@ jobs:
             remote_image=ghcr.io/${{ needs.metadata.outputs.owner }}/${{ needs.metadata.outputs.image_title }}
             platform_tag=${{ needs.metadata.outputs.platform_tag }}
             remote_tag=`echo ${{ needs.metadata.outputs.tag_prefix }}${{ steps.cache.outputs.registry_cache_base }}${{ needs.metadata.outputs.tag_suffix }} | sed s/"${platform_tag:+$platform_tag-}"//`
-            remote_sha=`docker container run -i --rm ghcr.io/regclient/regctl@sha256:f566dcdb1c64a93980b23ee342a5800ccf7437e17c329447b9dcdf35b81162b0 image digest --list $remote_image:$remote_tag || true`
+            regctl="docker container run -i --rm ghcr.io/regclient/regctl@sha256:f566dcdb1c64a93980b23ee342a5800ccf7437e17c329447b9dcdf35b81162b0"
+            remote_sha=`$regctl image digest --list $remote_image:$remote_tag || true`
             echo "Checking layers of remote image $remote_image:$remote_tag (sha: $remote_sha)."
             if [ "$remote_sha" != "" ]; then
-              platform_sha=`docker manifest inspect $remote_image@$remote_sha | jq -r '.manifests[] | select(.platform.architecture=="${{ needs.metadata.outputs.platform_tag }}").digest'`
-              existing_layers=`docker manifest inspect ghcr.io/nvidia/cuda-quantum@$platform_sha | jq '.layers[].digest'`
+              # With newer docker versions, we could use docker manifest inspect instead.
+              docker_manifest="$regctl image manifest"
+              platform_sha=`$docker_manifest $remote_image@$remote_sha --format='{{json .}}' | jq -r '.manifests[] | select(.platform.architecture=="${{ needs.metadata.outputs.platform_tag }}").digest'`
+              existing_layers=`$docker_manifest $remote_image@$platform_sha --format='{{json .}}' | jq '.layers[].digest'`
             fi
+
+            image_metadata=${{ fromJson(steps.docker_build.outcome.Metadata) }}
+            echo "## $(echo "$image_metadata" | jq -r '."image.name"')" >> $GITHUB_STEP_SUMMARY
+            echo "Image layers: " >> $GITHUB_STEP_SUMMARY
+            echo "$expected_layers" >> $GITHUB_STEP_SUMMARY
+            echo "Latest version on GHCR: " >> $GITHUB_STEP_SUMMARY
+            echo "$existing_layers" >> $GITHUB_STEP_SUMMARY
 
             if [ "$expected_layers" == "$existing_layers" ]; then 
               image_hash=$remote_image@$remote_sha
