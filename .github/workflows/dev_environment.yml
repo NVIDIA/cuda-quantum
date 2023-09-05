@@ -348,6 +348,12 @@ jobs:
             image_hash=${{ needs.metadata.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
             echo "image_hash=$image_hash" >> $GITHUB_OUTPUT
           elif ${{ steps.cache.outputs.docker_output != '' }}; then
+
+            mkdir archive && tar xf "${{ steps.cache.outputs.tar_archive }}" -C archive
+            config=`cat archive/manifest.json | jq -r '.[].Config'`
+            echo "MANIFEST FROM ARCHIVE:"
+            cat "archive/$config" && rm -rf archive
+
             # Check if an image with the same layers exists on the registry.
             # If so, use that image instead of uploading a tar cache.
             load_output=`docker load --input "${{ steps.cache.outputs.tar_archive }}"`
