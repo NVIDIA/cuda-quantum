@@ -354,17 +354,18 @@ jobs:
             built_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
             expected_layers=`docker inspect $built_image --format='{{json .RootFS}}' | jq '.Layers[]'`
 
+            remote_image=ghcr.io/${{ needs.metadata.outputs.owner }}/${{ needs.metadata.outputs.image_title }}
             platform_tag=${{ needs.metadata.outputs.platform_tag }}
             remote_tag=`echo ${{ needs.metadata.outputs.tag_prefix }}${{ steps.cache.outputs.registry_cache_base }}${{ needs.metadata.outputs.tag_suffix }} | sed s/"${platform_tag:+$platform_tag-}"//`
-            remote_sha=`docker container run -i --rm ghcr.io/regclient/regctl@sha256:f566dcdb1c64a93980b23ee342a5800ccf7437e17c329447b9dcdf35b81162b0 image digest --list ${{ needs.metadata.outputs.image_name }}:$remote_tag || true`
-            echo "Checking layers of remote image ${{ needs.metadata.outputs.image_name }}:$remote_tag (sha: $remote_sha)."
+            remote_sha=`docker container run -i --rm ghcr.io/regclient/regctl@sha256:f566dcdb1c64a93980b23ee342a5800ccf7437e17c329447b9dcdf35b81162b0 image digest --list $remote_image:$remote_tag || true`
+            echo "Checking layers of remote image $remote_image:$remote_tag (sha: $remote_sha)."
             if [ "$remote_sha" != "" ]; then
-              platform_sha=`docker manifest inspect ${{ needs.metadata.outputs.image_name }}@$remote_sha | jq -r '.manifests[] | select(.platform.architecture=="${{ needs.metadata.outputs.platform_tag }}").digest'`
+              platform_sha=`docker manifest inspect $remote_image@$remote_sha | jq -r '.manifests[] | select(.platform.architecture=="${{ needs.metadata.outputs.platform_tag }}").digest'`
               existing_layers=`docker manifest inspect ghcr.io/nvidia/cuda-quantum@$platform_sha | jq '.layers[].digest'`
             fi
 
             if [ "$expected_layers" == "$existing_layers" ]; then 
-              image_hash=${{ needs.metadata.outputs.image_name }}@$remote_sha
+              image_hash=$remote_image@$remote_sha
               echo "image_hash=$image_hash" >> $GITHUB_OUTPUT
             fi
           fi
