@@ -350,8 +350,9 @@ jobs:
           elif ${{ steps.cache.outputs.docker_output != '' }}; then
             # Check if an image with the same layers exists on the registry.
             # If so, use that image instead of uploading a tar cache.
-            docker load --input "${{ steps.cache.outputs.tar_archive }}"
-            expected_layers=`docker inspect ${{ steps.docker_build.outputs.digest }} --format='{{json .RootFS}}' | jq '.Layers[]'`
+            load_output=`docker load --input "${{ steps.cache.outputs.tar_archive }}"`
+            built_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
+            expected_layers=`docker inspect $built_image --format='{{json .RootFS}}' | jq '.Layers[]'`
 
             platform_tag=${{ needs.metadata.outputs.platform_tag }}
             remote_tag=`echo ${{ needs.metadata.outputs.tag_prefix }}${{ steps.cache.outputs.registry_cache_base }}${{ needs.metadata.outputs.tag_suffix }} | sed s/"${platform_tag:+$platform_tag-}"//`
