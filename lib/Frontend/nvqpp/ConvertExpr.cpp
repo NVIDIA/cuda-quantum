@@ -1888,7 +1888,7 @@ bool QuakeBridgeVisitor::TraverseCXXConstructExpr(clang::CXXConstructExpr *x,
   if (x->isElidable())
     return true;
   [[maybe_unused]] auto typeStackDepth = typeStack.size();
-  if (auto *ctorDecl = x->getConstructor()) {
+  if (x->getConstructor()) {
     if (!TraverseType(x->getType()))
       return false;
     assert(typeStack.size() == typeStackDepth + 1);
