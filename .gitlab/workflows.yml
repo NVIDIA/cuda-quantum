@@ -47,7 +47,7 @@ Python Wheels:
     expire_in: 1 day
   parallel:
     matrix:
-      - python_version: ["3.8", "3.9", "3.10", "3.11"]
+      - python_version: ["3.10"]
   script:
     - echo "Building wheel for python${python_version}." 
     - export PATH=/opt/rh/gcc-toolset-11/root/usr/bin:$PATH
@@ -100,23 +100,8 @@ Python Wheels:
     - git fetch --depth 1 https://$READ_ACCESS_TOKEN:$READ_ACCESS_TOKEN@$CI_SERVER_HOST/$CUDAQ_MGMN_SVSIM_REPO $CUDAQ_MGMN_SVSIM_COMMIT && git checkout FETCH_HEAD
     - (bash build_wheel.sh $READ_ACCESS_TOKEN && built=true) || built=false
     - if $built; then `exit 0`; else `exit 1`; fi
-    # Package the wheel
-    - cd $PROJECT_SRCS_DIR/cuda-quantum
-    # Add Tensornet and MGMN SV simulator to the packaged wheel
-    # via CUDAQ_EXTERNAL_NVQIR_SIMS cmake config
-    - export CUDAQ_EXTERNAL_NVQIR_SIMS="$PROJECT_SRCS_DIR/cudaq_tensornet/build/libnvqir-tensornet.so;$PROJECT_SRCS_DIR/cudaq_tensornet/build/tensornet.config;$PROJECT_SRCS_DIR/cudaq_mgmn_svsim/build/libnvqir-nvidia-mgpu.so;$PROJECT_SRCS_DIR/cudaq_mgmn_svsim/build/nvidia-mgpu.config"
-    - SETUPTOOLS_SCM_PRETEND_VERSION=${CUDA_QUANTUM_VERSION:-0.0.0} CUDAQ_BUILD_SELFCONTAINED=ON  CUDACXX="$CUDA_INSTALL_PREFIX/bin/nvcc" CUDAHOSTCXX=$CXX $python -m build --wheel
-    - LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/_skbuild/lib:dist/cuda_quantum-0.0.0/lib" $python -m auditwheel -v repair dist/cuda_quantum-*linux_*.whl 
-        --exclude libcustatevec.so.1 
-        --exclude libcutensornet.so.2 
-        --exclude libcublas.so.11 
-        --exclude libcublasLt.so.11 
-        --exclude libcusolver.so.11 
-        --exclude libcutensor.so.1 
-        --exclude libnvToolsExt.so.1 
-        --exclude libcudart.so.11.0
-    # Copy repaired wheel into the artifacts dir
-    - mkdir -p artifacts/wheels && cp wheelhouse/cuda_quantum-*linux_*.whl artifacts/wheels
+    # Copy artifacts
+    - mkdir -p artifacts/wheels_$(uname -m) && cp $PROJECT_SRCS_DIR/cudaq_tensornet/build/libnvqir-tensornet.so $PROJECT_SRCS_DIR/cudaq_tensornet/build/tensornet.config $PROJECT_SRCS_DIR/cudaq_mgmn_svsim/build/libnvqir-nvidia-mgpu.so $PROJECT_SRCS_DIR/cudaq_mgmn_svsim/build/nvidia-mgpu.config artifacts/wheels_$(uname -m)
 
 MGMN SV Simulator:
   rules:
@@ -206,7 +191,8 @@ Push to GitHub:
     - echo "$build_info" > "$info_file" && (echo -n "data-commit:" && echo " $CI_COMMIT_SHA") >> "$info_file"
     - if [ -d x86_64 ]; then zip -r sims_amd64.zip x86_64 && upload+="sims_amd64.zip "; fi
     - if [ -d aarch64 ]; then zip -r sims_aarch64.zip aarch64 && upload+="sims_aarch64.zip "; fi
-    - if [ -d wheels ]; then zip -r wheels.zip wheels && upload+="wheels.zip "; fi
+    - if [ -d wheels_x86_64 ]; then zip -r wheels_x86_64.zip wheels_x86_64 && upload+="wheels_x86_64.zip "; fi
+    - if [ -d wheels_aarch64 ]; then zip -r wheels_aarch64.zip wheels_aarch64 && upload+="wheels_aarch64.zip "; fi
     - echo $upload | xargs gh release upload $release_id -R $upstream_url --clobber "$info_file"
     - additional_notes="Release edited by [GitLab pipeline]($CI_PIPELINE_URL)." &&
       additional_notes+=$(echo "<br/>Triggered based on [this commit]($upstream_url/commit/$CI_COMMIT_SHA).")
