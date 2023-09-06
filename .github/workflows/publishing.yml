@@ -352,7 +352,7 @@ jobs:
           git push origin --delete $staging_branch || ${{ inputs.assets_from_run != '' && true || false }}
 
       - name: Add image to validation
-        if: steps.release_info.outputs.ngc_registry
+        # FIXME if: steps.release_info.outputs.ngc_registry
         uses: cloudposse/github-action-matrix-outputs-write@0.3.0
         with:
           matrix-step-name: docker_images
@@ -483,6 +483,7 @@ jobs:
           echo "${{ steps.docker_images.outputs.result }}" | jq '.'
 
   validation:
+    # FIXME: handle the case where docker_images is empty
     name: Validation
     needs: [assets, config]
     runs-on: linux-amd64-gpu-v100-latest-1
