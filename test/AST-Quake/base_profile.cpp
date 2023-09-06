@@ -30,9 +30,7 @@ struct kernel {
 // CHECK-LABEL: define void @__nvqpp__mlirgen__kernel()
 // CHECK:         tail call void @__quantum__qis__mz__body(%{{.*}}* null, %{{.*}}* null)
 // CHECK:         tail call void @__quantum__qis__mz__body(%{{.*}}* nonnull inttoptr (i64 1 to %{{.*}}*), %{{.*}}* nonnull inttoptr (i64 1 to %{{.*}}*))
-// CHECK:         tail call void @__quantum__rt__array_start_record_output()
 // CHECK:         tail call void @__quantum__rt__result_record_output(%{{.*}}* null, i8* nonnull getelementptr inbounds ([3 x i8], [3 x i8]* @cstr.623000, i64 0, i64 0))
 // CHECK:         tail call void @__quantum__rt__result_record_output(%{{.*}}* nonnull inttoptr (i64 1 to %{{.*}}*), i8* nonnull getelementptr inbounds ([3 x i8], [3 x i8]* @cstr.623100, i64 0, i64 0))
-// CHECK:         tail call void @__quantum__rt__array_end_record_output()
 
 
