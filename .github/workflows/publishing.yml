@@ -351,6 +351,15 @@ jobs:
           git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
           git push origin --delete $staging_branch || ${{ inputs.assets_from_run != '' && true || false }}
 
+      - name: Add image to validation
+        if: steps.release_info.outputs.ngc_registry
+        uses: cloudposse/github-action-matrix-outputs-write@0.3.0
+        with:
+          matrix-step-name: 'docker_images'
+          matrix-key: ${{ matrix.info_file }}
+          outputs: |
+            ngc_image_hash: ${{ format('{0}/{1}@{2}', steps.release_info.outputs.ngc_registry, steps.release_info.outputs.image_short_name, steps.cudaq_build.outputs.digest) }}
+
   cudaq_wheels:
     name: CUDA Quantum Python wheels
     needs: assets
@@ -454,6 +463,49 @@ jobs:
           git config --global user.name "cuda-quantum-bot"
           git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
           git push origin --delete $staging_branch || ${{ inputs.assets_from_run != '' && true || false }}
+
+  config:
+    name: Configure validation
+    needs: [cudaq_hpc, cudaq_wheels]
+    runs-on: ubuntu-latest
+
+    outputs:
+      docker_images: "${{ steps.docker_images.outputs.result }}"
+
+    steps:
+      - uses: cloudposse/github-action-matrix-outputs-read@0.1.1
+        id: docker_images
+        with:
+          matrix-step-name: docker_images
+
+  validation:
+    name: Validation
+    needs: [assets, config]
+    runs-on: linux-amd64-gpu-v100-latest-1
+
+    strategy:
+      matrix:
+        image_hash: ${{ fromJson(needs.config.outputs.docker_images).ngc_image_hash }}
+      fail-fast: false
+
+    container:
+      image: ${{ matrix.image_hash }}
+      env:
+        NVIDIA_VISIBLE_DEVICES: 0
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ needs.assets.outputs.github_commit }}
+
+      # TODO: pick better test cases and create a nicer summary...
+      - name: Basic validation
+        run: |
+          echo "## Validation" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          bash validate_container.sh >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
   create_release:
     name: CUDA Quantum Release
