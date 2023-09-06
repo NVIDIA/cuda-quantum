@@ -326,7 +326,7 @@ jobs:
         run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
       # See also https://github.com/moby/buildkit/issues/1896
-      - name: Clean up local cache
+      - name: Clean up build cache
         run: |
           rm -rf "${{ steps.cache.outputs.local_buildcache_path }}"
           build_cache="${{ steps.cache.outputs.local_buildcache_path }}-new"
@@ -334,7 +334,7 @@ jobs:
             mv "$build_cache" "${{ steps.cache.outputs.local_buildcache_path }}"
           fi
 
-      - name: Upload build cache
+      - name: Update local cache
         if: inputs.create_local_cache
         uses: actions/cache/save@v3
         with:
