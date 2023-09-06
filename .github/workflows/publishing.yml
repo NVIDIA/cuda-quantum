@@ -358,6 +358,7 @@ jobs:
           matrix-step-name: 'docker_images'
           matrix-key: ${{ matrix.info_file }}
           outputs: |
+            image_hash: ${{ format('{0}/{1}@{2}', steps.release_info.outputs.registry, steps.release_info.outputs.image_short_name, steps.copy_build.outputs.digest || steps.cudaq_build.outputs.digest) }}
             ngc_image_hash: ${{ format('{0}/{1}@{2}', steps.release_info.outputs.ngc_registry, steps.release_info.outputs.image_short_name, steps.cudaq_build.outputs.digest) }}
 
   cudaq_wheels:
@@ -485,7 +486,7 @@ jobs:
 
     strategy:
       matrix:
-        image_hash: ${{ fromJson(needs.config.outputs.docker_images).ngc_image_hash }}
+        image_hash: ${{ fromJson(needs.config.outputs.docker_images).image_hash }} # FIXME: ngc_image_hash
       fail-fast: false
 
     container:
