@@ -31,7 +31,7 @@ tablegen(LLVM Options.inc -gen-opt-parser-defs)
 add_public_tablegen_target(NvqppDriverOptions)
 target_compile_definitions(${TOOL_NAME} PRIVATE CLANG_RESOURCE_DIR="${CLANG_RESOURCE_DIR}")
 target_compile_definitions(${TOOL_NAME} PRIVATE LLVM_BIN_DIR="${LLVM_BIN_DIR}")
-
+add_dependencies(${TOOL_NAME} NvqppDriverOptions)
 get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
 get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
 get_property(translation_libs GLOBAL PROPERTY MLIR_TRANSLATION_LIBS)
