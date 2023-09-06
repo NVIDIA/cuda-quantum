@@ -563,15 +563,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
-      - name: Set up NGC deployment
-        id: ngc_deployment
+      - name: Set up additional deployment
+        id: copy
         if: steps.prereqs.outputs.ngc_registry != ''
         run: |
           echo "FROM ${{ steps.prereqs.outputs.image_name }}@${{ steps.cudaq_build.outputs.digest }}" >> ngc.Dockerfile
 
       - name: Update cuda-quantum metadata
         id: updated_metadata
-        if: steps.ngc_deployment.outcome != 'skipped'
+        if: steps.copy.outcome != 'skipped'
         uses: docker/metadata-action@v4
         with:
           images: ${{ steps.prereqs.outputs.registry }}/${{ steps.prereqs.outputs.image_short_name }}
@@ -583,9 +583,9 @@ jobs:
             org.opencontainers.image.title=cuda-quantum
             org.opencontainers.image.description=${{ steps.prereqs.outputs.image_description }}
 
-      - name: Build cuda-quantum NGC image
-        id: ngc_build
-        if: steps.ngc_deployment.outcome != 'skipped'
+      - name: Copy cuda-quantum NGC image
+        id: copy_build
+        if: steps.copy.outcome != 'skipped'
         uses: docker/build-push-action@v4
         with:
           context: .
@@ -595,10 +595,10 @@ jobs:
           platforms: ${{ inputs.platforms }}
           push: true
 
-      - name: Sign image with GitHub OIDC Token
-        if: steps.ngc_deployment.outcome != 'skipped'
+      - name: Sign copy with GitHub OIDC Token
+        if: steps.copy.outcome != 'skipped'
         env:
-          DIGEST: ${{ steps.ngc_build.outputs.digest }}
+          DIGEST: ${{ steps.copy_build.outputs.digest }}
           TAGS: ${{ steps.updated_metadata.outputs.tags }}
         run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
