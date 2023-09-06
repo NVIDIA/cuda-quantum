@@ -355,7 +355,7 @@ jobs:
         if: steps.release_info.outputs.ngc_registry
         uses: cloudposse/github-action-matrix-outputs-write@0.3.0
         with:
-          matrix-step-name: 'docker_images'
+          matrix-step-name: docker_images
           matrix-key: ${{ matrix.info_file }}
           outputs: |
             image_hash: ${{ format('{0}/{1}@{2}', steps.release_info.outputs.registry, steps.release_info.outputs.image_short_name, steps.copy_build.outputs.digest || steps.cudaq_build.outputs.digest) }}
@@ -478,6 +478,9 @@ jobs:
         id: docker_images
         with:
           matrix-step-name: docker_images
+
+      - run: |
+          echo "${{ steps.docker_images.outputs.result }}" | jq '.'
 
   validation:
     name: Validation
