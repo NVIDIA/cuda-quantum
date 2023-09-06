@@ -95,7 +95,7 @@ struct C {
 // CHECK:             ^bb0(%[[VAL_26:.*]]: index):
 // CHECK:               %[[VAL_27:.*]] = arith.addi %[[VAL_26]], %[[VAL_3]] : index
 // CHECK:               cc.continue %[[VAL_27]] : index
-// CHECK:             } {counted}
+// CHECK:             } {invariant}
 // CHECK:             cf.br ^bb7
 // CHECK:           ^bb7:
 // CHECK:             %[[VAL_28:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
@@ -187,7 +187,7 @@ struct D {
 // CHECK:             ^bb0(%[[VAL_26:.*]]: index):
 // CHECK:               %[[VAL_27:.*]] = arith.addi %[[VAL_26]], %[[VAL_3]] : index
 // CHECK:               cc.continue %[[VAL_27]] : index
-// CHECK:             } {counted}
+// CHECK:             } {invariant}
 // CHECK:             cf.br ^bb7
 // CHECK:           ^bb7:
 // CHECK:             %[[VAL_28:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
@@ -279,7 +279,7 @@ struct E {
 // CHECK:           ^bb0(%[[VAL_24:.*]]: index):
 // CHECK:             %[[VAL_25:.*]] = arith.addi %[[VAL_24]], %[[VAL_1]] : index
 // CHECK:             cc.continue %[[VAL_25]] : index
-// CHECK:           } {counted}
+// CHECK:           } {invariant}
 // CHECK:           %[[VAL_26:.*]] = cc.load %[[VAL_7]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_27:.*]] = arith.addi %[[VAL_26]], %[[VAL_3]] : i32
 // CHECK:           cc.store %[[VAL_27]], %[[VAL_7]] : !cc.ptr<i32>
@@ -367,7 +367,7 @@ struct F {
 // CHECK:           ^bb0(%[[VAL_24:.*]]: index):
 // CHECK:             %[[VAL_25:.*]] = arith.addi %[[VAL_24]], %[[VAL_1]] : index
 // CHECK:             cc.continue %[[VAL_25]] : index
-// CHECK:           } {counted}
+// CHECK:           } {invariant}
 // CHECK:           cf.br ^bb7
 // CHECK:         ^bb7:
 // CHECK:           %[[VAL_26:.*]] = cc.load %[[VAL_7]] : !cc.ptr<i32>

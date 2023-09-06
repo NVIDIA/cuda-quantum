@@ -71,7 +71,7 @@ def test_kernel_conditional():
 # CHECK:           ^bb0(%[[VAL_15:.*]]: index):
 # CHECK:             %[[VAL_16:.*]] = arith.addi %[[VAL_15]], %[[VAL_1]] : index
 # CHECK:             cc.continue %[[VAL_16]] : index
-# CHECK:           } {counted}
+# CHECK:           } {invariant}
 # CHECK:           cc.if(%[[VAL_8]]) {
 # CHECK:             quake.x %[[VAL_7]] : (!quake.ref) -> ()
 # CHECK:             %[[VAL_17:.*]] = quake.mz %[[VAL_7]] : (!quake.ref) -> i1 {registerName = ""}
