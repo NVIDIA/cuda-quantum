@@ -52,8 +52,8 @@ public:
   /// Invoke the translation function with the given input and output streams.
   mlir::LogicalResult operator()(mlir::Operation *op,
                                  llvm::raw_string_ostream &output, bool printIR,
-                                 bool printIntermediateIR) const {
-    return function(op, output, printIR, printIntermediateIR);
+                                 bool printIntermediateMLIR) const {
+    return function(op, output, printIR, printIntermediateMLIR);
   }
 
 private:

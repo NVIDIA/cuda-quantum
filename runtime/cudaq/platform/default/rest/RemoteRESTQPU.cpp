@@ -109,10 +109,10 @@ protected:
   /// -mlir-disable-threading for cudaq-opt.
   bool disableMLIRthreading = false;
 
-  /// @brief Flag indicating whether we should enable IR printing before and
+  /// @brief Flag indicating whether we should enable MLIR printing before and
   /// after each pass. This is similar to (-mlir-print-ir-before-all and
   /// -mlir-print-ir-after-all) in cudaq-opt.
-  bool enablePrintIREachPass = false;
+  bool enablePrintMLIREachPass = false;
 
   /// @brief If we are emulating locally, keep track
   /// of JIT engines for invoking the kernels.
@@ -240,12 +240,12 @@ public:
     // Get additional debug values
     disableMLIRthreading =
         getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", disableMLIRthreading);
-    enablePrintIREachPass =
-        getEnvBool("CUDAQ_MLIR_PRINT_IR", enablePrintIREachPass);
+    enablePrintMLIREachPass =
+        getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", enablePrintMLIREachPass);
 
-    // If the very verbose enablePrintIREachPass flag is set, then
+    // If the very verbose enablePrintMLIREachPass flag is set, then
     // multi-threading must be disabled.
-    if (enablePrintIREachPass) {
+    if (enablePrintMLIREachPass) {
       disableMLIRthreading = true;
     }
 
@@ -396,8 +396,8 @@ public:
         llvm::raw_string_ostream outStr(codeStr);
         if (disableMLIRthreading)
           moduleOpI.getContext()->disableMultithreading();
-        if (failed(
-                translation(moduleOpI, outStr, printIR, enablePrintIREachPass)))
+        if (failed(translation(moduleOpI, outStr, printIR,
+                               enablePrintMLIREachPass)))
           throw std::runtime_error("Could not successfully translate to " +
                                    codegenTranslation + ".");
       }

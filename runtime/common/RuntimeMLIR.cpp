@@ -146,12 +146,13 @@ void applyWriteOnlyAttributes(llvm::Module *llvmModule) {
 }
 
 // Once a call to a function with irreversible attribute is seen, no more calls
-// to reversible functions are allowed.
-// Specification quote: "The only difference between these two blocks is that
-// the first one contains only calls to functions that are not marked as
-// irreversible by an attribute on the respective function declaration, whereas
-// the second one contains only calls to functions that perform irreversible
-// actions, i.e. measurements of the quantum state."
+// to reversible functions are allowed. This is somewhat of an implied
+// specification because the specification describes the program in terms of 4
+// sequential blocks. The 2nd block contains reversible operations, and the 3rd
+// block contains irreversible operations (measurements), and the blocks may not
+// overlap.
+// Reference:
+// https://github.com/qir-alliance/qir-spec/blob/main/specification/under_development/profiles/Base_Profile.md?plain=1#L237
 mlir::LogicalResult verifyMeasurementOrdering(llvm::Module *llvmModule) {
   bool irreversibleSeenYet = false;
   for (llvm::Function &func : *llvmModule)
@@ -306,10 +307,10 @@ void registerToQIRTranslation() {
   cudaq::TranslateFromMLIRRegistration reg(
       "qir", "translate from quake to qir base profile",
       [](Operation *op, llvm::raw_string_ostream &output, bool printIR,
-         bool printIntermediateIR) {
+         bool printIntermediateMLIR) {
         auto context = op->getContext();
         PassManager pm(context);
-        if (printIntermediateIR)
+        if (printIntermediateMLIR)
           pm.enableIRPrinting();
         std::string errMsg;
         llvm::raw_string_ostream errOs(errMsg);
@@ -372,9 +373,9 @@ void registerToOpenQASMTranslation() {
   cudaq::TranslateFromMLIRRegistration reg(
       "qasm2", "translate from quake to openQASM 2.0",
       [](Operation *op, llvm::raw_string_ostream &output, bool printIR,
-         bool printIntermediateIR) {
+         bool printIntermediateMLIR) {
         PassManager pm(op->getContext());
-        if (printIntermediateIR)
+        if (printIntermediateMLIR)
           pm.enableIRPrinting();
         if (failed(pm.run(op)))
           throw std::runtime_error("Lowering failed.");
@@ -389,11 +390,10 @@ void registerToIQMJsonTranslation() {
   cudaq::TranslateFromMLIRRegistration reg(
       "iqm", "translate from quake to IQM's json format",
       [](Operation *op, llvm::raw_string_ostream &output, bool printIR,
-         bool printIntermediateIR) {
+         bool printIntermediateMLIR) {
         auto passed = cudaq::translateToIQMJson(op, output);
-        // TODO printIntermediateIR not supported here yet
-        if (printIntermediateIR)
-          llvm::errs() << "WARNING: printIntermediateIR not yet supported for "
+        if (printIntermediateMLIR)
+          llvm::errs() << "WARNING: printIntermediateMLIR not supported for "
                           "IQM's json format\n";
         if (printIR)
           llvm::errs() << output.str();
