@@ -573,8 +573,9 @@ CUDAQ_TEST(BuilderTester, checkMidCircuitMeasure) {
 
     auto counts = cudaq::sample(entryPoint);
     counts.dump();
-    EXPECT_EQ(counts.register_names().size(), 1);
-    EXPECT_EQ(counts.register_names()[0], "c0");
+    EXPECT_EQ(counts.register_names().size(), 2); // includes synthetic global
+    EXPECT_EQ(counts.register_names()[0], "__global__");
+    EXPECT_EQ(counts.register_names()[1], "c0");
   }
 
   {
@@ -589,7 +590,7 @@ CUDAQ_TEST(BuilderTester, checkMidCircuitMeasure) {
 
     auto counts = cudaq::sample(entryPoint);
     counts.dump();
-    EXPECT_EQ(counts.register_names().size(), 2);
+    EXPECT_EQ(counts.register_names().size(), 3); // includes synthetic global
     auto regNames = counts.register_names();
     EXPECT_TRUE(std::find(regNames.begin(), regNames.end(), "c0") !=
                 regNames.end());

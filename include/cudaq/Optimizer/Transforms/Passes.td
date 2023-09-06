@@ -190,6 +190,14 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
   ];
 }
 
+def UpdateRegisterNames : Pass<"update-register-names"> {
+  let summary = "Update classical register names";
+  let description = [{
+    After loop unrolling, there may be duplicate registerName attributes. Run
+    this pass to give them unique attribute values.
+  }];
+}
+
 def LowerToCFG : Pass<"lower-to-cfg", "mlir::func::FuncOp"> {
   let summary = "Erase CLoop, CIf, etc. ops, replacing them with a CFG.";
   let description = [{
