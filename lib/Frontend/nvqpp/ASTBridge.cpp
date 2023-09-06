@@ -351,7 +351,10 @@ SmallVector<Value> QuakeBridgeVisitor::lastValues(unsigned n) {
   valueStack.pop_back_n(n);
   return result;
 }
+} // namespace cudaq::details
+#endif
 
+namespace cudaq::details {
 bool QuakeBridgeVisitor::generateFunctionDeclaration(
     StringRef funcName, const clang::FunctionDecl *x) {
   auto loc = toLocation(x);
@@ -369,9 +372,7 @@ bool QuakeBridgeVisitor::generateFunctionDeclaration(
   assert(typeStack.empty() && "expected type stack to be cleared");
   return true;
 }
-
 } // namespace cudaq::details
-#endif
 
 namespace cudaq {
 bool ASTBridgeAction::ASTBridgeConsumer::isQuantum(
