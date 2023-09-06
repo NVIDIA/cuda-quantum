@@ -142,6 +142,11 @@ void bindSpinOperator(py::module &mod) {
            "represented as a double.")
       .def("to_matrix", &spin_op::to_matrix,
            "Return `self` as a :class:`ComplexMatrix`.")
+      .def("to_sparse_matrix", &spin_op::to_sparse_matrix,
+           "Return `self` as a sparse matrix. This representation is a "
+           "`Tuple[list[complex], list[int], list[int]]`, encoding the "
+           "non-zero values, rows, and columns of the matrix. "
+           "This format is supported by `scipy.sparse.csr_array`.")
       .def(
           "__iter__",
           [](spin_op &self) {
