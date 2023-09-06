@@ -82,17 +82,18 @@ module {
 
 // CHECK: include "qelib1.inc";
 
+// CHECK: gate umaj q0, q1, q2 {
+// CHECK:   ccx  q0, q1, q2;
+// CHECK:   cx  q2, q1;
+// CHECK:   cx  q2, q0;
+// CHECK: }
+
 // CHECK: gate maj q0, q1, q2 {
 // CHECK:   cx  q2, q0;
 // CHECK:   cx  q2, q1;
 // CHECK:   ccx  q0, q1, q2;
 // CHECK: }
 
-// CHECK: gate umaj q0, q1, q2 {
-// CHECK:   ccx  q0, q1, q2;
-// CHECK:   cx  q2, q1;
-// CHECK:   cx  q2, q0;
-// CHECK: }
 
 // CHECK: qreg var0[1];
 // CHECK: qreg var1[4];
