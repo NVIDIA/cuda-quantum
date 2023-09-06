@@ -59,7 +59,7 @@ Noisy Simulation
 CUDA Quantum makes it simple to model noise within the simulation of your quantum program.
 Let's take a look at the various built-in noise models we support, before concluding with a brief example of a custom noise model constructed from user-defined Kraus Operators.
 
-The following code illustrates how to run a simulation with depolariazation noise.
+The following code illustrates how to run a simulation with depolarization noise.
 
 .. literalinclude:: ../examples/python/noise_depolarization.py
    :language: python
