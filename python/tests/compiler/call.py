@@ -108,7 +108,7 @@ def test_kernel_apply_call_qreg_args():
 # CHECK:           ^bb0(%[[VAL_10:.*]]: index):
 # CHECK:             %[[VAL_11:.*]] = arith.addi %[[VAL_10]], %[[VAL_1]] : index
 # CHECK:             cc.continue %[[VAL_11]] : index
-# CHECK:           } {counted}
+# CHECK:           } {invariant}
 # CHECK:           return
 # CHECK:         }
 

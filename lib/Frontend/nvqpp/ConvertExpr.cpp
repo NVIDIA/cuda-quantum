@@ -144,7 +144,7 @@ bool buildOp(OpBuilder &builder, Location loc, ValueRange operands,
                                                         block.getArgument(0));
         builder.create<A>(loc, ValueRange(), ref);
       };
-      cudaq::opt::factory::createCountedLoop(builder, loc, rank, bodyBuilder);
+      cudaq::opt::factory::createInvariantLoop(builder, loc, rank, bodyBuilder);
     } else {
       auto [target, ctrls] = maybeUnpackOperands(builder, loc, operands);
       for (auto v : target)
@@ -220,7 +220,7 @@ static Value toIntegerImpl(OpBuilder &builder, Location loc, Value bitVec) {
   // Create the for loop
   Value rank = builder.create<arith::IndexCastOp>(loc, builder.getIndexType(),
                                                   bitVecSize);
-  cudaq::opt::factory::createCountedLoop(
+  cudaq::opt::factory::createInvariantLoop(
       builder, loc, rank,
       [&](OpBuilder &nestedBuilder, Location nestedLoc, Region &,
           Block &block) {
