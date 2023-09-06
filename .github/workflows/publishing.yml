@@ -288,39 +288,39 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
-      - name: Set up redirect
-        id: redirect
+      - name: Set up NGC deployment
+        id: ngc_deployment
         if: steps.release_info.outputs.ngc_registry != ''
         run: |
-          echo "FROM ${{ steps.release_info.outputs.image_name }}@${{ steps.cudaq_build.outputs.digest }}" >> redirect.Dockerfile
+          echo "FROM ${{ steps.release_info.outputs.image_name }}@${{ steps.cudaq_build.outputs.digest }}" >> ngc.Dockerfile
           echo "image_name=${{ steps.release_info.outputs.registry }}/${{ steps.release_info.outputs.image_short_name }}" >> $GITHUB_OUTPUT
 
       - name: Update cuda-quantum metadata
         id: updated_metadata
-        if: steps.redirect.outcome != 'skipped'
+        if: steps.ngc_deployment.outcome != 'skipped'
         uses: docker/metadata-action@v4
         with:
-          images: ${{ steps.redirect.outputs.image_name }}
+          images: ${{ steps.ngc_deployment.outputs.image_name }}
           flavor: latest=false
           tags: type=raw,value=${{ steps.release_info.outputs.image_tag }}
           labels: |
             org.opencontainers.image.title=${{ steps.release_info.outputs.image_title }}
             org.opencontainers.image.description=${{ steps.release_info.outputs.image_description }}
 
-      - name: Build cuda-quantum image redirect
+      - name: Build cuda-quantum NGC image
         id: docker_build
-        if: steps.redirect.outcome != 'skipped'
+        if: steps.ngc_deployment.outcome != 'skipped'
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: redirect.Dockerfile
+          file: ngc.Dockerfile
           tags: ${{ steps.updated_metadata.outputs.tags }}
           labels: ${{ steps.updated_metadata.outputs.labels }}
           platforms: ${{ steps.release_info.outputs.platforms }}
           push: true
 
       - name: Sign image with GitHub OIDC Token
-        if: steps.redirect.outcome != 'skipped'
+        if: steps.ngc_deployment.outcome != 'skipped'
         env:
           DIGEST: ${{ steps.docker_build.outputs.digest }}
           TAGS: ${{ steps.updated_metadata.outputs.tags }}
@@ -332,10 +332,10 @@ jobs:
           gh release view $release_id --json body --jq .body > rel_notes.txt
           header_length=`cat rel_notes.txt | grep -n "Release notes generated" | cut -d ':' -f 1`
           head -n $(($header_length - 1)) rel_notes.txt > new_notes.txt
-          redirect=${{ steps.redirect.outputs.image_name }}
+          ngc_image=${{ steps.ngc_deployment.outputs.image_name }}
           echo -e "\nImages for ${{ steps.release_info.outputs.platforms }}:\n" >> new_notes.txt
           echo "- cuda-quantum (base image): ${{ steps.release_info.outputs.cudaq_image }}" >> new_notes.txt
-          echo "- cuda-quantum (with hpc components): ${{ steps.release_info.outputs.image_name }}@${{ steps.cudaq_build.outputs.digest }}${redirect:+ or $redirect@${{ steps.docker_build.outputs.digest }}}" >> new_notes.txt
+          echo "- cuda-quantum (with hpc components): ${{ steps.release_info.outputs.image_name }}@${{ steps.cudaq_build.outputs.digest }}${ngc_image:+ or $ngc_image@${{ steps.docker_build.outputs.digest }}}" >> new_notes.txt
           echo "- cuda-quantum-dev (for extension development): ${{ steps.release_info.outputs.cudaqdev_image }}" >> new_notes.txt
           echo "- cuda-quantum-devdeps (development dependencies only): ${{ steps.release_info.outputs.cudaqdevdeps_image }}" >> new_notes.txt
           (echo && tail -n +$header_length rel_notes.txt) >> new_notes.txt
