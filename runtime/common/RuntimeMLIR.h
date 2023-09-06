@@ -23,7 +23,7 @@ class Module;
 
 namespace cudaq {
 using TranslateFromMLIRFunction = std::function<mlir::LogicalResult(
-    mlir::Operation *, llvm::raw_string_ostream &, bool)>;
+    mlir::Operation *, llvm::raw_string_ostream &, bool, bool)>;
 
 /// @brief Initialize MLIR with CUDA Quantum dialects and return the
 /// MLIRContext.
@@ -51,9 +51,9 @@ public:
 
   /// Invoke the translation function with the given input and output streams.
   mlir::LogicalResult operator()(mlir::Operation *op,
-                                 llvm::raw_string_ostream &output,
-                                 bool printIR) const {
-    return function(op, output, printIR);
+                                 llvm::raw_string_ostream &output, bool printIR,
+                                 bool printIntermediateMLIR) const {
+    return function(op, output, printIR, printIntermediateMLIR);
   }
 
 private:

@@ -22,8 +22,6 @@ constexpr static const char QIRMeasureToRegister[] =
 
 constexpr static const char QIRCnot[] = "__quantum__qis__cnot";
 constexpr static const char QIRCphase[] = "__quantum__qis__cphase";
-constexpr static const char QIRReadResultBody[] =
-    "__quantum__qis__read_result__body";
 
 constexpr static const char NVQIRInvokeWithControlBits[] =
     "invokeWithControlQubits";
@@ -52,10 +50,6 @@ constexpr static const char QIRArrayCreateArray[] =
     "__quantum__rt__array_create_1d";
 
 /// QIR Base Profile record output function names
-constexpr static const char QIRBaseProfileStartRecordOutput[] =
-    "__quantum__rt__array_start_record_output";
-constexpr static const char QIRBaseProfileEndRecordOutput[] =
-    "__quantum__rt__array_end_record_output";
 constexpr static const char QIRBaseProfileRecordOutput[] =
     "__quantum__rt__result_record_output";
 
