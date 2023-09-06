@@ -7,7 +7,7 @@ on:
         required: true
       assets_from_run:
         type: string
-        description: Optional argument to facilitate rerunning a failed workflow without re-building the assets.
+        description: Optional argument to take assets from a different run; facilitates rerunning a failed workflow without re-building the assets.
         required: false
   workflow_run:
     workflows:
@@ -355,7 +355,7 @@ jobs:
         if: steps.release_info.outputs.ngc_registry
         uses: cloudposse/github-action-matrix-outputs-write@0.3.0
         with:
-          matrix-step-name: 'docker_images'
+          matrix-step-name: docker_images
           matrix-key: ${{ matrix.info_file }}
           outputs: |
             image_hash: ${{ format('{0}/{1}@{2}', steps.release_info.outputs.registry, steps.release_info.outputs.image_short_name, steps.copy_build.outputs.digest || steps.cudaq_build.outputs.digest) }}
@@ -479,6 +479,9 @@ jobs:
         with:
           matrix-step-name: docker_images
 
+      - run: |
+          echo "${{ steps.docker_images.outputs.result }}" | jq '.'
+
   validation:
     name: Validation
     needs: [assets, config]
@@ -510,7 +513,7 @@ jobs:
 
   create_release:
     name: CUDA Quantum Release
-    needs: [assets, cudaq_hpc, cudaq_wheels]
+    needs: [assets, cudaq_hpc, cudaq_wheels, validation]
     if: needs.assets.outputs.release_title
     runs-on: ubuntu-latest
 
@@ -559,7 +562,7 @@ jobs:
 
   clean_up:
     name: Clean up
-    needs: [assets, cudaq_hpc, cudaq_wheels, create_release]
+    needs: [assets, cudaq_hpc, cudaq_wheels, create_release, validation]
     # Force this job to run even when some of the dependencies above are skipped.
     if: always() && !cancelled() && needs.assets.result != 'skipped' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
