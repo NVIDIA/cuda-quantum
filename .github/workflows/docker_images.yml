@@ -330,7 +330,7 @@ jobs:
     outputs:
       tar_cache: ${{ steps.prereqs.outputs.tar_cache }}
       tar_archive: ${{ steps.prereqs.outputs.tar_archive }}
-      image_hash: ${{ format('{0}/{1}@{2}', steps.prereqs.outputs.registry, steps.prereqs.outputs.image_short_name, steps.redirect_build.outputs.digest || steps.cudaq_build.outputs.digest) }}
+      image_hash: ${{ format('{0}/{1}@{2}', steps.prereqs.outputs.registry, steps.prereqs.outputs.image_short_name, steps.ngc_build.outputs.digest || steps.cudaq_build.outputs.digest) }}
       ngc_image_hash: ${{ steps.prereqs.outputs.ngc_registry && format('{0}/{1}@{2}', steps.prereqs.outputs.ngc_registry, steps.prereqs.outputs.image_short_name, steps.cudaq_build.outputs.digest) || '' }}
 
     environment:
@@ -415,7 +415,7 @@ jobs:
           docker image prune --force
           repo_owner=${{ github.repository_owner }}
           registry=${{ vars.registry || 'localhost:5000' }}/${repo_owner,,}
-          ngc_registry=`${{ needs.metadata.outputs.push_to_ngc == 'true' }} && echo nvcr.io/${repo_owner,,}/cudaquantdev || echo ''`
+          ngc_registry=`${{ needs.metadata.outputs.push_to_ngc == 'true' }} && echo nvcr.io/${repo_owner,,}/nightly || echo ''`
           image_short_name=cuda-quantum
           dev_image_name=${registry}/${image_short_name}-dev
           image_name=${ngc_registry:-$registry}/${image_short_name}
@@ -563,15 +563,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
-      - name: Set up redirect
-        id: redirect
+      - name: Set up NGC deployment
+        id: ngc_deployment
         if: steps.prereqs.outputs.ngc_registry != ''
         run: |
-          echo "FROM ${{ steps.prereqs.outputs.image_name }}@${{ steps.cudaq_build.outputs.digest }}" >> redirect.Dockerfile
+          echo "FROM ${{ steps.prereqs.outputs.image_name }}@${{ steps.cudaq_build.outputs.digest }}" >> ngc.Dockerfile
 
       - name: Update cuda-quantum metadata
         id: updated_metadata
-        if: steps.redirect.outcome != 'skipped'
+        if: steps.ngc_deployment.outcome != 'skipped'
         uses: docker/metadata-action@v4
         with:
           images: ${{ steps.prereqs.outputs.registry }}/${{ steps.prereqs.outputs.image_short_name }}
@@ -583,22 +583,22 @@ jobs:
             org.opencontainers.image.title=cuda-quantum
             org.opencontainers.image.description=${{ steps.prereqs.outputs.image_description }}
 
-      - name: Build cuda-quantum image redirect
-        id: redirect_build
-        if: steps.redirect.outcome != 'skipped'
+      - name: Build cuda-quantum NGC image
+        id: ngc_build
+        if: steps.ngc_deployment.outcome != 'skipped'
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: redirect.Dockerfile
+          file: ngc.Dockerfile
           tags: ${{ steps.updated_metadata.outputs.tags }}
           labels: ${{ steps.updated_metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}
           push: true
 
       - name: Sign image with GitHub OIDC Token
-        if: steps.redirect.outcome != 'skipped'
+        if: steps.ngc_deployment.outcome != 'skipped'
         env:
-          DIGEST: ${{ steps.redirect_build.outputs.digest }}
+          DIGEST: ${{ steps.ngc_build.outputs.digest }}
           TAGS: ${{ steps.updated_metadata.outputs.tags }}
         run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
