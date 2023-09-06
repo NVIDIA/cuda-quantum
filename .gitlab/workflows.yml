@@ -101,7 +101,9 @@ Python Wheels:
     - (bash build_wheel.sh $READ_ACCESS_TOKEN && built=true) || built=false
     - if $built; then `exit 0`; else `exit 1`; fi
     # Copy artifacts
-    - mkdir -p artifacts/wheels_$(uname -m) && cp $PROJECT_SRCS_DIR/cudaq_tensornet/build/libnvqir-tensornet.so $PROJECT_SRCS_DIR/cudaq_tensornet/build/tensornet.config $PROJECT_SRCS_DIR/cudaq_mgmn_svsim/build/libnvqir-nvidia-mgpu.so $PROJECT_SRCS_DIR/cudaq_mgmn_svsim/build/nvidia-mgpu.config artifacts/wheels_$(uname -m)
+    - cd $PROJECT_SRCS_DIR/cuda-quantum && mkdir -p artifacts/wheels_$(uname -m) 
+    - cp $PROJECT_SRCS_DIR/cudaq_tensornet/build/libnvqir-tensornet.so $PROJECT_SRCS_DIR/cudaq_tensornet/build/tensornet.config $PROJECT_SRCS_DIR/cudaq_mgmn_svsim/build/libnvqir-nvidia-mgpu.so $PROJECT_SRCS_DIR/cudaq_mgmn_svsim/build/nvidia-mgpu.config artifacts/wheels_$(uname -m)
+    - mkdir -p artifacts/wheels_$(uname -m)/exatn/lib &&  cp -r /opt/nvidia/exatn/lib/* artifacts/wheels_$(uname -m)/exatn/lib
 
 MGMN SV Simulator:
   rules:
@@ -189,7 +191,7 @@ Push to GitHub:
       fi
     - mkdir -p artifacts && cd artifacts
     - echo "$build_info" > "$info_file" && (echo -n "data-commit:" && echo " $CI_COMMIT_SHA") >> "$info_file"
-    - if [ -d x86_64 ]; then zip -r sims_amd64.zip x86_64 && upload+="sims_amd64.zip "; fi
+    - if [ -d x86_64 ]; then zip -r sims_x86_64.zip x86_64 && upload+="sims_x86_64.zip "; fi
     - if [ -d aarch64 ]; then zip -r sims_aarch64.zip aarch64 && upload+="sims_aarch64.zip "; fi
     - if [ -d wheels_x86_64 ]; then zip -r wheels_x86_64.zip wheels_x86_64 && upload+="wheels_x86_64.zip "; fi
     - if [ -d wheels_aarch64 ]; then zip -r wheels_aarch64.zip wheels_aarch64 && upload+="wheels_aarch64.zip "; fi
