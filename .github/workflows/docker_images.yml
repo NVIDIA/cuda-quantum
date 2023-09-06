@@ -330,7 +330,7 @@ jobs:
     outputs:
       tar_cache: ${{ steps.prereqs.outputs.tar_cache }}
       tar_archive: ${{ steps.prereqs.outputs.tar_archive }}
-      image_hash: ${{ format('{0}/{1}@{2}', steps.prereqs.outputs.registry, steps.prereqs.outputs.image_short_name, steps.ngc_build.outputs.digest || steps.cudaq_build.outputs.digest) }}
+      image_hash: ${{ format('{0}/{1}@{2}', steps.prereqs.outputs.registry, steps.prereqs.outputs.image_short_name, steps.copy_build.outputs.digest || steps.cudaq_build.outputs.digest) }}
       ngc_image_hash: ${{ steps.prereqs.outputs.ngc_registry && format('{0}/{1}@{2}', steps.prereqs.outputs.ngc_registry, steps.prereqs.outputs.image_short_name, steps.cudaq_build.outputs.digest) || '' }}
 
     environment:
