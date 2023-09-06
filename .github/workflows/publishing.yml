@@ -513,7 +513,7 @@ jobs:
 
   create_release:
     name: CUDA Quantum Release
-    needs: [assets, cudaq_hpc, cudaq_wheels]
+    needs: [assets, cudaq_hpc, cudaq_wheels, validation]
     if: needs.assets.outputs.release_title
     runs-on: ubuntu-latest
 
@@ -562,7 +562,7 @@ jobs:
 
   clean_up:
     name: Clean up
-    needs: [assets, cudaq_hpc, cudaq_wheels, create_release]
+    needs: [assets, cudaq_hpc, cudaq_wheels, create_release, validation]
     # Force this job to run even when some of the dependencies above are skipped.
     if: always() && !cancelled() && needs.assets.result != 'skipped' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
