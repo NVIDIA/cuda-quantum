@@ -214,7 +214,7 @@ jobs:
           registry=${{ vars.registry || 'localhost:5000' }}/${repo_owner,,}
           if [ -n "$(echo "$platforms" | grep ',')" ] && ${{ secrets.secrets.NGC_CREDENTIALS != '' }}; then
             if [ -n "$cudaq_ngc_image" ]; then
-              ngc_registry=nvcr.io/${repo_owner,,}/nightly
+              ngc_registry=nvcr.io/${repo_owner,,}/cudaquantdev
             fi
           fi
 
@@ -482,7 +482,6 @@ jobs:
       - name: Prepare validation
         id: validation
         run: |
-          # FIXME: ngc_image_hash
           images=`echo '${{ steps.read_json.outputs.result }}' | jq '[.image_hash[] | select(. != "")]'`
           echo "docker_images=$(echo $images)" >> $GITHUB_OUTPUT
 
