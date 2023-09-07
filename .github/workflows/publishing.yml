@@ -7,7 +7,7 @@ on:
         required: true
       assets_from_run:
         type: string
-        description: Optional argument to take assets from a different run; facilitates rerunning a failed workflow without re-building the assets.
+        description: Optional argument to take assets from a prior run of this workflow; facilitates rerunning a failed workflow without re-building the assets.
         required: false
   workflow_run:
     workflows:
