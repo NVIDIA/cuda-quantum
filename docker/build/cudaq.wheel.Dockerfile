@@ -24,13 +24,16 @@ ARG destination=cuda-quantum
 ADD "$workspace" "$destination"
 
 ARG assets=./assets
-COPY "$assets/" "$workspace/assets/"
+COPY "$assets/" "/tmp/assets/"
 ENV CUDAQ_EXTERNAL_NVQIR_SIMS=""
+
+# Install additional dependencies
+RUN dnf install -y cuda-nvtx-11-8 cuda-profiler-api-11-8 openblas-devel
 
 ARG python_version=3.10
 RUN echo "Finding external NVQIR simulators." \
     && \
-    for config_file in `find $workspace/assets/wheels_$(uname -m)/*.config -maxdepth 0 -type f`; \
+    for config_file in `find /tmp/assets/wheels_$(uname -m)/*.config -maxdepth 0 -type f`; \
         do \
             current_dir="$(dirname "${config_file}")" \
             && current_dir=$(cd $current_dir; pwd) \
@@ -57,7 +60,7 @@ RUN echo "Finding external NVQIR simulators." \
         CUDAQ_BUILD_SELFCONTAINED=ON \
         CUDACXX="$CUDA_INSTALL_PREFIX/bin/nvcc" CUDAHOSTCXX=$CXX \
         $python -m build --wheel \
-    && LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/_skbuild/lib:$workspace/assets/wheels_$(uname -m)/lib" \
+    && LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/_skbuild/lib:/tmp/assets/wheels_$(uname -m)/lib" \
         $python -m auditwheel -v repair dist/cuda_quantum-*linux_*.whl \
             --exclude libcustatevec.so.1 \
             --exclude libcutensornet.so.2 \

@@ -363,6 +363,7 @@ jobs:
     strategy:
       matrix:
         info_file: ${{ fromJson(needs.assets.outputs.python_wheels).info_files }}
+        python_version: ['3.8', '3.9', '3.10', '3.11']
       fail-fast: false
 
     steps:
@@ -398,11 +399,10 @@ jobs:
           echo "platform_arch=$platform_arch" >> $GITHUB_OUTPUT
           echo "cudaqwheeldeps_image=$cudaqwheeldeps_image" >> $GITHUB_OUTPUT
           echo "assets_folder=$assets_folder" >> $GITHUB_OUTPUT
+          echo "docker_output=type=local,dest=/tmp/wheels" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
-      # TODO: Create python wheels that include simulator extensions.
-      # For now, we just download the already built wheels from the deployment run.
       - name: Build cuda-quantum wheel
         id: build_wheel
         uses: docker/build-push-action@v4
@@ -410,11 +410,11 @@ jobs:
           context: .
           file: ./docker/build/cudaq.wheel.Dockerfile
           build-args: |
-            base_image=${{ steps.prereqs.outputs.base_image }}
-            release_version=${{ steps.prereqs.outputs.cudaq_version }}
+            base_image=${{ steps.release_info.outputs.cudaqwheeldeps_image }}  
+            release_version=${{steps.release_info.outputs.release_id  }}
             assets=${{ steps.release_info.outputs.assets_folder }}
-            python_version=${{ inputs.python_version }}
-          outputs: ${{ steps.prereqs.outputs.docker_output }}
+            python_version=$python_version
+          outputs: ${{ steps.release_info.outputs.docker_output }}
 
       - name: Upload wheels
         uses: actions/upload-artifact@v3
