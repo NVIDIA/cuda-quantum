@@ -405,26 +405,16 @@ jobs:
       # For now, we just download the already built wheels from the deployment run.
       - name: Build cuda-quantum wheel
         id: build_wheel
-        run: |
-          artifacts_url=${{ needs.assets.outputs.artifacts_url }}
-          artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
-
-          mkdir -p /tmp/wheels
-          for artifact in `echo "$artifacts"`; do
-            name=`echo $artifact | jq -r '.name'`
-            if [ "${name#pycudaq-}" != "$name" ]; then
-              url=`echo $artifact | jq -r '.url'`
-              gh api $url > _pycudaq.zip
-              unzip -d _pycudaq _pycudaq.zip && cd _pycudaq
-              for wheel in `ls cuda_quantum-*-manylinux_*_${{ steps.release_info.outputs.platform_arch }}.whl 2> /dev/null`; do
-                echo "Adding wheel $wheel."
-                mv $wheel "/tmp/wheels/$wheel"
-              done
-              cd .. && rm -rf _pycudaq*
-            fi
-          done
-        env:
-          GH_TOKEN: ${{ github.token }}
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./docker/build/cudaq.wheel.Dockerfile
+          build-args: |
+            base_image=${{ steps.prereqs.outputs.base_image }}
+            release_version=${{ steps.prereqs.outputs.cudaq_version }}
+            assets=${{ steps.release_info.outputs.assets_folder }}
+            python_version=${{ inputs.python_version }}
+          outputs: ${{ steps.prereqs.outputs.docker_output }}
 
       - name: Upload wheels
         uses: actions/upload-artifact@v3
