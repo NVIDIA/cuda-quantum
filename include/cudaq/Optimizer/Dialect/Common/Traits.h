@@ -10,6 +10,10 @@
 
 #include "mlir/IR/OpImplementation.h"
 
+namespace quake {
+mlir::LogicalResult verifyWireArityAndCoarity(mlir::Operation *op);
+}
+
 namespace cudaq {
 
 template <typename ConcreteType>
@@ -26,7 +30,7 @@ template <typename ConcreteType>
 class QuantumGate : public mlir::OpTrait::TraitBase<ConcreteType, QuantumGate> {
 public:
   static mlir::LogicalResult verifyTrait(mlir::Operation *op) {
-    return mlir::success();
+    return quake::verifyWireArityAndCoarity(op);
   }
 };
 
@@ -43,7 +47,7 @@ class QuantumMeasure
     : public mlir::OpTrait::TraitBase<ConcreteType, QuantumMeasure> {
 public:
   static mlir::LogicalResult verifyTrait(mlir::Operation *op) {
-    return mlir::success();
+    return quake::verifyWireArityAndCoarity(op);
   }
 };
 

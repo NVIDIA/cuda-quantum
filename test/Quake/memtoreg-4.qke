@@ -1,0 +1,37 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --memtoreg %s | FileCheck %s
+
+func.func @t() {
+  %q0 = quake.alloca !quake.ref
+  %q1 = quake.alloca !quake.ref
+  %q2 = quake.alloca !quake.ref
+  quake.x [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.y [%q2] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.h %q1 : (!quake.ref) -> ()
+  quake.z [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.dealloc %q0 : !quake.ref
+  quake.dealloc %q2 : !quake.ref
+  quake.dealloc %q1 : !quake.ref
+  return
+}
+
+// CHECK-LABEL:   func.func @t() {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK:           %[[VAL_1:.*]] = quake.null_wire
+// CHECK:           %[[VAL_2:.*]] = quake.null_wire
+// CHECK:           %[[VAL_3:.*]]:2 = quake.x [%[[VAL_1]]] %[[VAL_0]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[VAL_4:.*]]:2 = quake.y [%[[VAL_2]]] %[[VAL_3]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[VAL_5:.*]] = quake.h %[[VAL_3]]#0 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_6:.*]]:2 = quake.z [%[[VAL_5]]] %[[VAL_4]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           quake.sink %[[VAL_6]]#1 : !quake.wire
+// CHECK:           quake.sink %[[VAL_4]]#0 : !quake.wire
+// CHECK:           quake.sink %[[VAL_6]]#0 : !quake.wire
+// CHECK:           return
+// CHECK:         }

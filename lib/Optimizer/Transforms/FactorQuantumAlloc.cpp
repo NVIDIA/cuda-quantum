@@ -67,6 +67,30 @@ public:
   }
 };
 
+class DeallocPat : public OpRewritePattern<quake::DeallocOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::DeallocOp dealloc,
+                                PatternRewriter &rewriter) const override {
+    auto veq = dealloc.getReference();
+    auto veqTy = cast<quake::VeqType>(veq.getType());
+    auto loc = dealloc.getLoc();
+    assert(veqTy.hasSpecifiedSize());
+    std::size_t size = veqTy.getSize();
+
+    // 1. Split the aggregate veq into a sequence of distinct dealloc of ref.
+    for (std::size_t i = 0; i < size; ++i) {
+      Value r = rewriter.create<quake::ExtractRefOp>(loc, veq, i);
+      rewriter.create<quake::DeallocOp>(loc, r);
+    }
+
+    // 2. Remove the original dealloc operation.
+    rewriter.eraseOp(dealloc);
+    return success();
+  }
+};
+
 class FactorQuantumAllocationsPass
     : public cudaq::opt::impl::FactorQuantumAllocationsBase<
           FactorQuantumAllocationsPass> {
@@ -74,11 +98,71 @@ public:
   using FactorQuantumAllocationsBase::FactorQuantumAllocationsBase;
 
   void runOnOperation() override {
-    auto *ctx = &getContext();
     func::FuncOp func = getOperation();
     LLVM_DEBUG(llvm::dbgs() << "Function before factoring quake alloca:\n"
                             << func << "\n\n");
+
+    // 1) Factor (expand) any deallocations that are veqs of constant size.
+    if (failed(factorDeallocations()))
+      return;
+
+    // 2) Run an analysis to find the allocations to factor (expand).
     SmallVector<quake::AllocaOp> allocations;
+    if (failed(runAnalysis(allocations)))
+      return;
+
+    // 3) Factor (expand) any allocations that are veqs of constant size.
+    factorAllocations(allocations);
+  }
+
+  LogicalResult factorDeallocations() {
+    auto *ctx = &getContext();
+    func::FuncOp func = getOperation();
+    RewritePatternSet patterns(ctx);
+    patterns.insert<DeallocPat>(ctx);
+    ConversionTarget target(*ctx);
+    target.addLegalDialect<quake::QuakeDialect>();
+    target.addDynamicallyLegalOp<quake::DeallocOp>([](quake::DeallocOp d) {
+      if (auto ty = dyn_cast<quake::VeqType>(d.getReference().getType()))
+        return !ty.hasSpecifiedSize();
+      return true;
+    });
+    if (failed(applyPartialConversion(func.getOperation(), target,
+                                      std::move(patterns)))) {
+      signalPassFailure();
+      return failure();
+    }
+    return success();
+  }
+
+  void factorAllocations(const SmallVector<quake::AllocaOp> &allocations) {
+    auto *ctx = &getContext();
+    func::FuncOp func = getOperation();
+    RewritePatternSet patterns(ctx);
+    patterns.insert<AllocaPat>(ctx);
+    ConversionTarget target(*ctx);
+    target.addLegalDialect<quake::QuakeDialect>();
+    target.addDynamicallyLegalOp<quake::AllocaOp>([&](quake::AllocaOp alloc) {
+      return std::find(allocations.begin(), allocations.end(), alloc) ==
+             allocations.end();
+    });
+    target.addDynamicallyLegalOp<quake::DeallocOp>([](quake::DeallocOp d) {
+      if (auto ty = dyn_cast<quake::VeqType>(d.getReference().getType()))
+        return !ty.hasSpecifiedSize();
+      return true;
+    });
+    if (failed(applyPartialConversion(func.getOperation(), target,
+                                      std::move(patterns)))) {
+      func.emitOpError("factoring quantum allocations failed");
+      signalPassFailure();
+    }
+
+    LLVM_DEBUG(llvm::dbgs() << "Function after factoring quake alloca:\n"
+                            << func << "\n\n");
+  }
+
+  LogicalResult runAnalysis(SmallVector<quake::AllocaOp> &allocations) {
+    auto func = getOperation();
     func.walk([&](quake::AllocaOp alloc) {
       if (!allocaOfVeq(alloc) || allocaOfUnspecifiedSize(alloc))
         return;
@@ -96,23 +180,9 @@ public:
       if (usesAreConvertible)
         allocations.push_back(alloc);
     });
-
-    RewritePatternSet patterns(ctx);
-    patterns.insert<AllocaPat>(ctx);
-    ConversionTarget target(*ctx);
-    target.addLegalDialect<quake::QuakeDialect>();
-    target.addDynamicallyLegalOp<quake::AllocaOp>([&](quake::AllocaOp alloc) {
-      return std::find(allocations.begin(), allocations.end(), alloc) ==
-             allocations.end();
-    });
-    if (failed(applyPartialConversion(func.getOperation(), target,
-                                      std::move(patterns)))) {
-      func.emitOpError("factoring quantum allocations failed");
-      signalPassFailure();
-    }
-
-    LLVM_DEBUG(llvm::dbgs() << "Function after factoring quake alloca:\n"
-                            << func << "\n\n");
+    if (allocations.empty())
+      return failure();
+    return success();
   }
 
   static bool allocaOfVeq(quake::AllocaOp alloc) {

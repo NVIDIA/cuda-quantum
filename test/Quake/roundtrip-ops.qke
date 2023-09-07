@@ -94,9 +94,9 @@ func.func @quantum_ops() {
   %35 = quake.u2 (%f, %g) %34 : (f32, f32, !quake.wire) -> !quake.wire
   %36 = quake.u3 (%f, %g, %h) %35 : (f32, f32, f32, !quake.wire) -> !quake.wire
 
-  %37 = quake.mx %29#0 : (!quake.wire) -> i1
-  %38 = quake.my %20 : (!quake.wire) -> i1
-  %39 = quake.mz %36 : (!quake.wire) -> i1
+  %37:2 = quake.mx %29#0 : (!quake.wire) -> (i1, !quake.wire)
+  %38:2 = quake.my %20 : (!quake.wire) -> (i1, !quake.wire)
+  %39:2 = quake.mz %36 : (!quake.wire) -> (i1, !quake.wire)
 
   // CUDA Quantum model support
   %40 = quake.alloca !quake.ref { apply_variants = true }
@@ -211,9 +211,9 @@ func.func @quantum_ops() {
 // CHECK:           %[[VAL_41:.*]] = quake.rz (%[[VAL_20]]) %[[VAL_40]] : (f32, !quake.wire) -> !quake.wire
 // CHECK:           %[[VAL_42:.*]] = quake.u2 (%[[VAL_20]], %[[VAL_21]]) %[[VAL_41]] : (f32, f32, !quake.wire) -> !quake.wire
 // CHECK:           %[[VAL_43:.*]] = quake.u3 (%[[VAL_20]], %[[VAL_21]], %[[VAL_22]]) %[[VAL_42]] : (f32, f32, f32, !quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_44:.*]] = quake.mx %[[VAL_36]]#0 : (!quake.wire) -> i1
-// CHECK:           %[[VAL_45:.*]] = quake.my %[[VAL_27]] : (!quake.wire) -> i1
-// CHECK:           %[[VAL_46:.*]] = quake.mz %[[VAL_43]] : (!quake.wire) -> i1
+// CHECK:           %[[VAL_44:.*]], %[[WAL_44:.*]] = quake.mx %[[VAL_36]]#0 : (!quake.wire) -> (i1, !quake.wire)
+// CHECK:           %[[VAL_45:.*]], %[[WAL_45:.*]] = quake.my %[[VAL_27]] : (!quake.wire) -> (i1, !quake.wire)
+// CHECK:           %[[VAL_46:.*]], %[[WAL_46:.*]] = quake.mz %[[VAL_43]] : (!quake.wire) -> (i1, !quake.wire)
 // CHECK:           %[[VAL_47:.*]] = quake.alloca !quake.ref {apply_variants = true}
 // CHECK:           %[[VAL_48:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           %[[VAL_49:.*]] = arith.constant 0 : i32
@@ -620,15 +620,15 @@ func.func @wire_type() -> !quake.wire {
 // CHECK-SAME:      %[[VAL_0:.*]]: !quake.ref) {
 // CHECK:           %[[VAL_1:.*]] = quake.unwrap %[[VAL_0]] : (!quake.ref) -> !quake.wire
 // CHECK:           %[[VAL_2:.*]] = quake.null_wire
-// CHECK:           %[[VAL_3:.*]] = quake.x [%[[VAL_2]]] %[[VAL_1]] : (!quake.wire, !quake.wire) -> !quake.wire
-// CHECK:           quake.wrap %[[VAL_3]] to %[[VAL_0]] : !quake.wire, !quake.ref
+// CHECK:           %[[VAL_3:.*]]:2 = quake.x [%[[VAL_2]]] %[[VAL_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           quake.wrap %[[VAL_3]]#0 to %[[VAL_0]] : !quake.wire, !quake.ref
 // CHECK:           return
 // CHECK:         }
 
 func.func @unwrap_wrap(%0 : !quake.ref) {
   %1 = quake.unwrap %0 : (!quake.ref) -> !quake.wire
   %3 = quake.null_wire
-  %2 = quake.x [%3] %1 : (!quake.wire, !quake.wire) -> !quake.wire
+  %2:2 = quake.x [%3] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   quake.wrap %2 to %0 : !quake.wire, !quake.ref
   return
 }
