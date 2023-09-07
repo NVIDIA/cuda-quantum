@@ -333,7 +333,7 @@ public:
   bool TraverseTypeOfExprType(clang::TypeOfExprType *t) {
     // Do not visit the expression as it is has no semantics other than for
     // inferring a type.
-    return true;
+    return TraverseType(t->desugar());
   }
   bool TraverseNestedNameSpecifier(clang::NestedNameSpecifier *s) {
     return true;
