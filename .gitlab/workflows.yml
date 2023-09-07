@@ -45,52 +45,54 @@ Python Wheels:
     paths:
       - artifacts
     expire_in: 1 day
-  parallel:
-    matrix:
-      - python_version: ["3.10"]
   script:
-    - echo "Building wheel for python${python_version}." 
-    - export PATH=/opt/rh/gcc-toolset-11/root/usr/bin:$PATH
-    - export python=python${python_version} 
-    - $python -m pip install --no-cache-dir cmake auditwheel cuquantum-cu11==23.6.0 
-    - if [[ $(uname -i) == x86_64 ]]; then echo $python -m pip install --no-cache-dir nvidia-cusolver-cu11; fi 
+    - export PROJECT_SRCS_DIR=$PWD/.. 
+    # Install GitHub CLI
+    - dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+    - dnf install -y gh jq
+    - upstream_url=https://github.com/NVIDIA/cuda-quantum && export GH_TOKEN=$GITHUB_TOKEN
+    - if [ -z "$(git remote -v | grep upstream)" ]; 
+      then git remote add upstream ${upstream_url}.git;
+      fi
+    # Retrieve the upstream CUDA Quantum artifacts
+    - digest=${CI_COMMIT_TITLE#ghcr.io/nvidia/$staged@}
+    - build_info=`cat deployments/staging/$staged/${digest#sha256:}`
+    - artifacts_url=`echo "$build_info" | grep -s -o 'artifacts-url:\s*\S*' | rev | cut -d ' ' -f 1 | rev`
+    - artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name:.name, url:.archive_download_url}')
+    - mkdir -p /tmp/wheels
+    - |
+      for artifact in `echo "$artifacts"`; do 
+        name=`echo $artifact | jq -r '.name'`
+        if [ "${name#pycudaq-}" != "$name" ]; then
+          url=`echo $artifact | jq -r '.url'`
+          gh api $url > _pycudaq.zip
+          unzip -d _pycudaq _pycudaq.zip && cd _pycudaq
+          for wheel in `ls cuda_quantum-*-cp310-cp310-manylinux_*_$(uname -m).whl 2> /dev/null`; do
+            echo "Adding wheel $wheel."
+            mv $wheel "/tmp/wheels/$wheel"
+          done
+          cd .. && rm -rf _pycudaq*
+        fi
+      done
+    - export python=python3.10 
+    - cd /tmp/wheels/ && $python -m pip install cuda_quantum-*-cp310-cp310-manylinux_*_$(uname -m).whl
+    - cudaq_location=`$python -m pip show cuda-quantum | grep -e 'Location:\ .*$'`
+    - export CUDAQ_INSTALL_PREFIX="${cudaq_location#Location:\ }"
+    - cp -R $CUDAQ_INSTALL_PREFIX/lib64/cmake/fmt $CUDAQ_INSTALL_PREFIX/lib/cmake
+    # Tensornet Simulator
     - cuquantum_location=`$python -m pip show cuquantum-cu11 | grep -e 'Location:\ .*$'`
     - echo $cuquantum_location
     - export CUQUANTUM_INSTALL_PREFIX="${cuquantum_location#Location:\ }/cuquantum"
-    - echo $CUQUANTUM_INSTALL_PREFIX
     - export CUQUANTUM_ROOT=$CUQUANTUM_INSTALL_PREFIX 
     - export CUTENSOR_ROOT="${cuquantum_location#Location:\ }/cutensor"
     - ln -s $CUQUANTUM_INSTALL_PREFIX/lib/libcustatevec.so.1 $CUQUANTUM_INSTALL_PREFIX/lib/libcustatevec.so 
     - ln -s $CUQUANTUM_INSTALL_PREFIX/lib/libcutensornet.so.2 $CUQUANTUM_INSTALL_PREFIX/lib/libcutensornet.so 
     - ln -s $CUTENSOR_ROOT/lib/libcutensor.so.1 $CUTENSOR_ROOT/lib/libcutensor.so
-    - export CUDAQ_INSTALL_PREFIX=/opt/nvidia/cudaq
-    - export PROJECT_SRCS_DIR=$PWD/.. 
-    # Retrieve the upstream CUDA Quantum commit
-    - digest=${CI_COMMIT_TITLE#ghcr.io/nvidia/$staged@}
-    - build_info=`cat deployments/staging/$staged/${digest#sha256:}`
-    - source_commit=`echo "$build_info" | grep -s -o 'source-sha:\s*\S*' | rev | cut -d ' ' -f 1 | cut -d ':' -f 1 | rev`
-    - export CUDAQ_COMMIT=$source_commit
-    - echo "Checking out CUDA Quantum commit $CUDAQ_COMMIT"
-    - cd $PROJECT_SRCS_DIR && rm -rf cuda-quantum
-    - mkdir cuda-quantum && cd cuda-quantum && git init
-    - git fetch --depth 1 https://github.com/NVIDIA/cuda-quantum.git $CUDAQ_COMMIT && git checkout FETCH_HEAD
-    # Build cuda-quantum in self-contained mode to serve as base for other backends
-    - mkdir build && cd build
-    - cmake .. 
-        -DCMAKE_INSTALL_PREFIX=$CUDAQ_INSTALL_PREFIX
-        -DBLAS_LIBRARIES=/usr/local/blas/libblas.a
-        -DOPENSSL_ROOT_DIR=/usr/local/openssl
-        -DCUDAQ_BUILD_TESTS=FALSE
-        -DCUDAQ_BUILD_SELFCONTAINED=ON
-        -DCUDAQ_DISABLE_CPP_FRONTEND=TRUE
-        -DCUDAQ_DISABLE_TOOLS=TRUE
-    - make -j$(nproc) install
-    - cp -R $CUDAQ_INSTALL_PREFIX/lib64/cmake/fmt $CUDAQ_INSTALL_PREFIX/lib/cmake
-    # Tensornet Simulator
     - cd $PROJECT_SRCS_DIR
     - echo "Checking out commit $CUDAQ_TENSORNET_COMMIT on $CI_SERVER_HOST/$CUDAQ_TENSORNET_REPO."
     - mkdir cudaq_tensornet && cd cudaq_tensornet && git init
     - git fetch --depth 1 https://$READ_ACCESS_TOKEN:$READ_ACCESS_TOKEN@$CI_SERVER_HOST/$CUDAQ_TENSORNET_REPO $CUDAQ_TENSORNET_COMMIT && git checkout FETCH_HEAD
+    - export PATH=/opt/rh/gcc-toolset-11/root/usr/bin:$PATH
     - (bash build_wheel.sh $READ_ACCESS_TOKEN && built=true) || built=false
     - if $built; then `exit 0`; else `exit 1`; fi
     # MGMN SV  Simulator
