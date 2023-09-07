@@ -27,6 +27,7 @@ config.python_executable = "@PYTHON_EXECUTABLE@"
 config.cc = "@CMAKE_C_COMPILER@"
 config.targets_to_build = "@TARGETS_TO_BUILD@"
 config.excludes = ["@CUDAQ_EXTRA_CONFIG_EXCLUDES@"]
+config.pipefail = False
 
 import lit.llvm
 lit.llvm.initialize(lit_config, config)
