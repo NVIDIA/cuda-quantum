@@ -7,7 +7,7 @@ on:
         required: true
       assets_from_run:
         type: string
-        description: Optional argument to take assets from a different run; facilitates rerunning a failed workflow without re-building the assets.
+        description: Optional argument to take assets from a prior run of this workflow; facilitates rerunning a failed workflow without re-building the assets.
         required: false
   workflow_run:
     workflows:
@@ -22,7 +22,7 @@ jobs:
     name: Assets
     if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.actor.id == '135836288')
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && 360 || 100 }}
+    timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && 360 || 180 }}
     permissions:
       contents: read
 
@@ -482,7 +482,6 @@ jobs:
       - name: Prepare validation
         id: validation
         run: |
-          # FIXME: ngc_image_hash
           images=`echo '${{ steps.read_json.outputs.result }}' | jq '[.image_hash[] | select(. != "")]'`
           echo "docker_images=$(echo $images)" >> $GITHUB_OUTPUT
 
@@ -499,21 +498,42 @@ jobs:
     container:
       image: ${{ matrix.image_hash }}
       env:
-        NVIDIA_VISIBLE_DEVICES: 0
+        NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ needs.assets.outputs.github_commit }}
-
-      # FIXME: better test cases and create a nicer summary...
-      - name: Basic validation
+      - name: Basic validation (GPU backends)
         run: |
-          echo "## Validation" >> $GITHUB_STEP_SUMMARY
-          echo '```text' >> $GITHUB_STEP_SUMMARY
-          bash validate_container.sh >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+          set +e # Allow script to keep going through errors
+          for file in `ls $CUDA_QUANTUM_PATH/targets/*.config`; do
+            if [ -n "$(cat $file | grep "GPU_REQUIREMENTS")" ]; then
+              target=`basename $file | cut -d "." -f 1`
+              echo "### Execute on $target target" >> $GITHUB_STEP_SUMMARY
+              for ex in `find examples/cpp -name '*.cpp'`; do
+                filename=$(basename -- "$ex")
+                nvq++ $ex --target $target
+                status=$?
+                if [ $status -eq 0 ]; then
+                  ./a.out
+                  status=$?
+                  if [ $status -eq 0 ]; then
+                    echo ":white_check_mark: Successfully ran $filename." >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo ":x: Failed to execute $filename." >> $GITHUB_STEP_SUMMARY
+                    status_sum=$((status_sum+1))
+                  fi
+                else
+                  echo ":x: Compilation failed for $filename." >> $GITHUB_STEP_SUMMARY
+                  status_sum=$((status_sum+1))
+                fi
+              done
+            fi
+          done
+
+          set -e # Re-enable exit code error checking
+          if [ ! $status_sum -eq 0 ]; then
+            echo "::error::$status_sum examples failed; see step summary for a list of failures."
+            exit $status_sum
+          fi
 
   create_release:
     name: CUDA Quantum Release
