@@ -351,15 +351,14 @@ jobs:
           git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
           git push origin --delete $staging_branch || ${{ inputs.assets_from_run != '' && true || false }}
 
-      - name: Add image to validation
-        # FIXME if: steps.release_info.outputs.ngc_registry
+      - name: Configure validation
         uses: cloudposse/github-action-matrix-outputs-write@0.3.0
         with:
           matrix-step-name: docker_images
           matrix-key: ${{ matrix.info_file }}
           outputs: |
             image_hash: ${{ format('{0}/{1}@{2}', steps.release_info.outputs.registry, steps.release_info.outputs.image_short_name, steps.copy_build.outputs.digest || steps.cudaq_build.outputs.digest) }}
-            ngc_image_hash: ${{ format('{0}/{1}@{2}', steps.release_info.outputs.ngc_registry, steps.release_info.outputs.image_short_name, steps.cudaq_build.outputs.digest) }}
+            ngc_image_hash: ${{ steps.release_info.outputs.ngc_registry && format('{0}/{1}@{2}', steps.release_info.outputs.ngc_registry, steps.release_info.outputs.image_short_name, steps.cudaq_build.outputs.digest) || '' }}
 
   cudaq_wheels:
     name: CUDA Quantum Python wheels
@@ -484,11 +483,10 @@ jobs:
         id: validation
         run: |
           # FIXME: ngc_image_hash
-          images=`echo '${{ steps.read_json.outputs.result }}' | jq '[.image_hash[]]'`
+          images=`echo '${{ steps.read_json.outputs.result }}' | jq '[.image_hash[] | select(. != "")]'`
           echo "docker_images=$(echo $images)" >> $GITHUB_OUTPUT
 
   validation:
-    # FIXME: handle the case where docker_images is empty
     name: Validation
     needs: [assets, config]
     runs-on: linux-amd64-gpu-v100-latest-1
@@ -509,7 +507,7 @@ jobs:
         with:
           ref: ${{ needs.assets.outputs.github_commit }}
 
-      # TODO: pick better test cases and create a nicer summary...
+      # FIXME: better test cases and create a nicer summary...
       - name: Basic validation
         run: |
           echo "## Validation" >> $GITHUB_STEP_SUMMARY
