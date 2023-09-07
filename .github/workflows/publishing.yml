@@ -90,7 +90,7 @@ jobs:
               release_id=${{ inputs.assets_from_run || github.run_id }}_$name
 
               releases+="$release_id "
-              info={\"$name\":{\"release_id\":\"$release_id\",\"staging_branch\":\"$staging_branch\",\"runner\":\"$runner\"}}
+              info={\"$name\":{\"release_id\":\"$release_id\",\"staging_branch\":\"$staging_branch\",\"runner\":\"$runner\",\"artifacts_url\":\"$artifacts_url\"}}
             fi
             if [ "${name#build_info}" != "$name" ]; then
               docker_images=`echo $docker_images | jq ".info_files |= . + [\"$name\"]"`
@@ -131,6 +131,7 @@ jobs:
           function create_assets {
             release_id=`echo "$4" | jq -r ".$1.release_id"`
             staging_branch=`echo "$4" | jq -r ".$1.staging_branch"`
+            artifacts_url=`echo "$4" | jq -r ".$1.artifacts_url"`
             staging_folder="deployments/staging/$3"
             image_hash=`cat "$1.txt" | grep -o "$2: \S*" | cut -d ' ' -f 2`
             file_id=`echo $image_hash | rev | cut -d ':' -f 1 | rev`
@@ -152,15 +153,15 @@ jobs:
             create_assets $file cuda-quantum-wheeldeps-image cuda-quantum-devdeps '${{ steps.artifacts.outputs.python_wheels }}'
           done
 
-      - name: Wait for assets
-        run: |
-          for release_id in `echo ${{ steps.artifacts.outputs.releases }}`; do
-            while [ -z "$(gh release list -R ${{ github.repository }} | grep -s $release_id)" ];
-            do echo "Waiting for assets $release_id ..." && sleep 300; 
-            done
-          done
-        env:
-          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+      # - name: Wait for assets
+      #   run: |
+      #     for release_id in `echo ${{ steps.artifacts.outputs.releases }}`; do
+      #       while [ -z "$(gh release list -R ${{ github.repository }} | grep -s $release_id)" ];
+      #       do echo "Waiting for assets $release_id ..." && sleep 300; 
+      #       done
+      #     done
+      #   env:
+      #     GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
   # cudaq_hpc:
   #   name: CUDA Quantum Docker image
