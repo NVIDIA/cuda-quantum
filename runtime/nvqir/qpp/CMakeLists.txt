@@ -19,6 +19,7 @@ macro (AddQppBackend LIBRARY_NAME SOURCE_FILE)
     message(STATUS "OpenMP Found. Adding build flags to QPP Backend: ${OpenMP_CXX_FLAGS}.")
     list(APPEND QPP_DEPENDENCIES OpenMP::OpenMP_CXX)
     target_compile_definitions(${LIBRARY_NAME} PRIVATE -DHAS_OPENMP=1)
+    target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_HAS_OPENMP)
   endif()
 
   target_include_directories(${LIBRARY_NAME}

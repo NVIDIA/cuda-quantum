@@ -51,7 +51,9 @@ def kernel_qaoa() -> cudaq.Kernel:
 
 
 # Specify the optimizer and its initial parameters.
+cudaq.set_random_seed(13)
 optimizer = cudaq.optimizers.COBYLA()
+np.random.seed(13)
 optimizer.initial_parameters = np.random.uniform(-np.pi / 8.0, np.pi / 8.0,
                                                  parameter_count)
 print("Initial parameters = ", optimizer.initial_parameters)

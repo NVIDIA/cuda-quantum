@@ -51,23 +51,33 @@ protected:
       casted_qubit_indices.push_back(bigEndian(nQubitsAllocated, index));
     }
 
+    std::vector<double> resultVec;
     double result = 0.0;
     if constexpr (std::is_same_v<StateType, qpp::ket>) {
-#pragma omp parallel for reduction(+ : result)
+      resultVec.resize(stateDimension);
+#ifdef CUDAQ_HAS_OPENMP
+#pragma omp parallel for
+#endif
       for (std::size_t i = 0; i < stateDimension; ++i) {
-        result += (hasEvenParity(i, casted_qubit_indices) ? 1.0 : -1.0) *
-                  std::norm(state[i]);
+        resultVec[i] = (hasEvenParity(i, casted_qubit_indices) ? 1.0 : -1.0) *
+                       std::norm(state[i]);
       }
     } else if constexpr (std::is_same_v<StateType, qpp::cmat>) {
       Eigen::VectorXcd diag = state.diagonal();
-#pragma omp parallel for reduction(+ : result)
+      resultVec.resize(state.rows());
+#ifdef CUDAQ_HAS_OPENMP
+#pragma omp parallel for
+#endif
       for (Eigen::Index i = 0; i < state.rows(); i++) {
         auto element = diag(i).real();
         if (!hasEvenParity(i, casted_qubit_indices))
           element *= -1.;
-        result += element;
+        resultVec[i] = element;
       }
     }
+
+    // Accumulate outside the for loop to ensure repeatability
+    result = std::accumulate(resultVec.begin(), resultVec.end(), 0.0);
 
     return result;
   }
