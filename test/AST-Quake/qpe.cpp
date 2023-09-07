@@ -18,8 +18,8 @@
 
 // Demonstrate NISQ-like sampling for the Phase Estimation algorithm
 
-// Can define this as a free function since it is
-// a pure device quantum kernel (cannot be called from host code)
+// Can define this as a free function since it is a pure device quantum kernel
+// (cannot be called from host code)
 __qpu__ void iqft(cudaq::qspan<> q) {
   int N = q.size();
   // Swap qubits
@@ -45,23 +45,22 @@ struct tgate {
   void operator()(cudaq::qspan<> &q) __qpu__ { t(q); }
 };
 
-// CUDA Quantum Kernel call operators can be templated on
-// input kernel expressions. Here we define a general
-// Phase Estimation algorithm that is generic on the eigenstate
-// preparation and unitary evolution steps.
+// CUDA Quantum Kernel call operators can be templated on input kernel
+// expressions. Here we define a general Phase Estimation algorithm that is
+// generic on the eigenstate preparation and unitary evolution steps.
 struct qpe {
 
-  // Define the call expression to take user-specified eigenstate
-  // and unitary evolution kernels, as well as the number of qubits in the
-  // counting register and in the eigenstate register.
+  // Define the call expression to take user-specified eigenstate and unitary
+  // evolution kernels, as well as the number of qubits in the counting register
+  // and in the eigenstate register.
   template <typename StatePrep, typename Unitary>
   void operator()(const int nCountingQubits, const int nStateQubits,
                   StatePrep &&state_prep, Unitary &&oracle) __qpu__ {
     // Allocate a register of qubits
     cudaq::qreg q(nCountingQubits + nStateQubits);
 
-    // Extract sub-registers, one for the counting qubits
-    // another for the eigenstate register
+    // Extract sub-registers, one for the counting qubits another for the
+    // eigenstate register
     auto counting_qubits = q.front(nCountingQubits);
     auto state_register = q.back(nStateQubits);
 
@@ -226,7 +225,7 @@ int main() {
 // CHECK:           ^bb0(%[[VAL_10:.*]]: index):
 // CHECK:             %[[VAL_11:.*]] = arith.addi %[[VAL_10]], %[[VAL_1]] : index
 // CHECK:             cc.continue %[[VAL_11]] : index
-// CHECK:           } {counted}
+// CHECK:           } {invariant}
 // CHECK:           return
 // CHECK:         }
 
@@ -248,7 +247,7 @@ int main() {
 // CHECK:           ^bb0(%[[VAL_10:.*]]: index):
 // CHECK:             %[[VAL_11:.*]] = arith.addi %[[VAL_10]], %[[VAL_1]] : index
 // CHECK:             cc.continue %[[VAL_11]] : index
-// CHECK:           } {counted}
+// CHECK:           } {invariant}
 // CHECK:           return
 // CHECK:         }
 
@@ -294,7 +293,7 @@ int main() {
 // CHECK:           ^bb0(%[[VAL_34:.*]]: index):
 // CHECK:             %[[VAL_35:.*]] = arith.addi %[[VAL_34]], %[[VAL_6]] : index
 // CHECK:             cc.continue %[[VAL_35]] : index
-// CHECK:           } {counted}
+// CHECK:           } {invariant}
 // CHECK:           cc.scope {
 // CHECK:             %[[VAL_36:.*]] = cc.alloca i32
 // CHECK:             cc.store %[[VAL_5]], %[[VAL_36]] : !cc.ptr<i32>
