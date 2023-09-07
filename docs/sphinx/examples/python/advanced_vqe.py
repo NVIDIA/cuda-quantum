@@ -61,7 +61,7 @@ def objective_function(parameter_vector: List[float],
     return cost, gradient_vector
 
 
-cudaq.set_random_seed(13) # make repeatable
+cudaq.set_random_seed(13)  # make repeatable
 energy, parameter = optimizer.optimize(dimensions=1,
                                        function=objective_function)
 
