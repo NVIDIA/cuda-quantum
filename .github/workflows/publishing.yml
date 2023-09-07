@@ -497,6 +497,7 @@ jobs:
 
     container:
       image: ${{ matrix.image_hash }}
+      options: --user root # otherwise step summary doesn't work
       env:
         NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
 
