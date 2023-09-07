@@ -138,6 +138,7 @@ jobs:
 
             echo "asset-name: $1" >> "$1.txt"
             echo "release-id: $release_id" >> "$1.txt"
+            echo "artifacts-url: $artifacts_url" >> "$1.txt"
             mkdir -p "$staging_folder" && mv "$1.txt" "$staging_folder/$file_id"
 
             echo "Pushing $1 to $staging_branch"
