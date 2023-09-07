@@ -471,16 +471,21 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
-      docker_images: "${{ steps.docker_images.outputs.result }}"
+      docker_images: ${{ steps.validation.outputs.docker_images }}
 
     steps:
-      - uses: cloudposse/github-action-matrix-outputs-read@0.1.1
-        id: docker_images
+      - name: Get matrix job output
+        id: read_json
+        uses: cloudposse/github-action-matrix-outputs-read@0.1.1
         with:
           matrix-step-name: docker_images
 
-      - run: |
-          echo "${{ steps.docker_images.outputs.result }}" | jq '.'
+      - name: Prepare validation
+        id: validation
+        run: |
+          # FIXME: ngc_image_hash
+          images=`echo '${{ steps.read_json.outputs.result }}' | jq '[.image_hash[]]'`
+          echo "docker_images=$(echo $images)" >> $GITHUB_OUTPUT
 
   validation:
     # FIXME: handle the case where docker_images is empty
@@ -490,7 +495,7 @@ jobs:
 
     strategy:
       matrix:
-        image_hash: ${{ fromJson(needs.config.outputs.docker_images).image_hash }} # FIXME: ngc_image_hash
+        image_hash: ${{ fromJson(needs.config.outputs.docker_images) }}
       fail-fast: false
 
     container:
