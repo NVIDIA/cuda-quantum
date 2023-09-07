@@ -25,10 +25,11 @@ jobs:
     timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && 360 || 100 }}
     permissions:
       contents: read
-
-    environment:
-      name: ghcr-deployment
-      url: ${{ vars.deployment_url }}
+    # FIXME: testing only. Must be reverted.  
+    # environment:
+    #   name: ghcr-deployment
+    #   url: ${{ vars.deployment_url }}
+    #=====================================
 
     outputs:
       artifacts_url: ${{ steps.artifacts.outputs.artifacts_url }}
