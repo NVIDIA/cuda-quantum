@@ -645,7 +645,7 @@ This is a introduction by example for using CUDA Quantum in Python.</p>
     <span class="k">return</span> <span class="n">kernel</span>
 
 
-<span class="c1"># Specify the optimizer and its initial parameters.</span>
+<span class="c1"># Specify the optimizer and its initial parameters. Make it repeatable.</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">13</span><span class="p">)</span>
 <span class="n">optimizer</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">COBYLA</span><span class="p">()</span>
 <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">13</span><span class="p">)</span>

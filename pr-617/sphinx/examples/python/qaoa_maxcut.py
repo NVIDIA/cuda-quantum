@@ -50,7 +50,7 @@ def kernel_qaoa() -> cudaq.Kernel:
     return kernel
 
 
-# Specify the optimizer and its initial parameters.
+# Specify the optimizer and its initial parameters. Make it repeatable.
 cudaq.set_random_seed(13)
 optimizer = cudaq.optimizers.COBYLA()
 np.random.seed(13)
