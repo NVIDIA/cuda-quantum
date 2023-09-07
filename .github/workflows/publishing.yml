@@ -507,7 +507,7 @@ jobs:
         with:
           ref: ${{ needs.assets.outputs.github_commit }}
 
-      # TODO: pick better test cases and create a nicer summary...
+      # FIXME: better test cases and create a nicer summary...
       - name: Basic validation
         run: |
           echo "## Validation" >> $GITHUB_STEP_SUMMARY
