@@ -214,7 +214,7 @@ jobs:
           registry=${{ vars.registry || 'localhost:5000' }}/${repo_owner,,}
           if [ -n "$(echo "$platforms" | grep ',')" ] && ${{ secrets.secrets.NGC_CREDENTIALS != '' }}; then
             if [ -n "$cudaq_ngc_image" ]; then
-              ngc_registry=nvcr.io/${repo_owner,,}/nightly
+              ngc_registry=nvcr.io/${repo_owner,,}/cudaquantdev
             fi
           fi
 
