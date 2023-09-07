@@ -103,7 +103,7 @@ Python Wheels:
     # Copy artifacts
     - cd $PROJECT_SRCS_DIR/cuda-quantum && mkdir -p artifacts/wheels_$(uname -m) 
     - cp $PROJECT_SRCS_DIR/cudaq_tensornet/build/libnvqir-tensornet.so $PROJECT_SRCS_DIR/cudaq_tensornet/build/tensornet.config $PROJECT_SRCS_DIR/cudaq_mgmn_svsim/build/libnvqir-nvidia-mgpu.so $PROJECT_SRCS_DIR/cudaq_mgmn_svsim/build/nvidia-mgpu.config artifacts/wheels_$(uname -m)
-    - mkdir -p artifacts/wheels_$(uname -m)/exatn/lib &&  cp -r /opt/nvidia/exatn/lib/* artifacts/wheels_$(uname -m)/exatn/lib
+    - mkdir -p artifacts/wheels_$(uname -m)/lib &&  cp -r /opt/nvidia/exatn/lib/*.so artifacts/wheels_$(uname -m)/lib
 
 MGMN SV Simulator:
   rules:
