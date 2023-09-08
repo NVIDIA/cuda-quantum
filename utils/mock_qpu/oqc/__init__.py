@@ -74,7 +74,7 @@ async def login(auth_info: AuthModel):
 
 # Here we expose a way to post jobs,
 # Must have a Access Token, Job Program must be Adaptive Profile
-# with EntryPoint tag
+# with entry_point tag
 @app.post("/tasks/submit")
 async def postJob(
     tasks: Union[TaskBody, Task],
@@ -94,7 +94,7 @@ async def postJob(
         decoded = base64.b64decode(program)
         m = llvm.module.parse_bitcode(decoded)
         mstr = str(m)
-        assert ('EntryPoint' in mstr)
+        assert ('entry_point' in mstr)
 
         # Get the function, number of qubits, and kernel name
         function = getKernelFunction(m)

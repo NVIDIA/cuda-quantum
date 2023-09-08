@@ -269,11 +269,56 @@ OQCServerHelper::processResults(ServerMessage &postJobResponse,
     throw std::runtime_error("OQC backend error message: " +
                              errorMessage.dump());
   }
-  cudaq::CountsDictionary counts = postJobResponse.at("results");
-  // Create an execution result
-  cudaq::ExecutionResult executionResult(counts);
-  // Return a sample result
-  return cudaq::sample_result(executionResult);
+  cudaq::info("postJobResponse is {}", postJobResponse.dump());
+  const auto &jsonResults = postJobResponse.at("results");
+
+  cudaq::sample_result sampleResult; // value to return
+  if (jsonResults.is_array() && jsonResults.size() == 0)
+    throw std::runtime_error("No measurements found. Were any in the program?");
+
+  // Try to determine between two results formats:
+  //   {"results":{"r0_r1_r2_r3_r4":{"00000":1000}}} (hasResultNames = true )
+  //   {"results":{"00":479,"11":521}}               (hasResultNames = false)
+  bool hasResultNames = false;
+  for (const auto &element : jsonResults.items()) {
+    // element.value() is either something like
+    // {"00000":1000}} or 479
+    if (element.value().is_object()) {
+      hasResultNames = true;
+      break;
+    }
+  }
+
+  CountsDictionary countsDict;
+  if (hasResultNames) {
+    // The following code only supports 1 object in the returned results because
+    // there is only 1 CountsDictionary and 1 register name in use, so throw a
+    // warning if that isn't true.
+    if (jsonResults.size() != 1)
+      cudaq::info("WARNING: unexpected jsonResults size ({}). Continuing to "
+                  "parse anyway.",
+                  jsonResults.size());
+
+    // Note: `name` contains a concatenated list of measurement names as
+    // specified in the sent QIR program, separated by underscores.  A
+    // potential future enhancement would be to make separate
+    // ExecutionResult's for each register.
+    // Example jsonResults: {"r0_r1_r2_r3_r4":{"00000":1000,"11111":1000}}
+    for (const auto &[name, counts] : jsonResults.items()) {
+      for (auto &element : counts.items())
+        countsDict[element.key()] = element.value();
+      cudaq::ExecutionResult executionResult{counts, cudaq::GlobalRegisterName};
+      sampleResult.append(executionResult);
+    }
+  } else {
+    // Example jsonResults: {"00":479,"11":521}
+    for (auto &element : jsonResults.items())
+      countsDict[element.key()] = element.value();
+    cudaq::ExecutionResult executionResult{countsDict,
+                                           cudaq::GlobalRegisterName};
+    sampleResult.append(executionResult);
+  }
+  return sampleResult;
 }
 
 // Get the headers for the API requests
