@@ -15,13 +15,14 @@ add_cudaq_library(OptCodeGen
   LowerToQIR.cpp
   Passes.cpp
   RefToVeqAlloc.cpp
+  TranslateToIQMJson.cpp
+  TranslateToOpenQASM.cpp
 
   DEPENDS
     CCDialect
     OptCodeGenPassIncGen
     OptPeepholeIncGen
     OptTransformsPassIncGen
-    CUDAQTargetOpenQASM
     QuakeDialect
     
   LINK_LIBS PUBLIC
