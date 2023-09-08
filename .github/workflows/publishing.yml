@@ -22,7 +22,6 @@ jobs:
     name: Assets
     if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.actor.id == '135836288')
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && 360 || 180 }}
     permissions:
       contents: read
 
