@@ -54,10 +54,10 @@ def test_kernel_conditional():
 # CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_5]][0] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_5]][1] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           quake.x %[[VAL_6]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_8:.*]] = quake.mz %[[VAL_6]] : (!quake.ref) -> i1 {registerName = "measurement_"}
+# CHECK:           %[[VAL_8:.*]] = quake.mz %[[VAL_6]] name "measurement_" : (!quake.ref) -> i1
 # CHECK:           cc.if(%[[VAL_8]]) {
 # CHECK:             quake.x %[[VAL_7]] : (!quake.ref) -> ()
-# CHECK:             %[[VAL_9:.*]] = quake.mz %[[VAL_7]] : (!quake.ref) -> i1 {registerName = ""}
+# CHECK:             %[[VAL_9:.*]] = quake.mz %[[VAL_7]] name "" : (!quake.ref) -> i1
 # CHECK:           }
 # CHECK:           %[[VAL_10:.*]] = cc.loop while ((%[[VAL_11:.*]] = %[[VAL_2]]) -> (index)) {
 # CHECK:             %[[VAL_12:.*]] = arith.cmpi slt, %[[VAL_11]], %[[VAL_0]] : index
@@ -74,7 +74,7 @@ def test_kernel_conditional():
 # CHECK:           } {invariant}
 # CHECK:           cc.if(%[[VAL_8]]) {
 # CHECK:             quake.x %[[VAL_7]] : (!quake.ref) -> ()
-# CHECK:             %[[VAL_17:.*]] = quake.mz %[[VAL_7]] : (!quake.ref) -> i1 {registerName = ""}
+# CHECK:             %[[VAL_17:.*]] = quake.mz %[[VAL_7]] name "" : (!quake.ref) -> i1
 # CHECK:           }
 # CHECK:           return
 # CHECK:         }
@@ -114,7 +114,7 @@ def test_kernel_conditional_with_sample():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 # CHECK:           quake.x %[[VAL_0]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> i1 {registerName = "auto_register_0"}
+# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "auto_register_0" : (!quake.ref) -> i1
 # CHECK:           cc.if(%[[VAL_1]]) {
 # CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
 # CHECK:           }

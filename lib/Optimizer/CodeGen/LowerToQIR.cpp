@@ -775,6 +775,40 @@ public:
   }
 };
 
+/// Convert a MX operation to a sequence H; MZ.
+class MxToMz : public OpConversionPattern<quake::MxOp> {
+public:
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::MxOp mx, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    rewriter.create<quake::HOp>(mx.getLoc(), adaptor.getTargets());
+    rewriter.replaceOpWithNewOp<quake::MzOp>(mx, mx.getResultTypes(),
+                                             adaptor.getTargets(),
+                                             mx.getRegisterNameAttr());
+    return success();
+  }
+};
+
+/// Convert a MY operation to a sequence S; H; MZ.
+class MyToMz : public OpConversionPattern<quake::MyOp> {
+public:
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::MyOp my, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    rewriter.create<quake::SOp>(my.getLoc(), true, ValueRange{}, ValueRange{},
+                                adaptor.getTargets());
+    rewriter.create<quake::HOp>(my.getLoc(), adaptor.getTargets());
+    rewriter.replaceOpWithNewOp<quake::MzOp>(my, my.getResultTypes(),
+                                             adaptor.getTargets(),
+                                             my.getRegisterNameAttr());
+    return success();
+  }
+};
+
 class GetVeqSizeOpRewrite : public OpConversionPattern<quake::VeqSizeOp> {
 public:
   using OpConversionPattern::OpConversionPattern;
