@@ -15,13 +15,6 @@ When you create a `Kernel` and invoke its methods, a quantum program is construc
 .. literalinclude:: ../examples/python/intro.py
    :language: python
 
-Single Qubit Variational Program 
---------------------------------
-
-.. :: ../examples/python/Single Qubit Rotation.ipynb
-   :language: python
-
-
 Bernstein-Vazirani
 --------------------------------
 
@@ -63,14 +56,6 @@ Let's now see how we can leverage the VQE algorithm to compute the Max-Cut of a 
 .. _python-examples-for-hardware-providers:
 
 
-Hybrid Quantum Neural Networks 
--------------------------------------------
-
-.. :: ../examples/python/hybrid_qnns.ipynb
-   :language: python
-
-
-
 Using Quantum Hardware Providers
 -----------------------------------
 
@@ -86,3 +71,14 @@ The following code illustrates how run kernels on IonQ's backends.
 
 .. literalinclude:: ../examples/python/providers/ionq.py
    :language: python
+
+Tutorials in Notebook Format
+------------------------------------
+
+.. nbgallery::
+   ../examples/python/tutorials/executing_circuits.ipynb
+   ../examples/python/tutorials/single_qubit_rotation.ipynb
+   ../examples/python/tutorials/noisy_simulations.ipynb
+   ../examples/python/tutorials/vqe.ipynb
+   ../examples/python/tutorials/hybrid_qnns.ipynb
+   ../examples/python/tutorials/multi_gpu_workflows.ipynb
