@@ -39,6 +39,7 @@ jobs:
       releases: ${{ steps.artifacts.outputs.releases }}
       release_title: ${{ steps.artifacts.outputs.release_title }}
       release_version: ${{ steps.artifacts.outputs.release_version }}
+      runner: ${{ steps.artifacts.outputs.runner }}
 
     steps:
       - name: Checkout repository
@@ -113,6 +114,7 @@ jobs:
           echo "docker_images=$(echo $docker_images)" >> $GITHUB_OUTPUT
           echo "python_wheels=$(echo $python_wheels)" >> $GITHUB_OUTPUT
           echo "artifacts_url=$artifacts_url" >> $GITHUB_OUTPUT
+          echo "runner=$runner" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ github.token }}
 
@@ -364,7 +366,7 @@ jobs:
   cudaq_wheels:
     name: CUDA Quantum Python wheels
     needs: assets
-    runs-on: ubuntu-latest
+    runs-on: ${{ needs.assets.outputs.runner }}
 
     # FIXME: testing only. Must be reverted. 
     # environment:
@@ -426,7 +428,8 @@ jobs:
           file: ./docker/build/cudaq.wheel.Dockerfile
           build-args: |
             base_image=${{ steps.release_info.outputs.cudaqwheeldeps_image }}  
-            release_version=${{steps.release_info.outputs.release_id  }}
+            # FIXME: revert this line
+            release_version='0.0.0'
             assets=${{ steps.release_info.outputs.assets_folder }}
             python_version=${{ matrix.python_version }}
           outputs: ${{ steps.release_info.outputs.docker_output }}
