@@ -79,6 +79,9 @@ Python Wheels:
     - cudaq_location=`$python -m pip show cuda-quantum | grep -e 'Location:\ .*$'`
     - export CUDAQ_INSTALL_PREFIX="${cudaq_location#Location:\ }"
     - cp -R $CUDAQ_INSTALL_PREFIX/lib64/cmake/fmt $CUDAQ_INSTALL_PREFIX/lib/cmake
+    - export EXATN_COMMIT=9c053ac1671c041827fee3aeb33cfc6bf43762eb
+    - export CUDAQ_TENSORNET_COMMIT=17dc530c4838b2e32125d427feabfd32c1fdd0fc
+    - export CUDAQ_MGMN_SVSIM_COMMIT=e8a6702a222c1a5f3fead4dc5efb11953967dd90
     # Tensornet Simulator
     - cuquantum_location=`$python -m pip show cuquantum-cu11 | grep -e 'Location:\ .*$'`
     - echo $cuquantum_location
