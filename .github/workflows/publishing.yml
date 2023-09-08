@@ -150,130 +150,130 @@ jobs:
             create_assets $file cuda-quantum-dev-image cuda-quantum-dev '${{ steps.artifacts.outputs.docker_images }}'
           done
 
-          for file in ${{ join(fromJson(steps.artifacts.outputs.python_wheels).info_files, ' ') }}; do
-            create_assets $file cuda-quantum-wheeldeps-image cuda-quantum-devdeps '${{ steps.artifacts.outputs.python_wheels }}'
+          # for file in ${{ join(fromJson(steps.artifacts.outputs.python_wheels).info_files, ' ') }}; do
+          #   create_assets $file cuda-quantum-wheeldeps-image cuda-quantum-devdeps '${{ steps.artifacts.outputs.python_wheels }}'
+          # done
+
+      - name: Wait for assets
+        run: |
+          for release_id in `echo ${{ steps.artifacts.outputs.releases }}`; do
+            while [ -z "$(gh release list -R ${{ github.repository }} | grep -s $release_id)" ];
+            do echo "Waiting for assets $release_id ..." && sleep 300; 
+            done
+          done
+        env:
+          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+
+  cudaq_hpc:
+    name: CUDA Quantum Docker image
+    needs: assets
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    environment:
+      name: ghcr-deployment
+      url: ${{ vars.deployment_url }}
+
+    strategy:
+      matrix:
+        info_file: ${{ fromJson(needs.assets.outputs.docker_images).info_files }}
+      fail-fast: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ needs.assets.outputs.github_commit }}
+          token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+
+      - name: Retrieve assets
+        id: release_info
+        run: |
+          release_id=${{ fromJson(needs.assets.outputs.docker_images)[format('{0}', matrix.info_file)].release_id }}
+          assets_folder=assets && mkdir "$assets_folder" && cd "$assets_folder"
+          while [ -z `ls | egrep '${{ matrix.info_file }}'` ]; do
+            (gh release download $release_id -R ${{ github.repository }}) || true
+            sleep 30 # waiting for assets to be created...
           done
 
-      # - name: Wait for assets
-      #   run: |
-      #     for release_id in `echo ${{ steps.artifacts.outputs.releases }}`; do
-      #       while [ -z "$(gh release list -R ${{ github.repository }} | grep -s $release_id)" ];
-      #       do echo "Waiting for assets $release_id ..." && sleep 300; 
-      #       done
-      #     done
-      #   env:
-      #     GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+          build_info=${{ matrix.info_file }}*
+          platforms=`cat $build_info | grep -o 'platforms: \S*' | cut -d ' ' -f 2`
+          cudaq_image=`cat $build_info | grep -o 'cuda-quantum-image: \S*' | cut -d ' ' -f 2`
+          cudaq_ngc_image=`cat $build_info | grep -o 'cuda-quantum-ngc-image: \S*' | cut -d ' ' -f 2`
+          cudaqdev_image=`cat $build_info | grep -o 'cuda-quantum-dev-image: \S*' | cut -d ' ' -f 2`
+          cudaqdevdeps_image=`cat $build_info | grep -o 'cuda-quantum-devdeps-image: \S*' | cut -d ' ' -f 2`
+          for file in `ls *zip`; do unzip "$file" && rm "$file"; done && cd -
 
-  # cudaq_hpc:
-  #   name: CUDA Quantum Docker image
-  #   needs: assets
-  #   runs-on: ubuntu-latest
-  #   permissions:
-  #     contents: read
-  #     packages: write
-  #     id-token: write
+          docker pull $cudaq_image
+          repo_owner=${{ github.repository_owner }}
+          image_short_name=cuda-quantum
+          base_tag=`docker inspect $cudaq_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"'`
+          image_title=`docker inspect $cudaq_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.title"'`
+          image_description=`docker inspect $cudaq_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.description"'`
+          docker image rm $cudaq_image
+          docker image prune --force
 
-  #   environment:
-  #     name: ghcr-deployment
-  #     url: ${{ vars.deployment_url }}
+          registry=${{ vars.registry || 'localhost:5000' }}/${repo_owner,,}
+          if [ -n "$(echo "$platforms" | grep ',')" ] && ${{ secrets.secrets.NGC_CREDENTIALS != '' }}; then
+            if [ -n "$cudaq_ngc_image" ]; then
+              ngc_registry=nvcr.io/${repo_owner,,}/nightly
+            fi
+          fi
 
-  #   strategy:
-  #     matrix:
-  #       info_file: ${{ fromJson(needs.assets.outputs.docker_images).info_files }}
-  #     fail-fast: false
+          echo "release_id=$release_id" >> $GITHUB_OUTPUT
+          echo "registry=$registry" >> $GITHUB_OUTPUT
+          echo "ngc_registry=$ngc_registry" >> $GITHUB_OUTPUT
+          echo "image_short_name=$image_short_name" >> $GITHUB_OUTPUT
+          echo "image_name=${ngc_registry:-$registry}/$image_short_name" >> $GITHUB_OUTPUT
+          echo "image_tag=${base_tag%-base}" >> $GITHUB_OUTPUT
+          echo "image_title=$image_title" >> $GITHUB_OUTPUT
+          echo "image_description=$image_description" >> $GITHUB_OUTPUT
+          echo "platforms=$platforms" >> $GITHUB_OUTPUT
+          echo "cudaq_image=$cudaq_image" >> $GITHUB_OUTPUT
+          echo "cudaqdev_image=$cudaqdev_image" >> $GITHUB_OUTPUT
+          echo "cudaqdevdeps_image=$cudaqdevdeps_image" >> $GITHUB_OUTPUT
+          echo "assets_folder=$assets_folder" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v3
-  #       with:
-  #         ref: ${{ needs.assets.outputs.github_commit }}
-  #         token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+      - name: Log in to the registry
+        if: steps.release_info.outputs.ngc_registry || vars.registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ steps.release_info.outputs.ngc_registry || vars.registry }}
+          username: ${{ (steps.release_info.outputs.ngc_registry != '' && '$oauthtoken') || github.actor }}
+          password: ${{ (steps.release_info.outputs.ngc_registry != '' && secrets.NGC_CREDENTIALS) || github.token }}
 
-  #     - name: Retrieve assets
-  #       id: release_info
-  #       run: |
-  #         release_id=${{ fromJson(needs.assets.outputs.docker_images)[format('{0}', matrix.info_file)].release_id }}
-  #         assets_folder=assets && mkdir "$assets_folder" && cd "$assets_folder"
-  #         while [ -z `ls | egrep '${{ matrix.info_file }}'` ]; do
-  #           (gh release download $release_id -R ${{ github.repository }}) || true
-  #           sleep 30 # waiting for assets to be created...
-  #         done
+      - name: Set up buildx runner
+        uses: docker/setup-buildx-action@v2
 
-  #         build_info=${{ matrix.info_file }}*
-  #         platforms=`cat $build_info | grep -o 'platforms: \S*' | cut -d ' ' -f 2`
-  #         cudaq_image=`cat $build_info | grep -o 'cuda-quantum-image: \S*' | cut -d ' ' -f 2`
-  #         cudaq_ngc_image=`cat $build_info | grep -o 'cuda-quantum-ngc-image: \S*' | cut -d ' ' -f 2`
-  #         cudaqdev_image=`cat $build_info | grep -o 'cuda-quantum-dev-image: \S*' | cut -d ' ' -f 2`
-  #         cudaqdevdeps_image=`cat $build_info | grep -o 'cuda-quantum-devdeps-image: \S*' | cut -d ' ' -f 2`
-  #         for file in `ls *zip`; do unzip "$file" && rm "$file"; done && cd -
+      - name: Extract cuda-quantum metadata
+        id: metadata
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ steps.release_info.outputs.image_name }}
+          flavor: latest=false
+          tags: type=raw,value=${{ steps.release_info.outputs.image_tag }}
+          labels: |
+            org.opencontainers.image.title=${{ steps.release_info.outputs.image_title }}
+            org.opencontainers.image.description=${{ steps.release_info.outputs.image_description }}
 
-  #         docker pull $cudaq_image
-  #         repo_owner=${{ github.repository_owner }}
-  #         image_short_name=cuda-quantum
-  #         base_tag=`docker inspect $cudaq_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"'`
-  #         image_title=`docker inspect $cudaq_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.title"'`
-  #         image_description=`docker inspect $cudaq_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.description"'`
-  #         docker image rm $cudaq_image
-  #         docker image prune --force
-
-  #         registry=${{ vars.registry || 'localhost:5000' }}/${repo_owner,,}
-  #         if [ -n "$(echo "$platforms" | grep ',')" ] && ${{ secrets.secrets.NGC_CREDENTIALS != '' }}; then
-  #           if [ -n "$cudaq_ngc_image" ]; then
-  #             ngc_registry=nvcr.io/${repo_owner,,}/nightly
-  #           fi
-  #         fi
-
-  #         echo "release_id=$release_id" >> $GITHUB_OUTPUT
-  #         echo "registry=$registry" >> $GITHUB_OUTPUT
-  #         echo "ngc_registry=$ngc_registry" >> $GITHUB_OUTPUT
-  #         echo "image_short_name=$image_short_name" >> $GITHUB_OUTPUT
-  #         echo "image_name=${ngc_registry:-$registry}/$image_short_name" >> $GITHUB_OUTPUT
-  #         echo "image_tag=${base_tag%-base}" >> $GITHUB_OUTPUT
-  #         echo "image_title=$image_title" >> $GITHUB_OUTPUT
-  #         echo "image_description=$image_description" >> $GITHUB_OUTPUT
-  #         echo "platforms=$platforms" >> $GITHUB_OUTPUT
-  #         echo "cudaq_image=$cudaq_image" >> $GITHUB_OUTPUT
-  #         echo "cudaqdev_image=$cudaqdev_image" >> $GITHUB_OUTPUT
-  #         echo "cudaqdevdeps_image=$cudaqdevdeps_image" >> $GITHUB_OUTPUT
-  #         echo "assets_folder=$assets_folder" >> $GITHUB_OUTPUT
-  #       env:
-  #         GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
-
-  #     - name: Log in to the registry
-  #       if: steps.release_info.outputs.ngc_registry || vars.registry
-  #       uses: docker/login-action@v2
-  #       with:
-  #         registry: ${{ steps.release_info.outputs.ngc_registry || vars.registry }}
-  #         username: ${{ (steps.release_info.outputs.ngc_registry != '' && '$oauthtoken') || github.actor }}
-  #         password: ${{ (steps.release_info.outputs.ngc_registry != '' && secrets.NGC_CREDENTIALS) || github.token }}
-
-  #     - name: Set up buildx runner
-  #       uses: docker/setup-buildx-action@v2
-
-  #     - name: Extract cuda-quantum metadata
-  #       id: metadata
-  #       uses: docker/metadata-action@v4
-  #       with:
-  #         images: ${{ steps.release_info.outputs.image_name }}
-  #         flavor: latest=false
-  #         tags: type=raw,value=${{ steps.release_info.outputs.image_tag }}
-  #         labels: |
-  #           org.opencontainers.image.title=${{ steps.release_info.outputs.image_title }}
-  #           org.opencontainers.image.description=${{ steps.release_info.outputs.image_description }}
-
-  #     - name: Build cuda-quantum image
-  #       id: cudaq_build
-  #       uses: docker/build-push-action@v4
-  #       with:
-  #         context: .
-  #         file: ./docker/release/cudaq.ext.Dockerfile
-  #         build-args: |
-  #           base_image=${{ steps.release_info.outputs.cudaq_image }}
-  #           assets=${{ steps.release_info.outputs.assets_folder }}
-  #         tags: ${{ steps.metadata.outputs.tags }}
-  #         labels: ${{ steps.metadata.outputs.labels }}
-  #         platforms: ${{ steps.release_info.outputs.platforms }}
-  #         push: true
+      - name: Build cuda-quantum image
+        id: cudaq_build
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./docker/release/cudaq.ext.Dockerfile
+          build-args: |
+            base_image=${{ steps.release_info.outputs.cudaq_image }}
+            assets=${{ steps.release_info.outputs.assets_folder }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          platforms: ${{ steps.release_info.outputs.platforms }}
+          push: true
 
   #     - name: Install Cosign
   #       uses: sigstore/cosign-installer@v3.1.1
@@ -348,13 +348,13 @@ jobs:
   #       env:
   #         GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
-  #     - name: Clean up
-  #       run: |
-  #         # Clean up the staging branch that was used to trigger the GitLab pipeline.
-  #         staging_branch=${{ fromJson(needs.assets.outputs.docker_images)[format('{0}', matrix.info_file)].staging_branch }}
-  #         git config --global user.name "cuda-quantum-bot"
-  #         git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
-  #         git push origin --delete $staging_branch || ${{ inputs.assets_from_run != '' && true || false }}
+      - name: Clean up
+        run: |
+          # Clean up the staging branch that was used to trigger the GitLab pipeline.
+          staging_branch=${{ fromJson(needs.assets.outputs.docker_images)[format('{0}', matrix.info_file)].staging_branch }}
+          git config --global user.name "cuda-quantum-bot"
+          git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
+          git push origin --delete $staging_branch || ${{ inputs.assets_from_run != '' && true || false }}
 
   # cudaq_wheels:
   #   name: CUDA Quantum Python wheels
