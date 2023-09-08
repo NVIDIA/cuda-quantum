@@ -146,7 +146,7 @@ def quake_ComputeActionOp : QuakeOp<"compute_action"> {
   }];
 }
 
-def quake_ToControlOp : QuakeOp<"to_ctrl"> {
+def quake_ToControlOp : QuakeOp<"to_ctrl", [Pure]> {
   let summary = "Convert a wire value to a control value.";
   let description = [{
     This operation makes the conversion of a wire value to a control value
@@ -169,7 +169,7 @@ def quake_ToControlOp : QuakeOp<"to_ctrl"> {
   }];
 }
 
-def quake_FromControlOp : QuakeOp<"from_ctrl"> {
+def quake_FromControlOp : QuakeOp<"from_ctrl", [Pure]> {
   let summary = "Convert a control value to a wire value.";
   let description = [{
     This operation makes the conversion of a control value to a wire value

@@ -8,9 +8,10 @@
 
 #pragma once
 
-// The OptCodeGen library includes passes that lower the MLIR module for some
-// particular quantum target representation. There is a bevy of such targets
-// that provide targets on which the quantum code can be run.
+/// \file
+/// The OptCodeGen library includes passes that lower the MLIR module for some
+/// particular quantum target representation. There is a bevy of such targets
+/// that provide platforms on which the quantum code can be run.
 
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassRegistry.h"
