@@ -150,29 +150,32 @@ RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
 
 # Install CUDA 11.8.
 
+ARG cuda_root=/usr/local/cuda-11.8
 ARG cuda_packages="cuda-cudart-11-8 cuda-compiler-11-8 libcublas-dev-11-8"
-RUN arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
-    && wget -q "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/$arch_folder/cuda-keyring_1.0-1_all.deb" \
-    && dpkg -i cuda-keyring_1.0-1_all.deb \
-    && apt-get update && apt-get install -y --no-install-recommends $cuda_packages \
-    && rm cuda-keyring_1.0-1_all.deb \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
+RUN if [ -n "$cuda_packages" ]; then \
+        arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
+        && wget -q "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/$arch_folder/cuda-keyring_1.0-1_all.deb" \
+        && dpkg -i cuda-keyring_1.0-1_all.deb \
+        && apt-get update && apt-get install -y --no-install-recommends $cuda_packages \
+        && rm cuda-keyring_1.0-1_all.deb \
+        && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*; \
+    fi
 
 # The installation of CUDA above creates files that will be injected upon launching the container
 # with the --gpu=all flag. This creates issues upon container launch. We hence remove these files.
 # As long as the container is launched with the --gpu=all flag, the GPUs remain accessible and CUDA
 # is fully functional. See also https://github.com/NVIDIA/nvidia-docker/issues/1699.
-RUN rm -rf \
-    /usr/lib/$(uname -m)-linux-gnu/libcuda.so* \
-    /usr/lib/$(uname -m)-linux-gnu/libnvcuvid.so* \
-    /usr/lib/$(uname -m)-linux-gnu/libnvidia-*.so* \
-    /usr/lib/firmware \
-    /usr/local/cuda/compat/lib
+RUN if [ -z "$CUDA_ROOT" ]; then \
+        rm -rf \
+        /usr/lib/$(uname -m)-linux-gnu/libcuda.so* \
+        /usr/lib/$(uname -m)-linux-gnu/libnvcuvid.so* \
+        /usr/lib/$(uname -m)-linux-gnu/libnvidia-*.so* \
+        /usr/lib/firmware \
+        /usr/local/cuda/compat/lib; \
+    fi
 
-ENV CUDA_INSTALL_PREFIX=/usr/local/cuda-11.8
+ENV CUDA_INSTALL_PREFIX="$cuda_root"
 ENV CUDA_HOME="$CUDA_INSTALL_PREFIX"
 ENV CUDA_ROOT="$CUDA_INSTALL_PREFIX"
 ENV CUDA_PATH="$CUDA_INSTALL_PREFIX"
 ENV PATH="${CUDA_INSTALL_PREFIX}/lib64/:${CUDA_INSTALL_PREFIX}/bin:${PATH}"
-ENV LD_LIBRARY_PATH="${CUDA_INSTALL_PREFIX}/lib64:${CUDA_INSTALL_PREFIX}/extras/CUPTI/lib64:${LD_LIBRARY_PATH}"
-ENV CPATH="$CPATH:$CUDA_INSTALL_PREFIX/targets/x86_64-linux/include/"
