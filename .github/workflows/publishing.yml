@@ -366,9 +366,11 @@ jobs:
     needs: assets
     runs-on: ubuntu-latest
 
-    environment:
-      name: ghcr-deployment
-      url: ${{ vars.deployment_url }}
+    # FIXME: testing only. Must be reverted. 
+    # environment:
+    #   name: ghcr-deployment
+    #   url: ${{ vars.deployment_url }}
+    #====================================
 
     strategy:
       matrix:
@@ -380,7 +382,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          ref: ${{ needs.assets.outputs.github_commit }}
+          # FIXME: testing only. Must be uncommented.  
+          # Use this branch rather than the one from deployment (e.g., updated cudaq.ext.Dockerfile)
+          # ref: ${{ needs.assets.outputs.github_commit }}
+          #=====================================================================
           token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Retrieve assets
@@ -460,10 +465,11 @@ jobs:
     needs: [assets, cudaq_hpc, cudaq_wheels]
     if: needs.assets.outputs.release_title
     runs-on: ubuntu-latest
-
-    environment:
-      name: ghcr-deployment
-      url: ${{ vars.deployment_url }}
+    # FIXME: testing only. Must be reverted.
+    # environment:
+    #   name: ghcr-deployment
+    #   url: ${{ vars.deployment_url }}
+    #====================================
 
     steps:
       - name: Download cuda-quantum wheels
@@ -510,10 +516,11 @@ jobs:
     # Force this job to run even when some of the dependencies above are skipped.
     if: always() && !cancelled() && needs.assets.result != 'skipped' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
-
-    environment:
-      name: ghcr-deployment
-      url: ${{ vars.deployment_url }}
+    # FIXME: testing only. Must be reverted.
+    # environment:
+    #   name: ghcr-deployment
+    #   url: ${{ vars.deployment_url }}
+    #=====================================
 
     steps:
       - name: Checkout repository
