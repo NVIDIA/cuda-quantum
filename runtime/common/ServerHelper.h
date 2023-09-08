@@ -94,8 +94,9 @@ public:
   /// @brief Given a successful job and the success response,
   /// retrieve the results and map them to a sample_result.
   /// @param postJobResponse
+  /// @param jobId
   /// @return
-  virtual cudaq::sample_result
-  processResults(ServerMessage &postJobResponse) = 0;
+  virtual cudaq::sample_result processResults(ServerMessage &postJobResponse,
+                                              std::string &jobId) = 0;
 };
 } // namespace cudaq

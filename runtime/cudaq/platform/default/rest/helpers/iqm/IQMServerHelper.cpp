@@ -159,7 +159,8 @@ public:
   bool jobIsDone(ServerMessage &getJobResponse) override;
 
   /// @brief Given a completed job response, map back to the sample_result
-  cudaq::sample_result processResults(ServerMessage &postJobResponse) override;
+  cudaq::sample_result processResults(ServerMessage &postJobResponse,
+                                      std::string &jobId) override;
 };
 
 ServerJobPayload
@@ -208,8 +209,9 @@ bool IQMServerHelper::jobIsDone(ServerMessage &getJobResponse) {
 }
 
 cudaq::sample_result
-IQMServerHelper::processResults(ServerMessage &postJobResponse) {
-  cudaq::debug("postJobResponse: {}", postJobResponse.dump());
+IQMServerHelper::processResults(ServerMessage &postJobResponse,
+                                std::string &jobID) {
+  cudaq::info("postJobResponse: {}", postJobResponse.dump());
 
   // check if the job succeeded
   auto jobStatus = postJobResponse["status"].get<std::string>();

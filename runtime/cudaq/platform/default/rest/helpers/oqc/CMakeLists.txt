@@ -6,11 +6,9 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-find_package(Python COMPONENTS Interpreter)
-if (OPENSSL_FOUND AND Python_FOUND AND CUDAQ_TEST_MOCK_SERVERS)
-  add_subdirectory(oqc)
-  add_subdirectory(quantinuum)
-  add_subdirectory(ionq)
-  add_subdirectory(iqm)
-endif()
-add_subdirectory(qpp_observe)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/oqc.config
+        DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/oqc.config)
+
+target_sources(cudaq-rest-qpu PRIVATE OQCServerHelp.cpp)
+add_target_config(oqc)
+
