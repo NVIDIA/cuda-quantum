@@ -456,6 +456,8 @@ jobs:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Clean up
+        # Only delete the branch once
+        if: matrix.python_version  == '3.10'  
         run: |
           # Clean up the staging branch that was used to trigger the GitLab pipeline.
           staging_branch=${{ fromJson(needs.assets.outputs.python_wheels)[format('{0}', matrix.info_file)].staging_branch }}
