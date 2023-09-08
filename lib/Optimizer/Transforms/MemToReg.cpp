@@ -303,20 +303,21 @@ public:
     processOpWithRegions(func, memAnalysis, cleanUps);
 
     // 3) Cleanup the dead ops.
+    SmallVector<quake::WrapOp> wrapOps;
     for (auto *op : cleanUps) {
-      if (auto wrap = dyn_cast<quake::WrapOp>(op))
+      if (auto wrap = dyn_cast<quake::WrapOp>(op)) {
+        wrapOps.push_back(wrap);
         continue;
+      }
       op->dropAllUses();
       op->erase();
     }
-    for (auto *op : cleanUps) {
-      if (auto wrap = dyn_cast<quake::WrapOp>(op)) {
-        auto ref = wrap.getRefValue();
-        auto wire = wrap.getWireValue();
-        if (!ref || (++wire.getUses().begin() != wire.getUses().end())) {
-          op->dropAllUses();
-          op->erase();
-        }
+    for (auto wrap : wrapOps) {
+      auto ref = wrap.getRefValue();
+      auto wire = wrap.getWireValue();
+      if (!ref || wire.getUses().empty()) {
+        wrap->dropAllUses();
+        wrap->erase();
       }
     }
 
