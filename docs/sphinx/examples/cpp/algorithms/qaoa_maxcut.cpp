@@ -23,25 +23,26 @@
 // The Max-Cut for this problem is 0101 or 1010.
 
 struct ansatz {
-  void operator()(std::vector<double> theta, const int N, const int p) __qpu__ {
-    cudaq::qreg q(N);
+  void operator()(std::vector<double> theta, const int n_qubits,
+                  const int n_layers) __qpu__ {
+    cudaq::qreg q(n_qubits);
 
     // Prepare the initial state by superposition
     h(q);
 
-    // Loop over all the p layers
-    for (int i = 0; i < p; ++i) {
+    // Loop over all the layers
+    for (int i = 0; i < n_layers; ++i) {
       // Problem Hamiltonian
-      for (int j = 0; j < N; ++j) {
+      for (int j = 0; j < n_qubits; ++j) {
 
-        x<cudaq::ctrl>(q[j], q[(j + 1) % N]);
-        rz(2.0 * theta[i], q[(j + 1) % N]);
-        x<cudaq::ctrl>(q[j], q[(j + 1) % N]);
+        x<cudaq::ctrl>(q[j], q[(j + 1) % n_qubits]);
+        rz(2.0 * theta[i], q[(j + 1) % n_qubits]);
+        x<cudaq::ctrl>(q[j], q[(j + 1) % n_qubits]);
       }
 
-      for (int j = 0; j < N; ++j) {
+      for (int j = 0; j < n_qubits; ++j) {
         // Mixer Hamiltonian
-        rx(2.0 * theta[i + p], q[j]);
+        rx(2.0 * theta[i + n_layers], q[j]);
       }
     }
   }
