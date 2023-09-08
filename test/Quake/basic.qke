@@ -82,8 +82,8 @@ func.func @apply_cx_v() {
   %q1 = quake.extract_ref %veq[%c1] : (!quake.veq<2>,index) -> !quake.ref
   %q2 = quake.unwrap %q0 : (!quake.ref) -> !quake.wire
   %q3 = quake.unwrap %q1 : (!quake.ref) -> !quake.wire
-  // CHECK: %{{.*}} = quake.x [%{{.*}}] %{{.*}} : (!quake.wire, !quake.wire) -> !quake.wire
-  %q5 = quake.x [%q2] %q3 : (!quake.wire, !quake.wire) -> !quake.wire
+  // CHECK: %{{.*}} = quake.x [%{{.*}}] %{{.*}} : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %q5:2 = quake.x [%q2] %q3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   quake.wrap %q5 to %q1 : !quake.wire, !quake.ref
   return
 }
