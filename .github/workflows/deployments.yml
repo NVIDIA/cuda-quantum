@@ -62,7 +62,7 @@ jobs:
       update_cache: ${{ steps.build_info.outputs.update_cache }}
       multi_platform: ${{ steps.build_info.outputs.multi_platform }}
       platforms: ${{ steps.build_info.outputs.platforms }}
-      environment: ${{ steps.build_info.outputs.environment }}
+      # environment: ${{ steps.build_info.outputs.environment }}
 
     steps:
       - name: Retrieve PR info
@@ -159,7 +159,7 @@ jobs:
       registry_cache_update_only: ${{ github.event_name == 'workflow_run' }}
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
       pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
-      environment: ${{ needs.metadata.outputs.environment }}
+      # environment: ${{ needs.metadata.outputs.environment }}
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}
 
@@ -186,7 +186,7 @@ jobs:
       registry_cache_update_only: ${{ github.event_name == 'workflow_run' }}
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
       pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
-      environment: ${{ needs.metadata.outputs.environment }}
+      # environment: ${{ needs.metadata.outputs.environment }}
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-python
 
@@ -205,7 +205,7 @@ jobs:
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       registry_cache_update: ${{ needs.metadata.outputs.update_cache == 'true' }}
       registry_cache_update_only: ${{ github.event_name == 'workflow_run' }}
-      environment: ${{ needs.metadata.outputs.environment }}
+      # environment: ${{ needs.metadata.outputs.environment }}
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-ompi
 
@@ -269,7 +269,7 @@ jobs:
         ompidev_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-ompi', matrix.platform)] }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       registry_cache_update: ${{ needs.metadata.outputs.update_cache == 'true' }}
-      environment: ${{ needs.metadata.outputs.environment }}
+      # environment: ${{ needs.metadata.outputs.environment }}
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-ext
 
@@ -306,7 +306,7 @@ jobs:
       ompidev_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-ompi', matrix.platform)] }}
       devdeps_image: ${{ fromJson(needs.ext_config.outputs.json).image_hash[format('{0}-ext', matrix.platform)] }}
       build_docs: true
-      environment: ghcr-deployment
+      # environment: ghcr-deployment
 
   python_wheels:
     name: Create Python wheels
@@ -321,4 +321,4 @@ jobs:
       platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       python_version: ${{ matrix.python_version }}
       devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-python', matrix.platform)] }}
-      environment: ghcr-deployment
+      # environment: ghcr-deployment
