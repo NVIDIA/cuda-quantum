@@ -374,7 +374,7 @@ jobs:
   cudaq_wheels:
     name: CUDA Quantum Python wheels
     needs: assets
-    runs-on: ubuntu-latest
+    # runs-on: ubuntu-latest
 
     # FIXME: testing only. Must be reverted. 
     # environment:
@@ -387,7 +387,9 @@ jobs:
         info_file: ${{ fromJson(needs.assets.outputs.python_wheels).info_files }}
         python_version: ['3.8', '3.9', '3.10', '3.11']
       fail-fast: false
-
+    
+    runs-on: ${{ (contains(matrix.info_file, 'arm') && 'linux-arm64-cpu8') || 'ubuntu-latest' }}
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
