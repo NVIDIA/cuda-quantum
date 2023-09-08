@@ -23,4 +23,4 @@ target_link_libraries(test_oqc
 
 
 configure_file("OQCStartServerAndTest.sh.in" "${CMAKE_BINARY_DIR}/unittests/backends/oqc/OQCStartServerAndTest.sh" @ONLY)
-add_test(NAME oqc-tests COMMAND ./OQCStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/oqc/)
+add_test(NAME oqc-tests COMMAND bash OQCStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/oqc/)
