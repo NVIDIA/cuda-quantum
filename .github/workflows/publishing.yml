@@ -172,10 +172,12 @@ jobs:
       contents: read
       packages: write
       id-token: write
-
-    environment:
-      name: ghcr-deployment
-      url: ${{ vars.deployment_url }}
+    
+    # FIXME: testing only. Must be reverted.  
+    # environment:
+    #   name: ghcr-deployment
+    #   url: ${{ vars.deployment_url }}
+    #=======================================
 
     strategy:
       matrix:
