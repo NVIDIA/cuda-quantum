@@ -6,13 +6,13 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
+#include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Version.h"
-#include "cudaq/Target/IQM/IQMJsonEmitter.h"
-#include "cudaq/Target/OpenQASM/OpenQASMEmitter.h"
 #include "cudaq/Todo.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Support/CommandLine.h"

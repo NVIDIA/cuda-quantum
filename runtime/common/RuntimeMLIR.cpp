@@ -8,6 +8,8 @@
 
 #include "RuntimeMLIR.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
+#include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
+#include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
@@ -15,8 +17,6 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/Target/IQM/IQMJsonEmitter.h"
-#include "cudaq/Target/OpenQASM/OpenQASMEmitter.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
