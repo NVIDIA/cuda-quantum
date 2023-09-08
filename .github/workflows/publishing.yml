@@ -188,7 +188,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          ref: ${{ needs.assets.outputs.github_commit }}
+          # FIXME: testing only. Must be uncommented.  
+          # Use this branch rather than the one from deployment (e.g., updated cudaq.ext.Dockerfile)
+          # ref: ${{ needs.assets.outputs.github_commit }}
+          #=======================================
           token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Retrieve assets
