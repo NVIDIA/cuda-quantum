@@ -23,10 +23,9 @@ std::vector<double> linspace(double a, double b, size_t N) {
 }
 
 std::vector<double> random_vector(const double l_range, const double r_range,
-                                  const std::size_t size) {
+                                  const std::size_t size, const uint32_t seed) {
   // Generate a random initial parameter set
-  std::random_device rnd_device;
-  std::mt19937 mersenne_engine{rnd_device()}; // Generates random integers
+  std::mt19937 mersenne_engine{seed};
   std::uniform_real_distribution<double> dist{l_range, r_range};
   auto gen = [&dist, &mersenne_engine]() { return dist(mersenne_engine); };
   std::vector<double> vec(size);
