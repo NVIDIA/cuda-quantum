@@ -75,13 +75,15 @@ public:
         buffOff = rewriter.template create<arith::AddIOp>(loc, buffOff, one);
       } else {
         Value vecSz = rewriter.template create<quake::VeqSizeOp>(loc, idxTy, v);
-        cudaq::opt::factory::createCountedLoop(
+        cudaq::opt::factory::createInvariantLoop(
             rewriter, loc, vecSz,
             [&](OpBuilder &builder, Location loc, Region &, Block &block) {
               Value iv = block.getArgument(0);
               Value qv =
                   builder.template create<quake::ExtractRefOp>(loc, v, iv);
               auto bit = builder.template create<A>(loc, i1Ty, qv);
+              if (auto registerName = measureOp->getAttr("registerName"))
+                bit->setAttr("registerName", registerName);
               auto offset =
                   builder.template create<arith::AddIOp>(loc, iv, buffOff);
               Value offCast = builder.template create<arith::IndexCastOp>(

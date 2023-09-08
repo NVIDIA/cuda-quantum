@@ -20,15 +20,14 @@ struct t1 {
   }
 };
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__t1
-// CHECK-SAME:        (%[[VAL_0:.*]]: !cc.stdvec<f64>{{.*}}) -> i1 attributes {{{.*}}"cudaq-entrypoint"{{.*}}} {
-// CHECK:           %[[VAL_13:.*]] = quake.mz %{{.*}} : (!quake.veq<?>) -> !cc.stdvec<i1>
-// CHECK:           %[[VAL_14:.*]] = arith.constant 0 : i32
-// CHECK:           %[[VAL_15:.*]] = arith.extsi %[[VAL_14]] : i32 to i64
-// CHECK:           %[[VAL_16:.*]] = cc.stdvec_data %[[VAL_13]] : (!cc.stdvec<i1>) -> !cc.ptr<i1>
-// CHECK:           %[[VAL_17:.*]] = cc.compute_ptr %[[VAL_16]][%[[VAL_15]]] : (!cc.ptr<i1>, i64) -> !cc.ptr<i1>
-// CHECK:           %[[VAL_18:.*]] = cc.load %[[VAL_17]] : !cc.ptr<i1>
-// CHECK:           return %[[VAL_18]] : i1
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__t1(
+// CHECK-SAME:        %[[VAL_0:.*]]: !cc.stdvec<f64>{{.*}}) -> i1 attributes
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] : (!quake.veq<2>) -> !cc.stdvec<i1>
+// CHECK:           %[[VAL_3:.*]] = cc.stdvec_data %[[VAL_2]] : (!cc.stdvec<i1>) -> !cc.ptr<i1>
+// CHECK:           %[[VAL_4:.*]] = cc.compute_ptr %[[VAL_3]][0] : (!cc.ptr<i1>) -> !cc.ptr<i1>
+// CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i1>
+// CHECK:           return %[[VAL_5]] : i1
 // CHECK:         }
 // CHECK-NOT:     func.func private @_ZNKSt14_Bit_referencecvbEv() -> i1
 

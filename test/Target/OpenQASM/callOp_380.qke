@@ -25,11 +25,11 @@ module {
 
 // CHECK: include "qelib1.inc";
 
-// CHECK: gate __nvqpp__mlirgen____nvqppBuilderKernel_367535629127 q0 {
+// CHECK: gate nvqpp__mlirgen____nvqppBuilderKernel_367535629127 q0 {
 // CHECK:   x q0;
 // CHECK: }
 
 // CHECK: qreg var0[1];
-// CHECK: __nvqpp__mlirgen____nvqppBuilderKernel_367535629127 var0[0];
+// CHECK: nvqpp__mlirgen____nvqppBuilderKernel_367535629127 var0[0];
 // CHECK: creg var1[1];
 // CHECK: measure var0[0] -> var1[0];

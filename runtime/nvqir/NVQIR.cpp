@@ -363,10 +363,6 @@ Result *__quantum__qis__mz__to__register(Qubit *q, const char *name) {
   return b ? ResultOne : ResultZero;
 }
 
-bool __quantum__qis__read_result__body(Result *r) { return false; }
-
-void __quantum__rt__array_start_record_output() {}
-void __quantum__rt__array_end_record_output() {}
 void __quantum__rt__result_record_output(Result *, int8_t *) {}
 
 /// @brief Map an Array pointer containing Paulis to a vector of Paulis.

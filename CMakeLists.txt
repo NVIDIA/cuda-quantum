@@ -438,3 +438,18 @@ if (CUDAQ_BUILD_RELOCATABLE_PACKAGE AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
   install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang DESTINATION bin)
   install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang++ DESTINATION bin)
 endif()
+
+if (CUDAQ_BUILD_SELFCONTAINED)
+  # We allow to pick up certain build configurations directly from the environment,
+  # since this facilitates some of the packaging (e.g. python packages built based on the pyproject.toml).
+  if(NOT CUDAQ_EXTERNAL_NVQIR_SIMS)
+    SET(CUDAQ_EXTERNAL_NVQIR_SIMS $ENV{CUDAQ_EXTERNAL_NVQIR_SIMS})
+  endif()
+  if (CUDAQ_EXTERNAL_NVQIR_SIMS) 
+    include(WheelBuildHelpers)
+    while(CUDAQ_EXTERNAL_NVQIR_SIMS)
+      list(POP_FRONT CUDAQ_EXTERNAL_NVQIR_SIMS LIB_SO_FILE LIB_CONFIG_FILE)
+      add_target_libs_to_wheel(${LIB_SO_FILE} ${LIB_CONFIG_FILE})
+    endwhile()
+  endif()
+endif()

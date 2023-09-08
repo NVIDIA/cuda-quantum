@@ -58,7 +58,7 @@ void ExecutionResult::appendResult(std::string bitString, std::size_t count) {
   else
     iter->second += count;
 
-  sequentialData.push_back(bitString);
+  sequentialData.insert(sequentialData.end(), count, bitString);
 }
 
 bool ExecutionResult::operator==(const ExecutionResult &result) const {

@@ -104,6 +104,16 @@ protected:
   /// @brief Flag indicating whether we should print the IR.
   bool printIR = false;
 
+  /// @brief Flag indicating whether we should perform the passes in a
+  /// single-threaded environment, useful for debug. Similar to
+  /// -mlir-disable-threading for cudaq-opt.
+  bool disableMLIRthreading = false;
+
+  /// @brief Flag indicating whether we should enable MLIR printing before and
+  /// after each pass. This is similar to (-mlir-print-ir-before-all and
+  /// -mlir-print-ir-after-all) in cudaq-opt.
+  bool enablePrintMLIREachPass = false;
+
   /// @brief If we are emulating locally, keep track
   /// of JIT engines for invoking the kernels.
   std::vector<ExecutionEngine *> jitEngines;
@@ -119,6 +129,18 @@ protected:
     reinterpret_cast<void (*)()>(*funcPtr)();
     // We're done, delete the pointer.
     delete jit;
+  }
+
+  /// @brief Helper function to get boolean environment variable
+  bool getEnvBool(const char *envName, bool defaultVal = false) {
+    if (auto envVal = std::getenv(envName)) {
+      std::string tmp(envVal);
+      std::transform(tmp.begin(), tmp.end(), tmp.begin(),
+                     [](unsigned char c) { return std::tolower(c); });
+      if (tmp == "1" || tmp == "on" || tmp == "true" || tmp == "yes")
+        return true;
+    }
+    return defaultVal;
   }
 
 public:
@@ -153,6 +175,9 @@ public:
   /// Clear the number of shots
   void clearShots() override { nShots = std::nullopt; }
   virtual bool isRemote() override { return !emulate; }
+
+  /// @brief Return true if locally emulating a remote QPU
+  virtual bool isEmulated() override { return emulate; }
 
   /// @brief Set the noise model, only allow this for
   /// emulation.
@@ -210,12 +235,18 @@ public:
     emulate = iter != backendConfig.end() && iter->second == "true";
 
     // Print the IR if requested
-    if (auto cudaqPrintJITResult = std::getenv("CUDAQ_DUMP_JIT_IR")) {
-      std::string tmp(cudaqPrintJITResult);
-      std::transform(tmp.begin(), tmp.end(), tmp.begin(),
-                     [](unsigned char c) { return std::tolower(c); });
-      if (tmp == "1" || tmp == "on" || tmp == "true" || tmp == "yes")
-        printIR = true;
+    printIR = getEnvBool("CUDAQ_DUMP_JIT_IR", printIR);
+
+    // Get additional debug values
+    disableMLIRthreading =
+        getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", disableMLIRthreading);
+    enablePrintMLIREachPass =
+        getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", enablePrintMLIREachPass);
+
+    // If the very verbose enablePrintMLIREachPass flag is set, then
+    // multi-threading must be disabled.
+    if (enablePrintMLIREachPass) {
+      disableMLIRthreading = true;
     }
 
     /// Once we know the backend, we should search for the config file
@@ -230,8 +261,8 @@ public:
 
     // Loop through the file, extract the pass pipeline and CODEGEN Type
     auto lines = cudaq::split(configContents, '\n');
-    std::regex pipeline("PLATFORM_LOWERING_CONFIG\\s*=\\s*\"(\\S+)\"");
-    std::regex emissionType("CODEGEN_EMISSION\\s*=\\s*(\\S+)");
+    std::regex pipeline("^PLATFORM_LOWERING_CONFIG\\s*=\\s*\"(\\S+)\"");
+    std::regex emissionType("^CODEGEN_EMISSION\\s*=\\s*(\\S+)");
     std::smatch match;
     for (const std::string &line : lines) {
       if (std::regex_search(line, match, pipeline)) {
@@ -363,7 +394,10 @@ public:
       std::string codeStr;
       {
         llvm::raw_string_ostream outStr(codeStr);
-        if (failed(translation(moduleOpI, outStr, printIR)))
+        if (disableMLIRthreading)
+          moduleOpI.getContext()->disableMultithreading();
+        if (failed(translation(moduleOpI, outStr, printIR,
+                               enablePrintMLIREachPass)))
           throw std::runtime_error("Could not successfully translate to " +
                                    codegenTranslation + ".");
       }
@@ -412,9 +446,21 @@ public:
               cudaq::getExecutionManager()->setExecutionContext(&context);
               invokeJITKernelAndRelease(localJIT[i], kernelName);
               cudaq::getExecutionManager()->resetExecutionContext();
-              results.emplace_back(context.result.to_map(),
-                                   codes.size() == 1 ? cudaq::GlobalRegisterName
-                                                     : codes[i].name);
+
+              // If there are multiple codes, this is likely a spin_op.
+              // If so, use the code name instead of the global register.
+              if (codes.size() > 1) {
+                results.emplace_back(context.result.to_map(), codes[i].name);
+                results.back().sequentialData =
+                    context.result.sequential_data();
+              } else {
+                // For each register, add the context results into result.
+                for (auto &regName : context.result.register_names()) {
+                  results.emplace_back(context.result.to_map(regName), regName);
+                  results.back().sequentialData =
+                      context.result.sequential_data(regName);
+                }
+              }
             }
             localJIT.clear();
             return cudaq::sample_result(results);

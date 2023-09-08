@@ -94,6 +94,38 @@ void quake::AllocaOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
 //===----------------------------------------------------------------------===//
 
 namespace {
+// %7 = quake.concat %4 : (!quake.veq<2>) -> !quake.veq<2>
+// ───────────────────────────────────────────
+// removed
+struct ConcatNoOpPattern : public OpRewritePattern<quake::ConcatOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::ConcatOp concat,
+                                PatternRewriter &rewriter) const override {
+    // Remove concat veq<N> -> veq<N>
+    // or
+    // concat ref -> ref
+    auto qubitsToConcat = concat.getQbits();
+    if (qubitsToConcat.size() > 1)
+      return failure();
+
+    // We only want to handle veq -> veq here.
+    if (isa<quake::RefType>(qubitsToConcat.front().getType())) {
+      return failure();
+    }
+
+    // Do not handle anything where we don't know the sizes.
+    auto retTy = concat.getResult().getType();
+    if (auto veqTy = dyn_cast<quake::VeqType>(retTy))
+      if (!veqTy.hasSpecifiedSize())
+        // This could be a folded quake.relax_size op.
+        return failure();
+
+    rewriter.replaceOp(concat, qubitsToConcat);
+    return success();
+  }
+};
+
 struct ConcatSizePattern : public OpRewritePattern<quake::ConcatOp> {
   using OpRewritePattern::OpRewritePattern;
 
@@ -130,7 +162,7 @@ struct ConcatSizePattern : public OpRewritePattern<quake::ConcatOp> {
 
 void quake::ConcatOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                   MLIRContext *context) {
-  patterns.add<ConcatSizePattern>(context);
+  patterns.add<ConcatSizePattern, ConcatNoOpPattern>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -168,6 +200,38 @@ static void printRawIndex(OpAsmPrinter &printer, quake::ExtractRefOp refOp,
 }
 
 namespace {
+// %4 = quake.concat %2, %3 : (!quake.ref, !quake.ref) -> !quake.veq<2>
+// %7 = quake.extract_ref %4[0] : (!quake.veq<2>) -> !quake.ref
+// ───────────────────────────────────────────
+// replace all use with %2
+struct ForwardConcatExtractPattern
+    : public OpRewritePattern<quake::ExtractRefOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::ExtractRefOp extract,
+                                PatternRewriter &rewriter) const override {
+    auto veq = extract.getVeq();
+    auto concatOp = veq.getDefiningOp<quake::ConcatOp>();
+    if (concatOp && extract.hasConstantIndex()) {
+      // Don't run this canonicalization if any of the operands
+      // to concat are of type veq.
+      auto concatQubits = concatOp.getQbits();
+      for (auto qOp : concatQubits)
+        if (isa<quake::VeqType>(qOp.getType()))
+          return failure();
+
+      // concat only has ref type operands.
+      auto index = extract.getConstantIndex();
+      if (index < concatQubits.size()) {
+        auto qOpValue = concatQubits[index];
+        if (isa<quake::RefType>(qOpValue.getType()))
+          rewriter.replaceOp(extract, {qOpValue});
+      }
+    }
+    return success();
+  }
+};
+
 // %2 = quake.concat %1 : (!quake.ref) -> !quake.veq<1>
 // %3 = quake.extract_ref %2[0] : (!quake.veq<1>) -> !quake.ref
 // quake.* %3 ...
@@ -198,8 +262,8 @@ struct ForwardConcatExtractSingleton
 
 void quake::ExtractRefOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<FuseConstantToExtractRefPattern, ForwardConcatExtractSingleton>(
-      context);
+  patterns.add<FuseConstantToExtractRefPattern, ForwardConcatExtractSingleton,
+               ForwardConcatExtractPattern>(context);
 }
 
 LogicalResult quake::ExtractRefOp::verify() {
@@ -239,7 +303,7 @@ struct ForwardRelaxedSizePattern : public RewritePattern {
     Value result = relax.getResult();
     result.replaceUsesWithIf(inpVec, [&](OpOperand &use) {
       if (Operation *user = use.getOwner())
-        return isQuakeOperation(user);
+        return isQuakeOperation(user) && !isa<quake::ApplyOp>(user);
       return false;
     });
     return success();

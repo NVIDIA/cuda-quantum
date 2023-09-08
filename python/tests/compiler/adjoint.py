@@ -83,7 +83,8 @@ def test_kernel_adjoint_qreg_args():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<5>
-# CHECK:           quake.apply<adj> @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}} %[[VAL_0]] : (!quake.veq<5>) -> ()
+# CHECK:           %[[VAL_1:.*]] = quake.relax_size %[[VAL_0]]
+# CHECK:           quake.apply<adj> @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}} %[[VAL_1]] : (!quake.veq<?>) -> ()
 # CHECK:           return
 # CHECK:         }
 
@@ -105,7 +106,7 @@ def test_kernel_adjoint_qreg_args():
 # CHECK:           ^bb0(%[[VAL_10:.*]]: index):
 # CHECK:             %[[VAL_11:.*]] = arith.addi %[[VAL_10]], %[[VAL_1]] : index
 # CHECK:             cc.continue %[[VAL_11]] : index
-# CHECK:           } {counted}
+# CHECK:           } {invariant}
 # CHECK:           return
 # CHECK:         }
 
@@ -295,7 +296,7 @@ def test_sample_adjoint_qreg():
 # CHECK:           ^bb0(%[[VAL_11:.*]]: index):
 # CHECK:             %[[VAL_12:.*]] = arith.addi %[[VAL_11]], %[[VAL_1]] : index
 # CHECK:             cc.continue %[[VAL_12]] : index
-# CHECK:           } {counted}
+# CHECK:           } {invariant}
 # CHECK:           call @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%[[VAL_3]]) : (!quake.veq<?>) -> ()
 # CHECK:           quake.apply<adj> @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}} %[[VAL_3]] : (!quake.veq<?>) -> ()
 # CHECK:           %[[VAL_13:.*]] = cc.alloca i1[%[[VAL_4]] : i64]
@@ -314,7 +315,7 @@ def test_sample_adjoint_qreg():
 # CHECK:           ^bb0(%[[VAL_22:.*]]: index):
 # CHECK:             %[[VAL_23:.*]] = arith.addi %[[VAL_22]], %[[VAL_1]] : index
 # CHECK:             cc.continue %[[VAL_23]] : index
-# CHECK:           } {counted}
+# CHECK:           } {invariant}
 # CHECK:           return
 # CHECK:         }
 
@@ -336,7 +337,7 @@ def test_sample_adjoint_qreg():
 # CHECK:           ^bb0(%[[VAL_10:.*]]: index):
 # CHECK:             %[[VAL_11:.*]] = arith.addi %[[VAL_10]], %[[VAL_1]] : index
 # CHECK:             cc.continue %[[VAL_11]] : index
-# CHECK:           } {counted}
+# CHECK:           } {invariant}
 # CHECK:           return
 # CHECK:         }
 

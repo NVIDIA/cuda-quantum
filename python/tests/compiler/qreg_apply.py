@@ -55,7 +55,7 @@ def test_kernel_qreg():
 # CHECK:           ^bb0(%[[VAL_9:.*]]: index):
 # CHECK:             %[[VAL_10:.*]] = arith.addi %[[VAL_9]], %[[VAL_1]] : index
 # CHECK:             cc.continue %[[VAL_10]] : index
-# CHECK:           } {counted}
+# CHECK:           } {invariant}
 # CHECK:           %[[VAL_11:.*]] = cc.loop while ((%[[VAL_12:.*]] = %[[VAL_2]]) -> (index)) {
 # CHECK:             %[[VAL_13:.*]] = arith.cmpi slt, %[[VAL_12]], %[[VAL_0]] : index
 # CHECK:             cc.condition %[[VAL_13]](%[[VAL_12]] : index)
@@ -68,7 +68,7 @@ def test_kernel_qreg():
 # CHECK:           ^bb0(%[[VAL_16:.*]]: index):
 # CHECK:             %[[VAL_17:.*]] = arith.addi %[[VAL_16]], %[[VAL_1]] : index
 # CHECK:             cc.continue %[[VAL_17]] : index
-# CHECK:           } {counted}
+# CHECK:           } {invariant}
 # CHECK:           %[[VAL_18:.*]] = cc.loop while ((%[[VAL_19:.*]] = %[[VAL_2]]) -> (index)) {
 # CHECK:             %[[VAL_20:.*]] = arith.cmpi slt, %[[VAL_19]], %[[VAL_0]] : index
 # CHECK:             cc.condition %[[VAL_20]](%[[VAL_19]] : index)
@@ -81,7 +81,7 @@ def test_kernel_qreg():
 # CHECK:           ^bb0(%[[VAL_23:.*]]: index):
 # CHECK:             %[[VAL_24:.*]] = arith.addi %[[VAL_23]], %[[VAL_1]] : index
 # CHECK:             cc.continue %[[VAL_24]] : index
-# CHECK:           } {counted}
+# CHECK:           } {invariant}
 # CHECK:           %[[VAL_25:.*]] = cc.loop while ((%[[VAL_26:.*]] = %[[VAL_2]]) -> (index)) {
 # CHECK:             %[[VAL_27:.*]] = arith.cmpi slt, %[[VAL_26]], %[[VAL_0]] : index
 # CHECK:             cc.condition %[[VAL_27]](%[[VAL_26]] : index)
@@ -94,7 +94,7 @@ def test_kernel_qreg():
 # CHECK:           ^bb0(%[[VAL_30:.*]]: index):
 # CHECK:             %[[VAL_31:.*]] = arith.addi %[[VAL_30]], %[[VAL_1]] : index
 # CHECK:             cc.continue %[[VAL_31]] : index
-# CHECK:           } {counted}
+# CHECK:           } {invariant}
 # CHECK:           %[[VAL_32:.*]] = cc.loop while ((%[[VAL_33:.*]] = %[[VAL_2]]) -> (index)) {
 # CHECK:             %[[VAL_34:.*]] = arith.cmpi slt, %[[VAL_33]], %[[VAL_0]] : index
 # CHECK:             cc.condition %[[VAL_34]](%[[VAL_33]] : index)
@@ -107,7 +107,7 @@ def test_kernel_qreg():
 # CHECK:           ^bb0(%[[VAL_37:.*]]: index):
 # CHECK:             %[[VAL_38:.*]] = arith.addi %[[VAL_37]], %[[VAL_1]] : index
 # CHECK:             cc.continue %[[VAL_38]] : index
-# CHECK:           } {counted}
+# CHECK:           } {invariant}
 # CHECK:           %[[VAL_39:.*]] = cc.loop while ((%[[VAL_40:.*]] = %[[VAL_2]]) -> (index)) {
 # CHECK:             %[[VAL_41:.*]] = arith.cmpi slt, %[[VAL_40]], %[[VAL_0]] : index
 # CHECK:             cc.condition %[[VAL_41]](%[[VAL_40]] : index)
@@ -120,7 +120,7 @@ def test_kernel_qreg():
 # CHECK:           ^bb0(%[[VAL_44:.*]]: index):
 # CHECK:             %[[VAL_45:.*]] = arith.addi %[[VAL_44]], %[[VAL_1]] : index
 # CHECK:             cc.continue %[[VAL_45]] : index
-# CHECK:           } {counted}
+# CHECK:           } {invariant}
 # CHECK:           return
 # CHECK:         }
 

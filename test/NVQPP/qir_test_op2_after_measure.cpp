@@ -6,15 +6,25 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake -verify %s
+// Note: change |& to 2>&1 if running in bash
+// RUN: nvq++ -v %s -o %basename_t.x --target quantinuum --emulate && ./%basename_t.x |& FileCheck %s
 
 #include <cudaq.h>
+#include <iostream>
 
-// expected-error@*{{type is not yet implemented}}
-__qpu__ void qview_test(cudaq::qview<> v) {} // expected-error{{kernel argument type not supported}}
+__qpu__ void init_state() {
+  cudaq::qubit q;
+  x(q);
+  mz(q);
+  x(q);   // base profile does not allow operations after measurements
+};
 
-// expected-error@*{{type is not yet implemented}}
-__qpu__ void qvector_test(cudaq::qvector<> v) {} // expected-error{{kernel argument type not supported}}
+int main() {
+  auto result = cudaq::sample(1000, init_state);
+  for (auto &&[bits, counts] : result) {
+    std::cout << bits << '\n';
+  }
+  return 0;
+}
 
-// expected-error@*{{type is not yet implemented}}
-__qpu__ void qarray_test(cudaq::qarray<4> a) {} // expected-error{{kernel argument type not supported}}
+// CHECK: reversible function __quantum__qis__x__body came after irreversible function

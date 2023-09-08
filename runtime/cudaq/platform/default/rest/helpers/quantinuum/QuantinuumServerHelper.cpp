@@ -164,6 +164,20 @@ QuantinuumServerHelper::processResults(ServerMessage &postJobResponse,
   //                      "r1" : ["1", "0", ...]  } }
   auto results = postJobResponse["results"];
 
+  cudaq::info("Results message: {}", results.dump());
+
+  std::vector<ExecutionResult> srs;
+
+  // Populate individual registers' results into srs
+  for (auto &[registerName, result] : results.items()) {
+    auto bitResults = result.get<std::vector<std::string>>();
+    CountsDictionary thisRegCounts;
+    for (auto &b : bitResults)
+      thisRegCounts[b]++;
+    srs.emplace_back(thisRegCounts, registerName);
+    srs.back().sequentialData = bitResults;
+  }
+
   // For each shot, we concatenate the measurements results of all qubits.
   auto begin = results.begin();
   std::vector<std::string> bitstrings =
@@ -175,15 +189,12 @@ QuantinuumServerHelper::processResults(ServerMessage &postJobResponse,
   }
 
   cudaq::CountsDictionary counts;
-  for (auto &b : bitstrings) {
-    if (counts.count(b))
-      counts[b]++;
-    else
-      counts.insert({b, 1});
-  }
+  for (auto &b : bitstrings)
+    counts[b]++;
 
-  std::vector<ExecutionResult> srs;
-  srs.emplace_back(counts);
+  // Store the combined results into the global register
+  srs.emplace_back(counts, GlobalRegisterName);
+  srs.back().sequentialData = bitstrings;
   return sample_result(srs);
 }
 
