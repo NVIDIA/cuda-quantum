@@ -41,21 +41,31 @@ version = os.getenv("CUDA_QUANTUM_VERSION", "latest")
 extensions = [
     # 'sphinx.ext.imgmath',
     'sphinx.ext.ifconfig',
-    'sphinx.ext.autodoc',      # to get documentation from python doc comments
+    'sphinx.ext.autodoc',        # to get documentation from python doc comments
     'sphinx.ext.autosummary',
     'sphinx.ext.autosectionlabel',
-    'sphinx.ext.doctest',      # test example codes in docs
+    'sphinx.ext.doctest',        # test example codes in docs
     'sphinx.ext.extlinks',
     'sphinx.ext.intersphinx',
     #'sphinx.ext.mathjax',
-    'sphinx.ext.napoleon',     # support google/numpy style docstrings
+    'sphinx.ext.napoleon',       # support google/numpy style docstrings
     #'sphinx.ext.linkcode',
     'sphinx_reredirects',
     'breathe',
-    'enum_tools.autoenum',     # for pretty-print Python enums
-    'myst_parser',             # for including markdown files
-    "nbsphinx",                # for supporting jupyter notebooks 
+    'enum_tools.autoenum',       # for pretty-print Python enums
+    'myst_parser',               # for including markdown files
+    "nbsphinx",                  # for supporting jupyter notebooks
+    "sphinx_gallery.load_style",
+    "IPython.sphinxext.ipython_console_highlighting",
 ]
+
+nbsphinx_thumbnails = {
+    # Default thumbnail if the notebook does not define a cell tag to specify the thumbnail.
+    # See also: https://nbsphinx.readthedocs.io/en/latest/subdir/gallery.html
+    '**': '_static/cuda_quantum_icon.svg',
+    'examples/python/tutorials/hybrid_qnns': '_images/hybrid.png',
+    'examples/python/tutorials/multi_gpu_workflows': '_images/circsplit.png',
+}
 
 imgmath_latex_preamble = r'\usepackage{braket}'
 
