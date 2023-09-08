@@ -333,7 +333,7 @@ public:
   bool TraverseTypeOfExprType(clang::TypeOfExprType *t) {
     // Do not visit the expression as it is has no semantics other than for
     // inferring a type.
-    return true;
+    return TraverseType(t->desugar());
   }
   bool TraverseNestedNameSpecifier(clang::NestedNameSpecifier *s) {
     return true;
@@ -540,7 +540,6 @@ private:
   clang::ItaniumMangleContext *mangler;
   std::string loweredFuncName;
   llvm::SmallVector<mlir::Value> negations;
-  std::size_t typeStackDepth = 0;
   bool skipCompoundScope : 1 = false;
   bool isEntry : 1 = false;
   /// If there is a catastrophic error in the bridge (there is no rational way

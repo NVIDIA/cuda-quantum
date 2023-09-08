@@ -485,43 +485,51 @@ bool QuakeBridgeVisitor::VisitParmVarDecl(clang::ParmVarDecl *x) {
       "symbol table, but this parameter wasn't found.");
 }
 
-// The traversal of a VarDecl may or may not visit a clang Type. If a Type
-// is visited, it will be pushed on the type stack. Track the type stack's
-// state here so that it can be restored to its original state.
-// FIXME? Another solution is to replicate all the Base traversal code here and
-// guarantee that a Type is pushed to the type stack.
+// A variable declaration may or may not have an initializer. This custom
+// traversal makes sure that the type of the variable is visited and pushed so
+// that VisitVarDecl has the variable's type, whether an initialization
+// expression is present or not.
 bool QuakeBridgeVisitor::TraverseVarDecl(clang::VarDecl *x) {
-  auto saveTypeStackDepth = typeStackDepth;
-  typeStackDepth = typeStack.size();
-  bool result = Base::TraverseVarDecl(x);
-  typeStackDepth = saveTypeStackDepth;
+  [[maybe_unused]] auto typeStackDepth = typeStack.size();
+  for (unsigned i = 0; i < x->getNumTemplateParameterLists(); i++) {
+    if (auto *tpl = x->getTemplateParameterList(i)) {
+      for (auto *decl : *tpl)
+        if (!TraverseDecl(decl))
+          return false;
+      if (auto *requiresClause = tpl->getRequiresClause())
+        if (!TraverseStmt(requiresClause))
+          return false;
+    }
+  }
+  if (!TraverseNestedNameSpecifierLoc(x->getQualifierLoc()))
+    return false;
+  if (!TraverseType(x->getType()))
+    return false;
+  assert(typeStack.size() == typeStackDepth + 1 &&
+         "expected variable to have a type");
+  if (!isa<clang::ParmVarDecl>(x))
+    if (auto *init = x->getInit())
+      if (!TraverseStmt(init))
+        return false;
+  if (auto *dc = dyn_cast<clang::DeclContext>(x)) {
+    for (auto *child : dc->decls())
+      if (!canIgnoreChildDeclWhileTraversingDeclContext(child))
+        if (!TraverseDecl(child))
+          return false;
+  }
+  for (auto *attr : x->attrs())
+    if (!TraverseAttr(attr))
+      return false;
+  auto result = WalkUpFromVarDecl(x);
+  assert(typeStack.size() == typeStackDepth &&
+         "expected variable's type to be consumed");
   return result;
 }
 
 bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
-  assert(typeStack.size() >= typeStackDepth &&
-         "types were unexpectedly removed for the variable");
-  Type type;
-  if (typeStack.size() > typeStackDepth) {
-    assert(typeStack.size() == typeStackDepth + 1 &&
-           "more than 1 type was added for the variable");
-    auto declType = popType();
-    // FIXME!
-    // Ideally, declType and type would be identical. However, they may come
-    // from different C++ syntax. For example, in
-    //     cudaq::qreg<N>::value_type &qbit = q.back();
-    // the back() call will return a `!quake.ref` type but the declared type
-    // of `qbit` will look like a reference (pointer) to memory.
-    // Sidestep this issue for now by just overriding with the initializer type.
-    if (x->hasInit())
-      type = peekValue().getType();
-    else
-      type = declType;
-  } else {
-    // The VarDecl's type was not visited, so infer the type from the
-    // initialization expression.
+  Type type = popType();
+  if (x->hasInit())
     type = peekValue().getType();
-  }
   assert(type && "variable must have a valid type");
   auto loc = toLocation(x->getSourceRange());
   auto name = x->getName();

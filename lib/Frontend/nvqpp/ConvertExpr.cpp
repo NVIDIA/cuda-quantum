@@ -144,7 +144,7 @@ bool buildOp(OpBuilder &builder, Location loc, ValueRange operands,
                                                         block.getArgument(0));
         builder.create<A>(loc, ValueRange(), ref);
       };
-      cudaq::opt::factory::createCountedLoop(builder, loc, rank, bodyBuilder);
+      cudaq::opt::factory::createInvariantLoop(builder, loc, rank, bodyBuilder);
     } else {
       auto [target, ctrls] = maybeUnpackOperands(builder, loc, operands);
       for (auto v : target)
@@ -220,7 +220,7 @@ static Value toIntegerImpl(OpBuilder &builder, Location loc, Value bitVec) {
   // Create the for loop
   Value rank = builder.create<arith::IndexCastOp>(loc, builder.getIndexType(),
                                                   bitVecSize);
-  cudaq::opt::factory::createCountedLoop(
+  cudaq::opt::factory::createInvariantLoop(
       builder, loc, rank,
       [&](OpBuilder &nestedBuilder, Location nestedLoc, Region &,
           Block &block) {
@@ -585,8 +585,8 @@ bool QuakeBridgeVisitor::VisitImplicitCastExpr(clang::ImplicitCastExpr *x) {
     return pushValue(subValue);
   }
   case clang::CastKind::CK_FloatingCast: {
-    auto dstType = x->getType();
-    auto val = x->getSubExpr();
+    [[maybe_unused]] auto dstType = x->getType();
+    [[maybe_unused]] auto val = x->getSubExpr();
     assert(val->getType()->isFloatingType() && dstType->isFloatingType());
     auto value = popValue();
     auto toType = cast<FloatType>(castToTy);
@@ -1887,36 +1887,57 @@ bool QuakeBridgeVisitor::TraverseCXXConstructExpr(clang::CXXConstructExpr *x,
                                                   DataRecursionQueue *) {
   if (x->isElidable())
     return true;
-  if (auto *ctor = x->getConstructor()) {
-    auto ctorName = ctor->getNameAsString();
-    // In the std::function constructor case, we want to traverse the type
-    // returned by the constructor since it is a high-level type and we cannot
-    // traverse any of the arguments from the visit method. This extra type will
-    // be popped from the stack in the visit method.
-    if (isInNamespace(ctor, "std") && ctorName == "function")
-      if (!TraverseType(x->getType()))
-        return false;
+  [[maybe_unused]] auto typeStackDepth = typeStack.size();
+  if (x->getConstructor()) {
+    if (!TraverseType(x->getType()))
+      return false;
+    assert(typeStack.size() == typeStackDepth + 1);
   }
-  return Base::TraverseCXXConstructExpr(x);
+  auto result = Base::TraverseCXXConstructExpr(x);
+  assert(typeStack.size() == typeStackDepth || raisedError);
+  return result;
 }
 
 bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
   auto loc = toLocation(x);
   if (auto *ctor = x->getConstructor()) {
+    // FIXME: shouldn't the ctor type be a function?
+    [[maybe_unused]] auto ctorTy = popType();
     auto ctorName = ctor->getNameAsString();
     if (isInNamespace(ctor, "cudaq")) {
-      if (ctorName == "qreg" || ctorName == "qspan") {
-        // This is a qreg q(N);
-        auto sizeVal = popValue();
-        if (isa<quake::VeqType>(sizeVal.getType()))
-          return pushValue(sizeVal);
-        assert(isa<IntegerType>(sizeVal.getType()));
-        return pushValue(builder.create<quake::AllocaOp>(
-            loc, quake::VeqType::getUnsized(builder.getContext()), sizeVal));
-      }
-      if (ctorName == "qudit") {
-        // This is a "cudaq::qudit/qubit q;"
-        return pushValue(builder.create<quake::AllocaOp>(loc));
+      if (x->getNumArgs() == 0) {
+        if (ctorName == "qudit") {
+          // This is a single qubit.
+          assert(isa<quake::RefType>(ctorTy));
+          return pushValue(builder.create<quake::AllocaOp>(loc));
+        }
+        // These classes have template arguments that may give a compile-time
+        // constant size. qarray is the only one that requires it, however.
+        if (ctorName == "qreg" || ctorName == "qarray" || ctorName == "qspan") {
+          [[maybe_unused]] auto veqTy = cast<quake::VeqType>(ctorTy);
+          assert(veqTy.hasSpecifiedSize());
+          return pushValue(builder.create<quake::AllocaOp>(loc, ctorTy));
+        }
+        if (ctorName == "qvector") {
+          // The default qvector ctor creates a veq of size 1.
+          assert(isa<quake::VeqType>(ctorTy));
+          auto veq1Ty = quake::VeqType::get(builder.getContext(), 1);
+          return pushValue(builder.create<quake::AllocaOp>(loc, veq1Ty));
+        }
+      } else if (x->getNumArgs() == 1) {
+        if (ctorName == "qreg" || ctorName == "qvector") {
+          // This is a cudaq::qreg(std::size_t).
+          auto sizeVal = popValue();
+          assert(isa<IntegerType>(sizeVal.getType()));
+          return pushValue(builder.create<quake::AllocaOp>(
+              loc, quake::VeqType::getUnsized(builder.getContext()), sizeVal));
+        }
+        if (ctorName == "qspan" && isa<quake::VeqType>(peekValue().getType())) {
+          // One of the qspan ctors, which effectively just makes a copy. Here
+          // we omit making a copy and just forward the veq argument.
+          assert(isa<quake::VeqType>(ctorTy));
+          return true;
+        }
       }
     } else if (isInNamespace(ctor, "std")) {
       auto isVectorOfQubitRefs = [&]() {
@@ -1937,7 +1958,6 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
         // Are we converting a lambda expr to a std::function?
         auto backVal = peekValue();
         auto backTy = backVal.getType();
-        auto ctorTy = popType();
         if (auto ptrTy = dyn_cast<cc::PointerType>(backTy))
           backTy = ptrTy.getElementType();
         if (backTy.isa<cc::CallableType>()) {
@@ -2023,15 +2043,19 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
             // This is an integer argument, and the value on the stack
             // is an integer, so let's connect them up
             auto arrSize = popValue();
-            auto dataType = popType();
+            auto eleTy = [&]() {
+              if (auto stdvecTy = dyn_cast<cc::StdvecType>(ctorTy))
+                return stdvecTy.getElementType();
+              return ctorTy;
+            }();
 
             // create stdvec init op without a buffer.
             // Allocate the required memory chunk
-            Value alloca = builder.create<cc::AllocaOp>(loc, dataType, arrSize);
+            Value alloca = builder.create<cc::AllocaOp>(loc, eleTy, arrSize);
 
             // Create the stdvec_init op
             return pushValue(builder.create<cc::StdvecInitOp>(
-                loc, cc::StdvecType::get(dataType), alloca, arrSize));
+                loc, cc::StdvecType::get(eleTy), alloca, arrSize));
           }
 
         // Disallow any default vector construction bc we don't

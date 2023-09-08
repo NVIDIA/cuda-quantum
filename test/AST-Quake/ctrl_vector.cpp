@@ -53,9 +53,8 @@ struct test_two_control_call {
 // CHECK:             quake.x %[[VAL_1]] : (!quake.ref) -> ()
 // CHECK:           } : !cc.callable<(!quake.ref) -> ()>
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<4>
-// CHECK:           %[[VAL_3:.*]] = quake.relax_size %[[VAL_2]] : (!quake.veq<4>) -> !quake.veq<?>
 // CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.ref
-// CHECK:           quake.apply @__nvqpp__mlirgen__ZN21test_two_control_callcl[[LAMBDA:.*]]_[%[[VAL_3]]] %[[VAL_4]] : (!quake.veq<?>, !quake.ref) -> ()
+// CHECK:           quake.apply @__nvqpp__mlirgen__ZN21test_two_control_callcl[[LAMBDA:.*]]_[%[[VAL_2]]] %[[VAL_4]] : (!quake.veq<4>, !quake.ref) -> ()
 // CHECK:           %[[VAL_5:.*]] = quake.mz %[[VAL_4]] : (!quake.ref) -> i1
 // CHECK:           return
 // CHECK:         }

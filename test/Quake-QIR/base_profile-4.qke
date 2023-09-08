@@ -61,9 +61,7 @@ module {
 // CHECK:         tail call void @__quantum__qis__rx__body(double 7.300000e-01, %[[VAL_1]]* nonnull inttoptr (i64 2 to %[[VAL_1]]*))
 // CHECK:         tail call void @__quantum__qis__mz__body(%[[VAL_1]]* null, %[[VAL_2:.*]]* null)
 // CHECK:         tail call void @__quantum__qis__mz__body(%[[VAL_1]]* nonnull inttoptr (i64 2 to %[[VAL_1]]*), %[[VAL_2]]* nonnull inttoptr (i64 1 to %[[VAL_2]]*))
-// CHECK:         tail call void @__quantum__rt__array_start_record_output()
 // CHECK:         tail call void @__quantum__rt__result_record_output(%[[VAL_2]]* null, i8* nonnull getelementptr inbounds ([3 x i8], [3 x i8]* @cstr.723000, i64 0, i64 0))
 // CHECK:         tail call void @__quantum__rt__result_record_output(%[[VAL_2]]* nonnull inttoptr (i64 1 to %[[VAL_2]]*), i8* nonnull getelementptr inbounds ([3 x i8], [3 x i8]* @cstr.723100, i64 0, i64 0))
-// CHECK:         tail call void @__quantum__rt__array_end_record_output()
 // CHECK:         ret void
 
