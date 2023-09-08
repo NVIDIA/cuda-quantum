@@ -284,9 +284,9 @@ def PruneCtrlRelations : Pass<"pruned-ctrl-form", "mlir::func::FuncOp"> {
     to swap the order of the `h` and `x` gates, for instance.
     ```mlir
       %ctrl = to_ctrl %old.0 : (!wire) -> !control
-      %3 = x [%ctrl] %1 : (!wire, !wire) -> !wire
-      %4 = h [%ctrl] %2 : (!wire, !wire) -> !wire
-      %5 = y [%ctrl] %3 : (!wire, !wire) -> !wire
+      %3 = x [%ctrl] %1 : (!control, !wire) -> !wire
+      %4 = h [%ctrl] %2 : (!control, !wire) -> !wire
+      %5 = y [%ctrl] %3 : (!control, !wire) -> !wire
       %new.0 = from_ctrl %ctrl : (!control) -> !wire
     ```
   }];
