@@ -172,6 +172,12 @@
 <li class="toctree-l3"><a class="reference internal" href="#id3">Submission from Python</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#iqm">IQM</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id4">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id5">Submission from C++</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id6">Submission from Python</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../specification/index.html">   Specifications</a><ul>
@@ -496,6 +502,69 @@ the <code class="docutils literal notranslate"><span class="pre">shots_count</sp
 </pre></div>
 </div>
 <p>To see a complete example for using IonQ’s backends, take a look at our <a class="reference internal" href="python.html#python-examples-for-hardware-providers"><span class="std std-ref">Python examples</span></a>.</p>
+</section>
+</section>
+<section id="iqm">
+<h2>IQM<a class="headerlink" href="#iqm" title="Permalink to this heading">¶</a></h2>
+<section id="id4">
+<h3>Setting Credentials<a class="headerlink" href="#id4" title="Permalink to this heading">¶</a></h3>
+<p>Programmers of CUDA Quantum may access the IQM Server from either C++ or Python. Following the <a class="reference external" href="https://iqm-finland.github.io/cortex-cli/readme.html#using-cortex-cli">quick start guide</a>, install <code class="code docutils literal notranslate"><span class="pre">iqm-cortex-cli</span></code> and login to initialize the tokens file.
+The path to the tokens file can either be passed explicitly via an environment variable or it will be loaded automatically if located in
+the default location <code class="code docutils literal notranslate"><span class="pre">~/.cache/iqm-cortex-cli/tokens.json</span></code>.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">IQM_TOKENS_FILE</span><span class="o">=</span><span class="s2">&quot;path/to/tokens.json&quot;</span>
+</pre></div>
+</div>
+</section>
+<section id="id5">
+<h3>Submission from C++<a class="headerlink" href="#id5" title="Permalink to this heading">¶</a></h3>
+<p>To target quantum kernel code for execution on an IQM Server,
+pass the <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">iqm</span></code> flag to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler, along with a specified <code class="docutils literal notranslate"><span class="pre">--iqm-machine</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">--iqm-machine</span></code> is  a mandatory argument. This provided architecture must match
+the device architecture that the program has been compiled against. The hardware architecture for a
+specific IQM Server may be checked  via <code class="code docutils literal notranslate"><span class="pre">https://&lt;IQM</span> <span class="pre">server&gt;/cocos/quantum-architecture</span></code>.</p>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>iqm<span class="w"> </span>--iqm-machine<span class="w"> </span>Adonis<span class="w"> </span>src.cpp
+</pre></div>
+</div>
+<p>Once the binary for a specific IQM QPU architecture is compiled, it can be executed against any IQM Server with the same QPU architecture:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>iqm<span class="w"> </span>--iqm-machine<span class="w"> </span>Adonis<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>program
+<span class="nv">IQM_SERVER_URL</span><span class="o">=</span><span class="s2">&quot;https://demo.qc.iqm.fi/cocos&quot;</span><span class="w"> </span>./program
+
+<span class="c1"># Executing the same program against an IQM Server with a different underlying QPU</span>
+<span class="c1"># architecture will result in an error.</span>
+<span class="nv">IQM_SERVER_URL</span><span class="o">=</span><span class="s2">&quot;https://&lt;Apollo IQM Server&gt;/cocos&quot;</span><span class="w"> </span>./program
+</pre></div>
+</div>
+<p>To emulate the IQM machine locally, without submitting to the IQM Server,
+you can also pass the <code class="docutils literal notranslate"><span class="pre">--emulate</span></code> flag to <code class="docutils literal notranslate"><span class="pre">nvq++</span></code>. This will emit any target
+specific compiler diagnostics, before running a noise free emulation.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--emulate<span class="w"> </span>--target<span class="w"> </span>iqm<span class="w"> </span>--iqm-machine<span class="w"> </span>Adonis<span class="w"> </span>src.cpp
+</pre></div>
+</div>
+<p>To see a complete example for using IQM server backends, take a look at our <a class="reference internal" href="cpp.html#cpp-examples-for-hardware-providers"><span class="std std-ref">C++ examples</span></a>.</p>
+</section>
+<section id="id6">
+<h3>Submission from Python<a class="headerlink" href="#id6" title="Permalink to this heading">¶</a></h3>
+<p>The target to which quantum kernels are submitted
+can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq::set_target()</span></code> function.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;iqm&quot;</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="s2">&quot;https://&lt;IQM Server&gt;/cocos&quot;</span><span class="p">,</span> <span class="o">**</span><span class="p">{</span><span class="s2">&quot;qpu-architecture&quot;</span><span class="p">:</span> <span class="s2">&quot;Adonis&quot;</span><span class="p">})</span>
+</pre></div>
+</div>
+<p>To emulate the IQM Server locally, without submitting to the IQM Server,
+you can also set the <code class="docutils literal notranslate"><span class="pre">emulate</span></code> flag to <code class="docutils literal notranslate"><span class="pre">True</span></code>. This will emit any target
+specific compiler diagnostics, before running a noise free emulation.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;iqm&#39;</span><span class="p">,</span> <span class="n">emulate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The number of shots for a kernel execution can be set through
+the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code> argument to <code class="docutils literal notranslate"><span class="pre">cudaq.sample</span></code> or <code class="docutils literal notranslate"><span class="pre">cudaq.observe</span></code>. By default,
+the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code> is set to 1000.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>To see a complete example for using IQM server backends, take a look at our <a class="reference internal" href="python.html#python-examples-for-hardware-providers"><span class="std std-ref">Python examples</span></a>.</p>
 </section>
 </section>
 </section>
