@@ -146,6 +146,21 @@ int main(int argc, char **argv) {
     out.os() << *module << '\n';
   };
   bool targetUsesLlvm = emitLLVM;
+  auto *modOp = module->getOperation();
+  auto modLoc = module->getLoc();
+  // Declare actions here to avoid outer closure going out of scope below.
+  auto iqmAction = [&]() {
+    if (failed(cudaq::translateToIQMJson(modOp, out.os()))) {
+      cudaq::emitFatalError(modLoc, "translation failed");
+      std::exit(1);
+    }
+  };
+  auto qasmAction = [&]() {
+    if (failed(cudaq::translateToOpenQASM(modOp, out.os()))) {
+      cudaq::emitFatalError(modLoc, "translation failed");
+      std::exit(1);
+    }
+  };
 
   llvm::StringSwitch<std::function<void()>>(convertTo)
       .Case("qir", [&]() { cudaq::opt::addPipelineToQIR<>(pm); })
@@ -155,25 +170,13 @@ int main(int argc, char **argv) {
             [&]() {
               targetUsesLlvm = false;
               cudaq::opt::addPipelineToOpenQASM(pm);
-              targetAction = [&]() {
-                if (failed(cudaq::translateToOpenQASM(module->getOperation(),
-                                                      out.os()))) {
-                  cudaq::emitFatalError(module->getLoc(), "translation failed");
-                  std::exit(1);
-                }
-              };
+              targetAction = qasmAction;
             })
       .Case("iqm",
             [&]() {
               targetUsesLlvm = false;
               cudaq::opt::addPipelineToIQMJson(pm);
-              targetAction = [&]() {
-                if (failed(cudaq::translateToIQMJson(module->getOperation(),
-                                                     out.os()))) {
-                  cudaq::emitFatalError(module->getLoc(), "translation failed");
-                  std::exit(1);
-                }
-              };
+              targetAction = iqmAction;
             })
       .Default([]() {})();
 
