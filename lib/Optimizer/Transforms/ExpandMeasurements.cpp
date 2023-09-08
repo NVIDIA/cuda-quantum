@@ -75,7 +75,7 @@ public:
         buffOff = rewriter.template create<arith::AddIOp>(loc, buffOff, one);
       } else {
         Value vecSz = rewriter.template create<quake::VeqSizeOp>(loc, idxTy, v);
-        cudaq::opt::factory::createCountedLoop(
+        cudaq::opt::factory::createInvariantLoop(
             rewriter, loc, vecSz,
             [&](OpBuilder &builder, Location loc, Region &, Block &block) {
               Value iv = block.getArgument(0);

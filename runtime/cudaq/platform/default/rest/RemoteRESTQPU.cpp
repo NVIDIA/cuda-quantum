@@ -104,6 +104,16 @@ protected:
   /// @brief Flag indicating whether we should print the IR.
   bool printIR = false;
 
+  /// @brief Flag indicating whether we should perform the passes in a
+  /// single-threaded environment, useful for debug. Similar to
+  /// -mlir-disable-threading for cudaq-opt.
+  bool disableMLIRthreading = false;
+
+  /// @brief Flag indicating whether we should enable MLIR printing before and
+  /// after each pass. This is similar to (-mlir-print-ir-before-all and
+  /// -mlir-print-ir-after-all) in cudaq-opt.
+  bool enablePrintMLIREachPass = false;
+
   /// @brief If we are emulating locally, keep track
   /// of JIT engines for invoking the kernels.
   std::vector<ExecutionEngine *> jitEngines;
@@ -119,6 +129,18 @@ protected:
     reinterpret_cast<void (*)()>(*funcPtr)();
     // We're done, delete the pointer.
     delete jit;
+  }
+
+  /// @brief Helper function to get boolean environment variable
+  bool getEnvBool(const char *envName, bool defaultVal = false) {
+    if (auto envVal = std::getenv(envName)) {
+      std::string tmp(envVal);
+      std::transform(tmp.begin(), tmp.end(), tmp.begin(),
+                     [](unsigned char c) { return std::tolower(c); });
+      if (tmp == "1" || tmp == "on" || tmp == "true" || tmp == "yes")
+        return true;
+    }
+    return defaultVal;
   }
 
 public:
@@ -213,12 +235,18 @@ public:
     emulate = iter != backendConfig.end() && iter->second == "true";
 
     // Print the IR if requested
-    if (auto cudaqPrintJITResult = std::getenv("CUDAQ_DUMP_JIT_IR")) {
-      std::string tmp(cudaqPrintJITResult);
-      std::transform(tmp.begin(), tmp.end(), tmp.begin(),
-                     [](unsigned char c) { return std::tolower(c); });
-      if (tmp == "1" || tmp == "on" || tmp == "true" || tmp == "yes")
-        printIR = true;
+    printIR = getEnvBool("CUDAQ_DUMP_JIT_IR", printIR);
+
+    // Get additional debug values
+    disableMLIRthreading =
+        getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", disableMLIRthreading);
+    enablePrintMLIREachPass =
+        getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", enablePrintMLIREachPass);
+
+    // If the very verbose enablePrintMLIREachPass flag is set, then
+    // multi-threading must be disabled.
+    if (enablePrintMLIREachPass) {
+      disableMLIRthreading = true;
     }
 
     /// Once we know the backend, we should search for the config file
@@ -366,7 +394,10 @@ public:
       std::string codeStr;
       {
         llvm::raw_string_ostream outStr(codeStr);
-        if (failed(translation(moduleOpI, outStr, printIR)))
+        if (disableMLIRthreading)
+          moduleOpI.getContext()->disableMultithreading();
+        if (failed(translation(moduleOpI, outStr, printIR,
+                               enablePrintMLIREachPass)))
           throw std::runtime_error("Could not successfully translate to " +
                                    codegenTranslation + ".");
       }

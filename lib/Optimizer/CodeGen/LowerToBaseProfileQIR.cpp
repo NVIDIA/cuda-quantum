@@ -199,11 +199,18 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
     rewriter.startRootUpdate(op);
     const auto &info = iter->second;
     // QIR functions need certain attributes, add them here.
+    // TODO: Update schema_id with valid value (issues #385 and #556)
     auto arrAttr = rewriter.getArrayAttr(ArrayRef<Attribute>{
-        rewriter.getStringAttr("EntryPoint"),
+        rewriter.getStringAttr("entry_point"),
+        rewriter.getStrArrayAttr({"qir_profiles", "base_profile"}),
+        rewriter.getStrArrayAttr({"output_labeling_schema", "schema_id"}),
         rewriter.getStrArrayAttr(
+            // TODO: change to required_num_qubits once providers support it
+            // (issues #385 and #556)
             {"requiredQubits", std::to_string(info.nQubits)}),
         rewriter.getStrArrayAttr(
+            // TODO: change to required_num_results once providers support it
+            // (issues #385 and #556)
             {"requiredResults", std::to_string(info.nResults)})});
     op.setPassthroughAttr(arrAttr);
 
@@ -211,9 +218,6 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
     auto builder = cudaq::IRBuilder::atBlockTerminator(&op.getBody().back());
     auto loc = op.getBody().back().getTerminator()->getLoc();
 
-    builder.create<LLVM::CallOp>(loc, TypeRange{},
-                                 cudaq::opt::QIRBaseProfileStartRecordOutput,
-                                 ArrayRef<Value>{});
     auto resultTy = cudaq::opt::getResultType(rewriter.getContext());
     auto i64Ty = rewriter.getI64Type();
     auto module = op->getParentOfType<ModuleOp>();
@@ -241,9 +245,6 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
                                    cudaq::opt::QIRBaseProfileRecordOutput,
                                    ValueRange{ptr, regName});
     }
-    builder.create<LLVM::CallOp>(loc, TypeRange{},
-                                 cudaq::opt::QIRBaseProfileEndRecordOutput,
-                                 ArrayRef<Value>{});
     rewriter.finalizeRootUpdate(op);
     return success();
   }
@@ -384,9 +385,10 @@ struct QIRToBaseProfileQIRPass
     LLVM_DEBUG(llvm::dbgs() << "Before base profile:\n" << *op << '\n');
     auto *context = &getContext();
     RewritePatternSet patterns(context);
+    // Note: LoadMeasureResult is not compliant with the Base Profile
     patterns.insert<AddrOfCisToBase, ArrayGetElementPtrConv, CallAlloc,
                     CalleeConv, EraseArrayAlloc, EraseArrayRelease,
-                    EraseDeadArrayGEP, LoadMeasureResult, MeasureCallConv,
+                    EraseDeadArrayGEP, MeasureCallConv,
                     MeasureToRegisterCallConv, XCtrlOneTargetToCNot>(context);
     if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns))))
       signalPassFailure();
@@ -412,6 +414,11 @@ namespace {
 /// signatures of functions from the QIR ABI that may be called by the
 /// translation. This trivial pass only does this preparation work. It performs
 /// no analysis and does not rewrite function body's, etc.
+
+static const std::vector<std::string> measurementFunctionNames{
+    cudaq::opt::QIRMeasureBody, cudaq::opt::QIRMeasure,
+    cudaq::opt::QIRMeasureToRegister};
+
 struct BaseProfilePreparationPass
     : public cudaq::opt::QIRToBaseQIRPrepBase<BaseProfilePreparationPass> {
 
@@ -431,18 +438,9 @@ struct BaseProfilePreparationPass
         cudaq::opt::QIRMeasureBody, LLVM::LLVMVoidType::get(ctx),
         {cudaq::opt::getQubitType(ctx), cudaq::opt::getResultType(ctx)},
         module);
-    cudaq::opt::factory::createLLVMFunctionSymbol(
-        cudaq::opt::QIRReadResultBody, IntegerType::get(ctx, 1),
-        {cudaq::opt::getResultType(ctx)}, module);
 
     // Add record functions for any
     // measurements.
-    cudaq::opt::factory::createLLVMFunctionSymbol(
-        cudaq::opt::QIRBaseProfileStartRecordOutput,
-        LLVM::LLVMVoidType::get(ctx), {}, module);
-    cudaq::opt::factory::createLLVMFunctionSymbol(
-        cudaq::opt::QIRBaseProfileEndRecordOutput, LLVM::LLVMVoidType::get(ctx),
-        {}, module);
     cudaq::opt::factory::createLLVMFunctionSymbol(
         cudaq::opt::QIRBaseProfileRecordOutput, LLVM::LLVMVoidType::get(ctx),
         {cudaq::opt::getResultType(ctx), cudaq::opt::getCharPointerType(ctx)},
@@ -459,6 +457,18 @@ struct BaseProfilePreparationPass
               func.getName().str() + "__body",
               func.getFunctionType().getReturnType(),
               func.getFunctionType().getParams(), module);
+
+    // Apply irreversible attribute to measurement functions
+    for (auto &funcName : measurementFunctionNames) {
+      Operation *op = SymbolTable::lookupSymbolIn(module, funcName);
+      auto funcOp = llvm::dyn_cast_or_null<LLVM::LLVMFuncOp>(op);
+      if (funcOp) {
+        auto builder = OpBuilder(op);
+        auto arrAttr = builder.getArrayAttr(
+            ArrayRef<Attribute>{builder.getStringAttr("irreversible")});
+        funcOp.setPassthroughAttr(arrAttr);
+      }
+    }
   }
 };
 } // namespace
