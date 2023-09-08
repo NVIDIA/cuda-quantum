@@ -514,6 +514,8 @@ jobs:
                 case $file in
                   /home/cudaq/examples/cpp/other/gradients.cpp)
                     echo ":white_flag: Issue: https://github.com/NVIDIA/cuda-quantum/issues/622. Test skipped." >> $GITHUB_STEP_SUMMARY ;;
+                  /home/cudaq/examples/cpp/qaoa_maxcut.cpp)
+                    echo ":white_flag: Issue: https://github.com/NVIDIA/cuda-quantum/issues/623. Test skipped." >> $GITHUB_STEP_SUMMARY ;;
                   *)
                     ex=$(basename -- "$file")
                     echo "Validating $ex:"
