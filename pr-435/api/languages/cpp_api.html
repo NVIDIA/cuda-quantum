@@ -2248,6 +2248,18 @@
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5state9get_shapeEv">
+<span id="_CPPv3N5cudaq5state9get_shapeEv"></span><span id="_CPPv2N5cudaq5state9get_shapeEv"></span><span id="cudaq::state::get_shape"></span><span class="target" id="classcudaq_1_1state_1a022e1a6692f21c0a4991a2d92fe4f32d"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_shape</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq5state9get_shapeEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Return the dimensions of the state vector or density matrix. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5state8get_dataEv">
+<span id="_CPPv3N5cudaq5state8get_dataEv"></span><span id="_CPPv2N5cudaq5state8get_dataEv"></span><span id="cudaq::state::get_data"></span><span class="target" id="classcudaq_1_1state_1aaa963dd46051daae2dbcff9d45240056"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_data</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq5state8get_dataEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Return the raw quantum state data. </p>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq5state7overlapER5state">
 <span id="_CPPv3N5cudaq5state7overlapER5state"></span><span id="_CPPv2N5cudaq5state7overlapER5state"></span><span id="cudaq::state::overlap__stateR"></span><span class="target" id="classcudaq_1_1state_1adb419a53deed8759a5dd3b857f512db6"></span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">overlap</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq5stateE" title="cudaq::state"><span class="n"><span class="pre">state</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq5state7overlapER5state" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Compute the overlap of this state with the other one. </p>
@@ -2525,6 +2537,12 @@
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPU10isEmulatedEv">
+<span id="_CPPv3N5cudaq3QPU10isEmulatedEv"></span><span id="_CPPv2N5cudaq3QPU10isEmulatedEv"></span><span id="cudaq::QPU::isEmulated"></span><span class="target" id="classcudaq_1_1QPU_1a04df7e40bc230f5a27afcf72ac8cf23f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isEmulated</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3QPU10isEmulatedEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Is this a local emulator of a remote <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a>? </p>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPU7enqueueER11QuantumTask">
 <span id="_CPPv3N5cudaq3QPU7enqueueER11QuantumTask"></span><span id="_CPPv2N5cudaq3QPU7enqueueER11QuantumTask"></span><span id="cudaq::QPU::enqueue__QuantumTaskR"></span><span class="target" id="classcudaq_1_1QPU_1a369c5f7ebc7d5ff79e2e55210bd1ec1b"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">enqueue</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq11QuantumTaskE" title="cudaq::QuantumTask"><span class="n"><span class="pre">QuantumTask</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">task</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N5cudaq3QPU7enqueueER11QuantumTask" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Enqueue a quantum task on the asynchronous execution queue. </p>
@@ -2657,6 +2675,12 @@
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platform9is_remoteEKNSt6size_tE">
 <span id="_CPPv3N5cudaq16quantum_platform9is_remoteEKNSt6size_tE"></span><span id="_CPPv2N5cudaq16quantum_platform9is_remoteEKNSt6size_tE"></span><span id="cudaq::quantum_platform::is_remote__std::sC"></span><span class="target" id="classcudaq_1_1quantum__platform_1a61163027d2aa2e064e0d1ff2e65e4d5a"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_remote</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpuId</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform9is_remoteEKNSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Return true if the <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> is remote. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq16quantum_platform11is_emulatedEKNSt6size_tE">
+<span id="_CPPv3NK5cudaq16quantum_platform11is_emulatedEKNSt6size_tE"></span><span id="_CPPv2NK5cudaq16quantum_platform11is_emulatedEKNSt6size_tE"></span><span id="cudaq::quantum_platform::is_emulated__std::sCC"></span><span class="target" id="classcudaq_1_1quantum__platform_1aaa21661369c0930137d6e6c0f4d98ec5"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_emulated</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpuId</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq16quantum_platform11is_emulatedEKNSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Return true if <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> is locally emulating a remote <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a>. </p>
 </dd></dl>
 
 <dl class="cpp function">

@@ -32,8 +32,9 @@ The :code:`cudaq::quantum_platform` should take the following structure
       std::size_t num_qpus() const;
       std::size_t get_num_qubits(std::size_t qpu_id = 0) const;
  
-      bool is_simulator(std::size_t qpu_id = 0) const; 
+      bool is_simulator(std::size_t qpu_id = 0) const;
       bool is_remote(std::size_t qpuId = 0);
+      bool is_emulated(std::size_t qpuId = 0) const;
       std::string name() const;
  
       std::size_t get_current_qpu() const ;
