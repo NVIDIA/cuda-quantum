@@ -23,7 +23,8 @@
 // The Max-Cut for this problem is 0101 or 1010.
 
 struct ansatz {
-  void operator()(std::vector<double> theta, const int n_qubits, const int n_layers) __qpu__ {
+  void operator()(std::vector<double> theta, const int n_qubits,
+                  const int n_layers) __qpu__ {
     cudaq::qreg q(n_qubits);
 
     // Prepare the initial state by superposition
