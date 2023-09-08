@@ -151,7 +151,7 @@ COPY --from=prereqs /usr/local/openssl "$OPENSSL_INSTALL_PREFIX"
 # Install additional tools for CUDA Quantum documentation generation.
 COPY --from=doxygenbuild /usr/local/bin/doxygen /usr/local/bin/doxygen
 ENV PATH="${PATH}:/usr/local/bin"
-RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-pip \
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-pip pandoc \
     && python3 -m pip install --no-cache-dir \
         pandoc==2.3 sphinx==5.3.0 sphinx_rtd_theme==1.2.0 sphinx-reredirects==0.1.2 \
         enum-tools[sphinx] breathe==4.34.0 nbsphinx==0.9.2 sphinx_gallery==0.13.0 myst-parser==1.0.0
