@@ -7,7 +7,7 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --memtoreg %s | FileCheck %s
-// RUN: cudaq-opt --regtomem %s | cudaq-opt --memtoreg | FileCheck %s
+// RUN: cudaq-opt --regtomem %s | cudaq-opt --memtoreg | FileCheck --check-prefix=TOREG %s
 // RUN: cudaq-opt --regtomem %s | FileCheck --check-prefix=TOMEM %s
 // RUN: cudaq-opt --memtoreg %s | cudaq-opt --regtomem | FileCheck --check-prefix=TOMEM %s
 
@@ -26,6 +26,8 @@ func.func @t() {
   quake.z %2 : (!quake.ref) -> ()
   cf.br ^bb1
  ^bb3:
+  quake.sink %1 : !quake.wire
+  quake.dealloc %2 : !quake.ref
   return
 }
 
@@ -37,11 +39,13 @@ func.func @t() {
 // CHECK:           cf.br ^bb1(%[[VAL_3]] : !quake.wire)
 // CHECK:         ^bb1(%[[VAL_4:.*]]: !quake.wire):
 // CHECK:           %[[VAL_5:.*]] = cc.undef i1
-// CHECK:           cf.cond_br %[[VAL_5]], ^bb2(%[[VAL_4]] : !quake.wire), ^bb3
+// CHECK:           cf.cond_br %[[VAL_5]], ^bb2(%[[VAL_4]] : !quake.wire), ^bb3(%[[VAL_4]] : !quake.wire)
 // CHECK:         ^bb2(%[[VAL_6:.*]]: !quake.wire):
 // CHECK:           %[[VAL_7:.*]] = quake.z %[[VAL_6]] : (!quake.wire) -> !quake.wire
 // CHECK:           cf.br ^bb1(%[[VAL_7]] : !quake.wire)
-// CHECK:         ^bb3:
+// CHECK:         ^bb3(%[[VAL_8:.*]]: !quake.wire):
+// CHECK-DAG:       quake.sink %[[VAL_1]] : !quake.wire
+// CHECK-DAG:       quake.sink %[[VAL_8]] : !quake.wire
 // CHECK:           return
 // CHECK:         }
 
@@ -60,6 +64,25 @@ func.func @t() {
 // TOMEM:           quake.z %[[VAL_1]] : (!quake.ref) -> ()
 // TOMEM:           cf.br ^bb1
 // TOMEM:         ^bb3:
+// TOMEM-DAG:       quake.dealloc %[[VAL_0]] : !quake.ref
+// TOMEM-DAG:       quake.dealloc %[[VAL_1]] : !quake.ref
 // TOMEM:           return
 // TOMEM:         }
 
+// TOREG-LABEL:   func.func @t() {
+// TOREG:           %[[VAL_0:.*]] = quake.null_wire
+// TOREG:           %[[VAL_1:.*]] = quake.x %[[VAL_0]] : (!quake.wire) -> !quake.wire
+// TOREG:           %[[VAL_2:.*]] = quake.null_wire
+// TOREG:           %[[VAL_3:.*]] = quake.y %[[VAL_2]] : (!quake.wire) -> !quake.wire
+// TOREG:           cf.br ^bb1(%[[VAL_1]], %[[VAL_3]] : !quake.wire, !quake.wire)
+// TOREG:         ^bb1(%[[VAL_4:.*]]: !quake.wire, %[[VAL_5:.*]]: !quake.wire):
+// TOREG:           %[[VAL_6:.*]] = cc.undef i1
+// TOREG:           cf.cond_br %[[VAL_6]], ^bb2(%[[VAL_5]], %[[VAL_4]] : !quake.wire, !quake.wire), ^bb3(%[[VAL_4]], %[[VAL_5]] : !quake.wire, !quake.wire)
+// TOREG:         ^bb2(%[[VAL_7:.*]]: !quake.wire, %[[VAL_8:.*]]: !quake.wire):
+// TOREG:           %[[VAL_9:.*]] = quake.z %[[VAL_7]] : (!quake.wire) -> !quake.wire
+// TOREG:           cf.br ^bb1(%[[VAL_8]], %[[VAL_9]] : !quake.wire, !quake.wire)
+// TOREG:         ^bb3(%[[VAL_10:.*]]: !quake.wire, %[[VAL_11:.*]]: !quake.wire):
+// TOREG-DAG:       quake.sink %[[VAL_10]] : !quake.wire
+// TOREG-DAG:       quake.sink %[[VAL_11]] : !quake.wire
+// TOREG:           return
+// TOREG:         }

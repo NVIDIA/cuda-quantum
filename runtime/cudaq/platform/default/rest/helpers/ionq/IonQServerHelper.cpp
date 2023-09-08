@@ -72,7 +72,8 @@ public:
 
   /// @brief Processes the server's response to a job retrieval request and
   /// maps the results back to sample results.
-  cudaq::sample_result processResults(ServerMessage &postJobResponse) override;
+  cudaq::sample_result processResults(ServerMessage &postJobResponse,
+                                      std::string &jobId) override;
 };
 
 // Initialize the IonQ server helper with a given backend configuration
@@ -244,7 +245,8 @@ bool IonQServerHelper::jobIsDone(ServerMessage &getJobResponse) {
 
 // Process the results from a job
 cudaq::sample_result
-IonQServerHelper::processResults(ServerMessage &postJobResponse) {
+IonQServerHelper::processResults(ServerMessage &postJobResponse,
+                                 std::string &jobID) {
   // Construct the path to get the results
   auto resultsGetPath = constructGetResultsPath(postJobResponse);
   // Get the results

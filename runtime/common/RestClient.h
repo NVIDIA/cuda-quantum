@@ -28,7 +28,8 @@ public:
   /// Post the message to the remote path at the provided URL.
   nlohmann::json post(const std::string_view remoteUrl,
                       const std::string_view path, nlohmann::json &postStr,
-                      std::map<std::string, std::string> &headers);
+                      std::map<std::string, std::string> &headers,
+                      bool enableLogging = true);
   /// Get the contents of the remote server at the given url and path.
   nlohmann::json get(const std::string_view remoteUrl,
                      const std::string_view path,

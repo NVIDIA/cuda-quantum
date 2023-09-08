@@ -529,8 +529,9 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
 
   auto i1Ty = builder.getI1Type();
   if (type.isa<quake::RefType>()) {
-    Value measureResult = builder.template create<QuakeMeasureOp>(
-        i1Ty, value, builder.getStringAttr(regName));
+    auto strAttr = builder.getStringAttr(regName);
+    Value measureResult =
+        builder.template create<QuakeMeasureOp>(i1Ty, value, strAttr).getBits();
     return QuakeValue(builder, measureResult);
   }
 
@@ -548,7 +549,8 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
         OpBuilder::InsertionGuard guard(nestedBuilder);
         Value qv =
             nestedBuilder.create<quake::ExtractRefOp>(nestedLoc, value, iv);
-        Value bit = nestedBuilder.create<QuakeMeasureOp>(nestedLoc, i1Ty, qv);
+        Value bit =
+            nestedBuilder.create<QuakeMeasureOp>(nestedLoc, i1Ty, qv).getBits();
 
         auto i64Ty = nestedBuilder.getIntegerType(64);
         auto intIv =

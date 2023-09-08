@@ -49,6 +49,13 @@ def OperatorInterface : OpInterface<"OperatorInterface"> {
       /*methodBody=*/ "return $_op.getControls();"
     >,
     InterfaceMethod<
+      /*desc=*/ "Returns the set of qubits that were operated upon",
+      /*retType=*/ "mlir::ValueRange",
+      /*methodName=*/ "getWires",
+      /*args=*/ (ins),
+      /*methodBody=*/ "return $_op.getWires();"
+    >,
+    InterfaceMethod<
       /*desc=*/ "Returns an array indicating whether controls are negated",
       /*retType=*/ "std::optional<mlir::ArrayRef<bool>>",
       /*methodName=*/ "getNegatedControls",
@@ -97,6 +104,13 @@ def MeasurementInterface : OpInterface<"MeasurementInterface"> {
       /*methodName=*/ "getTargets",
       /*args=*/ (ins),
       /*methodBody=*/ "return $_op.getTargets();"
+    >,
+    InterfaceMethod<
+      /*desc=*/ "Returns the set of qubits that were measured",
+      /*retType=*/ "mlir::ValueRange",
+      /*methodName=*/ "getWires",
+      /*args=*/ (ins),
+      /*methodBody=*/ "return $_op.getWires();"
     >,
     InterfaceMethod<
       /*desc=*/ "Returns the register name, if any.",

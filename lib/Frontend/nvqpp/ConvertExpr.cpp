@@ -28,7 +28,7 @@ static Type getResultType(Type ty) {
   return ty;
 }
 
-// Convert a name, value pair into a symbol name.
+/// Convert a name, value pair into a symbol name.
 static std::string getQubitSymbolTableName(StringRef qregName, Value idxVal) {
   std::string name;
   if (auto idxIntVal = idxVal.getDefiningOp<arith::ConstantIntOp>())
@@ -42,6 +42,8 @@ static std::string getQubitSymbolTableName(StringRef qregName, Value idxVal) {
   return ss.str();
 }
 
+/// Helper to get the declaration of a decl-ref expression.
+/// Precondition: \p expr must be a pointer to a DeclRefExpr.
 static clang::NamedDecl *getNamedDecl(clang::Expr *expr) {
   auto *call = cast<clang::DeclRefExpr>(expr);
   return call->getDecl()->getUnderlyingDecl();
@@ -83,6 +85,8 @@ namespace {
 class Param {};
 } // namespace
 
+/// Create a negated controls attribute from a range of controls, \p ctrls, and
+/// a list of which ones should be negated, \p negations.
 static DenseBoolArrayAttr
 negatedControlsAttribute(MLIRContext *ctx, ValueRange ctrls,
                          SmallVector<Value> &negations) {
@@ -1221,10 +1225,12 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           (args.size() == 1 && args[0].getType().isa<quake::VeqType>()))
         resTy = cc::StdvecType::get(builder.getI1Type());
       if (funcName.equals("mx"))
-        return pushValue(builder.create<quake::MxOp>(loc, resTy, args));
+        return pushValue(
+            builder.create<quake::MxOp>(loc, resTy, args).getBits());
       if (funcName.equals("my"))
-        return pushValue(builder.create<quake::MyOp>(loc, resTy, args));
-      return pushValue(builder.create<quake::MzOp>(loc, resTy, args));
+        return pushValue(
+            builder.create<quake::MyOp>(loc, resTy, args).getBits());
+      return pushValue(builder.create<quake::MzOp>(loc, resTy, args).getBits());
     }
 
     // Handle the quantum gate set.
