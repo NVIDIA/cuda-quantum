@@ -388,7 +388,7 @@ jobs:
         python_version: ['3.8', '3.9', '3.10', '3.11']
       fail-fast: false
     
-    runs-on: ${{ (contains(matrix.info_file, 'arm') && 'linux-arm64-cpu8') || 'ubuntu-latest' }}
+    runs-on: ${{ (contains(matrix.info_file, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     
     steps:
       - name: Checkout repository
@@ -399,6 +399,16 @@ jobs:
           # ref: ${{ needs.assets.outputs.github_commit }}
           #=====================================================================
           token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+      
+      # Since we need to use self-hosted runners to pull assets using GH CLI, install it here.
+      - name: Install GH CLI
+        run: |
+          type -p curl >/dev/null || (apt-get update && apt-get install -y --no-install-recommends curl)
+          apt-get update && apt-get install -y --no-install-recommends zip ca-certificates && update-ca-certificates
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg --connect-timeout 300 | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+          chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+          apt-get update && apt-get install -y --no-install-recommends gh    
 
       - name: Retrieve assets
         id: release_info
