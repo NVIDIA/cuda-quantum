@@ -448,7 +448,7 @@ jobs:
           gh release view $release_id --json body --jq .body > rel_notes.txt
           header_length=`cat rel_notes.txt | grep -n "Release notes generated" | cut -d ':' -f 1`
           head -n $(($header_length - 1)) rel_notes.txt > new_notes.txt
-          echo -e "\nImage to create ${{ steps.release_info.outputs.platforms }} wheels:\n" >> new_notes.txt
+          echo -e "\nImage to create ${{ steps.release_info.outputs.platform }} wheels:\n" >> new_notes.txt
           echo "- cuda-quantum-devdeps (development dependencies only): ${{ steps.release_info.outputs.cudaqwheeldeps_image }}" >> new_notes.txt
           (echo && tail -n +$header_length rel_notes.txt) >> new_notes.txt
           gh release edit $release_id -R ${{ github.repository }} --notes-file new_notes.txt
