@@ -261,11 +261,11 @@ Once the binary for a specific IQM QPU architecture is compiled, it can be execu
 .. code:: bash
 
     nvq++ --target iqm --iqm-machine Adonis src.cpp -o program
-    IQM_SERVER_URL=https://<Adonis IQM Server>/cocos program
+    IQM_SERVER_URL="https://demo.qc.iqm.fi/cocos" ./program
 
     # Executing the same program against an IQM Server with a different underlying QPU
     # architecture will result in an error.
-    IQM_SERVER_URL=https://<Apollo IQM Server>/cocos program
+    IQM_SERVER_URL="https://<Apollo IQM Server>/cocos" ./program
 
 To emulate the IQM machine locally, without submitting to the IQM Server,
 you can also pass the ``--emulate`` flag to ``nvq++``. This will emit any target

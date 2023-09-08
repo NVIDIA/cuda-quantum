@@ -530,11 +530,11 @@ specific IQM Server may be checked  via <code class="code docutils literal notra
 </div>
 <p>Once the binary for a specific IQM QPU architecture is compiled, it can be executed against any IQM Server with the same QPU architecture:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>iqm<span class="w"> </span>--iqm-machine<span class="w"> </span>Adonis<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>program
-<span class="nv">IQM_SERVER_URL</span><span class="o">=</span>https://&lt;Adonis<span class="w"> </span>IQM<span class="w"> </span>Server&gt;/cocos<span class="w"> </span>program
+<span class="nv">IQM_SERVER_URL</span><span class="o">=</span><span class="s2">&quot;https://demo.qc.iqm.fi/cocos&quot;</span><span class="w"> </span>./program
 
 <span class="c1"># Executing the same program against an IQM Server with a different underlying QPU</span>
 <span class="c1"># architecture will result in an error.</span>
-<span class="nv">IQM_SERVER_URL</span><span class="o">=</span>https://&lt;Apollo<span class="w"> </span>IQM<span class="w"> </span>Server&gt;/cocos<span class="w"> </span>program
+<span class="nv">IQM_SERVER_URL</span><span class="o">=</span><span class="s2">&quot;https://&lt;Apollo IQM Server&gt;/cocos&quot;</span><span class="w"> </span>./program
 </pre></div>
 </div>
 <p>To emulate the IQM machine locally, without submitting to the IQM Server,
