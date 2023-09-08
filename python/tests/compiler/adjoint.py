@@ -238,7 +238,7 @@ def test_sample_adjoint_qubit():
 # CHECK:           quake.x %[[VAL_0]] : (!quake.ref) -> ()
 # CHECK:           call @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%[[VAL_0]]) : (!quake.ref) -> ()
 # CHECK:           quake.apply<adj> @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}} %[[VAL_0]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> i1 {registerName = ""}
+# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "" : (!quake.ref) -> i1
 # CHECK:           return
 # CHECK:         }
 

@@ -148,30 +148,4 @@ def MeasureToRegisterCallConv : Pat<
     (CreateMeasureCall $call, $args),
     [(IsaMeasureToRegisterCall:$callee), (IsaIntToPtrOperand $args)]>;
 
-//===----------------------------------------------------------------------===//
-
-def ExpandMxOp : NativeCodeCall<
-    "[&]() -> mlir::Value { using VR = mlir::ValueRange;"
-    " $_builder.create<quake::HOp>($_loc, VR{$1});"
-    " return $_builder.create<quake::MzOp>($_loc, $0.getType(), $1, $2); }()">;
-
-// %1 = mx %0
-// ──────────
-// %t = h %0
-// %1 = mz %t
-def MxToMz : Pat<(MxOp:$mx $arg, $reg), (ExpandMxOp $mx, $arg, $reg)>;
-
-def ExpandMyOp : NativeCodeCall<
-    "[&]() -> mlir::Value { using VR = mlir::ValueRange;"
-    " $_builder.create<quake::SOp>($_loc, true, VR{}, VR{}, VR{$1});"
-    " $_builder.create<quake::HOp>($_loc, VR{$1});"
-    " return $_builder.create<quake::MzOp>($_loc, $0.getType(), $1, $2); }()">;
-
-// %1 = my %0
-// ──────────
-// %s = s<adj> %0
-// %t = h %s
-// %1 = mz %t
-def MyToMz : Pat<(MyOp:$my $arg, $reg), (ExpandMyOp $my, $arg, $reg)>;
-
 #endif
