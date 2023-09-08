@@ -428,7 +428,7 @@ jobs:
             base_image=${{ steps.release_info.outputs.cudaqwheeldeps_image }}  
             release_version=${{steps.release_info.outputs.release_id  }}
             assets=${{ steps.release_info.outputs.assets_folder }}
-            python_version=$python_version
+            python_version=${{ matrix.python_version }}
           outputs: ${{ steps.release_info.outputs.docker_output }}
 
       - name: Upload wheels
