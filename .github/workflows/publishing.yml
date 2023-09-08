@@ -509,7 +509,7 @@ jobs:
             if [ -n "$(cat $file | grep "GPU_REQUIREMENTS")" ]; then
               target=`basename $file | cut -d "." -f 1`
               echo "## Execute on $target target" >> $GITHUB_STEP_SUMMARY
-              for ex in `find /home/cudaq/examples -name '*.cpp'`; do
+              for ex in `find /home/cudaq/examples -name '*.cpp' -not -path '*/providers/*'`; do
                 filename=$(basename -- "$ex")
                 nvq++ $ex --target $target
                 status=$?
