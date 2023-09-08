@@ -429,7 +429,7 @@ jobs:
           build-args: |
             base_image=${{ steps.release_info.outputs.cudaqwheeldeps_image }}  
             # FIXME: revert this line
-            release_version='0.0.0'
+            release_version=0.0.0
             assets=${{ steps.release_info.outputs.assets_folder }}
             python_version=${{ matrix.python_version }}
           outputs: ${{ steps.release_info.outputs.docker_output }}
