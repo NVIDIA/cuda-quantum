@@ -101,9 +101,9 @@ public:
 
 /// Simple forwarding of `!quake.control` values. If the argument to a
 /// `quake.to_ctrl` operation is coming from a `quake.from_ctrl` operation, then
-/// we can simply bypass the both operations and use the input to the
-/// `quake.from_control` itself. There are no intervening ops on the wire by
-/// definition.
+/// both operations can be bypassed and the input to the
+/// `quake.from_control` can be forwarded directly to the users of the
+/// `quake.to_ctrl`. There are no intervening ops on the wire by definition.
 class ForwardControl : public OpRewritePattern<quake::ToControlOp> {
 public:
   using OpRewritePattern::OpRewritePattern;

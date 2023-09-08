@@ -269,18 +269,19 @@ def PruneCtrlRelations : Pass<"pruned-ctrl-form", "mlir::func::FuncOp"> {
     accurate representation of the dataflow of the *logical* qubits. This
     alternative representation may be better suited to certain transformations.
 
-    The following example is overly constrained. There control, beginning with
-    `%0` is imposing what appears to be a strict ordering of `[x -> h -> y]`.
+    The following example is overly constrained. The control wire, beginning
+    with `%0` is imposing what appears to be a strict ordering of
+    `[x -> h -> y]`.
     ```mlir
       %3:2 = x [%0] %1 : (!wire, !wire) -> (!wire, !wire)
       %4:2 = h [%3#0] %2 : (!wire, !wire) -> (!wire, !wire)
       %5:2 = y [%4#0] %3#1 : (!wire, !wire) -> (!wire, !wire)
     ```
 
-    It can be rewritten as the following IR to reflect that the control wire
-    has an identity applied so is unchanged. We observe less strict ordering
-    constraints of `[h | x -> y]`. This might allow a scheduling pass to swap
-    `h` and `x`, for instance.
+    This snippet can be rewritten as the following IR to reflect that the
+    control wire has an identity applied so is unchanged. We observe less strict
+    ordering constraints of `[h | x -> y]`. This might allow a scheduling pass
+    to swap the order of the `h` and `x` gates, for instance.
     ```mlir
       %ctrl = to_ctrl %old.0 : (!wire) -> !control
       %3 = x [%ctrl] %1 : (!wire, !wire) -> !wire
