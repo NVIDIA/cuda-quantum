@@ -150,9 +150,9 @@ jobs:
             create_assets $file cuda-quantum-dev-image cuda-quantum-dev '${{ steps.artifacts.outputs.docker_images }}'
           done
 
-          # for file in ${{ join(fromJson(steps.artifacts.outputs.python_wheels).info_files, ' ') }}; do
-          #   create_assets $file cuda-quantum-wheeldeps-image cuda-quantum-devdeps '${{ steps.artifacts.outputs.python_wheels }}'
-          # done
+          for file in ${{ join(fromJson(steps.artifacts.outputs.python_wheels).info_files, ' ') }}; do
+            create_assets $file cuda-quantum-wheeldeps-image cuda-quantum-devdeps '${{ steps.artifacts.outputs.python_wheels }}'
+          done
 
       - name: Wait for assets
         run: |
