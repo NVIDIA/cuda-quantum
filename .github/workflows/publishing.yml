@@ -366,7 +366,8 @@ jobs:
   cudaq_wheels:
     name: CUDA Quantum Python wheels
     needs: assets
-    runs-on: ${{ needs.assets.outputs.runner }}
+    # FIXME: just build x86 wheels for now.
+    runs-on: linux-amd64-cpu8
 
     # FIXME: testing only. Must be reverted. 
     # environment:
