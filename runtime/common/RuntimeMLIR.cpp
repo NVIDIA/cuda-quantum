@@ -8,48 +8,31 @@
 
 #include "RuntimeMLIR.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
-#include "cudaq/Optimizer/CodeGen/Passes.h"
+#include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
+#include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
+#include "cudaq/Optimizer/CodeGen/Pipelines.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/Target/IQM/IQMJsonEmitter.h"
-#include "cudaq/Target/OpenQASM/OpenQASMEmitter.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Instructions.h"
-#include "llvm/IR/Module.h"
 #include "llvm/MC/SubtargetFeature.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/Base64.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ErrorOr.h"
 #include "llvm/Support/Host.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/TargetSelect.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/Target/TargetMachine.h"
-#include "mlir/Dialect/Affine/IR/AffineOps.h"
-#include "mlir/Dialect/Affine/Passes.h"
-#include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/ExecutionEngine/OptUtils.h"
-#include "mlir/IR/AsmState.h"
-#include "mlir/IR/BuiltinOps.h"
-#include "mlir/IR/Verifier.h"
 #include "mlir/InitAllDialects.h"
 #include "mlir/InitAllPasses.h"
 #include "mlir/InitAllTranslations.h"
 #include "mlir/Parser/Parser.h"
-#include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
-#include "mlir/Support/LogicalResult.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Tools/ParseUtilities.h"
-#include "mlir/Transforms/Passes.h"
 
 using namespace mlir;
 
@@ -377,11 +360,16 @@ void registerToOpenQASMTranslation() {
         PassManager pm(op->getContext());
         if (printIntermediateMLIR)
           pm.enableIRPrinting();
+        cudaq::opt::addPipelineToOpenQASM(pm);
         if (failed(pm.run(op)))
-          throw std::runtime_error("Lowering failed.");
+          throw std::runtime_error("code generation failed.");
         auto passed = cudaq::translateToOpenQASM(op, output);
-        if (printIR)
-          llvm::errs() << output.str();
+        if (printIR) {
+          if (succeeded(passed))
+            llvm::errs() << output.str();
+          else
+            llvm::errs() << "failed to create OpenQASM file.";
+        }
         return passed;
       });
 }
@@ -391,12 +379,19 @@ void registerToIQMJsonTranslation() {
       "iqm", "translate from quake to IQM's json format",
       [](Operation *op, llvm::raw_string_ostream &output, bool printIR,
          bool printIntermediateMLIR) {
-        auto passed = cudaq::translateToIQMJson(op, output);
+        PassManager pm(op->getContext());
         if (printIntermediateMLIR)
-          llvm::errs() << "WARNING: printIntermediateMLIR not supported for "
-                          "IQM's json format\n";
-        if (printIR)
-          llvm::errs() << output.str();
+          pm.enableIRPrinting();
+        cudaq::opt::addPipelineToIQMJson(pm);
+        if (failed(pm.run(op)))
+          throw std::runtime_error("code generation failed.");
+        auto passed = cudaq::translateToIQMJson(op, output);
+        if (printIR) {
+          if (succeeded(passed))
+            llvm::errs() << output.str();
+          else
+            llvm::errs() << "failed to create IQM json file.";
+        }
         return passed;
       });
 }
