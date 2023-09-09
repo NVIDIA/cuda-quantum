@@ -39,9 +39,9 @@ int main() {
                               {-0.05773502691896258, 0.0}});
 
   // Create the noise model
-  cudaq::noise_model noise;
+  auto noise = std::make_shared<cudaq::noise_model>();
   // Add the Kraus channel to the x operation on qubit 0.
-  noise.add_channel<cudaq::types::x>({0}, depol);
+  noise->add_channel<cudaq::types::x>({0}, depol);
 
   // Set the noise model
   cudaq::set_noise(noise);
@@ -49,4 +49,8 @@ int main() {
   // Run the noisy simulation
   counts = cudaq::sample(xgate);
   counts.dump();
+
+  // Unset the noise model when done. This is not necessary in this case but is
+  // good practice in order to not interfere with future simulations.
+  cudaq::unset_noise();
 }
