@@ -38,7 +38,6 @@ jobs:
       releases: ${{ steps.artifacts.outputs.releases }}
       release_title: ${{ steps.artifacts.outputs.release_title }}
       release_version: ${{ steps.artifacts.outputs.release_version }}
-      runner: ${{ steps.artifacts.outputs.runner }}
 
     steps:
       - name: Checkout repository
@@ -113,7 +112,6 @@ jobs:
           echo "docker_images=$(echo $docker_images)" >> $GITHUB_OUTPUT
           echo "python_wheels=$(echo $python_wheels)" >> $GITHUB_OUTPUT
           echo "artifacts_url=$artifacts_url" >> $GITHUB_OUTPUT
-          echo "runner=$runner" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ github.token }}
 
@@ -165,6 +163,28 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
+      - name: Retrieve and cache assets
+        id: cache_wheel_assets
+        run: |
+          assets_folder=assets && mkdir "$assets_folder" && cd "$assets_folder"
+          
+          function download_assets {
+            release_id=`echo "$2" | jq -r ".$1.release_id"`
+            while [ -z `ls | egrep '$1'` ]; do
+            (gh release download $release_id -R ${{ github.repository }}) || true
+            sleep 30 # waiting for assets to be created...
+            done
+          }
+          
+          for file in ${{ join(fromJson(steps.artifacts.outputs.python_wheels).info_files, ' ') }}; do
+            download_assets $file '${{ steps.artifacts.outputs.python_wheels }}'
+          done
+         
+          ls -R "$assets_folder"
+
+        env:
+          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+  
   cudaq_hpc:
     name: CUDA Quantum Docker image
     needs: assets
@@ -399,11 +419,6 @@ jobs:
           # ref: ${{ needs.assets.outputs.github_commit }}
           #=====================================================================
           token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
-      
-      # Since we need to use self-hosted runners to pull assets using GH CLI, install it here.
-      - name: Install GH CLI
-        run: |
-          apt-get update && apt-get install -y --no-install-recommends gh
 
       - name: Retrieve assets
         id: release_info
