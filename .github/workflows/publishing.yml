@@ -169,11 +169,13 @@ jobs:
           assets_folder=assets && mkdir "$assets_folder" && cd "$assets_folder"
           
           function download_assets {
+            mkdir "$1" && cd "$1"
             release_id=`echo "$2" | jq -r ".$1.release_id"`
             while [ -z `ls | egrep '$1'` ]; do
-            (gh release download $release_id -R ${{ github.repository }} --skip-existing) || true
+            (gh release download $release_id -R ${{ github.repository }}) || true
             sleep 30 # waiting for assets to be created...
             done
+            cd ..
           }
           
           for file in ${{ join(fromJson(steps.artifacts.outputs.python_wheels).info_files, ' ') }}; do
