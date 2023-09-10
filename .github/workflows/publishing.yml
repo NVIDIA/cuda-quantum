@@ -171,7 +171,7 @@ jobs:
           function download_assets {
             release_id=`echo "$2" | jq -r ".$1.release_id"`
             while [ -z `ls | egrep '$1'` ]; do
-            (gh release download $release_id -R ${{ github.repository }}) || true
+            (gh release download $release_id -R ${{ github.repository }} --skip-existing) || true
             sleep 30 # waiting for assets to be created...
             done
           }
