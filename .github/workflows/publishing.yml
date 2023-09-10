@@ -171,6 +171,7 @@ jobs:
           function download_assets {
             mkdir "$1" && cd "$1"
             release_id=`echo "$2" | jq -r ".$1.release_id"`
+            echo "Download $release_id assets..."
             gh release download $release_id -R ${{ github.repository }}
             cd ..
           }
@@ -179,7 +180,7 @@ jobs:
             download_assets $file '${{ steps.artifacts.outputs.python_wheels }}'
           done
          
-          ls -R "$assets_folder"
+          ls -R 
 
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
