@@ -163,10 +163,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
-      - name: Retrieve and cache assets
-        id: cache_wheel_assets
+      - name: Retrieve wheel assets
         run: |
-          assets_folder=assets && mkdir "$assets_folder" && cd "$assets_folder"
+          assets_folder=/tmp/wheel_assets && mkdir "$assets_folder" && cd "$assets_folder"
           
           function download_assets {
             mkdir "$1" && cd "$1"
@@ -185,6 +184,14 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
   
+      - name: Upload wheel assets
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheel_assets
+          path: /tmp/wheel_assets
+          retention-days: 1
+          if-no-files-found: error      
+
   cudaq_hpc:
     name: CUDA Quantum Docker image
     needs: assets
@@ -420,22 +427,25 @@ jobs:
           #=====================================================================
           token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
+      - name: Load wheel assets
+        uses: actions/download-artifact@v3
+        with:
+          name: wheel_assets
+          path: tmp/wheel_assets
+      
       - name: Retrieve assets
         id: release_info
         run: |
           release_id=${{ fromJson(needs.assets.outputs.python_wheels)[format('{0}', matrix.info_file)].release_id }}
           assets_folder=assets && mkdir "$assets_folder" && cd "$assets_folder"
-          while [ -z `ls | egrep '${{ matrix.info_file }}'` ]; do
-            (gh release download $release_id -R ${{ github.repository }}) || true
-            sleep 30 # waiting for assets to be created...
-          done
-
           build_info=${{ matrix.info_file }}*
           platform=`cat $build_info | grep -o 'platform: \S*' | cut -d ' ' -f 2`
           platform_id=`echo $platform | sed 's/linux\///g' | tr -d ' '`
           platform_arch=`([ "$platform_id" == "amd64" ] && echo x86_64) || ([ "$platform_id" == "arm64" ] && echo aarch64) || echo any`
           cudaqwheeldeps_image=`cat $build_info | grep -o 'cuda-quantum-wheeldeps-image: \S*' | cut -d ' ' -f 2`
-          for file in `ls *zip`; do unzip "$file" && rm "$file"; done && cd -
+          cd tmp/wheel_assets/${{ matrix.info_file }}
+          for file in `ls *zip`; do unzip "$file" -d "$assets_folder" && rm "$file"; done && cd -
+          cd  "$assets_folder" && ls -R 
 
           echo "platform=$platform"
           echo "platform_id=$platform_id"
