@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #ifndef NVQPP_OPTIMIZER_CODEGEN_PEEPHOLE
 #define NVQPP_OPTIMIZER_CODEGEN_PEEPHOLE
@@ -74,22 +74,6 @@ def CalleeConv : Pat<
 def IsArrayGetElementPtrId : Constraint<CPred<
     "$0.getValue().str() == cudaq::opt::QIRArrayGetElementPtr1d">>;
 
-def CreateIntToPtrOp : NativeCodeCall<
-    "$_builder.create<mlir::LLVM::IntToPtrOp>($_loc, $0.getType(), $1[1]);">;
-
-// %5 = ?
-// %6 = call @QIRArrayGetElementPtr %2, %5
-// %7 = bitcast %6
-// %8 = load %7, ...
-// ───────────────────────────────────────
-// %8 = inttoptr %5
-def ArrayGetElementPtrConv : Pat<
-    (LLVM_LoadOp:$load (LLVM_BitcastOp (LLVM_CallOp $callee, $args, $_, $_)), $_,
-                       $_, $_, $_, $_, $_),
-    (CreateIntToPtrOp $load, $args), [(IsArrayGetElementPtrId $callee)]>;
-
-//===----------------------------------------------------------------------===//
-
 def EraseArrayGEPOp : NativeCodeCall<
     "$_builder.create<mlir::LLVM::UndefOp>($_loc,"
     "  cudaq::opt::getQubitType($_builder.getContext()))">;
@@ -111,7 +95,7 @@ def EraseArrayAllocateOp : NativeCodeCall<
 //
 // %0 = call @allocate ... : ... -> T*
 // ───────────────────────────────────
-// %0 = inttoptr ~0 : i64 -> T*
+// %0 = undef : T*
 def EraseArrayAlloc : Pat<
     (LLVM_CallOp $callee, $_, $_, $_), (EraseArrayAllocateOp),
     [(IsaAllocateCall $callee)]>;
@@ -119,11 +103,13 @@ def EraseArrayAlloc : Pat<
 //===----------------------------------------------------------------------===//
 
 def IsaReleaseCall : Constraint<CPred<
-    "$0.getValue().str() == cudaq::opt::QIRArrayQubitReleaseArray">>;
+    "$0.getValue().str() == cudaq::opt::QIRArrayQubitReleaseArray || "
+    "$0.getValue().str() == cudaq::opt::QIRArrayQubitReleaseQubit">>;
 
 def EraseArrayReleaseOp : NativeCodeCall<"static_cast<std::size_t>(0)">;
 
-// Remove the release calls.
+// Remove the release calls. This removes both array allocations as well as
+// qubit singletons.
 //
 // call @release %5 : (!Qubit) -> ()
 // ─────────────────────────────────
@@ -161,57 +147,5 @@ def MeasureToRegisterCallConv : Pat<
     (LLVM_CallOp:$call $callee, $args, $_, $_),
     (CreateMeasureCall $call, $args),
     [(IsaMeasureToRegisterCall:$callee), (IsaIntToPtrOperand $args)]>;
-
-//===----------------------------------------------------------------------===//
-
-def HasI1PtrType : Constraint<CPred<
-    "$_self.getType() == cudaq::opt::factory::getPointerType("
-    "  mlir::IntegerType::get($_self.getContext(), 1))">>;
-
-def HasResultType : Constraint<CPred<
-    "$_self.getType() == cudaq::opt::getResultType($_self.getContext())">>;
-
-def IsaIntAttr : Constraint<CPred<"$_self.isa<mlir::IntegerAttr>()">>;
-    
-def CreateReadResultCall : NativeCodeCall<
-    "createReadResultCall($_builder, $_loc, $0)">;
-
-// %1 = llvm.constant 1
-// %2 = llvm.inttoptr %1 : i64 -> Result*
-// %3 = llvm.bitcast %2 : Result* -> i1*
-// %4 = llvm.load %3
-// ─────────────────────────────────────
-// %4 = call @read_result %2
-def LoadMeasureResult : Pat<
-    (LLVM_LoadOp:$load (LLVM_BitcastOp:$bitcast (LLVM_IntToPtrOp:$cast
-                       (LLVM_ConstantOp $attr))), $_, $_, $_, $_, $_, $_),
-    (CreateReadResultCall $cast),
-    [(HasI1PtrType:$bitcast), (HasResultType:$cast), (IsaIntAttr:$attr)]>;
-
-//===----------------------------------------------------------------------===//
-
-def ExpandMxOp : NativeCodeCall<
-    "[&]() -> mlir::Value { using VR = mlir::ValueRange;"
-    " $_builder.create<quake::HOp>($_loc, VR{$1});"
-    " return $_builder.create<quake::MzOp>($_loc, $0.getType(), $1, $2); }()">;
-
-// %1 = mx %0
-// ──────────
-// %t = h %0
-// %1 = mz %t
-def MxToMz : Pat<(MxOp:$mx $arg, $reg), (ExpandMxOp $mx, $arg, $reg)>;
-
-def ExpandMyOp : NativeCodeCall<
-    "[&]() -> mlir::Value { using VR = mlir::ValueRange;"
-    " $_builder.create<quake::SOp>($_loc, true, VR{}, VR{}, VR{$1});"
-    " $_builder.create<quake::HOp>($_loc, VR{$1});"
-    " return $_builder.create<quake::MzOp>($_loc, $0.getType(), $1, $2); }()">;
-
-// %1 = my %0
-// ──────────
-// %s = s<adj> %0
-// %t = h %s
-// %1 = mz %t
-def MyToMz : Pat<(MyOp:$my $arg, $reg), (ExpandMyOp $my, $arg, $reg)>;
 
 #endif

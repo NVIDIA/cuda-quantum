@@ -15,6 +15,7 @@
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_LOOPUNROLL
+#define GEN_PASS_DEF_UPDATEREGISTERNAMES
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
@@ -57,8 +58,9 @@ namespace {
 /// invariant. An invariant loop means the loop must execute exactly some
 /// specific number of times, even if that number is only known at runtime.
 struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
-  explicit UnrollCountedLoop(MLIRContext *ctx, std::size_t t, bool sf)
-      : OpRewritePattern(ctx), threshold(t), signalFailure(sf) {}
+  explicit UnrollCountedLoop(MLIRContext *ctx, std::size_t t, bool sf,
+                             unsigned &p)
+      : OpRewritePattern(ctx), threshold(t), signalFailure(sf), progress(p) {}
 
   LogicalResult matchAndRewrite(cudaq::cc::LoopOp loop,
                                 PatternRewriter &rewriter) const override {
@@ -129,6 +131,7 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
 
     LLVM_DEBUG(llvm::dbgs() << "after unrolling a loop:\n";
                lastBranch->getParentOfType<func::FuncOp>().dump());
+    progress++;
     return success();
   }
 
@@ -140,6 +143,7 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
 
   std::size_t threshold;
   bool signalFailure;
+  unsigned &progress;
 };
 
 /// The loop unrolling pass will fully unroll a `cc::LoopOp` when the loop is
@@ -154,35 +158,33 @@ public:
     auto *ctx = &getContext();
     auto *op = getOperation();
     auto numLoops = countLoopOps(op);
+    unsigned progress = 0;
     if (numLoops) {
       PassManager pm(ctx);
       pm.addPass(createCanonicalizerPass());
       RewritePatternSet patterns(ctx);
       patterns.insert<UnrollCountedLoop>(ctx, threshold,
-                                         /*signalFailure=*/false);
+                                         /*signalFailure=*/false, progress);
       FrozenRewritePatternSet frozen(std::move(patterns));
       // Iterate over the loops until a fixed-point is reached. Some loops can
       // only be unrolled if other loops are unrolled first and the constants
       // iteratively propagated.
       do {
+        progress = 0;
         (void)applyPatternsAndFoldGreedily(op, frozen);
         if (failed(pm.run(op)))
           break;
-      } while (loopsWereUnrolled(op, numLoops));
+      } while (progress);
     }
+    numLoops = countLoopOps(op);
     if (numLoops && signalFailure) {
       RewritePatternSet patterns(ctx);
-      patterns.insert<UnrollCountedLoop>(ctx, threshold, signalFailure);
+      patterns.insert<UnrollCountedLoop>(ctx, threshold, signalFailure,
+                                         progress);
       (void)applyPatternsAndFoldGreedily(op, std::move(patterns));
       emitError(UnknownLoc::get(ctx), "did not unroll loops");
       signalPassFailure();
     }
-  }
-
-  static bool loopsWereUnrolled(Operation *op, unsigned &numLoops) {
-    auto oldNumLoops = numLoops;
-    numLoops = countLoopOps(op);
-    return oldNumLoops > numLoops;
   }
 
   static unsigned countLoopOps(Operation *op) {
@@ -192,22 +194,85 @@ public:
     return result;
   }
 };
+
+/// After unrolling the loops, there may be duplicate registerName attributes in
+/// use. This pass will assign them unique names by appending a counter.
+class UpdateRegisterNamesPass
+    : public cudaq::opt::impl::UpdateRegisterNamesBase<
+          UpdateRegisterNamesPass> {
+public:
+  using UpdateRegisterNamesBase::UpdateRegisterNamesBase;
+
+  void runOnOperation() override {
+    auto *op = getOperation();
+
+    // First save the op's that contain a registerName attribute
+    DenseMap<StringRef, SmallVector<Operation *>> regOps;
+    op->walk([&](mlir::Operation *walkOp) {
+      if (auto prevAttr = walkOp->getAttr("registerName")) {
+        auto registerName = prevAttr.cast<StringAttr>().getValue();
+        regOps[registerName].push_back(walkOp);
+      }
+      return WalkResult::advance();
+    });
+
+    // Now apply new labels, appending a counter if necessary
+    for (auto &[registerName, opVec] : regOps) {
+      if (opVec.size() == 1)
+        continue; // don't rename individual qubit measurements
+      auto strLen = std::to_string(opVec.size()).size();
+      int bit = 0;
+      for (auto &regOp : opVec)
+        if (auto prevAttr = regOp->getAttr("registerName")) {
+          auto suffix = std::to_string(bit++);
+          if (suffix.size() < strLen)
+            suffix = std::string(strLen - suffix.size(), '0') + suffix;
+          // Note Quantinuum can't support a ":" delimiter, so use '%'
+          auto newAttr = OpBuilder(&getContext())
+                             .getStringAttr(registerName + "%" + suffix);
+          regOp->setAttr("registerName", newAttr);
+        }
+    }
+  }
+};
+
+/// Unrolling pass pipeline command-line options. These options are similar to
+/// the LoopUnroll pass options, but have different default settings.
+struct UnrollPipelineOptions
+    : public PassPipelineOptions<UnrollPipelineOptions> {
+  PassOptions::Option<unsigned> threshold{
+      *this, "threshold",
+      llvm::cl::desc("Maximum iterations to unroll. (default: 1024)"),
+      llvm::cl::init(1024)};
+  PassOptions::Option<bool> signalFailure{
+      *this, "signal-failure-if-any-loop-cannot-be-completely-unrolled",
+      llvm::cl::desc(
+          "Signal failure if pass can't unroll all loops. (default: true)"),
+      llvm::cl::init(true)};
+};
 } // namespace
 
-void cudaq::opt::createUnrollingPipeline(OpPassManager &pm, unsigned threshold,
-                                         bool signalFailure) {
+/// Add a pass pipeline to apply the requisite passes to fully unroll loops.
+/// When converting to a quantum circuit, the static control program is fully
+/// expanded to eliminate control flow. This pipeline will raise an error if any
+/// loop in the module cannot be fully unrolled and signalFailure is set.
+static void createUnrollingPipeline(OpPassManager &pm, unsigned threshold,
+                                    bool signalFailure) {
   pm.addPass(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(createClassicalMemToReg());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   pm.addPass(createCanonicalizerPass());
-  pm.addPass(createLoopNormalize());
+  pm.addPass(cudaq::opt::createLoopNormalize());
   pm.addPass(createCanonicalizerPass());
-  LoopUnrollOptions luo{threshold, signalFailure};
-  pm.addPass(createLoopUnroll(luo));
+  cudaq::opt::LoopUnrollOptions luo{threshold, signalFailure};
+  pm.addPass(cudaq::opt::createLoopUnroll(luo));
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createUpdateRegisterNames());
 }
 
 void cudaq::opt::registerUnrollingPipeline() {
-  PassPipelineRegistration<>(
+  PassPipelineRegistration<UnrollPipelineOptions>(
       "unrolling-pipeline",
       "Fully unroll loops that can be completely unrolled.",
-      addUnrollingPipeline);
+      [](OpPassManager &pm, const UnrollPipelineOptions &upo) {
+        createUnrollingPipeline(pm, upo.threshold, upo.signalFailure);
+      });
 }

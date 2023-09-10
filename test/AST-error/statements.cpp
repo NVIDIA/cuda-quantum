@@ -24,7 +24,7 @@ struct S2 {
 };
 
 struct S3 {
-  auto operator()(std::span<int> sp) __qpu__ {
+  auto operator()(std::vector<int> sp) __qpu__ {
     for (auto s : sp) // expected-error{{for (ranged) statement}}
       foo();
   }

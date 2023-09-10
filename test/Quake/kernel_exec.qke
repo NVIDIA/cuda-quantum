@@ -52,7 +52,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__ghz = "_ZN3ghzclE
         cc.continue %incr : index
       }
     }
-    %15 = quake.vec_size %3 : (!quake.veq<?>) -> i64
+    %15 = quake.veq_size %3 : (!quake.veq<?>) -> i64
     %16 = arith.index_cast %15 : i64 to index
     %c0 = arith.constant 0 : index
     %c1 = arith.constant 1 : index

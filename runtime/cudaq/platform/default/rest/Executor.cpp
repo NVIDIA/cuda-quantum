@@ -33,8 +33,17 @@ Executor::execute(std::vector<KernelExecution> &codesToExecute) {
                 response.dump());
 
     // Add the job id and the job name.
-    ids.emplace_back(serverHelper->extractJobId(response),
-                     codesToExecute[i].name);
+
+    auto task_id = serverHelper->extractJobId(response);
+
+    if (task_id.empty()) {
+      nlohmann::json tmp(job.at("tasks"));
+      serverHelper->constructGetJobPath(tmp[0]);
+      ids.emplace_back(
+          std::make_pair(tmp[0].at("task_id"), codesToExecute[i].name));
+    } else {
+      ids.emplace_back(task_id, codesToExecute[i].name);
+    }
     i++;
   }
 

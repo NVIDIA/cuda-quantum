@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// We should get the same code regardless of the order the passes are run.
+// We should get the same code regardless of which order the passes are run.
 
 // RUN: cudaq-opt --inline --apply-op-specialization --inline --canonicalize %s | FileCheck %s
 // RUN: cudaq-opt --apply-op-specialization --inline --canonicalize %s | FileCheck %s
@@ -18,7 +18,7 @@ func.func @__nvqpp__mlirgen____nvqppBuilderKernel_202375922897() {
   quake.h %1 : (!quake.ref) -> ()
   quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_367535629127[%1] %0 : (!quake.ref, !quake.ref) -> ()
   quake.h %1 : (!quake.ref) -> ()
-  %2 = quake.mz %1 : (!quake.ref) -> i1 {registerName = ""}
+  %2 = quake.mz %1 name "fido" : (!quake.ref) -> i1
   return
 }
 func.func @__nvqpp__mlirgen____nvqppBuilderKernel_367535629127(%arg0: !quake.ref) {
@@ -31,10 +31,10 @@ func.func @__nvqpp__mlirgen____nvqppBuilderKernel_367535629127(%arg0: !quake.ref
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
 // CHECK:           quake.x %[[VAL_0]]
 // CHECK:           quake.h %[[VAL_1]]
-// CHECK:           %[[VAL_2:.*]] = quake.concat %[[VAL_1]] : (!quake.ref) -> !quake.veq<?>
+// CHECK:           %[[VAL_2:.*]] = quake.concat %[[VAL_1]] : (!quake.ref) -> !quake.veq<1>
 // CHECK:           quake.x [%[[VAL_2]]] %[[VAL_0]] :
 // CHECK:           quake.h %[[VAL_1]] :
-// CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_1]] : (!quake.ref) -> i1 {registerName = ""}
+// CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_1]] name "fido" : (!quake.ref) -> i1
 // CHECK:           return
 // CHECK:         }
 

@@ -113,6 +113,8 @@ def quake_ConcatOp : QuakeOp<"concat", [Pure]> {
   let assemblyFormat = [{
     $qbits attr-dict `:` functional-type(operands, results)
   }];
+
+  let hasCanonicalizer = 1;
 }
 
 // A ComputeActionOp will be transformed into a series of CallOps.
@@ -134,8 +136,8 @@ def quake_ComputeActionOp : QuakeOp<"compute_action"> {
 
   let arguments = (ins
     UnitAttr:$is_dagger,
-    cc_LambdaType:$compute,
-    cc_LambdaType:$action
+    cc_CallableType:$compute,
+    cc_CallableType:$action
   );
 
   let assemblyFormat = [{
@@ -144,22 +146,19 @@ def quake_ComputeActionOp : QuakeOp<"compute_action"> {
   }];
 }
 
-def quake_ConvertControlOp : QuakeOp<"convert_ctrl"> {
+def quake_ToControlOp : QuakeOp<"to_ctrl", [Pure]> {
   let summary = "Convert a wire value to a control value.";
   let description = [{
-    This operation should be considered experimental. It is currently not used.
-
     This operation makes the conversion of a wire value to a control value
     explicit in the quake IR. These values have different semantics in the IR.
-    Ensuring these semantics via the type system may (or may not) prove to be
-    advantageous.
+    This op ensures these semantics via the type system.
 
     A value of type control is (nearly) an SSA-value. Once defined, via the
-    `convert_ctrl` operation, it can be used as an argument to other operations.
+    `to_ctrl` operation, it can be used as an argument to other operations.
     These uses are qualified. They must be in control argument positions and
-    these operations must dominate any second use of the `qubit` argument to
-    the `convert_ctrl`. The operand value and result value of a `convert_ctrl`
-    may not be used as arguments to the exact same subsequent operation.
+    these operations must dominate a `from_ctrl` operation that returns the
+    control qubit back to a wire. The operand value and result value of a
+    `to_ctrl` may NOT be used as arguments to the same operation.
   }];
 
   let arguments = (ins WireType:$qubit);
@@ -167,6 +166,22 @@ def quake_ConvertControlOp : QuakeOp<"convert_ctrl"> {
 
   let assemblyFormat = [{
     $qubit `:` functional-type(operands, results) attr-dict
+  }];
+}
+
+def quake_FromControlOp : QuakeOp<"from_ctrl", [Pure]> {
+  let summary = "Convert a control value to a wire value.";
+  let description = [{
+    This operation makes the conversion of a control value to a wire value
+    explicit in the quake IR. These values have different semantics in the IR.
+    This op ensures these semantics via the type system.
+  }];
+
+  let arguments = (ins ControlType:$ctrlbit);
+  let results = (outs WireType);
+
+  let assemblyFormat = [{
+    $ctrlbit `:` functional-type(operands, results) attr-dict
   }];
 }
 
@@ -196,11 +211,11 @@ def quake_DeallocOp : QuakeOp<"dealloc"> {
 
   let arguments = (ins
     Arg<AnyRefType, "qubit reference (or vector) to deallocate",
-    [MemFree]>:$qreg_or_vec
+    [MemFree]>:$reference
   );
 
   let assemblyFormat = [{
-    $qreg_or_vec `:` qualified(type($qreg_or_vec)) attr-dict
+    $reference `:` qualified(type($reference)) attr-dict
   }];
 }
 
@@ -290,10 +305,10 @@ def quake_RelaxSizeOp : QuakeOp<"relax_size", [Pure]> {
   let hasCanonicalizer = 1;
 }
 
-def quake_SubVecOp : QuakeOp<"subvec", [Pure]> {
+def quake_SubVeqOp : QuakeOp<"subveq", [Pure]> {
   let summary = "Extract a subvector from a veq reference value.";
   let description = [{
-    The `subvec` operation returns a subvector of references, type
+    The `subveq` operation returns a subvector of references, type
     `!quake.veq<N>` from a vector of references, type `!quake.veq<M>`, where
     `M >= N`.
 
@@ -308,7 +323,7 @@ def quake_SubVecOp : QuakeOp<"subvec", [Pure]> {
     ```mlir
       %0 = arith.constant 2 : i32
       %1 = arith.constant 6 : i32
-      %qr = quake.subvec %qv, %0, %1 : (!quake.veq<?>, i32, i32) ->
+      %qr = quake.subveq %qv, %0, %1 : (!quake.veq<?>, i32, i32) ->
                                         !quake.veq<5>
     ```
   }];
@@ -331,7 +346,7 @@ def quake_SubVecOp : QuakeOp<"subvec", [Pure]> {
 // VeqSizeOp
 //===----------------------------------------------------------------------===//
 
-def quake_VeqSizeOp : QuakeOp<"vec_size", [Pure]> {
+def quake_VeqSizeOp : QuakeOp<"veq_size", [Pure]> {
   let summary = "Return the size of a veq.";
   let description = [{
     Returns the size of a value of type `!quake.veq<n>`. If the vector has a
@@ -464,7 +479,7 @@ def quake_WrapOp : QuakeOp<"wrap"> {
   let hasCanonicalizer = 1;
 }
 
-def quake_NullWireOp : QuakeOp<"null_wire", [Pure]> {
+def quake_NullWireOp : QuakeOp<"null_wire"> {
   let summary = "Initial state of a wire.";
   let description = [{
     |0> - the initial state of a wire when first constructed. A wire is assumed
@@ -494,8 +509,13 @@ def quake_ResetOp : QuakeOp<"reset", [QuantumGate,
     ```
   }];
 
-  let arguments = (ins AnyQType:$targets);
-  let results = (outs Variadic<WireType>);
+  let arguments = (ins
+    AnyQType:$targets
+  );
+  let results = (outs
+    Variadic<WireType>:$wires
+  );
+
   let assemblyFormat = [{
      $targets `:` functional-type(operands, results) attr-dict
   }];
@@ -503,8 +523,36 @@ def quake_ResetOp : QuakeOp<"reset", [QuantumGate,
   let extraClassDeclaration = [{
     void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::
         EffectInstance<mlir::MemoryEffects::Effect>> &effects) {
-      quake::getOperatorEffectsImpl(effects, {}, getTargets());
+      quake::getResetEffectsImpl(effects, getTargets());
     }
+  }];
+}
+
+//===----------------------------------------------------------------------===//
+// Sink
+//===----------------------------------------------------------------------===//
+
+def quake_SinkOp : QuakeOp<"sink"> {
+  let summary = "Sink for a qubit that is used but not measured.";
+  let description = [{
+    The `quake.sink` operation is used to mark a particular wire in the value
+    semantics as used at the end of a circuit. Typically a wire is measured, but
+    in some cases the wire needs to be marked as if it were measured even though
+    a measurement is not desired.
+
+    This op is similar to the dealloc op in the reference semantics.
+
+    Example:
+    ```mlir
+      quake.sink %0 : !quake.wire
+    ```
+  }];
+
+  let arguments = (ins 
+    Arg<WireType,"wire to sink",[MemRead, MemWrite]>:$target
+  );
+  let assemblyFormat = [{
+     $target `:` qualified(type(operands)) attr-dict
   }];
 }
 
@@ -512,22 +560,26 @@ def quake_ResetOp : QuakeOp<"reset", [QuantumGate,
 // Measurements
 //===----------------------------------------------------------------------===//
 
-class Measurement<string mnemonic> : QuakeOp<mnemonic,
-    [DeclareOpInterfaceMethods<MemoryEffectsOpInterface>, QuantumMeasure]> {
+class Measurement<string mnemonic> : QuakeOp<mnemonic, [MeasurementInterface,
+    QuantumMeasure, DeclareOpInterfaceMethods<MemoryEffectsOpInterface>]> {
   let arguments = (ins
     Variadic<AnyQType>:$targets,
     OptionalAttr<StrAttr>:$registerName
   );
-  let results = (outs AnyTypeOf<[I1, StdvecOf<[I1]>]>:$bits);
+  let results = (outs
+    AnyTypeOf<[I1, StdvecOf<[I1]>]>:$bits,
+    Variadic<WireType>:$wires
+  );
 
   let assemblyFormat = [{
-    $targets `:` functional-type(operands, results) attr-dict
+    $targets (`name` $registerName^)? `:` functional-type(operands, results)
+      attr-dict
   }];
 
   code OpBaseDeclaration = [{
     void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::EffectInstance<
       mlir::MemoryEffects::Effect>> &effects) {
-      quake::getOperatorEffectsImpl(effects, {}, getTargets());
+      quake::getMeasurementEffectsImpl(effects, getTargets());
     }
   }];
 
@@ -593,7 +645,9 @@ class QuakeOperator<string mnemonic, list<Trait> traits = []>
     Variadic<AnyQType>:$targets,
     OptionalAttr<DenseBoolArrayAttr>:$negated_qubit_controls
   );
-  let results = (outs Variadic<WireType>);
+  let results = (outs
+    Variadic<WireType>:$wires
+  );
 
   let builders = [
     OpBuilder<(ins "mlir::UnitAttr":$is_adj,
@@ -628,7 +682,8 @@ class QuakeOperator<string mnemonic, list<Trait> traits = []>
     OpBuilder<(ins "bool":$is_adj,
                    "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$targets), [{
-      return build($_builder, $_state, is_adj, mlir::ValueRange{}, controls, targets);
+      return build($_builder, $_state, is_adj, mlir::ValueRange{}, controls,
+                   targets);
     }]>,
     OpBuilder<(ins "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$targets), [{
@@ -727,14 +782,14 @@ def PhasedRxOp : QuakeOperator<"phased_rx",
   let description = [{
     Matrix representation:
     ```
-    PhasedRx(ϴ,φ) = |        cos(ϴ/2)        -iexp(-iφ) * sin(ϴ/2) |
-                    | -iexp(iφ)) * sin(ϴ/2)         cos(ϴ/2)       |
+    PhasedRx(θ,φ) = |        cos(θ/2)        -iexp(-iφ) * sin(θ/2) |
+                    | -iexp(iφ)) * sin(θ/2)         cos(θ/2)       |
     ```
 
     Circuit symbol:
     ```
      ┌───────────────┐
-    ─┤ PhasedRx(ϴ,φ) ├─
+    ─┤ PhasedRx(θ,φ) ├─
      └───────────────┘
     ```
   }];
@@ -763,14 +818,14 @@ def RxOp : OneTargetParamOp<"rx", [Rotation]> {
   let description = [{
     Matrix representation:
     ```
-    Rx(ϴ) = |  cos(ϴ/2)  -isin(ϴ/2) |
-            | -isin(ϴ/2)  cos(ϴ/2)  |
+    Rx(θ) = |  cos(θ/2)  -isin(θ/2) |
+            | -isin(θ/2)  cos(θ/2)  |
     ```
 
     Circuit symbol:
     ```
      ┌───────┐
-    ─┤ Rx(ϴ) ├─
+    ─┤ Rx(θ) ├─
      └───────┘
     ```
   }];
@@ -781,14 +836,14 @@ def RyOp : OneTargetParamOp<"ry", [Rotation]> {
   let description = [{
     Matrix representation:
     ```
-    Ry(ϴ) = | cos(ϴ/2)  -sin(ϴ/2) |
-            | sin(ϴ/2)   cos(ϴ/2) |
+    Ry(θ) = | cos(θ/2)  -sin(θ/2) |
+            | sin(θ/2)   cos(θ/2) |
     ```
 
     Circuit symbol:
     ```
      ┌───────┐
-    ─┤ Ry(ϴ) ├─
+    ─┤ Ry(θ) ├─
      └───────┘
     ```
   }];
@@ -897,20 +952,20 @@ def U2Op : QuakeOperator<"u2", [NumParameters<2>, NumTargets<1>, Rotation]> {
 def U3Op : QuakeOperator<"u3", [NumParameters<3>, NumTargets<1>, Rotation]> {
   let summary = "the universal three-parameters operator";
   let description = [{
-    The three parameters are Euler angles: ϴ, φ, and λ.
+    The three parameters are Euler angles: θ, φ, and λ.
 
     NOTE: U3 is a generalization of U2 that covers all single-qubit rotations.
 
     Matrix representation:
     ```
-    U3(ϴ,φ,λ) = | cos(ϴ/2)            -exp(iλ) * sin(ϴ/2)       |
-                | exp(iφ) * sin(ϴ/2)   exp(i(λ + φ)) * cos(ϴ/2) |
+    U3(θ,φ,λ) = | cos(θ/2)            -exp(iλ) * sin(θ/2)       |
+                | exp(iφ) * sin(θ/2)   exp(i(λ + φ)) * cos(θ/2) |
     ```
 
     Circuit symbol:
     ```
      ┌───────────┐
-    ─┤ U3(ϴ,φ,λ) ├─
+    ─┤ U3(θ,φ,λ) ├─
      └───────────┘
     ```
   }];

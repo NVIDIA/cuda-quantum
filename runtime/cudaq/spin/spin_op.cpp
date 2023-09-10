@@ -7,13 +7,14 @@
  ******************************************************************************/
 
 #include "common/EigenDense.h"
+#include "common/EigenSparse.h"
 #include "common/FmtCore.h"
 #include <cudaq/spin_op.h>
 #include <stdint.h>
+#include <unsupported/Eigen/KroneckerProduct>
 #ifdef CUDAQ_HAS_OPENMP
 #include <omp.h>
 #endif
-
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -139,11 +140,11 @@ spin_op::spin_op(const spin_op &o) : terms(o.terms) {}
 
 spin_op::spin_op(
     std::pair<const spin_op_term, std::complex<double>> &termData) {
-  terms.emplace(termData);
+  terms.insert(termData);
 }
 spin_op::spin_op(
     const std::pair<const spin_op_term, std::complex<double>> &termData) {
-  terms.emplace(termData);
+  terms.insert(termData);
 }
 
 spin_op::iterator<spin_op> spin_op::begin() {
@@ -187,7 +188,9 @@ complex_matrix spin_op::to_matrix() const {
   complex_matrix A(dim, dim);
   A.set_zero();
   auto rawData = A.data();
+#ifdef CUDAQ_HAS_OPENMP
 #pragma omp parallel for shared(rawData)
+#endif
   for (std::size_t rowIdx = 0; rowIdx < dim; rowIdx++) {
     auto rowBitStr = getBitStrForIdx(rowIdx);
     for_each_term([&](spin_op &term) {
@@ -197,6 +200,59 @@ complex_matrix spin_op::to_matrix() const {
     });
   }
   return A;
+}
+
+spin_op::csr_spmatrix spin_op::to_sparse_matrix() const {
+  auto n = num_qubits();
+  auto dim = 1UL << n;
+  using Triplet = Eigen::Triplet<std::complex<double>>;
+  using SpMat = Eigen::SparseMatrix<std::complex<double>>;
+  std::vector<Triplet> xT{Triplet{0, 1, 1}, Triplet{1, 0, 1}},
+      iT{Triplet{0, 0, 1}, Triplet{1, 1, 1}},
+      yT{{0, 1, std::complex<double>{0, -1}},
+         {1, 0, std::complex<double>{0, 1}}},
+      zT{Triplet{0, 0, 1}, Triplet{1, 1, -1}};
+  SpMat x(2, 2), y(2, 2), z(2, 2), i(2, 2), mat(dim, dim);
+  x.setFromTriplets(xT.begin(), xT.end());
+  y.setFromTriplets(yT.begin(), yT.end());
+  z.setFromTriplets(zT.begin(), zT.end());
+  i.setFromTriplets(iT.begin(), iT.end());
+
+  auto kronProd = [](const std::vector<SpMat> &ops) -> SpMat {
+    SpMat ret = ops[0];
+    for (std::size_t k = 1; k < ops.size(); ++k)
+      ret = Eigen::kroneckerProduct(ret, ops[k]).eval();
+    return ret;
+  };
+
+  for_each_term([&](spin_op &term) {
+    auto termStr = term.to_string(false);
+    std::vector<SpMat> operations;
+    for (std::size_t k = 0; k < termStr.length(); ++k) {
+      auto pauli = termStr[k];
+      if (pauli == 'X')
+        operations.emplace_back(x);
+      else if (pauli == 'Y')
+        operations.emplace_back(y);
+      else if (pauli == 'Z')
+        operations.emplace_back(z);
+      else
+        operations.emplace_back(i);
+    }
+
+    mat += term.get_coefficient() * kronProd(operations);
+  });
+
+  std::vector<std::complex<double>> values;
+  std::vector<std::size_t> rows, cols;
+  for (int k = 0; k < mat.outerSize(); ++k)
+    for (SpMat::InnerIterator it(mat, k); it; ++it) {
+      values.emplace_back(it.value());
+      rows.emplace_back(it.row());
+      cols.emplace_back(it.col());
+    }
+
+  return std::make_tuple(values, rows, cols);
 }
 
 std::complex<double> spin_op::get_coefficient() const {
@@ -234,9 +290,9 @@ void spin_op::for_each_pauli(
   }
 }
 
-spin_op spin_op::random(std::size_t nQubits, std::size_t nTerms) {
-  std::random_device rd;
-  std::mt19937 gen(rd());
+spin_op spin_op::random(std::size_t nQubits, std::size_t nTerms,
+                        unsigned int seed) {
+  std::mt19937 gen(seed);
   std::vector<std::complex<double>> coeffs(nTerms, 1.0);
   std::vector<spin_op_term> randomTerms;
   for (std::size_t i = 0; i < nTerms; i++) {
@@ -247,6 +303,32 @@ spin_op spin_op::random(std::size_t nQubits, std::size_t nTerms) {
   }
 
   return spin_op(randomTerms, coeffs);
+}
+
+spin_op spin_op::from_word(const std::string &word) {
+  auto numQubits = word.length();
+  spin_op_term term(2 * numQubits);
+  for (std::size_t i = 0; i < numQubits; i++) {
+    auto letter = word[i];
+    if (std::islower(letter))
+      letter = std::toupper(letter);
+
+    if (letter == 'Y') {
+      term[i] = true;
+      term[i + numQubits] = true;
+    } else if (letter == 'X') {
+      term[i] = true;
+    } else if (letter == 'Z') {
+      term[i + numQubits] = true;
+    } else {
+
+      if (letter != 'I')
+        throw std::runtime_error(
+            "Invalid Pauli for spin_op::from_word, must be X, Y, Z, or I.");
+    }
+  }
+
+  return spin_op(term, 1.0);
 }
 
 void spin_op::expandToNQubits(const std::size_t numQubits) {
@@ -290,12 +372,6 @@ spin_op &spin_op::operator+=(const spin_op &v) noexcept {
   return *this;
 }
 
-// spin_op spin_op::operator[](const std::size_t term_idx) const {
-//   auto start = terms.begin();
-//   std::advance(start, term_idx);
-//   return spin_op(start->first, start->second);
-// }
-
 spin_op &spin_op::operator-=(const spin_op &v) noexcept {
   return operator+=(-1.0 * v);
 }
@@ -324,7 +400,9 @@ spin_op &spin_op::operator*=(const spin_op &v) noexcept {
       theirRow++;
   }
 
+#ifdef CUDAQ_HAS_OPENMP
 #pragma omp parallel for shared(composition)
+#endif
   for (std::size_t i = 0; i < nElements; i++) {
     auto [j, k] = indexMap[i];
     auto s = terms.begin();
@@ -544,7 +622,7 @@ spin_op z(const std::size_t idx) { return spin_op(pauli::Z, idx); }
 std::vector<double> spin_op::getDataRepresentation() {
   std::vector<double> dataVec;
   for (auto &[term, coeff] : terms) {
-    auto nq = terms.size() / 2;
+    auto nq = term.size() / 2;
     for (std::size_t i = 0; i < nq; i++) {
       if (term[i] && term[i + nq]) {
         dataVec.push_back(3.);

@@ -70,16 +70,43 @@ RUN source /opt/llvm/bootstrap/init_command.sh && \
         bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
     && rm -rf /llvm-project 
 
+# Todo: 
+# - remove http://apt.llvm.org/jammy/ in the install_toolchain.sh and use
+#   FROM llvmbuild as prereqs
+# - uncomment the source /opt/llvm/bootstrap/init_command.sh below
 FROM ubuntu:22.04 as prereqs
-COPY --from=llvmbuild /opt/llvm/lib/cmake/llvm /opt/llvm/lib/cmake/llvm
+SHELL ["/bin/bash", "-c"]
+COPY --from=llvmbuild /opt/llvm /opt/llvm
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
-RUN apt-get update && apt-get install --no-install-recommends -y ca-certificates \
+ADD ./scripts/install_toolchain.sh /scripts/install_toolchain.sh
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
     && export LLVM_INSTALL_PREFIX=/opt/llvm \
-    && export OPENBLAS_INSTALL_PREFIX=/usr/local/openblas \
+    && export BLAS_INSTALL_PREFIX=/usr/local/blas \
     && export OPENSSL_INSTALL_PREFIX=/usr/local/openssl \
+    # Making sure that anything that is build from source when installing additional
+    # prerequisites is built using the same toolchain as CUDA Quantum by default.
+    # && source /opt/llvm/bootstrap/init_command.sh \
     && bash /scripts/install_prerequisites.sh \
     && apt-get remove -y ca-certificates \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Pre-built binaries for doxygen are only available for x86_64.
+FROM ubuntu:22.04 as doxygenbuild
+RUN if [ "$(uname -m)" != "x86_64" ]; then \
+        apt-get update && apt-get install -y wget unzip make cmake flex bison gcc g++ python3 \
+        # Fixed commit corresponding to release 1.9.7
+        && wget https://github.com/doxygen/doxygen/archive/6a2ce4d18b5af1ca501bcf585e4c8e2b2b353b0f.zip -q -O repo.zip \
+        && unzip repo.zip && mv doxygen* repo && rm repo.zip \
+        && cmake -G "Unix Makefiles" repo && cmake --build . --target install --config Release \
+        && rm -rf repo && apt-get remove -y wget unzip make cmake flex bison gcc g++ python3 \
+        && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*; \
+    else \
+        apt-get update && apt-get install --no-install-recommends -y wget ca-certificates \
+        && wget https://www.doxygen.nl/files/doxygen-1.9.7.linux.bin.tar.gz \
+        && tar xf doxygen-1.9.7* && mv doxygen-1.9.7/bin/* /usr/local/bin/ && rm -rf doxygen-1.9.7* \
+        && apt-get remove -y wget ca-certificates \
+        && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*; \
+    fi
 
 FROM ubuntu:22.04
 SHELL ["/bin/bash", "-c"]
@@ -114,30 +141,25 @@ ENV CXX="$LLVM_INSTALL_PREFIX/bootstrap/cxx"
 RUN apt-get update && apt-get install -y --no-install-recommends libstdc++-12-dev \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Copy over other prerequisites we build from source.
-COPY --from=prereqs /usr/local/openblas /usr/local/openblas
-COPY --from=prereqs /usr/local/openssl /usr/local/openssl
-ENV OPENBLAS_INSTALL_PREFIX=/usr/local/openblas
+# Copy over additional prerequisites.
+ENV BLAS_INSTALL_PREFIX=/usr/local/blas
 ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
 ENV OPENSSL_ROOT_DIR="$OPENSSL_INSTALL_PREFIX"
+COPY --from=prereqs /usr/local/blas "$BLAS_INSTALL_PREFIX"
+COPY --from=prereqs /usr/local/openssl "$OPENSSL_INSTALL_PREFIX"
 
 # Install additional tools for CUDA Quantum documentation generation.
-RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certificates \
-    && wget https://www.doxygen.nl/files/doxygen-1.9.7.linux.bin.tar.gz \
-    && tar xf doxygen-1.9.7* && mv doxygen-1.9.7/bin/* /usr/local/bin/ && rm -rf doxygen-1.9.7* \
-    # NOTE: apt-get remove -y ca-certificates also remove python3-pip.
-    && apt-get remove -y wget ca-certificates \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
+COPY --from=doxygenbuild /usr/local/bin/doxygen /usr/local/bin/doxygen
 ENV PATH="${PATH}:/usr/local/bin"
-RUN apt-get update && apt-get install -y --no-install-recommends python3-pip \
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-pip \
     && python3 -m pip install --no-cache-dir \
         sphinx==5.3.0 sphinx_rtd_theme==1.2.0 sphinx-reredirects==0.1.2 \
         enum-tools[sphinx] breathe==4.34.0 myst-parser==1.0.0
 
 # Install additional dependencies required to build and test CUDA Quantum.
 RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certificates \
-    && wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-x86_64.tar.gz \
-    && tar xf cmake-3.26.4* && mv cmake-3.26.4-linux-x86_64/ /usr/local/cmake-3.26/ && rm -rf cmake-3.26.4* \
+    && wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-$(uname -m).tar.gz \
+    && tar xf cmake-3.26.4* && mv cmake-3.26.4-linux-$(uname -m)/ /usr/local/cmake-3.26/ && rm -rf cmake-3.26.4* \
     # NOTE: apt-get remove -y ca-certificates also remove python3-pip.
     && apt-get remove -y wget ca-certificates \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*

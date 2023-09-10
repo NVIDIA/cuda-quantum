@@ -35,16 +35,16 @@ public:
 
   /// @brief Constructor, takes the precomputed expectation value for
   /// <psi(x) | H | psi(x)> for the given spin_op.
-  observe_result(double &e, spin_op &H) : expValZ(e), spinOp(H) {}
+  observe_result(double &e, const spin_op &H) : expValZ(e), spinOp(H) {}
 
   /// @brief Constructor, takes the precomputed expectation value for
   /// <psi(x) | H | psi(x)> for the given spin_op. If this execution
   /// was shots based, also provide the sample_result data containing counts
   /// for each term in H.
-  observe_result(double &e, spin_op &H, sample_result counts)
+  observe_result(double &e, const spin_op &H, sample_result counts)
       : expValZ(e), spinOp(H), data(counts) {}
 
-  observe_result(double &&e, spin_op &H, sample_result counts)
+  observe_result(double &&e, const spin_op &H, sample_result counts)
       : expValZ(e), spinOp(H), data(counts) {}
 
   /// @brief Return the raw counts data for all terms
@@ -69,7 +69,15 @@ public:
   double exp_val_z(SpinOpType term) {
     static_assert(std::is_same_v<spin_op, std::remove_reference_t<SpinOpType>>,
                   "Must provide a one term spin_op");
-    return data.exp_val_z(term.to_string(false));
+    // Pauli == Pauli II..III
+    // e.g. someone might check for <Z>, which
+    // on more than 1 qubit can be <ZIII...III>
+    auto numQubits = spinOp.num_qubits();
+    auto termStr = term.to_string(false);
+    if (!data.has_expectation(termStr) && termStr.size() == 1 && numQubits > 1)
+      for (std::size_t i = 1; i < numQubits; i++)
+        termStr += "I";
+    return data.exp_val_z(termStr);
   }
 
   /// @brief Return the counts data for the given spin_op
@@ -80,7 +88,12 @@ public:
     static_assert(std::is_same_v<spin_op, std::remove_reference_t<SpinOpType>>,
                   "Must provide a one term spin_op");
     assert(term.num_terms() == 1 && "Must provide a one term spin_op");
-    auto counts = data.to_map(term.to_string(false));
+    auto numQubits = spinOp.num_qubits();
+    auto termStr = term.to_string(false);
+    if (!data.has_expectation(termStr) && termStr.size() == 1 && numQubits > 1)
+      for (std::size_t i = 1; i < numQubits; i++)
+        termStr += "I";
+    auto counts = data.to_map(termStr);
     ExecutionResult result(counts);
     return sample_result(result);
   }
@@ -93,6 +106,8 @@ public:
         return term.get_coefficient().real();
     return 0.0;
   }
+
+  spin_op get_spin() { return spinOp; }
 
   /// @brief Dump the counts data to standard out.
   void dump() { data.dump(); }

@@ -37,5 +37,5 @@ energy, parameter = cudaq.vqe(
     # list of parameters has length of 1:
     parameter_count=1)
 
-print(f"\nminimized <H> = {round(energy,3)}")
-print(f"optimal theta = {round(parameter[0],3)}")
+print(f"\nminimized <H> = {round(energy,16)}")
+print(f"optimal theta = {round(parameter[0],16)}")

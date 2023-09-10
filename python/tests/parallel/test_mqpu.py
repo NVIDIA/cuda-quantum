@@ -10,6 +10,11 @@ import cudaq, os, pytest, random, timeit
 from cudaq import spin
 import numpy as np
 
+skipIfNoMQPU = pytest.mark.skipif(
+    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-mqpu')),
+    reason="nvidia-mqpu backend not available"
+)
+
 
 # Helper function for asserting two values are within a
 # certain tolerance. If we make numpy a dependency,
@@ -18,9 +23,8 @@ def assert_close(want, got, tolerance=1.e-5) -> bool:
     return abs(want - got) < tolerance
 
 
+@skipIfNoMQPU
 def testLargeProblem():
-    if not cudaq.has_target('nvidia-mqpu'):
-        return
 
     cudaq.set_target('nvidia-mqpu')
     # This is not large, but we don't want our CI testing
@@ -60,10 +64,8 @@ def testLargeProblem():
                                    high=np.pi,
                                    size=(nQubits *
                                          (3 * nLayers + 2),)).tolist()
-    warmUp = cudaq.make_kernel()
-    q = warmUp.qalloc()
-    warmUp.x(q)
-    warmUp()
+    # JIT and warm up
+    kernel(execParams)
 
     # Serial Execution
     start = timeit.default_timer()
@@ -73,7 +75,7 @@ def testLargeProblem():
 
     # Parallel Execution
     start = timeit.default_timer()
-    e = cudaq.observe(kernel, H, execParams, execution=cudaq.par.thread)
+    e = cudaq.observe(kernel, H, execParams, execution=cudaq.parallel.thread)
     stop = timeit.default_timer()
     print("mqpu time = ", (stop - start))
     assert assert_close(e.expectation_z(), e.expectation_z())
@@ -82,9 +84,8 @@ def testLargeProblem():
     cudaq.reset_target()
 
 
+@skipIfNoMQPU
 def testAccuracy():
-    if not cudaq.has_target('nvidia-mqpu'):
-        return
 
     cudaq.set_target('nvidia-mqpu')
     target = cudaq.get_target()
@@ -104,7 +105,7 @@ def testAccuracy():
 
     # Get the `cudaq.ObserveResult` back from `cudaq.observe()`.
     # No shots provided.
-    result_no_shots = cudaq.observe(kernel, hamiltonian, 0.59)
+    result_no_shots = cudaq.observe(kernel, hamiltonian, 0.59, execution=cudaq.parallel.thread)
     expectation_value_no_shots = result_no_shots.expectation_z()
     assert assert_close(want_expectation_value, expectation_value_no_shots)
 

@@ -21,7 +21,7 @@ struct S {
    void operator()() __qpu__ {
       int arr[3];
       T{}(arr[0]); // expected-error{{arrays in kernel}}
-      T{}(arr[1]);
-      T{}(arr[2]);
+      T{}(arr[1]); // expected-error{{arrays in kernel}}
+      T{}(arr[2]); // expected-error{{arrays in kernel}}
    }
 };

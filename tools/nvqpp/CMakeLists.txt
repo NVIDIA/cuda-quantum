@@ -18,11 +18,8 @@ endif()
 
 configure_file("nvq++.in"
                "${CUDAQ_BINARY_DIR}/bin/nvq++" @ONLY)
-configure_file("fixup-linkage.pl"
-               "${CUDAQ_BINARY_DIR}/bin/fixup-linkage.pl" @ONLY)
 
 install(PROGRAMS ${CUDAQ_BINARY_DIR}/bin/nvq++
-                 ${CUDAQ_BINARY_DIR}/bin/fixup-linkage.pl
         DESTINATION bin)
 install(FILES backendConfig.cpp DESTINATION targets/)
 file(COPY backendConfig.cpp DESTINATION ${CMAKE_BINARY_DIR}/targets/)

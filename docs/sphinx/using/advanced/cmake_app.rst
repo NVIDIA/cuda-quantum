@@ -37,3 +37,4 @@ the :code:`myCudaQApp` folder)
 
 If you run the :code:`ninja` command with :code:`--verbose` you'll see that 
 :code:`nvq++` was used to compile and link the executable. 
+

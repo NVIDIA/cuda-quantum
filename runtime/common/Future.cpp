@@ -36,9 +36,20 @@ sample_result future::get() {
       std::this_thread::sleep_for(std::chrono::microseconds(100));
       resultResponse = client.get(jobGetPath, "", headers);
     }
-    auto c = serverHelper->processResults(resultResponse);
-    results.emplace_back(c.to_map(),
-                         jobs.size() == 1 ? GlobalRegisterName : id.second);
+    auto c = serverHelper->processResults(resultResponse, id.first);
+
+    // If there are multiple jobs, this is likely a spin_op.
+    // If so, use the job name instead of the global register.
+    if (jobs.size() > 1) {
+      results.emplace_back(c.to_map(), id.second);
+      results.back().sequentialData = c.sequential_data();
+    } else {
+      // For each register, add the results into result.
+      for (auto &regName : c.register_names()) {
+        results.emplace_back(c.to_map(regName), regName);
+        results.back().sequentialData = c.sequential_data(regName);
+      }
+    }
   }
 
   return sample_result(results);
@@ -74,7 +85,7 @@ future &future::operator=(future &&other) {
 std::ostream &operator<<(std::ostream &os, future &f) {
   if (f.wrapsFutureSampling)
     throw std::runtime_error(
-        "Cannot persist a cudaq::future that wraps a std::future.");
+        "Cannot persist a cudaq::future for a local kernel execution.");
 
   nlohmann::json j;
   j["jobs"] = f.jobs;
@@ -86,7 +97,12 @@ std::ostream &operator<<(std::ostream &os, future &f) {
 
 std::istream &operator>>(std::istream &is, future &f) {
   nlohmann::json j;
-  is >> j;
+  try {
+    is >> j;
+  } catch (std::exception &ex) {
+    throw std::runtime_error(
+        "Formatting error; could not parse input as json.");
+  }
   f.jobs = j["jobs"].get<std::vector<future::Job>>();
   f.qpuName = j["qpu"].get<std::string>();
   f.serverConfig = j["config"].get<std::map<std::string, std::string>>();

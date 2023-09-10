@@ -65,7 +65,7 @@ if(OPENSSL_FOUND)
   FetchContent_GetProperties(cpr)
   if(NOT cpr_POPULATED)
     FetchContent_Populate(cpr)
-    add_subdirectory(${cpr_SOURCE_DIR} ${cpr_BINARY_DIR} EXCLUDE_FROM_ALL SYSTEM)
+    add_subdirectory(${cpr_SOURCE_DIR} ${cpr_BINARY_DIR} EXCLUDE_FROM_ALL)
     target_compile_options(cpr PRIVATE "-w")
   endif()
 
@@ -105,15 +105,12 @@ target_include_directories(cudaq-mlir-runtime
 
 target_link_libraries(cudaq-mlir-runtime 
   PUBLIC
-    CCDialect
-    OptCodeGen
-    OptTransforms
-    QuakeDialect
-    CUDAQTargetOpenQASM
     ${dialect_libs}
     ${conversion_libs}
+    CCDialect
+    QuakeDialect
+    OptCodeGen
     OptTransforms
-    CUDAQTargetIQM
     MLIRTranslateLib
     MLIRIR
     MLIRParser

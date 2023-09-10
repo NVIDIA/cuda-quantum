@@ -63,7 +63,7 @@ public:
     SmallVector<Type> eleTys;
     // Add all argument types, translating std::vector to a length.
     for (auto inTy : funcTy.getInputs()) {
-      if (inTy.isa<cudaq::cc::LambdaType, cudaq::cc::StructType>())
+      if (inTy.isa<cudaq::cc::CallableType, cudaq::cc::StructType>())
         eleTys.push_back(IntegerType::get(ctx, 64));
       else if (inTy.isa<cudaq::cc::StdvecType, quake::VeqType>())
         eleTys.push_back(IntegerType::get(ctx, 64));
@@ -72,7 +72,7 @@ public:
     }
     // Add all result types, translating std::vector to a length.
     for (auto outTy : funcTy.getResults()) {
-      if (outTy.isa<cudaq::cc::LambdaType, cudaq::cc::StructType>()) {
+      if (outTy.isa<cudaq::cc::CallableType, cudaq::cc::StructType>()) {
         eleTys.push_back(IntegerType::get(ctx, 64));
       } else if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(outTy)) {
         eleTys.push_back(cudaq::cc::PointerType::get(vecTy.getElementType()));
@@ -356,7 +356,7 @@ public:
       Type inTy = inp.value();
       std::int64_t idx = inp.index();
       auto off = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{idx});
-      if (inTy.isa<cudaq::cc::LambdaType, cudaq::cc::StructType>()) {
+      if (inTy.isa<cudaq::cc::CallableType, cudaq::cc::StructType>()) {
         auto undef = builder.create<cudaq::cc::UndefOp>(loc, inTy);
         args.push_back(undef);
       } else if (inTy.isa<cudaq::cc::StdvecType, quake::VeqType>()) {
@@ -480,7 +480,8 @@ public:
   void genNewHostEntryPoint(Location loc, OpBuilder &builder,
                             StringAttr mangledAttr, FunctionType funcTy,
                             Type structTy, LLVM::GlobalOp kernName,
-                            func::FuncOp thunk, ModuleOp module) {
+                            func::FuncOp thunk, ModuleOp module,
+                            bool addThisPtr) {
     auto *ctx = builder.getContext();
     auto i64Ty = builder.getIntegerType(64);
     auto zeroAttr = builder.getI64IntegerAttr(0);
@@ -499,7 +500,7 @@ public:
         return;
       }
     } else {
-      newFuncTy = cudaq::opt::factory::toCpuSideFuncType(funcTy);
+      newFuncTy = cudaq::opt::factory::toCpuSideFuncType(funcTy, addThisPtr);
     }
     auto rewriteEntry =
         builder.create<func::FuncOp>(loc, mangledAttr.getValue(), newFuncTy);
@@ -519,7 +520,7 @@ public:
       Type inTy = arg.getType();
       std::int64_t idx = inp.index();
       auto off = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{idx});
-      if (inTy.isa<cudaq::cc::LambdaType, cudaq::cc::StructType>()) {
+      if (inTy.isa<cudaq::cc::CallableType, cudaq::cc::StructType>()) {
         /* do nothing */
       } else if (cudaq::opt::factory::isStdVecArg(inTy)) {
         auto ptrTy = dyn_cast<cudaq::cc::PointerType>(inTy);
@@ -752,7 +753,8 @@ public:
       // Generate a new mangled function on the host side to call the
       // callback function.
       genNewHostEntryPoint(loc, builder, mangledAttr, funcTy, structTy,
-                           kernName, thunk, module);
+                           kernName, thunk, module,
+                           !funcOp->hasAttr("no_this"));
 
       // Generate a function at startup to register this kernel as having
       // been processed for kernel execution.

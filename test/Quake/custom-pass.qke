@@ -1,0 +1,40 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt %s --load-cudaq-plugin %cudaq_lib_dir/CustomPassPlugin.so --cudaq-custom-pass  | FileCheck %s
+
+module {
+    func.func @bell() {
+        %0 = arith.constant 2 : i32
+        %c_0 = arith.constant 0 : i32
+        %c_1 = arith.constant 1 : i32
+        %qubits = quake.alloca !quake.veq<?>[%0 : i32]
+        %q0 = quake.extract_ref %qubits[%c_0] : (!quake.veq<?>,i32) -> !quake.ref
+        %q1 = quake.extract_ref %qubits[%c_1] : (!quake.veq<?>,i32) -> !quake.ref
+
+        quake.h %q0 : (!quake.ref) -> ()
+        quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+        quake.mz %q0 : (!quake.ref) -> i1
+        quake.mz %q1 : (!quake.ref) -> i1
+        return
+    }
+}
+
+// CHECK-LABEL:   func.func @bell() {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 2 : i32
+// CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
+// CHECK:           %[[VAL_2:.*]] = arith.constant 1 : i32
+// CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_0]] : i32]
+// CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_1]]] : (!quake.veq<?>, i32) -> !quake.ref
+// CHECK:           %[[VAL_5:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_2]]] : (!quake.veq<?>, i32) -> !quake.ref
+// CHECK:           quake.s %[[VAL_4]] : (!quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_4]]] %[[VAL_5]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           %[[VAL_6:.*]] = quake.mz %[[VAL_4]] : (!quake.ref) -> i1
+// CHECK:           %[[VAL_7:.*]] = quake.mz %[[VAL_5]] : (!quake.ref) -> i1
+// CHECK:           return
+// CHECK:         }

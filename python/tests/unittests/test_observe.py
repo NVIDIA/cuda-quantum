@@ -597,7 +597,7 @@ def test_observe_n():
     circuit.ry(theta, q[1])
     circuit.cx(q[1], q[0])
 
-    results = cudaq.observe_n(circuit, hamiltonian, angles)
+    results = cudaq.observe(circuit, hamiltonian, angles)
     energies = np.array([r.expectation_z() for r in results])
     print(energies)
     expected = np.array([
@@ -639,7 +639,7 @@ def test_observe_n():
     runtimeAngles = np.random.uniform(low=-np.pi, high=np.pi, size=(50, 2))
     print(runtimeAngles)
 
-    results = cudaq.observe_n(kernel, hamiltonian, runtimeAngles[:, 0],
+    results = cudaq.observe(kernel, hamiltonian, runtimeAngles[:, 0],
                               runtimeAngles[:, 1])
     energies = np.array([r.expectation_z() for r in results])
     print(energies)
@@ -659,11 +659,30 @@ def test_observe_n():
     runtimeAngles = np.random.uniform(low=-np.pi, high=np.pi, size=(50, 2))
     print(runtimeAngles)
 
-    results = cudaq.observe_n(kernel, hamiltonian, runtimeAngles)
+    results = cudaq.observe(kernel, hamiltonian, runtimeAngles)
     energies = np.array([r.expectation_z() for r in results])
     print(energies)
     assert len(energies) == 50
 
+
+def test_observe_list():
+    hamiltonianList = [-2.1433 * spin.x(0) * spin.x(1), -2.1433 * spin.y(
+        0) * spin.y(1),  .21829 * spin.z(0), - 6.125 * spin.z(1)]
+
+    circuit, theta = cudaq.make_kernel(float)
+    q = circuit.qalloc(2)
+    circuit.x(q[0])
+    circuit.ry(theta, q[1])
+    circuit.cx(q[1], q[0])
+
+    results = cudaq.observe(circuit, hamiltonianList, .59)
+
+    sum = 5.907
+    for r in results:
+        sum += r.expectation_z() * np.real(r.get_spin().get_coefficient())
+    print(sum)
+    want_expectation_value = -1.7487948611472093
+    assert assert_close(want_expectation_value, sum, tolerance=1e-2)
 
 # leave for gdb debugging
 if __name__ == "__main__":

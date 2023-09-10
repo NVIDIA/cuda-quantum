@@ -137,6 +137,52 @@ struct HToPhasedRx : public OpRewritePattern<quake::HOp> {
   }
 };
 
+// Naive mapping of R1 to Rz, ignoring the global phase.
+// This is only expected to work with full inlining and
+// quake apply specialization.
+struct R1ToRz : public OpRewritePattern<quake::R1Op> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(quake::R1Op r1Op,
+                                PatternRewriter &rewriter) const override {
+    if (!r1Op.getControls().empty())
+      return failure();
+
+    rewriter.replaceOpWithNewOp<quake::RzOp>(
+        r1Op, r1Op.isAdj(), r1Op.getParameters(), r1Op.getControls(),
+        r1Op.getTargets());
+    return success();
+  }
+};
+
+// quake.swap a, b
+// ───────────────────────────────────
+// quake.cnot b, a;
+// quake.cnot a, b;
+// quake.cnot b, a;
+struct SwapToCX : public OpRewritePattern<quake::SwapOp> {
+  using OpRewritePattern<quake::SwapOp>::OpRewritePattern;
+
+  void initialize() { setDebugName("SwapToCX"); }
+
+  LogicalResult matchAndRewrite(quake::SwapOp op,
+                                PatternRewriter &rewriter) const override {
+    if (!quake::isAllReferences(op))
+      return failure();
+
+    // Op info
+    Location loc = op->getLoc();
+    Value a = op.getTarget(0);
+    Value b = op.getTarget(1);
+
+    rewriter.create<quake::XOp>(loc, b, a);
+    rewriter.create<quake::XOp>(loc, a, b);
+    rewriter.create<quake::XOp>(loc, b, a);
+
+    rewriter.eraseOp(op);
+    return success();
+  }
+};
+
 // quake.h control, target
 // ───────────────────────────────────
 // quake.s target;
@@ -974,6 +1020,7 @@ void cudaq::populateWithAllDecompositionPatterns(RewritePatternSet &patterns) {
     // R1Op patterns
     CR1ToCX,
     R1ToPhasedRx,
+    R1ToRz,
     // RxOp patterns
     CRxToCX,
     RxToPhasedRx,
@@ -982,7 +1029,9 @@ void cudaq::populateWithAllDecompositionPatterns(RewritePatternSet &patterns) {
     RyToPhasedRx,
     // RzOp patterns
     CRzToCX,
-    RzToPhasedRx
+    RzToPhasedRx,
+    // Swap
+    SwapToCX
   >(patterns.getContext());
   // clang-format on
 }

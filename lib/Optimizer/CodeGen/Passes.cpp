@@ -14,10 +14,21 @@
 
 using namespace mlir;
 
+static void addOQCPipeline(OpPassManager &pm) {
+  using namespace cudaq::opt;
+  std::string basis[] = {
+      // TODO: make this our native gate set
+      "h", "s", "t", "r1", "rx", "ry", "rz", "x", "y", "z", "x(1)",
+  };
+  BasisConversionPassOptions options;
+  options.basis = basis;
+  pm.addPass(createBasisConversionPass(options));
+}
+
 static void addQuantinuumPipeline(OpPassManager &pm) {
   using namespace cudaq::opt;
   std::string basis[] = {
-      "h", "s", "t", "r1", "rx", "ry", "rz", "x", "y", "z", "x(1)",
+      "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)",
   };
   BasisConversionPassOptions options;
   options.basis = basis;
@@ -38,7 +49,7 @@ static void addIQMPipeline(OpPassManager &pm) {
 static void addIonQPipeline(OpPassManager &pm) {
   using namespace cudaq::opt;
   std::string basis[] = {
-      "h",  "s", "t", "r1", "rx",   "ry",
+      "h",  "s", "t", "rx", "ry",
       "rz", "x", "y", "z",  "x(1)", // TODO set to ms, gpi, gpi2
   };
   BasisConversionPassOptions options;
@@ -47,6 +58,9 @@ static void addIonQPipeline(OpPassManager &pm) {
 }
 
 void cudaq::opt::registerTargetPipelines() {
+  PassPipelineRegistration<>("oqc-gate-set-mapping",
+                             "Convert kernels to OQC gate set.",
+                             addOQCPipeline);
   PassPipelineRegistration<>("iqm-gate-set-mapping",
                              "Convert kernels to IQM gate set.",
                              addIQMPipeline);

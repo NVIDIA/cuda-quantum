@@ -36,9 +36,6 @@ install(TARGETS ${LIBRARY_NAME}
 
 add_subdirectory(qpp)
 
-# FIXME Check that we have GPUs. Could be in a 
-# Docker environment built with CUDA, but no --gpus flag
-# or no gpus on the system. 
 if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
   add_subdirectory(custatevec)
 endif() 

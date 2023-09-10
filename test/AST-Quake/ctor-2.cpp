@@ -29,13 +29,12 @@ void S2::operator()(bool b) {
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__S1(
-// CHECK-SAME:      %[[VAL_0:.*]]: i1
+// CHECK-SAME:      %[[VAL_0:.*]]: i1{{.*}}) attributes
 // CHECK:           %[[VAL_1:.*]] = cc.alloca i1
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<i1>
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_3:.*]] = cc.alloca !cc.struct<{i8}>
 // CHECK:           call @_ZN2S2C1Ev(%[[VAL_3]]) : (!cc.ptr<!cc.struct<{i8}>>) -> () 
-// CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.struct<{i8}>>) -> !cc.ptr<!cc.struct<"S2" {}>> 
 // CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_1]] : !cc.ptr<i1> 
 // CHECK:           call @_ZN2S2clEb(%[[VAL_5]]) : (i1) -> () 
 // CHECK:           return 

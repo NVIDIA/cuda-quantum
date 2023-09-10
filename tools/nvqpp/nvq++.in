@@ -486,7 +486,7 @@ for i in ${SRCS}; do
 	# If LIBRARY_MODE explicitly requested, then
 	# simply compile with the classical compiler.
 	if ${LIBRARY_MODE}; then
-		run ${CMAKE_FALLBACK_HOST_CXX} ${COMPILER_FLAGS} -DCUDAQ_LIBRARY_MODE ${INCLUDES} -o ${file}.o -c $i
+		run ${CMAKE_FALLBACK_HOST_CXX} ${COMPILER_FLAGS} -DCUDAQ_LIBRARY_MODE ${PREPROCESSOR_DEFINES} ${INCLUDES} -o ${file}.o -c $i
 		OBJS="${OBJS} ${file}.o"
 		# Go to the next iteration, maybe there
 		# will be cudaq kernels there
@@ -520,8 +520,9 @@ for i in ${SRCS}; do
 		fi
 
 		# Rewrite internal linkages so we can override the function.
-		export PERL_BADLANG=0
-		run ${install_dir}/bin/fixup-linkage.pl ${file}.qke ${file}.ll
+		mv ${file}.ll ${file}.pre.ll
+		TMPFILES="${TMPFILES} ${file}.pre.ll"
+		run ${install_dir}/bin/fixup-linkage ${file}.qke ${file}.pre.ll ${file}.ll
 
 		# Lower our LLVM to object files
 		run ${LLC} --relocation-model=pic --filetype=obj -O2 ${QUAKELL_FILE} -o ${file}.qke.o

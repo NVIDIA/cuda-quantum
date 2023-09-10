@@ -65,30 +65,34 @@ public:
     Value one = rewriter.template create<arith::ConstantIndexOp>(loc, 1);
     auto i1PtrTy = cudaq::cc::PointerType::get(i1Ty);
     for (auto v : measureOp.getTargets()) {
-      if (v.getType().template isa<quake::RefType>()) {
+      if (isa<quake::RefType>(v.getType())) {
         auto bit = rewriter.template create<A>(loc, i1Ty, v);
         Value offCast =
             rewriter.template create<arith::IndexCastOp>(loc, i64Ty, buffOff);
         auto addr = rewriter.template create<cudaq::cc::ComputePtrOp>(
             loc, i1PtrTy, buff, offCast);
-        rewriter.template create<cudaq::cc::StoreOp>(loc, bit, addr);
+        rewriter.template create<cudaq::cc::StoreOp>(loc, bit.getBits(), addr);
         buffOff = rewriter.template create<arith::AddIOp>(loc, buffOff, one);
       } else {
+        assert(isa<quake::VeqType>(v.getType()));
         Value vecSz = rewriter.template create<quake::VeqSizeOp>(loc, idxTy, v);
-        cudaq::opt::factory::createCountedLoop(
+        cudaq::opt::factory::createInvariantLoop(
             rewriter, loc, vecSz,
             [&](OpBuilder &builder, Location loc, Region &, Block &block) {
               Value iv = block.getArgument(0);
               Value qv =
                   builder.template create<quake::ExtractRefOp>(loc, v, iv);
               auto bit = builder.template create<A>(loc, i1Ty, qv);
+              if (auto registerName = measureOp->getAttr("registerName"))
+                bit->setAttr("registerName", registerName);
               auto offset =
                   builder.template create<arith::AddIOp>(loc, iv, buffOff);
               Value offCast = builder.template create<arith::IndexCastOp>(
                   loc, i64Ty, offset);
               auto addr = builder.template create<cudaq::cc::ComputePtrOp>(
                   loc, i1PtrTy, buff, offCast);
-              builder.template create<cudaq::cc::StoreOp>(loc, bit, addr);
+              builder.template create<cudaq::cc::StoreOp>(loc, bit.getBits(),
+                                                          addr);
             });
         buffOff = rewriter.template create<arith::AddIOp>(loc, buffOff, vecSz);
       }
@@ -120,11 +124,11 @@ public:
     target.addLegalDialect<quake::QuakeDialect, cudaq::cc::CCDialect,
                            arith::ArithDialect, LLVM::LLVMDialect>();
     target.addDynamicallyLegalOp<quake::MxOp>(
-        [](quake::MxOp x) { return usesIndividualQubit(x); });
+        [](quake::MxOp x) { return usesIndividualQubit(x.getBits()); });
     target.addDynamicallyLegalOp<quake::MyOp>(
-        [](quake::MyOp x) { return usesIndividualQubit(x); });
+        [](quake::MyOp x) { return usesIndividualQubit(x.getBits()); });
     target.addDynamicallyLegalOp<quake::MzOp>(
-        [](quake::MzOp x) { return usesIndividualQubit(x); });
+        [](quake::MzOp x) { return usesIndividualQubit(x.getBits()); });
     if (failed(applyPartialConversion(op, target, std::move(patterns)))) {
       op->emitOpError("could not expand measurements");
       signalPassFailure();

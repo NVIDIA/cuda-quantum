@@ -69,7 +69,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && python3 -m pip install --no-cache-dir numpy \
     && ln -s /bin/python3 /bin/python
 
-ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:/usr/include/c++/12/:/usr/include/x86_64-linux-gnu/c++/12"
+ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:/usr/include/c++/12/:/usr/include/$(uname -m)-linux-gnu/c++/12"
 
 # Copy over the CUDA Quantum installation, and the necessary compiler tools.
 
@@ -92,6 +92,7 @@ RUN bash "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh" "$CUDA_QUANTUM_PATH/assets" 
 ENV PATH "${PATH}:$CUDA_QUANTUM_PATH/bin"
 ENV PYTHONPATH "${PYTHONPATH}:$CUDA_QUANTUM_PATH"
 ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CUDA_QUANTUM_PATH/lib"
+ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:$CUDA_QUANTUM_PATH/include"
 
 # Include additional readmes and samples that are distributed with the image.
 

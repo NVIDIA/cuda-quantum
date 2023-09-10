@@ -34,26 +34,32 @@ struct test3_caller {
   }
 };
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__test3_callee
-// CHECK-SAME:     (%[[VAL_0:.*]]: !cc.lambda<(!quake.ref) -> ()>{{.*}}, %[[VAL_1:.*]]: !quake.veq<?>{{.*}}) attributes {
-// CHECK:           %[[VAL_4:.*]] = quake.extract_ref %{{.*}}[%{{.*}}] : (!quake.veq<?>, i64) -> !quake.ref
-// CHECK:           cc.call_callable %[[VAL_0]], %[[VAL_4]] : (!cc.lambda<(!quake.ref) -> ()>, !quake.ref) -> ()
-// CHECK:           %[[VAL_7:.*]] = quake.extract_ref %{{.*}}[%{{.*}}] : (!quake.veq<?>, i64) -> !quake.ref
-// CHECK:           cc.call_callable %[[VAL_0]], %[[VAL_7]] : (!cc.lambda<(!quake.ref) -> ()>, !quake.ref) -> ()
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__test3_callee(
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.callable<(!quake.ref) -> ()>{{.*}}, %[[VAL_1:.*]]: !quake.veq<?>{{.*}}) attributes {"cudaq-kernel"} {
+// CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_1]][0] : (!quake.veq<?>) -> !quake.ref
+// CHECK:           cc.call_callable %[[VAL_0]], %[[VAL_2]] : (!cc.callable<(!quake.ref) -> ()>, !quake.ref) -> ()
+// CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_1]][1] : (!quake.veq<?>) -> !quake.ref
+// CHECK:           cc.call_callable %[[VAL_0]], %[[VAL_3]] : (!cc.callable<(!quake.ref) -> ()>, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__test3_caller
-// CHECK-SAME: () attributes {
-// CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<?>[%{{.*}} : i64]
-// CHECK:           %[[VAL_4:.*]] = cc.create_lambda {
-// CHECK:           ^bb0(%[[VAL_5:.*]]: !quake.ref
-// CHECK:             cc.scope {
-// CHECK:               quake.h %[[VAL_5]]
-// CHECK:               quake.y %[[VAL_5]]
-// CHECK:             }
-// CHECK:           } : !cc.lambda<(!quake.ref) -> ()>
-// CHECK:           call @__nvqpp__mlirgen__test3_callee{{.*}}(%[[VAL_4]], %[[VAL_2]]) : (!cc.lambda<(!quake.ref) -> ()>, !quake.veq<?>) -> ()
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__test3_caller() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_1:.*]] = quake.relax_size %[[VAL_0]] : (!quake.veq<2>) -> !quake.veq<?>
+// CHECK:           %[[VAL_2:.*]] = cc.alloca !cc.struct<"test3_callee" {}>
+// CHECK:           %[[VAL_3:.*]] = cc.create_lambda {
+// CHECK:           ^bb0(%[[VAL_4:.*]]: !quake.ref{{.*}}):
+// CHECK:             quake.h %[[VAL_4]] : (!quake.ref) -> ()
+// CHECK:             quake.y %[[VAL_4]] : (!quake.ref) -> ()
+// CHECK:           } : !cc.callable<(!quake.ref) -> ()>
+// CHECK:           call @__nvqpp__mlirgen__test3_callee(%[[VAL_5:.*]], %[[VAL_1]]) : (!cc.callable<(!quake.ref) -> ()>, !quake.veq<?>) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__ZN12test3_callercl
+// CHECK-SAME:      _(%[[VAL_0:.*]]: !quake.ref{{.*}}) attributes {"cudaq-kernel"} {
+// CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           quake.y %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
 
@@ -79,39 +85,31 @@ struct test4_caller {
   }
 };
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__test4_caller
-// CHECK-SAME: () attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 2 : i32
-// CHECK:           %[[VAL_1:.*]] = arith.extsi %[[VAL_0]] : i32 to i64
-// CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<?>[%[[VAL_1]] : i64]
-// CHECK:           %[[VAL_3:.*]] = cc.undef !cc.struct<"test4_callee" {}>
-// CHECK:           %[[VAL_4:.*]] = cc.create_lambda {
-// CHECK:           ^bb0(%[[VAL_5:.*]]: !quake.ref
-// CHECK:             cc.scope {
-// CHECK:               quake.h %[[VAL_5]] :
-// CHECK:               quake.x %[[VAL_5]] : (!quake.ref) -> ()
-// CHECK:             }
-// CHECK:           } : !cc.lambda<(!quake.ref) -> ()>
-// CHECK:           call @__nvqpp__mlirgen__instance_test4_callee{{.*}}(%[[VAL_4]], %[[VAL_2]]) : (!cc.lambda<(!quake.ref) -> ()>, !quake.veq<?>) -> ()
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__test4_caller() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_1:.*]] = quake.relax_size %[[VAL_0]] : (!quake.veq<2>) -> !quake.veq<?>
+// CHECK:           %[[VAL_2:.*]] = cc.alloca !cc.struct<"test4_callee" {}>
+// CHECK:           %[[VAL_3:.*]] = cc.create_lambda {
+// CHECK:           ^bb0(%[[VAL_4:.*]]: !quake.ref{{.*}}):
+// CHECK:             quake.h %[[VAL_4]] : (!quake.ref) -> ()
+// CHECK:             quake.x %[[VAL_4]] : (!quake.ref) -> ()
+// CHECK:           } : !cc.callable<(!quake.ref) -> ()>
+// CHECK:           call @__nvqpp__mlirgen__instance_test4_calleeZN12test4_caller[[LAM4:.*]](%[[VAL_5:.*]], %[[VAL_1]]) : (!cc.callable<(!quake.ref) -> ()>, !quake.veq<?>) -> ()
 // CHECK:           return
 // CHECK:         }
 
-// CHECK-LABEL: func.func @__nvqpp__mlirgen__instance_test4_callee
-// CHECK-SAME:   (%[[VAL_0:.*]]: !cc.lambda<(!quake.ref) -> ()>{{.*}}, %[[VAL_1:.*]]: !quake.veq<?>{{.*}}) attributes {
-// CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i32
-// CHECK:           %[[VAL_3:.*]] = arith.extsi %[[VAL_2]] : i32 to i64
-// CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_1]][%[[VAL_3]]] : (!quake.veq<?>, i64) -> !quake.ref
-// CHECK:           call @__nvqpp__mlirgen__ZN12test4_callerclEvEUlRN5cudaq5quditILm2EEEE_(%[[VAL_4]]) : (!quake.ref) -> ()
-// CHECK:           %[[VAL_5:.*]] = arith.constant 1 : i32
-// CHECK:           %[[VAL_6:.*]] = arith.extsi %[[VAL_5]] : i32 to i64
-// CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_1]][%[[VAL_6]]] : (!quake.veq<?>, i64) -> !quake.ref
-// CHECK:           call @__nvqpp__mlirgen__ZN12test4_callerclEvEUlRN5cudaq5quditILm2EEEE_(%[[VAL_7]]) : (!quake.ref) -> ()
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__ZN12test4_caller
+// CHECK-SAME:      [[LAM:.*]]_(%[[VAL_0:.*]]: !quake.ref{{.*}}) attributes {"cudaq-kernel"} {
+// CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           quake.x %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__ZN12test4_callerclEvEUlRN5cudaq5quditILm2EEEE_(
-// CHECK-SAME:      %[[VAL_0:.*]]: !quake.ref{{.*}}) attributes {
-// CHECK:           quake.h %[[VAL_0]] :
-// CHECK:           quake.x %[[VAL_0]] :
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__instance_test4_calleeZN12test4_caller
+// CHECK-SAME:      [[LAM4]](%[[VAL_0:.*]]: !cc.callable<(!quake.ref) -> ()>{{.*}}, %[[VAL_1:.*]]: !quake.veq<?>{{.*}}) attributes {"cudaq-kernel"} {
+// CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_1]][0] : (!quake.veq<?>) -> !quake.ref
+// CHECK:           call @__nvqpp__mlirgen__ZN12test4_caller[[LAM]]_(%[[VAL_2]]) : (!quake.ref) -> ()
+// CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_1]][1] : (!quake.veq<?>) -> !quake.ref
+// CHECK:           call @__nvqpp__mlirgen__ZN12test4_caller[[LAM]]_(%[[VAL_3]]) : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }

@@ -10,16 +10,26 @@
 #define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
 
 #include "common/Logger.h"
+#ifdef CUDAQ_HAS_CUDA
+#include "cuda_runtime_api.h"
+#endif
 #include "cudaq/platform.h"
 #include "cudaq/utils/registry.h"
 #include <dlfcn.h>
 #include <map>
 #include <regex>
+#include <signal.h>
 #include <string>
 #include <vector>
 
 #ifdef CUDAQ_HAS_MPI
 #include <mpi.h>
+
+namespace nvqir {
+void tearDownBeforeMPIFinalize();
+void setRandomSeed(std::size_t);
+} // namespace nvqir
+
 namespace cudaq::mpi {
 
 void initialize() {
@@ -76,9 +86,26 @@ CUDAQ_ALL_REDUCE_IMPL(double, MPI_DOUBLE, std::multiplies, MPI_PROD)
 
 } // namespace details
 
+void all_gather(std::vector<double> &global, std::vector<double> &local) {
+  MPI_Allgather(local.data(), local.size(), MPI_DOUBLE, global.data(),
+                local.size(), MPI_DOUBLE, MPI_COMM_WORLD);
+}
+
 void finalize() {
   if (rank() == 0)
     cudaq::info("Finalizing MPI.");
+
+  // Inform the simulator that we are
+  // about to run MPI Finalize
+  nvqir::tearDownBeforeMPIFinalize();
+
+  // Check if finalize has been called.
+  int isFinalized;
+  MPI_Finalized(&isFinalized);
+  if (isFinalized)
+    return;
+
+  // Finalize
   int mpi_error = MPI_Finalize();
   assert(mpi_error == MPI_SUCCESS && "MPI_Finalize failed.");
 }
@@ -109,6 +136,8 @@ CUDAQ_ALL_REDUCE_IMPL(double, std::plus)
 CUDAQ_ALL_REDUCE_IMPL(double, std::multiplies)
 
 } // namespace details
+
+void all_gather(std::vector<double> &global, std::vector<double> &local) {}
 
 void finalize() {}
 
@@ -175,11 +204,11 @@ bool cudaq::__internal__::isLibraryMode(const std::string &kernelname) {
 
 //===----------------------------------------------------------------------===//
 
-namespace cudaq {
+namespace nvqir {
+void setRandomSeed(std::size_t);
+}
 
-/// @brief Global boolean that disables
-/// target modification.
-bool disallowTargetModification = false;
+namespace cudaq {
 
 void set_target_backend(const char *backend) {
   std::string backendName(backend);
@@ -250,6 +279,32 @@ void unset_noise() {
   auto &platform = cudaq::get_platform();
   platform.set_noise(nullptr);
 }
+
+void set_random_seed(std::size_t seed) { nvqir::setRandomSeed(seed); }
+
+int num_available_gpus() {
+  int nDevices = 0;
+#ifdef CUDAQ_HAS_CUDA
+  cudaGetDeviceCount(&nDevices);
+#endif
+  return nDevices;
+}
+
+namespace __internal__ {
+void cudaqCtrlCHandler(int signal) {
+  printf(" CTRL-C caught in cudaq runtime.\n");
+  std::exit(1);
+}
+
+__attribute__((constructor)) void startSigIntHandler() {
+  struct sigaction sigIntHandler;
+  sigIntHandler.sa_handler = cudaqCtrlCHandler;
+  sigemptyset(&sigIntHandler.sa_mask);
+  sigIntHandler.sa_flags = 0;
+  sigaction(SIGINT, &sigIntHandler, NULL);
+}
+} // namespace __internal__
+
 } // namespace cudaq
 
 namespace cudaq::support {

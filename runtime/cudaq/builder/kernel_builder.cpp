@@ -149,8 +149,12 @@ initializeBuilder(MLIRContext *context,
 
   cudaq::info("kernel_builder has {} arguments", arguments.size());
 
+  // Every Kernel should have a ReturnOp terminator,
+  // then we'll set the insertion point to right
+  // before it.
   opBuilder->setInsertionPointToStart(entryBlock);
-
+  auto terminator = opBuilder->create<func::ReturnOp>();
+  opBuilder->setInsertionPoint(terminator);
   return opBuilder;
 }
 void deleteBuilder(ImplicitLocOpBuilder *builder) { delete builder; }
@@ -367,7 +371,7 @@ void forLoop(ImplicitLocOpBuilder &builder, Value &startVal, Value &end,
                         ? startVal
                         : builder.create<arith::IndexCastOp>(idxTy, startVal);
   Value totalIters = builder.create<arith::SubIOp>(idxTy, castEnd, castStart);
-  cudaq::opt::factory::createCountedLoop(
+  cudaq::opt::factory::createInvariantLoop(
       builder, builder.getLoc(), totalIters,
       [&](OpBuilder &nestedBuilder, Location nestedLoc, Region &,
           Block &block) {
@@ -461,7 +465,7 @@ void handleOneQubitBroadcast(ImplicitLocOpBuilder &builder, Value veq,
 
     builder.create<QuakeOp>(loc, adjoint, ValueRange(), ValueRange(), ref);
   };
-  cudaq::opt::factory::createCountedLoop(builder, loc, rank, bodyBuilder);
+  cudaq::opt::factory::createInvariantLoop(builder, loc, rank, bodyBuilder);
 }
 
 template <typename QuakeOp>
@@ -525,8 +529,9 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
 
   auto i1Ty = builder.getI1Type();
   if (type.isa<quake::RefType>()) {
-    Value measureResult = builder.template create<QuakeMeasureOp>(
-        i1Ty, value, builder.getStringAttr(regName));
+    auto strAttr = builder.getStringAttr(regName);
+    Value measureResult =
+        builder.template create<QuakeMeasureOp>(i1Ty, value, strAttr).getBits();
     return QuakeValue(builder, measureResult);
   }
 
@@ -536,7 +541,7 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
   Value size = builder.template create<arith::IndexCastOp>(
       builder.getIndexType(), vecSize);
   auto buff = builder.template create<cc::AllocaOp>(i1Ty, vecSize);
-  cudaq::opt::factory::createCountedLoop(
+  cudaq::opt::factory::createInvariantLoop(
       builder, builder.getLoc(), size,
       [&](OpBuilder &nestedBuilder, Location nestedLoc, Region &,
           Block &block) {
@@ -544,7 +549,8 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
         OpBuilder::InsertionGuard guard(nestedBuilder);
         Value qv =
             nestedBuilder.create<quake::ExtractRefOp>(nestedLoc, value, iv);
-        Value bit = nestedBuilder.create<QuakeMeasureOp>(nestedLoc, i1Ty, qv);
+        Value bit =
+            nestedBuilder.create<QuakeMeasureOp>(nestedLoc, i1Ty, qv).getBits();
 
         auto i64Ty = nestedBuilder.getIntegerType(64);
         auto intIv =
@@ -593,8 +599,8 @@ void reset(ImplicitLocOpBuilder &builder, const QuakeValue &qubitOrQvec) {
                                                       block.getArgument(0));
       builder.create<quake::ResetOp>(loc, TypeRange{}, ref);
     };
-    cudaq::opt::factory::createCountedLoop(builder, builder.getUnknownLoc(),
-                                           rank, bodyBuilder);
+    cudaq::opt::factory::createInvariantLoop(builder, builder.getUnknownLoc(),
+                                             rank, bodyBuilder);
     return;
   }
 
@@ -616,9 +622,8 @@ void swap(ImplicitLocOpBuilder &builder, const std::vector<QuakeValue> &ctrls,
   builder.create<quake::SwapOp>(adjoint, ValueRange(), ctrlValues, qubitValues);
 }
 
-template <typename MeasureTy>
-void checkAndUpdateRegName(MeasureTy &measure) {
-  auto regName = measure.getRegisterName();
+void checkAndUpdateRegName(quake::MeasurementInterface &measure) {
+  auto regName = measure.getOptionalRegisterName();
   if (!regName.has_value() || regName.value().empty()) {
     auto regNameUpdate = "auto_register_" + std::to_string(regCounter++);
     measure.setRegisterName(regNameUpdate);
@@ -629,12 +634,8 @@ void c_if(ImplicitLocOpBuilder &builder, QuakeValue &conditional,
           std::function<void()> &thenFunctor) {
   auto value = conditional.getValue();
 
-  if (auto mxOp = value.getDefiningOp<quake::MxOp>())
-    checkAndUpdateRegName(mxOp);
-  else if (auto myOp = value.getDefiningOp<quake::MyOp>())
-    checkAndUpdateRegName(myOp);
-  else if (auto mzOp = value.getDefiningOp<quake::MzOp>())
-    checkAndUpdateRegName(mzOp);
+  if (auto measureOp = value.getDefiningOp<quake::MeasurementInterface>())
+    checkAndUpdateRegName(measureOp);
 
   auto type = value.getType();
   if (!type.isa<mlir::IntegerType>() || type.getIntOrFloatBitWidth() != 1)
@@ -694,23 +695,40 @@ void tagEntryPoint(ImplicitLocOpBuilder &builder, ModuleOp &module,
   });
 }
 
-ExecutionEngine *jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
-                         std::string kernelName,
-                         std::vector<std::string> extraLibPaths) {
-  if (jit)
-    return jit;
+std::tuple<bool, ExecutionEngine *>
+jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
+        std::unordered_map<ExecutionEngine *, std::size_t> &jitHash,
+        std::string kernelName, std::vector<std::string> extraLibPaths) {
 
-  cudaq::info("kernel_builder running jitCode.");
-
+  // Start of by getting the current ModuleOp
   auto block = builder.getBlock();
-  if ((block->getOperations().empty() ||
-       !block->getOperations().back().hasTrait<OpTrait::IsTerminator>())) {
-    builder.create<func::ReturnOp>(builder.getUnknownLoc());
-  }
-
   auto *context = builder.getContext();
   auto function = block->getParentOp();
   auto currentModule = function->getParentOfType<ModuleOp>();
+
+  // Create a unique hash from that ModuleOp
+  std::string modulePrintOut;
+  {
+    llvm::raw_string_ostream os(modulePrintOut);
+    currentModule.print(os);
+  }
+  auto moduleHash = std::hash<std::string>{}(modulePrintOut);
+
+  if (jit) {
+    // Have we added more instructions
+    // since the last time we jit the code?
+    // If so, we need to delete this JIT engine
+    // and create a new one.
+    if (moduleHash == jitHash[jit])
+      return std::make_tuple(false, jit);
+    else {
+      // need to redo the jit, remove the old one
+      jitHash.erase(jit);
+    }
+  }
+
+  cudaq::info("kernel_builder running jitCode.");
+
   auto module = currentModule.clone();
   auto ctx = module.getContext();
   SmallVector<mlir::NamedAttribute> names;
@@ -750,10 +768,10 @@ ExecutionEngine *jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader(/*genAsQuake=*/true));
   pm.addPass(cudaq::opt::createGenerateKernelExecution());
   optPM.addPass(cudaq::opt::createLowerToCFGPass());
-  pm.addPass(cudaq::opt::createPromoteRefToVeqAlloc());
-  pm.addPass(cudaq::opt::createConvertToQIRPass());
+  optPM.addPass(cudaq::opt::createCombineQuantumAllocations());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
+  pm.addPass(cudaq::opt::createConvertToQIRPass());
 
   if (failed(pm.run(module)))
     throw std::runtime_error(
@@ -815,7 +833,9 @@ ExecutionEngine *jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   auto kernelReg = reinterpret_cast<void (*)()>(*regFuncPtr);
   kernelReg();
 
-  return jit;
+  // Map this JIT Engine to its unique hash integer.
+  jitHash.insert({jit, moduleHash});
+  return std::make_tuple(true, jit);
 }
 
 void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
@@ -868,24 +888,6 @@ std::string to_quake(ImplicitLocOpBuilder &builder) {
   // look at the quake code. So we'll clone here, and add the return op (we have
   // to or the print out string will be invalid (verifier failed)).
   auto clonedModule = module.clone();
-
-  // Look for the main block in the functions we have
-  // add a return if it does not have one.
-  clonedModule.walk([](func::FuncOp func) {
-    Block &block = *func.getBlocks().begin();
-
-    auto tmpBuilder = OpBuilder::atBlockEnd(&block);
-
-    if (block.getOperations().empty()) {
-      // If no ops, add a Return
-      tmpBuilder.create<func::ReturnOp>(tmpBuilder.getUnknownLoc());
-    } else if (!block.getOperations()
-                    .back()
-                    .hasTrait<OpTrait::IsTerminator>()) {
-      // if last op is not the terminator, add the return.
-      tmpBuilder.create<func::ReturnOp>(tmpBuilder.getUnknownLoc());
-    }
-  });
 
   func::FuncOp unwrappedParentFunc = llvm::cast<func::FuncOp>(parentFunc);
   llvm::StringRef symName = unwrappedParentFunc.getSymName();

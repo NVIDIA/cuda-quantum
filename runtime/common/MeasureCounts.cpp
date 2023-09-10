@@ -58,7 +58,7 @@ void ExecutionResult::appendResult(std::string bitString, std::size_t count) {
   else
     iter->second += count;
 
-  sequentialData.push_back(bitString);
+  sequentialData.insert(sequentialData.end(), count, bitString);
 }
 
 bool ExecutionResult::operator==(const ExecutionResult &result) const {
@@ -177,6 +177,9 @@ sample_result::sample_result(double preComputedExp,
 
   // Create a spot for the pre-computed exp val
   sampleResults.emplace(GlobalRegisterName, preComputedExp);
+
+  if (results.empty())
+    return;
 
   for (auto &[bits, count] : results[0].counts)
     totalShots += count;

@@ -6,8 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s | FileCheck --check-prefixes=EARLY %s
-// RUN: cudaq-quake %s | cudaq-opt --canonicalize | FileCheck %s
+// RUN: cudaq-quake %s | FileCheck %s
 
 #include <cudaq.h>
 
@@ -70,10 +69,8 @@ __qpu__ void test4(cudaq::qspan<> a, cudaq::qspan<> b) {
 // CHECK:           } do {
 // CHECK:             func.call @
 // CHECK:             cc.if(%{{.*}}) {
-// CHECK:               cc.scope {
 // CHECK:                 func.call @
 // CHECK:                 cc.unwind_break
-// CHECK:               }
 // CHECK:             }
 // CHECK:           }
 // CHECK:           return
@@ -101,63 +98,3 @@ __qpu__ void test4(cudaq::qspan<> a, cudaq::qspan<> b) {
 // CHECK:           }
 // CHECK:           return
 // CHECK:         }
-
-// EARLY-LABEL:   func.func @__nvqpp__mlirgen__function_test1
-// EARLY:           cc.loop while {
-// EARLY:             cc.condition %
-// EARLY:           } do {
-// EARLY:             cc.scope {
-// EARLY:               func.call @
-// EARLY:               cc.unwind_break
-// EARLY:             }
-// EARLY:             cc.continue
-// EARLY:           }
-// EARLY:           return
-// EARLY:         }
-
-// EARLY-LABEL:   func.func @__nvqpp__mlirgen__function_test2
-// EARLY:           cc.loop while {
-// EARLY:             cc.condition %
-// EARLY:           } do {
-// EARLY:             cc.scope {
-// EARLY:               func.call @
-// EARLY:               cc.if(%{{.*}}) {
-// EARLY:                 cc.scope {
-// EARLY:                   func.call @
-// EARLY:                   cc.unwind_break
-// EARLY:                 }
-// EARLY:               }
-// EARLY:             }
-// EARLY:             cc.continue
-// EARLY:           }
-// EARLY:           return
-// EARLY:         }
-
-// EARLY-LABEL:   func.func @__nvqpp__mlirgen__function_test3
-// EARLY:           cc.loop while {
-// EARLY:             cc.condition %
-// EARLY:           } do {
-// EARLY:             cc.scope {
-// EARLY:               func.call @
-// EARLY:               cc.unwind_continue
-// EARLY:             }
-// EARLY:             cc.continue
-// EARLY:           }
-// EARLY:           return
-// EARLY:         }
-
-// EARLY-LABEL:   func.func @__nvqpp__mlirgen__function_test4
-// EARLY:           cc.loop while {
-// EARLY:             cc.condition %
-// EARLY:           } do {
-// EARLY:             cc.scope {
-// EARLY:               func.call @
-// EARLY:               cc.if(%{{.*}}) {
-// EARLY:                 func.call @
-// EARLY:                 cc.unwind_continue
-// EARLY:               }
-// EARLY:             }
-// EARLY:             cc.continue
-// EARLY:           }
-// EARLY:           return
-// EARLY:         }

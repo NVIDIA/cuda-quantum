@@ -9,6 +9,7 @@
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
 #include "cudaq/utils/cudaq_utils.h"
+#include <bitset>
 #include <fstream>
 #include <thread>
 
@@ -71,7 +72,8 @@ public:
 
   /// @brief Processes the server's response to a job retrieval request and
   /// maps the results back to sample results.
-  cudaq::sample_result processResults(ServerMessage &postJobResponse) override;
+  cudaq::sample_result processResults(ServerMessage &postJobResponse,
+                                      std::string &jobId) override;
 };
 
 // Initialize the IonQ server helper with a given backend configuration
@@ -87,6 +89,9 @@ void IonQServerHelper::initialize(BackendConfig config) {
   backendConfig["target"] =
       config.find("qpu") != config.end() ? config["qpu"] : "simulator";
   backendConfig["qubits"] = 29;
+  // Retrieve the noise model setting (if provided)
+  if (config.find("noise") != config.end())
+    backendConfig["noise_model"] = config["noise"];
   // Retrieve the API key from the environment variables
   backendConfig["token"] = getEnvVar("IONQ_API_KEY");
   // Construct the API job path
@@ -123,6 +128,14 @@ IonQServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     // Construct the job message
     ServerMessage job;
     job["target"] = backendConfig.at("target");
+    // Add noise model config to the JSON job request if a noise model was set
+    // and the IonQ 'simulator' target was selected.
+    if (keyExists("noise_model") && backendConfig.at("target") == "simulator") {
+      nlohmann::json noiseModel;
+      noiseModel["model"] = backendConfig.at("noise_model");
+      job["noise"] = noiseModel;
+    }
+
     job["qubits"] = backendConfig.at("qubits");
     job["shots"] = static_cast<int>(shots);
     job["input"]["format"] = "qir";
@@ -232,19 +245,41 @@ bool IonQServerHelper::jobIsDone(ServerMessage &getJobResponse) {
 
 // Process the results from a job
 cudaq::sample_result
-IonQServerHelper::processResults(ServerMessage &postJobResponse) {
+IonQServerHelper::processResults(ServerMessage &postJobResponse,
+                                 std::string &jobID) {
   // Construct the path to get the results
   auto resultsGetPath = constructGetResultsPath(postJobResponse);
   // Get the results
   auto results = getResults(resultsGetPath);
+
+  // Get the number of qubits. This assumes the all qubits are measured, which
+  // is a safe assumption for now but may change in the future.
+  cudaq::debug("postJobResponse message: {}", postJobResponse.dump());
+  auto &jobs = postJobResponse.at("jobs");
+  if (!jobs[0].contains("qubits"))
+    throw std::runtime_error(
+        "ServerMessage doesn't tell us how many qubits there were");
+
+  auto nQubits = jobs[0].at("qubits").get<int>();
+  cudaq::debug("nQubits is : {}", nQubits);
+  cudaq::debug("Results message: {}", results.dump());
+
   cudaq::CountsDictionary counts;
 
+  cudaq::info("Results message: {}", results.dump());
+
   // Process the results
+  assert(nQubits <= 64);
   for (const auto &element : results.items()) {
-    std::string key = element.key();
+    // Convert base-10 ASCII key to bitstring and perform endian swap
+    uint64_t s = std::stoull(element.key());
+    std::string newkey = std::bitset<64>(s).to_string();
+    std::reverse(newkey.begin(), newkey.end()); // perform endian swap
+    newkey.resize(nQubits);
+
     double value = element.value().get<double>();
     std::size_t count = static_cast<std::size_t>(value * shots);
-    counts[key] = count;
+    counts[newkey] = count;
   }
 
   // Create an execution result

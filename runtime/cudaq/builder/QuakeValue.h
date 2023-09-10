@@ -10,6 +10,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 
 namespace mlir {
 class Value;
@@ -84,6 +85,10 @@ public:
   /// @brief For a QuakeValue with type StdVec or Veq, return
   /// the size QuakeValue.
   QuakeValue size();
+
+  /// @brief Return the constant size of this QuakeValue
+  /// if it is of Veq type.
+  std::optional<std::size_t> constantSize();
 
   /// @brief Return true if this QuakeValue is of type StdVec.
   /// @return

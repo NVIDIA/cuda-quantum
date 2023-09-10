@@ -30,26 +30,19 @@ int main() {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Z4mainE3$_0
 // CHECK-SAME:        (%[[VAL_0:.*]]: !quake.veq<?>{{.*}}) attributes
-// CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
-// CHECK:           %[[VAL_2:.*]] = arith.extsi %[[VAL_1]] : i32 to i64
-// CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][%[[VAL_2]]] : (!quake.veq<?>, i64) -> !quake.ref
+// CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<?>) -> !quake.ref
 // CHECK:           quake.h %[[VAL_3]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_4:.*]] = arith.constant 0 : i32
-// CHECK:           %[[VAL_5:.*]] = arith.extsi %[[VAL_4]] : i32 to i64
-// CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_0]][%[[VAL_5]]] : (!quake.veq<?>, i64) -> !quake.ref
-// CHECK:           %[[VAL_7:.*]] = arith.constant 1 : i32
-// CHECK:           %[[VAL_8:.*]] = arith.extsi %[[VAL_7]] : i32 to i64
-// CHECK:           %[[VAL_9:.*]] = quake.extract_ref %[[VAL_0]][%[[VAL_8]]] : (!quake.veq<?>, i64) -> !quake.ref
+// CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<?>) -> !quake.ref
+// CHECK:           %[[VAL_9:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<?>) -> !quake.ref
 // CHECK:           quake.x [%[[VAL_6]]] %[[VAL_9]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__instance_MyKernel
-// CHECK-SAME:        (%[[VAL_0:.*]]: !cc.lambda<(!quake.veq<?>) -> ()>{{.*}}) attributes
-// CHECK:           %[[VAL_1:.*]] = arith.constant 2 : i32
-// CHECK:           %[[VAL_2:.*]] = arith.extsi %[[VAL_1]] : i32 to i64
-// CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<?>[%[[VAL_2]] : i64]
-// CHECK:           call @__nvqpp__mlirgen__Z4mainE3$_0(%[[VAL_3]]) : (!quake.veq<?>) -> ()
+// CHECK-SAME:        (%[[VAL_0:.*]]: !cc.callable<(!quake.veq<?>) -> ()>{{.*}}) attributes
+// CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_4:.*]] = quake.relax_size %[[VAL_3]] :
+// CHECK:           call @__nvqpp__mlirgen__Z4mainE3$_0(%[[VAL_4]]) : (!quake.veq<?>) -> ()
 // CHECK:           return
 // CHECK:         }
 

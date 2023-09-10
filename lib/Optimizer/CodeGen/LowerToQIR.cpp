@@ -81,8 +81,8 @@ public:
     StringRef qir_qubit_array_allocate = cudaq::opt::QIRArrayQubitAllocateArray;
     auto array_qbit_type = cudaq::opt::getArrayType(context);
     FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
-        qir_qubit_array_allocate, array_qbit_type,
-        {rewriter.getIntegerType(64)}, parentModule);
+        qir_qubit_array_allocate, array_qbit_type, {rewriter.getI64Type()},
+        parentModule);
 
     // AllocaOp could have a size operand, or the size could
     // be compile time known and encoded in the veq return type.
@@ -273,24 +273,24 @@ public:
   }
 };
 
-class SubvecOpRewrite : public ConvertOpToLLVMPattern<quake::SubVecOp> {
+class SubveqOpRewrite : public ConvertOpToLLVMPattern<quake::SubVeqOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
   LogicalResult
-  matchAndRewrite(quake::SubVecOp subvec, OpAdaptor adaptor,
+  matchAndRewrite(quake::SubVeqOp subveq, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-    auto loc = subvec->getLoc();
-    auto parentModule = subvec->getParentOfType<ModuleOp>();
+    auto loc = subveq->getLoc();
+    auto parentModule = subveq->getParentOfType<ModuleOp>();
     auto *context = parentModule->getContext();
-    constexpr auto rtSubvecFuncName = cudaq::opt::QIRArraySlice;
+    constexpr auto rtSubveqFuncName = cudaq::opt::QIRArraySlice;
     auto arrayTy = cudaq::opt::getArrayType(context);
     auto resultTy = arrayTy;
 
     auto i32Ty = rewriter.getIntegerType(32);
     auto i64Ty = rewriter.getIntegerType(64);
     FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
-        rtSubvecFuncName, arrayTy, {arrayTy, i32Ty, i64Ty, i64Ty, i64Ty},
+        rtSubveqFuncName, arrayTy, {arrayTy, i32Ty, i64Ty, i64Ty, i64Ty},
         parentModule);
 
     Value lowArg = adaptor.getOperands()[1];
@@ -309,7 +309,7 @@ public:
     auto one32 = rewriter.create<arith::ConstantIntOp>(loc, 1, i32Ty);
     auto one64 = rewriter.create<arith::ConstantIntOp>(loc, 1, i64Ty);
     rewriter.replaceOpWithNewOp<LLVM::CallOp>(
-        subvec, resultTy, symbolRef,
+        subveq, resultTy, symbolRef,
         ValueRange{inArr, one32, lowArg, one64, highArg});
     return success();
   }
@@ -617,6 +617,7 @@ public:
 
     auto paramType = FloatType::getF64(context);
     tmpArgTypes.push_back(paramType);
+    tmpArgTypes.push_back(paramType);
     tmpArgTypes.push_back(qubitIndexType);
 
     FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
@@ -770,6 +771,40 @@ public:
         rewriter.create<LLVM::BitcastOp>(loc, i1PtrTy, callOp.getResult());
     rewriter.replaceOpWithNewOp<LLVM::LoadOp>(measure, i1Ty, cast);
 
+    return success();
+  }
+};
+
+/// Convert a MX operation to a sequence H; MZ.
+class MxToMz : public OpConversionPattern<quake::MxOp> {
+public:
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::MxOp mx, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    rewriter.create<quake::HOp>(mx.getLoc(), adaptor.getTargets());
+    rewriter.replaceOpWithNewOp<quake::MzOp>(mx, mx.getResultTypes(),
+                                             adaptor.getTargets(),
+                                             mx.getRegisterNameAttr());
+    return success();
+  }
+};
+
+/// Convert a MY operation to a sequence S; H; MZ.
+class MyToMz : public OpConversionPattern<quake::MyOp> {
+public:
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::MyOp my, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    rewriter.create<quake::SOp>(my.getLoc(), true, ValueRange{}, ValueRange{},
+                                adaptor.getTargets());
+    rewriter.create<quake::HOp>(my.getLoc(), adaptor.getTargets());
+    rewriter.replaceOpWithNewOp<quake::MzOp>(my, my.getResultTypes(),
+                                             adaptor.getTargets(),
+                                             my.getRegisterNameAttr());
     return success();
   }
 };
@@ -1277,7 +1312,7 @@ public:
         [&](quake::VeqType type) { return cudaq::opt::getArrayType(context); });
     typeConverter.addConversion(
         [&](quake::RefType type) { return cudaq::opt::getQubitType(context); });
-    typeConverter.addConversion([&](cudaq::cc::LambdaType type) {
+    typeConverter.addConversion([&](cudaq::cc::CallableType type) {
       return lambdaAsPairOfPointers(type.getContext());
     });
     typeConverter.addConversion([&](cudaq::cc::StdvecType type) {
@@ -1329,13 +1364,14 @@ public:
         OneTargetRewrite<quake::XOp>, OneTargetRewrite<quake::YOp>,
         OneTargetRewrite<quake::ZOp>, OneTargetRewrite<quake::SOp>,
         OneTargetRewrite<quake::TOp>, OneTargetOneParamRewrite<quake::R1Op>,
+        OneTargetTwoParamRewrite<quake::PhasedRxOp>,
         OneTargetOneParamRewrite<quake::RxOp>,
         OneTargetOneParamRewrite<quake::RyOp>,
         OneTargetOneParamRewrite<quake::RzOp>,
         OneTargetTwoParamRewrite<quake::U2Op>,
         OneTargetTwoParamRewrite<quake::U3Op>, ResetRewrite<quake::ResetOp>,
         StdvecDataOpPattern, StdvecInitOpPattern, StdvecSizeOpPattern,
-        StoreOpPattern, SubvecOpRewrite, TwoTargetRewrite<quake::SwapOp>,
+        StoreOpPattern, SubveqOpRewrite, TwoTargetRewrite<quake::SwapOp>,
         UndefOpPattern>(typeConverter);
 
     target.addLegalDialect<LLVM::LLVMDialect>();

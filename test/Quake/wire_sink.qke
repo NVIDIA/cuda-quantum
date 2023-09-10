@@ -1,0 +1,53 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --canonicalize %s | FileCheck %s
+
+// 4 wires terminate in 4 sink nodes.
+func.func @measures(%a0: !quake.wire, %a1: !quake.wire, %a2: !quake.wire,
+                    %a4: !quake.wire) {
+  %0 = quake.x %a4 : (!quake.wire) -> !quake.wire		    
+  %1:2 = quake.mx %a0 : (!quake.wire) -> (i1, !quake.wire)
+  %2:2 = quake.my %a1 : (!quake.wire) -> (i1, !quake.wire)
+  %3:2 = quake.mz %a2 : (!quake.wire) -> (i1, !quake.wire)
+  quake.sink %1#1 : !quake.wire
+  quake.sink %2#1 : !quake.wire
+  quake.sink %3#1 : !quake.wire
+  quake.sink %0 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @measures(
+// CHECK-SAME:      %[[VAL_0:.*]]: !quake.wire, %[[VAL_1:.*]]: !quake.wire, %[[VAL_2:.*]]: !quake.wire, %[[VAL_3:.*]]: !quake.wire) {
+// CHECK: %[[VAL_10:.*]] = quake.x
+// CHECK:           %[[VAL7:.*]], %[[VAL_4:.*]] = quake.mx %[[VAL_0]] : (!quake.wire) -> (i1, !quake.wire)
+// CHECK:           %[[VAL_8:.*]], %[[VAL_5:.*]] = quake.my %[[VAL_1]] : (!quake.wire) -> (i1, !quake.wire)
+// CHECK:           %[[VAL_9:.*]], %[[VAL_6:.*]] = quake.mz %[[VAL_2]] : (!quake.wire) -> (i1, !quake.wire)
+// CHECK-DAG:       quake.sink %[[VAL_4]]
+// CHECK-DAG:       quake.sink %[[VAL_5]]
+// CHECK-DAG:       quake.sink %[[VAL_6]]
+// CHECK-DAG:       quake.sink %[[VAL_10]]
+// CHECK-NEXT:      return
+
+// Any part of a quantum circuit that does NOT end in a sink operation is
+// considered dead code.
+func.func @red_button(%arg0: !quake.wire, %arg1: !quake.wire) {
+  %0 = quake.h %arg0 : (!quake.wire) -> !quake.wire
+  %1 = quake.reset %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.h %arg1 : (!quake.wire) -> !quake.wire
+  quake.sink %1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @red_button(
+// CHECK-SAME:      %[[VAL_0:.*]]: !quake.wire, %[[VAL_1:.*]]: !quake.wire) {
+// CHECK:           %[[VAL_2:.*]] = quake.h %[[VAL_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_3:.*]] = quake.reset %[[VAL_2]] : (!quake.wire) -> !quake.wire
+// CHECK:           quake.sink %[[VAL_3]] :
+// CHECK-NOT:       quake.sink
+// CHECK:           return

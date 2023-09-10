@@ -58,7 +58,7 @@ def test_kernel_control_no_args(qubit_count):
 # CHECK:           ^bb0(%[[VAL_8:.*]]: index):
 # CHECK:             %[[VAL_9:.*]] = arith.addi %[[VAL_8]], %[[VAL_0]] : index
 # CHECK:             cc.continue %[[VAL_9]] : index
-# CHECK:           } {counted}
+# CHECK:           } {invariant}
 # CHECK:           return
 # CHECK:         }
 
@@ -85,7 +85,7 @@ def test_kernel_control_no_args(qubit_count):
 # CHECK:           ^bb0(%[[VAL_9:.*]]: index):
 # CHECK:             %[[VAL_10:.*]] = arith.addi %[[VAL_9]], %[[VAL_1]] : index
 # CHECK:             cc.continue %[[VAL_10]] : index
-# CHECK:           } {counted}
+# CHECK:           } {invariant}
 # CHECK:           return
 # CHECK:         }
 
@@ -283,7 +283,7 @@ def test_sample_control_qubit_args():
 # CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
 # CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*\[}}%[[VAL_1]]] %[[VAL_0]] : (!quake.ref, !quake.ref) -> ()
 # CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] : (!quake.ref) -> i1 {registerName = ""}
+# CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] name "" : (!quake.ref) -> i1
 # CHECK:           return
 # CHECK:         }
 
@@ -357,8 +357,8 @@ def test_sample_control_qreg_args():
 # CHECK:           ^bb0(%[[VAL_17:.*]]: index):
 # CHECK:             %[[VAL_18:.*]] = arith.addi %[[VAL_17]], %[[VAL_2]] : index
 # CHECK:             cc.continue %[[VAL_18]] : index
-# CHECK:           } {counted}
-# CHECK:           %[[VAL_19:.*]] = quake.mz %[[VAL_6]] : (!quake.ref) -> i1 {registerName = ""}
+# CHECK:           } {invariant}
+# CHECK:           %[[VAL_19:.*]] = quake.mz %[[VAL_6]] name "" : (!quake.ref) -> i1
 # CHECK:           return
 # CHECK:         }
 
@@ -414,7 +414,7 @@ def test_sample_apply_call_control():
 # CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
 # CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}{{\[}}%[[VAL_1]]] %[[VAL_0]] : (!quake.ref, !quake.ref) -> ()
 # CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] : (!quake.ref) -> i1 {registerName = ""}
+# CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] name "" : (!quake.ref) -> i1
 # CHECK:           return
 # CHECK:         }
 

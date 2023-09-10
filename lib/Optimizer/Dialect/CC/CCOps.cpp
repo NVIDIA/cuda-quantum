@@ -827,7 +827,7 @@ void cudaq::cc::ScopeOp::print(OpAsmPrinter &p) {
 static void ensureScopeRegionTerminator(OpBuilder &builder,
                                         OperationState &result,
                                         Region *region) {
-  auto *block = &region->back();
+  auto *block = region->empty() ? nullptr : &region->back();
   if (!block)
     return;
   if (!block->empty()) {
@@ -935,7 +935,8 @@ struct EraseScopeWhenNotNeeded : public OpRewritePattern<cudaq::cc::ScopeOp> {
     for (auto &block : region)
       for (auto &op : block) {
         if (auto mem = dyn_cast<MemoryEffectOpInterface>(op))
-          return mem.hasEffect<MemoryEffects::Allocate>();
+          if (mem.hasEffect<MemoryEffects::Allocate>())
+            return true;
         for (auto &opReg : op.getRegions())
           if (hasAllocation(opReg))
             return true;
@@ -1064,7 +1065,7 @@ void cudaq::cc::IfOp::getSuccessorRegions(
 
 void cudaq::cc::CreateLambdaOp::build(OpBuilder &builder,
                                       OperationState &result,
-                                      cudaq::cc::LambdaType lambdaTy,
+                                      cudaq::cc::CallableType lambdaTy,
                                       BodyBuilderFn bodyBuilder) {
   auto *bodyRegion = result.addRegion();
   bodyRegion->push_back(new Block);
@@ -1083,7 +1084,7 @@ void cudaq::cc::CreateLambdaOp::print(OpAsmPrinter &p) {
   p << ' ';
   bool hasArgs = getRegion().getNumArguments() != 0;
   bool hasRes =
-      getType().cast<cudaq::cc::LambdaType>().getSignature().getNumResults();
+      getType().cast<cudaq::cc::CallableType>().getSignature().getNumResults();
   p.printRegion(getRegion(), /*printEntryBlockArgs=*/hasArgs,
                 /*printBlockTerminators=*/hasRes);
   p << " : " << getType();
@@ -1111,7 +1112,7 @@ ParseResult cudaq::cc::CreateLambdaOp::parse(OpAsmParser &parser,
 LogicalResult cudaq::cc::CallCallableOp::verify() {
   FunctionType funcTy;
   auto ty = getCallee().getType();
-  if (auto lambdaTy = dyn_cast<cudaq::cc::LambdaType>(ty))
+  if (auto lambdaTy = dyn_cast<cudaq::cc::CallableType>(ty))
     funcTy = lambdaTy.getSignature();
   else if (auto fTy = dyn_cast<FunctionType>(ty))
     funcTy = fTy;
@@ -1144,7 +1145,7 @@ LogicalResult cudaq::cc::ReturnOp::verify() {
   auto *op = getOperation();
   auto resultTypes = [&]() {
     if (auto func = op->getParentOfType<CreateLambdaOp>()) {
-      auto lambdaTy = cast<LambdaType>(func->getResult(0).getType());
+      auto lambdaTy = cast<CallableType>(func->getResult(0).getType());
       return SmallVector<Type>(lambdaTy.getSignature().getResults());
     }
     if (auto func = op->getParentOfType<func::FuncOp>())
@@ -1304,7 +1305,7 @@ LogicalResult cudaq::cc::UnwindReturnOp::verify() {
   auto *op = getOperation();
   auto resultTypes = [&]() {
     if (auto func = op->getParentOfType<CreateLambdaOp>()) {
-      auto lambdaTy = cast<LambdaType>(func->getResult(0).getType());
+      auto lambdaTy = cast<CallableType>(func->getResult(0).getType());
       return SmallVector<Type>(lambdaTy.getSignature().getResults());
     }
     if (auto func = op->getParentOfType<func::FuncOp>())

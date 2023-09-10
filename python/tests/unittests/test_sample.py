@@ -77,7 +77,7 @@ def test_sample_result_single_register(qubit_count, shots_count):
             assert marginal_counts.most_probable() == "1"
     # `get_sequential_data`
     # In this case, should just contain the single bitstring in a list.
-    assert sample_result.get_sequential_data() == [want_bitstring]
+    assert sample_result.get_sequential_data() == [want_bitstring] * shots_count
 
     # `::items()`
     for key, value in sample_result.items():
@@ -165,7 +165,7 @@ def test_sample_result_single_register_float_param(qubit_count, shots_count):
             assert marginal_counts.most_probable() == "1"
     # `get_sequential_data`
     # In this case, should just contain the single bitstring in a list.
-    assert sample_result.get_sequential_data() == [want_bitstring]
+    assert sample_result.get_sequential_data() == [want_bitstring] * shots_count
 
     # `::items()`
     for key, value in sample_result.items():
@@ -253,7 +253,7 @@ def test_sample_result_single_register_list_param(qubit_count, shots_count):
             assert marginal_counts.most_probable() == "1"
     # `get_sequential_data`
     # In this case, should just contain the single bitstring in a list.
-    assert sample_result.get_sequential_data() == [want_bitstring]
+    assert sample_result.get_sequential_data() == [want_bitstring] * shots_count
 
     # `::items()`
     for key, value in sample_result.items():
@@ -561,7 +561,7 @@ def test_sample_n():
     # circuit.mz(qubits)
     print(circuit)
 
-    allCounts = cudaq.sample_n(circuit, [3, 4, 5, 6, 7])
+    allCounts = cudaq.sample(circuit, [3, 4, 5, 6, 7])
     first0 = '000'
     first1 = '111'
     for c in allCounts:
@@ -572,7 +572,7 @@ def test_sample_n():
 
     testNpArray = np.random.randint(3, high=8, size=6)
     print(testNpArray)
-    allCounts = cudaq.sample_n(circuit, testNpArray)
+    allCounts = cudaq.sample(circuit, testNpArray)
     for i, c in enumerate(allCounts):
         print(c)
         assert '0' * testNpArray[i] in c and '1' * testNpArray[i] in c
@@ -585,7 +585,7 @@ def test_sample_n():
 
     runtimeAngles = np.random.uniform(low=1.0, high=np.pi, size=(10, 2))
     print(runtimeAngles)
-    allCounts = cudaq.sample_n(circuit, runtimeAngles)
+    allCounts = cudaq.sample(circuit, runtimeAngles)
     for i, c in enumerate(allCounts):
         print(runtimeAngles[i, :], c)
         assert len(c) == 2

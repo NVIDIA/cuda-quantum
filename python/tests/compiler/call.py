@@ -94,7 +94,7 @@ def test_kernel_apply_call_qreg_args():
 # CHECK-SAME:                                                                   %[[VAL_0:.*]]: !quake.veq<?>) {
 # CHECK:           %[[VAL_1:.*]] = arith.constant 1 : index
 # CHECK:           %[[VAL_2:.*]] = arith.constant 0 : index
-# CHECK:           %[[VAL_3:.*]] = quake.vec_size %[[VAL_0]] : (!quake.veq<?>) -> i64
+# CHECK:           %[[VAL_3:.*]] = quake.veq_size %[[VAL_0]] : (!quake.veq<?>) -> i64
 # CHECK:           %[[VAL_4:.*]] = arith.index_cast %[[VAL_3]] : i64 to index
 # CHECK:           %[[VAL_5:.*]] = cc.loop while ((%[[VAL_6:.*]] = %[[VAL_2]]) -> (index)) {
 # CHECK:             %[[VAL_7:.*]] = arith.cmpi slt, %[[VAL_6]], %[[VAL_4]] : index
@@ -108,7 +108,7 @@ def test_kernel_apply_call_qreg_args():
 # CHECK:           ^bb0(%[[VAL_10:.*]]: index):
 # CHECK:             %[[VAL_11:.*]] = arith.addi %[[VAL_10]], %[[VAL_1]] : index
 # CHECK:             cc.continue %[[VAL_11]] : index
-# CHECK:           } {counted}
+# CHECK:           } {invariant}
 # CHECK:           return
 # CHECK:         }
 
