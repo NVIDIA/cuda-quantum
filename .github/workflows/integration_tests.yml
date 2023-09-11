@@ -217,7 +217,7 @@ jobs:
         run: |
           echo "### Submit to OQC sandbox server" >> $GITHUB_STEP_SUMMARY
           export CUDAQ_LOG_LEVEL="info"
-          export OQC_EMAIL="${{ secrets.OQC_EMAIL }}"
+          export OQC_EMAIL="${{ secrets.BACKEND_LOGIN_EMAIL }}"
           export OQC_PASSWORD="${{ secrets.OQC_PASSWORD }}"
           set +e # Allow script to keep going through errors
           test_err_sum=0
