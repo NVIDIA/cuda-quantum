@@ -33,25 +33,6 @@ RUN  cd cuda-quantum && ls -R && cd ..
 
 ARG python_version=3.10
 RUN cd cuda-quantum \
-    && if [ -d "assets" ]; then \
-        && export assets_dir=$(pwd)/assets; \
-        echo "Finding external NVQIR simulators."; \
-        for config_file in `find assets/wheels_$(uname -m)/*.config -maxdepth 0 -type f`; \
-            do \
-                current_dir="$(dirname "${config_file}")" \
-                && current_dir=$(cd $current_dir; pwd) \
-                && target_name=${config_file##*/} \
-                && target_name=${target_name%.config} \
-                && \
-                    if [ -n "$CUDAQ_EXTERNAL_NVQIR_SIMS" ]; then \
-                        export CUDAQ_EXTERNAL_NVQIR_SIMS="$CUDAQ_EXTERNAL_NVQIR_SIMS;$current_dir/libnvqir-$target_name.so;$current_dir/$target_name.config"; \
-                    else \
-                        export CUDAQ_EXTERNAL_NVQIR_SIMS="$current_dir/libnvqir-$target_name.so;$current_dir/$target_name.config"; \
-                    fi \
-            done \
-        export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$assets_dir/wheels_$(uname -m)/lib"; \
-        echo "External NVQIR simulators: '$CUDAQ_EXTERNAL_NVQIR_SIMS'"; \
-    fi \
     && echo "Building wheel for python${python_version}." \
     && python=python${python_version} \
     && $python -m pip install --no-cache-dir \
