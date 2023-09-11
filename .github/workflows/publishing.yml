@@ -433,6 +433,11 @@ jobs:
     
     runs-on: ${{ (contains(matrix.info_file, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     
+    outputs:
+      release_id: ${{ steps.release_info.outputs.release_id }}
+      platform: ${{ steps.release_info.outputs.platform }}
+      cudaqwheeldeps_image: ${{ steps.release_info.outputs.cudaqwheeldeps_image }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -507,20 +512,24 @@ jobs:
           path: /tmp/wheels
           retention-days: 1
           if-no-files-found: error
-
-      # - name: Update release information
-      #   run: |
-      #     release_id=${{ steps.release_info.outputs.release_id }}
-      #     gh release view $release_id --json body --jq .body > rel_notes.txt
-      #     header_length=`cat rel_notes.txt | grep -n "Release notes generated" | cut -d ':' -f 1`
-      #     head -n $(($header_length - 1)) rel_notes.txt > new_notes.txt
-      #     echo -e "\nImage to create ${{ steps.release_info.outputs.platform }} wheels:\n" >> new_notes.txt
-      #     echo "- cuda-quantum-devdeps (development dependencies only): ${{ steps.release_info.outputs.cudaqwheeldeps_image }}" >> new_notes.txt
-      #     (echo && tail -n +$header_length rel_notes.txt) >> new_notes.txt
-      #     gh release edit $release_id -R ${{ github.repository }} --notes-file new_notes.txt
-      #   env:
-      #     GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
-
+    
+  cudaq_wheels_release_info:  
+    name: Update release info of CUDA Quantum Python wheels
+    needs: cudaq_wheels
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update release information
+        run: |
+          release_id=${{ needs.cudaq_wheels.outputs.release_id }}
+          gh release view $release_id --json body --jq .body > rel_notes.txt
+          header_length=`cat rel_notes.txt | grep -n "Release notes generated" | cut -d ':' -f 1`
+          head -n $(($header_length - 1)) rel_notes.txt > new_notes.txt
+          echo -e "\nImage to create ${{ needs.cudaq_wheels.outputs.platform }} wheels:\n" >> new_notes.txt
+          echo "- cuda-quantum-devdeps (development dependencies only): ${{ needs.cudaq_wheels.outputs.cudaqwheeldeps_image }}" >> new_notes.txt
+          (echo && tail -n +$header_length rel_notes.txt) >> new_notes.txt
+          gh release edit $release_id -R ${{ github.repository }} --notes-file new_notes.txt
+        env:
+          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
   config:
     name: Configure validation

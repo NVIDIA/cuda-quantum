@@ -8,6 +8,17 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+# This script finds CUDA Quantum simulator assets and constructs the CMake
+# string argument in the form "<simulator's .so>;<simulator's .config>;...",
+# suitable for wheel build.
+#
+# Usage:
+# bash scripts/find_wheel_assets.sh "$assets"
+#
+# The assets variable should be set to the path of the directory
+# that contains the asset files. 
+# Note: it's okay if "$assets" directory does not exist. It will return an empty string.
+
 if [ ! -d $1 ] ; then
     exit 0
 fi
