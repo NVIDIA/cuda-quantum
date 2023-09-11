@@ -454,13 +454,13 @@ jobs:
         run: |
           release_id=${{ fromJson(needs.assets.outputs.python_wheels)[format('{0}', matrix.info_file)].release_id }}
           assets_folder=$(pwd)/assets && mkdir "$assets_folder" 
+          ls -R tmp/wheel_assets
+          cd tmp/wheel_assets/${{ matrix.info_file }}
           build_info=${{ matrix.info_file }}*
           platform=`cat $build_info | grep -o 'platform: \S*' | cut -d ' ' -f 2`
           platform_id=`echo $platform | sed 's/linux\///g' | tr -d ' '`
           platform_arch=`([ "$platform_id" == "amd64" ] && echo x86_64) || ([ "$platform_id" == "arm64" ] && echo aarch64) || echo any`
           cudaqwheeldeps_image=`cat $build_info | grep -o 'cuda-quantum-wheeldeps-image: \S*' | cut -d ' ' -f 2`
-          ls -R tmp/wheel_assets
-          cd tmp/wheel_assets/${{ matrix.info_file }}
           for file in `ls *zip`; do unzip "$file" -d "$assets_folder" && rm "$file"; done 
           cd  "$assets_folder" && ls -R 
 
@@ -495,7 +495,6 @@ jobs:
           file: ./docker/build/cudaq.wheel.Dockerfile
           build-args: |
             base_image=${{ steps.release_info.outputs.cudaqwheeldeps_image }}  
-            # FIXME: revert this line
             release_version=0.0.0
             python_version=${{ matrix.python_version }}
           outputs: ${{ steps.release_info.outputs.docker_output }}
