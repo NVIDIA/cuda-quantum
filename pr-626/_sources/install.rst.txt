@@ -8,15 +8,25 @@ Install the Docker Image
 ++++++++++++++++++++++++++++++++++++
 
 Docker images for all CUDA Quantum releases are available on the `NGC Container Registry`_.
-The image for the latest version under development is built from source on our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`_.
+To download images from NGC, please follow the following steps if you have not done so already:
+
+- `Create an account <https://ngc.nvidia.com/signin>`__
+- `Sign in <https://ngc.nvidia.com/signin>`__ to access your account and go to `Setup <https://ngc.nvidia.com/setup>`__.
+- Click on `Get API Key` and generate a new key (this will invalidate any existing keys).
+- Follow the instructions that appear to use that key to log in to the NGC registry using Docker.
+
+Once you have done so, run `docker login nvcr.io` (again) to confirm you can authenticate with the registry. 
+You should see a message "Login Succeeded".
 
 .. _NGC Container Registry: https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum
 
+In addition to publish stable releases, we also publish docker image whenever we update the main branch of our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`_.
+These images are published in a separate location `nvidia/nightly` on NGC, as well as on GitHub.
 To download the latest version on the main branch of our GitHub repository, for example, use the command
 
 .. code-block:: console
 
-    docker pull ghcr.io/nvidia/cuda-quantum:latest
+    docker pull nvcr.io/nvidia/nightly/cuda-quantum:latest
 
 .. _use-cuda-quantum-in-terminal:
 
