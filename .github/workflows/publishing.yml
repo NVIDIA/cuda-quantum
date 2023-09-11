@@ -518,6 +518,9 @@ jobs:
     needs: cudaq_wheels
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
       - name: Update release information
         run: |
           release_id=${{ needs.cudaq_wheels.outputs.release_id }}
