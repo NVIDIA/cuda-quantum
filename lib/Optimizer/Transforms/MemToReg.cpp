@@ -9,7 +9,6 @@
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/Todo.h"
 #include "llvm/ADT/MapVector.h"
 #include "mlir/IR/IRMapping.h"
 #include "mlir/Transforms/DialectConversion.h"
@@ -56,6 +55,14 @@ struct MemoryAnalysis {
   MemoryAnalysis(func::FuncOp f) { determineAllocSet(f); }
 
   bool isMember(Operation *op) const { return allocSet.count(op); }
+
+  SmallVector<quake::AllocaOp> getAllQuantumAllocations() const {
+    SmallVector<quake::AllocaOp> result;
+    for (auto *op : allocSet)
+      if (auto qalloc = dyn_cast<quake::AllocaOp>(op))
+        result.push_back(qalloc);
+    return result;
+  }
 
 private:
   void determineAllocSet(func::FuncOp func) {
@@ -169,6 +176,22 @@ public:
     return success();
   }
 };
+
+class DeallocOpPattern : public OpRewritePattern<quake::DeallocOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::DeallocOp op,
+                                PatternRewriter &rewriter) const override {
+    auto loc = op.getLoc();
+    auto wireTy = quake::WireType::get(rewriter.getContext());
+    auto opnd = op.getReference();
+    assert(isa<quake::RefType>(opnd.getType()));
+    Value target = rewriter.create<quake::UnwrapOp>(loc, wireTy, opnd);
+    rewriter.replaceOpWithNewOp<quake::SinkOp>(op, target);
+    return success();
+  }
+};
 } // namespace
 
 template <typename OP>
@@ -208,18 +231,24 @@ public:
       }
     }
     if constexpr (quake::isMeasure<OP>) {
-      // The result type is the same here.
-      rewriter.replaceOpWithNewOp<OP>(op, op.getType(), unwrapTargs,
+      // The result type of the bits is the same. Add the wire types.
+      SmallVector<Type> newTy = {op.getBits().getType()};
+      SmallVector<Type> wireTys(unwrapTargs.size(), wireTy);
+      newTy.append(wireTys.begin(), wireTys.end());
+      rewriter.replaceOpWithNewOp<OP>(op, newTy, unwrapTargs,
                                       op.getRegisterNameAttr());
     } else {
-      // Scan the target positions. Any that were not Wires originally are now
-      // placed in the result vector. We propagate those new results to wrap
-      // operations.
+      // Scan the control and target positions. Any that were not wires
+      // originally are now placed in the result vector. Those new results are
+      // propagated to wrap operations.
+      auto numberOfWires = unwrapCtrls.size() + unwrapTargs.size();
+      SmallVector<Type> wireTys{numberOfWires, wireTy};
       auto newOp = rewriter.create<OP>(
-          loc, SmallVector<Type>{unwrapTargs.size(), wireTy}, op.getIsAdjAttr(),
-          op.getParameters(), unwrapCtrls, unwrapTargs,
-          op.getNegatedQubitControlsAttr());
-      for (auto i : llvm::enumerate(op.getTargets())) {
+          loc, wireTys, op.getIsAdjAttr(), op.getParameters(), unwrapCtrls,
+          unwrapTargs, op.getNegatedQubitControlsAttr());
+      SmallVector<Value> wireOperands = op.getControls();
+      wireOperands.append(op.getTargets().begin(), op.getTargets().end());
+      for (auto i : llvm::enumerate(wireOperands)) {
         auto opndTy = i.value().getType();
         unsigned count = 0;
         if (opndTy == qrefTy) {
@@ -353,8 +382,10 @@ public:
         valMap = defMap[block];
       blockArgsMap.insert({block, SmallVector<Value>{}});
       regionDefs.insert({block, llvm::MapVector<Value, Value>{}});
-      if (isFunctionEntryBlock(block)) {
-        // Promote any quantum reference arguments to wire values.
+
+      // If this is the entry block and there are quantum reference arguments
+      // into the function, promote them to wire values immediately.
+      if (quantumValues && isFunctionEntryBlock(block)) {
         for (auto arg : block->getArguments()) {
           if (arg.getType() == qrefTy) {
             OpBuilder builder(ctx);
@@ -370,6 +401,9 @@ public:
       // Loop over all operations in the block.
       for (Operation &oper : *block) {
         Operation *op = &oper;
+        // For any operation that creates a value of quantum reference type,
+        // replace it with a null wire (if it is an AllocaOp) or unwrap the
+        // reference to get the wire.
         if (opResultOfType(op, qrefTy)) {
           if (!quantumValues)
             continue;
@@ -401,6 +435,8 @@ public:
           continue;
         }
 
+        // If this is a classical stack slot allocation (and we're processing
+        // classical values), promote the allocation to an undefined value.
         if (auto alloc = dyn_cast<cudaq::cc::AllocaOp>(op);
             alloc && memAnalysis.isMember(alloc)) {
           if (classicalValues) {
@@ -418,6 +454,8 @@ public:
           continue;
         }
 
+        // If this is a new value being created, add it to the map of values for
+        // this block so it can be tracked and forwarded.
         if (auto nullWire = dyn_cast<quake::NullWireOp>(op)) {
           if (quantumValues)
             valMap.insert({nullWire, nullWire.getResult()});
@@ -530,9 +568,8 @@ public:
           }
         };
         if (auto wrap = dyn_cast<quake::WrapOp>(op)) {
-          if (quantumValues) {
+          if (quantumValues)
             handleDefinition(wrap.getWireValue(), wrap.getRefValue());
-          }
           continue;
         }
         if (auto store = dyn_cast<cudaq::cc::StoreOp>(op)) {
@@ -685,18 +722,20 @@ public:
                             << *parent << "\n\n");
   }
 
-  // Convert the function to QLS format.
+  // Convert the function to "quantum load/store" (QLS) format.
   LogicalResult convertToQLS() {
     if (!quantumValues)
       return success();
     auto func = getOperation();
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
-    patterns.insert<WRAPPER_QUANTUM_OPS, ResetOpPattern>(ctx);
+    patterns.insert<WRAPPER_QUANTUM_OPS, ResetOpPattern, DeallocOpPattern>(ctx);
     ConversionTarget target(*ctx);
-    target.addDynamicallyLegalOp<RAW_QUANTUM_OPS, quake::ResetOp>(
+    target.addDynamicallyLegalOp<RAW_QUANTUM_OPS, quake::ResetOp,
+                                 quake::DeallocOp>(
         [](Operation *op) { return !quake::hasNonVectorReference(op); });
-    target.addLegalOp<quake::UnwrapOp, quake::WrapOp, quake::NullWireOp>();
+    target.addLegalOp<quake::UnwrapOp, quake::WrapOp, quake::NullWireOp,
+                      quake::SinkOp>();
     if (failed(applyPartialConversion(func, target, std::move(patterns)))) {
       emitError(func.getLoc(), "error converting to QLS form\n");
       signalPassFailure();

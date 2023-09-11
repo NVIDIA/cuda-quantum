@@ -8,48 +8,41 @@
 
 #include "Executor.h"
 #include "common/ExecutionContext.h"
+#include "common/FmtCore.h"
 #include "common/Logger.h"
 #include "common/RestClient.h"
-#include "cudaq/platform/qpu.h"
-#include "nvqpp_config.h"
-
-#include "common/FmtCore.h"
 #include "common/RuntimeMLIR.h"
-#include "cudaq/platform/quantum_platform.h"
-#include <cudaq/spin_op.h>
-#include <fstream>
-#include <iostream>
-#include <netinet/in.h>
-#include <regex>
-#include <sys/socket.h>
-#include <sys/types.h>
-
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
+#include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Plugin.h"
-#include "cudaq/Target/OpenQASM/OpenQASMEmitter.h"
+#include "cudaq/platform/qpu.h"
+#include "cudaq/platform/quantum_platform.h"
+#include "cudaq/spin_op.h"
+#include "nvqpp_config.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Support/Base64.h"
-#include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/ExecutionEngine/OptUtils.h"
-#include "mlir/IR/BuiltinOps.h"
-#include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/ImplicitLocOpBuilder.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassRegistry.h"
-#include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
-#include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
+#include <fstream>
+#include <iostream>
+#include <netinet/in.h>
+#include <regex>
+#include <sys/socket.h>
+#include <sys/types.h>
 
 using namespace mlir;
 

@@ -17,6 +17,7 @@
 #if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
 #pragma GCC diagnostic pop
 #endif
+#include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/IR/ValueRange.h"
 #include "mlir/Support/IndentedOstream.h"
 #include <stack>

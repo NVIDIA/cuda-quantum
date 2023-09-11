@@ -74,7 +74,7 @@ void from_state(Kernel &&kernel, QuakeValue &qubits,
   std::vector<double> omega, stateAbs;
   for (auto &d : data) {
     omega.push_back(std::arg(d));
-    stateAbs.push_back(std::fabs(d));
+    stateAbs.push_back(std::abs(d));
     if (std::fabs(omega.back()) > 1e-6)
       omegaNonZero = true;
   }
