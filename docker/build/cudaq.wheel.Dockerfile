@@ -32,6 +32,8 @@ ENV CUDAQ_EXTERNAL_NVQIR_SIMS=""
 # They might be optionally pulled in during auditwheel if necessary.
 RUN dnf install -y cuda-nvtx-11-8 cuda-profiler-api-11-8 openblas-devel
 
+RUN  cd cuda-quantum && ls -R && cd ..
+
 ARG python_version=3.10
 RUN if [ -d "/tmp/assets" ]; then \
         echo "Finding external NVQIR simulators."; \
