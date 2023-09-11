@@ -172,6 +172,12 @@
 <li class="toctree-l3"><a class="reference internal" href="../hardware.html#id3">Submission from Python</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../hardware.html#iqm">IQM</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../hardware.html#id4">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hardware.html#id5">Submission from C++</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hardware.html#id6">Submission from Python</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../specification/index.html">   Specifications</a><ul>
@@ -446,14 +452,14 @@ optimizations via data-flow analysis of the representative circuit. This dialect
 is typically produced just-in-time when the structure of the circuit is fully known.</p>
 <p>You will notice that there are a number of CUDA Quantum executable tools installed as part
 of this open beta release. These tools are directly related to the generation,
-processing, optimization, and lowering of the core NVQ++ compiler representations.
+processing, optimization, and lowering of the core <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> compiler representations.
 The tools available are</p>
 <ol class="arabic simple">
 <li><p><code class="code docutils literal notranslate"><span class="pre">cudaq-quake</span></code> - Lower C++ to Quake, can also output classical LLVM IR file</p></li>
 <li><p><code class="code docutils literal notranslate"><span class="pre">cudaq-opt</span></code> - Process Quake with various MLIR Passes</p></li>
 <li><p><code class="code docutils literal notranslate"><span class="pre">cudaq-translate</span></code> - Lower Quake to external representations like QIR (or Base Profile QIR)</p></li>
 </ol>
-<p>CUDA Quantum and NVQ++ rely on Quake for the core quantum intermediate representation.
+<p>CUDA Quantum and <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> rely on Quake for the core quantum intermediate representation.
 Quake represents an IR closer to the CUDA Quantum source language and models qubits and
 quantum instructions via memory semantics. Quake can be fully dynamic and in
 that sense represents a quantum circuit template or generator. With runtime
@@ -510,122 +516,53 @@ and produce QIR. Recall the code snippet for the kernel</p>
 
 <span class="go">declare %Array* @__quantum__rt__qubit_allocate_array(i64) local_unnamed_addr</span>
 
-<span class="go">define void @__nvqpp__mlirgen__ghz() local_unnamed_addr {</span>
-<span class="go">    .preheader.preheader:</span>
-<span class="gp">    %</span><span class="nv">0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>%Array*<span class="w"> </span>@__quantum__rt__qubit_allocate_array<span class="o">(</span>i64<span class="w"> </span><span class="m">5</span><span class="o">)</span>
-<span class="gp">    %</span><span class="nv">1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>i8*<span class="w"> </span>@__quantum__rt__array_get_element_ptr_1d<span class="o">(</span>%Array*<span class="w"> </span>%0,<span class="w"> </span>i64<span class="w"> </span><span class="m">0</span><span class="o">)</span>
-<span class="gp">    %</span><span class="nv">2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>bitcast<span class="w"> </span>i8*<span class="w"> </span>%1<span class="w"> </span>to<span class="w"> </span>%Qubit**
-<span class="gp">    %</span><span class="nv">3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>load<span class="w"> </span>%Qubit*,<span class="w"> </span>%Qubit**<span class="w"> </span>%2,<span class="w"> </span>align<span class="w"> </span><span class="m">8</span>
-<span class="go">    tail call void @__quantum__qis__h(%Qubit* %3)</span>
-<span class="gp">    %</span><span class="nv">4</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>i8*<span class="w"> </span>@__quantum__rt__array_get_element_ptr_1d<span class="o">(</span>%Array*<span class="w"> </span>%0,<span class="w"> </span>i64<span class="w"> </span><span class="m">0</span><span class="o">)</span>
-<span class="gp">    %</span><span class="nv">5</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>bitcast<span class="w"> </span>i8*<span class="w"> </span>%4<span class="w"> </span>to<span class="w"> </span>%Qubit**
-<span class="gp">    %</span><span class="nv">6</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>load<span class="w"> </span>%Qubit*,<span class="w"> </span>%Qubit**<span class="w"> </span>%5,<span class="w"> </span>align<span class="w"> </span><span class="m">8</span>
-<span class="gp">    %</span><span class="nv">7</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>i8*<span class="w"> </span>@__quantum__rt__array_get_element_ptr_1d<span class="o">(</span>%Array*<span class="w"> </span>%0,<span class="w"> </span>i64<span class="w"> </span><span class="m">1</span><span class="o">)</span>
-<span class="gp">    %</span><span class="nv">8</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>bitcast<span class="w"> </span>i8*<span class="w"> </span>%7<span class="w"> </span>to<span class="w"> </span>%Qubit**
-<span class="gp">    %</span><span class="nv">9</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>load<span class="w"> </span>%Qubit*,<span class="w"> </span>%Qubit**<span class="w"> </span>%8,<span class="w"> </span>align<span class="w"> </span><span class="m">8</span>
-<span class="go">    tail call void (i64, void (%Array*, %Qubit*)*, ...) @invokeWithControlQubits(i64 1, void (%Array*, %Qubit*)* nonnull @__quantum__qis__x__ctl, %Qubit* %6, %Qubit* %9)</span>
-<span class="gp">    %</span><span class="nv">10</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>i8*<span class="w"> </span>@__quantum__rt__array_get_element_ptr_1d<span class="o">(</span>%Array*<span class="w"> </span>%0,<span class="w"> </span>i64<span class="w"> </span><span class="m">1</span><span class="o">)</span>
-<span class="gp">    %</span><span class="nv">11</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>bitcast<span class="w"> </span>i8*<span class="w"> </span>%10<span class="w"> </span>to<span class="w"> </span>%Qubit**
-<span class="gp">    %</span><span class="nv">12</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>load<span class="w"> </span>%Qubit*,<span class="w"> </span>%Qubit**<span class="w"> </span>%11,<span class="w"> </span>align<span class="w"> </span><span class="m">8</span>
-<span class="gp">    %</span><span class="nv">13</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>i8*<span class="w"> </span>@__quantum__rt__array_get_element_ptr_1d<span class="o">(</span>%Array*<span class="w"> </span>%0,<span class="w"> </span>i64<span class="w"> </span><span class="m">2</span><span class="o">)</span>
-<span class="gp">    %</span><span class="nv">14</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>bitcast<span class="w"> </span>i8*<span class="w"> </span>%13<span class="w"> </span>to<span class="w"> </span>%Qubit**
-<span class="gp">    %</span><span class="nv">15</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>load<span class="w"> </span>%Qubit*,<span class="w"> </span>%Qubit**<span class="w"> </span>%14,<span class="w"> </span>align<span class="w"> </span><span class="m">8</span>
-<span class="go">    tail call void (i64, void (%Array*, %Qubit*)*, ...) @invokeWithControlQubits(i64 1, void (%Array*, %Qubit*)* nonnull @__quantum__qis__x__ctl, %Qubit* %12, %Qubit* %15)</span>
-<span class="gp">    %</span><span class="nv">16</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>i8*<span class="w"> </span>@__quantum__rt__array_get_element_ptr_1d<span class="o">(</span>%Array*<span class="w"> </span>%0,<span class="w"> </span>i64<span class="w"> </span><span class="m">2</span><span class="o">)</span>
-<span class="gp">    %</span><span class="nv">17</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>bitcast<span class="w"> </span>i8*<span class="w"> </span>%16<span class="w"> </span>to<span class="w"> </span>%Qubit**
-<span class="gp">    %</span><span class="nv">18</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>load<span class="w"> </span>%Qubit*,<span class="w"> </span>%Qubit**<span class="w"> </span>%17,<span class="w"> </span>align<span class="w"> </span><span class="m">8</span>
-<span class="gp">    %</span><span class="nv">19</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>i8*<span class="w"> </span>@__quantum__rt__array_get_element_ptr_1d<span class="o">(</span>%Array*<span class="w"> </span>%0,<span class="w"> </span>i64<span class="w"> </span><span class="m">3</span><span class="o">)</span>
-<span class="gp">    %</span><span class="nv">20</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>bitcast<span class="w"> </span>i8*<span class="w"> </span>%19<span class="w"> </span>to<span class="w"> </span>%Qubit**
-<span class="gp">    %</span><span class="nv">21</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>load<span class="w"> </span>%Qubit*,<span class="w"> </span>%Qubit**<span class="w"> </span>%20,<span class="w"> </span>align<span class="w"> </span><span class="m">8</span>
-<span class="go">    tail call void (i64, void (%Array*, %Qubit*)*, ...) @invokeWithControlQubits(i64 1, void (%Array*, %Qubit*)* nonnull @__quantum__qis__x__ctl, %Qubit* %18, %Qubit* %21)</span>
-<span class="gp">    %</span><span class="nv">22</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>i8*<span class="w"> </span>@__quantum__rt__array_get_element_ptr_1d<span class="o">(</span>%Array*<span class="w"> </span>%0,<span class="w"> </span>i64<span class="w"> </span><span class="m">3</span><span class="o">)</span>
-<span class="gp">    %</span><span class="nv">23</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>bitcast<span class="w"> </span>i8*<span class="w"> </span>%22<span class="w"> </span>to<span class="w"> </span>%Qubit**
-<span class="gp">    %</span><span class="nv">24</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>load<span class="w"> </span>%Qubit*,<span class="w"> </span>%Qubit**<span class="w"> </span>%23,<span class="w"> </span>align<span class="w"> </span><span class="m">8</span>
-<span class="gp">    %</span><span class="nv">25</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>i8*<span class="w"> </span>@__quantum__rt__array_get_element_ptr_1d<span class="o">(</span>%Array*<span class="w"> </span>%0,<span class="w"> </span>i64<span class="w"> </span><span class="m">4</span><span class="o">)</span>
-<span class="gp">    %</span><span class="nv">26</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>bitcast<span class="w"> </span>i8*<span class="w"> </span>%25<span class="w"> </span>to<span class="w"> </span>%Qubit**
-<span class="gp">    %</span><span class="nv">27</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>load<span class="w"> </span>%Qubit*,<span class="w"> </span>%Qubit**<span class="w"> </span>%26,<span class="w"> </span>align<span class="w"> </span><span class="m">8</span>
-<span class="go">    tail call void (i64, void (%Array*, %Qubit*)*, ...) @invokeWithControlQubits(i64 1, void (%Array*, %Qubit*)* nonnull @__quantum__qis__x__ctl, %Qubit* %24, %Qubit* %27)</span>
-<span class="gp">    %</span><span class="nv">28</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>i8*<span class="w"> </span>@__quantum__rt__array_get_element_ptr_1d<span class="o">(</span>%Array*<span class="w"> </span>%0,<span class="w"> </span>i64<span class="w"> </span><span class="m">0</span><span class="o">)</span>
-<span class="gp">    %</span><span class="nv">29</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>bitcast<span class="w"> </span>i8*<span class="w"> </span>%28<span class="w"> </span>to<span class="w"> </span>%Qubit**
-<span class="gp">    %</span><span class="nv">30</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>load<span class="w"> </span>%Qubit*,<span class="w"> </span>%Qubit**<span class="w"> </span>%29,<span class="w"> </span>align<span class="w"> </span><span class="m">8</span>
-<span class="gp">    %</span><span class="nv">31</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>%Result*<span class="w"> </span>@__quantum__qis__mz<span class="o">(</span>%Qubit*<span class="w"> </span>%30<span class="o">)</span>
-<span class="gp">    %</span><span class="nv">32</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>i8*<span class="w"> </span>@__quantum__rt__array_get_element_ptr_1d<span class="o">(</span>%Array*<span class="w"> </span>%0,<span class="w"> </span>i64<span class="w"> </span><span class="m">1</span><span class="o">)</span>
-<span class="gp">    %</span><span class="nv">33</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>bitcast<span class="w"> </span>i8*<span class="w"> </span>%32<span class="w"> </span>to<span class="w"> </span>%Qubit**
-<span class="gp">    %</span><span class="nv">34</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>load<span class="w"> </span>%Qubit*,<span class="w"> </span>%Qubit**<span class="w"> </span>%33,<span class="w"> </span>align<span class="w"> </span><span class="m">8</span>
-<span class="gp">    %</span><span class="nv">35</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>%Result*<span class="w"> </span>@__quantum__qis__mz<span class="o">(</span>%Qubit*<span class="w"> </span>%34<span class="o">)</span>
-<span class="gp">    %</span><span class="nv">36</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>i8*<span class="w"> </span>@__quantum__rt__array_get_element_ptr_1d<span class="o">(</span>%Array*<span class="w"> </span>%0,<span class="w"> </span>i64<span class="w"> </span><span class="m">2</span><span class="o">)</span>
-<span class="gp">    %</span><span class="nv">37</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>bitcast<span class="w"> </span>i8*<span class="w"> </span>%36<span class="w"> </span>to<span class="w"> </span>%Qubit**
-<span class="gp">    %</span><span class="nv">38</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>load<span class="w"> </span>%Qubit*,<span class="w"> </span>%Qubit**<span class="w"> </span>%37,<span class="w"> </span>align<span class="w"> </span><span class="m">8</span>
-<span class="gp">    %</span><span class="nv">39</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>%Result*<span class="w"> </span>@__quantum__qis__mz<span class="o">(</span>%Qubit*<span class="w"> </span>%38<span class="o">)</span>
-<span class="gp">    %</span><span class="nv">40</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>i8*<span class="w"> </span>@__quantum__rt__array_get_element_ptr_1d<span class="o">(</span>%Array*<span class="w"> </span>%0,<span class="w"> </span>i64<span class="w"> </span><span class="m">3</span><span class="o">)</span>
-<span class="gp">    %</span><span class="nv">41</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>bitcast<span class="w"> </span>i8*<span class="w"> </span>%40<span class="w"> </span>to<span class="w"> </span>%Qubit**
-<span class="gp">    %</span><span class="nv">42</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>load<span class="w"> </span>%Qubit*,<span class="w"> </span>%Qubit**<span class="w"> </span>%41,<span class="w"> </span>align<span class="w"> </span><span class="m">8</span>
-<span class="gp">    %</span><span class="nv">43</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>%Result*<span class="w"> </span>@__quantum__qis__mz<span class="o">(</span>%Qubit*<span class="w"> </span>%42<span class="o">)</span>
-<span class="gp">    %</span><span class="nv">44</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>i8*<span class="w"> </span>@__quantum__rt__array_get_element_ptr_1d<span class="o">(</span>%Array*<span class="w"> </span>%0,<span class="w"> </span>i64<span class="w"> </span><span class="m">4</span><span class="o">)</span>
-<span class="gp">    %</span><span class="nv">45</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>bitcast<span class="w"> </span>i8*<span class="w"> </span>%44<span class="w"> </span>to<span class="w"> </span>%Qubit**
-<span class="gp">    %</span><span class="nv">46</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>load<span class="w"> </span>%Qubit*,<span class="w"> </span>%Qubit**<span class="w"> </span>%45,<span class="w"> </span>align<span class="w"> </span><span class="m">8</span>
-<span class="gp">    %</span><span class="nv">47</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>%Result*<span class="w"> </span>@__quantum__qis__mz<span class="o">(</span>%Qubit*<span class="w"> </span>%46<span class="o">)</span>
-<span class="go">    tail call void @__quantum__rt__qubit_release_array(%Array* %0)</span>
-<span class="go">    ret void</span>
+<span class="go">define void @__nvqpp__mlirgen__ghz(i32 %0) local_unnamed_addr {</span>
+<span class="gp">  %</span><span class="nv">2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>sext<span class="w"> </span>i32<span class="w"> </span>%0<span class="w"> </span>to<span class="w"> </span>i64
+<span class="gp">  %</span><span class="nv">3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>%Array*<span class="w"> </span>@__quantum__rt__qubit_allocate_array<span class="o">(</span>i64<span class="w"> </span>%2<span class="o">)</span>
+<span class="gp">  %</span><span class="nv">4</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>i8*<span class="w"> </span>@__quantum__rt__array_get_element_ptr_1d<span class="o">(</span>%Array*<span class="w"> </span>%3,<span class="w"> </span>i64<span class="w"> </span><span class="m">0</span><span class="o">)</span>
+<span class="gp">  %</span><span class="nv">5</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>bitcast<span class="w"> </span>i8*<span class="w"> </span>%4<span class="w"> </span>to<span class="w"> </span>%Qubit**
+<span class="gp">  %</span><span class="nv">6</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>load<span class="w"> </span>%Qubit*,<span class="w"> </span>%Qubit**<span class="w"> </span>%5,<span class="w"> </span>align<span class="w"> </span><span class="m">8</span>
+<span class="go">  tail call void @__quantum__qis__h(%Qubit* %6)</span>
+<span class="gp">  %</span><span class="nv">7</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>add<span class="w"> </span>i32<span class="w"> </span>%0,<span class="w"> </span>-1
+<span class="gp">  %</span><span class="nv">8</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>icmp<span class="w"> </span>sgt<span class="w"> </span>i32<span class="w"> </span>%7,<span class="w"> </span><span class="m">0</span>
+<span class="go">  br i1 %8, label %.lr.ph.preheader, label %._crit_edge</span>
+
+<span class="go">.lr.ph.preheader:                                 ; preds = %1</span>
+<span class="gp">  %</span>wide.trip.count<span class="w"> </span><span class="o">=</span><span class="w"> </span>zext<span class="w"> </span>i32<span class="w"> </span>%7<span class="w"> </span>to<span class="w"> </span>i64
+<span class="go">  br label %.lr.ph</span>
+
+<span class="go">.lr.ph:                                           ; preds = %.lr.ph.preheader, %.lr.ph</span>
+<span class="gp">  %</span>indvars.iv<span class="w"> </span><span class="o">=</span><span class="w"> </span>phi<span class="w"> </span>i64<span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="m">0</span>,<span class="w"> </span>%.lr.ph.preheader<span class="w"> </span><span class="o">]</span>,<span class="w"> </span><span class="o">[</span><span class="w"> </span>%indvars.iv.next,<span class="w"> </span>%.lr.ph<span class="w"> </span><span class="o">]</span>
+<span class="gp">  %</span><span class="nv">9</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>i8*<span class="w"> </span>@__quantum__rt__array_get_element_ptr_1d<span class="o">(</span>%Array*<span class="w"> </span>%3,<span class="w"> </span>i64<span class="w"> </span>%indvars.iv<span class="o">)</span>
+<span class="gp">  %</span><span class="nv">10</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>bitcast<span class="w"> </span>i8*<span class="w"> </span>%9<span class="w"> </span>to<span class="w"> </span>%Qubit**
+<span class="gp">  %</span><span class="nv">11</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>load<span class="w"> </span>%Qubit*,<span class="w"> </span>%Qubit**<span class="w"> </span>%10,<span class="w"> </span>align<span class="w"> </span><span class="m">8</span>
+<span class="gp">  %</span>indvars.iv.next<span class="w"> </span><span class="o">=</span><span class="w"> </span>add<span class="w"> </span>nuw<span class="w"> </span>nsw<span class="w"> </span>i64<span class="w"> </span>%indvars.iv,<span class="w"> </span><span class="m">1</span>
+<span class="gp">  %</span><span class="nv">12</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>i8*<span class="w"> </span>@__quantum__rt__array_get_element_ptr_1d<span class="o">(</span>%Array*<span class="w"> </span>%3,<span class="w"> </span>i64<span class="w"> </span>%indvars.iv.next<span class="o">)</span>
+<span class="gp">  %</span><span class="nv">13</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>bitcast<span class="w"> </span>i8*<span class="w"> </span>%12<span class="w"> </span>to<span class="w"> </span>%Qubit**
+<span class="gp">  %</span><span class="nv">14</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>load<span class="w"> </span>%Qubit*,<span class="w"> </span>%Qubit**<span class="w"> </span>%13,<span class="w"> </span>align<span class="w"> </span><span class="m">8</span>
+<span class="go">  tail call void (i64, void (%Array*, %Qubit*)*, ...) @invokeWithControlQubits(i64 1, void (%Array*, %Qubit*)* nonnull @__quantum__qis__x__ctl, %Qubit* %11, %Qubit* %14)</span>
+<span class="gp">  %</span>exitcond.not<span class="w"> </span><span class="o">=</span><span class="w"> </span>icmp<span class="w"> </span>eq<span class="w"> </span>i64<span class="w"> </span>%indvars.iv.next,<span class="w"> </span>%wide.trip.count
+<span class="go">  br i1 %exitcond.not, label %._crit_edge, label %.lr.ph</span>
+
+<span class="go">._crit_edge:                                      ; preds = %.lr.ph, %1</span>
+<span class="gp">  %</span><span class="nv">15</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>i64<span class="w"> </span>@__quantum__rt__array_get_size_1d<span class="o">(</span>%Array*<span class="w"> </span>%3<span class="o">)</span>
+<span class="gp">  %</span><span class="nv">16</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>icmp<span class="w"> </span>sgt<span class="w"> </span>i64<span class="w"> </span>%15,<span class="w"> </span><span class="m">0</span>
+<span class="go">  br i1 %16, label %.lr.ph3, label %._crit_edge4</span>
+
+<span class="go">.lr.ph3:                                          ; preds = %._crit_edge, %.lr.ph3</span>
+<span class="gp">  %</span><span class="nv">17</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>phi<span class="w"> </span>i64<span class="w"> </span><span class="o">[</span><span class="w"> </span>%22,<span class="w"> </span>%.lr.ph3<span class="w"> </span><span class="o">]</span>,<span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="m">0</span>,<span class="w"> </span>%._crit_edge<span class="w"> </span><span class="o">]</span>
+<span class="gp">  %</span><span class="nv">18</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>i8*<span class="w"> </span>@__quantum__rt__array_get_element_ptr_1d<span class="o">(</span>%Array*<span class="w"> </span>%3,<span class="w"> </span>i64<span class="w"> </span>%17<span class="o">)</span>
+<span class="gp">  %</span><span class="nv">19</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>bitcast<span class="w"> </span>i8*<span class="w"> </span>%18<span class="w"> </span>to<span class="w"> </span>%Qubit**
+<span class="gp">  %</span><span class="nv">20</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>load<span class="w"> </span>%Qubit*,<span class="w"> </span>%Qubit**<span class="w"> </span>%19,<span class="w"> </span>align<span class="w"> </span><span class="m">8</span>
+<span class="gp">  %</span><span class="nv">21</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>%Result*<span class="w"> </span>@__quantum__qis__mz<span class="o">(</span>%Qubit*<span class="w"> </span>%20<span class="o">)</span>
+<span class="gp">  %</span><span class="nv">22</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>add<span class="w"> </span>nuw<span class="w"> </span>nsw<span class="w"> </span>i64<span class="w"> </span>%17,<span class="w"> </span><span class="m">1</span>
+<span class="gp">  %</span>exitcond5.not<span class="w"> </span><span class="o">=</span><span class="w"> </span>icmp<span class="w"> </span>eq<span class="w"> </span>i64<span class="w"> </span>%22,<span class="w"> </span>%15
+<span class="go">  br i1 %exitcond5.not, label %._crit_edge4, label %.lr.ph3</span>
+
+<span class="go">._crit_edge4:                                     ; preds = %.lr.ph3, %._crit_edge</span>
+<span class="go">  tail call void @__quantum__rt__qubit_release_array(%Array* %3)</span>
+<span class="go">  ret void</span>
 <span class="go">}</span>
-
-<span class="go">!llvm.module.flags = !{!0}</span>
-</pre></div>
-</div>
-<p>We could also lower to the QIR Base Profile</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">cudaq-quake simple.cpp | cudaq-opt --canonicalize --expand-measurements --canonicalize --cc-loop-unroll --canonicalize | cudaq-translate --convert-to=qir-base</span>
-</pre></div>
-</div>
-<p>which prints</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">; ModuleID = &#39;LLVMDialectModule&#39;</span>
-<span class="go">source_filename = &quot;LLVMDialectModule&quot;</span>
-<span class="go">target datalayout = &quot;e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128&quot;</span>
-<span class="go">target triple = &quot;x86_64-unknown-linux-gnu&quot;</span>
-
-<span class="gp">%</span><span class="nv">Qubit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span>opaque
-<span class="gp">%</span><span class="nv">Result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">type</span><span class="w"> </span>opaque
-
-<span class="go">declare void @__quantum__qis__h__body(%Qubit*) local_unnamed_addr</span>
-
-<span class="go">declare void @__quantum__qis__cnot__body(%Qubit*, %Qubit*) local_unnamed_addr</span>
-
-<span class="go">declare void @__quantum__rt__result_record_output(%Result*, i8*) local_unnamed_addr</span>
-
-<span class="go">declare void @__quantum__rt__array_end_record_output() local_unnamed_addr</span>
-
-<span class="go">declare void @__quantum__rt__array_start_record_output() local_unnamed_addr</span>
-
-<span class="go">declare i1 @__quantum__qis__read_result__body(%Result*) local_unnamed_addr</span>
-
-<span class="go">declare void @__quantum__qis__mz__body(%Qubit*, %Result*) local_unnamed_addr</span>
-
-<span class="go">define void @__nvqpp__mlirgen__ghz() local_unnamed_addr #0 {</span>
-<span class="go">    tail call void @__quantum__qis__h__body(%Qubit* null)</span>
-<span class="go">    tail call void @__quantum__qis__cnot__body(%Qubit* null, %Qubit* nonnull inttoptr (i64 1 to %Qubit*))</span>
-<span class="go">    tail call void @__quantum__qis__cnot__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Qubit* nonnull inttoptr (i64 2 to %Qubit*))</span>
-<span class="go">    tail call void @__quantum__qis__cnot__body(%Qubit* nonnull inttoptr (i64 2 to %Qubit*), %Qubit* nonnull inttoptr (i64 3 to %Qubit*))</span>
-<span class="go">    tail call void @__quantum__qis__cnot__body(%Qubit* nonnull inttoptr (i64 3 to %Qubit*), %Qubit* nonnull inttoptr (i64 4 to %Qubit*))</span>
-<span class="go">    tail call void @__quantum__qis__mz__body(%Qubit* null, %Result* null)</span>
-<span class="gp">    %</span><span class="nv">1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>i1<span class="w"> </span>@__quantum__qis__read_result__body<span class="o">(</span>%Result*<span class="w"> </span>null<span class="o">)</span>
-<span class="go">    tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Result* nonnull inttoptr (i64 1 to %Result*))</span>
-<span class="gp">    %</span><span class="nv">2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>i1<span class="w"> </span>@__quantum__qis__read_result__body<span class="o">(</span>%Result*<span class="w"> </span>nonnull<span class="w"> </span>inttoptr<span class="w"> </span><span class="o">(</span>i64<span class="w"> </span><span class="m">1</span><span class="w"> </span>to<span class="w"> </span>%Result*<span class="o">))</span>
-<span class="go">    tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 2 to %Qubit*), %Result* nonnull inttoptr (i64 2 to %Result*))</span>
-<span class="gp">    %</span><span class="nv">3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>i1<span class="w"> </span>@__quantum__qis__read_result__body<span class="o">(</span>%Result*<span class="w"> </span>nonnull<span class="w"> </span>inttoptr<span class="w"> </span><span class="o">(</span>i64<span class="w"> </span><span class="m">2</span><span class="w"> </span>to<span class="w"> </span>%Result*<span class="o">))</span>
-<span class="go">    tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 3 to %Qubit*), %Result* nonnull inttoptr (i64 3 to %Result*))</span>
-<span class="gp">    %</span><span class="nv">4</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>i1<span class="w"> </span>@__quantum__qis__read_result__body<span class="o">(</span>%Result*<span class="w"> </span>nonnull<span class="w"> </span>inttoptr<span class="w"> </span><span class="o">(</span>i64<span class="w"> </span><span class="m">3</span><span class="w"> </span>to<span class="w"> </span>%Result*<span class="o">))</span>
-<span class="go">    tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 4 to %Qubit*), %Result* nonnull inttoptr (i64 4 to %Result*))</span>
-<span class="gp">    %</span><span class="nv">5</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>tail<span class="w"> </span>call<span class="w"> </span>i1<span class="w"> </span>@__quantum__qis__read_result__body<span class="o">(</span>%Result*<span class="w"> </span>nonnull<span class="w"> </span>inttoptr<span class="w"> </span><span class="o">(</span>i64<span class="w"> </span><span class="m">4</span><span class="w"> </span>to<span class="w"> </span>%Result*<span class="o">))</span>
-<span class="go">    tail call void @__quantum__rt__array_start_record_output()</span>
-<span class="go">    tail call void @__quantum__rt__result_record_output(%Result* null, i8* null)</span>
-<span class="go">    tail call void @__quantum__rt__result_record_output(%Result* nonnull inttoptr (i64 1 to %Result*), i8* null)</span>
-<span class="go">    tail call void @__quantum__rt__result_record_output(%Result* nonnull inttoptr (i64 2 to %Result*), i8* null)</span>
-<span class="go">    tail call void @__quantum__rt__result_record_output(%Result* nonnull inttoptr (i64 3 to %Result*), i8* null)</span>
-<span class="go">    tail call void @__quantum__rt__result_record_output(%Result* nonnull inttoptr (i64 4 to %Result*), i8* null)</span>
-<span class="go">    tail call void @__quantum__rt__array_end_record_output()</span>
-<span class="go">    ret void</span>
-<span class="go">}</span>
-
-<span class="go">attributes #0 = { &quot;EntryPoint&quot; &quot;requiredQubits&quot;=&quot;5&quot; &quot;requiredResults&quot;=&quot;5&quot; }</span>
 
 <span class="go">!llvm.module.flags = !{!0}</span>
 

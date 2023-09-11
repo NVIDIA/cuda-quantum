@@ -172,6 +172,12 @@
 <li class="toctree-l3"><a class="reference internal" href="hardware.html#id3">Submission from Python</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="hardware.html#iqm">IQM</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="hardware.html#id4">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware.html#id5">Submission from C++</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware.html#id6">Submission from Python</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../specification/index.html">   Specifications</a><ul>
@@ -512,8 +518,8 @@ This is a introduction by example for using CUDA Quantum in Python.</p>
     <span class="c1"># list of parameters has length of 1:</span>
     <span class="n">parameter_count</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">minimized &lt;H&gt; = </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">energy</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;optimal theta = </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">parameter</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="mi">3</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">minimized &lt;H&gt; = </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">energy</span><span class="p">,</span><span class="mi">16</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;optimal theta = </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">parameter</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="mi">16</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Let’s look at a more advanced examples.</p>
@@ -581,11 +587,12 @@ This is a introduction by example for using CUDA Quantum in Python.</p>
     <span class="k">return</span> <span class="n">cost</span><span class="p">,</span> <span class="n">gradient_vector</span>
 
 
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">13</span><span class="p">)</span>  <span class="c1"># make repeatable</span>
 <span class="n">energy</span><span class="p">,</span> <span class="n">parameter</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span><span class="n">dimensions</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                                        <span class="n">function</span><span class="o">=</span><span class="n">objective_function</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">minimized &lt;H&gt; = </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">energy</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;optimal theta = </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">parameter</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="mi">3</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">minimized &lt;H&gt; = </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">energy</span><span class="p">,</span><span class="mi">16</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;optimal theta = </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">parameter</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="mi">16</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
@@ -644,8 +651,10 @@ This is a introduction by example for using CUDA Quantum in Python.</p>
     <span class="k">return</span> <span class="n">kernel</span>
 
 
-<span class="c1"># Specify the optimizer and its initial parameters.</span>
+<span class="c1"># Specify the optimizer and its initial parameters. Make it repeatable.</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">13</span><span class="p">)</span>
 <span class="n">optimizer</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">COBYLA</span><span class="p">()</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">13</span><span class="p">)</span>
 <span class="n">optimizer</span><span class="o">.</span><span class="n">initial_parameters</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">8.0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">8.0</span><span class="p">,</span>
                                                  <span class="n">parameter_count</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Initial parameters = &quot;</span><span class="p">,</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">initial_parameters</span><span class="p">)</span>

@@ -129,14 +129,14 @@ is typically produced just-in-time when the structure of the circuit is fully kn
 
 You will notice that there are a number of CUDA Quantum executable tools installed as part 
 of this open beta release. These tools are directly related to the generation, 
-processing, optimization, and lowering of the core NVQ++ compiler representations.
+processing, optimization, and lowering of the core :code:`nvq++` compiler representations.
 The tools available are 
 
 1. :code:`cudaq-quake` - Lower C++ to Quake, can also output classical LLVM IR file
 2. :code:`cudaq-opt` - Process Quake with various MLIR Passes
 3. :code:`cudaq-translate` - Lower Quake to external representations like QIR (or Base Profile QIR)
 
-CUDA Quantum and NVQ++ rely on Quake for the core quantum intermediate representation. 
+CUDA Quantum and :code:`nvq++` rely on Quake for the core quantum intermediate representation.
 Quake represents an IR closer to the CUDA Quantum source language and models qubits and
 quantum instructions via memory semantics. Quake can be fully dynamic and in
 that sense represents a quantum circuit template or generator. With runtime 
@@ -201,127 +201,53 @@ which prints
 
     declare %Array* @__quantum__rt__qubit_allocate_array(i64) local_unnamed_addr
 
-    define void @__nvqpp__mlirgen__ghz() local_unnamed_addr {
-        .preheader.preheader:
-        %0 = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 5)
-        %1 = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 0)
-        %2 = bitcast i8* %1 to %Qubit**
-        %3 = load %Qubit*, %Qubit** %2, align 8
-        tail call void @__quantum__qis__h(%Qubit* %3)
-        %4 = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 0)
-        %5 = bitcast i8* %4 to %Qubit**
-        %6 = load %Qubit*, %Qubit** %5, align 8
-        %7 = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 1)
-        %8 = bitcast i8* %7 to %Qubit**
-        %9 = load %Qubit*, %Qubit** %8, align 8
-        tail call void (i64, void (%Array*, %Qubit*)*, ...) @invokeWithControlQubits(i64 1, void (%Array*, %Qubit*)* nonnull @__quantum__qis__x__ctl, %Qubit* %6, %Qubit* %9)
-        %10 = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 1)
-        %11 = bitcast i8* %10 to %Qubit**
-        %12 = load %Qubit*, %Qubit** %11, align 8
-        %13 = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 2)
-        %14 = bitcast i8* %13 to %Qubit**
-        %15 = load %Qubit*, %Qubit** %14, align 8
-        tail call void (i64, void (%Array*, %Qubit*)*, ...) @invokeWithControlQubits(i64 1, void (%Array*, %Qubit*)* nonnull @__quantum__qis__x__ctl, %Qubit* %12, %Qubit* %15)
-        %16 = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 2)
-        %17 = bitcast i8* %16 to %Qubit**
-        %18 = load %Qubit*, %Qubit** %17, align 8
-        %19 = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 3)
-        %20 = bitcast i8* %19 to %Qubit**
-        %21 = load %Qubit*, %Qubit** %20, align 8
-        tail call void (i64, void (%Array*, %Qubit*)*, ...) @invokeWithControlQubits(i64 1, void (%Array*, %Qubit*)* nonnull @__quantum__qis__x__ctl, %Qubit* %18, %Qubit* %21)
-        %22 = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 3)
-        %23 = bitcast i8* %22 to %Qubit**
-        %24 = load %Qubit*, %Qubit** %23, align 8
-        %25 = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 4)
-        %26 = bitcast i8* %25 to %Qubit**
-        %27 = load %Qubit*, %Qubit** %26, align 8
-        tail call void (i64, void (%Array*, %Qubit*)*, ...) @invokeWithControlQubits(i64 1, void (%Array*, %Qubit*)* nonnull @__quantum__qis__x__ctl, %Qubit* %24, %Qubit* %27)
-        %28 = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 0)
-        %29 = bitcast i8* %28 to %Qubit**
-        %30 = load %Qubit*, %Qubit** %29, align 8
-        %31 = tail call %Result* @__quantum__qis__mz(%Qubit* %30)
-        %32 = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 1)
-        %33 = bitcast i8* %32 to %Qubit**
-        %34 = load %Qubit*, %Qubit** %33, align 8
-        %35 = tail call %Result* @__quantum__qis__mz(%Qubit* %34)
-        %36 = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 2)
-        %37 = bitcast i8* %36 to %Qubit**
-        %38 = load %Qubit*, %Qubit** %37, align 8
-        %39 = tail call %Result* @__quantum__qis__mz(%Qubit* %38)
-        %40 = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 3)
-        %41 = bitcast i8* %40 to %Qubit**
-        %42 = load %Qubit*, %Qubit** %41, align 8
-        %43 = tail call %Result* @__quantum__qis__mz(%Qubit* %42)
-        %44 = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 4)
-        %45 = bitcast i8* %44 to %Qubit**
-        %46 = load %Qubit*, %Qubit** %45, align 8
-        %47 = tail call %Result* @__quantum__qis__mz(%Qubit* %46)
-        tail call void @__quantum__rt__qubit_release_array(%Array* %0)
-        ret void
+    define void @__nvqpp__mlirgen__ghz(i32 %0) local_unnamed_addr {
+      %2 = sext i32 %0 to i64
+      %3 = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 %2)
+      %4 = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %3, i64 0)
+      %5 = bitcast i8* %4 to %Qubit**
+      %6 = load %Qubit*, %Qubit** %5, align 8
+      tail call void @__quantum__qis__h(%Qubit* %6)
+      %7 = add i32 %0, -1
+      %8 = icmp sgt i32 %7, 0
+      br i1 %8, label %.lr.ph.preheader, label %._crit_edge
+
+    .lr.ph.preheader:                                 ; preds = %1
+      %wide.trip.count = zext i32 %7 to i64
+      br label %.lr.ph
+
+    .lr.ph:                                           ; preds = %.lr.ph.preheader, %.lr.ph
+      %indvars.iv = phi i64 [ 0, %.lr.ph.preheader ], [ %indvars.iv.next, %.lr.ph ]
+      %9 = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %3, i64 %indvars.iv)
+      %10 = bitcast i8* %9 to %Qubit**
+      %11 = load %Qubit*, %Qubit** %10, align 8
+      %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1
+      %12 = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %3, i64 %indvars.iv.next)
+      %13 = bitcast i8* %12 to %Qubit**
+      %14 = load %Qubit*, %Qubit** %13, align 8
+      tail call void (i64, void (%Array*, %Qubit*)*, ...) @invokeWithControlQubits(i64 1, void (%Array*, %Qubit*)* nonnull @__quantum__qis__x__ctl, %Qubit* %11, %Qubit* %14)
+      %exitcond.not = icmp eq i64 %indvars.iv.next, %wide.trip.count
+      br i1 %exitcond.not, label %._crit_edge, label %.lr.ph
+
+    ._crit_edge:                                      ; preds = %.lr.ph, %1
+      %15 = tail call i64 @__quantum__rt__array_get_size_1d(%Array* %3)
+      %16 = icmp sgt i64 %15, 0
+      br i1 %16, label %.lr.ph3, label %._crit_edge4
+
+    .lr.ph3:                                          ; preds = %._crit_edge, %.lr.ph3
+      %17 = phi i64 [ %22, %.lr.ph3 ], [ 0, %._crit_edge ]
+      %18 = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %3, i64 %17)
+      %19 = bitcast i8* %18 to %Qubit**
+      %20 = load %Qubit*, %Qubit** %19, align 8
+      %21 = tail call %Result* @__quantum__qis__mz(%Qubit* %20)
+      %22 = add nuw nsw i64 %17, 1
+      %exitcond5.not = icmp eq i64 %22, %15
+      br i1 %exitcond5.not, label %._crit_edge4, label %.lr.ph3
+
+    ._crit_edge4:                                     ; preds = %.lr.ph3, %._crit_edge
+      tail call void @__quantum__rt__qubit_release_array(%Array* %3)
+      ret void
     }
-
-    !llvm.module.flags = !{!0}
-
-
-We could also lower to the QIR Base Profile 
-
-.. code-block:: console
-
-    cudaq-quake simple.cpp | cudaq-opt --canonicalize --expand-measurements --canonicalize --cc-loop-unroll --canonicalize | cudaq-translate --convert-to=qir-base 
-
-which prints 
-
-.. code-block:: console 
-
-    ; ModuleID = 'LLVMDialectModule'
-    source_filename = "LLVMDialectModule"
-    target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
-    target triple = "x86_64-unknown-linux-gnu"
-
-    %Qubit = type opaque
-    %Result = type opaque
-
-    declare void @__quantum__qis__h__body(%Qubit*) local_unnamed_addr
-
-    declare void @__quantum__qis__cnot__body(%Qubit*, %Qubit*) local_unnamed_addr
-
-    declare void @__quantum__rt__result_record_output(%Result*, i8*) local_unnamed_addr
-
-    declare void @__quantum__rt__array_end_record_output() local_unnamed_addr
-
-    declare void @__quantum__rt__array_start_record_output() local_unnamed_addr
-
-    declare i1 @__quantum__qis__read_result__body(%Result*) local_unnamed_addr
-
-    declare void @__quantum__qis__mz__body(%Qubit*, %Result*) local_unnamed_addr
-
-    define void @__nvqpp__mlirgen__ghz() local_unnamed_addr #0 {
-        tail call void @__quantum__qis__h__body(%Qubit* null)
-        tail call void @__quantum__qis__cnot__body(%Qubit* null, %Qubit* nonnull inttoptr (i64 1 to %Qubit*))
-        tail call void @__quantum__qis__cnot__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Qubit* nonnull inttoptr (i64 2 to %Qubit*))
-        tail call void @__quantum__qis__cnot__body(%Qubit* nonnull inttoptr (i64 2 to %Qubit*), %Qubit* nonnull inttoptr (i64 3 to %Qubit*))
-        tail call void @__quantum__qis__cnot__body(%Qubit* nonnull inttoptr (i64 3 to %Qubit*), %Qubit* nonnull inttoptr (i64 4 to %Qubit*))
-        tail call void @__quantum__qis__mz__body(%Qubit* null, %Result* null)
-        %1 = tail call i1 @__quantum__qis__read_result__body(%Result* null)
-        tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Result* nonnull inttoptr (i64 1 to %Result*))
-        %2 = tail call i1 @__quantum__qis__read_result__body(%Result* nonnull inttoptr (i64 1 to %Result*))
-        tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 2 to %Qubit*), %Result* nonnull inttoptr (i64 2 to %Result*))
-        %3 = tail call i1 @__quantum__qis__read_result__body(%Result* nonnull inttoptr (i64 2 to %Result*))
-        tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 3 to %Qubit*), %Result* nonnull inttoptr (i64 3 to %Result*))
-        %4 = tail call i1 @__quantum__qis__read_result__body(%Result* nonnull inttoptr (i64 3 to %Result*))
-        tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 4 to %Qubit*), %Result* nonnull inttoptr (i64 4 to %Result*))
-        %5 = tail call i1 @__quantum__qis__read_result__body(%Result* nonnull inttoptr (i64 4 to %Result*))
-        tail call void @__quantum__rt__array_start_record_output()
-        tail call void @__quantum__rt__result_record_output(%Result* null, i8* null)
-        tail call void @__quantum__rt__result_record_output(%Result* nonnull inttoptr (i64 1 to %Result*), i8* null)
-        tail call void @__quantum__rt__result_record_output(%Result* nonnull inttoptr (i64 2 to %Result*), i8* null)
-        tail call void @__quantum__rt__result_record_output(%Result* nonnull inttoptr (i64 3 to %Result*), i8* null)
-        tail call void @__quantum__rt__result_record_output(%Result* nonnull inttoptr (i64 4 to %Result*), i8* null)
-        tail call void @__quantum__rt__array_end_record_output()
-        ret void
-    }
-
-    attributes #0 = { "EntryPoint" "requiredQubits"="5" "requiredResults"="5" }
 
     !llvm.module.flags = !{!0}
 

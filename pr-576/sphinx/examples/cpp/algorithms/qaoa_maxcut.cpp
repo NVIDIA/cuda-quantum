@@ -23,25 +23,26 @@
 // The Max-Cut for this problem is 0101 or 1010.
 
 struct ansatz {
-  void operator()(std::vector<double> theta, const int N, const int p) __qpu__ {
-    cudaq::qreg q(N);
+  void operator()(std::vector<double> theta, const int n_qubits,
+                  const int n_layers) __qpu__ {
+    cudaq::qreg q(n_qubits);
 
     // Prepare the initial state by superposition
     h(q);
 
-    // Loop over all the p layers
-    for (int i = 0; i < p; ++i) {
+    // Loop over all the layers
+    for (int i = 0; i < n_layers; ++i) {
       // Problem Hamiltonian
-      for (int j = 0; j < N; ++j) {
+      for (int j = 0; j < n_qubits; ++j) {
 
-        x<cudaq::ctrl>(q[j], q[(j + 1) % N]);
-        rz(2.0 * theta[i], q[(j + 1) % N]);
-        x<cudaq::ctrl>(q[j], q[(j + 1) % N]);
+        x<cudaq::ctrl>(q[j], q[(j + 1) % n_qubits]);
+        rz(2.0 * theta[i], q[(j + 1) % n_qubits]);
+        x<cudaq::ctrl>(q[j], q[(j + 1) % n_qubits]);
       }
 
-      for (int j = 0; j < N; ++j) {
+      for (int j = 0; j < n_qubits; ++j) {
         // Mixer Hamiltonian
-        rx(2.0 * theta[i + p], q[j]);
+        rx(2.0 * theta[i + n_layers], q[j]);
       }
     }
   }
@@ -50,6 +51,8 @@ struct ansatz {
 int main() {
 
   using namespace cudaq::spin;
+
+  cudaq::set_random_seed(13); // set for repeatability
 
   // Problem Hamiltonian
   const cudaq::spin_op Hp = 0.5 * z(0) * z(1) + 0.5 * z(1) * z(2) +
@@ -64,8 +67,8 @@ int main() {
   cudaq::optimizers::cobyla optimizer; // gradient-free COBYLA
 
   // Set initial values for the optimization parameters
-  optimizer.initial_parameters =
-      cudaq::random_vector(-M_PI / 8.0, M_PI / 8.0, n_params);
+  optimizer.initial_parameters = cudaq::random_vector(
+      -M_PI / 8.0, M_PI / 8.0, n_params, std::mt19937::default_seed);
 
   // Call the optimizer
   auto [opt_val, opt_params] = cudaq::vqe(
@@ -74,8 +77,8 @@ int main() {
       });
 
   // Print the optimized value and the parameters
-  printf("Optimal value = %lf\n", opt_val);
-  printf("Optimal params = (%lf, %lf, %lf, %lf) \n", opt_params[0],
+  printf("Optimal value = %.16lf\n", opt_val);
+  printf("Optimal params = (%.16lf, %.16lf, %.16lf, %.16lf) \n", opt_params[0],
          opt_params[1], opt_params[2], opt_params[3]);
 
   // Sample the circuit using optimized parameters
