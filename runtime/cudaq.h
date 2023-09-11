@@ -195,6 +195,9 @@ void clear_shots(const std::size_t nShots);
 /// generators used in backend simulations.
 void set_random_seed(std::size_t seed);
 
+/// @brief Get a previously set random seed
+std::size_t get_random_seed();
+
 /// @brief The number of available GPUs.
 int num_available_gpus();
 

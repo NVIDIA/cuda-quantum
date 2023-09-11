@@ -52,6 +52,10 @@ PYBIND11_MODULE(_pycudaq, mod) {
   mod.def("set_random_seed", &cudaq::set_random_seed,
           "Provide the seed for backend quantum kernel simulation.");
 
+  mod.def("get_random_seed", &cudaq::get_random_seed,
+          "Get the previously provided seed for backend quantum kernel "
+          "simulation.");
+
   mod.def("num_available_gpus", &cudaq::num_available_gpus,
           "The number of available GPUs detected on the system.");
 

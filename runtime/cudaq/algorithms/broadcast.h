@@ -12,6 +12,9 @@
 
 namespace cudaq {
 
+void set_random_seed(std::size_t);
+std::size_t get_random_seed();
+
 /// @brief An ArgumentSet is a tuple of vectors of general
 /// arguments to a CUDA Quantum kernel. The ith vector of the tuple
 /// corresponds to the ith argument of the kernel. The jth element of
@@ -84,6 +87,11 @@ broadcastFunctionOverArguments(std::size_t numQpus, quantum_platform &platform,
             std::get<1>(currentArgs) = counter;
             std::get<2>(currentArgs) = nExecsPerQpu;
             counter++;
+
+            // If seed is 0, then it has not been set.
+            std::size_t seed = cudaq::get_random_seed();
+            if (seed > 0)
+              cudaq::set_random_seed(seed);
 
             // Fill the argument tuple with the actual arguments.
             cudaq::tuple_for_each_with_idx(

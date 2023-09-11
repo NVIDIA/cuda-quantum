@@ -17,6 +17,7 @@ import cudaq
 def test_depolarization_channel():
     """Tests the depolarization channel in the case of a non-zero probability."""
     cudaq.set_random_seed(13)
+    assert(cudaq.get_random_seed() == 13)
     cudaq.set_target('density-matrix-cpu')
     circuit = cudaq.make_kernel()
     q = circuit.qalloc()

@@ -30,6 +30,8 @@ struct ghz {
 CUDAQ_TEST(GHZSampleTester, checkSimple) {
   ghz{}(5);
 
+  cudaq::set_random_seed(13);
+
   auto counts = cudaq::sample(ghz{}, 5);
   counts.dump();
   int counter = 0;
@@ -43,8 +45,6 @@ CUDAQ_TEST(GHZSampleTester, checkSimple) {
 
 CUDAQ_TEST(GHZSampleTester, checkBroadcast) {
 
-  // FIXME Issue-608 - I don't think this is enough to make it fully repeatable
-  // yet, even if you set OMP_NUM_THREADS=1
   cudaq::set_random_seed(13);
 
   std::vector<int> sizeVals(8);
@@ -69,6 +69,8 @@ CUDAQ_TEST(GHZSampleTester, checkBroadcast) {
       counter = 0;
     }
   }
+
+  cudaq::set_random_seed(14);
 
   {
     auto allCounts = cudaq::sample(2000, ghz{}, cudaq::make_argset(sizeVals));
