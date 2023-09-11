@@ -11,7 +11,7 @@ Docker images for all CUDA Quantum releases are available on the `NGC Container 
 To download images from NGC, please follow the following steps if you have not done so already:
 
 - `Create an account <https://ngc.nvidia.com/signin>`__
-- `Sign in <https://ngc.nvidia.com/signin>`__ to access your account and go to `Setup <https://ngc.nvidia.com/Setup>`__.
+- `Sign in <https://ngc.nvidia.com/signin>`__ to access your account and go to `Setup <https://ngc.nvidia.com/setup>`__.
 - Click on `Get API Key` and generate a new key (this will invalidate any existing keys).
 - Follow the instructions that appear to use that key to log in to the NGC registry using Docker.
 
