@@ -27,15 +27,12 @@ ADD "$workspace" "$destination"
 # They might be optionally pulled in during auditwheel if necessary.
 RUN dnf install -y cuda-nvtx-11-8 cuda-profiler-api-11-8 openblas-devel
 
-RUN  cd cuda-quantum && ls -R && cd ..
-
 ARG python_version=3.10
-RUN cd cuda-quantum \
-    && echo "Building wheel for python${python_version}." \
+RUN echo "Building wheel for python${python_version}." \
+    && cd cuda-quantum && python=python${python_version} \
+    # Find any external NVQIR simulator assets to be pulled in during wheel packaging.
     && export CUDAQ_EXTERNAL_NVQIR_SIMS=$(bash scripts/find_wheel_assets.sh assets) \
-    && echo "$CUDAQ_EXTERNAL_NVQIR_SIMS" \
     && export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/assets" \
-    && python=python${python_version} \
     && $python -m pip install --no-cache-dir \
         cmake auditwheel \
         cuquantum-cu11==23.6.0 \
