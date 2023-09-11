@@ -23,9 +23,6 @@ ARG workspace=.
 ARG destination=cuda-quantum
 ADD "$workspace" "$destination"
 
-# Conditionally import external simulator assets if present.
-# Note: we use a glob pattern here so that Docker will not fail if it can't find the source.
-COPY ./asset[s]/ "/tmp/assets/"
 ENV CUDAQ_EXTERNAL_NVQIR_SIMS=""
 
 # Install additional dependencies
@@ -35,9 +32,11 @@ RUN dnf install -y cuda-nvtx-11-8 cuda-profiler-api-11-8 openblas-devel
 RUN  cd cuda-quantum && ls -R && cd ..
 
 ARG python_version=3.10
-RUN if [ -d "/tmp/assets" ]; then \
+RUN cd cuda-quantum \
+    && if [ -d "assets" ]; then \
+        && export assets_dir=$(pwd)/assets; \
         echo "Finding external NVQIR simulators."; \
-        for config_file in `find /tmp/assets/wheels_$(uname -m)/*.config -maxdepth 0 -type f`; \
+        for config_file in `find assets/wheels_$(uname -m)/*.config -maxdepth 0 -type f`; \
             do \
                 current_dir="$(dirname "${config_file}")" \
                 && current_dir=$(cd $current_dir; pwd) \
@@ -50,11 +49,11 @@ RUN if [ -d "/tmp/assets" ]; then \
                         export CUDAQ_EXTERNAL_NVQIR_SIMS="$current_dir/libnvqir-$target_name.so;$current_dir/$target_name.config"; \
                     fi \
             done \
-        export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/tmp/assets/wheels_$(uname -m)/lib"; \
+        export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$assets_dir/wheels_$(uname -m)/lib"; \
         echo "External NVQIR simulators: '$CUDAQ_EXTERNAL_NVQIR_SIMS'"; \
     fi \
     && echo "Building wheel for python${python_version}." \
-    && cd cuda-quantum && python=python${python_version} \
+    && python=python${python_version} \
     && $python -m pip install --no-cache-dir \
         cmake auditwheel \
         cuquantum-cu11==23.6.0 \
