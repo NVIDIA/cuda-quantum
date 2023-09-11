@@ -143,7 +143,8 @@ jobs:
         # - test/NVQPP/integration/graph_coloring-1.cpp
         # - test/NVQPP/integration/graph_coloring.cpp
         # The following tests are disabled because a mapping algorithm is needed
-        # to account for qubit connection limitations (PR #610 in work).
+        # to account for qubit connection limitations.
+        # See https://github.com/NVIDIA/cuda-quantum/pull/610 (in work)
         # - test/NVQPP/integration/qspan_slices.cpp
         # - test/NVQPP/integration/sudoku_2x2-1.cpp
         # - test/NVQPP/integration/sudoku_2x2-bit_names.cpp
@@ -208,7 +209,8 @@ jobs:
         # - test/NVQPP/integration/graph_coloring-1.cpp
         # - test/NVQPP/integration/graph_coloring.cpp
         # The following tests are disabled because a mapping algorithm is needed
-        # to account for qubit connection limitations (PR #610 in work).
+        # to account for qubit connection limitations
+        # See https://github.com/NVIDIA/cuda-quantum/pull/610 (in work)
         # - test/NVQPP/integration/qspan_slices.cpp
         # - test/NVQPP/integration/sudoku_2x2-1.cpp
         # - test/NVQPP/integration/sudoku_2x2-bit_names.cpp
