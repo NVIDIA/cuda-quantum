@@ -17,6 +17,7 @@ on:
           - nightly
           - ionq
           - iqm
+          - oqc
           - quantinuum
       target_machine:
         type: string
@@ -137,6 +138,18 @@ jobs:
 
       - name: Submit to IQM Demo server
         if: (success() || failure()) && (inputs.target == 'iqm' || github.event_name == 'schedule' || inputs.target == 'nightly')
+        # The following tests are disabled because the demo server only supports
+        # 5 qubits and the test tries to use more.
+        # - test/NVQPP/integration/graph_coloring-1.cpp
+        # - test/NVQPP/integration/graph_coloring.cpp
+        # The following tests are disabled because a mapping algorithm is needed
+        # to account for qubit connection limitations.
+        # See https://github.com/NVIDIA/cuda-quantum/pull/610 (in work)
+        # - test/NVQPP/integration/qspan_slices.cpp
+        # - test/NVQPP/integration/sudoku_2x2-1.cpp
+        # - test/NVQPP/integration/sudoku_2x2-bit_names.cpp
+        # - test/NVQPP/integration/sudoku_2x2-reg_name.cpp
+        # - test/NVQPP/integration/sudoku_2x2.cpp
         run: |
           # Must install iqm-cortex-cli to authenticate
           pip install iqm-cortex-cli
@@ -183,6 +196,65 @@ jobs:
           set -e # Re-enable exit code error checking
           cortex auth logout -f
           echo ":white_check_mark: Successfully logged out of IQM" >> $GITHUB_STEP_SUMMARY
+          if [ ! $test_err_sum -eq 0 ]; then
+            echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Submit to OQC Sandbox server
+        if: (success() || failure()) && (inputs.target == 'oqc' || github.event_name == 'schedule' || inputs.target == 'nightly')
+        # The following tests are disabled because sandbox only supports 12
+        # qubits and the test tries to use more.
+        # - test/NVQPP/integration/graph_coloring-1.cpp
+        # - test/NVQPP/integration/graph_coloring.cpp
+        # The following tests are disabled because a mapping algorithm is needed
+        # to account for qubit connection limitations
+        # See https://github.com/NVIDIA/cuda-quantum/pull/610 (in work)
+        # - test/NVQPP/integration/qspan_slices.cpp
+        # - test/NVQPP/integration/sudoku_2x2-1.cpp
+        # - test/NVQPP/integration/sudoku_2x2-bit_names.cpp
+        # - test/NVQPP/integration/sudoku_2x2-reg_name.cpp
+        # - test/NVQPP/integration/sudoku_2x2.cpp
+        run: |
+          echo "### Submit to OQC sandbox server" >> $GITHUB_STEP_SUMMARY
+          export CUDAQ_LOG_LEVEL="info"
+          export OQC_EMAIL="${{ secrets.BACKEND_LOGIN_EMAIL }}"
+          export OQC_PASSWORD="${{ secrets.OQC_PASSWORD }}"
+          set +e # Allow script to keep going through errors
+          test_err_sum=0
+          for filename in test/NVQPP/integration/*.cpp; do
+            [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
+            # Only the following tests are currently supported on OQC
+            case $filename in
+              test/NVQPP/integration/bug_qubit.cpp|\
+              test/NVQPP/integration/callable_kernel_arg.cpp|\
+              test/NVQPP/integration/if_jit.cpp|\
+              test/NVQPP/integration/load_value.cpp|\
+              test/NVQPP/integration/swap_gate.cpp|\
+              test/NVQPP/integration/test-int8_t.cpp|\
+              test/NVQPP/integration/test-int8_t_free_func.cpp|\
+              test/NVQPP/integration/variable_size_qreg.cpp)
+                nvq++ -DSYNTAX_CHECK --target oqc $filename
+                test_status=$?
+                if [ $test_status -eq 0 ]; then
+                  ./a.out
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                else
+                  echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_err_sum=$((test_err_sum+1))
+                fi ;;
+              *)
+                echo ":white_flag: Test skipped due to known issues: $filename" >> $GITHUB_STEP_SUMMARY ;;
+            esac
+          done
+          set -e # Re-enable exit code error checking
           if [ ! $test_err_sum -eq 0 ]; then
             echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
             exit 1

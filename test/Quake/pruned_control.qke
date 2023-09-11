@@ -166,3 +166,48 @@ func.func @interleaved_blocks_of_multiple_controls() {
 // CHECK:           return
 // CHECK:         }
 
+func.func @sky_diamonds() {
+  %q0 = quake.alloca !quake.ref
+  %q1 = quake.alloca !quake.ref
+  quake.x [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.y [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.h [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.z [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.y [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.h [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.h %q1 : (!quake.ref) -> ()
+  quake.x [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.y [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.h [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.z [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.y [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.h [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.dealloc %q0 : !quake.ref
+  quake.dealloc %q1 : !quake.ref
+  return
+}
+
+// CHECK-LABEL:   func.func @sky_diamonds() {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK:           %[[VAL_1:.*]] = quake.null_wire
+// CHECK:           %[[VAL_2:.*]] = quake.to_ctrl %[[VAL_1]] : (!quake.wire) -> !quake.control
+// CHECK:           %[[VAL_3:.*]] = quake.x [%[[VAL_2]]] %[[VAL_0]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_4:.*]] = quake.y [%[[VAL_2]]] %[[VAL_3]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_5:.*]] = quake.h [%[[VAL_2]]] %[[VAL_4]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_6:.*]] = quake.z [%[[VAL_2]]] %[[VAL_5]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_7:.*]] = quake.y [%[[VAL_2]]] %[[VAL_6]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_8:.*]] = quake.h [%[[VAL_2]]] %[[VAL_7]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_9:.*]] = quake.from_ctrl %[[VAL_2]] : (!quake.control) -> !quake.wire
+// CHECK:           %[[VAL_10:.*]] = quake.h %[[VAL_9]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_11:.*]] = quake.to_ctrl %[[VAL_10]] : (!quake.wire) -> !quake.control
+// CHECK:           %[[VAL_12:.*]] = quake.x [%[[VAL_11]]] %[[VAL_8]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_13:.*]] = quake.y [%[[VAL_11]]] %[[VAL_12]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_14:.*]] = quake.h [%[[VAL_11]]] %[[VAL_13]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_15:.*]] = quake.z [%[[VAL_11]]] %[[VAL_14]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_16:.*]] = quake.y [%[[VAL_11]]] %[[VAL_15]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_17:.*]] = quake.h [%[[VAL_11]]] %[[VAL_16]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_18:.*]] = quake.from_ctrl %[[VAL_11]] : (!quake.control) -> !quake.wire
+// CHECK:           quake.sink %[[VAL_17]] : !quake.wire
+// CHECK:           quake.sink %[[VAL_18]] : !quake.wire
+// CHECK:           return
+// CHECK:         }
