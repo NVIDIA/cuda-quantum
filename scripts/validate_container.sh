@@ -48,7 +48,7 @@ available_backends=`\
     do
         platform=$(cat $file | grep "PLATFORM_QPU=")
         if [ "${platform#PLATFORM_QPU=}" != "remote_rest" ] \
-           && ($gpu_available || [ "$(cat $file | grep "GPU_REQUIREMENTS")" == "" ]); then \
+           && ($gpu_available || [ -z "$(cat $file | grep "GPU_REQUIREMENTS")" ]); then \
             basename $file | cut -d "." -f 1; \
         fi; \
     done`
@@ -98,8 +98,8 @@ do
     echo "Source: $ex"
     let "samples+=1"
 
-    if [[ "$ex" == *"ionq"* ]] || [[ "$ex" == *"quantinuum"* ]];
-    then 
+    if [[ "$ex" == *"iqm"* ]] || [[ "$ex" == *"ionq"* ]] || [[ "$ex" == *"quantinuum"* ]];
+    then
         let "skipped+=1"
         echo "Skipped.";
     else
@@ -128,8 +128,8 @@ do
     let "samples+=1"
     for t in $requested_backends
     do
-        if [[ "$ex" == *"ionq"* ]] || [[ "$ex" == *"quantinuum"* ]];
-        then 
+        if [[ "$ex" == *"iqm"* ]] || [[ "$ex" == *"ionq"* ]] || [[ "$ex" == *"quantinuum"* ]];
+        then
             let "skipped+=1"
             echo "Skipping $t target.";
 
@@ -147,9 +147,7 @@ do
             echo "Testing on $t target..."
             if [ "$t" == "default" ]; then 
                 nvq++ $ex
-                dummy=1
             else
-                dummy=1
                 nvq++ $ex --target $t
             fi
             ./a.out &> /dev/null

@@ -36,7 +36,7 @@ sample_result future::get() {
       std::this_thread::sleep_for(std::chrono::microseconds(100));
       resultResponse = client.get(jobGetPath, "", headers);
     }
-    auto c = serverHelper->processResults(resultResponse);
+    auto c = serverHelper->processResults(resultResponse, id.first);
 
     // If there are multiple jobs, this is likely a spin_op.
     // If so, use the job name instead of the global register.

@@ -23,7 +23,7 @@ struct t1 {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__t1(
 // CHECK-SAME:        %[[VAL_0:.*]]: !cc.stdvec<f64>{{.*}}) -> i1 attributes
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
-// CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] : (!quake.veq<2>) -> !cc.stdvec<i1>
+// CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] name "vec" : (!quake.veq<2>) -> !cc.stdvec<i1>
 // CHECK:           %[[VAL_3:.*]] = cc.stdvec_data %[[VAL_2]] : (!cc.stdvec<i1>) -> !cc.ptr<i1>
 // CHECK:           %[[VAL_4:.*]] = cc.compute_ptr %[[VAL_3]][0] : (!cc.ptr<i1>) -> !cc.ptr<i1>
 // CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i1>

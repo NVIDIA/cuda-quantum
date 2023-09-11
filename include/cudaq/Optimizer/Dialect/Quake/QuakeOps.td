@@ -146,7 +146,7 @@ def quake_ComputeActionOp : QuakeOp<"compute_action"> {
   }];
 }
 
-def quake_ToControlOp : QuakeOp<"to_ctrl"> {
+def quake_ToControlOp : QuakeOp<"to_ctrl", [Pure]> {
   let summary = "Convert a wire value to a control value.";
   let description = [{
     This operation makes the conversion of a wire value to a control value
@@ -169,7 +169,7 @@ def quake_ToControlOp : QuakeOp<"to_ctrl"> {
   }];
 }
 
-def quake_FromControlOp : QuakeOp<"from_ctrl"> {
+def quake_FromControlOp : QuakeOp<"from_ctrl", [Pure]> {
   let summary = "Convert a control value to a wire value.";
   let description = [{
     This operation makes the conversion of a control value to a wire value
@@ -211,11 +211,11 @@ def quake_DeallocOp : QuakeOp<"dealloc"> {
 
   let arguments = (ins
     Arg<AnyRefType, "qubit reference (or vector) to deallocate",
-    [MemFree]>:$qreg_or_vec
+    [MemFree]>:$reference
   );
 
   let assemblyFormat = [{
-    $qreg_or_vec `:` qualified(type($qreg_or_vec)) attr-dict
+    $reference `:` qualified(type($reference)) attr-dict
   }];
 }
 
@@ -509,8 +509,13 @@ def quake_ResetOp : QuakeOp<"reset", [QuantumGate,
     ```
   }];
 
-  let arguments = (ins AnyQType:$targets);
-  let results = (outs Variadic<WireType>);
+  let arguments = (ins
+    AnyQType:$targets
+  );
+  let results = (outs
+    Variadic<WireType>:$wires
+  );
+
   let assemblyFormat = [{
      $targets `:` functional-type(operands, results) attr-dict
   }];
@@ -561,10 +566,14 @@ class Measurement<string mnemonic> : QuakeOp<mnemonic, [MeasurementInterface,
     Variadic<AnyQType>:$targets,
     OptionalAttr<StrAttr>:$registerName
   );
-  let results = (outs AnyTypeOf<[I1, StdvecOf<[I1]>]>:$bits);
+  let results = (outs
+    AnyTypeOf<[I1, StdvecOf<[I1]>]>:$bits,
+    Variadic<WireType>:$wires
+  );
 
   let assemblyFormat = [{
-    $targets `:` functional-type(operands, results) attr-dict
+    $targets (`name` $registerName^)? `:` functional-type(operands, results)
+      attr-dict
   }];
 
   code OpBaseDeclaration = [{
@@ -636,7 +645,9 @@ class QuakeOperator<string mnemonic, list<Trait> traits = []>
     Variadic<AnyQType>:$targets,
     OptionalAttr<DenseBoolArrayAttr>:$negated_qubit_controls
   );
-  let results = (outs Variadic<WireType>);
+  let results = (outs
+    Variadic<WireType>:$wires
+  );
 
   let builders = [
     OpBuilder<(ins "mlir::UnitAttr":$is_adj,

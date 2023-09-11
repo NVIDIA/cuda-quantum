@@ -48,7 +48,7 @@ struct DeallocationAnalysisInfo {
             if (!deallocMap.count(&op))
               deallocMap.insert(std::make_pair(&op, false));
           } else if (auto dealloc = dyn_cast<quake::DeallocOp>(op)) {
-            auto val = dealloc.getQregOrVec();
+            auto val = dealloc.getReference();
             Operation *alloc = cast<quake::AllocaOp>(val.getDefiningOp());
             if (deallocMap.count(alloc))
               deallocMap[alloc] = true;
@@ -98,7 +98,7 @@ private:
                                   << op->getParentOp() << '\n');
         }
       } else if (auto dealloc = dyn_cast<quake::DeallocOp>(o)) {
-        auto val = dealloc.getQregOrVec();
+        auto val = dealloc.getReference();
         if (auto alloc = val.getDefiningOp<quake::AllocaOp>()) {
           auto *op = alloc.getOperation();
           if (allocMap.count(op))

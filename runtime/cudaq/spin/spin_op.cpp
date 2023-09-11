@@ -188,7 +188,9 @@ complex_matrix spin_op::to_matrix() const {
   complex_matrix A(dim, dim);
   A.set_zero();
   auto rawData = A.data();
+#ifdef CUDAQ_HAS_OPENMP
 #pragma omp parallel for shared(rawData)
+#endif
   for (std::size_t rowIdx = 0; rowIdx < dim; rowIdx++) {
     auto rowBitStr = getBitStrForIdx(rowIdx);
     for_each_term([&](spin_op &term) {
@@ -288,9 +290,9 @@ void spin_op::for_each_pauli(
   }
 }
 
-spin_op spin_op::random(std::size_t nQubits, std::size_t nTerms) {
-  std::random_device rd;
-  std::mt19937 gen(rd());
+spin_op spin_op::random(std::size_t nQubits, std::size_t nTerms,
+                        unsigned int seed) {
+  std::mt19937 gen(seed);
   std::vector<std::complex<double>> coeffs(nTerms, 1.0);
   std::vector<spin_op_term> randomTerms;
   for (std::size_t i = 0; i < nTerms; i++) {
@@ -398,7 +400,9 @@ spin_op &spin_op::operator*=(const spin_op &v) noexcept {
       theirRow++;
   }
 
+#ifdef CUDAQ_HAS_OPENMP
 #pragma omp parallel for shared(composition)
+#endif
   for (std::size_t i = 0; i < nElements; i++) {
     auto [j, k] = indexMap[i];
     auto s = terms.begin();

@@ -24,7 +24,7 @@ TEST(MQPUTester, checkSimple) {
 
   double result = cudaq::observe<cudaq::parallel::thread>(ansatz, h, 0.59);
   EXPECT_NEAR(result, -1.7487, 1e-3);
-  printf("Get energy directly as double %lf\n", result);
+  printf("Get energy directly as double %.16lf\n", result);
 }
 
 TEST(MQPUTester, checkLarge) {
@@ -34,7 +34,7 @@ TEST(MQPUTester, checkLarge) {
   printf("Num QPUs %lu\n", platform.num_qpus());
   int nQubits = 12;
   int nTerms = 1000; /// Scale this on multiple gpus to see speed up
-  auto H = cudaq::spin_op::random(nQubits, nTerms);
+  auto H = cudaq::spin_op::random(nQubits, nTerms, std::mt19937::default_seed);
 
   printf("Total Terms = %lu\n", H.num_terms());
   auto kernel = [](const int n_qubits, const int layers,
@@ -74,13 +74,12 @@ TEST(MQPUTester, checkLarge) {
   };
 
   int nLayers = 2;
-  auto execParams =
-      cudaq::random_vector(-M_PI, M_PI, nQubits * (3 * nLayers + 2));
+  auto execParams = cudaq::random_vector(
+      -M_PI, M_PI, nQubits * (3 * nLayers + 2), std::mt19937::default_seed);
 
   std::vector<int> cnot_pairs(nQubits);
   std::iota(cnot_pairs.begin(), cnot_pairs.end(), 0);
-  std::random_device rd;
-  std::mt19937 g(rd());
+  std::mt19937 g{std::mt19937::default_seed + 1};
   std::shuffle(cnot_pairs.begin(), cnot_pairs.end(), g);
 
   auto t1 = std::chrono::high_resolution_clock::now();

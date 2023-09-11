@@ -105,15 +105,12 @@ target_include_directories(cudaq-mlir-runtime
 
 target_link_libraries(cudaq-mlir-runtime 
   PUBLIC
-    CCDialect
-    OptCodeGen
-    OptTransforms
-    QuakeDialect
-    CUDAQTargetOpenQASM
     ${dialect_libs}
     ${conversion_libs}
+    CCDialect
+    QuakeDialect
+    OptCodeGen
     OptTransforms
-    CUDAQTargetIQM
     MLIRTranslateLib
     MLIRIR
     MLIRParser

@@ -93,7 +93,8 @@ public:
   bool jobIsDone(ServerMessage &getJobResponse) override;
 
   /// @brief Given a completed job response, map back to the sample_result
-  cudaq::sample_result processResults(ServerMessage &postJobResponse) override;
+  cudaq::sample_result processResults(ServerMessage &postJobResponse,
+                                      std::string &jobID) override;
 };
 
 ServerJobPayload
@@ -155,7 +156,8 @@ bool QuantinuumServerHelper::jobIsDone(ServerMessage &getJobResponse) {
 }
 
 cudaq::sample_result
-QuantinuumServerHelper::processResults(ServerMessage &postJobResponse) {
+QuantinuumServerHelper::processResults(ServerMessage &postJobResponse,
+                                       std::string &jobId) {
   // Results come back as a map of vectors. Each map key corresponds to a qubit
   // and its corresponding vector holds the measurement results in each shot:
   //      { "results" : { "r0" : ["0", "0", ...],

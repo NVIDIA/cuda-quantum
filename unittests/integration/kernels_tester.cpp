@@ -155,7 +155,8 @@ CUDAQ_TEST(KernelsTester, checkFromState) {
   {
     // Random unitary state
     const std::size_t numQubits = 2;
-    auto randHam = cudaq::spin_op::random(numQubits, numQubits * numQubits);
+    auto randHam = cudaq::spin_op::random(numQubits, numQubits * numQubits,
+                                          std::mt19937::default_seed);
     auto eigenVectors = randHam.to_matrix().eigenvectors();
     // Map the ground state to a cudaq::state
     std::vector<std::complex<double>> expectedData(eigenVectors.rows());

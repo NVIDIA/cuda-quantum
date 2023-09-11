@@ -61,8 +61,9 @@ def objective_function(parameter_vector: List[float],
     return cost, gradient_vector
 
 
+cudaq.set_random_seed(13)  # make repeatable
 energy, parameter = optimizer.optimize(dimensions=1,
                                        function=objective_function)
 
-print(f"\nminimized <H> = {round(energy,3)}")
-print(f"optimal theta = {round(parameter[0],3)}")
+print(f"\nminimized <H> = {round(energy,16)}")
+print(f"optimal theta = {round(parameter[0],16)}")

@@ -23,15 +23,35 @@ namespace {
 #include "cudaq/Optimizer/Dialect/Quake/Canonical.inc"
 } // namespace
 
-namespace quake {
-template <typename ConcreteType>
-class QuantumTrait : public OpTrait::TraitBase<ConcreteType, QuantumTrait> {};
-} // namespace quake
-
 static bool isQuakeOperation(Operation *op) {
   if (auto *dialect = op->getDialect())
     return dialect->getNamespace().equals("quake");
   return false;
+}
+
+/// When a quake operation is in value form, the number of wire arguments (wire
+/// arity) must be the same as the number of wires returned as results (wire
+/// coarity). This function verifies that this property is true.
+LogicalResult quake::verifyWireArityAndCoarity(Operation *op) {
+  std::size_t arity = 0;
+  std::size_t coarity = 0;
+  auto getCounts = [&](auto op) {
+    for (auto arg : op.getTargets())
+      if (isa<quake::WireType>(arg.getType()))
+        ++arity;
+    coarity = op.getWires().size();
+  };
+  if (auto gate = dyn_cast<OperatorInterface>(op)) {
+    for (auto arg : gate.getControls())
+      if (isa<quake::WireType>(arg.getType()))
+        ++arity;
+    getCounts(gate);
+  } else if (auto meas = dyn_cast<MeasurementInterface>(op)) {
+    getCounts(meas);
+  }
+  if (arity == coarity)
+    return success();
+  return op->emitOpError("arity does not equal coarity of wires");
 }
 
 //===----------------------------------------------------------------------===//
@@ -607,9 +627,9 @@ using EffectsVectorImpl =
 /// the control and target quantum operands, whether those operands are in
 /// reference or value form. A operation with modeless effects is not removed
 /// when its result(s) is (are) unused.
-inline static void getModelessEffectsImpl(EffectsVectorImpl &effects,
-                                          ValueRange controls,
-                                          ValueRange targets) {
+[[maybe_unused]] inline static void
+getModelessEffectsImpl(EffectsVectorImpl &effects, ValueRange controls,
+                       ValueRange targets) {
   for (auto v : controls)
     effects.emplace_back(MemoryEffects::Read::get(), v,
                          SideEffects::DefaultResource::get());
@@ -646,13 +666,13 @@ inline static void getModedEffectsImpl(EffectsVectorImpl &effects,
 /// Quake reset has modeless effects.
 void quake::getResetEffectsImpl(EffectsVectorImpl &effects,
                                 ValueRange targets) {
-  getModelessEffectsImpl(effects, {}, targets);
+  getModedEffectsImpl(effects, {}, targets);
 }
 
-/// Quake measurement operations have modeless effects.
+/// Quake measurement operations have moded effects.
 void quake::getMeasurementEffectsImpl(EffectsVectorImpl &effects,
                                       ValueRange targets) {
-  getModelessEffectsImpl(effects, {}, targets);
+  getModedEffectsImpl(effects, {}, targets);
 }
 
 /// Quake quantum operators have moded effects.
