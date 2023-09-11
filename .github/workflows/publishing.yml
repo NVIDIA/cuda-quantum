@@ -24,11 +24,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    # FIXME: testing only. Must be reverted.  
-    # environment:
-    #   name: ghcr-deployment
-    #   url: ${{ vars.deployment_url }}
-    #=====================================
+
+    environment:
+      name: ghcr-deployment
+      url: ${{ vars.deployment_url }}
 
     outputs:
       artifacts_url: ${{ steps.artifacts.outputs.artifacts_url }}
@@ -43,9 +42,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          # FIXME: testing only. Must be reverted.
-          ref: workflow/bot/live
-          #=====================================
+          ref: ${{ vars.data_branch }}
           token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Download build info
@@ -82,7 +79,7 @@ jobs:
 
               # Make sure to push all staging commits to a separate branch
               # to ensure that a pipeline runs for each commit.
-              staging_branch=bot/testing/${{ inputs.assets_from_run || github.run_id }}/$name
+              staging_branch=bot/${{ inputs.assets_from_run || github.run_id }}/$name
 
               # Use a dedicated draft release for each set of assets to avoid issues
               # with race conditions when running artifacts builds concurrently.
@@ -215,11 +212,9 @@ jobs:
       packages: write
       id-token: write
     
-    # FIXME: testing only. Must be reverted.  
-    # environment:
-    #   name: ghcr-deployment
-    #   url: ${{ vars.deployment_url }}
-    #=======================================
+    environment:
+      name: ghcr-deployment
+      url: ${{ vars.deployment_url }}
 
     strategy:
       matrix:
@@ -230,10 +225,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          # FIXME: testing only. Must be uncommented.  
-          # Use this branch rather than the one from deployment (e.g., updated cudaq.ext.Dockerfile)
-          # ref: ${{ needs.assets.outputs.github_commit }}
-          #=======================================
+          ref: ${{ needs.assets.outputs.github_commit }}
           token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Retrieve assets
@@ -416,11 +408,9 @@ jobs:
     name: CUDA Quantum Python wheels
     needs: assets
 
-    # FIXME: testing only. Must be reverted. 
-    # environment:
-    #   name: ghcr-deployment
-    #   url: ${{ vars.deployment_url }}
-    #====================================
+    environment:
+      name: ghcr-deployment
+      url: ${{ vars.deployment_url }}
 
     strategy:
       matrix:
@@ -439,10 +429,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          # FIXME: testing only. Must be uncommented.  
-          # Use this branch rather than the one from deployment (e.g., updated cudaq.ext.Dockerfile)
-          # ref: ${{ needs.assets.outputs.github_commit }}
-          #=====================================================================
+          ref: ${{ needs.assets.outputs.github_commit }}
           token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Load wheel assets
@@ -617,11 +604,10 @@ jobs:
     needs: [assets, cudaq_hpc, cudaq_wheels, validation]
     if: needs.assets.outputs.release_title
     runs-on: ubuntu-latest
-    # FIXME: testing only. Must be reverted.
-    # environment:
-    #   name: ghcr-deployment
-    #   url: ${{ vars.deployment_url }}
-    #====================================
+
+    environment:
+      name: ghcr-deployment
+      url: ${{ vars.deployment_url }}
 
     steps:
       - name: Download cuda-quantum wheels
@@ -668,11 +654,10 @@ jobs:
     # Force this job to run even when some of the dependencies above are skipped.
     if: always() && !cancelled() && needs.assets.result != 'skipped' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
-    # FIXME: testing only. Must be reverted.
-    # environment:
-    #   name: ghcr-deployment
-    #   url: ${{ vars.deployment_url }}
-    #=====================================
+
+    environment:
+      name: ghcr-deployment
+      url: ${{ vars.deployment_url }}
 
     steps:
       - name: Checkout repository
