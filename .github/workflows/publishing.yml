@@ -201,7 +201,7 @@ jobs:
           function delete_staging_branch {
             staging_branch=`echo "$2" | jq -r ".$1.staging_branch"`
             echo "Delete staging branch $staging_branch ..."
-            # git push origin --delete $staging_branch || true
+            git push origin --delete $staging_branch || true
           }
           
           for info_file in ${{ join(fromJson(steps.artifacts.outputs.python_wheels).info_files, ' ') }}; do
@@ -453,7 +453,7 @@ jobs:
         id: release_info
         run: |
           release_id=${{ fromJson(needs.assets.outputs.python_wheels)[format('{0}', matrix.info_file)].release_id }}
-          assets_folder=assets && mkdir "$assets_folder" 
+          assets_folder=$(pwd)/assets && mkdir "$assets_folder" 
           build_info=${{ matrix.info_file }}*
           platform=`cat $build_info | grep -o 'platform: \S*' | cut -d ' ' -f 2`
           platform_id=`echo $platform | sed 's/linux\///g' | tr -d ' '`
@@ -461,7 +461,7 @@ jobs:
           cudaqwheeldeps_image=`cat $build_info | grep -o 'cuda-quantum-wheeldeps-image: \S*' | cut -d ' ' -f 2`
           ls -R tmp/wheel_assets
           cd tmp/wheel_assets/${{ matrix.info_file }}
-          for file in `ls *zip`; do unzip "$file" -d "$assets_folder" && rm "$file"; done && cd -
+          for file in `ls *zip`; do unzip "$file" -d "$assets_folder" && rm "$file"; done 
           cd  "$assets_folder" && ls -R 
 
           echo "platform=$platform"
@@ -476,6 +476,16 @@ jobs:
           echo "docker_output=type=local,dest=/tmp/wheels" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+      
+      - name: Set up context for buildx
+        run: |
+          docker context create builder_context
+  
+      - name: Set up buildx runner
+        uses: docker/setup-buildx-action@v2
+        with:
+          endpoint: builder_context
+          driver-opts: network=host
 
       - name: Build cuda-quantum wheel
         id: build_wheel
@@ -498,18 +508,18 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-      - name: Update release information
-        run: |
-          release_id=${{ steps.release_info.outputs.release_id }}
-          gh release view $release_id --json body --jq .body > rel_notes.txt
-          header_length=`cat rel_notes.txt | grep -n "Release notes generated" | cut -d ':' -f 1`
-          head -n $(($header_length - 1)) rel_notes.txt > new_notes.txt
-          echo -e "\nImage to create ${{ steps.release_info.outputs.platform }} wheels:\n" >> new_notes.txt
-          echo "- cuda-quantum-devdeps (development dependencies only): ${{ steps.release_info.outputs.cudaqwheeldeps_image }}" >> new_notes.txt
-          (echo && tail -n +$header_length rel_notes.txt) >> new_notes.txt
-          gh release edit $release_id -R ${{ github.repository }} --notes-file new_notes.txt
-        env:
-          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+      # - name: Update release information
+      #   run: |
+      #     release_id=${{ steps.release_info.outputs.release_id }}
+      #     gh release view $release_id --json body --jq .body > rel_notes.txt
+      #     header_length=`cat rel_notes.txt | grep -n "Release notes generated" | cut -d ':' -f 1`
+      #     head -n $(($header_length - 1)) rel_notes.txt > new_notes.txt
+      #     echo -e "\nImage to create ${{ steps.release_info.outputs.platform }} wheels:\n" >> new_notes.txt
+      #     echo "- cuda-quantum-devdeps (development dependencies only): ${{ steps.release_info.outputs.cudaqwheeldeps_image }}" >> new_notes.txt
+      #     (echo && tail -n +$header_length rel_notes.txt) >> new_notes.txt
+      #     gh release edit $release_id -R ${{ github.repository }} --notes-file new_notes.txt
+      #   env:
+      #     GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
 
   config:
