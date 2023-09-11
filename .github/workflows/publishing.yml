@@ -461,7 +461,7 @@ jobs:
           platform_id=`echo $platform | sed 's/linux\///g' | tr -d ' '`
           platform_arch=`([ "$platform_id" == "amd64" ] && echo x86_64) || ([ "$platform_id" == "arm64" ] && echo aarch64) || echo any`
           cudaqwheeldeps_image=`cat $build_info | grep -o 'cuda-quantum-wheeldeps-image: \S*' | cut -d ' ' -f 2`
-          for file in `ls *zip`; do unzip "$file" -d "$assets_folder" && rm "$file"; done 
+          for file in `ls *zip`; do unzip -j "$file" -d "$assets_folder" && rm "$file"; done 
           echo "assets_folder=$assets_folder" 
           cd  "$assets_folder" && ls -R 
 
