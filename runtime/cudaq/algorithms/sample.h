@@ -37,7 +37,8 @@ std::optional<sample_result>
 runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
             const std::string &kernelName, int shots, std::size_t qpu_id = 0,
             details::future *futureResult = nullptr,
-            std::size_t batchIteration = 0, std::size_t totalBatchIters = 0) {
+            std::size_t batchIteration = 0, std::size_t totalBatchIters = 0,
+            bool overrideHasConditional = false) {
   // Create the execution context.
   auto ctx = std::make_unique<ExecutionContext>("sample", shots);
   ctx->kernelName = kernelName;
@@ -48,7 +49,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   // Tell the context if this quantum kernel has
   // conditionals on measure results
   ctx->hasConditionalsOnMeasureResults =
-      cudaq::kernelHasConditionalFeedback(kernelName);
+      cudaq::kernelHasConditionalFeedback(kernelName) || overrideHasConditional;
 
 #ifdef CUDAQ_LIBRARY_MODE
   // If we have a kernel that has its quake code registered, we

@@ -241,4 +241,68 @@ inline bool isBroadcastRequest(kernel_builder<> &builder, py::args &args) {
   return false;
 }
 
+/// @brief Return true if the given py::args represents a
+/// request for broadcasting sample or observe over all argument sets.
+/// Kernel arg types can be int, float, list, so
+/// we should check if args[i] is a list or ndarray. This is a specialization
+/// for CUDA Quantum callable kernels (not for `kernel_builder`).
+inline bool isBroadcastRequest(bool firstArgIsList, py::args &args) {
+  if (args.empty())
+    return false;
+
+  auto arg = args[0];
+  // Just need to check the leading argument
+  if (py::isinstance<py::list>(arg) && !firstArgIsList)
+    return true;
+
+  if (py::hasattr(arg, "tolist")) {
+    if (!py::hasattr(arg, "shape"))
+      return false;
+
+    auto shape = arg.attr("shape").cast<py::tuple>();
+    if (shape.size() == 1 && !firstArgIsList)
+      return true;
+
+    // // If shape is 2, then we know its a list of list
+    if (shape.size() == 2)
+      return true;
+  }
+
+  return false;
+}
+
+/// @brief Analyze the function signature of the callable CUDA Quantum kernel.
+/// Return two booleans, one indicating if broadcasting shouldn't be attempted,
+/// and another to indicate that the first argument for the kernel is a
+/// list.
+inline std::tuple<bool, bool>
+kernelCallableInputArgAnalysis(py::object &kernel) {
+  // We want to return two bools here, the first
+  // indicate that we don't have arg types annotations, so
+  // disallow broadcasting totally, and the second is a bool that
+  // indicates that the first arg is a list[]-like argument
+  auto inspect = py::module::import("inspect");
+  auto signatureParams =
+      inspect.attr("signature")(kernel.attr("kernelFunction"))
+          .attr("parameters")
+          .cast<py::dict>();
+
+  if (signatureParams.empty())
+    return std::make_tuple(true, false);
+
+  // Make sure we have type annotations, if not, disallow broadcasting
+  for (auto &[k, v] : signatureParams) {
+    std::string aStr = py::str(v.attr("annotation"));
+    if (aStr.find("inspect._empty") != std::string::npos)
+      return std::make_tuple(true, false);
+  }
+
+  // We have type annotations, check if the first one is a list
+  auto [firstArgKey, firstArgVal] = *signatureParams.begin();
+  if (py::list().get_type().is(firstArgVal.attr("annotation")().get_type()))
+    return std::make_tuple(false, true);
+
+  return std::make_tuple(false, false);
+};
+
 } // namespace cudaq

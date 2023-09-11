@@ -35,6 +35,8 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
                     "A string describing the features for this `cudaq.Target`.")
       .def("num_qpus", &cudaq::RuntimeTarget::num_qpus,
            "Return the number of QPUs available in this `cudaq.Target`.")
+      .def("is_remote", &cudaq::RuntimeTarget::is_remote,
+           "Return true if this `cudaq.Target` is a remote QPU.")
       .def(
           "__str__",
           [](cudaq::RuntimeTarget &self) {

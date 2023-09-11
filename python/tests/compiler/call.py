@@ -74,7 +74,7 @@ def test_kernel_apply_call_qreg_args():
     Tests that we can call another kernel that's parameterized
     by a qubit (`other_kernel`), from a :class:`Kernel`.
     """
-    other_kernel, other_qreg = cudaq.make_kernel(cudaq.qreg)
+    other_kernel, other_qreg = cudaq.make_kernel(cudaq.qvector)
     other_kernel.h(other_qreg)
 
     kernel = cudaq.make_kernel()

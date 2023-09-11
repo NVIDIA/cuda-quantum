@@ -91,7 +91,8 @@ protected:
   virtual void executeInstruction(const Instruction &inst) = 0;
 
   /// @brief Subtype-specific method for performing qudit measurement.
-  virtual int measureQudit(const cudaq::QuditInfo &q) = 0;
+  virtual int measureQudit(const cudaq::QuditInfo &q,
+                           std::string regName = "") = 0;
 
   /// @brief Measure the state in the basis described by the given `spin_op`.
   virtual void measureSpinOp(const cudaq::spin_op &op) = 0;
@@ -268,7 +269,8 @@ public:
     }
   }
 
-  int measure(const cudaq::QuditInfo &target) override {
+  int measure(const cudaq::QuditInfo &target,
+              std::string regName = "") override {
     if (isInTracerMode())
       return 0;
 
@@ -276,7 +278,7 @@ public:
     synchronize();
 
     // Instruction executed, run the measure call
-    return measureQudit(target);
+    return measureQudit(target, regName);
   }
 
   cudaq::SpinMeasureResult measure(cudaq::spin_op &op) override {

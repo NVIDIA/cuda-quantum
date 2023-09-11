@@ -33,6 +33,9 @@ struct RuntimeTarget {
 
   /// @brief Return the number of QPUs this target exposes.
   std::size_t num_qpus();
+
+  /// @brief Return true if the target is a remote QPU.
+  bool is_remote();
 };
 
 /// @brief The LinkedLibraryHolder provides a mechanism for

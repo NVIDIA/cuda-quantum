@@ -72,7 +72,7 @@ def test_kernel_adjoint_qreg_args():
     """
     Tests the adjoint of a kernel that takes a qreg as an argument.
     """
-    other_kernel, other_qreg = cudaq.make_kernel(cudaq.qreg)
+    other_kernel, other_qreg = cudaq.make_kernel(cudaq.qvector)
     other_kernel.h(other_qreg)
 
     kernel = cudaq.make_kernel()
@@ -254,7 +254,7 @@ def test_sample_adjoint_qreg():
     Tests the adjoint of a kernel that is parameterized
     by a qreg. Checks for correctness on simulator.
     """
-    other_kernel, other_qreg = cudaq.make_kernel(cudaq.qreg)
+    other_kernel, other_qreg = cudaq.make_kernel(cudaq.qvector)
     other_kernel.x(other_qreg)
 
     kernel, qubit_variable = cudaq.make_kernel(int)

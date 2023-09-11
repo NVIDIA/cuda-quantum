@@ -22,20 +22,10 @@
 #include <any>
 
 namespace cudaq {
-struct PyQubit {};
 struct PyQreg {};
 
 void bindMakeKernel(py::module &mod) {
-
-  py::class_<PyQubit>(
-      mod, "qubit",
-      R"#(The data-type representing a qubit argument to a :class:`Kernel`
-function.
-                      
-.. code-block:: python
-
-  # Example:
-  kernel, qubit = cudaq.make_kernel(cudaq.qubit))#");
+  // FIXME mark deprecated
   py::class_<PyQreg>(mod, "qreg",
                      R"#(The data-type representing a register of qubits as an 
 argument to a :class:`Kernel` function.
@@ -90,7 +80,7 @@ Returns:
               } else if (name == "qubit") {
                 cudaq::qubit q;
                 return details::mapArgToType(q);
-              } else if (name == "qreg") {
+              } else if (name == "qreg" || name == "qvector") {
                 cudaq::qreg<cudaq::dyn, 2> q;
                 return details::mapArgToType(q);
               } else
@@ -893,7 +883,30 @@ Args:
       .def("to_quake", &kernel_builder<>::to_quake, "See :func:`__str__`.")
       .def("__str__", &kernel_builder<>::to_quake,
            "Return the :class:`Kernel` as a string in its MLIR representation "
-           "using the Quake dialect.\n");
+           "using the Quake dialect.\n")
+      .def("jit_code", &kernel_builder<>::jitCode, "");
+      
+  mod.def(
+      "from_state",
+      [](kernel_builder<> &kernel, QuakeValue &qubits,
+         py::array_t<std::complex<double>> &data) {
+        std::vector<std::complex<double>> tmp(data.data(),
+                                              data.data() + data.size());
+        cudaq::from_state(kernel, qubits, tmp);
+      },
+      py::arg("kernel"), py::arg("qubits"), py::arg("state"),
+      "Decompose the input state vector to a set of controlled operations and "
+      "rotations.");
+  mod.def(
+      "from_state",
+      [](py::array_t<std::complex<double>> &data) {
+        std::vector<std::complex<double>> tmp(data.data(),
+                                              data.data() + data.size());
+        return cudaq::from_state(tmp);
+      },
+      py::arg("state"),
+      "Decompose the given state vector into a set of controlled operations "
+      "and rotations and return a valid, callable, CUDA Quantum kernel.");
 }
 
 void bindBuilder(py::module &mod) {
