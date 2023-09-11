@@ -211,7 +211,7 @@ jobs:
       contents: read
       packages: write
       id-token: write
-    
+
     environment:
       name: ghcr-deployment
       url: ${{ vars.deployment_url }}
