@@ -31,7 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: backend-validation
     container:
-      image: ghcr.io/nvidia/cuda-quantum:latest
+      image: nvcr.io/nvidia/nightly/cuda-quantum:latest
       options: --user root
 
     steps:
