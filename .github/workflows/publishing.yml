@@ -187,7 +187,7 @@ jobs:
           retention-days: 1
           if-no-files-found: error    
       
-      # We can detele staging branch now after downloading the assets (as artifacts for later wheel jobs). 
+      # We can delete staging branch now after downloading the assets (as artifacts for later wheel jobs). 
       - name: Clean up
         run: |
           # Clean up the staging branch that was used to trigger the GitLab pipeline.
@@ -196,7 +196,12 @@ jobs:
           function delete_staging_branch {
             staging_branch=`echo "$2" | jq -r ".$1.staging_branch"`
             echo "Delete staging branch $staging_branch ..."
-            git push origin --delete $staging_branch || true
+            if [[ "$staging_branch" =~ ^bot\/.*$ ]]; then
+              git push origin --delete $staging_branch || true
+            else
+              echo "Unexpected staging branch."
+              exit 1
+            fi
           }
           
           for info_file in ${{ join(fromJson(steps.artifacts.outputs.python_wheels).info_files, ' ') }}; do
