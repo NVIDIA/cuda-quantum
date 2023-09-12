@@ -441,14 +441,14 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: wheel_assets
-          path: tmp/wheel_assets
+          path: /tmp/wheel_assets
       
       - name: Retrieve assets
         id: release_info
         run: |
           release_id=${{ fromJson(needs.assets.outputs.python_wheels)[format('{0}', matrix.info_file)].release_id }}
           assets_folder=$(pwd)/assets && mkdir "$assets_folder" 
-          cd tmp/wheel_assets/${{ matrix.info_file }}
+          cd /tmp/wheel_assets/${{ matrix.info_file }}
           build_info=${{ matrix.info_file }}*
           platform=`cat $build_info | grep -o 'platform: \S*' | cut -d ' ' -f 2`
           platform_id=`echo $platform | sed 's/linux\///g' | tr -d ' '`
