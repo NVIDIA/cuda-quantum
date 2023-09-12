@@ -116,7 +116,7 @@ static LogicalResult emitOperation(Emitter &emitter, ModuleOp moduleOp) {
   // Use PostOrderTraversal to get the ordered list of FuncOps.
   // Note: this list will be in the reversed order, i.e., entry point function
   // first.
-  llvm::ReversePostOrderTraversal rpot(&callGraph);
+  llvm::ReversePostOrderTraversal<const mlir::CallGraph *> rpot(&callGraph);
   std::vector<func::FuncOp> funcOps;
   for (auto &node : rpot) {
     if (node->isExternal())
