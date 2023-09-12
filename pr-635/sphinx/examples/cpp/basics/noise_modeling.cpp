@@ -39,9 +39,9 @@ int main() {
                               {-0.05773502691896258, 0.0}});
 
   // Create the noise model
-  auto noise = std::make_shared<cudaq::noise_model>();
+  cudaq::noise_model noise;
   // Add the Kraus channel to the x operation on qubit 0.
-  noise->add_channel<cudaq::types::x>({0}, depol);
+  noise.add_channel<cudaq::types::x>({0}, depol);
 
   // Set the noise model
   cudaq::set_noise(noise);
