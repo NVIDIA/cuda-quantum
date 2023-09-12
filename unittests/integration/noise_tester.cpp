@@ -78,6 +78,7 @@ CUDAQ_TEST(NoiseTest, checkAmplitudeDamping) {
 
   EXPECT_NEAR(counts.probability("0"), .25, .1);
   EXPECT_NEAR(counts.probability("1"), .75, .1);
+  cudaq::unset_noise(); // clear for subsequent tests
 }
 
 CUDAQ_TEST(NoiseTest, checkCNOT) {
@@ -154,6 +155,7 @@ CUDAQ_TEST(NoiseTest, checkCNOT) {
   auto counts = cudaq::sample(10000, bell{});
   counts.dump();
   EXPECT_TRUE(counts.size() > 2);
+  cudaq::unset_noise(); // clear for subsequent tests
 }
 
 CUDAQ_TEST(NoiseTest, checkExceptions) {
@@ -174,6 +176,7 @@ CUDAQ_TEST(NoiseTest, checkDepolType) {
   auto counts = cudaq::sample(xOp{});
   counts.dump();
   EXPECT_EQ(2, counts.size());
+  cudaq::unset_noise(); // clear for subsequent tests
 }
 
 CUDAQ_TEST(NoiseTest, checkDepolTypeSimple) {
@@ -187,6 +190,7 @@ CUDAQ_TEST(NoiseTest, checkDepolTypeSimple) {
   EXPECT_EQ(2, counts.size());
   EXPECT_NEAR(counts.probability("0"), .50, .2);
   EXPECT_NEAR(counts.probability("1"), .50, .2);
+  cudaq::unset_noise(); // clear for subsequent tests
 }
 
 CUDAQ_TEST(NoiseTest, checkAmpDampType) {
@@ -199,6 +203,7 @@ CUDAQ_TEST(NoiseTest, checkAmpDampType) {
   EXPECT_EQ(2, counts.size());
   EXPECT_NEAR(counts.probability("0"), .25, .1);
   EXPECT_NEAR(counts.probability("1"), .75, .1);
+  cudaq::unset_noise(); // clear for subsequent tests
 }
 
 CUDAQ_TEST(NoiseTest, checkAmpDampTypeSimple) {
@@ -210,6 +215,7 @@ CUDAQ_TEST(NoiseTest, checkAmpDampTypeSimple) {
   counts.dump();
   EXPECT_EQ(1, counts.size());
   EXPECT_NEAR(counts.probability("0"), 1., .1);
+  cudaq::unset_noise(); // clear for subsequent tests
 }
 
 CUDAQ_TEST(NoiseTest, checkBitFlipType) {
@@ -222,6 +228,7 @@ CUDAQ_TEST(NoiseTest, checkBitFlipType) {
   EXPECT_EQ(2, counts.size());
   EXPECT_NEAR(counts.probability("0"), .1, .1);
   EXPECT_NEAR(counts.probability("1"), .9, .1);
+  cudaq::unset_noise(); // clear for subsequent tests
 }
 
 CUDAQ_TEST(NoiseTest, checkBitFlipTypeSimple) {
@@ -233,6 +240,7 @@ CUDAQ_TEST(NoiseTest, checkBitFlipTypeSimple) {
   counts.dump();
   EXPECT_EQ(1, counts.size());
   EXPECT_NEAR(counts.probability("0"), 1., .1);
+  cudaq::unset_noise(); // clear for subsequent tests
 }
 
 CUDAQ_TEST(NoiseTest, checkPhaseFlipType) {
@@ -253,6 +261,7 @@ CUDAQ_TEST(NoiseTest, checkPhaseFlipType) {
   counts.dump();
   EXPECT_EQ(1, counts.size());
   EXPECT_NEAR(counts.probability("0"), 1., .1);
+  cudaq::unset_noise(); // clear for subsequent tests
 }
 
 #endif
