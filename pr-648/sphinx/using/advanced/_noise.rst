@@ -47,7 +47,10 @@ apply to the simulated state via a :code:`noise_model::get_channel(...)` call.
 Noise models can be constructed via the :code:`cudaq::noise_model` and specified for 
 execution via a public :code:`cudaq::set_noise(cudaq::noise_model&)` function. This function 
 should forward the :code:`noise_model` to the current :code:`quantum_platform` which can attach it 
-to the current :code:`ExecutionContext` and retrieved by backend simulators. 
+to the current :code:`ExecutionContext` and retrieved by backend simulators. The
+:code:`noise_model` must stay in scope in order to be successfully used by the
+backend simulators, and you must call :code:`cudaq::unset_noise()` when you are
+done with the noise model.
 
 The :code:`kraus_op` matrix data assumes a LSB qubit ordering. 
 
