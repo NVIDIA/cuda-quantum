@@ -54,7 +54,7 @@ struct test_two_control_call {
 // CHECK:           } : !cc.callable<(!quake.ref) -> ()>
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<4>
 // CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.ref
-// CHECK:           quake.apply @__nvqpp__mlirgen__ZN21test_two_control_callcl[[LAMBDA:.*]]_[%[[VAL_2]]] %[[VAL_4]] : (!quake.veq<4>, !quake.ref) -> ()
+// CHECK:           quake.apply @__nvqpp__mlirgen__ZN21test_two_control_callcl[[LAMBDA:.*]]_ [%[[VAL_2]]] %[[VAL_4]] : (!quake.veq<4>, !quake.ref) -> ()
 // CHECK:           %[[VAL_5:.*]] = quake.mz %[[VAL_4]] : (!quake.ref) -> i1
 // CHECK:           return
 // CHECK:         }
@@ -64,3 +64,28 @@ struct test_two_control_call {
 // CHECK:          quake.h
 // CHECK:          quake.x
 // CHECK:          return
+
+struct unmarked_lambda {
+  void operator()() __qpu__ {
+    auto lambda = [](cudaq::qubit &qb) {
+      h<cudaq::ctrl>(qb);
+      y<cudaq::ctrl>(qb);
+    };
+    cudaq::qreg<4> qs;
+    cudaq::qubit qb;
+    cudaq::control(lambda, qs, qb);
+    mz(qb);
+  }
+};
+
+struct direct_unmarked_lambda {
+  void operator()() __qpu__ {
+    cudaq::qreg<4> qs;
+    cudaq::qubit qb;
+    cudaq::control([](cudaq::qubit &qb) {
+      h<cudaq::ctrl>(qb);
+      y<cudaq::ctrl>(qb);
+    }, qs, qb);
+    mz(qb);
+  }
+};
