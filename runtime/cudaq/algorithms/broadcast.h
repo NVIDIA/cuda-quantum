@@ -56,12 +56,15 @@ broadcastFunctionOverArguments(std::size_t numQpus, quantum_platform &platform,
                                "over - vector sizes not the same.");
   });
 
+  // Fetch the thread-specific seed outside the functor and then pass it inside.
+  std::size_t seed = cudaq::get_random_seed();
+
   FutureCollection futures;
   for (std::size_t qpuId = 0; qpuId < numQpus; qpuId++) {
     std::promise<std::vector<ResType>> _promise;
     futures.emplace_back(_promise.get_future());
     std::function<void()> functor = detail::make_copyable_function(
-        [&params, &apply, qpuId, nExecsPerQpu,
+        [&params, &apply, qpuId, nExecsPerQpu, seed,
          promise = std::move(_promise)]() mutable {
           // Compute the lower and upper bounds of the
           // argument set that should be computed on the current QPU
@@ -89,7 +92,6 @@ broadcastFunctionOverArguments(std::size_t numQpus, quantum_platform &platform,
             counter++;
 
             // If seed is 0, then it has not been set.
-            std::size_t seed = cudaq::get_random_seed();
             if (seed > 0)
               cudaq::set_random_seed(seed);
 
