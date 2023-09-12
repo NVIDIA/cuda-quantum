@@ -182,7 +182,8 @@ void set_target_backend(const char *backend);
 /// @brief Utility function for setting the shots on the platform
 void set_shots(const std::size_t nShots);
 
-/// @brief Set a custom noise model for simulation
+/// @brief Set a custom noise model for simulation. The caller must also call
+/// `cudaq::unset_noise` before `model` gets deallocated or goes out of scope.
 void set_noise(cudaq::noise_model &model);
 
 /// @brief Remove an existing noise model from simulation.
