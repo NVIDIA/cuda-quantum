@@ -30,8 +30,8 @@ concept SampleCallValid =
 
 namespace details {
 
-/// @brief Take the input KernelFunctor (a lambda that captures runtime args and
-/// invokes the quantum kernel) and invoke the sampling process.
+/// @brief Take the input KernelFunctor (a lambda that captures runtime
+/// arguments and invokes the quantum kernel) and invoke the sampling process.
 template <typename KernelFunctor>
 std::optional<sample_result>
 runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
@@ -455,10 +455,10 @@ std::vector<sample_result> sample(std::size_t shots, QuantumKernel &&kernel,
 }
 
 /// @brief Run the standard sample functionality over a set of N
-/// argument packs. For a kernel with signature void(Args...), this
-/// function takes as input a set of vector<Arg>..., a vector for
+/// argument packs. For a kernel with signature `void(Args...)`, this
+/// function takes as input a set of `vector<Arg>...`, a vector for
 /// each argument type in the kernel signature. The vectors must be of
-/// equal length, and the ith element of each vector is used ith
+/// equal length, and the `ith` element of each vector is used `ith`
 /// execution of the standard sample function. Results are collected
 /// from the execution of every argument set and returned. This overload
 /// allows the `sample_options` to be specified.
@@ -534,10 +534,10 @@ sample_n(QuantumKernel &&kernel, ArgumentSet<Args...> &&params) {
 }
 
 /// @brief Run the standard sample functionality over a set of N
-/// argument packs. For a kernel with signature void(Args...), this
-/// function takes as input a set of vector<Arg>..., a vector for
+/// argument packs. For a kernel with signature `void(Args...)`, this
+/// function takes as input a set of `vector<Arg>...`, a vector for
 /// each argument type in the kernel signature. The vectors must be of
-/// equal length, and the ith element of each vector is used ith
+/// equal length, and the `ith` element of each vector is used `ith`
 /// execution of the standard sample function. Results are collected
 /// from the execution of every argument set and returned. This overload
 /// allows the number of circuit executions (shots) to be specified.
