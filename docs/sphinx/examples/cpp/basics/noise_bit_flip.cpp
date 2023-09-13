@@ -1,6 +1,7 @@
 // Compile and run with:
 // ```
-// nvq++ noise_bit_flip.cpp --target density-matrix-cpu -o dyn.x --target nvidia && ./dyn.x
+// nvq++ noise_bit_flip.cpp --target density-matrix-cpu -o dyn.x --target nvidia
+// && ./dyn.x
 // ```
 //
 // Note: You must set the target to a density matrix backend for the noise
@@ -25,7 +26,7 @@ int main() {
   // a probability of `1.0` of undergoing an extra X-gate.
   noise.add_channel<cudaq::types::x>({0}, bf);
 
-  // After the X-gate, the qubit will remain in the |1> state with a probability 
+  // After the X-gate, the qubit will remain in the |1> state with a probability
   // of `1 - p = 0.0`.
   auto kernel = []() __qpu__ {
     cudaq::qubit q;

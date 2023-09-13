@@ -1,6 +1,7 @@
 // Compile and run with:
 // ```
-// nvq++ noise_amplitude_damping.cpp --target density-matrix-cpu -o dyn.x --target nvidia && ./dyn.x
+// nvq++ noise_amplitude_damping.cpp --target density-matrix-cpu -o dyn.x
+// --target nvidia && ./dyn.x
 // ```
 //
 // Note: You must set the target to a density matrix backend for the noise
@@ -28,7 +29,7 @@ int main() {
   // probability of `1.0` that the qubit decays back to ground.
   noise.add_channel<cudaq::types::h>({0}, ad);
 
-  // The Hadamard gate here will bring the qubit to `1/sqrt(2) (|0> + |1>)`, 
+  // The Hadamard gate here will bring the qubit to `1/sqrt(2) (|0> + |1>)`,
   // where it will remain with a probability of `1 - p = 0.0`.
   auto kernel = []() __qpu__ {
     cudaq::qubit q;
@@ -45,7 +46,7 @@ int main() {
   noisy_counts.dump();
 
   // To confirm this, we can run the simulation again without noise.
-  // The qubit will now have a 50/50 mix of measurements between 
+  // The qubit will now have a 50/50 mix of measurements between
   // |0> and |1>.
   cudaq::unset_noise();
   auto noiseless_counts = cudaq::sample(kernel);

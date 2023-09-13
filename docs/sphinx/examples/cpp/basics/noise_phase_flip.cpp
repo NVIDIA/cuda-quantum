@@ -1,6 +1,7 @@
 // Compile and run with:
 // ```
-// nvq++ noise_phase_flip.cpp --target density-matrix-cpu -o dyn.x --target nvidia && ./dyn.x
+// nvq++ noise_phase_flip.cpp --target density-matrix-cpu -o dyn.x --target
+// nvidia && ./dyn.x
 // ```
 //
 // Note: You must set the target to a density matrix backend for the noise
@@ -49,7 +50,7 @@ int main() {
   noisy_counts.dump();
 
   // To confirm this, we can run the simulation again without noise.
-  // Without noise, we'd expect the qubit to end in the |1> state due 
+  // Without noise, we'd expect the qubit to end in the |1> state due
   // to the phase rotation between the two Hadamard gates.
   cudaq::unset_noise();
   auto noiseless_counts = cudaq::sample(kernel);
