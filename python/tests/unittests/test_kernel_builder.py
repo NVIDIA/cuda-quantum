@@ -12,7 +12,7 @@
 import numpy as np
 
 import cudaq
-from cudaq import spinzw
+from cudaq import spin
 
 
 def test_sdg_0_state():
