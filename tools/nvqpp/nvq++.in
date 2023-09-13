@@ -219,6 +219,7 @@ OUTPUTFILE=
 OBJS=
 SRCS=
 ARGS=
+CUDAQ_QUAKE_ARGS=
 DO_LINK=true
 ENABLE_DEVICE_CODE_LOADERS=true
 ENABLE_KERNEL_EXECUTION=true
@@ -232,7 +233,7 @@ EMIT_QIR=false
 PREPROCESSOR_DEFINES=
 CUDAQ_QUAKE_DEBUG=
 SHOW_HELP=false
-LIST_TARGETS=false 
+LIST_TARGETS=false
 
 # We default to LIBRARY_MODE, physical 
 # Quantum Targets can override this to turn on 
@@ -242,13 +243,33 @@ LIBRARY_MODE=true
 CXX=${LLVMBIN}clang++${llvm_suffix}
 LINKER_CXX=${CXX}
 CMAKE_FALLBACK_HOST_CXX=${CXX}
-COPY_INPUT_ARGS=$@
+TARGET_ARGS=
 
 if [[ $# -eq 0 ]]; then
     SHOW_HELP=true
 fi
 
+# First, find the target option. The name is needed since it is the prefix for
+# any target specific options.
+N=$#
+for (( i=1; i<=$N; i++ )); do
+	if [[ ${@:$i:1} == --target ]] || [[ ${@:$i:1} == -target ]]; then
+		TARGET_CONFIG="${@:$i+1:1}"
+		break
+	fi
+done
+
 while [ $# -ne 0 ]; do
+	# Filter out any target-specific options.
+	if [[ $# -gt 1 ]] && [[ -n "${TARGET_CONFIG}" ]] && \
+	     [[ "$1" = --${TARGET_CONFIG}-* ]]; then
+		# Assume always has an additional value
+		TARGET_ARGS="${TARGET_ARGS} $1 $2"
+		shift 2
+		continue
+	fi
+
+	# Otherwise, process the argument.
 	case "$1" in
 	--llvm-version)
 		llvm_suffix="$2"
@@ -259,7 +280,6 @@ while [ $# -ne 0 ]; do
 		shift
 		;;
 	--target | -target)
-		TARGET_CONFIG="$2"
 		shift
 		;;
 	--emit-qir | -emit-qir)
@@ -277,7 +297,7 @@ while [ $# -ne 0 ]; do
 		;;
 	--load | -load)
 		LINKLIBS="${LINKLIBS} -lcudaq-$2"
-		shift 
+		shift
 		;;
 	--cmake-host-compiler)
 		CMAKE_FALLBACK_HOST_CXX="$2"
@@ -364,19 +384,25 @@ while [ $# -ne 0 ]; do
 	-l*)
 		LINKLIBS="${LINKLIBS} $1"
 		;;
+	--version)
+		CUDAQ_QUAKE_ARGS="--nvqpp-version ${CUDAQ_QUAKE_ARGS}"
+		;;
 	-v)
 		ECHO=true
 		;;
-	*.o)
+	*.o | *.so | *.bundle)
 		OBJS="${OBJS} $1"
 		;;
 	*.cpp | *.cc)
 		SRCS="${SRCS} $1"
 		;;
+	*.a | *.dylib)	    
+		LINKLIBS="${LINKLIBS} $1"
+		;;
 	*)
-		#FIXME: issue #258
-		#echo "argument $1 is ignored" >&2
+		# Pass any unrecognized options on to the clang++ tool.
 		ARGS="${ARGS} $1"
+		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --Xcudaq $1"
 		;;
 	esac
 	shift
@@ -408,7 +434,7 @@ if [ -n "${TARGET_CONFIG}" ]; then
 	TARGET_CONFIG_FILE="${install_dir}/targets/${TARGET_CONFIG}.config"
 	if [ -f "${TARGET_CONFIG_FILE}" ]; then
 		GEN_TARGET_BACKEND=false
-		. "${TARGET_CONFIG_FILE}" ${COPY_INPUT_ARGS}
+		. "${TARGET_CONFIG_FILE}" ${TARGET_ARGS}
 
 		if ${GEN_TARGET_BACKEND}; then
 			# Add a function that will run before main
@@ -486,7 +512,7 @@ for i in ${SRCS}; do
 	# If LIBRARY_MODE explicitly requested, then
 	# simply compile with the classical compiler.
 	if ${LIBRARY_MODE}; then
-		run ${CMAKE_FALLBACK_HOST_CXX} ${COMPILER_FLAGS} -DCUDAQ_LIBRARY_MODE ${PREPROCESSOR_DEFINES} ${INCLUDES} -o ${file}.o -c $i
+		run ${CMAKE_FALLBACK_HOST_CXX} ${COMPILER_FLAGS} -DCUDAQ_LIBRARY_MODE ${PREPROCESSOR_DEFINES} ${INCLUDES} ${ARGS} -o ${file}.o -c $i
 		OBJS="${OBJS} ${file}.o"
 		# Go to the next iteration, maybe there
 		# will be cudaq kernels there
@@ -495,7 +521,7 @@ for i in ${SRCS}; do
 
 	# If we make it here, we have CUDA Quantum kernels, need
 	# to map to MLIR and output an LLVM file for the classical code
-	run ${TOOLBIN}cudaq-quake ${CUDAQ_QUAKE_DEBUG} ${CLANG_VERBOSE} ${CLANG_RESOURCE_DIR} ${PREPROCESSOR_DEFINES} ${INCLUDES} --emit-llvm-file $i -o ${file}.qke
+	run ${TOOLBIN}cudaq-quake ${CUDAQ_QUAKE_DEBUG} ${CLANG_VERBOSE} ${CLANG_RESOURCE_DIR} ${PREPROCESSOR_DEFINES} ${INCLUDES} ${CUDAQ_QUAKE_ARGS} --emit-llvm-file $i -o ${file}.qke
 	TMPFILES="${TMPFILES} ${file}.ll ${file}.qke"
 
 	# Run the MLIR passes
