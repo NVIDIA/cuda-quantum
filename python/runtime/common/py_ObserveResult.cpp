@@ -70,13 +70,13 @@ Returns:
       mod, "AsyncObserveResult",
       R"#(A data-type containing the results of a call to :func:`observe_async`. 
       
-      The `AsyncObserveResult` contains a future, whose :class:`ObserveResult` 
-      may be returned via an invocation of the `get` method. 
-      
-      This kicks off a wait on the current thread until the results are available.
-      
-      See `future <https://en.cppreference.com/w/cpp/thread/future>` 
-      for more information on this programming pattern.)#")
+The `AsyncObserveResult` contains a future, whose :class:`ObserveResult` 
+may be returned via an invocation of the `get` method. 
+
+This kicks off a wait on the current thread until the results are available.
+
+See `future <https://en.cppreference.com/w/cpp/thread/future>`_
+for more information on this programming pattern.)#")
       .def(py::init([](std::string inJson, spin_op &op) {
         async_observe_result f(&op);
         std::istringstream is(inJson);
@@ -84,7 +84,7 @@ Returns:
         return f;
       }))
       .def("get", &async_observe_result::get,
-           "Returns the class:`ObserveResult` from the asynchronous observe "
+           "Returns the :class:`ObserveResult` from the asynchronous observe "
            "execution.")
       .def("__str__", [](async_observe_result &self) {
         std::stringstream ss;
