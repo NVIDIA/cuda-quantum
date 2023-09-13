@@ -1,4 +1,4 @@
-/****************************************************************-*- C++ -*-****
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -6,15 +6,15 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#pragma once
+// RUN: cudaq-quake -Xcudaq -Wall -verify %s -o /dev/null
 
-namespace cudaq {
+#include <cudaq.h>
 
-// TODO: const char *getVersion();
+void foo();
 
-/// A generic bug report message.
-constexpr const char *bugReportMsg =
-    "PLEASE submit a bug report to https://github.com/NVIDIA/cuda-quantum and "
-    "include the crash backtrace.\n";
-
-} // namespace cudaq
+struct S {
+   void operator()() __qpu__ {
+      int unused = 42; // expected-warning{{unused variable}}
+      foo();
+   }
+};

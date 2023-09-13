@@ -22,12 +22,14 @@ CUDAQ_TEST(D2VariationalTester, checkSimple) {
 
   using namespace cudaq::spin;
 
+  cudaq::set_random_seed(13);
+
   cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
                      .21829 * z(0) - 6.125 * z(1);
   h.dump();
 
   double energy = cudaq::observe(ansatz2{}, h, .59);
-  printf("Energy is %lf\n", energy);
+  printf("Energy is %.16lf\n", energy);
   EXPECT_NEAR(energy, -1.7487, 1e-3);
 
   std::vector<cudaq::spin_op> asList;
@@ -43,13 +45,15 @@ CUDAQ_TEST(D2VariationalTester, checkSimple) {
     test += r.exp_val_z() * r.get_spin().get_coefficient().real();
   }
 
-  printf("TEST: %lf\n", test);
+  printf("TEST: %.16lf\n", test);
   EXPECT_NEAR(energy, -1.7487, 1e-3);
 }
 
 CUDAQ_TEST(D2VariationalTester, checkBroadcast) {
 
   using namespace cudaq::spin;
+
+  cudaq::set_random_seed(13);
 
   cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
                      .21829 * z(0) - 6.125 * z(1);
@@ -76,6 +80,9 @@ CUDAQ_TEST(D2VariationalTester, checkBroadcast) {
       1.031106,  1.825915,  2.687735,  3.602415,  4.554937,  5.529659,
       6.510578,  7.481585,  8.426738,  9.330517,  10.178082, 10.955516,
       11.650053, 12.250290};
+
+  for (std::size_t counter = 0; auto &el : expected)
+    printf("results[%lu] = %.16lf\n", counter++, el);
 
   for (std::size_t counter = 0; auto &el : expected)
     EXPECT_NEAR(results[counter++].exp_val_z(), el, 1e-3);
