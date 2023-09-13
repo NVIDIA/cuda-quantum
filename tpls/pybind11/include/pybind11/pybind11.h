@@ -572,11 +572,23 @@ protected:
                     signatures += std::to_string(++index) + ". ";
                 }
 
-                // Here we deviate from the code in https://github.com/pybind/pybind11 
-                // to avoid issue https://github.com/pybind/pybind11/issues/4537.
-                signatures += ".. code-block:: python\n\n\t" + std::string(rec->name) + std::string(it->signature);
+                // We're also manually removing references to the internal python module, _pycudaq.
+                // There are some additional classes that reference their C++ counterpart, so we also
+                // handle those manually.
+                auto formatted_string = std::regex_replace(std::string(rec->name) + std::string(it->signature), std::regex("_pycudaq."), "");
+								formatted_string = std::regex_replace(formatted_string, std::regex("numpy.ndarray[numpy.complex128]"), "numpy.ndarray");
+                formatted_string = std::regex_replace(formatted_string, std::regex("::async_result<cudaq::sample_result>"), ".AsyncSampleResult");
+                formatted_string = std::regex_replace(formatted_string, std::regex("::async_result<cudaq::osberve_result>"), ".AsyncObserveResult");
+                formatted_string = std::regex_replace(formatted_string, std::regex("::sample_result"), ".SampleResult");
+                formatted_string = std::regex_replace(formatted_string, std::regex("::observe_result"), ".ObserveResult");
+                formatted_string = std::regex_replace(formatted_string, std::regex("::spin_op"), ".SpinOperator");
+                formatted_string = std::regex_replace(formatted_string, std::regex("::noise_model"), ".NoiseModel");
+                formatted_string = std::regex_replace(formatted_string, std::regex("::QuakeValue"), ".QuakeValue");
+                formatted_string = std::regex_replace(formatted_string, std::regex("::kraus_channel"), ".KrausChannel");
+                formatted_string = std::regex_replace(formatted_string, std::regex("::kernel_builder<>"), ".Kernel");
+                formatted_string = std::regex_replace(formatted_string, std::regex("\\*"), "\\*");
+                signatures  += ".. function:: " + formatted_string + "\n\n\t:noindex:\n\n\n";
                 // alternatively: signatures += std::string(rec->name) + std::regex_replace(std::string(it->signature), std::regex("\\*"), "\\*"); // making sure * are escaped
-                signatures += '\n';
             }
             if (it->doc && it->doc[0] != '\0' && options::show_user_defined_docstrings()) {
                 // If we're appending another docstring, and aren't printing function signatures,

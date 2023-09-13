@@ -6,8 +6,8 @@ CUDA Quantum Python API
 Program Construction
 =============================
 
-.. autofunction:: cudaq::from_state
 .. autofunction:: cudaq::make_kernel
+.. autofunction:: cudaq::from_state
 .. autoclass:: cudaq::Kernel
 
     .. automethod:: qalloc
@@ -15,7 +15,6 @@ Program Construction
     .. automethod:: __call__
 
     .. automethod:: x
-    .. automethod:: cx 
     .. automethod:: y
     .. automethod:: cy
     .. automethod:: z
@@ -40,6 +39,7 @@ Program Construction
     .. automethod:: adjoint
     .. automethod:: control
     .. automethod:: apply_call
+    .. automethod:: for_loop
     
 Kernel Execution
 =============================
@@ -67,6 +67,8 @@ Backend Configuration
 
 Data Types
 =============================
+.. autoclass:: cudaq::Target
+    :members:
 
 .. autoclass:: cudaq::QuakeValue
 
@@ -124,6 +126,8 @@ Data Types
 Optimizers
 -----------------
 
+.. autoclass:: cudaq.optimizers::optimizer
+
 .. autoclass:: cudaq.optimizers::GradientDescent
     :members:
 
@@ -180,3 +184,13 @@ Noisy Simulation
 
 .. autoclass:: cudaq::KrausOperator
     :members:
+
+MPI Submodule
+=============================
+
+.. automethod:: cudaq.mpi::initialize
+.. automethod:: cudaq.mpi::rank
+.. automethod:: cudaq.mpi::num_ranks
+.. automethod:: cudaq.mpi::all_gather
+.. automethod:: cudaq.mpi::is_initialized
+.. automethod:: cudaq.mpi::finalize

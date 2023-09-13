@@ -12,6 +12,7 @@
 import numpy as np
 
 import cudaq
+from cudaq import spinzw
 
 
 def test_sdg_0_state():
@@ -268,7 +269,6 @@ def test_from_state():
     assert '11' in counts
     assert '00' in counts
 
-    from cudaq import spin
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
     state = np.asarray([0., .292786, .956178, 0.])
