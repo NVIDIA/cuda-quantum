@@ -577,18 +577,19 @@ protected:
                 // There are some additional classes that reference their C++ counterpart, so we also
                 // handle those manually.
                 auto formatted_string = std::regex_replace(std::string(rec->name) + std::string(it->signature), std::regex("_pycudaq."), "");
-								formatted_string = std::regex_replace(formatted_string, std::regex("numpy.ndarray[numpy.complex128]"), "numpy.ndarray");
-                formatted_string = std::regex_replace(formatted_string, std::regex("::async_result<cudaq::sample_result>"), ".AsyncSampleResult");
-                formatted_string = std::regex_replace(formatted_string, std::regex("::async_result<cudaq::osberve_result>"), ".AsyncObserveResult");
+								formatted_string = std::regex_replace(formatted_string, std::regex("numpy.complex128"), "");
+								formatted_string = std::regex_replace(formatted_string, std::regex(".ndarray[]"), ".ndarray");
                 formatted_string = std::regex_replace(formatted_string, std::regex("::sample_result"), ".SampleResult");
                 formatted_string = std::regex_replace(formatted_string, std::regex("::observe_result"), ".ObserveResult");
+                formatted_string = std::regex_replace(formatted_string, std::regex("::async_result<cudaq.SampleResult>"), ".AsyncSampleResult");
+                formatted_string = std::regex_replace(formatted_string, std::regex("::async_result<cudaq.ObserveResult>"), ".AsyncObserveResult");
                 formatted_string = std::regex_replace(formatted_string, std::regex("::spin_op"), ".SpinOperator");
                 formatted_string = std::regex_replace(formatted_string, std::regex("::noise_model"), ".NoiseModel");
                 formatted_string = std::regex_replace(formatted_string, std::regex("::QuakeValue"), ".QuakeValue");
                 formatted_string = std::regex_replace(formatted_string, std::regex("::kraus_channel"), ".KrausChannel");
                 formatted_string = std::regex_replace(formatted_string, std::regex("::kernel_builder<>"), ".Kernel");
                 formatted_string = std::regex_replace(formatted_string, std::regex("\\*"), "\\*");
-                signatures  += ".. function:: " + formatted_string + "\n\n\t:noindex:\n\n\n";
+                signatures += ".. function:: " + formatted_string + "\n\t:noindex:\n\n\n";
                 // alternatively: signatures += std::string(rec->name) + std::regex_replace(std::string(it->signature), std::regex("\\*"), "\\*"); // making sure * are escaped
             }
             if (it->doc && it->doc[0] != '\0' && options::show_user_defined_docstrings()) {
