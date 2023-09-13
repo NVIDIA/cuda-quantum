@@ -79,6 +79,7 @@ def test_depolarization_channel_simple():
 
 def test_amplitude_damping_simple():
     """Tests the amplitude damping channel in the case of `probability = 1.0`"""
+    cudaq.set_random_seed(13)
     cudaq.set_target('density-matrix-cpu')
     noise = cudaq.NoiseModel()
     # Amplitude damping channel with `1.0` probability of the qubit
@@ -112,6 +113,7 @@ def test_amplitude_damping_simple():
 
 def test_phase_flip_simple():
     """Tests the phase flip channel in the case of `probability = 1.0`"""
+    cudaq.set_random_seed(13)
     cudaq.set_target('density-matrix-cpu')
     noise = cudaq.NoiseModel()
     # Phase flip channel with `1.0` probability of the qubit
@@ -149,6 +151,7 @@ def test_bit_flip_simple():
     Tests the bit flip channel with the probability at `0.0` on qubit 0, 
     and `1.0` on qubit 1.
     """
+    cudaq.set_random_seed(13)
     cudaq.set_target('density-matrix-cpu')
     noise = cudaq.NoiseModel()
     # Bit flip channel with `0.0` probability of the qubit flipping 180 degrees.
@@ -186,6 +189,7 @@ def test_bit_flip_simple():
 
 def test_kraus_channel():
     """Tests the Kraus Channel with a series of custom Kraus Operators."""
+    cudaq.set_random_seed(13)
     cudaq.set_target('density-matrix-cpu')
     k0 = np.array([[0.05773502691896258, 0.0], [0., -0.05773502691896258]],
                   dtype=np.complex128)

@@ -214,6 +214,7 @@ def test_tdg_1_state_negate():
     # Qubit should remain in 1-state.
     assert counts["1"] == 1000
 
+
 def test_can_progressively_build():
     """Tests that a kernel can be build progressively."""
     cudaq.reset_target()
@@ -229,11 +230,11 @@ def test_can_progressively_build():
 
     counts = cudaq.sample(kernel)
     print(counts)
-    assert '10' in counts 
-    assert '00' in counts 
+    assert '10' in counts
+    assert '00' in counts
 
     # Continue building the kernel
-    kernel.cx(q[0],q[1])
+    kernel.cx(q[0], q[1])
     print(kernel)
     state = cudaq.get_state(kernel)
     assert np.isclose(1. / np.sqrt(2.), state[0].real)
@@ -243,9 +244,10 @@ def test_can_progressively_build():
 
     counts = cudaq.sample(kernel)
     print(counts)
-    assert '11' in counts 
-    assert '00' in counts 
-    
+    assert '11' in counts
+    assert '00' in counts
+
+
 def test_from_state():
     cudaq.reset_target()
     state = np.asarray([.70710678, 0., 0., 0.70710678])
@@ -257,16 +259,16 @@ def test_from_state():
     print(kernel)
     counts = cudaq.sample(kernel)
     print(counts)
-    assert '11' in counts 
-    assert '00' in counts 
-    
+    assert '11' in counts
+    assert '00' in counts
+
     kernel = cudaq.from_state(state)
     counts = cudaq.sample(kernel)
     print(counts)
-    assert '11' in counts 
-    assert '00' in counts 
+    assert '11' in counts
+    assert '00' in counts
 
-    from cudaq import spin 
+    from cudaq import spin
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
     state = np.asarray([0., .292786, .956178, 0.])
@@ -278,4 +280,4 @@ def test_from_state():
 
     ss = cudaq.get_state(kernel)
     for i in range(4):
-      assert np.isclose(ss[i], state[i], 1e-3)
+        assert np.isclose(ss[i], state[i], 1e-3)

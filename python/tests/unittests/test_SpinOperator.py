@@ -16,6 +16,7 @@ import cudaq
 from cudaq import spin
 import numpy as np
 
+
 def assert_close(want, got, tolerance=1.e-5) -> bool:
     return abs(want - got) < tolerance
 
@@ -334,6 +335,7 @@ def test_spin_op_iter():
         count += 1
     assert count == 5
 
+
 def test_spin_op_sparse_matrix():
     """
     Test that the `cudaq.SpinOperator` can produce its sparse matrix representation 
@@ -345,14 +347,13 @@ def test_spin_op_sparse_matrix():
     mat = hamiltonian.to_matrix()
     data, rows, cols = hamiltonian.to_sparse_matrix()
     for i, value in enumerate(data):
-        print(rows[i],cols[i],value)
-        assert np.isclose(mat[rows[i],cols[i]], value)
-    
-    # can use scipy 
+        print(rows[i], cols[i], value)
+        assert np.isclose(mat[rows[i], cols[i]], value)
+
+    # can use scipy
     # scipyM = scipy.sparse.csr_array((data, (rows, cols)), shape=(2**numQubits,2**numQubits))
     # E, ev = scipy.sparse.linalg.eigsh(scipyM, k=1, which='SA')
     # assert np.isclose(E[0], -1.7488, 1e-2)
-    
 
 
 def test_spin_op_from_word():
@@ -360,10 +361,10 @@ def test_spin_op_from_word():
     want_spin_op = spin.z(0) * spin.z(1) * spin.z(2)
     got_spin_op = cudaq.SpinOperator.from_word("ZZZ")
     assert got_spin_op == want_spin_op
-    
+
     s = cudaq.SpinOperator.from_word("XXIXYZ")
-    want_spin_op = spin.x(0) * spin.x(1) * spin.i(2) * spin.x(3) * spin.y(4) * spin.z(
-        5)
+    want_spin_op = spin.x(0) * spin.x(1) * spin.i(2) * spin.x(3) * spin.y(
+        4) * spin.z(5)
     got_spin_op = cudaq.SpinOperator.from_word("XXIXYZ")
     assert got_spin_op == want_spin_op
 
