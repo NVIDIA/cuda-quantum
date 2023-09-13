@@ -277,8 +277,7 @@ jobs:
         env:
           DIGEST: ${{ steps.cudaq_build.outputs.digest }}
           TAGS: ${{ steps.metadata.outputs.tags }}
-        run: |
-          cosign sign --yes --recursive "${TAGS}@${DIGEST}"
+        run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
       - name: Sign image with NGC CLI
         if: steps.release_info.outputs.ngc_registry
