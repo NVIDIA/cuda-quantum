@@ -5,7 +5,7 @@
 // ```
 //
 // Note: You must set the target to a density matrix backend for the noise
-// to succesfully impact the system.
+// to successfully impact the system.
 
 #include <cudaq.h>
 
