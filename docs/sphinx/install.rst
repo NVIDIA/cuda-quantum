@@ -45,7 +45,7 @@ This will give you terminal access to the created container, for example
 
 .. code-block:: console 
 
-    user@host:~$ docker run -it --name cuda-quantum ghcr.io/nvidia/cuda-quantum:latest
+    user@host:~$ docker run -it --name cuda-quantum nvcr.io/nvidia/nightly/cuda-quantum:latest
     To run a command as administrator (user "root"), use "sudo <command>".
     See "man sudo_root" for details.
 
