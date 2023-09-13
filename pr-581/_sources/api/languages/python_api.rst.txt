@@ -15,6 +15,7 @@ Program Construction
     .. automethod:: __call__
 
     .. automethod:: x
+    .. automethod:: cx
     .. automethod:: y
     .. automethod:: cy
     .. automethod:: z
