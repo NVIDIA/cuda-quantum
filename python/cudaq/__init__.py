@@ -24,8 +24,7 @@ if not "CUDAQ_DYNLIBS" in os.environ:
         custatevec_path = os.path.join(custatevec_libs, "libcustatevec.so.1")
 
         cutensornet_libs = get_library_path("cutensornet-cu11")
-        cutensornet_path = os.path.join(
-            cutensornet_libs, "libcutensornet.so.2")
+        cutensornet_path = os.path.join(cutensornet_libs, "libcutensornet.so.2")
 
         os.environ[
             "CUDAQ_DYNLIBS"] = f"{cublasLt_path}:{cublas_path}:{custatevec_path}:{cutensornet_path}"
@@ -65,6 +64,7 @@ class MidCircuitMeasurementAnalyzer(ast.NodeVisitor):
        common measurement - conditional patterns to indicate to the runtime 
        that we have a circuit with mid-circuit measurement and subsequent conditional 
        quantum operation application."""
+
     def __init__(self):
         self.measureResultsVars = []
         self.hasMidCircuitMeasures = False
@@ -95,7 +95,8 @@ class kernel(object):
         self.inputKwargs = kwargs
         src = inspect.getsource(function)
         leadingSpaces = len(src) - len(src.lstrip())
-        self.funcSrc = '\n'.join([line[leadingSpaces:] for line in src.split('\n')])        
+        self.funcSrc = '\n'.join(
+            [line[leadingSpaces:] for line in src.split('\n')])
         self.module = ast.parse(self.funcSrc)
         analyzer = MidCircuitMeasurementAnalyzer()
         analyzer.visit(self.module)
@@ -157,7 +158,8 @@ def observe_async(kernel, spin_operator, *args, **kwargs):
         return _pycudaq.observe_async(kernel, spin_operator, *args, **kwargs)
     else:
         # For library mode, we need to fork a thread here in Python
-        return Future(threadPool.submit(observe, kernel, spin_operator, *args, **kwargs))
+        return Future(
+            threadPool.submit(observe, kernel, spin_operator, *args, **kwargs))
 
 
 def sample_async(kernel, *args, **kwargs):
