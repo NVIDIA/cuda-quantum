@@ -885,7 +885,7 @@ Args:
            "Return the :class:`Kernel` as a string in its MLIR representation "
            "using the Quake dialect.\n")
       .def("jit_code", &kernel_builder<>::jitCode, "");
-      
+
   mod.def(
       "from_state",
       [](kernel_builder<> &kernel, QuakeValue &qubits,

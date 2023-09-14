@@ -416,7 +416,7 @@ Args:
 Returns:
   :class:`SampleResult`: A dictionary containing the measurement count results 
     for the :class:`Kernel`.)#");
-      
+
   mod.def(
       "observe",
       [&](py::object kernel,
