@@ -118,7 +118,7 @@ protected:
   void resetQudit(const cudaq::QuditInfo &id) override {}
 
   double _fast_factorial(int n) {
-    std::vector<double> FACTORIAL_TABLE = {
+    static std::vector<double> FACTORIAL_TABLE = {
         1.,
         1.,
         2.,

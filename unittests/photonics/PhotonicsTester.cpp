@@ -16,9 +16,9 @@ TEST(PhotonicsTester, checkSimple) {
   struct test {
     auto operator()() __qpu__ {
       cudaq::qreg<cudaq::dyn, 3> qutrits(2);
-      plusGate(qutrits[0]);
-      plusGate(qutrits[1]);
-      plusGate(qutrits[1]);
+      plus(qutrits[0]);
+      plus(qutrits[1]);
+      plus(qutrits[1]);
       return mz(qutrits);
     }
   };
@@ -26,9 +26,9 @@ TEST(PhotonicsTester, checkSimple) {
   struct test2 {
     void operator()() __qpu__ {
       cudaq::qreg<cudaq::dyn, 3> qutrits(2);
-      plusGate(qutrits[0]);
-      plusGate(qutrits[1]);
-      plusGate(qutrits[1]);
+      plus(qutrits[0]);
+      plus(qutrits[1]);
+      plus(qutrits[1]);
       mz(qutrits);
     }
   };
@@ -54,11 +54,11 @@ TEST(PhotonicsTester, checkHOM) {
       cudaq::qreg<cudaq::dyn, 3> quds(2); // |00>
       for (std::size_t i = 0; i < 2; i++) {
         for (std::size_t j = 0; j < input_state[i]; j++) {
-          plusGate(quds[i]); // setting to  |11>
+          plus(quds[i]); // setting to  |11>
         }
       }
 
-      beamSplitterGate(quds[0], quds[1], theta);
+      beam_splitter(quds[0], quds[1], theta);
       mz(quds);
     }
   };
@@ -94,17 +94,15 @@ TEST(PhotonicsTester, checkMZI) {
       constexpr std::array<std::size_t, 2> input_state{1, 0};
 
       cudaq::qreg<cudaq::dyn, 3> quds(2); // |00>
-      for (std::size_t i = 0; i < 2; i++) {
-        for (std::size_t j = 0; j < input_state[i]; j++) {
-          plusGate(quds[i]); // setting to  |10>
-        }
-      }
+      for (std::size_t i = 0; i < 2; i++)
+        for (std::size_t j = 0; j < input_state[i]; j++)
+          plus(quds[i]); // setting to  |10>
 
-      beamSplitterGate(quds[0], quds[1], M_PI / 4);
-      phaseShiftGate(quds[0], M_PI / 3);
+      beam_splitter(quds[0], quds[1], M_PI / 4);
+      phase_shift(quds[0], M_PI / 3);
 
-      beamSplitterGate(quds[0], quds[1], M_PI / 4);
-      phaseShiftGate(quds[0], M_PI / 3);
+      beam_splitter(quds[0], quds[1], M_PI / 4);
+      phase_shift(quds[0], M_PI / 3);
 
       mz(quds);
     }

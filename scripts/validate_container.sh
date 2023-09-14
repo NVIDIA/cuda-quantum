@@ -46,8 +46,9 @@ available_backends=`\
     echo "default"
     for file in $(ls $CUDA_QUANTUM_PATH/targets/*.config); \
     do
-        platform=$(cat $file | grep "PLATFORM_QPU=")
+        platform=$(cat $file | grep "LIBRARY_MODE_EXECUTION_MANAGER\|PLATFORM_QPU=")
         if [ "${platform#PLATFORM_QPU=}" != "remote_rest" ] \
+           && "${platform#LIBRARY_MODE_EXECUTION_MANAGER=}" != "photonics" \ 
            && ($gpu_available || [ -z "$(cat $file | grep "GPU_REQUIREMENTS")" ]); then \
             basename $file | cut -d "." -f 1; \
         fi; \
