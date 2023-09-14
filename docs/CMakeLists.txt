@@ -43,6 +43,14 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
     )
 endif()
 
+add_test(
+  NAME
+    nvqpp_photonics_sim
+  COMMAND
+    bash -c "${CMAKE_BINARY_DIR}/bin/nvq++ --target photonics ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/examples/cpp/photonics/test_photonics.cpp -o photonics.x ;\
+              ${CMAKE_CURRENT_BINARY_DIR}/photonics.x"
+)
+
 # Only add the python tests if we built the python API
 if (NOT CUDAQ_ENABLE_PYTHON)
   return()
