@@ -23,17 +23,18 @@ void bindMeasureCounts(py::module &mod) {
   // as input.
   py::class_<sample_result>(
       mod, "SampleResult",
-      "A data-type containing the results of a call to :func:`sample`. "
-      "This includes all measurement counts data from both mid-circuit and "
-      "terminal measurements.\n"
-      "\nNote:\n"
-      "  At this time, mid-circuit measurements are not directly supported. "
-      "Mid-circuit measurements may only be used if they are passed through "
-      " to "
-      "`c_if`.\n"
-      "\nAttributes:\n"
-      "  register_names (List[str]): A list of the names of each measurement "
-      "register that are stored in `self`.\n")
+      R"#(A data-type containing the results of a call to :func:`sample`. 
+This includes all measurement counts data from both mid-circuit and 
+terminal measurements.
+
+Note:
+	At this time, mid-circuit measurements are not directly supported. 
+	Mid-circuit measurements may only be used if they are passed through 
+	to `c_if`.
+
+Attributes:
+	register_names (List[str]): A list of the names of each measurement 
+		register that are stored in `self`.)#")
       .def_property_readonly("register_names", &sample_result::register_names)
       .def(
           "dump", [](sample_result &self) { self.dump(); },
@@ -60,13 +61,14 @@ void bindMeasureCounts(py::module &mod) {
             return iter->second;
           },
           py::arg("bitstring"),
-          "Return the measurement counts for the given `bitstring`.\n"
-          "\nArgs:\n"
-          "  bitstring (str): The binary string to return the measurement "
-          "data of.\n"
-          "\nReturns:\n"
-          "  float : The number of times the given `bitstring` was measured "
-          "during the `shots_count` number of executions on the QPU.\n")
+          R"#(Return the measurement counts for the given `bitstring`.
+
+Args:
+	bitstring (str): The binary string to return the measurement data of.
+
+Returns:
+	float: The number of times the given `bitstring` was measured 
+	during the `shots_count` number of executions on the QPU.)#")
       .def(
           "__len__", [](sample_result &self) { return self.to_map().size(); },
           "Return the number of elements in `self`. Equivalent to "
@@ -85,66 +87,60 @@ void bindMeasureCounts(py::module &mod) {
       .def("probability", &sample_result::probability,
            "Return the probability of observing the given bit string.\n",
            py::arg("bitstring"), py::arg("register_name") = GlobalRegisterName,
-           "Return the probability of measuring the given `bitstring`.\n"
-           "\nArgs:\n"
-           "  bitstring (str): The binary string to return the measurement "
-           "probability of.\n"
-           "  register_name (Optional[str]): The optional measurement register "
-           "name to "
-           "extract the probability from. Defaults to the '__global__' "
-           "register.\n"
-           "\nReturns:\n"
-           "  float : The probability of measuring the given `bitstring`. "
-           "Equivalent "
-           "to the proportion of the total times the bitstring was measured "
-           "vs. the "
-           "number of experiments (`shots_count`).\n")
+           R"#(Return the probability of measuring the given `bitstring`.
+
+Args:
+  bitstring (str): The binary string to return the measurement 
+		probability of.
+  register_name (Optional[str]): The optional measurement register 
+		name to extract the probability from. Defaults to the '__global__' 
+		register.
+
+Returns:
+  float: 
+	The probability of measuring the given `bitstring`. Equivalent 
+	to the proportion of the total times the bitstring was measured 
+	vs. the number of experiments (`shots_count`).)#")
       .def("most_probable", &sample_result::most_probable,
            py::arg("register_name") = GlobalRegisterName,
-           "Return the bitstring that was measured most frequently in the "
-           "experiment.\n"
-           "\nArgs:\n"
-           "  register_name (Optional[str]): The optional measurement register "
-           "name to "
-           "extract the most probable bitstring from. Defaults to the "
-           "'__global__' "
-           "register.\n"
-           "\nReturns:\n"
-           "  str : The most frequently measured binary string during the "
-           "experiment.\n")
+           R"#(Return the bitstring that was measured most frequently in the 
+experiment.
+
+Args:
+  register_name (Optional[str]): The optional measurement register 
+		name to extract the most probable bitstring from. Defaults to the 
+		'__global__' register.
+
+Returns:
+  str: The most frequently measured binary string during the experiment.)#")
       .def("count", &sample_result::count, py::arg("bitstring"),
            py::arg("register_name") = GlobalRegisterName,
-           "Return the number of times the given bitstring was observed.\n"
-           "\nArgs:\n"
-           "  bitstring (str): The binary string to return the measurement "
-           "counts for.\n"
-           "  register_name (Optional[str]): The optional measurement register "
-           "name to "
-           "extract the probability from. Defaults to the '__global__' "
-           "register.\n"
-           "\nReturns:\n"
-           "  int : The number of times the given bitstring was measured "
-           "during "
-           "the experiment.\n")
+           R"#(Return the number of times the given bitstring was observed.
+
+Args:
+  bitstring (str): The binary string to return the measurement counts for.
+  register_name (Optional[str]): The optional measurement register name to 
+		extract the probability from. Defaults to the '__global__' register.
+
+Returns:
+  int : The number of times the given bitstring was measured during the experiment.)#")
       .def("get_marginal_counts",
            static_cast<sample_result (sample_result::*)(
                const std::vector<std::size_t> &, const std::string_view)>(
                &sample_result::get_marginal),
            py::arg("marginal_indices"), py::kw_only(),
            py::arg("register_name") = GlobalRegisterName,
-           "Extract the measurement counts data for the provided subset of "
-           "qubits (`marginal_indices`).\n"
-           "\nArgs:\n"
-           "  marginal_indices (list[int]): A list of the qubit indices to "
-           "extract the measurement data from.\n"
-           "  register_name (Optional[str]): The optional measurement register "
-           "name to "
-           "extract the counts data from. Defaults to the '__global__' "
-           "register.\n"
-           "\nReturns:\n"
-           "  :class:`SampleResult` : A new `SampleResult` dictionary "
-           "containing the "
-           "extracted measurement data.\n")
+           R"#(Extract the measurement counts data for the provided subset of 
+qubits (`marginal_indices`).
+
+Args:
+  marginal_indices (list[int]): A list of the qubit indices to extract the 
+		measurement data from.
+  register_name (Optional[str]): The optional measurement register name to extract 
+		the counts data from. Defaults to the '__global__' register.
+Returns:
+  :class:`SampleResult`: 
+	A new `SampleResult` dictionary containing the extracted measurement data.)#")
       .def("get_sequential_data", &sample_result::sequential_data,
            py::arg("register_name") = GlobalRegisterName,
            "Return the data from the given register (`register_name`) as it "
