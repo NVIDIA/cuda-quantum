@@ -166,7 +166,7 @@ protected:
   }
 
   bool _isclose(double a, double b, double rtol = 1e-08, double atol = 1e-9) {
-    return abs(a - b) <= (atol + rtol * abs(b));
+    return std::fabs(a - b) <= (atol + rtol * std::fabs(b));
   }
 
   double _calc_beamsplitter_elem(int N1, int N2, int n1, int n2, double theta) {
