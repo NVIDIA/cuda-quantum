@@ -37,6 +37,9 @@ def test_async_exec():
     if not cudaq.has_target('nvidia-mqpu'):
         return
 
+    if cudaq.num_available_gpus() < 1:
+        return 
+
     cudaq.set_target('nvidia-mqpu')
 
     @cudaq.kernel
@@ -71,6 +74,8 @@ def test_optimization():
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
 
+    cudaq.observe(ansatz, hamiltonian, .59)
+    
     def objectiveFunction(x):
         return cudaq.observe(ansatz, hamiltonian, x[0]).expectation_z()
 
