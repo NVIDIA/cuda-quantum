@@ -3,21 +3,11 @@ CUDA Quantum Python API
 
 .. automodule:: cudaq
 
-    .. automethod:: cudaq::initialize_cudaq
-    .. automethod:: cudaq::num_available_gpus
-    .. automethod:: cudaq::set_random_seed
-    .. automethod:: cudaq.mpi::initialize
-    .. automethod:: cudaq.mpi::rank
-    .. automethod:: cudaq.mpi::num_ranks
-    .. automethod:: cudaq.mpi::all_gather
-    .. automethod:: cudaq.mpi::is_initialized
-    .. automethod:: cudaq.mpi::finalize
-
 Program Construction
 =============================
 
-.. autofunction:: cudaq::from_state
 .. autofunction:: cudaq::make_kernel
+.. autofunction:: cudaq::from_state
 .. autoclass:: cudaq::Kernel
 
     .. automethod:: qalloc
@@ -25,7 +15,7 @@ Program Construction
     .. automethod:: __call__
 
     .. automethod:: x
-    .. automethod:: cx 
+    .. automethod:: cx
     .. automethod:: y
     .. automethod:: cy
     .. automethod:: z
@@ -50,6 +40,7 @@ Program Construction
     .. automethod:: adjoint
     .. automethod:: control
     .. automethod:: apply_call
+    .. automethod:: for_loop
     
 Kernel Execution
 =============================
@@ -71,8 +62,14 @@ Backend Configuration
 .. autofunction:: cudaq::set_noise
 .. autofunction:: cudaq::unset_noise
 
+.. automethod:: cudaq::initialize_cudaq
+.. automethod:: cudaq::num_available_gpus
+.. automethod:: cudaq::set_random_seed
+
 Data Types
 =============================
+.. autoclass:: cudaq::Target
+    :members:
 
 .. autoclass:: cudaq::QuakeValue
 
@@ -130,6 +127,8 @@ Data Types
 Optimizers
 -----------------
 
+.. autoclass:: cudaq.optimizers::optimizer
+
 .. autoclass:: cudaq.optimizers::GradientDescent
     :members:
 
@@ -151,6 +150,9 @@ Gradients
 .. autoclass:: cudaq.gradients::CentralDifference
     :members:
 
+.. autoclass:: cudaq.gradients::ForwardDifference
+    :members:
+
 .. autoclass:: cudaq.gradients::ParameterShift
     :members:
 
@@ -162,9 +164,20 @@ Noisy Simulation
     :special-members: __init__
 
 .. autoclass:: cudaq::BitFlipChannel
+    :members:
+    :special-members: __init__
+
 .. autoclass:: cudaq::PhaseFlipChannel
+    :members:
+    :special-members: __init__
+
 .. autoclass:: cudaq::DepolarizationChannel
+    :members:
+    :special-members: __init__
+
 .. autoclass:: cudaq::AmplitudeDampingChannel
+    :members:
+    :special-members: __init__
 
 .. autoclass:: cudaq::KrausChannel
     :members:
@@ -172,3 +185,13 @@ Noisy Simulation
 
 .. autoclass:: cudaq::KrausOperator
     :members:
+
+MPI Submodule
+=============================
+
+.. automethod:: cudaq.mpi::initialize
+.. automethod:: cudaq.mpi::rank
+.. automethod:: cudaq.mpi::num_ranks
+.. automethod:: cudaq.mpi::all_gather
+.. automethod:: cudaq.mpi::is_initialized
+.. automethod:: cudaq.mpi::finalize
