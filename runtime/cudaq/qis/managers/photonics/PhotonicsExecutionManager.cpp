@@ -23,19 +23,26 @@
 
 namespace cudaq {
 
+/// @brief The `PhotonicsExecutionManager` implements allocation, deallocation,
+/// and quantum instruction application for the photonics execution manager.
 class PhotonicsExecutionManager : public cudaq::BasicExecutionManager {
 private:
+  /// @brief Current state
   qpp::ket state;
 
+  /// @brief Instructions are strored in a map
   std::unordered_map<std::string, std::function<void(const Instruction &)>>
       instructions;
 
+  /// @brief Qudits to be sampled
   std::vector<cudaq::QuditInfo> sampleQudits;
 
 protected:
+  /// @brief Qudit allocation method: a zeroState is first initialized, the
+  /// following ones are added via kron operators
   void allocateQudit(const cudaq::QuditInfo &q) override {
     if (state.size() == 0) {
-      // qubit will give [1,0], qutrit will give [1,0,0]
+      // qubit will give [1,0], qutrit will give [1,0,0] and so on...
       state = qpp::ket::Zero(q.levels);
       state(0) = 1.0;
       return;
@@ -46,17 +53,23 @@ protected:
     state = qpp::kron(state, zeroState);
   }
 
+  /// @brief Allocate a set of `qudits` with a single call.
   void allocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
     for (auto &q : qudits)
       allocateQudit(q);
   }
 
+  /// @brief Qudit deallocation method
   void deallocateQudit(const cudaq::QuditInfo &q) override {}
 
+  /// @brief Deallocate a set of `qudits` with a single call.
   void deallocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {}
 
+  /// @brief Handler for when the photonics execution context changes
   void handleExecutionContextChanged() override {}
 
+  /// @brief Handler for when the current execution context has ended. It
+  /// returns samples to the execution context if it is "sample".
   void handleExecutionContextEnded() override {
     if (executionContext && executionContext->name == "sample") {
       std::vector<std::size_t> ids;
@@ -88,11 +101,13 @@ protected:
     }
   }
 
+  /// @brief Method for executing instructions.
   void executeInstruction(const Instruction &instruction) override {
     auto operation = instructions[std::get<0>(instruction)];
     operation(instruction);
   }
 
+  /// @brief Method for performing qudit measurement.
   int measureQudit(const cudaq::QuditInfo &q) override {
     if (executionContext && executionContext->name == "sample") {
       sampleQudits.push_back(q);
@@ -113,10 +128,13 @@ protected:
     return measurement_result;
   }
 
+  /// @brief Measure the state in the basis described by the given `spin_op`.
   void measureSpinOp(const cudaq::spin_op &) override {}
 
+  /// @brief Method for performing qudit reset.
   void resetQudit(const cudaq::QuditInfo &id) override {}
 
+  /// @brief Returns a precomputed factorial for n up tp 30
   double _fast_factorial(int n) {
     static std::vector<double> FACTORIAL_TABLE = {
         1.,
@@ -158,6 +176,7 @@ protected:
     return FACTORIAL_TABLE[n];
   }
 
+  /// @brief Computes the kronecker delta of two values
   int _kron(int a, int b) {
     if (a == b)
       return 1;
@@ -165,14 +184,18 @@ protected:
       return 0;
   }
 
+  /// @brief Computes if two double values are within some absolute and relative
+  /// tolerance
   bool _isclose(double a, double b, double rtol = 1e-08, double atol = 1e-9) {
     return std::fabs(a - b) <= (atol + rtol * std::fabs(b));
   }
 
+  /// @brief Computes a single element in the matrix representing a beam
+  /// splitter gate
   double _calc_beamsplitter_elem(int N1, int N2, int n1, int n2, double theta) {
 
-    const double t = cos(theta); // reflection and transmission coeffients
-    const double r = sin(theta);
+    const double t = cos(theta); // transmission coeffient
+    const double r = sin(theta); // reflection coeffient
     double sum = 0;
     for (int k = 0; k <= n1; ++k) {
       int l = N1 - k;
@@ -198,6 +221,7 @@ protected:
     return sum;
   }
 
+  /// @brief Computes matrix representing a beam splitter gate
   void beamsplitter(const double theta, qpp::cmat &BS) {
     int d = sqrt(BS.rows());
     //     """Returns a matrix representing a beam splitter
@@ -243,7 +267,7 @@ public:
       const double theta = params[0];
       qpp::cmat BS{qpp::cmat::Zero(d * d, d * d)};
       beamsplitter(theta, BS);
-      cudaq::info("Applying beamSplitterGate on {}<{} and {}<{}>", target1.id,
+      cudaq::info("Applying beamSplitterGate on {}<{}> and {}<{}>", target1.id,
                   target1.levels, target2.id, target2.levels);
       state = qpp::apply(state, BS, {target1.id, target2.id}, d);
     });
