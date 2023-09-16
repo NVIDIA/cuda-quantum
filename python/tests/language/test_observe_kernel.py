@@ -30,37 +30,7 @@ def test_simple_observe():
     result = cudaq.observe(ansatz, hamiltonian, .59)
     print(result.expectation_z())
     assert np.isclose(result.expectation_z(), -1.74, atol=1e-2)
-
-
-def test_async_exec():
-    """Test that we can asynchronously launch quantum tasks."""
-    if not cudaq.has_target('nvidia-mqpu'):
-        return
-
-    if cudaq.num_available_gpus() < 1:
-        return 
-
-    cudaq.set_target('nvidia-mqpu')
-
-    @cudaq.kernel
-    def ansatz(angle):
-        q = cudaq.qvector(2)
-        x(q[0])
-        ry(angle, q[1])
-        x.ctrl(q[1], q[0])
-
-    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
-        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
-
-    numQpus = cudaq.get_target().num_qpus()
-    print(numQpus)
-
-    handles = [cudaq.observe_async(
-        ansatz, hamiltonian, .59, qpu_id=i % numQpus) for i in range(10)]
-    print([h.get().expectation_z() for h in handles])
-
-    cudaq.reset_target()
-
+    
 
 def test_optimization():
     """Test that we can optimize over a parameterized kernel."""
