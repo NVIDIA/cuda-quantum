@@ -724,9 +724,19 @@ public:
           LLVM::LLVMPointerType::get(rewriter.getIntegerType(8)));
       appendName = true;
     } else {
-      // If no register name is supplied, make one up.
+      // If no register name is supplied, make one up. Zero pad the counter so
+      // that sequential measurements contain alphabetically sorted register
+      // names.
       static unsigned counter = 0u;
-      regName = rewriter.getStringAttr("r" + std::to_string(counter++));
+      char regNameCounter[16];
+      if (counter > 99999) {
+        emitError(loc,
+                  "Too many unnamed measurements. Name your measurements by "
+                  "saving them to variables, like `auto result = mz(q)`");
+        return failure();
+      }
+      std::snprintf(regNameCounter, sizeof(regNameCounter), "r%05d", counter++);
+      regName = rewriter.getStringAttr(regNameCounter);
       appendName = false;
     }
     // Get the name
