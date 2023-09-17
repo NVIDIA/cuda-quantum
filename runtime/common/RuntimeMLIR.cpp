@@ -94,12 +94,20 @@ bool setupTargetTriple(llvm::Module *llvmModule) {
   return true;
 }
 
-void optimizeLLVM(llvm::Module *module, bool enableOpt) {
+void optimizeLLVM(llvm::Module *module) {
+  bool enableOpt = true;
   auto optPipeline = makeOptimizingTransformer(
       /*optLevel=*/enableOpt ? 3 : 0, /*sizeLevel=*/0,
       /*targetMachine=*/nullptr);
   if (auto err = optPipeline(module))
     throw std::runtime_error("Failed to optimize LLVM IR ");
+  
+  // Remove memory attributes from entry_point functions because the optimizer
+  // sometimes applies it to degenerate cases (empty programs), and IonQ cannot
+  // support that.
+  for (llvm::Function &func : *module)
+    if (func.hasFnAttribute("entry_point"))
+      func.removeFnAttr(llvm::Attribute::Memory);
 }
 
 void applyWriteOnlyAttributes(llvm::Module *llvmModule) {
@@ -282,25 +290,6 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule) {
   return success();
 }
 
-/// @brief Returns true if the quantum kernel no longer has any instructions
-/// remaining (other than the trivial "ret void" instruction)
-bool isEmptyKernel(llvm::Module *llvmModule) {
-  for (llvm::Function &func : *llvmModule) {
-    // Ignore functions that aren't tagged with entry_point
-    if (!func.hasFnAttribute("entry_point"))
-      continue;
-    for (llvm::BasicBlock &block : func) {
-      for (llvm::Instruction &inst : block) {
-        // Return false on the first non-ret instruction found
-        if (inst.getOpcode() != llvm::Instruction::Ret) {
-          return false;
-        }
-      }
-    }
-  }
-  return true;
-}
-
 void registerToQIRTranslation() {
   const uint32_t qir_major_version = 1;
   const uint32_t qir_minor_version = 0;
@@ -342,12 +331,9 @@ void registerToQIRTranslation() {
         llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
                                   "dynamic_result_management", falseValue);
 
-        // only enable optimization for non-empty kernels
-        bool enableOpt = !isEmptyKernel(llvmModule.get());
-
         // Note: optimizeLLVM is the one that is setting nonnull attributes on
         // the @__quantum__rt__result_record_output calls.
-        cudaq::optimizeLLVM(llvmModule.get(), enableOpt);
+        cudaq::optimizeLLVM(llvmModule.get());
         if (!cudaq::setupTargetTriple(llvmModule.get()))
           throw std::runtime_error(
               "Failed to setup the llvm module target triple.");
