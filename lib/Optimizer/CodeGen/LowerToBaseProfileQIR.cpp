@@ -12,6 +12,7 @@
 #include "cudaq/Optimizer/CodeGen/Peephole.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Todo.h"
+#include "nlohmann/json.hpp"
 #include "llvm/ADT/SmallSet.h"
 #include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
@@ -64,7 +65,12 @@ struct FunctionAnalysisData {
   std::size_t nQubits = 0;
   std::size_t nResults = 0;
   // Use std::map to keep these sorted in ascending order.
+  // map[qb] --> [result,regName]
   std::map<std::size_t, std::pair<std::size_t, StringAttr>> resultPtrValues;
+  // Additionally store by result to prevent collisions on a single qubit having
+  // multiple measurements (Adaptive Profile)
+  // map[result] --> [qb,regName]
+  std::map<std::size_t, std::pair<std::size_t, std::string>> resultQubitVals;
   DenseMap<Operation *, std::size_t> allocationOffsets;
 };
 
@@ -169,6 +175,8 @@ private:
                 return nameAttr;
               return {};
             }();
+            data.resultQubitVals.insert(std::make_pair(
+                data.nResults, std::make_pair(qb, regName.data())));
             data.resultPtrValues.insert(
                 std::make_pair(qb, std::make_pair(data.nResults++, regName)));
           } else {
@@ -198,12 +206,14 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
     assert(iter != infoMap.end());
     rewriter.startRootUpdate(op);
     const auto &info = iter->second;
+    nlohmann::json resultQubitJSON{info.resultQubitVals};
     // QIR functions need certain attributes, add them here.
     // TODO: Update schema_id with valid value (issues #385 and #556)
     auto arrAttr = rewriter.getArrayAttr(ArrayRef<Attribute>{
         rewriter.getStringAttr("entry_point"),
         rewriter.getStrArrayAttr({"qir_profiles", "base_profile"}),
         rewriter.getStrArrayAttr({"output_labeling_schema", "schema_id"}),
+        rewriter.getStrArrayAttr({"output_names", resultQubitJSON.dump()}),
         rewriter.getStrArrayAttr(
             // TODO: change to required_num_qubits once providers support it
             // (issues #385 and #556)
@@ -555,4 +565,44 @@ void cudaq::opt::registerBaseProfilePipeline() {
       "base-profile-pipeline",
       "Pass pipeline to generate code for the QIR base profile.",
       addBaseProfilePipeline);
+}
+
+namespace cudaq {
+/// Remove Measurements
+///
+/// This pass removes measurements and the corresponding output recording calls.
+/// This is needed for backends that don't support selective measurement calls.
+/// For example: https://github.com/NVIDIA/cuda-quantum/issues/512
+struct RemoveMeasurementsPass
+    : public cudaq::opt::QIRToBaseQIRBase<RemoveMeasurementsPass> {
+  explicit RemoveMeasurementsPass() = default;
+
+  void runOnOperation() override {
+    auto *op = getOperation();
+    auto *context = &getContext();
+    RewritePatternSet patterns(context);
+    patterns.insert<EraseMeasure, EraseRecordOutput>(context);
+    if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns)))) {
+      signalPassFailure();
+    }
+  }
+
+private:
+  FrozenRewritePatternSet patterns;
+};
+} // namespace cudaq
+
+std::unique_ptr<Pass> cudaq::opt::createRemoveMeasurementsPass() {
+  return std::make_unique<RemoveMeasurementsPass>();
+}
+// The various passes defined here should be added as a pass pipeline.
+void cudaq::opt::addRemoveMeasurementsPipeline(OpPassManager &pm) {
+  pm.addPass(createRemoveMeasurementsPass());
+}
+
+void cudaq::opt::registerRemoveMeasurementsPipeline() {
+  PassPipelineRegistration<>(
+      "remove-measurements",
+      "Pass pipeline to remove measurements and output recordings",
+      addRemoveMeasurementsPipeline);
 }

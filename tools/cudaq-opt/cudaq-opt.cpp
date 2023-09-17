@@ -61,6 +61,7 @@ int main(int argc, char **argv) {
   cudaq::opt::registerAggressiveEarlyInlining();
   cudaq::opt::registerUnrollingPipeline();
   cudaq::opt::registerBaseProfilePipeline();
+  cudaq::opt::registerRemoveMeasurementsPipeline();
   cudaq::opt::registerTargetPipelines();
 
   // See if we have been asked to load a pass plugin,

@@ -101,7 +101,7 @@ void optimizeLLVM(llvm::Module *module) {
       /*targetMachine=*/nullptr);
   if (auto err = optPipeline(module))
     throw std::runtime_error("Failed to optimize LLVM IR ");
-  
+
   // Remove memory attributes from entry_point functions because the optimizer
   // sometimes applies it to degenerate cases (empty programs), and IonQ cannot
   // support that.
@@ -296,7 +296,8 @@ void registerToQIRTranslation() {
 
   cudaq::TranslateFromMLIRRegistration reg(
       "qir", "translate from quake to qir base profile",
-      [](Operation *op, llvm::raw_string_ostream &output, bool printIR,
+      [](Operation *op, llvm::raw_string_ostream &output,
+         const std::string &additionalPasses, bool printIR,
          bool printIntermediateMLIR) {
         auto context = op->getContext();
         PassManager pm(context);
@@ -304,9 +305,11 @@ void registerToQIRTranslation() {
           pm.enableIRPrinting();
         std::string errMsg;
         llvm::raw_string_ostream errOs(errMsg);
-        auto qirBasePipelineConfig =
+        std::string qirBasePipelineConfig =
             "func.func(combine-quantum-alloc),canonicalize,cse,quake-to-qir,"
             "base-profile-pipeline";
+        if (!additionalPasses.empty())
+          qirBasePipelineConfig += "," + additionalPasses;
         if (failed(parsePassPipeline(qirBasePipelineConfig, pm, errOs)))
           return failure();
         if (failed(pm.run(op)))
@@ -362,7 +365,8 @@ void registerToQIRTranslation() {
 void registerToOpenQASMTranslation() {
   cudaq::TranslateFromMLIRRegistration reg(
       "qasm2", "translate from quake to openQASM 2.0",
-      [](Operation *op, llvm::raw_string_ostream &output, bool printIR,
+      [](Operation *op, llvm::raw_string_ostream &output,
+         const std::string &additionalPasses, bool printIR,
          bool printIntermediateMLIR) {
         PassManager pm(op->getContext());
         if (printIntermediateMLIR)
@@ -384,7 +388,8 @@ void registerToOpenQASMTranslation() {
 void registerToIQMJsonTranslation() {
   cudaq::TranslateFromMLIRRegistration reg(
       "iqm", "translate from quake to IQM's json format",
-      [](Operation *op, llvm::raw_string_ostream &output, bool printIR,
+      [](Operation *op, llvm::raw_string_ostream &output,
+         const std::string &additionalPasses, bool printIR,
          bool printIntermediateMLIR) {
         PassManager pm(op->getContext());
         if (printIntermediateMLIR)
@@ -415,6 +420,7 @@ std::unique_ptr<MLIRContext> initializeMLIR() {
     registerToIQMJsonTranslation();
     cudaq::opt::registerUnrollingPipeline();
     cudaq::opt::registerBaseProfilePipeline();
+    cudaq::opt::registerRemoveMeasurementsPipeline();
     cudaq::opt::registerTargetPipelines();
     mlirLLVMInitialized = true;
   }

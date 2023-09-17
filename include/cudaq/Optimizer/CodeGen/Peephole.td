@@ -148,4 +148,33 @@ def MeasureToRegisterCallConv : Pat<
     (CreateMeasureCall $call, $args),
     [(IsaMeasureToRegisterCall:$callee), (IsaIntToPtrOperand $args)]>;
 
+//===----------------------------------------------------------------------===//
+def EraseMeasureOp : NativeCodeCall<"static_cast<std::size_t>(0)">;
+
+def IsaMeasureBodyCall : Constraint<CPred<
+    "$_self.getValue() == cudaq::opt::QIRMeasureBody">>;
+
+// Remove the measurement calls (for remove-measurements pass)
+//
+// call @__quantum__qis__mz_body(%qbit, %result) : (Q*, R*) -> ()
+// ─────────────────────────────────
+def EraseMeasure : Pat<
+    (LLVM_CallOp:$call $callee, $_, $_, $_), (EraseMeasureOp),
+    [(IsaMeasureBodyCall:$callee)]>;
+
+//===----------------------------------------------------------------------===//
+def IsaRecordOutputCall : Constraint<CPred<
+    "$0.getValue().str() == cudaq::opt::QIRBaseProfileRecordOutput">>;
+
+def EraseRecordOutputOp : NativeCodeCall<"static_cast<std::size_t>(0)">;
+
+// Remove the record output calls for remove-measurements pass)
+//
+// call void @__quantum__rt__result_record_output(%Result* , i8*)
+// ─────────────────────────────────
+def EraseRecordOutput : Pat<
+    (LLVM_CallOp $callee, $_, $_, $_), (EraseRecordOutputOp),
+    [(IsaRecordOutputCall $callee)]>;
+
+
 #endif

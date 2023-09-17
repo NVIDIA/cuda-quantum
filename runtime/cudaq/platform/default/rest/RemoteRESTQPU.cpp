@@ -23,9 +23,11 @@
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/spin_op.h"
 #include "nvqpp_config.h"
+#include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Support/Base64.h"
+#include "llvm/Support/MemoryBuffer.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
@@ -77,7 +79,11 @@ protected:
   /// @brief The name of the QPU being targeted
   std::string qpuName;
 
+  /// @brief Name of codegen translation (e.g. "qir", "qasm2", "iqm")
   std::string codegenTranslation = "";
+
+  /// @brief Additional passes to run after the codegen-specific passes
+  std::string postCodeGenPasses = "";
 
   // Pointer to the concrete Executor for this QPU
   std::unique_ptr<cudaq::Executor> executor;
@@ -256,6 +262,7 @@ public:
     auto lines = cudaq::split(configContents, '\n');
     std::regex pipeline("^PLATFORM_LOWERING_CONFIG\\s*=\\s*\"(\\S+)\"");
     std::regex emissionType("^CODEGEN_EMISSION\\s*=\\s*(\\S+)");
+    std::regex postCodeGen("^POST_CODEGEN_PASSES\\s*=\\s*\"(\\S+)\"");
     std::smatch match;
     for (const std::string &line : lines) {
       if (std::regex_search(line, match, pipeline)) {
@@ -263,6 +270,10 @@ public:
         passPipelineConfig += "," + match[1].str();
       } else if (std::regex_search(line, match, emissionType)) {
         codegenTranslation = match[1].str();
+      } else if (std::regex_search(line, match, postCodeGen)) {
+        cudaq::info("Adding post-codegen lowering pipeline: {}",
+                    match[1].str());
+        postCodeGenPasses = match[1].str();
       }
     }
 
@@ -275,6 +286,35 @@ public:
 
     // Give the server helper to the executor
     executor->setServerHelper(serverHelper.get());
+  }
+
+  /// @brief Conditionally form an output_names JSON object if this was for QIR
+  nlohmann::json formOutputNames(const std::string &codegenTranslation,
+                                 const std::string &codeStr) {
+    // Form an output_names mapping from codeStr
+    nlohmann::json output_names;
+    std::vector<char> bitcode;
+    if (codegenTranslation == "qir") {
+      // decodeBase64 will throw a runtime exception if it fails
+      if (llvm::decodeBase64(codeStr, bitcode)) {
+        cudaq::info("Could not decode codeStr {}", codeStr);
+      } else {
+        llvm::LLVMContext llvmContext;
+        auto buffer = llvm::MemoryBuffer::getMemBufferCopy(
+            llvm::StringRef(bitcode.data(), bitcode.size()));
+        auto moduleOrError =
+            llvm::parseBitcodeFile(buffer->getMemBufferRef(), llvmContext);
+        if (moduleOrError.takeError())
+          throw std::runtime_error("Could not parse bitcode file");
+        auto module = std::move(moduleOrError.get());
+        for (llvm::Function &func : *module) {
+          if (func.hasFnAttribute("output_names"))
+            output_names = nlohmann::json::parse(
+                func.getFnAttribute("output_names").getValueAsString());
+        }
+      }
+    }
+    return output_names;
   }
 
   /// @brief Extract the Quake representation for the given kernel name and
@@ -389,12 +429,16 @@ public:
         llvm::raw_string_ostream outStr(codeStr);
         if (disableMLIRthreading)
           moduleOpI.getContext()->disableMultithreading();
-        if (failed(translation(moduleOpI, outStr, printIR,
+        if (failed(translation(moduleOpI, outStr, postCodeGenPasses, printIR,
                                enablePrintMLIREachPass)))
           throw std::runtime_error("Could not successfully translate to " +
                                    codegenTranslation + ".");
       }
-      codes.emplace_back(name, codeStr);
+
+      // Form an output_names mapping from codeStr
+      nlohmann::json j = formOutputNames(codegenTranslation, codeStr);
+
+      codes.emplace_back(name, codeStr, j);
     }
     return codes;
   }
@@ -459,9 +503,14 @@ public:
             return cudaq::sample_result(results);
           }));
 
-    } else
+    } else {
       // Execute the codes produced in quake lowering
-      future = executor->execute(codes);
+      // Allow developer to disable remote sending (useful for debugging IR)
+      if (getEnvBool("DISABLE_REMOTE_SEND", false))
+        return;
+      else
+        future = executor->execute(codes);
+    }
 
     // Keep this asynchronous if requested
     if (executionContext->asyncExec) {
