@@ -97,6 +97,8 @@ void IonQServerHelper::initialize(BackendConfig config) {
   // Construct the API job path
   backendConfig["job_path"] =
       backendConfig["url"] + '/' + backendConfig["version"] + "/jobs";
+  if (!config["shots"].empty())
+    this->setShots(std::stoul(config["shots"]));
 }
 
 // Retrieve an environment variable
