@@ -22,6 +22,7 @@
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/spin_op.h"
+#include "cudaq.h"
 #include "nvqpp_config.h"
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
@@ -472,12 +473,20 @@ public:
     cudaq::details::future future;
     if (emulate) {
 
+      // Fetch the thread-specific seed outside and then pass it inside.
+      std::size_t seed = cudaq::get_random_seed();
+
       // Launch the execution of the simulated jobs asynchronously
       future = cudaq::details::future(std::async(
           std::launch::async,
-          [&, codes, localShots, kernelName,
+          [&, codes, localShots, kernelName, seed, 
            localJIT = std::move(jitEngines)]() mutable -> cudaq::sample_result {
             std::vector<cudaq::ExecutionResult> results;
+
+            // If seed is 0, then it has not been set.
+            if (seed > 0)
+              cudaq::set_random_seed(seed);
+
             for (std::size_t i = 0; i < codes.size(); i++) {
               cudaq::ExecutionContext context("sample", localShots);
               cudaq::getExecutionManager()->setExecutionContext(&context);
