@@ -26,6 +26,8 @@ struct bad {
 // expected-note@* {{}}
 // expected-note@* {{}}
 // expected-note@* {{}}
+// expected-note@* {{}}
+// expected-note@* {{}}
 
 int main() {
     cudaq::sample(bad{}, 5); // expected-error {{no matching function for call to}}

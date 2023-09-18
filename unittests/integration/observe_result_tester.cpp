@@ -46,6 +46,26 @@ CUDAQ_TEST(ObserveResult, checkSimple) {
 
   auto &platform = cudaq::get_platform();
 
+  // Observe using options w/ noise model. Note that the noise model is only
+  // honored when using the Density Matrix backend.
+  int shots = 252;
+  cudaq::set_random_seed(13);
+  cudaq::depolarization_channel depol(1.);
+  cudaq::noise_model noise;
+  noise.add_channel<cudaq::types::x>({0}, depol);
+  auto obs_opt =
+      cudaq::observe({.shots = shots, .noise = noise}, ansatz, h, 0.59);
+  // Verify that the number of shots requested was honored
+  auto tmpCounts = obs_opt.raw_data();
+  for (auto spinOpName : tmpCounts.register_names()) {
+    if (spinOpName == cudaq::GlobalRegisterName)
+      continue; // Ignore the global register
+    std::size_t totalShots = 0;
+    for (auto &[bitstr, counts] : tmpCounts.to_map(spinOpName))
+      totalShots += counts;
+    EXPECT_EQ(totalShots, shots);
+  }
+
   printf("\n\nLAST ONE!\n");
   auto obs_res2 = cudaq::observe(100000, ansatz, h, 0.59);
   EXPECT_NEAR(obs_res2.exp_val_z(), -1.7, 1e-1);

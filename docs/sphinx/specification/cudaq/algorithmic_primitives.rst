@@ -17,19 +17,28 @@ The CUDA Quantum model enables this functionality via template functions within 
 
 .. code-block:: cpp
 
+  // Kernel only
   template<typename QuantumKernel, typename... Args>
     requires HasVoidReturnType<QuantumKernel, Args...>
   sample_result sample(QuantumKernel&& kernel, Args&&... args);
 
+  // Specify shots
   template<typename QuantumKernel, typename... Args>
     requires HasVoidReturnType<QuantumKernel, Args...>
   sample_result sample(std::size_t shots, QuantumKernel&& kernel, Args&&... args);
+
+  // Specify sample options (including shots and noise model)
+  template<typename QuantumKernel, typename... Args>
+    requires HasVoidReturnType<QuantumKernel, Args...>
+  sample_result sample(const sample_options &options,
+                       QuantumKernel&& kernel, Args&&... args);
 
 This function takes as input a quantum kernel instance followed by the
 concrete arguments at which the kernel should be invoked. CUDA Quantum kernels 
 passed to this function must be entry-point kernels and return :code:`void`. 
 
-An overload exists for specifying the number of shots to sample. 
+Overloaded functions exists for specifying the number of shots to sample and the
+noise model to apply.
 
 The function returns an instance of the :code:`cudaq::sample_result` type which encapsulates
 the counts dictionary produced by the sampling task. Programmers can
@@ -167,11 +176,18 @@ function has the following signature:
 
 .. code-block:: cpp
   
+  // Kernel only
   template<typename QuantumKernel, typename... Args>
   observe_result observe(QuantumKernel&&, cudaq::spin_op&, Args&&... args);
   
+  // Specify shots
   template<typename QuantumKernel, typename... Args>
   observe_result observe(std::size_t shots, QuantumKernel&&, cudaq::spin_op&, Args&&... args);
+
+  // Specify sample options (including shots and noise model)
+  template<typename QuantumKernel, typename... Args>
+  observe_result observe(const cudaq::observe_options &options,
+                         QuantumKernel&&, cudaq::spin_op&, Args&&... args);
 
 This function takes as input an instantiated quantum kernel, the
 :code:`cudaq::spin_op` whose expectation is requested, and the concrete
@@ -250,8 +266,8 @@ or measurement statements.
 By default on simulation backends, :code:`cudaq::observe` computes the true
 analytic expectation value (i.e. without stochastic noise due to shots-based sampling). 
 If a specific shot count is provided then the returned expectation value will contain some 
-level of statistical noise. An overload of the :code:`observe` function is provided to 
-specify the number of shots. 
+level of statistical noise. Overloaded :code:`observe` functions are provided to 
+specify the number of shots and/or specify the noise model to apply.
 
 CUDA Quantum also provides an asynchronous version of this function 
 (:code:`cudaq::observe_async`) which returns a :code:`async_observe_result`. 
