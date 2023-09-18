@@ -330,11 +330,11 @@ Args:
     noise model.
 
 Returns:
-  :class:`ObserveResult` : A data-type containing the expectation value 
-    of the `spin_operator` with respect to the `kernel(*arguments)`, 
-    or a list of such results in the case of `observe` function broadcasting. If 
-    `shots_count` was provided, the :class:`ObserveResult` will also contain a 
-    :class:`SampleResult` dictionary.)#");
+  :class:`ObserveResult`: 
+    A data-type containing the expectation value of the `spin_operator` with 
+    respect to the `kernel(*arguments)`, or a list of such results in the case 
+    of `observe` function broadcasting. If `shots_count` was provided, the 
+    :class:`ObserveResult` will also contain a :class:`SampleResult` dictionary.)#");
 
   /// Expose observe_async, can optionally take the qpu_id to target.
   mod.def(
@@ -378,8 +378,8 @@ Args:
     Defaults to an empty noise model.
 
 Returns:
-  :class:`AsyncObserveResult` : A future containing the result of the 
-    call to observe.)#");
+  :class:`AsyncObserveResult`: 
+  A future containing the result of the call to observe.)#");
 
   mod.def(
       "observe_n",
@@ -394,31 +394,28 @@ Returns:
       py::arg("kernel"), py::arg("spin_operator"), py::kw_only(),
       py::arg("shots_count") = defaultShotsValue,
       py::arg("noise_model") = py::none(),
-      "Broadcast the observe function over the input argument set."
-      "For each argument type in the kernel signature, you must provide a"
-      "list of arguments of that type. "
-      "This function computes the expected value of the given `spin_operator` "
-      "with respect to the `kernel` at each "
-      "set of arguments provided for the specified number "
-      "of circuit executions (`shots_count`).\n"
-      "\nArgs:\n"
-      "  kernel (:class:`Kernel`): The :class:`Kernel` to execute "
-      "`shots_count` "
-      "times on the QPU.\n"
-      "  *arguments (Optional[Any]): The concrete values to evaluate the "
-      "kernel. Each argument must be a list of instances of the type specified "
-      "by the kernel signature."
-      "function at. Leave empty if the kernel doesn't accept any arguments.\n"
-      "  shots_count (Optional[int]): The number of kernel executions on the "
-      "QPU. Defaults "
-      "to 1000. Key-word only.\n"
-      "  noise_model (Optional[`NoiseModel`]): The optional "
-      ":class:`NoiseModel` to add "
-      "noise to the kernel execution on the simulator. Defaults to an empty "
-      "noise model.\n"
-      "\nReturns:\n"
-      "  :class:`SampleResult` : A dictionary containing the measurement "
-      "count results for the :class:`Kernel`.\n");
+      R"#(Broadcast the observe function over the input argument set.
+For each argument type in the kernel signature, you must provide a list of 
+arguments of that type. This function computes the expected value of the 
+given `spin_operator` with respect to the `kernel` at each set of arguments 
+provided for the specified number of circuit executions (`shots_count`).
+
+Args:
+  kernel (:class:`Kernel`): The :class:`Kernel` to execute `shots_count` 
+    times on the QPU.
+  *arguments (Optional[Any]): The concrete values to evaluate the kernel.
+    Each argument must be a list of instances of the type specified by 
+    the kernel signature. function at. Leave empty if the kernel doesn't 
+    accept any arguments.
+  shots_count (Optional[int]): The number of kernel executions on the 
+      QPU. Defaults to 1000. Key-word only.
+  noise_model (Optional[`NoiseModel`]): The optional :class:`NoiseModel` to add 
+      noise to the kernel execution on the simulator. Defaults to an empty 
+      noise model.
+
+Returns:
+  :class:`SampleResult`: A dictionary containing the measurement count results 
+    for the :class:`Kernel`.)#");
 }
 
 } // namespace cudaq

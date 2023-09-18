@@ -27,6 +27,7 @@ struct bell {
 };
 
 CUDAQ_TEST(NoiseTest, checkSimple) {
+  cudaq::set_random_seed(13);
   cudaq::kraus_channel depol({cudaq::complex{0.99498743710662, 0.0},
                               {0.0, 0.0},
                               {0.0, 0.0},
@@ -67,6 +68,7 @@ CUDAQ_TEST(NoiseTest, checkSimple) {
 }
 
 CUDAQ_TEST(NoiseTest, checkAmplitudeDamping) {
+  cudaq::set_random_seed(13);
   cudaq::kraus_channel amplitudeDamping{{1., 0., 0., .8660254037844386},
                                         {0., 0.0, 0.5, 0.}};
   cudaq::noise_model noise;
@@ -78,10 +80,11 @@ CUDAQ_TEST(NoiseTest, checkAmplitudeDamping) {
 
   EXPECT_NEAR(counts.probability("0"), .25, .1);
   EXPECT_NEAR(counts.probability("1"), .75, .1);
+  cudaq::unset_noise(); // clear for subsequent tests
 }
 
 CUDAQ_TEST(NoiseTest, checkCNOT) {
-
+  cudaq::set_random_seed(13);
   cudaq::kraus_op op0{cudaq::complex{0.99498743710662, 0.0},
                       {0.0, 0.0},
                       {0.0, 0.0},
@@ -154,9 +157,11 @@ CUDAQ_TEST(NoiseTest, checkCNOT) {
   auto counts = cudaq::sample(10000, bell{});
   counts.dump();
   EXPECT_TRUE(counts.size() > 2);
+  cudaq::unset_noise(); // clear for subsequent tests
 }
 
 CUDAQ_TEST(NoiseTest, checkExceptions) {
+  cudaq::set_random_seed(13);
   cudaq::kraus_channel amplitudeDamping{{1., 0., 0., .8660254037844386},
                                         {0., 0.0, 0.5, 0.}};
   cudaq::noise_model noise;
@@ -174,6 +179,7 @@ CUDAQ_TEST(NoiseTest, checkDepolType) {
   auto counts = cudaq::sample(xOp{});
   counts.dump();
   EXPECT_EQ(2, counts.size());
+  cudaq::unset_noise(); // clear for subsequent tests
 }
 
 CUDAQ_TEST(NoiseTest, checkDepolTypeSimple) {
@@ -187,9 +193,11 @@ CUDAQ_TEST(NoiseTest, checkDepolTypeSimple) {
   EXPECT_EQ(2, counts.size());
   EXPECT_NEAR(counts.probability("0"), .50, .2);
   EXPECT_NEAR(counts.probability("1"), .50, .2);
+  cudaq::unset_noise(); // clear for subsequent tests
 }
 
 CUDAQ_TEST(NoiseTest, checkAmpDampType) {
+  cudaq::set_random_seed(13);
   cudaq::amplitude_damping_channel ad(.25);
   cudaq::noise_model noise;
   noise.add_channel<cudaq::types::x>({0}, ad);
@@ -199,9 +207,11 @@ CUDAQ_TEST(NoiseTest, checkAmpDampType) {
   EXPECT_EQ(2, counts.size());
   EXPECT_NEAR(counts.probability("0"), .25, .1);
   EXPECT_NEAR(counts.probability("1"), .75, .1);
+  cudaq::unset_noise(); // clear for subsequent tests
 }
 
 CUDAQ_TEST(NoiseTest, checkAmpDampTypeSimple) {
+  cudaq::set_random_seed(13);
   cudaq::amplitude_damping_channel ad(1.);
   cudaq::noise_model noise;
   noise.add_channel<cudaq::types::x>({0}, ad);
@@ -210,9 +220,11 @@ CUDAQ_TEST(NoiseTest, checkAmpDampTypeSimple) {
   counts.dump();
   EXPECT_EQ(1, counts.size());
   EXPECT_NEAR(counts.probability("0"), 1., .1);
+  cudaq::unset_noise(); // clear for subsequent tests
 }
 
 CUDAQ_TEST(NoiseTest, checkBitFlipType) {
+  cudaq::set_random_seed(13);
   cudaq::bit_flip_channel bf(.1);
   cudaq::noise_model noise;
   noise.add_channel<cudaq::types::x>({0}, bf);
@@ -222,9 +234,11 @@ CUDAQ_TEST(NoiseTest, checkBitFlipType) {
   EXPECT_EQ(2, counts.size());
   EXPECT_NEAR(counts.probability("0"), .1, .1);
   EXPECT_NEAR(counts.probability("1"), .9, .1);
+  cudaq::unset_noise(); // clear for subsequent tests
 }
 
 CUDAQ_TEST(NoiseTest, checkBitFlipTypeSimple) {
+  cudaq::set_random_seed(13);
   cudaq::bit_flip_channel bf(1.);
   cudaq::noise_model noise;
   noise.add_channel<cudaq::types::x>({0}, bf);
@@ -233,9 +247,11 @@ CUDAQ_TEST(NoiseTest, checkBitFlipTypeSimple) {
   counts.dump();
   EXPECT_EQ(1, counts.size());
   EXPECT_NEAR(counts.probability("0"), 1., .1);
+  cudaq::unset_noise(); // clear for subsequent tests
 }
 
 CUDAQ_TEST(NoiseTest, checkPhaseFlipType) {
+  cudaq::set_random_seed(13);
 
   auto kernel = []() __qpu__ {
     cudaq::qubit q;
@@ -253,6 +269,7 @@ CUDAQ_TEST(NoiseTest, checkPhaseFlipType) {
   counts.dump();
   EXPECT_EQ(1, counts.size());
   EXPECT_NEAR(counts.probability("0"), 1., .1);
+  cudaq::unset_noise(); // clear for subsequent tests
 }
 
 #endif
