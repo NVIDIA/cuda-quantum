@@ -160,7 +160,7 @@ async def getResults(jobId: str):
     # simulator does, so flip the bitstring with [::-1]. Also convert
     # to decimal to match the real IonQ backend.
     for bits, count in counts.items():
-        retData[str(int(bits[::-1],2))] = float(count / N)
+        retData[str(int(bits[::-1], 2))] = float(count / N)
 
     res = retData
     return res
