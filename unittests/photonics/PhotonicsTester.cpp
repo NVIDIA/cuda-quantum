@@ -108,9 +108,10 @@ TEST(PhotonicsTester, checkMZI) {
     }
   };
 
+  cudaq::set_random_seed(13);
   std::size_t shots = 1000000;
   auto counts = cudaq::sample(shots, MZI{}); //
-
+  counts.dump();
   EXPECT_NEAR(double(counts.count("10")) / shots, cos(M_PI / 3) * cos(M_PI / 3),
               1e-3);
 }
