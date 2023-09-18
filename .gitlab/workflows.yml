@@ -45,9 +45,9 @@ Python Wheels:
     paths:
       - artifacts
     expire_in: 1 day
-  script:
-    - export PROJECT_SRCS_DIR=$PWD/.. 
-    # Install GitHub CLI
+  before_script:
+  # Download wheels from deployment artifacts 
+  # Install GitHub CLI
     - dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
     - dnf install -y gh jq
     - upstream_url=https://github.com/NVIDIA/cuda-quantum && export GH_TOKEN=$GITHUB_TOKEN
@@ -59,6 +59,7 @@ Python Wheels:
     - build_info=`cat deployments/staging/$staged/${digest#sha256:}`
     - artifacts_url=`echo "$build_info" | grep -s -o 'artifacts-url:\s*\S*' | rev | cut -d ' ' -f 1 | rev`
     - artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name:.name, url:.archive_download_url}')
+    # Store wheels in a temporary directory 
     - mkdir -p /tmp/wheels
     - |
       for artifact in `echo "$artifacts"`; do 
@@ -74,41 +75,34 @@ Python Wheels:
           cd .. && rm -rf _pycudaq*
         fi
       done
+  script:
+    - export PROJECT_SRCS_DIR=$PWD/.. 
+    # Install CUDA Quantum wheel for a particular Python version (could be any version) 
     - export python=python3.10 
     - cd /tmp/wheels/ && $python -m pip install cuda_quantum-*-cp310-cp310-manylinux_*_$(uname -m).whl
     - cudaq_location=`$python -m pip show cuda-quantum | grep -e 'Location:\ .*$'`
     - export CUDAQ_INSTALL_PREFIX="${cudaq_location#Location:\ }"
     - cp -R $CUDAQ_INSTALL_PREFIX/lib64/cmake/fmt $CUDAQ_INSTALL_PREFIX/lib/cmake
-    - export EXATN_COMMIT=9c053ac1671c041827fee3aeb33cfc6bf43762eb
-    - export CUDAQ_TENSORNET_COMMIT=17dc530c4838b2e32125d427feabfd32c1fdd0fc
-    - export CUDAQ_MGMN_SVSIM_COMMIT=e8a6702a222c1a5f3fead4dc5efb11953967dd90
     # Tensornet Simulator
-    - cuquantum_location=`$python -m pip show cuquantum-cu11 | grep -e 'Location:\ .*$'`
-    - echo $cuquantum_location
-    - export CUQUANTUM_INSTALL_PREFIX="${cuquantum_location#Location:\ }/cuquantum"
-    - export CUQUANTUM_ROOT=$CUQUANTUM_INSTALL_PREFIX 
-    - export CUTENSOR_ROOT="${cuquantum_location#Location:\ }/cutensor"
-    - ln -s $CUQUANTUM_INSTALL_PREFIX/lib/libcustatevec.so.1 $CUQUANTUM_INSTALL_PREFIX/lib/libcustatevec.so 
-    - ln -s $CUQUANTUM_INSTALL_PREFIX/lib/libcutensornet.so.2 $CUQUANTUM_INSTALL_PREFIX/lib/libcutensornet.so 
-    - ln -s $CUTENSOR_ROOT/lib/libcutensor.so.1 $CUTENSOR_ROOT/lib/libcutensor.so
+    # REMOVE
+    - export EXATN_REPO=dlyakh/exatn
+    - export EXATN_COMMIT=9c053ac1671c041827fee3aeb33cfc6bf43762eb
+    - export CUDAQ_TENSORNET_COMMIT=fc1fa44498faf73294e5d294816bec3e45cd1595
+    - export CUDAQ_MGMN_SVSIM_COMMIT=1beb1d3e183cd5e7d5984b11c92740f607b6d5ba
+    # ======================
     - cd $PROJECT_SRCS_DIR
     - echo "Checking out commit $CUDAQ_TENSORNET_COMMIT on $CI_SERVER_HOST/$CUDAQ_TENSORNET_REPO."
     - mkdir cudaq_tensornet && cd cudaq_tensornet && git init
     - git fetch --depth 1 https://$READ_ACCESS_TOKEN:$READ_ACCESS_TOKEN@$CI_SERVER_HOST/$CUDAQ_TENSORNET_REPO $CUDAQ_TENSORNET_COMMIT && git checkout FETCH_HEAD
     - export PATH=/opt/rh/gcc-toolset-11/root/usr/bin:$PATH
-    - (bash build_wheel.sh $READ_ACCESS_TOKEN && built=true) || built=false
-    - if $built; then `exit 0`; else `exit 1`; fi
+    - (bash build.sh $READ_ACCESS_TOKEN && built=true) || built=false
     # MGMN SV  Simulator
     - cd $PROJECT_SRCS_DIR
     - echo "Checking out commit $CUDAQ_MGMN_SVSIM_COMMIT on $CI_SERVER_HOST/$CUDAQ_MGMN_SVSIM_REPO."
     - mkdir cudaq_mgmn_svsim && cd cudaq_mgmn_svsim && git init
     - git fetch --depth 1 https://$READ_ACCESS_TOKEN:$READ_ACCESS_TOKEN@$CI_SERVER_HOST/$CUDAQ_MGMN_SVSIM_REPO $CUDAQ_MGMN_SVSIM_COMMIT && git checkout FETCH_HEAD
-    - (bash build_wheel.sh $READ_ACCESS_TOKEN && built=true) || built=false
+    - (bash build.sh $READ_ACCESS_TOKEN && built=true) || built=false
     - if $built; then `exit 0`; else `exit 1`; fi
-    # Copy artifacts
-    - cd $PROJECT_SRCS_DIR/cuda-quantum
-    - mkdir -p artifacts/wheels_$(uname -m) && cp $PROJECT_SRCS_DIR/cudaq_tensornet/build/libnvqir-tensornet.so $PROJECT_SRCS_DIR/cudaq_tensornet/build/tensornet.config $PROJECT_SRCS_DIR/cudaq_mgmn_svsim/build/libnvqir-nvidia-mgpu.so $PROJECT_SRCS_DIR/cudaq_mgmn_svsim/build/nvidia-mgpu.config artifacts/wheels_$(uname -m)
-    - mkdir -p artifacts/wheels_$(uname -m)/lib &&  cp -r /opt/nvidia/exatn/lib/*.so artifacts/wheels_$(uname -m)/lib
 
 MGMN SV Simulator:
   rules:
