@@ -18,30 +18,8 @@ namespace details {
 /// @brief Analyze the incoming arguments and map them to a vector
 /// of qubit indices.
 std::vector<std::size_t> analyzeAndHandlePyArgs(py::args &args) {
-  if (args.size() == 1) {
-    // Is this arg a qubit or a qvector/qview?
-    if (py::isinstance<qubit &>(args[0])) {
-      return {args[0].cast<qubit &>().id()};
-    }
-
-    // This has to be a broadcast over a register
-    std::vector<std::size_t> mapped;
-    if (py::isinstance<qvector<> &>(args[0])) {
-      auto &casted = args[0].cast<qvector<> &>();
-      std::transform(casted.begin(), casted.end(), std::back_inserter(mapped),
-                     [](auto &&el) { return el.id(); });
-    } else if (py::isinstance<qview<> &>(args[0])) {
-      auto &casted = args[0].cast<qview<> &>();
-      std::transform(casted.begin(), casted.end(), std::back_inserter(mapped),
-                     [](auto &&el) { return el.id(); });
-    }
-
-    return mapped;
-  }
-
-  // There are multiple args here
   std::vector<std::size_t> mapped;
-  for (auto &arg : args) {
+  for (auto &arg : args)
     if (py::isinstance<qubit &>(arg))
       mapped.push_back(arg.cast<qubit &>().id());
     else if (py::isinstance<qvector<> &>(arg)) {
@@ -54,7 +32,6 @@ std::vector<std::size_t> analyzeAndHandlePyArgs(py::args &args) {
                      [](auto &&el) { return el.id(); });
     } else
       throw std::runtime_error("Invalid type passed to a quantum operation.");
-  }
 
   return mapped;
 }

@@ -73,13 +73,27 @@ class MidCircuitMeasurementAnalyzer(ast.NodeVisitor):
         if not 'func' in node.value.__dict__:
             return
         creatorFunc = node.value.func
-        if 'id' in creatorFunc.__dict__ and (creatorFunc.id == 'mz' or creatorFunc.id == 'mx' or creatorFunc.id == 'my'):
+        if 'id' in creatorFunc.__dict__ and creatorFunc.id in [
+                'mx', 'my', 'mz'
+        ]:
             self.measureResultsVars.append(target.id)
 
     def visit_If(self, node):
         condition = node.test
         if 'id' in condition.__dict__ and condition.id in self.measureResultsVars:
             self.hasMidCircuitMeasures = True
+        elif isinstance(condition,
+                        ast.Call) and condition.__dict__['func'].id in [
+                            'mx', 'my', 'mz'
+                        ]:
+            self.hasMidCircuitMeasures = True
+        elif isinstance(condition, ast.UnaryOp):
+            operand = condition.operand
+            if isinstance(operand,
+                          ast.Call) and operand.__dict__['func'].id in [
+                              'mx', 'my', 'mz'
+                          ]:
+                self.hasMidCircuitMeasures = True
 
 
 class kernel(object):
