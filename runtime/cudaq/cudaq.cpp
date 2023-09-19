@@ -270,7 +270,7 @@ void clear_shots(const std::size_t nShots) {
   platform.clear_shots();
 }
 
-void set_noise(cudaq::noise_model &model) {
+void set_noise(const cudaq::noise_model &model) {
   auto &platform = cudaq::get_platform();
   platform.set_noise(&model);
 }

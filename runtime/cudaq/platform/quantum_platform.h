@@ -106,7 +106,7 @@ public:
 
   /// @brief Set the noise model for future invocations of
   /// quantum kernels.
-  void set_noise(noise_model *model);
+  void set_noise(const noise_model *model);
 
   /// @brief Turn off any noise models.
   void reset_noise();
