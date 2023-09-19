@@ -24,7 +24,8 @@ public:
   using Qubit = unsigned;
   using UMatrix = Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic>;
 
-  UnitaryBuilder(UMatrix &matrix) : matrix(matrix) {}
+  UnitaryBuilder(UMatrix &matrix, bool upToMapping)
+      : matrix(matrix), upToMapping(upToMapping) {}
 
   mlir::LogicalResult build(mlir::func::FuncOp func);
 
@@ -77,6 +78,8 @@ private:
 
   /// The unitary we are building
   UMatrix &matrix;
+
+  bool upToMapping;
 
   /// Map values to qubits identifiers
   ///
