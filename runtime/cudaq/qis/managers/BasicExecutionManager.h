@@ -45,7 +45,7 @@ protected:
 
   /// @brief The current execution context, e.g. sampling
   /// or observation
-  cudaq::ExecutionContext *executionContext;
+  cudaq::ExecutionContext *executionContext = nullptr;
 
   /// @brief Store qudits for delayed deletion under
   /// certain execution contexts
