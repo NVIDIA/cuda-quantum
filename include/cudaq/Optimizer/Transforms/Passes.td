@@ -453,4 +453,13 @@ def MultiControlDecompositionPass: Pass<"quake-multicontrol-decomposition",
   }];
 }
 
+def MappingPass: Pass<"quake-mapping", "mlir::func::FuncOp"> {
+  let summary = "TODO";
+  let description = [{ TODO }];
+  let options = [
+    Option<"device", "device", "std::string", /*default=*/"\"-\"",
+           "Defines device topology.">,
+  ];
+}
+
 #endif // CUDAQ_OPT_OPTIMIZER_TRANSFORMS_PASSES
