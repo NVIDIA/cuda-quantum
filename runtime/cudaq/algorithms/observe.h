@@ -54,8 +54,7 @@ concept ObserveCallValid =
 /// functions
 ///
 /// \param shots number of shots to run for the given kernel. The default of -1
-/// means direct calculations for simulation backends or platform default for
-/// remote backends.
+/// means direct calculations for simulation backends.
 /// \param noise noise model to use for the observe operation
 struct observe_options {
   int shots = -1;

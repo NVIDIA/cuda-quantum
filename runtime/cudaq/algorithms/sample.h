@@ -175,8 +175,7 @@ auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
 
 /// \brief Sample options to provide to the sample() / async_sample() functions
 ///
-/// \param shots number of shots to run for the given kernel (default is to use
-/// value stored in platform, or 1000).
+/// \param shots number of shots to run for the given kernel
 /// \param noise noise model to use for the sample operation
 struct sample_options {
   std::size_t shots = 1000;
