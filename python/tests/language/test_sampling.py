@@ -92,6 +92,7 @@ def test_broadcast():
         first0 += '0'
         first1 += '1'
 
+    np.random.seed(13)
     testNpArray = np.random.randint(3, high=8, size=6)
     print(testNpArray)
     allCounts = cudaq.sample(circuit, testNpArray)
