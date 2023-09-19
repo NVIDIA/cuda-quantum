@@ -66,6 +66,7 @@ def test_simple_sampling_qpe():
         iqft(countingQubits)
         mz(countingQubits)
 
+    cudaq.set_random_seed(13)
     counts = cudaq.sample(qpe, 3, 1, xGate, tGate)
     assert len(counts) == 1
     assert '100' in counts
@@ -80,7 +81,8 @@ def test_broadcast():
         h(qubits[0])
         for i in range(inSize-1):
             x.ctrl(qubits[i], qubits[i+1])
-
+    
+    cudaq.set_random_seed(13)
     allCounts = cudaq.sample(circuit, [3, 4, 5, 6, 7])
     first0 = '000'
     first1 = '111'

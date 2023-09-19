@@ -421,7 +421,7 @@ Returns:
       "observe",
       [&](py::object kernel,
           std::variant<spin_op, std::vector<spin_op>> &spin_operator,
-          py::args args, int shots, std::optional<noise_model> noise,
+          py::args args, int shots_count, std::optional<noise_model> noise,
           std::size_t qpuId)
           -> std::variant<observe_result, std::vector<observe_result>> {
         // Do we have enough information to broadcast? And if so
@@ -446,16 +446,18 @@ Returns:
           std::vector<observe_result> results;
           for (std::size_t currentIter = 0; auto &a : argSet) {
             // Launch the observation task
-            auto ret = details::runObservation([&]() mutable { kernel(*a); },
-                                               std::get<0>(spin_operator),
-                                               platform, shots, kernelName, 0,
-                                               nullptr, currentIter, N)
+            auto ret = details::runObservation(
+                           [&]() mutable { kernel(*a); },
+                           std::get<0>(spin_operator), platform, shots_count,
+                           kernelName, 0, nullptr, currentIter, N)
                            .value();
             currentIter++;
             results.push_back(ret);
           }
 
-          platform.reset_noise();
+          if (noise)
+            platform.reset_noise();
+
           return results;
         }
 
@@ -478,11 +480,12 @@ Returns:
         // Execute.
         auto result =
             details::runObservation([&]() mutable { kernel(*args); }, op,
-                                    platform, -1, kernelName, qpuId)
+                                    platform, shots_count, kernelName, qpuId)
                 .value();
 
         // Reset the noise
-        platform.reset_noise();
+        if (noise)
+          platform.reset_noise();
 
         // Return the result if num spin_ops was 1
         if (spinVariantIndex == 0)
@@ -503,7 +506,7 @@ the `kernel`. If the input `spin_operator` is a list of `SpinOperator` then comp
 the expected value of every operator in the list and return a list of results.
 If the kernel accepts arguments, it will be evaluated 
 with respect to `kernel(*arguments)`. Each argument in `arguments` provided
-can be a list or ndarray of arguments of the specified kernel argument
+can be a `list` or `ndarray` of arguments of the specified kernel argument
 type, and in this case, the `observe` functionality will be broadcasted over
 all argument sets and a list of `observe_result` instances will be returned.
 
@@ -518,7 +521,9 @@ Args:
     execution. Defaults to -1 implying no shots-based sampling. Key-word only.
   noise_model (Optional[`NoiseModel`]): The optional :class:`NoiseModel` to add 
     noise to the kernel execution on the simulator. Defaults to an empty 
-    noise model.
+    noise model. Key-word only.
+  qpu_id (Optional[int]): The optional identification for which QPU on 
+    the platform to target. Defaults to zero. Key-word only.
 
 Returns:
   :class:`ObserveResult` : A data-type containing the expectation value 

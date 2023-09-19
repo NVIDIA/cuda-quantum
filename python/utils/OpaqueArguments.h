@@ -264,7 +264,7 @@ inline bool isBroadcastRequest(bool firstArgIsList, py::args &args) {
     if (shape.size() == 1 && !firstArgIsList)
       return true;
 
-    // // If shape is 2, then we know its a list of list
+    // If shape is 2, then we know its a list of list
     if (shape.size() == 2)
       return true;
   }

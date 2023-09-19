@@ -114,6 +114,7 @@ def test_broadcast():
         x.ctrl(qubits[0], qubits[1])
         x.ctrl(qubits[1], qubits[0])
 
+    np.random.seed(13)
     runtimeAngles = np.random.uniform(low=-np.pi, high=np.pi, size=(50, 2))
     print(runtimeAngles)
 

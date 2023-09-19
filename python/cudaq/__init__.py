@@ -73,7 +73,7 @@ class MidCircuitMeasurementAnalyzer(ast.NodeVisitor):
         if not 'func' in node.value.__dict__:
             return
         creatorFunc = node.value.func
-        if 'id' in creatorFunc.__dict__ and creatorFunc.id == 'mz':
+        if 'id' in creatorFunc.__dict__ and (creatorFunc.id == 'mz' or creatorFunc.id == 'mx' or creatorFunc.id == 'my'):
             self.measureResultsVars.append(target.id)
 
     def visit_If(self, node):
@@ -85,7 +85,7 @@ class MidCircuitMeasurementAnalyzer(ast.NodeVisitor):
 class kernel(object):
     """The `cudaq.kernel` represents the CUDA Quantum language function 
        attribute that programmers leverage to indicate the following function 
-       is a CUDA Quantum kernel and should be compile and executed on 
+       is a CUDA Quantum kernel and should be compiled and executed on 
        an available quantum coprocessor."""
 
     def __init__(self, function, *args, **kwargs):

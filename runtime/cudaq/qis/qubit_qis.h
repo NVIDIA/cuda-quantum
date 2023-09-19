@@ -60,7 +60,7 @@ void oneQubitApplyRuntime(const std::string &gateName,
   // we just want to apply the gate to all qubits provided
   if (nArgs > 1 && !std::is_same_v<mod, ctrl>) {
     for (auto &targetId : qubitIds)
-      getExecutionManager()->apply(gateName, {}, {},
+      getExecutionManager()->apply(gateName, /*params*/ {}, /*controls*/ {},
                                    {qubitIdToQuditInfo(targetId)},
                                    std::is_same_v<mod, adj>);
     // Nothing left to do, return
@@ -78,10 +78,10 @@ void oneQubitApplyRuntime(const std::string &gateName,
 
   // If we have controls, check if any of them
   // are negative controls, and if so apply an x
-  if (!controls.empty())
-    for (std::size_t i = 0; i < controls.size(); i++)
-      if (qubitIsNegated[i])
-        getExecutionManager()->apply("x", {}, {}, {controls[i]});
+  for (std::size_t i = 0; i < controls.size(); i++)
+    if (qubitIsNegated[i])
+      getExecutionManager()->apply("x", /*params*/ {}, /*controls*/ {},
+                                   {controls[i]});
 
   // Apply the gate
   getExecutionManager()->apply(gateName, {}, controls, {quditInfos.back()},
@@ -89,10 +89,10 @@ void oneQubitApplyRuntime(const std::string &gateName,
 
   // If we did apply any X ops for a negative control,
   // we need to reverse it
-  if (!controls.empty())
-    for (std::size_t i = 0; i < controls.size(); i++)
-      if (qubitIsNegated[i])
-        getExecutionManager()->apply("x", {}, {}, {controls[i]});
+  for (std::size_t i = 0; i < controls.size(); i++)
+    if (qubitIsNegated[i])
+      getExecutionManager()->apply("x", /*params*/ {}, /*controls*/ {},
+                                   {controls[i]});
 }
 
 /// @brief This function will apply the specified `QuantumOp`. It will check the
@@ -235,7 +235,7 @@ void oneQubitSingleParameterApplyRuntime(
   // we just want to apply the same gate to all qubits provided
   if (nArgs > 1 && std::is_same_v<mod, base>) {
     for (auto &targetId : qubitIds)
-      getExecutionManager()->apply(gateName, {angle}, {},
+      getExecutionManager()->apply(gateName, {angle}, /*controls*/ {},
                                    {qubitIdToQuditInfo(targetId)});
     // Nothing left to do, return
     return;
@@ -271,7 +271,8 @@ void oneQubitSingleParameterApply(ScalarAngle angle, QubitArgs &...args) {
   // we just want to apply the same gate to all qubits provided
   if constexpr (nArgs > 1 && std::is_same_v<mod, base>) {
     for (auto &targetId : targets)
-      getExecutionManager()->apply(gateName, {angle}, {}, {targetId});
+      getExecutionManager()->apply(gateName, {angle}, /*controls*/ {},
+                                   {targetId});
 
     // Nothing left to do, return
     return;
@@ -367,13 +368,17 @@ struct swap {
 
     // If we have controls, check if any of them
     // are negative controls, and if so apply an x
-    if (!controls.empty())
-      for (std::size_t i = 0; i < controls.size(); i++)
-        if (isNegated[i])
-          getExecutionManager()->apply("x", {}, {}, {controls[i]});
+    for (std::size_t i = 0; i < controls.size(); i++)
+      if (isNegated[i])
+        getExecutionManager()->apply("x", {}, {}, {controls[i]});
 
     std::vector<QuditInfo> targets(quditInfos.end() - 2, quditInfos.end());
     getExecutionManager()->apply("swap", {}, controls, targets);
+
+    for (std::size_t i = 0; i < controls.size(); i++)
+      if (isNegated[i])
+        getExecutionManager()->apply("x", /*params*/ {}, /*controls*/ {},
+                                     {controls[i]});
   }
 };
 } // namespace types

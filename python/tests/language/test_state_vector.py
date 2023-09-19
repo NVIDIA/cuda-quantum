@@ -179,6 +179,7 @@ def test_state_density_matrix_integration():
 
     # Compute the parameters that make this kernel produce the
     # Bell state.
+    cudaq.set_random_seed(13)
     optimizer = cudaq.optimizers.COBYLA()
     optimizer.max_iterations = 100
     optimal_infidelity, optimal_parameters = optimizer.optimize(6, objective)
