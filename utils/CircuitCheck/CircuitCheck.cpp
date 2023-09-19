@@ -33,6 +33,11 @@ static cl::opt<bool>
                     cl::init(false));
 
 static cl::opt<bool>
+    upToMapping("up-to-mapping",
+                cl::desc("Check unitaries are equal up a known permutation."),
+                cl::init(false));
+
+static cl::opt<bool>
     dontCanonicalize("no-canonicalizer",
                      cl::desc("Disable running the canonicalizer pass."),
                      cl::init(false));
@@ -42,8 +47,9 @@ static cl::opt<bool> printUnitary("print-unitary",
                                   cl::init(false));
 
 static LogicalResult computeUnitary(func::FuncOp func,
-                                    cudaq::UnitaryBuilder::UMatrix &unitary) {
-  cudaq::UnitaryBuilder builder(unitary);
+                                    cudaq::UnitaryBuilder::UMatrix &unitary,
+                                    bool upToMapping = false) {
+  cudaq::UnitaryBuilder builder(unitary, upToMapping);
   return builder.build(func);
 }
 
@@ -84,7 +90,7 @@ int main(int argc, char **argv) {
 
     auto inputFunc = dyn_cast<func::FuncOp>(inputOp);
     if (failed(computeUnitary(checkFunc, checkUnitary)) ||
-        failed(computeUnitary(inputFunc, inputUnitary))) {
+        failed(computeUnitary(inputFunc, inputUnitary, upToMapping))) {
       llvm::errs() << "Cannot compute unitary for " << opName.str() << ".\n";
       exitStatus = EXIT_FAILURE;
       continue;
