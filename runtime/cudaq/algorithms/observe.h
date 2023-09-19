@@ -279,10 +279,10 @@ observe_result observe(std::size_t shots, QuantumKernel &&kernel, spin_op H,
           "QPU available. no speedup expected.\n");
     // Let's distribute the work among the QPUs on this node
     return details::distributeComputations(
-        [&kernel, shots, ... args = std::forward<Args>(args)](std::size_t i,
-                                                       spin_op &op) mutable {
-          return observe_async(shots, i, std::forward<QuantumKernel>(kernel), op,
-                               std::forward<Args>(args)...);
+        [&kernel, shots, ... args = std::forward<Args>(args)](
+            std::size_t i, spin_op &op) mutable {
+          return observe_async(shots, i, std::forward<QuantumKernel>(kernel),
+                               op, std::forward<Args>(args)...);
         },
         H, nQpus);
   } else if (std::is_same_v<DistributionType, parallel::mpi>) {
@@ -310,10 +310,10 @@ observe_result observe(std::size_t shots, QuantumKernel &&kernel, spin_op H,
 
     // Distribute locally, i.e. to the local nodes QPUs
     auto localRankResult = details::distributeComputations(
-        [&kernel, shots, ... args = std::forward<Args>(args)](std::size_t i,
-                                                       spin_op &op) mutable {
-          return observe_async(shots, i, std::forward<QuantumKernel>(kernel), op,
-                               std::forward<Args>(args)...);
+        [&kernel, shots, ... args = std::forward<Args>(args)](
+            std::size_t i, spin_op &op) mutable {
+          return observe_async(shots, i, std::forward<QuantumKernel>(kernel),
+                               op, std::forward<Args>(args)...);
         },
         localH, nQpus);
 
@@ -349,10 +349,10 @@ observe_result observe(std::size_t shots, QuantumKernel &&kernel, spin_op H,
   // If so, let's distribute the work among the QPUs
   if (auto nQpus = platform.num_qpus(); nQpus > 1)
     return details::distributeComputations(
-        [&kernel, shots, ... args = std::forward<Args>(args)](std::size_t i,
-                                                       spin_op &op) mutable {
-          return observe_async(shots, i, std::forward<QuantumKernel>(kernel), op,
-                               std::forward<Args>(args)...);
+        [&kernel, shots, ... args = std::forward<Args>(args)](
+            std::size_t i, spin_op &op) mutable {
+          return observe_async(shots, i, std::forward<QuantumKernel>(kernel),
+                               op, std::forward<Args>(args)...);
         },
         H, nQpus);
 
