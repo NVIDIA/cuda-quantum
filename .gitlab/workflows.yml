@@ -84,13 +84,6 @@ Python Wheels:
     - export CUDAQ_INSTALL_PREFIX="${cudaq_location#Location:\ }"
     - cp -R $CUDAQ_INSTALL_PREFIX/lib64/cmake/fmt $CUDAQ_INSTALL_PREFIX/lib/cmake
     # Tensornet Simulator
-    # ==== REMOVE ==========
-    # once these commits are ready for deployment.
-    - export EXATN_REPO=dlyakh/exatn
-    - export EXATN_COMMIT=9c053ac1671c041827fee3aeb33cfc6bf43762eb
-    - export CUDAQ_TENSORNET_COMMIT=0ba55a7c523dde47f51f7e118211aafc6db2b8e6
-    - export CUDAQ_MGMN_SVSIM_COMMIT=1beb1d3e183cd5e7d5984b11c92740f607b6d5ba
-    # ======================
     - export ARTIFACTS_DIR=$PROJECT_SRCS_DIR/cuda-quantum/artifacts/wheels_$(uname -m)
     - mkdir -p $ARTIFACTS_DIR
     - cd $PROJECT_SRCS_DIR
