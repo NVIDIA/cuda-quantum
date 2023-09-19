@@ -58,7 +58,7 @@ concept ObserveCallValid =
 /// remote backends.
 /// \param noise noise model to use for the observe operation
 struct observe_options {
-  int shots = cudaq::get_platform().get_shots().value_or(-1);
+  int shots = -1;
   cudaq::noise_model noise;
 };
 

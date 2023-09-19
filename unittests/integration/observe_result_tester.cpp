@@ -44,8 +44,6 @@ CUDAQ_TEST(ObserveResult, checkSimple) {
   EXPECT_NEAR(obs_res.exp_val_z(), -1.7487, 1e-3);
   printf("Energy from observe_result %lf\n", obs_res.exp_val_z());
 
-  auto &platform = cudaq::get_platform();
-
   // Observe using options w/ noise model. Note that the noise model is only
   // honored when using the Density Matrix backend.
   int shots = 252;
@@ -80,7 +78,6 @@ CUDAQ_TEST(ObserveResult, checkSimple) {
   auto x0x1Counts = obs_res2.counts(x(0) * x(1));
   x0x1Counts.dump();
   EXPECT_TRUE(x0x1Counts.size() == 4);
-  platform.clear_shots();
 }
 
 CUDAQ_TEST(ObserveResult, checkExpValBug) {

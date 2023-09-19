@@ -179,7 +179,7 @@ auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
 /// value stored in platform, or 1000).
 /// \param noise noise model to use for the sample operation
 struct sample_options {
-  std::size_t shots = cudaq::get_platform().get_shots().value_or(1000);
+  std::size_t shots = 1000;
   cudaq::noise_model noise;
 };
 

@@ -61,14 +61,23 @@ public:
   /// Get the number of qubits for the QPU with ID qpu_id
   std::size_t get_num_qubits(std::size_t qpu_id);
 
-  /// Getter for the shots
+  /// Getter for the shots. This will be deprecated once `set_shots` and
+  /// `clear_shots` are removed.
   std::optional<int> get_shots() { return platformNumShots; }
 
   /// Setter for the shots
-  virtual void set_shots(int numShots) { platformNumShots = numShots; }
+  [[deprecated("Specify the number of shots in the using the overloaded "
+               "sample() and observe() functions")]] virtual void
+  set_shots(int numShots) {
+    platformNumShots = numShots;
+  }
 
   /// Reset shots
-  void clear_shots() { platformNumShots = std::nullopt; }
+  [[deprecated("Specify the number of shots in the using the overloaded "
+               "sample() and observe() functions")]] virtual void
+  clear_shots() {
+    platformNumShots = std::nullopt;
+  }
 
   /// Specify the execution context for this platform.
   void set_exec_ctx(cudaq::ExecutionContext *ctx, std::size_t qpu_id = 0);
