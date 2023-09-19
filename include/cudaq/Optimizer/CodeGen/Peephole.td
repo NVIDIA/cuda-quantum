@@ -168,7 +168,7 @@ def IsaRecordOutputCall : Constraint<CPred<
 
 def EraseRecordOutputOp : NativeCodeCall<"static_cast<std::size_t>(0)">;
 
-// Remove the record output calls for remove-measurements pass)
+// Remove the record output calls (for remove-measurements pass)
 //
 // call void @__quantum__rt__result_record_output(%Result* , i8*)
 // ─────────────────────────────────
