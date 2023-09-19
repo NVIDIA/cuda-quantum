@@ -39,8 +39,6 @@ std::unique_ptr<mlir::Pass> createBaseProfilePreparationPass();
 std::unique_ptr<mlir::Pass> createConvertToQIRFuncPass();
 
 // Functions to support removing measurements from QIR
-void registerRemoveMeasurementsPipeline();
-void addRemoveMeasurementsPipeline(mlir::OpPassManager &pm);
 std::unique_ptr<mlir::Pass> createRemoveMeasurementsPass();
 
 /// Register target pipelines.

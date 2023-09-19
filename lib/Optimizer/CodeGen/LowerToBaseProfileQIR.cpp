@@ -568,20 +568,37 @@ void cudaq::opt::registerBaseProfilePipeline() {
 }
 
 namespace cudaq {
+
+struct EraseMeasurements : public OpRewritePattern<LLVM::CallOp> {
+  using OpRewritePattern<LLVM::CallOp>::OpRewritePattern;
+
+  void initialize() { setDebugName("EraseMeasurements"); }
+
+  LogicalResult matchAndRewrite(LLVM::CallOp call,
+                                PatternRewriter &rewriter) const override {
+    if (call.getCallee()->equals(cudaq::opt::QIRMeasureBody) ||
+        call.getCallee()->equals(cudaq::opt::QIRBaseProfileRecordOutput)) {
+      rewriter.eraseOp(call);
+      return success();
+    }
+    return failure();
+  }
+};
+
 /// Remove Measurements
 ///
 /// This pass removes measurements and the corresponding output recording calls.
 /// This is needed for backends that don't support selective measurement calls.
 /// For example: https://github.com/NVIDIA/cuda-quantum/issues/512
 struct RemoveMeasurementsPass
-    : public cudaq::opt::QIRToBaseQIRBase<RemoveMeasurementsPass> {
+    : public cudaq::opt::RemoveMeasurementsBase<RemoveMeasurementsPass> {
   explicit RemoveMeasurementsPass() = default;
 
   void runOnOperation() override {
     auto *op = getOperation();
     auto *context = &getContext();
     RewritePatternSet patterns(context);
-    patterns.insert<EraseMeasure, EraseRecordOutput>(context);
+    patterns.insert<EraseMeasurements>(context);
     if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns)))) {
       signalPassFailure();
     }
@@ -594,15 +611,4 @@ private:
 
 std::unique_ptr<Pass> cudaq::opt::createRemoveMeasurementsPass() {
   return std::make_unique<RemoveMeasurementsPass>();
-}
-// The various passes defined here should be added as a pass pipeline.
-void cudaq::opt::addRemoveMeasurementsPipeline(OpPassManager &pm) {
-  pm.addPass(createRemoveMeasurementsPass());
-}
-
-void cudaq::opt::registerRemoveMeasurementsPipeline() {
-  PassPipelineRegistration<>(
-      "remove-measurements",
-      "Pass pipeline to remove measurements and output recordings",
-      addRemoveMeasurementsPipeline);
 }
