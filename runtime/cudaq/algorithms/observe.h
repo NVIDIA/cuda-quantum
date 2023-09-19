@@ -376,11 +376,11 @@ observe_result observe(const observe_options &options, QuantumKernel &&kernel,
   platform.set_noise(&options.noise);
 
   auto ret = details::runObservation(
-              [&kernel, ... args = std::forward<Args>(args)]() mutable {
-                kernel(args...);
-              },
-              H, platform, shots, kernelName)
-              .value();
+                 [&kernel, ... args = std::forward<Args>(args)]() mutable {
+                   kernel(args...);
+                 },
+                 H, platform, shots, kernelName)
+                 .value();
 
   platform.reset_noise();
   return ret;
