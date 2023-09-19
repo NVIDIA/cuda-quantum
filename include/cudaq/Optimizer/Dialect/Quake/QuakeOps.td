@@ -564,7 +564,7 @@ def quake_ResetOp : QuakeOp<"reset", [QuantumGate,
 // Sink
 //===----------------------------------------------------------------------===//
 
-def quake_SinkOp : QuakeOp<"sink"> {
+def quake_SinkOp : QuakeOp<"sink", [WireInterface]> {
   let summary = "Sink for a qubit that is used but not measured.";
   let description = [{
     The `quake.sink` operation is used to mark a particular wire in the value
@@ -586,6 +586,25 @@ def quake_SinkOp : QuakeOp<"sink"> {
   let assemblyFormat = [{
      $target `:` qualified(type(operands)) attr-dict
   }];
+
+  let extraClassDeclaration = [{
+    //===------------------------------------------------------------------===//
+    // WireInterface
+    //===------------------------------------------------------------------===//
+
+    void setWireOperands(mlir::ValueRange wires) {
+      assert(wires.size() == 1 && "SinkOp has only one wire operand");
+      getTargetMutable().assign(wires[0]);
+    }
+
+    mlir::ValueRange getWireOperands() {
+      return getOperation()->getOperands();
+    }
+
+    mlir::ValueRange getWires() {
+      return {};
+    }
+  }];
 }
 
 //===----------------------------------------------------------------------===//
@@ -593,7 +612,8 @@ def quake_SinkOp : QuakeOp<"sink"> {
 //===----------------------------------------------------------------------===//
 
 class Measurement<string mnemonic> : QuakeOp<mnemonic, [MeasurementInterface,
-    QuantumMeasure, DeclareOpInterfaceMethods<MemoryEffectsOpInterface>]> {
+    QuantumMeasure, DeclareOpInterfaceMethods<MemoryEffectsOpInterface>,
+    WireInterface]> {
   let arguments = (ins
     Variadic<AnyQType>:$targets,
     OptionalAttr<StrAttr>:$registerName
@@ -612,6 +632,18 @@ class Measurement<string mnemonic> : QuakeOp<mnemonic, [MeasurementInterface,
     void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::EffectInstance<
       mlir::MemoryEffects::Effect>> &effects) {
       quake::getMeasurementEffectsImpl(effects, getTargets());
+    }
+
+    //===------------------------------------------------------------------===//
+    // WireInterface
+    //===------------------------------------------------------------------===//
+
+    void setWireOperands(mlir::ValueRange wires) {
+      getTargetsMutable().assign(wires);
+    }
+
+    mlir::ValueRange getWireOperands() {
+      return getTargets();
     }
   }];
 
@@ -668,7 +700,8 @@ def MzOp : Measurement<"mz"> {
 class QuakeOperator<string mnemonic, list<Trait> traits = []>
     : QuakeOp<mnemonic,
         !listconcat([QuantumGate, AttrSizedOperandSegments, OperatorInterface,
-          DeclareOpInterfaceMethods<MemoryEffectsOpInterface>], traits)> {
+          DeclareOpInterfaceMethods<MemoryEffectsOpInterface>, WireInterface
+          ], traits)> {
 
   let arguments = (ins
     UnitAttr:$is_adj,
@@ -744,6 +777,22 @@ class QuakeOperator<string mnemonic, list<Trait> traits = []>
     void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::EffectInstance<
       mlir::MemoryEffects::Effect>> &effects) {
       quake::getOperatorEffectsImpl(effects, getControls(), getTargets());
+    }
+
+    //===------------------------------------------------------------------===//
+    // WireInterface
+    //===------------------------------------------------------------------===//
+
+    void setWireOperands(mlir::ValueRange wires) {
+      // Controls and targets operands come after the parameters.
+      auto i = getParameters().size();
+      for (auto wire : wires)
+        setOperand(i++, wire);
+    }
+
+    mlir::ValueRange getWireOperands() {
+      auto numParameters = getParameters().size();
+      return getOperands().drop_front(numParameters);
     }
 
     //===------------------------------------------------------------------===//

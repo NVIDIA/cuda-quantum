@@ -133,4 +133,37 @@ def MeasurementInterface : OpInterface<"MeasurementInterface"> {
   ];
 }
 
+def WireInterface : OpInterface<"WireInterface"> {
+  let description = [{
+    This interface provides a common way for accessing the wires involved in a
+    quantum operations. In the case of quantum gates, it abstracts away
+    information about wires are used as controls or targets. This abstraction is
+    particularly useful when implementing passes that are only concern about the
+    wire operands and wire results, e.g., the mapping pass.
+  }];
+  let cppNamespace = "quake";
+
+  let methods = [
+    InterfaceMethod<
+      /*desc=*/ "Set the set of wire operands",
+      /*retType=*/ "void",
+      /*methodName=*/ "setWireOperands",
+      /*args=*/ (ins "mlir::ValueRange":$wires)
+    >,
+    InterfaceMethod<
+      /*desc=*/ "Returns the set of wire operands",
+      /*retType=*/ "mlir::ValueRange",
+      /*methodName=*/ "getWireOperands",
+      /*args=*/ (ins)
+    >,
+    InterfaceMethod<
+      /*desc=*/ "Returns the set of new wires (results)",
+      /*retType=*/ "mlir::ValueRange",
+      /*methodName=*/ "getWireResults",
+      /*args=*/ (ins),
+      /*methodBody=*/ "return $_op.getWires();"
+    >,
+  ];
+}
+
 #endif // CUDAQ_OPTIMIZER_DIALECT_QUAKE_IR_QUAKE_INTERFACES
