@@ -376,26 +376,12 @@ observe_result observe(const observe_options &options, QuantumKernel &&kernel,
 
   platform.set_noise(&options.noise);
 
-  observe_result ret;
-
-  // Does this platform expose more than 1 QPU
-  // If so, let's distribute the work among the QPUs
-  if (auto nQpus = platform.num_qpus(); nQpus > 1) {
-    ret = details::distributeComputations(
-        [&kernel, ... args = std::forward<Args>(args)](std::size_t i,
-                                                       spin_op &op) mutable {
-          return observe_async(i, std::forward<QuantumKernel>(kernel), op,
-                               std::forward<Args>(args)...);
-        },
-        H, nQpus);
-  } else {
-    ret = details::runObservation(
+  auto ret = details::runObservation(
               [&kernel, ... args = std::forward<Args>(args)]() mutable {
                 kernel(args...);
               },
               H, platform, shots, kernelName)
               .value();
-  }
 
   platform.reset_noise();
   return ret;
