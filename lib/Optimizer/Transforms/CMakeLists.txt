@@ -29,6 +29,7 @@ add_cudaq_library(OptTransforms
   LoopUnroll.cpp
   LowerToCFG.cpp
   LowerUnwind.cpp
+  Mapping.cpp
   MemToReg.cpp
   MultiControlDecomposition.cpp
   ObserveAnsatz.cpp

@@ -1,0 +1,24 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(quake-mapping{device=path))' %s | FileCheck %s
+
+func.func @test_measurement() {
+  %0 = quake.null_wire
+  %1 = quake.null_wire
+  %2 = quake.null_wire
+  %3:2 = quake.x [%1] %0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4:2 = quake.x [%3#0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %5:2 = quake.x [%4#1] %3#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %bits, %wires:3 = quake.mz %5#1, %4#0, %5#0 : (!quake.wire, !quake.wire, !quake.wire) -> (!cc.stdvec<i1>, !quake.wire, !quake.wire, !quake.wire)
+  quake.sink %wires#0 : !quake.wire
+  quake.sink %wires#1 : !quake.wire
+  quake.sink %wires#2 : !quake.wire
+  return
+}
+
