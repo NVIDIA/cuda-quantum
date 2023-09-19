@@ -188,7 +188,7 @@ if [ -f "$NVQPP_LD_PATH" ]; then
 fi
 LINKER_FLAGS="${LINKER_FLAGS} -Wl,-rpath,${install_dir}/lib -Wl,-rpath,${install_dir}/lib/plugins -Wl,-rpath,${PWD}"
 
-LIBRARY_MODE_EXECUTION_MANAGER="qir"
+LIBRARY_MODE_EXECUTION_MANAGER="default"
 PLATFORM_LIBRARY="default"
 LLVM_QUANTUM_TARGET="qir"
 LINKDIRS="-L${install_dir}/lib -L${install_dir}/lib/plugins @CUDAQ_CXX_NVQPP_LINK_STR@"
