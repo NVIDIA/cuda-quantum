@@ -278,7 +278,7 @@ sample_result sample(const sample_options &options, QuantumKernel &&kernel,
   auto &platform = cudaq::get_platform();
   auto shots = options.shots;
   auto kernelName = cudaq::getKernelName(kernel);
-  platform.set_noise(const_cast<noise_model *>(&options.noise));
+  platform.set_noise(&options.noise);
   auto ret = details::runSampling(
                  [&kernel, ... args = std::forward<Args>(args)]() mutable {
                    kernel(std::forward<Args>(args)...);
@@ -472,7 +472,7 @@ std::vector<sample_result> sample(const sample_options &options,
   auto numQpus = platform.num_qpus();
   auto shots = options.shots;
 
-  platform.set_noise(const_cast<noise_model *>(&options.noise));
+  platform.set_noise(&options.noise);
 
   // Create the functor that will broadcast the sampling tasks across
   // all requested argument sets provided.

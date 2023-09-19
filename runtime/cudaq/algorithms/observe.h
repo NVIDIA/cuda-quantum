@@ -374,7 +374,7 @@ observe_result observe(const observe_options &options, QuantumKernel &&kernel,
   auto kernelName = cudaq::getKernelName(kernel);
   auto shots = options.shots;
 
-  platform.set_noise(const_cast<noise_model *>(&options.noise));
+  platform.set_noise(&options.noise);
 
   observe_result ret;
 
@@ -535,7 +535,7 @@ std::vector<observe_result> observe(cudaq::observe_options &options,
   auto numQpus = platform.num_qpus();
   auto shots = options.shots;
 
-  platform.set_noise(const_cast<noise_model *>(&options.noise));
+  platform.set_noise(&options.noise);
 
   // Create the functor that will broadcast the observations across
   // all requested argument sets provided.
