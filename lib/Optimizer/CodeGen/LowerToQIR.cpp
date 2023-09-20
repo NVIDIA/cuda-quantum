@@ -703,6 +703,11 @@ public:
   using Base = ConvertOpToLLVMPattern<OP>;
   using Base::Base;
 
+  unsigned &measureCounter = 0;
+
+  MeasureRewrite(LLVMTypeConverter &typeConverter, unsigned &c)
+      : Base(typeConverter), measureCounter(c) {}
+
   LogicalResult
   matchAndRewrite(OP measure, typename Base::OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
@@ -727,15 +732,15 @@ public:
       // If no register name is supplied, make one up. Zero pad the counter so
       // that sequential measurements contain alphabetically sorted register
       // names.
-      static unsigned counter = 0u;
-      char regNameCounter[16];
-      if (counter > 99999) {
+      char regNameCounter[16]; // sized big enough for "r" + 5 digits
+      if (measureCounter > 99999) {
         emitError(loc,
                   "Too many unnamed measurements. Name your measurements by "
                   "saving them to variables, like `auto result = mz(q)`");
         return failure();
       }
-      std::snprintf(regNameCounter, sizeof(regNameCounter), "r%05d", counter++);
+      std::snprintf(regNameCounter, sizeof(regNameCounter), "r%05d",
+                    measureCounter++);
       regName = rewriter.getStringAttr(regNameCounter);
       appendName = false;
     }
@@ -1312,6 +1317,9 @@ class QuakeToQIRRewrite : public cudaq::opt::QuakeToQIRBase<QuakeToQIRRewrite> {
 public:
   QuakeToQIRRewrite() = default;
 
+  /// Measurement counter for unnamed measurements. Resets every module.
+  unsigned measureCounter = 0;
+
   ModuleOp getModule() { return getOperation(); }
 
   void runOnOperation() override final {
@@ -1370,10 +1378,10 @@ public:
         ConcatOpRewrite, DeallocOpRewrite, ExtractQubitOpRewrite,
         ExtractValueOpPattern, FuncToPtrOpPattern, InsertValueOpPattern,
         InstantiateCallableOpPattern, LoadOpPattern,
-        MeasureRewrite<quake::MzOp>, OneTargetRewrite<quake::HOp>,
-        OneTargetRewrite<quake::XOp>, OneTargetRewrite<quake::YOp>,
-        OneTargetRewrite<quake::ZOp>, OneTargetRewrite<quake::SOp>,
-        OneTargetRewrite<quake::TOp>, OneTargetOneParamRewrite<quake::R1Op>,
+        OneTargetRewrite<quake::HOp>, OneTargetRewrite<quake::XOp>,
+        OneTargetRewrite<quake::YOp>, OneTargetRewrite<quake::ZOp>,
+        OneTargetRewrite<quake::SOp>, OneTargetRewrite<quake::TOp>,
+        OneTargetOneParamRewrite<quake::R1Op>,
         OneTargetTwoParamRewrite<quake::PhasedRxOp>,
         OneTargetOneParamRewrite<quake::RxOp>,
         OneTargetOneParamRewrite<quake::RyOp>,
@@ -1383,6 +1391,7 @@ public:
         StdvecDataOpPattern, StdvecInitOpPattern, StdvecSizeOpPattern,
         StoreOpPattern, SubveqOpRewrite, TwoTargetRewrite<quake::SwapOp>,
         UndefOpPattern>(typeConverter);
+    patterns.insert<MeasureRewrite<quake::MzOp>>(typeConverter, measureCounter);
 
     target.addLegalDialect<LLVM::LLVMDialect>();
     target.addLegalOp<ModuleOp>();
