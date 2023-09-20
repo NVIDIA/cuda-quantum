@@ -13,8 +13,8 @@
 // The FileCheck part of this test only cares about the sequence of operations.
 // Correcteness (unitary matrix) is checked by CircuitCheck.
 
-// CHECK-LABEL: func.func @test
-func.func @test(%ctrl: !quake.ref, %target: !quake.ref) {
+// CHECK-LABEL: func.func @test_t
+func.func @test_t(%ctrl: !quake.ref, %target: !quake.ref) {
   quake.t [%ctrl] %target : (!quake.ref, !quake.ref) -> ()
   // CHECK: quake.rz
   // CHECK-NEXT: quake.x 
@@ -24,9 +24,31 @@ func.func @test(%ctrl: !quake.ref, %target: !quake.ref) {
   return
 }
 
-// CHECK-LABEL: func.func @adj
-func.func @adj(%ctrl: !quake.ref, %target: !quake.ref) {
+// CHECK-LABEL: func.func @t_adj
+func.func @t_adj(%ctrl: !quake.ref, %target: !quake.ref) {
   quake.t<adj> [%ctrl] %target : (!quake.ref, !quake.ref) -> ()
+  // CHECK: quake.rz
+  // CHECK-NEXT: quake.x 
+  // CHECK-NEXT: quake.rz
+  // CHECK-NEXT: quake.x 
+  // CHECK-NEXT: quake.rz
+  return
+}
+
+// CHECK-LABEL: func.func @test_s
+func.func @test_s(%ctrl: !quake.ref, %target: !quake.ref) {
+  quake.s [%ctrl] %target : (!quake.ref, !quake.ref) -> ()
+  // CHECK: quake.rz
+  // CHECK-NEXT: quake.x 
+  // CHECK-NEXT: quake.rz
+  // CHECK-NEXT: quake.x 
+  // CHECK-NEXT: quake.rz
+  return
+}
+
+// CHECK-LABEL: func.func @s_adj
+func.func @s_adj(%ctrl: !quake.ref, %target: !quake.ref) {
+  quake.s<adj> [%ctrl] %target : (!quake.ref, !quake.ref) -> ()
   // CHECK: quake.rz
   // CHECK-NEXT: quake.x 
   // CHECK-NEXT: quake.rz

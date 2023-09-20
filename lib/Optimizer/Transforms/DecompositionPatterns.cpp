@@ -269,12 +269,12 @@ struct SToPhasedRx : public OpRewritePattern<quake::SOp> {
   }
 };
 
-// quake.s target
+// quake.s [control] target
 // ────────────────────────────────────
-// Gate equivalence:
-// quake.s == quake.r1(π/2, 0)
-// This will enable further decomposition via other patterns such as
-// controlled-r1 to cnot.
+// quake.r1(π/2) [control] target
+//
+// Adding this gate equivalence will enable further decomposition via other
+// patterns such as controlled-r1 to cnot.
 struct SToR1 : public OpRewritePattern<quake::SOp> {
   using OpRewritePattern<quake::SOp>::OpRewritePattern;
 
@@ -343,12 +343,12 @@ struct TToPhasedRx : public OpRewritePattern<quake::TOp> {
   }
 };
 
-// quake.t target
+// quake.t [control] target
 // ────────────────────────────────────
-// Gate equivalence:
-// quake.t == quake.r1(π/4, 0)
-// This will enable further decomposition via other patterns such as
-// controlled-r1 to cnot.
+// quake.r1(π/4) [control] target
+//
+// Adding this gate equivalence will enable further decomposition via other
+// patterns such as controlled-r1 to cnot.
 struct TToR1 : public OpRewritePattern<quake::TOp> {
   using OpRewritePattern<quake::TOp>::OpRewritePattern;
 
