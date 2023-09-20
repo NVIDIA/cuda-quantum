@@ -104,7 +104,7 @@ void IonQServerHelper::initialize(BackendConfig config) {
   if (!config["shots"].empty())
     this->setShots(std::stoul(config["shots"]));
 
-  // Parse the output_names.* (for each jo) and place int outputNames[]
+  // Parse the output_names.* (for each job) and place it in outputNames[]
   for (auto &[key, val] : config) {
     if (key.starts_with("output_names.")) {
       // Parse `val` into jobOutputNames.
@@ -340,7 +340,7 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
 
   std::vector<ExecutionResult> execResults;
 
-  // Make a map sorted by register name name ([str] --> <qubit,result>)
+  // Make a map sorted by register name ([str] --> <qubit,result>)
   std::map<std::string, std::pair<std::size_t, std::size_t>> mapResultStr;
   for (const auto &[result, info] : output_names)
     mapResultStr[info.registerName] = std::make_pair(info.qubitNum, result);

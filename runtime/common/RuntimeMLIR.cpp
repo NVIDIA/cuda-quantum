@@ -95,9 +95,8 @@ bool setupTargetTriple(llvm::Module *llvmModule) {
 }
 
 void optimizeLLVM(llvm::Module *module) {
-  bool enableOpt = true;
   auto optPipeline = makeOptimizingTransformer(
-      /*optLevel=*/enableOpt ? 3 : 0, /*sizeLevel=*/0,
+      /*optLevel=*/3, /*sizeLevel=*/0,
       /*targetMachine=*/nullptr);
   if (auto err = optPipeline(module))
     throw std::runtime_error("Failed to optimize LLVM IR ");

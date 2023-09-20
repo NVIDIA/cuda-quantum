@@ -309,9 +309,12 @@ public:
           throw std::runtime_error("Could not parse bitcode file");
         auto module = std::move(moduleOrError.get());
         for (llvm::Function &func : *module) {
-          if (func.hasFnAttribute("output_names"))
+          if (func.hasFnAttribute("entry_point") &&
+              func.hasFnAttribute("output_names")) {
             output_names = nlohmann::json::parse(
                 func.getFnAttribute("output_names").getValueAsString());
+            break;
+          }
         }
       }
     }
