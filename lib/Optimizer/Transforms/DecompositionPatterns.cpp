@@ -269,6 +269,32 @@ struct SToPhasedRx : public OpRewritePattern<quake::SOp> {
   }
 };
 
+// quake.s target
+// ────────────────────────────────────
+// Gate equivalence:
+// quake.s == quake.r1(π/2, 0)
+// This will enable further decomposition via other patterns such as
+// controlled-r1 to cnot.
+struct SToR1 : public OpRewritePattern<quake::SOp> {
+  using OpRewritePattern<quake::SOp>::OpRewritePattern;
+
+  void initialize() { setDebugName("SToR1"); }
+
+  LogicalResult matchAndRewrite(quake::SOp op,
+                                PatternRewriter &rewriter) const override {
+    if (!quake::isAllReferences(op))
+      return failure();
+
+    // Op info
+    auto loc = op->getLoc();
+    auto angle = createConstant(loc, op.isAdj() ? -M_PI_2 : M_PI_2,
+                                rewriter.getF64Type(), rewriter);
+    rewriter.create<quake::R1Op>(loc, angle, op.getControls(), op.getTarget());
+    rewriter.eraseOp(op);
+    return success();
+  }
+};
+
 //===----------------------------------------------------------------------===//
 // TOp decompositions
 //===----------------------------------------------------------------------===//
@@ -312,6 +338,32 @@ struct TToPhasedRx : public OpRewritePattern<quake::TOp> {
     parameters[1] = zero;
     rewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
 
+    rewriter.eraseOp(op);
+    return success();
+  }
+};
+
+// quake.t target
+// ────────────────────────────────────
+// Gate equivalence:
+// quake.t == quake.r1(π/4, 0)
+// This will enable further decomposition via other patterns such as
+// controlled-r1 to cnot.
+struct TToR1 : public OpRewritePattern<quake::TOp> {
+  using OpRewritePattern<quake::TOp>::OpRewritePattern;
+
+  void initialize() { setDebugName("TToR1"); }
+
+  LogicalResult matchAndRewrite(quake::TOp op,
+                                PatternRewriter &rewriter) const override {
+    if (!quake::isAllReferences(op))
+      return failure();
+
+    // Op info
+    auto loc = op->getLoc();
+    auto angle = createConstant(loc, op.isAdj() ? -M_PI_4 : M_PI_4,
+                                rewriter.getF64Type(), rewriter);
+    rewriter.create<quake::R1Op>(loc, angle, op.getControls(), op.getTarget());
     rewriter.eraseOp(op);
     return success();
   }
@@ -1005,8 +1057,10 @@ void cudaq::populateWithAllDecompositionPatterns(RewritePatternSet &patterns) {
     CHToCX,
     // SOp patterns
     SToPhasedRx,
+    SToR1,
     // TOp patterns
     TToPhasedRx,
+    TToR1,
     // XOp patterns
     CXToCZ,
     CCXToCCZ,
