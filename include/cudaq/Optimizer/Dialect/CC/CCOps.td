@@ -446,9 +446,9 @@ def cc_ReturnOp : CCOp<"return", [Pure, ReturnLike, Terminator,
        ^entry(%arg0 : i32):
         ...
         cc.return
-      } : !cc.lambda<(i32) -> ()>
+      } : !cc.callable<(i32) -> ()>
       ...
-      cc.call_callable %lambda, %20 : (!cc.lambda<(i32) -> ()>, i32) -> ()
+      cc.call_callable %lambda, %20 : (!cc.callable<(i32) -> ()>, i32) -> ()
     ```
   }];
 
@@ -1119,9 +1119,9 @@ def cc_CreateLambdaOp : CCOp<"create_lambda",
        ^entry(%arg0 : i32):
         ...
         cc.return
-      } : !cc.lambda<(i32) -> ()>
+      } : !cc.callable<(i32) -> ()>
       ...
-      cc.call_callable %lambda, %20 : (!cc.lambda<(i32) -> ()>, i32) -> ()
+      cc.call_callable %lambda, %20 : (!cc.callable<(i32) -> ()>, i32) -> ()
     ```
   }];
 
@@ -1186,9 +1186,9 @@ def cc_CallCallableOp : CCOp<"call_callable", [CallOpInterface]> {
        ^entry(%arg0 : i32):
         ...
         cc.return
-      } : !cc.lambda<(i32) -> ()>
+      } : !cc.callable<(i32) -> ()>
       ...
-      cc.call_callable %lambda, %20 : (!cc.lambda<(i32) -> ()>, i32) -> ()
+      cc.call_callable %lambda, %20 : (!cc.callable<(i32) -> ()>, i32) -> ()
     ```
   }];
 
@@ -1233,6 +1233,10 @@ def cc_InstantiateCallableOp : CCOp<"instantiate_callable", [Pure]> {
     The InstantiateCallableOp constructs a pair. The pair is a pointer to the
     associated currying trampoline function and a tuple of the captured values.
 
+    When there are no captured values, such as when the callable is a plain old
+    function, the attribute `nocapture` should be used to build the callable
+    such that no unmarshalling trampoline is required. See below.
+
     Example:
 
     Take the following λ expression.
@@ -1244,7 +1248,7 @@ def cc_InstantiateCallableOp : CCOp<"instantiate_callable", [Pure]> {
        ^entry(%arg0 : i32):
         ... %88 ...
         cc.return
-      } : !cc.lambda<(i32) -> ()>
+      } : !cc.callable<(i32) -> ()>
     ```
 
     Since this λ expression captures the value %88 from the parent, we have to
@@ -1254,12 +1258,12 @@ def cc_InstantiateCallableOp : CCOp<"instantiate_callable", [Pure]> {
     outlined λ function in the following example.
 
     ```mlir
-      %lambda = cc.instantiate_callable @trampoline.54(%88) : (f64) -> !cc.lambda<(i32) -> ()>
+      %lambda = cc.instantiate_callable @trampoline.54(%88) : (f64) -> !cc.callable<(i32) -> ()>
       ...
 
       // Trampoline function
-      func.func private @trampoline.54(%arg0: !cc.lambda<(i32) -> ()>, %arg1: i32) {
-        %0 = cc.callable_closure %arg0: !cc.lambda<(i32) -> ()> -> f64
+      func.func private @trampoline.54(%arg0: !cc.callable<(i32) -> ()>, %arg1: i32) {
+        %0 = cc.callable_closure %arg0: !cc.callable<(i32) -> ()> -> f64
         call @lifted_lambda.54(%0, %arg1) : (f64, i32) -> ()
       }
 
@@ -1271,18 +1275,32 @@ def cc_InstantiateCallableOp : CCOp<"instantiate_callable", [Pure]> {
       }
     ```
 
+    In the case when the `nocapture` attribute is present, the closure pointer
+    value will be set to `nullptr`. A `cc.call_callable` can thus test the
+    closure value to determine whether to omit prepending the pointer to the
+    callable pair or not.
+
     See also CallCallableOp.
   }];
 
   let arguments = (ins
     SymbolRefAttr:$callee,
-    Variadic<AnyType>:$closure_data
+    Variadic<AnyType>:$closure_data,
+    OptionalAttr<UnitAttr>:$no_capture
   );
   let results = (outs cc_CallableType:$signature);
 
+  let builders = [
+    OpBuilder<(ins "mlir::Type":$signature, "mlir::SymbolRefAttr":$callee,
+      "mlir::ValueRange":$closure_data), [{
+      return build($_builder, $_state, signature, callee, closure_data,
+        mlir::UnitAttr{});
+    }]> 
+  ];
+
   let assemblyFormat = [{
-    $callee `(` $closure_data `)`
-    `:` functional-type(operands, results) attr-dict
+    $callee `(` $closure_data `)` ( `nocapture` $no_capture^ )?
+      `:` functional-type(operands, results) attr-dict
   }];
 }
 
@@ -1296,10 +1314,10 @@ def cc_CallableFuncOp : CCOp<"callable_func", [Pure]> {
     Example:
 
     ```mlir
-      %0 = ... : !cc.lambda<(i32) -> i8>
+      %0 = ... : !cc.callable<(i32) -> i8>
       %1 = ... : i32
-      %2 = cc.callable_func %0 : (!cc.lambda<(i32) -> i8>) -> ((!cc.lambda<(i32) -> i8>, i32) -> i8)
-      %3 = call_indirect %2(%0, %1) : (!cc.lambda<(i32) -> i8>, i32) -> i8
+      %2 = cc.callable_func %0 : (!cc.callable<(i32) -> i8>) -> ((!cc.callable<(i32) -> i8>, i32) -> i8)
+      %3 = call_indirect %2(%0, %1) : (!cc.callable<(i32) -> i8>, i32) -> i8
     ```
 
     See also InstantiateCallableOp, CallableClosureOp.
@@ -1334,9 +1352,9 @@ def cc_CallableClosureOp : CCOp<"callable_closure", [Pure]> {
     Example:
 
     ```mlir
-      %0 = ... !cc.lambda<(i32) -> i8>
+      %0 = ... !cc.callable<(i32) -> i8>
       %1 = ... : i32
-      %2:2 = cc.callable_closure %0 : (!cc.lambda<(i32) -> i8>) -> (!quake.wire, i1)
+      %2:2 = cc.callable_closure %0 : (!cc.callable<(i32) -> i8>) -> (!quake.wire, i1)
       %3 = call @lifted_lambda.72(%2#0, %2#1, %1) : (!quake.wire, i1, i32) -> i8
     ```
 

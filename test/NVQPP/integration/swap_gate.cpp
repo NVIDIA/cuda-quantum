@@ -18,11 +18,7 @@ int main() {
     x(q[0]);
     swap(q[0], q[1]);
 
-// TODO: Extend measurement support for submissions to IonQ,
-// see https://github.com/NVIDIA/cuda-quantum/issues/512.
-#ifndef IONQ_TARGET
     mz(q);
-#endif
   };
 
   auto counts = cudaq::sample(swapKernel);
