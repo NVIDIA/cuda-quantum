@@ -157,7 +157,12 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
         auto templArg = tempSpec->getTemplateArgs()[0];
         assert(templArg.getKind() ==
                clang::TemplateArgument::ArgKind::Integral);
-        std::int64_t size = templArg.getAsIntegral().getExtValue();
+        auto getExtValueHelper = [&](auto v) -> std::int64_t {
+          if (v.isUnsigned())
+            return static_cast<std::int64_t>(v.getZExtValue());
+          return v.getSExtValue();
+        };
+        std::int64_t size = getExtValueHelper(templArg.getAsIntegral());
         if (size != static_cast<std::int64_t>(std::dynamic_extent))
           return pushType(quake::VeqType::get(ctx, size));
       }
