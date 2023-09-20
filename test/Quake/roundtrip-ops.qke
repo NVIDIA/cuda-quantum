@@ -219,8 +219,8 @@ func.func @quantum_ops() {
 // CHECK:           %[[VAL_49:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_50:.*]] = quake.alloca !quake.ref
 // CHECK:           quake.apply @apply_kernel %[[VAL_49]], %[[VAL_50]] : (i32, !quake.ref) -> ()
-// CHECK:           quake.apply @apply_kernel{{\[}}%[[VAL_47]], %[[VAL_48]]] %[[VAL_49]], %[[VAL_50]] : (!quake.ref, !quake.veq<2>, i32, !quake.ref) -> ()
-// CHECK:           quake.apply<adj> @apply_kernel{{\[}}%[[VAL_47]], %[[VAL_48]]] %[[VAL_49]], %[[VAL_50]] : (!quake.ref, !quake.veq<2>, i32, !quake.ref) -> ()
+// CHECK:           quake.apply @apply_kernel [%[[VAL_47]], %[[VAL_48]]] %[[VAL_49]], %[[VAL_50]] : (!quake.ref, !quake.veq<2>, i32, !quake.ref) -> ()
+// CHECK:           quake.apply<adj> @apply_kernel [%[[VAL_47]], %[[VAL_48]]] %[[VAL_49]], %[[VAL_50]] : (!quake.ref, !quake.veq<2>, i32, !quake.ref) -> ()
 // CHECK:           %[[VAL_51:.*]] = cc.undef !cc.callable<() -> ()> {compute_action = true}
 // CHECK:           %[[VAL_52:.*]] = cc.undef !cc.callable<() -> ()>
 // CHECK:           quake.compute_action %[[VAL_51]], %[[VAL_52]] : !cc.callable<() -> ()>, !cc.callable<() -> ()>
