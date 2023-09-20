@@ -14,11 +14,7 @@
 __qpu__ void variable_qreg(unsigned value) {
   cudaq::qreg qubits(value);
 
-// TODO: Extend measurement support for submissions to IonQ, 
-// see https://github.com/NVIDIA/cuda-quantum/issues/512.
-#ifndef IONQ_TARGET
   mz(qubits);
-#endif
 }
 
 int main() {
