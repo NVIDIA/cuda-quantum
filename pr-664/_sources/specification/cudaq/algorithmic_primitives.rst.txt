@@ -17,21 +17,21 @@ The CUDA Quantum model enables this functionality via template functions within 
 
 .. code-block:: cpp
 
-  // Kernel only
-  template<typename QuantumKernel, typename... Args>
-    requires HasVoidReturnType<QuantumKernel, Args...>
-  sample_result sample(QuantumKernel&& kernel, Args&&... args);
+    // Kernel only
+    template<typename QuantumKernel, typename... Args>
+      requires HasVoidReturnType<QuantumKernel, Args...>
+    sample_result sample(QuantumKernel&& kernel, Args&&... args);
 
-  // Specify shots
-  template<typename QuantumKernel, typename... Args>
-    requires HasVoidReturnType<QuantumKernel, Args...>
-  sample_result sample(std::size_t shots, QuantumKernel&& kernel, Args&&... args);
+    // Specify shots
+    template<typename QuantumKernel, typename... Args>
+      requires HasVoidReturnType<QuantumKernel, Args...>
+    sample_result sample(std::size_t shots, QuantumKernel&& kernel, Args&&... args);
 
-  // Specify sample options (including shots and noise model)
-  template<typename QuantumKernel, typename... Args>
-    requires HasVoidReturnType<QuantumKernel, Args...>
-  sample_result sample(const sample_options &options,
-                       QuantumKernel&& kernel, Args&&... args);
+    // Specify sample options (including shots and noise model)
+    template<typename QuantumKernel, typename... Args>
+      requires HasVoidReturnType<QuantumKernel, Args...>
+    sample_result sample(const sample_options &options,
+                         QuantumKernel&& kernel, Args&&... args);
 
 This function takes as input a quantum kernel instance followed by the
 concrete arguments at which the kernel should be invoked. CUDA Quantum kernels 
@@ -46,56 +46,56 @@ extract the result information in the following manner:
 
 .. code-block:: cpp
 
-  auto bell = []() __qpu__ { ... };
-  auto counts = cudaq::sample(bell)
+    auto bell = []() __qpu__ { ... };
+    auto counts = cudaq::sample(bell)
  
-  // Print to standard out
-  counts.dump();
+    // Print to standard out
+    counts.dump();
  
-  // Fine-grained access to the bits and counts
-  for (auto& [bits, count] : counts) {
-    printf("Observed: %s, %lu\n", bits, count);
-  }
+    // Fine-grained access to the bits and counts
+    for (auto& [bits, count] : counts) {
+      printf("Observed: %s, %lu\n", bits, count);
+    }
 
 CUDA Quantum specifies the following structure for :code:`cudaq::sample_result`:
 
 .. code-block:: cpp 
 
-  namespace cudaq {
-    using CountsDictionary = std::unordered_map<std::string, std::size_t>;
-    inline static const std::string GlobalRegisterName = "__global__";
-    class sample_result {
-      public:
-        sample_result() = default;
-        sample_result(const sample_result &);
-        ~sample_result();
-        
-        std::vector<std::string> register_names();
-        
-        std::size_t count(std::string_view bitString,
-                    const std::string_view registerName = GlobalRegisterName);
-        
-        std::vector<std::string>
-        sequential_data(const std::string_view registerName = GlobalRegisterName);
-        
-        CountsDictionary
-        to_map(const std::string_view registerName = GlobalRegisterName);
-        
-        sample_result
-        get_marginal(const std::vector<std::size_t> &&marginalIndices,
-               const std::string_view registerName = GlobalRegisterName);
+    namespace cudaq {
+      using CountsDictionary = std::unordered_map<std::string, std::size_t>;
+      inline static const std::string GlobalRegisterName = "__global__";
+      class sample_result {
+        public:
+          sample_result() = default;
+          sample_result(const sample_result &);
+          ~sample_result();
+          
+          std::vector<std::string> register_names();
+          
+          std::size_t count(std::string_view bitString,
+                      const std::string_view registerName = GlobalRegisterName);
+          
+          std::vector<std::string>
+          sequential_data(const std::string_view registerName = GlobalRegisterName);
+          
+          CountsDictionary
+          to_map(const std::string_view registerName = GlobalRegisterName);
+          
+          sample_result
+          get_marginal(const std::vector<std::size_t> &&marginalIndices,
+                 const std::string_view registerName = GlobalRegisterName);
 
-        double exp_val_z(const std::string_view registerName == GlobalRegisterName);
-        double probability(std::string_view bitString, const std::string_view registerName == GlobalRegisterName);
-        std::size_t size(const std::string_view registerName == GlobalRegisterName);
-        
-        void dump();
-        void clear();
+          double exp_val_z(const std::string_view registerName == GlobalRegisterName);
+          double probability(std::string_view bitString, const std::string_view registerName == GlobalRegisterName);
+          std::size_t size(const std::string_view registerName == GlobalRegisterName);
+          
+          void dump();
+          void clear();
 
-        CountsDictionary::iterator begin();
-        CountsDictionary::iterator end();
-    };
-  }
+          CountsDictionary::iterator begin();
+          CountsDictionary::iterator end();
+      };
+    }
 
 The :code:`sample_result` type enables one to encode measurement results from a 
 quantum circuit sampling task. It keeps track of a list of sample results, each 
@@ -106,23 +106,23 @@ to the measurement results for each register. To illustrate this, observe
 
 .. code-block:: cpp
 
-  auto kernel = []() __qpu__ {
-    cudaq::qubit q;
-    h(q);
-    auto reg1 = mz(q);
-    reset (q);
-    x(q);
-  };
-  cudaq::sample(kernel).dump();
+    auto kernel = []() __qpu__ {
+      cudaq::qubit q;
+      h(q);
+      auto reg1 = mz(q);
+      reset (q);
+      x(q);
+    };
+    cudaq::sample(kernel).dump();
 
 should produce 
 
 .. code-block:: bash 
 
-  { 
-    __global__ : { 1:1000 }
-    reg1 : { 0:501 1:499 }
-  }
+    { 
+      __global__ : { 1:1000 }
+      reg1 : { 0:501 1:499 }
+    }
 
 Here we see that we have measured a qubit in a uniform superposition to a 
 register named :code:`reg1`, and followed it with a reset and the application 
@@ -150,8 +150,8 @@ CUDA Quantum also provides an asynchronous version of this function
 
 .. code-block:: cpp 
 
-  template<typename QuantumKernel, typename... Args>
-  async_sample_result sample_async(const std::size_t qpu_id, QuantumKernel&& kernel, Args&&... args);
+    template<typename QuantumKernel, typename... Args>
+    async_sample_result sample_async(const std::size_t qpu_id, QuantumKernel&& kernel, Args&&... args);
 
 Programmers can asynchronously launch sampling tasks on any :code:`qpu_id`. 
 
@@ -176,18 +176,18 @@ function has the following signature:
 
 .. code-block:: cpp
   
-  // Kernel only
-  template<typename QuantumKernel, typename... Args>
-  observe_result observe(QuantumKernel&&, cudaq::spin_op&, Args&&... args);
-  
-  // Specify shots
-  template<typename QuantumKernel, typename... Args>
-  observe_result observe(std::size_t shots, QuantumKernel&&, cudaq::spin_op&, Args&&... args);
+    // Kernel only
+    template<typename QuantumKernel, typename... Args>
+    observe_result observe(QuantumKernel&&, cudaq::spin_op&, Args&&... args);
+    
+    // Specify shots
+    template<typename QuantumKernel, typename... Args>
+    observe_result observe(std::size_t shots, QuantumKernel&&, cudaq::spin_op&, Args&&... args);
 
-  // Specify sample options (including shots and noise model)
-  template<typename QuantumKernel, typename... Args>
-  observe_result observe(const cudaq::observe_options &options,
-                         QuantumKernel&&, cudaq::spin_op&, Args&&... args);
+    // Specify sample options (including shots and noise model)
+    template<typename QuantumKernel, typename... Args>
+    observe_result observe(const cudaq::observe_options &options,
+                          QuantumKernel&&, cudaq::spin_op&, Args&&... args);
 
 This function takes as input an instantiated quantum kernel, the
 :code:`cudaq::spin_op` whose expectation is requested, and the concrete
@@ -199,23 +199,23 @@ generated and used as part of that expectation value computation. The
 
 .. code-block:: cpp
 
-  class observe_result {
-    public:
-      observe_result(double &e, spin_op &H);
-      observe_result(double &e, spin_op &H, MeasureCounts counts);
+    class observe_result {
+      public:
+        observe_result(double &e, spin_op &H);
+        observe_result(double &e, spin_op &H, MeasureCounts counts);
 
-      sample_results raw_data() { return data; };
-      operator double();
-      double exp_val_z();
-      
-      template <typename SpinOpType>
-      double exp_val_z(SpinOpType term);
+        sample_results raw_data() { return data; };
+        operator double();
+        double exp_val_z();
+        
+        template <typename SpinOpType>
+        double exp_val_z(SpinOpType term);
 
-      template <typename SpinOpType>
-      sample_result counts(SpinOpType term);
-      double id_coefficient() 
-      void dump();
-  };
+        template <typename SpinOpType>
+        sample_result counts(SpinOpType term);
+        double id_coefficient() 
+        void dump();
+    };
 
 The public API for :code:`observe_result` enables one to extract the 
 :code:`sample_result` data for each term in the provided :code:`spin_op`. 
@@ -223,40 +223,40 @@ This return type can be used in the following way.
 
 .. code-block:: cpp 
 
-  // I only care about the expected value, discard 
-  // the fine-grain data produced
-  double expVal = cudaq::observe(kernel, spinOp, args...);
+    // I only care about the expected value, discard 
+    // the fine-grain data produced
+    double expVal = cudaq::observe(kernel, spinOp, args...);
 
-  // I require the result with all generated data 
-  auto result = cudaq::observe(kernel, spinOp, args...);
-  auto expVal = result.exp_val_z();
-  auto X0X1Exp = result.exp_val_z(x(0)*x(1));
-  auto X0X1Data = result.counts(x(0)*x(1));
-  result.dump();
+    // I require the result with all generated data 
+    auto result = cudaq::observe(kernel, spinOp, args...);
+    auto expVal = result.exp_val_z();
+    auto X0X1Exp = result.exp_val_z(x(0)*x(1));
+    auto X0X1Data = result.counts(x(0)*x(1));
+    result.dump();
 
 Here is an example of the utility of the :code:`cudaq::observe` function:
 
 .. code-block:: cpp
 
-  struct ansatz {
-    auto operator()(double theta) __qpu__ {
-      cudaq::qreg q(2);
-      x(q[0]);
-      ry(theta, q[1]);
-      x<cudaq::ctrl>(q[1], q[0]);
+    struct ansatz {
+      auto operator()(double theta) __qpu__ {
+        cudaq::qreg q(2);
+        x(q[0]);
+        ry(theta, q[1]);
+        x<cudaq::ctrl>(q[1], q[0]);
+      }
+    };
+  
+    int main() {
+      using namespace cudaq::spin; // make it easier to use pauli X,Y,Z below
+  
+      spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
+                  .21829 * z(0) - 6.125 * z(1);
+  
+      double energy = cudaq::observe(ansatz{}, h, .59);
+      printf("Energy is %lf\n", energy); 
+      return 0;
     }
-  };
- 
-  int main() {
-    using namespace cudaq::spin; // make it easier to use pauli X,Y,Z below
- 
-    spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
-                .21829 * z(0) - 6.125 * z(1);
- 
-    double energy = cudaq::observe(ansatz{}, h, .59);
-    printf("Energy is %lf\n", energy); 
-    return 0;
-  }
 
 There are specific requirements on input quantum kernels for the use of the
 observe function which must be enforced by compiler implementations. The
@@ -274,8 +274,8 @@ CUDA Quantum also provides an asynchronous version of this function
 
 .. code-block:: cpp 
 
-  template<typename QuantumKernel, typename... Args>
-  async_observe_result observe_async(const std::size_t qpu_id, QuantumKernel&& kernel, cudaq::spin_op&, Args&&... argss);
+    template<typename QuantumKernel, typename... Args>
+    async_observe_result observe_async(const std::size_t qpu_id, QuantumKernel&& kernel, cudaq::spin_op&, Args&&... args);
 
 Programmers can asynchronously launch sampling tasks on any :code:`qpu_id`. 
 
@@ -309,25 +309,25 @@ CUDA Quantum models the :code:`cudaq::optimizer` as follows:
 
 .. code-block:: cpp 
 
-  namespace cudaq {
-    // Encode the optimal value and optimal parameters
-    using optimization_result = std::tuple<double, std::vector<double>>;
-    // Initialized with user specified callable of a specific signature
-    // Clients can query if the function computes gradients or not
-    class optimizable_function {
-      public:
-        template<typename Callable>
-        optimizable_function(Callable&&);
-        bool providesGradients() { return _providesGradients; }
-        double operator()(const std::vector<double> &x, std::vector<double> &dx);
-    };
-    class optimizer {
-      public:
-        virtual bool requiresGradients() = 0;
-        virtual optimization_result optimize(const int dimensions,
-                                             optimizable_function&& opt_function) = 0;
-    }; 
-  }
+    namespace cudaq {
+      // Encode the optimal value and optimal parameters
+      using optimization_result = std::tuple<double, std::vector<double>>;
+      // Initialized with user specified callable of a specific signature
+      // Clients can query if the function computes gradients or not
+      class optimizable_function {
+        public:
+          template<typename Callable>
+          optimizable_function(Callable&&);
+          bool providesGradients() { return _providesGradients; }
+          double operator()(const std::vector<double> &x, std::vector<double> &dx);
+      };
+      class optimizer {
+        public:
+          virtual bool requiresGradients() = 0;
+          virtual optimization_result optimize(const int dimensions,
+                                              optimizable_function&& opt_function) = 0;
+      }; 
+    }
 
 Here, :code:`optimization_result` should encode the optimal value and optimal
 parameters achieved during the optimization workflow
@@ -344,16 +344,16 @@ Here is an example of how the :code:`cudaq::optimizer` is intended to be used:
 
 .. code-block:: cpp 
 
-  auto ansatz = [](double theta, double phi) __qpu__ {...};
-  cudaq::spin_op H = ... ;
- 
-  cudaq::optimizers::cobyla optimizer;
-  optimizer.max_eval = 200;
- 
-  auto [opt_energy, opt_params] = optimizer.optimize(
-        2, [&](const std::vector<double> &x, std::vector<double> &grad_vec) {
-          return cudaq::observe(ansatz, H, x[0], x[1]);
-        });
+    auto ansatz = [](double theta, double phi) __qpu__ {...};
+    cudaq::spin_op H = ... ;
+  
+    cudaq::optimizers::cobyla optimizer;
+    optimizer.max_eval = 200;
+  
+    auto [opt_energy, opt_params] = optimizer.optimize(
+          2, [&](const std::vector<double> &x, std::vector<double> &grad_vec) {
+            return cudaq::observe(ansatz, H, x[0], x[1]);
+          });
 
 :code:`cudaq::gradient`
 -------------------------
@@ -373,30 +373,30 @@ The gradient strategy type takes the following form:
 
 .. code-block:: cpp
 
-  namespace cudaq {
-    class gradient {
-      public:
-        gradient(std::function<void(std::vector<double>)> &&kernel);
- 
-        template <typename QuantumKernel, typename ArgsMapper>
-        gradient(QuantumKernel &&kernel, ArgsMapper &&argsMapper);
- 
-        virtual void compute(std::vector<double>& x, std::vector<double> &dx,
-                           spin_op& h, double exp_h) = 0;
-        
-        virtual std::vector<double>
-        compute(const std::vector<double> &x,
-                std::function<double(std::vector<double>)> &func) = 0;
+    namespace cudaq {
+      class gradient {
+        public:
+          gradient(std::function<void(std::vector<double>)> &&kernel);
+  
+          template <typename QuantumKernel, typename ArgsMapper>
+          gradient(QuantumKernel &&kernel, ArgsMapper &&argsMapper);
+  
+          virtual void compute(std::vector<double>& x, std::vector<double> &dx,
+                            spin_op& h, double exp_h) = 0;
+          
+          virtual std::vector<double>
+          compute(const std::vector<double> &x,
+                  std::function<double(std::vector<double>)> &func) = 0;
 
-    };
- 
-    // gradient is intended for subclassing
-    class central_difference : public gradient {
-      public:
-        void compute(std::vector<double>& x, std::vector<double> &dx, spin_op& h,
-                 double exp_h) override { ... }
-    };
-  }
+      };
+  
+      // gradient is intended for subclassing
+      class central_difference : public gradient {
+        public:
+          void compute(std::vector<double>& x, std::vector<double> &dx, spin_op& h,
+                  double exp_h) override { ... }
+      };
+    }
 
 The :code:`compute` function can make use of the quantum kernel parameterized ansatz, the 
 :code:`spin_op` for which the expected value is being computed, the
@@ -418,46 +418,46 @@ default :code:`std::vector<double>` signature):
 
 .. code-block:: cpp
 
-  auto deuteron_n3_ansatz = [](double x0, double x1) __qpu__ {
-    cudaq::qreg q(3);
-    x(q[0]);
-    ry(x0, q[1]);
-    ry(x1, q[2]);
-    x<cudaq::ctrl>(q[2], q[0]);
-    x<vctrl>(q[0], q[1]);
-    ry(-x0, q[1]);
-    x<cudaq::ctrl>(q[0], q[1]);
-    x<cudaq::ctrl>(q[1], q[0]);
-  };
+    auto deuteron_n3_ansatz = [](double x0, double x1) __qpu__ {
+      cudaq::qreg q(3);
+      x(q[0]);
+      ry(x0, q[1]);
+      ry(x1, q[2]);
+      x<cudaq::ctrl>(q[2], q[0]);
+      x<vctrl>(q[0], q[1]);
+      ry(-x0, q[1]);
+      x<cudaq::ctrl>(q[0], q[1]);
+      x<cudaq::ctrl>(q[1], q[0]);
+    };
 
-  cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
-             .21829 * z(0) - 6.125 * z(1);
-  cudaq::spin_op h3 = h + 9.625 - 9.625 * z(2) - 3.913119 * x(1) * x(2) -
-              3.913119 * y(1) * y(2);
+    cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
+              .21829 * z(0) - 6.125 * z(1);
+    cudaq::spin_op h3 = h + 9.625 - 9.625 * z(2) - 3.913119 * x(1) * x(2) -
+                3.913119 * y(1) * y(2);
 
-  // The above ansatz takes 2 doubles, not a single std::vector<double>, which 
-  // the gradient type is expecting. So we must provide an ArgsMapper callable type
-  auto argsMapper = [](std::vector<double> x) {return std::make_tuple(x[0],x[1]);};
+    // The above ansatz takes 2 doubles, not a single std::vector<double>, which 
+    // the gradient type is expecting. So we must provide an ArgsMapper callable type
+    auto argsMapper = [](std::vector<double> x) {return std::make_tuple(x[0],x[1]);};
 
-  // Create the gradient strategy
-  cudaq::gradients::central_difference gradient(deuteron_n3_ansatz, argsMapper);
+    // Create the gradient strategy
+    cudaq::gradients::central_difference gradient(deuteron_n3_ansatz, argsMapper);
 
-  // Create the L-BFGS optimizer, requires gradients
-  cudaq::optimizers::lbfgs optimizer;
+    // Create the L-BFGS optimizer, requires gradients
+    cudaq::optimizers::lbfgs optimizer;
 
-  // Run the optimization routine. 
-  auto [min_val, opt_params] = optimizer.optimize(
-      2, [&](const std::vector<double>& x, std::vector<double>& grad_vec) {
-        // Compute the cost, here its an energy
-        auto cost = cudaq::observe(deuteron_n3_ansatz, h3, x);
-        
-        // Compute the gradient, results written to the grad_vec reference
-        gradient.compute(x, grad_vec, h3, cost);
+    // Run the optimization routine. 
+    auto [min_val, opt_params] = optimizer.optimize(
+        2, [&](const std::vector<double>& x, std::vector<double>& grad_vec) {
+          // Compute the cost, here its an energy
+          auto cost = cudaq::observe(deuteron_n3_ansatz, h3, x);
+          
+          // Compute the gradient, results written to the grad_vec reference
+          gradient.compute(x, grad_vec, h3, cost);
 
-        // Return the cost to the optimizer
-        return cost;
-      });
+          // Return the cost to the optimizer
+          return cost;
+        });
 
-  // Print the results
-  printf("Optimizer found %lf at [%lf,%lf]\n", min_val, opt_params[0], opt_params[1]);
+    // Print the results
+    printf("Optimizer found %lf at [%lf,%lf]\n", min_val, opt_params[0], opt_params[1]);
 
