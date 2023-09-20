@@ -576,10 +576,12 @@ struct EraseMeasurements : public OpRewritePattern<LLVM::CallOp> {
 
   LogicalResult matchAndRewrite(LLVM::CallOp call,
                                 PatternRewriter &rewriter) const override {
-    if (call.getCallee()->equals(cudaq::opt::QIRMeasureBody) ||
-        call.getCallee()->equals(cudaq::opt::QIRBaseProfileRecordOutput)) {
-      rewriter.eraseOp(call);
-      return success();
+    if (auto callee = call.getCallee()) {
+      if (callee->equals(cudaq::opt::QIRMeasureBody) ||
+          callee->equals(cudaq::opt::QIRBaseProfileRecordOutput)) {
+        rewriter.eraseOp(call);
+        return success();
+      }
     }
     return failure();
   }
