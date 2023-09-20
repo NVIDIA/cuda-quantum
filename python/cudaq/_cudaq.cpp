@@ -85,7 +85,7 @@ PYBIND11_MODULE(_pycudaq, mod) {
   cudaq::bindQuakeValue(mod);
   cudaq::bindObserve(mod);
   cudaq::bindObserveResult(mod);
-  cudaq::bindNoiseModel(mod);
+  cudaq::bindNoise(mod);
   cudaq::bindSample(mod);
   cudaq::bindMeasureCounts(mod);
   cudaq::bindComplexMatrix(mod);

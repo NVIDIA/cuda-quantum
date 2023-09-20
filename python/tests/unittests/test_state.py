@@ -244,9 +244,7 @@ def test_state_density_matrix_integration():
     kernel.cz(qubits[0], qubits[1])
 
     want_state = cudaq.State(
-        np.array([[.5, 0., 0., .5], 
-                  [0., 0., 0., 0.], 
-                  [0., 0., 0., 0.], 
+        np.array([[.5, 0., 0., .5], [0., 0., 0., 0.], [0., 0., 0., 0.],
                   [.5, 0., 0., .5]],
                  dtype=np.complex128))
 

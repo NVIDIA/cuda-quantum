@@ -12,6 +12,9 @@
 
 namespace cudaq {
 
+void set_random_seed(std::size_t);
+std::size_t get_random_seed();
+
 /// @brief An ArgumentSet is a tuple of vectors of general
 /// arguments to a CUDA Quantum kernel. The ith vector of the tuple
 /// corresponds to the ith argument of the kernel. The jth element of
@@ -53,12 +56,15 @@ broadcastFunctionOverArguments(std::size_t numQpus, quantum_platform &platform,
                                "over - vector sizes not the same.");
   });
 
+  // Fetch the thread-specific seed outside the functor and then pass it inside.
+  std::size_t seed = cudaq::get_random_seed();
+
   FutureCollection futures;
   for (std::size_t qpuId = 0; qpuId < numQpus; qpuId++) {
     std::promise<std::vector<ResType>> _promise;
     futures.emplace_back(_promise.get_future());
     std::function<void()> functor = detail::make_copyable_function(
-        [&params, &apply, qpuId, nExecsPerQpu,
+        [&params, &apply, qpuId, nExecsPerQpu, seed,
          promise = std::move(_promise)]() mutable {
           // Compute the lower and upper bounds of the
           // argument set that should be computed on the current QPU
@@ -84,6 +90,10 @@ broadcastFunctionOverArguments(std::size_t numQpus, quantum_platform &platform,
             std::get<1>(currentArgs) = counter;
             std::get<2>(currentArgs) = nExecsPerQpu;
             counter++;
+
+            // If seed is 0, then it has not been set.
+            if (seed > 0)
+              cudaq::set_random_seed(seed);
 
             // Fill the argument tuple with the actual arguments.
             cudaq::tuple_for_each_with_idx(
