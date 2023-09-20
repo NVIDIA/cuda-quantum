@@ -931,6 +931,74 @@ public:
   }
 };
 
+class CallCallableOpPattern
+    : public ConvertOpToLLVMPattern<cudaq::cc::CallCallableOp> {
+public:
+  using Base = ConvertOpToLLVMPattern<cudaq::cc::CallCallableOp>;
+  using Base::Base;
+
+  LogicalResult
+  matchAndRewrite(cudaq::cc::CallCallableOp call, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = call.getLoc();
+    auto calleeFuncTy =
+        cast<cudaq::cc::CallableType>(call.getCallee().getType())
+            .getSignature();
+    auto operands = adaptor.getOperands();
+    auto *ctx = rewriter.getContext();
+    auto structTy = dyn_cast<LLVM::LLVMStructType>(operands[0].getType());
+    auto ptr0Ty = structTy.getBody()[0];
+    auto zero = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{0});
+    auto rawFuncPtr =
+        rewriter.create<LLVM::ExtractValueOp>(loc, ptr0Ty, operands[0], zero);
+    auto ptr1Ty = structTy.getBody()[1];
+    auto one = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{1});
+    auto rawTuplePtr =
+        rewriter.create<LLVM::ExtractValueOp>(loc, ptr1Ty, operands[0], one);
+    Type funcPtrTy = getTypeConverter()->convertType(calleeFuncTy);
+    auto funcPtr = rewriter.create<LLVM::BitcastOp>(loc, funcPtrTy, rawFuncPtr);
+    auto zeroAttr = rewriter.getI64IntegerAttr(0);
+    auto i64Ty = rewriter.getI64Type();
+    auto zeroI64 = rewriter.create<LLVM::ConstantOp>(loc, i64Ty, zeroAttr);
+    auto rawTupleVal =
+        rewriter.create<LLVM::PtrToIntOp>(loc, i64Ty, rawTuplePtr);
+    auto isNullptr = rewriter.create<LLVM::ICmpOp>(loc, LLVM::ICmpPredicate::eq,
+                                                   rawTupleVal, zeroI64);
+    auto *initBlock = rewriter.getInsertionBlock();
+    auto initPos = rewriter.getInsertionPoint();
+    auto *endBlock = rewriter.splitBlock(initBlock, initPos);
+    auto *thenBlock = rewriter.createBlock(endBlock);
+    auto *elseBlock = rewriter.createBlock(endBlock);
+    SmallVector<Type> resultTy;
+    auto llvmFuncTy = cast<LLVM::LLVMFunctionType>(
+        cast<LLVM::LLVMPointerType>(funcPtrTy).getElementType());
+    if (!isa<LLVM::LLVMVoidType>(llvmFuncTy.getReturnType())) {
+      resultTy.push_back(llvmFuncTy.getReturnType());
+      endBlock->addArgument(resultTy[0], loc);
+    }
+    rewriter.setInsertionPointToEnd(initBlock);
+    rewriter.create<LLVM::CondBrOp>(loc, isNullptr, thenBlock, elseBlock);
+    rewriter.setInsertionPointToEnd(thenBlock);
+    SmallVector<Value> arguments1 = {funcPtr};
+    arguments1.append(operands.begin() + 1, operands.end());
+    auto call1 = rewriter.create<LLVM::CallOp>(loc, resultTy, arguments1);
+    rewriter.create<LLVM::BrOp>(loc, call1.getResults(), endBlock);
+    rewriter.setInsertionPointToEnd(elseBlock);
+    SmallVector<Type> argTys(operands.getTypes().begin(),
+                             operands.getTypes().end());
+    auto adjustedFuncTy =
+        LLVM::LLVMFunctionType::get(llvmFuncTy.getReturnType(), argTys);
+    auto adjustedFuncPtr = rewriter.create<LLVM::BitcastOp>(
+        loc, cudaq::opt::factory::getPointerType(adjustedFuncTy), funcPtr);
+    SmallVector<Value> arguments2 = {adjustedFuncPtr};
+    arguments2.append(operands.begin(), operands.end());
+    auto call2 = rewriter.create<LLVM::CallOp>(loc, resultTy, arguments2);
+    rewriter.create<LLVM::BrOp>(loc, call2.getResults(), endBlock);
+    rewriter.replaceOp(call, endBlock->getArguments());
+    return success();
+  }
+};
+
 class CastOpPattern : public ConvertOpToLLVMPattern<cudaq::cc::CastOp> {
 public:
   using Base = ConvertOpToLLVMPattern<cudaq::cc::CastOp>;
@@ -1107,26 +1175,39 @@ public:
     SmallVector<Type> tupleMemTys(adaptor.getOperands().getTypes().begin(),
                                   adaptor.getOperands().getTypes().end());
     auto tupleTy = LLVM::LLVMStructType::getLiteral(ctx, tupleMemTys);
-    Value tupleVal = rewriter.create<LLVM::UndefOp>(loc, tupleTy);
-    std::int64_t offsetVal = 0;
-    for (auto op : operands) {
-      auto offset =
-          DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{offsetVal});
-      tupleVal = rewriter.create<LLVM::InsertValueOp>(loc, tupleTy, tupleVal,
-                                                      op, offset);
-      offsetVal++;
-    }
-    auto oneAttr = rewriter.getI64IntegerAttr(1);
+    Value tmp;
     auto i64Ty = rewriter.getI64Type();
-    Value one = rewriter.create<LLVM::ConstantOp>(loc, i64Ty, oneAttr);
-    auto tuplePtrTy = cudaq::opt::factory::getPointerType(tupleTy);
-    auto tmp = rewriter.create<LLVM::AllocaOp>(loc, tuplePtrTy, one);
-    rewriter.create<LLVM::StoreOp>(loc, tupleVal, tmp);
     auto tupleArgTy = lambdaAsPairOfPointers(ctx);
+    if (callable.getNoCapture()) {
+      auto zeroAttr = rewriter.getI64IntegerAttr(0);
+      auto zero = rewriter.create<LLVM::ConstantOp>(loc, i64Ty, zeroAttr);
+      tmp =
+          rewriter.create<LLVM::IntToPtrOp>(loc, tupleArgTy.getBody()[1], zero);
+    } else {
+      Value tupleVal = rewriter.create<LLVM::UndefOp>(loc, tupleTy);
+      std::int64_t offsetVal = 0;
+      for (auto op : operands) {
+        auto offset =
+            DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{offsetVal});
+        tupleVal = rewriter.create<LLVM::InsertValueOp>(loc, tupleTy, tupleVal,
+                                                        op, offset);
+        offsetVal++;
+      }
+      auto oneAttr = rewriter.getI64IntegerAttr(1);
+      Value one = rewriter.create<LLVM::ConstantOp>(loc, i64Ty, oneAttr);
+      auto tuplePtrTy = cudaq::opt::factory::getPointerType(tupleTy);
+      tmp = rewriter.create<LLVM::AllocaOp>(loc, tuplePtrTy, one);
+      rewriter.create<LLVM::StoreOp>(loc, tupleVal, tmp);
+    }
     Value tupleArg = rewriter.create<LLVM::UndefOp>(loc, tupleArgTy);
     auto module = callable->getParentOfType<ModuleOp>();
-    auto calledFunc = module.lookupSymbol<func::FuncOp>(callable.getCallee());
-    Type sigTy = getTypeConverter()->convertType(calledFunc.getFunctionType());
+    auto *calledFuncOp = module.lookupSymbol(callable.getCallee());
+    auto sigTy = [&]() -> Type {
+      if (auto calledFunc = dyn_cast<func::FuncOp>(calledFuncOp))
+        return getTypeConverter()->convertType(calledFunc.getFunctionType());
+      return cudaq::opt::factory::getPointerType(
+          cast<LLVM::LLVMFuncOp>(calledFuncOp).getFunctionType());
+    }();
     auto tramp = rewriter.create<LLVM::AddressOfOp>(
         loc, sigTy, callable.getCallee().cast<FlatSymbolRefAttr>());
     auto trampoline =
@@ -1323,43 +1404,10 @@ public:
   ModuleOp getModule() { return getOperation(); }
 
   void runOnOperation() override final {
-    auto *context = getModule().getContext();
+    auto *context = &getContext();
     LLVMConversionTarget target{*context};
     LLVMTypeConverter typeConverter(&getContext());
-    typeConverter.addConversion(
-        [&](quake::VeqType type) { return cudaq::opt::getArrayType(context); });
-    typeConverter.addConversion(
-        [&](quake::RefType type) { return cudaq::opt::getQubitType(context); });
-    typeConverter.addConversion([&](cudaq::cc::CallableType type) {
-      return lambdaAsPairOfPointers(type.getContext());
-    });
-    typeConverter.addConversion([&](cudaq::cc::StdvecType type) {
-      return cudaq::opt::factory::stdVectorImplType(type.getElementType());
-    });
-    typeConverter.addConversion([&](cudaq::cc::PointerType type) {
-      auto eleTy = type.getElementType();
-      if (isa<NoneType>(eleTy))
-        return cudaq::opt::factory::getPointerType(context);
-      eleTy = typeConverter.convertType(eleTy);
-      if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(eleTy)) {
-        assert(arrTy.isUnknownSize());
-        return cudaq::opt::factory::getPointerType(
-            typeConverter.convertType(arrTy.getElementType()));
-      }
-      return cudaq::opt::factory::getPointerType(eleTy);
-    });
-    typeConverter.addConversion([&](cudaq::cc::ArrayType type) -> Type {
-      auto eleTy = typeConverter.convertType(type.getElementType());
-      if (type.isUnknownSize())
-        return type;
-      return LLVM::LLVMArrayType::get(eleTy, type.getSize());
-    });
-    typeConverter.addConversion([&](cudaq::cc::StructType type) -> Type {
-      SmallVector<Type> members;
-      for (auto t : type.getMembers())
-        members.push_back(typeConverter.convertType(t));
-      return LLVM::LLVMStructType::getLiteral(context, members);
-    });
+    initializeTypeConversions(typeConverter);
     RewritePatternSet patterns(context);
 
     populateAffineToStdConversionPatterns(patterns);
@@ -1374,10 +1422,10 @@ public:
         context);
     patterns.insert<
         AllocaOpRewrite, AllocaOpPattern, CallableClosureOpPattern,
-        CallableFuncOpPattern, CastOpPattern, ComputePtrOpPattern,
-        ConcatOpRewrite, DeallocOpRewrite, ExtractQubitOpRewrite,
-        ExtractValueOpPattern, FuncToPtrOpPattern, InsertValueOpPattern,
-        InstantiateCallableOpPattern, LoadOpPattern,
+        CallableFuncOpPattern, CallCallableOpPattern, CastOpPattern,
+        ComputePtrOpPattern, ConcatOpRewrite, DeallocOpRewrite,
+        ExtractQubitOpRewrite, ExtractValueOpPattern, FuncToPtrOpPattern,
+        InsertValueOpPattern, InstantiateCallableOpPattern, LoadOpPattern,
         OneTargetRewrite<quake::HOp>, OneTargetRewrite<quake::XOp>,
         OneTargetRewrite<quake::YOp>, OneTargetRewrite<quake::ZOp>,
         OneTargetRewrite<quake::SOp>, OneTargetRewrite<quake::TOp>,
@@ -1398,6 +1446,47 @@ public:
 
     if (failed(applyFullConversion(getModule(), target, std::move(patterns))))
       signalPassFailure();
+  }
+
+  void initializeTypeConversions(LLVMTypeConverter &typeConverter) {
+    typeConverter.addConversion([](quake::VeqType type) {
+      return cudaq::opt::getArrayType(type.getContext());
+    });
+    typeConverter.addConversion([](quake::RefType type) {
+      return cudaq::opt::getQubitType(type.getContext());
+    });
+    typeConverter.addConversion([](cudaq::cc::CallableType type) {
+      return lambdaAsPairOfPointers(type.getContext());
+    });
+    typeConverter.addConversion([](cudaq::cc::StdvecType type) {
+      return cudaq::opt::factory::stdVectorImplType(type.getElementType());
+    });
+    typeConverter.addConversion([&typeConverter](cudaq::cc::PointerType type) {
+      auto eleTy = type.getElementType();
+      if (isa<NoneType>(eleTy))
+        return cudaq::opt::factory::getPointerType(type.getContext());
+      eleTy = typeConverter.convertType(eleTy);
+      if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(eleTy)) {
+        assert(arrTy.isUnknownSize());
+        return cudaq::opt::factory::getPointerType(
+            typeConverter.convertType(arrTy.getElementType()));
+      }
+      return cudaq::opt::factory::getPointerType(eleTy);
+    });
+    typeConverter.addConversion(
+        [&typeConverter](cudaq::cc::ArrayType type) -> Type {
+          auto eleTy = typeConverter.convertType(type.getElementType());
+          if (type.isUnknownSize())
+            return type;
+          return LLVM::LLVMArrayType::get(eleTy, type.getSize());
+        });
+    typeConverter.addConversion(
+        [&typeConverter](cudaq::cc::StructType type) -> Type {
+          SmallVector<Type> members;
+          for (auto t : type.getMembers())
+            members.push_back(typeConverter.convertType(t));
+          return LLVM::LLVMStructType::getLiteral(type.getContext(), members);
+        });
   }
 };
 
