@@ -96,7 +96,7 @@ def RemoveMeasurements : Pass<"remove-measurements"> {
     measurement results for compiler-generated qubits. This pass enables the
     compiler to strip out the measurements and output recording calls from a QIR
     program to prevent that problem. This pass MUST be run after normal
-    measurements and output recording calls have been generatad because that
+    measurements and output recording calls have been generated because that
     metadata must be extracted from the program to allow reconstruction of the
     outputs from the backend.
   }];
