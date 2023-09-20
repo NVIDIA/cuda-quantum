@@ -703,7 +703,7 @@ public:
   using Base = ConvertOpToLLVMPattern<OP>;
   using Base::Base;
 
-  unsigned &measureCounter = 0;
+  unsigned &measureCounter;
 
   MeasureRewrite(LLVMTypeConverter &typeConverter, unsigned &c)
       : Base(typeConverter), measureCounter(c) {}
