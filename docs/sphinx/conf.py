@@ -54,7 +54,8 @@ extensions = [
     'breathe',
     'enum_tools.autoenum',       # for pretty-print Python enums
     'myst_parser',               # for including markdown files
-    "nbsphinx",                  # for supporting jupyter notebooks
+    'nbsphinx',                  # for supporting jupyter notebooks
+    'sphinx_copybutton',         # allows for copy/paste of code cells
     "sphinx_gallery.load_style",
     "IPython.sphinxext.ipython_console_highlighting",
 ]
@@ -175,3 +176,4 @@ napoleon_google_docstring = True
 napoleon_numpy_docstring = False
 autosectionlabel_prefix_document = True
 autosectionlabel_maxdepth = 2
+copybutton_copy_empty_lines = False
