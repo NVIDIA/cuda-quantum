@@ -14,6 +14,6 @@ find_dependency(CUDAQSpin REQUIRED)
 set (CUDAQCommon_DIR "${CUDAQ_EM_CMAKE_DIR}")
 find_dependency(CUDAQCommon REQUIRED)
 
-if(NOT TARGET cudaq::cudaq-em-qir)
-  include("${CUDAQ_EM_CMAKE_DIR}/CUDAQEmQirTargets.cmake")
+if(NOT TARGET cudaq::cudaq-em-default)
+  include("${CUDAQ_EM_CMAKE_DIR}/CUDAQEmDefaultTargets.cmake")
 endif()
