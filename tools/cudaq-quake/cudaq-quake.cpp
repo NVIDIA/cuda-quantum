@@ -344,7 +344,7 @@ int main(int argc, char **argv) {
   });
 
   // Process arguments.
-  std::vector<std::string> clArgs = {"-std=c++20", "-resource-dir",
+  std::vector<std::string> clArgs = {"-x", "c++", "-std=c++20", "-resource-dir",
                                      resourceDirPath.string()};
   if (verboseClang)
     clArgs.push_back("-v");

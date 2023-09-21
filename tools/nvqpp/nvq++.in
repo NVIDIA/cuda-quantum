@@ -39,7 +39,7 @@ function add_pass_to_pipeline {
 }
 
 function list_targets {
-	ls -I *.cpp -1 ${install_dir}/targets/ | sed -e 's/\.config$//'
+	ls -I *.cq -1 ${install_dir}/targets/ | sed -e 's/\.config$//'
 	exit 0
 }
 
@@ -171,7 +171,7 @@ if [ -d "${llvm_install_dir}/bin" -a \
 fi
 
 # Compiler and linker flags
-COMPILER_FLAGS="-std=c++20 -I${CUDAQ_INCLUDE_PATH} ${CUDAQ_CLANG_EXTRA_ARGS}"
+COMPILER_FLAGS="-x c++ -std=c++20 -I${CUDAQ_INCLUDE_PATH} ${CUDAQ_CLANG_EXTRA_ARGS}"
 CLANG_RESOURCE_DIR=""
 # If we are a relocatable package, we want to
 # add compiler flags that will point clang to our repackaged
@@ -395,7 +395,7 @@ while [ $# -ne 0 ]; do
 	*.o | *.so | *.bundle)
 		OBJS="${OBJS} $1"
 		;;
-	*.cpp | *.cc)
+	*.cq)
 		SRCS="${SRCS} $1"
 		;;
 	*.a | *.dylib)	    
@@ -516,7 +516,7 @@ if ${SHOW_VERSION} && [ -z "$SRCS" ] && [ -z "$OBJS" ]; then
 fi
 
 for i in ${SRCS}; do
-	file=$(basename -s .cc -s .cpp $i)
+	file=$(basename -s .cq $i)
 
 	# If LIBRARY_MODE explicitly requested, then
 	# simply compile with the classical compiler.
