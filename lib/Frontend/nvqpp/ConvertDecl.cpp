@@ -157,7 +157,7 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
         auto templArg = tempSpec->getTemplateArgs()[0];
         assert(templArg.getKind() ==
                clang::TemplateArgument::ArgKind::Integral);
-        auto getExtValueHelper = [&](auto v) -> std::int64_t {
+        auto getExtValueHelper = [](auto v) -> std::int64_t {
           if (v.isUnsigned())
             return static_cast<std::int64_t>(v.getZExtValue());
           return v.getSExtValue();
