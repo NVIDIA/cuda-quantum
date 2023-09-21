@@ -94,40 +94,43 @@ jobs:
           echo "### Submit to IonQ Simulator" >> $GITHUB_STEP_SUMMARY
           export IONQ_API_KEY="${{ secrets.IONQ_API_KEY }}"
           # TODO: remove this flag once https://github.com/NVIDIA/cuda-quantum/issues/512 is addressed.
-          export IONQ_FLAG="-DIONQ_TARGET"
           export CUDAQ_LOG_LEVEL="info"
           set +e # Allow script to keep going through errors
           test_err_sum=0
           for filename in test/NVQPP/integration/*.cpp; do
             [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
-            # Only the following tests are currently supported on IonQ
+            # The following tests do not return the right answer, so run with -DSYNTAX_CHECK.
+            # Currently under investigation at IonQ.
             case $filename in
-              test/NVQPP/integration/bug_qubit.cpp|\
-              test/NVQPP/integration/callable_kernel_arg.cpp|\
-              test/NVQPP/integration/if_jit.cpp|\
-              test/NVQPP/integration/load_value.cpp|\
-              test/NVQPP/integration/swap_gate.cpp|\
-              test/NVQPP/integration/test-int8_t.cpp|\
-              test/NVQPP/integration/test-int8_t_free_func.cpp|\
-              test/NVQPP/integration/variable_size_qreg.cpp)
-                nvq++ -v $IONQ_FLAG $filename --target ionq
-                test_status=$?
-                if [ $test_status -eq 0 ]; then
-                  ./a.out
-                  test_status=$?
-                  if [ $test_status -eq 0 ]; then
-                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
-                  else
-                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                    test_err_sum=$((test_err_sum+1))
-                  fi
-                else
-                  echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-                  test_err_sum=$((test_err_sum+1))
-                fi ;;
+              test/NVQPP/integration/graph_coloring-1.cpp|\
+              test/NVQPP/integration/graph_coloring.cpp|\
+              test/NVQPP/integration/qspan_slices.cpp|\
+              test/NVQPP/integration/sudoku_2x2-1.cpp|\
+              test/NVQPP/integration/sudoku_2x2-bit_names.cpp|\
+              test/NVQPP/integration/sudoku_2x2-reg_name.cpp|\
+              test/NVQPP/integration/sudoku_2x2.cpp)
+                ECHO_SUFFIX="(syntax check only)"
+                SYNTAX_CHECK="-DSYNTAX_CHECK" ;;
               *)
-                echo ":white_flag: Test skipped due to known issues: $filename" >> $GITHUB_STEP_SUMMARY ;;
+                ECHO_SUFFIX=""
+                SYNTAX_CHECK="" ;;
             esac
+
+            nvq++ -v $filename $SYNTAX_CHECK --target ionq
+            test_status=$?
+            if [ $test_status -eq 0 ]; then
+              ./a.out
+              test_status=$?
+              if [ $test_status -eq 0 ]; then
+                echo ":white_check_mark: Successfully ran test: $filename $ECHO_SUFFIX" >> $GITHUB_STEP_SUMMARY
+              else
+                echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                test_err_sum=$((test_err_sum+1))
+              fi
+            else
+              echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+              test_err_sum=$((test_err_sum+1))
+            fi
           done
           set -e # Re-enable exit code error checking
           if [ ! $test_err_sum -eq 0 ]; then
@@ -173,6 +176,7 @@ jobs:
               test/NVQPP/integration/load_value.cpp|\
               test/NVQPP/integration/test-int8_t.cpp|\
               test/NVQPP/integration/test-int8_t_free_func.cpp|\
+              test/NVQPP/integration/test-observe.cpp|\
               test/NVQPP/integration/variable_size_qreg.cpp)
                 nvq++ -DSYNTAX_CHECK --target iqm --iqm-machine Adonis $filename
                 test_status=$?
@@ -234,6 +238,7 @@ jobs:
               test/NVQPP/integration/swap_gate.cpp|\
               test/NVQPP/integration/test-int8_t.cpp|\
               test/NVQPP/integration/test-int8_t_free_func.cpp|\
+              test/NVQPP/integration/test-observe.cpp|\
               test/NVQPP/integration/variable_size_qreg.cpp)
                 nvq++ -DSYNTAX_CHECK --target oqc $filename
                 test_status=$?
