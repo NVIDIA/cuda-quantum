@@ -12,7 +12,7 @@ import math
 from cmath import exp
 
 # Use IQM Client Tools to verify data structures
-import iqm_client
+import iqm.iqm_client as iqm_client
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
