@@ -153,6 +153,7 @@ jobs:
         # - test/NVQPP/integration/sudoku_2x2-bit_names.cpp
         # - test/NVQPP/integration/sudoku_2x2-reg_name.cpp
         # - test/NVQPP/integration/sudoku_2x2.cpp
+        # - test/NVQPP/integration/test-observe.cpp
         run: |
           # Must install iqm-cortex-cli to authenticate
           pip install iqm-cortex-cli
@@ -176,7 +177,6 @@ jobs:
               test/NVQPP/integration/load_value.cpp|\
               test/NVQPP/integration/test-int8_t.cpp|\
               test/NVQPP/integration/test-int8_t_free_func.cpp|\
-              test/NVQPP/integration/test-observe.cpp|\
               test/NVQPP/integration/variable_size_qreg.cpp)
                 nvq++ -DSYNTAX_CHECK --target iqm --iqm-machine Adonis $filename
                 test_status=$?
