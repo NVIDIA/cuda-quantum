@@ -288,14 +288,13 @@ mlir::LogicalResult verifyQubitAndResultRanges(llvm::Module *llvmModule) {
   std::size_t required_num_qubits = 0;
   std::size_t required_num_results = 0;
   for (llvm::Function &func : *llvmModule) {
-    if (func.hasFnAttribute("requiredQubits"))
-      required_num_qubits =
-          func.getFnAttributeAsParsedInteger("requiredQubits");
-    if (func.hasFnAttribute("requiredResults"))
-      required_num_results =
-          func.getFnAttributeAsParsedInteger("requiredResults");
-    if (required_num_qubits > 0 && required_num_results > 0)
+    if (func.hasFnAttribute("entry_point")) {
+      required_num_qubits = func.getFnAttributeAsParsedInteger(
+          "requiredQubits", required_num_qubits);
+      required_num_results = func.getFnAttributeAsParsedInteger(
+          "requiredResults", required_num_results);
       break; // no need to keep looking
+    }
   }
   for (llvm::Function &func : *llvmModule) {
     for (llvm::BasicBlock &block : func) {
