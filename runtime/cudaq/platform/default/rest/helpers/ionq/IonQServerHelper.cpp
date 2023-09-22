@@ -360,8 +360,14 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
   CountsDictionary userGlobal;
   for (const auto &[bits, count] : fullSampleResults) {
     std::string userBitStr;
-    for (const auto &qubit : qubitNumbers)
-      userBitStr += bits[qubit];
+    for (const auto &qubit : qubitNumbers) {
+      if (qubit < bits.size())
+        userBitStr += bits[qubit];
+      else
+        throw std::runtime_error(fmt::format(
+            "Cannot fetch qubit index {} from bits '{}'; bits.size() = {}",
+            qubit, bits, bits.size()));
+    }
     userGlobal[userBitStr] += count;
   }
   execResults.emplace_back(userGlobal);
