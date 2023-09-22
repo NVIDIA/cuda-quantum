@@ -398,7 +398,7 @@ To do so, we leverage the generic <code class="code docutils literal notranslate
 encoding the qubit measurement strings and the corresponding number of times that string
 was observed (here the default number of shots is used, <code class="code docutils literal notranslate"><span class="pre">1000</span></code>).</p>
 <p>To compile and execute this code, we run the following</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>static_kernel.cpp<span class="w"> </span>-o<span class="w"> </span>ghz.x
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>static_kernel.cq<span class="w"> </span>-o<span class="w"> </span>ghz.x
 ./ghz.x
 </pre></div>
 </div>
@@ -452,7 +452,7 @@ parameters at which we evaluate the parameterized kernel.</p>
 <p>The return type of this function is an <code class="code docutils literal notranslate"><span class="pre">cudaq::observe_result</span></code> which contains all the data
 from the execution, but is trivially convertible to a double, resulting in the expectation value we are interested in.</p>
 <p>To compile and execute this code, we run the following</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>expectation_values.cpp<span class="w"> </span>-o<span class="w"> </span>exp_vals.x
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>expectation_values.cq<span class="w"> </span>-o<span class="w"> </span>exp_vals.x
 ./exp_vals.x
 </pre></div>
 </div>
@@ -532,7 +532,7 @@ the given qubit. Within the <code class="code docutils literal notranslate"><spa
 This call requires trailing parameters that serve as the arguments for the applied kernel (<code class="code docutils literal notranslate"><span class="pre">apply_x</span></code> takes
 a single target qubit).</p>
 <p>To compile and execute this code, we run the following</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>multi_controlled_operations.cpp<span class="w"> </span>-o<span class="w"> </span>mcx.x
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>multi_controlled_operations.cq<span class="w"> </span>-o<span class="w"> </span>mcx.x
 ./mcx.x
 </pre></div>
 </div>
@@ -586,7 +586,7 @@ can be trivially simulated via a NVIDIA GPU-accelerated backend:</p>
 </div>
 <p>Here we generate a GHZ state on 30 qubits. To run with the built-in cuQuantum state
 vector support, we pass the <code class="code docutils literal notranslate"><span class="pre">--target</span> <span class="pre">nvidia</span></code> flag at compile time:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w"> </span>cuquantum_backends.cpp<span class="w"> </span>-o<span class="w"> </span>ghz.x
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w"> </span>cuquantum_backends.cq<span class="w"> </span>-o<span class="w"> </span>ghz.x
 ./ghz.x
 </pre></div>
 </div>
