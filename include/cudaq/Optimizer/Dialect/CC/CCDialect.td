@@ -32,6 +32,7 @@ def CCDialect : Dialect {
 
   let cppNamespace = "cudaq::cc";
   let useDefaultTypePrinterParser = 1;
+  let useFoldAPI = kEmitFoldAdaptorFolder;
 
   let extraClassDeclaration = [{
     /// Register all CC types.

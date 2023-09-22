@@ -181,7 +181,7 @@ public:
 
   /// @brief Set the noise model, only allow this for
   /// emulation.
-  void setNoiseModel(cudaq::noise_model *model) override {
+  void setNoiseModel(const cudaq::noise_model *model) override {
     if (!emulate && model)
       throw std::runtime_error(
           "Noise modeling is not allowed on remote physical quantum backends.");
