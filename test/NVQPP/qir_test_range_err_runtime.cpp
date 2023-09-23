@@ -7,29 +7,23 @@
  ******************************************************************************/
 
 // Note: change |& to 2>&1| if running in bash
-
-// First run is to verify compilation errors
-// RUN: cudaq-quake %s |& FileCheck --check-prefix COMPILER %s
-
-// Second run is to verify runtime errors for QIR validation
-// RUN: nvq++ %s -o %basename_t.x --target quantinuum --emulate 2> /dev/null && ./%basename_t.x |& FileCheck --check-prefix RUNTIME %s
+// RUN: nvq++ %s -o %basename_t.x --target quantinuum --emulate && ./%basename_t.x |& FileCheck %s
 
 #include <cudaq.h>
 #include <iostream>
 
-__qpu__ void init_state() {
-  cudaq::qreg<5> q;
+__qpu__ void init_state(int N) {
+  cudaq::qreg q(N);
   x(q[0]);
-  mz(q[99]);
+  mz(q[99]); // compiler can't catch this error, but runtime can
 };
 
 int main() {
-  auto result = cudaq::sample(1000, init_state);
+  auto result = cudaq::sample(1000, init_state, 5);
   for (auto &&[bits, counts] : result) {
     std::cout << bits << '\n';
   }
   return 0;
 }
 
-// COMPILER: error: 'quake.extract_ref' op invalid index [99] because >= size [5]
-// RUNTIME: qubit [99] is >= required_num_qubits [5]
+// CHECK: error: 'quake.extract_ref' op invalid index [99] because >= size [5]
