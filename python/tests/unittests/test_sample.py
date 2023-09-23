@@ -588,6 +588,7 @@ def test_sample_n():
     allCounts = cudaq.sample(circuit, runtimeAngles)
     for i, c in enumerate(allCounts):
         print(runtimeAngles[i, :], c)
+        assert len(c) == 2
 
 
 def test_index_out_of_range():
