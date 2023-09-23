@@ -7,7 +7,12 @@
  ******************************************************************************/
 
 // Note: change |& to 2>&1| if running in bash
-// RUN: nvq++ -v %s -o %basename_t.x --target quantinuum --emulate && ./%basename_t.x |& FileCheck %s
+
+// First run is to verify compilation errors
+// RUN: cudaq-quake %s |& FileCheck --check-prefix COMPILER %s
+
+// Second run is to verify runtime errors for QIR validation
+// RUN: nvq++ %s -o %basename_t.x --target quantinuum --emulate 2> /dev/null && ./%basename_t.x |& FileCheck --check-prefix RUNTIME %s
 
 #include <cudaq.h>
 #include <iostream>
@@ -26,4 +31,5 @@ int main() {
   return 0;
 }
 
-// CHECK: qubit [99] is >= required_num_qubits
+// COMPILER: error: 'quake.extract_ref' op invalid index [99] because >= size [5]
+// RUNTIME: qubit [99] is >= required_num_qubits [5]

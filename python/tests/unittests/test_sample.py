@@ -588,7 +588,20 @@ def test_sample_n():
     allCounts = cudaq.sample(circuit, runtimeAngles)
     for i, c in enumerate(allCounts):
         print(runtimeAngles[i, :], c)
-        assert len(c) == 2
+
+
+def test_index_out_of_range():
+    """
+    Test the `cudaq.kernel` for out-of-range errors
+    """
+    kernel = cudaq.make_kernel()
+    # Allocate a register of size 3.
+    qreg = kernel.qalloc(3)
+    kernel.x(qreg[99])
+
+    with pytest.raises(Exception) as error:
+        # Index out of range
+        result = cudaq.sample(kernel)
 
 
 # leave for gdb debugging

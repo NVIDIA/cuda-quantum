@@ -382,8 +382,17 @@ LogicalResult quake::ExtractRefOp::verify() {
       return emitOpError(
           "must not have both a constant index and an index argument.");
   } else {
-    if (getRawIndex() == kDynamicIndex)
+    if (getRawIndex() == kDynamicIndex) {
       return emitOpError("invalid constant index value");
+    } else {
+      auto veqSize = getVeq().getType().getSize();
+      // Intentially make this error non-fatal, partially because we want to
+      // gain confidence in this error message, and partially because we want to
+      // proceed past this error for testing downstream error validation, too.
+      if (veqSize > 0 && getRawIndex() >= veqSize)
+        emitOpError("invalid index [" + std::to_string(getRawIndex()) +
+                    "] because >= size [" + std::to_string(veqSize) + "]");
+    }
   }
   return success();
 }
