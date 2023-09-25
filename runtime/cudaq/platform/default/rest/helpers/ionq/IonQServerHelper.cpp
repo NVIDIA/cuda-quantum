@@ -11,6 +11,7 @@
 #include "cudaq/utils/cudaq_utils.h"
 #include <bitset>
 #include <fstream>
+#include <map>
 #include <thread>
 
 namespace cudaq {
@@ -28,6 +29,9 @@ private:
 
   /// @brief Helper method to check if a key exists in the configuration.
   bool keyExists(const std::string &key) const;
+
+  /// @brief Output names indexed by jobID/taskID
+  std::map<std::string, OutputNamesType> outputNames;
 
 public:
   /// @brief Returns the name of the server helper.
@@ -97,6 +101,27 @@ void IonQServerHelper::initialize(BackendConfig config) {
   // Construct the API job path
   backendConfig["job_path"] =
       backendConfig["url"] + '/' + backendConfig["version"] + "/jobs";
+  if (!config["shots"].empty())
+    this->setShots(std::stoul(config["shots"]));
+
+  // Parse the output_names.* (for each job) and place it in outputNames[]
+  for (auto &[key, val] : config) {
+    if (key.starts_with("output_names.")) {
+      // Parse `val` into jobOutputNames.
+      // Note: See `FunctionAnalysisData::resultQubitVals` of
+      // LowerToBaseProfileQIR.cpp for an example of how this was populated.
+      OutputNamesType jobOutputNames;
+      nlohmann::json outputNamesJSON = nlohmann::json::parse(val);
+      for (const auto &el : outputNamesJSON[0]) {
+        std::size_t result = el[0].get<std::size_t>();
+        std::size_t qubit = el[1][0].get<std::size_t>();
+        std::string registerName = el[1][1].get<std::string>();
+        jobOutputNames[result] = {qubit, registerName};
+      }
+
+      this->outputNames[key] = jobOutputNames;
+    }
+  }
 }
 
 // Retrieve an environment variable
@@ -264,9 +289,18 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
   cudaq::debug("nQubits is : {}", nQubits);
   cudaq::debug("Results message: {}", results.dump());
 
-  cudaq::CountsDictionary counts;
+  if (outputNames.find("output_names." + jobID) == outputNames.end()) {
+    throw std::runtime_error("Could not find output names for job " + jobID +
+                             " this " + std::to_string((long)this));
+  }
 
-  cudaq::info("Results message: {}", results.dump());
+  auto &output_names = outputNames["output_names." + jobID];
+  for (auto &[result, info] : output_names) {
+    cudaq::info("Qubit {} Result {} Name {}", info.qubitNum, result,
+                info.registerName);
+  }
+
+  cudaq::CountsDictionary counts;
 
   // Process the results
   assert(nQubits <= 64);
@@ -282,10 +316,67 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
     counts[newkey] = count;
   }
 
-  // Create an execution result
-  cudaq::ExecutionResult executionResult(counts);
-  // Return a sample result
-  auto ret = cudaq::sample_result(executionResult);
+  // Full execution results include compiler-generated qubits, which are
+  // undesirable to the user.
+  cudaq::ExecutionResult fullExecResults{counts};
+  auto fullSampleResults = cudaq::sample_result{fullExecResults};
+
+  // clang-format off
+  // The following code strips out and reorders the outputs based on output_names.
+  // For example, if `counts` is something like:
+  //      { 11111:62 01111:12 11110:12 01110:12 }
+  // And if we want to discard the first bit (because qubit 0 was a
+  // compiler-generated qubit), that maps to something like this:
+  // -----------------------------------------------------
+  // Qubit  Index - x1234    x1234    x1234    x1234
+  // Result Index - x0123    x0123    x0123    x0123
+  //              { 11111:62 01111:12 11110:12 01110:12 }
+  //              { x1111:62 x1111:12 x1110:12 x1110:12 }
+  //                  \--- v ---/       \--- v ---/
+  //              {    1111:(62+12)     x1110:(12+12)   }
+  //              {    1111:74           1110:24        }
+  // -----------------------------------------------------
+  // clang-format on
+
+  std::vector<ExecutionResult> execResults;
+
+  // Make a map sorted by register name ([str] --> <qubit,result>)
+  std::map<std::string, std::pair<std::size_t, std::size_t>> mapResultStr;
+  for (const auto &[result, info] : output_names)
+    mapResultStr[info.registerName] = std::make_pair(info.qubitNum, result);
+
+  // Get a reduced list of qubit numbers that were in the original program so
+  // that we can slice the output data and extract the bits that the user was
+  // interested in.
+  std::vector<std::size_t> qubitNumbers;
+  qubitNumbers.reserve(output_names.size());
+  for (const auto &[regName, qubitAndResult] : mapResultStr)
+    qubitNumbers.push_back(qubitAndResult.first);
+
+  // For each original counts entry in the full sample results, reduce it down
+  // to the user component and add to userGlobal. This is similar to
+  // `get_marginal()`, but that sorts the input indices, which isn't necessarily
+  // desirable here.
+  CountsDictionary userGlobal;
+  for (const auto &[bits, count] : fullSampleResults) {
+    std::string userBitStr;
+    for (const auto &qubit : qubitNumbers)
+      userBitStr += bits[qubit];
+    userGlobal[userBitStr] += count;
+  }
+  execResults.emplace_back(userGlobal);
+
+  // Now add to `execResults` one register at a time
+  for (const auto &[regName, qubitAndResult] : mapResultStr) {
+    CountsDictionary regCounts;
+    for (const auto &[bits, count] : fullSampleResults)
+      regCounts[std::string{bits[qubitAndResult.first]}] += count;
+    execResults.emplace_back(regCounts, regName);
+  }
+
+  // Return a sample result including the global register and all individual
+  // registers.
+  auto ret = cudaq::sample_result(execResults);
   return ret;
 }
 

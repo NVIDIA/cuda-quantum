@@ -391,17 +391,49 @@ def quake_ApplyOp : QuakeOp<"apply",
   }];
 
   let arguments = (ins
-    SymbolRefAttr:$callee,
+    OptionalAttr<SymbolRefAttr>:$callee,
+    Variadic<cc_CallableType>:$indirect_callee, // must be 0 or 1 element
     UnitAttr:$is_adj,
     Variadic<AnyQType>:$controls,
     Variadic<AnyType>:$args
   );
   let results = (outs Variadic<AnyType>);
 
-  let assemblyFormat = [{
-    (`<` `adj` $is_adj^ `>`)? $callee (`[` $controls^ `]`)? $args `:`
-      functional-type(operands,results) attr-dict
-  }];
+  let hasCustomAssemblyFormat = 1;
+  let builders = [
+    OpBuilder<(ins "mlir::TypeRange":$retTy,
+                   "mlir::SymbolRefAttr":$callee,
+                   "mlir::UnitAttr":$is_adj,
+                   "mlir::ValueRange":$controls,
+                   "mlir::ValueRange":$args), [{
+      return build($_builder, $_state, retTy, callee, mlir::ValueRange{},
+                   is_adj, controls, args);
+    }]>,
+    OpBuilder<(ins "mlir::TypeRange":$retTy,
+                   "mlir::SymbolRefAttr":$callee,
+                   "bool":$is_adj,
+                   "mlir::ValueRange":$controls,
+                   "mlir::ValueRange":$args), [{
+      return build($_builder, $_state, retTy, callee, mlir::ValueRange{},
+                   is_adj, controls, args);
+    }]>,
+    OpBuilder<(ins "mlir::TypeRange":$retTy,
+                   "mlir::Value":$callable,
+                   "mlir::UnitAttr":$is_adj,
+                   "mlir::ValueRange":$controls,
+                   "mlir::ValueRange":$args), [{
+      return build($_builder, $_state, retTy, mlir::SymbolRefAttr{},
+                   mlir::ValueRange{callable}, is_adj, controls, args);
+    }]>,
+    OpBuilder<(ins "mlir::TypeRange":$retTy,
+                   "mlir::Value":$callable,
+                   "bool":$is_adj,
+                   "mlir::ValueRange":$controls,
+                   "mlir::ValueRange":$args), [{
+      return build($_builder, $_state, retTy, mlir::SymbolRefAttr{},
+                   mlir::ValueRange{callable}, is_adj, controls, args);
+    }]>
+  ];
 
   let extraClassDeclaration = [{
     static constexpr llvm::StringRef getCalleeAttrNameStr() { return "callee"; }
