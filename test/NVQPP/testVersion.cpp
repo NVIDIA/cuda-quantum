@@ -6,28 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s -verify
-
-#include <cudaq.h>
-
-struct bad {
-  int operator()(int i) __qpu__ {
-    cudaq::qreg q(i);
-    h(q);
-    mz(q);
-    return i;
-  }
-};
-
-// expected-note@* {{}}
-// expected-note@* {{}}
-// expected-note@* {{}}
-// expected-note@* {{}}
-// expected-note@* {{}}
-// expected-note@* {{}}
-// expected-note@* {{}}
-// expected-note@* 2 {{requires 3 arguments, but 2 were provided}}
-
-int main() {
-    cudaq::sample(bad{}, 5); // expected-error {{no matching function for call to}}
-}
+// Note: change |& to 2>&1| if running in bash
+// RUN: nvq++ --version |& FileCheck %s
+// CHECK: nvq++ Version

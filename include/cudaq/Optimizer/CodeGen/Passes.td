@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #ifndef CUDAQ_OPT_OPTIMIZER_CODEGEN_PASSES
 #define CUDAQ_OPT_OPTIMIZER_CODEGEN_PASSES

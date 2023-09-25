@@ -136,6 +136,8 @@ target_link_libraries(test_spin
   gtest_main)
 gtest_discover_tests(test_spin)
 
+add_subdirectory(plugin)
+
 # build the test qudit execution manager
 add_subdirectory(qudit)
 add_executable(test_qudit main.cpp qudit/SimpleQuditTester.cpp)
@@ -185,6 +187,4 @@ if (CUDAQ_ENABLE_PYTHON)
   gtest_discover_tests(test_domains
     TEST_SUFFIX _Sampling PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/python")
 endif()
-
-add_subdirectory(plugin)
 

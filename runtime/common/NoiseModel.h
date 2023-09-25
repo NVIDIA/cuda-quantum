@@ -204,12 +204,12 @@ public:
   // that exists for the same quantumOp and qubits.
   std::vector<kraus_channel>
   get_channels(const std::string &quantumOp,
-               const std::vector<std::size_t> &qubits);
+               const std::vector<std::size_t> &qubits) const;
 
   /// @brief Get all kraus_channels on the given qubits
   template <typename QuantumOp>
   std::vector<kraus_channel>
-  get_channels(const std::vector<std::size_t> &qubits) {
+  get_channels(const std::vector<std::size_t> &qubits) const {
     QuantumOp op;
     return get_channels(op.name, qubits);
   }
