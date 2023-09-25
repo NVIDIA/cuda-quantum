@@ -80,7 +80,8 @@ ParseResult cudaq::cc::AllocaOp::parse(OpAsmParser &parser,
   return success();
 }
 
-OpFoldResult cudaq::cc::AllocaOp::fold(ArrayRef<Attribute> params) {
+OpFoldResult cudaq::cc::AllocaOp::fold(FoldAdaptor adaptor) {
+  auto params = adaptor.getOperands();
   if (params.size() == 1) {
     // If allocating a contiguous block of elements and the size of the block is
     // a constant, fold the size into the cc.array type and allocate a constant
@@ -106,7 +107,7 @@ OpFoldResult cudaq::cc::AllocaOp::fold(ArrayRef<Attribute> params) {
 // CastOp
 //===----------------------------------------------------------------------===//
 
-OpFoldResult cudaq::cc::CastOp::fold(ArrayRef<Attribute>) {
+OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor) {
   // If cast is a nop, just forward the argument to the uses.
   if (getType() == getValue().getType())
     return getValue();
@@ -280,10 +281,11 @@ void cudaq::cc::ComputePtrOp::build(OpBuilder &builder, OperationState &result,
   result.addOperands(dynamicIndices);
 }
 
-OpFoldResult cudaq::cc::ComputePtrOp::fold(ArrayRef<Attribute> params) {
+OpFoldResult cudaq::cc::ComputePtrOp::fold(FoldAdaptor adaptor) {
   if (getDynamicIndices().empty())
     return nullptr;
   SmallVector<std::tuple<Attribute, std::int32_t>> pairs;
+  auto params = adaptor.getOperands();
   for (auto p : llvm::zip(params.drop_front(), getRawConstantIndices()))
     pairs.push_back(p);
   auto dynIter = getDynamicIndices().begin();
@@ -395,7 +397,10 @@ void cudaq::cc::ComputePtrOp::getCanonicalizationPatterns(
 
 // If this operation has a constant offset, then the value can be looked up in
 // the constant array and used as a scalar value directly.
-OpFoldResult cudaq::cc::GetConstantElementOp::fold(ArrayRef<Attribute> params) {
+OpFoldResult cudaq::cc::GetConstantElementOp::fold(FoldAdaptor adaptor) {
+  auto params = adaptor.getOperands();
+  if (params.size() < 2)
+    return nullptr;
   if (auto intAttr = dyn_cast_or_null<IntegerAttr>(params[1])) {
     auto offset = intAttr.getInt();
     auto conArr = getConstantArray().getDefiningOp<ConstantArrayOp>();

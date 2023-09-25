@@ -44,7 +44,7 @@ protected:
   ExecutionContext *executionContext = nullptr;
 
   /// @brief Noise model specified for QPU execution.
-  noise_model *noiseModel = nullptr;
+  const noise_model *noiseModel = nullptr;
 
   /// @brief Check if the current execution context is a `spin_op`
   /// observation and perform state-preparation circuit measurement
@@ -100,7 +100,7 @@ public:
   /// The destructor
   virtual ~QPU() = default;
 
-  virtual void setNoiseModel(noise_model *model) { noiseModel = model; }
+  virtual void setNoiseModel(const noise_model *model) { noiseModel = model; }
 
   /// Return the number of qubits
   std::size_t getNumQubits() { return numQubits; }

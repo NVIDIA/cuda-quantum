@@ -1417,16 +1417,26 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         auto *decl = recTy->getDecl();
         if (decl->isLambda()) {
           auto *lambdaClass = cast<clang::CXXRecordDecl>(decl);
-          auto mangledName =
-              generateCudaqKernelName(findCallOperator(lambdaClass));
-          calleeSymbol = SymbolRefAttr::get(ctx, mangledName);
+          auto *callOperDecl = findCallOperator(lambdaClass);
+          if (isKernelEntryPoint(callOperDecl)) {
+            // This callable is a kernel that will be lowered. Substitute the
+            // name of the kernel.
+            auto mangledName = generateCudaqKernelName(callOperDecl);
+            calleeSymbol = SymbolRefAttr::get(ctx, mangledName);
+          }
           auto funcTy = ty.getSignature();
           inlinedStartControlNegations();
           auto kernelArgs =
               convertKernelArgs(builder, loc, 2, args, funcTy.getInputs());
-          builder.create<quake::ApplyOp>(loc, funcTy.getResults(), calleeSymbol,
-                                         /*isAdjoint=*/false, ctrlValues,
-                                         kernelArgs);
+          if (isKernelEntryPoint(callOperDecl)) {
+            builder.create<quake::ApplyOp>(
+                loc, funcTy.getResults(), calleeSymbol,
+                /*isAdjoint=*/false, ctrlValues, kernelArgs);
+          } else {
+            builder.create<quake::ApplyOp>(
+                loc, funcTy.getResults(), calleeValue,
+                /*isAdjoint=*/false, ctrlValues, kernelArgs);
+          }
           return inlinedFinishControlNegations();
         }
         TODO_loc(loc, "value has !cc.lambda type but decl isn't a lambda");
@@ -1518,15 +1528,22 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         auto *decl = recTy->getDecl();
         if (decl->isLambda()) {
           auto *lambdaClass = cast<clang::CXXRecordDecl>(decl);
-          auto mangledName =
-              generateCudaqKernelName(findCallOperator(lambdaClass));
-          auto kernelSymbol =
-              SymbolRefAttr::get(builder.getContext(), mangledName);
+          auto *callOperDecl = findCallOperator(lambdaClass);
+          if (isKernelEntryPoint(callOperDecl)) {
+            auto mangledName = generateCudaqKernelName(callOperDecl);
+            kernelSymbol =
+                SymbolRefAttr::get(builder.getContext(), mangledName);
+          }
           auto funcTy = ty.getSignature();
           auto kernelArgs =
               convertKernelArgs(builder, loc, 1, args, funcTy.getInputs());
+          if (isKernelEntryPoint(callOperDecl)) {
+            return builder.create<quake::ApplyOp>(
+                loc, funcTy.getResults(), kernelSymbol,
+                /*isAdjoint=*/true, ValueRange{}, kernelArgs);
+          }
           return builder.create<quake::ApplyOp>(
-              loc, funcTy.getResults(), kernelSymbol,
+              loc, funcTy.getResults(), kernelValue,
               /*isAdjoint=*/true, ValueRange{}, kernelArgs);
         }
         TODO_loc(loc, "value has !cc.lambda type but decl isn't a lambda");

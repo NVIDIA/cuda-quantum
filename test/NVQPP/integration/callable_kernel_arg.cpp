@@ -26,12 +26,7 @@ struct foo {
   __qpu__ void operator()(CallableKernel &&func, int size) {
     cudaq::qreg q(size);
     func(q[0]);
-
-// TODO: Extend measurement support for submissions to IonQ,
-// see https://github.com/NVIDIA/cuda-quantum/issues/512.
-#ifndef IONQ_TARGET
     mz(q[0]);
-#endif
   }
 };
 
