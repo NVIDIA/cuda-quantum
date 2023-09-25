@@ -86,7 +86,6 @@ The following code illustrates how to run a simulation with a custom noise model
 
 .. _python-examples-for-hardware-providers:
 
-
 Using Quantum Hardware Providers
 -----------------------------------
 
