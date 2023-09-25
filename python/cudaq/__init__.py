@@ -32,6 +32,7 @@ if not "CUDAQ_DYNLIBS" in os.environ:
 
 from ._pycudaq import *
 from .domains import chemistry
+from .ast.analysis import MidCircuitMeasurementAnalyzer
 
 initKwargs = {'target': 'default'}
 
@@ -56,54 +57,6 @@ ry = ry()
 rz = rz()
 r1 = r1()
 swap = swap()
-
-
-class MidCircuitMeasurementAnalyzer(ast.NodeVisitor):
-    """The `MidCircuitMeasurementAnalyzer` is a utility class searches for 
-       common measurement - conditional patterns to indicate to the runtime 
-       that we have a circuit with mid-circuit measurement and subsequent conditional 
-       quantum operation application."""
-
-    def __init__(self):
-        self.measureResultsVars = []
-        self.hasMidCircuitMeasures = False
-
-    def isMeasureCallOp(self, node):
-        return isinstance(
-            node, ast.Call) and node.__dict__['func'].id in ['mx', 'my', 'mz']
-
-    def visit_Assign(self, node):
-        target = node.targets[0]
-        if not 'func' in node.value.__dict__:
-            return
-        creatorFunc = node.value.func
-        if 'id' in creatorFunc.__dict__ and creatorFunc.id in [
-                'mx', 'my', 'mz'
-        ]:
-            self.measureResultsVars.append(target.id)
-
-    def visit_If(self, node):
-        condition = node.test
-        if 'id' in condition.__dict__ and condition.id in self.measureResultsVars:
-            self.hasMidCircuitMeasures = True
-        elif isinstance(condition,
-                        ast.Call) and condition.__dict__['func'].id in [
-                            'mx', 'my', 'mz'
-                        ]:
-            self.hasMidCircuitMeasures = True
-        elif isinstance(condition, ast.UnaryOp):
-            operand = condition.operand
-            if isinstance(operand,
-                          ast.Call) and operand.__dict__['func'].id in [
-                              'mx', 'my', 'mz'
-                          ]:
-                self.hasMidCircuitMeasures = True
-        elif isinstance(condition,
-                        ast.BoolOp) and 'values' in condition.__dict__:
-            for node in condition.__dict__['values']:
-                if self.isMeasureCallOp(node):
-                    self.hasMidCircuitMeasures = True
-                    break
 
 
 class kernel(object):
