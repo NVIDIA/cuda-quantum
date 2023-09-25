@@ -154,7 +154,9 @@ ENV PATH="${PATH}:/usr/local/bin"
 RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-pip pandoc \
     && python3 -m pip install --no-cache-dir \
         ipython==8.15.0 pandoc==2.3 sphinx==5.3.0 sphinx_rtd_theme==1.2.0 sphinx-reredirects==0.1.2 \
-        enum-tools[sphinx] breathe==4.34.0 nbsphinx==0.9.2 sphinx_gallery==0.13.0 myst-parser==1.0.0
+        sphinx-copybutton==0.5.2 enum-tools[sphinx] breathe==4.34.0 nbsphinx==0.9.2 sphinx_gallery==0.13.0 \
+     myst-parser==1.0.0
+        
 
 # Install additional dependencies required to build and test CUDA Quantum.
 RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certificates \
