@@ -97,7 +97,7 @@ default_role = 'code' # NOTE: the following may be a better choice to error on t
 #default_role = 'cpp:any' # see https://www.sphinx-doc.org/en/master/usage/restructuredtext/domains.html#cross-referencing
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = 'lightbulb'
 
 # autosummary is buggy: this must be py instead of cpp so that the domain setting
 # can be propagated to the autogen'd rst files.
@@ -117,6 +117,8 @@ html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 html_theme_options = {
     "collapse_navigation" : False,
     "sticky_navigation" : False,
+    "prev_next_buttons_location" : "both",
+    "style_nav_header_background" : "#76b900" # Set upper left search bar to NVIDIA green
 }
 
 html_css_files = ['_static/cudaq_override.css']
