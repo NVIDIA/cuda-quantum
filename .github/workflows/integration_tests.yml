@@ -99,30 +99,13 @@ jobs:
           test_err_sum=0
           for filename in test/NVQPP/integration/*.cpp; do
             [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
-            # The following tests do not return the right answer, so run with -DSYNTAX_CHECK.
-            # Currently under investigation at IonQ.
-            case $filename in
-              test/NVQPP/integration/graph_coloring-1.cpp|\
-              test/NVQPP/integration/graph_coloring.cpp|\
-              test/NVQPP/integration/qspan_slices.cpp|\
-              test/NVQPP/integration/sudoku_2x2-1.cpp|\
-              test/NVQPP/integration/sudoku_2x2-bit_names.cpp|\
-              test/NVQPP/integration/sudoku_2x2-reg_name.cpp|\
-              test/NVQPP/integration/sudoku_2x2.cpp)
-                ECHO_SUFFIX="(syntax check only)"
-                SYNTAX_CHECK="-DSYNTAX_CHECK" ;;
-              *)
-                ECHO_SUFFIX=""
-                SYNTAX_CHECK="" ;;
-            esac
-
-            nvq++ -v $filename $SYNTAX_CHECK --target ionq
+            nvq++ -v $filename --target ionq
             test_status=$?
             if [ $test_status -eq 0 ]; then
               ./a.out
               test_status=$?
               if [ $test_status -eq 0 ]; then
-                echo ":white_check_mark: Successfully ran test: $filename $ECHO_SUFFIX" >> $GITHUB_STEP_SUMMARY
+                echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
               else
                 echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
                 test_err_sum=$((test_err_sum+1))
