@@ -1,10 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "py_qubit_qis.h"
 #include "cudaq/qis/qubit_qis.h"
@@ -85,7 +85,7 @@ analyzeAndHandlePyArgsCtrl(py::args &args) {
 template <typename QuantumOp>
 void bindQuantumOperation(py::module &mod) {
   QuantumOp op;
-  py::class_<QuantumOp>(mod, op.name.c_str(), "")
+  py::class_<QuantumOp>(mod, op.name, "")
       .def(py::init<>())
       .def_static(
           "__call__", [&](py::args &args) { op(analyzeAndHandlePyArgs(args)); },
@@ -117,7 +117,7 @@ void bindQuantumOperation(py::module &mod) {
 template <typename QuantumOp>
 void bindQuantumOperationWithParameter(py::module &mod) {
   QuantumOp op;
-  py::class_<QuantumOp>(mod, op.name.c_str(), "")
+  py::class_<QuantumOp>(mod, op.name, "")
       .def(py::init<>())
       .def_static(
           "__call__",

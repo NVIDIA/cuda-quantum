@@ -62,3 +62,21 @@ def simple():
     analyzer = cudaq.MidCircuitMeasurementAnalyzer()
     analyzer.visit(module)
     assert analyzer.hasMidCircuitMeasures
+
+
+def test_simple_3():
+    '''Test we can find an if with a binary boolean operation on measure operations.'''
+    
+    funcSrc = '''
+def simple():
+    q = cudaq.qvector(2)
+    h(q[0])
+    if mz(q[1]) and mz(q[0], "c0"):
+        x(q[1])
+    mz(q)
+    '''
+
+    module = ast.parse(funcSrc)
+    analyzer = cudaq.MidCircuitMeasurementAnalyzer()
+    analyzer.visit(module)
+    assert analyzer.hasMidCircuitMeasures

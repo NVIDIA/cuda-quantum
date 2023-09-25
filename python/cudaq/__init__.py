@@ -68,6 +68,10 @@ class MidCircuitMeasurementAnalyzer(ast.NodeVisitor):
         self.measureResultsVars = []
         self.hasMidCircuitMeasures = False
 
+    def isMeasureCallOp(self, node):
+        return isinstance(
+            node, ast.Call) and node.__dict__['func'].id in ['mx', 'my', 'mz']
+
     def visit_Assign(self, node):
         target = node.targets[0]
         if not 'func' in node.value.__dict__:
@@ -94,6 +98,12 @@ class MidCircuitMeasurementAnalyzer(ast.NodeVisitor):
                               'mx', 'my', 'mz'
                           ]:
                 self.hasMidCircuitMeasures = True
+        elif isinstance(condition,
+                        ast.BoolOp) and 'values' in condition.__dict__:
+            for node in condition.__dict__['values']:
+                if self.isMeasureCallOp(node):
+                    self.hasMidCircuitMeasures = True
+                    break
 
 
 class kernel(object):

@@ -176,7 +176,7 @@ void oneQubitApplyControlledRange(QubitRange &ctrls, qubit &target) {
 #define CUDAQ_QIS_ONE_TARGET_QUBIT_(NAME)                                      \
   namespace types {                                                            \
   struct NAME {                                                                \
-    inline static const std::string name{#NAME};                               \
+    constexpr static const char name[] = #NAME;                                \
     bool hasParam = true;                                                      \
     void operator()(const std::vector<std::size_t> &targets) {                 \
       oneQubitApplyRuntime(name, targets);                                     \
@@ -308,7 +308,7 @@ void oneQubitSingleParameterControlledRange(ScalarAngle angle,
 #define CUDAQ_QIS_PARAM_ONE_TARGET_(NAME)                                      \
   namespace types {                                                            \
   struct NAME {                                                                \
-    inline static const std::string name{#NAME};                               \
+    constexpr static const char name[] = #NAME;                                \
     bool hasParam = true;                                                      \
     void operator()(double angle, const std::vector<std::size_t> &targets) {   \
       oneQubitSingleParameterApplyRuntime(name, angle, targets);               \
@@ -348,7 +348,7 @@ struct reset {
 };
 
 struct swap {
-  inline static const std::string name{"swap"};
+  constexpr static const char name[] = "swap";
   void operator()(std::size_t src, std::size_t tgt) {
     getExecutionManager()->apply(
         "swap", {}, {}, {qubitIdToQuditInfo(src), qubitIdToQuditInfo(tgt)});
