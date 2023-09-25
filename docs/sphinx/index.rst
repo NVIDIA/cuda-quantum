@@ -10,7 +10,7 @@ for the quantum acceleration of existing heterogeneous computing architectures.
 
 .. toctree::
    :caption: Contents
-   :maxdepth: 1
+   :maxdepth: 2
 
       Getting Started <install.rst>
       Learn the Basics <using/cudaq.rst>
