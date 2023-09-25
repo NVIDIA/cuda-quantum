@@ -7,6 +7,7 @@
   <title>CUDA Quantum Tutorials &mdash; NVIDIA CUDA Quantum  documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
       <link rel="stylesheet" href="../_static/cudaq_override.css" type="text/css" />
       <link rel="stylesheet" href="../_static/sg_gallery.css" type="text/css" />
       <link rel="stylesheet" href="../_static/nbsphinx-gallery.css" type="text/css" />
@@ -21,19 +22,21 @@
         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
         <script src="../_static/sphinx_highlight.js"></script>
+        <script src="../_static/clipboard.min.js"></script>
+        <script src="../_static/copybutton.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="CUDA Quantum Simulation Backends" href="simulators.html" />
-    <link rel="prev" title="Multi-GPU workflows" href="../examples/python/tutorials/multi_gpu_workflows.html" /> 
+    <link rel="next" title="Executing Quantum Circuits" href="../examples/python/tutorials/executing_circuits.html" />
+    <link rel="prev" title="CUDA Quantum in Python" href="python.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search" > 
+        <div class="wy-side-nav-search"  style="background: #76b900" > 
 
           
           
@@ -146,40 +149,26 @@
 <li class="toctree-l3"><a class="reference internal" href="python.html#quantum-approximate-optimization-algorithm">Quantum Approximate Optimization Algorithm</a></li>
 <li class="toctree-l3"><a class="reference internal" href="python.html#noisy-simulation">Noisy Simulation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="python.html#using-quantum-hardware-providers">Using Quantum Hardware Providers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="python.html#tutorials-in-notebook-format">Tutorials in Notebook Format</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../examples/python/tutorials/executing_circuits.html">Executing quantum circuits</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../examples/python/tutorials/single_qubit_rotation.html">Single qubit rotation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../examples/python/tutorials/noisy_simulations.html">Noisy simulations</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../examples/python/tutorials/vqe.html">Variational quantum eigensolver</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html">Multi-GPU workflows</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Default-CPU-backend">Default CPU backend</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Multiple-QPUs">Multiple QPUs</a></li>
-</ul>
-</li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">   Tutorials</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/executing_circuits.html">Executing quantum circuits</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/executing_circuits.html">Executing Quantum Circuits</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/executing_circuits.html#Sample">Sample</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/executing_circuits.html#Observe">Observe</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/single_qubit_rotation.html">Single qubit rotation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/noisy_simulations.html">Noisy simulations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/vqe.html">Variational quantum eigensolver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/single_qubit_rotation.html">Single Qubit Rotation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/vqe.html">Variational Quantum Eigensolver</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html">Multi-GPU workflows</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Default-CPU-backend">Default CPU backend</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Multiple-QPUs">Multiple QPUs</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Asynchronous-data-collection-via-batching-hamiltonian-terms">Asynchronous data collection via batching hamiltonian terms</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Asynchronous-data-collection-via-circuit-batching">Asynchronous data collection via circuit batching</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html">Multi-GPU Workflows</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Available-Targets">Available Targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Default-CPU-Backend">Default CPU Backend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPU's">Acceleration via NVIDIA GPU’s</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Multiple-NVIDIA-GPU's">Multiple NVIDIA GPU’s</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Multiple-QPU's">Multiple QPU’s</a></li>
 </ul>
 </li>
 </ul>
@@ -356,7 +345,7 @@
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #76b900" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="../index.html">NVIDIA CUDA Quantum</a>
       </nav>
@@ -370,7 +359,10 @@
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/using/tutorials.rst.txt" rel="nofollow"> View page source</a>
       </li>
-  </ul>
+  </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
+        <a href="python.html" class="btn btn-neutral float-left" title="CUDA Quantum in Python" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../examples/python/tutorials/executing_circuits.html" class="btn btn-neutral float-right" title="Executing Quantum Circuits" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+  </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
@@ -383,19 +375,19 @@
 <div class="nbsphinx-gallery">
 <a class="reference internal" href="../examples/python/tutorials/executing_circuits.html">
   <div><img alt="" src="../_static/cuda_quantum_icon.svg"></div>
-  <div>Executing quantum circuits</div>
+  <div>Executing Quantum Circuits</div>
 </a>
 <a class="reference internal" href="../examples/python/tutorials/single_qubit_rotation.html">
-  <div><img alt="" src="../_images/examples_python_tutorials_single_qubit_rotation_9_0.png"></div>
-  <div>Single qubit rotation</div>
+  <div><img alt="" src="../_images/examples_python_tutorials_single_qubit_rotation_8_1.png"></div>
+  <div>Single Qubit Rotation</div>
 </a>
 <a class="reference internal" href="../examples/python/tutorials/noisy_simulations.html">
   <div><img alt="" src="../_static/cuda_quantum_icon.svg"></div>
-  <div>Noisy simulations</div>
+  <div>Noisy Simulation</div>
 </a>
 <a class="reference internal" href="../examples/python/tutorials/vqe.html">
   <div><img alt="" src="../_static/cuda_quantum_icon.svg"></div>
-  <div>Variational quantum eigensolver</div>
+  <div>Variational Quantum Eigensolver</div>
 </a>
 <a class="reference internal" href="../examples/python/tutorials/hybrid_qnns.html"None>
   <div><img alt="" src="../_images/hybrid.png"></div>
@@ -403,7 +395,7 @@
 </a>
 <a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html">
   <div><img alt="" src="../_images/circsplit.png"></div>
-  <div>Multi-GPU workflows</div>
+  <div>Multi-GPU Workflows</div>
 </a>
 </div>
 </div>
@@ -413,8 +405,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="../examples/python/tutorials/multi_gpu_workflows.html" class="btn btn-neutral float-left" title="Multi-GPU workflows" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="simulators.html" class="btn btn-neutral float-right" title="CUDA Quantum Simulation Backends" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="python.html" class="btn btn-neutral float-left" title="CUDA Quantum in Python" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../examples/python/tutorials/executing_circuits.html" class="btn btn-neutral float-right" title="Executing Quantum Circuits" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

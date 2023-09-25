@@ -7,6 +7,7 @@
   <title>Hybrid Quantum Neural Networks &mdash; NVIDIA CUDA Quantum  documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/copybutton.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/cudaq_override.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/sg_gallery.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
@@ -21,21 +22,23 @@
         <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../../_static/doctools.js"></script>
         <script src="../../../_static/sphinx_highlight.js"></script>
+        <script src="../../../_static/clipboard.min.js"></script>
+        <script src="../../../_static/copybutton.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
         <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
         <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
-    <link rel="next" title="Multi-GPU workflows" href="multi_gpu_workflows.html" />
-    <link rel="prev" title="Variational quantum eigensolver" href="vqe.html" /> 
+    <link rel="next" title="Multi-GPU Workflows" href="multi_gpu_workflows.html" />
+    <link rel="prev" title="Variational Quantum Eigensolver" href="vqe.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search" > 
+        <div class="wy-side-nav-search"  style="background: #76b900" > 
 
           
           
@@ -132,7 +135,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../using/advanced/mlir_pass.html">Create an MLIR Pass for CUDA Quantum</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="reference internal" href="../../../using/examples.html">   Examples</a><ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../using/examples.html">   Examples</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/cpp.html">   CUDA Quantum in C++</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/cpp.html#introduction">Introduction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/cpp.html#computing-expectation-values">Computing Expectation Values</a></li>
@@ -141,47 +144,33 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../using/cpp.html#using-quantum-hardware-providers">Using Quantum Hardware Providers</a></li>
 </ul>
 </li>
-<li class="toctree-l2 current"><a class="reference internal" href="../../../using/python.html">   CUDA Quantum in Python</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../../using/python.html">   CUDA Quantum in Python</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/python.html#introduction">Introduction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/python.html#bernstein-vazirani">Bernstein-Vazirani</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/python.html#variational-quantum-eigensolver">Variational Quantum Eigensolver</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/python.html#quantum-approximate-optimization-algorithm">Quantum Approximate Optimization Algorithm</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/python.html#noisy-simulation">Noisy Simulation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/python.html#using-quantum-hardware-providers">Using Quantum Hardware Providers</a></li>
-<li class="toctree-l3 current"><a class="reference internal" href="../../../using/python.html#tutorials-in-notebook-format">Tutorials in Notebook Format</a><ul class="current">
-<li class="toctree-l4"><a class="reference internal" href="executing_circuits.html">Executing quantum circuits</a></li>
-<li class="toctree-l4"><a class="reference internal" href="single_qubit_rotation.html">Single qubit rotation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="noisy_simulations.html">Noisy simulations</a></li>
-<li class="toctree-l4"><a class="reference internal" href="vqe.html">Variational quantum eigensolver</a></li>
-<li class="toctree-l4 current"><a class="current reference internal" href="#">Hybrid Quantum Neural Networks</a></li>
-<li class="toctree-l4"><a class="reference internal" href="multi_gpu_workflows.html">Multi-GPU workflows</a></li>
-<li class="toctree-l4"><a class="reference internal" href="multi_gpu_workflows.html#Default-CPU-backend">Default CPU backend</a></li>
-<li class="toctree-l4"><a class="reference internal" href="multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
-<li class="toctree-l4"><a class="reference internal" href="multi_gpu_workflows.html#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
-<li class="toctree-l4"><a class="reference internal" href="multi_gpu_workflows.html#Multiple-QPUs">Multiple QPUs</a></li>
-</ul>
-</li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../../../using/tutorials.html">   Tutorials</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="executing_circuits.html">Executing quantum circuits</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="executing_circuits.html">Executing Quantum Circuits</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="executing_circuits.html#Sample">Sample</a></li>
 <li class="toctree-l3"><a class="reference internal" href="executing_circuits.html#Observe">Observe</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="single_qubit_rotation.html">Single qubit rotation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="noisy_simulations.html">Noisy simulations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="vqe.html">Variational quantum eigensolver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="single_qubit_rotation.html">Single Qubit Rotation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="noisy_simulations.html">Noisy Simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vqe.html">Variational Quantum Eigensolver</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Hybrid Quantum Neural Networks</a></li>
-<li class="toctree-l2"><a class="reference internal" href="multi_gpu_workflows.html">Multi-GPU workflows</a></li>
-<li class="toctree-l2"><a class="reference internal" href="multi_gpu_workflows.html#Default-CPU-backend">Default CPU backend</a></li>
-<li class="toctree-l2"><a class="reference internal" href="multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="multi_gpu_workflows.html#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="multi_gpu_workflows.html#Multiple-QPUs">Multiple QPUs</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Asynchronous-data-collection-via-batching-hamiltonian-terms">Asynchronous data collection via batching hamiltonian terms</a></li>
-<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Asynchronous-data-collection-via-circuit-batching">Asynchronous data collection via circuit batching</a></li>
+<li class="toctree-l2"><a class="reference internal" href="multi_gpu_workflows.html">Multi-GPU Workflows</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Available-Targets">Available Targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Default-CPU-Backend">Default CPU Backend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPU's">Acceleration via NVIDIA GPU’s</a></li>
+<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Multiple-NVIDIA-GPU's">Multiple NVIDIA GPU’s</a></li>
+<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Multiple-QPU's">Multiple QPU’s</a></li>
 </ul>
 </li>
 </ul>
@@ -358,7 +347,7 @@
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #76b900" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="../../../index.html">NVIDIA CUDA Quantum</a>
       </nav>
@@ -368,13 +357,15 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="../../../using/examples.html">CUDA Quantum by Example</a></li>
-          <li class="breadcrumb-item"><a href="../../../using/python.html">CUDA Quantum in Python</a></li>
+          <li class="breadcrumb-item"><a href="../../../using/tutorials.html">CUDA Quantum Tutorials</a></li>
       <li class="breadcrumb-item active">Hybrid Quantum Neural Networks</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../../../_sources/examples/python/tutorials/hybrid_qnns.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
-  </ul>
+  </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
+        <a href="vqe.html" class="btn btn-neutral float-left" title="Variational Quantum Eigensolver" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="multi_gpu_workflows.html" class="btn btn-neutral float-right" title="Multi-GPU Workflows" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+  </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
@@ -416,7 +407,8 @@
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>  <span class="c1"># Set CUDAQ to run on GPUs</span>
 
-<span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span>  <span class="c1"># If this is True then the NVIDIA drivers are correctly installed</span>
+<span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">(</span>
+<span class="p">)</span>  <span class="c1"># If this is True then the NVIDIA drivers are correctly installed</span>
 
 <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">device_count</span><span class="p">()</span>  <span class="c1"># Counts the number of GPUs available</span>
 
@@ -433,7 +425,7 @@
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Training set</span>
-<span class="n">n_samples</span> <span class="o">=</span> <span class="mi">140</span>
+<span class="n">sample_count</span> <span class="o">=</span> <span class="mi">140</span>
 
 <span class="n">X_train</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">MNIST</span><span class="p">(</span>
     <span class="n">root</span><span class="o">=</span><span class="s2">&quot;./data&quot;</span><span class="p">,</span>
@@ -444,8 +436,8 @@
 
 <span class="c1"># Leaving only labels 0 and 1</span>
 <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-    <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">X_train</span><span class="o">.</span><span class="n">targets</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">][:</span><span class="n">n_samples</span><span class="p">],</span>
-    <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">X_train</span><span class="o">.</span><span class="n">targets</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">][:</span><span class="n">n_samples</span><span class="p">],</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">X_train</span><span class="o">.</span><span class="n">targets</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">][:</span><span class="n">sample_count</span><span class="p">],</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">X_train</span><span class="o">.</span><span class="n">targets</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">][:</span><span class="n">sample_count</span><span class="p">],</span>
 <span class="p">)</span>
 
 <span class="n">X_train</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">X_train</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
@@ -454,7 +446,7 @@
 <span class="n">train_loader</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">DataLoader</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="c1"># Test set</span>
-<span class="n">n_samples</span> <span class="o">=</span> <span class="mi">70</span>
+<span class="n">sample_count</span> <span class="o">=</span> <span class="mi">70</span>
 
 <span class="n">X_test</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">MNIST</span><span class="p">(</span>
     <span class="n">root</span><span class="o">=</span><span class="s2">&quot;./data&quot;</span><span class="p">,</span>
@@ -463,8 +455,8 @@
     <span class="n">transform</span><span class="o">=</span><span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">([</span><span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">()]),</span>
 <span class="p">)</span>
 <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-    <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">X_test</span><span class="o">.</span><span class="n">targets</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">][:</span><span class="n">n_samples</span><span class="p">],</span>
-    <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">X_test</span><span class="o">.</span><span class="n">targets</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">][:</span><span class="n">n_samples</span><span class="p">],</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">X_test</span><span class="o">.</span><span class="n">targets</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">][:</span><span class="n">sample_count</span><span class="p">],</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">X_test</span><span class="o">.</span><span class="n">targets</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">][:</span><span class="n">sample_count</span><span class="p">],</span>
 <span class="p">)</span>
 
 <span class="n">X_test</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">X_test</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
@@ -565,7 +557,7 @@ Extracting ./data/MNIST/raw/t10k-labels-idx1-ubyte.gz to ./data/MNIST/raw
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">QuantumCircuit</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;This class defines the quantum circuit structure and the run method which is used to calculate an expectation value&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_qubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Define the quantum circuit in CUDA Quantum&quot;&quot;&quot;</span>
 
         <span class="n">kernel</span><span class="p">,</span> <span class="n">thetas</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
@@ -574,7 +566,7 @@ Extracting ./data/MNIST/raw/t10k-labels-idx1-ubyte.gz to ./data/MNIST/raw
 
         <span class="bp">self</span><span class="o">.</span><span class="n">theta</span> <span class="o">=</span> <span class="n">thetas</span>
 
-        <span class="n">qubits</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="n">n_qubits</span><span class="p">)</span>
+        <span class="n">qubits</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
 
@@ -585,9 +577,9 @@ Extracting ./data/MNIST/raw/t10k-labels-idx1-ubyte.gz to ./data/MNIST/raw
     <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thetas</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Excetute the quantum circuit to output an expectation value&quot;&quot;&quot;</span>
 
-        <span class="n">expectation</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
-            <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel</span><span class="p">,</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">thetas</span><span class="p">)</span><span class="o">.</span><span class="n">expectation_z</span><span class="p">(),</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
-        <span class="p">)</span>
+        <span class="n">expectation</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel</span><span class="p">,</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                                                 <span class="n">thetas</span><span class="p">)</span><span class="o">.</span><span class="n">expectation_z</span><span class="p">(),</span>
+                                   <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">expectation</span>
 </pre></div>
@@ -598,11 +590,11 @@ Extracting ./data/MNIST/raw/t10k-labels-idx1-ubyte.gz to ./data/MNIST/raw
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">QuantumFunction</span><span class="p">(</span><span class="n">Function</span><span class="p">):</span>
-
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Allows the quantum circuit to pass data through it and compute the gradients&quot;&quot;&quot;</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">thetas</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">,</span> <span class="n">quantum_circuit</span><span class="p">,</span> <span class="n">shift</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">thetas</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">,</span> <span class="n">quantum_circuit</span><span class="p">,</span>
+                <span class="n">shift</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">:</span>
         <span class="c1"># Save shift and quantum_circuit in context to use in backward</span>
         <span class="n">ctx</span><span class="o">.</span><span class="n">shift</span> <span class="o">=</span> <span class="n">shift</span>
         <span class="n">ctx</span><span class="o">.</span><span class="n">quantum_circuit</span> <span class="o">=</span> <span class="n">quantum_circuit</span>
@@ -664,6 +656,7 @@ Extracting ./data/MNIST/raw/t10k-labels-idx1-ubyte.gz to ./data/MNIST/raw
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">Net</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">Net</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
@@ -672,8 +665,12 @@ Extracting ./data/MNIST/raw/t10k-labels-idx1-ubyte.gz to ./data/MNIST/raw
         <span class="bp">self</span><span class="o">.</span><span class="n">conv2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout2d</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fc1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="mi">64</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">fc2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># Output a 2D tensor since we have 2 variational parameters in our quantum circuit</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">hybrid</span> <span class="o">=</span> <span class="n">QuantumLayer</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span><span class="p">))</span>  <span class="c1"># Input is the magnitude of the parameter shifts to calculate gradients</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fc2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span>
+            <span class="mi">64</span><span class="p">,</span> <span class="mi">2</span>
+        <span class="p">)</span>  <span class="c1"># Output a 2D tensor since we have 2 variational parameters in our quantum circuit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hybrid</span> <span class="o">=</span> <span class="n">QuantumLayer</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="p">)</span>  <span class="c1"># Input is the magnitude of the parameter shifts to calculate gradients</span>
 
     <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv1</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
@@ -683,7 +680,8 @@ Extracting ./data/MNIST/raw/t10k-labels-idx1-ubyte.gz to ./data/MNIST/raw
         <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fc1</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc2</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># Reshapes required to satisfy input dimensions to CUDAQ</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc2</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="o">-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># Reshapes required to satisfy input dimensions to CUDAQ</span>
         <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hybrid</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">x</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
@@ -705,7 +703,6 @@ Extracting ./data/MNIST/raw/t10k-labels-idx1-ubyte.gz to ./data/MNIST/raw
 <span class="n">epochs</span> <span class="o">=</span> <span class="mi">20</span>
 
 <span class="n">epoch_loss</span> <span class="o">=</span> <span class="p">[]</span>
-
 
 <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
 <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">epochs</span><span class="p">):</span>
@@ -731,11 +728,8 @@ Extracting ./data/MNIST/raw/t10k-labels-idx1-ubyte.gz to ./data/MNIST/raw
 
     <span class="n">epoch_loss</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch_loss</span> <span class="o">/</span> <span class="n">batch_idx</span><span class="p">)</span>
 
-    <span class="nb">print</span><span class="p">(</span>
-        <span class="s2">&quot;Training [</span><span class="si">{:.0f}</span><span class="s2">%]</span><span class="se">\t</span><span class="s2">Loss: </span><span class="si">{:.4f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="mf">100.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">epochs</span><span class="p">,</span> <span class="n">epoch_loss</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-        <span class="p">)</span>
-    <span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Training [</span><span class="si">{:.0f}</span><span class="s2">%]</span><span class="se">\t</span><span class="s2">Loss: </span><span class="si">{:.4f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="mf">100.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">epochs</span><span class="p">,</span> <span class="n">epoch_loss</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
 </pre></div>
 </div>
 </div>
@@ -814,11 +808,8 @@ Text(0, 0.5, &#39;Neg Log Likelihood Loss&#39;)
         <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_func</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
         <span class="n">epoch_loss</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
 
-    <span class="nb">print</span><span class="p">(</span>
-        <span class="s2">&quot;Performance on test data:</span><span class="se">\n\t</span><span class="s2">Accuracy: </span><span class="si">{:.1f}</span><span class="s2">%&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="n">correct</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_loader</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span>
-        <span class="p">)</span>
-    <span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Performance on test data:</span><span class="se">\n\t</span><span class="s2">Accuracy: </span><span class="si">{:.1f}</span><span class="s2">%&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">correct</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_loader</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -837,8 +828,8 @@ Performance on test data:
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="vqe.html" class="btn btn-neutral float-left" title="Variational quantum eigensolver" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="multi_gpu_workflows.html" class="btn btn-neutral float-right" title="Multi-GPU workflows" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="vqe.html" class="btn btn-neutral float-left" title="Variational Quantum Eigensolver" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="multi_gpu_workflows.html" class="btn btn-neutral float-right" title="Multi-GPU Workflows" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
