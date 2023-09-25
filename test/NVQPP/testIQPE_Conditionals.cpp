@@ -74,8 +74,7 @@ int main() {
 
   int nShots = 10;
   auto &platform = cudaq::get_platform();
-  platform.set_shots(nShots);
-  auto counts = cudaq::sample(iqpe{});
+  auto counts = cudaq::sample(nShots, iqpe{});
   counts.dump();
 
   return 0;

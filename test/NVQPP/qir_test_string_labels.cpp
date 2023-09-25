@@ -8,7 +8,7 @@
 
 // Note: change |& to 2>&1 if running in bash
 // RUN: nvq++ -v %s -o %basename_t.x --target quantinuum --emulate && CUDAQ_DUMP_JIT_IR=1 ./%basename_t.x |& FileCheck %s
-// RUN: nvq++ -v %s -o %basename_t.x --target ionq --emulate && IONQ_API_KEY=0 CUDAQ_DUMP_JIT_IR=1 ./%basename_t.x |& FileCheck %s
+// RUN: nvq++ -v %s -o %basename_t.x --target ionq --emulate && IONQ_API_KEY=0 CUDAQ_DUMP_JIT_IR=1 ./%basename_t.x |& FileCheck --check-prefix IONQ %s
 // Note: iqm not currently tested because it does not currently use QIR
 
 #include <cudaq.h>
@@ -40,3 +40,12 @@ int main() {
 // CHECK-DAG: !2 = !{i32 7, !"qir_minor_version", i32 0}
 // CHECK-DAG: !3 = !{i32 1, !"dynamic_qubit_management", i1 false}
 // CHECK-DAG: !4 = !{i32 1, !"dynamic_result_management", i1 false}
+
+// IONQ: define void @__nvqpp__mlirgen__function_qir_test.{{.*}}() local_unnamed_addr #[[ATTR_1:[0-9]+]]
+// IONQ-DAG: attributes #[[ATTR_1]] = { "entry_point" {{.*}} "output_names"={{.*}} "qir_profiles"="base_profile" "requiredQubits"="1" "requiredResults"="1" }
+// IONQ-DAG: !llvm.module.flags = !{!0, !1, !2, !3, !4}
+// IONQ-DAG: !0 = !{i32 2, !"Debug Info Version", i32 3}
+// IONQ-DAG: !1 = !{i32 1, !"qir_major_version", i32 1}
+// IONQ-DAG: !2 = !{i32 7, !"qir_minor_version", i32 0}
+// IONQ-DAG: !3 = !{i32 1, !"dynamic_qubit_management", i1 false}
+// IONQ-DAG: !4 = !{i32 1, !"dynamic_result_management", i1 false}

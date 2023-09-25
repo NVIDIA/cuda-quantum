@@ -19,11 +19,7 @@ __qpu__ void load_value(unsigned value) {
       x(qubits[3 - i]);
   }
 
-// TODO: Extend measurement support for submissions to IonQ,
-// see https://github.com/NVIDIA/cuda-quantum/issues/512.
-#ifndef IONQ_TARGET
   mz(qubits);
-#endif
 }
 
 int main() {
