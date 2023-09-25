@@ -140,6 +140,7 @@
 <li class="toctree-l3"><a class="reference internal" href="using/python.html#bernstein-vazirani">Bernstein-Vazirani</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/python.html#variational-quantum-eigensolver">Variational Quantum Eigensolver</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/python.html#quantum-approximate-optimization-algorithm">Quantum Approximate Optimization Algorithm</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/python.html#noisy-simulation">Noisy Simulation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/python.html#using-quantum-hardware-providers">Using Quantum Hardware Providers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/python.html#tutorials-in-notebook-format">Tutorials in Notebook Format</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="examples/python/tutorials/executing_circuits.html">Executing quantum circuits</a></li>
@@ -154,6 +155,27 @@
 <li class="toctree-l4"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html#Multiple-QPUs">Multiple QPUs</a></li>
 </ul>
 </li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="using/tutorials.html">   Tutorials</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/executing_circuits.html">Executing quantum circuits</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/executing_circuits.html#Sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/executing_circuits.html#Observe">Observe</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/single_qubit_rotation.html">Single qubit rotation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/noisy_simulations.html">Noisy simulations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/vqe.html">Variational quantum eigensolver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html">Multi-GPU workflows</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html#Default-CPU-backend">Default CPU backend</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html#Multiple-QPUs">Multiple QPUs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html#Asynchronous-data-collection-via-batching-hamiltonian-terms">Asynchronous data collection via batching hamiltonian terms</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html#Asynchronous-data-collection-via-circuit-batching">Asynchronous data collection via circuit batching</a></li>
 </ul>
 </li>
 </ul>
@@ -262,18 +284,9 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="api/languages/python_api.html">Python API</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#cudaq.initialize_cudaq"><code class="docutils literal notranslate"><span class="pre">initialize_cudaq()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#cudaq.num_available_gpus"><code class="docutils literal notranslate"><span class="pre">num_available_gpus()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#cudaq.set_random_seed"><code class="docutils literal notranslate"><span class="pre">set_random_seed()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.initialize"><code class="docutils literal notranslate"><span class="pre">initialize()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.rank"><code class="docutils literal notranslate"><span class="pre">rank()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.num_ranks"><code class="docutils literal notranslate"><span class="pre">num_ranks()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.all_gather"><code class="docutils literal notranslate"><span class="pre">all_gather()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.is_initialized"><code class="docutils literal notranslate"><span class="pre">is_initialized()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.finalize"><code class="docutils literal notranslate"><span class="pre">finalize()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#program-construction">Program Construction</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.from_state"><code class="docutils literal notranslate"><span class="pre">from_state()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.make_kernel"><code class="docutils literal notranslate"><span class="pre">make_kernel()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.from_state"><code class="docutils literal notranslate"><span class="pre">from_state()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.Kernel"><code class="docutils literal notranslate"><span class="pre">Kernel</span></code></a></li>
 </ul>
 </li>
@@ -293,9 +306,13 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.reset_target"><code class="docutils literal notranslate"><span class="pre">reset_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.set_noise"><code class="docutils literal notranslate"><span class="pre">set_noise()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.unset_noise"><code class="docutils literal notranslate"><span class="pre">unset_noise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.initialize_cudaq"><code class="docutils literal notranslate"><span class="pre">initialize_cudaq()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.num_available_gpus"><code class="docutils literal notranslate"><span class="pre">num_available_gpus()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.set_random_seed"><code class="docutils literal notranslate"><span class="pre">set_random_seed()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#data-types">Data Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.Target"><code class="docutils literal notranslate"><span class="pre">Target</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.QuakeValue"><code class="docutils literal notranslate"><span class="pre">QuakeValue</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
@@ -313,6 +330,15 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#gradients">Gradients</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#noisy-simulation">Noisy Simulation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#mpi-submodule">MPI Submodule</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.initialize"><code class="docutils literal notranslate"><span class="pre">initialize()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.rank"><code class="docutils literal notranslate"><span class="pre">rank()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.num_ranks"><code class="docutils literal notranslate"><span class="pre">num_ranks()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.all_gather"><code class="docutils literal notranslate"><span class="pre">all_gather()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.is_initialized"><code class="docutils literal notranslate"><span class="pre">is_initialized()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.finalize"><code class="docutils literal notranslate"><span class="pre">finalize()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -399,18 +425,28 @@
         <li><a href="api/languages/python_api.html#cudaq.SampleResult.__getitem__">(cudaq.SampleResult method)</a>
 </li>
       </ul></li>
-      <li><a href="api/languages/python_api.html#cudaq.NoiseModel.__init__">__init__() (cudaq.NoiseModel method)</a>
+      <li><a href="api/languages/python_api.html#cudaq.AmplitudeDampingChannel.__init__">__init__() (cudaq.AmplitudeDampingChannel method)</a>
+
+      <ul>
+        <li><a href="api/languages/python_api.html#cudaq.BitFlipChannel.__init__">(cudaq.BitFlipChannel method)</a>
 </li>
+        <li><a href="api/languages/python_api.html#cudaq.DepolarizationChannel.__init__">(cudaq.DepolarizationChannel method)</a>
+</li>
+        <li><a href="api/languages/python_api.html#cudaq.NoiseModel.__init__">(cudaq.NoiseModel method)</a>
+</li>
+        <li><a href="api/languages/python_api.html#cudaq.PhaseFlipChannel.__init__">(cudaq.PhaseFlipChannel method)</a>
+</li>
+      </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult.__iter__">__iter__() (cudaq.SampleResult method)</a>
 
       <ul>
         <li><a href="api/languages/python_api.html#cudaq.SpinOperator.__iter__">(cudaq.SpinOperator method)</a>
 </li>
       </ul></li>
-      <li><a href="api/languages/python_api.html#cudaq.SampleResult.__len__">__len__() (cudaq.SampleResult method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/python_api.html#cudaq.SampleResult.__len__">__len__() (cudaq.SampleResult method)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.QuakeValue.__mul__">__mul__() (cudaq.QuakeValue method)</a>
 
       <ul>
@@ -508,6 +544,8 @@
       <li><a href="api/languages/python_api.html#cudaq.gradients.CentralDifference.compute">compute() (cudaq.gradients.CentralDifference method)</a>
 
       <ul>
+        <li><a href="api/languages/python_api.html#cudaq.gradients.ForwardDifference.compute">(cudaq.gradients.ForwardDifference method)</a>
+</li>
         <li><a href="api/languages/python_api.html#cudaq.gradients.ParameterShift.compute">(cudaq.gradients.ParameterShift method)</a>
 </li>
       </ul></li>
@@ -756,7 +794,7 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq11noise_model5emptyEv">cudaq::noise_model::empty (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq11noise_model12get_channelsENSt6vectorI13kraus_channelEERKNSt6vectorINSt6size_tEEE">cudaq::noise_model::get_channels (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq11noise_model12get_channelsERKNSt6stringERKNSt6vectorINSt6size_tEEE">[1]</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I0ENK5cudaq11noise_model12get_channelsENSt6vectorI13kraus_channelEERKNSt6vectorINSt6size_tEEE">cudaq::noise_model::get_channels (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4NK5cudaq11noise_model12get_channelsERKNSt6stringERKNSt6vectorINSt6size_tEEE">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq11noise_model11noise_modelEv">cudaq::noise_model::noise_model (C++ function)</a>
 </li>
@@ -778,10 +816,10 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_result8raw_dataEv">cudaq::observe_result::raw_data (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq20optimizable_functionE">cudaq::optimizable_function (C++ class)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq20optimizable_functionE">cudaq::optimizable_function (C++ class)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq19optimization_resultE">cudaq::optimization_result (C++ type)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq9optimizerE">cudaq::optimizer (C++ class)</a>
@@ -904,7 +942,7 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform12set_exec_ctxEPN5cudaq16ExecutionContextENSt6size_tE">cudaq::quantum_platform::set_exec_ctx (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform9set_noiseEP11noise_model">cudaq::quantum_platform::set_noise (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform9set_noiseEPK11noise_model">cudaq::quantum_platform::set_noise (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform9set_shotsEi">cudaq::quantum_platform::set_shots (C++ function)</a>
 </li>
@@ -982,7 +1020,7 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_resultD0Ev">cudaq::sample_result::~sample_result (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq9set_noiseERN5cudaq11noise_modelE">cudaq::set_noise (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq9set_noiseERKN5cudaq11noise_modelE">cudaq::set_noise (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15set_random_seedENSt6size_tE">cudaq::set_random_seed (C++ function)</a>
 </li>
@@ -1074,6 +1112,8 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.DepolarizationChannel">DepolarizationChannel (class in cudaq)</a>
 </li>
+      <li><a href="api/languages/python_api.html#cudaq.Target.description">description (cudaq.Target property)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.SpinOperator.distribute_terms">distribute_terms() (cudaq.SpinOperator method)</a>
 </li>
   </ul></td>
@@ -1108,9 +1148,13 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SpinOperator.for_each_pauli">for_each_pauli() (cudaq.SpinOperator method)</a>
 </li>
+      <li><a href="api/languages/python_api.html#cudaq.SpinOperator.for_each_term">for_each_term() (cudaq.SpinOperator method)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.SpinOperator.for_each_term">for_each_term() (cudaq.SpinOperator method)</a>
+      <li><a href="api/languages/python_api.html#cudaq.Kernel.for_loop">for_loop() (cudaq.Kernel method)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.gradients.ForwardDifference">ForwardDifference (class in cudaq.gradients)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.from_state">from_state() (in module cudaq)</a>
 </li>
@@ -1272,7 +1316,11 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.Kernel.name">name (cudaq.Kernel attribute)</a>
+
+      <ul>
+        <li><a href="api/languages/python_api.html#cudaq.Target.name">(cudaq.Target property)</a>
 </li>
+      </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.optimizers.NelderMead">NelderMead (class in cudaq.optimizers)</a>
 </li>
   </ul></td>
@@ -1280,6 +1328,8 @@
       <li><a href="api/languages/python_api.html#cudaq.NoiseModel">NoiseModel (class in cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.num_available_gpus">num_available_gpus() (in module cudaq)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.Target.num_qpus">num_qpus() (cudaq.Target method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.mpi.num_ranks">num_ranks() (in module cudaq.mpi)</a>
 </li>
@@ -1309,6 +1359,8 @@
         <li><a href="api/languages/python_api.html#cudaq.optimizers.NelderMead.optimize">(cudaq.optimizers.NelderMead method)</a>
 </li>
       </ul></li>
+      <li><a href="api/languages/python_api.html#cudaq.optimizers.optimizer">optimizer (class in cudaq.optimizers)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -1317,9 +1369,11 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.gradients.ParameterShift">ParameterShift (class in cudaq.gradients)</a>
 </li>
+      <li><a href="api/languages/python_api.html#cudaq.PhaseFlipChannel">PhaseFlipChannel (class in cudaq)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.PhaseFlipChannel">PhaseFlipChannel (class in cudaq)</a>
+      <li><a href="api/languages/python_api.html#cudaq.Target.platform">platform (cudaq.Target property)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult.probability">probability() (cudaq.SampleResult method)</a>
 </li>
@@ -1391,6 +1445,8 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.set_target">set_target() (in module cudaq)</a>
 </li>
+      <li><a href="api/languages/python_api.html#cudaq.Target.simulator">simulator (cudaq.Target property)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.QuakeValue.slice">slice() (cudaq.QuakeValue method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.spin.i">spin.i() (in module cudaq)</a>
@@ -1412,6 +1468,8 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.Kernel.t">t() (cudaq.Kernel method)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.Target">Target (class in cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.Kernel.tdg">tdg() (cudaq.Kernel method)</a>
 </li>
