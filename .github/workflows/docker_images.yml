@@ -485,7 +485,7 @@ jobs:
           file: ./docker/build/cudaq.dev.Dockerfile
           build-args: |
             base_image=${{ steps.prereqs.outputs.devdeps_image }}
-            install="CMAKE_BUILD_TYPE=Release FORCE_COMPILE_GPU_COMPONENTS=true"
+            install="CMAKE_BUILD_TYPE=Release FORCE_COMPILE_GPU_COMPONENTS=true CUDA_QUANTUM_VERSION=${{ steps.prereqs.outputs.image_tag }}"
           tags: ${{ steps.cudaqdev_metadata.outputs.tags }}
           labels: ${{ steps.cudaqdev_metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}
