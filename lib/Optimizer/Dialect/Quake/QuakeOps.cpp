@@ -386,7 +386,7 @@ LogicalResult quake::ExtractRefOp::verify() {
       return emitOpError("invalid constant index value");
     } else {
       auto veqSize = getVeq().getType().getSize();
-      if (veqSize > 0 && getRawIndex() >= veqSize)
+      if (getVeq().getType().hasSpecifiedSize() && getRawIndex() >= veqSize)
         return emitOpError("invalid index [" + std::to_string(getRawIndex()) +
                            "] because >= size [" + std::to_string(veqSize) +
                            "]");

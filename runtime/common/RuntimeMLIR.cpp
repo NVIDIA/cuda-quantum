@@ -299,19 +299,21 @@ mlir::LogicalResult verifyQubitAndResultRanges(llvm::Module *llvmModule) {
   for (llvm::Function &func : *llvmModule) {
     for (llvm::BasicBlock &block : func) {
       for (llvm::Instruction &inst : block) {
-        auto callInst = llvm::dyn_cast_or_null<llvm::CallBase>(&inst);
-        auto func = callInst ? callInst->getCalledFunction() : nullptr;
-        // All results must be in range for output recording functions
-        if (func && func->getName() == cudaq::opt::QIRBaseProfileRecordOutput) {
-          auto result = getArgAsInteger(callInst->getArgOperand(0));
-          CHECK_RANGE(result, required_num_results);
-        }
-        // All qubits and results must be in range for measurements
-        if (func && func->getName() == cudaq::opt::QIRMeasureBody) {
-          auto qubit = getArgAsInteger(callInst->getArgOperand(0));
-          auto result = getArgAsInteger(callInst->getArgOperand(1));
-          CHECK_RANGE(qubit, required_num_qubits);
-          CHECK_RANGE(result, required_num_results);
+        if (auto callInst = llvm::dyn_cast_or_null<llvm::CallBase>(&inst)) {
+          if (auto func = callInst->getCalledFunction()) {
+            // All results must be in range for output recording functions
+            if (func->getName() == cudaq::opt::QIRBaseProfileRecordOutput) {
+              auto result = getArgAsInteger(callInst->getArgOperand(0));
+              CHECK_RANGE(result, required_num_results);
+            }
+            // All qubits and results must be in range for measurements
+            else if (func->getName() == cudaq::opt::QIRMeasureBody) {
+              auto qubit = getArgAsInteger(callInst->getArgOperand(0));
+              auto result = getArgAsInteger(callInst->getArgOperand(1));
+              CHECK_RANGE(qubit, required_num_qubits);
+              CHECK_RANGE(result, required_num_results);
+            }
+          }
         }
       }
     }
