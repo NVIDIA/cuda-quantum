@@ -382,8 +382,15 @@ LogicalResult quake::ExtractRefOp::verify() {
       return emitOpError(
           "must not have both a constant index and an index argument.");
   } else {
-    if (getRawIndex() == kDynamicIndex)
+    if (getRawIndex() == kDynamicIndex) {
       return emitOpError("invalid constant index value");
+    } else {
+      auto veqSize = getVeq().getType().getSize();
+      if (getVeq().getType().hasSpecifiedSize() && getRawIndex() >= veqSize)
+        return emitOpError("invalid index [" + std::to_string(getRawIndex()) +
+                           "] because >= size [" + std::to_string(veqSize) +
+                           "]");
+    }
   }
   return success();
 }
