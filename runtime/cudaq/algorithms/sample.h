@@ -257,7 +257,7 @@ auto sample(std::size_t shots, QuantumKernel &&kernel, Args &&...args) {
 ///
 /// \param options sample options
 /// \param kernel the kernel expression, must contain final measurements
-/// \param args the variadic concrete arguments for evaluation of the kernel.
+/// \param `args` the variadic concrete arguments for evaluation of the kernel.
 /// \returns counts, The counts dictionary.
 ///
 /// \details Given a quantum kernel with void return type, sample
@@ -498,10 +498,10 @@ std::vector<sample_result> sample(const sample_options &options,
 }
 
 /// @brief Run the standard sample functionality over a set of N
-/// argument packs. For a kernel with signature void(Args...), this
-/// function takes as input a set of vector<Arg>..., a vector for
+/// argument packs. For a kernel with signature `void(Args...)`, this
+/// function takes as input a set of `vector<Arg>...`, a vector for
 /// each argument type in the kernel signature. The vectors must be of
-/// equal length, and the ith element of each vector is used ith
+/// equal length, and the `ith` element of each vector is used ith
 /// execution of the standard sample function. Results are collected
 /// from the execution of every argument set and returned.
 template <typename QuantumKernel, typename... Args>

@@ -8,6 +8,7 @@
 
 import ast
 
+
 class MidCircuitMeasurementAnalyzer(ast.NodeVisitor):
     """The `MidCircuitMeasurementAnalyzer` is a utility class searches for 
        common measurement - conditional patterns to indicate to the runtime 
@@ -34,18 +35,18 @@ class MidCircuitMeasurementAnalyzer(ast.NodeVisitor):
 
     def visit_If(self, node):
         condition = node.test
-        # catch if mz(q)
+        # catch `if mz(q)`
         if self.isMeasureCallOp(condition):
-            self.hasMidCircuitMeasures = True 
-            return 
-        
-        # Catch if val, where val = mz(q)
+            self.hasMidCircuitMeasures = True
+            return
+
+        # Catch if val, where `val = mz(q)`
         if 'id' in condition.__dict__ and condition.id in self.measureResultsVars:
             self.hasMidCircuitMeasures = True
-        # Catch if UnaryOp mz(q)
+        # Catch `if UnaryOp mz(q)`
         elif isinstance(condition, ast.UnaryOp):
             self.hasMidCircuitMeasures = self.isMeasureCallOp(condition.operand)
-        # Catch if something BoolOp mz(q)
+        # Catch `if something BoolOp mz(q)`
         elif isinstance(condition,
                         ast.BoolOp) and 'values' in condition.__dict__:
             for node in condition.__dict__['values']:
