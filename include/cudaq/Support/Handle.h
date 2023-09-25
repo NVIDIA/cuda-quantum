@@ -13,7 +13,8 @@
 
 namespace cudaq {
 
-/// A handle to an item in a contiguously store container, e.g., vector or array.
+/// A handle to an item in a contiguously stored container, e.g., vector or
+/// array.
 ///
 /// This class is designed to be lightweight and thus values of this type
 /// should be passed by value, _not_ reference or pointer.
