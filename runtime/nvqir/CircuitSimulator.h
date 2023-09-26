@@ -298,7 +298,7 @@ protected:
   std::string getCircuitName() const { return currentCircuitName; }
 
   /// @brief Return the current multi-qubit state dimension
-  std::size_t calculateStateDim(const std::size_t numQubits) {
+  virtual std::size_t calculateStateDim(const std::size_t numQubits) {
     assert(numQubits < 64);
     return 1ULL << numQubits;
   }
