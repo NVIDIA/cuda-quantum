@@ -32,7 +32,7 @@ if not "CUDAQ_DYNLIBS" in os.environ:
 
 from ._pycudaq import *
 from .domains import chemistry
-from .ast.analysis import MidCircuitMeasurementAnalyzer
+from .language.analysis import MidCircuitMeasurementAnalyzer
 
 initKwargs = {'target': 'default'}
 
