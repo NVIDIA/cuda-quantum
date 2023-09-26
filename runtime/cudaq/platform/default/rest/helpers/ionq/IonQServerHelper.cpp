@@ -173,7 +173,8 @@ IonQServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     job["input"]["data"] = circuitCode.code;
     // Include error mitigation configuration if set in backendConfig
     if (keyExists("debias"))
-      job["error_mitigation"]["debias"] = backendConfig["debias"].get<bool>();
+      job["error_mitigation"]["debias"] =
+          nlohmann::json::parse(backendConfig["debias"]).get<bool>();
     jobs.push_back(job);
   }
 
@@ -248,7 +249,8 @@ std::string IonQServerHelper::constructGetResultsPath(std::string &jobId) {
   std::string resultsPath = backendConfig.at("job_path") + jobId + "/results";
 
   // If sharpen is true, add it to the query parameters
-  if (keyExists("sharpen") && backendConfig["sharpen"].get<bool>())
+  if (keyExists("sharpen") &&
+      nlohmann::json::parse(backendConfig["sharpen"]).get<bool>())
     resultsPath += "?sharpen=true";
 
   // Return the results path
