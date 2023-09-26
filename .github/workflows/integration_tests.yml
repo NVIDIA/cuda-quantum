@@ -203,6 +203,9 @@ jobs:
         # - test/NVQPP/integration/sudoku_2x2-bit_names.cpp
         # - test/NVQPP/integration/sudoku_2x2-reg_name.cpp
         # - test/NVQPP/integration/sudoku_2x2.cpp
+        # The following test is disabled due to https://github.com/NVIDIA/cuda-quantum/issues/695
+        # - test/NVQPP/integration/test-observe.cpp|\
+
         run: |
           echo "### Submit to OQC sandbox server" >> $GITHUB_STEP_SUMMARY
           export CUDAQ_LOG_LEVEL="info"
@@ -221,7 +224,6 @@ jobs:
               test/NVQPP/integration/swap_gate.cpp|\
               test/NVQPP/integration/test-int8_t.cpp|\
               test/NVQPP/integration/test-int8_t_free_func.cpp|\
-              test/NVQPP/integration/test-observe.cpp|\
               test/NVQPP/integration/variable_size_qreg.cpp)
                 nvq++ -DSYNTAX_CHECK --target oqc $filename
                 test_status=$?
