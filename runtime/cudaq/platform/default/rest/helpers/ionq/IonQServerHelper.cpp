@@ -123,8 +123,8 @@ void IonQServerHelper::initialize(BackendConfig config) {
     }
   }
   // Enable error mitigation
-  if (config.find("error_mitigation") != config.end())
-    backendConfig["error_mitigation"] = config["error_mitigation"];
+  if (config.find("debias") != config.end())
+    backendConfig["debias"] = config["debias"];
   if (config.find("sharpen") != config.end())
     backendConfig["sharpen"] = config["sharpen"];
 }
@@ -236,8 +236,15 @@ IonQServerHelper::constructGetResultsPath(ServerMessage &postResponse) {
   if (!keyExists("url"))
     throw std::runtime_error("Key 'url' doesn't exist in backendConfig.");
 
-  // Return the results path
-  return backendConfig.at("url") + jobs[0].at("results_url").get<std::string>();
+  std::string resultsPath =
+      backendConfig.at("url") + jobs[0].at("results_url").get<std::string>();
+
+  // If sharpen is true, add it to the query parameters
+  if (keyExists("sharpen") &&
+      nlohmann::json::parse(backendConfig["sharpen"]).get<bool>())
+    resultsPath += "?sharpen=true";
+
+  return resultsPath;
 }
 
 // Overloaded version of constructGetResultsPath for jobId input
