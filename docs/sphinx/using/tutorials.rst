@@ -5,7 +5,7 @@ CUDA Quantum Tutorials
 Tutorials that give an in depth view of CUDA Quantum and its applications in Python.
 
 .. nbgallery::
-    :name: notebook-tutorials 
+
     /examples/python/tutorials/executing_circuits.ipynb
     /examples/python/tutorials/single_qubit_rotation.ipynb
     /examples/python/tutorials/noisy_simulations.ipynb
