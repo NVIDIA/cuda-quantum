@@ -1,13 +1,8 @@
 workflow:
   name: 'Staging'
   rules:
-    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_BRANCH =~ /arm64/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-dev@sha256:\S+$/'
-      variables:
-        runner: os/linux-arm
-        staged: "cuda-quantum-dev"
     - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-dev@sha256:\S+$/'
       variables:
-        runner: hostname/xpl-dvt-55
         staged: "cuda-quantum-dev"
     - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_BRANCH =~ /arm64/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-devdeps@sha256:\S+$/'
       variables:
@@ -46,8 +41,66 @@ Python Wheels:
   tags:
     - $runner
   interruptible: false
+  artifacts:
+    paths:
+      - artifacts
+    expire_in: 1 day
+  before_script:
+  # Download wheels from deployment artifacts 
+  # Install GitHub CLI
+    - dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+    - dnf install -y gh jq
+    - upstream_url=https://github.com/NVIDIA/cuda-quantum && export GH_TOKEN=$GITHUB_TOKEN
+    - if [ -z "$(git remote -v | grep upstream)" ]; 
+      then git remote add upstream ${upstream_url}.git;
+      fi
+    # Retrieve the upstream CUDA Quantum artifacts
+    - digest=${CI_COMMIT_TITLE#ghcr.io/nvidia/$staged@}
+    - build_info=`cat deployments/staging/$staged/${digest#sha256:}`
+    - artifacts_url=`echo "$build_info" | grep -s -o 'artifacts-url:\s*\S*' | rev | cut -d ' ' -f 1 | rev`
+    - artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name:.name, url:.archive_download_url}')
+    # Store wheels in a temporary directory 
+    - mkdir -p /tmp/wheels
+    - |
+      for artifact in `echo "$artifacts"`; do 
+        name=`echo $artifact | jq -r '.name'`
+        if [ "${name#pycudaq-}" != "$name" ]; then
+          url=`echo $artifact | jq -r '.url'`
+          gh api $url > _pycudaq.zip
+          unzip -d _pycudaq _pycudaq.zip && cd _pycudaq
+          for wheel in `ls cuda_quantum-*-cp310-cp310-manylinux_*_$(uname -m).whl 2> /dev/null`; do
+            echo "Adding wheel $wheel."
+            mv $wheel "/tmp/wheels/$wheel"
+          done
+          cd .. && rm -rf _pycudaq*
+        fi
+      done
   script:
-    - echo "Nothing implemented yet."
+    - export PROJECT_SRCS_DIR=$PWD/.. 
+    # Install CUDA Quantum wheel for a particular Python version (could be any version) 
+    - export python=python3.10 
+    - cd /tmp/wheels/ && $python -m pip install cuda_quantum-*-cp310-cp310-manylinux_*_$(uname -m).whl
+    - cudaq_location=`$python -m pip show cuda-quantum | grep -e 'Location:\ .*$'`
+    - export CUDAQ_INSTALL_PREFIX="${cudaq_location#Location:\ }"
+    - cp -R $CUDAQ_INSTALL_PREFIX/lib64/cmake/fmt $CUDAQ_INSTALL_PREFIX/lib/cmake
+    # Tensornet Simulator
+    - export ARTIFACTS_DIR=$PROJECT_SRCS_DIR/cuda-quantum/artifacts/wheels_$(uname -m)
+    - mkdir -p $ARTIFACTS_DIR
+    - cd $PROJECT_SRCS_DIR
+    - echo "Checking out commit $CUDAQ_TENSORNET_COMMIT on $CI_SERVER_HOST/$CUDAQ_TENSORNET_REPO."
+    - mkdir cudaq_tensornet && cd cudaq_tensornet && git init
+    - git fetch --depth 1 https://$READ_ACCESS_TOKEN:$READ_ACCESS_TOKEN@$CI_SERVER_HOST/$CUDAQ_TENSORNET_REPO $CUDAQ_TENSORNET_COMMIT && git checkout FETCH_HEAD
+    - export PATH=/opt/rh/gcc-toolset-11/root/usr/bin:$PATH
+    - (bash build.sh $READ_ACCESS_TOKEN && built=true) || built=false
+    - cp -R artifacts/* $ARTIFACTS_DIR
+    # MGMN SV  Simulator
+    - cd $PROJECT_SRCS_DIR
+    - echo "Checking out commit $CUDAQ_MGMN_SVSIM_COMMIT on $CI_SERVER_HOST/$CUDAQ_MGMN_SVSIM_REPO."
+    - mkdir cudaq_mgmn_svsim && cd cudaq_mgmn_svsim && git init
+    - git fetch --depth 1 https://$READ_ACCESS_TOKEN:$READ_ACCESS_TOKEN@$CI_SERVER_HOST/$CUDAQ_MGMN_SVSIM_REPO $CUDAQ_MGMN_SVSIM_COMMIT && git checkout FETCH_HEAD
+    - (bash build.sh $READ_ACCESS_TOKEN && built=true) || built=false
+    - cp -R artifacts/* $ARTIFACTS_DIR
+    - if $built; then `exit 0`; else `exit 1`; fi
 
 MGMN SV Simulator:
   rules:
@@ -55,19 +108,23 @@ MGMN SV Simulator:
   stage: build
   dependencies: []
   image: $CI_COMMIT_TITLE
+  parallel:
+    matrix:
+      - runner: [hostname/xpl-dvt-55, os/linux-arm]
   tags:
     - $runner
   interruptible: false
   artifacts:
     paths:
-      - artifacts/mgmn_svsim/
+      - artifacts/**/mgmn_svsim/
     expire_in: 1 day
   script:
+    - echo "Building mgmn_svsim for $(uname -m) architecture."
     - echo "Checking out commit $CUDAQ_MGMN_SVSIM_COMMIT on $CI_SERVER_HOST/$CUDAQ_MGMN_SVSIM_REPO."
     - mkdir cudaq_mgmn_svsim && cd cudaq_mgmn_svsim && git init
     - git fetch --depth 1 https://$READ_ACCESS_TOKEN:$READ_ACCESS_TOKEN@$CI_SERVER_HOST/$CUDAQ_MGMN_SVSIM_REPO $CUDAQ_MGMN_SVSIM_COMMIT && git checkout FETCH_HEAD
     - (bash build.sh $READ_ACCESS_TOKEN && built=true) || built=false
-    - mkdir -p ../artifacts/mgmn_svsim && mv artifacts/* ../artifacts/mgmn_svsim
+    - mkdir -p ../artifacts/$(uname -m)/mgmn_svsim && mv artifacts/* ../artifacts/$(uname -m)/mgmn_svsim
     - cd .. && rm -rf cudaq_mgmn_svsim
     - if $built; then `exit 0`; else `exit 1`; fi
 
@@ -77,19 +134,22 @@ Tensornet Simulator:
   stage: build
   dependencies: []
   image: $CI_COMMIT_TITLE
+  parallel:
+    matrix:
+      - runner: [hostname/xpl-dvt-55, os/linux-arm]
   tags:
     - $runner
   interruptible: false
   artifacts:
     paths:
-      - artifacts/tensornet/
+      - artifacts/**/tensornet/
     expire_in: 1 day
   script:
     - echo "Checking out commit $CUDAQ_TENSORNET_COMMIT on $CI_SERVER_HOST/$CUDAQ_TENSORNET_REPO."
     - mkdir cudaq_tensornet && cd cudaq_tensornet && git init
     - git fetch --depth 1 https://$READ_ACCESS_TOKEN:$READ_ACCESS_TOKEN@$CI_SERVER_HOST/$CUDAQ_TENSORNET_REPO $CUDAQ_TENSORNET_COMMIT && git checkout FETCH_HEAD
     - (bash build.sh $READ_ACCESS_TOKEN && built=true) || built=false
-    - mkdir -p ../artifacts/tensornet && mv artifacts/* ../artifacts/tensornet
+    - mkdir -p ../artifacts/$(uname -m)/tensornet && mv artifacts/* ../artifacts/$(uname -m)/tensornet
     - cd .. && rm -rf cudaq_tensornet
     - if $built; then `exit 0`; else `exit 1`; fi
 
@@ -128,8 +188,10 @@ Push to GitHub:
       fi
     - mkdir -p artifacts && cd artifacts
     - echo "$build_info" > "$info_file" && (echo -n "data-commit:" && echo " $CI_COMMIT_SHA") >> "$info_file"
-    - if [ -d mgmn_svsim ]; then zip -r mgmn_svsim.zip mgmn_svsim && upload+="mgmn_svsim.zip "; fi
-    - if [ -d tensornet ]; then zip -r tensornet.zip tensornet && upload+="tensornet.zip "; fi
+    - if [ -d x86_64 ]; then zip -r sims_amd64.zip x86_64 && upload+="sims_amd64.zip "; fi
+    - if [ -d aarch64 ]; then zip -r sims_aarch64.zip aarch64 && upload+="sims_aarch64.zip "; fi
+    - if [ -d wheels_x86_64 ]; then zip -r wheels_x86_64.zip wheels_x86_64 && upload+="wheels_x86_64.zip "; fi
+    - if [ -d wheels_aarch64 ]; then zip -r wheels_aarch64.zip wheels_aarch64 && upload+="wheels_aarch64.zip "; fi
     - echo $upload | xargs gh release upload $release_id -R $upstream_url --clobber "$info_file"
     - additional_notes="Release edited by [GitLab pipeline]($CI_PIPELINE_URL)." &&
       additional_notes+=$(echo "<br/>Triggered based on [this commit]($upstream_url/commit/$CI_COMMIT_SHA).")
