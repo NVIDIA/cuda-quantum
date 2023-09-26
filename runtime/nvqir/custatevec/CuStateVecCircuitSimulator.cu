@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #pragma nv_diag_suppress = unsigned_compare_with_zero
 #pragma nv_diag_suppress = unrecognized_gcc_pragma
