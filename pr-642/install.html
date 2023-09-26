@@ -141,6 +141,7 @@
 <li class="toctree-l3"><a class="reference internal" href="using/python.html#bernstein-vazirani">Bernstein-Vazirani</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/python.html#variational-quantum-eigensolver">Variational Quantum Eigensolver</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/python.html#quantum-approximate-optimization-algorithm">Quantum Approximate Optimization Algorithm</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/python.html#noisy-simulation">Noisy Simulation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/python.html#using-quantum-hardware-providers">Using Quantum Hardware Providers</a></li>
 </ul>
 </li>
@@ -250,18 +251,9 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="api/languages/python_api.html">Python API</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#cudaq.initialize_cudaq"><code class="docutils literal notranslate"><span class="pre">initialize_cudaq()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#cudaq.num_available_gpus"><code class="docutils literal notranslate"><span class="pre">num_available_gpus()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#cudaq.set_random_seed"><code class="docutils literal notranslate"><span class="pre">set_random_seed()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.initialize"><code class="docutils literal notranslate"><span class="pre">initialize()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.rank"><code class="docutils literal notranslate"><span class="pre">rank()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.num_ranks"><code class="docutils literal notranslate"><span class="pre">num_ranks()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.all_gather"><code class="docutils literal notranslate"><span class="pre">all_gather()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.is_initialized"><code class="docutils literal notranslate"><span class="pre">is_initialized()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.finalize"><code class="docutils literal notranslate"><span class="pre">finalize()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#program-construction">Program Construction</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.from_state"><code class="docutils literal notranslate"><span class="pre">from_state()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.make_kernel"><code class="docutils literal notranslate"><span class="pre">make_kernel()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.from_state"><code class="docutils literal notranslate"><span class="pre">from_state()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.Kernel"><code class="docutils literal notranslate"><span class="pre">Kernel</span></code></a></li>
 </ul>
 </li>
@@ -281,9 +273,13 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.reset_target"><code class="docutils literal notranslate"><span class="pre">reset_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.set_noise"><code class="docutils literal notranslate"><span class="pre">set_noise()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.unset_noise"><code class="docutils literal notranslate"><span class="pre">unset_noise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.initialize_cudaq"><code class="docutils literal notranslate"><span class="pre">initialize_cudaq()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.num_available_gpus"><code class="docutils literal notranslate"><span class="pre">num_available_gpus()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.set_random_seed"><code class="docutils literal notranslate"><span class="pre">set_random_seed()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#data-types">Data Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.Target"><code class="docutils literal notranslate"><span class="pre">Target</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.QuakeValue"><code class="docutils literal notranslate"><span class="pre">QuakeValue</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
@@ -301,6 +297,15 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#gradients">Gradients</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#noisy-simulation">Noisy Simulation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#mpi-submodule">MPI Submodule</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.initialize"><code class="docutils literal notranslate"><span class="pre">initialize()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.rank"><code class="docutils literal notranslate"><span class="pre">rank()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.num_ranks"><code class="docutils literal notranslate"><span class="pre">num_ranks()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.all_gather"><code class="docutils literal notranslate"><span class="pre">all_gather()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.is_initialized"><code class="docutils literal notranslate"><span class="pre">is_initialized()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.finalize"><code class="docutils literal notranslate"><span class="pre">finalize()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -341,9 +346,19 @@
 <section id="install-the-docker-image">
 <h3>Install the Docker Image<a class="headerlink" href="#install-the-docker-image" title="Permalink to this heading">¶</a></h3>
 <p>Docker images for all CUDA Quantum releases are available on the <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum">NGC Container Registry</a>.
-The image for the latest version under development is built from source on our <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>.</p>
-<p>To download the latest version on the main branch of our GitHub repository, for example, use the command</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">docker pull ghcr.io/nvidia/cuda-quantum:latest</span>
+To download images from NGC, please follow the following steps if you have not done so already:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://ngc.nvidia.com/signin">Create an account</a></p></li>
+<li><p><a class="reference external" href="https://ngc.nvidia.com/signin">Sign in</a> to access your account and go to <a class="reference external" href="https://ngc.nvidia.com/setup">Setup</a>.</p></li>
+<li><p>Click on <code class="code docutils literal notranslate"><span class="pre">Get</span> <span class="pre">API</span> <span class="pre">Key</span></code> and generate a new key (this will invalidate any existing keys).</p></li>
+<li><p>Follow the instructions that appear to use that key to log in to the NGC registry using Docker.</p></li>
+</ul>
+<p>Once you have done so, run <code class="code docutils literal notranslate"><span class="pre">docker</span> <span class="pre">login</span> <span class="pre">nvcr.io</span></code> (again) to confirm you can authenticate with the registry.
+You should see a message “Login Succeeded”.</p>
+<p>In addition to publishing stable releases, we also publish docker images whenever we update the main branch of our <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>.
+These images are published in a separate location <code class="code docutils literal notranslate"><span class="pre">nvidia/nightly</span></code> on NGC, as well as on GitHub.
+To download the latest version on the main branch of our GitHub repository, for example, use the command</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">docker pull nvcr.io/nvidia/nightly/cuda-quantum:latest</span>
 </pre></div>
 </div>
 </section>
@@ -355,7 +370,7 @@ The image for the latest version under development is built from source on our <
 </div>
 <p>replacing <code class="code docutils literal notranslate"><span class="pre">&lt;image_name&gt;</span></code> with the name and tag of the image you downloaded.</p>
 <p>This will give you terminal access to the created container, for example</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">user@host:~$ </span>docker<span class="w"> </span>run<span class="w"> </span>-it<span class="w"> </span>--name<span class="w"> </span>cuda-quantum<span class="w"> </span>ghcr.io/nvidia/cuda-quantum:latest
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">user@host:~$ </span>docker<span class="w"> </span>run<span class="w"> </span>-it<span class="w"> </span>--name<span class="w"> </span>cuda-quantum<span class="w"> </span>nvcr.io/nvidia/nightly/cuda-quantum:latest
 <span class="go">To run a command as administrator (user &quot;root&quot;), use &quot;sudo &lt;command&gt;&quot;.</span>
 <span class="go">See &quot;man sudo_root&quot; for details.</span>
 
