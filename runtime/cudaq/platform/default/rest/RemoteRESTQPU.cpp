@@ -8,48 +8,44 @@
 
 #include "Executor.h"
 #include "common/ExecutionContext.h"
+#include "common/FmtCore.h"
 #include "common/Logger.h"
 #include "common/RestClient.h"
-#include "cudaq/platform/qpu.h"
-#include "nvqpp_config.h"
-
-#include "common/FmtCore.h"
 #include "common/RuntimeMLIR.h"
-#include "cudaq/platform/quantum_platform.h"
-#include <cudaq/spin_op.h>
-#include <fstream>
-#include <iostream>
-#include <netinet/in.h>
-#include <regex>
-#include <sys/socket.h>
-#include <sys/types.h>
-
+#include "cudaq.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
+#include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Plugin.h"
-#include "cudaq/Target/OpenQASM/OpenQASMEmitter.h"
+#include "cudaq/platform/qpu.h"
+#include "cudaq/platform/quantum_platform.h"
+#include "cudaq/spin_op.h"
+#include "nvqpp_config.h"
+#include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Support/Base64.h"
-#include "mlir/Dialect/Affine/IR/AffineOps.h"
+#include "llvm/Support/MemoryBuffer.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/ExecutionEngine/OptUtils.h"
-#include "mlir/IR/BuiltinOps.h"
-#include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/ImplicitLocOpBuilder.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassRegistry.h"
-#include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
-#include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
+#include <fstream>
+#include <iostream>
+#include <netinet/in.h>
+#include <regex>
+#include <sys/socket.h>
+#include <sys/types.h>
 
 using namespace mlir;
 
@@ -84,7 +80,11 @@ protected:
   /// @brief The name of the QPU being targeted
   std::string qpuName;
 
+  /// @brief Name of codegen translation (e.g. "qir", "qasm2", "iqm")
   std::string codegenTranslation = "";
+
+  /// @brief Additional passes to run after the codegen-specific passes
+  std::string postCodeGenPasses = "";
 
   // Pointer to the concrete Executor for this QPU
   std::unique_ptr<cudaq::Executor> executor;
@@ -104,6 +104,16 @@ protected:
   /// @brief Flag indicating whether we should print the IR.
   bool printIR = false;
 
+  /// @brief Flag indicating whether we should perform the passes in a
+  /// single-threaded environment, useful for debug. Similar to
+  /// -mlir-disable-threading for cudaq-opt.
+  bool disableMLIRthreading = false;
+
+  /// @brief Flag indicating whether we should enable MLIR printing before and
+  /// after each pass. This is similar to (-mlir-print-ir-before-all and
+  /// -mlir-print-ir-after-all) in cudaq-opt.
+  bool enablePrintMLIREachPass = false;
+
   /// @brief If we are emulating locally, keep track
   /// of JIT engines for invoking the kernels.
   std::vector<ExecutionEngine *> jitEngines;
@@ -119,6 +129,18 @@ protected:
     reinterpret_cast<void (*)()>(*funcPtr)();
     // We're done, delete the pointer.
     delete jit;
+  }
+
+  /// @brief Helper function to get boolean environment variable
+  bool getEnvBool(const char *envName, bool defaultVal = false) {
+    if (auto envVal = std::getenv(envName)) {
+      std::string tmp(envVal);
+      std::transform(tmp.begin(), tmp.end(), tmp.begin(),
+                     [](unsigned char c) { return std::tolower(c); });
+      if (tmp == "1" || tmp == "on" || tmp == "true" || tmp == "yes")
+        return true;
+    }
+    return defaultVal;
   }
 
 public:
@@ -154,9 +176,12 @@ public:
   void clearShots() override { nShots = std::nullopt; }
   virtual bool isRemote() override { return !emulate; }
 
+  /// @brief Return true if locally emulating a remote QPU
+  virtual bool isEmulated() override { return emulate; }
+
   /// @brief Set the noise model, only allow this for
   /// emulation.
-  void setNoiseModel(cudaq::noise_model *model) override {
+  void setNoiseModel(const cudaq::noise_model *model) override {
     if (!emulate && model)
       throw std::runtime_error(
           "Noise modeling is not allowed on remote physical quantum backends.");
@@ -210,12 +235,18 @@ public:
     emulate = iter != backendConfig.end() && iter->second == "true";
 
     // Print the IR if requested
-    if (auto cudaqPrintJITResult = std::getenv("CUDAQ_DUMP_JIT_IR")) {
-      std::string tmp(cudaqPrintJITResult);
-      std::transform(tmp.begin(), tmp.end(), tmp.begin(),
-                     [](unsigned char c) { return std::tolower(c); });
-      if (tmp == "1" || tmp == "on" || tmp == "true" || tmp == "yes")
-        printIR = true;
+    printIR = getEnvBool("CUDAQ_DUMP_JIT_IR", printIR);
+
+    // Get additional debug values
+    disableMLIRthreading =
+        getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", disableMLIRthreading);
+    enablePrintMLIREachPass =
+        getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", enablePrintMLIREachPass);
+
+    // If the very verbose enablePrintMLIREachPass flag is set, then
+    // multi-threading must be disabled.
+    if (enablePrintMLIREachPass) {
+      disableMLIRthreading = true;
     }
 
     /// Once we know the backend, we should search for the config file
@@ -230,8 +261,9 @@ public:
 
     // Loop through the file, extract the pass pipeline and CODEGEN Type
     auto lines = cudaq::split(configContents, '\n');
-    std::regex pipeline("PLATFORM_LOWERING_CONFIG\\s*=\\s*\"(\\S+)\"");
-    std::regex emissionType("CODEGEN_EMISSION\\s*=\\s*(\\S+)");
+    std::regex pipeline("^PLATFORM_LOWERING_CONFIG\\s*=\\s*\"(\\S+)\"");
+    std::regex emissionType("^CODEGEN_EMISSION\\s*=\\s*(\\S+)");
+    std::regex postCodeGen("^POST_CODEGEN_PASSES\\s*=\\s*\"(\\S+)\"");
     std::smatch match;
     for (const std::string &line : lines) {
       if (std::regex_search(line, match, pipeline)) {
@@ -239,6 +271,10 @@ public:
         passPipelineConfig += "," + match[1].str();
       } else if (std::regex_search(line, match, emissionType)) {
         codegenTranslation = match[1].str();
+      } else if (std::regex_search(line, match, postCodeGen)) {
+        cudaq::info("Adding post-codegen lowering pipeline: {}",
+                    match[1].str());
+        postCodeGenPasses = match[1].str();
       }
     }
 
@@ -251,6 +287,38 @@ public:
 
     // Give the server helper to the executor
     executor->setServerHelper(serverHelper.get());
+  }
+
+  /// @brief Conditionally form an output_names JSON object if this was for QIR
+  nlohmann::json formOutputNames(const std::string &codegenTranslation,
+                                 const std::string &codeStr) {
+    // Form an output_names mapping from codeStr
+    nlohmann::json output_names;
+    std::vector<char> bitcode;
+    if (codegenTranslation == "qir") {
+      // decodeBase64 will throw a runtime exception if it fails
+      if (llvm::decodeBase64(codeStr, bitcode)) {
+        cudaq::info("Could not decode codeStr {}", codeStr);
+      } else {
+        llvm::LLVMContext llvmContext;
+        auto buffer = llvm::MemoryBuffer::getMemBufferCopy(
+            llvm::StringRef(bitcode.data(), bitcode.size()));
+        auto moduleOrError =
+            llvm::parseBitcodeFile(buffer->getMemBufferRef(), llvmContext);
+        if (moduleOrError.takeError())
+          throw std::runtime_error("Could not parse bitcode file");
+        auto module = std::move(moduleOrError.get());
+        for (llvm::Function &func : *module) {
+          if (func.hasFnAttribute("entry_point") &&
+              func.hasFnAttribute("output_names")) {
+            output_names = nlohmann::json::parse(
+                func.getFnAttribute("output_names").getValueAsString());
+            break;
+          }
+        }
+      }
+    }
+    return output_names;
   }
 
   /// @brief Extract the Quake representation for the given kernel name and
@@ -337,7 +405,7 @@ public:
             cudaq::opt::createQuakeObserveAnsatzPass(binarySymplecticForm[0]));
         if (failed(pm.run(tmpModuleOp)))
           throw std::runtime_error("Could not apply measurements to ansatz.");
-        runPassPipeline("canonicalize", tmpModuleOp);
+        runPassPipeline(passPipelineConfig, tmpModuleOp);
         modules.emplace_back(term.to_string(false), tmpModuleOp);
       }
     } else
@@ -348,8 +416,10 @@ public:
       // full QIR representation of the code. Then we'll map to
       // an LLVM Module, create a JIT ExecutionEngine pointer
       // and use that for execution
-      for (auto &[name, module] : modules)
-        jitEngines.emplace_back(cudaq::createQIRJITEngine(module));
+      for (auto &[name, module] : modules) {
+        auto clonedModule = module.clone();
+        jitEngines.emplace_back(cudaq::createQIRJITEngine(clonedModule));
+      }
     }
 
     // Get the code gen translation
@@ -361,11 +431,18 @@ public:
       std::string codeStr;
       {
         llvm::raw_string_ostream outStr(codeStr);
-        if (failed(translation(moduleOpI, outStr, printIR)))
+        if (disableMLIRthreading)
+          moduleOpI.getContext()->disableMultithreading();
+        if (failed(translation(moduleOpI, outStr, postCodeGenPasses, printIR,
+                               enablePrintMLIREachPass)))
           throw std::runtime_error("Could not successfully translate to " +
                                    codegenTranslation + ".");
       }
-      codes.emplace_back(name, codeStr);
+
+      // Form an output_names mapping from codeStr
+      nlohmann::json j = formOutputNames(codegenTranslation, codeStr);
+
+      codes.emplace_back(name, codeStr, j);
     }
     return codes;
   }
@@ -399,28 +476,53 @@ public:
     cudaq::details::future future;
     if (emulate) {
 
+      // Fetch the thread-specific seed outside and then pass it inside.
+      std::size_t seed = cudaq::get_random_seed();
+
       // Launch the execution of the simulated jobs asynchronously
       future = cudaq::details::future(std::async(
           std::launch::async,
-          [&, codes, localShots, kernelName,
+          [&, codes, localShots, kernelName, seed,
            localJIT = std::move(jitEngines)]() mutable -> cudaq::sample_result {
             std::vector<cudaq::ExecutionResult> results;
+
+            // If seed is 0, then it has not been set.
+            if (seed > 0)
+              cudaq::set_random_seed(seed);
+
             for (std::size_t i = 0; i < codes.size(); i++) {
               cudaq::ExecutionContext context("sample", localShots);
               cudaq::getExecutionManager()->setExecutionContext(&context);
               invokeJITKernelAndRelease(localJIT[i], kernelName);
               cudaq::getExecutionManager()->resetExecutionContext();
-              results.emplace_back(context.result.to_map(),
-                                   codes.size() == 1 ? cudaq::GlobalRegisterName
-                                                     : codes[i].name);
+
+              // If there are multiple codes, this is likely a spin_op.
+              // If so, use the code name instead of the global register.
+              if (codes.size() > 1) {
+                results.emplace_back(context.result.to_map(), codes[i].name);
+                results.back().sequentialData =
+                    context.result.sequential_data();
+              } else {
+                // For each register, add the context results into result.
+                for (auto &regName : context.result.register_names()) {
+                  results.emplace_back(context.result.to_map(regName), regName);
+                  results.back().sequentialData =
+                      context.result.sequential_data(regName);
+                }
+              }
             }
             localJIT.clear();
             return cudaq::sample_result(results);
           }));
 
-    } else
+    } else {
       // Execute the codes produced in quake lowering
-      future = executor->execute(codes);
+      // Allow developer to disable remote sending (useful for debugging IR)
+      if (getEnvBool("DISABLE_REMOTE_SEND", false))
+        return;
+      else
+        future = executor->execute(codes);
+    }
 
     // Keep this asynchronous if requested
     if (executionContext->asyncExec) {

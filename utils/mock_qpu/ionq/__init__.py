@@ -36,6 +36,9 @@ createdJobs = {}
 # Could how many times the client has requested the Job
 countJobGetRequests = 0
 
+# Save how many qubits were needed for each test (emulates real backend)
+numQubitsRequired = 0
+
 llvm.initialize()
 llvm.initialize_native_target()
 llvm.initialize_native_asmprinter()
@@ -71,12 +74,12 @@ async def login(token: Union[str, None] = Header(alias="Authorization",
 
 # Here we expose a way to post jobs,
 # Must have a Access Token, Job Program must be Adaptive Profile
-# with EntryPoint tag
+# with entry_point tag
 @app.post("/v0.3/jobs")
 async def postJob(job: Job,
                   token: Union[str, None] = Header(alias="Authorization",
                                                    default=None)):
-    global createdJobs, shots
+    global createdJobs, shots, numQubitsRequired
 
     if token == None:
         raise HTTPException(status_code(401), detail="Credentials not provided")
@@ -88,7 +91,7 @@ async def postJob(job: Job,
     decoded = base64.b64decode(program)
     m = llvm.module.parse_bitcode(decoded)
     mstr = str(m)
-    assert ('EntryPoint' in mstr)
+    assert ('entry_point' in mstr)
 
     # Get the function, number of qubits, and kernel name
     function = getKernelFunction(m)
@@ -125,7 +128,7 @@ async def postJob(job: Job,
 # until we return the job results
 @app.get("/v0.3/jobs")
 async def getJob(id: str):
-    global countJobGetRequests, createdJobs
+    global countJobGetRequests, createdJobs, numQubitsRequired
 
     # Simulate asynchronous execution
     if countJobGetRequests < 3:
@@ -136,6 +139,7 @@ async def getJob(id: str):
     res = {
         "jobs": [{
             "status": "completed",
+            "qubits": numQubitsRequired,
             "results_url": "/v0.3/jobs/{}/results".format(id)
         }]
     }
@@ -152,8 +156,11 @@ async def getResults(jobId: str):
     N = 0
     for bits, count in counts.items():
         N += count
+    # Note, the real IonQ backend reverses the bitstring relative to what the
+    # simulator does, so flip the bitstring with [::-1]. Also convert
+    # to decimal to match the real IonQ backend.
     for bits, count in counts.items():
-        retData[bits] = float(count / N)
+        retData[str(int(bits[::-1], 2))] = float(count / N)
 
     res = retData
     return res

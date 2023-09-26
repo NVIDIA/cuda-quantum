@@ -229,7 +229,7 @@ public:
   sample_result
   get_marginal(const std::vector<std::size_t> &&marginalIndices,
                const std::string_view registerName = GlobalRegisterName) {
-    return get_marginal(marginalIndices);
+    return get_marginal(marginalIndices, registerName);
   }
 
   /// @brief Extract marginal counts, that is those counts for a subset

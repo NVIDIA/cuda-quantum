@@ -10,6 +10,7 @@ SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 set (CMAKE_CXX_FLAGS
      "${CMAKE_CXX_FLAGS} -Wno-attributes -Wno-ctad-maybe-unsupported")
 
+
 set(CUDAQ_RUNTIME_TEST_SOURCES 
   # Integration tests
   integration/adjoint_tester.cpp
@@ -34,6 +35,7 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   integration/get_state_tester.cpp
   qir/NVQIRTester.cpp
   qis/QubitQISTester.cpp
+  integration/kernels_tester.cpp
   common/MeasureCountsTester.cpp
   common/NoiseModelTester.cpp
   integration/tracer_tester.cpp
@@ -49,8 +51,9 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
   string(REPLACE "-" "_" NVQIR_BACKEND_OUT ${NVQIR_BACKEND})
   add_executable(${TEST_EXE_NAME} main.cpp ${CUDAQ_RUNTIME_TEST_SOURCES} ${EXTRA_BACKEND_TESTER})
   target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DNVQIR_BACKEND_NAME=${NVQIR_BACKEND_OUT})
+  target_compile_definitions(${TEST_EXE_NAME} PRIVATE __MATH_LONG_DOUBLE_CONSTANTS)
   target_include_directories(${TEST_EXE_NAME} PRIVATE .)
-  # On GCC, the default is --as-needed for linking, and therefore the 
+  # On GCC, the default is --as-needed for linking, and therefore the
   # nvqir-simulation plugin may not get picked up. This works as is on clang 
   # But here we add it purposefully to avoid that bug. 
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
@@ -75,9 +78,13 @@ create_tests_with_backend(dm "")
 
 # FIXME Check that we have GPUs. Could be in a 
 # Docker environment built with CUDA, but no --gpus flag
-# or no gpus on the system. 
+# or no gpus on the system.
 if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
   create_tests_with_backend(custatevec-fp32 "")
+  # Given that the fp32 and fp64 difference is largely inherited
+  # from a dependency, we omit fp64 tests here and rely on the 
+  # dependency to to validate that functionality.
+  # create_tests_with_backend(custatevec-fp64 "")
   
   add_executable(test_mqpu main.cpp mqpu/mqpu_tester.cpp)
   # Need to force the link to nvqir-qpp here if gcc.
@@ -94,22 +101,25 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
 
     if (MPI_CXX_FOUND)
       # Count the number of GPUs
-      execute_process(COMMAND bash -c "nvidia-smi --list-gpus | wc -l" OUTPUT_VARIABLE NGPUS)
-      # Only build this test if we have more than 1 GPU
-      if (${NGPUS} GREATER_EQUAL 2)
-        add_executable(test_mpi main.cpp mqpu/mpi_mqpu_tester.cpp)
-        if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-          target_link_options(test_mpi PRIVATE -Wl,--no-as-needed)
+      find_program(NVIDIA_SMI "nvidia-smi")
+      if(NVIDIA_SMI)
+        execute_process(COMMAND bash -c "nvidia-smi --list-gpus | wc -l" OUTPUT_VARIABLE NGPUS)
+        # Only build this test if we have more than 1 GPU
+        if (${NGPUS} GREATER_EQUAL 2)
+          add_executable(test_mpi main.cpp mqpu/mpi_mqpu_tester.cpp)
+          if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+            target_link_options(test_mpi PRIVATE -Wl,--no-as-needed)
+          endif()
+          target_link_libraries(test_mpi
+              PRIVATE 
+              cudaq
+              cudaq-platform-mqpu
+              nvqir-custatevec-fp32
+              gtest_main)
+            configure_file("mqpu/run_mpi.sh.in"
+                      "${CMAKE_BINARY_DIR}/unittests/run_mpi.sh" @ONLY)
+          add_test(NAME MPITest COMMAND ${MPIEXEC} --allow-run-as-root -np 2 ${CMAKE_BINARY_DIR}/unittests/run_mpi.sh)
         endif()
-        target_link_libraries(test_mpi
-            PRIVATE 
-            cudaq
-            cudaq-platform-mqpu
-            nvqir-custatevec-fp32
-            gtest_main)
-          configure_file("mqpu/run_mpi.sh.in"
-                    "${CMAKE_BINARY_DIR}/unittests/run_mpi.sh" @ONLY)
-        add_test(NAME MPITest COMMAND ${MPIEXEC} --allow-run-as-root -np 2 ${CMAKE_BINARY_DIR}/unittests/run_mpi.sh)
       endif()
     endif() 
 endif() 
@@ -125,6 +135,8 @@ target_link_libraries(test_spin
   cudaq-spin
   gtest_main)
 gtest_discover_tests(test_spin)
+
+add_subdirectory(plugin)
 
 # build the test qudit execution manager
 add_subdirectory(qudit)

@@ -1,0 +1,213 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --memtoreg --pruned-ctrl-form --cse %s | FileCheck %s
+
+func.func @linear_block_of_controls() {
+  %q0 = quake.alloca !quake.ref
+  %q1 = quake.alloca !quake.ref
+  quake.x [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.y [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.h [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.z [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.y [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.h [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.dealloc %q0 : !quake.ref
+  quake.dealloc %q1 : !quake.ref
+  return
+}
+
+// CHECK-LABEL:   func.func @linear_block_of_controls() {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK:           %[[VAL_1:.*]] = quake.null_wire
+// CHECK:           %[[VAL_2:.*]] = quake.to_ctrl %[[VAL_1]] : (!quake.wire) -> !quake.control
+// CHECK:           %[[VAL_3:.*]] = quake.x [%[[VAL_2]]] %[[VAL_0]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_4:.*]] = quake.y [%[[VAL_2]]] %[[VAL_3]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_5:.*]] = quake.h [%[[VAL_2]]] %[[VAL_4]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_6:.*]] = quake.z [%[[VAL_2]]] %[[VAL_5]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_7:.*]] = quake.y [%[[VAL_2]]] %[[VAL_6]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_8:.*]] = quake.h [%[[VAL_2]]] %[[VAL_7]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_9:.*]] = quake.from_ctrl %[[VAL_2]] : (!quake.control) -> !quake.wire
+// CHECK:           quake.sink %[[VAL_8]] : !quake.wire
+// CHECK:           quake.sink %[[VAL_9]] : !quake.wire
+// CHECK:           return
+// CHECK:         }
+
+func.func @interleaved_linear_block_of_controls() {
+  %q0 = quake.alloca !quake.ref
+  %q1 = quake.alloca !quake.ref
+  %q2 = quake.alloca !quake.ref
+  %q3 = quake.alloca !quake.ref
+  quake.x [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%q2] %q3 : (!quake.ref, !quake.ref) -> ()
+  quake.y [%q2] %q3 : (!quake.ref, !quake.ref) -> ()
+  quake.y [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.h [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.h [%q2] %q3 : (!quake.ref, !quake.ref) -> ()
+  quake.z [%q2] %q3 : (!quake.ref, !quake.ref) -> ()
+  quake.z [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.y [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.y [%q2] %q3 : (!quake.ref, !quake.ref) -> ()
+  quake.h [%q2] %q3 : (!quake.ref, !quake.ref) -> ()
+  quake.h [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.dealloc %q0 : !quake.ref
+  quake.dealloc %q1 : !quake.ref
+  quake.dealloc %q2 : !quake.ref
+  quake.dealloc %q3 : !quake.ref
+  return
+}
+
+// CHECK-LABEL:   func.func @interleaved_linear_block_of_controls() {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK:           %[[VAL_1:.*]] = quake.null_wire
+// CHECK:           %[[VAL_2:.*]] = quake.null_wire
+// CHECK:           %[[VAL_3:.*]] = quake.null_wire
+// CHECK:           %[[VAL_4:.*]] = quake.to_ctrl %[[VAL_1]] : (!quake.wire) -> !quake.control
+// CHECK-DAG:       %[[VAL_5:.*]] = quake.x [%[[VAL_4]]] %[[VAL_0]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK-DAG:       %[[VAL_6:.*]] = quake.to_ctrl %[[VAL_2]] : (!quake.wire) -> !quake.control
+// CHECK:           %[[VAL_7:.*]] = quake.x [%[[VAL_6]]] %[[VAL_3]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_8:.*]] = quake.y [%[[VAL_6]]] %[[VAL_7]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_9:.*]] = quake.y [%[[VAL_4]]] %[[VAL_5]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_10:.*]] = quake.h [%[[VAL_4]]] %[[VAL_9]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_11:.*]] = quake.h [%[[VAL_6]]] %[[VAL_8]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_12:.*]] = quake.z [%[[VAL_6]]] %[[VAL_11]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_13:.*]] = quake.z [%[[VAL_4]]] %[[VAL_10]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_14:.*]] = quake.y [%[[VAL_4]]] %[[VAL_13]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_15:.*]] = quake.y [%[[VAL_6]]] %[[VAL_12]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_16:.*]] = quake.h [%[[VAL_6]]] %[[VAL_15]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK-DAG:       %[[VAL_17:.*]] = quake.from_ctrl %[[VAL_6]] : (!quake.control) -> !quake.wire
+// CHECK-DAG:       %[[VAL_18:.*]] = quake.h [%[[VAL_4]]] %[[VAL_14]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_19:.*]] = quake.from_ctrl %[[VAL_4]] : (!quake.control) -> !quake.wire
+// CHECK-DAG:       quake.sink %[[VAL_18]] : !quake.wire
+// CHECK-DAG:       quake.sink %[[VAL_19]] : !quake.wire
+// CHECK-DAG:       quake.sink %[[VAL_17]] : !quake.wire
+// CHECK-DAG:       quake.sink %[[VAL_16]] : !quake.wire
+// CHECK:           return
+// CHECK:         }
+
+func.func @interleaved_blocks_of_multiple_controls() {
+  %q0 = quake.alloca !quake.ref
+  %q1 = quake.alloca !quake.ref
+  %q2 = quake.alloca !quake.ref
+  %q3 = quake.alloca !quake.ref
+  %q4 = quake.alloca !quake.ref
+  %q5 = quake.alloca !quake.ref
+  %q6 = quake.alloca !quake.ref
+  %q7 = quake.alloca !quake.ref
+  quake.x [%q4, %q1] %q0 : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.x [%q5, %q2] %q3 : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.y [%q6, %q2] %q3 : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.y [%q7, %q1] %q0 : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.h [%q4, %q5, %q1] %q0 : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.h [%q5, %q6, %q2] %q3 : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.z [%q7, %q1, %q5, %q2] %q3 : (!quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.z [%q4, %q6, %q7, %q1] %q0 : (!quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.y [%q1, %q4, %q2] %q0 : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.y [%q4, %q2, %q7, %q1] %q3 : (!quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.h [%q7, %q2, %q4, %q1, %q6] %q3 : (!quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.h [%q1, %q5, %q7] %q0 : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.dealloc %q0 : !quake.ref
+  quake.dealloc %q1 : !quake.ref
+  quake.dealloc %q2 : !quake.ref
+  quake.dealloc %q3 : !quake.ref
+  quake.dealloc %q4 : !quake.ref
+  quake.dealloc %q5 : !quake.ref
+  quake.dealloc %q6 : !quake.ref
+  quake.dealloc %q7 : !quake.ref
+  return
+}
+
+// CHECK-LABEL:   func.func @interleaved_blocks_of_multiple_controls() {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK:           %[[VAL_1:.*]] = quake.null_wire
+// CHECK:           %[[VAL_2:.*]] = quake.null_wire
+// CHECK:           %[[VAL_3:.*]] = quake.null_wire
+// CHECK:           %[[VAL_4:.*]] = quake.null_wire
+// CHECK:           %[[VAL_5:.*]] = quake.null_wire
+// CHECK:           %[[VAL_6:.*]] = quake.null_wire
+// CHECK:           %[[VAL_7:.*]] = quake.null_wire
+// CHECK:           %[[VAL_8:.*]] = quake.to_ctrl %[[VAL_4]] : (!quake.wire) -> !quake.control
+// CHECK:           %[[VAL_9:.*]] = quake.to_ctrl %[[VAL_1]] : (!quake.wire) -> !quake.control
+// CHECK-DAG:       %[[VAL_10:.*]] = quake.x [%[[VAL_8]], %[[VAL_9]]] %[[VAL_0]] : (!quake.control, !quake.control, !quake.wire) -> !quake.wire
+// CHECK-DAG:       %[[VAL_11:.*]] = quake.to_ctrl %[[VAL_5]] : (!quake.wire) -> !quake.control
+// CHECK-DAG:       %[[VAL_12:.*]] = quake.to_ctrl %[[VAL_2]] : (!quake.wire) -> !quake.control
+// CHECK-DAG:       %[[VAL_13:.*]] = quake.x [%[[VAL_11]], %[[VAL_12]]] %[[VAL_3]] : (!quake.control, !quake.control, !quake.wire) -> !quake.wire
+// CHECK-DAG:       %[[VAL_14:.*]] = quake.to_ctrl %[[VAL_6]] : (!quake.wire) -> !quake.control
+// CHECK-DAG:       %[[VAL_15:.*]] = quake.y [%[[VAL_14]], %[[VAL_12]]] %[[VAL_13]] : (!quake.control, !quake.control, !quake.wire) -> !quake.wire
+// CHECK-DAG:       %[[VAL_16:.*]] = quake.to_ctrl %[[VAL_7]] : (!quake.wire) -> !quake.control
+// CHECK:           %[[VAL_17:.*]] = quake.y [%[[VAL_16]], %[[VAL_9]]] %[[VAL_10]] : (!quake.control, !quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_18:.*]] = quake.h [%[[VAL_8]], %[[VAL_11]], %[[VAL_9]]] %[[VAL_17]] : (!quake.control, !quake.control, !quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_19:.*]] = quake.h [%[[VAL_11]], %[[VAL_14]], %[[VAL_12]]] %[[VAL_15]] : (!quake.control, !quake.control, !quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_20:.*]] = quake.z [%[[VAL_16]], %[[VAL_9]], %[[VAL_11]], %[[VAL_12]]] %[[VAL_19]] : (!quake.control, !quake.control, !quake.control, !quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_21:.*]] = quake.z [%[[VAL_8]], %[[VAL_14]], %[[VAL_16]], %[[VAL_9]]] %[[VAL_18]] : (!quake.control, !quake.control, !quake.control, !quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_22:.*]] = quake.y [%[[VAL_9]], %[[VAL_8]], %[[VAL_12]]] %[[VAL_21]] : (!quake.control, !quake.control, !quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_23:.*]] = quake.y [%[[VAL_8]], %[[VAL_12]], %[[VAL_16]], %[[VAL_9]]] %[[VAL_20]] : (!quake.control, !quake.control, !quake.control, !quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_24:.*]] = quake.h [%[[VAL_16]], %[[VAL_12]], %[[VAL_8]], %[[VAL_9]], %[[VAL_14]]] %[[VAL_23]] : (!quake.control, !quake.control, !quake.control, !quake.control, !quake.control, !quake.wire) -> !quake.wire
+// CHECK-DAG:       %[[VAL_25:.*]] = quake.from_ctrl %[[VAL_12]] : (!quake.control) -> !quake.wire
+// CHECK-DAG:       %[[VAL_26:.*]] = quake.from_ctrl %[[VAL_8]] : (!quake.control) -> !quake.wire
+// CHECK-DAG:       %[[VAL_27:.*]] = quake.from_ctrl %[[VAL_14]] : (!quake.control) -> !quake.wire
+// CHECK-DAG:       %[[VAL_28:.*]] = quake.h [%[[VAL_9]], %[[VAL_11]], %[[VAL_16]]] %[[VAL_22]] : (!quake.control, !quake.control, !quake.control, !quake.wire) -> !quake.wire
+// CHECK-DAG:       %[[VAL_29:.*]] = quake.from_ctrl %[[VAL_9]] : (!quake.control) -> !quake.wire
+// CHECK-DAG:       %[[VAL_30:.*]] = quake.from_ctrl %[[VAL_11]] : (!quake.control) -> !quake.wire
+// CHECK-DAG:       %[[VAL_31:.*]] = quake.from_ctrl %[[VAL_16]] : (!quake.control) -> !quake.wire
+// CHECK-DAG:       quake.sink %[[VAL_28]] : !quake.wire
+// CHECK-DAG:       quake.sink %[[VAL_29]] : !quake.wire
+// CHECK-DAG:       quake.sink %[[VAL_25]] : !quake.wire
+// CHECK-DAG:       quake.sink %[[VAL_24]] : !quake.wire
+// CHECK-DAG:       quake.sink %[[VAL_26]] : !quake.wire
+// CHECK-DAG:       quake.sink %[[VAL_30]] : !quake.wire
+// CHECK-DAG:       quake.sink %[[VAL_27]] : !quake.wire
+// CHECK-DAG:       quake.sink %[[VAL_31]] : !quake.wire
+// CHECK:           return
+// CHECK:         }
+
+func.func @sky_diamonds() {
+  %q0 = quake.alloca !quake.ref
+  %q1 = quake.alloca !quake.ref
+  quake.x [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.y [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.h [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.z [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.y [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.h [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.h %q1 : (!quake.ref) -> ()
+  quake.x [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.y [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.h [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.z [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.y [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.h [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
+  quake.dealloc %q0 : !quake.ref
+  quake.dealloc %q1 : !quake.ref
+  return
+}
+
+// CHECK-LABEL:   func.func @sky_diamonds() {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK:           %[[VAL_1:.*]] = quake.null_wire
+// CHECK:           %[[VAL_2:.*]] = quake.to_ctrl %[[VAL_1]] : (!quake.wire) -> !quake.control
+// CHECK:           %[[VAL_3:.*]] = quake.x [%[[VAL_2]]] %[[VAL_0]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_4:.*]] = quake.y [%[[VAL_2]]] %[[VAL_3]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_5:.*]] = quake.h [%[[VAL_2]]] %[[VAL_4]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_6:.*]] = quake.z [%[[VAL_2]]] %[[VAL_5]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_7:.*]] = quake.y [%[[VAL_2]]] %[[VAL_6]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_8:.*]] = quake.h [%[[VAL_2]]] %[[VAL_7]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_9:.*]] = quake.from_ctrl %[[VAL_2]] : (!quake.control) -> !quake.wire
+// CHECK:           %[[VAL_10:.*]] = quake.h %[[VAL_9]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_11:.*]] = quake.to_ctrl %[[VAL_10]] : (!quake.wire) -> !quake.control
+// CHECK:           %[[VAL_12:.*]] = quake.x [%[[VAL_11]]] %[[VAL_8]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_13:.*]] = quake.y [%[[VAL_11]]] %[[VAL_12]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_14:.*]] = quake.h [%[[VAL_11]]] %[[VAL_13]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_15:.*]] = quake.z [%[[VAL_11]]] %[[VAL_14]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_16:.*]] = quake.y [%[[VAL_11]]] %[[VAL_15]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_17:.*]] = quake.h [%[[VAL_11]]] %[[VAL_16]] : (!quake.control, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_18:.*]] = quake.from_ctrl %[[VAL_11]] : (!quake.control) -> !quake.wire
+// CHECK:           quake.sink %[[VAL_17]] : !quake.wire
+// CHECK:           quake.sink %[[VAL_18]] : !quake.wire
+// CHECK:           return
+// CHECK:         }

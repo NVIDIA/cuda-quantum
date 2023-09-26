@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s | FileCheck %s
+// RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
 
 #include <cudaq.h>
 
@@ -22,24 +22,20 @@ struct lower_ctrl_as_qreg {
   }
 };
 
-// clang-format off
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__lower_ctrl_as_qreg
-// CHECK-SAME: () attributes {{{.*}}"cudaq-entrypoint"{{.*}}} {
-// CHECK:  %[[VAL_0:.*]] = arith.constant 4 : i32
-// CHECK:  %[[VAL_2:.*]] = quake.alloca !quake.veq<?>[%{{.*}} : i64]
-// CHECK:  %[[VAL_3:.*]] = arith.constant 2 : i32
-// CHECK:  %[[VAL_5:.*]] = quake.alloca !quake.veq<?>[%{{.*}} : i64]
-// CHECK:  %[[VAL_6:.*]] = arith.constant 0 : i32
-// CHECK:  %[[VAL_8:.*]] = quake.extract_ref %[[VAL_5]][%{{.*}}] : (!quake.veq<?>, i64) -> !quake.ref
-// CHECK:  quake.h [%[[VAL_2]]] %[[VAL_8]] : (!quake.veq<?>, !quake.ref) -> ()
-// CHECK:  %[[VAL_9:.*]] = arith.constant 1 : i32
-// CHECK:  %[[VAL_11:.*]] = quake.extract_ref %[[VAL_5]][%{{.*}}] : (!quake.veq<?>, i64) -> !quake.ref
-// CHECK:  quake.x [%[[VAL_2]]] %[[VAL_11]] : (
-// clang-format on
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__lower_ctrl_as_qreg() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<4>
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_1]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           quake.h [%[[VAL_0]]] %[[VAL_2]] : (!quake.veq<4>, !quake.ref) -> ()
+// CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_1]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           quake.x [%[[VAL_0]]] %[[VAL_3]] : (!quake.veq<4>, !quake.ref) -> ()
+// CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_1]] : (!quake.veq<2>) -> !cc.stdvec<i1>
+// CHECK:           return
+// CHECK:         }
 
 struct test_two_control_call {
   void operator()() __qpu__ {
-    auto lambda = [](cudaq::qubit &qb) {
+    auto lambda = [](cudaq::qubit &qb) __qpu__ {
       h<cudaq::ctrl>(qb);
       x<cudaq::ctrl>(qb);
     };
@@ -50,20 +46,72 @@ struct test_two_control_call {
   }
 };
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__test_two
-// CHECK-SAME: () attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__test_two_control_call() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = cc.create_lambda {
-// CHECK:           ^bb0(%[[VAL_1:.*]]: !quake.ref loc{{.*}}):
-// CHECK:             cc.scope {
-// CHECK:               quake.h %[[VAL_1]]
-// CHECK:               quake.x %[[VAL_1]]
-// CHECK:             }
+// CHECK:           ^bb0(%[[VAL_1:.*]]: !quake.ref):
+// CHECK:             quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:             quake.x %[[VAL_1]] : (!quake.ref) -> ()
 // CHECK:           } : !cc.callable<(!quake.ref) -> ()>
-// CHECK:           %[[VAL_4:.*]] = arith.constant 4 : i64
-// CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<4>
-// CHECK:           %[[VAL_6:.*]] = quake.alloca !quake.ref
-// CHECK:           quake.apply @__nvqpp__mlirgen__{{.*}}test_two_control_call{{.*}}[%[[VAL_5]]] %[[VAL_6]] : (!quake.veq<4>, !quake.ref) -> ()
-// CHECK:           %[[VAL_7:.*]] = quake.mz %[[VAL_6]] : (!quake.ref) -> i1
+// CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<4>
+// CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.ref
+// CHECK:           quake.apply @__nvqpp__mlirgen__ZN21test_two_control_callcl[[LAMBDA:.*]]_ [%[[VAL_2]]] %[[VAL_4]] : (!quake.veq<4>, !quake.ref) -> ()
+// CHECK:           %[[VAL_5:.*]] = quake.mz %[[VAL_4]] : (!quake.ref) -> i1
 // CHECK:           return
 // CHECK:         }
 
+// CHECK-LABEL:  func.func @__nvqpp__mlirgen__ZN21test_two_control_callcl
+// CHECK-SAME:     [[LAMBDA]]_(%{{.*}}: !quake.ref)
+// CHECK:          quake.h
+// CHECK:          quake.x
+// CHECK:          return
+
+struct unmarked_lambda {
+  void operator()() __qpu__ {
+    auto lambda = [](cudaq::qubit &qb) {
+      h<cudaq::ctrl>(qb);
+      y<cudaq::ctrl>(qb);
+    };
+    cudaq::qreg<4> qs;
+    cudaq::qubit qb;
+    cudaq::control(lambda, qs, qb);
+    mz(qb);
+  }
+};
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__unmarked_lambda() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK:           %[[VAL_0:.*]] = cc.create_lambda {
+// CHECK:           ^bb0(%[[VAL_1:.*]]: !quake.ref):
+// CHECK:             quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:             quake.y %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           } : !cc.callable<(!quake.ref) -> ()>
+// CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<4>
+// CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.ref
+// CHECK:           quake.apply %[[VAL_0]] [%[[VAL_2]]] %[[VAL_3]] : (!quake.veq<4>, !quake.ref) -> ()
+// CHECK:           %[[VAL_5:.*]] = quake.mz %[[VAL_3]] : (!quake.ref) -> i1
+// CHECK:           return
+// CHECK:         }
+
+struct direct_unmarked_lambda {
+  void operator()() __qpu__ {
+    cudaq::qreg<4> qs;
+    cudaq::qubit qb;
+    cudaq::control([](cudaq::qubit &qb) {
+      h<cudaq::ctrl>(qb);
+      y<cudaq::ctrl>(qb);
+    }, qs, qb);
+    mz(qb);
+  }
+};
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__direct_unmarked_lambda() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<4>
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_2:.*]] = cc.create_lambda {
+// CHECK:           ^bb0(%[[VAL_3:.*]]: !quake.ref):
+// CHECK:             quake.h %[[VAL_3]] : (!quake.ref) -> ()
+// CHECK:             quake.y %[[VAL_3]] : (!quake.ref) -> ()
+// CHECK:           } : !cc.callable<(!quake.ref) -> ()>
+// CHECK:           quake.apply %[[VAL_2]] [%[[VAL_0]]] %[[VAL_1]] : (!quake.veq<4>, !quake.ref) -> ()
+// CHECK:           %[[VAL_5:.*]] = quake.mz %[[VAL_1]] : (!quake.ref) -> i1
+// CHECK:           return
+// CHECK:         }

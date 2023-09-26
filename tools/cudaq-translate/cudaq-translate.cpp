@@ -6,33 +6,30 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Optimizer/CodeGen/Passes.h"
+#include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
+#include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
+#include "cudaq/Optimizer/CodeGen/Pipelines.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/Target/IQM/IQMJsonEmitter.h"
-#include "cudaq/Target/OpenQASM/OpenQASMEmitter.h"
+#include "cudaq/Support/Version.h"
 #include "cudaq/Todo.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ErrorOr.h"
 #include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Support/PrettyStackTrace.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Support/raw_ostream.h"
-#include "mlir/Dialect/Affine/Passes.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/ExecutionEngine/OptUtils.h"
 #include "mlir/IR/AsmState.h"
-#include "mlir/IR/BuiltinOps.h"
-#include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/Verifier.h"
 #include "mlir/InitAllDialects.h"
 #include "mlir/InitAllPasses.h"
 #include "mlir/InitAllTranslations.h"
 #include "mlir/Parser/Parser.h"
-#include "mlir/Pass/PassManager.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
@@ -82,31 +79,6 @@ constexpr static char CLEAR[] = "\033[0m";
 
 using namespace mlir;
 
-// Pipeline builder to convert Quake to QIR.
-template <bool BaseProfile = false>
-void addPipelineToQIR(PassManager &pm) {
-  cudaq::opt::addAggressiveEarlyInlining(pm);
-  pm.addPass(createCanonicalizerPass());
-  pm.addPass(cudaq::opt::createExpandMeasurementsPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
-  pm.addPass(createCanonicalizerPass());
-  pm.addPass(createCSEPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLoweringPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerToCFGPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll());
-  pm.addPass(createCanonicalizerPass());
-  pm.addPass(createCSEPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
-  pm.addPass(createCanonicalizerPass());
-  pm.addPass(createCSEPass());
-  pm.addPass(cudaq::opt::createConvertToQIRPass());
-  if constexpr (BaseProfile) {
-    cudaq::opt::addBaseProfilePipeline(pm);
-  }
-}
-
 static void checkErrorCode(const std::error_code &ec) {
   if (ec) {
     llvm::errs() << "could not open output file";
@@ -115,6 +87,10 @@ static void checkErrorCode(const std::error_code &ec) {
 }
 
 int main(int argc, char **argv) {
+  // Set the bug report message to indicate users should file issues on
+  // nvidia/cuda-quantum
+  llvm::setBugReportMsg(cudaq::bugReportMsg);
+
   registerAsmPrinterCLOptions();
   registerMLIRContextCLOptions();
   registerPassManagerCLOptions();
@@ -163,41 +139,59 @@ int main(int argc, char **argv) {
   // Apply any generic pass manager command line options and run the pipeline.
   applyPassManagerCLOptions(pm);
 
-  // Some translations do not involve translation to LLVM IR. These translations
-  // are done directly from the MLIR Module to an output file.
-  llvm::Optional<std::function<LogicalResult(Operation *, raw_ostream &)>>
-      directTranslation;
-  llvm::StringSwitch<std::function<void()>>(convertTo)
-      .Case("qir", [&]() { addPipelineToQIR<>(pm); })
-      .Case("qir-base", [&]() { addPipelineToQIR</*baseProfile=*/true>(pm); })
-      .Case("openqasm",
-            [&]() { directTranslation = cudaq::translateToOpenQASM; })
-      .Case("iqm", [&]() { directTranslation = cudaq::translateToIQMJson; })
-      .Default([]() {})();
-
   std::error_code ec;
   llvm::ToolOutputFile out(outputFilename, ec, llvm::sys::fs::OF_None);
   checkErrorCode(ec);
-
-  if (directTranslation) {
-    // The translation pass will output directly to the output file. It will
-    // never use the PassManager.
-    if (failed((*directTranslation)(module->getOperation(), out.os()))) {
-      cudaq::emitFatalError(module->getLoc(), "translation failed");
-      return 1;
+  llvm::function_ref<void()> targetAction = [&]() {
+    out.os() << *module << '\n';
+  };
+  bool targetUsesLlvm = emitLLVM;
+  auto *modOp = module->getOperation();
+  auto modLoc = module->getLoc();
+  // Declare actions here to avoid outer closure going out of scope below.
+  auto iqmAction = [&]() {
+    if (failed(cudaq::translateToIQMJson(modOp, out.os()))) {
+      cudaq::emitFatalError(modLoc, "translation failed");
+      std::exit(1);
     }
-    out.keep();
-    return 0;
-  }
+  };
+  auto qasmAction = [&]() {
+    if (failed(cudaq::translateToOpenQASM(modOp, out.os()))) {
+      cudaq::emitFatalError(modLoc, "translation failed");
+      std::exit(1);
+    }
+  };
+
+  llvm::StringSwitch<std::function<void()>>(convertTo)
+      .Case("qir", [&]() { cudaq::opt::addPipelineToQIR<>(pm); })
+      .Case("qir-base",
+            [&]() { cudaq::opt::addPipelineToQIR</*baseProfile=*/true>(pm); })
+      .Case("openqasm",
+            [&]() {
+              targetUsesLlvm = false;
+              cudaq::opt::addPipelineToOpenQASM(pm);
+              targetAction = qasmAction;
+            })
+      .Case("iqm",
+            [&]() {
+              targetUsesLlvm = false;
+              cudaq::opt::addPipelineToIQMJson(pm);
+              targetAction = iqmAction;
+            })
+      .Default([]() {})();
 
   if (failed(pm.run(*module)))
     cudaq::emitFatalError(module->getLoc(), "pipeline failed");
 
-  if (!emitLLVM) {
-    out.os() << *module << '\n';
+  if (!targetUsesLlvm) {
+    targetAction();
     out.keep();
     return 0;
   }
+
+  //===--------------------------------------------------------------------===//
+  // Everything from here down handles the cases where code generation uses LLVM
+  // to generate the code.
 
   // Register the translation to LLVM IR with the MLIR context.
   registerLLVMDialectTranslation(*module->getContext());

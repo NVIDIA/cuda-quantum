@@ -8,8 +8,8 @@
 
 get_filename_component(CUDAQ_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 
-set (CUDAQEmQir_DIR "${CUDAQ_CMAKE_DIR}")
-find_dependency(CUDAQEmQir REQUIRED)
+set (CUDAQEmDefault_DIR "${CUDAQ_CMAKE_DIR}")
+find_dependency(CUDAQEmDefault REQUIRED)
 
 set (CUDAQSpin_DIR "${CUDAQ_CMAKE_DIR}")
 find_dependency(CUDAQSpin REQUIRED)

@@ -48,6 +48,10 @@ on:
         required: false
         type: string
         description: The issue number of the pull request to check out. Permits to run the workflow from a different branch than the PR branch.
+      pull_request_commit:
+        required: false
+        type: string
+        description: The commit to check out. Only used when pull_request_number is set.
       environment:
         required: false
         type: string
@@ -75,6 +79,10 @@ jobs:
       contents: read
 
     outputs:
+      runner: ${{ steps.build_info.outputs.runner }}
+      platform_tag: ${{ steps.build_info.outputs.platform_tag }}
+      tag_prefix: ${{ steps.build_info.outputs.tag_prefix }}
+      tag_suffix: ${{ steps.build_info.outputs.tag_suffix }}
       dockerfile: ${{ steps.build_info.outputs.dockerfile }}
       owner: ${{ steps.build_info.outputs.owner }}
       image_name: ${{ steps.build_info.outputs.image_name }}
@@ -93,11 +101,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          ref: "${{ (inputs.pull_request_number != '' && format('refs/pull/{0}/merge', inputs.pull_request_number)) || '' }}"
+          ref: "${{ (inputs.pull_request_number != '' && (inputs.pull_request_commit || format('refs/pull/{0}/merge', inputs.pull_request_number))) || '' }}"
 
       - name: Determine build arguments
         id: build_info
         run: |
+          if [ -n "$(echo ${{ inputs.platforms }} | grep ',')" ]; then
+            # multi-platform builds get no platform tag
+            echo "runner=linux-amd64-cpu16" >> $GITHUB_OUTPUT
+          elif [ -n "$(echo ${{ inputs.platforms }} | grep -i arm)" ]; then
+            platform_tag=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' '`
+            echo "platform_tag=$platform_tag" >> $GITHUB_OUTPUT
+            echo "runner=linux-arm64-cpu8" >> $GITHUB_OUTPUT
+          else
+            platform_tag=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' '`
+            echo "platform_tag=$platform_tag" >> $GITHUB_OUTPUT
+            echo "runner=linux-amd64-cpu8" >> $GITHUB_OUTPUT
+          fi
+
           repo_owner=${{ github.repository_owner }}
           registry=${{ vars.registry || 'localhost:5000' }}
           build_target=${{ inputs.build_target }}
@@ -105,13 +126,16 @@ jobs:
           image_title=cuda-quantum-`echo $image_id | cut -d "." -f 1`
           image_name=$registry/${repo_owner,,}/$image_title
           toolchain=${{ inputs.toolchain }}
-          tag_prefix=`echo $image_id | cut -s -d "." -f 2- | xargs -I "%" echo %. | tr . -`${toolchain:+$toolchain-}
+          tag_prefix=`echo $image_id | cut -s -d "." -f 2- | xargs -I "%" echo %. | tr . -`${platform_tag:+$platform_tag-}${toolchain:+$toolchain-}
           tag_suffix=""
 
-          if ${{ inputs.pull_request_number != '' }}; then
-            custom_tags="type=raw,value=pr-${{ inputs.pull_request_number }}"
+          if ${{ inputs.pull_request_commit != '' }}; then
+            custom_tags="type=raw,value=${{ inputs.registry_cache_from || inputs.pull_request_commit }},priority=1000"
           elif ${{ github.event.pull_request.merged == true }}; then
-            custom_tags="type=raw,value=${{ github.event.pull_request.base.ref }}"
+            custom_tags="type=raw,value=${{ github.event.pull_request.base.ref }},priority=1000"
+          elif ${{ inputs.pull_request_number != '' }} || [ -n "$(echo ${{ github.ref_name }} | grep pull-request/)" ]; then
+            pr_number=`echo ${{ github.ref_name }} | grep -o [0-9]*`
+            custom_tags="type=raw,value=pr-${pr_number:-${{ inputs.pull_request_number }}},priority=1000"
           fi
 
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
@@ -134,8 +158,7 @@ jobs:
             prefix=${{ steps.build_info.outputs.tag_prefix }},onlatest=true
             suffix=${{ steps.build_info.outputs.tag_suffix }},onlatest=true
           tags: |
-            type=schedule,enable=${{ inputs.pull_request_number == '' }},pattern=nightly
-            type=ref,enable=${{ inputs.pull_request_number == '' }},event=branch
+            type=ref,enable=${{ steps.build_info.outputs.custom_tags == '' }},event=branch
             type=ref,enable=${{ inputs.pull_request_number == '' }},prefix=${{ steps.build_info.outputs.tag_prefix }}pr-,event=pr
             type=ref,enable=${{ inputs.pull_request_number == '' }},event=tag
             ${{ steps.build_info.outputs.custom_tags }}
@@ -145,18 +168,19 @@ jobs:
 
   build:
     name: Caching
-    runs-on: ubuntu-latest
     needs: metadata
+    runs-on: ${{ needs.metadata.outputs.runner }}
     timeout-minutes: 600
     permissions:
       contents: read
       packages: write
+      id-token: write
 
     outputs:
-      tar_cache: ${{ steps.cache.outputs.tar_cache }}
-      tar_archive: ${{ steps.cache.outputs.tar_archive }}
+      tar_cache: ${{ steps.cache_upload.outcome != 'skipped' && steps.cache.outputs.tar_cache || '' }}
+      tar_archive: ${{ steps.cache_upload.outcome != 'skipped' && steps.cache.outputs.tar_archive || '' }}
       build_cache: ${{ steps.cache.outputs.build_cache }}
-      image_hash: ${{ needs.metadata.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
+      image_hash: ${{ steps.uploaded_image.outputs.image_hash }}
 
     environment:
       name: ${{ inputs.environment || 'default' }}
@@ -166,10 +190,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          ref: "${{ (inputs.pull_request_number != '' && format('refs/pull/{0}/merge', inputs.pull_request_number)) || '' }}"
+          ref: "${{ (inputs.pull_request_number != '' && (inputs.pull_request_commit || format('refs/pull/{0}/merge', inputs.pull_request_number))) || '' }}"
+
+      - name: Set up context for buildx
+        run: |
+          docker context create builder_context
 
       - name: Set up buildx runner
         uses: docker/setup-buildx-action@v2
+        with:
+          endpoint: builder_context
 
       - name: Log in to GitHub CR
         uses: docker/login-action@v2
@@ -178,55 +208,77 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
-      - name: Create cache locations
+      - name: Determine cache locations
         id: cache
         run: |
-          # FIXME: remove the x86_64 -> gcc12 conversion (done to preserve a cache)
-          toolchain=${{ inputs.toolchain == 'x86_64' && 'gcc12' || inputs.toolchain }}
-          platform_id=`echo "${{ inputs.platforms }}" | tr -d ' ' | tr / - | tr ',' -`
-          if [ "$platform_id" == "linux-amd64" ]; then unset platform_id; fi
+          toolchain=${{ inputs.toolchain }}
           registry_cache=ghcr.io/${{ needs.metadata.outputs.owner }}/buildcache-cuda-quantum
           nvidia_registry_cache=ghcr.io/nvidia/buildcache-cuda-quantum
           registry_cache_base=$(echo ${{ inputs.registry_cache_from || github.event.pull_request.base.ref || 'main' }} | tr / -)
-          cache_id=$(echo ${{ needs.metadata.outputs.image_id }}${toolchain:+-$toolchain}${platform_id:+-$platform_id} | tr . -)
+          cache_id=$(echo ${{ needs.metadata.outputs.image_id }}${toolchain:+-$toolchain} | tr . -)
 
-          local_buildcache_path="/tmp/.buildcache-${cache_id}"
+          orig_gh_ref=${{ github.ref_name }}
+          if [ "$orig_gh_ref" != "${orig_gh_ref#pull-request/}" ]; then
+            # original branch prior to the move by copy-pr-bot
+            orig_gh_ref=${orig_gh_ref#pull-request/}/merge
+          fi
+
+          # Local caches are always to and from a single location.
+
+          platform_id=`echo "${{ inputs.platforms }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
+          local_buildcache_path="/tmp/.buildcache.${{ needs.metadata.outputs.image_id }}"
           local_buildcache_key_suffix="-$(git rev-parse HEAD)"
+
           if ${{ inputs.pull_request_number != '' }}; then
-            local_buildcache_key="${{ inputs.pull_request_number }}/merge-cuda-quantum-${cache_id}"
+            local_buildcache_key="${{ inputs.pull_request_number }}/merge-cuda-quantum-${cache_id}-${platform_id}"
           else
-            local_cache_from=$(echo ${{ inputs.local_cache_from || github.ref_name }} | tr . -)
+            local_cache_from=${{ inputs.local_cache_from }}
+            local_cache_from=$(echo ${local_cache_from:-$orig_gh_ref} | tr . -)
             if ${{ inputs.local_cache_from == '' && github.event.pull_request.merged == true }}; then
               local_cache_from=${{ github.event.pull_request.number }}/merge
             fi
-            local_buildcache_key="${local_cache_from}-cuda-quantum-${cache_id}"
+            local_buildcache_key="${local_cache_from}-cuda-quantum-${cache_id}-${platform_id}"
           fi
 
-          cache_from_gh="type=local,src=${local_buildcache_path}"
-          cache_from_registry="type=registry,ref=${registry_cache}-${cache_id}:${registry_cache_base}"
-          cache_from_nvidia_registry="type=registry,ref=${nvidia_registry_cache}-${cache_id}:${registry_cache_base}"
           if ${{ inputs.registry_cache_update || inputs.registry_cache_update_only }}; then
-            registry_cache_target=$(echo ${{ github.ref_name }} | tr / -)
-            build_cache="type=registry,ref=${registry_cache}-${cache_id}:$registry_cache_target"
+            registry_cache_target=$(echo $orig_gh_ref | tr / -)
+            build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_target"
             cache_to="${build_cache},mode=max,ignore-error=false"
           elif ${{ inputs.create_local_cache }}; then
             # In general, using the build cache from the registry/parent branch is the quickest.
             # We hence create a build cache only upon request.
-            build_cache="$local_buildcache_key"
+            build_cache="${local_buildcache_key}"
             cache_to="type=local,dest=${local_buildcache_path}-new,mode=max,ignore-error=true"
           fi
+
+          # Registry caches pull from a separate cache for each platform
+          # but create a single joint cache for multi-platform builds.
+
+          platform_ids=$(echo "${{ inputs.platforms }}" | sed 's/linux\///g' | tr , ' ')
+          {
+            echo 'cache_from_gh<<multiline'
+            echo "type=local,src=${local_buildcache_path}"
+            echo multiline
+          } >> $GITHUB_OUTPUT
+          {
+            echo 'cache_from_registry<<multiline'
+            for platform_id in $platform_ids; do
+              echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
+              echo "type=registry,ref=${nvidia_registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
+            done
+            echo multiline
+          } >> $GITHUB_OUTPUT
 
           echo "local_buildcache_key=$local_buildcache_key" >> $GITHUB_OUTPUT
           echo "local_buildcache_key_suffix=$local_buildcache_key_suffix" >> $GITHUB_OUTPUT
           echo "local_buildcache_path=$local_buildcache_path" >> $GITHUB_OUTPUT
-          echo "cache_from_gh=$cache_from_gh" >> $GITHUB_OUTPUT
-          echo "cache_from_registry=$cache_from_registry" >> $GITHUB_OUTPUT
-          echo "cache_from_nvidia_registry=$cache_from_nvidia_registry" >> $GITHUB_OUTPUT
+
           echo "cache_to=$cache_to" >> $GITHUB_OUTPUT
           echo "build_cache=$build_cache" >> $GITHUB_OUTPUT
+          echo "registry_cache_base=$registry_cache_base" >> $GITHUB_OUTPUT
           if ${{ inputs.environment == '' && ! inputs.registry_cache_update_only }}; then
             tar_archive=/tmp/${{ needs.metadata.outputs.image_id }}.tar
-            echo "tar_cache=tar-${cache_id}${local_buildcache_key_suffix}" >> $GITHUB_OUTPUT
+            echo "tar_cache=tar-${cache_id}-${platform_id}${local_buildcache_key_suffix}" >> $GITHUB_OUTPUT
             echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
             echo "docker_output=type=docker,dest=$tar_archive" >> $GITHUB_OUTPUT
           fi
@@ -258,13 +310,23 @@ jobs:
             ${{ inputs.additional_build_caches }}
             ${{ steps.cache.outputs.cache_from_gh }}
             ${{ steps.cache.outputs.cache_from_registry }}
-            ${{ steps.cache.outputs.cache_from_nvidia_registry }}
           cache-to: ${{ steps.cache.outputs.cache_to }}
           push: ${{ inputs.environment && ! inputs.registry_cache_update_only || false }}
           outputs: ${{ steps.cache.outputs.docker_output }}
 
+      - name: Install Cosign
+        if: inputs.environment
+        uses: sigstore/cosign-installer@v3.1.1
+
+      - name: Sign image with GitHub OIDC Token
+        if: inputs.environment
+        env:
+          DIGEST: ${{ steps.docker_build.outputs.digest }}
+          TAGS: ${{ needs.metadata.outputs.image_tags }}
+        run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
+
       # See also https://github.com/moby/buildkit/issues/1896
-      - name: Clean up local cache
+      - name: Clean up build cache
         run: |
           rm -rf "${{ steps.cache.outputs.local_buildcache_path }}"
           build_cache="${{ steps.cache.outputs.local_buildcache_path }}-new"
@@ -272,15 +334,64 @@ jobs:
             mv "$build_cache" "${{ steps.cache.outputs.local_buildcache_path }}"
           fi
 
-      - name: Upload build cache
+      - name: Update local cache
         if: inputs.create_local_cache
         uses: actions/cache/save@v3
         with:
           path: ${{ steps.cache.outputs.local_buildcache_path }}
           key: ${{ steps.cache.outputs.local_buildcache_key }}${{ steps.cache.outputs.local_buildcache_key_suffix }}
 
+      - name: Check for existing image
+        id: uploaded_image
+        run: |
+          if ${{ inputs.environment && ! inputs.registry_cache_update_only || false }}; then
+            image_hash=${{ needs.metadata.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
+            echo "image_hash=$image_hash" >> $GITHUB_OUTPUT
+          elif ${{ steps.cache.outputs.docker_output != '' }}; then
+            # Check if an image with the same layers exists on the registry.
+            # If so, use that image instead of uploading a tar cache.
+            load_output=`docker load --input "${{ steps.cache.outputs.tar_archive }}"`
+            built_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
+            expected_layers=`docker inspect $built_image --format='{{json .RootFS}}' | jq '.Layers[]'`
+
+            # While we can inspect an image manifest without pulling the image using either
+            # `docker manifest inspect` for new enough docker versions, or `regctl image manifest`,
+            # the digests for the layers are computed based on the *compressed* layers (blobs on the registry).
+            # It is not possible to compare those to the layers listed for the local tar archive, 
+            # since inspecting the local image necessarily identifies layers based on the content of the 
+            # *uncompressed* archive. To compare a local image against one pushed to the registry, 
+            # we hence first need to download the one from the registry.
+            # See also:
+            # - https://stackoverflow.com/questions/61366738/how-are-the-docker-image-layer-ids-derived/69688979#69688979
+            # - https://github.com/docker/cli/issues/3350.
+
+            remote_image=ghcr.io/${{ needs.metadata.outputs.owner }}/${{ needs.metadata.outputs.image_title }}
+            remote_tag=${{ needs.metadata.outputs.tag_prefix }}${{ steps.cache.outputs.registry_cache_base }}${{ needs.metadata.outputs.tag_suffix }}
+            echo "Trying to pull remote tag $remote_image:$remote_tag."
+            docker pull $remote_image:$remote_tag || true
+            if [ "$(docker images -q $remote_image:$remote_tag 2> /dev/null)" == "" ]; then
+              platform_tag=${{ needs.metadata.outputs.platform_tag }}
+              remote_tag=`echo $remote_tag | sed s/"${platform_tag:+$platform_tag-}"//`
+              echo "Trying to pull remote tag $remote_image:$remote_tag."
+              docker pull $remote_image:$remote_tag || true
+            fi
+
+            if [ "$(docker images -q $remote_image:$remote_tag 2> /dev/null)" != "" ]; then
+              remote_hash=`docker inspect $remote_image:$remote_tag --format='{{index .RepoDigests 0}}'`
+              echo "Checking layers of pulled image $remote_hash."
+              existing_layers=`docker inspect $remote_hash --format='{{json .RootFS}}' | jq '.Layers[]'`
+
+              echo "Required image layers:" && echo "$expected_layers"
+              echo "Latest version on GHCR:" && echo "$existing_layers"
+              if [ "$expected_layers" == "$existing_layers" ]; then 
+                echo "image_hash=$remote_hash" >> $GITHUB_OUTPUT
+              fi  
+            fi
+          fi
+
       - name: Cache ${{ needs.metadata.outputs.image_title }} image
-        if: steps.cache.outputs.tar_cache && steps.cache.outputs.tar_archive
+        id: cache_upload
+        if: steps.cache.outputs.docker_output != '' && steps.uploaded_image.outputs.image_hash == ''
         uses: actions/cache/save@v3
         with:
           path: ${{ steps.cache.outputs.tar_archive }}

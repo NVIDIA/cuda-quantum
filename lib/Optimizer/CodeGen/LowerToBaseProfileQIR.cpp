@@ -12,6 +12,7 @@
 #include "cudaq/Optimizer/CodeGen/Peephole.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Todo.h"
+#include "nlohmann/json.hpp"
 #include "llvm/ADT/SmallSet.h"
 #include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
@@ -64,7 +65,12 @@ struct FunctionAnalysisData {
   std::size_t nQubits = 0;
   std::size_t nResults = 0;
   // Use std::map to keep these sorted in ascending order.
+  // map[qb] --> [result,regName]
   std::map<std::size_t, std::pair<std::size_t, StringAttr>> resultPtrValues;
+  // Additionally store by result to prevent collisions on a single qubit having
+  // multiple measurements (Adaptive Profile)
+  // map[result] --> [qb,regName]
+  std::map<std::size_t, std::pair<std::size_t, std::string>> resultQubitVals;
   DenseMap<Operation *, std::size_t> allocationOffsets;
 };
 
@@ -169,6 +175,8 @@ private:
                 return nameAttr;
               return {};
             }();
+            data.resultQubitVals.insert(std::make_pair(
+                data.nResults, std::make_pair(qb, regName.data())));
             data.resultPtrValues.insert(
                 std::make_pair(qb, std::make_pair(data.nResults++, regName)));
           } else {
@@ -198,12 +206,21 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
     assert(iter != infoMap.end());
     rewriter.startRootUpdate(op);
     const auto &info = iter->second;
+    nlohmann::json resultQubitJSON{info.resultQubitVals};
     // QIR functions need certain attributes, add them here.
+    // TODO: Update schema_id with valid value (issues #385 and #556)
     auto arrAttr = rewriter.getArrayAttr(ArrayRef<Attribute>{
-        rewriter.getStringAttr("EntryPoint"),
+        rewriter.getStringAttr("entry_point"),
+        rewriter.getStrArrayAttr({"qir_profiles", "base_profile"}),
+        rewriter.getStrArrayAttr({"output_labeling_schema", "schema_id"}),
+        rewriter.getStrArrayAttr({"output_names", resultQubitJSON.dump()}),
         rewriter.getStrArrayAttr(
+            // TODO: change to required_num_qubits once providers support it
+            // (issues #385 and #556)
             {"requiredQubits", std::to_string(info.nQubits)}),
         rewriter.getStrArrayAttr(
+            // TODO: change to required_num_results once providers support it
+            // (issues #385 and #556)
             {"requiredResults", std::to_string(info.nResults)})});
     op.setPassthroughAttr(arrAttr);
 
@@ -211,9 +228,6 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
     auto builder = cudaq::IRBuilder::atBlockTerminator(&op.getBody().back());
     auto loc = op.getBody().back().getTerminator()->getLoc();
 
-    builder.create<LLVM::CallOp>(loc, TypeRange{},
-                                 cudaq::opt::QIRBaseProfileStartRecordOutput,
-                                 ArrayRef<Value>{});
     auto resultTy = cudaq::opt::getResultType(rewriter.getContext());
     auto i64Ty = rewriter.getI64Type();
     auto module = op->getParentOfType<ModuleOp>();
@@ -241,9 +255,6 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
                                    cudaq::opt::QIRBaseProfileRecordOutput,
                                    ValueRange{ptr, regName});
     }
-    builder.create<LLVM::CallOp>(loc, TypeRange{},
-                                 cudaq::opt::QIRBaseProfileEndRecordOutput,
-                                 ArrayRef<Value>{});
     rewriter.finalizeRootUpdate(op);
     return success();
   }
@@ -384,9 +395,10 @@ struct QIRToBaseProfileQIRPass
     LLVM_DEBUG(llvm::dbgs() << "Before base profile:\n" << *op << '\n');
     auto *context = &getContext();
     RewritePatternSet patterns(context);
+    // Note: LoadMeasureResult is not compliant with the Base Profile
     patterns.insert<AddrOfCisToBase, ArrayGetElementPtrConv, CallAlloc,
                     CalleeConv, EraseArrayAlloc, EraseArrayRelease,
-                    EraseDeadArrayGEP, LoadMeasureResult, MeasureCallConv,
+                    EraseDeadArrayGEP, MeasureCallConv,
                     MeasureToRegisterCallConv, XCtrlOneTargetToCNot>(context);
     if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns))))
       signalPassFailure();
@@ -412,6 +424,11 @@ namespace {
 /// signatures of functions from the QIR ABI that may be called by the
 /// translation. This trivial pass only does this preparation work. It performs
 /// no analysis and does not rewrite function body's, etc.
+
+static const std::vector<std::string> measurementFunctionNames{
+    cudaq::opt::QIRMeasureBody, cudaq::opt::QIRMeasure,
+    cudaq::opt::QIRMeasureToRegister};
+
 struct BaseProfilePreparationPass
     : public cudaq::opt::QIRToBaseQIRPrepBase<BaseProfilePreparationPass> {
 
@@ -431,18 +448,9 @@ struct BaseProfilePreparationPass
         cudaq::opt::QIRMeasureBody, LLVM::LLVMVoidType::get(ctx),
         {cudaq::opt::getQubitType(ctx), cudaq::opt::getResultType(ctx)},
         module);
-    cudaq::opt::factory::createLLVMFunctionSymbol(
-        cudaq::opt::QIRReadResultBody, IntegerType::get(ctx, 1),
-        {cudaq::opt::getResultType(ctx)}, module);
 
     // Add record functions for any
     // measurements.
-    cudaq::opt::factory::createLLVMFunctionSymbol(
-        cudaq::opt::QIRBaseProfileStartRecordOutput,
-        LLVM::LLVMVoidType::get(ctx), {}, module);
-    cudaq::opt::factory::createLLVMFunctionSymbol(
-        cudaq::opt::QIRBaseProfileEndRecordOutput, LLVM::LLVMVoidType::get(ctx),
-        {}, module);
     cudaq::opt::factory::createLLVMFunctionSymbol(
         cudaq::opt::QIRBaseProfileRecordOutput, LLVM::LLVMVoidType::get(ctx),
         {cudaq::opt::getResultType(ctx), cudaq::opt::getCharPointerType(ctx)},
@@ -459,6 +467,18 @@ struct BaseProfilePreparationPass
               func.getName().str() + "__body",
               func.getFunctionType().getReturnType(),
               func.getFunctionType().getParams(), module);
+
+    // Apply irreversible attribute to measurement functions
+    for (auto &funcName : measurementFunctionNames) {
+      Operation *op = SymbolTable::lookupSymbolIn(module, funcName);
+      auto funcOp = llvm::dyn_cast_or_null<LLVM::LLVMFuncOp>(op);
+      if (funcOp) {
+        auto builder = OpBuilder(op);
+        auto arrAttr = builder.getArrayAttr(
+            ArrayRef<Attribute>{builder.getStringAttr("irreversible")});
+        funcOp.setPassthroughAttr(arrAttr);
+      }
+    }
   }
 };
 } // namespace
@@ -491,8 +511,7 @@ struct VerifyBaseProfilePass
           return WalkResult::advance();
         }
 
-        // Check that qubits are unique
-        // values.
+        // Check that qubits are unique values.
         const std::size_t numOpnds = call.getNumOperands();
         auto qubitTy = cudaq::opt::getQubitType(ctx);
         if (numOpnds > 0)
@@ -546,4 +565,52 @@ void cudaq::opt::registerBaseProfilePipeline() {
       "base-profile-pipeline",
       "Pass pipeline to generate code for the QIR base profile.",
       addBaseProfilePipeline);
+}
+
+namespace cudaq {
+
+struct EraseMeasurements : public OpRewritePattern<LLVM::CallOp> {
+  using OpRewritePattern<LLVM::CallOp>::OpRewritePattern;
+
+  void initialize() { setDebugName("EraseMeasurements"); }
+
+  LogicalResult matchAndRewrite(LLVM::CallOp call,
+                                PatternRewriter &rewriter) const override {
+    if (auto callee = call.getCallee()) {
+      if (callee->equals(cudaq::opt::QIRMeasureBody) ||
+          callee->equals(cudaq::opt::QIRBaseProfileRecordOutput)) {
+        rewriter.eraseOp(call);
+        return success();
+      }
+    }
+    return failure();
+  }
+};
+
+/// Remove Measurements
+///
+/// This pass removes measurements and the corresponding output recording calls.
+/// This is needed for backends that don't support selective measurement calls.
+/// For example: https://github.com/NVIDIA/cuda-quantum/issues/512
+struct RemoveMeasurementsPass
+    : public cudaq::opt::RemoveMeasurementsBase<RemoveMeasurementsPass> {
+  explicit RemoveMeasurementsPass() = default;
+
+  void runOnOperation() override {
+    auto *op = getOperation();
+    auto *context = &getContext();
+    RewritePatternSet patterns(context);
+    patterns.insert<EraseMeasurements>(context);
+    if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns)))) {
+      signalPassFailure();
+    }
+  }
+
+private:
+  FrozenRewritePatternSet patterns;
+};
+} // namespace cudaq
+
+std::unique_ptr<Pass> cudaq::opt::createRemoveMeasurementsPass() {
+  return std::make_unique<RemoveMeasurementsPass>();
 }

@@ -68,7 +68,6 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::spin_op H,
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                           std::vector<double> &grad_vec) {
     double e = cudaq::observe(kernel, H, x);
-    printf("<H> = %lf\n", e);
     return e;
   });
 }
@@ -130,7 +129,6 @@ optimization_result vqe(std::size_t shots, QuantumKernel &&kernel,
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                           std::vector<double> &grad_vec) {
     double e = cudaq::observe(shots, kernel, H, x);
-    printf("<H> = %lf\n", e);
     return e;
   });
 }
@@ -191,7 +189,6 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                           std::vector<double> &grad_vec) {
     double e = cudaq::observe(kernel, H, x);
-    printf("<H> = %lf\n", e);
     if (requires_grad) {
       gradient.compute(x, grad_vec, H, e);
     }
@@ -268,7 +265,6 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::spin_op H,
           return cudaq::observe(kernel, H, arg...);
         },
         args);
-    printf("<H> = %lf\n", energy);
     return energy;
   });
 }
@@ -343,7 +339,6 @@ optimization_result vqe(std::size_t shots, QuantumKernel &&kernel,
           return cudaq::observe(shots, kernel, H, arg...);
         },
         args);
-    printf("<H> = %lf\n", energy);
     return energy;
   });
 }
@@ -392,7 +387,6 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
     if (requiresGrad) {
       gradient.compute(x, grad_vec, H, energy);
     }
-    printf("<H> = %lf\n", energy);
     return energy;
   });
 }

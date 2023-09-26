@@ -180,22 +180,33 @@ bool kernelHasConditionalFeedback(const std::string &kernelName);
 void set_target_backend(const char *backend);
 
 /// @brief Utility function for setting the shots on the platform
-void set_shots(const std::size_t nShots);
+[[deprecated("Specify the number of shots in the using the overloaded sample() "
+             "and observe() functions")]] void
+set_shots(const std::size_t nShots);
 
-/// @brief Set a custom noise model for simulation
-void set_noise(cudaq::noise_model &model);
+/// @brief Set a custom noise model for simulation. The caller must also call
+/// `cudaq::unset_noise` before `model` gets deallocated or goes out of scope.
+void set_noise(const cudaq::noise_model &model);
+
 /// @brief Remove an existing noise model from simulation.
 void unset_noise();
 
 /// @brief Utility function for clearing the shots
-void clear_shots(const std::size_t nShots);
+[[deprecated("Specify the number of shots in the using the overloaded sample() "
+             "and observe() functions")]] void
+clear_shots(const std::size_t nShots);
 
 /// @brief Set a seed for any random number
 /// generators used in backend simulations.
 void set_random_seed(std::size_t seed);
 
-namespace mpi {
+/// @brief Get a previously set random seed
+std::size_t get_random_seed();
 
+/// @brief The number of available GPUs.
+int num_available_gpus();
+
+namespace mpi {
 /// @brief Initialize MPI if available. This function
 /// is a no-op if there CUDA Quantum has not been built
 /// against MPI.
@@ -215,8 +226,6 @@ int num_ranks();
 /// @brief Return true if MPI is already initialized, false otherwise.
 bool is_initialized();
 
-double allreduce_double_add(double localValue);
-
 namespace details {
 #define CUDAQ_ALL_REDUCE_DEF(TYPE, BINARY)                                     \
   TYPE allReduce(const TYPE &, const BINARY<TYPE> &);
@@ -234,6 +243,11 @@ template <typename T, typename BinaryFunction>
 T all_reduce(const T &localValue, const BinaryFunction &function) {
   return details::allReduce(localValue, function);
 }
+
+/// @brief Gather all vector data locally into the provided
+/// global vector. Global vector must be sized to fit all
+/// vector elements coming from individual ranks.
+void all_gather(std::vector<double> &global, std::vector<double> &local);
 
 /// @brief Finalize MPI. This function
 /// is a no-op if there CUDA Quantum has not been built

@@ -54,43 +54,7 @@ public:
   void resetExecutionContext() override {
     cudaq::ScopedTrace trace("DefaultPlatform::resetExecutionContext",
                              executionContext->name);
-
-    auto ctx = executionContext;
-    if (ctx && ctx->name == "observe") {
-      double sum = 0.0;
-      if (!ctx->spin.has_value())
-        throw std::runtime_error(
-            "Observe ExecutionContext specified without a cudaq::spin_op.");
-
-      std::vector<cudaq::ExecutionResult> results;
-      cudaq::spin_op &H = *ctx->spin.value();
-
-      // If the backend supports the observe task,
-      // let it compute the expectation value instead of
-      // manually looping over terms, applying basis change ops,
-      // and computing <ZZ..ZZZ>
-      if (executionContext->canHandleObserve) {
-        auto [exp, data] = cudaq::measure(H);
-        results.emplace_back(data.to_map(), H.to_string(false), exp);
-        ctx->expectationValue = exp;
-        ctx->result = cudaq::sample_result(results);
-      } else {
-
-        // Loop over each term and compute coeff * <term>
-        H.for_each_term([&](cudaq::spin_op &term) {
-          if (term.is_identity())
-            sum += term.get_coefficient().real();
-          else {
-            auto [exp, data] = cudaq::measure(term);
-            results.emplace_back(data.to_map(), term.to_string(false), exp);
-            sum += term.get_coefficient().real() * exp;
-          }
-        });
-
-        ctx->expectationValue = sum;
-        ctx->result = cudaq::sample_result(sum, results);
-      }
-    }
+    handleObservation(executionContext);
     cudaq::getExecutionManager()->resetExecutionContext();
     executionContext = nullptr;
   }
@@ -115,8 +79,8 @@ public:
   /// variable, and if found, will change from the DefaultQPU to the QPU subtype
   /// specified by that variable.
   void setTargetBackend(const std::string &backend) override {
-    std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
-    auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
+    platformQPUs.clear();
+    platformQPUs.emplace_back(std::make_unique<DefaultQPU>());
 
     cudaq::info("Backend string is {}", backend);
     auto mutableBackend = backend;
@@ -124,6 +88,8 @@ public:
       mutableBackend = cudaq::split(mutableBackend, ';')[0];
     }
 
+    std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
+    auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
     std::string fileName = mutableBackend + std::string(".config");
 
     /// Once we know the backend, we should search for the config file
@@ -132,8 +98,10 @@ public:
     cudaq::info("Config file path = {}", configFilePath.string());
 
     // Don't try to load something that doesn't exist.
-    if (!std::filesystem::exists(configFilePath))
+    if (!std::filesystem::exists(configFilePath)) {
+      platformQPUs.front()->setTargetBackend(backend);
       return;
+    }
 
     std::ifstream configFile(configFilePath.string());
     std::string configContents((std::istreambuf_iterator<char>(configFile)),

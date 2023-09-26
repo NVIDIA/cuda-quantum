@@ -45,9 +45,31 @@ state pyGetState(kernel_builder<> &kernel, py::args args) {
 /// @brief Bind the get_state cudaq function
 void bindPyState(py::module &mod) {
 
-  py::class_<state>(mod, "State",
-                    "A representation of the internal simulation quantum state "
-                    "vector or density matrix.")
+  py::class_<state>(
+      mod, "State", py::buffer_protocol(),
+      "A data-type representing the quantum state of the interal simulator. "
+      "Returns state vector by default. If qpu is set to `density-matrix-cpu`, "
+      "returns "
+      "density matrix.\n")
+      .def_buffer([](state &self) -> py::buffer_info {
+        auto shape = self.get_shape();
+        if (shape.size() != 1) {
+          return py::buffer_info(
+              self.get_data(), sizeof(std::complex<double>), /*itemsize */
+              py::format_descriptor<std::complex<double>>::format(),
+              2,                    /* ndim */
+              {shape[0], shape[1]}, /* shape */
+              {sizeof(std::complex<double>) * shape[1],
+               sizeof(std::complex<double>)}, /* strides */
+              true                            /* readonly */
+          );
+        }
+        return py::buffer_info(
+            self.get_data(), sizeof(std::complex<double>), /*itemsize */
+            py::format_descriptor<std::complex<double>>::format(), 1, /* ndim */
+            {shape[0]}, /* shape */
+            {sizeof(std::complex<double>)});
+      })
       .def(py::init([](const py::buffer &b) {
              py::buffer_info info = b.request();
              std::vector<std::size_t> shape;
@@ -61,28 +83,28 @@ void bindPyState(py::module &mod) {
              auto t = std::make_tuple(shape, v);
              return state(t);
            }),
-           "Construct the cudaq::state from an existing array of data.")
+           "Construct the :class:`State` from an existing array of data.")
       .def(
           "__getitem__", [](state &s, std::size_t idx) { return s[idx]; },
-          "Return an element of the state vector.")
+          "Return the `index`-th element of the state vector.")
       .def(
           "__getitem__",
           [](state &s, std::vector<std::size_t> idx) {
             return s(idx[0], idx[1]);
           },
-          "Return a matrix element of the density matrix")
+          "Return a matrix element of the density matrix.")
       .def(
           "dump",
-          [](state &s) {
+          [](state &self) {
             std::stringstream ss;
-            s.dump(ss);
+            self.dump(ss);
             py::print(ss.str());
           },
           "Print the state to standard out")
       .def("__str__",
-           [](state &s) {
+           [](state &self) {
              std::stringstream ss;
-             s.dump(ss);
+             self.dump(ss);
              return ss.str();
            })
       .def(
@@ -90,7 +112,7 @@ void bindPyState(py::module &mod) {
           "Compute the overlap of this state with the other one.")
       .def(
           "overlap",
-          [](state &s, py::buffer &other) {
+          [](state &self, py::buffer &other) {
             py::buffer_info info = other.request();
             std::vector<std::size_t> shape;
             for (auto s : info.shape)
@@ -102,7 +124,7 @@ void bindPyState(py::module &mod) {
             extractStateData(info, v.data());
             auto t = std::make_tuple(shape, v);
             state ss(t);
-            return s.overlap(ss);
+            return self.overlap(ss);
           },
           "Compute the overlap of this state with the other one.");
 

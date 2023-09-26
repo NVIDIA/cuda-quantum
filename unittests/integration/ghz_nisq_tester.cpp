@@ -30,6 +30,8 @@ struct ghz {
 CUDAQ_TEST(GHZSampleTester, checkSimple) {
   ghz{}(5);
 
+  cudaq::set_random_seed(13);
+
   auto counts = cudaq::sample(ghz{}, 5);
   counts.dump();
   int counter = 0;
@@ -38,15 +40,21 @@ CUDAQ_TEST(GHZSampleTester, checkSimple) {
     EXPECT_TRUE(bits == "00000" || bits == "11111");
   }
   EXPECT_EQ(counter, 1000);
-  printf("Exp: %lf\n", counts.exp_val_z());
+  printf("Exp: %.16lf\n", counts.exp_val_z());
 }
 
 CUDAQ_TEST(GHZSampleTester, checkBroadcast) {
+
+  cudaq::set_random_seed(13);
 
   std::vector<int> sizeVals(8);
   std::iota(sizeVals.begin(), sizeVals.end(), 3);
   {
     auto allCounts = cudaq::sample(ghz{}, cudaq::make_argset(sizeVals));
+
+    std::cout << "allCounts size " << allCounts.size() << '\n';
+    for (auto &counts : allCounts)
+      counts.dump();
 
     int counter = 0;
     std::string first0 = "000", first1 = "111";
@@ -62,8 +70,14 @@ CUDAQ_TEST(GHZSampleTester, checkBroadcast) {
     }
   }
 
+  cudaq::set_random_seed(14);
+
   {
     auto allCounts = cudaq::sample(2000, ghz{}, cudaq::make_argset(sizeVals));
+
+    std::cout << "allCounts size " << allCounts.size() << '\n';
+    for (auto &counts : allCounts)
+      counts.dump();
 
     int counter = 0;
     std::string first0 = "000", first1 = "111";
@@ -78,4 +92,21 @@ CUDAQ_TEST(GHZSampleTester, checkBroadcast) {
       counter = 0;
     }
   }
+}
+
+CUDAQ_TEST(GHZSampleTester, checkBroadcastRepeatability) {
+  std::vector<int> sizeVals(8);
+  std::iota(sizeVals.begin(), sizeVals.end(), 3);
+
+  cudaq::set_random_seed(13);
+  auto allCounts1 = cudaq::sample(2000, ghz{}, cudaq::make_argset(sizeVals));
+
+  cudaq::set_random_seed(13);
+  auto allCounts2 = cudaq::sample(2000, ghz{}, cudaq::make_argset(sizeVals));
+
+  cudaq::set_random_seed(14);
+  auto allCounts3 = cudaq::sample(2000, ghz{}, cudaq::make_argset(sizeVals));
+
+  EXPECT_EQ(allCounts1, allCounts2); // these should match
+  EXPECT_NE(allCounts1, allCounts3); // these should NOT match
 }

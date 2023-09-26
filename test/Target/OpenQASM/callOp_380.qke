@@ -1,0 +1,35 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-translate --convert-to=openqasm %s | FileCheck %s
+
+module {
+  func.func @__nvqpp__mlirgen____nvqppBuilderKernel_093606261879() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.ref
+    call @__nvqpp__mlirgen____nvqppBuilderKernel_367535629127(%0) : (!quake.ref) -> ()
+    %1 = quake.mz %0 : (!quake.ref) -> i1 {registerName = ""}
+    return
+  }
+  func.func @__nvqpp__mlirgen____nvqppBuilderKernel_367535629127(%arg0: !quake.ref) {
+    quake.x %arg0 : (!quake.ref) -> ()
+    return
+  }
+}
+
+// CHECK: OPENQASM 2.0;
+
+// CHECK: include "qelib1.inc";
+
+// CHECK: gate nvqpp__mlirgen____nvqppBuilderKernel_367535629127 q0 {
+// CHECK:   x q0;
+// CHECK: }
+
+// CHECK: qreg var0[1];
+// CHECK: nvqpp__mlirgen____nvqppBuilderKernel_367535629127 var0[0];
+// CHECK: creg var1[1];
+// CHECK: measure var0[0] -> var1[0];

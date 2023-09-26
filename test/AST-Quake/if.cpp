@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
+// RUN: cudaq-quake %s | FileCheck %s
 
 #include <cudaq.h>
 
@@ -22,28 +22,19 @@ struct kernel {
    }
 };
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel
-// CHECK-SAME: (%[[VAL_0:.*]]: i1) -> i32
-// CHECK:           %[[VAL_1:.*]] = cc.alloca i1
-// CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<i1>
-// CHECK:           %[[VAL_2:.*]] = arith.constant 2 : i32
-// CHECK:           %[[VAL_3:.*]] = arith.extsi %[[VAL_2]] : i32 to i64
-// CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.veq<?>[%[[VAL_3]] : i64]
-// CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_1]] : !cc.ptr<i1>
-// CHECK:           cc.if(%[[VAL_5]]) {
-// CHECK:             cc.scope {
-// CHECK:               %[[VAL_6:.*]] = arith.constant 0 : i32
-// CHECK:               %[[VAL_7:.*]] = arith.extsi %[[VAL_6]] : i32 to i64
-// CHECK:               %[[VAL_8:.*]] = quake.extract_ref %[[VAL_4]][%[[VAL_7]]] : (!quake.veq<?>, i64) -> !quake.ref
-// CHECK:               %[[VAL_9:.*]] = arith.constant 1 : i32
-// CHECK:               %[[VAL_10:.*]] = arith.extsi %[[VAL_9]] : i32 to i64
-// CHECK:               %[[VAL_11:.*]] = quake.extract_ref %[[VAL_4]][%[[VAL_10]]] : (!quake.veq<?>, i64) -> !quake.ref
-// CHECK:               quake.h [%[[VAL_8]]] %[[VAL_11]] :
-// CHECK:             }
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel(
+// CHECK-SAME:       %[[VAL_0:.*]]: i1{{.*}}) -> i32
+// CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
+// CHECK:           %[[VAL_2:.*]] = cc.alloca i1
+// CHECK:           cc.store %[[VAL_0]], %[[VAL_2]] : !cc.ptr<i1>
+// CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_2]] : !cc.ptr<i1>
+// CHECK:           cc.if(%[[VAL_4]]) {
+// CHECK:             %[[VAL_5:.*]] = quake.extract_ref %[[VAL_3]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:             %[[VAL_6:.*]] = quake.extract_ref %[[VAL_3]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:             quake.h {{\[}}%[[VAL_5]]] %[[VAL_6]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           }
-// CHECK:           %[[VAL_12:.*]] = arith.constant 0 : i32
-// CHECK:           return %[[VAL_12]] : i32
-// CHECK:         }
+// CHECK:           return %[[VAL_1]] : i32
 
 struct kernel_else {
    __qpu__ int operator() (bool flag) {
@@ -57,35 +48,20 @@ struct kernel_else {
    }
 };
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_else
-// CHECK-SAME:        (%[[VAL_0:.*]]: i1) -> i32
-// CHECK:           %[[VAL_1:.*]] = cc.alloca i1
-// CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<i1>
-// CHECK:           %[[VAL_2:.*]] = arith.constant 2 : i32
-// CHECK:           %[[VAL_3:.*]] = arith.extsi %[[VAL_2]] : i32 to i64
-// CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.veq<?>[%[[VAL_3]] : i64]
-// CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_1]] : !cc.ptr<i1>
-// CHECK:           cc.if(%[[VAL_5]]) {
-// CHECK:             cc.scope {
-// CHECK:               %[[VAL_6:.*]] = arith.constant 0 : i32
-// CHECK:               %[[VAL_7:.*]] = arith.extsi %[[VAL_6]] : i32 to i64
-// CHECK:               %[[VAL_8:.*]] = quake.extract_ref %[[VAL_4]][%[[VAL_7]]] : (!quake.veq<?>, i64) -> !quake.ref
-// CHECK:               %[[VAL_9:.*]] = arith.constant 1 : i32
-// CHECK:               %[[VAL_10:.*]] = arith.extsi %[[VAL_9]] : i32 to i64
-// CHECK:               %[[VAL_11:.*]] = quake.extract_ref %[[VAL_4]][%[[VAL_10]]] : (!quake.veq<?>, i64) -> !quake.ref
-// CHECK:               quake.h [%[[VAL_8]]] %[[VAL_11]] :
-// CHECK:             }
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_else(
+// CHECK-SAME:       %[[VAL_0:.*]]: i1{{.*}}) -> i32
+// CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
+// CHECK:           %[[VAL_2:.*]] = cc.alloca i1
+// CHECK:           cc.store %[[VAL_0]], %[[VAL_2]] : !cc.ptr<i1>
+// CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_2]] : !cc.ptr<i1>
+// CHECK:           cc.if(%[[VAL_4]]) {
+// CHECK:             %[[VAL_5:.*]] = quake.extract_ref %[[VAL_3]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:             %[[VAL_6:.*]] = quake.extract_ref %[[VAL_3]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:             quake.h {{\[}}%[[VAL_5]]] %[[VAL_6]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           } else {
-// CHECK:             cc.scope {
-// CHECK:               %[[VAL_12:.*]] = arith.constant 1 : i32
-// CHECK:               %[[VAL_13:.*]] = arith.extsi %[[VAL_12]] : i32 to i64
-// CHECK:               %[[VAL_14:.*]] = quake.extract_ref %[[VAL_4]][%[[VAL_13]]] : (!quake.veq<?>, i64) -> !quake.ref
-// CHECK:               %[[VAL_15:.*]] = arith.constant 0 : i32
-// CHECK:               %[[VAL_16:.*]] = arith.extsi %[[VAL_15]] : i32 to i64
-// CHECK:               %[[VAL_17:.*]] = quake.extract_ref %[[VAL_4]][%[[VAL_16]]] : (!quake.veq<?>, i64) -> !quake.ref
-// CHECK:               quake.x [%[[VAL_14]]] %[[VAL_17]] :
-// CHECK:             }
+// CHECK:             %[[VAL_7:.*]] = quake.extract_ref %[[VAL_3]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:             %[[VAL_8:.*]] = quake.extract_ref %[[VAL_3]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:             quake.x {{\[}}%[[VAL_7]]] %[[VAL_8]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           }
-// CHECK:           %[[VAL_18:.*]] = arith.constant 0 : i32
-// CHECK:           return %[[VAL_18]] : i32
-// CHECK:         }
+// CHECK:           return %[[VAL_1]] : i32

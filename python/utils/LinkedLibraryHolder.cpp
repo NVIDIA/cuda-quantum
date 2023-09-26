@@ -15,6 +15,7 @@
 #include <fstream>
 #include <regex>
 #include <sstream>
+#include <string>
 
 // Our hook into configuring the NVQIR backend.
 extern "C" {
@@ -124,6 +125,17 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
       cudaqLibPath / fmt::format("libnvqir.{}", libSuffix),
       cudaqLibPath / fmt::format("libcudaq.{}", libSuffix)};
 
+  const char *statevec_dynlibs_var = std::getenv("CUDAQ_DYNLIBS");
+  if (statevec_dynlibs_var != nullptr) {
+    std::string statevec_dynlib;
+    std::stringstream ss((std::string(statevec_dynlibs_var)));
+    while (std::getline(ss, statevec_dynlib, ':')) {
+      cudaq::info("Init: add custatevec dynamic library path {}.",
+                  statevec_dynlib);
+      libPaths.push_back(statevec_dynlib);
+    }
+  }
+
   // Load all the defaults
   for (auto &p : libPaths)
     libHandles.emplace(p.string(),
@@ -153,13 +165,32 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
 
       // Store the dlopen handles
       auto iter = libHandles.find(path.string());
-      if (iter == libHandles.end())
-        libHandles.emplace(path.string(), dlopen(path.string().c_str(),
-                                                 RTLD_GLOBAL | RTLD_NOW));
+      bool loadFailed = false;
+      if (iter == libHandles.end()) {
+        void *simLibHandle =
+            dlopen(path.string().c_str(), RTLD_GLOBAL | RTLD_NOW);
+        // Add simulator lib if successfully loaded.
+        // Note: there could be potential dlopen failures due to missing
+        // dependencies.
+        if (simLibHandle)
+          libHandles.emplace(path.string(), simLibHandle);
+        else {
+          loadFailed = true;
+          // Retrieve the error message
+          char *error_msg = dlerror();
+          cudaq::info("Failed to load NVQIR backend '{}' from {}. Error: {}",
+                      simName, path.string(),
+                      (error_msg ? std::string(error_msg) : "unknown."));
+        }
+      }
 
-      // Load the plugin and get the CircuitSimulator.
-      cudaq::info("Found simulator plugin {}.", simName);
-      availableSimulators.push_back(simName);
+      if (!loadFailed) {
+        // Load the plugin and get the CircuitSimulator.
+        // Skip adding simulator name to the availableSimulators list if failed
+        // to load.
+        cudaq::info("Found simulator plugin {}.", simName);
+        availableSimulators.push_back(simName);
+      }
 
     } else if (fileName.find("cudaq-platform-") != std::string::npos) {
       // store all available platforms.
@@ -195,8 +226,10 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
 }
 
 LinkedLibraryHolder::~LinkedLibraryHolder() {
-  for (auto &[name, handle] : libHandles)
-    dlclose(handle);
+  for (auto &[name, handle] : libHandles) {
+    if (handle)
+      dlclose(handle);
+  }
 }
 
 nvqir::CircuitSimulator *
@@ -222,8 +255,12 @@ LinkedLibraryHolder::getPlatform(const std::string &platformName) {
 }
 
 void LinkedLibraryHolder::resetTarget() {
+  // TODO: create config for default target and use setTarget("qpp") here,
+  // instead of having this be a code duplication of the logic below.
   __nvqir__setCircuitSimulator(getSimulator("qpp"));
-  setQuantumPlatformInternal(getPlatform("default"));
+  auto *platform = getPlatform("default");
+  platform->setTargetBackend("qpp");
+  setQuantumPlatformInternal(platform);
   currentTarget = "default";
 }
 

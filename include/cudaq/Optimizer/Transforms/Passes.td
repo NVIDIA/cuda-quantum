@@ -190,6 +190,14 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
   ];
 }
 
+def UpdateRegisterNames : Pass<"update-register-names"> {
+  let summary = "Update classical register names";
+  let description = [{
+    After loop unrolling, there may be duplicate registerName attributes. Run
+    this pass to give them unique attribute values.
+  }];
+}
+
 def LowerToCFG : Pass<"lower-to-cfg", "mlir::func::FuncOp"> {
   let summary = "Erase CLoop, CIf, etc. ops, replacing them with a CFG.";
   let description = [{
@@ -251,6 +259,38 @@ def MemToReg : Pass<"memtoreg", "mlir::func::FuncOp"> {
     Option<"quantumValues", "quantum", "bool",
       /*default=*/"true", "Promote of quantum values.">
   ];
+}
+
+def PruneCtrlRelations : Pass<"pruned-ctrl-form", "mlir::func::FuncOp"> {
+  let summary = "Removes artifical control constraints between quantum ops.";
+  let description = [{
+    In the value semantics, quantum gates may be overly constrained in terms of
+    control qubits. These constraints can be removed within the IR to get a more
+    accurate representation of the dataflow of the *logical* qubits. This
+    alternative representation may be better suited to certain transformations.
+
+    The following example is overly constrained. The control wire, beginning
+    with `%0` is imposing what appears to be a strict ordering of
+    `[x -> h -> y]`.
+    ```mlir
+      %3:2 = x [%0] %1 : (!wire, !wire) -> (!wire, !wire)
+      %4:2 = h [%3#0] %2 : (!wire, !wire) -> (!wire, !wire)
+      %5:2 = y [%4#0] %3#1 : (!wire, !wire) -> (!wire, !wire)
+    ```
+
+    This snippet can be rewritten as the following IR to reflect that the
+    control wire has an identity applied so is unchanged. We observe less strict
+    ordering constraints of `[h | x -> y]`. This might allow a scheduling pass
+    to swap the order of the `h` and `x` gates, for instance.
+    ```mlir
+      %ctrl = to_ctrl %old.0 : (!wire) -> !control
+      %3 = x [%ctrl] %1 : (!control, !wire) -> !wire
+      %4 = h [%ctrl] %2 : (!control, !wire) -> !wire
+      %5 = y [%ctrl] %3 : (!control, !wire) -> !wire
+      %new.0 = from_ctrl %ctrl : (!control) -> !wire
+    ```
+  }];
+  let dependentDialects = ["quake::QuakeDialect"];
 }
 
 def QuakeSynthesize : Pass<"quake-synth", "mlir::ModuleOp"> {

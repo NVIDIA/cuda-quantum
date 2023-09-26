@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #pragma nv_diag_suppress = unsigned_compare_with_zero
 #pragma nv_diag_suppress = unrecognized_gcc_pragma
@@ -520,9 +520,45 @@ public:
   }
 
   cudaq::State getStateData() override {
+    // Handle empty state (e.g., no qubit allocation)
+    if (stateDimension == 0)
+      return cudaq::State{{stateDimension}, {}};
+
     std::vector<std::complex<ScalarType>> tmp(stateDimension);
-    cudaMemcpy(tmp.data(), deviceStateVector,
-               stateDimension * sizeof(CudaDataType), cudaMemcpyDeviceToHost);
+    // Use custatevec accessor to retrieve the view
+    custatevecAccessorDescriptor_t accessor;
+    const uint32_t nIndexBits = std::log2(stateDimension);
+    // Note: we use MSB bit ordering when reporting the state vector
+    // hence, bit ordering vector = [N-1, N-2, ..., 0]
+    std::vector<int32_t> bitOrdering(nIndexBits);
+    std::iota(std::rbegin(bitOrdering), std::rend(bitOrdering), 0);
+    std::size_t extraWorkspaceSizeInBytes = 0;
+    // create accessor view
+    HANDLE_ERROR(custatevecAccessorCreateView(
+        handle, deviceStateVector, cuStateVecCudaDataType, nIndexBits,
+        &accessor, bitOrdering.data(), bitOrdering.size(),
+        /*maskBitString*/ nullptr, /*maskOrdering*/ nullptr,
+        /*maskLen*/ 0, &extraWorkspaceSizeInBytes));
+    // allocate external workspace if necessary
+    void *extraWorkspace = nullptr;
+    if (extraWorkspaceSizeInBytes > 0)
+      HANDLE_CUDA_ERROR(cudaMalloc(&extraWorkspace, extraWorkspaceSizeInBytes));
+
+    // set external workspace
+    HANDLE_ERROR(custatevecAccessorSetExtraWorkspace(
+        handle, accessor, extraWorkspace, extraWorkspaceSizeInBytes));
+
+    // get all state vector components: [0, stateDimension)
+    HANDLE_ERROR(custatevecAccessorGet(handle, accessor, tmp.data(),
+                                       /*begin*/ 0,
+                                       /*end*/
+                                       stateDimension));
+    // destroy descriptor
+    HANDLE_ERROR(custatevecAccessorDestroy(accessor));
+    // free extra workspace if allocated
+    if (extraWorkspaceSizeInBytes > 0)
+      HANDLE_CUDA_ERROR(cudaFree(extraWorkspace));
+
     if constexpr (std::is_same_v<ScalarType, float>) {
       std::vector<std::complex<double>> data;
       std::transform(tmp.begin(), tmp.end(), std::back_inserter(data),

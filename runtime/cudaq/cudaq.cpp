@@ -10,6 +10,9 @@
 #define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
 
 #include "common/Logger.h"
+#ifdef CUDAQ_HAS_CUDA
+#include "cuda_runtime_api.h"
+#endif
 #include "cudaq/platform.h"
 #include "cudaq/utils/registry.h"
 #include <dlfcn.h>
@@ -83,6 +86,11 @@ CUDAQ_ALL_REDUCE_IMPL(double, MPI_DOUBLE, std::multiplies, MPI_PROD)
 
 } // namespace details
 
+void all_gather(std::vector<double> &global, std::vector<double> &local) {
+  MPI_Allgather(local.data(), local.size(), MPI_DOUBLE, global.data(),
+                local.size(), MPI_DOUBLE, MPI_COMM_WORLD);
+}
+
 void finalize() {
   if (rank() == 0)
     cudaq::info("Finalizing MPI.");
@@ -128,6 +136,8 @@ CUDAQ_ALL_REDUCE_IMPL(double, std::plus)
 CUDAQ_ALL_REDUCE_IMPL(double, std::multiplies)
 
 } // namespace details
+
+void all_gather(std::vector<double> &global, std::vector<double> &local) {}
 
 void finalize() {}
 
@@ -251,6 +261,14 @@ bool kernelHasConditionalFeedback(const std::string &kernelName) {
          quakeCode.find("qubitMeasurementFeedback = true") != std::string::npos;
 }
 
+// Ignore warnings about deprecations in platform.set_shots and
+// platform.clear_shots because the functions that are using them here
+// (cudaq::set_shots and cudaq::clear_shots are also deprecated and will be
+// removed at the same time.)
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 void set_shots(const std::size_t nShots) {
   auto &platform = cudaq::get_platform();
   platform.set_shots(nShots);
@@ -259,8 +277,11 @@ void clear_shots(const std::size_t nShots) {
   auto &platform = cudaq::get_platform();
   platform.clear_shots();
 }
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
-void set_noise(cudaq::noise_model &model) {
+void set_noise(const cudaq::noise_model &model) {
   auto &platform = cudaq::get_platform();
   platform.set_noise(&model);
 }
@@ -270,7 +291,26 @@ void unset_noise() {
   platform.set_noise(nullptr);
 }
 
-void set_random_seed(std::size_t seed) { nvqir::setRandomSeed(seed); }
+thread_local static std::size_t cudaq_random_seed = 0;
+
+/// @brief Note: a seed value of 0 will cause broadcast operations to use
+/// std::random_device (or something similar) as a seed for the PRNGs, so this
+/// will not be repeatable for those operations.
+void set_random_seed(std::size_t seed) {
+  cudaq_random_seed = seed;
+  nvqir::setRandomSeed(seed);
+}
+
+std::size_t get_random_seed() { return cudaq_random_seed; }
+
+int num_available_gpus() {
+  int nDevices = 0;
+#ifdef CUDAQ_HAS_CUDA
+  cudaGetDeviceCount(&nDevices);
+#endif
+  return nDevices;
+}
+
 namespace __internal__ {
 void cudaqCtrlCHandler(int signal) {
   printf(" CTRL-C caught in cudaq runtime.\n");

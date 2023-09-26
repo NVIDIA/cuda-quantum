@@ -24,6 +24,9 @@
 
 #include "cudaq.h"
 
+#include <pybind11/stl.h>
+#include <pybind11/stl_bind.h>
+
 PYBIND11_MODULE(_pycudaq, mod) {
   static cudaq::LinkedLibraryHolder holder;
 
@@ -44,15 +47,33 @@ PYBIND11_MODULE(_pycudaq, mod) {
             holder.setTarget(value);
         }
       },
-      "");
+      "Initialize the CUDA Quantum environment.");
 
   mod.def("set_random_seed", &cudaq::set_random_seed,
           "Provide the seed for backend quantum kernel simulation.");
+
+  mod.def("num_available_gpus", &cudaq::num_available_gpus,
+          "The number of available GPUs detected on the system.");
 
   auto mpiSubmodule = mod.def_submodule("mpi");
   mpiSubmodule.def(
       "initialize", []() { cudaq::mpi::initialize(); },
       "Initialize MPI if available.");
+  mpiSubmodule.def(
+      "rank", []() { return cudaq::mpi::rank(); },
+      "Return the rank of this process.");
+  mpiSubmodule.def(
+      "num_ranks", []() { return cudaq::mpi::num_ranks(); },
+      "Return the total number of ranks.");
+  mpiSubmodule.def(
+      "all_gather",
+      [](std::size_t globalVectorSize, std::vector<double> &local) {
+        std::vector<double> global(globalVectorSize);
+        cudaq::mpi::all_gather(global, local);
+        return global;
+      },
+      "Gather and scatter the `local` list, returning a concatenation of all "
+      "lists across all ranks. The total global list size must be provided.");
   mpiSubmodule.def(
       "is_initialized", []() { return cudaq::mpi::is_initialized(); },
       "Return true if MPI has already been initialized.");
@@ -64,7 +85,7 @@ PYBIND11_MODULE(_pycudaq, mod) {
   cudaq::bindQuakeValue(mod);
   cudaq::bindObserve(mod);
   cudaq::bindObserveResult(mod);
-  cudaq::bindNoiseModel(mod);
+  cudaq::bindNoise(mod);
   cudaq::bindSample(mod);
   cudaq::bindMeasureCounts(mod);
   cudaq::bindComplexMatrix(mod);

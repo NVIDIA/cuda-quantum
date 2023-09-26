@@ -19,12 +19,7 @@ on:
         type: string
         description: The platforms to build the Docker images for.
         required: false
-        default: linux/amd64
-      manylinux_image:
-        type: string
-        description: The base image to use when building Python wheels.
-        required: false
-        default: quay.io/pypa/manylinux_2_28_x86_64:latest
+        default: linux/amd64,linux/arm64
       create_release:
         type: string
         description: The version number of the release (e.g. 0.3.0). The version must not exist already.
@@ -32,12 +27,13 @@ on:
         default: ''
   # We need write permissions for packages to update the build caches of GHCR.
   # Make sure no external code is checked out as part of this workflow.
-  pull_request_target:
+  # This trigger replaces the pull_request_target trigger in prepare_deployment.yml
+  # so that we can use the NVIDIA runners to update the build caches.
+  workflow_run:
+    workflows:
+      - PR merged
     types:
-      - closed
-    branches:
-      - 'main'
-      - 'releases/*'
+      - completed
   # Whenever we create a release branch, we want to populate the caches.
   # Unfortunately, it is not currently possible to filter by branch,
   # see also: https://github.com/orgs/community/discussions/26286
@@ -48,48 +44,176 @@ on:
 name: Deployments # do not change name without updating workflow_run triggers
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.base.ref || github.ref_name }}
+  group: ${{ github.workflow }}-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
+  metadata:
+    name: Prepare build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    outputs:
+      pull_request_number: ${{ steps.pr_info.outputs.pr_number }}
+      pull_request_base: ${{ steps.pr_info.outputs.pr_base }}
+      pull_request_commit: ${{ steps.pr_info.outputs.merge_commit }}
+      cache_base: ${{ steps.build_info.outputs.cache_base }}
+      update_cache: ${{ steps.build_info.outputs.update_cache }}
+      multi_platform: ${{ steps.build_info.outputs.multi_platform }}
+      platforms: ${{ steps.build_info.outputs.platforms }}
+      environment: ${{ steps.build_info.outputs.environment }}
+
+    steps:
+      - name: Retrieve PR info
+        if: github.event_name == 'workflow_run'
+        id: pr_info
+        run: |
+          artifacts_url=${{ github.event.workflow_run.artifacts_url }}
+          artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
+
+          for artifact in `echo "$artifacts"`; do
+            name=`echo $artifact | jq -r '.name'`
+            if [ "$name" == "metadata_pr" ]; then
+              url=`echo $artifact | jq -r '.url'`
+              gh api $url > metadata.zip
+              unzip -d metadata metadata.zip
+              for file in `find metadata/ -type f`; do
+                cat "$file" >> metadata.txt
+              done
+              pr_number=`cat metadata.txt | grep -o 'pr-number: \S*' | cut -d ' ' -f 2`
+              pr_base=`cat metadata.txt | grep -o 'pr-base: \S*' | cut -d ' ' -f 2`
+              merge_commit=`cat metadata.txt | grep -o 'source-sha: \S*' | cut -d ' ' -f 2`
+              rm -rf metadata.zip metadata.txt metadata
+              echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
+              echo "pr_base=$pr_base" >> $GITHUB_OUTPUT
+              echo "merge_commit=$merge_commit" >> $GITHUB_OUTPUT
+            fi
+          done
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Determine build info
+        id: build_info
+        run: |
+          requested_platforms="${{ inputs.platforms || (github.event_name == 'push' && 'linux/amd64,linux/arm64') || 'linux/arm64 linux/amd64' }}"
+          if [ -n "$(echo "$requested_platforms" | egrep ',')" ]; then
+            multi_platform="{\"ids\":[]}"
+            platform_flag=`echo "$requested_platforms" | tr -d ' '`
+            multi_platform=`echo $multi_platform | jq ".ids |= . + [\"multiplat\"]"`
+            platform={\"multiplat\":{\"docker_flag\":\"$platform_flag\",\"arch\":\"any\"}}
+            multi_platform=`echo $multi_platform | jq ". |= . + $platform"`
+          fi
+
+          platforms="{\"ids\":[]}"
+          for input in `echo "$requested_platforms" | tr , ' ' | tr ';' ' '`; do
+            platform_id=`echo $input | sed 's/linux\///g' | tr -d ' '`
+            platform_arch=`([ "$platform_id" == "amd64" ] && echo x86_64) || ([ "$platform_id" == "arm64" ] && echo aarch64) || echo any`
+            platforms=`echo $platforms | jq ".ids |= . + [\"$platform_id\"]"`
+            platform={\"$platform_id\":{\"docker_flag\":\"$input\",\"arch\":\"$platform_arch\"}}
+            platforms=`echo $platforms | jq ". |= . + $platform"`
+          done
+
+          cache_base=${{ (github.event_name == 'push' && 'main') || inputs.cache_base || steps.pr_info.outputs.pr_base }}
+          update_cache=${{ (github.event_name == 'workflow_dispatch' && inputs.update_registry_cache) || github.event_name == 'push' }}
+          environment=${{ (github.event_name != 'workflow_run' && 'ghcr-deployment') || '' }}
+
+          # Store deployment info
+          release_title="${{ inputs.create_release }}"
+          release_version=`echo "$release_title" | (egrep -o "([0-9]{1,}\.)+[0-9]{1,}([A-Za-z0-9_\-\.]*)" || true)`
+
+          echo "source-sha: ${{ github.sha }}" >> deployment_info.txt
+          echo "release-title: $release_title" >> deployment_info.txt
+          echo "release-version: $release_version" >> deployment_info.txt
+
+          echo "cache_base=$cache_base" >> $GITHUB_OUTPUT
+          echo "update_cache=$update_cache" >> $GITHUB_OUTPUT
+          echo "multi_platform=$(echo $multi_platform)" >> $GITHUB_OUTPUT
+          echo "platforms=$(echo $platforms)" >> $GITHUB_OUTPUT
+          echo "environment=$environment" >> $GITHUB_OUTPUT
+
+      - name: Upload deployment info
+        uses: actions/upload-artifact@v3
+        with:
+          name: deployment_info # changing the artifact name requires updating other workflows
+          path: deployment_info.txt
+          retention-days: 30
+          if-no-files-found: error
+
   devdeps:
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created) || (github.event_name == 'pull_request_target' && github.event.pull_request.merged == true)
     name: Build dev dependencies
+    needs: metadata
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created) || (github.event_name == 'workflow_run' && needs.metadata.outputs.pull_request_number != '')
     strategy:
       matrix:
+        platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
         toolchain: [llvm, clang16, gcc12]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
+      platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.Dockerfile
-      platforms: ${{ inputs.platforms }}
       toolchain: ${{ matrix.toolchain }}
-      matrix_key: ${{ matrix.toolchain }}
-      registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base }}
-      registry_cache_update: ${{ github.event_name == 'workflow_dispatch' && inputs.update_registry_cache }}
-      registry_cache_update_only: ${{ github.event.pull_request.merged == true }}
-      environment: ${{ (github.event.pull_request.merged != true && 'ghcr-deployment') || '' }}
+      registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
+      registry_cache_update: ${{ needs.metadata.outputs.update_cache == 'true' }}
+      registry_cache_update_only: ${{ github.event_name == 'workflow_run' }}
+      pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
+      pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
+      environment: ${{ needs.metadata.outputs.environment }}
+      # needed only for the cloudposse GitHub action
+      matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}
 
   wheeldeps:
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created) || (github.event_name == 'pull_request_target' && github.event.pull_request.merged == true)
     name: Build wheel dependencies
+    needs: metadata
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created) || (github.event_name == 'workflow_run' && needs.metadata.outputs.pull_request_number != '')
+    strategy:
+      matrix:
+        # There are currently no multi-platform manylinux images available.
+        # See https://github.com/pypa/manylinux/issues/1306.
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+      fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
+      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.manylinux.Dockerfile
-      platforms: ${{ inputs.platforms }}
-      toolchain: x86_64
+      toolchain: gcc11
       build_args: |
-        manylinux_image=${{ inputs.manylinux_image || 'quay.io/pypa/manylinux_2_28_x86_64:latest' }}
-      registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base }}
-      registry_cache_update: ${{ github.event_name == 'workflow_dispatch' && inputs.update_registry_cache }}
-      registry_cache_update_only: ${{ github.event.pull_request.merged == true }}
-      environment: ${{ (github.event.pull_request.merged != true && 'ghcr-deployment') || '' }}
+        arch=${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].arch }}
+        distro=rhel8
+      registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
+      registry_cache_update: ${{ needs.metadata.outputs.update_cache == 'true' }}
+      registry_cache_update_only: ${{ github.event_name == 'workflow_run' }}
+      pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
+      pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
+      environment: ${{ needs.metadata.outputs.environment }}
+      # needed only for the cloudposse GitHub action
+      matrix_key: ${{ matrix.platform }}-python
+
+  openmpi:
+    name: Build Open MPI
+    needs: metadata
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created) || (github.event_name == 'workflow_run' && needs.metadata.outputs.pull_request_number != '')
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
+      fail-fast: false
+    uses: ./.github/workflows/dev_environment.yml
+    with:
+      platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
+      dockerfile: build/devdeps.ompi.Dockerfile
+      registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
+      registry_cache_update: ${{ needs.metadata.outputs.update_cache == 'true' }}
+      registry_cache_update_only: ${{ github.event_name == 'workflow_run' }}
+      environment: ${{ needs.metadata.outputs.environment }}
+      # needed only for the cloudposse GitHub action
+      matrix_key: ${{ matrix.platform }}-ompi
 
   dispatch:
-    if: github.event_name == 'pull_request_target'
     name: Dispatch deployments
+    needs: [metadata, devdeps, wheeldeps, openmpi]
+    if: github.event_name == 'workflow_run'
     runs-on: ubuntu-latest
-    needs: [devdeps, wheeldeps]
 
     steps:
       - uses: actions/github-script@v6
@@ -101,9 +225,10 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: 'deployments.yml',
-              ref: '${{ github.event.pull_request.base.ref }}',
+              ref: '${{ needs.metadata.outputs.pull_request_base }}',
               inputs: {
-                cache_base: '${{ github.event.pull_request.base.ref }}',
+                platforms: 'linux/arm64,linux/amd64',
+                cache_base: '${{ needs.metadata.outputs.cache_base }}',
               },
             })
 
@@ -112,15 +237,14 @@ jobs:
   # limitations that may not be needed if the work started here concludes:
   # https://github.com/actions/runner/pull/2477
   config:
-    if: github.event_name != 'pull_request_target'
     name: Configure build
+    needs: [devdeps, wheeldeps, openmpi]
+    if: github.event_name != 'workflow_run'
     runs-on: ubuntu-latest
-    needs: devdeps
 
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
-      base_image: ${{ fromJson(steps.read_json.outputs.result).image_hash.gcc12 }}
-      toolchain: gcc12
+      devdeps_toolchain: gcc12
 
     steps:
       - uses: cloudposse/github-action-matrix-outputs-read@0.1.1
@@ -128,59 +252,73 @@ jobs:
         with:
           matrix-step-name: dev_environment
 
-  openmpi:
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created)
-    name: Build Open MPI
-    uses: ./.github/workflows/dev_environment.yml
-    with:
-      dockerfile: build/devdeps.ompi.Dockerfile
-      platforms: ${{ inputs.platforms }}
-      registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base }}
-      registry_cache_update: true
-      environment: ghcr-deployment
-
   extdevdeps:
     name: Create dev environment
+    needs: [metadata, config, openmpi]
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
+      fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
-    needs: [config, openmpi]
     with:
+      platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.ext.Dockerfile
-      platforms: ${{ inputs.platforms }}
-      toolchain: ${{ needs.config.outputs.toolchain }}
+      toolchain: ${{ needs.config.outputs.devdeps_toolchain }}
       build_args: |
-        base_image=${{ needs.config.outputs.base_image }}
-        ompidev_image=${{ needs.openmpi.outputs.image_hash }}
-      registry_cache_from: ${{ (github.event_name == 'push' && 'main') || inputs.cache_base }}
-      registry_cache_update: true
-      environment: ghcr-deployment
+        base_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', matrix.platform, needs.config.outputs.devdeps_toolchain)] }}
+        ompidev_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-ompi', matrix.platform)] }}
+      registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
+      registry_cache_update: ${{ needs.metadata.outputs.update_cache == 'true' }}
+      environment: ${{ needs.metadata.outputs.environment }}
+      # needed only for the cloudposse GitHub action
+      matrix_key: ${{ matrix.platform }}-ext
+
+  # This job is needed only when using the cloudposse GitHub action to read
+  # the output of a matrix job. This is a workaround due to current GitHub
+  # limitations that may not be needed if the work started here concludes:
+  # https://github.com/actions/runner/pull/2477
+  ext_config:
+    name: Configure build
+    needs: extdevdeps
+    runs-on: ubuntu-latest
+
+    outputs:
+      json: "${{ steps.read_json.outputs.result }}"
+
+    steps:
+      - uses: cloudposse/github-action-matrix-outputs-read@0.1.1
+        id: read_json
+        with:
+          matrix-step-name: dev_environment
 
   docker_images:
     name: Create Docker images
-    needs: [extdevdeps, openmpi]
-    uses: ./.github/workflows/docker_images.yml
-    secrets: inherit
-    with:
-      platforms: ${{ inputs.platforms }}
-      ompidev_image: ${{ needs.openmpi.outputs.image_hash }}
-      devdeps_image: ${{ needs.extdevdeps.outputs.image_hash }}
-      environment: ghcr-deployment
-      create_release: ${{ inputs.create_release }}
-
-  python_wheels:
-    if: github.event_name != 'pull_request_target'
-    name: Create Python wheels
-    needs: wheeldeps
+    needs: [metadata, config, ext_config]
     strategy:
       matrix:
+        platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
+      fail-fast: false
+    uses: ./.github/workflows/docker_images.yml
+    secrets:
+      NGC_CREDENTIALS: ${{ secrets.NGC_CREDENTIALS }}
+    with:
+      platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
+      ompidev_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-ompi', matrix.platform)] }}
+      devdeps_image: ${{ fromJson(needs.ext_config.outputs.json).image_hash[format('{0}-ext', matrix.platform)] }}
+      build_docs: true
+      environment: ghcr-deployment
+
+  python_wheels:
+    name: Create Python wheels
+    needs: [metadata, config]
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
         python_version: ['3.8', '3.9', '3.10', '3.11']
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
     with:
+      platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       python_version: ${{ matrix.python_version }}
-      devdeps_image: ${{ needs.wheeldeps.outputs.image_hash }}
-      # TODO: upload wheels to test-pypi - the push to pypi itself
-      # should be done only by the publishing when creating a release.
-      # See also: 
-      # https://github.com/pypa/gh-action-pypi-publish
-      # https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
-      # environment: pypi-deployment
+      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-python', matrix.platform)] }}
+      environment: ghcr-deployment

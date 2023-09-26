@@ -46,7 +46,7 @@ quantum_platform *getQuantumPlatformInternal() {
   return platform;
 }
 
-void quantum_platform::set_noise(noise_model *model) {
+void quantum_platform::set_noise(const noise_model *model) {
   auto &platformQPU = platformQPUs[platformCurrentQPU];
   platformQPU->setNoiseModel(model);
 }
@@ -113,6 +113,10 @@ bool quantum_platform::is_simulator(const std::size_t qpu_id) const {
 
 bool quantum_platform::is_remote(const std::size_t qpu_id) {
   return platformQPUs[qpu_id]->isRemote();
+}
+
+bool quantum_platform::is_emulated(const std::size_t qpu_id) const {
+  return platformQPUs[qpu_id]->isEmulated();
 }
 
 bool quantum_platform::supports_conditional_feedback(

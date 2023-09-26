@@ -146,22 +146,19 @@ def quake_ComputeActionOp : QuakeOp<"compute_action"> {
   }];
 }
 
-def quake_ConvertControlOp : QuakeOp<"convert_ctrl"> {
+def quake_ToControlOp : QuakeOp<"to_ctrl", [Pure]> {
   let summary = "Convert a wire value to a control value.";
   let description = [{
-    This operation should be considered experimental. It is currently not used.
-
     This operation makes the conversion of a wire value to a control value
     explicit in the quake IR. These values have different semantics in the IR.
-    Ensuring these semantics via the type system may (or may not) prove to be
-    advantageous.
+    This op ensures these semantics via the type system.
 
     A value of type control is (nearly) an SSA-value. Once defined, via the
-    `convert_ctrl` operation, it can be used as an argument to other operations.
+    `to_ctrl` operation, it can be used as an argument to other operations.
     These uses are qualified. They must be in control argument positions and
-    these operations must dominate any second use of the `qubit` argument to
-    the `convert_ctrl`. The operand value and result value of a `convert_ctrl`
-    may not be used as arguments to the exact same subsequent operation.
+    these operations must dominate a `from_ctrl` operation that returns the
+    control qubit back to a wire. The operand value and result value of a
+    `to_ctrl` may NOT be used as arguments to the same operation.
   }];
 
   let arguments = (ins WireType:$qubit);
@@ -169,6 +166,22 @@ def quake_ConvertControlOp : QuakeOp<"convert_ctrl"> {
 
   let assemblyFormat = [{
     $qubit `:` functional-type(operands, results) attr-dict
+  }];
+}
+
+def quake_FromControlOp : QuakeOp<"from_ctrl", [Pure]> {
+  let summary = "Convert a control value to a wire value.";
+  let description = [{
+    This operation makes the conversion of a control value to a wire value
+    explicit in the quake IR. These values have different semantics in the IR.
+    This op ensures these semantics via the type system.
+  }];
+
+  let arguments = (ins ControlType:$ctrlbit);
+  let results = (outs WireType);
+
+  let assemblyFormat = [{
+    $ctrlbit `:` functional-type(operands, results) attr-dict
   }];
 }
 
@@ -198,11 +211,11 @@ def quake_DeallocOp : QuakeOp<"dealloc"> {
 
   let arguments = (ins
     Arg<AnyRefType, "qubit reference (or vector) to deallocate",
-    [MemFree]>:$qreg_or_vec
+    [MemFree]>:$reference
   );
 
   let assemblyFormat = [{
-    $qreg_or_vec `:` qualified(type($qreg_or_vec)) attr-dict
+    $reference `:` qualified(type($reference)) attr-dict
   }];
 }
 
@@ -378,17 +391,49 @@ def quake_ApplyOp : QuakeOp<"apply",
   }];
 
   let arguments = (ins
-    SymbolRefAttr:$callee,
+    OptionalAttr<SymbolRefAttr>:$callee,
+    Variadic<cc_CallableType>:$indirect_callee, // must be 0 or 1 element
     UnitAttr:$is_adj,
     Variadic<AnyQType>:$controls,
     Variadic<AnyType>:$args
   );
   let results = (outs Variadic<AnyType>);
 
-  let assemblyFormat = [{
-    (`<` `adj` $is_adj^ `>`)? $callee (`[` $controls^ `]`)? $args `:`
-      functional-type(operands,results) attr-dict
-  }];
+  let hasCustomAssemblyFormat = 1;
+  let builders = [
+    OpBuilder<(ins "mlir::TypeRange":$retTy,
+                   "mlir::SymbolRefAttr":$callee,
+                   "mlir::UnitAttr":$is_adj,
+                   "mlir::ValueRange":$controls,
+                   "mlir::ValueRange":$args), [{
+      return build($_builder, $_state, retTy, callee, mlir::ValueRange{},
+                   is_adj, controls, args);
+    }]>,
+    OpBuilder<(ins "mlir::TypeRange":$retTy,
+                   "mlir::SymbolRefAttr":$callee,
+                   "bool":$is_adj,
+                   "mlir::ValueRange":$controls,
+                   "mlir::ValueRange":$args), [{
+      return build($_builder, $_state, retTy, callee, mlir::ValueRange{},
+                   is_adj, controls, args);
+    }]>,
+    OpBuilder<(ins "mlir::TypeRange":$retTy,
+                   "mlir::Value":$callable,
+                   "mlir::UnitAttr":$is_adj,
+                   "mlir::ValueRange":$controls,
+                   "mlir::ValueRange":$args), [{
+      return build($_builder, $_state, retTy, mlir::SymbolRefAttr{},
+                   mlir::ValueRange{callable}, is_adj, controls, args);
+    }]>,
+    OpBuilder<(ins "mlir::TypeRange":$retTy,
+                   "mlir::Value":$callable,
+                   "bool":$is_adj,
+                   "mlir::ValueRange":$controls,
+                   "mlir::ValueRange":$args), [{
+      return build($_builder, $_state, retTy, mlir::SymbolRefAttr{},
+                   mlir::ValueRange{callable}, is_adj, controls, args);
+    }]>
+  ];
 
   let extraClassDeclaration = [{
     static constexpr llvm::StringRef getCalleeAttrNameStr() { return "callee"; }
@@ -466,7 +511,7 @@ def quake_WrapOp : QuakeOp<"wrap"> {
   let hasCanonicalizer = 1;
 }
 
-def quake_NullWireOp : QuakeOp<"null_wire", []> {
+def quake_NullWireOp : QuakeOp<"null_wire"> {
   let summary = "Initial state of a wire.";
   let description = [{
     |0> - the initial state of a wire when first constructed. A wire is assumed
@@ -496,8 +541,13 @@ def quake_ResetOp : QuakeOp<"reset", [QuantumGate,
     ```
   }];
 
-  let arguments = (ins AnyQType:$targets);
-  let results = (outs Variadic<WireType>);
+  let arguments = (ins
+    AnyQType:$targets
+  );
+  let results = (outs
+    Variadic<WireType>:$wires
+  );
+
   let assemblyFormat = [{
      $targets `:` functional-type(operands, results) attr-dict
   }];
@@ -511,19 +561,51 @@ def quake_ResetOp : QuakeOp<"reset", [QuantumGate,
 }
 
 //===----------------------------------------------------------------------===//
+// Sink
+//===----------------------------------------------------------------------===//
+
+def quake_SinkOp : QuakeOp<"sink"> {
+  let summary = "Sink for a qubit that is used but not measured.";
+  let description = [{
+    The `quake.sink` operation is used to mark a particular wire in the value
+    semantics as used at the end of a circuit. Typically a wire is measured, but
+    in some cases the wire needs to be marked as if it were measured even though
+    a measurement is not desired.
+
+    This op is similar to the dealloc op in the reference semantics.
+
+    Example:
+    ```mlir
+      quake.sink %0 : !quake.wire
+    ```
+  }];
+
+  let arguments = (ins 
+    Arg<WireType,"wire to sink",[MemRead, MemWrite]>:$target
+  );
+  let assemblyFormat = [{
+     $target `:` qualified(type(operands)) attr-dict
+  }];
+}
+
+//===----------------------------------------------------------------------===//
 // Measurements
 //===----------------------------------------------------------------------===//
 
-class Measurement<string mnemonic> : QuakeOp<mnemonic,
-    [DeclareOpInterfaceMethods<MemoryEffectsOpInterface>, QuantumMeasure]> {
+class Measurement<string mnemonic> : QuakeOp<mnemonic, [MeasurementInterface,
+    QuantumMeasure, DeclareOpInterfaceMethods<MemoryEffectsOpInterface>]> {
   let arguments = (ins
     Variadic<AnyQType>:$targets,
     OptionalAttr<StrAttr>:$registerName
   );
-  let results = (outs AnyTypeOf<[I1, StdvecOf<[I1]>]>:$bits);
+  let results = (outs
+    AnyTypeOf<[I1, StdvecOf<[I1]>]>:$bits,
+    Variadic<WireType>:$wires
+  );
 
   let assemblyFormat = [{
-    $targets `:` functional-type(operands, results) attr-dict
+    $targets (`name` $registerName^)? `:` functional-type(operands, results)
+      attr-dict
   }];
 
   code OpBaseDeclaration = [{
@@ -595,7 +677,9 @@ class QuakeOperator<string mnemonic, list<Trait> traits = []>
     Variadic<AnyQType>:$targets,
     OptionalAttr<DenseBoolArrayAttr>:$negated_qubit_controls
   );
-  let results = (outs Variadic<WireType>);
+  let results = (outs
+    Variadic<WireType>:$wires
+  );
 
   let builders = [
     OpBuilder<(ins "mlir::UnitAttr":$is_adj,

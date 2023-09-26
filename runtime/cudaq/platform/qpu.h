@@ -11,6 +11,7 @@
 #include "QuantumExecutionQueue.h"
 #include "common/Registry.h"
 #include "cudaq/qis/execution_manager.h"
+#include "cudaq/qis/qubit_qis.h"
 #include "cudaq/utils/cudaq_utils.h"
 
 #include <optional>
@@ -39,8 +40,52 @@ protected:
   std::optional<std::vector<std::pair<std::size_t, std::size_t>>> connectivity;
   std::unique_ptr<QuantumExecutionQueue> execution_queue;
 
+  /// @brief The current execution context.
   ExecutionContext *executionContext = nullptr;
-  noise_model *noiseModel = nullptr;
+
+  /// @brief Noise model specified for QPU execution.
+  const noise_model *noiseModel = nullptr;
+
+  /// @brief Check if the current execution context is a `spin_op`
+  /// observation and perform state-preparation circuit measurement
+  /// based on the `spin_op` terms.
+  void handleObservation(ExecutionContext *localContext) {
+    if (localContext && localContext->name == "observe") {
+      double sum = 0.0;
+      if (!localContext->spin.has_value())
+        throw std::runtime_error("[QPU] Observe ExecutionContext specified "
+                                 "without a cudaq::spin_op.");
+
+      std::vector<cudaq::ExecutionResult> results;
+      cudaq::spin_op &H = *localContext->spin.value();
+
+      // If the backend supports the observe task,
+      // let it compute the expectation value instead of
+      // manually looping over terms, applying basis change ops,
+      // and computing <ZZ..ZZZ>
+      if (localContext->canHandleObserve) {
+        auto [exp, data] = cudaq::measure(H);
+        results.emplace_back(data.to_map(), H.to_string(false), exp);
+        localContext->expectationValue = exp;
+        localContext->result = cudaq::sample_result(results);
+      } else {
+
+        // Loop over each term and compute coeff * <term>
+        H.for_each_term([&](cudaq::spin_op &term) {
+          if (term.is_identity())
+            sum += term.get_coefficient().real();
+          else {
+            auto [exp, data] = cudaq::measure(term);
+            results.emplace_back(data.to_map(), term.to_string(false), exp);
+            sum += term.get_coefficient().real() * exp;
+          }
+        });
+
+        localContext->expectationValue = sum;
+        localContext->result = cudaq::sample_result(sum, results);
+      }
+    }
+  }
 
 public:
   /// The constructor, initializes the execution queue
@@ -55,7 +100,7 @@ public:
   /// The destructor
   virtual ~QPU() = default;
 
-  virtual void setNoiseModel(noise_model *model) { noiseModel = model; }
+  virtual void setNoiseModel(const noise_model *model) { noiseModel = model; }
 
   /// Return the number of qubits
   std::size_t getNumQubits() { return numQubits; }
@@ -73,6 +118,9 @@ public:
   virtual void clearShots() {}
 
   virtual bool isRemote() { return false; }
+
+  /// Is this a local emulator of a remote QPU?
+  virtual bool isEmulated() { return false; }
 
   /// Enqueue a quantum task on the asynchronous execution queue.
   virtual void

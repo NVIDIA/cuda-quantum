@@ -82,6 +82,7 @@ module {
 
 // CHECK: include "qelib1.inc";
 
+
 // CHECK: gate maj q0, q1, q2 {
 // CHECK:   cx  q2, q0;
 // CHECK:   cx  q2, q1;

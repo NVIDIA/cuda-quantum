@@ -77,7 +77,7 @@ def test_sample_result_single_register(qubit_count, shots_count):
             assert marginal_counts.most_probable() == "1"
     # `get_sequential_data`
     # In this case, should just contain the single bitstring in a list.
-    assert sample_result.get_sequential_data() == [want_bitstring]
+    assert sample_result.get_sequential_data() == [want_bitstring] * shots_count
 
     # `::items()`
     for key, value in sample_result.items():
@@ -165,7 +165,7 @@ def test_sample_result_single_register_float_param(qubit_count, shots_count):
             assert marginal_counts.most_probable() == "1"
     # `get_sequential_data`
     # In this case, should just contain the single bitstring in a list.
-    assert sample_result.get_sequential_data() == [want_bitstring]
+    assert sample_result.get_sequential_data() == [want_bitstring] * shots_count
 
     # `::items()`
     for key, value in sample_result.items():
@@ -253,7 +253,7 @@ def test_sample_result_single_register_list_param(qubit_count, shots_count):
             assert marginal_counts.most_probable() == "1"
     # `get_sequential_data`
     # In this case, should just contain the single bitstring in a list.
-    assert sample_result.get_sequential_data() == [want_bitstring]
+    assert sample_result.get_sequential_data() == [want_bitstring] * shots_count
 
     # `::items()`
     for key, value in sample_result.items():
@@ -589,6 +589,20 @@ def test_sample_n():
     for i, c in enumerate(allCounts):
         print(runtimeAngles[i, :], c)
         assert len(c) == 2
+
+
+def test_index_out_of_range():
+    """
+    Test the `cudaq.kernel` for out-of-range errors
+    """
+    kernel = cudaq.make_kernel()
+    # Allocate a register of size 3.
+    qreg = kernel.qalloc(3)
+    kernel.x(qreg[99])
+
+    with pytest.raises(Exception) as error:
+        # Index out of range
+        result = cudaq.sample(kernel)
 
 
 # leave for gdb debugging

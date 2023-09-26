@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #ifndef CUDAQ_OPTIMIZER_DIALECT_QUAKE_IR_QUAKE_INTERFACES
 #define CUDAQ_OPTIMIZER_DIALECT_QUAKE_IR_QUAKE_INTERFACES
@@ -49,6 +49,13 @@ def OperatorInterface : OpInterface<"OperatorInterface"> {
       /*methodBody=*/ "return $_op.getControls();"
     >,
     InterfaceMethod<
+      /*desc=*/ "Returns the set of qubits that were operated upon",
+      /*retType=*/ "mlir::ValueRange",
+      /*methodName=*/ "getWires",
+      /*args=*/ (ins),
+      /*methodBody=*/ "return $_op.getWires();"
+    >,
+    InterfaceMethod<
       /*desc=*/ "Returns an array indicating whether controls are negated",
       /*retType=*/ "std::optional<mlir::ArrayRef<bool>>",
       /*methodName=*/ "getNegatedControls",
@@ -78,6 +85,51 @@ def OperatorInterface : OpInterface<"OperatorInterface"> {
       /*args=*/ (ins "mlir::SmallVectorImpl<std::complex<double>>&":$matrix),
       /*methodBody=*/ "return $_op.getOperatorMatrix(matrix);"
     >,
+  ];
+}
+
+def MeasurementInterface : OpInterface<"MeasurementInterface"> {
+  let description = [{
+    A measurement operation takes a qubit (qudit) as input, measures it, and
+    returns a classical value, resp. a bit (bitstring). A measurement "destroys"
+    the value of the qubit in the sense the information that the qubit encoded
+    in its state is not recoverable.
+  }];
+  let cppNamespace = "quake";
+
+  let methods = [
+    InterfaceMethod<
+      /*desc=*/ "Returns the set of qubits to be measured",
+      /*retType=*/ "mlir::Operation::operand_range",
+      /*methodName=*/ "getTargets",
+      /*args=*/ (ins),
+      /*methodBody=*/ "return $_op.getTargets();"
+    >,
+    InterfaceMethod<
+      /*desc=*/ "Returns the set of qubits that were measured",
+      /*retType=*/ "mlir::ValueRange",
+      /*methodName=*/ "getWires",
+      /*args=*/ (ins),
+      /*methodBody=*/ "return $_op.getWires();"
+    >,
+    InterfaceMethod<
+      /*desc=*/ "Returns the register name, if any.",
+      /*retType=*/ "std::optional<std::string>",
+      /*methodName=*/ "getOptionalRegisterName",
+      /*args=*/ (ins),
+      /*methodBody=*/ [{
+        if (auto attr = $_op.getRegisterNameAttr())
+          return {attr.getValue().str()};
+        return {};
+      }]
+    >,
+    InterfaceMethod<
+      /*desc=*/ "Set the registerName attribute",
+      /*retType=*/ "void",
+      /*methodName=*/ "setRegisterName",
+      /*args=*/ (ins "llvm::StringRef":$name),
+      /*methodBody=*/ "$_op.setRegisterName(name);"
+    >
   ];
 }
 

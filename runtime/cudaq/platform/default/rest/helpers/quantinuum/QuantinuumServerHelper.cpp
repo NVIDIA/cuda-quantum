@@ -93,7 +93,8 @@ public:
   bool jobIsDone(ServerMessage &getJobResponse) override;
 
   /// @brief Given a completed job response, map back to the sample_result
-  cudaq::sample_result processResults(ServerMessage &postJobResponse) override;
+  cudaq::sample_result processResults(ServerMessage &postJobResponse,
+                                      std::string &jobID) override;
 };
 
 ServerJobPayload
@@ -155,12 +156,27 @@ bool QuantinuumServerHelper::jobIsDone(ServerMessage &getJobResponse) {
 }
 
 cudaq::sample_result
-QuantinuumServerHelper::processResults(ServerMessage &postJobResponse) {
+QuantinuumServerHelper::processResults(ServerMessage &postJobResponse,
+                                       std::string &jobId) {
   // Results come back as a map of vectors. Each map key corresponds to a qubit
   // and its corresponding vector holds the measurement results in each shot:
   //      { "results" : { "r0" : ["0", "0", ...],
   //                      "r1" : ["1", "0", ...]  } }
   auto results = postJobResponse["results"];
+
+  cudaq::info("Results message: {}", results.dump());
+
+  std::vector<ExecutionResult> srs;
+
+  // Populate individual registers' results into srs
+  for (auto &[registerName, result] : results.items()) {
+    auto bitResults = result.get<std::vector<std::string>>();
+    CountsDictionary thisRegCounts;
+    for (auto &b : bitResults)
+      thisRegCounts[b]++;
+    srs.emplace_back(thisRegCounts, registerName);
+    srs.back().sequentialData = bitResults;
+  }
 
   // For each shot, we concatenate the measurements results of all qubits.
   auto begin = results.begin();
@@ -173,15 +189,12 @@ QuantinuumServerHelper::processResults(ServerMessage &postJobResponse) {
   }
 
   cudaq::CountsDictionary counts;
-  for (auto &b : bitstrings) {
-    if (counts.count(b))
-      counts[b]++;
-    else
-      counts.insert({b, 1});
-  }
+  for (auto &b : bitstrings)
+    counts[b]++;
 
-  std::vector<ExecutionResult> srs;
-  srs.emplace_back(counts);
+  // Store the combined results into the global register
+  srs.emplace_back(counts, GlobalRegisterName);
+  srs.back().sequentialData = bitstrings;
   return sample_result(srs);
 }
 
@@ -254,24 +267,31 @@ void findApiKeyInFile(std::string &apiKey, const std::string &path,
 
   std::vector<std::string> lines;
   lines = cudaq::split(contents, '\n');
-  for (auto l : lines) {
-    if (l.find("key") != std::string::npos) {
-      std::vector<std::string> s = cudaq::split(l, ':');
-      auto key = s[1];
-      cudaq::trim(key);
-      apiKey = key;
-    } else if (l.find("refresh") != std::string::npos) {
-      std::vector<std::string> s = cudaq::split(l, ':');
-      auto key = s[1];
-      cudaq::trim(key);
-      refreshKey = key;
-    } else if (l.find("time") != std::string::npos) {
-      std::vector<std::string> s = cudaq::split(l, ':');
-      auto key = s[1];
-      cudaq::trim(key);
-      timeStr = key;
-    }
+  for (const std::string &l : lines) {
+    std::vector<std::string> keyAndValue = cudaq::split(l, ':');
+    if (keyAndValue.size() != 2)
+      throw std::runtime_error("Ill-formed configuration file (" + path +
+                               "). Key-value pairs must be in `<key> : "
+                               "<value>` format. (One per line)");
+    cudaq::trim(keyAndValue[0]);
+    cudaq::trim(keyAndValue[1]);
+    if (keyAndValue[0] == "key")
+      apiKey = keyAndValue[1];
+    else if (keyAndValue[0] == "refresh")
+      refreshKey = keyAndValue[1];
+    else if (keyAndValue[0] == "time")
+      timeStr = keyAndValue[1];
+    else
+      throw std::runtime_error(
+          "Unknown key in configuration file: " + keyAndValue[0] + ".");
   }
+  if (apiKey.empty())
+    throw std::runtime_error("Empty API key in configuration file (" + path +
+                             ").");
+  if (refreshKey.empty())
+    throw std::runtime_error("Empty refresh key in configuration file (" +
+                             path + ").");
+  // The `time` key is not required.
 }
 
 /// Search for the API key

@@ -59,18 +59,19 @@ RUN wget -qO - https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox | ap
         librdmacm-dev librdmacm1 \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
-# 4 - Install GDRCOPY version 2.1
+# 4 - Install GDRCOPY version 2.3.1
 
+ENV GDRCOPY_VERSION=2.3.1 
 ENV GDRCOPY_INSTALL_PREFIX=/usr/local/gdrcopy
 RUN apt-get update -y && apt-get install -y --no-install-recommends \
         autoconf automake \
         libgcrypt20-dev libnuma-dev libtool \
-    && mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://github.com/NVIDIA/gdrcopy/archive/v2.1.tar.gz \
-    && tar -x -f /var/tmp/v2.1.tar.gz -C /var/tmp -z && cd /var/tmp/gdrcopy-2.1 \
+    && mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://github.com/NVIDIA/gdrcopy/archive/v${GDRCOPY_VERSION}.tar.gz \
+    && tar -x -f /var/tmp/v${GDRCOPY_VERSION}.tar.gz -C /var/tmp -z && cd /var/tmp/gdrcopy-${GDRCOPY_VERSION} \
     && mkdir -p "$GDRCOPY_INSTALL_PREFIX/include" "$GDRCOPY_INSTALL_PREFIX/lib64" \
     && make PREFIX="$GDRCOPY_INSTALL_PREFIX" lib lib_install \
     && echo "$GDRCOPY_INSTALL_PREFIX/lib64" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig \
-    && rm -rf /var/tmp/gdrcopy-2.1 /var/tmp/v2.1.tar.gz \
+    && rm -rf /var/tmp/gdrcopy-${GDRCOPY_VERSION} /var/tmp/v${GDRCOPY_VERSION}.tar.gz \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 ENV CPATH="$GDRCOPY_INSTALL_PREFIX/include:$CPATH"
@@ -148,18 +149,17 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
     && export common_flags=$([ "$TARGETARCH" == "arm64" ] && echo "$COMMON_COMPILER_FLAGS_ARM" || echo "$COMMON_COMPILER_FLAGS") \
     &&  CC=gcc CFLAGS="$common_flags" \
         CXX=g++ CXXFLAGS="$common_flags" \
-        F77=gfortran F90=gfortran FFLAGS="$common_flags" \
         FC=gfortran FCFLAGS="$common_flags" \
         LDFLAGS=-Wl,--as-needed \
         ./configure --prefix="$OPENMPI_INSTALL_PREFIX" \
             --disable-getpwuid --disable-static \
             --disable-debug --disable-mem-debug --disable-mem-profile --disable-memchecker \
             --enable-mca-no-build=btl-uct --enable-mpi1-compatibility --enable-oshmem \
+            --without-verbs \
             --with-cuda="$CUDA_INSTALL_PREFIX" \
             --with-slurm --with-pmi="$PMI_INSTALL_PREFIX" \
             --with-pmix="$PMIX_INSTALL_PREFIX" \
             --with-ucx="$UCX_INSTALL_PREFIX" \
-            --without-verbs \
     && make -j$(nproc) && make -j$(nproc) install \
     && rm -rf /var/tmp/ompi \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 

@@ -12,6 +12,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Plugin.h"
+#include "cudaq/Support/Version.h"
 #include "llvm/Option/Option.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/InitLLVM.h"
@@ -45,11 +46,15 @@ static void registerInlinerExtension(mlir::DialectRegistry &registry) {
 }
 
 /// @brief Add a command line flag for loading plugins
-static cl::list<std::string>
-    PassPlugins("load-pass-plugin",
-                cl::desc("Load passes from plugin library"));
+static cl::list<std::string> CudaQPlugins(
+    "load-cudaq-plugin",
+    cl::desc("Load CUDA Quantum plugin by specifying its library"));
 
 int main(int argc, char **argv) {
+  // Set the bug report message to indicate users should file issues on
+  // nvidia/cuda-quantum
+  llvm::setBugReportMsg(cudaq::bugReportMsg);
+
   mlir::registerAllPasses();
   cudaq::opt::registerOptCodeGenPasses();
   cudaq::opt::registerOptTransformsPasses();
@@ -62,7 +67,7 @@ int main(int argc, char **argv) {
   // if so load it.
   std::vector<std::string> args(&argv[0], &argv[0] + argc);
   for (std::size_t i = 0; i < args.size(); i++) {
-    if (args[i].find("-load-pass-plugin") != std::string::npos) {
+    if (args[i].find("-load-cudaq-plugin") != std::string::npos) {
       auto Plugin = cudaq::Plugin::Load(args[i + 1]);
       if (!Plugin) {
         errs() << "Failed to load passes from '" << args[i + 1]

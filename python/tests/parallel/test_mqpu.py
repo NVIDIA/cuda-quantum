@@ -10,6 +10,11 @@ import cudaq, os, pytest, random, timeit
 from cudaq import spin
 import numpy as np
 
+skipIfNoMQPU = pytest.mark.skipif(
+    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-mqpu')),
+    reason="nvidia-mqpu backend not available"
+)
+
 
 # Helper function for asserting two values are within a
 # certain tolerance. If we make numpy a dependency,
@@ -18,9 +23,8 @@ def assert_close(want, got, tolerance=1.e-5) -> bool:
     return abs(want - got) < tolerance
 
 
+@skipIfNoMQPU
 def testLargeProblem():
-    if not cudaq.has_target('nvidia-mqpu'):
-        return
 
     cudaq.set_target('nvidia-mqpu')
     # This is not large, but we don't want our CI testing
@@ -60,10 +64,8 @@ def testLargeProblem():
                                    high=np.pi,
                                    size=(nQubits *
                                          (3 * nLayers + 2),)).tolist()
-    warmUp = cudaq.make_kernel()
-    q = warmUp.qalloc()
-    warmUp.x(q)
-    warmUp()
+    # JIT and warm up
+    kernel(execParams)
 
     # Serial Execution
     start = timeit.default_timer()
@@ -82,9 +84,8 @@ def testLargeProblem():
     cudaq.reset_target()
 
 
+@skipIfNoMQPU
 def testAccuracy():
-    if not cudaq.has_target('nvidia-mqpu'):
-        return
 
     cudaq.set_target('nvidia-mqpu')
     target = cudaq.get_target()

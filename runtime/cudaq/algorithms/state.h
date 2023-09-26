@@ -21,11 +21,11 @@ class state {
 
 private:
   /// @brief Reference to the simulation data
-  State data;
+  State _data;
 
 public:
   /// @brief The constructor, takes the simulation data
-  state(State d) : data(d) {}
+  state(State d) : _data(d) {}
 
   /// @brief Return the data element at the given indices
   std::complex<double> operator[](std::size_t idx);
@@ -34,6 +34,13 @@ public:
   /// @brief Dump the state to standard out
   void dump();
   void dump(std::ostream &os);
+
+  /// @brief Return the dimensions of the state vector or density
+  /// matrix.
+  std::vector<std::size_t> get_shape();
+
+  /// @brief Return the raw quantum state data.
+  std::complex<double> *get_data();
 
   /// @brief Compute the overlap of this state
   /// with the other one.

@@ -310,6 +310,15 @@ void __quantum__qis__cphase(double d, Qubit *q, Qubit *r) {
   nvqir::getCircuitSimulatorInternal()->r1(d, ctrls, rI);
 }
 
+void __quantum__qis__phased_rx(double theta, double phi, Qubit *q) {
+  auto qI = qubitToSizeT(q);
+  std::complex<double> i(0, 1.);
+  std::vector<std::complex<double>> matrix{
+      std::cos(theta / 2.), -i * std::exp(-i * phi) * std::sin(theta / 2.),
+      -i * std::exp(i * phi) * std::sin(theta / 2.), std::cos(theta / 2.)};
+  nvqir::getCircuitSimulatorInternal()->applyCustomOperation(matrix, {}, {qI});
+}
+
 void __quantum__qis__cnot(Qubit *q, Qubit *r) {
   auto qI = qubitToSizeT(q);
   auto rI = qubitToSizeT(r);
@@ -354,10 +363,6 @@ Result *__quantum__qis__mz__to__register(Qubit *q, const char *name) {
   return b ? ResultOne : ResultZero;
 }
 
-bool __quantum__qis__read_result__body(Result *r) { return false; }
-
-void __quantum__rt__array_start_record_output() {}
-void __quantum__rt__array_end_record_output() {}
 void __quantum__rt__result_record_output(Result *, int8_t *) {}
 
 /// @brief Map an Array pointer containing Paulis to a vector of Paulis.

@@ -11,6 +11,7 @@
 #include "cudaq/spin_op.h"
 
 #include <functional>
+#include <ranges>
 #include <type_traits>
 #include <vector>
 
@@ -48,6 +49,17 @@ template <typename QuantumKernel, typename... Args>
 concept ObserveCallValid =
     ValidArgumentsPassed<QuantumKernel, Args...> &&
     HasVoidReturnType<std::invoke_result_t<QuantumKernel, Args...>>;
+
+/// \brief Observe options to provide to the observe() / async_observe()
+/// functions
+///
+/// \param shots number of shots to run for the given kernel. The default of -1
+/// means direct calculations for simulation backends.
+/// \param noise noise model to use for the observe operation
+struct observe_options {
+  int shots = -1;
+  cudaq::noise_model noise;
+};
 
 namespace details {
 
@@ -203,6 +215,43 @@ observe_result observe(QuantumKernel &&kernel, spin_op H, Args &&...args) {
       .value();
 }
 
+/// @brief Compute the expected value of every `spin_op` provided in
+/// `SpinOpContainer` (a range concept) with respect to `kernel(Args...)`.
+/// Return a `std::vector<observe_result>`.
+template <typename QuantumKernel, typename SpinOpContainer, typename... Args>
+  requires ObserveCallValid<QuantumKernel, Args...> &&
+           std::ranges::range<SpinOpContainer>
+std::vector<observe_result> observe(QuantumKernel &&kernel,
+                                    const SpinOpContainer &termList,
+                                    Args &&...args) {
+  // Run this SHOTS times
+  auto &platform = cudaq::get_platform();
+  auto shots = platform.get_shots().value_or(-1);
+  auto kernelName = cudaq::getKernelName(kernel);
+
+  // Convert all spin_ops to a single summed spin_op
+  cudaq::spin_op op;
+  for (auto &o : termList)
+    op += o;
+  // the constructor for spin_op starts the op as the identity, remove that
+  op -= spin_op();
+
+  // Run the observation
+  auto result = details::runObservation(
+                    [&kernel, ... args = std::forward<Args>(args)]() mutable {
+                      kernel(args...);
+                    },
+                    op, platform, shots, kernelName)
+                    .value();
+
+  // Convert back to a vector of results
+  std::vector<observe_result> results;
+  for (auto &o : termList)
+    results.emplace_back(result.exp_val_z(o), o, result.counts(o));
+
+  return results;
+}
+
 /// @brief Compute the expected value of `H` with respect to `kernel(Args...)`.
 /// Distribute the work amongst available QPUs on the platform in parallel. This
 /// distribution can occur on multi-gpu multi-node platforms, multi-gpu
@@ -229,10 +278,10 @@ observe_result observe(std::size_t shots, QuantumKernel &&kernel, spin_op H,
           "QPU available. no speedup expected.\n");
     // Let's distribute the work among the QPUs on this node
     return details::distributeComputations(
-        [&kernel, ... args = std::forward<Args>(args)](std::size_t i,
-                                                       spin_op &op) mutable {
-          return observe_async(i, std::forward<QuantumKernel>(kernel), op,
-                               std::forward<Args>(args)...);
+        [&kernel, shots, ... args = std::forward<Args>(args)](
+            std::size_t i, spin_op &op) mutable {
+          return observe_async(shots, i, std::forward<QuantumKernel>(kernel),
+                               op, std::forward<Args>(args)...);
         },
         H, nQpus);
   } else if (std::is_same_v<DistributionType, parallel::mpi>) {
@@ -260,10 +309,10 @@ observe_result observe(std::size_t shots, QuantumKernel &&kernel, spin_op H,
 
     // Distribute locally, i.e. to the local nodes QPUs
     auto localRankResult = details::distributeComputations(
-        [&kernel, ... args = std::forward<Args>(args)](std::size_t i,
-                                                       spin_op &op) mutable {
-          return observe_async(i, std::forward<QuantumKernel>(kernel), op,
-                               std::forward<Args>(args)...);
+        [&kernel, shots, ... args = std::forward<Args>(args)](
+            std::size_t i, spin_op &op) mutable {
+          return observe_async(shots, i, std::forward<QuantumKernel>(kernel),
+                               op, std::forward<Args>(args)...);
         },
         localH, nQpus);
 
@@ -299,10 +348,10 @@ observe_result observe(std::size_t shots, QuantumKernel &&kernel, spin_op H,
   // If so, let's distribute the work among the QPUs
   if (auto nQpus = platform.num_qpus(); nQpus > 1)
     return details::distributeComputations(
-        [&kernel, ... args = std::forward<Args>(args)](std::size_t i,
-                                                       spin_op &op) mutable {
-          return observe_async(i, std::forward<QuantumKernel>(kernel), op,
-                               std::forward<Args>(args)...);
+        [&kernel, shots, ... args = std::forward<Args>(args)](
+            std::size_t i, spin_op &op) mutable {
+          return observe_async(shots, i, std::forward<QuantumKernel>(kernel),
+                               op, std::forward<Args>(args)...);
         },
         H, nQpus);
 
@@ -312,6 +361,29 @@ observe_result observe(std::size_t shots, QuantumKernel &&kernel, spin_op H,
              },
              H, platform, shots, kernelName)
       .value();
+}
+
+/// \brief Compute the expected value of `H` with respect to `kernel(Args...)`.
+/// Specify the observation options
+template <typename QuantumKernel, typename... Args>
+  requires ObserveCallValid<QuantumKernel, Args...>
+observe_result observe(const observe_options &options, QuantumKernel &&kernel,
+                       spin_op H, Args &&...args) {
+  auto &platform = cudaq::get_platform();
+  auto kernelName = cudaq::getKernelName(kernel);
+  auto shots = options.shots;
+
+  platform.set_noise(&options.noise);
+
+  auto ret = details::runObservation(
+                 [&kernel, ... args = std::forward<Args>(args)]() mutable {
+                   kernel(args...);
+                 },
+                 H, platform, shots, kernelName)
+                 .value();
+
+  platform.reset_noise();
+  return ret;
 }
 
 /// \brief Asynchronously compute the expected value of `H` with respect to
@@ -428,6 +500,49 @@ std::vector<observe_result> observe(std::size_t shots, QuantumKernel &&kernel,
   // Broadcast the executions and return the results.
   return details::broadcastFunctionOverArguments<observe_result, Args...>(
       numQpus, platform, functor, params);
+}
+
+/// @brief Run the standard observe functionality over a set of N
+/// argument packs. For a kernel with signature `void(Args...)`, this
+/// function takes as input a set of `vector<Arg>...`, a vector for
+/// each argument type in the kernel signature. The vectors must be of
+/// equal length, and the `i-th` element of each vector is used `i-th`
+/// execution of the standard observe function. Results are collected
+/// from the execution of every argument set and returned. This overload
+/// allows the `observe_options` to be specified.
+template <typename QuantumKernel, typename... Args>
+  requires ObserveCallValid<QuantumKernel, Args...>
+std::vector<observe_result> observe(cudaq::observe_options &options,
+                                    QuantumKernel &&kernel, spin_op H,
+                                    ArgumentSet<Args...> &&params) {
+  // Get the platform and query the number of quantum computers
+  auto &platform = cudaq::get_platform();
+  auto numQpus = platform.num_qpus();
+  auto shots = options.shots;
+
+  platform.set_noise(&options.noise);
+
+  // Create the functor that will broadcast the observations across
+  // all requested argument sets provided.
+  details::BroadcastFunctorType<observe_result, Args...> functor =
+      [&](std::size_t qpuId, std::size_t counter, std::size_t N,
+          Args &...singleIterParameters) -> observe_result {
+    auto kernelName = cudaq::getKernelName(kernel);
+    auto ret =
+        details::runObservation(
+            [&kernel, ... args = std::forward<decltype(singleIterParameters)>(
+                          singleIterParameters)]() mutable { kernel(args...); },
+            H, platform, shots, kernelName, qpuId, nullptr, counter, N)
+            .value();
+    return ret;
+  };
+
+  // Broadcast the executions and return the results.
+  auto ret = details::broadcastFunctionOverArguments<observe_result, Args...>(
+      numQpus, platform, functor, params);
+
+  platform.reset_noise();
+  return ret;
 }
 
 /// @brief Run the standard observe functionality over a set of `N`

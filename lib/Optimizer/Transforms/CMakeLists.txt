@@ -30,6 +30,7 @@ add_cudaq_library(OptTransforms
   LowerUnwind.cpp
   MemToReg.cpp
   MultiControlDecomposition.cpp
+  PruneCtrlRelations.cpp
   QuakeAddMetadata.cpp
   QuakeObserveAnsatz.cpp
   QuakeSynthesizer.cpp

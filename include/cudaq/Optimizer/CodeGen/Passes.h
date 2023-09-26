@@ -8,9 +8,10 @@
 
 #pragma once
 
-// The OptCodeGen library includes passes that lower the MLIR module for some
-// particular quantum target representation. There is a bevy of such targets
-// that provide targets on which the quantum code can be run.
+/// \file
+/// The OptCodeGen library includes passes that lower the MLIR module for some
+/// particular quantum target representation. There is a bevy of such targets
+/// that provide platforms on which the quantum code can be run.
 
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassRegistry.h"
@@ -36,6 +37,9 @@ std::unique_ptr<mlir::Pass> createQIRToBaseProfilePass();
 std::unique_ptr<mlir::Pass> verifyBaseProfilePass();
 std::unique_ptr<mlir::Pass> createBaseProfilePreparationPass();
 std::unique_ptr<mlir::Pass> createConvertToQIRFuncPass();
+
+// Functions to support removing measurements from QIR
+std::unique_ptr<mlir::Pass> createRemoveMeasurementsPass();
 
 /// Register target pipelines.
 void registerTargetPipelines();
