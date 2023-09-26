@@ -170,7 +170,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
-      # We can delete staging branch now after the assets have been created.
+      # We can delete staging branch now after the expected draft releases have been created.
       - name: Clean up
         run: |
           # Clean up the staging branch that was used to trigger the GitLab pipeline.
