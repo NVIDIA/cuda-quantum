@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #ifndef CUDAQ_OPTIMIZER_DIALECT_QUAKE_IR_QUAKE
 #define CUDAQ_OPTIMIZER_DIALECT_QUAKE_IR_QUAKE

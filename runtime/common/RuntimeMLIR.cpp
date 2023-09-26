@@ -258,6 +258,69 @@ mlir::LogicalResult verifyOutputRecordingFunctions(llvm::Module *llvmModule) {
   return success();
 }
 
+// Convert a `nullptr` or `inttoptr (i64 1 to Ptr)` into an integer
+std::size_t getArgAsInteger(llvm::Value *arg) {
+  std::size_t ret = 0; // handles the nullptr case
+  // Now handle the `inttoptr (i64 1 to Ptr)` case
+  auto constValue = dyn_cast<llvm::Constant>(arg);
+  if (auto constExpr = dyn_cast<llvm::ConstantExpr>(constValue))
+    if (constExpr->getOpcode() == llvm::Instruction::IntToPtr)
+      if (auto constInt = dyn_cast<llvm::ConstantInt>(constExpr->getOperand(0)))
+        ret = constInt->getZExtValue();
+  return ret;
+}
+
+#define CHECK_RANGE(_check_var, _limit_var)                                    \
+  do {                                                                         \
+    if (_check_var >= _limit_var) {                                            \
+      llvm::errs() << #_check_var << " [" << _check_var                        \
+                   << "] is >= " << #_limit_var << " [" << _limit_var          \
+                   << "]\n";                                                   \
+      return failure();                                                        \
+    }                                                                          \
+  } while (0)
+
+// Perform range checking on qubit and result values. This currently only checks
+// QIRMeasureBody and QIRBaseProfileRecordOutput. Checking more than that would
+// require comprehending the full list of possible QIS instructions, which is
+// not currently feasible.
+mlir::LogicalResult verifyQubitAndResultRanges(llvm::Module *llvmModule) {
+  std::size_t required_num_qubits = 0;
+  std::size_t required_num_results = 0;
+  for (llvm::Function &func : *llvmModule) {
+    if (func.hasFnAttribute("entry_point")) {
+      required_num_qubits = func.getFnAttributeAsParsedInteger(
+          "requiredQubits", required_num_qubits);
+      required_num_results = func.getFnAttributeAsParsedInteger(
+          "requiredResults", required_num_results);
+      break; // no need to keep looking
+    }
+  }
+  for (llvm::Function &func : *llvmModule) {
+    for (llvm::BasicBlock &block : func) {
+      for (llvm::Instruction &inst : block) {
+        if (auto callInst = llvm::dyn_cast_or_null<llvm::CallBase>(&inst)) {
+          if (auto func = callInst->getCalledFunction()) {
+            // All results must be in range for output recording functions
+            if (func->getName() == cudaq::opt::QIRBaseProfileRecordOutput) {
+              auto result = getArgAsInteger(callInst->getArgOperand(0));
+              CHECK_RANGE(result, required_num_results);
+            }
+            // All qubits and results must be in range for measurements
+            else if (func->getName() == cudaq::opt::QIRMeasureBody) {
+              auto qubit = getArgAsInteger(callInst->getArgOperand(0));
+              auto result = getArgAsInteger(callInst->getArgOperand(1));
+              CHECK_RANGE(qubit, required_num_qubits);
+              CHECK_RANGE(result, required_num_results);
+            }
+          }
+        }
+      }
+    }
+  }
+  return success();
+}
+
 // Verify that only the allowed LLVM instructions are present
 mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule) {
   for (llvm::Function &func : *llvmModule)
@@ -347,6 +410,9 @@ void registerToQIRTranslation() {
           return failure();
 
         if (failed(verifyMeasurementOrdering(llvmModule.get())))
+          return failure();
+
+        if (failed(verifyQubitAndResultRanges(llvmModule.get())))
           return failure();
 
         if (failed(verifyLLVMInstructions(llvmModule.get())))
