@@ -68,7 +68,7 @@ public:
     return mlir::ArrayRef<Node>(begin, end);
   }
 
-  void dump(llvm::raw_ostream &os = llvm::errs()) const {
+  LLVM_DUMP_METHOD void dump(llvm::raw_ostream &os = llvm::errs()) const {
     if (getNumNodes() == 0) {
       os << "Empty graph.\n";
       return;
@@ -87,6 +87,22 @@ public:
     os << lastID << " --> {";
     for (Offset j = nodeOffsets[lastID], end = edges.size(); j < end; ++j)
       os << edges[j] << (j == end - 1 ? "" : ", ");
+    os << "}\n";
+  }
+
+  /// Dumps to `.gv` (aka `.dot`) format for rendering in external Graphviz
+  /// viewer, e.g. https://dreampuf.github.io/GraphvizOnline/
+  LLVM_DUMP_METHOD void
+  dumpToGV(const std::string &graphName = "cudaqMappingGraph",
+           llvm::raw_ostream &os = llvm::errs()) const {
+    os << "digraph " << graphName << " {\n";
+    std::size_t srcNode = 0;
+    for (std::size_t edge = 0; edge < getNumEdges(); edge++) {
+      // Check to see if we have moved to the next source node
+      while (srcNode + 1 < getNumNodes() && nodeOffsets[srcNode + 1] == edge)
+        srcNode++;
+      os << "  q" << srcNode << " -> q" << edges[edge] << "\n";
+    }
     os << "}\n";
   }
 
