@@ -17,7 +17,6 @@
 using namespace mlir;
 
 static bool isArithmeticType(Type t) { return isa<IntegerType, FloatType>(t); }
-static bool isStringType(Type t) { return isa<cudaq::cc::StringType>(t); }
 
 static bool isQuantumType(Type t) {
   return isa<quake::VeqType, quake::RefType>(t);
@@ -311,7 +310,7 @@ bool QuakeBridgeVisitor::doSyntaxChecks(const clang::FunctionDecl *x) {
   for (auto [t, p] : llvm::zip(funcTy.getInputs(), x->parameters())) {
     // Structs, lambdas, functions are valid callable objects. Also pure
     // device kernels may take veq and/or ref arguments.
-    if (isArithmeticType(t) || isArithmeticSequenceType(t) || isStringType(t) ||
+    if (isArithmeticType(t) || isArithmeticSequenceType(t) ||
         isQuantumType(t) || isKernelCallable(t) || isFunctionCallable(t) ||
         isCharPointerType(t) || isReferenceToCallableRecord(t, p))
       continue;

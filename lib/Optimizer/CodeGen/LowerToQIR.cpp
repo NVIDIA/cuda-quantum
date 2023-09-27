@@ -1553,9 +1553,6 @@ public:
             members.push_back(typeConverter.convertType(t));
           return LLVM::LLVMStructType::getLiteral(type.getContext(), members);
         });
-    typeConverter.addConversion([&](cudaq::cc::StringType type) {
-      return cudaq::opt::factory::getPointerType(type.getContext());
-    });
   }
 };
 
