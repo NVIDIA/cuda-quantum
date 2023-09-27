@@ -66,7 +66,45 @@ public:
   /// This must be provided by subclasses.
   virtual void applyExpPauli(double theta,
                              const std::vector<std::size_t> &qubitIds,
-                             const cudaq::spin_op &op) = 0;
+                             const cudaq::spin_op &op) {
+    cudaq::info(" [decomposing] exp_pauli({}, {})", theta, op.to_string(false));
+    std::vector<std::size_t> qubitSupport;
+    std::vector<std::function<void(bool)>> basisChange;
+    op.for_each_pauli([&](cudaq::pauli type, std::size_t qubitIdx) {
+      if (type != cudaq::pauli::I)
+        qubitSupport.push_back(qubitIds[qubitIdx]);
+
+      if (type == cudaq::pauli::Y)
+        basisChange.emplace_back([&, qubitIdx](bool reverse) {
+          rx(!reverse ? M_PI_2 : -M_PI_2, qubitIds[qubitIdx]);
+        });
+      else if (type == cudaq::pauli::X)
+        basisChange.emplace_back(
+            [&, qubitIdx](bool) { h(qubitIds[qubitIdx]); });
+    });
+
+    if (!basisChange.empty())
+      for (auto &basis : basisChange)
+        basis(false);
+
+    std::vector<std::pair<std::size_t, std::size_t>> toReverse;
+    for (std::size_t i = 0; i < qubitSupport.size() - 1; i++) {
+      x({qubitSupport[i]}, qubitSupport[i + 1]);
+      toReverse.emplace_back(qubitSupport[i], qubitSupport[i + 1]);
+    }
+
+    rz(theta, qubitSupport.back());
+
+    std::reverse(toReverse.begin(), toReverse.end());
+    for (auto &[i, j] : toReverse)
+      x({i}, j);
+
+    if (!basisChange.empty()) {
+      std::reverse(basisChange.begin(), basisChange.end());
+      for (auto &basis : basisChange)
+        basis(true);
+    }
+  }
 
   /// @brief Compute the expected value of the given spin op
   /// with respect to the current state, <psi | H | psi>.
@@ -626,47 +664,6 @@ public:
   CircuitSimulatorBase() = default;
   /// @brief The destructor
   virtual ~CircuitSimulatorBase() = default;
-
-  void applyExpPauli(double theta, const std::vector<std::size_t> &qubitIds,
-                     const cudaq::spin_op &op) override {
-    cudaq::info(" [decomposing] exp_pauli({}, {})", theta, op.to_string(false));
-    std::vector<std::size_t> qubitSupport;
-    std::vector<std::function<void(bool)>> basisChange;
-    op.for_each_pauli([&](cudaq::pauli type, std::size_t qubitIdx) {
-      if (type != cudaq::pauli::I)
-        qubitSupport.push_back(qubitIds[qubitIdx]);
-
-      if (type == cudaq::pauli::Y)
-        basisChange.emplace_back([&, qubitIdx](bool reverse) {
-          rx(!reverse ? M_PI_2 : -M_PI_2, qubitIds[qubitIdx]);
-        });
-      else if (type == cudaq::pauli::X)
-        basisChange.emplace_back(
-            [&, qubitIdx](bool) { h(qubitIds[qubitIdx]); });
-    });
-
-    if (!basisChange.empty())
-      for (auto &basis : basisChange)
-        basis(false);
-
-    std::vector<std::pair<std::size_t, std::size_t>> toReverse;
-    for (std::size_t i = 0; i < qubitSupport.size() - 1; i++) {
-      x({qubitSupport[i]}, qubitSupport[i + 1]);
-      toReverse.emplace_back(qubitSupport[i], qubitSupport[i + 1]);
-    }
-
-    rz(theta, qubitSupport.back());
-
-    std::reverse(toReverse.begin(), toReverse.end());
-    for (auto &[i, j] : toReverse)
-      x({i}, j);
-
-    if (!basisChange.empty()) {
-      std::reverse(basisChange.begin(), basisChange.end());
-      for (auto &basis : basisChange)
-        basis(true);
-    }
-  }
 
   /// @brief Set the current noise model to consider when
   /// simulating the state. This should be overridden by
