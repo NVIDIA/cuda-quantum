@@ -11,7 +11,7 @@ The latest version of CUDA Quantum is on the main branch of our `GitHub reposito
 
 **0.4.1**
 
-The 0.4.1 release adds support for ARM processors in the form of multi-platform Docker images and `aarch64` Python wheels. Additionally, all GPU-based backends are now included in the python wheels as well as in the Docker image.
+The 0.4.1 release adds support for ARM processors in the form of multi-platform Docker images and `aarch64` Python wheels. Additionally, all GPU-based backends are now included in the Python wheels as well as in the Docker image.
 
 - `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum>`__
 - `Python wheel <https://pypi.org/project/cuda-quantum/>`__
