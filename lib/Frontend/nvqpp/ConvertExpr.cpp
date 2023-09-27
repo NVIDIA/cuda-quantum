@@ -1114,10 +1114,21 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           auto vecPtr = builder.create<cc::StdvecDataOp>(loc, elePtrTy, svec);
           auto eleAddr = builder.create<cc::ComputePtrOp>(
               loc, elePtrTy, vecPtr, ValueRange{zeroIndex});
-          return builder.create<cc::LoadOp>(loc, eleAddr);
+          return pushValue(builder.create<cc::LoadOp>(loc, eleAddr));
         }
-    // TODO: Do same as above but with a `negativeOneIndex`
-    // if (funcName.equals("back"))
+    if (funcName.equals("back"))
+      if (auto memberCall = dyn_cast<clang::CXXMemberCallExpr>(x))
+        if (memberCall->getImplicitObjectArgument()) {
+          [[maybe_unused]] auto calleeTy = popType();
+          assert(isa<FunctionType>(calleeTy));
+          auto negativeOneIndex = getConstantInt(builder, loc, -1, 64);
+          auto eleTy = cast<cc::StdvecType>(svec.getType()).getElementType();
+          auto elePtrTy = cc::PointerType::get(eleTy);
+          auto vecPtr = builder.create<cc::StdvecDataOp>(loc, elePtrTy, svec);
+          auto eleAddr = builder.create<cc::ComputePtrOp>(
+              loc, elePtrTy, vecPtr, ValueRange{negativeOneIndex});
+          return pushValue(builder.create<cc::LoadOp>(loc, eleAddr));
+        }
 
     TODO_loc(loc, "unhandled std::vector member function, " + funcName);
   }
