@@ -112,6 +112,11 @@ protected:
     std::transform(controls.begin(), controls.end(), std::back_inserter(localC),
                    [](auto &&el) { return el.id; });
 
+    if (gateName == "exp_pauli") {
+      simulator()->applyExpPauli(parameters[0], localT, op);
+      return;
+    }
+
     // Apply the gate
     llvm::StringSwitch<std::function<void()>>(gateName)
         .Case("h", [&]() { simulator()->h(localC, localT[0]); })

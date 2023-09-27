@@ -23,6 +23,20 @@ class CCType<string name, string typeMnemonic, list<Trait> traits = [],
   let mnemonic = typeMnemonic;
 }
 
+
+//===----------------------------------------------------------------------===//
+// StringType
+//===----------------------------------------------------------------------===//
+
+def cc_StringType : CCType<"String", "string"> {
+  let summary = "A C++ string type.";
+  let description = [{
+    The bridge can use this type to represent std::string values. This type 
+    is basically a placeholder type that we can usher down to the LLVM Dialect 
+    level.
+  }];
+}
+
 //===----------------------------------------------------------------------===//
 // PointerType
 //===----------------------------------------------------------------------===//

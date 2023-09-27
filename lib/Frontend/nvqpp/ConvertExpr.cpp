@@ -968,7 +968,8 @@ bool QuakeBridgeVisitor::VisitMaterializeTemporaryExpr(
   // The following cases are λ expressions, quantum data, or a std::vector view.
   // In those cases, there is nothing to materialize, so we can just pass the
   // Value on the top of the stack.
-  if (isa<cc::CallableType, quake::VeqType, quake::RefType, cc::StdvecType>(ty))
+  if (isa<cc::CallableType, quake::VeqType, quake::RefType, cc::StdvecType,
+          cc::StringType>(ty))
     return true;
 
   // If not one of the above special cases, then materialize the value to a
@@ -2169,6 +2170,12 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
                            "(cannot resize the vector).");
       }
     }
+
+    // Is this a std::string constructed from a StringLiteral? If yes
+    // return true, we have what we need.
+    if (!ctor->isDefaultConstructor() && ctorName == "basic_string")
+      if (isa<cc::StringType>(peekValue().getType()))
+        return true;
 
     if (ctor->isCopyConstructor())
       if (auto *parent = ctor->getParent())
