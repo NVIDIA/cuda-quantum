@@ -363,6 +363,32 @@ public:
     }
   }
 
+  /// @brief Override base class functionality for a general Pauli
+  /// rotation to delegate to the performant custatevecApplyPauliRotation.
+  void applyExpPauli(double theta, const std::vector<std::size_t> &qubits,
+                     const cudaq::spin_op &op) override {
+    flushGateQueue();
+    std::vector<int> controls, targets;
+    std::vector<custatevecPauli_t> paulis;
+    op.for_each_pauli([&](cudaq::pauli p, std::size_t i) {
+      if (p == cudaq::pauli::I)
+        paulis.push_back(custatevecPauli_t::CUSTATEVEC_PAULI_I);
+      else if (p == cudaq::pauli::X)
+        paulis.push_back(custatevecPauli_t::CUSTATEVEC_PAULI_X);
+      else if (p == cudaq::pauli::Y)
+        paulis.push_back(custatevecPauli_t::CUSTATEVEC_PAULI_Y);
+      else
+        paulis.push_back(custatevecPauli_t::CUSTATEVEC_PAULI_Z);
+
+      targets.push_back(qubits[i]);
+    });
+
+    custatevecApplyPauliRotation(
+        handle, deviceStateVector, cuStateVecCudaDataType, nQubitsAllocated,
+        theta, paulis.data(), targets.data(), targets.size(),
+        controls.data(), nullptr, controls.size());
+  }
+
   /// @brief Compute the operator expectation value, with respect to
   /// the current state vector, directly on GPU with the
   /// given the operator matrix and target qubit indices.

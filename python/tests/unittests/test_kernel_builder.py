@@ -281,3 +281,25 @@ def test_from_state():
     ss = cudaq.get_state(kernel)
     for i in range(4):
         assert np.isclose(ss[i], state[i], 1e-3)
+
+def test_exp_pauli():
+    cudaq.reset_target()
+    kernel, theta = cudaq.make_kernel(float)
+    qubits = kernel.qalloc(4)
+    kernel.x(qubits[0])
+    kernel.x(qubits[1])
+    kernel.exp_pauli(theta, qubits, "XXXY")
+    print(kernel)
+    h2_data = [
+      3, 1, 1, 3, 0.0454063,  0,  2,  0, 0, 0, 0.17028,    0,
+      0, 0, 2, 0, -0.220041,  -0, 1,  3, 3, 1, 0.0454063,  0,
+      0, 0, 0, 0, -0.106477,  0,  0,  2, 0, 0, 0.17028,    0,
+      0, 0, 0, 2, -0.220041,  -0, 3,  3, 1, 1, -0.0454063, -0,
+      2, 2, 0, 0, 0.168336,   0,  2,  0, 2, 0, 0.1202,     0,
+      0, 2, 0, 2, 0.1202,     0,  2,  0, 0, 2, 0.165607,   0,
+      0, 2, 2, 0, 0.165607,   0,  0,  0, 2, 2, 0.174073,   0,
+      1, 1, 3, 3, -0.0454063, -0, 15
+    ]
+    h = cudaq.SpinOperator(h2_data, 4)
+    want_exp = cudaq.observe(kernel, h, -.22).expectation_z()
+    assert np.isclose(want_exp, -1.13, atol=1e-2)

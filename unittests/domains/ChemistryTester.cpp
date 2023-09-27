@@ -53,6 +53,29 @@ CUDAQ_TEST(H2MoleculeTester, checkHamiltonian) {
   }
 }
 
+CUDAQ_TEST(H2MoleculeTester, checkExpPauli) {
+  auto kernel = [](double theta) __qpu__ {
+    cudaq::qreg q(4);
+    x(q[0]);
+    x(q[1]);
+    exp_pauli(theta, q, "XXXY");
+  };
+
+  cudaq::molecular_geometry geometry{{"H", {0., 0., 0.}},
+                                     {"H", {0., 0., .7474}}};
+  auto molecule = cudaq::create_molecule(geometry, "sto-3g", 1, 0);
+  cudaq::observe(kernel, molecule.hamiltonian, 1.1);
+
+  cudaq::optimizers::cobyla optimizer;
+  auto [e, opt] = optimizer.optimize(1, [&](std::vector<double> x) -> double {
+    double e = cudaq::observe(kernel, molecule.hamiltonian, x[0]);
+    printf("E = %lf\n", e);
+    return e;
+  });
+
+  EXPECT_NEAR(-1.137, e, 1e-3);
+}
+
 CUDAQ_TEST(H2MoleculeTester, checkUCCSD) {
   {
     cudaq::molecular_geometry geometry{{"H", {0., 0., 0.}},

@@ -1369,4 +1369,17 @@ def cc_CallableClosureOp : CCOp<"callable_closure", [Pure]> {
   }];
 }
 
+def cc_CreateStringLiteralOp : CCOp<"string_literal"> {
+  let summary = "Create a constant string literal.";
+  let description = [{
+    This operation creates CC StringType values from constant MLIR 
+    String Attributes. 
+  }];
+
+  let arguments = (ins StrAttr:$stringLiteral);
+  let results = (outs cc_StringType:$result);
+  let assemblyFormat = [{
+     `{` $stringLiteral `}` `:` functional-type(operands, results) attr-dict
+  }];
+}
 #endif // CUDAQ_OPTIMIZER_DIALECT_CC_OPS

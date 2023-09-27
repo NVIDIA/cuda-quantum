@@ -786,6 +786,23 @@ class TwoTargetOp<string mnemonic, list<Trait> traits = []> :
 // Quantum operators (gates)
 //===----------------------------------------------------------------------===//
 
+def ExpPauliOp : QuakeOp<"exp_pauli", []> {
+  let summary = "General Pauli tensor product rotation";
+  let description = [{
+    This operation affects a general Pauli tensor product rotation on 
+    the input qubits. The number of Pauli characters in the input Pauli word 
+    string must equal the number of qubits in the veq. Mathematically, this operation 
+    applies exp(i theta P) where P is a general Pauli tensor product. 
+  }];
+  
+  let arguments = (ins AnyFloat:$parameter, VeqType:$qubits, cc_StringType:$pauli);
+  let results = (outs );
+
+  let assemblyFormat = [{
+    `(` $parameter `)` $qubits `,` $pauli `:` functional-type(operands, results) attr-dict
+  }];
+}
+
 def HOp : OneTargetOp<"h", [Hermitian]> {
   let summary = "Hadamard operation";
   let description = [{
@@ -815,7 +832,7 @@ def PhasedRxOp : QuakeOperator<"phased_rx",
     Matrix representation:
     ```
     PhasedRx(θ,φ) = |        cos(θ/2)        -iexp(-iφ) * sin(θ/2) |
-                    | -iexp(iφ)) * sin(θ/2)         cos(θ/2)       |
+                    |  -iexp(iφ) * sin(θ/2)         cos(θ/2)       |
     ```
 
     Circuit symbol:

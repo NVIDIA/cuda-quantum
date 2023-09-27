@@ -163,6 +163,38 @@ bool isArgStdVec(std::vector<QuakeValue> &args, std::size_t idx) {
   return args[idx].isStdVec();
 }
 
+void exp_pauli(ImplicitLocOpBuilder &builder, const QuakeValue &theta,
+               const std::vector<QuakeValue> &qubits,
+               const std::string &pauliWord) {
+  Value qubitsVal;
+  if (qubits.size() == 1)
+    qubitsVal = qubits.front().getValue();
+  else {
+    // we have a vector of quake value qubits, need to concat them
+    SmallVector<Value> values;
+    for (auto &v : qubits)
+      values.push_back(v.getValue());
+
+    qubitsVal = builder.create<quake::ConcatOp>(
+        quake::VeqType::get(builder.getContext(), qubits.size()), values);
+  }
+
+  auto thetaVal = theta.getValue();
+  if (!isa<quake::VeqType>(qubitsVal.getType()))
+    throw std::runtime_error(
+        "exp_pauli must take a QuakeValue of veq type as second argument.");
+  if (!thetaVal.getType().isIntOrFloat())
+    throw std::runtime_error("exp_pauli must take a QuakeValue of float/int "
+                             "type as first argument.");
+  cudaq::info("kernel_builder apply exp_pauli {}", pauliWord);
+
+  Value stringLiteral = builder.create<cc::CreateStringLiteralOp>(
+      builder.getStringAttr(pauliWord));
+  SmallVector<Value> args{thetaVal, qubitsVal, stringLiteral};
+  builder.create<quake::ExpPauliOp>(TypeRange{}, args);
+  return;
+}
+
 /// @brief Search the given `FuncOp` for all `CallOps` recursively.
 /// If found, see if the called function is in the current `ModuleOp`
 /// for this `kernel_builder`, if so do nothing. If it is not found,

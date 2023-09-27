@@ -191,6 +191,10 @@ CUDAQ_DETAILS_MEASURE_DECLARATION(mx)
 CUDAQ_DETAILS_MEASURE_DECLARATION(my)
 CUDAQ_DETAILS_MEASURE_DECLARATION(mz)
 
+void exp_pauli(ImplicitLocOpBuilder &builder, const QuakeValue &theta,
+               const std::vector<QuakeValue> &qubits,
+               const std::string &pauliWord);
+
 void swap(ImplicitLocOpBuilder &builder, const std::vector<QuakeValue> &ctrls,
           const std::vector<QuakeValue> &targets, bool adjoint = false);
 
@@ -231,17 +235,17 @@ void control(ImplicitLocOpBuilder &builder, std::string &name,
 void adjoint(ImplicitLocOpBuilder &builder, std::string &name,
              std::string &quakeCode, std::vector<QuakeValue> &values);
 
-/// @brief Add a for loop that starts from the given `start` integer index, ends
-/// at the given `end` integer index, and applies the given `body` as a callable
-/// function. This callable function must take as input an index variable that
-/// can be used within the body.
+/// @brief Add a for loop that starts from the given `start` integer index,
+/// ends at the given `end` integer index, and applies the given `body` as a
+/// callable function. This callable function must take as input an index
+/// variable that can be used within the body.
 void forLoop(ImplicitLocOpBuilder &builder, std::size_t start, std::size_t end,
              std::function<void(QuakeValue &)> &body);
 
-/// @brief Add a for loop that starts from the given `start` integer index, ends
-/// at the given `end` index, and applies the given `body` as a
-/// callable function. This callable function must take as input an index
-/// variable that can be used within the body.
+/// @brief Add a for loop that starts from the given `start` integer index,
+/// ends at the given `end` index, and applies the given `body` as a callable
+/// function. This callable function must take as input an index variable that
+/// can be used within the body.
 void forLoop(ImplicitLocOpBuilder &builder, std::size_t start, QuakeValue &end,
              std::function<void(QuakeValue &)> &body);
 
@@ -539,6 +543,32 @@ public:
   /// measure result, if true apply the `thenFunctor`.
   void c_if(QuakeValue result, std::function<void()> &&thenFunctor) {
     details::c_if(*opBuilder, result, thenFunctor);
+  }
+
+  /// @brief Apply a general pauli rotation, exp(-i theta P),
+  /// takes a QuakeValue representing a register of qubits.
+  template <QuakeValueOrNumericType ParamT>
+  void exp_pauli(const ParamT &theta, const QuakeValue &qubits,
+                 const std::string &pauliWord) {
+    std::vector<QuakeValue> qubitValues{qubits};
+    if constexpr (std::is_floating_point_v<ParamT>)
+      details::exp_pauli(*opBuilder, QuakeValue(*opBuilder, theta), qubitValues,
+                         pauliWord);
+    else
+      details::exp_pauli(*opBuilder, theta, qubitValues, pauliWord);
+  }
+
+  /// @brief Apply a general pauli rotation, exp(-i theta P),
+  /// takes a variadic list of QuakeValues representing a individual qubits.
+  template <QuakeValueOrNumericType ParamT, typename... QubitArgs>
+  void exp_pauli(const ParamT &theta, const std::string &pauliWord,
+                 QubitArgs &&...qubits) {
+    std::vector<QuakeValue> qubitValues{qubits...};
+    if constexpr (std::is_floating_point_v<ParamT>)
+      details::exp_pauli(*opBuilder, QuakeValue(*opBuilder, theta), qubitValues,
+                         pauliWord);
+    else
+      details::exp_pauli(*opBuilder, theta, qubitValues, pauliWord);
   }
 
   /// @brief Apply the given `otherKernel` with the provided `QuakeValue`

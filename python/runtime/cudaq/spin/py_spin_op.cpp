@@ -79,6 +79,8 @@ void bindSpinOperator(py::module &mod) {
       .def(py::init(
                [](py::object o) { return fromOpenFermionQubitOperator(o); }),
            "Create from OpenFermion QubitOperator.")
+      .def(py::init<std::vector<double> &, std::size_t>(), py::arg("data"),
+           py::arg("num_qubits"), "")
 
       /// @brief Bind the member functions.
       .def("get_raw_data", &cudaq::spin_op::get_raw_data,

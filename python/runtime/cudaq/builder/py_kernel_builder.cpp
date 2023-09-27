@@ -893,7 +893,17 @@ Args:
       .def("to_quake", &kernel_builder<>::to_quake, "See :func:`__str__`.")
       .def("__str__", &kernel_builder<>::to_quake,
            "Return the :class:`Kernel` as a string in its MLIR representation "
-           "using the Quake dialect.\n");
+           "using the Quake dialect.\n")
+      .def("exp_pauli",
+           [](kernel_builder<> &self, double theta, const QuakeValue &qubits,
+              const std::string &pauliWord) {
+             self.exp_pauli(theta, qubits, pauliWord);
+           })
+      .def("exp_pauli",
+           [](kernel_builder<> &self, const QuakeValue &theta,
+              const QuakeValue &qubits, const std::string &pauliWord) {
+             self.exp_pauli(theta, qubits, pauliWord);
+           });
 }
 
 void bindBuilder(py::module &mod) {

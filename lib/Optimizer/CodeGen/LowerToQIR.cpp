@@ -348,6 +348,52 @@ public:
   }
 };
 
+/// Lower exp_pauli(f64, veq, cc.string) to __quantum__qis__exp_pauli
+class ExpPauliRewrite : public ConvertOpToLLVMPattern<quake::ExpPauliOp> {
+public:
+  using Base = ConvertOpToLLVMPattern<quake::ExpPauliOp>;
+  using Base::Base;
+
+  LogicalResult
+  matchAndRewrite(quake::ExpPauliOp instOp, typename Base::OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = instOp->getLoc();
+    auto parentModule = instOp->template getParentOfType<ModuleOp>();
+    auto context = parentModule->getContext();
+    std::string qirQisPrefix(cudaq::opt::QIRQISPrefix);
+    auto qirFunctionName = qirQisPrefix + "exp_pauli";
+    FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
+        qirFunctionName, /*return type=*/LLVM::LLVMVoidType::get(context),
+        {rewriter.getF64Type(), cudaq::opt::getArrayType(context),
+         cudaq::opt::factory::getPointerType(context)},
+        parentModule);
+
+    // The Pauli string can come from a BlockArgument, in which case it
+    // is a cc.string, or it can come to us here as the return type of
+    // the string_literal op (which ends up being a AddressOf to a global
+    // string, bitcasted to a i8*). If it is a block argument, then we need to
+    // treat that cc.string type as a pointer to a i8* (which the std::string
+    // ultimately comes to us as [a ptr arg, which contains a ptr to the data])
+    SmallVector<Value> operands = adaptor.getOperands();
+    if (!operands.back().getDefiningOp<LLVM::BitcastOp>()) {
+      Value casted = rewriter.create<LLVM::BitcastOp>(
+          loc,
+          cudaq::opt::factory::getPointerType(
+              cudaq::opt::factory::getPointerType(context)),
+          adaptor.getOperands().back());
+
+      casted = rewriter.create<LLVM::LoadOp>(
+          loc, cudaq::opt::factory::getPointerType(context), casted);
+      operands = adaptor.getOperands().drop_back();
+      operands.push_back(casted);
+    }
+
+    rewriter.replaceOpWithNewOp<LLVM::CallOp>(instOp, TypeRange{}, symbolRef,
+                                              operands);
+    return success();
+  }
+};
+
 /// Lower single target Quantum ops with no parameter to QIR:
 /// h, x, y, z, s, t
 template <typename OP>
@@ -1310,6 +1356,47 @@ public:
   }
 };
 
+class CreateStringLiteralOpPattern
+    : public ConvertOpToLLVMPattern<cudaq::cc::CreateStringLiteralOp> {
+public:
+  using Base = ConvertOpToLLVMPattern<cudaq::cc::CreateStringLiteralOp>;
+  using Base::Base;
+
+  LogicalResult
+  matchAndRewrite(cudaq::cc::CreateStringLiteralOp stringLiteralOp,
+                  OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = stringLiteralOp.getLoc();
+    auto parentModule = stringLiteralOp->getParentOfType<ModuleOp>();
+    auto context = parentModule->getContext();
+
+    StringRef stringLiteral = stringLiteralOp.getStringLiteral();
+
+    // Write to the module body
+    auto insertPoint = rewriter.saveInsertionPoint();
+    rewriter.setInsertionPointToStart(parentModule.getBody());
+
+    // Create the register name global
+    auto builder = cudaq::IRBuilder::atBlockEnd(parentModule.getBody());
+    auto slGlobal =
+        builder.genCStringLiteralAppendNul(loc, parentModule, stringLiteral);
+
+    // Shift back to the function
+    rewriter.restoreInsertionPoint(insertPoint);
+
+    // Get the string address and bit cast
+    auto slRef = rewriter.create<LLVM::AddressOfOp>(
+        loc, cudaq::opt::factory::getPointerType(slGlobal.getType()),
+        slGlobal.getSymName());
+    Value castedSlRef = rewriter.create<LLVM::BitcastOp>(
+        loc, cudaq::opt::factory::getPointerType(context), slRef);
+
+    rewriter.replaceOp(stringLiteralOp, castedSlRef);
+
+    return success();
+  }
+};
+
 class StoreOpPattern : public ConvertOpToLLVMPattern<cudaq::cc::StoreOp> {
 public:
   using Base = ConvertOpToLLVMPattern<cudaq::cc::StoreOp>;
@@ -1424,8 +1511,9 @@ public:
         AllocaOpRewrite, AllocaOpPattern, CallableClosureOpPattern,
         CallableFuncOpPattern, CallCallableOpPattern, CastOpPattern,
         ComputePtrOpPattern, ConcatOpRewrite, DeallocOpRewrite,
-        ExtractQubitOpRewrite, ExtractValueOpPattern, FuncToPtrOpPattern,
-        InsertValueOpPattern, InstantiateCallableOpPattern, LoadOpPattern,
+        CreateStringLiteralOpPattern, ExtractQubitOpRewrite,
+        ExtractValueOpPattern, FuncToPtrOpPattern, InsertValueOpPattern,
+        InstantiateCallableOpPattern, LoadOpPattern, ExpPauliRewrite,
         OneTargetRewrite<quake::HOp>, OneTargetRewrite<quake::XOp>,
         OneTargetRewrite<quake::YOp>, OneTargetRewrite<quake::ZOp>,
         OneTargetRewrite<quake::SOp>, OneTargetRewrite<quake::TOp>,
@@ -1487,6 +1575,9 @@ public:
             members.push_back(typeConverter.convertType(t));
           return LLVM::LLVMStructType::getLiteral(type.getContext(), members);
         });
+    typeConverter.addConversion([&](cudaq::cc::StringType type) {
+      return cudaq::opt::factory::getPointerType(type.getContext());
+    });
   }
 };
 

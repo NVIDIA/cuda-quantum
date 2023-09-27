@@ -948,7 +948,8 @@ bool QuakeBridgeVisitor::VisitMaterializeTemporaryExpr(
   // The following cases are λ expressions, quantum data, or a std::vector view.
   // In those cases, there is nothing to materialize, so we can just pass the
   // Value on the top of the stack.
-  if (isa<cc::CallableType, quake::VeqType, quake::RefType, cc::StdvecType>(ty))
+  if (isa<cc::CallableType, quake::VeqType, quake::RefType, cc::StdvecType,
+          cc::StringType>(ty))
     return true;
 
   // If not one of the above special cases, then materialize the value to a
@@ -1216,6 +1217,34 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
             if (auto structTypeAsRecord = structTy->getAsCXXRecordDecl())
               isAdjoint = structTypeAsRecord->getName() == "adj";
       }
+
+    if (funcName.equals("exp_pauli")) {
+      assert(args.size() > 2);
+      SmallVector<Value> processedArgs;
+      if (args.size() == 3 && isa<quake::VeqType>(args[1].getType()))
+        processedArgs = args;
+      else {
+        // should have f64, string, qubits...
+        // need f64, veq, string, so process here
+
+        // add f64 value
+        processedArgs.push_back(args[0]);
+
+        // concat the qubits to a veq
+        SmallVector<Value> quantumArgs;
+        for (std::size_t i = 2; i < args.size(); i++)
+          quantumArgs.push_back(args[i]);
+        processedArgs.push_back(builder.create<quake::ConcatOp>(
+            loc, quake::VeqType::get(builder.getContext(), quantumArgs.size()),
+            quantumArgs));
+
+        // add the string
+        processedArgs.push_back(args[1]);
+      }
+
+      builder.create<quake::ExpPauliOp>(loc, TypeRange{}, processedArgs);
+      return true;
+    }
 
     if (funcName.equals("mx") || funcName.equals("my") ||
         funcName.equals("mz")) {
@@ -2091,6 +2120,12 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
       }
     }
 
+    // Is this a std::string constructed from a StringLiteral? If yes
+    // return true, we have what we need.
+    if (!ctor->isDefaultConstructor() && ctorName == "basic_string")
+      if (isa<cc::StringType>(peekValue().getType()))
+        return true;
+
     if (ctor->isCopyConstructor())
       if (auto *parent = ctor->getParent())
         if (parent->isLambda()) {
@@ -2102,7 +2137,7 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
 
     // TODO: remove this when we can handle ctors more generally.
     if (!ctor->isDefaultConstructor()) {
-      LLVM_DEBUG(llvm::dbgs() << "unhandled ctor:\n"; x->dump());
+      LLVM_DEBUG(llvm::dbgs() << ctorName << " - unhandled ctor:\n"; x->dump());
       TODO_loc(loc, "C++ ctor (not-default)");
     }
 
@@ -2168,8 +2203,8 @@ bool QuakeBridgeVisitor::VisitDeclRefExpr(clang::DeclRefExpr *x) {
 }
 
 bool QuakeBridgeVisitor::VisitStringLiteral(clang::StringLiteral *x) {
-  TODO_x(toLocation(x->getSourceRange()), x, mangler, "string literal");
-  return false;
+  return pushValue(builder.create<cc::CreateStringLiteralOp>(
+      toLocation(x), builder.getStringAttr(x->getString())));
 }
 
 } // namespace cudaq::details
