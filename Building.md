@@ -72,8 +72,8 @@ container, LLVM will need to be built from source. ***Building with LLVM >=
 17.x is not currently supported*** due to the QIR specification's requirement
 to use typed pointers. LLVM 17.x removed the ability to use typed pointers and
 instead now requires [opaque pointers](https://llvm.org/docs/OpaquePointers.html#version-support).
-A QIR Alliance workstream will update the QIR specification to support opaque
-pointers in the near future.
+The QIR specification will be updated to support opaque pointers in the near
+future.
 
 To configure our build scripts with a custom LLVM, please set the LLVM
 submodule to the desired commit, and set the following environment variable,
