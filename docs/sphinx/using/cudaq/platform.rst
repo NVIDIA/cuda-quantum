@@ -183,7 +183,7 @@ The CUDA Quantum :code:`nvidia-mqpu` platform supports two modes of parallel dis
 
 For instance, if all of the GPUs are available on a single node, thread-based parallel distribution 
 (:code:`cudaq::parallel::thread` in C++ or :code:`cudaq.parallel.thread` in Python as shown in the above example) is sufficient. 
-On the other hand, if one wants to distribute the tasks across GPUs on multiple nodes, e.g., on HPC clusters, MPI distribution mode
+On the other hand, if one wants to distribute the tasks across GPUs on multiple nodes, e.g., on `HPC` clusters, MPI distribution mode
 should be used.
 
 An example of MPI distribution mode usage is as follows:
