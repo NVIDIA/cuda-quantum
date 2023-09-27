@@ -583,31 +583,23 @@ jobs:
             if [ -n "$(cat $file | grep "GPU_REQUIREMENTS")" ]; then
               target=`basename $file | cut -d "." -f 1`
               echo "## Execute on $target target" >> $GITHUB_STEP_SUMMARY
-              for file in `find /home/cudaq/examples -name '*.cpp' -not -path '*/providers/*'`; do
-                case $file in
-                  /home/cudaq/examples/cpp/other/gradients.cpp)
-                    echo ":white_flag: Issue: https://github.com/NVIDIA/cuda-quantum/issues/622. Test skipped." >> $GITHUB_STEP_SUMMARY ;;
-                  /home/cudaq/examples/cpp/algorithms/qaoa_maxcut.cpp)
-                    echo ":white_flag: Issue: https://github.com/NVIDIA/cuda-quantum/issues/623. Test skipped." >> $GITHUB_STEP_SUMMARY ;;
-                  *)
-                    ex=$(basename -- "$file")
-                    echo "Validating $ex:"
-                    nvq++ $file --target $target
-                    status=$?
-                    if [ $status -eq 0 ]; then
-                      ./a.out
-                      status=$?
-                      if [ $status -eq 0 ]; then
-                        echo ":white_check_mark: Successfully ran $ex." >> $GITHUB_STEP_SUMMARY
-                      else
-                        echo ":x: Failed to execute $ex." >> $GITHUB_STEP_SUMMARY
-                        status_sum=$((status_sum+1))
-                      fi
-                    else
-                      echo ":x: Compilation failed for $ex." >> $GITHUB_STEP_SUMMARY
-                      status_sum=$((status_sum+1))
-                    fi ;;
-                esac
+              for ex in `find /home/cudaq/examples -name '*.cpp' -not -path '*/providers/*'`; do
+                filename=$(basename -- "$ex")
+                nvq++ $ex --target $target
+                status=$?
+                if [ $status -eq 0 ]; then
+                  ./a.out
+                  status=$?
+                  if [ $status -eq 0 ]; then
+                    echo ":white_check_mark: Successfully ran $filename." >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo ":x: Failed to execute $filename." >> $GITHUB_STEP_SUMMARY
+                    status_sum=$((status_sum+1))
+                  fi
+                else
+                  echo ":x: Compilation failed for $filename." >> $GITHUB_STEP_SUMMARY
+                  status_sum=$((status_sum+1))
+                fi
               done
             fi
           done
