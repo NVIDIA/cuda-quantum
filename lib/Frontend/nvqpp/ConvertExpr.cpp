@@ -1109,12 +1109,11 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           [[maybe_unused]] auto calleeTy = popType();
           assert(isa<FunctionType>(calleeTy));
           auto zeroIndex = getConstantInt(builder, loc, 0, 64);
-          assert(svec.getType().isa<cc::StdvecType>());
           auto eleTy = cast<cc::StdvecType>(svec.getType()).getElementType();
           auto elePtrTy = cc::PointerType::get(eleTy);
           auto vecPtr = builder.create<cc::StdvecDataOp>(loc, elePtrTy, svec);
-          auto eleAddr = builder.create<cc::ComputePtrOp>(loc, elePtrTy, vecPtr,
-                                                          ValueRange{zeroIndex});
+          auto eleAddr = builder.create<cc::ComputePtrOp>(
+              loc, elePtrTy, vecPtr, ValueRange{zeroIndex});
           return builder.create<cc::LoadOp>(loc, eleAddr);
         }
     // TODO: Do same as above but with a `negativeOneIndex`
