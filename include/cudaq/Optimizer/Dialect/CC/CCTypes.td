@@ -23,7 +23,6 @@ class CCType<string name, string typeMnemonic, list<Trait> traits = [],
   let mnemonic = typeMnemonic;
 }
 
-
 //===----------------------------------------------------------------------===//
 // PointerType
 //===----------------------------------------------------------------------===//
