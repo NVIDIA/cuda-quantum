@@ -17,7 +17,6 @@
 using namespace mlir;
 
 static bool isArithmeticType(Type t) { return isa<IntegerType, FloatType>(t); }
-static bool isStringType(Type t) { return isa<cudaq::cc::StringType>(t); }
 
 static bool isQuantumType(Type t) {
   return isa<quake::VeqType, quake::RefType>(t);
@@ -82,31 +81,6 @@ QuakeBridgeVisitor::findCallOperator(const clang::CXXRecordDecl *decl) {
 
 bool QuakeBridgeVisitor::TraverseRecordType(clang::RecordType *t) {
   auto *recDecl = t->getDecl();
-
-  // Is this RecordDecl a std::string type
-  auto isStdString = [](clang::RecordDecl *decl) {
-    // Not in std, can't be std::string
-    if (!isInNamespace(decl, "std"))
-      return false;
-
-    // Has no identifier, can't be std::string
-    auto *ident = decl->getIdentifier();
-    if (!ident)
-      return false;
-
-    // The type name is basic_string, check that
-    if (ident->getName().equals("basic_string"))
-      return true;
-
-    // Wasn't what we're looking for.
-    return false;
-  }(recDecl);
-
-  // If this is a std::string, add the type to the stack and return
-  if (isStdString) {
-    pushType(cc::StringType::get(builder.getContext()));
-    return true;
-  }
 
   if (ignoredClass(recDecl))
     return true;
@@ -331,9 +305,9 @@ bool QuakeBridgeVisitor::doSyntaxChecks(const clang::FunctionDecl *x) {
   for (auto [t, p] : llvm::zip(funcTy.getInputs(), x->parameters())) {
     // Structs, lambdas, functions are valid callable objects. Also pure
     // device kernels may take veq and/or ref arguments.
-    if (isArithmeticType(t) || isArithmeticSequenceType(t) || isStringType(t) ||
+    if (isArithmeticType(t) || isArithmeticSequenceType(t) ||
         isQuantumType(t) || isKernelCallable(t) || isFunctionCallable(t) ||
-        isReferenceToCallableRecord(t, p))
+        isCharPointerType(t) || isReferenceToCallableRecord(t, p))
       continue;
     reportClangError(p, mangler, "kernel argument type not supported");
     return false;

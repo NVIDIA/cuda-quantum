@@ -795,7 +795,7 @@ def ExpPauliOp : QuakeOp<"exp_pauli", []> {
     applies exp(i theta P) where P is a general Pauli tensor product. 
   }];
   
-  let arguments = (ins AnyFloat:$parameter, VeqType:$qubits, cc_StringType:$pauli);
+  let arguments = (ins AnyFloat:$parameter, VeqType:$qubits, cc_PointerType:$pauli);
   let results = (outs );
 
   let assemblyFormat = [{

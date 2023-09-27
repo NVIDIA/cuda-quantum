@@ -1372,14 +1372,19 @@ def cc_CallableClosureOp : CCOp<"callable_closure", [Pure]> {
 def cc_CreateStringLiteralOp : CCOp<"string_literal"> {
   let summary = "Create a constant string literal.";
   let description = [{
-    This operation creates CC StringType values from constant MLIR 
-    String Attributes. 
+    This operation creates a ASCIIZ string literal value. It's argument is a
+    constant MLIR String Attribute. The literal will have a null character
+    appended automatically.
+
+    ```mlir
+      %0 = cc.string_literal "Quantum Computing" : !cc.ptr<!cc.array<i8 x 18>>
+    ```
   }];
 
   let arguments = (ins StrAttr:$stringLiteral);
-  let results = (outs cc_StringType:$result);
+  let results = (outs cc_PointerType:$result);
   let assemblyFormat = [{
-     `{` $stringLiteral `}` `:` functional-type(operands, results) attr-dict
+     $stringLiteral `:` qualified(type(results)) attr-dict
   }];
 }
 #endif // CUDAQ_OPTIMIZER_DIALECT_CC_OPS

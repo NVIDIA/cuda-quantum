@@ -18,8 +18,8 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__Z4mainE3$_0 = "_Z
     %3 = quake.extract_ref %1[1] : (!quake.veq<4>) -> !quake.ref
     quake.x %3 : (!quake.ref) -> ()
     %4 = cc.load %0 : !cc.ptr<f64>
-    %5 = cc.string_literal{"XXXY"} : () -> !cc.string
-    quake.exp_pauli(%4) %1, %5 : (f64, !quake.veq<4>, !cc.string) -> ()
+    %5 = cc.string_literal "XXXY" : !cc.ptr<!cc.array<i8 x 5>>
+    quake.exp_pauli(%4) %1, %5 : (f64, !quake.veq<4>, !cc.ptr<!cc.array<i8 x 5>>) -> ()
     return
   }
 }

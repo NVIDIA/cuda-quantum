@@ -703,4 +703,16 @@ inline bool isCallOperator(clang::OverloadedOperatorKind kindValue) {
   return kindValue == clang::OverloadedOperatorKind::OO_Call;
 }
 
+// Is \p t of type `char *`?
+inline bool isCharPointerType(mlir::Type t) {
+  if (auto ptrTy = dyn_cast<cc::PointerType>(t)) {
+    mlir::Type eleTy = ptrTy.getElementType();
+    if (auto arrTy = dyn_cast<cc::ArrayType>(eleTy))
+      eleTy = arrTy.getElementType();
+    if (auto intTy = dyn_cast<mlir::IntegerType>(eleTy))
+      return intTy.getWidth() == 8;
+  }
+  return false;
+}
+
 } // namespace cudaq

@@ -133,17 +133,16 @@ void cc::ArrayType::print(AsmPrinter &printer) const {
 #define GET_TYPEDEF_CLASSES
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.cpp.inc"
 
+//===----------------------------------------------------------------------===//
+
 namespace cudaq {
 
 cc::CallableType cc::CallableType::getNoSignature(MLIRContext *ctx) {
   return CallableType::get(ctx, FunctionType::get(ctx, {}, {}));
 }
 
-//===----------------------------------------------------------------------===//
-
 void cc::CCDialect::registerTypes() {
-  addTypes<ArrayType, CallableType, PointerType, StdvecType, StructType,
-           StringType>();
+  addTypes<ArrayType, CallableType, PointerType, StdvecType, StructType>();
 }
 
 } // namespace cudaq

@@ -10,7 +10,7 @@
 
 
 module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__Z4mainE3$_0 = "_ZZ4mainENK3$_0clEdNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE"}} {
-  func.func @__nvqpp__mlirgen__Z4mainE3$_0(%arg0: f64, %arg1: !cc.string) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  func.func @__nvqpp__mlirgen__Z4mainE3$_0(%arg0: f64, %arg1: !cc.ptr<i8>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     %0 = cc.alloca f64
     cc.store %arg0, %0 : !cc.ptr<f64>
     %1 = quake.alloca !quake.veq<4>
@@ -19,7 +19,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__Z4mainE3$_0 = "_Z
     %3 = quake.extract_ref %1[1] : (!quake.veq<4>) -> !quake.ref
     quake.x %3 : (!quake.ref) -> ()
     %4 = cc.load %0 : !cc.ptr<f64>
-    quake.exp_pauli(%4) %1, %arg1 : (f64, !quake.veq<4>, !cc.string) -> ()
+    quake.exp_pauli(%4) %1, %arg1 : (f64, !quake.veq<4>, !cc.ptr<i8>) -> ()
     return
   }
 }
@@ -35,8 +35,6 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__Z4mainE3$_0 = "_Z
 // CHECK:         %[[VAL_8:.*]] = bitcast i8* %[[VAL_7]] to %[[VAL_5]]**
 // CHECK:         %[[VAL_9:.*]] = load %[[VAL_5]]*, %[[VAL_5]]** %[[VAL_8]], align 8
 // CHECK:         tail call void @__quantum__qis__x(%[[VAL_5]]* %[[VAL_9]])
-// CHECK:         %[[VAL_10:.*]] = bitcast i8* %[[VAL_11:.*]] to i8**
-// CHECK:         %[[VAL_12:.*]] = load i8*, i8** %[[VAL_10]], align 8
-// CHECK:         tail call void @__quantum__qis__exp_pauli(double %[[VAL_13:.*]], %[[VAL_1]]* %[[VAL_2]], i8* %[[VAL_12]])
+// CHECK:         tail call void @__quantum__qis__exp_pauli(double %[[VAL_13:.*]], %[[VAL_1]]* %[[VAL_2]], i8* %[[VAL_12:.*]])
 // CHECK:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_1]]* %[[VAL_0]])
 // CHECK:         ret void

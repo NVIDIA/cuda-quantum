@@ -145,8 +145,8 @@ func.func @quantum_ops() {
 
   // Exp Pauli and StringLiteral
   %f2 = arith.constant 12.0 : f64
-  %48 = cc.string_literal{"XXY"} : () -> !cc.string 
-  quake.exp_pauli (%f2) %46, %48 : (f64, !quake.veq<3>, !cc.string) -> ()
+  %48 = cc.string_literal "XXY" : !cc.ptr<!cc.array<i8 x 4>>
+  quake.exp_pauli (%f2) %46, %48 : (f64, !quake.veq<3>, !cc.ptr<!cc.array<i8 x 4>>) -> ()
   
   return
 }
@@ -256,8 +256,8 @@ func.func @quantum_ops() {
 // CHECK:           quake.u2 (%[[VAL_20]], %[[VAL_21]]) {{\[}}%[[VAL_54]]] %[[VAL_10]] : (f32, f32, !quake.veq<3>, !quake.ref) -> ()
 // CHECK:           quake.u3 (%[[VAL_20]], %[[VAL_21]], %[[VAL_53]]) {{\[}}%[[VAL_54]]] %[[VAL_10]] : (f32, f32, f64, !quake.veq<3>, !quake.ref) -> ()
 // CHECK:           %[[VAL_59:.*]] = arith.constant 1.200000e+01 : f64
-// CHECK:           %[[VAL_60:.*]] = cc.string_literal{"XXY"} : () -> !cc.string
-// CHECK:           quake.exp_pauli(%[[VAL_59]]) %[[VAL_54]], %[[VAL_60]] : (f64, !quake.veq<3>, !cc.string) -> ()
+// CHECK:           %[[VAL_60:.*]] = cc.string_literal "XXY" : !cc.ptr<!cc.array<i8 x 4>>
+// CHECK:           quake.exp_pauli(%[[VAL_59]]) %[[VAL_54]], %[[VAL_60]] : (f64, !quake.veq<3>, !cc.ptr<!cc.array<i8 x 4>>) -> ()
 // CHECK:           return
 // CHECK:         }
 

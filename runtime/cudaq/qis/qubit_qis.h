@@ -14,6 +14,7 @@
 #include "qarray.h"
 #include "qreg.h"
 #include "qvector.h"
+#include <cstring>
 #include <functional>
 
 #define __qpu__ __attribute__((annotate("quantum")))
@@ -281,7 +282,7 @@ inline void ccx(qubit &q, qubit &r, qubit &s) { x<cudaq::ctrl>(q, r, s); }
 template <typename QubitRange>
   requires(std::ranges::range<QubitRange>)
 inline void exp_pauli(double theta, QubitRange &&qubits,
-                      const std::string &pauliWord) {
+                      const char *pauliWord) {
   std::vector<QuditInfo> quditInfos;
   std::transform(qubits.begin(), qubits.end(), std::back_inserter(quditInfos),
                  [](auto &q) { return cudaq::qubitToQuditInfo(q); });
@@ -292,10 +293,10 @@ inline void exp_pauli(double theta, QubitRange &&qubits,
 /// @brief Apply a general Pauli rotation, takes a variadic set of
 /// qubits, and the number of qubits must be equal to the pauli word length.
 template <typename... QubitArgs>
-inline void exp_pauli(double theta, const std::string &pauliWord,
+inline void exp_pauli(double theta, const char *pauliWord,
                       QubitArgs &...qubits) {
 
-  if (sizeof...(QubitArgs) != pauliWord.length())
+  if (sizeof...(QubitArgs) != std::strlen(pauliWord))
     throw std::runtime_error(
         "Invalid exp_pauli call, number of qubits != size of pauliWord.");
 

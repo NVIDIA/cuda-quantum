@@ -547,9 +547,9 @@ public:
 
   /// @brief Apply a general pauli rotation, exp(-i theta P),
   /// takes a QuakeValue representing a register of qubits.
-  template <QuakeValueOrNumericType ParamT>
+  template <QuakeValueOrNumericType ParamT, unsigned Size>
   void exp_pauli(const ParamT &theta, const QuakeValue &qubits,
-                 const std::string &pauliWord) {
+                 const char (&pauliWord)[Size]) {
     std::vector<QuakeValue> qubitValues{qubits};
     if constexpr (std::is_floating_point_v<ParamT>)
       details::exp_pauli(*opBuilder, QuakeValue(*opBuilder, theta), qubitValues,
@@ -560,8 +560,9 @@ public:
 
   /// @brief Apply a general pauli rotation, exp(-i theta P),
   /// takes a variadic list of QuakeValues representing a individual qubits.
-  template <QuakeValueOrNumericType ParamT, typename... QubitArgs>
-  void exp_pauli(const ParamT &theta, const std::string &pauliWord,
+  template <QuakeValueOrNumericType ParamT, unsigned Size,
+            typename... QubitArgs>
+  void exp_pauli(const ParamT &theta, const char (&pauliWord)[Size],
                  QubitArgs &&...qubits) {
     std::vector<QuakeValue> qubitValues{qubits...};
     if constexpr (std::is_floating_point_v<ParamT>)

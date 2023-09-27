@@ -11,7 +11,7 @@
 #include <cudaq.h>
 
 int main() {
-  auto kernel2 = [](double theta, std::string pauli) __qpu__ {
+  auto kernel2 = [](double theta, const char *pauli) __qpu__ {
     cudaq::qreg q(4);
     x(q[0]);
     x(q[1]);
@@ -23,7 +23,7 @@ int main() {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Z4mainE3$_0(
 // CHECK-SAME:                                             %[[VAL_0:.*]]: f64,
-// CHECK-SAME:                                             %[[VAL_1:.*]]: !cc.string) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK-SAME:                                             %[[VAL_1:.*]]: !cc.ptr<i8>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_2:.*]] = cc.alloca f64
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_2]] : !cc.ptr<f64>
 // CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<4>
@@ -32,7 +32,7 @@ int main() {
 // CHECK:           %[[VAL_5:.*]] = quake.extract_ref %[[VAL_3]][1] : (!quake.veq<4>) -> !quake.ref
 // CHECK:           quake.x %[[VAL_5]] : (!quake.ref) -> ()
 // CHECK:           %[[VAL_6:.*]] = cc.load %[[VAL_2]] : !cc.ptr<f64>
-// CHECK:           quake.exp_pauli(%[[VAL_6]]) %[[VAL_3]], %[[VAL_1]] : (f64, !quake.veq<4>, !cc.string) -> ()
+// CHECK:           quake.exp_pauli(%[[VAL_6]]) %[[VAL_3]], %[[VAL_1]] : (f64, !quake.veq<4>, !cc.ptr<i8>) -> ()
 // CHECK:           return
 // CHECK:         }
 

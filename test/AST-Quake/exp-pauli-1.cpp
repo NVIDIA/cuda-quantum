@@ -30,7 +30,7 @@ int main() {
 // CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_2]][1] : (!quake.veq<4>) -> !quake.ref
 // CHECK:           quake.x %[[VAL_4]] : (!quake.ref) -> ()
 // CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_1]] : !cc.ptr<f64>
-// CHECK:           %[[VAL_6:.*]] = cc.string_literal{"XXXY"} : () -> !cc.string
-// CHECK:           quake.exp_pauli(%[[VAL_5]]) %[[VAL_2]], %[[VAL_6]] : (f64, !quake.veq<4>, !cc.string) -> ()
+// CHECK:           %[[VAL_6:.*]] = cc.string_literal "XXXY" : !cc.ptr<!cc.array<i8 x 5>>
+// CHECK:           quake.exp_pauli(%[[VAL_5]]) %[[VAL_2]], %[[VAL_6]] : (f64, !quake.veq<4>, !cc.ptr<!cc.array<i8 x 5>>) -> ()
 // CHECK:           return
 // CHECK:         }
