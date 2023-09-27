@@ -115,6 +115,7 @@ expectation value computations of a multi-term Hamiltonian across multiple virtu
 Here is an example.
 
 .. code-block:: cpp 
+  
     using namespace cudaq::spin;
     cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
                       .21829 * z(0) - 6.125 * z(1);
