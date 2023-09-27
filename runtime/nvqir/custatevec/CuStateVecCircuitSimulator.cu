@@ -368,6 +368,8 @@ public:
   void applyExpPauli(double theta, const std::vector<std::size_t> &qubits,
                      const cudaq::spin_op &op) override {
     flushGateQueue();
+    cudaq::info(" [cusv decomposing] exp_pauli({}, {})", theta,
+                op.to_string(false));
     std::vector<int> controls, targets;
     std::vector<custatevecPauli_t> paulis;
     op.for_each_pauli([&](cudaq::pauli p, std::size_t i) {
@@ -385,8 +387,8 @@ public:
 
     custatevecApplyPauliRotation(
         handle, deviceStateVector, cuStateVecCudaDataType, nQubitsAllocated,
-        theta, paulis.data(), targets.data(), targets.size(),
-        controls.data(), nullptr, controls.size());
+        theta, paulis.data(), targets.data(), targets.size(), controls.data(),
+        nullptr, controls.size());
   }
 
   /// @brief Compute the operator expectation value, with respect to

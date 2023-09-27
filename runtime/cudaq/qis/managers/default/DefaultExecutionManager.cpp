@@ -112,11 +112,6 @@ protected:
     std::transform(controls.begin(), controls.end(), std::back_inserter(localC),
                    [](auto &&el) { return el.id; });
 
-    if (gateName == "exp_pauli") {
-      simulator()->applyExpPauli(parameters[0], localT, op);
-      return;
-    }
-
     // Apply the gate
     llvm::StringSwitch<std::function<void()>>(gateName)
         .Case("h", [&]() { simulator()->h(localC, localT[0]); })
@@ -144,6 +139,8 @@ protected:
               })
         .Case("swap",
               [&]() { simulator()->swap(localC, localT[0], localT[1]); })
+        .Case("exp_pauli",
+              [&]() { simulator()->applyExpPauli(parameters[0], localT, op); })
         .Default([&]() {
           throw std::runtime_error("[DefaultExecutionManager] invalid gate "
                                    "application requested " +

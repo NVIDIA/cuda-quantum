@@ -181,6 +181,49 @@ public:
     qpp::RandomDevices::get_instance().get_prng().seed(seed);
   }
 
+  void applyExpPauli(double theta, const std::vector<std::size_t> &qubitIds,
+                     const cudaq::spin_op &op) override {
+    flushGateQueue();
+    cudaq::info(" [qpp decomposing] exp_pauli({}, {})", theta,
+                op.to_string(false));
+    std::vector<std::size_t> qubitSupport;
+    std::vector<std::function<void(bool)>> basisChange;
+    op.for_each_pauli([&](cudaq::pauli type, std::size_t qubitIdx) {
+      if (type != cudaq::pauli::I)
+        qubitSupport.push_back(qubitIds[qubitIdx]);
+
+      if (type == cudaq::pauli::Y)
+        basisChange.emplace_back([&, qubitIdx](bool reverse) {
+          rx(!reverse ? M_PI_2 : -M_PI_2, qubitIds[qubitIdx]);
+        });
+      else if (type == cudaq::pauli::X)
+        basisChange.emplace_back(
+            [&, qubitIdx](bool) { h(qubitIds[qubitIdx]); });
+    });
+
+    if (!basisChange.empty())
+      for (auto &basis : basisChange)
+        basis(false);
+
+    std::vector<std::pair<std::size_t, std::size_t>> toReverse;
+    for (std::size_t i = 0; i < qubitSupport.size() - 1; i++) {
+      x({qubitSupport[i]}, qubitSupport[i + 1]);
+      toReverse.emplace_back(qubitSupport[i], qubitSupport[i + 1]);
+    }
+
+    rz(theta, qubitSupport.back());
+
+    std::reverse(toReverse.begin(), toReverse.end());
+    for (auto &[i, j] : toReverse)
+      x({i}, j);
+
+    if (!basisChange.empty()) {
+      std::reverse(basisChange.begin(), basisChange.end());
+      for (auto &basis : basisChange)
+        basis(true);
+    }
+  }
+
   bool canHandleObserve() override {
     // Do not compute <H> from matrix if shots based sampling requested
     if (executionContext &&
