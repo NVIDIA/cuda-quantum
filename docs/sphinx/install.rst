@@ -143,9 +143,8 @@ we refer to the `CUDA Quantum GitHub repository`_.
 
 Next Steps
 ----------
-With the CUDA Quantum Docker image installed and a container up and running, check out the
-Using CUDA Quantum page_. To run the examples codes in the container, checkout the Compiling
-and Executing section here_. 
+With the CUDA Quantum Docker image installed and a container up and running, check out :doc:`Using CUDA Quantum <using/cudaq>`. 
+To run the examples codes in the container, check out :doc:`Compiling and Executing <using/cudaq/compiling>`. 
 
 Once in the VS Code IDE or in the terminal for the container in headless mode, you'll 
 notice there is an :code:`examples/` folder. These examples are provided to 
@@ -165,5 +164,3 @@ run command), try out the 30 qubit version of this example.
     nvq++ examples/cpp/basics/cuquantum_backends.cpp --target nvidia 
     ./a.out 
 
-.. _page: using/cudaq.html
-.. _here: using/cudaq/compiling.html
