@@ -230,6 +230,10 @@ To see a complete example for using IonQ's backends, take a look at our :ref:`Py
 IQM
 ==================================
 
+Support for submissions to IQM is currently under development. 
+In particular, two-qubit gates can only be performed on adjacent qubits. For more information, we refer to the respective hardware documentation.
+Support for automatically injecting the necessary operations during compilation to execute arbitrary multi-qubit gates will be added in future versions.
+
 Setting Credentials
 `````````````````````````
 
