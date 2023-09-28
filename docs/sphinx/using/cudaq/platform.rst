@@ -79,7 +79,7 @@ The results might look like the following (4 different random samplings).
   For example, :code:`export CUDAQ_MQPU_NGPUS=2` to specify that only 2 QPUs (GPUs) are needed.
 
 
-An equivalent example in Python is as follows:
+An equivalent example in Python is as follows.
 
 .. code:: python
 
@@ -170,7 +170,7 @@ Equivalently, in Python
     print("Expectation value: ", exp_val)
 
 In the above code snippet, since the Hamiltonian contains four non-identity terms, there are four quantum circuits that need to be executed
-in order to compute the expectation value of that Hamiltonian given the quantum state prepared by the ansatz kernel. When the :code:`nvidia-mqpu` platform
+in order to compute the expectation value of that Hamiltonian and given the quantum state prepared by the ansatz kernel. When the :code:`nvidia-mqpu` platform
 is selected, these circuits will be distributed across all available QPUs. The final expectation value result is computed from all QPU execution results.
 
 Parallel distribution mode
@@ -255,7 +255,7 @@ Python
 
     mpirun -np <N> python3 observe_mpi.py
 
-In the above examples, we specified the parallel distribution mode to :code:`mpi` and used CUDA Quantum MPI utility functions 
-to initialize, finalize, or query (rank, size, etc.) the MPI runtime. 
+In the above examples, the parallel distribution mode was set to :code:`mpi` using :code:`cudaq::parallel::mpi` in C++ or :code:`cudaq.parallel.mpi` in Python.
+CUDA Quantum provides MPI utility functions to initialize, finalize, or query (rank, size, etc.) the MPI runtime. 
 Last but not least, the compiled executable (C++) or Python script needs to be launched with an appropriate MPI command, 
 e.g., :code:`mpirun`, :code:`mpiexec`, :code:`srun`, etc. 
