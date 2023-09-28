@@ -19,7 +19,7 @@ Here is a simple example demonstrating this
 
 .. literalinclude:: ../../snippets/cpp/using/cudaq/platform/sample_async.cpp
     :language: cpp
-    :lines: 9-38
+    :lines: 17-46
 
 CUDA Quantum exposes asynchronous versions of the default :code:`cudaq::` algorithmic
 primitive functions like :code:`sample` and :code:`observe` (e.g., :code:`cudaq::sample_async` function in the above code snippet). 
@@ -55,6 +55,7 @@ An equivalent example in Python is as follows.
 
 .. literalinclude:: ../../snippets/python/using/cudaq/platform/sample_async.py
     :language: python
+    :lines: 8-
 
 Asynchronous expectation value computations
 +++++++++++++++++++++++++++++++++++++++++++
@@ -66,7 +67,7 @@ Here is an example.
 
 .. literalinclude:: ../../snippets/cpp/using/cudaq/platform/observe_mqpu.cpp
     :language: cpp
-    :lines: 9-28
+    :lines: 17-36
 
 
 One can then target the :code:`nvidia-mqpu` platform by:
@@ -80,6 +81,7 @@ Equivalently, in Python
 
 .. literalinclude:: ../../snippets/python/using/cudaq/platform/observe_mqpu.py
     :language: python
+    :lines: 8-
 
 In the above code snippet, since the Hamiltonian contains four non-identity terms, there are four quantum circuits that need to be executed
 in order to compute the expectation value of that Hamiltonian and given the quantum state prepared by the ansatz kernel. When the :code:`nvidia-mqpu` platform
@@ -105,7 +107,7 @@ C++
 
 .. literalinclude:: ../../snippets/cpp/using/cudaq/platform/observe_mqpu_mpi.cpp
     :language: cpp
-    :lines: 9-24
+    :lines: 17-32
 
 .. code-block:: console 
 
@@ -118,6 +120,7 @@ Python
 
 .. literalinclude:: ../../snippets/python/using/cudaq/platform/observe_mqpu_mpi.py
     :language: python
+    :lines: 8-
 
 .. code-block:: console 
 
