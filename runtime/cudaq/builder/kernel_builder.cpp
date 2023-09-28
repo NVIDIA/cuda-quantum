@@ -194,7 +194,6 @@ void exp_pauli(ImplicitLocOpBuilder &builder, const QuakeValue &theta,
       strLitTy, builder.getStringAttr(pauliWord));
   SmallVector<Value> args{thetaVal, qubitsVal, stringLiteral};
   builder.create<quake::ExpPauliOp>(TypeRange{}, args);
-  return;
 }
 
 /// @brief Search the given `FuncOp` for all `CallOps` recursively.
