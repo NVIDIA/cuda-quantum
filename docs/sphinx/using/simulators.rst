@@ -90,3 +90,29 @@ options to :code:`nvq++`
 .. code:: bash 
 
     nvq++ --target tensornet src.cpp ...
+
+GPU Simulation Requirements
+==================================
+
+For programmers using the CUDA Quantum Python wheels, extra configuration is needed to install
+our GPU enabled simulation backends. 
+
+The system level dependencies for these backends include:
+* An NVIDIA GPU with compute capability 7.0+
+* Driver: Linux (450.80.02+ for CUDA 11, 525.60.13+ for CUDA 12)
+* CUDA Toolkit 11.x or newer
+* Python 3.9+
+
+For Linux users, these system requirements may be installed via 
+
+.. code:: bash
+
+    todo ...
+
+Note: After installing the CUDA Toolkit, you must follow these `post-installation instructions 
+<https://docs.nvidia.com/cuda/archive/11.8.0/cuda-installation-guide-linux/index.html#post-installation-actions>`__.
+
+Python Requirements (pip installation recommended):
+* cutensor-cu11
+* nvidia-cublas-cu11
+* nvidia-cusolver-cu11

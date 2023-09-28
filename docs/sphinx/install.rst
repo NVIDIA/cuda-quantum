@@ -134,6 +134,11 @@ for all releases `here <https://github.com/NVIDIA/cuda-quantum/releases>`__.
 For more information about building a CUDA Quantum Python wheel from source, see the 
 `README <https://github.com/NVIDIA/cuda-quantum/blob/main/python/README.md>`__.
 
+The CUDA Quantum Python wheels, by default, do not come installed with our GPU-enabled 
+simulation backends. For further information on installing these GPU simulators with the
+Python wheels, see
+`README <https://github.com/NVIDIA/cuda-quantum/blob/main/python/README.md>`__.
+
 
 Build CUDA Quantum from Source
 ------------------------------
