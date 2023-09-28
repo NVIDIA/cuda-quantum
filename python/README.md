@@ -62,10 +62,16 @@ result = cudaq.sample(kernel)
 To see more examples, go to [python examples][python_examples], or check out the
 [Python API reference][python_api_reference].
 
+To install and configure GPU enabled simulation backends, see 
+[Configuring GPU Backends][python_gpu_reference].
+
 [python_examples]:
     https://nvidia.github.io/cuda-quantum/latest/using/python.html
 [python_api_reference]:
     https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html
+[python_gpu_reference]:
+    https://nvidia.github.io/cuda-quantum/latest/using/simulators.html#gpu-simulation-requirements
+
 
 ## Contributing
 
