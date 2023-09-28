@@ -153,7 +153,18 @@ For simulation of CUDA Quantum programs on NVIDIA GPUs, additional packages shou
 
 The following table summarizes the required components.
 
-.. list-table:: Requirements
+.. list-table:: Supported Systems
+    :widths: 30 50
+    :header-rows: 0
+
+    * - CPU architectures
+      - x86_64, ARM64
+    * - Operating System
+      - Linux
+    * - Tested Distributions
+      - Ubuntu 22.04
+
+.. list-table:: Requirements for GPU simulation
     :widths: 30 50
     :header-rows: 0
 
@@ -163,10 +174,6 @@ The following table summarizes the required components.
       - 7.0+
     * - CUDA
       - 11.x, 12.x
-    * - CPU architectures
-      - x86_64, ARM64
-    * - Operating System
-      - Linux
 
 
 Next Steps
