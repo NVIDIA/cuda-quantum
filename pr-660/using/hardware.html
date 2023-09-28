@@ -539,6 +539,9 @@ the <code class="docutils literal notranslate"><span class="pre">shots_count</sp
 </section>
 <section id="iqm">
 <h2>IQM<a class="headerlink" href="#iqm" title="Permalink to this heading">¶</a></h2>
+<p>Support for submissions to IQM is currently under development.
+In particular, two-qubit gates can only be performed on adjacent qubits. For more information, we refer to the respective hardware documentation.
+Support for automatically injecting the necessary operations during compilation to execute arbitrary multi-qubit gates will be added in future versions.</p>
 <section id="id4">
 <h3>Setting Credentials<a class="headerlink" href="#id4" title="Permalink to this heading">¶</a></h3>
 <p>Programmers of CUDA Quantum may access the IQM Server from either C++ or Python. Following the <a class="reference external" href="https://iqm-finland.github.io/cortex-cli/readme.html#using-cortex-cli">quick start guide</a>, install <code class="code docutils literal notranslate"><span class="pre">iqm-cortex-cli</span></code> and login to initialize the tokens file.
