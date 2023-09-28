@@ -313,8 +313,8 @@ jobs:
         uses: docker/login-action@v2
         with:
           registry: ${{ steps.release_info.outputs.ngc_registry || vars.registry }}
-          username: ${{ (steps.release_info.outputs.ngc_registry != '' && '$oauthtoken') || github.actor }}
-          password: ${{ (steps.release_info.outputs.ngc_registry != '' && secrets.NGC_CREDENTIALS) || github.token }}
+          username: ${{ (steps.release_info.outputs.ngc_registry && '$oauthtoken') || github.actor }}
+          password: ${{ (steps.release_info.outputs.ngc_registry && secrets.NGC_CREDENTIALS) || github.token }}
 
       - name: Set up buildx runner
         uses: docker/setup-buildx-action@v2
@@ -353,6 +353,23 @@ jobs:
           DIGEST: ${{ steps.cudaq_build.outputs.digest }}
           TAGS: ${{ steps.metadata.outputs.tags }}
         run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
+
+      - name: Sign image with NGC CLI
+        if: steps.release_info.outputs.ngc_registry
+        env:
+          TAGS: ${{ steps.metadata.outputs.tags }}
+          NGC_CLI_API_KEY: ${{ secrets.NGC_CREDENTIALS }}
+          NGC_CLI_ORG: ${{ github.repository_owner }}
+          NGC_CLI_TEAM: 'nightly'
+        run: |
+          wget -O ngccli_linux.zip --content-disposition \
+            https://api.ngc.nvidia.com/v2/resources/nvidia/ngc-apps/ngc_cli/versions/3.28.0/files/ngccli_linux.zip
+          if [ -z "$(sha256sum ngccli_linux.zip | grep -o '74f469a2082e90a4561f09eb0d483b67044e91be727066122253436c140a7b54 ')" ]; then
+            echo "::error::NGC CLI was corrupted during download." && exit 1
+          fi
+          unzip ngccli_linux.zip && chmod u+x ngc-cli/ngc
+          echo "Signing ${TAGS}"
+          ngc-cli/ngc registry image publish --source ${TAGS} ${TAGS} --sign
 
       - name: Log in to the container registry
         if: vars.registry
