@@ -54,12 +54,12 @@ CUDAQ_TEST(GateLibraryTester, checkFermionicSwap) {
   auto test_01 = [](double theta) __qpu__ {
     cudaq::qreg<2> q;
     x(q[0]);
-    cudaq::fermionic_swap{}(theta, q[0], q[1]);
+    cudaq::fermionic_swap(theta, q[0], q[1]);
   };
   auto test_10 = [](double theta) __qpu__ {
     cudaq::qreg<2> q;
     x(q[1]);
-    cudaq::fermionic_swap{}(theta, q[0], q[1]);
+    cudaq::fermionic_swap(theta, q[0], q[1]);
   };
 
   // FermionicSWAP truth table

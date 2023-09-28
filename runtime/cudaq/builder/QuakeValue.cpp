@@ -317,6 +317,31 @@ QuakeValue QuakeValue::operator*(QuakeValue other) {
   return QuakeValue(opBuilder, multiplied);
 }
 
+QuakeValue QuakeValue::operator/(const double constValue) {
+  auto v = value->asMLIR();
+  if (!v.getType().isIntOrFloat())
+    throw std::runtime_error("Can only multiply double/float QuakeValues.");
+
+  llvm::APFloat d(constValue);
+  Value constant =
+      opBuilder.create<arith::ConstantFloatOp>(d, opBuilder.getF64Type());
+  Value div = opBuilder.create<arith::DivFOp>(v.getType(), v, constant);
+  return QuakeValue(opBuilder, div);
+}
+
+QuakeValue QuakeValue::operator/(QuakeValue other) {
+  auto v = value->asMLIR();
+  if (!v.getType().isIntOrFloat())
+    throw std::runtime_error("Can only multiply double/float QuakeValues.");
+
+  auto otherV = other.value->asMLIR();
+  if (!otherV.getType().isIntOrFloat())
+    throw std::runtime_error("Can only multiply double/float QuakeValues.");
+
+  Value div = opBuilder.create<arith::DivFOp>(v.getType(), v, otherV);
+  return QuakeValue(opBuilder, div);
+}
+
 QuakeValue QuakeValue::operator+(const double constValue) {
   auto v = value->asMLIR();
   if (!v.getType().isIntOrFloat())
