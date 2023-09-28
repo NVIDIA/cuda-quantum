@@ -380,7 +380,7 @@ public:
     std::vector<std::pair<std::string, ModuleOp>> modules;
     // Apply observations if necessary
     if (executionContext && executionContext->name == "observe") {
-
+      runPassPipeline("canonicalize,cse", moduleOp);
       cudaq::spin_op &spin = *executionContext->spin.value();
       for (const auto &term : spin) {
         if (term.is_identity())
