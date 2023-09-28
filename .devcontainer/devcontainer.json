@@ -11,7 +11,7 @@
 	// Unfortunately, it is not currently possible to have the same dev container definition for systems with and without a supported GPU.
 	// See also https://github.com/airo-ugent/airo-ros/issues/17.
 	// To enable the container to leverage GPU acceleration, add "--gpus=all" to the list of arguments below.	
-	"runArgs": [ "--net=host", "--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined", "--gpus=all" ],
+	"runArgs": [ "--net=host", "--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined" ],
 	"features": {
 		// Getting a GUI to show content in Chrome (optional - uncomment if needed)
 		// "ghcr.io/devcontainers/features/desktop-lite:1": { "password": "cuda-quantum" }
