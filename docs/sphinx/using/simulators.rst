@@ -95,7 +95,10 @@ GPU Simulation Requirements
 ==================================
 
 For programmers using the CUDA Quantum Python wheels, extra configuration is needed to install
-our GPU enabled simulation backends. 
+our GPU enabled simulation backends.
+
+System Level Dependencies
+++++++++++++++++++++++++++
 
 The system level dependencies for these backends include:
 * An NVIDIA GPU with compute capability 7.0+
@@ -103,16 +106,54 @@ The system level dependencies for these backends include:
 * CUDA Toolkit 11.x or newer
 * Python 3.9+
 
-For Linux users, these system requirements may be installed via 
+For more information on the installation of NVIDIA Driver's for Ubuntu, see
+`here <https://help.ubuntu.com/community/NvidiaDriversInstallation>`__.
+
+For installation of the CUDA toolkit, programmers have two options. The first
+is to install the entire CUDA toolkit via your system package manager. For example
 
 .. code:: bash
 
-    todo ...
+    apt-get install cuda-11-8 # Ubuntu
+    # -- or -- 
+    dnf install cuda-11-8.x86_64 # RHEL 9
 
-Note: After installing the CUDA Toolkit, you must follow these `post-installation instructions 
+Note: After installing the CUDA Toolkit, you must follow these `post-installation instructions
 <https://docs.nvidia.com/cuda/archive/11.8.0/cuda-installation-guide-linux/index.html#post-installation-actions>`__.
 
-Python Requirements (pip installation recommended):
+Alternatively, the programmer may install the following Python packages:
+* nvidia-nvtx-vcu11 
+* nvidia-cuda-runtime-cu11
+
+You must then export the location of the .so files for these packages to your :code:`LD_LIBRARY_PATH`.
+To find the local installation path of these packages, you may run 
+
+.. code::bash
+
+    python3 -m pip show nvidia-nvtx-vcu11 nvidia-cuda-runtime-cu11
+
+Python Requirements
+++++++++++++++++++++
+
+The python requirements for these backends include:
 * cutensor-cu11
+* custatevec-cu11
 * nvidia-cublas-cu11
 * nvidia-cusolver-cu11
+
+We recommend that these be installed via pip:
+
+.. code:: bash
+
+    python3 -m pip install cutensor-cu11 custatevec-cu11 nvidia-cublas-cu11 nvidia-cusolver-cu11
+
+Additionally, for use of the :code:`nvidia-mgpu` backend, the programmer must have a working
+installation of MPI, with the dynamic library :code:`libmpi.so` accessible via the
+:code:`LD_LIBRARY_PATH`.
+
+.. code:: bash
+
+    apt-get install openmpi # Ubuntu
+    # -- or --
+    dnf install openmpi # RHEL 9
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib64/openmpi/lib/
