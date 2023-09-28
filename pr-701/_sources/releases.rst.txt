@@ -4,7 +4,7 @@ CUDA Quantum Releases
 
 **latest**
 
-The latest version of CUDA Quantum is on the main branch of our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`__, as well as available as Docker image. More information about installing the nightly builds can be found :doc:`here <install>`
+The latest version of CUDA Quantum is on the main branch of our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`__ and is also available as a Docker image. More information about installing the nightly builds can be found :doc:`here <install>`
 
 - `Docker image (nightly builds) <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nightly/containers/cuda-quantum>`__
 - `Documentation <https://nvidia.github.io/cuda-quantum/latest>`__
