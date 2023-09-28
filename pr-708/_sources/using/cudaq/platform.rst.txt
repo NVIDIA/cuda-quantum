@@ -59,11 +59,10 @@ One can then specify the target multi-QPU architecture (:code:`nvidia-mqpu`) wit
     nvq++ simple.cpp -target nvidia-mqpu
     ./a.out
 
-Depending on the number of GPUs available on the system, :code:`nvidia-mqpu` platform will create the same number of virtual QPU instances.
+Depending on the number of GPUs available on the system, the :code:`nvidia-mqpu` platform will create the same number of virtual QPU instances.
+For example, on a system with 4 GPUs, the above code will distribute the four sampling tasks among those :code:`GPUEmulatedQPU` instances.
 
-For example, on a system that has 4 GPUs, the above code will distribute the 4 sampling tasks among those :code:`GPUEmulatedQPU` instances.
-
-The results might look like the followings (4 different random samplings).
+The results might look like the following (4 different random samplings).
 
 .. code-block:: console 
   
@@ -180,11 +179,11 @@ Parallel distribution mode
 The CUDA Quantum :code:`nvidia-mqpu` platform supports two modes of parallel distribution of expectation value computation:
 
 * MPI: distribute the expectation value computations across available MPI ranks and GPUs for each Hamiltonian term.
-* Thread: distribute the expectation value computations available GPUs via standard C++ threads (each thread handles one GPU).
+* Thread: distribute the expectation value computations among available GPUs via standard C++ threads (each thread handles one GPU).
 
-For instance, if all of the GPUs are available on a single node, thread-based parallel distribution 
-(:code:`cudaq::parallel::thread` in C++ or :code:`cudaq.parallel.thread` in Python as shown in the above example) is sufficient. 
-On the other hand, if one wants to distribute the tasks across GPUs on multiple nodes, e.g., on `HPC` clusters, MPI distribution mode
+For instance, if all GPUs are available on a single node, thread-based parallel distribution 
+(:code:`cudaq::parallel::thread` in C++ or :code:`cudaq.parallel.thread` in Python, as shown in the above example) is sufficient. 
+On the other hand, if one wants to distribute the tasks across GPUs on multiple nodes, e.g., on a compute cluster, MPI distribution mode
 should be used.
 
 An example of MPI distribution mode usage is as follows:

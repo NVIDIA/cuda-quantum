@@ -431,9 +431,9 @@ primitive functions like <code class="code docutils literal notranslate"><span c
 <span class="go">./a.out</span>
 </pre></div>
 </div>
-<p>Depending on the number of GPUs available on the system, <code class="code docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code> platform will create the same number of virtual QPU instances.</p>
-<p>For example, on a system that has 4 GPUs, the above code will distribute the 4 sampling tasks among those <code class="code docutils literal notranslate"><span class="pre">GPUEmulatedQPU</span></code> instances.</p>
-<p>The results might look like the followings (4 different random samplings).</p>
+<p>Depending on the number of GPUs available on the system, the <code class="code docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code> platform will create the same number of virtual QPU instances.
+For example, on a system with 4 GPUs, the above code will distribute the four sampling tasks among those <code class="code docutils literal notranslate"><span class="pre">GPUEmulatedQPU</span></code> instances.</p>
+<p>The results might look like the following (4 different random samplings).</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">Number of QPUs: 4</span>
 <span class="go">{ 10011:28 01100:28 ... }</span>
 <span class="go">{ 10011:37 01100:25 ... }</span>
@@ -535,11 +535,11 @@ is selected, these circuits will be distributed across all available QPUs. The f
 <p>The CUDA Quantum <code class="code docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code> platform supports two modes of parallel distribution of expectation value computation:</p>
 <ul class="simple">
 <li><p>MPI: distribute the expectation value computations across available MPI ranks and GPUs for each Hamiltonian term.</p></li>
-<li><p>Thread: distribute the expectation value computations available GPUs via standard C++ threads (each thread handles one GPU).</p></li>
+<li><p>Thread: distribute the expectation value computations among available GPUs via standard C++ threads (each thread handles one GPU).</p></li>
 </ul>
-<p>For instance, if all of the GPUs are available on a single node, thread-based parallel distribution
-(<code class="code docutils literal notranslate"><span class="pre">cudaq::parallel::thread</span></code> in C++ or <code class="code docutils literal notranslate"><span class="pre">cudaq.parallel.thread</span></code> in Python as shown in the above example) is sufficient.
-On the other hand, if one wants to distribute the tasks across GPUs on multiple nodes, e.g., on <code class="code docutils literal notranslate"><span class="pre">HPC</span></code> clusters, MPI distribution mode
+<p>For instance, if all GPUs are available on a single node, thread-based parallel distribution
+(<code class="code docutils literal notranslate"><span class="pre">cudaq::parallel::thread</span></code> in C++ or <code class="code docutils literal notranslate"><span class="pre">cudaq.parallel.thread</span></code> in Python, as shown in the above example) is sufficient.
+On the other hand, if one wants to distribute the tasks across GPUs on multiple nodes, e.g., on a compute cluster, MPI distribution mode
 should be used.</p>
 <p>An example of MPI distribution mode usage is as follows:</p>
 <section id="c">
