@@ -143,6 +143,34 @@ we refer to the `CUDA Quantum GitHub repository`_.
 
 .. _CUDA Quantum GitHub repository: https://github.com/NVIDIA/cuda-quantum/blob/main/Building.md
 
+
+CUDA Quantum Dependencies
+-------------------------
+
+CUDA Quantum can be used to simulate quantum programs (see `using/simulators`) on a CPU-only system, but a GPU is highly recommended.
+
+The supported CPUs include both the x86_64 (x86-64-v3 when using the OpenMPI stack) and ARM64 architectures.
+
+For simulation of CUDA Quantum programs on NVIDIA GPUs, additional packages should be installed. See also `cuQuantum <https://docs.nvidia.com/cuda/cuquantum/latest/getting_started.html>`__.
+
+The following table summarizes the required components.
+
+.. list-table:: Requirements
+    :widths: 30 50
+    :header-rows: 0
+
+    * - GPU Architectures
+      - Volta, Turing, Ampere, Ada, Hopper
+    * - NVIDIA GPU with Compute Capability
+      - 7.0+
+    * - CUDA
+      - 11.x, 12.x
+    * - CPU architectures
+      - x86_64, ARM64
+    * - Operating System
+      - Linux
+
+
 Next Steps
 ----------
 
