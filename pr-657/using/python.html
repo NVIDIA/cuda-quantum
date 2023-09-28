@@ -7,7 +7,9 @@
   <title>CUDA Quantum in Python &mdash; NVIDIA CUDA Quantum  documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
       <link rel="stylesheet" href="../_static/cudaq_override.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/sg_gallery.css" type="text/css" />
       <link rel="stylesheet" href="../_static/_static/cudaq_override.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
@@ -19,10 +21,13 @@
         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
         <script src="../_static/sphinx_highlight.js"></script>
+        <script src="../_static/clipboard.min.js"></script>
+        <script src="../_static/copybutton.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="CUDA Quantum Simulation Backends" href="simulators.html" />
+    <link rel="next" title="CUDA Quantum Tutorials" href="tutorials.html" />
     <link rel="prev" title="CUDA Quantum in C++" href="cpp.html" /> 
 </head>
 
@@ -30,7 +35,7 @@
   <div class="wy-grid-for-nav">
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search" > 
+        <div class="wy-side-nav-search"  style="background: #76b900" > 
 
           
           
@@ -141,7 +146,28 @@
 <li class="toctree-l3"><a class="reference internal" href="#bernstein-vazirani">Bernstein-Vazirani</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#variational-quantum-eigensolver">Variational Quantum Eigensolver</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#quantum-approximate-optimization-algorithm">Quantum Approximate Optimization Algorithm</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#noisy-simulation">Noisy Simulation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#using-quantum-hardware-providers">Using Quantum Hardware Providers</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">   Tutorials</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/executing_circuits.html">Executing Quantum Circuits</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/executing_circuits.html#Sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/executing_circuits.html#Observe">Observe</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/single_qubit_rotation.html">Single Qubit Rotation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/vqe.html">Variational Quantum Eigensolver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html">Multi-GPU Workflows</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Available-Targets">Available Targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Default-CPU-Backend">Default CPU Backend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Multiple-QPU's">Multiple QPU’s</a></li>
 </ul>
 </li>
 </ul>
@@ -250,18 +276,9 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api/languages/python_api.html">Python API</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#cudaq.initialize_cudaq"><code class="docutils literal notranslate"><span class="pre">initialize_cudaq()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#cudaq.num_available_gpus"><code class="docutils literal notranslate"><span class="pre">num_available_gpus()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#cudaq.set_random_seed"><code class="docutils literal notranslate"><span class="pre">set_random_seed()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#cudaq.mpi.initialize"><code class="docutils literal notranslate"><span class="pre">initialize()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#cudaq.mpi.rank"><code class="docutils literal notranslate"><span class="pre">rank()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#cudaq.mpi.num_ranks"><code class="docutils literal notranslate"><span class="pre">num_ranks()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#cudaq.mpi.all_gather"><code class="docutils literal notranslate"><span class="pre">all_gather()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#cudaq.mpi.is_initialized"><code class="docutils literal notranslate"><span class="pre">is_initialized()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#cudaq.mpi.finalize"><code class="docutils literal notranslate"><span class="pre">finalize()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#program-construction">Program Construction</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.from_state"><code class="docutils literal notranslate"><span class="pre">from_state()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.make_kernel"><code class="docutils literal notranslate"><span class="pre">make_kernel()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.from_state"><code class="docutils literal notranslate"><span class="pre">from_state()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.Kernel"><code class="docutils literal notranslate"><span class="pre">Kernel</span></code></a></li>
 </ul>
 </li>
@@ -281,9 +298,13 @@
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.reset_target"><code class="docutils literal notranslate"><span class="pre">reset_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.set_noise"><code class="docutils literal notranslate"><span class="pre">set_noise()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.unset_noise"><code class="docutils literal notranslate"><span class="pre">unset_noise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.initialize_cudaq"><code class="docutils literal notranslate"><span class="pre">initialize_cudaq()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.num_available_gpus"><code class="docutils literal notranslate"><span class="pre">num_available_gpus()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.set_random_seed"><code class="docutils literal notranslate"><span class="pre">set_random_seed()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#data-types">Data Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.Target"><code class="docutils literal notranslate"><span class="pre">Target</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.QuakeValue"><code class="docutils literal notranslate"><span class="pre">QuakeValue</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
@@ -303,6 +324,15 @@
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#noisy-simulation">Noisy Simulation</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#mpi-submodule">MPI Submodule</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.mpi.initialize"><code class="docutils literal notranslate"><span class="pre">initialize()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.mpi.rank"><code class="docutils literal notranslate"><span class="pre">rank()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.mpi.num_ranks"><code class="docutils literal notranslate"><span class="pre">num_ranks()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.mpi.all_gather"><code class="docutils literal notranslate"><span class="pre">all_gather()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.mpi.is_initialized"><code class="docutils literal notranslate"><span class="pre">is_initialized()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#cudaq.mpi.finalize"><code class="docutils literal notranslate"><span class="pre">finalize()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -314,7 +344,7 @@
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #76b900" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="../index.html">NVIDIA CUDA Quantum</a>
       </nav>
@@ -329,7 +359,10 @@
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/using/python.rst.txt" rel="nofollow"> View page source</a>
       </li>
-  </ul>
+  </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
+        <a href="cpp.html" class="btn btn-neutral float-left" title="CUDA Quantum in C++" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tutorials.html" class="btn btn-neutral float-right" title="CUDA Quantum Tutorials" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+  </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
@@ -676,6 +709,266 @@ This is a introduction by example for using CUDA Quantum in Python.</p>
 </pre></div>
 </div>
 </section>
+<section id="noisy-simulation">
+<h2>Noisy Simulation<a class="headerlink" href="#noisy-simulation" title="Permalink to this heading">¶</a></h2>
+<p>CUDA Quantum makes it simple to model noise within the simulation of your quantum program.
+Let’s take a look at the various built-in noise models we support, before concluding with a brief example of a custom noise model constructed from user-defined Kraus Operators.</p>
+<p>The following code illustrates how to run a simulation with depolarization noise.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+
+<span class="c1"># Set the target to our density matrix simulator.</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;density-matrix-cpu&#39;</span><span class="p">)</span>
+
+<span class="c1"># CUDA Quantum supports several different models of noise. In this</span>
+<span class="c1"># case, we will examine the modeling of depolarization noise. This</span>
+<span class="c1"># depolarization will result in the qubit state decaying into a mix</span>
+<span class="c1"># of the basis states, |0&gt; and |1&gt;, with a user provided probability.</span>
+
+<span class="c1"># We will begin by defining an empty noise model that we will add</span>
+<span class="c1"># our depolarization channel to.</span>
+<span class="n">noise</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
+
+<span class="c1"># Depolarization channel with `1.0` probability of the qubit state</span>
+<span class="c1"># being scrambled.</span>
+<span class="n">depolarization</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">DepolarizationChannel</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+<span class="c1"># We will apply the channel to any Y-gate on qubit 0. Meaning,</span>
+<span class="c1"># for each Y-gate on our qubit, the qubit will have a `1.0`</span>
+<span class="c1"># probability of decaying into a mixed state.</span>
+<span class="n">noise</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">depolarization</span><span class="p">)</span>
+
+<span class="c1"># Now we may define our simple kernel function and allocate</span>
+<span class="c1"># a qubit to it.</span>
+<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="n">qubit</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+
+<span class="c1"># First we apply a Y-gate to qubit 0.</span>
+<span class="c1"># This will bring the qubit to the |1&gt; state, where it will remain</span>
+<span class="c1"># with a probability of `1 - p = 0.0`.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+
+<span class="c1"># Without noise, the qubit should still be in the |1&gt; state.</span>
+<span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+<span class="n">counts</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
+
+<span class="c1"># With noise, the measurements should be a roughly 50/50</span>
+<span class="c1"># mix between the |0&gt; and |1&gt; states.</span>
+<span class="n">noisy_counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">)</span>
+<span class="n">noisy_counts</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The following code illustrates how to run a simulation with amplitude damping noise.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+
+<span class="c1"># Set the target to our density matrix simulator.</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;density-matrix-cpu&#39;</span><span class="p">)</span>
+
+<span class="c1"># CUDA Quantum supports several different models of noise. In this case,</span>
+<span class="c1"># we will examine the modeling of energy dissipation within our system</span>
+<span class="c1"># via environmental interactions. The result of this &quot;amplitude damping&quot;</span>
+<span class="c1"># is to return the qubit to the |0&gt; state with a user-specified probability.</span>
+
+<span class="c1"># We will begin by defining an empty noise model that we will add</span>
+<span class="c1"># our damping channel to.</span>
+<span class="n">noise</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
+
+<span class="c1"># Amplitude damping channel with `1.0` probability of the qubit</span>
+<span class="c1"># decaying to the ground state.</span>
+<span class="n">amplitude_damping</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">AmplitudeDampingChannel</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+<span class="c1"># We will apply this channel to any Hadamard gate on the qubit.</span>
+<span class="c1"># Meaning, after each Hadamard on the qubit, there will be a</span>
+<span class="c1"># probability of `1.0` that the qubit decays back to ground.</span>
+<span class="n">noise</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s1">&#39;h&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">amplitude_damping</span><span class="p">)</span>
+
+<span class="c1"># Now we may define our simple kernel function and allocate a qubit.</span>
+<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="n">qubit</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+
+<span class="c1"># Then we apply a Hadamard gate to the qubit.</span>
+<span class="c1"># This will bring it to `1/sqrt(2) (|0&gt; + |1&gt;)`, where it will remain</span>
+<span class="c1"># with a probability of `1 - p = 0.0`.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+
+<span class="c1"># Measure.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+
+<span class="c1"># Now we&#39;re ready to run the noisy simulation of our kernel.</span>
+<span class="c1"># Note: We must pass the noise model to sample via key-word.</span>
+<span class="n">noisy_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">)</span>
+<span class="n">noisy_result</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
+
+<span class="c1"># Our results should show all measurements in the |0&gt; state, indicating</span>
+<span class="c1"># that the noise has successfully impacted the system.</span>
+
+<span class="c1"># To confirm this, we can run the simulation again without noise.</span>
+<span class="c1"># The qubit will now have a 50/50 mix of measurements between</span>
+<span class="c1"># |0&gt; and |1&gt;.</span>
+<span class="n">noiseless_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+<span class="n">noiseless_result</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The following code illustrates how to run a simulation with bit-flip noise.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+
+<span class="c1"># Set the target to our density matrix simulator.</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;density-matrix-cpu&#39;</span><span class="p">)</span>
+
+<span class="c1"># CUDA Quantum supports several different models of noise. In this case,</span>
+<span class="c1"># we will examine the modeling of decoherence of the qubit state. This</span>
+<span class="c1"># will occur from &quot;bit flip&quot; errors, wherein the qubit has a user-specified</span>
+<span class="c1"># probability of undergoing an X-180 rotation.</span>
+
+<span class="c1"># We will begin by defining an empty noise model that we will add</span>
+<span class="c1"># these decoherence channels to.</span>
+<span class="n">noise</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
+
+<span class="c1"># Bit flip channel with `1.0` probability of the qubit flipping 180 degrees.</span>
+<span class="n">bit_flip</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">BitFlipChannel</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+<span class="c1"># We will apply this channel to any X gate on the qubit, giving each X-gate</span>
+<span class="c1"># a probability of `1.0` of undergoing an extra X-gate.</span>
+<span class="n">noise</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">bit_flip</span><span class="p">)</span>
+
+<span class="c1"># Now we may define our simple kernel function and allocate a register</span>
+<span class="c1"># of qubits to it.</span>
+<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="n">qubit</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+
+<span class="c1"># Apply an X-gate to the qubit.</span>
+<span class="c1"># It will remain in the |1&gt; state with a probability of `1 - p = 0.0`.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+<span class="c1"># Measure.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+
+<span class="c1"># Now we&#39;re ready to run the noisy simulation of our kernel.</span>
+<span class="c1"># Note: We must pass the noise model to sample via key-word.</span>
+<span class="n">noisy_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">)</span>
+<span class="n">noisy_result</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
+
+<span class="c1"># Our results should show all measurements in the |0&gt; state, indicating</span>
+<span class="c1"># that the noise has successfully impacted the system.</span>
+
+<span class="c1"># To confirm this, we can run the simulation again without noise.</span>
+<span class="c1"># We should now see the qubit in the |1&gt; state.</span>
+<span class="n">noiseless_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+<span class="n">noiseless_result</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The following code illustrates how to run a simulation with phase-flip noise.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+
+<span class="c1"># Set the target to our density matrix simulator.</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;density-matrix-cpu&#39;</span><span class="p">)</span>
+
+<span class="c1"># CUDA Quantum supports several different models of noise. In this</span>
+<span class="c1"># case, we will examine the modeling of decoherence of the qubit phase.</span>
+<span class="c1"># This will occur from &quot;phase flip&quot; errors, wherein the qubit has a</span>
+<span class="c1"># user-specified probability of undergoing a Z-180 rotation.</span>
+
+<span class="c1"># We will begin by defining an empty noise model that we will add</span>
+<span class="c1"># our phase flip channel to.</span>
+<span class="n">noise</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
+
+<span class="c1"># Phase flip channel with `1.0` probability of the qubit</span>
+<span class="c1"># undergoing a phase rotation of 180 degrees (π).</span>
+<span class="n">phase_flip</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">PhaseFlipChannel</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+<span class="c1"># We will apply this channel to any Z gate on the qubit.</span>
+<span class="c1"># Meaning, after each Z gate on qubit 0, there will be a</span>
+<span class="c1"># probability of `1.0` that the qubit undergoes an extra</span>
+<span class="c1"># Z rotation.</span>
+<span class="n">noise</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">phase_flip</span><span class="p">)</span>
+
+<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="c1"># Single qubit initialized to the |0&gt; state.</span>
+<span class="n">qubit</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+
+<span class="c1"># Place qubit in superposition state.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+
+<span class="c1"># Rotate the phase around Z by 180 degrees (π).</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+
+<span class="c1"># Apply another Hadamard and measure.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+
+<span class="c1"># Without noise, we&#39;d expect the qubit to end in the |1&gt;</span>
+<span class="c1"># state due to the phase rotation between the two Hadamard</span>
+<span class="c1"># gates.</span>
+<span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+<span class="n">counts</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
+
+<span class="c1"># With noise, our Z-gate will effectively cancel out due</span>
+<span class="c1"># to the presence of a phase flip error on the gate with a</span>
+<span class="c1"># probability of `1.0`. This will put us back in the |0&gt; state.</span>
+<span class="n">noisy_counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">)</span>
+<span class="n">noisy_counts</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The following code illustrates how to run a simulation with a custom noise model.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="c1"># Set the target to our density matrix simulator.</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;density-matrix-cpu&#39;</span><span class="p">)</span>
+
+<span class="c1"># CUDA Quantum supports custom noise models through the definition of</span>
+<span class="c1"># `KrausChannel`&#39;s. In this case, we will define a set of `KrausOperator`&#39;s</span>
+<span class="c1"># that  affect the same noise as the `AmplitudeDampingChannel`. This</span>
+<span class="c1"># channel will model the energy dissipation within our system via</span>
+<span class="c1"># environmental interactions. With a variable probability, it will</span>
+<span class="c1"># return the qubit to the |0&gt; state.</span>
+
+<span class="c1"># We will begin by defining an empty noise model that we will add</span>
+<span class="c1"># our Kraus Channel to.</span>
+<span class="n">noise</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
+
+
+<span class="c1"># We will define our Kraus Operators within functions, as to</span>
+<span class="c1"># allow for easy control over the noise probability.</span>
+<span class="k">def</span> <span class="nf">kraus_operators</span><span class="p">(</span><span class="n">probability</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;See Nielsen, Chuang Chapter 8.3.5 for definition source.&quot;&quot;&quot;</span>
+    <span class="n">kraus_0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">probability</span><span class="p">)]],</span>
+                       <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
+    <span class="n">kraus_1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">probability</span><span class="p">),</span> <span class="mi">0</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">kraus_0</span><span class="p">,</span> <span class="n">kraus_1</span><span class="p">]</span>
+
+
+<span class="c1"># Manually defined amplitude damping channel with `1.0` probability</span>
+<span class="c1"># of the qubit decaying to the ground state.</span>
+<span class="n">amplitude_damping</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">KrausChannel</span><span class="p">(</span><span class="n">kraus_operators</span><span class="p">(</span><span class="mf">1.0</span><span class="p">))</span>
+<span class="c1"># We will apply this channel to any Hadamard gate on the qubit.</span>
+<span class="c1"># Meaning, after each Hadamard on the qubit, there will be a</span>
+<span class="c1"># probability of `1.0` that the qubit decays back to ground.</span>
+<span class="n">noise</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s1">&#39;h&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">amplitude_damping</span><span class="p">)</span>
+
+<span class="c1"># Now we may define our simple kernel function and allocate a qubit.</span>
+<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="n">qubit</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+
+<span class="c1"># Then we apply a Hadamard gate to the qubit.</span>
+<span class="c1"># This will bring it to `1/sqrt(2) (|0&gt; + |1&gt;)`, where it will remain</span>
+<span class="c1"># with a probability of `1 - p = 0.0`.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+
+<span class="c1"># Measure.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+
+<span class="c1"># Now we&#39;re ready to run the noisy simulation of our kernel.</span>
+<span class="c1"># Note: We must pass the noise model to sample via key-word.</span>
+<span class="n">noisy_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">)</span>
+<span class="n">noisy_result</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
+
+<span class="c1"># Our results should show all measurements in the |0&gt; state, indicating</span>
+<span class="c1"># that the noise has successfully impacted the system.</span>
+
+<span class="c1"># To confirm this, we can run the simulation again without noise.</span>
+<span class="c1"># The qubit will now have a 50/50 mix of measurements between</span>
+<span class="c1"># |0&gt; and |1&gt;.</span>
+<span class="n">noiseless_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+<span class="n">noiseless_result</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
 <section id="using-quantum-hardware-providers">
 <span id="python-examples-for-hardware-providers"></span><h2>Using Quantum Hardware Providers<a class="headerlink" href="#using-quantum-hardware-providers" title="Permalink to this heading">¶</a></h2>
 <p>CUDA Quantum contains support for using a set of hardware providers.
@@ -802,7 +1095,7 @@ For more information about executing quantum kernels on different hardware backe
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="cpp.html" class="btn btn-neutral float-left" title="CUDA Quantum in C++" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="simulators.html" class="btn btn-neutral float-right" title="CUDA Quantum Simulation Backends" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="tutorials.html" class="btn btn-neutral float-right" title="CUDA Quantum Tutorials" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
