@@ -1,0 +1,295 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-translate --convert-to=qir %s | FileCheck %s
+
+func.func private @bar(!cc.callable<(!quake.veq<3>) -> ()>, !quake.veq<3>)
+func.func private @corge(!quake.veq<3>)
+func.func private @waldo(!cc.callable<(!quake.veq<3>) -> i32>, !quake.veq<3>) -> i32
+func.func private @fred(!quake.veq<3>) -> i16
+func.func private @garply(!cc.callable<(!quake.veq<3>) -> f64>, !quake.veq<3>, i64) -> f64
+func.func private @plugh(!quake.veq<3>, i32) -> f32
+
+func.func @foo(%0: !cc.callable<(!quake.veq<3>) -> ()>) {
+  %1 = quake.alloca !quake.veq<3>
+  %2 = cc.callable_func %0 : (!cc.callable<(!quake.veq<3>) -> ()>) -> ((!quake.veq<3>) -> ())
+  call_indirect %2(%1) : (!quake.veq<3>) -> ()
+  return
+}
+
+// CHECK-LABEL: define void @foo({ i8*, i8* } 
+// CHECK-SAME:                                %[[VAL_0:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_1:.*]] = tail call %[[VAL_2:.*]]* @__quantum__rt__qubit_allocate_array(i64 3)
+// CHECK:         %[[VAL_3:.*]] = tail call %[[VAL_2]]* @__quantum__rt__array_slice(%[[VAL_2]]* %[[VAL_1]], i32 1, i64 0, i64 1, i64 2)
+// CHECK:         %[[VAL_4:.*]] = extractvalue { i8*, i8* } %[[VAL_0]], 0
+// CHECK:         %[[VAL_5:.*]] = bitcast i8* %[[VAL_4]] to void (%[[VAL_2]]*)*
+// CHECK:         tail call void %[[VAL_5]](%[[VAL_2]]* %[[VAL_3]])
+// CHECK:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_2]]* %[[VAL_1]])
+// CHECK:         ret void
+// CHECK:       }
+
+func.func @baz(%0: !cc.ptr<!cc.callable<(!quake.veq<3>) -> ()>>) {
+  %1 = cc.instantiate_callable @bar() : () -> !cc.callable<(!quake.veq<3>) -> ()>
+  cc.store %1 , %0 : !cc.ptr<!cc.callable<(!quake.veq<3>) -> ()>>
+  return
+}
+
+// CHECK-LABEL: define void @baz({ i8*, i8* }* nocapture writeonly 
+// CHECK-SAME:                                                     %[[VAL_0:.*]]) local_unnamed_addr #0 {
+// CHECK:         %[[VAL_1:.*]] = alloca {}, align 8
+// CHECK:         %[[VAL_2:.*]] = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %[[VAL_0]], i64 0, i32 0
+// CHECK:         store i8* bitcast (void ({ i8*, i8* }, %[[VAL_3:.*]]*)* @bar to i8*), i8** %[[VAL_2]], align 8
+// CHECK:         %[[VAL_4:.*]] = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %[[VAL_0]], i64 0, i32 1
+// CHECK:         %[[VAL_5:.*]] = bitcast i8** %[[VAL_4]] to {}**
+// CHECK:         store {}* %[[VAL_1]], {}** %[[VAL_5]], align 8
+// CHECK:         ret void
+// CHECK:       }
+
+func.func @thud(%2 : !cc.ptr<!cc.callable<(!quake.veq<3>) -> ()>>) {
+  %0 = cc.instantiate_callable @corge() nocapture : () -> !cc.callable<(!quake.veq<3>) -> ()>
+  %1 = quake.alloca !quake.veq<3>
+  cc.store %0, %2 : !cc.ptr<!cc.callable<(!quake.veq<3>) -> ()>>
+  cc.call_callable %0, %1 : (!cc.callable<(!quake.veq<3>) -> ()>, !quake.veq<3>) -> ()
+  return
+}
+
+// CHECK-LABEL: define void @thud({ i8*, i8* }* nocapture writeonly 
+// CHECK-SAME:                                                      %[[VAL_0:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_1:.*]] = tail call %[[VAL_2:.*]]* @__quantum__rt__qubit_allocate_array(i64 3)
+// CHECK:         %[[VAL_3:.*]] = tail call %[[VAL_2]]* @__quantum__rt__array_slice(%[[VAL_2]]* %[[VAL_1]], i32 1, i64 0, i64 1, i64 2)
+// CHECK:         %[[VAL_4:.*]] = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %[[VAL_0]], i64 0, i32 0
+// CHECK:         store i8* bitcast (void (%[[VAL_2]]*)* @corge to i8*), i8** %[[VAL_4]], align 8
+// CHECK:         %[[VAL_5:.*]] = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %[[VAL_0]], i64 0, i32 1
+// CHECK:         store i8* null, i8** %[[VAL_5]], align 8
+// CHECK:         tail call void @corge(%[[VAL_2]]* %[[VAL_3]])
+// CHECK:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_2]]* %[[VAL_1]])
+// CHECK:         ret void
+// CHECK:       }
+
+func.func @qux(%0 : !cc.callable<(!quake.veq<3>) -> ()>, %1 : !quake.veq<3>) {
+  cc.call_callable %0, %1 : (!cc.callable<(!quake.veq<3>) -> ()>, !quake.veq<3>) -> ()
+  return
+}
+
+// CHECK-LABEL: define void @qux({ i8*, i8* } 
+// CHECK-SAME:       %[[VAL_0:.*]], %[[VAL_1:.*]]* %[[VAL_2:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_3:.*]] = extractvalue { i8*, i8* } %[[VAL_0]], 0
+// CHECK:         %[[VAL_4:.*]] = extractvalue { i8*, i8* } %[[VAL_0]], 1
+// CHECK:         %[[VAL_5:.*]] = icmp eq i8* %[[VAL_4]], null
+// CHECK:         br i1 %[[VAL_5]], label %[[VAL_6:.*]], label %[[VAL_7:.*]]
+// CHECK:       6:                                                ; preds = %[[VAL_8:.*]]
+// CHECK:         %[[VAL_9:.*]] = bitcast i8* %[[VAL_3]] to void (%[[VAL_1]]*)*
+// CHECK:         tail call void %[[VAL_9]](%[[VAL_1]]* %[[VAL_2]])
+// CHECK:         br label %[[VAL_10:.*]]
+// CHECK:       8:                                                ; preds = %[[VAL_8]]
+// CHECK:         %[[VAL_11:.*]] = bitcast i8* %[[VAL_3]] to void ({ i8*, i8* }, %[[VAL_1]]*)*
+// CHECK:         tail call void %[[VAL_11]]({ i8*, i8* } %[[VAL_0]], %[[VAL_1]]* %[[VAL_2]])
+// CHECK:         br label %[[VAL_10]]
+// CHECK:       10:                                               ; preds = %[[VAL_6]], %[[VAL_7]]
+// CHECK:         ret void
+// CHECK:       }
+
+func.func @grault(%0 : !cc.ptr<!cc.callable<(!quake.veq<3>) -> ()>>, %1 : !quake.veq<3>) {
+  %2 = cc.load %0 : !cc.ptr<!cc.callable<(!quake.veq<3>) -> ()>>
+  cc.call_callable %2, %1 : (!cc.callable<(!quake.veq<3>) -> ()>, !quake.veq<3>) -> ()
+  return
+}
+
+// CHECK-LABEL: define void @grault({ i8*, i8* }* nocapture readonly 
+// CHECK-SAME:       %[[VAL_0:.*]], %[[VAL_1:.*]]* %[[VAL_2:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_3:.*]] = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %[[VAL_0]], i64 0, i32 0
+// CHECK:         %[[VAL_4:.*]] = load i8*, i8** %[[VAL_3]], align 8
+// CHECK:         %[[VAL_5:.*]] = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %[[VAL_0]], i64 0, i32 1
+// CHECK:         %[[VAL_6:.*]] = load i8*, i8** %[[VAL_5]], align 8
+// CHECK:         %[[VAL_7:.*]] = icmp eq i8* %[[VAL_6]], null
+// CHECK:         br i1 %[[VAL_7]], label %[[VAL_8:.*]], label %[[VAL_9:.*]]
+// CHECK:       4:                                                ; preds = %[[VAL_10:.*]]
+// CHECK:         %[[VAL_11:.*]] = bitcast i8* %[[VAL_4]] to void (%[[VAL_1]]*)*
+// CHECK:         tail call void %[[VAL_11]](%[[VAL_1]]* %[[VAL_2]])
+// CHECK:         br label %[[VAL_12:.*]]
+// CHECK:       6:                                                ; preds = %[[VAL_10]]
+// CHECK:         %[[VAL_13:.*]] = insertvalue { i8*, i8* } poison, i8* %[[VAL_4]], 0
+// CHECK:         %[[VAL_14:.*]] = insertvalue { i8*, i8* } %[[VAL_13]], i8* %[[VAL_6]], 1
+// CHECK:         %[[VAL_15:.*]] = bitcast i8* %[[VAL_4]] to void ({ i8*, i8* }, %[[VAL_1]]*)*
+// CHECK:         tail call void %[[VAL_15]]({ i8*, i8* } %[[VAL_14]], %[[VAL_1]]* %[[VAL_2]])
+// CHECK:         br label %[[VAL_12]]
+// CHECK:       10:                                               ; preds = %[[VAL_8]], %[[VAL_9]]
+// CHECK:         ret void
+// CHECK:       }
+
+func.func @quux(%0 : !cc.callable<(!quake.veq<3>) -> i32>, %1 : !quake.veq<3>) -> i32 {
+  %2 = cc.call_callable %0, %1 : (!cc.callable<(!quake.veq<3>) -> i32>, !quake.veq<3>) -> i32
+  return %2 : i32
+}
+
+// CHECK-LABEL: define i32 @quux({ i8*, i8* } 
+// CHECK-SAME:     %[[VAL_0:.*]], %[[VAL_1:.*]]* %[[VAL_2:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_3:.*]] = extractvalue { i8*, i8* } %[[VAL_0]], 0
+// CHECK:         %[[VAL_4:.*]] = extractvalue { i8*, i8* } %[[VAL_0]], 1
+// CHECK:         %[[VAL_5:.*]] = icmp eq i8* %[[VAL_4]], null
+// CHECK:         br i1 %[[VAL_5]], label %[[VAL_6:.*]], label %[[VAL_7:.*]]
+// CHECK:       6:                                                ; preds = %[[VAL_8:.*]]
+// CHECK:         %[[VAL_9:.*]] = bitcast i8* %[[VAL_3]] to i32 (%[[VAL_1]]*)*
+// CHECK:         %[[VAL_10:.*]] = tail call i32 %[[VAL_9]](%[[VAL_1]]* %[[VAL_2]])
+// CHECK:         br label %[[VAL_11:.*]]
+// CHECK:       9:                                                ; preds = %[[VAL_8]]
+// CHECK:         %[[VAL_12:.*]] = bitcast i8* %[[VAL_3]] to i32 ({ i8*, i8* }, %[[VAL_1]]*)*
+// CHECK:         %[[VAL_13:.*]] = tail call i32 %[[VAL_12]]({ i8*, i8* } %[[VAL_0]], %[[VAL_1]]* %[[VAL_2]])
+// CHECK:         br label %[[VAL_11]]
+// CHECK:       12:                                               ; preds = %[[VAL_6]], %[[VAL_7]]
+// CHECK:         %[[VAL_14:.*]] = phi i32 [ %[[VAL_10]], %[[VAL_6]] ], [ %[[VAL_13]], %[[VAL_7]] ]
+// CHECK:         ret i32 %[[VAL_14]]
+// CHECK:       }
+
+func.func private @ae(!cc.callable<(!quake.veq<3>) -> i32>)
+
+func.func @aloha() {
+  %0 = arith.constant 32 : i32
+  %1 = cc.instantiate_callable @waldo(%0) : (i32) -> !cc.callable<(!quake.veq<3>) -> i32>
+  call @ae(%1) : (!cc.callable<(!quake.veq<3>) -> i32>) -> ()
+  return
+}
+
+// CHECK-LABEL: define void @aloha() local_unnamed_addr {
+// CHECK:         %[[VAL_0:.*]] = alloca { i32 }, align 8
+// CHECK:         %[[VAL_1:.*]] = getelementptr inbounds { i32 }, { i32 }* %[[VAL_0]], i64 0, i32 0
+// CHECK:         store i32 32, i32* %[[VAL_1]], align 8
+// CHECK:         %[[VAL_2:.*]] = bitcast { i32 }* %[[VAL_0]] to i8*
+// CHECK:         %[[VAL_3:.*]] = insertvalue { i8*, i8* } { i8* bitcast (i32 ({ i8*, i8* }, %[[VAL_4:.*]]*)* @waldo to i8*), i8* undef }, i8* %[[VAL_2]], 1
+// CHECK:         call void @ae({ i8*, i8* } %[[VAL_3]])
+// CHECK:         ret void
+// CHECK:       }
+
+func.func @ahupuaa(%0 : !cc.callable<(!quake.veq<3>) -> i16>, %1 : !quake.veq<3>) -> i16 {
+  %2 = cc.call_callable %0, %1 : (!cc.callable<(!quake.veq<3>) -> i16>, !quake.veq<3>) -> i16
+  return %2 : i16
+}
+
+// CHECK-LABEL: define i16 @ahupuaa({ i8*, i8* } 
+// CHECK-SAME:      %[[VAL_0:.*]], %[[VAL_1:.*]]* %[[VAL_2:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_3:.*]] = extractvalue { i8*, i8* } %[[VAL_0]], 0
+// CHECK:         %[[VAL_4:.*]] = extractvalue { i8*, i8* } %[[VAL_0]], 1
+// CHECK:         %[[VAL_5:.*]] = icmp eq i8* %[[VAL_4]], null
+// CHECK:         br i1 %[[VAL_5]], label %[[VAL_6:.*]], label %[[VAL_7:.*]]
+// CHECK:       6:                                                ; preds = %[[VAL_8:.*]]
+// CHECK:         %[[VAL_9:.*]] = bitcast i8* %[[VAL_3]] to i16 (%[[VAL_1]]*)*
+// CHECK:         %[[VAL_10:.*]] = tail call i16 %[[VAL_9]](%[[VAL_1]]* %[[VAL_2]])
+// CHECK:         br label %[[VAL_11:.*]]
+// CHECK:       9:                                                ; preds = %[[VAL_8]]
+// CHECK:         %[[VAL_12:.*]] = bitcast i8* %[[VAL_3]] to i16 ({ i8*, i8* }, %[[VAL_1]]*)*
+// CHECK:         %[[VAL_13:.*]] = tail call i16 %[[VAL_12]]({ i8*, i8* } %[[VAL_0]], %[[VAL_1]]* %[[VAL_2]])
+// CHECK:         br label %[[VAL_11]]
+// CHECK:       12:                                               ; preds = %[[VAL_6]], %[[VAL_7]]
+// CHECK:         %[[VAL_14:.*]] = phi i16 [ %[[VAL_10]], %[[VAL_6]] ], [ %[[VAL_13]], %[[VAL_7]] ]
+// CHECK:         ret i16 %[[VAL_14]]
+// CHECK:       }
+
+func.func private @akamai(!cc.callable<(!quake.veq<3>) -> i16>)
+
+func.func @aina() {
+  %0 = cc.instantiate_callable @fred() nocapture : () -> !cc.callable<(!quake.veq<3>) -> i16>
+  call @akamai(%0) : (!cc.callable<(!quake.veq<3>) -> i16>) -> ()
+  return
+}
+
+// CHECK-LABEL: define void @aina() local_unnamed_addr {
+// CHECK:         tail call void @akamai({ i8*, i8* } { i8* bitcast (i16 (%[[VAL_0:.*]]*)* @fred to i8*), i8* null })
+// CHECK:         ret void
+// CHECK:       }
+
+func.func @akua(%0: !cc.callable<(!quake.veq<3>) -> f64>, %1: !quake.veq<3>, %2: i64) -> f64 {
+  %3 = cc.call_callable %0, %1 : (!cc.callable<(!quake.veq<3>) -> f64>, !quake.veq<3>) -> f64
+  return %3 : f64
+}
+
+// CHECK-LABEL: define double @akua({ i8*, i8* } 
+// CHECK-SAME:     %[[VAL_0:.*]], %[[VAL_1:.*]]* %[[VAL_2:.*]], i64 %[[VAL_3:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_4:.*]] = extractvalue { i8*, i8* } %[[VAL_0]], 0
+// CHECK:         %[[VAL_5:.*]] = extractvalue { i8*, i8* } %[[VAL_0]], 1
+// CHECK:         %[[VAL_6:.*]] = icmp eq i8* %[[VAL_5]], null
+// CHECK:         br i1 %[[VAL_6]], label %[[VAL_7:.*]], label %[[VAL_8:.*]]
+// CHECK:       7:                                                ; preds = %[[VAL_9:.*]]
+// CHECK:         %[[VAL_10:.*]] = bitcast i8* %[[VAL_4]] to double (%[[VAL_1]]*)*
+// CHECK:         %[[VAL_11:.*]] = tail call double %[[VAL_10]](%[[VAL_1]]* %[[VAL_2]])
+// CHECK:         br label %[[VAL_12:.*]]
+// CHECK:       10:                                               ; preds = %[[VAL_9]]
+// CHECK:         %[[VAL_13:.*]] = bitcast i8* %[[VAL_4]] to double ({ i8*, i8* }, %[[VAL_1]]*)*
+// CHECK:         %[[VAL_14:.*]] = tail call double %[[VAL_13]]({ i8*, i8* } %[[VAL_0]], %[[VAL_1]]* %[[VAL_2]])
+// CHECK:         br label %[[VAL_12]]
+// CHECK:       13:                                               ; preds = %[[VAL_7]], %[[VAL_8]]
+// CHECK:         %[[VAL_15:.*]] = phi double [ %[[VAL_11]], %[[VAL_7]] ], [ %[[VAL_14]], %[[VAL_8]] ]
+// CHECK:         ret double %[[VAL_15]]
+// CHECK:       }
+
+func.func private @alii(!cc.callable<(!quake.veq<3>) -> f64>)
+
+func.func @ala(%0: i32, %1: i32) {
+  %2 = cc.instantiate_callable @garply(%0, %1) : (i32, i32) -> !cc.callable<(!quake.veq<3>) -> f64>
+  call @alii(%2) : (!cc.callable<(!quake.veq<3>) -> f64>) -> ()
+  return
+}
+
+// CHECK-LABEL: define void @ala(i32 
+// CHECK-SAME:      %[[VAL_0:.*]], i32 %[[VAL_1:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_2:.*]] = alloca { i32, i32 }, align 8
+// CHECK:         %[[VAL_3:.*]] = getelementptr inbounds { i32, i32 }, { i32, i32 }* %[[VAL_2]], i64 0, i32 0
+// CHECK:         store i32 %[[VAL_0]], i32* %[[VAL_3]], align 8
+// CHECK:         %[[VAL_4:.*]] = getelementptr inbounds { i32, i32 }, { i32, i32 }* %[[VAL_2]], i64 0, i32 1
+// CHECK:         store i32 %[[VAL_1]], i32* %[[VAL_4]], align 4
+// CHECK:         %[[VAL_5:.*]] = bitcast { i32, i32 }* %[[VAL_2]] to i8*
+// CHECK:         %[[VAL_6:.*]] = insertvalue { i8*, i8* } { i8* bitcast (double ({ i8*, i8* }, %[[VAL_7:.*]]*, i64)* @garply to i8*), i8* undef }, i8* %[[VAL_5]], 1
+// CHECK:         call void @alii({ i8*, i8* } %[[VAL_6]])
+// CHECK:         ret void
+// CHECK:       }
+
+func.func @aole(%0 : !cc.callable<(!quake.veq<3>, i32) -> f32>, %1 : !quake.veq<3>, %2: i32) -> f32 {
+  %3 = cc.call_callable %0, %1, %2 : (!cc.callable<(!quake.veq<3>, i32) -> f32>, !quake.veq<3>, i32) -> f32
+  return %3 : f32
+}
+
+// CHECK-LABEL: define float @aole({ i8*, i8* } 
+// CHECK-SAME:      %[[VAL_0:.*]], %[[VAL_1:.*]]* %[[VAL_2:.*]], i32 %[[VAL_3:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_4:.*]] = extractvalue { i8*, i8* } %[[VAL_0]], 0
+// CHECK:         %[[VAL_5:.*]] = extractvalue { i8*, i8* } %[[VAL_0]], 1
+// CHECK:         %[[VAL_6:.*]] = icmp eq i8* %[[VAL_5]], null
+// CHECK:         br i1 %[[VAL_6]], label %[[VAL_7:.*]], label %[[VAL_8:.*]]
+// CHECK:       7:                                                ; preds = %[[VAL_9:.*]]
+// CHECK:         %[[VAL_10:.*]] = bitcast i8* %[[VAL_4]] to float (%[[VAL_1]]*, i32)*
+// CHECK:         %[[VAL_11:.*]] = tail call float %[[VAL_10]](%[[VAL_1]]* %[[VAL_2]], i32 %[[VAL_3]])
+// CHECK:         br label %[[VAL_12:.*]]
+// CHECK:       10:                                               ; preds = %[[VAL_9]]
+// CHECK:         %[[VAL_13:.*]] = bitcast i8* %[[VAL_4]] to float ({ i8*, i8* }, %[[VAL_1]]*, i32)*
+// CHECK:         %[[VAL_14:.*]] = tail call float %[[VAL_13]]({ i8*, i8* } %[[VAL_0]], %[[VAL_1]]* %[[VAL_2]], i32 %[[VAL_3]])
+// CHECK:         br label %[[VAL_12]]
+// CHECK:       13:                                               ; preds = %[[VAL_7]], %[[VAL_8]]
+// CHECK:         %[[VAL_15:.*]] = phi float [ %[[VAL_11]], %[[VAL_7]] ], [ %[[VAL_14]], %[[VAL_8]] ]
+// CHECK:         ret float %[[VAL_15]]
+// CHECK:       }
+
+func.func private @aumakua(!cc.callable<(!quake.veq<3>, i32) -> f32>)
+
+func.func @auau() {
+  %0 = cc.instantiate_callable @plugh() nocapture : () -> !cc.callable<(!quake.veq<3>, i32) -> f32>
+  call @aumakua(%0) : (!cc.callable<(!quake.veq<3>, i32) -> f32>) -> ()
+  return
+}
+
+// CHECK-LABEL: define void @auau() local_unnamed_addr {
+// CHECK:         tail call void @aumakua({ i8*, i8* } { i8* bitcast (float (%[[VAL_0:.*]]*, i32)* @plugh to i8*), i8* null })
+// CHECK:         ret void
+// CHECK:       }
+
+// Using a function value is not (yet) supported.
+//
+// func.func @xyzzy(%0: (!quake.veq<3>) -> ()) {
+//   %0 = cc.instantiate_callable %0() : () -> !cc.callable<(!quake.veq<3>) -> ()>
+//   %1 = quake.alloca !quake.veq<3>
+//   cc.call_callable %0, %1 : (!cc.callable<(!quake.veq<3>) -> ()>, !quake.veq<3>) -> ()
+//   return
+// }
+

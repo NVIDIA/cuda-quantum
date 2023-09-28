@@ -104,7 +104,7 @@ private:
 
   func::FuncOp lookupCallee(quake::ApplyOp apply) {
     auto callee = apply.getCallee();
-    return module.lookupSymbol<func::FuncOp>(callee);
+    return module.lookupSymbol<func::FuncOp>(*callee);
   }
 
   ModuleOp module;
@@ -171,7 +171,7 @@ struct ApplyOpPattern : public OpRewritePattern<quake::ApplyOp> {
   LogicalResult matchAndRewrite(quake::ApplyOp apply,
                                 PatternRewriter &rewriter) const override {
     auto calleeName = getVariantFunctionName(
-        apply, apply.getCallee().getRootReference().str());
+        apply, apply.getCallee()->getRootReference().str());
     auto *ctx = apply.getContext();
     auto consTy = quake::VeqType::getUnsized(ctx);
     SmallVector<Value> newArgs;
@@ -318,7 +318,7 @@ public:
         newControls.append(apply.getControls().begin(),
                            apply.getControls().end());
         auto newApply = builder.create<quake::ApplyOp>(
-            apply.getLoc(), apply.getResultTypes(), apply.getCallee(),
+            apply.getLoc(), apply.getResultTypes(), apply.getCalleeAttr(),
             apply.getIsAdjAttr(), newControls, apply.getArgs());
         apply->replaceAllUsesWith(newApply.getResults());
         apply->erase();

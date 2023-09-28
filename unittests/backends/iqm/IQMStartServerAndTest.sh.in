@@ -9,7 +9,7 @@
 # ============================================================================ #
 
 # Check if iqm-client is installed, otherwise mark the test as skipped
-@Python_EXECUTABLE@ -c "import iqm_client" 2> /dev/null
+@Python_EXECUTABLE@ -c "import iqm.iqm_client" 2> /dev/null
 if [ $? -ne 0 ]; then
     echo "iqm-client is not installed. It is required for testing IQM integration. Please install it using pip install iqm-client. Skipping IQM tests."
     exit 77

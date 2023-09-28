@@ -640,7 +640,7 @@ def test_observe_n():
     print(runtimeAngles)
 
     results = cudaq.observe(kernel, hamiltonian, runtimeAngles[:, 0],
-                              runtimeAngles[:, 1])
+                            runtimeAngles[:, 1])
     energies = np.array([r.expectation_z() for r in results])
     print(energies)
     assert len(energies) == 50
@@ -666,8 +666,10 @@ def test_observe_n():
 
 
 def test_observe_list():
-    hamiltonianList = [-2.1433 * spin.x(0) * spin.x(1), -2.1433 * spin.y(
-        0) * spin.y(1),  .21829 * spin.z(0), - 6.125 * spin.z(1)]
+    hamiltonianList = [
+        -2.1433 * spin.x(0) * spin.x(1), -2.1433 * spin.y(0) * spin.y(1),
+        .21829 * spin.z(0), -6.125 * spin.z(1)
+    ]
 
     circuit, theta = cudaq.make_kernel(float)
     q = circuit.qalloc(2)
@@ -683,6 +685,7 @@ def test_observe_list():
     print(sum)
     want_expectation_value = -1.7487948611472093
     assert assert_close(want_expectation_value, sum, tolerance=1e-2)
+
 
 # leave for gdb debugging
 if __name__ == "__main__":

@@ -188,7 +188,7 @@ if [ -f "$NVQPP_LD_PATH" ]; then
 fi
 LINKER_FLAGS="${LINKER_FLAGS} -Wl,-rpath,${install_dir}/lib -Wl,-rpath,${install_dir}/lib/plugins -Wl,-rpath,${PWD}"
 
-LIBRARY_MODE_EXECUTION_MANAGER="qir"
+LIBRARY_MODE_EXECUTION_MANAGER="default"
 PLATFORM_LIBRARY="default"
 LLVM_QUANTUM_TARGET="qir"
 LINKDIRS="-L${install_dir}/lib -L${install_dir}/lib/plugins @CUDAQ_CXX_NVQPP_LINK_STR@"
@@ -221,6 +221,7 @@ SRCS=
 ARGS=
 CUDAQ_QUAKE_ARGS=
 DO_LINK=true
+SHOW_VERSION=false
 ENABLE_DEVICE_CODE_LOADERS=true
 ENABLE_KERNEL_EXECUTION=true
 ENABLE_AGGRESSIVE_EARLY_INLINE=true
@@ -386,6 +387,7 @@ while [ $# -ne 0 ]; do
 		;;
 	--version)
 		CUDAQ_QUAKE_ARGS="--nvqpp-version ${CUDAQ_QUAKE_ARGS}"
+		SHOW_VERSION=true
 		;;
 	-v)
 		ECHO=true
@@ -505,6 +507,13 @@ if ${RUN_OPT}; then
 fi
 
 OPT_PASSES="builtin.module(${OPT_PASSES})"
+
+if ${SHOW_VERSION} && [ -z "$SRCS" ] && [ -z "$OBJS" ]; then
+	# If version is requested and no source files were provided, bypass the
+	# cudaq-quake path that expects to read code from stdin.
+	echo "" | ${TOOLBIN}cudaq-quake ${CUDAQ_QUAKE_ARGS}
+	DO_LINK=false
+fi
 
 for i in ${SRCS}; do
 	file=$(basename -s .cc -s .cpp $i)

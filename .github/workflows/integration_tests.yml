@@ -94,40 +94,26 @@ jobs:
           echo "### Submit to IonQ Simulator" >> $GITHUB_STEP_SUMMARY
           export IONQ_API_KEY="${{ secrets.IONQ_API_KEY }}"
           # TODO: remove this flag once https://github.com/NVIDIA/cuda-quantum/issues/512 is addressed.
-          export IONQ_FLAG="-DIONQ_TARGET"
           export CUDAQ_LOG_LEVEL="info"
           set +e # Allow script to keep going through errors
           test_err_sum=0
           for filename in test/NVQPP/integration/*.cpp; do
             [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
-            # Only the following tests are currently supported on IonQ
-            case $filename in
-              test/NVQPP/integration/bug_qubit.cpp|\
-              test/NVQPP/integration/callable_kernel_arg.cpp|\
-              test/NVQPP/integration/if_jit.cpp|\
-              test/NVQPP/integration/load_value.cpp|\
-              test/NVQPP/integration/swap_gate.cpp|\
-              test/NVQPP/integration/test-int8_t.cpp|\
-              test/NVQPP/integration/test-int8_t_free_func.cpp|\
-              test/NVQPP/integration/variable_size_qreg.cpp)
-                nvq++ -v $IONQ_FLAG $filename --target ionq
-                test_status=$?
-                if [ $test_status -eq 0 ]; then
-                  ./a.out
-                  test_status=$?
-                  if [ $test_status -eq 0 ]; then
-                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
-                  else
-                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                    test_err_sum=$((test_err_sum+1))
-                  fi
-                else
-                  echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-                  test_err_sum=$((test_err_sum+1))
-                fi ;;
-              *)
-                echo ":white_flag: Test skipped due to known issues: $filename" >> $GITHUB_STEP_SUMMARY ;;
-            esac
+            nvq++ -v $filename --target ionq
+            test_status=$?
+            if [ $test_status -eq 0 ]; then
+              ./a.out
+              test_status=$?
+              if [ $test_status -eq 0 ]; then
+                echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+              else
+                echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                test_err_sum=$((test_err_sum+1))
+              fi
+            else
+              echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+              test_err_sum=$((test_err_sum+1))
+            fi
           done
           set -e # Re-enable exit code error checking
           if [ ! $test_err_sum -eq 0 ]; then
@@ -150,6 +136,7 @@ jobs:
         # - test/NVQPP/integration/sudoku_2x2-bit_names.cpp
         # - test/NVQPP/integration/sudoku_2x2-reg_name.cpp
         # - test/NVQPP/integration/sudoku_2x2.cpp
+        # - test/NVQPP/integration/test-observe.cpp
         run: |
           # Must install iqm-cortex-cli to authenticate
           pip install iqm-cortex-cli
@@ -216,6 +203,9 @@ jobs:
         # - test/NVQPP/integration/sudoku_2x2-bit_names.cpp
         # - test/NVQPP/integration/sudoku_2x2-reg_name.cpp
         # - test/NVQPP/integration/sudoku_2x2.cpp
+        # The following test is disabled due to https://github.com/NVIDIA/cuda-quantum/issues/695
+        # - test/NVQPP/integration/test-observe.cpp|\
+
         run: |
           echo "### Submit to OQC sandbox server" >> $GITHUB_STEP_SUMMARY
           export CUDAQ_LOG_LEVEL="info"

@@ -44,7 +44,9 @@ void bindGradientStrategies(py::module &mod) {
             return grad.compute(x, function, funcAtX);
           },
           py::arg("parameter_vector"), py::arg("function"), py::arg("funcAtX"),
-          "");
+          "Compute the gradient of the provided `parameter_vector` with "
+          "respect to "
+          "its loss function, using the `CentralDifference` method.\n");
   py::class_<gradients::forward_difference, gradient>(gradients_submodule,
                                                       "ForwardDifference")
       .def(py::init<>())
@@ -57,7 +59,9 @@ void bindGradientStrategies(py::module &mod) {
             return grad.compute(x, function, funcAtX);
           },
           py::arg("parameter_vector"), py::arg("function"), py::arg("funcAtX"),
-          "");
+          "Compute the gradient of the provided `parameter_vector` with "
+          "respect to "
+          "its loss function, using the `ForwardDifference` method.\n");
   py::class_<gradients::parameter_shift, gradient>(gradients_submodule,
                                                    "ParameterShift")
       .def(py::init<>())
@@ -70,7 +74,9 @@ void bindGradientStrategies(py::module &mod) {
             return grad.compute(x, function, funcAtX);
           },
           py::arg("parameter_vector"), py::arg("function"), py::arg("funcAtX"),
-          "");
+          "Compute the gradient of the provided `parameter_vector` with "
+          "respect to "
+          "its loss function, using the `ParameterShift` method.\n");
 }
 
 /// @brief Add the requested optimization routine as a class
