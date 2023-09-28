@@ -113,6 +113,8 @@ or run the Python examples using the Python interpreter.
     may not be automatically active in the container environment. You may need to install your preferred 
     extension in the container environment for all of your development tools to be available.
 
+.. _install-python-wheels:
+
 Python wheels
 --------------------
 
