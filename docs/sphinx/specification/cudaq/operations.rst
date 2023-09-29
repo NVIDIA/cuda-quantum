@@ -22,85 +22,291 @@ of that instruction on all provided :code:`cudaq::qudits`, e.g. :code:`void x(cu
 :code:`x(cudaq::qubit&, cudaq::qubit&, cudaq::qubit&)`, modeling the NOT operation on a single 
 :code:`cudaq::qubit` or on multiple :code:`cudaq::qubit`. 
 
-The specific set of quantum intrinsic operations available to the programmer
-will be platform specific, e.g. the standard Clifford+T gate set on
-:code:`cudaq::qubit` versus a continuous variable (photonic) gate set on 
-:code:`cudaq::qudit<N>`. 
+CUDA Quantum provides a default set of :ref:`built-in operations <built-in-operations>` on qubits. 
+These built-in operations can be used to define custom kernels and libraries.
+Since the set of quantum intrinsic operations natively supported on a specific target 
+depends on the backends architecture, the :code:`nvq++` compiler automatically
+decomposes built-in operations into the appropriate set of intrinsic operations 
+for that target.
 
-Implementations should provide overloads to support broadcasting of an
-operation across a register of :code:`cudaq::qudit`, e.g. :code:`x(cudaq::qreg<>&)`
-to apply a NOT operation on all :code:`cudaq::qubit` in the provided :code:`cudaq::qreg`. 
-
-Programmers can further modify quantum intrinsic operations via an extra specified template
-parameter, and CUDA Quantum leverages this syntax for synthesizing control and adjoint variants of the operation.
-Here is an example of how one might modify an intrinsic operation for multi-control
-and adjoint operations. 
+Built-in operations that implement unitary transformations of the quantum state are templated. 
+The template argument :code:`cudaq::adj` can be used to invoke the 
+`adjoint <https://en.wikipedia.org/wiki/Conjugate_transpose>`__ transformation:
 
 .. code-block:: cpp
 
-    cudaq::qubit q, r, s;
-    // Apply T operation
+    // Allocate a qubit in a |0> state.
+    cudaq::qubit q
+    // Apply the unitary transformation defined by the matrix
+    // T = | 1      0     |
+    //     | 0  exp(iπ/4) |
+    // to the state of the qubit `q`:
     t(q);
-    // Apply Tdg operation
+    // Apply its adjoint transformation defined by the matrix
+    // T† = | 1      0     |
+    //      | 0  exp(-iπ/4) |
     t<cudaq::adj>(q);
-    // Apply control hadamard operation
-    h<cudaq::ctrl>(q,r,s);
-    // Error, ctrl requires > 1 qubit operands
-    // h<cudaq::ctrl>(r);
+    // Qubit `q` is now again in the initial state |0>.
 
-Operations on :code:`cudaq::qubit`
-----------------------------------
-The default set of quantum intrinsic operations for the
-:code:`cudaq::qubit` type is as follows: 
+The template argument :code:`cudaq::ctrl` can be used to apply the transformation
+conditional on the state of one or more control qubits, see also this 
+`Wikipedia entry <https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gatese>`__.
 
-.. code-block:: cpp 
+.. code-block:: cpp
 
-    namespace cudaq {
-      struct base;
-      struct ctrl;
-      struct adj;
-  
-      // Single qubit operations, ctrl / adj variants, and broadcasting
-      template<typename mod = base, typename... QubitArgs>
-      void NAME(QubitArgs&... args) noexcept { ... }
-  
-      template<typename mod = base>
-      void NAME(const qreg& qr) noexcept { ... }
-  
-      template<typename mod = ctrl>
-      void NAME(qreg& ctrls, qubit& target) noexcept { ... }
- 
-      // Single qubit rotation operations and ctrl / adj variants
-      template <typename mod = base, typename ScalarAngle, typename... QubitArgs> 
-      void ROTATION_NAME(ScalarAngle angle, QubitArgs &...args) noexcept { ... }
- 
-      // General swap with control variants
-      // must take at least 2 qubits
-      template<typename... QubitArgs>
-      void swap(QubitArgs&... args) { ... }
- 
-      bool MEASURE_OP(qubit &q) noexcept;
-      std::vector<bool> MEASURE_OP(qreg &q) noexcept;
-      double measure(cudaq::spin_op & term) noexcept { ... }
-  }
+    // Allocate additional control qubits.
+    cudaq::qubit c1, c2, q;
+    // Create a superposition.
+    h(c1);
+    // Qubit c1 is now in a state (|0> + |1>) / √2.
 
-For the default implementation of the :code:`cudaq::qubit` intrinsic operations, we
-let :code:`NAME` be any operation name in the set :code:`{x, y, z, h, t, s}`
-and :code:`ROTATION_NAME` be any operation in :code:`{rx, ry, rz, r1 (phase)}`. 
-Measurements (:code:`MEASURE_OP`) can be general qubit measurements in the x, y, or z 
-direction (:code:`mx, my, mz`). 
-Implementations may provide appropriate function implementations using the
-above foundational functions to enable other common operations
-(e.g. :code:`cnot` -> :code:`x<ctrl>`).
+    // Apply the unitary transformation
+    // | 1  0  0  0 |
+    // | 0  1  0  0 |
+    // | 0  0  0  1 |
+    // | 0  0  1  0 |
+    x<cudaq::ctrl>(c1, c2);
+    // The qubits c1 and c2 are in a state (|00> + |11>) / √2.
 
-Control qubits can be specified with positive or negative polarity. By this we mean
-that a control qubit can specify that a target operation is applied if the control 
-qubit state is a :code:`|0>` (positive polarity) or :code:`|1>` (negative polarity). 
-By default all control qubits are assumed to convey positive polarity. 
-The syntax for negating the polarity is the not operator preceeding the
-control qubit (e.g., :code:`x<cudaq::ctrl>(!q, r)`, 
-for :code:`cudaq::qubits` :code:`q` and :code:`r`). Negating the polarity of
-control qubits is supported in :code:`swap` and the gates in sets :code:`NAME`
-or :code:`ROTATION_NAME`. The negate notation is only supported on control
-qubits and not target qubits. So negating either of the target qubits in the
+    // Set the state of qubit q to |1>:
+    x(q);
+    // Apply the transformation T only if both 
+    // control qubits are in a |1> state:
+    t<cudaq::ctrl>(c1, c2, q);
+    // The qubits c1, c2, and q are now in a state
+    // (|000> + exp(iπ/4)|111>) / √2.
+
+Following common convention, by default the transformation is applied to the target qubit(s)
+if all control qubits are in a :code:`|1>` state. 
+However, that behavior can be changed to instead apply the transformation when a control qubit is in 
+a :code:`|0>` state by negating the polarity of the control qubit.
+The syntax for negating the polarity is the not-operator preceding the
+control qubit: 
+
+.. code-block:: cpp
+
+    cudaq::qubit c, q;
+    h(c);
+    x<cudaq::ctrl>(!c, q);
+    // The qubits c and q are in a state (|01> + |10>) / √2.
+
+This notation is only supported in the context of applying a controlled operation and is only valid for control qubits. For example, negating either of the target qubits in the
 :code:`swap` operation is not allowed.
+Negating the polarity of control qubits is similarly supported when using :code:`cudaq::control` to conditionally apply a custom quantum kernel.
+
+CUDA Quantum additionally provides overloads to support broadcasting of
+built-in single-qubit operations across a register of qubits. 
+For example, :code:`x(cudaq::qreg<>&)` applies a NOT operation 
+to all qubits in the provided :code:`cudaq::qreg`. 
+
+.. _built-in-operations:
+
+Built-in Operations on Qubits
+----------------------------------
+
+:code:`x`
+---------------------
+
+This operation implements the transformation defined by the Pauli-X matrix. It is also known as the quantum version of a `NOT`-gate.
+
+.. code-block:: cpp
+
+    // Apply the unitary transformation
+    // X = | 0  1 |
+    //     | 1  0 |
+    x(q);
+
+:code:`y`
+---------------------
+
+This operation implements the transformation defined by the Pauli-Y matrix.
+
+.. code-block:: cpp
+
+    // Apply the unitary transformation
+    // Y = | 0  -i |
+    //     | i   0 |
+    y(q);
+
+:code:`z`
+---------------------
+
+This operation implements the transformation defined by the Pauli-Z matrix.
+
+.. code-block:: cpp
+
+    // Apply the unitary transformation
+    // Z = | 1   0 |
+    //     | 0  -1 |
+    z(q);
+
+:code:`h`
+---------------------
+
+This is a rotation by π about the X+Z axis, and 
+enables one to create a superposition of computational basis states.
+
+.. code-block:: cpp
+
+    // Apply the unitary transformation
+    // H = (1 / sqrt(2)) * | 1   1 |
+    //                     | 1  -1 |
+    h(q);
+
+:code:`phased_rx`
+---------------------
+
+This is an arbitrary rotation θ around the cos(φ)x + sin(φ)y axis.
+
+.. code-block:: cpp
+
+    // Apply the unitary transformation
+    // PhasedRx(θ,φ) = |        cos(θ/2)        -iexp(-iφ) * sin(θ/2) |
+    //                 | -iexp(iφ)) * sin(θ/2)         cos(θ/2)       |
+    phased_rx(q);
+
+:code:`r1`
+---------------------
+
+This is an arbitrary rotation about the |1> state.
+
+.. code-block:: cpp
+
+    // Apply the unitary transformation
+    // R1(λ) = | 1     0    |
+    //         | 0  exp(iλ) |
+    r1(q);
+
+:code:`rx`
+---------------------
+
+This is an arbitrary rotation about the X axis.
+
+.. code-block:: cpp
+
+    // Apply the unitary transformation
+    // Rx(θ) = |  cos(θ/2)  -isin(θ/2) |
+    //         | -isin(θ/2)  cos(θ/2)  |
+    rx(q);
+
+:code:`ry`
+---------------------
+
+This is an arbitrary rotation about the Y axis.
+
+.. code-block:: cpp
+
+    // Apply the unitary transformation
+    // Ry(θ) = | cos(θ/2)  -sin(θ/2) |
+    //         | sin(θ/2)   cos(θ/2) |
+    ry(q);
+
+:code:`rz`
+---------------------
+
+This is an arbitrary rotation about the Z axis.
+
+.. code-block:: cpp
+
+    // Apply the unitary transformation
+    // Rz(λ) = | exp(-iλ/2)      0     |
+    //         |     0       exp(iλ/2) |
+    rz(q);
+
+:code:`s`
+---------------------
+
+This operation applies to its target a rotation by π/2 about the Z axis.
+
+.. code-block:: cpp
+
+    // Apply the unitary transformation
+    // S = | 1   0 |
+    //     | 0   i |
+    s(q);
+
+:code:`t`
+---------------------
+
+This operation applies to its target a π/4 rotation about the Z axis.
+
+.. code-block:: cpp
+
+    // Apply the unitary transformation
+    // T = | 1      0     |
+    //     | 0  exp(iπ/4) |
+    t(q);
+
+:code:`u2`
+---------------------
+
+This is a generic rotation about the X+Z axis defined by two Euler angles.
+
+.. code-block:: cpp
+
+    // Apply the unitary transformation
+    // U2(φ,λ) = 1/sqrt(2) * | 1        -exp(iλ)       |
+    //                       | exp(iφ)   exp(i(λ + φ)) |
+
+    u2(q);
+
+:code:`u2`
+---------------------
+
+This is the universal three-parameters operator defined by three Euler angles.
+It is a generalization of :code:`u2` that covers all single-qubit rotations.
+
+.. code-block:: cpp
+
+    // Apply the unitary transformation
+    // U3(θ,φ,λ) = | cos(θ/2)            -exp(iλ) * sin(θ/2)       |
+    //             | exp(iφ) * sin(θ/2)   exp(i(λ + φ)) * cos(θ/2) |
+    u3(q);
+
+:code:`swap`
+---------------------
+
+This operation swaps the states of two qubits.
+
+.. code-block:: cpp
+
+    // Apply the unitary transformation
+    // Swap = | 1 0 0 0 |
+    //        | 0 0 1 0 |
+    //        | 0 1 0 0 |
+    //        | 0 0 0 1 |
+    swap(q);
+
+:code:`mz`
+---------------------
+
+This operation measures a qubit with respect to the computational basis, 
+i.e. it projects the state of that qubit onto the eigenvectors of the Pauli-Z matrix.
+This is a non-linear transformation, and no template overloads are available.
+
+.. code-block:: cpp
+
+    mz(q);
+
+:code:`mx`
+---------------------
+
+This operation measures a qubit with respect to the Pauli-X basis, 
+i.e. it projects the state of that qubit onto the eigenvectors of the Pauli-X matrix.
+This is a non-linear transformation, and no template overloads are available.
+
+.. code-block:: cpp
+
+    mx(q);
+
+:code:`my`
+---------------------
+
+This operation measures a qubit with respect to the Pauli-Y basis, 
+i.e. it projects the state of that qubit onto the eigenvectors of the Pauli-Y matrix.
+This is a non-linear transformation, and no template overloads are available.
+
+.. code-block:: cpp
+
+    my(q);
+

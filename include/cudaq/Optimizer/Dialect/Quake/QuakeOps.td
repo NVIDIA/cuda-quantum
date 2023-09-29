@@ -783,13 +783,13 @@ class TwoTargetOp<string mnemonic, list<Trait> traits = []> :
                 traits)>;
 
 //===----------------------------------------------------------------------===//
-// Quantum operators (gates)
+// Quantum operations (gates)
 //===----------------------------------------------------------------------===//
 
 def HOp : OneTargetOp<"h", [Hermitian]> {
   let summary = "Hadamard operation";
   let description = [{
-    This is a pi rotation about the X+Z axis, and has the effect of changing the
+    This is a π rotation about the X+Z axis, and has the effect of changing the
     computation basis from |0> (|1>) to |+> (|->) and vice-versa, meaning that
     it enables one to create a superposition of basis states.
 
@@ -902,7 +902,7 @@ def RzOp : OneTargetParamOp<"rz", [Rotation]> {
 def SOp : OneTargetOp<"s"> {
   let summary = "S operation (aka, P or Sqrt(Z))";
   let description = [{
-    This operation applies to its target a pi/2 rotation about the Z axis.
+    This operation applies to its target a π/2 rotation about the Z axis.
 
     Matrix representation:
     ```
@@ -922,7 +922,7 @@ def SOp : OneTargetOp<"s"> {
 def SwapOp : TwoTargetOp<"swap", [Hermitian]> {
   let summary = "Swap operation";
   let description = [{
-    This operation swaps the states of two wires.
+    This operation swaps the states of two qubits.
 
     Matrix representation:
     ```
