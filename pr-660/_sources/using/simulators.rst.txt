@@ -52,7 +52,7 @@ OpenMP CPU-only
 ++++++++++++++++++++++++++++++++++
 
 The :code:`default` target provides a state vector simulator based on the CPU-only, OpenMP
-threaded `Q++ <https//github.com/softwareqinc/qpp>`_ library. This is the default 
+threaded `Q++ <https://github.com/softwareqinc/qpp>`_ library. This is the default 
 target, so if the code is compiled without any :code:`--target` flags, this is the 
 simulator that will be used. 
 
