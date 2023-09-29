@@ -40,14 +40,10 @@ __qpu__ void grover() {
   oracle(qubits, ancilla);
   reflect_uniform(qubits);
 
-// TODO: Extend measurement support for submissions to IonQ,
-// see https://github.com/NVIDIA/cuda-quantum/issues/512.
-#ifndef IONQ_TARGET
   auto groverQubits0 = mz(qubits[0]);
   auto groverQubits1 = mz(qubits[1]);
   auto groverQubits2 = mz(qubits[2]);
   auto groverQubits3 = mz(qubits[3]);
-#endif
 };
 
 int main() {

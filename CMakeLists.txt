@@ -357,11 +357,31 @@ target_compile_options(spdlog PRIVATE -Wno-covered-switch-default)
 include(CheckLanguage)
 check_language(CUDA)
 set(CUDA_FOUND FALSE)
+# Generate -gencode arch=compute_XX,code=sm_XX for list of supported
+# arch values.
+# List should be sorted in increasing order.
+function(CUDA_get_gencode_args out_args_string arch_values)
+  # allow the user to pass the list like a normal variable
+  set(arch_list ${arch_values} ${ARGN})
+  set(out "")
+  foreach(arch IN LISTS arch_list)
+    set(out "${out} -gencode arch=compute_${arch},code=sm_${arch}")
+  endforeach(arch)
+
+  # Repeat the last one as to ensure the generation of PTX for most
+  # recent virtual architecture for forward compatibility
+  list(GET arch_list -1 last_arch)
+  set(out "${out} -gencode arch=compute_${last_arch},code=compute_${last_arch}")
+  set(${out_args_string} ${out} PARENT_SCOPE)
+endfunction()
+
 if(CMAKE_CUDA_COMPILER)
-  if (NOT CUDA_ARCH_BIN)
-    set(CUDA_ARCH_BIN 80)
+  if (NOT CUDA_TARGET_ARCHS)
+    # Volta, Ampere, Hopper
+    set(CUDA_TARGET_ARCHS  "70;80;90")
   endif()
-  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -shared -std=c++17 -gencode arch=compute_${CUDA_ARCH_BIN},code=sm_${CUDA_ARCH_BIN}  --compiler-options -fPIC")
+  CUDA_get_gencode_args(CUDA_gencode_flags ${CUDA_TARGET_ARCHS})
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -shared -std=c++17 ${CUDA_gencode_flags} --compiler-options -fPIC")
 
   enable_language(CUDA)
   set(CUDA_FOUND TRUE)

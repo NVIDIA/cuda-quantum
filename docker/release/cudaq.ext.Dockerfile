@@ -15,7 +15,7 @@ ARG assets=./assets
 COPY "$assets" "$CUDA_QUANTUM_PATH/assets/"
 
 ADD ./scripts/migrate_assets.sh "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
-RUN for folder in `find "$CUDA_QUANTUM_PATH/assets"/* -maxdepth 0 -type d`; \
+RUN for folder in `find "$CUDA_QUANTUM_PATH/assets"/*$(uname -m)/* -maxdepth 0 -type d`; \
     do bash "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh" "$folder" && rm -rf "$folder"; done \
     && rm "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
 

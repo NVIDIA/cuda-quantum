@@ -250,6 +250,24 @@ CUDAQ_TEST(NoiseTest, checkBitFlipTypeSimple) {
   cudaq::unset_noise(); // clear for subsequent tests
 }
 
+// Same as above but use alternate sample interface that specifies the number of
+// shots and the noise model to use.
+CUDAQ_TEST(NoiseTest, checkBitFlipTypeSimpleOptions) {
+  cudaq::set_random_seed(13);
+  cudaq::bit_flip_channel bf(1.);
+  cudaq::noise_model noise;
+  noise.add_channel<cudaq::types::x>({0}, bf);
+  const std::size_t shots = 252;
+  auto counts = cudaq::sample({.shots = shots, .noise = noise}, xOp{});
+  // Check results
+  EXPECT_EQ(1, counts.size());
+  EXPECT_NEAR(counts.probability("0"), 1., .1);
+  std::size_t totalShots = 0;
+  for (auto &[bitstr, count] : counts)
+    totalShots += count;
+  EXPECT_EQ(totalShots, shots);
+}
+
 CUDAQ_TEST(NoiseTest, checkPhaseFlipType) {
   cudaq::set_random_seed(13);
 
