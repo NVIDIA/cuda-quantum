@@ -59,4 +59,10 @@ void fermionic_swap(KernelBuilder &kernel, cudaq::QuakeValue phi,
   kernel.rz(phi / 2.0, a);
   kernel.rz(phi / 2.0, b);
 }
+
+template <typename KernelBuilder>
+void fermionic_swap(KernelBuilder &kernel, double phi, cudaq::QuakeValue a,
+                    cudaq::QuakeValue b) {
+  fermionic_swap(kernel, kernel.constantVal(phi), a, b);
+}
 } // namespace cudaq

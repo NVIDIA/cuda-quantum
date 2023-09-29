@@ -18,7 +18,8 @@
 
 #include "common/ExecutionContext.h"
 #include "common/MeasureCounts.h"
-
+#include "cudaq/qis/library/fermionic_swap.h"
+#include "cudaq/qis/library/givens_rotation.h"
 #include <any>
 
 namespace cudaq {
@@ -294,6 +295,55 @@ and rotations and return a valid, callable, CUDA Quantum kernel.
           " to the kernel at a concrete parameter value.\n"                    \
           "  kernel." #NAME "(parameter=3.14, target=qubit)\n")
 
+#define ADD_BUILDER_PARAM_TWO_QUBIT_LIB_GATE(NAME)                             \
+  .def(                                                                        \
+      #NAME,                                                                   \
+      [](kernel_builder<> &self, QuakeValue &parameter, QuakeValue &q0,        \
+         QuakeValue &q1) { cudaq::NAME(self, parameter, q0, q1); },            \
+      py::arg("parameter"), py::arg("q0"), py::arg("q1"),                      \
+      "Apply " #NAME                                                           \
+      " to the given target qubits, parameterized by the provided "            \
+      "kernel argument (`parameter`).\n"                                       \
+      "\nArgs:\n"                                                              \
+      "  parameter (:class:`QuakeValue`): The kernel argument to "             \
+      "parameterize "                                                          \
+      "the " #NAME " gate over.\n"                                             \
+      "  q0 (:class:`QuakeValue`): The first qubit operand of "                \
+      "the " #NAME " gate.\n"                                                  \
+      "  q1 (:class:`QuakeValue`): The second qubit operand of "               \
+      "the " #NAME " gate.\n"                                                  \
+      "\n.. code-block:: python\n\n"                                           \
+      "  # Example:\n"                                                         \
+      "  # Create a kernel that accepts a float, `angle`, as its "             \
+      "argument.\n"                                                            \
+      "  kernel, angle = cudaq.make_kernel(float)\n"                           \
+      "  qubit = kernel.qalloc(2)\n"                                           \
+      "  # Apply an " #NAME " to the kernel at `angle`.\n"                     \
+      "  kernel." #NAME "(parameter=angle, q0=qubit[0], q1=qubit[1])\n")       \
+      .def(                                                                    \
+          #NAME,                                                               \
+          [](kernel_builder<> &self, double parameter, QuakeValue &q0,         \
+             QuakeValue &q1) { cudaq::NAME(self, parameter, q0, q1); },        \
+          py::arg("parameter"), py::arg("q0"), py::arg("q1"),                  \
+          "Apply " #NAME                                                       \
+          " to the given target qubits, parameterized by the provided "        \
+          "double value (`parameter`).\n"                                      \
+          "\nArgs:\n"                                                          \
+          "  parameter (float): The double value to "                          \
+          "parameterize "                                                      \
+          "the " #NAME " gate over.\n"                                         \
+          "  q0 (:class:`QuakeValue`): The first qubit operand of the " #NAME  \
+          " gate.\n"                                                           \
+          "  q1 (:class:`QuakeValue`): The second qubit operand of the " #NAME \
+          " gate.\n"                                                           \
+          "\n.. code-block:: python\n\n"                                       \
+          "  # Example:\n"                                                     \
+          "  kernel = cudaq.make_kernel() \n"                                  \
+          "  qubit = kernel.qalloc(2)\n"                                       \
+          "  # Apply an " #NAME                                                \
+          " to the kernel at a concrete parameter value.\n"                    \
+          "  kernel." #NAME "(parameter=3.14, q0=qubit[0], q1=qubit[1])\n")
+
 void bindKernel(py::module &mod) {
   py::class_<kernel_builder<>>(
       mod, "Kernel",
@@ -429,6 +479,9 @@ Args:
       ADD_BUILDER_PARAM_QIS_METHOD(ry)
       ADD_BUILDER_PARAM_QIS_METHOD(rz)
       ADD_BUILDER_PARAM_QIS_METHOD(r1)
+      /// @brief Bind parameterized two-qubit library-based gates.
+      ADD_BUILDER_PARAM_TWO_QUBIT_LIB_GATE(fermionic_swap)
+      ADD_BUILDER_PARAM_TWO_QUBIT_LIB_GATE(givens_rotation)
       // clang-format on
 
       .def(

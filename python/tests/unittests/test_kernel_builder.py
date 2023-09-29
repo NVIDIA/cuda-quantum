@@ -281,3 +281,46 @@ def test_from_state():
     ss = cudaq.get_state(kernel)
     for i in range(4):
         assert np.isclose(ss[i], state[i], 1e-3)
+
+def test_givens_rotation_op():
+    cudaq.reset_target()
+    angle = 0.2
+    c = np.cos(angle)
+    s = np.sin(angle)
+    test_01 = cudaq.make_kernel()
+    qubits_01 = test_01.qalloc(2)
+    test_01.x(qubits_01[0])
+    test_01.givens_rotation(angle, qubits_01[0], qubits_01[1])
+    ss_01 = cudaq.get_state(test_01)
+    assert np.isclose(ss_01[1], -s, 1e-3)
+    assert np.isclose(ss_01[2], c, 1e-3)
+
+
+    test_10 = cudaq.make_kernel()
+    qubits_10  = test_10.qalloc(2)
+    test_10.x(qubits_10[1])
+    test_10.givens_rotation(angle, qubits_10[0], qubits_10[1])
+    ss_10 = cudaq.get_state(test_10)
+    assert np.isclose(ss_10[1], c, 1e-3)
+    assert np.isclose(ss_10[2], s, 1e-3)
+
+def test_fermionic_swap_op():
+    cudaq.reset_target()
+    angle = 0.2
+    c = np.cos(angle/2)
+    s = np.sin(angle/2)
+    test_01 = cudaq.make_kernel()
+    qubits_01 = test_01.qalloc(2)
+    test_01.x(qubits_01[0])
+    test_01.fermionic_swap(angle, qubits_01[0], qubits_01[1])
+    ss_01 = cudaq.get_state(test_01)
+    assert np.isclose(np.abs(ss_01[1]), np.abs(s), 1e-3)
+    assert np.isclose(np.abs(ss_01[2]), np.abs(c), 1e-3)
+
+    test_10 = cudaq.make_kernel()
+    qubits_10  = test_10.qalloc(2)
+    test_10.x(qubits_10[1])
+    test_10.fermionic_swap(angle, qubits_10[0], qubits_10[1])
+    ss_10 = cudaq.get_state(test_10)
+    assert np.isclose(np.abs(ss_10[1]), np.abs(c), 1e-3)
+    assert np.isclose(np.abs(ss_10[2]), np.abs(s), 1e-3)

@@ -66,4 +66,10 @@ void givens_rotation(KernelBuilder &kernel, cudaq::QuakeValue angle_rads,
   cudaq::QuakeValue exponent = (2.0 * angle_rads) / M_PI;
   phased_iswap_pow(kernel, kernel.constantVal(0.25), exponent, a, b);
 }
+
+template <typename KernelBuilder>
+void givens_rotation(KernelBuilder &kernel, double angle_rads,
+                     cudaq::QuakeValue a, cudaq::QuakeValue b) {
+  givens_rotation(kernel, kernel.constantVal(angle_rads), a, b);
+}
 } // namespace cudaq
