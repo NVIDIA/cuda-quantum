@@ -113,6 +113,8 @@ or run the Python examples using the Python interpreter.
     may not be automatically active in the container environment. You may need to install your preferred 
     extension in the container environment for all of your development tools to be available.
 
+.. _install-python-wheels:
+
 Python wheels
 --------------------
 
@@ -143,14 +145,12 @@ we refer to the `CUDA Quantum GitHub repository`_.
 
 Next Steps
 ----------
-With the CUDA Quantum Docker image installed and a container up and running, check out the
-Using CUDA Quantum page_. To run the examples codes in the container, checkout the Compiling
-and Executing section here_. 
 
-Once in the VS Code IDE or in the terminal for the container in headless mode, you'll 
-notice there is an :code:`examples/` folder. These examples are provided to 
+The Docker image contains a folder with example in the :code:`/home/cudaq` directory. These examples are provided to 
 get you started with CUDA Quantum and understanding the programming and execution model. 
-Start of by trying to compile a simple one, like :code:`examples/cpp/basics/static_kernel.cpp`
+If you are not using the Docker image, you can find these examples on our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`__.
+
+Start of by trying to compile a simple one, like :code:`examples/cpp/basics/static_kernel.cpp`:
 
 .. code-block:: console 
 
@@ -165,5 +165,4 @@ run command), try out the 30 qubit version of this example.
     nvq++ examples/cpp/basics/cuquantum_backends.cpp --target nvidia 
     ./a.out 
 
-.. _page: using/cudaq.html
-.. _here: using/cudaq/compiling.html
+For more information about developing and running CUDA Quantum code, take a look at the page :doc:`Using CUDA Quantum <using/cudaq>`. 
