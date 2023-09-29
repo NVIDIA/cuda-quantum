@@ -62,7 +62,7 @@ result = cudaq.sample(kernel)
 To see more examples, go to [python examples][python_examples], or check out the
 [Python API reference][python_api_reference].
 
-To install and configure GPU enabled simulation backends, see 
+To install and configure GPU enabled simulation backends, see
 [Configuring GPU Backends][python_gpu_reference].
 
 [python_examples]:
