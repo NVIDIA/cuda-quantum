@@ -133,6 +133,7 @@ Python Requirements
 ++++++++++++++++++++
 
 The python requirements for these backends include:
+
 * cutensor-cu11
 * custatevec-cu11
 * nvidia-cublas-cu11
