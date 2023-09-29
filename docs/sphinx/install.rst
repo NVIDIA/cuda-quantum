@@ -151,7 +151,9 @@ CUDA Quantum can be used to simulate quantum programs (see :doc:`using/simulator
 
 The supported CPUs include x86_64 (x86-64-v3 architecture and newer) and ARM64 architectures.
 
-For simulation of CUDA Quantum programs on NVIDIA GPUs, additional packages should be installed. See also `cuQuantum <https://docs.nvidia.com/cuda/cuquantum/latest/getting_started.html>`__.
+.. note:: 
+
+   The CUDA Quantum Python wheels depend on an existing CUDA installation on your system. For more information about installing the CUDA Quantum Python wheels, take a look at :ref:`this page <install-python-wheels>`.
 
 The following table summarizes the required components.
 
