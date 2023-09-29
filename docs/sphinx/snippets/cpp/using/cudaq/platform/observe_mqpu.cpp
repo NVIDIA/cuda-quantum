@@ -14,6 +14,7 @@
 #include <cudaq.h>
 
 int main() {
+  // [Begin Documentation]
   using namespace cudaq::spin;
   cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
                      .21829 * z(0) - 6.125 * z(1);
@@ -34,5 +35,6 @@ int main() {
 
   double result = cudaq::observe<cudaq::parallel::thread>(ansatz, h, 0.59);
   printf("Expectation value: %lf\n", result);
+  // [End Documentation]
   return 0;
 }
