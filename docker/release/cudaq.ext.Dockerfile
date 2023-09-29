@@ -23,13 +23,12 @@ RUN for folder in `find "$CUDA_QUANTUM_PATH/assets"/*$(uname -m)/* -maxdepth 0 -
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libopenblas-openmp-dev \
         # just here for convenience:
-        curl jq \
-    && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/*
+        curl jq
 
-# Run apt-get update to ensure that apt-get knows about CUDA packages
-# if the base image configures has added the CUDA keyring.
+# Make sure that apt-get is updated at the end!;
+# We need apt-get update to have run to ensure that apt-get knows about
+# CUDA packages if the base image has added the CUDA keyring.
 # If we don't do that, then apt-get will get confused when some CUDA
 # components are already installed but not all of it.
-RUN apt-get update
 
 USER cudaq
