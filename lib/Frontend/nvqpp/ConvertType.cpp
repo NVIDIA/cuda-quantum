@@ -257,6 +257,11 @@ bool QuakeBridgeVisitor::VisitRValueReferenceType(
   return pushType(cc::PointerType::get(eleTy));
 }
 
+bool QuakeBridgeVisitor::VisitConstantArrayType(clang::ConstantArrayType *t) {
+  auto size = t->getSize().getZExtValue();
+  return pushType(cc::ArrayType::get(builder.getContext(), popType(), size));
+}
+
 bool QuakeBridgeVisitor::pushType(Type t) {
   LLVM_DEBUG(llvm::dbgs() << std::string(typeStack.size(), ' ') << "push " << t
                           << '\n');

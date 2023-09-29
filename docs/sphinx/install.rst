@@ -143,6 +143,45 @@ we refer to the `CUDA Quantum GitHub repository`_.
 
 .. _CUDA Quantum GitHub repository: https://github.com/NVIDIA/cuda-quantum/blob/main/Building.md
 
+
+CUDA Quantum Dependencies
+-------------------------
+
+CUDA Quantum can be used to simulate quantum programs (see :doc:`using/simulators`) on a CPU-only system, but a GPU is highly recommended.
+
+The supported CPUs include x86_64 (x86-64-v3 architecture and newer) and ARM64 architectures.
+
+.. note:: 
+
+   The CUDA Quantum Python wheels depend on an existing CUDA installation on your system. For more information about installing the CUDA Quantum Python wheels, take a look at :ref:`this page <install-python-wheels>`.
+
+The following table summarizes the required components.
+
+.. list-table:: Supported Systems
+    :widths: 30 50
+    :header-rows: 0
+
+    * - CPU architectures
+      - x86_64, ARM64
+    * - Operating System
+      - Linux
+    * - Tested Distributions
+      - CentOS 8; Debian 11, 12; Fedora 38; OpenSUSE/SELD/SLES 15.5; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04
+
+.. list-table:: Requirements for GPU Simulation
+    :widths: 30 50
+    :header-rows: 0
+
+    * - GPU Architectures
+      - Volta, Turing, Ampere, Ada, Hopper
+    * - NVIDIA GPU with Compute Capability
+      - 7.0+
+    * - CUDA
+      - 11.x (Driver 470.57.02+), 12.x (Driver 525.60.13+)
+
+Detailed information about supported drivers for different CUDA versions and be found `here <https://docs.nvidia.com/deploy/cuda-compatibility/>`__.
+
+
 Next Steps
 ----------
 

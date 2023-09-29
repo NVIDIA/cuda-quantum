@@ -362,6 +362,7 @@ public:
   bool VisitPointerType(clang::PointerType *t);
   bool VisitLValueReferenceType(clang::LValueReferenceType *t);
   bool VisitRValueReferenceType(clang::RValueReferenceType *t);
+  bool VisitConstantArrayType(clang::ConstantArrayType *t);
 
   /// Convert \p t, a builtin type, to the corresponding MLIR type.
   mlir::Type builtinTypeToType(const clang::BuiltinType *t);
