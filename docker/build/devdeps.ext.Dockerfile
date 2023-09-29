@@ -180,8 +180,3 @@ ENV CUDA_ROOT="$CUDA_INSTALL_PREFIX"
 ENV CUDA_PATH="$CUDA_INSTALL_PREFIX"
 ENV PATH="${CUDA_INSTALL_PREFIX}/lib64/:${CUDA_INSTALL_PREFIX}/bin:${PATH}"
 
-# Run apt-get update to ensure that apt-get knows about CUDA packages
-# if the base image configures has added the CUDA keyring.
-# If we don't do that, then apt-get will get confused when some CUDA
-# components are already installed but not all of it.
-RUN apt-get update
