@@ -21,3 +21,34 @@ should be provided that take more than one :code:`cudaq::qudit` instances to mod
 of that instruction on all provided :code:`cudaq::qudits`, e.g. :code:`void x(cudaq::qubit&)` and
 :code:`x(cudaq::qubit&, cudaq::qubit&, cudaq::qubit&)`, modeling the NOT operation on a single 
 :code:`cudaq::qubit` or on multiple :code:`cudaq::qubit`. 
+
+Implementations should provide overloads to support broadcasting of single-qubit
+intrinsic operations across a register of :code:`cudaq::qudit`.
+For example, :code:`x(cudaq::qreg<>&)` should apply a NOT operation on all :code:`cudaq::qubit` in the provided :code:`cudaq::qreg`. 
+A set of quantum intrinsic operations for the :code:`cudaq::qubit` then for example looks as follows: 
+
+.. code-block:: cpp 
+
+    namespace cudaq {
+      struct base;
+      struct ctrl;
+      struct adj;
+  
+      // Single qubit operations, ctrl / adj variants, and broadcasting
+      template<typename mod = base, typename... QubitArgs>
+      void NAME(QubitArgs&... args) noexcept { ... }
+  
+      template<typename mod = base>
+      void NAME(const qreg& qr) noexcept { ... }
+  
+      template<typename mod = ctrl>
+      void NAME(qreg& ctrls, qubit& target) noexcept { ... }
+ 
+      // Single qubit rotation operations and ctrl / adj variants
+      template <typename mod = base, typename ScalarAngle, typename... QubitArgs> 
+      void ROTATION_NAME(ScalarAngle angle, QubitArgs &...args) noexcept { ... }
+ 
+      bool MEASURE_OP(qubit &q) noexcept;
+      std::vector<bool> MEASURE_OP(qreg &q) noexcept;
+      double measure(cudaq::spin_op & term) noexcept { ... }
+  }

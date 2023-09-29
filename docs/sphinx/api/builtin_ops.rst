@@ -1,7 +1,7 @@
 Built-in Quantum Operations
 ******************************
 
-CUDA Quantum provides a default set of :ref:`built-in operations <built-in-operations>` on qubits. 
+CUDA Quantum provides a default set of built-in operations on qubits. 
 These built-in operations can be used to define custom kernels and libraries.
 Since the set of quantum intrinsic operations natively supported on a specific target 
 depends on the backends architecture, the :code:`nvq++` compiler automatically
@@ -78,7 +78,6 @@ built-in single-qubit operations across a register of qubits.
 For example, :code:`x(cudaq::qreg<>&)` applies a NOT operation 
 to all qubits in the provided :code:`cudaq::qreg`. 
 
-.. _built-in-operations:
 
 Unitary Operations on Qubits
 =============================
