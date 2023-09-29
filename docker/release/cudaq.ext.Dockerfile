@@ -20,14 +20,13 @@ RUN for folder in `find "$CUDA_QUANTUM_PATH/assets"/*$(uname -m)/* -maxdepth 0 -
     && rm "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
 
 # Install additional runtime dependencies.
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get install -y --no-install-recommends \
         cuda-nvtx-11-8 libcusolver-11-8 libopenblas-openmp-dev \
         # just here for convenience:
         curl jq
 
-# Make sure that apt-get is updated at the end!;
-# We need apt-get update to ensure that apt-get knows about CUDA packages.
+# Make sure that apt-get remains updated at the end!;
 # If we don't do that, then apt-get will get confused when some CUDA
-# components are already installed but not all of it.
+# components are already installed but not all of them.
 
 USER cudaq
