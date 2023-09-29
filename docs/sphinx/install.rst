@@ -177,7 +177,9 @@ The following table summarizes the required components.
     * - NVIDIA GPU with Compute Capability
       - 7.0+
     * - CUDA
-      - 11.x, 12.x
+      - 11.x (Driver 470.57.02+), 12.x (Driver 525.60.13+)
+
+Detailed information about supported drivers for different CUDA versions and be found `here <https://docs.nvidia.com/deploy/cuda-compatibility/>`__.
 
 
 Next Steps
