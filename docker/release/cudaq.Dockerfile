@@ -105,6 +105,12 @@ All rights reserved.\n"
 RUN echo -e "$COPYRIGHT_NOTICE" > "$CUDA_QUANTUM_PATH/Copyright.txt"
 RUN echo 'cat "$CUDA_QUANTUM_PATH/Copyright.txt"' > /etc/profile.d/welcome.sh
 
+# Run apt-get update to ensure that apt-get knows about CUDA packages
+# if the base image configures has added the CUDA keyring.
+# If we don't do that, then apt-get will get confused when some CUDA
+# components are already installed but not all of it.
+RUN apt-get update
+
 # Create cudaq user
 
 RUN useradd -m cudaq && echo "cudaq:cuda-quantum" | chpasswd && adduser cudaq sudo
