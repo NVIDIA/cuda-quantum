@@ -34,9 +34,9 @@ int main() {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__instance_test
 // CHECK-SAME:        (%[[VAL_0:.*]]: !cc.callable<(!quake.ref) -> ()>
 // CHECK-NOT:       %[[VAL_0]]
-// CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<?>[%{{.*}} : i64]
-// CHECK:           %[[VAL_6:.*]] = quake.extract_ref %{{.*}} : (!quake.veq<?>, i64) -> !quake.ref
-// CHECK:           %[[VAL_9:.*]] = quake.extract_ref %{{.*}} : (!quake.veq<?>, i64) -> !quake.ref
-// CHECK:           quake.apply @__nvqpp__mlirgen__Z4mainE3$_0[%[[VAL_6]]] %[[VAL_9]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_6:.*]] = quake.extract_ref %{{.*}}[0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[VAL_9:.*]] = quake.extract_ref %{{.*}}[1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           quake.apply @__nvqpp__mlirgen__Z4mainE3$_0 [%[[VAL_6]]] %[[VAL_9]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           return
 

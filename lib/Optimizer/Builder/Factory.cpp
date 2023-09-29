@@ -69,7 +69,7 @@ void factory::createGlobalCtorCall(ModuleOp mod, FlatSymbolRefAttr ctor) {
   builder.create<LLVM::GlobalCtorsOp>(loc, ctorAttr, prioAttr);
 }
 
-cudaq::cc::LoopOp factory::createCountedLoop(
+cudaq::cc::LoopOp factory::createInvariantLoop(
     OpBuilder &builder, Location loc, Value totalIterations,
     llvm::function_ref<void(OpBuilder &, Location, Region &, Block &)>
         bodyBuilder) {
@@ -104,7 +104,7 @@ cudaq::cc::LoopOp factory::createCountedLoop(
             builder.create<arith::AddIOp>(loc, block.getArgument(0), one);
         builder.create<cudaq::cc::ContinueOp>(loc, ValueRange{incr});
       });
-  loop->setAttr("counted", builder.getUnitAttr());
+  loop->setAttr("invariant", builder.getUnitAttr());
   return loop;
 }
 
@@ -122,14 +122,18 @@ static cudaq::cc::StructType stlVectorType(Type eleTy) {
   return cudaq::cc::StructType::get(ctx, eleTys);
 }
 
-FunctionType factory::toCpuSideFuncType(FunctionType funcTy) {
+FunctionType factory::toCpuSideFuncType(FunctionType funcTy, bool addThisPtr) {
   auto *ctx = funcTy.getContext();
   // When the kernel comes from a class, there is always a default "this"
   // argument to the kernel entry function. The CUDA Quantum language spec
   // doesn't allow the kernel object to contain data members (yet), so we can
   // ignore the `this` pointer.
   auto ptrTy = cudaq::cc::PointerType::get(IntegerType::get(ctx, 8));
-  SmallVector<Type> inputTys = {ptrTy};
+  SmallVector<Type> inputTys;
+  // If this kernel is a plain old function or a static member function, we
+  // don't want to add a hidden `this` argument.
+  if (addThisPtr)
+    inputTys.push_back(ptrTy);
   bool hasSRet = false;
   if (factory::hasHiddenSRet(funcTy)) {
     // When the kernel is returning a std::vector<T> result, the result is

@@ -69,7 +69,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && python3 -m pip install --no-cache-dir numpy \
     && ln -s /bin/python3 /bin/python
 
-ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:/usr/include/c++/12/:/usr/include/x86_64-linux-gnu/c++/12"
+ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:/usr/include/c++/12/:/usr/include/$(uname -m)-linux-gnu/c++/12"
 
 # Copy over the CUDA Quantum installation, and the necessary compiler tools.
 
@@ -104,6 +104,12 @@ Copyright (c) 2023 NVIDIA Corporation & Affiliates \n\
 All rights reserved.\n"
 RUN echo -e "$COPYRIGHT_NOTICE" > "$CUDA_QUANTUM_PATH/Copyright.txt"
 RUN echo 'cat "$CUDA_QUANTUM_PATH/Copyright.txt"' > /etc/profile.d/welcome.sh
+
+# Run apt-get update to ensure that apt-get knows about CUDA packages
+# if the base image has added the CUDA keyring.
+# If we don't do that, then apt-get will get confused if some CUDA
+# components are already installed but not all of them.
+RUN apt-get update
 
 # Create cudaq user
 

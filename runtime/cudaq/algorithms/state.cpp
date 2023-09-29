@@ -14,7 +14,7 @@ namespace cudaq {
 
 void state::dump() { dump(std::cout); }
 void state::dump(std::ostream &os) {
-  auto &[shape, stateData] = data;
+  auto &[shape, stateData] = _data;
   if (shape.size() == 1) {
     for (auto &d : stateData)
       os << d.real() << " ";
@@ -28,8 +28,13 @@ void state::dump(std::ostream &os) {
     }
   }
 }
+
+std::vector<std::size_t> state::get_shape() { return std::get<0>(_data); }
+
+std::complex<double> *state::get_data() { return std::get<1>(_data).data(); }
+
 std::complex<double> state::operator[](std::size_t idx) {
-  auto &[shape, stateData] = data;
+  auto &[shape, stateData] = _data;
   if (shape.size() != 1)
     throw std::runtime_error("Cannot request 1-d index into density matrix. "
                              "Must be a state vector.");
@@ -37,25 +42,25 @@ std::complex<double> state::operator[](std::size_t idx) {
 }
 
 std::complex<double> state::operator()(std::size_t idx, std::size_t jdx) {
-  auto &[shape, stateData] = data;
+  auto &[shape, stateData] = _data;
 
   if (shape.size() != 2)
     throw std::runtime_error("Cannot request 2-d index into state vector. "
                              "Must be a density matrix.");
 
-  return stateData[idx * std::get<0>(data)[0] + jdx];
+  return stateData[idx * std::get<0>(_data)[0] + jdx];
 }
 
 double state::overlap(state &other) {
   double sum = 0.0;
-  auto &[shape, stateData] = data;
-  if (shape.size() != std::get<0>(other.data).size())
+  auto &[shape, stateData] = _data;
+  if (shape.size() != std::get<0>(other._data).size())
     throw std::runtime_error(
         "Cannot compare state vectors and density matrices.");
 
   if (shape.size() == 1) {
-    for (std::size_t i = 0; i < std::get<1>(data).size(); i++) {
-      sum += std::abs(std::get<1>(data)[i] * other[i]);
+    for (std::size_t i = 0; i < std::get<1>(_data).size(); i++) {
+      sum += std::abs(std::get<1>(_data)[i] * other[i]);
     }
   } else {
 
@@ -63,7 +68,7 @@ double state::overlap(state &other) {
     Eigen::MatrixXcd rho =
         Eigen::Map<Eigen::MatrixXcd>(stateData.data(), shape[0], shape[1]);
     Eigen::MatrixXcd sigma = Eigen::Map<Eigen::MatrixXcd>(
-        std::get<1>(other.data).data(), shape[0], shape[1]);
+        std::get<1>(other._data).data(), shape[0], shape[1]);
 
     // For qubit systems, F(rho,sigma) = tr(rho*sigma) + 2 *
     // sqrt(det(rho)*det(sigma))

@@ -8,15 +8,25 @@ Install the Docker Image
 ++++++++++++++++++++++++++++++++++++
 
 Docker images for all CUDA Quantum releases are available on the `NGC Container Registry`_.
-The image for the latest version under development is built from source on our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`_.
+To download images from NGC, please follow the following steps if you have not done so already:
+
+- `Create an account <https://ngc.nvidia.com/signin>`__
+- `Sign in <https://ngc.nvidia.com/signin>`__ to access your account and go to `Setup <https://ngc.nvidia.com/setup>`__.
+- Click on `Get API Key` and generate a new key (this will invalidate any existing keys).
+- Follow the instructions that appear to use that key to log in to the NGC registry using Docker.
+
+Once you have done so, run `docker login nvcr.io` (again) to confirm you can authenticate with the registry. 
+You should see a message "Login Succeeded".
 
 .. _NGC Container Registry: https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum
 
+In addition to publishing stable releases, we also publish docker images whenever we update the main branch of our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`_.
+These images are published in a separate location `nvidia/nightly` on NGC, as well as on GitHub.
 To download the latest version on the main branch of our GitHub repository, for example, use the command
 
 .. code-block:: console
 
-    docker pull ghcr.io/nvidia/cuda-quantum:latest
+    docker pull nvcr.io/nvidia/nightly/cuda-quantum:latest
 
 .. _use-cuda-quantum-in-terminal:
 
@@ -35,7 +45,7 @@ This will give you terminal access to the created container, for example
 
 .. code-block:: console 
 
-    user@host:~$ docker run -it --name cuda-quantum ghcr.io/nvidia/cuda-quantum:latest
+    user@host:~$ docker run -it --name cuda-quantum nvcr.io/nvidia/nightly/cuda-quantum:latest
     To run a command as administrator (user "root"), use "sudo <command>".
     See "man sudo_root" for details.
 
@@ -103,6 +113,27 @@ or run the Python examples using the Python interpreter.
     may not be automatically active in the container environment. You may need to install your preferred 
     extension in the container environment for all of your development tools to be available.
 
+.. _install-python-wheels:
+
+Python wheels
+--------------------
+
+CUDA Quantum Python wheels are available on [PyPI.org](https://pypi.org/project/cuda-quantum). 
+The CUDA Quantum Python wheels contain the Python API and core components of
+CUDA Quantum. For more information about available packages and documentation,
+see :doc:`versions`.
+
+To install the latest release using `pip <https://pypi.org/project/pip/>`__, run
+
+.. code-block:: console
+
+    python3 -m pip install cuda-quantum
+
+There are currently no source distributions available on PyPI, but you can download the source code 
+for all releases `here <https://github.com/NVIDIA/cuda-quantum/releases>`__. 
+For more information about building a CUDA Quantum Python wheel from source, see the 
+`README <https://github.com/NVIDIA/cuda-quantum/blob/main/python/README.md>`__.
+
 
 Build CUDA Quantum from Source
 ------------------------------
@@ -114,14 +145,12 @@ we refer to the `CUDA Quantum GitHub repository`_.
 
 Next Steps
 ----------
-With the CUDA Quantum Docker image installed and a container up and running, check out the
-Using CUDA Quantum page_. To run the examples codes in the container, checkout the Compiling
-and Executing section here_. 
 
-Once in the VS Code IDE or in the terminal for the container in headless mode, you'll 
-notice there is an :code:`examples/` folder. These examples are provided to 
+The Docker image contains a folder with example in the :code:`/home/cudaq` directory. These examples are provided to 
 get you started with CUDA Quantum and understanding the programming and execution model. 
-Start of by trying to compile a simple one, like :code:`examples/cpp/basics/static_kernel.cpp`
+If you are not using the Docker image, you can find these examples on our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`__.
+
+Start of by trying to compile a simple one, like :code:`examples/cpp/basics/static_kernel.cpp`:
 
 .. code-block:: console 
 
@@ -136,5 +165,4 @@ run command), try out the 30 qubit version of this example.
     nvq++ examples/cpp/basics/cuquantum_backends.cpp --target nvidia 
     ./a.out 
 
-.. _page: using/cudaq.html
-.. _here: using/cudaq/compiling.html
+For more information about developing and running CUDA Quantum code, take a look at the page :doc:`Using CUDA Quantum <using/cudaq>`. 

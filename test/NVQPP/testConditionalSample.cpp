@@ -47,10 +47,9 @@ int main() {
   // Lower the number of shots
   int nShots = 100;
   auto &platform = cudaq::get_platform();
-  platform.set_shots(nShots);
 
   // Sample
-  auto counts = cudaq::sample(kernel{});
+  auto counts = cudaq::sample(nShots, kernel{});
   counts.dump();
 
   // Get the marginal counts on the 2nd qubit

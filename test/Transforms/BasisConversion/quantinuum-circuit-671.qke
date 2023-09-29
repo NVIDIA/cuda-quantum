@@ -1,0 +1,101 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --quantinuum-gate-set-mapping %s | FileCheck %s
+
+module {
+  // CHECK-LABEL: func.func  @__nvqpp__mlirgen____nvqppBuilderKernel_367535629127
+  func.func @__nvqpp__mlirgen____nvqppBuilderKernel_367535629127() attributes {"cudaq-entrypoint"} {
+    %cst = arith.constant -0.78539816339744828 : f64
+    %cst_0 = arith.constant -1.5707963267948966 : f64
+    %0 = quake.alloca !quake.veq<4>
+    %1 = quake.extract_ref %0[0] : (!quake.veq<4>) -> !quake.ref
+    %2 = quake.extract_ref %0[1] : (!quake.veq<4>) -> !quake.ref
+    %3 = quake.extract_ref %0[2] : (!quake.veq<4>) -> !quake.ref
+    %4 = quake.extract_ref %0[3] : (!quake.veq<4>) -> !quake.ref
+    // CHECK: quake.x
+    quake.x %4 : (!quake.ref) -> ()
+    // CHECK: quake.h
+    quake.h %1 : (!quake.ref) -> ()
+    // CHECK: quake.h
+    quake.h %2 : (!quake.ref) -> ()
+    // CHECK: quake.h
+    quake.h %3 : (!quake.ref) -> ()
+    // CHECK: quake.rz
+    // CHECK-NEXT: quake.x 
+    // CHECK-NEXT: quake.rz
+    // CHECK-NEXT: quake.x 
+    // CHECK-NEXT: quake.rz
+    quake.t [%1] %4 : (!quake.ref, !quake.ref) -> ()
+    // CHECK: quake.rz
+    // CHECK-NEXT: quake.x 
+    // CHECK-NEXT: quake.rz
+    // CHECK-NEXT: quake.x 
+    // CHECK-NEXT: quake.rz
+    quake.t [%2] %4 : (!quake.ref, !quake.ref) -> ()
+    // CHECK: quake.rz
+    // CHECK-NEXT: quake.x 
+    // CHECK-NEXT: quake.rz
+    // CHECK-NEXT: quake.x 
+    // CHECK-NEXT: quake.rz
+    quake.t [%2] %4 : (!quake.ref, !quake.ref) -> ()
+    // CHECK: quake.rz
+    // CHECK-NEXT: quake.x 
+    // CHECK-NEXT: quake.rz
+    // CHECK-NEXT: quake.x 
+    // CHECK-NEXT: quake.rz
+    quake.t [%3] %4 : (!quake.ref, !quake.ref) -> ()
+    // CHECK: quake.rz
+    // CHECK-NEXT: quake.x 
+    // CHECK-NEXT: quake.rz
+    // CHECK-NEXT: quake.x 
+    // CHECK-NEXT: quake.rz
+    quake.t [%3] %4 : (!quake.ref, !quake.ref) -> ()
+    // CHECK: quake.rz
+    // CHECK-NEXT: quake.x 
+    // CHECK-NEXT: quake.rz
+    // CHECK-NEXT: quake.x 
+    // CHECK-NEXT: quake.rz
+    quake.t [%3] %4 : (!quake.ref, !quake.ref) -> ()
+    // CHECK: quake.rz
+    // CHECK-NEXT: quake.x 
+    // CHECK-NEXT: quake.rz
+    // CHECK-NEXT: quake.x 
+    // CHECK-NEXT: quake.rz
+    quake.t [%3] %4 : (!quake.ref, !quake.ref) -> ()
+    // CHECK: quake.x 
+    // CHECK-NEXT: quake.x 
+    // CHECK-NEXT: quake.x 
+    quake.swap %1, %3 : (!quake.ref, !quake.ref) -> ()
+    // CHECK: quake.h
+    quake.h %1 : (!quake.ref) -> ()
+    // CHECK: quake.rz
+    // CHECK-NEXT: quake.x 
+    // CHECK-NEXT: quake.rz
+    // CHECK-NEXT: quake.x 
+    // CHECK-NEXT: quake.rz
+    quake.r1 (%cst_0) [%2] %1 : (f64, !quake.ref, !quake.ref) -> ()
+    // CHECK: quake.h
+    quake.h %2 : (!quake.ref) -> ()
+    // CHECK: quake.rz
+    // CHECK-NEXT: quake.x 
+    // CHECK-NEXT: quake.rz
+    // CHECK-NEXT: quake.x 
+    // CHECK-NEXT: quake.rz
+    quake.r1 (%cst_0) [%3] %2 : (f64, !quake.ref, !quake.ref) -> ()
+    // CHECK: quake.rz
+    // CHECK-NEXT: quake.x 
+    // CHECK-NEXT: quake.rz
+    // CHECK-NEXT: quake.x 
+    // CHECK-NEXT: quake.rz
+    quake.r1 (%cst) [%3] %1 : (f64, !quake.ref, !quake.ref) -> ()
+    // CHECK: quake.h
+    quake.h %3 : (!quake.ref) -> ()
+    return
+  }
+}

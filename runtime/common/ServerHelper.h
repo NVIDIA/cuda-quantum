@@ -21,11 +21,15 @@ namespace cudaq {
 /// configuration.
 using BackendConfig = std::map<std::string, std::string>;
 
-/// @brief Every kernel execution has a name and a compiled code representation
+/// @brief Every kernel execution has a name, compiled code representation, and
+/// (optionally) an output_names mapping showing how each Result maps back
+/// to the original program's Qubits.
 struct KernelExecution {
   std::string name;
   std::string code;
-  KernelExecution(std::string &n, std::string &c) : name(n), code(c) {}
+  nlohmann::json output_names;
+  KernelExecution(std::string &n, std::string &c, nlohmann::json &o)
+      : name(n), code(c), output_names(o) {}
 };
 
 /// @brief Responses / Submissions to the Server are modeled via JSON
@@ -38,6 +42,15 @@ using RestHeaders = std::map<std::string, std::string>;
 // and a vector of related Job JSON messages.
 using ServerJobPayload =
     std::tuple<std::string, RestHeaders, std::vector<ServerMessage>>;
+
+/// @brief Information about a result coming from a backend
+struct ResultInfoType {
+  std::size_t qubitNum;
+  std::string registerName;
+};
+
+/// @brief Results information, indexed by 0-based result number
+using OutputNamesType = std::map<std::size_t, ResultInfoType>;
 
 /// @brief The ServerHelper is a Plugin type that abstracts away the
 /// server-specific information needed for submitting quantum jobs
@@ -94,8 +107,9 @@ public:
   /// @brief Given a successful job and the success response,
   /// retrieve the results and map them to a sample_result.
   /// @param postJobResponse
+  /// @param jobId
   /// @return
-  virtual cudaq::sample_result
-  processResults(ServerMessage &postJobResponse) = 0;
+  virtual cudaq::sample_result processResults(ServerMessage &postJobResponse,
+                                              std::string &jobId) = 0;
 };
 } // namespace cudaq

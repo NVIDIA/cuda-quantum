@@ -65,10 +65,17 @@ correct path to your cuQuantum installation by setting the environment variable
 
 ## Building CUDA Quantum with a custom LLVM version
 
-CUDA Quantum is intended to be built using the LLVM commit that the submodule is
-set to. If you need to update the LLVM commit, or if you are not using the
-pre-built version of that commit in our development container, LLVM will need to
-be built from source. To configure our build scripts, please set the LLVM
+CUDA Quantum is intended to be built using the LLVM commit that the submodule
+is set to (currently LLVM 16.0.6). If you need to update the LLVM commit, or if
+you are not using the pre-built version of that commit in our development
+container, LLVM will need to be built from source. ***Building with LLVM >=
+17.x is not currently supported*** due to the QIR specification's requirement
+to use typed pointers. LLVM 17.x removed the ability to use typed pointers and
+instead now requires [opaque pointers](https://llvm.org/docs/OpaquePointers.html#version-support).
+The QIR specification will be updated to support opaque pointers in the near
+future.
+
+To configure our build scripts with a custom LLVM, please set the LLVM
 submodule to the desired commit, and set the following environment variable,
 replacing `<installation_path>` with the path where the freshly built LLVM tools
 and libraries should be installed:

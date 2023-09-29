@@ -183,8 +183,8 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     auto rx_builder = cudaq::make_kernel();
     auto q = rx_builder.qalloc();
     // float -> double implicit type conversion
-    rx_builder.rx<cudaq::adj>(-M_PI_4f32, q);
-    rx_builder.rx(M_PI_4f32, q);
+    rx_builder.rx<cudaq::adj>(-M_PI_4, q);
+    rx_builder.rx(M_PI_4, q);
     // long double -> double implicit type conversion
     const long double pi_4_ld = M_PI / 4.0;
     rx_builder.rx<cudaq::adj>(-pi_4_ld, q);
@@ -573,8 +573,9 @@ CUDAQ_TEST(BuilderTester, checkMidCircuitMeasure) {
 
     auto counts = cudaq::sample(entryPoint);
     counts.dump();
-    EXPECT_EQ(counts.register_names().size(), 1);
-    EXPECT_EQ(counts.register_names()[0], "c0");
+    EXPECT_EQ(counts.register_names().size(), 2); // includes synthetic global
+    EXPECT_EQ(counts.register_names()[0], "__global__");
+    EXPECT_EQ(counts.register_names()[1], "c0");
   }
 
   {
@@ -589,7 +590,7 @@ CUDAQ_TEST(BuilderTester, checkMidCircuitMeasure) {
 
     auto counts = cudaq::sample(entryPoint);
     counts.dump();
-    EXPECT_EQ(counts.register_names().size(), 2);
+    EXPECT_EQ(counts.register_names().size(), 3); // includes synthetic global
     auto regNames = counts.register_names();
     EXPECT_TRUE(std::find(regNames.begin(), regNames.end(), "c0") !=
                 regNames.end());
@@ -652,3 +653,35 @@ CUDAQ_TEST(BuilderTester, checkEntryPointAttribute) {
       R"(func\.func @__nvqpp__mlirgen\w+\(\) attributes \{"cudaq-entrypoint"\})");
   EXPECT_TRUE(std::regex_search(quake, functionDecleration));
 }
+
+#ifndef CUDAQ_BACKEND_DM
+
+CUDAQ_TEST(BuilderTester, checkCanProgressivelyBuild) {
+  auto kernel = cudaq::make_kernel();
+  auto q = kernel.qalloc(2);
+  kernel.h(q[0]);
+  auto state = cudaq::get_state(kernel);
+  EXPECT_NEAR(M_SQRT1_2, state[0].real(), 1e-3);
+  // Handle sims with different endianness
+  EXPECT_TRUE(std::fabs(M_SQRT1_2 - state[1].real()) < 1e-3 ||
+              std::fabs(M_SQRT1_2 - state[2].real()) < 1e-3);
+  EXPECT_NEAR(0.0, state[3].real(), 1e-3);
+
+  auto counts = cudaq::sample(kernel);
+  EXPECT_TRUE(counts.count("00") != 0);
+  EXPECT_TRUE(counts.count("10") != 0);
+
+  // Continue building the kernel
+  kernel.x<cudaq::ctrl>(q[0], q[1]);
+  state = cudaq::get_state(kernel);
+  EXPECT_NEAR(M_SQRT1_2, state[0].real(), 1e-3);
+  EXPECT_NEAR(0.0, state[1].real(), 1e-3);
+  EXPECT_NEAR(0.0, state[2].real(), 1e-3);
+  EXPECT_NEAR(M_SQRT1_2, state[3].real(), 1e-3);
+
+  counts = cudaq::sample(kernel);
+  EXPECT_TRUE(counts.count("00") != 0);
+  EXPECT_TRUE(counts.count("11") != 0);
+}
+
+#endif

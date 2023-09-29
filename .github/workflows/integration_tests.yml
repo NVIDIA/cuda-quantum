@@ -1,0 +1,269 @@
+name: Nightly integration tests
+
+# Run on request and every day at 3 AM UTC
+on:
+  workflow_dispatch:
+    inputs:
+      syntax_check:
+        type: boolean
+        required: true
+        description: 'Run syntax checker (Quantinuum).'
+      target:
+        description: 'Target (choose nightly to run like nightly tests)'
+        required: true
+        default: 'nightly'
+        type: choice
+        options:
+          - nightly
+          - ionq
+          - iqm
+          - oqc
+          - quantinuum
+      target_machine:
+        type: string
+        required: false
+        description: 'Target machine (e.g., H1-1E).'
+  schedule:
+    - cron: 0 3 * * *
+
+jobs:
+  integration_test:
+    name: Integration test
+    runs-on: ubuntu-latest
+    environment: backend-validation
+    container:
+      image: ghcr.io/nvidia/cuda-quantum:latest
+      options: --user root
+
+    steps:
+      - name: Get commit SHA
+        id: commit-sha
+        run: |
+          echo "sha=$(cat $CUDA_QUANTUM_PATH/assets/build_info | grep -o 'source-sha: \S*' | cut -d ' ' -f 2)" >> $GITHUB_OUTPUT
+
+      - name: Get code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ steps.commit-sha.outputs.sha }}
+          fetch-depth: 1
+
+      - name: Setup quantinum account
+        if: github.event_name == 'schedule' || inputs.target == 'nightly' || inputs.syntax_check || inputs.target == 'quantinuum'
+        run: |
+          curl -X POST -H "Content Type: application/json" -d '{ "email":"${{ secrets.BACKEND_LOGIN_EMAIL }}","password":"${{ secrets.QUANTINUUM_PASSWORD }}" }' https://qapi.quantinuum.com/v1/login > credentials.json
+          id_token=`cat credentials.json | jq -r '."id-token"'`
+          refresh_token=`cat credentials.json | jq -r '."refresh-token"'`
+          echo "key: $id_token" > ~/.quantinuum_config
+          echo "refresh: $refresh_token" >> ~/.quantinuum_config
+
+      - name: QIR syntax check (Quantinuum)
+        if: inputs.syntax_check || github.event_name == 'schedule' || inputs.target == 'nightly'
+        run: |
+          echo "### QIR syntax check (Quantinuum)" >> $GITHUB_STEP_SUMMARY
+          export CUDAQ_LOG_LEVEL="info"
+          set +e # Allow script to keep going through errors
+          test_err_sum=0
+          for filename in test/NVQPP/integration/*.cpp; do
+            [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
+            nvq++ -v $filename -DSYNTAX_CHECK --target quantinuum --quantinuum-machine H1-1SC
+            test_status=$?
+            if [ $test_status -eq 0 ]; then
+              ./a.out
+              test_status=$?
+              if [ $test_status -eq 0 ]; then
+                echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+              else
+                echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                test_err_sum=$((test_err_sum+1))
+              fi
+            else
+              echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+              test_err_sum=$((test_err_sum+1))
+            fi
+          done
+          set -e # Re-enable exit code error checking
+          if [ ! $test_err_sum -eq 0 ]; then
+            echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Submit to IonQ Simulator
+        if: (success() || failure()) && (inputs.target == 'ionq' || github.event_name == 'schedule' || inputs.target == 'nightly')
+        run: |
+          echo "### Submit to IonQ Simulator" >> $GITHUB_STEP_SUMMARY
+          export IONQ_API_KEY="${{ secrets.IONQ_API_KEY }}"
+          # TODO: remove this flag once https://github.com/NVIDIA/cuda-quantum/issues/512 is addressed.
+          export CUDAQ_LOG_LEVEL="info"
+          set +e # Allow script to keep going through errors
+          test_err_sum=0
+          for filename in test/NVQPP/integration/*.cpp; do
+            [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
+            nvq++ -v $filename --target ionq
+            test_status=$?
+            if [ $test_status -eq 0 ]; then
+              ./a.out
+              test_status=$?
+              if [ $test_status -eq 0 ]; then
+                echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+              else
+                echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                test_err_sum=$((test_err_sum+1))
+              fi
+            else
+              echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+              test_err_sum=$((test_err_sum+1))
+            fi
+          done
+          set -e # Re-enable exit code error checking
+          if [ ! $test_err_sum -eq 0 ]; then
+            echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Submit to IQM Demo server
+        if: (success() || failure()) && (inputs.target == 'iqm' || github.event_name == 'schedule' || inputs.target == 'nightly')
+        # The following tests are disabled because the demo server only supports
+        # 5 qubits and the test tries to use more.
+        # - test/NVQPP/integration/graph_coloring-1.cpp
+        # - test/NVQPP/integration/graph_coloring.cpp
+        # The following tests are disabled because a mapping algorithm is needed
+        # to account for qubit connection limitations.
+        # See https://github.com/NVIDIA/cuda-quantum/pull/610 (in work)
+        # - test/NVQPP/integration/qspan_slices.cpp
+        # - test/NVQPP/integration/sudoku_2x2-1.cpp
+        # - test/NVQPP/integration/sudoku_2x2-bit_names.cpp
+        # - test/NVQPP/integration/sudoku_2x2-reg_name.cpp
+        # - test/NVQPP/integration/sudoku_2x2.cpp
+        # - test/NVQPP/integration/test-observe.cpp
+        run: |
+          # Must install iqm-cortex-cli to authenticate
+          pip install iqm-cortex-cli
+          echo "### Submit to IQM Demo server" >> $GITHUB_STEP_SUMMARY
+          # IQM demo server info is from: https://demo.qc.iqm.fi/cocos/info/
+          cortex init --config-file ${HOME}/.config/iqm-cortex-cli/config.json --tokens-file ${HOME}/.cache/iqm-cortex-cli/tokens.json --auth-server-url https://demo.qc.iqm.fi/auth --client-id iqm_client --realm cortex --username '${{ secrets.IQM_USER }}'
+          cortex auth login --username '${{ secrets.IQM_USER }}' --password '${{ secrets.IQM_PASSWORD }}'
+          echo ":white_check_mark: Successfully installed iqm-cortex-cli and logged in" >> $GITHUB_STEP_SUMMARY
+          # Use the demo machine, which is Adonis architecture
+          export IQM_SERVER_URL="https://demo.qc.iqm.fi/cocos"
+          export CUDAQ_LOG_LEVEL="info"
+          set +e # Allow script to keep going through errors
+          test_err_sum=0
+          for filename in test/NVQPP/integration/*.cpp; do
+            [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
+            # Only the following tests are currently supported on IQM
+            case $filename in
+              test/NVQPP/integration/bug_qubit.cpp|\
+              test/NVQPP/integration/callable_kernel_arg.cpp|\
+              test/NVQPP/integration/if_jit.cpp|\
+              test/NVQPP/integration/load_value.cpp|\
+              test/NVQPP/integration/test-int8_t.cpp|\
+              test/NVQPP/integration/test-int8_t_free_func.cpp|\
+              test/NVQPP/integration/variable_size_qreg.cpp)
+                nvq++ -DSYNTAX_CHECK --target iqm --iqm-machine Adonis $filename
+                test_status=$?
+                if [ $test_status -eq 0 ]; then
+                  ./a.out
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                else
+                  echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_err_sum=$((test_err_sum+1))
+                fi ;;
+              *)
+                echo ":white_flag: Test skipped due to known issues: $filename" >> $GITHUB_STEP_SUMMARY ;;
+            esac
+          done
+          set -e # Re-enable exit code error checking
+          cortex auth logout -f
+          echo ":white_check_mark: Successfully logged out of IQM" >> $GITHUB_STEP_SUMMARY
+          if [ ! $test_err_sum -eq 0 ]; then
+            echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Submit to OQC Sandbox server
+        if: (success() || failure()) && (inputs.target == 'oqc' || github.event_name == 'schedule' || inputs.target == 'nightly')
+        # The following tests are disabled because sandbox only supports 12
+        # qubits and the test tries to use more.
+        # - test/NVQPP/integration/graph_coloring-1.cpp
+        # - test/NVQPP/integration/graph_coloring.cpp
+        # The following tests are disabled because a mapping algorithm is needed
+        # to account for qubit connection limitations
+        # See https://github.com/NVIDIA/cuda-quantum/pull/610 (in work)
+        # - test/NVQPP/integration/qspan_slices.cpp
+        # - test/NVQPP/integration/sudoku_2x2-1.cpp
+        # - test/NVQPP/integration/sudoku_2x2-bit_names.cpp
+        # - test/NVQPP/integration/sudoku_2x2-reg_name.cpp
+        # - test/NVQPP/integration/sudoku_2x2.cpp
+        # The following test is disabled due to https://github.com/NVIDIA/cuda-quantum/issues/695
+        # - test/NVQPP/integration/test-observe.cpp|\
+
+        run: |
+          echo "### Submit to OQC sandbox server" >> $GITHUB_STEP_SUMMARY
+          export CUDAQ_LOG_LEVEL="info"
+          export OQC_EMAIL="${{ secrets.BACKEND_LOGIN_EMAIL }}"
+          export OQC_PASSWORD="${{ secrets.OQC_PASSWORD }}"
+          set +e # Allow script to keep going through errors
+          test_err_sum=0
+          for filename in test/NVQPP/integration/*.cpp; do
+            [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
+            # Only the following tests are currently supported on OQC
+            case $filename in
+              test/NVQPP/integration/bug_qubit.cpp|\
+              test/NVQPP/integration/callable_kernel_arg.cpp|\
+              test/NVQPP/integration/if_jit.cpp|\
+              test/NVQPP/integration/load_value.cpp|\
+              test/NVQPP/integration/swap_gate.cpp|\
+              test/NVQPP/integration/test-int8_t.cpp|\
+              test/NVQPP/integration/test-int8_t_free_func.cpp|\
+              test/NVQPP/integration/variable_size_qreg.cpp)
+                nvq++ -DSYNTAX_CHECK --target oqc $filename
+                test_status=$?
+                if [ $test_status -eq 0 ]; then
+                  ./a.out
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                else
+                  echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_err_sum=$((test_err_sum+1))
+                fi ;;
+              *)
+                echo ":white_flag: Test skipped due to known issues: $filename" >> $GITHUB_STEP_SUMMARY ;;
+            esac
+          done
+          set -e # Re-enable exit code error checking
+          if [ ! $test_err_sum -eq 0 ]; then
+            echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Submit to ${{ inputs.target }}
+        # The full set of tests used by this step is currently only supported on Quantinuum.
+        # The IonQ-supported tests are tested by the step above.
+        if: inputs.target == 'quantinuum' && github.event_name == 'workflow_dispatch'
+        run: |
+          if ${{inputs.target == 'ionq'}}; then
+            export IONQ_API_KEY="${{ secrets.IONQ_API_KEY }}"
+            # TODO: remove this flag once https://github.com/NVIDIA/cuda-quantum/issues/512 is addressed.
+            export IONQ_FLAG="-DIONQ_TARGET"
+          fi
+          for filename in test/NVQPP/integration/*.cpp; do
+            [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
+            nvq++ -v $IONQ_FLAG $filename --target ${{ inputs.target }} --${{ inputs.target }}-machine ${{ inputs.target_machine }}
+            CUDAQ_LOG_LEVEL=info ./a.out
+          done
+        shell: bash

@@ -141,7 +141,7 @@ if (CUDAQ_BUILD_SELFCONTAINED)
   # Using -static-libgcc -static-libstdc++ offers finer control here if needed.
   # At the time of writing, there wasn't any benefit to using those over -static.
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
-  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static")
+  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-pie")
   SET(CUDAQ_BUILD_RELOCATABLE_PACKAGE TRUE)
 endif()
 
@@ -357,17 +357,37 @@ target_compile_options(spdlog PRIVATE -Wno-covered-switch-default)
 include(CheckLanguage)
 check_language(CUDA)
 set(CUDA_FOUND FALSE)
+# Generate -gencode arch=compute_XX,code=sm_XX for list of supported
+# arch values.
+# List should be sorted in increasing order.
+function(CUDA_get_gencode_args out_args_string arch_values)
+  # allow the user to pass the list like a normal variable
+  set(arch_list ${arch_values} ${ARGN})
+  set(out "")
+  foreach(arch IN LISTS arch_list)
+    set(out "${out} -gencode arch=compute_${arch},code=sm_${arch}")
+  endforeach(arch)
+
+  # Repeat the last one as to ensure the generation of PTX for most
+  # recent virtual architecture for forward compatibility
+  list(GET arch_list -1 last_arch)
+  set(out "${out} -gencode arch=compute_${last_arch},code=compute_${last_arch}")
+  set(${out_args_string} ${out} PARENT_SCOPE)
+endfunction()
+
 if(CMAKE_CUDA_COMPILER)
-  if (NOT CUDA_ARCH_BIN)
-    set(CUDA_ARCH_BIN 80)
+  if (NOT CUDA_TARGET_ARCHS)
+    # Volta, Ampere, Hopper
+    set(CUDA_TARGET_ARCHS  "70;80;90")
   endif()
-  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -shared -std=c++17 -gencode arch=compute_${CUDA_ARCH_BIN},code=sm_${CUDA_ARCH_BIN}  --compiler-options -fPIC")
+  CUDA_get_gencode_args(CUDA_gencode_flags ${CUDA_TARGET_ARCHS})
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -shared -std=c++17 ${CUDA_gencode_flags} --compiler-options -fPIC")
 
   enable_language(CUDA)
   set(CUDA_FOUND TRUE)
   set(CMAKE_CUDA_STANDARD 17)
   set(CMAKE_CUDA_STANDARD_REQUIRED TRUE)
-  message(STATUS "Cuda language found. Will build NVIDIA Platform.")
+  message(STATUS "Cuda language found.")
 endif()
 
 # Check for OpenSSL
@@ -410,7 +430,7 @@ if(CUDAQ_BUILD_TESTS)
     AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13.0.0)
     target_compile_options(gtest PUBLIC --param=evrp-mode=legacy)
   endif()
-  if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  if (CMAKE_CXX_COMPILER_ID MATCHES "^(Apple)?Clang$")
     target_compile_options(gtest PUBLIC -Wno-covered-switch-default)
   endif()
   include(GoogleTest)
@@ -437,4 +457,19 @@ if (CUDAQ_BUILD_RELOCATABLE_PACKAGE AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
   install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang-${CUDAQ_LLVM_VERSION} DESTINATION bin)
   install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang DESTINATION bin)
   install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang++ DESTINATION bin)
+endif()
+
+if (CUDAQ_BUILD_SELFCONTAINED)
+  # We allow to pick up certain build configurations directly from the environment,
+  # since this facilitates some of the packaging (e.g. python packages built based on the pyproject.toml).
+  if(NOT CUDAQ_EXTERNAL_NVQIR_SIMS)
+    SET(CUDAQ_EXTERNAL_NVQIR_SIMS $ENV{CUDAQ_EXTERNAL_NVQIR_SIMS})
+  endif()
+  if (CUDAQ_EXTERNAL_NVQIR_SIMS) 
+    include(WheelBuildHelpers)
+    while(CUDAQ_EXTERNAL_NVQIR_SIMS)
+      list(POP_FRONT CUDAQ_EXTERNAL_NVQIR_SIMS LIB_SO_FILE LIB_CONFIG_FILE)
+      add_target_libs_to_wheel(${LIB_SO_FILE} ${LIB_CONFIG_FILE})
+    endwhile()
+  endif()
 endif()

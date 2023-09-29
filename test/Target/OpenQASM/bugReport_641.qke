@@ -1,0 +1,57 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-translate --convert-to=openqasm %s | FileCheck %s
+
+module {
+  func.func @__nvqpp__mlirgen____nvqppBuilderKernel_361293194784() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.ref
+    call @__nvqpp__mlirgen____nvqppBuilderKernel_367535629127(%0) : (!quake.ref) -> ()
+    call @__nvqpp__mlirgen____nvqppBuilderKernel_202375922897(%0) : (!quake.ref) -> ()
+    return
+  }
+  func.func @__nvqpp__mlirgen____nvqppBuilderKernel_367535629127(%arg0: !quake.ref) {
+    return
+  }
+  func.func @__nvqpp__mlirgen____nvqppBuilderKernel_202375922897(%arg0: !quake.ref) {
+    quake.h %arg0 : (!quake.ref) -> ()
+    call @__nvqpp__mlirgen____nvqppBuilderKernel_093606261879(%arg0) : (!quake.ref) -> ()
+    quake.h %arg0 : (!quake.ref) -> ()
+    %bits = quake.mz %arg0 name "" : (!quake.ref) -> i1
+    return
+  }
+  func.func @__nvqpp__mlirgen____nvqppBuilderKernel_093606261879(%arg0: !quake.ref) {
+    quake.x %arg0 : (!quake.ref) -> ()
+    call @__nvqpp__mlirgen____nvqppBuilderKernel_367535629127(%arg0) : (!quake.ref) -> ()
+    return
+  }
+}
+
+// CHECK: OPENQASM 2.0;
+
+// CHECK: include "qelib1.inc";
+
+// CHECK: gate nvqpp__mlirgen____nvqppBuilderKernel_367535629127 q0 {
+// CHECK: }
+
+// CHECK: gate nvqpp__mlirgen____nvqppBuilderKernel_093606261879 q0 {
+// CHECK:   x q0;
+// CHECK:   nvqpp__mlirgen____nvqppBuilderKernel_367535629127 q0;
+// CHECK: }
+
+// CHECK: gate nvqpp__mlirgen____nvqppBuilderKernel_202375922897 q0 {
+// CHECK:   h q0;
+// CHECK:   nvqpp__mlirgen____nvqppBuilderKernel_093606261879 q0;
+// CHECK:   h q0;
+// CHECK:   creg var1[1];
+// CHECK:   measure q0 -> var1[0];
+// CHECK: }
+
+// CHECK: qreg var0[1];
+// CHECK: nvqpp__mlirgen____nvqppBuilderKernel_367535629127 var0[0];
+// CHECK: nvqpp__mlirgen____nvqppBuilderKernel_202375922897 var0[0];

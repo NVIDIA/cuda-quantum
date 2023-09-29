@@ -1,6 +1,13 @@
 on:
   workflow_call:
     inputs:
+      platform:
+        type: string
+        required: false
+        default: linux/amd64
+      devdeps_image:
+        required: false
+        type: string
       devdeps_cache:
         required: true
         type: string
@@ -16,7 +23,7 @@ name: Run CI within the dev environment container
 jobs:
   build_and_test:
     name: Dev environment (Debug)
-    runs-on: ubuntu-latest
+    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
 
@@ -25,24 +32,40 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Restore environment
+        id: restore_devdeps
+        if: inputs.devdeps_image == ''
         uses: actions/cache/restore@v3
         with:
           path: ${{ inputs.devdeps_archive }}
           key: ${{ inputs.devdeps_cache }}
           fail-on-cache-miss: true
 
+      - name: Set up context for buildx
+        run: |
+          docker context create builder_context
+
+      - name: Set up buildx runner
+        uses: docker/setup-buildx-action@v2
+        with:
+          endpoint: builder_context
+
       - name: Build CUDA Quantum
         id: cudaq_build
         run: |
-          base_image=`docker load --input "${{ inputs.devdeps_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
-          devdeps_tag=`echo $base_image | rev | cut -d ":" -f 1 | rev`
+          if ${{ steps.restore_devdeps.outcome != 'skipped' }}; then
+            load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
+            base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
+          elif ${{ inputs.devdeps_image != '' }}; then
+            base_image=${{ inputs.devdeps_image }}
+          else
+            echo "::error file=test_in_devenv.yml::Missing configuration for development dependencies. Either specify the image (i.e. provide devdeps_image) or cache (i.e. provide devdeps_cache and devdeps_archive) that should be used for the build."
+            exit 1
+          fi
 
-          docker build -t cuda-quantum-dev:local -f docker/build/cudaq.dev.Dockerfile . \
+          DOCKER_BUILDKIT=1 docker build --platform ${{ inputs.platform }} \
+            -t cuda-quantum-dev:local -f docker/build/cudaq.dev.Dockerfile . \
             --build-arg base_image=$base_image \
             --build-arg install="CMAKE_BUILD_TYPE=Debug"
-          
-          tag_prefix=`echo $devdeps_tag | cut -d "_" -f 1`
-          echo "tag_prefix=$tag_prefix" >> $GITHUB_OUTPUT
 
       - name: Test CUDA Quantum
         uses: addnab/docker-run-action@v3
@@ -56,8 +79,7 @@ jobs:
             /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
             lit_status=$?
             if [ ! $ctest_status -eq 0 ] || [ ! $lit_status -eq 0 ]; then
-              echo "ctest status = " $ctest_status
-              echo "llvm-lit status = " $lit_status
+              echo "::error file=test_in_devenv.yml::C++ tests failed (ctest status $ctest_status, llvm-lit status $lit_status)."
               exit 1
             fi
 
@@ -66,7 +88,8 @@ jobs:
         if: inputs.export_environment
         run: |
           output_directory=/tmp
-          filename=${{ steps.cudaq_build.outputs.tag_prefix }}_build
+          platform_id=`echo ${{ inputs.platform }} | sed 's/linux\///g' | tr -d ' '`
+          filename=${platform_id}_debug_build
 
           docker run --name cuda-quantum-dev cuda-quantum-dev:local
           docker export cuda-quantum-dev > $output_directory/$filename.tar
@@ -85,7 +108,7 @@ jobs:
 
   build_and_test_python:
     name: Dev environment (Python)
-    runs-on: ubuntu-latest
+    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
 
@@ -94,23 +117,39 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Restore environment
+        id: restore_devdeps
+        if: inputs.devdeps_image == ''
         uses: actions/cache/restore@v3
         with:
           path: ${{ inputs.devdeps_archive }}
           key: ${{ inputs.devdeps_cache }}
           fail-on-cache-miss: true
 
+      - name: Set up context for buildx
+        run: |
+          docker context create builder_context
+
+      - name: Set up buildx runner
+        uses: docker/setup-buildx-action@v2
+        with:
+          endpoint: builder_context
+
       - name: Set up dev environment
         id: dev_env
         run: |
-          base_image=`docker load --input "${{ inputs.devdeps_archive }}" | grep -o 'Loaded image: \S*:\S*' | cut -d ' ' -f 3`
-          devdeps_tag=`echo $base_image | rev | cut -d ":" -f 1 | rev`
+          if ${{ steps.restore_devdeps.outcome != 'skipped' }}; then
+            load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
+            base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
+          elif ${{ inputs.devdeps_image != '' }}; then
+            base_image=${{ inputs.devdeps_image }}
+          else
+            echo "::error file=test_in_devenv.yml::Missing configuration for development dependencies. Either specify the image (i.e. provide devdeps_image) or cache (i.e. provide devdeps_cache and devdeps_archive) that should be used for the build."
+            exit 1
+          fi
 
-          docker build -t dev_env:local -f docker/build/cudaq.dev.Dockerfile . \
+          DOCKER_BUILDKIT=1 docker build --platform ${{ inputs.platform }} \
+            -t dev_env:local -f docker/build/cudaq.dev.Dockerfile . \
             --build-arg base_image=$base_image 
-
-          tag_prefix=`echo $devdeps_tag | cut -d "_" -f 1`
-          echo "tag_prefix=py_$tag_prefix" >> $GITHUB_OUTPUT
 
       - name: Build and test CUDA Quantum (Python)
         uses: addnab/docker-run-action@v3
@@ -119,18 +158,24 @@ jobs:
           shell: bash
           run: |
             cd $CUDAQ_REPO_ROOT
+            pip install iqm_client --user -vvv
             pip install . --user -vvv
-            python3 -m pytest --ignore python/tests/backends python/tests/
+            python3 -m pytest -v python/tests/ \
+              --ignore python/tests/backends
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then
-              echo "pytest status = " $pytest_status
+              echo "::error file=test_in_devenv.yml::Python tests failed with status $pytest_status."
               exit 1
             fi
+
             for backendTest in python/tests/backends/*.py; do
-              python3 -m pytest $backendTest
+              python3 -m pytest -v $backendTest
               pytest_status=$?
-              if [ ! $pytest_status -eq 0 ]; then
-                echo "pytest $backendTest status = " $pytest_status
+
+              # Exit code 5 indicates that no tests were collected,
+              # i.e. all tests in this file were skipped.
+              if [ ! $pytest_status -eq 0 ] && [ ! $pytest_status -eq 5 ]; then
+                echo "::error file=test_in_devenv.yml::Python $backendTest tests failed with status $pytest_status."
                 exit 1
               fi 
             done 
@@ -140,7 +185,8 @@ jobs:
         if: inputs.export_environment
         run: |
           output_directory=/tmp
-          filename=${{ steps.dev_env.outputs.tag_prefix }}_build
+          platform_id=`echo ${{ inputs.platform }} | sed 's/linux\///g' | tr -d ' '`
+          filename=${platform_id}_python_build
 
           docker run --name dev_env dev_env:local
           docker export dev_env > $output_directory/$filename.tar

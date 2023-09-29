@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# ============================================================================ #
+# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# We'll need the requests and llvm module
+@Python_EXECUTABLE@ -m pip install requests llvmlite --user 
+# Launch the fake server
+PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/mock_qpu/oqc/__init__.py &
+# we'll need the process id to kill it
+pid=$(echo "$!")
+sleep 1
+# Run the tests
+./test_oqc
+# Did they fail? 
+testsPassed=$?
+# kill the server
+kill -INT $pid
+# return success / failure
+exit $testsPassed

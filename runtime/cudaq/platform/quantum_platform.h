@@ -61,14 +61,23 @@ public:
   /// Get the number of qubits for the QPU with ID qpu_id
   std::size_t get_num_qubits(std::size_t qpu_id);
 
-  /// Getter for the shots
+  /// Getter for the shots. This will be deprecated once `set_shots` and
+  /// `clear_shots` are removed.
   std::optional<int> get_shots() { return platformNumShots; }
 
   /// Setter for the shots
-  virtual void set_shots(int numShots) { platformNumShots = numShots; }
+  [[deprecated("Specify the number of shots in the using the overloaded "
+               "sample() and observe() functions")]] virtual void
+  set_shots(int numShots) {
+    platformNumShots = numShots;
+  }
 
   /// Reset shots
-  void clear_shots() { platformNumShots = std::nullopt; }
+  [[deprecated("Specify the number of shots in the using the overloaded "
+               "sample() and observe() functions")]] virtual void
+  clear_shots() {
+    platformNumShots = std::nullopt;
+  }
 
   /// Specify the execution context for this platform.
   void set_exec_ctx(cudaq::ExecutionContext *ctx, std::size_t qpu_id = 0);
@@ -98,9 +107,18 @@ public:
   /// Set the current QPU via its device ID.
   void set_current_qpu(const std::size_t device_id);
 
+  /// @brief Return true if the QPU is remote.
   bool is_remote(const std::size_t qpuId = 0);
 
-  void set_noise(noise_model *model);
+  /// @brief Return true if QPU is locally emulating a remote QPU
+  bool is_emulated(const std::size_t qpuId = 0) const;
+
+  /// @brief Set the noise model for future invocations of
+  /// quantum kernels.
+  void set_noise(const noise_model *model);
+
+  /// @brief Turn off any noise models.
+  void reset_noise();
 
   /// Enqueue an asynchronous sampling task.
   std::future<sample_result> enqueueAsyncTask(const std::size_t qpu_id,

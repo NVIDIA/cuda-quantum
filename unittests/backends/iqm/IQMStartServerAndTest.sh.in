@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# ============================================================================ #
+# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# Check if iqm-client is installed, otherwise mark the test as skipped
+@Python_EXECUTABLE@ -c "import iqm.iqm_client" 2> /dev/null
+if [ $? -ne 0 ]; then
+    echo "iqm-client is not installed. It is required for testing IQM integration. Please install it using pip install iqm-client. Skipping IQM tests."
+    exit 77
+fi
+
+# Create fake auth tokens file
+tmp_file=$(mktemp)
+@Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/mock_qpu/iqm/mock_iqm_cortex_cli.py $tmp_file
+# Launch the fake server
+@Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/mock_qpu/iqm/mock_iqm_server.py &
+# we'll need the process id to kill it
+pid=$(echo "$!")
+sleep 1
+# Run the tests
+IQM_TOKENS_FILE=$tmp_file ./test_iqm
+# Did they fail?
+testsPassed=$?
+# kill the server
+kill -INT $pid
+# wait for the server to die
+sleep 1
+# remove the tmp tokens file
+rm $tmp_file
+# return success / failure
+exit $testsPassed

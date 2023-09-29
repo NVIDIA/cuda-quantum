@@ -22,18 +22,38 @@ CUDAQ_TEST(D2VariationalTester, checkSimple) {
 
   using namespace cudaq::spin;
 
+  cudaq::set_random_seed(13);
+
   cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
                      .21829 * z(0) - 6.125 * z(1);
   h.dump();
 
   double energy = cudaq::observe(ansatz2{}, h, .59);
-  printf("Energy is %lf\n", energy);
+  printf("Energy is %.16lf\n", energy);
+  EXPECT_NEAR(energy, -1.7487, 1e-3);
+
+  std::vector<cudaq::spin_op> asList;
+  h.for_each_term([&](cudaq::spin_op &term) {
+    if (!term.is_identity())
+      asList.push_back(term);
+  });
+
+  // Test that we can osberve a list.
+  auto results = cudaq::observe(ansatz2{}, asList, .59);
+  double test = 5.907;
+  for (auto &r : results) {
+    test += r.exp_val_z() * r.get_spin().get_coefficient().real();
+  }
+
+  printf("TEST: %.16lf\n", test);
   EXPECT_NEAR(energy, -1.7487, 1e-3);
 }
 
 CUDAQ_TEST(D2VariationalTester, checkBroadcast) {
 
   using namespace cudaq::spin;
+
+  cudaq::set_random_seed(13);
 
   cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
                      .21829 * z(0) - 6.125 * z(1);
@@ -47,7 +67,7 @@ CUDAQ_TEST(D2VariationalTester, checkBroadcast) {
     x<cudaq::ctrl>(q[1], q[0]);
   };
 
-  auto results = cudaq::observe_n(
+  auto results = cudaq::observe(
       ansatz, h, cudaq::make_argset(params, std::vector(params.size(), 2)));
 
   std::vector<double> expected{
@@ -62,12 +82,15 @@ CUDAQ_TEST(D2VariationalTester, checkBroadcast) {
       11.650053, 12.250290};
 
   for (std::size_t counter = 0; auto &el : expected)
+    printf("results[%lu] = %.16lf\n", counter++, el);
+
+  for (std::size_t counter = 0; auto &el : expected)
     EXPECT_NEAR(results[counter++].exp_val_z(), el, 1e-3);
 
   // Expect that providing the wrong number of args in the vector will
   // throw an exception.
   EXPECT_ANY_THROW({
-    auto results = cudaq::observe_n(
+    auto results = cudaq::observe(
         ansatz, h,
         cudaq::make_argset(params, std::vector(params.size() + 1, 2)));
   });

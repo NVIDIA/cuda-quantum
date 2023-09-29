@@ -7,8 +7,11 @@
  ******************************************************************************/
 
 #include "cudaq.h"
+#include "cudaq/Todo.h"
+
 #include <pybind11/eval.h>
 #include <pybind11/stl.h>
+#include <variant>
 
 #include "py_observe.h"
 #include "utils/OpaqueArguments.h"
@@ -20,9 +23,6 @@
 namespace cudaq {
 
 enum class PyParType { thread, mpi };
-
-/// @brief Default shots value set to -1
-constexpr int defaultShotsValue = -1;
 
 /// @brief Default qpu id value set to 0
 constexpr int defaultQpuIdValue = 0;
@@ -36,10 +36,13 @@ std::unordered_map<std::size_t, std::unique_ptr<OpaqueArguments>>
 
 /// @brief Run `cudaq::observe` on the provided kernel and spin operator.
 observe_result pyObserve(kernel_builder<> &kernel, spin_op &spin_operator,
-                         py::args args = {}, int shots = defaultShotsValue) {
+                         py::args args, int shots,
+                         std::optional<noise_model> noise) {
   // Ensure the user input is correct.
   auto validatedArgs = validateInputArguments(kernel, args);
   auto &platform = cudaq::get_platform();
+  if (noise)
+    platform.set_noise(&*noise);
 
   // TODO: would like to handle errors in the case that
   // `kernel.num_qubits() >= spin_operator.num_qubits()`
@@ -47,20 +50,58 @@ observe_result pyObserve(kernel_builder<> &kernel, spin_op &spin_operator,
   auto name = kernel.name();
 
   // Launch the observation task
-  return details::runObservation(
-             [&]() mutable {
-               OpaqueArguments argData;
-               packArgs(argData, validatedArgs);
-               kernel.jitAndInvoke(argData.data());
-             },
-             spin_operator, platform, shots, name)
-      .value();
+  auto result = details::runObservation(
+                    [&]() mutable {
+                      OpaqueArguments argData;
+                      packArgs(argData, validatedArgs);
+                      kernel.jitAndInvoke(argData.data());
+                    },
+                    spin_operator, platform, shots, name)
+                    .value();
+  platform.reset_noise();
+  return result;
+}
+
+/// @brief Asynchronously run `cudaq::observe` on the provided kernel and
+/// spin operator.
+async_observe_result pyObserveAsync(kernel_builder<> &kernel,
+                                    spin_op &spin_operator, py::args args = {},
+                                    std::size_t qpu_id = defaultQpuIdValue,
+                                    int shots = defaultShotsValue) {
+
+  // Ensure the user input is correct.
+  auto validatedArgs = validateInputArguments(kernel, args);
+  std::hash<std::string> hasher;
+
+  // Create a unique integer key that combines the kernel name
+  // and the validated args.
+  std::size_t uniqueHash = hasher(kernel.name()) + hasher(py::str(args));
+
+  // Add the opaque args to the holder and pack the args into it
+  asyncArgsHolder.emplace(uniqueHash, std::make_unique<OpaqueArguments>());
+  packArgs(*asyncArgsHolder.at(uniqueHash).get(), validatedArgs);
+
+  // TODO: would like to handle errors in the case that
+  // `kernel.num_qubits() >= spin_operator.num_qubits()`
+  kernel.jitCode();
+  auto name = kernel.name();
+  // Get the platform, first check that the given qpu_id is valid
+  auto &platform = cudaq::get_platform();
+
+  // Launch the asynchronous execution.
+  return details::runObservationAsync(
+      [&kernel, uniqueHash]() mutable {
+        auto &argData = asyncArgsHolder.at(uniqueHash);
+        kernel.jitAndInvoke(argData->data());
+      },
+      spin_operator, platform, shots, name, qpu_id);
 }
 
 /// @brief Run `cudaq::observe` on the provided kernel and spin operator.
 observe_result pyObservePar(const PyParType &type, kernel_builder<> &kernel,
                             spin_op &spin_operator, py::args args = {},
-                            int shots = defaultShotsValue) {
+                            int shots = defaultShotsValue,
+                            std::optional<noise_model> noise = std::nullopt) {
   // Ensure the user input is correct.
   auto validatedArgs = validateInputArguments(kernel, args);
   auto &platform = cudaq::get_platform();
@@ -68,6 +109,10 @@ observe_result pyObservePar(const PyParType &type, kernel_builder<> &kernel,
     throw std::runtime_error(
         "The current quantum_platform does not support parallel distribution "
         "of observe() expectation value computations.");
+
+  // FIXME Handle noise modeling with parallel distribution.
+  if (noise)
+    TODO("Handle Noise Models with python parallel distribution.");
 
   // TODO: would like to handle errors in the case that
   // `kernel.num_qubits() >= spin_operator.num_qubits()`
@@ -117,13 +162,16 @@ observe_result pyObservePar(const PyParType &type, kernel_builder<> &kernel,
 }
 
 /// @brief Broadcast the observe call over the list-like arguments provided.
-std::vector<observe_result> pyObserveN(kernel_builder<> &kernel, spin_op &op,
-                                       py::args args = {},
-                                       std::size_t shots = defaultShotsValue) {
+std::vector<observe_result>
+pyObserveN(kernel_builder<> &kernel, spin_op &op, py::args args = {},
+           std::size_t shots = defaultShotsValue,
+           std::optional<noise_model> noise = std::nullopt) {
 
   auto argSet = createArgumentSet(args);
   auto N = argSet.size();
   auto &platform = cudaq::get_platform();
+  if (noise)
+    platform.set_noise(&*noise);
   kernel.jitCode();
   auto name = kernel.name();
   std::vector<observe_result> results;
@@ -144,116 +192,149 @@ std::vector<observe_result> pyObserveN(kernel_builder<> &kernel, spin_op &op,
     results.push_back(ret);
   }
 
+  platform.reset_noise();
+
   return results;
 }
 
-/// @brief Asynchronously run `cudaq::observe` on the provided kernel and
-/// spin operator.
-async_observe_result pyObserveAsync(kernel_builder<> &kernel,
-                                    spin_op &spin_operator, py::args args = {},
-                                    std::size_t qpu_id = defaultQpuIdValue,
-                                    int shots = defaultShotsValue) {
-
-  // Ensure the user input is correct.
-  auto validatedArgs = validateInputArguments(kernel, args);
-  std::hash<std::string> hasher;
-
-  // Create a unique integer key that combines the kernel name
-  // and the validated args.
-  std::size_t uniqueHash = hasher(kernel.name()) + hasher(py::str(args));
-
-  // Add the opaque args to the holder and pack the args into it
-  asyncArgsHolder.emplace(uniqueHash, std::make_unique<OpaqueArguments>());
-  packArgs(*asyncArgsHolder.at(uniqueHash).get(), validatedArgs);
-
-  // TODO: would like to handle errors in the case that
-  // `kernel.num_qubits() >= spin_operator.num_qubits()`
-  kernel.jitCode();
-  auto name = kernel.name();
-  // Get the platform, first check that the given qpu_id is valid
-  auto &platform = cudaq::get_platform();
-
-  // Launch the asynchronous execution.
-  return details::runObservationAsync(
-      [&kernel, uniqueHash]() mutable {
-        auto &argData = asyncArgsHolder.at(uniqueHash);
-        kernel.jitAndInvoke(argData->data());
-      },
-      spin_operator, platform, shots, name, qpu_id);
-}
-
 void bindObserve(py::module &mod) {
-  auto parallelSubmodule = mod.def_submodule("par");
+  auto parallelSubmodule = mod.def_submodule("parallel");
 
-  py::class_<cudaq::par::mpi>(parallelSubmodule, "mpi");
-  py::class_<cudaq::par::thread>(parallelSubmodule, "thread");
+  py::class_<cudaq::parallel::mpi>(
+      parallelSubmodule, "mpi",
+      "Type indicating that the :func:`observe` function should distribute its "
+      "expectation value computations accross available MPI ranks and GPUs for "
+      "each term.");
+  py::class_<cudaq::parallel::thread>(
+      parallelSubmodule, "thread",
+      "Type indicating that the :func:`observe` function should distribute its "
+      "term "
+      "expectation value computations across available GPUs via standard C++ "
+      "threads.");
 
   mod.def(
       "observe",
-      [&](kernel_builder<> &kernel, spin_op &spin_operator, py::args arguments,
-          int shots, std::optional<noise_model> noise,
-          std::optional<py::type> execution) {
-        using ObserveApplicator = std::function<observe_result(
-            kernel_builder<> &, spin_op &, py::args &, int)>;
-        std::unordered_map<std::string, ObserveApplicator> applicator{
-            {"thread",
-             [&](kernel_builder<> &kernel, spin_op &spin_operator,
-                 py::args arguments, int shots) {
-               return pyObservePar(PyParType::thread, kernel, spin_operator,
-                                   arguments, shots);
-             }},
-            {"mpi", [&](kernel_builder<> &kernel, spin_op &spin_operator,
-                        py::args arguments, int shots) {
-               return pyObservePar(PyParType::mpi, kernel, spin_operator,
-                                   arguments, shots);
-             }}};
-        observe_result result;
+      [&](kernel_builder<> &kernel,
+          std::variant<spin_op, std::vector<spin_op>> &spin_operator,
+          py::args arguments, int shots, std::optional<noise_model> noise,
+          std::optional<py::type> execution)
+          -> std::variant<observe_result, std::vector<observe_result>> {
+        // Observe can be a single observe call, a parallel observe call,
+        // or a observe broadcast. We'll handle them all here.
 
-        if (noise)
-          set_noise(*noise);
-        if (!execution.has_value()) {
-          result = pyObserve(kernel, spin_operator, arguments, shots);
-        } else {
-          result = applicator[py::str(execution.value().attr("__name__"))](
-              kernel, spin_operator, arguments, shots);
+        using ObserveApplicator = std::function<std::vector<observe_result>(
+            kernel_builder<> &, spin_op &, py::args &, int,
+            std::optional<noise_model>)>;
+
+        std::unordered_map<std::string, ObserveApplicator> applicator{
+            {"default",
+             [](kernel_builder<> &kernel, spin_op &spin_operator,
+                py::args arguments, int shots,
+                std::optional<noise_model> noise) {
+               return std::vector<observe_result>{
+                   pyObserve(kernel, spin_operator, arguments, shots, noise)};
+             }},
+            {"broadcast",
+             [](kernel_builder<> &kernel, spin_op &spin_operator,
+                py::args arguments, int shots,
+                std::optional<noise_model> noise) {
+               return pyObserveN(kernel, spin_operator, arguments, shots,
+                                 noise);
+             }},
+            {"thread",
+             [](kernel_builder<> &kernel, spin_op &spin_operator,
+                py::args arguments, int shots,
+                std::optional<noise_model> noise) {
+               return std::vector<observe_result>{
+                   pyObservePar(PyParType::thread, kernel, spin_operator,
+                                arguments, shots, noise)};
+             }},
+            {"mpi", [](kernel_builder<> &kernel, spin_op &spin_operator,
+                       py::args arguments, int shots,
+                       std::optional<noise_model> noise) {
+               return std::vector<observe_result>{
+                   pyObservePar(PyParType::mpi, kernel, spin_operator,
+                                arguments, shots, noise)};
+             }}};
+
+        std::string applicatorKey = "default";
+        if (isBroadcastRequest(kernel, arguments)) {
+          applicatorKey = "broadcast";
+          // We will always ignore execution={thread/mpi} if
+          // a function broadcast has been requested.
+          execution = std::nullopt;
         }
 
-        if (noise)
-          unset_noise();
+        // If thread or mpi parallelization requested
+        // let's set ourselves to the correct applicator
+        if (execution)
+          applicatorKey = py::str(execution.value().attr("__name__"));
 
-        return result;
+        spin_op op;
+        auto spinVariantIndex = spin_operator.index();
+        if (spinVariantIndex == 1) {
+          for (auto &o : std::get<std::vector<spin_op>>(spin_operator))
+            op += o;
+          op -= spin_op();
+        } else {
+          op = std::get<spin_op>(spin_operator);
+        }
+
+        // Run the observation task
+        auto result =
+            applicator[applicatorKey](kernel, op, arguments, shots, noise);
+
+        // We can have a vector of observe_results here
+        if (result.size() == 1) {
+          // If we just have a single result, check that
+          // the input spin_operator was just a spin_op,
+          // if so return the result
+          if (spinVariantIndex == 0)
+            return {result[0]};
+
+          // if it was a list of spin_op, process the single result
+          // back into a vector of results.
+          std::vector<observe_result> results;
+          for (auto &o : std::get<std::vector<spin_op>>(spin_operator))
+            results.emplace_back(result[0].exp_val_z(o), o,
+                                 result[0].counts(o));
+          return results;
+        }
+
+        // Return the vector of results, this is for observe_n
+        return {result};
       },
       py::arg("kernel"), py::arg("spin_operator"), py::kw_only(),
       py::arg("shots_count") = defaultShotsValue,
       py::arg("noise_model") = py::none(), py::arg("execution") = py::none(),
-      "Compute the expected value of the `spin_operator` with respect to "
-      "the `kernel`. If the kernel accepts arguments, it will be evaluated "
-      "with respect to `kernel(*arguments)`.\n"
-      "\nArgs:\n"
-      "  kernel (:class:`Kernel`): The :class:`Kernel` to evaluate the "
-      "expectation "
-      "value with respect to.\n"
-      "  spin_operator (:class:`SpinOperator`): The Hermitian spin operator to "
-      "calculate "
-      "the expectation of.\n"
-      "  *arguments (Optional[Any]): The concrete values to evaluate the "
-      "kernel "
-      "function at. Leave empty if the kernel doesn't accept any arguments.\n"
-      "  shots_count (Optional[int]): The number of shots to use for QPU "
-      "execution. "
-      "Defaults to 1 shot. Key-word only.\n"
-      "  noise_model (Optional[`NoiseModel`]): The optional "
-      ":class:`NoiseModel` to add "
-      "noise to the kernel execution on the simulator. Defaults to an empty "
-      "noise model.\n"
-      "\nReturns:\n"
-      "  :class:`ObserveResult` : A data-type containing the expectation value "
-      "of the "
-      "`spin_operator` with respect to the `kernel(*arguments)`. If "
-      "`shots_count` was "
-      "provided, the :class:`ObserveResult` will also contain a "
-      ":class:`SampleResult` "
-      "dictionary.\n");
+      R"#(Compute the expected value of the `spin_operator` with respect to 
+the `kernel`. If the input `spin_operator` is a list of `SpinOperator` then compute 
+the expected value of every operator in the list and return a list of results.
+If the kernel accepts arguments, it will be evaluated 
+with respect to `kernel(*arguments)`. Each argument in `arguments` provided
+can be a list or ndarray of arguments of the specified kernel argument
+type, and in this case, the `observe` functionality will be broadcasted over
+all argument sets and a list of `observe_result` instances will be returned.
+
+Args:
+  kernel (:class:`Kernel`): The :class:`Kernel` to evaluate the 
+    expectation value with respect to.
+  spin_operator (:class:`SpinOperator` or `list[SpinOperator]`): The Hermitian spin operator to 
+    calculate the expectation of, or a list of such operators.
+  *arguments (Optional[Any]): The concrete values to evaluate the 
+    kernel function at. Leave empty if the kernel doesn't accept any arguments.
+  shots_count (Optional[int]): The number of shots to use for QPU 
+    execution. Defaults to -1 implying no shots-based sampling. Key-word only.
+  noise_model (Optional[`NoiseModel`]): The optional :class:`NoiseModel` to add 
+    noise to the kernel execution on the simulator. Defaults to an empty 
+    noise model.
+
+Returns:
+  :class:`ObserveResult`: 
+    A data-type containing the expectation value of the `spin_operator` with 
+    respect to the `kernel(*arguments)`, or a list of such results in the case 
+    of `observe` function broadcasting. If `shots_count` was provided, the 
+    :class:`ObserveResult` will also contain a :class:`SampleResult` dictionary.)#");
 
   /// Expose observe_async, can optionally take the qpu_id to target.
   mod.def(
@@ -274,76 +355,67 @@ void bindObserve(py::module &mod) {
       py::arg("qpu_id") = defaultQpuIdValue,
       py::arg("shots_count") = defaultShotsValue,
       py::arg("noise_model") = py::none(),
-      "Compute the expected value of the `spin_operator` with respect to "
-      "the `kernel` asynchronously. If the kernel accepts arguments, it will "
-      "be evaluated with respect to `kernel(*arguments)`.\n"
-      "When targeting a quantum platform "
-      "with more than one QPU, the optional `qpu_id` allows for control over "
-      "which QPU to enable. Will return a future whose results can be "
-      "retrieved via "
-      "`future.get()`.\n"
-      "\nArgs:\n"
-      "  kernel (:class:`Kernel`): The :class:`Kernel` to evaluate the "
-      "expectation "
-      "value with respect to.\n"
-      "  spin_operator (:class:`SpinOperator`): The Hermitian spin operator to "
-      "calculate "
-      "the expectation of.\n"
-      "  *arguments (Optional[Any]): The concrete values to evaluate the "
-      "kernel "
-      "function at. Leave empty if the kernel doesn't accept any arguments.\n"
-      "  qpu_id (Optional[int]): The optional identification for which QPU on "
-      "the platform to target. Defaults to zero. Key-word only.\n"
-      "  shots_count (Optional[int]): The number of shots to use for QPU "
-      "execution. "
-      "Defaults to 1 shot. Key-word only.\n"
-      "  noise_model (Optional[`NoiseModel`]): The optional "
-      ":class:`NoiseModel` to add "
-      "noise to the kernel execution on the simulator. Defaults to an empty "
-      "noise model.\n"
-      "\nReturns:\n"
-      "  :class:`AsyncObserveResult` : A future containing the result of the "
-      "call to observe.\n");
+      R"#(Compute the expected value of the `spin_operator` with respect to 
+the `kernel` asynchronously. If the kernel accepts arguments, it will 
+be evaluated with respect to `kernel(*arguments)`. When targeting a
+quantum platform with more than one QPU, the optional `qpu_id` allows
+for control over which QPU to enable. Will return a future whose results
+can be retrieved via `future.get()`.
+
+Args:
+  kernel (:class:`Kernel`): The :class:`Kernel` to evaluate the 
+    expectation value with respect to.
+  spin_operator (:class:`SpinOperator`): The Hermitian spin operator to 
+    calculate the expectation of.
+  *arguments (Optional[Any]): The concrete values to evaluate the 
+    kernel function at. Leave empty if the kernel doesn't accept any arguments.
+  qpu_id (Optional[int]): The optional identification for which QPU on 
+    the platform to target. Defaults to zero. Key-word only.
+  shots_count (Optional[int]): The number of shots to use for QPU 
+    execution. Defaults to -1 implying no shots-based sampling. Key-word only.
+  noise_model (Optional[`NoiseModel`]): The optional 
+    :class:`NoiseModel` to add noise to the kernel execution on the simulator.
+    Defaults to an empty noise model.
+
+Returns:
+  :class:`AsyncObserveResult`: 
+  A future containing the result of the call to observe.)#");
 
   mod.def(
       "observe_n",
       [](kernel_builder<> &self, spin_op &spin_operator, py::args args,
          int shots, std::optional<noise_model> noise_model) {
-        if (!noise_model)
-          return pyObserveN(self, spin_operator, args, shots);
-        set_noise(*noise_model);
-        auto res = pyObserveN(self, spin_operator, args, shots);
-        unset_noise();
-        return res;
+        PyErr_WarnEx(PyExc_DeprecationWarning,
+                     "observe_n() is deprecated, use observe() with the same "
+                     "argument-list structure.",
+                     1);
+        return pyObserveN(self, spin_operator, args, shots, noise_model);
       },
       py::arg("kernel"), py::arg("spin_operator"), py::kw_only(),
       py::arg("shots_count") = defaultShotsValue,
       py::arg("noise_model") = py::none(),
-      "Broadcast the observe function over the input argument set."
-      "For each argument type in the kernel signature, you must provide a"
-      "list of arguments of that type. "
-      "This function computes the expected value of the given `spin_operator` "
-      "with respect to the `kernel` at each "
-      "set of arguments provided for the specified number "
-      "of circuit executions (`shots_count`).\n"
-      "\nArgs:\n"
-      "  kernel (:class:`Kernel`): The :class:`Kernel` to execute "
-      "`shots_count` "
-      "times on the QPU.\n"
-      "  *arguments (Optional[Any]): The concrete values to evaluate the "
-      "kernel. Each argument must be a list of instances of the type specified "
-      "by the kernel signature."
-      "function at. Leave empty if the kernel doesn't accept any arguments.\n"
-      "  shots_count (Optional[int]): The number of kernel executions on the "
-      "QPU. Defaults "
-      "to 1000. Key-word only.\n"
-      "  noise_model (Optional[`NoiseModel`]): The optional "
-      ":class:`NoiseModel` to add "
-      "noise to the kernel execution on the simulator. Defaults to an empty "
-      "noise model.\n"
-      "\nReturns:\n"
-      "  :class:`SampleResult` : A dictionary containing the measurement "
-      "count results for the :class:`Kernel`.\n");
+      R"#(Broadcast the observe function over the input argument set.
+For each argument type in the kernel signature, you must provide a list of 
+arguments of that type. This function computes the expected value of the 
+given `spin_operator` with respect to the `kernel` at each set of arguments 
+provided for the specified number of circuit executions (`shots_count`).
+
+Args:
+  kernel (:class:`Kernel`): The :class:`Kernel` to execute `shots_count` 
+    times on the QPU.
+  *arguments (Optional[Any]): The concrete values to evaluate the kernel.
+    Each argument must be a list of instances of the type specified by 
+    the kernel signature. function at. Leave empty if the kernel doesn't 
+    accept any arguments.
+  shots_count (Optional[int]): The number of kernel executions on the 
+      QPU. Defaults to 1000. Key-word only.
+  noise_model (Optional[`NoiseModel`]): The optional :class:`NoiseModel` to add 
+      noise to the kernel execution on the simulator. Defaults to an empty 
+      noise model.
+
+Returns:
+  :class:`SampleResult`: A dictionary containing the measurement count results 
+    for the :class:`Kernel`.)#");
 }
 
 } // namespace cudaq

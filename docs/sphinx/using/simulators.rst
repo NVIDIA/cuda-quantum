@@ -31,28 +31,28 @@ switch to :code:`FP64`, specify the :code:`nvidia-fp64` target instead.
 cuQuantum multi-node multi-GPU
 ++++++++++++++++++++++++++++++++++
 
-The :code:`nvidia_mgpu` target provides a state vector simulator accelerated with 
+The :code:`nvidia-mgpu` target provides a state vector simulator accelerated with 
 the :code:`cuStateVec` library but with support for Multi-Node, Multi-GPU distribution of the 
 state vector. 
 
-To specify the use of the :code:`nvidia_mgpu` target, pass the following command line 
+To specify the use of the :code:`nvidia-mgpu` target, pass the following command line 
 options to :code:`nvq++`
 
 .. code:: bash 
 
-    nvq++ --target nvidia_mgpu src.cpp ...
+    nvq++ --target nvidia-mgpu src.cpp ...
 
 In python, this can be specified with 
 
 .. code:: python 
 
-    cudaq.set_target('nvidia_mgpu')
+    cudaq.set_target('nvidia-mgpu')
 
 OpenMP CPU-only
 ++++++++++++++++++++++++++++++++++
 
 The :code:`default` target provides a state vector simulator based on the CPU-only, OpenMP
-threaded `Q++ <https//github.com/softwareqinc/qpp>`_ library. This is the default 
+threaded `Q++ <https://github.com/softwareqinc/qpp>`_ library. This is the default 
 target, so if the code is compiled without any :code:`--target` flags, this is the 
 simulator that will be used. 
 

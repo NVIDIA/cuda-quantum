@@ -32,7 +32,7 @@ target_link_libraries(test_quake_synth
   cudaq-platform-default
   nvqir-qpp 
   nvqir
-  cudaq-em-qir
+  cudaq-em-default
   gtest_main)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
   target_link_options(test_quake_synth PRIVATE -Wl,--no-as-needed)

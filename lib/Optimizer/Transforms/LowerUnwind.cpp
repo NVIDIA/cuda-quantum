@@ -83,9 +83,8 @@ private:
       for (Operation *parent = unwindOp->getParentOp();
            !isa<cudaq::cc::LoopOp>(parent) && !asPrimitive;
            parent = parent->getParentOp())
-        asPrimitive =
-            isa<func::FuncOp, cudaq::cc::CreateLambdaOp, cudaq::cc::ScopeOp>(
-                parent);
+        asPrimitive = isa<func::FuncOp, cudaq::cc::CreateLambdaOp,
+                          cudaq::cc::ScopeOp, cudaq::cc::IfOp>(parent);
     }
     auto *op = unwindOp.getOperation();
     infoMap.opParentMap.insert({op, {parent, asPrimitive}});
@@ -322,7 +321,7 @@ struct ScopeOpPattern : public OpRewritePattern<cudaq::cc::ScopeOp> {
 
   LogicalResult matchAndRewrite(cudaq::cc::ScopeOp scope,
                                 PatternRewriter &rewriter) const override {
-    auto iter = infoMap.opParentMap.find(scope.getOperation());
+    [[maybe_unused]] auto iter = infoMap.opParentMap.find(scope.getOperation());
     assert(iter != infoMap.opParentMap.end() && iter->second.asPrimitive);
     LLVM_DEBUG(llvm::dbgs() << "replacing scope @" << scope.getLoc() << '\n');
     auto loc = scope.getLoc();
@@ -712,7 +711,7 @@ struct UnwindReturnOpPattern
 
   LogicalResult matchAndRewrite(cudaq::cc::UnwindReturnOp retOp,
                                 PatternRewriter &rewriter) const override {
-    auto iter = infoMap.opParentMap.find(retOp.getOperation());
+    [[maybe_unused]] auto iter = infoMap.opParentMap.find(retOp.getOperation());
     assert(iter != infoMap.opParentMap.end());
     auto *blk = rewriter.getInsertionBlock();
     auto pos = rewriter.getInsertionPoint();

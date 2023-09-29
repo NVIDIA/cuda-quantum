@@ -48,7 +48,7 @@ public:
 
   /// @brief Noise model to apply to the
   /// current execution.
-  noise_model *noiseModel = nullptr;
+  const noise_model *noiseModel = nullptr;
 
   /// @brief Flag to indicate if backend can
   /// handle spin_op observe task under this ExecutionContext.

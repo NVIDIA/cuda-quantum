@@ -12,6 +12,7 @@
 import numpy as np
 
 import cudaq
+from cudaq import spin
 
 
 def test_sdg_0_state():
@@ -213,3 +214,70 @@ def test_tdg_1_state_negate():
 
     # Qubit should remain in 1-state.
     assert counts["1"] == 1000
+
+
+def test_can_progressively_build():
+    """Tests that a kernel can be build progressively."""
+    cudaq.reset_target()
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc(2)
+    kernel.h(q[0])
+    print(kernel)
+    state = cudaq.get_state(kernel)
+    assert np.isclose(1. / np.sqrt(2.), state[0].real)
+    assert np.isclose(0., state[1].real)
+    assert np.isclose(1. / np.sqrt(2.), state[2].real)
+    assert np.isclose(0., state[3].real)
+
+    counts = cudaq.sample(kernel)
+    print(counts)
+    assert '10' in counts
+    assert '00' in counts
+
+    # Continue building the kernel
+    kernel.cx(q[0], q[1])
+    print(kernel)
+    state = cudaq.get_state(kernel)
+    assert np.isclose(1. / np.sqrt(2.), state[0].real)
+    assert np.isclose(0., state[1].real)
+    assert np.isclose(0., state[2].real)
+    assert np.isclose(1. / np.sqrt(2.), state[3].real)
+
+    counts = cudaq.sample(kernel)
+    print(counts)
+    assert '11' in counts
+    assert '00' in counts
+
+
+def test_from_state():
+    cudaq.reset_target()
+    state = np.asarray([.70710678, 0., 0., 0.70710678])
+    kernel = cudaq.make_kernel()
+    qubits = kernel.qalloc(2)
+
+    cudaq.from_state(kernel, qubits, state)
+
+    print(kernel)
+    counts = cudaq.sample(kernel)
+    print(counts)
+    assert '11' in counts
+    assert '00' in counts
+
+    kernel = cudaq.from_state(state)
+    counts = cudaq.sample(kernel)
+    print(counts)
+    assert '11' in counts
+    assert '00' in counts
+
+    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
+        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+    state = np.asarray([0., .292786, .956178, 0.])
+    kernel = cudaq.make_kernel()
+    qubits = kernel.qalloc(2)
+    cudaq.from_state(kernel, qubits, state)
+    energy = cudaq.observe(kernel, hamiltonian).expectation_z()
+    assert np.isclose(-1.748, energy, 1e-3)
+
+    ss = cudaq.get_state(kernel)
+    for i in range(4):
+        assert np.isclose(ss[i], state[i], 1e-3)

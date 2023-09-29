@@ -52,8 +52,18 @@ void bindComplexMatrix(py::module &mod) {
            }),
            "Create a :class:`ComplexMatrix` from a buffer of data, such as a "
            "numpy.ndarray.")
-      .def("__getitem__", &complex_matrix::operator(),
-           "Return the matrix element at i, j.")
+      .def(
+          "__getitem__",
+          [](complex_matrix &m, std::size_t i, std::size_t j) {
+            return m(i, j);
+          },
+          "Return the matrix element at i, j.")
+      .def(
+          "__getitem__",
+          [](complex_matrix &m, std::tuple<std::size_t, std::size_t> rowCol) {
+            return m(std::get<0>(rowCol), std::get<1>(rowCol));
+          },
+          "Return the matrix element at i, j.")
       .def("minimal_eigenvalue", &complex_matrix::minimal_eigenvalue,
            "Return the lowest eigenvalue for this :class:`ComplexMatrix`.")
       .def(
