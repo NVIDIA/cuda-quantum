@@ -1,15 +1,10 @@
 on:
   workflow_dispatch:
     inputs:
-      artifacts_url:
+      deployment_id:
+        type: string
+        description: The workflow id of the deployment that contains produced the documentation to publish.
         required: true
-        type: string
-        description: 'The url to the artifacts that contain the docs to publish.'
-      artifact_name:
-        required: false
-        type: string
-        default: cuda_quantum_docs
-        description: 'The name of the artifact that contain the docs to publish.'
       version:
         required: true
         type: string
@@ -52,9 +47,13 @@ jobs:
       - name: Download artifacts
         id: artifacts
         run: |
-          artifacts_url=${{ (github.event_name == 'workflow_dispatch' && inputs.artifacts_url) || github.event.workflow_run.artifacts_url }}
+          if ${{ github.event_name == 'workflow_dispatch' }}; then
+            artifacts_url=https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ inputs.deployment_id }}/artifacts
+          else
+            artifacts_url=${{ github.event.workflow_run.artifacts_url }}
+          fi
           artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
-          artifact_name=${{ (github.event_name == 'workflow_dispatch' && inputs.artifact_name) || 'cuda_quantum_docs' }}
+          artifact_name=cuda_quantum_docs
 
           docs_found=${{ github.event.workflow_run.name == 'CI' || false }}
           for artifact in `echo "$artifacts"`; do
@@ -127,7 +126,7 @@ jobs:
           docs_changed=`git diff --cached --exit-code > /dev/null && echo false || echo true`
 
           if ${{ github.event_name == 'workflow_dispatch' }}; then
-            git commit -m "Docs update triggered manually for version ${{ inputs.version }} (artifacts url: ${{ inputs.artifacts_url }}, artifact name: ${{ inputs.artifact_name }})."
+            git commit -m "Docs update triggered manually for version ${{ inputs.version }} (workflow: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})."
           elif [ -n "$pr_number" ]; then
             git commit --allow-empty -m "Docs preview for PR #$pr_number."
           else
