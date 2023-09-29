@@ -125,7 +125,7 @@ The location of the installed .so files for these packages must then be exported
 the :code:`LD_LIBRARY_PATH`. To find the local installation path of these packages,
 assuming installation via pip, programmers may run
 
-.. code::bash
+.. code:: bash
 
     python3 -m pip show nvidia-nvtx-cu11 nvidia-cuda-runtime-cu11
 
@@ -133,11 +133,10 @@ Python Requirements
 ++++++++++++++++++++
 
 The python requirements for these backends include:
-
-* cutensor-cu11
-* custatevec-cu11
-* nvidia-cublas-cu11
-* nvidia-cusolver-cu11
+- cutensor-cu11
+- custatevec-cu11
+- nvidia-cublas-cu11
+- nvidia-cusolver-cu11
 
 We recommend that these be installed via pip:
 
