@@ -316,16 +316,14 @@ public:
 };
 
 /// Lower the quake.reset op to QIR
-template <typename ResetOpType>
-class ResetRewrite : public ConvertOpToLLVMPattern<ResetOpType> {
+class ResetRewrite : public ConvertOpToLLVMPattern<quake::ResetOp> {
 public:
-  using Base = ConvertOpToLLVMPattern<ResetOpType>;
-  using Base::Base;
+  using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
   LogicalResult
-  matchAndRewrite(ResetOpType instOp, typename Base::OpAdaptor adaptor,
+  matchAndRewrite(quake::ResetOp instOp, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-    auto parentModule = instOp->template getParentOfType<ModuleOp>();
+    auto parentModule = instOp->getParentOfType<ModuleOp>();
     auto context = parentModule->getContext();
     std::string qirQisPrefix(cudaq::opt::QIRQISPrefix);
     std::string instName = instOp->getName().stripDialect().str();
@@ -344,6 +342,37 @@ public:
     // Replace the quake op with the new call op.
     rewriter.replaceOpWithNewOp<LLVM::CallOp>(
         instOp, TypeRange{}, qirFunctionSymbolRef, adaptor.getOperands());
+    return success();
+  }
+};
+
+/// Lower exp_pauli(f64, veq, cc.string) to __quantum__qis__exp_pauli
+class ExpPauliRewrite : public ConvertOpToLLVMPattern<quake::ExpPauliOp> {
+public:
+  using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::ExpPauliOp instOp, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = instOp->getLoc();
+    auto parentModule = instOp->getParentOfType<ModuleOp>();
+    auto *context = rewriter.getContext();
+    std::string qirQisPrefix(cudaq::opt::QIRQISPrefix);
+    auto qirFunctionName = qirQisPrefix + "exp_pauli";
+    FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
+        qirFunctionName, /*return type=*/LLVM::LLVMVoidType::get(context),
+        {rewriter.getF64Type(), cudaq::opt::getArrayType(context),
+         cudaq::opt::factory::getPointerType(context)},
+        parentModule);
+    SmallVector<Value> operands = adaptor.getOperands();
+    // Make sure to drop any length information from the type of the Pauli word.
+    auto pauliWord = operands.back();
+    operands.pop_back();
+    auto castedPauli = rewriter.create<LLVM::BitcastOp>(
+        loc, cudaq::opt::factory::getPointerType(context), pauliWord);
+    operands.push_back(castedPauli);
+    rewriter.replaceOpWithNewOp<LLVM::CallOp>(instOp, TypeRange{}, symbolRef,
+                                              operands);
     return success();
   }
 };
@@ -1310,6 +1339,42 @@ public:
   }
 };
 
+class CreateStringLiteralOpPattern
+    : public ConvertOpToLLVMPattern<cudaq::cc::CreateStringLiteralOp> {
+public:
+  using Base = ConvertOpToLLVMPattern<cudaq::cc::CreateStringLiteralOp>;
+  using Base::Base;
+
+  LogicalResult
+  matchAndRewrite(cudaq::cc::CreateStringLiteralOp stringLiteralOp,
+                  OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = stringLiteralOp.getLoc();
+    auto parentModule = stringLiteralOp->getParentOfType<ModuleOp>();
+    StringRef stringLiteral = stringLiteralOp.getStringLiteral();
+
+    // Write to the module body
+    auto insertPoint = rewriter.saveInsertionPoint();
+    rewriter.setInsertionPointToStart(parentModule.getBody());
+
+    // Create the register name global
+    auto builder = cudaq::IRBuilder::atBlockEnd(parentModule.getBody());
+    auto slGlobal =
+        builder.genCStringLiteralAppendNul(loc, parentModule, stringLiteral);
+
+    // Shift back to the function
+    rewriter.restoreInsertionPoint(insertPoint);
+
+    // Get the string address
+    rewriter.replaceOpWithNewOp<LLVM::AddressOfOp>(
+        stringLiteralOp,
+        cudaq::opt::factory::getPointerType(slGlobal.getType()),
+        slGlobal.getSymName());
+
+    return success();
+  }
+};
+
 class StoreOpPattern : public ConvertOpToLLVMPattern<cudaq::cc::StoreOp> {
 public:
   using Base = ConvertOpToLLVMPattern<cudaq::cc::StoreOp>;
@@ -1420,25 +1485,26 @@ public:
 
     patterns.insert<GetVeqSizeOpRewrite, MxToMz, MyToMz, ReturnBitRewrite>(
         context);
-    patterns.insert<
-        AllocaOpRewrite, AllocaOpPattern, CallableClosureOpPattern,
-        CallableFuncOpPattern, CallCallableOpPattern, CastOpPattern,
-        ComputePtrOpPattern, ConcatOpRewrite, DeallocOpRewrite,
-        ExtractQubitOpRewrite, ExtractValueOpPattern, FuncToPtrOpPattern,
-        InsertValueOpPattern, InstantiateCallableOpPattern, LoadOpPattern,
-        OneTargetRewrite<quake::HOp>, OneTargetRewrite<quake::XOp>,
-        OneTargetRewrite<quake::YOp>, OneTargetRewrite<quake::ZOp>,
-        OneTargetRewrite<quake::SOp>, OneTargetRewrite<quake::TOp>,
-        OneTargetOneParamRewrite<quake::R1Op>,
-        OneTargetTwoParamRewrite<quake::PhasedRxOp>,
-        OneTargetOneParamRewrite<quake::RxOp>,
-        OneTargetOneParamRewrite<quake::RyOp>,
-        OneTargetOneParamRewrite<quake::RzOp>,
-        OneTargetTwoParamRewrite<quake::U2Op>,
-        OneTargetTwoParamRewrite<quake::U3Op>, ResetRewrite<quake::ResetOp>,
-        StdvecDataOpPattern, StdvecInitOpPattern, StdvecSizeOpPattern,
-        StoreOpPattern, SubveqOpRewrite, TwoTargetRewrite<quake::SwapOp>,
-        UndefOpPattern>(typeConverter);
+    patterns
+        .insert<AllocaOpRewrite, AllocaOpPattern, CallableClosureOpPattern,
+                CallableFuncOpPattern, CallCallableOpPattern, CastOpPattern,
+                ComputePtrOpPattern, ConcatOpRewrite, DeallocOpRewrite,
+                CreateStringLiteralOpPattern, ExtractQubitOpRewrite,
+                ExtractValueOpPattern, FuncToPtrOpPattern, InsertValueOpPattern,
+                InstantiateCallableOpPattern, LoadOpPattern, ExpPauliRewrite,
+                OneTargetRewrite<quake::HOp>, OneTargetRewrite<quake::XOp>,
+                OneTargetRewrite<quake::YOp>, OneTargetRewrite<quake::ZOp>,
+                OneTargetRewrite<quake::SOp>, OneTargetRewrite<quake::TOp>,
+                OneTargetOneParamRewrite<quake::R1Op>,
+                OneTargetTwoParamRewrite<quake::PhasedRxOp>,
+                OneTargetOneParamRewrite<quake::RxOp>,
+                OneTargetOneParamRewrite<quake::RyOp>,
+                OneTargetOneParamRewrite<quake::RzOp>,
+                OneTargetTwoParamRewrite<quake::U2Op>,
+                OneTargetTwoParamRewrite<quake::U3Op>, ResetRewrite,
+                StdvecDataOpPattern, StdvecInitOpPattern, StdvecSizeOpPattern,
+                StoreOpPattern, SubveqOpRewrite,
+                TwoTargetRewrite<quake::SwapOp>, UndefOpPattern>(typeConverter);
     patterns.insert<MeasureRewrite<quake::MzOp>>(typeConverter, measureCounter);
 
     target.addLegalDialect<LLVM::LLVMDialect>();

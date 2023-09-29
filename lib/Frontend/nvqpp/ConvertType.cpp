@@ -81,6 +81,7 @@ QuakeBridgeVisitor::findCallOperator(const clang::CXXRecordDecl *decl) {
 
 bool QuakeBridgeVisitor::TraverseRecordType(clang::RecordType *t) {
   auto *recDecl = t->getDecl();
+
   if (ignoredClass(recDecl))
     return true;
   auto reci = records.find(t);
@@ -311,7 +312,7 @@ bool QuakeBridgeVisitor::doSyntaxChecks(const clang::FunctionDecl *x) {
     // device kernels may take veq and/or ref arguments.
     if (isArithmeticType(t) || isArithmeticSequenceType(t) ||
         isQuantumType(t) || isKernelCallable(t) || isFunctionCallable(t) ||
-        isReferenceToCallableRecord(t, p))
+        isCharPointerType(t) || isReferenceToCallableRecord(t, p))
       continue;
     reportClangError(p, mangler, "kernel argument type not supported");
     return false;
