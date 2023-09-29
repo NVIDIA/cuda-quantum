@@ -151,9 +151,9 @@ jobs:
           file: ./docker/build/devdeps.ext.Dockerfile
           build-args: |
             ompidev_image=${{ inputs.ompidev_image }}
-            base_image=ubuntu:22.04
+            base_image=11.8.0-runtime-ubuntu22.04
             cuda_root=/usr/local/cuda-11.8
-            cuda_packages=cuda-runtime-11-8
+            cuda_packages=
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}
@@ -553,6 +553,23 @@ jobs:
           DIGEST: ${{ steps.cudaq_build.outputs.digest }}
           TAGS: ${{ steps.cudaq_metadata.outputs.tags }}
         run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
+
+      - name: Sign image with NGC CLI
+        if: inputs.environment && steps.prereqs.outputs.ngc_registry
+        env:
+          TAGS: ${{ steps.cudaq_metadata.outputs.tags }}
+          NGC_CLI_API_KEY: ${{ secrets.NGC_CREDENTIALS }}
+          NGC_CLI_ORG: ${{ github.repository_owner }}
+          NGC_CLI_TEAM: 'nightly'
+        run: |
+          wget -O ngccli_linux.zip --content-disposition \
+            https://api.ngc.nvidia.com/v2/resources/nvidia/ngc-apps/ngc_cli/versions/3.28.0/files/ngccli_linux.zip
+          if [ -z "$(sha256sum ngccli_linux.zip | grep -o '74f469a2082e90a4561f09eb0d483b67044e91be727066122253436c140a7b54 ')" ]; then
+            echo "::error::NGC CLI was corrupted during download." && exit 1
+          fi
+          unzip ngccli_linux.zip && chmod u+x ngc-cli/ngc
+          echo "Signing ${TAGS}"
+          ngc-cli/ngc registry image publish --source ${TAGS} ${TAGS} --sign
 
       # If the cuda-quantum image is initially pushed to ngc we recreate it
       # and push it to the registry defined in the deployment environment
