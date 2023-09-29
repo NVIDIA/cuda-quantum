@@ -147,7 +147,7 @@ we refer to the `CUDA Quantum GitHub repository`_.
 CUDA Quantum Dependencies
 -------------------------
 
-CUDA Quantum can be used to simulate quantum programs (see `using/simulators`) on a CPU-only system, but a GPU is highly recommended.
+CUDA Quantum can be used to simulate quantum programs (see :doc:`using/simulators`) on a CPU-only system, but a GPU is highly recommended.
 
 The supported CPUs include both the x86_64 (x86-64-v3 when using the OpenMPI stack) and ARM64 architectures.
 
