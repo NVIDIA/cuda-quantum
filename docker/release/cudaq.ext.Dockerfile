@@ -26,8 +26,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         curl jq
 
 # Make sure that apt-get is updated at the end!;
-# We need apt-get update to have run to ensure that apt-get knows about
-# CUDA packages if the base image has added the CUDA keyring.
+# We need apt-get update to ensure that apt-get knows about CUDA packages.
 # If we don't do that, then apt-get will get confused when some CUDA
 # components are already installed but not all of it.
 
