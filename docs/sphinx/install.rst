@@ -168,7 +168,7 @@ The following table summarizes the required components.
     * - Tested Distributions
       - Ubuntu 22.04
 
-.. list-table:: Requirements for GPU simulation
+.. list-table:: Requirements for GPU Simulation
     :widths: 30 50
     :header-rows: 0
 
