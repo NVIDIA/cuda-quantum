@@ -153,18 +153,6 @@ enables one to create a superposition of computational basis states.
     //                     | 1  -1 |
     h(q);
 
-:code:`phased_rx`
----------------------
-
-This is an arbitrary rotation θ around the cos(φ)x + sin(φ)y axis.
-
-.. code-block:: cpp
-
-    // Apply the unitary transformation
-    // PhasedRx(θ,φ) = |        cos(θ/2)        -iexp(-iφ) * sin(θ/2) |
-    //                 | -iexp(iφ)) * sin(θ/2)         cos(θ/2)       |
-    phased_rx(q);
-
 :code:`r1`
 ---------------------
 
@@ -175,7 +163,7 @@ This is an arbitrary rotation about the |1> state.
     // Apply the unitary transformation
     // R1(λ) = | 1     0    |
     //         | 0  exp(iλ) |
-    r1(q);
+    r1(std::numbers::pi, q);
 
 :code:`rx`
 ---------------------
@@ -187,7 +175,7 @@ This is an arbitrary rotation about the X axis.
     // Apply the unitary transformation
     // Rx(θ) = |  cos(θ/2)  -isin(θ/2) |
     //         | -isin(θ/2)  cos(θ/2)  |
-    rx(q);
+    rx(std::numbers::pi, q);
 
 :code:`ry`
 ---------------------
@@ -199,7 +187,7 @@ This is an arbitrary rotation about the Y axis.
     // Apply the unitary transformation
     // Ry(θ) = | cos(θ/2)  -sin(θ/2) |
     //         | sin(θ/2)   cos(θ/2) |
-    ry(q);
+    ry(std::numbers::pi, q);
 
 :code:`rz`
 ---------------------
@@ -211,7 +199,7 @@ This is an arbitrary rotation about the Z axis.
     // Apply the unitary transformation
     // Rz(λ) = | exp(-iλ/2)      0     |
     //         |     0       exp(iλ/2) |
-    rz(q);
+    rz(std::numbers::pi, q);
 
 :code:`s`
 ---------------------
@@ -237,32 +225,6 @@ This operation applies to its target a π/4 rotation about the Z axis.
     //     | 0  exp(iπ/4) |
     t(q);
 
-:code:`u2`
----------------------
-
-This is a generic rotation about the X+Z axis defined by two Euler angles.
-
-.. code-block:: cpp
-
-    // Apply the unitary transformation
-    // U2(φ,λ) = 1/sqrt(2) * | 1        -exp(iλ)       |
-    //                       | exp(iφ)   exp(i(λ + φ)) |
-
-    u2(q);
-
-:code:`u2`
----------------------
-
-This is the universal three-parameters operator defined by three Euler angles.
-It is a generalization of :code:`u2` that covers all single-qubit rotations.
-
-.. code-block:: cpp
-
-    // Apply the unitary transformation
-    // U3(θ,φ,λ) = | cos(θ/2)            -exp(iλ) * sin(θ/2)       |
-    //             | exp(iφ) * sin(θ/2)   exp(i(λ + φ)) * cos(θ/2) |
-    u3(q);
-
 :code:`swap`
 ---------------------
 
@@ -275,7 +237,7 @@ This operation swaps the states of two qubits.
     //        | 0 0 1 0 |
     //        | 0 1 0 0 |
     //        | 0 0 0 1 |
-    swap(q);
+    swap(q1, q2);
 
 :code:`mz`
 ---------------------
