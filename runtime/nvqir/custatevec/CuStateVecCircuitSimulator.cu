@@ -385,10 +385,10 @@ public:
       targets.push_back(qubits[i]);
     });
 
-    custatevecApplyPauliRotation(
+    HANDLE_ERROR(custatevecApplyPauliRotation(
         handle, deviceStateVector, cuStateVecCudaDataType, nQubitsAllocated,
         theta, paulis.data(), targets.data(), targets.size(), controls.data(),
-        nullptr, controls.size());
+        nullptr, controls.size()));
   }
 
   /// @brief Compute the operator expectation value, with respect to
