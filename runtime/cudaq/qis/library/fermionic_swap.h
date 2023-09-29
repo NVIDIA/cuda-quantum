@@ -35,8 +35,8 @@ __qpu__ void fermionic_swap(double phi, cudaq::qubit &a, cudaq::qubit &b) {
 }
 
 template <typename KernelBuilder>
-void fermionic_swap(KernelBuilder &kernel, cudaq::QuakeValue &phi,
-                    cudaq::QuakeValue &a, cudaq::QuakeValue &b) {
+void fermionic_swap(KernelBuilder &kernel, cudaq::QuakeValue phi,
+                    cudaq::QuakeValue a, cudaq::QuakeValue b) {
   kernel.h(a);
   kernel.h(b);
 

@@ -449,6 +449,13 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &size) {
   return QuakeValue(builder, qubits);
 }
 
+QuakeValue constantVal(ImplicitLocOpBuilder &builder, double val) {
+  llvm::APFloat d(val);
+  Value constant =
+      builder.create<arith::ConstantFloatOp>(d, builder.getF64Type());
+  return QuakeValue(builder, constant);
+}
+
 template <typename QuakeOp>
 void handleOneQubitBroadcast(ImplicitLocOpBuilder &builder, Value veq,
                              bool adjoint = false) {

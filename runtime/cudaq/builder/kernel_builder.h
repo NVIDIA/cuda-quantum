@@ -160,6 +160,9 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, const std::size_t nQubits);
 /// @brief Allocate a `qvector` from existing `QuakeValue` size
 QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &size);
 
+/// @brief Create a QuakeValue representing a constant floating-point number
+QuakeValue constantVal(ImplicitLocOpBuilder &builder, double val);
+
 // In the following macros + instantiations, we define the functions
 // that create Quake Quantum Ops + Measures
 
@@ -406,6 +409,12 @@ public:
   /// size is from a pre-allocated size `QuakeValue` or `BlockArgument`.
   QuakeValue qalloc(QuakeValue size) {
     return details::qalloc(*opBuilder.get(), size);
+  }
+
+  /// @brief Return a `QuakeValue` representing the constant floating-point
+  /// value.
+  QuakeValue constantVal(double val) {
+    return details::constantVal(*opBuilder.get(), val);
   }
 
   // In the following macros + instantiations, we define the kernel_builder
