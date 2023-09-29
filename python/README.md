@@ -72,7 +72,6 @@ To install and configure GPU enabled simulation backends, see
 [python_gpu_reference]:
     https://nvidia.github.io/cuda-quantum/latest/using/simulators.html#gpu-simulation-requirements
 
-
 ## Contributing
 
 There are many ways in which you can get involved with CUDA Quantum. If you are

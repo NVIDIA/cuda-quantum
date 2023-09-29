@@ -100,17 +100,12 @@ our GPU enabled simulation backends.
 System Level Dependencies
 ++++++++++++++++++++++++++
 
-The system level dependencies for these backends include:
-* An NVIDIA GPU with compute capability 7.0+
-* Driver: Linux (450.80.02+ for CUDA 11, 525.60.13+ for CUDA 12)
-* CUDA Toolkit 11.x or newer
-* Python 3.9+
+The system level dependencies for these backends may be found in :doc:`CUDA Quantum Dependencies <using/install>`.
 
-For more information on the installation of NVIDIA Driver's for Ubuntu, see
-`here <https://help.ubuntu.com/community/NvidiaDriversInstallation>`__.
+Note: The minimum supported Python version for GPU simulation is Python 3.9.
 
-For installation of the CUDA toolkit, programmers have two options. The first
-is to install the entire CUDA toolkit via your system package manager. For example
+For installation of the CUDA toolkit, programmers have two options. The first is to install the
+entire CUDA toolkit via your system package manager. For example
 
 .. code:: bash
 
@@ -118,19 +113,21 @@ is to install the entire CUDA toolkit via your system package manager. For examp
     # -- or -- 
     dnf install cuda-11-8.x86_64 # RHEL 9
 
-Note: After installing the CUDA Toolkit, you must follow these `post-installation instructions
-<https://docs.nvidia.com/cuda/archive/11.8.0/cuda-installation-guide-linux/index.html#post-installation-actions>`__.
+Note: After installing the CUDA Toolkit, these `post-installation instructions
+<https://docs.nvidia.com/cuda/archive/11.8.0/cuda-installation-guide-linux/index.html#post-installation-actions>`__
+must be followed to ensure the CUDA install may be found in the :code:`LD_LIBRARY_PATH`.
 
 Alternatively, the programmer may install the following Python packages:
-* nvidia-nvtx-vcu11 
+* nvidia-nvtx-cu11 
 * nvidia-cuda-runtime-cu11
 
-You must then export the location of the .so files for these packages to your :code:`LD_LIBRARY_PATH`.
-To find the local installation path of these packages, you may run 
+The location of the installed .so files for these packages must then be exported to
+the :code:`LD_LIBRARY_PATH`. To find the local installation path of these packages,
+assuming installation via pip, programmers may run
 
 .. code::bash
 
-    python3 -m pip show nvidia-nvtx-vcu11 nvidia-cuda-runtime-cu11
+    python3 -m pip show nvidia-nvtx-cu11 nvidia-cuda-runtime-cu11
 
 Python Requirements
 ++++++++++++++++++++

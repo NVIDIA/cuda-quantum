@@ -172,6 +172,8 @@ The following table summarizes the required components.
       - Linux
     * - Tested Distributions
       - CentOS 8; Debian 11, 12; Fedora 38; OpenSUSE/SELD/SLES 15.5; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04
+    * - Python versions
+      - 3.9+
 
 .. list-table:: Requirements for GPU Simulation
     :widths: 30 50
