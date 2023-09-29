@@ -1254,6 +1254,47 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
               isAdjoint = structTypeAsRecord->getName() == "adj";
       }
 
+    if (funcName.equals("exp_pauli")) {
+      assert(args.size() > 2);
+      SmallVector<Value> processedArgs;
+      auto addTheString = [&](Value v) {
+        // The C-string argument (char*) may be loaded by an lvalue to rvalue
+        // cast. Here, we must pass the pointer and not the first character's
+        // value.
+        if (isCharPointerType(v.getType())) {
+          processedArgs.push_back(v);
+        } else if (auto load = v.getDefiningOp<cudaq::cc::LoadOp>()) {
+          processedArgs.push_back(load.getPtrvalue());
+        } else {
+          reportClangError(x, mangler, "could not determine string argument");
+        }
+      };
+      if (args.size() == 3 && isa<quake::VeqType>(args[1].getType())) {
+        // Have f64, veq, string
+        processedArgs.push_back(args[0]);
+        processedArgs.push_back(args[1]);
+        addTheString(args[2]);
+      } else {
+        // should have f64, string, qubits...
+        // need f64, veq, string, so process here
+
+        // add f64 value
+        processedArgs.push_back(args[0]);
+
+        // concat the qubits to a veq
+        SmallVector<Value> quantumArgs;
+        for (std::size_t i = 2; i < args.size(); i++)
+          quantumArgs.push_back(args[i]);
+        processedArgs.push_back(builder.create<quake::ConcatOp>(
+            loc, quake::VeqType::get(builder.getContext(), quantumArgs.size()),
+            quantumArgs));
+        addTheString(args[1]);
+      }
+
+      builder.create<quake::ExpPauliOp>(loc, TypeRange{}, processedArgs);
+      return true;
+    }
+
     if (funcName.equals("mx") || funcName.equals("my") ||
         funcName.equals("mz")) {
       // Measurements always return a bool or a std::vector<bool>.
@@ -2140,7 +2181,7 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
 
     // TODO: remove this when we can handle ctors more generally.
     if (!ctor->isDefaultConstructor()) {
-      LLVM_DEBUG(llvm::dbgs() << "unhandled ctor:\n"; x->dump());
+      LLVM_DEBUG(llvm::dbgs() << ctorName << " - unhandled ctor:\n"; x->dump());
       TODO_loc(loc, "C++ ctor (not-default)");
     }
 
@@ -2206,8 +2247,10 @@ bool QuakeBridgeVisitor::VisitDeclRefExpr(clang::DeclRefExpr *x) {
 }
 
 bool QuakeBridgeVisitor::VisitStringLiteral(clang::StringLiteral *x) {
-  TODO_x(toLocation(x->getSourceRange()), x, mangler, "string literal");
-  return false;
+  auto strLitTy = cc::PointerType::get(cc::ArrayType::get(
+      builder.getContext(), builder.getI8Type(), x->getString().size() + 1));
+  return pushValue(builder.create<cc::CreateStringLiteralOp>(
+      toLocation(x), strLitTy, builder.getStringAttr(x->getString())));
 }
 
 } // namespace cudaq::details
