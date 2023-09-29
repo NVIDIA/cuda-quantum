@@ -465,7 +465,7 @@ extension in the container environment for all of your development tools to be a
 </section>
 </section>
 <section id="python-wheels">
-<h2>Python wheels<a class="headerlink" href="#python-wheels" title="Permalink to this heading">¶</a></h2>
+<span id="install-python-wheels"></span><h2>Python wheels<a class="headerlink" href="#python-wheels" title="Permalink to this heading">¶</a></h2>
 <p>CUDA Quantum Python wheels are available on [PyPI.org](<a class="reference external" href="https://pypi.org/project/cuda-quantum">https://pypi.org/project/cuda-quantum</a>).
 The CUDA Quantum Python wheels contain the Python API and core components of
 CUDA Quantum. For more information about available packages and documentation,
@@ -486,13 +486,10 @@ we refer to the <a class="reference external" href="https://github.com/NVIDIA/cu
 </section>
 <section id="next-steps">
 <h2>Next Steps<a class="headerlink" href="#next-steps" title="Permalink to this heading">¶</a></h2>
-<p>With the CUDA Quantum Docker image installed and a container up and running, check out the
-Using CUDA Quantum <a class="reference external" href="using/cudaq.html">page</a>. To run the examples codes in the container, checkout the Compiling
-and Executing section <a class="reference external" href="using/cudaq/compiling.html">here</a>.</p>
-<p>Once in the VS Code IDE or in the terminal for the container in headless mode, you’ll
-notice there is an <code class="code docutils literal notranslate"><span class="pre">examples/</span></code> folder. These examples are provided to
+<p>The Docker image contains a folder with example in the <code class="code docutils literal notranslate"><span class="pre">/home/cudaq</span></code> directory. These examples are provided to
 get you started with CUDA Quantum and understanding the programming and execution model.
-Start of by trying to compile a simple one, like <code class="code docutils literal notranslate"><span class="pre">examples/cpp/basics/static_kernel.cpp</span></code></p>
+If you are not using the Docker image, you can find these examples on our <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>.</p>
+<p>Start of by trying to compile a simple one, like <code class="code docutils literal notranslate"><span class="pre">examples/cpp/basics/static_kernel.cpp</span></code>:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ examples/cpp/basics/static_kernel.cpp</span>
 <span class="go">./a.out</span>
 </pre></div>
@@ -503,6 +500,7 @@ run command), try out the 30 qubit version of this example.</p>
 <span class="go">./a.out</span>
 </pre></div>
 </div>
+<p>For more information about developing and running CUDA Quantum code, take a look at the page <a class="reference internal" href="using/cudaq.html"><span class="doc">Using CUDA Quantum</span></a>.</p>
 </section>
 </section>
 
