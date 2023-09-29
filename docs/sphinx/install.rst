@@ -149,7 +149,7 @@ CUDA Quantum Dependencies
 
 CUDA Quantum can be used to simulate quantum programs (see :doc:`using/simulators`) on a CPU-only system, but a GPU is highly recommended.
 
-The supported CPUs include both the x86_64 (x86-64-v3 when using the OpenMPI stack) and ARM64 architectures.
+The supported CPUs include x86_64 (x86-64-v3 architecture and newer) and ARM64 architectures.
 
 For simulation of CUDA Quantum programs on NVIDIA GPUs, additional packages should be installed. See also `cuQuantum <https://docs.nvidia.com/cuda/cuquantum/latest/getting_started.html>`__.
 
