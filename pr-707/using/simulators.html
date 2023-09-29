@@ -118,7 +118,15 @@
 <li class="toctree-l2"><a class="reference internal" href="cudaq/generic_functions.html">Generic Library Functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cudaq/builder.html">Creating Kernels at Runtime</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cudaq/variational.html">Variational Algorithms</a></li>
-<li class="toctree-l2"><a class="reference internal" href="cudaq/platform.html">Asynchronous Execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cudaq/platform.html">Multi-processor Platforms</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cudaq/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cudaq/platform.html#parallel-distribution-mode">Parallel distribution mode</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cudaq/platform.html#c">C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cudaq/platform.html#python">Python</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="cudaq/verbose_out.html">Debugging and Verbose Logging</a></li>
 </ul>
 </li>
@@ -407,7 +415,7 @@ options to <code class="code docutils literal notranslate"><span class="pre">nvq
 <section id="openmp-cpu-only">
 <h3>OpenMP CPU-only<a class="headerlink" href="#openmp-cpu-only" title="Permalink to this heading">¶</a></h3>
 <p>The <code class="code docutils literal notranslate"><span class="pre">default</span></code> target provides a state vector simulator based on the CPU-only, OpenMP
-threaded <a class="reference external" href="https//github.com/softwareqinc/qpp">Q++</a> library. This is the default
+threaded <a class="reference external" href="https://github.com/softwareqinc/qpp">Q++</a> library. This is the default
 target, so if the code is compiled without any <code class="code docutils literal notranslate"><span class="pre">--target</span></code> flags, this is the
 simulator that will be used.</p>
 </section>

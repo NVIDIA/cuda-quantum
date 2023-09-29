@@ -118,7 +118,15 @@
 <li class="toctree-l2"><a class="reference internal" href="using/cudaq/generic_functions.html">Generic Library Functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="using/cudaq/builder.html">Creating Kernels at Runtime</a></li>
 <li class="toctree-l2"><a class="reference internal" href="using/cudaq/variational.html">Variational Algorithms</a></li>
-<li class="toctree-l2"><a class="reference internal" href="using/cudaq/platform.html">Asynchronous Execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/cudaq/platform.html">Multi-processor Platforms</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="using/cudaq/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/cudaq/platform.html#parallel-distribution-mode">Parallel distribution mode</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="using/cudaq/platform.html#c">C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/cudaq/platform.html#python">Python</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="using/cudaq/verbose_out.html">Debugging and Verbose Logging</a></li>
 </ul>
 </li>
@@ -458,7 +466,7 @@ extension in the container environment for all of your development tools to be a
 </section>
 </section>
 <section id="python-wheels">
-<h2>Python wheels<a class="headerlink" href="#python-wheels" title="Permalink to this heading">¶</a></h2>
+<span id="install-python-wheels"></span><h2>Python wheels<a class="headerlink" href="#python-wheels" title="Permalink to this heading">¶</a></h2>
 <p>CUDA Quantum Python wheels are available on [PyPI.org](<a class="reference external" href="https://pypi.org/project/cuda-quantum">https://pypi.org/project/cuda-quantum</a>).
 The CUDA Quantum Python wheels contain the Python API and core components of
 CUDA Quantum. For more information about available packages and documentation,
@@ -479,9 +487,12 @@ we refer to the <a class="reference external" href="https://github.com/NVIDIA/cu
 </section>
 <section id="cuda-quantum-dependencies">
 <h2>CUDA Quantum Dependencies<a class="headerlink" href="#cuda-quantum-dependencies" title="Permalink to this heading">¶</a></h2>
-<p>CUDA Quantum can be used to simulate quantum programs (see <code class="code docutils literal notranslate"><span class="pre">using/simulators</span></code>) on a CPU-only system, but a GPU is highly recommended.</p>
-<p>The supported CPUs include both the x86_64 (x86-64-v3 when using the OpenMPI stack) and ARM64 architectures.</p>
-<p>For simulation of CUDA Quantum programs on NVIDIA GPUs, additional packages should be installed. See also <a class="reference external" href="https://docs.nvidia.com/cuda/cuquantum/latest/getting_started.html">cuQuantum</a>.</p>
+<p>CUDA Quantum can be used to simulate quantum programs (see <a class="reference internal" href="using/simulators.html"><span class="doc">CUDA Quantum Simulation Backends</span></a>) on a CPU-only system, but a GPU is highly recommended.</p>
+<p>The supported CPUs include x86_64 (x86-64-v3 architecture and newer) and ARM64 architectures.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The CUDA Quantum Python wheels depend on an existing CUDA installation on your system. For more information about installing the CUDA Quantum Python wheels, take a look at <a class="reference internal" href="#install-python-wheels"><span class="std std-ref">this page</span></a>.</p>
+</div>
 <p>The following table summarizes the required components.</p>
 <table class="docutils align-default" id="id1">
 <caption><span class="caption-text">Supported Systems</span><a class="headerlink" href="#id1" title="Permalink to this table">¶</a></caption>
@@ -497,12 +508,12 @@ we refer to the <a class="reference external" href="https://github.com/NVIDIA/cu
 <td><p>Linux</p></td>
 </tr>
 <tr class="row-odd"><td><p>Tested Distributions</p></td>
-<td><p>Ubuntu 22.04</p></td>
+<td><p>CentOS 8; Debian 11, 12; Fedora 38; OpenSUSE/SELD/SLES 15.5; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04</p></td>
 </tr>
 </tbody>
 </table>
 <table class="docutils align-default" id="id2">
-<caption><span class="caption-text">Requirements for GPU simulation</span><a class="headerlink" href="#id2" title="Permalink to this table">¶</a></caption>
+<caption><span class="caption-text">Requirements for GPU Simulation</span><a class="headerlink" href="#id2" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col style="width: 38%" />
 <col style="width: 63%" />
@@ -515,20 +526,18 @@ we refer to the <a class="reference external" href="https://github.com/NVIDIA/cu
 <td><p>7.0+</p></td>
 </tr>
 <tr class="row-odd"><td><p>CUDA</p></td>
-<td><p>11.x, 12.x</p></td>
+<td><p>11.x (Driver 470.57.02+), 12.x (Driver 525.60.13+)</p></td>
 </tr>
 </tbody>
 </table>
+<p>Detailed information about supported drivers for different CUDA versions and be found <a class="reference external" href="https://docs.nvidia.com/deploy/cuda-compatibility/">here</a>.</p>
 </section>
 <section id="next-steps">
 <h2>Next Steps<a class="headerlink" href="#next-steps" title="Permalink to this heading">¶</a></h2>
-<p>With the CUDA Quantum Docker image installed and a container up and running, check out the
-Using CUDA Quantum <a class="reference external" href="using/cudaq.html">page</a>. To run the examples codes in the container, checkout the Compiling
-and Executing section <a class="reference external" href="using/cudaq/compiling.html">here</a>.</p>
-<p>Once in the VS Code IDE or in the terminal for the container in headless mode, you’ll
-notice there is an <code class="code docutils literal notranslate"><span class="pre">examples/</span></code> folder. These examples are provided to
+<p>The Docker image contains a folder with example in the <code class="code docutils literal notranslate"><span class="pre">/home/cudaq</span></code> directory. These examples are provided to
 get you started with CUDA Quantum and understanding the programming and execution model.
-Start of by trying to compile a simple one, like <code class="code docutils literal notranslate"><span class="pre">examples/cpp/basics/static_kernel.cpp</span></code></p>
+If you are not using the Docker image, you can find these examples on our <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>.</p>
+<p>Start of by trying to compile a simple one, like <code class="code docutils literal notranslate"><span class="pre">examples/cpp/basics/static_kernel.cpp</span></code>:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ examples/cpp/basics/static_kernel.cpp</span>
 <span class="go">./a.out</span>
 </pre></div>
@@ -539,6 +548,7 @@ run command), try out the 30 qubit version of this example.</p>
 <span class="go">./a.out</span>
 </pre></div>
 </div>
+<p>For more information about developing and running CUDA Quantum code, take a look at the page <a class="reference internal" href="using/cudaq.html"><span class="doc">Using CUDA Quantum</span></a>.</p>
 </section>
 </section>
 

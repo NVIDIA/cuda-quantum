@@ -113,6 +113,8 @@ or run the Python examples using the Python interpreter.
     may not be automatically active in the container environment. You may need to install your preferred 
     extension in the container environment for all of your development tools to be available.
 
+.. _install-python-wheels:
+
 Python wheels
 --------------------
 
@@ -145,11 +147,13 @@ we refer to the `CUDA Quantum GitHub repository`_.
 CUDA Quantum Dependencies
 -------------------------
 
-CUDA Quantum can be used to simulate quantum programs (see `using/simulators`) on a CPU-only system, but a GPU is highly recommended.
+CUDA Quantum can be used to simulate quantum programs (see :doc:`using/simulators`) on a CPU-only system, but a GPU is highly recommended.
 
-The supported CPUs include both the x86_64 (x86-64-v3 when using the OpenMPI stack) and ARM64 architectures.
+The supported CPUs include x86_64 (x86-64-v3 architecture and newer) and ARM64 architectures.
 
-For simulation of CUDA Quantum programs on NVIDIA GPUs, additional packages should be installed. See also `cuQuantum <https://docs.nvidia.com/cuda/cuquantum/latest/getting_started.html>`__.
+.. note:: 
+
+   The CUDA Quantum Python wheels depend on an existing CUDA installation on your system. For more information about installing the CUDA Quantum Python wheels, take a look at :ref:`this page <install-python-wheels>`.
 
 The following table summarizes the required components.
 
@@ -162,9 +166,9 @@ The following table summarizes the required components.
     * - Operating System
       - Linux
     * - Tested Distributions
-      - Ubuntu 22.04
+      - CentOS 8; Debian 11, 12; Fedora 38; OpenSUSE/SELD/SLES 15.5; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04
 
-.. list-table:: Requirements for GPU simulation
+.. list-table:: Requirements for GPU Simulation
     :widths: 30 50
     :header-rows: 0
 
@@ -173,19 +177,19 @@ The following table summarizes the required components.
     * - NVIDIA GPU with Compute Capability
       - 7.0+
     * - CUDA
-      - 11.x, 12.x
+      - 11.x (Driver 470.57.02+), 12.x (Driver 525.60.13+)
+
+Detailed information about supported drivers for different CUDA versions and be found `here <https://docs.nvidia.com/deploy/cuda-compatibility/>`__.
 
 
 Next Steps
 ----------
-With the CUDA Quantum Docker image installed and a container up and running, check out the
-Using CUDA Quantum page_. To run the examples codes in the container, checkout the Compiling
-and Executing section here_. 
 
-Once in the VS Code IDE or in the terminal for the container in headless mode, you'll 
-notice there is an :code:`examples/` folder. These examples are provided to 
+The Docker image contains a folder with example in the :code:`/home/cudaq` directory. These examples are provided to 
 get you started with CUDA Quantum and understanding the programming and execution model. 
-Start of by trying to compile a simple one, like :code:`examples/cpp/basics/static_kernel.cpp`
+If you are not using the Docker image, you can find these examples on our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`__.
+
+Start of by trying to compile a simple one, like :code:`examples/cpp/basics/static_kernel.cpp`:
 
 .. code-block:: console 
 
@@ -200,5 +204,4 @@ run command), try out the 30 qubit version of this example.
     nvq++ examples/cpp/basics/cuquantum_backends.cpp --target nvidia 
     ./a.out 
 
-.. _page: using/cudaq.html
-.. _here: using/cudaq/compiling.html
+For more information about developing and running CUDA Quantum code, take a look at the page :doc:`Using CUDA Quantum <using/cudaq>`. 
