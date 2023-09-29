@@ -545,7 +545,7 @@ public:
     details::c_if(*opBuilder, result, thenFunctor);
   }
 
-  /// @brief Apply a general pauli rotation, exp(-i theta P),
+  /// @brief Apply a general pauli rotation, exp(i theta P),
   /// takes a QuakeValue representing a register of qubits.
   template <QuakeValueOrNumericType ParamT>
   void exp_pauli(const ParamT &theta, const QuakeValue &qubits,
@@ -558,7 +558,7 @@ public:
       details::exp_pauli(*opBuilder, theta, qubitValues, pauliWord);
   }
 
-  /// @brief Apply a general pauli rotation, exp(-i theta P),
+  /// @brief Apply a general pauli rotation, exp(i theta P),
   /// takes a variadic list of QuakeValues representing a individual qubits.
   template <QuakeValueOrNumericType ParamT, typename... QubitArgs>
   void exp_pauli(const ParamT &theta, const std::string &pauliWord,

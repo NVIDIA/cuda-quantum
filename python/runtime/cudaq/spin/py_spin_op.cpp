@@ -80,7 +80,13 @@ void bindSpinOperator(py::module &mod) {
                [](py::object o) { return fromOpenFermionQubitOperator(o); }),
            "Create from OpenFermion QubitOperator.")
       .def(py::init<std::vector<double> &, std::size_t>(), py::arg("data"),
-           py::arg("num_qubits"), "")
+           py::arg("num_qubits"),
+           "Construct a :class:`SpinOperator` from a list of numeric values. "
+           "The encoding is as follows: for each term, a list of doubles where "
+           "element `i` is a 3.0 for a `Y`, a 1.0 for a `X`, and a 2.0 for a "
+           "`Z` on qubit `i`, followed by the real and imaginary part of the "
+           "coefficient. Each set of term elements is appended to the one "
+           "list. The list is ended with the total number of terms.")
 
       /// @brief Bind the member functions.
       .def("get_raw_data", &cudaq::spin_op::get_raw_data,
