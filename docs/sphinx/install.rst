@@ -166,7 +166,7 @@ The following table summarizes the required components.
     * - Operating System
       - Linux
     * - Tested Distributions
-      - Ubuntu 22.04
+      - CentOS 8; Debian 11, 12; Fedora 38; OpenSUSE/SELD/SLES 15.5; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04
 
 .. list-table:: Requirements for GPU Simulation
     :widths: 30 50
