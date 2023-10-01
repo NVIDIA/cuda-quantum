@@ -1,0 +1,53 @@
+/*******************************************************************************
+ * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+// clang-format off
+// RUN: nvq++ --target quantinuum --emulate %s -o %basename_t.x && ./%basename_t.x
+// XFAIL: *
+// ^^^^^ This probably needs an issue posted. It's not setting qubitMeasurementFeedback.
+//       It passes on H1-1E but not --emulate
+// clang-format on
+
+// The test here is the assert statement.
+
+#include <cudaq.h>
+
+struct kernel {
+  void operator()(const int n_iter) __qpu__ {
+    cudaq::qubit q0;
+    cudaq::qubit q1;
+    std::vector<int> resultVector(n_iter);
+    for (int i = 0; i < n_iter; i++) {
+      h(q0);
+      resultVector[i] = mz(q0);
+      if (resultVector[i])
+        x(q1); // toggle q1 on every q0 coin toss that lands heads
+    }
+    auto q1result = mz(q1); // the measured q1 should contain the parity bit for
+                            // the q0 measurements
+  }
+};
+
+int main() {
+
+  int nShots = 100;
+  int nIter = 5;
+  cudaq::set_random_seed(13);
+
+  // Sample
+  auto counts = cudaq::sample(/*shots=*/nShots, kernel{}, nIter);
+  counts.dump();
+
+  auto q1result_0 = counts.count("0", "q1result");
+  auto q1result_1 = counts.count("1", "q1result");
+  printf("q1result_0 %lu q1result_1 %lu %d %d\n", q1result_0, q1result_1,
+         static_cast<int>(0.3 * nShots), static_cast<int>(0.7 * nShots));
+  assert((q1result_0 + q1result_1 == nShots) &&
+         (q1result_0 > static_cast<int>(0.3 * nShots)) &&
+         (q1result_0 < static_cast<int>(0.7 * nShots)));
+}

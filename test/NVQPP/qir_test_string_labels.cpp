@@ -33,8 +33,8 @@ int main() {
 // CHECK-DAG: define void @__nvqpp__mlirgen__function_qir_test.{{.*}}() local_unnamed_addr #[[ATTR_1:[0-9]+]]
 // CHECK: call void @__quantum__rt__result_record_output(%Result* null, i8* nonnull getelementptr inbounds ([14 x i8], [14 x i8]* @cstr.[[ADDRESS]], i64 0, i64 0))
 // CHECK-DAG: attributes #[[ATTR_0]] = { "irreversible" }
-// CHECK-DAG: attributes #[[ATTR_1]] = { "entry_point" {{.*}} "qir_profiles"="base_profile" "requiredQubits"="1" "requiredResults"="1" }
-// CHECK-DAG: !llvm.module.flags = !{!0, !1, !2, !3, !4}
+// CHECK-DAG: attributes #[[ATTR_1]] = { "entry_point" {{.*}} "qir_profiles"="adaptive_profile" "requiredQubits"="1" "requiredResults"="1" }
+// CHECK-DAG: !llvm.module.flags = !{!0, !1, !2, !3, !4, !5, !6, !7, !8, !9, !10, !11, !12}
 // CHECK-DAG: !0 = !{i32 2, !"Debug Info Version", i32 3}
 // CHECK-DAG: !1 = !{i32 1, !"qir_major_version", i32 1}
 // CHECK-DAG: !2 = !{i32 7, !"qir_minor_version", i32 0}
