@@ -662,7 +662,7 @@ def MzOp : Measurement<"mz"> {
 }
 
 //===----------------------------------------------------------------------===//
-// Quantum operators (gates)
+// Quantum gates
 //===----------------------------------------------------------------------===//
 
 class QuakeOperator<string mnemonic, list<Trait> traits = []>
@@ -783,13 +783,30 @@ class TwoTargetOp<string mnemonic, list<Trait> traits = []> :
                 traits)>;
 
 //===----------------------------------------------------------------------===//
-// Quantum operators (gates)
+// Unitary quantum transformations
 //===----------------------------------------------------------------------===//
+
+def ExpPauliOp : QuakeOp<"exp_pauli", []> {
+  let summary = "General Pauli tensor product rotation";
+  let description = [{
+    This operation affects a general Pauli tensor product rotation on 
+    the input qubits. The number of Pauli characters in the input Pauli word 
+    string must equal the number of qubits in the veq. Mathematically, this operation 
+    applies exp(i theta P) where P is a general Pauli tensor product. 
+  }];
+  
+  let arguments = (ins AnyFloat:$parameter, VeqType:$qubits, cc_PointerType:$pauli);
+  let results = (outs );
+
+  let assemblyFormat = [{
+    `(` $parameter `)` $qubits `,` $pauli `:` functional-type(operands, results) attr-dict
+  }];
+}
 
 def HOp : OneTargetOp<"h", [Hermitian]> {
   let summary = "Hadamard operation";
   let description = [{
-    This is a pi rotation about the X+Z axis, and has the effect of changing the
+    This is a π rotation about the X+Z axis, and has the effect of changing the
     computation basis from |0> (|1>) to |+> (|->) and vice-versa, meaning that
     it enables one to create a superposition of basis states.
 
@@ -815,7 +832,7 @@ def PhasedRxOp : QuakeOperator<"phased_rx",
     Matrix representation:
     ```
     PhasedRx(θ,φ) = |        cos(θ/2)        -iexp(-iφ) * sin(θ/2) |
-                    | -iexp(iφ)) * sin(θ/2)         cos(θ/2)       |
+                    |  -iexp(iφ) * sin(θ/2)         cos(θ/2)       |
     ```
 
     Circuit symbol:
@@ -902,7 +919,7 @@ def RzOp : OneTargetParamOp<"rz", [Rotation]> {
 def SOp : OneTargetOp<"s"> {
   let summary = "S operation (aka, P or Sqrt(Z))";
   let description = [{
-    This operation applies to its target a pi/2 rotation about the Z axis.
+    This operation applies to its target a π/2 rotation about the Z axis.
 
     Matrix representation:
     ```
@@ -922,7 +939,7 @@ def SOp : OneTargetOp<"s"> {
 def SwapOp : TwoTargetOp<"swap", [Hermitian]> {
   let summary = "Swap operation";
   let description = [{
-    This operation swaps the states of two wires.
+    This operation swaps the states of two qubits.
 
     Matrix representation:
     ```
