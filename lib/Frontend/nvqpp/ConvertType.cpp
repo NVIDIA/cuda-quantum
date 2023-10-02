@@ -81,6 +81,7 @@ QuakeBridgeVisitor::findCallOperator(const clang::CXXRecordDecl *decl) {
 
 bool QuakeBridgeVisitor::TraverseRecordType(clang::RecordType *t) {
   auto *recDecl = t->getDecl();
+
   if (ignoredClass(recDecl))
     return true;
   auto reci = records.find(t);
@@ -256,6 +257,11 @@ bool QuakeBridgeVisitor::VisitRValueReferenceType(
   return pushType(cc::PointerType::get(eleTy));
 }
 
+bool QuakeBridgeVisitor::VisitConstantArrayType(clang::ConstantArrayType *t) {
+  auto size = t->getSize().getZExtValue();
+  return pushType(cc::ArrayType::get(builder.getContext(), popType(), size));
+}
+
 bool QuakeBridgeVisitor::pushType(Type t) {
   LLVM_DEBUG(llvm::dbgs() << std::string(typeStack.size(), ' ') << "push " << t
                           << '\n');
@@ -306,7 +312,7 @@ bool QuakeBridgeVisitor::doSyntaxChecks(const clang::FunctionDecl *x) {
     // device kernels may take veq and/or ref arguments.
     if (isArithmeticType(t) || isArithmeticSequenceType(t) ||
         isQuantumType(t) || isKernelCallable(t) || isFunctionCallable(t) ||
-        isReferenceToCallableRecord(t, p))
+        isCharPointerType(t) || isReferenceToCallableRecord(t, p))
       continue;
     reportClangError(p, mangler, "kernel argument type not supported");
     return false;

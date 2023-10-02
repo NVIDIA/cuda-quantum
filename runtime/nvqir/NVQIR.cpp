@@ -363,6 +363,14 @@ Result *__quantum__qis__mz__to__register(Qubit *q, const char *name) {
   return b ? ResultOne : ResultZero;
 }
 
+void __quantum__qis__exp_pauli(double theta, Array *qubits, char *pauliWord) {
+  std::string pauliWordStr(pauliWord);
+  auto qubitsVec = arrayToVectorSizeT(qubits);
+  nvqir::getCircuitSimulatorInternal()->applyExpPauli(
+      theta, qubitsVec, cudaq::spin_op::from_word(pauliWordStr));
+  return;
+}
+
 void __quantum__rt__result_record_output(Result *, int8_t *) {}
 
 /// @brief Map an Array pointer containing Paulis to a vector of Paulis.
