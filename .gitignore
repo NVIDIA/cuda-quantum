@@ -86,6 +86,7 @@ _version.py
 
 # third party integrations
 simulators/
+apps/
 
 # macOS
 .DS_Store

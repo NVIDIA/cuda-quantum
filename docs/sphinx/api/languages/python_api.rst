@@ -33,6 +33,7 @@ Program Construction
     .. automethod:: rz
     .. automethod:: r1
     .. automethod:: swap
+    .. automethod:: exp_pauli
     .. automethod:: mx
     .. automethod:: my
     .. automethod:: mz
