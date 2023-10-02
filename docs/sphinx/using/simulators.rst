@@ -102,4 +102,3 @@ options to :code:`nvq++`
 .. code:: bash 
 
     nvq++ --target tensornet src.cpp ...
-

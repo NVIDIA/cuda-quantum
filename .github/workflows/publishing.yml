@@ -362,6 +362,7 @@ jobs:
           NGC_CLI_ORG: ${{ github.repository_owner }}
           NGC_CLI_TEAM: 'nightly'
         run: |
+          apt-get update && apt-get install -y --no-install-recommends wget
           wget -O ngccli_linux.zip --content-disposition \
             https://api.ngc.nvidia.com/v2/resources/nvidia/ngc-apps/ngc_cli/versions/3.28.0/files/ngccli_linux.zip
           if [ -z "$(sha256sum ngccli_linux.zip | grep -o '74f469a2082e90a4561f09eb0d483b67044e91be727066122253436c140a7b54 ')" ]; then
