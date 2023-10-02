@@ -139,7 +139,7 @@ For more information about building the entire C++ and Python API's, please see 
 Building from Source
 ------------------------------
 
-Instructions for building the Python wheels from source are given in the section :ref:`<install-python-wheels>`.
+Instructions for building the Python wheels from source are given in the section :ref:`install-python-wheels`.
 For more information about building the entire C++ and Python API from source, we refer to the `CUDA Quantum GitHub repository`_.
 
 .. _CUDA Quantum GitHub repository: https://github.com/NVIDIA/cuda-quantum/blob/main/Building.md
