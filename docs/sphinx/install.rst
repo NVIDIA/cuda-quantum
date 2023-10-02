@@ -118,47 +118,45 @@ or run the Python examples using the Python interpreter.
 Python wheels
 --------------------
 
-CUDA Quantum Python wheels are available on [PyPI.org](https://pypi.org/project/cuda-quantum). 
-The CUDA Quantum Python wheels contain the Python API and core components of
-CUDA Quantum. For more information about available packages and documentation,
+CUDA Quantum Python wheels are available on `PyPI.org <https://pypi.org/project/cuda-quantum>`__. Installation instructions can be found in the `project description <https://pypi.org/project/cuda-quantum/#description>`__.
+For more information about available versions and documentation,
 see :doc:`versions`.
 
-To install the latest release using `pip <https://pypi.org/project/pip/>`__, run
+At this time, wheels are distributed for Linux operating systems only. 
 
-.. code-block:: console
+There are currently no source distributions available on PyPI, but you can download the source code for the latest version of the CUDA Quantum Python wheels from our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`__. The source code for previous versions can be downloaded from the respective `GitHub Release <https://github.com/NVIDIA/cuda-quantum/releases>`__.
 
-    python3 -m pip install cuda-quantum
+To build the CUDA Quantum Python API from source using pip, run the following commands:
 
-There are currently no source distributions available on PyPI, but you can download the source code 
-for all releases `here <https://github.com/NVIDIA/cuda-quantum/releases>`__. 
-For more information about building a CUDA Quantum Python wheel from source, see the 
-`README <https://github.com/NVIDIA/cuda-quantum/blob/main/python/README.md>`__.
+```console
+git clone https://github.com/NVIDIA/cuda-quantum.git
+cd cuda-quantum && ./scripts/install_prerequisites.sh
+pip install .
+```
 
-The CUDA Quantum Python wheels, by default, do not come installed with the necessary CUDA
-requirements for GPU-enabled simulation support. For further information on installing these
-extra CUDA dependencies with the Python wheels, see
-`README <https://github.com/NVIDIA/cuda-quantum/blob/main/python/README.md>`__.
+For more information about building the entire C++ and Python API's, please see `Building from Source`_.
 
-
-Build CUDA Quantum from Source
+Building from Source
 ------------------------------
 
-For more information about building CUDA Quantum from source, 
-we refer to the `CUDA Quantum GitHub repository`_.
+Instructions for building the Python wheels from source are given in the section :ref:`<install-python-wheels>`.
+For more information about building the entire C++ and Python API from source, we refer to the `CUDA Quantum GitHub repository`_.
 
 .. _CUDA Quantum GitHub repository: https://github.com/NVIDIA/cuda-quantum/blob/main/Building.md
 
 
-CUDA Quantum Dependencies
--------------------------
+.. _dependencies-and-compatibility:
 
-CUDA Quantum can be used to simulate quantum programs (see :doc:`using/simulators`) on a CPU-only system, but a GPU is highly recommended.
+Dependencies and Compatibility
+--------------------------------
+
+CUDA Quantum can be used to compile and run quantum programs on a CPU-only system, but a GPU is highly recommended and necessary to use the GPU-based simulators, see also :doc:`using/simulators`.
 
 The supported CPUs include x86_64 (x86-64-v3 architecture and newer) and ARM64 architectures.
 
 .. note:: 
 
-   The CUDA Quantum Python wheels depend on an existing CUDA installation on your system. For more information about installing the CUDA Quantum Python wheels, take a look at :ref:`this page <install-python-wheels>`.
+   Some of the components included in the CUDA Quantum Python wheels depend on an existing CUDA installation on your system. For more information about installing the CUDA Quantum Python wheels, take a look at :ref:`this section <install-python-wheels>`.
 
 The following table summarizes the required components.
 

@@ -13,33 +13,52 @@ computing, including CUDA, ISO standard parallelism, OpenMP, and OpenACC
   cuQuantum and a number of different physical quantum processors (QPUs)
 
 The CUDA Quantum Python wheels contain the Python API and core components of
-CUDA Quantum. For more information about available packages and documentation,
-see our [release
-notes](https://nvidia.github.io/cuda-quantum/latest/releases.html).
+CUDA Quantum. More information about available packages as well as a link to the
+documentation and examples for each version can be found in the [release
+notes][cudaq_docs_releases]. System requirements and compatibility are listed in
+the Getting Started section of the linked documentation.
+
+[cudaq_docs_releases]:
+    https://nvidia.github.io/cuda-quantum/latest/releases.html
 
 ## Installing CUDA Quantum
 
-CUDA Quantum Python wheels are available on
-[PyPI.org](https://pypi.org/project/cuda-quantum). To install the latest
-release, simply run
+To install the latest stable version of CUDA Quantum, run
 
 ```console
-pip install cuda-quantum
+python3 -m pip install cuda-quantum
 ```
 
-At this time, wheels are distributed for Linux operating systems only. To build
-the CUDA Quantum Python API from source using pip:
+CUDA Quantum can be used to compile and run quantum programs on a CPU-only
+system, but a GPU is highly recommended and necessary to use the some of the
+simulators. The GPU-based simulators included in the CUDA Quantum Python wheels
+require an existing CUDA installation. Additionally, multi-GPU simulators
+require an existing MPI installation.
+
+In most cases, the CUDA and MPI dependencies can be installed via package
+manager. On Ubuntu 22.04, for example, the following commands install all
+optional CUDA dependencies:
 
 ```console
-git clone https://github.com/NVIDIA/cuda-quantum.git
-cd cuda-quantum && ./scripts/install_prerequisites.sh
-pip install .
+  arch=x86_64 # set this to sbsa for ARM processors
+  sudo apt-get update && sudo apt-get install -y wget
+  wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/$arch/cuda-keyring_1.0-1_all.deb
+  sudo dpkg -i cuda-keyring_1.0-1_all.deb
+  sudo apt-get update && sudo apt-get install -y cuda-11-8
 ```
 
-For more information about building the entire C++ and Python API's, please see
-the CUDA Quantum [documentation][official_install].
+Detailed instructions for how to install the complete CUDA toolkit on different
+operating systems can be found in the [CUDA
+documentation](https://docs.nvidia.com/cuda/). 
 
-[official_install]: https://nvidia.github.io/cuda-quantum/latest/install.html
+If you have several GPUs available but no MPI installation yet, we recommend
+taking a look at the [OpenMPI documentation](https://docs.open-mpi.org/). On
+Ubuntu 22.04, for example, the following commands install the necessary MPI
+libraries:
+
+```console
+  sudo apt-get update && sudo apt-get install openmpi
+```
 
 ## Running CUDA Quantum
 
@@ -57,20 +76,8 @@ kernel.mz(qubit)
 result = cudaq.sample(kernel)
 ```
 
-## Documentation
-
-To see more examples, go to [python examples][python_examples], or check out the
-[Python API reference][python_api_reference].
-
-To install and configure GPU enabled simulation backends, see
-[Configuring GPU Backends][python_gpu_reference].
-
-[python_examples]:
-    https://nvidia.github.io/cuda-quantum/latest/using/python.html
-[python_api_reference]:
-    https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html
-[python_gpu_reference]:
-    https://nvidia.github.io/cuda-quantum/latest/using/simulators.html#gpu-simulation-requirements
+Additional examples and documentation are linked in the [release
+notes][cudaq_docs_releases].
 
 ## Contributing
 
