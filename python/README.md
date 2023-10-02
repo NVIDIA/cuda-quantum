@@ -49,7 +49,7 @@ optional CUDA dependencies:
 
 Detailed instructions for how to install the complete CUDA toolkit on different
 operating systems can be found in the [CUDA
-documentation](https://docs.nvidia.com/cuda/). 
+documentation](https://docs.nvidia.com/cuda/).
 
 If you have several GPUs available but no MPI installation yet, we recommend
 taking a look at the [OpenMPI documentation](https://docs.open-mpi.org/). On
