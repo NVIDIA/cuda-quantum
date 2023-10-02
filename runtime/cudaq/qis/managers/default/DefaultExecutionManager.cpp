@@ -140,7 +140,9 @@ protected:
         .Case("swap",
               [&]() { simulator()->swap(localC, localT[0], localT[1]); })
         .Case("exp_pauli",
-              [&]() { simulator()->applyExpPauli(parameters[0], localT, op); })
+              [&]() {
+                simulator()->applyExpPauli(parameters[0], localC, localT, op);
+              })
         .Default([&]() {
           throw std::runtime_error("[DefaultExecutionManager] invalid gate "
                                    "application requested " +

@@ -306,6 +306,25 @@ inline void exp_pauli(double theta, const char *pauliWord,
                                spin_op::from_word(pauliWord));
 }
 
+/// @brief Apply a general Pauli rotation with control qubits and a variadic set
+/// of qubits. The number of qubits must be equal to the pauli word length.
+template <typename QuantumRegister, typename... QubitArgs>
+requires(std::ranges::range<QuantumRegister>) inline void exp_pauli(
+    QuantumRegister &ctrls, double theta, const char *pauliWord,
+    QubitArgs &...qubits) {
+  std::vector<QuditInfo> controls;
+  std::transform(ctrls.begin(), ctrls.end(), std::back_inserter(controls),
+                 [](const auto &q) { return qubitToQuditInfo(q); });
+  if (sizeof...(QubitArgs) != std::strlen(pauliWord))
+    throw std::runtime_error(
+        "Invalid exp_pauli call, number of qubits != size of pauliWord.");
+
+  // Map the qubits to their unique ids and pack them into a std::array
+  std::vector<QuditInfo> quditInfos{qubitToQuditInfo(qubits)...};
+  getExecutionManager()->apply("exp_pauli", {theta}, controls, quditInfos,
+                               false, spin_op::from_word(pauliWord));
+}
+
 /// @brief Measure an individual qubit, return 0,1 as `bool`
 inline measure_result mz(qubit &q) {
   return getExecutionManager()->measure({q.n_levels(), q.id()});

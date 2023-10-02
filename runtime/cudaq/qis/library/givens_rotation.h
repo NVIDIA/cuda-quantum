@@ -26,6 +26,7 @@ __qpu__ void givens_rotation(double theta, cudaq::qubit &q0, cudaq::qubit &q1) {
   exp_pauli(-theta, "XY", q0, q1);
 }
 
+namespace builder {
 /// @brief Add Givens rotation kernel (theta angle as a QuakeValue) to the
 /// kernel builder object
 /// @tparam KernelBuilder
@@ -52,4 +53,5 @@ void givens_rotation(KernelBuilder &kernel, double theta, cudaq::QuakeValue q0,
                      cudaq::QuakeValue q1) {
   givens_rotation(kernel, kernel.constantVal(theta), q0, q1);
 }
+} // namespace builder
 } // namespace cudaq

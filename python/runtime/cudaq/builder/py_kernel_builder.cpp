@@ -480,8 +480,8 @@ Args:
       ADD_BUILDER_PARAM_QIS_METHOD(rz)
       ADD_BUILDER_PARAM_QIS_METHOD(r1)
       /// @brief Bind parameterized two-qubit library-based gates.
-      ADD_BUILDER_PARAM_TWO_QUBIT_LIB_GATE(fermionic_swap)
-      ADD_BUILDER_PARAM_TWO_QUBIT_LIB_GATE(givens_rotation)
+      ADD_BUILDER_PARAM_TWO_QUBIT_LIB_GATE(builder::fermionic_swap)
+      ADD_BUILDER_PARAM_TWO_QUBIT_LIB_GATE(builder::givens_rotation)
       // clang-format on
 
       .def(

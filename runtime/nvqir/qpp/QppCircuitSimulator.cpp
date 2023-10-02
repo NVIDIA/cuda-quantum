@@ -181,7 +181,8 @@ public:
     qpp::RandomDevices::get_instance().get_prng().seed(seed);
   }
 
-  void applyExpPauli(double theta, const std::vector<std::size_t> &qubitIds,
+  void applyExpPauli(double theta, const std::vector<std::size_t> &controls,
+                     const std::vector<std::size_t> &qubitIds,
                      const cudaq::spin_op &op) override {
     flushGateQueue();
     cudaq::info(" [qpp decomposing] exp_pauli({}, {})", theta,
@@ -194,11 +195,11 @@ public:
 
       if (type == cudaq::pauli::Y)
         basisChange.emplace_back([&, qubitIdx](bool reverse) {
-          rx(!reverse ? M_PI_2 : -M_PI_2, qubitIds[qubitIdx]);
+          rx(!reverse ? M_PI_2 : -M_PI_2, controls, qubitIds[qubitIdx]);
         });
       else if (type == cudaq::pauli::X)
         basisChange.emplace_back(
-            [&, qubitIdx](bool) { h(qubitIds[qubitIdx]); });
+            [&, qubitIdx](bool) { h(controls, qubitIds[qubitIdx]); });
     });
 
     if (!basisChange.empty())
@@ -207,15 +208,20 @@ public:
 
     std::vector<std::pair<std::size_t, std::size_t>> toReverse;
     for (std::size_t i = 0; i < qubitSupport.size() - 1; i++) {
-      x({qubitSupport[i]}, qubitSupport[i + 1]);
+      auto ctrlBits = controls;
+      ctrlBits.emplace_back(qubitSupport[i]);
+      x(ctrlBits, qubitSupport[i + 1]);
       toReverse.emplace_back(qubitSupport[i], qubitSupport[i + 1]);
     }
 
-    rz(theta, qubitSupport.back());
+    rz(theta, controls, qubitSupport.back());
 
     std::reverse(toReverse.begin(), toReverse.end());
-    for (auto &[i, j] : toReverse)
-      x({i}, j);
+    for (auto &[i, j] : toReverse) {
+      auto ctrlBits = controls;
+      ctrlBits.emplace_back(i);
+      x(ctrlBits, j);
+    }
 
     if (!basisChange.empty()) {
       std::reverse(basisChange.begin(), basisChange.end());
