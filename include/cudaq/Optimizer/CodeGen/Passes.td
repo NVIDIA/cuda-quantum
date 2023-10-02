@@ -46,7 +46,7 @@ def QIRToQIRProfilePrep : Pass<"qir-profile-prep", "mlir::ModuleOp"> {
   }];
 
   let options = [
-    Option<"convertTo", "convert-to", "std::string", "\"qir-base\"",
+    Option<"convertTo", "convert-to", "llvm::StringRef", "\"qir-base\"",
            "Which QIR profile to convert to (default is 'qir-base')">
   ];
 
@@ -61,7 +61,7 @@ def VerifyQIRProfile : Pass<"verify-qir-profile", "mlir::LLVM::LLVMFuncOp"> {
   }];
 
   let options = [
-    Option<"convertTo", "convert-to", "std::string", "\"qir-base\"",
+    Option<"convertTo", "convert-to", "llvm::StringRef", "\"qir-base\"",
            "Which QIR profile to convert to (default is 'qir-base')">
   ];
 
@@ -81,7 +81,7 @@ def QIRToQIRProfileFunc : Pass<"quake-to-qir-func",
   }];
 
   let options = [
-    Option<"convertTo", "convert-to", "std::string", "\"qir-base\"",
+    Option<"convertTo", "convert-to", "llvm::StringRef", "\"qir-base\"",
            "Which QIR profile to convert to (default is 'qir-base')">
   ];
 
@@ -99,7 +99,7 @@ def QIRToQIRProfile : Pass<"convert-to-qir-profile"> {
   }];
 
   let options = [
-    Option<"convertTo", "convert-to", "std::string", "\"qir-base\"",
+    Option<"convertTo", "convert-to", "llvm::StringRef", "\"qir-base\"",
            "Which QIR profile to convert to (default is 'qir-base')">
   ];
 

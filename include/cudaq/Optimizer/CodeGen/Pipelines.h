@@ -27,7 +27,7 @@ namespace cudaq::opt {
 /// @param convertTo String name of qir profile (e.g., qir-base, qir-adaptive)
 template <bool QIRProfile = false>
 void addPipelineToQIR(mlir::PassManager &pm,
-                      const std::string &convertTo = "qir-base") {
+                      llvm::StringRef convertTo = "qir-base") {
   pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
   pm.addNestedPass<mlir::func::FuncOp>(
       cudaq::opt::createCombineQuantumAllocations());
