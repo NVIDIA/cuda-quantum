@@ -148,9 +148,3 @@ Mmeory                          Value
 We know that one Hadamard is applied to `%q0_L` and generates `%q0_M`, and
 the other is applied `%q0_Y` and generates `%q0_Z`.  Hence, there is no
 connection between them---which means they cannot cancel each other out.
-
-## Quake Types
-
-In value form, we use the `!quake.wire` type to represent an
-intermediate "state" of a single qubit in time.  One can view the
-values of this type as line segments in a quantum circuit diagram.
