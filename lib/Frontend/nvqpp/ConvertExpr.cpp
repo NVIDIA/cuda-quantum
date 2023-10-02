@@ -1110,7 +1110,8 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           assert(isa<FunctionType>(calleeTy));
           auto eleTy = cast<cc::StdvecType>(svec.getType()).getElementType();
           auto elePtrTy = cc::PointerType::get(eleTy);
-          return pushValue(builder.create<cc::StdvecDataOp>(loc, elePtrTy, svec));
+          return pushValue(
+              builder.create<cc::StdvecDataOp>(loc, elePtrTy, svec));
         }
     if (funcName.equals("back"))
       if (auto memberCall = dyn_cast<clang::CXXMemberCallExpr>(x))
@@ -1124,7 +1125,8 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           auto i64Ty = mlir::IntegerType::get(ctx, 64);
           auto vecPtr = builder.create<cc::StdvecDataOp>(loc, elePtrTy, svec);
           auto vecLen = builder.create<cc::StdvecSizeOp>(loc, i64Ty, svec);
-          Value vecLenMinusOne = builder.create<arith::AddIOp>(loc, vecLen, negativeOneIndex);
+          Value vecLenMinusOne =
+              builder.create<arith::AddIOp>(loc, vecLen, negativeOneIndex);
           return pushValue(builder.create<cc::ComputePtrOp>(
               loc, elePtrTy, vecPtr, ValueRange{vecLenMinusOne}));
         }
