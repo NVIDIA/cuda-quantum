@@ -16,7 +16,7 @@ namespace cudaq {
 
 class LinkedLibraryHolder;
 
-/// @brief Bind test utilities needed for mock qpu base profile simulation
+/// @brief Bind test utilities needed for mock qpu QIR profile simulation
 void bindTestUtils(py::module &mod, LinkedLibraryHolder &holder);
 
 } // namespace cudaq

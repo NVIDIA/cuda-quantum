@@ -21,7 +21,7 @@
 namespace cudaq::opt {
 
 // Pipeline builder to convert Quake to QIR.
-template <bool BaseProfile = false>
+template <bool QIRProfile = false>
 void addPipelineToQIR(mlir::PassManager &pm) {
   cudaq::opt::addAggressiveEarlyInlining(pm);
   pm.addPass(mlir::createCanonicalizerPass());
@@ -41,8 +41,8 @@ void addPipelineToQIR(mlir::PassManager &pm) {
   pm.addPass(mlir::createCanonicalizerPass());
   pm.addPass(mlir::createCSEPass());
   pm.addPass(cudaq::opt::createConvertToQIRPass());
-  if constexpr (BaseProfile) {
-    cudaq::opt::addBaseProfilePipeline(pm);
+  if constexpr (QIRProfile) {
+    cudaq::opt::addQIRProfilePipeline(pm);
   }
 }
 

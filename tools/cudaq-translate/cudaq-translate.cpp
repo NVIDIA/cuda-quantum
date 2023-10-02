@@ -164,8 +164,10 @@ int main(int argc, char **argv) {
 
   llvm::StringSwitch<std::function<void()>>(convertTo)
       .Case("qir", [&]() { cudaq::opt::addPipelineToQIR<>(pm); })
+      .Case("qir-adaptive",
+            [&]() { cudaq::opt::addPipelineToQIR</*QIRProfile=*/true>(pm); })
       .Case("qir-base",
-            [&]() { cudaq::opt::addPipelineToQIR</*baseProfile=*/true>(pm); })
+            [&]() { cudaq::opt::addPipelineToQIR</*QIRProfile=*/true>(pm); })
       .Case("openqasm",
             [&]() {
               targetUsesLlvm = false;

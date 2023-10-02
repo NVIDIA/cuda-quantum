@@ -27,15 +27,15 @@ namespace cudaq::opt {
 std::unique_ptr<mlir::Pass> createConvertToQIRPass();
 void registerConvertToQIRPass();
 
-/// Convert (generic) QIR to the Base Profile QIR for a specific target.
-/// TODO: Decide how to convey the selected target information.
-void addBaseProfilePipeline(mlir::OpPassManager &pm);
-void registerBaseProfilePipeline();
+/// Convert (generic) QIR to the profile-specific QIR for a specific target.
+/// TODO: Decide how to convey the selected profile information.
+void addQIRProfilePipeline(mlir::OpPassManager &pm);
+void registerQIRProfilePipeline();
 
-// Use the addBaseProfilePipeline() for the following passes.
-std::unique_ptr<mlir::Pass> createQIRToBaseProfilePass();
+// Use the addQIRProfilePipeline() for the following passes.
+std::unique_ptr<mlir::Pass> createQIRToQIRProfilePass();
 std::unique_ptr<mlir::Pass> verifyBaseProfilePass();
-std::unique_ptr<mlir::Pass> createBaseProfilePreparationPass();
+std::unique_ptr<mlir::Pass> createQIRProfilePreparationPass();
 std::unique_ptr<mlir::Pass> createConvertToQIRFuncPass();
 
 // Functions to support removing measurements from QIR

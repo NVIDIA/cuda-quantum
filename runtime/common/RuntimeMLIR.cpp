@@ -154,8 +154,7 @@ mlir::LogicalResult verifyMeasurementOrdering(llvm::Module *llvmModule) {
           auto funcName = calledFunc->getName();
           bool isIrreversible = calledFunc->hasFnAttribute("irreversible");
           bool isReversible = !isIrreversible;
-          bool isOutputFunction =
-              funcName == cudaq::opt::QIRBaseProfileRecordOutput;
+          bool isOutputFunction = funcName == cudaq::opt::QIRRecordOutput;
           if (isReversible && !isOutputFunction && irreversibleSeenYet) {
             llvm::errs() << "error: reversible function " << funcName
                          << " came after irreversible function\n";
@@ -184,7 +183,7 @@ mlir::LogicalResult verifyOutputCalls(llvm::CallBase *callInst,
       if (!callInst->paramHasAttr(iArg, llvm::Attribute::NonNull)) {
         llvm::errs() << "error - nonnull attribute is missing from i8* "
                         "parameter of "
-                     << cudaq::opt::QIRBaseProfileRecordOutput << " function\n";
+                     << cudaq::opt::QIRRecordOutput << " function\n";
         return failure();
       }
 
@@ -250,7 +249,7 @@ mlir::LogicalResult verifyOutputRecordingFunctions(llvm::Module *llvmModule) {
         if (func && failed(verifyConstArguments(callInst)))
           return failure();
         // If it's an output function, do additional verification
-        if (func && func->getName() == cudaq::opt::QIRBaseProfileRecordOutput)
+        if (func && func->getName() == cudaq::opt::QIRRecordOutput)
           if (failed(verifyOutputCalls(callInst, outputList)))
             return failure();
       }
@@ -281,7 +280,7 @@ std::size_t getArgAsInteger(llvm::Value *arg) {
   } while (0)
 
 // Perform range checking on qubit and result values. This currently only checks
-// QIRMeasureBody and QIRBaseProfileRecordOutput. Checking more than that would
+// QIRMeasureBody and QIRRecordOutput. Checking more than that would
 // require comprehending the full list of possible QIS instructions, which is
 // not currently feasible.
 mlir::LogicalResult verifyQubitAndResultRanges(llvm::Module *llvmModule) {
@@ -302,7 +301,7 @@ mlir::LogicalResult verifyQubitAndResultRanges(llvm::Module *llvmModule) {
         if (auto callInst = llvm::dyn_cast_or_null<llvm::CallBase>(&inst)) {
           if (auto func = callInst->getCalledFunction()) {
             // All results must be in range for output recording functions
-            if (func->getName() == cudaq::opt::QIRBaseProfileRecordOutput) {
+            if (func->getName() == cudaq::opt::QIRRecordOutput) {
               auto result = getArgAsInteger(callInst->getArgOperand(0));
               CHECK_RANGE(result, required_num_results);
             }
@@ -484,7 +483,7 @@ std::unique_ptr<MLIRContext> initializeMLIR() {
     registerToOpenQASMTranslation();
     registerToIQMJsonTranslation();
     cudaq::opt::registerUnrollingPipeline();
-    cudaq::opt::registerBaseProfilePipeline();
+    cudaq::opt::registerQIRProfilePipeline();
     cudaq::opt::registerTargetPipelines();
     mlirLLVMInitialized = true;
   }
