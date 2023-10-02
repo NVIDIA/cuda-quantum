@@ -23,13 +23,6 @@ struct S2 {
   }
 };
 
-struct S3 {
-  auto operator()(std::vector<int> sp) __qpu__ {
-    for (auto s : sp) // expected-error{{for (ranged) statement}}
-      foo();
-  }
-};
-
 struct S4 {
   auto operator()() __qpu__ {
     goto label; // expected-error{{goto statement}}
