@@ -25,7 +25,7 @@ of that instruction on all provided :code:`cudaq::qudits`, e.g. :code:`void x(cu
 Implementations should provide overloads to support broadcasting of single-qubit
 intrinsic operations across a register of :code:`cudaq::qudit`.
 For example, :code:`x(cudaq::qreg<>&)` should apply a NOT operation on all :code:`cudaq::qubit` in the provided :code:`cudaq::qreg`. 
-A set of quantum intrinsic operations for the :code:`cudaq::qubit` then for example looks as follows: 
+A set of quantum intrinsic operations for the :code:`cudaq::qubit` then for example looks as follows, where :code:`NAME`, :code:`ROTATION_NAME`, and :code:`MEASURE_OP` stand for the names of single-qubit operations, single-qubit rotations, and measurement operations respectively: 
 
 .. code-block:: cpp 
 
@@ -52,3 +52,5 @@ A set of quantum intrinsic operations for the :code:`cudaq::qubit` then for exam
       std::vector<bool> MEASURE_OP(qreg &q) noexcept;
       double measure(cudaq::spin_op & term) noexcept { ... }
   }
+
+The set of gates that the official CUDA Quantum implementation supports can be found in the :doc:`API documentation </api/api>`.
