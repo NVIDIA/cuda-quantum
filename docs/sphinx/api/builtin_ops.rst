@@ -73,7 +73,7 @@ enables one to create a superposition of computational basis states.
 :code:`r1`
 ---------------------
 
-This operation is an arbitrary rotation about the |1> state.
+This operation is an arbitrary rotation about the :code:`|1>` state.
 
 .. code-block:: cpp
 
