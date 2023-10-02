@@ -366,12 +366,10 @@ void registerToQIRTranslation() {
           pm.enableIRPrinting();
         std::string errMsg;
         llvm::raw_string_ostream errOs(errMsg);
-        std::string qirBasePipelineConfig =
-            "func.func(combine-quantum-alloc),canonicalize,cse,quake-to-qir,"
-            "base-profile-pipeline";
-        if (!additionalPasses.empty())
-          qirBasePipelineConfig += "," + additionalPasses;
-        if (failed(parsePassPipeline(qirBasePipelineConfig, pm, errOs)))
+        cudaq::opt::addPipelineToQIR</*QIRProfile=*/true>(pm);
+        // Add additional passes if necessary
+        if (!additionalPasses.empty() &&
+            failed(parsePassPipeline(additionalPasses, pm, errOs)))
           return failure();
         if (failed(pm.run(op)))
           return failure();
@@ -511,12 +509,7 @@ ExecutionEngine *createQIRJITEngine(ModuleOp &moduleOp) {
     PassManager pm(context);
     std::string errMsg;
     llvm::raw_string_ostream errOs(errMsg);
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
-    pm.addNestedPass<func::FuncOp>(
-        cudaq::opt::createCombineQuantumAllocations());
-    pm.addPass(createCanonicalizerPass());
-    pm.addPass(createCSEPass());
-    pm.addPass(cudaq::opt::createConvertToQIRPass());
+    cudaq::opt::addPipelineToQIR</*QIRProfile=*/false>(pm);
     if (failed(pm.run(module)))
       throw std::runtime_error(
           "[createQIRJITEngine] Lowering to QIR for remote emulation failed.");

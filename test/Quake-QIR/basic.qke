@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt %s --quake-add-deallocs | cudaq-translate --convert-to=qir | FileCheck %s
+// RUN: cudaq-opt %s --aggressive-early-inlining | cudaq-translate --convert-to=qir | FileCheck %s
 
 module {
      func.func @test_func(%p : i32) {
