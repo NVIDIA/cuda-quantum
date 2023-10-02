@@ -8,6 +8,8 @@ depends on the backends architecture, the :code:`nvq++` compiler automatically
 decomposes built-in operations into the appropriate set of intrinsic operations 
 for that target.
 
+The sections `Unitary Operations on Qubits`_ and `Measurements on Qubits`_ list the set of built-in operations on qubits.
+
 Built-in operations that implement unitary transformations of the quantum state are templated. 
 The template argument :code:`cudaq::adj` can be used to invoke the 
 `adjoint <https://en.wikipedia.org/wiki/Conjugate_transpose>`__ transformation:
