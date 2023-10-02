@@ -10,71 +10,6 @@ for that target.
 
 The sections `Unitary Operations on Qubits`_ and `Measurements on Qubits`_ list the set of built-in operations on qubits.
 
-Built-in operations that implement unitary transformations of the quantum state are templated. 
-The template argument :code:`cudaq::adj` can be used to invoke the 
-`adjoint <https://en.wikipedia.org/wiki/Conjugate_transpose>`__ transformation:
-
-.. code-block:: cpp
-
-    // Allocate a qubit in a |0> state.
-    cudaq::qubit q
-    // Apply the unitary transformation defined by the matrix
-    // T = | 1      0     |
-    //     | 0  exp(iπ/4) |
-    // to the state of the qubit `q`:
-    t(q);
-    // Apply its adjoint transformation defined by the matrix
-    // T† = | 1      0     |
-    //      | 0  exp(-iπ/4) |
-    t<cudaq::adj>(q);
-    // Qubit `q` is now again in the initial state |0>.
-
-The template argument :code:`cudaq::ctrl` can be used to apply the transformation
-conditional on the state of one or more control qubits, see also this 
-`Wikipedia entry <https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gatese>`__.
-
-.. code-block:: cpp
-
-    // Allocate additional control qubits.
-    cudaq::qubit c1, c2, q;
-    // Create a superposition.
-    h(c1);
-    // Qubit c1 is now in a state (|0> + |1>) / √2.
-
-    // Apply the unitary transformation
-    // | 1  0  0  0 |
-    // | 0  1  0  0 |
-    // | 0  0  0  1 |
-    // | 0  0  1  0 |
-    x<cudaq::ctrl>(c1, c2);
-    // The qubits c1 and c2 are in a state (|00> + |11>) / √2.
-
-    // Set the state of qubit q to |1>:
-    x(q);
-    // Apply the transformation T only if both 
-    // control qubits are in a |1> state:
-    t<cudaq::ctrl>(c1, c2, q);
-    // The qubits c1, c2, and q are now in a state
-    // (|000> + exp(iπ/4)|111>) / √2.
-
-Following common convention, by default the transformation is applied to the target qubit(s)
-if all control qubits are in a :code:`|1>` state. 
-However, that behavior can be changed to instead apply the transformation when a control qubit is in 
-a :code:`|0>` state by negating the polarity of the control qubit.
-The syntax for negating the polarity is the not-operator preceding the
-control qubit: 
-
-.. code-block:: cpp
-
-    cudaq::qubit c, q;
-    h(c);
-    x<cudaq::ctrl>(!c, q);
-    // The qubits c and q are in a state (|01> + |10>) / √2.
-
-This notation is only supported in the context of applying a controlled operation and is only valid for control qubits. For example, negating either of the target qubits in the
-:code:`swap` operation is not allowed.
-Negating the polarity of control qubits is similarly supported when using :code:`cudaq::control` to conditionally apply a custom quantum kernel.
-
 CUDA Quantum additionally provides overloads to support broadcasting of
 built-in single-qubit operations across a register of qubits. 
 For example, :code:`x(cudaq::qreg<>&)` applies a NOT operation 
@@ -218,6 +153,76 @@ This operation swaps the states of two qubits.
     //        | 0 1 0 0 |
     //        | 0 0 0 1 |
     swap(q1, q2);
+
+
+Adjoint and Controlled Operations
+==================================
+
+Built-in operations that implement unitary transformations of the quantum state are templated. 
+The template argument :code:`cudaq::adj` can be used to invoke the 
+`adjoint <https://en.wikipedia.org/wiki/Conjugate_transpose>`__ transformation:
+
+.. code-block:: cpp
+
+    // Allocate a qubit in a |0> state.
+    cudaq::qubit q
+    // Apply the unitary transformation defined by the matrix
+    // T = | 1      0     |
+    //     | 0  exp(iπ/4) |
+    // to the state of the qubit `q`:
+    t(q);
+    // Apply its adjoint transformation defined by the matrix
+    // T† = | 1      0     |
+    //      | 0  exp(-iπ/4) |
+    t<cudaq::adj>(q);
+    // Qubit `q` is now again in the initial state |0>.
+
+The template argument :code:`cudaq::ctrl` can be used to apply the transformation
+conditional on the state of one or more control qubits, see also this 
+`Wikipedia entry <https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gatese>`__.
+
+.. code-block:: cpp
+
+    // Allocate additional control qubits.
+    cudaq::qubit c1, c2, q;
+    // Create a superposition.
+    h(c1);
+    // Qubit c1 is now in a state (|0> + |1>) / √2.
+
+    // Apply the unitary transformation
+    // | 1  0  0  0 |
+    // | 0  1  0  0 |
+    // | 0  0  0  1 |
+    // | 0  0  1  0 |
+    x<cudaq::ctrl>(c1, c2);
+    // The qubits c1 and c2 are in a state (|00> + |11>) / √2.
+
+    // Set the state of qubit q to |1>:
+    x(q);
+    // Apply the transformation T only if both 
+    // control qubits are in a |1> state:
+    t<cudaq::ctrl>(c1, c2, q);
+    // The qubits c1, c2, and q are now in a state
+    // (|000> + exp(iπ/4)|111>) / √2.
+
+Following common convention, by default the transformation is applied to the target qubit(s)
+if all control qubits are in a :code:`|1>` state. 
+However, that behavior can be changed to instead apply the transformation when a control qubit is in 
+a :code:`|0>` state by negating the polarity of the control qubit.
+The syntax for negating the polarity is the not-operator preceding the
+control qubit: 
+
+.. code-block:: cpp
+
+    cudaq::qubit c, q;
+    h(c);
+    x<cudaq::ctrl>(!c, q);
+    // The qubits c and q are in a state (|01> + |10>) / √2.
+
+This notation is only supported in the context of applying a controlled operation and is only valid for control qubits. For example, negating either of the target qubits in the
+:code:`swap` operation is not allowed.
+Negating the polarity of control qubits is similarly supported when using :code:`cudaq::control` to conditionally apply a custom quantum kernel.
+
 
 Measurements on Qubits
 =============================
