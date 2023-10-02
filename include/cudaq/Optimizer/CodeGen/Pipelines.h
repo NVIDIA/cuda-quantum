@@ -20,9 +20,14 @@
 
 namespace cudaq::opt {
 
-// Pipeline builder to convert Quake to QIR.
+/// @brief Pipeline builder to convert Quake to QIR. `convertTo` should be
+/// specified if `QIRProfile` is true.
+/// @param QIRProfile whether or not this is lowering to a specific QIR profile
+/// @param pm Pass manager to append passes to
+/// @param convertTo String name of qir profile (e.g., qir-base, qir-adaptive)
 template <bool QIRProfile = false>
-void addPipelineToQIR(mlir::PassManager &pm) {
+void addPipelineToQIR(mlir::PassManager &pm,
+                      const std::string &convertTo = "qir-base") {
   pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
   pm.addNestedPass<mlir::func::FuncOp>(
       cudaq::opt::createCombineQuantumAllocations());
@@ -30,7 +35,7 @@ void addPipelineToQIR(mlir::PassManager &pm) {
   pm.addPass(mlir::createCSEPass());
   pm.addPass(cudaq::opt::createConvertToQIRPass());
   if constexpr (QIRProfile) {
-    cudaq::opt::addQIRProfilePipeline(pm);
+    cudaq::opt::addQIRProfilePipeline(pm, convertTo);
   }
 }
 

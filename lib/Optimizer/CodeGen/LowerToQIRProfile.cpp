@@ -196,8 +196,9 @@ private:
 };
 
 struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
-  explicit AddFuncAttribute(MLIRContext *ctx, const FunctionAnalysisInfo &info)
-      : OpRewritePattern(ctx), infoMap(info) {}
+  explicit AddFuncAttribute(MLIRContext *ctx, const FunctionAnalysisInfo &info,
+                            const std::string &convertTo_)
+      : OpRewritePattern(ctx), infoMap(info), convertTo(convertTo_) {}
 
   LogicalResult matchAndRewrite(LLVM::LLVMFuncOp op,
                                 PatternRewriter &rewriter) const override {
@@ -208,11 +209,15 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
     rewriter.startRootUpdate(op);
     const auto &info = iter->second;
     nlohmann::json resultQubitJSON{info.resultQubitVals};
+    std::string profileName = "base_profile";
+    if (convertTo == "qir-adaptive")
+      profileName = "adaptive_profile";
+
     // QIR functions need certain attributes, add them here.
     // TODO: Update schema_id with valid value (issues #385 and #556)
     auto arrAttr = rewriter.getArrayAttr(ArrayRef<Attribute>{
         rewriter.getStringAttr("entry_point"),
-        rewriter.getStrArrayAttr({"qir_profiles", "base_profile"}),
+        rewriter.getStrArrayAttr({"qir_profiles", profileName}),
         rewriter.getStrArrayAttr({"output_labeling_schema", "schema_id"}),
         rewriter.getStrArrayAttr({"output_names", resultQubitJSON.dump()}),
         rewriter.getStrArrayAttr(
@@ -261,6 +266,7 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
   }
 
   const FunctionAnalysisInfo &infoMap;
+  std::string convertTo;
 };
 
 struct AddCallAttribute : public OpRewritePattern<LLVM::CallOp> {
@@ -297,13 +303,20 @@ struct QIRToQIRProfileFuncPass
     : public cudaq::opt::QIRToQIRProfileFuncBase<QIRToQIRProfileFuncPass> {
   using QIRToQIRProfileFuncBase::QIRToQIRProfileFuncBase;
 
+  explicit QIRToQIRProfileFuncPass(const std::string &convertTo_)
+      : QIRToQIRProfileFuncBase() {
+    convertTo.setValue(convertTo_);
+  }
+
   void runOnOperation() override {
     auto op = getOperation();
     auto *ctx = op.getContext();
     RewritePatternSet patterns(ctx);
     const auto &analysis = getAnalysis<FunctionProfileAnalysis>();
     const auto &funcAnalysisInfo = analysis.getAnalysisInfo();
-    patterns.insert<AddFuncAttribute, AddCallAttribute>(ctx, funcAnalysisInfo);
+    patterns.insert<AddFuncAttribute>(ctx, funcAnalysisInfo,
+                                      convertTo.getValue());
+    patterns.insert<AddCallAttribute>(ctx, funcAnalysisInfo);
     ConversionTarget target(*ctx);
     target.addLegalDialect<LLVM::LLVMDialect>();
     target.addDynamicallyLegalOp<LLVM::LLVMFuncOp>([](LLVM::LLVMFuncOp op) {
@@ -319,15 +332,16 @@ struct QIRToQIRProfileFuncPass
     });
 
     if (failed(applyPartialConversion(op, target, std::move(patterns)))) {
-      emitError(op.getLoc(), "failed to convert to QIR profile (FIXME)");
+      emitError(op.getLoc(), "failed to convert to " + convertTo.getValue());
       signalPassFailure();
     }
   }
 };
 } // namespace
 
-std::unique_ptr<Pass> cudaq::opt::createConvertToQIRFuncPass() {
-  return std::make_unique<QIRToQIRProfileFuncPass>();
+std::unique_ptr<Pass>
+cudaq::opt::createConvertToQIRFuncPass(const std::string &convertTo) {
+  return std::make_unique<QIRToQIRProfileFuncPass>(convertTo);
 }
 
 //===----------------------------------------------------------------------===//
@@ -391,6 +405,13 @@ struct QIRToQIRProfileQIRPass
     : public cudaq::opt::QIRToQIRProfileBase<QIRToQIRProfileQIRPass> {
   explicit QIRToQIRProfileQIRPass() = default;
 
+  /// @brief Construct pass
+  /// @param convertTo_ expected "qir-base" or "qir-adaptive"
+  QIRToQIRProfileQIRPass(const std::string &convertTo_)
+      : QIRToQIRProfileBase() {
+    convertTo.setValue(convertTo_);
+  }
+
   void runOnOperation() override {
     auto *op = getOperation();
     LLVM_DEBUG(llvm::dbgs() << "Before QIR profile:\n" << *op << '\n');
@@ -412,8 +433,9 @@ private:
 };
 } // namespace
 
-std::unique_ptr<Pass> cudaq::opt::createQIRToQIRProfilePass() {
-  return std::make_unique<QIRToQIRProfileQIRPass>();
+std::unique_ptr<Pass>
+cudaq::opt::createQIRToQIRProfilePass(const std::string &convertTo) {
+  return std::make_unique<QIRToQIRProfileQIRPass>(convertTo);
 }
 
 //===----------------------------------------------------------------------===//
@@ -433,6 +455,11 @@ static const std::vector<std::string> measurementFunctionNames{
 
 struct QIRProfilePreparationPass
     : public cudaq::opt::QIRToQIRProfilePrepBase<QIRProfilePreparationPass> {
+
+  explicit QIRProfilePreparationPass(const std::string &convertTo_)
+      : QIRToQIRProfilePrepBase() {
+    convertTo.setValue(convertTo_);
+  }
 
   void runOnOperation() override {
     ModuleOp module = getOperation();
@@ -485,18 +512,23 @@ struct QIRProfilePreparationPass
 };
 } // namespace
 
-std::unique_ptr<Pass> cudaq::opt::createQIRProfilePreparationPass() {
-  return std::make_unique<QIRProfilePreparationPass>();
+std::unique_ptr<Pass>
+cudaq::opt::createQIRProfilePreparationPass(const std::string &convertTo) {
+  return std::make_unique<QIRProfilePreparationPass>(convertTo);
 }
 
 //===----------------------------------------------------------------------===//
 
 namespace {
-/// Verify that the base profile QIR code is sane. For now, this simply checks
-/// that the QIR base profile doesn't have any "bonus" calls to arbitrary code
-/// that is not possibly defined in the QIR standard.
-struct VerifyBaseProfilePass
-    : public cudaq::opt::VerifyBaseProfileBase<VerifyBaseProfilePass> {
+/// Verify that the specific profile QIR code is sane. For now, this simply
+/// checks that the QIR doesn't have any "bonus" calls to arbitrary code that is
+/// not possibly defined in the QIR standard.
+struct VerifyQIRProfilePass
+    : public cudaq::opt::VerifyQIRProfileBase<VerifyQIRProfilePass> {
+  explicit VerifyQIRProfilePass(const std::string &convertTo_)
+      : VerifyQIRProfileBase() {
+    convertTo.setValue(convertTo_);
+  }
 
   void runOnOperation() override {
     LLVM::LLVMFuncOp func = getOperation();
@@ -504,6 +536,7 @@ struct VerifyBaseProfilePass
     if (!func->hasAttr(cudaq::entryPointAttrName))
       return;
     auto *ctx = &getContext();
+    bool isBaseProfile = convertTo.getValue() == "qir-base";
     func.walk([&](Operation *op) {
       if (auto call = dyn_cast<LLVM::CallOp>(op)) {
         auto funcName = call.getCalleeAttr().getValue();
@@ -533,8 +566,8 @@ struct VerifyBaseProfilePass
                 }
         return WalkResult::advance();
       }
-      if (isa<LLVM::BrOp, LLVM::CondBrOp, LLVM::ResumeOp, LLVM::UnreachableOp,
-              LLVM::SwitchOp>(op)) {
+      if (isBaseProfile && isa<LLVM::BrOp, LLVM::CondBrOp, LLVM::ResumeOp,
+                               LLVM::UnreachableOp, LLVM::SwitchOp>(op)) {
         op->emitOpError("QIR base profile does not support control-flow");
         passFailed = true;
       }
@@ -550,23 +583,19 @@ struct VerifyBaseProfilePass
 };
 } // namespace
 
-std::unique_ptr<Pass> cudaq::opt::verifyBaseProfilePass() {
-  return std::make_unique<VerifyBaseProfilePass>();
+std::unique_ptr<Pass>
+cudaq::opt::verifyQIRProfilePass(const std::string &convertTo) {
+  return std::make_unique<VerifyQIRProfilePass>(convertTo);
 }
 
 // The various passes defined here should be added as a pass pipeline.
-void cudaq::opt::addQIRProfilePipeline(OpPassManager &pm) {
-  pm.addPass(createQIRProfilePreparationPass());
-  pm.addNestedPass<LLVM::LLVMFuncOp>(createConvertToQIRFuncPass());
-  pm.addPass(createQIRToQIRProfilePass());
-  pm.addNestedPass<LLVM::LLVMFuncOp>(verifyBaseProfilePass());
-}
 
-void cudaq::opt::registerQIRProfilePipeline() {
-  PassPipelineRegistration<>("base-profile-pipeline", // FIXME
-                             "Pass pipeline to generate code for the QIR base "
-                             "profile and adaptive profile.",
-                             addQIRProfilePipeline);
+void cudaq::opt::addQIRProfilePipeline(OpPassManager &pm,
+                                       const std::string &convertTo) {
+  pm.addPass(createQIRProfilePreparationPass(convertTo));
+  pm.addNestedPass<LLVM::LLVMFuncOp>(createConvertToQIRFuncPass(convertTo));
+  pm.addPass(createQIRToQIRProfilePass(convertTo));
+  pm.addNestedPass<LLVM::LLVMFuncOp>(verifyQIRProfilePass(convertTo));
 }
 
 namespace cudaq {

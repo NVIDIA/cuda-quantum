@@ -28,15 +28,20 @@ std::unique_ptr<mlir::Pass> createConvertToQIRPass();
 void registerConvertToQIRPass();
 
 /// Convert (generic) QIR to the profile-specific QIR for a specific target.
-/// TODO: Decide how to convey the selected profile information.
-void addQIRProfilePipeline(mlir::OpPassManager &pm);
-void registerQIRProfilePipeline();
+/// @param pm Pass Manager to add QIR passes to
+/// @param convertTo Expected to be "qir-base" or "qir-adaptive" (comes from the
+/// cudaq-translate command line `--convert-to` parameter)
+void addQIRProfilePipeline(mlir::OpPassManager &pm,
+                           const std::string &convertTo);
 
 // Use the addQIRProfilePipeline() for the following passes.
-std::unique_ptr<mlir::Pass> createQIRToQIRProfilePass();
-std::unique_ptr<mlir::Pass> verifyBaseProfilePass();
-std::unique_ptr<mlir::Pass> createQIRProfilePreparationPass();
-std::unique_ptr<mlir::Pass> createConvertToQIRFuncPass();
+std::unique_ptr<mlir::Pass>
+createQIRToQIRProfilePass(const std::string &convertTo);
+std::unique_ptr<mlir::Pass> verifyQIRProfilePass(const std::string &convertTo);
+std::unique_ptr<mlir::Pass>
+createQIRProfilePreparationPass(const std::string &convertTo);
+std::unique_ptr<mlir::Pass>
+createConvertToQIRFuncPass(const std::string &convertTo);
 
 // Functions to support removing measurements from QIR
 std::unique_ptr<mlir::Pass> createRemoveMeasurementsPass();

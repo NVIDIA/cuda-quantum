@@ -45,17 +45,27 @@ def QIRToQIRProfilePrep : Pass<"qir-profile-prep", "mlir::ModuleOp"> {
     conflicts when rewriting matching DAGs independently.
   }];
 
-  let constructor = "cudaq::opt::createQIRProfilePreparationPass()";
+  let options = [
+    Option<"convertTo", "convert-to", "std::string", "\"qir-base\"",
+           "Which QIR profile to convert to (default is 'qir-base')">
+  ];
+
+  let constructor = "cudaq::opt::createQIRProfilePreparationPass(\"qir-base\")";
 }
 
-def VerifyBaseProfile : Pass<"verify-base-profile", "mlir::LLVM::LLVMFuncOp"> {
-  let summary = "Verify that the output conforms to the base profile";
+def VerifyQIRProfile : Pass<"verify-qir-profile", "mlir::LLVM::LLVMFuncOp"> {
+  let summary = "Verify that the output conforms to the specific profile";
   let description = [{
     This pass scans over functions in the LLVM-IR dialect to make sure they
-    conform to the QIR base profile.
+    conform to the QIR specific profile.
   }];
 
-  let constructor = "cudaq::opt::verifyBaseProfilePass()";
+  let options = [
+    Option<"convertTo", "convert-to", "std::string", "\"qir-base\"",
+           "Which QIR profile to convert to (default is 'qir-base')">
+  ];
+
+  let constructor = "cudaq::opt::verifyQIRProfilePass(\"qir-base\")";
 }
 
 def QIRToQIRProfileFunc : Pass<"quake-to-qir-func",
@@ -70,10 +80,15 @@ def QIRToQIRProfileFunc : Pass<"quake-to-qir-func",
     functions are added to the final block in the function.
   }];
 
-  let constructor = "cudaq::opt::createConvertToQIRFuncPass()";
+  let options = [
+    Option<"convertTo", "convert-to", "std::string", "\"qir-base\"",
+           "Which QIR profile to convert to (default is 'qir-base')">
+  ];
+
+  let constructor = "cudaq::opt::createConvertToQIRFuncPass(\"qir-base\")";
 }
 
-def QIRToQIRProfile : Pass<"qir-to-qir-profile"> {
+def QIRToQIRProfile : Pass<"convert-to-qir-profile"> {
   let summary =
     "After lowering a Quake kernel to QIR, lower further to the specific QIR Profile.";
   let description = [{
@@ -83,7 +98,12 @@ def QIRToQIRProfile : Pass<"qir-to-qir-profile"> {
     https://github.com/qir-alliance/qir-spec/blob/main/specification/v0.1/7_Profiles.md
   }];
 
-  let constructor = "cudaq::opt::createQIRToQIRProfilePass()";
+  let options = [
+    Option<"convertTo", "convert-to", "std::string", "\"qir-base\"",
+           "Which QIR profile to convert to (default is 'qir-base')">
+  ];
+
+  let constructor = "cudaq::opt::createQIRToQIRProfilePass(\"qir-base\")";
 }
 
 def RemoveMeasurements : Pass<"remove-measurements"> {
