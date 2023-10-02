@@ -174,19 +174,30 @@ static Value getConstantInt(OpBuilder &builder, Location loc,
   return builder.create<arith::ConstantIntOp>(loc, value, intTy);
 }
 
-/// Is \p x the `operator[]` function?
-static bool isSubscriptOperator(clang::CXXOperatorCallExpr *x) {
-  return x->getOperator() == clang::OverloadedOperatorKind::OO_Subscript;
+template <auto KindConst, typename T,
+          typename = std::enable_if_t<std::is_same_v<decltype(KindConst), T>>>
+bool isOperatorKind(T kindValue) {
+  return kindValue == KindConst;
 }
 
-/// Is \p kindValue the `operator==` function?
-static bool isCompareEqualOperator(clang::OverloadedOperatorKind kindValue) {
-  return kindValue == clang::OverloadedOperatorKind::OO_EqualEqual;
+/// Is \p kind the `operator[]` function?
+static bool isSubscriptOperator(clang::OverloadedOperatorKind kind) {
+  return isOperatorKind<clang::OverloadedOperatorKind::OO_Subscript>(kind);
 }
 
-/// Is \p x the `operator!` function?
-static bool isExclaimOperator(clang::CXXOperatorCallExpr *x) {
-  return x->getOperator() == clang::OverloadedOperatorKind::OO_Exclaim;
+/// Is \p kind the `operator==` function?
+static bool isCompareEqualOperator(clang::OverloadedOperatorKind kind) {
+  return isOperatorKind<clang::OverloadedOperatorKind::OO_EqualEqual>(kind);
+}
+
+/// Is \p kind the `operator=` function?
+static bool isAssignmentOperator(clang::OverloadedOperatorKind kind) {
+  return isOperatorKind<clang::OverloadedOperatorKind::OO_Equal>(kind);
+}
+
+/// Is \p kind the `operator!` function?
+static bool isExclaimOperator(clang::OverloadedOperatorKind kind) {
+  return isOperatorKind<clang::OverloadedOperatorKind::OO_Exclaim>(kind);
 }
 
 // Map the measured bit vector to an i32 representation.
@@ -403,9 +414,23 @@ FunctionType QuakeBridgeVisitor::peelPointerFromFunction(Type ty) {
 }
 
 bool QuakeBridgeVisitor::VisitArraySubscriptExpr(clang::ArraySubscriptExpr *x) {
-  // TODO: add array support
-  reportClangError(x, mangler, "arrays in kernels");
-  return false;
+  auto loc = toLocation(x->getSourceRange());
+  auto rhs = popValue();
+  auto lhs = popValue();
+  Type eleTy = [&]() {
+    // NB: Check both arguments as expression may be inverted.
+    if (auto ptrTy = dyn_cast<cc::PointerType>(lhs.getType()))
+      return ptrTy.getElementType();
+    return cast<cc::PointerType>(rhs.getType()).getElementType();
+  }();
+  Type arrEleTy = [&]() {
+    // FIXME: The following dyn_cast should never fail.
+    if (auto arrTy = dyn_cast<cc::ArrayType>(eleTy))
+      return arrTy.getElementType();
+    return eleTy;
+  }();
+  auto elePtrTy = cc::PointerType::get(arrEleTy);
+  return pushValue(builder.create<cc::ComputePtrOp>(loc, elePtrTy, lhs, rhs));
 }
 
 bool QuakeBridgeVisitor::VisitFloatingLiteral(clang::FloatingLiteral *x) {
@@ -602,18 +627,14 @@ bool QuakeBridgeVisitor::VisitImplicitCastExpr(clang::ImplicitCastExpr *x) {
       return pushValue(builder.create<arith::ExtFOp>(loc, toType, value));
     return pushValue(builder.create<arith::TruncFOp>(loc, toType, value));
   }
-  case clang::CastKind::CK_ArrayToPointerDecay:
-    if (dyn_cast_or_null<clang::StringLiteral>(x->getSubExpr()))
-      return true;
-    // TODO: array support
-    TODO_x(loc, x, mangler, "arrays in kernels");
-    return false;
   case clang::CastKind::CK_IntegralCast: {
     auto locSub = toLocation(x->getSubExpr());
     auto result = intToIntCast(locSub, popValue());
     assert(result && "integer conversion failed");
     return result;
   }
+  case clang::CastKind::CK_ArrayToPointerDecay:
+    return true;
   case clang::CastKind::CK_NoOp:
     return true;
   case clang::CastKind::CK_FloatingToIntegral: {
@@ -843,7 +864,6 @@ bool QuakeBridgeVisitor::VisitBinaryOperator(clang::BinaryOperator *x) {
   case clang::BinaryOperatorKind::BO_OrAssign:
   case clang::BinaryOperatorKind::BO_XorAssign:
   case clang::BinaryOperatorKind::BO_AndAssign:
-
     return true; // see CompoundAssignOperator
   default:
     break;
@@ -1101,13 +1121,30 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       assert(isa<cc::PointerType>(peekValue().getType()));
       return pushValue(builder.create<cc::LoadOp>(loc, popValue()));
     }
-    if (func->isOverloadedOperator() &&
-        isCompareEqualOperator(func->getOverloadedOperator())) {
-      auto rhs = loadFromReference(popValue());
-      auto lhs = loadFromReference(popValue());
-      popValue(); // The compare equal operator address.
-      return pushValue(builder.create<arith::CmpIOp>(
-          loc, arith::CmpIPredicate::eq, lhs, rhs));
+    if (func->isOverloadedOperator()) {
+      auto overloadedOperator = func->getOverloadedOperator();
+      if (isCompareEqualOperator(overloadedOperator)) {
+        auto rhs = loadFromReference(popValue());
+        auto lhs = loadFromReference(popValue());
+        popValue(); // The compare equal operator address.
+        return pushValue(builder.create<arith::CmpIOp>(
+            loc, arith::CmpIPredicate::eq, lhs, rhs));
+      }
+      if (isAssignmentOperator(overloadedOperator)) {
+        auto rhs = loadFromReference(popValue());
+        auto lhs = popValue();
+        popValue(); // The assignment operator address.
+        builder.create<cc::StoreOp>(loc, rhs, lhs);
+        return pushValue(loadFromReference(lhs));
+      }
+      if (isSubscriptOperator(overloadedOperator)) {
+        auto rhs = loadFromReference(popValue());
+        auto lhs = popValue();
+        popValue(); // The subscript operator address.
+        auto bytePtrTy = cc::PointerType::get(builder.getI8Type());
+        return pushValue(
+            builder.create<cc::ComputePtrOp>(loc, bytePtrTy, lhs, rhs));
+      }
     }
     TODO_loc(loc, "unhandled std::vector<bool> member function, " + funcName);
   }
@@ -1216,6 +1253,47 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
             if (auto structTypeAsRecord = structTy->getAsCXXRecordDecl())
               isAdjoint = structTypeAsRecord->getName() == "adj";
       }
+
+    if (funcName.equals("exp_pauli")) {
+      assert(args.size() > 2);
+      SmallVector<Value> processedArgs;
+      auto addTheString = [&](Value v) {
+        // The C-string argument (char*) may be loaded by an lvalue to rvalue
+        // cast. Here, we must pass the pointer and not the first character's
+        // value.
+        if (isCharPointerType(v.getType())) {
+          processedArgs.push_back(v);
+        } else if (auto load = v.getDefiningOp<cudaq::cc::LoadOp>()) {
+          processedArgs.push_back(load.getPtrvalue());
+        } else {
+          reportClangError(x, mangler, "could not determine string argument");
+        }
+      };
+      if (args.size() == 3 && isa<quake::VeqType>(args[1].getType())) {
+        // Have f64, veq, string
+        processedArgs.push_back(args[0]);
+        processedArgs.push_back(args[1]);
+        addTheString(args[2]);
+      } else {
+        // should have f64, string, qubits...
+        // need f64, veq, string, so process here
+
+        // add f64 value
+        processedArgs.push_back(args[0]);
+
+        // concat the qubits to a veq
+        SmallVector<Value> quantumArgs;
+        for (std::size_t i = 2; i < args.size(); i++)
+          quantumArgs.push_back(args[i]);
+        processedArgs.push_back(builder.create<quake::ConcatOp>(
+            loc, quake::VeqType::get(builder.getContext(), quantumArgs.size()),
+            quantumArgs));
+        addTheString(args[1]);
+      }
+
+      builder.create<quake::ExpPauliOp>(loc, TypeRange{}, processedArgs);
+      return true;
+    }
 
     if (funcName.equals("mx") || funcName.equals("my") ||
         funcName.equals("mz")) {
@@ -1609,7 +1687,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
 
 std::optional<std::string> QuakeBridgeVisitor::isInterceptedSubscriptOperator(
     clang::CXXOperatorCallExpr *x) {
-  if (isSubscriptOperator(x)) {
+  if (isSubscriptOperator(x->getOperator())) {
     if (auto decl = dyn_cast<clang::CXXMethodDecl>(x->getCalleeDecl())) {
       auto typeName = decl->getParent()->getNameAsString();
       if (isInNamespace(decl, "cudaq")) {
@@ -1635,8 +1713,8 @@ bool QuakeBridgeVisitor::WalkUpFromCXXOperatorCallExpr(
     return VisitCXXOperatorCallExpr(x);
   }
   if (auto *func = dyn_cast_or_null<clang::FunctionDecl>(x->getCalleeDecl())) {
-    if (isCallOperator(x) ||
-        (isInClassInNamespace(func, "qudit", "cudaq") && isExclaimOperator(x)))
+    if (isCallOperator(x) || (isInClassInNamespace(func, "qudit", "cudaq") &&
+                              isExclaimOperator(x->getOperator())))
       return VisitCXXOperatorCallExpr(x);
   }
 
@@ -1751,7 +1829,8 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
     }
 
     // Lower cudaq::qudit<>::operator!()
-    if (isInClassInNamespace(func, "qudit", "cudaq") && isExclaimOperator(x)) {
+    if (isInClassInNamespace(func, "qudit", "cudaq") &&
+        isExclaimOperator(x->getOperator())) {
       auto qubit = popValue();
       negations.push_back(qubit);
       return replaceTOSValue(qubit);
@@ -2102,7 +2181,7 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
 
     // TODO: remove this when we can handle ctors more generally.
     if (!ctor->isDefaultConstructor()) {
-      LLVM_DEBUG(llvm::dbgs() << "unhandled ctor:\n"; x->dump());
+      LLVM_DEBUG(llvm::dbgs() << ctorName << " - unhandled ctor:\n"; x->dump());
       TODO_loc(loc, "C++ ctor (not-default)");
     }
 
@@ -2168,8 +2247,10 @@ bool QuakeBridgeVisitor::VisitDeclRefExpr(clang::DeclRefExpr *x) {
 }
 
 bool QuakeBridgeVisitor::VisitStringLiteral(clang::StringLiteral *x) {
-  TODO_x(toLocation(x->getSourceRange()), x, mangler, "string literal");
-  return false;
+  auto strLitTy = cc::PointerType::get(cc::ArrayType::get(
+      builder.getContext(), builder.getI8Type(), x->getString().size() + 1));
+  return pushValue(builder.create<cc::CreateStringLiteralOp>(
+      toLocation(x), strLitTy, builder.getStringAttr(x->getString())));
 }
 
 } // namespace cudaq::details

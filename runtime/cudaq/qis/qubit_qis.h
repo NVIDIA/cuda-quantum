@@ -14,6 +14,7 @@
 #include "qarray.h"
 #include "qreg.h"
 #include "qvector.h"
+#include <cstring>
 #include <functional>
 
 #define __qpu__ __attribute__((annotate("quantum")))
@@ -275,6 +276,35 @@ inline void ch(qubit &q, qubit &r) { h<cudaq::ctrl>(q, r); }
 inline void cs(qubit &q, qubit &r) { s<cudaq::ctrl>(q, r); }
 inline void ct(qubit &q, qubit &r) { t<cudaq::ctrl>(q, r); }
 inline void ccx(qubit &q, qubit &r, qubit &s) { x<cudaq::ctrl>(q, r, s); }
+
+/// @brief Apply a general Pauli rotation, takes a qubit register and the
+/// size must be equal to the pauli word length.
+template <typename QubitRange>
+  requires(std::ranges::range<QubitRange>)
+inline void exp_pauli(double theta, QubitRange &&qubits,
+                      const char *pauliWord) {
+  std::vector<QuditInfo> quditInfos;
+  std::transform(qubits.begin(), qubits.end(), std::back_inserter(quditInfos),
+                 [](auto &q) { return cudaq::qubitToQuditInfo(q); });
+  getExecutionManager()->apply("exp_pauli", {theta}, {}, quditInfos, false,
+                               spin_op::from_word(pauliWord));
+}
+
+/// @brief Apply a general Pauli rotation, takes a variadic set of
+/// qubits, and the number of qubits must be equal to the pauli word length.
+template <typename... QubitArgs>
+inline void exp_pauli(double theta, const char *pauliWord,
+                      QubitArgs &...qubits) {
+
+  if (sizeof...(QubitArgs) != std::strlen(pauliWord))
+    throw std::runtime_error(
+        "Invalid exp_pauli call, number of qubits != size of pauliWord.");
+
+  // Map the qubits to their unique ids and pack them into a std::array
+  std::vector<QuditInfo> quditInfos{qubitToQuditInfo(qubits)...};
+  getExecutionManager()->apply("exp_pauli", {theta}, {}, quditInfos, false,
+                               spin_op::from_word(pauliWord));
+}
 
 /// @brief Measure an individual qubit, return 0,1 as `bool`
 inline measure_result mz(qubit &q) {
