@@ -362,6 +362,7 @@ public:
   bool VisitPointerType(clang::PointerType *t);
   bool VisitLValueReferenceType(clang::LValueReferenceType *t);
   bool VisitRValueReferenceType(clang::RValueReferenceType *t);
+  bool VisitConstantArrayType(clang::ConstantArrayType *t);
 
   /// Convert \p t, a builtin type, to the corresponding MLIR type.
   mlir::Type builtinTypeToType(const clang::BuiltinType *t);
@@ -701,6 +702,18 @@ bool isInExternC(const clang::GlobalDecl &x);
 /// Is \p kindValue the `operator()` function?
 inline bool isCallOperator(clang::OverloadedOperatorKind kindValue) {
   return kindValue == clang::OverloadedOperatorKind::OO_Call;
+}
+
+// Is \p t of type `char *`?
+inline bool isCharPointerType(mlir::Type t) {
+  if (auto ptrTy = dyn_cast<cc::PointerType>(t)) {
+    mlir::Type eleTy = ptrTy.getElementType();
+    if (auto arrTy = dyn_cast<cc::ArrayType>(eleTy))
+      eleTy = arrTy.getElementType();
+    if (auto intTy = dyn_cast<mlir::IntegerType>(eleTy))
+      return intTy.getWidth() == 8;
+  }
+  return false;
 }
 
 } // namespace cudaq

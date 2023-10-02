@@ -14,6 +14,7 @@
 #include "cudaq.h"
 
 int main() {
+  // [Begin Documentation]
   cudaq::mpi::initialize();
   using namespace cudaq::spin;
   cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
@@ -30,6 +31,7 @@ int main() {
   if (cudaq::mpi::rank() == 0)
     printf("Expectation value: %lf\n", result);
   cudaq::mpi::finalize();
+  // [End Documentation]
 
   return 0;
 }
