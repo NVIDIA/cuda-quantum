@@ -662,7 +662,7 @@ def MzOp : Measurement<"mz"> {
 }
 
 //===----------------------------------------------------------------------===//
-// Quantum operators (gates)
+// Quantum gates
 //===----------------------------------------------------------------------===//
 
 class QuakeOperator<string mnemonic, list<Trait> traits = []>
@@ -783,7 +783,7 @@ class TwoTargetOp<string mnemonic, list<Trait> traits = []> :
                 traits)>;
 
 //===----------------------------------------------------------------------===//
-// Quantum operators (gates)
+// Unitary quantum transformations
 //===----------------------------------------------------------------------===//
 
 def HOp : OneTargetOp<"h", [Hermitian]> {
