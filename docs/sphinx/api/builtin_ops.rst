@@ -10,6 +10,9 @@ for that target.
 
 The sections `Unitary Operations on Qubits`_ and `Measurements on Qubits`_ list the set of built-in operations on qubits.
 
+Built-in operations that implement unitary transformations of the quantum state are templated.
+The template argument allows to invoke the adjoint and controlled version of the quantum transformation, see the section on `Adjoint and Controlled Operations`_.
+
 CUDA Quantum additionally provides overloads to support broadcasting of
 built-in single-qubit operations across a register of qubits. 
 For example, :code:`x(cudaq::qreg<>&)` applies a NOT operation 
@@ -158,7 +161,6 @@ This operation swaps the states of two qubits.
 Adjoint and Controlled Operations
 ==================================
 
-Built-in operations that implement unitary transformations of the quantum state are templated. 
 The template argument :code:`cudaq::adj` can be used to invoke the 
 `adjoint <https://en.wikipedia.org/wiki/Conjugate_transpose>`__ transformation:
 
