@@ -1,20 +1,20 @@
-Built-in Quantum Operations
+Quantum Operations
 ******************************
 
-CUDA Quantum provides a default set of built-in operations on qubits. 
-These built-in operations can be used to define custom kernels and libraries.
+CUDA Quantum provides a default set of quantum operations on qubits. 
+These operations can be used to define custom kernels and libraries.
 Since the set of quantum intrinsic operations natively supported on a specific target 
 depends on the backends architecture, the :code:`nvq++` compiler automatically
-decomposes built-in operations into the appropriate set of intrinsic operations 
+decomposes the default operations into the appropriate set of intrinsic operations 
 for that target.
 
-The sections `Unitary Operations on Qubits`_ and `Measurements on Qubits`_ list the set of built-in operations on qubits.
+The sections `Unitary Operations on Qubits`_ and `Measurements on Qubits`_ list the default set of quantum operations on qubits.
 
-Built-in operations that implement unitary transformations of the quantum state are templated.
+Operations that implement unitary transformations of the quantum state are templated.
 The template argument allows to invoke the adjoint and controlled version of the quantum transformation, see the section on `Adjoint and Controlled Operations`_.
 
 CUDA Quantum additionally provides overloads to support broadcasting of
-built-in single-qubit operations across a register of qubits. 
+single-qubit operations across a register of qubits. 
 For example, :code:`x(cudaq::qreg<>&)` flips the state of each qubit in the provided :code:`cudaq::qreg`. 
 
 
