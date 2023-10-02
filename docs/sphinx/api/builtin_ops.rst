@@ -15,8 +15,7 @@ The template argument allows to invoke the adjoint and controlled version of the
 
 CUDA Quantum additionally provides overloads to support broadcasting of
 built-in single-qubit operations across a register of qubits. 
-For example, :code:`x(cudaq::qreg<>&)` applies a NOT operation 
-to all qubits in the provided :code:`cudaq::qreg`. 
+For example, :code:`x(cudaq::qreg<>&)` flips the state of each qubit in the provided :code:`cudaq::qreg`. 
 
 
 Unitary Operations on Qubits
