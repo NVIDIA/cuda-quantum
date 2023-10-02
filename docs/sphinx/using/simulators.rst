@@ -28,6 +28,10 @@ In python, this can be specified with
 By default, this will leverage :code:`FP32` floating point types for the simulation. To 
 switch to :code:`FP64`, specify the :code:`nvidia-fp64` target instead. 
 
+.. note:: 
+
+    This backend requires an NVIDIA GPU and CUDA runtime libraries. See the section :ref:`<dependencies-and-compatibility>` for more information.
+
 cuQuantum multi-node multi-GPU
 ++++++++++++++++++++++++++++++++++
 
@@ -48,6 +52,10 @@ In python, this can be specified with
 
     cudaq.set_target('nvidia-mgpu')
 
+.. note:: 
+
+    This backend requires an NVIDIA GPU, CUDA runtime libraries, as well as an MPI installation. See the section :ref:`<dependencies-and-compatibility>` for more information.
+
 OpenMP CPU-only
 ++++++++++++++++++++++++++++++++++
 
@@ -65,6 +73,10 @@ cuQuantum multi-node multi-GPU
 The :code:`tensornet` target provides a tensor-network simulator accelerated with 
 the :code:`cuTensorNet` library. This backend is currently available for use from C++ and supports 
 Multi-Node, Multi-GPU distribution of tensor operations required to evaluate and simulate the circuit.
+
+.. note:: 
+
+    This backend requires an NVIDIA GPU and CUDA runtime libraries. See the section :ref:`<dependencies-and-compatibility>` for more information.
 
 This backend exposes a set of environment variables to configure specific aspects of the simulation:
 
@@ -91,66 +103,3 @@ options to :code:`nvq++`
 
     nvq++ --target tensornet src.cpp ...
 
-GPU Simulation Requirements
-==================================
-
-For programmers using the CUDA Quantum Python wheels, extra configuration is needed to install
-our GPU enabled simulation backends.
-
-System Level Dependencies
-++++++++++++++++++++++++++
-
-The system level dependencies for these backends may be found in :doc:`CUDA Quantum Dependencies <using/install>`.
-
-Note: The minimum supported Python version for GPU simulation is Python 3.9.
-
-For installation of the CUDA toolkit, programmers have two options. The first is to install the
-entire CUDA toolkit via your system package manager. For example
-
-.. code:: bash
-
-    apt-get install cuda-11-8 # Ubuntu
-    # -- or -- 
-    dnf install cuda-11-8.x86_64 # RHEL 9
-
-Note: After installing the CUDA Toolkit, these `post-installation instructions
-<https://docs.nvidia.com/cuda/archive/11.8.0/cuda-installation-guide-linux/index.html#post-installation-actions>`__
-must be followed to ensure the CUDA install may be found in the :code:`LD_LIBRARY_PATH`.
-
-Alternatively, the programmer may install the following Python packages:
-* nvidia-nvtx-cu11 
-* nvidia-cuda-runtime-cu11
-
-The location of the installed .so files for these packages must then be exported to
-the :code:`LD_LIBRARY_PATH`. To find the local installation path of these packages,
-assuming installation via pip, programmers may run
-
-.. code:: bash
-
-    python3 -m pip show nvidia-nvtx-cu11 nvidia-cuda-runtime-cu11
-
-Python Requirements
-++++++++++++++++++++
-
-The python requirements for these backends include:
-- cutensor-cu11
-- custatevec-cu11
-- nvidia-cublas-cu11
-- nvidia-cusolver-cu11
-
-We recommend that these be installed via pip:
-
-.. code:: bash
-
-    python3 -m pip install cutensor-cu11 custatevec-cu11 nvidia-cublas-cu11 nvidia-cusolver-cu11
-
-Additionally, for use of the :code:`nvidia-mgpu` backend, the programmer must have a working
-installation of MPI, with the dynamic library :code:`libmpi.so` accessible via the
-:code:`LD_LIBRARY_PATH`.
-
-.. code:: bash
-
-    apt-get install openmpi # Ubuntu
-    # -- or --
-    dnf install openmpi # RHEL 9
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib64/openmpi/lib/
