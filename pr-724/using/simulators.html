@@ -106,8 +106,8 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#python-wheels">Python wheels</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../install.html#build-cuda-quantum-from-source">Build CUDA Quantum from Source</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../install.html#cuda-quantum-dependencies">CUDA Quantum Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#building-from-source">Building from Source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
@@ -418,6 +418,10 @@ options to <code class="code docutils literal notranslate"><span class="pre">nvq
 </div>
 <p>By default, this will leverage <code class="code docutils literal notranslate"><span class="pre">FP32</span></code> floating point types for the simulation. To
 switch to <code class="code docutils literal notranslate"><span class="pre">FP64</span></code>, specify the <code class="code docutils literal notranslate"><span class="pre">nvidia-fp64</span></code> target instead.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This backend requires an NVIDIA GPU and CUDA runtime libraries. See the section <a class="reference internal" href="../install.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a> for more information.</p>
+</div>
 </section>
 <section id="cuquantum-multi-node-multi-gpu">
 <h3>cuQuantum multi-node multi-GPU<a class="headerlink" href="#cuquantum-multi-node-multi-gpu" title="Permalink to this heading">¶</a></h3>
@@ -432,6 +436,10 @@ options to <code class="code docutils literal notranslate"><span class="pre">nvq
 <p>In python, this can be specified with</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;nvidia-mgpu&#39;</span><span class="p">)</span>
 </pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This backend requires an NVIDIA GPU, CUDA runtime libraries, as well as an MPI installation. See the section <a class="reference internal" href="../install.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a> for more information.</p>
 </div>
 </section>
 <section id="openmp-cpu-only">
@@ -449,6 +457,10 @@ simulator that will be used.</p>
 <p>The <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> target provides a tensor-network simulator accelerated with
 the <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> library. This backend is currently available for use from C++ and supports
 Multi-Node, Multi-GPU distribution of tensor operations required to evaluate and simulate the circuit.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This backend requires an NVIDIA GPU and CUDA runtime libraries. See the section <a class="reference internal" href="../install.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a> for more information.</p>
+</div>
 <p>This backend exposes a set of environment variables to configure specific aspects of the simulation:</p>
 <ul class="simple">
 <li><p><strong>`CUDAQ_CUTN_HOST_RAM=8`</strong>: Prescribes the size of the CPU Host RAM allocated by each MPI process (defaults to 4 GB). A rule of thumb is to give each MPI process the same amount of CPU Host RAM as the RAM size of the GPU assigned to it. If there is more CPU RAM available, it is fine to further increase this number.</p></li>
