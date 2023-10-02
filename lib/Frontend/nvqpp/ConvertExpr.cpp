@@ -1108,13 +1108,9 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         if (memberCall->getImplicitObjectArgument()) {
           [[maybe_unused]] auto calleeTy = popType();
           assert(isa<FunctionType>(calleeTy));
-          auto zeroIndex = getConstantInt(builder, loc, 0, 64);
           auto eleTy = cast<cc::StdvecType>(svec.getType()).getElementType();
           auto elePtrTy = cc::PointerType::get(eleTy);
-          auto vecPtr = builder.create<cc::StdvecDataOp>(loc, elePtrTy, svec);
-          auto eleAddr = builder.create<cc::ComputePtrOp>(
-              loc, elePtrTy, vecPtr, ValueRange{zeroIndex});
-          return pushValue(builder.create<cc::LoadOp>(loc, eleAddr));
+          return pushValue(builder.create<cc::StdvecDataOp>(loc, elePtrTy, svec));
         }
     if (funcName.equals("back"))
       if (auto memberCall = dyn_cast<clang::CXXMemberCallExpr>(x))
@@ -1124,10 +1120,13 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           auto negativeOneIndex = getConstantInt(builder, loc, -1, 64);
           auto eleTy = cast<cc::StdvecType>(svec.getType()).getElementType();
           auto elePtrTy = cc::PointerType::get(eleTy);
+          auto *ctx = eleTy.getContext();
+          auto i64Ty = mlir::IntegerType::get(ctx, 64);
           auto vecPtr = builder.create<cc::StdvecDataOp>(loc, elePtrTy, svec);
-          auto eleAddr = builder.create<cc::ComputePtrOp>(
-              loc, elePtrTy, vecPtr, ValueRange{negativeOneIndex});
-          return pushValue(builder.create<cc::LoadOp>(loc, eleAddr));
+          auto vecLen = builder.create<cc::StdvecSizeOp>(loc, i64Ty, svec);
+          Value vecLenMinusOne = builder.create<arith::AddIOp>(loc, vecLen, negativeOneIndex);
+          return pushValue(builder.create<cc::ComputePtrOp>(
+              loc, elePtrTy, vecPtr, ValueRange{vecLenMinusOne}));
         }
 
     TODO_loc(loc, "unhandled std::vector member function, " + funcName);
