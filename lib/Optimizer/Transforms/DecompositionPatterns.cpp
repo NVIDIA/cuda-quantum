@@ -173,14 +173,14 @@ struct ExpPauliDecomposition : public OpRewritePattern<quake::ExpPauliOp> {
             loc, d, rewriter.getF64Type());
         rewriter.create<quake::RxOp>(loc, ValueRange{param}, ValueRange{},
                                      ValueRange{qubitI});
-      } else if (pauliWordStr[i] == 'X')
+      } else if (pauliWordStr[i] == 'X') {
         rewriter.create<quake::HOp>(loc, ValueRange{qubitI});
+      }
     }
 
     std::vector<std::pair<Value, Value>> toReverse;
     for (std::size_t i = 0; i < qubitSupport.size() - 1; i++) {
-      rewriter.create<quake::XOp>(loc, ValueRange{},
-                                  ValueRange{qubitSupport[i]},
+      rewriter.create<quake::XOp>(loc, ValueRange{qubitSupport[i]},
                                   ValueRange{qubitSupport[i + 1]});
       toReverse.emplace_back(qubitSupport[i], qubitSupport[i + 1]);
     }
@@ -190,8 +190,7 @@ struct ExpPauliDecomposition : public OpRewritePattern<quake::ExpPauliOp> {
 
     std::reverse(toReverse.begin(), toReverse.end());
     for (auto &[i, j] : toReverse)
-      rewriter.create<quake::XOp>(loc, ValueRange{}, ValueRange{i},
-                                  ValueRange{j});
+      rewriter.create<quake::XOp>(loc, ValueRange{i}, ValueRange{j});
 
     for (std::size_t i = 0; i < pauliWordStr.size(); i++) {
       std::size_t k = pauliWordStr.size() - 1 - i;
@@ -204,8 +203,9 @@ struct ExpPauliDecomposition : public OpRewritePattern<quake::ExpPauliOp> {
             loc, d, rewriter.getF64Type());
         rewriter.create<quake::RxOp>(loc, ValueRange{param}, ValueRange{},
                                      ValueRange{qubitK});
-      } else if (pauliWordStr[k] == 'X')
+      } else if (pauliWordStr[k] == 'X') {
         rewriter.create<quake::HOp>(loc, ValueRange{qubitK});
+      }
     }
 
     rewriter.eraseOp(expPauliOp);

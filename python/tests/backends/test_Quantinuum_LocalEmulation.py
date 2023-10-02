@@ -80,7 +80,6 @@ def test_quantinuum_observe():
 
     # Run the observe task on quantinuum synchronously
     res = cudaq.observe(kernel, hamiltonian, .59, shots_count=100000)
-    res.dump()
     assert assert_close(res.expectation_z())
 
     # Launch it asynchronously, enters the job into the queue
@@ -103,7 +102,6 @@ def test_quantinuum_exp_pauli():
 
     # Run the observe task on quantinuum synchronously
     res = cudaq.observe(kernel, hamiltonian, .59, shots_count=100000)
-    res.dump()
     assert assert_close(res.expectation_z())
 
     # Launch it asynchronously, enters the job into the queue
