@@ -14,6 +14,7 @@
 #include <cudaq.h>
 
 int main() {
+  // [Begin Documentation]
   auto kernelToBeSampled = [](int runtimeParam) __qpu__ {
     cudaq::qreg q(runtimeParam);
     h(q);
@@ -44,5 +45,6 @@ int main() {
   for (auto &counts : countFutures) {
     counts.get().dump();
   }
+  // [End Documentation]
   return 0;
 }

@@ -169,6 +169,7 @@ nitpick_ignore = [
     ('cpp:identifier', 'mlir::ImplicitLocOpBuilder'),
     ('cpp:identifier', 'BinarySymplecticForm'),
     ('cpp:identifier', 'CountsDictionary'),
+    ('cpp:identifier', 'QuakeValueOrNumericType'),
     ('py:class', 'function'),
     ('py:class', 'type'),
     ('py:class', 'cudaq::spin_op'),
