@@ -513,16 +513,15 @@ bool QuakeBridgeVisitor::TraverseVarDecl(clang::VarDecl *x) {
     return false;
   assert(typeStack.size() == typeStackDepth + 1 &&
          "expected variable to have a type");
-  if (!isa<clang::ParmVarDecl>(x))
+  if (!isa<clang::ParmVarDecl>(x) && !x->isCXXForRangeDecl())
     if (auto *init = x->getInit())
       if (!TraverseStmt(init))
         return false;
-  if (auto *dc = dyn_cast<clang::DeclContext>(x)) {
+  if (auto *dc = dyn_cast<clang::DeclContext>(x))
     for (auto *child : dc->decls())
       if (!canIgnoreChildDeclWhileTraversingDeclContext(child))
         if (!TraverseDecl(child))
           return false;
-  }
   for (auto *attr : x->attrs())
     if (!TraverseAttr(attr))
       return false;
@@ -534,7 +533,7 @@ bool QuakeBridgeVisitor::TraverseVarDecl(clang::VarDecl *x) {
 
 bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
   Type type = popType();
-  if (x->hasInit())
+  if (x->hasInit() && !x->isCXXForRangeDecl())
     type = peekValue().getType();
   assert(type && "variable must have a valid type");
   auto loc = toLocation(x->getSourceRange());
@@ -648,7 +647,7 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
   // Variable is of some basic type not already handled. Create a local stack
   // slot in which to save the value. This stack slot is the variable in the
   // memory domain.
-  if (!x->getInit()) {
+  if (!x->getInit() || x->isCXXForRangeDecl()) {
     Value alloca = builder.create<cc::AllocaOp>(loc, type);
     symbolTable.insert(x->getName(), alloca);
     return pushValue(alloca);
