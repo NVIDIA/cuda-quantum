@@ -60,7 +60,7 @@ This operation implements the transformation defined by the Pauli-Z matrix.
 :code:`h`
 ---------------------
 
-This is a rotation by π about the X+Z axis, and 
+This operation is a rotation by π about the X+Z axis, and 
 enables one to create a superposition of computational basis states.
 
 .. code-block:: cpp
@@ -73,7 +73,7 @@ enables one to create a superposition of computational basis states.
 :code:`r1`
 ---------------------
 
-This is an arbitrary rotation about the |1> state.
+This operation is an arbitrary rotation about the |1> state.
 
 .. code-block:: cpp
 
@@ -85,7 +85,7 @@ This is an arbitrary rotation about the |1> state.
 :code:`rx`
 ---------------------
 
-This is an arbitrary rotation about the X axis.
+This operation is an arbitrary rotation about the X axis.
 
 .. code-block:: cpp
 
@@ -97,7 +97,7 @@ This is an arbitrary rotation about the X axis.
 :code:`ry`
 ---------------------
 
-This is an arbitrary rotation about the Y axis.
+This operation is an arbitrary rotation about the Y axis.
 
 .. code-block:: cpp
 
@@ -109,7 +109,7 @@ This is an arbitrary rotation about the Y axis.
 :code:`rz`
 ---------------------
 
-This is an arbitrary rotation about the Z axis.
+This operation is an arbitrary rotation about the Z axis.
 
 .. code-block:: cpp
 
@@ -232,7 +232,7 @@ Measurements on Qubits
 ---------------------
 
 This operation measures a qubit with respect to the computational basis, 
-i.e. it projects the state of that qubit onto the eigenvectors of the Pauli-Z matrix.
+i.e., it projects the state of that qubit onto the eigenvectors of the Pauli-Z matrix.
 This is a non-linear transformation, and no template overloads are available.
 
 .. code-block:: cpp
@@ -243,7 +243,7 @@ This is a non-linear transformation, and no template overloads are available.
 ---------------------
 
 This operation measures a qubit with respect to the Pauli-X basis, 
-i.e. it projects the state of that qubit onto the eigenvectors of the Pauli-X matrix.
+i.e., it projects the state of that qubit onto the eigenvectors of the Pauli-X matrix.
 This is a non-linear transformation, and no template overloads are available.
 
 .. code-block:: cpp
@@ -254,7 +254,7 @@ This is a non-linear transformation, and no template overloads are available.
 ---------------------
 
 This operation measures a qubit with respect to the Pauli-Y basis, 
-i.e. it projects the state of that qubit onto the eigenvectors of the Pauli-Y matrix.
+i.e., it projects the state of that qubit onto the eigenvectors of the Pauli-Y matrix.
 This is a non-linear transformation, and no template overloads are available.
 
 .. code-block:: cpp
