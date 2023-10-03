@@ -309,9 +309,9 @@ inline void exp_pauli(double theta, const char *pauliWord,
 /// @brief Apply a general Pauli rotation with control qubits and a variadic set
 /// of qubits. The number of qubits must be equal to the pauli word length.
 template <typename QuantumRegister, typename... QubitArgs>
-requires(std::ranges::range<QuantumRegister>) inline void exp_pauli(
-    QuantumRegister &ctrls, double theta, const char *pauliWord,
-    QubitArgs &...qubits) {
+  requires(std::ranges::range<QuantumRegister>)
+inline void exp_pauli(QuantumRegister &ctrls, double theta,
+                      const char *pauliWord, QubitArgs &...qubits) {
   std::vector<QuditInfo> controls;
   std::transform(ctrls.begin(), ctrls.end(), std::back_inserter(controls),
                  [](const auto &q) { return qubitToQuditInfo(q); });
