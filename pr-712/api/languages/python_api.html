@@ -7,6 +7,7 @@
   <title>CUDA Quantum Python API &mdash; NVIDIA CUDA Quantum  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/copybutton.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/cudaq_override.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/sg_gallery.css" type="text/css" />
@@ -21,13 +22,14 @@
         <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../_static/doctools.js"></script>
         <script src="../../_static/sphinx_highlight.js"></script>
+        <script src="../../_static/tabs.js"></script>
         <script src="../../_static/clipboard.min.js"></script>
         <script src="../../_static/copybutton.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="CUDA Quantum Versions" href="../../versions.html" />
+    <link rel="next" title="Quantum Operations" href="../default_ops.html" />
     <link rel="prev" title="CUDA Quantum C++ API" href="cpp_api.html" /> 
 </head>
 
@@ -104,8 +106,8 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../install.html#python-wheels">Python wheels</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../install.html#build-cuda-quantum-from-source">Build CUDA Quantum from Source</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../install.html#cuda-quantum-dependencies">CUDA Quantum Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../install.html#building-from-source">Building from Source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../install.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../install.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
@@ -229,10 +231,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/operators.html#cudaq-spin-op">4.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::spin_op</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/operations.html">5. Quantum Operations</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/operations.html#operations-on-cudaq-qubit">5.1. Operations on <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/operations.html">5. Quantum Operations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/kernels.html">6. Quantum Kernels</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/kernels.html#kernel-composability">6.1. Kernel Composability</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/kernels.html#allowed-kernel-classical-function-invocations">6.2. Allowed Kernel Classical Function Invocations</a></li>
@@ -267,7 +266,6 @@
 <li class="toctree-l2"><a class="reference internal" href="../../specification/quake-dialect.html">   Quake Specification</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#general-introduction">General Introduction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#motivation">Motivation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#quake-types">Quake Types</a></li>
 </ul>
 </li>
 </ul>
@@ -344,6 +342,30 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../default_ops.html">Quantum Operations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../default_ops.html#unitary-operations-on-qubits">Unitary Operations on Qubits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../default_ops.html#x"><code class="code docutils literal notranslate"><span class="pre">x</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../default_ops.html#y"><code class="code docutils literal notranslate"><span class="pre">y</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../default_ops.html#z"><code class="code docutils literal notranslate"><span class="pre">z</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../default_ops.html#h"><code class="code docutils literal notranslate"><span class="pre">h</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../default_ops.html#r1"><code class="code docutils literal notranslate"><span class="pre">r1</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../default_ops.html#rx"><code class="code docutils literal notranslate"><span class="pre">rx</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../default_ops.html#ry"><code class="code docutils literal notranslate"><span class="pre">ry</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../default_ops.html#rz"><code class="code docutils literal notranslate"><span class="pre">rz</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../default_ops.html#s"><code class="code docutils literal notranslate"><span class="pre">s</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../default_ops.html#t"><code class="code docutils literal notranslate"><span class="pre">t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../default_ops.html#swap"><code class="code docutils literal notranslate"><span class="pre">swap</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../default_ops.html#adjoint-and-controlled-operations">Adjoint and Controlled Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../default_ops.html#measurements-on-qubits">Measurements on Qubits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../default_ops.html#mz"><code class="code docutils literal notranslate"><span class="pre">mz</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../default_ops.html#mx"><code class="code docutils literal notranslate"><span class="pre">mx</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../default_ops.html#my"><code class="code docutils literal notranslate"><span class="pre">my</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../versions.html">   Other Versions</a></li>
@@ -370,7 +392,7 @@
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="cpp_api.html" class="btn btn-neutral float-left" title="CUDA Quantum C++ API" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../../versions.html" class="btn btn-neutral float-right" title="CUDA Quantum Versions" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../default_ops.html" class="btn btn-neutral float-right" title="Quantum Operations" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
@@ -1615,123 +1637,6 @@ measurement instruction.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="cudaq.Kernel.adjoint">
-<span class="sig-name descname"><span class="pre">adjoint</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Kernel.adjoint" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="py function">
-<dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">adjoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">cudaq.Kernel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target:</span> <span class="pre">cudaq.Kernel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">\*args</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span></span></dt>
-<dd></dd></dl>
-
-<p>Apply the adjoint of the <code class="code docutils literal notranslate"><span class="pre">target</span></code> kernel in-place to <code class="code docutils literal notranslate"><span class="pre">self</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>target</strong> (<a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a>) – The kernel to take the adjoint of.</p></li>
-<li><p><strong>*target_arguments</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><em>QuakeValue</em></a><em>]</em>) – The arguments to the
-<code class="code docutils literal notranslate"><span class="pre">target</span></code> kernel. Leave empty if the <code class="code docutils literal notranslate"><span class="pre">target</span></code> kernel doesn’t accept
-any arguments.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.11)"><strong>RuntimeError</strong></a> – if the <code class="code docutils literal notranslate"><span class="pre">*target_arguments</span></code> passed to the adjoint call don’t
-    match the argument signature of <code class="code docutils literal notranslate"><span class="pre">target</span></code>.</p>
-</dd>
-</dl>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
-<span class="n">target_kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
-<span class="n">qubit</span> <span class="o">=</span> <span class="n">target_kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
-<span class="n">target_kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
-<span class="c1"># Apply the adjoint of `target_kernel` to `kernel`.</span>
-<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">adjoint</span><span class="p">(</span><span class="n">target_kernel</span><span class="p">)</span>
-</pre></div>
-</div>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="cudaq.Kernel.control">
-<span class="sig-name descname"><span class="pre">control</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Kernel.control" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="py function">
-<dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">control</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">cudaq.Kernel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target:</span> <span class="pre">cudaq.Kernel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">control:</span> <span class="pre">cudaq.QuakeValue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">\*args</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span></span></dt>
-<dd></dd></dl>
-
-<p>Apply the <code class="code docutils literal notranslate"><span class="pre">target</span></code> kernel as a controlled operation in-place to
-<code class="code docutils literal notranslate"><span class="pre">self</span></code>.Uses the provided <code class="code docutils literal notranslate"><span class="pre">control</span></code> as control qubit/s for the operation.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>target</strong> (<a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a>) – The kernel to apply as a controlled
-operation in-place to self.</p></li>
-<li><p><strong>control</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The control qubit or register to
-use when applying <code class="code docutils literal notranslate"><span class="pre">target</span></code>.</p></li>
-<li><p><strong>*target_arguments</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><em>QuakeValue</em></a><em>]</em>) – The arguments to the
-<code class="code docutils literal notranslate"><span class="pre">target</span></code> kernel. Leave empty if the <code class="code docutils literal notranslate"><span class="pre">target</span></code> kernel doesn’t accept
-any arguments.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.11)"><strong>RuntimeError</strong></a> – if the <code class="code docutils literal notranslate"><span class="pre">*target_arguments</span></code> passed to the control
-    call don’t match the argument signature of <code class="code docutils literal notranslate"><span class="pre">target</span></code>.</p>
-</dd>
-</dl>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
-<span class="c1"># Create a `Kernel` that accepts a qubit as an argument.</span>
-<span class="c1"># Apply an X-gate on that qubit.</span>
-<span class="n">target_kernel</span><span class="p">,</span> <span class="n">qubit</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">)</span>
-<span class="n">target_kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
-<span class="c1"># Create another `Kernel` that will apply `target_kernel`</span>
-<span class="c1"># as a controlled operation.</span>
-<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
-<span class="n">control_qubit</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
-<span class="n">target_qubit</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
-<span class="c1"># In this case, `control` performs the equivalent of a</span>
-<span class="c1"># controlled-X gate between `control_qubit` and `target_qubit`.</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">control</span><span class="p">(</span><span class="n">target_kernel</span><span class="p">,</span> <span class="n">control_qubit</span><span class="p">,</span> <span class="n">target_qubit</span><span class="p">)</span>
-</pre></div>
-</div>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="cudaq.Kernel.apply_call">
-<span class="sig-name descname"><span class="pre">apply_call</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Kernel.apply_call" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="py function">
-<dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">apply_call</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">cudaq.Kernel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target:</span> <span class="pre">cudaq.Kernel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">\*args</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span></span></dt>
-<dd></dd></dl>
-
-<p>Apply a call to the given <code class="code docutils literal notranslate"><span class="pre">target</span></code> kernel within the function-body
-of <code class="code docutils literal notranslate"><span class="pre">self</span></code> at the provided <code class="code docutils literal notranslate"><span class="pre">target_arguments</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>target</strong> (<a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a>) – The kernel to call from within <code class="code docutils literal notranslate"><span class="pre">self</span></code>.</p></li>
-<li><p><strong>*target_arguments</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><em>QuakeValue</em></a><em>]</em>) – The arguments to the <code class="code docutils literal notranslate"><span class="pre">target</span></code> kernel.
-Leave empty if the <code class="code docutils literal notranslate"><span class="pre">target</span></code> kernel doesn’t accept any arguments.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.11)"><strong>RuntimeError</strong></a> – if the <code class="code docutils literal notranslate"><span class="pre">*args</span></code> passed to the apply
-    call don’t match the argument signature of <code class="code docutils literal notranslate"><span class="pre">target</span></code>.</p>
-</dd>
-</dl>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
-<span class="c1"># Build a `Kernel` that&#39;s parameterized by a `cudaq.qubit`.</span>
-<span class="n">target_kernel</span><span class="p">,</span> <span class="n">other_qubit</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">)</span>
-<span class="n">target_kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">other_qubit</span><span class="p">)</span>
-<span class="c1"># Build a `Kernel` that will call `target_kernel` within its</span>
-<span class="c1"># own function body.</span>
-<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
-<span class="n">qubit</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
-<span class="c1"># Use `qubit` as the argument to `target_kernel`.</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">apply_call</span><span class="p">(</span><span class="n">target_kernel</span><span class="p">,</span> <span class="n">qubit</span><span class="p">)</span>
-<span class="c1"># The final measurement of `qubit` should return the 1-state.</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
-</pre></div>
-</div>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="cudaq.Kernel.for_loop">
 <span class="sig-name descname"><span class="pre">for_loop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Kernel.for_loop" title="Permalink to this definition">¶</a></dt>
 <dd><p>Overloaded function.</p>
@@ -1904,6 +1809,123 @@ each iteration.</p></li>
 <span class="c1"># `start` and `stop` arguments.</span>
 <span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.Kernel.adjoint">
+<span class="sig-name descname"><span class="pre">adjoint</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Kernel.adjoint" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">adjoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">cudaq.Kernel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target:</span> <span class="pre">cudaq.Kernel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">\*args</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Apply the adjoint of the <code class="code docutils literal notranslate"><span class="pre">target</span></code> kernel in-place to <code class="code docutils literal notranslate"><span class="pre">self</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> (<a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a>) – The kernel to take the adjoint of.</p></li>
+<li><p><strong>*target_arguments</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><em>QuakeValue</em></a><em>]</em>) – The arguments to the
+<code class="code docutils literal notranslate"><span class="pre">target</span></code> kernel. Leave empty if the <code class="code docutils literal notranslate"><span class="pre">target</span></code> kernel doesn’t accept
+any arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.11)"><strong>RuntimeError</strong></a> – if the <code class="code docutils literal notranslate"><span class="pre">*target_arguments</span></code> passed to the adjoint call don’t
+    match the argument signature of <code class="code docutils literal notranslate"><span class="pre">target</span></code>.</p>
+</dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
+<span class="n">target_kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="n">qubit</span> <span class="o">=</span> <span class="n">target_kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+<span class="n">target_kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+<span class="c1"># Apply the adjoint of `target_kernel` to `kernel`.</span>
+<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">adjoint</span><span class="p">(</span><span class="n">target_kernel</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.Kernel.control">
+<span class="sig-name descname"><span class="pre">control</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Kernel.control" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">control</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">cudaq.Kernel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target:</span> <span class="pre">cudaq.Kernel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">control:</span> <span class="pre">cudaq.QuakeValue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">\*args</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Apply the <code class="code docutils literal notranslate"><span class="pre">target</span></code> kernel as a controlled operation in-place to
+<code class="code docutils literal notranslate"><span class="pre">self</span></code>.Uses the provided <code class="code docutils literal notranslate"><span class="pre">control</span></code> as control qubit/s for the operation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> (<a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a>) – The kernel to apply as a controlled
+operation in-place to self.</p></li>
+<li><p><strong>control</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The control qubit or register to
+use when applying <code class="code docutils literal notranslate"><span class="pre">target</span></code>.</p></li>
+<li><p><strong>*target_arguments</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><em>QuakeValue</em></a><em>]</em>) – The arguments to the
+<code class="code docutils literal notranslate"><span class="pre">target</span></code> kernel. Leave empty if the <code class="code docutils literal notranslate"><span class="pre">target</span></code> kernel doesn’t accept
+any arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.11)"><strong>RuntimeError</strong></a> – if the <code class="code docutils literal notranslate"><span class="pre">*target_arguments</span></code> passed to the control
+    call don’t match the argument signature of <code class="code docutils literal notranslate"><span class="pre">target</span></code>.</p>
+</dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
+<span class="c1"># Create a `Kernel` that accepts a qubit as an argument.</span>
+<span class="c1"># Apply an X-gate on that qubit.</span>
+<span class="n">target_kernel</span><span class="p">,</span> <span class="n">qubit</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">)</span>
+<span class="n">target_kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+<span class="c1"># Create another `Kernel` that will apply `target_kernel`</span>
+<span class="c1"># as a controlled operation.</span>
+<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="n">control_qubit</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+<span class="n">target_qubit</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+<span class="c1"># In this case, `control` performs the equivalent of a</span>
+<span class="c1"># controlled-X gate between `control_qubit` and `target_qubit`.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">control</span><span class="p">(</span><span class="n">target_kernel</span><span class="p">,</span> <span class="n">control_qubit</span><span class="p">,</span> <span class="n">target_qubit</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.Kernel.apply_call">
+<span class="sig-name descname"><span class="pre">apply_call</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Kernel.apply_call" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">apply_call</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">cudaq.Kernel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target:</span> <span class="pre">cudaq.Kernel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">\*args</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Apply a call to the given <code class="code docutils literal notranslate"><span class="pre">target</span></code> kernel within the function-body
+of <code class="code docutils literal notranslate"><span class="pre">self</span></code> at the provided <code class="code docutils literal notranslate"><span class="pre">target_arguments</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> (<a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a>) – The kernel to call from within <code class="code docutils literal notranslate"><span class="pre">self</span></code>.</p></li>
+<li><p><strong>*target_arguments</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><em>QuakeValue</em></a><em>]</em>) – The arguments to the <code class="code docutils literal notranslate"><span class="pre">target</span></code> kernel.
+Leave empty if the <code class="code docutils literal notranslate"><span class="pre">target</span></code> kernel doesn’t accept any arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.11)"><strong>RuntimeError</strong></a> – if the <code class="code docutils literal notranslate"><span class="pre">*args</span></code> passed to the apply
+    call don’t match the argument signature of <code class="code docutils literal notranslate"><span class="pre">target</span></code>.</p>
+</dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
+<span class="c1"># Build a `Kernel` that&#39;s parameterized by a `cudaq.qubit`.</span>
+<span class="n">target_kernel</span><span class="p">,</span> <span class="n">other_qubit</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">)</span>
+<span class="n">target_kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">other_qubit</span><span class="p">)</span>
+<span class="c1"># Build a `Kernel` that will call `target_kernel` within its</span>
+<span class="c1"># own function body.</span>
+<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="n">qubit</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+<span class="c1"># Use `qubit` as the argument to `target_kernel`.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">apply_call</span><span class="p">(</span><span class="n">target_kernel</span><span class="p">,</span> <span class="n">qubit</span><span class="p">)</span>
+<span class="c1"># The final measurement of `qubit` should return the 1-state.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -2991,7 +3013,7 @@ argument to a <a class="reference internal" href="#cudaq.Kernel" title="cudaq.Ke
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SpinOperator.random" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2971451051</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><span class="pre">cudaq.SpinOperator</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3180060694</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><span class="pre">cudaq.SpinOperator</span></a></span></span></dt>
 <dd></dd></dl>
 
 <p>Return a random <a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinOperator</span></code></a> on the given number of qubits (<code class="code docutils literal notranslate"><span class="pre">qubit_count</span></code>) and composed of the given number of terms (<code class="code docutils literal notranslate"><span class="pre">term_count</span></code>). An optional seed value may also be provided.</p>
@@ -3964,7 +3986,7 @@ to the specified <code class="code docutils literal notranslate"><span class="pr
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="cpp_api.html" class="btn btn-neutral float-left" title="CUDA Quantum C++ API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../../versions.html" class="btn btn-neutral float-right" title="CUDA Quantum Versions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../default_ops.html" class="btn btn-neutral float-right" title="Quantum Operations" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
