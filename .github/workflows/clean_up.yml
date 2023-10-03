@@ -36,6 +36,24 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
+  ghcr_images:
+    name: Clean up GHCR images
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        image_name: [cuda-quantum-dev, cuda-quantum-devdeps, open-mpi] # cuda-quantum
+      fail-fast: false
+
+    steps:
+      - name: Delete untagged cuda-quantum-devdeps images
+        uses: actions/delete-package-versions@v4
+        with: 
+          package-name: ${{ matrix.image_name }}
+          package-type: 'container'
+          min-versions-to-keep: 20
+          delete-only-untagged-versions: 'true'
+
   # We use environments to deploy to a public registry after PRs are merged.
   # Since we use the same workflows during CI, a default environment that defines
   # the necessary variables is used instead. Unfortunately, this automatically
