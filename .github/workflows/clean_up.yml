@@ -25,12 +25,12 @@ jobs:
           gh release list -L 100 -R ${{ github.repository }} > rels.txt
           while read rel _; do 
             isDraft=`gh release view $rel -R ${{ github.repository }} --json isDraft --jq '.isDraft'`
-            isPrerelease=`gh release view 0.4.0 -R ${{ github.repository }} --json isPrerelease --jq '.isPrerelease'`
+            isPrerelease=`gh release view $rel -R ${{ github.repository }} --json isPrerelease --jq '.isPrerelease'`
             if $isDraft && $isPrerelease; then
               echo "Deleting release $rel."
               gh release delete $rel -R ${{ github.repository }} -y
             else
-              echo "Skipping release $rel (is draft: $isDraft, is prerelease: $isPrerelease)."
+              echo "Skipping release $rel."
             fi 
           done < rels.txt
         env:
