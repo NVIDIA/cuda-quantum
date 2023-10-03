@@ -29,6 +29,8 @@ jobs:
             if $isDraft && $isPrerelease; then
               echo "Deleting release $rel."
               gh release delete $rel -R ${{ github.repository }} -y
+            else
+              echo "Skipping release $rel (is draft: $isDraft, is prerelease: $isPrerelease)."
             fi 
           done < rels.txt
         env:
