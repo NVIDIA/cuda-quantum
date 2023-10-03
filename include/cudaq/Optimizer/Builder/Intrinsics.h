@@ -10,18 +10,23 @@
 
 #include "cudaq/Optimizer/Builder/Factory.h"
 
+namespace cudaq {
+
 static constexpr const char llvmMemCopyIntrinsic[] =
     "llvm.memcpy.p0i8.p0i8.i64";
+static constexpr const char setCudaqRangeVector[] =
+    "__nvqpp_CudaqRangeInit";
 static constexpr const char stdvecBoolCtorFromInitList[] =
     "__nvqpp_initializer_list_to_vector_bool";
-
-namespace cudaq {
 
 /// Builder for lowering the clang AST to an IR for CUDA Quantum. Lowering
 /// includes the transformation of both quantum and classical computation.
 /// Different features of the CUDA Quantum programming model are lowered into
 /// different dialects of MLIR. This builder makes heavy use of the Quake
 /// (QUAntum Kernel Execution) and CC (Classical Computation) dialects.
+///
+/// This builder also allows for the inclusion of predefined intrinsics into
+/// the ModuleOp on demand. Intrinsics exist in a map accessed by a symbol name.
 class IRBuilder : public mlir::OpBuilder {
 public:
   using OpBuilder::OpBuilder;

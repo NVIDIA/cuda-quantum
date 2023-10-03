@@ -16,7 +16,7 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "cudaq/Optimizer/Builder/CUDAQBuilder.h"
+#include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Peephole.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
