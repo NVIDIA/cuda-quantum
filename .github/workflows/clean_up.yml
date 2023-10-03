@@ -67,17 +67,23 @@ jobs:
           image=docker://ghcr.io/nvidia/${{ matrix.image_name }}
           skopeo inspect $image | jq '.RepoTags' > tags.txt
           sig_tags=`cat tags.txt | (egrep -o 'sha256-\S+\.sig"' || true)`
+          echo $sig_tags
+
+          nr_sigs=100 # limit how much we delete at a time to avoid exceededing the service rate limit
           for sig in $sig_tags; do 
+            echo "checking tag $sig"
             skopeo inspect $image@${sig:7:-5} &> /dev/null
-            if [ ! $? -eq 0 ]; then
+            if [ ! $? -eq 0 ] && [ $nr_sig -lt 100 ]; then
               echo "Marking signature $sig for deletion."
               delete+=",$sig"
+              nr_sig=$((nr_sig+1))
             fi
           done
           echo "[${sig:1}]"
           echo "tags_to_remove=${sig:1}" >> $GITHUB_OUTPUT
 
       - name: Delete matching signatures
+        if: steps.sig_files.outputs.tags_to_remove
         uses: actions/delete-package-versions@v4
         with: 
           package-name: ${{ matrix.image_name }}
