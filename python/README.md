@@ -44,7 +44,7 @@ optional CUDA dependencies:
   sudo apt-get update && sudo apt-get install -y wget
   wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/$arch/cuda-keyring_1.0-1_all.deb
   sudo dpkg -i cuda-keyring_1.0-1_all.deb
-  sudo apt-get update && sudo apt-get install -y cuda-11-8
+  sudo apt-get update && sudo apt-get install -y cuda-toolkit-11.8
 ```
 
 Detailed instructions for how to install the complete CUDA toolkit on different
