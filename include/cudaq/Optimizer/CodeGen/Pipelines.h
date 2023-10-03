@@ -28,7 +28,19 @@ namespace cudaq::opt {
 template <bool QIRProfile = false>
 void addPipelineToQIR(mlir::PassManager &pm,
                       llvm::StringRef convertTo = "qir-base") {
+  cudaq::opt::addAggressiveEarlyInlining(pm);
+  pm.addPass(mlir::createCanonicalizerPass());
+  pm.addPass(cudaq::opt::createExpandMeasurementsPass());
+  pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createClassicalMemToReg());
+  pm.addPass(mlir::createCanonicalizerPass());
+  pm.addPass(mlir::createCSEPass());
+  pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createUnwindLoweringPass());
+  pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createLowerToCFGPass());
   pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
+  pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createLoopNormalize());
+  pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createLoopUnroll());
+  pm.addPass(mlir::createCanonicalizerPass());
+  pm.addPass(mlir::createCSEPass());
   pm.addNestedPass<mlir::func::FuncOp>(
       cudaq::opt::createCombineQuantumAllocations());
   pm.addPass(mlir::createCanonicalizerPass());

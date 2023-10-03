@@ -7,8 +7,7 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --lambda-lifting --canonicalize %s | FileCheck %s
-// RUN: cudaq-opt --lambda-lifting --aggressive-early-inlining --lower-to-cfg --quake-add-deallocs %s \
-// RUN:   | cudaq-translate --convert-to=qir | FileCheck --check-prefixes=QIR %s
+// RUN: cudaq-opt --lambda-lifting --canonicalize %s | cudaq-translate --convert-to=qir | FileCheck --check-prefixes=QIR %s
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_b(
 // CHECK-SAME:        %[[VAL_0:.*]]: !cc.callable<() -> ()>)
