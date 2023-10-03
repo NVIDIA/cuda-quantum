@@ -49,8 +49,8 @@ constexpr static const char QIRArrayConcatArray[] =
 constexpr static const char QIRArrayCreateArray[] =
     "__quantum__rt__array_create_1d";
 
-/// QIR Base Profile record output function names
-constexpr static const char QIRBaseProfileRecordOutput[] =
+/// QIR Base/Adaptive Profile record output function names
+constexpr static const char QIRRecordOutput[] =
     "__quantum__rt__result_record_output";
 
 inline mlir::Type getQuantumTypeByName(mlir::StringRef type,

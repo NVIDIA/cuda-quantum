@@ -154,8 +154,7 @@ mlir::LogicalResult verifyMeasurementOrdering(llvm::Module *llvmModule) {
           auto funcName = calledFunc->getName();
           bool isIrreversible = calledFunc->hasFnAttribute("irreversible");
           bool isReversible = !isIrreversible;
-          bool isOutputFunction =
-              funcName == cudaq::opt::QIRBaseProfileRecordOutput;
+          bool isOutputFunction = funcName == cudaq::opt::QIRRecordOutput;
           if (isReversible && !isOutputFunction && irreversibleSeenYet) {
             llvm::errs() << "error: reversible function " << funcName
                          << " came after irreversible function\n";
@@ -184,7 +183,7 @@ mlir::LogicalResult verifyOutputCalls(llvm::CallBase *callInst,
       if (!callInst->paramHasAttr(iArg, llvm::Attribute::NonNull)) {
         llvm::errs() << "error - nonnull attribute is missing from i8* "
                         "parameter of "
-                     << cudaq::opt::QIRBaseProfileRecordOutput << " function\n";
+                     << cudaq::opt::QIRRecordOutput << " function\n";
         return failure();
       }
 
@@ -250,7 +249,7 @@ mlir::LogicalResult verifyOutputRecordingFunctions(llvm::Module *llvmModule) {
         if (func && failed(verifyConstArguments(callInst)))
           return failure();
         // If it's an output function, do additional verification
-        if (func && func->getName() == cudaq::opt::QIRBaseProfileRecordOutput)
+        if (func && func->getName() == cudaq::opt::QIRRecordOutput)
           if (failed(verifyOutputCalls(callInst, outputList)))
             return failure();
       }
@@ -281,7 +280,7 @@ std::size_t getArgAsInteger(llvm::Value *arg) {
   } while (0)
 
 // Perform range checking on qubit and result values. This currently only checks
-// QIRMeasureBody and QIRBaseProfileRecordOutput. Checking more than that would
+// QIRMeasureBody and QIRRecordOutput. Checking more than that would
 // require comprehending the full list of possible QIS instructions, which is
 // not currently feasible.
 mlir::LogicalResult verifyQubitAndResultRanges(llvm::Module *llvmModule) {
@@ -302,7 +301,7 @@ mlir::LogicalResult verifyQubitAndResultRanges(llvm::Module *llvmModule) {
         if (auto callInst = llvm::dyn_cast_or_null<llvm::CallBase>(&inst)) {
           if (auto func = callInst->getCalledFunction()) {
             // All results must be in range for output recording functions
-            if (func->getName() == cudaq::opt::QIRBaseProfileRecordOutput) {
+            if (func->getName() == cudaq::opt::QIRRecordOutput) {
               auto result = getArgAsInteger(callInst->getArgOperand(0));
               CHECK_RANGE(result, required_num_results);
             }
@@ -352,79 +351,100 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule) {
   return success();
 }
 
-void registerToQIRTranslation() {
+/// @brief Function to lower MLIR to a specific QIR profile
+/// @param op MLIR operation
+/// @param output Output stream
+/// @param additionalPasses Additional passes to run at the end
+/// @param printIR Print IR to stderr
+/// @param printIntermediateMLIR Print IR in between each pass
+mlir::LogicalResult
+qirProfileTranslationFunction(const char *qirProfile, Operation *op,
+                              llvm::raw_string_ostream &output,
+                              const std::string &additionalPasses, bool printIR,
+                              bool printIntermediateMLIR) {
+
   const uint32_t qir_major_version = 1;
   const uint32_t qir_minor_version = 0;
 
-  cudaq::TranslateFromMLIRRegistration reg(
-      "qir", "translate from quake to qir base profile",
-      [](Operation *op, llvm::raw_string_ostream &output,
-         const std::string &additionalPasses, bool printIR,
-         bool printIntermediateMLIR) {
-        auto context = op->getContext();
-        PassManager pm(context);
-        if (printIntermediateMLIR)
-          pm.enableIRPrinting();
-        std::string errMsg;
-        llvm::raw_string_ostream errOs(errMsg);
-        std::string qirBasePipelineConfig =
-            "func.func(combine-quantum-alloc),canonicalize,cse,quake-to-qir,"
-            "base-profile-pipeline";
-        if (!additionalPasses.empty())
-          qirBasePipelineConfig += "," + additionalPasses;
-        if (failed(parsePassPipeline(qirBasePipelineConfig, pm, errOs)))
-          return failure();
-        if (failed(pm.run(op)))
-          return failure();
+  auto context = op->getContext();
+  PassManager pm(context);
+  if (printIntermediateMLIR)
+    pm.enableIRPrinting();
+  std::string errMsg;
+  llvm::raw_string_ostream errOs(errMsg);
+  cudaq::opt::addPipelineToQIR</*QIRProfile=*/true>(pm, qirProfile);
+  // Add additional passes if necessary
+  if (!additionalPasses.empty() &&
+      failed(parsePassPipeline(additionalPasses, pm, errOs)))
+    return failure();
+  if (failed(pm.run(op)))
+    return failure();
 
-        auto llvmContext = std::make_unique<llvm::LLVMContext>();
-        llvmContext->setOpaquePointers(false);
-        auto llvmModule = translateModuleToLLVMIR(op, *llvmContext);
+  auto llvmContext = std::make_unique<llvm::LLVMContext>();
+  llvmContext->setOpaquePointers(false);
+  auto llvmModule = translateModuleToLLVMIR(op, *llvmContext);
 
-        // Apply required attributes for the Base Profile
-        applyWriteOnlyAttributes(llvmModule.get());
+  // Apply required attributes for the Base Profile
+  applyWriteOnlyAttributes(llvmModule.get());
 
-        // Add required module flags for the Base Profile
-        llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                                  "qir_major_version", qir_major_version);
-        llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Max,
-                                  "qir_minor_version", qir_minor_version);
-        auto falseValue =
-            llvm::ConstantInt::getFalse(llvm::Type::getInt1Ty(*llvmContext));
-        llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                                  "dynamic_qubit_management", falseValue);
-        llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                                  "dynamic_result_management", falseValue);
+  // Add required module flags for the Base Profile
+  llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                            "qir_major_version", qir_major_version);
+  llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Max,
+                            "qir_minor_version", qir_minor_version);
+  auto falseValue =
+      llvm::ConstantInt::getFalse(llvm::Type::getInt1Ty(*llvmContext));
+  llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                            "dynamic_qubit_management", falseValue);
+  llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                            "dynamic_result_management", falseValue);
 
-        // Note: optimizeLLVM is the one that is setting nonnull attributes on
-        // the @__quantum__rt__result_record_output calls.
-        cudaq::optimizeLLVM(llvmModule.get());
-        if (!cudaq::setupTargetTriple(llvmModule.get()))
-          throw std::runtime_error(
-              "Failed to setup the llvm module target triple.");
+  // Note: optimizeLLVM is the one that is setting nonnull attributes on
+  // the @__quantum__rt__result_record_output calls.
+  cudaq::optimizeLLVM(llvmModule.get());
+  if (!cudaq::setupTargetTriple(llvmModule.get()))
+    throw std::runtime_error("Failed to setup the llvm module target triple.");
 
-        if (printIR)
-          llvm::errs() << *llvmModule;
+  if (printIR)
+    llvm::errs() << *llvmModule;
 
-        if (failed(verifyOutputRecordingFunctions(llvmModule.get())))
-          return failure();
+  if (failed(verifyOutputRecordingFunctions(llvmModule.get())))
+    return failure();
 
-        if (failed(verifyMeasurementOrdering(llvmModule.get())))
-          return failure();
+  if (failed(verifyMeasurementOrdering(llvmModule.get())))
+    return failure();
 
-        if (failed(verifyQubitAndResultRanges(llvmModule.get())))
-          return failure();
+  if (failed(verifyQubitAndResultRanges(llvmModule.get())))
+    return failure();
 
-        if (failed(verifyLLVMInstructions(llvmModule.get())))
-          return failure();
+  if (failed(verifyLLVMInstructions(llvmModule.get())))
+    return failure();
 
-        // Map the LLVM Module to Bitcode that can be submitted
-        llvm::SmallString<1024> bitCodeMem;
-        llvm::raw_svector_ostream os(bitCodeMem);
-        llvm::WriteBitcodeToFile(*llvmModule, os);
-        output << llvm::encodeBase64(bitCodeMem.str());
-        return success();
-      });
+  // Map the LLVM Module to Bitcode that can be submitted
+  llvm::SmallString<1024> bitCodeMem;
+  llvm::raw_svector_ostream os(bitCodeMem);
+  llvm::WriteBitcodeToFile(*llvmModule, os);
+  output << llvm::encodeBase64(bitCodeMem.str());
+  return success();
+}
+
+void registerToQIRTranslation() {
+#define CREATE_QIR_REGISTRATION(_regName, _profile)                            \
+  cudaq::TranslateFromMLIRRegistration _regName(                               \
+      _profile, "translate from quake to " _profile,                           \
+      [](Operation *op, llvm::raw_string_ostream &output,                      \
+         const std::string &additionalPasses, bool printIR,                    \
+         bool printIntermediateMLIR) {                                         \
+        return qirProfileTranslationFunction(_profile, op, output,             \
+                                             additionalPasses, printIR,        \
+                                             printIntermediateMLIR);           \
+      })
+
+  // Base Profile and Adaptive Profile are very similar, so they use the same
+  // overall function. We just pass a string to it to tell the function which
+  // one is being done.
+  CREATE_QIR_REGISTRATION(regBase, "qir-base");
+  CREATE_QIR_REGISTRATION(regAdaptive, "qir-adaptive");
 }
 
 void registerToOpenQASMTranslation() {
@@ -484,7 +504,6 @@ std::unique_ptr<MLIRContext> initializeMLIR() {
     registerToOpenQASMTranslation();
     registerToIQMJsonTranslation();
     cudaq::opt::registerUnrollingPipeline();
-    cudaq::opt::registerBaseProfilePipeline();
     cudaq::opt::registerTargetPipelines();
     mlirLLVMInitialized = true;
   }
@@ -512,12 +531,7 @@ ExecutionEngine *createQIRJITEngine(ModuleOp &moduleOp) {
     PassManager pm(context);
     std::string errMsg;
     llvm::raw_string_ostream errOs(errMsg);
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
-    pm.addNestedPass<func::FuncOp>(
-        cudaq::opt::createCombineQuantumAllocations());
-    pm.addPass(createCanonicalizerPass());
-    pm.addPass(createCSEPass());
-    pm.addPass(cudaq::opt::createConvertToQIRPass());
+    cudaq::opt::addPipelineToQIR</*QIRProfile=*/false>(pm);
     if (failed(pm.run(module)))
       throw std::runtime_error(
           "[createQIRJITEngine] Lowering to QIR for remote emulation failed.");
