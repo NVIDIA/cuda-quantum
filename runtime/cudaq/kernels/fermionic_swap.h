@@ -12,7 +12,7 @@
 namespace cudaq {
 /// @brief Apply global phase (e^(i * theta)).
 /// Note: since this is a global phase, the qubit operand can be selected
-/// arbitrarily from the qubit register to which the global phase is applied to.
+/// arbitrarily from the qubit register to which the global phase is applied.
 /// @param theta
 /// @param q
 __qpu__ void global_phase(double theta, cudaq::qubit &q) {
