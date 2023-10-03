@@ -174,29 +174,30 @@ static Value getConstantInt(OpBuilder &builder, Location loc,
   return builder.create<arith::ConstantIntOp>(loc, value, intTy);
 }
 
-template <clang::OverloadedOperatorKind OO>
-bool isOperator(clang::OverloadedOperatorKind kindValue) {
-  return kindValue == OO;
+template <auto KindConst, typename T,
+          typename = std::enable_if_t<std::is_same_v<decltype(KindConst), T>>>
+bool isOperatorKind(T kindValue) {
+  return kindValue == KindConst;
 }
 
-/// Is \p kindValue the `operator[]` function?
-static bool isSubscriptOperator(clang::OverloadedOperatorKind kindValue) {
-  return isOperator<clang::OverloadedOperatorKind::OO_Subscript>(kindValue);
+/// Is \p kind the `operator[]` function?
+static bool isSubscriptOperator(clang::OverloadedOperatorKind kind) {
+  return isOperatorKind<clang::OverloadedOperatorKind::OO_Subscript>(kind);
 }
 
-/// Is \p kindValue the `operator==` function?
-static bool isCompareEqualOperator(clang::OverloadedOperatorKind kindValue) {
-  return isOperator<clang::OverloadedOperatorKind::OO_EqualEqual>(kindValue);
+/// Is \p kind the `operator==` function?
+static bool isCompareEqualOperator(clang::OverloadedOperatorKind kind) {
+  return isOperatorKind<clang::OverloadedOperatorKind::OO_EqualEqual>(kind);
 }
 
-/// Is \p kindValue the `operator=` function?
-static bool isAssignmentOperator(clang::OverloadedOperatorKind kindValue) {
-  return isOperator<clang::OverloadedOperatorKind::OO_Equal>(kindValue);
+/// Is \p kind the `operator=` function?
+static bool isAssignmentOperator(clang::OverloadedOperatorKind kind) {
+  return isOperatorKind<clang::OverloadedOperatorKind::OO_Equal>(kind);
 }
 
-/// Is \p kindValue the `operator!` function?
-static bool isExclaimOperator(clang::OverloadedOperatorKind kindValue) {
-  return isOperator<clang::OverloadedOperatorKind::OO_Exclaim>(kindValue);
+/// Is \p kind the `operator!` function?
+static bool isExclaimOperator(clang::OverloadedOperatorKind kind) {
+  return isOperatorKind<clang::OverloadedOperatorKind::OO_Exclaim>(kind);
 }
 
 // Map the measured bit vector to an i32 representation.
@@ -863,7 +864,6 @@ bool QuakeBridgeVisitor::VisitBinaryOperator(clang::BinaryOperator *x) {
   case clang::BinaryOperatorKind::BO_OrAssign:
   case clang::BinaryOperatorKind::BO_XorAssign:
   case clang::BinaryOperatorKind::BO_AndAssign:
-
     return true; // see CompoundAssignOperator
   default:
     break;

@@ -15,12 +15,12 @@ on:
     types:
       - completed
 
-name: Packages
+name: Publishing
 
 jobs:
   assets:
     name: Assets
-    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.actor.id == '135836288')
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -123,7 +123,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
       - name: Trigger assets creation
-        if: inputs.assets_from_run == ''
+        id: assets_creation
+        if: steps.artifacts.outputs.releases && inputs.assets_from_run == ''
         run: |
           # The commit title of the staging commit needs to match
           # the docker image that is used to build additional components.
@@ -172,6 +173,7 @@ jobs:
 
       # We can delete staging branch now after the expected draft releases have been created.
       - name: Clean up
+        if: steps.assets_creation.outcome != 'skipped'
         run: |
           # Clean up the staging branch that was used to trigger the GitLab pipeline.
           git config --global user.name "cuda-quantum-bot"
@@ -180,7 +182,7 @@ jobs:
             staging_branch=`echo "$2" | jq -r ".$1.staging_branch"`
             echo "Delete staging branch $staging_branch ..."
             if [[ "$staging_branch" =~ ^bot\/.*$ ]]; then
-              git push origin --delete $staging_branch || ${{ inputs.assets_from_run != '' }}
+              git push origin --delete $staging_branch
             else
               echo "Unexpected staging branch."
               exit 1
@@ -232,6 +234,7 @@ jobs:
           
   cudaq_hpc:
     name: CUDA Quantum Docker image
+    if: ${{ toJson(fromJson(needs.assets.outputs.docker_images).info_files) != '[]' }}
     needs: assets
     runs-on: ubuntu-latest
     permissions:
@@ -362,6 +365,7 @@ jobs:
           NGC_CLI_ORG: ${{ github.repository_owner }}
           NGC_CLI_TEAM: 'nightly'
         run: |
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends wget
           wget -O ngccli_linux.zip --content-disposition \
             https://api.ngc.nvidia.com/v2/resources/nvidia/ngc-apps/ngc_cli/versions/3.28.0/files/ngccli_linux.zip
           if [ -z "$(sha256sum ngccli_linux.zip | grep -o '74f469a2082e90a4561f09eb0d483b67044e91be727066122253436c140a7b54 ')" ]; then
@@ -445,7 +449,10 @@ jobs:
 
   cudaq_wheels:
     name: CUDA Quantum Python wheels
+    if: ${{ toJson(fromJson(needs.assets.outputs.python_wheels).info_files) != '[]' }}
     needs: assets
+    permissions:
+      contents: read
 
     environment:
       name: ghcr-deployment
@@ -531,10 +538,12 @@ jobs:
     name: Update release info of CUDA Quantum Python wheels
     needs: [assets, cudaq_wheels]
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
         info_file: ${{ fromJson(needs.assets.outputs.python_wheels).info_files }}
       fail-fast: false
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
