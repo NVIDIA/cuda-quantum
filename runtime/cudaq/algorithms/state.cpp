@@ -17,12 +17,13 @@ void state::dump(std::ostream &os) {
   auto &[shape, stateData] = _data;
   if (shape.size() == 1) {
     for (auto &d : stateData)
-      os << d.real() << " ";
+      os << d.real() << std::showpos << d.imag() << "j " << std::noshowpos;
     os << "\n";
   } else {
     for (std::size_t i = 0; i < shape[0]; i++) {
       for (std::size_t j = 0; j < shape[1]; j++) {
-        os << stateData[i * shape[0] + j].real() << " ";
+        os << stateData[i * shape[0] + j].real() << std::showpos
+           << stateData[i * shape[0] + j].imag() << "j " << std::noshowpos;
       }
       os << "\n";
     }
