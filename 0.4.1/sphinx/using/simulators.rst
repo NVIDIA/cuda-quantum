@@ -28,6 +28,10 @@ In python, this can be specified with
 By default, this will leverage :code:`FP32` floating point types for the simulation. To 
 switch to :code:`FP64`, specify the :code:`nvidia-fp64` target instead. 
 
+.. note:: 
+
+    This backend requires an NVIDIA GPU and CUDA runtime libraries. See the section :ref:`dependencies-and-compatibility` for more information.
+
 cuQuantum multi-node multi-GPU
 ++++++++++++++++++++++++++++++++++
 
@@ -48,11 +52,15 @@ In python, this can be specified with
 
     cudaq.set_target('nvidia-mgpu')
 
+.. note:: 
+
+    This backend requires an NVIDIA GPU, CUDA runtime libraries, as well as an MPI installation. See the section :ref:`dependencies-and-compatibility` for more information.
+
 OpenMP CPU-only
 ++++++++++++++++++++++++++++++++++
 
 The :code:`default` target provides a state vector simulator based on the CPU-only, OpenMP
-threaded `Q++ <https//github.com/softwareqinc/qpp>`_ library. This is the default 
+threaded `Q++ <https://github.com/softwareqinc/qpp>`_ library. This is the default 
 target, so if the code is compiled without any :code:`--target` flags, this is the 
 simulator that will be used. 
 
@@ -65,6 +73,10 @@ cuQuantum multi-node multi-GPU
 The :code:`tensornet` target provides a tensor-network simulator accelerated with 
 the :code:`cuTensorNet` library. This backend is currently available for use from C++ and supports 
 Multi-Node, Multi-GPU distribution of tensor operations required to evaluate and simulate the circuit.
+
+.. note:: 
+
+    This backend requires an NVIDIA GPU and CUDA runtime libraries. See the section :ref:`dependencies-and-compatibility` for more information.
 
 This backend exposes a set of environment variables to configure specific aspects of the simulation:
 

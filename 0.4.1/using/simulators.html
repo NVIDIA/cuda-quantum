@@ -7,6 +7,7 @@
   <title>CUDA Quantum Simulation Backends &mdash; NVIDIA CUDA Quantum  documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/tabs.css" type="text/css" />
       <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
       <link rel="stylesheet" href="../_static/cudaq_override.css" type="text/css" />
       <link rel="stylesheet" href="../_static/sg_gallery.css" type="text/css" />
@@ -21,6 +22,7 @@
         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
         <script src="../_static/sphinx_highlight.js"></script>
+        <script src="../_static/tabs.js"></script>
         <script src="../_static/clipboard.min.js"></script>
         <script src="../_static/copybutton.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -104,7 +106,8 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#python-wheels">Python wheels</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../install.html#build-cuda-quantum-from-source">Build CUDA Quantum from Source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#building-from-source">Building from Source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
@@ -117,7 +120,15 @@
 <li class="toctree-l2"><a class="reference internal" href="cudaq/generic_functions.html">Generic Library Functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cudaq/builder.html">Creating Kernels at Runtime</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cudaq/variational.html">Variational Algorithms</a></li>
-<li class="toctree-l2"><a class="reference internal" href="cudaq/platform.html">Asynchronous Execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cudaq/platform.html">Multi-processor Platforms</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cudaq/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cudaq/platform.html#parallel-distribution-mode">Parallel distribution mode</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cudaq/platform.html#c">C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cudaq/platform.html#python">Python</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="cudaq/verbose_out.html">Debugging and Verbose Logging</a></li>
 </ul>
 </li>
@@ -198,12 +209,6 @@
 <li class="toctree-l3"><a class="reference internal" href="hardware.html#id3">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="hardware.html#iqm">IQM</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="hardware.html#id4">Setting Credentials</a></li>
-<li class="toctree-l3"><a class="reference internal" href="hardware.html#id5">Submission from C++</a></li>
-<li class="toctree-l3"><a class="reference internal" href="hardware.html#id6">Submission from Python</a></li>
-</ul>
-</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../specification/index.html">   Specifications</a><ul>
@@ -220,10 +225,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/operators.html#cudaq-spin-op">4.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::spin_op</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/operations.html">5. Quantum Operations</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/operations.html#operations-on-cudaq-qubit">5.1. Operations on <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/operations.html">5. Quantum Operations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/kernels.html">6. Quantum Kernels</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/kernels.html#kernel-composability">6.1. Kernel Composability</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/kernels.html#allowed-kernel-classical-function-invocations">6.2. Allowed Kernel Classical Function Invocations</a></li>
@@ -258,7 +260,6 @@
 <li class="toctree-l2"><a class="reference internal" href="../specification/quake-dialect.html">   Quake Specification</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../specification/quake-dialect.html#general-introduction">General Introduction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../specification/quake-dialect.html#motivation">Motivation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../specification/quake-dialect.html#quake-types">Quake Types</a></li>
 </ul>
 </li>
 </ul>
@@ -335,6 +336,30 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../api/default_ops.html">Quantum Operations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/default_ops.html#unitary-operations-on-qubits">Unitary Operations on Qubits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#x"><code class="code docutils literal notranslate"><span class="pre">x</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#y"><code class="code docutils literal notranslate"><span class="pre">y</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#z"><code class="code docutils literal notranslate"><span class="pre">z</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#h"><code class="code docutils literal notranslate"><span class="pre">h</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#r1"><code class="code docutils literal notranslate"><span class="pre">r1</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#rx"><code class="code docutils literal notranslate"><span class="pre">rx</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#ry"><code class="code docutils literal notranslate"><span class="pre">ry</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#rz"><code class="code docutils literal notranslate"><span class="pre">rz</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#s"><code class="code docutils literal notranslate"><span class="pre">s</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#t"><code class="code docutils literal notranslate"><span class="pre">t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#swap"><code class="code docutils literal notranslate"><span class="pre">swap</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api/default_ops.html#adjoint-and-controlled-operations">Adjoint and Controlled Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/default_ops.html#measurements-on-qubits">Measurements on Qubits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#mz"><code class="code docutils literal notranslate"><span class="pre">mz</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#mx"><code class="code docutils literal notranslate"><span class="pre">mx</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#my"><code class="code docutils literal notranslate"><span class="pre">my</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../versions.html">   Other Versions</a></li>
@@ -387,6 +412,10 @@ options to <code class="code docutils literal notranslate"><span class="pre">nvq
 </div>
 <p>By default, this will leverage <code class="code docutils literal notranslate"><span class="pre">FP32</span></code> floating point types for the simulation. To
 switch to <code class="code docutils literal notranslate"><span class="pre">FP64</span></code>, specify the <code class="code docutils literal notranslate"><span class="pre">nvidia-fp64</span></code> target instead.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This backend requires an NVIDIA GPU and CUDA runtime libraries. See the section <a class="reference internal" href="../install.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a> for more information.</p>
+</div>
 </section>
 <section id="cuquantum-multi-node-multi-gpu">
 <h3>cuQuantum multi-node multi-GPU<a class="headerlink" href="#cuquantum-multi-node-multi-gpu" title="Permalink to this heading">¶</a></h3>
@@ -402,11 +431,15 @@ options to <code class="code docutils literal notranslate"><span class="pre">nvq
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;nvidia-mgpu&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This backend requires an NVIDIA GPU, CUDA runtime libraries, as well as an MPI installation. See the section <a class="reference internal" href="../install.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a> for more information.</p>
+</div>
 </section>
 <section id="openmp-cpu-only">
 <h3>OpenMP CPU-only<a class="headerlink" href="#openmp-cpu-only" title="Permalink to this heading">¶</a></h3>
 <p>The <code class="code docutils literal notranslate"><span class="pre">default</span></code> target provides a state vector simulator based on the CPU-only, OpenMP
-threaded <a class="reference external" href="https//github.com/softwareqinc/qpp">Q++</a> library. This is the default
+threaded <a class="reference external" href="https://github.com/softwareqinc/qpp">Q++</a> library. This is the default
 target, so if the code is compiled without any <code class="code docutils literal notranslate"><span class="pre">--target</span></code> flags, this is the
 simulator that will be used.</p>
 </section>
@@ -418,6 +451,10 @@ simulator that will be used.</p>
 <p>The <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> target provides a tensor-network simulator accelerated with
 the <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> library. This backend is currently available for use from C++ and supports
 Multi-Node, Multi-GPU distribution of tensor operations required to evaluate and simulate the circuit.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This backend requires an NVIDIA GPU and CUDA runtime libraries. See the section <a class="reference internal" href="../install.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a> for more information.</p>
+</div>
 <p>This backend exposes a set of environment variables to configure specific aspects of the simulation:</p>
 <ul class="simple">
 <li><p><strong>`CUDAQ_CUTN_HOST_RAM=8`</strong>: Prescribes the size of the CPU Host RAM allocated by each MPI process (defaults to 4 GB). A rule of thumb is to give each MPI process the same amount of CPU Host RAM as the RAM size of the GPU assigned to it. If there is more CPU RAM available, it is fine to further increase this number.</p></li>

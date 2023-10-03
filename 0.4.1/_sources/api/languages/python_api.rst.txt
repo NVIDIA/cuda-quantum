@@ -37,10 +37,10 @@ Program Construction
     .. automethod:: my
     .. automethod:: mz
     .. automethod:: c_if
+    .. automethod:: for_loop
     .. automethod:: adjoint
     .. automethod:: control
     .. automethod:: apply_call
-    .. automethod:: for_loop
     
 Kernel Execution
 =============================
