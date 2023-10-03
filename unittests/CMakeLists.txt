@@ -64,7 +64,7 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
     nvqir-${NVQIR_BACKEND} nvqir  
     cudaq fmt::fmt-header-only
     cudaq-platform-default
-    cudaq-builder 
+    cudaq-builder
     gtest_main)
   if (${NVQIR_BACKEND} STREQUAL "dm")
      target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_DM)

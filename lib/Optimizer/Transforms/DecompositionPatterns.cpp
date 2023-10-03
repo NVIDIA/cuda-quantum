@@ -158,8 +158,7 @@ struct ExpPauliDecomposition : public OpRewritePattern<quake::ExpPauliOp> {
     if (!defOp)
       return failure();
 
-    std::vector<Value> qubitSupport;
-    std::vector<std::function<void(bool)>> basisChange;
+    SmallVector<Value> qubitSupport;
     StringRef pauliWordStr = defOp.getStringLiteral();
     for (std::size_t i = 0; i < pauliWordStr.size(); i++) {
       Value index = rewriter.create<arith::ConstantIntOp>(loc, i, 64);
@@ -176,6 +175,14 @@ struct ExpPauliDecomposition : public OpRewritePattern<quake::ExpPauliOp> {
       } else if (pauliWordStr[i] == 'X') {
         rewriter.create<quake::HOp>(loc, ValueRange{qubitI});
       }
+    }
+
+    // If qubitSupport is empty, then we can safely drop the
+    // operation since it will only add a global phase.
+    // FIXME this should be tracked in the IR at some point
+    if (qubitSupport.empty()) {
+      rewriter.eraseOp(expPauliOp);
+      return success();
     }
 
     std::vector<std::pair<Value, Value>> toReverse;
