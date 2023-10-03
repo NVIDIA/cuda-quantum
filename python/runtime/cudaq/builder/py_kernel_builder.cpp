@@ -12,14 +12,13 @@
 #include "py_kernel_builder.h"
 #include "utils/OpaqueArguments.h"
 
-#include "cudaq/builder/kernel_builder.h"
-#include "cudaq/builder/kernels.h"
-#include "cudaq/platform.h"
-
 #include "common/ExecutionContext.h"
 #include "common/MeasureCounts.h"
-#include "cudaq/qis/library/fermionic_swap.h"
-#include "cudaq/qis/library/givens_rotation.h"
+#include "cudaq/builder/kernel_builder.h"
+#include "cudaq/builder/kernels.h"
+#include "cudaq/kernels/fermionic_swap.h"
+#include "cudaq/kernels/givens_rotation.h"
+#include "cudaq/platform.h"
 #include <any>
 
 namespace cudaq {

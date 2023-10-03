@@ -8,8 +8,8 @@
 
 #include "CUDAQTestUtils.h"
 #include "cudaq/algorithms/state.h"
-#include "cudaq/qis/library/fermionic_swap.h"
-#include "cudaq/qis/library/givens_rotation.h"
+#include "cudaq/kernels/fermionic_swap.h"
+#include "cudaq/kernels/givens_rotation.h"
 #include <random>
 using namespace cudaq;
 
