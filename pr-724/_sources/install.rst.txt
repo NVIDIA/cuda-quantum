@@ -128,11 +128,11 @@ There are currently no source distributions available on PyPI, but you can downl
 
 To build the CUDA Quantum Python API from source using pip, run the following commands:
 
-```console
-git clone https://github.com/NVIDIA/cuda-quantum.git
-cd cuda-quantum && ./scripts/install_prerequisites.sh
-pip install .
-```
+.. code-block:: console
+
+    git clone https://github.com/NVIDIA/cuda-quantum.git
+    cd cuda-quantum && ./scripts/install_prerequisites.sh
+    pip install .
 
 For more information about building the entire C++ and Python API's, please see `Building from Source`_.
 
