@@ -8,6 +8,7 @@ The latest version of CUDA Quantum is on the main branch of our `GitHub reposito
 
 - `Docker image (nightly builds) <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nightly/containers/cuda-quantum>`__
 - `Documentation <https://nvidia.github.io/cuda-quantum/latest>`__
+- `Examples <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples>`__
 
 **0.4.1**
 
@@ -16,6 +17,7 @@ The 0.4.1 release adds support for ARM processors in the form of multi-platform 
 - `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum>`__
 - `Python wheel <https://pypi.org/project/cuda-quantum/>`__
 - `Documentation <https://nvidia.github.io/cuda-quantum/0.4.1>`__
+- `Examples <https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.4.1/docs/sphinx/examples>`__
 
 The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/releases>`__.
 
@@ -30,6 +32,7 @@ The fully featured version is available as a Docker image for `linux/amd64` plat
 - `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum/tags>`__
 - `Python wheel <https://pypi.org/project/cuda-quantum/0.4.0>`__
 - `Documentation <https://nvidia.github.io/cuda-quantum/0.4.0>`__
+- `Examples <https://github.com/NVIDIA/cuda-quantum/tree/0.4.0/docs/sphinx/examples>`__
 
 The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/releases/tag/0.4.0>`__.
 
@@ -39,3 +42,4 @@ The 0.3.0 release of CUDA Quantum is available as a Docker image for `linux/amd6
 
 - `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum/tags>`__
 - `Documentation <https://nvidia.github.io/cuda-quantum/0.3.0>`__
+- `Examples <https://github.com/NVIDIA/cuda-quantum/tree/0.3.0/docs/sphinx/examples>`__
