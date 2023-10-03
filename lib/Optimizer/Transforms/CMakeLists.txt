@@ -24,6 +24,7 @@ add_cudaq_library(OptTransforms
   GenKernelExecution.cpp
   GenDeviceCodeLoader.cpp
   LambdaLifting.cpp
+  LinearCtrlRelations.cpp
   LoopAnalysis.cpp
   LoopNormalize.cpp
   LoopPeeling.cpp
