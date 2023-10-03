@@ -71,10 +71,10 @@ jobs:
 
           nr_sigs=10 # limit how much we delete at a time to avoid exceededing the service rate limit
           for sig in $sig_tags; do 
-            found=`($regctl image manifest $image@sha256:${sig:7:-4} && echo true) || echo false`
+            found=`($regctl image manifest $image@sha256:${sig:7:-4} 1> /dev/null && echo true) || echo false`
             exists=`($found && [ -z "$($regctl image manifest $image@sha256:${sig:7:-4} | grep application/vnd.in-toto+json)" ] && echo true) || echo false`
             echo "Image $image@sha256:${sig:7:-4} (exists: $exists, found: $found)"
-            if [ ! $exists ] && [ $nr_sigs -gt 0 ]; then
+            if ! $exists && [ $nr_sigs -gt 0 ]; then
               echo "Marking signature $sig for deletion."
               delete+=",$sig"
               nr_sigs=$(($nr_sigs-1))
