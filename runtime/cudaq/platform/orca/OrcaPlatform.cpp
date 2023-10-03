@@ -7,22 +7,27 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "common/ExecutionContext.h"
+// #include "common/ExecutionContext.h"
+// #include "common/FmtCore.h"
+
 #include "common/Logger.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
-#include "cudaq/platform.h"
-#include "cudaq/platform/default/rest/Executor.h"
+#include "cudaq.h"
+// #include "cudaq/platform/default/rest/Executor.h"
+// #include "cudaq/platform.h"
+#include "nvqpp_config.h"
+
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/spin_op.h"
-#include "cudaq/utils/cudaq_utils.h"
+// #include "cudaq/utils/cudaq_utils.h"
 
 #include <fstream>
 #include <iostream>
 #include <regex>
-#include <thread>
+// #include <thread>
 
 namespace {
 
@@ -58,7 +63,7 @@ protected:
   std::string qpuName;
 
   // Pointer to the concrete Executor for this QPU
-  std::unique_ptr<cudaq::Executor> executor;
+  // std::unique_ptr<cudaq::Executor> executor;
 
   /// @brief Mapping of general key-values for backend
   /// configuration.
@@ -78,12 +83,12 @@ public:
     std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
     platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
     // Default is to run sampling via the remote rest call
-    executor = std::make_unique<cudaq::Executor>();
+    // executor = std::make_unique<cudaq::Executor>();
   }
 
   OrcaRemoteRESTQPU(OrcaRemoteRESTQPU &&) = delete;
 
-  ~OrcaRemoteRESTQPU() = default;
+  virtual ~OrcaRemoteRESTQPU() = default;
 
   void enqueue(cudaq::QuantumTask &task) override {
     execution_queue->enqueue(task);
@@ -99,7 +104,7 @@ public:
   /// Provide the number of shots
   void setShots(int _nShots) override {
     nShots = _nShots;
-    executor->setShots(static_cast<std::size_t>(_nShots));
+    // executor->setShots(static_cast<std::size_t>(_nShots));
   }
 
   /// Clear the number of shots
@@ -132,7 +137,7 @@ public:
   cudaq::ServerJobPayload createJob(TBIParameters params); // void *kernelArgs);
 
   /// @brief Retrieves the results of a job using the provided path.
-  cudaq::ServerMessage getResults(std::string &resultsGetPath);
+  cudaq::ServerMessage getResults(); // std::string &resultsGetPath);
 
   /// @brief Checks if a job is done based on the server's response to a job
   /// retrieval request.
@@ -162,7 +167,7 @@ public:
   void launchKernel(const std::string &kernelName, void (*kernelFunc)(void *),
                     void *args, std::uint64_t voidStarSize,
                     std::uint64_t resultOffset) override {
-    cudaq::info("launching remote rest kernel ({})", kernelName);
+    cudaq::info("launching ORCA remote rest kernel ({})", kernelName);
 
     // TODO future iterations of this should support non-void return types.
     if (!executionContext)
@@ -260,7 +265,7 @@ cudaq::ServerJobPayload OrcaRemoteRESTQPU::createJob(TBIParameters params) {
 
 // Get the results from a given path
 cudaq::ServerMessage
-OrcaRemoteRESTQPU::getResults(std::string &resultsGetPath) {
+OrcaRemoteRESTQPU::getResults() { // std::string &resultsGetPath) {
   cudaq::RestHeaders headers = getHeaders();
   // Return the results from the client
   cudaq::ServerMessage resp;
@@ -297,10 +302,10 @@ bool OrcaRemoteRESTQPU::jobIsDone(cudaq::ServerMessage &getJobResponse) {
 cudaq::sample_result
 OrcaRemoteRESTQPU::processResults(cudaq::ServerMessage &postJobResponse,
                                   std::string &jobId) {
-  // Construct the path to get the results
-  auto resultsGetPath = constructGetResultsPath(postJobResponse);
+  // // Construct the path to get the results
+  // auto resultsGetPath = constructGetResultsPath(postJobResponse);
   // Get the results
-  auto results = getResults(resultsGetPath);
+  auto results = getResults(); // resultsGetPath);
   cudaq::CountsDictionary counts;
 
   // Process the results
