@@ -22,7 +22,7 @@ on:
         default: linux/amd64,linux/arm64
       create_release:
         type: string
-        description: The version number of the release (e.g. 0.3.0). The version must not exist already.
+        description: Create a GitHub release with the given version number (e.g. 0.3.0). A GitHub release with that version must not exist already.
         required: false
         default: ''
   # We need write permissions for packages to update the build caches of GHCR.
