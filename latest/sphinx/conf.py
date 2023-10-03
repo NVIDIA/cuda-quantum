@@ -54,6 +54,7 @@ extensions = [
     'breathe',
     'enum_tools.autoenum',       # for pretty-print Python enums
     'myst_parser',               # for including markdown files
+    'sphinx_inline_tabs',        # showing code blocks in multiple languages
     'nbsphinx',                  # for supporting jupyter notebooks
     'sphinx_copybutton',         # allows for copy/paste of code cells
     "sphinx_gallery.load_style",
@@ -169,6 +170,7 @@ nitpick_ignore = [
     ('cpp:identifier', 'mlir::ImplicitLocOpBuilder'),
     ('cpp:identifier', 'BinarySymplecticForm'),
     ('cpp:identifier', 'CountsDictionary'),
+    ('cpp:identifier', 'QuakeValueOrNumericType'),
     ('py:class', 'function'),
     ('py:class', 'type'),
     ('py:class', 'cudaq::spin_op'),

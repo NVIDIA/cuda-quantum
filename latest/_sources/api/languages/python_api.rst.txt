@@ -33,14 +33,15 @@ Program Construction
     .. automethod:: rz
     .. automethod:: r1
     .. automethod:: swap
+    .. automethod:: exp_pauli
     .. automethod:: mx
     .. automethod:: my
     .. automethod:: mz
     .. automethod:: c_if
+    .. automethod:: for_loop
     .. automethod:: adjoint
     .. automethod:: control
     .. automethod:: apply_call
-    .. automethod:: for_loop
     
 Kernel Execution
 =============================
