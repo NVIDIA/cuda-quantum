@@ -288,8 +288,8 @@ def test_exp_pauli():
     qubits = kernel.qalloc(4)
     kernel.x(qubits[0])
     kernel.x(qubits[1])
-    print(type(-.22))
-    kernel.exp_pauli(-.22, qubits, "XXXY")
+    print(type(.11))
+    kernel.exp_pauli(.11, qubits, "XXXY")
     print(kernel)
     h2_data = [
       3, 1, 1, 3, 0.0454063,  0,  2,  0, 0, 0, 0.17028,    0,
@@ -310,7 +310,7 @@ def test_exp_pauli():
     kernel.x(qubits[0])
     kernel.x(qubits[1])
     kernel.exp_pauli(theta, qubits, "XXXY")
-    want_exp = cudaq.observe(kernel, h, -.22).expectation_z()
+    want_exp = cudaq.observe(kernel, h, .11).expectation_z()
     assert np.isclose(want_exp, -1.13, atol=1e-2)
 
 def test_givens_rotation_op():
@@ -345,13 +345,13 @@ def test_fermionic_swap_op():
     test_01.x(qubits_01[0])
     test_01.fermionic_swap(angle, qubits_01[0], qubits_01[1])
     ss_01 = cudaq.get_state(test_01)
-    assert np.isclose(np.abs(ss_01[1]), np.abs(s), 1e-3)
-    assert np.isclose(np.abs(ss_01[2]), np.abs(c), 1e-3)
+    assert np.isclose(np.abs(ss_01[1] - (-1j * np.exp(1j * angle / 2.0) * s)), 0.0, 1e-3)
+    assert np.isclose(np.abs(ss_01[2] - (np.exp(1j * angle / 2.0) * c)), 0.0, 1e-3)
 
     test_10 = cudaq.make_kernel()
     qubits_10  = test_10.qalloc(2)
     test_10.x(qubits_10[1])
     test_10.fermionic_swap(angle, qubits_10[0], qubits_10[1])
     ss_10 = cudaq.get_state(test_10)
-    assert np.isclose(np.abs(ss_10[1]), np.abs(c), 1e-3)
-    assert np.isclose(np.abs(ss_10[2]), np.abs(s), 1e-3)
+    assert np.isclose(np.abs(ss_10[1] - (np.exp(1j * angle / 2.0) * c)), 0.0, 1e-3)
+    assert np.isclose(np.abs(ss_10[2] - (-1j * np.exp(1j * angle / 2.0) * s)), 0.0, 1e-3)

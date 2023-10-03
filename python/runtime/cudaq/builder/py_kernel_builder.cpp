@@ -294,11 +294,11 @@ and rotations and return a valid, callable, CUDA Quantum kernel.
           " to the kernel at a concrete parameter value.\n"                    \
           "  kernel." #NAME "(parameter=3.14, target=qubit)\n")
 
-#define ADD_BUILDER_PARAM_TWO_QUBIT_LIB_GATE(NAME)                             \
+#define ADD_BUILDER_PARAM_TWO_QUBIT_LIB_GATE(NAME, CUDAQ_FUNC)                 \
   .def(                                                                        \
       #NAME,                                                                   \
       [](kernel_builder<> &self, QuakeValue &parameter, QuakeValue &q0,        \
-         QuakeValue &q1) { cudaq::NAME(self, parameter, q0, q1); },            \
+         QuakeValue &q1) { cudaq::CUDAQ_FUNC(self, parameter, q0, q1); },      \
       py::arg("parameter"), py::arg("q0"), py::arg("q1"),                      \
       "Apply " #NAME                                                           \
       " to the given target qubits, parameterized by the provided "            \
@@ -322,7 +322,7 @@ and rotations and return a valid, callable, CUDA Quantum kernel.
       .def(                                                                    \
           #NAME,                                                               \
           [](kernel_builder<> &self, double parameter, QuakeValue &q0,         \
-             QuakeValue &q1) { cudaq::NAME(self, parameter, q0, q1); },        \
+             QuakeValue &q1) { cudaq::CUDAQ_FUNC(self, parameter, q0, q1); },  \
           py::arg("parameter"), py::arg("q0"), py::arg("q1"),                  \
           "Apply " #NAME                                                       \
           " to the given target qubits, parameterized by the provided "        \
@@ -479,8 +479,8 @@ Args:
       ADD_BUILDER_PARAM_QIS_METHOD(rz)
       ADD_BUILDER_PARAM_QIS_METHOD(r1)
       /// @brief Bind parameterized two-qubit library-based gates.
-      ADD_BUILDER_PARAM_TWO_QUBIT_LIB_GATE(builder::fermionic_swap)
-      ADD_BUILDER_PARAM_TWO_QUBIT_LIB_GATE(builder::givens_rotation)
+      ADD_BUILDER_PARAM_TWO_QUBIT_LIB_GATE(fermionic_swap, builder::fermionic_swap)
+      ADD_BUILDER_PARAM_TWO_QUBIT_LIB_GATE(givens_rotation, builder::givens_rotation)
       // clang-format on
 
       .def(
