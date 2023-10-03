@@ -71,15 +71,15 @@ jobs:
           nr_sigs=100 # limit how much we delete at a time to avoid exceededing the service rate limit
           for sig in $sig_tags; do 
             echo "Looking for image $image@sha256:${sig:8:-5} (tag $sig)"
-            (skopeo inspect $image@sha256:${sig:8:-5} --query-tags=false &> /dev/null) && exists=true || exists=false
+            (skopeo inspect $image@sha256:${sig:8:-5} &> /dev/null) && exists=true || exists=false
             if [ $exists ]; then 
-              created=`skopeo inspect $image@sha256:${sig:8:-5} --query-tags=false | jq '.Created'`
+              created=`skopeo inspect $image@sha256:${sig:8:-5} | jq '.Created'`
               exists=`[ -n "$created" ] && [ $created != null ] && echo true || echo false`
             fi
-            if [ ! $exists ] && [ $nr_sig -gt 0 ]; then
+            if [ ! $exists ] && [ $nr_sigs -gt 0 ]; then
               echo "Marking signature $sig for deletion."
               delete+=",$sig"
-              nr_sig=$((nr_sig-1))
+              nr_sigs=$((nr_sigs-1))
             fi
           done
           echo "[${delete:1}]"
