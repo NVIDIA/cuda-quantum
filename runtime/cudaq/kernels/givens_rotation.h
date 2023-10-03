@@ -22,8 +22,8 @@ namespace cudaq {
 /// @param q0 First qubit operand
 /// @param q1 Second qubit operand
 __qpu__ void givens_rotation(double theta, cudaq::qubit &q0, cudaq::qubit &q1) {
-  exp_pauli(theta, "YX", q0, q1);
-  exp_pauli(-theta, "XY", q0, q1);
+  exp_pauli(-0.5 * theta, "YX", q0, q1);
+  exp_pauli(0.5 * theta, "XY", q0, q1);
 }
 
 namespace builder {
@@ -37,8 +37,8 @@ namespace builder {
 template <typename KernelBuilder>
 void givens_rotation(KernelBuilder &kernel, cudaq::QuakeValue theta,
                      cudaq::QuakeValue q0, cudaq::QuakeValue q1) {
-  kernel.exp_pauli(theta, "YX", q0, q1);
-  kernel.exp_pauli(-theta, "XY", q0, q1);
+  kernel.exp_pauli(-0.5 * theta, "YX", q0, q1);
+  kernel.exp_pauli(0.5 * theta, "XY", q0, q1);
 }
 
 /// @brief Add Givens rotation kernel (fixed theta angle) to the kernel builder

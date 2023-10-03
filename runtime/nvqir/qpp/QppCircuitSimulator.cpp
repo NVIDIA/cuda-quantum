@@ -214,7 +214,7 @@ public:
       toReverse.emplace_back(qubitSupport[i], qubitSupport[i + 1]);
     }
 
-    rz(theta, controls, qubitSupport.back());
+    rz(-2.0 * theta, controls, qubitSupport.back());
 
     std::reverse(toReverse.begin(), toReverse.end());
     for (auto &[i, j] : toReverse) {

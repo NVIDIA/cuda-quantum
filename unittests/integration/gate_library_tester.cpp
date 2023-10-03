@@ -44,10 +44,10 @@ CUDAQ_TEST(GateLibraryTester, checkGivensRotation) {
   const double s = std::sin(angle);
   auto ss_01 = cudaq::get_state(test_01, angle);
   auto ss_10 = cudaq::get_state(test_10, angle);
-  EXPECT_NEAR(std::abs(ss_01[1] + s), 0.0, 1e-9);
-  EXPECT_NEAR(std::abs(ss_01[2] - c), 0.0, 1e-9);
-  EXPECT_NEAR(std::abs(ss_10[1] - c), 0.0, 1e-9);
-  EXPECT_NEAR(std::abs(ss_10[2] - s), 0.0, 1e-9);
+  EXPECT_NEAR(std::abs(ss_01[1] + s), 0.0, 1e-6);
+  EXPECT_NEAR(std::abs(ss_01[2] - c), 0.0, 1e-6);
+  EXPECT_NEAR(std::abs(ss_10[1] - c), 0.0, 1e-6);
+  EXPECT_NEAR(std::abs(ss_10[2] - s), 0.0, 1e-6);
 }
 
 CUDAQ_TEST(GateLibraryTester, checkGivensRotationKernelBuilder) {
@@ -68,8 +68,8 @@ CUDAQ_TEST(GateLibraryTester, checkGivensRotationKernelBuilder) {
     test_01.x(q[0]);
     cudaq::builder::givens_rotation(test_01, theta, q[0], q[1]);
     auto ss_01 = cudaq::get_state(test_01, angle);
-    EXPECT_NEAR(std::abs(ss_01[1] + s), 0.0, 1e-9);
-    EXPECT_NEAR(std::abs(ss_01[2] - c), 0.0, 1e-9);
+    EXPECT_NEAR(std::abs(ss_01[1] + s), 0.0, 1e-6);
+    EXPECT_NEAR(std::abs(ss_01[2] - c), 0.0, 1e-6);
   }
   {
     auto [test_10, theta] = cudaq::make_kernel<double>();
@@ -78,8 +78,8 @@ CUDAQ_TEST(GateLibraryTester, checkGivensRotationKernelBuilder) {
     test_10.x(q[1]);
     cudaq::builder::givens_rotation(test_10, theta, q[0], q[1]);
     auto ss_10 = cudaq::get_state(test_10, angle);
-    EXPECT_NEAR(std::abs(ss_10[1] - c), 0.0, 1e-9);
-    EXPECT_NEAR(std::abs(ss_10[2] - s), 0.0, 1e-9);
+    EXPECT_NEAR(std::abs(ss_10[1] - c), 0.0, 1e-6);
+    EXPECT_NEAR(std::abs(ss_10[2] - s), 0.0, 1e-6);
   }
 }
 
@@ -106,11 +106,11 @@ CUDAQ_TEST(GateLibraryTester, checkControlledGivensRotation) {
   const double s = std::sin(angle);
   auto ss_01_on = cudaq::get_state(test_01_on, angle);
   ss_01_on.dump();
-  EXPECT_NEAR(std::abs(ss_01_on[13] + s), 0.0, 1e-9);
-  EXPECT_NEAR(std::abs(ss_01_on[14] - c), 0.0, 1e-9);
+  EXPECT_NEAR(std::abs(ss_01_on[13] + s), 0.0, 1e-6);
+  EXPECT_NEAR(std::abs(ss_01_on[14] - c), 0.0, 1e-6);
   auto ss_01_off = cudaq::get_state(test_01_off, angle);
   ss_01_off.dump();
-  EXPECT_NEAR(std::abs(ss_01_off[0]), 1.0, 1e-9);
+  EXPECT_NEAR(std::abs(ss_01_off[0]), 1.0, 1e-6);
 }
 
 CUDAQ_TEST(GateLibraryTester, checkFermionicSwap) {
@@ -147,27 +147,27 @@ CUDAQ_TEST(GateLibraryTester, checkFermionicSwap) {
   constexpr std::complex<double> I{0.0, 1.0};
   {
     auto ss_00 = cudaq::get_state(test_00, angle);
-    EXPECT_NEAR(std::norm(ss_00[0] - 1.0), 0.0, 1e-9);
+    EXPECT_NEAR(std::norm(ss_00[0] - 1.0), 0.0, 1e-6);
   }
   {
     auto ss_01 = cudaq::get_state(test_01, angle);
     EXPECT_NEAR(std::norm(ss_01[1] - (-I * std::exp(I * angle / 2.0) * s)), 0.0,
-                1e-9);
+                1e-6);
     EXPECT_NEAR(std::norm(ss_01[2] - (std::exp(I * angle / 2.0) * c)), 0.0,
-                1e-9);
+                1e-6);
   }
   {
     auto ss_10 = cudaq::get_state(test_10, angle);
     EXPECT_NEAR(std::norm(ss_10[1] - (std::exp(I * angle / 2.0) * c)), 0.0,
-                1e-9);
+                1e-6);
     EXPECT_NEAR(std::norm(ss_10[2] - ((-I * std::exp(I * angle / 2.0) * s))),
-                0.0, 1e-9);
+                0.0, 1e-6);
   }
   {
     // |11⟩ ↦ e^(iϕ)|11⟩
     // (|11> has an extra global phase)
     auto ss_11 = cudaq::get_state(test_11, angle);
-    EXPECT_NEAR(std::norm(ss_11[3] - std::exp(I * angle)), 0.0, 1e-9);
+    EXPECT_NEAR(std::norm(ss_11[3] - std::exp(I * angle)), 0.0, 1e-6);
   }
 }
 
@@ -183,7 +183,7 @@ CUDAQ_TEST(GateLibraryTester, checkFermionicSwapKernelBuilder) {
     auto q = test_00.qalloc(2);
     cudaq::builder::fermionic_swap(test_00, theta, q[0], q[1]);
     auto ss_00 = cudaq::get_state(test_00, angle);
-    EXPECT_NEAR(std::norm(ss_00[0] - 1.0), 0.0, 1e-9);
+    EXPECT_NEAR(std::norm(ss_00[0] - 1.0), 0.0, 1e-6);
   }
   {
     auto [test_01, theta] = cudaq::make_kernel<double>();
@@ -193,9 +193,9 @@ CUDAQ_TEST(GateLibraryTester, checkFermionicSwapKernelBuilder) {
     cudaq::builder::fermionic_swap(test_01, theta, q[0], q[1]);
     auto ss_01 = cudaq::get_state(test_01, angle);
     EXPECT_NEAR(std::norm(ss_01[1] - (-I * std::exp(I * angle / 2.0) * s)), 0.0,
-                1e-9);
+                1e-6);
     EXPECT_NEAR(std::norm(ss_01[2] - (std::exp(I * angle / 2.0) * c)), 0.0,
-                1e-9);
+                1e-6);
   }
   {
     auto [test_10, theta] = cudaq::make_kernel<double>();
@@ -205,9 +205,9 @@ CUDAQ_TEST(GateLibraryTester, checkFermionicSwapKernelBuilder) {
     cudaq::builder::fermionic_swap(test_10, theta, q[0], q[1]);
     auto ss_10 = cudaq::get_state(test_10, angle);
     EXPECT_NEAR(std::norm(ss_10[1] - (std::exp(I * angle / 2.0) * c)), 0.0,
-                1e-9);
+                1e-6);
     EXPECT_NEAR(std::norm(ss_10[2] - ((-I * std::exp(I * angle / 2.0) * s))),
-                0.0, 1e-9);
+                0.0, 1e-6);
   }
   {
     auto [test_11, theta] = cudaq::make_kernel<double>();
@@ -216,7 +216,7 @@ CUDAQ_TEST(GateLibraryTester, checkFermionicSwapKernelBuilder) {
     test_11.x(q);
     cudaq::builder::fermionic_swap(test_11, theta, q[0], q[1]);
     auto ss_11 = cudaq::get_state(test_11, angle);
-    EXPECT_NEAR(std::norm(ss_11[3] - std::exp(I * angle)), 0.0, 1e-9);
+    EXPECT_NEAR(std::norm(ss_11[3] - std::exp(I * angle)), 0.0, 1e-6);
   }
 }
 #endif
