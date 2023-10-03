@@ -13,6 +13,7 @@
 #include <random>
 using namespace cudaq;
 
+#ifndef CUDAQ_BACKEND_DM
 static double randomAngleGen() {
   static std::random_device rd;
   static std::default_random_engine re(rd());
@@ -218,3 +219,4 @@ CUDAQ_TEST(GateLibraryTester, checkFermionicSwapKernelBuilder) {
     EXPECT_NEAR(std::norm(ss_11[3] - std::exp(I * angle)), 0.0, 1e-9);
   }
 }
+#endif
