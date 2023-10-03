@@ -28,13 +28,6 @@ Releases = "https://nvidia.github.io/cuda-quantum/latest/releases.html"
 
 [project.optional-dependencies]
 chemistry = [ "scipy==1.10.1", "openfermionpyscf==0.5" ]
-cudart = [
-  # cublas is (the only library) need for the simulators but available for x86_64 only
-  'nvidia-cublas-cu11 ~= 11.11',
-  'nvidia-cusolver-cu11 ~= 11.4',
-  'nvidia-cusparse-cu11 ~= 11.7',
-  'nvidia-cuda-runtime-cu11 ~= 11.8'
-]
 
 [build-system]
 requires = ["scikit-build-core", "cmake>=3.26"]
