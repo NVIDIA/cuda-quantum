@@ -45,12 +45,7 @@ def QIRToQIRProfilePrep : Pass<"qir-profile-prep", "mlir::ModuleOp"> {
     conflicts when rewriting matching DAGs independently.
   }];
 
-  let options = [
-    Option<"convertTo", "convert-to", "llvm::StringRef", "\"qir-base\"",
-           "Which QIR profile to convert to (default is 'qir-base')">
-  ];
-
-  let constructor = "cudaq::opt::createQIRProfilePreparationPass(\"qir-base\")";
+  let constructor = "cudaq::opt::createQIRProfilePreparationPass()";
 }
 
 def VerifyQIRProfile : Pass<"verify-qir-profile", "mlir::LLVM::LLVMFuncOp"> {

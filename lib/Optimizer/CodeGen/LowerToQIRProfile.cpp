@@ -455,11 +455,6 @@ static const std::vector<std::string> measurementFunctionNames{
 struct QIRProfilePreparationPass
     : public cudaq::opt::QIRToQIRProfilePrepBase<QIRProfilePreparationPass> {
 
-  explicit QIRProfilePreparationPass(llvm::StringRef convertTo_)
-      : QIRToQIRProfilePrepBase() {
-    convertTo.setValue(convertTo_);
-  }
-
   void runOnOperation() override {
     ModuleOp module = getOperation();
     auto *ctx = module.getContext();
@@ -511,9 +506,8 @@ struct QIRProfilePreparationPass
 };
 } // namespace
 
-std::unique_ptr<Pass>
-cudaq::opt::createQIRProfilePreparationPass(llvm::StringRef convertTo) {
-  return std::make_unique<QIRProfilePreparationPass>(convertTo);
+std::unique_ptr<Pass> cudaq::opt::createQIRProfilePreparationPass() {
+  return std::make_unique<QIRProfilePreparationPass>();
 }
 
 //===----------------------------------------------------------------------===//
@@ -591,7 +585,7 @@ cudaq::opt::verifyQIRProfilePass(llvm::StringRef convertTo) {
 
 void cudaq::opt::addQIRProfilePipeline(OpPassManager &pm,
                                        llvm::StringRef convertTo) {
-  pm.addPass(createQIRProfilePreparationPass(convertTo));
+  pm.addPass(createQIRProfilePreparationPass());
   pm.addNestedPass<LLVM::LLVMFuncOp>(createConvertToQIRFuncPass(convertTo));
   pm.addPass(createQIRToQIRProfilePass(convertTo));
   pm.addNestedPass<LLVM::LLVMFuncOp>(verifyQIRProfilePass(convertTo));

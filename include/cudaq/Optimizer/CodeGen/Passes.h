@@ -37,8 +37,7 @@ void addQIRProfilePipeline(mlir::OpPassManager &pm, llvm::StringRef convertTo);
 std::unique_ptr<mlir::Pass>
 createQIRToQIRProfilePass(llvm::StringRef convertTo);
 std::unique_ptr<mlir::Pass> verifyQIRProfilePass(llvm::StringRef convertTo);
-std::unique_ptr<mlir::Pass>
-createQIRProfilePreparationPass(llvm::StringRef convertTo);
+std::unique_ptr<mlir::Pass> createQIRProfilePreparationPass();
 std::unique_ptr<mlir::Pass>
 createConvertToQIRFuncPass(llvm::StringRef convertTo);
 
