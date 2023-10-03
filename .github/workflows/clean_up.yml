@@ -63,6 +63,7 @@ jobs:
 
       - name: Find matching signatures files
         id: sig_files
+        shell: bash
         run: |
           regctl="docker run ghcr.io/regclient/regctl@sha256:f25e95d626ee8858ef13fd1a45c6a865dfeb647b15210f1b6cc8547e49e9d95f"
           image=ghcr.io/nvidia/${{ matrix.image_name }}
