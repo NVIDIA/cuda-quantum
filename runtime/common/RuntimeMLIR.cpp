@@ -446,6 +446,13 @@ qirProfileTranslationFunction(const char *qirProfile, Operation *op,
   if (!cudaq::setupTargetTriple(llvmModule.get()))
     throw std::runtime_error("Failed to setup the llvm module target triple.");
 
+  // PyQIR currently requires named blocks
+  int blockCounter = 0;
+  for (llvm::Function &func : *llvmModule)
+    for (llvm::BasicBlock &block : func)
+      if (!block.hasName())
+        block.setName(std::to_string(blockCounter++));
+
   if (printIR)
     llvm::errs() << *llvmModule;
 
