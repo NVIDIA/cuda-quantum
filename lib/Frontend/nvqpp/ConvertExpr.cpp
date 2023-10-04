@@ -9,6 +9,7 @@
 #include "cudaq/Frontend/nvqpp/ASTBridge.h"
 #include "cudaq/Frontend/nvqpp/QisBuilder.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
+#include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/Support/Debug.h"
@@ -1103,6 +1104,34 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
                   builder, ext->getLoc(), 0,
                   ext.getResult().getType().getIntOrFloatBitWidth())));
         }
+    if (funcName.equals("front"))
+      if (auto memberCall = dyn_cast<clang::CXXMemberCallExpr>(x))
+        if (memberCall->getImplicitObjectArgument()) {
+          [[maybe_unused]] auto calleeTy = popType();
+          assert(isa<FunctionType>(calleeTy));
+          auto eleTy = cast<cc::StdvecType>(svec.getType()).getElementType();
+          auto elePtrTy = cc::PointerType::get(eleTy);
+          return pushValue(
+              builder.create<cc::StdvecDataOp>(loc, elePtrTy, svec));
+        }
+    if (funcName.equals("back"))
+      if (auto memberCall = dyn_cast<clang::CXXMemberCallExpr>(x))
+        if (memberCall->getImplicitObjectArgument()) {
+          [[maybe_unused]] auto calleeTy = popType();
+          assert(isa<FunctionType>(calleeTy));
+          auto negativeOneIndex = getConstantInt(builder, loc, -1, 64);
+          auto eleTy = cast<cc::StdvecType>(svec.getType()).getElementType();
+          auto elePtrTy = cc::PointerType::get(eleTy);
+          auto *ctx = eleTy.getContext();
+          auto i64Ty = mlir::IntegerType::get(ctx, 64);
+          auto vecPtr = builder.create<cc::StdvecDataOp>(loc, elePtrTy, svec);
+          auto vecLen = builder.create<cc::StdvecSizeOp>(loc, i64Ty, svec);
+          Value vecLenMinusOne =
+              builder.create<arith::AddIOp>(loc, vecLen, negativeOneIndex);
+          return pushValue(builder.create<cc::ComputePtrOp>(
+              loc, elePtrTy, vecPtr, ValueRange{vecLenMinusOne}));
+        }
+
     TODO_loc(loc, "unhandled std::vector member function, " + funcName);
   }
 
@@ -1667,6 +1696,24 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
                                                   ArrayRef<Value>{offset});
       return pushValue(
           builder.create<cc::StdvecInitOp>(loc, svecTy, ptr, args[2]));
+    }
+
+    if (funcName.equals("range")) {
+      auto *block = builder.getBlock();
+      IRBuilder irBuilder(builder.getContext());
+      auto mod = block->getParentOp()->getParentOfType<ModuleOp>();
+      [[maybe_unused]] auto result =
+          irBuilder.loadIntrinsic(mod, setCudaqRangeVector);
+      assert(succeeded(result) && "loading intrinsic should never fail");
+      auto upVal = args[0];
+      auto i64Ty = builder.getI64Type(); // element type
+      auto upper = builder.create<cc::CastOp>(loc, i64Ty, upVal,
+                                              cc::CastOpMode::Unsigned);
+      auto buffer = builder.create<cc::AllocaOp>(loc, i64Ty, upper);
+      auto stdvecTy = cc::StdvecType::get(i64Ty);
+      auto call = builder.create<func::CallOp>(
+          loc, stdvecTy, setCudaqRangeVector, ValueRange{buffer, upper});
+      return pushValue(call.getResult(0));
     }
 
     TODO_loc(loc, "unknown function, " + funcName + ", in cudaq namespace");
