@@ -893,7 +893,24 @@ Args:
       .def("to_quake", &kernel_builder<>::to_quake, "See :func:`__str__`.")
       .def("__str__", &kernel_builder<>::to_quake,
            "Return the :class:`Kernel` as a string in its MLIR representation "
-           "using the Quake dialect.\n");
+           "using the Quake dialect.\n")
+      .def(
+          "exp_pauli",
+          [](kernel_builder<> &self, py::object theta, const QuakeValue &qubits,
+             const std::string &pauliWord) {
+            if (py::isinstance<py::float_>(theta))
+              self.exp_pauli(theta.cast<double>(), qubits, pauliWord);
+            else if (py::isinstance<QuakeValue>(theta))
+              self.exp_pauli(theta.cast<QuakeValue &>(), qubits, pauliWord);
+            else
+              throw std::runtime_error(
+                  "Invalid `theta` argument type. Must be a "
+                  "`float` or a `QuakeValue`.");
+          },
+          "Apply a general Pauli tensor product rotation, `exp(i theta P)`, on "
+          "the specified qubit register. The Pauli tensor product is provided "
+          "as a string, e.g. `XXYX` for a 4-qubit term. The angle parameter "
+          "can be provided as a concrete float or a `QuakeValue`.");
 }
 
 void bindBuilder(py::module &mod) {

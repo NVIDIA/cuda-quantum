@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Optimizer/Builder/CUDAQBuilder.h"
+#include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/Support/CommandLine.h"
@@ -47,8 +47,33 @@ inline bool operator<(const IntrinsicCode &icode, const IntrinsicCode &jcode) {
 /// well as prototypes for LLVM intrinsics and C library calls that are used by
 /// the compiler. The table should be kept in sorted order.
 static constexpr IntrinsicCode intrinsicTable[] = {
+    // Initialize a (preallocated) buffer (the first parameter) with i64 values
+    // on the semi-open range `[0..n)` where `n` is the second parameter.
+    {cudaq::setCudaqRangeVector,
+     {},
+     R"#(
+  func.func private @__nvqpp_CudaqRangeInit(%arg0: !cc.ptr<!cc.array<i64 x ?>>, %arg1: i64) -> !cc.stdvec<i64> {
+    %0 = arith.constant 0 : i64
+    %1 = cc.loop while ((%i = %0) -> i64) {
+      %w1 = arith.cmpi ult, %i, %arg1 : i64
+      cc.condition %w1 (%i : i64)
+    } do {
+      ^bb1(%i: i64):
+        %d1 = cc.compute_ptr %arg0[%i] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
+        cc.store %i, %d1 : !cc.ptr<i64>
+        cc.continue %i : i64
+    } step {
+      ^bb1(%i: i64):
+        %one = arith.constant 1 : i64
+        %s1 = arith.addi %i, %one : i64
+        cc.continue %s1 : i64
+    }
+    %2 = cc.stdvec_init %arg0, %arg1 : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.stdvec<i64>
+    return %2 : !cc.stdvec<i64>
+  })#"},
+
     {"__nvqpp_createDynamicResult",
-     {llvmMemCopyIntrinsic, "malloc"},
+     {cudaq::llvmMemCopyIntrinsic, "malloc"},
      R"#(
   func.func private @__nvqpp_createDynamicResult(%arg0: !cc.ptr<i8>, %arg1: i64, %arg2: !cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>) -> !cc.struct<{!cc.ptr<i8>, i64}> {
     %0 = cc.compute_ptr %arg2[0, 1] : (!cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>) -> !cc.ptr<i64>
@@ -67,12 +92,13 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     return %9 : !cc.struct<{!cc.ptr<i8>, i64}>
   })#"},
 
-    {stdvecBoolCtorFromInitList, // __nvqpp_initializer_list_to_vector_bool
+    // __nvqpp_initializer_list_to_vector_bool
+    {cudaq::stdvecBoolCtorFromInitList,
      {},
      R"#(
   func.func private @__nvqpp_initializer_list_to_vector_bool(!cc.ptr<none>, !cc.ptr<none>, i64) -> ())#"},
 
-    {"__nvqpp_vectorCopyCtor", {llvmMemCopyIntrinsic, "malloc"}, R"#(
+    {"__nvqpp_vectorCopyCtor", {cudaq::llvmMemCopyIntrinsic, "malloc"}, R"#(
   func.func private @__nvqpp_vectorCopyCtor(%arg0: !cc.ptr<i8>, %arg1: i64, %arg2: i64) -> !cc.ptr<i8> {
     %size = arith.muli %arg1, %arg2 : i64
     %0 = call @malloc(%size) : (i64) -> !cc.ptr<i8>
@@ -96,7 +122,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
      R"#(
   func.func private @altLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> ())#"},
 
-    {llvmMemCopyIntrinsic, // llvm.memcpy.p0i8.p0i8.i64
+    {cudaq::llvmMemCopyIntrinsic, // llvm.memcpy.p0i8.p0i8.i64
      {},
      R"#(
   func.func private @llvm.memcpy.p0i8.p0i8.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ())#"},

@@ -63,8 +63,8 @@ static llvm::cl::opt<std::string> convertTo(
     "convert-to",
     llvm::cl::desc(
         "Specify the translation output to be created. [Default: \"qir\"]"),
-    llvm::cl::value_desc("target dialect [\"qir\", \"qir-base\", "
-                         "\"openqasm\", \"iqm\"]"),
+    llvm::cl::value_desc("target dialect [\"qir\", \"qir-adaptive\", "
+                         "\"qir-base\", \"openqasm\", \"iqm\"]"),
     llvm::cl::init("qir"));
 
 static llvm::cl::opt<bool> emitLLVM(
@@ -164,8 +164,11 @@ int main(int argc, char **argv) {
 
   llvm::StringSwitch<std::function<void()>>(convertTo)
       .Case("qir", [&]() { cudaq::opt::addPipelineToQIR<>(pm); })
-      .Case("qir-base",
-            [&]() { cudaq::opt::addPipelineToQIR</*baseProfile=*/true>(pm); })
+      .Cases("qir-adaptive", "qir-base",
+             [&]() {
+               cudaq::opt::addPipelineToQIR</*QIRProfile=*/true>(
+                   pm, convertTo.getValue());
+             })
       .Case("openqasm",
             [&]() {
               targetUsesLlvm = false;

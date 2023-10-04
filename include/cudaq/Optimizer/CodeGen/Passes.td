@@ -32,36 +32,42 @@ def QuakeToQIR : Pass<"quake-to-qir", "mlir::ModuleOp"> {
   let constructor = "cudaq::opt::createConvertToQIRPass()";
 }
 
-def QIRToBaseQIRPrep : Pass<"qir-to-base-qir-prep", "mlir::ModuleOp"> {
-  let summary = "Prepare the IR for rewriting to the base profile";
+def QIRToQIRProfilePrep : Pass<"qir-profile-prep", "mlir::ModuleOp"> {
+  let summary =
+    "Prepare the IR for rewriting to the base profile or adaptive profile";
   let description = [{
-    This is a (module) subpass of the pipeline to convert to QIR Base Profile.
+    This is a (module) subpass of the pipeline to convert to a specific QIR Profile.
 
-    Before we can convert the functions to the base profile, we have to do
+    Before we can convert the functions to the specific profile, we have to do
     a bit of bookkeeping on the module itself. That preparation is done in
     this pass. Specifically, we create all the function declarations that we
     may need and add them to the ModuleOp a priori. This avoids multi-threading
     conflicts when rewriting matching DAGs independently.
   }];
 
-  let constructor = "cudaq::opt::createBaseProfilePreparationPass()";
+  let constructor = "cudaq::opt::createQIRProfilePreparationPass()";
 }
 
-def VerifyBaseProfile : Pass<"verify-base-profile", "mlir::LLVM::LLVMFuncOp"> {
-  let summary = "Verify that the output conforms to the base profile";
+def VerifyQIRProfile : Pass<"verify-qir-profile", "mlir::LLVM::LLVMFuncOp"> {
+  let summary = "Verify that the output conforms to the specific profile";
   let description = [{
     This pass scans over functions in the LLVM-IR dialect to make sure they
-    conform to the QIR base profile.
+    conform to the QIR specific profile.
   }];
 
-  let constructor = "cudaq::opt::verifyBaseProfilePass()";
+  let options = [
+    Option<"convertTo", "convert-to", "llvm::StringRef", "\"qir-base\"",
+           "Which QIR profile to convert to (default is 'qir-base')">
+  ];
+
+  let constructor = "cudaq::opt::verifyQIRProfilePass(\"qir-base\")";
 }
 
-def QIRToBaseQIRFunc : Pass<"quake-to-base-qir-func",
+def QIRToQIRProfileFunc : Pass<"quake-to-qir-func",
                             "mlir::LLVM::LLVMFuncOp"> {
   let summary = "Analyze kernels and add attributes and record calls.";
   let description = [{
-    This is a (function) subpass of the pipeline to convert to QIR Base Profile.
+    This is a (function) subpass of the pipeline to convert to specific QIR Profile.
 
     Each function with a body is analyzed for qubit allocations and qubit
     measurements. Attributes for the total count of qubits are added to the
@@ -69,20 +75,30 @@ def QIRToBaseQIRFunc : Pass<"quake-to-base-qir-func",
     functions are added to the final block in the function.
   }];
 
-  let constructor = "cudaq::opt::createConvertToQIRFuncPass()";
+  let options = [
+    Option<"convertTo", "convert-to", "llvm::StringRef", "\"qir-base\"",
+           "Which QIR profile to convert to (default is 'qir-base')">
+  ];
+
+  let constructor = "cudaq::opt::createConvertToQIRFuncPass(\"qir-base\")";
 }
 
-def QIRToBaseQIR : Pass<"qir-to-base-qir"> {
+def QIRToQIRProfile : Pass<"convert-to-qir-profile"> {
   let summary =
-    "After lowering a Quake kernel to QIR, lower further to the Base Profile.";
+    "After lowering a Quake kernel to QIR, lower further to the specific QIR Profile.";
   let description = [{
-    This is a subpass of the pipeline to convert to QIR Base Profile.
+    This is a subpass of the pipeline to convert to the specific QIR Profile.
 
-    This pass lowers various QIR DAGs to the QIR Base Profile. See
+    This pass lowers various QIR DAGs to the specific QIR Profile. See
     https://github.com/qir-alliance/qir-spec/blob/main/specification/v0.1/7_Profiles.md
   }];
 
-  let constructor = "cudaq::opt::createQIRToBaseProfilePass()";
+  let options = [
+    Option<"convertTo", "convert-to", "llvm::StringRef", "\"qir-base\"",
+           "Which QIR profile to convert to (default is 'qir-base')">
+  ];
+
+  let constructor = "cudaq::opt::createQIRToQIRProfilePass(\"qir-base\")";
 }
 
 def RemoveMeasurements : Pass<"remove-measurements"> {

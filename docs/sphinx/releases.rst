@@ -4,8 +4,9 @@ CUDA Quantum Releases
 
 **latest**
 
-The latest version of CUDA Quantum is on the main branch of our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`__.
+The latest version of CUDA Quantum is on the main branch of our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`__ and is also available as a Docker image. More information about installing the nightly builds can be found :doc:`here <install>`
 
+- `Docker image (nightly builds) <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nightly/containers/cuda-quantum>`__
 - `Documentation <https://nvidia.github.io/cuda-quantum/latest>`__
 - `Examples <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples>`__
 
@@ -28,17 +29,17 @@ The 0.4.0 release adds support for quantum kernel execution on Quantinuum and Io
 The 0.4.0 PyPI release does not yet include all of the GPU-based backends.
 The fully featured version is available as a Docker image for `linux/amd64` platforms.
 
-- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum>`__
-- `Python wheel <https://pypi.org/project/cuda-quantum/>`__
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum/tags>`__
+- `Python wheel <https://pypi.org/project/cuda-quantum/0.4.0>`__
 - `Documentation <https://nvidia.github.io/cuda-quantum/0.4.0>`__
 - `Examples <https://github.com/NVIDIA/cuda-quantum/tree/0.4.0/docs/sphinx/examples>`__
 
-The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/releases>`__.
+The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/releases/tag/0.4.0>`__.
 
 **0.3.0**
 
 The 0.3.0 release of CUDA Quantum is available as a Docker image for `linux/amd64` platforms.
 
-- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum>`__
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum/tags>`__
 - `Documentation <https://nvidia.github.io/cuda-quantum/0.3.0>`__
 - `Examples <https://github.com/NVIDIA/cuda-quantum/tree/0.3.0/docs/sphinx/examples>`__

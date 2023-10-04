@@ -80,7 +80,8 @@ protected:
   /// @brief The name of the QPU being targeted
   std::string qpuName;
 
-  /// @brief Name of codegen translation (e.g. "qir", "qasm2", "iqm")
+  /// @brief Name of codegen translation (e.g. "qir-adaptive", "qir-base",
+  /// "qasm2", "iqm")
   std::string codegenTranslation = "";
 
   /// @brief Additional passes to run after the codegen-specific passes
@@ -295,7 +296,7 @@ public:
     // Form an output_names mapping from codeStr
     nlohmann::json output_names;
     std::vector<char> bitcode;
-    if (codegenTranslation == "qir") {
+    if (codegenTranslation.starts_with("qir")) {
       // decodeBase64 will throw a runtime exception if it fails
       if (llvm::decodeBase64(codeStr, bitcode)) {
         cudaq::info("Could not decode codeStr {}", codeStr);
@@ -380,7 +381,7 @@ public:
     std::vector<std::pair<std::string, ModuleOp>> modules;
     // Apply observations if necessary
     if (executionContext && executionContext->name == "observe") {
-
+      runPassPipeline("canonicalize,cse", moduleOp);
       cudaq::spin_op &spin = *executionContext->spin.value();
       for (const auto &term : spin) {
         if (term.is_identity())

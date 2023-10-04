@@ -25,10 +25,9 @@ func.func @foo(%0: !cc.callable<(!quake.veq<3>) -> ()>) {
 // CHECK-LABEL: define void @foo({ i8*, i8* } 
 // CHECK-SAME:                                %[[VAL_0:.*]]) local_unnamed_addr {
 // CHECK:         %[[VAL_1:.*]] = tail call %[[VAL_2:.*]]* @__quantum__rt__qubit_allocate_array(i64 3)
-// CHECK:         %[[VAL_3:.*]] = tail call %[[VAL_2]]* @__quantum__rt__array_slice(%[[VAL_2]]* %[[VAL_1]], i32 1, i64 0, i64 1, i64 2)
 // CHECK:         %[[VAL_4:.*]] = extractvalue { i8*, i8* } %[[VAL_0]], 0
 // CHECK:         %[[VAL_5:.*]] = bitcast i8* %[[VAL_4]] to void (%[[VAL_2]]*)*
-// CHECK:         tail call void %[[VAL_5]](%[[VAL_2]]* %[[VAL_3]])
+// CHECK:         tail call void %[[VAL_5]](%[[VAL_2]]* %[[VAL_1]])
 // CHECK:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_2]]* %[[VAL_1]])
 // CHECK:         ret void
 // CHECK:       }
@@ -61,12 +60,11 @@ func.func @thud(%2 : !cc.ptr<!cc.callable<(!quake.veq<3>) -> ()>>) {
 // CHECK-LABEL: define void @thud({ i8*, i8* }* nocapture writeonly 
 // CHECK-SAME:                                                      %[[VAL_0:.*]]) local_unnamed_addr {
 // CHECK:         %[[VAL_1:.*]] = tail call %[[VAL_2:.*]]* @__quantum__rt__qubit_allocate_array(i64 3)
-// CHECK:         %[[VAL_3:.*]] = tail call %[[VAL_2]]* @__quantum__rt__array_slice(%[[VAL_2]]* %[[VAL_1]], i32 1, i64 0, i64 1, i64 2)
 // CHECK:         %[[VAL_4:.*]] = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %[[VAL_0]], i64 0, i32 0
 // CHECK:         store i8* bitcast (void (%[[VAL_2]]*)* @corge to i8*), i8** %[[VAL_4]], align 8
 // CHECK:         %[[VAL_5:.*]] = getelementptr inbounds { i8*, i8* }, { i8*, i8* }* %[[VAL_0]], i64 0, i32 1
 // CHECK:         store i8* null, i8** %[[VAL_5]], align 8
-// CHECK:         tail call void @corge(%[[VAL_2]]* %[[VAL_3]])
+// CHECK:         tail call void @corge(%[[VAL_2]]* %[[VAL_1]])
 // CHECK:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_2]]* %[[VAL_1]])
 // CHECK:         ret void
 // CHECK:       }

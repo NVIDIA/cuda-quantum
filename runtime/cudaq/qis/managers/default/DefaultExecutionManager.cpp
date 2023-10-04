@@ -102,7 +102,7 @@ protected:
     flushRequestedAllocations();
 
     // Get the data, create the Qubit* targets
-    auto [gateName, parameters, controls, targets] = instruction;
+    auto [gateName, parameters, controls, targets, op] = instruction;
 
     // Map the Qudits to Qubits
     std::vector<std::size_t> localT;
@@ -139,6 +139,8 @@ protected:
               })
         .Case("swap",
               [&]() { simulator()->swap(localC, localT[0], localT[1]); })
+        .Case("exp_pauli",
+              [&]() { simulator()->applyExpPauli(parameters[0], localT, op); })
         .Default([&]() {
           throw std::runtime_error("[DefaultExecutionManager] invalid gate "
                                    "application requested " +
