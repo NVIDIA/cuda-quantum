@@ -48,7 +48,6 @@ jobs:
     steps:
       - name: Delete untagged cuda-quantum-devdeps images
         uses: actions/delete-package-versions@v4
-        continue-on-error: true
         with: 
           package-name: ${{ matrix.image_name }}
           package-type: 'container'
@@ -84,11 +83,10 @@ jobs:
       - name: Look up version numbers
         id: packages
         run: |
-          curl -X GET -H "Authorization: Bearer ${{env.GITHUB_TOKEN}}" https://api.github.com/orgs/${{ github.repository_owner }}/packages/container/${{ matrix.image_name }}/versions
+          curl -X GET -H "Authorization: Bearer ${{ github.token }}" https://api.github.com/orgs/${{ github.repository_owner }}/packages/container/${{ matrix.image_name }}/versions
 
       - name: Delete matching signatures
         if: steps.sig_files.outputs.tags_to_remove
-        continue-on-error: true
         uses: actions/delete-package-versions@v4
         with: 
           package-name: ${{ matrix.image_name }}
