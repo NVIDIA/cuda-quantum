@@ -28,7 +28,7 @@ struct ghz {
 };
 
 int main() {
-  auto counts = cudaq::sample(ghz{}, 30);
+  auto counts = cudaq::sample(ghz{}, 28);
   counts.dump();
 
   // Fine grain access to the bits and counts
