@@ -57,7 +57,7 @@ Ubuntu 22.04, for example, the following commands install the necessary MPI
 libraries:
 
 ```console
-  sudo apt-get update && sudo apt-get install -y openmpi-common openmpi-bin
+  sudo apt-get update && sudo apt-get install -y openmpi-common openmpi-bin libopenmpi-dev
 ```
 
 ## Running CUDA Quantum
