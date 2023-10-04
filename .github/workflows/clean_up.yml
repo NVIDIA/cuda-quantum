@@ -47,10 +47,11 @@ jobs:
 
     steps:
       - name: Delete untagged cuda-quantum-devdeps images
-        uses: actions/delete-package-versions@v3
+        uses: actions/delete-package-versions@v4
         continue-on-error: true
         with: 
           package-name: ${{ matrix.image_name }}
+          package-type: 'container'
           min-versions-to-keep: 20
           delete-only-untagged-versions: 'true'
 
@@ -84,9 +85,10 @@ jobs:
       - name: Delete matching signatures
         if: steps.sig_files.outputs.tags_to_remove
         continue-on-error: true
-        uses: actions/delete-package-versions@v3
+        uses: actions/delete-package-versions@v4
         with: 
           package-name: ${{ matrix.image_name }}
+          package-type: 'container'
           package-version-ids: '${{ steps.sig_files.outputs.tags_to_remove }}'
 
   # We use environments to deploy to a public registry after PRs are merged.
