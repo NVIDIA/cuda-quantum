@@ -125,14 +125,13 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
       cudaqLibPath / fmt::format("libnvqir.{}", libSuffix),
       cudaqLibPath / fmt::format("libcudaq.{}", libSuffix)};
 
-  const char *statevec_dynlibs_var = std::getenv("CUDAQ_DYNLIBS");
-  if (statevec_dynlibs_var != nullptr) {
-    std::string statevec_dynlib;
-    std::stringstream ss((std::string(statevec_dynlibs_var)));
-    while (std::getline(ss, statevec_dynlib, ':')) {
-      cudaq::info("Init: add custatevec dynamic library path {}.",
-                  statevec_dynlib);
-      libPaths.push_back(statevec_dynlib);
+  const char *dynlibs_var = std::getenv("CUDAQ_DYNLIBS");
+  if (dynlibs_var != nullptr) {
+    std::string dynlib;
+    std::stringstream ss((std::string(dynlibs_var)));
+    while (std::getline(ss, dynlib, ':')) {
+      cudaq::info("Init: add dynamic library path {}.", dynlib);
+      libPaths.push_back(dynlib);
     }
   }
 

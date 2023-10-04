@@ -11,7 +11,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 add_cudaq_library(OptCodeGen
-  LowerToBaseProfileQIR.cpp
+  LowerToQIRProfile.cpp
   LowerToQIR.cpp
   Passes.cpp
   RefToVeqAlloc.cpp
