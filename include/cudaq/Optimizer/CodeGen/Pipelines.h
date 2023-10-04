@@ -20,9 +20,14 @@
 
 namespace cudaq::opt {
 
-// Pipeline builder to convert Quake to QIR.
-template <bool BaseProfile = false>
-void addPipelineToQIR(mlir::PassManager &pm) {
+/// @brief Pipeline builder to convert Quake to QIR. `convertTo` should be
+/// specified if `QIRProfile` is true.
+/// @param QIRProfile whether or not this is lowering to a specific QIR profile
+/// @param pm Pass manager to append passes to
+/// @param convertTo String name of qir profile (e.g., qir-base, qir-adaptive)
+template <bool QIRProfile = false>
+void addPipelineToQIR(mlir::PassManager &pm,
+                      llvm::StringRef convertTo = "qir-base") {
   cudaq::opt::addAggressiveEarlyInlining(pm);
   pm.addPass(mlir::createCanonicalizerPass());
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
@@ -41,8 +46,8 @@ void addPipelineToQIR(mlir::PassManager &pm) {
   pm.addPass(mlir::createCanonicalizerPass());
   pm.addPass(mlir::createCSEPass());
   pm.addPass(cudaq::opt::createConvertToQIRPass());
-  if constexpr (BaseProfile) {
-    cudaq::opt::addBaseProfilePipeline(pm);
+  if constexpr (QIRProfile) {
+    cudaq::opt::addQIRProfilePipeline(pm, convertTo);
   }
 }
 
