@@ -786,7 +786,7 @@ class TwoTargetOp<string mnemonic, list<Trait> traits = []> :
 // Unitary quantum transformations
 //===----------------------------------------------------------------------===//
 
-def ExpPauliOp : QuakeOp<"exp_pauli", []> {
+def ExpPauliOp : QuakeOp<"exp_pauli"> {
   let summary = "General Pauli tensor product rotation";
   let description = [{
     This operation affects a general Pauli tensor product rotation on 
