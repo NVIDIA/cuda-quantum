@@ -40,11 +40,11 @@ manager. On Ubuntu 22.04, for example, the following commands install all
 optional CUDA dependencies:
 
 ```console
-  arch=x86_64 # set this to sbsa for ARM processors
-  sudo apt-get update && sudo apt-get install -y wget
-  wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/$arch/cuda-keyring_1.0-1_all.deb
-  sudo dpkg -i cuda-keyring_1.0-1_all.deb
-  sudo apt-get update && sudo apt-get install -y cuda-toolkit-11.8
+arch=x86_64 # set this to sbsa for ARM processors
+sudo apt-get update && sudo apt-get install -y wget
+wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/$arch/cuda-keyring_1.0-1_all.deb
+sudo dpkg -i cuda-keyring_1.0-1_all.deb && rm cuda-keyring_1.0-1_all.deb
+sudo apt-get update && sudo apt-get install -y cuda-toolkit-11.8
 ```
 
 Detailed instructions for how to install the complete CUDA toolkit on different
@@ -52,12 +52,14 @@ operating systems can be found in the [CUDA
 documentation](https://docs.nvidia.com/cuda/).
 
 If you have several GPUs available but no MPI installation yet, we recommend
-taking a look at the [OpenMPI documentation](https://docs.open-mpi.org/). On
-Ubuntu 22.04, for example, the following commands install the necessary MPI
+taking a look at the [OpenMPI documentation](https://docs.open-mpi.org/)
+and installing [mpi4py](https://mpi4py.readthedocs.io/).
+On Ubuntu 22.04, for example, the following commands install the necessary MPI
 libraries:
 
 ```console
-  sudo apt-get update && sudo apt-get install -y openmpi-common openmpi-bin
+sudo apt-get update && sudo apt-get install -y libopenmpi-dev
+python3 -m pip install mpi4py
 ```
 
 ## Running CUDA Quantum
