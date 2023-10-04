@@ -83,7 +83,7 @@ jobs:
       - name: Look up version numbers
         id: packages
         run: |
-          curl -X GET -H "Authorization: Bearer ${{ github.token }}" https://api.github.com/orgs/${{ github.repository_owner }}/packages/container/${{ matrix.image_name }}/versions > packages.json
+          gh api --paginate --method GET https://api.github.com/orgs/${{ github.repository_owner }}/packages/container/${{ matrix.image_name }}/versions > packages.json
           cat packages.json
           for tag in ${{ steps.sig_files.outputs.tags_to_remove }}; do
             echo "Finding version id for tag ${tag%,}."
@@ -95,9 +95,11 @@ jobs:
           done
           echo "[${delete:2}]"
           echo "versions_to_remove=${delete:2}" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Delete matching signatures
-        if: steps.sig_files.outputs.tags_to_remove
+        if: steps.packages.outputs.versions_to_remove
         uses: actions/delete-package-versions@v4
         with: 
           package-name: ${{ matrix.image_name }}
