@@ -83,7 +83,8 @@ jobs:
       - name: Look up version numbers
         id: packages
         run: |
-          gh api --paginate --method GET https://api.github.com/orgs/${{ github.repository_owner }}/packages/container/${{ matrix.image_name }}/versions > packages.json
+          gh api -X GET --paginate -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" \
+            /orgs/${{ github.repository_owner }}/packages/container/${{ matrix.image_name }}/versions >> packages.json
           cat packages.json
           for tag in ${{ steps.sig_files.outputs.tags_to_remove }}; do
             echo "Finding version id for tag ${tag%,}."
