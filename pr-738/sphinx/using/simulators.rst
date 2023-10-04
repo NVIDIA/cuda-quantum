@@ -44,13 +44,26 @@ options to :code:`nvq++`
 
 .. code:: bash 
 
-    nvq++ --target nvidia-mgpu src.cpp ...
+    nvq++ --target nvidia-mgpu -o program.out src.cpp ...
 
-In python, this can be specified with 
+In Python, this can be specified with 
 
 .. code:: python 
 
     cudaq.set_target('nvidia-mgpu')
+
+The multi-node multi-GPU simulator expects to run within an MPI context. A program compiled with :code:`nvq++`, for example, is invoked with
+
+.. code:: bash 
+
+    mpirun -np 2 ./program.out
+
+To use the multi-node multi-GPU backend from Python, follow the instructions for installing dependencies in the `Project Description <https://pypi.org/project/cuda-quantum/|version|/#description>`__. 
+Using `mpi4py <https://mpi4py.readthedocs.io/>`__, for example, a `program.py` can be invoked from the command line with
+
+.. code:: bash 
+
+    mpiexec -np 2 python3.10 -m mpi4py program.py
 
 .. note:: 
 
