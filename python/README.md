@@ -58,7 +58,7 @@ On Ubuntu 22.04, for example, the following commands install the necessary MPI
 libraries:
 
 ```console
-sudo apt-get update && sudo apt-get install -y libopenmpi-dev
+sudo apt-get update && sudo apt-get install -y libopenmpi-dev libpython3-dev gcc
 python3 -m pip install mpi4py
 ```
 
