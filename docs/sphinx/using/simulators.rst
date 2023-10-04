@@ -58,7 +58,7 @@ The multi-node multi-GPU simulator expects to run within an MPI context. A progr
 
     mpirun -np 2 ./program.out
 
-To use the multi-node multi-GPU backend from Python, follow the instructions for installing dependencies in the `Project Description <https://pypi.org/project/cuda-quantum/|version|/#description>`__. 
+To use the multi-node multi-GPU backend from Python, follow the instructions for installing dependencies in the `Project Description <https://pypi.org/project/cuda-quantum/#description>`__. 
 Using `mpi4py <https://mpi4py.readthedocs.io/>`__, for example, a `program.py` can be invoked from the command line with
 
 .. code:: bash 
