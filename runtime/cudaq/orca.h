@@ -8,4 +8,4 @@
 
 #pragma once
 
-#include "platform/orca/orca_platform.h"
+#include "platform/orca/orca_qpu.h"

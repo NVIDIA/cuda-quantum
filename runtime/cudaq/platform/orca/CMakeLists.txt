@@ -7,9 +7,8 @@
 # ============================================================================ #
 
 set(LIBRARY_NAME cudaq-orca-qpu)
-add_library(${LIBRARY_NAME} SHARED OrcaPlatform.cpp 
-   ../common/QuantumExecutionQueue.cpp)
-target_include_directories(${LIBRARY_NAME} PRIVATE . ../
+add_library(${LIBRARY_NAME} SHARED OrcaQPU.cpp)
+target_include_directories(${LIBRARY_NAME} PRIVATE .
     PUBLIC 
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
        $<INSTALL_INTERFACE:include>
@@ -29,8 +28,8 @@ install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-orca-qpu-targets DESTINATION lib)
 
 # install(EXPORT cudaq-orca-qpu-targets
-#         FILE CUDAQPlatformDefaultTargets.cmake
-#         NAMESPACE cudaq::
+#         FILE CUDAQQPUOrcaTargets.cmake
+#         NAMESPACE cudaq::orca::
 #         DESTINATION lib/cmake/cudaq)
 
 add_target_config(orca)
