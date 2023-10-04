@@ -33,12 +33,11 @@ __qpu__ void global_phase(double theta, cudaq::qubit &q) {
 ///
 /// This kernel performs a rotation in the adjacent Fermionic modes under the
 /// Jordan-Wigner mapping represented by this unitary matrix:
-// clang-format off
-/// |1  0                        0                        0         |
-/// |0  e^(i*phi/2)cos(phi/2)    -ie^(i*phi/2)sin(phi/2)  0         |
-/// |0  -ie^(i*phi/2)sin(phi/2)  e^{i*phi/2}cos(phi/2)    0         |
-/// |0  0                        0                        e^{i*phi} |
-// clang-format on
+///
+///   |1  0                        0                        0         |
+///   |0  e^(i*phi/2)cos(phi/2)    -ie^(i*phi/2)sin(phi/2)  0         |
+///   |0  -ie^(i*phi/2)sin(phi/2)  e^{i*phi/2}cos(phi/2)    0         |
+///   |0  0                        0                        e^{i*phi} |
 /// @param phi
 /// @param q0
 /// @param q1
@@ -69,6 +68,7 @@ __qpu__ void fermionic_swap(double phi, cudaq::qubit &q0, cudaq::qubit &q1) {
   // Global phase correction
   global_phase(phi / 2.0, q0);
 }
+
 namespace builder {
 /// @brief Add Fermionic SWAP rotation kernel (phi angle as a QuakeValue) to the
 /// kernel builder object

@@ -326,7 +326,6 @@ def test_givens_rotation_op():
     assert np.isclose(ss_01[1], -s, 1e-3)
     assert np.isclose(ss_01[2], c, 1e-3)
 
-
     test_10 = cudaq.make_kernel()
     qubits_10  = test_10.qalloc(2)
     test_10.x(qubits_10[1])
