@@ -220,7 +220,7 @@ The number of shots for a kernel execution can be set through
 the ``shots_count`` argument to ``cudaq.sample`` or ``cudaq.observe``. By default,
 the ``shots_count`` is set to 1000.
 
-.. code:: python 
+.. code:: python
 
     cudaq.sample(kernel, shots_count=10000)
 

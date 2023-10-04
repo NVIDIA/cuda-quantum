@@ -98,8 +98,8 @@ do
     echo "Source: $ex"
     let "samples+=1"
 
-    if [[ "$ex" == *"ionq"* ]] || [[ "$ex" == *"quantinuum"* ]];
-    then 
+    if [[ "$ex" == *"iqm"* ]] || [[ "$ex" == *"ionq"* ]] || [[ "$ex" == *"quantinuum"* ]];
+    then
         let "skipped+=1"
         echo "Skipped.";
     else
@@ -128,8 +128,8 @@ do
     let "samples+=1"
     for t in $requested_backends
     do
-        if [[ "$ex" == *"ionq"* ]] || [[ "$ex" == *"quantinuum"* ]];
-        then 
+        if [[ "$ex" == *"iqm"* ]] || [[ "$ex" == *"ionq"* ]] || [[ "$ex" == *"quantinuum"* ]];
+        then
             let "skipped+=1"
             echo "Skipping $t target.";
 
