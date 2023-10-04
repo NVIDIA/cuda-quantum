@@ -165,7 +165,7 @@ jobs:
         uses: sigstore/cosign-installer@v3.1.1
 
       - name: Sign image with GitHub OIDC Token
-        if: inputs.environment
+        if: inputs.environment && false # Signing is disabled as long as the package is private, since we can't clean up signatures in that case
         env:
           DIGEST: ${{ steps.docker_build.outputs.digest }}
           TAGS: ${{ steps.metadata.outputs.tags }}

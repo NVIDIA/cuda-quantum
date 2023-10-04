@@ -23,7 +23,11 @@ RUN for folder in `find "$CUDA_QUANTUM_PATH/assets"/*$(uname -m)/* -maxdepth 0 -
 RUN apt-get install -y --no-install-recommends \
         cuda-nvtx-11-8 libcusolver-11-8 libopenblas-openmp-dev \
         # just here for convenience:
-        curl jq
+        curl jq 
+RUN if [ -n "$MPI_ROOT" ] && [ -x "$(command -v pip)" ]; then \
+         apt-get install -y --no-install-recommends gcc \
+         && pip install --no-cache-dir mpi4py~=3.1; \
+    fi
 
 # Make sure that apt-get remains updated at the end!;
 # If we don't do that, then apt-get will get confused when some CUDA
