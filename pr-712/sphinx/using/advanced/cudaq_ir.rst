@@ -134,7 +134,7 @@ The tools available are
 
 1. :code:`cudaq-quake` - Lower C++ to Quake, can also output classical LLVM IR file
 2. :code:`cudaq-opt` - Process Quake with various MLIR Passes
-3. :code:`cudaq-translate` - Lower Quake to external representations like QIR (or Base Profile QIR)
+3. :code:`cudaq-translate` - Lower Quake to external representations like QIR
 
 CUDA Quantum and :code:`nvq++` rely on Quake for the core quantum intermediate representation.
 Quake represents an IR closer to the CUDA Quantum source language and models qubits and
