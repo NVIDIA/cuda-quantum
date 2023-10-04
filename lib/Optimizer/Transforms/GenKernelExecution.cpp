@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Builder/CUDAQBuilder.h"
+#include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
@@ -159,7 +159,7 @@ public:
     auto vecFromBuff = builder.create<cudaq::cc::CastOp>(
         loc, cudaq::cc::PointerType::get(builder.getI8Type()), fromBuff);
     builder.create<func::CallOp>(
-        loc, std::nullopt, llvmMemCopyIntrinsic,
+        loc, std::nullopt, cudaq::llvmMemCopyIntrinsic,
         SmallVector<Value>{vecToBuffer, vecFromBuff, bytes, notVolatile});
     // Increment vecToBuffer by size bytes.
     return builder.create<cudaq::cc::ComputePtrOp>(
@@ -461,7 +461,8 @@ public:
     auto ptrTy = cudaq::cc::PointerType::get(builder.getContext());
     auto castData = builder.create<cudaq::cc::CastOp>(loc, ptrTy, data);
     auto castSret = builder.create<cudaq::cc::CastOp>(loc, ptrTy, sret);
-    builder.create<func::CallOp>(loc, std::nullopt, stdvecBoolCtorFromInitList,
+    builder.create<func::CallOp>(loc, std::nullopt,
+                                 cudaq::stdvecBoolCtorFromInitList,
                                  ArrayRef<Value>{castSret, castData, size});
   }
 
@@ -692,13 +693,15 @@ public:
       module.emitError("could not load malloc");
       return;
     }
-    if (failed(irBuilder.loadIntrinsic(module, stdvecBoolCtorFromInitList))) {
+    if (failed(irBuilder.loadIntrinsic(module,
+                                       cudaq::stdvecBoolCtorFromInitList))) {
       module.emitError(std::string("could not load ") +
-                       stdvecBoolCtorFromInitList);
+                       cudaq::stdvecBoolCtorFromInitList);
       return;
     }
-    if (failed(irBuilder.loadIntrinsic(module, llvmMemCopyIntrinsic))) {
-      module.emitError(std::string("could not load ") + llvmMemCopyIntrinsic);
+    if (failed(irBuilder.loadIntrinsic(module, cudaq::llvmMemCopyIntrinsic))) {
+      module.emitError(std::string("could not load ") +
+                       cudaq::llvmMemCopyIntrinsic);
       return;
     }
     if (failed(irBuilder.loadIntrinsic(module, "__nvqpp_zeroDynamicResult"))) {
