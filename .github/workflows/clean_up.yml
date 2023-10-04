@@ -64,7 +64,6 @@ jobs:
 
       - name: Find matching signatures files
         id: sig_files
-        shell: bash
         run: |
           regctl="docker run ghcr.io/regclient/regctl@sha256:f25e95d626ee8858ef13fd1a45c6a865dfeb647b15210f1b6cc8547e49e9d95f"
           image=ghcr.io/nvidia/${{ matrix.image_name }}
@@ -81,6 +80,11 @@ jobs:
             fi
           done
           echo "tags_to_remove=${delete:2}" >> $GITHUB_OUTPUT
+
+      - name: Look up version numbers
+        id: packages
+        run: |
+          curl -X GET -H "Authorization: Bearer ${{env.GITHUB_TOKEN}}" https://api.github.com/orgs/${{ github.repository_owner }}/packages/container/${{ matrix.image_name }}/versions
 
       - name: Delete matching signatures
         if: steps.sig_files.outputs.tags_to_remove
