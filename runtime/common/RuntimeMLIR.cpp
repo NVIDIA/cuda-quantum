@@ -142,7 +142,7 @@ void applyWriteOnlyAttributes(llvm::Module *llvmModule) {
 // overlap.
 // Reference:
 // https://github.com/qir-alliance/qir-spec/blob/main/specification/under_development/profiles/Base_Profile.md?plain=1#L237
-mlir::LogicalResult verifyMeasurementOrdering(llvm::Module *llvmModule) {
+mlir::LogicalResult verifyBaseProfileMeasOrdering(llvm::Module *llvmModule) {
   bool irreversibleSeenYet = false;
   for (llvm::Function &func : *llvmModule)
     for (llvm::BasicBlock &block : func)
@@ -321,14 +321,32 @@ mlir::LogicalResult verifyQubitAndResultRanges(llvm::Module *llvmModule) {
 }
 
 // Verify that only the allowed LLVM instructions are present
-mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule) {
+mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
+                                           bool isBaseProfile) {
+  bool isAdaptiveProfile = !isBaseProfile;
   for (llvm::Function &func : *llvmModule)
     for (llvm::BasicBlock &block : func)
       for (llvm::Instruction &inst : block) {
-        // Only call, br, and ret instructions are allowed at the top level.
-        if (!llvm::isa<llvm::CallBase>(inst) &&
-            !llvm::isa<llvm::BranchInst>(inst) &&
-            !llvm::isa<llvm::ReturnInst>(inst)) {
+        // Only specific instructions are allowed at the top level, depending on
+        // the specific profile
+        bool isValidBaseProfileInstruction =
+            llvm::isa<llvm::CallBase>(inst) ||
+            llvm::isa<llvm::BranchInst>(inst) ||
+            llvm::isa<llvm::ReturnInst>(inst);
+        // Note: there is an outstanding question about the adaptive profile
+        // with respect to `switch` and `select` instructions. They are
+        // currently described as "optional" in the spec, but there is no way to
+        // specify their presence via module flags. So to be cautious, for now
+        // we will assume they are not allowed in cuda-quantum programs.
+        bool isValidAdaptiveProfileInstruction = isValidBaseProfileInstruction;
+        // bool isValidAdaptiveProfileInstruction =
+        //     isValidBaseProfileInstruction ||
+        //     llvm::isa<llvm::SwitchInst>(inst) ||
+        //     llvm::isa<llvm::SelectInst>(inst);
+        if (isBaseProfile && !isValidBaseProfileInstruction) {
+          llvm::errs() << "error - invalid instruction found: " << inst << '\n';
+          return failure();
+        } else if (isAdaptiveProfile && !isValidAdaptiveProfileInstruction) {
           llvm::errs() << "error - invalid instruction found: " << inst << '\n';
           return failure();
         }
@@ -366,6 +384,9 @@ qirProfileTranslationFunction(const char *qirProfile, Operation *op,
   const uint32_t qir_major_version = 1;
   const uint32_t qir_minor_version = 0;
 
+  const bool isAdaptiveProfile = std::string{qirProfile} == "qir-adaptive";
+  const bool isBaseProfile = !isAdaptiveProfile;
+
   auto context = op->getContext();
   PassManager pm(context);
   if (printIntermediateMLIR)
@@ -398,6 +419,26 @@ qirProfileTranslationFunction(const char *qirProfile, Operation *op,
                             "dynamic_qubit_management", falseValue);
   llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
                             "dynamic_result_management", falseValue);
+  if (isAdaptiveProfile) {
+    auto trueValue =
+        llvm::ConstantInt::getTrue(llvm::Type::getInt1Ty(*llvmContext));
+    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                              "qubit_resetting", trueValue);
+    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                              "classical_ints", falseValue);
+    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                              "classical_floats", falseValue);
+    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                              "classical_fixed_points", falseValue);
+    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                              "user_functions", falseValue);
+    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                              "dynamic_float_args", falseValue);
+    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                              "extern_functions", falseValue);
+    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                              "backwards_branching", falseValue);
+  }
 
   // Note: optimizeLLVM is the one that is setting nonnull attributes on
   // the @__quantum__rt__result_record_output calls.
@@ -411,13 +452,13 @@ qirProfileTranslationFunction(const char *qirProfile, Operation *op,
   if (failed(verifyOutputRecordingFunctions(llvmModule.get())))
     return failure();
 
-  if (failed(verifyMeasurementOrdering(llvmModule.get())))
+  if (isBaseProfile && failed(verifyBaseProfileMeasOrdering(llvmModule.get())))
     return failure();
 
   if (failed(verifyQubitAndResultRanges(llvmModule.get())))
     return failure();
 
-  if (failed(verifyLLVMInstructions(llvmModule.get())))
+  if (failed(verifyLLVMInstructions(llvmModule.get(), isBaseProfile)))
     return failure();
 
   // Map the LLVM Module to Bitcode that can be submitted

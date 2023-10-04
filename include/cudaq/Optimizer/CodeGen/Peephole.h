@@ -55,6 +55,17 @@ inline mlir::Value createMeasureCall(mlir::PatternRewriter &builder,
   return {};
 }
 
+inline mlir::Value createReadResultCall(mlir::PatternRewriter &builder,
+                                        mlir::Location loc,
+                                        mlir::OpResult result) {
+  auto i1Ty = mlir::IntegerType::get(builder.getContext(), 1);
+  return builder
+      .create<mlir::LLVM::CallOp>(loc, mlir::TypeRange{i1Ty},
+                                  cudaq::opt::QIRReadResultBody,
+                                  mlir::ArrayRef<mlir::Value>{result})
+      .getResult();
+}
+
 namespace {
 #include "cudaq/Optimizer/CodeGen/Peephole.inc"
 }
