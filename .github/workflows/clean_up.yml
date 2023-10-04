@@ -86,8 +86,10 @@ jobs:
           curl -X GET -H "Authorization: Bearer ${{ github.token }}" https://api.github.com/orgs/${{ github.repository_owner }}/packages/container/${{ matrix.image_name }}/versions > packages.json
           for tag in ${{ steps.sig_files.outputs.tags_to_remove }}; do
             version_id=`cat packages.json | jq ".[] | select(.metadata.package_type==\"container\" and (.metadata.container.tags[] | contains(\"${tag%,}\")))" | jq '.id'`
+            echo "Marking version $version_id for deletion."
             delete+=", $version_id"
           done
+          echo "[${delete:2}]"
           echo "versions_to_remove=${delete:2}" >> $GITHUB_OUTPUT
 
       - name: Delete matching signatures
