@@ -66,7 +66,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libstdc++-12-dev \
         libcurl4-openssl-dev \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* \
-    && python3 -m pip install --no-cache-dir numpy \
+    && python_modules=$([ -n "$MPI_ROOT" ] && echo "mpi4py~=3.1 numpy" || echo "numpy" ) \
+    && echo $python_modules | xargs python3 -m pip install --no-cache-dir \
     && ln -s /bin/python3 /bin/python
 
 ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:/usr/include/c++/12/:/usr/include/$(uname -m)-linux-gnu/c++/12"
