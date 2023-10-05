@@ -41,11 +41,7 @@ __qpu__ void grover() {
     reflect_uniform(qubits);
   }
 
-// TODO: Extend measurement support for submissions to IonQ,
-// see https://github.com/NVIDIA/cuda-quantum/issues/512.
-#ifndef IONQ_TARGET
   mz(qubits);
-#endif
 };
 
 int main() {

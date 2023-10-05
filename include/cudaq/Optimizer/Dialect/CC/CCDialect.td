@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #ifndef CUDAQ_DIALECT_CC_DIALECT
 #define CUDAQ_DIALECT_CC_DIALECT
@@ -32,6 +32,7 @@ def CCDialect : Dialect {
 
   let cppNamespace = "cudaq::cc";
   let useDefaultTypePrinterParser = 1;
+  let useFoldAPI = kEmitFoldAdaptorFolder;
 
   let extraClassDeclaration = [{
     /// Register all CC types.

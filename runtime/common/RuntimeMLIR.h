@@ -22,8 +22,15 @@ class Module;
 }
 
 namespace cudaq {
+/// @brief Function to lower MLIR to target
+/// @param op MLIR operation
+/// @param output Output stream
+/// @param additionalPasses Additional passes to run at the end
+/// @param printIR Print IR to stderr
+/// @param printIntermediateMLIR Print IR in between each pass
 using TranslateFromMLIRFunction = std::function<mlir::LogicalResult(
-    mlir::Operation *, llvm::raw_string_ostream &, bool, bool)>;
+    mlir::Operation *, llvm::raw_string_ostream &, const std::string &, bool,
+    bool)>;
 
 /// @brief Initialize MLIR with CUDA Quantum dialects and return the
 /// MLIRContext.
@@ -51,9 +58,12 @@ public:
 
   /// Invoke the translation function with the given input and output streams.
   mlir::LogicalResult operator()(mlir::Operation *op,
-                                 llvm::raw_string_ostream &output, bool printIR,
+                                 llvm::raw_string_ostream &output,
+                                 const std::string &additionalPasses,
+                                 bool printIR,
                                  bool printIntermediateMLIR) const {
-    return function(op, output, printIR, printIntermediateMLIR);
+    return function(op, output, additionalPasses, printIR,
+                    printIntermediateMLIR);
   }
 
 private:

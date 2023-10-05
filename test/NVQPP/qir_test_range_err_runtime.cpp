@@ -6,22 +6,24 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake -verify %s
+// Note: change |& to 2>&1| if running in bash
+// RUN: nvq++ %s -o %basename_t.x --target quantinuum --emulate && ./%basename_t.x |& FileCheck %s
 
 #include <cudaq.h>
+#include <iostream>
 
-struct T {
-   void operator()(int N) __qpu__ {
-      cudaq::qreg Q(N);
-      x(Q);
-   }
+__qpu__ void init_state(int N) {
+  cudaq::qreg q(N);
+  x(q[0]);
+  mz(q[99]); // compiler can't catch this error, but runtime can
 };
 
-struct S {
-   void operator()() __qpu__ {
-      int arr[3];
-      T{}(arr[0]); // expected-error{{arrays in kernel}}
-      T{}(arr[1]); // expected-error{{arrays in kernel}}
-      T{}(arr[2]); // expected-error{{arrays in kernel}}
-   }
-};
+int main() {
+  auto result = cudaq::sample(1000, init_state, 5);
+  for (auto &&[bits, counts] : result) {
+    std::cout << bits << '\n';
+  }
+  return 0;
+}
+
+// CHECK: error: 'quake.extract_ref' op invalid index [99] because >= size [5]

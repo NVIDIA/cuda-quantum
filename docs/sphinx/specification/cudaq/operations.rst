@@ -22,36 +22,10 @@ of that instruction on all provided :code:`cudaq::qudits`, e.g. :code:`void x(cu
 :code:`x(cudaq::qubit&, cudaq::qubit&, cudaq::qubit&)`, modeling the NOT operation on a single 
 :code:`cudaq::qubit` or on multiple :code:`cudaq::qubit`. 
 
-The specific set of quantum intrinsic operations available to the programmer
-will be platform specific, e.g. the standard Clifford+T gate set on
-:code:`cudaq::qubit` versus a continuous variable (photonic) gate set on 
-:code:`cudaq::qudit<N>`. 
-
-Implementations should provide overloads to support broadcasting of an
-operation across a register of :code:`cudaq::qudit`, e.g. :code:`x(cudaq::qreg<>&)`
-to apply a NOT operation on all :code:`cudaq::qubit` in the provided :code:`cudaq::qreg`. 
-
-Programmers can further modify quantum intrinsic operations via an extra specified template
-parameter, and CUDA Quantum leverages this syntax for synthesizing control and adjoint variants of the operation.
-Here is an example of how one might modify an intrinsic operation for multi-control
-and adjoint operations. 
-
-.. code-block:: cpp
-
-    cudaq::qubit q, r, s;
-    // Apply T operation
-    t(q);
-    // Apply Tdg operation
-    t<cudaq::adj>(q);
-    // Apply control hadamard operation
-    h<cudaq::ctrl>(q,r,s);
-    // Error, ctrl requires > 1 qubit operands
-    // h<cudaq::ctrl>(r);
-
-Operations on :code:`cudaq::qubit`
-----------------------------------
-The default set of quantum intrinsic operations for the
-:code:`cudaq::qubit` type is as follows: 
+Implementations should provide overloads to support broadcasting of single-qubit
+intrinsic operations across a register of :code:`cudaq::qudit`.
+For example, :code:`x(cudaq::qreg<>&)` should apply a NOT operation on all :code:`cudaq::qubit` in the provided :code:`cudaq::qreg`. 
+A set of quantum intrinsic operations for the :code:`cudaq::qubit` then for example looks as follows, where :code:`NAME`, :code:`ROTATION_NAME`, and :code:`MEASURE_OP` stand for the names of single-qubit operations, single-qubit rotations, and measurement operations respectively: 
 
 .. code-block:: cpp 
 
@@ -74,33 +48,9 @@ The default set of quantum intrinsic operations for the
       template <typename mod = base, typename ScalarAngle, typename... QubitArgs> 
       void ROTATION_NAME(ScalarAngle angle, QubitArgs &...args) noexcept { ... }
  
-      // General swap with control variants
-      // must take at least 2 qubits
-      template<typename... QubitArgs>
-      void swap(QubitArgs&... args) { ... }
- 
       bool MEASURE_OP(qubit &q) noexcept;
       std::vector<bool> MEASURE_OP(qreg &q) noexcept;
       double measure(cudaq::spin_op & term) noexcept { ... }
   }
 
-For the default implementation of the :code:`cudaq::qubit` intrinsic operations, we
-let :code:`NAME` be any operation name in the set :code:`{x, y, z, h, t, s}`
-and :code:`ROTATION_NAME` be any operation in :code:`{rx, ry, rz, r1 (phase)}`. 
-Measurements (:code:`MEASURE_OP`) can be general qubit measurements in the x, y, or z 
-direction (:code:`mx, my, mz`). 
-Implementations may provide appropriate function implementations using the
-above foundational functions to enable other common operations
-(e.g. :code:`cnot` -> :code:`x<ctrl>`).
-
-Control qubits can be specified with positive or negative polarity. By this we mean
-that a control qubit can specify that a target operation is applied if the control 
-qubit state is a :code:`|0>` (positive polarity) or :code:`|1>` (negative polarity). 
-By default all control qubits are assumed to convey positive polarity. 
-The syntax for negating the polarity is the not operator preceeding the
-control qubit (e.g., :code:`x<cudaq::ctrl>(!q, r)`, 
-for :code:`cudaq::qubits` :code:`q` and :code:`r`). Negating the polarity of
-control qubits is supported in :code:`swap` and the gates in sets :code:`NAME`
-or :code:`ROTATION_NAME`. The negate notation is only supported on control
-qubits and not target qubits. So negating either of the target qubits in the
-:code:`swap` operation is not allowed.
+The set of gates that the official CUDA Quantum implementation supports can be found in the :doc:`API documentation </api/api>`.

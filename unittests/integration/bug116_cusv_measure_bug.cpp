@@ -22,7 +22,6 @@ CUDAQ_TEST(Bug116CuSVMeasure, checkMeasure) {
     }
   };
 
-  auto &platform = cudaq::get_platform();
   auto counts = cudaq::sample(10, run_circuit{}, true);
   EXPECT_EQ(1, counts.size());
   EXPECT_EQ("10", counts.begin()->first);
@@ -32,5 +31,4 @@ CUDAQ_TEST(Bug116CuSVMeasure, checkMeasure) {
   EXPECT_EQ(1, counts2.size());
   EXPECT_EQ("0", counts2.begin()->first);
   EXPECT_EQ(10, counts2.count("0"));
-  platform.clear_shots();
 }

@@ -33,6 +33,7 @@ header:
     - 'examples'
     - 'tpls'
     - 'docs/sphinx/_templates'
+    - 'docs/sphinx/_static/cuda_quantum_icon.svg'
     - 'runtime/cudaq/algorithms/optimizers/nlopt/nlopt-src'
 
   comment: on-failure

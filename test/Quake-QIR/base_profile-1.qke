@@ -42,5 +42,5 @@ module {
     return
   }
   // CHECK: attributes #0 = { "irreversible" }
-  // CHECK: attributes #1 = { "entry_point" "output_labeling_schema"="schema_id" "qir_profiles"="base_profile" "requiredQubits"="3" "requiredResults"="3" }
+  // CHECK: attributes #1 = { "entry_point" "output_labeling_schema"="schema_id" "output_names"="{{.*}}" "qir_profiles"="base_profile" "requiredQubits"="3" "requiredResults"="3" }
 }

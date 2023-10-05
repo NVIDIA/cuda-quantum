@@ -591,6 +591,20 @@ def test_sample_n():
         assert len(c) == 2
 
 
+def test_index_out_of_range():
+    """
+    Test the `cudaq.kernel` for out-of-range errors
+    """
+    kernel = cudaq.make_kernel()
+    # Allocate a register of size 3.
+    qreg = kernel.qalloc(3)
+    kernel.x(qreg[99])
+
+    with pytest.raises(Exception) as error:
+        # Index out of range
+        result = cudaq.sample(kernel)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

@@ -143,6 +143,11 @@ func.func @quantum_ops() {
   quake.u2 (%f, %g) [%46] %7 : (f32, f32, !quake.veq<3>, !quake.ref) -> ()
   quake.u3 (%f, %g, %47) [%46] %7 : (f32, f32, f64, !quake.veq<3>, !quake.ref) -> ()
 
+  // Exp Pauli and StringLiteral
+  %f2 = arith.constant 12.0 : f64
+  %48 = cc.string_literal "XXY" : !cc.ptr<!cc.array<i8 x 4>>
+  quake.exp_pauli (%f2) %46, %48 : (f64, !quake.veq<3>, !cc.ptr<!cc.array<i8 x 4>>) -> ()
+  
   return
 }
 
@@ -219,8 +224,8 @@ func.func @quantum_ops() {
 // CHECK:           %[[VAL_49:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_50:.*]] = quake.alloca !quake.ref
 // CHECK:           quake.apply @apply_kernel %[[VAL_49]], %[[VAL_50]] : (i32, !quake.ref) -> ()
-// CHECK:           quake.apply @apply_kernel{{\[}}%[[VAL_47]], %[[VAL_48]]] %[[VAL_49]], %[[VAL_50]] : (!quake.ref, !quake.veq<2>, i32, !quake.ref) -> ()
-// CHECK:           quake.apply<adj> @apply_kernel{{\[}}%[[VAL_47]], %[[VAL_48]]] %[[VAL_49]], %[[VAL_50]] : (!quake.ref, !quake.veq<2>, i32, !quake.ref) -> ()
+// CHECK:           quake.apply @apply_kernel [%[[VAL_47]], %[[VAL_48]]] %[[VAL_49]], %[[VAL_50]] : (!quake.ref, !quake.veq<2>, i32, !quake.ref) -> ()
+// CHECK:           quake.apply<adj> @apply_kernel [%[[VAL_47]], %[[VAL_48]]] %[[VAL_49]], %[[VAL_50]] : (!quake.ref, !quake.veq<2>, i32, !quake.ref) -> ()
 // CHECK:           %[[VAL_51:.*]] = cc.undef !cc.callable<() -> ()> {compute_action = true}
 // CHECK:           %[[VAL_52:.*]] = cc.undef !cc.callable<() -> ()>
 // CHECK:           quake.compute_action %[[VAL_51]], %[[VAL_52]] : !cc.callable<() -> ()>, !cc.callable<() -> ()>
@@ -250,6 +255,9 @@ func.func @quantum_ops() {
 // CHECK:           quake.rz (%[[VAL_20]]) {{\[}}%[[VAL_54]]] %[[VAL_10]] : (f32, !quake.veq<3>, !quake.ref) -> ()
 // CHECK:           quake.u2 (%[[VAL_20]], %[[VAL_21]]) {{\[}}%[[VAL_54]]] %[[VAL_10]] : (f32, f32, !quake.veq<3>, !quake.ref) -> ()
 // CHECK:           quake.u3 (%[[VAL_20]], %[[VAL_21]], %[[VAL_53]]) {{\[}}%[[VAL_54]]] %[[VAL_10]] : (f32, f32, f64, !quake.veq<3>, !quake.ref) -> ()
+// CHECK:           %[[VAL_59:.*]] = arith.constant 1.200000e+01 : f64
+// CHECK:           %[[VAL_60:.*]] = cc.string_literal "XXY" : !cc.ptr<!cc.array<i8 x 4>>
+// CHECK:           quake.exp_pauli(%[[VAL_59]]) %[[VAL_54]], %[[VAL_60]] : (f64, !quake.veq<3>, !cc.ptr<!cc.array<i8 x 4>>) -> ()
 // CHECK:           return
 // CHECK:         }
 

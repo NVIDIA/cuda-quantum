@@ -124,7 +124,7 @@ void noise_model::add_channel(const std::string &quantumOp,
 
 std::vector<kraus_channel>
 noise_model::get_channels(const std::string &quantumOp,
-                          const std::vector<std::size_t> &qubits) {
+                          const std::vector<std::size_t> &qubits) const {
   auto key = std::make_pair(quantumOp, qubits);
   auto iter = noiseModel.find(key);
   if (iter == noiseModel.end()) {

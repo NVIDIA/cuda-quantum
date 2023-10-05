@@ -299,6 +299,8 @@ int main(int argc, char **argv) {
   // Process the command-line options, including reading in a file.
   [[maybe_unused]] llvm::InitLLVM unused(argc, argv);
   cl::ParseCommandLineOptions(argc, argv, toolName);
+  if (showVersion)
+    llvm::errs() << "nvq++ Version " << cudaq::getVersion() << '\n';
   ErrorOr<std::unique_ptr<MemoryBuffer>> fileOrError =
       MemoryBuffer::getFileOrSTDIN(inputFilename);
   if (auto ec = fileOrError.getError()) {
@@ -340,10 +342,6 @@ int main(int argc, char **argv) {
     llvm::errs() << diag.getLocation() << ':' << severity << ": " << diag.str()
                  << '\n';
   });
-
-  if (showVersion) {
-    llvm::errs() << "nvq++ Version " << cudaq::getVersion() << '\n';
-  }
 
   // Process arguments.
   std::vector<std::string> clArgs = {"-std=c++20", "-resource-dir",

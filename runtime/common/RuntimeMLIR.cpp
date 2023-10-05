@@ -94,12 +94,19 @@ bool setupTargetTriple(llvm::Module *llvmModule) {
   return true;
 }
 
-void optimizeLLVM(llvm::Module *module, bool enableOpt) {
+void optimizeLLVM(llvm::Module *module) {
   auto optPipeline = makeOptimizingTransformer(
-      /*optLevel=*/enableOpt ? 3 : 0, /*sizeLevel=*/0,
+      /*optLevel=*/3, /*sizeLevel=*/0,
       /*targetMachine=*/nullptr);
   if (auto err = optPipeline(module))
     throw std::runtime_error("Failed to optimize LLVM IR ");
+
+  // Remove memory attributes from entry_point functions because the optimizer
+  // sometimes applies it to degenerate cases (empty programs), and IonQ cannot
+  // support that.
+  for (llvm::Function &func : *module)
+    if (func.hasFnAttribute("entry_point"))
+      func.removeFnAttr(llvm::Attribute::Memory);
 }
 
 void applyWriteOnlyAttributes(llvm::Module *llvmModule) {
@@ -147,8 +154,7 @@ mlir::LogicalResult verifyMeasurementOrdering(llvm::Module *llvmModule) {
           auto funcName = calledFunc->getName();
           bool isIrreversible = calledFunc->hasFnAttribute("irreversible");
           bool isReversible = !isIrreversible;
-          bool isOutputFunction =
-              funcName == cudaq::opt::QIRBaseProfileRecordOutput;
+          bool isOutputFunction = funcName == cudaq::opt::QIRRecordOutput;
           if (isReversible && !isOutputFunction && irreversibleSeenYet) {
             llvm::errs() << "error: reversible function " << funcName
                          << " came after irreversible function\n";
@@ -177,7 +183,7 @@ mlir::LogicalResult verifyOutputCalls(llvm::CallBase *callInst,
       if (!callInst->paramHasAttr(iArg, llvm::Attribute::NonNull)) {
         llvm::errs() << "error - nonnull attribute is missing from i8* "
                         "parameter of "
-                     << cudaq::opt::QIRBaseProfileRecordOutput << " function\n";
+                     << cudaq::opt::QIRRecordOutput << " function\n";
         return failure();
       }
 
@@ -243,10 +249,73 @@ mlir::LogicalResult verifyOutputRecordingFunctions(llvm::Module *llvmModule) {
         if (func && failed(verifyConstArguments(callInst)))
           return failure();
         // If it's an output function, do additional verification
-        if (func && func->getName() == cudaq::opt::QIRBaseProfileRecordOutput)
+        if (func && func->getName() == cudaq::opt::QIRRecordOutput)
           if (failed(verifyOutputCalls(callInst, outputList)))
             return failure();
       }
+  }
+  return success();
+}
+
+// Convert a `nullptr` or `inttoptr (i64 1 to Ptr)` into an integer
+std::size_t getArgAsInteger(llvm::Value *arg) {
+  std::size_t ret = 0; // handles the nullptr case
+  // Now handle the `inttoptr (i64 1 to Ptr)` case
+  auto constValue = dyn_cast<llvm::Constant>(arg);
+  if (auto constExpr = dyn_cast<llvm::ConstantExpr>(constValue))
+    if (constExpr->getOpcode() == llvm::Instruction::IntToPtr)
+      if (auto constInt = dyn_cast<llvm::ConstantInt>(constExpr->getOperand(0)))
+        ret = constInt->getZExtValue();
+  return ret;
+}
+
+#define CHECK_RANGE(_check_var, _limit_var)                                    \
+  do {                                                                         \
+    if (_check_var >= _limit_var) {                                            \
+      llvm::errs() << #_check_var << " [" << _check_var                        \
+                   << "] is >= " << #_limit_var << " [" << _limit_var          \
+                   << "]\n";                                                   \
+      return failure();                                                        \
+    }                                                                          \
+  } while (0)
+
+// Perform range checking on qubit and result values. This currently only checks
+// QIRMeasureBody and QIRRecordOutput. Checking more than that would
+// require comprehending the full list of possible QIS instructions, which is
+// not currently feasible.
+mlir::LogicalResult verifyQubitAndResultRanges(llvm::Module *llvmModule) {
+  std::size_t required_num_qubits = 0;
+  std::size_t required_num_results = 0;
+  for (llvm::Function &func : *llvmModule) {
+    if (func.hasFnAttribute("entry_point")) {
+      required_num_qubits = func.getFnAttributeAsParsedInteger(
+          "requiredQubits", required_num_qubits);
+      required_num_results = func.getFnAttributeAsParsedInteger(
+          "requiredResults", required_num_results);
+      break; // no need to keep looking
+    }
+  }
+  for (llvm::Function &func : *llvmModule) {
+    for (llvm::BasicBlock &block : func) {
+      for (llvm::Instruction &inst : block) {
+        if (auto callInst = llvm::dyn_cast_or_null<llvm::CallBase>(&inst)) {
+          if (auto func = callInst->getCalledFunction()) {
+            // All results must be in range for output recording functions
+            if (func->getName() == cudaq::opt::QIRRecordOutput) {
+              auto result = getArgAsInteger(callInst->getArgOperand(0));
+              CHECK_RANGE(result, required_num_results);
+            }
+            // All qubits and results must be in range for measurements
+            else if (func->getName() == cudaq::opt::QIRMeasureBody) {
+              auto qubit = getArgAsInteger(callInst->getArgOperand(0));
+              auto result = getArgAsInteger(callInst->getArgOperand(1));
+              CHECK_RANGE(qubit, required_num_qubits);
+              CHECK_RANGE(result, required_num_results);
+            }
+          }
+        }
+      }
+    }
   }
   return success();
 }
@@ -282,101 +351,107 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule) {
   return success();
 }
 
-/// @brief Returns true if the quantum kernel no longer has any instructions
-/// remaining (other than the trivial "ret void" instruction)
-bool isEmptyKernel(llvm::Module *llvmModule) {
-  for (llvm::Function &func : *llvmModule) {
-    // Ignore functions that aren't tagged with entry_point
-    if (!func.hasFnAttribute("entry_point"))
-      continue;
-    for (llvm::BasicBlock &block : func) {
-      for (llvm::Instruction &inst : block) {
-        // Return false on the first non-ret instruction found
-        if (inst.getOpcode() != llvm::Instruction::Ret) {
-          return false;
-        }
-      }
-    }
-  }
-  return true;
-}
+/// @brief Function to lower MLIR to a specific QIR profile
+/// @param op MLIR operation
+/// @param output Output stream
+/// @param additionalPasses Additional passes to run at the end
+/// @param printIR Print IR to stderr
+/// @param printIntermediateMLIR Print IR in between each pass
+mlir::LogicalResult
+qirProfileTranslationFunction(const char *qirProfile, Operation *op,
+                              llvm::raw_string_ostream &output,
+                              const std::string &additionalPasses, bool printIR,
+                              bool printIntermediateMLIR) {
 
-void registerToQIRTranslation() {
   const uint32_t qir_major_version = 1;
   const uint32_t qir_minor_version = 0;
 
-  cudaq::TranslateFromMLIRRegistration reg(
-      "qir", "translate from quake to qir base profile",
-      [](Operation *op, llvm::raw_string_ostream &output, bool printIR,
-         bool printIntermediateMLIR) {
-        auto context = op->getContext();
-        PassManager pm(context);
-        if (printIntermediateMLIR)
-          pm.enableIRPrinting();
-        std::string errMsg;
-        llvm::raw_string_ostream errOs(errMsg);
-        auto qirBasePipelineConfig =
-            "func.func(combine-quantum-alloc),canonicalize,cse,quake-to-qir,"
-            "base-profile-pipeline";
-        if (failed(parsePassPipeline(qirBasePipelineConfig, pm, errOs)))
-          return failure();
-        if (failed(pm.run(op)))
-          return failure();
+  auto context = op->getContext();
+  PassManager pm(context);
+  if (printIntermediateMLIR)
+    pm.enableIRPrinting();
+  std::string errMsg;
+  llvm::raw_string_ostream errOs(errMsg);
+  cudaq::opt::addPipelineToQIR</*QIRProfile=*/true>(pm, qirProfile);
+  // Add additional passes if necessary
+  if (!additionalPasses.empty() &&
+      failed(parsePassPipeline(additionalPasses, pm, errOs)))
+    return failure();
+  if (failed(pm.run(op)))
+    return failure();
 
-        auto llvmContext = std::make_unique<llvm::LLVMContext>();
-        llvmContext->setOpaquePointers(false);
-        auto llvmModule = translateModuleToLLVMIR(op, *llvmContext);
+  auto llvmContext = std::make_unique<llvm::LLVMContext>();
+  llvmContext->setOpaquePointers(false);
+  auto llvmModule = translateModuleToLLVMIR(op, *llvmContext);
 
-        // Apply required attributes for the Base Profile
-        applyWriteOnlyAttributes(llvmModule.get());
+  // Apply required attributes for the Base Profile
+  applyWriteOnlyAttributes(llvmModule.get());
 
-        // Add required module flags for the Base Profile
-        llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                                  "qir_major_version", qir_major_version);
-        llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Max,
-                                  "qir_minor_version", qir_minor_version);
-        auto falseValue =
-            llvm::ConstantInt::getFalse(llvm::Type::getInt1Ty(*llvmContext));
-        llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                                  "dynamic_qubit_management", falseValue);
-        llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                                  "dynamic_result_management", falseValue);
+  // Add required module flags for the Base Profile
+  llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                            "qir_major_version", qir_major_version);
+  llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Max,
+                            "qir_minor_version", qir_minor_version);
+  auto falseValue =
+      llvm::ConstantInt::getFalse(llvm::Type::getInt1Ty(*llvmContext));
+  llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                            "dynamic_qubit_management", falseValue);
+  llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                            "dynamic_result_management", falseValue);
 
-        // only enable optimization for non-empty kernels
-        bool enableOpt = !isEmptyKernel(llvmModule.get());
+  // Note: optimizeLLVM is the one that is setting nonnull attributes on
+  // the @__quantum__rt__result_record_output calls.
+  cudaq::optimizeLLVM(llvmModule.get());
+  if (!cudaq::setupTargetTriple(llvmModule.get()))
+    throw std::runtime_error("Failed to setup the llvm module target triple.");
 
-        // Note: optimizeLLVM is the one that is setting nonnull attributes on
-        // the @__quantum__rt__result_record_output calls.
-        cudaq::optimizeLLVM(llvmModule.get(), enableOpt);
-        if (!cudaq::setupTargetTriple(llvmModule.get()))
-          throw std::runtime_error(
-              "Failed to setup the llvm module target triple.");
+  if (printIR)
+    llvm::errs() << *llvmModule;
 
-        if (printIR)
-          llvm::errs() << *llvmModule;
+  if (failed(verifyOutputRecordingFunctions(llvmModule.get())))
+    return failure();
 
-        if (failed(verifyOutputRecordingFunctions(llvmModule.get())))
-          return failure();
+  if (failed(verifyMeasurementOrdering(llvmModule.get())))
+    return failure();
 
-        if (failed(verifyMeasurementOrdering(llvmModule.get())))
-          return failure();
+  if (failed(verifyQubitAndResultRanges(llvmModule.get())))
+    return failure();
 
-        if (failed(verifyLLVMInstructions(llvmModule.get())))
-          return failure();
+  if (failed(verifyLLVMInstructions(llvmModule.get())))
+    return failure();
 
-        // Map the LLVM Module to Bitcode that can be submitted
-        llvm::SmallString<1024> bitCodeMem;
-        llvm::raw_svector_ostream os(bitCodeMem);
-        llvm::WriteBitcodeToFile(*llvmModule, os);
-        output << llvm::encodeBase64(bitCodeMem.str());
-        return success();
-      });
+  // Map the LLVM Module to Bitcode that can be submitted
+  llvm::SmallString<1024> bitCodeMem;
+  llvm::raw_svector_ostream os(bitCodeMem);
+  llvm::WriteBitcodeToFile(*llvmModule, os);
+  output << llvm::encodeBase64(bitCodeMem.str());
+  return success();
+}
+
+void registerToQIRTranslation() {
+#define CREATE_QIR_REGISTRATION(_regName, _profile)                            \
+  cudaq::TranslateFromMLIRRegistration _regName(                               \
+      _profile, "translate from quake to " _profile,                           \
+      [](Operation *op, llvm::raw_string_ostream &output,                      \
+         const std::string &additionalPasses, bool printIR,                    \
+         bool printIntermediateMLIR) {                                         \
+        return qirProfileTranslationFunction(_profile, op, output,             \
+                                             additionalPasses, printIR,        \
+                                             printIntermediateMLIR);           \
+      })
+
+  // Base Profile and Adaptive Profile are very similar, so they use the same
+  // overall function. We just pass a string to it to tell the function which
+  // one is being done.
+  CREATE_QIR_REGISTRATION(regBase, "qir-base");
+  CREATE_QIR_REGISTRATION(regAdaptive, "qir-adaptive");
 }
 
 void registerToOpenQASMTranslation() {
   cudaq::TranslateFromMLIRRegistration reg(
       "qasm2", "translate from quake to openQASM 2.0",
-      [](Operation *op, llvm::raw_string_ostream &output, bool printIR,
+      [](Operation *op, llvm::raw_string_ostream &output,
+         const std::string &additionalPasses, bool printIR,
          bool printIntermediateMLIR) {
         PassManager pm(op->getContext());
         if (printIntermediateMLIR)
@@ -398,7 +473,8 @@ void registerToOpenQASMTranslation() {
 void registerToIQMJsonTranslation() {
   cudaq::TranslateFromMLIRRegistration reg(
       "iqm", "translate from quake to IQM's json format",
-      [](Operation *op, llvm::raw_string_ostream &output, bool printIR,
+      [](Operation *op, llvm::raw_string_ostream &output,
+         const std::string &additionalPasses, bool printIR,
          bool printIntermediateMLIR) {
         PassManager pm(op->getContext());
         if (printIntermediateMLIR)
@@ -428,7 +504,6 @@ std::unique_ptr<MLIRContext> initializeMLIR() {
     registerToOpenQASMTranslation();
     registerToIQMJsonTranslation();
     cudaq::opt::registerUnrollingPipeline();
-    cudaq::opt::registerBaseProfilePipeline();
     cudaq::opt::registerTargetPipelines();
     mlirLLVMInitialized = true;
   }
@@ -456,12 +531,7 @@ ExecutionEngine *createQIRJITEngine(ModuleOp &moduleOp) {
     PassManager pm(context);
     std::string errMsg;
     llvm::raw_string_ostream errOs(errMsg);
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
-    pm.addNestedPass<func::FuncOp>(
-        cudaq::opt::createCombineQuantumAllocations());
-    pm.addPass(createCanonicalizerPass());
-    pm.addPass(createCSEPass());
-    pm.addPass(cudaq::opt::createConvertToQIRPass());
+    cudaq::opt::addPipelineToQIR</*QIRProfile=*/false>(pm);
     if (failed(pm.run(module)))
       throw std::runtime_error(
           "[createQIRJITEngine] Lowering to QIR for remote emulation failed.");
