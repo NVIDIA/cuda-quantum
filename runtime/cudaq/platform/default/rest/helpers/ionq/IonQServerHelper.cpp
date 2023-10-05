@@ -109,7 +109,7 @@ void IonQServerHelper::initialize(BackendConfig config) {
     if (key.starts_with("output_names.")) {
       // Parse `val` into jobOutputNames.
       // Note: See `FunctionAnalysisData::resultQubitVals` of
-      // LowerToBaseProfileQIR.cpp for an example of how this was populated.
+      // LowerToQIRProfile.cpp for an example of how this was populated.
       OutputNamesType jobOutputNames;
       nlohmann::json outputNamesJSON = nlohmann::json::parse(val);
       for (const auto &el : outputNamesJSON[0]) {

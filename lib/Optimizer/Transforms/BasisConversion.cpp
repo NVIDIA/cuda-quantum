@@ -73,6 +73,18 @@ struct BasisTarget : public ConversionTarget {
         }
         return false;
       }
+
+      // Handle quake.exp_pauli.
+      if (isa<quake::ExpPauliOp>(op)) {
+        // If the target defines it as a legal op, return true, else false.
+        if (std::find_if(legalOperatorSet.begin(), legalOperatorSet.end(),
+                         [](auto &&el) { return el.name == "exp_pauli"; }) !=
+            legalOperatorSet.end())
+          return true;
+
+        return false;
+      }
+
       return true;
     });
   }

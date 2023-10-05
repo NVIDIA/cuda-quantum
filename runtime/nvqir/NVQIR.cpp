@@ -85,8 +85,12 @@ void setRandomSeed(std::size_t seed) {
   getCircuitSimulatorInternal()->setRandomSeed(seed);
 }
 
-thread_local static bool isBaseProfile = false;
-void toggleBaseProfile() { isBaseProfile = !isBaseProfile; }
+/// @brief The QIR spec allows for dynamic qubit management, where the qubit
+/// pointers are true pointers, but the Base Profile and Adaptive profiles
+/// require that qubits are identified by an integer value that is bitcast to a
+/// pointer.
+thread_local static bool qubitPtrIsIndex = false;
+void toggleDynamicQubitManagement() { qubitPtrIsIndex = !qubitPtrIsIndex; }
 
 /// @brief Tell the simulator we are about to finalize MPI.
 void tearDownBeforeMPIFinalize() {
@@ -124,7 +128,7 @@ std::vector<std::size_t> arrayToVectorSizeT(Array *arr) {
 
 /// @brief Utility function mapping a QIR Qubit pointer to its id
 std::size_t qubitToSizeT(Qubit *q) {
-  if (isBaseProfile)
+  if (qubitPtrIsIndex)
     return (intptr_t)q;
 
   return q->idx;
@@ -361,6 +365,14 @@ Result *__quantum__qis__mz__to__register(Qubit *q, const char *name) {
   cudaq::ScopedTrace trace("NVQIR::mz", qI, regName);
   auto b = nvqir::getCircuitSimulatorInternal()->mz(qI, regName);
   return b ? ResultOne : ResultZero;
+}
+
+void __quantum__qis__exp_pauli(double theta, Array *qubits, char *pauliWord) {
+  std::string pauliWordStr(pauliWord);
+  auto qubitsVec = arrayToVectorSizeT(qubits);
+  nvqir::getCircuitSimulatorInternal()->applyExpPauli(
+      theta, qubitsVec, cudaq::spin_op::from_word(pauliWordStr));
+  return;
 }
 
 void __quantum__rt__result_record_output(Result *, int8_t *) {}

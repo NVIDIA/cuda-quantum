@@ -15,12 +15,12 @@ on:
     types:
       - completed
 
-name: Packages
+name: Publishing
 
 jobs:
   assets:
     name: Assets
-    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.actor.id == '135836288')
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -108,7 +108,7 @@ jobs:
           if ${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') }}; then
             cudaq_version=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
           else
-            cudaq_version=0.0.0
+            cudaq_version=${release_version:-0.0.0}
           fi
 
           echo "release_title=$release_title" >> $GITHUB_OUTPUT
@@ -123,7 +123,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
       - name: Trigger assets creation
-        if: inputs.assets_from_run == ''
+        id: assets_creation
+        if: steps.artifacts.outputs.releases && inputs.assets_from_run == ''
         run: |
           # The commit title of the staging commit needs to match
           # the docker image that is used to build additional components.
@@ -172,6 +173,7 @@ jobs:
 
       # We can delete staging branch now after the expected draft releases have been created.
       - name: Clean up
+        if: steps.assets_creation.outcome != 'skipped'
         run: |
           # Clean up the staging branch that was used to trigger the GitLab pipeline.
           git config --global user.name "cuda-quantum-bot"
@@ -180,7 +182,7 @@ jobs:
             staging_branch=`echo "$2" | jq -r ".$1.staging_branch"`
             echo "Delete staging branch $staging_branch ..."
             if [[ "$staging_branch" =~ ^bot\/.*$ ]]; then
-              git push origin --delete $staging_branch || ${{ inputs.assets_from_run != '' }}
+              git push origin --delete $staging_branch
             else
               echo "Unexpected staging branch."
               exit 1
@@ -222,6 +224,7 @@ jobs:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
   
       - name: Upload assets
+        if: steps.artifacts.outputs.releases
         uses: actions/upload-artifact@v3
         with:
           name: downstream_assets
@@ -232,6 +235,7 @@ jobs:
           
   cudaq_hpc:
     name: CUDA Quantum Docker image
+    if: ${{ toJson(fromJson(needs.assets.outputs.docker_images).info_files) != '[]' }}
     needs: assets
     runs-on: ubuntu-latest
     permissions:
@@ -313,8 +317,8 @@ jobs:
         uses: docker/login-action@v2
         with:
           registry: ${{ steps.release_info.outputs.ngc_registry || vars.registry }}
-          username: ${{ (steps.release_info.outputs.ngc_registry != '' && '$oauthtoken') || github.actor }}
-          password: ${{ (steps.release_info.outputs.ngc_registry != '' && secrets.NGC_CREDENTIALS) || github.token }}
+          username: ${{ (steps.release_info.outputs.ngc_registry && '$oauthtoken') || github.actor }}
+          password: ${{ (steps.release_info.outputs.ngc_registry && secrets.NGC_CREDENTIALS) || github.token }}
 
       - name: Set up buildx runner
         uses: docker/setup-buildx-action@v2
@@ -353,6 +357,24 @@ jobs:
           DIGEST: ${{ steps.cudaq_build.outputs.digest }}
           TAGS: ${{ steps.metadata.outputs.tags }}
         run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
+
+      - name: Sign image with NGC CLI
+        if: steps.release_info.outputs.ngc_registry
+        env:
+          TAGS: ${{ steps.metadata.outputs.tags }}
+          NGC_CLI_API_KEY: ${{ secrets.NGC_CREDENTIALS }}
+          NGC_CLI_ORG: ${{ github.repository_owner }}
+          NGC_CLI_TEAM: 'nightly'
+        run: |
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends wget
+          wget -O ngccli_linux.zip --content-disposition \
+            https://api.ngc.nvidia.com/v2/resources/nvidia/ngc-apps/ngc_cli/versions/3.28.0/files/ngccli_linux.zip
+          if [ -z "$(sha256sum ngccli_linux.zip | grep -o '74f469a2082e90a4561f09eb0d483b67044e91be727066122253436c140a7b54 ')" ]; then
+            echo "::error::NGC CLI was corrupted during download." && exit 1
+          fi
+          unzip ngccli_linux.zip && chmod u+x ngc-cli/ngc
+          echo "Signing ${TAGS}"
+          ngc-cli/ngc registry image publish --source ${TAGS} ${TAGS} --sign
 
       - name: Log in to the container registry
         if: vars.registry
@@ -428,7 +450,10 @@ jobs:
 
   cudaq_wheels:
     name: CUDA Quantum Python wheels
+    if: ${{ toJson(fromJson(needs.assets.outputs.python_wheels).info_files) != '[]' }}
     needs: assets
+    permissions:
+      contents: read
 
     environment:
       name: ghcr-deployment
@@ -514,10 +539,12 @@ jobs:
     name: Update release info of CUDA Quantum Python wheels
     needs: [assets, cudaq_wheels]
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
         info_file: ${{ fromJson(needs.assets.outputs.python_wheels).info_files }}
       fail-fast: false
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -583,31 +610,23 @@ jobs:
             if [ -n "$(cat $file | grep "GPU_REQUIREMENTS")" ]; then
               target=`basename $file | cut -d "." -f 1`
               echo "## Execute on $target target" >> $GITHUB_STEP_SUMMARY
-              for file in `find /home/cudaq/examples -name '*.cpp' -not -path '*/providers/*'`; do
-                case $file in
-                  /home/cudaq/examples/cpp/other/gradients.cpp)
-                    echo ":white_flag: Issue: https://github.com/NVIDIA/cuda-quantum/issues/622. Test skipped." >> $GITHUB_STEP_SUMMARY ;;
-                  /home/cudaq/examples/cpp/algorithms/qaoa_maxcut.cpp)
-                    echo ":white_flag: Issue: https://github.com/NVIDIA/cuda-quantum/issues/623. Test skipped." >> $GITHUB_STEP_SUMMARY ;;
-                  *)
-                    ex=$(basename -- "$file")
-                    echo "Validating $ex:"
-                    nvq++ $file --target $target
-                    status=$?
-                    if [ $status -eq 0 ]; then
-                      ./a.out
-                      status=$?
-                      if [ $status -eq 0 ]; then
-                        echo ":white_check_mark: Successfully ran $ex." >> $GITHUB_STEP_SUMMARY
-                      else
-                        echo ":x: Failed to execute $ex." >> $GITHUB_STEP_SUMMARY
-                        status_sum=$((status_sum+1))
-                      fi
-                    else
-                      echo ":x: Compilation failed for $ex." >> $GITHUB_STEP_SUMMARY
-                      status_sum=$((status_sum+1))
-                    fi ;;
-                esac
+              for ex in `find /home/cudaq/examples -name '*.cpp' -not -path '*/providers/*'`; do
+                filename=$(basename -- "$ex")
+                nvq++ $ex --target $target
+                status=$?
+                if [ $status -eq 0 ]; then
+                  ./a.out
+                  status=$?
+                  if [ $status -eq 0 ]; then
+                    echo ":white_check_mark: Successfully ran $filename." >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo ":x: Failed to execute $filename." >> $GITHUB_STEP_SUMMARY
+                    status_sum=$((status_sum+1))
+                  fi
+                else
+                  echo ":x: Compilation failed for $filename." >> $GITHUB_STEP_SUMMARY
+                  status_sum=$((status_sum+1))
+                fi
               done
             fi
           done
