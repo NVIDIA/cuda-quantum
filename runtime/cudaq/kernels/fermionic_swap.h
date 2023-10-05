@@ -13,8 +13,8 @@ namespace cudaq {
 /// @brief Apply global phase (e^(i * theta)).
 /// Note: since this is a global phase, the qubit operand can be selected
 /// arbitrarily from the qubit register to which the global phase is applied.
-/// @param theta
-/// @param q
+/// @param theta Global phase value (in rads)
+/// @param q Qubit operand
 __qpu__ void global_phase(double theta, cudaq::qubit &q) {
   // R1(theta) and Rz(theta) are equivalent upto a global phase.
   // Hence, R1(phi) Rz(-phi) sequence results in a global phase of e^(i *
@@ -38,10 +38,9 @@ __qpu__ void global_phase(double theta, cudaq::qubit &q) {
 ///   |0  e^(i*phi/2)cos(phi/2)    -ie^(i*phi/2)sin(phi/2)  0         |
 ///   |0  -ie^(i*phi/2)sin(phi/2)  e^{i*phi/2}cos(phi/2)    0         |
 ///   |0  0                        0                        e^{i*phi} |
-/// @param phi
-/// @param q0
-/// @param q1
-/// @return
+/// @param phi Rotation angle (in rads)
+/// @param q0 First qubit operand
+/// @param q1 Second qubit operand
 __qpu__ void fermionic_swap(double phi, cudaq::qubit &q0, cudaq::qubit &q1) {
   h(q0);
   h(q1);
@@ -72,11 +71,6 @@ __qpu__ void fermionic_swap(double phi, cudaq::qubit &q0, cudaq::qubit &q1) {
 namespace builder {
 /// @brief Add Fermionic SWAP rotation kernel (phi angle as a QuakeValue) to the
 /// kernel builder object
-/// @tparam KernelBuilder
-/// @param kernel
-/// @param phi
-/// @param q0
-/// @param q1
 template <typename KernelBuilder>
 void fermionic_swap(KernelBuilder &kernel, cudaq::QuakeValue phi,
                     cudaq::QuakeValue q0, cudaq::QuakeValue q1) {
@@ -109,11 +103,6 @@ void fermionic_swap(KernelBuilder &kernel, cudaq::QuakeValue phi,
 
 /// @brief Add Fermionic SWAP rotation kernel (fixed phi angle) to the kernel
 /// builder object
-/// @tparam KernelBuilder
-/// @param kernel
-/// @param phi
-/// @param q0
-/// @param q1
 template <typename KernelBuilder>
 void fermionic_swap(KernelBuilder &kernel, double phi, cudaq::QuakeValue q0,
                     cudaq::QuakeValue q1) {
