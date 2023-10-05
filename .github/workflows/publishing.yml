@@ -224,6 +224,7 @@ jobs:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
   
       - name: Upload assets
+        if: steps.artifacts.outputs.releases
         uses: actions/upload-artifact@v3
         with:
           name: downstream_assets

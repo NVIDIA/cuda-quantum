@@ -7,8 +7,8 @@
 # ============================================================================ #
 
 add_mlir_dialect_library(OptimBuilder
-  CUDAQBuilder.cpp
   Factory.cpp
+  Intrinsics.cpp
 
   DEPENDS
     CCDialect
