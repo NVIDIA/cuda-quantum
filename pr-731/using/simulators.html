@@ -420,7 +420,7 @@ options to <code class="code docutils literal notranslate"><span class="pre">nvq
 switch to <code class="code docutils literal notranslate"><span class="pre">FP64</span></code>, specify the <code class="code docutils literal notranslate"><span class="pre">nvidia-fp64</span></code> target instead.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This backend requires an NVIDIA GPU and CUDA runtime libraries. See the section <a class="reference internal" href="../install.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a> for more information.</p>
+<p>This backend requires an NVIDIA GPU and CUDA runtime libraries. If you are do not have these dependencies installed, you may encounter an error stating <code class="code docutils literal notranslate"><span class="pre">Invalid</span> <span class="pre">simulator</span> <span class="pre">requested</span></code>. See the section <a class="reference internal" href="../install.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a> for more information about how to install dependencies.</p>
 </div>
 </section>
 <section id="cuquantum-multi-node-multi-gpu">
@@ -430,16 +430,25 @@ the <code class="code docutils literal notranslate"><span class="pre">cuStateVec
 state vector.</p>
 <p>To specify the use of the <code class="code docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> target, pass the following command line
 options to <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code></p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>nvidia-mgpu<span class="w"> </span>src.cpp<span class="w"> </span>...
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>nvidia-mgpu<span class="w"> </span>-o<span class="w"> </span>program.out<span class="w"> </span>src.cpp<span class="w"> </span>...
 </pre></div>
 </div>
-<p>In python, this can be specified with</p>
+<p>In Python, this can be specified with</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;nvidia-mgpu&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The multi-node multi-GPU simulator expects to run within an MPI context. A program compiled with <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code>, for example, is invoked with</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mpirun<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>./program.out
+</pre></div>
+</div>
+<p>To use the multi-node multi-GPU backend from Python, follow the instructions for installing dependencies in the <a class="reference external" href="https://pypi.org/project/cuda-quantum/#description">Project Description</a>.
+Using <a class="reference external" href="https://mpi4py.readthedocs.io/">mpi4py</a>, for example, a <code class="code docutils literal notranslate"><span class="pre">program.py</span></code> can be invoked from the command line with</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>python3.10<span class="w"> </span>-m<span class="w"> </span>mpi4py<span class="w"> </span>program.py
 </pre></div>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This backend requires an NVIDIA GPU, CUDA runtime libraries, as well as an MPI installation. See the section <a class="reference internal" href="../install.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a> for more information.</p>
+<p>This backend requires an NVIDIA GPU, CUDA runtime libraries, as well as an MPI installation. If you are do not have these dependencies installed, you may encounter an error stating <code class="code docutils literal notranslate"><span class="pre">Invalid</span> <span class="pre">simulator</span> <span class="pre">requested</span></code>. See the section <a class="reference internal" href="../install.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a> for more information about how to install dependencies.</p>
 </div>
 </section>
 <section id="openmp-cpu-only">
@@ -459,7 +468,7 @@ the <code class="code docutils literal notranslate"><span class="pre">cuTensorNe
 Multi-Node, Multi-GPU distribution of tensor operations required to evaluate and simulate the circuit.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This backend requires an NVIDIA GPU and CUDA runtime libraries. See the section <a class="reference internal" href="../install.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a> for more information.</p>
+<p>This backend requires an NVIDIA GPU and CUDA runtime libraries. If you are do not have these dependencies installed, you may encounter an error stating <code class="code docutils literal notranslate"><span class="pre">Invalid</span> <span class="pre">simulator</span> <span class="pre">requested</span></code>. See the section <a class="reference internal" href="../install.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a> for more information about how to install dependencies.</p>
 </div>
 <p>This backend exposes a set of environment variables to configure specific aspects of the simulation:</p>
 <ul class="simple">
