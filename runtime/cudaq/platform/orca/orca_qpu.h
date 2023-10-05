@@ -34,7 +34,6 @@ cudaq::sample_result sample(std::vector<double> &bs_angles,
                            n_samples};
   cudaq::ExecutionContext context("sample", n_samples);
   auto &platform = get_platform();
-  platform.setTargetBackend("orca");
   platform.set_exec_ctx(&context, 0);
   cudaq::altLaunchKernel("orca_launch", nullptr, &parameters,
                          sizeof(TBIParameters), 0);

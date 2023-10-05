@@ -62,8 +62,10 @@ protected:
   /// @brief The name of the QPU being targeted
   std::string qpuName;
 
-  // Pointer to the concrete Executor for this QPU
-  // std::unique_ptr<cudaq::Executor> executor;
+  /// @brief The base URL
+  std::string baseUrl;
+  /// @brief The machine we are targeting
+  std::string machine = "PT-1";
 
   /// @brief Mapping of general key-values for backend
   /// configuration.
@@ -161,7 +163,7 @@ public:
 
   /// @brief Initializes the server helper with the provided backend
   /// configuration.
-  void initialize(cudaq::BackendConfig config);
+  void initialize();
 
   /// @brief Launch the kernel. Extract the Quake code and lower to
   /// the representation required by the targeted backend. Handle all pertinent
@@ -205,6 +207,7 @@ void OrcaRemoteRESTQPU::setTargetBackend(const std::string &backend) {
 
   // Set the qpu name
   qpuName = mutableBackend;
+  initialize();
 }
 
 /// @brief Launch the kernel. Extract the Quake code and lower to
@@ -246,25 +249,17 @@ void OrcaRemoteRESTQPU::launchKernel(const std::string &kernelName,
 }
 
 // Initialize the ORCA server helper with a given backend configuration
-void OrcaRemoteRESTQPU::initialize(cudaq::BackendConfig config) {
-  cudaq::info("Initializing ORCA Backend.");
-  // Move the passed config into the member variable backendConfig
-  // Set the necessary configuration variables for the ORCA API
-  backendConfig["url"] =
-      config.find("url") != config.end() ? config["url"] : "https://xxx.xxx.xx";
-  backendConfig["version"] = "v0.3";
-  backendConfig["user_agent"] = "cudaq/0.3.0";
-  backendConfig["target"] =
-      config.find("qpu") != config.end() ? config["qpu"] : "simulator";
-  backendConfig["qubits"] = 29;
-  // Retrieve the noise model setting (if provided)
-  if (config.find("noise") != config.end())
-    backendConfig["noise_model"] = config["noise"];
-  // Retrieve the API key from the environment variables
-  // backendConfig["token"] = getEnvVar("ORCA_API_KEY");
-  // Construct the API job path
-  backendConfig["job_path"] =
-      backendConfig["url"] + '/' + backendConfig["version"] + "/jobs";
+void OrcaRemoteRESTQPU::initialize() {
+  // Set the machine
+  auto iter = backendConfig.find("machine");
+  if (iter != backendConfig.end())
+    machine = iter->second;
+
+  // Set an alternate base URL if provided
+  iter = backendConfig.find("url");
+  if (iter != backendConfig.end()) {
+    baseUrl = iter->second;
+  }
 }
 
 // Check if a key exists in the backend configuration bool
@@ -277,7 +272,7 @@ cudaq::ServerJobPayload OrcaRemoteRESTQPU::createJob(TBIParameters params) {
   std::vector<cudaq::ServerMessage> jobs;
   // Construct the job message
   cudaq::ServerMessage job;
-  job["target"] = "PT-Series";
+  job["target"] = machine;
 
   job["bs_angles"] = params.bs_angles;
   job["ps_angles"] = params.ps_angles;
@@ -288,8 +283,7 @@ cudaq::ServerJobPayload OrcaRemoteRESTQPU::createJob(TBIParameters params) {
   jobs.push_back(job);
 
   // Return a tuple containing the job path, headers, and the job message
-  auto ret =
-      std::make_tuple("http://localhost:8080/sample", getHeaders(), jobs);
+  auto ret = std::make_tuple(baseUrl, getHeaders(), jobs);
   return ret;
 }
 
