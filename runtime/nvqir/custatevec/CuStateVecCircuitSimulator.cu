@@ -365,12 +365,15 @@ public:
 
   /// @brief Override base class functionality for a general Pauli
   /// rotation to delegate to the performant custatevecApplyPauliRotation.
-  void applyExpPauli(double theta, const std::vector<std::size_t> &qubits,
+  void applyExpPauli(double theta, const std::vector<std::size_t> &controlIds,
+                     const std::vector<std::size_t> &qubits,
                      const cudaq::spin_op &op) override {
     flushGateQueue();
     cudaq::info(" [cusv decomposing] exp_pauli({}, {})", theta,
                 op.to_string(false));
     std::vector<int> controls, targets;
+    for (const auto &bit : controlIds)
+      controls.emplace_back(static_cast<int>(bit));
     std::vector<custatevecPauli_t> paulis;
     op.for_each_pauli([&](cudaq::pauli p, std::size_t i) {
       if (p == cudaq::pauli::I)
