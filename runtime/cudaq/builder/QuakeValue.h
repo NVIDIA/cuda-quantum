@@ -118,6 +118,12 @@ public:
   /// @brief Multiply this QuakeValue by the given QuakeValue
   QuakeValue operator*(QuakeValue other);
 
+  /// @brief Divide this QuakeValue by the given double.
+  QuakeValue operator/(const double);
+
+  /// @brief Divide this QuakeValue by the given QuakeValue
+  QuakeValue operator/(QuakeValue other);
+
   /// @brief Add this QuakeValue with the given double.
   QuakeValue operator+(const double);
 
@@ -148,6 +154,11 @@ concept IsNumericType = requires(T param) { std::is_convertible_v<T, double>; };
 QuakeValue operator*(IsNumericType auto &&d, IsQuakeValue auto &&q) {
   return q * d;
 }
+
+QuakeValue operator*(IsQuakeValue auto &&q, IsNumericType auto &&d) {
+  return q * d;
+}
+
 QuakeValue operator-(IsNumericType auto &&d, IsQuakeValue auto &&q) {
   return -q + d;
 }

@@ -181,7 +181,8 @@ public:
     qpp::RandomDevices::get_instance().get_prng().seed(seed);
   }
 
-  void applyExpPauli(double theta, const std::vector<std::size_t> &qubitIds,
+  void applyExpPauli(double theta, const std::vector<std::size_t> &controls,
+                     const std::vector<std::size_t> &qubitIds,
                      const cudaq::spin_op &op) override {
     flushGateQueue();
     cudaq::info(" [qpp decomposing] exp_pauli({}, {})", theta,
@@ -211,7 +212,9 @@ public:
       toReverse.emplace_back(qubitSupport[i], qubitSupport[i + 1]);
     }
 
-    rz(theta, qubitSupport.back());
+    // Since this is a compute-action-uncompute type circuit, we only need to
+    // apply control on this rz gate.
+    rz(-2.0 * theta, controls, qubitSupport.back());
 
     std::reverse(toReverse.begin(), toReverse.end());
     for (auto &[i, j] : toReverse)
