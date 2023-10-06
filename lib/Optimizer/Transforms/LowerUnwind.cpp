@@ -83,8 +83,9 @@ private:
       for (Operation *parent = unwindOp->getParentOp();
            !isa<cudaq::cc::LoopOp>(parent) && !asPrimitive;
            parent = parent->getParentOp())
-        asPrimitive = isa<func::FuncOp, cudaq::cc::CreateLambdaOp,
-                          cudaq::cc::ScopeOp, cudaq::cc::IfOp>(parent);
+        asPrimitive =
+            isa<func::FuncOp, cudaq::cc::CreateLambdaOp, cudaq::cc::ScopeOp>(
+                parent);
     }
     auto *op = unwindOp.getOperation();
     infoMap.opParentMap.insert({op, {parent, asPrimitive}});
@@ -482,11 +483,9 @@ struct IfOpPattern : public OpRewritePattern<cudaq::cc::IfOp> {
                                 PatternRewriter &rewriter) const override {
     auto iter = infoMap.opParentMap.find(ifOp.getOperation());
     assert(iter != infoMap.opParentMap.end());
-    if (!iter->second.asPrimitive)
-      return success();
     LLVM_DEBUG(llvm::dbgs() << "replacing if @" << ifOp.getLoc() << '\n');
 
-    // Decompose the cc.loop to a CFG.
+    // Decompose the cc.if to a CFG.
     auto loc = ifOp.getLoc();
     auto *initBlock = rewriter.getInsertionBlock();
     auto initPos = rewriter.getInsertionPoint();
@@ -503,31 +502,37 @@ struct IfOpPattern : public OpRewritePattern<cudaq::cc::IfOp> {
     auto *elseBlock = hasElse ? &ifOp.getElseRegion().front() : endBlock;
     updateBodyBranches(&ifOp.getThenRegion(), rewriter, endBlock);
     updateBodyBranches(&ifOp.getElseRegion(), rewriter, endBlock);
-    // Append blocks to tailRegion
-    auto &tailRegion = hasElse ? ifOp.getElseRegion() : ifOp.getThenRegion();
-    auto blockMapIter = infoMap.blockDetails.find(ifOp.getOperation());
-    assert(blockMapIter != infoMap.blockDetails.end());
-    auto &details = blockMapIter->second;
-    for (auto &pr : details.blockMap) {
-      auto &blockInfo = pr.second;
-      assert(details.allocaDomMap.find(pr.first)->second.empty());
-      if (auto *blk = blockInfo.continueBlock) {
-        rewriter.setInsertionPointToEnd(blk);
-        auto *dest = getLandingPad(infoMap, ifOp).continueBlock;
-        rewriter.create<cf::BranchOp>(loc, dest, blk->getArguments());
-        tailRegion.push_back(blk);
-      }
-      if (auto *blk = blockInfo.breakBlock) {
-        rewriter.setInsertionPointToEnd(blk);
-        auto *dest = getLandingPad(infoMap, ifOp).breakBlock;
-        rewriter.create<cf::BranchOp>(loc, dest, blk->getArguments());
-        tailRegion.push_back(blk);
-      }
-      if (auto *blk = blockInfo.returnBlock) {
-        rewriter.setInsertionPointToEnd(blk);
-        auto *dest = getLandingPad(infoMap, ifOp).returnBlock;
-        rewriter.create<cf::BranchOp>(loc, dest, blk->getArguments());
-        tailRegion.push_back(blk);
+    // If the if statement is marked as primitive, add the jumps to the
+    // continue, break, and/or return blocks of the parent. Otherwise, the
+    // control-flow will be within the region of the parent and the branches
+    // aren't needed.
+    if (iter->second.asPrimitive) {
+      // Append blocks to tailRegion.
+      auto &tailRegion = hasElse ? ifOp.getElseRegion() : ifOp.getThenRegion();
+      auto blockMapIter = infoMap.blockDetails.find(ifOp.getOperation());
+      assert(blockMapIter != infoMap.blockDetails.end());
+      auto &details = blockMapIter->second;
+      for (auto &pr : details.blockMap) {
+        auto &blockInfo = pr.second;
+        assert(details.allocaDomMap.find(pr.first)->second.empty());
+        if (auto *blk = blockInfo.continueBlock) {
+          rewriter.setInsertionPointToEnd(blk);
+          auto *dest = getLandingPad(infoMap, ifOp).continueBlock;
+          rewriter.create<cf::BranchOp>(loc, dest, blk->getArguments());
+          tailRegion.push_back(blk);
+        }
+        if (auto *blk = blockInfo.breakBlock) {
+          rewriter.setInsertionPointToEnd(blk);
+          auto *dest = getLandingPad(infoMap, ifOp).breakBlock;
+          rewriter.create<cf::BranchOp>(loc, dest, blk->getArguments());
+          tailRegion.push_back(blk);
+        }
+        if (auto *blk = blockInfo.returnBlock) {
+          rewriter.setInsertionPointToEnd(blk);
+          auto *dest = getLandingPad(infoMap, ifOp).returnBlock;
+          rewriter.create<cf::BranchOp>(loc, dest, blk->getArguments());
+          tailRegion.push_back(blk);
+        }
       }
     }
     rewriter.inlineRegionBefore(ifOp.getThenRegion(), endBlock);
@@ -794,12 +799,16 @@ public:
     ConversionTarget target(*ctx);
     target.addIllegalOp<cudaq::cc::UnwindBreakOp, cudaq::cc::UnwindContinueOp,
                         cudaq::cc::UnwindReturnOp>();
-    target.addDynamicallyLegalOp<cudaq::cc::IfOp, cudaq::cc::LoopOp,
-                                 cudaq::cc::ScopeOp>([&](Operation *op) {
+    target.addDynamicallyLegalOp<cudaq::cc::LoopOp, cudaq::cc::ScopeOp>(
+        [&](Operation *op) {
+          auto iter = unwindInfo.opParentMap.find(op);
+          if (iter == unwindInfo.opParentMap.end())
+            return true;
+          return !iter->second.asPrimitive;
+        });
+    target.addDynamicallyLegalOp<cudaq::cc::IfOp>([&](Operation *op) {
       auto iter = unwindInfo.opParentMap.find(op);
-      if (iter == unwindInfo.opParentMap.end())
-        return true;
-      return !iter->second.asPrimitive;
+      return iter == unwindInfo.opParentMap.end();
     });
     target.addDynamicallyLegalOp<func::FuncOp, cudaq::cc::CreateLambdaOp>(
         [&](Operation *op) {
