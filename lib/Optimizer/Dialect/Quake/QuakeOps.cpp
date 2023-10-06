@@ -436,6 +436,49 @@ void quake::RelaxSizeOp::getCanonicalizationPatterns(
 // SubVeqOp
 //===----------------------------------------------------------------------===//
 
+struct RemoveSubVeqNoOpPattern : public OpRewritePattern<quake::SubVeqOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::SubVeqOp subVeqOp,
+                                PatternRewriter &rewriter) const override {
+    // Replace subveq operations that extract the entire original register
+    // with the original register.
+    auto origVeq = subVeqOp.getVeq();
+    auto low = subVeqOp.getLow();
+    auto high = subVeqOp.getHigh();
+
+    // The start of the subveq must be known
+    auto arithLow = low.getDefiningOp<arith::ConstantIntOp>();
+    if (!arithLow)
+      return failure();
+
+    // The end of the subveq must be known
+    auto arithHigh = high.getDefiningOp<arith::ConstantIntOp>();
+    if (!arithHigh)
+      return failure();
+
+    // The original veq size must be known
+    auto veqType = dyn_cast<quake::VeqType>(origVeq.getType());
+    if (!veqType.hasSpecifiedSize())
+      return failure();
+
+    // If the subveq is the whole register, than the
+    // start value must be 0
+    if (arithLow.value() != 0)
+      return failure();
+
+    // If the sizes are equal, then replace
+    if (static_cast<int64_t>(veqType.getSize()) == arithHigh.value() + 1) {
+      // this subveq is the whole original register, hence a no-op
+      rewriter.replaceOp(subVeqOp, origVeq);
+      return success();
+    }
+
+    // All else fail
+    return failure();
+  }
+};
+
 Value quake::createSizedSubVeqOp(PatternRewriter &builder, Location loc,
                                  OpResult result, Value inVec, Value lo,
                                  Value hi) {
@@ -454,7 +497,7 @@ Value quake::createSizedSubVeqOp(PatternRewriter &builder, Location loc,
 
 void quake::SubVeqOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                   MLIRContext *context) {
-  patterns.add<FuseConstantToSubveqPattern>(context);
+  patterns.add<FuseConstantToSubveqPattern, RemoveSubVeqNoOpPattern>(context);
 }
 
 //===----------------------------------------------------------------------===//

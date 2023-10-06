@@ -259,3 +259,79 @@ func.func @test4() {
 // CHECK:           quake.dealloc %[[VAL_6]] : !quake.veq<5>
 // CHECK:           return
 // CHECK:         }
+
+func.func @test5(%arg0: !quake.veq<?>) {
+  %c0_i64 = arith.constant 0 : i64
+  %c10_i64 = arith.constant 10 : i64
+  %c1_i64 = arith.constant 1 : i64
+  %0 = cc.alloca i1
+  %1 = cc.alloca i64
+  cc.store %c10_i64, %1 : !cc.ptr<i64>
+  cc.scope {
+    %2 = cc.alloca i64
+    cc.store %c0_i64, %2 : !cc.ptr<i64>
+    cc.loop while {
+      %3 = cc.load %2 : !cc.ptr<i64>
+      %4 = cc.load %1 : !cc.ptr<i64>
+      %5 = arith.cmpi ult, %3, %4 : i64
+      cc.condition %5
+    } do {
+      %3 = cc.load %2 : !cc.ptr<i64>
+      %4 = quake.extract_ref %arg0[%3] : (!quake.veq<?>, i64) -> !quake.ref
+      quake.h %4 : (!quake.ref) -> ()
+      %5 = cc.load %2 : !cc.ptr<i64>
+      %6 = quake.extract_ref %arg0[%5] : (!quake.veq<?>, i64) -> !quake.ref
+      %bits = quake.mz %6 : (!quake.ref) -> i1
+      cc.store %bits, %0 : !cc.ptr<i1>
+      %7 = cc.load %0 : !cc.ptr<i1>
+      cc.if(%7) {
+        cc.unwind_break
+      }
+      cc.continue
+    } step {
+      %3 = cc.load %2 : !cc.ptr<i64>
+      %4 = arith.addi %3, %c1_i64 : i64
+      cc.store %4, %2 : !cc.ptr<i64>
+    }
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @test5(
+// CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>) {
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 0 : i64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 10 : i64
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_4:.*]] = cc.alloca i1
+// CHECK-DAG:       %[[VAL_5:.*]] = cc.alloca i64
+// CHECK:           cc.store %[[VAL_2]], %[[VAL_5]] : !cc.ptr<i64>
+// CHECK:           cc.scope {
+// CHECK:             %[[VAL_6:.*]] = cc.alloca i64
+// CHECK:             cc.store %[[VAL_1]], %[[VAL_6]] : !cc.ptr<i64>
+// CHECK:             cc.loop while {
+// CHECK-DAG:           %[[VAL_7:.*]] = cc.load %[[VAL_6]] : !cc.ptr<i64>
+// CHECK-DAG:           %[[VAL_8:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i64>
+// CHECK:               %[[VAL_9:.*]] = arith.cmpi ult, %[[VAL_7]], %[[VAL_8]] : i64
+// CHECK:               cc.condition %[[VAL_9]]
+// CHECK:             } do {
+// CHECK:               %[[VAL_10:.*]] = cc.load %[[VAL_6]] : !cc.ptr<i64>
+// CHECK:               %[[VAL_11:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_10]]] : (!quake.veq<?>, i64) -> !quake.ref
+// CHECK:               quake.h %[[VAL_11]] : (!quake.ref) -> ()
+// CHECK:               %[[VAL_12:.*]] = cc.load %[[VAL_6]] : !cc.ptr<i64>
+// CHECK:               %[[VAL_13:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_12]]] : (!quake.veq<?>, i64) -> !quake.ref
+// CHECK:               %[[VAL_14:.*]] = quake.mz %[[VAL_13]] : (!quake.ref) -> i1
+// CHECK:               cc.store %[[VAL_14]], %[[VAL_4]] : !cc.ptr<i1>
+// CHECK:               %[[VAL_15:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i1>
+// CHECK:               cf.cond_br %[[VAL_15]], ^bb[[then:.*]], ^bb[[else:.*]]
+// CHECK:             ^bb[[then]]:
+// CHECK:               cc.break
+// CHECK:             ^bb[[else]]:
+// CHECK:               cc.continue
+// CHECK:             } step {
+// CHECK:               %[[VAL_16:.*]] = cc.load %[[VAL_6]] : !cc.ptr<i64>
+// CHECK:               %[[VAL_17:.*]] = arith.addi %[[VAL_16]], %[[VAL_3]] : i64
+// CHECK:               cc.store %[[VAL_17]], %[[VAL_6]] : !cc.ptr<i64>
+// CHECK:             }
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }

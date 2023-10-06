@@ -1,5 +1,11 @@
 on:
   workflow_dispatch:
+    inputs:
+      delete_draft_releases:
+        type: boolean
+        description: Delete all draft releases on GitHub (this may impact publishing).
+        required: false
+        default: false
   schedule:
   - cron: "*/5 * * * *"
   pull_request_target:
@@ -9,6 +15,97 @@ on:
 name: Clean up
 
 jobs:
+  draft_releases:
+    name: Delete draft release
+    if: github.event_name == 'workflow_dispatch' && inputs.delete_draft_releases
+    runs-on: ubuntu-latest
+
+    steps:
+      - run: |
+          gh release list -L 100 -R ${{ github.repository }} > rels.txt
+          while read rel _; do 
+            isDraft=`gh release view $rel -R ${{ github.repository }} --json isDraft --jq '.isDraft'`
+            isPrerelease=`gh release view $rel -R ${{ github.repository }} --json isPrerelease --jq '.isPrerelease'`
+            if $isDraft && $isPrerelease; then
+              echo "Deleting release $rel."
+              gh release delete $rel -R ${{ github.repository }} -y
+            else
+              echo "Skipping release $rel."
+            fi 
+          done < rels.txt
+        env:
+          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+
+  ghcr_images:
+    name: Clean up GHCR images
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        image_name: [cuda-quantum-dev, cuda-quantum-devdeps, open-mpi] # cuda-quantum
+      fail-fast: false
+
+    steps:
+      - name: Delete untagged cuda-quantum-devdeps images
+        uses: actions/delete-package-versions@v4
+        with: 
+          package-name: ${{ matrix.image_name }}
+          package-type: 'container'
+          min-versions-to-keep: 20
+          delete-only-untagged-versions: 'true'
+
+      - name: Log in to the container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Find matching signatures files
+        id: sig_files
+        run: |
+          regctl="docker run ghcr.io/regclient/regctl@sha256:f25e95d626ee8858ef13fd1a45c6a865dfeb647b15210f1b6cc8547e49e9d95f"
+          image=ghcr.io/nvidia/${{ matrix.image_name }}
+          sig_tags=`($regctl tag ls $image || echo) | (egrep -o '^sha256-\S+\.sig$' || true)`
+          nr_sigs=100 # limit how much we delete at a time to avoid exceededing the service rate limit
+          for sig in $sig_tags; do 
+            if [ $nr_sigs -lt 1 ]; then continue; fi
+            found=`($regctl image manifest $image@sha256:${sig:7:-4} &> /dev/null && echo true) || echo false`
+            exists=`($found && [ -z "$($regctl image manifest $image@sha256:${sig:7:-4} | grep application/vnd.in-toto+json)" ] && echo true) || echo false`
+            if ! $exists; then
+              echo "Marking signature $sig for deletion."
+              delete+=", $sig"
+              nr_sigs=$(($nr_sigs-1))
+            fi
+          done
+          echo "tags_to_remove=${delete:2}" >> $GITHUB_OUTPUT
+
+      - name: Look up version numbers
+        id: packages
+        run: |
+          gh api -X GET --paginate -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" \
+            /orgs/${{ github.repository_owner }}/packages/container/${{ matrix.image_name }}/versions >> packages.json
+          for tag in ${{ steps.sig_files.outputs.tags_to_remove }}; do
+            echo "Finding version id for tag ${tag%,}."
+            version_id=`cat packages.json | jq ".[] | select(.metadata.package_type==\"container\" and (.metadata.container.tags[] | contains(\"${tag%,}\")))" | jq '.id'`
+            if [ -n "$version_id" ]; then
+              echo "Marking version $version_id for deletion."
+              delete+=", $version_id"
+            fi
+          done
+          echo "[${delete:2}]"
+          echo "versions_to_remove=${delete:2}" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Delete matching signatures
+        if: steps.packages.outputs.versions_to_remove
+        uses: actions/delete-package-versions@v4
+        with: 
+          package-name: ${{ matrix.image_name }}
+          package-type: 'container'
+          package-version-ids: '${{ steps.packages.outputs.versions_to_remove }}'
+
   # We use environments to deploy to a public registry after PRs are merged.
   # Since we use the same workflows during CI, a default environment that defines
   # the necessary variables is used instead. Unfortunately, this automatically
