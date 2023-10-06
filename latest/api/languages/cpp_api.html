@@ -1966,6 +1966,12 @@
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14kernel_builder11constantValEd">
+<span class="target" id="classcudaq_1_1kernel__builder_1aaad4791d9bdb3ae7a855f8ea35defcc3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">constantVal</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">val</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14kernel_builder11constantValEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Return a <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref"><span class="pre">QuakeValue</span></span></a></code> representing the constant floating-point value. </p>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq14kernel_builder4swapERK10QuakeValueRK10QuakeValue">
 <span class="target" id="classcudaq_1_1kernel__builder_1a27162cfcecff29cb112fc946e98527b8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">swap</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">first</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">second</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14kernel_builder4swapERK10QuakeValueRK10QuakeValue" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>SWAP operation for swapping the quantum states of qubits. Currently only support swaps between two qubits. </p>
@@ -2181,6 +2187,18 @@
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq10QuakeValuemlE10QuakeValue">
 <span class="target" id="classcudaq_1_1QuakeValue_1ac30ca2eea7293d25ae0126503b6fd002"></span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">*</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq10QuakeValuemlE10QuakeValue" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Multiply this <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> by the given <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq10QuakeValuedvEKd">
+<span class="target" id="classcudaq_1_1QuakeValue_1ab3a2057299dd94693dd8d32a1b48061f"></span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">/</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq10QuakeValuedvEKd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Divide this <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> by the given double. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq10QuakeValuedvE10QuakeValue">
+<span class="target" id="classcudaq_1_1QuakeValue_1a8a34931fe0357e9072cb0abfd9cfd2ac"></span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">/</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq10QuakeValuedvE10QuakeValue" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Divide this <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> by the given <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a>. </p>
 </dd></dl>
 
 <dl class="cpp function">
