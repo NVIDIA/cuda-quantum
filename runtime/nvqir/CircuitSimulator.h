@@ -65,6 +65,7 @@ public:
   /// @brief Apply exp(-i theta PauliTensorProd) to the underlying state.
   /// This must be provided by subclasses.
   virtual void applyExpPauli(double theta,
+                             const std::vector<std::size_t> &controls,
                              const std::vector<std::size_t> &qubitIds,
                              const cudaq::spin_op &op) {
     throw std::runtime_error("CircuitSimulator::applyExpPauli not implemented, "
