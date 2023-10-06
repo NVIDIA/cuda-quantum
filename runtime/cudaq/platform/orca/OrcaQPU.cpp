@@ -7,50 +7,33 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// #include "common/ExecutionContext.h"
-// #include "common/FmtCore.h"
+#include "common/ExecutionContext.h"
+#include "common/FmtCore.h"
 
 #include "common/Logger.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
 #include "cudaq.h"
-// #include "cudaq/platform/default/rest/Executor.h"
-// #include "cudaq/platform.h"
 #include "nvqpp_config.h"
 
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/spin_op.h"
-// #include "cudaq/utils/cudaq_utils.h"
+#include "orca_qpu.h"
 
 #include <fstream>
 #include <iostream>
 #include <regex>
-// #include <thread>
 
 namespace {
-
-struct TBIParameters {
-  std::vector<double> bs_angles;
-  std::vector<double> ps_angles;
-
-  std::vector<std::size_t> input_state;
-  std::vector<std::size_t> loop_lengths;
-
-  int n_samples;
-};
 
 /// @brief The OrcaRemoteRESTQPU is a subtype of QPU that enables the
 /// execution of CUDA Quantum kernels on remotely hosted quantum computing
 /// services via a REST Client / Server interaction. This type is meant
-/// to be general enough to support any remotely hosted service. Specific
-/// details about JSON payloads are abstracted via an abstract type called
-/// ServerHelper, which is meant to be subtyped by each provided remote QPU
-/// service. Moreover, this QPU handles launching kernels under a number of
-/// Execution Contexts, including sampling and observation via synchronous or
-/// asynchronous client invocations. This type should enable both QIR-based
-/// backends as well as those that take OpenQASM2 as input.
+/// to be general enough to support any remotely hosted service.
+/// Moreover, this QPU handles launching kernels under the Execution Context
+/// that includs sampling via synchronous client invocations.
 class OrcaRemoteRESTQPU : public cudaq::QPU {
 protected:
   /// The number of shots
@@ -64,6 +47,7 @@ protected:
 
   /// @brief The base URL
   std::string baseUrl;
+
   /// @brief The machine we are targeting
   std::string machine = "PT-1";
 
@@ -84,37 +68,32 @@ public:
   OrcaRemoteRESTQPU() : QPU() {
     std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
     platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
-    // Default is to run sampling via the remote rest call
-    // executor = std::make_unique<cudaq::Executor>();
   }
 
   OrcaRemoteRESTQPU(OrcaRemoteRESTQPU &&) = delete;
 
+  /// @brief The destructor
   virtual ~OrcaRemoteRESTQPU() = default;
 
+  /// Enqueue a quantum task on the asynchronous execution queue.
   void enqueue(cudaq::QuantumTask &task) override {
     execution_queue->enqueue(task);
   }
 
   /// @brief Return true if the current backend is a simulator
-  /// @return
   bool isSimulator() override { return emulate; }
 
   /// @brief Return true if the current backend supports conditional feedback
   bool supportsConditionalFeedback() override { return false; }
 
   /// Provide the number of shots
-  void setShots(int _nShots) override {
-    nShots = _nShots;
-    // executor->setShots(static_cast<std::size_t>(_nShots));
-  }
+  void setShots(int _nShots) override { nShots = _nShots; }
 
   /// Clear the number of shots
   void clearShots() override { nShots = std::nullopt; }
-  virtual bool isRemote() override { return !emulate; }
 
-  /// @brief Helper method to check if a key exists in the configuration.
-  bool keyExists(const std::string &key) const;
+  /// @brief Return true if the current backend is remote
+  virtual bool isRemote() override { return !emulate; }
 
   /// Store the execution context for launchKernel
   void setExecutionContext(cudaq::ExecutionContext *context) override {
@@ -140,14 +119,7 @@ public:
 
   /// @brief Creates a quantum computation job using the provided kernel
   /// executions and returns the corresponding payload.
-  cudaq::ServerJobPayload createJob(TBIParameters params); // void *kernelArgs);
-
-  /// @brief Retrieves the results of a job using the provided path.
-  cudaq::ServerMessage getResults(std::string &resultsGetPath);
-
-  /// @brief Checks if a job is done based on the server's response to a job
-  /// retrieval request.
-  bool jobIsDone(cudaq::ServerMessage &getJobResponse);
+  cudaq::ServerJobPayload createJob(cudaq::orca::TBIParameters params);
 
   /// @brief Given a completed job response, map back to the sample_result
   cudaq::sample_result processResults(cudaq::ServerMessage &postJobResponse);
@@ -158,17 +130,12 @@ public:
   /// @brief Returns the headers for the server requests.
   cudaq::RestHeaders getHeaders();
 
-  // /// @brief Set the number of shots to execute
-  // void setShots(std::size_t s) { shots = s; }
-
   /// @brief Initializes the server helper with the provided backend
   /// configuration.
   void initialize();
 
-  /// @brief Launch the kernel. Extract the Quake code and lower to
-  /// the representation required by the targeted backend. Handle all pertinent
-  /// modifications for the execution context as well as async or sync
-  /// invocation.
+  /// @brief Launch the kernel. Handle all pertinent
+  /// modifications for the execution context.
   void launchKernel(const std::string &kernelName, void (*kernelFunc)(void *),
                     void *args, std::uint64_t voidStarSize,
                     std::uint64_t resultOffset) override;
@@ -196,7 +163,7 @@ void OrcaRemoteRESTQPU::setTargetBackend(const std::string &backend) {
   }
 
   /// Once we know the backend, we should search for the config file
-  /// from there we can get the URL/PORT and the required MLIR pass
+  /// from there we can get the URL/PORT and other inforation used in the
   /// pipeline.
   std::string fileName = mutableBackend + std::string(".config");
   auto configFilePath = platformPath / fileName;
@@ -210,10 +177,7 @@ void OrcaRemoteRESTQPU::setTargetBackend(const std::string &backend) {
   initialize();
 }
 
-/// @brief Launch the kernel. Extract the Quake code and lower to
-/// the representation required by the targeted backend. Handle all pertinent
-/// modifications for the execution context as well as async or sync
-/// invocation.
+/// @brief Launch the kernel.
 void OrcaRemoteRESTQPU::launchKernel(const std::string &kernelName,
                                      void (*kernelFunc)(void *), void *args,
                                      std::uint64_t voidStarSize,
@@ -225,7 +189,8 @@ void OrcaRemoteRESTQPU::launchKernel(const std::string &kernelName,
     throw std::runtime_error("Remote rest execution can only be performed "
                              "via cudaq::sample() or cudaq::observe().");
 
-  TBIParameters params = *((struct TBIParameters *)args);
+  cudaq::orca::TBIParameters params =
+      *((struct cudaq::orca::TBIParameters *)args);
   std::size_t shots = params.n_samples;
 
   setShots(shots);
@@ -240,11 +205,11 @@ void OrcaRemoteRESTQPU::launchKernel(const std::string &kernelName,
   cudaq::info("Job (name={}) created, posting to {}", kernelName, jobPostPath);
 
   // Post it, get the response
-  auto response1 = client.post(jobPostPath, "", job, headers);
+  auto response = client.post(jobPostPath, "", job, headers);
 
-  cudaq::sample_result counts = processResults(response1);
+  cudaq::sample_result counts = processResults(response);
 
-  // // make this synchronous
+  // // return the results synchronously
   executionContext->result = counts;
 }
 
@@ -255,23 +220,20 @@ void OrcaRemoteRESTQPU::initialize() {
   if (iter != backendConfig.end())
     machine = iter->second;
 
-  // Set an alternate base URL if provided
+  // Set a base URL if provided
   iter = backendConfig.find("url");
   if (iter != backendConfig.end()) {
     baseUrl = iter->second;
   }
 }
 
-// Check if a key exists in the backend configuration bool
-bool OrcaRemoteRESTQPU::keyExists(const std::string &key) const {
-  return backendConfig.find(key) != backendConfig.end();
-}
-
-// Create a job for the ORCA quantum computer
-cudaq::ServerJobPayload OrcaRemoteRESTQPU::createJob(TBIParameters params) {
+// Create a job for the ORCA QPU
+cudaq::ServerJobPayload
+OrcaRemoteRESTQPU::createJob(cudaq::orca::TBIParameters params) {
   std::vector<cudaq::ServerMessage> jobs;
-  // Construct the job message
   cudaq::ServerMessage job;
+
+  // Construct the job message
   job["target"] = machine;
 
   job["bs_angles"] = params.bs_angles;
@@ -285,36 +247,6 @@ cudaq::ServerJobPayload OrcaRemoteRESTQPU::createJob(TBIParameters params) {
   // Return a tuple containing the job path, headers, and the job message
   auto ret = std::make_tuple(baseUrl, getHeaders(), jobs);
   return ret;
-}
-
-// Get the results from a given path
-cudaq::ServerMessage
-OrcaRemoteRESTQPU::getResults(std::string &resultsGetPath) {
-  cudaq::RestHeaders headers = getHeaders();
-  // Return the results from the client
-  return client.get(resultsGetPath, "", headers);
-}
-
-// Check if a job is done
-bool OrcaRemoteRESTQPU::jobIsDone(cudaq::ServerMessage &getJobResponse) {
-  // Check if the necessary keys exist in the response
-  if (!getJobResponse.contains("jobs"))
-    throw std::runtime_error("ServerMessage doesn't contain 'jobs' key.");
-
-  auto &jobs = getJobResponse.at("jobs");
-
-  if (jobs.empty() || !jobs[0].contains("status"))
-    throw std::runtime_error("cudaq::ServerMessage doesn't contain 'status' "
-                             "key in the first job.");
-
-  // Throw a runtime error if the job has failed
-  if (jobs[0].at("status").get<std::string>() == "failed")
-    throw std::runtime_error("The job failed upon submission. Check the job "
-                             "submission in your ORCA "
-                             "account for more information.");
-
-  // Return whether the job is completed
-  return jobs[0].at("status").get<std::string>() == "completed";
 }
 
 // Process the results from a job

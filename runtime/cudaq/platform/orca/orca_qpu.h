@@ -25,6 +25,7 @@ struct TBIParameters {
   int n_samples;
 };
 
+/// @brief Implementation of the sample method of the cudaq::orca namespace
 cudaq::sample_result sample(std::vector<double> &bs_angles,
                             std::vector<double> &ps_angles,
                             std::vector<std::size_t> &input_state,
