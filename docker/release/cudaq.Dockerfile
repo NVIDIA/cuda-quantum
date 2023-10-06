@@ -66,7 +66,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libstdc++-12-dev \
         libcurl4-openssl-dev \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* \
-    && python3 -m pip install --no-cache-dir numpy jupyterlab \
+    && python3 -m pip install --no-cache-dir numpy \
     && ln -s /bin/python3 /bin/python
 
 # Copy over the CUDA Quantum installation, and the necessary compiler tools.
