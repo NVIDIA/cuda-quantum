@@ -142,7 +142,8 @@ void applyWriteOnlyAttributes(llvm::Module *llvmModule) {
 // overlap.
 // Reference:
 // https://github.com/qir-alliance/qir-spec/blob/main/specification/under_development/profiles/Base_Profile.md?plain=1#L237
-mlir::LogicalResult verifyBaseProfileMeasOrdering(llvm::Module *llvmModule) {
+mlir::LogicalResult
+verifyBaseProfileMeasurementOrdering(llvm::Module *llvmModule) {
   bool irreversibleSeenYet = false;
   for (llvm::Function &func : *llvmModule)
     for (llvm::BasicBlock &block : func)
@@ -459,7 +460,8 @@ qirProfileTranslationFunction(const char *qirProfile, Operation *op,
   if (failed(verifyOutputRecordingFunctions(llvmModule.get())))
     return failure();
 
-  if (isBaseProfile && failed(verifyBaseProfileMeasOrdering(llvmModule.get())))
+  if (isBaseProfile &&
+      failed(verifyBaseProfileMeasurementOrdering(llvmModule.get())))
     return failure();
 
   if (failed(verifyQubitAndResultRanges(llvmModule.get())))

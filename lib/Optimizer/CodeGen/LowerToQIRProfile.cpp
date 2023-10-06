@@ -68,6 +68,8 @@ struct FunctionAnalysisData {
   // Store by result to prevent collisions on a single qubit having
   // multiple measurements (Adaptive Profile)
   // map[result] --> [qb,regName]
+  // Use std::map to keep these sorted in ascending order. While this isn't
+  // required, it makes viewing the QIR easier.
   std::map<std::size_t, std::pair<std::size_t, std::string>> resultQubitVals;
   DenseMap<Operation *, std::size_t> allocationOffsets;
 };
