@@ -226,8 +226,11 @@ public:
     if constexpr (quake::isMeasure<OP>) {
       auto args = collect(op.getOperands());
       auto nameAttr = op.getRegisterNameAttr();
-      rewriter.replaceOpWithNewOp<OP>(
-          op, ArrayRef<Type>{op.getBits().getType()}, args, nameAttr);
+      eraseWrapUsers(op);
+      auto newOp = rewriter.create<OP>(
+          loc, ArrayRef<Type>{op.getBits().getType()}, args, nameAttr);
+      op.getResult(0).replaceAllUsesWith(newOp.getResult(0));
+      rewriter.eraseOp(op);
     } else if constexpr (std::is_same_v<OP, quake::ResetOp>) {
       // Reset is a special case.
       auto targ = findLookupValue(op.getTargets());
