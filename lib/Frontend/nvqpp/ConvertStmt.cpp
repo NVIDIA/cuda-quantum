@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/Frontend/nvqpp/ASTBridge.h"
-#include "cudaq/Optimizer/Builder/CUDAQBuilder.h"
+#include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/Support/Debug.h"
@@ -130,10 +130,28 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
   assert(stdvecTy && "expected a std::vector<T>");
   auto eleTy = stdvecTy.getElementType();
   auto i64Ty = builder.getI64Type();
-  auto iters = builder.create<cc::StdvecSizeOp>(loc, i64Ty, buffer);
   auto dataPtrTy = cc::PointerType::get(eleTy);
   auto dataArrPtrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
-  auto ptr = builder.create<cc::StdvecDataOp>(loc, dataArrPtrTy, buffer);
+  auto [iters, ptr] = [&]() -> std::pair<Value, Value> {
+    if (auto call = buffer.getDefiningOp<func::CallOp>())
+      if (call.getCallee().equals(setCudaqRangeVector)) {
+        // The std::vector was produced by cudaq::range(). Optimize this special
+        // case to use the loop control directly. Erase the transient buffer
+        // and call here since neither is required.
+        Value i = call.getOperand(1);
+        if (auto alloc = call.getOperand(0).getDefiningOp<cc::AllocaOp>()) {
+          call->erase(); // erase call must be first
+          alloc->erase();
+        } else {
+          // shouldn't get here, but we can erase the call at minimum
+          call->erase();
+        }
+        return {i, {}};
+      }
+    Value i = builder.create<cc::StdvecSizeOp>(loc, i64Ty, buffer);
+    Value p = builder.create<cc::StdvecDataOp>(loc, dataArrPtrTy, buffer);
+    return {i, p};
+  }();
   bool result = true;
   auto *body = x->getBody();
   auto *loopVar = x->getLoopVariable();
@@ -146,22 +164,29 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
     Value index = builder.create<arith::IndexCastOp>(loc, i64Ty, iterIdx);
     // May need to create a temporary for the loop variable. Create a new scope.
     auto scopeBuilder = [&](OpBuilder &builder, Location loc) {
-      Value addr = builder.create<cc::ComputePtrOp>(loc, dataPtrTy, ptr, index);
-      if (loopVar->getType().isConstQualified()) {
-        // Read-only binding, so omit copy.
-        symbolTable.insert(loopVar->getName(), addr);
-      } else if (loopVar->getType().getTypePtr()->isReferenceType()) {
-        // Bind to location of the value in the container, std::vector<T>.
-        symbolTable.insert(loopVar->getName(), addr);
+      if (!ptr) {
+        // cudaq::range(N): not necessary to collect values from a buffer, the
+        // values are the same as the index.
+        symbolTable.insert(loopVar->getName(), index);
       } else {
-        // Create a local copy of the value from the container.
-        if (!TraverseVarDecl(loopVar)) {
-          result = false;
-          return;
+        Value addr =
+            builder.create<cc::ComputePtrOp>(loc, dataPtrTy, ptr, index);
+        if (loopVar->getType().isConstQualified()) {
+          // Read-only binding, so omit copy.
+          symbolTable.insert(loopVar->getName(), addr);
+        } else if (loopVar->getType().getTypePtr()->isReferenceType()) {
+          // Bind to location of the value in the container, std::vector<T>.
+          symbolTable.insert(loopVar->getName(), addr);
+        } else {
+          // Create a local copy of the value from the container.
+          if (!TraverseVarDecl(loopVar)) {
+            result = false;
+            return;
+          }
+          auto iterVar = popValue();
+          Value atOffset = builder.create<cc::LoadOp>(loc, addr);
+          builder.create<cc::StoreOp>(loc, atOffset, iterVar);
         }
-        auto iterVar = popValue();
-        Value atOffset = builder.create<cc::LoadOp>(loc, addr);
-        builder.create<cc::StoreOp>(loc, atOffset, iterVar);
       }
       if (!TraverseStmt(static_cast<clang::Stmt *>(body))) {
         result = false;

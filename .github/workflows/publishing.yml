@@ -108,7 +108,7 @@ jobs:
           if ${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') }}; then
             cudaq_version=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
           else
-            cudaq_version=0.0.0
+            cudaq_version=${release_version:-0.0.0}
           fi
 
           echo "release_title=$release_title" >> $GITHUB_OUTPUT
@@ -224,6 +224,7 @@ jobs:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
   
       - name: Upload assets
+        if: steps.artifacts.outputs.releases
         uses: actions/upload-artifact@v3
         with:
           name: downstream_assets
