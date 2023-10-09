@@ -230,6 +230,23 @@ public:
         unwrapTargs.push_back(opnd);
       }
     }
+
+    auto threadWires = [&](const SmallVectorImpl<Value> &wireOperands,
+                           auto newOp, unsigned addend) {
+      for (auto i : llvm::enumerate(wireOperands)) {
+        auto opndTy = i.value().getType();
+        unsigned count = 0;
+        auto offset = i.index() + addend;
+        if (opndTy == qrefTy) {
+          rewriter.create<quake::WrapOp>(loc, newOp.getResult(offset),
+                                         i.value());
+        } else if (opndTy == wireTy) {
+          op.getResult(count++).replaceAllUsesWith(newOp.getResult(offset));
+        }
+      }
+      rewriter.eraseOp(op);
+    };
+
     if constexpr (quake::isMeasure<OP>) {
       // The result type of the bits is the same. Add the wire types.
       SmallVector<Type> newTy = {op.getBits().getType()};
@@ -239,18 +256,7 @@ public:
                                        op.getRegisterNameAttr());
       SmallVector<Value> wireOperands = op.getTargets();
       op.getResult(0).replaceAllUsesWith(newOp.getResult(0));
-      for (auto i : llvm::enumerate(wireOperands)) {
-        auto opndTy = i.value().getType();
-        unsigned count = 0;
-        auto offset = i.index() + 1;
-        if (opndTy == qrefTy) {
-          rewriter.create<quake::WrapOp>(loc, newOp.getResult(offset),
-                                         i.value());
-        } else if (opndTy == wireTy) {
-          op.getResult(count++).replaceAllUsesWith(newOp.getResult(offset));
-        }
-      }
-      rewriter.eraseOp(op);
+      threadWires(wireOperands, newOp, 1);
     } else {
       // Scan the control and target positions. Any that were not wires
       // originally are now placed in the result vector. Those new results are
@@ -262,17 +268,7 @@ public:
           unwrapTargs, op.getNegatedQubitControlsAttr());
       SmallVector<Value> wireOperands = op.getControls();
       wireOperands.append(op.getTargets().begin(), op.getTargets().end());
-      for (auto i : llvm::enumerate(wireOperands)) {
-        auto opndTy = i.value().getType();
-        unsigned count = 0;
-        if (opndTy == qrefTy) {
-          rewriter.create<quake::WrapOp>(loc, newOp.getResult(i.index()),
-                                         i.value());
-        } else if (opndTy == wireTy) {
-          op.getResult(count++).replaceAllUsesWith(newOp.getResult(i.index()));
-        }
-      }
-      rewriter.eraseOp(op);
+      threadWires(wireOperands, newOp, 0);
     }
     return success();
   }
