@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(quake-mapping{device=path))' %s | FileCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(quake-mapping{device=path}))' %s | CircuitCheck --up-to-mapping %s
 
 func.func @test_measurement() {
   %0 = quake.null_wire
