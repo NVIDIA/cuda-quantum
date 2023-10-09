@@ -233,9 +233,9 @@ public:
 
     auto threadWires = [&](const SmallVectorImpl<Value> &wireOperands,
                            auto newOp, unsigned addend) {
+      unsigned count = 0;
       for (auto i : llvm::enumerate(wireOperands)) {
         auto opndTy = i.value().getType();
-        unsigned count = 0;
         auto offset = i.index() + addend;
         if (opndTy == qrefTy) {
           rewriter.create<quake::WrapOp>(loc, newOp.getResult(offset),
