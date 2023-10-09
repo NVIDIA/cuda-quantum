@@ -144,8 +144,9 @@ private:
     });
     func.walk([&](Operation *op) {
       if (isa<RAW_MEASURE_OPS>(op)) {
-        for (auto v : op->getOperands())
-          insertToEqClass(v);
+        for (auto [t, r] :
+             llvm::zip(op->getOperands(), op->getResults().drop_front()))
+          insertToEqClass(t, r);
       } else if (isa<RAW_GATE_OPS>(op)) {
         auto gate = cast<quake::OperatorInterface>(op);
         for (auto c : gate.getControls())
