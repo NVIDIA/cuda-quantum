@@ -235,8 +235,22 @@ public:
       SmallVector<Type> newTy = {op.getBits().getType()};
       SmallVector<Type> wireTys(unwrapTargs.size(), wireTy);
       newTy.append(wireTys.begin(), wireTys.end());
-      rewriter.replaceOpWithNewOp<OP>(op, newTy, unwrapTargs,
-                                      op.getRegisterNameAttr());
+      auto newOp = rewriter.create<OP>(loc, newTy, unwrapTargs,
+                                       op.getRegisterNameAttr());
+      SmallVector<Value> wireOperands = op.getTargets();
+      op.getResult(0).replaceAllUsesWith(newOp.getResult(0));
+      for (auto i : llvm::enumerate(wireOperands)) {
+        auto opndTy = i.value().getType();
+        unsigned count = 0;
+        auto offset = i.index() + 1;
+        if (opndTy == qrefTy) {
+          rewriter.create<quake::WrapOp>(loc, newOp.getResult(offset),
+                                         i.value());
+        } else if (opndTy == wireTy) {
+          op.getResult(count++).replaceAllUsesWith(newOp.getResult(offset));
+        }
+      }
+      rewriter.eraseOp(op);
     } else {
       // Scan the control and target positions. Any that were not wires
       // originally are now placed in the result vector. Those new results are
