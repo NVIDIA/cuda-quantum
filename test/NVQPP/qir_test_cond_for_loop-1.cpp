@@ -7,10 +7,8 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --target quantinuum --emulate %s -o %basename_t.x && ./%basename_t.x
+// RUN: nvq++ --target quantinuum --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
 // clang-format on
-
-// The test here is the assert statement.
 
 #include <cudaq.h>
 #include <iostream>
@@ -41,9 +39,19 @@ int main() {
 
   auto q1result_0 = counts.count("0", "q1result");
   auto q1result_1 = counts.count("1", "q1result");
-  assert(q1result_0 + q1result_1 == nShots &&
-         q1result_0 > static_cast<int>(0.3 * nShots) &&
-         q1result_0 < static_cast<int>(0.7 * nShots));
+  if (q1result_0 + q1result_1 != nShots) {
+    std::cout << "q1result_0 (" << q1result_0 << ") + q1result_1 ("
+              << q1result_1 << ") != nShots (" << nShots << ")\n";
+    return 1;
+  }
+  if (q1result_0 < static_cast<int>(0.3 * nShots) ||
+      q1result_0 > static_cast<int>(0.7 * nShots)) {
+    std::cout << "q1result_0 (" << q1result_0
+              << ") is not within expected range ["
+              << static_cast<int>(0.3 * nShots) << ","
+              << static_cast<int>(0.7 * nShots) << "]\n";
+    return 2;
+  }
 
   auto &platform = cudaq::get_platform();
 
@@ -78,7 +86,6 @@ int main() {
         parityCheckSuccessCount++;
     }
 
-    // If the assert() is going to fail, print out some debug info
     if (parityCheckSuccessCount != nShots) {
       // Output q0result and q1results for easy viewing
       std::cout << "q1result  : ";
@@ -95,8 +102,12 @@ int main() {
       std::cout << "parityCheckSuccessCount: " << parityCheckSuccessCount
                 << '\n';
       std::cout << "nShots:                  " << nShots << '\n';
+      return 3;
     }
-
-    assert(parityCheckSuccessCount == nShots);
   }
+
+  std::cout << "SUCCESS\n";
+  return 0;
 }
+
+// CHECK: SUCCESS

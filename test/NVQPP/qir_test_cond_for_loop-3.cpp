@@ -7,12 +7,11 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --target quantinuum --emulate %s -o %basename_t.x && ./%basename_t.x
+// RUN: nvq++ --target quantinuum --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
 // clang-format on
 
-// The test here is the assert statement.
-
 #include <cudaq.h>
+#include <iostream>
 
 struct kernel {
   void operator()(const int n_iter) __qpu__ {
@@ -42,9 +41,22 @@ int main() {
 
   auto q1result_0 = counts.count("0", "q1result");
   auto q1result_1 = counts.count("1", "q1result");
-  printf("q1result_0 %lu q1result_1 %lu %d %d\n", q1result_0, q1result_1,
-         static_cast<int>(0.3 * nShots), static_cast<int>(0.7 * nShots));
-  assert((q1result_0 + q1result_1 == nShots) &&
-         (q1result_0 > static_cast<int>(0.3 * nShots)) &&
-         (q1result_0 < static_cast<int>(0.7 * nShots)));
+  if (q1result_0 + q1result_1 != nShots) {
+    std::cout << "q1result_0 (" << q1result_0 << ") + q1result_1 ("
+              << q1result_1 << ") != nShots (" << nShots << ")\n";
+    return 1;
+  }
+  if (q1result_0 < static_cast<int>(0.3 * nShots) ||
+      q1result_0 > static_cast<int>(0.7 * nShots)) {
+    std::cout << "q1result_0 (" << q1result_0
+              << ") is not within expected range ["
+              << static_cast<int>(0.3 * nShots) << ","
+              << static_cast<int>(0.7 * nShots) << "]\n";
+    return 2;
+  }
+
+  std::cout << "SUCCESS\n";
+  return 0;
 }
+
+// CHECK: SUCCESS

@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --target quantinuum --emulate %s -o %basename_t.x && ./%basename_t.x
+// RUN: nvq++ --target quantinuum --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
 // XFAIL: *
 // ^^^^^ This is caused by this error: invalid instruction found:   %2 = xor i1 %0, true
 //       This error is reasonable given the current version of the Adaptive
@@ -15,9 +15,8 @@
 //       Profile (that contain optional capabilities) may legalize this.
 // clang-format on
 
-// The test here is the assert statement.
-
 #include <cudaq.h>
+#include <iostream>
 
 struct kernel {
   void operator()() __qpu__ {
@@ -45,9 +44,21 @@ int main() {
 
   auto q2result_0 = counts.count("0", "q2result");
   auto q2result_1 = counts.count("1", "q2result");
-  printf("q2result_0 %lu q2result_1 %lu %d %d\n", q2result_0, q2result_1,
-         static_cast<int>(0.1 * nShots), static_cast<int>(0.5 * nShots));
-  assert((q2result_0 + q2result_1 == nShots) &&
-         (q2result_0 > static_cast<int>(0.1 * nShots)) &&
-         (q2result_1 < static_cast<int>(0.5 * nShots)));
+  if (q2result_0 + q2result_1 != nShots) {
+    std::cout << "q2result_0 (" << q2result_0 << ") + q2result_1 ("
+              << q2result_1 << ") != nShots (" << nShots << ")\n";
+    return 1;
+  }
+  if (q2result_0 < static_cast<int>(0.3 * nShots) ||
+      q2result_0 > static_cast<int>(0.7 * nShots)) {
+    std::cout << "q2result_0 (" << q2result_0
+              << ") is not within expected range ["
+              << static_cast<int>(0.3 * nShots) << ","
+              << static_cast<int>(0.7 * nShots) << "]\n";
+    return 2;
+  }
+  std::cout << "SUCCESS\n";
+  return 0;
 }
+
+// CHECK: SUCCESS

@@ -7,12 +7,10 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --target quantinuum --emulate %s -o %basename_t.x && ./%basename_t.x
+// RUN: nvq++ --target quantinuum --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
 // XFAIL: *
 // ^^^^^ Produces 'cc.unwind_break' op arity of arguments and loop result mismatch
 // clang-format on
-
-// The test here is the assert statement.
 
 #include <cudaq.h>
 #include <iostream>
@@ -23,8 +21,8 @@ struct kernel {
     for (int i = 0; i < n_iter; i++) {
       h(q0);
       auto q0result = mz(q0);
-      if (!q0result)
-        break; // loop until it lands tails
+      if (q0result)
+        break; // loop until it lands heads
     }
   }
 };
@@ -38,17 +36,30 @@ int main() {
   // Sample
   auto counts = cudaq::sample(/*shots=*/nShots, kernel{}, nIter);
 
-  // Count how many iterations it took
+  // Count the maximum number of iterations it took
   int nIterRan = 0;
   for (int i = 0; i < nIter; i++) {
-    char regName[32];
-    snprintf(regName, sizeof(regName), "q0result%02d", i);
-    if (counts.size(regName) == 0) {
-      nIterRan = i + 1;
+    char regName1[32];
+    snprintf(regName1, sizeof(regName1), "q0result%02d", i);
+    char regName2[32];
+    snprintf(regName2, sizeof(regName2), "auto_register_%d", i);
+    if (counts.size(regName1) == 0 && counts.size(regName2) == 0) {
+      nIterRan = i;
       break;
     }
   }
 
-  assert(nIterRan < nIter);
-  return 0;
+  int ret = 0; // return status
+
+  if (nIterRan < nIter) {
+    std::cout << "SUCCESS: nIterRan (" << nIterRan << ") < nIter (" << nIter << ")\n";
+    ret = 0;
+  } else {
+    std::cout << "FAILURE: nIterRan (" << nIterRan << ") >= nIter (" << nIter << ")\n";
+    ret = 1;
+  }
+
+  return ret;
 }
+
+// CHECK: SUCCESS

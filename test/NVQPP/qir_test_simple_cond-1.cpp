@@ -7,12 +7,11 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --target quantinuum --emulate %s -o %basename_t.x && ./%basename_t.x
+// RUN: nvq++ --target quantinuum --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
 // clang-format on
 
-// The test here is the assert statement.
-
 #include <cudaq.h>
+#include <iostream>
 
 struct kernel {
   void operator()() __qpu__ {
@@ -33,5 +32,13 @@ int main() {
   auto counts = cudaq::sample(/*shots=*/nShots, kernel{});
   counts.dump();
   // Assert that all shots contained "00" or "11", exclusively
-  assert(counts.count("00") + counts.count("11") == nShots);
+  if (counts.count("00") + counts.count("11") != nShots) {
+    std::cout << "counts00 (" << counts.count("00") << ") + counts11 ("
+              << counts.count("11") << ") != nShots (" << nShots << ")\n";
+    return 1;
+  }
+  std::cout << "SUCCESS\n";
+  return 0;
 }
+
+// CHECK: SUCCESS

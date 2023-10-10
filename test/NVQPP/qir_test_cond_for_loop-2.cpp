@@ -7,10 +7,8 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --target quantinuum --emulate %s -o %basename_t.x && ./%basename_t.x
+// RUN: nvq++ --target quantinuum --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
 // clang-format on
-
-// The test here is the assert statement.
 
 #include <cudaq.h>
 #include <iostream>
@@ -66,7 +64,6 @@ int main() {
       parityCheckSuccessCount++;
   }
 
-  // If the assert() is going to fail, print out some debug info
   if (parityCheckSuccessCount != nShots) {
     // Output q0result and q1results for easy viewing
     std::cout << "q1result  : ";
@@ -82,8 +79,12 @@ int main() {
 
     std::cout << "parityCheckSuccessCount: " << parityCheckSuccessCount << '\n';
     std::cout << "nShots:                  " << nShots << '\n';
+    return 3; // same error code for similar condition in
+              // qir_test_cond_for_loop-1.cpp
   }
 
-  assert(parityCheckSuccessCount == nShots);
+  std::cout << "SUCCESS\n";
   return 0;
 }
+
+// CHECK: SUCCESS
