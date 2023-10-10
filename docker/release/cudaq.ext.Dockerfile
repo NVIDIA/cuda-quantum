@@ -24,9 +24,12 @@ RUN apt-get install -y --no-install-recommends \
         cuda-nvtx-11-8 libcusolver-11-8 libopenblas-openmp-dev \
         # just here for convenience:
         curl jq 
-RUN if [ -n "$MPI_ROOT" ] && [ -x "$(command -v pip)" ]; then \
-         apt-get install -y --no-install-recommends gcc \
-         && pip install --no-cache-dir mpi4py~=3.1; \
+RUN if [ -x "$(command -v pip)" ]; then \
+        apt-get install -y --no-install-recommends gcc \
+        && pip install --no-cache-dir jupyterlab; \
+        if [ -n "$MPI_ROOT" ]; then \
+            pip install --no-cache-dir mpi4py~=3.1; \
+        fi; \
     fi
 
 # Make sure that apt-get remains updated at the end!;
