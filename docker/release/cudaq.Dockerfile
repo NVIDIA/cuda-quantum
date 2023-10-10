@@ -88,9 +88,10 @@ RUN bash "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh" "$CUDA_QUANTUM_PATH/assets" 
     && rm "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
 
 ENV PATH "${PATH}:$CUDA_QUANTUM_PATH/bin"
-ENV PYTHONPATH "${PYTHONPATH}:$CUDA_QUANTUM_PATH"
 ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CUDA_QUANTUM_PATH/lib"
 ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:$CUDA_QUANTUM_PATH/include"
+# Better alternative to setting the PYTHONPATH, since the PYTHONPATH is generally not preserved when running as sudo.
+RUN echo "$CUDA_QUANTUM_PATH" > /usr/local/lib/python3.10/dist-packages/cudaq.pth
 
 # Include additional readmes and samples that are distributed with the image.
 
