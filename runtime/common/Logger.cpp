@@ -8,12 +8,12 @@
 
 #include "Logger.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
+#include <filesystem>
 #include <spdlog/cfg/env.h>
 #include <spdlog/cfg/helpers.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/spdlog.h>
-
 namespace cudaq {
 /// @brief This function will run at startup and initialize
 /// the logger for the runtime to use. It will set the log
@@ -45,6 +45,10 @@ void debug(const std::string_view msg) {
 #ifdef CUDAQ_DEBUG
   spdlog::debug(msg);
 #endif
+}
+std::string pathToFileName(const std::string_view fullFilePath) {
+  const std::filesystem::path file(fullFilePath);
+  return file.filename().string();
 }
 } // namespace details
 } // namespace cudaq
