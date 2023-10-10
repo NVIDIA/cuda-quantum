@@ -447,7 +447,9 @@ qirProfileTranslationFunction(const char *qirProfile, Operation *op,
   if (!cudaq::setupTargetTriple(llvmModule.get()))
     throw std::runtime_error("Failed to setup the llvm module target triple.");
 
-  // PyQIR currently requires named blocks
+  // PyQIR currently requires named blocks. It's not clear if blocks can share
+  // names across functions, so we are being conservative by giving every block
+  // in the module a unique name for now.
   int blockCounter = 0;
   for (llvm::Function &func : *llvmModule)
     for (llvm::BasicBlock &block : func)
