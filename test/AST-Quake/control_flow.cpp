@@ -44,69 +44,66 @@ struct C {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__C()
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : index
-// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 1 : index
-// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 0 : index
-// CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 1 : i32
-// CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 10 : i32
-// CHECK-DAG:       %[[VAL_7:.*]] = arith.constant 0 : i32
-// CHECK:           %[[VAL_8:.*]] = quake.alloca !quake.veq<2>
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : index
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : index
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 1 : i32
+// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 10 : i32
+// CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 0 : i32
+// CHECK-DAG:       %[[VAL_6:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           call @_Z2g1v() : () -> ()
 // CHECK:           cc.scope {
-// CHECK:             %[[VAL_9:.*]] = cc.alloca i32
-// CHECK:             cc.store %[[VAL_7]], %[[VAL_9]] : !cc.ptr<i32>
-// CHECK:             cf.br ^bb1
-// CHECK:           ^bb1:
-// CHECK:             %[[VAL_10:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
-// CHECK:             %[[VAL_11:.*]] = arith.cmpi slt, %[[VAL_10]], %[[VAL_6]] : i32
-// CHECK:             cf.cond_br %[[VAL_11]], ^bb2, ^bb8
-// CHECK:           ^bb2:
-// CHECK:             %[[VAL_12:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
-// CHECK:             %[[VAL_13:.*]] = func.call @_Z2f1i(%[[VAL_12]]) : (i32) -> i1
-// CHECK:             cf.cond_br %[[VAL_13]], ^bb3, ^bb4
-// CHECK:           ^bb3:
-// CHECK:             %[[VAL_14:.*]] = quake.alloca !quake.ref
-// CHECK:             %[[VAL_15:.*]] = quake.extract_ref %[[VAL_8]][0] : (!quake.veq<2>) -> !quake.ref
-// CHECK:             quake.x [%[[VAL_14]]] %[[VAL_15]] : (!quake.ref, !quake.ref) -> ()
-// CHECK:             quake.dealloc %[[VAL_14]] : !quake.ref
-// CHECK:             cf.br ^bb8
-// CHECK:           ^bb4:
-// CHECK:             %[[VAL_16:.*]] = quake.extract_ref %[[VAL_8]][0] : (!quake.veq<2>) -> !quake.ref
-// CHECK:             %[[VAL_17:.*]] = quake.extract_ref %[[VAL_8]][1] : (!quake.veq<2>) -> !quake.ref
-// CHECK:             quake.x [%[[VAL_16]]] %[[VAL_17]] : (!quake.ref,
-// CHECK:             func.call @_Z2g2v() : () -> ()
-// CHECK:             %[[VAL_18:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
-// CHECK:             %[[VAL_19:.*]] = func.call @_Z2f2i(%[[VAL_18]]) : (i32) -> i1
-// CHECK:             cf.cond_br %[[VAL_19]], ^bb5, ^bb6
-// CHECK:           ^bb5:
-// CHECK:             %[[VAL_20:.*]] = quake.extract_ref %[[VAL_8]][1] : (!quake.veq<2>) -> !quake.ref
-// CHECK:             quake.y %[[VAL_20]] :
-// CHECK:             cf.br ^bb7
-// CHECK:           ^bb6:
-// CHECK:             func.call @_Z2g3v() : () -> ()
-// CHECK:             %[[VAL_21:.*]] = cc.loop while ((%[[VAL_22:.*]] = %[[VAL_4]]) -> (index)) {
-// CHECK:               %[[VAL_23:.*]] = arith.cmpi slt, %[[VAL_22]], %[[VAL_0]] : index
-// CHECK:               cc.condition %[[VAL_23]](%[[VAL_22]] : index)
+// CHECK:             %[[VAL_7:.*]] = cc.alloca i32
+// CHECK:             cc.store %[[VAL_5]], %[[VAL_7]] : !cc.ptr<i32>
+// CHECK:             cc.loop while {
+// CHECK:               %[[VAL_8:.*]] = cc.load %[[VAL_7]] : !cc.ptr<i32>
+// CHECK:               %[[VAL_9:.*]] = arith.cmpi slt, %[[VAL_8]], %[[VAL_4]] : i32
+// CHECK:               cc.condition %[[VAL_9]]
 // CHECK:             } do {
-// CHECK:             ^bb0(%[[VAL_24:.*]]: index):
-// CHECK:               %[[VAL_25:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_24]]] : (!quake.veq<2>, index) -> !quake.ref
-// CHECK:               quake.z %[[VAL_25]] : (!quake.ref) -> ()
-// CHECK:               cc.continue %[[VAL_24]] : index
+// CHECK:               %[[VAL_10:.*]] = cc.load %[[VAL_7]] : !cc.ptr<i32>
+// CHECK:               %[[VAL_11:.*]] = func.call @_Z2f1i(%[[VAL_10]]) : (i32) -> i1
+// CHECK:               cf.cond_br %[[VAL_11]], ^bb1, ^bb2
+// CHECK:             ^bb1:
+// CHECK:               %[[VAL_12:.*]] = quake.alloca !quake.ref
+// CHECK:               %[[VAL_13:.*]] = quake.extract_ref %[[VAL_6]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:               quake.x {{\[}}%[[VAL_12]]] %[[VAL_13]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:               quake.dealloc %[[VAL_12]] : !quake.ref
+// CHECK:               cc.break
+// CHECK:             ^bb2:
+// CHECK:               %[[VAL_14:.*]] = quake.extract_ref %[[VAL_6]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:               %[[VAL_15:.*]] = quake.extract_ref %[[VAL_6]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:               quake.x {{\[}}%[[VAL_14]]] %[[VAL_15]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:               func.call @_Z2g2v() : () -> ()
+// CHECK:               %[[VAL_16:.*]] = cc.load %[[VAL_7]] : !cc.ptr<i32>
+// CHECK:               %[[VAL_17:.*]] = func.call @_Z2f2i(%[[VAL_16]]) : (i32) -> i1
+// CHECK:               cf.cond_br %[[VAL_17]], ^bb3, ^bb4
+// CHECK:             ^bb3:
+// CHECK:               %[[VAL_18:.*]] = quake.extract_ref %[[VAL_6]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:               quake.y %[[VAL_18]] : (!quake.ref) -> ()
+// CHECK:               cc.continue
+// CHECK:             ^bb4:
+// CHECK:               func.call @_Z2g3v() : () -> ()
+// CHECK:               %[[VAL_19:.*]] = cc.loop while ((%[[VAL_20:.*]] = %[[VAL_2]]) -> (index)) {
+// CHECK:                 %[[VAL_21:.*]] = arith.cmpi slt, %[[VAL_20]], %[[VAL_0]] : index
+// CHECK:                 cc.condition %[[VAL_21]](%[[VAL_20]] : index)
+// CHECK:               } do {
+// CHECK:               ^bb0(%[[VAL_22:.*]]: index):
+// CHECK:                 %[[VAL_23:.*]] = quake.extract_ref %[[VAL_6]]{{\[}}%[[VAL_22]]] : (!quake.veq<2>, index) -> !quake.ref
+// CHECK:                 quake.z %[[VAL_23]] : (!quake.ref) -> ()
+// CHECK:                 cc.continue %[[VAL_22]] : index
+// CHECK:               } step {
+// CHECK:               ^bb0(%[[VAL_24:.*]]: index):
+// CHECK:                 %[[VAL_25:.*]] = arith.addi %[[VAL_24]], %[[VAL_1]] : index
+// CHECK:                 cc.continue %[[VAL_25]] : index
+// CHECK:               } {invariant}
+// CHECK:               cc.continue
 // CHECK:             } step {
-// CHECK:             ^bb0(%[[VAL_26:.*]]: index):
-// CHECK:               %[[VAL_27:.*]] = arith.addi %[[VAL_26]], %[[VAL_3]] : index
-// CHECK:               cc.continue %[[VAL_27]] : index
-// CHECK:             } {invariant}
-// CHECK:             cf.br ^bb7
-// CHECK:           ^bb7:
-// CHECK:             %[[VAL_28:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
-// CHECK:             %[[VAL_29:.*]] = arith.addi %[[VAL_28]], %[[VAL_5]] : i32
-// CHECK:             cc.store %[[VAL_29]], %[[VAL_9]] : !cc.ptr<i32>
-// CHECK:             cf.br ^bb1
-// CHECK:           ^bb8:
-// CHECK:             cc.continue
+// CHECK:               %[[VAL_26:.*]] = cc.load %[[VAL_7]] : !cc.ptr<i32>
+// CHECK:               %[[VAL_27:.*]] = arith.addi %[[VAL_26]], %[[VAL_3]] : i32
+// CHECK:               cc.store %[[VAL_27]], %[[VAL_7]] : !cc.ptr<i32>
+// CHECK:             }
 // CHECK:           }
 // CHECK:           call @_Z2g4v() : () -> ()
-// CHECK:           %[[VAL_30:.*]] = quake.mz %[[VAL_8]] : (!quake.veq<2>) -> !cc.stdvec<i1>
+// CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.stdvec<i1>
 // CHECK:           return
 // CHECK:         }
 
@@ -134,71 +131,68 @@ struct D {
    }
 };
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__D()
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__D() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : index
-// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 1 : index
-// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 0 : index
-// CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 1 : i32
-// CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 10 : i32
-// CHECK-DAG:       %[[VAL_7:.*]] = arith.constant 0 : i32
-// CHECK:           %[[VAL_8:.*]] = quake.alloca !quake.veq<2>
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : index
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : index
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 1 : i32
+// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 10 : i32
+// CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 0 : i32
+// CHECK-DAG:       %[[VAL_6:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           call @_Z2g1v() : () -> ()
 // CHECK:           cc.scope {
-// CHECK:             %[[VAL_9:.*]] = cc.alloca i32
-// CHECK:             cc.store %[[VAL_7]], %[[VAL_9]] : !cc.ptr<i32>
-// CHECK:             cf.br ^bb1
-// CHECK:           ^bb1:
-// CHECK:             %[[VAL_10:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
-// CHECK:             %[[VAL_11:.*]] = arith.cmpi slt, %[[VAL_10]], %[[VAL_6]] : i32
-// CHECK:             cf.cond_br %[[VAL_11]], ^bb2, ^bb8
-// CHECK:           ^bb2:
-// CHECK:             %[[VAL_12:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
-// CHECK:             %[[VAL_13:.*]] = func.call @_Z2f1i(%[[VAL_12]]) : (i32) -> i1
-// CHECK:             cf.cond_br %[[VAL_13]], ^bb3, ^bb4
-// CHECK:           ^bb3:
-// CHECK:             %[[VAL_14:.*]] = quake.alloca !quake.ref
-// CHECK:             %[[VAL_15:.*]] = quake.extract_ref %[[VAL_8]][0] : (!quake.veq<2>) -> !quake.ref
-// CHECK:             quake.x [%[[VAL_14]]] %[[VAL_15]] :
-// CHECK:             quake.dealloc %[[VAL_14]] : !quake.ref
-// CHECK:             cf.br ^bb7
-// CHECK:           ^bb4:
-// CHECK:             %[[VAL_16:.*]] = quake.extract_ref %[[VAL_8]][0] : (!quake.veq<2>) -> !quake.ref
-// CHECK:             %[[VAL_17:.*]] = quake.extract_ref %[[VAL_8]][1] : (!quake.veq<2>) -> !quake.ref
-// CHECK:             quake.x [%[[VAL_16]]] %[[VAL_17]] : (!quake.ref, !quake.ref) -> ()
-// CHECK:             func.call @_Z2g2v() : () -> ()
-// CHECK:             %[[VAL_18:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
-// CHECK:             %[[VAL_19:.*]] = func.call @_Z2f2i(%[[VAL_18]]) : (i32) -> i1
-// CHECK:             cf.cond_br %[[VAL_19]], ^bb5, ^bb6
-// CHECK:           ^bb5:
-// CHECK:             %[[VAL_20:.*]] = quake.extract_ref %[[VAL_8]][1] : (!quake.veq<2>) -> !quake.ref
-// CHECK:             quake.y %[[VAL_20]]
-// CHECK:             cf.br ^bb8
-// CHECK:           ^bb6:
-// CHECK:             func.call @_Z2g3v() : () -> ()
-// CHECK:             %[[VAL_21:.*]] = cc.loop while ((%[[VAL_22:.*]] = %[[VAL_4]]) -> (index)) {
-// CHECK:               %[[VAL_23:.*]] = arith.cmpi slt, %[[VAL_22]], %[[VAL_0]] : index
-// CHECK:               cc.condition %[[VAL_23]](%[[VAL_22]] : index)
+// CHECK:             %[[VAL_7:.*]] = cc.alloca i32
+// CHECK:             cc.store %[[VAL_5]], %[[VAL_7]] : !cc.ptr<i32>
+// CHECK:             cc.loop while {
+// CHECK:               %[[VAL_8:.*]] = cc.load %[[VAL_7]] : !cc.ptr<i32>
+// CHECK:               %[[VAL_9:.*]] = arith.cmpi slt, %[[VAL_8]], %[[VAL_4]] : i32
+// CHECK:               cc.condition %[[VAL_9]]
 // CHECK:             } do {
-// CHECK:             ^bb0(%[[VAL_24:.*]]: index):
-// CHECK:               %[[VAL_25:.*]] = quake.extract_ref %[[VAL_8]][%[[VAL_24]]] : (!quake.veq<2>, index) -> !quake.ref
-// CHECK:               quake.z %[[VAL_25]] : (!quake.ref) -> ()
-// CHECK:               cc.continue %[[VAL_24]] : index
+// CHECK:               %[[VAL_10:.*]] = cc.load %[[VAL_7]] : !cc.ptr<i32>
+// CHECK:               %[[VAL_11:.*]] = func.call @_Z2f1i(%[[VAL_10]]) : (i32) -> i1
+// CHECK:               cf.cond_br %[[VAL_11]], ^bb1, ^bb2
+// CHECK:             ^bb1:
+// CHECK:               %[[VAL_12:.*]] = quake.alloca !quake.ref
+// CHECK:               %[[VAL_13:.*]] = quake.extract_ref %[[VAL_6]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:               quake.x {{\[}}%[[VAL_12]]] %[[VAL_13]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:               quake.dealloc %[[VAL_12]] : !quake.ref
+// CHECK:               cc.continue
+// CHECK:             ^bb2:
+// CHECK:               %[[VAL_14:.*]] = quake.extract_ref %[[VAL_6]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:               %[[VAL_15:.*]] = quake.extract_ref %[[VAL_6]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:               quake.x {{\[}}%[[VAL_14]]] %[[VAL_15]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:               func.call @_Z2g2v() : () -> ()
+// CHECK:               %[[VAL_16:.*]] = cc.load %[[VAL_7]] : !cc.ptr<i32>
+// CHECK:               %[[VAL_17:.*]] = func.call @_Z2f2i(%[[VAL_16]]) : (i32) -> i1
+// CHECK:               cf.cond_br %[[VAL_17]], ^bb3, ^bb4
+// CHECK:             ^bb3:
+// CHECK:               %[[VAL_18:.*]] = quake.extract_ref %[[VAL_6]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:               quake.y %[[VAL_18]] : (!quake.ref) -> ()
+// CHECK:               cc.break
+// CHECK:             ^bb4:
+// CHECK:               func.call @_Z2g3v() : () -> ()
+// CHECK:               %[[VAL_19:.*]] = cc.loop while ((%[[VAL_20:.*]] = %[[VAL_2]]) -> (index)) {
+// CHECK:                 %[[VAL_21:.*]] = arith.cmpi slt, %[[VAL_20]], %[[VAL_0]] : index
+// CHECK:                 cc.condition %[[VAL_21]](%[[VAL_20]] : index)
+// CHECK:               } do {
+// CHECK:               ^bb0(%[[VAL_22:.*]]: index):
+// CHECK:                 %[[VAL_23:.*]] = quake.extract_ref %[[VAL_6]]{{\[}}%[[VAL_22]]] : (!quake.veq<2>, index) -> !quake.ref
+// CHECK:                 quake.z %[[VAL_23]] : (!quake.ref) -> ()
+// CHECK:                 cc.continue %[[VAL_22]] : index
+// CHECK:               } step {
+// CHECK:               ^bb0(%[[VAL_24:.*]]: index):
+// CHECK:                 %[[VAL_25:.*]] = arith.addi %[[VAL_24]], %[[VAL_1]] : index
+// CHECK:                 cc.continue %[[VAL_25]] : index
+// CHECK:               } {invariant}
+// CHECK:               cc.continue
 // CHECK:             } step {
-// CHECK:             ^bb0(%[[VAL_26:.*]]: index):
-// CHECK:               %[[VAL_27:.*]] = arith.addi %[[VAL_26]], %[[VAL_3]] : index
-// CHECK:               cc.continue %[[VAL_27]] : index
-// CHECK:             } {invariant}
-// CHECK:             cf.br ^bb7
-// CHECK:           ^bb7:
-// CHECK:             %[[VAL_28:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i32>
-// CHECK:             %[[VAL_29:.*]] = arith.addi %[[VAL_28]], %[[VAL_5]] : i32
-// CHECK:             cc.store %[[VAL_29]], %[[VAL_9]] : !cc.ptr<i32>
-// CHECK:             cf.br ^bb1
-// CHECK:           ^bb8:
-// CHECK:             cc.continue
+// CHECK:               %[[VAL_26:.*]] = cc.load %[[VAL_7]] : !cc.ptr<i32>
+// CHECK:               %[[VAL_27:.*]] = arith.addi %[[VAL_26]], %[[VAL_3]] : i32
+// CHECK:               cc.store %[[VAL_27]], %[[VAL_7]] : !cc.ptr<i32>
+// CHECK:             }
 // CHECK:           }
 // CHECK:           call @_Z2g4v() : () -> ()
-// CHECK:           %[[VAL_30:.*]] = quake.mz %[[VAL_8]] : (!quake.veq<2>) -> !cc.stdvec<i1>
+// CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.stdvec<i1>
 // CHECK:           return
 // CHECK:         }
 
