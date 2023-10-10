@@ -363,6 +363,7 @@ bool __quantum__qis__read_result__body(Result *result) {
   // TODO: implement post-measurement result retrieval. This is not needed for
   // typical simulator operation (other than to have it defined), but it may be
   // useful in the future.
+  // https://github.com/NVIDIA/cuda-quantum/issues/758
   cudaq::ScopedTrace trace("NVQIR::read_result (stubbed out)");
   return ResultZeroVal;
 }
