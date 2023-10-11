@@ -13,29 +13,36 @@
 
 __qpu__ void foo() {
   cudaq::qubit q0, q1, q2;
-  h(q0);
+  x(q0);
+  x(q1);
   x<cudaq::ctrl>(q0, q1);
-  x<cudaq::ctrl>(q0, q2); // requires a swap
-  mz(q0);
-  mz(q1);
-  mz(q2);
+  x<cudaq::ctrl>(q0, q2); // requires a swap(q0,q1)
+  auto q0result = mz(q0);
+  auto q1result = mz(q1);
+  auto q2result = mz(q2);
 }
 
 int main() {
   auto result = cudaq::sample(1000, foo);
   result.dump();
 
+  // If the swap is working correctly, this will show "101". If it is working
+  // incorrectly, it may show something like "011".
+  std::cout << "most_probable \"" << result.most_probable() << "\"\n";
+
   return 0;
 }
 
-// CHECK:         tail call void @__quantum__qis__h__body(%[[VAL_0:.*]]* null)
-// CHECK:         tail call void @__quantum__qis__cnot__body(%[[VAL_0]]* null, %[[VAL_0]]* nonnull inttoptr (i64 1 to %[[VAL_0]]*))
-// CHECK:         tail call void @__quantum__qis__swap__body(%[[VAL_0]]* null, %[[VAL_0]]* nonnull inttoptr (i64 1 to %[[VAL_0]]*))
-// CHECK:         tail call void @__quantum__qis__cnot__body(%[[VAL_0]]* nonnull inttoptr (i64 1 to %[[VAL_0]]*), %[[VAL_0]]* nonnull inttoptr (i64 2 to %[[VAL_0]]*))
-// CHECK:         tail call void @__quantum__qis__mz__body(%[[VAL_0]]* nonnull inttoptr (i64 1 to %[[VAL_0]]*), %[[VAL_1:.*]]* writeonly null)
-// CHECK:         tail call void @__quantum__qis__mz__body(%[[VAL_0]]* null, %[[VAL_1]]* nonnull writeonly inttoptr (i64 1 to %[[VAL_1]]*))
-// CHECK:         tail call void @__quantum__qis__mz__body(%[[VAL_0]]* nonnull inttoptr (i64 2 to %[[VAL_0]]*), %[[VAL_1]]* nonnull writeonly inttoptr (i64 2 to %[[VAL_1]]*))
-// CHECK:         tail call void @__quantum__rt__result_record_output(%[[VAL_1]]* nonnull inttoptr (i64 1 to %[[VAL_1]]*), i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @cstr.72303030303100, i64 0, i64 0))
-// CHECK:         tail call void @__quantum__rt__result_record_output(%[[VAL_1]]* null, i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @cstr.72303030303000, i64 0, i64 0))
-// CHECK:         tail call void @__quantum__rt__result_record_output(%[[VAL_1]]* nonnull inttoptr (i64 2 to %[[VAL_1]]*), i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @cstr.72303030303200, i64 0, i64 0))
+// CHECK:         tail call void @__quantum__qis__x__body(%Qubit* null)
+// CHECK:         tail call void @__quantum__qis__x__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*))
+// CHECK:         tail call void @__quantum__qis__cnot__body(%Qubit* null, %Qubit* nonnull inttoptr (i64 1 to %Qubit*))
+// CHECK:         tail call void @__quantum__qis__swap__body(%Qubit* null, %Qubit* nonnull inttoptr (i64 1 to %Qubit*))
+// CHECK:         tail call void @__quantum__qis__cnot__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Qubit* nonnull inttoptr (i64 2 to %Qubit*))
+// CHECK:         tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Result* writeonly null)
+// CHECK:         tail call void @__quantum__qis__mz__body(%Qubit* null, %Result* nonnull writeonly inttoptr (i64 1 to %Result*))
+// CHECK:         tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 2 to %Qubit*), %Result* nonnull writeonly inttoptr (i64 2 to %Result*))
+// CHECK:         tail call void @__quantum__rt__result_record_output(%Result* nonnull inttoptr (i64 1 to %Result*), i8* nonnull getelementptr inbounds ([9 x i8], [9 x i8]* @cstr.{{.*}}, i64 0, i64 0))
+// CHECK:         tail call void @__quantum__rt__result_record_output(%Result* null, i8* nonnull getelementptr inbounds ([9 x i8], [9 x i8]* @cstr.{{.*}}, i64 0, i64 0))
+// CHECK:         tail call void @__quantum__rt__result_record_output(%Result* nonnull inttoptr (i64 2 to %Result*), i8* nonnull getelementptr inbounds ([9 x i8], [9 x i8]* @cstr.{{.*}}, i64 0, i64 0))
 // CHECK:         ret void
+// CHECK:         most_probable "101"
