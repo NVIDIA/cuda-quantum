@@ -20,7 +20,9 @@ if not "CUDAQ_DYNLIBS" in os.environ:
 
         os.environ["CUDAQ_DYNLIBS"] = f"{custatevec_path}:{cutensornet_path}"
     except:
-        print("Could not find a suitable cuQuantum Python package.")
+        import importlib.util
+        if not importlib.util.find_spec("cuda-quantum") is None:
+            print("Could not find a suitable cuQuantum Python package.")
         pass
 
 from ._pycudaq import *
