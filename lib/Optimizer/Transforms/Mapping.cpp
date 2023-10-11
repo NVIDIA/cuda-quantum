@@ -436,6 +436,17 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     SmallVector<quake::NullWireOp> sources;
     DenseMap<Value, Placement::VirtualQ> wireToVirtualQ;
     for (Operation &op : block.getOperations()) {
+      // If it's a measurement, make sure it has a name. Otherwise we will have
+      // no hope of reassembling all the measurements for the user.
+      if (auto measure = dyn_cast<quake::MeasurementInterface>(op)) {
+        if (measure.getOptionalRegisterName() == std::nullopt) {
+          op.emitError("Measurements must have names in the mapping pass. Try "
+                       "saving the measurement to a variable.");
+          signalPassFailure();
+          return;
+        }
+      }
+
       if (auto qop = dyn_cast<quake::NullWireOp>(op)) {
         // Assing a new virtual qubit to the resulting wire.
         wireToVirtualQ[qop.getResult()] = Placement::VirtualQ(sources.size());
