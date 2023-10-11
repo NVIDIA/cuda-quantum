@@ -422,6 +422,10 @@ public:
         OpPassManager &optPM = pm.nest<func::FuncOp>();
         optPM.addPass(
             cudaq::opt::createObserveAnsatzPass(binarySymplecticForm[0]));
+        if (disableMLIRthreading || enablePrintMLIREachPass)
+          tmpModuleOp.getContext()->disableMultithreading();
+        if (enablePrintMLIREachPass)
+          pm.enableIRPrinting();
         if (failed(pm.run(tmpModuleOp)))
           throw std::runtime_error("Could not apply measurements to ansatz.");
         runPassPipeline(passPipelineConfig, tmpModuleOp);
