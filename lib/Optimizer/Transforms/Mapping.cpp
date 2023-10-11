@@ -62,8 +62,8 @@ class SabreRouter {
 public:
   SabreRouter(const Device &device, WireMap &wireMap, Placement &placement)
       : device(device), wireToVirtualQ(wireMap), placement(placement),
-        phyDecay(device.getNumQubits(), 1.0), phyToWire(device.getNumQubits()) {
-  }
+        phyDecay(device.getNumQubits(), 1.0), phyToWire(device.getNumQubits()),
+        allowMeasurementMapping(false) {}
 
   void route(Block &block, ArrayRef<quake::NullWireOp> sources);
 
@@ -96,6 +96,8 @@ private:
   // Internal data
   SmallVector<VirtualOp> frontLayer;
   SmallVector<VirtualOp> extendedLayer;
+  SmallVector<VirtualOp> measureLayer;
+  llvm::SmallPtrSet<mlir::Operation *, 32> measureLayerSet;
   llvm::SmallSet<Placement::DeviceQ, 32> involvedPhy;
   SmallVector<float> phyDecay;
 
@@ -103,6 +105,10 @@ private:
 
   /// Keeps track of how many times an operation was visited.
   DenseMap<Operation *, unsigned> visited;
+
+  /// Keep track of whether or not we're in the phase that allows measurements
+  /// to be mapped
+  bool allowMeasurementMapping;
 
 #ifndef NDEBUG
   /// A logger used to emit diagnostics during the maping process.
@@ -131,7 +137,16 @@ void SabreRouter::visitUsers(ResultRange::user_range users,
         SmallVector<Placement::VirtualQ, 2> qubits;
         for (auto wire : wires)
           qubits.push_back(wireToVirtualQ[wire]);
-        layer.emplace_back(user, qubits);
+        // Don't process measurements until we're ready
+        if (allowMeasurementMapping || !user->hasTrait<QuantumMeasure>()) {
+          layer.emplace_back(user, qubits);
+        } else {
+          // Add to measureLayer. Don't add duplicates.
+          if (measureLayerSet.find(user) == measureLayerSet.end()) {
+            measureLayer.emplace_back(user, qubits);
+            measureLayerSet.insert(user);
+          }
+        }
       }
     }
   }
@@ -332,7 +347,19 @@ void SabreRouter::route(Block &block, ArrayRef<quake::NullWireOp> sources) {
   };
 
   uint32_t numSwapSearches = 0u;
-  while (!frontLayer.empty()) {
+  bool done = false;
+  while (!done) {
+    // Once frontLayer is empty, grab everything from measureLayer and go again.
+    if (frontLayer.empty()) {
+      if (allowMeasurementMapping) {
+        done = true;
+      } else {
+        allowMeasurementMapping = true;
+        frontLayer = std::move(measureLayer);
+      }
+      continue;
+    }
+
     LLVM_DEBUG({
       logger.getOStream() << "\n";
       logger.startLine() << logLineComment;
@@ -368,6 +395,11 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
   using MappingPassBase::MappingPassBase;
 
   void runOnOperation() override {
+
+    // const char *debugTypes[] = {DEBUG_TYPE, nullptr};
+    // llvm::DebugFlag = true;
+    // llvm::setCurrentDebugTypes(debugTypes, 1);
+
     auto func = getOperation();
     auto &blocks = func.getBlocks();
 
@@ -411,6 +443,12 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
       } else if (quake::isSupportedMappingOperation(&op)) {
         // Make sure the operation is using value semantics.
         if (!quake::isValueSSAForm(&op)) {
+          llvm::errs() << "This is not SSA form: " << op << '\n';
+          llvm::errs() << "isa<quake::NullWireOp>() = "
+                       << isa<quake::NullWireOp>(&op) << '\n';
+          llvm::errs() << "isAllReferences() = " << quake::isAllReferences(&op)
+                       << '\n';
+          llvm::errs() << "isWrapped() = " << quake::isWrapped(&op) << '\n';
           func.emitError("The mapper requires value semantics.");
           signalPassFailure();
           return;
