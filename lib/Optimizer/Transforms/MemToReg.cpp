@@ -529,6 +529,7 @@ private:
     if (isFunctionEntryBlock(block))
       return false;
 
+    assert(block->getNumArguments() >= originalBlockArgs[block]);
     auto addedBlockArgs = block->getNumArguments() - originalBlockArgs[block];
     if (addedBlockArgs >= getNumEscapes())
       return false;
