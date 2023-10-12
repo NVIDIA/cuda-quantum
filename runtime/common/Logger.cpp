@@ -14,6 +14,7 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/spdlog.h>
+
 namespace cudaq {
 /// @brief This function will run at startup and initialize
 /// the logger for the runtime to use. It will set the log
