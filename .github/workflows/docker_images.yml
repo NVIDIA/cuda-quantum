@@ -258,7 +258,7 @@ jobs:
 
           if ${{ inputs.environment == '' }}; then
             tar_archive=/tmp/cuda-quantum-dev.tar
-            echo "tar_cache=tar-cudaqdev-$image_tag-${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "tar_cache=tar-cudaqdev-$image_tag-${{ needs.metadata.outputs.platform_tag }}-${{ github.sha }}" >> $GITHUB_OUTPUT
             echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
             echo "docker_output=type=docker,dest=$tar_archive" >> $GITHUB_OUTPUT
           fi
