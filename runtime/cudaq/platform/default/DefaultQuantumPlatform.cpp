@@ -13,6 +13,7 @@
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/spin_op.h"
+#include <filesystem>
 #include <fstream>
 
 /// This file defines the default, library mode, quantum platform.
