@@ -9,7 +9,7 @@
 // clang-format off
 // RUN: nvq++ --target quantinuum --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
 // XFAIL: *
-// ^^^^^ Produces 'cc.unwind_break' op arity of arguments and loop result mismatch
+// ^^^^^ Produces error: 'cc.loop' op not a simple counted loop
 // clang-format on
 
 #include <cudaq.h>
@@ -40,7 +40,7 @@ int main() {
   int nIterRan = 0;
   for (int i = 0; i < nIter; i++) {
     char regName1[32];
-    snprintf(regName1, sizeof(regName1), "q0result%02d", i);
+    snprintf(regName1, sizeof(regName1), "q0result%%%02d", i);
     char regName2[32];
     snprintf(regName2, sizeof(regName2), "auto_register_%d", i);
     if (counts.size(regName1) == 0 && counts.size(regName2) == 0) {
