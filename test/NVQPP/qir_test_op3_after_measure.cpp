@@ -8,7 +8,6 @@
 
 // Note: change |& to 2>&1 if running in bash
 // RUN: nvq++ -v %s -o %basename_t.x --target quantinuum --emulate && ./%basename_t.x |& FileCheck %s
-// XFAIL: *
 
 #include <cudaq.h>
 #include <iostream>
@@ -19,10 +18,8 @@ __qpu__ void init_state() {
   x(q0);
   mz(q0);
   // The Base Profile spec technically allows a measurement like this because it
-  // isn't operating on an already-measured qubit, but that would require the
-  // compiler to reorder the q1 operation to be before the q0 measurement, and
-  // it currently doesn't do that, so the runtime will say that a program like
-  // this fails the runtime validation checks. Hence the XFAIL above.
+  // isn't operating on an already-measured qubit, but it requires that the
+  // compiler to reorder the q1 operation to be before the q0 measurement.
   x(q1);
   mz(q1);
 };

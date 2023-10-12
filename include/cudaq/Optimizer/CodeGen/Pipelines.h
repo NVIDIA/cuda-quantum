@@ -27,7 +27,7 @@ namespace cudaq::opt {
 /// @param convertTo String name of qir profile (e.g., qir-base, qir-adaptive)
 template <bool QIRProfile = false>
 void addPipelineToQIR(mlir::PassManager &pm,
-                      llvm::StringRef convertTo = "qir-base") {
+                      llvm::StringRef convertTo = "none") {
   cudaq::opt::addAggressiveEarlyInlining(pm);
   pm.addPass(mlir::createCanonicalizerPass());
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
@@ -45,6 +45,9 @@ void addPipelineToQIR(mlir::PassManager &pm,
       cudaq::opt::createCombineQuantumAllocations());
   pm.addPass(mlir::createCanonicalizerPass());
   pm.addPass(mlir::createCSEPass());
+  if (convertTo == "qir-base")
+    pm.addNestedPass<mlir::func::FuncOp>(
+        cudaq::opt::createDelayMeasurementsPass());
   pm.addPass(cudaq::opt::createConvertToQIRPass());
   if constexpr (QIRProfile) {
     cudaq::opt::addQIRProfilePipeline(pm, convertTo);

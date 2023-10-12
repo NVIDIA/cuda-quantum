@@ -419,7 +419,8 @@ public:
       // and use that for execution
       for (auto &[name, module] : modules) {
         auto clonedModule = module.clone();
-        jitEngines.emplace_back(cudaq::createQIRJITEngine(clonedModule));
+        jitEngines.emplace_back(
+            cudaq::createQIRJITEngine(clonedModule, codegenTranslation));
       }
     }
 

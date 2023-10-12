@@ -30,4 +30,4 @@ int main() {
   return 0;
 }
 
-// CHECK: error: 'llvm.cond_br' op QIR base profile does not support control-flow
+// CHECK: Do you have if statements in a Base Profile QIR program
