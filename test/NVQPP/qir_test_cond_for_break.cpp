@@ -37,7 +37,7 @@ int main() {
   auto counts = cudaq::sample(/*shots=*/nShots, kernel{}, nIter);
 
   // Count the maximum number of iterations it took
-  int nIterRan = 0;
+  int nIterRan = nIter;
   for (int i = 0; i < nIter; i++) {
     char regName1[32];
     snprintf(regName1, sizeof(regName1), "q0result%%%02d", i);
