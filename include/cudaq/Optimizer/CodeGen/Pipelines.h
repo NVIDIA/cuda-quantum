@@ -27,7 +27,7 @@ namespace cudaq::opt {
 /// @param convertTo String name of qir profile (e.g., qir-base, qir-adaptive)
 template <bool QIRProfile = false>
 void addPipelineToQIR(mlir::PassManager &pm,
-                      llvm::StringRef convertTo = "none") {
+                      const std::string &convertTo = "none") {
   cudaq::opt::addAggressiveEarlyInlining(pm);
   pm.addPass(mlir::createCanonicalizerPass());
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());

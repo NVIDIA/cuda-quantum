@@ -519,7 +519,7 @@ std::unique_ptr<MLIRContext> initializeMLIR() {
 }
 
 ExecutionEngine *createQIRJITEngine(ModuleOp &moduleOp,
-                                    llvm::StringRef convertTo) {
+                                    const std::string &convertTo) {
   ExecutionEngineOptions opts;
   opts.transformer = [](llvm::Module *m) { return llvm::ErrorSuccess(); };
   opts.jitCodeGenOptLevel = llvm::CodeGenOpt::None;

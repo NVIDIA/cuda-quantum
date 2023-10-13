@@ -197,7 +197,7 @@ private:
 
 struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
   explicit AddFuncAttribute(MLIRContext *ctx, const FunctionAnalysisInfo &info,
-                            llvm::StringRef convertTo_)
+                            const std::string &convertTo_)
       : OpRewritePattern(ctx), infoMap(info), convertTo(convertTo_) {}
 
   LogicalResult matchAndRewrite(LLVM::LLVMFuncOp op,
@@ -266,7 +266,7 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
   }
 
   const FunctionAnalysisInfo &infoMap;
-  llvm::StringRef convertTo;
+  std::string convertTo;
 };
 
 struct AddCallAttribute : public OpRewritePattern<LLVM::CallOp> {
@@ -303,7 +303,7 @@ struct QIRToQIRProfileFuncPass
     : public cudaq::opt::QIRToQIRProfileFuncBase<QIRToQIRProfileFuncPass> {
   using QIRToQIRProfileFuncBase::QIRToQIRProfileFuncBase;
 
-  explicit QIRToQIRProfileFuncPass(llvm::StringRef convertTo_)
+  explicit QIRToQIRProfileFuncPass(const std::string &convertTo_)
       : QIRToQIRProfileFuncBase() {
     convertTo.setValue(convertTo_);
   }
@@ -340,7 +340,7 @@ struct QIRToQIRProfileFuncPass
 } // namespace
 
 std::unique_ptr<Pass>
-cudaq::opt::createConvertToQIRFuncPass(llvm::StringRef convertTo) {
+cudaq::opt::createConvertToQIRFuncPass(const std::string &convertTo) {
   return std::make_unique<QIRToQIRProfileFuncPass>(convertTo);
 }
 
@@ -407,7 +407,8 @@ struct QIRToQIRProfileQIRPass
 
   /// @brief Construct pass
   /// @param convertTo_ expected "qir-base" or "qir-adaptive"
-  QIRToQIRProfileQIRPass(llvm::StringRef convertTo_) : QIRToQIRProfileBase() {
+  QIRToQIRProfileQIRPass(const std::string &convertTo_)
+      : QIRToQIRProfileBase() {
     convertTo.setValue(convertTo_);
   }
 
@@ -433,7 +434,7 @@ private:
 } // namespace
 
 std::unique_ptr<Pass>
-cudaq::opt::createQIRToQIRProfilePass(llvm::StringRef convertTo) {
+cudaq::opt::createQIRToQIRProfilePass(const std::string &convertTo) {
   return std::make_unique<QIRToQIRProfileQIRPass>(convertTo);
 }
 
@@ -518,7 +519,7 @@ namespace {
 /// not possibly defined in the QIR standard.
 struct VerifyQIRProfilePass
     : public cudaq::opt::VerifyQIRProfileBase<VerifyQIRProfilePass> {
-  explicit VerifyQIRProfilePass(llvm::StringRef convertTo_)
+  explicit VerifyQIRProfilePass(const std::string &convertTo_)
       : VerifyQIRProfileBase() {
     convertTo.setValue(convertTo_);
   }
@@ -577,14 +578,14 @@ struct VerifyQIRProfilePass
 } // namespace
 
 std::unique_ptr<Pass>
-cudaq::opt::verifyQIRProfilePass(llvm::StringRef convertTo) {
+cudaq::opt::verifyQIRProfilePass(const std::string &convertTo) {
   return std::make_unique<VerifyQIRProfilePass>(convertTo);
 }
 
 // The various passes defined here should be added as a pass pipeline.
 
 void cudaq::opt::addQIRProfilePipeline(OpPassManager &pm,
-                                       llvm::StringRef convertTo) {
+                                       const std::string &convertTo) {
   pm.addPass(createQIRProfilePreparationPass());
   pm.addNestedPass<LLVM::LLVMFuncOp>(createConvertToQIRFuncPass(convertTo));
   pm.addPass(createQIRToQIRProfilePass(convertTo));

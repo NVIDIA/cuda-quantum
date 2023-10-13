@@ -46,7 +46,7 @@ void optimizeLLVM(llvm::Module *);
 /// and return an ExecutionEngine pointer for JIT function pointer
 /// execution. Clients are responsible for deleting this pointer.
 mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
-                                          llvm::StringRef convertTo);
+                                          const std::string &convertTo);
 
 class Translation {
 public:
