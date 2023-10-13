@@ -17,7 +17,7 @@ kernel = cudaq.make_kernel()
 qubits = kernel.qalloc(5)
 # Place qubits in GHZ state.
 kernel.h(qubits[0])
-kernel.for_loop(0,4, lambda i: kernel.cx(qubits[i], qubits[i + 1]))
+kernel.for_loop(0, 4, lambda i: kernel.cx(qubits[i], qubits[i + 1]))
 
 state_futures = []
 for qpu in range(num_qpus):
