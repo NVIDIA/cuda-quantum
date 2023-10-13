@@ -54,7 +54,8 @@ public:
 
 /// @brief Define a valid kernel concept
 template <typename QuantumKernel, typename... Args>
-concept KernelCallValid = ValidArgumentsPassed<QuantumKernel, Args...> &&
+concept KernelCallValid =
+    ValidArgumentsPassed<QuantumKernel, Args...> &&
     HasVoidReturnType<std::invoke_result_t<QuantumKernel, Args...>>;
 
 namespace details {
@@ -139,8 +140,9 @@ using async_state_result = std::future<state>;
 /// \returns state future, A std::future containing the resultant state vector
 ///
 template <typename QuantumKernel, typename... Args>
-requires KernelCallValid<QuantumKernel, Args...> async_state_result
-get_state_async(std::size_t qpu_id, QuantumKernel &&kernel, Args &&...args) {
+  requires KernelCallValid<QuantumKernel, Args...>
+async_state_result get_state_async(std::size_t qpu_id, QuantumKernel &&kernel,
+                                   Args &&...args) {
   auto &platform = cudaq::get_platform();
   return details::runGetStateAsync(
       [&kernel, ... args = std::forward<Args>(args)]() mutable {
@@ -158,8 +160,8 @@ get_state_async(std::size_t qpu_id, QuantumKernel &&kernel, Args &&...args) {
 /// \returns state future, A std::future containing the resultant state vector
 ///
 template <typename QuantumKernel, typename... Args>
-requires KernelCallValid<QuantumKernel, Args...>
-    async_state_result get_state_async(QuantumKernel &&kernel, Args &&...args) {
+  requires KernelCallValid<QuantumKernel, Args...>
+async_state_result get_state_async(QuantumKernel &&kernel, Args &&...args) {
   return get_state_async(0, std::forward<QuantumKernel>(kernel),
                          std::forward<Args>(args)...);
 }
