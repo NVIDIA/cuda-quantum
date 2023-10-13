@@ -155,11 +155,11 @@ for more information on this programming pattern.)#")
         auto validatedArgs = validateInputArguments(kernel, args);
         auto &platform = cudaq::get_platform();
         kernel.jitCode();
+        auto argDataPtr = std::make_unique<OpaqueArguments>();
+        packArgs(*argDataPtr, validatedArgs);
         return cudaq::details::runGetStateAsync(
-            [&, a = std::move(validatedArgs)]() mutable {
-              OpaqueArguments argData;
-              packArgs(argData, a);
-              kernel.jitAndInvoke(argData.data());
+            [&, argsPtr = std::move(argDataPtr)]() mutable {
+              kernel.jitAndInvoke(argsPtr->data());
             },
             platform, qpu_id);
       },
