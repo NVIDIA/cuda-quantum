@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt %s --quake-add-deallocs | FileCheck %s
+// RUN: cudaq-opt %s --add-dealloc | FileCheck %s
 
 // CHECK-LABEL:   func.func @ghz(
 // CHECK-SAME:                   %[[VAL_0:.*]]: i32) {

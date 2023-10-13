@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt %s --canonicalize --quake-add-deallocs | cudaq-translate --convert-to=qir | FileCheck %s
+// RUN: cudaq-opt %s --canonicalize --add-dealloc | cudaq-translate --convert-to=qir | FileCheck %s
 
 module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__Z4mainE3$_0 = "_ZZ4mainENK3$_0clEd"}} {
   func.func @__nvqpp__mlirgen__Z4mainE3$_0(%arg0: f64) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
