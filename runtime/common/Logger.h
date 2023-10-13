@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <filesystem>
+#include <chrono>
 
 // Be careful about fmt getting into public headers
 #include "common/FmtCore.h"
@@ -20,6 +20,7 @@ namespace details {
 void trace(const std::string_view msg);
 void info(const std::string_view msg);
 void debug(const std::string_view msg);
+std::string pathToFileName(const std::string_view fullFilePath);
 } // namespace details
 
 /// This type seeks to enable automated injection of the
@@ -43,9 +44,8 @@ void debug(const std::string_view msg);
       std::string name = funcName;                                             \
       auto start = name.find_first_of(" ");                                    \
       name = name.substr(start + 1, name.find_first_of("(") - start - 1);      \
-      std::filesystem::path file = fileName;                                   \
-      msg = "[" + file.filename().string() + ":" + std::to_string(lineNo) +    \
-            "] " + msg;                                                        \
+      msg = "[" + details::pathToFileName(fileName) + ":" +                    \
+            std::to_string(lineNo) + "] " + msg;                               \
       details::NAME(msg);                                                      \
     }                                                                          \
   };                                                                           \
