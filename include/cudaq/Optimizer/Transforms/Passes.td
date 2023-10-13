@@ -391,7 +391,7 @@ def UnwindLowering : Pass<"unwind-lowering", "mlir::func::FuncOp"> {
   let constructor = "cudaq::opt::createUnwindLoweringPass()";
 }
 
-def BasisConversionPass: Pass<"quake-basis-conversion", "mlir::ModuleOp"> {
+def BasisConversionPass: Pass<"basis-conversion", "mlir::ModuleOp"> {
   let summary = "Converts kernels to a set of basis operations.";
   let description = [{
     This pass takes as input a list of target (allowed) quantum operations.
@@ -422,7 +422,7 @@ def BasisConversionPass: Pass<"quake-basis-conversion", "mlir::ModuleOp"> {
   ];
 }
 
-def DecompositionPass: Pass<"quake-decomposition", "mlir::ModuleOp"> {
+def DecompositionPass: Pass<"decomposition", "mlir::ModuleOp"> {
   let summary = "Break down quantum operations.";
   let description = [{
     This pass performs decomposition over a set of operations by iteratively
@@ -446,7 +446,7 @@ def DecompositionPass: Pass<"quake-decomposition", "mlir::ModuleOp"> {
   ];
 }
 
-def MultiControlDecompositionPass: Pass<"quake-multicontrol-decomposition",
+def MultiControlDecompositionPass: Pass<"multicontrol-decomposition",
                                         "mlir::func::FuncOp"> {
   let summary = "Break down multi-control quantum operations.";
   let description = [{
