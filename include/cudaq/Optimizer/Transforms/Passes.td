@@ -336,7 +336,7 @@ def QuakeAddMetadata : Pass<"quake-add-metadata", "mlir::func::FuncOp"> {
   let constructor = "cudaq::opt::createQuakeAddMetadata()";
 }
 
-def QuakeObserveAnsatz : Pass<"quake-observe-ansatz", "mlir::func::FuncOp"> {
+def QuakeObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
  let summary = "Given spin_op input, append measures to the Quake FuncOp";
   let description = [{
     Given an unmeasured Quake representation (i.e. a state prep
