@@ -6,6 +6,16 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+/// The MemToReg pass converts the IR from memory-semantics to
+/// register-semantics. This conversion takes values that are stored to and
+/// loaded from memory locations (explicitly) to first-class SSA values in
+/// virtual registers. It will convert either classical values, quantum values,
+/// or (default) both.
+///
+/// Because memory dereferences are implicit in the Quake dialect (quantum), a
+/// conversion to introduce explicit dereferences, conversion to the quantum
+/// load/store form (QLS), is required and performed.
+
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -42,10 +52,20 @@ static bool isMemoryDef(Operation *op) {
   return false;
 }
 
+/// Returns true if and only if \p op is either a callable computation or an
+/// inlined macro computation.
+static bool isFunctionOp(Operation *op) {
+  return isa<func::FuncOp, cudaq::cc::CreateLambdaOp>(op);
+}
+
+/// Is \p block immediately owned by a callable/function?
+static bool isFunctionBlock(Block *block) {
+  return isFunctionOp(block->getParentOp());
+}
+
+/// Is \p block both owned by a function and an entry block?
 static bool isFunctionEntryBlock(Block *block) {
-  if (isa<func::FuncOp, cudaq::cc::CreateLambdaOp>(block->getParentOp()))
-    return block->isEntryBlock();
-  return false;
+  return isFunctionBlock(block) && block->isEntryBlock();
 }
 
 namespace {
@@ -98,26 +118,98 @@ private:
 };
 } // namespace
 
-/// Generic traversal over an operation, \p op, that collects all its exit
-/// blocks. If the operation does not have regions, an empty deque is returned.
-/// Otherwise, the exit blocks are for all regions in \p op are returned.
-static std::deque<Block *> collectAllExits(Operation *op) {
-  std::deque<Block *> blocks;
-  for (auto &region : op->getRegions())
-    for (auto &block : region)
-      if (block.hasNoSuccessors())
-        blocks.push_back(&block);
+/// Returns all the exiting blocks in region \p regionNumber of \p op.
+static SmallVector<Block *> collectAllExits(Operation *op, int regionNumber) {
+  SmallVector<Block *> blocks;
+  for (auto &block : op->getRegion(regionNumber))
+    if (block.hasNoSuccessors())
+      blocks.push_back(&block);
   return blocks;
 }
 
+/// Generic traversal over an operation, \p op, that collects all its exit
+/// blocks. If the operation does not have regions, an empty deque is returned.
+/// Otherwise, the exit blocks are for all regions in \p op are returned.
+///
+/// For a high-level operation, an exit must be both an exiting block in a
+/// region of the operation and the containing region must possibly conclude the
+/// operation. (It is possible that some regions within an operation do not exit
+/// the operation.)
+static std::deque<Block *> collectAllExits(Operation *op) {
+  std::deque<Block *> blocks;
+  if (auto regionOp = dyn_cast<RegionBranchOpInterface>(op)) {
+    SmallPtrSet<Region *, 4> regionSet;
+    for (auto &region : op->getRegions()) {
+      SmallVector<RegionSuccessor> successors;
+      regionOp.getSuccessorRegions(region.getRegionNumber(), {}, successors);
+      for (auto iter : successors) {
+        auto *succReg = iter.getSuccessor();
+        if (!succReg) {
+          regionSet.insert(&region);
+          break;
+        }
+      }
+    }
+    for (Region *region : regionSet) {
+      auto blocksToAdd = collectAllExits(op, region->getRegionNumber());
+      blocks.insert(blocks.end(), blocksToAdd.begin(), blocksToAdd.end());
+    }
+    return blocks;
+  }
+  for (auto &region : op->getRegions()) {
+    auto blocksToAdd = collectAllExits(op, region.getRegionNumber());
+    blocks.insert(blocks.end(), blocksToAdd.begin(), blocksToAdd.end());
+  }
+  return blocks;
+}
+
+/// Append the predecessors of \p block to \p worklist if and only if \p block
+/// is not in \p blocksVisited.
 static void
 appendPredecessorsToWorklist(std::deque<Block *> &worklist, Block *block,
                              const SmallPtrSetImpl<Block *> &blocksVisited) {
-  if (block->hasNoPredecessors())
-    return;
-  for (auto *p : block->getPredecessors())
-    if (!blocksVisited.count(p))
-      worklist.push_back(p);
+  auto appendIfNotVisited = [&](auto preds) {
+    for (auto *p : preds)
+      if (!blocksVisited.count(p))
+        worklist.push_back(p);
+  };
+  if (block->hasNoPredecessors()) {
+    Region *r = block->getParent();
+    auto rNum = r->getRegionNumber();
+    // An entry block in a region may be a successor to the exit blocks of other
+    // regions in the same Op.
+    if (auto regionOp = dyn_cast<RegionBranchOpInterface>(r->getParentOp())) {
+      SmallPtrSet<Region *, 4> regionSet;
+      // Collect all the preceeding regions in a set.
+      for (auto &region : regionOp->getRegions()) {
+        SmallVector<RegionSuccessor> successors;
+        regionOp.getSuccessorRegions(region.getRegionNumber(), {}, successors);
+        for (auto iter : successors) {
+          auto *succReg = iter.getSuccessor();
+          if (succReg && succReg->getRegionNumber() == rNum) {
+            regionSet.insert(&region);
+            break;
+          }
+        }
+      }
+      // Add all the exit blocks of the preceeding regions to the worklist.
+      for (Region *pred : regionSet) {
+        auto blocksToAdd =
+            collectAllExits(r->getParentOp(), pred->getRegionNumber());
+        appendIfNotVisited(blocksToAdd);
+      }
+    }
+  } else {
+    appendIfNotVisited(block->getPredecessors());
+  }
+}
+
+/// Append predecessor blocks of \p block unconditionally to \p worklist.
+static void appendPredecessorsToWorklist(std::deque<Block *> &worklist,
+                                         Block *block) {
+  SmallPtrSet<Block *, 4> ignoreBlocksVisited;
+  appendPredecessorsToWorklist(worklist, block, ignoreBlocksVisited);
+  worklist.push_back(block);
 }
 
 static bool opResultOfType(Operation *op, Type ofTy) {
@@ -140,21 +232,349 @@ static bool isDescendantOf(Operation *op, Value defVal) {
   return false;
 }
 
-// FIXME: llvm::MapVector is understood to be a heavyweight container, but these
-// maps ought to be quite small in size. The number of exit blocks in an op with
-// regions (typically 1 or 2) * the number of distinct qubits (on the order of
-// ten, at most).
-using RegionDefinitionsMap =
-    llvm::MapVector<Block *, llvm::MapVector<Value, Value>>;
-
-static SmallVector<Value>
-getAllDefinitions(const RegionDefinitionsMap &defMap) {
-  SetVector<Value> results;
-  for (auto &[block, defs] : defMap)
-    for (auto &[defKey, localVal] : defs)
-      results.insert(defKey);
-  return {results.begin(), results.end()};
+/// Return the type after \p ty is dereferenced.
+static Type dereferencedType(Type ty) {
+  if (isa<quake::RefType>(ty))
+    return quake::WireType::get(ty.getContext());
+  return cast<cudaq::cc::PointerType>(ty).getElementType();
 }
+
+namespace {
+/// For operations that contain Regions, a data-flow analysis is done over all
+/// the Regions in the Op to determine the use-def information for scalar memory
+/// reference. A scalar memory reference may be a classical variable (as
+/// allocated with a cc.alloca) or a quantum reference (as allocated with a
+/// `quake.alloca`). This class is used to track a map from memory references to
+/// SSA virtual registers within blocks and maintain information on how to
+/// stitch together blocks held by the Regions of the Op.
+///
+/// There are 3 basic cases.
+///
+///    -# High-level operations that take region arguments. In this case all
+///       use-def information is passed as arguments between the blocks if it is
+///       live.
+///    -# High-level operations that disallow region arguments. In this case
+///       uses may have loads promoted to immediately before the operation.
+///    -# Function operations. In this case, the body is a plain old CFG and
+///       classical pruned SSA form (live SSA) with block arguments is used.
+class RegionDataFlow {
+public:
+  // Typedefs to improve readability.
+  using MemRef = Value; // A value that is a memory reference.
+  using SSAReg = Value; // A value that is an SSA virtual register.
+  using OrderedMemRegMap =
+      llvm::MapVector<MemRef, SSAReg>; // A map that preserves insertion order.
+
+  explicit RegionDataFlow(Operation *op) {
+    if (isFunctionOp(op) || op->hasTrait<OpTrait::NoRegionArguments>())
+      originalOpArgs = 0;
+    else
+      originalOpArgs = op->getNumOperands();
+  }
+
+  /// Add \p block to the data-flow map for processing. This will add arguments
+  /// to the block for any region arguments not already appended.
+  bool addBlock(Block *block) {
+    assert(block);
+    if (!rMap.count(block)) {
+      rMap.insert({block, OrderedMemRegMap{}});
+      originalBlockArgs[block] = block->getNumArguments();
+    }
+    return maybeAddEscapingBlockArguments(block);
+  }
+
+  bool updateBlock(Block *block) {
+    assert(block && rMap.count(block));
+    bool changed = false;
+    for (Block *succ : block->getSuccessors())
+      changed |= addBlock(succ);
+    return changed;
+  }
+
+  /// Add a binding for memory reference \p mr to the virtual register \p sr in
+  /// \p block. This binding is only valid within \p block. Once the block is
+  /// fully processed, the set of bindings will reflect the live-out values from
+  /// the basic block, \p block.
+  ///
+  /// Bindings are the mechanism for doing data-flow within a block.
+  void addBinding(Block *block, MemRef mr, SSAReg sr) {
+    assert(block && rMap.count(block) && mr);
+    rMap[block][mr] = sr;
+  }
+
+  /// Used to cancel a binding when the value at a memory location is considered
+  /// indeterminant because of an unknown operation that uses the memory
+  /// location.
+  void cancelBinding(Block *block, MemRef mr) {
+    addBinding(block, mr, SSAReg{});
+  }
+
+  bool hasBinding(Block *block, MemRef mr) const {
+    assert(block && rMap.count(block));
+    return rMap.find(block)->second.count(mr);
+  }
+
+  /// Returns a binding. The binding must be present in the map.
+  SSAReg getBinding(Block *block, MemRef mr) {
+    assert(block && rMap.count(block) && mr && rMap[block].count(mr));
+    return rMap[block][mr];
+  }
+
+  /// Add a (possibly) escaping binding for memory reference \p mr for the
+  /// entire non-function operation. A memory reference may be used or live-out
+  /// of \p block but not have a dominating definition in \p block. In these
+  /// cases, the value will be passed as an argument to all blocks in the
+  /// operation.
+  std::pair<SSAReg, bool> addRegionBinding(Block *block, MemRef mr) {
+    assert(block && rMap.count(block) && mr && !isFunctionBlock(block));
+    SSAReg result;
+    if (!escapes.count(mr)) {
+      auto off = escapes.size();
+      escapes[mr] = off;
+    }
+    bool changed = maybeAddEscapingBlockArguments(block);
+    result = block->getArgument(originalBlockArgs[block] + escapes[mr]);
+    rMap[block][mr] = result;
+    return {result, changed};
+  }
+
+  /// Is \p mr a known escaping binding?
+  bool hasEscape(MemRef mr) const {
+    assert(mr);
+    return escapes.count(mr);
+  }
+
+  SSAReg reloadMemoryReference(OpBuilder &builder, MemRef mr) {
+    if (isa<quake::RefType>(mr.getType())) {
+      auto wireTy = quake::WireType::get(builder.getContext());
+      return builder.create<quake::UnwrapOp>(mr.getLoc(), wireTy, mr);
+    }
+    return builder.create<cudaq::cc::LoadOp>(mr.getLoc(), mr);
+  }
+
+  /// Update the terminator of \p block. All terminators must have operands
+  /// added for any escapes that have been added to the op. Each block may have
+  /// its own unique definitions for the list of escapes and those definitions
+  /// must be threaded.
+  ///
+  /// If the parent operation is a function, this does \e not update the
+  /// terminator. Terminators in functions are updated on-the-fly using CFG
+  /// live-in information elsewhere.
+  void updateTerminator(Block *block) {
+    assert(block);
+    if (isFunctionBlock(block)) {
+      // The CFG of a function is updated in place and tracked by liveInMap.
+      return;
+    }
+
+    auto *term = block->getTerminator();
+    auto *ctx = term->getContext();
+    auto *parent = block->getParentOp();
+
+    auto reloadWhenInterference = [&](MemRef mr) {
+      if (!rMap[block][mr]) {
+        // The memory reference definition is unknown (interference by other
+        // ops), so reload the value.
+        OpBuilder builder(ctx);
+        builder.setInsertionPoint(term);
+        auto reg = reloadMemoryReference(builder, mr);
+        rMap[block][mr] = reg;
+      }
+    };
+
+    if (parent->hasTrait<OpTrait::NoRegionArguments>() &&
+        block->hasNoSuccessors()) {
+      if (hasLiveOutOfParent()) {
+        auto liveOuts = getLiveOutOfParent();
+        SmallVector<Value> args(term->getOperands());
+        for (auto o : liveOuts) {
+          auto a = rMap[block].count(o) ? rMap[block][o] : promotedMem[o];
+          args.push_back(a);
+        }
+        term->setOperands(args);
+      }
+      return;
+    }
+
+    // Reverse the escapes map.
+    DenseMap<unsigned, MemRef> revEscapes;
+    for (auto [a, b] : escapes)
+      revEscapes[b] = a;
+
+    if (auto branch = dyn_cast<BranchOpInterface>(term)) {
+      // This terminator can be handled via the BranchOpInterface and (likely)
+      // represents low-level CFG branching within the parent op.
+      for (auto iter : llvm::enumerate(block->getSuccessors())) {
+        auto idx = iter.index();
+        auto *succ = iter.value();
+        const auto braArgSize = branch.getSuccessorOperands(idx).size();
+        const auto succArgSize = succ->getNumArguments();
+        if (braArgSize >= succArgSize)
+          continue;
+        auto off = braArgSize - originalBlockArgs[succ];
+        SmallVector<Value> newArgs;
+        for (unsigned i = off; i < succArgSize; ++i) {
+          auto mr = revEscapes[i];
+          reloadWhenInterference(mr);
+          newArgs.push_back(rMap[block][mr]);
+        }
+        branch.getSuccessorOperands(idx).append(newArgs);
+      }
+      return;
+    }
+
+    // Otherwise the terminator is simpler (likely from the CC dialect), and can
+    // also be handled in a common (but slightly different) way.
+    const unsigned addend = isa<cudaq::cc::ConditionOp>(term) ? 1 : 0;
+    SmallVector<Value> newArgs(term->getOperands());
+    const unsigned offset = newArgs.size() - addend - originalOpArgs;
+    for (unsigned i = offset; i < getNumEscapes(); ++i) {
+      assert(revEscapes.count(i));
+      auto mr = revEscapes[i];
+      reloadWhenInterference(mr);
+      newArgs.push_back(rMap[block][mr]);
+    }
+    term->setOperands(newArgs);
+  }
+
+  /// Get all the escaping bindings.
+  SmallVector<Value> getAllEscapingBindingDefs() {
+    SetVector<Value> results;
+    for (auto &[memref, pos] : escapes)
+      results.insert(memref);
+    return {results.begin(), results.end()};
+  }
+
+  /// Add \p mr to the set of live-in definitions for \p block. This can only be
+  /// used if the parent is a function.
+  std::pair<SSAReg, bool> addLiveInToBlock(Block *block, MemRef mr) {
+    assert(block && mr && isFunctionBlock(block));
+    if (!liveInMap.count(block))
+      liveInMap.insert({block, DenseMap<MemRef, SSAReg>{}});
+    if (liveInMap[block].count(mr))
+      return {liveInMap[block][mr], /*changed=*/false};
+
+    // `mr` has not already been added.
+    // Add it as an argument to `block`.
+    auto ty = dereferencedType(mr.getType());
+    SSAReg newArg = block->addArgument(ty, mr.getLoc());
+    liveInMap[block][mr] = newArg;
+
+    // For each predecessor, add a load and forward the value to `block`.
+    for (auto *pred : block->getPredecessors()) {
+      for (auto iter : llvm::enumerate(pred->getSuccessors())) {
+        auto idx = iter.index();
+        auto *succ = iter.value();
+        if (succ != block)
+          continue;
+        // Create the re-load.
+        OpBuilder builder(pred->getTerminator());
+        auto sr = reloadMemoryReference(builder, mr);
+        // Update the branch's successor operands list.
+        auto branch = cast<BranchOpInterface>(pred->getTerminator());
+        branch.getSuccessorOperands(idx).append(ArrayRef<Value>{sr});
+        assert(branch.getSuccessorOperands(idx).size() ==
+               block->getNumArguments());
+      }
+    }
+    return {newArg, /*changed=*/true};
+  }
+
+  /// Promote the memory dereference \p memuse to immediately before the parent
+  /// operation. This allows uses within the regions of the parent to use the
+  /// new dominating dereference. Used when \p op does not allow region
+  /// arguments.
+  Value createPromotedValue(Value memuse, Operation *op) {
+    Operation *parent = op->getParentOp();
+    if (hasPromotedMemRef(memuse))
+      return getPromotedMemRef(memuse);
+    OpBuilder builder(parent);
+    Value newUse = reloadMemoryReference(builder, memuse);
+    return addPromotedMemRef(memuse, newUse);
+  }
+
+  /// Track the memory reference \p mr as being live-out of the parent
+  /// operation. (\p parent is passed for the assertion check only.)
+  void addLiveOutOfParent(Operation *parent, MemRef mr) {
+    assert(parent && mr && !isFunctionOp(parent));
+    liveOutSet.insert(mr);
+  }
+
+  SmallVector<MemRef> getLiveOutOfParent() const {
+    return SmallVector<MemRef>(liveOutSet.begin(), liveOutSet.end());
+  }
+
+private:
+  // Delete all ctors that should never be used.
+  RegionDataFlow() = delete;
+  RegionDataFlow(const RegionDataFlow &) = delete;
+  RegionDataFlow(RegionDataFlow &&) = delete;
+
+  bool hasLiveOutOfParent() const { return !liveOutSet.empty(); }
+  unsigned getNumEscapes() const { return escapes.size(); }
+  bool hasPromotedMemRef(MemRef mr) const { return promotedMem.count(mr); }
+
+  SSAReg getPromotedMemRef(MemRef mr) const {
+    assert(hasPromotedMemRef(mr));
+    return promotedMem.find(mr)->second;
+  }
+
+  SSAReg addPromotedMemRef(MemRef mr, SSAReg sr) {
+    assert(!hasPromotedMemRef(mr));
+    promotedMem[mr] = sr;
+    return sr;
+  }
+
+  bool maybeAddEscapingBlockArguments(Block *block) {
+    if (isFunctionEntryBlock(block))
+      return false;
+
+    assert(block->getNumArguments() >= originalBlockArgs[block]);
+    auto addedBlockArgs = block->getNumArguments() - originalBlockArgs[block];
+    if (addedBlockArgs >= getNumEscapes())
+      return false;
+
+    // Make sure not to re-add arguments that were already added.
+    auto dropCount = addedBlockArgs;
+    [[maybe_unused]] unsigned counter = dropCount;
+    for (auto [mr, off] : escapes) {
+      if (dropCount) {
+        --dropCount;
+        continue;
+      }
+      assert(counter++ == off);
+      auto ty = dereferencedType(mr.getType());
+      SSAReg newArg = block->addArgument(ty, mr.getLoc());
+      if (!rMap[block].count(mr))
+        rMap[block][mr] = newArg;
+    }
+    return true;
+  }
+
+  /// The original number of operands to the parent op.
+  unsigned originalOpArgs;
+  /// A map for each block to its bindings from a memory reference to a virtual
+  /// register value.
+  DenseMap<Block *, OrderedMemRegMap> rMap;
+  /// A map of memory references to offsets in the appended set of block
+  /// arguments. The appended set starts at `originalBlockArgs[block]`.
+  llvm::MapVector<MemRef, unsigned> escapes;
+  /// Promotions of memory references to values immediately prior to the parent
+  /// op. The exact promotion depends on uses/defs and scope.
+  DenseMap<MemRef, SSAReg> promotedMem;
+  /// This is the set of all definitions that are live-out of this op's regions
+  /// and thus must be returned as results of the op. The op cannot be a
+  /// function.
+  SetVector<MemRef> liveOutSet;
+  /// A map from a block to the original number of arguments for the block. Do
+  /// not assume that every block in the original parent op has the same number
+  /// of block arguments.
+  DenseMap<Block *, unsigned> originalBlockArgs;
+  /// For the body of a function, we maintain a distinct map for each block of
+  /// the definitions that are live-in to each block.
+  DenseMap<Block *, DenseMap<MemRef, SSAReg>> liveInMap;
+};
+} // namespace
 
 namespace {
 /// The reset operation is a bit of an oddball and doesn't support the
@@ -230,13 +650,33 @@ public:
         unwrapTargs.push_back(opnd);
       }
     }
+
+    auto threadWires = [&](const SmallVectorImpl<Value> &wireOperands,
+                           auto newOp, unsigned addend) {
+      unsigned count = 0;
+      for (auto i : llvm::enumerate(wireOperands)) {
+        auto opndTy = i.value().getType();
+        auto offset = i.index() + addend;
+        if (opndTy == qrefTy) {
+          rewriter.create<quake::WrapOp>(loc, newOp.getResult(offset),
+                                         i.value());
+        } else if (opndTy == wireTy) {
+          op.getResult(count++).replaceAllUsesWith(newOp.getResult(offset));
+        }
+      }
+      rewriter.eraseOp(op);
+    };
+
     if constexpr (quake::isMeasure<OP>) {
       // The result type of the bits is the same. Add the wire types.
       SmallVector<Type> newTy = {op.getBits().getType()};
       SmallVector<Type> wireTys(unwrapTargs.size(), wireTy);
       newTy.append(wireTys.begin(), wireTys.end());
-      rewriter.replaceOpWithNewOp<OP>(op, newTy, unwrapTargs,
-                                      op.getRegisterNameAttr());
+      auto newOp = rewriter.create<OP>(loc, newTy, unwrapTargs,
+                                       op.getRegisterNameAttr());
+      SmallVector<Value> wireOperands = op.getTargets();
+      op.getResult(0).replaceAllUsesWith(newOp.getResult(0));
+      threadWires(wireOperands, newOp, 1);
     } else {
       // Scan the control and target positions. Any that were not wires
       // originally are now placed in the result vector. Those new results are
@@ -248,27 +688,11 @@ public:
           unwrapTargs, op.getNegatedQubitControlsAttr());
       SmallVector<Value> wireOperands = op.getControls();
       wireOperands.append(op.getTargets().begin(), op.getTargets().end());
-      for (auto i : llvm::enumerate(wireOperands)) {
-        auto opndTy = i.value().getType();
-        unsigned count = 0;
-        if (opndTy == qrefTy) {
-          rewriter.create<quake::WrapOp>(loc, newOp.getResult(i.index()),
-                                         i.value());
-        } else if (opndTy == wireTy) {
-          op.getResult(count++).replaceAllUsesWith(newOp.getResult(i.index()));
-        }
-      }
-      rewriter.eraseOp(op);
+      threadWires(wireOperands, newOp, 0);
     }
     return success();
   }
 };
-
-static Type unwrapType(Type ty) {
-  if (isa<quake::RefType>(ty))
-    return quake::WireType::get(ty.getContext());
-  return cast<cudaq::cc::PointerType>(ty).getElementType();
-}
 
 #define WRAPPER(OpClass) Wrapper<quake::OpClass>
 #define WRAPPER_QUANTUM_OPS QUANTUM_OPS(WRAPPER)
@@ -332,6 +756,9 @@ public:
             processOpWithRegions(&op, memAnalysis, cleanUps);
   }
 
+  /// Process the operation \p parent, which must contain regions, and derive
+  /// its use-def informations as an independent subgraph. Operations with
+  /// regions are processed in a post-order traversal of the function.
   void processOpWithRegions(Operation *parent,
                             const MemoryAnalysis &memAnalysis,
                             SmallPtrSetImpl<Operation *> &cleanUps) {
@@ -351,38 +778,25 @@ public:
       }
     }
 
-    // defMap is the persistent definition map used to determine the origin of a
-    // quantum reference value.
-    DenseMap<Block *, DefnMap> defMap;
-
     // First, if any operations held by the blocks of \p parent contain regions,
     // recursively process those operations. This establishes the value
     // semantics interface for these macro ops.
     handleSubRegions(parent, memAnalysis, cleanUps);
 
-    // \p parent is either a callable computation or an inlined macro
-    // computation. In the former case, the signature of the call will not be
-    // changed. In the latter case, \p parent will be updated to thread through
-    // any values that are promoted because of possible modification in the
-    // regions of \p parent.
-    bool isCallableOp = isa<func::FuncOp, cudaq::cc::CreateLambdaOp>(parent);
-
-    DenseMap<Block *, SmallVector<Value>> blockArgsMap;
     SmallPtrSet<Block *, 4> blocksVisited;
-    RegionDefinitionsMap regionDefs;
-    DefnMap promotedDefs;
+    RegionDataFlow dataFlow(parent);
+
+    // To produce a (semi-)pruned SSA graph, the Region's blocks are walked from
+    // exits to entries to produce liveness information from predecessor to
+    // successor blocks. (It is not possible to construct a fully pruned SSA IR
+    // in the MLIR design of Ops with Regions as both exits and backedges must
+    // have the exact same signatures regardless of liveness.)
     auto worklist = collectAllExits(parent);
     while (!worklist.empty()) {
       Block *block = worklist.front();
       worklist.pop_front();
       blocksVisited.insert(block);
-      // valMap is the per iteration on a block value map: for the current block
-      // forward defs (stores) to uses (load users).
-      DefnMap valMap;
-      if (defMap.count(block))
-        valMap = defMap[block];
-      blockArgsMap.insert({block, SmallVector<Value>{}});
-      regionDefs.insert({block, llvm::MapVector<Value, Value>{}});
+      bool blockChanged = dataFlow.addBlock(block);
 
       // If this is the entry block and there are quantum reference arguments
       // into the function, promote them to wire values immediately.
@@ -393,8 +807,7 @@ public:
             builder.setInsertionPointToStart(block);
             Value v =
                 builder.create<quake::UnwrapOp>(arg.getLoc(), wireTy, arg);
-            valMap.insert({arg, v});
-            defMap[block].insert({arg, v});
+            dataFlow.addBinding(block, arg, v);
           }
         }
       }
@@ -402,6 +815,7 @@ public:
       // Loop over all operations in the block.
       for (Operation &oper : *block) {
         Operation *op = &oper;
+
         // For any operation that creates a value of quantum reference type,
         // replace it with a null wire (if it is an AllocaOp) or unwrap the
         // reference to get the wire.
@@ -411,17 +825,14 @@ public:
           // If this op defines a quantum reference, record it in the maps.
           if (auto alloc = dyn_cast<quake::AllocaOp>(op);
               alloc && memAnalysis.isMember(alloc)) {
-            // If it is a known non-escaping alloca, then replace it with a null
-            // wire and record it for removal.
-            if (!defMap.count(block))
-              defMap.insert({block, DefnMap{}});
-            if (!defMap[block].count(alloc)) {
+            // If it is a known non-escaping alloca, then replace it with a
+            // null wire and record it for removal.
+            if (!dataFlow.hasBinding(block, alloc)) {
               OpBuilder builder(alloc);
               Value v =
                   builder.create<quake::NullWireOp>(alloc.getLoc(), wireTy);
               cleanUps.insert(op);
-              valMap.insert({alloc, v});
-              defMap[block].insert({alloc, v});
+              dataFlow.addBinding(block, alloc, v);
             }
           } else {
             OpBuilder builder(ctx);
@@ -429,8 +840,7 @@ public:
             for (auto r : op->getResults()) {
               Value v =
                   builder.create<quake::UnwrapOp>(op->getLoc(), wireTy, r);
-              valMap.insert({r, v});
-              defMap[block].insert({r, v});
+              dataFlow.addBinding(block, r, v);
             }
           }
           continue;
@@ -441,15 +851,12 @@ public:
         if (auto alloc = dyn_cast<cudaq::cc::AllocaOp>(op);
             alloc && memAnalysis.isMember(alloc)) {
           if (classicalValues) {
-            if (!defMap.count(block))
-              defMap.insert({block, DefnMap{}});
-            if (!defMap[block].count(alloc)) {
+            if (!dataFlow.hasBinding(block, alloc)) {
               OpBuilder builder(alloc);
               Value v = builder.create<cudaq::cc::UndefOp>(
                   alloc.getLoc(), alloc.getElementType());
               cleanUps.insert(op);
-              valMap.insert({alloc, v});
-              defMap[block].insert({alloc, v});
+              dataFlow.addBinding(block, alloc, v);
             }
           }
           continue;
@@ -459,86 +866,119 @@ public:
         // this block so it can be tracked and forwarded.
         if (auto nullWire = dyn_cast<quake::NullWireOp>(op)) {
           if (quantumValues)
-            valMap.insert({nullWire, nullWire.getResult()});
+            dataFlow.addBinding(block, nullWire, nullWire.getResult());
           continue;
         }
         if (auto undef = dyn_cast<cudaq::cc::UndefOp>(op)) {
           if (classicalValues)
-            valMap.insert({undef, undef.getResult()});
+            dataFlow.addBinding(block, undef, undef.getResult());
           continue;
         }
 
-        auto handleUse = [&]<typename T>(T unwrap, Value memuse) {
+        // If op is a use of a memory ref, forward the last def if there is one.
+        // If no def is known, then if this is a function entry raise an error,
+        // or if this op does not have region arguments add a dominating def
+        // immediately before parent, or (the default) add a block argument for
+        // the def.
+        auto handleUse = [&]<typename T>(T useop, Value memuse) {
           if (!memuse)
             return;
-          if (valMap.count(memuse)) {
-            if (!valMap[memuse]) {
-              valMap[memuse] = unwrap;
-            } else if (unwrap.getResult() != valMap[memuse]) {
-              unwrap.replaceAllUsesWith(valMap[memuse]);
+
+          // If the use's def is already in the map, then use that def.
+          if (dataFlow.hasBinding(block, memuse)) {
+            auto memuseBinding = dataFlow.getBinding(block, memuse);
+            if (!memuseBinding) {
+              dataFlow.addBinding(block, memuse, useop);
+            } else if (useop.getResult() != memuseBinding) {
+              useop.replaceAllUsesWith(memuseBinding);
               cleanUps.insert(op);
             }
-          } else if (block->isEntryBlock()) {
-            if (isFunctionEntryBlock(block)) {
-              // If this entry block is to a function, then we have a use
-              // before a def and the IR is not is SSA form. We can't make
-              // progress at this point so raise an error.
-              oper.emitError("use before def in function");
-              signalPassFailure();
-              return;
-            }
-            auto newUnwrapVal = [&]() -> Value {
-              if (promotedDefs.count(memuse))
-                return promotedDefs[memuse];
-              OpBuilder builder(parent);
-              auto nu = cast<T>(builder.clone(*op));
-              promotedDefs[memuse] = nu.getResult();
-              return nu.getResult();
-            }();
+            return;
+          }
+
+          // The def isn't in the map.
+          if (isFunctionEntryBlock(block)) {
+            // This is a function's entry block. This use can't come before a
+            // def in a valid program. Raise an error.
+            oper.emitError("use before def in function");
+            signalPassFailure();
+            return;
+          }
+
+          // Is this an entry block and NOT a function?
+          if (block->isEntryBlock()) {
+            // Create a promoted value that dominates parent.
+            auto newUseopVal = dataFlow.createPromotedValue(memuse, op);
             if (parent->hasTrait<OpTrait::NoRegionArguments>()) {
               // In this case, parent does not accept region arguments so the
               // reference values must already be defined to dominate parent.
-              unwrap.replaceAllUsesWith(newUnwrapVal);
-            } else {
-              // Otherwise, parent requires region arguments, so dominating
-              // values must be added and threaded through the block
-              // arguments.
-              auto numOperands = parent->getNumOperands();
-              parent->insertOperands(numOperands, ValueRange{newUnwrapVal});
-              for (auto &reg : parent->getRegions()) {
-                if (reg.empty())
-                  continue;
-                auto *entry = &reg.front();
-                auto blockArg =
-                    entry->addArgument(unwrap.getType(), unwrap.getLoc());
-                defMap[entry][memuse] = blockArg;
-                regionDefs[entry][memuse] = blockArg;
-                if (unwrap->getParentRegion() == &reg)
-                  unwrap.replaceAllUsesWith(blockArg);
-                if (entry == block)
-                  valMap[memuse] = blockArg;
-              }
+              useop.replaceAllUsesWith(newUseopVal);
+              cleanUps.insert(useop);
+              return;
             }
-            cleanUps.insert(unwrap);
-          } else {
-            // The def is not in running map and this is not an entry block.
-            // We want to add the def to the arguments coming from our
-            // predecessor blocks.
-            auto &argVec = blockArgsMap[block];
-            if (std::find(argVec.begin(), argVec.end(), memuse) ==
-                argVec.end()) {
-              // This one isn't already on the list of block arguments, so add
-              // and record it as a new BlockArgument.
-              argVec.push_back(memuse);
-              auto newArg =
-                  block->addArgument(unwrap.getType(), memuse.getLoc());
-              valMap[memuse] = newArg;
-              unwrap.replaceAllUsesWith(newArg);
-              cleanUps.insert(op);
-              // Iterate on all predecessors.
-              for (auto *p : block->getPredecessors())
-                worklist.push_back(p);
+            // Otherwise, parent requires region arguments, so dominating
+            // values must be added and threaded through the block
+            // arguments.
+            auto numOperands = parent->getNumOperands();
+            parent->insertOperands(numOperands, ValueRange{newUseopVal});
+            for (auto &reg : parent->getRegions()) {
+              if (reg.empty())
+                continue;
+              auto *entry = &reg.front();
+              bool changes = dataFlow.addBlock(entry);
+              auto [blockArg, changed] =
+                  dataFlow.addRegionBinding(entry, memuse);
+              if (useop->getParentRegion() == &reg)
+                useop.replaceAllUsesWith(blockArg);
+              if (entry == block)
+                dataFlow.addBinding(block, memuse, blockArg);
+              if (changes || changed)
+                appendPredecessorsToWorklist(worklist, entry);
             }
+            cleanUps.insert(useop);
+            return;
+          } // end block is entry
+
+          // The def is not in the map AND this is not an entry block.
+
+          // Is parent a function?
+          if (isFunctionOp(parent)) {
+            // The parent is a function with a plain old CFG. In this case,
+            // record the live-in use for `block` and generate a new block
+            // argument. All the predecessor blocks will need to pass in the
+            // value of this memory reference.
+            auto [newUseArg, changed] =
+                dataFlow.addLiveInToBlock(block, memuse);
+            useop.replaceAllUsesWith(newUseArg);
+            cleanUps.insert(useop);
+            if (changed)
+              for (auto *pred : block->getPredecessors())
+                worklist.push_back(pred);
+            return;
+          }
+
+          // Does this op not allow region arguments?
+          if (parent->hasTrait<OpTrait::NoRegionArguments>()) {
+            // Create a promoted value that dominates parent. In this case, the
+            // ref value must already be defined somewhere that dominates Op
+            // `parent`, so we can just reload it.
+            auto newUseopVal = dataFlow.createPromotedValue(memuse, op);
+            useop.replaceAllUsesWith(newUseopVal);
+            cleanUps.insert(useop);
+            return;
+          }
+
+          // We want to add the def to the arguments coming from our
+          // predecessor blocks.
+          if (!dataFlow.hasEscape(memuse)) {
+            // This one isn't already on the list of block arguments, so add
+            // and record it as a new BlockArgument.
+            auto [newArg, changes] = dataFlow.addRegionBinding(block, memuse);
+            dataFlow.addBinding(block, memuse, newArg);
+            useop.replaceAllUsesWith(newArg);
+            cleanUps.insert(op);
+            if (changes)
+              appendPredecessorsToWorklist(worklist, block);
           }
         };
         if (auto unwrap = dyn_cast<quake::UnwrapOp>(op)) {
@@ -557,29 +997,46 @@ public:
           continue;
         }
 
-        auto handleDefinition = [&](Value val, Value memdef) {
-          cleanUps.insert(op);
-          valMap[memdef] = val;
-          if (!isCallableOp && block->hasNoSuccessors() &&
-              !isDescendantOf(parent, memdef)) {
-            // Exit block of non-function. Record this wrap as a definition. It
-            // may need to escape via the terminator.
-            regionDefs[block][memdef] = val;
-            cleanUps.insert(op);
+        // If op is a def of a memory ref, add a new binding to the data-flow
+        // map for this def. If this def occurs in a non-function structured Op
+        // and is defining a memory reference from above, and Op allows region
+        // arguments, then add this definition as a region argument.
+        auto handleDefinition = [&]<typename T>(T defop, Value val,
+                                                Value memdef) {
+          cleanUps.insert(defop);
+          if (!isFunctionOp(parent) && !isDescendantOf(parent, memdef)) {
+            if (parent->hasTrait<OpTrait::NoRegionArguments>()) {
+              dataFlow.createPromotedValue(memdef, defop);
+              dataFlow.addLiveOutOfParent(parent, memdef);
+            } else {
+              for (auto &reg : parent->getRegions()) {
+                if (reg.empty())
+                  continue;
+                Block *entry = &reg.front();
+                bool changes = dataFlow.addBlock(entry);
+                auto [na, changed] = dataFlow.addRegionBinding(entry, memdef);
+                if (changes || changed)
+                  appendPredecessorsToWorklist(worklist, entry);
+              }
+              auto [na, changes] = dataFlow.addRegionBinding(block, memdef);
+              if (changes)
+                appendPredecessorsToWorklist(worklist, block);
+            }
           }
+          dataFlow.addBinding(block, memdef, val);
         };
         if (auto wrap = dyn_cast<quake::WrapOp>(op)) {
           if (quantumValues)
-            handleDefinition(wrap.getWireValue(), wrap.getRefValue());
+            handleDefinition(wrap, wrap.getWireValue(), wrap.getRefValue());
           continue;
         }
         if (auto store = dyn_cast<cudaq::cc::StoreOp>(op)) {
           if (classicalValues) {
-            auto memuse = store.getPtrvalue();
+            auto memdef = store.getPtrvalue();
             // Process only singleton classical scalars, no aggregates.
-            if (auto *useOp = memuse.getDefiningOp())
-              if (memAnalysis.isMember(useOp))
-                handleDefinition(store.getValue(), store.getPtrvalue());
+            if (auto *defOp = memdef.getDefiningOp())
+              if (memAnalysis.isMember(defOp))
+                handleDefinition(store, store.getValue(), store.getPtrvalue());
           }
           continue;
         }
@@ -587,108 +1044,36 @@ public:
         // If op uses a quantum reference, then halt forwarding the unwrap
         // use chain and leave a wrap dominating op.
         for (auto v : op->getOperands()) {
-          if ((v.getType() == qrefTy) && valMap.count(v) && valMap[v]) {
-            OpBuilder builder(op);
-            builder.create<quake::WrapOp>(op->getLoc(), valMap[v], v);
-            valMap[v] = Value{}; // null signals an unwrap is required.
-          }
+          if ((v.getType() == qrefTy) && dataFlow.hasBinding(block, v))
+            if (auto vBinding = dataFlow.getBinding(block, v)) {
+              OpBuilder builder(op);
+              builder.create<quake::WrapOp>(op->getLoc(), vBinding, v);
+              dataFlow.cancelBinding(block, v);
+            }
         }
       } // end of loop over ops in block
 
-      if (block->hasNoSuccessors()) {
-        // `block` is an exiting block. Nothing to do.
-      } else {
-        // `block` branches to other successor blocks in this region. Thread
-        // live defs to the arguments of each successor block.
-        auto branch = cast<BranchOpInterface>(block->getTerminator());
-        for (auto iter : llvm::enumerate(block->getSuccessors())) {
-          auto succBlock = iter.value();
-          auto succNum = iter.index();
-          auto argsToAdd = succBlock->getNumArguments() -
-                           branch.getSuccessorOperands(succNum).size();
-          if (argsToAdd > 0) {
-            SmallVector<Value> newArguments;
-            assert(blockArgsMap[succBlock].size() >= argsToAdd);
-            // Only add the trailing ones that haven't been added yet.
-            for (unsigned i = blockArgsMap[succBlock].size() - argsToAdd;
-                 i < blockArgsMap[succBlock].size(); ++i) {
-              auto defVal = blockArgsMap[succBlock][i];
-              if (valMap.count(defVal)) {
-                if (!valMap[defVal]) {
-                  if (isa<quake::RefType>(defVal.getType())) {
-                    // Wire was killed by an Op. Unwrap the reference again.
-                    OpBuilder builder(ctx);
-                    builder.setInsertionPoint(block->getTerminator());
-                    auto unwrap = builder.create<quake::UnwrapOp>(
-                        defVal.getLoc(), wireTy, defVal);
-                    valMap[defVal] = unwrap;
-                  } else {
-                    OpBuilder builder(ctx);
-                    builder.setInsertionPoint(block->getTerminator());
-                    auto load = builder.create<cudaq::cc::LoadOp>(
-                        defVal.getLoc(), defVal);
-                    valMap[defVal] = load;
-                  }
-                }
-                assert(valMap[defVal]);
-                newArguments.push_back(valMap[defVal]);
-              } else {
-                auto &argVec = blockArgsMap[block];
-                auto argIter = argVec.begin();
-                assert(block->getNumArguments() >= argVec.size());
-                unsigned j = block->getNumArguments() - argVec.size();
-                while (argIter != argVec.end() && *argIter != defVal) {
-                  argIter++;
-                  j++;
-                }
-                if (argIter != argVec.end()) {
-                  // Use the argument to this block as the branch argument.
-                  newArguments.push_back(block->getArgument(j));
-                } else {
-                  // Add and record as a BlockArgument any value that is used in
-                  // the successors but was neither used/defined in this block
-                  // nor passed in as an argument.
-                  argVec.push_back(defVal);
-                  auto newArg = block->addArgument(unwrapType(defVal.getType()),
-                                                   defVal.getLoc());
-                  assert(newArg);
-                  valMap[defVal] = newArg;
-                  for (auto *p : block->getPredecessors())
-                    worklist.push_back(p);
-                  newArguments.push_back(newArg);
-                }
-              }
-            }
-            assert(newArguments.size() == argsToAdd);
-            branch.getSuccessorOperands(succNum).append(newArguments);
-          }
-        }
-      }
+      blockChanged |= dataFlow.updateBlock(block);
+      if (blockChanged)
+        appendPredecessorsToWorklist(worklist, block);
+      else
+        appendPredecessorsToWorklist(worklist, block, blocksVisited);
 
-      appendPredecessorsToWorklist(worklist, block, blocksVisited);
+      dataFlow.updateTerminator(block);
     } // end of worklist loop
 
-    // Thread the aggregate of all definitions through each exiting block.
-    if (!isCallableOp) {
+    if (!isFunctionOp(parent)) {
       // Determine all the unique definitions.
-      SmallVector<Value> allDefs = getAllDefinitions(regionDefs);
-      for (auto &defPair : regionDefs) {
-        // For each exiting block, thread the values via the terminator.
-        auto *terminator = defPair.first->getTerminator();
-        SmallVector<Value> newArguments;
-        for (unsigned i = 0; i < terminator->getNumOperands(); ++i)
-          newArguments.push_back(terminator->getOperand(i));
-        auto &defMap = defPair.second;
-        for (auto v : allDefs)
-          newArguments.push_back(defMap.count(v) ? defMap[v] : promotedDefs[v]);
-        if (!newArguments.empty())
-          terminator->setOperands(newArguments);
-      }
+      SmallVector<Value> allDefs =
+          parent->hasTrait<OpTrait::NoRegionArguments>()
+              ? dataFlow.getLiveOutOfParent()
+              : dataFlow.getAllEscapingBindingDefs();
+
       if (!allDefs.empty()) {
         // Replace parent with a copy.
         SmallVector<Type> resultTypes(parent->getResultTypes());
         for (auto d : allDefs)
-          resultTypes.push_back(unwrapType(d.getType()));
+          resultTypes.push_back(dereferencedType(d.getType()));
         ConversionPatternRewriter builder(ctx);
         builder.setInsertionPoint(parent);
         SmallVector<Value> operands;

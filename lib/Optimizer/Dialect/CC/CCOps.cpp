@@ -658,8 +658,8 @@ void cudaq::cc::LoopOp::getSuccessorRegions(
     std::optional<unsigned> index, ArrayRef<Attribute> operands,
     SmallVectorImpl<RegionSuccessor> &regions) {
   if (!index) {
-    // loop op - successor is either the while region or, if a post conditional
-    // loop, the do region.
+    // loop op, successor is either the WHILE region, or the DO region if loop
+    // is post conditional.
     if (isPostConditional())
       regions.push_back(
           RegionSuccessor(&getBodyRegion(), getDoEntryArguments()));
@@ -670,13 +670,13 @@ void cudaq::cc::LoopOp::getSuccessorRegions(
   }
   switch (index.value()) {
   case 0:
-    // While region = successors are the owning loop op and the do region.
+    // WHILE region, successors are the owning loop op and the DO region.
     regions.push_back(RegionSuccessor(&getBodyRegion(), getDoEntryArguments()));
     regions.push_back(RegionSuccessor(getResults()));
     break;
   case 1:
-    // do region - Successor is step region (2) if present or while region (0)
-    // if step is absent.
+    // DO region, successor is STEP region (2) if present, or WHILE region (0)
+    // if STEP is absent.
     if (hasStep())
       regions.push_back(RegionSuccessor(&getStepRegion(), getStepArguments()));
     else
@@ -687,7 +687,7 @@ void cudaq::cc::LoopOp::getSuccessorRegions(
       regions.push_back(RegionSuccessor(getResults()));
     break;
   case 2:
-    // step region - if present, while region is always successor.
+    // STEP region, if present, WHILE region is always successor.
     if (hasStep())
       regions.push_back(
           RegionSuccessor(&getWhileRegion(), getWhileArguments()));
@@ -697,7 +697,18 @@ void cudaq::cc::LoopOp::getSuccessorRegions(
 
 OperandRange
 cudaq::cc::LoopOp::getSuccessorEntryOperands(std::optional<unsigned> index) {
-  return getInitialArgs();
+  assert(index && "invalid index region");
+  switch (*index) {
+  case 0:
+    if (!isPostConditional())
+      return getInitialArgs();
+    break;
+  case 1:
+    if (isPostConditional())
+      return getInitialArgs();
+    break;
+  }
+  return {nullptr, 0};
 }
 
 namespace {
