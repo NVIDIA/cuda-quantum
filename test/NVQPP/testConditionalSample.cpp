@@ -6,7 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --enable-mlir %s -o out_testifstmts.x && ./out_testifstmts.x
+// RUN: nvq++ --enable-mlir %s -o %basename_t.x && ./%basename_t.x
+// RUN: nvq++ --target quantinuum --emulate %s -o %basename_t.x && ./%basename_t.x
 
 // The test here is the assert statement. 
 
