@@ -69,7 +69,7 @@ def test_kernel_ctrl_rotation():
     qubit_0 = qreg[0]
     qubit_1 = qreg[1]
     # Check the overloads that accept a `QuakeValue`` as input.
-    kernel.cr1(angles[0], qubit_0, qubit_1)
+    kernel.cr1(parameter=angles[0], control=qubit_0, target=qubit_1)
     kernel.crx(angles[1], qubit_1, qubit_0)
     kernel.cry(angles[2], qubit_0, qubit_1)
     kernel.crz(angles[3], qubit_1, qubit_0)
@@ -164,9 +164,6 @@ def test_kernel_ctrl_register():
     qubit_0 = targets[0]
     qubit_1 = targets[1]
 
-    # Place the control register in the 1-state.
-    kernel.x(controls)
-
     # Test the gates both with and without keyword arguments.
     kernel.ch(control=controls, target=qubit_0)
     kernel.cx(controls, target=qubit_1)
@@ -225,7 +222,7 @@ def test_kernel_rotation_ctrl_register():
 
     # Test the gates both with and without keyword arguments.
     # Using the `float` parameter overload here.
-    kernel.cr1(0.0, controls, qubit_0)
+    kernel.cr1(parameter=0.0, control=controls, target=qubit_0)
     kernel.crx(1.0, controls, qubit_1)
     kernel.cry(2.0, controls, qubit_0)
     kernel.crz(3.0, controls, qubit_1)
