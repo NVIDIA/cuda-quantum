@@ -300,7 +300,7 @@ and rotations and return a valid, callable, CUDA Quantum kernel.
              QuakeValue &control, QuakeValue &target) {                        \
             self.NAME<cudaq::ctrl>(parameter, control, target);                \
           },                                                                   \
-          py::arg("parameter"),                                                \
+          py::arg("parameter"), py::arg("control"), py::arg("target"),         \
           "Apply a controlled-" #NAME " operation"                             \
           " to the given target qubit, with the provided control qubit/s.\n"   \
           "\nArgs:\n"                                                          \
@@ -325,6 +325,7 @@ and rotations and return a valid, callable, CUDA Quantum kernel.
              QuakeValue &target) {                                             \
             self.NAME<cudaq::ctrl>(parameter, control, target);                \
           },                                                                   \
+          py::arg("parameter"), py::arg("control"), py::arg("target"),         \
           "Apply a controlled-" #NAME " operation"                             \
           " to the given target qubit, with the provided control qubit/s.\n"   \
           "\nArgs:\n"                                                          \
