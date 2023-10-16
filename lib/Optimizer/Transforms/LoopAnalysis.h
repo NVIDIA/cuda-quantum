@@ -60,6 +60,9 @@ bool isUnsignedPredicate(mlir::arith::CmpIPredicate p);
 /// as a canonical counted loop.
 bool isaCountedLoop(cc::LoopOp op, bool allowClosedInterval = true);
 
+bool loopContainsBreak(cc::LoopOp op);
+bool isaConstantUpperBoundLoop(cc::LoopOp op, bool allowClosedInterval = true);
+
 /// An invariant loop is defined to be a loop that will execute some run-time
 /// invariant number of iterations. We recognize a normalized, semi-open iterval
 /// loop such as
@@ -69,7 +72,7 @@ bool isaCountedLoop(cc::LoopOp op, bool allowClosedInterval = true);
 /// as a canonical invariant loop. If \p c is not null and the loop is
 /// invariant, then the loop components will be returned via \p c.
 bool isaInvariantLoop(cc::LoopOp op, bool allowClosedInterval = true,
-                      LoopComponents *c = nullptr);
+                      bool allowEarlyExit = false, LoopComponents *c = nullptr);
 bool isaInvariantLoop(const LoopComponents &c, bool allowClosedInterval);
 
 // We expect the loop control value to have the following form.
@@ -111,7 +114,8 @@ bool hasMonotonicControlInduction(cc::LoopOp loop, LoopComponents *c = nullptr);
 /// ```
 /// If \p c is not null and the loop is invariant, then the loop components will
 /// be returned via \p c.
-bool isaMonotonicLoop(mlir::Operation *op, LoopComponents *c = nullptr);
+bool isaMonotonicLoop(mlir::Operation *op, bool allowEarlyExit = false,
+                      LoopComponents *c = nullptr);
 
 /// Recover the different subexpressions from the loop if it conforms to the
 /// pattern. Given a LoopOp where induction is in a register:
