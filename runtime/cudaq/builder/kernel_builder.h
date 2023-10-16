@@ -537,12 +537,28 @@ public:
   CUDAQ_BUILDER_ADD_MEASURE(my)
   CUDAQ_BUILDER_ADD_MEASURE(mz)
 
-  /// @brief SWAP operation for swapping the quantum states of qubits.
-  /// Currently only support swaps between two qubits.
+  /// @brief SWAP operation for swapping the quantum states of two qubits.
   void swap(const QuakeValue &first, const QuakeValue &second) {
     const std::vector<QuakeValue> empty;
     const std::vector<QuakeValue> &qubits{first, second};
     details::swap(*opBuilder, empty, qubits);
+  }
+
+  /// @brief SWAP operation for performing a Fredkin gate between two qubits,
+  /// based on the state of an input `control` qubit.
+  void swap(const QuakeValue &control, const QuakeValue &first,
+            const QuakeValue &second) {
+    const std::vector<QuakeValue> &ctrl{control};
+    const std::vector<QuakeValue> &targets{first, second};
+    details::swap(*opBuilder, ctrl, targets);
+  }
+
+  /// @brief SWAP operation for performing a Fredkin gate between two qubits,
+  /// based on the state of an input set of `controls`.
+  void swap(const std::vector<QuakeValue> &controls, const QuakeValue &first,
+            const QuakeValue &second) {
+    const std::vector<QuakeValue> &targets{first, second};
+    details::swap(*opBuilder, controls, targets);
   }
 
   /// @brief Reset the given qubit or qubits.
