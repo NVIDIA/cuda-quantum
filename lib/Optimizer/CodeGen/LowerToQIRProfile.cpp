@@ -65,12 +65,11 @@ namespace {
 struct FunctionAnalysisData {
   std::size_t nQubits = 0;
   std::size_t nResults = 0;
-  // Use std::map to keep these sorted in ascending order.
-  // map[qb] --> [result,regName]
-  std::map<std::size_t, std::pair<std::size_t, StringAttr>> resultPtrValues;
-  // Additionally store by result to prevent collisions on a single qubit having
+  // Store by result to prevent collisions on a single qubit having
   // multiple measurements (Adaptive Profile)
   // map[result] --> [qb,regName]
+  // Use std::map to keep these sorted in ascending order. While this isn't
+  // required, it makes viewing the QIR easier.
   std::map<std::size_t, std::pair<std::size_t, std::string>> resultQubitVals;
   DenseMap<Operation *, std::size_t> allocationOffsets;
 };
@@ -164,26 +163,18 @@ private:
         }
         if (optQb) {
           auto qb = *optQb;
-          auto iter = data.resultPtrValues.find(qb);
           auto *ctx = callOp.getContext();
           auto intTy = IntegerType::get(ctx, 64);
-          if (iter == data.resultPtrValues.end()) {
-            auto resIdx = IntegerAttr::get(intTy, data.nResults);
-            callOp->setAttr(resultIndexName, resIdx);
-            auto regName = [&]() -> StringAttr {
-              if (auto nameAttr = callOp->getAttr("registerName")
-                                      .dyn_cast_or_null<StringAttr>())
-                return nameAttr;
-              return {};
-            }();
-            data.resultQubitVals.insert(std::make_pair(
-                data.nResults, std::make_pair(qb, regName.data())));
-            data.resultPtrValues.insert(
-                std::make_pair(qb, std::make_pair(data.nResults++, regName)));
-          } else {
-            auto resIdx = IntegerAttr::get(intTy, iter->second.first);
-            callOp->setAttr(resultIndexName, resIdx);
-          }
+          auto resIdx = IntegerAttr::get(intTy, data.nResults);
+          callOp->setAttr(resultIndexName, resIdx);
+          auto regName = [&]() -> StringAttr {
+            if (auto nameAttr = callOp->getAttr("registerName")
+                                    .dyn_cast_or_null<StringAttr>())
+              return nameAttr;
+            return {};
+          }();
+          data.resultQubitVals.insert(std::make_pair(
+              data.nResults++, std::make_pair(qb, regName.data())));
         } else {
           callOp.emitError("could not trace offset value");
         }
@@ -237,13 +228,13 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
     auto resultTy = cudaq::opt::getResultType(rewriter.getContext());
     auto i64Ty = rewriter.getI64Type();
     auto module = op->getParentOfType<ModuleOp>();
-    for (auto &iv : info.resultPtrValues) {
+    for (auto &iv : info.resultQubitVals) {
       auto &rec = iv.second;
-      Value idx = builder.create<LLVM::ConstantOp>(loc, i64Ty, rec.first);
+      Value idx = builder.create<LLVM::ConstantOp>(loc, i64Ty, iv.first);
       Value ptr = builder.create<LLVM::IntToPtrOp>(loc, resultTy, idx);
       auto regName = [&]() -> Value {
         auto charPtrTy = cudaq::opt::getCharPointerType(builder.getContext());
-        if (rec.second) {
+        if (!rec.second.empty()) {
           // Note: it should be the case that this string literal has already
           // been added to the IR, so this step does not actually update the
           // module.
@@ -423,6 +414,8 @@ struct QIRToQIRProfileQIRPass
                     CalleeConv, EraseArrayAlloc, EraseArrayRelease,
                     EraseDeadArrayGEP, MeasureCallConv,
                     MeasureToRegisterCallConv, XCtrlOneTargetToCNot>(context);
+    if (convertTo.getValue() == "qir-adaptive")
+      patterns.insert<LoadMeasureResult>(context);
     if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns))))
       signalPassFailure();
     LLVM_DEBUG(llvm::dbgs() << "After QIR profile:\n" << *op << '\n');
@@ -472,6 +465,10 @@ struct QIRProfilePreparationPass
         cudaq::opt::QIRMeasureBody, LLVM::LLVMVoidType::get(ctx),
         {cudaq::opt::getQubitType(ctx), cudaq::opt::getResultType(ctx)},
         module);
+
+    cudaq::opt::factory::createLLVMFunctionSymbol(
+        cudaq::opt::QIRReadResultBody, IntegerType::get(ctx, 1),
+        {cudaq::opt::getResultType(ctx)}, module);
 
     // Add record functions for any
     // measurements.
@@ -586,6 +583,7 @@ cudaq::opt::verifyQIRProfilePass(const std::string &convertTo) {
 
 void cudaq::opt::addQIRProfilePipeline(OpPassManager &pm,
                                        const std::string &convertTo) {
+  assert(convertTo == "qir-adaptive" || convertTo == "qir-base");
   pm.addPass(createQIRProfilePreparationPass());
   pm.addNestedPass<LLVM::LLVMFuncOp>(createConvertToQIRFuncPass(convertTo));
   pm.addPass(createQIRToQIRProfilePass(convertTo));

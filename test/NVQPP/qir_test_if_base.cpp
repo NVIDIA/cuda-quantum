@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 // Note: change |& to 2>&1 if running in bash
-// RUN: nvq++ -v %s -o %basename_t.x --target quantinuum --emulate && ./%basename_t.x |& FileCheck %s
 // RUN: nvq++ -v %s -o %basename_t.x --target ionq --emulate && IONQ_API_KEY=0 ./%basename_t.x |& FileCheck %s
 
 #include <cudaq.h>

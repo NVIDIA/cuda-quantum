@@ -8,6 +8,7 @@
 
 // Note: change |& to 2>&1| if running in bash
 // RUN: nvq++ %s -o %basename_t.x --target quantinuum --emulate && ./%basename_t.x |& FileCheck %s
+// RUN: nvq++ %s -o %basename_t.x --target oqc --emulate && ./%basename_t.x |& FileCheck %s
 
 #include <cudaq.h>
 #include <iostream>
