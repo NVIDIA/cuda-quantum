@@ -163,6 +163,13 @@ def LoopNormalize : Pass<"cc-loop-normalize"> {
   }];
 
   let dependentDialects = ["mlir::arith::ArithDialect"];
+
+  let options = [
+    Option<"allowClosedInterval", "allow-closed-iterval", "bool",
+      /*default=*/"true", "Allow loop iterations on a closed interval.">,
+    Option<"allowBreak", "allow-early-exit", "bool", /*default=*/"true",
+      "Allow unrolling of loop with early exit (i.e. break statement).">
+  ];
 }
 
 def LoopUnroll : Pass<"cc-loop-unroll"> {
@@ -186,7 +193,9 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
       "Maximum iterations to unroll.">,
     Option<"signalFailure",
       "signal-failure-if-any-loop-cannot-be-completely-unrolled", "bool",
-      /*default=*/"false", "Signal failure if pass can't unroll all loops.">
+      /*default=*/"false", "Signal failure if pass can't unroll all loops.">,
+    Option<"allowBreak", "allow-early-exit", "bool", /*default=*/"false",
+      "Allow unrolling of loop with early exit (i.e. break statement).">
   ];
 }
 
