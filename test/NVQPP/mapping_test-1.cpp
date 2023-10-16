@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ -v %s -o %basename_t.x --target oqc --emulate && OQC_EMAIL=0 OQC_PASSWORD=0 CUDAQ_DUMP_JIT_IR=1 ./%basename_t.x |& FileCheck %s
+// RUN: nvq++ -v %s -o %basename_t.x --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 ./%basename_t.x |& FileCheck %s
 
 #include <cudaq.h>
 #include <iostream>

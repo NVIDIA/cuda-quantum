@@ -9,7 +9,7 @@
 // RUN: nvq++ -v %s -o %basename_t.x --target quantinuum --emulate && ./%basename_t.x | FileCheck %s
 
 // Additionally check OQC because OQC has swaps that must come before measurements (Base Profile)
-// RUN: nvq++ -v %s -o %basename_t.x --target oqc --emulate && OQC_EMAIL=0 OQC_PASSWORD=0 ./%basename_t.x | FileCheck %s
+// RUN: nvq++ -v %s -o %basename_t.x --target oqc --emulate && ./%basename_t.x | FileCheck %s
 
 #include <cudaq.h>
 #include <iostream>
