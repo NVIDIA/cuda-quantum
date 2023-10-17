@@ -108,14 +108,14 @@ def RemoveMeasurements : Pass<"remove-measurements"> {
   let description = [{
     Some backends perform implicit measurements on all qubits at the end of the
     kernel, which is a distinct problem for compiler-generated qubits (as is
-    done in the quake-multicontrol-decomposition pass) because the user cannot
-    tell the difference between measurement results for their qubits and
-    measurement results for compiler-generated qubits. This pass enables the
-    compiler to strip out the measurements and output recording calls from a QIR
-    program to prevent that problem. This pass MUST be run after normal
-    measurements and output recording calls have been generated because that
-    metadata must be extracted from the program to allow reconstruction of the
-    outputs from the backend.
+    done in the multicontrol-decomposition pass) because the user cannot tell
+    the difference between measurement results for their qubits and measurement
+    results for compiler-generated qubits. This pass enables the compiler to
+    strip out the measurements and output recording calls from a QIR program to
+    prevent that problem. This pass MUST be run after normal measurements and
+    output recording calls have been generated because that metadata must be
+    extracted from the program to allow reconstruction of the outputs from the
+    backend.
   }];
 
   let constructor = "cudaq::opt::createRemoveMeasurementsPass()";
