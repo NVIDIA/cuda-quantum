@@ -314,11 +314,12 @@ def QuakeSynthesize : Pass<"quake-synth", "mlir::ModuleOp"> {
   let constructor = "cudaq::opt::createQuakeSynthesizer()";
 }
 
-def QuakeAddDeallocs : Pass<"quake-add-deallocs", "mlir::func::FuncOp"> {
+def QuakeAddDeallocs : Pass<"add-dealloc", "mlir::func::FuncOp"> {
  let summary = "Add quake deallocs to functions before they return.";
   let description = [{
     This pass ensures that a dealloc is inserted before functions return
-    if the function contains a AllocaOp. It should be run before quake-to-qir.
+    if the function contains a AllocaOp. It should be run before converting
+    to QIR, for example, in order to generate correct code.
   }];
 
   let constructor = "cudaq::opt::createQuakeAddDeallocs()";
