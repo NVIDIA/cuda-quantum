@@ -312,13 +312,14 @@ and rotations and return a valid, callable, CUDA Quantum kernel.
           "operation.\n"                                                       \
           "\n.. code-block:: python\n\n"                                       \
           "  # Example:\n"                                                     \
-          "  kernel = cudaq.make_kernel()\n"                                   \
+          "  kernel, angle = cudaq.make_kernel(float)\n"                       \
           "  # Our `control` may either be a single qubit or a register of "   \
           "qubits.\n"                                                          \
           "  control = kernel.qalloc()\n"                                      \
           "  target = kernel.qalloc()\n"                                       \
-          "  # Apply a controlled-" #NAME " between the two qubits.\n"         \
-          "  kernel.c" #NAME "(control=control, target=target)\n")             \
+          "  # Apply a controlled-" #NAME " between the qubits.\n"             \
+          "  kernel.c" #NAME                                                   \
+          "(parameter=angle, control=control, target=target)\n")               \
       .def(                                                                    \
           "c" #NAME,                                                           \
           [](kernel_builder<> &self, double &parameter, QuakeValue &control,   \
@@ -343,7 +344,8 @@ and rotations and return a valid, callable, CUDA Quantum kernel.
           "  control = kernel.qalloc()\n"                                      \
           "  target = kernel.qalloc()\n"                                       \
           "  # Apply a controlled-" #NAME " between the two qubits.\n"         \
-          "  kernel.c" #NAME "(control=control, target=target)\n")
+          "  kernel.c" #NAME                                                   \
+          "(parameter=3.14, control=control, target=target)\n")
 
 #define ADD_BUILDER_PARAM_TWO_QUBIT_LIB_GATE(NAME, CUDAQ_FUNC)                 \
   .def(                                                                        \
@@ -585,68 +587,22 @@ Args:
 
 Args:                                                                                                            
   first (:class:`QuakeValue`): The target qubit of the operation. 
-    Its state will swap with the `second` qubit.
+    Its state will be swapped with the `second` qubit.
   second (:class:`QuakeValue`): The target qubit of the operation. 
-    Its state will swap with the `first` qubit.                                                 
-
-.. code-block:: python
-
-  # Example:
-    TODO)#")
-      /// @brief Bind the controlled-SWAP gate with the controls provided in a
-      /// register of qubit/s.
-      .def(
-          "cswap",
-          [](kernel_builder<> &self, QuakeValue control,
-             const QuakeValue &first, const QuakeValue &second) {
-            return self.swap(control, first, second);
-          },
-          py::arg("control"), py::arg("first"), py::arg("second"),
-          R"#(Swap the states of the provided qubits. 
-
-Args:                                                          
-  control (:class:`QuakeValue`): The control qubit for the operation.                                                       
-  first (:class:`QuakeValue`): The target qubit of the operation. 
-    Its state will swap with the `second` qubit, based on the state of the
-    input `controls`.
-  second (:class:`QuakeValue`): The target qubit of the operation. 
-    Its state will swap with the `first` qubit, based on the state of the
-    input `controls`.               
-
-.. code-block:: python
-
-  # Example:
-  TODO)#")
-      /// @brief Bind the controlled-SWAP gate with the controls provided in a
-      /// vector.
-      .def(
-          "cswap",
-          [](kernel_builder<> &self, const std::vector<QuakeValue> controls,
-             const QuakeValue &first, const QuakeValue &second) {
-            return self.swap(controls, first, second);
-          },
-          py::arg("controls"), py::arg("first"), py::arg("second"),
-          R"#(Swap the states of the provided qubits.
-
-Args:                                                          
-  controls (list[QuakeValue]): The list of control qubits for the operation.                                                       
-  first (:class:`QuakeValue`): The target qubit of the operation. 
-    Its state will swap with the `second` qubit, based on the state of the
-    input `controls`.
-  second (:class:`QuakeValue`): The target qubit of the operation. 
-    Its state will swap with the `first` qubit, based on the state of the
-    input `controls`.                   
+    Its state will be swapped with the `first` qubit.                                                 
 
 .. code-block:: python
 
   # Example:
   kernel = cudaq.make_kernel()
-  # Allocate qubit/s to the `kernel`.
-  qubits = kernel.qalloc(2)
-  # Place the 0th qubit in the 1-state.
-  kernel.x(qubits[0])
-  # Swap their states.
-  kernel.swap(qubits[0], qubits[1]))#")
+  first = kernel.qalloc()
+  second = kernel.qalloc()
+
+  # Place `first` in the |1> state, and leave `second` in |0>.
+  kernel.x(first)
+
+  # SWAP their states, resulting in the transformation: `|10> -> |01>`.
+  kernel.swap(first, second))#")
 
       /// @brief Allow for conditional statements on measurements.
       .def(
