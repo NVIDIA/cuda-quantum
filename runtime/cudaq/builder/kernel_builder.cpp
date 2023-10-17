@@ -782,6 +782,7 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
 
   PassManager pm(context);
   OpPassManager &optPM = pm.nest<func::FuncOp>();
+  optPM.addPass(cudaq::opt::createUnwindLoweringPass());
   cudaq::opt::addAggressiveEarlyInlining(pm);
   pm.addPass(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
@@ -793,7 +794,6 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   pm.addPass(createCanonicalizerPass());
   optPM.addPass(cudaq::opt::createQuakeAddDeallocs());
   optPM.addPass(cudaq::opt::createQuakeAddMetadata());
-  optPM.addPass(cudaq::opt::createUnwindLoweringPass());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
 

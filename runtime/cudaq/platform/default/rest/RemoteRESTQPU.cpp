@@ -284,6 +284,11 @@ public:
         postCodeGenPasses = match[1].str();
       }
     }
+    std::string allowEarlyExitSetting =
+        (codegenTranslation == "qir-adaptive") ? "1" : "0";
+    passPipelineConfig =
+        std::string("func.func(cc-loop-unroll{allow-early-exit=") +
+        allowEarlyExitSetting + "})," + passPipelineConfig;
 
     // Set the qpu name
     qpuName = mutableBackend;
