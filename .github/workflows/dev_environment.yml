@@ -150,7 +150,7 @@ jobs:
 
       - name: Extract metadata for Docker image
         id: metadata
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: ${{ steps.build_info.outputs.image_name }}
           flavor: |
@@ -294,7 +294,7 @@ jobs:
 
       - name: Build ${{ needs.metadata.outputs.image_title }} image
         id: docker_build
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: ./docker/${{ needs.metadata.outputs.dockerfile }}
