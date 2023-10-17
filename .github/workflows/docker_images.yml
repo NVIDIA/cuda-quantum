@@ -752,6 +752,7 @@ jobs:
 
           docker run --rm -dit --name cuda-quantum $cudaq_image
           docker cp scripts/validate_container.sh cuda-quantum:"/home/cudaq/validate_container.sh"
+          docker cp docs/notebook_validation.py cuda-quantum:"/home/cudaq/notebook_validation.py"
           docker exec -e TERM=xterm cuda-quantum bash validate_container.sh > /tmp/validation.out
           docker stop cuda-quantum
           if ${{ inputs.ompidev_image != '' }} && [ "$(cat /tmp/validation.out | grep '^nvidia$')" != "nvidia" ]; then

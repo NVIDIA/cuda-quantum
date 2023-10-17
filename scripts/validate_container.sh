@@ -169,6 +169,8 @@ do
     echo "============================="
 done
 
+echo "$available_backends" | python3 notebook_validation.py
+
 echo "============================="
 echo "$samples examples found."
 echo "Total passed: $passed"
