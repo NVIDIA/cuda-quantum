@@ -23,9 +23,9 @@ def PromoteRefToVeqAlloc : Pass<"promote-qubit-allocation"> {
 def QuakeToQIR : Pass<"quake-to-qir", "mlir::ModuleOp"> {
   let summary = "Lower Quake to QIR.";
   let description = [{
-    Converts Quake to QIR (as LLVM-IR). The quake-add-deallocs pass should be
-    run before this pass in order to properly generate deallocations for
-    allocated qubits.
+    Converts Quake to QIR (as LLVM-IR). The add-dealloc pass should be run
+    before this pass in order to properly generate deallocations for allocated
+    QIR qubits.
   }];
 
   let dependentDialects = ["mlir::LLVM::LLVMDialect"];
@@ -36,7 +36,8 @@ def QIRToQIRProfilePrep : Pass<"qir-profile-prep", "mlir::ModuleOp"> {
   let summary =
     "Prepare the IR for rewriting to the base profile or adaptive profile";
   let description = [{
-    This is a (module) subpass of the pipeline to convert to a specific QIR Profile.
+    This is a (module) subpass of the pipeline to convert to a specific QIR
+    Profile.
 
     Before we can convert the functions to the specific profile, we have to do
     a bit of bookkeeping on the module itself. That preparation is done in
