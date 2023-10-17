@@ -176,33 +176,17 @@ def test_kernel_ctrl_register():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
-# CHECK:           %[[VAL_0:.*]] = arith.constant 3 : index
-# CHECK:           %[[VAL_1:.*]] = arith.constant 1 : index
-# CHECK:           %[[VAL_2:.*]] = arith.constant 0 : index
-# CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<3>
-# CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.veq<2>
-# CHECK:           %[[VAL_5:.*]] = quake.extract_ref %[[VAL_4]][0] : (!quake.veq<2>) -> !quake.ref
-# CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_4]][1] : (!quake.veq<2>) -> !quake.ref
-# CHECK:           %[[VAL_7:.*]] = cc.loop while ((%[[VAL_8:.*]] = %[[VAL_2]]) -> (index)) {
-# CHECK:             %[[VAL_9:.*]] = arith.cmpi slt, %[[VAL_8]], %[[VAL_0]] : index
-# CHECK:             cc.condition %[[VAL_9]](%[[VAL_8]] : index)
-# CHECK:           } do {
-# CHECK:           ^bb0(%[[VAL_10:.*]]: index):
-# CHECK:             %[[VAL_11:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_10]]] : (!quake.veq<3>, index) -> !quake.ref
-# CHECK:             quake.x %[[VAL_11]] : (!quake.ref) -> ()
-# CHECK:             cc.continue %[[VAL_10]] : index
-# CHECK:           } step {
-# CHECK:           ^bb0(%[[VAL_12:.*]]: index):
-# CHECK:             %[[VAL_13:.*]] = arith.addi %[[VAL_12]], %[[VAL_1]] : index
-# CHECK:             cc.continue %[[VAL_13]] : index
-# CHECK:           } {invariant}
-# CHECK:           quake.h {{\[}}%[[VAL_3]]] %[[VAL_5]] : (!quake.veq<3>, !quake.ref) -> ()
-# CHECK:           quake.x {{\[}}%[[VAL_3]]] %[[VAL_6]] : (!quake.veq<3>, !quake.ref) -> ()
-# CHECK:           quake.y {{\[}}%[[VAL_3]]] %[[VAL_5]] : (!quake.veq<3>, !quake.ref) -> ()
-# CHECK:           quake.z {{\[}}%[[VAL_3]]] %[[VAL_6]] : (!quake.veq<3>, !quake.ref) -> ()
-# CHECK:           quake.t {{\[}}%[[VAL_3]]] %[[VAL_5]] : (!quake.veq<3>, !quake.ref) -> ()
-# CHECK:           quake.s {{\[}}%[[VAL_3]]] %[[VAL_6]] : (!quake.veq<3>, !quake.ref) -> ()
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_367535629127() attributes {"cudaq-entrypoint"} {
+# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
+# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
+# CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_1]][0] : (!quake.veq<2>) -> !quake.ref
+# CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_1]][1] : (!quake.veq<2>) -> !quake.ref
+# CHECK:           quake.h {{\[}}%[[VAL_0]]] %[[VAL_2]] : (!quake.veq<3>, !quake.ref) -> ()
+# CHECK:           quake.x {{\[}}%[[VAL_0]]] %[[VAL_3]] : (!quake.veq<3>, !quake.ref) -> ()
+# CHECK:           quake.y {{\[}}%[[VAL_0]]] %[[VAL_2]] : (!quake.veq<3>, !quake.ref) -> ()
+# CHECK:           quake.z {{\[}}%[[VAL_0]]] %[[VAL_3]] : (!quake.veq<3>, !quake.ref) -> ()
+# CHECK:           quake.t {{\[}}%[[VAL_0]]] %[[VAL_2]] : (!quake.veq<3>, !quake.ref) -> ()
+# CHECK:           quake.s {{\[}}%[[VAL_0]]] %[[VAL_3]] : (!quake.veq<3>, !quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
 
