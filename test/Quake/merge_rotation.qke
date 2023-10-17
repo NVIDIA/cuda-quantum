@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --quake-add-deallocs --inline --factor-quantum-alloc --memtoreg --canonicalize %s | FileCheck %s
+// RUN: cudaq-opt --add-dealloc --inline --factor-quantum-alloc --memtoreg --canonicalize %s | FileCheck %s
 
 func.func @duplicate_rotation_check() {
   %0 = arith.constant 2 : i32
