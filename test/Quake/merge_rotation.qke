@@ -21,11 +21,10 @@ func.func @duplicate_rotation_check() {
 }
 
 // CHECK-LABEL:   func.func @duplicate_rotation_check() {
-// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 5.900000e-01 : f64
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 1.180{{.*}} : f64
 // CHECK-DAG:       %[[VAL_1:.*]] = quake.null_wire
 // CHECK-DAG:       %[[VAL_2:.*]] = quake.null_wire
-// CHECK:           %[[VAL_3:.*]] = quake.rx (%[[VAL_0]]) %[[VAL_1]] : (f64, !quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_4:.*]] = quake.rx (%[[VAL_0]]) %[[VAL_3]] : (f64, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_4:.*]] = quake.rx (%[[VAL_0]]) %[[VAL_1]] : (f64, !quake.wire) -> !quake.wire
 // CHECK:           %[[VAL_5:.*]], %[[VAL_6:.*]] = quake.mz %[[VAL_4]] : (!quake.wire) -> (i1, !quake.wire)
 // CHECK-DAG:       quake.sink %[[VAL_6]] : !quake.wire
 // CHECK-DAG:       quake.sink %[[VAL_2]] : !quake.wire
@@ -47,13 +46,10 @@ func.func @duplicate_rotation_check2() {
 }
 
 // CHECK-LABEL:   func.func @duplicate_rotation_check2() {
-// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2.30{{.*}} : f64
-// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 5.90{{.*}} : f64
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 1.410{{.*}} : f64
 // CHECK-DAG:       %[[VAL_2:.*]] = quake.null_wire
 // CHECK-DAG:       %[[VAL_3:.*]] = quake.null_wire
-// CHECK:           %[[VAL_4:.*]] = quake.rx (%[[VAL_1]]) %[[VAL_2]] : (f64, !quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_5:.*]] = quake.rx (%[[VAL_1]]) %[[VAL_4]] : (f64, !quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_6:.*]] = quake.rx (%[[VAL_0]]) %[[VAL_5]] : (f64, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_6:.*]] = quake.rx (%[[VAL_0]]) %[[VAL_2]] : (f64, !quake.wire) -> !quake.wire
 // CHECK:           %[[VAL_7:.*]], %[[VAL_8:.*]] = quake.mz %[[VAL_6]] : (!quake.wire) -> (i1, !quake.wire)
 // CHECK-DAG:       quake.sink %[[VAL_8]] : !quake.wire
 // CHECK-DAG:       quake.sink %[[VAL_3]] : !quake.wire
@@ -83,14 +79,10 @@ func.func @duplicate_rotation_check3() {
 }
 
 // CHECK-LABEL:   func.func @duplicate_rotation_check3() {
-// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2.782{{.*}} : f64
-// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 2.565{{.*}} : f64
-// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 5.900{{.*}} : f64
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 5.93782{{.*}} : f64
 // CHECK-DAG:       %[[VAL_3:.*]] = quake.null_wire
 // CHECK-DAG:       %[[VAL_4:.*]] = quake.null_wire
-// CHECK:           %[[VAL_5:.*]] = quake.rx (%[[VAL_2]]) %[[VAL_3]] : (f64, !quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_6:.*]] = quake.rx (%[[VAL_0]]) %[[VAL_5]] : (f64, !quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_7:.*]] = quake.rx (%[[VAL_1]]) %[[VAL_6]] : (f64, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_7:.*]] = quake.rx (%[[VAL_0]]) %[[VAL_3]] : (f64, !quake.wire) -> !quake.wire
 // CHECK:           %[[VAL_8:.*]], %[[VAL_9:.*]] = quake.mz %[[VAL_7]] : (!quake.wire) -> (i1, !quake.wire)
 // CHECK-DAG:       quake.sink %[[VAL_9]] : !quake.wire
 // CHECK-DAG:       quake.sink %[[VAL_4]] : !quake.wire
