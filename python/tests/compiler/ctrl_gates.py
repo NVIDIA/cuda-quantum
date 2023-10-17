@@ -82,6 +82,7 @@ def test_kernel_ctrl_rotation():
 
     print(kernel)
 
+
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
 # CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<f64>) attributes {"cudaq-entrypoint"} {
 # CHECK:           %[[VAL_1:.*]] = arith.constant 3.000000e+00 : f64
@@ -174,6 +175,7 @@ def test_kernel_ctrl_register():
 
     print(kernel)
 
+
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
 # CHECK:           %[[VAL_0:.*]] = arith.constant 3 : index
 # CHECK:           %[[VAL_1:.*]] = arith.constant 1 : index
@@ -235,6 +237,7 @@ def test_kernel_rotation_ctrl_register():
 
     print(kernel)
 
+
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
 # CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<f64>) attributes {"cudaq-entrypoint"} {
 # CHECK:           %[[VAL_1:.*]] = arith.constant 3 : index
@@ -280,7 +283,6 @@ def test_kernel_rotation_ctrl_register():
 # CHECK:           quake.rz (%[[VAL_27]]) {{\[}}%[[VAL_8]]] %[[VAL_11]] : (f64, !quake.veq<3>, !quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
-
 
 # leave for gdb debugging
 if __name__ == "__main__":
