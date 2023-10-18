@@ -367,9 +367,7 @@ double sample_result::expectation(const std::string_view registerName) {
   return aver;
 }
 
-[[deprecated("`exp_val_z()` is deprecated. Use `expectation()` with the same "
-             "argument structure.")]] double
-sample_result::exp_val_z(const std::string_view registerName) {
+double sample_result::exp_val_z(const std::string_view registerName) {
   double aver = 0.0;
   auto iter = sampleResults.find(registerName.data());
   if (iter == sampleResults.end())
