@@ -14,8 +14,7 @@ import cudaq
 
 skipIfNoMQPU = pytest.mark.skipif(
     not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-mqpu')),
-    reason="nvidia-mqpu backend not available"
-)
+    reason="nvidia-mqpu backend not available")
 
 
 def test_simpleObserveN_QNN():
@@ -45,7 +44,7 @@ def test_simpleObserveN_QNN():
 
     exp_vals = cudaq.observe(kernel, h, parameters)
     assert len(exp_vals) == samples_count
-    data = np.asarray([e.expectation_z() for e in exp_vals])
+    data = np.asarray([e.expectation() for e in exp_vals])
     # Test a collection of computed exp vals.
     assert np.isclose(data[0], 0.44686141)
     assert np.isclose(data[1], 0.5014559)
@@ -53,6 +52,7 @@ def test_simpleObserveN_QNN():
     assert np.isclose(data[-3], 0.50511996)
     assert np.isclose(data[-2], 0.54314517)
     assert np.isclose(data[-1], 0.33752631)
+
 
 @skipIfNoMQPU
 def test_observeAsync_QNN():
@@ -90,7 +90,7 @@ def test_observeAsync_QNN():
 
     expvals = []
     for res in asyncresults:
-        expvals.append(res.get().expectation_z())
+        expvals.append(res.get().expectation())
 
     assert np.allclose(np.asarray([0.44686155, 0.50145603]),
                        np.asarray(expvals))

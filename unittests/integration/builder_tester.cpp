@@ -375,8 +375,8 @@ CUDAQ_TEST(BuilderTester, checkKernelControl) {
   printf("%s\n", hadamardTest.to_quake().c_str());
   auto counts = cudaq::sample(10000, hadamardTest);
   counts.dump();
-  printf("< 1 | X | 1 > = %lf\n", counts.exp_val_z());
-  EXPECT_NEAR(counts.exp_val_z(), 0.0, 1e-1);
+  printf("< 1 | X | 1 > = %lf\n", counts.expectation());
+  EXPECT_NEAR(counts.expectation(), 0.0, 1e-1);
 
   // Compute <1|H|1> = 1.
   auto hadamardTest2 = cudaq::make_kernel();
@@ -390,8 +390,8 @@ CUDAQ_TEST(BuilderTester, checkKernelControl) {
 
   printf("%s\n", hadamardTest2.to_quake().c_str());
   counts = cudaq::sample(10000, hadamardTest2);
-  printf("< 1 | H | 1 > = %lf\n", counts.exp_val_z());
-  EXPECT_NEAR(counts.exp_val_z(), -1.0 / std::sqrt(2.0), 1e-1);
+  printf("< 1 | H | 1 > = %lf\n", counts.expectation());
+  EXPECT_NEAR(counts.expectation(), -1.0 / std::sqrt(2.0), 1e-1);
 
   // Demonstrate can control on qvector
   auto kernel = cudaq::make_kernel();
