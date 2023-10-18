@@ -80,7 +80,7 @@ Returns:
           },
           py::keep_alive<0, 1>(),
           "Iterate through the :class:`SampleResult` dictionary.\n")
-      .def("expectation", &sample_result::exp_val_z,
+      .def("expectation", &sample_result::expectation,
            py::arg("register_name") = GlobalRegisterName,
            "Return the expectation value in the Z-basis of the :class:`Kernel` "
            "that was sampled.\n")
@@ -92,7 +92,7 @@ Returns:
                          "with the same "
                          "argument structure.",
                          1);
-            return self.exp_val_z();
+            return self.expectation();
           },
           py::arg("register_name") = GlobalRegisterName,
           "Return the expectation value in the Z-basis of the :class:`Kernel` "

@@ -177,6 +177,8 @@ public:
 
   /// @brief Return the expected value <Z...Z>
   /// @return
+  double expectation(const std::string_view registerName = GlobalRegisterName);
+  /// @brief Deprecated: Return the expected value <Z...Z>
   double exp_val_z(const std::string_view registerName = GlobalRegisterName);
 
   /// @brief Return the probability of observing the given bit string

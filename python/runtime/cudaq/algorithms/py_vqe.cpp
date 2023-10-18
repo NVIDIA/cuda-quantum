@@ -35,7 +35,7 @@ optimization_result pyVQE(kernel_builder<> &kernel, spin_op &hamiltonian,
                                           std::vector<double> &grad_vec) {
     py::args params = py::make_tuple(x);
     observe_result result = pyObserve(kernel, hamiltonian, params, shots);
-    double energy = result.exp_val_z();
+    double energy = result.expectation();
     return energy;
   });
 }
@@ -54,7 +54,7 @@ optimization_result pyVQE(kernel_builder<> &kernel, spin_op &hamiltonian,
     else
       params = py::make_tuple(hasToBeTuple);
     observe_result result = pyObserve(kernel, hamiltonian, params, shots);
-    double energy = result.exp_val_z();
+    double energy = result.expectation();
     return energy;
   });
 }
@@ -81,7 +81,7 @@ optimization_result pyVQE(kernel_builder<> &kernel, cudaq::gradient &gradient,
       [&](std::vector<double> x) {
         py::args params = py::make_tuple(x);
         observe_result result = pyObserve(kernel, hamiltonian, params, shots);
-        double energy = result.exp_val_z();
+        double energy = result.expectation();
         return energy;
       };
   auto requires_grad = optimizer.requiresGradients();
@@ -115,7 +115,7 @@ optimization_result pyVQE(kernel_builder<> &kernel, cudaq::gradient &gradient,
         else
           params = py::make_tuple(hasToBeTuple);
         observe_result result = pyObserve(kernel, hamiltonian, params, shots);
-        double energy = result.exp_val_z();
+        double energy = result.expectation();
         return energy;
       };
   auto requires_grad = optimizer.requiresGradients();

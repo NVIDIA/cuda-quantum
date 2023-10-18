@@ -40,7 +40,7 @@ int main() {
   }
 
   // can get <ZZ...Z> from counts too
-  printf("Exp: %lf\n", counts.exp_val_z());
+  printf("Exp: %lf\n", counts.expectation());
 
   return 0;
 }

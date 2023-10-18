@@ -40,7 +40,7 @@ CUDAQ_TEST(GHZSampleTester, checkSimple) {
     EXPECT_TRUE(bits == "00000" || bits == "11111");
   }
   EXPECT_EQ(counter, 1000);
-  printf("Exp: %.16lf\n", counts.exp_val_z());
+  printf("Exp: %.16lf\n", counts.expectation());
 }
 
 CUDAQ_TEST(GHZSampleTester, checkBroadcast) {

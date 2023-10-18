@@ -42,7 +42,7 @@ CUDAQ_TEST(D2VariationalTester, checkSimple) {
   auto results = cudaq::observe(ansatz2{}, asList, .59);
   double test = 5.907;
   for (auto &r : results) {
-    test += r.exp_val_z() * r.get_spin().get_coefficient().real();
+    test += r.expectation() * r.get_spin().get_coefficient().real();
   }
 
   printf("TEST: %.16lf\n", test);
@@ -85,7 +85,7 @@ CUDAQ_TEST(D2VariationalTester, checkBroadcast) {
     printf("results[%lu] = %.16lf\n", counter++, el);
 
   for (std::size_t counter = 0; auto &el : expected)
-    EXPECT_NEAR(results[counter++].exp_val_z(), el, 1e-3);
+    EXPECT_NEAR(results[counter++].expectation(), el, 1e-3);
 
   // Expect that providing the wrong number of args in the vector will
   // throw an exception.

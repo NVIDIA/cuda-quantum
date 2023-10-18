@@ -345,7 +345,31 @@ bool sample_result::has_expectation(const std::string_view registerName) {
   return iter->second.expectationValue.has_value();
 }
 
-double sample_result::exp_val_z(const std::string_view registerName) {
+double sample_result::expectation(const std::string_view registerName) {
+  double aver = 0.0;
+  auto iter = sampleResults.find(registerName.data());
+  if (iter == sampleResults.end())
+    return 0.0;
+
+  if (iter->second.expectationValue.has_value())
+    return iter->second.expectationValue.value();
+
+  auto counts = iter->second.counts;
+  for (auto &kv : counts) {
+    auto par = has_even_parity(kv.first);
+    auto p = probability(kv.first, registerName);
+    if (!par) {
+      p = -p;
+    }
+    aver += p;
+  }
+
+  return aver;
+}
+
+[[deprecated("`exp_val_z()` is deprecated. Use `expectation()` with the same "
+             "argument structure.")]] double
+sample_result::exp_val_z(const std::string_view registerName) {
   double aver = 0.0;
   auto iter = sampleResults.find(registerName.data());
   if (iter == sampleResults.end())

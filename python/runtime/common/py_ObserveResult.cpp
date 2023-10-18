@@ -48,13 +48,14 @@ Returns:
   :class:`SampleResult`: The measurement counts data for the individual `sub_term`.)#")
 
       .def(
-          "expectation", [](observe_result &self) { return self.exp_val_z(); },
+          "expectation",
+          [](observe_result &self) { return self.expectation(); },
           "Return the expectation value of the `spin_operator` that was "
           "provided in :func:`observe`.")
       .def(
           "expectation",
           [](observe_result &self, spin_op &spin_term) {
-            return self.exp_val_z(spin_term);
+            return self.expectation(spin_term);
           },
           py::arg("sub_term"),
           R"#(Return the expectation value of an individual `sub_term` of the 
@@ -76,7 +77,7 @@ Returns:
                          "with the same "
                          "argument structure.",
                          1);
-            return self.exp_val_z();
+            return self.expectation();
           },
           "Return the expectation value of the `spin_operator` that was "
           "provided in :func:`observe`.")
@@ -88,7 +89,7 @@ Returns:
                          "with the same "
                          "argument structure.",
                          1);
-            return self.exp_val_z(spin_term);
+            return self.expectation(spin_term);
           },
           py::arg("sub_term"),
           R"#(Return the expectation value of an individual `sub_term` of the 
