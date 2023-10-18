@@ -86,14 +86,15 @@ Returns:
            "that was sampled.\n")
       .def(
           "expectation_z",
-          [](sample_result &self) {
+          [](sample_result &self, const std::string_view register_name) {
             PyErr_WarnEx(PyExc_DeprecationWarning,
                          "expectation_z() is deprecated, use expectation() "
                          "with the same "
                          "argument structure.",
                          1);
             return self.exp_val_z();
-          } py::arg("register_name") = GlobalRegisterName,
+          },
+          py::arg("register_name") = GlobalRegisterName,
           "Return the expectation value in the Z-basis of the :class:`Kernel` "
           "that was sampled.\n")
       .def("probability", &sample_result::probability,

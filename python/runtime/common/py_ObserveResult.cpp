@@ -46,6 +46,7 @@ Args:
 
 Returns:
   :class:`SampleResult`: The measurement counts data for the individual `sub_term`.)#")
+
       .def(
           "expectation", [](observe_result &self) { return self.exp_val_z(); },
           "Return the expectation value of the `spin_operator` that was "
@@ -65,20 +66,20 @@ Args:
 
 Returns:
   float : The expectation value of the `sub_term` with respect to the 
-  :class:`Kernel` that was passed to :func:`observe`.)#");
+  :class:`Kernel` that was passed to :func:`observe`.)#")
 
-  .def(
-      "expectation_z",
-      [](observe_result &self) {
-        PyErr_WarnEx(
-            PyExc_DeprecationWarning,
-            "expectation_z() is deprecated, use expectation() with the same "
-            "argument structure.",
-            1);
-        return self.exp_val_z();
-      },
-      "Return the expectation value of the `spin_operator` that was "
-      "provided in :func:`observe`.")
+      .def(
+          "expectation_z",
+          [](observe_result &self) {
+            PyErr_WarnEx(PyExc_DeprecationWarning,
+                         "expectation_z() is deprecated, use expectation() "
+                         "with the same "
+                         "argument structure.",
+                         1);
+            return self.exp_val_z();
+          },
+          "Return the expectation value of the `spin_operator` that was "
+          "provided in :func:`observe`.")
       .def(
           "expectation_z",
           [](observe_result &self, spin_op &spin_term) {
