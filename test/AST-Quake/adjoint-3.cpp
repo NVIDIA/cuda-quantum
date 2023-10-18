@@ -122,12 +122,12 @@ struct run_circuit {
 // ADJOINT:           %[[VAL_33:.*]] = arith.subi %[[VAL_32]], %[[VAL_25]] : i32
 // ADJOINT:           %[[VAL_34:.*]] = arith.addi %[[VAL_7]], %[[VAL_33]] : i32
 // ADJOINT:           %[[VAL_35:.*]] = arith.constant 0 : i32
-// ADJOINT:           %[[VAL_36:.*]]:4 = cc.loop while ((%[[VAL_37:.*]] = %[[VAL_34]], %[[VAL_38:.*]] = %[[VAL_9]], %[[VAL_39:.*]] = %[[VAL_1]], %[[VAL_40:.*]] = %[[VAL_32]]) -> (i32, i32, f64, i32)) {
+// ADJOINT:           %[[VAL_36:.*]]:2 = cc.loop while ((%[[VAL_37:.*]] = %[[VAL_34]], %[[VAL_40:.*]] = %[[VAL_32]]) -> (i32, i32)) {
 // ADJOINT:             %[[VAL_41:.*]] = arith.cmpi slt, %[[VAL_37]], %[[VAL_9]] : i32
 // ADJOINT:             %[[VAL_42:.*]] = arith.cmpi sgt, %[[VAL_40]], %[[VAL_35]] : i32
-// ADJOINT:             cc.condition %[[VAL_42]](%[[VAL_37]], %[[VAL_9]], %[[VAL_1]], %[[VAL_40]] : i32, i32, f64, i32)
+// ADJOINT:             cc.condition %[[VAL_42]](%[[VAL_37]], %[[VAL_40]] : i32, i32)
 // ADJOINT:           } do {
-// ADJOINT:           ^bb0(%[[VAL_43:.*]]: i32, %[[VAL_44:.*]]: i32, %[[VAL_45:.*]]: f64, %[[VAL_46:.*]]: i32):
+// ADJOINT:           ^bb0(%[[VAL_43:.*]]: i32, %[[VAL_46:.*]]: i32):
 // ADJOINT:             %[[VAL_47:.*]] = arith.subi %[[VAL_9]], %[[VAL_43]] : i32
 // ADJOINT:             %[[VAL_48:.*]] = arith.subi %[[VAL_47]], %[[VAL_7]] : i32
 // ADJOINT:             %[[VAL_50:.*]] = math.fpowi %[[VAL_2]], %[[VAL_48]] : f64, i32
@@ -139,15 +139,15 @@ struct run_circuit {
 // ADJOINT:             %[[VAL_56:.*]] = arith.extsi %[[VAL_55]] : i32 to i64
 // ADJOINT:             %[[VAL_57:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_56]]] : (!quake.veq<?>, i64) -> !quake.ref
 // ADJOINT:             %[[VAL_58:.*]] = arith.negf %[[VAL_51]] : f64
-// ADJOINT:             quake.ry (%[[VAL_58]]) {{\[}}%[[VAL_54]]] %[[VAL_57]] : (f64, !quake.ref, !quake.ref) -> ()
-// ADJOINT:             cc.continue %[[VAL_43]], %[[VAL_44]], %[[VAL_45]], %[[VAL_46]] : i32, i32, f64, i32
+// ADJOINT:             quake.ry (%[[VAL_58]]) [%[[VAL_54]]] %[[VAL_57]] : (f64, !quake.ref, !quake.ref) -> ()
+// ADJOINT:             cc.continue %[[VAL_43]], %[[VAL_46]] : i32, i32
 // ADJOINT:           } step {
-// ADJOINT:           ^bb0(%[[VAL_59:.*]]: i32, %[[VAL_60:.*]]: i32, %[[VAL_61:.*]]: f64, %[[VAL_62:.*]]: i32):
+// ADJOINT:           ^bb0(%[[VAL_59:.*]]: i32, %[[VAL_62:.*]]: i32):
 // ADJOINT:             %[[VAL_63:.*]] = arith.addi %[[VAL_59]], %[[VAL_7]] : i32
 // ADJOINT:             %[[VAL_64:.*]] = arith.subi %[[VAL_59]], %[[VAL_7]] : i32
 // ADJOINT:             %[[VAL_65:.*]] = arith.constant 1 : i32
 // ADJOINT:             %[[VAL_66:.*]] = arith.subi %[[VAL_62]], %[[VAL_65]] : i32
-// ADJOINT:             cc.continue %[[VAL_64]], %[[VAL_9]], %[[VAL_1]], %[[VAL_66]] : i32, i32, f64, i32
+// ADJOINT:             cc.continue %[[VAL_64]], %[[VAL_66]] : i32, i32
 // ADJOINT:           }
 // ADJOINT:           %[[VAL_67:.*]] = arith.negf %[[VAL_19]] : f64
 // ADJOINT:           quake.ry (%[[VAL_67]]) %[[VAL_22]] : (f64, !quake.ref) -> ()
