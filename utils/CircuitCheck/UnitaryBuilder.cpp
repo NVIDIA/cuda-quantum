@@ -40,18 +40,22 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
         optor.emitOpError("Couldn't produce matrix.");
         return WalkResult::interrupt();
       }
-      auto iface = dyn_cast<quake::WireInterface>(op);
+      auto wireOperands = quake::getWireOperands(op);
+      if (wireOperands.empty()) {
+        optor.emitOpError("Couldn't get wire operands");
+        return WalkResult::interrupt();
+      }
       // If we can't get the qubits involved in this operation, stop the walk
-      if (failed(getQubits(iface.getWireOperands(), qubits))) {
+      if (failed(getQubits(wireOperands, qubits))) {
         optor.emitOpError("Couldn't get the qubits.");
         return WalkResult::interrupt();
       }
 
       for (auto &&[newWire, wire] :
-           llvm::zip(iface.getWireResults(), iface.getWireOperands()))
+           llvm::zip(quake::getWireResults(op), quake::getWireOperands(op)))
         qubitMap[newWire] = qubitMap[wire];
 
-      // When chaking mapped circuits, we do a software swap, i.e., just change
+      // When checking mapped circuits, we do a software swap, i.e., just change
       // the mapping between wires an qubits instead of applying the swap
       // operation.
       if (upToMapping && isa<quake::SwapOp>(op)) {

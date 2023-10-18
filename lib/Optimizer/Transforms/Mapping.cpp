@@ -48,11 +48,11 @@ void identityPlacement(Placement &placement) {
 /// This class encapsulates an quake operation that uses wires with information
 /// about the virtual qubits these wires correspond.
 struct VirtualOp {
-  quake::WireInterface iface;
+  mlir::Operation *op;
   SmallVector<Placement::VirtualQ, 2> qubits;
 
-  VirtualOp(quake::WireInterface iface, ArrayRef<Placement::VirtualQ> qubits)
-      : iface(iface), qubits(qubits) {}
+  VirtualOp(mlir::Operation *op, ArrayRef<Placement::VirtualQ> qubits)
+      : op(op), qubits(qubits) {}
 };
 
 class SabreRouter {
@@ -72,7 +72,7 @@ private:
                   SmallVectorImpl<VirtualOp> &layer,
                   SmallVectorImpl<Operation *> *incremented = nullptr);
 
-  LogicalResult mapOperation(VirtualOp &op);
+  LogicalResult mapOperation(VirtualOp &virtOp);
 
   LogicalResult mapFrontLayer();
 
@@ -126,26 +126,24 @@ void SabreRouter::visitUsers(ResultRange::user_range users,
     if (incremented)
       incremented->push_back(user);
 
-    auto optor = dyn_cast<quake::WireInterface>(user);
-    if (!optor) {
+    if (!quake::isSupportedMappingOperation(user)) {
       auto tmpOp = dyn_cast<mlir::Operation *>(user);
       LLVM_DEBUG({
         logger.getOStream() << "WARNING: unsupported op: " << *tmpOp << '\n';
       });
-    }
-    if (optor) {
-      auto wires = optor.getWireOperands();
+    } else {
+      auto wires = quake::getWireOperands(user);
       if (entry->second == wires.size()) {
         SmallVector<Placement::VirtualQ, 2> qubits;
         for (auto wire : wires)
           qubits.push_back(wireToVirtualQ[wire]);
         // Don't process measurements until we're ready
-        if (allowMeasurementMapping || !optor->hasTrait<QuantumMeasure>()) {
-          layer.emplace_back(optor, qubits);
+        if (allowMeasurementMapping || !user->hasTrait<QuantumMeasure>()) {
+          layer.emplace_back(user, qubits);
         } else {
           // Add to measureLayer. Don't add duplicates.
           if (measureLayerSet.find(user) == measureLayerSet.end()) {
-            measureLayer.emplace_back(optor, qubits);
+            measureLayer.emplace_back(user, qubits);
             measureLayerSet.insert(user);
           }
         }
@@ -154,15 +152,15 @@ void SabreRouter::visitUsers(ResultRange::user_range users,
   }
 }
 
-LogicalResult SabreRouter::mapOperation(VirtualOp &op) {
+LogicalResult SabreRouter::mapOperation(VirtualOp &virtOp) {
   // Take the device qubits from this operation.
   SmallVector<Placement::DeviceQ, 2> deviceQubits;
-  for (auto vr : op.qubits)
+  for (auto vr : virtOp.qubits)
     deviceQubits.push_back(placement.getPhy(vr));
 
   // An operation cannot be mapped if it is not a measurement and uses two
   // qubits virtual qubit that are no adjacently placed.
-  if (!op.iface->hasTrait<QuantumMeasure>() && deviceQubits.size() == 2 &&
+  if (!virtOp.op->hasTrait<QuantumMeasure>() && deviceQubits.size() == 2 &&
       !device.areConnected(deviceQubits[0], deviceQubits[1]))
     return failure();
 
@@ -170,13 +168,15 @@ LogicalResult SabreRouter::mapOperation(VirtualOp &op) {
   SmallVector<Value, 2> newOpWires;
   for (auto phy : deviceQubits)
     newOpWires.push_back(phyToWire[phy.index]);
-  op.iface.setWireOperands(newOpWires);
+  if (failed(quake::setWireOperands(virtOp.op, newOpWires)))
+    return failure();
 
-  if (isa<quake::SinkOp>(op.iface))
+  if (isa<quake::SinkOp>(virtOp.op))
     return success();
 
   // Update the mapping between device qubits and wires.
-  for (auto &&[w, q] : llvm::zip_equal(op.iface.getWireResults(), deviceQubits))
+  for (auto &&[w, q] :
+       llvm::zip_equal(quake::getWireResults(virtOp.op), deviceQubits))
     phyToWire[q.index] = w;
 
   return success();
@@ -190,23 +190,23 @@ LogicalResult SabreRouter::mapFrontLayer() {
     logger.startLine() << "Mapping front layer:\n";
     logger.indent();
   });
-  for (auto op : frontLayer) {
+  for (auto virtOp : frontLayer) {
     LLVM_DEBUG({
       logger.startLine() << "* ";
-      op.iface->print(logger.getOStream(),
-                      OpPrintingFlags().printGenericOpForm());
+      virtOp.op->print(logger.getOStream(),
+                       OpPrintingFlags().printGenericOpForm());
     });
-    if (failed(mapOperation(op))) {
+    if (failed(mapOperation(virtOp))) {
       LLVM_DEBUG(logger.getOStream() << " --> FAILURE\n");
-      newFrontLayer.push_back(op);
-      for (auto vr : op.qubits)
+      newFrontLayer.push_back(virtOp);
+      for (auto vr : virtOp.qubits)
         involvedPhy.insert(placement.getPhy(vr));
       LLVM_DEBUG({
-        auto phy0 = placement.getPhy(op.qubits[0]);
-        auto phy1 = placement.getPhy(op.qubits[1]);
+        auto phy0 = placement.getPhy(virtOp.qubits[0]);
+        auto phy1 = placement.getPhy(virtOp.qubits[1]);
         logger.indent();
-        logger.startLine() << "+ virtual qubits: " << op.qubits[0] << ", "
-                           << op.qubits[1] << '\n';
+        logger.startLine() << "+ virtual qubits: " << virtOp.qubits[0] << ", "
+                           << virtOp.qubits[1] << '\n';
         logger.startLine() << "+ device qubits: " << phy0 << ", " << phy1
                            << '\n';
         logger.unindent();
@@ -215,7 +215,7 @@ LogicalResult SabreRouter::mapFrontLayer() {
     }
     LLVM_DEBUG(logger.getOStream() << " --> SUCCESS\n");
     mappedAtLeastOne = true;
-    visitUsers(op.iface->getUsers(), newFrontLayer);
+    visitUsers(virtOp.op->getUsers(), newFrontLayer);
   }
   LLVM_DEBUG(logger.unindent());
   frontLayer = std::move(newFrontLayer);
@@ -228,26 +228,26 @@ void SabreRouter::selectExtendedLayer() {
   SmallVector<VirtualOp> tmpLayer = frontLayer;
   while (!tmpLayer.empty() && extendedLayer.size() < extendedLayerSize) {
     SmallVector<VirtualOp> newTmpLayer;
-    for (VirtualOp &op : tmpLayer)
-      visitUsers(op.iface->getUsers(), newTmpLayer, &incremented);
-    for (VirtualOp &op : newTmpLayer)
+    for (VirtualOp &virtOp : tmpLayer)
+      visitUsers(virtOp.op->getUsers(), newTmpLayer, &incremented);
+    for (VirtualOp &virtOp : newTmpLayer)
       // We only add operations that can influence placement to the extended
       // frontlayer, i.e., quantum operators that use two qubits.
-      if (!op.iface->hasTrait<QuantumMeasure>() &&
-          op.iface.getWireOperands().size() == 2)
-        extendedLayer.emplace_back(op);
+      if (!virtOp.op->hasTrait<QuantumMeasure>() &&
+          quake::getWireOperands(virtOp.op).size() == 2)
+        extendedLayer.emplace_back(virtOp);
     tmpLayer = std::move(newTmpLayer);
   }
 
-  for (auto op : incremented)
-    visited[op] -= 1;
+  for (auto virtOp : incremented)
+    visited[virtOp] -= 1;
 }
 
 double SabreRouter::computeLayerCost(ArrayRef<VirtualOp> layer) {
   double cost = 0.0;
-  for (VirtualOp const &op : layer) {
-    auto phy0 = placement.getPhy(op.qubits[0]);
-    auto phy1 = placement.getPhy(op.qubits[1]);
+  for (VirtualOp const &virtOp : layer) {
+    auto phy0 = placement.getPhy(virtOp.qubits[0]);
+    auto phy1 = placement.getPhy(virtOp.qubits[1]);
     cost += device.getDistance(phy0, phy1) - 1;
   }
   return cost / layer.size();
@@ -319,8 +319,8 @@ void SabreRouter::route(Block &block, ArrayRef<quake::NullWireOp> sources) {
     logger.startLine() << logLineComment;
     logger.startLine() << "Mapping front layer:\n";
     logger.indent();
-    for (auto op : sources)
-      logger.startLine() << "* " << op << " --> SUCCESS\n";
+    for (auto virtOp : sources)
+      logger.startLine() << "* " << virtOp << " --> SUCCESS\n";
     logger.unindent();
     logger.startLine() << logLineComment;
   });
@@ -451,7 +451,7 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
         // Assing a new virtual qubit to the resulting wire.
         wireToVirtualQ[qop.getResult()] = Placement::VirtualQ(sources.size());
         sources.push_back(qop);
-      } else if (auto iface = dyn_cast<quake::WireInterface>(op)) {
+      } else if (quake::isSupportedMappingOperation(&op)) {
         // Make sure the operation is using value semantics.
         if (!quake::isValueSSAForm(&op)) {
           llvm::errs() << "This is not SSA form: " << op << '\n';
@@ -472,8 +472,8 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
 
         // Get the wire operands and check if the operatos uses at most two
         // qubits. N.B: Measurements do not have this restriction.
-        auto wireOperands = iface.getWireOperands();
-        if (!iface->hasTrait<QuantumMeasure>() && wireOperands.size() > 2) {
+        auto wireOperands = quake::getWireOperands(&op);
+        if (!op.hasTrait<QuantumMeasure>() && wireOperands.size() > 2) {
           func.emitError("Cannot map a kernel with operators that use more "
                          "than two qubits.");
           signalPassFailure();
@@ -482,7 +482,7 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
 
         // Map the result wires to the appropriate virtual qubits.
         for (auto &&[wire, newWire] :
-             llvm::zip_equal(wireOperands, iface.getWireResults()))
+             llvm::zip_equal(wireOperands, quake::getWireResults(&op)))
           wireToVirtualQ[newWire] = wireToVirtualQ[wire];
       }
     }
