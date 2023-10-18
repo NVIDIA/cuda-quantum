@@ -54,6 +54,8 @@ Kernel Execution
 .. autofunction:: cudaq::sample_async
 .. autofunction:: cudaq::observe
 .. autofunction:: cudaq::observe_async
+.. autofunction:: cudaq::get_state
+.. autofunction:: cudaq::get_state_async
 .. autofunction:: cudaq::vqe
 
 Backend Configuration
@@ -73,7 +75,11 @@ Backend Configuration
 
 Data Types
 =============================
+
 .. autoclass:: cudaq::Target
+    :members:
+
+.. autoclass:: cudaq::State
     :members:
 
 .. autoclass:: cudaq::QuakeValue
