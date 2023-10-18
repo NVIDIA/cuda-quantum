@@ -54,6 +54,54 @@ LogicalResult quake::verifyWireArityAndCoarity(Operation *op) {
   return op->emitOpError("arity does not equal coarity of wires");
 }
 
+bool quake::isSupportedMappingOperation(Operation *op) {
+  return isa<OperatorInterface, MeasurementInterface, SinkOp>(op);
+}
+
+mlir::ValueRange quake::getWiresFromRange(mlir::ValueRange range) {
+  mlir::ValueRange retWires = range;
+
+  // Skip over non-wires at the beginning
+  int numNonWires = 0;
+  for (auto operand : retWires) {
+    if (!isa<RefType, VeqType, WireType>(operand.getType()))
+      numNonWires++;
+    else
+      break;
+  }
+  retWires = retWires.drop_front(numNonWires);
+
+  // Make sure all remaining operands are wires
+  for (auto operand : retWires)
+    if (!isa<RefType, VeqType, WireType>(operand.getType()))
+      return retWires.drop_front(retWires.size());
+
+  return retWires;
+}
+
+mlir::ValueRange quake::getWireResults(Operation *op) {
+  return getWiresFromRange(op->getResults());
+}
+
+mlir::ValueRange quake::getWireOperands(Operation *op) {
+  return getWiresFromRange(op->getOperands());
+}
+
+LogicalResult quake::setWireOperands(Operation *op, ValueRange wires) {
+  mlir::ValueRange opWires = getWiresFromRange(op->getOperands());
+
+  if (opWires.size() != wires.size())
+    return failure();
+
+  // Count how many non-wire operands at beginning
+  auto numNonWires = op->getOperands().size() - opWires.size();
+
+  for (auto &&[i, wire] : llvm::enumerate(wires))
+    op->setOperand(numNonWires + i, wire);
+
+  return success();
+}
+
 //===----------------------------------------------------------------------===//
 // AllocaOp
 //===----------------------------------------------------------------------===//
