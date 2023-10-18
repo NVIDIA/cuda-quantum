@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt %s --canonicalize --quake-add-deallocs | cudaq-translate --convert-to=qir | FileCheck %s
+// RUN: cudaq-opt %s --canonicalize --add-dealloc | cudaq-translate --convert-to=qir | FileCheck %s
 module {
 // CHECK:    %[[VAL_0:.*]] = zext i32
 // CHECK:    %[[VAL_1:.*]] to i64

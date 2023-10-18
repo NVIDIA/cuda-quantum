@@ -123,7 +123,7 @@ jobs:
 
       - name: Extract metadata
         id: metadata
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: ${{ steps.build_info.outputs.image_name }}
           flavor:
@@ -145,7 +145,7 @@ jobs:
 
       - name: Build Open MPI
         id: docker_build
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: ./docker/build/devdeps.ext.Dockerfile
@@ -275,7 +275,7 @@ jobs:
 
       - name: Extract metadata
         id: metadata
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: ${{ steps.prereqs.outputs.image_name }}
           flavor: latest=false
@@ -286,7 +286,7 @@ jobs:
 
       - name: Build cuda-quantum-dev image (debug)
         id: docker_build
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: ./docker/build/cudaq.dev.Dockerfile
@@ -465,7 +465,7 @@ jobs:
 
       - name: Extract cuda-quantum-dev metadata
         id: cudaqdev_metadata
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: ${{ steps.prereqs.outputs.dev_image_name }}
           flavor: |
@@ -479,7 +479,7 @@ jobs:
       - name: Build cuda-quantum-dev image (release)
         id: release_build
         if: success() && !cancelled()
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: ./docker/build/cudaq.dev.Dockerfile
@@ -512,7 +512,7 @@ jobs:
 
       - name: Extract cuda-quantum metadata
         id: cudaq_metadata
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: ${{ steps.prereqs.outputs.image_name }}
           flavor: |
@@ -526,7 +526,7 @@ jobs:
       - name: Build cuda-quantum image
         id: cudaq_build
         if: success() && !cancelled()
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: ./docker/release/cudaq.Dockerfile
@@ -591,7 +591,7 @@ jobs:
       - name: Update cuda-quantum metadata
         id: updated_metadata
         if: steps.copy.outcome != 'skipped'
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: ${{ steps.prereqs.outputs.registry }}/${{ steps.prereqs.outputs.image_short_name }}
           flavor: |
@@ -605,7 +605,7 @@ jobs:
       - name: Copy cuda-quantum NGC image
         id: copy_build
         if: steps.copy.outcome != 'skipped'
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: ngc.Dockerfile
