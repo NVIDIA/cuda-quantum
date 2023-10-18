@@ -97,7 +97,9 @@ void IonQServerHelper::initialize(BackendConfig config) {
   if (config.find("noise") != config.end())
     backendConfig["noise_model"] = config["noise"];
   // Retrieve the API key from the environment variables
-  backendConfig["token"] = getEnvVar("IONQ_API_KEY");
+  backendConfig["token"] = config.find("api_key") != config.end()
+                             ? config["api_key"]
+                             : getEnvVar("IONQ_API_KEY");
   // Construct the API job path
   backendConfig["job_path"] =
       backendConfig["url"] + '/' + backendConfig["version"] + "/jobs";
