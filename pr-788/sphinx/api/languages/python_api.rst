@@ -29,9 +29,13 @@ Program Construction
     .. automethod:: tdg
     .. automethod:: ct
     .. automethod:: rx
+    .. automethod:: crx
     .. automethod:: ry
+    .. automethod:: cry
     .. automethod:: rz
+    .. automethod:: crz
     .. automethod:: r1
+    .. automethod:: cr1
     .. automethod:: swap
     .. automethod:: exp_pauli
     .. automethod:: mx

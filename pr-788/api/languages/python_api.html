@@ -724,17 +724,18 @@ accept any arguments.</p>
 
 </li>
 </ol>
-<p>Apply a controlled-x operation to the given target qubit, with the provided control qubit.</p>
+<p>Apply a controlled-x operation to the given target qubit, with the provided control qubit/s.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>control</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The control qubit for the operation. Must be a single qubit, registers are not a valid <code class="code docutils literal notranslate"><span class="pre">control</span></code> argument.</p></li>
+<li><p><strong>control</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The control qubit/s for the operation.</p></li>
 <li><p><strong>target</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The target qubit of the operation.</p></li>
 </ul>
 </dd>
 </dl>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
 <span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="c1"># Our `control` may either be a single qubit or a register of qubits.</span>
 <span class="n">control</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
 <span class="n">target</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
 <span class="c1"># Apply a controlled-x between the two qubits.</span>
@@ -804,17 +805,18 @@ accept any arguments.</p>
 
 </li>
 </ol>
-<p>Apply a controlled-y operation to the given target qubit, with the provided control qubit.</p>
+<p>Apply a controlled-y operation to the given target qubit, with the provided control qubit/s.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>control</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The control qubit for the operation. Must be a single qubit, registers are not a valid <code class="code docutils literal notranslate"><span class="pre">control</span></code> argument.</p></li>
+<li><p><strong>control</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The control qubit/s for the operation.</p></li>
 <li><p><strong>target</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The target qubit of the operation.</p></li>
 </ul>
 </dd>
 </dl>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
 <span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="c1"># Our `control` may either be a single qubit or a register of qubits.</span>
 <span class="n">control</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
 <span class="n">target</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
 <span class="c1"># Apply a controlled-y between the two qubits.</span>
@@ -884,17 +886,18 @@ accept any arguments.</p>
 
 </li>
 </ol>
-<p>Apply a controlled-z operation to the given target qubit, with the provided control qubit.</p>
+<p>Apply a controlled-z operation to the given target qubit, with the provided control qubit/s.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>control</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The control qubit for the operation. Must be a single qubit, registers are not a valid <code class="code docutils literal notranslate"><span class="pre">control</span></code> argument.</p></li>
+<li><p><strong>control</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The control qubit/s for the operation.</p></li>
 <li><p><strong>target</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The target qubit of the operation.</p></li>
 </ul>
 </dd>
 </dl>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
 <span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="c1"># Our `control` may either be a single qubit or a register of qubits.</span>
 <span class="n">control</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
 <span class="n">target</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
 <span class="c1"># Apply a controlled-z between the two qubits.</span>
@@ -964,17 +967,18 @@ accept any arguments.</p>
 
 </li>
 </ol>
-<p>Apply a controlled-h operation to the given target qubit, with the provided control qubit.</p>
+<p>Apply a controlled-h operation to the given target qubit, with the provided control qubit/s.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>control</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The control qubit for the operation. Must be a single qubit, registers are not a valid <code class="code docutils literal notranslate"><span class="pre">control</span></code> argument.</p></li>
+<li><p><strong>control</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The control qubit/s for the operation.</p></li>
 <li><p><strong>target</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The target qubit of the operation.</p></li>
 </ul>
 </dd>
 </dl>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
 <span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="c1"># Our `control` may either be a single qubit or a register of qubits.</span>
 <span class="n">control</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
 <span class="n">target</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
 <span class="c1"># Apply a controlled-h between the two qubits.</span>
@@ -1069,17 +1073,18 @@ target qubit/s.</p>
 
 </li>
 </ol>
-<p>Apply a controlled-s operation to the given target qubit, with the provided control qubit.</p>
+<p>Apply a controlled-s operation to the given target qubit, with the provided control qubit/s.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>control</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The control qubit for the operation. Must be a single qubit, registers are not a valid <code class="code docutils literal notranslate"><span class="pre">control</span></code> argument.</p></li>
+<li><p><strong>control</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The control qubit/s for the operation.</p></li>
 <li><p><strong>target</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The target qubit of the operation.</p></li>
 </ul>
 </dd>
 </dl>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
 <span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="c1"># Our `control` may either be a single qubit or a register of qubits.</span>
 <span class="n">control</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
 <span class="n">target</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
 <span class="c1"># Apply a controlled-s between the two qubits.</span>
@@ -1174,17 +1179,18 @@ target qubit/s.</p>
 
 </li>
 </ol>
-<p>Apply a controlled-t operation to the given target qubit, with the provided control qubit.</p>
+<p>Apply a controlled-t operation to the given target qubit, with the provided control qubit/s.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>control</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The control qubit for the operation. Must be a single qubit, registers are not a valid <code class="code docutils literal notranslate"><span class="pre">control</span></code> argument.</p></li>
+<li><p><strong>control</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The control qubit/s for the operation.</p></li>
 <li><p><strong>target</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The target qubit of the operation.</p></li>
 </ul>
 </dd>
 </dl>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
 <span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="c1"># Our `control` may either be a single qubit or a register of qubits.</span>
 <span class="n">control</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
 <span class="n">target</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
 <span class="c1"># Apply a controlled-t between the two qubits.</span>
@@ -1255,11 +1261,11 @@ target qubit/s.</p>
 
 </li>
 </ol>
-<p>Apply rx to the given target qubit, parameterized by the provided double value (<code class="code docutils literal notranslate"><span class="pre">parameter</span></code>).</p>
+<p>Apply rx to the given target qubit, parameterized by the provided float value (<code class="code docutils literal notranslate"><span class="pre">parameter</span></code>).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>parameter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – The double value to parameterize the rx gate over.</p></li>
+<li><p><strong>parameter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – The float value to parameterize the rx gate over.</p></li>
 <li><p><strong>target</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The target qubit of the rx gate.</p></li>
 </ul>
 </dd>
@@ -1268,6 +1274,66 @@ target qubit/s.</p>
 <span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
 <span class="c1"># Apply an rx to the kernel at a concrete parameter value.</span>
 <span class="n">kernel</span><span class="o">.</span><span class="n">rx</span><span class="p">(</span><span class="n">parameter</span><span class="o">=</span><span class="mf">3.14</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">qubit</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.Kernel.crx">
+<span class="sig-name descname"><span class="pre">crx</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Kernel.crx" title="Permalink to this definition">¶</a></dt>
+<dd><p>Overloaded function.</p>
+<ol class="arabic">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">crx</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><span class="pre">cudaq.Kernel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><span class="pre">cudaq.QuakeValue</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">control</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><span class="pre">cudaq.QuakeValue</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><span class="pre">cudaq.QuakeValue</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Apply a controlled-rx operation to the given target qubit, with the provided control qubit/s.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>parameter</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The kernel argument to parameterize the rx gate over.</p></li>
+<li><p><strong>control</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The control qubit/s for the operation.</p></li>
+<li><p><strong>target</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The target qubit of the operation.</p></li>
+</ul>
+</dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
+<span class="n">kernel</span><span class="p">,</span> <span class="n">angle</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+<span class="c1"># Our `control` may either be a single qubit or a register of qubits.</span>
+<span class="n">control</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+<span class="n">target</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+<span class="c1"># Apply a controlled-rx between the qubits.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">crx</span><span class="p">(</span><span class="n">parameter</span><span class="o">=</span><span class="n">angle</span><span class="p">,</span> <span class="n">control</span><span class="o">=</span><span class="n">control</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">)</span>
+</pre></div>
+</div>
+<ol class="arabic" start="2">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">crx</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><span class="pre">cudaq.Kernel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">control</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><span class="pre">cudaq.QuakeValue</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><span class="pre">cudaq.QuakeValue</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Apply a controlled-rx operation to the given target qubit, with the provided control qubit/s.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>parameter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – The float value to parameterize the rx gate over.</p></li>
+<li><p><strong>control</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The control qubit/s for the operation.</p></li>
+<li><p><strong>target</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The target qubit of the operation.</p></li>
+</ul>
+</dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
+<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="c1"># Our `control` may either be a single qubit or a register of qubits.</span>
+<span class="n">control</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+<span class="n">target</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+<span class="c1"># Apply a controlled-rx between the two qubits.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">crx</span><span class="p">(</span><span class="n">parameter</span><span class="o">=</span><span class="mf">3.14</span><span class="p">,</span> <span class="n">control</span><span class="o">=</span><span class="n">control</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">)</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -1309,11 +1375,11 @@ target qubit/s.</p>
 
 </li>
 </ol>
-<p>Apply ry to the given target qubit, parameterized by the provided double value (<code class="code docutils literal notranslate"><span class="pre">parameter</span></code>).</p>
+<p>Apply ry to the given target qubit, parameterized by the provided float value (<code class="code docutils literal notranslate"><span class="pre">parameter</span></code>).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>parameter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – The double value to parameterize the ry gate over.</p></li>
+<li><p><strong>parameter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – The float value to parameterize the ry gate over.</p></li>
 <li><p><strong>target</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The target qubit of the ry gate.</p></li>
 </ul>
 </dd>
@@ -1322,6 +1388,66 @@ target qubit/s.</p>
 <span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
 <span class="c1"># Apply an ry to the kernel at a concrete parameter value.</span>
 <span class="n">kernel</span><span class="o">.</span><span class="n">ry</span><span class="p">(</span><span class="n">parameter</span><span class="o">=</span><span class="mf">3.14</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">qubit</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.Kernel.cry">
+<span class="sig-name descname"><span class="pre">cry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Kernel.cry" title="Permalink to this definition">¶</a></dt>
+<dd><p>Overloaded function.</p>
+<ol class="arabic">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">cry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><span class="pre">cudaq.Kernel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><span class="pre">cudaq.QuakeValue</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">control</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><span class="pre">cudaq.QuakeValue</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><span class="pre">cudaq.QuakeValue</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Apply a controlled-ry operation to the given target qubit, with the provided control qubit/s.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>parameter</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The kernel argument to parameterize the ry gate over.</p></li>
+<li><p><strong>control</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The control qubit/s for the operation.</p></li>
+<li><p><strong>target</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The target qubit of the operation.</p></li>
+</ul>
+</dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
+<span class="n">kernel</span><span class="p">,</span> <span class="n">angle</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+<span class="c1"># Our `control` may either be a single qubit or a register of qubits.</span>
+<span class="n">control</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+<span class="n">target</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+<span class="c1"># Apply a controlled-ry between the qubits.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">cry</span><span class="p">(</span><span class="n">parameter</span><span class="o">=</span><span class="n">angle</span><span class="p">,</span> <span class="n">control</span><span class="o">=</span><span class="n">control</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">)</span>
+</pre></div>
+</div>
+<ol class="arabic" start="2">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">cry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><span class="pre">cudaq.Kernel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">control</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><span class="pre">cudaq.QuakeValue</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><span class="pre">cudaq.QuakeValue</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Apply a controlled-ry operation to the given target qubit, with the provided control qubit/s.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>parameter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – The float value to parameterize the ry gate over.</p></li>
+<li><p><strong>control</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The control qubit/s for the operation.</p></li>
+<li><p><strong>target</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The target qubit of the operation.</p></li>
+</ul>
+</dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
+<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="c1"># Our `control` may either be a single qubit or a register of qubits.</span>
+<span class="n">control</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+<span class="n">target</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+<span class="c1"># Apply a controlled-ry between the two qubits.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">cry</span><span class="p">(</span><span class="n">parameter</span><span class="o">=</span><span class="mf">3.14</span><span class="p">,</span> <span class="n">control</span><span class="o">=</span><span class="n">control</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">)</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -1363,11 +1489,11 @@ target qubit/s.</p>
 
 </li>
 </ol>
-<p>Apply rz to the given target qubit, parameterized by the provided double value (<code class="code docutils literal notranslate"><span class="pre">parameter</span></code>).</p>
+<p>Apply rz to the given target qubit, parameterized by the provided float value (<code class="code docutils literal notranslate"><span class="pre">parameter</span></code>).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>parameter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – The double value to parameterize the rz gate over.</p></li>
+<li><p><strong>parameter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – The float value to parameterize the rz gate over.</p></li>
 <li><p><strong>target</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The target qubit of the rz gate.</p></li>
 </ul>
 </dd>
@@ -1376,6 +1502,66 @@ target qubit/s.</p>
 <span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
 <span class="c1"># Apply an rz to the kernel at a concrete parameter value.</span>
 <span class="n">kernel</span><span class="o">.</span><span class="n">rz</span><span class="p">(</span><span class="n">parameter</span><span class="o">=</span><span class="mf">3.14</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">qubit</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.Kernel.crz">
+<span class="sig-name descname"><span class="pre">crz</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Kernel.crz" title="Permalink to this definition">¶</a></dt>
+<dd><p>Overloaded function.</p>
+<ol class="arabic">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">crz</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><span class="pre">cudaq.Kernel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><span class="pre">cudaq.QuakeValue</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">control</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><span class="pre">cudaq.QuakeValue</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><span class="pre">cudaq.QuakeValue</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Apply a controlled-rz operation to the given target qubit, with the provided control qubit/s.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>parameter</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The kernel argument to parameterize the rz gate over.</p></li>
+<li><p><strong>control</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The control qubit/s for the operation.</p></li>
+<li><p><strong>target</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The target qubit of the operation.</p></li>
+</ul>
+</dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
+<span class="n">kernel</span><span class="p">,</span> <span class="n">angle</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+<span class="c1"># Our `control` may either be a single qubit or a register of qubits.</span>
+<span class="n">control</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+<span class="n">target</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+<span class="c1"># Apply a controlled-rz between the qubits.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">crz</span><span class="p">(</span><span class="n">parameter</span><span class="o">=</span><span class="n">angle</span><span class="p">,</span> <span class="n">control</span><span class="o">=</span><span class="n">control</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">)</span>
+</pre></div>
+</div>
+<ol class="arabic" start="2">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">crz</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><span class="pre">cudaq.Kernel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">control</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><span class="pre">cudaq.QuakeValue</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><span class="pre">cudaq.QuakeValue</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Apply a controlled-rz operation to the given target qubit, with the provided control qubit/s.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>parameter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – The float value to parameterize the rz gate over.</p></li>
+<li><p><strong>control</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The control qubit/s for the operation.</p></li>
+<li><p><strong>target</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The target qubit of the operation.</p></li>
+</ul>
+</dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
+<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="c1"># Our `control` may either be a single qubit or a register of qubits.</span>
+<span class="n">control</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+<span class="n">target</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+<span class="c1"># Apply a controlled-rz between the two qubits.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">crz</span><span class="p">(</span><span class="n">parameter</span><span class="o">=</span><span class="mf">3.14</span><span class="p">,</span> <span class="n">control</span><span class="o">=</span><span class="n">control</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">)</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -1417,11 +1603,11 @@ target qubit/s.</p>
 
 </li>
 </ol>
-<p>Apply r1 to the given target qubit, parameterized by the provided double value (<code class="code docutils literal notranslate"><span class="pre">parameter</span></code>).</p>
+<p>Apply r1 to the given target qubit, parameterized by the provided float value (<code class="code docutils literal notranslate"><span class="pre">parameter</span></code>).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>parameter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – The double value to parameterize the r1 gate over.</p></li>
+<li><p><strong>parameter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – The float value to parameterize the r1 gate over.</p></li>
 <li><p><strong>target</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The target qubit of the r1 gate.</p></li>
 </ul>
 </dd>
@@ -1435,6 +1621,66 @@ target qubit/s.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="cudaq.Kernel.cr1">
+<span class="sig-name descname"><span class="pre">cr1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Kernel.cr1" title="Permalink to this definition">¶</a></dt>
+<dd><p>Overloaded function.</p>
+<ol class="arabic">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">cr1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><span class="pre">cudaq.Kernel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><span class="pre">cudaq.QuakeValue</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">control</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><span class="pre">cudaq.QuakeValue</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><span class="pre">cudaq.QuakeValue</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Apply a controlled-r1 operation to the given target qubit, with the provided control qubit/s.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>parameter</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The kernel argument to parameterize the r1 gate over.</p></li>
+<li><p><strong>control</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The control qubit/s for the operation.</p></li>
+<li><p><strong>target</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The target qubit of the operation.</p></li>
+</ul>
+</dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
+<span class="n">kernel</span><span class="p">,</span> <span class="n">angle</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+<span class="c1"># Our `control` may either be a single qubit or a register of qubits.</span>
+<span class="n">control</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+<span class="n">target</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+<span class="c1"># Apply a controlled-r1 between the qubits.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">cr1</span><span class="p">(</span><span class="n">parameter</span><span class="o">=</span><span class="n">angle</span><span class="p">,</span> <span class="n">control</span><span class="o">=</span><span class="n">control</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">)</span>
+</pre></div>
+</div>
+<ol class="arabic" start="2">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">cr1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><span class="pre">cudaq.Kernel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">control</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><span class="pre">cudaq.QuakeValue</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><span class="pre">cudaq.QuakeValue</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Apply a controlled-r1 operation to the given target qubit, with the provided control qubit/s.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>parameter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – The float value to parameterize the r1 gate over.</p></li>
+<li><p><strong>control</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The control qubit/s for the operation.</p></li>
+<li><p><strong>target</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The target qubit of the operation.</p></li>
+</ul>
+</dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
+<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="c1"># Our `control` may either be a single qubit or a register of qubits.</span>
+<span class="n">control</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+<span class="n">target</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+<span class="c1"># Apply a controlled-r1 between the two qubits.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">cr1</span><span class="p">(</span><span class="n">parameter</span><span class="o">=</span><span class="mf">3.14</span><span class="p">,</span> <span class="n">control</span><span class="o">=</span><span class="n">control</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="cudaq.Kernel.swap">
 <span class="sig-name descname"><span class="pre">swap</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Kernel.swap" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
@@ -1443,14 +1689,26 @@ target qubit/s.</p>
 <dd></dd></dl>
 
 <p>Swap the states of the provided qubits.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>first</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The target qubit of the operation.
+Its state will be swapped with the <code class="code docutils literal notranslate"><span class="pre">second</span></code> qubit.</p></li>
+<li><p><strong>second</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The target qubit of the operation.
+Its state will be swapped with the <code class="code docutils literal notranslate"><span class="pre">first</span></code> qubit.</p></li>
+</ul>
+</dd>
+</dl>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
 <span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
-<span class="c1"># Allocate qubit/s to the `kernel`.</span>
-<span class="n">qubits</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-<span class="c1"># Place the 0th qubit in the 1-state.</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-<span class="c1"># Swap their states.</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">swap</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">first</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+<span class="n">second</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+
+<span class="c1"># Place `first` in the |1&gt; state, and leave `second` in |0&gt;.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">first</span><span class="p">)</span>
+
+<span class="c1"># SWAP their states, resulting in the transformation: `|10&gt; -&gt; |01&gt;`.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">swap</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">second</span><span class="p">)</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -3013,7 +3271,7 @@ argument to a <a class="reference internal" href="#cudaq.Kernel" title="cudaq.Ke
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SpinOperator.random" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2655611892</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><span class="pre">cudaq.SpinOperator</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">486980056</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><span class="pre">cudaq.SpinOperator</span></a></span></span></dt>
 <dd></dd></dl>
 
 <p>Return a random <a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinOperator</span></code></a> on the given number of qubits (<code class="code docutils literal notranslate"><span class="pre">qubit_count</span></code>) and composed of the given number of terms (<code class="code docutils literal notranslate"><span class="pre">term_count</span></code>). An optional seed value may also be provided.</p>
