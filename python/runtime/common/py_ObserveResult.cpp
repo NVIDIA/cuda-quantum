@@ -79,8 +79,11 @@ Returns:
                          1);
             return self.expectation();
           },
-          "Return the expectation value of the `spin_operator` that was "
-          "provided in :func:`observe`.")
+          R"#(Return the expectation value of the `spin_operator` that was
+provided in :func:`observe`.
+
+Note:
+  `expectation_z` has been deprecated in favor of `expectation`.)#")
       .def(
           "expectation_z",
           [](observe_result &self, spin_op &spin_term) {
@@ -94,6 +97,9 @@ Returns:
           py::arg("sub_term"),
           R"#(Return the expectation value of an individual `sub_term` of the 
 global `spin_operator` that was passed to :func:`observe`.
+
+Note:
+  `expectation_z` has been deprecated in favor of `expectation`.
 
 Args:
   sub_term (:class:`SpinOperator`): An individual sub-term of the 
