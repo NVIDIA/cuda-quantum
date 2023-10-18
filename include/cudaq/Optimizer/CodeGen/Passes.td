@@ -23,9 +23,9 @@ def PromoteRefToVeqAlloc : Pass<"promote-qubit-allocation"> {
 def QuakeToQIR : Pass<"quake-to-qir", "mlir::ModuleOp"> {
   let summary = "Lower Quake to QIR.";
   let description = [{
-    Converts Quake to QIR (as LLVM-IR). The quake-add-deallocs pass should be
-    run before this pass in order to properly generate deallocations for
-    allocated qubits.
+    Converts Quake to QIR (as LLVM-IR). The add-dealloc pass should be run
+    before this pass in order to properly generate deallocations for allocated
+    QIR qubits.
   }];
 
   let dependentDialects = ["mlir::LLVM::LLVMDialect"];
@@ -36,7 +36,8 @@ def QIRToQIRProfilePrep : Pass<"qir-profile-prep", "mlir::ModuleOp"> {
   let summary =
     "Prepare the IR for rewriting to the base profile or adaptive profile";
   let description = [{
-    This is a (module) subpass of the pipeline to convert to a specific QIR Profile.
+    This is a (module) subpass of the pipeline to convert to a specific QIR
+    Profile.
 
     Before we can convert the functions to the specific profile, we have to do
     a bit of bookkeeping on the module itself. That preparation is done in
@@ -107,14 +108,14 @@ def RemoveMeasurements : Pass<"remove-measurements"> {
   let description = [{
     Some backends perform implicit measurements on all qubits at the end of the
     kernel, which is a distinct problem for compiler-generated qubits (as is
-    done in the quake-multicontrol-decomposition pass) because the user cannot
-    tell the difference between measurement results for their qubits and
-    measurement results for compiler-generated qubits. This pass enables the
-    compiler to strip out the measurements and output recording calls from a QIR
-    program to prevent that problem. This pass MUST be run after normal
-    measurements and output recording calls have been generated because that
-    metadata must be extracted from the program to allow reconstruction of the
-    outputs from the backend.
+    done in the multicontrol-decomposition pass) because the user cannot tell
+    the difference between measurement results for their qubits and measurement
+    results for compiler-generated qubits. This pass enables the compiler to
+    strip out the measurements and output recording calls from a QIR program to
+    prevent that problem. This pass MUST be run after normal measurements and
+    output recording calls have been generated because that metadata must be
+    extracted from the program to allow reconstruction of the outputs from the
+    backend.
   }];
 
   let constructor = "cudaq::opt::createRemoveMeasurementsPass()";

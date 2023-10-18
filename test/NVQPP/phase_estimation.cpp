@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ %s -o %basename_t.x --target quantinuum --emulate && CUDAQ_DUMP_JIT_IR=1 ./%basename_t.x &> %basename_t.txt && cat %basename_t.txt | FileCheck %s
+// RUN: nvq++ --target quantinuum --emulate %s -o %basename_t.x && CUDAQ_DUMP_JIT_IR=1 ./%basename_t.x &> %basename_t.ir && cat %basename_t.ir | FileCheck %s
 
 #include <cudaq.h>
 #include <iostream>

@@ -22,6 +22,8 @@ constexpr static const char QIRMeasureToRegister[] =
 
 constexpr static const char QIRCnot[] = "__quantum__qis__cnot";
 constexpr static const char QIRCphase[] = "__quantum__qis__cphase";
+constexpr static const char QIRReadResultBody[] =
+    "__quantum__qis__read_result__body";
 
 constexpr static const char NVQIRInvokeWithControlBits[] =
     "invokeWithControlQubits";
