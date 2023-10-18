@@ -6,11 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// clang-format off
-// RUN: nvq++ --target quantinuum --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
-// XFAIL: *
-// ^^^^^ Produces error: 'cc.loop' op not a simple counted loop
-// clang-format on
+// RUN: nvq++ --target quantinuum --emulate %s -o %basename_t.x && \
+// RUN: ./%basename_t.x | FileCheck %s
 
 #include <cudaq.h>
 #include <iostream>

@@ -38,7 +38,9 @@ void addPipelineToQIR(mlir::PassManager &pm,
   pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createLowerToCFGPass());
   pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
   pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createLoopNormalize());
-  pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createLoopUnroll());
+  cudaq::opt::LoopUnrollOptions luo;
+  luo.allowBreak = convertTo.equals("qir-adaptive");
+  pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createLoopUnroll(luo));
   pm.addPass(mlir::createCanonicalizerPass());
   pm.addPass(mlir::createCSEPass());
   pm.addNestedPass<mlir::func::FuncOp>(
