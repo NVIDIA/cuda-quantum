@@ -183,6 +183,7 @@ Args:
     function at. Leave empty if the kernel doesn't accept any arguments.
 
 .. code-block:: python
+
   # Example:
   import numpy as np
 

@@ -131,6 +131,9 @@ Data Types
 .. autoclass:: cudaq::AsyncObserveResult
     :members:
 
+.. autoclass:: cudaq::AsyncStateResult
+    :members:
+
 .. autoclass:: cudaq::OptimizationResult
     :members:
 
