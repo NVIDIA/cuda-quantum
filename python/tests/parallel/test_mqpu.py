@@ -12,8 +12,7 @@ import numpy as np
 
 skipIfNoMQPU = pytest.mark.skipif(
     not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-mqpu')),
-    reason="nvidia-mqpu backend not available"
-)
+    reason="nvidia-mqpu backend not available")
 
 
 # Helper function for asserting two values are within a
@@ -78,7 +77,7 @@ def testLargeProblem():
     e = cudaq.observe(kernel, H, execParams, execution=cudaq.parallel.thread)
     stop = timeit.default_timer()
     print("mqpu time = ", (stop - start))
-    assert assert_close(e.expectation_z(), e.expectation_z())
+    assert assert_close(e.expectation(), e.expectation())
 
     # Reset for the next tests.
     cudaq.reset_target()
@@ -105,8 +104,11 @@ def testAccuracy():
 
     # Get the `cudaq.ObserveResult` back from `cudaq.observe()`.
     # No shots provided.
-    result_no_shots = cudaq.observe(kernel, hamiltonian, 0.59, execution=cudaq.parallel.thread)
-    expectation_value_no_shots = result_no_shots.expectation_z()
+    result_no_shots = cudaq.observe(kernel,
+                                    hamiltonian,
+                                    0.59,
+                                    execution=cudaq.parallel.thread)
+    expectation_value_no_shots = result_no_shots.expectation()
     assert assert_close(want_expectation_value, expectation_value_no_shots)
 
     cudaq.reset_target()
