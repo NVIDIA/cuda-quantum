@@ -212,16 +212,17 @@ and rotations and return a valid, callable, CUDA Quantum kernel.
           },                                                                   \
           py::arg("control"), py::arg("target"),                               \
           "Apply a controlled-" #NAME " operation"                             \
-          " to the given target qubit, with the provided control qubit.\n"     \
+          " to the given target qubit, with the provided control qubit/s.\n"   \
           "\nArgs:\n"                                                          \
-          "  control (:class:`QuakeValue`): The control qubit for the "        \
-          "operation. Must be a single qubit, registers are not a valid "      \
-          "`control` argument.\n"                                              \
+          "  control (:class:`QuakeValue`): The control qubit/s for the "      \
+          "operation.\n"                                                       \
           "  target (:class:`QuakeValue`): The target qubit of the "           \
           "operation.\n"                                                       \
           "\n.. code-block:: python\n\n"                                       \
           "  # Example:\n"                                                     \
           "  kernel = cudaq.make_kernel()\n"                                   \
+          "  # Our `control` may either be a single qubit or a register of "   \
+          "qubits.\n"                                                          \
           "  control = kernel.qalloc()\n"                                      \
           "  target = kernel.qalloc()\n"                                       \
           "  # Apply a controlled-" #NAME " between the two qubits.\n"         \
@@ -280,9 +281,9 @@ and rotations and return a valid, callable, CUDA Quantum kernel.
           py::arg("parameter"), py::arg("target"),                             \
           "Apply " #NAME                                                       \
           " to the given target qubit, parameterized by the provided "         \
-          "double value (`parameter`).\n"                                      \
+          "float value (`parameter`).\n"                                       \
           "\nArgs:\n"                                                          \
-          "  parameter (float): The double value to "                          \
+          "  parameter (float): The float value to "                           \
           "parameterize "                                                      \
           "the " #NAME " gate over.\n"                                         \
           "  target (:class:`QuakeValue`): The target qubit of the " #NAME     \
@@ -292,7 +293,59 @@ and rotations and return a valid, callable, CUDA Quantum kernel.
           "  kernel = cudaq.make_kernel() \n"                                  \
           "  # Apply an " #NAME                                                \
           " to the kernel at a concrete parameter value.\n"                    \
-          "  kernel." #NAME "(parameter=3.14, target=qubit)\n")
+          "  kernel." #NAME "(parameter=3.14, target=qubit)\n")                \
+      .def(                                                                    \
+          "c" #NAME,                                                           \
+          [](kernel_builder<> &self, QuakeValue &parameter,                    \
+             QuakeValue &control, QuakeValue &target) {                        \
+            self.NAME<cudaq::ctrl>(parameter, control, target);                \
+          },                                                                   \
+          py::arg("parameter"), py::arg("control"), py::arg("target"),         \
+          "Apply a controlled-" #NAME " operation"                             \
+          " to the given target qubit, with the provided control qubit/s.\n"   \
+          "\nArgs:\n"                                                          \
+          "  parameter (:class:`QuakeValue`): The kernel argument to "         \
+          "parameterize the " #NAME " gate over.\n"                            \
+          "  control (:class:`QuakeValue`): The control qubit/s for the "      \
+          "operation.\n"                                                       \
+          "  target (:class:`QuakeValue`): The target qubit of the "           \
+          "operation.\n"                                                       \
+          "\n.. code-block:: python\n\n"                                       \
+          "  # Example:\n"                                                     \
+          "  kernel, angle = cudaq.make_kernel(float)\n"                       \
+          "  # Our `control` may either be a single qubit or a register of "   \
+          "qubits.\n"                                                          \
+          "  control = kernel.qalloc()\n"                                      \
+          "  target = kernel.qalloc()\n"                                       \
+          "  # Apply a controlled-" #NAME " between the qubits.\n"             \
+          "  kernel.c" #NAME                                                   \
+          "(parameter=angle, control=control, target=target)\n")               \
+      .def(                                                                    \
+          "c" #NAME,                                                           \
+          [](kernel_builder<> &self, double &parameter, QuakeValue &control,   \
+             QuakeValue &target) {                                             \
+            self.NAME<cudaq::ctrl>(parameter, control, target);                \
+          },                                                                   \
+          py::arg("parameter"), py::arg("control"), py::arg("target"),         \
+          "Apply a controlled-" #NAME " operation"                             \
+          " to the given target qubit, with the provided control qubit/s.\n"   \
+          "\nArgs:\n"                                                          \
+          "  parameter (float): The float value to "                           \
+          "parameterize the " #NAME " gate over.\n"                            \
+          "  control (:class:`QuakeValue`): The control qubit/s for the "      \
+          "operation.\n"                                                       \
+          "  target (:class:`QuakeValue`): The target qubit of the "           \
+          "operation.\n"                                                       \
+          "\n.. code-block:: python\n\n"                                       \
+          "  # Example:\n"                                                     \
+          "  kernel = cudaq.make_kernel()\n"                                   \
+          "  # Our `control` may either be a single qubit or a register of "   \
+          "qubits.\n"                                                          \
+          "  control = kernel.qalloc()\n"                                      \
+          "  target = kernel.qalloc()\n"                                       \
+          "  # Apply a controlled-" #NAME " between the two qubits.\n"         \
+          "  kernel.c" #NAME                                                   \
+          "(parameter=3.14, control=control, target=target)\n")
 
 #define ADD_BUILDER_PARAM_TWO_QUBIT_LIB_GATE(NAME, CUDAQ_FUNC)                 \
   .def(                                                                        \
@@ -326,9 +379,9 @@ and rotations and return a valid, callable, CUDA Quantum kernel.
           py::arg("parameter"), py::arg("q0"), py::arg("q1"),                  \
           "Apply " #NAME                                                       \
           " to the given target qubits, parameterized by the provided "        \
-          "double value (`parameter`).\n"                                      \
+          "float value (`parameter`).\n"                                       \
           "\nArgs:\n"                                                          \
-          "  parameter (float): The double value to "                          \
+          "  parameter (float): The float value to "                           \
           "parameterize "                                                      \
           "the " #NAME " gate over.\n"                                         \
           "  q0 (:class:`QuakeValue`): The first qubit operand of the " #NAME  \
@@ -532,16 +585,25 @@ Args:
           py::arg("first"), py::arg("second"),
           R"#(Swap the states of the provided qubits. 
 
+Args:                                                                                                            
+  first (:class:`QuakeValue`): The target qubit of the operation. 
+    Its state will be swapped with the `second` qubit.
+  second (:class:`QuakeValue`): The target qubit of the operation. 
+    Its state will be swapped with the `first` qubit.                                                 
+
 .. code-block:: python
 
   # Example:
   kernel = cudaq.make_kernel()
-  # Allocate qubit/s to the `kernel`.
-  qubits = kernel.qalloc(2)
-  # Place the 0th qubit in the 1-state.
-  kernel.x(qubits[0])
-  # Swap their states.
-  kernel.swap(qubits[0], qubits[1]))#")
+  first = kernel.qalloc()
+  second = kernel.qalloc()
+
+  # Place `first` in the |1> state, and leave `second` in |0>.
+  kernel.x(first)
+
+  # SWAP their states, resulting in the transformation: `|10> -> |01>`.
+  kernel.swap(first, second))#")
+
       /// @brief Allow for conditional statements on measurements.
       .def(
           "c_if",
