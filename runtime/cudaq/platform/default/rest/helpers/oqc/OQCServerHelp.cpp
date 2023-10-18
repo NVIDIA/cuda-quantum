@@ -251,7 +251,7 @@ bool OQCServerHelper::jobIsDone(ServerMessage &getJobResponse) {
     throw std::runtime_error("ServerMessage doesn't contain 'results' key.");
 
   // Return whether the job is completed
-  return getJobResponse.at("results") != NULL;
+  return !getJobResponse.at("results").is_null();
 }
 
 // Process the results from a job

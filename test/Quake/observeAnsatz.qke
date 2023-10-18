@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(canonicalize,cse,quake-observe-ansatz{term-bsf=1,1,0,0}),canonicalize)' %s | FileCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(canonicalize,cse,observe-ansatz{term-bsf=1,1,0,0}),canonicalize)' %s | FileCheck %s
 
 module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__ansatz = "_ZN6ansatzclEd"}} {
   func.func @__nvqpp__mlirgen__ansatz(%arg0: f64) {

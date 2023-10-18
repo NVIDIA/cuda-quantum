@@ -6,8 +6,8 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt -pass-pipeline='builtin.module(quake-decomposition{enable-patterns=CRyToCX})' %s | FileCheck %s
-// RUN: cudaq-opt -pass-pipeline='builtin.module(quake-decomposition{enable-patterns=CRyToCX})' %s | CircuitCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=CRyToCX})' %s | FileCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=CRyToCX})' %s | CircuitCheck %s
 
 
 // Test the decomposition pattern with different control types. The FileCheck

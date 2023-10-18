@@ -325,7 +325,7 @@ jobs:
 
       - name: Extract cuda-quantum metadata
         id: metadata
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: ${{ steps.release_info.outputs.image_name }}
           flavor: latest=false
@@ -336,7 +336,7 @@ jobs:
 
       - name: Build cuda-quantum image
         id: cudaq_build
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: ./docker/release/cudaq.ext.Dockerfile
@@ -394,7 +394,7 @@ jobs:
       - name: Update cuda-quantum metadata
         id: updated_metadata
         if: steps.copy.outcome != 'skipped'
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: ${{ steps.copy.outputs.image_name }}
           flavor: latest=false
@@ -406,7 +406,7 @@ jobs:
       - name: Copy cuda-quantum NGC image
         id: copy_build
         if: steps.copy.outcome != 'skipped'
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: ngc.Dockerfile
@@ -517,7 +517,7 @@ jobs:
 
       - name: Build cuda-quantum wheel
         id: build_wheel
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: ./docker/build/cudaq.wheel.Dockerfile

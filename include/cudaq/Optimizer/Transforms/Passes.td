@@ -174,6 +174,13 @@ def LoopNormalize : Pass<"cc-loop-normalize"> {
   }];
 
   let dependentDialects = ["mlir::arith::ArithDialect"];
+
+  let options = [
+    Option<"allowClosedInterval", "allow-closed-iterval", "bool",
+      /*default=*/"true", "Allow loop iterations on a closed interval.">,
+    Option<"allowBreak", "allow-early-exit", "bool", /*default=*/"true",
+      "Allow unrolling of loop with early exit (i.e. break statement).">
+  ];
 }
 
 def LoopUnroll : Pass<"cc-loop-unroll"> {
@@ -197,7 +204,9 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
       "Maximum iterations to unroll.">,
     Option<"signalFailure",
       "signal-failure-if-any-loop-cannot-be-completely-unrolled", "bool",
-      /*default=*/"false", "Signal failure if pass can't unroll all loops.">
+      /*default=*/"false", "Signal failure if pass can't unroll all loops.">,
+    Option<"allowBreak", "allow-early-exit", "bool", /*default=*/"false",
+      "Allow unrolling of loop with early exit (i.e. break statement).">
   ];
 }
 
@@ -316,11 +325,12 @@ def QuakeSynthesize : Pass<"quake-synth", "mlir::ModuleOp"> {
   let constructor = "cudaq::opt::createQuakeSynthesizer()";
 }
 
-def QuakeAddDeallocs : Pass<"quake-add-deallocs", "mlir::func::FuncOp"> {
+def QuakeAddDeallocs : Pass<"add-dealloc", "mlir::func::FuncOp"> {
  let summary = "Add quake deallocs to functions before they return.";
   let description = [{
     This pass ensures that a dealloc is inserted before functions return
-    if the function contains a AllocaOp. It should be run before quake-to-qir.
+    if the function contains a AllocaOp. It should be run before converting
+    to QIR, for example, in order to generate correct code.
   }];
 
   let constructor = "cudaq::opt::createQuakeAddDeallocs()";
@@ -338,7 +348,7 @@ def QuakeAddMetadata : Pass<"quake-add-metadata", "mlir::func::FuncOp"> {
   let constructor = "cudaq::opt::createQuakeAddMetadata()";
 }
 
-def QuakeObserveAnsatz : Pass<"quake-observe-ansatz", "mlir::func::FuncOp"> {
+def QuakeObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
  let summary = "Given spin_op input, append measures to the Quake FuncOp";
   let description = [{
     Given an unmeasured Quake representation (i.e. a state prep
@@ -393,7 +403,7 @@ def UnwindLowering : Pass<"unwind-lowering", "mlir::func::FuncOp"> {
   let constructor = "cudaq::opt::createUnwindLoweringPass()";
 }
 
-def BasisConversionPass: Pass<"quake-basis-conversion", "mlir::ModuleOp"> {
+def BasisConversionPass: Pass<"basis-conversion", "mlir::ModuleOp"> {
   let summary = "Converts kernels to a set of basis operations.";
   let description = [{
     This pass takes as input a list of target (allowed) quantum operations.
@@ -424,7 +434,7 @@ def BasisConversionPass: Pass<"quake-basis-conversion", "mlir::ModuleOp"> {
   ];
 }
 
-def DecompositionPass: Pass<"quake-decomposition", "mlir::ModuleOp"> {
+def DecompositionPass: Pass<"decomposition", "mlir::ModuleOp"> {
   let summary = "Break down quantum operations.";
   let description = [{
     This pass performs decomposition over a set of operations by iteratively
@@ -448,7 +458,7 @@ def DecompositionPass: Pass<"quake-decomposition", "mlir::ModuleOp"> {
   ];
 }
 
-def MultiControlDecompositionPass: Pass<"quake-multicontrol-decomposition",
+def MultiControlDecompositionPass: Pass<"multicontrol-decomposition",
                                         "mlir::func::FuncOp"> {
   let summary = "Break down multi-control quantum operations.";
   let description = [{

@@ -58,9 +58,10 @@ namespace {
 /// invariant. An invariant loop means the loop must execute exactly some
 /// specific number of times, even if that number is only known at runtime.
 struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
-  explicit UnrollCountedLoop(MLIRContext *ctx, std::size_t t, bool sf,
+  explicit UnrollCountedLoop(MLIRContext *ctx, std::size_t t, bool sf, bool ab,
                              unsigned &p)
-      : OpRewritePattern(ctx), threshold(t), signalFailure(sf), progress(p) {}
+      : OpRewritePattern(ctx), threshold(t), signalFailure(sf), allowBreak(ab),
+        progress(p) {}
 
   LogicalResult matchAndRewrite(cudaq::cc::LoopOp loop,
                                 PatternRewriter &rewriter) const override {
@@ -68,9 +69,14 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
     // requires that all LoopOp operations be rewritten. Despite the setting of
     // this flag, it may not be possible to fully unroll every LoopOp anyway.
     // Check for cases that are clearly not going to be unrolled.
-    if (!cudaq::opt::isaCountedLoop(loop)) {
+    if (!allowBreak && !cudaq::opt::isaCountedLoop(loop)) {
       if (signalFailure)
         loop.emitOpError("not a simple counted loop");
+      return failure();
+    }
+    if (allowBreak && !cudaq::opt::isaConstantUpperBoundLoop(loop)) {
+      if (signalFailure)
+        loop.emitOpError("not a constant upper bound loop");
       return failure();
     }
     if (exceedsThresholdValue(loop, threshold)) {
@@ -97,37 +103,68 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
     auto *insBlock = rewriter.getInsertionBlock();
     auto insPos = rewriter.getInsertionPoint();
     auto *endBlock = rewriter.splitBlock(insBlock, insPos);
+    auto argTys = loop.getResultTypes();
+    SmallVector<Location> argLocs(argTys.size(), loop.getLoc());
+    endBlock->addArguments(argTys, argLocs);
     rewriter.setInsertionPointToEnd(insBlock);
     Value iterCount = getIntegerConstant(loc, inductionTy, 0, rewriter);
     SmallVector<Location> locsRange(loop.getNumResults(), loc);
     auto &bodyRegion = loop.getBodyRegion();
     SmallVector<Value> iterationOpers = loop.getOperands();
+    auto setIterationOpers = [&](auto from) {
+      assert(iterationOpers.size() == from.size());
+      for (auto i : llvm::enumerate(from))
+        iterationOpers[i.index()] = i.value();
+    };
+
     // Make a constant number of copies of the body.
+    Block *contBlock = nullptr;
+    Value nextIterCount;
     for (std::size_t i = 0u; i < unrollBy; ++i) {
+      // FIXME: Also clone the step and while blocks as they may have
+      // side-effects that should be made here.
       rewriter.cloneRegionBefore(bodyRegion, endBlock);
-      auto [cloneFront, cloneBack] = findCloneRange(insBlock, endBlock);
-      auto termOpers = cloneBack->getTerminator()->getOperands();
-      rewriter.eraseOp(cloneBack->getTerminator());
-      rewriter.setInsertionPointToEnd(cloneBack);
+      auto cloneRange = findCloneRange(insBlock, endBlock);
+      contBlock = rewriter.createBlock(endBlock, argTys, argLocs);
+      for (Block *b = cloneRange.first; b != contBlock; b = b->getNextNode()) {
+        auto *term = b->getTerminator();
+        if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(term)) {
+          auto termOpers = cont.getOperands();
+          rewriter.setInsertionPoint(cont);
+          rewriter.replaceOpWithNewOp<cf::BranchOp>(cont, contBlock, termOpers);
+        }
+        if (allowBreak) {
+          if (auto brk = dyn_cast<cudaq::cc::BreakOp>(term)) {
+            auto termOpers = brk.getOperands();
+            rewriter.setInsertionPoint(brk);
+            rewriter.replaceOpWithNewOp<cf::BranchOp>(brk, endBlock, termOpers);
+          }
+        }
+      }
+      rewriter.setInsertionPointToEnd(contBlock);
       // Append the next iteration number.
-      Value nextIterCount =
-          getIntegerConstant(loc, inductionTy, i + 1, rewriter);
+      nextIterCount = getIntegerConstant(loc, inductionTy, i + 1, rewriter);
       rewriter.setInsertionPointToEnd(insBlock);
       // Propagate the previous iteration number into the new block.
-      // FIXME: need to thread all exit blocks. Also the step and while blocks
-      // may have side-effects that should be considered here.
       iterationOpers[components->induction] = iterCount;
-      rewriter.create<cf::BranchOp>(loc, cloneFront, iterationOpers);
-      iterationOpers = termOpers;
+      rewriter.create<cf::BranchOp>(loc, cloneRange.first, iterationOpers);
+
+      // Bookkeeping for the next iteration, which uses the new contBlock and
+      // its arguments.
+      setIterationOpers(contBlock->getArguments());
       iterCount = nextIterCount;
-      insBlock = cloneBack;
+      insBlock = contBlock;
     }
+
+    // Finish up the last block.
     rewriter.setInsertionPointToEnd(insBlock);
-    auto total = getIntegerConstant(loc, inductionTy, unrollBy, rewriter);
-    iterationOpers[components->induction] = total;
-    rewriter.replaceOp(loop, iterationOpers);
+    if (contBlock) {
+      iterationOpers[components->induction] = nextIterCount;
+      setIterationOpers(contBlock->getArguments());
+    }
     [[maybe_unused]] auto lastBranch =
-        rewriter.create<cf::BranchOp>(loc, endBlock);
+        rewriter.create<cf::BranchOp>(loc, endBlock, iterationOpers);
+    rewriter.replaceOp(loop, endBlock->getArguments());
 
     LLVM_DEBUG(llvm::dbgs() << "after unrolling a loop:\n";
                lastBranch->getParentOfType<func::FuncOp>().dump());
@@ -143,6 +180,7 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
 
   std::size_t threshold;
   bool signalFailure;
+  bool allowBreak;
   unsigned &progress;
 };
 
@@ -164,7 +202,8 @@ public:
       pm.addPass(createCanonicalizerPass());
       RewritePatternSet patterns(ctx);
       patterns.insert<UnrollCountedLoop>(ctx, threshold,
-                                         /*signalFailure=*/false, progress);
+                                         /*signalFailure=*/false, allowBreak,
+                                         progress);
       FrozenRewritePatternSet frozen(std::move(patterns));
       // Iterate over the loops until a fixed-point is reached. Some loops can
       // only be unrolled if other loops are unrolled first and the constants
@@ -180,7 +219,7 @@ public:
     if (numLoops && signalFailure) {
       RewritePatternSet patterns(ctx);
       patterns.insert<UnrollCountedLoop>(ctx, threshold, signalFailure,
-                                         progress);
+                                         allowBreak, progress);
       (void)applyPatternsAndFoldGreedily(op, std::move(patterns));
       emitError(UnknownLoc::get(ctx), "did not unroll loops");
       signalPassFailure();
@@ -249,6 +288,16 @@ struct UnrollPipelineOptions
       llvm::cl::desc(
           "Signal failure if pass can't unroll all loops. (default: true)"),
       llvm::cl::init(true)};
+  PassOptions::Option<bool> allowBreak{
+      *this, "allow-early-exit",
+      llvm::cl::desc("Allow unrolling of loop with early exit (i.e. break "
+                     "statement). (default: true)"),
+      llvm::cl::init(true)};
+  PassOptions::Option<bool> allowClosedInterval{
+      *this, "allow-closed-interval",
+      llvm::cl::desc("Allow unrolling of loop with a closed interval form. "
+                     "(default: true)"),
+      llvm::cl::init(true)};
 };
 } // namespace
 
@@ -257,13 +306,15 @@ struct UnrollPipelineOptions
 /// expanded to eliminate control flow. This pipeline will raise an error if any
 /// loop in the module cannot be fully unrolled and signalFailure is set.
 static void createUnrollingPipeline(OpPassManager &pm, unsigned threshold,
-                                    bool signalFailure) {
+                                    bool signalFailure, bool allowBreak,
+                                    bool allowClosedInterval) {
   pm.addPass(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   pm.addPass(createCanonicalizerPass());
-  pm.addPass(cudaq::opt::createLoopNormalize());
+  cudaq::opt::LoopNormalizeOptions lno{allowClosedInterval, allowBreak};
+  pm.addPass(cudaq::opt::createLoopNormalize(lno));
   pm.addPass(createCanonicalizerPass());
-  cudaq::opt::LoopUnrollOptions luo{threshold, signalFailure};
+  cudaq::opt::LoopUnrollOptions luo{threshold, signalFailure, allowBreak};
   pm.addPass(cudaq::opt::createLoopUnroll(luo));
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUpdateRegisterNames());
 }
@@ -273,6 +324,7 @@ void cudaq::opt::registerUnrollingPipeline() {
       "unrolling-pipeline",
       "Fully unroll loops that can be completely unrolled.",
       [](OpPassManager &pm, const UnrollPipelineOptions &upo) {
-        createUnrollingPipeline(pm, upo.threshold, upo.signalFailure);
+        createUnrollingPipeline(pm, upo.threshold, upo.signalFailure,
+                                upo.allowBreak, upo.allowClosedInterval);
       });
 }
