@@ -281,9 +281,9 @@ and rotations and return a valid, callable, CUDA Quantum kernel.
           py::arg("parameter"), py::arg("target"),                             \
           "Apply " #NAME                                                       \
           " to the given target qubit, parameterized by the provided "         \
-          "double value (`parameter`).\n"                                      \
+          "float value (`parameter`).\n"                                       \
           "\nArgs:\n"                                                          \
-          "  parameter (float): The double value to "                          \
+          "  parameter (float): The float value to "                           \
           "parameterize "                                                      \
           "the " #NAME " gate over.\n"                                         \
           "  target (:class:`QuakeValue`): The target qubit of the " #NAME     \
@@ -330,7 +330,7 @@ and rotations and return a valid, callable, CUDA Quantum kernel.
           "Apply a controlled-" #NAME " operation"                             \
           " to the given target qubit, with the provided control qubit/s.\n"   \
           "\nArgs:\n"                                                          \
-          "  parameter (float): The double value to "                          \
+          "  parameter (float): The float value to "                           \
           "parameterize the " #NAME " gate over.\n"                            \
           "  control (:class:`QuakeValue`): The control qubit/s for the "      \
           "operation.\n"                                                       \
@@ -379,9 +379,9 @@ and rotations and return a valid, callable, CUDA Quantum kernel.
           py::arg("parameter"), py::arg("q0"), py::arg("q1"),                  \
           "Apply " #NAME                                                       \
           " to the given target qubits, parameterized by the provided "        \
-          "double value (`parameter`).\n"                                      \
+          "float value (`parameter`).\n"                                       \
           "\nArgs:\n"                                                          \
-          "  parameter (float): The double value to "                          \
+          "  parameter (float): The float value to "                           \
           "parameterize "                                                      \
           "the " #NAME " gate over.\n"                                         \
           "  q0 (:class:`QuakeValue`): The first qubit operand of the " #NAME  \
