@@ -80,10 +80,23 @@ Returns:
           },
           py::keep_alive<0, 1>(),
           "Iterate through the :class:`SampleResult` dictionary.\n")
-      .def("expectation_z", &sample_result::exp_val_z,
+      .def("expectation", &sample_result::expectation,
            py::arg("register_name") = GlobalRegisterName,
            "Return the expectation value in the Z-basis of the :class:`Kernel` "
            "that was sampled.\n")
+      .def(
+          "expectation_z",
+          [](sample_result &self, const std::string_view register_name) {
+            PyErr_WarnEx(PyExc_DeprecationWarning,
+                         "expectation_z() is deprecated, use expectation() "
+                         "with the same "
+                         "argument structure.",
+                         1);
+            return self.expectation();
+          },
+          py::arg("register_name") = GlobalRegisterName,
+          "Return the expectation value in the Z-basis of the :class:`Kernel` "
+          "that was sampled.\n")
       .def("probability", &sample_result::probability,
            "Return the probability of observing the given bit string.\n",
            py::arg("bitstring"), py::arg("register_name") = GlobalRegisterName,

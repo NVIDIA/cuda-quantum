@@ -612,7 +612,7 @@ def test_from_state():
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(2)
     cudaq.from_state(kernel, qubits, state)
-    energy = cudaq.observe(kernel, hamiltonian).expectation_z()
+    energy = cudaq.observe(kernel, hamiltonian).expectation()
     assert np.isclose(-1.748, energy, 1e-3)
 
     ss = cudaq.get_state(kernel)
@@ -638,7 +638,7 @@ def test_exp_pauli():
         1, 3, 3, -0.0454063, -0, 15
     ]
     h = cudaq.SpinOperator(h2_data, 4)
-    want_exp = cudaq.observe(kernel, h).expectation_z()
+    want_exp = cudaq.observe(kernel, h).expectation()
     assert np.isclose(want_exp, -1.13, atol=1e-2)
 
     kernel, theta = cudaq.make_kernel(float)
@@ -646,7 +646,7 @@ def test_exp_pauli():
     kernel.x(qubits[0])
     kernel.x(qubits[1])
     kernel.exp_pauli(theta, qubits, "XXXY")
-    want_exp = cudaq.observe(kernel, h, .11).expectation_z()
+    want_exp = cudaq.observe(kernel, h, .11).expectation()
     assert np.isclose(want_exp, -1.13, atol=1e-2)
 
 

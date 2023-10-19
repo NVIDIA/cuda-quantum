@@ -286,9 +286,8 @@ public:
     }
     std::string allowEarlyExitSetting =
         (codegenTranslation == "qir-adaptive") ? "1" : "0";
-    passPipelineConfig =
-        std::string("func.func(cc-loop-unroll{allow-early-exit=") +
-        allowEarlyExitSetting + "})," + passPipelineConfig;
+    passPipelineConfig = std::string("cc-loop-unroll{allow-early-exit=") +
+                         allowEarlyExitSetting + "}," + passPipelineConfig;
 
     // Set the qpu name
     qpuName = mutableBackend;

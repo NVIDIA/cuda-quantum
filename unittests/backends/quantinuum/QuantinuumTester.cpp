@@ -161,8 +161,8 @@ CUDAQ_TEST(QuantinuumTester, checkObserveSync) {
   auto result = cudaq::observe(10000, kernel, h, .59);
   result.dump();
 
-  printf("ENERGY: %lf\n", result.exp_val_z());
-  EXPECT_TRUE(isValidExpVal(result.exp_val_z()));
+  printf("ENERGY: %lf\n", result.expectation());
+  EXPECT_TRUE(isValidExpVal(result.expectation()));
 }
 
 CUDAQ_TEST(QuantinuumTester, checkObserveSyncEmulate) {
@@ -188,8 +188,8 @@ CUDAQ_TEST(QuantinuumTester, checkObserveSyncEmulate) {
   auto result = cudaq::observe(100000, kernel, h, .59);
   result.dump();
 
-  printf("ENERGY: %lf\n", result.exp_val_z());
-  EXPECT_TRUE(isValidExpVal(result.exp_val_z()));
+  printf("ENERGY: %lf\n", result.expectation());
+  EXPECT_TRUE(isValidExpVal(result.expectation()));
 }
 
 CUDAQ_TEST(QuantinuumTester, checkObserveAsync) {
@@ -215,8 +215,8 @@ CUDAQ_TEST(QuantinuumTester, checkObserveAsync) {
   auto result = future.get();
   result.dump();
 
-  printf("ENERGY: %lf\n", result.exp_val_z());
-  EXPECT_TRUE(isValidExpVal(result.exp_val_z()));
+  printf("ENERGY: %lf\n", result.expectation());
+  EXPECT_TRUE(isValidExpVal(result.expectation()));
 }
 
 CUDAQ_TEST(QuantinuumTester, checkObserveAsyncEmulate) {
@@ -244,8 +244,8 @@ CUDAQ_TEST(QuantinuumTester, checkObserveAsyncEmulate) {
   auto result = future.get();
   result.dump();
 
-  printf("ENERGY: %lf\n", result.exp_val_z());
-  EXPECT_TRUE(isValidExpVal(result.exp_val_z()));
+  printf("ENERGY: %lf\n", result.expectation());
+  EXPECT_TRUE(isValidExpVal(result.expectation()));
 }
 
 CUDAQ_TEST(QuantinuumTester, checkObserveAsyncLoadFromFile) {
@@ -285,8 +285,8 @@ CUDAQ_TEST(QuantinuumTester, checkObserveAsyncLoadFromFile) {
   std::remove("saveMeObserve.json");
   result.dump();
 
-  printf("ENERGY: %lf\n", result.exp_val_z());
-  EXPECT_TRUE(isValidExpVal(result.exp_val_z()));
+  printf("ENERGY: %lf\n", result.expectation());
+  EXPECT_TRUE(isValidExpVal(result.expectation()));
 }
 
 int main(int argc, char **argv) {
