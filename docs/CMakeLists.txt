@@ -79,7 +79,7 @@ add_test(
   NAME
     nvqpp_photonics_sim
   COMMAND
-    bash -c "${CMAKE_BINARY_DIR}/bin/nvq++ --target photonics ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/examples/cpp/photonics/test_photonics.cpp -o photonics.x ;\
+    bash -c "${CMAKE_BINARY_DIR}/bin/nvq++ --target photonics ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/examples/cpp/providers/photonics.cpp -o photonics.x ;\
               ${CMAKE_CURRENT_BINARY_DIR}/photonics.x"
 )
 
