@@ -571,12 +571,12 @@ std::unique_ptr<MLIRContext> initializeMLIR() {
 }
 
 ExecutionEngine *createQIRJITEngine(ModuleOp &moduleOp,
-                                    const std::string &convertTo) {
+                                    llvm::StringRef convertTo) {
   ExecutionEngineOptions opts;
   opts.transformer = [](llvm::Module *m) { return llvm::ErrorSuccess(); };
   opts.jitCodeGenOptLevel = llvm::CodeGenOpt::None;
   opts.llvmModuleBuilder =
-      [convertTo](
+      [convertTo=convertTo.str()](
           Operation *module,
           llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
     llvmContext.setOpaquePointers(false);
