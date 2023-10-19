@@ -243,11 +243,11 @@ public:
   using UpdateRegisterNamesBase::UpdateRegisterNamesBase;
 
   void runOnOperation() override {
-    auto *op = getOperation();
+    auto mod = getOperation();
 
     // First save the op's that contain a registerName attribute
     DenseMap<StringRef, SmallVector<Operation *>> regOps;
-    op->walk([&](mlir::Operation *walkOp) {
+    mod.walk([&](mlir::Operation *walkOp) {
       if (auto prevAttr = walkOp->getAttr("registerName")) {
         auto registerName = prevAttr.cast<StringAttr>().getValue();
         regOps[registerName].push_back(walkOp);
@@ -316,7 +316,7 @@ static void createUnrollingPipeline(OpPassManager &pm, unsigned threshold,
   pm.addPass(createCanonicalizerPass());
   cudaq::opt::LoopUnrollOptions luo{threshold, signalFailure, allowBreak};
   pm.addPass(cudaq::opt::createLoopUnroll(luo));
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createUpdateRegisterNames());
+  pm.addPass(cudaq::opt::createUpdateRegisterNames());
 }
 
 void cudaq::opt::registerUnrollingPipeline() {
