@@ -93,7 +93,7 @@ function show_help {
 --[no-]aggressive-early-inline
 	Enable/disable early inlining pass.
 
---[no-]quake-apply-specialization
+--[no-]apply-specialization
 	Enable/disable specialization of quake.apply ops.
 
 --[no-]lambda-lifting
@@ -342,10 +342,10 @@ while [ $# -ne 0 ]; do
 	--aggressive-early-inline)
 		ENABLE_AGGRESSIVE_EARLY_INLINE=true
 		;;
-	--no-quake-apply-specialization)
+	--no-apply-specialization)
 		ENABLE_APPLY_SPECIALIZATION=false
 		;;
-	--quake-apply-specialization)
+	--apply-specialization)
 		ENABLE_APPLY_SPECIALIZATION=true
 		;;
 	--no-lambda-lifting)
