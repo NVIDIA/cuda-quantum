@@ -267,9 +267,10 @@ def test_state_density_matrix_integration():
 
     cudaq.reset_target()
 
+
 def test_state_vector_async():
     """Tests `cudaq.get_state_async` on a simple kernel."""
-    
+
     kernel, theta, phi = cudaq.make_kernel(float, float)
     qubits = kernel.qalloc(2)
     kernel.rx(theta, qubits[0])
@@ -288,6 +289,7 @@ def test_state_vector_async():
     with pytest.raises(Exception) as error:
         # Invalid qpu_id type.
         result = cudaq.sample_async(kernel, 0.0, 0.0, qpu_id=12)
+
 
 # leave for gdb debugging
 if __name__ == "__main__":

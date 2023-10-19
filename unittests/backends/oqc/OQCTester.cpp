@@ -109,8 +109,8 @@ CUDAQ_TEST(OQCTester, checkObserveSync) {
   auto result = cudaq::observe(kernel, h, .59);
   result.dump();
 
-  printf("ENERGY: %lf\n", result.exp_val_z());
-  EXPECT_TRUE(isValidExpVal(result.exp_val_z()));
+  printf("ENERGY: %lf\n", result.expectation());
+  EXPECT_TRUE(isValidExpVal(result.expectation()));
 }
 
 CUDAQ_TEST(OQCTester, checkObserveAsync) {
@@ -134,8 +134,8 @@ CUDAQ_TEST(OQCTester, checkObserveAsync) {
   auto result = future.get();
   result.dump();
 
-  printf("ENERGY: %lf\n", result.exp_val_z());
-  EXPECT_TRUE(isValidExpVal(result.exp_val_z()));
+  printf("ENERGY: %lf\n", result.expectation());
+  EXPECT_TRUE(isValidExpVal(result.expectation()));
 }
 
 CUDAQ_TEST(OQCTester, checkObserveAsyncLoadFromFile) {
@@ -172,8 +172,8 @@ CUDAQ_TEST(OQCTester, checkObserveAsyncLoadFromFile) {
   std::remove("saveMeObserve.json");
   result.dump();
 
-  printf("ENERGY: %lf\n", result.exp_val_z());
-  EXPECT_TRUE(isValidExpVal(result.exp_val_z()));
+  printf("ENERGY: %lf\n", result.expectation());
+  EXPECT_TRUE(isValidExpVal(result.expectation()));
 }
 
 int main(int argc, char **argv) {

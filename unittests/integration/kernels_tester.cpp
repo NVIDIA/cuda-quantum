@@ -133,7 +133,7 @@ CUDAQ_TEST(KernelsTester, checkFromState) {
     using namespace cudaq::spin;
     auto H = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
              .21829 * z(0) - 6.125 * z(1);
-    auto energy = cudaq::observe(kernel, H).exp_val_z();
+    auto energy = cudaq::observe(kernel, H).expectation();
     EXPECT_NEAR(-1.748, energy, 1e-3);
 
     auto ss = cudaq::get_state(kernel);

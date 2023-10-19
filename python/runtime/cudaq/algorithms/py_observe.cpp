@@ -156,7 +156,7 @@ observe_result pyObservePar(const PyParType &type, kernel_builder<> &kernel,
       localH, nQpus);
 
   // combine all the data via an all_reduce
-  auto exp_val = localRankResult.exp_val_z();
+  auto exp_val = localRankResult.expectation();
   auto globalExpVal = mpi::all_reduce(exp_val, std::plus<double>());
   return observe_result(globalExpVal, spin_operator);
 }
@@ -296,7 +296,7 @@ void bindObserve(py::module &mod) {
           // back into a vector of results.
           std::vector<observe_result> results;
           for (auto &o : std::get<std::vector<spin_op>>(spin_operator))
-            results.emplace_back(result[0].exp_val_z(o), o,
+            results.emplace_back(result[0].expectation(o), o,
                                  result[0].counts(o));
           return results;
         }

@@ -251,8 +251,9 @@ namespace {
 /// There are 3 basic cases.
 ///
 ///    -# High-level operations that take region arguments. In this case all
-///       use-def information is passed as arguments between the blocks if it is
-///       live.
+///       def information is passed as arguments between the blocks if it is
+///       live. Use information, if only used, is passed as promoted loads,
+///       otherwise it involves a def and is passed as an argument.
 ///    -# High-level operations that disallow region arguments. In this case
 ///       uses may have loads promoted to immediately before the operation.
 ///    -# Function operations. In this case, the body is a plain old CFG and
@@ -325,17 +326,23 @@ public:
   /// of \p block but not have a dominating definition in \p block. In these
   /// cases, the value will be passed as an argument to all blocks in the
   /// operation.
-  std::pair<SSAReg, bool> addRegionBinding(Block *block, MemRef mr) {
+  std::pair<SSAReg, bool> addEscapingBinding(Block *block, MemRef mr) {
     assert(block && rMap.count(block) && mr && !isFunctionBlock(block));
-    SSAReg result;
+    bool newlyAdded = false;
     if (!escapes.count(mr)) {
       auto off = escapes.size();
       escapes[mr] = off;
+      newlyAdded = true;
     }
     bool changed = maybeAddEscapingBlockArguments(block);
-    result = block->getArgument(originalBlockArgs[block] + escapes[mr]);
-    rMap[block][mr] = result;
-    return {result, changed};
+    const auto blockArgNum = originalBlockArgs[block] + escapes[mr];
+    auto ba = block->getArgument(blockArgNum);
+    rMap[block][mr] = ba;
+    if (newlyAdded && hasPromotedMemRef(mr)) {
+      promoChange |= convertPromotedToEscapingDef(block, mr, blockArgNum);
+      changed |= promoChange;
+    }
+    return {ba, changed};
   }
 
   /// Is \p mr a known escaping binding?
@@ -485,12 +492,17 @@ public:
   /// new dominating dereference. Used when \p op does not allow region
   /// arguments.
   Value createPromotedValue(Value memuse, Operation *op) {
-    Operation *parent = op->getParentOp();
     if (hasPromotedMemRef(memuse))
       return getPromotedMemRef(memuse);
+    Operation *parent = op->getParentOp();
     OpBuilder builder(parent);
     Value newUse = reloadMemoryReference(builder, memuse);
     return addPromotedMemRef(memuse, newUse);
+  }
+
+  SSAReg getPromotedMemRef(MemRef mr) const {
+    assert(hasPromotedMemRef(mr));
+    return promotedMem.find(mr)->second;
   }
 
   /// Track the memory reference \p mr as being live-out of the parent
@@ -504,6 +516,18 @@ public:
     return SmallVector<MemRef>(liveOutSet.begin(), liveOutSet.end());
   }
 
+  void cleanupIfPromoChanged(SmallPtrSetImpl<Block *> &visited, Block *block) {
+    assert(block);
+    if (promoChange) {
+      // A promoted load was converted to an escaping definition. We have to
+      // revisit all the blocks to thread the new block arguments and
+      // terminators.
+      visited.clear();
+      visited.insert(block);
+      promoChange = false;
+    }
+  }
+
 private:
   // Delete all ctors that should never be used.
   RegionDataFlow() = delete;
@@ -512,11 +536,28 @@ private:
 
   bool hasLiveOutOfParent() const { return !liveOutSet.empty(); }
   unsigned getNumEscapes() const { return escapes.size(); }
+
   bool hasPromotedMemRef(MemRef mr) const { return promotedMem.count(mr); }
 
-  SSAReg getPromotedMemRef(MemRef mr) const {
-    assert(hasPromotedMemRef(mr));
-    return promotedMem.find(mr)->second;
+  bool convertPromotedToEscapingDef(Block *block, MemRef mr,
+                                    unsigned blockArgNum) {
+    auto ssaReg = promotedMem[mr];
+    SmallVector<Operation *> users(ssaReg.getUsers().begin(),
+                                   ssaReg.getUsers().end());
+    const bool result = !users.empty();
+    for (auto *user : users) {
+      Block *b = user->getBlock();
+      if (b->getParentOp() != block->getParentOp()) {
+        // Find the block in parent to add the escaping binding to.
+        while (b->getParentOp() != block->getParentOp())
+          b = b->getParentOp()->getBlock();
+      }
+      // Add an escaping binding to block `b` for the user to use.
+      if (b != block)
+        addEscapingBinding(b, mr);
+      user->replaceUsesOfWith(ssaReg, b->getArgument(blockArgNum));
+    }
+    return result;
   }
 
   SSAReg addPromotedMemRef(MemRef mr, SSAReg sr) {
@@ -573,6 +614,7 @@ private:
   /// For the body of a function, we maintain a distinct map for each block of
   /// the definitions that are live-in to each block.
   DenseMap<Block *, DenseMap<MemRef, SSAReg>> liveInMap;
+  bool promoChange = false;
 };
 } // namespace
 
@@ -877,9 +919,9 @@ public:
 
         // If op is a use of a memory ref, forward the last def if there is one.
         // If no def is known, then if this is a function entry raise an error,
-        // or if this op does not have region arguments add a dominating def
-        // immediately before parent, or (the default) add a block argument for
-        // the def.
+        // or if this op does not have region arguments or this use is not also
+        // being defined add a dominating def immediately before parent, or
+        // (the default) add a block argument for the def.
         auto handleUse = [&]<typename T>(T useop, Value memuse) {
           if (!memuse)
             return;
@@ -909,10 +951,11 @@ public:
           if (block->isEntryBlock()) {
             // Create a promoted value that dominates parent.
             auto newUseopVal = dataFlow.createPromotedValue(memuse, op);
-            if (parent->hasTrait<OpTrait::NoRegionArguments>()) {
+            if (!dataFlow.hasEscape(memuse)) {
               // In this case, parent does not accept region arguments so the
               // reference values must already be defined to dominate parent.
               useop.replaceAllUsesWith(newUseopVal);
+              dataFlow.addBinding(block, memuse, newUseopVal);
               cleanUps.insert(useop);
               return;
             }
@@ -927,11 +970,12 @@ public:
               auto *entry = &reg.front();
               bool changes = dataFlow.addBlock(entry);
               auto [blockArg, changed] =
-                  dataFlow.addRegionBinding(entry, memuse);
+                  dataFlow.addEscapingBinding(entry, memuse);
               if (useop->getParentRegion() == &reg)
                 useop.replaceAllUsesWith(blockArg);
               if (entry == block)
                 dataFlow.addBinding(block, memuse, blockArg);
+              dataFlow.cleanupIfPromoChanged(blocksVisited, block);
               if (changes || changed)
                 appendPredecessorsToWorklist(worklist, entry);
             }
@@ -957,28 +1001,14 @@ public:
             return;
           }
 
-          // Does this op not allow region arguments?
-          if (parent->hasTrait<OpTrait::NoRegionArguments>()) {
+          if (!dataFlow.hasEscape(memuse)) {
             // Create a promoted value that dominates parent. In this case, the
             // ref value must already be defined somewhere that dominates Op
             // `parent`, so we can just reload it.
             auto newUseopVal = dataFlow.createPromotedValue(memuse, op);
             useop.replaceAllUsesWith(newUseopVal);
+            dataFlow.addBinding(block, memuse, newUseopVal);
             cleanUps.insert(useop);
-            return;
-          }
-
-          // We want to add the def to the arguments coming from our
-          // predecessor blocks.
-          if (!dataFlow.hasEscape(memuse)) {
-            // This one isn't already on the list of block arguments, so add
-            // and record it as a new BlockArgument.
-            auto [newArg, changes] = dataFlow.addRegionBinding(block, memuse);
-            dataFlow.addBinding(block, memuse, newArg);
-            useop.replaceAllUsesWith(newArg);
-            cleanUps.insert(op);
-            if (changes)
-              appendPredecessorsToWorklist(worklist, block);
           }
         };
         if (auto unwrap = dyn_cast<quake::UnwrapOp>(op)) {
@@ -1014,12 +1044,13 @@ public:
                   continue;
                 Block *entry = &reg.front();
                 bool changes = dataFlow.addBlock(entry);
-                auto [na, changed] = dataFlow.addRegionBinding(entry, memdef);
-                if (changes || changed)
+                auto pr = dataFlow.addEscapingBinding(entry, memdef);
+                if (changes || pr.second)
                   appendPredecessorsToWorklist(worklist, entry);
               }
-              auto [na, changes] = dataFlow.addRegionBinding(block, memdef);
-              if (changes)
+              dataFlow.cleanupIfPromoChanged(blocksVisited, block);
+              auto pr = dataFlow.addEscapingBinding(block, memdef);
+              if (pr.second)
                 appendPredecessorsToWorklist(worklist, block);
             }
           }
@@ -1079,6 +1110,9 @@ public:
         SmallVector<Value> operands;
         for (auto opndVal : parent->getOperands())
           operands.push_back(opndVal);
+        if (!parent->hasTrait<OpTrait::NoRegionArguments>())
+          for (auto d : allDefs)
+            operands.push_back(dataFlow.getPromotedMemRef(d));
         Operation *np =
             Operation::create(parent->getLoc(), parent->getName(), resultTypes,
                               operands, parent->getAttrs(),

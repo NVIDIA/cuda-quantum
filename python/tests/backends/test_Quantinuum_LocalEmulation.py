@@ -6,7 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-
 import cudaq, pytest, os, time
 from cudaq import spin
 from multiprocessing import Process
@@ -80,13 +79,14 @@ def test_quantinuum_observe():
 
     # Run the observe task on quantinuum synchronously
     res = cudaq.observe(kernel, hamiltonian, .59, shots_count=100000)
-    assert assert_close(res.expectation_z())
+    assert assert_close(res.expectation())
 
     # Launch it asynchronously, enters the job into the queue
     future = cudaq.observe_async(kernel, hamiltonian, .59, shots_count=100000)
     # Retrieve the results (since we're emulating)
     res = future.get()
-    assert assert_close(res.expectation_z())
+    assert assert_close(res.expectation())
+
 
 def test_quantinuum_exp_pauli():
     cudaq.set_random_seed(13)
@@ -102,13 +102,13 @@ def test_quantinuum_exp_pauli():
 
     # Run the observe task on quantinuum synchronously
     res = cudaq.observe(kernel, hamiltonian, .59, shots_count=100000)
-    assert assert_close(res.expectation_z())
+    assert assert_close(res.expectation())
 
     # Launch it asynchronously, enters the job into the queue
     future = cudaq.observe_async(kernel, hamiltonian, .59, shots_count=100000)
     # Retrieve the results (since we're emulating)
     res = future.get()
-    assert assert_close(res.expectation_z())
+    assert assert_close(res.expectation())
 
 
 # leave for gdb debugging
