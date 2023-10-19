@@ -51,7 +51,7 @@ int main() {
   }
 
   // can get <ZZ...Z> from counts too
-  printf("Exp: %lf\n", counts.exp_val_z());
+  printf("Exp: %lf\n", counts.expectation());
 
   std::vector<float> float_args = {0.64};
 
@@ -64,6 +64,6 @@ int main() {
   }
 
   // can get <ZZ...Z> from counts too
-  printf("Exp: %lf\n", float_counts.exp_val_z());
+  printf("Exp: %lf\n", float_counts.expectation());
   return 0;
 }

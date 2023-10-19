@@ -537,8 +537,7 @@ public:
   CUDAQ_BUILDER_ADD_MEASURE(my)
   CUDAQ_BUILDER_ADD_MEASURE(mz)
 
-  /// @brief SWAP operation for swapping the quantum states of qubits.
-  /// Currently only support swaps between two qubits.
+  /// @brief SWAP operation for swapping the quantum states of two qubits.
   void swap(const QuakeValue &first, const QuakeValue &second) {
     const std::vector<QuakeValue> empty;
     const std::vector<QuakeValue> &qubits{first, second};
