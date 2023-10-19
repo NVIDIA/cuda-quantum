@@ -18,6 +18,7 @@ add_cudaq_library(OptTransforms
   CombineQuantumAlloc.cpp
   Decomposition.cpp
   DecompositionPatterns.cpp
+  DelayMeasurements.cpp
   ExpandMeasurements.cpp
   FactorQuantumAlloc.cpp
   GenKernelExecution.cpp
