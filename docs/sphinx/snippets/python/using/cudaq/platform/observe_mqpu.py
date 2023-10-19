@@ -27,5 +27,5 @@ hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
 exp_val = cudaq.observe(kernel,
                         hamiltonian,
                         0.59,
-                        execution=cudaq.parallel.thread).expectation_z()
+                        execution=cudaq.parallel.thread).expectation()
 print("Expectation value: ", exp_val)

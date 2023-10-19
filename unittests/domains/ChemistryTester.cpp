@@ -171,8 +171,8 @@ CUDAQ_TEST(H2MoleculeTester, checkHWE) {
         cudaq::random_vector(-3.0, 3.0, numParams, std::mt19937::default_seed);
     std::vector<double> zeros(numParams);
     auto res2 = cudaq::observe(ansatz, H, zeros);
-    std::cout << "HF = " << std::setprecision(16) << res2.exp_val_z() << "\n";
-    EXPECT_NEAR(-1.116, res2.exp_val_z(), 1e-3);
+    std::cout << "HF = " << std::setprecision(16) << res2.expectation() << "\n";
+    EXPECT_NEAR(-1.116, res2.expectation(), 1e-3);
 
     auto res = cudaq::vqe(ansatz, H, optimizer, numParams);
     std::cout << "opt result = " << std::setprecision(16) << std::get<0>(res)
