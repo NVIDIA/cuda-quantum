@@ -413,7 +413,7 @@ public:
         PassManager pm(&context);
         OpPassManager &optPM = pm.nest<func::FuncOp>();
         optPM.addPass(
-            cudaq::opt::createQuakeObserveAnsatzPass(binarySymplecticForm[0]));
+            cudaq::opt::createObserveAnsatzPass(binarySymplecticForm[0]));
         if (failed(pm.run(tmpModuleOp)))
           throw std::runtime_error("Could not apply measurements to ansatz.");
         runPassPipeline(passPipelineConfig, tmpModuleOp);
