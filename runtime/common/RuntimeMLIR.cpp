@@ -576,7 +576,7 @@ ExecutionEngine *createQIRJITEngine(ModuleOp &moduleOp,
   opts.transformer = [](llvm::Module *m) { return llvm::ErrorSuccess(); };
   opts.jitCodeGenOptLevel = llvm::CodeGenOpt::None;
   opts.llvmModuleBuilder =
-      [convertTo=convertTo.str()](
+      [convertTo = convertTo.str()](
           Operation *module,
           llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
     llvmContext.setOpaquePointers(false);
