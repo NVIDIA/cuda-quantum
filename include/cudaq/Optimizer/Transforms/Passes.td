@@ -471,7 +471,7 @@ def MultiControlDecompositionPass: Pass<"multicontrol-decomposition",
   }];
 }
 
-def MappingPass: Pass<"quake-mapping", "mlir::func::FuncOp"> {
+def MappingPass: Pass<"mapping", "mlir::func::FuncOp"> {
   let summary = "TODO";
   let description = [{ TODO }];
   let options = [
