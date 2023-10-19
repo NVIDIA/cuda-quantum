@@ -609,7 +609,7 @@ Extracting ./data/MNIST/raw/t10k-labels-idx1-ubyte.gz to ./data/MNIST/raw
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Excetute the quantum circuit to output an expectation value&quot;&quot;&quot;</span>
 
         <span class="n">expectation</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel</span><span class="p">,</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
-                                                 <span class="n">thetas</span><span class="p">)</span><span class="o">.</span><span class="n">expectation_z</span><span class="p">(),</span>
+                                                 <span class="n">thetas</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">(),</span>
                                    <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">expectation</span>
