@@ -52,9 +52,13 @@ available_backends=`\
         fi 
 
         platform=$(cat $file | grep "PLATFORM_QPU=")
-        if [ "${platform#PLATFORM_QPU=}" != "remote_rest" ] \
-           && ($gpu_available || [ -z "$(cat $file | grep "GPU_REQUIREMENTS")" ]); then \
-            basename $file | cut -d "." -f 1; \
+        a=0
+        b=0
+        [ "${platform#PLATFORM_QPU=}" != "remote_rest" ] && a=1
+        [ "${platform#PLATFORM_QPU=}" != "orca" ] && b=1
+        if [ "$(( a ^ b ))" -eq 0 ]  \
+        && ($gpu_available || [ -z "$(cat $file | grep "GPU_REQUIREMENTS")" ]); then \
+		basename $file | cut -d "." -f 1; \
         fi; \
     done`
 
