@@ -133,7 +133,7 @@ do
     let "samples+=1"
     for t in $requested_backends
     do
-        if [[ "$ex" == *"iqm"* ]] || [[ "$ex" == *"ionq"* ]] || [[ "$ex" == *"quantinuum"* ]] || [[ "$ex" == *"photonics"* ]];
+        if [[ "$ex" == *"iqm"* ]] || [[ "$ex" == *"ionq"* ]] || [[ "$ex" == *"quantinuum"* ]] || [[ "$ex" == *"orca"* ]] || [[ "$ex" == *"photonics"* ]];
         then
             let "skipped+=1"
             echo "Skipping $t target.";
