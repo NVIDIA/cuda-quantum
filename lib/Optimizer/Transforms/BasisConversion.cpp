@@ -59,8 +59,9 @@ struct BasisTarget : public ConversionTarget {
       }
     }
 
-    addLegalDialect<func::FuncDialect, arith::ArithDialect,
-                    cf::ControlFlowDialect, cudaq::cc::CCDialect>();
+    addLegalDialect<arith::ArithDialect, cf::ControlFlowDialect,
+                    cudaq::cc::CCDialect, func::FuncDialect,
+                    math::MathDialect>();
     addDynamicallyLegalDialect<quake::QuakeDialect>([&](Operation *op) {
       if (auto optor = dyn_cast<quake::OperatorInterface>(op)) {
         auto name = optor->getName().stripDialect();
