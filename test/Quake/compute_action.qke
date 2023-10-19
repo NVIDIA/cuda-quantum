@@ -14,7 +14,7 @@
 //     quake.compute_action to a series of quake.apply calls.
 //   - lower-to-cfg and canonicalize then simplify the new lambdas so that we
 //     can produce the adjoint of the compute lambda.
-//   - quake-apply-rewrite generates the adjoint compute function.
+//   - apply-op-specialization generates the adjoint compute function.
 
 module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__t = "_Z1tv"}} {
   func.func @__nvqpp__mlirgen__t() attributes {"cudaq-entrypoint"} {

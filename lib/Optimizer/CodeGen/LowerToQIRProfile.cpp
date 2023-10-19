@@ -257,7 +257,7 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
   }
 
   const FunctionAnalysisInfo &infoMap;
-  llvm::StringRef convertTo;
+  std::string convertTo;
 };
 
 struct AddCallAttribute : public OpRewritePattern<LLVM::CallOp> {
@@ -296,7 +296,7 @@ struct QIRToQIRProfileFuncPass
 
   explicit QIRToQIRProfileFuncPass(llvm::StringRef convertTo_)
       : QIRToQIRProfileFuncBase() {
-    convertTo.setValue(convertTo_);
+    convertTo.setValue(convertTo_.str());
   }
 
   void runOnOperation() override {
@@ -399,7 +399,7 @@ struct QIRToQIRProfileQIRPass
   /// @brief Construct pass
   /// @param convertTo_ expected "qir-base" or "qir-adaptive"
   QIRToQIRProfileQIRPass(llvm::StringRef convertTo_) : QIRToQIRProfileBase() {
-    convertTo.setValue(convertTo_);
+    convertTo.setValue(convertTo_.str());
   }
 
   void runOnOperation() override {
@@ -517,7 +517,7 @@ struct VerifyQIRProfilePass
     : public cudaq::opt::VerifyQIRProfileBase<VerifyQIRProfilePass> {
   explicit VerifyQIRProfilePass(llvm::StringRef convertTo_)
       : VerifyQIRProfileBase() {
-    convertTo.setValue(convertTo_);
+    convertTo.setValue(convertTo_.str());
   }
 
   void runOnOperation() override {
