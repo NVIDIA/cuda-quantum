@@ -4,8 +4,8 @@
 // ./a.out
 // ```
 
-#include "cudaq.h"
 #include "cudaq/photonics.h"
+#include "cudaq.h"
 
 struct photonicsKernel {
   void operator()() __qpu__ {
