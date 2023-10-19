@@ -1,11 +1,11 @@
 // Compile and run with:
 // ```
-// nvq++ test_photonics.cpp --target photonics
+// nvq++ --target photonics photonics.cpp
 // ./a.out
 // ```
 
-#include "cudaq.h"
 #include "cudaq/photonics.h"
+#include "cudaq.h"
 
 struct photonicsKernel {
   void operator()() __qpu__ {
