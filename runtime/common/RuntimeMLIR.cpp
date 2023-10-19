@@ -570,12 +570,14 @@ std::unique_ptr<MLIRContext> initializeMLIR() {
   return context;
 }
 
-ExecutionEngine *createQIRJITEngine(ModuleOp &moduleOp) {
+ExecutionEngine *createQIRJITEngine(ModuleOp &moduleOp,
+                                    llvm::StringRef convertTo) {
   ExecutionEngineOptions opts;
   opts.transformer = [](llvm::Module *m) { return llvm::ErrorSuccess(); };
   opts.jitCodeGenOptLevel = llvm::CodeGenOpt::None;
   opts.llvmModuleBuilder =
-      [&](Operation *module,
+      [convertTo = convertTo.str()](
+          Operation *module,
           llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
     llvmContext.setOpaquePointers(false);
 
@@ -583,7 +585,10 @@ ExecutionEngine *createQIRJITEngine(ModuleOp &moduleOp) {
     PassManager pm(context);
     std::string errMsg;
     llvm::raw_string_ostream errOs(errMsg);
-    cudaq::opt::addPipelineToQIR</*QIRProfile=*/false>(pm);
+    // Even though we're not lowering all the way to a real QIR profile for this
+    // emulated path, we need to pass in the `convertTo` in order to mimic what
+    // the non-emulated path would do.
+    cudaq::opt::addPipelineToQIR</*QIRProfile=*/false>(pm, convertTo);
     if (failed(pm.run(module)))
       throw std::runtime_error(
           "[createQIRJITEngine] Lowering to QIR for remote emulation failed.");

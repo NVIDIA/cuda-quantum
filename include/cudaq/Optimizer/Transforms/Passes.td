@@ -75,6 +75,17 @@ def ConvertToDirectCalls :
   }];
 }
 
+def DelayMeasurements : Pass<"delay-measurements", "mlir::func::FuncOp"> {
+  let summary =
+    "Move measurements as late as possible";
+
+  let description = [{
+    Move measurements as late as possible. This is useful for a Base Profile QIR program.
+  }];
+
+  let constructor = "cudaq::opt::createDelayMeasurementsPass()";
+}
+
 def ExpandMeasurements : Pass<"expand-measurements"> {
   let summary = "Expand multi-ref measurements to series on single refs.";
   let description = [{
