@@ -24,17 +24,17 @@ namespace cudaq::opt {
 /// qubits later in the program.
 struct DelayMeasurementsPass
     : public cudaq::opt::DelayMeasurementsBase<DelayMeasurementsPass> {
-  // explicit DelayMeasurementsPass() = default;
+  using DelayMeasurementsBase::DelayMeasurementsBase;
 
   void runOnOperation() override {
 
     auto func = getOperation();
     auto &blocks = func.getBlocks();
 
-    if (blocks.size() == 0)
+    if (blocks.empty())
       return;
 
-    if (blocks.size() > 1) {
+    if (!func.getFunctionBody().hasOneBlock()) {
       func.emitError("DelayMeasurementsPass cannot handle multiple blocks. Do "
                      "you have if statements in a Base Profile QIR program?");
       signalPassFailure();
@@ -44,25 +44,25 @@ struct DelayMeasurementsPass
     moveMeasurementsToEnd(*blocks.begin());
   }
 
-  /// @brief Add `op` and all of its users into `opsToMoveToEnd`
-  void
-  addOpAndUsersToList(Operation &op,
-                      llvm::SmallVector<mlir::Operation *> &opsToMoveToEnd) {
-    opsToMoveToEnd.push_back(&op);
-    for (auto user : op.getUsers())
-      addOpAndUsersToList(*user, opsToMoveToEnd);
+  /// Add `op` and all of its users into `opsToMoveToEnd`. `op` may not be
+  /// nullptr.
+  void addOpAndUsersToList(Operation *op,
+                           SmallVectorImpl<Operation *> &opsToMoveToEnd) {
+    opsToMoveToEnd.push_back(op);
+    for (auto user : op->getUsers())
+      addOpAndUsersToList(user, opsToMoveToEnd);
   }
 
-  /// @brief The Base Profile requires that irreversible operations (i.e.
+  /// The Base Profile requires that irreversible operations (i.e.
   /// measurements) come after reversible operations. This function enforces
   /// that.
   /// @param mainBlock block to process
-  void moveMeasurementsToEnd(mlir::Block &mainBlock) {
-    llvm::SmallVector<mlir::Operation *> opsToMoveToEnd;
+  void moveMeasurementsToEnd(Block &mainBlock) {
+    SmallVector<Operation *> opsToMoveToEnd;
 
     // Keep track of which qubits have been measured as we're walking through
     // the block
-    llvm::DenseSet<mlir::Value> measuredQubits;
+    DenseSet<Value> measuredQubits;
 
     // Step 1: Identify operations to move. Add to opsToMoveToEnd.
     for (auto &op : mainBlock) {
@@ -72,9 +72,9 @@ struct DelayMeasurementsPass
           measuredQubits.insert(operand);
       }
 
-      if (op.hasTrait<QuantumMeasure>() || isa<mlir::func::ReturnOp>(op) ||
+      if (op.hasTrait<QuantumMeasure>() || isa<func::ReturnOp>(op) ||
           isa<quake::DeallocOp>(op)) {
-        addOpAndUsersToList(op, opsToMoveToEnd);
+        addOpAndUsersToList(&op, opsToMoveToEnd);
         continue;
       }
 
@@ -82,14 +82,14 @@ struct DelayMeasurementsPass
       // measured. If so, add this operation to opsToMoveToEnd, too.
       for (auto operand : op.getOperands()) {
         if (measuredQubits.find(operand) != measuredQubits.end()) {
-          addOpAndUsersToList(op, opsToMoveToEnd);
+          addOpAndUsersToList(&op, opsToMoveToEnd);
           break;
         }
       }
     }
 
     // Step 2: Sequentially move identified operations to the end of the block
-    for (mlir::Operation *opToMove : opsToMoveToEnd)
+    for (Operation *opToMove : opsToMoveToEnd)
       mainBlock.getOperations().splice(
           mainBlock.end(), mainBlock.getOperations(), opToMove->getIterator());
   }
