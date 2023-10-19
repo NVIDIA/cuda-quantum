@@ -7,12 +7,10 @@
 # ============================================================================ #
 
 # This file sets the basic flags for the CUDA Quantum compiler
-set (CUDAQ_COMPILER_EXTRA_FLAGS "")
 if (CUDAQ_VERBOSE)
   set (CUDAQ_COMPILER_EXTRA_FLAGS "${CUDAQ_COMPILER_EXTRA_FLAGS} -v")
 endif()
 
-set (CUDAQ_LINKER_EXTRA_FLAGS "")
 if (CUDAQ_VERBOSE)
   set (CUDAQ_LINKER_EXTRA_FLAGS "${CUDAQ_LINKER_EXTRA_FLAGS} -v")
 endif()
