@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(quake-mapping{device=path}))' %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(mapping{device=path}))' %s
 
 module {
   func.func @__nvqpp__mlirgen__function_foo._Z3foov() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
