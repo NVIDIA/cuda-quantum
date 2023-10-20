@@ -470,7 +470,7 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
         if (isa<quake::SinkOp>(op))
           continue;
 
-        // Get the wire operands and check if the operatos uses at most two
+        // Get the wire operands and check if the operators uses at most two
         // qubits. N.B: Measurements do not have this restriction.
         auto wireOperands = quake::getWireOperands(&op);
         if (!op.hasTrait<QuantumMeasure>() && wireOperands.size() > 2) {
@@ -482,8 +482,12 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
 
         // Map the result wires to the appropriate virtual qubits.
         for (auto &&[wire, newWire] :
-             llvm::zip_equal(wireOperands, quake::getWireResults(&op)))
-          wireToVirtualQ[newWire] = wireToVirtualQ[wire];
+             llvm::zip_equal(wireOperands, quake::getWireResults(&op))) {
+          // Don't use wireToVirtualQ[a] = wireToVirtualQ[b]. It will work
+          // *most* of the time but cause memory corruption other times because
+          // DenseMap references can be invalidated upon insertion of new pairs.
+          wireToVirtualQ.insert({newWire, wireToVirtualQ[wire]});
+        }
       }
     }
 
