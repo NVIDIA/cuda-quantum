@@ -209,7 +209,7 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
   ];
 }
 
-def UpdateRegisterNames : Pass<"update-register-names"> {
+def UpdateRegisterNames : Pass<"update-register-names", "mlir::ModuleOp"> {
   let summary = "Update classical register names";
   let description = [{
     After loop unrolling, there may be duplicate registerName attributes. Run
