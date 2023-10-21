@@ -13,17 +13,17 @@
 // Test the lowering of if and if-else statements.
 
 struct kernel {
-   __qpu__ int operator() (bool flag) {
-      cudaq::qreg reg(2);
-      if (flag) {
-	 h(reg[0], reg[1]);
-      }
-      return 0;
-   }
+  __qpu__ int operator()(bool flag) {
+    cudaq::qreg reg(2);
+    if (flag) {
+      h(reg[0], reg[1]);
+    }
+    return 0;
+  }
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel(
-// CHECK-SAME:       %[[VAL_0:.*]]: i1{{.*}}) -> i32
+// CHECK-SAME:      %[[VAL_0:.*]]: i1{{.*}}) -> i32
 // CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_2:.*]] = cc.alloca i1
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_2]] : !cc.ptr<i1>
@@ -37,19 +37,19 @@ struct kernel {
 // CHECK:           return %[[VAL_1]] : i32
 
 struct kernel_else {
-   __qpu__ int operator() (bool flag) {
-      cudaq::qreg reg(2);
-      if (flag) {
-	 h(reg[0], reg[1]);
-      } else {
-	 x(reg[1], reg[0]);
-      }
-      return 0;
-   }
+  __qpu__ int operator()(bool flag) {
+    cudaq::qreg reg(2);
+    if (flag) {
+      h(reg[0], reg[1]);
+    } else {
+      x(reg[1], reg[0]);
+    }
+    return 0;
+  }
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_else(
-// CHECK-SAME:       %[[VAL_0:.*]]: i1{{.*}}) -> i32
+// CHECK-SAME:      %[[VAL_0:.*]]: i1{{.*}}) -> i32
 // CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_2:.*]] = cc.alloca i1
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_2]] : !cc.ptr<i1>
@@ -65,3 +65,63 @@ struct kernel_else {
 // CHECK:             quake.x {{\[}}%[[VAL_7]]] %[[VAL_8]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           }
 // CHECK:           return %[[VAL_1]] : i32
+
+struct kernel_short_circuit_and {
+  __qpu__ int operator()() {
+    cudaq::qreg reg(3);
+    if (mz(reg[0]) && mz(reg[1]))
+      x(reg[2]);
+    return 0;
+  }
+};
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_short_circuit_and() -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK:           %[[VAL_0:.*]] = arith.constant false
+// CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
+// CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<3>
+// CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_2]][0] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_3]] : (!quake.ref) -> i1
+// CHECK:           %[[VAL_5:.*]] = arith.cmpi eq, %[[VAL_4]], %[[VAL_0]] : i1
+// CHECK:           %[[VAL_6:.*]] = cc.if(%[[VAL_5]]) -> i1 {
+// CHECK:             cc.continue %[[VAL_0]] : i1
+// CHECK:           } else {
+// CHECK:             %[[VAL_7:.*]] = quake.extract_ref %[[VAL_2]][1] : (!quake.veq<3>) -> !quake.ref
+// CHECK:             %[[VAL_8:.*]] = quake.mz %[[VAL_7]] : (!quake.ref) -> i1
+// CHECK:             cc.continue %[[VAL_8]] : i1
+// CHECK:           }
+// CHECK:           cc.if(%[[VAL_6]]) {
+// CHECK:             %[[VAL_9:.*]] = quake.extract_ref %[[VAL_2]][2] : (!quake.veq<3>) -> !quake.ref
+// CHECK:             quake.x %[[VAL_9]] : (!quake.ref) -> ()
+// CHECK:           }
+// CHECK:           return %[[VAL_1]] : i32
+// CHECK:         }
+
+struct kernel_short_circuit_or {
+  __qpu__ int operator()() {
+    cudaq::qreg reg(3);
+    if (mz(reg[0]) || mz(reg[1]))
+      x(reg[2]);
+    return 0;
+  }
+};
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_short_circuit_or() -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK:           %[[VAL_0:.*]] = arith.constant false
+// CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
+// CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<3>
+// CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_2]][0] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_3]] : (!quake.ref) -> i1
+// CHECK:           %[[VAL_5:.*]] = arith.cmpi ne, %[[VAL_4]], %[[VAL_0]] : i1
+// CHECK:           %[[VAL_6:.*]] = cc.if(%[[VAL_5]]) -> i1 {
+// CHECK:             cc.continue %[[VAL_5]] : i1
+// CHECK:           } else {
+// CHECK:             %[[VAL_7:.*]] = quake.extract_ref %[[VAL_2]][1] : (!quake.veq<3>) -> !quake.ref
+// CHECK:             %[[VAL_8:.*]] = quake.mz %[[VAL_7]] : (!quake.ref) -> i1
+// CHECK:             cc.continue %[[VAL_8]] : i1
+// CHECK:           }
+// CHECK:           cc.if(%[[VAL_6]]) {
+// CHECK:             %[[VAL_9:.*]] = quake.extract_ref %[[VAL_2]][2] : (!quake.veq<3>) -> !quake.ref
+// CHECK:             quake.x %[[VAL_9]] : (!quake.ref) -> ()
+// CHECK:           }
+// CHECK:           return %[[VAL_1]] : i32
+// CHECK:         }
