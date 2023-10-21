@@ -1719,9 +1719,11 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     TODO_loc(loc, "unknown function, " + funcName + ", in cudaq namespace");
   }
 
-  if (func->isVariadic())
-    TODO_loc(loc, "cannot call variadic function (" + funcName +
-                      ") from quantum kernel");
+  if (func->isVariadic()) {
+    reportClangError(x, mangler,
+                     "cannot call variadic function from quantum kernel");
+    return false;
+  }
 
   // If we get here, and the CallExpr takes qubits or qreg and it must be
   // another kernel call.
