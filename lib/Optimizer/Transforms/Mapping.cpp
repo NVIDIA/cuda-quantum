@@ -396,6 +396,7 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
 
   void runOnOperation() override {
 
+    // Uncomment these lines to forcibly enable the debug for this pass
     // const char *debugTypes[] = {DEBUG_TYPE, nullptr};
     // llvm::DebugFlag = true;
     // llvm::setCurrentDebugTypes(debugTypes, 1);
@@ -417,14 +418,17 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     StringRef deviceDef = device;
     StringRef name = deviceDef.take_front(deviceDef.find_first_of('('));
     std::size_t deviceDim[2] = {0, 0};
+
+    // Trim the dimensions off of `deviceDef` if dimensions were provided in the
+    // string
     if (name.size() < deviceDef.size())
       deviceDef = deviceDef.drop_front(name.size());
 
     if (deviceDef.consume_front("(")) {
       deviceDef = deviceDef.ltrim();
-      deviceDef.consumeInteger(10, deviceDim[0]);
+      deviceDef.consumeInteger(/*Radix=*/10, deviceDim[0]);
       if (deviceDef.trim().consume_front(","))
-        deviceDef.consumeInteger(10, deviceDim[1]);
+        deviceDef.consumeInteger(/*Radix=*/10, deviceDim[1]);
       if (!deviceDef.trim().consume_front(")")) {
         func.emitError("Missing closing ')' in device option");
         signalPassFailure();
@@ -505,11 +509,14 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
       deviceDim[1] = deviceDim[0];
     }
 
+    // These are captured in the user help (device options in Passes.td), so if
+    // you update this, be sure to update that as well.
     Device d = llvm::StringSwitch<Device>(name)
                    .Case("path", Device::path(deviceDim[0]))
                    .Case("ring", Device::ring(deviceDim[0]))
                    .Case("star", Device::star(deviceDim[0]))
-                   .Case("grid", Device::grid(deviceDim[0], deviceDim[1]))
+                   .Case("grid", Device::grid(/*width=*/deviceDim[0],
+                                              /*height=*/deviceDim[1]))
                    .Default(Device());
 
     if (d.getNumQubits() == 0) {
