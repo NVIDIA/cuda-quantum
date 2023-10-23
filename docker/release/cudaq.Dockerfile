@@ -114,7 +114,8 @@ RUN adduser --disabled-password --gecos '' cudaq && adduser cudaq sudo \
 
 ADD ./docs/sphinx/examples/ /home/cudaq/examples/
 ADD ./docker/release/README.md /home/cudaq/README.md
-RUN chown -R cudaq /home/cudaq && chgrp -R cudaq /home/cudaq
+RUN mv /home/cudaq/examples/python/tutorials /home/cudaq/tutorial \
+    && chown -R cudaq /home/cudaq && chgrp -R cudaq /home/cudaq
 
 USER cudaq
 WORKDIR /home/cudaq

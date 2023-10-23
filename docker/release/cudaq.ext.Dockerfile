@@ -19,6 +19,11 @@ RUN os=$([ "$(uname -m)" == "aarch64" ] && echo cli-alpine-arm64 || echo cli-alp
 # Copy over additional CUDA Quantum assets.
 ARG assets=./assets
 COPY "$assets" "$CUDA_QUANTUM_PATH/assets/"
+RUN if [ -d "$CUDA_QUANTUM_PATH/assets/documentation" ]; then \
+        mkdir -p /home/cudaq/docs && \
+        mv "$CUDA_QUANTUM_PATH/assets/documentation"/* /home/cudaq/docs && \
+        rmdir "$CUDA_QUANTUM_PATH/assets/documentation"; \
+    fi
 ADD ./scripts/migrate_assets.sh "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
 RUN for folder in `find "$CUDA_QUANTUM_PATH/assets"/*$(uname -m)/* -maxdepth 0 -type d`; \
     do bash "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh" "$folder" && rm -rf "$folder"; done \
