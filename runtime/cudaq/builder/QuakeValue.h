@@ -168,5 +168,7 @@ QuakeValue operator-(IsNumericType auto &&d, IsQuakeValue auto &&q) {
 QuakeValue operator+(IsNumericType auto &&d, IsQuakeValue auto &&q) {
   return q + d;
 }
-
+QuakeValue operator/(IsNumericType auto &&d, IsQuakeValue auto &&q) {
+  return q.inverse() * d;
+}
 } // namespace cudaq

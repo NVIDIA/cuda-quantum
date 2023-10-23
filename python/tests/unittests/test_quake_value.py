@@ -119,7 +119,7 @@ def test_QuakeValueInForLoop():
         """A function that will be applied to `kernel` in a for loop."""
         kernel.x(qubits[index])
 
-    # `QuakeValue`` as start index
+    # `QuakeValue` as start index
     kernel.for_loop(start, 1, foo)
     kernel.for_loop(start, stop - 1, foo)
     print(kernel)
