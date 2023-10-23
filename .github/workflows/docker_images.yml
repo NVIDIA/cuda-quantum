@@ -555,7 +555,8 @@ jobs:
         run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
       - name: Sign image with NGC CLI
-        if: inputs.environment && steps.prereqs.outputs.ngc_registry
+        # Temporarily disable NGC signing
+        if: false && inputs.environment && steps.prereqs.outputs.ngc_registry
         env:
           TAGS: ${{ steps.cudaq_metadata.outputs.tags }}
           NGC_CLI_API_KEY: ${{ secrets.NGC_CREDENTIALS }}
