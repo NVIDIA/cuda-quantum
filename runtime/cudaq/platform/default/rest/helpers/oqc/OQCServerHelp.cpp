@@ -80,12 +80,8 @@ public:
 
 namespace {
 
-struct EnvVariable {
-  std::string key;
-  std::string def;
-  EnvVariable(std::string &&key, const std::string &&def = "")
-      : key(std::move(key)), def(std::move(def)) {}
-  std::string operator()() const {
+auto make_env_functor(std::string key, std::string def = "") {
+  return [&]() {
     const char *env_var = std::getenv(key.c_str());
     // If the variable is not set, throw an exception
     if (env_var == nullptr && def.empty()) {
@@ -93,11 +89,11 @@ struct EnvVariable {
     }
     // Return the variable as a string
     return env_var != nullptr ? std::string(env_var) : def;
-  }
-};
+  };
+}
 
 std::string get_from_config(BackendConfig config, const std::string &key,
-                            const EnvVariable &envVar) {
+                            const auto &envVar) {
   const auto iter = config.find(key);
   return iter != config.end() ? iter->second : envVar();
 }
@@ -110,14 +106,15 @@ void OQCServerHelper::initialize(BackendConfig config) {
   cudaq::info("Initializing OQC Backend.");
   // Set the necessary configuration variables for the OQC API
   config["url"] = get_from_config(
-      config, "url", EnvVariable("OQC_URL", "https://sandbox.qcaas.oqc.app"));
+      config, "url",
+      make_env_functor("OQC_URL", "https://sandbox.qcaas.oqc.app"));
   config["version"] = "v0.3";
   config["user_agent"] = "cudaq/0.3.0";
   config["target"] = "Lucy";
   config["qubits"] = 8;
-  config["email"] = get_from_config(config, "email", EnvVariable("OQC_EMAIL"));
-  config["password"] =
-      get_from_config(config, "password", EnvVariable("OQC_PASSWORD"));
+  config["email"] =
+      get_from_config(config, "email", make_env_functor("OQC_EMAIL"));
+  config["password"] = make_env_functor("OQC_PASSWORD")();
   // Construct the API job path
   config["job_path"] = "/tasks"; // config["url"] + "/tasks";
                                  //
