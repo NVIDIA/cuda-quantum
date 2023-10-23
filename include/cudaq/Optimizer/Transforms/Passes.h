@@ -19,9 +19,6 @@
 namespace cudaq::opt {
 
 /// Pass to generate the device code loading stubs.
-std::unique_ptr<mlir::Pass> createGenerateKernelExecution();
-
-/// Pass to generate the device code loading stubs.
 std::unique_ptr<mlir::Pass>
 createGenerateDeviceCodeLoader(bool genAsQuake = false);
 
@@ -36,13 +33,13 @@ void registerUnrollingPipeline();
 std::unique_ptr<mlir::Pass> createApplyOpSpecializationPass();
 std::unique_ptr<mlir::Pass>
 createApplyOpSpecializationPass(bool computeActionOpt);
+std::unique_ptr<mlir::Pass> createDelayMeasurementsPass();
 std::unique_ptr<mlir::Pass> createExpandMeasurementsPass();
 std::unique_ptr<mlir::Pass> createLambdaLiftingPass();
 std::unique_ptr<mlir::Pass> createLowerToCFGPass();
+std::unique_ptr<mlir::Pass> createObserveAnsatzPass(std::vector<bool> &);
 std::unique_ptr<mlir::Pass> createQuakeAddMetadata();
 std::unique_ptr<mlir::Pass> createQuakeAddDeallocs();
-std::unique_ptr<mlir::Pass> createQuakeObserveAnsatzPass();
-std::unique_ptr<mlir::Pass> createQuakeObserveAnsatzPass(std::vector<bool> &);
 std::unique_ptr<mlir::Pass> createQuakeSynthesizer();
 std::unique_ptr<mlir::Pass> createQuakeSynthesizer(std::string_view, void *);
 std::unique_ptr<mlir::Pass> createRaiseToAffinePass();

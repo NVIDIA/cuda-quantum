@@ -39,6 +39,7 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   common/MeasureCountsTester.cpp
   common/NoiseModelTester.cpp
   integration/tracer_tester.cpp
+  integration/gate_library_tester.cpp
 )
 
 # Make it so we can get function symbols
@@ -151,6 +152,21 @@ target_link_libraries(test_qudit
   cudaq-em-qudit
   gtest_main)
 gtest_discover_tests(test_qudit)
+
+# build the test photonics execution manager
+add_executable(test_photonics main.cpp photonics/PhotonicsTester.cpp)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+  target_link_options(test_photonics PRIVATE -Wl,--no-as-needed)
+endif()
+target_link_libraries(test_photonics
+  PRIVATE 
+  cudaq
+  cudaq-platform-default
+  cudaq-em-photonics
+  nvqir-qpp
+  gtest_main)
+gtest_discover_tests(test_photonics)
+
 
 add_subdirectory(backends)
 add_subdirectory(Optimizer)

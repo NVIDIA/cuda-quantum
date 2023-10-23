@@ -163,6 +163,39 @@ bool isArgStdVec(std::vector<QuakeValue> &args, std::size_t idx) {
   return args[idx].isStdVec();
 }
 
+void exp_pauli(ImplicitLocOpBuilder &builder, const QuakeValue &theta,
+               const std::vector<QuakeValue> &qubits,
+               const std::string &pauliWord) {
+  Value qubitsVal;
+  if (qubits.size() == 1)
+    qubitsVal = qubits.front().getValue();
+  else {
+    // we have a vector of quake value qubits, need to concat them
+    SmallVector<Value> values;
+    for (auto &v : qubits)
+      values.push_back(v.getValue());
+
+    qubitsVal = builder.create<quake::ConcatOp>(
+        quake::VeqType::get(builder.getContext(), qubits.size()), values);
+  }
+
+  auto thetaVal = theta.getValue();
+  if (!isa<quake::VeqType>(qubitsVal.getType()))
+    throw std::runtime_error(
+        "exp_pauli must take a QuakeValue of veq type as second argument.");
+  if (!thetaVal.getType().isIntOrFloat())
+    throw std::runtime_error("exp_pauli must take a QuakeValue of float/int "
+                             "type as first argument.");
+  cudaq::info("kernel_builder apply exp_pauli {}", pauliWord);
+
+  auto strLitTy = cc::PointerType::get(cc::ArrayType::get(
+      builder.getContext(), builder.getI8Type(), pauliWord.size() + 1));
+  Value stringLiteral = builder.create<cc::CreateStringLiteralOp>(
+      strLitTy, builder.getStringAttr(pauliWord));
+  SmallVector<Value> args{thetaVal, qubitsVal, stringLiteral};
+  builder.create<quake::ExpPauliOp>(TypeRange{}, args);
+}
+
 /// @brief Search the given `FuncOp` for all `CallOps` recursively.
 /// If found, see if the called function is in the current `ModuleOp`
 /// for this `kernel_builder`, if so do nothing. If it is not found,
@@ -447,6 +480,13 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &size) {
       quake::VeqType::getUnsized(context), value);
 
   return QuakeValue(builder, qubits);
+}
+
+QuakeValue constantVal(ImplicitLocOpBuilder &builder, double val) {
+  llvm::APFloat d(val);
+  Value constant =
+      builder.create<arith::ConstantFloatOp>(d, builder.getF64Type());
+  return QuakeValue(builder, constant);
 }
 
 template <typename QuakeOp>
@@ -742,6 +782,7 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
 
   PassManager pm(context);
   OpPassManager &optPM = pm.nest<func::FuncOp>();
+  optPM.addPass(cudaq::opt::createUnwindLoweringPass());
   cudaq::opt::addAggressiveEarlyInlining(pm);
   pm.addPass(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
@@ -753,7 +794,6 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   pm.addPass(createCanonicalizerPass());
   optPM.addPass(cudaq::opt::createQuakeAddDeallocs());
   optPM.addPass(cudaq::opt::createQuakeAddMetadata());
-  optPM.addPass(cudaq::opt::createUnwindLoweringPass());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
 

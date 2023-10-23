@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Builder/CUDAQBuilder.h"
+#include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
@@ -22,6 +22,11 @@
 #include "mlir/Transforms/Passes.h"
 #include <cxxabi.h>
 #include <regex>
+
+namespace cudaq::opt {
+#define GEN_PASS_DEF_GENERATEKERNELEXECUTION
+#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+} // namespace cudaq::opt
 
 #define DEBUG_TYPE "quake-kernel-exec"
 
@@ -39,9 +44,10 @@ static constexpr const char cudaqRegisterKernelName[] =
 static constexpr std::size_t NoResultOffset = ~0u >> 1;
 
 class GenerateKernelExecution
-    : public cudaq::opt::GenerateKernelExecutionBase<GenerateKernelExecution> {
+    : public cudaq::opt::impl::GenerateKernelExecutionBase<
+          GenerateKernelExecution> {
 public:
-  GenerateKernelExecution() = default;
+  using GenerateKernelExecutionBase::GenerateKernelExecutionBase;
 
   /// Build an LLVM struct type with all the arguments and then all the results.
   /// If the type is a std::vector, then add an i64 to the struct for the
@@ -159,7 +165,7 @@ public:
     auto vecFromBuff = builder.create<cudaq::cc::CastOp>(
         loc, cudaq::cc::PointerType::get(builder.getI8Type()), fromBuff);
     builder.create<func::CallOp>(
-        loc, std::nullopt, llvmMemCopyIntrinsic,
+        loc, std::nullopt, cudaq::llvmMemCopyIntrinsic,
         SmallVector<Value>{vecToBuffer, vecFromBuff, bytes, notVolatile});
     // Increment vecToBuffer by size bytes.
     return builder.create<cudaq::cc::ComputePtrOp>(
@@ -461,7 +467,8 @@ public:
     auto ptrTy = cudaq::cc::PointerType::get(builder.getContext());
     auto castData = builder.create<cudaq::cc::CastOp>(loc, ptrTy, data);
     auto castSret = builder.create<cudaq::cc::CastOp>(loc, ptrTy, sret);
-    builder.create<func::CallOp>(loc, std::nullopt, stdvecBoolCtorFromInitList,
+    builder.create<func::CallOp>(loc, std::nullopt,
+                                 cudaq::stdvecBoolCtorFromInitList,
                                  ArrayRef<Value>{castSret, castData, size});
   }
 
@@ -692,13 +699,15 @@ public:
       module.emitError("could not load malloc");
       return;
     }
-    if (failed(irBuilder.loadIntrinsic(module, stdvecBoolCtorFromInitList))) {
+    if (failed(irBuilder.loadIntrinsic(module,
+                                       cudaq::stdvecBoolCtorFromInitList))) {
       module.emitError(std::string("could not load ") +
-                       stdvecBoolCtorFromInitList);
+                       cudaq::stdvecBoolCtorFromInitList);
       return;
     }
-    if (failed(irBuilder.loadIntrinsic(module, llvmMemCopyIntrinsic))) {
-      module.emitError(std::string("could not load ") + llvmMemCopyIntrinsic);
+    if (failed(irBuilder.loadIntrinsic(module, cudaq::llvmMemCopyIntrinsic))) {
+      module.emitError(std::string("could not load ") +
+                       cudaq::llvmMemCopyIntrinsic);
       return;
     }
     if (failed(irBuilder.loadIntrinsic(module, "__nvqpp_zeroDynamicResult"))) {
@@ -844,7 +853,3 @@ public:
   }
 };
 } // namespace
-
-std::unique_ptr<Pass> cudaq::opt::createGenerateKernelExecution() {
-  return std::make_unique<GenerateKernelExecution>();
-}

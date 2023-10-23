@@ -59,8 +59,9 @@ struct BasisTarget : public ConversionTarget {
       }
     }
 
-    addLegalDialect<func::FuncDialect, arith::ArithDialect,
-                    cf::ControlFlowDialect, cudaq::cc::CCDialect>();
+    addLegalDialect<arith::ArithDialect, cf::ControlFlowDialect,
+                    cudaq::cc::CCDialect, func::FuncDialect,
+                    math::MathDialect>();
     addDynamicallyLegalDialect<quake::QuakeDialect>([&](Operation *op) {
       if (auto optor = dyn_cast<quake::OperatorInterface>(op)) {
         auto name = optor->getName().stripDialect();
@@ -73,6 +74,18 @@ struct BasisTarget : public ConversionTarget {
         }
         return false;
       }
+
+      // Handle quake.exp_pauli.
+      if (isa<quake::ExpPauliOp>(op)) {
+        // If the target defines it as a legal op, return true, else false.
+        if (std::find_if(legalOperatorSet.begin(), legalOperatorSet.end(),
+                         [](auto &&el) { return el.name == "exp_pauli"; }) !=
+            legalOperatorSet.end())
+          return true;
+
+        return false;
+      }
+
       return true;
     });
   }

@@ -1,0 +1,125 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --cc-loop-unroll="allow-early-exit=1 signal-failure-if-any-loop-cannot-be-completely-unrolled=1" %s | cudaq-opt | FileCheck %s
+
+func.func @loop_with_break(%arg0: i32) {
+  %c1_i32 = arith.constant 1 : i32
+  %c0_i32 = arith.constant 0 : i32
+  %c20_i32 = arith.constant 20 : i32
+  %0 = cc.undef i32
+  %1 = cc.undef i32
+  %2 = quake.alloca !quake.ref
+  cc.scope {
+    %5 = cc.loop while ((%arg1 = %c0_i32) -> (i32)) {
+      %6 = arith.cmpi slt, %arg1, %c20_i32 : i32
+      cc.condition %6(%arg1 : i32)
+    } do {
+    ^bb0(%arg1: i32):
+      quake.h %2 : (!quake.ref) -> ()
+      %bits = quake.mz %2 name "q0result" : (!quake.ref) -> i1
+      %6 = cc.undef i1
+      cf.cond_br %bits, ^bb1(%arg1 : i32), ^bb2(%arg1 : i32)
+    ^bb1(%7: i32):  // pred: ^bb0
+      cc.break %7 : i32
+    ^bb2(%9: i32):  // pred: ^bb0
+      cc.continue %9 : i32
+    } step {
+    ^bb0(%arg1: i32):
+      %6 = arith.addi %arg1, %c1_i32 : i32
+      cc.continue %6 : i32
+    }
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @loop_with_break(
+// CHECK-SAME:                               %[[VAL_0:.*]]: i32) {
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
+// CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           cf.cond_br %[[VAL_2]], ^bb20, ^bb1
+// CHECK:         ^bb1:
+// CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           cf.cond_br %[[VAL_3]], ^bb20, ^bb2
+// CHECK:         ^bb2:
+// CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           cf.cond_br %[[VAL_4]], ^bb20, ^bb3
+// CHECK:         ^bb3:
+// CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_5:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           cf.cond_br %[[VAL_5]], ^bb20, ^bb4
+// CHECK:         ^bb4:
+// CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_6:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           cf.cond_br %[[VAL_6]], ^bb20, ^bb5
+// CHECK:         ^bb5:
+// CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_7:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           cf.cond_br %[[VAL_7]], ^bb20, ^bb6
+// CHECK:         ^bb6:
+// CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_8:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           cf.cond_br %[[VAL_8]], ^bb20, ^bb7
+// CHECK:         ^bb7:
+// CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_9:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           cf.cond_br %[[VAL_9]], ^bb20, ^bb8
+// CHECK:         ^bb8:
+// CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_10:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           cf.cond_br %[[VAL_10]], ^bb20, ^bb9
+// CHECK:         ^bb9:
+// CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_11:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           cf.cond_br %[[VAL_11]], ^bb20, ^bb10
+// CHECK:         ^bb10:
+// CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_12:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           cf.cond_br %[[VAL_12]], ^bb20, ^bb11
+// CHECK:         ^bb11:
+// CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_13:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           cf.cond_br %[[VAL_13]], ^bb20, ^bb12
+// CHECK:         ^bb12:
+// CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_14:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           cf.cond_br %[[VAL_14]], ^bb20, ^bb13
+// CHECK:         ^bb13:
+// CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_15:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           cf.cond_br %[[VAL_15]], ^bb20, ^bb14
+// CHECK:         ^bb14:
+// CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_16:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           cf.cond_br %[[VAL_16]], ^bb20, ^bb15
+// CHECK:         ^bb15:
+// CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_17:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           cf.cond_br %[[VAL_17]], ^bb20, ^bb16
+// CHECK:         ^bb16:
+// CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_18:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           cf.cond_br %[[VAL_18]], ^bb20, ^bb17
+// CHECK:         ^bb17:
+// CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_19:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           cf.cond_br %[[VAL_19]], ^bb20, ^bb18
+// CHECK:         ^bb18:
+// CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_20:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           cf.cond_br %[[VAL_20]], ^bb20, ^bb19
+// CHECK:         ^bb19:
+// CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_21:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           cf.br ^bb20
+// CHECK:         ^bb20:
+// CHECK:           return
+// CHECK:         }

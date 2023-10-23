@@ -6,8 +6,8 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt -pass-pipeline='builtin.module(quake-decomposition{enable-patterns=ZToPhasedRx})' %s | FileCheck %s
-// RUN: cudaq-opt -pass-pipeline='builtin.module(quake-decomposition{enable-patterns=ZToPhasedRx})' %s | CircuitCheck %s --up-to-global-phase
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=ZToPhasedRx})' %s | FileCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=ZToPhasedRx})' %s | CircuitCheck %s --up-to-global-phase
 
 
 // The FileCheck part of this test only cares about the sequence of operations.

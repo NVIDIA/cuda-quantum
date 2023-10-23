@@ -118,16 +118,17 @@ OQCServerHelper::get_from_config(BackendConfig config, const std::string &key,
   return iter != backendConfig.end() ? iter->second : default_return;
 }
 
-// Retrieve an environment variable
+/// @brief Retrieve an environment variable. Return empty string if variable
+/// does not exist.
 std::string OQCServerHelper::getEnvVar(const std::string &key) const {
   // Get the environment variable
   const char *env_var = std::getenv(key.c_str());
-  // If the variable is not set, throw an exception
-  if (env_var == nullptr) {
-    throw std::runtime_error(key + " environment variable is not set.");
-  }
-  // Return the variable as a string
-  return std::string(env_var);
+  // Return the variable as a string. Initializing with a null pointer is
+  // undefined, so use empty constructor if necessary.
+  if (env_var)
+    return std::string(env_var);
+  else
+    return std::string();
 }
 
 // Check if a key exists in the backend configuration
@@ -250,7 +251,7 @@ bool OQCServerHelper::jobIsDone(ServerMessage &getJobResponse) {
     throw std::runtime_error("ServerMessage doesn't contain 'results' key.");
 
   // Return whether the job is completed
-  return getJobResponse.at("results") != NULL;
+  return !getJobResponse.at("results").is_null();
 }
 
 // Process the results from a job
@@ -326,6 +327,10 @@ RestHeaders OQCServerHelper::getHeaders() {
   // Check if the necessary keys exist in the configuration
   if (!keyExists("email") || !keyExists("password"))
     throw std::runtime_error("Key doesn't exist in backendConfig.");
+  if (backendConfig.at("email").empty())
+    throw std::runtime_error("OQC_EMAIL environment variable is not set.");
+  if (backendConfig.at("password").empty())
+    throw std::runtime_error("OQC_PASSWORD environment variable is not set.");
 
   // Construct the headers
   RestHeaders headers;

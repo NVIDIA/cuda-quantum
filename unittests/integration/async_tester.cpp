@@ -70,4 +70,35 @@ CUDAQ_TEST(AsyncTester, checkSampleAsync) {
   cc2.get().dump();
   cc3.get().dump();
 }
+
+CUDAQ_TEST(AsyncTester, checkGetStateAsync) {
+  struct ghz {
+    auto operator()(int NQubits) __qpu__ {
+      // int N = 5;
+      cudaq::qvector q(NQubits);
+      h(q[0]);
+      for (int i = 0; i < NQubits - 1; i++) {
+        x<cudaq::ctrl>(q[i], q[i + 1]);
+      }
+    }
+  };
+
+  auto cc0 = cudaq::get_state_async(0, ghz{}, 5);
+  auto cc1 = cudaq::get_state_async(0, ghz{}, 5);
+  auto cc2 = cudaq::get_state_async(0, ghz{}, 5);
+  // run the the zeroth one
+  auto cc3 = cudaq::get_state_async(ghz{}, 5);
+  auto cc0State = cc0.get();
+  auto cc1State = cc1.get();
+  auto cc2State = cc2.get();
+  auto cc3State = cc3.get();
+  std::vector<std::complex<double>> expectedVec(1 << 5, 0.0);
+  expectedVec[0] = M_SQRT1_2;
+  expectedVec[expectedVec.size() - 1] = M_SQRT1_2;
+  cudaq::state expectedState({{expectedVec.size()}, expectedVec});
+  EXPECT_NEAR(cc0State.overlap(expectedState), 1.0, 1e-3);
+  EXPECT_NEAR(cc1State.overlap(expectedState), 1.0, 1e-3);
+  EXPECT_NEAR(cc2State.overlap(expectedState), 1.0, 1e-3);
+  EXPECT_NEAR(cc3State.overlap(expectedState), 1.0, 1e-3);
+}
 #endif

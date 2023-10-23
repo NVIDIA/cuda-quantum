@@ -80,7 +80,8 @@ protected:
   /// @brief The name of the QPU being targeted
   std::string qpuName;
 
-  /// @brief Name of codegen translation (e.g. "qir", "qasm2", "iqm")
+  /// @brief Name of codegen translation (e.g. "qir-adaptive", "qir-base",
+  /// "qasm2", "iqm")
   std::string codegenTranslation = "";
 
   /// @brief Additional passes to run after the codegen-specific passes
@@ -118,16 +119,20 @@ protected:
   /// of JIT engines for invoking the kernels.
   std::vector<ExecutionEngine *> jitEngines;
 
-  /// @brief Invoke the kernel in the JIT engine and then delete the JIT engine.
-  void invokeJITKernelAndRelease(ExecutionEngine *jit,
-                                 const std::string &kernelName) {
+  /// @brief Invoke the kernel in the JIT engine
+  void invokeJITKernel(ExecutionEngine *jit, const std::string &kernelName) {
     auto funcPtr = jit->lookup(std::string("__nvqpp__mlirgen__") + kernelName);
     if (!funcPtr) {
       throw std::runtime_error(
           "cudaq::builder failed to get kernelReg function.");
     }
     reinterpret_cast<void (*)()>(*funcPtr)();
-    // We're done, delete the pointer.
+  }
+
+  /// @brief Invoke the kernel in the JIT engine and then delete the JIT engine.
+  void invokeJITKernelAndRelease(ExecutionEngine *jit,
+                                 const std::string &kernelName) {
+    invokeJITKernel(jit, kernelName);
     delete jit;
   }
 
@@ -164,7 +169,9 @@ public:
   bool isSimulator() override { return emulate; }
 
   /// @brief Return true if the current backend supports conditional feedback
-  bool supportsConditionalFeedback() override { return false; }
+  bool supportsConditionalFeedback() override {
+    return codegenTranslation == "qir-adaptive";
+  }
 
   /// Provide the number of shots
   void setShots(int _nShots) override {
@@ -277,6 +284,10 @@ public:
         postCodeGenPasses = match[1].str();
       }
     }
+    std::string allowEarlyExitSetting =
+        (codegenTranslation == "qir-adaptive") ? "1" : "0";
+    passPipelineConfig = std::string("cc-loop-unroll{allow-early-exit=") +
+                         allowEarlyExitSetting + "}," + passPipelineConfig;
 
     // Set the qpu name
     qpuName = mutableBackend;
@@ -295,7 +306,7 @@ public:
     // Form an output_names mapping from codeStr
     nlohmann::json output_names;
     std::vector<char> bitcode;
-    if (codegenTranslation == "qir") {
+    if (codegenTranslation.starts_with("qir")) {
       // decodeBase64 will throw a runtime exception if it fails
       if (llvm::decodeBase64(codeStr, bitcode)) {
         cudaq::info("Could not decode codeStr {}", codeStr);
@@ -380,7 +391,7 @@ public:
     std::vector<std::pair<std::string, ModuleOp>> modules;
     // Apply observations if necessary
     if (executionContext && executionContext->name == "observe") {
-
+      runPassPipeline("canonicalize,cse", moduleOp);
       cudaq::spin_op &spin = *executionContext->spin.value();
       for (const auto &term : spin) {
         if (term.is_identity())
@@ -402,7 +413,7 @@ public:
         PassManager pm(&context);
         OpPassManager &optPM = pm.nest<func::FuncOp>();
         optPM.addPass(
-            cudaq::opt::createQuakeObserveAnsatzPass(binarySymplecticForm[0]));
+            cudaq::opt::createObserveAnsatzPass(binarySymplecticForm[0]));
         if (failed(pm.run(tmpModuleOp)))
           throw std::runtime_error("Could not apply measurements to ansatz.");
         runPassPipeline(passPipelineConfig, tmpModuleOp);
@@ -418,7 +429,8 @@ public:
       // and use that for execution
       for (auto &[name, module] : modules) {
         auto clonedModule = module.clone();
-        jitEngines.emplace_back(cudaq::createQIRJITEngine(clonedModule));
+        jitEngines.emplace_back(
+            cudaq::createQIRJITEngine(clonedModule, codegenTranslation));
       }
     }
 
@@ -489,6 +501,38 @@ public:
             // If seed is 0, then it has not been set.
             if (seed > 0)
               cudaq::set_random_seed(seed);
+
+            bool hasConditionals =
+                cudaq::kernelHasConditionalFeedback(kernelName);
+            if (hasConditionals && codes.size() > 1)
+              throw std::runtime_error("error: spin_ops not yet supported with "
+                                       "kernels containing conditionals");
+            if (hasConditionals) {
+              executor->setShots(1); // run one shot at a time
+
+              // If this is adaptive profile and the kernel has conditionals,
+              // then you have to run the code localShots times instead of
+              // running the kernel once and sampling the state localShots
+              // times.
+              if (hasConditionals) {
+                // Populate `counts` one shot at a time
+                cudaq::sample_result counts;
+                for (std::size_t shot = 0; shot < localShots; shot++) {
+                  cudaq::ExecutionContext context("sample", 1);
+                  context.hasConditionalsOnMeasureResults = true;
+                  cudaq::getExecutionManager()->setExecutionContext(&context);
+                  invokeJITKernel(localJIT[0], kernelName);
+                  cudaq::getExecutionManager()->resetExecutionContext();
+                  counts += context.result;
+                }
+                // Process `counts` and store into `results`
+                for (auto &regName : counts.register_names()) {
+                  results.emplace_back(counts.to_map(regName), regName);
+                  results.back().sequentialData =
+                      counts.sequential_data(regName);
+                }
+              }
+            }
 
             for (std::size_t i = 0; i < codes.size(); i++) {
               cudaq::ExecutionContext context("sample", localShots);

@@ -19,5 +19,5 @@ application codes.
   Generic Library Functions <cudaq/generic_functions>
   Creating Kernels at Runtime <cudaq/builder.rst>
   Variational Algorithms <cudaq/variational.rst>
-  Asynchronous Execution <cudaq/platform.rst>
+  Multi-processor Platforms <cudaq/platform.rst>
   Debugging and Verbose Logging <cudaq/verbose_out.rst>

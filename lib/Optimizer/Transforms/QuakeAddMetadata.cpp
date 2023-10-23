@@ -98,6 +98,8 @@ private:
         auto allocValue = storeOp.getOperand(1);
         if (auto cp = allocValue.getDefiningOp<cudaq::cc::ComputePtrOp>())
           allocValue = cp.getBase();
+        if (auto castOp = allocValue.getDefiningOp<cudaq::cc::CastOp>())
+          allocValue = castOp.getOperand();
 
         if (auto allocaOp = allocValue.getDefiningOp<cudaq::cc::AllocaOp>()) {
           // Get the alloca users
@@ -120,6 +122,35 @@ private:
               if (isa<cudaq::cc::IfOp, cf::CondBranchOp>(loadUser)) {
                 data.hasConditionalsOnMeasure = true;
                 return WalkResult::interrupt();
+              }
+            }
+
+            // Look for any future cast/compute_ptr/load, and if that load is
+            // used by a conditional statement
+            if (auto cast = dyn_cast<cudaq::cc::CastOp>(allocUser)) {
+              for (auto castUser : cast->getUsers()) {
+                if (auto cp = dyn_cast<cudaq::cc::ComputePtrOp>(castUser)) {
+                  for (auto cpUser : cp->getUsers()) {
+                    if (auto load = dyn_cast<cudaq::cc::LoadOp>(cpUser)) {
+                      auto loadUser = *load->getUsers().begin();
+
+                      // Loaded Val could be used directly or by an Arith
+                      // boolean operation
+                      while (loadUser->getDialect()->getNamespace() ==
+                             "arith") {
+                        auto res = loadUser->getResult(0);
+                        loadUser = *res.getUsers().begin();
+                      }
+
+                      // At this point we should be able to check if we are
+                      // being used by a conditional
+                      if (isa<cudaq::cc::IfOp, cf::CondBranchOp>(loadUser)) {
+                        data.hasConditionalsOnMeasure = true;
+                        return WalkResult::interrupt();
+                      }
+                    }
+                  }
+                }
               }
             }
           }

@@ -69,8 +69,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && python3 -m pip install --no-cache-dir numpy \
     && ln -s /bin/python3 /bin/python
 
-ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:/usr/include/c++/12/:/usr/include/$(uname -m)-linux-gnu/c++/12"
-
 # Copy over the CUDA Quantum installation, and the necessary compiler tools.
 
 ARG release_version=
@@ -90,9 +88,10 @@ RUN bash "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh" "$CUDA_QUANTUM_PATH/assets" 
     && rm "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
 
 ENV PATH "${PATH}:$CUDA_QUANTUM_PATH/bin"
-ENV PYTHONPATH "${PYTHONPATH}:$CUDA_QUANTUM_PATH"
 ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CUDA_QUANTUM_PATH/lib"
 ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:$CUDA_QUANTUM_PATH/include"
+# Better alternative to setting the PYTHONPATH, since the PYTHONPATH is generally not preserved when running as sudo.
+RUN echo "$CUDA_QUANTUM_PATH" > /usr/local/lib/python$(python --version | egrep -o "([0-9]{1,}\.)+[0-9]{1,}" | cut -d '.' -f -2)/dist-packages/cudaq.pth
 
 # Include additional readmes and samples that are distributed with the image.
 
@@ -104,6 +103,12 @@ Copyright (c) 2023 NVIDIA Corporation & Affiliates \n\
 All rights reserved.\n"
 RUN echo -e "$COPYRIGHT_NOTICE" > "$CUDA_QUANTUM_PATH/Copyright.txt"
 RUN echo 'cat "$CUDA_QUANTUM_PATH/Copyright.txt"' > /etc/profile.d/welcome.sh
+
+# Run apt-get update to ensure that apt-get knows about CUDA packages
+# if the base image has added the CUDA keyring.
+# If we don't do that, then apt-get will get confused if some CUDA
+# components are already installed but not all of them.
+RUN apt-get update
 
 # Create cudaq user
 
