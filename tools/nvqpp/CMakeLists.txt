@@ -17,7 +17,7 @@ if (APPLE)
 endif()
 
 configure_file("nvq++.in"
-               "${CUDAQ_BINARY_DIR}/bin/nvq++" @ONLY)
+               "${CUDAQ_BINARY_DIR}/bin/nvq++" FILE_PERMISSIONS 100755 @ONLY)
 
 install(PROGRAMS ${CUDAQ_BINARY_DIR}/bin/nvq++
         DESTINATION bin)
