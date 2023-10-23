@@ -23,6 +23,11 @@
 #include <cxxabi.h>
 #include <regex>
 
+namespace cudaq::opt {
+#define GEN_PASS_DEF_GENERATEKERNELEXECUTION
+#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+} // namespace cudaq::opt
+
 #define DEBUG_TYPE "quake-kernel-exec"
 
 using namespace mlir;
@@ -39,9 +44,10 @@ static constexpr const char cudaqRegisterKernelName[] =
 static constexpr std::size_t NoResultOffset = ~0u >> 1;
 
 class GenerateKernelExecution
-    : public cudaq::opt::GenerateKernelExecutionBase<GenerateKernelExecution> {
+    : public cudaq::opt::impl::GenerateKernelExecutionBase<
+          GenerateKernelExecution> {
 public:
-  GenerateKernelExecution() = default;
+  using GenerateKernelExecutionBase::GenerateKernelExecutionBase;
 
   /// Build an LLVM struct type with all the arguments and then all the results.
   /// If the type is a std::vector, then add an i64 to the struct for the
@@ -847,7 +853,3 @@ public:
   }
 };
 } // namespace
-
-std::unique_ptr<Pass> cudaq::opt::createGenerateKernelExecution() {
-  return std::make_unique<GenerateKernelExecution>();
-}
