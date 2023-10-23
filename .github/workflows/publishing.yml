@@ -124,7 +124,7 @@ jobs:
 
       - name: Trigger assets creation
         id: assets_creation
-        if: steps.artifacts.outputs.releases != '' && inputs.assets_from_run == ''
+        if: inputs.assets_from_run == ''
         run: |
           # The commit title of the staging commit needs to match
           # the docker image that is used to build additional components.
@@ -230,7 +230,7 @@ jobs:
           name: downstream_assets
           path: /tmp/assets
           retention-days: 1
-          if-no-files-found: error    
+          if-no-files-found: warn    
 
           
   cudaq_hpc:
