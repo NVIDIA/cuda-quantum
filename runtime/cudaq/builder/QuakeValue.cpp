@@ -422,4 +422,14 @@ QuakeValue QuakeValue::operator-(QuakeValue other) {
   Value subtracted = opBuilder.create<arith::SubFOp>(v.getType(), v, otherV);
   return QuakeValue(opBuilder, subtracted);
 }
+
+QuakeValue QuakeValue::inverse() const {
+  auto v = value->asMLIR();
+  if (!v.getType().isIntOrFloat())
+    throw std::runtime_error("Can only inverse double/float QuakeValues.");
+  Value constantOne = opBuilder.create<arith::ConstantFloatOp>(
+      llvm::APFloat(1.0), opBuilder.getF64Type());
+  Value inv = opBuilder.create<arith::DivFOp>(v.getType(), constantOne, v);
+  return QuakeValue(opBuilder, inv);
+}
 } // namespace cudaq
