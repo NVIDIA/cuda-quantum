@@ -48,7 +48,7 @@ available_backends=`\
     do
         libEM=$(cat $file | grep "LIBRARY_MODE_EXECUTION_MANAGER=")
         if grep -q "LIBRARY_MODE_EXECUTION_MANAGER=" $file ; then 
-        continue
+          continue
         fi 
         platform=$(cat $file | grep "PLATFORM_QPU=")
         qpu=${platform#PLATFORM_QPU=}
