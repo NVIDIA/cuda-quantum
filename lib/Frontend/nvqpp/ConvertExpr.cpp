@@ -745,6 +745,9 @@ bool QuakeBridgeVisitor::TraverseBinaryOperator(clang::BinaryOperator *x,
     bool result = true;
     auto ifOp = builder.create<cc::IfOp>(
         loc, TypeRange{cond.getType()}, cond,
+        // Value if `cond` is true
+        // For `BO_LAnd`, that means Value if lhs is     zero (i.e. false)
+        // For `BO_LOr`,  that means Value if lhs is non-zero (i.e. true)
         [=](OpBuilder &builder, Location loc, Region &region) {
           // Short-circuit taken: return the result of the lhs and do not
           // evaluate the rhs at all.
@@ -752,8 +755,20 @@ bool QuakeBridgeVisitor::TraverseBinaryOperator(clang::BinaryOperator *x,
           auto &bodyBlock = region.front();
           OpBuilder::InsertionGuard guad(builder);
           builder.setInsertionPointToStart(&bodyBlock);
-          builder.create<cc::ContinueOp>(loc, TypeRange{}, cond);
+          if (x->getOpcode() == clang::BinaryOperatorKind::BO_LAnd) {
+            // Return false out of this block in order to avoid evaluating rhs
+            auto constantFalse =
+                builder
+                    .create<arith::ConstantOp>(loc, builder.getBoolAttr(false))
+                    .getResult();
+            builder.create<cc::ContinueOp>(loc, TypeRange{}, constantFalse);
+          } else {
+            builder.create<cc::ContinueOp>(loc, TypeRange{}, cond);
+          }
         },
+        // Value if `cond` is false
+        // For `BO_LAnd`, that means Value if lhs is non-zero (i.e. true)
+        // For `BO_LOr`,  that means Value if lhs is     zero (i.e. false)
         [&result, this, rhs = x->getRHS()](OpBuilder &builder, Location loc,
                                            Region &region) {
           // Short-circuit not taken: evaluate the rhs and return that value.
