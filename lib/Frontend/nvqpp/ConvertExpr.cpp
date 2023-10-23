@@ -966,14 +966,37 @@ std::string QuakeBridgeVisitor::genLoweredName(clang::FunctionDecl *x,
   return result;
 }
 
-bool QuakeBridgeVisitor::VisitConditionalOperator(
-    clang::ConditionalOperator *x) {
-  auto args = lastValues(3);
+bool QuakeBridgeVisitor::TraverseConditionalOperator(
+    clang::ConditionalOperator *x, DataRecursionQueue *q) {
+  bool result = true;
   auto loc = toLocation(x->getSourceRange());
-  auto ty = args[1].getType();
-  auto select =
-      builder.create<arith::SelectOp>(loc, ty, args[0], args[1], args[2]);
-  return pushValue(select);
+  if (!TraverseStmt(x->getCond()))
+    return false;
+  auto condVal = popValue();
+
+  // Create shared lambda for the x->getTrueExpr() and x->getFalseExpr()
+  // expressions
+  auto thenElseLambda = [&](clang::Expr *thenOrElse) {
+    return [&, thenOrElse](OpBuilder &builder, Location loc, Region &region) {
+      region.push_back(new Block{});
+      auto &bodyBlock = region.front();
+      OpBuilder::InsertionGuard guad(builder);
+      builder.setInsertionPointToStart(&bodyBlock);
+      if (!TraverseStmt(thenOrElse)) {
+        result = false;
+        return;
+      }
+      builder.create<cc::ContinueOp>(loc, TypeRange{}, popValue());
+    };
+  };
+
+  auto ifOp = builder.create<cc::IfOp>(
+      loc, TypeRange{condVal.getType()}, condVal,
+      thenElseLambda(x->getTrueExpr()), thenElseLambda(x->getFalseExpr()));
+
+  if (!result)
+    return result;
+  return pushValue(ifOp.getResult(0));
 }
 
 bool QuakeBridgeVisitor::VisitMaterializeTemporaryExpr(
