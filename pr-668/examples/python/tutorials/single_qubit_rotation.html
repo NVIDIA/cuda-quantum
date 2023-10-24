@@ -152,6 +152,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../using/cpp.html#computing-expectation-values">Computing Expectation Values</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/cpp.html#multi-control-synthesis">Multi-control Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/cpp.html#simulations-with-cuquantum">Simulations with cuQuantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/cpp.html#noisy-simulation">Noisy Simulation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/cpp.html#using-quantum-hardware-providers">Using Quantum Hardware Providers</a></li>
 </ul>
 </li>
@@ -452,7 +453,7 @@
 <span class="k">def</span> <span class="nf">cost</span><span class="p">(</span><span class="n">parameters</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns the expectation value as our cost.&quot;&quot;&quot;</span>
     <span class="n">expectation_value</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span>
-                                      <span class="n">parameters</span><span class="p">)</span><span class="o">.</span><span class="n">expectation_z</span><span class="p">()</span>
+                                      <span class="n">parameters</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
     <span class="n">cost_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">expectation_value</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">expectation_value</span>
 </pre></div>

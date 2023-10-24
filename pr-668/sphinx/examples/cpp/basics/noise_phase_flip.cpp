@@ -1,7 +1,7 @@
 // Compile and run with:
 // ```
-// nvq++ noise_phase_flip.cpp --target density-matrix-cpu -o dyn.x --target
-// nvidia && ./dyn.x
+// nvq++ noise_phase_flip.cpp --target density-matrix-cpu -o dyn.x
+// && ./dyn.x
 // ```
 //
 // Note: You must set the target to a density matrix backend for the noise

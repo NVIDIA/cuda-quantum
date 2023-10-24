@@ -149,6 +149,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../cpp.html#computing-expectation-values">Computing Expectation Values</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../cpp.html#multi-control-synthesis">Multi-control Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../cpp.html#simulations-with-cuquantum">Simulations with cuQuantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../cpp.html#noisy-simulation">Noisy Simulation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../cpp.html#using-quantum-hardware-providers">Using Quantum Hardware Providers</a></li>
 </ul>
 </li>
@@ -548,7 +549,7 @@ expectation value computations of a multi-term Hamiltonian across multiple virtu
 <span class="n">exp_val</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span>
                         <span class="n">hamiltonian</span><span class="p">,</span>
                         <span class="mf">0.59</span><span class="p">,</span>
-                        <span class="n">execution</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">parallel</span><span class="o">.</span><span class="n">thread</span><span class="p">)</span><span class="o">.</span><span class="n">expectation_z</span><span class="p">()</span>
+                        <span class="n">execution</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">parallel</span><span class="o">.</span><span class="n">thread</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Expectation value: &quot;</span><span class="p">,</span> <span class="n">exp_val</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -612,7 +613,7 @@ should be used.</p>
     <span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mf">.21829</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="mf">6.125</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
 <span class="n">exp_val</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="mf">0.59</span><span class="p">,</span>
-                        <span class="n">execution</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">parallel</span><span class="o">.</span><span class="n">mpi</span><span class="p">)</span><span class="o">.</span><span class="n">expectation_z</span><span class="p">()</span>
+                        <span class="n">execution</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">parallel</span><span class="o">.</span><span class="n">mpi</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
 <span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">rank</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Expectation value: &quot;</span><span class="p">,</span> <span class="n">exp_val</span><span class="p">)</span>
 
