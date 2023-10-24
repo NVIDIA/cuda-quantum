@@ -11,9 +11,9 @@ from cudaq import spin
 import numpy as np
 
 skipIfUnsupported = pytest.mark.skipif(
-    not (cudaq.num_available_gpus() > 0 and cudaq.mpi.is_initialized() and cudaq.has_target('nvidia-mqpu')),
-    reason="nvidia-mqpu backend not available or mpi not found"
-)
+    not (cudaq.num_available_gpus() > 0 and cudaq.mpi.is_initialized() and
+         cudaq.has_target('nvidia-mqpu')),
+    reason="nvidia-mqpu backend not available or mpi not found")
 
 
 @skipIfUnsupported
@@ -41,10 +41,10 @@ def testMPI():
                                     hamiltonian,
                                     0.59,
                                     execution=cudaq.parallel.mpi)
-    expectation_value_no_shots = result_no_shots.expectation_z()
+    expectation_value_no_shots = result_no_shots.expectation()
     assert np.isclose(want_expectation_value, expectation_value_no_shots)
 
-    # Test all gather 
+    # Test all gather
     numRanks = cudaq.mpi.num_ranks()
     local = [1.0]
     globalList = cudaq.mpi.all_gather(numRanks, local)

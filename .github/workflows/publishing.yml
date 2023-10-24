@@ -124,7 +124,7 @@ jobs:
 
       - name: Trigger assets creation
         id: assets_creation
-        if: steps.artifacts.outputs.releases && inputs.assets_from_run == ''
+        if: steps.artifacts.outputs.releases != '' && inputs.assets_from_run == ''
         run: |
           # The commit title of the staging commit needs to match
           # the docker image that is used to build additional components.
@@ -224,7 +224,7 @@ jobs:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
   
       - name: Upload assets
-        if: steps.artifacts.outputs.releases
+        if: steps.artifacts.outputs.releases != ''
         uses: actions/upload-artifact@v3
         with:
           name: downstream_assets
@@ -325,7 +325,7 @@ jobs:
 
       - name: Extract cuda-quantum metadata
         id: metadata
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: ${{ steps.release_info.outputs.image_name }}
           flavor: latest=false
@@ -336,7 +336,7 @@ jobs:
 
       - name: Build cuda-quantum image
         id: cudaq_build
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: ./docker/release/cudaq.ext.Dockerfile
@@ -359,7 +359,8 @@ jobs:
         run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
       - name: Sign image with NGC CLI
-        if: steps.release_info.outputs.ngc_registry
+        # Temporarily disable NGC signing
+        if: false && steps.release_info.outputs.ngc_registry
         env:
           TAGS: ${{ steps.metadata.outputs.tags }}
           NGC_CLI_API_KEY: ${{ secrets.NGC_CREDENTIALS }}
@@ -394,7 +395,7 @@ jobs:
       - name: Update cuda-quantum metadata
         id: updated_metadata
         if: steps.copy.outcome != 'skipped'
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: ${{ steps.copy.outputs.image_name }}
           flavor: latest=false
@@ -406,7 +407,7 @@ jobs:
       - name: Copy cuda-quantum NGC image
         id: copy_build
         if: steps.copy.outcome != 'skipped'
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: ngc.Dockerfile
@@ -517,7 +518,7 @@ jobs:
 
       - name: Build cuda-quantum wheel
         id: build_wheel
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: ./docker/build/cudaq.wheel.Dockerfile

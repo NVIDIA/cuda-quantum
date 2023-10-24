@@ -35,7 +35,7 @@ CUDAQ_TEST(MeasureCountsTester, checkCount) {
 CUDAQ_TEST(MeasureCountsTester, checkExpValZ) {
   ExecutionResult r{CountsDictionary{{"0", 400}, {"1", 600}}};
   cudaq::sample_result mc(r);
-  EXPECT_NEAR(-1. / 5., mc.exp_val_z(), 1e-9);
+  EXPECT_NEAR(-1. / 5., mc.expectation(), 1e-9);
 }
 
 // TEST Sample Result / sample_result serialize / deserialize

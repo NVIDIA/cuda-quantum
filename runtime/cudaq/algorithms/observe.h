@@ -115,7 +115,7 @@ runObservation(KernelFunctor &&k, cudaq::spin_op &h, quantum_platform &platform,
       if (term.is_identity())
         sum += term.get_coefficient().real();
       else
-        sum += data.exp_val_z(term.to_string(false)) *
+        sum += data.expectation(term.to_string(false)) *
                term.get_coefficient().real();
     });
 
@@ -190,7 +190,7 @@ inline auto distributeComputations(
   for (auto &asyncResult : asyncResults) {
     auto res = asyncResult.get();
     auto incomingData = res.raw_data();
-    result += incomingData.exp_val_z();
+    result += incomingData.expectation();
     data += incomingData;
   }
 
@@ -247,7 +247,7 @@ std::vector<observe_result> observe(QuantumKernel &&kernel,
   // Convert back to a vector of results
   std::vector<observe_result> results;
   for (auto &o : termList)
-    results.emplace_back(result.exp_val_z(o), o, result.counts(o));
+    results.emplace_back(result.expectation(o), o, result.counts(o));
 
   return results;
 }
@@ -317,7 +317,7 @@ observe_result observe(std::size_t shots, QuantumKernel &&kernel, spin_op H,
         localH, nQpus);
 
     // combine all the data via an all_reduce
-    auto exp_val = localRankResult.exp_val_z();
+    auto exp_val = localRankResult.expectation();
     auto globalExpVal = mpi::all_reduce(exp_val, std::plus<double>());
     return observe_result(globalExpVal, H);
 

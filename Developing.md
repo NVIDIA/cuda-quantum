@@ -48,7 +48,7 @@ to see its representation in the Quake MLIR dialect. To see its translation to
 
 ```bash
 cudaq-quake $CUDAQ_REPO_ROOT/docs/sphinx/examples/cpp/algorithms/grover.cpp |
-cudaq-opt --canonicalize --quake-add-deallocs |
+cudaq-opt --canonicalize --add-dealloc |
 quake-translate --convert-to=qir
 ```
 

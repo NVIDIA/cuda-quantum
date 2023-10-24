@@ -359,6 +359,15 @@ Result *__quantum__qis__mz__body(Qubit *q) {
   return b ? ResultOne : ResultZero;
 }
 
+bool __quantum__qis__read_result__body(Result *result) {
+  // TODO: implement post-measurement result retrieval. This is not needed for
+  // typical simulator operation (other than to have it defined), but it may be
+  // useful in the future.
+  // https://github.com/NVIDIA/cuda-quantum/issues/758
+  cudaq::ScopedTrace trace("NVQIR::read_result (stubbed out)");
+  return ResultZeroVal;
+}
+
 Result *__quantum__qis__mz__to__register(Qubit *q, const char *name) {
   std::string regName(name);
   auto qI = qubitToSizeT(q);
@@ -371,7 +380,7 @@ void __quantum__qis__exp_pauli(double theta, Array *qubits, char *pauliWord) {
   std::string pauliWordStr(pauliWord);
   auto qubitsVec = arrayToVectorSizeT(qubits);
   nvqir::getCircuitSimulatorInternal()->applyExpPauli(
-      theta, qubitsVec, cudaq::spin_op::from_word(pauliWordStr));
+      theta, {}, qubitsVec, cudaq::spin_op::from_word(pauliWordStr));
   return;
 }
 

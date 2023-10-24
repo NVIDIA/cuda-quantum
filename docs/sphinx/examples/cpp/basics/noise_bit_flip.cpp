@@ -1,6 +1,6 @@
 // Compile and run with:
 // ```
-// nvq++ noise_bit_flip.cpp --target density-matrix-cpu -o dyn.x --target nvidia
+// nvq++ noise_bit_flip.cpp --target density-matrix-cpu -o dyn.x
 // && ./dyn.x
 // ```
 //
