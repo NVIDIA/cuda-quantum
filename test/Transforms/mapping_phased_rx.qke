@@ -1,0 +1,53 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt '--mapping=device=star(5,2)' %s
+
+module {
+  func.func @__nvqpp__mlirgen__ghzILm2EE() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    %cst = arith.constant 1.5707963267948966 : f64
+    %cst_0 = arith.constant 3.1415926535897931 : f64
+    %cst_1 = arith.constant 0.000000e+00 : f64
+    %0 = quake.null_wire
+    %1 = quake.null_wire
+    %2 = quake.phased_rx (%cst, %cst) %0 : (f64, f64, !quake.wire) -> !quake.wire
+    %3 = quake.phased_rx (%cst_0, %cst_1) %2 : (f64, f64, !quake.wire) -> !quake.wire
+    %4 = quake.phased_rx (%cst, %cst) %1 : (f64, f64, !quake.wire) -> !quake.wire
+    %5 = quake.phased_rx (%cst_0, %cst_1) %4 : (f64, f64, !quake.wire) -> !quake.wire
+    %6:2 = quake.z [%3] %5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %7 = quake.phased_rx (%cst, %cst) %6#1 : (f64, f64, !quake.wire) -> !quake.wire
+    %8 = quake.phased_rx (%cst_0, %cst_1) %7 : (f64, f64, !quake.wire) -> !quake.wire
+    %bits, %wires = quake.mz %6#0 name "result": (!quake.wire) -> (i1, !quake.wire)
+    quake.sink %wires : !quake.wire
+    quake.sink %8 : !quake.wire
+    return
+  }
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__ghzILm2EE() attributes {"cudaq-entrypoint", "cudaq-kernel", mapping_v2p = [2, 1]} {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 1.5707963267948966 : f64
+// CHECK:           %[[VAL_1:.*]] = arith.constant 3.1415926535897931 : f64
+// CHECK:           %[[VAL_2:.*]] = arith.constant 0.000000e+00 : f64
+// CHECK:           %[[VAL_3:.*]] = quake.null_wire
+// CHECK:           %[[VAL_4:.*]] = quake.null_wire
+// CHECK:           %[[VAL_5:.*]] = quake.null_wire
+// CHECK:           %[[VAL_6:.*]] = quake.null_wire
+// CHECK:           %[[VAL_7:.*]] = quake.null_wire
+// CHECK:           %[[VAL_8:.*]] = quake.phased_rx (%[[VAL_0]], %[[VAL_0]]) %[[VAL_3]] : (f64, f64, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_9:.*]] = quake.phased_rx (%[[VAL_1]], %[[VAL_2]]) %[[VAL_8]] : (f64, f64, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_10:.*]] = quake.phased_rx (%[[VAL_0]], %[[VAL_0]]) %[[VAL_4]] : (f64, f64, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_11:.*]] = quake.phased_rx (%[[VAL_1]], %[[VAL_2]]) %[[VAL_10]] : (f64, f64, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_12:.*]]:2 = quake.swap %[[VAL_9]], %[[VAL_5]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[VAL_13:.*]]:2 = quake.z {{\[}}%[[VAL_12]]#1] %[[VAL_11]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[VAL_14:.*]] = quake.phased_rx (%[[VAL_0]], %[[VAL_0]]) %[[VAL_13]]#1 : (f64, f64, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_15:.*]] = quake.phased_rx (%[[VAL_1]], %[[VAL_2]]) %[[VAL_14]] : (f64, f64, !quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_16:.*]], %[[VAL_17:.*]] = quake.mz %[[VAL_13]]#0 name "result" : (!quake.wire) -> (i1, !quake.wire)
+// CHECK:           quake.sink %[[VAL_17]] : !quake.wire
+// CHECK:           quake.sink %[[VAL_15]] : !quake.wire
+// CHECK:           return
+// CHECK:         }

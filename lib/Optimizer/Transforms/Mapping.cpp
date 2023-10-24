@@ -534,6 +534,19 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
       return;
     }
 
+    // Create ancilla qubits if needed. Place them after the last allocated
+    // qubit
+    unsigned numOrigQubits = sources.size();
+    OpBuilder builder(&block, block.begin());
+    builder.setInsertionPointAfter(sources[sources.size() - 1]);
+    for (unsigned i = sources.size(); i < d.getNumQubits(); i++) {
+      auto nullWireOp = builder.create<quake::NullWireOp>(
+          builder.getUnknownLoc(), quake::WireType::get(builder.getContext()));
+      wireToVirtualQ[nullWireOp.getResult()] =
+          Placement::VirtualQ(sources.size());
+      sources.push_back(nullWireOp);
+    }
+
     // Place
     Placement placement(sources.size(), d.getNumQubits());
     identityPlacement(placement);
@@ -550,9 +563,8 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     // this pass), run something like this:
     //   for (int v = 0; v < numQubits; v++)
     //     dataForOriginalQubit[v] = dataFromBackendQubit[mapping_v2p[v]];
-    OpBuilder builder(&block, block.begin());
-    llvm::SmallVector<Attribute> attrs(d.getNumQubits());
-    for (unsigned int v = 0; v < d.getNumQubits(); v++)
+    llvm::SmallVector<Attribute> attrs(numOrigQubits);
+    for (unsigned int v = 0; v < numOrigQubits; v++)
       attrs[v] =
           IntegerAttr::get(builder.getIntegerType(64),
                            placement.getPhy(Placement::VirtualQ(v)).index);
