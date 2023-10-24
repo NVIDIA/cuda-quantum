@@ -589,7 +589,6 @@ protected:
                 formatted_string = std::regex_replace(formatted_string, std::regex("::QuakeValue"), ".QuakeValue");
                 formatted_string = std::regex_replace(formatted_string, std::regex("::kraus_channel"), ".KrausChannel");
                 formatted_string = std::regex_replace(formatted_string, std::regex("::kernel_builder<>"), ".Kernel");
-                formatted_string = std::regex_replace(formatted_string, std::regex("py::buffer"), "np.ndarray");
                 formatted_string = std::regex_replace(formatted_string, std::regex("\\*"), "\\*");
                 signatures += ".. function:: " + formatted_string + "\n\t:noindex:\n\n\n";
                 // alternatively: signatures += std::string(rec->name) + std::regex_replace(std::string(it->signature), std::regex("\\*"), "\\*"); // making sure * are escaped
