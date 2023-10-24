@@ -47,6 +47,7 @@ public:
       device.topology.createNode();
       device.topology.addEdge(Qubit(i), Qubit((i + 1) % numQubits));
     }
+    device.computeAllPairShortestPaths();
     return device;
   }
 
@@ -65,6 +66,7 @@ public:
       device.topology.createNode();
       device.topology.addEdge(center, Qubit(i));
     }
+    device.computeAllPairShortestPaths();
     return device;
   }
 
@@ -90,6 +92,7 @@ public:
           device.topology.addEdge(q0, Qubit(base + width));
       }
     }
+    device.computeAllPairShortestPaths();
     return device;
   }
 
