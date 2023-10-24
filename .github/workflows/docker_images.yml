@@ -523,7 +523,8 @@ jobs:
             org.opencontainers.image.title=cuda-quantum
             org.opencontainers.image.description=${{ steps.prereqs.outputs.image_description }}
 
-      - name: Enable sudo during container build
+      - name: Configure credentials
+        if: needs.metadata.outputs.platform_tag == ''
         run: |
           docker run --privileged multiarch/qemu-user-static:latest --reset -p yes --credential yes
 
