@@ -20,21 +20,9 @@ namespace cudaq {
 /// interactions with the IonQ server for submitting and retrieving quantum
 /// computation jobs.
 class IonQServerHelper : public ServerHelper {
-private:
-  /// @brief RestClient used for HTTP requests.
-  RestClient client;
-
-  /// @brief Helper method to set the number of qubits based on the target.
-  void setQubits(const std::string &target) int;
-
-  /// @brief Helper method to retrieve the value of an environment variable.
-  std::string getEnvVar(const std::string &key) const;
-
-  /// @brief Helper method to check if a key exists in the configuration.
-  bool keyExists(const std::string &key) const;
-
-  /// @brief Output names indexed by jobID/taskID
-  std::map<std::string, OutputNamesType> outputNames;
+  static constexpr const char *DEFAULT_URL = "https://api.ionq.co";
+  static constexpr const char *DEFAULT_VERSION = "v0.3";
+  static constexpr const char *DEFAULT_USER_AGENT = "cudaq/0.4.1";
 
 public:
   /// @brief Returns the name of the server helper.
@@ -60,7 +48,7 @@ public:
   std::string constructGetJobPath(ServerMessage &postResponse) override;
 
   /// @brief Constructs the URL for retrieving a job based on a job ID.
-  std::string constructGetJobPath(std::string &jobId) override;
+  std::string constructGetJobPath(const std::string &jobId) override;
 
   /// @brief Constructs the URL for retrieving the results of a job based on the
   /// server's response to a job submission.
@@ -81,6 +69,22 @@ public:
   /// maps the results back to sample results.
   cudaq::sample_result processResults(ServerMessage &postJobResponse,
                                       std::string &jobId) override;
+
+private:
+  /// @brief RestClient used for HTTP requests.
+  RestClient client;
+
+  /// @brief Helper method to set the number of qubits based on the target.
+  int setQubits(const std::string &target);
+
+  /// @brief Helper method to retrieve the value of an environment variable.
+  std::string getEnvVar(const std::string &key) const;
+
+  /// @brief Helper method to check if a key exists in the configuration.
+  bool keyExists(const std::string &key) const;
+
+  /// @brief Output names indexed by jobID/taskID
+  std::map<std::string, OutputNamesType> outputNames;
 };
 
 // Initialize the IonQ server helper with a given backend configuration
@@ -88,13 +92,10 @@ void IonQServerHelper::initialize(BackendConfig config) {
   cudaq::info("Initializing IonQ Backend.");
   // Move the passed config into the member variable backendConfig
   // Set the necessary configuration variables for the IonQ API
-  backendConfig["url"] = config.find("url") != config.end()
-                             ? config["url"]
-                             : "https://api.ionq.co";
-  backendConfig["version"] = "v0.3";
-  backendConfig["user_agent"] = "cudaq/0.4.1";
-  backendConfig["target"] =
-      config.find("qpu") != config.end() ? config["qpu"] : "simulator";
+  backendConfig["url"] = getValueOrDefault(config, "url", DEFAULT_URL);
+  backendConfig["version"] = DEFAULT_VERSION;
+  backendConfig["user_agent"] = DEFAULT_USER_AGENT;
+  backendConfig["target"] = getValueOrDefault(config, "qpu", "simulator");
   backendConfig["qubits"] = setQubits(backendConfig["target"]);
   // Retrieve the noise model setting (if provided)
   if (config.find("noise") != config.end())
@@ -132,29 +133,40 @@ void IonQServerHelper::initialize(BackendConfig config) {
     backendConfig["sharpen"] = config["sharpen"];
 }
 
-// Set the number of qubits based on the target
-int IonQServerHelper::setQubits(const std::string &target) {
-  if (target == "simulator") {
-    return 29;
-  } else if (target == "qpu.harmony") {
-    return 11;
-  } else if (target == "qpu.aria-1") {
-    return 25;
-  } else {
-    return 29; // default number of qubits
-  }
+// Helper function to get value from config or return a default value.
+template <typename T>
+T getValueOrDefault(const BackendConfig &config, const std::string &key,
+                    const T &defaultValue) {
+  return config.find(key) != config.end() ? config.at(key) : defaultValue;
 }
 
-// Retrieve an environment variable
+// Helper function to retrieve an environment variable value.
+// Throws a runtime error if the environment variable is not set.
 std::string IonQServerHelper::getEnvVar(const std::string &key) const {
-  // Get the environment variable
   const char *env_var = std::getenv(key.c_str());
-  // If the variable is not set, throw an exception
   if (env_var == nullptr) {
     throw std::runtime_error(key + " environment variable is not set.");
   }
-  // Return the variable as a string
   return std::string(env_var);
+}
+
+// Helper function to get a value from a dictionary or return a default
+template <typename K, typename V>
+V getOrDefault(const std::unordered_map<K, V> &map, const K &key,
+               const V &defaultValue) {
+  auto it = map.find(key);
+  return (it != map.end()) ? it->second : defaultValue;
+}
+
+// Set the number of qubits based on the target
+int IonQServerHelper::setQubits(const std::string &target) {
+  static const std::unordered_map<std::string, int> qubitMap = {
+      {"simulator", 29},
+      {"qpu.harmony", 11},
+      {"qpu.aria-1", 25},
+  };
+
+  return getOrDefault(qubitMap, target, 29); // 29 is the default value
 }
 
 // Check if a key exists in the backend configuration
@@ -227,7 +239,7 @@ std::string IonQServerHelper::constructGetJobPath(ServerMessage &postResponse) {
 }
 
 // Overloaded version of constructGetJobPath for jobId input
-std::string IonQServerHelper::constructGetJobPath(std::string &jobId) {
+std::string IonQServerHelper::constructGetJobPath(const std::string &jobId) {
   if (!keyExists("job_path"))
     throw std::runtime_error("Key 'job_path' doesn't exist in backendConfig.");
 
