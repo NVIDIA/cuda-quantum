@@ -7,25 +7,21 @@
 # ============================================================================ #
 # [Begin Documentation]
 import cudaq
-from cudaq import spin
 
 cudaq.set_target("nvidia-mqpu")
 target = cudaq.get_target()
 num_qpus = target.num_qpus()
 print("Number of QPUs:", num_qpus)
 
-# Define spin ansatz.
-kernel, theta = cudaq.make_kernel(float)
-qreg = kernel.qalloc(2)
-kernel.x(qreg[0])
-kernel.ry(theta, qreg[1])
-kernel.cx(qreg[1], qreg[0])
-# Define spin Hamiltonian.
-hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
-    0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+kernel = cudaq.make_kernel()
+qubits = kernel.qalloc(5)
+# Place qubits in GHZ state.
+kernel.h(qubits[0])
+kernel.for_loop(0, 4, lambda i: kernel.cx(qubits[i], qubits[i + 1]))
 
-exp_val = cudaq.observe(kernel,
-                        hamiltonian,
-                        0.59,
-                        execution=cudaq.parallel.thread).expectation()
-print("Expectation value: ", exp_val)
+state_futures = []
+for qpu in range(num_qpus):
+    state_futures.append(cudaq.get_state_async(kernel, qpu_id=qpu))
+
+for state in state_futures:
+    print(state.get())

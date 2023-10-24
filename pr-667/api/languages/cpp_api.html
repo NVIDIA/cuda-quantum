@@ -149,6 +149,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/cpp.html#computing-expectation-values">Computing Expectation Values</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/cpp.html#multi-control-synthesis">Multi-control Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/cpp.html#simulations-with-cuquantum">Simulations with cuQuantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/cpp.html#noisy-simulation">Noisy Simulation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/cpp.html#using-quantum-hardware-providers">Using Quantum Hardware Providers</a></li>
 </ul>
 </li>
@@ -821,12 +822,12 @@
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq14observe_resultcvdEv">
 <span class="target" id="classcudaq_1_1observe__result_1aa3bb86339bb588bdc812ae27c9e8eb8a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14observe_resultcvdEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Conversion operator for this <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1observe__result"><span class="std std-ref"><span class="pre">observe_result</span></span></a></code> to <code class="docutils literal notranslate"><span class="pre">double</span></code>. Simply returns the precomputed expectation value for the given <a class="reference internal" href="#classcudaq_1_1spin__op"><span class="std std-ref">spin_op</span></a>. This enables one to ignore the fine-grain <a class="reference internal" href="#classcudaq_1_1sample__result"><span class="std std-ref">sample_result</span></a> data, and explicitly request the expected value: double exp = cudaq”::”observe(…); as opposed to cudaq”::”observe_data data = cudaq::observe(…); auto exp = data.exp_val_z();. </p>
+<dd><p>Conversion operator for this <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1observe__result"><span class="std std-ref"><span class="pre">observe_result</span></span></a></code> to <code class="docutils literal notranslate"><span class="pre">double</span></code>. Simply returns the precomputed expectation value for the given <a class="reference internal" href="#classcudaq_1_1spin__op"><span class="std std-ref">spin_op</span></a>. This enables one to ignore the fine-grain <a class="reference internal" href="#classcudaq_1_1sample__result"><span class="std std-ref">sample_result</span></a> data, and explicitly request the expected value: double exp = cudaq”::”observe(…); as opposed to cudaq”::”observe_data data = cudaq::observe(…); auto exp = data.expectation();. </p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14observe_result9exp_val_zEv">
-<span class="target" id="classcudaq_1_1observe__result_1a1703d41c80a8a543bcb8915d3269ead1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">exp_val_z</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14observe_result9exp_val_zEv" title="Permalink to this definition">¶</a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14observe_result11expectationEv">
+<span class="target" id="classcudaq_1_1observe__result_1af008438d29b9d0c567a6d471f5e6a843"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">expectation</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14observe_result11expectationEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Return the expected value for the provided <a class="reference internal" href="#classcudaq_1_1spin__op"><span class="std std-ref">spin_op</span></a>. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -836,8 +837,8 @@
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4I0EN5cudaq14observe_result9exp_val_zEd10SpinOpType">
-<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SpinOpType</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classcudaq_1_1observe__result_1a3d8e5a2d5745fd4ac7ddfd6caf841776"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">exp_val_z</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0EN5cudaq14observe_result9exp_val_zEd10SpinOpType" title="cudaq::observe_result::exp_val_z::SpinOpType"><span class="n"><span class="pre">SpinOpType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">term</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN5cudaq14observe_result9exp_val_zEd10SpinOpType" title="Permalink to this definition">¶</a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4I0EN5cudaq14observe_result11expectationEd10SpinOpType">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SpinOpType</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classcudaq_1_1observe__result_1a3afd54ce62aa411173a1cb89d56d803d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">expectation</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0EN5cudaq14observe_result11expectationEd10SpinOpType" title="cudaq::observe_result::expectation::SpinOpType"><span class="n"><span class="pre">SpinOpType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">term</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN5cudaq14observe_result11expectationEd10SpinOpType" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Return the expectation value for a sub-term in the provided <a class="reference internal" href="#classcudaq_1_1spin__op"><span class="std std-ref">spin_op</span></a>. </p>
 </dd></dl>
 
@@ -1346,14 +1347,20 @@
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_result9exp_val_zEKNSt11string_viewE">
-<span class="target" id="classcudaq_1_1sample__result_1aac21a1dd74311c9da0af96104e23fd51"></span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">exp_val_z</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">registerName</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">GlobalRegisterName</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13sample_result9exp_val_zEKNSt11string_viewE" title="Permalink to this definition">¶</a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_result11expectationEKNSt11string_viewE">
+<span class="target" id="classcudaq_1_1sample__result_1ae41a334f2b6bae2c042229943a8f99a9"></span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">expectation</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">registerName</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">GlobalRegisterName</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13sample_result11expectationEKNSt11string_viewE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Return the expected value &lt;Z…Z&gt; </p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p></p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_result9exp_val_zEKNSt11string_viewE">
+<span class="target" id="classcudaq_1_1sample__result_1aac21a1dd74311c9da0af96104e23fd51"></span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">exp_val_z</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">registerName</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">GlobalRegisterName</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13sample_result9exp_val_zEKNSt11string_viewE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Deprecated: Return the expected value &lt;Z…Z&gt; </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -1966,9 +1973,15 @@
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14kernel_builder11constantValEd">
+<span class="target" id="classcudaq_1_1kernel__builder_1aaad4791d9bdb3ae7a855f8ea35defcc3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">constantVal</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">val</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14kernel_builder11constantValEd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Return a <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref"><span class="pre">QuakeValue</span></span></a></code> representing the constant floating-point value. </p>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq14kernel_builder4swapERK10QuakeValueRK10QuakeValue">
 <span class="target" id="classcudaq_1_1kernel__builder_1a27162cfcecff29cb112fc946e98527b8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">swap</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">first</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">second</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14kernel_builder4swapERK10QuakeValueRK10QuakeValue" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>SWAP operation for swapping the quantum states of qubits. Currently only support swaps between two qubits. </p>
+<dd><p>SWAP operation for swapping the quantum states of two qubits. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -2184,6 +2197,18 @@
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq10QuakeValuedvEKd">
+<span class="target" id="classcudaq_1_1QuakeValue_1ab3a2057299dd94693dd8d32a1b48061f"></span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">/</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq10QuakeValuedvEKd" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Divide this <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> by the given double. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq10QuakeValuedvE10QuakeValue">
+<span class="target" id="classcudaq_1_1QuakeValue_1a8a34931fe0357e9072cb0abfd9cfd2ac"></span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">/</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq10QuakeValuedvE10QuakeValue" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Divide this <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> by the given <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq10QuakeValueplEKd">
 <span class="target" id="classcudaq_1_1QuakeValue_1a32e330261b099d9e58cefda0f9ab95d3"></span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">+</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq10QuakeValueplEKd" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Add this <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> with the given double. </p>
@@ -2217,6 +2242,12 @@
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq10QuakeValuemiE10QuakeValue">
 <span class="target" id="classcudaq_1_1QuakeValue_1acdaddb1a8d5f3c8608a50e5ebbc3bca6"></span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">-</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq10QuakeValuemiE10QuakeValue" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Subtract the given <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> from this <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq10QuakeValue7inverseEv">
+<span class="target" id="classcudaq_1_1QuakeValue_1a68fb96c779ac2645503c6aaf72322675"></span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">inverse</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq10QuakeValue7inverseEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Return the inverse (1/x) of this <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a>. </p>
 </dd></dl>
 
 </div>
@@ -2315,6 +2346,12 @@
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq5state5stateE5State">
 <span class="target" id="classcudaq_1_1state_1aa85d5ed354df5a6ced32ea997f072d65"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">state</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq5StateE" title="cudaq::State"><span class="n"><span class="pre">State</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">d</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq5state5stateE5State" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>The constructor, takes the simulation data. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5state5stateEv">
+<span class="target" id="classcudaq_1_1state_1ac4c2617865ad19cc4d449ac559511d6c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">state</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq5state5stateEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Default constructor (empty state) </p>
 </dd></dl>
 
 <dl class="cpp function">

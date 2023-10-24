@@ -149,6 +149,7 @@
 <li class="toctree-l3"><a class="reference internal" href="cpp.html#computing-expectation-values">Computing Expectation Values</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cpp.html#multi-control-synthesis">Multi-control Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cpp.html#simulations-with-cuquantum">Simulations with cuQuantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cpp.html#noisy-simulation">Noisy Simulation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cpp.html#using-quantum-hardware-providers">Using Quantum Hardware Providers</a></li>
 </ul>
 </li>
@@ -636,11 +637,11 @@ This is a introduction by example for using CUDA Quantum in Python.</p>
     <span class="c1"># We define the call to `cudaq.observe` here as a lambda to</span>
     <span class="c1"># allow it to be passed into the gradient strategy as a</span>
     <span class="c1"># function. If you were using a gradient-free optimizer,</span>
-    <span class="c1"># you could purely define `cost = cudaq.observe().expectation_z()`.</span>
+    <span class="c1"># you could purely define `cost = cudaq.observe().expectation()`.</span>
     <span class="n">get_result</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">parameter_vector</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span>
-        <span class="n">kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">parameter_vector</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">expectation_z</span><span class="p">()</span>
+        <span class="n">kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">parameter_vector</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
     <span class="c1"># `cudaq.observe` returns a `cudaq.ObserveResult` that holds the</span>
-    <span class="c1"># counts dictionary and the `expectation_z`.</span>
+    <span class="c1"># counts dictionary and the `expectation`.</span>
     <span class="n">cost</span> <span class="o">=</span> <span class="n">get_result</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&lt;H&gt; = </span><span class="si">{</span><span class="n">cost</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="c1"># Compute the gradient vector using `cudaq.gradients.STRATEGY.compute()`.</span>
