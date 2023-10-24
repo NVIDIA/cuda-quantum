@@ -317,6 +317,8 @@ bool QuakeBridgeVisitor::TraverseCompoundStmt(clang::CompoundStmt *stmt,
           }
           llvm::dbgs() << "]]]\n";
         });
+      } else {
+        reportClangError(cs, mangler, "statement not supported in qpu kernel");
       }
     }
     return true;

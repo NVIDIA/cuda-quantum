@@ -104,7 +104,11 @@ bool QuakeBridgeVisitor::TraverseRecordType(clang::RecordType *t) {
   if (!result)
     return false;
   if (typeStack.size() != typeStackDepth + 1) {
-    assert(typeStack.size() == typeStackDepth);
+    if (typeStack.size() != typeStackDepth) {
+      emitWarning(toLocation(recDecl),
+                  "compiler encountered type traversal issue");
+      return false;
+    }
     if (allowUnknownRecordType)
       pushType(noneTy);
     else {
