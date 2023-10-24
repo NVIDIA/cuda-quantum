@@ -9,6 +9,11 @@ on:
         type: string
         description: Optional argument to take assets from a prior run of this workflow; facilitates rerunning a failed workflow without re-building the assets.
         required: false
+      # FIXME: REMOVE
+      commit_sha:
+        type: string
+        description: Optional argument to check out a different commit than the original deployment (not recommended!).
+        required: false
   workflow_run:
     workflows:
       - Deployments
@@ -258,7 +263,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          ref: ${{ needs.assets.outputs.github_commit }}
+          ref: ${{ inputs.commit_sha || needs.assets.outputs.github_commit }}
           token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Load docker assets
@@ -373,8 +378,8 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y --no-install-recommends wget
           wget -O ngccli_linux.zip --content-disposition \
-            https://api.ngc.nvidia.com/v2/resources/nvidia/ngc-apps/ngc_cli/versions/3.28.0/files/ngccli_linux.zip
-          if [ -z "$(sha256sum ngccli_linux.zip | grep -o '74f469a2082e90a4561f09eb0d483b67044e91be727066122253436c140a7b54 ')" ]; then
+            https://api.ngc.nvidia.com/v2/resources/nvidia/ngc-apps/ngc_cli/versions/3.31.0/files/ngccli_linux.zip
+          if [ -z "$(sha256sum ngccli_linux.zip | grep -o 'b715e503e2c0b44814a51f330eafd605f5d240ea0987bf615700d359c993f138 ')" ]; then
             echo "::error::NGC CLI was corrupted during download." && exit 1
           fi
           unzip ngccli_linux.zip && chmod u+x ngc-cli/ngc
@@ -476,7 +481,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          ref: ${{ needs.assets.outputs.github_commit }}
+          ref: ${{ inputs.commit_sha || needs.assets.outputs.github_commit }}
           token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Load wheel assets
@@ -551,9 +556,6 @@ jobs:
       fail-fast: false
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
       - name: Update release information
         run: |
           release_id=${{ fromJson(needs.assets.outputs.python_wheels)[format('{0}', matrix.info_file)].release_id }}
@@ -703,9 +705,6 @@ jobs:
       url: ${{ vars.deployment_url }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
       - name: Clean up
         id: cleanup
         run: |
