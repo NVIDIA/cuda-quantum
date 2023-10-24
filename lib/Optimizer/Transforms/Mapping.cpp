@@ -516,14 +516,17 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
 
     // These are captured in the user help (device options in Passes.td), so if
     // you update this, be sure to update that as well.
-    Device d = llvm::StringSwitch<Device>(name)
-                   .Case("path", Device::path(deviceDim[0]))
-                   .Case("ring", Device::ring(deviceDim[0]))
-                   .Case("star", Device::star(/*numQubits=*/deviceDim[0],
-                                              /*centerQubit=*/deviceDim[1]))
-                   .Case("grid", Device::grid(/*width=*/deviceDim[0],
-                                              /*height=*/deviceDim[1]))
-                   .Default(Device());
+    Device d;
+    if (name.equals("path"))
+      d = Device::path(deviceDim[0]);
+    else if (name.equals("ring"))
+      d = Device::ring(deviceDim[0]);
+    else if (name.equals("star"))
+      d = Device::star(/*numQubits=*/deviceDim[0],
+                       /*centerQubit=*/deviceDim[1]);
+    else if (name.equals("grid"))
+      d = Device::grid(/*width=*/deviceDim[0],
+                       /*height=*/deviceDim[1]);
 
     if (d.getNumQubits() == 0) {
       func.emitError("Trying to target an empty device.");
