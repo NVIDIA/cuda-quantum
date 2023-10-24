@@ -38,7 +38,6 @@
 				"files.associations": {
 					"CMakeLists.txt": "cmake",
 					"*.cmake.in": "cmake",
-					"*.cq": "cuda-cpp"
 					"*.td": "tablegen",
 					"*.h.in": "cpp",
 					"*.sh.in": "shellscript",

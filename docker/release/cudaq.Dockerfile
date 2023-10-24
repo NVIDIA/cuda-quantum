@@ -100,23 +100,30 @@ ARG COPYRIGHT_NOTICE="=========================\n\
 =========================\n\n\
 Version: ${CUDA_QUANTUM_VERSION}\n\n\
 Copyright (c) 2023 NVIDIA Corporation & Affiliates \n\
-All rights reserved.\n"
+All rights reserved.\n\n\
+To run a command as administrator (user `root`), use `sudo <command>`.\n"
 RUN echo -e "$COPYRIGHT_NOTICE" > "$CUDA_QUANTUM_PATH/Copyright.txt"
 RUN echo 'cat "$CUDA_QUANTUM_PATH/Copyright.txt"' > /etc/profile.d/welcome.sh
+
+# Create cudaq user
+
+# Create new user `cudaq` with admin rights, and disable password and gecos, 
+# see also https://askubuntu.com/a/1195288/635348.
+RUN adduser --disabled-password --gecos '' cudaq && adduser cudaq sudo \
+    && echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+ADD ./docs/sphinx/examples/ /home/cudaq/examples/
+ADD ./docker/release/README.md /home/cudaq/README.md
+RUN mv /home/cudaq/examples/python/tutorials /home/cudaq/tutorial \
+    && chown -R cudaq /home/cudaq && chgrp -R cudaq /home/cudaq
+
+USER cudaq
+WORKDIR /home/cudaq
 
 # Run apt-get update to ensure that apt-get knows about CUDA packages
 # if the base image has added the CUDA keyring.
 # If we don't do that, then apt-get will get confused if some CUDA
 # components are already installed but not all of them.
-RUN apt-get update
+RUN sudo apt-get update
 
-# Create cudaq user
-
-RUN useradd -m cudaq && echo "cudaq:cuda-quantum" | chpasswd && adduser cudaq sudo
-ADD ./docs/sphinx/examples/ /home/cudaq/examples/
-ADD ./docker/release/README.md /home/cudaq/README.md
-RUN chown -R cudaq /home/cudaq && chgrp -R cudaq /home/cudaq
-
-USER cudaq
-WORKDIR /home/cudaq
 ENTRYPOINT ["bash", "-l"]

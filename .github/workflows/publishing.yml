@@ -101,6 +101,8 @@ jobs:
               github_commit=`cat "$name.txt" | grep -o 'source-sha: \S*' | cut -d ' ' -f 2`
               release_title=`cat "$name.txt" | grep -o 'release-title: \S*' | cut -d ' ' -f 2`
               release_version=`cat "$name.txt" | grep -o 'release-version: \S*' | cut -d ' ' -f 2`
+            elif [ "$name" == "cuda_quantum_docs" ]; then
+              gh api $url > cuda_quantum_docs.zip
             fi
           done
 
@@ -124,7 +126,7 @@ jobs:
 
       - name: Trigger assets creation
         id: assets_creation
-        if: steps.artifacts.outputs.releases != '' && inputs.assets_from_run == ''
+        if: inputs.assets_from_run == ''
         run: |
           # The commit title of the staging commit needs to match
           # the docker image that is used to build additional components.
@@ -199,7 +201,8 @@ jobs:
 
       - name: Retrieve assets
         run: |
-          assets_folder=/tmp/assets && mkdir "$assets_folder" && cd "$assets_folder"
+          assets_folder=/tmp/assets && mkdir "$assets_folder"
+          unzip -d "$assets_folder/documentation" cuda_quantum_docs.zip && cd "$assets_folder"
           
           function download_assets {
             mkdir "$1" && cd "$1"
@@ -230,8 +233,7 @@ jobs:
           name: downstream_assets
           path: /tmp/assets
           retention-days: 1
-          if-no-files-found: error    
-
+          if-no-files-found: warn
           
   cudaq_hpc:
     name: CUDA Quantum Docker image
@@ -270,7 +272,8 @@ jobs:
         run: |
           release_id=${{ fromJson(needs.assets.outputs.docker_images)[format('{0}', matrix.info_file)].release_id }}
           assets_folder=assets && mkdir "$assets_folder" && cd "$assets_folder"
-          cp -r /tmp/assets/${{ matrix.info_file }}/. $(pwd)
+          docs_folder="$(pwd)/documentation" && mkdir "$docs_folder" && mv /tmp/assets/documentation/* "$docs_folder"
+          cp -r /tmp/assets/${{ matrix.info_file }}/. "$(pwd)"
 
           build_info=${{ matrix.info_file }}*
           platforms=`cat $build_info | grep -o 'platforms: \S*' | cut -d ' ' -f 2`
