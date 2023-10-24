@@ -410,7 +410,7 @@ void forLoop(ImplicitLocOpBuilder &builder, Value &startVal, Value &end,
           Block &block) {
         Value iv = block.getArgument(0);
         // shift iv -> iv + start
-        iv = builder.create<arith::AddIOp>(iv.getType(), iv, startVal);
+        iv = builder.create<arith::AddIOp>(iv.getType(), iv, castStart);
         OpBuilder::InsertionGuard guard(nestedBuilder);
         QuakeValue idxQuakeVal(builder, iv);
         body(idxQuakeVal);
@@ -480,6 +480,13 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &size) {
       quake::VeqType::getUnsized(context), value);
 
   return QuakeValue(builder, qubits);
+}
+
+QuakeValue constantVal(ImplicitLocOpBuilder &builder, double val) {
+  llvm::APFloat d(val);
+  Value constant =
+      builder.create<arith::ConstantFloatOp>(d, builder.getF64Type());
+  return QuakeValue(builder, constant);
 }
 
 template <typename QuakeOp>
@@ -775,6 +782,7 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
 
   PassManager pm(context);
   OpPassManager &optPM = pm.nest<func::FuncOp>();
+  optPM.addPass(cudaq::opt::createUnwindLoweringPass());
   cudaq::opt::addAggressiveEarlyInlining(pm);
   pm.addPass(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
@@ -786,7 +794,6 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   pm.addPass(createCanonicalizerPass());
   optPM.addPass(cudaq::opt::createQuakeAddDeallocs());
   optPM.addPass(cudaq::opt::createQuakeAddMetadata());
-  optPM.addPass(cudaq::opt::createUnwindLoweringPass());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
 

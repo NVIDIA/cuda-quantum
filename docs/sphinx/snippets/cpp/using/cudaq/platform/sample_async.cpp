@@ -1,4 +1,3 @@
-// Compile and run with:
 /*******************************************************************************
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
@@ -7,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// Compile and run with:
 // ```
 // nvq++ sample_async.cpp -o sample_async.x -target nvidia-mqpu
 // && ./sample_async.x

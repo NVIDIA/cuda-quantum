@@ -177,7 +177,11 @@ public:
 
   /// @brief Return the expected value <Z...Z>
   /// @return
-  double exp_val_z(const std::string_view registerName = GlobalRegisterName);
+  double expectation(const std::string_view registerName = GlobalRegisterName);
+  /// @brief Deprecated: Return the expected value <Z...Z>
+  [[deprecated("`exp_val_z()` is deprecated. Use `expectation()` with the same "
+               "argument structure.")]] double
+  exp_val_z(const std::string_view registerName = GlobalRegisterName);
 
   /// @brief Return the probability of observing the given bit string
   /// @param bitString

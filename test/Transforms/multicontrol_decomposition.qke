@@ -6,8 +6,8 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(quake-multicontrol-decomposition))' %s | FileCheck %s
-// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(quake-multicontrol-decomposition))' %s | CircuitCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(multicontrol-decomposition))' %s | FileCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(multicontrol-decomposition))' %s | CircuitCheck %s
 
 // CHECK-LABEL: func.func @ccr1
 func.func @ccr1(%c0: !quake.ref, %c1: !quake.ref, %t: !quake.ref) {

@@ -269,7 +269,7 @@ def test_sample_control_qubit_args():
     # Simulate `kernel` and check its expectation value.
     result = cudaq.sample(kernel)
     want_expectation = 0.0
-    got_expectation = result.expectation_z()
+    got_expectation = result.expectation()
     assert np.isclose(want_expectation, got_expectation, atol=1e-1)
 
     # Check the MLIR.
@@ -400,7 +400,7 @@ def test_sample_apply_call_control():
     # Simulate `kernel` and check its expectation value.
     result = cudaq.sample(kernel)
     want_expectation = -1. / np.sqrt(2.)
-    got_expectation = result.expectation_z()
+    got_expectation = result.expectation()
     assert np.isclose(want_expectation, got_expectation, atol=1e-1)
 
     # Check the MLIR.

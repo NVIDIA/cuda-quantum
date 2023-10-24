@@ -87,7 +87,7 @@ private:
     func->walk([this](Operation *o) {
       if (isa<cudaq::cc::UnwindBreakOp, cudaq::cc::UnwindContinueOp,
               cudaq::cc::UnwindReturnOp>(o)) {
-        o->emitError("must run unwind-lowering before quake-add-deallocs.");
+        o->emitError("must run unwind-lowering before add-dealloc.");
         hasErrors = true;
       } else if (auto alloc = dyn_cast<quake::AllocaOp>(o)) {
         auto *op = alloc.getOperation();

@@ -69,8 +69,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && python3 -m pip install --no-cache-dir numpy \
     && ln -s /bin/python3 /bin/python
 
-ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:/usr/include/c++/12/:/usr/include/$(uname -m)-linux-gnu/c++/12"
-
 # Copy over the CUDA Quantum installation, and the necessary compiler tools.
 
 ARG release_version=
@@ -90,9 +88,10 @@ RUN bash "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh" "$CUDA_QUANTUM_PATH/assets" 
     && rm "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
 
 ENV PATH "${PATH}:$CUDA_QUANTUM_PATH/bin"
-ENV PYTHONPATH "${PYTHONPATH}:$CUDA_QUANTUM_PATH"
 ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CUDA_QUANTUM_PATH/lib"
 ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:$CUDA_QUANTUM_PATH/include"
+# Better alternative to setting the PYTHONPATH, since the PYTHONPATH is generally not preserved when running as sudo.
+RUN echo "$CUDA_QUANTUM_PATH" > /usr/local/lib/python$(python --version | egrep -o "([0-9]{1,}\.)+[0-9]{1,}" | cut -d '.' -f -2)/dist-packages/cudaq.pth
 
 # Include additional readmes and samples that are distributed with the image.
 

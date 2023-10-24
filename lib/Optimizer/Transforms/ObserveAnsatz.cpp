@@ -13,19 +13,19 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"
 
+namespace cudaq::opt {
+#define GEN_PASS_DEF_OBSERVEANSATZ
+#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+} // namespace cudaq::opt
+
 using namespace mlir;
 
 namespace {
 
-/// @brief Enum type for Paulis
+/// Enum type for Paulis
 enum class MeasureBasis { I, X, Y, Z };
 
-/// @brief Given an X or Y MeasureBasis, apply a Hadamard or ry(pi/2)
-/// respectively
-/// @param basis
-/// @param builder
-/// @param loc
-/// @param qubit
+/// Given an X or Y MeasureBasis, apply a Hadamard or $ry(\pi/2)$ respectively.
 void appendMeasurement(MeasureBasis &basis, OpBuilder &builder, Location &loc,
                        Value &qubit) {
   SmallVector<Value> targets{qubit};
@@ -40,25 +40,25 @@ void appendMeasurement(MeasureBasis &basis, OpBuilder &builder, Location &loc,
   }
 }
 
-/// @brief Define a struct to hold the metadata we'll need
+/// Define a struct to hold the metadata we'll need.
 struct AnsatzMetadata {
-  /// @brief Number of qubits is necessary to check the number of
-  /// binary symplectic elements provided
+  /// Number of qubits is necessary to check the number of binary symplectic
+  /// elements provided
   std::size_t nQubits = 0;
 
-  /// @brief Check that we have no measures
+  /// Check that we have no measures
   std::size_t nMeasures = 0;
 
-  /// @brief Map qubit indices to their mlir Value
+  /// Map qubit indices to their mlir Value
   DenseMap<std::size_t, Value> qubitValues;
 };
 
-/// @brief Define a map type for Quake functions to their associated metadata
+/// Define a map type for Quake functions to their associated metadata
 using AnsatzFunctionInfo = DenseMap<Operation *, AnsatzMetadata>;
 
-/// @brief This analysis pass will count the number of qubits used
-/// in the ansatz function, then number of measure ops present, and it will
-/// map qubit indices to their associated MLIR values.
+/// This analysis pass will count the number of qubits used in the ansatz
+/// function, then number of measure ops present, and it will map qubit indices
+/// to their associated MLIR values.
 ///
 /// At this point this Analysis assumes that canonicalization has been run,
 /// and that quake-synth has been run or the Quake code does not have any
@@ -99,17 +99,17 @@ private:
   AnsatzFunctionInfo infoMap;
 };
 
-/// @brief This OpRewritePattern will use the quake ansatz analysis
-/// info to append measurement basis change operations.
+/// This OpRewritePattern will use the quake ansatz analysis info to append
+/// measurement basis change operations.
 struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
   explicit AppendMeasurements(MLIRContext *ctx, const AnsatzFunctionInfo &info,
                               std::vector<bool> &bsf)
       : OpRewritePattern(ctx), infoMap(info), termBSF(bsf) {}
 
-  /// @brief The pre-computed analysis information
+  /// The pre-computed analysis information
   AnsatzFunctionInfo infoMap;
 
-  /// @brief The Pauli term representation
+  /// The Pauli term representation
   std::vector<bool> &termBSF;
 
   LogicalResult matchAndRewrite(func::FuncOp funcOp,
@@ -184,17 +184,18 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
   }
 };
 
-/// @brief This pass will compute ansatz analysis meta data and use that
-/// in a custom rewrite pattern to append basis changes + mz operations
-/// to the ansatz quake function.
-class QuakeObserveAnsatzPass
-    : public cudaq::opt::QuakeObserveAnsatzBase<QuakeObserveAnsatzPass> {
+/// This pass will compute ansatz analysis meta data and use that in a custom
+/// rewrite pattern to append basis changes + mz operations to the ansatz quake
+/// function.
+class ObserveAnsatzPass
+    : public cudaq::opt::impl::ObserveAnsatzBase<ObserveAnsatzPass> {
 protected:
   std::vector<bool> binarySymplecticForm;
 
 public:
-  QuakeObserveAnsatzPass() = default;
-  QuakeObserveAnsatzPass(std::vector<bool> &bsfData)
+  using ObserveAnsatzBase::ObserveAnsatzBase;
+
+  ObserveAnsatzPass(std::vector<bool> &bsfData)
       : binarySymplecticForm(bsfData) {}
 
   void runOnOperation() override {
@@ -202,8 +203,8 @@ public:
     if (!funcOp || funcOp.empty())
       return;
 
-    // We can get the pauli term info from the MLIR
-    // command line parser, or from a programmatic use of this pass
+    // We can get the pauli term info from the MLIR command line parser, or from
+    // a programmatic use of this pass
     if (binarySymplecticForm.empty())
       for (auto &b : termBSF)
         binarySymplecticForm.push_back(b);
@@ -229,11 +230,7 @@ public:
 
 } // namespace
 
-std::unique_ptr<mlir::Pass> cudaq::opt::createQuakeObserveAnsatzPass() {
-  return std::make_unique<QuakeObserveAnsatzPass>();
-}
-
 std::unique_ptr<mlir::Pass>
-cudaq::opt::createQuakeObserveAnsatzPass(std::vector<bool> &bsfData) {
-  return std::make_unique<QuakeObserveAnsatzPass>(bsfData);
+cudaq::opt::createObserveAnsatzPass(std::vector<bool> &bsfData) {
+  return std::make_unique<ObserveAnsatzPass>(bsfData);
 }

@@ -58,14 +58,13 @@ def test_observe_result():
         assert sum(sub_register_counts.values()) == shots_count
         # Check they have the same number of elements
         assert len(sub_register_counts) == len(sub_term_counts)
-        # Check `cudaq.ObserveResult::expectation_z(sub_term)`
+        # Check `cudaq.ObserveResult::expectation(sub_term)`
         # against each of the the expectation values returned
         # from `cudaq.SampleResult`.
-        expectation_z = observe_result.expectation_z(sub_term=sub_term)
-        assert assert_close(sub_register_counts.expectation_z(), expectation_z,
+        expectation = observe_result.expectation(sub_term=sub_term)
+        assert assert_close(sub_register_counts.expectation(), expectation,
                             1e-1)
-        assert assert_close(sub_term_counts.expectation_z(), expectation_z,
-                            1e-1)
+        assert assert_close(sub_term_counts.expectation(), expectation, 1e-1)
     observe_result.dump()
 
 
@@ -100,7 +99,7 @@ def test_observe_no_params(want_state, want_expectation, shots_count):
     observe_result = cudaq.observe(kernel=kernel,
                                    spin_operator=hamiltonian,
                                    shots_count=shots_count)
-    got_expectation = observe_result.expectation_z()
+    got_expectation = observe_result.expectation()
     assert want_expectation == got_expectation
 
     # If shots mode was enabled, check those results.
@@ -121,8 +120,8 @@ def test_observe_no_params(want_state, want_expectation, shots_count):
             sub_register_counts = sample_result.get_register_counts(got_name)
             # Sub-term should have the same expectation as the entire
             # system.
-            assert sub_term_counts.expectation_z() == want_expectation
-            assert sub_register_counts.expectation_z() == want_expectation
+            assert sub_term_counts.expectation() == want_expectation
+            assert sub_register_counts.expectation() == want_expectation
             # Should have `shots_count` results for each.
             assert sum(sub_term_counts.values()) == shots_count
             assert sum(sub_register_counts.values()) == shots_count
@@ -165,7 +164,7 @@ def test_observe_single_param(angle, want_state, want_expectation, shots_count):
                                    hamiltonian,
                                    angle,
                                    shots_count=shots_count)
-    got_expectation = observe_result.expectation_z()
+    got_expectation = observe_result.expectation()
     assert want_expectation == got_expectation
 
     # If shots mode was enabled, check those results.
@@ -186,9 +185,9 @@ def test_observe_single_param(angle, want_state, want_expectation, shots_count):
             sub_register_counts = sample_result.get_register_counts(got_name)
             # Sub-term should have an expectation value proportional to the
             # expectation over the entire system.
-            assert sub_term_counts.expectation_z(
+            assert sub_term_counts.expectation(
             ) == want_expectation / qubit_count
-            assert sub_register_counts.expectation_z(
+            assert sub_register_counts.expectation(
             ) == want_expectation / qubit_count
             # Should have `shots_count` results for each.
             assert sum(sub_term_counts.values()) == shots_count
@@ -244,7 +243,7 @@ def test_observe_multi_param(angle_0, angle_1, angles, want_state,
                                    angle_1,
                                    angles,
                                    shots_count=shots_count)
-    got_expectation = observe_result.expectation_z()
+    got_expectation = observe_result.expectation()
     assert want_expectation == got_expectation
 
     # If shots mode was enabled, check those results.
@@ -265,9 +264,9 @@ def test_observe_multi_param(angle_0, angle_1, angles, want_state,
             sub_register_counts = sample_result.get_register_counts(got_name)
             # Sub-term should have an expectation value proportional to the
             # expectation over the entire system.
-            assert sub_term_counts.expectation_z(
+            assert sub_term_counts.expectation(
             ) == want_expectation / qubit_count
-            assert sub_register_counts.expectation_z(
+            assert sub_register_counts.expectation(
             ) == want_expectation / qubit_count
             # Should have `shots_count` results for each.
             assert sum(sub_term_counts.values()) == shots_count
@@ -321,7 +320,7 @@ def test_observe_async_no_params(want_state, want_expectation, shots_count):
                                  qpu_id=0,
                                  shots_count=shots_count)
     observe_result = future.get()
-    got_expectation = observe_result.expectation_z()
+    got_expectation = observe_result.expectation()
     assert want_expectation == got_expectation
 
     # Test that this throws an exception, the problem here
@@ -363,7 +362,7 @@ def test_observe_async_single_param(angle, want_state, want_expectation,
                                  angle,
                                  shots_count=shots_count)
     observe_result = future.get()
-    got_expectation = observe_result.expectation_z()
+    got_expectation = observe_result.expectation()
     assert want_expectation == got_expectation
 
     # If shots mode was enabled, check those results.
@@ -384,9 +383,9 @@ def test_observe_async_single_param(angle, want_state, want_expectation,
             sub_register_counts = sample_result.get_register_counts(got_name)
             # Sub-term should have an expectation value proportional to the
             # expectation over the entire system.
-            assert sub_term_counts.expectation_z(
+            assert sub_term_counts.expectation(
             ) == want_expectation / qubit_count
-            assert sub_register_counts.expectation_z(
+            assert sub_register_counts.expectation(
             ) == want_expectation / qubit_count
             # Should have `shots_count` results for each.
             assert sum(sub_term_counts.values()) == shots_count
@@ -446,7 +445,7 @@ def test_observe_async_multi_param(angle_0, angle_1, angles, want_state,
                                  angles,
                                  shots_count=shots_count)
     observe_result = future.get()
-    got_expectation = observe_result.expectation_z()
+    got_expectation = observe_result.expectation()
     assert want_expectation == got_expectation
 
     # If shots mode was enabled, check those results.
@@ -467,9 +466,9 @@ def test_observe_async_multi_param(angle_0, angle_1, angles, want_state,
             sub_register_counts = sample_result.get_register_counts(got_name)
             # Sub-term should have an expectation value proportional to the
             # expectation over the entire system.
-            assert sub_term_counts.expectation_z(
+            assert sub_term_counts.expectation(
             ) == want_expectation / qubit_count
-            assert sub_register_counts.expectation_z(
+            assert sub_register_counts.expectation(
             ) == want_expectation / qubit_count
             # Should have `shots_count` results for each.
             assert sum(sub_term_counts.values()) == shots_count
@@ -534,7 +533,7 @@ def test_observe_numpy_array(angles, want_state, want_expectation):
                                    hamiltonian,
                                    numpy_angles,
                                    shots_count=10)
-    got_expectation = observe_result.expectation_z()
+    got_expectation = observe_result.expectation()
     assert want_expectation == got_expectation
 
     # Since shots mode was enabled, check the results.
@@ -554,8 +553,8 @@ def test_observe_numpy_array(angles, want_state, want_expectation):
         sub_register_counts = sample_result.get_register_counts(got_name)
         # Sub-term should have an expectation value proportional to the
         # expectation over the entire system.
-        assert sub_term_counts.expectation_z() == want_expectation / qubit_count
-        assert sub_register_counts.expectation_z(
+        assert sub_term_counts.expectation() == want_expectation / qubit_count
+        assert sub_register_counts.expectation(
         ) == want_expectation / qubit_count
         # Should have `shots_count` results for each.
         assert sum(sub_term_counts.values()) == shots_count
@@ -598,7 +597,7 @@ def test_observe_n():
     circuit.cx(q[1], q[0])
 
     results = cudaq.observe(circuit, hamiltonian, angles)
-    energies = np.array([r.expectation_z() for r in results])
+    energies = np.array([r.expectation() for r in results])
     print(energies)
     expected = np.array([
         12.250289999999993, 12.746369918061657, 13.130147571153335,
@@ -641,7 +640,7 @@ def test_observe_n():
 
     results = cudaq.observe(kernel, hamiltonian, runtimeAngles[:, 0],
                             runtimeAngles[:, 1])
-    energies = np.array([r.expectation_z() for r in results])
+    energies = np.array([r.expectation() for r in results])
     print(energies)
     assert len(energies) == 50
 
@@ -660,7 +659,7 @@ def test_observe_n():
     print(runtimeAngles)
 
     results = cudaq.observe(kernel, hamiltonian, runtimeAngles)
-    energies = np.array([r.expectation_z() for r in results])
+    energies = np.array([r.expectation() for r in results])
     print(energies)
     assert len(energies) == 50
 
@@ -681,7 +680,7 @@ def test_observe_list():
 
     sum = 5.907
     for r in results:
-        sum += r.expectation_z() * np.real(r.get_spin().get_coefficient())
+        sum += r.expectation() * np.real(r.get_spin().get_coefficient())
     print(sum)
     want_expectation_value = -1.7487948611472093
     assert assert_close(want_expectation_value, sum, tolerance=1e-2)

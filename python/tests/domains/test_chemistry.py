@@ -60,6 +60,7 @@ def testUCCSD():
     print(energy, params)
     assert np.isclose(-1.137, energy, rtol=1e-3)
 
+
 def testHWE():
     geometry = [('H', (0., 0., 0.)), ('H', (0., 0., .7474))]
     molecule, data = cudaq.chemistry.create_molecular_hamiltonian(
