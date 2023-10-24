@@ -126,7 +126,7 @@ void IonQServerHelper::initialize(BackendConfig config) {
       this->outputNames[key] = jobOutputNames;
     }
   }
-  // Enable error mitigation
+  // Enable debiasing
   if (config.find("debias") != config.end())
     backendConfig["debias"] = config["debias"];
   if (config.find("sharpen") != config.end())
@@ -200,9 +200,18 @@ IonQServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     job["input"]["format"] = "qir";
     job["input"]["data"] = circuitCode.code;
     // Include error mitigation configuration if set in backendConfig
-    if (keyExists("debias"))
-      job["error_mitigation"]["debias"] =
-          nlohmann::json::parse(backendConfig["debias"]).get<bool>();
+    // Include error mitigation configuration if set in backendConfig
+    if (keyExists("debias")) {
+      try {
+        bool debiasValue =
+            nlohmann::json::parse(backendConfig["debias"]).get<bool>();
+        job["error_mitigation"]["debias"] = debiasValue;
+      } catch (const nlohmann::json::exception &e) {
+        throw std::runtime_error(
+            "Invalid value for 'debias'. It should be a boolean (true/false).");
+      }
+    }
+
     jobs.push_back(job);
   }
 
