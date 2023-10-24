@@ -7,6 +7,7 @@
   <title>CUDA Quantum Open Beta Installation &mdash; NVIDIA CUDA Quantum  documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/tabs.css" type="text/css" />
       <link rel="stylesheet" href="_static/copybutton.css" type="text/css" />
       <link rel="stylesheet" href="_static/cudaq_override.css" type="text/css" />
       <link rel="stylesheet" href="_static/sg_gallery.css" type="text/css" />
@@ -21,6 +22,7 @@
         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
         <script src="_static/sphinx_highlight.js"></script>
+        <script src="_static/tabs.js"></script>
         <script src="_static/clipboard.min.js"></script>
         <script src="_static/copybutton.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -104,7 +106,8 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#python-wheels">Python wheels</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#build-cuda-quantum-from-source">Build CUDA Quantum from Source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#building-from-source">Building from Source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#next-steps">Next Steps</a></li>
 </ul>
 </li>
@@ -117,7 +120,15 @@
 <li class="toctree-l2"><a class="reference internal" href="using/cudaq/generic_functions.html">Generic Library Functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="using/cudaq/builder.html">Creating Kernels at Runtime</a></li>
 <li class="toctree-l2"><a class="reference internal" href="using/cudaq/variational.html">Variational Algorithms</a></li>
-<li class="toctree-l2"><a class="reference internal" href="using/cudaq/platform.html">Asynchronous Execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/cudaq/platform.html">Multi-processor Platforms</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="using/cudaq/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/cudaq/platform.html#parallel-distribution-mode">Parallel distribution mode</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="using/cudaq/platform.html#c">C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/cudaq/platform.html#python">Python</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="using/cudaq/verbose_out.html">Debugging and Verbose Logging</a></li>
 </ul>
 </li>
@@ -138,6 +149,7 @@
 <li class="toctree-l3"><a class="reference internal" href="using/cpp.html#computing-expectation-values">Computing Expectation Values</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/cpp.html#multi-control-synthesis">Multi-control Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/cpp.html#simulations-with-cuquantum">Simulations with cuQuantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/cpp.html#noisy-simulation">Noisy Simulation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/cpp.html#using-quantum-hardware-providers">Using Quantum Hardware Providers</a></li>
 </ul>
 </li>
@@ -220,10 +232,7 @@
 <li class="toctree-l4"><a class="reference internal" href="specification/cudaq/operators.html#cudaq-spin-op">4.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::spin_op</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="specification/cudaq/operations.html">5. Quantum Operations</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="specification/cudaq/operations.html#operations-on-cudaq-qubit">5.1. Operations on <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l3"><a class="reference internal" href="specification/cudaq/operations.html">5. Quantum Operations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="specification/cudaq/kernels.html">6. Quantum Kernels</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="specification/cudaq/kernels.html#kernel-composability">6.1. Kernel Composability</a></li>
 <li class="toctree-l4"><a class="reference internal" href="specification/cudaq/kernels.html#allowed-kernel-classical-function-invocations">6.2. Allowed Kernel Classical Function Invocations</a></li>
@@ -258,7 +267,6 @@
 <li class="toctree-l2"><a class="reference internal" href="specification/quake-dialect.html">   Quake Specification</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="specification/quake-dialect.html#general-introduction">General Introduction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="specification/quake-dialect.html#motivation">Motivation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="specification/quake-dialect.html#quake-types">Quake Types</a></li>
 </ul>
 </li>
 </ul>
@@ -331,6 +339,30 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.all_gather"><code class="docutils literal notranslate"><span class="pre">all_gather()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.is_initialized"><code class="docutils literal notranslate"><span class="pre">is_initialized()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.finalize"><code class="docutils literal notranslate"><span class="pre">finalize()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/default_ops.html">Quantum Operations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/default_ops.html#unitary-operations-on-qubits">Unitary Operations on Qubits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#x"><code class="code docutils literal notranslate"><span class="pre">x</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#y"><code class="code docutils literal notranslate"><span class="pre">y</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#z"><code class="code docutils literal notranslate"><span class="pre">z</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#h"><code class="code docutils literal notranslate"><span class="pre">h</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#r1"><code class="code docutils literal notranslate"><span class="pre">r1</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#rx"><code class="code docutils literal notranslate"><span class="pre">rx</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#ry"><code class="code docutils literal notranslate"><span class="pre">ry</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#rz"><code class="code docutils literal notranslate"><span class="pre">rz</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#s"><code class="code docutils literal notranslate"><span class="pre">s</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#t"><code class="code docutils literal notranslate"><span class="pre">t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#swap"><code class="code docutils literal notranslate"><span class="pre">swap</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/default_ops.html#adjoint-and-controlled-operations">Adjoint and Controlled Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/default_ops.html#measurements-on-qubits">Measurements on Qubits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#mz"><code class="code docutils literal notranslate"><span class="pre">mz</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#mx"><code class="code docutils literal notranslate"><span class="pre">mx</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#my"><code class="code docutils literal notranslate"><span class="pre">my</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -457,34 +489,81 @@ extension in the container environment for all of your development tools to be a
 </section>
 </section>
 <section id="python-wheels">
-<h2>Python wheels<a class="headerlink" href="#python-wheels" title="Permalink to this heading">¶</a></h2>
-<p>CUDA Quantum Python wheels are available on [PyPI.org](<a class="reference external" href="https://pypi.org/project/cuda-quantum">https://pypi.org/project/cuda-quantum</a>).
-The CUDA Quantum Python wheels contain the Python API and core components of
-CUDA Quantum. For more information about available packages and documentation,
+<span id="install-python-wheels"></span><h2>Python wheels<a class="headerlink" href="#python-wheels" title="Permalink to this heading">¶</a></h2>
+<p>CUDA Quantum Python wheels are available on <a class="reference external" href="https://pypi.org/project/cuda-quantum">PyPI.org</a>. Installation instructions can be found in the <a class="reference external" href="https://pypi.org/project/cuda-quantum/#description">project description</a>.
+For more information about available versions and documentation,
 see <a class="reference internal" href="versions.html"><span class="doc">CUDA Quantum Versions</span></a>.</p>
-<p>To install the latest release using <a class="reference external" href="https://pypi.org/project/pip/">pip</a>, run</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python3 -m pip install cuda-quantum</span>
+<p>At this time, wheels are distributed for Linux operating systems only.</p>
+<p>There are currently no source distributions available on PyPI, but you can download the source code for the latest version of the CUDA Quantum Python wheels from our <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>. The source code for previous versions can be downloaded from the respective <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">GitHub Release</a>.</p>
+<p>To build the CUDA Quantum Python API from source using pip, run the following commands:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">git clone https://github.com/NVIDIA/cuda-quantum.git</span>
+<span class="go">cd cuda-quantum &amp;&amp; ./scripts/install_prerequisites.sh</span>
+<span class="go">pip install .</span>
 </pre></div>
 </div>
-<p>There are currently no source distributions available on PyPI, but you can download the source code
-for all releases <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">here</a>.
-For more information about building a CUDA Quantum Python wheel from source, see the
-<a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/blob/main/python/README.md">README</a>.</p>
+<p>For more information about building the entire C++ and Python API’s, please see <a class="reference internal" href="#building-from-source">Building from Source</a>.</p>
 </section>
-<section id="build-cuda-quantum-from-source">
-<h2>Build CUDA Quantum from Source<a class="headerlink" href="#build-cuda-quantum-from-source" title="Permalink to this heading">¶</a></h2>
-<p>For more information about building CUDA Quantum from source,
-we refer to the <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/blob/main/Building.md">CUDA Quantum GitHub repository</a>.</p>
+<section id="building-from-source">
+<h2>Building from Source<a class="headerlink" href="#building-from-source" title="Permalink to this heading">¶</a></h2>
+<p>Instructions for building the Python wheels from source are given in the section <a class="reference internal" href="#install-python-wheels"><span class="std std-ref">Python wheels</span></a>.
+For more information about building the entire C++ and Python API from source, we refer to the <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/blob/main/Building.md">CUDA Quantum GitHub repository</a>.</p>
+</section>
+<section id="dependencies-and-compatibility">
+<span id="id1"></span><h2>Dependencies and Compatibility<a class="headerlink" href="#dependencies-and-compatibility" title="Permalink to this heading">¶</a></h2>
+<p>CUDA Quantum can be used to compile and run quantum programs on a CPU-only system, but a GPU is highly recommended and necessary to use the GPU-based simulators, see also <a class="reference internal" href="using/simulators.html"><span class="doc">CUDA Quantum Simulation Backends</span></a>.</p>
+<p>The supported CPUs include x86_64 (x86-64-v3 architecture and newer) and ARM64 architectures.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Some of the components included in the CUDA Quantum Python wheels depend on an existing CUDA installation on your system. For more information about installing the CUDA Quantum Python wheels, take a look at <a class="reference internal" href="#install-python-wheels"><span class="std std-ref">this section</span></a>.</p>
+</div>
+<p>The following table summarizes the required components.</p>
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-text">Supported Systems</span><a class="headerlink" href="#id2" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col style="width: 38%" />
+<col style="width: 63%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p>CPU architectures</p></td>
+<td><p>x86_64, ARM64</p></td>
+</tr>
+<tr class="row-even"><td><p>Operating System</p></td>
+<td><p>Linux</p></td>
+</tr>
+<tr class="row-odd"><td><p>Tested Distributions</p></td>
+<td><p>CentOS 8; Debian 11, 12; Fedora 38; OpenSUSE/SELD/SLES 15.5; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04</p></td>
+</tr>
+<tr class="row-even"><td><p>Python versions</p></td>
+<td><p>3.8+</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default" id="id3">
+<caption><span class="caption-text">Requirements for GPU Simulation</span><a class="headerlink" href="#id3" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col style="width: 38%" />
+<col style="width: 63%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p>GPU Architectures</p></td>
+<td><p>Volta, Turing, Ampere, Ada, Hopper</p></td>
+</tr>
+<tr class="row-even"><td><p>NVIDIA GPU with Compute Capability</p></td>
+<td><p>7.0+</p></td>
+</tr>
+<tr class="row-odd"><td><p>CUDA</p></td>
+<td><p>11.x (Driver 470.57.02+), 12.x (Driver 525.60.13+)</p></td>
+</tr>
+</tbody>
+</table>
+<p>Detailed information about supported drivers for different CUDA versions and be found <a class="reference external" href="https://docs.nvidia.com/deploy/cuda-compatibility/">here</a>.</p>
 </section>
 <section id="next-steps">
 <h2>Next Steps<a class="headerlink" href="#next-steps" title="Permalink to this heading">¶</a></h2>
-<p>With the CUDA Quantum Docker image installed and a container up and running, check out the
-Using CUDA Quantum <a class="reference external" href="using/cudaq.html">page</a>. To run the examples codes in the container, checkout the Compiling
-and Executing section <a class="reference external" href="using/cudaq/compiling.html">here</a>.</p>
-<p>Once in the VS Code IDE or in the terminal for the container in headless mode, you’ll
-notice there is an <code class="code docutils literal notranslate"><span class="pre">examples/</span></code> folder. These examples are provided to
+<p>The Docker image contains a folder with example in the <code class="code docutils literal notranslate"><span class="pre">/home/cudaq</span></code> directory. These examples are provided to
 get you started with CUDA Quantum and understanding the programming and execution model.
-Start of by trying to compile a simple one, like <code class="code docutils literal notranslate"><span class="pre">examples/cpp/basics/static_kernel.cpp</span></code></p>
+If you are not using the Docker image, you can find these examples on our <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>.</p>
+<p>Start of by trying to compile a simple one, like <code class="code docutils literal notranslate"><span class="pre">examples/cpp/basics/static_kernel.cpp</span></code>:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ examples/cpp/basics/static_kernel.cpp</span>
 <span class="go">./a.out</span>
 </pre></div>
@@ -495,6 +574,7 @@ run command), try out the 30 qubit version of this example.</p>
 <span class="go">./a.out</span>
 </pre></div>
 </div>
+<p>For more information about developing and running CUDA Quantum code, take a look at the page <a class="reference internal" href="using/cudaq.html"><span class="doc">Using CUDA Quantum</span></a>.</p>
 </section>
 </section>
 

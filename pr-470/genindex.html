@@ -6,6 +6,7 @@
   <title>Index &mdash; NVIDIA CUDA Quantum  documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/tabs.css" type="text/css" />
       <link rel="stylesheet" href="_static/copybutton.css" type="text/css" />
       <link rel="stylesheet" href="_static/cudaq_override.css" type="text/css" />
       <link rel="stylesheet" href="_static/sg_gallery.css" type="text/css" />
@@ -20,6 +21,7 @@
         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
         <script src="_static/sphinx_highlight.js"></script>
+        <script src="_static/tabs.js"></script>
         <script src="_static/clipboard.min.js"></script>
         <script src="_static/copybutton.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -101,7 +103,8 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#python-wheels">Python wheels</a></li>
-<li class="toctree-l2"><a class="reference internal" href="install.html#build-cuda-quantum-from-source">Build CUDA Quantum from Source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#building-from-source">Building from Source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
@@ -114,7 +117,15 @@
 <li class="toctree-l2"><a class="reference internal" href="using/cudaq/generic_functions.html">Generic Library Functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="using/cudaq/builder.html">Creating Kernels at Runtime</a></li>
 <li class="toctree-l2"><a class="reference internal" href="using/cudaq/variational.html">Variational Algorithms</a></li>
-<li class="toctree-l2"><a class="reference internal" href="using/cudaq/platform.html">Asynchronous Execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/cudaq/platform.html">Multi-processor Platforms</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="using/cudaq/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/cudaq/platform.html#parallel-distribution-mode">Parallel distribution mode</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="using/cudaq/platform.html#c">C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/cudaq/platform.html#python">Python</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="using/cudaq/verbose_out.html">Debugging and Verbose Logging</a></li>
 </ul>
 </li>
@@ -135,6 +146,7 @@
 <li class="toctree-l3"><a class="reference internal" href="using/cpp.html#computing-expectation-values">Computing Expectation Values</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/cpp.html#multi-control-synthesis">Multi-control Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/cpp.html#simulations-with-cuquantum">Simulations with cuQuantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/cpp.html#noisy-simulation">Noisy Simulation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/cpp.html#using-quantum-hardware-providers">Using Quantum Hardware Providers</a></li>
 </ul>
 </li>
@@ -217,10 +229,7 @@
 <li class="toctree-l4"><a class="reference internal" href="specification/cudaq/operators.html#cudaq-spin-op">4.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::spin_op</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="specification/cudaq/operations.html">5. Quantum Operations</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="specification/cudaq/operations.html#operations-on-cudaq-qubit">5.1. Operations on <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l3"><a class="reference internal" href="specification/cudaq/operations.html">5. Quantum Operations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="specification/cudaq/kernels.html">6. Quantum Kernels</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="specification/cudaq/kernels.html#kernel-composability">6.1. Kernel Composability</a></li>
 <li class="toctree-l4"><a class="reference internal" href="specification/cudaq/kernels.html#allowed-kernel-classical-function-invocations">6.2. Allowed Kernel Classical Function Invocations</a></li>
@@ -255,7 +264,6 @@
 <li class="toctree-l2"><a class="reference internal" href="specification/quake-dialect.html">   Quake Specification</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="specification/quake-dialect.html#general-introduction">General Introduction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="specification/quake-dialect.html#motivation">Motivation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="specification/quake-dialect.html#quake-types">Quake Types</a></li>
 </ul>
 </li>
 </ul>
@@ -328,6 +336,30 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.all_gather"><code class="docutils literal notranslate"><span class="pre">all_gather()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.is_initialized"><code class="docutils literal notranslate"><span class="pre">is_initialized()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.finalize"><code class="docutils literal notranslate"><span class="pre">finalize()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/default_ops.html">Quantum Operations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/default_ops.html#unitary-operations-on-qubits">Unitary Operations on Qubits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#x"><code class="code docutils literal notranslate"><span class="pre">x</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#y"><code class="code docutils literal notranslate"><span class="pre">y</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#z"><code class="code docutils literal notranslate"><span class="pre">z</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#h"><code class="code docutils literal notranslate"><span class="pre">h</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#r1"><code class="code docutils literal notranslate"><span class="pre">r1</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#rx"><code class="code docutils literal notranslate"><span class="pre">rx</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#ry"><code class="code docutils literal notranslate"><span class="pre">ry</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#rz"><code class="code docutils literal notranslate"><span class="pre">rz</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#s"><code class="code docutils literal notranslate"><span class="pre">s</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#t"><code class="code docutils literal notranslate"><span class="pre">t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#swap"><code class="code docutils literal notranslate"><span class="pre">swap</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/default_ops.html#adjoint-and-controlled-operations">Adjoint and Controlled Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/default_ops.html#measurements-on-qubits">Measurements on Qubits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#mz"><code class="code docutils literal notranslate"><span class="pre">mz</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#mx"><code class="code docutils literal notranslate"><span class="pre">mx</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#my"><code class="code docutils literal notranslate"><span class="pre">my</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -544,6 +576,14 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.ObserveResult.counts">counts() (cudaq.ObserveResult method)</a>
 </li>
+      <li><a href="api/languages/python_api.html#cudaq.Kernel.cr1">cr1() (cudaq.Kernel method)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.Kernel.crx">crx() (cudaq.Kernel method)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.Kernel.cry">cry() (cudaq.Kernel method)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.Kernel.crz">crz() (cudaq.Kernel method)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.Kernel.cs">cs() (cudaq.Kernel method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.Kernel.ct">ct() (cudaq.Kernel method)</a>
@@ -699,7 +739,11 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq14kernel_builder4callEvRR18OtherKernelBuilderDpR11QuakeValues">cudaq::kernel_builder::call (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq14kernel_builder4callEvR18OtherKernelBuilderRNSt6vectorI10QuakeValueEE">[1]</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder11constantValEd">cudaq::kernel_builder::constantVal (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq14kernel_builder7controlEvR18OtherKernelBuilderR10QuakeValueDpR11QuakeValues">cudaq::kernel_builder::control (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq14kernel_builder7controlEvR18OtherKernelBuilderR10QuakeValueRNSt6vectorI10QuakeValueEE">[1]</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I_23QuakeValueOrNumericTypeDpEN5cudaq14kernel_builder9exp_pauliEvRK6ParamTRKNSt6stringEDpRR9QubitArgs">cudaq::kernel_builder::exp_pauli (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I_23QuakeValueOrNumericTypeEN5cudaq14kernel_builder9exp_pauliEvRK6ParamTRK10QuakeValueRKNSt6stringE">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq14kernel_builder8for_loopEvRR9StartTypeRR7EndTypeRRNSt8functionIFvR10QuakeValueEEE">cudaq::kernel_builder::for_loop (C++ function)</a>
 </li>
@@ -795,7 +839,7 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_result4dumpEv">cudaq::observe_result::dump (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq14observe_result9exp_val_zEd10SpinOpType">cudaq::observe_result::exp_val_z (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_result9exp_val_zEv">[1]</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq14observe_result11expectationEd10SpinOpType">cudaq::observe_result::expectation (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_result11expectationEv">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_result14id_coefficientEv">cudaq::observe_result::id_coefficient (C++ function)</a>
 </li>
@@ -803,10 +847,10 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_resultcvdEv">cudaq::observe_result::operator double (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_result8raw_dataEv">cudaq::observe_result::raw_data (C++ function)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_result8raw_dataEv">cudaq::observe_result::raw_data (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq20optimizable_functionE">cudaq::optimizable_function (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq19optimization_resultE">cudaq::optimization_result (C++ type)</a>
@@ -879,6 +923,8 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq10QuakeValue8getValueEv">cudaq::QuakeValue::getValue (C++ function)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq10QuakeValue7inverseEv">cudaq::QuakeValue::inverse (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq10QuakeValue8isStdVecEv">cudaq::QuakeValue::isStdVec (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq10QuakeValuemlE10QuakeValue">cudaq::QuakeValue::operator* (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq10QuakeValuemlEKd">[1]</a>
@@ -886,6 +932,8 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq10QuakeValueplE10QuakeValue">cudaq::QuakeValue::operator+ (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq10QuakeValueplEKd">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq10QuakeValueplEKi">[2]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq10QuakeValuemiE10QuakeValue">cudaq::QuakeValue::operator- (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq10QuakeValuemiEKd">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq10QuakeValuemiEKi">[2]</a>, <a href="api/languages/cpp_api.html#_CPPv4NK5cudaq10QuakeValuemiEv">[3]</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq10QuakeValuedvE10QuakeValue">cudaq::QuakeValue::operator/ (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq10QuakeValuedvEKd">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq10QuakeValueixEKNSt6size_tE">cudaq::QuakeValue::operator[] (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq10QuakeValueixERK10QuakeValue">[1]</a>
 </li>
@@ -980,6 +1028,8 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result3endEv">cudaq::sample_result::end (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4NK5cudaq13sample_result3endEv">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result9exp_val_zEKNSt11string_viewE">cudaq::sample_result::exp_val_z (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result11expectationEKNSt11string_viewE">cudaq::sample_result::expectation (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result12get_marginalERKNSt6vectorINSt6size_tEEEKNSt11string_viewE">cudaq::sample_result::get_marginal (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result12get_marginalERRKNSt6vectorINSt6size_tEEEKNSt11string_viewE">[1]</a>
 </li>
@@ -1083,7 +1133,7 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5state7overlapER5state">cudaq::state::overlap (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5state5stateE5State">cudaq::state::state (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5state5stateE5State">cudaq::state::state (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq5state5stateEv">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq11unset_noiseEv">cudaq::unset_noise (C++ function)</a>
 </li>
@@ -1120,6 +1170,16 @@
 
 <h2 id="E">E</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/python_api.html#cudaq.Kernel.exp_pauli">exp_pauli() (cudaq.Kernel method)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.ObserveResult.expectation">expectation() (cudaq.ObserveResult method)</a>
+
+      <ul>
+        <li><a href="api/languages/python_api.html#cudaq.SampleResult.expectation">(cudaq.SampleResult method)</a>
+</li>
+      </ul></li>
+  </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.ObserveResult.expectation_z">expectation_z() (cudaq.ObserveResult method)</a>
 

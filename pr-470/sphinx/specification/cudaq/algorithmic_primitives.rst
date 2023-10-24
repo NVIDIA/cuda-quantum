@@ -85,7 +85,7 @@ CUDA Quantum specifies the following structure for :code:`cudaq::sample_result`:
           get_marginal(const std::vector<std::size_t> &&marginalIndices,
                  const std::string_view registerName = GlobalRegisterName);
 
-          double exp_val_z(const std::string_view registerName == GlobalRegisterName);
+          double expectation(const std::string_view registerName == GlobalRegisterName);
           double probability(std::string_view bitString, const std::string_view registerName == GlobalRegisterName);
           std::size_t size(const std::string_view registerName == GlobalRegisterName);
           
@@ -206,10 +206,10 @@ generated and used as part of that expectation value computation. The
 
         sample_results raw_data() { return data; };
         operator double();
-        double exp_val_z();
+        double expectation();
         
         template <typename SpinOpType>
-        double exp_val_z(SpinOpType term);
+        double expectation(SpinOpType term);
 
         template <typename SpinOpType>
         sample_result counts(SpinOpType term);
@@ -229,8 +229,8 @@ This return type can be used in the following way.
 
     // I require the result with all generated data 
     auto result = cudaq::observe(kernel, spinOp, args...);
-    auto expVal = result.exp_val_z();
-    auto X0X1Exp = result.exp_val_z(x(0)*x(1));
+    auto expVal = result.expectation();
+    auto X0X1Exp = result.expectation(x(0)*x(1));
     auto X0X1Data = result.counts(x(0)*x(1));
     result.dump();
 
