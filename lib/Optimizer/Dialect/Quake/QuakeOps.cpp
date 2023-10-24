@@ -58,46 +58,47 @@ bool quake::isSupportedMappingOperation(Operation *op) {
   return isa<OperatorInterface, MeasurementInterface, SinkOp>(op);
 }
 
-mlir::ValueRange quake::getWiresFromRange(mlir::ValueRange range) {
-  mlir::ValueRange retWires = range;
+mlir::ValueRange quake::getQuantumTypesFromRange(mlir::ValueRange range) {
 
-  // Skip over non-wires at the beginning
-  int numNonWires = 0;
-  for (auto operand : retWires) {
+  // Skip over classical types at the beginning
+  int numClassical = 0;
+  for (auto operand : range) {
     if (!isa<RefType, VeqType, WireType>(operand.getType()))
-      numNonWires++;
+      numClassical++;
     else
       break;
   }
-  retWires = retWires.drop_front(numNonWires);
 
-  // Make sure all remaining operands are wires
-  for (auto operand : retWires)
+  mlir::ValueRange retVals = range.drop_front(numClassical);
+
+  // Make sure all remaining operands are quantum
+  for (auto operand : retVals)
     if (!isa<RefType, VeqType, WireType>(operand.getType()))
-      return retWires.drop_front(retWires.size());
+      return retVals.drop_front(retVals.size());
 
-  return retWires;
+  return retVals;
 }
 
-mlir::ValueRange quake::getWireResults(Operation *op) {
-  return getWiresFromRange(op->getResults());
+mlir::ValueRange quake::getQuantumResults(Operation *op) {
+  return getQuantumTypesFromRange(op->getResults());
 }
 
-mlir::ValueRange quake::getWireOperands(Operation *op) {
-  return getWiresFromRange(op->getOperands());
+mlir::ValueRange quake::getQuantumOperands(Operation *op) {
+  return getQuantumTypesFromRange(op->getOperands());
 }
 
-LogicalResult quake::setWireOperands(Operation *op, ValueRange wires) {
-  mlir::ValueRange opWires = getWiresFromRange(op->getOperands());
+LogicalResult quake::setQuantumOperands(Operation *op, ValueRange quantumVals) {
+  mlir::ValueRange quantumOperands =
+      getQuantumTypesFromRange(op->getOperands());
 
-  if (opWires.size() != wires.size())
+  if (quantumOperands.size() != quantumVals.size())
     return failure();
 
-  // Count how many non-wire operands at beginning
-  auto numNonWires = op->getOperands().size() - opWires.size();
+  // Count how many classical operands at beginning
+  auto numClassical = op->getOperands().size() - quantumOperands.size();
 
-  for (auto &&[i, wire] : llvm::enumerate(wires))
-    op->setOperand(numNonWires + i, wire);
+  for (auto &&[i, quantumVal] : llvm::enumerate(quantumVals))
+    op->setOperand(numClassical + i, quantumVal);
 
   return success();
 }
