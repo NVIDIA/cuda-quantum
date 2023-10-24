@@ -40,24 +40,23 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
         optor.emitOpError("Couldn't produce matrix.");
         return WalkResult::interrupt();
       }
-      auto wireOperands = quake::getWireOperands(op);
-      if (wireOperands.empty()) {
-        optor.emitOpError("Couldn't get wire operands");
+      auto quantumOperands = quake::getQuantumOperands(op);
+      if (quantumOperands.empty()) {
+        optor.emitOpError("Couldn't get quantum operands");
         return WalkResult::interrupt();
       }
       // If we can't get the qubits involved in this operation, stop the walk
-      if (failed(getQubits(wireOperands, qubits))) {
+      if (failed(getQubits(quantumOperands, qubits))) {
         optor.emitOpError("Couldn't get the qubits.");
         return WalkResult::interrupt();
       }
 
-      for (auto &&[newWire, wire] :
-           llvm::zip(quake::getWireResults(op), quake::getWireOperands(op)))
-        qubitMap[newWire] = qubitMap[wire];
+      for (auto &&[newQuantumOp, quantumOp] :
+           llvm::zip(quake::getQuantumResults(op), quake::getQuantumOperands(op)))
+        qubitMap[newQuantumOp] = qubitMap[quantumOp];
 
       // When checking mapped circuits, we do a software swap, i.e., just change
-      // the mapping between wires an qubits instead of applying the swap
-      // operation.
+      // the qubit mapping instead of applying the swap operation.
       if (upToMapping && isa<quake::SwapOp>(op)) {
         std::swap(qubitMap[op->getResult(0)], qubitMap[op->getResult(1)]);
       } else {
