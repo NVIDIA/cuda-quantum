@@ -1,0 +1,19 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${CUDA_QUANTUM_PATH}/**",
+                "/opt/llvm/lib/clang/**",
+                "/usr/include/x86_64-linux-gnu/**"
+            ],
+            "compilerPath": "${CUDA_QUANTUM_PATH}/bin/nvq++",
+            "defines": [],
+            "cStandard": "c17",
+            "cppStandard": "c++20",
+            "intelliSenseMode": "linux-clang-x64"
+        }
+    ],
+    "version": 4
+}

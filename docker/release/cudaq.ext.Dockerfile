@@ -47,6 +47,9 @@ RUN if [ -x "$(command -v pip)" ]; then \
 # components are already installed but not all of them.
 
 USER cudaq
+
+ARG vscode_config=.vscode
+COPY "${vscode_config}" $HOME/.vscode
 ARG vscode_profile='{\
     "name": "CUDA Quantum",\
     "settings": "{\"settings\":\"{\\r\\n    \\\"workbench.colorTheme\\\": \\\"Default Light+\\\",\\r\\n    \\\"files.exclude\\\": {\\r\\n        \\\".*\\\": true\\r\\n    }\\r\\n}\"}",\
