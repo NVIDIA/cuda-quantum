@@ -17,19 +17,20 @@ mlir::LogicalResult verifyWireArityAndCoarity(mlir::Operation *op);
 /// sink.
 bool isSupportedMappingOperation(mlir::Operation *op);
 
-/// Return the subset of a range that is `quake.wire` or `quake.ref`. That is -
-/// it strips classical parameters off the beginning of the range.
-mlir::ValueRange getWiresFromRange(mlir::ValueRange range);
+/// Return the subset of a range that is a quantum type (i.e. `quake.wire`,
+/// `quake.ref`, or `quake.veq`). That is - it strips classical parameters off
+/// the beginning of the range.
+mlir::ValueRange getQuantumTypesFromRange(mlir::ValueRange range);
 
 /// Returns the operands from \p op that are not classical parameters.
-mlir::ValueRange getWireOperands(mlir::Operation *op);
+mlir::ValueRange getQuantumOperands(mlir::Operation *op);
 
 /// Returns the results from \p op that are not classical parameters.
-mlir::ValueRange getWireResults(mlir::Operation *op);
+mlir::ValueRange getQuantumResults(mlir::Operation *op);
 
-/// Set the operands from \p op from \wires.
-mlir::LogicalResult setWireOperands(mlir::Operation *op,
-                                    mlir::ValueRange wires);
+/// Set the operands from \p op from \p quantumVals.
+mlir::LogicalResult setQuantumOperands(mlir::Operation *op,
+                                       mlir::ValueRange quantumVals);
 } // namespace quake
 
 namespace cudaq {
