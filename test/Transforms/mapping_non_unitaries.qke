@@ -23,7 +23,7 @@ func.func @test_measurement() {
   return
 }
 
-// CHECK-LABEL:   func.func @test_measurement() {
+// CHECK-LABEL:   func.func @test_measurement() attributes {mapping_v2p = [0, 2, 1]} {
 // CHECK:           %[[VAL_0:.*]] = quake.null_wire
 // CHECK:           %[[VAL_1:.*]] = quake.null_wire
 // CHECK:           %[[VAL_2:.*]] = quake.null_wire

@@ -542,6 +542,22 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     SabreRouter router(d, wireToVirtualQ, placement);
     router.route(*blocks.begin(), sources);
     sortTopologically(&block);
+
+    // Populate mapping_v2p attribute on this function such that:
+    // - mapping_v2p[v] contains the final physical qubit placement for virtual
+    //   qubit `v`.
+    // To map the backend qubits back to the original user program (i.e. before
+    // this pass), run something like this:
+    //   for (int v = 0; v < numQubits; v++)
+    //     dataForOriginalQubit[v] = dataFromBackendQubit[mapping_v2p[v]];
+    OpBuilder builder(&block, block.begin());
+    llvm::SmallVector<Attribute> attrs(d.getNumQubits());
+    for (unsigned int v = 0; v < d.getNumQubits(); v++)
+      attrs[v] =
+          IntegerAttr::get(builder.getIntegerType(64),
+                           placement.getPhy(Placement::VirtualQ(v)).index);
+
+    func->setAttr("mapping_v2p", builder.getArrayAttr(attrs));
   }
 };
 
