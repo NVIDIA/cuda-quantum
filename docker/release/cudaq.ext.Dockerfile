@@ -49,7 +49,7 @@ RUN os=$([ "$(uname -m)" == "aarch64" ] && echo cli-alpine-arm64 || echo cli-alp
 USER cudaq
 
 ARG vscode_config=.vscode
-COPY "${vscode_config}" $HOME/.vscode
+COPY "${vscode_config}" /home/cudaq/.vscode
 ARG vscode_profile='{\
     "name": "CUDA Quantum",\
     "settings": "{\"settings\":\"{\\r\\n    \\\"workbench.colorTheme\\\": \\\"Default Light+\\\",\\r\\n    \\\"files.exclude\\\": {\\r\\n        \\\".*\\\": true,\\r\\n        \\\"*.o\\\": true\\r\\n        \\\"*.x\\\": true\\r\\n    }\\r\\n}\"}",\
