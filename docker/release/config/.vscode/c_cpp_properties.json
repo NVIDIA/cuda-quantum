@@ -1,7 +1,7 @@
 {
     "configurations": [
         {
-            "name": "Linux",
+            "name": "CUDA Quantum (Linux)",
             "includePath": [
                 "${workspaceFolder}/**",
                 "${CUDA_QUANTUM_PATH}/**",
