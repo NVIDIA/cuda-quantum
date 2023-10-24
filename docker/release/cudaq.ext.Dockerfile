@@ -11,11 +11,6 @@ FROM $base_image
 
 USER root
 
-# Install VS Code CLI to facilitate connecting via tunnel to a remote host.
-RUN os=$([ "$(uname -m)" == "aarch64" ] && echo cli-alpine-arm64 || echo cli-alpine-x64) \
-    && curl -Lk "https://code.visualstudio.com/sha/download?build=stable&os=$os" --output vscode_cli.tar.gz \
-    && tar -xf vscode_cli.tar.gz && rm vscode_cli.tar.gz && mv code /usr/bin/
-
 # Copy over additional CUDA Quantum assets.
 ARG assets=./assets
 COPY "$assets" "$CUDA_QUANTUM_PATH/assets/"
@@ -41,11 +36,16 @@ RUN if [ -x "$(command -v pip)" ]; then \
             pip install --no-cache-dir mpi4py~=3.1; \
         fi; \
     fi
-
 # Make sure that apt-get remains updated at the end!;
 # If we don't do that, then apt-get will get confused when some CUDA
 # components are already installed but not all of them.
 
+# Install VS Code CLI to facilitate connecting via tunnel to a remote host.
+RUN os=$([ "$(uname -m)" == "aarch64" ] && echo cli-alpine-arm64 || echo cli-alpine-x64) \
+    && curl -Lk "https://code.visualstudio.com/sha/download?build=stable&os=$os" --output vscode_cli.tar.gz \
+    && tar -xf vscode_cli.tar.gz && rm vscode_cli.tar.gz && mv code /usr/bin/
+
+# Add additional VS Code configurations.
 USER cudaq
 
 ARG vscode_config=.vscode
