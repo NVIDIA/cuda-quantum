@@ -561,7 +561,7 @@ jobs:
           release_id=${{ fromJson(needs.assets.outputs.python_wheels)[format('{0}', matrix.info_file)].release_id }}
           platform=${{ fromJson(needs.assets.outputs.python_wheels)[format('{0}', matrix.info_file)].platform }}
           cudaqwheeldeps_image=${{ fromJson(needs.assets.outputs.python_wheels)[format('{0}', matrix.info_file)].image_hash }}
-          gh release view $release_id --json body --jq .body > rel_notes.txt
+          gh release view $release_id -R ${{ github.repository }} --json body --jq .body > rel_notes.txt
           header_length=`cat rel_notes.txt | grep -n "Release notes generated" | cut -d ':' -f 1`
           head -n $(($header_length - 1)) rel_notes.txt > new_notes.txt
           echo -e "\nImage to create $platform wheels:\n" >> new_notes.txt
@@ -710,9 +710,9 @@ jobs:
         run: |
           # Delete the draft release(s) used to exchange data between GitLab and GitHub.
           for release_id in `echo ${{ needs.assets.outputs.releases }}`; do
-            if [ -n "$(gh release list | grep -s $release_id)" ]; then
+            if [ -n "$(gh release list -R ${{ github.repository }} | grep -s $release_id)" ]; then
               echo "## Draft Release $release_id:" >> $GITHUB_STEP_SUMMARY
-              gh release view $release_id --json body --jq .body > rel_notes.txt
+              gh release view $release_id -R ${{ github.repository }} --json body --jq .body > rel_notes.txt
               header_length=`cat rel_notes.txt | grep -n "Release notes generated" | cut -d ':' -f 1`
               head -n $(($header_length - 1)) rel_notes.txt >> $GITHUB_STEP_SUMMARY
               gh release delete $release_id -R ${{ github.repository }} -y
