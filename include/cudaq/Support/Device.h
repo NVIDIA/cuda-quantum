@@ -59,13 +59,20 @@ public:
   ///     / | \
   ///    N  7  6
   ///
-  static Device star(unsigned numQubits) {
+  /// @param numQubits Number of qubits in topology
+  /// @param centerQubit 0-based ID of center qubit (default 0)
+  static Device star(unsigned numQubits, unsigned centerQubit = 0) {
     Device device;
-    Qubit center = device.topology.createNode();
-    for (unsigned i = 1u; i < numQubits; ++i) {
+
+    // Create nodes
+    for (unsigned i = 0u; i < numQubits; ++i)
       device.topology.createNode();
-      device.topology.addEdge(center, Qubit(i));
-    }
+
+    // Create edges
+    for (unsigned i = 0u; i < numQubits; ++i)
+      if (i != centerQubit)
+        device.topology.addEdge(Qubit(centerQubit), Qubit(i));
+
     device.computeAllPairShortestPaths();
     return device;
   }
