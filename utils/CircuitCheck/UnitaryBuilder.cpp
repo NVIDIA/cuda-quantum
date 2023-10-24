@@ -51,8 +51,8 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
         return WalkResult::interrupt();
       }
 
-      for (auto &&[newQuantumOp, quantumOp] :
-           llvm::zip(quake::getQuantumResults(op), quake::getQuantumOperands(op)))
+      for (auto &&[newQuantumOp, quantumOp] : llvm::zip(
+               quake::getQuantumResults(op), quake::getQuantumOperands(op)))
         qubitMap[newQuantumOp] = qubitMap[quantumOp];
 
       // When checking mapped circuits, we do a software swap, i.e., just change
