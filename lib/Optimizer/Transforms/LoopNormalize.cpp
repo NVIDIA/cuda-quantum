@@ -147,24 +147,6 @@ public:
         newInd = rewriter.create<arith::AddIOp>(loc, c.initialValue, mul);
       else
         newInd = rewriter.create<arith::SubIOp>(loc, c.initialValue, mul);
-      if (c.isLinearExpr()) {
-        if (c.scaleValue) {
-          if (c.reciprocalScale)
-            newInd = rewriter.create<arith::DivSIOp>(loc, newInd, c.scaleValue);
-          else
-            newInd = rewriter.create<arith::MulIOp>(loc, newInd, c.scaleValue);
-        }
-        if (c.minusOneMult) {
-          auto negOne = createConstantOp(-1);
-          newInd = rewriter.create<arith::MulIOp>(loc, newInd, negOne);
-        }
-        if (c.addendValue) {
-          if (c.negatedAddend)
-            newInd = rewriter.create<arith::SubIOp>(loc, newInd, c.addendValue);
-          else
-            newInd = rewriter.create<arith::AddIOp>(loc, newInd, c.addendValue);
-        }
-      }
       induct.replaceUsesWithIf(newInd, [&](OpOperand &opnd) {
         auto *op = opnd.getOwner();
         return op != mul && !isa<cudaq::cc::ContinueOp>(op);
