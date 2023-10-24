@@ -7,7 +7,10 @@
   <title>CUDA Quantum Hardware Backends &mdash; NVIDIA CUDA Quantum  documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
       <link rel="stylesheet" href="../_static/cudaq_override.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/sg_gallery.css" type="text/css" />
       <link rel="stylesheet" href="../_static/_static/cudaq_override.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
@@ -19,6 +22,10 @@
         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
         <script src="../_static/sphinx_highlight.js"></script>
+        <script src="../_static/tabs.js"></script>
+        <script src="../_static/clipboard.min.js"></script>
+        <script src="../_static/copybutton.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -30,7 +37,7 @@
   <div class="wy-grid-for-nav">
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search" > 
+        <div class="wy-side-nav-search"  style="background: #76b900" > 
 
           
           
@@ -99,7 +106,8 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#python-wheels">Python wheels</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../install.html#build-cuda-quantum-from-source">Build CUDA Quantum from Source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#building-from-source">Building from Source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
@@ -112,7 +120,15 @@
 <li class="toctree-l2"><a class="reference internal" href="cudaq/generic_functions.html">Generic Library Functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cudaq/builder.html">Creating Kernels at Runtime</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cudaq/variational.html">Variational Algorithms</a></li>
-<li class="toctree-l2"><a class="reference internal" href="cudaq/platform.html">Asynchronous Execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cudaq/platform.html">Multi-processor Platforms</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cudaq/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cudaq/platform.html#parallel-distribution-mode">Parallel distribution mode</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cudaq/platform.html#c">C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cudaq/platform.html#python">Python</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="cudaq/verbose_out.html">Debugging and Verbose Logging</a></li>
 </ul>
 </li>
@@ -133,6 +149,7 @@
 <li class="toctree-l3"><a class="reference internal" href="cpp.html#computing-expectation-values">Computing Expectation Values</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cpp.html#multi-control-synthesis">Multi-control Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cpp.html#simulations-with-cuquantum">Simulations with cuQuantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cpp.html#noisy-simulation">Noisy Simulation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cpp.html#using-quantum-hardware-providers">Using Quantum Hardware Providers</a></li>
 </ul>
 </li>
@@ -143,6 +160,26 @@
 <li class="toctree-l3"><a class="reference internal" href="python.html#quantum-approximate-optimization-algorithm">Quantum Approximate Optimization Algorithm</a></li>
 <li class="toctree-l3"><a class="reference internal" href="python.html#noisy-simulation">Noisy Simulation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="python.html#using-quantum-hardware-providers">Using Quantum Hardware Providers</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">   Tutorials</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/executing_circuits.html">Executing Quantum Circuits</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/executing_circuits.html#Sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/executing_circuits.html#Observe">Observe</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/single_qubit_rotation.html">Single Qubit Rotation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/vqe.html">Variational Quantum Eigensolver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html">Multi-GPU Workflows</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Available-Targets">Available Targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Default-CPU-Backend">Default CPU Backend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Multiple-QPU's">Multiple QPU’s</a></li>
 </ul>
 </li>
 </ul>
@@ -195,10 +232,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/operators.html#cudaq-spin-op">4.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::spin_op</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/operations.html">5. Quantum Operations</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/operations.html#operations-on-cudaq-qubit">5.1. Operations on <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/operations.html">5. Quantum Operations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../specification/cudaq/kernels.html">6. Quantum Kernels</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/kernels.html#kernel-composability">6.1. Kernel Composability</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../specification/cudaq/kernels.html#allowed-kernel-classical-function-invocations">6.2. Allowed Kernel Classical Function Invocations</a></li>
@@ -233,7 +267,6 @@
 <li class="toctree-l2"><a class="reference internal" href="../specification/quake-dialect.html">   Quake Specification</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../specification/quake-dialect.html#general-introduction">General Introduction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../specification/quake-dialect.html#motivation">Motivation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../specification/quake-dialect.html#quake-types">Quake Types</a></li>
 </ul>
 </li>
 </ul>
@@ -310,6 +343,30 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../api/default_ops.html">Quantum Operations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/default_ops.html#unitary-operations-on-qubits">Unitary Operations on Qubits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#x"><code class="code docutils literal notranslate"><span class="pre">x</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#y"><code class="code docutils literal notranslate"><span class="pre">y</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#z"><code class="code docutils literal notranslate"><span class="pre">z</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#h"><code class="code docutils literal notranslate"><span class="pre">h</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#r1"><code class="code docutils literal notranslate"><span class="pre">r1</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#rx"><code class="code docutils literal notranslate"><span class="pre">rx</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#ry"><code class="code docutils literal notranslate"><span class="pre">ry</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#rz"><code class="code docutils literal notranslate"><span class="pre">rz</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#s"><code class="code docutils literal notranslate"><span class="pre">s</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#t"><code class="code docutils literal notranslate"><span class="pre">t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#swap"><code class="code docutils literal notranslate"><span class="pre">swap</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api/default_ops.html#adjoint-and-controlled-operations">Adjoint and Controlled Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/default_ops.html#measurements-on-qubits">Measurements on Qubits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#mz"><code class="code docutils literal notranslate"><span class="pre">mz</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#mx"><code class="code docutils literal notranslate"><span class="pre">mx</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#my"><code class="code docutils literal notranslate"><span class="pre">my</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../versions.html">   Other Versions</a></li>
@@ -319,7 +376,7 @@
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #76b900" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="../index.html">NVIDIA CUDA Quantum</a>
       </nav>
@@ -333,7 +390,10 @@
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/using/hardware.rst.txt" rel="nofollow"> View page source</a>
       </li>
-  </ul>
+  </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
+        <a href="simulators.html" class="btn btn-neutral float-left" title="CUDA Quantum Simulation Backends" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../specification/index.html" class="btn btn-neutral float-right" title="Specifications" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+  </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
@@ -511,6 +571,9 @@ the <code class="docutils literal notranslate"><span class="pre">shots_count</sp
 </section>
 <section id="iqm">
 <h2>IQM<a class="headerlink" href="#iqm" title="Permalink to this heading">¶</a></h2>
+<p>Support for submissions to IQM is currently under development.
+In particular, two-qubit gates can only be performed on adjacent qubits. For more information, we refer to the respective hardware documentation.
+Support for automatically injecting the necessary operations during compilation to execute arbitrary multi-qubit gates will be added in future versions.</p>
 <section id="id4">
 <h3>Setting Credentials<a class="headerlink" href="#id4" title="Permalink to this heading">¶</a></h3>
 <p>Programmers of CUDA Quantum may access the IQM Server from either C++ or Python. Following the <a class="reference external" href="https://iqm-finland.github.io/cortex-cli/readme.html#using-cortex-cli">quick start guide</a>, install <code class="code docutils literal notranslate"><span class="pre">iqm-cortex-cli</span></code> and login to initialize the tokens file.

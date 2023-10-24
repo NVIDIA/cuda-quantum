@@ -109,6 +109,37 @@ vector support, we pass the :code:`--target nvidia` flag at compile time:
     nvq++ --target nvidia cuquantum_backends.cpp -o ghz.x
     ./ghz.x
 
+Noisy Simulation
+-----------------
+
+CUDA Quantum makes it simple to model noise within the simulation of your quantum program.
+Let's take a look at the various built-in noise models we support, before concluding with a brief example of a custom noise model constructed from user-defined Kraus Operators.
+
+The following code illustrates how to run a simulation with depolarization noise.
+
+.. literalinclude:: ../examples/cpp/basics/noise_depolarization.cpp
+   :language: cpp
+
+The following code illustrates how to run a simulation with amplitude damping noise.
+
+.. literalinclude:: ../examples/cpp/basics/noise_amplitude_damping.cpp
+   :language: cpp
+
+The following code illustrates how to run a simulation with bit-flip noise.
+
+.. literalinclude:: ../examples/cpp/basics/noise_bit_flip.cpp
+   :language: cpp
+
+The following code illustrates how to run a simulation with phase-flip noise.
+
+.. literalinclude:: ../examples/cpp/basics/noise_phase_flip.cpp
+   :language: cpp
+
+The following code illustrates how to run a simulation with a custom noise model.
+
+.. literalinclude:: ../examples/cpp/basics/noise_modeling.cpp
+   :language: cpp
+
 .. _cpp-examples-for-hardware-providers:
 
 Using Quantum Hardware Providers

@@ -16,6 +16,7 @@ for the quantum acceleration of existing heterogeneous computing architectures.
       Learn the Basics <using/cudaq.rst>
       Advanced Topics  <using/advanced.rst>
       Examples <using/examples.rst>
+      Tutorials <using/tutorials.rst>
       Simulator Backends <using/simulators.rst>
       Hardware Backends <using/hardware.rst>
       Specifications <specification/index.rst>

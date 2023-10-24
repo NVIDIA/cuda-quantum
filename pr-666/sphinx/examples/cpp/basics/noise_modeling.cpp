@@ -1,6 +1,6 @@
 // Compile and run with:
 // ```
-// nvq++ noise_modeling.cpp -o noise.x && ./noise.x
+// nvq++ noise_modeling.cpp --target density-matrix-cpu -o noise.x && ./noise.x
 // ```
 
 #include "cudaq.h"
