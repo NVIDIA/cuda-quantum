@@ -430,9 +430,11 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     if (deviceDef.consume_front("(")) {
       deviceDef = deviceDef.ltrim();
       deviceDef.consumeInteger(/*Radix=*/10, deviceDim[0]);
-      if (deviceDef.trim().consume_front(","))
+      deviceDef = deviceDef.ltrim();
+      if (deviceDef.consume_front(","))
         deviceDef.consumeInteger(/*Radix=*/10, deviceDim[1]);
-      if (!deviceDef.trim().consume_front(")")) {
+      deviceDef = deviceDef.ltrim();
+      if (!deviceDef.consume_front(")")) {
         func.emitError("Missing closing ')' in device option");
         signalPassFailure();
       }
@@ -517,7 +519,8 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     Device d = llvm::StringSwitch<Device>(name)
                    .Case("path", Device::path(deviceDim[0]))
                    .Case("ring", Device::ring(deviceDim[0]))
-                   .Case("star", Device::star(deviceDim[0]))
+                   .Case("star", Device::star(/*numQubits=*/deviceDim[0],
+                                              /*centerQubit=*/deviceDim[1]))
                    .Case("grid", Device::grid(/*width=*/deviceDim[0],
                                               /*height=*/deviceDim[1]))
                    .Default(Device());
