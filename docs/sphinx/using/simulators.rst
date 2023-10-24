@@ -28,6 +28,10 @@ In python, this can be specified with
 By default, this will leverage :code:`FP32` floating point types for the simulation. To 
 switch to :code:`FP64`, specify the :code:`nvidia-fp64` target instead. 
 
+.. note:: 
+
+    This backend requires an NVIDIA GPU and CUDA runtime libraries. If you are do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
+
 cuQuantum multi-node multi-GPU
 ++++++++++++++++++++++++++++++++++
 
@@ -40,19 +44,36 @@ options to :code:`nvq++`
 
 .. code:: bash 
 
-    nvq++ --target nvidia-mgpu src.cpp ...
+    nvq++ --target nvidia-mgpu -o program.out src.cpp ...
 
-In python, this can be specified with 
+In Python, this can be specified with 
 
 .. code:: python 
 
     cudaq.set_target('nvidia-mgpu')
 
+The multi-node multi-GPU simulator expects to run within an MPI context. A program compiled with :code:`nvq++`, for example, is invoked with
+
+.. code:: bash 
+
+    mpirun -np 2 ./program.out
+
+To use the multi-node multi-GPU backend from Python, follow the instructions for installing dependencies in the `Project Description <https://pypi.org/project/cuda-quantum/#description>`__. 
+Using `mpi4py <https://mpi4py.readthedocs.io/>`__, for example, a `program.py` can be invoked from the command line with
+
+.. code:: bash 
+
+    mpiexec -np 2 python3.10 -m mpi4py program.py
+
+.. note:: 
+
+    This backend requires an NVIDIA GPU, CUDA runtime libraries, as well as an MPI installation. If you are do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
+
 OpenMP CPU-only
 ++++++++++++++++++++++++++++++++++
 
 The :code:`default` target provides a state vector simulator based on the CPU-only, OpenMP
-threaded `Q++ <https//github.com/softwareqinc/qpp>`_ library. This is the default 
+threaded `Q++ <https://github.com/softwareqinc/qpp>`_ library. This is the default 
 target, so if the code is compiled without any :code:`--target` flags, this is the 
 simulator that will be used. 
 
@@ -65,6 +86,10 @@ cuQuantum multi-node multi-GPU
 The :code:`tensornet` target provides a tensor-network simulator accelerated with 
 the :code:`cuTensorNet` library. This backend is currently available for use from C++ and supports 
 Multi-Node, Multi-GPU distribution of tensor operations required to evaluate and simulate the circuit.
+
+.. note:: 
+
+    This backend requires an NVIDIA GPU and CUDA runtime libraries. If you are do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
 
 This backend exposes a set of environment variables to configure specific aspects of the simulation:
 

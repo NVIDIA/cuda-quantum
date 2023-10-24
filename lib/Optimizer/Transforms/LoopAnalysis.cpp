@@ -14,29 +14,35 @@ using namespace mlir;
 /// \file
 /// Some working definitions:
 ///
-/// A \em counted loop: a loop that counts from `0` up to `n-1` stepping by 1.
-/// Such a loop is \em normalized (starts at 0), \em monotonically increasing
-/// (slope is a constant 1), executes exactly `n` times, and `n` is a
+/// A \em counted loop: a loop that counts from $0$ up to $n-1$ stepping by $1$.
+/// Such a loop is \em normalized (starts at $0$), \em monotonically increasing
+/// (slope is a constant $1$), executes exactly $n$ times, and $n$ is a
 /// compile-time constant. A counted loop is said to have static control flow.
 ///
-/// An \em invariant loop: a counted loop but `n` need not be a compile-time
+/// A \em{constant upper bound} loop: a loop that counts from $0$ up to $m$
+/// where $m <= n-1$ stepping by $1$.
+///
+/// An \em invariant loop: a counted loop but $n$ need not be a compile-time
 /// constant. An invariant loop cannot be fully unrolled until runtime. In
 /// quantum circuit speak, one does not know the full size of the circuit.
 ///
-/// A \em monotonic loop: a loop that counts from `i` up to (down to) `j`
+/// A \em monotonic loop: a loop that counts from $i$ up to (down to) $j$
 /// stepping by positive (negative) integral values; mathematically, it is a
-/// strictly monotonic sequence. If the step is a compile-time constant, `k`,
-/// then a closed iterval monotonic loop must execute exactly `max(0, ⎣(j - i +
-/// k) / k⎦)` iterations. By normalizing a monotonic loop and constant folding
-/// and propagation, we may be able to convert it to static control flow.
+/// strictly monotonic sequence. If the step is a compile-time constant, $k$,
+/// then a closed iterval monotonic loop must execute exactly $\max(0, \floor{(j
+/// - i + k) / k})$ iterations. By normalizing a monotonic loop and constant
+/// folding and propagation, we may be able to convert it to static control
+/// flow.
 ///
 /// For completeness, a \em{conditionally iterated} loop is a monotonic loop
 /// that has a second auxilliary condition to determine if a given loop
-/// iteration is executed or not. For example, the condition might be used in
-/// iteration `m` to disable all subsequent iterations. (Much like a `break`
-/// statement.) These loops might be unrolled but only if the loop can be
-/// normalized into static control flow. It is helpful in pruning the amount of
-/// unrolling if the auxillary condition can be computed as a constant. It is
+/// iteration is executed or not. (A constant upper bound loop, see above, is a
+/// subclass of a conditionally iterated loop.) For example, the condition might
+/// be used in iteration $m$ to disable all subsequent iterations. (Much like a
+/// `break` statement.) Another example would be a condition that disables all
+/// the even iterations. These loops might be unrolled but only if the loop can
+/// be normalized into static control flow. It is helpful in pruning the amount
+/// of unrolling if the auxillary condition can be computed as a constant. It is
 /// likely these loops cannot be converted to static control flow and would thus
 /// need to be expanded at runtime.
 
@@ -249,16 +255,18 @@ static bool allExitsAreContinue(Region &reg) {
   return true;
 }
 
-bool opt::isaMonotonicLoop(Operation *op, LoopComponents *lcp) {
+bool opt::loopContainsBreak(cc::LoopOp loopOp) {
+  return !allExitsAreContinue(loopOp.getBodyRegion());
+}
+
+bool opt::isaMonotonicLoop(Operation *op, bool allowEarlyExit,
+                           LoopComponents *lcp) {
   if (auto loopOp = dyn_cast_or_null<cc::LoopOp>(op)) {
     // Cannot be a `while` or `do while` loop.
     if (loopOp.isPostConditional() || !loopOp.hasStep())
       return false;
     auto &reg = loopOp.getBodyRegion();
-    // This is a `for` loop and must have a body with a continue terminator.
-    // Currently, only a single basic block is allowed to keep things simple.
-    // This is in keeping with our definition of structured control flow.
-    return !reg.empty() && allExitsAreContinue(reg) &&
+    return !reg.empty() && (allowEarlyExit || allExitsAreContinue(reg)) &&
            hasMonotonicControlInduction(loopOp, lcp);
   }
   return false;
@@ -274,9 +282,9 @@ bool opt::isaInvariantLoop(const LoopComponents &c, bool allowClosedInterval) {
 }
 
 bool opt::isaInvariantLoop(cc::LoopOp loop, bool allowClosedInterval,
-                           LoopComponents *lcp) {
+                           bool allowEarlyExit, LoopComponents *lcp) {
   LoopComponents c;
-  if (isaMonotonicLoop(loop.getOperation(), &c)) {
+  if (isaMonotonicLoop(loop.getOperation(), allowEarlyExit, &c)) {
     if (lcp)
       *lcp = c;
     return isaInvariantLoop(c, allowClosedInterval);
@@ -286,7 +294,15 @@ bool opt::isaInvariantLoop(cc::LoopOp loop, bool allowClosedInterval,
 
 bool opt::isaCountedLoop(cc::LoopOp loop, bool allowClosedInterval) {
   LoopComponents c;
-  return isaInvariantLoop(loop, allowClosedInterval, &c) &&
+  return isaInvariantLoop(loop, allowClosedInterval, /*allowEarlyExit=*/false,
+                          &c) &&
+         isaConstant(c.compareValue);
+}
+
+bool opt::isaConstantUpperBoundLoop(cc::LoopOp loop, bool allowClosedInterval) {
+  LoopComponents c;
+  return isaInvariantLoop(loop, allowClosedInterval, /*allowEarlyExit=*/true,
+                          &c) &&
          isaConstant(c.compareValue);
 }
 

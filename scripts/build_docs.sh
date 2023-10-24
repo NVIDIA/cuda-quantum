@@ -33,10 +33,12 @@
 # To view docs in a browser from within a dev container you can use the desktop-lite feature:
 # https://github.com/devcontainers/features/tree/main/src/desktop-lite.
 # To do so, uncomment this feature in devcontainer.json, and rebuild the container.
-# Open a browser and enter the address `http://localhost:6080/`. Click connect and enter the
-# default password "cudaq-dev" (without the quotes). All GUI commands entered in the terminal
-# of the dev container will now be shown in this minimal desktop. A <url> can be opened in
-# the Chrome browser by entering the command 
+# Open a browser and enter the address `http://localhost:6080/`. In VS Code, this can be done by 
+# opening the Ports View, and clicking on the `Open in Browser` symbol for the Local Address 
+# `localhost:6080`.
+# Click connect and enter the default password "cuda-quantum" (without the quotes).
+# All GUI commands entered in the terminal of the dev container will now be shown in this minimal
+# desktop. A <url> can be opened in the Chrome browser by entering the command 
 #   google-chrome --no-sandbox <url>
 # 
 # The script prints the url to the index of the generated docs at the end. Open that url in

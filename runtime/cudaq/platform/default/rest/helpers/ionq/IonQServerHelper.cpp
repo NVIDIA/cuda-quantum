@@ -109,7 +109,7 @@ void IonQServerHelper::initialize(BackendConfig config) {
     if (key.starts_with("output_names.")) {
       // Parse `val` into jobOutputNames.
       // Note: See `FunctionAnalysisData::resultQubitVals` of
-      // LowerToBaseProfileQIR.cpp for an example of how this was populated.
+      // LowerToQIRProfile.cpp for an example of how this was populated.
       OutputNamesType jobOutputNames;
       nlohmann::json outputNamesJSON = nlohmann::json::parse(val);
       for (const auto &el : outputNamesJSON[0]) {
@@ -360,8 +360,14 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
   CountsDictionary userGlobal;
   for (const auto &[bits, count] : fullSampleResults) {
     std::string userBitStr;
-    for (const auto &qubit : qubitNumbers)
-      userBitStr += bits[qubit];
+    for (const auto &qubit : qubitNumbers) {
+      if (qubit < bits.size())
+        userBitStr += bits[qubit];
+      else
+        throw std::runtime_error(fmt::format(
+            "Cannot fetch qubit index {} from bits '{}'; bits.size() = {}",
+            qubit, bits, bits.size()));
+    }
     userGlobal[userBitStr] += count;
   }
   execResults.emplace_back(userGlobal);

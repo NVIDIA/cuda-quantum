@@ -1,0 +1,61 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --inline --canonicalize %s | FileCheck %s
+
+func.func @apply_x(%q : !quake.ref) -> () {
+  quake.x %q : (!quake.ref) -> ()
+  return
+}
+
+func.func @ccnot() {
+  %c_3 = arith.constant 3 : i32
+  %c_1 = arith.constant 1 : i32
+  %qubits = quake.alloca  !quake.veq<?>[%c_3 : i32 ]
+  %c_3_idx = arith.index_cast %c_3 : i32 to index
+  %i = arith.constant 0 : i32
+  %j = cc.loop while ((%arg0 = %i) -> i32) {
+    %1 = arith.cmpi slt, %arg0, %c_3 : i32
+    cc.condition %1 (%arg0 : i32)
+  } do {
+   ^bb0(%arg0: i32):
+    %q0 = quake.extract_ref %qubits [%arg0] : (!quake.veq<?>, i32) -> !quake.ref
+    quake.x %q0 : (!quake.ref) -> ()
+    cc.continue %arg0 : i32
+  } step {
+   ^bb0(%arg0: i32):
+    %1 = arith.addi %arg0, %c_1 : i32
+    cc.continue %1 : i32
+  }
+  %q1 = quake.extract_ref %qubits [%c_1] : (!quake.veq<?>, i32) -> !quake.ref
+  func.call @apply_x(%q1) : (!quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @ccnot() {
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 0 : i32
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 3 : i32
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 1 : i32
+// CHECK-DAG:       %[[VAL_3:.*]] = quake.alloca !quake.veq<3>
+// CHECK:           %[[VAL_4:.*]] = cc.loop while ((%[[VAL_5:.*]] = %[[VAL_0]]) -> (i32)) {
+// CHECK:             %[[VAL_6:.*]] = arith.cmpi slt, %[[VAL_5]], %[[VAL_1]] : i32
+// CHECK:             cc.condition %[[VAL_6]](%[[VAL_5]] : i32)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_7:.*]]: i32):
+// CHECK:             %[[VAL_8:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_7]]] : (!quake.veq<3>, i32) -> !quake.ref
+// CHECK:             quake.x %[[VAL_8]] : (!quake.ref) -> ()
+// CHECK:             cc.continue %[[VAL_7]] : i32
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_9:.*]]: i32):
+// CHECK:             %[[VAL_10:.*]] = arith.addi %[[VAL_9]], %[[VAL_2]] : i32
+// CHECK:             cc.continue %[[VAL_10]] : i32
+// CHECK:           }
+// CHECK:           %[[VAL_11:.*]] = quake.extract_ref %[[VAL_3]][1] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_11]] : (!quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }

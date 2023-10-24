@@ -143,14 +143,19 @@ private:
       }
     });
     func.walk([&](Operation *op) {
+      // FIXME: This really needs to figure out which operands are wires and
+      // which are not. It blindly assumes everything is a wire.
       if (isa<RAW_MEASURE_OPS>(op)) {
-        for (auto v : op->getOperands())
-          insertToEqClass(v);
+        for (auto [t, r] :
+             llvm::zip(op->getOperands(), op->getResults().drop_front()))
+          insertToEqClass(t, r);
       } else if (isa<RAW_GATE_OPS>(op)) {
         auto gate = cast<quake::OperatorInterface>(op);
-        for (auto c : gate.getControls())
-          insertToEqClass(c);
-        for (auto [t, r] : llvm::zip(gate.getTargets(), op->getResults()))
+        for (auto [t, r] : llvm::zip(gate.getControls(), op->getResults()))
+          insertToEqClass(t, r);
+        for (auto [t, r] :
+             llvm::zip(gate.getTargets(),
+                       op->getResults().drop_front(gate.getControls().size())))
           insertToEqClass(t, r);
       } else if (auto reset = dyn_cast<quake::ResetOp>(op)) {
         insertToEqClass(reset.getTargets(), reset.getResult(0));
@@ -226,8 +231,11 @@ public:
     if constexpr (quake::isMeasure<OP>) {
       auto args = collect(op.getOperands());
       auto nameAttr = op.getRegisterNameAttr();
-      rewriter.replaceOpWithNewOp<OP>(
-          op, ArrayRef<Type>{op.getBits().getType()}, args, nameAttr);
+      eraseWrapUsers(op);
+      auto newOp = rewriter.create<OP>(
+          loc, ArrayRef<Type>{op.getBits().getType()}, args, nameAttr);
+      op.getResult(0).replaceAllUsesWith(newOp.getResult(0));
+      rewriter.eraseOp(op);
     } else if constexpr (std::is_same_v<OP, quake::ResetOp>) {
       // Reset is a special case.
       auto targ = findLookupValue(op.getTargets());

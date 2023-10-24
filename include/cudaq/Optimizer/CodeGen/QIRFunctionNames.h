@@ -22,6 +22,8 @@ constexpr static const char QIRMeasureToRegister[] =
 
 constexpr static const char QIRCnot[] = "__quantum__qis__cnot";
 constexpr static const char QIRCphase[] = "__quantum__qis__cphase";
+constexpr static const char QIRReadResultBody[] =
+    "__quantum__qis__read_result__body";
 
 constexpr static const char NVQIRInvokeWithControlBits[] =
     "invokeWithControlQubits";
@@ -49,8 +51,8 @@ constexpr static const char QIRArrayConcatArray[] =
 constexpr static const char QIRArrayCreateArray[] =
     "__quantum__rt__array_create_1d";
 
-/// QIR Base Profile record output function names
-constexpr static const char QIRBaseProfileRecordOutput[] =
+/// QIR Base/Adaptive Profile record output function names
+constexpr static const char QIRRecordOutput[] =
     "__quantum__rt__result_record_output";
 
 inline mlir::Type getQuantumTypeByName(mlir::StringRef type,

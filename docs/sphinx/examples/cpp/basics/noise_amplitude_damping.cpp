@@ -1,7 +1,7 @@
 // Compile and run with:
 // ```
 // nvq++ noise_amplitude_damping.cpp --target density-matrix-cpu -o dyn.x
-// --target nvidia && ./dyn.x
+// && ./dyn.x
 // ```
 //
 // Note: You must set the target to a density matrix backend for the noise

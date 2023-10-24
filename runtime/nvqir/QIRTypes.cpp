@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "QIRTypes.h"
+#include "common/FmtCore.h"
 #include <algorithm>
 #include <cassert>
 #include <cstring>
@@ -19,8 +20,10 @@ extern bool verbose;
 }
 
 int8_t *Array::operator[](std::size_t index) {
-  assert(static_cast<uint64_t>(index * element_size_bytes) < storage.size() &&
-         "Provided index for Array::operator[] not valid.");
+  if (static_cast<uint64_t>(index * element_size_bytes) >= storage.size())
+    throw std::runtime_error(
+        fmt::format("Provided index [{}] >= array size [{}]", index,
+                    storage.size() / element_size_bytes));
   return &storage.at(index * element_size_bytes);
 }
 // Ctors

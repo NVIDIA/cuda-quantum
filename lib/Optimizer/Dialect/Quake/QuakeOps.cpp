@@ -382,8 +382,15 @@ LogicalResult quake::ExtractRefOp::verify() {
       return emitOpError(
           "must not have both a constant index and an index argument.");
   } else {
-    if (getRawIndex() == kDynamicIndex)
+    if (getRawIndex() == kDynamicIndex) {
       return emitOpError("invalid constant index value");
+    } else {
+      auto veqSize = getVeq().getType().getSize();
+      if (getVeq().getType().hasSpecifiedSize() && getRawIndex() >= veqSize)
+        return emitOpError("invalid index [" + std::to_string(getRawIndex()) +
+                           "] because >= size [" + std::to_string(veqSize) +
+                           "]");
+    }
   }
   return success();
 }
@@ -429,6 +436,49 @@ void quake::RelaxSizeOp::getCanonicalizationPatterns(
 // SubVeqOp
 //===----------------------------------------------------------------------===//
 
+struct RemoveSubVeqNoOpPattern : public OpRewritePattern<quake::SubVeqOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::SubVeqOp subVeqOp,
+                                PatternRewriter &rewriter) const override {
+    // Replace subveq operations that extract the entire original register
+    // with the original register.
+    auto origVeq = subVeqOp.getVeq();
+    auto low = subVeqOp.getLow();
+    auto high = subVeqOp.getHigh();
+
+    // The start of the subveq must be known
+    auto arithLow = low.getDefiningOp<arith::ConstantIntOp>();
+    if (!arithLow)
+      return failure();
+
+    // The end of the subveq must be known
+    auto arithHigh = high.getDefiningOp<arith::ConstantIntOp>();
+    if (!arithHigh)
+      return failure();
+
+    // The original veq size must be known
+    auto veqType = dyn_cast<quake::VeqType>(origVeq.getType());
+    if (!veqType.hasSpecifiedSize())
+      return failure();
+
+    // If the subveq is the whole register, than the
+    // start value must be 0
+    if (arithLow.value() != 0)
+      return failure();
+
+    // If the sizes are equal, then replace
+    if (static_cast<int64_t>(veqType.getSize()) == arithHigh.value() + 1) {
+      // this subveq is the whole original register, hence a no-op
+      rewriter.replaceOp(subVeqOp, origVeq);
+      return success();
+    }
+
+    // All else fail
+    return failure();
+  }
+};
+
 Value quake::createSizedSubVeqOp(PatternRewriter &builder, Location loc,
                                  OpResult result, Value inVec, Value lo,
                                  Value hi) {
@@ -447,7 +497,7 @@ Value quake::createSizedSubVeqOp(PatternRewriter &builder, Location loc,
 
 void quake::SubVeqOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                   MLIRContext *context) {
-  patterns.add<FuseConstantToSubveqPattern>(context);
+  patterns.add<FuseConstantToSubveqPattern, RemoveSubVeqNoOpPattern>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -591,6 +641,58 @@ void quake::RxOp::getOperatorMatrix(Matrix &matrix) {
                  -1i * std::sin(theta / 2.), std::cos(theta / 2.)});
 }
 
+namespace {
+template <typename OP>
+struct MergeRotationPattern : public OpRewritePattern<OP> {
+  using Base = OpRewritePattern<OP>;
+  using Base::Base;
+
+  LogicalResult matchAndRewrite(OP rotate,
+                                PatternRewriter &rewriter) const override {
+    auto wireTy = quake::WireType::get(rewriter.getContext());
+    if (rotate.getTarget(0).getType() != wireTy ||
+        !rotate.getControls().empty())
+      return failure();
+    assert(!rotate.getNegatedQubitControls());
+    auto input = rotate.getTarget(0).template getDefiningOp<OP>();
+    if (!input || !input.getControls().empty())
+      return failure();
+    assert(!input.getNegatedQubitControls());
+
+    // At this point, we have
+    //   %input  = quake.rotate %angle1, %wire
+    //   %rotate = quake.rotate %angle2, %input
+    // Replace those ops with
+    //   %new    = quake.rotate (%angle1 + %angle2), %wire
+    auto loc = rotate.getLoc();
+    auto angle1 = input.getParameter(0);
+    auto angle2 = rotate.getParameter(0);
+    if (angle1.getType() != angle2.getType())
+      return failure();
+    auto adjAttr = rotate.getIsAdjAttr();
+    auto newAngle = [&]() -> Value {
+      if (input.isAdj() == rotate.isAdj())
+        return rewriter.create<arith::AddFOp>(loc, angle1, angle2);
+      // One is adjoint, so it should be subtracted from the other.
+      if (input.isAdj())
+        return rewriter.create<arith::SubFOp>(loc, angle2, angle1);
+      adjAttr = input.getIsAdjAttr();
+      return rewriter.create<arith::SubFOp>(loc, angle1, angle2);
+    }();
+    rewriter.replaceOpWithNewOp<OP>(rotate, rotate.getResultTypes(), adjAttr,
+                                    ValueRange{newAngle}, ValueRange{},
+                                    ValueRange{input.getTarget(0)},
+                                    rotate.getNegatedQubitControlsAttr());
+    return success();
+  }
+};
+} // namespace
+
+void quake::RxOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
+                                              MLIRContext *context) {
+  patterns.add<MergeRotationPattern<quake::RxOp>>(context);
+}
+
 void quake::RyOp::getOperatorMatrix(Matrix &matrix) {
   // Get parameter
   double theta;
@@ -602,6 +704,11 @@ void quake::RyOp::getOperatorMatrix(Matrix &matrix) {
 
   matrix.assign({std::cos(theta / 2.), std::sin(theta / 2.),
                  -std::sin(theta / 2.), std::cos(theta / 2.)});
+}
+
+void quake::RyOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
+                                              MLIRContext *context) {
+  patterns.add<MergeRotationPattern<quake::RyOp>>(context);
 }
 
 void quake::RzOp::getOperatorMatrix(Matrix &matrix) {
@@ -616,6 +723,11 @@ void quake::RzOp::getOperatorMatrix(Matrix &matrix) {
     theta *= -1;
 
   matrix.assign({std::exp(-1i * theta / 2.), 0, 0, std::exp(1i * theta / 2.)});
+}
+
+void quake::RzOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
+                                              MLIRContext *context) {
+  patterns.add<MergeRotationPattern<quake::RzOp>>(context);
 }
 
 void quake::SOp::getOperatorMatrix(Matrix &matrix) {

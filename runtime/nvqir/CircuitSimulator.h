@@ -62,6 +62,16 @@ public:
     // do nothing
   }
 
+  /// @brief Apply exp(-i theta PauliTensorProd) to the underlying state.
+  /// This must be provided by subclasses.
+  virtual void applyExpPauli(double theta,
+                             const std::vector<std::size_t> &controls,
+                             const std::vector<std::size_t> &qubitIds,
+                             const cudaq::spin_op &op) {
+    throw std::runtime_error("CircuitSimulator::applyExpPauli not implemented, "
+                             "must be implemented by subclasses.");
+  }
+
   /// @brief Compute the expected value of the given spin op
   /// with respect to the current state, <psi | H | psi>.
   virtual cudaq::ExecutionResult observe(const cudaq::spin_op &term) = 0;
@@ -298,7 +308,7 @@ protected:
   std::string getCircuitName() const { return currentCircuitName; }
 
   /// @brief Return the current multi-qubit state dimension
-  std::size_t calculateStateDim(const std::size_t numQubits) {
+  virtual std::size_t calculateStateDim(const std::size_t numQubits) {
     assert(numQubits < 64);
     return 1ULL << numQubits;
   }

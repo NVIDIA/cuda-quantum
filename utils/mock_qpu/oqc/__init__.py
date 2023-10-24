@@ -114,7 +114,7 @@ async def postJob(
         kernel = ctypes.CFUNCTYPE(None)(funcPtr)
 
         # Invoke the Kernel
-        cudaq.testing.toggleBaseProfile()
+        cudaq.testing.toggleDynamicQubitManagement()
         qubits, context = cudaq.testing.initialize(numQubitsRequired, 1000)
         kernel()
         results = cudaq.testing.finalize(qubits, context)

@@ -39,6 +39,7 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   common/MeasureCountsTester.cpp
   common/NoiseModelTester.cpp
   integration/tracer_tester.cpp
+  integration/gate_library_tester.cpp
 )
 
 # Make it so we can get function symbols
@@ -101,22 +102,25 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
 
     if (MPI_CXX_FOUND)
       # Count the number of GPUs
-      execute_process(COMMAND bash -c "nvidia-smi --list-gpus | wc -l" OUTPUT_VARIABLE NGPUS)
-      # Only build this test if we have more than 1 GPU
-      if (${NGPUS} GREATER_EQUAL 2)
-        add_executable(test_mpi main.cpp mqpu/mpi_mqpu_tester.cpp)
-        if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-          target_link_options(test_mpi PRIVATE -Wl,--no-as-needed)
+      find_program(NVIDIA_SMI "nvidia-smi")
+      if(NVIDIA_SMI)
+        execute_process(COMMAND bash -c "nvidia-smi --list-gpus | wc -l" OUTPUT_VARIABLE NGPUS)
+        # Only build this test if we have more than 1 GPU
+        if (${NGPUS} GREATER_EQUAL 2)
+          add_executable(test_mpi main.cpp mqpu/mpi_mqpu_tester.cpp)
+          if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+            target_link_options(test_mpi PRIVATE -Wl,--no-as-needed)
+          endif()
+          target_link_libraries(test_mpi
+              PRIVATE 
+              cudaq
+              cudaq-platform-mqpu
+              nvqir-custatevec-fp32
+              gtest_main)
+            configure_file("mqpu/run_mpi.sh.in"
+                      "${CMAKE_BINARY_DIR}/unittests/run_mpi.sh" @ONLY)
+          add_test(NAME MPITest COMMAND ${MPIEXEC} --allow-run-as-root -np 2 ${CMAKE_BINARY_DIR}/unittests/run_mpi.sh)
         endif()
-        target_link_libraries(test_mpi
-            PRIVATE 
-            cudaq
-            cudaq-platform-mqpu
-            nvqir-custatevec-fp32
-            gtest_main)
-          configure_file("mqpu/run_mpi.sh.in"
-                    "${CMAKE_BINARY_DIR}/unittests/run_mpi.sh" @ONLY)
-        add_test(NAME MPITest COMMAND ${MPIEXEC} --allow-run-as-root -np 2 ${CMAKE_BINARY_DIR}/unittests/run_mpi.sh)
       endif()
     endif() 
 endif() 
@@ -148,6 +152,21 @@ target_link_libraries(test_qudit
   cudaq-em-qudit
   gtest_main)
 gtest_discover_tests(test_qudit)
+
+# build the test photonics execution manager
+add_executable(test_photonics main.cpp photonics/PhotonicsTester.cpp)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+  target_link_options(test_photonics PRIVATE -Wl,--no-as-needed)
+endif()
+target_link_libraries(test_photonics
+  PRIVATE 
+  cudaq
+  cudaq-platform-default
+  cudaq-em-photonics
+  nvqir-qpp
+  gtest_main)
+gtest_discover_tests(test_photonics)
+
 
 add_subdirectory(backends)
 add_subdirectory(Optimizer)

@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #pragma nv_diag_suppress = unsigned_compare_with_zero
 #pragma nv_diag_suppress = unrecognized_gcc_pragma
@@ -361,6 +361,37 @@ public:
     if (parity) {
       x(qubitIdx);
     }
+  }
+
+  /// @brief Override base class functionality for a general Pauli
+  /// rotation to delegate to the performant custatevecApplyPauliRotation.
+  void applyExpPauli(double theta, const std::vector<std::size_t> &controlIds,
+                     const std::vector<std::size_t> &qubits,
+                     const cudaq::spin_op &op) override {
+    flushGateQueue();
+    cudaq::info(" [cusv decomposing] exp_pauli({}, {})", theta,
+                op.to_string(false));
+    std::vector<int> controls, targets;
+    for (const auto &bit : controlIds)
+      controls.emplace_back(static_cast<int>(bit));
+    std::vector<custatevecPauli_t> paulis;
+    op.for_each_pauli([&](cudaq::pauli p, std::size_t i) {
+      if (p == cudaq::pauli::I)
+        paulis.push_back(custatevecPauli_t::CUSTATEVEC_PAULI_I);
+      else if (p == cudaq::pauli::X)
+        paulis.push_back(custatevecPauli_t::CUSTATEVEC_PAULI_X);
+      else if (p == cudaq::pauli::Y)
+        paulis.push_back(custatevecPauli_t::CUSTATEVEC_PAULI_Y);
+      else
+        paulis.push_back(custatevecPauli_t::CUSTATEVEC_PAULI_Z);
+
+      targets.push_back(qubits[i]);
+    });
+
+    HANDLE_ERROR(custatevecApplyPauliRotation(
+        handle, deviceStateVector, cuStateVecCudaDataType, nQubitsAllocated,
+        theta, paulis.data(), targets.data(), targets.size(), controls.data(),
+        nullptr, controls.size()));
   }
 
   /// @brief Compute the operator expectation value, with respect to

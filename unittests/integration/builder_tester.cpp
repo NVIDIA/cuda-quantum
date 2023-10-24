@@ -375,8 +375,8 @@ CUDAQ_TEST(BuilderTester, checkKernelControl) {
   printf("%s\n", hadamardTest.to_quake().c_str());
   auto counts = cudaq::sample(10000, hadamardTest);
   counts.dump();
-  printf("< 1 | X | 1 > = %lf\n", counts.exp_val_z());
-  EXPECT_NEAR(counts.exp_val_z(), 0.0, 1e-1);
+  printf("< 1 | X | 1 > = %lf\n", counts.expectation());
+  EXPECT_NEAR(counts.expectation(), 0.0, 1e-1);
 
   // Compute <1|H|1> = 1.
   auto hadamardTest2 = cudaq::make_kernel();
@@ -390,8 +390,8 @@ CUDAQ_TEST(BuilderTester, checkKernelControl) {
 
   printf("%s\n", hadamardTest2.to_quake().c_str());
   counts = cudaq::sample(10000, hadamardTest2);
-  printf("< 1 | H | 1 > = %lf\n", counts.exp_val_z());
-  EXPECT_NEAR(counts.exp_val_z(), -1.0 / std::sqrt(2.0), 1e-1);
+  printf("< 1 | H | 1 > = %lf\n", counts.expectation());
+  EXPECT_NEAR(counts.expectation(), -1.0 / std::sqrt(2.0), 1e-1);
 
   // Demonstrate can control on qvector
   auto kernel = cudaq::make_kernel();
@@ -561,6 +561,22 @@ CUDAQ_TEST(BuilderTester, checkForLoop) {
     // Should have 2 qubit results since this is a 2 parameter input
     EXPECT_EQ(counts.begin()->first.length(), 2);
   }
+
+  {
+    // Check for loop with a QuakeValue as the start index
+    auto ret = cudaq::make_kernel<int, int>();
+    auto &kernel = ret.get<0>();
+    auto &start = ret.get<1>();
+    auto &stop = ret.get<2>();
+    auto qubits = kernel.qalloc(stop);
+    kernel.h(qubits[0]);
+    auto foo = [&](auto &index) { kernel.x(qubits[index]); };
+    kernel.for_loop(start, 1, foo);
+    kernel.for_loop(start, stop - 1, foo);
+    printf("%s\n", kernel.to_quake().c_str());
+    auto counts = cudaq::sample(kernel, 0, 8);
+    counts.dump();
+  }
 }
 
 CUDAQ_TEST(BuilderTester, checkMidCircuitMeasure) {
@@ -654,6 +670,81 @@ CUDAQ_TEST(BuilderTester, checkEntryPointAttribute) {
   EXPECT_TRUE(std::regex_search(quake, functionDecleration));
 }
 
+CUDAQ_TEST(BuilderTester, checkExpPauli) {
+  {
+    auto [kernel, theta] = cudaq::make_kernel<double>();
+    auto qubits = kernel.qalloc(4);
+    kernel.x(qubits[0]);
+    kernel.x(qubits[1]);
+    kernel.exp_pauli(theta, qubits, "XXXY");
+    std::cout << kernel << "\n";
+    std::vector<double> h2_data{
+        3, 1, 1, 3, 0.0454063,  0,  2, 0, 0, 0, 0.17028,    0,
+        0, 0, 2, 0, -0.220041,  -0, 1, 3, 3, 1, 0.0454063,  0,
+        0, 0, 0, 0, -0.106477,  0,  0, 2, 0, 0, 0.17028,    0,
+        0, 0, 0, 2, -0.220041,  -0, 3, 3, 1, 1, -0.0454063, -0,
+        2, 2, 0, 0, 0.168336,   0,  2, 0, 2, 0, 0.1202,     0,
+        0, 2, 0, 2, 0.1202,     0,  2, 0, 0, 2, 0.165607,   0,
+        0, 2, 2, 0, 0.165607,   0,  0, 0, 2, 2, 0.174073,   0,
+        1, 1, 3, 3, -0.0454063, -0, 15};
+    cudaq::spin_op h(h2_data, 4);
+    const double e = cudaq::observe(kernel, h, 0.11);
+    EXPECT_NEAR(e, -1.13, 1e-2);
+  }
+  {
+    auto [kernel, theta] = cudaq::make_kernel<double>();
+    auto qubits = kernel.qalloc(4);
+    kernel.x(qubits[0]);
+    kernel.x(qubits[1]);
+    kernel.exp_pauli(theta, qubits, "XXXY");
+    std::cout << kernel << "\n";
+    std::vector<double> h2_data{
+        3, 1, 1, 3, 0.0454063,  0,  2, 0, 0, 0, 0.17028,    0,
+        0, 0, 2, 0, -0.220041,  -0, 1, 3, 3, 1, 0.0454063,  0,
+        0, 0, 0, 0, -0.106477,  0,  0, 2, 0, 0, 0.17028,    0,
+        0, 0, 0, 2, -0.220041,  -0, 3, 3, 1, 1, -0.0454063, -0,
+        2, 2, 0, 0, 0.168336,   0,  2, 0, 2, 0, 0.1202,     0,
+        0, 2, 0, 2, 0.1202,     0,  2, 0, 0, 2, 0.165607,   0,
+        0, 2, 2, 0, 0.165607,   0,  0, 0, 2, 2, 0.174073,   0,
+        1, 1, 3, 3, -0.0454063, -0, 15};
+    cudaq::spin_op h(h2_data, 4);
+    cudaq::optimizers::cobyla optimizer;
+    optimizer.max_eval = 30;
+    auto [e, opt] = optimizer.optimize(1, [&](std::vector<double> x) -> double {
+      double e = cudaq::observe(kernel, h, x[0]);
+      printf("E = %lf, %lf\n", e, x[0]);
+      return e;
+    });
+    EXPECT_NEAR(e, -1.13, 1e-2);
+  }
+  {
+    auto [kernel, theta] = cudaq::make_kernel<double>();
+    auto qubits = kernel.qalloc(4);
+    kernel.x(qubits[0]);
+    kernel.x(qubits[1]);
+    kernel.exp_pauli(theta, "XXXY", qubits[0], qubits[1], qubits[2], qubits[3]);
+    std::cout << kernel << "\n";
+    std::vector<double> h2_data{
+        3, 1, 1, 3, 0.0454063,  0,  2, 0, 0, 0, 0.17028,    0,
+        0, 0, 2, 0, -0.220041,  -0, 1, 3, 3, 1, 0.0454063,  0,
+        0, 0, 0, 0, -0.106477,  0,  0, 2, 0, 0, 0.17028,    0,
+        0, 0, 0, 2, -0.220041,  -0, 3, 3, 1, 1, -0.0454063, -0,
+        2, 2, 0, 0, 0.168336,   0,  2, 0, 2, 0, 0.1202,     0,
+        0, 2, 0, 2, 0.1202,     0,  2, 0, 0, 2, 0.165607,   0,
+        0, 2, 2, 0, 0.165607,   0,  0, 0, 2, 2, 0.174073,   0,
+        1, 1, 3, 3, -0.0454063, -0, 15};
+    cudaq::spin_op h(h2_data, 4);
+    cudaq::optimizers::cobyla optimizer;
+    optimizer.max_eval = 30;
+    auto [e, opt] = optimizer.optimize(1, [&](std::vector<double> x) -> double {
+      double e = cudaq::observe(kernel, h, x[0]);
+      printf("E = %lf, %lf\n", e, x[0]);
+      return e;
+    });
+    EXPECT_NEAR(e, -1.13, 1e-2);
+  }
+}
+
 #ifndef CUDAQ_BACKEND_DM
 
 CUDAQ_TEST(BuilderTester, checkCanProgressivelyBuild) {
@@ -682,6 +773,34 @@ CUDAQ_TEST(BuilderTester, checkCanProgressivelyBuild) {
   counts = cudaq::sample(kernel);
   EXPECT_TRUE(counts.count("00") != 0);
   EXPECT_TRUE(counts.count("11") != 0);
+}
+
+CUDAQ_TEST(BuilderTester, checkQuakeValueOperators) {
+  // Test arith operators on QuakeValue
+  auto [kernel1, theta] = cudaq::make_kernel<double>();
+  auto q1 = kernel1.qalloc(1);
+  kernel1.rx(theta / 8.0, q1[0]);
+  auto state1 = cudaq::get_state(kernel1, M_PI);
+
+  auto [kernel2, factor] = cudaq::make_kernel<double>();
+  auto q2 = kernel2.qalloc(1);
+  kernel2.rx(M_PI / factor, q2[0]);
+  auto state2 = cudaq::get_state(kernel2, 8.0);
+
+  auto [kernel3, arg1, arg2] = cudaq::make_kernel<double, double>();
+  auto q3 = kernel3.qalloc(1);
+  kernel3.rx(arg1 / arg2, q3[0]);
+  auto state3 = cudaq::get_state(kernel3, M_PI, 8.0);
+
+  // Reference
+  auto kernel = cudaq::make_kernel();
+  auto q = kernel.qalloc(1);
+  kernel.rx(M_PI / 8.0, q[0]);
+  auto state = cudaq::get_state(kernel);
+
+  EXPECT_NEAR(state.overlap(state1), 1.0, 1e-3);
+  EXPECT_NEAR(state.overlap(state2), 1.0, 1e-3);
+  EXPECT_NEAR(state.overlap(state3), 1.0, 1e-3);
 }
 
 #endif

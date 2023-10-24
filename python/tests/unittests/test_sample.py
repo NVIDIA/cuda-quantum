@@ -57,10 +57,10 @@ def test_sample_result_single_register(qubit_count, shots_count):
         # `__len__`
         # Should have only measured 1 different state.
         assert len(counts) == 1
-        # `expectation_z`
+        # `expectation`
         # The `qubit_count` is always odd so we should always have
         # an expectation of -1. for the 1-state.
-        assert counts.expectation_z() == -1.
+        assert counts.expectation() == -1.
         # `probability`
         assert counts.probability(want_bitstring) == 1.
         # `most_probable`
@@ -71,7 +71,7 @@ def test_sample_result_single_register(qubit_count, shots_count):
         for qubit in range(qubit_count):
             marginal_counts = counts.get_marginal_counts([qubit])
             print(marginal_counts)
-            assert marginal_counts.expectation_z() == -1.
+            assert marginal_counts.expectation() == -1.
             # Should be in the 1-state.
             assert marginal_counts.probability("1") == 1
             assert marginal_counts.most_probable() == "1"
@@ -145,10 +145,10 @@ def test_sample_result_single_register_float_param(qubit_count, shots_count):
         # `__len__`
         # Should have only measured 1 different state.
         assert len(counts) == 1
-        # `expectation_z`
+        # `expectation`
         # The `qubit_count` is always odd so we should always have
         # an expectation of -1. for the 1-state.
-        assert counts.expectation_z() == -1.
+        assert counts.expectation() == -1.
         # `probability`
         assert counts.probability(want_bitstring) == 1.
         # `most_probable`
@@ -159,7 +159,7 @@ def test_sample_result_single_register_float_param(qubit_count, shots_count):
         for qubit in range(qubit_count):
             marginal_counts = counts.get_marginal_counts([qubit])
             print(marginal_counts)
-            assert marginal_counts.expectation_z() == -1.
+            assert marginal_counts.expectation() == -1.
             # Should be in the 1-state.
             assert marginal_counts.probability("1") == 1
             assert marginal_counts.most_probable() == "1"
@@ -233,10 +233,10 @@ def test_sample_result_single_register_list_param(qubit_count, shots_count):
         # `__len__`
         # Should have only measured 1 different state.
         assert len(counts) == 1
-        # `expectation_z`
+        # `expectation`
         # The `qubit_count` is always odd so we should always have
         # an expectation of -1. for the 1-state.
-        assert counts.expectation_z() == -1.
+        assert counts.expectation() == -1.
         # `probability`
         assert counts.probability(want_bitstring) == 1.
         # `most_probable`
@@ -247,7 +247,7 @@ def test_sample_result_single_register_list_param(qubit_count, shots_count):
         for qubit in range(qubit_count):
             marginal_counts = counts.get_marginal_counts([qubit])
             print(marginal_counts)
-            assert marginal_counts.expectation_z() == -1.
+            assert marginal_counts.expectation() == -1.
             # Should be in the 1-state.
             assert marginal_counts.probability("1") == 1
             assert marginal_counts.most_probable() == "1"
@@ -358,9 +358,9 @@ def test_sample_result_observe(shots_count):
             sub_register_counts = sample_result.get_register_counts(got_name)
             # Sub-term should have the an expectation proportional to the entire
             # system.
-            assert sub_term_counts.expectation_z(
+            assert sub_term_counts.expectation(
             ) == want_expectation / qubit_count
-            assert sub_register_counts.expectation_z(
+            assert sub_register_counts.expectation(
             ) == want_expectation / qubit_count
             # Should have `shots_count` results for each.
             assert sum(sub_term_counts.values()) == shots_count
@@ -589,6 +589,20 @@ def test_sample_n():
     for i, c in enumerate(allCounts):
         print(runtimeAngles[i, :], c)
         assert len(c) == 2
+
+
+def test_index_out_of_range():
+    """
+    Test the `cudaq.kernel` for out-of-range errors
+    """
+    kernel = cudaq.make_kernel()
+    # Allocate a register of size 3.
+    qreg = kernel.qalloc(3)
+    kernel.x(qreg[99])
+
+    with pytest.raises(Exception) as error:
+        # Index out of range
+        result = cudaq.sample(kernel)
 
 
 # leave for gdb debugging
