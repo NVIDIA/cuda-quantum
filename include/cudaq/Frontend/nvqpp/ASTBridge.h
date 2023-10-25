@@ -245,6 +245,8 @@ public:
 
   bool TraverseForStmt(clang::ForStmt *x, DataRecursionQueue *q = nullptr);
   bool TraverseIfStmt(clang::IfStmt *x, DataRecursionQueue *q = nullptr);
+  bool TraverseConditionalOperator(clang::ConditionalOperator *x,
+                                   DataRecursionQueue *q = nullptr);
   bool VisitReturnStmt(clang::ReturnStmt *x);
   bool VisitCXXFunctionalCastExpr(clang::CXXFunctionalCastExpr *x) {
     return true;
@@ -281,7 +283,6 @@ public:
   bool VisitArraySubscriptExpr(clang::ArraySubscriptExpr *x);
   bool VisitBinaryOperator(clang::BinaryOperator *x);
   bool VisitCallExpr(clang::CallExpr *x);
-  bool VisitConditionalOperator(clang::ConditionalOperator *x);
   bool TraverseCXXConstructExpr(clang::CXXConstructExpr *x,
                                 DataRecursionQueue *q = nullptr);
   bool VisitCXXConstructExpr(clang::CXXConstructExpr *x);

@@ -125,3 +125,30 @@ struct kernel_short_circuit_or {
 // CHECK:           }
 // CHECK:           return %[[VAL_1]] : i32
 // CHECK:         }
+
+struct kernel_ternary {
+  __qpu__ int operator()() {
+    cudaq::qreg q(3);
+    auto measureResult = mz(q[0]) ? mz(q[1]) : mz(q[2]);
+    return 0;
+  }
+};
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_ternary() -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i32
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<3>
+// CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_1]][0] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_2]] : (!quake.ref) -> i1
+// CHECK:           %[[VAL_4:.*]] = cc.if(%[[VAL_3]]) -> i1 {
+// CHECK:             %[[VAL_5:.*]] = quake.extract_ref %[[VAL_1]][1] : (!quake.veq<3>) -> !quake.ref
+// CHECK:             %[[VAL_6:.*]] = quake.mz %[[VAL_5]] : (!quake.ref) -> i1
+// CHECK:             cc.continue %[[VAL_6]] : i1
+// CHECK:           } else {
+// CHECK:             %[[VAL_7:.*]] = quake.extract_ref %[[VAL_1]][2] : (!quake.veq<3>) -> !quake.ref
+// CHECK:             %[[VAL_8:.*]] = quake.mz %[[VAL_7]] : (!quake.ref) -> i1
+// CHECK:             cc.continue %[[VAL_8]] : i1
+// CHECK:           }
+// CHECK:           %[[VAL_9:.*]] = cc.alloca i1
+// CHECK:           cc.store %[[VAL_4]], %[[VAL_9]] : !cc.ptr<i1>
+// CHECK:           return %[[VAL_0]] : i32
+// CHECK:         }
