@@ -745,6 +745,9 @@ bool QuakeBridgeVisitor::TraverseBinaryOperator(clang::BinaryOperator *x,
     bool result = true;
     auto ifOp = builder.create<cc::IfOp>(
         loc, TypeRange{cond.getType()}, cond,
+        // Value if `cond` is true
+        // For `BO_LAnd`, that means Value if lhs is     zero (i.e. false)
+        // For `BO_LOr`,  that means Value if lhs is non-zero (i.e. true)
         [=](OpBuilder &builder, Location loc, Region &region) {
           // Short-circuit taken: return the result of the lhs and do not
           // evaluate the rhs at all.
@@ -752,8 +755,20 @@ bool QuakeBridgeVisitor::TraverseBinaryOperator(clang::BinaryOperator *x,
           auto &bodyBlock = region.front();
           OpBuilder::InsertionGuard guad(builder);
           builder.setInsertionPointToStart(&bodyBlock);
-          builder.create<cc::ContinueOp>(loc, TypeRange{}, cond);
+          if (x->getOpcode() == clang::BinaryOperatorKind::BO_LAnd) {
+            // Return false out of this block in order to avoid evaluating rhs
+            auto constantFalse =
+                builder
+                    .create<arith::ConstantOp>(loc, builder.getBoolAttr(false))
+                    .getResult();
+            builder.create<cc::ContinueOp>(loc, TypeRange{}, constantFalse);
+          } else {
+            builder.create<cc::ContinueOp>(loc, TypeRange{}, cond);
+          }
         },
+        // Value if `cond` is false
+        // For `BO_LAnd`, that means Value if lhs is non-zero (i.e. true)
+        // For `BO_LOr`,  that means Value if lhs is     zero (i.e. false)
         [&result, this, rhs = x->getRHS()](OpBuilder &builder, Location loc,
                                            Region &region) {
           // Short-circuit not taken: evaluate the rhs and return that value.
@@ -951,14 +966,37 @@ std::string QuakeBridgeVisitor::genLoweredName(clang::FunctionDecl *x,
   return result;
 }
 
-bool QuakeBridgeVisitor::VisitConditionalOperator(
-    clang::ConditionalOperator *x) {
-  auto args = lastValues(3);
+bool QuakeBridgeVisitor::TraverseConditionalOperator(
+    clang::ConditionalOperator *x, DataRecursionQueue *q) {
+  bool result = true;
   auto loc = toLocation(x->getSourceRange());
-  auto ty = args[1].getType();
-  auto select =
-      builder.create<arith::SelectOp>(loc, ty, args[0], args[1], args[2]);
-  return pushValue(select);
+  if (!TraverseStmt(x->getCond()))
+    return false;
+  auto condVal = popValue();
+
+  // Create shared lambda for the x->getTrueExpr() and x->getFalseExpr()
+  // expressions
+  auto thenElseLambda = [&](clang::Expr *thenOrElse) {
+    return [&, thenOrElse](OpBuilder &builder, Location loc, Region &region) {
+      region.push_back(new Block{});
+      auto &bodyBlock = region.front();
+      OpBuilder::InsertionGuard guad(builder);
+      builder.setInsertionPointToStart(&bodyBlock);
+      if (!TraverseStmt(thenOrElse)) {
+        result = false;
+        return;
+      }
+      builder.create<cc::ContinueOp>(loc, TypeRange{}, popValue());
+    };
+  };
+
+  auto ifOp = builder.create<cc::IfOp>(
+      loc, TypeRange{condVal.getType()}, condVal,
+      thenElseLambda(x->getTrueExpr()), thenElseLambda(x->getFalseExpr()));
+
+  if (!result)
+    return result;
+  return pushValue(ifOp.getResult(0));
 }
 
 bool QuakeBridgeVisitor::VisitMaterializeTemporaryExpr(
@@ -1717,6 +1755,12 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     }
 
     TODO_loc(loc, "unknown function, " + funcName + ", in cudaq namespace");
+  }
+
+  if (func->isVariadic()) {
+    reportClangError(x, mangler,
+                     "cannot call variadic function from quantum kernel");
+    return false;
   }
 
   // If we get here, and the CallExpr takes qubits or qreg and it must be

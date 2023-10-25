@@ -116,6 +116,48 @@ Raises:
 	# Example:
 	kernel, value = cudaq.make_kernel(float)
 	new_value: QuakeValue = 5.0 * value)#")
+      /// Division overloads:
+      .def(
+          "__truediv__",
+          py::overload_cast<const double>(&QuakeValue::operator/),
+          py::arg("other"),
+          R"#(Return the division of `self` (:class:`QuakeValue`) with `other` (float).
+
+Raises:
+	RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
+
+.. code-block:: python
+
+	# Example:
+	kernel, value = cudaq.make_kernel(float)
+	new_value: QuakeValue = value / 5.0)#")
+      .def("__truediv__", py::overload_cast<QuakeValue>(&QuakeValue::operator/),
+           py::arg("other"),
+           R"#(Return the division of `self` (:class:`QuakeValue`) with `other`
+(:class:`QuakeValue`).
+
+Raises:
+	RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
+
+.. code-block:: python
+
+	# Example:
+	kernel, values = cudaq.make_kernel(list)
+	new_value: QuakeValue = values[0] / values[1])#")
+      .def(
+          "__rtruediv__",
+          [](QuakeValue &self, double other) { return self.inverse() * other; },
+          py::arg("other"),
+          R"#(Return the division of `other` (float) with `self` (:class:`QuakeValue`).
+
+Raises:
+	RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
+
+.. code-block:: python
+
+	# Example:
+	kernel, value = cudaq.make_kernel(float)
+	new_value: QuakeValue = 5.0 / value)#")
       // Addition overloads:
       .def(
           "__add__", py::overload_cast<const double>(&QuakeValue::operator+),

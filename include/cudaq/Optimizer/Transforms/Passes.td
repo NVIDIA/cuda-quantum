@@ -143,7 +143,6 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
   }];
 
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
-  let constructor = "cudaq::opt::createGenerateKernelExecution()";
 
   let options = [
     Option<"outputFilename", "output-filename", "std::string",
@@ -210,7 +209,7 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
   ];
 }
 
-def UpdateRegisterNames : Pass<"update-register-names"> {
+def UpdateRegisterNames : Pass<"update-register-names", "mlir::ModuleOp"> {
   let summary = "Update classical register names";
   let description = [{
     After loop unrolling, there may be duplicate registerName attributes. Run
@@ -348,14 +347,12 @@ def QuakeAddMetadata : Pass<"quake-add-metadata", "mlir::func::FuncOp"> {
   let constructor = "cudaq::opt::createQuakeAddMetadata()";
 }
 
-def QuakeObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
- let summary = "Given spin_op input, append measures to the Quake FuncOp";
+def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
+ let summary = "Given spin_op input, append measures to the FuncOp";
   let description = [{
-    Given an unmeasured Quake representation (i.e. a state prep
-    ansatz), append measures based on the given spin_op specified in
-    binary symplectic form.
+    Given an unmeasured Quake representation (i.e. a state prep ansatz), append
+    measures based on the given spin_op specified in binary symplectic form.
   }];
-  let constructor = "cudaq::opt::createQuakeObserveAnsatzPass()";
   let options = [
     ListOption<"termBSF", "term-bsf", "unsigned",
       "The measurement bases as a Pauli tensor product represented in binary symplectic form.">

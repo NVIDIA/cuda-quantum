@@ -141,6 +141,9 @@ public:
 
   /// @brief Subtract the given QuakeValue from this QuakeValue
   QuakeValue operator-(QuakeValue other);
+
+  /// @brief Return the inverse (1/x) of this QuakeValue
+  QuakeValue inverse() const;
 };
 
 /// @brief Concept constraining the input type below to be a QuakeValue
@@ -165,5 +168,7 @@ QuakeValue operator-(IsNumericType auto &&d, IsQuakeValue auto &&q) {
 QuakeValue operator+(IsNumericType auto &&d, IsQuakeValue auto &&q) {
   return q + d;
 }
-
+QuakeValue operator/(IsNumericType auto &&d, IsQuakeValue auto &&q) {
+  return q.inverse() * d;
+}
 } // namespace cudaq
