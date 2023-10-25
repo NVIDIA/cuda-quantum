@@ -14,13 +14,13 @@ USER root
 # Copy over additional CUDA Quantum assets.
 ARG assets=./assets
 COPY "$assets" "$CUDA_QUANTUM_PATH/assets/"
-RUN if [ -d "$CUDA_QUANTUM_PATH/assets/documentation" ]; then \
-        mkdir -p /home/cudaq/docs && \
-        mv "$CUDA_QUANTUM_PATH/assets/documentation"/* /home/cudaq/docs && \
-        rmdir "$CUDA_QUANTUM_PATH/assets/documentation"; \
-    fi
 ADD ./scripts/migrate_assets.sh "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
-RUN for folder in `find "$CUDA_QUANTUM_PATH/assets"/*$(uname -m)/* -maxdepth 0 -type d`; \
+RUN if [ -d "$CUDA_QUANTUM_PATH/assets/documentation" ]; then \
+        rm -rf "$CUDA_QUANTUM_PATH/docs" && mkdir -p "$CUDA_QUANTUM_PATH/docs"; \
+        mv "$CUDA_QUANTUM_PATH/assets/documentation"/* "$CUDA_QUANTUM_PATH/docs"; \
+        rmdir "$CUDA_QUANTUM_PATH/assets/documentation"; \
+    fi && \
+    for folder in `find "$CUDA_QUANTUM_PATH/assets"/*$(uname -m)/* -maxdepth 0 -type d`; \
     do bash "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh" "$folder" && rm -rf "$folder"; done \
     && rm "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
 
