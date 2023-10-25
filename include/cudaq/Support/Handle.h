@@ -13,9 +13,10 @@
 
 namespace cudaq {
 
-/// A handle to an item in a contigously store container, e.g., vector ro array.
+/// A handle to an item in a contiguously stored container, e.g., vector or
+/// array.
 ///
-/// This class is designed to be lightweighted and thus values of this type
+/// This class is designed to be lightweight and thus values of this type
 /// should be passed by value, _not_ reference or pointer.
 struct Handle {
   static constexpr unsigned InvalidIndex = std::numeric_limits<unsigned>::max();
@@ -25,7 +26,7 @@ struct Handle {
   Handle() : index(InvalidIndex) {}
   constexpr explicit Handle(unsigned index) : index(index) {}
 
-  void print(llvm::raw_ostream &os) const {
+  LLVM_DUMP_METHOD void print(llvm::raw_ostream &os) const {
     if (isValid())
       os << index;
     else

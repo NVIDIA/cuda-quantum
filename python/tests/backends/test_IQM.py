@@ -15,7 +15,7 @@ import cudaq
 from cudaq import spin
 import pytest
 
-iqm_client = pytest.importorskip("iqm_client")
+iqm_client = pytest.importorskip("iqm.iqm_client")
 try:
     from utils.mock_qpu.iqm.mock_iqm_cortex_cli import write_a_mock_tokens_file
     from utils.mock_qpu.iqm.mock_iqm_server import startServer
@@ -109,13 +109,13 @@ def test_iqm_observe():
     res = cudaq.observe(kernel, hamiltonian, 0.59, shots_count=shots)
     want_expectation_value = -1.71
 
-    assert assert_close(want_expectation_value, res.expectation_z(), 5e-2)
+    assert assert_close(want_expectation_value, res.expectation(), 5e-2)
 
     # Launch it asynchronously, enters the job into the queue
     future = cudaq.observe_async(kernel, hamiltonian, 0.59, shots_count=shots)
     # Retrieve the results (since we're on a mock server)
     res = future.get()
-    assert assert_close(want_expectation_value, res.expectation_z(), 5e-2)
+    assert assert_close(want_expectation_value, res.expectation(), 5e-2)
 
     # Launch the job async, job goes in the queue, and
     # we're free to dump the future to file
@@ -127,7 +127,7 @@ def test_iqm_observe():
     # the results from the term job ids.
     futureReadIn = cudaq.AsyncObserveResult(futureAsString, hamiltonian)
     res = futureReadIn.get()
-    assert assert_close(want_expectation_value, res.expectation_z(), 5e-2)
+    assert assert_close(want_expectation_value, res.expectation(), 5e-2)
 
 
 # leave for gdb debugging

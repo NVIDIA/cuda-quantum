@@ -115,13 +115,13 @@ def test_OQC_observe():
     # Run the observe task on OQC synchronously
     res = cudaq.observe(kernel, hamiltonian, .59)
     want_expectation_value = -1.71
-    assert assert_close(res.expectation_z())
+    assert assert_close(res.expectation())
 
     # Launch it asynchronously, enters the job into the queue
     future = cudaq.observe_async(kernel, hamiltonian, .59)
     # Retrieve the results (since we're on a mock server)
     res = future.get()
-    assert assert_close(res.expectation_z())
+    assert assert_close(res.expectation())
 
     # Launch the job async, job goes in the queue, and
     # we're free to dump the future to file
@@ -134,7 +134,7 @@ def test_OQC_observe():
     # the results from the term job ids.
     futureReadIn = cudaq.AsyncObserveResult(futureAsString, hamiltonian)
     res = futureReadIn.get()
-    assert assert_close(res.expectation_z())
+    assert assert_close(res.expectation())
 
 
 # leave for gdb debugging

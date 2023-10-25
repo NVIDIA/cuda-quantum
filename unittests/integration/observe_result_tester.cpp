@@ -41,26 +41,43 @@ CUDAQ_TEST(ObserveResult, checkSimple) {
   printf("Get energy directly as double %lf\n", result);
 
   auto obs_res = cudaq::observe(ansatz, h, 0.59);
-  EXPECT_NEAR(obs_res.exp_val_z(), -1.7487, 1e-3);
-  printf("Energy from observe_result %lf\n", obs_res.exp_val_z());
+  EXPECT_NEAR(obs_res.expectation(), -1.7487, 1e-3);
+  printf("Energy from observe_result %lf\n", obs_res.expectation());
 
-  auto &platform = cudaq::get_platform();
+  // Observe using options w/ noise model. Note that the noise model is only
+  // honored when using the Density Matrix backend.
+  int shots = 252;
+  cudaq::set_random_seed(13);
+  cudaq::depolarization_channel depol(1.);
+  cudaq::noise_model noise;
+  noise.add_channel<cudaq::types::x>({0}, depol);
+  auto obs_opt =
+      cudaq::observe({.shots = shots, .noise = noise}, ansatz, h, 0.59);
+  // Verify that the number of shots requested was honored
+  auto tmpCounts = obs_opt.raw_data();
+  for (auto spinOpName : tmpCounts.register_names()) {
+    if (spinOpName == cudaq::GlobalRegisterName)
+      continue; // Ignore the global register
+    std::size_t totalShots = 0;
+    for (auto &[bitstr, counts] : tmpCounts.to_map(spinOpName))
+      totalShots += counts;
+    EXPECT_EQ(totalShots, shots);
+  }
 
   printf("\n\nLAST ONE!\n");
   auto obs_res2 = cudaq::observe(100000, ansatz, h, 0.59);
-  EXPECT_NEAR(obs_res2.exp_val_z(), -1.7, 1e-1);
-  printf("Energy from observe_result with shots %lf\n", obs_res2.exp_val_z());
+  EXPECT_NEAR(obs_res2.expectation(), -1.7, 1e-1);
+  printf("Energy from observe_result with shots %lf\n", obs_res2.expectation());
   obs_res2.dump();
 
   for (const auto &term : h) // td::size_t i = 0; i < h.num_terms(); i++)
     if (!term.is_identity())
       printf("Fine-grain data access: %s = %lf\n", term.to_string().data(),
-             obs_res2.exp_val_z(term));
+             obs_res2.expectation(term));
 
   auto x0x1Counts = obs_res2.counts(x(0) * x(1));
   x0x1Counts.dump();
   EXPECT_TRUE(x0x1Counts.size() == 4);
-  platform.clear_shots();
 }
 
 CUDAQ_TEST(ObserveResult, checkExpValBug) {
@@ -79,15 +96,15 @@ CUDAQ_TEST(ObserveResult, checkExpValBug) {
   auto hamiltonian = z(0) + z(1);
 
   auto result = cudaq::observe(kernel, hamiltonian);
-  auto exp = result.exp_val_z(z(0));
+  auto exp = result.expectation(z(0));
   printf("exp %lf \n", exp);
   EXPECT_NEAR(exp, .79, 1e-1);
 
-  exp = result.exp_val_z(z(1));
+  exp = result.expectation(z(1));
   printf("exp %lf \n", exp);
   EXPECT_NEAR(exp, .62, 1e-1);
 
-  exp = result.exp_val_z(z(0) * i(1));
+  exp = result.expectation(z(0) * i(1));
   printf("exp %lf \n", exp);
   EXPECT_NEAR(exp, .79, 1e-1);
 }

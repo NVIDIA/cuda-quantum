@@ -17,8 +17,8 @@ find_dependency(CUDAQSpin REQUIRED)
 set (CUDAQCommon_DIR "${CUDAQ_CMAKE_DIR}")
 find_dependency(CUDAQCommon REQUIRED)
 
-set (CUDAQEmQir_DIR "${CUDAQ_CMAKE_DIR}")
-find_dependency(CUDAQEmQir REQUIRED)
+set (CUDAQEmDefault_DIR "${CUDAQ_CMAKE_DIR}")
+find_dependency(CUDAQEmDefault REQUIRED)
 
 set (CUDAQPlatformDefault_DIR "${CUDAQ_CMAKE_DIR}")
 find_dependency(CUDAQPlatformDefault REQUIRED)

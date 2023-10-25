@@ -9,13 +9,15 @@
 // RUN: cudaq-quake -verify %s
 
 #include <cudaq.h>
+#include <iostream>
 
 void foo();
 void bar();
 
 struct S2 {
   auto operator()() __qpu__ {
-    try { // expected-error{{try statement is not yet supported}}
+    try { // expected-error   {{try statement is not yet supported}}
+          // expected-error@-1{{statement not supported in qpu kernel}}
       foo();
     } catch (int) {
       bar();
@@ -23,16 +25,10 @@ struct S2 {
   }
 };
 
-struct S3 {
-  auto operator()(std::vector<int> sp) __qpu__ {
-    for (auto s : sp) // expected-error{{for (ranged) statement}}
-      foo();
-  }
-};
-
 struct S4 {
   auto operator()() __qpu__ {
-    goto label; // expected-error{{goto statement}}
+    goto label; // expected-error   {{goto statement}}
+                // expected-error@-1{{statement not supported in qpu kernel}}
   label:
     foo();
   }
@@ -40,12 +36,24 @@ struct S4 {
 
 struct S5 {
   auto operator()(int sp) __qpu__ {
-    switch (sp) { // expected-error{{switch statement}}
+    switch (sp) { // expected-error   {{switch statement}}
+                  // expected-error@-1{{statement not supported in qpu kernel}}
     case 1:
       foo();
     default:
       bar();
       break;
     }
+  }
+};
+
+struct S6 {
+  auto operator()() __qpu__ {
+    // expected-error@+1{{statement not supported in qpu kernel}}
+    std::cout << "Hello\n";
+
+    // expected-error@+2{{cannot call variadic function from quantum kernel}}
+    // expected-error@+1{{statement not supported in qpu kernel}}
+    printf("Hello\n");
   }
 };

@@ -44,7 +44,9 @@ private:
 
   mlir::LogicalResult getValueAsInt(mlir::Value value, std::size_t &result);
 
-  std::size_t getNumQubits() { return std::log2(matrix.rows()); }
+  std::size_t getNumQubits() {
+    return matrix.rows() > 0 ? std::log2(matrix.rows()) : 0;
+  }
 
   mlir::LogicalResult getQubits(mlir::ValueRange values,
                                 mlir::SmallVectorImpl<Qubit> &qubits);

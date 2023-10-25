@@ -26,23 +26,26 @@ using namespace mlir;
 // Return true if \p loop is not monotonic or it is an invariant loop.
 // Normalization is to be done on any loop that is monotonic and not
 // invariant (which includes loops that are already in counted form).
-static bool isNotMonotonicOrInvariant(cudaq::cc::LoopOp loop) {
+static bool isNotMonotonicOrInvariant(cudaq::cc::LoopOp loop,
+                                      bool allowClosedInterval,
+                                      bool allowEarlyExit) {
   cudaq::opt::LoopComponents c;
-  return !cudaq::opt::isaMonotonicLoop(loop, &c) ||
-         (cudaq::opt::isaInvariantLoop(c, /*allowClosedInterval=*/true) &&
+  return !cudaq::opt::isaMonotonicLoop(loop, allowEarlyExit, &c) ||
+         (cudaq::opt::isaInvariantLoop(c, allowClosedInterval) &&
           !c.isLinearExpr());
 }
 
 namespace {
 class LoopPat : public OpRewritePattern<cudaq::cc::LoopOp> {
 public:
-  using OpRewritePattern::OpRewritePattern;
+  explicit LoopPat(MLIRContext *ctx, bool aci, bool ab)
+      : OpRewritePattern(ctx), allowClosedInterval(aci), allowEarlyExit(ab) {}
 
   LogicalResult matchAndRewrite(cudaq::cc::LoopOp loop,
                                 PatternRewriter &rewriter) const override {
     if (loop->hasAttr(cudaq::opt::NormalizedLoopAttr))
       return failure();
-    if (isNotMonotonicOrInvariant(loop))
+    if (isNotMonotonicOrInvariant(loop, allowClosedInterval, allowEarlyExit))
       return failure();
 
     // loop is monotonic but not invariant.
@@ -144,24 +147,6 @@ public:
         newInd = rewriter.create<arith::AddIOp>(loc, c.initialValue, mul);
       else
         newInd = rewriter.create<arith::SubIOp>(loc, c.initialValue, mul);
-      if (c.isLinearExpr()) {
-        if (c.scaleValue) {
-          if (c.reciprocalScale)
-            newInd = rewriter.create<arith::DivSIOp>(loc, newInd, c.scaleValue);
-          else
-            newInd = rewriter.create<arith::MulIOp>(loc, newInd, c.scaleValue);
-        }
-        if (c.minusOneMult) {
-          auto negOne = createConstantOp(-1);
-          newInd = rewriter.create<arith::MulIOp>(loc, newInd, negOne);
-        }
-        if (c.addendValue) {
-          if (c.negatedAddend)
-            newInd = rewriter.create<arith::SubIOp>(loc, newInd, c.addendValue);
-          else
-            newInd = rewriter.create<arith::AddIOp>(loc, newInd, c.addendValue);
-        }
-      }
       induct.replaceUsesWithIf(newInd, [&](OpOperand &opnd) {
         auto *op = opnd.getOwner();
         return op != mul && !isa<cudaq::cc::ContinueOp>(op);
@@ -173,6 +158,9 @@ public:
     LLVM_DEBUG(llvm::dbgs() << "loop after normalization: " << loop << '\n');
     return success();
   }
+
+  bool allowClosedInterval;
+  bool allowEarlyExit;
 };
 
 class LoopNormalizePass
@@ -184,7 +172,7 @@ public:
     auto *op = getOperation();
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
-    patterns.insert<LoopPat>(ctx);
+    patterns.insert<LoopPat>(ctx, allowClosedInterval, allowBreak);
     if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns)))) {
       op->emitOpError("could not normalize loop");
       signalPassFailure();

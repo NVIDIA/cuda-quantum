@@ -18,6 +18,7 @@ add_cudaq_library(OptTransforms
   CombineQuantumAlloc.cpp
   Decomposition.cpp
   DecompositionPatterns.cpp
+  DelayMeasurements.cpp
   ExpandMeasurements.cpp
   FactorQuantumAlloc.cpp
   GenKernelExecution.cpp
@@ -31,9 +32,9 @@ add_cudaq_library(OptTransforms
   Mapping.cpp
   MemToReg.cpp
   MultiControlDecomposition.cpp
+  ObserveAnsatz.cpp
   PruneCtrlRelations.cpp
   QuakeAddMetadata.cpp
-  QuakeObserveAnsatz.cpp
   QuakeSynthesizer.cpp
   RegToMem.cpp
 

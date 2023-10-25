@@ -18,11 +18,7 @@ __qpu__ void foo(bool value) {
   if (value)
     x(q);
 
-// TODO: Extend measurement support for submissions to IonQ,
-// see https://github.com/NVIDIA/cuda-quantum/issues/512.
-#ifndef IONQ_TARGET
   mz(q);
-#endif
 }
 
 int main() {

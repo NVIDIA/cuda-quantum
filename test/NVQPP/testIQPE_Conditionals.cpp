@@ -6,7 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --enable-mlir %s -o out_testifstmts_iqpe.x && ./out_testifstmts_iqpe.x | FileCheck %s && rm out_testifstmts_iqpe.x
+// RUN: nvq++ --enable-mlir %s -o %basename_t.x && ./%basename_t.x | FileCheck %s && rm %basename_t.x
+// RUN: nvq++ --target quantinuum --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s && rm %basename_t.x
 
 #include <cudaq.h>
 
@@ -74,8 +75,7 @@ int main() {
 
   int nShots = 10;
   auto &platform = cudaq::get_platform();
-  platform.set_shots(nShots);
-  auto counts = cudaq::sample(iqpe{});
+  auto counts = cudaq::sample(nShots, iqpe{});
   counts.dump();
 
   return 0;

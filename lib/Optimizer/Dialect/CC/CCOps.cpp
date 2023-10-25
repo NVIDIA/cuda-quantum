@@ -80,7 +80,8 @@ ParseResult cudaq::cc::AllocaOp::parse(OpAsmParser &parser,
   return success();
 }
 
-OpFoldResult cudaq::cc::AllocaOp::fold(ArrayRef<Attribute> params) {
+OpFoldResult cudaq::cc::AllocaOp::fold(FoldAdaptor adaptor) {
+  auto params = adaptor.getOperands();
   if (params.size() == 1) {
     // If allocating a contiguous block of elements and the size of the block is
     // a constant, fold the size into the cc.array type and allocate a constant
@@ -106,7 +107,7 @@ OpFoldResult cudaq::cc::AllocaOp::fold(ArrayRef<Attribute> params) {
 // CastOp
 //===----------------------------------------------------------------------===//
 
-OpFoldResult cudaq::cc::CastOp::fold(ArrayRef<Attribute>) {
+OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor) {
   // If cast is a nop, just forward the argument to the uses.
   if (getType() == getValue().getType())
     return getValue();
@@ -280,10 +281,11 @@ void cudaq::cc::ComputePtrOp::build(OpBuilder &builder, OperationState &result,
   result.addOperands(dynamicIndices);
 }
 
-OpFoldResult cudaq::cc::ComputePtrOp::fold(ArrayRef<Attribute> params) {
+OpFoldResult cudaq::cc::ComputePtrOp::fold(FoldAdaptor adaptor) {
   if (getDynamicIndices().empty())
     return nullptr;
   SmallVector<std::tuple<Attribute, std::int32_t>> pairs;
+  auto params = adaptor.getOperands();
   for (auto p : llvm::zip(params.drop_front(), getRawConstantIndices()))
     pairs.push_back(p);
   auto dynIter = getDynamicIndices().begin();
@@ -395,7 +397,10 @@ void cudaq::cc::ComputePtrOp::getCanonicalizationPatterns(
 
 // If this operation has a constant offset, then the value can be looked up in
 // the constant array and used as a scalar value directly.
-OpFoldResult cudaq::cc::GetConstantElementOp::fold(ArrayRef<Attribute> params) {
+OpFoldResult cudaq::cc::GetConstantElementOp::fold(FoldAdaptor adaptor) {
+  auto params = adaptor.getOperands();
+  if (params.size() < 2)
+    return nullptr;
   if (auto intAttr = dyn_cast_or_null<IntegerAttr>(params[1])) {
     auto offset = intAttr.getInt();
     auto conArr = getConstantArray().getDefiningOp<ConstantArrayOp>();
@@ -653,8 +658,8 @@ void cudaq::cc::LoopOp::getSuccessorRegions(
     std::optional<unsigned> index, ArrayRef<Attribute> operands,
     SmallVectorImpl<RegionSuccessor> &regions) {
   if (!index) {
-    // loop op - successor is either the while region or, if a post conditional
-    // loop, the do region.
+    // loop op, successor is either the WHILE region, or the DO region if loop
+    // is post conditional.
     if (isPostConditional())
       regions.push_back(
           RegionSuccessor(&getBodyRegion(), getDoEntryArguments()));
@@ -665,13 +670,13 @@ void cudaq::cc::LoopOp::getSuccessorRegions(
   }
   switch (index.value()) {
   case 0:
-    // While region = successors are the owning loop op and the do region.
+    // WHILE region, successors are the owning loop op and the DO region.
     regions.push_back(RegionSuccessor(&getBodyRegion(), getDoEntryArguments()));
     regions.push_back(RegionSuccessor(getResults()));
     break;
   case 1:
-    // do region - Successor is step region (2) if present or while region (0)
-    // if step is absent.
+    // DO region, successor is STEP region (2) if present, or WHILE region (0)
+    // if STEP is absent.
     if (hasStep())
       regions.push_back(RegionSuccessor(&getStepRegion(), getStepArguments()));
     else
@@ -682,7 +687,7 @@ void cudaq::cc::LoopOp::getSuccessorRegions(
       regions.push_back(RegionSuccessor(getResults()));
     break;
   case 2:
-    // step region - if present, while region is always successor.
+    // STEP region, if present, WHILE region is always successor.
     if (hasStep())
       regions.push_back(
           RegionSuccessor(&getWhileRegion(), getWhileArguments()));
@@ -692,7 +697,18 @@ void cudaq::cc::LoopOp::getSuccessorRegions(
 
 OperandRange
 cudaq::cc::LoopOp::getSuccessorEntryOperands(std::optional<unsigned> index) {
-  return getInitialArgs();
+  assert(index && "invalid index region");
+  switch (*index) {
+  case 0:
+    if (!isPostConditional())
+      return getInitialArgs();
+    break;
+  case 1:
+    if (isPostConditional())
+      return getInitialArgs();
+    break;
+  }
+  return {nullptr, 0};
 }
 
 namespace {

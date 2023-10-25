@@ -29,7 +29,7 @@ struct test0 {
 // CHECK:           } : !cc.callable<(!quake.ref) -> ()>
 // CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<2>) -> !quake.ref
 // CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<2>) -> !quake.ref
-// CHECK:           quake.apply @__nvqpp__mlirgen__ZN5test0[[LAM1:.*]]{{\[}}%[[VAL_3]]] %[[VAL_4]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.apply @__nvqpp__mlirgen__ZN5test0[[LAM1:.*]] [%[[VAL_3]]] %[[VAL_4]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
 
@@ -54,7 +54,7 @@ struct test1 {
 // CHECK:           } : !cc.callable<(!quake.ref) -> ()>
 // CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<2>) -> !quake.ref
 // CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<2>) -> !quake.ref
-// CHECK:           quake.apply @__nvqpp__mlirgen__ZN5test1[[LAM1:.*]]{{\[}}%[[VAL_3]]] %[[VAL_4]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.apply @__nvqpp__mlirgen__ZN5test1[[LAM1:.*]] [%[[VAL_3]]] %[[VAL_4]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
 

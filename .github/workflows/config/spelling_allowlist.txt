@@ -103,6 +103,8 @@ entanglers
 enum
 et
 executables
+extensibility
+extremal
 inlining
 instantiation
 instantiations

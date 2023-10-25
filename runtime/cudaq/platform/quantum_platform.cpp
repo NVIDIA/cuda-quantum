@@ -46,7 +46,7 @@ quantum_platform *getQuantumPlatformInternal() {
   return platform;
 }
 
-void quantum_platform::set_noise(noise_model *model) {
+void quantum_platform::set_noise(const noise_model *model) {
   auto &platformQPU = platformQPUs[platformCurrentQPU];
   platformQPU->setNoiseModel(model);
 }

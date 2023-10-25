@@ -75,6 +75,17 @@ def ConvertToDirectCalls :
   }];
 }
 
+def DelayMeasurements : Pass<"delay-measurements", "mlir::func::FuncOp"> {
+  let summary =
+    "Move measurements as late as possible";
+
+  let description = [{
+    Move measurements as late as possible. This is useful for a Base Profile QIR program.
+  }];
+
+  let constructor = "cudaq::opt::createDelayMeasurementsPass()";
+}
+
 def ExpandMeasurements : Pass<"expand-measurements"> {
   let summary = "Expand multi-ref measurements to series on single refs.";
   let description = [{
@@ -132,7 +143,6 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
   }];
 
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
-  let constructor = "cudaq::opt::createGenerateKernelExecution()";
 
   let options = [
     Option<"outputFilename", "output-filename", "std::string",
@@ -163,6 +173,13 @@ def LoopNormalize : Pass<"cc-loop-normalize"> {
   }];
 
   let dependentDialects = ["mlir::arith::ArithDialect"];
+
+  let options = [
+    Option<"allowClosedInterval", "allow-closed-iterval", "bool",
+      /*default=*/"true", "Allow loop iterations on a closed interval.">,
+    Option<"allowBreak", "allow-early-exit", "bool", /*default=*/"true",
+      "Allow unrolling of loop with early exit (i.e. break statement).">
+  ];
 }
 
 def LoopUnroll : Pass<"cc-loop-unroll"> {
@@ -186,11 +203,13 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
       "Maximum iterations to unroll.">,
     Option<"signalFailure",
       "signal-failure-if-any-loop-cannot-be-completely-unrolled", "bool",
-      /*default=*/"false", "Signal failure if pass can't unroll all loops.">
+      /*default=*/"false", "Signal failure if pass can't unroll all loops.">,
+    Option<"allowBreak", "allow-early-exit", "bool", /*default=*/"false",
+      "Allow unrolling of loop with early exit (i.e. break statement).">
   ];
 }
 
-def UpdateRegisterNames : Pass<"update-register-names"> {
+def UpdateRegisterNames : Pass<"update-register-names", "mlir::ModuleOp"> {
   let summary = "Update classical register names";
   let description = [{
     After loop unrolling, there may be duplicate registerName attributes. Run
@@ -305,11 +324,12 @@ def QuakeSynthesize : Pass<"quake-synth", "mlir::ModuleOp"> {
   let constructor = "cudaq::opt::createQuakeSynthesizer()";
 }
 
-def QuakeAddDeallocs : Pass<"quake-add-deallocs", "mlir::func::FuncOp"> {
+def QuakeAddDeallocs : Pass<"add-dealloc", "mlir::func::FuncOp"> {
  let summary = "Add quake deallocs to functions before they return.";
   let description = [{
     This pass ensures that a dealloc is inserted before functions return
-    if the function contains a AllocaOp. It should be run before quake-to-qir.
+    if the function contains a AllocaOp. It should be run before converting
+    to QIR, for example, in order to generate correct code.
   }];
 
   let constructor = "cudaq::opt::createQuakeAddDeallocs()";
@@ -327,14 +347,12 @@ def QuakeAddMetadata : Pass<"quake-add-metadata", "mlir::func::FuncOp"> {
   let constructor = "cudaq::opt::createQuakeAddMetadata()";
 }
 
-def QuakeObserveAnsatz : Pass<"quake-observe-ansatz", "mlir::func::FuncOp"> {
- let summary = "Given spin_op input, append measures to the Quake FuncOp";
+def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
+ let summary = "Given spin_op input, append measures to the FuncOp";
   let description = [{
-    Given an unmeasured Quake representation (i.e. a state prep
-    ansatz), append measures based on the given spin_op specified in
-    binary symplectic form.
+    Given an unmeasured Quake representation (i.e. a state prep ansatz), append
+    measures based on the given spin_op specified in binary symplectic form.
   }];
-  let constructor = "cudaq::opt::createQuakeObserveAnsatzPass()";
   let options = [
     ListOption<"termBSF", "term-bsf", "unsigned",
       "The measurement bases as a Pauli tensor product represented in binary symplectic form.">
@@ -382,7 +400,7 @@ def UnwindLowering : Pass<"unwind-lowering", "mlir::func::FuncOp"> {
   let constructor = "cudaq::opt::createUnwindLoweringPass()";
 }
 
-def BasisConversionPass: Pass<"quake-basis-conversion", "mlir::ModuleOp"> {
+def BasisConversionPass: Pass<"basis-conversion", "mlir::ModuleOp"> {
   let summary = "Converts kernels to a set of basis operations.";
   let description = [{
     This pass takes as input a list of target (allowed) quantum operations.
@@ -413,7 +431,7 @@ def BasisConversionPass: Pass<"quake-basis-conversion", "mlir::ModuleOp"> {
   ];
 }
 
-def DecompositionPass: Pass<"quake-decomposition", "mlir::ModuleOp"> {
+def DecompositionPass: Pass<"decomposition", "mlir::ModuleOp"> {
   let summary = "Break down quantum operations.";
   let description = [{
     This pass performs decomposition over a set of operations by iteratively
@@ -437,7 +455,7 @@ def DecompositionPass: Pass<"quake-decomposition", "mlir::ModuleOp"> {
   ];
 }
 
-def MultiControlDecompositionPass: Pass<"quake-multicontrol-decomposition",
+def MultiControlDecompositionPass: Pass<"multicontrol-decomposition",
                                         "mlir::func::FuncOp"> {
   let summary = "Break down multi-control quantum operations.";
   let description = [{
