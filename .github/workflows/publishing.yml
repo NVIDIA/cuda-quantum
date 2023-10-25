@@ -373,8 +373,7 @@ jobs:
         run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
       - name: Sign image with NGC CLI
-        # Temporarily disable NGC signing
-        if: false && steps.release_info.outputs.ngc_registry
+        if: steps.release_info.outputs.ngc_registry
         env:
           TAGS: ${{ steps.metadata.outputs.tags }}
           NGC_CLI_API_KEY: ${{ secrets.NGC_CREDENTIALS }}
