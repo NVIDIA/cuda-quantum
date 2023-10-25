@@ -26,7 +26,7 @@ struct Handle {
   Handle() : index(InvalidIndex) {}
   constexpr explicit Handle(unsigned index) : index(index) {}
 
-  void print(llvm::raw_ostream &os) const {
+  LLVM_DUMP_METHOD void print(llvm::raw_ostream &os) const {
     if (isValid())
       os << index;
     else
