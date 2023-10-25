@@ -579,6 +579,7 @@ protected:
                 auto formatted_string = std::regex_replace(std::string(rec->name) + std::string(it->signature), std::regex("_pycudaq."), "");
 								formatted_string = std::regex_replace(formatted_string, std::regex("numpy.complex128"), "");
 								formatted_string = std::regex_replace(formatted_string, std::regex(".ndarray[]"), ".ndarray");
+								formatted_string = std::regex_replace(formatted_string, std::regex("buffer"), "numpy.ndarray");
                 formatted_string = std::regex_replace(formatted_string, std::regex("::sample_result"), ".SampleResult");
                 formatted_string = std::regex_replace(formatted_string, std::regex("::observe_result"), ".ObserveResult");
                 formatted_string = std::regex_replace(formatted_string, std::regex("::async_result<cudaq.SampleResult>"), ".AsyncSampleResult");
