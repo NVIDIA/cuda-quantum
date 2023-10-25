@@ -149,6 +149,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#computing-expectation-values">Computing Expectation Values</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#multi-control-synthesis">Multi-control Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#simulations-with-cuquantum">Simulations with cuQuantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#noisy-simulation">Noisy Simulation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#using-quantum-hardware-providers">Using Quantum Hardware Providers</a></li>
 </ul>
 </li>
@@ -647,6 +648,297 @@ can be trivially simulated via a NVIDIA GPU-accelerated backend:</p>
 vector support, we pass the <code class="code docutils literal notranslate"><span class="pre">--target</span> <span class="pre">nvidia</span></code> flag at compile time:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w"> </span>cuquantum_backends.cpp<span class="w"> </span>-o<span class="w"> </span>ghz.x
 ./ghz.x
+</pre></div>
+</div>
+</section>
+<section id="noisy-simulation">
+<h2>Noisy Simulation<a class="headerlink" href="#noisy-simulation" title="Permalink to this heading">¶</a></h2>
+<p>CUDA Quantum makes it simple to model noise within the simulation of your quantum program.
+Let’s take a look at the various built-in noise models we support, before concluding with a brief example of a custom noise model constructed from user-defined Kraus Operators.</p>
+<p>The following code illustrates how to run a simulation with depolarization noise.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Compile and run with:</span>
+<span class="c1">// ```</span>
+<span class="c1">// nvq++ noise_depolarization.cpp --target density-matrix-cpu -o dyn.x</span>
+<span class="c1">// &amp;&amp; ./dyn.x</span>
+<span class="c1">// ```</span>
+<span class="c1">//</span>
+<span class="c1">// Note: You must set the target to a density matrix backend for the noise</span>
+<span class="c1">// to successfully impact the system.</span>
+
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
+
+<span class="c1">// CUDA Quantum supports several different models of noise. In this</span>
+<span class="c1">// case, we will examine the modeling of depolarization noise. This</span>
+<span class="c1">// depolarization will result in the qubit state decaying into a mix</span>
+<span class="c1">// of the basis states, |0&gt; and |1&gt;, with a user provided probability.</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">  </span><span class="c1">// We will begin by defining an empty noise model that we will add</span>
+<span class="w">  </span><span class="c1">// our depolarization channel to.</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">noise_model</span><span class="w"> </span><span class="n">noise</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// Depolarization channel with `1.0` probability of the qubit state</span>
+<span class="w">  </span><span class="c1">// being scrambled.</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">depolarization_channel</span><span class="w"> </span><span class="n">depolarization</span><span class="p">(</span><span class="mf">1.</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// We will apply the channel to any Y-gate on qubit 0. Meaning,</span>
+<span class="w">  </span><span class="c1">// for each Y-gate on our qubit, the qubit will have a `1.0`</span>
+<span class="w">  </span><span class="c1">// probability of decaying into a mixed state.</span>
+<span class="w">  </span><span class="n">noise</span><span class="p">.</span><span class="n">add_channel</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">types</span><span class="o">::</span><span class="n">y</span><span class="o">&gt;</span><span class="p">({</span><span class="mi">0</span><span class="p">},</span><span class="w"> </span><span class="n">depolarization</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Our kernel will apply a Y-gate to qubit 0.</span>
+<span class="w">  </span><span class="c1">// This will bring the qubit to the |1&gt; state, where it will remain</span>
+<span class="w">  </span><span class="c1">// with a probability of `1 - p = 0.0`.</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">kernel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
+<span class="w">    </span><span class="n">y</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<span class="w">    </span><span class="n">mz</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// Now let&#39;s set the noise and we&#39;re ready to run the simulation!</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">set_noise</span><span class="p">(</span><span class="n">noise</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// With noise, the measurements should be a roughly 50/50</span>
+<span class="w">  </span><span class="c1">// mix between the |0&gt; and |1&gt; states.</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">noisy_counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">);</span>
+<span class="w">  </span><span class="n">noisy_counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
+
+<span class="w">  </span><span class="c1">// To confirm this, we can run the simulation again without noise.</span>
+<span class="w">  </span><span class="c1">// Without noise, the qubit should still be in the |1&gt; state.</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">unset_noise</span><span class="p">();</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">noiseless_counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">);</span>
+<span class="w">  </span><span class="n">noiseless_counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The following code illustrates how to run a simulation with amplitude damping noise.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Compile and run with:</span>
+<span class="c1">// ```</span>
+<span class="c1">// nvq++ noise_amplitude_damping.cpp --target density-matrix-cpu -o dyn.x</span>
+<span class="c1">// &amp;&amp; ./dyn.x</span>
+<span class="c1">// ```</span>
+<span class="c1">//</span>
+<span class="c1">// Note: You must set the target to a density matrix backend for the noise</span>
+<span class="c1">// to successfully impact the system.</span>
+
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
+
+<span class="c1">// CUDA Quantum supports several different models of noise. In this case,</span>
+<span class="c1">// we will examine the modeling of energy dissipation within our system</span>
+<span class="c1">// via environmental interactions. The result of this &quot;amplitude damping&quot;</span>
+<span class="c1">// is to return the qubit to the |0&gt; state with a user-specified probability.</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">  </span><span class="c1">// We will begin by defining an empty noise model that we will add</span>
+<span class="w">  </span><span class="c1">// our damping channel to.</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">noise_model</span><span class="w"> </span><span class="n">noise</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// Amplitude damping channel with `1.0` probability of the qubit</span>
+<span class="w">  </span><span class="c1">// decaying to the ground state.</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">amplitude_damping_channel</span><span class="w"> </span><span class="n">ad</span><span class="p">(</span><span class="mf">1.</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// We will apply this channel to any Hadamard gate on the qubit.</span>
+<span class="w">  </span><span class="c1">// Meaning, after each Hadamard on the qubit, there will be a</span>
+<span class="w">  </span><span class="c1">// probability of `1.0` that the qubit decays back to ground.</span>
+<span class="w">  </span><span class="n">noise</span><span class="p">.</span><span class="n">add_channel</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">types</span><span class="o">::</span><span class="n">h</span><span class="o">&gt;</span><span class="p">({</span><span class="mi">0</span><span class="p">},</span><span class="w"> </span><span class="n">ad</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// The Hadamard gate here will bring the qubit to `1/sqrt(2) (|0&gt; + |1&gt;)`,</span>
+<span class="w">  </span><span class="c1">// where it will remain with a probability of `1 - p = 0.0`.</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">kernel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
+<span class="w">    </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<span class="w">    </span><span class="n">mz</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// Now let&#39;s set the noise and we&#39;re ready to run the simulation!</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">set_noise</span><span class="p">(</span><span class="n">noise</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Our results should show all measurements in the |0&gt; state, indicating</span>
+<span class="w">  </span><span class="c1">// that the noise has successfully impacted the system.</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">noisy_counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">);</span>
+<span class="w">  </span><span class="n">noisy_counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
+
+<span class="w">  </span><span class="c1">// To confirm this, we can run the simulation again without noise.</span>
+<span class="w">  </span><span class="c1">// The qubit will now have a 50/50 mix of measurements between</span>
+<span class="w">  </span><span class="c1">// |0&gt; and |1&gt;.</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">unset_noise</span><span class="p">();</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">noiseless_counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">);</span>
+<span class="w">  </span><span class="n">noiseless_counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The following code illustrates how to run a simulation with bit-flip noise.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Compile and run with:</span>
+<span class="c1">// ```</span>
+<span class="c1">// nvq++ noise_bit_flip.cpp --target density-matrix-cpu -o dyn.x</span>
+<span class="c1">// &amp;&amp; ./dyn.x</span>
+<span class="c1">// ```</span>
+<span class="c1">//</span>
+<span class="c1">// Note: You must set the target to a density matrix backend for the noise</span>
+<span class="c1">// to successfully impact the system.</span>
+
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
+
+<span class="c1">// CUDA Quantum supports several different models of noise. In this case,</span>
+<span class="c1">// we will examine the modeling of decoherence of the qubit state. This</span>
+<span class="c1">// will occur from &quot;bit flip&quot; errors, wherein the qubit has a user-specified</span>
+<span class="c1">// probability of undergoing an X-180 rotation.</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">  </span><span class="c1">// We will begin by defining an empty noise model that we will add</span>
+<span class="w">  </span><span class="c1">// these decoherence channels to.</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">noise_model</span><span class="w"> </span><span class="n">noise</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// Bit flip channel with `1.0` probability of the qubit flipping 180 degrees.</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">bit_flip_channel</span><span class="w"> </span><span class="n">bf</span><span class="p">(</span><span class="mf">1.</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// We will apply this channel to any X gate on the qubit, giving each X-gate</span>
+<span class="w">  </span><span class="c1">// a probability of `1.0` of undergoing an extra X-gate.</span>
+<span class="w">  </span><span class="n">noise</span><span class="p">.</span><span class="n">add_channel</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">types</span><span class="o">::</span><span class="n">x</span><span class="o">&gt;</span><span class="p">({</span><span class="mi">0</span><span class="p">},</span><span class="w"> </span><span class="n">bf</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// After the X-gate, the qubit will remain in the |1&gt; state with a probability</span>
+<span class="w">  </span><span class="c1">// of `1 - p = 0.0`.</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">kernel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
+<span class="w">    </span><span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<span class="w">    </span><span class="n">mz</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// Now let&#39;s set the noise and we&#39;re ready to run the simulation!</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">set_noise</span><span class="p">(</span><span class="n">noise</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Our results should show all measurements in the |0&gt; state, indicating</span>
+<span class="w">  </span><span class="c1">// that the noise has successfully impacted the system.</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">noisy_counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">);</span>
+<span class="w">  </span><span class="n">noisy_counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
+
+<span class="w">  </span><span class="c1">// To confirm this, we can run the simulation again without noise.</span>
+<span class="w">  </span><span class="c1">// We should now see the qubit in the |1&gt; state.</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">unset_noise</span><span class="p">();</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">noiseless_counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">);</span>
+<span class="w">  </span><span class="n">noiseless_counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The following code illustrates how to run a simulation with phase-flip noise.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Compile and run with:</span>
+<span class="c1">// ```</span>
+<span class="c1">// nvq++ noise_phase_flip.cpp --target density-matrix-cpu -o dyn.x</span>
+<span class="c1">// &amp;&amp; ./dyn.x</span>
+<span class="c1">// ```</span>
+<span class="c1">//</span>
+<span class="c1">// Note: You must set the target to a density matrix backend for the noise</span>
+<span class="c1">// to successfully impact the system.</span>
+
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
+
+<span class="c1">// CUDA Quantum supports several different models of noise. In this</span>
+<span class="c1">// case, we will examine the modeling of decoherence of the qubit phase.</span>
+<span class="c1">// This will occur from &quot;phase flip&quot; errors, wherein the qubit has a</span>
+<span class="c1">// user-specified probability of undergoing a Z-180 rotation.</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">  </span><span class="c1">// We will begin by defining an empty noise model that we will add</span>
+<span class="w">  </span><span class="c1">// our phase flip channel to.</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">noise_model</span><span class="w"> </span><span class="n">noise</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// Phase flip channel with `1.0` probability of the qubit</span>
+<span class="w">  </span><span class="c1">// undergoing a phase rotation of 180 degrees (π).</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">phase_flip_channel</span><span class="w"> </span><span class="n">pf</span><span class="p">(</span><span class="mf">1.</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// We will apply this channel to any Z gate on the qubit.</span>
+<span class="w">  </span><span class="c1">// Meaning, after each Z gate on qubit 0, there will be a</span>
+<span class="w">  </span><span class="c1">// probability of `1.0` that the qubit undergoes an extra</span>
+<span class="w">  </span><span class="c1">// Z rotation.</span>
+<span class="w">  </span><span class="n">noise</span><span class="p">.</span><span class="n">add_channel</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">types</span><span class="o">::</span><span class="n">z</span><span class="o">&gt;</span><span class="p">({</span><span class="mi">0</span><span class="p">},</span><span class="w"> </span><span class="n">pf</span><span class="p">);</span>
+
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">kernel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// Place qubit in superposition state.</span>
+<span class="w">    </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// Rotate on Z by 180 degrees.</span>
+<span class="w">    </span><span class="n">z</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// Apply another Hadamard.</span>
+<span class="w">    </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<span class="w">    </span><span class="n">mz</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// Now let&#39;s set the noise and we&#39;re ready to run the simulation!</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">set_noise</span><span class="p">(</span><span class="n">noise</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// With noise, our Z-gate will effectively cancel out due</span>
+<span class="w">  </span><span class="c1">// to the presence of a phase flip error on the gate with a</span>
+<span class="w">  </span><span class="c1">// probability of `1.0`. This will put us back in the |0&gt; state.</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">noisy_counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">);</span>
+<span class="w">  </span><span class="n">noisy_counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
+
+<span class="w">  </span><span class="c1">// To confirm this, we can run the simulation again without noise.</span>
+<span class="w">  </span><span class="c1">// Without noise, we&#39;d expect the qubit to end in the |1&gt; state due</span>
+<span class="w">  </span><span class="c1">// to the phase rotation between the two Hadamard gates.</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">unset_noise</span><span class="p">();</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">noiseless_counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">);</span>
+<span class="w">  </span><span class="n">noiseless_counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The following code illustrates how to run a simulation with a custom noise model.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Compile and run with:</span>
+<span class="c1">// ```</span>
+<span class="c1">// nvq++ noise_modeling.cpp --target density-matrix-cpu -o noise.x &amp;&amp; ./noise.x</span>
+<span class="c1">// ```</span>
+
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq.h&quot;</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// Define a  kernel</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">xgate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
+<span class="w">    </span><span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<span class="w">    </span><span class="n">mz</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// Run noise-less simulation</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">xgate</span><span class="p">);</span>
+<span class="w">  </span><span class="n">counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
+
+<span class="w">  </span><span class="c1">// Create a depolarizing Kraus channel made up of two Kraus operators.</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">kraus_channel</span><span class="w"> </span><span class="n">depol</span><span class="p">({</span><span class="n">cudaq</span><span class="o">::</span><span class="n">complex</span><span class="p">{</span><span class="mf">0.99498743710662</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">},</span>
+<span class="w">                              </span><span class="p">{</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">},</span>
+<span class="w">                              </span><span class="p">{</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">},</span>
+<span class="w">                              </span><span class="p">{</span><span class="mf">0.99498743710662</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">}},</span>
+
+<span class="w">                             </span><span class="p">{</span><span class="n">cudaq</span><span class="o">::</span><span class="n">complex</span><span class="p">{</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">},</span>
+<span class="w">                              </span><span class="p">{</span><span class="mf">0.05773502691896258</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">},</span>
+<span class="w">                              </span><span class="p">{</span><span class="mf">0.05773502691896258</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">},</span>
+<span class="w">                              </span><span class="p">{</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">}},</span>
+
+<span class="w">                             </span><span class="p">{</span><span class="n">cudaq</span><span class="o">::</span><span class="n">complex</span><span class="p">{</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">},</span>
+<span class="w">                              </span><span class="p">{</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">-0.05773502691896258</span><span class="p">},</span>
+<span class="w">                              </span><span class="p">{</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.05773502691896258</span><span class="p">},</span>
+<span class="w">                              </span><span class="p">{</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">}},</span>
+
+<span class="w">                             </span><span class="p">{</span><span class="n">cudaq</span><span class="o">::</span><span class="n">complex</span><span class="p">{</span><span class="mf">0.05773502691896258</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">},</span>
+<span class="w">                              </span><span class="p">{</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">},</span>
+<span class="w">                              </span><span class="p">{</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">},</span>
+<span class="w">                              </span><span class="p">{</span><span class="mf">-0.05773502691896258</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">}});</span>
+
+<span class="w">  </span><span class="c1">// Create the noise model</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">noise_model</span><span class="w"> </span><span class="n">noise</span><span class="p">;</span>
+<span class="w">  </span><span class="c1">// Add the Kraus channel to the x operation on qubit 0.</span>
+<span class="w">  </span><span class="n">noise</span><span class="p">.</span><span class="n">add_channel</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">types</span><span class="o">::</span><span class="n">x</span><span class="o">&gt;</span><span class="p">({</span><span class="mi">0</span><span class="p">},</span><span class="w"> </span><span class="n">depol</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Set the noise model</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">set_noise</span><span class="p">(</span><span class="n">noise</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Run the noisy simulation</span>
+<span class="w">  </span><span class="n">counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">xgate</span><span class="p">);</span>
+<span class="w">  </span><span class="n">counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
+
+<span class="w">  </span><span class="c1">// Unset the noise model when done. This is not necessary in this case but is</span>
+<span class="w">  </span><span class="c1">// good practice in order to not interfere with future simulations.</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">unset_noise</span><span class="p">();</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 </section>
