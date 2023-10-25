@@ -104,6 +104,12 @@ std::string get_from_config(BackendConfig config, const std::string &key,
 void OQCServerHelper::initialize(BackendConfig config) {
 
   cudaq::info("Initializing OQC Backend.");
+  const auto emulate_it = config.find("emulate");
+  if (emulate_it != config.end() && emulate_it->second == "true") {
+    cudaq::info("Emulation is enabled, ignore all oqc connection specific "
+                "information.");
+    return;
+  }
   // Set the necessary configuration variables for the OQC API
   config["url"] = get_from_config(
       config, "url",
