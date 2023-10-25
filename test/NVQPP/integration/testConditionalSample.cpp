@@ -9,7 +9,7 @@
 // RUN: nvq++ --enable-mlir %s -o %basename_t.x && ./%basename_t.x
 // RUN: nvq++ --target quantinuum --emulate %s -o %basename_t.x && ./%basename_t.x
 
-// The test here is the assert statement. 
+// The test here is the assert statement.
 
 #include <cudaq.h>
 
@@ -38,7 +38,6 @@ struct kernel {
   }
 };
 
-
 int main() {
 
   // Can print the quake code, and get if it has if stmts
@@ -57,9 +56,11 @@ int main() {
   auto resultsOnZero = counts.get_marginal({0});
   resultsOnZero.dump();
 
-  // Count the "1" 
+  // Count the "1"
   auto nOnes = resultsOnZero.count("1");
 
+#ifndef SYNTAX_CHECK
   // Will fail if not equal to number of shots
   assert(nOnes == nShots && "Failure to teleport qubit in |1> state.");
+#endif
 }
