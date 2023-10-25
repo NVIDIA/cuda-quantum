@@ -410,7 +410,7 @@ void forLoop(ImplicitLocOpBuilder &builder, Value &startVal, Value &end,
           Block &block) {
         Value iv = block.getArgument(0);
         // shift iv -> iv + start
-        iv = builder.create<arith::AddIOp>(iv.getType(), iv, startVal);
+        iv = builder.create<arith::AddIOp>(iv.getType(), iv, castStart);
         OpBuilder::InsertionGuard guard(nestedBuilder);
         QuakeValue idxQuakeVal(builder, iv);
         body(idxQuakeVal);
