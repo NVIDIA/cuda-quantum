@@ -561,6 +561,22 @@ CUDAQ_TEST(BuilderTester, checkForLoop) {
     // Should have 2 qubit results since this is a 2 parameter input
     EXPECT_EQ(counts.begin()->first.length(), 2);
   }
+
+  {
+    // Check for loop with a QuakeValue as the start index
+    auto ret = cudaq::make_kernel<int, int>();
+    auto &kernel = ret.get<0>();
+    auto &start = ret.get<1>();
+    auto &stop = ret.get<2>();
+    auto qubits = kernel.qalloc(stop);
+    kernel.h(qubits[0]);
+    auto foo = [&](auto &index) { kernel.x(qubits[index]); };
+    kernel.for_loop(start, 1, foo);
+    kernel.for_loop(start, stop - 1, foo);
+    printf("%s\n", kernel.to_quake().c_str());
+    auto counts = cudaq::sample(kernel, 0, 8);
+    counts.dump();
+  }
 }
 
 CUDAQ_TEST(BuilderTester, checkMidCircuitMeasure) {
@@ -757,6 +773,34 @@ CUDAQ_TEST(BuilderTester, checkCanProgressivelyBuild) {
   counts = cudaq::sample(kernel);
   EXPECT_TRUE(counts.count("00") != 0);
   EXPECT_TRUE(counts.count("11") != 0);
+}
+
+CUDAQ_TEST(BuilderTester, checkQuakeValueOperators) {
+  // Test arith operators on QuakeValue
+  auto [kernel1, theta] = cudaq::make_kernel<double>();
+  auto q1 = kernel1.qalloc(1);
+  kernel1.rx(theta / 8.0, q1[0]);
+  auto state1 = cudaq::get_state(kernel1, M_PI);
+
+  auto [kernel2, factor] = cudaq::make_kernel<double>();
+  auto q2 = kernel2.qalloc(1);
+  kernel2.rx(M_PI / factor, q2[0]);
+  auto state2 = cudaq::get_state(kernel2, 8.0);
+
+  auto [kernel3, arg1, arg2] = cudaq::make_kernel<double, double>();
+  auto q3 = kernel3.qalloc(1);
+  kernel3.rx(arg1 / arg2, q3[0]);
+  auto state3 = cudaq::get_state(kernel3, M_PI, 8.0);
+
+  // Reference
+  auto kernel = cudaq::make_kernel();
+  auto q = kernel.qalloc(1);
+  kernel.rx(M_PI / 8.0, q[0]);
+  auto state = cudaq::get_state(kernel);
+
+  EXPECT_NEAR(state.overlap(state1), 1.0, 1e-3);
+  EXPECT_NEAR(state.overlap(state2), 1.0, 1e-3);
+  EXPECT_NEAR(state.overlap(state3), 1.0, 1e-3);
 }
 
 #endif
