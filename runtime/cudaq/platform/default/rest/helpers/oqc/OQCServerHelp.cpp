@@ -81,7 +81,7 @@ public:
 namespace {
 
 auto make_env_functor(std::string key, std::string def = "") {
-  return [&]() {
+  return [key, def]() {
     const char *env_var = std::getenv(key.c_str());
     // If the variable is not set, throw an exception
     if (env_var == nullptr && def.empty()) {
