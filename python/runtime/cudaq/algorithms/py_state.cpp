@@ -142,7 +142,7 @@ index pair.
             self.dump(ss);
             py::print(ss.str());
           },
-          "Print the state to the terminal.")
+          "Print the state to the console.")
       .def("__str__",
            [](state &self) {
              std::stringstream ss;
