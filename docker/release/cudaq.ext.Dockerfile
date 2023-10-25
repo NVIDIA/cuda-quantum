@@ -44,7 +44,6 @@ RUN if [ -x "$(command -v pip)" ]; then \
 RUN os=$([ "$(uname -m)" == "aarch64" ] && echo cli-alpine-arm64 || echo cli-alpine-x64) \
     && curl -Lk "https://code.visualstudio.com/sha/download?build=stable&os=$os" --output vscode_cli.tar.gz \
     && tar -xf vscode_cli.tar.gz && rm vscode_cli.tar.gz && mv code /usr/bin/
-
 ARG vscode_config=.vscode
 COPY "${vscode_config}" /home/cudaq/.vscode
 ARG vscode_profile='{\
