@@ -98,7 +98,7 @@ open a terminal by going to the Terminal menu and select :code:`New Terminal`.
 
 .. image:: _static/openTerminal.png 
 
-You can now compile and run the C++ examples using the :code:`nvq++` compiler, which is installed in your :code:`PATH`, 
+You can now compile and run the C++ examples using the :code:`nvq++` compiler,
 or run the Python examples using the Python interpreter.
 
 .. image:: _static/getToWork.png 
