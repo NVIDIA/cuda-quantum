@@ -54,6 +54,55 @@ LogicalResult quake::verifyWireArityAndCoarity(Operation *op) {
   return op->emitOpError("arity does not equal coarity of wires");
 }
 
+bool quake::isSupportedMappingOperation(Operation *op) {
+  return isa<OperatorInterface, MeasurementInterface, SinkOp>(op);
+}
+
+mlir::ValueRange quake::getQuantumTypesFromRange(mlir::ValueRange range) {
+
+  // Skip over classical types at the beginning
+  int numClassical = 0;
+  for (auto operand : range) {
+    if (!isa<RefType, VeqType, WireType>(operand.getType()))
+      numClassical++;
+    else
+      break;
+  }
+
+  mlir::ValueRange retVals = range.drop_front(numClassical);
+
+  // Make sure all remaining operands are quantum
+  for (auto operand : retVals)
+    if (!isa<RefType, VeqType, WireType>(operand.getType()))
+      return retVals.drop_front(retVals.size());
+
+  return retVals;
+}
+
+mlir::ValueRange quake::getQuantumResults(Operation *op) {
+  return getQuantumTypesFromRange(op->getResults());
+}
+
+mlir::ValueRange quake::getQuantumOperands(Operation *op) {
+  return getQuantumTypesFromRange(op->getOperands());
+}
+
+LogicalResult quake::setQuantumOperands(Operation *op, ValueRange quantumVals) {
+  mlir::ValueRange quantumOperands =
+      getQuantumTypesFromRange(op->getOperands());
+
+  if (quantumOperands.size() != quantumVals.size())
+    return failure();
+
+  // Count how many classical operands at beginning
+  auto numClassical = op->getOperands().size() - quantumOperands.size();
+
+  for (auto &&[i, quantumVal] : llvm::enumerate(quantumVals))
+    op->setOperand(numClassical + i, quantumVal);
+
+  return success();
+}
+
 //===----------------------------------------------------------------------===//
 // AllocaOp
 //===----------------------------------------------------------------------===//
