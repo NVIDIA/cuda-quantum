@@ -260,8 +260,6 @@ OQCServerHelper::processResults(ServerMessage &postJobResponse,
   const auto &jsonResults = postJobResponse.at("results");
 
   cudaq::sample_result sampleResult; // value to return
-  if (jsonResults.is_array() && jsonResults.size() == 0)
-    throw std::runtime_error("No measurements found. Were any in the program?");
 
   // Try to determine between two results formats:
   //   {"results":{"r0_r1_r2_r3_r4":{"00000":1000}}} (hasResultNames = true )
