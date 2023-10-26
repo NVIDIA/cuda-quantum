@@ -8,9 +8,6 @@
 
 // RUN: nvq++ -v %s -o %basename_t.x --target quantinuum --emulate && ./%basename_t.x | FileCheck %s
 
-// Additionally check OQC because OQC has swaps that must come before measurements (Base Profile)
-// RUN: nvq++ -v %s -o %basename_t.x --target oqc --emulate && ./%basename_t.x | FileCheck %s
-
 #include <cudaq.h>
 #include <iostream>
 
@@ -25,7 +22,7 @@ __qpu__ void foo() {
   x(qubits);
   bar(qubits);
 
-  auto result = mz(qubits);
+  mz(qubits);
 }
 
 int main() {

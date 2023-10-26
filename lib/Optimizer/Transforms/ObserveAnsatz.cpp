@@ -81,15 +81,7 @@ private:
 
     // walk and find all quantum allocations
     funcOp->walk([&](quake::AllocaOp op) {
-      if (auto veq = dyn_cast<quake::VeqType>(op.getResult().getType())) {
-        // Only update data.nQubits here. data.qubitValues will be updated for
-        // the corresponding ExtractRefOP's in the `walk` below.
-        data.nQubits += veq.getSize();
-      } else {
-        // single alloc is for a single qubit. Update data.qubitValues here
-        // because ExtractRefOp `walk` won't find any ExtractRefOp for this.
-        data.qubitValues.insert({data.nQubits++, op.getResult()});
-      }
+      data.nQubits += op.getResult().getType().cast<quake::VeqType>().getSize();
     });
 
     // NOTE: assumes canonicalization and cse have run.
@@ -182,13 +174,9 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
         qubitsToMeasure.push_back(qubitVal);
     }
 
-    for (auto &[measureNum, qubitToMeasure] :
-         llvm::enumerate(qubitsToMeasure)) {
+    for (auto &qubitToMeasure : qubitsToMeasure) {
       // add the measure
-      char regName[16];
-      std::snprintf(regName, sizeof(regName), "r%05lu", measureNum);
-      builder.create<quake::MzOp>(loc, builder.getI1Type(), qubitToMeasure,
-                                  builder.getStringAttr(regName));
+      builder.create<quake::MzOp>(loc, builder.getI1Type(), qubitToMeasure);
     }
 
     rewriter.finalizeRootUpdate(funcOp);
