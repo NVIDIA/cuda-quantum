@@ -218,7 +218,8 @@ void bindObserve(py::module &mod) {
           std::variant<spin_op, std::vector<spin_op>> &spin_operator,
           py::args arguments, int shots, std::optional<noise_model> noise,
           std::optional<py::type> execution)
-          -> std::variant<observe_result, std::vector<observe_result>> {
+          -> std::variant<observe_result, std::vector<observe_result>,
+                          std::vector<std::vector<observe_result>>> {
         // Observe can be a single observe call, a parallel observe call,
         // or a observe broadcast. We'll handle them all here.
 
@@ -302,6 +303,20 @@ void bindObserve(py::module &mod) {
         }
 
         // Return the vector of results, this is for observe_n
+        // Check if this is a nested broadcast (sweeping both spin_op and
+        // params). If so, peel the results: first index is param sweep, second
+        // index is spin_op.
+        if (spinVariantIndex == 1) {
+          std::vector<std::vector<observe_result>> results;
+          for (auto &paramSweepResult : result) {
+            std::vector<observe_result> spinResults;
+            for (auto &o : std::get<std::vector<spin_op>>(spin_operator))
+              spinResults.emplace_back(paramSweepResult.expectation(o), o,
+                                       paramSweepResult.counts(o));
+            results.emplace_back(std::move(spinResults));
+          }
+          return results;
+        }
         return {result};
       },
       py::arg("kernel"), py::arg("spin_operator"), py::kw_only(),
