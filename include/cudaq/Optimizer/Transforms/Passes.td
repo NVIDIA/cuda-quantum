@@ -471,19 +471,21 @@ def MultiControlDecompositionPass: Pass<"multicontrol-decomposition",
   }];
 }
 
-def MappingPass: Pass<"mapping", "mlir::func::FuncOp"> {
+def MappingPass: Pass<"qubit-mapping", "mlir::func::FuncOp"> {
   let summary = "Perform qubit mapping to account for connectivity constraints";
   let description = [{
     Some backends cannot support any-to-any multi-qubit operations, so this pass
     performs mapping of the qubits by inserting the necessary swap operations
     into the Quake IR.
 
-    Note: this pass requires value semantics. It will throw an error if the
-    Quake is not in value semantics form.
+    Note: this pass requires strictly value semantics for any quantum
+    operations. It will throw an error if any memory reference semantics are
+    present on quantum operations.
   }];
   let options = [
     Option<"device", "device", "std::string", /*default=*/"\"-\"",
-           "Defines device topology (i.e. path)).">,
+           "Device topology. Supported options are path and path(N), where N "
+           "is the number of qubits in the device.">,
   ];
 }
 

@@ -13,6 +13,10 @@
 
 namespace cudaq {
 
+/// The `Device` class represents a device topology with qubits and connections
+/// between qubits. It contains various methods to construct the device based on
+/// canned geometries, and it contains helper methods to determine paths between
+/// qubits.
 class Device {
 public:
   using Qubit = GraphCSR::Node;
@@ -109,7 +113,7 @@ public:
   }
 
   bool areConnected(Qubit q0, Qubit q1) const {
-    return getDistance(q0, q1) == 1 ? true : false;
+    return getDistance(q0, q1) == 1;
   }
 
   /// Returns a shortest path between two qubits.
@@ -136,16 +140,21 @@ public:
 private:
   using PathRef = mlir::ArrayRef<Qubit>;
 
+  /// Returns a unique id for a pair of values (`u` and `v`). `getPairID(u, v)`
+  /// will be equal to `getPairID(v, u)`.
   unsigned getPairID(unsigned u, unsigned v) const {
     if (u > v)
       std::swap(u, v);
     return (u * getNumQubits()) - (((u - 1) * u) / 2) + v - u;
   }
 
+  /// Compute the shortest path between every qubit. This assumes that there
+  /// exists at least one path between every source and destination pair. I.e.
+  /// the graph cannot be bipartite.
   void computeAllPairShortestPaths() {
     std::size_t numNodes = topology.getNumNodes();
     shortestPaths.resize(numNodes * (numNodes + 1) / 2);
-    mlir::SmallVector<Qubit> path;
+    mlir::SmallVector<Qubit> path(numNodes);
     for (unsigned n = 0; n < numNodes; ++n) {
       auto parents = getShortestPathsBFS(topology, Qubit(n));
       // Reconstruct the paths
@@ -158,15 +167,20 @@ private:
           p = parents[p.index];
         }
         path.push_back(Qubit(n));
-        std::copy(path.rbegin(), path.rend(), std::back_inserter(pathsData));
+        pathsData.append(path.rbegin(), path.rend());
         shortestPaths[getPairID(n, m)] =
             PathRef(pathsData.end() - path.size(), pathsData.end());
       }
     }
   }
 
+  /// Device nodes (qubits) and edges (connections)
   GraphCSR topology;
+
+  /// List of shortest path from/to every src/destination
   mlir::SmallVector<PathRef> shortestPaths;
+
+  /// Storage for `PathRef`'s in `shortestPaths`
   mlir::SmallVector<Qubit> pathsData;
 };
 
