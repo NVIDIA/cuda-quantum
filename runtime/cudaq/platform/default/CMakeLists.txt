@@ -12,6 +12,8 @@ set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 set(CUDAQ_DEFAULTPLATFORM_SRC
   DefaultQuantumPlatform.cpp
+  runtime_platform.cpp
+  python_proxy_platform.cpp
   ../common/QuantumExecutionQueue.cpp
 )
 

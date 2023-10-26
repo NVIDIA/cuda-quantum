@@ -102,10 +102,10 @@ public:
   std::string name() const { return platformName; }
 
   /// Get the ID of the current QPU.
-  std::size_t get_current_qpu();
+  virtual std::size_t get_current_qpu();
 
   /// Set the current QPU via its device ID.
-  void set_current_qpu(const std::size_t device_id);
+  virtual void set_current_qpu(const std::size_t device_id);
 
   /// @brief Return true if the QPU is remote.
   bool is_remote(const std::size_t qpuId = 0);
