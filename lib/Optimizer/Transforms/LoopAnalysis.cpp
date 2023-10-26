@@ -262,8 +262,8 @@ bool opt::loopContainsBreak(cc::LoopOp loopOp) {
 bool opt::isaMonotonicLoop(Operation *op, bool allowEarlyExit,
                            LoopComponents *lcp) {
   if (auto loopOp = dyn_cast_or_null<cc::LoopOp>(op)) {
-    // Cannot be a `while` or `do while` loop.
-    if (loopOp.isPostConditional() || !loopOp.hasStep())
+    // Cannot be a `do while` loop. See cc-loop-peeling.
+    if (loopOp.isPostConditional())
       return false;
     auto &reg = loopOp.getBodyRegion();
     return !reg.empty() && (allowEarlyExit || allExitsAreContinue(reg)) &&
