@@ -34,7 +34,6 @@
                 "debian:12",
                 "fedora:38",
                 "redhat/ubi9:9.2",
-                "redhat/ubi8:8.0",
                 "opensuse/leap:15.5"
             ]
         }
