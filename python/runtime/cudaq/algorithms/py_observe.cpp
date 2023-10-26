@@ -330,6 +330,8 @@ with respect to `kernel(*arguments)`. Each argument in `arguments` provided
 can be a list or ndarray of arguments of the specified kernel argument
 type, and in this case, the `observe` functionality will be broadcasted over
 all argument sets and a list of `observe_result` instances will be returned.
+If both the input `spin_operator` and `arguments` are broadcast lists, 
+a nested list of results over `arguments` then `spin_operator` will be returned.
 
 Args:
   kernel (:class:`Kernel`): The :class:`Kernel` to evaluate the 
