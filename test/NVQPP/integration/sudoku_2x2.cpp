@@ -1,0 +1,1 @@
+../sudoku_2x2.cpp
