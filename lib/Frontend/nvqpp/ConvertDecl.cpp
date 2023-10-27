@@ -27,7 +27,7 @@ bool ignoredClass(clang::RecordDecl *x) {
     // Kernels don't support allocators, although they are found in
     // std::vector.
     if (isInNamespace(x, "std"))
-      return name.equals("allocator_traits");
+      return name.equals("allocator_traits") || name.equals("iterator_traits");
     // Skip non-standard GNU helper classes.
     if (isInNamespace(x, "__gnu_cxx"))
       return name.equals("__alloc_traits");
@@ -227,6 +227,12 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
           break;
         }
       assert(typeStack.size() == depth + 1);
+      return true;
+    }
+    if (name.equals("__normal_iterator")) {
+      auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
+      if (!TraverseType(cts->getTemplateArgs()[0].getAsType()))
+        return false;
       return true;
     }
   }

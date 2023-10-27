@@ -1067,6 +1067,8 @@ def cc_StdvecSizeOp : CCOp<"stdvec_size", [Pure]> {
   let arguments = (ins cc_StdVectorType:$stdvec);
   let results = (outs AnyInteger:$size);
 
+  let hasCanonicalizer = 1;
+
   let assemblyFormat = [{
     $stdvec `:` functional-type(operands, results) attr-dict
   }];
