@@ -212,6 +212,139 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
   }
 }
 
+CUDAQ_TEST(BuilderTester, checkControlledRotations) {
+
+  // rx
+  {
+    auto [kernel, val] = cudaq::make_kernel<float>();
+    auto target = kernel.qalloc();
+    auto q1 = kernel.qalloc();
+    auto q2 = kernel.qalloc();
+    auto q3 = kernel.qalloc();
+
+    // Prepare control qubits in the 1-state.
+    kernel.x(q1);
+    kernel.x(q2);
+    kernel.x(q3);
+
+    // Create a vector of controls.
+    std::vector<cudaq::QuakeValue> ctrls{q1, q2, q3};
+
+    // Overload 1: `QuakeValue` parameter.
+    kernel.rx(val, ctrls, target);
+    // Overload 2: `double` parameter.
+    kernel.rx(3.14, ctrls, target);
+
+    auto counts = cudaq::sample(kernel, 3.14);
+    counts.dump();
+
+    // Our controls should remain in the 1-state, while
+    // the target has been rotated by `2*3.14 = 2pi`. I.e, identity.
+    EXPECT_EQ(counts.count("0111"), 1000);
+  }
+
+  // ry
+  {
+    auto [kernel, val] = cudaq::make_kernel<float>();
+    auto target = kernel.qalloc();
+    auto q1 = kernel.qalloc();
+    auto q2 = kernel.qalloc();
+    auto q3 = kernel.qalloc();
+
+    // Prepare control qubits in the 1-state.
+    kernel.x(q1);
+    kernel.x(q2);
+    kernel.x(q3);
+
+    // Create a vector of controls.
+    std::vector<cudaq::QuakeValue> ctrls{q1, q2, q3};
+
+    // Overload 1: `QuakeValue` parameter.
+    kernel.rx(val, ctrls, target);
+    // Overload 2: `double` parameter.
+    kernel.rx(3.14, ctrls, target);
+
+    auto counts = cudaq::sample(kernel, 3.14);
+    counts.dump();
+
+    // Our controls should remain in the 1-state, while
+    // the target has been rotated by `2*3.14 = 2pi`. I.e, identity.
+    EXPECT_EQ(counts.count("0111"), 1000);
+  }
+
+  // rz
+  {
+    auto [kernel, val] = cudaq::make_kernel<float>();
+    auto target = kernel.qalloc();
+    auto q1 = kernel.qalloc();
+    auto q2 = kernel.qalloc();
+    auto q3 = kernel.qalloc();
+
+    // Prepare control qubits in the 1-state.
+    kernel.x(q1);
+    kernel.x(q2);
+    kernel.x(q3);
+
+    // X + Hadamard on target qubit.
+    kernel.x(target);
+    kernel.h(target);
+
+    // Create a vector of controls.
+    std::vector<cudaq::QuakeValue> ctrls{q1, q2, q3};
+
+    // Overload 1: `QuakeValue` parameter.
+    kernel.rz(val, ctrls, target);
+    // Overload 2: `double` parameter.
+    kernel.rz(-3.14 / 2., ctrls, target);
+
+    // Hadamard the target again.
+    kernel.h(target);
+
+    auto counts = cudaq::sample(kernel, -3.14 / 2.);
+    counts.dump();
+
+    // The phase rotations on our target by a total of -pi should
+    // return it to the 0-state.
+    EXPECT_EQ(counts.count("0111"), 1000);
+  }
+
+  // r1
+  {
+    auto [kernel, val] = cudaq::make_kernel<float>();
+    auto target = kernel.qalloc();
+    auto q1 = kernel.qalloc();
+    auto q2 = kernel.qalloc();
+    auto q3 = kernel.qalloc();
+
+    // Prepare control qubits in the 1-state.
+    kernel.x(q1);
+    kernel.x(q2);
+    kernel.x(q3);
+
+    // X + Hadamard on target qubit.
+    kernel.x(target);
+    kernel.h(target);
+
+    // Create a vector of controls.
+    std::vector<cudaq::QuakeValue> ctrls{q1, q2, q3};
+
+    // Overload 1: `QuakeValue` parameter.
+    kernel.r1(val, ctrls, target);
+    // Overload 2: `double` parameter.
+    kernel.r1(-3.14 / 2., ctrls, target);
+
+    // Hadamard the target again.
+    kernel.h(target);
+
+    auto counts = cudaq::sample(kernel, -3.14 / 2.);
+    counts.dump();
+
+    // The phase rotations on our target by a total of -pi should
+    // return it to the 0-state.
+    EXPECT_EQ(counts.count("0111"), 1000);
+  }
+}
+
 CUDAQ_TEST(BuilderTester, checkSwap) {
   cudaq::set_random_seed(13);
 

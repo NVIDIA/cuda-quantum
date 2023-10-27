@@ -503,13 +503,6 @@ public:
     auto instName = instOp->getName().stripDialect().str();
     auto numControls = instOp.getControls().size();
 
-    // TODO: handle general control ops. For now, only allow Rn with 1
-    // control
-    if (numControls > 1)
-      return instOp.emitError("unsupported controlled op " + instName +
-                              " with " + std::to_string(numControls) +
-                              " ctrl qubits");
-
     auto loc = instOp.getLoc();
     ModuleOp parentModule = instOp->template getParentOfType<ModuleOp>();
     auto context = parentModule->getContext();
@@ -549,7 +542,7 @@ public:
       return success();
     }
 
-    // We have 1 control, is it a veq or a ref?
+    // We have >= 1 control, is it a veq or a ref?
     auto control = *instOp.getControls().begin();
     qirFunctionName += "__ctl";
 

@@ -44,7 +44,7 @@ def test_sdg_1_state():
 
     # Place qubit in 1-state.
     kernel.x(qubit)
-    # Superpositoin.
+    # Superposition.
     kernel.h(qubit)
     # Rotate around Z by -pi/2, twice. Total rotation of -pi.
     kernel.sdg(qubit)
@@ -551,6 +551,122 @@ def test_crz_gate():
 # FIXME
 def test_cswap_gate():
     pass
+
+
+def test_crx_control_list():
+    kernel, val = cudaq.make_kernel(float)
+    target = kernel.qalloc()
+    q1 = kernel.qalloc()
+    q2 = kernel.qalloc()
+    q3 = kernel.qalloc()
+
+    # Place a subset of controls in 1-state.
+    kernel.x(q1)
+    kernel.x(q2)
+
+    # Using different orientations of our control qubits
+    # to make kernel less trivial.
+    # Overload 1: `QuakeValue` parameter. All controls are in |1>,
+    # so this should rotate our `target`.
+    kernel.crx(val, [q1, q2], target)
+    # Overload 2: `float` parameter. `q3` is still in |0>, so this
+    # should not rotate our `target`.
+    kernel.crx(3.14, [q3, q2, q1], target)
+
+    result = cudaq.sample(kernel, 3.14)
+    print(result)
+
+    # Target is still in 1-state, while q1 = q2 = 1, and q3 = 0
+    assert result["1110"] == 1000
+
+
+def test_cry_control_list():
+    kernel, val = cudaq.make_kernel(float)
+    target = kernel.qalloc()
+    q1 = kernel.qalloc()
+    q2 = kernel.qalloc()
+    q3 = kernel.qalloc()
+
+    # Place a subset of controls in 1-state.
+    kernel.x(q1)
+    kernel.x(q2)
+
+    # Using different orientations of our control qubits
+    # to make kernel less trivial.
+    # Overload 1: `QuakeValue` parameter. All controls are in |1>,
+    # so this should rotate our `target`.
+    kernel.cry(val, [q1, q2], target)
+    # Overload 2: `float` parameter. `q3` is still in |0>, so this
+    # should not rotate our `target`.
+    kernel.cry(3.14, [q3, q2, q1], target)
+
+    result = cudaq.sample(kernel, 3.14)
+    print(result)
+
+    # Target is still in 1-state, while q1 = q2 = 1, and q3 = 0
+    assert result["1110"] == 1000
+
+
+def test_crz_control_list():
+    kernel, val = cudaq.make_kernel(float)
+    target = kernel.qalloc()
+    q1 = kernel.qalloc()
+    q2 = kernel.qalloc()
+    q3 = kernel.qalloc()
+
+    # Place controls in 1-state.
+    kernel.x(q1)
+    kernel.x(q2)
+    kernel.x(q3)
+
+    # Hadamard our target.
+    kernel.h(target)
+
+    # Overload 1: `QuakeValue` parameter.
+    kernel.crz(val, [q1, q2, q3], target)
+    # Overload 2: `float` parameter.
+    kernel.crz(-3.14 / 2, [q3, q2, q1], target)
+
+    # Another hadamard to our target.
+    kernel.h(target)
+
+    result = cudaq.sample(kernel, -3.14 / 2)
+    print(result)
+
+    # The phase rotation on our target by -pi should mean
+    # we measure it in the 1-state.
+    assert result["1111"] == 1000
+
+
+def test_cr1_control_list():
+    kernel, val = cudaq.make_kernel(float)
+    target = kernel.qalloc()
+    q1 = kernel.qalloc()
+    q2 = kernel.qalloc()
+    q3 = kernel.qalloc()
+
+    # Place controls in 1-state.
+    kernel.x(q1)
+    kernel.x(q2)
+    kernel.x(q3)
+
+    # Hadamard our target.
+    kernel.h(target)
+
+    # Overload 1: `QuakeValue` parameter.
+    kernel.cr1(val, [q1, q2, q3], target)
+    # Overload 2: `float` parameter.
+    kernel.cr1(-3.14 / 2, [q3, q2, q1], target)
+
+    # Another hadamard to our target.
+    kernel.h(target)
+
+    result = cudaq.sample(kernel, -3.14 / 2)
+    print(result)
+
+    # The phase rotation on our target by -pi should mean
+    # we measure it in the 1-state.
+    assert result["1111"] == 1000
 
 
 def test_can_progressively_build():
