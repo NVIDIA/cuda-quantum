@@ -7,7 +7,21 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --qubit-mapping=device=path %s | CircuitCheck --up-to-mapping %s
-// RUN: cudaq-opt --qubit-mapping=device=path %s | FileCheck %s
+// RUN: cudaq-opt --qubit-mapping=device=path\(5\) %s | CircuitCheck --up-to-mapping %s
+// RUN: cudaq-opt --qubit-mapping=device=ring\(5\) %s | CircuitCheck --up-to-mapping %s
+// RUN: cudaq-opt --qubit-mapping=device=star\(5,2\) %s | CircuitCheck --up-to-mapping %s
+// RUN: cudaq-opt --qubit-mapping=device=star\(5,0\) %s | CircuitCheck --up-to-mapping %s
+// RUN: cudaq-opt --qubit-mapping=device=grid\(3,3\) %s | CircuitCheck --up-to-mapping %s
+// RUN: cudaq-opt --qubit-mapping=device=grid\(1,5\) %s | CircuitCheck --up-to-mapping %s
+// RUN: cudaq-opt --qubit-mapping=device=grid\(5,1\) %s | CircuitCheck --up-to-mapping %s
+// RUN: cudaq-opt --qubit-mapping=device=path %s | FileCheck --check-prefix CHECK %s
+// RUN: cudaq-opt --qubit-mapping=device=path\(5\) %s | FileCheck --check-prefix CHECK %s
+// RUN: cudaq-opt --qubit-mapping=device=ring\(5\) %s | FileCheck --check-prefix CHECK %s
+// RUN: cudaq-opt --qubit-mapping=device=star\(5,2\) %s | FileCheck --check-prefix STAR52 %s
+// RUN: cudaq-opt --qubit-mapping=device=star\(5,0\) %s | FileCheck --check-prefix STAR50 %s
+// RUN: cudaq-opt --qubit-mapping=device=grid\(3,3\) %s | FileCheck --check-prefix CHECK %s
+// RUN: cudaq-opt --qubit-mapping=device=grid\(1,5\) %s | FileCheck --check-prefix CHECK %s
+// RUN: cudaq-opt --qubit-mapping=device=grid\(5,1\) %s | FileCheck --check-prefix CHECK %s
 
 func.func @test_measurement() {
   %0 = quake.null_wire
@@ -23,7 +37,7 @@ func.func @test_measurement() {
   return
 }
 
-// CHECK-LABEL:   func.func @test_measurement() {
+// CHECK-LABEL:   func.func @test_measurement() attributes {mapping_v2p = [0, 2, 1]} {
 // CHECK:           %[[VAL_0:.*]] = quake.null_wire
 // CHECK:           %[[VAL_1:.*]] = quake.null_wire
 // CHECK:           %[[VAL_2:.*]] = quake.null_wire
@@ -37,3 +51,6 @@ func.func @test_measurement() {
 // CHECK:           quake.sink %[[VAL_8]]#2 : !quake.wire
 // CHECK:           return
 // CHECK:         }
+
+// STAR52-LABEL:   func.func @test_measurement() attributes {mapping_v2p = [0, 1, 2]} {
+// STAR50-LABEL:   func.func @test_measurement() attributes {mapping_v2p = [2, 1, 0]} {

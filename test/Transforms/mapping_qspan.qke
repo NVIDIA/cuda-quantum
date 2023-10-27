@@ -6,7 +6,12 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --qubit-mapping=device=path %s
+// RUN: cudaq-opt --qubit-mapping=device=path --delay-measurements %s | FileCheck %s
+// RUN: cudaq-opt --qubit-mapping=device=ring\(5\) --delay-measurements %s | FileCheck --check-prefix RING %s
+// RUN: cudaq-opt --qubit-mapping=device=grid\(3,3\) --delay-measurements %s | FileCheck --check-prefix GRID %s
+// RUN: cudaq-opt --qubit-mapping=device=star\(5\) --delay-measurements %s | FileCheck --check-prefix STAR50 %s
+// RUN: cudaq-opt --qubit-mapping=device=star\(5,0\) --delay-measurements %s | FileCheck --check-prefix STAR50 %s
+// RUN: cudaq-opt --qubit-mapping=device=star\(5,2\) --delay-measurements %s | FileCheck --check-prefix STAR52 %s
 
 module {
   func.func @__nvqpp__mlirgen__function_foo._Z3foov() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
@@ -86,7 +91,7 @@ module {
   }
 }
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_foo._Z3foov() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_foo._Z3foov() attributes {"cudaq-entrypoint", "cudaq-kernel", mapping_v2p = [2, 1, 0, 3, 4], no_this} {
 // CHECK:           %[[VAL_0:.*]] = quake.null_wire
 // CHECK:           %[[VAL_1:.*]] = quake.null_wire
 // CHECK:           %[[VAL_2:.*]] = quake.null_wire
@@ -168,3 +173,8 @@ module {
 // CHECK:           quake.sink %[[VAL_73]] : !quake.wire
 // CHECK:           return
 // CHECK:         }
+
+// RING-LABEL:   func.func {{.*}} attributes {"cudaq-entrypoint", "cudaq-kernel", mapping_v2p = [0, 1, 2, 4, 3], no_this}
+// GRID-LABEL:   func.func {{.*}} attributes {"cudaq-entrypoint", "cudaq-kernel", mapping_v2p = [0, 1, 2, 3, 4], no_this}
+// STAR50-LABEL:   func.func {{.*}} attributes {"cudaq-entrypoint", "cudaq-kernel", mapping_v2p = [1, 0, 3, 2, 4], no_this}
+// STAR52-LABEL:   func.func {{.*}} attributes {"cudaq-entrypoint", "cudaq-kernel", mapping_v2p = [1, 2, 3, 0, 4], no_this}

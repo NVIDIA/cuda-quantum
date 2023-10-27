@@ -12,6 +12,7 @@
 #include "cudaq/Support/Placement.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/StringSwitch.h"
+#include "llvm/Support/FileSystem.h"
 #include "llvm/Support/ScopedPrinter.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Transforms/TopologicalSortUtils.h"
@@ -396,10 +397,14 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
 
   void runOnOperation() override {
 
-    // Uncomment these lines to forcibly enable the debug for this pass
-    // const char *debugTypes[] = {DEBUG_TYPE, nullptr};
-    // llvm::DebugFlag = true;
-    // llvm::setCurrentDebugTypes(debugTypes, 1);
+    // Allow debug for this pass to be enabled via environment variable
+    auto debugMappingStr = StringRef(getenv("DEBUG_MAPPING"));
+    if (debugMappingStr.equals_insensitive("1") ||
+        debugMappingStr.starts_with_insensitive("y")) {
+      const char *debugTypes[] = {DEBUG_TYPE, nullptr};
+      llvm::DebugFlag = true;
+      llvm::setCurrentDebugTypes(debugTypes, 1);
+    }
 
     auto func = getOperation();
     auto &blocks = func.getBlocks();
@@ -424,14 +429,39 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     if (name.size() < deviceDef.size())
       deviceDef = deviceDef.drop_front(name.size());
 
-    if (deviceDef.consume_front("(")) {
-      deviceDef = deviceDef.ltrim();
-      deviceDef.consumeInteger(/*Radix=*/10, deviceDim[0]);
-      if (deviceDef.trim().consume_front(","))
-        deviceDef.consumeInteger(/*Radix=*/10, deviceDim[1]);
-      if (!deviceDef.trim().consume_front(")")) {
-        func.emitError("Missing closing ')' in device option");
+    StringRef deviceFilename;
+    if (name.equals_insensitive("file")) {
+      if (deviceDef.consume_front("(")) {
+        deviceDef = deviceDef.ltrim();
+        if (deviceDef.consume_back(")")) {
+          deviceFilename = deviceDef;
+          // Make sure the file exists before continuing
+          if (!llvm::sys::fs::exists(deviceFilename)) {
+            func.emitError("Path " + deviceFilename + " does not exist");
+            signalPassFailure();
+          }
+        } else {
+          func.emitError("Missing closing ')' in device option");
+          signalPassFailure();
+        }
+      } else {
+        func.emitError("Filename must be provided in device option like "
+                       "file(/full/path/to/device_file.txt): " +
+                       device.getValue());
         signalPassFailure();
+      }
+    } else {
+      if (deviceDef.consume_front("(")) {
+        deviceDef = deviceDef.ltrim();
+        deviceDef.consumeInteger(/*Radix=*/10, deviceDim[0]);
+        deviceDef = deviceDef.ltrim();
+        if (deviceDef.consume_front(","))
+          deviceDef.consumeInteger(/*Radix=*/10, deviceDim[1]);
+        deviceDef = deviceDef.ltrim();
+        if (!deviceDef.consume_front(")")) {
+          func.emitError("Missing closing ')' in device option");
+          signalPassFailure();
+        }
       }
     }
 
@@ -511,18 +541,48 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
 
     // These are captured in the user help (device options in Passes.td), so if
     // you update this, be sure to update that as well.
-    Device d = llvm::StringSwitch<Device>(name)
-                   .Case("path", Device::path(deviceDim[0]))
-                   .Case("ring", Device::ring(deviceDim[0]))
-                   .Case("star", Device::star(deviceDim[0]))
-                   .Case("grid", Device::grid(/*width=*/deviceDim[0],
-                                              /*height=*/deviceDim[1]))
-                   .Default(Device());
+    Device d;
+    if (name.equals("path"))
+      d = Device::path(deviceDim[0]);
+    else if (name.equals("ring"))
+      d = Device::ring(deviceDim[0]);
+    else if (name.equals("star"))
+      d = Device::star(/*numQubits=*/deviceDim[0],
+                       /*centerQubit=*/deviceDim[1]);
+    else if (name.equals("grid"))
+      d = Device::grid(/*width=*/deviceDim[0],
+                       /*height=*/deviceDim[1]);
+    else if (name.equals("file"))
+      d = Device::file(deviceFilename);
 
     if (d.getNumQubits() == 0) {
       func.emitError("Trying to target an empty device.");
       signalPassFailure();
       return;
+    }
+
+    LLVM_DEBUG({ d.dump(); });
+
+    if (sources.size() > d.getNumQubits()) {
+      func.emitError("Your device [" + device + "] has fewer qubits [" +
+                     std::to_string(d.getNumQubits()) +
+                     "] than your program is " + "attempting to use [" +
+                     std::to_string(sources.size()) + "]");
+      signalPassFailure();
+      return;
+    }
+
+    // Create auxillary qubits if needed. Place them after the last allocated
+    // qubit
+    unsigned numOrigQubits = sources.size();
+    OpBuilder builder(&block, block.begin());
+    builder.setInsertionPointAfter(sources[sources.size() - 1]);
+    for (unsigned i = sources.size(); i < d.getNumQubits(); i++) {
+      auto nullWireOp = builder.create<quake::NullWireOp>(
+          builder.getUnknownLoc(), quake::WireType::get(builder.getContext()));
+      wireToVirtualQ[nullWireOp.getResult()] =
+          Placement::VirtualQ(sources.size());
+      sources.push_back(nullWireOp);
     }
 
     // Place
@@ -533,6 +593,31 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     SabreRouter router(d, wireToVirtualQ, placement);
     router.route(*blocks.begin(), sources);
     sortTopologically(&block);
+
+    // Remove any auxillary qubits that did not get used. Remove from the end
+    // and stop once you hit a used one. If you removed from the middle, you
+    // would renumber the qubits, which would invalidate the mapping indices.
+    for (unsigned i = sources.size() - 1; i >= numOrigQubits; i--) {
+      if (sources[i]->getUsers().empty())
+        sources[i]->erase();
+      else
+        break;
+    }
+
+    // Populate mapping_v2p attribute on this function such that:
+    // - mapping_v2p[v] contains the final physical qubit placement for virtual
+    //   qubit `v`.
+    // To map the backend qubits back to the original user program (i.e. before
+    // this pass), run something like this:
+    //   for (int v = 0; v < numQubits; v++)
+    //     dataForOriginalQubit[v] = dataFromBackendQubit[mapping_v2p[v]];
+    llvm::SmallVector<Attribute> attrs(numOrigQubits);
+    for (unsigned int v = 0; v < numOrigQubits; v++)
+      attrs[v] =
+          IntegerAttr::get(builder.getIntegerType(64),
+                           placement.getPhy(Placement::VirtualQ(v)).index);
+
+    func->setAttr("mapping_v2p", builder.getArrayAttr(attrs));
   }
 };
 

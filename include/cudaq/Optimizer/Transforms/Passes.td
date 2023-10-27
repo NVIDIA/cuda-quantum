@@ -484,8 +484,7 @@ def MappingPass: Pass<"qubit-mapping", "mlir::func::FuncOp"> {
   }];
   let options = [
     Option<"device", "device", "std::string", /*default=*/"\"-\"",
-           "Device topology. Supported options are path and path(N), where N "
-           "is the number of qubits in the device.">,
+      "Device topology: path(N), ring(N), star(N), star(N,c), grid(w,h), file(/path/to/file)">
   ];
 }
 

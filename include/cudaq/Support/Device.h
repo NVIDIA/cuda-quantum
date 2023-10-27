@@ -10,6 +10,7 @@
 
 #include "cudaq/ADT/GraphCSR.h"
 #include "cudaq/Support/Graph.h"
+#include "llvm/Support/MemoryBuffer.h"
 
 namespace cudaq {
 
@@ -21,6 +22,62 @@ class Device {
 public:
   using Qubit = GraphCSR::Node;
   using Path = mlir::SmallVector<Qubit>;
+
+  /// Read device connectivity info from a file. The input format is the same
+  /// as the Graph dump() format.
+  static Device file(llvm::StringRef filename) {
+    Device device;
+
+    llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileBuffer =
+        llvm::MemoryBuffer::getFile(filename);
+    if (std::error_code EC = fileBuffer.getError()) {
+      llvm::errs() << "Error reading file: " << EC.message() << "\n";
+      return device;
+    }
+
+    llvm::StringRef fileContent = fileBuffer->get()->getBuffer();
+    while (!fileContent.empty()) {
+      auto [line, rest] = fileContent.split('\n');
+      fileContent = rest;
+
+      if (line.consume_front("Number of nodes:")) {
+        line = line.ltrim();
+        unsigned numQubits = 0;
+        if (!line.consumeInteger(/*Radix=*/10, numQubits)) {
+          for (unsigned i = 0u; i < numQubits; ++i)
+            device.topology.createNode();
+        }
+      } else {
+        // Parse edges
+        unsigned v1 = 0;
+        line = line.ltrim();
+        if (!line.consumeInteger(/*Radix=*/10, v1)) {
+          line = line.ltrim();
+          if (line.consume_front("--> {")) {
+            line = line.ltrim();
+            unsigned v2 = 0;
+            while (!line.consumeInteger(10, v2)) {
+              // Create an edge, but make sure it doesn't already exist
+              bool edgeAlreadyExists = false;
+              for (auto edge : device.topology.getNeighbours(Qubit(v1))) {
+                if (edge == Qubit(v2)) {
+                  edgeAlreadyExists = true;
+                  break;
+                }
+              }
+              if (!edgeAlreadyExists)
+                device.topology.addEdge(Qubit(v1), Qubit(v2));
+              // Prepare for next iteration (removing comma)
+              line = line.ltrim(" \t\n\v\f\r,");
+            }
+          }
+        }
+      }
+    }
+
+    device.computeAllPairShortestPaths();
+    return device;
+  }
 
   /// Create a device with a path topology.
   ///
@@ -51,6 +108,7 @@ public:
       device.topology.createNode();
       device.topology.addEdge(Qubit(i), Qubit((i + 1) % numQubits));
     }
+    device.computeAllPairShortestPaths();
     return device;
   }
 
@@ -62,13 +120,21 @@ public:
   ///     / | \
   ///    N  7  6
   ///
-  static Device star(unsigned numQubits) {
+  /// @param numQubits Number of qubits in topology
+  /// @param centerQubit 0-based ID of center qubit (default 0)
+  static Device star(unsigned numQubits, unsigned centerQubit = 0) {
     Device device;
-    Qubit center = device.topology.createNode();
-    for (unsigned i = 1u; i < numQubits; ++i) {
+
+    // Create nodes
+    for (unsigned i = 0u; i < numQubits; ++i)
       device.topology.createNode();
-      device.topology.addEdge(center, Qubit(i));
-    }
+
+    // Create edges
+    for (unsigned i = 0u; i < numQubits; ++i)
+      if (i != centerQubit)
+        device.topology.addEdge(Qubit(centerQubit), Qubit(i));
+
+    device.computeAllPairShortestPaths();
     return device;
   }
 
@@ -94,6 +160,7 @@ public:
           device.topology.addEdge(q0, Qubit(base + width));
       }
     }
+    device.computeAllPairShortestPaths();
     return device;
   }
 
