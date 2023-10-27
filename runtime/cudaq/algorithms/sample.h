@@ -584,7 +584,7 @@ template <typename T, typename... U>
 concept IsAnyOf = (std::same_as<T, U> || ...);
 template <typename T>
 concept IsSampleOptions =
-    std::integral<T> ||
+    std::integral<std::decay_t<T>> ||
     IsAnyOf<std::remove_cvref_t<std::remove_pointer_t<std::decay_t<T>>>,
             sample_options>;
 template <typename QuantumKernel, typename... Args>
