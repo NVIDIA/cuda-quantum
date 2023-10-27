@@ -302,7 +302,6 @@ void bindObserve(py::module &mod) {
           return results;
         }
 
-        // Return the vector of results, this is for observe_n
         // Check if this is a nested broadcast (sweeping both spin_op and
         // params). If so, peel the results: first index is param sweep, second
         // index is spin_op.
@@ -317,6 +316,7 @@ void bindObserve(py::module &mod) {
           }
           return results;
         }
+        // Return the vector of results, this is for observe_n
         return {result};
       },
       py::arg("kernel"), py::arg("spin_operator"), py::kw_only(),
