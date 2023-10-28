@@ -15,7 +15,7 @@
 __qpu__ void init_state() {
   cudaq::qubit q;
   x(q);
-  mz(q);
+  auto result = mz(q);
   x(q);   // base profile does not allow operations after measurements
 };
 
