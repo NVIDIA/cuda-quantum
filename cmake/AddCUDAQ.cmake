@@ -81,3 +81,8 @@ function(add_target_config name)
   install(FILES ${name}.config DESTINATION targets)
   configure_file(${name}.config ${CMAKE_BINARY_DIR}/targets/${name}.config COPYONLY)
 endfunction()
+
+function(add_target_mapping_arch providerName name)
+  install(FILES ${name} DESTINATION targets/mapping/${providerName})
+  configure_file(${name} ${CMAKE_BINARY_DIR}/targets/mapping/${providerName}/${name} COPYONLY)
+endfunction()

@@ -295,6 +295,7 @@ public:
     // Create the ServerHelper for this QPU and give it the backend config
     serverHelper = cudaq::registry::get<cudaq::ServerHelper>(qpuName);
     serverHelper->initialize(backendConfig);
+    serverHelper->updatePassPipeline(platformPath, passPipelineConfig);
 
     // Give the server helper to the executor
     executor->setServerHelper(serverHelper.get());
@@ -422,6 +423,10 @@ public:
         OpPassManager &optPM = pm.nest<func::FuncOp>();
         optPM.addPass(
             cudaq::opt::createObserveAnsatzPass(binarySymplecticForm[0]));
+        if (disableMLIRthreading || enablePrintMLIREachPass)
+          tmpModuleOp.getContext()->disableMultithreading();
+        if (enablePrintMLIREachPass)
+          pm.enableIRPrinting();
         if (failed(pm.run(tmpModuleOp)))
           throw std::runtime_error("Could not apply measurements to ansatz.");
         runPassPipeline(passPipelineConfig, tmpModuleOp);

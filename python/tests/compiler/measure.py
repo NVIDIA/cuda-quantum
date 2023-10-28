@@ -81,7 +81,7 @@ def test_kernel_measure_qreg():
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_9:.*]]: index):
 # CHECK:             %[[VAL_10:.*]] = quake.extract_ref %[[VAL_4]][%[[VAL_9]]] : (!quake.veq<3>, index) -> !quake.ref
-# CHECK:             %[[VAL_11:.*]] = quake.mx %[[VAL_10]] : (!quake.ref) -> i1
+# CHECK:             %[[VAL_11:.*]] = quake.mx %[[VAL_10]] name "" : (!quake.ref) -> i1
 # CHECK:             %[[VAL_12:.*]] = arith.index_cast %[[VAL_9]] : index to i64
 # CHECK:             %[[VAL_13:.*]] = cc.compute_ptr %[[VAL_5]][%[[VAL_12]]] : (!cc.ptr<!cc.array<i1 x 3>>, i64) -> !cc.ptr<i1>
 # CHECK:             cc.store %[[VAL_11]], %[[VAL_13]] : !cc.ptr<i1>
@@ -98,7 +98,7 @@ def test_kernel_measure_qreg():
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_20:.*]]: index):
 # CHECK:             %[[VAL_21:.*]] = quake.extract_ref %[[VAL_4]][%[[VAL_20]]] : (!quake.veq<3>, index) -> !quake.ref
-# CHECK:             %[[VAL_22:.*]] = quake.my %[[VAL_21]] : (!quake.ref) -> i1
+# CHECK:             %[[VAL_22:.*]] = quake.my %[[VAL_21]] name "" : (!quake.ref) -> i1
 # CHECK:             %[[VAL_23:.*]] = arith.index_cast %[[VAL_20]] : index to i64
 # CHECK:             %[[VAL_24:.*]] = cc.compute_ptr %[[VAL_16]][%[[VAL_23]]] : (!cc.ptr<!cc.array<i1 x 3>>, i64) -> !cc.ptr<i1>
 # CHECK:             cc.store %[[VAL_22]], %[[VAL_24]] : !cc.ptr<i1>
@@ -115,7 +115,7 @@ def test_kernel_measure_qreg():
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_31:.*]]: index):
 # CHECK:             %[[VAL_32:.*]] = quake.extract_ref %[[VAL_4]][%[[VAL_31]]] : (!quake.veq<3>, index) -> !quake.ref
-# CHECK:             %[[VAL_33:.*]] = quake.mz %[[VAL_32]] : (!quake.ref) -> i1
+# CHECK:             %[[VAL_33:.*]] = quake.mz %[[VAL_32]] name "" : (!quake.ref) -> i1
 # CHECK:             %[[VAL_34:.*]] = arith.index_cast %[[VAL_31]] : index to i64
 # CHECK:             %[[VAL_35:.*]] = cc.compute_ptr %[[VAL_27]][%[[VAL_34]]] : (!cc.ptr<!cc.array<i1 x 3>>, i64) -> !cc.ptr<i1>
 # CHECK:             cc.store %[[VAL_33]], %[[VAL_35]] : !cc.ptr<i1>

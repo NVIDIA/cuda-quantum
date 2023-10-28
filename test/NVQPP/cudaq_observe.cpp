@@ -7,6 +7,8 @@
  ******************************************************************************/
 
 // RUN: nvq++ %s -o %basename_t.x --target quantinuum --emulate && ./%basename_t.x | FileCheck %s
+// RUN: nvq++ %s -o %basename_t.x --target iqm --iqm-machine Adonis --emulate && ./%basename_t.x | FileCheck %s
+// RUN: nvq++ %s -o %basename_t.x --target iqm --iqm-machine Apollo --emulate && ./%basename_t.x | FileCheck %s
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>

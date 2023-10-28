@@ -25,7 +25,7 @@ struct adonis_ghz {
     x<cudaq::ctrl>(q[2], q[3]);
     x<cudaq::ctrl>(q[2], q[4]);
 
-    mz(q);
+    auto result = mz(q);
   }
 };
 

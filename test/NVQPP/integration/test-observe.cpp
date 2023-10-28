@@ -1,1 +1,0 @@
-../cudaq_observe.cpp

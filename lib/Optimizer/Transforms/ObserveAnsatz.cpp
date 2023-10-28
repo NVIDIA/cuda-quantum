@@ -81,7 +81,15 @@ private:
 
     // walk and find all quantum allocations
     funcOp->walk([&](quake::AllocaOp op) {
-      data.nQubits += op.getResult().getType().cast<quake::VeqType>().getSize();
+      if (auto veq = dyn_cast<quake::VeqType>(op.getResult().getType())) {
+        // Only update data.nQubits here. data.qubitValues will be updated for
+        // the corresponding ExtractRefOP's in the `walk` below.
+        data.nQubits += veq.getSize();
+      } else {
+        // single alloc is for a single qubit. Update data.qubitValues here
+        // because ExtractRefOp `walk` won't find any ExtractRefOp for this.
+        data.qubitValues.insert({data.nQubits++, op.getResult()});
+      }
     });
 
     // NOTE: assumes canonicalization and cse have run.
@@ -89,6 +97,29 @@ private:
       if (op.hasConstantIndex())
         data.qubitValues.insert({op.getConstantIndex(), op.getResult()});
     });
+
+    // If mapping has moved qubits or introduced auxillary qubits, update the
+    // analysis accordingly.
+    if (auto mappingAttr =
+            dyn_cast_if_present<ArrayAttr>(funcOp->getAttr("mapping_v2p"))) {
+      // First populate mapping_v2p[].
+      SmallVector<int64_t> mapping_v2p(mappingAttr.size());
+      for (auto [origIx, mappedIx] : llvm::enumerate(mappingAttr)) {
+        if (auto val = dyn_cast<IntegerAttr>(mappedIx))
+          mapping_v2p[origIx] = val.getInt();
+        else
+          emitError(funcOp.getLoc(), "invalid mapping_v2p found in function");
+      }
+
+      // Next create newQubitValues[]
+      DenseMap<std::size_t, Value> newQubitValues;
+      for (auto [origIx, mappedIx] : llvm::enumerate(mapping_v2p))
+        newQubitValues[origIx] = data.qubitValues[mappedIx];
+
+      // Now replace the values in data
+      data.nQubits = mapping_v2p.size();
+      data.qubitValues = newQubitValues;
+    }
 
     // Count all measures
     funcOp->walk([&](quake::MzOp op) { data.nMeasures++; });
@@ -174,9 +205,13 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
         qubitsToMeasure.push_back(qubitVal);
     }
 
-    for (auto &qubitToMeasure : qubitsToMeasure) {
+    for (auto &[measureNum, qubitToMeasure] :
+         llvm::enumerate(qubitsToMeasure)) {
       // add the measure
-      builder.create<quake::MzOp>(loc, builder.getI1Type(), qubitToMeasure);
+      char regName[16];
+      std::snprintf(regName, sizeof(regName), "r%05lu", measureNum);
+      builder.create<quake::MzOp>(loc, builder.getI1Type(), qubitToMeasure,
+                                  builder.getStringAttr(regName));
     }
 
     rewriter.finalizeRootUpdate(funcOp);
