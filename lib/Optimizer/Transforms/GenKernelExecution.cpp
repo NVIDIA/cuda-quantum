@@ -573,8 +573,10 @@ public:
     if (hasTrailingData) {
       Value vecToBuffer = builder.create<cudaq::cc::ComputePtrOp>(
           loc, i8PtrTy, buff, SmallVector<Value>{structSize});
+      // Ignore any hidden `this` argument.
       for (auto inp :
-           llvm::enumerate(rewriteEntryBlock->getArguments().drop_front(1))) {
+           llvm::enumerate(rewriteEntryBlock->getArguments().drop_front(
+               addThisPtr ? 1 : 0))) {
         Value arg = inp.value();
         Type inTy = arg.getType();
         std::int64_t idx = inp.index();
