@@ -13,6 +13,8 @@
 #include <cudaq/optimizers.h>
 #include <regex>
 
+#include <iostream>
+
 CUDAQ_TEST(BuilderTester, checkSimple) {
   {
     using namespace cudaq::spin;
@@ -233,13 +235,13 @@ CUDAQ_TEST(BuilderTester, checkControlledRotations) {
     // Overload 1: `QuakeValue` parameter.
     kernel.rx(val, ctrls, target);
     // Overload 2: `double` parameter.
-    kernel.rx(3.14, ctrls, target);
+    kernel.rx(M_PI, ctrls, target);
 
-    auto counts = cudaq::sample(kernel, 3.14);
+    auto counts = cudaq::sample(kernel, M_PI);
     counts.dump();
 
     // Our controls should remain in the 1-state, while
-    // the target has been rotated by `2*3.14 = 2pi`. I.e, identity.
+    // the target has been rotated by `2*M_PI = 2pi`. I.e, identity.
     EXPECT_EQ(counts.count("0111"), 1000);
   }
 
@@ -262,13 +264,13 @@ CUDAQ_TEST(BuilderTester, checkControlledRotations) {
     // Overload 1: `QuakeValue` parameter.
     kernel.rx(val, ctrls, target);
     // Overload 2: `double` parameter.
-    kernel.rx(3.14, ctrls, target);
+    kernel.rx(M_PI, ctrls, target);
 
-    auto counts = cudaq::sample(kernel, 3.14);
+    auto counts = cudaq::sample(kernel, M_PI);
     counts.dump();
 
     // Our controls should remain in the 1-state, while
-    // the target has been rotated by `2*3.14 = 2pi`. I.e, identity.
+    // the target has been rotated by `2*M_PI = 2pi`. I.e, identity.
     EXPECT_EQ(counts.count("0111"), 1000);
   }
 
@@ -295,12 +297,12 @@ CUDAQ_TEST(BuilderTester, checkControlledRotations) {
     // Overload 1: `QuakeValue` parameter.
     kernel.rz(val, ctrls, target);
     // Overload 2: `double` parameter.
-    kernel.rz(-3.14 / 2., ctrls, target);
+    kernel.rz(-M_PI_2, ctrls, target);
 
     // Hadamard the target again.
     kernel.h(target);
 
-    auto counts = cudaq::sample(kernel, -3.14 / 2.);
+    auto counts = cudaq::sample(kernel, -M_PI_2);
     counts.dump();
 
     // The phase rotations on our target by a total of -pi should
@@ -331,17 +333,60 @@ CUDAQ_TEST(BuilderTester, checkControlledRotations) {
     // Overload 1: `QuakeValue` parameter.
     kernel.r1(val, ctrls, target);
     // Overload 2: `double` parameter.
-    kernel.r1(-3.14 / 2., ctrls, target);
+    kernel.r1(-M_PI_2, ctrls, target);
 
     // Hadamard the target again.
     kernel.h(target);
 
-    auto counts = cudaq::sample(kernel, -3.14 / 2.);
+    auto counts = cudaq::sample(kernel, -M_PI_2);
     counts.dump();
 
     // The phase rotations on our target by a total of -pi should
     // return it to the 0-state.
     EXPECT_EQ(counts.count("0111"), 1000);
+  }
+
+  // Runtime checks for more exotic function signatures.
+  {
+    auto [kernel, angle] = cudaq::make_kernel<float>();
+    auto controls1 = kernel.qalloc(3);
+    auto controls2 = kernel.qalloc(3);
+    auto control3 = kernel.qalloc();
+    auto control4 = kernel.qalloc();
+    auto control5 = kernel.qalloc();
+    auto target = kernel.qalloc();
+
+    // Place the target in the 1-state.
+    kernel.x(target);
+
+    // rx
+    kernel.rx<cudaq::ctrl>(M_PI, controls1, controls2, control3, control4,
+                           control5, target);
+    kernel.rx<cudaq::ctrl>(angle, control5, control4, control3, controls2,
+                           controls1, target);
+
+    // ry
+    kernel.ry<cudaq::ctrl>(M_PI, controls1, controls2, control3, control4,
+                           control5, target);
+    kernel.ry<cudaq::ctrl>(angle, control5, control4, control3, controls2,
+                           controls1, target);
+    // rz
+    kernel.rz<cudaq::ctrl>(M_PI, controls1, controls2, control3, control4,
+                           control5, target);
+    kernel.rz<cudaq::ctrl>(angle, control5, control4, control3, controls2,
+                           controls1, target);
+
+    // r1
+    kernel.r1<cudaq::ctrl>(M_PI, controls1, controls2, control3, control4,
+                           control5, target);
+    kernel.r1<cudaq::ctrl>(angle, control5, control4, control3, controls2,
+                           controls1, target);
+
+    auto result = cudaq::sample(kernel, M_PI_2);
+    result.dump();
+
+    // All controls still in the 0-state, target still in 1-state.
+    EXPECT_EQ(counts.count("0000000001"), 1000);
   }
 }
 
