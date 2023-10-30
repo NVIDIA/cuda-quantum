@@ -7,6 +7,7 @@
  ******************************************************************************/
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
+#include <cudaq/algorithms/state.h>
 #include <gtest/gtest.h>
 #include <random>
 
@@ -88,4 +89,39 @@ TEST(MQPUTester, checkLarge) {
   auto t2 = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double, std::milli> ms_double = t2 - t1;
   printf("Time %lf s\n", ms_double.count() * 1e-3);
+}
+
+TEST(MQPUTester, checkAsyncWithKernelBuilder) {
+  auto [kernel, numIters] = cudaq::make_kernel<int>();
+  constexpr std::size_t numQubits = 1;
+  auto qubits = kernel.qalloc(numQubits);
+  auto theta = 0.2;
+  const auto rotateStep = [&](auto index) {
+    for (std::size_t i = 0; i < numQubits; ++i) {
+      kernel.rx(theta, qubits[i]);
+    };
+  };
+  kernel.for_loop(0, numIters, rotateStep);
+  auto &platform = cudaq::get_platform();
+  int numSteps = 1;
+  // Query the number of QPUs in the system
+  auto num_qpus = platform.num_qpus();
+  printf("Number of QPUs: %zu\n", num_qpus);
+  std::vector<cudaq::async_state_result> stateFutures;
+  // QPU 0: 1 step, QPU 1: 2 steps, etc.
+  for (std::size_t i = 0; i < num_qpus; i++) {
+    stateFutures.emplace_back(cudaq::get_state_async(i, kernel, numSteps));
+    numSteps++;
+  }
+
+  auto angle = 0.0;
+  for (auto &stateFutures : stateFutures) {
+    // Each run add 0.2 rad to the rotation
+    angle += 0.2;
+    const std::complex<double> expectedState[2] = {{std::cos(angle / 2), 0.0},
+                                                   {0.0, -std::sin(angle / 2)}};
+    auto gotState = stateFutures.get();
+    EXPECT_NEAR(std::abs(gotState[0] - expectedState[0]), 0.0, 1e-6);
+    EXPECT_NEAR(std::abs(gotState[1] - expectedState[1]), 0.0, 1e-6);
+  }
 }

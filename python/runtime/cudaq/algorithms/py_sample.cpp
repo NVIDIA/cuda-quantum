@@ -23,6 +23,11 @@
 
 namespace cudaq {
 
+/// @brief Global cache map of OpaqueArguments
+// Using the same cache map provided by py_observe (hence extern).
+extern std::unordered_map<std::size_t, std::unique_ptr<OpaqueArguments>>
+    asyncArgsHolder;
+
 /// @brief Sample the state produced by the provided builder.
 sample_result pySample(kernel_builder<> &builder, py::args args = {},
                        std::size_t shots = 1000,
@@ -91,12 +96,17 @@ async_sample_result pySampleAsync(kernel_builder<> &builder,
   cudaq::info("Asynchronously sampling the provided pythonic kernel.");
   builder.jitCode();
   auto kernelName = builder.name();
-
+  std::hash<std::string> hasher;
+  // Create a unique integer key that combines the kernel name
+  // and the validated args.
+  std::size_t uniqueHash = hasher(kernelName) + hasher(py::str(args));
+  // Add the opaque args to the holder and pack the args into it
+  asyncArgsHolder.emplace(uniqueHash, std::make_unique<OpaqueArguments>());
+  packArgs(*asyncArgsHolder.at(uniqueHash).get(), validatedArgs);
   return details::runSamplingAsync(
-      [&, a = std::move(validatedArgs)]() mutable {
-        OpaqueArguments argData;
-        packArgs(argData, a);
-        builder.jitAndInvoke(argData.data());
+      [&builder, uniqueHash]() mutable {
+        auto &argData = asyncArgsHolder.at(uniqueHash);
+        builder.jitAndInvoke(argData->data());
       },
       platform, kernelName, shots, qpu_id);
 }

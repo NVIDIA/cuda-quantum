@@ -273,22 +273,22 @@ def test_state_vector_async():
 
     kernel, theta, phi = cudaq.make_kernel(float, float)
     qubits = kernel.qalloc(2)
-    kernel.rx(theta, qubits[0])
     kernel.ry(phi, qubits[0])
+    kernel.rx(theta, qubits[0])
     kernel.cx(qubits[0], qubits[1])
-    kernel.mz(qubits)
 
     # Creating the bell state with rx and ry instead of hadamard
     # need a pi rotation and a pi/2 rotation
+    # Note: rx(pi)ry(pi/2) == -i*H (with a global phase)
     future = cudaq.get_state_async(kernel, np.pi, np.pi / 2.)
-    want_state = np.array([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)],
+    want_state = np.array([-1j / np.sqrt(2.), 0., 0., -1j / np.sqrt(2.)],
                           dtype=np.complex128)
     state = future.get()
-    assert np.allclose(want_state, want_state, atol=1e-3)
+    assert np.allclose(state, want_state, atol=1e-3)
     # Check invalid qpu_id
     with pytest.raises(Exception) as error:
         # Invalid qpu_id type.
-        result = cudaq.sample_async(kernel, 0.0, 0.0, qpu_id=12)
+        result = cudaq.get_state_async(kernel, 0.0, 0.0, qpu_id=12)
 
 
 # leave for gdb debugging
