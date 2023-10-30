@@ -23,10 +23,8 @@
 
 namespace cudaq {
 
-/// @brief For asynchronous execution, we need to construct OpaqueArguments
-/// outside of the async lambda invocation. If we don't, then we will be
-/// using Python types outside of the current GIL context. Bad things happen
-/// then. Using the same cache map provided by py_observe (hence extern).
+/// @brief Global cache map of OpaqueArguments
+// Using the same cache map provided by py_observe (hence extern).
 extern std::unordered_map<std::size_t, std::unique_ptr<OpaqueArguments>>
     asyncArgsHolder;
 
