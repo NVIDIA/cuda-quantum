@@ -129,7 +129,7 @@ async def postJob(
 
 # Retrieve the job, simulate having to wait by counting to 3
 # until we return the job results
-@app.get("/tasks/{jobId}/results")
+@app.get("/tasks/{jobId}/all_info")
 async def getJob(jobId: str):
     global countJobGetRequests, createdJobs, shots
 
