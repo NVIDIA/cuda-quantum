@@ -95,6 +95,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
   target_link_libraries(test_mqpu
     PRIVATE 
     cudaq
+    cudaq-builder
     cudaq-platform-mqpu
     nvqir-custatevec-fp64
     gtest_main)

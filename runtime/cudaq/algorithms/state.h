@@ -107,8 +107,9 @@ auto runGetStateAsync(KernelFunctor &&wrappedKernel,
         context.asyncExec = true;
         // Set the platform and the qpu id.
         platform.set_exec_ctx(&context, qpu_id);
+        platform.set_current_qpu(qpu_id);
         func();
-        platform.reset_exec_ctx();
+        platform.reset_exec_ctx(qpu_id);
         // Extract state data
         p.set_value(state(context.simulationData));
       });

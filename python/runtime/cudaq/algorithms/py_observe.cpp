@@ -27,7 +27,9 @@ enum class PyParType { thread, mpi };
 /// @brief Default qpu id value set to 0
 constexpr int defaultQpuIdValue = 0;
 
-/// @brief For asynchronous execution, we need to construct OpaqueArguments
+/// @brief Global cache map of OpaqueArguments
+///
+/// For asynchronous execution, we need to construct OpaqueArguments
 /// outside of the async lambda invocation. If we don't, then we will be
 /// using Python types outside of the current GIL context. Bad things happen
 /// then.
@@ -77,9 +79,17 @@ async_observe_result pyObserveAsync(kernel_builder<> &kernel,
   // and the validated args.
   std::size_t uniqueHash = hasher(kernel.name()) + hasher(py::str(args));
 
-  // Add the opaque args to the holder and pack the args into it
-  asyncArgsHolder.emplace(uniqueHash, std::make_unique<OpaqueArguments>());
-  packArgs(*asyncArgsHolder.at(uniqueHash).get(), validatedArgs);
+  // Add the opaque args to the holder and pack the args into it.
+  // Note: this pyObserveAsync is executed in a loop (over spin_operator slices)
+  // on the main Python thread, while posting functors to other threads
+  // (runObservationAsync below). These functors are expected to operate on the
+  // same (kernel + params) configuration, hence, making sure that we don't
+  // overwrite asyncArgsHolder while running the spin_operator slicing loop
+  // (this pyObserveAsync function).
+  if (asyncArgsHolder.find(uniqueHash) == asyncArgsHolder.end()) {
+    asyncArgsHolder.emplace(uniqueHash, std::make_unique<OpaqueArguments>());
+    packArgs(*asyncArgsHolder.at(uniqueHash).get(), validatedArgs);
+  }
 
   // TODO: would like to handle errors in the case that
   // `kernel.num_qubits() >= spin_operator.num_qubits()`
