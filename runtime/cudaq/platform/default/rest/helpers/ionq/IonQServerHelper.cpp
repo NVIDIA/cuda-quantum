@@ -297,8 +297,8 @@ IonQServerHelper::constructGetResultsPath(ServerMessage &postResponse) {
     resultsPath += backendConfig["format"];
   } else {
     resultsPath += resultsPath.find("?") == std::string::npos
-                       ? "?format=qir.results.v0"
-                       : "&format=qir.results.v0";
+                       ? "?format=qir.measurements.v0"
+                       : "&format=qir.measurements.v0";
   }
 
   return resultsPath;
