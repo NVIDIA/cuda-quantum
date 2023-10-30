@@ -398,14 +398,13 @@ std::optional<opt::LoopComponents> opt::getLoopComponents(cc::LoopOp loop) {
 
   result.initialValue = loop.getInitialArgs()[result.induction];
 
-  // TODO: The comparison operation requires that the induction value appear
-  // explicitly on one side of the comparison. That is, it is required that the
-  // comparison look like `i < exp` where `i` is the induction value. This could
-  // be relaxed to allow invariant expressions on each side, such as, `i + 1 <
-  // exp`. This relaxation to invariant expressions would require some
-  // transformations to normalize the comparison operation. Taking the example,
-  // this would transform to `i < exp - 1`.
-  // A second possible extension is to detect \em{conditionally iterated} loops
+  // The comparison operation allows for the induction value to appear as part
+  // of a loop-invariant linear expression on one side of the comparison. This
+  // allows for invariant expressions on each side, such as, `4 * i + 1 < exp`.
+  // This relaxation to invariant expressions requires some transformations to
+  // normalize the comparison operation. Taking the example, this would
+  // transform to `i < (exp - 1) / 4`.
+  // TODO: A possible extension is to detect \em{conditionally iterated} loops
   // and open those up to further analysis and transformations such as loop
   // unrolling.
   if (getLinearExpr(cmpOp.getLhs(), result, loop) ==
