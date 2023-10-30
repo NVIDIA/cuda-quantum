@@ -43,6 +43,21 @@ function list_targets {
 	exit 0
 }
 
+function query_gpu {
+	if [ -x "$(command -v nvidia-smi)" ]; then
+		# Make sure nvidia-smi works.
+		nvidia-smi -L | grep 'Failed\|Error\|error\|failed' >/dev/null 2>&1
+		if [ $? != 0 ]; then
+			ngpus=$(nvidia-smi -L | wc -l)
+			if [ $((ngpus > 0)) != 0 ]; then
+				echo true
+				return
+			fi
+		fi
+	fi
+	echo false
+}
+
 function show_help {
 	cat - <<HELP
 --llvm-version=<vers>
@@ -211,10 +226,6 @@ then
   done 
 fi
 
-# Provide a default backend, user can override
-NVQIR_SIMULATION_BACKEND="qpp"
-NVQIR_LIBS="-lnvqir -lnvqir-"
-
 CUDAQ_EMULATE_REMOTE=false
 CLANG_VERBOSE=
 OUTPUTOPTS=
@@ -240,6 +251,15 @@ CUDAQ_QUAKE_DEBUG=
 SHOW_HELP=false
 LIST_TARGETS=false
 DISABLE_QUBIT_MAPPING=false
+NVQIR_LIBS="-lnvqir -lnvqir-"
+
+# Provide a default backend, user can override
+NVQIR_SIMULATION_BACKEND="qpp"
+# Check availability of NVIDA GPU(s)
+gpu_found=$(query_gpu)
+if [ "$gpu_found" = true ] && [ -f "${install_dir}/lib/libnvqir-custatevec-fp32.so" ]; then
+	NVQIR_SIMULATION_BACKEND="custatevec-fp32"
+fi
 
 # We default to LIBRARY_MODE, physical 
 # Quantum Targets can override this to turn on 
