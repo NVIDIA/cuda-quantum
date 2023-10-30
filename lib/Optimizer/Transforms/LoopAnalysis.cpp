@@ -327,6 +327,15 @@ bool opt::LoopComponents::isClosedIntervalForm() {
 
 bool opt::LoopComponents::isLinearExpr() { return addendValue || scaleValue; }
 
+template <typename T>
+constexpr int computeArgsOffset() {
+  if constexpr (std::is_same_v<T, cc::ConditionOp>) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
 std::optional<opt::LoopComponents> opt::getLoopComponents(cc::LoopOp loop) {
   opt::LoopComponents result;
   auto &whileRegion = loop.getWhileRegion();
@@ -341,19 +350,23 @@ std::optional<opt::LoopComponents> opt::getLoopComponents(cc::LoopOp loop) {
            (getLinearExpr(cmpOp.getRhs(), result, loop) ==
             whileEntry.getArgument(idx));
   };
-  auto scanRegionForStep = [&](Region &reg) -> std::optional<unsigned> {
+  auto scanRegionForStep = [&]<typename TERM,
+                               int argsOff = computeArgsOffset<TERM>()>(Region &
+                                                                        reg)
+                               ->std::optional<unsigned> {
     // Pre-scan to make sure all terminators are ContinueOp.
     for (auto &block : reg)
       if (block.hasNoSuccessors())
-        if (!isa<cc::ContinueOp>(block.back()))
+        if (!isa<TERM>(block.back()))
           return {};
 
     for (auto &block : reg) {
       if (block.hasNoSuccessors()) {
-        if (auto contOp = cast<cc::ContinueOp>(block.back())) {
+        if (auto contOp = cast<TERM>(block.back())) {
           // Find an argument to the ContinueOp that is an integral induction
           // and updated by a step value.
-          for (auto pr : llvm::enumerate(contOp.getOperands())) {
+          for (auto pr :
+               llvm::enumerate(contOp.getOperands().drop_front(argsOff))) {
             if (auto *defOp = pr.value().getDefiningOp()) {
               if ((defOp->getBlock() == &block) &&
                   isa<arith::AddIOp, arith::SubIOp>(defOp)) {
@@ -378,19 +391,22 @@ std::optional<opt::LoopComponents> opt::getLoopComponents(cc::LoopOp loop) {
   if (loop.hasStep()) {
     // Loop has a step region, so look for the step op.
     // as in: `for (i = 0; i < n; i++) ...`
-    if (auto stepPosOpt = scanRegionForStep(loop.getStepRegion()))
+    if (auto stepPosOpt = scanRegionForStep.template operator()<cc::ContinueOp>(
+            loop.getStepRegion()))
       result.induction = *stepPosOpt;
   }
   if (!result.stepOp) {
     // If step has not been found, look in the body region.
     // as in: `for (i = 0; i < n;) { ... i++; }`
-    if (auto stepPosOpt = scanRegionForStep(loop.getBodyRegion()))
+    if (auto stepPosOpt = scanRegionForStep.template operator()<cc::ContinueOp>(
+            loop.getBodyRegion()))
       result.induction = *stepPosOpt;
   }
   if (!result.stepOp) {
     // If step has still not been found, look in the while region.
     // as in: `for (i = n; i-- > 0;) ...`
-    if (auto stepPosOpt = scanRegionForStep(whileRegion))
+    if (auto stepPosOpt =
+            scanRegionForStep.template operator()<cc::ConditionOp>(whileRegion))
       result.induction = *stepPosOpt;
   }
   if (!result.stepOp)
