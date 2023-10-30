@@ -699,7 +699,7 @@ public:
                     std::vector<std::string> extraLibPaths = {}) {
     static std::mutex jitMutex;
     {
-      std::scoped_lock lock(jitMutex);
+      std::scoped_lock<std::mutex> lock(jitMutex);
       // Scoped locking since jitCode is not thread-safe while this jitAndInvoke
       // can be invoked by kernel_builder::operator()(Args... args) in a
       // multi-threaded context.
