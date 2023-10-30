@@ -48,7 +48,7 @@ public:
   std::string constructGetJobPath(ServerMessage &postResponse) override;
 
   /// @brief Constructs the URL for retrieving a job based on a job ID.
-  std::string constructGetJobPath(const std::string &jobId) override;
+  std::string constructGetJobPath(const std::string &jobId);
 
   /// @brief Constructs the URL for retrieving the results of a job based on the
   /// server's response to a job submission.
@@ -79,6 +79,11 @@ private:
 
   /// @brief Helper method to retrieve the value of an environment variable.
   std::string getEnvVar(const std::string &key) const;
+
+  /// @brief Helper function to get value from config or return a default value.
+  template <typename T>
+  T getValueOrDefault(const BackendConfig &config, const std::string &key,
+                      const T &defaultValue) const;
 
   /// @brief Helper method to check if a key exists in the configuration.
   bool keyExists(const std::string &key) const;
@@ -133,10 +138,11 @@ void IonQServerHelper::initialize(BackendConfig config) {
     backendConfig["sharpen"] = config["sharpen"];
 }
 
-// Helper function to get value from config or return a default value.
+// Implementation of the getValueOrDefault function
 template <typename T>
-T getValueOrDefault(const BackendConfig &config, const std::string &key,
-                    const T &defaultValue) {
+T IonQServerHelper::getValueOrDefault(const BackendConfig &config,
+                                      const std::string &key,
+                                      const T &defaultValue) const {
   return config.find(key) != config.end() ? config.at(key) : defaultValue;
 }
 
@@ -277,7 +283,7 @@ IonQServerHelper::constructGetResultsPath(ServerMessage &postResponse) {
       backendConfig.at("url") + jobs[0].at("results_url").get<std::string>();
 
   // If sharpen is true, add it to the query parameters
-  if (keyExists("sharpen") && backendConfig["sharpen"].get<bool>())
+  if (keyExists("sharpen") && backendConfig["sharpen"] == "true")
     resultsPath += "?sharpen=true";
 
   return resultsPath;
@@ -292,7 +298,7 @@ std::string IonQServerHelper::constructGetResultsPath(std::string &jobId) {
   std::string resultsPath = backendConfig.at("job_path") + jobId + "/results";
 
   // If sharpen is true, add it to the query parameters
-  if (keyExists("sharpen") && backendConfig["sharpen"].get<bool>())
+  if (keyExists("sharpen") && backendConfig["sharpen"] == "true")
     resultsPath += "?sharpen=true";
 
   // Return the results path
