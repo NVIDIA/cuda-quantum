@@ -265,6 +265,18 @@ std::string IonQServerHelper::constructGetJobPath(const std::string &jobId) {
   return ret;
 }
 
+// Function to check if a URL already has query parameters
+bool hasQueryParameters(const std::string &url) {
+  return url.find("?") != std::string::npos;
+}
+
+// Function to append a query parameter to a URL
+void appendQueryParam(std::string &url, const std::string &param,
+                      const std::string &value) {
+  url += hasQueryParameters(url) ? "&" : "?";
+  url += param + "=" + value;
+}
+
 // Construct the path to get the results of a job
 std::string
 IonQServerHelper::constructGetResultsPath(ServerMessage &postResponse) {
@@ -286,19 +298,14 @@ IonQServerHelper::constructGetResultsPath(ServerMessage &postResponse) {
 
   // If sharpen is true, add it to the query parameters
   if (keyExists("sharpen") && backendConfig["sharpen"] == "true") {
-    resultsPath += resultsPath.find("?") == std::string::npos ? "?sharpen=true"
-                                                              : "&sharpen=true";
+    appendQueryParam(resultsPath, "sharpen", "true");
   }
 
   // Get specific results format
   if (keyExists("format")) {
-    resultsPath +=
-        resultsPath.find("?") == std::string::npos ? "?format=" : "&format=";
-    resultsPath += backendConfig["format"];
+    appendQueryParam(resultsPath, "format", backendConfig["format"]);
   } else {
-    resultsPath += resultsPath.find("?") == std::string::npos
-                       ? "?format=qir.measurements.v0"
-                       : "&format=qir.measurements.v0";
+    appendQueryParam(resultsPath, "format", "qir.quantum-log.v0");
   }
 
   return resultsPath;
