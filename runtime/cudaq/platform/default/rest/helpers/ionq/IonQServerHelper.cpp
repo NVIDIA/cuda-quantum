@@ -136,6 +136,8 @@ void IonQServerHelper::initialize(BackendConfig config) {
     backendConfig["debias"] = config["debias"];
   if (config.find("sharpen") != config.end())
     backendConfig["sharpen"] = config["sharpen"];
+  if (config.find("format") != config.end())
+    backendConfig["format"] = config["format"];
 }
 
 // Implementation of the getValueOrDefault function
@@ -283,8 +285,21 @@ IonQServerHelper::constructGetResultsPath(ServerMessage &postResponse) {
       backendConfig.at("url") + jobs[0].at("results_url").get<std::string>();
 
   // If sharpen is true, add it to the query parameters
-  if (keyExists("sharpen") && backendConfig["sharpen"] == "true")
-    resultsPath += "?sharpen=true";
+  if (keyExists("sharpen") && backendConfig["sharpen"] == "true") {
+    resultsPath += resultsPath.find("?") == std::string::npos ? "?sharpen=true"
+                                                              : "&sharpen=true";
+  }
+
+  // Get specific results format
+  if (keyExists("format")) {
+    resultsPath +=
+        resultsPath.find("?") == std::string::npos ? "?format=" : "&format=";
+    resultsPath += backendConfig["format"];
+  } else {
+    resultsPath += resultsPath.find("?") == std::string::npos
+                       ? "?format=qir.results.v0"
+                       : "&format=qir.results.v0";
+  }
 
   return resultsPath;
 }
