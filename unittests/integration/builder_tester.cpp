@@ -349,8 +349,8 @@ CUDAQ_TEST(BuilderTester, checkControlledRotations) {
   // Runtime checks for more exotic function signatures.
   {
     auto [kernel, angle] = cudaq::make_kernel<float>();
-    auto controls1 = kernel.qalloc(3);
-    auto controls2 = kernel.qalloc(3);
+    auto controls1 = kernel.qalloc(2);
+    auto controls2 = kernel.qalloc(2);
     auto control3 = kernel.qalloc();
     auto control4 = kernel.qalloc();
     auto control5 = kernel.qalloc();
@@ -382,11 +382,11 @@ CUDAQ_TEST(BuilderTester, checkControlledRotations) {
     kernel.r1<cudaq::ctrl>(angle, control5, control4, control3, controls2,
                            controls1, target);
 
-    auto result = cudaq::sample(kernel, M_PI_2);
-    result.dump();
+    auto counts = cudaq::sample(kernel, M_PI_2);
+    counts.dump();
 
     // All controls still in the 0-state, target still in 1-state.
-    EXPECT_EQ(counts.count("0000000001"), 1000);
+    EXPECT_EQ(counts.count("00000001"), 1000);
   }
 }
 
