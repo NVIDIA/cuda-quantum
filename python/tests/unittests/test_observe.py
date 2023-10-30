@@ -686,6 +686,61 @@ def test_observe_list():
     assert assert_close(want_expectation_value, sum, tolerance=1e-2)
 
 
+def test_combine_sweep():
+    """
+    Test that we can sweep/broadcast both the spin_op and param lists 
+    """
+    # Hamiltonian as a list
+    hamiltonianList = [
+        -2.1433 * spin.x(0) * spin.x(1), -2.1433 * spin.y(0) * spin.y(1),
+        .21829 * spin.z(0), -6.125 * spin.z(1)
+    ]
+
+    # Angles as a list
+    angles = np.linspace(-np.pi, np.pi, 50)
+
+    circuit, theta = cudaq.make_kernel(float)
+    q = circuit.qalloc(2)
+    circuit.x(q[0])
+    circuit.ry(theta, q[1])
+    circuit.cx(q[1], q[0])
+
+    # Observe with list of spin_op and list of angles
+    results = cudaq.observe(circuit, hamiltonianList, angles)
+    # Expected energy for each angle
+    expected = np.array([
+        12.250289999999993, 12.746369918061657, 13.130147571153335,
+        13.395321340821365, 13.537537081098929, 13.554459613462432,
+        13.445811070398316, 13.213375457979938, 12.860969362537181,
+        12.39437928241443, 11.821266613827706, 11.151041850950664,
+        10.39471006586037, 9.56469020555809, 8.674611173202855,
+        7.7390880418983645, 6.773482075596711, 5.793648497568958,
+        4.815676148077341, 3.8556233060630225, 2.929254012649781,
+        2.051779226024591, 1.2376070579247536, 0.5001061928414527,
+        -0.14861362540995326, -0.6979004353486014, -1.1387349627411503,
+        -1.4638787168353469, -1.6679928461780573, -1.7477258024084987,
+        -1.701768372589711, -1.5308751764487525, -1.2378522755416648,
+        -0.8275110978002891, -0.30658943401863836, 0.3163591964856498,
+        1.0311059944220289, 1.8259148371286382, 2.687734985381901,
+        3.6024153761738114, 4.55493698277526, 5.529659426739748,
+        6.510577792485027, 7.481585427564503, 8.42673841345514,
+        9.330517364258766, 10.178082254589516, 10.955516092380341,
+        11.650053435508049, 12.250289999999993
+    ])
+
+    # Check shape
+    assert len(results) == len(angles)
+    for perParamResult in results:
+        assert len(perParamResult) == len(hamiltonianList)
+
+    for perParamResult, expectedEnergy in zip(results, expected):
+        # Id term offset
+        sum = 5.907
+        for r in perParamResult:
+            sum += r.expectation() * np.real(r.get_spin().get_coefficient())
+        assert assert_close(expectedEnergy, sum, tolerance=1e-2)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
