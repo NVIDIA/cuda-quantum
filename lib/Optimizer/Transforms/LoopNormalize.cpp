@@ -132,8 +132,8 @@ public:
     auto v2 = c.stepOp->getOperand(
         c.stepIsAnAddOp() && c.shouldCommuteStepOp() ? 1 : 0);
     rewriter.setInsertionPoint(c.stepOp);
-    Value newStep = rewriter.create<arith::AddIOp>(c.stepOp->getLoc(), v2, one);
-    c.stepOp->replaceAllUsesWith(ValueRange{newStep});
+    auto newStep = rewriter.create<arith::AddIOp>(c.stepOp->getLoc(), v2, one);
+    c.stepOp->replaceAllUsesWith(ValueRange{newStep.getResult()});
 
     // 4) Compute original induction value as a loop variant and replace the
     // uses. `lower + step * i`. Careful to not replace the new induction.
@@ -149,7 +149,8 @@ public:
         newInd = rewriter.create<arith::SubIOp>(loc, c.initialValue, mul);
       induct.replaceUsesWithIf(newInd, [&](OpOperand &opnd) {
         auto *op = opnd.getOwner();
-        return op != mul && !isa<cudaq::cc::ContinueOp>(op);
+        return op != newStep.getOperation() && op != mul &&
+               !isa<cudaq::cc::ContinueOp>(op);
       });
     }
     loop->setAttr(cudaq::opt::NormalizedLoopAttr, rewriter.getUnitAttr());
