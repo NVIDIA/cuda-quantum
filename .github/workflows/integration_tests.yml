@@ -18,7 +18,7 @@ on:
       single_test_name:
         type: string
         required: false
-        description: 'Single test (e.g., test/NVQPP/integration/load_value.cpp). Runs default tests if left blank'
+        description: 'Single test (e.g., targettests/quantinuum/load_value.cpp). Runs default tests if left blank'
       target_machine:
         type: string
         required: false
@@ -59,7 +59,7 @@ jobs:
               exit 1
             fi
           else
-            filelist="test/NVQPP/integration/*.cpp"
+            filelist="targettests/*/*.cpp"
             echo "testlist=$filelist" >> $GITHUB_OUTPUT
           fi
 
@@ -115,9 +115,7 @@ jobs:
           test_err_sum=0
           for filename in ${{ steps.gettests.outputs.testlist }}; do
             case $filename in
-              test/NVQPP/integration/testConditionalSample.cpp)
-                echo ":white_flag: Test skipped because this target doesn't support the Adaptive Profile: $filename" >> $GITHUB_STEP_SUMMARY ;;
-              *)
+              targettests/ionq/*)
                 [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
                 nvq++ -v $filename --target ionq
                 test_status=$?
@@ -134,6 +132,7 @@ jobs:
                   echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
                   test_err_sum=$((test_err_sum+1))
                 fi
+	      ;;
             esac
           done
           set -e # Re-enable exit code error checking
@@ -147,17 +146,17 @@ jobs:
         if: (success() || failure()) && (inputs.target == 'iqm' || github.event_name == 'schedule' || inputs.target == 'nightly')
         # The following tests are disabled because the demo server only supports
         # 5 qubits and the test tries to use more.
-        # - test/NVQPP/integration/graph_coloring-1.cpp
-        # - test/NVQPP/integration/graph_coloring.cpp
+        # - test/NVQPP//graph_coloring-1.cpp
+        # - test/NVQPP//graph_coloring.cpp
         # The following tests are disabled because a mapping algorithm is needed
         # to account for qubit connection limitations.
         # See https://github.com/NVIDIA/cuda-quantum/pull/610 (in work)
-        # - test/NVQPP/integration/qspan_slices.cpp
-        # - test/NVQPP/integration/sudoku_2x2-1.cpp
-        # - test/NVQPP/integration/sudoku_2x2-bit_names.cpp
-        # - test/NVQPP/integration/sudoku_2x2-reg_name.cpp
-        # - test/NVQPP/integration/sudoku_2x2.cpp
-        # - test/NVQPP/integration/test-observe.cpp
+        # - test/NVQPP//qspan_slices.cpp
+        # - test/NVQPP//sudoku_2x2-1.cpp
+        # - test/NVQPP//sudoku_2x2-bit_names.cpp
+        # - test/NVQPP//sudoku_2x2-reg_name.cpp
+        # - test/NVQPP//sudoku_2x2.cpp
+        # - test/NVQPP//test-observe.cpp
         run: |
           # Must install iqm-cortex-cli to authenticate
           pip install iqm-cortex-cli
@@ -175,15 +174,7 @@ jobs:
             [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
             # Only the following tests are currently supported on IQM
             case $filename in
-              test/NVQPP/integration/testConditionalSample.cpp)
-                echo ":white_flag: Test skipped because this target doesn't support the Adaptive Profile: $filename" >> $GITHUB_STEP_SUMMARY ;;
-              test/NVQPP/integration/bug_qubit.cpp|\
-              test/NVQPP/integration/callable_kernel_arg.cpp|\
-              test/NVQPP/integration/if_jit.cpp|\
-              test/NVQPP/integration/load_value.cpp|\
-              test/NVQPP/integration/test-int8_t.cpp|\
-              test/NVQPP/integration/test-int8_t_free_func.cpp|\
-              test/NVQPP/integration/variable_size_qreg.cpp)
+              targettests/iqm/*)
                 nvq++ -DSYNTAX_CHECK --target iqm --iqm-machine Adonis $filename
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
@@ -198,9 +189,8 @@ jobs:
                 else
                   echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
                   test_err_sum=$((test_err_sum+1))
-                fi ;;
-              *)
-                echo ":white_flag: Test skipped due to known issues: $filename" >> $GITHUB_STEP_SUMMARY ;;
+                fi
+	      ;;
             esac
           done
           set -e # Re-enable exit code error checking
@@ -216,18 +206,18 @@ jobs:
         if: (success() || failure()) && (inputs.target == 'oqc' || github.event_name == 'schedule' || inputs.target == 'nightly')
         # The following tests are disabled because sandbox only supports 12
         # qubits and the test tries to use more.
-        # - test/NVQPP/integration/graph_coloring-1.cpp
-        # - test/NVQPP/integration/graph_coloring.cpp
+        # - test/NVQPP//graph_coloring-1.cpp
+        # - test/NVQPP//graph_coloring.cpp
         # The following tests are disabled because a mapping algorithm is needed
         # to account for qubit connection limitations
         # See https://github.com/NVIDIA/cuda-quantum/pull/610 (in work)
-        # - test/NVQPP/integration/qspan_slices.cpp
-        # - test/NVQPP/integration/sudoku_2x2-1.cpp
-        # - test/NVQPP/integration/sudoku_2x2-bit_names.cpp
-        # - test/NVQPP/integration/sudoku_2x2-reg_name.cpp
-        # - test/NVQPP/integration/sudoku_2x2.cpp
+        # - test/NVQPP//qspan_slices.cpp
+        # - test/NVQPP//sudoku_2x2-1.cpp
+        # - test/NVQPP//sudoku_2x2-bit_names.cpp
+        # - test/NVQPP//sudoku_2x2-reg_name.cpp
+        # - test/NVQPP//sudoku_2x2.cpp
         # The following test is disabled due to https://github.com/NVIDIA/cuda-quantum/issues/695
-        # - test/NVQPP/integration/test-observe.cpp|\
+        # - test/NVQPP//test-observe.cpp|\
 
         run: |
           echo "### Submit to OQC sandbox server" >> $GITHUB_STEP_SUMMARY
@@ -240,16 +230,7 @@ jobs:
             [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
             # Only the following tests are currently supported on OQC
             case $filename in
-              test/NVQPP/integration/testConditionalSample.cpp)
-                echo ":white_flag: Test skipped because this target doesn't support the Adaptive Profile: $filename" >> $GITHUB_STEP_SUMMARY ;;
-              test/NVQPP/integration/bug_qubit.cpp|\
-              test/NVQPP/integration/callable_kernel_arg.cpp|\
-              test/NVQPP/integration/if_jit.cpp|\
-              test/NVQPP/integration/load_value.cpp|\
-              test/NVQPP/integration/swap_gate.cpp|\
-              test/NVQPP/integration/test-int8_t.cpp|\
-              test/NVQPP/integration/test-int8_t_free_func.cpp|\
-              test/NVQPP/integration/variable_size_qreg.cpp)
+              targettests/oqc/*)
                 nvq++ -DSYNTAX_CHECK --target oqc $filename
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
@@ -264,9 +245,8 @@ jobs:
                 else
                   echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
                   test_err_sum=$((test_err_sum+1))
-                fi ;;
-              *)
-                echo ":white_flag: Test skipped due to known issues: $filename" >> $GITHUB_STEP_SUMMARY ;;
+                fi
+	      ;;
             esac
           done
           set -e # Re-enable exit code error checking
@@ -289,7 +269,11 @@ jobs:
           fi
           for filename in ${{ steps.gettests.outputs.testlist }}; do
             [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
-            nvq++ -v $filename --target ${{ inputs.target }} --${{ inputs.target }}-machine ${{ inputs.target_machine }}
-            CUDAQ_LOG_LEVEL=info ./a.out
+	    case $filename in
+	      targettests/quantinuum/*)
+                nvq++ -v $filename --target ${{ inputs.target }} --${{ inputs.target }}-machine ${{ inputs.target_machine }}
+                CUDAQ_LOG_LEVEL=info ./a.out
+	      ;;
+	    esac
           done
         shell: bash
