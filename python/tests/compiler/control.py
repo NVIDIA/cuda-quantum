@@ -43,9 +43,9 @@ def test_kernel_control_no_args(qubit_count):
 # CHECK:         }
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
-# CHECK:           %[[VAL_0:.*]] = arith.constant 1 : index
-# CHECK:           %[[VAL_1:.*]] = arith.constant 0 : index
-# CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<1>
+# CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 1 : index
+# CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 0 : index
+# CHECK-DAG:       %[[VAL_2:.*]] = quake.alloca !quake.veq<1>
 # CHECK:           %[[VAL_3:.*]] = cc.loop while ((%[[VAL_4:.*]] = %[[VAL_1]]) -> (index)) {
 # CHECK:             %[[VAL_5:.*]] = arith.cmpi slt, %[[VAL_4]], %[[VAL_0]] : index
 # CHECK:             cc.condition %[[VAL_5]](%[[VAL_4]] : index)
@@ -69,10 +69,10 @@ def test_kernel_control_no_args(qubit_count):
 # CHECK:         }
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
-# CHECK:           %[[VAL_0:.*]] = arith.constant 5 : index
-# CHECK:           %[[VAL_1:.*]] = arith.constant 1 : index
-# CHECK:           %[[VAL_2:.*]] = arith.constant 0 : index
-# CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<5>
+# CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 5 : index
+# CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : index
+# CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : index
+# CHECK-DAG:       %[[VAL_3:.*]] = quake.alloca !quake.veq<5>
 # CHECK:           %[[VAL_4:.*]] = cc.loop while ((%[[VAL_5:.*]] = %[[VAL_2]]) -> (index)) {
 # CHECK:             %[[VAL_6:.*]] = arith.cmpi slt, %[[VAL_5]], %[[VAL_0]] : index
 # CHECK:             cc.condition %[[VAL_6]](%[[VAL_5]] : index)
@@ -277,8 +277,8 @@ def test_sample_control_qubit_args():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
-# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
-# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
+# CHECK-DAG:       %[[VAL_0:.*]] = quake.alloca !quake.ref
+# CHECK-DAG:       %[[VAL_1:.*]] = quake.alloca !quake.ref
 # CHECK:           call @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%[[VAL_0]]) : (!quake.ref) -> ()
 # CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
 # CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*\[}}%[[VAL_1]]] %[[VAL_0]] : (!quake.ref, !quake.ref) -> ()
@@ -332,11 +332,11 @@ def test_sample_control_qreg_args():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
-# CHECK:           %[[VAL_0:.*]] = arith.constant 2 : index
-# CHECK:           %[[VAL_2:.*]] = arith.constant 1 : index
-# CHECK:           %[[VAL_3:.*]] = arith.constant 0 : index
-# CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<2>
-# CHECK:           %[[VAL_6:.*]] = quake.alloca !quake.ref
+# CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : index
+# CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 1 : index
+# CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 0 : index
+# CHECK-DAG:       %[[VAL_5:.*]] = quake.alloca !quake.veq<2>
+# CHECK-DAG:       %[[VAL_6:.*]] = quake.alloca !quake.ref
 # CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_5]][0] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           quake.x %[[VAL_7]] : (!quake.ref) -> ()
 # CHECK:           quake.x %[[VAL_6]] : (!quake.ref) -> ()
@@ -408,8 +408,8 @@ def test_sample_apply_call_control():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
-# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
-# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
+# CHECK-DAG:       %[[VAL_0:.*]] = quake.alloca !quake.ref
+# CHECK-DAG:       %[[VAL_1:.*]] = quake.alloca !quake.ref
 # CHECK:           call @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%[[VAL_0]]) : (!quake.ref) -> ()
 # CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
 # CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}{{\[}}%[[VAL_1]]] %[[VAL_0]] : (!quake.ref, !quake.ref) -> ()

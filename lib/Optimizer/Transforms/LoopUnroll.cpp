@@ -121,11 +121,30 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
     Block *contBlock = nullptr;
     Value nextIterCount;
     for (std::size_t i = 0u; i < unrollBy; ++i) {
-      // FIXME: Also clone the step and while blocks as they may have
-      // side-effects that should be made here.
+      // 1. Clone the while region.
+      rewriter.cloneRegionBefore(loop.getWhileRegion(), endBlock);
+      Block *whileBlock = insBlock->getNextNode();
+      // 2. Clone the body region.
       rewriter.cloneRegionBefore(bodyRegion, endBlock);
+      // Replace the ConditionOp in the while region clone with a direct branch.
+      // This makes the comparison there dead. DCE will delete any unneeded code
+      // associated with it.
+      auto cond = cast<cudaq::cc::ConditionOp>(whileBlock->getTerminator());
+      rewriter.setInsertionPoint(cond);
+      rewriter.replaceOpWithNewOp<cf::BranchOp>(cond, whileBlock->getNextNode(),
+                                                cond.getResults());
       auto cloneRange = findCloneRange(insBlock, endBlock);
-      contBlock = rewriter.createBlock(endBlock, argTys, argLocs);
+      // 3. If the loop has a step region, clone it as well. Otherwise create an
+      // empty block to target as the next "continue" block.
+      if (loop.hasStep()) {
+        contBlock = endBlock->getPrevNode();
+        rewriter.cloneRegionBefore(loop.getStepRegion(), endBlock);
+        contBlock = contBlock->getNextNode();
+      } else {
+        contBlock = rewriter.createBlock(endBlock, argTys, argLocs);
+      }
+      // Replace any continue and (possibly) break ops in the body region. They
+      // are repalced with branches to the continue block or exit block, resp.
       for (Block *b = cloneRange.first; b != contBlock; b = b->getNextNode()) {
         auto *term = b->getTerminator();
         if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(term)) {
@@ -141,16 +160,32 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
           }
         }
       }
+      // If there was a step region, its entry block is the continue block.
+      // However, it may have multiple exit blocks. Thread each of these to a
+      // merge block. The continue block is updated to this new empty merge
+      // block.
+      if (loop.hasStep()) {
+        Block *mergeBlock = rewriter.createBlock(endBlock, argTys, argLocs);
+        for (Block *b = contBlock; b != mergeBlock; b = b->getNextNode())
+          if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(b->getTerminator())) {
+            auto termOpers = cont.getOperands();
+            rewriter.setInsertionPoint(cont);
+            rewriter.replaceOpWithNewOp<cf::BranchOp>(cont, mergeBlock,
+                                                      termOpers);
+          }
+        contBlock = mergeBlock;
+      }
+      // At this point, the continue block is a new, empty block. Generate the
+      // next iteration number in this continue block.
       rewriter.setInsertionPointToEnd(contBlock);
-      // Append the next iteration number.
       nextIterCount = getIntegerConstant(loc, inductionTy, i + 1, rewriter);
       rewriter.setInsertionPointToEnd(insBlock);
-      // Propagate the previous iteration number into the new block.
+      // Propagate the previous iteration number into the new block. This makes
+      // any unneeded computation dead. DCE will clean that up as well.
       iterationOpers[components->induction] = iterCount;
       rewriter.create<cf::BranchOp>(loc, cloneRange.first, iterationOpers);
-
-      // Bookkeeping for the next iteration, which uses the new contBlock and
-      // its arguments.
+      // Bookkeeping for the next iteration, which uses the new continue block,
+      // `conBlock`, and its arguments.
       setIterationOpers(contBlock->getArguments());
       iterCount = nextIterCount;
       insBlock = contBlock;

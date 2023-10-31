@@ -27,7 +27,9 @@ enum class PyParType { thread, mpi };
 /// @brief Default qpu id value set to 0
 constexpr int defaultQpuIdValue = 0;
 
-/// @brief For asynchronous execution, we need to construct OpaqueArguments
+/// @brief Global cache map of OpaqueArguments
+///
+/// For asynchronous execution, we need to construct OpaqueArguments
 /// outside of the async lambda invocation. If we don't, then we will be
 /// using Python types outside of the current GIL context. Bad things happen
 /// then.
@@ -77,9 +79,17 @@ async_observe_result pyObserveAsync(kernel_builder<> &kernel,
   // and the validated args.
   std::size_t uniqueHash = hasher(kernel.name()) + hasher(py::str(args));
 
-  // Add the opaque args to the holder and pack the args into it
-  asyncArgsHolder.emplace(uniqueHash, std::make_unique<OpaqueArguments>());
-  packArgs(*asyncArgsHolder.at(uniqueHash).get(), validatedArgs);
+  // Add the opaque args to the holder and pack the args into it.
+  // Note: this pyObserveAsync is executed in a loop (over spin_operator slices)
+  // on the main Python thread, while posting functors to other threads
+  // (runObservationAsync below). These functors are expected to operate on the
+  // same (kernel + params) configuration, hence, making sure that we don't
+  // overwrite asyncArgsHolder while running the spin_operator slicing loop
+  // (this pyObserveAsync function).
+  if (asyncArgsHolder.find(uniqueHash) == asyncArgsHolder.end()) {
+    asyncArgsHolder.emplace(uniqueHash, std::make_unique<OpaqueArguments>());
+    packArgs(*asyncArgsHolder.at(uniqueHash).get(), validatedArgs);
+  }
 
   // TODO: would like to handle errors in the case that
   // `kernel.num_qubits() >= spin_operator.num_qubits()`
@@ -218,7 +228,8 @@ void bindObserve(py::module &mod) {
           std::variant<spin_op, std::vector<spin_op>> &spin_operator,
           py::args arguments, int shots, std::optional<noise_model> noise,
           std::optional<py::type> execution)
-          -> std::variant<observe_result, std::vector<observe_result>> {
+          -> std::variant<observe_result, std::vector<observe_result>,
+                          std::vector<std::vector<observe_result>>> {
         // Observe can be a single observe call, a parallel observe call,
         // or a observe broadcast. We'll handle them all here.
 
@@ -301,6 +312,20 @@ void bindObserve(py::module &mod) {
           return results;
         }
 
+        // Check if this is a nested broadcast (sweeping both spin_op and
+        // params). If so, peel the results: first index is param sweep, second
+        // index is spin_op.
+        if (spinVariantIndex == 1) {
+          std::vector<std::vector<observe_result>> results;
+          for (auto &paramSweepResult : result) {
+            std::vector<observe_result> spinResults;
+            for (auto &o : std::get<std::vector<spin_op>>(spin_operator))
+              spinResults.emplace_back(paramSweepResult.expectation(o), o,
+                                       paramSweepResult.counts(o));
+            results.emplace_back(std::move(spinResults));
+          }
+          return results;
+        }
         // Return the vector of results, this is for observe_n
         return {result};
       },
@@ -315,6 +340,8 @@ with respect to `kernel(*arguments)`. Each argument in `arguments` provided
 can be a list or ndarray of arguments of the specified kernel argument
 type, and in this case, the `observe` functionality will be broadcasted over
 all argument sets and a list of `observe_result` instances will be returned.
+If both the input `spin_operator` and `arguments` are broadcast lists, 
+a nested list of results over `arguments` then `spin_operator` will be returned.
 
 Args:
   kernel (:class:`Kernel`): The :class:`Kernel` to evaluate the 

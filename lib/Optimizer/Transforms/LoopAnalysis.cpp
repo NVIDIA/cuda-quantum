@@ -262,8 +262,8 @@ bool opt::loopContainsBreak(cc::LoopOp loopOp) {
 bool opt::isaMonotonicLoop(Operation *op, bool allowEarlyExit,
                            LoopComponents *lcp) {
   if (auto loopOp = dyn_cast_or_null<cc::LoopOp>(op)) {
-    // Cannot be a `while` or `do while` loop.
-    if (loopOp.isPostConditional() || !loopOp.hasStep())
+    // Cannot be a `do while` loop. See cc-loop-peeling.
+    if (loopOp.isPostConditional())
       return false;
     auto &reg = loopOp.getBodyRegion();
     return !reg.empty() && (allowEarlyExit || allExitsAreContinue(reg)) &&
@@ -327,6 +327,15 @@ bool opt::LoopComponents::isClosedIntervalForm() {
 
 bool opt::LoopComponents::isLinearExpr() { return addendValue || scaleValue; }
 
+template <typename T>
+constexpr int computeArgsOffset() {
+  if constexpr (std::is_same_v<T, cc::ConditionOp>) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
 std::optional<opt::LoopComponents> opt::getLoopComponents(cc::LoopOp loop) {
   opt::LoopComponents result;
   auto &whileRegion = loop.getWhileRegion();
@@ -341,19 +350,23 @@ std::optional<opt::LoopComponents> opt::getLoopComponents(cc::LoopOp loop) {
            (getLinearExpr(cmpOp.getRhs(), result, loop) ==
             whileEntry.getArgument(idx));
   };
-  auto scanRegionForStep = [&](Region &reg) -> std::optional<unsigned> {
+  auto scanRegionForStep = [&]<typename TERM,
+                               int argsOff = computeArgsOffset<TERM>()>(Region &
+                                                                        reg)
+                               ->std::optional<unsigned> {
     // Pre-scan to make sure all terminators are ContinueOp.
     for (auto &block : reg)
       if (block.hasNoSuccessors())
-        if (!isa<cc::ContinueOp>(block.back()))
+        if (!isa<TERM>(block.back()))
           return {};
 
     for (auto &block : reg) {
       if (block.hasNoSuccessors()) {
-        if (auto contOp = cast<cc::ContinueOp>(block.back())) {
+        if (auto contOp = cast<TERM>(block.back())) {
           // Find an argument to the ContinueOp that is an integral induction
           // and updated by a step value.
-          for (auto pr : llvm::enumerate(contOp.getOperands())) {
+          for (auto pr :
+               llvm::enumerate(contOp.getOperands().drop_front(argsOff))) {
             if (auto *defOp = pr.value().getDefiningOp()) {
               if ((defOp->getBlock() == &block) &&
                   isa<arith::AddIOp, arith::SubIOp>(defOp)) {
@@ -378,19 +391,22 @@ std::optional<opt::LoopComponents> opt::getLoopComponents(cc::LoopOp loop) {
   if (loop.hasStep()) {
     // Loop has a step region, so look for the step op.
     // as in: `for (i = 0; i < n; i++) ...`
-    if (auto stepPosOpt = scanRegionForStep(loop.getStepRegion()))
+    if (auto stepPosOpt = scanRegionForStep.template operator()<cc::ContinueOp>(
+            loop.getStepRegion()))
       result.induction = *stepPosOpt;
   }
   if (!result.stepOp) {
     // If step has not been found, look in the body region.
     // as in: `for (i = 0; i < n;) { ... i++; }`
-    if (auto stepPosOpt = scanRegionForStep(loop.getBodyRegion()))
+    if (auto stepPosOpt = scanRegionForStep.template operator()<cc::ContinueOp>(
+            loop.getBodyRegion()))
       result.induction = *stepPosOpt;
   }
   if (!result.stepOp) {
     // If step has still not been found, look in the while region.
     // as in: `for (i = n; i-- > 0;) ...`
-    if (auto stepPosOpt = scanRegionForStep(whileRegion))
+    if (auto stepPosOpt =
+            scanRegionForStep.template operator()<cc::ConditionOp>(whileRegion))
       result.induction = *stepPosOpt;
   }
   if (!result.stepOp)
@@ -398,14 +414,13 @@ std::optional<opt::LoopComponents> opt::getLoopComponents(cc::LoopOp loop) {
 
   result.initialValue = loop.getInitialArgs()[result.induction];
 
-  // TODO: The comparison operation requires that the induction value appear
-  // explicitly on one side of the comparison. That is, it is required that the
-  // comparison look like `i < exp` where `i` is the induction value. This could
-  // be relaxed to allow invariant expressions on each side, such as, `i + 1 <
-  // exp`. This relaxation to invariant expressions would require some
-  // transformations to normalize the comparison operation. Taking the example,
-  // this would transform to `i < exp - 1`.
-  // A second possible extension is to detect \em{conditionally iterated} loops
+  // The comparison operation allows for the induction value to appear as part
+  // of a loop-invariant linear expression on one side of the comparison. This
+  // allows for invariant expressions on each side, such as, `4 * i + 1 < exp`.
+  // This relaxation to invariant expressions requires some transformations to
+  // normalize the comparison operation. Taking the example, this would
+  // transform to `i < (exp - 1) / 4`.
+  // TODO: A possible extension is to detect \em{conditionally iterated} loops
   // and open those up to further analysis and transformations such as loop
   // unrolling.
   if (getLinearExpr(cmpOp.getLhs(), result, loop) ==
