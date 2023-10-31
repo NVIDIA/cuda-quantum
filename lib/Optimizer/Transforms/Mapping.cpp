@@ -19,8 +19,12 @@
 
 #define DEBUG_TYPE "quantum-mapper"
 
-using namespace cudaq;
 using namespace mlir;
+
+// Use specific cudaq elements without bringing in the full namespace
+using cudaq::Device;
+using cudaq::Placement;
+using cudaq::QuantumMeasure;
 
 //===----------------------------------------------------------------------===//
 // Generated logic
@@ -56,16 +60,52 @@ struct VirtualOp {
       : op(op), qubits(qubits) {}
 };
 
+/// The `SabreRouter` class is modified implementation of the following paper:
+/// Li, Gushu, Yufei Ding, and Yuan Xie. "Tackling the qubit mapping problem for
+/// NISQ-era quantum devices." In Proceedings of the Twenty-Fourth International
+/// Conference on Architectural Support for Programming Languages and Operating
+/// Systems, pp. 1001-1014. 2019.
+/// https://dl.acm.org/doi/pdf/10.1145/3297858.3304023
+///
+/// Routing starts with source operations collected during the analysis. These
+/// operations form a layer, called the `frontLayer`, which is a set of
+/// operations that have no unmapped predecessors. In the case of these source
+/// operations, the router only needs to iterate over the front layer while
+/// visiting all users of each operation. The processing of this front layer
+/// will create a new front layer containing all operations that have being
+/// visited the same number of times as their number of wire operands.
+///
+/// After processing the very first front layer, the algorithm proceeds to
+/// process the newly created front layer. Once again, it processes the front
+/// layer and map all operations that are compatible with the current placement,
+/// i.e., one-wire operations and two-wire operations using wires that
+/// correspond to qubits that are adjacently placed in the device. When an
+/// operation is successfully mapped, it is removed from the front layer and all
+/// its users are visited. Those users that have no unmapped predecessors are
+/// added to the front layer. If the mapper cannot successfully map any
+/// operation in the front layer, then it adds a swap to the circuit and tries
+/// to map the front layer again. The routing process ends when the front layer
+/// is empty.
+///
+/// Modifications from the published paper include the ability to defer
+/// measurement mapping until the end, which is required for QIR Base Profile
+/// programs (see the `allowMeasurementMapping` member variable).
 class SabreRouter {
   using WireMap = DenseMap<Value, Placement::VirtualQ>;
   using Swap = std::pair<Placement::DeviceQ, Placement::DeviceQ>;
 
 public:
-  SabreRouter(const Device &device, WireMap &wireMap, Placement &placement)
+  SabreRouter(const Device &device, WireMap &wireMap, Placement &placement,
+              unsigned extendedLayerSize, float extendedLayerWeight,
+              float decayDelta, unsigned roundsDecayReset)
       : device(device), wireToVirtualQ(wireMap), placement(placement),
+        extendedLayerSize(extendedLayerSize),
+        extendedLayerWeight(extendedLayerWeight), decayDelta(decayDelta),
+        roundsDecayReset(roundsDecayReset),
         phyDecay(device.getNumQubits(), 1.0), phyToWire(device.getNumQubits()),
         allowMeasurementMapping(false) {}
 
+  /// Main entry point into SabreRouter routing algorithm
   void route(Block &block, ArrayRef<quake::NullWireOp> sources);
 
 private:
@@ -89,10 +129,10 @@ private:
   Placement &placement;
 
   // Parameters
-  unsigned extendedLayerSize = 20;
-  float extendedLayerWeight = 0.5;
-  float decayDelta = 0.5;
-  unsigned roundsDecayReset = 5;
+  const unsigned extendedLayerSize;
+  const float extendedLayerWeight;
+  const float decayDelta;
+  const unsigned roundsDecayReset;
 
   // Internal data
   SmallVector<VirtualOp> frontLayer;
@@ -128,8 +168,8 @@ void SabreRouter::visitUsers(ResultRange::user_range users,
       incremented->push_back(user);
 
     if (!quake::isSupportedMappingOperation(user)) {
-      auto tmpOp = dyn_cast<mlir::Operation *>(user);
       LLVM_DEBUG({
+        auto *tmpOp = dyn_cast<mlir::Operation *>(user);
         logger.getOStream() << "WARNING: unsupported op: " << *tmpOp << '\n';
       });
     } else {
@@ -311,7 +351,7 @@ SabreRouter::Swap SabreRouter::chooseSwap() {
 
 void SabreRouter::route(Block &block, ArrayRef<quake::NullWireOp> sources) {
 #ifndef NDEBUG
-  const char *logLineComment =
+  constexpr char logLineComment[] =
       "//===-------------------------------------------===//\n";
 #endif
 
@@ -347,7 +387,7 @@ void SabreRouter::route(Block &block, ArrayRef<quake::NullWireOp> sources) {
     phyToWire[q1.index] = swap.getResult(1);
   };
 
-  uint32_t numSwapSearches = 0u;
+  std::size_t numSwapSearches = 0;
   bool done = false;
   while (!done) {
     // Once frontLayer is empty, grab everything from measureLayer and go again.
@@ -372,7 +412,7 @@ void SabreRouter::route(Block &block, ArrayRef<quake::NullWireOp> sources) {
     LLVM_DEBUG(logger.getOStream() << "\n";);
 
     // Add a swap
-    numSwapSearches += 1u;
+    numSwapSearches++;
     auto [phy0, phy1] = chooseSwap();
     addSwap(phy0, phy1);
     involvedPhy.clear();
@@ -395,16 +435,89 @@ void SabreRouter::route(Block &block, ArrayRef<quake::NullWireOp> sources) {
 struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
   using MappingPassBase::MappingPassBase;
 
+  /// Device dimensions that come from inside the `device` option parenthesis,
+  /// like X and Y for star(X,Y)
+  std::size_t deviceDim[2];
+
+  enum DeviceTopologyEnum { Unknown, Path, Ring, Star, Grid, File };
+  DeviceTopologyEnum deviceTopoType;
+
+  /// If the deviceTopoType is File, this is the path to the file.
+  StringRef deviceFilename;
+
+  virtual LogicalResult initialize(MLIRContext *context) override {
+    // Initialize prior to parsing
+    deviceDim[0] = deviceDim[1] = 0;
+
+    // Get device
+    StringRef deviceDef = device;
+    StringRef deviceTopoStr =
+        deviceDef.take_front(deviceDef.find_first_of('('));
+
+    // Trim the dimensions off of `deviceDef` if dimensions were provided in the
+    // string
+    if (deviceTopoStr.size() < deviceDef.size())
+      deviceDef = deviceDef.drop_front(deviceTopoStr.size());
+
+    if (deviceTopoStr.equals_insensitive("file")) {
+      if (deviceDef.consume_front("(")) {
+        deviceDef = deviceDef.ltrim();
+        if (deviceDef.consume_back(")")) {
+          deviceFilename = deviceDef;
+          // Make sure the file exists before continuing
+          if (!llvm::sys::fs::exists(deviceFilename)) {
+            llvm::errs() << "Path " << deviceFilename << " does not exist\n";
+            return failure();
+          }
+        } else {
+          llvm::errs() << "Missing closing ')' in device option\n";
+          return failure();
+        }
+      } else {
+        llvm::errs() << "Filename must be provided in device option like "
+                        "file(/full/path/to/device_file.txt): "
+                     << device.getValue() << '\n';
+        return failure();
+      }
+    } else {
+      if (deviceDef.consume_front("(")) {
+        deviceDef = deviceDef.ltrim();
+        deviceDef.consumeInteger(/*Radix=*/10, deviceDim[0]);
+        deviceDef = deviceDef.ltrim();
+        if (deviceDef.consume_front(","))
+          deviceDef.consumeInteger(/*Radix=*/10, deviceDim[1]);
+        deviceDef = deviceDef.ltrim();
+        if (!deviceDef.consume_front(")")) {
+          llvm::errs() << "Missing closing ')' in device option\n";
+          return failure();
+        }
+      }
+    }
+
+    deviceTopoType = llvm::StringSwitch<DeviceTopologyEnum>(deviceTopoStr)
+                         .Case("path", Path)
+                         .Case("ring", Ring)
+                         .Case("star", Star)
+                         .Case("grid", Grid)
+                         .Case("file", File)
+                         .Default(Unknown);
+    if (deviceTopoType == Unknown) {
+      llvm::errs() << "Unknown device option: " << deviceTopoStr << '\n';
+      return failure();
+    }
+
+    return success();
+  }
+
   void runOnOperation() override {
 
-    // Allow debug for this pass to be enabled via environment variable
-    auto debugMappingStr = StringRef(getenv("DEBUG_MAPPING"));
-    if (debugMappingStr.equals_insensitive("1") ||
-        debugMappingStr.starts_with_insensitive("y")) {
-      const char *debugTypes[] = {DEBUG_TYPE, nullptr};
+    // Allow enabling debug via pass option `debug`
+#ifndef NDEBUG
+    if (debug) {
       llvm::DebugFlag = true;
-      llvm::setCurrentDebugTypes(debugTypes, 1);
+      llvm::setCurrentDebugType(DEBUG_TYPE);
     }
+#endif
 
     auto func = getOperation();
     auto &blocks = func.getBlocks();
@@ -417,52 +530,7 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     if (blocks.size() > 1) {
       func.emitError("The mapper cannot handle multiple blocks");
       signalPassFailure();
-    }
-
-    // Get device
-    StringRef deviceDef = device;
-    StringRef name = deviceDef.take_front(deviceDef.find_first_of('('));
-    std::size_t deviceDim[2] = {0, 0};
-
-    // Trim the dimensions off of `deviceDef` if dimensions were provided in the
-    // string
-    if (name.size() < deviceDef.size())
-      deviceDef = deviceDef.drop_front(name.size());
-
-    StringRef deviceFilename;
-    if (name.equals_insensitive("file")) {
-      if (deviceDef.consume_front("(")) {
-        deviceDef = deviceDef.ltrim();
-        if (deviceDef.consume_back(")")) {
-          deviceFilename = deviceDef;
-          // Make sure the file exists before continuing
-          if (!llvm::sys::fs::exists(deviceFilename)) {
-            func.emitError("Path " + deviceFilename + " does not exist");
-            signalPassFailure();
-          }
-        } else {
-          func.emitError("Missing closing ')' in device option");
-          signalPassFailure();
-        }
-      } else {
-        func.emitError("Filename must be provided in device option like "
-                       "file(/full/path/to/device_file.txt): " +
-                       device.getValue());
-        signalPassFailure();
-      }
-    } else {
-      if (deviceDef.consume_front("(")) {
-        deviceDef = deviceDef.ltrim();
-        deviceDef.consumeInteger(/*Radix=*/10, deviceDim[0]);
-        deviceDef = deviceDef.ltrim();
-        if (deviceDef.consume_front(","))
-          deviceDef.consumeInteger(/*Radix=*/10, deviceDim[1]);
-        deviceDef = deviceDef.ltrim();
-        if (!deviceDef.consume_front(")")) {
-          func.emitError("Missing closing ')' in device option");
-          signalPassFailure();
-        }
-      }
+      return;
     }
 
     // Sanity checks and create a wire to virtual qubit mapping.
@@ -525,8 +593,11 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
       }
     }
 
-    std::size_t deviceNumQubits =
-        name == "grid" ? deviceDim[0] * deviceDim[1] : deviceDim[0];
+    // Make a local copy of device dimensions since we may need to modify it.
+    // Otherwise multi-threaded operation may cause undefined behavior.
+    std::size_t x = deviceDim[0];
+    std::size_t y = deviceDim[1];
+    std::size_t deviceNumQubits = deviceTopoType == Grid ? x * y : x;
 
     if (deviceNumQubits && sources.size() > deviceNumQubits) {
       signalPassFailure();
@@ -534,25 +605,22 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     }
 
     if (!deviceNumQubits) {
-      deviceDim[0] =
-          name == "grid" ? std::sqrt(sources.size()) : sources.size();
-      deviceDim[1] = deviceDim[0];
+      x = deviceTopoType == Grid ? std::sqrt(sources.size()) : sources.size();
+      y = x;
     }
 
     // These are captured in the user help (device options in Passes.td), so if
     // you update this, be sure to update that as well.
     Device d;
-    if (name.equals("path"))
-      d = Device::path(deviceDim[0]);
-    else if (name.equals("ring"))
-      d = Device::ring(deviceDim[0]);
-    else if (name.equals("star"))
-      d = Device::star(/*numQubits=*/deviceDim[0],
-                       /*centerQubit=*/deviceDim[1]);
-    else if (name.equals("grid"))
-      d = Device::grid(/*width=*/deviceDim[0],
-                       /*height=*/deviceDim[1]);
-    else if (name.equals("file"))
+    if (deviceTopoType == Path)
+      d = Device::path(x);
+    else if (deviceTopoType == Ring)
+      d = Device::ring(x);
+    else if (deviceTopoType == Star)
+      d = Device::star(/*numQubits=*/x, /*centerQubit=*/y);
+    else if (deviceTopoType == Grid)
+      d = Device::grid(/*width=*/x, /*height=*/y);
+    else if (deviceTopoType == File)
       d = Device::file(deviceFilename);
 
     if (d.getNumQubits() == 0) {
@@ -590,7 +658,8 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     identityPlacement(placement);
 
     // Route
-    SabreRouter router(d, wireToVirtualQ, placement);
+    SabreRouter router(d, wireToVirtualQ, placement, extendedLayerSize,
+                       extendedLayerWeight, decayDelta, roundsDecayReset);
     router.route(*blocks.begin(), sources);
     sortTopologically(&block);
 
