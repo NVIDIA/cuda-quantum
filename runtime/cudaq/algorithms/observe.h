@@ -629,7 +629,8 @@ observe_n(std::size_t shots, QuantumKernel &&kernel, spin_op H,
 /// just fallback to the default error messages.
 #if defined(__clang__) && defined(CUDAQ_LIBRARY_MODE)
 template <typename T>
-concept IsObserveOptions = std::integral<std::decay_t<T>> ||
+concept IsObserveOptions =
+    std::integral<std::decay_t<T>> ||
     std::same_as<std::remove_cvref_t<std::remove_pointer_t<std::decay_t<T>>>,
                  observe_options>;
 template <typename QuantumKernel, typename... Args>

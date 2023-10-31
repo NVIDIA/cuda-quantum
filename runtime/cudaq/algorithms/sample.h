@@ -583,7 +583,8 @@ sample_n(std::size_t shots, QuantumKernel &&kernel,
 template <typename T>
 concept IsSampleOptions =
     std::integral<std::decay_t<T>> ||
-    std::same_as<std::remove_cvref_t<std::remove_pointer_t<std::decay_t<T>>>, sample_options>;
+    std::same_as<std::remove_cvref_t<std::remove_pointer_t<std::decay_t<T>>>,
+                 sample_options>;
 template <typename QuantumKernel, typename... Args>
   requires(!IsSampleOptions<QuantumKernel> &&
            !ValidArgumentsPassed<QuantumKernel, Args...>)

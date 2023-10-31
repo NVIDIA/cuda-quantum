@@ -58,12 +58,14 @@ int main() {
     kernel.x(q);
     // Passing a double while none required
     auto result = cudaq::observe(kernel, h, 1.234);
-    // CHECK NEXT: 'InvalidArgs<cudaq::Msg<{{[0-9]+}}>{"requires <>, got <double>"}>'
+    // CHECK NEXT: 'InvalidArgs<cudaq::Msg<{{[0-9]+}}>{"requires <>, got
+    // <double>"}>'
   }
   {
     cudaq::spin_op h = cudaq::spin::z(0) * cudaq::spin::z(1);
     // Calling sample but not passing along a concrete argument for `value`
     auto result = cudaq::observe(kernel_as_func, h);
-    // CHECK NEXT: 'InvalidArgs<cudaq::Msg<{{[0-9]+}}>{"requires <double>, got <>"}>'
+    // CHECK NEXT: 'InvalidArgs<cudaq::Msg<{{[0-9]+}}>{"requires <double>, got
+    // <>"}>'
   }
 }
