@@ -8,6 +8,7 @@
 
 // This code is from Issue 251.
 
+// clang-format off
 // RUN: nvq++ --enable-mlir -v %s --target quantinuum --emulate -o %t.x && %t.x | FileCheck %s
 // RUN: cudaq-quake %s | cudaq-opt --promote-qubit-allocation | FileCheck --check-prefixes=MLIR %s
 
