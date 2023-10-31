@@ -212,9 +212,9 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
     }
   }
 
-  targets.emplace("default",
-                  RuntimeTarget{"default", "qpp", "default",
-                                "Default OpenMP CPU-only simulated QPU."});
+  targets.emplace("qpp-cpu",
+                  RuntimeTarget{"qpp-cpu", "qpp", "default",
+                                "QPP-based CPU-only simulated QPU."});
 
   if (disallowTargetModification)
     return;
@@ -253,15 +253,7 @@ LinkedLibraryHolder::getPlatform(const std::string &platformName) {
       std::string("getQuantumPlatform_") + platformName);
 }
 
-void LinkedLibraryHolder::resetTarget() {
-  // TODO: create config for default target and use setTarget("qpp") here,
-  // instead of having this be a code duplication of the logic below.
-  __nvqir__setCircuitSimulator(getSimulator("qpp"));
-  auto *platform = getPlatform("default");
-  platform->setTargetBackend("qpp");
-  setQuantumPlatformInternal(platform);
-  currentTarget = "default";
-}
+void LinkedLibraryHolder::resetTarget() { setTarget("qpp-cpu"); }
 
 RuntimeTarget LinkedLibraryHolder::getTarget(const std::string &name) const {
   auto iter = targets.find(name);
