@@ -74,6 +74,7 @@ public:
       return;
     }
 
+    os << "Number of nodes: " << getNumNodes() << '\n';
     os << "Number of edges: " << getNumEdges() << '\n';
     std::size_t lastID = getNumNodes() - 1;
     for (std::size_t id = 0; id < lastID; ++id) {

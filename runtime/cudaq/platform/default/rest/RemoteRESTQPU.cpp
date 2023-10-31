@@ -373,6 +373,10 @@ public:
         throw std::runtime_error(
             "Remote rest platform failed to add passes to pipeline (" + errMsg +
             ").");
+      if (disableMLIRthreading || enablePrintMLIREachPass)
+        moduleOpIn.getContext()->disableMultithreading();
+      if (enablePrintMLIREachPass)
+        pm.enableIRPrinting();
       if (failed(pm.run(moduleOpIn)))
         throw std::runtime_error("Remote rest platform Quake lowering failed.");
     };
@@ -381,6 +385,10 @@ public:
       cudaq::info("Run Quake Synth.\n");
       PassManager pm(&context);
       pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, kernelArgs));
+      if (disableMLIRthreading || enablePrintMLIREachPass)
+        moduleOp.getContext()->disableMultithreading();
+      if (enablePrintMLIREachPass)
+        pm.enableIRPrinting();
       if (failed(pm.run(moduleOp)))
         throw std::runtime_error("Could not successfully apply quake-synth.");
     }
