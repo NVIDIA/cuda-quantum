@@ -18,13 +18,19 @@ struct adonis_ghz {
 
   auto operator()() __qpu__ {
     cudaq::qreg q(5);
-    h(q[2]); // QB3
+    h(q[0]);
 
-    x<cudaq::ctrl>(q[2], q[0]);
-    x<cudaq::ctrl>(q[2], q[1]);
-    x<cudaq::ctrl>(q[2], q[3]);
-    x<cudaq::ctrl>(q[2], q[4]);
-
+    // Note that the CUDA Quantum compiler will automatically generate the
+    // necessary instructions to swap qubits to satisfy the required
+    // connectivity constraints for the Adonis QPU. In this program, that means
+    // that despite QB1 not being physically connected to QB2, the user can
+    // still perform joint operations q[0] and q[1] because the compiler will
+    // automatically (and transparently) inject the necessary swap instructions
+    // to execute the user's program without the user having to worry about the
+    // physical constraints.
+    for (int i = 0; i < 4; i++) {
+      x<cudaq::ctrl>(q[i], q[i + 1]);
+    }
     auto result = mz(q);
   }
 };
