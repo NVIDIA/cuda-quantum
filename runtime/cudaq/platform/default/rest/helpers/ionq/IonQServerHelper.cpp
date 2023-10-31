@@ -48,7 +48,7 @@ public:
   std::string constructGetJobPath(ServerMessage &postResponse) override;
 
   /// @brief Constructs the URL for retrieving a job based on a job ID.
-  std::string constructGetJobPath(const std::string &jobId);
+  std::string constructGetJobPath(const std::string &jobId) override;
 
   /// @brief Constructs the URL for retrieving the results of a job based on the
   /// server's response to a job submission.
@@ -81,9 +81,9 @@ private:
   std::string getEnvVar(const std::string &key) const;
 
   /// @brief Helper function to get value from config or return a default value.
-  template <typename T>
-  T getValueOrDefault(const BackendConfig &config, const std::string &key,
-                      const T &defaultValue) const;
+  std::string getValueOrDefault(const BackendConfig &config,
+                                const std::string &key,
+                                const std::string &defaultValue) const;
 
   /// @brief Helper method to check if a key exists in the configuration.
   bool keyExists(const std::string &key) const;
@@ -141,10 +141,10 @@ void IonQServerHelper::initialize(BackendConfig config) {
 }
 
 // Implementation of the getValueOrDefault function
-template <typename T>
-T IonQServerHelper::getValueOrDefault(const BackendConfig &config,
-                                      const std::string &key,
-                                      const T &defaultValue) const {
+std::string
+IonQServerHelper::getValueOrDefault(const BackendConfig &config,
+                                    const std::string &key,
+                                    const std::string &defaultValue) const {
   return config.find(key) != config.end() ? config.at(key) : defaultValue;
 }
 
