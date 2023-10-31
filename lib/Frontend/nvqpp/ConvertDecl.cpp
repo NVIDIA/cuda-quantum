@@ -218,6 +218,18 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       TODO_x(toLocation(x), x, mangler, "std::string type");
       return false;
     }
+    if (name.equals("pair")) {
+      if (allowUnknownRecordType)
+        return true;
+      TODO_x(toLocation(x), x, mangler, "std::pair type");
+      return false;
+    }
+    if (name.equals("tuple")) {
+      if (allowUnknownRecordType)
+        return true;
+      TODO_x(toLocation(x), x, mangler, "std::tuple type");
+      return false;
+    }
     if (ignoredClass(x))
       return true;
     LLVM_DEBUG(llvm::dbgs()
