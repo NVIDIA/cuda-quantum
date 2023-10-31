@@ -177,6 +177,7 @@ CUDAQ_TEST(OQCTester, checkObserveAsyncLoadFromFile) {
 }
 
 int main(int argc, char **argv) {
+  setenv("OQC_PASSWORD", password.c_str(), 0);
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

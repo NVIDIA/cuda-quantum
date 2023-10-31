@@ -182,6 +182,31 @@ def LoopNormalize : Pass<"cc-loop-normalize"> {
   ];
 }
 
+def LoopPeeling : Pass<"cc-loop-peeling"> {
+  let summary = "Peeling classical do-while loops.";
+  let description = [{
+    This loop peeling pass currently implements the transformation of a C++
+    do-while loop into a peeled body and while sequence.
+
+    ```c++
+    do {
+      body;
+    } while (condition);
+    ```
+    is transformed to
+    ```c++
+    body;
+    while (condition) {
+      body;
+    }
+    ```
+
+    Other cases of loop peeling may be implemented in the future.
+  }];
+
+  let dependentDialects = ["mlir::cf::ControlFlowDialect"];
+}
+
 def LoopUnroll : Pass<"cc-loop-unroll"> {
   let summary = "Unroll classical compute (C++) loops.";
   let description = [{
