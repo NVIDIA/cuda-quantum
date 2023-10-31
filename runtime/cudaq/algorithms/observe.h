@@ -617,4 +617,29 @@ observe_n(std::size_t shots, QuantumKernel &&kernel, spin_op H,
   return details::broadcastFunctionOverArguments<observe_result, Args...>(
       numQpus, platform, functor, params);
 }
+
+/// Catching invalid observe calls and generate a more user-friendly error
+/// message if possible.
+///
+/// When ValidArgumentsPassed is not satisfied, output the expected arguments
+/// via a static_assert error message.
+/// Since this is only a diagnostic helper, limiting the scope of it
+/// to the default nvq++ compilation workflow, clang compiler and library mode,
+/// where we have test coverage. Other cases, e.g., different host compilers,
+/// just fallback to the default error messages.
+#if defined(__clang__) && defined(CUDAQ_LIBRARY_MODE)
+template <typename T>
+concept IsObserveOptions = std::integral<std::decay_t<T>> ||
+    std::same_as<std::remove_cvref_t<std::remove_pointer_t<std::decay_t<T>>>,
+                 observe_options>;
+template <typename QuantumKernel, typename... Args>
+  requires(!IsSampleOptions<QuantumKernel> &&
+           !ValidArgumentsPassed<QuantumKernel, Args...>)
+observe_result observe(QuantumKernel &&kernel, spin_op H, Args &&...args) {
+  cudaq::generateInvalidKernelInvocationCompilerError<QuantumKernel, Args...>();
+  __builtin_unreachable();
+  return observe_result();
+}
+#endif
+
 } // namespace cudaq

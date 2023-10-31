@@ -580,13 +580,10 @@ sample_n(std::size_t shots, QuantumKernel &&kernel,
 /// where we have test coverage. Other cases, e.g., different host compilers,
 /// just fallback to the default error messages.
 #if defined(__clang__) && defined(CUDAQ_LIBRARY_MODE)
-template <typename T, typename... U>
-concept IsAnyOf = (std::same_as<T, U> || ...);
 template <typename T>
 concept IsSampleOptions =
     std::integral<std::decay_t<T>> ||
-    IsAnyOf<std::remove_cvref_t<std::remove_pointer_t<std::decay_t<T>>>,
-            sample_options>;
+    std::same_as<std::remove_cvref_t<std::remove_pointer_t<std::decay_t<T>>>, sample_options>;
 template <typename QuantumKernel, typename... Args>
   requires(!IsSampleOptions<QuantumKernel> &&
            !ValidArgumentsPassed<QuantumKernel, Args...>)
