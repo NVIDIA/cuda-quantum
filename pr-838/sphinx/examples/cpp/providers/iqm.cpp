@@ -16,7 +16,7 @@ struct adonis_ghz {
   //        |
   //       QB5
 
-  auto operator()() __qpu__ {
+  void operator()() __qpu__ {
     cudaq::qreg q(5);
     h(q[0]);
 
