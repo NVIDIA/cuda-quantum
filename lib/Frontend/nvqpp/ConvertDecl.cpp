@@ -208,6 +208,28 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
         return pushType(refTy);
       return pushType(cc::PointerType::get(ctx, refTy));
     }
+    if (name.equals("basic_string")) {
+      if (allowUnknownRecordType) {
+        // Kernel argument list contains a `std::string` type. Intercept it and
+        // generate a clang diagnostic when returning out of determining the
+        // kernel's type signature.
+        return true;
+      }
+      TODO_x(toLocation(x), x, mangler, "std::string type");
+      return false;
+    }
+    if (name.equals("pair")) {
+      if (allowUnknownRecordType)
+        return true;
+      TODO_x(toLocation(x), x, mangler, "std::pair type");
+      return false;
+    }
+    if (name.equals("tuple")) {
+      if (allowUnknownRecordType)
+        return true;
+      TODO_x(toLocation(x), x, mangler, "std::tuple type");
+      return false;
+    }
     if (ignoredClass(x))
       return true;
     LLVM_DEBUG(llvm::dbgs()
