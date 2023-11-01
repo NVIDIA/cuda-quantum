@@ -554,7 +554,7 @@ def test_cswap_gate():
 
 
 def test_crx_control_list():
-    kernel, val = cudaq.make_kernel(float)
+    kernel, value = cudaq.make_kernel(float)
     target = kernel.qalloc()
     q1 = kernel.qalloc()
     q2 = kernel.qalloc()
@@ -568,7 +568,7 @@ def test_crx_control_list():
     # to make kernel less trivial.
     # Overload 1: `QuakeValue` parameter. All controls are in |1>,
     # so this should rotate our `target`.
-    kernel.crx(val, [q1, q2], target)
+    kernel.crx(value, [q1, q2], target)
     # Overload 2: `float` parameter. `q3` is still in |0>, so this
     # should not rotate our `target`.
     kernel.crx(np.pi, [q3, q2, q1], target)
@@ -581,7 +581,7 @@ def test_crx_control_list():
 
 
 def test_cry_control_list():
-    kernel, val = cudaq.make_kernel(float)
+    kernel, value = cudaq.make_kernel(float)
     target = kernel.qalloc()
     q1 = kernel.qalloc()
     q2 = kernel.qalloc()
@@ -595,7 +595,7 @@ def test_cry_control_list():
     # to make kernel less trivial.
     # Overload 1: `QuakeValue` parameter. All controls are in |1>,
     # so this should rotate our `target`.
-    kernel.cry(val, [q1, q2], target)
+    kernel.cry(value, [q1, q2], target)
     # Overload 2: `float` parameter. `q3` is still in |0>, so this
     # should not rotate our `target`.
     kernel.cry(np.pi, [q3, q2, q1], target)
@@ -608,7 +608,7 @@ def test_cry_control_list():
 
 
 def test_crz_control_list():
-    kernel, val = cudaq.make_kernel(float)
+    kernel, value = cudaq.make_kernel(float)
     target = kernel.qalloc()
     q1 = kernel.qalloc()
     q2 = kernel.qalloc()
@@ -623,7 +623,7 @@ def test_crz_control_list():
     kernel.h(target)
 
     # Overload 1: `QuakeValue` parameter.
-    kernel.crz(val, [q1, q2, q3], target)
+    kernel.crz(value, [q1, q2, q3], target)
     # Overload 2: `float` parameter.
     kernel.crz(-np.pi / 2, [q3, q2, q1], target)
 
@@ -639,7 +639,7 @@ def test_crz_control_list():
 
 
 def test_cr1_control_list():
-    kernel, val = cudaq.make_kernel(float)
+    kernel, value = cudaq.make_kernel(float)
     target = kernel.qalloc()
     q1 = kernel.qalloc()
     q2 = kernel.qalloc()
@@ -654,7 +654,7 @@ def test_cr1_control_list():
     kernel.h(target)
 
     # Overload 1: `QuakeValue` parameter.
-    kernel.cr1(val, [q1, q2, q3], target)
+    kernel.cr1(value, [q1, q2, q3], target)
     # Overload 2: `float` parameter.
     kernel.cr1(-np.pi / 2, [q3, q2, q1], target)
 
