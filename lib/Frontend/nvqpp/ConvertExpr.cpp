@@ -664,7 +664,7 @@ bool QuakeBridgeVisitor::VisitImplicitCastExpr(clang::ImplicitCastExpr *x) {
     Value zero = builder.create<arith::ConstantFloatOp>(
         loc, llvm::APFloat(0.0), cast<FloatType>(last.getType()));
     return pushValue(builder.create<arith::CmpFOp>(
-        loc, arith::CmpFPredicate::ONE, last, zero));
+        loc, arith::CmpFPredicate::UNE, last, zero));
   }
   case clang::CastKind::CK_UserDefinedConversion: {
     auto sub = popValue();
