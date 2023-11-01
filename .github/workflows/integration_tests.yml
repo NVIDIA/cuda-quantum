@@ -132,7 +132,7 @@ jobs:
                   echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
                   test_err_sum=$((test_err_sum+1))
                 fi
-	      ;;
+              ;;
             esac
           done
           set -e # Re-enable exit code error checking
@@ -190,7 +190,7 @@ jobs:
                   echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
                   test_err_sum=$((test_err_sum+1))
                 fi
-	      ;;
+              ;;
             esac
           done
           set -e # Re-enable exit code error checking
@@ -246,7 +246,7 @@ jobs:
                   echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
                   test_err_sum=$((test_err_sum+1))
                 fi
-	      ;;
+              ;;
             esac
           done
           set -e # Re-enable exit code error checking
@@ -269,11 +269,11 @@ jobs:
           fi
           for filename in ${{ steps.gettests.outputs.testlist }}; do
             [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
-	    case $filename in
-	      targettests/quantinuum/*)
+            case $filename in
+              targettests/quantinuum/*)
                 nvq++ -v $filename --target ${{ inputs.target }} --${{ inputs.target }}-machine ${{ inputs.target_machine }}
                 CUDAQ_LOG_LEVEL=info ./a.out
-	      ;;
-	    esac
+              ;;
+            esac
           done
         shell: bash
