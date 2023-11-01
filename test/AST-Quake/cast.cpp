@@ -32,7 +32,7 @@ struct testCast {
 // CHECK:           %[[VAL_5:.*]] = cc.alloca f64
 // CHECK:           cc.store %[[VAL_4]], %[[VAL_5]] : !cc.ptr<f64>
 // CHECK:           %[[VAL_6:.*]] = cc.load %[[VAL_5]] : !cc.ptr<f64>
-// CHECK:           %[[VAL_7:.*]] = arith.cmpf one, %[[VAL_6]], %[[VAL_0]] : f64
+// CHECK:           %[[VAL_7:.*]] = arith.cmpf une, %[[VAL_6]], %[[VAL_0]] : f64
 // CHECK:           cc.if(%[[VAL_7]]) {
 // CHECK:             quake.x %[[VAL_2]] : (!quake.ref) -> ()
 // CHECK:           }
