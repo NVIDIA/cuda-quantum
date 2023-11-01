@@ -80,17 +80,26 @@ private:
     AnsatzMetadata data;
 
     // walk and find all quantum allocations
-    funcOp->walk([&](quake::AllocaOp op) {
+    auto walkResult = funcOp->walk([&](quake::AllocaOp op) {
       if (auto veq = dyn_cast<quake::VeqType>(op.getResult().getType())) {
         // Only update data.nQubits here. data.qubitValues will be updated for
         // the corresponding ExtractRefOP's in the `walk` below.
-        data.nQubits += veq.getSize();
+        if (veq.hasSpecifiedSize())
+          data.nQubits += veq.getSize();
+        else
+          return WalkResult::interrupt(); // this is an error condition
       } else {
         // single alloc is for a single qubit. Update data.qubitValues here
         // because ExtractRefOp `walk` won't find any ExtractRefOp for this.
         data.qubitValues.insert({data.nQubits++, op.getResult()});
       }
+      return WalkResult::advance();
     });
+
+    if (walkResult.wasInterrupted()) {
+      emitError(funcOp.getLoc(), "VeqType with unspecified size found");
+      return; // no cleanup necessary because infoMap is unmodified
+    }
 
     // NOTE: assumes canonicalization and cse have run.
     funcOp->walk([&](quake::ExtractRefOp op) {
@@ -103,12 +112,14 @@ private:
     if (auto mappingAttr =
             dyn_cast_if_present<ArrayAttr>(funcOp->getAttr("mapping_v2p"))) {
       // First populate mapping_v2p[].
-      SmallVector<int64_t> mapping_v2p(mappingAttr.size());
+      SmallVector<std::size_t> mapping_v2p(mappingAttr.size());
       for (auto [origIx, mappedIx] : llvm::enumerate(mappingAttr)) {
         if (auto val = dyn_cast<IntegerAttr>(mappedIx))
           mapping_v2p[origIx] = val.getInt();
-        else
+        else {
           emitError(funcOp.getLoc(), "invalid mapping_v2p found in function");
+          return; // no cleanup necessary because infoMap is unmodified
+        }
       }
 
       // Next create newQubitValues[]
@@ -160,7 +171,11 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
 
     // Use an Analysis to count the number of qubits.
     auto iter = infoMap.find(funcOp);
-    assert(iter != infoMap.end());
+    if (iter == infoMap.end()) {
+      std::string msg = "Errors encountered in pass analysis\n";
+      funcOp.emitError(msg);
+      return failure();
+    }
     auto nQubits = iter->second.nQubits;
     auto nMeasures = iter->second.nMeasures;
 
