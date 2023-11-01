@@ -93,7 +93,7 @@ ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:$CUDA_QUANTUM_PATH/include"
 # Better alternative to setting the PYTHONPATH, since the PYTHONPATH is generally not preserved when running as sudo.
 RUN echo "$CUDA_QUANTUM_PATH" > /usr/local/lib/python$(python --version | egrep -o "([0-9]{1,}\.)+[0-9]{1,}" | cut -d '.' -f -2)/dist-packages/cudaq.pth
 
-# Include additional readmes and samples that are distributed with the image.
+# Some tools related to shell handling.
 
 ARG COPYRIGHT_NOTICE="=========================\n\
    NVIDIA CUDA Quantum   \n\
@@ -105,12 +105,18 @@ To run a command as administrator (user `root`), use `sudo <command>`.\n"
 RUN echo -e "$COPYRIGHT_NOTICE" > "$CUDA_QUANTUM_PATH/Copyright.txt"
 RUN echo 'cat "$CUDA_QUANTUM_PATH/Copyright.txt"' > /etc/profile.d/welcome.sh
 
+# See also https://github.com/microsoft/vscode-remote-release/issues/4781
+RUN sed -i -E "s/#?\s*UsePAM\s+.+/UsePAM yes/g" /etc/ssh/sshd_config && \
+    env | egrep -v "^(HOME=|USER=|MAIL=|LC_ALL=|LS_COLORS=|LANG=|HOSTNAME=|PWD=|TERM=|SHLVL=|LANGUAGE=|_=)" \
+        >> /etc/environment
+
 # Create cudaq user
 
 # Create new user `cudaq` with admin rights, and disable password and gecos, 
 # see also https://askubuntu.com/a/1195288/635348.
 RUN adduser --disabled-password --gecos '' cudaq && adduser cudaq sudo \
-    && echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+    && echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers \
+    && mkdir -p /home/cudaq/.ssh && mkdir -p /var/run/sshd
 
 ADD ./docs/sphinx/examples/ /home/cudaq/examples/
 ADD ./docker/release/README.md /home/cudaq/README.md
