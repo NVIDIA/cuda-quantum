@@ -13,8 +13,6 @@
 #include <cudaq/optimizers.h>
 #include <regex>
 
-#include <iostream>
-
 CUDAQ_TEST(BuilderTester, checkSimple) {
   {
     using namespace cudaq::spin;
