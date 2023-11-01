@@ -78,10 +78,24 @@ the container, for example:
 .. _NVIDIA container toolkit: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html
 
 You can stop and exit the container by typing the command :code:`exit`. If you did not specify
-:code:`--rm` flag when launching the container, the container still exists after existing, as well as any 
+:code:`--rm` flag when launching the container, the container still exists after exiting, as well as any 
 changes you made in it. You can get back to it using
 the command :code:`docker start -i cuda-quantum`. 
 You can delete an existing container and any changes you made using :code:`docker rm -v cuda-quantum`.
+
+When working with Docker images, the files inside the container are not visible outside the container environment. We recommend connecting VS Code to the running container to facilitate development.
+
+Alternatively, it is possible, but not recommended, to launch an SSH server inside the container environment and connect to the container using SSH. To do so, make sure you have generated a suitable RSA key pair; if your `~/.ssh/` folder does not already contain the files `id_rsa.pub` and `id.rsa`,
+follow the instructions for generating a new SSH key on `this page <https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent>`__.
+You can then launch the container and connect to it via SSH by executing the following commands:
+
+.. code-block:: console
+
+  docker run -itd --name cuda-quantum -p 2222:22 ghcr.io/nvidia/cuda-quantum:preview
+  docker exec cuda-quantum bash -c "sudo apt-get install -y --no-install-recommends openssh-server"
+  docker cp ~/.ssh/id_rsa.pub cuda-quantum:/home/cudaq/.ssh/authorized_keys
+  docker exec -d cuda-quantum bash -c "sudo -E /usr/sbin/sshd -D"
+  ssh cudaq@localhost -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null
 
 
 Singularity
@@ -178,23 +192,8 @@ For more information about building the entire C++ and Python API from source, w
 
 .. _connect_to_remote:
 
-
 Connecting to a Remote Host
 ------------------------------------
-
-ssh-keygen -t rsa
-docker run -itd --name cuda-quantum-ssh -p 2222:22 ghcr.io/nvidia/cuda-quantum:preview
-# docker exec cuda-quantum-ssh bash -c "mkdir -p /home/cudaq/.ssh && sudo mkdir -p /var/run/sshd"
-docker exec cuda-quantum-ssh bash -c "sudo apt install -y --no-install-recommends openssh-server"
-docker cp ~/.ssh/id_rsa.pub cuda-quantum-ssh:/home/cudaq/.ssh/authorized_keys
-docker exec -d cuda-quantum-ssh bash -c "sudo -E /usr/sbin/sshd -D"
-ssh cudaq@localhost -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null
-
-select "localhost" in the drop down
-
-docker inspect -f "{{ .NetworkSettings.IPAddress }}" cuda-quantum-ssh
-
-docker run ghcr.io/nvidia/cuda-quantum:preview -c "code tunnel"
 
 VS Code using SSH
 ++++++++++++++++++++++++++++++++++++
@@ -204,7 +203,9 @@ and use a local installation of `VS Code <https://code.visualstudio.com/>`_ for 
 
 .. note:: 
 
-  If you can launch a CUDA Quantum container on the remote host, we recommend to follow the instructions for connecting
+  For the best user experience, we recommend to launch a CUDA Quantum container on the remote host, 
+  and then connect `VS Code using tunnels`_, rather than connecting VS Code directly via SSH.
+  If that is not possible, this section describes a good alternative using SSH.
 
 To do so, make sure you have `Remote - SSH <https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh>`__ extension installed.
 Open the Command Pallette with `Ctrl+Shift+P`, select "Remote-SSH: Add new
@@ -218,6 +219,27 @@ Command Pallette to open the desired folder. Our GitHub repository contains
 a folder with VS Code configurations including a list of recommended extensions for
 working with CUDA Quantum; you can copy `these configurations <https://github.com/NVIDIA/cuda-quantum/tree/main/docker/release/config/.vscode>`__ into the a folder named `.vscode` in your workspace to use them.
 
+... connect to a running docker container on the remote host
+
+... launch a singularity container on the remote host
+
+Add to settings.json:
+
+    "remote.SSH.enableRemoteCommand": true,
+    "remote.SSH.useLocalServer": true,
+    // needed only due to https://github.com/microsoft/vscode-remote-release/issues/6086
+    "remote.SSH.remoteServerListenOnSocket": false,
+    "remote.SSH.connectTimeout": 120,
+
+Add to .ssh/config:
+
+  Host cuda-quantum-sif~*
+    RemoteCommand /home/bheim/.local/singularity/bin/singularity shell /home/bheim/cuda-quantum.sif
+    RequestTTY yes
+
+  Host 127.0.0.1 cuda-quantum-sif~127.0.0.1
+    HostName 127.0.0.1
+    User bheim
 
 VS Code using tunnels
 ++++++++++++++++++++++++++++++++++++
