@@ -336,7 +336,7 @@ public:
     // inferring a type.
     return TraverseType(t->desugar());
   }
-  bool TraverseNestedNameSpecifier(clang::NestedNameSpecifier *s) {
+  bool TraverseNestedNameSpecifier(clang::NestedNameSpecifier *) {
     return true;
   }
   bool TraverseDecltypeType(clang::DecltypeType *t) {
