@@ -8,6 +8,7 @@
 #include "common/Logger.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
+#include "cudaq/Support/Version.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <bitset>
 #include <fstream>
@@ -22,7 +23,6 @@ namespace cudaq {
 class IonQServerHelper : public ServerHelper {
   static constexpr const char *DEFAULT_URL = "https://api.ionq.co";
   static constexpr const char *DEFAULT_VERSION = "v0.3";
-  static constexpr const char *DEFAULT_USER_AGENT = "cudaq/0.4.1";
 
 public:
   /// @brief Returns the name of the server helper.
@@ -99,7 +99,7 @@ void IonQServerHelper::initialize(BackendConfig config) {
   // Set the necessary configuration variables for the IonQ API
   backendConfig["url"] = getValueOrDefault(config, "url", DEFAULT_URL);
   backendConfig["version"] = DEFAULT_VERSION;
-  backendConfig["user_agent"] = DEFAULT_USER_AGENT;
+  backendConfig["user_agent"] = "cudaq/" + std::string(cudaq::getVersion());
   backendConfig["target"] = getValueOrDefault(config, "qpu", "simulator");
   backendConfig["qubits"] = setQubits(backendConfig["target"]);
   // Retrieve the noise model setting (if provided)
