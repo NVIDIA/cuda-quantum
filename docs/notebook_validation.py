@@ -1,3 +1,11 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
 import sys
 import re
 import glob
@@ -9,8 +17,10 @@ def available():
     available_backends = sys.stdin.readlines()
 
     if available_backends:
-        available_backends = [available_backend.strip()
-                              for available_backend in available_backends]
+        available_backends = [
+            available_backend.strip()
+            for available_backend in available_backends
+        ]
         return available_backends
 
 
@@ -29,8 +39,8 @@ def validate(notebook_filename):
 
 
 def execute(notebook_filename, run_path='.'):
-    notebook_filename_out = notebook_filename.replace(
-        '.ipynb', '.nbconvert.ipynb')
+    notebook_filename_out = notebook_filename.replace('.ipynb',
+                                                      '.nbconvert.ipynb')
 
     with open(notebook_filename) as f:
         nb = nbformat.read(f, as_version=4)
@@ -58,7 +68,8 @@ if __name__ == "__main__":
     notebook_filenames = glob.glob(
         f"docs/sphinx/examples/python/tutorials/*.ipynb")
     notebook_filenames = [
-        fn for fn in notebook_filenames if not fn.endswith('.nbconvert.ipynb')]
+        fn for fn in notebook_filenames if not fn.endswith('.nbconvert.ipynb')
+    ]
 
     if notebook_filenames:
         notebooks_failed = []
