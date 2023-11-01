@@ -48,7 +48,7 @@ public:
   std::string constructGetJobPath(ServerMessage &postResponse) override;
 
   /// @brief Constructs the URL for retrieving a job based on a job ID.
-  std::string constructGetJobPath(const std::string &jobId) override;
+  std::string constructGetJobPath(std::string &jobId) override;
 
   /// @brief Constructs the URL for retrieving the results of a job based on the
   /// server's response to a job submission.
@@ -256,7 +256,7 @@ std::string IonQServerHelper::constructGetJobPath(ServerMessage &postResponse) {
 }
 
 // Overloaded version of constructGetJobPath for jobId input
-std::string IonQServerHelper::constructGetJobPath(const std::string &jobId) {
+std::string IonQServerHelper::constructGetJobPath(std::string &jobId) {
   if (!keyExists("job_path"))
     throw std::runtime_error("Key 'job_path' doesn't exist in backendConfig.");
 
