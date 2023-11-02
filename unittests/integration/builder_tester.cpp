@@ -521,10 +521,14 @@ CUDAQ_TEST(BuilderTester, checkTemporary) {
     auto control3 = kernel.qalloc();
     auto target = kernel.qalloc();
 
-    // Dim mismatch error on simulator:
-    kernel.x<cudaq::ctrl>(controls1, controls2, control3, target);
-    // No error but incorrect output
+    // Dim mismatch error on simulator (library mode):
+    // Works with `--target quantinuum --emulate`
+    // kernel.x<cudaq::ctrl>(controls1, controls2, control3, target);
+    // No error but incorrect output (library mode):
+    // Error with `--target quantinuum --emulate`
     kernel.rx<cudaq::ctrl>(M_PI, controls1, controls2, control3, target);
+
+    std::cout << kernel.to_quake() << '\n';
 
     auto counts = cudaq::sample(kernel);
     counts.dump();

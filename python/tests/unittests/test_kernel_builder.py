@@ -836,3 +836,62 @@ def test_fermionic_swap_op():
                       1e-3)
     assert np.isclose(np.abs(ss_10[2] - (-1j * np.exp(1j * angle / 2.0) * s)),
                       0.0, 1e-3)
+
+
+def test_scrap():
+    kernel = cudaq.make_kernel()
+    ctrl = kernel.qalloc()
+    target = kernel.qalloc()
+
+    # standard gates
+    kernel.x(ctrl)
+    # kernel.cx(ctrl, target)
+
+    # # regular rotations, single target
+    # kernel.rx(3.14, target)
+    # kernel.ry(3.14, target)
+    # kernel.rz(3.14, target)
+    # kernel.r1(3.14, target)
+
+    # # regular rotations, multi-target
+    # targets = kernel.qalloc(3)
+    # kernel.rx(3.14, targets)
+    # kernel.ry(3.14, targets)
+    # kernel.rz(3.14, targets)
+    # kernel.r1(3.14, targets)
+
+    # # controlled-rotations
+    # kernel.crx(3.14, ctrl, target)
+    # kernel.cry(3.14, ctrl, target)
+    # kernel.crz(3.14, ctrl, target)
+    # kernel.cr1(3.14, ctrl, target)
+
+
+    # # multi-controlled with qreg
+    # ctrls = kernel.qalloc(4)
+    # kernel.x(ctrls)
+    # kernel.crx(3.14, ctrls, target)
+    # multi-controlled with list
+    ctrl1 = kernel.qalloc()
+    kernel.x(ctrl1)
+    kernel.crx(3.14, [ctrl, ctrl1], target)
+
+    print(kernel)
+
+    result = cudaq.sample(kernel)
+    print(result)
+
+
+    # Next-step: regular single qubit control gates working
+
+    # What still works:
+    # 1. existing rotation gates work for doubles/QuakeValues
+    # 2. existing rotation gates work on entire qregs
+    # 3. basic cr gates with 1 ctrl qubit
+    # 4. multi-control with qreg
+
+    # What doesn't work:
+    # 1. listed controlled rotations
+    # 2. Can we mix a list of veqs and refs as ctrl???
+    # 2. need to check
+
