@@ -1,0 +1,1 @@
+../../test/NVQPP/bug_qubit.cpp

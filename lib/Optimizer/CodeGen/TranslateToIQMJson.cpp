@@ -145,10 +145,15 @@ static LogicalResult emitOperation(nlohmann::json &json,
   auto join_lambda = [](std::string a, std::string b) {
     return a + std::string("_") + b;
   };
-  json["args"]["key"] =
-      "m_" + (qubits.empty() ? ""
-                             : std::accumulate(++qubits.begin(), qubits.end(),
-                                               *qubits.begin(), join_lambda));
+
+  auto regName = op.getRegisterName();
+  if (regName)
+    json["args"]["key"] = *regName;
+  else
+    json["args"]["key"] =
+        "m_" + (qubits.empty() ? ""
+                               : std::accumulate(++qubits.begin(), qubits.end(),
+                                                 *qubits.begin(), join_lambda));
   return success();
 }
 

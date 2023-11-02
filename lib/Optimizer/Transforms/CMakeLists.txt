@@ -26,9 +26,11 @@ add_cudaq_library(OptTransforms
   LambdaLifting.cpp
   LoopAnalysis.cpp
   LoopNormalize.cpp
+  LoopPeeling.cpp
   LoopUnroll.cpp
   LowerToCFG.cpp
   LowerUnwind.cpp
+  Mapping.cpp
   MemToReg.cpp
   MultiControlDecomposition.cpp
   ObserveAnsatz.cpp

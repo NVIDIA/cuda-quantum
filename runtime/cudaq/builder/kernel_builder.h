@@ -16,6 +16,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <variant>
@@ -696,7 +697,14 @@ public:
   /// @brief Invoke JIT compilation and extract a function pointer and execute.
   void jitAndInvoke(void **argsArray,
                     std::vector<std::string> extraLibPaths = {}) {
-    jitCode(extraLibPaths);
+    static std::mutex jitMutex;
+    {
+      std::scoped_lock<std::mutex> lock(jitMutex);
+      // Scoped locking since jitCode is not thread-safe while this jitAndInvoke
+      // can be invoked by kernel_builder::operator()(Args... args) in a
+      // multi-threaded context.
+      jitCode(extraLibPaths);
+    }
     details::invokeCode(*opBuilder, jitEngine.get(), kernelName, argsArray,
                         extraLibPaths);
   }

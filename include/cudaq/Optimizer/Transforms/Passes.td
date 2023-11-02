@@ -182,6 +182,31 @@ def LoopNormalize : Pass<"cc-loop-normalize"> {
   ];
 }
 
+def LoopPeeling : Pass<"cc-loop-peeling"> {
+  let summary = "Peeling classical do-while loops.";
+  let description = [{
+    This loop peeling pass currently implements the transformation of a C++
+    do-while loop into a peeled body and while sequence.
+
+    ```c++
+    do {
+      body;
+    } while (condition);
+    ```
+    is transformed to
+    ```c++
+    body;
+    while (condition) {
+      body;
+    }
+    ```
+
+    Other cases of loop peeling may be implemented in the future.
+  }];
+
+  let dependentDialects = ["mlir::cf::ControlFlowDialect"];
+}
+
 def LoopUnroll : Pass<"cc-loop-unroll"> {
   let summary = "Unroll classical compute (C++) loops.";
   let description = [{
@@ -469,6 +494,28 @@ def MultiControlDecompositionPass: Pass<"multicontrol-decomposition",
     to decompose. In such cases, all qubits will be extracted. If the size is
     unknown at compilation-time, the pass leaves the operation as-is.
   }];
+}
+
+def MappingPass: Pass<"qubit-mapping", "mlir::func::FuncOp"> {
+  let summary = "Perform qubit mapping to account for connectivity constraints";
+  let description = [{
+    Some backends cannot support any-to-any multi-qubit operations, so this pass
+    performs mapping of the qubits by inserting the necessary swap operations
+    into the Quake IR.
+
+    Note: this pass requires strictly value semantics for any quantum
+    operations. It will throw an error if any memory reference semantics are
+    present on quantum operations.
+  }];
+  let options = [
+    Option<"device", "device", "std::string", /*default=*/"\"-\"",
+      "Device topology: path(N), ring(N), star(N), star(N,c), grid(w,h), file(/path/to/file), bypass">,
+    Option<"debug", "debug", "bool", /*default=*/"false", "Enable debug for qubit-mapping pass algorithm">,
+    Option<"extendedLayerSize", "extendedLayerSize", "unsigned", /*default=*/"20", "Extended layer size">,
+    Option<"extendedLayerWeight", "extendedLayerWeight", "float", /*default=*/"0.5", "Extended layer weight">,
+    Option<"decayDelta", "decayDelta", "float", /*default=*/"0.5", "Decay delta">,
+    Option<"roundsDecayReset", "roundsDecayReset", "unsigned", /*default=*/"5", "Number of rounds before decay is reset">
+  ];
 }
 
 #endif // CUDAQ_OPT_OPTIMIZER_TRANSFORMS_PASSES

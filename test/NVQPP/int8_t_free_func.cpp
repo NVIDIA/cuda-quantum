@@ -6,29 +6,32 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// Note: change |& to 2>&1 if running in bash
-// RUN: nvq++ -v %s -o %basename_t.x --target oqc --emulate && ./%basename_t.x |& FileCheck %s
+// clang-format off
+// RUN: nvq++ --target quantinuum --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
 
 #include <cudaq.h>
 #include <iostream>
 
-__qpu__ void function_operation(cudaq::qubit &q) {
-  x(q);   // base profile does not allow operations after measurements
+__qpu__ void variable_qreg(std::uint8_t value) {
+  cudaq::qreg qubits(value);
+
+  mz(qubits);
 }
 
-__qpu__ void init_state() {
-  cudaq::qubit q;
-  x(q);
-  mz(q);
-  function_operation(q);   // base profile does not allow operations after measurements
-};
-
 int main() {
-  auto result = cudaq::sample(1000, init_state);
-  for (auto &&[bits, counts] : result) {
-    std::cout << bits << '\n';
+  for (auto i = 1; i < 5; ++i) {
+    auto result = cudaq::sample(1000, variable_qreg, i);
+
+#ifndef SYNTAX_CHECK
+    std::cout << result.most_probable() << '\n';
+    assert(std::string(i, '0') == result.most_probable());
+#endif
   }
+
   return 0;
 }
 
-// CHECK: reversible function __quantum__qis__x__body came after irreversible function
+// CHECK: 0
+// CHECK-NEXT: 00
+// CHECK-NEXT: 000
+// CHECK-NEXT: 0000
