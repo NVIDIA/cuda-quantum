@@ -83,7 +83,11 @@ changes you made in it. You can get back to it using
 the command :code:`docker start -i cuda-quantum`. 
 You can delete an existing container and any changes you made using :code:`docker rm -v cuda-quantum`.
 
-When working with Docker images, the files inside the container are not visible outside the container environment. We recommend connecting VS Code to the running container to facilitate development.
+When working with Docker images, the files inside the container are not visible outside the container environment. 
+We recommend connecting `VS Code <https://code.visualstudio.com/>`_ to the running container to facilitate development. 
+To do so, make sure you have `Dev Containers <https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers>`__ extension installed, open the Command Pallette with `Ctrl+Shift+P`, and select "Dev Containers: Attach to Running Container". 
+You should see and select the running `cuda-quantum` container in the list. 
+After the window reloaded, select "File: Open Folder" in the Command Pallette to open the `/home/cudaq/` folder.
 
 Alternatively, it is possible, but not recommended, to launch an SSH server inside the container environment and connect to the container using SSH. To do so, make sure you have generated a suitable RSA key pair; if your `~/.ssh/` folder does not already contain the files `id_rsa.pub` and `id.rsa`,
 follow the instructions for generating a new SSH key on `this page <https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent>`__.
@@ -91,11 +95,11 @@ You can then launch the container and connect to it via SSH by executing the fol
 
 .. code-block:: console
 
-  docker run -itd --name cuda-quantum -p 2222:22 ghcr.io/nvidia/cuda-quantum:preview
-  docker exec cuda-quantum bash -c "sudo apt-get install -y --no-install-recommends openssh-server"
-  docker cp ~/.ssh/id_rsa.pub cuda-quantum:/home/cudaq/.ssh/authorized_keys
-  docker exec -d cuda-quantum bash -c "sudo -E /usr/sbin/sshd -D"
-  ssh cudaq@localhost -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null
+    docker run -itd --gpus all --name cuda-quantum -p 2222:22 ghcr.io/nvidia/cuda-quantum:preview
+    docker exec cuda-quantum bash -c "sudo apt-get install -y --no-install-recommends openssh-server"
+    docker cp ~/.ssh/id_rsa.pub cuda-quantum:/home/cudaq/.ssh/authorized_keys
+    docker exec -d cuda-quantum bash -c "sudo -E /usr/sbin/sshd -D"
+    ssh cudaq@localhost -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null
 
 
 Singularity
@@ -124,7 +128,7 @@ Once you have singularity installed, create a file `cuda-quantum.def` with the f
 
     %runscript
         mount devpts /dev/pts -t devpts
-        cp -r /home/cudaq/*
+        cp -r /home/cudaq/* .
         bash
 
 You can then create a CUDA Quantum container by running the following commands:
@@ -165,6 +169,57 @@ You can exit the container environment by typing the command :code:`exit`.
 Any changes you made will still be visible after you exit the container, and you can re-enable the 
 container environment at any time using the `run` command above.
 
+To facilitate application development with, for example, debugging and IntelliSense support, 
+we recommend connecting `VS Code <https://code.visualstudio.com/>`_ to the running container.
+To do so, make sure you have `Remote - SSH <https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh>`__ extension installed, and have a suitable SSH key pair; if your `~/.ssh/` folder does not already contain the files `id_rsa.pub` and `id.rsa`,
+follow the instructions for generating a new SSH key on `this page <https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent>`__.
+
+To connect VS Code to a running CUDA Quantum container, 
+the most convenient setup is to install and run an SSH server 
+in the Singularity container. Open a terminal/shell in a separate window,
+and enter the following commands to create a suitable sandbox:
+
+.. code-block:: console
+
+    singularity build --sandbox cuda-quantum-sandbox cuda-quantum.sif
+    singularity exec --writable --fakeroot cuda-quantum-sandbox \
+      apt-get install -y --no-install-recommends openssh-server
+    cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+
+You can launch this sandbox by entering the commands
+
+.. code-block:: console
+
+    singularity run --writable --fakeroot --nv --network-args="portmap=22:2222/tcp" cuda-quantum-sandbox
+    /usr/sbin/sshd -D -p 2222 -E sshd_output.txt
+
+.. note::
+
+  Make sure to use a free port. You can check if the SSH server is ready and listening
+  by looking at the log in `sshd_output.txt`. If the port is already in use, you can 
+  replace the number `2222` by any free TCP port in the range `1025-65535` in all
+  commands.
+
+Entering `Ctrl+C` followed by `exit` will stop the running container. You can re-start
+it at any time by entering the two commands above. While the container is running,
+open the Command Pallette in VS Code with `Ctrl+Shift+P`, select "Remote-SSH: Add new
+SSH Host", and enter the following SSH command:
+
+.. code-block:: console
+
+    ssh root@localhost -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null
+
+.. note::
+
+  If you are working on Windows and are building and running the Singularity container in WSL,
+  make sure to copy the used SSH keys to the Windows partition, such that VS Code can connect with 
+  the expected key. Alternatively, add the used public key to the `/root/.ssh/authorized_keys` file in 
+  the Singularity container.
+
+You can then connect to the host by opening the Command Pallette, selecting
+"Remote SSH: Connect Current Window to Host", and choosing the newly created host.
+After the window reloaded, select "File: Open Folder" in the 
+Command Pallette to open the desired folder.
 
 .. _install-python-wheels:
 
@@ -188,6 +243,16 @@ To build the CUDA Quantum Python API from source using pip, run the following co
     pip install .
 
 For more information about building the entire C++ and Python API from source, we refer to the `CUDA Quantum GitHub repository`_.
+
+
+Set up Development Environment
+------------------------------------
+
+Launch Docker container in VS Code
+++++++++++++++++++++++++++++++++++++++++
+
+Launch Singularity container in VS Code
+++++++++++++++++++++++++++++++++++++++++
 
 
 .. _connect_to_remote:

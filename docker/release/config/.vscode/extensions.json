@@ -15,6 +15,8 @@
         "ms-vscode.cpptools-themes",
         "ms-vscode.remote-explorer",
         "ms-vscode.remote-server",
+        "ms-vscode-remote.remote-containers",
+        "ms-vscode-remote.remote-ssh",
         "qiu.llvm-ir-language-support",
         "vadimcn.vscode-lldb"
     ]
