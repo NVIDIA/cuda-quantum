@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: nvq++ %s -o %basename_t.x --target quantinuum --emulate && ./%basename_t.x | FileCheck %s
 // RUN: nvq++ %s -o %basename_t.x --target iqm --iqm-machine Adonis --emulate && ./%basename_t.x | FileCheck %s
 // RUN: nvq++ %s -o %basename_t.x --target iqm --iqm-machine Apollo --emulate && ./%basename_t.x | FileCheck %s
