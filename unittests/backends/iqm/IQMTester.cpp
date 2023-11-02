@@ -91,14 +91,11 @@ CUDAQ_TEST(IQMTester, executeLoopOverQubitsProgram) {
 
   kernel.for_loop(
       0, N - 1, [&](auto i) { kernel.x<cudaq::ctrl>(qubit[i], qubit[i + 1]); });
-  kernel.mz(qubit[0]);
 
-  // Connectivity constructed with the above loop does not match Apollo, so we
-  // do not expect to get any counts
-  EXPECT_THAT(
-      [&]() { auto counts = cudaq::sample(kernel); },
-      testing::ThrowsMessage<std::runtime_error>(testing::HasSubstr(
-          "Some circuits in the batch have gates between uncoupled qubits")));
+  kernel.mz(qubit[0]);
+  auto counts = cudaq::sample(kernel);
+
+  EXPECT_EQ(counts.size(), 2);
 }
 
 CUDAQ_TEST(IQMTester, executeMultipleMeasuredQubitsProgram) {

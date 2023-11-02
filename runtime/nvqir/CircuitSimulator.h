@@ -542,19 +542,29 @@ protected:
         std::vector<std::string> sortedRegNames =
             executionContext->result.register_names();
         std::sort(sortedRegNames.begin(), sortedRegNames.end());
-        for (size_t shot = 0; shot < executionContext->shots; shot++) {
-          std::string myResult;
-          for (auto regName : sortedRegNames) {
-            auto dataByShot = executionContext->result.sequential_data(regName);
-            if (shot < dataByShot.size())
-              myResult += dataByShot[shot];
-          }
-          globalResult.sequentialData.push_back(myResult);
-        }
+
+        // Populate sequential_data[] once so that we don't have to do it every
+        // shot. This is because calling result.sequential_data() is relatively
+        // slow if done inside a loop because it would constructs a copy of the
+        // data on every call.
+        std::vector<std::vector<std::string>> sequential_data;
+        sequential_data.reserve(sortedRegNames.size());
+        for (auto regName : sortedRegNames)
+          sequential_data.push_back(
+              executionContext->result.sequential_data(regName));
+
         // Count how often each occurrence happened (in the new sorted order)
         cudaq::CountsDictionary myGlobalCountDict;
-        for (size_t shot = 0; shot < executionContext->shots; shot++)
-          myGlobalCountDict[globalResult.sequentialData[shot]]++;
+        globalResult.sequentialData.reserve(executionContext->shots);
+        for (size_t shot = 0; shot < executionContext->shots; shot++) {
+          std::string myResult;
+          myResult.reserve(sortedRegNames.size());
+          for (auto &dataByShot : sequential_data)
+            if (shot < dataByShot.size())
+              myResult += dataByShot[shot];
+          globalResult.sequentialData.push_back(myResult);
+          myGlobalCountDict[myResult]++;
+        }
         for (auto &[bits, count] : myGlobalCountDict)
           globalResult.appendResult(bits, count);
 

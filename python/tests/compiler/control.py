@@ -348,7 +348,7 @@ def test_sample_control_qreg_args():
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_12:.*]]: index):
 # CHECK:             %[[VAL_13:.*]] = quake.extract_ref %[[VAL_5]][%[[VAL_12]]] : (!quake.veq<2>, index) -> !quake.ref
-# CHECK:             %[[VAL_14:.*]] = quake.mz %[[VAL_13]] : (!quake.ref) -> i1
+# CHECK:             %[[VAL_14:.*]] = quake.mz %[[VAL_13]] name "" : (!quake.ref) -> i1
 # CHECK:             %[[VAL_15:.*]] = arith.index_cast %[[VAL_12]] : index to i64
 # CHECK:             %[[VAL_16:.*]] = cc.compute_ptr %[[VAL_8]][%[[VAL_15]]] : (!cc.ptr<!cc.array<i1 x 2>>, i64) -> !cc.ptr<i1>
 # CHECK:             cc.store %[[VAL_14]], %[[VAL_16]] : !cc.ptr<i1>

@@ -18,7 +18,7 @@ struct simple_x {
   void operator()() __qpu__ {
     cudaq::qubit q;
     x(q);
-    mz(q);
+    auto result = mz(q);
   }
 };
 
