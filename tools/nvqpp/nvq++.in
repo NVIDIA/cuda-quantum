@@ -257,7 +257,7 @@ NVQIR_LIBS="-lnvqir -lnvqir-"
 NVQIR_SIMULATION_BACKEND="qpp"
 # Check availability of NVIDA GPU(s)
 gpu_found=$(query_gpu)
-if [ "$gpu_found" = true ] && [ -f "${install_dir}/lib/libnvqir-custatevec-fp32.so" ]; then
+if ${gpu_found} && [ -f "${install_dir}/lib/libnvqir-custatevec-fp32.so" ]; then
 	NVQIR_SIMULATION_BACKEND="custatevec-fp32"
 fi
 
