@@ -9,6 +9,9 @@
 // RUN: nvq++ -v %s -o %basename_t.x --target quantinuum --emulate && ./%basename_t.x | FileCheck %s
 // RUN: nvq++ -v %s -o %basename_t.x --target iqm --iqm-machine Adonis --emulate && ./%basename_t.x | FileCheck %s
 // RUN: nvq++ -v %s -o %basename_t.x --target oqc --emulate && ./%basename_t.x | FileCheck %s
+// Tests for --disable-qubit-mapping:
+// RUN: nvq++ -v %s -o %basename_t.x --target oqc --emulate --disable-qubit-mapping && CUDAQ_MLIR_PRINT_EACH_PASS=1 ./%basename_t.x |& FileCheck --check-prefix=DISABLE %s
+// RUN: nvq++ -v %s -o %basename_t.x --target iqm --iqm-machine Adonis --emulate --disable-qubit-mapping && CUDAQ_MLIR_PRINT_EACH_PASS=1 ./%basename_t.x |& FileCheck --check-prefix=DISABLE %s
 
 #include <cudaq.h>
 #include <iostream>
@@ -38,4 +41,9 @@ int main() {
   return 0;
 }
 
-//CHECK: 1110
+// CHECK: 1110
+
+// For this test, we should see the mapping pass run, but there should be no
+// mapping_v2p attribute applied anywhere thereafter.
+// DISABLE: IR Dump Before MappingPass
+// DISABLE-NOT: mapping_v2p
