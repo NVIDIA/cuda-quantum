@@ -1,6 +1,6 @@
 // Compile and run with:
 // ```
-// nvq++ bernstein_vazirani.cpp -o bv.x --target nvidia-mgpu 
+// nvq++ bernstein_vazirani.cpp -o bv.x --target nvidia-mgpu
 // mpirun -np 4 ./bv.x
 // ```
 
@@ -22,13 +22,12 @@ std::bitset<nrOfBits> random_bits() {
   std::bitset<nrOfBits> randomBits;
 
   std::default_random_engine generator;
-  std::uniform_real_distribution<float> distribution(0.0,1.0);
+  std::uniform_real_distribution<float> distribution(0.0, 1.0);
 
   float randNum;
-  for(size_t i = 0; i < nrOfBits; i++)
-  {
+  for (size_t i = 0; i < nrOfBits; i++) {
     randNum = distribution(generator);
-    if(randNum < 0.5) {
+    if (randNum < 0.5) {
       randNum = 0;
     } else {
       randNum = 1;
@@ -40,13 +39,13 @@ std::bitset<nrOfBits> random_bits() {
 
 template <int nrOfBits>
 struct oracle {
-  auto operator()(std::bitset<nrOfBits> bitvector, cudaq::qspan<> qs, cudaq::qubit& aux) __qpu__ {
+  auto operator()(std::bitset<nrOfBits> bitvector, cudaq::qspan<> qs, 
+                  cudaq::qubit& aux) __qpu__ {
 
-    for(size_t i = 0; i < nrOfBits; i++)
-    {
-      if(bitvector[i] & 1) {
+    for (size_t i = 0; i < nrOfBits; i++) {
+      if (bitvector[i] & 1) {
         x<cudaq::ctrl>(qs[nrOfBits - i - 1], aux);
-      } 
+      }
     }
   }
 };
@@ -68,7 +67,7 @@ struct bernstein_vazirani {
 };
 
 int main() {
-  // The number of qubits can be increased when targeting 
+  // The number of qubits can be increased when targeting
   // the `nvidia-mgpu` backend.
   const int nr_qubits = 32;
   auto bitvector = random_bits<nr_qubits>();
@@ -80,7 +79,8 @@ int main() {
     printf("Measured bitstring: %s\n\n", counts.most_probable().c_str());
 
     for (auto &[bits, count] : counts) {
-      printf("observed %s (probability %u%%)\n", bits.data(), 100 * (uint)((double)count/1000.));
+      printf("observed %s (probability %u%%)\n", bits.data(),
+             100 * (uint)((double)count/1000.));
     }
   }
 
