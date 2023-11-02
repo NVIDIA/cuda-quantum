@@ -19,7 +19,7 @@ __qpu__ void function_operation(cudaq::qubit &q) {
 __qpu__ void init_state() {
   cudaq::qubit q;
   x(q);
-  mz(q);
+  auto result = mz(q);
   function_operation(q);   // base profile does not allow operations after measurements
 };
 

@@ -8,6 +8,7 @@
 
 // clang-format off
 // RUN: nvq++ -v %s -o %basename_t.x --target quantinuum --emulate && ./%basename_t.x | FileCheck %s
+// RUN: nvq++ -v %s -o %basename_t.x --target oqc --emulate && ./%basename_t.x | FileCheck %s
 
 #include <cudaq.h>
 #include <algorithm>
@@ -42,7 +43,7 @@ __qpu__ void grover() {
     reflect_uniform(qubits);
   }
 
-  mz(qubits);
+  auto results = mz(qubits);
 };
 
 int main() {

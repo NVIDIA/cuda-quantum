@@ -22,6 +22,9 @@ private:
   /// @brief Check if a key exists in the configuration.
   bool keyExists(const std::string &key) const;
 
+  /// @brief Output names indexed by jobID/taskID
+  std::map<std::string, OutputNamesType> outputNames;
+
   /// @brief Create n requested tasks placeholders returning uuids for each
   std::vector<std::string> createNTasks(int n);
 
@@ -123,7 +126,25 @@ void OQCServerHelper::initialize(BackendConfig config) {
   config["password"] = make_env_functor("OQC_PASSWORD")();
   // Construct the API job path
   config["job_path"] = "/tasks"; // config["url"] + "/tasks";
-                                 //
+
+  // Parse the output_names.* (for each job) and place it in outputNames[]
+  for (auto &[key, val] : config) {
+    if (key.starts_with("output_names.")) {
+      // Parse `val` into jobOutputNames.
+      // Note: See `FunctionAnalysisData::resultQubitVals` of
+      // LowerToBaseProfileQIR.cpp for an example of how this was populated.
+      OutputNamesType jobOutputNames;
+      nlohmann::json outputNamesJSON = nlohmann::json::parse(val);
+      for (const auto &el : outputNamesJSON[0]) {
+        auto result = el[0].get<std::size_t>();
+        auto qubit = el[1][0].get<std::size_t>();
+        auto registerName = el[1][1].get<std::string>();
+        jobOutputNames[result] = {qubit, registerName};
+      }
+
+      this->outputNames[key] = jobOutputNames;
+    }
+  }
   // Move the passed config into the member variable backendConfig
   backendConfig = std::move(config);
 }
@@ -280,6 +301,15 @@ OQCServerHelper::processResults(ServerMessage &postJobResponse,
     }
   }
 
+  if (outputNames.find("output_names." + jobId) == outputNames.end())
+    throw std::runtime_error("Could not find output names for job " + jobId);
+
+  auto &output_names = outputNames["output_names." + jobId];
+  for (auto &[result, info] : output_names) {
+    cudaq::info("Qubit {} Result {} Name {}", info.qubitNum, result,
+                info.registerName);
+  }
+
   CountsDictionary countsDict;
   if (hasResultNames) {
     // The following code only supports 1 object in the returned results because
@@ -291,24 +321,57 @@ OQCServerHelper::processResults(ServerMessage &postJobResponse,
                   jsonResults.size());
 
     // Note: `name` contains a concatenated list of measurement names as
-    // specified in the sent QIR program, separated by underscores.  A
-    // potential future enhancement would be to make separate
-    // ExecutionResult's for each register.
+    // specified in the sent QIR program, separated by underscores. They are
+    // ordered by QIR result number.
     // Example jsonResults: {"r0_r1_r2_r3_r4":{"00000":1000,"11111":1000}}
     for (const auto &[name, counts] : jsonResults.items()) {
       for (auto &element : counts.items())
         countsDict[element.key()] = element.value();
-      cudaq::ExecutionResult executionResult{counts, cudaq::GlobalRegisterName};
+      ExecutionResult executionResult{counts, GlobalRegisterName};
       sampleResult.append(executionResult);
     }
   } else {
     // Example jsonResults: {"00":479,"11":521}
     for (auto &element : jsonResults.items())
       countsDict[element.key()] = element.value();
-    cudaq::ExecutionResult executionResult{countsDict,
-                                           cudaq::GlobalRegisterName};
+    ExecutionResult executionResult{countsDict, GlobalRegisterName};
     sampleResult.append(executionResult);
   }
+
+  // Note: the bitstring is sorted by the underlying QIR result number. The user
+  // doesn't know anything about QIR result numbers that the compiler generates,
+  // so we need to convert them into something the user can understand. We will
+  // make registers for each result using output_names.
+  for (auto &[result, info] : output_names) {
+    sample_result singleBitResult = sampleResult.get_marginal({result});
+    ExecutionResult executionResult{singleBitResult.to_map(),
+                                    info.registerName};
+    sampleResult.append(executionResult);
+  }
+
+  // It does no good to return the global register to the user in result order
+  // because the user doesn't know what result numbers the compiler ended up
+  // using. Re-order global register to make it alphabetical based on result
+  // name like our other emulation results.
+
+  // Get the indices `idx[]` such that newBitStrings(:) = oldBitStr(idx(:)),
+  // where newBitStrings will contain bitstrings that are alphabetically sorted
+  // based on the result names.
+  std::vector<std::size_t> idx(output_names.size());
+  std::iota(idx.begin(), idx.end(), 0);
+  std::vector<std::string> outputNames(output_names.size());
+  int i = 0;
+  for (auto &[result, info] : output_names)
+    outputNames[i++] = info.registerName;
+  // Sort idx by outputNames
+  std::sort(idx.begin(), idx.end(),
+            [&outputNames](std::size_t a, std::size_t b) {
+              return outputNames[a] < outputNames[b];
+            });
+
+  // Now reorder the bitstrings according to idx[]
+  sampleResult.reorder(idx, GlobalRegisterName);
+
   return sampleResult;
 }
 

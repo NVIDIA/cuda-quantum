@@ -289,6 +289,22 @@ public:
     passPipelineConfig = std::string("cc-loop-unroll{allow-early-exit=") +
                          allowEarlyExitSetting + "}," + passPipelineConfig;
 
+    auto disableQM = backendConfig.find("disable_qubit_mapping");
+    if (disableQM != backendConfig.end() && disableQM->second == "true") {
+      // Replace the qubit-mapping{device=<>} with
+      // qubit-mapping{device=bypass} to effectively disable the qubit-mapping
+      // pass. Use $1 - $4 to make sure any other pass options are left
+      // untouched.
+      std::regex qubitMapping(
+          "(.*)qubit-mapping\\{(.*)device=[^,\\}]+(.*)\\}(.*)");
+      std::string replacement("$1qubit-mapping{$2device=bypass$3}$4");
+      passPipelineConfig =
+          std::regex_replace(passPipelineConfig, qubitMapping, replacement);
+      cudaq::info("disable_qubit_mapping option found, so updated lowering "
+                  "pipeline to {}",
+                  passPipelineConfig);
+    }
+
     // Set the qpu name
     qpuName = mutableBackend;
 
