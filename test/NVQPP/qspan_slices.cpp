@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 // RUN: nvq++ -v %s -o %basename_t.x --target quantinuum --emulate && ./%basename_t.x | FileCheck %s
+// RUN: nvq++ -v %s -o %basename_t.x --target iqm --iqm-machine Adonis --emulate && ./%basename_t.x | FileCheck %s
 
 #include <cudaq.h>
 #include <iostream>
@@ -22,7 +23,7 @@ __qpu__ void foo() {
   x(qubits);
   bar(qubits);
 
-  mz(qubits);
+  auto result = mz(qubits);
 }
 
 int main() {

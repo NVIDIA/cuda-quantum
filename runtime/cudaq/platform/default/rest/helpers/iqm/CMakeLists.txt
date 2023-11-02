@@ -7,3 +7,5 @@
 # ============================================================================ #
 target_sources(cudaq-rest-qpu PRIVATE IQMServerHelper.cpp)
 add_target_config(iqm)
+add_target_mapping_arch(iqm Adonis.txt)
+add_target_mapping_arch(iqm Apollo.txt)
