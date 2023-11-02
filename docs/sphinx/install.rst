@@ -3,7 +3,7 @@ Getting Started
 
 This guide walks through how to :ref:`install CUDA Quantum <install-cuda-quantum>` on your system.
 
-The section on :ref:`connecting to a remote host <connect_to_remote>` contains some
+The section on :ref:`connecting to a remote host <connect-to-remote>` contains some
 guidance for application development on a remote host where CUDA Quantum is installed.
 
 .. _install-cuda-quantum:
@@ -20,14 +20,15 @@ If you would like to build CUDA Quantum from source instead, please follow the i
 If you are unsure which option suits you best, we recommend using our `Docker image`_ to develop your applications in a controlled environment that does not depend on, or interfere with, other software
 that is installed on your system.
 
+.. _install-docker-image:
+
 Docker image
 ++++++++++++++++++++++++++++++++++++
 
 To download and use our Docker images, you will need to install and launch the Docker engine. 
 If you do not already have Docker installed on your system, you can get it by downloading and installing `Docker Desktop <https://docs.docker.com/get-docker/>`_. 
 If you do not have the necessary administrator permissions to install software on your machine, 
-take a look at the section below on how to use `Singularity`_ instead,
-or consider using `Podman <https://github.com/containers/podman>`__.
+take a look at the section below on how to use `Singularity`_ instead.
 
 Docker images for all CUDA Quantum releases are available on the `NGC Container Registry`_.
 In addition to publishing stable releases, we also publish docker images whenever we update the main branch, or release branches, on our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`_.
@@ -84,12 +85,10 @@ the command :code:`docker start -i cuda-quantum`.
 You can delete an existing container and any changes you made using :code:`docker rm -v cuda-quantum`.
 
 When working with Docker images, the files inside the container are not visible outside the container environment. 
-We recommend connecting `VS Code <https://code.visualstudio.com/>`_ to the running container to facilitate development. 
-To do so, make sure you have `Dev Containers <https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers>`__ extension installed, open the Command Pallette with `Ctrl+Shift+P`, and select "Dev Containers: Attach to Running Container". 
-You should see and select the running `cuda-quantum` container in the list. 
-After the window reloaded, select "File: Open Folder" in the Command Pallette to open the `/home/cudaq/` folder.
+To facilitate application development with, for example, debugging and IntelliSense support, 
+please take a look at the section on :ref:`Development with VS Code <docker-in-vscode>`.
 
-Alternatively, it is possible, but not recommended, to launch an SSH server inside the container environment and connect to the container using SSH. To do so, make sure you have generated a suitable RSA key pair; if your `~/.ssh/` folder does not already contain the files `id_rsa.pub` and `id.rsa`,
+Alternatively, it is possible, but not recommended, to launch an SSH server inside the container environment and connect an IDE using SSH. To do so, make sure you have generated a suitable RSA key pair; if your `~/.ssh/` folder does not already contain the files `id_rsa.pub` and `id.rsa`,
 follow the instructions for generating a new SSH key on `this page <https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent>`__.
 You can then launch the container and connect to it via SSH by executing the following commands:
 
@@ -101,6 +100,8 @@ You can then launch the container and connect to it via SSH by executing the fol
     docker exec -d cuda-quantum bash -c "sudo -E /usr/sbin/sshd -D"
     ssh cudaq@localhost -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null
 
+
+.. _install-singularity-image:
 
 Singularity
 ++++++++++++++++++++++++++++++++++++
@@ -170,8 +171,63 @@ Any changes you made will still be visible after you exit the container, and you
 container environment at any time using the `run` command above.
 
 To facilitate application development with, for example, debugging and IntelliSense support, 
-we recommend connecting `VS Code <https://code.visualstudio.com/>`_ to the running container.
-To do so, make sure you have `Remote - SSH <https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh>`__ extension installed, and have a suitable SSH key pair; if your `~/.ssh/` folder does not already contain the files `id_rsa.pub` and `id.rsa`,
+please take a look at the section on :ref:`Development with VS Code <singularity-in-vscode>`.
+
+
+.. _install-python-wheels:
+
+Python wheels
+++++++++++++++++++++++++++++++++++++
+
+CUDA Quantum Python wheels are available on `PyPI.org <https://pypi.org/project/cuda-quantum>`__. Installation instructions can be found in the `project description <https://pypi.org/project/cuda-quantum/#description>`__.
+For more information about available versions and documentation,
+see :doc:`versions`.
+
+At this time, wheels are distributed for Linux operating systems only. 
+
+There are currently no source distributions available on PyPI, but you can download the source code for the latest version of the CUDA Quantum Python wheels from our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`__. The source code for previous versions can be downloaded from the respective `GitHub Release <https://github.com/NVIDIA/cuda-quantum/releases>`__.
+
+To build the CUDA Quantum Python API from source using pip, run the following commands:
+
+.. code-block:: console
+
+    git clone https://github.com/NVIDIA/cuda-quantum.git
+    cd cuda-quantum && ./scripts/install_prerequisites.sh
+    pip install .
+
+For more information about building the entire C++ and Python API from source, we refer to the `CUDA Quantum GitHub repository`_.
+
+
+Development with VS Code
+------------------------------------
+
+To facilitate application development with, for example, debugging and IntelliSense support, 
+we recommend using `VS Code <https://code.visualstudio.com/>`_. VS Code provides a seamless
+development experience on all platforms, and is also available without installation via web browser. 
+This sections describes how to connect VS Code to a running container on your machine.
+The section on :ref:`connecting to a remote host <connect-to-remote>` contains information on
+how to set up your development environment when accessing CUDA Quantum on a remote host instead.
+
+.. _docker-in-vscode:
+
+Using a Docker container
+++++++++++++++++++++++++++++++++++++++++
+
+To connect `VS Code <https://code.visualstudio.com/>`_ to a running CUDA Quantum Docker container, make sure you have `Dev Containers <https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers>`__ extension installed. 
+
+Open a terminal/shell in a separate window, and start the CUDA Quantum Docker container following the 
+instructions in the :ref:`section above <install-docker-image>`. 
+
+Once you have done that, launch VS Code, open the Command Pallette with `Ctrl+Shift+P`, and select "Dev Containers: Attach to Running Container". 
+You should see and select the running `cuda-quantum` container in the list. 
+After the window reloaded, select "File: Open Folder" in the Command Pallette to open the `/home/cudaq/` folder.
+
+.. _singularity-in-vscode:
+
+Using a Singularity container
+++++++++++++++++++++++++++++++++++++++++
+
+To connect `VS Code <https://code.visualstudio.com/>`_ to a running CUDA Quantum Singularity container, make sure you have `Remote - SSH <https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh>`__ extension installed, and have a suitable SSH key pair; if your `~/.ssh/` folder does not already contain the files `id_rsa.pub` and `id.rsa`,
 follow the instructions for generating a new SSH key on `this page <https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent>`__.
 
 To connect VS Code to a running CUDA Quantum container, 
@@ -186,7 +242,9 @@ and enter the following commands to create a suitable sandbox:
       apt-get install -y --no-install-recommends openssh-server
     cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
 
-You can launch this sandbox by entering the commands
+You can launch this sandbox by entering the commands below. Please see the `Sinularity`_ section above
+for more information about how to get the `cuda-quantum.sif` image, and how to enable GPU-acceleration
+with the `--nv` flag.
 
 .. code-block:: console
 
@@ -221,41 +279,8 @@ You can then connect to the host by opening the Command Pallette, selecting
 After the window reloaded, select "File: Open Folder" in the 
 Command Pallette to open the desired folder.
 
-.. _install-python-wheels:
 
-Python wheels
-++++++++++++++++++++++++++++++++++++
-
-CUDA Quantum Python wheels are available on `PyPI.org <https://pypi.org/project/cuda-quantum>`__. Installation instructions can be found in the `project description <https://pypi.org/project/cuda-quantum/#description>`__.
-For more information about available versions and documentation,
-see :doc:`versions`.
-
-At this time, wheels are distributed for Linux operating systems only. 
-
-There are currently no source distributions available on PyPI, but you can download the source code for the latest version of the CUDA Quantum Python wheels from our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`__. The source code for previous versions can be downloaded from the respective `GitHub Release <https://github.com/NVIDIA/cuda-quantum/releases>`__.
-
-To build the CUDA Quantum Python API from source using pip, run the following commands:
-
-.. code-block:: console
-
-    git clone https://github.com/NVIDIA/cuda-quantum.git
-    cd cuda-quantum && ./scripts/install_prerequisites.sh
-    pip install .
-
-For more information about building the entire C++ and Python API from source, we refer to the `CUDA Quantum GitHub repository`_.
-
-
-Set up Development Environment
-------------------------------------
-
-Launch Docker container in VS Code
-++++++++++++++++++++++++++++++++++++++++
-
-Launch Singularity container in VS Code
-++++++++++++++++++++++++++++++++++++++++
-
-
-.. _connect_to_remote:
+.. _connect-to-remote:
 
 Connecting to a Remote Host
 ------------------------------------
