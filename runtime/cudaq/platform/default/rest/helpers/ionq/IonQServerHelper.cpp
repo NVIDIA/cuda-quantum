@@ -113,9 +113,9 @@ void IonQServerHelper::initialize(BackendConfig config) {
       OutputNamesType jobOutputNames;
       nlohmann::json outputNamesJSON = nlohmann::json::parse(val);
       for (const auto &el : outputNamesJSON[0]) {
-        std::size_t result = el[0].get<std::size_t>();
-        std::size_t qubit = el[1][0].get<std::size_t>();
-        std::string registerName = el[1][1].get<std::string>();
+        auto result = el[0].get<std::size_t>();
+        auto qubit = el[1][0].get<std::size_t>();
+        auto registerName = el[1][1].get<std::string>();
         jobOutputNames[result] = {qubit, registerName};
       }
 
@@ -289,10 +289,8 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
   cudaq::debug("nQubits is : {}", nQubits);
   cudaq::debug("Results message: {}", results.dump());
 
-  if (outputNames.find("output_names." + jobID) == outputNames.end()) {
-    throw std::runtime_error("Could not find output names for job " + jobID +
-                             " this " + std::to_string((long)this));
-  }
+  if (outputNames.find("output_names." + jobID) == outputNames.end())
+    throw std::runtime_error("Could not find output names for job " + jobID);
 
   auto &output_names = outputNames["output_names." + jobID];
   for (auto &[result, info] : output_names) {
