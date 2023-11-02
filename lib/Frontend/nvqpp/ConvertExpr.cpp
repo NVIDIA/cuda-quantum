@@ -659,6 +659,13 @@ bool QuakeBridgeVisitor::VisitImplicitCastExpr(clang::ImplicitCastExpr *x) {
     return pushValue(builder.create<arith::CmpIOp>(
         loc, arith::CmpIPredicate::ne, last, zero));
   }
+  case clang::CastKind::CK_FloatingToBoolean: {
+    auto last = popValue();
+    Value zero = builder.create<arith::ConstantFloatOp>(
+        loc, llvm::APFloat(0.0), cast<FloatType>(last.getType()));
+    return pushValue(builder.create<arith::CmpFOp>(
+        loc, arith::CmpFPredicate::UNE, last, zero));
+  }
   case clang::CastKind::CK_UserDefinedConversion: {
     auto sub = popValue();
     // castToTy is the converion function signature.
@@ -1142,7 +1149,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
                   builder, ext->getLoc(), 0,
                   ext.getResult().getType().getIntOrFloatBitWidth())));
         }
-    if (funcName.equals("front"))
+    if (funcName.equals("front") || funcName.equals("begin"))
       if (auto memberCall = dyn_cast<clang::CXXMemberCallExpr>(x))
         if (memberCall->getImplicitObjectArgument()) {
           [[maybe_unused]] auto calleeTy = popType();
@@ -1152,7 +1159,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           return pushValue(
               builder.create<cc::StdvecDataOp>(loc, elePtrTy, svec));
         }
-    if (funcName.equals("back"))
+    if (funcName.equals("back") || funcName.equals("rbegin"))
       if (auto memberCall = dyn_cast<clang::CXXMemberCallExpr>(x))
         if (memberCall->getImplicitObjectArgument()) {
           [[maybe_unused]] auto calleeTy = popType();
@@ -1168,6 +1175,32 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
               builder.create<arith::AddIOp>(loc, vecLen, negativeOneIndex);
           return pushValue(builder.create<cc::ComputePtrOp>(
               loc, elePtrTy, vecPtr, ValueRange{vecLenMinusOne}));
+        }
+    if (funcName.equals("end"))
+      if (auto memberCall = dyn_cast<clang::CXXMemberCallExpr>(x))
+        if (memberCall->getImplicitObjectArgument()) {
+          [[maybe_unused]] auto calleeTy = popType();
+          assert(isa<FunctionType>(calleeTy));
+          auto eleTy = cast<cc::StdvecType>(svec.getType()).getElementType();
+          auto elePtrTy = cc::PointerType::get(eleTy);
+          auto *ctx = eleTy.getContext();
+          auto i64Ty = mlir::IntegerType::get(ctx, 64);
+          auto vecPtr = builder.create<cc::StdvecDataOp>(loc, elePtrTy, svec);
+          Value vecLen = builder.create<cc::StdvecSizeOp>(loc, i64Ty, svec);
+          return pushValue(builder.create<cc::ComputePtrOp>(
+              loc, elePtrTy, vecPtr, ValueRange{vecLen}));
+        }
+    if (funcName.equals("rend"))
+      if (auto memberCall = dyn_cast<clang::CXXMemberCallExpr>(x))
+        if (memberCall->getImplicitObjectArgument()) {
+          [[maybe_unused]] auto calleeTy = popType();
+          assert(isa<FunctionType>(calleeTy));
+          Value negativeOneIndex = getConstantInt(builder, loc, -1, 64);
+          auto eleTy = cast<cc::StdvecType>(svec.getType()).getElementType();
+          auto elePtrTy = cc::PointerType::get(eleTy);
+          auto vecPtr = builder.create<cc::StdvecDataOp>(loc, elePtrTy, svec);
+          return pushValue(builder.create<cc::ComputePtrOp>(
+              loc, elePtrTy, vecPtr, ValueRange{negativeOneIndex}));
         }
 
     TODO_loc(loc, "unhandled std::vector member function, " + funcName);
@@ -1239,6 +1272,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           auto qregArg = popValue();
           auto zero = getConstantInt(builder, loc, 0, 64);
           if (actArgs.size() == 1) {
+            // Handle `r.front(n)` case.
             auto qrSize = actArgs.front();
             auto one = getConstantInt(builder, loc, 1, 64);
             auto offset = builder.create<arith::SubIOp>(loc, qrSize, one);
@@ -1265,6 +1299,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           auto one = getConstantInt(builder, loc, 1, 64);
           auto endOff = builder.create<arith::SubIOp>(loc, qrSize, one);
           if (actArgs.size() == 1) {
+            // Handle `r.back(n)` case.
             auto startOff =
                 builder.create<arith::SubIOp>(loc, qrSize, actArgs.front());
             auto unsizedVecTy =
@@ -1755,6 +1790,48 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     }
 
     TODO_loc(loc, "unknown function, " + funcName + ", in cudaq namespace");
+  } // end in cudaq namespace
+
+  if (isInNamespace(func, "std")) {
+    if (funcName.equals("reverse")) {
+      // For a `std::vector<T>`, the arguments will be pointers into the data
+      // buffer. Create a loop that interchanges pairs as $(a_0, a_1-1)$,
+      // $(a_0+1, a_1-2)$, ... until $a_0 + n \ge a_1 - n - 1$.
+      auto i64Ty = builder.getI64Type();
+      auto hiInt = builder.create<cc::CastOp>(loc, i64Ty, args[1]);
+      auto loInt = builder.create<cc::CastOp>(loc, i64Ty, args[0]);
+      auto ptrTy = cast<cc::PointerType>(args[0].getType());
+      auto eleTy = ptrTy.getElementType();
+      auto arrTy = cc::ArrayType::get(eleTy);
+      auto eleSize = eleTy.getIntOrFloatBitWidth();
+      auto adjust = getConstantInt(builder, loc, eleSize / 4, i64Ty);
+      auto dist = builder.create<arith::SubIOp>(loc, hiInt, loInt);
+      Value iters = builder.create<arith::DivSIOp>(loc, dist, adjust);
+      auto ptrArrTy = cc::PointerType::get(arrTy);
+      Value basePtr = builder.create<cc::CastOp>(loc, ptrArrTy, args[0]);
+      auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &,
+                             Block &block) {
+        OpBuilder::InsertionGuard guard(builder);
+        builder.setInsertionPointToStart(&block);
+        auto iterIdx = block.getArgument(0);
+        Value index = builder.create<arith::IndexCastOp>(loc, i64Ty, iterIdx);
+        auto ptrA =
+            builder.create<cc::ComputePtrOp>(loc, ptrTy, basePtr, index);
+        auto one = builder.create<arith::ConstantIntOp>(loc, 1, i64Ty);
+        auto iters1 = builder.create<arith::SubIOp>(loc, iters, one);
+        Value hiIdx = builder.create<arith::SubIOp>(loc, iters1, index);
+        auto ptrB =
+            builder.create<cc::ComputePtrOp>(loc, ptrTy, basePtr, hiIdx);
+        Value loadA = builder.create<cc::LoadOp>(loc, ptrA);
+        Value loadB = builder.create<cc::LoadOp>(loc, ptrB);
+        builder.create<cc::StoreOp>(loc, loadA, ptrB);
+        builder.create<cc::StoreOp>(loc, loadB, ptrA);
+      };
+      auto idxTy = builder.getIndexType();
+      auto idxIters = builder.create<arith::IndexCastOp>(loc, idxTy, iters);
+      opt::factory::createInvariantLoop(builder, loc, idxIters, bodyBuilder);
+      return true;
+    }
   }
 
   if (func->isVariadic()) {
