@@ -222,6 +222,10 @@ Once you have done that, launch VS Code, open the Command Pallette with `Ctrl+Sh
 You should see and select the running `cuda-quantum` container in the list. 
 After the window reloaded, select "File: Open Folder" in the Command Pallette to open the `/home/cudaq/` folder.
 
+To run the examples, open the Command Pallette and select "View: Show Terminal"
+to launch an integrated terminal. You are now all set to 
+:ref:`get started <validate-installation>` with CUDA Quantum development.
+
 .. _singularity-in-vscode:
 
 Using a Singularity container
@@ -278,6 +282,10 @@ You can then connect to the host by opening the Command Pallette, selecting
 "Remote SSH: Connect Current Window to Host", and choosing the newly created host.
 After the window reloaded, select "File: Open Folder" in the 
 Command Pallette to open the desired folder.
+
+To run the examples, open the Command Pallette and select "View: Show Terminal"
+to launch an integrated terminal. You are now all set to 
+:ref:`get started <validate-installation>` with CUDA Quantum development.
 
 
 .. _connect-to-remote:
@@ -379,50 +387,6 @@ inside the container. Note that most Python packages that use GPU-acceleration, 
     python3 -m pip install cupy-cuda11x
 
 
-.. **************************
-
-
-Docker Image
---------------------
-
-
-Use CUDA Quantum in VS Code
-+++++++++++++++++++++++++++++++++++++
-
-If you have `VS Code`_ installed, you can use it to work inside your container.
-To do so, install the `Dev Containers extension`_:
-
-.. image:: _static/devContainersExtension.png 
-
-Follow the steps :ref:`above<use-cuda-quantum-in-terminal>` to start the container. 
-Open VS Code and navigate to the Remote Explorer. You should see the running cuda-quantum development container listed there.
-
-.. image:: _static/attachToDevContainer.png 
-
-Click on :code:`Attach to Container`. A new VS Code instance will open in that container. Open the `/home/cudaq`
-folder to see the `README.md` file and the CUDA Quantum examples that are included in the container. To run the examples, 
-open a terminal by going to the Terminal menu and select :code:`New Terminal`. 
-
-.. image:: _static/openTerminal.png 
-
-You can now compile and run the C++ examples using the :code:`nvq++` compiler,
-or run the Python examples using the Python interpreter.
-
-.. image:: _static/getToWork.png 
-
-.. _VS Code: https://code.visualstudio.com/download
-.. _Dev Containers extension: https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers
-.. _command palette: https://code.visualstudio.com/docs/getstarted/userinterface#_command-palette
-
-.. note:: 
-
-  VS Code extensions that you have installed locally, such as e.g. an extension for Jupyter notebooks, 
-  may not be automatically active in the container environment. You may need to install your preferred 
-  extension in the container environment for all of your development tools to be available.
-
-.. **************************
-
-
 .. _dependencies-and-compatibility:
 
 Dependencies and Compatibility
@@ -465,14 +429,22 @@ The following table summarizes the required components.
 Detailed information about supported drivers for different CUDA versions and be found `here <https://docs.nvidia.com/deploy/cuda-compatibility/>`__.
 
 
+.. _validate-installation:
+
 Next Steps
 ----------
 
-The Docker image contains a folder with example in the :code:`/home/cudaq` directory. These examples are provided to 
-get you started with CUDA Quantum and understanding the programming and execution model. 
-If you are not using the Docker image, you can find these examples on our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`__.
+You can now compile and/or run the C++ and Python examples using the terminal.
 
-Start of by trying to compile a simple one, like :code:`examples/cpp/basics/static_kernel.cpp`:
+.. image:: _static/getToWork.png 
+
+The CUDA Quantum image contains a folder with examples in the :code:`/home/cudaq` directory. 
+These examples are provided to get you started with CUDA Quantum and understanding 
+the programming and execution model. 
+If you are not using a container image, you can find these examples on our 
+`GitHub repository <https://github.com/NVIDIA/cuda-quantum>`__.
+
+To start with a simple program, like :code:`examples/cpp/basics/static_kernel.cpp`, run
 
 .. code-block:: console 
 
