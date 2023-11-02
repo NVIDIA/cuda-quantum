@@ -635,7 +635,8 @@ void releasePackedQubitArray(Array *a) {
 /// @param QISFunction
 /// @param
 void invokeWithControlQubits(const std::size_t nControls,
-                             void (*QISFunction)(Array *, Qubit *), ...) {
+                             void (*QISFunction)(Array *, Qubit *, double),
+                             ...) {
   // Create the Control Array *, This should
   // be deallocated upon function exit.
   auto ctrlArray = std::make_unique<Array>(nControls, sizeof(std::size_t));
@@ -655,10 +656,14 @@ void invokeWithControlQubits(const std::size_t nControls,
     nSetPointers++;
   }
 
-  // The last one will be the target
+  // The next one will be the target
   Qubit *target = va_arg(args, Qubit *);
+  // The last one will be the parameter. If the QIR function
+  // doesn't accept a parameter, this will have no effect.
+  double val = va_arg(args, double);
   // Invoke the function
-  QISFunction(ctrlArray.get(), target);
+  // QISFunction(param, ctrlArray.get(), target);
+  QISFunction(ctrlArray.get(), target, val);
 
   // End the var args processing and release the array.
   va_end(args);

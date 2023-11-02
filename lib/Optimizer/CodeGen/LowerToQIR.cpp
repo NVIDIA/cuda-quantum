@@ -591,15 +591,15 @@ public:
     // This is a single target op, add that type
     tmpArgTypes.push_back(qubitIndexType);
 
+    // __quantum__qis__NAME__ctl(double, Array*, Qubit*) Type
+    auto instOpQISFunctionType = LLVM::LLVMFunctionType::get(
+        LLVM::LLVMVoidType::get(context), tmpArgTypes);
+
     // Get function pointer to ctrl operation
     FlatSymbolRefAttr instSymbolRef =
         cudaq::opt::factory::createLLVMFunctionSymbol(
             qirFunctionName, /*return type=*/LLVM::LLVMVoidType::get(context),
             std::move(tmpArgTypes), parentModule);
-
-    // __quantum__qis__NAME__ctl(double, Array*, Qubit*) Type
-    auto instOpQISFunctionType = LLVM::LLVMFunctionType::get(
-        LLVM::LLVMVoidType::get(context), std::move(tmpArgTypes));
 
     // Now we know we have the proper veq/ref type, we can
     // handle multiple controls.
@@ -614,7 +614,7 @@ public:
               LLVM::LLVMVoidType::get(context),
               {rewriter.getI64Type(),
                LLVM::LLVMPointerType::get(instOpQISFunctionType),
-               rewriter.getF64Type()},
+               /*args*/ rewriter.getF64Type()},
               parentModule, true);
 
       Value ctrlOpPointer = rewriter.create<LLVM::AddressOfOp>(

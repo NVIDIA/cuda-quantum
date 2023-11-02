@@ -566,6 +566,7 @@ def test_rx():
     kernel.x(ctrl1)
     kernel.x(ctrl2)
 
+    # kernel.cx([ctrl1, ctrl2], target)
     kernel.crx(np.pi, [ctrl1, ctrl2], target)
     print(kernel)
 
@@ -589,10 +590,9 @@ def test_crx_control_list():
     # Overload 1: `QuakeValue` parameter. All controls are in |1>,
     # so this should rotate our `target`.
     kernel.crx(value, [q1, q2], target)
-    kernel.crx(np.pi, [q1, q2], target)
     # Overload 2: `float` parameter. `q3` is still in |0>, so this
     # should not rotate our `target`.
-    # kernel.crx(np.pi, [q3, q2, q1], target)
+    kernel.crx(np.pi, [q3, q2, q1], target)
 
     print(kernel)
 
