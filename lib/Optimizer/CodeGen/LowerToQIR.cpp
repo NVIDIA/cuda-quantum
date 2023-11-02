@@ -591,16 +591,18 @@ public:
     // This is a single target op, add that type
     tmpArgTypes.push_back(qubitIndexType);
 
+    // Get function pointer to ctrl operation
     FlatSymbolRefAttr instSymbolRef =
         cudaq::opt::factory::createLLVMFunctionSymbol(
             qirFunctionName, /*return type=*/LLVM::LLVMVoidType::get(context),
             std::move(tmpArgTypes), parentModule);
 
-    // __quantum__qis__NAME__ctl(Array*, Qubit*) Type
+    // __quantum__qis__NAME__ctl(double, Array*, Qubit*) Type
     auto instOpQISFunctionType = LLVM::LLVMFunctionType::get(
-        LLVM::LLVMVoidType::get(context), tmpArgTypes);
+        LLVM::LLVMVoidType::get(context), std::move(tmpArgTypes));
 
-    // NOW WE KNOW WE HAVE THE RIGHT VEQ/REF TYPE AND > 1 CONTROL
+    // Now we know we have the proper veq/ref type, we can
+    // handle multiple controls.
     if (numControls > 1) {
 
       // Get symbol for
@@ -611,7 +613,8 @@ public:
               cudaq::opt::NVQIRInvokeWithControlBits,
               LLVM::LLVMVoidType::get(context),
               {rewriter.getI64Type(),
-               LLVM::LLVMPointerType::get(instOpQISFunctionType)},
+               LLVM::LLVMPointerType::get(instOpQISFunctionType),
+               rewriter.getF64Type()},
               parentModule, true);
 
       Value ctrlOpPointer = rewriter.create<LLVM::AddressOfOp>(
@@ -623,8 +626,6 @@ public:
 
       // This will need the numControls, function pointer, and all Qubit*
       // operands
-      // SmallVector<Value> args = {castToDouble(val), arraySize,
-      // ctrlOpPointer};
       SmallVector<Value> args = {arraySize, ctrlOpPointer, castToDouble(val)};
       FlatSymbolRefAttr negateFuncRef;
       if (negatedQubitCtrls) {

@@ -418,6 +418,7 @@ CUDAQ_TEST(BuilderTester, checkRotations) {
 }
 
 // REMOVE ME (or merge some into above test)
+// THESE WILL ONLY RUN IN SIMULATION WHEN USING EMULATE
 CUDAQ_TEST(BuilderTester, checkTemporary) {
   // temporary checks for the accuracy of controlled rotations
 

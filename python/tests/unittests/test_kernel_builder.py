@@ -553,6 +553,26 @@ def test_cswap_gate():
     pass
 
 
+def test_rx():
+    # Works fine in emulate because the kernel gets decomposed in
+    # quake, getting rid of the rotation gates, then translated to QIR
+    # cudaq.set_target("quantinuum", emulate=True)
+
+    kernel = cudaq.make_kernel()
+    ctrl1 = kernel.qalloc()
+    ctrl2 = kernel.qalloc()
+    target = kernel.qalloc()
+    
+    kernel.x(ctrl1)
+    kernel.x(ctrl2)
+
+    kernel.crx(np.pi, [ctrl1, ctrl2], target)
+    print(kernel)
+
+    result = cudaq.sample(kernel)
+    print(result)
+
+
 def test_crx_control_list():
     kernel, value = cudaq.make_kernel(float)
     target = kernel.qalloc()
@@ -569,9 +589,12 @@ def test_crx_control_list():
     # Overload 1: `QuakeValue` parameter. All controls are in |1>,
     # so this should rotate our `target`.
     kernel.crx(value, [q1, q2], target)
+    kernel.crx(np.pi, [q1, q2], target)
     # Overload 2: `float` parameter. `q3` is still in |0>, so this
     # should not rotate our `target`.
-    kernel.crx(np.pi, [q3, q2, q1], target)
+    # kernel.crx(np.pi, [q3, q2, q1], target)
+
+    print(kernel)
 
     result = cudaq.sample(kernel, np.pi)
     print(result)
