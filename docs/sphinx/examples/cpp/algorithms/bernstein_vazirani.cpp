@@ -1,6 +1,7 @@
 // Compile and run with:
 // ```
-// nvq++ bernstein_vazirani.cpp -o bv.x --target nvidia-mgpu && mpirun -np 4 ./bv.x
+// nvq++ bernstein_vazirani.cpp -o bv.x --target nvidia-mgpu 
+// mpirun -np 4 ./bv.x
 // ```
 
 // This example is meant to demonstrate the cuQuantum
@@ -10,47 +11,47 @@
 // The amount of resources required for the simulation doubles with
 // with each additional qubit.
 
+#include <bitset>
 #include <cudaq.h>
 #include <iostream>
-#include <bitset>
 #include <random>
 
-template<int nrOfBits>
+template <int nrOfBits>
 std::bitset<nrOfBits> random_bits() {
 
-    std::bitset<nrOfBits> randomBits;
+  std::bitset<nrOfBits> randomBits;
 
-    std::default_random_engine generator;
-    std::uniform_real_distribution<float> distribution(0.0,1.0);
+  std::default_random_engine generator;
+  std::uniform_real_distribution<float> distribution(0.0,1.0);
 
-    float randNum;
-    for(size_t i = 0; i < nrOfBits; i++)
-    {
-        randNum = distribution(generator);
-        if(randNum < 0.5) {
-            randNum = 0;
-        } else {
-            randNum = 1;
-        }
-        randomBits.set(i, randNum);
+  float randNum;
+  for(size_t i = 0; i < nrOfBits; i++)
+  {
+    randNum = distribution(generator);
+    if(randNum < 0.5) {
+      randNum = 0;
+    } else {
+      randNum = 1;
     }
-    return randomBits;
+    randomBits.set(i, randNum);
+  }
+  return randomBits;
 }
 
-template<int nrOfBits>
+template <int nrOfBits>
 struct oracle {
   auto operator()(std::bitset<nrOfBits> bitvector, cudaq::qspan<> qs, cudaq::qubit& aux) __qpu__ {
 
     for(size_t i = 0; i < nrOfBits; i++)
     {
-        if(bitvector[i] & 1) {
-            x<cudaq::ctrl>(qs[nrOfBits - i - 1], aux);
-        } 
+      if(bitvector[i] & 1) {
+        x<cudaq::ctrl>(qs[nrOfBits - i - 1], aux);
+      } 
     }
   }
 };
 
-template<int nrOfBits>
+template <int nrOfBits>
 struct bernstein_vazirani {
   auto operator()(std::bitset<nrOfBits> bitvector) __qpu__ {
 
@@ -67,7 +68,8 @@ struct bernstein_vazirani {
 };
 
 int main() {
-  // The number of qubits can be increased when targeting the `nvidia-mgpu` backend.
+  // The number of qubits can be increased when targeting 
+  // the `nvidia-mgpu` backend.
   const int nr_qubits = 32;
   auto bitvector = random_bits<nr_qubits>();
   auto kernel = bernstein_vazirani<nr_qubits>{};
