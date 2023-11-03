@@ -42,14 +42,6 @@ protected:
   /// is equal to the number provided as input at runtime.
   bool canValidateVectorNumElements = true;
 
-  /// @brief Keep track of previously extracted QuakeValues from
-  /// a concrete index value
-  std::map<std::size_t, QuakeValue> extractedFromIndex;
-
-  /// @brief Keep track of previously extracted QuakeValues from
-  /// another QuakeValue (represented by its unique opaque pointer)
-  std::map<void *, QuakeValue> extractedFromValue;
-
 public:
   /// @brief Return the actual MLIR Value
   mlir::Value getValue() const;

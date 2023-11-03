@@ -113,6 +113,7 @@ def testAccuracy():
 
     cudaq.reset_target()
 
+
 @skipIfNoMQPU
 def testGetStateAsync():
     cudaq.set_target("nvidia-mqpu")
@@ -134,18 +135,20 @@ def testGetStateAsync():
     asyns_handles = []
     trotter_iters = 1
     for qpu in range(num_qpus):
-        asyns_handles.append(cudaq.get_state_async(kernel, trotter_iters, qpu_id=qpu))
+        asyns_handles.append(
+            cudaq.get_state_async(kernel, trotter_iters, qpu_id=qpu))
         trotter_iters += 1
 
     angle = 0.0
     for handle in asyns_handles:
         angle += 0.2
-        expected_state = [np.cos(angle/2), -1j*np.sin(angle/2)]
+        expected_state = [np.cos(angle / 2), -1j * np.sin(angle / 2)]
         state = handle.get()
         assert np.allclose(state, expected_state, atol=1e-3)
 
         # Reset for the next tests.
         cudaq.reset_target()
+
 
 # leave for gdb debugging
 if __name__ == "__main__":
