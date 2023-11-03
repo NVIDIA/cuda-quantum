@@ -232,6 +232,12 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
     }
     if (ignoredClass(x))
       return true;
+    if (allowUnknownRecordType) {
+      // This is a catch all for other container types (deque, map, set, etc.)
+      // that the user may try to pass as arguments to a kernel. Returning true
+      // here will cause the kernel's signature to emit a diagnostic.
+      return true;
+    }
     LLVM_DEBUG(llvm::dbgs()
                << "in std namespace, " << name << " is not matched\n");
   }
@@ -560,6 +566,10 @@ bool QuakeBridgeVisitor::TraverseVarDecl(clang::VarDecl *x) {
 }
 
 bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
+  if (allowUnknownRecordType) {
+    // Processing a kernel's signature. Ignore variable decls.
+    return true;
+  }
   Type type = popType();
   if (x->hasInit() && !x->isCXXForRangeDecl())
     type = peekValue().getType();

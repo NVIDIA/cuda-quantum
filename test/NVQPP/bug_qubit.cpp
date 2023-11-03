@@ -8,7 +8,11 @@
 
 // This code is from Issue 251.
 
-// RUN: nvq++ --enable-mlir -v %s --target quantinuum --emulate -o %t.x && %t.x | FileCheck %s
+// clang-format off
+// RUN: nvq++ --target ionq                     --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
+// RUN: nvq++ --target iqm --iqm-machine Adonis --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
+// RUN: nvq++ --target oqc                      --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
+// RUN: nvq++ --target quantinuum               --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
 // RUN: cudaq-quake %s | cudaq-opt --promote-qubit-allocation | FileCheck --check-prefixes=MLIR %s
 
 #include <cudaq.h>
@@ -18,7 +22,7 @@ struct simple_x {
   void operator()() __qpu__ {
     cudaq::qubit q;
     x(q);
-    mz(q);
+    auto result = mz(q);
   }
 };
 

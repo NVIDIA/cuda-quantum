@@ -568,8 +568,8 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
   cudaq::info("kernel_builder apply measurement");
 
   auto i1Ty = builder.getI1Type();
+  auto strAttr = builder.getStringAttr(regName);
   if (type.isa<quake::RefType>()) {
-    auto strAttr = builder.getStringAttr(regName);
     Value measureResult =
         builder.template create<QuakeMeasureOp>(i1Ty, value, strAttr).getBits();
     return QuakeValue(builder, measureResult);
@@ -590,7 +590,8 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
         Value qv =
             nestedBuilder.create<quake::ExtractRefOp>(nestedLoc, value, iv);
         Value bit =
-            nestedBuilder.create<QuakeMeasureOp>(nestedLoc, i1Ty, qv).getBits();
+            nestedBuilder.create<QuakeMeasureOp>(nestedLoc, i1Ty, qv, strAttr)
+                .getBits();
 
         auto i64Ty = nestedBuilder.getIntegerType(64);
         auto intIv =

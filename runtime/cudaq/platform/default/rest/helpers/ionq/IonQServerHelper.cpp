@@ -78,7 +78,8 @@ private:
   int setQubits(const std::string &target);
 
   /// @brief Helper method to retrieve the value of an environment variable.
-  std::string getEnvVar(const std::string &key) const;
+  std::string getEnvVar(const std::string &key, const std::string &defaultVal,
+                        const bool isRequired) const;
 
   /// @brief Helper function to get value from config or return a default value.
   std::string getValueOrDefault(const BackendConfig &config,
@@ -106,7 +107,13 @@ void IonQServerHelper::initialize(BackendConfig config) {
   if (config.find("noise") != config.end())
     backendConfig["noise_model"] = config["noise"];
   // Retrieve the API key from the environment variables
-  backendConfig["token"] = getEnvVar("IONQ_API_KEY");
+  bool isTokenRequired = [&]() {
+    auto it = config.find("emulate");
+    if (it != config.end() && it->second == "true")
+      return false;
+    return true;
+  }();
+  backendConfig["token"] = getEnvVar("IONQ_API_KEY", "0", isTokenRequired);
   // Construct the API job path
   backendConfig["job_path"] =
       backendConfig["url"] + '/' + backendConfig["version"] + "/jobs";
@@ -122,9 +129,9 @@ void IonQServerHelper::initialize(BackendConfig config) {
       OutputNamesType jobOutputNames;
       nlohmann::json outputNamesJSON = nlohmann::json::parse(val);
       for (const auto &el : outputNamesJSON[0]) {
-        std::size_t result = el[0].get<std::size_t>();
-        std::size_t qubit = el[1][0].get<std::size_t>();
-        std::string registerName = el[1][1].get<std::string>();
+        auto result = el[0].get<std::size_t>();
+        auto qubit = el[1][0].get<std::size_t>();
+        auto registerName = el[1][1].get<std::string>();
         jobOutputNames[result] = {qubit, registerName};
       }
 
@@ -148,12 +155,18 @@ IonQServerHelper::getValueOrDefault(const BackendConfig &config,
   return config.find(key) != config.end() ? config.at(key) : defaultValue;
 }
 
-// Helper function to retrieve an environment variable value.
-// Throws a runtime error if the environment variable is not set.
-std::string IonQServerHelper::getEnvVar(const std::string &key) const {
+// Retrieve an environment variable
+std::string IonQServerHelper::getEnvVar(const std::string &key,
+                                        const std::string &defaultVal,
+                                        const bool isRequired) const {
+  // Get the environment variable
   const char *env_var = std::getenv(key.c_str());
+  // If the variable is not set, either return the default or throw an exception
   if (env_var == nullptr) {
-    throw std::runtime_error(key + " environment variable is not set.");
+    if (isRequired)
+      throw std::runtime_error(key + " environment variable is not set.");
+    else
+      return defaultVal;
   }
   return std::string(env_var);
 }
@@ -377,10 +390,8 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
   cudaq::debug("nQubits is : {}", nQubits);
   cudaq::debug("Results message: {}", results.dump());
 
-  if (outputNames.find("output_names." + jobID) == outputNames.end()) {
-    throw std::runtime_error("Could not find output names for job " + jobID +
-                             " this " + std::to_string((long)this));
-  }
+  if (outputNames.find("output_names." + jobID) == outputNames.end())
+    throw std::runtime_error("Could not find output names for job " + jobID);
 
   auto &output_names = outputNames["output_names." + jobID];
   for (auto &[result, info] : output_names) {

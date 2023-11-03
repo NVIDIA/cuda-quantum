@@ -17,7 +17,7 @@ struct kernel_with_z {
   auto operator()() __qpu__ {
     cudaq::qreg<N> q;
     z<cudaq::ctrl>(q[0], q[1]);
-    mz(q[0]);
+    auto result = mz(q[0]);
   }
 };
 
