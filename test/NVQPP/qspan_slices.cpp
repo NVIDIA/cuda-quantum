@@ -7,9 +7,10 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ -v %s -o %basename_t.x --target quantinuum --emulate && ./%basename_t.x | FileCheck %s
-// RUN: nvq++ -v %s -o %basename_t.x --target iqm --iqm-machine Adonis --emulate && ./%basename_t.x | FileCheck %s
-// RUN: nvq++ -v %s -o %basename_t.x --target oqc --emulate && ./%basename_t.x | FileCheck %s
+// RUN: nvq++ --target ionq                     --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
+// RUN: nvq++ --target iqm --iqm-machine Adonis --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
+// RUN: nvq++ --target oqc                      --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
+// RUN: nvq++ --target quantinuum               --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
 // Tests for --disable-qubit-mapping:
 // RUN: nvq++ -v %s -o %basename_t.x --target oqc --emulate --disable-qubit-mapping && CUDAQ_MLIR_PRINT_EACH_PASS=1 ./%basename_t.x |& FileCheck --check-prefix=DISABLE %s
 // RUN: nvq++ -v %s -o %basename_t.x --target iqm --iqm-machine Adonis --emulate --disable-qubit-mapping && CUDAQ_MLIR_PRINT_EACH_PASS=1 ./%basename_t.x |& FileCheck --check-prefix=DISABLE %s

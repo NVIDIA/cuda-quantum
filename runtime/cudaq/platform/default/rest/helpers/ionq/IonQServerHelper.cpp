@@ -25,7 +25,8 @@ private:
   RestClient client;
 
   /// @brief Helper method to retrieve the value of an environment variable.
-  std::string getEnvVar(const std::string &key) const;
+  std::string getEnvVar(const std::string &key, const std::string &defaultVal,
+                        const bool isRequired) const;
 
   /// @brief Helper method to check if a key exists in the configuration.
   bool keyExists(const std::string &key) const;
@@ -97,7 +98,13 @@ void IonQServerHelper::initialize(BackendConfig config) {
   if (config.find("noise") != config.end())
     backendConfig["noise_model"] = config["noise"];
   // Retrieve the API key from the environment variables
-  backendConfig["token"] = getEnvVar("IONQ_API_KEY");
+  bool isTokenRequired = [&]() {
+    auto it = config.find("emulate");
+    if (it != config.end() && it->second == "true")
+      return false;
+    return true;
+  }();
+  backendConfig["token"] = getEnvVar("IONQ_API_KEY", "0", isTokenRequired);
   // Construct the API job path
   backendConfig["job_path"] =
       backendConfig["url"] + '/' + backendConfig["version"] + "/jobs";
@@ -125,12 +132,17 @@ void IonQServerHelper::initialize(BackendConfig config) {
 }
 
 // Retrieve an environment variable
-std::string IonQServerHelper::getEnvVar(const std::string &key) const {
+std::string IonQServerHelper::getEnvVar(const std::string &key,
+                                        const std::string &defaultVal,
+                                        const bool isRequired) const {
   // Get the environment variable
   const char *env_var = std::getenv(key.c_str());
-  // If the variable is not set, throw an exception
+  // If the variable is not set, either return the default or throw an exception
   if (env_var == nullptr) {
-    throw std::runtime_error(key + " environment variable is not set.");
+    if (isRequired)
+      throw std::runtime_error(key + " environment variable is not set.");
+    else
+      return defaultVal;
   }
   // Return the variable as a string
   return std::string(env_var);
