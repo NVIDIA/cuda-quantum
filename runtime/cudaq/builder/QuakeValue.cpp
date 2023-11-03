@@ -100,9 +100,9 @@ std::size_t QuakeValue::getRequiredElements() {
 }
 
 QuakeValue QuakeValue::operator[](const std::size_t idx) {
-  auto iter = extractedFromIndex.find(idx);
-  if (iter != extractedFromIndex.end())
-    return iter->second;
+  // auto iter = extractedFromIndex.find(idx);
+  // if (iter != extractedFromIndex.end())
+  //   return iter->second;
 
   Value vectorValue = value->asMLIR();
   Type type = vectorValue.getType();
@@ -122,9 +122,10 @@ QuakeValue QuakeValue::operator[](const std::size_t idx) {
   if (type.isa<quake::VeqType>()) {
     Value extractedQubit =
         opBuilder.create<quake::ExtractRefOp>(vectorValue, indexVar);
-    auto ret = extractedFromIndex.emplace(
-        std::make_pair(idx, QuakeValue(opBuilder, extractedQubit)));
-    return ret.first->second;
+    // auto ret = extractedFromIndex.emplace(
+    //     std::make_pair(idx, QuakeValue(opBuilder, extractedQubit)));
+    // return ret.first->second;
+    return QuakeValue(opBuilder, extractedQubit);
   }
 
   // must be a std vec type
@@ -139,16 +140,17 @@ QuakeValue QuakeValue::operator[](const std::size_t idx) {
   Value eleAddr = opBuilder.create<cc::ComputePtrOp>(
       elePtrTy, vecPtr, ArrayRef<cc::ComputePtrArg>{idx32});
   Value loaded = opBuilder.create<cc::LoadOp>(eleAddr);
-  auto ret = extractedFromIndex.emplace(
-      std::make_pair(idx, QuakeValue(opBuilder, loaded)));
-  return ret.first->second;
+  // auto ret = extractedFromIndex.emplace(
+  //     std::make_pair(idx, QuakeValue(opBuilder, loaded)));
+  // return ret.first->second;
+  return QuakeValue(opBuilder, loaded);
 }
 
 QuakeValue QuakeValue::operator[](const QuakeValue &idx) {
-  auto opaquePtr = idx.getValue().getAsOpaquePointer();
-  auto iter = extractedFromValue.find(opaquePtr);
-  if (iter != extractedFromValue.end())
-    return iter->second;
+  // auto opaquePtr = idx.getValue().getAsOpaquePointer();
+  // auto iter = extractedFromValue.find(opaquePtr);
+  // if (iter != extractedFromValue.end())
+  //   return iter->second;
 
   Value vectorValue = value->asMLIR();
   Type type = vectorValue.getType();
@@ -168,9 +170,10 @@ QuakeValue QuakeValue::operator[](const QuakeValue &idx) {
   if (type.isa<quake::VeqType>()) {
     Value extractedQubit =
         opBuilder.create<quake::ExtractRefOp>(vectorValue, indexVar);
-    auto ret = extractedFromValue.emplace(
-        std::make_pair(opaquePtr, QuakeValue(opBuilder, extractedQubit)));
-    return ret.first->second;
+    // auto ret = extractedFromValue.emplace(
+    //     std::make_pair(opaquePtr, QuakeValue(opBuilder, extractedQubit)));
+    // return ret.first->second;
+    return QuakeValue(opBuilder, extractedQubit);
   }
 
   if (indexVar.getType().isa<IndexType>())
@@ -188,9 +191,10 @@ QuakeValue QuakeValue::operator[](const QuakeValue &idx) {
   Value eleAddr = opBuilder.create<cc::ComputePtrOp>(
       elePtrTy, vecPtr, ArrayRef<cc::ComputePtrArg>{indexVar});
   Value loaded = opBuilder.create<cc::LoadOp>(eleAddr);
-  auto ret = extractedFromValue.emplace(
-      std::make_pair(opaquePtr, QuakeValue(opBuilder, loaded)));
-  return ret.first->second;
+  // auto ret = extractedFromValue.emplace(
+  //     std::make_pair(opaquePtr, QuakeValue(opBuilder, loaded)));
+  // return ret.first->second;
+  return QuakeValue(opBuilder, loaded);
 }
 
 QuakeValue QuakeValue::size() {
