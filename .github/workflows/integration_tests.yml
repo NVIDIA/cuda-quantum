@@ -80,22 +80,26 @@ jobs:
           set +e # Allow script to keep going through errors
           test_err_sum=0
           for filename in ${{ steps.gettests.outputs.testlist }}; do
-            [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
-            nvq++ -v $filename -DSYNTAX_CHECK --target quantinuum --quantinuum-machine H1-1SC
-            test_status=$?
-            if [ $test_status -eq 0 ]; then
-              ./a.out
-              test_status=$?
-              if [ $test_status -eq 0 ]; then
-                echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
-              else
-                echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                test_err_sum=$((test_err_sum+1))
-              fi
-            else
-              echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-              test_err_sum=$((test_err_sum+1))
-            fi
+            case $filename in
+              targettests/quantinuum/*)
+                [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
+                nvq++ -v $filename -DSYNTAX_CHECK --target quantinuum --quantinuum-machine H1-1SC
+                test_status=$?
+                if [ $test_status -eq 0 ]; then
+                  ./a.out
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                else
+                  echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_err_sum=$((test_err_sum+1))
+                fi
+              ;;
+            esac
           done
           set -e # Re-enable exit code error checking
           if [ ! $test_err_sum -eq 0 ]; then
