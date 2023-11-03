@@ -155,9 +155,6 @@ QuakeValue QuakeValue::operator[](const QuakeValue &idx) {
   if (type.isa<quake::VeqType>()) {
     Value extractedQubit =
         opBuilder.create<quake::ExtractRefOp>(vectorValue, indexVar);
-    // auto ret = extractedFromValue.emplace(
-    //     std::make_pair(opaquePtr, QuakeValue(opBuilder, extractedQubit)));
-    // return ret.first->second;
     return QuakeValue(opBuilder, extractedQubit);
   }
 
@@ -176,9 +173,6 @@ QuakeValue QuakeValue::operator[](const QuakeValue &idx) {
   Value eleAddr = opBuilder.create<cc::ComputePtrOp>(
       elePtrTy, vecPtr, ArrayRef<cc::ComputePtrArg>{indexVar});
   Value loaded = opBuilder.create<cc::LoadOp>(eleAddr);
-  // auto ret = extractedFromValue.emplace(
-  //     std::make_pair(opaquePtr, QuakeValue(opBuilder, loaded)));
-  // return ret.first->second;
   return QuakeValue(opBuilder, loaded);
 }
 
