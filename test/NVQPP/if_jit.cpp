@@ -21,7 +21,7 @@ __qpu__ void foo(bool value) {
   if (value)
     x(q);
 
-  mz(q);
+  auto result = mz(q);
 }
 
 int main() {

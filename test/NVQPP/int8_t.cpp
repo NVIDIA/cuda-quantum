@@ -19,7 +19,7 @@ struct variable_qreg {
   __qpu__ void operator()(std::uint8_t value) {
     cudaq::qreg qubits(value);
 
-    mz(qubits);
+    auto result = mz(qubits);
   }
 };
 

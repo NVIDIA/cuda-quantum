@@ -18,7 +18,7 @@
 __qpu__ void variable_qreg(unsigned value) {
   cudaq::qreg qubits(value);
 
-  mz(qubits);
+  auto result = mz(qubits);
 }
 
 int main() {

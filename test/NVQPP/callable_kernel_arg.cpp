@@ -30,7 +30,7 @@ struct foo {
   __qpu__ void operator()(CallableKernel &&func, int size) {
     cudaq::qreg q(size);
     func(q[0]);
-    mz(q[0]);
+    auto result = mz(q[0]);
   }
 };
 
