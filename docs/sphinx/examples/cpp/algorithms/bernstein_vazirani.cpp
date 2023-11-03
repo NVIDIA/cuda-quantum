@@ -40,7 +40,7 @@ std::bitset<nrOfBits> random_bits() {
 template <int nrOfBits>
 struct oracle {
   auto operator()(std::bitset<nrOfBits> bitvector, cudaq::qspan<> qs,
-                  cudaq::qubit& aux) __qpu__ {
+                  cudaq::qubit &aux) __qpu__ {
 
     for (size_t i = 0; i < nrOfBits; i++) {
       if (bitvector[i] & 1) {
