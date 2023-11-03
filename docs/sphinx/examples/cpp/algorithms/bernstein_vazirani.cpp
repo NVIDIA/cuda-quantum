@@ -39,7 +39,7 @@ std::bitset<nrOfBits> random_bits() {
 
 template <int nrOfBits>
 struct oracle {
-  auto operator()(std::bitset<nrOfBits> bitvector, cudaq::qspan<> qs, 
+  auto operator()(std::bitset<nrOfBits> bitvector, cudaq::qspan<> qs,
                   cudaq::qubit& aux) __qpu__ {
 
     for (size_t i = 0; i < nrOfBits; i++) {
@@ -80,7 +80,7 @@ int main() {
 
     for (auto &[bits, count] : counts) {
       printf("observed %s (probability %u%%)\n", bits.data(),
-             100 * (uint)((double)count/1000.));
+             100 * (uint)((double)count / 1000.));
     }
   }
 
