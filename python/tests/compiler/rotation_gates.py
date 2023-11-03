@@ -6,6 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+# RUN: PYTHONPATH=../../ pytest -rP  %s | FileCheck %s
+
 import pytest
 
 import cudaq
