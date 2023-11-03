@@ -6,13 +6,23 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-/// This file is meant to be used by the nvq++ driver script, the
-/// NVQPP_TARGET_BACKEND_CONFIG string must be replaced (e.g. with sed)
-/// with the actual target backend string.
-namespace cudaq {
-void set_target_backend(const char *);
-}
-constexpr static const char ____targetBackend[] = NVQPP_TARGET_BACKEND_CONFIG;
-__attribute__((constructor)) void setTargetBackend() {
-  cudaq::set_target_backend(____targetBackend);
+// RUN: nvq++ --target qpp-cpu %s -o %basename_t.x && ./%basename_t.x
+
+#include <cudaq.h>
+
+struct ghz {
+  auto operator()(int N) __qpu__ {
+    cudaq::qreg q(N);
+    h(q[0]);
+    for (int i = 0; i < N - 1; i++) {
+      x<cudaq::ctrl>(q[i], q[i + 1]);
+    }
+    mz(q);
+  }
+};
+
+int main() {
+  auto counts = cudaq::sample(ghz{}, 4);
+  counts.dump();
+  return 0;
 }
