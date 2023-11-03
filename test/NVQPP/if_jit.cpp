@@ -8,7 +8,10 @@
 
 // This code is from Issue 296.
 
-// RUN: nvq++ %s --target quantinuum --emulate -o %t.x && %t.x | FileCheck %s
+// RUN: nvq++ --target ionq                     --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
+// RUN: nvq++ --target iqm --iqm-machine Adonis --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
+// RUN: nvq++ --target oqc                      --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
+// RUN: nvq++ --target quantinuum               --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
 
 #include <cudaq.h>
 #include <iostream>
