@@ -176,7 +176,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html">Multi-GPU Workflows</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Available-Targets">Available Targets</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Default-CPU-Backend">Default CPU Backend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#QPP-based-CPU-Backend">QPP-based CPU Backend</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Multiple-QPU's">Multiple QPU’s</a></li>
@@ -1482,6 +1482,20 @@
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_result7reorderERKNSt6vectorINSt6size_tEEEKNSt11string_viewE">
+<span class="target" id="classcudaq_1_1sample__result_1aef6a7046e83529dad6c4214651f2fd46"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reorder</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">idx</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">registerName</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">GlobalRegisterName</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13sample_result7reorderERKNSt6vectorINSt6size_tEEEKNSt11string_viewE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Reorder the bits in an <a class="reference internal" href="#structcudaq_1_1ExecutionResult"><span class="std std-ref">ExecutionResult</span></a>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>idx</strong> – Vector of indices such that newBitStr(:) = oldBitStr(idx(:)) </p></li>
+<li><p><strong>registerName</strong> – register name to process (defaults to global) </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
