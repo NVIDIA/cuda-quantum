@@ -249,24 +249,46 @@ CUDAQ_TEST(BuilderTester, checkSwap) {
 }
 
 CUDAQ_TEST(BuilderTester, checkConditional) {
-  cudaq::set_random_seed(13);
-  auto kernel = cudaq::make_kernel();
-  auto q = kernel.qalloc(2);
-  kernel.h(q[0]);
-  auto mres = kernel.mz(q[0], "res0");
-  kernel.c_if(mres, [&]() { kernel.x(q[1]); });
-  kernel.mz(q);
+  {
+    cudaq::set_random_seed(13);
+    auto kernel = cudaq::make_kernel();
+    auto q = kernel.qalloc(2);
+    kernel.h(q[0]);
+    auto mres = kernel.mz(q[0], "res0");
+    kernel.c_if(mres, [&]() { kernel.x(q[1]); });
+    kernel.mz(q);
 
-  printf("%s\n", kernel.to_quake().c_str());
+    printf("%s\n", kernel.to_quake().c_str());
 
-  auto counts = cudaq::sample(kernel);
-  counts.dump();
-  EXPECT_EQ(counts.register_names().size(), 2);
-  EXPECT_EQ(counts.size("res0"), 2);
-  EXPECT_NEAR(counts.count("11") / 1000., 0.5, 1e-1);
-  EXPECT_NEAR(counts.count("00") / 1000., 0.5, 1e-1);
-  EXPECT_NEAR(counts.count("1", "res0") / 1000., 0.5, 1e-1);
-  EXPECT_NEAR(counts.count("0", "res0") / 1000., 0.5, 1e-1);
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    EXPECT_EQ(counts.register_names().size(), 2);
+    EXPECT_EQ(counts.size("res0"), 2);
+    EXPECT_NEAR(counts.count("11") / 1000., 0.5, 1e-1);
+    EXPECT_NEAR(counts.count("00") / 1000., 0.5, 1e-1);
+    EXPECT_NEAR(counts.count("1", "res0") / 1000., 0.5, 1e-1);
+    EXPECT_NEAR(counts.count("0", "res0") / 1000., 0.5, 1e-1);
+  }
+
+  //  Tests a previous bug where the `extract_ref` for a qubit
+  //  would get hidden within a conditional. This would result in
+  //  the runtime error "operator #0 does not dominate this use".
+  {
+    auto kernel = cudaq::make_kernel();
+    auto qreg = kernel.qalloc(3);
+
+    kernel.x(qreg[1]);
+    auto measure0 = kernel.mz(qreg[1]);
+
+    kernel.c_if(measure0, [&]() { kernel.x(qreg[0]); });
+
+    // Now we try to use `qreg[0]` again.
+    kernel.x(qreg[0]);
+
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    EXPECT_EQ(counts.count("010"), 1000);
+  }
 }
 
 CUDAQ_TEST(BuilderTester, checkQubitArg) {
