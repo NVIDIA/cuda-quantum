@@ -704,7 +704,7 @@ def test_ctrl_rotation_adaptive():
     """
     # cudaq.set_target("quantinuum", emulate=True)
     
-    for _ in range(10):
+    for _ in range(1000):
         kernel = cudaq.make_kernel()
         ctrls = kernel.qalloc(4)
         target = kernel.qalloc()
@@ -728,7 +728,7 @@ def test_ctrl_rotation_adaptive():
 
         # Test
 
-        # mixed list of veqs and qubits
+        # mixed list of veqs and qubits (should only work in)
         # kernel.crx(3.14, [ctrls, ctrl], target)
 
         print(kernel)

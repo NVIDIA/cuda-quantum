@@ -607,14 +607,13 @@ public:
 
       // Get symbol for
       // void invokeWithControlQubits(const std::size_t nControls, void
-      // (*QISFunction)(Array*, Qubit*), Qubit*, ...);
+      // (*QISFunction)(double, Array*, Qubit*), Qubit*, ...);
       auto applyMultiControlFunction =
           cudaq::opt::factory::createLLVMFunctionSymbol(
-              cudaq::opt::NVQIRInvokeWithControlBits,
+              cudaq::opt::NVQIRInvokeRotationWithControlBits,
               LLVM::LLVMVoidType::get(context),
-              {rewriter.getI64Type(),
-               LLVM::LLVMPointerType::get(instOpQISFunctionType),
-               /*args*/ rewriter.getF64Type()},
+              {rewriter.getF64Type(), rewriter.getI64Type(),
+               LLVM::LLVMPointerType::get(instOpQISFunctionType)},
               parentModule, true);
 
       Value ctrlOpPointer = rewriter.create<LLVM::AddressOfOp>(
@@ -626,7 +625,7 @@ public:
 
       // This will need the numControls, function pointer, and all Qubit*
       // operands
-      SmallVector<Value> args = {arraySize, ctrlOpPointer, castToDouble(val)};
+      SmallVector<Value> args = {castToDouble(val), arraySize, ctrlOpPointer};
       FlatSymbolRefAttr negateFuncRef;
       if (negatedQubitCtrls) {
         negateFuncRef = cudaq::opt::factory::createLLVMFunctionSymbol(
@@ -664,15 +663,17 @@ public:
     rewriter.replaceOpWithNewOp<LLVM::CallOp>(instOp, TypeRange{},
                                               instSymbolRef, funcArgs);
 
-    // We need to release the control Array.
-    FlatSymbolRefAttr releaseSymbolRef =
-        cudaq::opt::factory::createLLVMFunctionSymbol(
-            cudaq::opt::NVQIRReleasePackedQubitArray,
-            /*return type=*/LLVM::LLVMVoidType::get(context), {qubitArrayType},
-            parentModule);
-    Value ctrlArray = funcArgs[1];
-    rewriter.create<LLVM::CallOp>(loc, TypeRange{}, releaseSymbolRef,
-                                  ctrlArray);
+    // If the control was a ref, we need to release the control Array.
+    if (type.isa<quake::RefType>()) {
+      FlatSymbolRefAttr releaseSymbolRef =
+          cudaq::opt::factory::createLLVMFunctionSymbol(
+              cudaq::opt::NVQIRReleasePackedQubitArray,
+              /*return type=*/LLVM::LLVMVoidType::get(context),
+              {qubitArrayType}, parentModule);
+      Value ctrlArray = funcArgs[1];
+      rewriter.create<LLVM::CallOp>(loc, TypeRange{}, releaseSymbolRef,
+                                    ctrlArray);
+    }
 
     return success();
   }
