@@ -239,6 +239,7 @@ PREPROCESSOR_DEFINES=
 CUDAQ_QUAKE_DEBUG=
 SHOW_HELP=false
 LIST_TARGETS=false
+DISABLE_QUBIT_MAPPING=false
 
 # We default to LIBRARY_MODE, physical 
 # Quantum Targets can override this to turn on 
@@ -292,6 +293,11 @@ while [ $# -ne 0 ]; do
 		;;
 	--emulate | -emulate)
 		CUDAQ_EMULATE_REMOTE=true
+		;;
+	# This is intentionally not included in the "show_help" documentation
+	# because it may change in the future.
+	--disable-qubit-mapping | -disable-qubit-mapping)
+		DISABLE_QUBIT_MAPPING=true
 		;;
 	--list-targets)
 		LIST_TARGETS=true
@@ -449,9 +455,11 @@ if [ -n "${TARGET_CONFIG}" ]; then
 		. "${TARGET_CONFIG_FILE}" ${TARGET_ARGS}
 
 		if ${GEN_TARGET_BACKEND}; then
-			# Add a function that will run before main
-			# and set the target backend on the quantum_platform
-			TARGET_CONFIG="${TARGET_CONFIG};emulate;${CUDAQ_EMULATE_REMOTE}${PLATFORM_EXTRA_ARGS}"
+			# Add a function that will run before main and set the target
+			# backend on the quantum_platform
+			TARGET_CONFIG="${TARGET_CONFIG};emulate;${CUDAQ_EMULATE_REMOTE}"
+			TARGET_CONFIG="${TARGET_CONFIG};disable_qubit_mapping;${DISABLE_QUBIT_MAPPING}"
+			TARGET_CONFIG="${TARGET_CONFIG}${PLATFORM_EXTRA_ARGS}"
 			OUTFILENAME=$(mktemp nvqppGenTargetBackend.XXXXXX.o)
 			run ${CXX} -DNVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"" -o $OUTFILENAME -c -x c++ ${install_dir}/targets/backendConfig.cpp
 			OBJS_TO_MERGE="${OUTFILENAME}"
