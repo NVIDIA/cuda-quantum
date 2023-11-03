@@ -217,6 +217,30 @@ def test_tdg_1_state_negate():
     assert counts["1"] == 1000
 
 
+def test_rotation_multi_target():
+    """
+    Tests the accuracy of rotation gates when applied to
+    entire qregs.
+    """
+    kernel = cudaq.make_kernel()
+    qubits = kernel.qalloc(3)
+
+    # Start in the |1> state.
+    kernel.x(qubits)
+
+    # Rotate qubits back to the |0> state.
+    kernel.rx(np.pi, qubits)
+    # Phase rotation.
+    kernel.r1(-np.pi, qubits)
+    # Rotate back to |1> state.
+    kernel.ry(np.pi, qubits)
+    # Phase rotation.
+    kernel.rz(np.pi, qubits)
+
+    counts = cudaq.sample(kernel)
+    assert counts["111"] == 1000
+
+
 def test_ctrl_x():
     """Tests the accuracy of the overloads for the controlled-X gate."""
     kernel = cudaq.make_kernel()
@@ -544,9 +568,9 @@ def test_crz_gate():
     counts = cudaq.sample(kernel, angle_value)
     print(counts)
 
-    # # The phase should not affect the final state of any target qubits,
-    # # leaving us with the total state: `|qubits, controls> = |00100 11>`.
-    # assert counts["0010011"] == 1000
+    # The phase should not affect the final state of any target qubits,
+    # leaving us with the total state: `|qubits, controls> = |00100 11>`.
+    assert counts["0010011"] == 1000
 
 
 # FIXME
@@ -672,69 +696,50 @@ def test_cr1_control_list():
     assert result["1111"] == 1000
 
 
-def test_rotation_multi_target():
+def test_ctrl_rotation_integration():
     """
-    Tests the accuracy of rotation gates when applied to
-    entire qregs.
+    Tests more complex controlled rotation kernels, including
+    pieces that will only run in quantinuum emulation.
     """
+    cudaq.set_random_seed(4)
+    cudaq.set_target("quantinuum", emulate=True)
+
     kernel = cudaq.make_kernel()
-    qubits = kernel.qalloc(3)
+    ctrls = kernel.qalloc(4)
+    ctrl = kernel.qalloc()
+    target = kernel.qalloc()
 
-    # Start in the |1> state.
-    kernel.x(qubits)
+    # Subset of `ctrls` in |1> state.
+    kernel.x(ctrls[0])
+    kernel.x(ctrls[1])
 
-    # Rotate qubits back to the |0> state.
-    kernel.rx(np.pi, qubits)
-    # Phase rotation.
-    kernel.r1(-np.pi, qubits)
-    # Rotate back to |1> state.
-    kernel.ry(np.pi, qubits)
-    # Phase rotation.
-    kernel.rz(np.pi, qubits)
+    # Multi-controlled rotation with that qreg should have
+    # no impact on our target, since not all `ctrls` are |1>.
+    kernel.cry(1.0, ctrls, target)
 
-    counts = cudaq.sample(kernel)
-    assert counts["111"] == 1000
+    # Flip the rest of our `ctrls` to |1>.
+    kernel.x(ctrls[2])
+    kernel.x(ctrls[3])
 
+    # Multi-controlled rotation should now flip our target.
+    kernel.crx(np.pi / 4., ctrls, target)
 
-# FIXME: segault
-def test_ctrl_rotation_adaptive():
-    """
-    Tests more complex controlled rotation structures that are
-    only executable in emulation.
-    """
-    # cudaq.set_target("quantinuum", emulate=True)
-    
-    for _ in range(1000):
-        kernel = cudaq.make_kernel()
-        ctrls = kernel.qalloc(4)
-        target = kernel.qalloc()
+    # Test (1) (only works in emulation): mixed list of veqs and qubits.
+    # Has no impact because `ctrl` = |0>
+    kernel.crx(1.0, [ctrls, ctrl], target)
+    # Test (2): Flip `ctrl` and try again.
+    kernel.x(ctrl)
+    kernel.crx(np.pi / 4., [ctrls, ctrl], target)
 
-        # Subset of `ctrls` in |1> state.
-        kernel.x(ctrls[0])
-        kernel.x(ctrls[1])
+    result = cudaq.sample(kernel)
+    print(result)
 
-        # Test 1: Multi-controlled rotation with that qreg should have
-        # no impact on our target, since not all `ctrls` are |1>.
-        # Using an angle of pi/2 arbitrarily to differentiate it from the
-        # next controlled rotation angle we use.
-        kernel.crx(np.pi/2., ctrls, target)
-
-        # Flip the rest of our `ctrls` to |1>.
-        kernel.x(ctrls[2])
-        kernel.x(ctrls[3])
-
-        # Test 2: Multi-controlled rotation should now flip our target.
-        kernel.crx(np.pi, ctrls, target)
-
-        # Test
-
-        # mixed list of veqs and qubits (should only work in)
-        # kernel.crx(3.14, [ctrls, ctrl], target)
-
-        print(kernel)
-
-        result = cudaq.sample(kernel)
-        print(result)
+    # The `target` should be in a 50/50 mix between |0> and |1>.
+    extra_mapping_qubits = "0000"
+    want_1_state = extra_mapping_qubits + "111111"
+    want_0_state = extra_mapping_qubits + "111110"
+    assert result[want_1_state] == 505
+    assert result[want_0_state] == 495
 
 
 def test_can_progressively_build():
@@ -880,6 +885,7 @@ def test_fermionic_swap_op():
                       1e-3)
     assert np.isclose(np.abs(ss_10[2] - (-1j * np.exp(1j * angle / 2.0) * s)),
                       0.0, 1e-3)
+
 
 # leave for gdb debugging
 if __name__ == "__main__":
