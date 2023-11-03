@@ -5,8 +5,8 @@
 // ```
 
 // This example is meant to demonstrate the cuQuantum
-// GPU-accelerated multi-GPU backend. A statevector simulation for
-// up to 32 qubits can be run on a single GPU. Larger statevectors
+// GPU-accelerated multi-GPU backend. A state vector simulation for
+// up to 32 qubits can be run on a single GPU. Larger state vectors
 // can be simulated using the multi-GPU backend.
 // The amount of resources required for the simulation doubles with
 // with each additional qubit.
