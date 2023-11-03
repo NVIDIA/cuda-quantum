@@ -8,7 +8,7 @@
 
 // Note: change |& to 2>&1 if running in bash
 // RUN: nvq++ -v %s -o %basename_t.x --target quantinuum --emulate && CUDAQ_DUMP_JIT_IR=1 ./%basename_t.x |& FileCheck %s
-// RUN: nvq++ -v %s -o %basename_t.x --target ionq --emulate && IONQ_API_KEY=0 CUDAQ_DUMP_JIT_IR=1 ./%basename_t.x |& FileCheck --check-prefix IONQ %s
+// RUN: nvq++ -v %s -o %basename_t.x --target ionq --emulate && CUDAQ_DUMP_JIT_IR=1 ./%basename_t.x |& FileCheck --check-prefix IONQ %s
 // Note: iqm not currently tested because it does not currently use QIR
 
 #include <cudaq.h>
