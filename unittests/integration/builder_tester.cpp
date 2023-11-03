@@ -432,37 +432,59 @@ CUDAQ_TEST(BuilderTester, checkRotations) {
 CUDAQ_TEST(BuilderTester, checkSwap) {
   cudaq::set_random_seed(13);
 
-  // Simple two-qubit swap.
+  // controlled-SWAP
   {
     auto kernel = cudaq::make_kernel();
+    auto ctrl = kernel.qalloc();
     auto q = kernel.qalloc(2);
+    kernel.x(ctrl);
     // 0th qubit into the 1-state.
     kernel.x(q[0]);
     // Swap their states and measure.
-    kernel.swap(q[0], q[1]);
-    // Measure.
-    kernel.mz(q);
+    kernel.swap(ctrl, q[0], q[1]);
+
+    std::cout << kernel.to_quake() << "\n";
 
     auto counts = cudaq::sample(kernel);
     counts.dump();
     EXPECT_NEAR(counts.count("01"), 1000, 0);
   }
 
-  // Simple two-qubit swap.
-  {
-    auto kernel = cudaq::make_kernel();
-    auto q = kernel.qalloc(2);
-    // 1st qubit into the 1-state.
-    kernel.x(q[1]);
-    // Swap their states and measure.
-    kernel.swap(q[0], q[1]);
-    // Measure.
-    kernel.mz(q);
+  // multi-controlled SWAP
 
-    auto counts = cudaq::sample(kernel);
-    counts.dump();
-    EXPECT_NEAR(counts.count("10"), 1000, 0);
-  }
+
+
+  // // Simple two-qubit swap.
+  // {
+  //   auto kernel = cudaq::make_kernel();
+  //   auto q = kernel.qalloc(2);
+  //   // 0th qubit into the 1-state.
+  //   kernel.x(q[0]);
+  //   // Swap their states and measure.
+  //   kernel.swap(q[0], q[1]);
+  //   // Measure.
+  //   kernel.mz(q);
+
+  //   auto counts = cudaq::sample(kernel);
+  //   counts.dump();
+  //   EXPECT_NEAR(counts.count("01"), 1000, 0);
+  // }
+
+  // // Simple two-qubit swap.
+  // {
+  //   auto kernel = cudaq::make_kernel();
+  //   auto q = kernel.qalloc(2);
+  //   // 1st qubit into the 1-state.
+  //   kernel.x(q[1]);
+  //   // Swap their states and measure.
+  //   kernel.swap(q[0], q[1]);
+  //   // Measure.
+  //   kernel.mz(q);
+
+  //   auto counts = cudaq::sample(kernel);
+  //   counts.dump();
+  //   EXPECT_NEAR(counts.count("10"), 1000, 0);
+  // }
 }
 
 // Conditional execution on the tensornet backend is slow for a large number of

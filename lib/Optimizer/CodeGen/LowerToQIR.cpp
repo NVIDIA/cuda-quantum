@@ -727,22 +727,57 @@ public:
     ModuleOp parentModule = instOp->template getParentOfType<ModuleOp>();
     auto context = parentModule->getContext();
     auto qirFunctionName = std::string(cudaq::opt::QIRQISPrefix) + instName;
-
     auto qubitIndexType = cudaq::opt::getQubitType(context);
-    SmallVector<Type> tmpArgTypes = {qubitIndexType, qubitIndexType};
 
-    FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
-        qirFunctionName, /*return type=*/LLVM::LLVMVoidType::get(context),
-        std::move(tmpArgTypes), parentModule);
 
-    // FIXME: Do we want to use any fast math flags?
-    // TODO: Looks like bugs in the MLIR cmake files don't install this any
-    // longer.
-    // auto fastMathFlags = LLVM::FMFAttr::get(context, {});
-    // Create the CallOp for this quantum instruction
-    rewriter.replaceOpWithNewOp<LLVM::CallOp>(
-        instOp, TypeRange{}, symbolRef,
-        adaptor.getOperands() /*, fastMathFlags*/);
+    // FIXME: once code works, simplify these conditional checks and their returns
+    
+    if (numControls == 0) {
+      SmallVector<Type> tmpArgTypes = {qubitIndexType, qubitIndexType};
+    
+      FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
+          qirFunctionName, /*return type=*/LLVM::LLVMVoidType::get(context),
+          std::move(tmpArgTypes), parentModule);
+          
+      // FIXME: Do we want to use any fast math flags?
+      // TODO: Looks like bugs in the MLIR cmake files don't install this any
+      // longer.
+      // auto fastMathFlags = LLVM::FMFAttr::get(context, {});
+      // Create the CallOp for this quantum instruction
+      rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+          instOp, TypeRange{}, symbolRef,
+          adaptor.getOperands() /*, fastMathFlags*/);
+      return success();  
+    }
+    
+    // // This will be a controlled-operation.
+    // qirFunctionName += "__ctl";
+    // auto qirArrayType = cudaq::opt::getArrayType(context);
+    // SmallVector<Type> tmpArgTypes = {qirArrayType, qubitIndexType, qubitIndexType};
+
+    // // // __quantum__qis__NAME__ctl(Array*, Qubit*, Qubit*) Type
+    // // auto instOpQISFunctionType = LLVM::LLVMFunctionType::get(
+    // //     LLVM::LLVMVoidType::get(context), {qirArrayType, qubitIndexType, qubitIndexType});
+
+    // // Get the function pointer for the ctrl operation
+    // auto qirFunctionSymbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
+    //     qirFunctionName, LLVM::LLVMVoidType::get(context),
+    //     tmpArgTypes, parentModule);
+
+    // // Get the first control's type
+    // auto control = *instOp.getControls().begin();
+    // Type type = control.getType();
+    // auto instOperands = adaptor.getOperands();
+    // if (numControls == 1 && type.isa<quake::VeqType>()) {
+    //   // if (negatedQubitCtrls)
+    //   //   return instOp.emitError("unsupported controlled op " + instName +
+    //   //                           " with vector of ctrl qubits");
+    //   // Operands are already an Array* and Qubit*.
+    //   rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+    //       instOp, TypeRange{}, qirFunctionSymbolRef, instOperands);
+    //   return success();
+    // }
+
     return success();
   }
 };

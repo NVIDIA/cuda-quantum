@@ -658,6 +658,61 @@ Args:
   # SWAP their states, resulting in the transformation: `|10> -> |01>`.
   kernel.swap(first, second))#")
 
+     /// @brief Bind the controlled-SWAP gate with the controls provided in a
+      /// register of qubit/s.
+      .def(
+          "cswap",
+          [](kernel_builder<> &self, QuakeValue control,
+             const QuakeValue &first, const QuakeValue &second) {
+            return self.swap(control, first, second);
+          },
+          py::arg("control"), py::arg("first"), py::arg("second"),
+          R"#(Swap the states of the provided qubits. 
+
+Args:                                                          
+  control (:class:`QuakeValue`): The control qubit for the operation.                                                       
+  first (:class:`QuakeValue`): The target qubit of the operation. 
+    Its state will swap with the `second` qubit, based on the state of the
+    input `controls`.
+  second (:class:`QuakeValue`): The target qubit of the operation. 
+    Its state will swap with the `first` qubit, based on the state of the
+    input `controls`.               
+
+.. code-block:: python
+
+  # Example:
+  TODO)#")
+      /// @brief Bind the controlled-SWAP gate with the controls provided in a
+      /// vector.
+      .def(
+          "cswap",
+          [](kernel_builder<> &self, const std::vector<QuakeValue> controls,
+             const QuakeValue &first, const QuakeValue &second) {
+            return self.swap(controls, first, second);
+          },
+          py::arg("controls"), py::arg("first"), py::arg("second"),
+          R"#(Swap the states of the provided qubits.
+
+Args:                                                          
+  controls (list[QuakeValue]): The list of control qubits for the operation.                                                       
+  first (:class:`QuakeValue`): The target qubit of the operation. 
+    Its state will swap with the `second` qubit, based on the state of the
+    input `controls`.
+  second (:class:`QuakeValue`): The target qubit of the operation. 
+    Its state will swap with the `first` qubit, based on the state of the
+    input `controls`.                   
+
+.. code-block:: python
+
+  # Example:
+  kernel = cudaq.make_kernel()
+  # Allocate qubit/s to the `kernel`.
+  qubits = kernel.qalloc(2)
+  # Place the 0th qubit in the 1-state.
+  kernel.x(qubits[0])
+  # Swap their states.
+  kernel.swap(qubits[0], qubits[1]))#")
+
       /// @brief Allow for conditional statements on measurements.
       .def(
           "c_if",
