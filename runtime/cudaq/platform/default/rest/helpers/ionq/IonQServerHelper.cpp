@@ -168,6 +168,7 @@ std::string IonQServerHelper::getEnvVar(const std::string &key,
     else
       return defaultVal;
   }
+  // Return the variable as a string
   return std::string(env_var);
 }
 
@@ -220,7 +221,6 @@ IonQServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     job["shots"] = shots;
     job["input"]["format"] = "qir";
     job["input"]["data"] = circuitCode.code;
-    // Include error mitigation configuration if set in backendConfig
     // Include error mitigation configuration if set in backendConfig
     if (keyExists("debias")) {
       try {
