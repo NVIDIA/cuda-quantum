@@ -417,29 +417,6 @@ CUDAQ_TEST(BuilderTester, checkRotations) {
   }
 }
 
-CUDAQ_TEST(BuilderTester, checkSegFault) {
-  // for (auto i = 0; i < 10; i++) {
-  auto kernel = cudaq::make_kernel();
-  auto ctrls = kernel.qalloc(4);
-  auto target = kernel.qalloc();
-
-  // Subset of ctrls to |1>.
-  kernel.x(ctrls[0]);
-  kernel.x(ctrls[1]);
-
-  kernel.rx<cudaq::ctrl>(M_PI_2, ctrls, target);
-
-  // Rest of ctrls to |1>.
-  kernel.x(ctrls[2]);
-  kernel.x(ctrls[3]);
-
-  kernel.rx<cudaq::ctrl>(M_PI, ctrls, target);
-
-  auto result = cudaq::sample(kernel);
-  result.dump();
-  // }
-}
-
 CUDAQ_TEST(BuilderTester, checkSwap) {
   cudaq::set_random_seed(13);
 
