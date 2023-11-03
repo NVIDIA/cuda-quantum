@@ -65,7 +65,7 @@ protected:
   std::unordered_map<std::string, RuntimeTarget> targets;
 
   /// @brief Store the name of the current target
-  std::string currentTarget = "default";
+  std::string currentTarget = "qpp-cpu";
 
 public:
   LinkedLibraryHolder();

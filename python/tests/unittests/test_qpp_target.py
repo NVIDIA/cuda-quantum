@@ -6,5 +6,23 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-NVQIR_SIMULATION_BACKEND="dm"
-TARGET_DESCRIPTION="The Density Matrix CPU Target provides a simulated QPU via OpenMP-enabled, CPU-only density matrix emulation."
+import pytest
+
+import cudaq
+
+def test_cpu_only_target():
+    """Tests the QPP-based CPU-only target"""
+
+    cudaq.set_target("qpp-cpu")
+    print(cudaq.get_target().name)
+
+    kernel = cudaq.make_kernel()
+    qubits = kernel.qalloc(2)
+    kernel.h(qubits[0])
+    kernel.cx(qubits[0], qubits[1])
+    kernel.mz(qubits)
+
+    result = cudaq.sample(kernel)
+    result.dump()
+    assert '00' in result
+    assert '11' in result
