@@ -27,6 +27,7 @@ if not "CUDAQ_DYNLIBS" in os.environ:
 
 from ._pycudaq import *
 from .domains import chemistry
+from .service import ngc
 
 initKwargs = {'target': 'default'}
 

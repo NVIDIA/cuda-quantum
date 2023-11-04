@@ -17,7 +17,8 @@ readme = "python/README.md"
 requires-python = ">=3.8"
 license = { file="LICENSE" }
 dependencies = [
-  'cuquantum-cu11 ~= 23.6'
+  'cuquantum-cu11 ~= 23.6',
+  'requests ~= 2.31'
 ]
 
 [project.urls]
