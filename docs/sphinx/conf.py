@@ -51,6 +51,7 @@ extensions = [
     'sphinx.ext.napoleon',       # support google/numpy style docstrings
     #'sphinx.ext.linkcode',
     'sphinx_reredirects',
+    "sphinx_thebe",              # interactive code cells
     'breathe',
     'enum_tools.autoenum',       # for pretty-print Python enums
     'myst_parser',               # for including markdown files
@@ -67,6 +68,12 @@ nbsphinx_thumbnails = {
     '**': '_static/cuda_quantum_icon.svg',
     'examples/python/tutorials/hybrid_qnns': '_images/hybrid.png',
     'examples/python/tutorials/multi_gpu_workflows': '_images/circsplit.png',
+}
+
+thebe_config = {
+    "codemirror-theme": "blackboard",
+    "repository_url": "https://github.com/bettinaheim/cuda-quantum-binder",
+    "repository_branch": "main",
 }
 
 imgmath_latex_preamble = r'\usepackage{braket}'
@@ -134,6 +141,7 @@ htmlhelp_basename = 'cudaqDoc'
 
 def setup(app):
     app.add_css_file('cudaq_override.css')
+    app.add_js_file("require.js")
 
 # -- Options for BREATHE -------------------------------------------------
 

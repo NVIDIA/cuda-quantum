@@ -1,3 +1,4 @@
+:thebe-kernel: ipython
 
 CUDA Quantum in Python
 ======================
@@ -10,10 +11,23 @@ Introduction
 
 We're going to take a look at how to construct quantum programs through CUDA Quantum's `Kernel` API.
 
+.. raw:: html
+
+    <button title="Make live" class="thebe-button" onclick="initThebe()">
+    Make live
+    </button>
+
 When you create a `Kernel` and invoke its methods, a quantum program is constructed that can then be executed by calling, for example, `cudaq::sample`. Let's take a closer look!
 
-.. literalinclude:: ../examples/python/intro.py
-   :language: python
+.. code-block::
+   :class: thebe, thebe-init
+   
+   %pip install cuda-quantum
+
+.. container:: thebe
+
+   .. literalinclude:: ../examples/python/intro.py
+      :language: python
 
 Bernstein-Vazirani
 --------------------------------
