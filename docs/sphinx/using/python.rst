@@ -1,4 +1,4 @@
-:thebe-kernel: ipython
+thebe-kernel: ipython
 
 CUDA Quantum in Python
 ======================
@@ -14,8 +14,12 @@ We're going to take a look at how to construct quantum programs through CUDA Qua
 .. raw:: html
 
     <button title="Make live" class="thebe-button" onclick="initThebe()">
-    Make live
+      Make live
     </button>
+
+   <button title="Run code" class="thebelab-button thebe-launch-button" onclick="initThebe()">
+      Run code
+   </button>
 
 When you create a `Kernel` and invoke its methods, a quantum program is constructed that can then be executed by calling, for example, `cudaq::sample`. Let's take a closer look!
 

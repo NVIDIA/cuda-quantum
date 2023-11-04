@@ -71,7 +71,7 @@ nbsphinx_thumbnails = {
 }
 
 thebe_config = {
-    "codemirror-theme": "blackboard",
+    "codemirror-theme": "eclipse",
     "repository_url": "https://github.com/bettinaheim/cuda-quantum-binder",
     "repository_branch": "main",
 }
