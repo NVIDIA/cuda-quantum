@@ -262,7 +262,7 @@ and enter the following commands to create a suitable sandbox:
       apt-get install -y --no-install-recommends openssh-server
     cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
 
-You can launch this sandbox by entering the commands below. Please see the `Sinularity`_ section above
+You can launch this sandbox by entering the commands below. Please see the `Singularity`_ section above
 for more information about how to get the `cuda-quantum.sif` image, and how to enable GPU-acceleration
 with the `--nv` flag.
 
