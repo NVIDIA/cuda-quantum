@@ -174,7 +174,7 @@ func.func @classical_if06(%veq : !quake.veq<2>, %c1: i1) {
     %q1 = quake.extract_ref %veq[%c_1] : (!quake.veq<2>, i32) -> !quake.ref
     quake.y %q1 : (!quake.ref) -> ()
   }
-  %reg = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<i1>
+  %reg = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
   return
 }
 
@@ -191,7 +191,7 @@ func.func @classical_if06(%veq : !quake.veq<2>, %c1: i1) {
 // CHECK:             %[[VAL_9:.*]] = quake.y %[[VAL_8]] : (!quake.wire) -> !quake.wire
 // CHECK:           } else {
 // CHECK:           }
-// CHECK:           %[[VAL_10:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<2>) -> !cc.stdvec<i1>
+// CHECK:           quake.mz %[[VAL_0]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 
@@ -206,7 +206,7 @@ func.func @classical_if07(%veq : !quake.veq<2>, %c1: i1, %c2: i1) {
       quake.reset %veq : (!quake.veq<2>) -> ()
     }
   }
-  %reg = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<i1>
+  %reg = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
   return
 }
 
@@ -226,7 +226,7 @@ func.func @classical_if07(%veq : !quake.veq<2>, %c1: i1, %c2: i1) {
 // CHECK:             }
 // CHECK:           } else {
 // CHECK:           }
-// CHECK:           %[[VAL_10:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<2>) -> !cc.stdvec<i1>
+// CHECK:           quake.mz %[[VAL_0]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 
@@ -319,7 +319,7 @@ func.func @scope_local_extract_and_vec_measurement(%veq : !quake.veq<2>) {
     %q1 = quake.extract_ref %veq[%c_1] : (!quake.veq<2>,i32) -> !quake.ref
     quake.y %q1 : (!quake.ref) -> ()
   }
-  %reg = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<i1>
+  %reg = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
   return
 }
 
@@ -334,7 +334,7 @@ func.func @scope_local_extract_and_vec_measurement(%veq : !quake.veq<2>) {
 // CHECK:             %[[VAL_6:.*]] = quake.unwrap %[[VAL_5]] : (!quake.ref) -> !quake.wire
 // CHECK:             %[[VAL_7:.*]] = quake.y %[[VAL_6]] : (!quake.wire) -> !quake.wire
 // CHECK:           }
-// CHECK:           %[[VAL_8:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<2>) -> !cc.stdvec<i1>
+// CHECK:           quake.mz %[[VAL_0]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 
@@ -346,7 +346,7 @@ func.func @vec_op_in_nested_scope(%veq : !quake.veq<2>) {
       quake.reset %veq : (!quake.veq<2>)-> ()
     }
   }
-  %reg = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<i1>
+  %reg = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
   return
 }
 
@@ -360,7 +360,7 @@ func.func @vec_op_in_nested_scope(%veq : !quake.veq<2>) {
 // CHECK:               quake.reset %[[VAL_0]] : (!quake.veq<2>) -> ()
 // CHECK:             }
 // CHECK:           }
-// CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<2>) -> !cc.stdvec<i1>
+// CHECK:           quake.mz %[[VAL_0]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 
@@ -374,7 +374,7 @@ func.func @vec_op_in_nested_scope_and_local_extraction(%veq : !quake.veq<2>) {
       quake.reset %veq : (!quake.veq<2>) -> ()
     }
   }
-  %reg = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<i1>
+  %reg = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
   return
 }
 
@@ -391,7 +391,7 @@ func.func @vec_op_in_nested_scope_and_local_extraction(%veq : !quake.veq<2>) {
 // CHECK:               quake.reset %[[VAL_0]] : (!quake.veq<2>) -> ()
 // CHECK:             }
 // CHECK:           }
-// CHECK:           %[[VAL_7:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<2>) -> !cc.stdvec<i1>
+// CHECK:           quake.mz %[[VAL_0]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 
@@ -514,7 +514,7 @@ func.func @raw_cfg05(%c1: i1) {
 ^bb2:
   cf.br ^bb3
 ^bb3:
-  %reg = quake.mz %veq: (!quake.veq<2>) -> !cc.stdvec<i1>
+  %reg = quake.mz %veq: (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
   quake.dealloc %veq : !quake.veq<2>
   return
 }
@@ -531,7 +531,7 @@ func.func @raw_cfg05(%c1: i1) {
 // CHECK:         ^bb2:
 // CHECK:           cf.br ^bb3
 // CHECK:         ^bb3:
-// CHECK:           %[[VAL_5:.*]] = quake.mz %[[VAL_2]] : (!quake.veq<2>) -> !cc.stdvec<i1>
+// CHECK:           quake.mz %[[VAL_2]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 
@@ -552,7 +552,7 @@ func.func @raw_cfg06(%c1: i1) {
   %q2 = quake.extract_ref %veq[%c1_i64] : (!quake.veq<2>, i64) -> !quake.ref
   cf.br ^bb5
 ^bb5:
-  %reg = quake.mz %veq: (!quake.veq<2>)-> !cc.stdvec<i1>
+  %reg = quake.mz %veq: (!quake.veq<2>)-> !cc.stdvec<!quake.measure>
   quake.dealloc %veq : !quake.veq<2>
   return
 }
@@ -578,7 +578,7 @@ func.func @raw_cfg06(%c1: i1) {
 // CHECK:           %[[VAL_9:.*]] = quake.unwrap %[[VAL_8]] : (!quake.ref) -> !quake.wire
 // CHECK:           cf.br ^bb5
 // CHECK:         ^bb5:
-// CHECK:           %[[VAL_10:.*]] = quake.mz %[[VAL_3]] : (!quake.veq<2>) -> !cc.stdvec<i1>
+// CHECK:           quake.mz %[[VAL_3]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 
@@ -595,7 +595,7 @@ func.func @raw_cfg07(%c1: i1) {
   quake.reset %veq: (!quake.veq<2>)->()
   cf.br ^bb3
 ^bb3:
-  %reg = quake.mz %veq: (!quake.veq<2>) -> !cc.stdvec<i1>
+  %reg = quake.mz %veq: (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
   quake.dealloc %veq : !quake.veq<2>
   return
 }
@@ -616,7 +616,7 @@ func.func @raw_cfg07(%c1: i1) {
 // CHECK:           quake.reset %[[VAL_3]] : (!quake.veq<2>) -> ()
 // CHECK:           cf.br ^bb3
 // CHECK:         ^bb3:
-// CHECK:           %[[VAL_8:.*]] = quake.mz %[[VAL_3]] : (!quake.veq<2>) -> !cc.stdvec<i1>
+// CHECK:           quake.mz %[[VAL_3]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 
@@ -720,7 +720,7 @@ func.func @mz_and_reset_veq_with_extracted_refs() {
   %0 = quake.alloca !quake.veq<2>
   %q0 = quake.extract_ref %0[%c_0] : (!quake.veq<2>, i32) -> !quake.ref
   %q1 = quake.extract_ref %0[%c_1] : (!quake.veq<2>, i32) -> !quake.ref
-  %reg = quake.mz %0 : (!quake.veq<2>) -> !cc.stdvec<i1>
+  %reg = quake.mz %0 : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
   quake.reset %0 : (!quake.veq<2>) -> ()
   quake.dealloc %0 : !quake.veq<2>
   return
@@ -734,7 +734,7 @@ func.func @mz_and_reset_veq_with_extracted_refs() {
 // CHECK:           %[[VAL_4:.*]] = quake.unwrap %[[VAL_3]] : (!quake.ref) -> !quake.wire
 // CHECK:           %[[VAL_5:.*]] = quake.extract_ref %[[VAL_2]][%[[VAL_1]]] : (!quake.veq<2>, i32) -> !quake.ref
 // CHECK:           %[[VAL_6:.*]] = quake.unwrap %[[VAL_5]] : (!quake.ref) -> !quake.wire
-// CHECK:           %[[VAL_7:.*]] = quake.mz %[[VAL_2]] : (!quake.veq<2>) -> !cc.stdvec<i1>
+// CHECK:           quake.mz %[[VAL_2]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // CHECK:           quake.reset %[[VAL_2]] : (!quake.veq<2>) -> ()
 // CHECK:           return
 // CHECK:         }
@@ -811,7 +811,7 @@ func.func @floop_with_vector_and_qextract() {
     %4 = arith.addi %3, %c1_i64 : i64
     memref.store %4, %alloca[] : memref<i64>
   }
-  %2 = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<i1>
+  %2 = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
   quake.dealloc %veq : !quake.veq<2>
   return
 }
@@ -840,7 +840,7 @@ func.func @floop_with_vector_and_qextract() {
 // CHECK:             %[[VAL_13:.*]] = arith.addi %[[VAL_12]], %[[VAL_1]] : i64
 // CHECK:             memref.store %[[VAL_13]], %[[VAL_6]][] : memref<i64>
 // CHECK:           }
-// CHECK:           %[[VAL_14:.*]] = quake.mz %[[VAL_3]] : (!quake.veq<2>) -> !cc.stdvec<i1>
+// CHECK:           quake.mz %[[VAL_3]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 

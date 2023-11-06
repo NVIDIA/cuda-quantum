@@ -32,10 +32,12 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__bell = "_ZN4bellc
 
     %8 = llvm.alloca %c2_i64 x i1 : (i64) -> !llvm.ptr<i1>
 
-    %bits = quake.mz %q0 : (!quake.ref) -> i1
+    %bit = quake.mz %q0 : (!quake.ref) -> !quake.measure
+    %bits = quake.discriminate %bit : (!quake.measure) -> i1
     llvm.store %bits, %8 : !llvm.ptr<i1>
 
-    %bits_4  = quake.mz %q1 : (!quake.ref) -> i1
+    %bit_4 = quake.mz %q1 : (!quake.ref) -> !quake.measure
+    %bits_4 = quake.discriminate %bit_4 : (!quake.measure) -> i1
     %9 = llvm.getelementptr %8[1] : (!llvm.ptr<i1>) -> !llvm.ptr<i1>
     llvm.store %bits_4, %9 : !llvm.ptr<i1>
     return
