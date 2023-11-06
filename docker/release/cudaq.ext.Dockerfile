@@ -21,7 +21,7 @@ RUN for folder in `find "$CUDA_QUANTUM_PATH/assets"/*$(uname -m)/* -maxdepth 0 -
 
 # Install additional runtime dependencies.
 RUN apt-get install -y --no-install-recommends \
-        cuda-nvtx-11-8 libcusolver-11-8 libopenblas-openmp-dev \
+        cuda-nvtx-11-8 libopenblas-openmp-dev \
         # just here for convenience:
         curl jq 
 RUN if [ -x "$(command -v pip)" ]; then \

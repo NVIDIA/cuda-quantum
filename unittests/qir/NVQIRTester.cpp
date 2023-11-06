@@ -113,6 +113,8 @@ CUDAQ_TEST(NVQIRTester, checkSimple) {
   __quantum__rt__finalize();
 }
 
+#ifndef CUDAQ_BACKEND_TENSORNET_MPS
+// MPS doesn't support gates on more than 2 qubits (controlled swap)
 CUDAQ_TEST(NVQIRTester, checkQuantumIntrinsics) {
   __quantum__rt__initialize(0, nullptr);
   auto qubits = __quantum__rt__qubit_allocate_array(3);
@@ -151,6 +153,7 @@ CUDAQ_TEST(NVQIRTester, checkQuantumIntrinsics) {
   __quantum__rt__qubit_release_array(qubits);
   __quantum__rt__finalize();
 }
+#endif
 
 CUDAQ_TEST(NVQIRTester, checkSWAP) {
   // Simple SWAP.
@@ -175,6 +178,8 @@ CUDAQ_TEST(NVQIRTester, checkSWAP) {
     __quantum__rt__finalize();
   }
 
+#ifndef CUDAQ_BACKEND_TENSORNET_MPS
+// MPS doesn't support gates on more than 2 qubits (controlled swap)
   // SWAP with a single ctrl qubit in 0 state.
   {
     __quantum__rt__initialize(0, nullptr);
@@ -235,6 +240,7 @@ CUDAQ_TEST(NVQIRTester, checkSWAP) {
     __quantum__rt__qubit_release_array(qubits);
     __quantum__rt__finalize();
   }
+#endif
 }
 
 CUDAQ_TEST(NVQIRTester, checkQubitReset) {

@@ -94,6 +94,8 @@ CUDAQ_TEST(GHZSampleTester, checkBroadcast) {
   }
 }
 
+#ifndef CUDAQ_BACKEND_TENSORNET
+// Tensornet backend doesn't support seed.
 CUDAQ_TEST(GHZSampleTester, checkBroadcastRepeatability) {
   std::vector<int> sizeVals(8);
   std::iota(sizeVals.begin(), sizeVals.end(), 3);
@@ -110,3 +112,4 @@ CUDAQ_TEST(GHZSampleTester, checkBroadcastRepeatability) {
   EXPECT_EQ(allCounts1, allCounts2); // these should match
   EXPECT_NE(allCounts1, allCounts3); // these should NOT match
 }
+#endif
