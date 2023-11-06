@@ -152,6 +152,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../using/cpp.html#computing-expectation-values">Computing Expectation Values</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/cpp.html#multi-control-synthesis">Multi-control Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/cpp.html#simulations-with-cuquantum">Simulations with cuQuantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/cpp.html#noisy-simulation">Noisy Simulation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/cpp.html#using-quantum-hardware-providers">Using Quantum Hardware Providers</a></li>
 </ul>
 </li>
@@ -178,7 +179,7 @@
 <li class="toctree-l2"><a class="reference internal" href="hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Multi-GPU Workflows</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#Available-Targets">Available Targets</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Default-CPU-Backend">Default CPU Backend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#QPP-based-CPU-Backend">QPP-based CPU Backend</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#Multiple-QPU's">Multiple QPU’s</a></li>
@@ -303,6 +304,8 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.sample_async"><code class="docutils literal notranslate"><span class="pre">sample_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.observe"><code class="docutils literal notranslate"><span class="pre">observe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.observe_async"><code class="docutils literal notranslate"><span class="pre">observe_async()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.get_state"><code class="docutils literal notranslate"><span class="pre">get_state()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.get_state_async"><code class="docutils literal notranslate"><span class="pre">get_state_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 </ul>
 </li>
@@ -321,6 +324,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/languages/python_api.html#data-types">Data Types</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.Target"><code class="docutils literal notranslate"><span class="pre">Target</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.State"><code class="docutils literal notranslate"><span class="pre">State</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.QuakeValue"><code class="docutils literal notranslate"><span class="pre">QuakeValue</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
@@ -334,6 +338,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.ObserveResult"><code class="docutils literal notranslate"><span class="pre">ObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.AsyncObserveResult"><code class="docutils literal notranslate"><span class="pre">AsyncObserveResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.AsyncStateResult"><code class="docutils literal notranslate"><span class="pre">AsyncStateResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.OptimizationResult"><code class="docutils literal notranslate"><span class="pre">OptimizationResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#gradients">Gradients</a></li>
@@ -427,7 +432,7 @@
 <section id="Available-Targets">
 <h2>Available Targets<a class="headerlink" href="#Available-Targets" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
-<li><p><strong>default</strong>: The default qpp based CPU backend which is multithreaded to maximise the usage of available cores on your system.</p></li>
+<li><p><strong>qpp-cpu</strong>: The qpp based CPU backend which is multithreaded to maximize the usage of available cores on your system.</p></li>
 <li><p><strong>nvidia</strong>: GPU based backend which accelerates quantum circuit simulation on NVIDIA GPUs powered by cuQuantum.</p></li>
 <li><p><strong>nvidia-mqpu</strong>: Enables users to program workflows utilizing multiple quantum processors enabled today by GPU emulation.</p></li>
 <li><p><strong>nvidia-mgpu</strong>: Allows for scaling circuit simulation beyond what is feasible with any QPU today.</p></li>
@@ -460,13 +465,13 @@
 </div>
 </div>
 </section>
-<section id="Default-CPU-Backend">
-<h2>Default CPU Backend<a class="headerlink" href="#Default-CPU-Backend" title="Permalink to this heading">¶</a></h2>
+<section id="QPP-based-CPU-Backend">
+<h2>QPP-based CPU Backend<a class="headerlink" href="#QPP-based-CPU-Backend" title="Permalink to this heading">¶</a></h2>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cpu_result</span> <span class="o">=</span> <span class="n">ghz_state</span><span class="p">(</span><span class="n">n_qubits</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s2">&quot;default&quot;</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cpu_result</span> <span class="o">=</span> <span class="n">ghz_state</span><span class="p">(</span><span class="n">n_qubits</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s2">&quot;qpp-cpu&quot;</span><span class="p">)</span>
 
 <span class="n">cpu_result</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
 </pre></div>

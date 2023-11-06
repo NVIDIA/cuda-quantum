@@ -312,7 +312,7 @@ To see a complete example for using IQM server backends, take a look at our :ref
 OQC
 ==================================
 
-OQC is currently providing cuda quantum integration for our 8 qubit ring topology Lucy device.
+`Oxford Quantum Circuits <https://oxfordquantumcircuits.com/>`__ (OQC) is currently providing cuda quantum integration for our 8 qubit ring topology Lucy device.
 
 Setting Credentials
 `````````````````````````
@@ -345,6 +345,13 @@ To run the output, provide the runtime loaded variables and invoke the pre-built
 .. code:: bash
 
    OQC_PASSWORD=$password ./executable
+
+To emulate the OQC device locally, without submitting through the OQC QCaaS services, you can pass the ``--emulate`` flag to ``nvq++``.
+This will emit any target specific compiler warnings and diagnostics, before running a noise free emulation.
+
+.. code:: bash
+
+    nvq++ --emulate --target oqc src.cpp -o executable
 
 
 .. note::

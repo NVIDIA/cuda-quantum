@@ -147,6 +147,7 @@
 <li class="toctree-l3"><a class="reference internal" href="using/cpp.html#computing-expectation-values">Computing Expectation Values</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/cpp.html#multi-control-synthesis">Multi-control Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/cpp.html#simulations-with-cuquantum">Simulations with cuQuantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/cpp.html#noisy-simulation">Noisy Simulation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/cpp.html#using-quantum-hardware-providers">Using Quantum Hardware Providers</a></li>
 </ul>
 </li>
@@ -173,7 +174,7 @@
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html">Multi-GPU Workflows</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html#Available-Targets">Available Targets</a></li>
-<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html#Default-CPU-Backend">Default CPU Backend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html#QPP-based-CPU-Backend">QPP-based CPU Backend</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html#Multiple-QPU's">Multiple QPU’s</a></li>
@@ -298,6 +299,8 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.sample_async"><code class="docutils literal notranslate"><span class="pre">sample_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.observe"><code class="docutils literal notranslate"><span class="pre">observe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.observe_async"><code class="docutils literal notranslate"><span class="pre">observe_async()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.get_state"><code class="docutils literal notranslate"><span class="pre">get_state()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.get_state_async"><code class="docutils literal notranslate"><span class="pre">get_state_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 </ul>
 </li>
@@ -316,6 +319,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#data-types">Data Types</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.Target"><code class="docutils literal notranslate"><span class="pre">Target</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.State"><code class="docutils literal notranslate"><span class="pre">State</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.QuakeValue"><code class="docutils literal notranslate"><span class="pre">QuakeValue</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
@@ -329,6 +333,7 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.ObserveResult"><code class="docutils literal notranslate"><span class="pre">ObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.AsyncObserveResult"><code class="docutils literal notranslate"><span class="pre">AsyncObserveResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.AsyncStateResult"><code class="docutils literal notranslate"><span class="pre">AsyncStateResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.OptimizationResult"><code class="docutils literal notranslate"><span class="pre">OptimizationResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#gradients">Gradients</a></li>

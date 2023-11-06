@@ -152,6 +152,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../using/cpp.html#computing-expectation-values">Computing Expectation Values</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/cpp.html#multi-control-synthesis">Multi-control Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/cpp.html#simulations-with-cuquantum">Simulations with cuQuantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/cpp.html#noisy-simulation">Noisy Simulation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/cpp.html#using-quantum-hardware-providers">Using Quantum Hardware Providers</a></li>
 </ul>
 </li>
@@ -178,7 +179,7 @@
 <li class="toctree-l2"><a class="reference internal" href="hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
 <li class="toctree-l2"><a class="reference internal" href="multi_gpu_workflows.html">Multi-GPU Workflows</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Available-Targets">Available Targets</a></li>
-<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Default-CPU-Backend">Default CPU Backend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#QPP-based-CPU-Backend">QPP-based CPU Backend</a></li>
 <li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Multiple-QPU's">Multiple QPU’s</a></li>
@@ -303,6 +304,8 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.sample_async"><code class="docutils literal notranslate"><span class="pre">sample_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.observe"><code class="docutils literal notranslate"><span class="pre">observe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.observe_async"><code class="docutils literal notranslate"><span class="pre">observe_async()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.get_state"><code class="docutils literal notranslate"><span class="pre">get_state()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.get_state_async"><code class="docutils literal notranslate"><span class="pre">get_state_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 </ul>
 </li>
@@ -321,6 +324,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/languages/python_api.html#data-types">Data Types</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.Target"><code class="docutils literal notranslate"><span class="pre">Target</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.State"><code class="docutils literal notranslate"><span class="pre">State</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.QuakeValue"><code class="docutils literal notranslate"><span class="pre">QuakeValue</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
@@ -334,6 +338,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.ObserveResult"><code class="docutils literal notranslate"><span class="pre">ObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.AsyncObserveResult"><code class="docutils literal notranslate"><span class="pre">AsyncObserveResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.AsyncStateResult"><code class="docutils literal notranslate"><span class="pre">AsyncStateResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.OptimizationResult"><code class="docutils literal notranslate"><span class="pre">OptimizationResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#gradients">Gradients</a></li>
@@ -459,8 +464,8 @@
 <section id="Observe">
 <h2>Observe<a class="headerlink" href="#Observe" title="Permalink to this heading">¶</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">observe</span></code> allows us to gather qubit statistics and calculate expectation values. We must supply a spin operator in the form of a hamiltonian from which we would like to calculate <span class="math notranslate nohighlight">\(\bra{\psi}H\ket{\psi}\)</span>.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[32]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
@@ -486,9 +491,20 @@
 <span class="c1"># Define a Hamiltonian in terms of Pauli Spin operators.</span>
 <span class="n">hamiltonian</span> <span class="o">=</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
-<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">)</span>
+<span class="c1"># Compute the expectation value given the state prepared by the kernel.</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;&lt;H&gt; =&#39;</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
 </pre></div>
 </div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;H&gt; = 0.0
+</pre></div></div>
 </div>
 </section>
 </section>
