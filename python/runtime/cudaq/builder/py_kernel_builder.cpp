@@ -658,7 +658,7 @@ Args:
   # SWAP their states, resulting in the transformation: `|10> -> |01>`.
   kernel.swap(first, second))#")
 
-     /// @brief Bind the controlled-SWAP gate with the controls provided in a
+      /// @brief Bind the controlled-SWAP gate with the controls provided in a
       /// register of qubit/s.
       .def(
           "cswap",
