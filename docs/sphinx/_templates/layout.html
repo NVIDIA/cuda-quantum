@@ -59,4 +59,19 @@
     border-top: solid 3px rgba(59,93,0,1);
   }
   </style>
+
+  <style>
+  #interactive-frame {
+    width: 100%;
+    overflow: auto;
+    resize: both;
+    position: relative;
+    z-index: 2;
+  }
+  iframe {
+    width: 100%;
+    aspect-ratio: 2 / 1;
+    border: none;
+  }
+  </style>
   {% endblock %}

@@ -105,7 +105,7 @@ default_role = 'code' # NOTE: the following may be a better choice to error on t
 #default_role = 'cpp:any' # see https://www.sphinx-doc.org/en/master/usage/restructuredtext/domains.html#cross-referencing
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'lightbulb'
+pygments_style = 'vs'
 
 # autosummary is buggy: this must be py instead of cpp so that the domain setting
 # can be propagated to the autogen'd rst files.
@@ -129,7 +129,9 @@ html_theme_options = {
     "style_nav_header_background" : "#76b900" # Set upper left search bar to NVIDIA green
 }
 
-html_css_files = ['_static/cudaq_override.css']
+html_css_files = [
+    'css/overrides.css',
+]
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -140,8 +142,8 @@ html_static_path = ['_static']
 htmlhelp_basename = 'cudaqDoc'
 
 def setup(app):
-    app.add_css_file('cudaq_override.css')
-    app.add_js_file("require.js")
+    app.add_css_file('css/codemirror.css')
+    app.add_css_file('css/eclipse.css')
 
 # -- Options for BREATHE -------------------------------------------------
 

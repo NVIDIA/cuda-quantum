@@ -1,10 +1,19 @@
-thebe-kernel: ipython
+.. meta::
+   :thebe-kernel: ipython
 
 CUDA Quantum in Python
 ======================
 
 Welcome to CUDA Quantum!
 This is a introduction by example for using CUDA Quantum in Python. 
+
+.. raw:: html
+
+    <div id="interactive-frame">
+      <iframe src="../_static/cuda_quantum_icon.svg" name="JupyterLab"></iframe>
+      <p><a href="http://localhost:5801/lab" target="JupyterLab">Open JupyterLab</a></p>
+    </div>
+
 
 Introduction
 --------------------------------
@@ -13,12 +22,8 @@ We're going to take a look at how to construct quantum programs through CUDA Qua
 
 .. raw:: html
 
-    <button title="Make live" class="thebe-button" onclick="initThebe()">
-      Make live
-    </button>
-
-   <button title="Run code" class="thebelab-button thebe-launch-button" onclick="initThebe()">
-      Run code
+   <button title="Launch Interactive" class="thebelab-button thebe-launch-button" onclick="initThebe()">
+      Launch Interactive
    </button>
 
 When you create a `Kernel` and invoke its methods, a quantum program is constructed that can then be executed by calling, for example, `cudaq::sample`. Let's take a closer look!
@@ -119,3 +124,4 @@ The following code illustrates how run kernels on IonQ's backends.
 
 .. literalinclude:: ../examples/python/providers/ionq.py
    :language: python
+
