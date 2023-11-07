@@ -198,7 +198,7 @@ TensorNetState::computeRDM(const std::vector<int32_t> &qubits) {
       m_cutnHandle, marginal, CUTENSORNET_MARGINAL_OPT_NUM_HYPER_SAMPLES,
       &numHyperSamples, sizeof(numHyperSamples)));
 
-  // Prepare the specified quantum circuit reduced densitry matrix (marginal)
+  // Prepare the specified quantum circuit reduced density matrix (marginal)
   cutensornetWorkspaceDescriptor_t workDesc;
   HANDLE_CUTN_ERROR(
       cutensornetCreateWorkspaceDescriptor(m_cutnHandle, &workDesc));
@@ -217,7 +217,7 @@ TensorNetState::computeRDM(const std::vector<int32_t> &qubits) {
     throw std::runtime_error("ERROR: Insufficient workspace size on Device!");
   }
 
-  // Compute the specified quantum circuit reduced densitry matrix (marginal)
+  // Compute the specified quantum circuit reduced density matrix (marginal)
   HANDLE_CUTN_ERROR(cutensornetMarginalCompute(m_cutnHandle, marginal, nullptr,
                                                workDesc, d_rdm, 0));
   std::vector<std::complex<double>> h_rdm(rdmSize);

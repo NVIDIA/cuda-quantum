@@ -48,6 +48,9 @@ public:
   std::vector<std::complex<double>> getStateVector();
 
   /// @brief Compute the reduce density matrix on a set of qubits
+  ///
+  /// The order of the specified qubits (cutensornet open state modes) will be
+  /// respected when computing the RDM.
   std::vector<std::complex<double>>
   computeRDM(const std::vector<int32_t> &qubits);
 
