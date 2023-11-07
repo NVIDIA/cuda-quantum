@@ -39,7 +39,7 @@ Submission from C++
 `````````````````````````
 
 To target quantum kernel code for execution in the Quantinuum backends,
-pass the flag ``--target ionq`` to the ``nvq++`` compiler. CUDA Quantum will 
+pass the flag ``--target quantinuum`` to the ``nvq++`` compiler. CUDA Quantum will 
 authenticate via the Quantinuum REST API using the credential in your configuration file.
 By default, quantum kernel code will be submitted to the Quantinuum syntax checker.
 Submission to the syntax checker merely validates the program; the kernels are not executed.
