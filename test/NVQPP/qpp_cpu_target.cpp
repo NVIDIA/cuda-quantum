@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 // RUN: nvq++ --target qpp-cpu %s -o %basename_t.x && ./%basename_t.x
+// RUN: CUDAQ_DEFAULT_SIMULATOR="density-matrix-cpu" nvq++ %s -o %basename_t.x && ./%basename_t.x
 
 #include <cudaq.h>
 

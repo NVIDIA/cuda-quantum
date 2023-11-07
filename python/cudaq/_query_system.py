@@ -26,3 +26,22 @@ def is_gpu_available():
     except Exception:
         pass
     return False
+
+
+def get_simulators_list():
+    simulators = []
+    targets_dir = os.path.join(install_dir, "targets")
+    for file in os.listdir(targets_dir):
+        if file.endswith(".config"):
+            with open(os.path.join(targets_dir, file), 'r') as config:
+                skip = False
+                for line in config.readlines():
+                    if "PLATFORM_QPU=" in line:
+                        skip = True
+                        break
+                    if "LIBRARY_MODE_EXECUTION_MANAGER=" in line:
+                        skip = True
+                        break
+                if not skip:
+                    simulators.append(Path(file).stem)
+    return simulators

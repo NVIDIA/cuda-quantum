@@ -39,8 +39,17 @@ function add_pass_to_pipeline {
 }
 
 function list_targets {
-	ls -I *.cpp -1 ${install_dir}/targets/ | sed -e 's/\.config$//'
+	ls -I *.cpp -1 ${install_dir}/targets/ | grep ".config$" | sed -e 's/\.config$//'
 	exit 0
+}
+
+function list_simulators {
+	for file in $(grep -L "PLATFORM_QPU=" $(ls ${install_dir}/targets/*.config));
+	do
+		if ! grep -q "LIBRARY_MODE_EXECUTION_MANAGER=" $file ; then 
+			echo $(basename $file | cut -d "." -f 1)
+		fi
+	done
 }
 
 function query_gpu {
@@ -259,6 +268,18 @@ NVQIR_SIMULATION_BACKEND="qpp"
 gpu_found=$(query_gpu)
 if ${gpu_found} && [ -f "${install_dir}/lib/libnvqir-custatevec-fp32.so" ]; then
 	NVQIR_SIMULATION_BACKEND="custatevec-fp32"
+fi
+# Check environment variable - overrides the default above
+if [[ ! -z "${CUDAQ_DEFAULT_SIMULATOR}" ]]; then
+	available_simulators=( $(list_simulators) )
+	for s in "${available_simulators[@]}"
+	do
+		if [ "${CUDAQ_DEFAULT_SIMULATOR}" = "$s" ]; then
+			# ASKME: Set simulator specifically?
+			TARGET_CONFIG="${CUDAQ_DEFAULT_SIMULATOR}"
+			break
+		fi
+	done
 fi
 
 # We default to LIBRARY_MODE, physical 
