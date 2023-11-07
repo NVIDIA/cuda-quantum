@@ -192,7 +192,9 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#tensor-network-simulators">Tensor Network Simulators</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#id1">cuQuantum multi-node multi-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cutensornet-multi-node-multi-gpu"><code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> multi-node multi-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cutensornet-matrix-product-state"><code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> matrix product state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#usage">Usage</a></li>
 </ul>
 </li>
 </ul>
@@ -466,15 +468,14 @@ simulator that will be used.</p>
 </section>
 <section id="tensor-network-simulators">
 <h2>Tensor Network Simulators<a class="headerlink" href="#tensor-network-simulators" title="Permalink to this heading">¶</a></h2>
-<section id="id1">
-<h3>cuQuantum multi-node multi-GPU<a class="headerlink" href="#id1" title="Permalink to this heading">¶</a></h3>
-<p>The <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> and <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> targets provides a tensor-network simulator accelerated with
-the <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> library (version 2.3.0 and above). This backend is currently available for use from both C++ and Python.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>This backend requires an NVIDIA GPU and CUDA runtime libraries. If you are do not have these dependencies installed, you may encounter an error stating <code class="code docutils literal notranslate"><span class="pre">Invalid</span> <span class="pre">simulator</span> <span class="pre">requested</span></code>. See the section <a class="reference internal" href="../install.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a> for more information about how to install dependencies.</p>
-</div>
-<p>In particular, the <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> backend represents quantum states and circuits exactly as tensor networks. Measurement samples and expectation values are computed via tensor network contractions. This backend supports Multi-Node, Multi-GPU distribution of tensor operations required to evaluate and simulate the circuit.</p>
+<p>CUDA Quantum provides a couple of tensor-network simulator targets accelerated with
+the <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> library.
+These backends are currently available for use from both C++ and Python.</p>
+<section id="cutensornet-multi-node-multi-gpu">
+<h3><code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> multi-node multi-GPU<a class="headerlink" href="#cutensornet-multi-node-multi-gpu" title="Permalink to this heading">¶</a></h3>
+<p>The <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> backend represents quantum states and circuits tensor networks in an exact form (no approximation).
+Measurement samples and expectation values are computed via tensor network contractions.
+This backend supports Multi-Node, Multi-GPU distribution of tensor operations required to evaluate and simulate the circuit.</p>
 <p>This backend exposes a set of environment variables to configure specific aspects of the simulation:</p>
 <ul class="simple">
 <li><p><strong>`CUDA_VISIBLE_DEVICES=X`</strong>: Makes the process only see GPU X on multi-GPU nodes. Each MPI process must only see its own dedicated GPU. For example, if you run 8 MPI processes on a DGX system with 8 GPUs, each MPI process should be assigned its own dedicated GPU via <code class="code docutils literal notranslate"><span class="pre">CUDA_VISIBLE_DEVICES</span></code> when invoking <code class="code docutils literal notranslate"><span class="pre">mpirun</span></code> (or <code class="code docutils literal notranslate"><span class="pre">mpiexec</span></code>) commands. This can be done via invoking a bash script instead of the binary directly, and then using MPI library specific environment variables inside that script (e.g., <code class="code docutils literal notranslate"><span class="pre">OMPI_COMM_WORLD_LOCAL_RANK</span></code>).</p></li>
@@ -490,6 +491,9 @@ backend if you have multiple GPUs available. With OpenMPI, you can run a multi-G
 </div>
 <p>This command will assign a unique GPU to each MPI process within the node with 8 GPUs and produce a separate output for each MPI process.</p>
 </div>
+</section>
+<section id="cutensornet-matrix-product-state">
+<h3><code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> matrix product state<a class="headerlink" href="#cutensornet-matrix-product-state" title="Permalink to this heading">¶</a></h3>
 <p>The <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> backend is based on the matrix product state (MPS) representation of the state vector/wave function, exploiting the sparsity in the tensor network via tensor decomposition techniques such as QR and SVD. As such, this backend is an approximate simulator, whereby the number of singular values may be truncated to keep the MPS size tractable.</p>
 <p>This backend exposes a set of environment variables to configure specific aspects of the simulation:</p>
 <ul class="simple">
@@ -497,11 +501,14 @@ backend if you have multiple GPUs available. With OpenMPI, you can run a multi-G
 <li><p><strong>`CUDAQ_MPS_ABS_CUTOFF=X`</strong>: The cutoff for the largest singular value during truncation. Eigenvalues that are smaller will be trimmed out. Default: 1e-5.</p></li>
 <li><p><strong>`CUDAQ_MPS_RELATIVE_CUTOFF=X`</strong>: The cutoff for the maximal singular value relative to the largest eigenvalue. Eigenvalues that are smaller than this fraction of the largest singular value will be trimmed out. Default: 1e-5</p></li>
 </ul>
-<p>The <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> only supports single-GPU simulation. Its approximate nature allows the <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> backend to handle a large number of qubits for certain classes of quantum circuits.</p>
+<p>The <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> only supports single-GPU simulation. Its approximate nature allows the <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> backend to handle a large number of qubits for certain classes of quantum circuits on a relatively small memory footprint.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>The <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> cannot handle quantum gates acting on more than two qubit operands. It will throw an error when this constraint is not satisfied.</p>
 </div>
+</section>
+<section id="usage">
+<h3>Usage<a class="headerlink" href="#usage" title="Permalink to this heading">¶</a></h3>
 <p>To specify the use of the <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> or <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> target, pass the following command line
 options to <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code></p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>tensornet<span class="w"> </span>src.cpp<span class="w"> </span>...
@@ -522,11 +529,17 @@ options to <code class="code docutils literal notranslate"><span class="pre">nvq
 <p>This is equivalent to calling <code class="code docutils literal notranslate"><span class="pre">cudaq.set_target(&quot;tensornet&quot;)</span></code> or <code class="code docutils literal notranslate"><span class="pre">cudaq.set_target(&quot;tensornet-mps&quot;)</span></code> from within the Python script.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Tensor network-based simulators, such as the <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> and <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> backends, are suitable for large-scale simulation of quantum circuits involving many qubits, especially beyond the memory limit of state vector based simulators. Conditional circuits, i.e., those with mid-circuit measurements or reset, despite being supported by both backends, may result in poor performance.</p>
+<p>These tensor-network backends require an NVIDIA GPU and CUDA runtime libraries.
+If you are do not have these dependencies installed, you may encounter an error stating <code class="code docutils literal notranslate"><span class="pre">Invalid</span> <span class="pre">simulator</span> <span class="pre">requested</span></code>.
+See the section <a class="reference internal" href="../install.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a> for more information about how to install dependencies.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Setting random seed, via <code class="code docutils literal notranslate"><span class="pre">cudaq::set_random_seed</span></code>, is not supported by the <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> and <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> backends due to a limitation of the <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> library. This will be fixed in future release once this feature becomes available.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Tensor network-based simulators, such as the <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> and <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> backends, are suitable for large-scale simulation of certain classes of quantum circuits involving many qubits beyond the memory limit of state vector based simulators. For example, computing the expectation value of a Hamiltonian (<code class="code docutils literal notranslate"><span class="pre">cudaq::spin_op</span></code>) via <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code> can be performed efficiently, thanks to <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> contraction optimization capability. On the other hand, conditional circuits, i.e., those with mid-circuit measurements or reset, despite being supported by both backends, may result in poor performance.</p>
 </div>
 </section>
 </section>

@@ -80,17 +80,16 @@ simulator that will be used.
 Tensor Network Simulators
 ==================================
 
-cuQuantum multi-node multi-GPU
-++++++++++++++++++++++++++++++++++
+CUDA Quantum provides a couple of tensor-network simulator targets accelerated with 
+the :code:`cuTensorNet` library. 
+These backends are currently available for use from both C++ and Python.
 
-The :code:`tensornet` and :code:`tensornet-mps` targets provides a tensor-network simulator accelerated with 
-the :code:`cuTensorNet` library (version 2.3.0 and above). This backend is currently available for use from both C++ and Python.
+`cuTensorNet` multi-node multi-GPU
++++++++++++++++++++++++++++++++++++
 
-.. note:: 
-
-    This backend requires an NVIDIA GPU and CUDA runtime libraries. If you are do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
-
-In particular, the :code:`tensornet` backend represents quantum states and circuits exactly as tensor networks. Measurement samples and expectation values are computed via tensor network contractions. This backend supports Multi-Node, Multi-GPU distribution of tensor operations required to evaluate and simulate the circuit.
+The :code:`tensornet` backend represents quantum states and circuits tensor networks in an exact form (no approximation). 
+Measurement samples and expectation values are computed via tensor network contractions. 
+This backend supports Multi-Node, Multi-GPU distribution of tensor operations required to evaluate and simulate the circuit.
 
 This backend exposes a set of environment variables to configure specific aspects of the simulation:
 
@@ -109,6 +108,9 @@ This backend exposes a set of environment variables to configure specific aspect
 
     This command will assign a unique GPU to each MPI process within the node with 8 GPUs and produce a separate output for each MPI process.
 
+`cuTensorNet` matrix product state 
++++++++++++++++++++++++++++++++++++
+
 The :code:`tensornet-mps` backend is based on the matrix product state (MPS) representation of the state vector/wave function, exploiting the sparsity in the tensor network via tensor decomposition techniques such as QR and SVD. As such, this backend is an approximate simulator, whereby the number of singular values may be truncated to keep the MPS size tractable. 
 
 This backend exposes a set of environment variables to configure specific aspects of the simulation:
@@ -117,11 +119,14 @@ This backend exposes a set of environment variables to configure specific aspect
 * **`CUDAQ_MPS_ABS_CUTOFF=X`**: The cutoff for the largest singular value during truncation. Eigenvalues that are smaller will be trimmed out. Default: 1e-5.
 * **`CUDAQ_MPS_RELATIVE_CUTOFF=X`**: The cutoff for the maximal singular value relative to the largest eigenvalue. Eigenvalues that are smaller than this fraction of the largest singular value will be trimmed out. Default: 1e-5
 
-The :code:`tensornet-mps` only supports single-GPU simulation. Its approximate nature allows the :code:`tensornet-mps` backend to handle a large number of qubits for certain classes of quantum circuits.
+The :code:`tensornet-mps` only supports single-GPU simulation. Its approximate nature allows the :code:`tensornet-mps` backend to handle a large number of qubits for certain classes of quantum circuits on a relatively small memory footprint.
 
 .. warning:: 
 
     The :code:`tensornet-mps` cannot handle quantum gates acting on more than two qubit operands. It will throw an error when this constraint is not satisfied.
+
+Usage
+++++++
 
 To specify the use of the :code:`tensornet` or :code:`tensornet-mps` target, pass the following command line 
 options to :code:`nvq++`
@@ -149,11 +154,16 @@ or
 
     python3 src.py --target tensornet-mps
 
-
 This is equivalent to calling :code:`cudaq.set_target("tensornet")` or :code:`cudaq.set_target("tensornet-mps")` from within the Python script.
 
 .. note:: 
-    Tensor network-based simulators, such as the :code:`tensornet` and :code:`tensornet-mps` backends, are suitable for large-scale simulation of quantum circuits involving many qubits, especially beyond the memory limit of state vector based simulators. Conditional circuits, i.e., those with mid-circuit measurements or reset, despite being supported by both backends, may result in poor performance. 
+
+    These tensor-network backends require an NVIDIA GPU and CUDA runtime libraries. 
+    If you are do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. 
+    See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
 
 .. note:: 
     Setting random seed, via :code:`cudaq::set_random_seed`, is not supported by the :code:`tensornet` and :code:`tensornet-mps` backends due to a limitation of the :code:`cuTensorNet` library. This will be fixed in future release once this feature becomes available.
+
+.. note:: 
+    Tensor network-based simulators, such as the :code:`tensornet` and :code:`tensornet-mps` backends, are suitable for large-scale simulation of certain classes of quantum circuits involving many qubits beyond the memory limit of state vector based simulators. For example, computing the expectation value of a Hamiltonian (:code:`cudaq::spin_op`) via :code:`cudaq::observe` can be performed efficiently, thanks to :code:`cuTensorNet` contraction optimization capability. On the other hand, conditional circuits, i.e., those with mid-circuit measurements or reset, despite being supported by both backends, may result in poor performance. 
