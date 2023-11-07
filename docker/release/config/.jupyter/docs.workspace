@@ -1,0 +1,31 @@
+{
+  "data": {
+    "layout-restorer:data": {
+      "main": {
+        "dock": {
+          "type": "tab-area",
+          "currentIndex": 0
+        }
+      },
+      "down": {
+        "size": 0
+      },
+      "left": {
+        "collapsed": true,
+        "visible": false
+      },
+      "right": {
+        "collapsed": true,
+        "visible": false
+      },
+      "relativeSizes": [
+        0,
+        1,
+        0
+      ],
+      "top": {
+        "simpleVisibility": false
+      }
+    }
+  }
+}
