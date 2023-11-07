@@ -33,7 +33,7 @@ initKwargs = {'target': 'qpp-cpu'}
 if is_gpu_available():
     initKwargs = {'target': 'nvidia'}
 
-# Check environment variable - overrides default
+# Check environment variable - overrides default, if valid
 sim_env_var = os.environ.get('CUDAQ_DEFAULT_SIMULATOR')
 if sim_env_var is not None and sim_env_var in get_simulators_list():
     initKwargs['target'] = sim_env_var
@@ -43,6 +43,5 @@ if '-target' in sys.argv:
 
 if '--target' in sys.argv:
     initKwargs['target'] = sys.argv[sys.argv.index('--target') + 1]
-
 
 initialize_cudaq(**initKwargs)

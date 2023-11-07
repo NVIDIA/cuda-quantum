@@ -269,13 +269,13 @@ gpu_found=$(query_gpu)
 if ${gpu_found} && [ -f "${install_dir}/lib/libnvqir-custatevec-fp32.so" ]; then
 	NVQIR_SIMULATION_BACKEND="custatevec-fp32"
 fi
-# Check environment variable - overrides the default above
+# Check environment variable - overrides the default
+# NOTE: Invalid values are ignored; ASKME - show warning?
 if [[ ! -z "${CUDAQ_DEFAULT_SIMULATOR}" ]]; then
 	available_simulators=( $(list_simulators) )
 	for s in "${available_simulators[@]}"
 	do
 		if [ "${CUDAQ_DEFAULT_SIMULATOR}" = "$s" ]; then
-			# ASKME: Set simulator specifically?
 			TARGET_CONFIG="${CUDAQ_DEFAULT_SIMULATOR}"
 			break
 		fi
