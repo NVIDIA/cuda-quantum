@@ -360,7 +360,7 @@ This will emit any target specific compiler warnings and diagnostics, before run
 
 .. note::
 
-    The OQC quantum assembly toolchain (qat) which we use to compile and execute instructions can be found on github as `oqc-community/qat <https://github.com/oqc-community/qat>`__
+    The OQC quantum assembly toolchain (qat) which is used to compile and execute instructions can be found on github as `oqc-community/qat <https://github.com/oqc-community/qat>`__
 
 Submission from Python
 `````````````````````````
