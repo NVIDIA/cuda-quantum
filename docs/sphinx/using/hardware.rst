@@ -337,7 +337,7 @@ Users may provide their :code:`email` and :code:`url` as extra arguments
 
 .. code:: bash
 
-    nvq++ --target oqc --oqc-email $email --oqc-url $url src.cpp -o executable
+    nvq++ --target oqc --oqc-email <email> --oqc-url <url> src.cpp -o executable
 
 Where both environment variables and extra arguments are supplied, precedent is given to the extra arguments.
 To run the output, provide the runtime loaded variables and invoke the pre-built executable
