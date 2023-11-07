@@ -83,35 +83,77 @@ Tensor Network Simulators
 cuQuantum multi-node multi-GPU
 ++++++++++++++++++++++++++++++++++
 
-The :code:`tensornet` target provides a tensor-network simulator accelerated with 
-the :code:`cuTensorNet` library. This backend is currently available for use from C++ and supports 
-Multi-Node, Multi-GPU distribution of tensor operations required to evaluate and simulate the circuit.
+The :code:`tensornet` and :code:`tensornet-mps` targets provides a tensor-network simulator accelerated with 
+the :code:`cuTensorNet` library (version 2.3.0 and above). This backend is currently available for use from both C++ and Python.
 
 .. note:: 
 
     This backend requires an NVIDIA GPU and CUDA runtime libraries. If you are do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
 
+In particular, the :code:`tensornet` backend represents quantum states and circuits exactly as tensor networks. Measurement samples and expectation values are computed via tensor network contractions. This backend supports Multi-Node, Multi-GPU distribution of tensor operations required to evaluate and simulate the circuit.
+
 This backend exposes a set of environment variables to configure specific aspects of the simulation:
 
-* **`CUDAQ_CUTN_HOST_RAM=8`**: Prescribes the size of the CPU Host RAM allocated by each MPI process (defaults to 4 GB). A rule of thumb is to give each MPI process the same amount of CPU Host RAM as the RAM size of the GPU assigned to it. If there is more CPU RAM available, it is fine to further increase this number.
-* **`CUDAQ_CUTN_REDUCED_PRECISION=1`**: Activates reduced precision arithmetic, specifically reduces the precision from :code:`FP64` to :code:`FP32`.
-* **`CUDAQ_CUTN_LOG_LEVEL=1`**: Activates logging (for debugging purposes), the larger the integer, the more detailed the logging will be.
-* **`CUDA_VISIBLE_DEVICES=X`**: Makes the process only see GPU X on multi-GPU nodes. Each MPI process must only see its own dedicated GPU. For example, if you run 8 MPI processes on a DGX system with 8 GPUs, each MPI process should be assigned its own dedicated GPU via CUDA_VISIBLE_DEVICES when invoking `mpirun` (or `mpiexec`) commands. This can be done via invoking a bash script instead of the binary directly, and then using MPI library specific environment variables inside that script (e.g., `OMPI_COMM_WORLD_LOCAL_RANK`).
+* **`CUDA_VISIBLE_DEVICES=X`**: Makes the process only see GPU X on multi-GPU nodes. Each MPI process must only see its own dedicated GPU. For example, if you run 8 MPI processes on a DGX system with 8 GPUs, each MPI process should be assigned its own dedicated GPU via `CUDA_VISIBLE_DEVICES` when invoking `mpirun` (or `mpiexec`) commands. This can be done via invoking a bash script instead of the binary directly, and then using MPI library specific environment variables inside that script (e.g., `OMPI_COMM_WORLD_LOCAL_RANK`).
 * **`OMP_PLACES=cores`**: Set this environment variable to improve CPU parallelization.
 * **`OMP_NUM_THREADS=X`**: To enable CPU parallelization, set X to `NUMBER_OF_CORES_PER_NODE/NUMBER_OF_GPUS_PER_NODE`.
 
-A note on **CUDA_VISIBLE_DEVICES**: This environment variable should **always** be set before using the :code:`tensornet` 
-backend if you have multiple GPUs available. With OpenMPI, you can run a multi-GPU quantum circuit simulation like this:
+.. note:: 
 
-.. code:: bash 
+    The **CUDA_VISIBLE_DEVICES** environment variable should **always** be set before using the :code:`tensornet` 
+    backend if you have multiple GPUs available. With OpenMPI, you can run a multi-GPU quantum circuit simulation like this:
+
+    .. code:: bash 
     
-    mpiexec -n 8 sh -c 'CUDA_VISIBLE_DEVICES=${OMPI_COMM_WORLD_LOCAL_RANK} binary.x > tensornet.${OMPI_COMM_WORLD_RANK}.log'
+        mpiexec -n 8 sh -c 'CUDA_VISIBLE_DEVICES=${OMPI_COMM_WORLD_LOCAL_RANK} binary.x > tensornet.${OMPI_COMM_WORLD_RANK}.log'
 
-This command will assign a unique GPU to each MPI process within the node with 8 GPUs and produce a separate output for each MPI process.
+    This command will assign a unique GPU to each MPI process within the node with 8 GPUs and produce a separate output for each MPI process.
 
-To specify the use of the :code:`tensornet` target, pass the following command line 
+The :code:`tensornet-mps` backend is based on the matrix product state (MPS) representation of the state vector/wave function, exploiting the sparsity in the tensor network via tensor decomposition techniques such as QR and SVD. As such, this backend is an approximate simulator, whereby the number of singular values may be truncated to keep the MPS size tractable. 
+
+This backend exposes a set of environment variables to configure specific aspects of the simulation:
+
+* **`CUDAQ_MPS_MAX_BOND=X`**: The maximum number of singular values to keep (fixed extent truncation). Default: 64.
+* **`CUDAQ_MPS_ABS_CUTOFF=X`**: The cutoff for the largest singular value during truncation. Eigenvalues that are smaller will be trimmed out. Default: 1e-5.
+* **`CUDAQ_MPS_RELATIVE_CUTOFF=X`**: The cutoff for the maximal singular value relative to the largest eigenvalue. Eigenvalues that are smaller than this fraction of the largest singular value will be trimmed out. Default: 1e-5
+
+The :code:`tensornet-mps` only supports single-GPU simulation. Its approximate nature allows the :code:`tensornet-mps` backend to handle a large number of qubits for certain classes of quantum circuits.
+
+.. warning:: 
+
+    The :code:`tensornet-mps` cannot handle quantum gates acting on more than two qubit operands. It will throw an error when this constraint is not satisfied.
+
+To specify the use of the :code:`tensornet` or :code:`tensornet-mps` target, pass the following command line 
 options to :code:`nvq++`
 
 .. code:: bash 
 
     nvq++ --target tensornet src.cpp ...
+
+or 
+
+.. code:: bash 
+
+    nvq++ --target tensornet-mps src.cpp ...
+
+
+Similarly, when using Python, the :code:`--target` command line option can also be used
+
+.. code:: bash 
+
+    python3 src.py --target tensornet
+
+or 
+
+.. code:: bash 
+
+    python3 src.py --target tensornet-mps
+
+
+This is equivalent to calling :code:`cudaq.set_target("tensornet")` or :code:`cudaq.set_target("tensornet-mps")` from within the Python script.
+
+.. note:: 
+    Tensor network-based simulators, such as the :code:`tensornet` and :code:`tensornet-mps` backends, are suitable for large-scale simulation of quantum circuits involving many qubits, especially beyond the memory limit of state vector based simulators. Conditional circuits, i.e., those with mid-circuit measurements or reset, despite being supported by both backends, may result in poor performance. 
+
+.. note:: 
+    Setting random seed, via :code:`cudaq::set_random_seed`, is not supported by the :code:`tensornet` and :code:`tensornet-mps` backends due to a limitation of the :code:`cuTensorNet` library. This will be fixed in future release once this feature becomes available.
