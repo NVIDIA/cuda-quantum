@@ -10,10 +10,11 @@ This is a introduction by example for using CUDA Quantum in Python.
 .. raw:: html
 
     <div id="interactive-frame">
-      <iframe src="../_static/cuda_quantum_icon.svg" name="JupyterLab"></iframe>
-      <p><a href="http://localhost:5801/lab" target="JupyterLab">Open JupyterLab</a></p>
+      <iframe id="jupyterlab-vqe" src="../_static/cuda_quantum_icon.svg" name="JupyterLab"></iframe>
     </div>
-
+    <button id="jupyter-lab-launch" title="Open JupyterLab" class="jupyterlab-button" onclick="launchJupyterLab('jupyterlab-vqe', 'tutorials/vqe.ipynb')">
+       Open JupyterLab
+    </button>
 
 Introduction
 --------------------------------

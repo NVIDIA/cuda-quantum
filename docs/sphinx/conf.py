@@ -144,6 +144,7 @@ htmlhelp_basename = 'cudaqDoc'
 def setup(app):
     app.add_css_file('css/codemirror.css')
     app.add_css_file('css/eclipse.css')
+    app.add_js_file('js/jupyterlab.js')
 
 # -- Options for BREATHE -------------------------------------------------
 
