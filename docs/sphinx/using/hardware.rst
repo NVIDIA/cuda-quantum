@@ -312,7 +312,7 @@ To see a complete example for using IQM server backends, take a look at our :ref
 OQC
 ==================================
 
-`Oxford Quantum Circuits <https://oxfordquantumcircuits.com/>`__ (OQC) is currently providing cuda quantum integration for our 8 qubit ring topology Lucy device.
+`Oxford Quantum Circuits <https://oxfordquantumcircuits.com/>`__ (OQC) is currently providing CUDA quantum integration for our 8 qubit ring topology Lucy device.
 
 Setting Credentials
 `````````````````````````
@@ -333,13 +333,13 @@ Submission from C++
 
 To target quantum kernel code for execution on the OQC platform, provide the flag ``--target oqc`` to the ``nvq++`` compiler.
 
-users may provide their :code:`email` and :code:`url` as extra arguments
+Users may provide their :code:`email` and :code:`url` as extra arguments
 
 .. code:: bash
 
     nvq++ --target oqc --oqc-email $email --oqc-url $url src.cpp -o executable
 
-where both environment variables and extra arguments are supplied, precedent is given to the extra arguments.
+Where both environment variables and extra arguments are supplied, precedent is given to the extra arguments.
 To run the output, provide the runtime loaded variables and invoke the pre-built executable
 
 .. code:: bash
@@ -356,7 +356,7 @@ This will emit any target specific compiler warnings and diagnostics, before run
 
 .. note::
 
-    There is currently no requirement to specify the machine in use. This is configured via the url which points to the relevant system.
+    There is currently no requirement to specify the machine in use. This is configured via the URL which points to the relevant system.
 
 .. note::
 
@@ -365,28 +365,28 @@ This will emit any target specific compiler warnings and diagnostics, before run
 Submission from Python
 `````````````````````````
 
-To set which OQC url, set the :code:`url` parameter.
+To set which OQC URL, set the :code:`url` parameter.
 To set which OQC email, set the :code:`email` parameter.
 
 .. code:: python
 
-   import os
-   import cudaq
-   # ...
-   os.environ['OQC_PASSWORD'] = password
-   cudaq.set_target(target="oqc", url="")
+    import os
+    import cudaq
+    # ...
+    os.environ['OQC_PASSWORD'] = password
+    cudaq.set_target(target="oqc", url="")
 
-you can then execute a kernel against the platform using the oqc Lucy device
+you can then execute a kernel against the platform using the OQC Lucy device
 
 .. code:: python
 
-   kernel = cudaq.make_kernel()
-   qreg = kernel.qalloc(2)
-   kernel.h(qreg[0])
-   kernel.x(qreg[1])
-   kernel.cx(qreg[0], qreg[1])
-   kernel.mz(qreg)
-   str(cudaq.sample(kernel=kernel, shots_count=1000))
+    kernel = cudaq.make_kernel()
+    qreg = kernel.qalloc(2)
+    kernel.h(qreg[0])
+    kernel.x(qreg[1])
+    kernel.cx(qreg[0], qreg[1])
+    kernel.mz(qreg)
+    str(cudaq.sample(kernel=kernel, shots_count=1000))
 
 
 
