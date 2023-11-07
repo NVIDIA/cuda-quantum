@@ -344,7 +344,7 @@ To run the output, provide the runtime loaded variables and invoke the pre-built
 
 .. code:: bash
 
-   OQC_PASSWORD=$password ./executable
+   OQC_PASSWORD=<password> ./executable
 
 To emulate the OQC device locally, without submitting through the OQC QCaaS services, you can pass the ``--emulate`` flag to ``nvq++``.
 This will emit any target specific compiler warnings and diagnostics, before running a noise free emulation.
