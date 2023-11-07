@@ -29,6 +29,7 @@ LLVM
 LSB
 MLIR
 MPI
+MPS
 Max-Cut
 NGC
 NVIDIA
@@ -47,6 +48,7 @@ QPUs
 QTX
 Quake
 Quantinuum
+SVD
 Toffoli
 VQE
 Vazirani
