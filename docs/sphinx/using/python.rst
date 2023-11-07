@@ -12,7 +12,7 @@ This is a introduction by example for using CUDA Quantum in Python.
     <div id="interactive-frame">
       <iframe id="jupyterlab-vqe" src="../_static/cuda_quantum_icon.svg" name="JupyterLab"></iframe>
     </div>
-    <button id="jupyter-lab-launch" title="Open JupyterLab" class="jupyterlab-button" onclick="launchJupyterLab('jupyterlab-vqe', 'tutorials/vqe.ipynb')">
+    <button id="jupyter-lab-launch" title="Open JupyterLab" class="jupyterlab-button" onclick="launchJupyterLab('jupyterlab-vqe', 'tutorial/vqe.ipynb')">
        Open JupyterLab
     </button>
 
@@ -125,4 +125,101 @@ The following code illustrates how run kernels on IonQ's backends.
 
 .. literalinclude:: ../examples/python/providers/ionq.py
    :language: python
+
+
+Jupyterlab
+-----------------------------------
+
+Launch the dev container with
+
+.. code-block:: console
+
+   docker run -it --gpus all -p 8888:8888 -p 443:443 -p 3000:3000 --name cudaq-jupyter ghcr.io/nvidia/cuda-quantum:preview
+   #ip_addr=`docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' cudaq-jupyter`
+
+Within the dev container, execute:
+
+setupProxy.js:
+   const express = require('express');
+   const { createProxyMiddleware } = require('http-proxy-middleware');
+   const app = express();
+   app.use(
+   '/',
+   createProxyMiddleware({
+      target: 'http://localhost:8080',
+      changeOrigin: true
+   })
+   );
+   app.listen(8888);
+
+Testing:
+   const WebSocket = require('ws');
+
+   let ws = new WebSocket("ws://localhost:8888", [], { })
+   ws.onopen = () => {
+   console.log('Connection opened ok! ')
+   }
+
+sudo apt-get install xz-utils 
+wget https://nodejs.org/dist/v20.9.0/node-v20.9.0-linux-x64.tar.xz
+tar -xf node-v20.9.0-linux-x64.tar.xz && rm node-v20.9.0-linux-x64.tar.xz
+sudo mv node-v20.9.0-linux-x64/ /usr/local/node-20.9
+export PATH="$PATH:/usr/local/node-20.9/bin"
+npm install http-proxy-middleware express
+node setupProxy.js &
+
+jupyter-lab --no-browser --ip=* --port=8888 --ServerApp.tornado_settings='{"headers":{"Content-Security-Policy": "frame-ancestors self http://localhost:8080 * http://localhost:8888/ https://bettinaheim.github.io/cuda-quantum https://bettinaheim.github.io/cuda-quantum/*"},"cookie_options":{"SameSite":"None","Secure":True}}' --IdentityProvider.token="my-custom-token" --ServerApp.allow_origin='*' --ServerApp.websocket_url=ws://localhost:8888
+
+
+THIS WORKS:
+jupyter-lab --no-browser --ip=* --port=8888 --ServerApp.tornado_settings='{"headers":{"Content-Security-Policy": "frame-ancestors self http://localhost:8080 * http://localhost:8888/ https://bettinaheim.github.io/cuda-quantum https://bettinaheim.github.io/cuda-quantum/*"},"cookie_options":{"SameSite":"None","Secure":True}}' --IdentityProvider.token="my-custom-token" --ServerApp.allow_origin='*' --IdentityProvider.cookie_options='{"SameSite":"None","Secure":True}'
+
+# maybe we can --ip=localhost instead of --ip=* , 
+# but allow_origin would have to be http://localhost:8888 (not sure why the proxy isn't changing that...)
+
+# jupyter-lab --no-browser --ip=* --port=5802 --ServerApp.tornado_settings='{"headers":{"Content-Security-Policy": "frame-ancestors self http://localhost:5802 https://htmlpreview.github.io/?https%3A%2F%2Fgithub.com%2Fbettinaheim%2Fcuda-quantum%2Fblob%2Fdocs-preview%2Fv1"}}' --ServerApp.password="$(cat .jupyter/jupyter_server_config.json | egrep -o "hashed_password.*$" | cut -d ':' -f 2-)" --ServerApp.disable_check_xsrf=True
+
+-> instead get password with:  python -c "from jupyter_server.auth import passwd; pw=passwd(algorithm='sha1'); print(pw)"
+
+# could add "xsrf_cookie_kwargs":{"path":"_xsrf"} to the tornado_settings, but is not much help, similar "cookie_options":{"SameSite":"None"}
+
+Notes: 
+In the jupyterlab config, take a look at c.ServerApp.allow_remote_access, c.ServerApp.local_hostnames,
+
+Workspace config:
+
+{
+  "data": {
+    "layout-restorer:data": {
+      "main": {
+        "dock": {
+          "type": "tab-area",
+          "currentIndex": 0,
+        }
+      },
+      "down": {
+        "size": 0,
+      },
+      "left": {
+        "collapsed": true,
+        "visible": false,
+      },
+      "right": {
+        "collapsed": true,
+        "visible": false,
+      },
+      "relativeSizes": [
+        0,
+        1,
+        0
+      ],
+      "top": {
+        "simpleVisibility": false
+      }
+    },
+    "file-browser-filebrowser:cwd": {
+      "path": "tutorial/vqe.ipynb"
+    }
+  }
+}
 
