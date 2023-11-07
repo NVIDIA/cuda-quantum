@@ -376,7 +376,7 @@ To set which OQC email, set the :code:`email` parameter.
     os.environ['OQC_PASSWORD'] = password
     cudaq.set_target(target="oqc", url="")
 
-you can then execute a kernel against the platform using the OQC Lucy device
+You can then execute a kernel against the platform using the OQC Lucy device
 
 .. code:: python
 
