@@ -226,7 +226,10 @@ If you cannot use tunnels, you need a local installation of
 `VS Code <https://code.visualstudio.com/>`_ and you need to install 
 the `Dev Containers <https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers>`__ extension. 
 
-Launch VS Code, open the Command Palette with `Ctrl+Shift+P`, and enter "Dev Containers: Attach to Running Container". 
+Launch VS Code, open the Command Palette with `Ctrl+Shift+P`, and enter 
+.. spellcheck-disable
+"Dev Containers: Attach to Running Container". 
+.. spellcheck-enable
 You should see and select the running `cuda-quantum` container in the list. 
 After the window reloaded, enter "File: Open Folder" in the Command Palette to open the `/home/cudaq/` folder.
 
@@ -332,7 +335,7 @@ can easily be enabled with the `VS Code CLI <https://code.visualstudio.com/docs/
 This allows to connect either a local installation of `VS Code <https://code.visualstudio.com/>`_, 
 or the `VS Code Web UI <https://vscode.dev/>`__, to a running CUDA Quantum container on the same or a different machine. 
 
-Creating a secure connection requires authenticating with the same Github or Microsoft account on each end.
+Creating a secure connection requires authenticating with the same GitHub or Microsoft account on each end.
 Once authenticated, an SSH connection over the tunnel provides end-to-end encryption. To download the CLI and 
 create a tunnel, execute the following commands 
 
