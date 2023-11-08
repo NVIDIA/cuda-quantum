@@ -22,20 +22,10 @@
 #include <any>
 
 namespace cudaq {
-struct PyQubit {};
 struct PyQreg {};
 
 void bindMakeKernel(py::module &mod) {
-
-  py::class_<PyQubit>(
-      mod, "qubit",
-      R"#(The data-type representing a qubit argument to a :class:`Kernel`
-function.
-                      
-.. code-block:: python
-
-  # Example:
-  kernel, qubit = cudaq.make_kernel(cudaq.qubit))#");
+  // FIXME mark deprecated
   py::class_<PyQreg>(mod, "qreg",
                      R"#(The data-type representing a register of qubits as an 
 argument to a :class:`Kernel` function.
@@ -90,7 +80,7 @@ Returns:
               } else if (name == "qubit") {
                 cudaq::qubit q;
                 return details::mapArgToType(q);
-              } else if (name == "qreg") {
+              } else if (name == "qreg" || name == "qvector") {
                 cudaq::qreg<cudaq::dyn, 2> q;
                 return details::mapArgToType(q);
               } else

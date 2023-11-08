@@ -27,26 +27,30 @@ class GPUEmulatedQPU : public cudaq::QPU {
 protected:
   std::map<std::size_t, cudaq::ExecutionContext *> contexts;
 
+  /// @brief Each QPU should have an associated CUDA Device ID
+  std::size_t cudaDeviceId = 0;
+
 public:
   GPUEmulatedQPU() = default;
-  GPUEmulatedQPU(std::size_t id) : QPU(id) {}
+  GPUEmulatedQPU(std::size_t id, std::size_t _cudaDeviceId)
+      : QPU(id), cudaDeviceId(_cudaDeviceId) {}
 
   void enqueue(cudaq::QuantumTask &task) override {
     cudaq::info("Enqueue Task on QPU {}", qpu_id);
-    cudaSetDevice(qpu_id);
+    cudaSetDevice(cudaDeviceId);
     execution_queue->enqueue(task);
   }
 
   void launchKernel(const std::string &name, void (*kernelFunc)(void *),
                     void *args, std::uint64_t, std::uint64_t) override {
-    cudaq::info("QPU::launchKernel GPU {}", qpu_id);
-    cudaSetDevice(qpu_id);
+    cudaq::info("QPU::launchKernel GPU {}", cudaDeviceId);
+    cudaSetDevice(cudaDeviceId);
     kernelFunc(args);
   }
 
   /// Overrides setExecutionContext to forward it to the ExecutionManager
   void setExecutionContext(cudaq::ExecutionContext *context) override {
-    cudaSetDevice(qpu_id);
+    cudaSetDevice(cudaDeviceId);
 
     cudaq::info("MultiQPUPlatform::setExecutionContext QPU {}", qpu_id);
     auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
@@ -77,6 +81,7 @@ public:
     int nDevices;
     cudaGetDeviceCount(&nDevices);
 
+    int nQpus = nDevices;
     auto envVal = spdlog::details::os::getenv("CUDAQ_MQPU_NGPUS");
     if (!envVal.empty()) {
       int specifiedNDevices = 0;
@@ -87,16 +92,16 @@ public:
             "Invalid CUDAQ_MQPU_NGPUS environment variable, must be integer.");
       }
 
-      if (specifiedNDevices < nDevices)
-        nDevices = specifiedNDevices;
+      nQpus = specifiedNDevices;
     }
 
-    if (nDevices == 0)
+    if (nQpus == 0)
       throw std::runtime_error("No GPUs available to instantiate platform.");
 
     // Add a QPU for each GPU.
-    for (int i = 0; i < nDevices; i++)
-      platformQPUs.emplace_back(std::make_unique<GPUEmulatedQPU>(i));
+    for (int i = 0; i < nQpus; i++)
+      platformQPUs.emplace_back(
+          std::make_unique<GPUEmulatedQPU>(i, i % nDevices));
 
     platformNumQPUs = platformQPUs.size();
     platformCurrentQPU = 0;
