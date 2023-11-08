@@ -96,6 +96,7 @@ You can then launch the container and connect to it via SSH by executing the fol
 
     docker run -itd --gpus all --name cuda-quantum -p 2222:22 ghcr.io/nvidia/cuda-quantum:preview
     docker exec cuda-quantum bash -c "sudo apt-get install -y --no-install-recommends openssh-server"
+    docker exec cuda-quantum bash -c "sudo sed -i -E "s/#?\s*UsePAM\s+.+/UsePAM yes/g" /etc/ssh/sshd_config"
     docker cp ~/.ssh/id_rsa.pub cuda-quantum:/home/cudaq/.ssh/authorized_keys
     docker exec -d cuda-quantum bash -c "sudo -E /usr/sbin/sshd -D"
     ssh cudaq@localhost -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null
@@ -326,18 +327,20 @@ for developing CUDA Quantum applications.
 Developing with Remote Tunnels
 ++++++++++++++++++++++++++++++++++++
 
-The CUDA Quantum container includes an installation of the 
-`VS Code CLI <https://code.visualstudio.com/docs/editor/command-line>`__ to enable
-`remote access via tunnel <https://code.visualstudio.com/blogs/2022/12/07/remote-even-better>`__.
+`Remote access via tunnel <https://code.visualstudio.com/blogs/2022/12/07/remote-even-better>`__
+can easily be enabled with the `VS Code CLI <https://code.visualstudio.com/docs/editor/command-line>`__.
 This allows to connect either a local installation of `VS Code <https://code.visualstudio.com/>`_, 
 or the `VS Code Web UI <https://vscode.dev/>`__, to a running CUDA Quantum container on the same or a different machine. 
 
 Creating a secure connection requires authenticating with the same Github or Microsoft account on each end.
-Once authenticated, an SSH connection over the tunnel provides end-to-end encryption. To create a tunnel, 
-execute the command 
+Once authenticated, an SSH connection over the tunnel provides end-to-end encryption. To download the CLI and 
+create a tunnel, execute the following commands 
 
 .. code-block:: console
 
+    os=$([ "$(uname -m)" == "aarch64" ] && echo cli-alpine-arm64 || echo cli-alpine-x64)
+    curl -Lk "https://code.visualstudio.com/sha/download?build=stable&os=$os" --output vscode_cli.tar.gz
+    tar -xf vscode_cli.tar.gz && rm vscode_cli.tar.gz && sudo mv code /usr/bin/
     code tunnel --name cuda-quantum-remote --accept-server-license-terms
 
 in the running CUDA Quantum container, and follow the instructions to authenticate.
