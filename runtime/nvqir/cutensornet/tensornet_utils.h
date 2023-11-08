@@ -74,3 +74,7 @@ struct ScratchDeviceMem {
   }
   ~ScratchDeviceMem() { HANDLE_CUDA_ERROR(cudaFree(d_scratch)); }
 };
+
+/// Initialize cutensornet MPI Comm
+/// If MPI is not available, fallback to an empty implementation.
+void initCuTensornetComm(cutensornetHandle_t cutnHandle);

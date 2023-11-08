@@ -57,24 +57,16 @@ if (${CUTENSORNET_VERSION} VERSION_GREATER_EQUAL "2.3")
   endmacro()
 
   nvqir_create_cutn_plugin(tensornet ${BASE_TENSOR_BACKEND_SRS} simulator_tensornet_register.cpp )
-  # Locate CUTENSORNET_COMM_LIB
-  if(EXISTS "$ENV{CUTENSORNET_COMM_LIB}")
-    set(CUTENSORNET_COMM_LIB "$ENV{CUTENSORNET_COMM_LIB}")
-  else()
-    find_library(CUTENSORNET_COMM_LIB
-      NAMES libcutensornet_distributed_interface_mpi.so
-      HINTS   
-          ${CUTENSORNET_ROOT}/lib64
-          ${CUTENSORNET_ROOT}/lib
-          ENV LD_LIBRARY_PATH
-    )
-  endif()
-  if(CUTENSORNET_COMM_LIB)
-    message(STATUS "CUTENSORNET_COMM_LIB: ${CUTENSORNET_COMM_LIB}")
-    target_compile_definitions(nvqir-tensornet PRIVATE -DCUTENSORNET_COMM_LIB="${CUTENSORNET_COMM_LIB}")
-  endif()
   nvqir_create_cutn_plugin(tensornet-mps ${BASE_TENSOR_BACKEND_SRS} simulator_mps_register.cpp)
-
+  add_library(tensornet-mpi-util OBJECT mpi_support.cpp)
+  target_include_directories(tensornet-mpi-util PRIVATE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES} ${CUTENSORNET_INCLUDE_DIR})
+  if (MPI_CXX_FOUND)
+    target_compile_definitions(tensornet-mpi-util PRIVATE CUDAQ_HAS_MPI)
+    target_link_libraries(tensornet-mpi-util PRIVATE MPI::MPI_CXX)
+  endif()
+  # Note: only tensornet backend supports MPI at cutensornet level (distributed tensor computation)
+  target_link_libraries(nvqir-tensornet PRIVATE tensornet-mpi-util)
+  
   # Check if the cutensornet plugin lib for expectation value is provided
   if(NOT CUDAQ_CUTENSORNET_PLUGIN_LIB AND EXISTS "$ENV{CUDAQ_CUTENSORNET_PLUGIN_LIB}")
     set(CUDAQ_CUTENSORNET_PLUGIN_LIB "$ENV{CUDAQ_CUTENSORNET_PLUGIN_LIB}")

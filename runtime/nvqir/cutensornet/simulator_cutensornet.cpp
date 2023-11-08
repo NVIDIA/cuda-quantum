@@ -12,24 +12,6 @@
 #include "tensornet_spin_op.h"
 
 namespace nvqir {
-static void initCuTensornetComm(cutensornetHandle_t cutnHandle) {
-#if defined CUDAQ_HAS_MPI
-  // Get the environment variable
-  const char *env_var = std::getenv("CUTENSORNET_COMM_LIB");
-  // If the variable is not set, use the one detected at compile time
-  if (env_var == nullptr) {
-    const auto __compile_time_detected_comm_lib =
-        std::string(CUTENSORNET_COMM_LIB);
-    setenv("CUTENSORNET_COMM_LIB", __compile_time_detected_comm_lib.c_str(),
-           false);
-  }
-  MPI_Comm cutnComm;
-  // duplicate MPI communicator to dedicate it to cuTensorNet
-  HANDLE_MPI_ERROR(MPI_Comm_dup(MPI_COMM_WORLD, &cutnComm));
-  HANDLE_CUTN_ERROR(cutensornetDistributedResetConfiguration(
-      cutnHandle, &cutnComm, sizeof(cutnComm)));
-#endif
-}
 
 SimulatorTensorNetBase::SimulatorTensorNetBase() {
   int numDevices{0};
@@ -39,8 +21,6 @@ SimulatorTensorNetBase::SimulatorTensorNetBase() {
       cudaq::mpi::is_initialized() ? cudaq::mpi::rank() % numDevices : 0;
   HANDLE_CUDA_ERROR(cudaSetDevice(deviceId));
   HANDLE_CUTN_ERROR(cutensornetCreate(&m_cutnHandle));
-  if (cudaq::mpi::is_initialized())
-    initCuTensornetComm(m_cutnHandle);
 }
 
 static std::vector<std::complex<double>>
