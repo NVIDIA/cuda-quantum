@@ -116,6 +116,7 @@ RUN env | egrep -v "^(HOME=|USER=|MAIL=|LC_ALL=|LS_COLORS=|LANG=|HOSTNAME=|PWD=|
 RUN adduser --disabled-password --gecos '' cudaq && adduser cudaq sudo \
     && echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers \
     && mkdir -p /home/cudaq/.ssh && mkdir -p /var/run/sshd
+ENV PATH="$PATH:/home/cudaq/.local/bin"
 
 ADD ./docs/sphinx/examples/ /home/cudaq/examples/
 ADD ./docker/release/README.md /home/cudaq/README.md
