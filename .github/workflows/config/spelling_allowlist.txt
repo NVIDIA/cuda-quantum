@@ -36,6 +36,7 @@ Max-Cut
 NGC
 NVIDIA
 NVQIR
+OQC
 OpenMP
 OpenMPI
 OpenQASM
@@ -43,6 +44,7 @@ Pauli
 Paulis
 PyPI
 QAOA
+QCaaS
 QIR
 QIS
 QPU
