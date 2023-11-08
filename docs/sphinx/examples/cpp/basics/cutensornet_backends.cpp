@@ -4,7 +4,7 @@
 // mpirun -np <N> ./dyn.x
 // ```
 
-// This example is meant to demonstrate the cuTensorNet
+// This example is meant to demonstrate the `cuTensorNet`
 // multi-node/multi-GPU backend.
 
 #include <cudaq.h>
@@ -26,15 +26,17 @@ struct ghz {
 int main() {
   // Initialize MPI
   cudaq::mpi::initialize();
-  printf("Number of MPI processes: %d\n", cudaq::mpi::num_ranks());
+  if (cudaq::mpi::rank() == 0)
+    printf("Number of MPI processes: %d\n", cudaq::mpi::num_ranks());
   auto counts = cudaq::sample(100, ghz{}, 28);
-  counts.dump();
+  if (cudaq::mpi::rank() == 0) {
+    counts.dump();
 
-  // Fine grain access to the bits and counts
-  for (auto &[bits, count] : counts) {
-    printf("Observed: %s, %lu\n", bits.data(), count);
+    // Fine grain access to the bits and counts
+    for (auto &[bits, count] : counts) {
+      printf("Observed: %s, %lu\n", bits.data(), count);
+    }
   }
-
   cudaq::mpi::finalize();
   return 0;
 }

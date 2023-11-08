@@ -26,6 +26,12 @@ public:
   // Nothing to do for state preparation
   virtual void prepareQubitTensorState() override {}
   virtual std::string name() const override { return "tensornet"; }
+  // Add a hook to reset the cutensornet MPI Comm before MPI finalization
+  // to make sure we have a clean shutdown.
+  virtual void tearDownBeforeMPIFinalize() override {
+    if (cudaq::mpi::is_initialized())
+      resetCuTensornetComm(m_cutnHandle);
+  }
 };
 } // namespace nvqir
 

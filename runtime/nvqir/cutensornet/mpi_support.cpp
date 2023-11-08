@@ -39,7 +39,14 @@ void initCuTensornetComm(cutensornetHandle_t cutnHandle) {
   HANDLE_CUTN_ERROR(cutensornetDistributedResetConfiguration(
       cutnHandle, &cutnComm, sizeof(cutnComm)));
 }
+
+void resetCuTensornetComm(cutensornetHandle_t cutnHandle) {
+  // Passing a nullptr to force a reset.
+  HANDLE_CUTN_ERROR(cutensornetDistributedResetConfiguration(
+      cutnHandle, nullptr, sizeof(MPI_Comm)));
+}
 #else
 // Noop if we don't have MPI
 void initCuTensornetComm(cutensornetHandle_t cutnHandle) {}
+void resetCuTensornetComm(cutensornetHandle_t cutnHandle) {}
 #endif
