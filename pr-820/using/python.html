@@ -176,7 +176,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html">Multi-GPU Workflows</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Available-Targets">Available Targets</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Default-CPU-Backend">Default CPU Backend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#QPP-based-CPU-Backend">QPP-based CPU Backend</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Multiple-QPU's">Multiple QPU’s</a></li>
@@ -214,6 +214,12 @@
 <li class="toctree-l3"><a class="reference internal" href="hardware.html#id4">Setting Credentials</a></li>
 <li class="toctree-l3"><a class="reference internal" href="hardware.html#id5">Submission from C++</a></li>
 <li class="toctree-l3"><a class="reference internal" href="hardware.html#id6">Submission from Python</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="hardware.html#oqc">OQC</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="hardware.html#id7">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware.html#id8">Submission from C++</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware.html#id9">Submission from Python</a></li>
 </ul>
 </li>
 </ul>
@@ -1009,7 +1015,7 @@ Let’s take a look at the various built-in noise models we support, before conc
 <span id="python-examples-for-hardware-providers"></span><h2>Using Quantum Hardware Providers<a class="headerlink" href="#using-quantum-hardware-providers" title="Permalink to this heading">¶</a></h2>
 <p>CUDA Quantum contains support for using a set of hardware providers.
 For more information about executing quantum kernels on different hardware backends, please take a look at <a class="reference internal" href="hardware.html"><span class="doc">CUDA Quantum Hardware Backends</span></a>.</p>
-<p>The following code illustrates how run kernels on Quantinuum’s backends.</p>
+<p>The following code illustrates how to run kernels on Quantinuum’s backends.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
 
 <span class="c1"># You only have to set the target once! No need to redefine it</span>
@@ -1068,7 +1074,7 @@ For more information about executing quantum kernels on different hardware backe
 <span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>The following code illustrates how run kernels on IonQ’s backends.</p>
+<p>The following code illustrates how to run kernels on IonQ’s backends.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
 
 <span class="c1"># You only have to set the target once! No need to redefine it</span>
@@ -1119,6 +1125,67 @@ For more information about executing quantum kernels on different hardware backe
 <span class="c1"># By using the synchronous `cudaq.sample`, the execution of</span>
 <span class="c1"># any remaining classical code in the file will occur only</span>
 <span class="c1"># after the job has been returned from IonQ.</span>
+<span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The following code illustrates how to run kernels on IQM’s backends.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+
+<span class="c1"># You only have to set the target once! No need to redefine it</span>
+<span class="c1"># for every execution call on your kernel.</span>
+<span class="c1"># To use different targets in the same file, you must update</span>
+<span class="c1"># it via another call to `cudaq.set_target()`</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;iqm&quot;</span><span class="p">,</span>
+                 <span class="n">url</span><span class="o">=</span><span class="s2">&quot;http://localhost/cocos&quot;</span><span class="p">,</span>
+                 <span class="o">**</span><span class="p">{</span><span class="s2">&quot;qpu-architecture&quot;</span><span class="p">:</span> <span class="s2">&quot;Adonis&quot;</span><span class="p">})</span>
+
+<span class="c1"># Adonis QPU architecture:</span>
+<span class="c1">#       QB1</span>
+<span class="c1">#        |</span>
+<span class="c1"># QB2 - QB3 - QB4</span>
+<span class="c1">#        |</span>
+<span class="c1">#       QB5</span>
+
+<span class="c1"># Create the kernel we&#39;d like to execute on IQM.</span>
+<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="n">qubits</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>  <span class="c1"># QB3</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
+
+<span class="c1"># Execute on IQM Server and print out the results.</span>
+
+<span class="c1"># Option A:</span>
+<span class="c1"># By using the asynchronous `cudaq.sample_async`, the remaining</span>
+<span class="c1"># classical code will be executed while the job is being handled</span>
+<span class="c1"># by IQM Server. This is ideal when submitting via a queue over</span>
+<span class="c1"># the cloud.</span>
+<span class="n">async_results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+<span class="c1"># ... more classical code to run ...</span>
+
+<span class="c1"># We can either retrieve the results later in the program with</span>
+<span class="c1"># ```</span>
+<span class="c1"># async_counts = async_results.get()</span>
+<span class="c1"># ```</span>
+<span class="c1"># or we can also write the job reference (`async_results`) to</span>
+<span class="c1"># a file and load it later or from a different process.</span>
+<span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+<span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">async_results</span><span class="p">))</span>
+<span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<span class="c1"># We can later read the file content and retrieve the job</span>
+<span class="c1"># information and results.</span>
+<span class="n">same_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+<span class="n">retrieved_async_results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">AsyncSampleResult</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">same_file</span><span class="o">.</span><span class="n">read</span><span class="p">()))</span>
+
+<span class="n">counts</span> <span class="o">=</span> <span class="n">retrieved_async_results</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
+
+<span class="c1"># Option B:</span>
+<span class="c1"># By using the synchronous `cudaq.sample`, the execution of</span>
+<span class="c1"># any remaining classical code in the file will occur only</span>
+<span class="c1"># after the job has been returned from IQM Server.</span>
 <span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
 </pre></div>

@@ -176,7 +176,7 @@
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html">Multi-GPU Workflows</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html#Available-Targets">Available Targets</a></li>
-<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html#Default-CPU-Backend">Default CPU Backend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html#QPP-based-CPU-Backend">QPP-based CPU Backend</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html#Multiple-QPU's">Multiple QPU’s</a></li>
@@ -214,6 +214,12 @@
 <li class="toctree-l3"><a class="reference internal" href="using/hardware.html#id4">Setting Credentials</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/hardware.html#id5">Submission from C++</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/hardware.html#id6">Submission from Python</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="using/hardware.html#oqc">OQC</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="using/hardware.html#id7">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/hardware.html#id8">Submission from C++</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/hardware.html#id9">Submission from Python</a></li>
 </ul>
 </li>
 </ul>
@@ -481,7 +487,7 @@ Open VS Code and navigate to the Remote Explorer. You should see the running cud
 folder to see the <code class="code docutils literal notranslate"><span class="pre">README.md</span></code> file and the CUDA Quantum examples that are included in the container. To run the examples,
 open a terminal by going to the Terminal menu and select <code class="code docutils literal notranslate"><span class="pre">New</span> <span class="pre">Terminal</span></code>.</p>
 <img alt="_images/openTerminal.png" src="_images/openTerminal.png" />
-<p>You can now compile and run the C++ examples using the <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> compiler,
+<p>You can now compile and run the C++ examples using the <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> compiler, which is installed in your <code class="code docutils literal notranslate"><span class="pre">PATH</span></code>,
 or run the Python examples using the Python interpreter.</p>
 <img alt="_images/getToWork.png" src="_images/getToWork.png" />
 <div class="admonition note">
