@@ -172,18 +172,13 @@ index pair.
 
   mod.def(
       "get_state",
-      [&](py::object kernel, py::args args) {
-        if (!py::hasattr(kernel, "kernelFunction"))
-          throw std::runtime_error("Invalid cudaq.kernel type. Did you "
-                                   "decorate the kernel function?");
-
-        return cudaq::get_state(kernel, *args);
+      [](kernel_builder<> &kernel, py::args args) {
+        return pyGetState(kernel, args);
       },
-      py::arg("kernel"), py::kw_only(),
       R"#(Return the :class:`State` of the system after execution of the provided `kernel`.
 
 Args:
-  kernel (:class:`object`): The :class:`Kernel` to execute on the QPU.
+  kernel (:class:`Kernel`): The :class:`Kernel` to execute on the QPU.
   *arguments (Optional[Any]): The concrete values to evaluate the kernel 
     function at. Leave empty if the kernel doesn't accept any arguments.
 
@@ -206,13 +201,18 @@ Args:
 
   mod.def(
       "get_state",
-      [](kernel_builder<> &kernel, py::args args) {
-        return pyGetState(kernel, args);
+      [&](py::object kernel, py::args args) {
+        if (!py::hasattr(kernel, "kernelFunction"))
+          throw std::runtime_error("Invalid cudaq.kernel type. Did you "
+                                   "decorate the kernel function?");
+
+        return cudaq::get_state(kernel, *args);
       },
+      py::arg("kernel"), py::kw_only(),
       R"#(Return the :class:`State` of the system after execution of the provided `kernel`.
 
 Args:
-  kernel (:class:`Kernel`): The :class:`Kernel` to execute on the QPU.
+  kernel (:class:`object`): The :class:`Kernel` to execute on the QPU.
   *arguments (Optional[Any]): The concrete values to evaluate the kernel 
     function at. Leave empty if the kernel doesn't accept any arguments.
 
