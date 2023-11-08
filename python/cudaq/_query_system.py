@@ -34,14 +34,11 @@ def get_simulators_list():
     for file in os.listdir(targets_dir):
         if file.endswith(".config"):
             with open(os.path.join(targets_dir, file), 'r') as config:
-                skip = False
                 for line in config.readlines():
                     if "PLATFORM_QPU=" in line:
-                        skip = True
                         break
                     if "LIBRARY_MODE_EXECUTION_MANAGER=" in line:
-                        skip = True
                         break
-                if not skip:
+                else:
                     simulators.append(Path(file).stem)
     return simulators
