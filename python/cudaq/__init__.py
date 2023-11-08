@@ -6,8 +6,11 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+import ast
+import inspect
 import sys
-import os, os.path
+import os
+import os.path
 from ._packages import *
 from ._query_gpu import is_gpu_available
 
@@ -28,6 +31,7 @@ if not "CUDAQ_DYNLIBS" in os.environ:
 
 from ._pycudaq import *
 from .domains import chemistry
+from .language.analysis import MidCircuitMeasurementAnalyzer
 
 initKwargs = {'target': 'qpp-cpu'}
 if is_gpu_available():
@@ -40,3 +44,44 @@ if '--target' in sys.argv:
     initKwargs['target'] = sys.argv[sys.argv.index('--target') + 1]
 
 initialize_cudaq(**initKwargs)
+
+# Expose global static quantum operations
+h = h()
+x = x()
+y = y()
+z = z()
+s = s()
+t = t()
+
+rx = rx()
+ry = ry()
+rz = rz()
+r1 = r1()
+swap = swap()
+
+
+class kernel(object):
+    """The `cudaq.kernel` represents the CUDA Quantum language function 
+       attribute that programmers leverage to indicate the following function 
+       is a CUDA Quantum kernel and should be compiled and executed on 
+       an available quantum coprocessor."""
+
+    def __init__(self, function, *args, **kwargs):
+        self.kernelFunction = function
+        self.inputArgs = args
+        self.inputKwargs = kwargs
+        src = inspect.getsource(function)
+        leadingSpaces = len(src) - len(src.lstrip())
+        self.funcSrc = '\n'.join(
+            [line[leadingSpaces:] for line in src.split('\n')])
+        self.module = ast.parse(self.funcSrc)
+        analyzer = MidCircuitMeasurementAnalyzer()
+        analyzer.visit(self.module)
+        self.metadata = {'conditionalOnMeasure': analyzer.hasMidCircuitMeasures}
+
+    def __call__(self, *args):
+        if get_target().is_remote():
+            raise Exception(
+                "Python kernel functions cannot run on remote QPUs yet.")
+
+        self.kernelFunction(*args)

@@ -172,6 +172,40 @@ index pair.
 
   mod.def(
       "get_state",
+      [&](py::object kernel, py::args args) {
+        if (!py::hasattr(kernel, "kernelFunction"))
+          throw std::runtime_error("Invalid cudaq.kernel type. Did you "
+                                   "decorate the kernel function?");
+
+        return cudaq::get_state(kernel, *args);
+      },
+      py::arg("kernel"), py::kw_only(),
+      R"#(Return the :class:`State` of the system after execution of the provided `kernel`.
+
+Args:
+  kernel (:class:`object`): The :class:`Kernel` to execute on the QPU.
+  *arguments (Optional[Any]): The concrete values to evaluate the kernel 
+    function at. Leave empty if the kernel doesn't accept any arguments.
+
+.. code-block:: python
+
+  # Example:
+  import numpy as np
+
+  # Define a kernel that will produced the all |11...1> state.
+  kernel = cudaq.make_kernel()
+  qubits = kernel.qalloc(3)
+  # Prepare qubits in the 1-state.
+  kernel.x(qubits)
+
+  # Get the state of the system. This will execute the provided kernel
+  # and, depending on the selected target, will return the state as a
+  # vector or matrix.
+  state = cudaq.get_state(kernel)
+  print(state))#");
+
+  mod.def(
+      "get_state",
       [](kernel_builder<> &kernel, py::args args) {
         return pyGetState(kernel, args);
       },

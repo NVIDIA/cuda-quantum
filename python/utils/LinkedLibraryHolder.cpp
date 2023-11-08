@@ -35,6 +35,11 @@ std::size_t RuntimeTarget::num_qpus() {
   return platform.num_qpus();
 }
 
+bool RuntimeTarget::is_remote() {
+  auto &platform = cudaq::get_platform();
+  return platform.is_remote();
+}
+
 /// @brief Search the targets folder in the install for available targets.
 void findAvailableTargets(
     const std::filesystem::path &targetPath,
