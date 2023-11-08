@@ -17,11 +17,10 @@
 #include <random>
 
 template <int nrOfBits>
-std::bitset<nrOfBits> random_bits() {
+std::bitset<nrOfBits> random_bits(int seed) {
 
   std::bitset<nrOfBits> randomBits;
-
-  std::default_random_engine generator;
+  std::default_random_engine generator(seed);
   std::uniform_real_distribution<float> distribution(0.0, 1.0);
 
   float randNum;
@@ -66,11 +65,13 @@ struct bernstein_vazirani {
   }
 };
 
-int main() {
+int main(int argc, char *argv[]) {
+  auto seed = 1 < argc ? atoi(argv[1]) : 1;
+
   // The number of qubits can be increased when targeting
   // the `nvidia-mgpu` backend.
   const int nr_qubits = 32;
-  auto bitvector = random_bits<nr_qubits>();
+  auto bitvector = random_bits<nr_qubits>(seed);
   auto kernel = bernstein_vazirani<nr_qubits>{};
   auto counts = cudaq::sample(kernel, bitvector);
 
