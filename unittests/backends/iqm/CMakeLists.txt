@@ -26,5 +26,5 @@ target_link_libraries(test_iqm
 
 
 configure_file("IQMStartServerAndTest.sh.in" "${CMAKE_BINARY_DIR}/unittests/backends/iqm/IQMStartServerAndTest.sh" @ONLY)
-add_test(NAME iqm-tests COMMAND ./IQMStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/iqm/)
+add_test(NAME iqm-tests COMMAND bash IQMStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/iqm/)
 set_property(TEST iqm-tests PROPERTY SKIP_RETURN_CODE 77)

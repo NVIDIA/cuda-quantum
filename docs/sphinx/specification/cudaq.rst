@@ -1,8 +1,8 @@
 Language Specification 
 ***********************************
 
-NVIDIA CUDA Quantum is a single-source
-programming model in C++ for heterogeneous quantum-classical computing.
+NVIDIA CUDA Quantum is a programming model for heterogeneous 
+quantum-classical computing available in C++ and Python.
 As such, the model provides primitive types, concepts, syntax, and
 semantics that enable the integration of quantum processors with
 existing NVIDIA multi-GPU parallel programming models and architectures. 
