@@ -9,7 +9,6 @@
 // FIXME: enable this for all architectures,
 // see https://github.com/NVIDIA/cuda-quantum/issues/553.
 
-// REQUIRES: x64_86-registered-target
 // RUN: nvq++ --enable-mlir -v %s -o out_auto_kernel.x && ./out_auto_kernel.x | FileCheck %s
 
 #include <cudaq.h>
