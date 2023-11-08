@@ -39,29 +39,15 @@ To download the latest version on the main branch of our GitHub repository, for 
 
     docker pull nvcr.io/nvidia/nightly/cuda-quantum:latest
 
-.. note:: 
-  
-  Downloading images from `nvidia/nightly` images from NGC currently requires login (see instructions below). Alternatively, you can download the images from GitHub by pulling `ghcr.io/nvidia/cuda-quantum:latest`.
-
-To login to NGC, please follow these steps if you have not done so already:
-
-- `Create an account <https://ngc.nvidia.com/signin>`__
-- `Sign in <https://ngc.nvidia.com/signin>`__ to access your account and go to `Setup <https://ngc.nvidia.com/setup>`__.
-- Click on `Get API Key` and generate a new key (this will invalidate any existing keys).
-- Follow the instructions that appear to use that key to log in to the NGC registry using Docker.
-
-If you run `docker login nvcr.io`, you should see a message "Login Succeeded".
-
 .. _NGC Container Registry: https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum
-
 
 Once you have downloaded an image, the container can be run using the command
 
 .. code-block:: console
 
-    docker run -it --name cuda-quantum <image_name>
+    docker run -it --name cuda-quantum nvcr.io/nvidia/nightly/cuda-quantum:latest
 
-replacing :code:`<image_name>` with the name and tag of the image you downloaded.
+Replace the image name and/or tag in the command above, if necessary, with the one you want to use.
 This will give you terminal access to the created container. To enable support 
 for GPU-accelerated backends, you will need to pass the :code:`--gpus` flag when launching
 the container, for example:
@@ -94,7 +80,7 @@ You can then launch the container and connect to it via SSH by executing the fol
 
 .. code-block:: console
 
-    docker run -itd --gpus all --name cuda-quantum -p 2222:22 ghcr.io/nvidia/cuda-quantum:preview
+    docker run -itd --gpus all --name cuda-quantum -p 2222:22 nvcr.io/nvidia/nightly/cuda-quantum:latest
     docker exec cuda-quantum bash -c "sudo apt-get install -y --no-install-recommends openssh-server"
     docker exec cuda-quantum bash -c "sudo sed -i -E "s/#?\s*UsePAM\s+.+/UsePAM yes/g" /etc/ssh/sshd_config"
     docker cp ~/.ssh/id_rsa.pub cuda-quantum:/home/cudaq/.ssh/authorized_keys

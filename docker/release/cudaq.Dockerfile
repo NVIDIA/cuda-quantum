@@ -16,7 +16,7 @@
 #
 # Usage:
 # Must be built from the repo root with:
-#   docker build -t ghcr.io/nvidia/cuda-quantum:latest -f docker/release/cudaq.Dockerfile .
+#   docker build -t nvcr.io/nvidia/nightly/cuda-quantum:latest-base -f docker/release/cudaq.Dockerfile .
 # 
 # The build argument cudaqdev_image defines the CUDA Quantum dev image that contains the CUDA
 # Quantum build. This Dockerfile copies the built components into the base_image. The specified
