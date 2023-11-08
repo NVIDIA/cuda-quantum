@@ -490,8 +490,8 @@ QuakeValue constantVal(ImplicitLocOpBuilder &builder, double val) {
 }
 
 template <typename QuakeOp>
-void handleOneQubitBroadcast(ImplicitLocOpBuilder &builder, Value veq,
-                             bool adjoint = false) {
+void handleOneQubitBroadcast(ImplicitLocOpBuilder &builder, auto param,
+                             Value veq, bool adjoint = false) {
   cudaq::info("kernel_builder handling operation broadcast on qvector.");
 
   auto loc = builder.getLoc();
@@ -503,7 +503,7 @@ void handleOneQubitBroadcast(ImplicitLocOpBuilder &builder, Value veq,
     Value ref =
         builder.create<quake::ExtractRefOp>(loc, veq, block.getArgument(0));
 
-    builder.create<QuakeOp>(loc, adjoint, ValueRange(), ValueRange(), ref);
+    builder.create<QuakeOp>(loc, adjoint, param, ValueRange(), ref);
   };
   cudaq::opt::factory::createInvariantLoop(builder, loc, rank, bodyBuilder);
 }
@@ -524,7 +524,8 @@ void applyOneQubitOp(ImplicitLocOpBuilder &builder, auto &&params, auto &&ctrls,
       if (!ctrls.empty())                                                      \
         throw std::runtime_error(                                              \
             "Cannot specify controls for a veq broadcast.");                   \
-      handleOneQubitBroadcast<quake::QUAKENAME>(builder, target.getValue());   \
+      handleOneQubitBroadcast<quake::QUAKENAME>(builder, ValueRange(),         \
+                                                target.getValue());            \
       return;                                                                  \
     }                                                                          \
     std::vector<Value> ctrlValues;                                             \
@@ -546,11 +547,20 @@ CUDAQ_ONE_QUBIT_IMPL(z, ZOp)
             std::vector<QuakeValue> &ctrls, QuakeValue &target) {              \
     cudaq::info("kernel_builder apply {}", std::string(#NAME));                \
     Value value = target.getValue();                                           \
+    auto type = value.getType();                                               \
+    if (type.isa<quake::VeqType>()) {                                          \
+      if (!ctrls.empty())                                                      \
+        throw std::runtime_error(                                              \
+            "Cannot specify controls for a veq broadcast.");                   \
+      handleOneQubitBroadcast<quake::QUAKENAME>(builder, parameter.getValue(), \
+                                                target.getValue());            \
+      return;                                                                  \
+    }                                                                          \
     std::vector<Value> ctrlValues;                                             \
     std::transform(ctrls.begin(), ctrls.end(), std::back_inserter(ctrlValues), \
                    [](auto &el) { return el.getValue(); });                    \
     applyOneQubitOp<quake::QUAKENAME>(builder, parameter.getValue(),           \
-                                      ctrlValues, value);                      \
+                                      ctrlValues, value, false);               \
   }
 
 CUDAQ_ONE_QUBIT_PARAM_IMPL(rx, RxOp)
