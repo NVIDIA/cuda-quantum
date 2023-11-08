@@ -15,6 +15,11 @@ on:
       - CI
     types:
       - completed
+    branches:
+      # Don't publish documentation for experimental features;
+      # Instead edit the README in docker/release/ to describe the feature
+      # and link any additional resources.
+      - 'releases/*'
 
 name: Documentation
 
