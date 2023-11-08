@@ -488,6 +488,7 @@ Next Steps
 ----------
 
 .. TODO: update this with Python snippets
+
 You can now compile and/or run the C++ and Python examples using the terminal.
 
 .. image:: _static/getToWork.png 
