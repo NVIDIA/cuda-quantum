@@ -443,12 +443,12 @@ public:
 
     // Check if all controls are qubit types, if so
     // retain existing functionality
-    auto allControlsAreQubits = [&](auto controls) {
-      for (auto c : controls)
+    auto allControlsAreQubits = [&]() {
+      for (auto c : adaptor.getControls())
         if (c.getType() != qirQubitPointerType)
           return false;
       return true;
-    }(adaptor.getControls());
+    }();
 
     // Here we know we have multiple controls, we have to
     // check if we have all refs or a mix of ref / veq. If the
@@ -549,7 +549,7 @@ public:
     auto loc = instOp.getLoc();
     ModuleOp parentModule = instOp->template getParentOfType<ModuleOp>();
     auto context = parentModule->getContext();
-    auto qirQisPrefix = std::string(cudaq::opt::QIRQISPrefix);
+    std::string qirQisPrefix = cudaq::opt::QIRQISPrefix;
     auto qirFunctionName = qirQisPrefix + instName;
 
     auto qubitIndexType = cudaq::opt::getQubitType(context);
@@ -618,7 +618,7 @@ public:
       return success();
     }
 
-    // The remaining scenaries are best handled with the
+    // The remaining scenarios are best handled with the
     // invokeRotationWithControlQubits function.
 
     Value ctrlOpPointer = rewriter.create<LLVM::AddressOfOp>(

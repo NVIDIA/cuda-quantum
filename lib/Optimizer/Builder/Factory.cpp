@@ -33,19 +33,20 @@ Value factory::packIsArrayAndLengthArray(Location loc,
   auto getSizeSymbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
       cudaq::opt::QIRArrayGetSize, i64Type, {cudaq::opt::getArrayType(context)},
       parentModule);
-  for (std::size_t i = 0; auto controlOperand : operands) {
-    Value idx = rewriter.create<arith::ConstantIntOp>(loc, i++, 64);
+  for (auto iter : llvm::enumerate(operands)) {
+    auto operand = iter.value();
+    auto i = iter.index();
+    Value idx = rewriter.create<arith::ConstantIntOp>(loc, i, 64);
     Value ptr = rewriter.create<LLVM::GEPOp>(loc, intPtrTy, isArrayAndLengthArr,
                                              ValueRange{idx});
     Value element;
-    if (controlOperand.getType() == cudaq::opt::getQubitType(context))
+    if (operand.getType() == cudaq::opt::getQubitType(context))
       element = zero;
     else
       // get array size with the runtime function
       element = rewriter
                     .create<LLVM::CallOp>(loc, rewriter.getI64Type(),
-                                          getSizeSymbolRef,
-                                          ValueRange{controlOperand})
+                                          getSizeSymbolRef, ValueRange{operand})
                     .getResult();
 
     rewriter.create<LLVM::StoreOp>(loc, element, ptr);
