@@ -324,7 +324,7 @@ cudaq::State SimulatorTensorNetBase::getStateData() {
   if (!m_state)
     return cudaq::State{{0}, {}};
 
-  const std::size_t svDim = 1u << m_state->getNumQubits();
+  const uint64_t svDim = 1ull << m_state->getNumQubits();
   return cudaq::State{{svDim}, m_state->getStateVector()};
 }
 
@@ -339,16 +339,7 @@ void SimulatorTensorNetBase::addQubitsToState(std::size_t count) {
   else
     throw std::runtime_error("Expand qubit register is not supported!");
 }
-void SimulatorTensorNetBase::addQubitToState() {
-  LOG_API_TIME();
-  if (!m_state)
-    m_state = std::make_unique<TensorNetState>(1, m_cutnHandle);
-  else if (gateQueue.empty())
-    m_state = std::make_unique<TensorNetState>(m_state->getNumQubits() + 1,
-                                               m_cutnHandle);
-  else
-    throw std::runtime_error("Expand qubit register is not supported!");
-}
+void SimulatorTensorNetBase::addQubitToState() { addQubitsToState(1); }
 
 /// @brief Destroy the entire qubit register
 void SimulatorTensorNetBase::deallocateStateImpl() { m_state.reset(); }

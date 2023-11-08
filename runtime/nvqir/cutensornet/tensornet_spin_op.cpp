@@ -42,13 +42,13 @@ TensorNetworkSpinOp::TensorNetworkSpinOp(const cudaq::spin_op &spinOp,
     std::vector<int32_t> stateModes(spinOp.num_qubits());
     std::iota(stateModes.begin(), stateModes.end(), 0);
     std::reverse(stateModes.begin(), stateModes.end());
-    int64_t id;
     std::vector<const int32_t *> dataStateModes = {stateModes.data()};
     HANDLE_CUTN_ERROR(cutensornetNetworkOperatorAppendProduct(
         m_cutnHandle, m_cutnNetworkOperator,
         /*coefficient*/ cuDoubleComplex(1.0, 0.0), pauliTensorData.size(),
         numModes.data(), dataStateModes.data(),
-        /*tensorModeStrides*/ nullptr, pauliTensorData.data(), &id));
+        /*tensorModeStrides*/ nullptr, pauliTensorData.data(),
+        /*componentId*/ nullptr));
   } else {
     // Initialize device mem for Pauli matrices
     constexpr std::complex<double> PauliI_h[4] = {
@@ -106,7 +106,6 @@ TensorNetworkSpinOp::TensorNetworkSpinOp(const cudaq::spin_op &spinOp,
       });
 
       std::vector<int32_t> numModes(pauliTensorData.size(), 1);
-      int64_t id;
       std::vector<const int32_t *> dataStateModes;
       for (const auto &stateMode : stateModes) {
         dataStateModes.emplace_back(stateMode.data());
@@ -114,7 +113,8 @@ TensorNetworkSpinOp::TensorNetworkSpinOp(const cudaq::spin_op &spinOp,
       HANDLE_CUTN_ERROR(cutensornetNetworkOperatorAppendProduct(
           m_cutnHandle, m_cutnNetworkOperator, termCoeff,
           pauliTensorData.size(), numModes.data(), dataStateModes.data(),
-          /*tensorModeStrides*/ nullptr, pauliTensorData.data(), &id));
+          /*tensorModeStrides*/ nullptr, pauliTensorData.data(),
+          /*componentId*/ nullptr));
     });
   }
 }

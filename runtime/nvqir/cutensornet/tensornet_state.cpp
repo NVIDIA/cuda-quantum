@@ -23,7 +23,7 @@ TensorNetState::TensorNetState(std::size_t numQubits,
 void TensorNetState::applyGate(const std::vector<int32_t> &qubitIds,
                                void *gateDeviceMem, bool adjoint) {
 
-  int64_t id;
+  int64_t id = 0;
   HANDLE_CUTN_ERROR(cutensornetStateApplyTensor(
       m_cutnHandle, m_quantumState, qubitIds.size(), qubitIds.data(),
       gateDeviceMem, nullptr, /*immutable*/ 1,
@@ -31,7 +31,7 @@ void TensorNetState::applyGate(const std::vector<int32_t> &qubitIds,
 }
 
 void TensorNetState::applyQubitProjector(void *proj_d, int32_t qubitIdx) {
-  int64_t id;
+  int64_t id = 0;
   HANDLE_CUTN_ERROR(
       cutensornetStateApplyTensor(m_cutnHandle, m_quantumState, 1, &qubitIdx,
                                   proj_d, nullptr, /*immutable*/ 1,
@@ -116,9 +116,16 @@ TensorNetState::sample(const std::vector<int32_t> &measuredBitIds,
 }
 
 std::vector<std::complex<double>> TensorNetState::getStateVector() {
+  // Make sure that we don't overflow the memory size calculation.
+  // Note: the actual limitation will depend on the system memory.
+  if (m_numQubits > 64 ||
+      (1ull << m_numQubits) >
+          std::numeric_limits<uint64_t>::max() / sizeof(std::complex<double>))
+    throw std::runtime_error(
+        "Too many qubits are requested for full state vector contraction.");
   LOG_API_TIME();
   void *d_sv{nullptr};
-  const std::size_t svDim = 1u << m_numQubits;
+  const uint64_t svDim = 1ull << m_numQubits;
   HANDLE_CUDA_ERROR(cudaMalloc(&d_sv, svDim * sizeof(std::complex<double>)));
   ScratchDeviceMem scratchPad;
 
@@ -178,10 +185,17 @@ std::vector<std::complex<double>> TensorNetState::getStateVector() {
 
 std::vector<std::complex<double>>
 TensorNetState::computeRDM(const std::vector<int32_t> &qubits) {
+  // Make sure that we don't overflow the memory size calculation.
+  // Note: the actual limitation will depend on the system memory.
+  if (qubits.size() > 32 ||
+      (1ull << (2 * qubits.size())) >
+          std::numeric_limits<uint64_t>::max() / sizeof(std::complex<double>))
+    throw std::runtime_error("Too many qubits are requested for reduced "
+                             "density matrix contraction.");
   LOG_API_TIME();
   void *d_rdm{nullptr};
-  const std::size_t rdmSize = 1u << (2 * qubits.size());
-  const std::size_t rdmSizeBytes = rdmSize * sizeof(std::complex<double>);
+  const uint64_t rdmSize = 1ull << (2 * qubits.size());
+  const uint64_t rdmSizeBytes = rdmSize * sizeof(std::complex<double>);
   HANDLE_CUDA_ERROR(cudaMalloc(&d_rdm, rdmSizeBytes));
   ScratchDeviceMem scratchPad;
 
