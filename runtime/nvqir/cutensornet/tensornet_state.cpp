@@ -192,7 +192,7 @@ std::vector<std::complex<double>>
 TensorNetState::computeRDM(const std::vector<int32_t> &qubits) {
   // Make sure that we don't overflow the memory size calculation.
   // Note: the actual limitation will depend on the system memory.
-  if (qubits.size() > 32 ||
+  if (qubits.size() >= 32 ||
       (1ull << (2 * qubits.size())) >
           std::numeric_limits<uint64_t>::max() / sizeof(std::complex<double>))
     throw std::runtime_error("Too many qubits are requested for reduced "
