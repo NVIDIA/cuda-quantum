@@ -73,7 +73,12 @@ TensorNetState::sample(const std::vector<int32_t> &measuredBitIds,
   HANDLE_CUTN_ERROR(cutensornetWorkspaceGetMemorySize(
       m_cutnHandle, workDesc, CUTENSORNET_WORKSIZE_PREF_RECOMMENDED,
       CUTENSORNET_MEMSPACE_DEVICE, CUTENSORNET_WORKSPACE_SCRATCH, &worksize));
-  assert(worksize > 0);
+  // This should not happen (cutensornetWorkspaceGetMemorySize would have
+  // returned an error code).
+  if (worksize <= 0)
+    throw std::runtime_error(
+        "INTERNAL ERROR: Invalid workspace size encountered.");
+
   if (worksize <= static_cast<int64_t>(scratchPad.scratchSize)) {
     HANDLE_CUTN_ERROR(cutensornetWorkspaceSetMemory(
         m_cutnHandle, workDesc, CUTENSORNET_MEMSPACE_DEVICE,

@@ -119,6 +119,20 @@ void SimulatorTensorNetBase::applyGate(const GateApplicationTask &task) {
 void SimulatorTensorNetBase::applyExpPauli(
     double theta, const std::vector<std::size_t> &controls,
     const std::vector<std::size_t> &qubitIds, const cudaq::spin_op &op) {
+  if (op.is_identity()) {
+    if (controls.empty()) {
+      // exp(i*theta*Id) is noop if this is not a controlled gate.
+      return;
+    } else {
+      // Throw an error if this exp_pauli(i*theta*Id) becomes a non-trivial gate
+      // due to control qubits.
+      // FIXME: revisit this once
+      // https://github.com/NVIDIA/cuda-quantum/issues/483 is implemented.
+      throw std::logic_error("Applying controlled global phase via exp_pauli "
+                             "of identity operator is not supported");
+    }
+  }
+
   flushGateQueue();
   cudaq::info(" [{} decomposing] exp_pauli({}, {})", name(), theta,
               op.to_string(false));
@@ -303,14 +317,12 @@ SimulatorTensorNetBase::observe(const cudaq::spin_op &ham) {
     for (std::size_t i = 0; i < terms.size(); ++i) {
       expVal += (coeffs[i] * termExpVals[i]);
     }
-    assert(std::abs(expVal.imag()) < 1e-3);
     return cudaq::ExecutionResult({}, expVal.real());
   } else {
     TensorNetworkSpinOp spinOp(ham, m_cutnHandle);
     std::complex<double> expVal =
         m_state->computeExpVal(spinOp.getNetworkOperator());
     expVal += spinOp.getIdentityTermOffset();
-    assert(std::abs(expVal.imag()) < 1e-3);
     return cudaq::ExecutionResult({}, expVal.real());
   }
 }
