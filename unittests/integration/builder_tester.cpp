@@ -1087,7 +1087,6 @@ CUDAQ_TEST(BuilderTester, checkControlledRotations) {
   }
 }
 
-
 #ifndef CUDAQ_BACKEND_DM
 
 CUDAQ_TEST(BuilderTester, checkCanProgressivelyBuild) {

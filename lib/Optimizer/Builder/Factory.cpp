@@ -7,12 +7,51 @@
  ******************************************************************************/
 
 #include "cudaq/Optimizer/Builder/Factory.h"
+#include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 
 using namespace mlir;
 
 namespace cudaq::opt {
+
+/// Return an i64 array where the kth element is N if the kth
+/// operand is veq<N> and 0 otherwise (e.g. is a ref).
+Value factory::packIsArrayAndLengthArray(Location loc,
+                                         ConversionPatternRewriter &rewriter,
+                                         ModuleOp parentModule,
+                                         Value numOperands,
+                                         ValueRange operands) {
+  // Create an integer array where the kth element is N if the kth
+  // control operand is a veq<N>, and 0 otherwise.
+  auto i64Type = rewriter.getI64Type();
+  auto context = rewriter.getContext();
+  Value isArrayAndLengthArr = rewriter.create<LLVM::AllocaOp>(
+      loc, LLVM::LLVMPointerType::get(i64Type), numOperands);
+  auto intPtrTy = LLVM::LLVMPointerType::get(i64Type);
+  Value zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
+  auto getSizeSymbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
+      cudaq::opt::QIRArrayGetSize, i64Type, {cudaq::opt::getArrayType(context)},
+      parentModule);
+  for (std::size_t i = 0; auto controlOperand : operands) {
+    Value idx = rewriter.create<arith::ConstantIntOp>(loc, i++, 64);
+    Value ptr = rewriter.create<LLVM::GEPOp>(loc, intPtrTy, isArrayAndLengthArr,
+                                             ValueRange{idx});
+    Value element;
+    if (controlOperand.getType() == cudaq::opt::getQubitType(context))
+      element = zero;
+    else
+      // get array size with the runtime function
+      element = rewriter
+                    .create<LLVM::CallOp>(loc, rewriter.getI64Type(),
+                                          getSizeSymbolRef,
+                                          ValueRange{controlOperand})
+                    .getResult();
+
+    rewriter.create<LLVM::StoreOp>(loc, element, ptr);
+  }
+  return isArrayAndLengthArr;
+}
 
 FlatSymbolRefAttr factory::createLLVMFunctionSymbol(StringRef name,
                                                     Type retType,

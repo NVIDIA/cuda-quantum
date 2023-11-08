@@ -714,10 +714,10 @@ void invokeWithControlRegisterOrQubits(const std::size_t numControlOperands,
   va_end(args);
 }
 
-void invokeRotationWithControlQubits(double param, const std::size_t numControlOperands,
-                                       std::size_t *isArrayAndLength,
-                                       void (*QISFunction)(double, Array *, Qubit *),
-                                       ...) {
+void invokeRotationWithControlQubits(
+    double param, const std::size_t numControlOperands,
+    std::size_t *isArrayAndLength,
+    void (*QISFunction)(double, Array *, Qubit *), ...) {
   std::size_t numControls = 0;
   for (std::size_t i = 0; i < numControlOperands; i++)
     numControls += isArrayAndLength[i] ? isArrayAndLength[i] : 1;

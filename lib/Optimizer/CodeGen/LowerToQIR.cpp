@@ -491,30 +491,11 @@ public:
 
       // Create an integer array where the kth element is N if the kth
       // control operand is a veq<N>, and 0 otherwise.
-      Value isArrayAndLengthArr = rewriter.create<LLVM::AllocaOp>(
-          loc, LLVM::LLVMPointerType::get(i64Type), numControlOperands);
-      auto intPtrTy = LLVM::LLVMPointerType::get(i64Type);
-      Value zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
-      auto getSizeSymbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
-          cudaq::opt::QIRArrayGetSize, i64Type,
-          {cudaq::opt::getArrayType(context)}, parentModule);
-      for (std::size_t i = 0; auto controlOperand : adaptor.getControls()) {
-        Value idx = rewriter.create<arith::ConstantIntOp>(loc, i++, 64);
-        Value ptr = rewriter.create<LLVM::GEPOp>(
-            loc, intPtrTy, isArrayAndLengthArr, ValueRange{idx});
-        Value element;
-        if (controlOperand.getType() == qirQubitPointerType)
-          element = zero;
-        else
-          // get array size with the runtime function
-          element = rewriter
-                        .create<LLVM::CallOp>(loc, rewriter.getI64Type(),
-                                              getSizeSymbolRef,
-                                              ValueRange{controlOperand})
-                        .getResult();
+      Value isArrayAndLengthArr =
+          cudaq::opt::factory::packIsArrayAndLengthArray(
+              loc, rewriter, parentModule, numControlOperands,
+              adaptor.getControls());
 
-        rewriter.create<LLVM::StoreOp>(loc, element, ptr);
-      }
       args.push_back(numControlOperands);
       args.push_back(isArrayAndLengthArr);
     }
@@ -607,7 +588,8 @@ public:
 
     // __quantum__qis__NAME__ctl(double, Array*, Qubit*) Type
     auto instOpQISFunctionType = LLVM::LLVMFunctionType::get(
-        LLVM::LLVMVoidType::get(context), {paramType, qubitArrayType, qubitIndexType});
+        LLVM::LLVMVoidType::get(context),
+        {paramType, qubitArrayType, qubitIndexType});
 
     // Get function pointer to ctrl operation
     FlatSymbolRefAttr instSymbolRef =
@@ -636,6 +618,9 @@ public:
       return success();
     }
 
+    // The remaining scenaries are best handled with the
+    // invokeRotationWithControlQubits function.
+
     Value ctrlOpPointer = rewriter.create<LLVM::AddressOfOp>(
         loc, LLVM::LLVMPointerType::get(instOpQISFunctionType), instSymbolRef);
 
@@ -661,30 +646,9 @@ public:
 
     // Create an integer array where the kth element is N if the kth
     // control operand is a veq<N>, and 0 otherwise.
-    Value isArrayAndLengthArr = rewriter.create<LLVM::AllocaOp>(
-        loc, LLVM::LLVMPointerType::get(i64Type), numControlOperands);
-    auto intPtrTy = LLVM::LLVMPointerType::get(i64Type);
-    Value zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
-    auto getSizeSymbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
-        cudaq::opt::QIRArrayGetSize, i64Type,
-        {cudaq::opt::getArrayType(context)}, parentModule);
-    for (std::size_t i = 0; auto controlOperand : adaptor.getControls()) {
-      Value idx = rewriter.create<arith::ConstantIntOp>(loc, i++, 64);
-      Value ptr = rewriter.create<LLVM::GEPOp>(
-          loc, intPtrTy, isArrayAndLengthArr, ValueRange{idx});
-      Value element;
-      if (controlOperand.getType() == qubitIndexType)
-        element = zero;
-      else
-        // get array size with the runtime function
-        element = rewriter
-                      .create<LLVM::CallOp>(loc, rewriter.getI64Type(),
-                                            getSizeSymbolRef,
-                                            ValueRange{controlOperand})
-                      .getResult();
+    Value isArrayAndLengthArr = cudaq::opt::factory::packIsArrayAndLengthArray(
+        loc, rewriter, parentModule, numControlOperands, adaptor.getControls());
 
-      rewriter.create<LLVM::StoreOp>(loc, element, ptr);
-    }
     funcArgs.push_back(numControlOperands);
     funcArgs.push_back(isArrayAndLengthArr);
     funcArgs.push_back(ctrlOpPointer);
