@@ -31,8 +31,9 @@ If you do not have the necessary administrator permissions to install software o
 take a look at the section below on how to use `Singularity`_ instead.
 
 Docker images for all CUDA Quantum releases are available on the `NGC Container Registry`_.
-In addition to publishing stable releases, we also publish docker images whenever we update the main branch, or release branches, on our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`_.
-These images are published in a separate location `nvidia/nightly` on NGC, as well as on GitHub.
+In addition to publishing `stable releases <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum/tags>`__, 
+we also publish docker images whenever we update certain branches on our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`_.
+These images are published in our `nightly channel on NGC <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nightly/containers/cuda-quantum/tags>`__.
 To download the latest version on the main branch of our GitHub repository, for example, use the command
 
 .. code-block:: console
@@ -112,12 +113,17 @@ Once you have singularity installed, create a file `cuda-quantum.def` with the f
 .. code-block:: console
 
     Bootstrap: docker
-    From: ghcr.io/nvidia/cuda-quantum:latest
+    From: nvcr.io/nvidia/nightly/cuda-quantum:latest
 
     %runscript
         mount devpts /dev/pts -t devpts
         cp -r /home/cudaq/* .
         bash
+
+Replace the image name and/or tag in the `From` line, if necessary, with the one you want to use;
+In addition to publishing `stable releases <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum/tags>`__, 
+we also publish docker images whenever we update certain branches on our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`_.
+These images are published in our `nightly channel on NGC <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nightly/containers/cuda-quantum/tags>`__.
 
 You can then create a CUDA Quantum container by running the following commands:
 
