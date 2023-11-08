@@ -450,113 +450,76 @@ public:
       return true;
     }(adaptor.getControls());
 
+    // Here we know we have multiple controls, we have to
+    // check if we have all refs or a mix of ref / veq. If the
+    // latter we'll use a different runtime function
+    FlatSymbolRefAttr applyMultiControlFunction;
+    SmallVector<Value> args;
+    Value ctrlOpPointer = rewriter.create<LLVM::AddressOfOp>(
+        loc, LLVM::LLVMPointerType::get(instOpQISFunctionType),
+        qirFunctionSymbolRef);
     if (allControlsAreQubits) {
       // Can use the `invokeWithControlQubits` function
       // Get symbol for
       // void invokeWithControlQubits(const std::size_t nControls, void
       // (*QISFunction)(Array*, Qubit*), Qubit*, ...);
-      auto applyMultiControlFunction =
-          cudaq::opt::factory::createLLVMFunctionSymbol(
-              cudaq::opt::NVQIRInvokeWithControlBits,
-              LLVM::LLVMVoidType::get(context),
-              {i64Type, LLVM::LLVMPointerType::get(instOpQISFunctionType)},
-              parentModule, true);
+      applyMultiControlFunction = cudaq::opt::factory::createLLVMFunctionSymbol(
+          cudaq::opt::NVQIRInvokeWithControlBits,
+          LLVM::LLVMVoidType::get(context),
+          {i64Type, LLVM::LLVMPointerType::get(instOpQISFunctionType)},
+          parentModule, true);
+      args.push_back(
+          rewriter.create<LLVM::ConstantOp>(loc, i64Type, numControls));
+    } else {
+      // Get symbol for
+      // void invokeWithControlRegisterOrQubits(const std::size_t
+      // numControlOperands, i64* isArrayAndLength, void (*QISFunction)(Array*,
+      // Qubit*), Qubit*, ...);
+      applyMultiControlFunction = cudaq::opt::factory::createLLVMFunctionSymbol(
+          cudaq::opt::NVQIRInvokeWithControlRegisterOrBits,
+          LLVM::LLVMVoidType::get(context),
+          {i64Type, LLVM::LLVMPointerType::get(i64Type),
+           LLVM::LLVMPointerType::get(instOpQISFunctionType)},
+          parentModule, true);
 
-      Value ctrlOpPointer = rewriter.create<LLVM::AddressOfOp>(
-          loc, LLVM::LLVMPointerType::get(instOpQISFunctionType),
-          qirFunctionSymbolRef);
-      auto arraySize =
+      // numControls could be more than num operands,
+      // e.g. ctrls = {veq<2>, ref} is 3 and not 2 controls
+      // We need an i64 array encoding 0 if control operand is a ref, and N if
+      // control operand is a veq<N>.
+      Value numControlOperands =
           rewriter.create<LLVM::ConstantOp>(loc, i64Type, numControls);
-      // This will need the numControls, function pointer, and all Qubit*
-      // operands
-      SmallVector<Value> args = {arraySize, ctrlOpPointer};
-      FlatSymbolRefAttr negateFuncRef;
-      if (negatedQubitCtrls) {
-        negateFuncRef = cudaq::opt::factory::createLLVMFunctionSymbol(
-            negateFunctionName,
-            /*return type=*/LLVM::LLVMVoidType::get(context),
-            {cudaq::opt::getQubitType(context)}, parentModule);
-        for (auto v : llvm::enumerate(instOperands)) {
-          if ((v.index() < numControls) && (*negatedQubitCtrls)[v.index()])
-            rewriter.create<LLVM::CallOp>(loc, TypeRange{}, negateFuncRef,
-                                          v.value());
-          args.push_back(v.value());
-        }
-      } else {
-        args.append(instOperands.begin(), instOperands.end());
+
+      // Create an integer array where the kth element is N if the kth
+      // control operand is a veq<N>, and 0 otherwise.
+      Value isArrayAndLengthArr = rewriter.create<LLVM::AllocaOp>(
+          loc, LLVM::LLVMPointerType::get(i64Type), numControlOperands);
+      auto intPtrTy = LLVM::LLVMPointerType::get(i64Type);
+      Value zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
+      auto getSizeSymbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
+          cudaq::opt::QIRArrayGetSize, i64Type,
+          {cudaq::opt::getArrayType(context)}, parentModule);
+      for (std::size_t i = 0; auto controlOperand : adaptor.getControls()) {
+        Value idx = rewriter.create<arith::ConstantIntOp>(loc, i++, 64);
+        Value ptr = rewriter.create<LLVM::GEPOp>(
+            loc, intPtrTy, isArrayAndLengthArr, ValueRange{idx});
+        Value element;
+        if (controlOperand.getType() == qirQubitPointerType)
+          element = zero;
+        else
+          // get array size with the runtime function
+          element = rewriter
+                        .create<LLVM::CallOp>(loc, rewriter.getI64Type(),
+                                              getSizeSymbolRef,
+                                              ValueRange{controlOperand})
+                        .getResult();
+
+        rewriter.create<LLVM::StoreOp>(loc, element, ptr);
       }
-
-      // Call our utility function.
-      rewriter.replaceOpWithNewOp<LLVM::CallOp>(
-          instOp, TypeRange{}, applyMultiControlFunction, args);
-
-      if (negatedQubitCtrls)
-        for (auto v : llvm::enumerate(instOperands))
-          if ((v.index() < numControls) && (*negatedQubitCtrls)[v.index()])
-            rewriter.create<LLVM::CallOp>(loc, TypeRange{}, negateFuncRef,
-                                          v.value());
-      return success();
+      args.push_back(numControlOperands);
+      args.push_back(isArrayAndLengthArr);
     }
 
-    // Now we have the scenario where we have controls, but they are
-    // not all quake.refs, some are quake.veqs.
-
-    // Get symbol for
-    // void invokeWithControlRegisterOrQubits(const std::size_t
-    // numControlOperands, i64* isArrayAndLength, void (*QISFunction)(Array*,
-    // Qubit*), Qubit*, ...);
-    auto applyMultiControlFunction =
-        cudaq::opt::factory::createLLVMFunctionSymbol(
-            cudaq::opt::NVQIRInvokeWithControlRegisterOrBits,
-            LLVM::LLVMVoidType::get(context),
-            {i64Type, LLVM::LLVMPointerType::get(i64Type),
-             LLVM::LLVMPointerType::get(instOpQISFunctionType)},
-            parentModule, true);
-
-    Value ctrlOpPointer = rewriter.create<LLVM::AddressOfOp>(
-        loc, LLVM::LLVMPointerType::get(instOpQISFunctionType),
-        qirFunctionSymbolRef);
-
-    // numControls could be more than num operands,
-    // e.g. ctrls = {veq<2>, ref} is 3 and not 2 controls
-    // We need an i64 array encoding 0 if control operand is a ref, and N if
-    // control operand is a veq<N>.
-
-    Value numControlOperands =
-        rewriter.create<LLVM::ConstantOp>(loc, i64Type, numControls);
-
-    // Create an integer array where the kth element is N if the kth
-    // control operand is a veq<N>, and 0 otherwise.
-    Value isArrayAndLengthArr = rewriter.create<LLVM::AllocaOp>(
-        loc, LLVM::LLVMPointerType::get(i64Type), numControlOperands);
-    auto intPtrTy = LLVM::LLVMPointerType::get(i64Type);
-    Value zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
-    auto getSizeSymbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
-        cudaq::opt::QIRArrayGetSize, i64Type,
-        {cudaq::opt::getArrayType(context)}, parentModule);
-
-    for (std::size_t i = 0; auto controlOperand : adaptor.getControls()) {
-      Value idx = rewriter.create<arith::ConstantIntOp>(loc, i++, 64);
-      Value ptr = rewriter.create<LLVM::GEPOp>(
-          loc, intPtrTy, isArrayAndLengthArr, ValueRange{idx});
-      Value element;
-      if (controlOperand.getType() == qirQubitPointerType)
-        element = zero;
-      else
-        // get array size with the runtime function
-        element = rewriter
-                      .create<LLVM::CallOp>(loc, rewriter.getI64Type(),
-                                            getSizeSymbolRef,
-                                            ValueRange{controlOperand})
-                      .getResult();
-
-      rewriter.create<LLVM::StoreOp>(loc, element, ptr);
-    }
-
-    // This will need the numControls, array of veq sizes,
-    // function pointer, and all  operands
-    SmallVector<Value> args = {numControlOperands, isArrayAndLengthArr,
-                               ctrlOpPointer};
+    args.push_back(ctrlOpPointer);
     FlatSymbolRefAttr negateFuncRef;
     if (negatedQubitCtrls) {
       negateFuncRef = cudaq::opt::factory::createLLVMFunctionSymbol(

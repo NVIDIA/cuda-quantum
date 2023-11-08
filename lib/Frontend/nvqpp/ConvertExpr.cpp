@@ -136,7 +136,14 @@ bool buildOp(OpBuilder &builder, Location loc, ValueRange operands,
         reportNegateError();
     auto negs =
         negatedControlsAttribute(builder.getContext(), ctrls, negations);
-    builder.create<A>(loc, isAdjoint, params, ctrls, target, negs);
+    if (ctrls.empty())
+      for (auto t : target)
+        builder.create<A>(loc, isAdjoint, params, ctrls, t, negs);
+    else {
+      assert(target.size() == 1 &&
+             "can only have a single target with control qubits.");
+      builder.create<A>(loc, isAdjoint, params, ctrls, target, negs);
+    }
   } else {
     assert(operands.size() >= 1 && "must be at least 1 operand");
     if ((operands.size() == 1) && operands[0].getType().isa<quake::VeqType>()) {
