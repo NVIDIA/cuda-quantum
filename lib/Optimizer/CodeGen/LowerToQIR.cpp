@@ -502,13 +502,7 @@ public:
                   ConversionPatternRewriter &rewriter) const override {
     auto instName = instOp->getName().stripDialect().str();
     auto numControls = instOp.getControls().size();
-
-    // TODO: handle general control ops. For now, only allow Rn with 1
-    // control
-    if (numControls > 1)
-      return instOp.emitError("unsupported controlled op " + instName +
-                              " with " + std::to_string(numControls) +
-                              " ctrl qubits");
+    auto instOperands = adaptor.getOperands();
 
     auto loc = instOp.getLoc();
     ModuleOp parentModule = instOp->template getParentOfType<ModuleOp>();
@@ -527,11 +521,10 @@ public:
         v = rewriter.create<arith::ExtFOp>(loc, rewriter.getF64Type(), v);
       return v;
     };
-    Value v =
-        instOp.getIsAdj()
-            ? rewriter.create<arith::NegFOp>(loc, adaptor.getOperands()[0])
-            : adaptor.getOperands()[0];
-    funcArgs.push_back(castToDouble(v));
+    Value val = instOp.getIsAdj()
+                    ? rewriter.create<arith::NegFOp>(loc, instOperands[0])
+                    : instOperands[0];
+    funcArgs.push_back(castToDouble(val));
 
     // If no controls, then this is easy
     if (numControls == 0) {
@@ -549,58 +542,119 @@ public:
       return success();
     }
 
-    // We have 1 control, is it a veq or a ref?
-    auto control = *instOp.getControls().begin();
     qirFunctionName += "__ctl";
+    auto negateFunctionName = qirFunctionName + "x";
+    auto negatedQubitCtrls = instOp.getNegatedQubitControls();
 
     // All signatures will take an Array* for the controls
     tmpArgTypes.push_back(qubitArrayType);
 
-    // If type is a VeqType, then we're good, just forward to the call op
+    // We have >= 1 control, is the first a veq or a ref?
+    auto control = *instOp.getControls().begin();
     Type type = control.getType();
-    if (type.isa<quake::VeqType>()) {
-
-      // Add the control array to the args.
-      funcArgs.push_back(adaptor.getControls().front());
-
-      // This is a single target op, add that type
-      tmpArgTypes.push_back(qubitIndexType);
-
-      FlatSymbolRefAttr instSymbolRef =
-          cudaq::opt::factory::createLLVMFunctionSymbol(
-              qirFunctionName, /*return type=*/LLVM::LLVMVoidType::get(context),
-              std::move(tmpArgTypes), parentModule);
-
-      // Add the target op
-      funcArgs.push_back(adaptor.getTargets().front());
-
-      // Here we already have and Array*, Qubit*
-      rewriter.replaceOpWithNewOp<LLVM::CallOp>(instOp, TypeRange{},
-                                                instSymbolRef, funcArgs);
-      return success();
+    // Return an error if the type is not a veq or ref.
+    if (!type.isa<quake::VeqType, quake::RefType>()) {
+      std::string typeName;
+      llvm::raw_string_ostream typeNameStream(typeName);
+      typeNameStream << type;
+      return instOp.emitError("unsupported control type for " + instName +
+                              ": " + typeName);
     }
 
     // If the control is a qubit, we need to pack it into an Array*
-    FlatSymbolRefAttr packingSymbolRef =
-        cudaq::opt::factory::createLLVMFunctionSymbol(
-            cudaq::opt::NVQIRPackSingleQubitInArray,
-            /*return type=*/qubitArrayType, {qubitIndexType}, parentModule);
-    // Pack the qubit into the array
-    Value result =
-        rewriter
-            .create<LLVM::CallOp>(loc, qubitArrayType, packingSymbolRef,
-                                  adaptor.getControls().front())
-            .getResult();
-    // The array result is what we want for the function args
-    funcArgs.push_back(result);
+    if (numControls == 1 && type.isa<quake::RefType>()) {
+      FlatSymbolRefAttr packingSymbolRef =
+          cudaq::opt::factory::createLLVMFunctionSymbol(
+              cudaq::opt::NVQIRPackSingleQubitInArray,
+              /*return type=*/qubitArrayType, {qubitIndexType}, parentModule);
+
+      // Pack the qubit into the array
+      Value result =
+          rewriter
+              .create<LLVM::CallOp>(loc, qubitArrayType, packingSymbolRef,
+                                    adaptor.getControls().front())
+              .getResult();
+      // The array result is what we want for the function args
+      funcArgs.push_back(result);
+    }
+
+    // If type is a VeqType, then we're good, just forward to the call op
+    if (numControls == 1 && type.isa<quake::VeqType>()) {
+      if (negatedQubitCtrls)
+        return instOp.emitError("unsupported controlled op " + instName +
+                                " with vector of ctrl qubits");
+
+      // Add the control array to the args.
+      funcArgs.push_back(adaptor.getControls().front());
+    }
 
     // This is a single target op, add that type
     tmpArgTypes.push_back(qubitIndexType);
 
+    // __quantum__qis__NAME__ctl(double, Array*, Qubit*) Type
+    auto instOpQISFunctionType = LLVM::LLVMFunctionType::get(
+        LLVM::LLVMVoidType::get(context), tmpArgTypes);
+
+    // Get function pointer to ctrl operation
     FlatSymbolRefAttr instSymbolRef =
         cudaq::opt::factory::createLLVMFunctionSymbol(
             qirFunctionName, /*return type=*/LLVM::LLVMVoidType::get(context),
             std::move(tmpArgTypes), parentModule);
+
+    // Now we know we have the proper veq/ref type, we can
+    // handle multiple controls.
+    if (numControls > 1) {
+
+      // Get symbol for
+      // void invokeWithControlQubits(const std::size_t nControls, void
+      // (*QISFunction)(double, Array*, Qubit*), Qubit*, ...);
+      auto applyMultiControlFunction =
+          cudaq::opt::factory::createLLVMFunctionSymbol(
+              cudaq::opt::NVQIRInvokeRotationWithControlBits,
+              LLVM::LLVMVoidType::get(context),
+              {rewriter.getF64Type(), rewriter.getI64Type(),
+               LLVM::LLVMPointerType::get(instOpQISFunctionType)},
+              parentModule, true);
+
+      Value ctrlOpPointer = rewriter.create<LLVM::AddressOfOp>(
+          loc, LLVM::LLVMPointerType::get(instOpQISFunctionType),
+          instSymbolRef);
+
+      auto arraySize = rewriter.create<LLVM::ConstantOp>(
+          loc, rewriter.getI64Type(), numControls);
+
+      // This will need the numControls, function pointer, and all Qubit*
+      // operands
+      SmallVector<Value> args = {castToDouble(val), arraySize, ctrlOpPointer};
+      FlatSymbolRefAttr negateFuncRef;
+      if (negatedQubitCtrls) {
+        negateFuncRef = cudaq::opt::factory::createLLVMFunctionSymbol(
+            negateFunctionName,
+            /*return type=*/LLVM::LLVMVoidType::get(context),
+            {cudaq::opt::getQubitType(context)}, parentModule);
+        for (auto v : llvm::enumerate(instOperands)) {
+          if ((v.index() < numControls) && (*negatedQubitCtrls)[v.index()])
+            rewriter.create<LLVM::CallOp>(loc, TypeRange{}, negateFuncRef,
+                                          v.value());
+          args.push_back(v.value());
+        }
+      } else {
+        args.append(instOperands.begin(), instOperands.end());
+      }
+
+      // Call our utility function.
+      rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+          instOp, TypeRange{}, applyMultiControlFunction, args);
+
+      if (negatedQubitCtrls) {
+        for (auto v : llvm::enumerate(instOperands))
+          if ((v.index() < numControls) && (*negatedQubitCtrls)[v.index()])
+            rewriter.create<LLVM::CallOp>(loc, TypeRange{}, negateFuncRef,
+                                          v.value());
+      }
+
+      return success();
+    }
 
     // Add the target op
     funcArgs.push_back(adaptor.getTargets().front());
@@ -609,15 +663,17 @@ public:
     rewriter.replaceOpWithNewOp<LLVM::CallOp>(instOp, TypeRange{},
                                               instSymbolRef, funcArgs);
 
-    // We need to release the control Array.
-    FlatSymbolRefAttr releaseSymbolRef =
-        cudaq::opt::factory::createLLVMFunctionSymbol(
-            cudaq::opt::NVQIRReleasePackedQubitArray,
-            /*return type=*/LLVM::LLVMVoidType::get(context), {qubitArrayType},
-            parentModule);
-    Value ctrlArray = funcArgs[1];
-    rewriter.create<LLVM::CallOp>(loc, TypeRange{}, releaseSymbolRef,
-                                  ctrlArray);
+    // If the control was a ref, we need to release the control Array.
+    if (type.isa<quake::RefType>()) {
+      FlatSymbolRefAttr releaseSymbolRef =
+          cudaq::opt::factory::createLLVMFunctionSymbol(
+              cudaq::opt::NVQIRReleasePackedQubitArray,
+              /*return type=*/LLVM::LLVMVoidType::get(context),
+              {qubitArrayType}, parentModule);
+      Value ctrlArray = funcArgs[1];
+      rewriter.create<LLVM::CallOp>(loc, TypeRange{}, releaseSymbolRef,
+                                    ctrlArray);
+    }
 
     return success();
   }
