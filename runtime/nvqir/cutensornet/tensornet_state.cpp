@@ -98,11 +98,11 @@ TensorNetState::sample(const std::vector<int32_t> &measuredBitIds,
     }
 
     const auto numMeasuredQubits = measuredBitIds.size();
+    std::string bitstring(numMeasuredQubits, '0');
     for (int i = 0; i < numShots; ++i) {
-      std::string bitstring;
       constexpr char digits[2] = {'0', '1'};
-      for (std::size_t j = 0; j < measuredBitIds.size(); ++j)
-        bitstring += digits[samples[i * numMeasuredQubits + j]];
+      for (std::size_t j = 0; j < numMeasuredQubits; ++j)
+        bitstring[j] = digits[samples[i * numMeasuredQubits + j]];
       counts[bitstring] += 1;
     }
     shotsToRun -= numShots;
