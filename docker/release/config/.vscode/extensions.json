@@ -1,0 +1,23 @@
+{
+    "recommendations": [
+        "davidanson.vscode-markdownlint",
+        "jithurjacob.nbpreviewer",
+        "llvm-vs-code-extensions.vscode-mlir",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-toolsai.jupyter",
+        "ms-toolsai.jupyter-keymap",
+        "ms-toolsai.jupyter-renderers",
+        "ms-toolsai.vscode-jupyter-cell-tags",
+        "ms-toolsai.vscode-jupyter-slideshow",
+        "ms-vscode.cpptools",
+        "ms-vscode.cpptools-extension-pack",
+        "ms-vscode.cpptools-themes",
+        "ms-vscode.remote-explorer",
+        "ms-vscode.remote-server",
+        "ms-vscode-remote.remote-containers",
+        "ms-vscode-remote.remote-ssh",
+        "qiu.llvm-ir-language-support",
+        "vadimcn.vscode-lldb"
+    ]
+}
