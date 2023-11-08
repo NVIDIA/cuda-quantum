@@ -53,6 +53,8 @@ static clang::NamedDecl *getNamedDecl(clang::Expr *expr) {
 static std::pair<SmallVector<Value>, SmallVector<Value>>
 maybeUnpackOperands(OpBuilder &builder, Location loc, ValueRange operands,
                     bool isControl = false) {
+  // If this is not a controlled op, then we just keep all operands
+  // as targets.
   if (!isControl)
     return std::make_pair(operands, SmallVector<Value>{});
 

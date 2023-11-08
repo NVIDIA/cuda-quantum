@@ -714,6 +714,10 @@ void invokeWithControlRegisterOrQubits(const std::size_t numControlOperands,
   va_end(args);
 }
 
+/// @brief Utility function used by Quake->QIR to invoke a QIR QIS
+/// function with a variadic list of "quantum" arguments, where
+/// the control arguments can be either Array or Qubit types. This
+/// function is to be used for controlled rotations.
 void invokeRotationWithControlQubits(
     double param, const std::size_t numControlOperands,
     std::size_t *isArrayAndLength,
