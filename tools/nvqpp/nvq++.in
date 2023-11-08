@@ -44,8 +44,7 @@ function list_targets {
 }
 
 function list_simulators {
-	for file in $(grep -L "PLATFORM_QPU=" $(ls ${install_dir}/targets/*.config));
-	do
+	for file in $(grep -L "PLATFORM_QPU=" $(ls ${install_dir}/targets/*.config)) ; do
 		if ! grep -q "LIBRARY_MODE_EXECUTION_MANAGER=" $file ; then 
 			echo $(basename $file | cut -d "." -f 1)
 		fi
