@@ -23,15 +23,8 @@ std::bitset<nrOfBits> random_bits(int seed) {
   std::default_random_engine generator(seed);
   std::uniform_real_distribution<float> distribution(0.0, 1.0);
 
-  float randNum;
   for (size_t i = 0; i < nrOfBits; i++) {
-    randNum = distribution(generator);
-    if (randNum < 0.5) {
-      randNum = 0;
-    } else {
-      randNum = 1;
-    }
-    randomBits.set(i, randNum);
+    randomBits.set(i, distribution(generator) < 0.5 ? 0 : 1);
   }
   return randomBits;
 }

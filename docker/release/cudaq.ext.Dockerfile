@@ -40,10 +40,10 @@ RUN if [ -x "$(command -v pip)" ]; then \
 # If we don't do that, then apt-get will get confused when some CUDA
 # components are already installed but not all of them.
 
-# Install VS Code CLI to facilitate connecting via tunnel to a remote host.
-RUN os=$([ "$(uname -m)" == "aarch64" ] && echo cli-alpine-arm64 || echo cli-alpine-x64) \
-    && curl -Lk "https://code.visualstudio.com/sha/download?build=stable&os=$os" --output vscode_cli.tar.gz \
-    && tar -xf vscode_cli.tar.gz && rm vscode_cli.tar.gz && mv code /usr/bin/
+# Include VS Code configurations to facilitate development.
+# It would be nice to include the CLI to enable tunneling into the container by default, 
+# but we should build it from source then, see also
+# https://github.com/microsoft/vscode/issues/60#issuecomment-161792005
 ARG vscode_config=.vscode
 COPY "${vscode_config}" /home/cudaq/.vscode
 
