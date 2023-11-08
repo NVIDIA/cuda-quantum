@@ -1,4 +1,4 @@
-find_package(CUDA REQUIRED)
+# Find CUDA Toolkit for CUDA libs, e.g., cudart.
 find_package(CUDAToolkit REQUIRED)
 find_library(CUTENSORNET_LIB
     NAMES   libcutensornet.so.2  libcutensornet.so
@@ -35,10 +35,10 @@ set(CUTENSORNET_MINOR ${CMAKE_MATCH_1})
 string(REGEX MATCH "CUTENSORNET_PATCH ([0-9]*)" _ ${cutensornet_header})
 set(CUTENSORNET_PATCH ${CMAKE_MATCH_1})
 
-message(STATUS "Found cutensornet version: ${CUTENSORNET_MAJOR}.${CUTENSORNET_MINOR}.${CUTENSORNET_PATCH}")
+set(CUTENSORNET_VERSION ${CUTENSORNET_MAJOR}.${CUTENSORNET_MINOR}.${CUTENSORNET_PATCH})
+message(STATUS "Found cutensornet version: ${CUTENSORNET_VERSION}")
 # We need cutensornet v2.3+
-if (${CUTENSORNET_MAJOR} GREATER_EQUAL 2 AND ${CUTENSORNET_MINOR} GREATER_EQUAL 3)
-  # Create nvqir-tensornet: nvq++ -qpu tensornet code.cpp
+if (${CUTENSORNET_VERSION} VERSION_GREATER_EQUAL "2.3")
   set (BASE_TENSOR_BACKEND_SRS  
         simulator_cutensornet.cpp 
         tensornet_spin_op.cpp
@@ -47,6 +47,7 @@ if (${CUTENSORNET_MAJOR} GREATER_EQUAL 2 AND ${CUTENSORNET_MINOR} GREATER_EQUAL 
   set(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/lib/plugins:$ORIGIN/../lib:$ORIGIN/../lib/plugins:${CUTENSORNET_LIB_DIR}")
   # Helper macro to add cutensornet-based backends
   macro (nvqir_create_cutn_plugin LIBRARY_NAME)
+    # This will create a target named ${LIBRARY_NAME}
     add_library(nvqir-${LIBRARY_NAME} SHARED ${ARGN})
     target_include_directories(nvqir-${LIBRARY_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/runtime/common ${CMAKE_SOURCE_DIR}/runtime/nvqir ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES} ${CUTENSORNET_INCLUDE_DIR})
     target_link_libraries(nvqir-${LIBRARY_NAME} PRIVATE fmt::fmt-header-only cudaq cudaq-common ${CUTENSORNET_LIB} CUDA::cudart)
