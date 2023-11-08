@@ -85,7 +85,7 @@ the command :code:`docker start -i cuda-quantum`.
 You can delete an existing container and any changes you made using :code:`docker rm -v cuda-quantum`.
 
 When working with Docker images, the files inside the container are not visible outside the container environment. 
-To facilitate application development with, for example, debugging and IntelliSense support, 
+To facilitate application development with, for example, debugging, code completion, hover information, and so on, 
 please take a look at the section on :ref:`Development with VS Code <docker-in-vscode>`.
 
 Alternatively, it is possible, but not recommended, to launch an SSH server inside the container environment and connect an IDE using SSH. To do so, make sure you have generated a suitable RSA key pair; if your `~/.ssh/` folder does not already contain the files `id_rsa.pub` and `id.rsa`,
@@ -141,7 +141,7 @@ You can then create a CUDA Quantum container by running the following commands:
     singularity run --writable --fakeroot cuda-quantum.sif
 
 In addition to the files in your current folder, you should now
-see a README as well as examples and tutorials.
+see a `README` file, as well as examples and tutorials.
 To enable support for GPU-accelerated backends, you will need to pass the
 the :code:`--nv` flag when running the container:
 
@@ -171,7 +171,7 @@ You can exit the container environment by typing the command :code:`exit`.
 Any changes you made will still be visible after you exit the container, and you can re-enable the 
 container environment at any time using the `run` command above.
 
-To facilitate application development with, for example, debugging and IntelliSense support, 
+To facilitate application development with, for example, debugging, code completion, hover information, and so on, 
 please take a look at the section on :ref:`Development with VS Code <singularity-in-vscode>`.
 
 
@@ -202,7 +202,7 @@ For more information about building the entire C++ and Python API from source, w
 Development with VS Code
 ------------------------------------
 
-To facilitate application development with, for example, debugging and IntelliSense support, 
+To facilitate application development with, for example, debugging, code completion, hover information, and so on, 
 we recommend using `VS Code <https://code.visualstudio.com/>`_. VS Code provides a seamless
 development experience on all platforms, and is also available without installation via web browser. 
 This sections describes how to connect VS Code to a running container on your machine.
@@ -226,11 +226,11 @@ If you cannot use tunnels, you need a local installation of
 `VS Code <https://code.visualstudio.com/>`_ and you need to install 
 the `Dev Containers <https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers>`__ extension. 
 
-Launch VS Code, open the Command Pallette with `Ctrl+Shift+P`, and enter "Dev Containers: Attach to Running Container". 
+Launch VS Code, open the Command Palette with `Ctrl+Shift+P`, and enter "Dev Containers: Attach to Running Container". 
 You should see and select the running `cuda-quantum` container in the list. 
-After the window reloaded, enter "File: Open Folder" in the Command Pallette to open the `/home/cudaq/` folder.
+After the window reloaded, enter "File: Open Folder" in the Command Palette to open the `/home/cudaq/` folder.
 
-To run the examples, open the Command Pallette and enter "View: Show Terminal"
+To run the examples, open the Command Palette and enter "View: Show Terminal"
 to launch an integrated terminal. You are now all set to 
 :ref:`get started <validate-installation>` with CUDA Quantum development.
 
@@ -281,7 +281,7 @@ with the `--nv` flag.
 
 Entering `Ctrl+C` followed by `exit` will stop the running container. You can re-start
 it at any time by entering the two commands above. While the container is running,
-open the Command Pallette in VS Code with `Ctrl+Shift+P`, enter "Remote-SSH: Add new
+open the Command Palette in VS Code with `Ctrl+Shift+P`, enter "Remote-SSH: Add new
 SSH Host", and enter the following SSH command:
 
 .. code-block:: console
@@ -295,12 +295,12 @@ SSH Host", and enter the following SSH command:
   the expected key. Alternatively, add the used public key to the `/root/.ssh/authorized_keys` file in 
   the Singularity container.
 
-You can then connect to the host by opening the Command Pallette, entering
+You can then connect to the host by opening the Command Palette, entering
 "Remote SSH: Connect Current Window to Host", and choosing the newly created host.
 After the window reloaded, enter "File: Open Folder" in the 
-Command Pallette to open the desired folder.
+Command Palette to open the desired folder.
 
-To run the examples, open the Command Pallette and enter "View: Show Terminal"
+To run the examples, open the Command Palette and enter "View: Show Terminal"
 to launch an integrated terminal. You are now all set to 
 :ref:`get started <validate-installation>` with CUDA Quantum development.
 
@@ -347,8 +347,8 @@ in the running CUDA Quantum container, and follow the instructions to authentica
 You can then either `open VS Code in a web browser <https://vscode.dev/tunnel/cuda-quantum-remote/home/cudaq/>`__, or connect a local installation of VS Code.
 To connect a local installation of VS Code, make sure you have the 
 `Remote - Tunnels <https://marketplace.visualstudio.com/items?itemName=ms-vscode.remote-server>`__ extension installed,
-then open the Command Pallette with `Ctrl+Shift+P`, enter "Remote Tunnels: Connect to Tunnel", 
-and enter `cuda-quantum-remote`. After the window reloaded, enter "File: Open Folder" in the Command Pallette 
+then open the Command Palette with `Ctrl+Shift+P`, enter "Remote Tunnels: Connect to Tunnel", 
+and enter `cuda-quantum-remote`. After the window reloaded, enter "File: Open Folder" in the Command Palette 
 to open the `/home/cudaq/` folder.
 
 You should see a pop up asking if you want to install the recommended extensions. Selecting to install them will
@@ -358,7 +358,7 @@ You can always see the list of recommended extensions that aren't installed yet 
 Remote Access via SSH
 ++++++++++++++++++++++++++++++++++++
 
-To facilitate application development with, for example, debugging and IntelliSense support,
+To facilitate application development with, for example, debugging, code completion, hover information, and so on, 
 you can connect a local installation of `VS Code <https://code.visualstudio.com/>`_ to a remote host via SSH. 
 
 .. note:: 
@@ -368,14 +368,14 @@ you can connect a local installation of `VS Code <https://code.visualstudio.com/
   If a connection via tunnel is not possible, this section describes using SSH instead.
 
 To do so, make sure you have `Remote - SSH <https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh>`__ extension installed.
-Open the Command Pallette with `Ctrl+Shift+P`, enter "Remote-SSH: Add new
+Open the Command Palette with `Ctrl+Shift+P`, enter "Remote-SSH: Add new
 SSH Host", and enter the SSH command to connect to your account on the remote host.
-You can then connect to the host by opening the Command Pallette, entering
+You can then connect to the host by opening the Command Palette, entering
 "Remote SSH: Connect Current Window to Host", and choosing the newly created host.
 
 When prompted, choose Linux as the operating system, and enter your
 password. After the window reloaded, enter "File: Open Folder" in the 
-Command Pallette to open the desired folder. Our GitHub repository contains
+Command Palette to open the desired folder. Our GitHub repository contains
 a folder with VS Code configurations including a list of recommended extensions for
 working with CUDA Quantum; you can copy `these configurations <https://github.com/NVIDIA/cuda-quantum/tree/main/docker/release/config/.vscode>`__ into the a folder named `.vscode` in your workspace to use them.
 
@@ -383,9 +383,9 @@ If you want to work with an existing CUDA Quantum installation on the remote hos
 Alternatively, you can use Singularity to build and run a container following the instructions in 
 :ref:`this section <install-singularity-image>`. Once the `cuda-quantum.sif` image is built and 
 available in your home directory on the remote host, you can update your VS Code configuration 
-to enable IntelliSense and other dev tools within the container. 
+to enable/improve completion, hover information, and other development tools within the container.
 
-To do so, open the Command Pallette and enter "Remote-SSH: Open SSH Configuration File". 
+To do so, open the Command Palette and enter "Remote-SSH: Open SSH Configuration File". 
 Add a new entry to that file with the command to launch the container, and edit the configuration 
 of the remote host, titled `remote-host` in the snippets below, to add a new identifier:
 
@@ -400,7 +400,7 @@ of the remote host, titled `remote-host` in the snippets below, to add a new ide
       ...
 
 You will need to edit a couple of VS Code setting to make use of the newly defined remote command;
-open the Command Pallette, enter "Preferences: Open User Settings (JSON)", and add or update the 
+open the Command Palette, enter "Preferences: Open User Settings (JSON)", and add or update the 
 following configurations:
 
 .. code-block:: console
