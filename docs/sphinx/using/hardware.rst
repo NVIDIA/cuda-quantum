@@ -308,3 +308,87 @@ the ``shots_count`` is set to 1000.
     cudaq.sample(kernel, shots_count=10000)
 
 To see a complete example for using IQM server backends, take a look at our :ref:`Python examples<python-examples-for-hardware-providers>`.
+
+OQC
+==================================
+
+`Oxford Quantum Circuits <https://oxfordquantumcircuits.com/>`__ (OQC) is currently providing CUDA quantum integration for our 8 qubit ring topology Lucy device.
+
+Setting Credentials
+`````````````````````````
+
+In order to use the OQC devices you will need to register.
+Registration is achieved by contacting oqc_qcaas_support@oxfordquantumcircuits.com
+
+Once registered you will be able to authenticate with your ``email`` and ``password``
+
+There are three environment variables that the OQC target will look for during configuration:
+
+1. ``OQC_URL``
+2. ``OQC_EMAIL``
+3. ``OQC_PASSWORD`` - is mandatory
+
+Submission from C++
+`````````````````````````
+
+To target quantum kernel code for execution on the OQC platform, provide the flag ``--target oqc`` to the ``nvq++`` compiler.
+
+Users may provide their :code:`email` and :code:`url` as extra arguments
+
+.. code:: bash
+
+    nvq++ --target oqc --oqc-email <email> --oqc-url <url> src.cpp -o executable
+
+Where both environment variables and extra arguments are supplied, precedent is given to the extra arguments.
+To run the output, provide the runtime loaded variables and invoke the pre-built executable
+
+.. code:: bash
+
+   OQC_PASSWORD=<password> ./executable
+
+To emulate the OQC device locally, without submitting through the OQC QCaaS services, you can pass the ``--emulate`` flag to ``nvq++``.
+This will emit any target specific compiler warnings and diagnostics, before running a noise free emulation.
+
+.. code:: bash
+
+    nvq++ --emulate --target oqc src.cpp -o executable
+
+
+.. note::
+
+    There is currently no requirement to specify the machine in use. This is configured via the URL which points to the relevant system.
+
+.. note::
+
+    The OQC quantum assembly toolchain (qat) which is used to compile and execute instructions can be found on github as `oqc-community/qat <https://github.com/oqc-community/qat>`__
+
+Submission from Python
+`````````````````````````
+
+To set which OQC URL, set the :code:`url` parameter.
+To set which OQC email, set the :code:`email` parameter.
+
+.. code:: python
+
+    import os
+    import cudaq
+    # ...
+    os.environ['OQC_PASSWORD'] = password
+    cudaq.set_target(target="oqc", url="")
+
+You can then execute a kernel against the platform using the OQC Lucy device
+
+.. code:: python
+
+    kernel = cudaq.make_kernel()
+    qreg = kernel.qalloc(2)
+    kernel.h(qreg[0])
+    kernel.x(qreg[1])
+    kernel.cx(qreg[0], qreg[1])
+    kernel.mz(qreg)
+    str(cudaq.sample(kernel=kernel, shots_count=1000))
+
+
+
+
+

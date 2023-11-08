@@ -651,14 +651,48 @@ void invokeWithControlQubits(const std::size_t nControls,
     Qubit *ctrli = va_arg(args, Qubit *);
     auto ctrliRawPtr =
         __quantum__rt__array_get_element_ptr_1d(ctrlArray.get(), nSetPointers);
+    cudaq::info("before reinterpret cast");
     *reinterpret_cast<Qubit **>(ctrliRawPtr) = ctrli;
     nSetPointers++;
   }
 
-  // The last one will be the target
+  // The next one will be the target
   Qubit *target = va_arg(args, Qubit *);
   // Invoke the function
   QISFunction(ctrlArray.get(), target);
+
+  // End the var args processing and release the array.
+  va_end(args);
+}
+
+void invokeRotationWithControlQubits(double param, const std::size_t nControls,
+                                     void (*QISFunction)(double, Array *,
+                                                         Qubit *),
+                                     ...) {
+  // Create the Control Array *, This should
+  // be deallocated upon function exit.
+  auto ctrlArray = std::make_unique<Array>(nControls, sizeof(std::size_t));
+
+  // Start up the variadic arg processing
+  va_list args;
+  va_start(args, QISFunction);
+
+  std::size_t nSetPointers = 0;
+  while (nSetPointers < nControls) {
+    // For each variadic arg, get it (its a Qubit*)
+    // and set it on the array.
+    Qubit *ctrli = va_arg(args, Qubit *);
+    auto ctrliRawPtr =
+        __quantum__rt__array_get_element_ptr_1d(ctrlArray.get(), nSetPointers);
+    cudaq::info("before reinterpret cast");
+    *reinterpret_cast<Qubit **>(ctrliRawPtr) = ctrli;
+    nSetPointers++;
+  }
+
+  // The next one will be the target
+  Qubit *target = va_arg(args, Qubit *);
+  // Invoke the function
+  QISFunction(param, ctrlArray.get(), target);
 
   // End the var args processing and release the array.
   va_end(args);
