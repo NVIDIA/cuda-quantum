@@ -972,6 +972,121 @@ CUDAQ_TEST(BuilderTester, checkExpPauli) {
   }
 }
 
+CUDAQ_TEST(BuilderTester, checkControlledRotations) {
+  // rx: pi
+  {
+    auto kernel = cudaq::make_kernel();
+    auto controls1 = kernel.qalloc(2);
+    auto controls2 = kernel.qalloc(2);
+    auto control3 = kernel.qalloc();
+    auto target = kernel.qalloc();
+
+    // All of our controls in the 1-state.
+    kernel.x(controls1);
+    kernel.x(controls2);
+    kernel.x(control3);
+
+    kernel.rx<cudaq::ctrl>(M_PI, controls1, controls2, control3, target);
+
+    std::cout << kernel.to_quake() << "\n";
+
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+
+    // Target qubit should've been rotated to |1>.
+    EXPECT_EQ(counts.count("111111"), 1000);
+  }
+
+  // rx: 0.0
+  {
+    auto kernel = cudaq::make_kernel();
+    auto controls1 = kernel.qalloc(2);
+    auto controls2 = kernel.qalloc(2);
+    auto control3 = kernel.qalloc();
+    auto target = kernel.qalloc();
+
+    // All of our controls in the 1-state.
+    kernel.x(controls1);
+    kernel.x(controls2);
+    kernel.x(control3);
+
+    kernel.rx<cudaq::ctrl>(0.0, controls1, controls2, control3, target);
+
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+
+    // Target qubit should've stayed in |0>
+    EXPECT_EQ(counts.count("111110"), 1000);
+  }
+
+  // ry: pi
+  {
+    auto kernel = cudaq::make_kernel();
+    auto controls1 = kernel.qalloc(2);
+    auto controls2 = kernel.qalloc(2);
+    auto control3 = kernel.qalloc();
+    auto target = kernel.qalloc();
+
+    // All of our controls in the 1-state.
+    kernel.x(controls1);
+    kernel.x(controls2);
+    kernel.x(control3);
+
+    kernel.ry<cudaq::ctrl>(M_PI, controls1, controls2, control3, target);
+
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+
+    // Target qubit should've been rotated to |1>
+    EXPECT_EQ(counts.count("111111"), 1000);
+  }
+
+  // ry: pi / 2
+  {
+    cudaq::set_random_seed(4);
+
+    auto kernel = cudaq::make_kernel();
+    auto controls1 = kernel.qalloc(2);
+    auto controls2 = kernel.qalloc(2);
+    auto control3 = kernel.qalloc();
+    auto target = kernel.qalloc();
+
+    // All of our controls in the 1-state.
+    kernel.x(controls1);
+    kernel.x(controls2);
+    kernel.x(control3);
+
+    kernel.ry<cudaq::ctrl>(M_PI_2, controls1, controls2, control3, target);
+
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+
+    // Target qubit should have a 50/50 mix between |0> and |1>
+    EXPECT_TRUE(counts.count("111111") < 550);
+    EXPECT_TRUE(counts.count("111110") > 450);
+  }
+
+  {
+    auto kernel = cudaq::make_kernel();
+    auto controls1 = kernel.qalloc(3);
+    auto controls2 = kernel.qalloc(3);
+    auto control3 = kernel.qalloc();
+    auto target = kernel.qalloc();
+
+    kernel.x(controls1);
+    kernel.x(control3);
+    // Should do nothing.
+    kernel.x<cudaq::ctrl>(controls1, controls2, control3, target);
+    kernel.x(controls2);
+    // Should rotate `target`.
+    kernel.rx<cudaq::ctrl>(M_PI, controls1, controls2, control3, target);
+
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    EXPECT_EQ(counts.count("11111111"), 1000);
+  }
+}
+
 #ifndef CUDAQ_BACKEND_DM
 
 CUDAQ_TEST(BuilderTester, checkCanProgressivelyBuild) {

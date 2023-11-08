@@ -389,8 +389,8 @@ CUDAQ_TEST(QuantinuumTester, checkControlledRotations) {
     counts.dump();
 
     // Target qubit should have a 50/50 mix between |0> and |1>
-    EXPECT_EQ(counts.count("0000111111"), 505);
-    EXPECT_EQ(counts.count("0000111110"), 495);
+    EXPECT_TRUE(counts.count("0000111111") < 550);
+    EXPECT_TRUE(counts.count("0000111110") > 450);
   }
 
   {
