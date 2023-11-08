@@ -40,7 +40,10 @@ To download the latest version on the main branch of our GitHub repository, for 
 
     docker pull nvcr.io/nvidia/nightly/cuda-quantum:latest
 
-.. _NGC Container Registry: https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum
+Early prototypes for features we are considering can be tried out by using the image tags starting 
+with `experimental`. The `README` in the `/home/cudaq` folder in the container gives more details 
+about the feature. We welcome and appreciate your feedback about these early prototypes; 
+how popular they are will help inform whether we should include them in future releases.
 
 Once you have downloaded an image, the container can be run using the command
 
@@ -124,6 +127,9 @@ Replace the image name and/or tag in the `From` line, if necessary, with the one
 In addition to publishing `stable releases <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum/tags>`__, 
 we also publish docker images whenever we update certain branches on our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`_.
 These images are published in our `nightly channel on NGC <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nightly/containers/cuda-quantum/tags>`__.
+Early prototypes for features we are considering can be tried out by using the image tags starting 
+with `experimental`. We welcome and appreciate your feedback about these early prototypes; 
+how popular they are will help inform whether we should include them in future releases.
 
 You can then create a CUDA Quantum container by running the following commands:
 
