@@ -55,8 +55,9 @@ public:
   computeRDM(const std::vector<int32_t> &qubits);
 
   /// Factorize the cutensornetState_t into matrix product state form.
-  // Returns MPS tensors (device mems)
-  // Note: user needs to clean up these tensors
+  // Returns MPS tensors in GPU device memory.
+  // Note: the caller assumes the ownership of these pointers, thus needs to
+  // clean them up properly (with cudaFree).
   std::vector<void *> factorizeMPS(
       int64_t maxExtent, double absCutoff, double relCutoff,
       cutensornetTensorSVDAlgo_t algo = CUTENSORNET_TENSOR_SVD_ALGO_GESVDJ);
