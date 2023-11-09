@@ -53,6 +53,11 @@ inline mlir::Type getStringType(mlir::MLIRContext *ctx, std::size_t length) {
 /// \p eleTy (`T`).
 inline mlir::LLVM::LLVMStructType stdVectorImplType(mlir::Type eleTy) {
   auto *ctx = eleTy.getContext();
+  // Map stdvec<complex<T>> to stdvec<struct<T,T>>
+  if (auto cTy = dyn_cast<mlir::ComplexType>(eleTy)) {
+    llvm::SmallVector<mlir::Type> types = {cTy.getElementType(), cTy.getElementType()};
+    eleTy = mlir::LLVM::LLVMStructType::getLiteral(ctx, types);
+  }
   auto elePtrTy = cudaq::opt::factory::getPointerType(eleTy);
   auto i64Ty = mlir::IntegerType::get(ctx, 64);
   llvm::SmallVector<mlir::Type> eleTys = {elePtrTy, i64Ty};

@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include <pybind11/operators.h>
 #include <pybind11/stl.h>
 
 #include "py_SampleResult.h"
@@ -36,6 +37,7 @@ Attributes:
 	register_names (List[str]): A list of the names of each measurement 
 		register that are stored in `self`.)#")
       .def_property_readonly("register_names", &sample_result::register_names)
+      .def(py::init<>())
       .def(
           "dump", [](sample_result &self) { self.dump(); },
           "Print a string of the raw measurement counts data to the "
@@ -185,6 +187,7 @@ Returns:
           py::keep_alive<0, 1>(),
           "Return all values (the counts) in this :class:`SampleResult` "
           "dictionary.\n")
+      .def(py::self += py::self)
       .def("clear", &sample_result::clear,
            "Clear out all metadata from `self`.\n");
 }

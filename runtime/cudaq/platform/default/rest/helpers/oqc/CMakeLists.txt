@@ -12,3 +12,11 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/oqc.config
 target_sources(cudaq-rest-qpu PRIVATE OQCServerHelp.cpp)
 add_target_config(oqc)
 
+add_library(cudaq-serverhelper-oqc SHARED OQCServerHelp.cpp )
+target_link_libraries(cudaq-serverhelper-oqc
+  PUBLIC 
+    cudaq-common 
+    fmt::fmt-header-only 
+)
+install(TARGETS cudaq-serverhelper-oqc DESTINATION lib)
+

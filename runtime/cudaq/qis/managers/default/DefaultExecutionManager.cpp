@@ -102,7 +102,8 @@ protected:
     flushRequestedAllocations();
 
     // Get the data, create the Qubit* targets
-    auto [gateName, parameters, controls, targets, op] = instruction;
+    auto [gateName, parameters, controls, targets, op, unitaryOrState] =
+        instruction;
 
     // Map the Qudits to Qubits
     std::vector<std::size_t> localT;
@@ -111,6 +112,14 @@ protected:
     std::vector<std::size_t> localC;
     std::transform(controls.begin(), controls.end(), std::back_inserter(localC),
                    [](auto &&el) { return el.id; });
+
+    if (!unitaryOrState.empty()) {
+      if (gateName == "init_state")
+        simulator()->initializeState(localT, unitaryOrState);
+      else
+        simulator()->applyCustomOperation(unitaryOrState, localC, localT);
+      return;
+    }
 
     // Apply the gate
     llvm::StringSwitch<std::function<void()>>(gateName)
@@ -151,9 +160,9 @@ protected:
   }
 
   int measureQudit(const cudaq::QuditInfo &q,
-                   std::string regName = "") override {
+                   const std::string &registerName) override {
     flushRequestedAllocations();
-    return simulator()->mz(q.id, regName);
+    return simulator()->mz(q.id, registerName);
   }
 
   void measureSpinOp(const cudaq::spin_op &op) override {

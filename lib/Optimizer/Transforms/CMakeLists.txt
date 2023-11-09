@@ -38,6 +38,7 @@ add_cudaq_library(OptTransforms
   QuakeAddMetadata.cpp
   QuakeSynthesizer.cpp
   RegToMem.cpp
+  PySynthCallableBlockArgs.cpp
 
   DEPENDS
     OptTransformsPassIncGen

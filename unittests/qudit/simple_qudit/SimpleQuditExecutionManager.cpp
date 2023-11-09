@@ -78,7 +78,8 @@ protected:
     operation(instruction);
   }
 
-  int measureQudit(const cudaq::QuditInfo &q, std::string regName = "") override {
+  int measureQudit(const cudaq::QuditInfo &q,
+                   const std::string &regName) override {
     if (executionContext && executionContext->name == "sample") {
       sampleQudits.push_back(q);
       return 0;
@@ -105,7 +106,7 @@ public:
     instructions.emplace("plusGate", [&](const Instruction &inst) {
       qpp::cmat u(3, 3);
       u << 0, 0, 1, 1, 0, 0, 0, 1, 0;
-      auto &[gateName, params, controls, qudits, op] = inst;
+      auto &[gateName, params, controls, qudits, op, unitary] = inst;
       auto target = qudits[0];
       cudaq::info("Applying plusGate on {}<{}>", target.id, target.levels);
       state = qpp::applyCTRL(state, u, {}, {target.id}, target.levels);

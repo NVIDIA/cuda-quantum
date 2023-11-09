@@ -16,7 +16,6 @@
 #include "runtime/cudaq/algorithms/py_vqe.h"
 #include "runtime/cudaq/builder/py_kernel_builder.h"
 #include "runtime/cudaq/kernels/py_chemistry.h"
-#include "runtime/cudaq/qis/py_qubit_qis.h"
 #include "runtime/cudaq/spin/py_matrix.h"
 #include "runtime/cudaq/spin/py_spin_op.h"
 #include "runtime/cudaq/target/py_runtime_target.h"
@@ -83,7 +82,6 @@ PYBIND11_MODULE(_pycudaq, mod) {
 
   cudaq::bindRuntimeTarget(mod, holder);
   cudaq::bindBuilder(mod);
-  cudaq::bindQIS(mod);
   cudaq::bindQuakeValue(mod);
   cudaq::bindObserve(mod);
   cudaq::bindObserveResult(mod);

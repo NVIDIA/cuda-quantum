@@ -103,7 +103,11 @@ void bindSpinOperator(py::module &mod) {
            "to the "
            "identity.")
       .def(
-          "to_string", [](cudaq::spin_op &op) { return op.to_string(); },
+          "to_string",
+          [](cudaq::spin_op &op, bool print_coefficient) {
+            return op.to_string(print_coefficient);
+          },
+          py::arg("print_coefficient") = true,
           "Return a string representation of this :class:`SpinOperator`.")
       .def(
           "__str__", [](cudaq::spin_op &op) { return op.to_string(); },

@@ -372,7 +372,11 @@ public:
           eleTy = memrefTy.getElementType();
         auto stdvecTy = cudaq::cc::StdvecType::get(ctx, eleTy);
         // Must divide by byte, 8 bits.
-        auto eleSize = eleTy.getIntOrFloatBitWidth() / 8;
+        std::size_t eleSize;
+        if (auto cTy = dyn_cast<ComplexType>(eleTy))
+          eleSize = 2 * (cTy.getElementType().getIntOrFloatBitWidth() / 8);
+        else
+          eleSize = eleTy.getIntOrFloatBitWidth() / 8;
         Value vecSize =
             builder.create<cudaq::cc::ExtractValueOp>(loc, i64Ty, val, off);
         auto eleSizeAttr = builder.getI64IntegerAttr(eleSize);

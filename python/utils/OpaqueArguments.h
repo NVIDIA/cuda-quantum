@@ -13,6 +13,7 @@
 #include <chrono>
 #include <functional>
 #include <future>
+#include <pybind11/complex.h>
 #include <pybind11/pybind11.h>
 #include <vector>
 
@@ -39,14 +40,14 @@ private:
   std::vector<OpaqueArgDeleter> deleters;
 
 public:
-  /// @brief Add an opaque argument and its `deleter` to this OpaqueArguments
+  /// @brief Add an opaque argument and its deleter to this OpaqueArguments
   template <typename ArgPointer, typename Deleter>
   void emplace_back(ArgPointer &&pointer, Deleter &&deleter) {
     args.emplace_back(pointer);
     deleters.emplace_back(deleter);
   }
 
-  /// @brief Return the arguments as a pointer to `void*`.
+  /// @brief Return the args as a pointer to void*.
   void **data() { return args.data(); }
 
   /// @brief Return the number of arguments
@@ -124,7 +125,7 @@ inline py::args validateInputArguments(kernel_builder<> &kernel,
 
 /// @brief For general function broadcasting over many argument
 /// sets, this function will create those argument sets from
-/// the input arguments.
+/// the input args.
 inline std::vector<py::args> createArgumentSet(py::args &args) {
   // we accept float, int, list so we will check here for
   // list[float], list[int], list[list], or ndarray for any,
@@ -191,14 +192,12 @@ inline void packArgs(OpaqueArguments &argData, py::args args) {
       argData.emplace_back(ourAllocatedArg, [](void *ptr) {
         delete static_cast<double *>(ptr);
       });
-    }
-    if (py::isinstance<py::int_>(arg)) {
-      int *ourAllocatedArg = new int();
+    } else if (py::isinstance<py::int_>(arg)) {
+      long *ourAllocatedArg = new long();
       *ourAllocatedArg = PyLong_AsLong(arg.ptr());
       argData.emplace_back(ourAllocatedArg,
-                           [](void *ptr) { delete static_cast<int *>(ptr); });
-    }
-    if (py::isinstance<py::list>(arg)) {
+                           [](void *ptr) { delete static_cast<long *>(ptr); });
+    } else if (py::isinstance<py::list>(arg)) {
       auto casted = py::cast<py::list>(arg);
       std::vector<double> *ourAllocatedArg =
           new std::vector<double>(casted.size());
@@ -208,14 +207,82 @@ inline void packArgs(OpaqueArguments &argData, py::args args) {
       argData.emplace_back(ourAllocatedArg, [](void *ptr) {
         delete static_cast<std::vector<double> *>(ptr);
       });
-    }
+    } else
+      throw std::runtime_error("Could not pack argument: " +
+                               py::str(args).cast<std::string>());
   }
 }
 
-/// @brief Return true if the given `py::args` represents a
+inline void
+packArgs(OpaqueArguments &argData, py::args args,
+         const std::function<bool(OpaqueArguments &argData, py::object &arg)>
+             &backupHandler) {
+  for (std::size_t i = 0; i < args.size(); i++) {
+    py::object arg = args[i];
+    if (py::isinstance<py::float_>(arg)) {
+      double *ourAllocatedArg = new double();
+      *ourAllocatedArg = PyFloat_AsDouble(arg.ptr());
+      argData.emplace_back(ourAllocatedArg, [](void *ptr) {
+        delete static_cast<double *>(ptr);
+      });
+      continue;
+    } else if (py::isinstance<py::int_>(arg)) {
+      long *ourAllocatedArg = new long();
+      *ourAllocatedArg = PyLong_AsLong(arg.ptr());
+      argData.emplace_back(ourAllocatedArg,
+                           [](void *ptr) { delete static_cast<long *>(ptr); });
+      continue;
+    } else if (py::isinstance<py::list>(arg)) {
+      auto casted = py::cast<py::list>(arg);
+      auto firstElement = casted[0];
+      if (py::isinstance<py::int_>(firstElement)) {
+        std::vector<std::size_t> *ourAllocatedArg =
+            new std::vector<std::size_t>(casted.size());
+        for (std::size_t counter = 0; auto el : casted) {
+          (*ourAllocatedArg)[counter++] = PyLong_AsLong(el.ptr());
+        }
+        argData.emplace_back(ourAllocatedArg, [](void *ptr) {
+          delete static_cast<std::vector<std::size_t> *>(ptr);
+        });
+      } else if (py::hasattr(firstElement, "real") &&
+                 py::hasattr(firstElement, "imag") &&
+                 !py::isinstance<py::float_>(firstElement)) {
+        // Trying to catch elements of type complex
+        std::vector<std::complex<double>> *ourAllocatedArg =
+            new std::vector<std::complex<double>>(casted.size());
+        for (std::size_t counter = 0; auto el : casted) {
+          (*ourAllocatedArg)[counter++] = {
+              PyFloat_AsDouble(el.attr("real").ptr()),
+              PyFloat_AsDouble(el.attr("imag").ptr())};
+        }
+        argData.emplace_back(ourAllocatedArg, [](void *ptr) {
+          delete static_cast<std::vector<std::complex<double>> *>(ptr);
+        });
+      } else {
+        std::vector<double> *ourAllocatedArg =
+            new std::vector<double>(casted.size());
+        for (std::size_t counter = 0; auto el : casted) {
+          (*ourAllocatedArg)[counter++] = PyFloat_AsDouble(el.ptr());
+        }
+        argData.emplace_back(ourAllocatedArg, [](void *ptr) {
+          delete static_cast<std::vector<double> *>(ptr);
+        });
+      }
+      continue;
+    }
+
+    // Unhandled, see if someone else knows how to handle it
+    auto worked = backupHandler(argData, arg);
+    if (!worked)
+      throw std::runtime_error("Could not pack argument: " +
+                               py::str(args).cast<std::string>());
+  }
+}
+
+/// @brief Return true if the given py::args represents a
 /// request for broadcasting sample or observe over all argument sets.
-/// Kernel argument types can be `int`, `float`, `list`, so
-/// we should check if `args[i]` is a `list` or `ndarray`.
+/// Kernel arg types can be int, float, list, so
+/// we should check if args[i] is a list or ndarray.
 inline bool isBroadcastRequest(kernel_builder<> &builder, py::args &args) {
   if (args.empty())
     return false;
@@ -240,70 +307,5 @@ inline bool isBroadcastRequest(kernel_builder<> &builder, py::args &args) {
 
   return false;
 }
-
-/// @brief Return true if the given `py::args` represents a
-/// request for broadcasting sample or observe over all argument sets.
-/// Kernel argument types can be `int`, `float`, `list`, so
-/// we should check if `args[i]` is a `list` or `ndarray`.
-/// This is a specialization for CUDA Quantum callable kernels (not for
-/// `kernel_builder`).
-inline bool isBroadcastRequest(bool firstArgIsList, py::args &args) {
-  if (args.empty())
-    return false;
-
-  auto arg = args[0];
-  // Just need to check the leading argument
-  if (py::isinstance<py::list>(arg) && !firstArgIsList)
-    return true;
-
-  if (py::hasattr(arg, "tolist")) {
-    if (!py::hasattr(arg, "shape"))
-      return false;
-
-    auto shape = arg.attr("shape").cast<py::tuple>();
-    if (shape.size() == 1 && !firstArgIsList)
-      return true;
-
-    // If shape is 2, then we know its a list of list
-    if (shape.size() == 2)
-      return true;
-  }
-
-  return false;
-}
-
-/// @brief Analyze the function signature of the callable CUDA Quantum kernel.
-/// Return two `bool`, one indicating if broadcasting shouldn't be attempted,
-/// and another to indicate that the first argument for the kernel is a
-/// list.
-inline std::tuple<bool, bool>
-kernelCallableInputArgAnalysis(py::object &kernel) {
-  // We want to return two bools here, the first
-  // indicate that we don't have arg types annotations, so
-  // disallow broadcasting totally, and the second is a bool that
-  // indicates that the first arg is a list[]-like argument
-  auto inspect = py::module::import("inspect");
-  auto signatureParams =
-      inspect.attr("signature")(kernel.attr("kernelFunction"))
-          .attr("parameters")
-          .cast<py::dict>();
-
-  if (signatureParams.empty())
-    return std::make_tuple(true, false);
-
-  // Make sure we have type annotations, if not, disallow broadcasting
-  for (auto &[k, v] : signatureParams) {
-    std::string aStr = py::str(v.attr("annotation"));
-    if (aStr.find("inspect._empty") != std::string::npos)
-      return std::make_tuple(true, false);
-  }
-
-  // We have type annotations, check if the first one is a list
-  auto [firstArgKey, firstArgVal] = *signatureParams.begin();
-  if (py::list().get_type().is(firstArgVal.attr("annotation")().get_type()))
-    return std::make_tuple(false, true);
-
-  return std::make_tuple(false, false);
-};
 
 } // namespace cudaq

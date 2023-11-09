@@ -16,6 +16,7 @@ set(COMMON_RUNTIME_SRC
   ServerHelper.cpp 
   Resources.cpp
   Future.cpp
+  Executor.cpp
 )
 
 # Create the cudaq-common library

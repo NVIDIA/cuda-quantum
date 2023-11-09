@@ -36,9 +36,10 @@ protected:
   /// @brief An instruction is composed of a operation name,
   /// a optional set of rotation parameters, control qudits,
   /// target qudits, and an optional spin_op.
-  using Instruction = std::tuple<std::string, std::vector<double>,
-                                 std::vector<cudaq::QuditInfo>,
-                                 std::vector<cudaq::QuditInfo>, spin_op>;
+  using Instruction =
+      std::tuple<std::string, std::vector<double>,
+                 std::vector<cudaq::QuditInfo>, std::vector<cudaq::QuditInfo>,
+                 spin_op, std::vector<std::complex<double>>>;
 
   /// @brief `typedef` for a queue of instructions
   using InstructionQueue = std::queue<Instruction>;
@@ -92,7 +93,7 @@ protected:
 
   /// @brief Subtype-specific method for performing qudit measurement.
   virtual int measureQudit(const cudaq::QuditInfo &q,
-                           std::string regName = "") = 0;
+                           const std::string &registerName) = 0;
 
   /// @brief Measure the state in the basis described by the given `spin_op`.
   virtual void measureSpinOp(const cudaq::spin_op &op) = 0;
@@ -208,7 +209,9 @@ public:
   void apply(const std::string_view gateName, const std::vector<double> &params,
              const std::vector<cudaq::QuditInfo> &controls,
              const std::vector<cudaq::QuditInfo> &targets,
-             bool isAdjoint = false, spin_op op = spin_op()) override {
+             bool isAdjoint = false, const spin_op op = spin_op(),
+             const std::vector<std::complex<double>> unitary =
+                 std::vector<std::complex<double>>{}) override {
 
     // Make a copy of the name that we can mutate if necessary
     std::string mutable_name(gateName);
@@ -240,22 +243,23 @@ public:
 
     if (!adjointQueueStack.empty()) {
       // Add to the adjoint instruction queue
-      adjointQueueStack.top().emplace(std::make_tuple(
-          mutable_name, mutable_params, mutable_controls, mutable_targets, op));
+      adjointQueueStack.top().emplace(
+          std::make_tuple(mutable_name, mutable_params, mutable_controls,
+                          mutable_targets, op, unitary));
       return;
     }
 
     // Add to the instruction queue
     instructionQueue.emplace(std::make_tuple(std::move(mutable_name),
                                              mutable_params, mutable_controls,
-                                             mutable_targets, op));
+                                             mutable_targets, op, unitary));
   }
 
   void synchronize() override {
     while (!instructionQueue.empty()) {
       auto instruction = instructionQueue.front();
       if (isInTracerMode()) {
-        auto [gateName, params, controls, targets, op] = instruction;
+        auto [gateName, params, controls, targets, op, unitary] = instruction;
         std::vector<std::size_t> controlIds;
         std::transform(controls.begin(), controls.end(),
                        std::back_inserter(controlIds),
@@ -270,7 +274,7 @@ public:
   }
 
   int measure(const cudaq::QuditInfo &target,
-              std::string regName = "") override {
+              const std::string registerName = "") override {
     if (isInTracerMode())
       return 0;
 
@@ -278,7 +282,7 @@ public:
     synchronize();
 
     // Instruction executed, run the measure call
-    return measureQudit(target, regName);
+    return measureQudit(target, registerName);
   }
 
   cudaq::SpinMeasureResult measure(cudaq::spin_op &op) override {

@@ -108,7 +108,8 @@ protected:
   }
 
   /// @brief Method for performing qudit measurement.
-  int measureQudit(const cudaq::QuditInfo &q, std::string regName = "") override {
+  int measureQudit(const cudaq::QuditInfo &q,
+                   const std::string &registerName) override {
     if (executionContext && executionContext->name == "sample") {
       sampleQudits.push_back(q);
       return 0;
@@ -247,7 +248,7 @@ public:
   PhotonicsExecutionManager() {
 
     instructions.emplace("plusGate", [&](const Instruction &inst) {
-      auto &[gateName, params, controls, qudits, spin_op] = inst;
+      auto &[gateName, params, controls, qudits, spin_op, unitary] = inst;
       auto target = qudits[0];
       int d = target.levels;
       qpp::cmat u{qpp::cmat::Zero(d, d)};
@@ -260,7 +261,7 @@ public:
     });
 
     instructions.emplace("beamSplitterGate", [&](const Instruction &inst) {
-      auto &[gateName, params, controls, qudits, spin_op] = inst;
+      auto &[gateName, params, controls, qudits, spin_op, unitary] = inst;
       auto target1 = qudits[0];
       auto target2 = qudits[1];
       size_t d = target1.levels;
@@ -273,7 +274,7 @@ public:
     });
 
     instructions.emplace("phaseShiftGate", [&](const Instruction &inst) {
-      auto &[gateName, params, controls, qudits, spin_op] = inst;
+      auto &[gateName, params, controls, qudits, spin_op, unitary] = inst;
       auto target = qudits[0];
       size_t d = target.levels;
       const double phi = params[0];

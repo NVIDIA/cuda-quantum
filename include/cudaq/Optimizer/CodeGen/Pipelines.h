@@ -14,6 +14,7 @@
 
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "mlir/Conversion/MathToFuncs/MathToFuncs.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/Passes.h"
@@ -30,11 +31,13 @@ void addPipelineToQIR(mlir::PassManager &pm,
                       llvm::StringRef convertTo = "none") {
   cudaq::opt::addAggressiveEarlyInlining(pm);
   pm.addPass(mlir::createCanonicalizerPass());
+  pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createUnwindLoweringPass());
+  pm.addPass(mlir::createCanonicalizerPass());
+  pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
   pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   pm.addPass(mlir::createCanonicalizerPass());
   pm.addPass(mlir::createCSEPass());
-  pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createUnwindLoweringPass());
   pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createLowerToCFGPass());
   pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
   pm.addPass(cudaq::opt::createLoopNormalize());
@@ -50,6 +53,7 @@ void addPipelineToQIR(mlir::PassManager &pm,
   if (convertTo.equals("qir-base"))
     pm.addNestedPass<mlir::func::FuncOp>(
         cudaq::opt::createDelayMeasurementsPass());
+  pm.addPass(mlir::createConvertMathToFuncs());
   pm.addPass(cudaq::opt::createConvertToQIRPass());
   if constexpr (QIRProfile) {
     cudaq::opt::addQIRProfilePipeline(pm, convertTo);

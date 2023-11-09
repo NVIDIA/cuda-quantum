@@ -33,9 +33,8 @@ struct RuntimeTarget {
 
   /// @brief Return the number of QPUs this target exposes.
   std::size_t num_qpus();
-
-  /// @brief Return true if the target is a remote QPU.
   bool is_remote();
+  bool is_emulated();
 };
 
 /// @brief The LinkedLibraryHolder provides a mechanism for
@@ -43,7 +42,7 @@ struct RuntimeTarget {
 /// for the CUDA Quantum runtime within the Python runtime.
 class LinkedLibraryHolder {
 public:
-  /// @brief Global `boolean` that disables target modification.
+  /// @brief Global boolean that disables target modification.
   /// This will turn off (bypass) target modification in the LinkedLibraryHolder
   /// instance used by Python bindings.
   static inline bool disallowTargetModification = false;
@@ -70,8 +69,11 @@ protected:
   /// @brief Store the name of the current target
   std::string currentTarget = "qpp-cpu";
 
+  bool overrideRestQPU = false;
+
 public:
   LinkedLibraryHolder();
+  LinkedLibraryHolder(bool overrideRestQPU);
   ~LinkedLibraryHolder();
 
   /// @brief Return the registered simulator with the given name.

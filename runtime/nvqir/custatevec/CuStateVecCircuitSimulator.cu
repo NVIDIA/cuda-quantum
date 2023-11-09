@@ -363,6 +363,12 @@ public:
     }
   }
 
+  void initializeState(
+      const std::vector<std::size_t> &targets,
+      const std::vector<std::complex<double>> &stateVector) override {
+    throw std::runtime_error("initialize state not implemented.");
+  }
+
   /// @brief Override base class functionality for a general Pauli
   /// rotation to delegate to the performant custatevecApplyPauliRotation.
   void applyExpPauli(double theta, const std::vector<std::size_t> &controlIds,

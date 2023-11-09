@@ -20,8 +20,6 @@
 /// Its goal is to create a single QPU that is added to the quantum_platform
 /// which delegates kernel execution to the current Execution Manager.
 
-LLVM_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType)
-
 namespace {
 /// The DefaultQPU models a simulated QPU by specifically
 /// targeting the QIS ExecutionManager.
@@ -84,9 +82,13 @@ public:
     platformQPUs.emplace_back(std::make_unique<DefaultQPU>());
 
     cudaq::info("Backend string is {}", backend);
+    std::map<std::string, std::string> configMap;
     auto mutableBackend = backend;
     if (mutableBackend.find(";") != std::string::npos) {
-      mutableBackend = cudaq::split(mutableBackend, ';')[0];
+      auto keyVals = cudaq::split(mutableBackend, ';');
+      mutableBackend = keyVals[0];
+      for (std::size_t i = 1; i < keyVals.size(); i += 2)
+        configMap.insert({keyVals[i], keyVals[i + 1]});
     }
 
     std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
@@ -108,17 +110,23 @@ public:
     std::string configContents((std::istreambuf_iterator<char>(configFile)),
                                std::istreambuf_iterator<char>());
 
-    auto lines = cudaq::split(configContents, '\n');
-    for (auto &line : lines) {
-      if (line.find(platformQPU) != std::string::npos) {
-        auto keyVal = cudaq::split(line, '=');
-        auto qpuName = keyVal[1];
-        cudaq::info("Default platform QPU subtype name: {}", qpuName);
-        platformQPUs.clear();
-        platformQPUs.emplace_back(cudaq::registry::get<cudaq::QPU>(qpuName));
-        if (platformQPUs.front() == nullptr)
-          throw std::runtime_error(
-              qpuName + " is not a valid QPU name for the default platform.");
+    if (configMap.count("override_qpu")) {
+      platformQPUs.clear();
+      platformQPUs.emplace_back(
+          cudaq::registry::get<cudaq::QPU>(configMap["override_qpu"]));
+    } else {
+      auto lines = cudaq::split(configContents, '\n');
+      for (auto &line : lines) {
+        if (line.find(platformQPU) != std::string::npos) {
+          auto keyVal = cudaq::split(line, '=');
+          auto qpuName = keyVal[1];
+          cudaq::info("Default platform QPU subtype name: {}", qpuName);
+          platformQPUs.clear();
+          platformQPUs.emplace_back(cudaq::registry::get<cudaq::QPU>(qpuName));
+          if (platformQPUs.front() == nullptr)
+            throw std::runtime_error(
+                qpuName + " is not a valid QPU name for the default platform.");
+        }
       }
     }
 

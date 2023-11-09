@@ -39,6 +39,10 @@ bool RuntimeTarget::is_remote() {
   auto &platform = cudaq::get_platform();
   return platform.is_remote();
 }
+bool RuntimeTarget::is_emulated() {
+  auto &platform = cudaq::get_platform();
+  return platform.is_emulated();
+}
 
 /// @brief Search the targets folder in the install for available targets.
 void findAvailableTargets(
@@ -100,7 +104,8 @@ void findAvailableTargets(
   }
 }
 
-LinkedLibraryHolder::LinkedLibraryHolder() {
+LinkedLibraryHolder::LinkedLibraryHolder(bool override)
+    : overrideRestQPU(override) {
   cudaq::info("Init infrastructure for pythonic builder.");
 
   cudaq::__internal__::CUDAQLibraryData data;
@@ -145,13 +150,15 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
     libHandles.emplace(p.string(),
                        dlopen(p.string().c_str(), RTLD_GLOBAL | RTLD_NOW));
 
-  // We will always load the RemoteRestQPU plugin in Python.
-  auto potentialPath =
-      cudaqLibPath / fmt::format("libcudaq-rest-qpu.{}", libSuffix);
-  void *restQpuLibHandle =
-      dlopen(potentialPath.string().c_str(), RTLD_GLOBAL | RTLD_NOW);
-  if (restQpuLibHandle)
-    libHandles.emplace(potentialPath.string(), restQpuLibHandle);
+  if (!overrideRestQPU) {
+    // We will always load the RemoteRestQPU plugin in Python.
+    auto potentialPath =
+        cudaqLibPath / fmt::format("libcudaq-rest-qpu.{}", libSuffix);
+    void *restQpuLibHandle =
+        dlopen(potentialPath.string().c_str(), RTLD_GLOBAL | RTLD_NOW);
+    if (restQpuLibHandle)
+      libHandles.emplace(potentialPath.string(), restQpuLibHandle);
+  }
 
   // Search for all simulators and create / store them
   for (const auto &library :
@@ -228,6 +235,8 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
   __nvqir__setCircuitSimulator(getSimulator("qpp"));
   setQuantumPlatformInternal(getPlatform("default"));
 }
+
+LinkedLibraryHolder::LinkedLibraryHolder() : LinkedLibraryHolder(false) {}
 
 LinkedLibraryHolder::~LinkedLibraryHolder() {
   for (auto &[name, handle] : libHandles) {
@@ -306,6 +315,22 @@ void LinkedLibraryHolder::setTarget(
 
   // Pack the config into the backend string name
   std::string backendConfigStr = targetName;
+  if (overrideRestQPU) {
+    // Need to load the server helper here
+    auto potentialPath =
+        cudaqLibPath /
+        fmt::format("libcudaq-serverhelper-{}.{}", targetName, libSuffix);
+    if (std::filesystem::exists(potentialPath) &&
+        !libHandles.count(potentialPath.string())) {
+      void *serverHelperHandle =
+          dlopen(potentialPath.string().c_str(), RTLD_GLOBAL | RTLD_NOW);
+      if (serverHelperHandle)
+        libHandles.emplace(potentialPath.string(), serverHelperHandle);
+
+      // This can only be set if there was a valid serverhelper
+      backendConfigStr += ";override_qpu;py_remote_rest";
+    }
+  }
   for (auto &[key, value] : extraConfig)
     backendConfigStr += fmt::format(";{};{}", key, value);
 
