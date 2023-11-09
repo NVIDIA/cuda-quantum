@@ -6,16 +6,16 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import sys
-import re
-import glob
-import nbformat
-from nbconvert.preprocessors import ExecutePreprocessor, CellExecutionError
-
+import glob, os, re, sys
+from pathlib import Path
+import subprocess
+from shutil import which
+if which('jupyter') is None:
+    print("Please install jupyter, e.g. with `pip install notebook`.")
+    exit(1)
 
 def available():
     available_backends = sys.stdin.readlines()
-
     if available_backends:
         available_backends = [
             available_backend.strip()
@@ -23,9 +23,7 @@ def available():
         ]
         return available_backends
 
-
 def validate(notebook_filename):
-
     with open(notebook_filename) as f:
         lines = f.readlines()
     for notebook_content in lines:
@@ -37,39 +35,26 @@ def validate(notebook_filename):
                 break
     return status
 
-
 def execute(notebook_filename, run_path='.'):
     notebook_filename_out = notebook_filename.replace('.ipynb',
                                                       '.nbconvert.ipynb')
-
-    with open(notebook_filename) as f:
-        nb = nbformat.read(f, as_version=4)
-    ep = ExecutePreprocessor(timeout=600, kernel_name='python3')
-
     success = True
     try:
-        out = ep.preprocess(nb, {'metadata': {'path': run_path}})
-    except CellExecutionError:
-        out = None
-        msg = 'Error executing the notebook "%s".\n\n' % notebook_filename
-        msg += 'See notebook "%s" for the traceback.' % notebook_filename_out
-        print(msg)
+        subprocess.run(["jupyter", "nbconvert", "--to", "notebook", "--execute", notebook_filename], check = True)
+        os.remove(notebook_filename_out)
+    except subprocess.CalledProcessError:
+        print('Error executing the notebook "%s".\n\n' % notebook_filename)
         success = False
-        raise
-    finally:
-        with open(notebook_filename_out, mode='w', encoding='utf-8') as f:
-            nbformat.write(nb, f)
-        return success
+    return success
 
 
 if __name__ == "__main__":
-
     available_backends = available()
-    notebook_filenames = glob.glob(
-        f"docs/sphinx/examples/python/tutorials/*.ipynb")
-    notebook_filenames = [
-        fn for fn in notebook_filenames if not fn.endswith('.nbconvert.ipynb')
-    ]
+    if len(sys.argv) > 1:
+        notebook_filenames = sys.argv[1:]
+    else:
+        notebook_filenames = [
+            fn for fn in glob.glob(f"{Path(__file__).parent}/docs/**/*.ipynb", recursive=True) if not fn.endswith('.nbconvert.ipynb')]
 
     if notebook_filenames:
         notebooks_failed = []
