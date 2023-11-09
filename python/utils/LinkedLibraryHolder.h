@@ -71,7 +71,7 @@ protected:
   std::string defaultTarget = "";
 
   /// @brief Store the name of the current target
-  std::string currentTarget = "";
+  std::string currentTarget;
 
 public:
   LinkedLibraryHolder();
