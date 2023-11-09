@@ -337,7 +337,7 @@ or the `VS Code Web UI <https://vscode.dev/>`__, to a running CUDA Quantum conta
 
 Creating a secure connection requires authenticating with the same GitHub or Microsoft account on each end.
 Once authenticated, an SSH connection over the tunnel provides end-to-end encryption. To download the CLI and 
-create a tunnel, execute the following commands 
+create a tunnel, execute the following commands:
 
 .. code-block:: console
 
