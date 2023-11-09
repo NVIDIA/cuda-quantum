@@ -1,8 +1,7 @@
 Getting Started
 *******************************************
 
-This guide walks through how to :ref:`install CUDA Quantum <install-cuda-quantum>` on your system.
-
+This guide walks through how to :ref:`install CUDA Quantum <install-cuda-quantum>` on your system, and how to set up :ref:`VS Code for local development <local-development-with-vscode>`.
 The section on :ref:`connecting to a remote host <connect-to-remote>` contains some
 guidance for application development on a remote host where CUDA Quantum is installed.
 
@@ -198,6 +197,7 @@ To build the CUDA Quantum Python API from source using pip, run the following co
 
 For more information about building the entire C++ and Python API from source, we refer to the `CUDA Quantum GitHub repository`_.
 
+.. _local-development-with-vscode:
 
 Development with VS Code
 ------------------------------------
