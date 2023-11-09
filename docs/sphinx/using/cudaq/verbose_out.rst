@@ -8,7 +8,11 @@ executable, just prepend this and turn it on:
 .. code-block:: console
 
   CUDAQ_LOG_LEVEL=info ./a.out
-  # python
+
+For python files:
+
+.. code-block:: console
+  
   CUDAQ_LOG_LEVEL=info python3 file.py
 
 Similarly, one may write the IR to their console or to a file before remote
