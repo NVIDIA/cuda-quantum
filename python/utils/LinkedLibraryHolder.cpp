@@ -254,7 +254,7 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
     defaultTarget = "nvidia";
   }
   auto env = std::getenv("CUDAQ_DEFAULT_SIMULATOR");
-  if (NULL != env) {
+  if (env) {
     cudaq::info("'CUDAQ_DEFAULT_SIMULATOR' = {}", env);
     auto iter = simulationTargets.find(env);
     if (iter != simulationTargets.end()) {
