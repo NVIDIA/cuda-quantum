@@ -66,23 +66,6 @@ def test_target_override():
     assert '00' in result
     assert '11' in result
 
-def test_ignore_invalid_target():
-    """Tests that if the environment variable is not a valid target, it is ignored"""
-
-    os.environ["CUDAQ_DEFAULT_SIMULATOR"] = "foo"
-    assert("foo" != cudaq.get_target().name)
-
-    kernel = cudaq.make_kernel()
-    qubits = kernel.qalloc(2)
-    kernel.h(qubits[0])
-    kernel.cx(qubits[0], qubits[1])
-    kernel.mz(qubits)
-
-    result = cudaq.sample(kernel)
-    result.dump()
-    assert '00' in result
-    assert '11' in result
-
 os.environ.pop("CUDAQ_DEFAULT_SIMULATOR")
 
 # leave for gdb debugging

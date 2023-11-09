@@ -263,6 +263,10 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
     }
   }
 
+  // Initialize current target to default, may be overridden by command line
+  // argument or set_target() API
+  currentTarget = defaultTarget;
+
   if (disallowTargetModification)
     return;
 
