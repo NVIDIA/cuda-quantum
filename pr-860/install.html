@@ -100,7 +100,7 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">   Getting Started</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#local-installation">Local Installation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#docker-image">Docker image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#docker">Docker</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#singularity">Singularity</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#python-wheels">Python wheels</a></li>
 </ul>
@@ -425,13 +425,17 @@ The section on <a class="reference internal" href="#connect-to-remote"><span cla
 guidance for application development on a remote host where CUDA Quantum is installed.</p>
 <section id="local-installation">
 <span id="install-cuda-quantum"></span><h2>Local Installation<a class="headerlink" href="#local-installation" title="Permalink to this heading">¶</a></h2>
-<p>A fully featured CUDA Quantum installation including all C++ and Python tools is available as a
-<a class="reference internal" href="#docker-image">Docker image</a>. A <a class="reference internal" href="#singularity">Singularity</a> container can easily be created based on these images. Additionally, we distribute pre-built <a class="reference internal" href="#python-wheels">Python wheels</a> via PyPI.
-If you would like to build CUDA Quantum from source instead, please follow the instructions on the <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/blob/main/Building.md">CUDA Quantum GitHub repository</a>.</p>
-<p>If you are unsure which option suits you best, we recommend using our <a class="reference internal" href="#docker-image">Docker image</a> to develop your applications in a controlled environment that does not depend on, or interfere with, other software
+<p>The following sections contain instructions for how to install CUDA Quantum on your machine using</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#install-docker-image"><span class="std std-ref">**Docker**</span></a>: A fully featured CUDA Quantum installation including all C++ and Python tools is available as a <a class="reference external" href="https://docs.docker.com/get-started/overview/">Docker</a> image.</p></li>
+<li><p><a class="reference internal" href="#install-singularity-image"><span class="std std-ref">**Singularity**</span></a>: A <a class="reference external" href="https://docs.sylabs.io/guides/latest/user-guide/introduction.html">Singularity</a> container can easily be created based on our Docker images.</p></li>
+<li><p><a class="reference internal" href="#install-python-wheels"><span class="std std-ref">**PyPI**</span></a>: Additionally, we distribute pre-built Python wheels via <a class="reference external" href="https://pypi.org">PyPI</a>.</p></li>
+</ul>
+<p>If you would like to build CUDA Quantum from source instead, please follow the instructions on the <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/blob/main/Building.md">CUDA Quantum GitHub repository</a>.</p>
+<p>If you are unsure which option suits you best, we recommend using our <a class="reference internal" href="#install-docker-image"><span class="std std-ref">Docker image</span></a> to develop your applications in a controlled environment that does not depend on, or interfere with, other software
 that is installed on your system.</p>
-<section id="docker-image">
-<span id="install-docker-image"></span><h3>Docker image<a class="headerlink" href="#docker-image" title="Permalink to this heading">¶</a></h3>
+<section id="docker">
+<span id="install-docker-image"></span><h3>Docker<a class="headerlink" href="#docker" title="Permalink to this heading">¶</a></h3>
 <p>To download and use our Docker images, you will need to install and launch the Docker engine.
 If you do not already have Docker installed on your system, you can get it by downloading and installing <a class="reference external" href="https://docs.docker.com/get-docker/">Docker Desktop</a>.
 If you do not have the necessary administrator permissions to install software on your machine,

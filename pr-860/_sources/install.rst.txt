@@ -10,23 +10,27 @@ guidance for application development on a remote host where CUDA Quantum is inst
 Local Installation
 ------------------------------------
 
-A fully featured CUDA Quantum installation including all C++ and Python tools is available as a 
-`Docker image`_. A `Singularity`_ container can easily be created based on these images. Additionally, we distribute pre-built `Python wheels`_ via PyPI.
+The following sections contain instructions for how to install CUDA Quantum on your machine using
+
+- :ref:`**Docker** <install-docker-image>`: A fully featured CUDA Quantum installation including all C++ and Python tools is available as a `Docker <https://docs.docker.com/get-started/overview/>`__ image.
+- :ref:`**Singularity** <install-singularity-image>`: A `Singularity <https://docs.sylabs.io/guides/latest/user-guide/introduction.html>`__ container can easily be created based on our Docker images. 
+- :ref:`**PyPI** <install-python-wheels>`: Additionally, we distribute pre-built Python wheels via `PyPI <https://pypi.org>`__.
+
 If you would like to build CUDA Quantum from source instead, please follow the instructions on the `CUDA Quantum GitHub repository`_.
 
 .. _CUDA Quantum GitHub repository: https://github.com/NVIDIA/cuda-quantum/blob/main/Building.md
 
-If you are unsure which option suits you best, we recommend using our `Docker image`_ to develop your applications in a controlled environment that does not depend on, or interfere with, other software
+If you are unsure which option suits you best, we recommend using our :ref:`Docker image <install-docker-image>` to develop your applications in a controlled environment that does not depend on, or interfere with, other software
 that is installed on your system.
 
 .. _install-docker-image:
 
-Docker image
+Docker
 ++++++++++++++++++++++++++++++++++++
 
 To download and use our Docker images, you will need to install and launch the Docker engine. 
 If you do not already have Docker installed on your system, you can get it by downloading and installing `Docker Desktop <https://docs.docker.com/get-docker/>`_. 
-If you do not have the necessary administrator permissions to install software on your machine, 
+If you do not have the necessary administrator permissions to install software on your machine,
 take a look at the section below on how to use `Singularity`_ instead.
 
 Docker images for all CUDA Quantum releases are available on the `NGC Container Registry`_.
