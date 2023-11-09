@@ -7,181 +7,120 @@
  ******************************************************************************/
 
 #include "kernels.h"
-#include "common/EigenDense.h"
 
 namespace cudaq::details {
 
-std::vector<std::string> grayCode(std::size_t rank) {
-  std::function<void(std::vector<std::string> &, std::size_t)> grayCodeRecurse;
-  grayCodeRecurse = [&grayCodeRecurse](std::vector<std::string> &g,
-                                       std::size_t rank) {
-    auto k = g.size();
-    if (rank <= 0)
-      return;
+std::vector<std::size_t> grayCode(std::size_t numBits) {
+  std::vector<std::size_t> result(1ULL << numBits);
+  for (std::size_t i = 0; i < (1ULL << numBits); ++i)
+    result[i] = ((i >> 1) ^ i);
+  return result;
+}
 
-    for (int i = k - 1; i >= 0; --i) {
-      auto c = "1" + g[i];
-      g.push_back(c);
-    }
-    for (int i = k - 1; i >= 0; --i) {
-      g[i] = "0" + g[i];
-    }
+std::vector<std::size_t> getControlIndices(std::size_t numBits) {
+  auto code = grayCode(numBits);
+  std::vector<std::size_t> indices;
+  for (auto i = 0u; i < code.size(); ++i) {
+    // The position of the control in the lth CNOT gate is set to match
+    // the position where the lth and (l + 1)th bit strings g[l] and g[l+1] of
+    // the binary reflected Gray code differ.
+    auto position = std::log2(code[i] ^ code[(i + 1) % code.size()]);
+    // N.B: In CUDA Quantum we write the least significant bit (LSb) on the left
+    //
+    //  lsb -v
+    //       001
+    //         ^- msb
+    //
+    // Meaning that the bitstring 001 represents the number four instead of one.
+    // The above position calculation uses the 'normal' convetion of writing
+    // numbers with the LSb on the left.
+    //
+    // Now, what we need to find out is the position of the 1 in the bitstring.
+    // If we take LSb as being position 0, then for the normal convetion its
+    // position will be 0. Using CUDA Quantum convention it will be 2. Hence,
+    // we need to convert the position we find using:
+    //
+    // numBits - position - 1
+    //
+    // The extra -1 is to account for indices starting at 0. Using the above
+    // examples:
+    //
+    // bitstring: 001
+    // numBits: 3
+    // position: 0
+    //
+    // We have the converted position: 2, which is what we need.
+    indices.emplace_back(numBits - position - 1);
+  }
+  return indices;
+}
 
-    grayCodeRecurse(g, rank - 1);
+std::vector<double> convertAngles(const std::span<double> alphas) {
+  // Implements Eq. (3) from https://arxiv.org/pdf/quant-ph/0407010.pdf
+  //
+  // N.B: The paper does fails to explicitly define what is the dot operator in
+  // the exponent of -1. Ref. 3 solves the mistery: its the bitwise inner
+  // product.
+  auto bitwiseInnerProduct = [](std::size_t a, std::size_t b) {
+    auto product = a & b;
+    auto sumOfProducts = 0;
+    while (product) {
+      sumOfProducts += product & 0b1 ? 1 : 0;
+      product = product >> 1;
+    }
+    return sumOfProducts;
   };
-
-  std::vector<std::string> g{"0", "1"};
-  grayCodeRecurse(g, rank - 1);
-
-  return g;
-}
-
-std::vector<std::size_t> getControlIndices(std::size_t grayRank) {
-  auto code = grayCode(grayRank);
-  std::vector<std::size_t> ctrlIds;
-  for (std::size_t i = 0; i < code.size(); i++) {
-    auto a = std::stoi(code[i], nullptr, 2);
-    auto b = std::stoi(code[(i + 1) % code.size()], nullptr, 2);
-    auto c = a ^ b % code.size();
-    ctrlIds.emplace_back(std::log2(c));
+  std::vector<double> thetas(alphas.size(), 0);
+  for (std::size_t i = 0u; i < alphas.size(); ++i) {
+    for (std::size_t j = 0u; j < alphas.size(); ++j)
+      thetas[i] +=
+          bitwiseInnerProduct(j, ((i >> 1) ^ i)) & 0b1 ? -alphas[j] : alphas[j];
+    thetas[i] /= alphas.size();
   }
-  return ctrlIds;
-}
-
-int mEntry(std::size_t row, std::size_t col) {
-  auto b_and_g = row & ((col >> 1) ^ col);
-  std::size_t sum_of_ones = 0;
-  while (b_and_g > 0) {
-    if (b_and_g & 0b1)
-      sum_of_ones += 1;
-
-    b_and_g = b_and_g >> 1;
-  }
-  return std::pow(-1, sum_of_ones);
-}
-
-std::vector<double> computeAngle(const std::vector<double> &alpha) {
-  auto ln = alpha.size();
-  std::size_t k = std::log2(ln);
-
-  Eigen::MatrixXi mTrans(ln, ln);
-  mTrans.setZero();
-  for (Eigen::Index i = 0; i < mTrans.rows(); i++)
-    for (Eigen::Index j = 0; j < mTrans.cols(); j++)
-      mTrans(i, j) = mEntry(i, j);
-
-  Eigen::VectorXd alphaVec = Eigen::Map<Eigen::VectorXd>(
-      const_cast<double *>(alpha.data()), alpha.size());
-  Eigen::VectorXd thetas = (1. / (1UL << k)) * mTrans.cast<double>() * alphaVec;
-
-  std::vector<double> ret(thetas.size());
-  Eigen::VectorXd::Map(&ret[0], ret.size()) = thetas;
-  return ret;
+  return thetas;
 }
 
 std::vector<double> getAlphaZ(const std::span<double> data,
                               std::size_t numQubits, std::size_t k) {
-
-  std::vector<std::vector<std::size_t>> in1, in2;
-  auto twoNmK = (1ULL << (numQubits - k)), twoKmOne = (1ULL << (k - 1));
-  for (std::size_t j = 1; j < twoNmK + 1; j++) {
-    std::vector<std::size_t> local;
-    for (std::size_t l = 1; l < twoKmOne + 1; l++)
-      local.push_back((2 * j - 1) * twoKmOne + l - 1);
-
-    in1.push_back(local);
+  // Implements Eq. (5) from https://arxiv.org/pdf/quant-ph/0407010.pdf
+  std::vector<double> angles;
+  double divisor = static_cast<double>(1ULL << (k - 1));
+  for (std::size_t j = 1; j <= (1ULL << (numQubits - k)); ++j) {
+    double angle = 0.0;
+    for (std::size_t l = 1; l <= (1ULL << (k - 1)); ++l)
+      // N.B: There is an extra '-1' on these indices computations to account
+      // for the fact that our indices start at 0.
+      angle += data[(2 * j - 1) * (1 << (k - 1)) + l - 1] -
+               data[(2 * j - 2) * (1 << (k - 1)) + l - 1];
+    angles.push_back(angle / divisor);
   }
-
-  for (std::size_t j = 1; j < twoNmK + 1; j++) {
-    std::vector<std::size_t> local;
-    for (std::size_t l = 1; l < twoKmOne + 1; l++)
-      local.push_back((2 * j - 2) * twoKmOne + l - 1);
-
-    in2.push_back(local);
-  }
-
-  std::vector<std::vector<double>> term1, term2;
-  for (std::size_t i = 0; auto &el : in1) {
-
-    std::vector<double> local1, local2;
-    for (auto &eel : el)
-      local1.push_back(data[eel]);
-    term1.push_back(local1);
-
-    for (auto &eel : in2[i])
-      local2.push_back(data[eel]);
-    term2.push_back(local2);
-
-    i++;
-  }
-
-  Eigen::MatrixXd term1Mat(term1.size(), term1[0].size()),
-      term2Mat(term2.size(), term2[0].size());
-  for (Eigen::Index i = 0; i < term1Mat.rows(); i++)
-    for (Eigen::Index j = 0; j < term1Mat.cols(); j++) {
-      term1Mat(i, j) = term1[i][j];
-      term2Mat(i, j) = term2[i][j];
-    }
-
-  Eigen::MatrixXd diff = (1. / (1ULL << (k - 1))) * (term1Mat - term2Mat);
-  std::vector<double> res(diff.rows());
-
-  for (Eigen::Index i = 0; i < diff.rows(); i++) {
-    double sum = 0.0;
-    for (Eigen::Index j = 0; j < diff.cols(); j++)
-      sum += diff(i, j);
-
-    res[i] = sum;
-  }
-
-  return res;
+  return angles;
 }
 
 std::vector<double> getAlphaY(const std::span<double> data,
                               std::size_t numQubits, std::size_t k) {
-  std::vector<std::vector<std::size_t>> inNum, inDenom;
-  auto twoNmK = (1ULL << (numQubits - k)), twoK = (1ULL << k),
-       twoKmOne = (1ULL << (k - 1));
-  for (auto j : cudaq::range(twoNmK)) {
-    std::vector<std::size_t> local;
-    for (auto l : cudaq::range(twoKmOne))
-      local.push_back((2 * (j + 1) - 1) * twoKmOne + l);
+  // Implements Eq. (8) from https://arxiv.org/pdf/quant-ph/0407010.pdf
+  // N.B: There is an extra '-1' on these indices computations to account for
+  // the fact that our indices start at 0.
+  std::vector<double> angles;
+  for (std::size_t j = 1; j <= (1ULL << (numQubits - k)); ++j) {
+    double numerator = 0;
+    for (std::size_t l = 1; l <= (1ULL << (k - 1)); ++l)
+      numerator +=
+          std::pow(std::abs(data[(2 * j - 1) * (1 << (k - 1)) + l - 1]), 2);
 
-    inNum.push_back(local);
+    double denominator = 0;
+    for (std::size_t l = 1; l <= (1ULL << k); ++l)
+      denominator += std::pow(std::abs(data[(j - 1) * (1 << k) + l - 1]), 2);
+
+    if (denominator == 0.0) {
+      assert(numerator == 0.0 &&
+             "If the denominator is zero, the numerator must also be zero.");
+      angles.push_back(0.0);
+      continue;
+    }
+    angles.push_back(2.0 * std::asin(std::sqrt(numerator / denominator)));
   }
-
-  std::vector<double> numeratorSums;
-  for (auto &el : inNum) {
-    double sum = 0.0;
-    for (auto &i : el)
-      sum += std::pow(std::fabs(data[i]), 2);
-
-    numeratorSums.push_back(sum);
-  }
-
-  for (auto j : cudaq::range(twoNmK)) {
-    std::vector<std::size_t> local;
-    for (auto l : cudaq::range(twoK))
-      local.push_back(j * twoK + l);
-
-    inDenom.push_back(local);
-  }
-
-  std::vector<double> denomSums;
-  for (auto &el : inDenom) {
-    double sum = 0.0;
-    for (auto &i : el)
-      sum += std::pow(std::fabs(data[i]), 2);
-
-    denomSums.push_back(sum);
-  }
-
-  std::vector<double> res(denomSums.size());
-  for (std::size_t i = 0; i < denomSums.size(); i++) {
-    if (std::fabs(denomSums[i]) > 1e-12)
-      res[i] = 2 * std::asin(std::sqrt(numeratorSums[i] / denomSums[i]));
-  }
-
-  return res;
+  return angles;
 }
 } // namespace cudaq::details

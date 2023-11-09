@@ -9,59 +9,34 @@
 #include "CUDAQTestUtils.h"
 #include "cudaq/algorithms/state.h"
 #include "cudaq/builder/kernels.h"
-#include <iostream>
 
-namespace cudaq {
-namespace details {
-std::vector<std::string> grayCode(std::size_t);
-}
-} // namespace cudaq
-
-CUDAQ_TEST(KernelsTester, checkGrayCode) {
-  {
-    auto test = cudaq::details::grayCode(2);
-    std::vector<std::string> expected{"00", "01", "11", "10"};
-    EXPECT_EQ(test.size(), expected.size());
-    for (auto &t : test) {
-      EXPECT_TRUE(std::find(expected.begin(), expected.end(), t) !=
-                  expected.end());
-    }
-  }
-  {
-    std::vector<std::string> expected{
-        "00000", "00001", "00011", "00010", "00110", "00111", "00101", "00100",
-        "01100", "01101", "01111", "01110", "01010", "01011", "01001", "01000",
-        "11000", "11001", "11011", "11010", "11110", "11111", "11101", "11100",
-        "10100", "10101", "10111", "10110", "10010", "10011", "10001", "10000"};
-
-    auto test = cudaq::details::grayCode(5);
-    EXPECT_EQ(test.size(), expected.size());
-    for (auto &t : test) {
-      EXPECT_TRUE(std::find(expected.begin(), expected.end(), t) !=
-                  expected.end());
-    }
-  }
+inline cudaq::state
+stateFromVector(const std::vector<std::complex<double>> &amplitudes) {
+  return cudaq::state(std::make_tuple(
+      std::vector<std::size_t>({amplitudes.size()}), amplitudes));
 }
 
-CUDAQ_TEST(KernelsTester, checkGenCtrlIndices) {
-  {
-    auto test = cudaq::details::getControlIndices(2);
-    std::vector<std::size_t> expected{0, 1, 0, 1};
-    EXPECT_EQ(test.size(), expected.size());
-    EXPECT_EQ(test, expected);
-  }
-  {
-    std::vector<std::size_t> expected{0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0,
-                                      2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1,
-                                      0, 3, 0, 1, 0, 2, 0, 1, 0, 4};
+inline auto randomState(std::size_t numQUbits) {
+  std::vector<std::complex<double>> stateVector(1ULL << numQUbits, 0.0);
+  std::generate(stateVector.begin(), stateVector.end(), []() {
+    std::default_random_engine generator;
+    std::normal_distribution<double> distribution(0.0, 0.5);
+    return std::complex<double>(distribution(generator),
+                                distribution(generator));
+  });
 
-    auto test = cudaq::details::getControlIndices(5);
-    EXPECT_EQ(test.size(), expected.size());
-    EXPECT_EQ(test, expected);
-  }
+  // Normalize the vector.
+  double norm = 0;
+  for (auto &amplitude : stateVector)
+    norm += std::norm(amplitude);
+  norm = std::sqrt(norm);
+  std::transform(stateVector.begin(), stateVector.end(), stateVector.begin(),
+                 [&norm](auto value) { return value / norm; });
+
+  return stateVector;
 }
 
-CUDAQ_TEST(KernelsTester, checkGetAlphaY) {
+CUDAQ_TEST(fromState, checkGetAlphaY) {
   {
     std::vector<double> state{.70710678, 0., 0., 0.70710678};
     auto thetas = cudaq::details::getAlphaY(state, 2, 2);
@@ -81,7 +56,7 @@ CUDAQ_TEST(KernelsTester, checkGetAlphaY) {
   }
 }
 
-CUDAQ_TEST(KernelsTester, checkGetAlphaZ) {
+CUDAQ_TEST(fromState, checkGetAlphaZ) {
   {
     std::vector<double> omega{0., 0., 0., 0., 0., 1.57079633, 3.14159265, 0.};
     auto thetas = cudaq::details::getAlphaZ(omega, 3, 3);
@@ -111,73 +86,71 @@ CUDAQ_TEST(KernelsTester, checkGetAlphaZ) {
 
 #ifndef CUDAQ_BACKEND_DM
 
-CUDAQ_TEST(KernelsTester, checkFromState) {
-  {
-    std::vector<std::complex<double>> state{.70710678, 0., 0., 0.70710678};
-    auto kernel = cudaq::make_kernel();
-    auto qubits = kernel.qalloc(2);
+CUDAQ_TEST(fromState, trivialStates) {
+  constexpr auto maxNumQubits = 5u;
+  for (auto n = 0u; n < maxNumQubits; ++n) {
+    const auto dimension = (1ULL << (n + 1));
+    for (auto i = 0u; i < dimension; ++i) {
+      auto kernel = cudaq::make_kernel();
+      auto qubits = kernel.qalloc(n + 1);
 
-    cudaq::from_state(kernel, qubits, state);
-
-    std::cout << kernel << "\n";
-    auto counts = cudaq::sample(kernel);
-    counts.dump();
+      std::vector<std::complex<double>> state(dimension, 0.);
+      state[i] = 1.;
+      cudaq::from_state(kernel, qubits, state);
+      cudaq::state result = cudaq::get_state(kernel);
+      cudaq::state expected = stateFromVector(state);
+      // We test for overlap (i.e., fidelity) because the state vectors will
+      // hardly match due to the approximative nature of the state preparation
+      // algorithm.
+      EXPECT_NEAR(result.overlap(expected), 1.0, 1e-6);
+    }
   }
+}
 
-  {
-    std::vector<std::complex<double>> state{0., .292786, .956178, 0.};
-    auto kernel = cudaq::make_kernel();
-    auto qubits = kernel.qalloc(2);
-    cudaq::from_state(kernel, qubits, state);
-    std::cout << kernel << "\n";
-    using namespace cudaq::spin;
-    auto H = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
-             .21829 * z(0) - 6.125 * z(1);
-    auto energy = cudaq::observe(kernel, H).expectation();
-    EXPECT_NEAR(-1.748, energy, 1e-3);
+CUDAQ_TEST(fromState, checkQubitOrdering) {
+  // In CUDA Quantum, we write numbers from lsb to msb. Thus, 001 means 4
+  // instead of 1.
+  auto toString = [](unsigned value, unsigned numBits) {
+    std::string number;
+    for (auto i = 0u; i < numBits; ++i)
+      number.push_back(value & (1 << i) ? '1' : '0');
+    std::reverse(number.begin(), number.end());
+    return number;
+  };
 
-    auto ss = cudaq::get_state(kernel);
-    for (std::size_t i = 0; i < 4; i++)
-      EXPECT_NEAR(ss[i].real(), state[i].real(), 1e-3);
+  constexpr auto maxNumQubits = 5u;
+  for (auto n = 1u; n <= maxNumQubits; ++n) {
+    const auto dimension = (1ULL << n);
+    for (auto i = 0u; i < dimension; ++i) {
+      auto kernel = cudaq::make_kernel();
+      auto qubits = kernel.qalloc(n);
+
+      std::vector<std::complex<double>> state(dimension, 0.);
+      state[i] = 1.;
+      cudaq::from_state(kernel, qubits, state);
+      auto result = cudaq::sample(kernel);
+      EXPECT_EQ(result.most_probable(), toString(i, n));
+    }
   }
+}
 
-  {
-    std::vector<std::complex<double>> state{.70710678, 0., 0., 0.70710678};
+CUDAQ_TEST(fromState, randomStates) {
+  constexpr auto maxNumQubits = 5u;
+  for (auto n = 1u; n <= maxNumQubits; ++n) {
+    const auto dimension = (1ULL << n);
+    for (auto i = 0u; i < dimension; ++i) {
+      auto kernel = cudaq::make_kernel();
+      auto qubits = kernel.qalloc(n);
 
-    // Return a kernel from the given state, this
-    // comes back as a unique_ptr.
-    auto kernel = cudaq::from_state(state);
-    std::cout << *kernel << "\n";
-    auto counts = cudaq::sample(*kernel);
-    counts.dump();
-  }
-
-  {
-    // Random unitary state
-    const std::size_t numQubits = 2;
-    auto randHam = cudaq::spin_op::random(numQubits, numQubits * numQubits,
-                                          std::mt19937::default_seed);
-    auto eigenVectors = randHam.to_matrix().eigenvectors();
-    // Map the ground state to a cudaq::state
-    std::vector<std::complex<double>> expectedData(eigenVectors.rows());
-    for (std::size_t i = 0; i < eigenVectors.rows(); i++)
-      expectedData[i] = eigenVectors(i, 0);
-    auto kernel = cudaq::make_kernel();
-    auto qubits = kernel.qalloc(numQubits);
-    cudaq::from_state(kernel, qubits, expectedData);
-    std::cout << kernel << "\n";
-    auto ss = cudaq::get_state(kernel);
-    const std::complex<double> globalPhase = [&]() {
-      // find the first non-zero element to compute the global phase factor
-      for (std::size_t i = 0; i < (1u << numQubits); i++)
-        if (std::abs(ss[i]) > 1e-3)
-          return expectedData[i] / ss[i];
-      // Something wrong (state vector all zeros!)
-      return std::complex<double>(0.0, 0.0);
-    }();
-    // Check the state (accounted for global phase)
-    for (std::size_t i = 0; i < (1u << numQubits); i++)
-      EXPECT_NEAR(std::abs(globalPhase * ss[i] - expectedData[i]), 0.0, 1e-6);
+      auto state = randomState(n);
+      cudaq::from_state(kernel, qubits, state);
+      cudaq::state result = cudaq::get_state(kernel);
+      cudaq::state expected = stateFromVector(state);
+      // We test for overlap (i.e., fidelity) because the state vectors will
+      // hardly match due to the approximative nature of the state preparation
+      // algorithm.
+      EXPECT_NEAR(result.overlap(expected), 1.0, 1e-6);
+    }
   }
 }
 
