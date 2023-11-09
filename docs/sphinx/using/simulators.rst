@@ -94,7 +94,7 @@ This backend supports Multi-Node, Multi-GPU distribution of tensor operations re
 .. note:: 
     To enable automatic distributed parallelization across multiple/many GPUs for the :code:`tensornet` backend, users need to activate `cuTensorNet`'s distributed interface 
     as described in the Getting Started section of the `cuTensorNet` library documentation (`Installation and Compilation <https://docs.nvidia.com/cuda/cuquantum/latest/cutensornet/getting_started.html#install-cutensornet-from-nvidia-devzone>`_). 
-    This typically involves executing the `distributed_interfaces/activate_mpi.sh` script in your `cuquantum` install directory on your local system.
+    This typically involves executing the `distributed_interfaces/activate_mpi.sh` script in your `cuquantum` install directory on your local system. The activation script will build a shared `cuTensorNet`-MPI wrapper library (`libcutensornet_distributed_interface_mpi.so`) and set the environment variable `$CUTENSORNET_COMM_LIB` to point to that wrapper library. If the `$CUTENSORNET_COMM_LIB` environment variable becomes unset, MPI parallelization on the :code:`tensornet` backend might fail. 
 
 This backend exposes a set of environment variables to configure specific aspects of the simulation:
 
