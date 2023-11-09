@@ -20,13 +20,19 @@ You should see a message "Login Succeeded".
 
 .. _NGC Container Registry: https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum
 
-In addition to publishing stable releases, we also publish docker images whenever we update the main branch of our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`_.
+In addition to publishing stable releases, we also publish docker images whenever we update 
+certain branches of our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`_.
 These images are published in a separate location `nvidia/nightly` on NGC, as well as on GitHub.
 To download the latest version on the main branch of our GitHub repository, for example, use the command
 
 .. code-block:: console
 
     docker pull nvcr.io/nvidia/nightly/cuda-quantum:latest
+
+Early prototypes for features we are considering can be tried out by using the image tags starting 
+with `experimental`. The `README` in the `/home/cudaq` folder in the container gives more details 
+about the feature. We welcome and appreciate your feedback about these early prototypes; 
+how popular they are will help inform whether we should include them in future releases.
 
 .. _use-cuda-quantum-in-terminal:
 

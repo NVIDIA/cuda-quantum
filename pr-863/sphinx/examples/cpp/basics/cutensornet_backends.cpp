@@ -1,15 +1,11 @@
 // Compile and run with:
 // ```
-// nvq++ cuquantum_backends.cpp -o dyn.x --target nvidia && ./dyn.x
+// nvq++ cutensornet_backends.cpp -o dyn.x --target tensornet
+// mpirun -np <N> ./dyn.x
 // ```
 
-// This example is meant to demonstrate the cuQuantum
-// GPU-accelerated backends and their ability to easily handle
-// a larger number of qubits compared the CPU-only backend.
-
-// Without the `--target nvidia` flag, this seems to hang, i.e.
-// it takes a long time for the CPU-only backend to handle
-// this number of qubits.
+// This example is meant to demonstrate the `cuTensorNet`
+// multi-node/multi-GPU backend.
 
 #include <cudaq.h>
 
@@ -28,9 +24,12 @@ struct ghz {
 };
 
 int main() {
-  auto counts = cudaq::sample(ghz{}, 28);
-
-  if (!cudaq::mpi::is_initialized() || cudaq::mpi::rank() == 0) {
+  // Initialize MPI
+  cudaq::mpi::initialize();
+  if (cudaq::mpi::rank() == 0)
+    printf("Number of MPI processes: %d\n", cudaq::mpi::num_ranks());
+  auto counts = cudaq::sample(100, ghz{}, 28);
+  if (cudaq::mpi::rank() == 0) {
     counts.dump();
 
     // Fine grain access to the bits and counts
@@ -38,6 +37,6 @@ int main() {
       printf("Observed: %s, %lu\n", bits.data(), count);
     }
   }
-
+  cudaq::mpi::finalize();
   return 0;
 }
