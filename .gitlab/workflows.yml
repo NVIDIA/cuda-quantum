@@ -83,16 +83,8 @@ Python Wheels:
     - cudaq_location=`$python -m pip show cuda-quantum | grep -e 'Location:\ .*$'`
     - export CUDAQ_INSTALL_PREFIX="${cudaq_location#Location:\ }"
     - cp -R $CUDAQ_INSTALL_PREFIX/lib64/cmake/fmt $CUDAQ_INSTALL_PREFIX/lib/cmake
-    # Tensornet Simulator
     - export ARTIFACTS_DIR=$PROJECT_SRCS_DIR/cuda-quantum/artifacts/wheels_$(uname -m)
     - mkdir -p $ARTIFACTS_DIR
-    - cd $PROJECT_SRCS_DIR
-    - echo "Checking out commit $CUDAQ_TENSORNET_COMMIT on $CI_SERVER_HOST/$CUDAQ_TENSORNET_REPO."
-    - mkdir cudaq_tensornet && cd cudaq_tensornet && git init
-    - git fetch --depth 1 https://$READ_ACCESS_TOKEN:$READ_ACCESS_TOKEN@$CI_SERVER_HOST/$CUDAQ_TENSORNET_REPO $CUDAQ_TENSORNET_COMMIT && git checkout FETCH_HEAD
-    - export PATH=/opt/rh/gcc-toolset-11/root/usr/bin:$PATH
-    - (bash build.sh $READ_ACCESS_TOKEN && built=true) || built=false
-    - cp -R artifacts/* $ARTIFACTS_DIR
     # MGMN SV  Simulator
     - cd $PROJECT_SRCS_DIR
     - echo "Checking out commit $CUDAQ_MGMN_SVSIM_COMMIT on $CI_SERVER_HOST/$CUDAQ_MGMN_SVSIM_REPO."
@@ -126,31 +118,6 @@ MGMN SV Simulator:
     - (bash build.sh $READ_ACCESS_TOKEN && built=true) || built=false
     - mkdir -p ../artifacts/$(uname -m)/mgmn_svsim && mv artifacts/* ../artifacts/$(uname -m)/mgmn_svsim
     - cd .. && rm -rf cudaq_mgmn_svsim
-    - if $built; then `exit 0`; else `exit 1`; fi
-
-Tensornet Simulator:
-  rules:
-    - if: $staged == "cuda-quantum-dev"
-  stage: build
-  dependencies: []
-  image: $CI_COMMIT_TITLE
-  parallel:
-    matrix:
-      - runner: [hostname/xpl-dvt-55, os/linux-arm]
-  tags:
-    - $runner
-  interruptible: false
-  artifacts:
-    paths:
-      - artifacts/**/tensornet/
-    expire_in: 1 day
-  script:
-    - echo "Checking out commit $CUDAQ_TENSORNET_COMMIT on $CI_SERVER_HOST/$CUDAQ_TENSORNET_REPO."
-    - mkdir cudaq_tensornet && cd cudaq_tensornet && git init
-    - git fetch --depth 1 https://$READ_ACCESS_TOKEN:$READ_ACCESS_TOKEN@$CI_SERVER_HOST/$CUDAQ_TENSORNET_REPO $CUDAQ_TENSORNET_COMMIT && git checkout FETCH_HEAD
-    - (bash build.sh $READ_ACCESS_TOKEN && built=true) || built=false
-    - mkdir -p ../artifacts/$(uname -m)/tensornet && mv artifacts/* ../artifacts/$(uname -m)/tensornet
-    - cd .. && rm -rf cudaq_tensornet
     - if $built; then `exit 0`; else `exit 1`; fi
 
 Push to GitHub:
