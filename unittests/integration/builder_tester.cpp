@@ -119,6 +119,8 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     EXPECT_EQ(counter, 1000);
   }
 
+#ifndef CUDAQ_BACKEND_TENSORNET_MPS
+  // MPS doesn't support gates on more than 2 qubits
   {
     auto ccnot_builder = cudaq::make_kernel();
     auto q = ccnot_builder.qalloc(3);
@@ -131,6 +133,7 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     counts.dump();
     EXPECT_TRUE(counts.begin()->first == "101");
   }
+#endif
 
   {
     // Check controlled parametric gates (constant angle)
@@ -453,6 +456,9 @@ CUDAQ_TEST(BuilderTester, checkSwap) {
   }
 }
 
+// Conditional execution on the tensornet backend is slow for a large number of
+// shots.
+#ifndef CUDAQ_BACKEND_TENSORNET
 CUDAQ_TEST(BuilderTester, checkConditional) {
   {
     cudaq::set_random_seed(13);
@@ -495,6 +501,7 @@ CUDAQ_TEST(BuilderTester, checkConditional) {
     EXPECT_EQ(counts.count("010"), 1000);
   }
 }
+#endif
 
 CUDAQ_TEST(BuilderTester, checkQubitArg) {
   auto [kernel, qubitArg] = cudaq::make_kernel<cudaq::qubit>();
@@ -580,6 +587,8 @@ CUDAQ_TEST(BuilderTester, checkIsArgStdVec) {
   EXPECT_FALSE(kernel.isArgStdVec(1));
 }
 
+#ifndef CUDAQ_BACKEND_TENSORNET_MPS
+// MPS doesn't support gates on more than 2 qubits
 CUDAQ_TEST(BuilderTester, checkKernelControl) {
   cudaq::set_random_seed(13);
 
@@ -636,6 +645,7 @@ CUDAQ_TEST(BuilderTester, checkKernelControl) {
   EXPECT_EQ(1, counts.size());
   EXPECT_TRUE(counts.begin()->first == "101");
 }
+#endif
 
 CUDAQ_TEST(BuilderTester, checkAdjointOp) {
   auto kernel = cudaq::make_kernel();
@@ -686,6 +696,9 @@ CUDAQ_TEST(BuilderTester, checkKernelAdjoint) {
   EXPECT_EQ(counts.begin()->first, "1");
 }
 
+// Conditional execution (including reset) on the tensornet backend is slow for
+// a large number of shots.
+#ifndef CUDAQ_BACKEND_TENSORNET
 CUDAQ_TEST(BuilderTester, checkReset) {
   {
     auto entryPoint = cudaq::make_kernel();
@@ -722,6 +735,7 @@ CUDAQ_TEST(BuilderTester, checkReset) {
     EXPECT_EQ(counts.begin()->first, "01");
   }
 }
+#endif
 
 CUDAQ_TEST(BuilderTester, checkForLoop) {
 
@@ -806,6 +820,9 @@ CUDAQ_TEST(BuilderTester, checkForLoop) {
   }
 }
 
+// Conditional execution (including reset) on the tensornet backend is slow for
+// a large number of shots.
+#ifndef CUDAQ_BACKEND_TENSORNET
 CUDAQ_TEST(BuilderTester, checkMidCircuitMeasure) {
   {
     auto entryPoint = cudaq::make_kernel();
@@ -862,6 +879,7 @@ CUDAQ_TEST(BuilderTester, checkMidCircuitMeasure) {
     EXPECT_EQ(counts.count("0", "hello2"), 1000);
   }
 }
+#endif
 
 CUDAQ_TEST(BuilderTester, checkNestedKernelCall) {
   auto [kernel1, qubit1] = cudaq::make_kernel<cudaq::qubit>();

@@ -39,6 +39,9 @@ add_subdirectory(qpp)
 if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
   add_subdirectory(custatevec)
 endif() 
+if (CUTENSORNET_ROOT AND CUDA_FOUND)
+  add_subdirectory(cutensornet)  
+endif()
 
 install(EXPORT nvqir-targets
         FILE NVQIRTargets.cmake
