@@ -91,6 +91,11 @@ The :code:`tensornet` backend represents quantum states and circuits as tensor n
 Measurement samples and expectation values are computed via tensor network contractions. 
 This backend supports Multi-Node, Multi-GPU distribution of tensor operations required to evaluate and simulate the circuit.
 
+.. note:: 
+    To enable automatic distributed parallelization across multiple/many GPUs for the :code:`tensornet` backend, users need to activate `cuTensorNet`'s distributed interface 
+    as described in the Getting Started section of the `cuTensorNet` library documentation (`Installation and Compilation <https://docs.nvidia.com/cuda/cuquantum/latest/cutensornet/getting_started.html#install-cutensornet-from-nvidia-devzone>`_). 
+    This typically involves executing the `distributed_interfaces/activate_mpi.sh` script in your `cuquantum` install directory on your local system. The activation script will build a shared `cuTensorNet`-MPI wrapper library (`libcutensornet_distributed_interface_mpi.so`) and set the environment variable `$CUTENSORNET_COMM_LIB` to point to that wrapper library. If the `$CUTENSORNET_COMM_LIB` environment variable becomes unset, MPI parallelization on the :code:`tensornet` backend might fail. 
+
 This backend exposes a set of environment variables to configure specific aspects of the simulation:
 
 * **`CUDA_VISIBLE_DEVICES=X`**: Makes the process only see GPU X on multi-GPU nodes. Each MPI process must only see its own dedicated GPU. For example, if you run 8 MPI processes on a DGX system with 8 GPUs, each MPI process should be assigned its own dedicated GPU via `CUDA_VISIBLE_DEVICES` when invoking `mpirun` (or `mpiexec`) commands. This can be done via invoking a bash script instead of the binary directly, and then using MPI library specific environment variables inside that script (e.g., `OMPI_COMM_WORLD_LOCAL_RANK`).
@@ -128,33 +133,36 @@ The :code:`tensornet-mps` only supports single-GPU simulation. Its approximate n
 Usage
 ++++++
 
-To specify the use of the :code:`tensornet` or :code:`tensornet-mps` target, pass the following command line 
-options to :code:`nvq++`
+To specify the use of the :code:`tensornet` or :code:`tensornet-mps` target, pass the :code:`--target` command line 
+options to :code:`nvq++` or Python as follows.
 
-.. code:: bash 
+.. tab:: C++
 
-    nvq++ --target tensornet src.cpp ...
+    .. code:: bash 
 
-or 
+        nvq++ --target tensornet src.cpp ...
 
-.. code:: bash 
+    or 
 
-    nvq++ --target tensornet-mps src.cpp ...
+    .. code:: bash 
+
+        nvq++ --target tensornet-mps src.cpp ...
+
+.. tab:: Python
+    
+    .. code:: bash 
+
+        python3 src.py --target tensornet
+
+    or 
+
+    .. code:: bash 
+
+        python3 src.py --target tensornet-mps
 
 
-Similarly, when using Python, the :code:`--target` command line option can also be used
 
-.. code:: bash 
-
-    python3 src.py --target tensornet
-
-or 
-
-.. code:: bash 
-
-    python3 src.py --target tensornet-mps
-
-This is equivalent to calling :code:`cudaq.set_target("tensornet")` or :code:`cudaq.set_target("tensornet-mps")` from within the Python script.
+    This is equivalent to calling :code:`cudaq.set_target("tensornet")` or :code:`cudaq.set_target("tensornet-mps")` from within the Python script.
 
 .. note:: 
 

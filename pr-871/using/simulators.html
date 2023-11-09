@@ -482,6 +482,12 @@ These backends are currently available for use from both C++ and Python.</p>
 <p>The <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> backend represents quantum states and circuits as tensor networks in an exact form (no approximation).
 Measurement samples and expectation values are computed via tensor network contractions.
 This backend supports Multi-Node, Multi-GPU distribution of tensor operations required to evaluate and simulate the circuit.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>To enable automatic distributed parallelization across multiple/many GPUs for the <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> backend, users need to activate <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code>’s distributed interface
+as described in the Getting Started section of the <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> library documentation (<a class="reference external" href="https://docs.nvidia.com/cuda/cuquantum/latest/cutensornet/getting_started.html#install-cutensornet-from-nvidia-devzone">Installation and Compilation</a>).
+This typically involves executing the <code class="code docutils literal notranslate"><span class="pre">distributed_interfaces/activate_mpi.sh</span></code> script in your <code class="code docutils literal notranslate"><span class="pre">cuquantum</span></code> install directory on your local system. The activation script will build a shared <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code>-MPI wrapper library (<code class="code docutils literal notranslate"><span class="pre">libcutensornet_distributed_interface_mpi.so</span></code>) and set the environment variable <code class="code docutils literal notranslate"><span class="pre">$CUTENSORNET_COMM_LIB</span></code> to point to that wrapper library. If the <code class="code docutils literal notranslate"><span class="pre">$CUTENSORNET_COMM_LIB</span></code> environment variable becomes unset, MPI parallelization on the <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> backend might fail.</p>
+</div>
 <p>This backend exposes a set of environment variables to configure specific aspects of the simulation:</p>
 <ul class="simple">
 <li><p><strong>`CUDA_VISIBLE_DEVICES=X`</strong>: Makes the process only see GPU X on multi-GPU nodes. Each MPI process must only see its own dedicated GPU. For example, if you run 8 MPI processes on a DGX system with 8 GPUs, each MPI process should be assigned its own dedicated GPU via <code class="code docutils literal notranslate"><span class="pre">CUDA_VISIBLE_DEVICES</span></code> when invoking <code class="code docutils literal notranslate"><span class="pre">mpirun</span></code> (or <code class="code docutils literal notranslate"><span class="pre">mpiexec</span></code>) commands. This can be done via invoking a bash script instead of the binary directly, and then using MPI library specific environment variables inside that script (e.g., <code class="code docutils literal notranslate"><span class="pre">OMPI_COMM_WORLD_LOCAL_RANK</span></code>).</p></li>
@@ -515,8 +521,10 @@ backend if you have multiple GPUs available. With OpenMPI, you can run a multi-G
 </section>
 <section id="usage">
 <h3>Usage<a class="headerlink" href="#usage" title="Permalink to this heading">¶</a></h3>
-<p>To specify the use of the <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> or <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> target, pass the following command line
-options to <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code></p>
+<p>To specify the use of the <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> or <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> target, pass the <code class="code docutils literal notranslate"><span class="pre">--target</span></code> command line
+options to <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> or Python as follows.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">C++</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>tensornet<span class="w"> </span>src.cpp<span class="w"> </span>...
 </pre></div>
 </div>
@@ -524,7 +532,8 @@ options to <code class="code docutils literal notranslate"><span class="pre">nvq
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>tensornet-mps<span class="w"> </span>src.cpp<span class="w"> </span>...
 </pre></div>
 </div>
-<p>Similarly, when using Python, the <code class="code docutils literal notranslate"><span class="pre">--target</span></code> command line option can also be used</p>
+</div>
+<input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">Python</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>src.py<span class="w"> </span>--target<span class="w"> </span>tensornet
 </pre></div>
 </div>
@@ -533,6 +542,8 @@ options to <code class="code docutils literal notranslate"><span class="pre">nvq
 </pre></div>
 </div>
 <p>This is equivalent to calling <code class="code docutils literal notranslate"><span class="pre">cudaq.set_target(&quot;tensornet&quot;)</span></code> or <code class="code docutils literal notranslate"><span class="pre">cudaq.set_target(&quot;tensornet-mps&quot;)</span></code> from within the Python script.</p>
+</div>
+</div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>These tensor-network backends require an NVIDIA GPU and CUDA runtime libraries.

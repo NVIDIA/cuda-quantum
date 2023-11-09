@@ -427,12 +427,17 @@ To download images from NGC, please follow the following steps if you have not d
 </ul>
 <p>Once you have done so, run <code class="code docutils literal notranslate"><span class="pre">docker</span> <span class="pre">login</span> <span class="pre">nvcr.io</span></code> (again) to confirm you can authenticate with the registry.
 You should see a message “Login Succeeded”.</p>
-<p>In addition to publishing stable releases, we also publish docker images whenever we update the main branch of our <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>.
+<p>In addition to publishing stable releases, we also publish docker images whenever we update
+certain branches of our <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>.
 These images are published in a separate location <code class="code docutils literal notranslate"><span class="pre">nvidia/nightly</span></code> on NGC, as well as on GitHub.
 To download the latest version on the main branch of our GitHub repository, for example, use the command</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">docker pull nvcr.io/nvidia/nightly/cuda-quantum:latest</span>
 </pre></div>
 </div>
+<p>Early prototypes for features we are considering can be tried out by using the image tags starting
+with <code class="code docutils literal notranslate"><span class="pre">experimental</span></code>. The <code class="code docutils literal notranslate"><span class="pre">README</span></code> in the <code class="code docutils literal notranslate"><span class="pre">/home/cudaq</span></code> folder in the container gives more details
+about the feature. We welcome and appreciate your feedback about these early prototypes;
+how popular they are will help inform whether we should include them in future releases.</p>
 </section>
 <section id="use-cuda-quantum-in-a-terminal">
 <span id="use-cuda-quantum-in-terminal"></span><h3>Use CUDA Quantum in a Terminal<a class="headerlink" href="#use-cuda-quantum-in-a-terminal" title="Permalink to this heading">¶</a></h3>
