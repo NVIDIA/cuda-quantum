@@ -62,6 +62,7 @@ def bernstein_vazirani(qubit_count: int):
     kernel.mz(qubits)
     return kernel, hidden_bitstring
 
+
 # If you have a NVIDIA GPU you can use this example to see
 # that the GPU-accelerated backends can easily handle a
 # larger number of qubits compared the CPU-only backend.
@@ -70,7 +71,8 @@ if __name__ == '__main__':
         prog='python',
         description='Run a Bernstein-Vazirani algorithm using CUDA Quantum.',
         epilog=
-        'For more information about CUDA Quantum, see https://nvidia.github.io/cuda-quantum')
+        'For more information about CUDA Quantum, see https://nvidia.github.io/cuda-quantum'
+    )
     parser.add_argument('--size',
                         type=int,
                         required=False,
