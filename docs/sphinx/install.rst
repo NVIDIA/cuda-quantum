@@ -40,6 +40,8 @@ To download the latest version on the main branch of our GitHub repository, for 
 
     docker pull nvcr.io/nvidia/nightly/cuda-quantum:latest
 
+.. _NGC Container Registry: https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum
+
 Early prototypes for features we are considering can be tried out by using the image tags starting 
 with `experimental`. The `README` in the `/home/cudaq` folder in the container gives more details 
 about the feature. We welcome and appreciate your feedback about these early prototypes; 
