@@ -52,5 +52,7 @@ struct CutensornetExecutor {
   computeExpVals(cutensornetHandle_t cutnHandle,
                  cutensornetState_t quantumState, std::size_t numQubits,
                  const std::vector<std::vector<bool>> &symplecticRepr) = 0;
+
+  virtual ~CutensornetExecutor() = default;
 };
 } // namespace nvqir

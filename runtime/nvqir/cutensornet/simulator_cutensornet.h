@@ -25,7 +25,7 @@ public:
   SimulatorTensorNetBase &
   operator=(SimulatorTensorNetBase &&another) noexcept = delete;
 
-  virtual ~SimulatorTensorNetBase() noexcept;
+  virtual ~SimulatorTensorNetBase();
 
   /// @brief Apply quantum gate
   void applyGate(const GateApplicationTask &task) override;

@@ -76,9 +76,8 @@ TensorNetworkSpinOp::TensorNetworkSpinOp(const cudaq::spin_op &spinOp,
           return PauliY_h;
         case cudaq::pauli::Z:
           return PauliZ_h;
-        default:
-          __builtin_unreachable();
         }
+        __builtin_unreachable();
       }();
       HANDLE_CUDA_ERROR(cudaMalloc(&d_mat, 4 * sizeof(std::complex<double>)));
       HANDLE_CUDA_ERROR(cudaMemcpy(d_mat, mat, 4 * sizeof(std::complex<double>),
