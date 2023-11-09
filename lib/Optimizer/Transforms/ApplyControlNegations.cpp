@@ -20,20 +20,38 @@ using namespace mlir;
 
 namespace cudaq::opt {
 
-class ReplaceNegativeControl : public RewritePattern {
+/// Replace any operations with negative controls with the same
+/// operation with negative controls and the addition of X operations
+/// on each control qubit before and after the operation.
+template <typename Op>
+class ReplaceNegativeControl : public OpRewritePattern<Op> {
 public:
-  ReplaceNegativeControl(MLIRContext *context)
-      : RewritePattern(MatchInterfaceOpTypeTag(),
-                       quake::OperatorInterface::getInterfaceID(), 1, context) {
-  }
-  LogicalResult matchAndRewrite(Operation *op,
+  using OpRewritePattern<Op>::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(Op op,
                                 PatternRewriter &rewriter) const override {
-    auto quantumOp = dyn_cast<quake::OperatorInterface>(op);
-    if (!quantumOp)
+    auto loc = op.getLoc();
+    auto negations = op.getNegatedQubitControls();
+    if (!negations.has_value())
       return failure();
 
-    quantumOp.dump();
-    return failure();
+    for (auto negationIter : llvm::enumerate(negations.value()))
+      if (negationIter.value())
+        rewriter.create<quake::XOp>(
+            loc, ValueRange(),
+            ValueRange{op.getControls()[negationIter.index()]});
+
+    rewriter.create<Op>(loc, op.getIsAdj(), op.getParameters(),
+                        op.getControls(), op.getTargets());
+
+    for (auto negationIter : llvm::enumerate(negations.value()))
+      if (negationIter.value())
+        rewriter.create<quake::XOp>(
+            loc, ValueRange(),
+            ValueRange{op.getControls()[negationIter.index()]});
+    rewriter.eraseOp(op);
+
+    return success();
   }
 };
 
@@ -45,13 +63,34 @@ struct ApplyControlNegationsPass
     auto funcOp = getOperation();
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
-    patterns.insert<ReplaceNegativeControl>(ctx);
+    patterns.insert<
+        ReplaceNegativeControl<quake::XOp>, ReplaceNegativeControl<quake::YOp>,
+        ReplaceNegativeControl<quake::ZOp>, ReplaceNegativeControl<quake::HOp>,
+        ReplaceNegativeControl<quake::SOp>, ReplaceNegativeControl<quake::TOp>,
+        ReplaceNegativeControl<quake::RxOp>,
+        ReplaceNegativeControl<quake::RyOp>,
+        ReplaceNegativeControl<quake::RzOp>,
+        ReplaceNegativeControl<quake::R1Op>>(ctx);
     ConversionTarget target(*ctx);
-    target.addLegalDialect<quake::QuakeDialect, cudaq::cc::CCDialect,
-                           arith::ArithDialect, LLVM::LLVMDialect>();
+    target.addLegalDialect<cudaq::cc::CCDialect, arith::ArithDialect,
+                           LLVM::LLVMDialect>();
+    target.addDynamicallyLegalDialect<quake::QuakeDialect>([](Operation *op) {
+      auto quantumOp = dyn_cast<quake::OperatorInterface>(op);
+      if (!quantumOp)
+        return true;
 
+      auto negations = quantumOp.getNegatedControls();
+      if (!negations.has_value())
+        return true;
+
+      for (auto negation : negations.value())
+        if (negation)
+          return false;
+
+      return true;
+    });
     if (failed(applyPartialConversion(funcOp, target, std::move(patterns)))) {
-      funcOp->emitOpError("could not expand measurements");
+      funcOp->emitOpError("could not replace negations");
       signalPassFailure();
     }
   }
