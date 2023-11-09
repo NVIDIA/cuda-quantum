@@ -50,7 +50,8 @@ add_nvqpp_test(IterativePhaseEstimation other/iterative_qpe.cpp)
 add_nvqpp_test(RandomWalkPhaseEstimation other/random_walk_qpe.cpp)
 
 if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
-  add_nvqpp_test(CuQuantumBackend basics/cuquantum_backends.cpp TARGET nvidia)  
+  add_nvqpp_test(CuQuantumGHZ basics/cuquantum_backends.cpp TARGET nvidia)  
+  add_nvqpp_test(CuQuantumBernsteinVazirani algorithms/bernstein_vazirani.cpp TARGET nvidia)  
 endif()
 
 # mqpu code snippets, needs custatevec backend and (optionally MPI)
