@@ -94,6 +94,7 @@ CUDAQ_TEST(GHZSampleTester, checkBroadcast) {
   }
 }
 
+// Enable once https://github.com/NVIDIA/cuda-quantum/issues/895 is fixed.
 #ifndef CUDAQ_BACKEND_TENSORNET
 // Tensornet backend doesn't support seed.
 CUDAQ_TEST(GHZSampleTester, checkBroadcastRepeatability) {
