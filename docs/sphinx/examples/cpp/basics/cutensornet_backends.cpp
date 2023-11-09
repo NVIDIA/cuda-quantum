@@ -32,10 +32,11 @@ int main() {
   // Initialize MPI to enable `cuTensorNet` distributed parallelization (see
   // Simulation Backends/Tensor Network Simulators section of the documentation
   // for more info)
-  //
+  // ```
   // cudaq::mpi::initialize();
   // if (cudaq::mpi::rank() == 0)
   //   printf("Number of MPI processes: %d\n", cudaq::mpi::num_ranks());
+  // ```
 
   auto counts = cudaq::sample(100, ghz{}, 28);
   counts.dump();
@@ -46,6 +47,8 @@ int main() {
   }
 
   // Finalize MPI if initialized
+  // ```
   // cudaq::mpi::finalize();
+  // ```
   return 0;
 }
