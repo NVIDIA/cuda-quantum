@@ -13,6 +13,7 @@
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/Types.h"
+#include "mlir/Transforms/DialectConversion.h"
 
 namespace cudaq {
 namespace cc {
@@ -72,6 +73,13 @@ inline mlir::Block *addEntryBlock(mlir::LLVM::GlobalOp initVar) {
   return entry;
 }
 
+/// Return an i64 array where the kth element is N if the kth
+/// operand is veq<N> and 0 otherwise (e.g. is a ref).
+mlir::Value packIsArrayAndLengthArray(mlir::Location loc,
+                                      mlir::ConversionPatternRewriter &rewriter,
+                                      mlir::ModuleOp parentModule,
+                                      mlir::Value numOperands,
+                                      mlir::ValueRange operands);
 mlir::FlatSymbolRefAttr
 createLLVMFunctionSymbol(mlir::StringRef name, mlir::Type retType,
                          mlir::ArrayRef<mlir::Type> inArgTypes,

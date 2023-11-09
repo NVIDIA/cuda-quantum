@@ -6,4 +6,3 @@
 .devcontainer export-ignore
 .github export-ignore
 .licenserc.yaml export-ignore
-docker export-ignore

@@ -51,7 +51,13 @@ static clang::NamedDecl *getNamedDecl(clang::Expr *expr) {
 }
 
 static std::pair<SmallVector<Value>, SmallVector<Value>>
-maybeUnpackOperands(OpBuilder &builder, Location loc, ValueRange operands) {
+maybeUnpackOperands(OpBuilder &builder, Location loc, ValueRange operands,
+                    bool isControl = false) {
+  // If this is not a controlled op, then we just keep all operands
+  // as targets.
+  if (!isControl)
+    return std::make_pair(operands, SmallVector<Value>{});
+
   if (operands.size() > 1)
     return std::make_pair(SmallVector<Value>{operands.take_back()},
                           SmallVector<Value>{operands.drop_back(1)});
@@ -121,18 +127,25 @@ template <typename A, typename P = void>
 bool buildOp(OpBuilder &builder, Location loc, ValueRange operands,
              SmallVector<Value> &negations,
              llvm::function_ref<void()> reportNegateError,
-             bool isAdjoint = false) {
+             bool isAdjoint = false, bool isControl = false) {
   if constexpr (std::is_same_v<P, Param>) {
     assert(operands.size() >= 2 && "must be at least 2 operands");
     auto params = operands.take_front();
     auto [target, ctrls] =
-        maybeUnpackOperands(builder, loc, operands.drop_front(1));
+        maybeUnpackOperands(builder, loc, operands.drop_front(1), isControl);
     for (auto v : target)
       if (std::find(negations.begin(), negations.end(), v) != negations.end())
         reportNegateError();
     auto negs =
         negatedControlsAttribute(builder.getContext(), ctrls, negations);
-    builder.create<A>(loc, isAdjoint, params, ctrls, target, negs);
+    if (ctrls.empty())
+      for (auto t : target)
+        builder.create<A>(loc, isAdjoint, params, ctrls, t, negs);
+    else {
+      assert(target.size() == 1 &&
+             "can only have a single target with control qubits.");
+      builder.create<A>(loc, isAdjoint, params, ctrls, target, negs);
+    }
   } else {
     assert(operands.size() >= 1 && "must be at least 1 operand");
     if ((operands.size() == 1) && operands[0].getType().isa<quake::VeqType>()) {
@@ -151,13 +164,23 @@ bool buildOp(OpBuilder &builder, Location loc, ValueRange operands,
       };
       cudaq::opt::factory::createInvariantLoop(builder, loc, rank, bodyBuilder);
     } else {
-      auto [target, ctrls] = maybeUnpackOperands(builder, loc, operands);
+      auto [target, ctrls] =
+          maybeUnpackOperands(builder, loc, operands, isControl);
       for (auto v : target)
         if (std::find(negations.begin(), negations.end(), v) != negations.end())
           reportNegateError();
       auto negs =
           negatedControlsAttribute(builder.getContext(), ctrls, negations);
-      builder.create<A>(loc, isAdjoint, ValueRange(), ctrls, target, negs);
+      if (ctrls.empty())
+        // May have multiple targets, but no controls, op(q, r, s, ...)
+        for (auto t : target)
+          builder.create<A>(loc, isAdjoint, ValueRange(), ValueRange(), t,
+                            negs);
+      else {
+        assert(target.size() == 1 &&
+               "can only have a single target with control qubits.");
+        builder.create<A>(loc, isAdjoint, ValueRange(), ctrls, target, negs);
+      }
     }
   }
   return true;
@@ -1344,7 +1367,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
 
   if (isInNamespace(func, "cudaq")) {
     // Check and see if this quantum operation is adjoint
-    bool isAdjoint = false;
+    bool isAdjoint = false, isControl = false;
     auto *functionDecl = x->getCalleeDecl()->getAsFunction();
     if (auto *templateArgs = functionDecl->getTemplateSpecializationArgs())
       if (templateArgs->size() > 0) {
@@ -1352,8 +1375,10 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         if (gateModifierArg.getKind() == clang::TemplateArgument::ArgKind::Type)
           if (auto *structTy =
                   gateModifierArg.getAsType()->getAsStructureType())
-            if (auto structTypeAsRecord = structTy->getAsCXXRecordDecl())
+            if (auto structTypeAsRecord = structTy->getAsCXXRecordDecl()) {
               isAdjoint = structTypeAsRecord->getName() == "adj";
+              isControl = structTypeAsRecord->getName() == "ctrl";
+            }
       }
 
     if (funcName.equals("exp_pauli")) {
@@ -1419,23 +1444,23 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     };
     if (funcName.equals("h") || funcName.equals("ch"))
       return buildOp<quake::HOp>(builder, loc, args, negations,
-                                 reportNegateError);
+                                 reportNegateError, false, isControl);
     if (funcName.equals("x") || funcName.equals("cnot") ||
         funcName.equals("cx") || funcName.equals("ccx"))
       return buildOp<quake::XOp>(builder, loc, args, negations,
-                                 reportNegateError);
+                                 reportNegateError, false, isControl);
     if (funcName.equals("y") || funcName.equals("cy"))
       return buildOp<quake::YOp>(builder, loc, args, negations,
-                                 reportNegateError);
+                                 reportNegateError, false, isControl);
     if (funcName.equals("z") || funcName.equals("cz"))
       return buildOp<quake::ZOp>(builder, loc, args, negations,
-                                 reportNegateError);
+                                 reportNegateError, false, isControl);
     if (funcName.equals("s") || funcName.equals("cs"))
       return buildOp<quake::SOp>(builder, loc, args, negations,
-                                 reportNegateError, isAdjoint);
+                                 reportNegateError, isAdjoint, isControl);
     if (funcName.equals("t") || funcName.equals("ct"))
       return buildOp<quake::TOp>(builder, loc, args, negations,
-                                 reportNegateError, isAdjoint);
+                                 reportNegateError, isAdjoint, isControl);
 
     if (funcName.equals("reset")) {
       if (!negations.empty())
@@ -1459,16 +1484,20 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     }
     if (funcName.equals("p") || funcName.equals("r1"))
       return buildOp<quake::R1Op, Param>(builder, loc, args, negations,
-                                         reportNegateError, isAdjoint);
+                                         reportNegateError, isAdjoint,
+                                         isControl);
     if (funcName.equals("rx"))
       return buildOp<quake::RxOp, Param>(builder, loc, args, negations,
-                                         reportNegateError, isAdjoint);
+                                         reportNegateError, isAdjoint,
+                                         isControl);
     if (funcName.equals("ry"))
       return buildOp<quake::RyOp, Param>(builder, loc, args, negations,
-                                         reportNegateError, isAdjoint);
+                                         reportNegateError, isAdjoint,
+                                         isControl);
     if (funcName.equals("rz"))
       return buildOp<quake::RzOp, Param>(builder, loc, args, negations,
-                                         reportNegateError, isAdjoint);
+                                         reportNegateError, isAdjoint,
+                                         isControl);
 
     if (funcName.equals("control")) {
       // Expect the first argument to be an instance of a Callable. Need to
