@@ -218,15 +218,13 @@ Before connecting VS Code, open a terminal/shell,
 and start the CUDA Quantum Docker container following the 
 instructions in the :ref:`section above <install-docker-image>`. 
 
-If you have a GitHub or Microsoft account, we recommend that you connect 
-to a CUDA Quantum container using tunnels. To do so, take a look at the 
-section `Developing with Remote Tunnels`_.
+If you have a local installation of `VS Code <https://code.visualstudio.com/>`_ 
+you can connect to the running container using the  
+`Dev Containers <https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers>`__ extension. If you want to use VS Code in the web browser, please follow the instructions
+in the section `Developing with Remote Tunnels`_ instead.
 
-If you cannot use tunnels, you need a local installation of 
-`VS Code <https://code.visualstudio.com/>`_ and you need to install 
-the `Dev Containers <https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers>`__ extension. 
-
-Launch VS Code, open the Command Palette with `Ctrl+Shift+P`, and enter 
+After installing the
+`Dev Containers <https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers>`__ extension, launch VS Code, open the Command Palette with `Ctrl+Shift+P`, and enter 
 .. spellcheck-disable
 "Dev Containers: Attach to Running Container". 
 .. spellcheck-enable
