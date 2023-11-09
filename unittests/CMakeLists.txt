@@ -126,7 +126,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
               gtest_main)
             configure_file("mqpu/run_mpi.sh.in"
                       "${CMAKE_BINARY_DIR}/unittests/run_mpi.sh" @ONLY)
-          add_test(NAME MPITest COMMAND ${MPIEXEC} --allow-run-as-root -np 2 ${CMAKE_BINARY_DIR}/unittests/run_mpi.sh)
+          add_test(NAME MPITest COMMAND ${MPIEXEC} --allow-run-as-root -np 2 bash ${CMAKE_BINARY_DIR}/unittests/run_mpi.sh)
         endif()
       endif()
     endif() 

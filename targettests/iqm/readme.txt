@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # ============================================================================ #
 # Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
@@ -8,8 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# This script allows us to allocate a single GPU 
-# to one of the MPI ranks.
-numGPUS=$(nvidia-smi --list-gpus | wc -l)
-echo $numGPUS
-CUDA_VISIBLE_DEVICES=$(($OMPI_COMM_WORLD_RANK % $numGPUS)) @Python_EXECUTABLE@ $1
+The following tests are disabled because the demo server only supports 5 qubits
+and the test tries to use more.
+
+- test/NVQPP/graph_coloring-1.cpp
+- test/NVQPP/graph_coloring.cpp
+- test/NVQPP/sudoku_2x2-1.cpp
+- test/NVQPP/sudoku_2x2-bit_names.cpp
+- test/NVQPP/sudoku_2x2-reg_name.cpp
+- test/NVQPP/sudoku_2x2.cpp
