@@ -147,6 +147,7 @@ symplectic
 tablegen
 templated
 toolchain
+unary
 unitaries
 unitary
 unoptimized
