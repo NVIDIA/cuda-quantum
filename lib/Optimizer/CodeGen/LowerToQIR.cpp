@@ -374,36 +374,21 @@ public:
   }
 };
 
-/// Lower single target Quantum ops with no parameter to QIR:
-/// h, x, y, z, s, t
 template <typename OP>
-class OneTargetRewrite : public ConvertOpToLLVMPattern<OP> {
+class ConvertOpWithControls : public ConvertOpToLLVMPattern<OP> {
 public:
   using Base = ConvertOpToLLVMPattern<OP>;
   using Base::Base;
 
   LogicalResult
-  matchAndRewrite(OP instOp, typename Base::OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
+  matchAndRewriteWithControls(OP instOp, typename Base::OpAdaptor adaptor,
+                              ConversionPatternRewriter &rewriter) const {
     auto numControls = instOp.getControls().size();
     auto loc = instOp->getLoc();
     auto parentModule = instOp->template getParentOfType<ModuleOp>();
-    auto context = parentModule->getContext();
+    auto *context = parentModule->getContext();
     std::string qirQisPrefix(cudaq::opt::QIRQISPrefix);
     std::string instName = instOp->getName().stripDialect().str();
-
-    if (numControls == 0) {
-      // There are no control bits, so call the function directly.
-      auto qirFunctionName =
-          qirQisPrefix + instName + (instOp.getIsAdj() ? "__adj" : "");
-      FlatSymbolRefAttr symbolRef =
-          cudaq::opt::factory::createLLVMFunctionSymbol(
-              qirFunctionName, /*return type=*/LLVM::LLVMVoidType::get(context),
-              {cudaq::opt::getQubitType(context)}, parentModule);
-      rewriter.replaceOpWithNewOp<LLVM::CallOp>(instOp, TypeRange{}, symbolRef,
-                                                adaptor.getOperands());
-      return success();
-    }
 
     // Convert the ctrl bits to an Array
     auto qirFunctionName = qirQisPrefix + instName + "__ctl";
@@ -433,15 +418,6 @@ public:
       return success();
     }
 
-    // Check if all controls are qubit types, if so
-    // retain existing functionality
-    auto allControlsAreQubits = [&]() {
-      for (auto c : adaptor.getControls())
-        if (c.getType() != qirQubitPointerType)
-          return false;
-      return true;
-    }();
-
     // Here we know we have multiple controls, we have to
     // check if we have all refs or a mix of ref / veq. If the
     // latter we'll use a different runtime function
@@ -450,48 +426,55 @@ public:
     Value ctrlOpPointer = rewriter.create<LLVM::AddressOfOp>(
         loc, LLVM::LLVMPointerType::get(instOpQISFunctionType),
         qirFunctionSymbolRef);
-    if (allControlsAreQubits) {
-      // Can use the `invokeWithControlQubits` function
-      // Get symbol for
-      // void invokeWithControlQubits(const std::size_t nControls, void
-      // (*QISFunction)(Array*, Qubit*), Qubit*, ...);
+    Value numControlOperands =
+        rewriter.create<LLVM::ConstantOp>(loc, i64Type, numControls);
+    args.push_back(numControlOperands);
+    auto numTargetOperands = instOp.getTargets().size();
+
+    // Check if all controls are qubit types, if so
+    // retain existing functionality
+    auto allControlsAreQubits = [&]() {
+      for (auto c : adaptor.getControls())
+        if (c.getType() != qirQubitPointerType)
+          return false;
+      return true;
+    }();
+    if (allControlsAreQubits && numTargetOperands == 1) {
+      // Conditionally use the `invokeWithControlQubits` runtime function. This
+      // function is used instead of the more general one because it is used by
+      // a peephole optimization.
       applyMultiControlFunction = cudaq::opt::factory::createLLVMFunctionSymbol(
           cudaq::opt::NVQIRInvokeWithControlBits,
           LLVM::LLVMVoidType::get(context),
           {i64Type, LLVM::LLVMPointerType::get(instOpQISFunctionType)},
           parentModule, true);
-      args.push_back(
-          cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, numControls));
     } else {
-      // Get symbol for
-      // void invokeWithControlRegisterOrQubits(const std::size_t
-      // numControlOperands, i64* isArrayAndLength, void (*QISFunction)(Array*,
-      // Qubit*), Qubit*, ...);
+      // Otherwise use the general function, which can handle registers of
+      // qubits and multiple target qubits. Get symbol for the
+      // `invokeWithControlRegisterOrQubits` runtime function.
       applyMultiControlFunction = cudaq::opt::factory::createLLVMFunctionSymbol(
           cudaq::opt::NVQIRInvokeWithControlRegisterOrBits,
           LLVM::LLVMVoidType::get(context),
-          {i64Type, LLVM::LLVMPointerType::get(i64Type),
+          {i64Type, LLVM::LLVMPointerType::get(i64Type), i64Type,
            LLVM::LLVMPointerType::get(instOpQISFunctionType)},
           parentModule, true);
 
-      // numControls could be more than num operands,
-      // e.g. ctrls = {veq<2>, ref} is 3 and not 2 controls
-      // We need an i64 array encoding 0 if control operand is a ref, and N if
-      // control operand is a veq<N>.
-      Value numControlOperands =
-          cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, numControls);
-
-      // Create an integer array where the kth element is N if the kth
-      // control operand is a veq<N>, and 0 otherwise.
+      // The total number of control qubits may be more than the number of
+      // control operands, e.g. if ctrls = `{veq<2>, ref}` then there are 3
+      // controls even though there are 2 operands. The i64 array encoding is
+      // used to track the control operands. If control operand is a `ref` it
+      // has a $0$ size. If control operand is a `veq<N>` it has size $N$. The
+      // array created is the number of control operands in size, where the
+      // $k$-th element is $N$ if the $k$-th control operand has type `veq<N>`,
+      // and $0$ otherwise.
       Value isArrayAndLengthArr =
           cudaq::opt::factory::packIsArrayAndLengthArray(
               loc, rewriter, parentModule, numControlOperands,
               adaptor.getControls());
-
-      args.push_back(numControlOperands);
       args.push_back(isArrayAndLengthArr);
+      args.push_back(
+          rewriter.create<LLVM::ConstantOp>(loc, i64Type, numTargetOperands));
     }
-
     args.push_back(ctrlOpPointer);
     args.append(instOperands.begin(), instOperands.end());
 
@@ -499,6 +482,40 @@ public:
     rewriter.replaceOpWithNewOp<LLVM::CallOp>(instOp, TypeRange{},
                                               applyMultiControlFunction, args);
 
+    return success();
+  }
+};
+
+/// Lower single target Quantum ops with no parameter to QIR:
+/// h, x, y, z, s, t
+template <typename OP>
+class OneTargetRewrite : public ConvertOpWithControls<OP> {
+public:
+  using Base = ConvertOpWithControls<OP>;
+  using Base::Base;
+
+  LogicalResult
+  matchAndRewrite(OP instOp, typename Base::OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto numControls = instOp.getControls().size();
+    auto parentModule = instOp->template getParentOfType<ModuleOp>();
+    auto context = parentModule->getContext();
+    std::string qirQisPrefix(cudaq::opt::QIRQISPrefix);
+    std::string instName = instOp->getName().stripDialect().str();
+
+    if (numControls != 0) {
+      // Handle the cases with controls.
+      return Base::matchAndRewriteWithControls(instOp, adaptor, rewriter);
+    }
+
+    // There are no control bits, so call the function directly.
+    auto qirFunctionName =
+        qirQisPrefix + instName + (instOp.getIsAdj() ? "__adj" : "");
+    FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
+        qirFunctionName, /*return type=*/LLVM::LLVMVoidType::get(context),
+        {cudaq::opt::getQubitType(context)}, parentModule);
+    rewriter.replaceOpWithNewOp<LLVM::CallOp>(instOp, TypeRange{}, symbolRef,
+                                              adaptor.getOperands());
     return success();
   }
 };
@@ -690,23 +707,20 @@ public:
 /// Lower two-target Quantum ops with no parameter to QIR:
 /// swap
 template <typename OP>
-class TwoTargetRewrite : public ConvertOpToLLVMPattern<OP> {
+class TwoTargetRewrite : public ConvertOpWithControls<OP> {
 public:
-  using Base = ConvertOpToLLVMPattern<OP>;
+  using Base = ConvertOpWithControls<OP>;
   using Base::Base;
 
   LogicalResult
   matchAndRewrite(OP instOp, typename Base::OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-    auto instName = instOp->getName().stripDialect().str();
     auto numControls = instOp.getControls().size();
 
-    // TODO: handle general control ops.
     if (numControls != 0)
-      return instOp.emitError("unsupported controlled op " + instName +
-                              " with " + std::to_string(numControls) +
-                              " ctrl qubits");
+      return Base::matchAndRewriteWithControls(instOp, adaptor, rewriter);
 
+    auto instName = instOp->getName().stripDialect().str();
     ModuleOp parentModule = instOp->template getParentOfType<ModuleOp>();
     auto context = parentModule->getContext();
     auto qirFunctionName = std::string(cudaq::opt::QIRQISPrefix) + instName;

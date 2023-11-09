@@ -629,49 +629,37 @@ void releasePackedQubitArray(Array *a) {
   return;
 }
 
-/// @brief Utility function used by Quake->QIR to invoke a QIR QIS function
-/// with a variadic list of control qubits.
-/// @param nControls
-/// @param QISFunction
-/// @param
-void invokeWithControlQubits(const std::size_t nControls,
-                             void (*QISFunction)(Array *, Qubit *), ...) {
-  // Create the Control Array *, This should
-  // be deallocated upon function exit.
-  auto ctrlArray = std::make_unique<Array>(nControls, sizeof(std::size_t));
-
-  // Start up the variadic arg processing
-  va_list args;
-  va_start(args, QISFunction);
-
-  std::size_t nSetPointers = 0;
-  while (nSetPointers < nControls) {
-    // For each variadic arg, get it (its a Qubit*)
-    // and set it on the array.
-    Qubit *ctrli = va_arg(args, Qubit *);
-    auto ctrliRawPtr =
-        __quantum__rt__array_get_element_ptr_1d(ctrlArray.get(), nSetPointers);
-    cudaq::info("before reinterpret cast");
-    *reinterpret_cast<Qubit **>(ctrliRawPtr) = ctrli;
-    nSetPointers++;
+/// This is the generalized version of invoke that does not use a va_list
+/// argument. It provides a general interface to allow invoking a general
+/// quantum operation, which may contain some number of rotation arguments
+/// (double), control arguments (either qubits or arrays), and target arguments
+/// (qubits). \p numRotationOperands and \p numTargetOperands must be no more
+/// than 2. \p numTargetOperands must be at least 1. The arguments are passed as
+/// arrays (built by the caller on the stack) as: \p params, \p controls, and \p
+/// targets. \p isArrayAndLength is a buffer used to determine the type of the
+/// control arguments and must be present if \p numControlOperands is non-zero.
+/// The length of \p isArrayAndLength must also be \p numControlOperands.
+static void commonInvokeWithRotationsControlsTargets(
+    std::size_t numRotationOperands, double *params,
+    std::size_t numControlOperands, std::size_t *isArrayAndLength,
+    Qubit **controls, std::size_t numTargetOperands, Qubit **targets,
+    void (*QISFunction)()) {
+  if (numRotationOperands > 2) {
+    cudaq::info(
+        "[runtime] FATAL ERROR. Invoke has invalid number of rotations, {}.",
+        numRotationOperands);
+    return;
   }
+  if (numTargetOperands < 1 || numTargetOperands > 2) {
+    cudaq::info(
+        "[runtime] FATAL ERROR. Invoke has invalid number of targets, {}.",
+        numTargetOperands);
+    return;
+  }
+  assert(numRotationOperands == 0 || params);
+  assert(numControlOperands == 0 || (isArrayAndLength && controls));
+  assert(numTargetOperands && targets);
 
-  // The next one will be the target
-  Qubit *target = va_arg(args, Qubit *);
-  // Invoke the function
-  QISFunction(ctrlArray.get(), target);
-
-  // End the var args processing and release the array.
-  va_end(args);
-}
-
-/// @brief Utility function used by Quake->QIR to invoke a QIR QIS
-/// function with a variadic list of "quantum" arguments, where
-/// the control arguments can be either Array or Qubit types.
-void invokeWithControlRegisterOrQubits(const std::size_t numControlOperands,
-                                       std::size_t *isArrayAndLength,
-                                       void (*QISFunction)(Array *, Qubit *),
-                                       ...) {
   std::size_t numControls = 0;
   for (std::size_t i = 0; i < numControlOperands; i++)
     numControls += isArrayAndLength[i] ? isArrayAndLength[i] : 1;
@@ -680,87 +668,129 @@ void invokeWithControlRegisterOrQubits(const std::size_t numControlOperands,
   // be deallocated upon function exit.
   auto ctrlArray = std::make_unique<Array>(numControls, sizeof(std::size_t));
 
-  // Start up the variadic arg processing
-  va_list args;
-  va_start(args, QISFunction);
-
   for (std::size_t counter = 0, i = 0; i < numControlOperands; i++) {
     if (auto numQubitsInArray = isArrayAndLength[i]) {
       // this is an array
-      Array *array = va_arg(args, Array *);
+      Array *array = reinterpret_cast<Array *>(controls[i]);
       for (std::size_t k = 0; k < numQubitsInArray; k++) {
         auto qubitK = __quantum__rt__array_get_element_ptr_1d(array, k);
-        auto ctrliRawPtr =
-            __quantum__rt__array_get_element_ptr_1d(ctrlArray.get(), counter++);
-        *reinterpret_cast<Qubit **>(ctrliRawPtr) =
-            *reinterpret_cast<Qubit **>(qubitK);
+        Qubit **ctrliRawPtr =
+            reinterpret_cast<Qubit **>(__quantum__rt__array_get_element_ptr_1d(
+                ctrlArray.get(), counter++));
+        *ctrliRawPtr = *reinterpret_cast<Qubit **>(qubitK);
       }
     } else {
       // this is a qubit
-      Qubit *ctrli = va_arg(args, Qubit *);
-      auto ctrliRawPtr =
-          __quantum__rt__array_get_element_ptr_1d(ctrlArray.get(), counter++);
-      *reinterpret_cast<Qubit **>(ctrliRawPtr) = ctrli;
+      Qubit *ctrli = controls[i];
+      Qubit **ctrliRawPtr = reinterpret_cast<Qubit **>(
+          __quantum__rt__array_get_element_ptr_1d(ctrlArray.get(), counter++));
+      *ctrliRawPtr = ctrli;
     }
   }
 
   // Should be one more arg in there
-  Qubit *target = va_arg(args, Qubit *);
 
-  // Invoke the function
-  QISFunction(ctrlArray.get(), target);
-
-  // End the var args processing and release the array.
-  va_end(args);
+  // Invoke the function. Only the control arguments are passed as a group to a
+  // QIR function. That implies 6 cases must be generated.
+  switch (numRotationOperands) {
+  case 0: // No rotations.
+    if (numTargetOperands == 1)
+      reinterpret_cast<void (*)(Array *, Qubit *)>(QISFunction)(ctrlArray.get(),
+                                                                targets[0]);
+    else
+      reinterpret_cast<void (*)(Array *, Qubit *, Qubit *)>(QISFunction)(
+          ctrlArray.get(), targets[0], targets[1]);
+    break;
+  case 1: // One rotation.
+    if (numTargetOperands == 1)
+      reinterpret_cast<void (*)(double, Array *, Qubit *)>(QISFunction)(
+          params[0], ctrlArray.get(), targets[0]);
+    else
+      reinterpret_cast<void (*)(double, Array *, Qubit *, Qubit *)>(
+          QISFunction)(params[0], ctrlArray.get(), targets[0], targets[1]);
+    break;
+  case 2: // Two rotations.
+    if (numTargetOperands == 1)
+      reinterpret_cast<void (*)(double, double, Array *, Qubit *)>(QISFunction)(
+          params[0], params[1], ctrlArray.get(), targets[0]);
+    else
+      reinterpret_cast<void (*)(double, double, Array *, Qubit *, Qubit *)>(
+          QISFunction)(params[0], params[1], ctrlArray.get(), targets[0],
+                       targets[1]);
+    break;
+  }
 }
 
-/// @brief Utility function used by Quake->QIR to invoke a QIR QIS
-/// function with a variadic list of "quantum" arguments, where
-/// the control arguments can be either Array or Qubit types. This
-/// function is to be used for controlled rotations.
+/// @brief Utility function used by Quake->QIR to invoke a QIR QIS function
+/// with a variadic list of control qubits.
+void invokeWithControlQubits(const std::size_t numControlOperands,
+                             void (*QISFunction)(Array *, Qubit *), ...) {
+  // Start up the variadic arg processing
+  va_list args;
+  va_start(args, QISFunction);
+  Qubit *targets[1];
+  auto **controls =
+      reinterpret_cast<Qubit **>(alloca(numControlOperands * sizeof(Qubit *)));
+  auto *isArrayAndLength = reinterpret_cast<std::size_t *>(
+      alloca(numControlOperands * sizeof(std::size_t)));
+  for (std::size_t i = 0; i < numControlOperands; ++i) {
+    controls[i] = va_arg(args, Qubit *);
+    isArrayAndLength[i] = 0;
+  }
+  targets[0] = va_arg(args, Qubit *);
+  va_end(args);
+
+  // Invoke the function
+  commonInvokeWithRotationsControlsTargets(
+      /*rotations=*/0, nullptr, numControlOperands, isArrayAndLength, controls,
+      /*targets=*/1, targets, reinterpret_cast<void (*)()>(QISFunction));
+}
+
+/// @brief Utility function used by Quake->QIR to invoke a QIR QIS function with
+/// a variadic list of "quantum" arguments, where the control arguments can be
+/// either Array or Qubit types.
+void invokeWithControlRegisterOrQubits(std::size_t numControlOperands,
+                                       std::size_t *isArrayAndLength,
+                                       std::size_t numTargetOperands,
+                                       void (*QISFunction)(Array *, Qubit *),
+                                       ...) {
+  va_list args;
+  va_start(args, QISFunction);
+  Qubit *targets[2];
+  auto **controls =
+      reinterpret_cast<Qubit **>(alloca(numControlOperands * sizeof(Qubit *)));
+  for (std::size_t i = 0; i < numControlOperands; ++i)
+    controls[i] = va_arg(args, Qubit *);
+  assert(numTargetOperands >= 1 && numTargetOperands <= 2);
+  targets[0] = va_arg(args, Qubit *);
+  if (numTargetOperands == 2)
+    targets[1] = va_arg(args, Qubit *);
+  va_end(args);
+  commonInvokeWithRotationsControlsTargets(
+      /*rotations=*/0, nullptr, numControlOperands, isArrayAndLength, controls,
+      numTargetOperands, targets, reinterpret_cast<void (*)()>(QISFunction));
+}
+
+/// @brief Utility function used by Quake->QIR to invoke a QIR QIS function with
+/// a variadic list of "quantum" arguments, where the control arguments can be
+/// either Array or Qubit types. This function is to be used for controlled
+/// rotations.
 void invokeRotationWithControlQubits(
     double param, const std::size_t numControlOperands,
     std::size_t *isArrayAndLength,
     void (*QISFunction)(double, Array *, Qubit *), ...) {
-  std::size_t numControls = 0;
-  for (std::size_t i = 0; i < numControlOperands; i++)
-    numControls += isArrayAndLength[i] ? isArrayAndLength[i] : 1;
-
-  // Create the Control Array *, This should
-  // be deallocated upon function exit.
-  auto ctrlArray = std::make_unique<Array>(numControls, sizeof(std::size_t));
-
-  // Start up the variadic arg processing
   va_list args;
   va_start(args, QISFunction);
-
-  for (std::size_t counter = 0, i = 0; i < numControlOperands; i++) {
-    if (auto numQubitsInArray = isArrayAndLength[i]) {
-      // this is an array
-      Array *array = va_arg(args, Array *);
-      for (std::size_t k = 0; k < numQubitsInArray; k++) {
-        auto qubitK = __quantum__rt__array_get_element_ptr_1d(array, k);
-        auto ctrliRawPtr =
-            __quantum__rt__array_get_element_ptr_1d(ctrlArray.get(), counter++);
-        *reinterpret_cast<Qubit **>(ctrliRawPtr) =
-            *reinterpret_cast<Qubit **>(qubitK);
-      }
-    } else {
-      // this is a qubit
-      Qubit *ctrli = va_arg(args, Qubit *);
-      auto ctrliRawPtr =
-          __quantum__rt__array_get_element_ptr_1d(ctrlArray.get(), counter++);
-      *reinterpret_cast<Qubit **>(ctrliRawPtr) = ctrli;
-    }
-  }
-
-  // Should be one more arg in there
-  Qubit *target = va_arg(args, Qubit *);
-
-  // Invoke the function
-  QISFunction(param, ctrlArray.get(), target);
-
-  // End the var args processing and release the array.
+  double params[1] = {param};
+  Qubit *targets[1];
+  auto **controls =
+      reinterpret_cast<Qubit **>(alloca(numControlOperands * sizeof(Qubit *)));
+  for (std::size_t i = 0; i < numControlOperands; ++i)
+    controls[i] = va_arg(args, Qubit *);
+  targets[0] = va_arg(args, Qubit *);
   va_end(args);
+  commonInvokeWithRotationsControlsTargets(
+      /*rotations=*/1, params, numControlOperands, isArrayAndLength, controls,
+      /*targets=*/1, targets, reinterpret_cast<void (*)()>(QISFunction));
 }
 }
