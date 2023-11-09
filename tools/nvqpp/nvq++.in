@@ -51,6 +51,16 @@ function list_simulators {
 	done
 }
 
+function get_simulation_backend {
+	config_file="${install_dir}/targets/$1.config"
+	if [ -f "$config_file" ]; then
+    	line=$(grep "NVQIR_SIMULATION_BACKEND=" "$config_file")
+		if [ $? -eq 0 ]; then
+			echo ${line#*=} | tr -d '"'
+		fi
+	fi
+}
+
 function query_gpu {
 	if [ -x "$(command -v nvidia-smi)" ]; then
 		# Make sure nvidia-smi works.
@@ -276,6 +286,7 @@ if [[ ! -z "${CUDAQ_DEFAULT_SIMULATOR}" ]]; then
 	do
 		if [ "${CUDAQ_DEFAULT_SIMULATOR}" = "$s" ]; then
 			TARGET_CONFIG="${CUDAQ_DEFAULT_SIMULATOR}"
+			NVQIR_SIMULATION_BACKEND=$(get_simulation_backend "$s")
 			break
 		fi
 	done
