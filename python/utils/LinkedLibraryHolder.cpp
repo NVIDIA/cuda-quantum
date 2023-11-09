@@ -75,7 +75,7 @@ void findAvailableTargets(
       // Extract the target name from the file name
       auto fileName = path.filename().string();
       auto targetName = std::regex_replace(fileName, std::regex(".config"), "");
-      std::string platformName = "default", simulatorName = "default",
+      std::string platformName = "default", simulatorName = "qpp",
                   description = "", line;
       {
         // Open the file and look for the platform, simulator, and description
