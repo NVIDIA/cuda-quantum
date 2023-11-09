@@ -420,8 +420,8 @@
              
   <section id="getting-started">
 <h1>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this heading">¶</a></h1>
-<p>This guide walks through how to <a class="reference internal" href="#install-cuda-quantum"><span class="std std-ref">install CUDA Quantum</span></a> on your system.</p>
-<p>The section on <a class="reference internal" href="#connect-to-remote"><span class="std std-ref">connecting to a remote host</span></a> contains some
+<p>This guide walks through how to <a class="reference internal" href="#install-cuda-quantum"><span class="std std-ref">install CUDA Quantum</span></a> on your system, and how to set up <a class="reference internal" href="#local-development-with-vscode"><span class="std std-ref">VS Code for local development</span></a>.
+The section on <a class="reference internal" href="#connect-to-remote"><span class="std std-ref">connecting to a remote host</span></a> contains some
 guidance for application development on a remote host where CUDA Quantum is installed.</p>
 <section id="local-installation">
 <span id="install-cuda-quantum"></span><h2>Local Installation<a class="headerlink" href="#local-installation" title="Permalink to this heading">¶</a></h2>
@@ -566,7 +566,7 @@ see <a class="reference internal" href="versions.html"><span class="doc">CUDA Qu
 </section>
 </section>
 <section id="development-with-vs-code">
-<h2>Development with VS Code<a class="headerlink" href="#development-with-vs-code" title="Permalink to this heading">¶</a></h2>
+<span id="local-development-with-vscode"></span><h2>Development with VS Code<a class="headerlink" href="#development-with-vs-code" title="Permalink to this heading">¶</a></h2>
 <p>To facilitate application development with, for example, debugging, code completion, hover information, and so on,
 we recommend using <a class="reference external" href="https://code.visualstudio.com/">VS Code</a>. VS Code provides a seamless
 development experience on all platforms, and is also available without installation via web browser.
@@ -578,13 +578,12 @@ how to set up your development environment when accessing CUDA Quantum on a remo
 <p>Before connecting VS Code, open a terminal/shell,
 and start the CUDA Quantum Docker container following the
 instructions in the <a class="reference internal" href="#install-docker-image"><span class="std std-ref">section above</span></a>.</p>
-<p>If you have a GitHub or Microsoft account, we recommend that you connect
-to a CUDA Quantum container using tunnels. To do so, take a look at the
-section <a class="reference internal" href="#developing-with-remote-tunnels">Developing with Remote Tunnels</a>.</p>
-<p>If you cannot use tunnels, you need a local installation of
-<a class="reference external" href="https://code.visualstudio.com/">VS Code</a> and you need to install
-the <a class="reference external" href="https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers">Dev Containers</a> extension.</p>
-<p>Launch VS Code, open the Command Palette with <code class="code docutils literal notranslate"><span class="pre">Ctrl+Shift+P</span></code>, and enter
+<p>If you have a local installation of <a class="reference external" href="https://code.visualstudio.com/">VS Code</a>
+you can connect to the running container using the
+<a class="reference external" href="https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers">Dev Containers</a> extension. If you want to use VS Code in the web browser, please follow the instructions
+in the section <a class="reference internal" href="#developing-with-remote-tunnels">Developing with Remote Tunnels</a> instead.</p>
+<p>After installing the
+<a class="reference external" href="https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers">Dev Containers</a> extension, launch VS Code, open the Command Palette with <code class="code docutils literal notranslate"><span class="pre">Ctrl+Shift+P</span></code>, and enter
 .. spellcheck-disable
 “Dev Containers: Attach to Running Container”.
 .. spellcheck-enable
@@ -675,7 +674,7 @@ This allows to connect either a local installation of <a class="reference extern
 or the <a class="reference external" href="https://vscode.dev/">VS Code Web UI</a>, to a running CUDA Quantum container on the same or a different machine.</p>
 <p>Creating a secure connection requires authenticating with the same GitHub or Microsoft account on each end.
 Once authenticated, an SSH connection over the tunnel provides end-to-end encryption. To download the CLI and
-create a tunnel, execute the following commands</p>
+create a tunnel, execute the commands</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">os=$([ &quot;$(uname -m)&quot; == &quot;aarch64&quot; ] &amp;&amp; echo cli-alpine-arm64 || echo cli-alpine-x64)</span>
 <span class="go">curl -Lk &quot;https://code.visualstudio.com/sha/download?build=stable&amp;os=$os&quot; --output vscode_cli.tar.gz</span>
 <span class="go">tar -xf vscode_cli.tar.gz &amp;&amp; rm vscode_cli.tar.gz &amp;&amp; sudo mv code /usr/bin/</span>
@@ -818,25 +817,75 @@ however, contain all development dependencies for CUDA, such as, for example the
 </section>
 <section id="next-steps">
 <span id="validate-installation"></span><h2>Next Steps<a class="headerlink" href="#next-steps" title="Permalink to this heading">¶</a></h2>
-<p>You can now compile and/or run the C++ and Python examples using the terminal.</p>
+<p>You can now compile and/or run the C++ and Python examples using the terminal.
+To open a terminal in VS Code, open the Command Palette with <code class="code docutils literal notranslate"><span class="pre">Ctrl+Shift+P</span></code> and
+enter “View: Show Terminal”.</p>
 <img alt="_images/getToWork.png" src="_images/getToWork.png" />
-<p>The CUDA Quantum image contains a folder with examples in the <code class="code docutils literal notranslate"><span class="pre">/home/cudaq</span></code> directory.
+<p>The CUDA Quantum image contains a folder with examples and tutorials in the <code class="code docutils literal notranslate"><span class="pre">/home/cudaq</span></code> directory.
 These examples are provided to get you started with CUDA Quantum and understanding
 the programming and execution model.
 If you are not using a container image, you can find these examples on our
 <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>.</p>
-<p>To start with a simple program, like <code class="code docutils literal notranslate"><span class="pre">examples/cpp/basics/static_kernel.cpp</span></code>, run</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ examples/cpp/basics/static_kernel.cpp</span>
-<span class="go">./a.out</span>
+<p>Let’s start by running a simple program to validate your installation.
+The samples contain an implementation of a
+<a class="reference external" href="https://en.wikipedia.org/wiki/Bernstein%E2%80%93Vazirani_algorithm">Bernstein-Vazirani algorithm</a>.
+To run the example, execute the command:</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">C++</label><div class="tab-content docutils">
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ examples/cpp/algorithms/bernstein_vazirani.cpp &amp;&amp; ./a.out</span>
 </pre></div>
 </div>
-<p>If you have GPU support (e.g. you successfully provided <code class="code docutils literal notranslate"><span class="pre">--gpus</span></code> to your docker
-run command), try out the 30 qubit version of this example.</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ examples/cpp/basics/cuquantum_backends.cpp --target nvidia</span>
-<span class="go">./a.out</span>
+</div>
+<input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">Python</label><div class="tab-content docutils">
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python examples/python/bernstein_vazirani.py --size 5</span>
 </pre></div>
 </div>
-<p>For more information about developing and running CUDA Quantum code, take a look at the page <a class="reference internal" href="using/cudaq.html"><span class="doc">Using CUDA Quantum</span></a>.</p>
+</div>
+</div>
+<p>This will execute the program on the default simulator, which will use GPU-acceleration if
+a suitable GPU has been detected. To confirm that the GPU acceleration works, you can
+increase the size of the secret string, and pass the target as a command line argument:</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">C++</label><div class="tab-content docutils">
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ examples/cpp/algorithms/bernstein_vazirani.cpp -DSIZE=25 --target nvidia &amp;&amp; ./a.out</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--1-input--2" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--2">Python</label><div class="tab-content docutils">
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python examples/python/bernstein_vazirani.py --size 25 --target nvidia</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>This program should complete fairly quickly. Depending on the available memory on your GPU,
+you can set the size of the secret string to up to 28-32 when running on the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you get an error that the CUDA driver version is insufficient or no GPU has been detected,
+check that you have enabled GPU support when launching the container by passing the <code class="code docutils literal notranslate"><span class="pre">--gpus</span> <span class="pre">all</span></code> flag
+(for <a class="reference internal" href="#install-docker-image"><span class="std std-ref">Docker</span></a>) or the <code class="code docutils literal notranslate"><span class="pre">--nv</span></code> flag (for <a class="reference internal" href="#install-singularity-image"><span class="std std-ref">Singularity</span></a>).
+If you are not running a container, you can execute the command <code class="code docutils literal notranslate"><span class="pre">nvidia-smi</span></code> to confirm your setup;
+if the command is unknown or fails, you do not have a GPU or do not have a driver installed. If the command
+succeeds, please confirm that your CUDA and driver version matches the
+<a class="reference internal" href="#dependencies-and-compatibility"><span class="std std-ref">supported versions</span></a>.</p>
+</div>
+<p>Let’s compare that to using only your CPU:</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">C++</label><div class="tab-content docutils">
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ examples/cpp/algorithms/bernstein_vazirani.cpp -DSIZE=25 --target qpp-cpu &amp;&amp; ./a.out</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">Python</label><div class="tab-content docutils">
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python examples/python/bernstein_vazirani.py --size 25 --target qpp-cpu</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>When you execute this command, the program simply seems to hang; that is because it takes
+a long time for the CPU-only backend to simulate 28+ qubits! Cancel the execution with <code class="code docutils literal notranslate"><span class="pre">Ctrl+C</span></code>.</p>
+<p>You are now all set to start developing quantum applications using CUDA Quantum!
+Please proceed to <a class="reference internal" href="using/cudaq.html"><span class="doc">Using CUDA Quantum</span></a> to learn the basics.</p>
 </section>
 </section>
 

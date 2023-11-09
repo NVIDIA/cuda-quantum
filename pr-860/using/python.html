@@ -469,7 +469,8 @@ This is a introduction by example for using CUDA Quantum in Python.</p>
 <a class="reference external" href="https://epubs.siam.org/doi/10.1137/S0097539796300921">this publication</a>.</p>
 <p>In this example, we generate a random bitstring, encode it into an inner-product oracle, then we simulate the kernel and return the most probable bitstring from its execution.</p>
 <p>If all goes well, the state measured with the highest probability should be our hidden bitstring!</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">cudaq</span>
 <span class="kn">import</span> <span class="nn">random</span>
 
 
@@ -536,27 +537,44 @@ This is a introduction by example for using CUDA Quantum in Python.</p>
 <span class="c1"># If you have a NVIDIA GPU you can use this example to see</span>
 <span class="c1"># that the GPU-accelerated backends can easily handle a</span>
 <span class="c1"># larger number of qubits compared the CPU-only backend.</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
+        <span class="n">prog</span><span class="o">=</span><span class="s1">&#39;python&#39;</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s1">&#39;Run a Bernstein-Vazirani algorithm using CUDA Quantum.&#39;</span><span class="p">,</span>
+        <span class="n">epilog</span><span class="o">=</span>
+        <span class="s1">&#39;For more information about CUDA Quantum, see https://nvidia.github.io/cuda-quantum&#39;</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--size&#39;</span><span class="p">,</span>
+                        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+                        <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">default</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;The number of bits in the secret string.&#39;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--target&#39;</span><span class="p">,</span>
+                        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+                        <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">default</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;The target to execute the algorithm on.&#39;</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
 
-<span class="c1"># Depending on the available memory on your GPU, you can</span>
-<span class="c1"># set the number of qubits to around 30 qubits, and un-comment</span>
-<span class="c1"># the `cudaq.set_target(nvidia)` line.</span>
+    <span class="c1"># Depending on the available memory on your GPU, you can</span>
+    <span class="c1"># set the size of the secret string to around 28-32 when</span>
+    <span class="c1"># you pass the target `nvidia` as a command line argument.</span>
 
-<span class="c1"># Note: Without setting the target to the `nvidia` backend,</span>
-<span class="c1"># a 30 qubit simulation simply seems to hang; that is</span>
-<span class="c1"># because it takes a long time for the CPU-only backend</span>
-<span class="c1"># to handle this number of qubits!</span>
+    <span class="c1"># Note: Without setting the target to the `nvidia` backend,</span>
+    <span class="c1"># the program simply seems to hang; that is because it takes</span>
+    <span class="c1"># a long time for the CPU-only backend to simulate 28+ qubits!</span>
 
-<span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">5</span>  <span class="c1"># set to around 30 qubits for `nvidia` target</span>
-<span class="c1"># ```</span>
-<span class="c1"># cudaq.set_target(&quot;nvidia&quot;)</span>
-<span class="c1"># ```</span>
+    <span class="n">qubit_count</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">size</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">target</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">isspace</span><span class="p">():</span>
+        <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">target</span><span class="p">)</span>
 
-<span class="n">kernel</span><span class="p">,</span> <span class="n">hidden_bitstring</span> <span class="o">=</span> <span class="n">bernstein_vazirani</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Running on target </span><span class="si">{</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_target</span><span class="p">()</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> ...&quot;</span><span class="p">)</span>
+    <span class="n">kernel</span><span class="p">,</span> <span class="n">hidden_bitstring</span> <span class="o">=</span> <span class="n">bernstein_vazirani</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;encoded bitstring = </span><span class="si">{</span><span class="n">hidden_bitstring</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;measured state = </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">most_probable</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Were we successful? </span><span class="si">{</span><span class="n">hidden_bitstring</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">result</span><span class="o">.</span><span class="n">most_probable</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;encoded bitstring = </span><span class="si">{</span><span class="n">hidden_bitstring</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;measured state = </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">most_probable</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Were we successful? </span><span class="si">{</span><span class="n">hidden_bitstring</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">result</span><span class="o">.</span><span class="n">most_probable</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>

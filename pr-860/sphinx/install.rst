@@ -1,8 +1,7 @@
 Getting Started
 *******************************************
 
-This guide walks through how to :ref:`install CUDA Quantum <install-cuda-quantum>` on your system.
-
+This guide walks through how to :ref:`install CUDA Quantum <install-cuda-quantum>` on your system, and how to set up :ref:`VS Code for local development <local-development-with-vscode>`.
 The section on :ref:`connecting to a remote host <connect-to-remote>` contains some
 guidance for application development on a remote host where CUDA Quantum is installed.
 
@@ -198,6 +197,7 @@ To build the CUDA Quantum Python API from source using pip, run the following co
 
 For more information about building the entire C++ and Python API from source, we refer to the `CUDA Quantum GitHub repository`_.
 
+.. _local-development-with-vscode:
 
 Development with VS Code
 ------------------------------------
@@ -218,15 +218,13 @@ Before connecting VS Code, open a terminal/shell,
 and start the CUDA Quantum Docker container following the 
 instructions in the :ref:`section above <install-docker-image>`. 
 
-If you have a GitHub or Microsoft account, we recommend that you connect 
-to a CUDA Quantum container using tunnels. To do so, take a look at the 
-section `Developing with Remote Tunnels`_.
+If you have a local installation of `VS Code <https://code.visualstudio.com/>`_ 
+you can connect to the running container using the  
+`Dev Containers <https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers>`__ extension. If you want to use VS Code in the web browser, please follow the instructions
+in the section `Developing with Remote Tunnels`_ instead.
 
-If you cannot use tunnels, you need a local installation of 
-`VS Code <https://code.visualstudio.com/>`_ and you need to install 
-the `Dev Containers <https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers>`__ extension. 
-
-Launch VS Code, open the Command Palette with `Ctrl+Shift+P`, and enter 
+After installing the
+`Dev Containers <https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers>`__ extension, launch VS Code, open the Command Palette with `Ctrl+Shift+P`, and enter 
 .. spellcheck-disable
 "Dev Containers: Attach to Running Container". 
 .. spellcheck-enable
@@ -337,7 +335,7 @@ or the `VS Code Web UI <https://vscode.dev/>`__, to a running CUDA Quantum conta
 
 Creating a secure connection requires authenticating with the same GitHub or Microsoft account on each end.
 Once authenticated, an SSH connection over the tunnel provides end-to-end encryption. To download the CLI and 
-create a tunnel, execute the following commands 
+create a tunnel, execute the commands
 
 .. code-block:: console
 
@@ -495,31 +493,80 @@ Detailed information about supported drivers for different CUDA versions and be 
 Next Steps
 ----------
 
-.. TODO: update this with Python snippets
-
 You can now compile and/or run the C++ and Python examples using the terminal.
+To open a terminal in VS Code, open the Command Palette with `Ctrl+Shift+P` and 
+enter "View: Show Terminal".
 
 .. image:: _static/getToWork.png 
 
-The CUDA Quantum image contains a folder with examples in the :code:`/home/cudaq` directory. 
+The CUDA Quantum image contains a folder with examples and tutorials in the :code:`/home/cudaq` directory. 
 These examples are provided to get you started with CUDA Quantum and understanding 
 the programming and execution model. 
 If you are not using a container image, you can find these examples on our 
 `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`__.
 
-To start with a simple program, like :code:`examples/cpp/basics/static_kernel.cpp`, run
+Let's start by running a simple program to validate your installation.
+The samples contain an implementation of a 
+`Bernstein-Vazirani algorithm <https://en.wikipedia.org/wiki/Bernstein%E2%80%93Vazirani_algorithm>`__. 
+To run the example, execute the command:
 
-.. code-block:: console 
+.. tab:: C++
 
-    nvq++ examples/cpp/basics/static_kernel.cpp 
-    ./a.out
+  .. code-block:: console
 
-If you have GPU support (e.g. you successfully provided :code:`--gpus` to your docker 
-run command), try out the 30 qubit version of this example.
+      nvq++ examples/cpp/algorithms/bernstein_vazirani.cpp && ./a.out
 
-.. code-block:: console 
+.. tab:: Python
 
-    nvq++ examples/cpp/basics/cuquantum_backends.cpp --target nvidia 
-    ./a.out 
+  .. code-block:: console
 
-For more information about developing and running CUDA Quantum code, take a look at the page :doc:`Using CUDA Quantum <using/cudaq>`. 
+      python examples/python/bernstein_vazirani.py --size 5
+
+This will execute the program on the default simulator, which will use GPU-acceleration if 
+a suitable GPU has been detected. To confirm that the GPU acceleration works, you can 
+increase the size of the secret string, and pass the target as a command line argument:
+
+.. tab:: C++
+
+  .. code-block:: console
+
+      nvq++ examples/cpp/algorithms/bernstein_vazirani.cpp -DSIZE=25 --target nvidia && ./a.out
+
+.. tab:: Python
+
+  .. code-block:: console
+
+      python examples/python/bernstein_vazirani.py --size 25 --target nvidia
+
+This program should complete fairly quickly. Depending on the available memory on your GPU,
+you can set the size of the secret string to up to 28-32 when running on the `nvidia` target. 
+
+.. note::
+
+  If you get an error that the CUDA driver version is insufficient or no GPU has been detected,
+  check that you have enabled GPU support when launching the container by passing the `--gpus all` flag
+  (for :ref:`Docker <install-docker-image>`) or the `--nv` flag (for :ref:`Singularity <install-singularity-image>`).
+  If you are not running a container, you can execute the command `nvidia-smi` to confirm your setup;
+  if the command is unknown or fails, you do not have a GPU or do not have a driver installed. If the command
+  succeeds, please confirm that your CUDA and driver version matches the 
+  :ref:`supported versions <dependencies-and-compatibility>`.
+
+Let's compare that to using only your CPU:
+
+.. tab:: C++
+
+  .. code-block:: console
+
+      nvq++ examples/cpp/algorithms/bernstein_vazirani.cpp -DSIZE=25 --target qpp-cpu && ./a.out
+
+.. tab:: Python
+
+  .. code-block:: console
+
+      python examples/python/bernstein_vazirani.py --size 25 --target qpp-cpu
+
+When you execute this command, the program simply seems to hang; that is because it takes
+a long time for the CPU-only backend to simulate 28+ qubits! Cancel the execution with `Ctrl+C`.
+
+You are now all set to start developing quantum applications using CUDA Quantum!
+Please proceed to :doc:`Using CUDA Quantum <using/cudaq>` to learn the basics. 
