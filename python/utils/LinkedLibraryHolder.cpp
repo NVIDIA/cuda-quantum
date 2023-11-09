@@ -266,7 +266,7 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
   if (disallowTargetModification)
     return;
 
-  // // We'll always start off with the default target
+  // We'll always start off with the default target
   resetTarget();
 }
 
