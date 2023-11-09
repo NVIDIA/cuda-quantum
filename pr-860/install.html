@@ -179,7 +179,7 @@
 <li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/executing_circuits.html#Observe">Observe</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/cost_minimization.html">Single Qubit Rotation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/cost_minimization.html">Cost Minimization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/vqe.html">Variational Quantum Eigensolver</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
@@ -438,7 +438,7 @@ If you do not have the necessary administrator permissions to install software o
 take a look at the section below on how to use <a class="reference internal" href="#singularity">Singularity</a> instead.</p>
 <p>Docker images for all CUDA Quantum releases are available on the <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum">NGC Container Registry</a>.
 In addition to publishing <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum/tags">stable releases</a>,
-we also publish docker images whenever we update certain branches on our <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>.
+we also publish Docker images whenever we update certain branches on our <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>.
 These images are published in our <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nightly/containers/cuda-quantum/tags">nightly channel on NGC</a>.
 To download the latest version on the main branch of our GitHub repository, for example, use the command</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">docker pull nvcr.io/nvidia/nightly/cuda-quantum:latest</span>
@@ -510,7 +510,7 @@ To do so on Linux or WSL, make sure you have the <a class="reference external" h
 </div>
 <p>Replace the image name and/or tag in the <code class="code docutils literal notranslate"><span class="pre">From</span></code> line, if necessary, with the one you want to use;
 In addition to publishing <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum/tags">stable releases</a>,
-we also publish docker images whenever we update certain branches on our <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>.
+we also publish Docker images whenever we update certain branches on our <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>.
 These images are published in our <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nightly/containers/cuda-quantum/tags">nightly channel on NGC</a>.
 Early prototypes for features we are considering can be tried out by using the image tags starting
 with <code class="code docutils literal notranslate"><span class="pre">experimental</span></code>. We welcome and appreciate your feedback about these early prototypes;
@@ -584,9 +584,7 @@ you can connect to the running container using the
 in the section <a class="reference internal" href="#developing-with-remote-tunnels">Developing with Remote Tunnels</a> instead.</p>
 <p>After installing the
 <a class="reference external" href="https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers">Dev Containers</a> extension, launch VS Code, open the Command Palette with <code class="code docutils literal notranslate"><span class="pre">Ctrl+Shift+P</span></code>, and enter
-.. spellcheck-disable
-“Dev Containers: Attach to Running Container”.
-.. spellcheck-enable
+:spellcheck-disable:”Dev Containers: Attach to Running Container”:spellcheck-enable:.
 You should see and select the running <code class="code docutils literal notranslate"><span class="pre">cuda-quantum</span></code> container in the list.
 After the window reloaded, enter “File: Open Folder” in the Command Palette to open the <code class="code docutils literal notranslate"><span class="pre">/home/cudaq/</span></code> folder.</p>
 <p>To run the examples, open the Command Palette and enter “View: Show Terminal”

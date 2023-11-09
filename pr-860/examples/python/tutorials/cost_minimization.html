@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Single Qubit Rotation &mdash; NVIDIA CUDA Quantum  documentation</title>
+  <title>Cost Minimization &mdash; NVIDIA CUDA Quantum  documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/tabs.css" type="text/css" />
@@ -182,7 +182,7 @@
 <li class="toctree-l3"><a class="reference internal" href="executing_circuits.html#Observe">Observe</a></li>
 </ul>
 </li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Single Qubit Rotation</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Cost Minimization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="noisy_simulations.html">Noisy Simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="vqe.html">Variational Quantum Eigensolver</a></li>
 <li class="toctree-l2"><a class="reference internal" href="hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
@@ -409,7 +409,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../../using/tutorials.html">CUDA Quantum Tutorials</a></li>
-      <li class="breadcrumb-item active">Single Qubit Rotation</li>
+      <li class="breadcrumb-item active">Cost Minimization</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../../../_sources/examples/python/tutorials/cost_minimization.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
@@ -422,8 +422,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="Single-Qubit-Rotation">
-<h1>Single Qubit Rotation<a class="headerlink" href="#Single-Qubit-Rotation" title="Permalink to this heading">¶</a></h1>
+  <section id="Cost-Minimization">
+<h1>Cost Minimization<a class="headerlink" href="#Cost-Minimization" title="Permalink to this heading">¶</a></h1>
 <p>Below we start with a basic example of a hybrid variational algorithm which involves flipping the bloch vector of a qubit from the <span class="math notranslate nohighlight">\(\ket{0}\)</span> to the <span class="math notranslate nohighlight">\(\ket{1}\)</span> state. First we import the relevant packages and set our backend to simulate our workflow on NVIDIA GPUs.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:

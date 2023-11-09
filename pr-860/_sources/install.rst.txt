@@ -31,7 +31,7 @@ take a look at the section below on how to use `Singularity`_ instead.
 
 Docker images for all CUDA Quantum releases are available on the `NGC Container Registry`_.
 In addition to publishing `stable releases <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum/tags>`__, 
-we also publish docker images whenever we update certain branches on our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`_.
+we also publish Docker images whenever we update certain branches on our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`_.
 These images are published in our `nightly channel on NGC <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nightly/containers/cuda-quantum/tags>`__.
 To download the latest version on the main branch of our GitHub repository, for example, use the command
 
@@ -126,7 +126,7 @@ Once you have singularity installed, create a file `cuda-quantum.def` with the f
 
 Replace the image name and/or tag in the `From` line, if necessary, with the one you want to use;
 In addition to publishing `stable releases <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum/tags>`__, 
-we also publish docker images whenever we update certain branches on our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`_.
+we also publish Docker images whenever we update certain branches on our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`_.
 These images are published in our `nightly channel on NGC <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nightly/containers/cuda-quantum/tags>`__.
 Early prototypes for features we are considering can be tried out by using the image tags starting 
 with `experimental`. We welcome and appreciate your feedback about these early prototypes; 
@@ -223,11 +223,12 @@ you can connect to the running container using the
 `Dev Containers <https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers>`__ extension. If you want to use VS Code in the web browser, please follow the instructions
 in the section `Developing with Remote Tunnels`_ instead.
 
+.. |:spellcheck-disable:| replace:: \
+.. |:spellcheck-enable:| replace:: \
+
 After installing the
 `Dev Containers <https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers>`__ extension, launch VS Code, open the Command Palette with `Ctrl+Shift+P`, and enter 
-.. spellcheck-disable
-"Dev Containers: Attach to Running Container". 
-.. spellcheck-enable
+:spellcheck-disable:"Dev Containers: Attach to Running Container":spellcheck-enable:.
 You should see and select the running `cuda-quantum` container in the list. 
 After the window reloaded, enter "File: Open Folder" in the Command Palette to open the `/home/cudaq/` folder.
 
