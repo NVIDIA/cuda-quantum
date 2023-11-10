@@ -15,6 +15,10 @@
 #include <iostream>
 #include <random>
 
+#ifndef SIZE
+#define SIZE 5
+#endif
+
 template <int nrOfBits>
 std::bitset<nrOfBits> random_bits(int seed) {
 
@@ -58,10 +62,10 @@ struct bernstein_vazirani {
 };
 
 int main(int argc, char *argv[]) {
-  auto seed = 1 < argc ? atoi(argv[1]) : 1;
+  auto seed = 1 < argc ? atoi(argv[1]) : time(NULL);
 
   // The number of qubits can be >32 when targeting the `nvidia-mgpu` backend.
-  const int nr_qubits = 28;
+  const int nr_qubits = SIZE;
   auto bitvector = random_bits<nr_qubits>(seed);
   auto kernel = bernstein_vazirani<nr_qubits>{};
   auto counts = cudaq::sample(kernel, bitvector);
@@ -71,7 +75,7 @@ int main(int argc, char *argv[]) {
     printf("Measured bitstring: %s\n\n", counts.most_probable().c_str());
 
     for (auto &[bits, count] : counts) {
-      printf("observed %s (probability %u%%)\n", bits.data(),
+      printf("observed %s with %u%% probability\n", bits.data(),
              100 * (uint)((double)count / 1000.));
     }
   }
