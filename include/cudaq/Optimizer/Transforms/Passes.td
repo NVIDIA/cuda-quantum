@@ -21,8 +21,6 @@ def ApplyControlNegations : Pass<"apply-control-negations", "mlir::func::FuncOp"
     with an X operation on the control qubit, the controlled operation with positive 
     polarity, and a final X operation on the control qubit. 
   }];
-
-  let constructor = "cudaq::opt::createApplyControlNegationsPass()";
 }
 
 // ApplyOpSpecialization is a module pass because it may modify the ModuleOp

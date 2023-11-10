@@ -29,7 +29,7 @@ template <bool QIRProfile = false>
 void addPipelineToQIR(mlir::PassManager &pm,
                       llvm::StringRef convertTo = "none") {
   pm.addNestedPass<mlir::func::FuncOp>(
-      cudaq::opt::createApplyControlNegationsPass());
+      cudaq::opt::createApplyControlNegations());
   cudaq::opt::addAggressiveEarlyInlining(pm);
   pm.addPass(mlir::createCanonicalizerPass());
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());

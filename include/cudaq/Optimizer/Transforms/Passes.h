@@ -30,7 +30,6 @@ void registerAggressiveEarlyInlining();
 
 void registerUnrollingPipeline();
 
-std::unique_ptr<mlir::Pass> createApplyControlNegationsPass();
 std::unique_ptr<mlir::Pass> createApplyOpSpecializationPass();
 std::unique_ptr<mlir::Pass>
 createApplyOpSpecializationPass(bool computeActionOpt);

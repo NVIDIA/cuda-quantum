@@ -16,9 +16,12 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"
 
-using namespace mlir;
-
 namespace cudaq::opt {
+#define GEN_PASS_DEF_APPLYCONTROLNEGATIONS
+#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+} // namespace cudaq::opt
+
+using namespace mlir;
 
 /// Replace any operations with negative controls with the same
 /// operation with negative controls and the addition of X operations
@@ -55,8 +58,11 @@ public:
   }
 };
 
+namespace {
+
 struct ApplyControlNegationsPass
-    : public cudaq::opt::ApplyControlNegationsBase<ApplyControlNegationsPass> {
+    : public cudaq::opt::impl::ApplyControlNegationsBase<
+          ApplyControlNegationsPass> {
   using ApplyControlNegationsBase::ApplyControlNegationsBase;
 
   void runOnOperation() override {
@@ -95,8 +101,4 @@ struct ApplyControlNegationsPass
     }
   }
 };
-} // namespace cudaq::opt
-
-std::unique_ptr<Pass> cudaq::opt::createApplyControlNegationsPass() {
-  return std::make_unique<ApplyControlNegationsPass>();
-}
+} // namespace
