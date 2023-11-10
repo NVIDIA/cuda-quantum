@@ -55,8 +55,8 @@ RUN echo -e '#! /bin/bash \n\
     && chmod +x "$CUDA_QUANTUM_PATH/bin/vscode-setup"
 RUN echo -e '#! /bin/bash \n\
     jupyter-lab --no-browser --ip=* --ServerApp.allow_origin=* --IdentityProvider.token="$@" \n\
-    ' > "$CUDA_QUANTUM_PATH/bin/ngc-jupyter-lab" \
-    && chmod +x "$CUDA_QUANTUM_PATH/bin/ngc-jupyter-lab"
+    ' > "$CUDA_QUANTUM_PATH/bin/jupyter-lab-setup" \
+    && chmod +x "$CUDA_QUANTUM_PATH/bin/jupyter-lab-setup"
 
 RUN chown -R cudaq /home/cudaq && chgrp -R cudaq /home/cudaq
 USER cudaq
