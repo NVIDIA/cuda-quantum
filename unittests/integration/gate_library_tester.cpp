@@ -13,6 +13,7 @@
 #include <random>
 using namespace cudaq;
 
+#ifndef CUDAQ_BACKEND_DM
 namespace {
 // These tests are meant to validate the correctness of custom kernels.
 // Hence, reduce the test load on tensornet backends (slow for these small
@@ -24,8 +25,6 @@ constexpr size_t NUM_ANGLES = 10;
 constexpr size_t NUM_ANGLES = 100;
 #endif
 } // namespace
-
-#ifndef CUDAQ_BACKEND_DM
 
 CUDAQ_TEST(GateLibraryTester, checkGivensRotation) {
   for (const auto &angle : cudaq::linspace(-M_PI, M_PI, NUM_ANGLES)) {
