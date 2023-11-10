@@ -538,7 +538,7 @@ jobs:
           tags: ${{ steps.cudaq_metadata.outputs.tags }}
           labels: ${{ steps.cudaq_metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}
-          provenance: ${{ needs.metadata.outputs.push_to_ngc != 'true' }}
+          provenance: false
           push: ${{ inputs.environment != '' }}
           outputs: ${{ steps.prereqs.outputs.docker_output }}
 
