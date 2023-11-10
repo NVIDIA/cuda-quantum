@@ -232,7 +232,7 @@ in the section `Developing with Remote Tunnels`_ instead.
 
 After installing the
 `Dev Containers <https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers>`__ extension, launch VS Code, open the Command Palette with `Ctrl+Shift+P`, and enter 
-:spellcheck-disable:"Dev Containers: Attach to Running Container":spellcheck-enable:.
+|:spellcheck-disable:|"Dev Containers: Attach to Running Container"|:spellcheck-enable:|.
 You should see and select the running `cuda-quantum` container in the list. 
 After the window reloaded, enter "File: Open Folder" in the Command Palette to open the `/home/cudaq/` folder.
 
