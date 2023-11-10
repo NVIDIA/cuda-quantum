@@ -432,7 +432,7 @@ If you are using `DGX Cloud <https://www.nvidia.com/en-us/data-center/dgx-cloud/
 you can easily use it to run CUDA Quantum applications.
 While submitting jobs to DGX Cloud directly from within CUDA Quantum is not (yet) supported,
 you can use the NGC CLI to launch and interact with workloads in DGX Cloud.
-The following sections detail how to do that, and how to connect JupterLab and/or VS Code
+The following sections detail how to do that, and how to connect JupyterLab and/or VS Code
 to a running CUDA Quantum job in DGX Cloud.
 
 .. _dgx-cloud-setup:
@@ -506,7 +506,7 @@ we refer to the `NGC CLI documentation <https://docs.ngc.nvidia.com/cli/index.ht
 Use JupyterLab
 +++++++++++++++++++++++++++++++
 
-Once you can `run jobs on DGX Cloud <dgx-cloud-setup>`__, you can launch an interactive job 
+Once you can :ref:`run jobs on DGX Cloud <dgx-cloud-setup>`, you can launch an interactive job 
 to use CUDA Quantum with `JupyterLab <https://jupyterlab.readthedocs.io/en/latest/>`__ 
 running on DGX Cloud:
 
@@ -535,7 +535,7 @@ On the left you should see a folder with tutorials. Happy coding!
 Use VS Code
 +++++++++++++++++++++++++++++++
 
-Once you can `run jobs on DGX Cloud <dgx-cloud-setup>`__, you can launch an interactive job 
+Once you can :ref:`run jobs on DGX Cloud <dgx-cloud-setup>`, you can launch an interactive job 
 to use CUDA Quantum with a local installation of `VS Code <https://code.visualstudio.com/>`_, 
 or the `VS Code Web UI <https://vscode.dev/>`__, running on DGX Cloud:
 
@@ -562,7 +562,7 @@ You should see a pop up asking if you want to install the recommended extensions
 configure VS Code with extensions for working with C++, Python, and Jupyter.
 You can always see the list of recommended extensions that aren't installed yet by clicking on the "Extensions" icon in the sidebar and navigating to the "Recommended" tab.
 
-If you enter "View: Show Explorer" in the Command Pallette, you should see a folder with tutorials and examples
+If you enter "View: Show Explorer" in the Command Palette, you should see a folder with tutorials and examples
 to help you get started. Take a look at `Next Steps`_ to dive into CUDA Quantum development.
 
 Additional CUDA Tools
