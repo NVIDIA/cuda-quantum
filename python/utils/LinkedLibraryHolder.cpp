@@ -36,14 +36,14 @@ int countGPUs() {
   FILE *fp1, *fp2;
 
   fp1 = popen("nvidia-smi", "r");
-  if (fp1) {
+  if (!fp1) {
     cudaq::info("nvidia-smi: command not found");
     return -1;
   }
   pclose(fp1);
 
   fp2 = popen("nvidia-smi -L | wc -l", "r");
-  if (fp2) {
+  if (!fp2) {
     cudaq::info("nvidia-smi: command not working");
     return -1;
   }
