@@ -52,7 +52,7 @@ if (${CUTENSORNET_VERSION} VERSION_GREATER_EQUAL "2.3")
     target_include_directories(nvqir-${LIBRARY_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/runtime/common ${CMAKE_SOURCE_DIR}/runtime/nvqir ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES} ${CUTENSORNET_INCLUDE_DIR})
     target_link_libraries(nvqir-${LIBRARY_NAME} PRIVATE fmt::fmt-header-only cudaq cudaq-common ${CUTENSORNET_LIB} CUDA::cudart)
     install(TARGETS nvqir-${LIBRARY_NAME} DESTINATION lib)
-    file (WRITE ${CMAKE_BINARY_DIR}/targets/${LIBRARY_NAME}.config "NVQIR_SIMULATION_BACKEND=${LIBRARY_NAME}\n")
+    file (WRITE ${CMAKE_BINARY_DIR}/targets/${LIBRARY_NAME}.config "NVQIR_SIMULATION_BACKEND=${LIBRARY_NAME}\nGPU_REQUIREMENTS=\"true\"\n")
     install(FILES ${CMAKE_BINARY_DIR}/targets/${LIBRARY_NAME}.config DESTINATION targets)
   endmacro()
 
