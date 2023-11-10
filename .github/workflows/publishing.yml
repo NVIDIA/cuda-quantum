@@ -359,6 +359,7 @@ jobs:
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: ${{ steps.release_info.outputs.platforms }}
+          provenance: ${{ steps.release_info.outputs.push_to_ngc != 'true' }}
           push: true
 
       - name: Install Cosign
