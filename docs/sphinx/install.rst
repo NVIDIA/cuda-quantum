@@ -520,7 +520,7 @@ running on DGX Cloud:
 
 Replace `<my-custom-token>` in the command above with your own password that you can freely choose.
 You will use this password to authenticate with JupyterLab;
-Go to https://bc.ngc.nvidia.com/jobs, click on the job you just launched, and click on the link
+Go to the `job portal <https://bc.ngc.nvidia.com/jobs>`__, click on the job you just launched, and click on the link
 under "URL/Hostname" in Service Mapped Ports. 
 
 .. note::
@@ -547,7 +547,7 @@ or the `VS Code Web UI <https://vscode.dev/>`__, running on DGX Cloud:
       --ace <ace_name> --instance <instance_name> \
       --commandline 'vscode-setup tunnel --name cuda-quantum-dgx --accept-server-license-terms'
 
-Go to https://bc.ngc.nvidia.com/jobs, click on the job you just launched, and select the "Log"
+Go to the `job portal <https://bc.ngc.nvidia.com/jobs>`__, click on the job you just launched, and select the "Log"
 tab. Once the job is running, you should see instructions for how to log into the device.
 Follow the instructions to authenticate. Once you have authenticated, you can either 
 `open VS Code in a web browser <https://vscode.dev/tunnel/cuda-quantum-dgx/home/cudaq/>`__, 
