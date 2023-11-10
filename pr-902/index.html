@@ -29,7 +29,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="CUDA Quantum Open Beta Installation" href="install.html" /> 
+    <link rel="next" title="Getting Started" href="install.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -98,14 +98,23 @@
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="install.html">   Getting Started</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="install.html#docker-image">Docker Image</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="install.html#install-the-docker-image">Install the Docker Image</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#use-cuda-quantum-in-a-terminal">Use CUDA Quantum in a Terminal</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#use-cuda-quantum-in-vs-code">Use CUDA Quantum in VS Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#local-installation">Local Installation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="install.html#docker">Docker</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#singularity">Singularity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#python-wheels">Python wheels</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="install.html#python-wheels">Python wheels</a></li>
-<li class="toctree-l2"><a class="reference internal" href="install.html#building-from-source">Building from Source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#development-with-vs-code">Development with VS Code</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="install.html#using-a-docker-container">Using a Docker container</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#using-a-singularity-container">Using a Singularity container</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#connecting-to-a-remote-host">Connecting to a Remote Host</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="install.html#developing-with-remote-tunnels">Developing with Remote Tunnels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#remote-access-via-ssh">Remote Access via SSH</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#additional-cuda-tools">Additional CUDA Tools</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#next-steps">Next Steps</a></li>
 </ul>
@@ -169,7 +178,7 @@
 <li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/executing_circuits.html#Observe">Observe</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/single_qubit_rotation.html">Single Qubit Rotation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/cost_minimization.html">Cost Minimization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/vqe.html">Variational Quantum Eigensolver</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
@@ -400,7 +409,7 @@
             <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="install.html" class="btn btn-neutral float-right" title="CUDA Quantum Open Beta Installation" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="install.html" class="btn btn-neutral float-right" title="Getting Started" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
@@ -416,9 +425,10 @@ You are browsing the documentation for amd64-pr-902 version of CUDA Quantum. You
 <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="install.html">   Getting Started</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="install.html#docker-image">Docker Image</a></li>
-<li class="toctree-l2"><a class="reference internal" href="install.html#python-wheels">Python wheels</a></li>
-<li class="toctree-l2"><a class="reference internal" href="install.html#building-from-source">Building from Source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#local-installation">Local Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#development-with-vs-code">Development with VS Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#connecting-to-a-remote-host">Connecting to a Remote Host</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#additional-cuda-tools">Additional CUDA Tools</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#next-steps">Next Steps</a></li>
 </ul>
@@ -450,7 +460,7 @@ You are browsing the documentation for amd64-pr-902 version of CUDA Quantum. You
 </li>
 <li class="toctree-l1"><a class="reference internal" href="using/tutorials.html">   Tutorials</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/executing_circuits.html">Executing Quantum Circuits</a></li>
-<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/single_qubit_rotation.html">Single Qubit Rotation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/cost_minimization.html">Cost Minimization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/vqe.html">Variational Quantum Eigensolver</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
@@ -489,7 +499,7 @@ You are browsing the documentation for amd64-pr-902 version of CUDA Quantum. You
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="install.html" class="btn btn-neutral float-right" title="CUDA Quantum Open Beta Installation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="install.html" class="btn btn-neutral float-right" title="Getting Started" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
