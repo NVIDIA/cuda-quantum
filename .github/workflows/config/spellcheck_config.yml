@@ -66,6 +66,9 @@ matrix:
   - pyspelling.filters.context:
       context_visible_first: true
       delimiters:
+      # Ignore multiline content fenced by .. spellcheck-disable and .. spellcheck-enable
+      - open: '(?s):spellcheck-disable:'
+        close: ':spellcheck-enable:'
       # Ignore lines that start with two dots
       - open: '^\s*\.\.'
         close: '$'

@@ -105,7 +105,7 @@ jobs:
               github_commit=`cat "$name.txt" | grep -o 'source-sha: \S*' | cut -d ' ' -f 2`
               release_title=`cat "$name.txt" | grep -o 'release-title: \S*' | cut -d ' ' -f 2`
               release_version=`cat "$name.txt" | grep -o 'release-version: \S*' | cut -d ' ' -f 2`
-            elif [ "$name" == "cuda_quantum_docs" && ${{ github.event_name == 'workflow_dispatch' && inputs.include_docs }} ]; then
+            elif [ "$name" == "cuda_quantum_docs" ] && ${{ github.event_name == 'workflow_dispatch' && inputs.include_docs }}; then
               docs_archive="$(pwd)/cuda_quantum_docs.zip"
               gh api $url > "$docs_archive"
             fi
