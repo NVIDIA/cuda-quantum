@@ -16,7 +16,7 @@ struct kernel {
   __qpu__ int operator()(bool flag) {
     cudaq::qreg reg(2);
     if (flag) {
-      h(reg[0], reg[1]);
+      h<cudaq::ctrl>(reg[0], reg[1]);
     }
     return 0;
   }
@@ -40,9 +40,9 @@ struct kernel_else {
   __qpu__ int operator()(bool flag) {
     cudaq::qreg reg(2);
     if (flag) {
-      h(reg[0], reg[1]);
+      h<cudaq::ctrl>(reg[0], reg[1]);
     } else {
-      x(reg[1], reg[0]);
+      x<cudaq::ctrl>(reg[1], reg[0]);
     }
     return 0;
   }
