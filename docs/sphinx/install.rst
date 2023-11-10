@@ -521,7 +521,7 @@ running on DGX Cloud:
 Replace `<my-custom-token>` in the command above with your own password that you can freely choose.
 You will use this password to authenticate with JupyterLab;
 Go to the `job portal <https://bc.ngc.nvidia.com/jobs>`__, click on the job you just launched, and click on the link
-under "URL/Hostname" in Service Mapped Ports. 
+under |:spellcheck-disable:|"URL/Hostname"|:spellcheck-enable:| in Service Mapped Ports. 
 
 .. note::
 
