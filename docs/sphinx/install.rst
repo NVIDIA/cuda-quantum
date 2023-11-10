@@ -516,7 +516,7 @@ running on DGX Cloud:
       --name Job-interactive-001 --total-runtime 600s \
       --image nvcr.io/nvidia/nightly/cuda-quantum:latest --result /results \
       --ace <ace_name> --instance <instance_name> \
-      --port 8888 --commandline 'ngc-jupyter-lab <my-custom-token> --port=8888'
+      --port 8888 --commandline 'jupyter-lab-setup <my-custom-token> --port=8888'
 
 Replace `<my-custom-token>` in the command above with your own password that you can freely choose.
 You will use this password to authenticate with JupyterLab;
