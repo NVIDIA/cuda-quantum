@@ -22,7 +22,7 @@ tmp_file=$(mktemp)
 @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/mock_qpu/iqm/mock_iqm_server.py &
 # we'll need the process id to kill it
 pid=$(echo "$!")
-sleep 1
+sleep 3
 # Run the tests
 IQM_TOKENS_FILE=$tmp_file ./test_iqm
 # Did they fail?
