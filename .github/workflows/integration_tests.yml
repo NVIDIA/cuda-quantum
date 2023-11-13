@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: backend-validation
     container:
-      image: ghcr.io/nvidia/cuda-quantum:latest
+      image: nvcr.io/nvidia/nightly/cuda-quantum:latest
       options: --user root
 
     steps:
@@ -148,19 +148,6 @@ jobs:
 
       - name: Submit to IQM Demo server
         if: (success() || failure()) && (inputs.target == 'iqm' || github.event_name == 'schedule' || inputs.target == 'nightly')
-        # The following tests are disabled because the demo server only supports
-        # 5 qubits and the test tries to use more.
-        # - test/NVQPP/graph_coloring-1.cpp
-        # - test/NVQPP/graph_coloring.cpp
-        # The following tests are disabled because a mapping algorithm is needed
-        # to account for qubit connection limitations.
-        # See https://github.com/NVIDIA/cuda-quantum/pull/610 (in work)
-        # - test/NVQPP/qspan_slices.cpp
-        # - test/NVQPP/sudoku_2x2-1.cpp
-        # - test/NVQPP/sudoku_2x2-bit_names.cpp
-        # - test/NVQPP/sudoku_2x2-reg_name.cpp
-        # - test/NVQPP/sudoku_2x2.cpp
-        # - test/NVQPP/test-observe.cpp
         run: |
           # Must install iqm-cortex-cli to authenticate
           pip install iqm-cortex-cli
@@ -208,21 +195,6 @@ jobs:
 
       - name: Submit to OQC Sandbox server
         if: (success() || failure()) && (inputs.target == 'oqc' || github.event_name == 'schedule' || inputs.target == 'nightly')
-        # The following tests are disabled because sandbox only supports 12
-        # qubits and the test tries to use more.
-        # - test/NVQPP/graph_coloring-1.cpp
-        # - test/NVQPP/graph_coloring.cpp
-        # The following tests are disabled because a mapping algorithm is needed
-        # to account for qubit connection limitations
-        # See https://github.com/NVIDIA/cuda-quantum/pull/610 (in work)
-        # - test/NVQPP/qspan_slices.cpp
-        # - test/NVQPP/sudoku_2x2-1.cpp
-        # - test/NVQPP/sudoku_2x2-bit_names.cpp
-        # - test/NVQPP/sudoku_2x2-reg_name.cpp
-        # - test/NVQPP/sudoku_2x2.cpp
-        # The following test is disabled due to https://github.com/NVIDIA/cuda-quantum/issues/695
-        # - test/NVQPP/test-observe.cpp|\
-
         run: |
           echo "### Submit to OQC sandbox server" >> $GITHUB_STEP_SUMMARY
           export CUDAQ_LOG_LEVEL="info"

@@ -40,6 +40,7 @@ on:
   push:
     branches:
       - 'releases/*'
+      - 'experimental/*'
 
 name: Deployments # do not change name without updating workflow_run triggers
 
