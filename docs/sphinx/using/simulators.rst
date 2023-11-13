@@ -125,6 +125,8 @@ On CPU-only systems, the default target is set to `qpp-cpu` which uses the :ref:
 The default simulator can be overridden by the environment variable `CUDAQ_DEFAULT_SIMULATOR`. If no target is explicitly specified and the environment variable has a valid value, then it will take effect.
 This environment variable can be set to any non-hardware backend. Any invalid value is ignored.
 
+For CUDA Quantum Python API, the environment variable at the time when `cudaq` module is imported is relevant, not the value of the environment variable at the time when the simulator is invoked.
+
 For example,
 .. code:: bash
 
