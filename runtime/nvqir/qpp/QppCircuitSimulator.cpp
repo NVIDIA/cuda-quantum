@@ -184,6 +184,19 @@ public:
   void applyExpPauli(double theta, const std::vector<std::size_t> &controls,
                      const std::vector<std::size_t> &qubitIds,
                      const cudaq::spin_op &op) override {
+    if (op.is_identity()) {
+      if (controls.empty()) {
+        // exp(i*theta*Id) is noop if this is not a controlled gate.
+        return;
+      } else {
+        // Throw an error if this exp_pauli(i*theta*Id) becomes a non-trivial
+        // gate due to control qubits.
+        // FIXME: revisit this once
+        // https://github.com/NVIDIA/cuda-quantum/issues/483 is implemented.
+        throw std::logic_error("Applying controlled global phase via exp_pauli "
+                               "of identity operator is not supported");
+      }
+    }
     flushGateQueue();
     cudaq::info(" [qpp decomposing] exp_pauli({}, {})", theta,
                 op.to_string(false));
