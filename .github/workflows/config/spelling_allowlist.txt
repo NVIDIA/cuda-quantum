@@ -3,12 +3,14 @@ APIs
 AST
 BFGS
 CLA
+CLI
 CMake
 COBYLA
 CPTP
 CPU
 CPUs
 CUDA
+CuPy
 DGX
 DOI
 Fourier
@@ -24,6 +26,7 @@ IQM
 IonQ
 JIT
 JSON
+Jupyter
 Kraus
 LLVM
 LSB
@@ -49,6 +52,8 @@ QPUs
 QTX
 Quake
 Quantinuum
+RSA
+TCP
 Toffoli
 VQE
 Vazirani

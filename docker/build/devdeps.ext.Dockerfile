@@ -123,10 +123,10 @@ ENV CUQUANTUM_ROOT="$CUQUANTUM_INSTALL_PREFIX"
 ENV LD_LIBRARY_PATH="$CUQUANTUM_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
 ENV CPATH="$CUQUANTUM_INSTALL_PREFIX/include:$CPATH"
 
-ENV CUQUANTUM_VERSION=23.06.0.7_cuda11
+ENV CUQUANTUM_VERSION=23.10.0.6_cuda11
 RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
     && arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
-    && wget -q "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-$arch_folder/cuquantum-linux-$arch_folder-23.06.0.7_cuda11-archive.tar.xz" \
+    && wget -q "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-$arch_folder/cuquantum-linux-$arch_folder-$CUQUANTUM_VERSION-archive.tar.xz" \
     && mkdir -p "$CUQUANTUM_INSTALL_PREFIX" && tar xf cuquantum-linux-$arch_folder-$CUQUANTUM_VERSION-archive.tar.xz --strip-components 1 -C "$CUQUANTUM_INSTALL_PREFIX" \
     && rm cuquantum-linux-$arch_folder-$CUQUANTUM_VERSION-archive.tar.xz \
     && apt-get remove -y xz-utils \
@@ -153,7 +153,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
 # Install CUDA 11.8.
 
 ARG cuda_root=/usr/local/cuda-11.8
-ARG cuda_packages="cuda-cudart-11-8 cuda-compiler-11-8 libcublas-dev-11-8"
+ARG cuda_packages="cuda-cudart-11-8 cuda-compiler-11-8 libcublas-dev-11-8 libcusolver-11-8"
 RUN if [ -n "$cuda_packages" ]; then \
         arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
         && wget -q "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/$arch_folder/cuda-keyring_1.0-1_all.deb" \
