@@ -99,14 +99,23 @@
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../install.html">   Getting Started</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../install.html#docker-image">Docker Image</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../install.html#install-the-docker-image">Install the Docker Image</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../install.html#use-cuda-quantum-in-a-terminal">Use CUDA Quantum in a Terminal</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../install.html#use-cuda-quantum-in-vs-code">Use CUDA Quantum in VS Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#local-installation">Local Installation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../install.html#docker">Docker</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../install.html#singularity">Singularity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../install.html#python-wheels">Python wheels</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../install.html#python-wheels">Python wheels</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../install.html#building-from-source">Building from Source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#development-with-vs-code">Development with VS Code</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../install.html#using-a-docker-container">Using a Docker container</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../install.html#using-a-singularity-container">Using a Singularity container</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#connecting-to-a-remote-host">Connecting to a Remote Host</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../install.html#developing-with-remote-tunnels">Developing with Remote Tunnels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../install.html#remote-access-via-ssh">Remote Access via SSH</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#additional-cuda-tools">Additional CUDA Tools</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#next-steps">Next Steps</a></li>
 </ul>
@@ -170,7 +179,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/executing_circuits.html#Observe">Observe</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/single_qubit_rotation.html">Single Qubit Rotation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/cost_minimization.html">Cost Minimization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/vqe.html">Variational Quantum Eigensolver</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
@@ -214,6 +223,12 @@
 <li class="toctree-l3"><a class="reference internal" href="#id4">Setting Credentials</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id5">Submission from C++</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id6">Submission from Python</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#oqc">OQC</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id7">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id8">Submission from C++</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id9">Submission from Python</a></li>
 </ul>
 </li>
 </ul>
@@ -434,7 +449,7 @@ curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </spa
 <section id="submission-from-c">
 <h3>Submission from C++<a class="headerlink" href="#submission-from-c" title="Permalink to this heading">¶</a></h3>
 <p>To target quantum kernel code for execution in the Quantinuum backends,
-pass the flag <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">ionq</span></code> to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler. CUDA Quantum will
+pass the flag <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">quantinuum</span></code> to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler. CUDA Quantum will
 authenticate via the Quantinuum REST API using the credential in your configuration file.
 By default, quantum kernel code will be submitted to the Quantinuum syntax checker.
 Submission to the syntax checker merely validates the program; the kernels are not executed.</p>
@@ -637,6 +652,70 @@ the <code class="docutils literal notranslate"><span class="pre">shots_count</sp
 </pre></div>
 </div>
 <p>To see a complete example for using IQM server backends, take a look at our <a class="reference internal" href="python.html#python-examples-for-hardware-providers"><span class="std std-ref">Python examples</span></a>.</p>
+</section>
+</section>
+<section id="oqc">
+<h2>OQC<a class="headerlink" href="#oqc" title="Permalink to this heading">¶</a></h2>
+<p><a class="reference external" href="https://oxfordquantumcircuits.com/">Oxford Quantum Circuits</a> (OQC) is currently providing CUDA quantum integration for our 8 qubit ring topology Lucy device.</p>
+<section id="id7">
+<h3>Setting Credentials<a class="headerlink" href="#id7" title="Permalink to this heading">¶</a></h3>
+<p>In order to use the OQC devices you will need to register.
+Registration is achieved by contacting <a class="reference external" href="mailto:oqc_qcaas_support&#37;&#52;&#48;oxfordquantumcircuits&#46;com">oqc_qcaas_support<span>&#64;</span>oxfordquantumcircuits<span>&#46;</span>com</a></p>
+<p>Once registered you will be able to authenticate with your <code class="docutils literal notranslate"><span class="pre">email</span></code> and <code class="docutils literal notranslate"><span class="pre">password</span></code></p>
+<p>There are three environment variables that the OQC target will look for during configuration:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">OQC_URL</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">OQC_EMAIL</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">OQC_PASSWORD</span></code> - is mandatory</p></li>
+</ol>
+</section>
+<section id="id8">
+<h3>Submission from C++<a class="headerlink" href="#id8" title="Permalink to this heading">¶</a></h3>
+<p>To target quantum kernel code for execution on the OQC platform, provide the flag <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">oqc</span></code> to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler.</p>
+<p>Users may provide their <code class="code docutils literal notranslate"><span class="pre">email</span></code> and <code class="code docutils literal notranslate"><span class="pre">url</span></code> as extra arguments</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>oqc<span class="w"> </span>--oqc-email<span class="w"> </span>&lt;email&gt;<span class="w"> </span>--oqc-url<span class="w"> </span>&lt;url&gt;<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>executable
+</pre></div>
+</div>
+<p>Where both environment variables and extra arguments are supplied, precedent is given to the extra arguments.
+To run the output, provide the runtime loaded variables and invoke the pre-built executable</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">OQC_PASSWORD</span><span class="o">=</span>&lt;password&gt;<span class="w"> </span>./executable
+</pre></div>
+</div>
+<p>To emulate the OQC device locally, without submitting through the OQC QCaaS services, you can pass the <code class="docutils literal notranslate"><span class="pre">--emulate</span></code> flag to <code class="docutils literal notranslate"><span class="pre">nvq++</span></code>.
+This will emit any target specific compiler warnings and diagnostics, before running a noise free emulation.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--emulate<span class="w"> </span>--target<span class="w"> </span>oqc<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>executable
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>There is currently no requirement to specify the machine in use. This is configured via the URL which points to the relevant system.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The OQC quantum assembly toolchain (qat) which is used to compile and execute instructions can be found on github as <a class="reference external" href="https://github.com/oqc-community/qat">oqc-community/qat</a></p>
+</div>
+</section>
+<section id="id9">
+<h3>Submission from Python<a class="headerlink" href="#id9" title="Permalink to this heading">¶</a></h3>
+<p>To set which OQC URL, set the <code class="code docutils literal notranslate"><span class="pre">url</span></code> parameter.
+To set which OQC email, set the <code class="code docutils literal notranslate"><span class="pre">email</span></code> parameter.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">cudaq</span>
+<span class="c1"># ...</span>
+<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;OQC_PASSWORD&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">password</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="s2">&quot;oqc&quot;</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>You can then execute a kernel against the platform using the OQC Lucy device</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="n">qreg</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qreg</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">qreg</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qreg</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qreg</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qreg</span><span class="p">)</span>
+<span class="nb">str</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="o">=</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">))</span>
+</pre></div>
+</div>
 </section>
 </section>
 </section>

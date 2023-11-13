@@ -29,11 +29,14 @@ struct ghz {
 
 int main() {
   auto counts = cudaq::sample(ghz{}, 28);
-  counts.dump();
 
-  // Fine grain access to the bits and counts
-  for (auto &[bits, count] : counts) {
-    printf("Observed: %s, %lu\n", bits.data(), count);
+  if (!cudaq::mpi::is_initialized() || cudaq::mpi::rank() == 0) {
+    counts.dump();
+
+    // Fine grain access to the bits and counts
+    for (auto &[bits, count] : counts) {
+      printf("Observed: %s, %lu\n", bits.data(), count);
+    }
   }
 
   return 0;

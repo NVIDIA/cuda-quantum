@@ -26,11 +26,14 @@ int main() {
 
   auto kernel = ghz<10>{};
   auto counts = cudaq::sample(kernel);
-  counts.dump();
 
-  // Fine grain access to the bits and counts
-  for (auto &[bits, count] : counts) {
-    printf("Observed: %s, %lu\n", bits.data(), count);
+  if (!cudaq::mpi::is_initialized() || cudaq::mpi::rank() == 0) {
+    counts.dump();
+
+    // Fine grain access to the bits and counts
+    for (auto &[bits, count] : counts) {
+      printf("Observed: %s, %lu\n", bits.data(), count);
+    }
   }
 
   return 0;
