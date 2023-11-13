@@ -183,3 +183,7 @@ ENV CUDA_ROOT="$CUDA_INSTALL_PREFIX"
 ENV CUDA_PATH="$CUDA_INSTALL_PREFIX"
 ENV PATH="${CUDA_INSTALL_PREFIX}/lib64/:${CUDA_INSTALL_PREFIX}/bin:${PATH}"
 
+# Activate CUTENSORNET_COMM_LIB
+# This must be done after CUDA installation.
+RUN cd $CUQUANTUM_INSTALL_PREFIX/distributed_interfaces && source activate_mpi.sh 
+ENV CUTENSORNET_COMM_LIB="$CUQUANTUM_INSTALL_PREFIX/distributed_interfaces/libcutensornet_distributed_interface_mpi.so"
