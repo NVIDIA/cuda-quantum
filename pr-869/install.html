@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CUDA Quantum Open Beta Installation &mdash; NVIDIA CUDA Quantum  documentation</title>
+  <title>Getting Started &mdash; NVIDIA CUDA Quantum  documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="_static/tabs.css" type="text/css" />
@@ -99,14 +99,23 @@
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">   Getting Started</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#docker-image">Docker Image</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#install-the-docker-image">Install the Docker Image</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#use-cuda-quantum-in-a-terminal">Use CUDA Quantum in a Terminal</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#use-cuda-quantum-in-vs-code">Use CUDA Quantum in VS Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#local-installation">Local Installation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#docker">Docker</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#singularity">Singularity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#python-wheels">Python wheels</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#python-wheels">Python wheels</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#building-from-source">Building from Source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#development-with-vs-code">Development with VS Code</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#using-a-docker-container">Using a Docker container</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#using-a-singularity-container">Using a Singularity container</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#connecting-to-a-remote-host">Connecting to a Remote Host</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#developing-with-remote-tunnels">Developing with Remote Tunnels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#remote-access-via-ssh">Remote Access via SSH</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#additional-cuda-tools">Additional CUDA Tools</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#next-steps">Next Steps</a></li>
 </ul>
@@ -170,7 +179,7 @@
 <li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/executing_circuits.html#Observe">Observe</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/single_qubit_rotation.html">Single Qubit Rotation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/cost_minimization.html">Cost Minimization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/vqe.html">Variational Quantum Eigensolver</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
@@ -396,7 +405,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">CUDA Quantum Open Beta Installation</li>
+      <li class="breadcrumb-item active">Getting Started</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/install.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -409,97 +418,143 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="cuda-quantum-open-beta-installation">
-<h1>CUDA Quantum Open Beta Installation<a class="headerlink" href="#cuda-quantum-open-beta-installation" title="Permalink to this heading">¶</a></h1>
-<section id="docker-image">
-<h2>Docker Image<a class="headerlink" href="#docker-image" title="Permalink to this heading">¶</a></h2>
-<section id="install-the-docker-image">
-<h3>Install the Docker Image<a class="headerlink" href="#install-the-docker-image" title="Permalink to this heading">¶</a></h3>
-<p>Docker images for all CUDA Quantum releases are available on the <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum">NGC Container Registry</a>.
-To download images from NGC, please follow the following steps if you have not done so already:</p>
+  <section id="getting-started">
+<h1>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this heading">¶</a></h1>
+<p>This guide walks through how to <a class="reference internal" href="#install-cuda-quantum"><span class="std std-ref">install CUDA Quantum</span></a> on your system, and how to set up <a class="reference internal" href="#local-development-with-vscode"><span class="std std-ref">VS Code for local development</span></a>.
+The section on <a class="reference internal" href="#connect-to-remote"><span class="std std-ref">connecting to a remote host</span></a> contains some
+guidance for application development on a remote host where CUDA Quantum is installed.</p>
+<section id="local-installation">
+<span id="install-cuda-quantum"></span><h2>Local Installation<a class="headerlink" href="#local-installation" title="Permalink to this heading">¶</a></h2>
+<p>The following sections contain instructions for how to install CUDA Quantum on your machine using</p>
 <ul class="simple">
-<li><p><a class="reference external" href="https://ngc.nvidia.com/signin">Create an account</a></p></li>
-<li><p><a class="reference external" href="https://ngc.nvidia.com/signin">Sign in</a> to access your account and go to <a class="reference external" href="https://ngc.nvidia.com/setup">Setup</a>.</p></li>
-<li><p>Click on <code class="code docutils literal notranslate"><span class="pre">Get</span> <span class="pre">API</span> <span class="pre">Key</span></code> and generate a new key (this will invalidate any existing keys).</p></li>
-<li><p>Follow the instructions that appear to use that key to log in to the NGC registry using Docker.</p></li>
+<li><p><a class="reference internal" href="#install-docker-image"><span class="std std-ref">**Docker**</span></a>: A fully featured CUDA Quantum installation including all C++ and Python tools is available as a <a class="reference external" href="https://docs.docker.com/get-started/overview/">Docker</a> image.</p></li>
+<li><p><a class="reference internal" href="#install-singularity-image"><span class="std std-ref">**Singularity**</span></a>: A <a class="reference external" href="https://docs.sylabs.io/guides/latest/user-guide/introduction.html">Singularity</a> container can easily be created based on our Docker images.</p></li>
+<li><p><a class="reference internal" href="#install-python-wheels"><span class="std std-ref">**PyPI**</span></a>: Additionally, we distribute pre-built Python wheels via <a class="reference external" href="https://pypi.org">PyPI</a>.</p></li>
 </ul>
-<p>Once you have done so, run <code class="code docutils literal notranslate"><span class="pre">docker</span> <span class="pre">login</span> <span class="pre">nvcr.io</span></code> (again) to confirm you can authenticate with the registry.
-You should see a message “Login Succeeded”.</p>
-<p>In addition to publishing stable releases, we also publish docker images whenever we update the main branch of our <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>.
-These images are published in a separate location <code class="code docutils literal notranslate"><span class="pre">nvidia/nightly</span></code> on NGC, as well as on GitHub.
+<p>If you would like to build CUDA Quantum from source instead, please follow the instructions on the <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/blob/main/Building.md">CUDA Quantum GitHub repository</a>.</p>
+<p>If you are unsure which option suits you best, we recommend using our <a class="reference internal" href="#install-docker-image"><span class="std std-ref">Docker image</span></a> to develop your applications in a controlled environment that does not depend on, or interfere with, other software
+that is installed on your system.</p>
+<section id="docker">
+<span id="install-docker-image"></span><h3>Docker<a class="headerlink" href="#docker" title="Permalink to this heading">¶</a></h3>
+<p>To download and use our Docker images, you will need to install and launch the Docker engine.
+If you do not already have Docker installed on your system, you can get it by downloading and installing <a class="reference external" href="https://docs.docker.com/get-docker/">Docker Desktop</a>.
+If you do not have the necessary administrator permissions to install software on your machine,
+take a look at the section below on how to use <a class="reference internal" href="#singularity">Singularity</a> instead.</p>
+<p>Docker images for all CUDA Quantum releases are available on the <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum">NGC Container Registry</a>.
+In addition to publishing <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum/tags">stable releases</a>,
+we also publish Docker images whenever we update certain branches on our <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>.
+These images are published in our <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nightly/containers/cuda-quantum/tags">nightly channel on NGC</a>.
 To download the latest version on the main branch of our GitHub repository, for example, use the command</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">docker pull nvcr.io/nvidia/nightly/cuda-quantum:latest</span>
 </pre></div>
 </div>
-</section>
-<section id="use-cuda-quantum-in-a-terminal">
-<span id="use-cuda-quantum-in-terminal"></span><h3>Use CUDA Quantum in a Terminal<a class="headerlink" href="#use-cuda-quantum-in-a-terminal" title="Permalink to this heading">¶</a></h3>
-<p>The container can be run using the following command</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">docker run -it --name cuda-quantum &lt;image_name&gt;</span>
+<p>Early prototypes for features we are considering can be tried out by using the image tags starting
+with <code class="code docutils literal notranslate"><span class="pre">experimental</span></code>. The <code class="code docutils literal notranslate"><span class="pre">README</span></code> in the <code class="code docutils literal notranslate"><span class="pre">/home/cudaq</span></code> folder in the container gives more details
+about the feature. We welcome and appreciate your feedback about these early prototypes;
+how popular they are will help inform whether we should include them in future releases.</p>
+<p>Once you have downloaded an image, the container can be run using the command</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">docker run -it --name cuda-quantum nvcr.io/nvidia/nightly/cuda-quantum:latest</span>
 </pre></div>
 </div>
-<p>replacing <code class="code docutils literal notranslate"><span class="pre">&lt;image_name&gt;</span></code> with the name and tag of the image you downloaded.</p>
-<p>This will give you terminal access to the created container, for example</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">user@host:~$ </span>docker<span class="w"> </span>run<span class="w"> </span>-it<span class="w"> </span>--name<span class="w"> </span>cuda-quantum<span class="w"> </span>nvcr.io/nvidia/nightly/cuda-quantum:latest
-<span class="go">To run a command as administrator (user &quot;root&quot;), use &quot;sudo &lt;command&gt;&quot;.</span>
-<span class="go">See &quot;man sudo_root&quot; for details.</span>
-
-<span class="go">=========================</span>
-<span class="go">NVIDIA CUDA Quantum</span>
-<span class="go">=========================</span>
-
-<span class="go">Version: latest</span>
-
-<span class="go">Copyright (c) 2023 NVIDIA Corporation &amp; Affiliates</span>
-<span class="go">All rights reserved.</span>
-
-<span class="gp">cudaq@container:~$ </span>ls<span class="w"> </span>examples/
-<span class="go">cpp  python</span>
+<p>Replace the image name and/or tag in the command above, if necessary, with the one you want to use.
+This will give you terminal access to the created container. To enable support
+for GPU-accelerated backends, you will need to pass the <code class="code docutils literal notranslate"><span class="pre">--gpus</span></code> flag when launching
+the container, for example:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">docker run -it --gpus all --name cuda-quantum nvcr.io/nvidia/nightly/cuda-quantum:latest</span>
 </pre></div>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>If you have NVIDIA GPUs available and NVIDIA Docker correctly configured,
-you can add <code class="code docutils literal notranslate"><span class="pre">--gpus</span> <span class="pre">all</span></code> to the <code class="code docutils literal notranslate"><span class="pre">docker</span> <span class="pre">run</span></code> command to expose all available GPUs
-to the container, or <code class="code docutils literal notranslate"><span class="pre">--gpus</span> <span class="pre">'&quot;device=1&quot;'</span></code> to select a specific GPU device.
-Unless you specify this flag, you will not be able to compile to the <code class="code docutils literal notranslate"><span class="pre">--target</span> <span class="pre">nvidia</span></code>
-target.</p>
-</div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>If you would like a temporary container, pass <code class="code docutils literal notranslate"><span class="pre">--rm</span></code>. This will delete your
-container upon exit.</p>
+<p>This command will fail if you do not have a suitable NVIDIA GPU available, or if your driver
+version is insufficient. To improve compatibility with older drivers, you may need to install the
+<a class="reference external" href="https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html">NVIDIA container toolkit</a>.</p>
 </div>
 <p>You can stop and exit the container by typing the command <code class="code docutils literal notranslate"><span class="pre">exit</span></code>. If you did not specify
-<code class="code docutils literal notranslate"><span class="pre">--rm</span></code>, the container still exists as well as any changes you made in it. You can get back to it using
+<code class="code docutils literal notranslate"><span class="pre">--rm</span></code> flag when launching the container, the container still exists after exiting, as well as any
+changes you made in it. You can get back to it using
 the command <code class="code docutils literal notranslate"><span class="pre">docker</span> <span class="pre">start</span> <span class="pre">-i</span> <span class="pre">cuda-quantum</span></code>.
 You can delete an existing container and any changes you made using <code class="code docutils literal notranslate"><span class="pre">docker</span> <span class="pre">rm</span> <span class="pre">-v</span> <span class="pre">cuda-quantum</span></code>.</p>
-</section>
-<section id="use-cuda-quantum-in-vs-code">
-<h3>Use CUDA Quantum in VS Code<a class="headerlink" href="#use-cuda-quantum-in-vs-code" title="Permalink to this heading">¶</a></h3>
-<p>If you have <a class="reference external" href="https://code.visualstudio.com/download">VS Code</a> installed, you can use it to work inside your container.
-To do so, install the <a class="reference external" href="https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers">Dev Containers extension</a>:</p>
-<img alt="_images/devContainersExtension.png" src="_images/devContainersExtension.png" />
-<p>Follow the steps <a class="reference internal" href="#use-cuda-quantum-in-terminal"><span class="std std-ref">above</span></a> to start the container.
-Open VS Code and navigate to the Remote Explorer. You should see the running cuda-quantum development container listed there.</p>
-<img alt="_images/attachToDevContainer.png" src="_images/attachToDevContainer.png" />
-<p>Click on <code class="code docutils literal notranslate"><span class="pre">Attach</span> <span class="pre">to</span> <span class="pre">Container</span></code>. A new VS Code instance will open in that container. Open the <code class="code docutils literal notranslate"><span class="pre">/home/cudaq</span></code>
-folder to see the <code class="code docutils literal notranslate"><span class="pre">README.md</span></code> file and the CUDA Quantum examples that are included in the container. To run the examples,
-open a terminal by going to the Terminal menu and select <code class="code docutils literal notranslate"><span class="pre">New</span> <span class="pre">Terminal</span></code>.</p>
-<img alt="_images/openTerminal.png" src="_images/openTerminal.png" />
-<p>You can now compile and run the C++ examples using the <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> compiler, which is installed in your <code class="code docutils literal notranslate"><span class="pre">PATH</span></code>,
-or run the Python examples using the Python interpreter.</p>
-<img alt="_images/getToWork.png" src="_images/getToWork.png" />
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>VS Code extensions that you have installed locally, such as e.g. an extension for Jupyter notebooks,
-may not be automatically active in the container environment. You may need to install your preferred
-extension in the container environment for all of your development tools to be available.</p>
+<p>When working with Docker images, the files inside the container are not visible outside the container environment.
+To facilitate application development with, for example, debugging, code completion, hover information, and so on,
+please take a look at the section on <a class="reference internal" href="#docker-in-vscode"><span class="std std-ref">Development with VS Code</span></a>.</p>
+<p>Alternatively, it is possible, but not recommended, to launch an SSH server inside the container environment and connect an IDE using SSH. To do so, make sure you have generated a suitable RSA key pair; if your <code class="code docutils literal notranslate"><span class="pre">~/.ssh/</span></code> folder does not already contain the files <code class="code docutils literal notranslate"><span class="pre">id_rsa.pub</span></code> and <code class="code docutils literal notranslate"><span class="pre">id.rsa</span></code>,
+follow the instructions for generating a new SSH key on <a class="reference external" href="https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent">this page</a>.
+You can then launch the container and connect to it via SSH by executing the following commands:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">docker run -itd --gpus all --name cuda-quantum -p 2222:22 nvcr.io/nvidia/nightly/cuda-quantum:latest</span>
+<span class="go">docker exec cuda-quantum bash -c &quot;sudo apt-get install -y --no-install-recommends openssh-server&quot;</span>
+<span class="go">docker exec cuda-quantum bash -c &quot;sudo sed -i -E &quot;s/#?\s*UsePAM\s+.+/UsePAM yes/g&quot; /etc/ssh/sshd_config&quot;</span>
+<span class="go">docker cp ~/.ssh/id_rsa.pub cuda-quantum:/home/cudaq/.ssh/authorized_keys</span>
+<span class="go">docker exec -d cuda-quantum bash -c &quot;sudo -E /usr/sbin/sshd -D&quot;</span>
+<span class="go">ssh cudaq@localhost -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null</span>
+</pre></div>
 </div>
 </section>
+<section id="singularity">
+<span id="install-singularity-image"></span><h3>Singularity<a class="headerlink" href="#singularity" title="Permalink to this heading">¶</a></h3>
+<p>You can use <a class="reference external" href="https://github.com/sylabs/singularity">Singularity</a> to run a CUDA Quantum container in a folder without needing administrator permissions.
+If you do not already have Singularity installed, you can build a relocatable installation from source.
+To do so on Linux or WSL, make sure you have the <a class="reference external" href="https://docs.sylabs.io/guides/4.0/user-guide/quick_start.html#prerequisites">necessary prerequisites</a> installed, download a suitable version of the <a class="reference external" href="https://docs.sylabs.io/guides/4.0/user-guide/quick_start.html#install-go">go toolchain</a>, and make sure the <code class="code docutils literal notranslate"><span class="pre">go</span></code> binaries are on your <code class="code docutils literal notranslate"><span class="pre">PATH</span></code>. You can then build Singularity with the commands</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">wget https://github.com/sylabs/singularity/releases/download/v4.0.1/singularity-ce-4.0.1.tar.gz</span>
+<span class="go">tar -xzf singularity-ce-4.0.1.tar.gz singularity-ce-4.0.1/ &amp;&amp; rm singularity-ce-4.0.1.tar.gz &amp;&amp; cd singularity-ce-4.0.1/</span>
+<span class="go">./mconfig --without-suid --prefix=&quot;$HOME/.local/singularity&quot;</span>
+<span class="go">make -C ./builddir &amp;&amp; make -C ./builddir install &amp;&amp; cd .. &amp;&amp; rm -rf singularity-ce-4.0.1/</span>
+<span class="go">echo &#39;PATH=&quot;$PATH:$HOME/.local/singularity/bin/&quot;&#39; &gt;&gt; ~/.profile &amp;&amp; source ~/.profile</span>
+</pre></div>
+</div>
+<p>For more information about using Singularity on other systems, take a look at the <a class="reference external" href="https://docs.sylabs.io/guides/4.0/admin-guide/installation.html#installation-on-windows-or-mac">admin guide</a>.</p>
+<p>Once you have singularity installed, create a file <code class="code docutils literal notranslate"><span class="pre">cuda-quantum.def</span></code> with the following content:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">Bootstrap: docker</span>
+<span class="go">From: nvcr.io/nvidia/nightly/cuda-quantum:latest</span>
+
+<span class="gp">%</span>runscript
+<span class="go">    mount devpts /dev/pts -t devpts</span>
+<span class="go">    cp -r /home/cudaq/* .</span>
+<span class="go">    bash</span>
+</pre></div>
+</div>
+<p>Replace the image name and/or tag in the <code class="code docutils literal notranslate"><span class="pre">From</span></code> line, if necessary, with the one you want to use;
+In addition to publishing <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum/tags">stable releases</a>,
+we also publish Docker images whenever we update certain branches on our <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>.
+These images are published in our <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nightly/containers/cuda-quantum/tags">nightly channel on NGC</a>.
+Early prototypes for features we are considering can be tried out by using the image tags starting
+with <code class="code docutils literal notranslate"><span class="pre">experimental</span></code>. We welcome and appreciate your feedback about these early prototypes;
+how popular they are will help inform whether we should include them in future releases.</p>
+<p>You can then create a CUDA Quantum container by running the following commands:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">singularity build --fakeroot cuda-quantum.sif cuda-quantum.def</span>
+<span class="go">singularity run --writable --fakeroot cuda-quantum.sif</span>
+</pre></div>
+</div>
+<p>In addition to the files in your current folder, you should now
+see a <code class="code docutils literal notranslate"><span class="pre">README</span></code> file, as well as examples and tutorials.
+To enable support for GPU-accelerated backends, you will need to pass the
+the <code class="code docutils literal notranslate"><span class="pre">--nv</span></code> flag when running the container:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">singularity run --writable --fakeroot --nv cuda-quantum.sif</span>
+<span class="go">nvidia-smi</span>
+</pre></div>
+</div>
+<p>The output of the command above lists the GPUs that are visible and accessible in the container environment.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you do not see any GPUs listed in the output of <code class="code docutils literal notranslate"><span class="pre">nvidia-smi</span></code>,
+it means the container environment is unable to access a suitable NVIDIA GPU.
+This can happen if your driver version is insufficient, or if you are
+working on WSL. To improve compatibility with older drivers, or to enable GPU support
+on WSL, please install the <a class="reference external" href="https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html">NVIDIA container toolkit</a>, and update the singularity configuration
+to set <code class="code docutils literal notranslate"><span class="pre">use</span> <span class="pre">nvidia-container-cli</span></code> to <code class="code docutils literal notranslate"><span class="pre">yes</span></code> and configure the correct <code class="code docutils literal notranslate"><span class="pre">nvidia-container-cli</span> <span class="pre">path</span></code>.
+The two commands below use <code class="code docutils literal notranslate"><span class="pre">sed</span></code> to do that:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">sed -i &#39;s/use nvidia-container-cli = no/use nvidia-container-cli = yes/&#39; &quot;$HOME/.local/singularity/etc/singularity/singularity.conf&quot;</span>
+<span class="go">sed -i &#39;s/# nvidia-container-cli path =/nvidia-container-cli path = \/usr\/bin\/nvidia-container-cli/&#39; &quot;$HOME/.local/singularity/etc/singularity/singularity.conf&quot;</span>
+</pre></div>
+</div>
+</div>
+<p>You can exit the container environment by typing the command <code class="code docutils literal notranslate"><span class="pre">exit</span></code>.
+Any changes you made will still be visible after you exit the container, and you can re-enable the
+container environment at any time using the <code class="code docutils literal notranslate"><span class="pre">run</span></code> command above.</p>
+<p>To facilitate application development with, for example, debugging, code completion, hover information, and so on,
+please take a look at the section on <a class="reference internal" href="#singularity-in-vscode"><span class="std std-ref">Development with VS Code</span></a>.</p>
 </section>
 <section id="python-wheels">
-<span id="install-python-wheels"></span><h2>Python wheels<a class="headerlink" href="#python-wheels" title="Permalink to this heading">¶</a></h2>
+<span id="install-python-wheels"></span><h3>Python wheels<a class="headerlink" href="#python-wheels" title="Permalink to this heading">¶</a></h3>
 <p>CUDA Quantum Python wheels are available on <a class="reference external" href="https://pypi.org/project/cuda-quantum">PyPI.org</a>. Installation instructions can be found in the <a class="reference external" href="https://pypi.org/project/cuda-quantum/#description">project description</a>.
 For more information about available versions and documentation,
 see <a class="reference internal" href="versions.html"><span class="doc">CUDA Quantum Versions</span></a>.</p>
@@ -511,15 +566,209 @@ see <a class="reference internal" href="versions.html"><span class="doc">CUDA Qu
 <span class="go">pip install .</span>
 </pre></div>
 </div>
-<p>For more information about building the entire C++ and Python API’s, please see <a class="reference internal" href="#building-from-source">Building from Source</a>.</p>
+<p>For more information about building the entire C++ and Python API from source, we refer to the <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/blob/main/Building.md">CUDA Quantum GitHub repository</a>.</p>
 </section>
-<section id="building-from-source">
-<h2>Building from Source<a class="headerlink" href="#building-from-source" title="Permalink to this heading">¶</a></h2>
-<p>Instructions for building the Python wheels from source are given in the section <a class="reference internal" href="#install-python-wheels"><span class="std std-ref">Python wheels</span></a>.
-For more information about building the entire C++ and Python API from source, we refer to the <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/blob/main/Building.md">CUDA Quantum GitHub repository</a>.</p>
+</section>
+<section id="development-with-vs-code">
+<span id="local-development-with-vscode"></span><h2>Development with VS Code<a class="headerlink" href="#development-with-vs-code" title="Permalink to this heading">¶</a></h2>
+<p>To facilitate application development with, for example, debugging, code completion, hover information, and so on,
+we recommend using <a class="reference external" href="https://code.visualstudio.com/">VS Code</a>. VS Code provides a seamless
+development experience on all platforms, and is also available without installation via web browser.
+This sections describes how to connect VS Code to a running container on your machine.
+The section on <a class="reference internal" href="#connect-to-remote"><span class="std std-ref">connecting to a remote host</span></a> contains information on
+how to set up your development environment when accessing CUDA Quantum on a remote host instead.</p>
+<section id="using-a-docker-container">
+<span id="docker-in-vscode"></span><h3>Using a Docker container<a class="headerlink" href="#using-a-docker-container" title="Permalink to this heading">¶</a></h3>
+<p>Before connecting VS Code, open a terminal/shell,
+and start the CUDA Quantum Docker container following the
+instructions in the <a class="reference internal" href="#install-docker-image"><span class="std std-ref">section above</span></a>.</p>
+<p>If you have a local installation of <a class="reference external" href="https://code.visualstudio.com/">VS Code</a>
+you can connect to the running container using the
+<a class="reference external" href="https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers">Dev Containers</a> extension. If you want to use VS Code in the web browser, please follow the instructions
+in the section <a class="reference internal" href="#developing-with-remote-tunnels">Developing with Remote Tunnels</a> instead.</p>
+<p>After installing the
+<a class="reference external" href="https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers">Dev Containers</a> extension, launch VS Code, open the Command Palette with <code class="code docutils literal notranslate"><span class="pre">Ctrl+Shift+P</span></code>, and enter
+”Dev Containers: Attach to Running Container”.
+You should see and select the running <code class="code docutils literal notranslate"><span class="pre">cuda-quantum</span></code> container in the list.
+After the window reloaded, enter “File: Open Folder” in the Command Palette to open the <code class="code docutils literal notranslate"><span class="pre">/home/cudaq/</span></code> folder.</p>
+<p>To run the examples, open the Command Palette and enter “View: Show Terminal”
+to launch an integrated terminal. You are now all set to
+<a class="reference internal" href="#validate-installation"><span class="std std-ref">get started</span></a> with CUDA Quantum development.</p>
+</section>
+<section id="using-a-singularity-container">
+<span id="singularity-in-vscode"></span><h3>Using a Singularity container<a class="headerlink" href="#using-a-singularity-container" title="Permalink to this heading">¶</a></h3>
+<p>If you have a GitHub or Microsoft account, we recommend that you connect
+to a CUDA Quantum container using tunnels. To do so, launch a CUDA Quantum Singularity
+container following the instructions in the <a class="reference internal" href="#install-singularity-image"><span class="std std-ref">section above</span></a>,
+and then follow the instructions in the section <a class="reference internal" href="#developing-with-remote-tunnels">Developing with Remote Tunnels</a>.</p>
+<p>If you cannot use tunnels, you need a local installation of
+<a class="reference external" href="https://code.visualstudio.com/">VS Code</a> and you need to install
+the <a class="reference external" href="https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh">Remote - SSH</a> extension.
+Make sure you also have a suitable SSH key pair; if your <code class="code docutils literal notranslate"><span class="pre">~/.ssh/</span></code> folder does not already contain
+the files <code class="code docutils literal notranslate"><span class="pre">id_rsa.pub</span></code> and <code class="code docutils literal notranslate"><span class="pre">id.rsa</span></code>, follow the instructions for generating a new SSH key on
+<a class="reference external" href="https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent">this page</a>.</p>
+<p>To connect VS Code to a running CUDA Quantum container,
+the most convenient setup is to install and run an SSH server
+in the Singularity container. Open a terminal/shell in a separate window,
+and enter the following commands to create a suitable sandbox:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">singularity build --sandbox cuda-quantum-sandbox cuda-quantum.sif</span>
+<span class="go">singularity exec --writable --fakeroot cuda-quantum-sandbox \</span>
+<span class="go">  apt-get install -y --no-install-recommends openssh-server</span>
+<span class="go">cat ~/.ssh/id_rsa.pub &gt;&gt; ~/.ssh/authorized_keys</span>
+</pre></div>
+</div>
+<p>You can launch this sandbox by entering the commands below. Please see the <a class="reference internal" href="#singularity">Singularity</a> section above
+for more information about how to get the <code class="code docutils literal notranslate"><span class="pre">cuda-quantum.sif</span></code> image, and how to enable GPU-acceleration
+with the <code class="code docutils literal notranslate"><span class="pre">--nv</span></code> flag.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">singularity run --writable --fakeroot --nv --network-args=&quot;portmap=22:2222/tcp&quot; cuda-quantum-sandbox</span>
+<span class="go">/usr/sbin/sshd -D -p 2222 -E sshd_output.txt</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Make sure to use a free port. You can check if the SSH server is ready and listening
+by looking at the log in <code class="code docutils literal notranslate"><span class="pre">sshd_output.txt</span></code>. If the port is already in use, you can
+replace the number <code class="code docutils literal notranslate"><span class="pre">2222</span></code> by any free TCP port in the range <code class="code docutils literal notranslate"><span class="pre">1025-65535</span></code> in all
+commands.</p>
+</div>
+<p>Entering <code class="code docutils literal notranslate"><span class="pre">Ctrl+C</span></code> followed by <code class="code docutils literal notranslate"><span class="pre">exit</span></code> will stop the running container. You can re-start
+it at any time by entering the two commands above. While the container is running,
+open the Command Palette in VS Code with <code class="code docutils literal notranslate"><span class="pre">Ctrl+Shift+P</span></code>, enter “Remote-SSH: Add new
+SSH Host”, and enter the following SSH command:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">ssh root@localhost -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you are working on Windows and are building and running the Singularity container in WSL,
+make sure to copy the used SSH keys to the Windows partition, such that VS Code can connect with
+the expected key. Alternatively, add the used public key to the <code class="code docutils literal notranslate"><span class="pre">/root/.ssh/authorized_keys</span></code> file in
+the Singularity container.</p>
+</div>
+<p>You can then connect to the host by opening the Command Palette, entering
+“Remote SSH: Connect Current Window to Host”, and choosing the newly created host.
+After the window reloaded, enter “File: Open Folder” in the
+Command Palette to open the desired folder.</p>
+<p>To run the examples, open the Command Palette and enter “View: Show Terminal”
+to launch an integrated terminal. You are now all set to
+<a class="reference internal" href="#validate-installation"><span class="std std-ref">get started</span></a> with CUDA Quantum development.</p>
+</section>
+</section>
+<section id="connecting-to-a-remote-host">
+<span id="connect-to-remote"></span><h2>Connecting to a Remote Host<a class="headerlink" href="#connecting-to-a-remote-host" title="Permalink to this heading">¶</a></h2>
+<p>Depending on the setup on the remote host, there are a couple of different options
+for developing CUDA Quantum applications.</p>
+<ul class="simple">
+<li><p>If a CUDA Quantum container is running on the remote host,
+and you have a GitHub or Microsoft account, take a look at
+<a class="reference internal" href="#developing-with-remote-tunnels">Developing with Remote Tunnels</a>. This works for both Docker
+and Singularity containers on the remote host, and should also
+work for other containers.</p></li>
+<li><p>If you cannot use tunnels, or if you want to work with an
+existing CUDA Quantum installation without using a container,
+take a look at <a class="reference internal" href="#remote-access-via-ssh">Remote Access via SSH</a> instead.</p></li>
+</ul>
+<section id="developing-with-remote-tunnels">
+<span id="connect-vscode-via-tunnel"></span><h3>Developing with Remote Tunnels<a class="headerlink" href="#developing-with-remote-tunnels" title="Permalink to this heading">¶</a></h3>
+<p><a class="reference external" href="https://code.visualstudio.com/blogs/2022/12/07/remote-even-better">Remote access via tunnel</a>
+can easily be enabled with the <a class="reference external" href="https://code.visualstudio.com/docs/editor/command-line">VS Code CLI</a>.
+This allows to connect either a local installation of <a class="reference external" href="https://code.visualstudio.com/">VS Code</a>,
+or the <a class="reference external" href="https://vscode.dev/">VS Code Web UI</a>, to a running CUDA Quantum container on the same or a different machine.</p>
+<p>Creating a secure connection requires authenticating with the same GitHub or Microsoft account on each end.
+Once authenticated, an SSH connection over the tunnel provides end-to-end encryption. To download the CLI and
+create a tunnel, execute the commands</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">os=$([ &quot;$(uname -m)&quot; == &quot;aarch64&quot; ] &amp;&amp; echo cli-alpine-arm64 || echo cli-alpine-x64)</span>
+<span class="go">curl -Lk &quot;https://code.visualstudio.com/sha/download?build=stable&amp;os=$os&quot; --output vscode_cli.tar.gz</span>
+<span class="go">tar -xf vscode_cli.tar.gz &amp;&amp; rm vscode_cli.tar.gz &amp;&amp; sudo mv code /usr/bin/</span>
+<span class="go">code tunnel --name cuda-quantum-remote --accept-server-license-terms</span>
+</pre></div>
+</div>
+<p>in the running CUDA Quantum container, and follow the instructions to authenticate.
+You can then either <a class="reference external" href="https://vscode.dev/tunnel/cuda-quantum-remote/home/cudaq/">open VS Code in a web browser</a>, or connect a local installation of VS Code.
+To connect a local installation of VS Code, make sure you have the
+<a class="reference external" href="https://marketplace.visualstudio.com/items?itemName=ms-vscode.remote-server">Remote - Tunnels</a> extension installed,
+then open the Command Palette with <code class="code docutils literal notranslate"><span class="pre">Ctrl+Shift+P</span></code>, enter “Remote Tunnels: Connect to Tunnel”,
+and enter <code class="code docutils literal notranslate"><span class="pre">cuda-quantum-remote</span></code>. After the window reloaded, enter “File: Open Folder” in the Command Palette
+to open the <code class="code docutils literal notranslate"><span class="pre">/home/cudaq/</span></code> folder.</p>
+<p>You should see a pop up asking if you want to install the recommended extensions. Selecting to install them will
+configure VS Code with extensions for working with C++, Python, and Jupyter.
+You can always see the list of recommended extensions that aren’t installed yet by clicking on the “Extensions” icon in the sidebar and navigating to the “Recommended” tab.</p>
+</section>
+<section id="remote-access-via-ssh">
+<h3>Remote Access via SSH<a class="headerlink" href="#remote-access-via-ssh" title="Permalink to this heading">¶</a></h3>
+<p>To facilitate application development with, for example, debugging, code completion, hover information, and so on,
+you can connect a local installation of <a class="reference external" href="https://code.visualstudio.com/">VS Code</a> to a remote host via SSH.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For the best user experience, we recommend to launch a CUDA Quantum container on the remote host,
+and then connect <a class="reference internal" href="#connect-vscode-via-tunnel"><span class="std std-ref">VS Code using tunnels</span></a>.
+If a connection via tunnel is not possible, this section describes using SSH instead.</p>
+</div>
+<p>To do so, make sure you have <a class="reference external" href="https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh">Remote - SSH</a> extension installed.
+Open the Command Palette with <code class="code docutils literal notranslate"><span class="pre">Ctrl+Shift+P</span></code>, enter “Remote-SSH: Add new
+SSH Host”, and enter the SSH command to connect to your account on the remote host.
+You can then connect to the host by opening the Command Palette, entering
+“Remote SSH: Connect Current Window to Host”, and choosing the newly created host.</p>
+<p>When prompted, choose Linux as the operating system, and enter your
+password. After the window reloaded, enter “File: Open Folder” in the
+Command Palette to open the desired folder. Our GitHub repository contains
+a folder with VS Code configurations including a list of recommended extensions for
+working with CUDA Quantum; you can copy <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/tree/main/docker/release/config/.vscode">these configurations</a> into the a folder named <code class="code docutils literal notranslate"><span class="pre">.vscode</span></code> in your workspace to use them.</p>
+<p>If you want to work with an existing CUDA Quantum installation on the remote host, you are all set.
+Alternatively, you can use Singularity to build and run a container following the instructions in
+<a class="reference internal" href="#install-singularity-image"><span class="std std-ref">this section</span></a>. Once the <code class="code docutils literal notranslate"><span class="pre">cuda-quantum.sif</span></code> image is built and
+available in your home directory on the remote host, you can update your VS Code configuration
+to enable/improve completion, hover information, and other development tools within the container.</p>
+<p>To do so, open the Command Palette and enter “Remote-SSH: Open SSH Configuration File”.
+Add a new entry to that file with the command to launch the container, and edit the configuration
+of the remote host, titled <code class="code docutils literal notranslate"><span class="pre">remote-host</span></code> in the snippets below, to add a new identifier:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">Host cuda-quantum~*</span>
+<span class="go">  RemoteCommand singularity run --writable --fakeroot --nv ~/cuda-quantum.sif</span>
+<span class="go">  RequestTTY yes</span>
+
+<span class="go">Host remote-host cuda-quantum~remote-host</span>
+<span class="go">  HostName ...</span>
+<span class="go">  ...</span>
+</pre></div>
+</div>
+<p>You will need to edit a couple of VS Code setting to make use of the newly defined remote command;
+open the Command Palette, enter “Preferences: Open User Settings (JSON)”, and add or update the
+following configurations:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">&quot;remote.SSH.enableRemoteCommand&quot;: true,</span>
+<span class="go">&quot;remote.SSH.useLocalServer&quot;: true,</span>
+<span class="go">&quot;remote.SSH.remoteServerListenOnSocket&quot;: false,</span>
+<span class="go">&quot;remote.SSH.connectTimeout&quot;: 120,</span>
+<span class="go">&quot;remote.SSH.serverInstallPath&quot;: {</span>
+<span class="go">    &quot;cuda-quantum~remote-host&quot;: &quot;~/.vscode-container/cuda-quantum&quot;,</span>
+<span class="go">},</span>
+</pre></div>
+</div>
+<p>After saving the changes, you should now be able to select <code class="code docutils literal notranslate"><span class="pre">cuda-quantum~remote-host</span></code> as the host
+when connecting via SSH, which will launch the CUDA Quantum container and connect VS Code to it.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the connection to <code class="code docutils literal notranslate"><span class="pre">cuda-quantum~remote-host</span></code> fails, you may need to specify the full
+path to the <code class="code docutils literal notranslate"><span class="pre">singularity</span></code> executable on the remote host, since environment variables,
+and specifically the configured <code class="code docutils literal notranslate"><span class="pre">PATH</span></code> may be different during launch than in your user account.</p>
+</div>
+</section>
+</section>
+<section id="additional-cuda-tools">
+<h2>Additional CUDA Tools<a class="headerlink" href="#additional-cuda-tools" title="Permalink to this heading">¶</a></h2>
+<p>CUDA Quantum makes use of CUDA tools in certain backends and components.
+If you install CUDA Quantum via <a class="reference external" href="https://pypi.org/project/cuda-quantum">PyPI</a>, please follow the installation instructions there to install the necessary CUDA dependencies.
+If you are using the CUDA Quantum container image, the image already contains all necessary runtime libraries to use all CUDA Quantum components. It does not,
+however, contain all development dependencies for CUDA, such as, for example the <code class="code docutils literal notranslate"><span class="pre">nvcc</span></code> compiler. You can install all CUDA development dependencies by running the command</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">sudo apt-get install cuda-toolkit-11.8</span>
+</pre></div>
+</div>
+<p>inside the container. Note that most Python packages that use GPU-acceleration, such as for example <a class="reference external" href="https://cupy.dev">CuPy</a>, require an existing CUDA installation. After installing the <code class="code docutils literal notranslate"><span class="pre">cuda-toolkit-11.8</span></code> you can install CuPy with the command</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python3 -m pip install cupy-cuda11x</span>
+</pre></div>
+</div>
 </section>
 <section id="dependencies-and-compatibility">
-<span id="id1"></span><h2>Dependencies and Compatibility<a class="headerlink" href="#dependencies-and-compatibility" title="Permalink to this heading">¶</a></h2>
+<span id="id6"></span><h2>Dependencies and Compatibility<a class="headerlink" href="#dependencies-and-compatibility" title="Permalink to this heading">¶</a></h2>
 <p>CUDA Quantum can be used to compile and run quantum programs on a CPU-only system, but a GPU is highly recommended and necessary to use the GPU-based simulators, see also <a class="reference internal" href="using/simulators.html"><span class="doc">CUDA Quantum Simulation Backends</span></a>.</p>
 <p>The supported CPUs include x86_64 (x86-64-v3 architecture and newer) and ARM64 architectures.</p>
 <div class="admonition note">
@@ -527,8 +776,8 @@ For more information about building the entire C++ and Python API from source, w
 <p>Some of the components included in the CUDA Quantum Python wheels depend on an existing CUDA installation on your system. For more information about installing the CUDA Quantum Python wheels, take a look at <a class="reference internal" href="#install-python-wheels"><span class="std std-ref">this section</span></a>.</p>
 </div>
 <p>The following table summarizes the required components.</p>
-<table class="docutils align-default" id="id2">
-<caption><span class="caption-text">Supported Systems</span><a class="headerlink" href="#id2" title="Permalink to this table">¶</a></caption>
+<table class="docutils align-default" id="id7">
+<caption><span class="caption-text">Supported Systems</span><a class="headerlink" href="#id7" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col style="width: 38%" />
 <col style="width: 63%" />
@@ -548,8 +797,8 @@ For more information about building the entire C++ and Python API from source, w
 </tr>
 </tbody>
 </table>
-<table class="docutils align-default" id="id3">
-<caption><span class="caption-text">Requirements for GPU Simulation</span><a class="headerlink" href="#id3" title="Permalink to this table">¶</a></caption>
+<table class="docutils align-default" id="id8">
+<caption><span class="caption-text">Requirements for GPU Simulation</span><a class="headerlink" href="#id8" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col style="width: 38%" />
 <col style="width: 63%" />
@@ -569,22 +818,76 @@ For more information about building the entire C++ and Python API from source, w
 <p>Detailed information about supported drivers for different CUDA versions and be found <a class="reference external" href="https://docs.nvidia.com/deploy/cuda-compatibility/">here</a>.</p>
 </section>
 <section id="next-steps">
-<h2>Next Steps<a class="headerlink" href="#next-steps" title="Permalink to this heading">¶</a></h2>
-<p>The Docker image contains a folder with example in the <code class="code docutils literal notranslate"><span class="pre">/home/cudaq</span></code> directory. These examples are provided to
-get you started with CUDA Quantum and understanding the programming and execution model.
-If you are not using the Docker image, you can find these examples on our <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>.</p>
-<p>Start of by trying to compile a simple one, like <code class="code docutils literal notranslate"><span class="pre">examples/cpp/basics/static_kernel.cpp</span></code>:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ examples/cpp/basics/static_kernel.cpp</span>
-<span class="go">./a.out</span>
+<span id="validate-installation"></span><h2>Next Steps<a class="headerlink" href="#next-steps" title="Permalink to this heading">¶</a></h2>
+<p>You can now compile and/or run the C++ and Python examples using the terminal.
+To open a terminal in VS Code, open the Command Palette with <code class="code docutils literal notranslate"><span class="pre">Ctrl+Shift+P</span></code> and
+enter “View: Show Terminal”.</p>
+<img alt="_images/getToWork.png" src="_images/getToWork.png" />
+<p>The CUDA Quantum image contains a folder with examples and tutorials in the <code class="code docutils literal notranslate"><span class="pre">/home/cudaq</span></code> directory.
+These examples are provided to get you started with CUDA Quantum and understanding
+the programming and execution model.
+If you are not using a container image, you can find these examples on our
+<a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>.</p>
+<p>Let’s start by running a simple program to validate your installation.
+The samples contain an implementation of a
+<a class="reference external" href="https://en.wikipedia.org/wiki/Bernstein%E2%80%93Vazirani_algorithm">Bernstein-Vazirani algorithm</a>.
+To run the example, execute the command:</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">C++</label><div class="tab-content docutils">
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ examples/cpp/algorithms/bernstein_vazirani.cpp &amp;&amp; ./a.out</span>
 </pre></div>
 </div>
-<p>If you have GPU support (e.g. you successfully provided <code class="code docutils literal notranslate"><span class="pre">--gpus</span></code> to your docker
-run command), try out the 30 qubit version of this example.</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ examples/cpp/basics/cuquantum_backends.cpp --target nvidia</span>
-<span class="go">./a.out</span>
+</div>
+<input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">Python</label><div class="tab-content docutils">
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python examples/python/bernstein_vazirani.py --size 5</span>
 </pre></div>
 </div>
-<p>For more information about developing and running CUDA Quantum code, take a look at the page <a class="reference internal" href="using/cudaq.html"><span class="doc">Using CUDA Quantum</span></a>.</p>
+</div>
+</div>
+<p>This will execute the program on the default simulator, which will use GPU-acceleration if
+a suitable GPU has been detected. To confirm that the GPU acceleration works, you can
+increase the size of the secret string, and pass the target as a command line argument:</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">C++</label><div class="tab-content docutils">
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ examples/cpp/algorithms/bernstein_vazirani.cpp -DSIZE=25 --target nvidia &amp;&amp; ./a.out</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--1-input--2" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--2">Python</label><div class="tab-content docutils">
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python examples/python/bernstein_vazirani.py --size 25 --target nvidia</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>This program should complete fairly quickly. Depending on the available memory on your GPU,
+you can set the size of the secret string to up to 28-32 when running on the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you get an error that the CUDA driver version is insufficient or no GPU has been detected,
+check that you have enabled GPU support when launching the container by passing the <code class="code docutils literal notranslate"><span class="pre">--gpus</span> <span class="pre">all</span></code> flag
+(for <a class="reference internal" href="#install-docker-image"><span class="std std-ref">Docker</span></a>) or the <code class="code docutils literal notranslate"><span class="pre">--nv</span></code> flag (for <a class="reference internal" href="#install-singularity-image"><span class="std std-ref">Singularity</span></a>).
+If you are not running a container, you can execute the command <code class="code docutils literal notranslate"><span class="pre">nvidia-smi</span></code> to confirm your setup;
+if the command is unknown or fails, you do not have a GPU or do not have a driver installed. If the command
+succeeds, please confirm that your CUDA and driver version matches the
+<a class="reference internal" href="#dependencies-and-compatibility"><span class="std std-ref">supported versions</span></a>.</p>
+</div>
+<p>Let’s compare that to using only your CPU:</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">C++</label><div class="tab-content docutils">
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ examples/cpp/algorithms/bernstein_vazirani.cpp -DSIZE=25 --target qpp-cpu &amp;&amp; ./a.out</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">Python</label><div class="tab-content docutils">
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python examples/python/bernstein_vazirani.py --size 25 --target qpp-cpu</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>When you execute this command, the program simply seems to hang; that is because it takes
+a long time for the CPU-only backend to simulate 28+ qubits! Cancel the execution with <code class="code docutils literal notranslate"><span class="pre">Ctrl+C</span></code>.</p>
+<p>You are now all set to start developing quantum applications using CUDA Quantum!
+Please proceed to <a class="reference internal" href="using/cudaq.html"><span class="doc">Using CUDA Quantum</span></a> to learn the basics.</p>
 </section>
 </section>
 
