@@ -23,11 +23,12 @@ CUDA Quantum follows a similar pattern. Specifically, in an effort to better ena
 the development of **generic** libraries of quantum algorithmic primitives
 and applications, CUDA Quantum defines quantum device code as stand-alone typed 
 callables in C++. A typed callable in C++ is any user-defined :code:`struct`
-or :code:`class` that provides an operator-call overload (:code:`void operator()(Args...) {}`). Implicitly typed callables - C++ 
-lambdas |---| which compiler implementations enable as automated type definitions
-|---| also provide this typed-callable pattern. CUDA Quantum requires that these callable 
-definitions be annotated in some way to indicate that this expression is meant 
-for compilation and execution on the quantum device. 
+or :code:`class` that provides an operator-call overload
+(:code:`void operator()(Args...) {}`). 
+C++ lambdas |---|  enabled as automated type definitions through compiler implementations
+|---| also implicitly provide this typed-callable pattern. CUDA Quantum requires 
+that these callable definitions be annotated in some way to indicate that this 
+expression is meant for compilation and execution on the quantum device. 
 
 CUDA Quantum distinguishes between two separate kinds of kernel expressions: entry-point 
 and pure-device quantum kernels. Entry-point kernels are those that can be 
