@@ -28,10 +28,10 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
       .def_readonly("simulator", &cudaq::RuntimeTarget::simulatorName,
                     "The name of the simulator this `cudaq.Target` leverages. "
                     "This will be empty for physical QPUs.")
-      .def_readonly("platform", &cudaq::RuntimeTarget::simulatorName,
+      .def_readonly("platform", &cudaq::RuntimeTarget::platformName,
                     "The name of the quantum_platform implementation this "
                     "`cudaq.Target` leverages.")
-      .def_readonly("description", &cudaq::RuntimeTarget::simulatorName,
+      .def_readonly("description", &cudaq::RuntimeTarget::description,
                     "A string describing the features for this `cudaq.Target`.")
       .def("num_qpus", &cudaq::RuntimeTarget::num_qpus,
            "Return the number of QPUs available in this `cudaq.Target`.")

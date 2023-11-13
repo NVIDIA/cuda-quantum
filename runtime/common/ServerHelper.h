@@ -111,5 +111,9 @@ public:
   /// @return
   virtual cudaq::sample_result processResults(ServerMessage &postJobResponse,
                                               std::string &jobId) = 0;
+
+  /// @brief Adjust the compiler pass pipeline (if desired)
+  virtual void updatePassPipeline(const std::filesystem::path &platformPath,
+                                  std::string &passPipeline) {}
 };
 } // namespace cudaq
