@@ -97,14 +97,23 @@
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="install.html">   Getting Started</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="install.html#docker-image">Docker Image</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="install.html#install-the-docker-image">Install the Docker Image</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#use-cuda-quantum-in-a-terminal">Use CUDA Quantum in a Terminal</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#use-cuda-quantum-in-vs-code">Use CUDA Quantum in VS Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#local-installation">Local Installation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="install.html#docker">Docker</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#singularity">Singularity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#python-wheels">Python wheels</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="install.html#python-wheels">Python wheels</a></li>
-<li class="toctree-l2"><a class="reference internal" href="install.html#building-from-source">Building from Source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#development-with-vs-code">Development with VS Code</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="install.html#using-a-docker-container">Using a Docker container</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#using-a-singularity-container">Using a Singularity container</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#connecting-to-a-remote-host">Connecting to a Remote Host</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="install.html#developing-with-remote-tunnels">Developing with Remote Tunnels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#remote-access-via-ssh">Remote Access via SSH</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#additional-cuda-tools">Additional CUDA Tools</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#next-steps">Next Steps</a></li>
 </ul>
@@ -168,13 +177,13 @@
 <li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/executing_circuits.html#Observe">Observe</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/single_qubit_rotation.html">Single Qubit Rotation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/cost_minimization.html">Cost Minimization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/vqe.html">Variational Quantum Eigensolver</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html">Multi-GPU Workflows</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html#Available-Targets">Available Targets</a></li>
-<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html#Default-CPU-Backend">Default CPU Backend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html#QPP-based-CPU-Backend">QPP-based CPU Backend</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html#Multiple-QPU's">Multiple QPU’s</a></li>
@@ -212,6 +221,12 @@
 <li class="toctree-l3"><a class="reference internal" href="using/hardware.html#id4">Setting Credentials</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/hardware.html#id5">Submission from C++</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/hardware.html#id6">Submission from Python</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="using/hardware.html#oqc">OQC</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="using/hardware.html#id7">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/hardware.html#id8">Submission from C++</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/hardware.html#id9">Submission from Python</a></li>
 </ul>
 </li>
 </ul>

@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Single Qubit Rotation &mdash; NVIDIA CUDA Quantum  documentation</title>
+  <title>Cost Minimization &mdash; NVIDIA CUDA Quantum  documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/tabs.css" type="text/css" />
@@ -102,14 +102,23 @@
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../../../install.html">   Getting Started</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../install.html#docker-image">Docker Image</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../install.html#install-the-docker-image">Install the Docker Image</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../install.html#use-cuda-quantum-in-a-terminal">Use CUDA Quantum in a Terminal</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../install.html#use-cuda-quantum-in-vs-code">Use CUDA Quantum in VS Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../install.html#local-installation">Local Installation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../install.html#docker">Docker</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../install.html#singularity">Singularity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../install.html#python-wheels">Python wheels</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../../install.html#python-wheels">Python wheels</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../install.html#building-from-source">Building from Source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../install.html#development-with-vs-code">Development with VS Code</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../install.html#using-a-docker-container">Using a Docker container</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../install.html#using-a-singularity-container">Using a Singularity container</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../install.html#connecting-to-a-remote-host">Connecting to a Remote Host</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../install.html#developing-with-remote-tunnels">Developing with Remote Tunnels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../install.html#remote-access-via-ssh">Remote Access via SSH</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../install.html#additional-cuda-tools">Additional CUDA Tools</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../install.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../install.html#next-steps">Next Steps</a></li>
 </ul>
@@ -173,13 +182,13 @@
 <li class="toctree-l3"><a class="reference internal" href="executing_circuits.html#Observe">Observe</a></li>
 </ul>
 </li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Single Qubit Rotation</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Cost Minimization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="noisy_simulations.html">Noisy Simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="vqe.html">Variational Quantum Eigensolver</a></li>
 <li class="toctree-l2"><a class="reference internal" href="hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
 <li class="toctree-l2"><a class="reference internal" href="multi_gpu_workflows.html">Multi-GPU Workflows</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Available-Targets">Available Targets</a></li>
-<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Default-CPU-Backend">Default CPU Backend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#QPP-based-CPU-Backend">QPP-based CPU Backend</a></li>
 <li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Multiple-QPU's">Multiple QPU’s</a></li>
@@ -217,6 +226,12 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../using/hardware.html#id4">Setting Credentials</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/hardware.html#id5">Submission from C++</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/hardware.html#id6">Submission from Python</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/hardware.html#oqc">OQC</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/hardware.html#id7">Setting Credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/hardware.html#id8">Submission from C++</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/hardware.html#id9">Submission from Python</a></li>
 </ul>
 </li>
 </ul>
@@ -394,9 +409,9 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../../using/tutorials.html">CUDA Quantum Tutorials</a></li>
-      <li class="breadcrumb-item active">Single Qubit Rotation</li>
+      <li class="breadcrumb-item active">Cost Minimization</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../../_sources/examples/python/tutorials/single_qubit_rotation.ipynb.txt" rel="nofollow"> View page source</a>
+            <a href="../../../_sources/examples/python/tutorials/cost_minimization.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="executing_circuits.html" class="btn btn-neutral float-left" title="Executing Quantum Circuits" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
@@ -407,8 +422,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="Single-Qubit-Rotation">
-<h1>Single Qubit Rotation<a class="headerlink" href="#Single-Qubit-Rotation" title="Permalink to this heading">¶</a></h1>
+  <section id="Cost-Minimization">
+<h1>Cost Minimization<a class="headerlink" href="#Cost-Minimization" title="Permalink to this heading">¶</a></h1>
 <p>Below we start with a basic example of a hybrid variational algorithm which involves flipping the bloch vector of a qubit from the <span class="math notranslate nohighlight">\(\ket{0}\)</span> to the <span class="math notranslate nohighlight">\(\ket{1}\)</span> state. First we import the relevant packages and set our backend to simulate our workflow on NVIDIA GPUs.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
@@ -451,8 +466,6 @@
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cost_values</span> <span class="o">=</span> <span class="p">[]</span>
-<span class="n">cost_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">initial_cost_value</span><span class="p">)</span>
-
 
 <span class="k">def</span> <span class="nf">cost</span><span class="p">(</span><span class="n">parameters</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns the expectation value as our cost.&quot;&quot;&quot;</span>
@@ -494,12 +507,19 @@
 </pre></div>
 </div>
 </div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="k">pip</span> install matplotlib
+</pre></div>
+</div>
+</div>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plotting how the value of the cost function decreases during the minimization procedure.</span>
-<span class="c1"># !pip install matplotlib</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 
 <span class="n">x_values</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cost_values</span><span class="p">)))</span>
@@ -525,7 +545,7 @@ Text(0, 0.5, &#39;Cost Value&#39;)
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../../_images/examples_python_tutorials_single_qubit_rotation_8_1.png" src="../../../_images/examples_python_tutorials_single_qubit_rotation_8_1.png" />
+<img alt="../../../_images/examples_python_tutorials_cost_minimization_9_1.png" src="../../../_images/examples_python_tutorials_cost_minimization_9_1.png" />
 </div>
 </div>
 <p>We see that the final value or our cost function, <span class="math notranslate nohighlight">\(\bra{\psi}Z\ket{\psi} = -1\)</span> demonstrating that the qubit is in the <span class="math notranslate nohighlight">\(\ket{1}\)</span> state.</p>
