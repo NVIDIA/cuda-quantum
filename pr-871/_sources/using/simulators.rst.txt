@@ -84,12 +84,12 @@ CUDA Quantum provides a couple of tensor-network simulator targets accelerated w
 the :code:`cuTensorNet` library. 
 These backends are available for use from both C++ and Python.
 
-`cuTensorNet` multi-node multi-GPU
+`cuTensorNet` Multi-Node Multi-GPU
 +++++++++++++++++++++++++++++++++++
 
 The :code:`tensornet` backend represents quantum states and circuits as tensor networks in an exact form (no approximation). 
 Measurement samples and expectation values are computed via tensor network contractions. 
-This backend supports Multi-Node, Multi-GPU distribution of tensor operations required to evaluate and simulate the circuit.
+This backend supports multi-node, multi-GPU distribution of tensor operations required to evaluate and simulate the circuit.
 
 .. note:: 
     To enable automatic distributed parallelization across multiple/many GPUs for the :code:`tensornet` backend, `cuTensorNet`'s distributed interface needs to be activated
@@ -113,7 +113,7 @@ This backend exposes a set of environment variables to configure specific aspect
 
     This command will assign a unique GPU to each MPI process within the node with 8 GPUs and produce a separate output for each MPI process.
 
-`cuTensorNet` matrix product state 
+`cuTensorNet` Matrix Product State 
 +++++++++++++++++++++++++++++++++++
 
 The :code:`tensornet-mps` backend is based on the matrix product state (MPS) representation of the state vector/wave function, exploiting the sparsity in the tensor network via tensor decomposition techniques such as QR and SVD. As such, this backend is an approximate simulator, whereby the number of singular values may be truncated to keep the MPS size tractable. 

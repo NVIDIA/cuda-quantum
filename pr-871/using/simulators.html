@@ -201,8 +201,8 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#tensor-network-simulators">Tensor Network Simulators</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#cutensornet-multi-node-multi-gpu"><code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> multi-node multi-GPU</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#cutensornet-matrix-product-state"><code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> matrix product state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cutensornet-multi-node-multi-gpu"><code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> Multi-Node Multi-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cutensornet-matrix-product-state"><code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> Matrix Product State</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#usage">Usage</a></li>
 </ul>
 </li>
@@ -487,10 +487,10 @@ simulator that will be used.</p>
 the <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> library.
 These backends are available for use from both C++ and Python.</p>
 <section id="cutensornet-multi-node-multi-gpu">
-<h3><code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> multi-node multi-GPU<a class="headerlink" href="#cutensornet-multi-node-multi-gpu" title="Permalink to this heading">¶</a></h3>
+<h3><code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> Multi-Node Multi-GPU<a class="headerlink" href="#cutensornet-multi-node-multi-gpu" title="Permalink to this heading">¶</a></h3>
 <p>The <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> backend represents quantum states and circuits as tensor networks in an exact form (no approximation).
 Measurement samples and expectation values are computed via tensor network contractions.
-This backend supports Multi-Node, Multi-GPU distribution of tensor operations required to evaluate and simulate the circuit.</p>
+This backend supports multi-node, multi-GPU distribution of tensor operations required to evaluate and simulate the circuit.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>To enable automatic distributed parallelization across multiple/many GPUs for the <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> backend, <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code>’s distributed interface needs to be activated
@@ -514,7 +514,7 @@ backend if you have multiple GPUs available. With OpenMPI, you can run a multi-G
 </div>
 </section>
 <section id="cutensornet-matrix-product-state">
-<h3><code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> matrix product state<a class="headerlink" href="#cutensornet-matrix-product-state" title="Permalink to this heading">¶</a></h3>
+<h3><code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> Matrix Product State<a class="headerlink" href="#cutensornet-matrix-product-state" title="Permalink to this heading">¶</a></h3>
 <p>The <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> backend is based on the matrix product state (MPS) representation of the state vector/wave function, exploiting the sparsity in the tensor network via tensor decomposition techniques such as QR and SVD. As such, this backend is an approximate simulator, whereby the number of singular values may be truncated to keep the MPS size tractable.</p>
 <p>This backend exposes a set of environment variables to configure specific aspects of the simulation:</p>
 <ul class="simple">
