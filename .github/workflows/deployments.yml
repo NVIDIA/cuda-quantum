@@ -45,7 +45,7 @@ on:
 name: Deployments # do not change name without updating workflow_run triggers
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref_name }}
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -97,6 +97,8 @@ jobs:
       - name: Determine build info
         id: build_info
         run: |
+          echo "Concurrency group: ${{ github.event.workflow_run.head_branch || github.ref_name }}"
+
           requested_platforms=`echo ${{ inputs.platforms || 'linux/arm64 linux/amd64' }} | tr + ,`
           if [ -n "$(echo "$requested_platforms" | egrep ',')" ]; then
             multi_platform="{\"ids\":[]}"
