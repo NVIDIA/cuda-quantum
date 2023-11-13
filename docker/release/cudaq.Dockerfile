@@ -16,7 +16,7 @@
 #
 # Usage:
 # Must be built from the repo root with:
-#   docker build -t ghcr.io/nvidia/cuda-quantum:latest -f docker/release/cudaq.Dockerfile .
+#   docker build -t nvcr.io/nvidia/nightly/cuda-quantum:latest-base -f docker/release/cudaq.Dockerfile .
 # 
 # The build argument cudaqdev_image defines the CUDA Quantum dev image that contains the CUDA
 # Quantum build. This Dockerfile copies the built components into the base_image. The specified
@@ -116,6 +116,7 @@ RUN env | egrep -v "^(HOME=|USER=|MAIL=|LC_ALL=|LS_COLORS=|LANG=|HOSTNAME=|PWD=|
 RUN adduser --disabled-password --gecos '' cudaq && adduser cudaq sudo \
     && echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers \
     && mkdir -p /home/cudaq/.ssh && mkdir -p /var/run/sshd
+ENV PATH="$PATH:/home/cudaq/.local/bin"
 
 ADD ./docs/sphinx/examples/ /home/cudaq/examples/
 ADD ./docker/release/README.md /home/cudaq/README.md

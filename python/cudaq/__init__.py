@@ -9,7 +9,6 @@
 import sys
 import os, os.path
 from ._packages import *
-from ._query_gpu import is_gpu_available
 
 if not "CUDAQ_DYNLIBS" in os.environ:
     try:
@@ -29,10 +28,7 @@ if not "CUDAQ_DYNLIBS" in os.environ:
 from ._pycudaq import *
 from .domains import chemistry
 
-initKwargs = {'target': 'qpp-cpu'}
-if is_gpu_available():
-    initKwargs = {'target': 'nvidia'}
-
+initKwargs = {}
 if '-target' in sys.argv:
     initKwargs['target'] = sys.argv[sys.argv.index('-target') + 1]
 
