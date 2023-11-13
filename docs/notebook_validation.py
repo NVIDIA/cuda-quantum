@@ -67,7 +67,9 @@ if __name__ == "__main__":
         if len(notebooks_failed) > 0:
             print("Failed! The following notebook(s) raised errors:\n" +
                   " ".join(notebooks_failed))
+            exit(1)
         else:
             print("Success! All the notebook(s) executed successfully.")
     else:
         print('Failed! No notebook found in the current directory.')
+        exit(10)
