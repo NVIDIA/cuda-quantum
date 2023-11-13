@@ -76,8 +76,8 @@ int main(int argc, char *argv[]) {
     printf("Measured bitstring: %s\n\n", counts.most_probable().c_str());
 
     for (auto &[bits, count] : counts) {
-      printf("observed %s with %u%% probability\n", bits.data(),
-             100 * (uint)((double)count / (double)nr_shots));
+      printf("observed %s with %.0f%% probability\n", bits.data(),
+             100.0 * count / nr_shots);
     }
   }
 
