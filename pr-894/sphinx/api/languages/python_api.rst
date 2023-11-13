@@ -200,14 +200,6 @@ Noisy Simulation
 .. autoclass:: cudaq::KrausOperator
     :members:
 
-Domains
-=============================
-
-.. autoclass:: cudaq::chemistry
-    :members:
-    
-    .. automethod:: create_molecular_hamiltonian
-
 MPI Submodule
 =============================
 
