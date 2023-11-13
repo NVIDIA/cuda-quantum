@@ -6,6 +6,8 @@ The simulation backends that are currently available in CUDA Quantum are as foll
 State Vector Simulators
 ==================================
 
+.. _cuQuantum single-GPU:
+
 cuQuantum single-GPU 
 ++++++++++++++++++++++++++++++++++
 
@@ -68,6 +70,8 @@ Using `mpi4py <https://mpi4py.readthedocs.io/>`__, for example, a `program.py` c
 .. note:: 
 
     This backend requires an NVIDIA GPU, CUDA runtime libraries, as well as an MPI installation. If you are do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
+
+.. _OpenMP CPU-only:
 
 OpenMP CPU-only
 ++++++++++++++++++++++++++++++++++
