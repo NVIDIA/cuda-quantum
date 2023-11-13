@@ -36,6 +36,7 @@ called from other quantum kernel code. See the specification for more detail,
 but here we note that the "typed" requirement can be relaxed for pure-device kernels:
 
 .. code-block:: cpp 
+.. |---| replace:: —
 
     __qpu__ void freeFunctionDeviceKernel(cudaq::qspan<> q) { ... }
     // Entry points are those that can be called from host code
