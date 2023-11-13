@@ -89,7 +89,7 @@ These backends are available for use from both C++ and Python.
 
 The :code:`tensornet` backend represents quantum states and circuits as tensor networks in an exact form (no approximation). 
 Measurement samples and expectation values are computed via tensor network contractions. 
-This backend supports Multi-Node, Multi-GPU distribution of tensor operations required to evaluate and simulate the circuit.
+This backend supports multi-node, multi-GPU distribution of tensor operations required to evaluate and simulate the circuit.
 
 .. note:: 
     To enable automatic distributed parallelization across multiple/many GPUs for the :code:`tensornet` backend, `cuTensorNet`'s distributed interface needs to be activated
