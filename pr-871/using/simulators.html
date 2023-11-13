@@ -99,14 +99,23 @@
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../install.html">   Getting Started</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../install.html#docker-image">Docker Image</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../install.html#install-the-docker-image">Install the Docker Image</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../install.html#use-cuda-quantum-in-a-terminal">Use CUDA Quantum in a Terminal</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../install.html#use-cuda-quantum-in-vs-code">Use CUDA Quantum in VS Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#local-installation">Local Installation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../install.html#docker">Docker</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../install.html#singularity">Singularity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../install.html#python-wheels">Python wheels</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../install.html#python-wheels">Python wheels</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../install.html#building-from-source">Building from Source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#development-with-vs-code">Development with VS Code</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../install.html#using-a-docker-container">Using a Docker container</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../install.html#using-a-singularity-container">Using a Singularity container</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#connecting-to-a-remote-host">Connecting to a Remote Host</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../install.html#developing-with-remote-tunnels">Developing with Remote Tunnels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../install.html#remote-access-via-ssh">Remote Access via SSH</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#additional-cuda-tools">Additional CUDA Tools</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#next-steps">Next Steps</a></li>
 </ul>
@@ -170,7 +179,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/executing_circuits.html#Observe">Observe</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/single_qubit_rotation.html">Single Qubit Rotation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/cost_minimization.html">Cost Minimization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/vqe.html">Variational Quantum Eigensolver</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
@@ -476,7 +485,7 @@ simulator that will be used.</p>
 <h2>Tensor Network Simulators<a class="headerlink" href="#tensor-network-simulators" title="Permalink to this heading">¶</a></h2>
 <p>CUDA Quantum provides a couple of tensor-network simulator targets accelerated with
 the <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> library.
-These backends are currently available for use from both C++ and Python.</p>
+These backends are available for use from both C++ and Python.</p>
 <section id="cutensornet-multi-node-multi-gpu">
 <h3><code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> multi-node multi-GPU<a class="headerlink" href="#cutensornet-multi-node-multi-gpu" title="Permalink to this heading">¶</a></h3>
 <p>The <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> backend represents quantum states and circuits as tensor networks in an exact form (no approximation).
@@ -484,7 +493,7 @@ Measurement samples and expectation values are computed via tensor network contr
 This backend supports Multi-Node, Multi-GPU distribution of tensor operations required to evaluate and simulate the circuit.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>To enable automatic distributed parallelization across multiple/many GPUs for the <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> backend, users need to activate <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code>’s distributed interface
+<p>To enable automatic distributed parallelization across multiple/many GPUs for the <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> backend, <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code>’s distributed interface needs to be activated
 as described in the Getting Started section of the <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> library documentation (<a class="reference external" href="https://docs.nvidia.com/cuda/cuquantum/latest/cutensornet/getting_started.html#install-cutensornet-from-nvidia-devzone">Installation and Compilation</a>).
 This typically involves executing the <code class="code docutils literal notranslate"><span class="pre">distributed_interfaces/activate_mpi.sh</span></code> script in your <code class="code docutils literal notranslate"><span class="pre">cuquantum</span></code> install directory on your local system. The activation script will build a shared <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code>-MPI wrapper library (<code class="code docutils literal notranslate"><span class="pre">libcutensornet_distributed_interface_mpi.so</span></code>) and set the environment variable <code class="code docutils literal notranslate"><span class="pre">$CUTENSORNET_COMM_LIB</span></code> to point to that wrapper library. If the <code class="code docutils literal notranslate"><span class="pre">$CUTENSORNET_COMM_LIB</span></code> environment variable becomes unset, MPI parallelization on the <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> backend might fail.</p>
 </div>
