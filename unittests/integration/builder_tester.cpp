@@ -221,6 +221,8 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
   }
 }
 
+#ifndef CUDAQ_BACKEND_TENSORNET_MPS
+// MPS doesn't support gates on more than 2 qubits
 CUDAQ_TEST(BuilderTester, checkRotations) {
 
   // rx: entire qreg
@@ -425,6 +427,7 @@ CUDAQ_TEST(BuilderTester, checkRotations) {
     EXPECT_EQ(counts.count("0111"), 1000);
   }
 }
+#endif
 
 CUDAQ_TEST(BuilderTester, checkSwap) {
   cudaq::set_random_seed(13);
@@ -996,6 +999,8 @@ CUDAQ_TEST(BuilderTester, checkExpPauli) {
   }
 }
 
+#ifndef CUDAQ_BACKEND_TENSORNET_MPS
+// MPS doesn't support gates on more than 2 qubits
 CUDAQ_TEST(BuilderTester, checkControlledRotations) {
   // rx: pi
   {
@@ -1110,6 +1115,7 @@ CUDAQ_TEST(BuilderTester, checkControlledRotations) {
     EXPECT_EQ(counts.count("11111111"), 1000);
   }
 }
+#endif
 
 #ifndef CUDAQ_BACKEND_DM
 

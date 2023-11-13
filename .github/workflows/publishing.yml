@@ -566,6 +566,7 @@ jobs:
 
     steps:
       - name: Basic validation (GPU backends)
+        shell: bash
         run: |
           set +e # Allow script to keep going through errors
           # Skip some tests (multi-controlled gates) for the MPS backend (https://github.com/NVIDIA/cuda-quantum/issues/884)
