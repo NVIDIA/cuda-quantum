@@ -7,9 +7,8 @@
 // GPU-accelerated backends and their ability to easily handle
 // a larger number of qubits compared the CPU-only backend.
 
-// Without the `--target nvidia` flag, this seems to hang, i.e.
-// it takes a long time for the CPU-only backend to handle
-// this number of qubits.
+// On CPU-only backends, this seems to hang, i.e. it takes a long
+// time to handle this number of qubits.
 
 #include <cudaq.h>
 
