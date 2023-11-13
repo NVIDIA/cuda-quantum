@@ -113,6 +113,7 @@ int main() {
   cudaq::optimizers::lbfgs optimizer;
   optimizer.initial_parameters = init_params;
   optimizer.max_eval = 20;
+  optimizer.max_line_search_trials = 10;
   cudaq::gradients::central_difference gradient(ansatz, argMapper);
   auto [opt_val, opt_params] =
       cudaq::vqe(ansatz, gradient, H, optimizer, n_params, argMapper);
