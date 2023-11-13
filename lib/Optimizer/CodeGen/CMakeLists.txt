@@ -14,7 +14,6 @@ add_cudaq_library(OptCodeGen
   LowerToQIRProfile.cpp
   LowerToQIR.cpp
   Passes.cpp
-  RefToVeqAlloc.cpp
   TranslateToIQMJson.cpp
   TranslateToOpenQASM.cpp
 

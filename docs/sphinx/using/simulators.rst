@@ -6,6 +6,8 @@ The simulation backends that are currently available in CUDA Quantum are as foll
 State Vector Simulators
 ==================================
 
+.. _cuQuantum single-GPU:
+
 Single-GPU 
 ++++++++++++++++++++++++++++++++++
 
@@ -90,13 +92,13 @@ To execute a program on the :code:`nvidia-mgpu` target, use the following comman
   This backend requires an NVIDIA GPU, CUDA runtime libraries, as well as an MPI installation. If you are do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
 
 
+.. _OpenMP CPU-only:
+
 OpenMP CPU-only
 ++++++++++++++++++++++++++++++++++
 
-The :code:`default` target provides a state vector simulator based on the CPU-only, OpenMP
-threaded `Q++ <https://github.com/softwareqinc/qpp>`_ library. This is the default 
-target, so if the code is compiled without any :code:`--target` flags, this is the 
-simulator that will be used. 
+This target provides a state vector simulator based on the CPU-only, OpenMP threaded `Q++ <https://github.com/softwareqinc/qpp>`_ library.
+This is the default target when running on CPU-only systems.
 
 To execute a program on the :code:`qpp-cpu` target even if a GPU-accelerated backend is available, 
 use the following commands:
@@ -266,3 +268,26 @@ Specific aspects of the simulation can be configured by defining the following e
   Setting random seed, via :code:`cudaq::set_random_seed`, is not supported for this backend due to a limitation of the :code:`cuTensorNet` library. This will be fixed in future release once this feature becomes available.
 
 
+Default Simulator
+==================================
+If no explicit target is set, i.e. if the code is compiled without any :code:`--target` flags, then CUDA Quantum makes a default choice for the simulator.
+
+If an NVIDIA GPU and CUDA runtime libraries are available, the default target is set to `nvidia`. This will utilize the :ref:`cuQuantum single-GPU state vector simulator <cuQuantum single-GPU>`.  
+On CPU-only systems, the default target is set to `qpp-cpu` which uses the :ref:`OpenMP CPU-only simulator <OpenMP CPU-only>`.
+
+The default simulator can be overridden by the environment variable `CUDAQ_DEFAULT_SIMULATOR`. If no target is explicitly specified and the environment variable has a valid value, then it will take effect.
+This environment variable can be set to any non-hardware backend. Any invalid value is ignored.
+
+For CUDA Quantum Python API, the environment variable at the time when `cudaq` module is imported is relevant, not the value of the environment variable at the time when the simulator is invoked.
+
+For example,
+.. code:: bash
+
+    CUDAQ_DEFAULT_SIMULATOR=density-matrix-cpu nvq++ src.cpp
+
+This will use the density matrix simulator target.
+
+
+.. note:: 
+
+    To use targets that require an NVIDIA GPU and CUDA runtime libraries, the dependencies must be installed, else you may encounter an error stating `Invalid simulator requested`. See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.

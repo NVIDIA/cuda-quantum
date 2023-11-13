@@ -305,6 +305,27 @@ def MemToReg : Pass<"memtoreg", "mlir::func::FuncOp"> {
   ];
 }
 
+def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
+ let summary = "Given spin_op input, append measures to the FuncOp";
+  let description = [{
+    Given an unmeasured Quake representation (i.e. a state prep ansatz), append
+    measures based on the given spin_op specified in binary symplectic form.
+  }];
+  let options = [
+    ListOption<"termBSF", "term-bsf", "unsigned",
+      "The measurement bases as a Pauli tensor product represented in binary symplectic form.">
+  ];
+}
+
+def PromoteRefToVeqAlloc : Pass<"promote-qubit-allocation"> {
+  let summary = "Promote single qubit allocations.";
+  let description = [{
+    This pass converts all single qubit allocations in the quake dialect to
+    allocations of vectors of qubits of length one. This conversion makes all
+    allocations uniform for the conversion to QIR.
+  }];
+}
+
 def PruneCtrlRelations : Pass<"pruned-ctrl-form", "mlir::func::FuncOp"> {
   let summary = "Removes artifical control constraints between quantum ops.";
   let description = [{
@@ -370,18 +391,6 @@ def QuakeAddMetadata : Pass<"quake-add-metadata", "mlir::func::FuncOp"> {
   }];
 
   let constructor = "cudaq::opt::createQuakeAddMetadata()";
-}
-
-def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
- let summary = "Given spin_op input, append measures to the FuncOp";
-  let description = [{
-    Given an unmeasured Quake representation (i.e. a state prep ansatz), append
-    measures based on the given spin_op specified in binary symplectic form.
-  }];
-  let options = [
-    ListOption<"termBSF", "term-bsf", "unsigned",
-      "The measurement bases as a Pauli tensor product represented in binary symplectic form.">
-  ];
 }
 
 def RegToMem : Pass<"regtomem", "mlir::func::FuncOp"> {
