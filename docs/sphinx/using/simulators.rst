@@ -82,7 +82,7 @@ Tensor Network Simulators
 
 CUDA Quantum provides a couple of tensor-network simulator targets accelerated with 
 the :code:`cuTensorNet` library. 
-These backends are currently available for use from both C++ and Python.
+These backends are available for use from both C++ and Python.
 
 `cuTensorNet` multi-node multi-GPU
 +++++++++++++++++++++++++++++++++++
