@@ -1,1 +1,0 @@
-../load_value.cpp

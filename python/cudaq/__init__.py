@@ -28,8 +28,7 @@ if not "CUDAQ_DYNLIBS" in os.environ:
 from ._pycudaq import *
 from .domains import chemistry
 
-initKwargs = {'target': 'default'}
-
+initKwargs = {}
 if '-target' in sys.argv:
     initKwargs['target'] = sys.argv[sys.argv.index('-target') + 1]
 

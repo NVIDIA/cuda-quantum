@@ -6,7 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ %s -o %basename_t.x --target quantinuum --emulate && ./%basename_t.x | FileCheck %s
+// clang-format off
+// RUN: nvq++ --target ionq                     --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
+// RUN: nvq++ --target iqm --iqm-machine Adonis --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
+// RUN: nvq++ --target oqc                      --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
+// RUN: nvq++ --target quantinuum               --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
 
 #include <cudaq.h>
 #include <iostream>
@@ -26,7 +30,7 @@ struct foo {
   __qpu__ void operator()(CallableKernel &&func, int size) {
     cudaq::qreg q(size);
     func(q[0]);
-    mz(q[0]);
+    auto result = mz(q[0]);
   }
 };
 

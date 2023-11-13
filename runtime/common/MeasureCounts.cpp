@@ -484,4 +484,34 @@ bool sample_result::has_even_parity(std::string_view bitString) {
   int c = std::count(bitString.begin(), bitString.end(), '1');
   return c % 2 == 0;
 }
+
+void sample_result::reorder(const std::vector<std::size_t> &idx,
+                            const std::string_view registerName) {
+  auto iter = sampleResults.find(registerName.data());
+  if (iter == sampleResults.end())
+    return;
+
+  // First process the counts
+  CountsDictionary newCounts;
+  for (auto [bits, count] : iter->second.counts) {
+    if (idx.size() != bits.size())
+      throw std::runtime_error("Calling reorder() with invalid parameter idx");
+
+    std::string newBits(bits);
+    int i = 0;
+    for (auto oldIdx : idx)
+      newBits[i++] = bits[oldIdx];
+    newCounts[newBits] = count;
+  }
+  iter->second.counts = newCounts;
+
+  // Now process the sequential data
+  for (auto &s : iter->second.sequentialData) {
+    std::string newBits(s);
+    int i = 0;
+    for (auto oldIdx : idx)
+      newBits[i++] = s[oldIdx];
+    s = newBits;
+  }
+}
 } // namespace cudaq

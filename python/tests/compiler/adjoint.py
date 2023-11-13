@@ -306,7 +306,7 @@ def test_sample_adjoint_qreg():
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_17:.*]]: index):
 # CHECK:             %[[VAL_18:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_17]]] : (!quake.veq<?>, index) -> !quake.ref
-# CHECK:             %[[VAL_19:.*]] = quake.mz %[[VAL_18]] : (!quake.ref) -> i1
+# CHECK:             %[[VAL_19:.*]] = quake.mz %[[VAL_18]] name "" : (!quake.ref) -> i1
 # CHECK:             %[[VAL_20:.*]] = arith.index_cast %[[VAL_17]] : index to i64
 # CHECK:             %[[VAL_21:.*]] = cc.compute_ptr %[[VAL_13]][%[[VAL_20]]] : (!cc.ptr<!cc.array<i1 x ?>>, i64) -> !cc.ptr<i1>
 # CHECK:             cc.store %[[VAL_19]], %[[VAL_21]] : !cc.ptr<i1>

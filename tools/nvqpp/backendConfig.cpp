@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 /// This file is meant to be used by the nvq++ driver script, the
-/// NVQPP_QPUD_BACKEND_CONFIG string must be replaced (e.g. with sed)
+/// NVQPP_TARGET_BACKEND_CONFIG string must be replaced (e.g. with sed)
 /// with the actual target backend string.
 namespace cudaq {
 void set_target_backend(const char *);

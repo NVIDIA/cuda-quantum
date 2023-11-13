@@ -1,0 +1,1 @@
+../../test/NVQPP/callable_kernel_arg.cpp

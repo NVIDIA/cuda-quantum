@@ -131,22 +131,17 @@ do
     echo "Testing $filename:"
     echo "Source: $ex"
     let "samples+=1"
+
+    # Look for a --target flag to nvq++ in the 
+    # comment block at the beginning of the file.
+    intended_target=`sed -e '/^$/,$d' $ex | grep -oP '^//\s*nvq++.+--target\s+\K\S+'`
+
     for t in $requested_backends
     do
-        if [[ "$ex" == *"iqm"* ]] || [[ "$ex" == *"ionq"* ]] || [[ "$ex" == *"quantinuum"* ]] || [[ "$ex" == *"orca"* ]] || [[ "$ex" == *"photonics"* ]];
+        if [ -n "$intended_target" ] && [ "$intended_target" != "$t" ];
         then
             let "skipped+=1"
             echo "Skipping $t target.";
-
-        elif [[ "$ex" == *"cuquantum"* ]];
-        then 
-            let "skipped+=1"
-            echo "Skipping $t target.";
-
-        elif [[ "$ex" != *"nois"* ]] && [ "$t" == "density-matrix-cpu" ];
-        then
-            let "skipped+=1"
-            echo "Skipping $t target."
 
         else
             echo "Testing on $t target..."

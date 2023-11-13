@@ -439,7 +439,7 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
   /// like X and Y for star(X,Y)
   std::size_t deviceDim[2];
 
-  enum DeviceTopologyEnum { Unknown, Path, Ring, Star, Grid, File };
+  enum DeviceTopologyEnum { Unknown, Path, Ring, Star, Grid, File, Bypass };
   DeviceTopologyEnum deviceTopoType;
 
   /// If the deviceTopoType is File, this is the path to the file.
@@ -500,6 +500,7 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
                          .Case("star", Star)
                          .Case("grid", Grid)
                          .Case("file", File)
+                         .Case("bypass", Bypass)
                          .Default(Unknown);
     if (deviceTopoType == Unknown) {
       llvm::errs() << "Unknown device option: " << deviceTopoStr << '\n';
@@ -525,6 +526,9 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     // Current limitations:
     //  * Can only map a entry-point kernel
     //  * The kernel can only have one block
+
+    if (deviceTopoType == Bypass)
+      return;
 
     // FIXME: Add the ability to handle multiple blocks.
     if (blocks.size() > 1) {
