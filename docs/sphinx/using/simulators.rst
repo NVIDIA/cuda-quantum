@@ -120,7 +120,7 @@ Default Simulator
 If no explicit target is set, i.e. if the code is compiled without any :code:`--target` flags, then CUDA Quantum makes a default choice for the simulator.
 
 If an NVIDIA GPU and CUDA runtime libraries are available, the default target is set to `nvidia`. This will utilize the :ref:`cuQuantum single-GPU state vector simulator <cuQuantum single-GPU>`.  
-On CPU-only systems, the default target is set to `qpp-cpu` which uses the OpenMP CPU-only simulator. :ref:`OpenMP CPU-only`
+On CPU-only systems, the default target is set to `qpp-cpu` which uses the :ref:`OpenMP CPU-only simulator <OpenMP CPU-only>`.
 
 The default simulator can be overridden by the environment variable `CUDAQ_DEFAULT_SIMULATOR`. If no target is explicitly specified and the environment variable has a valid value, then it will take effect.
 This environment variable can be set to any non-hardware backend. Any invalid value is ignored.
