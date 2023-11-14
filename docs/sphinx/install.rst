@@ -432,6 +432,8 @@ when connecting via SSH, which will launch the CUDA Quantum container and connec
   Use DGX Cloud
   ++++++++++++++++++++++++++++++++++++
 
+.. _additional-cuda-tools:
+
 Additional CUDA Tools
 ------------------------------------
 
