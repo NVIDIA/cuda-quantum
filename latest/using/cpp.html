@@ -201,9 +201,10 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="simulators.html#tensor-network-simulators">Tensor Network Simulators</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="simulators.html#id1">cuQuantum multi-node multi-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simulators.html#id3">cuQuantum multi-node multi-GPU</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="simulators.html#default-simulator">Default Simulator</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="hardware.html">   Hardware Backends</a><ul>
@@ -633,9 +634,8 @@ can be trivially simulated via a NVIDIA GPU-accelerated backend:</p>
 <span class="c1">// GPU-accelerated backends and their ability to easily handle</span>
 <span class="c1">// a larger number of qubits compared the CPU-only backend.</span>
 
-<span class="c1">// Without the `--target nvidia` flag, this seems to hang, i.e.</span>
-<span class="c1">// it takes a long time for the CPU-only backend to handle</span>
-<span class="c1">// this number of qubits.</span>
+<span class="c1">// On CPU-only backends, this seems to hang, i.e. it takes a long</span>
+<span class="c1">// time to handle this number of qubits.</span>
 
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
 
@@ -675,6 +675,7 @@ vector support, we pass the <code class="code docutils literal notranslate"><spa
 ./ghz.x
 </pre></div>
 </div>
+<p>Alternatively, we can set the environment variable <code class="code docutils literal notranslate"><span class="pre">CUDAQ_DEFAULT_SIMULATOR</span></code> to <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code>.</p>
 </section>
 <section id="noisy-simulation">
 <h2>Noisy Simulation<a class="headerlink" href="#noisy-simulation" title="Permalink to this heading">¶</a></h2>
