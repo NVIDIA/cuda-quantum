@@ -14,9 +14,19 @@
 using namespace cudaq;
 
 #ifndef CUDAQ_BACKEND_DM
+namespace {
+// These tests are meant to validate the correctness of custom kernels.
+// Hence, reduce the test load on tensornet backends (slow for these small
+// circuits). The circuit correctness is validated more thoroughly by
+// state-vector based backends.
+#ifdef CUDAQ_BACKEND_TENSORNET
+constexpr size_t NUM_ANGLES = 10;
+#else
+constexpr size_t NUM_ANGLES = 100;
+#endif
+} // namespace
 
 CUDAQ_TEST(GateLibraryTester, checkGivensRotation) {
-  constexpr size_t NUM_ANGLES = 100;
   for (const auto &angle : cudaq::linspace(-M_PI, M_PI, NUM_ANGLES)) {
     auto test_01 = [](double theta) __qpu__ {
       cudaq::qreg<2> q;
@@ -46,7 +56,6 @@ CUDAQ_TEST(GateLibraryTester, checkGivensRotation) {
 }
 
 CUDAQ_TEST(GateLibraryTester, checkGivensRotationKernelBuilder) {
-  constexpr size_t NUM_ANGLES = 100;
   for (const auto &angle : cudaq::linspace(-M_PI, M_PI, NUM_ANGLES)) {
     // Matrix
     //    [[1, 0, 0, 0],
@@ -82,7 +91,6 @@ CUDAQ_TEST(GateLibraryTester, checkGivensRotationKernelBuilder) {
 #ifndef CUDAQ_BACKEND_TENSORNET_MPS
 // MPS doesn't support gates on more than 2 qubits
 CUDAQ_TEST(GateLibraryTester, checkControlledGivensRotation) {
-  constexpr size_t NUM_ANGLES = 100;
   for (const auto &angle : cudaq::linspace(-M_PI, M_PI, NUM_ANGLES)) {
     // Same check, with 2 control qubits
     auto test_01_on = [](double theta) __qpu__ {
@@ -112,7 +120,6 @@ CUDAQ_TEST(GateLibraryTester, checkControlledGivensRotation) {
 #endif
 
 CUDAQ_TEST(GateLibraryTester, checkFermionicSwap) {
-  constexpr size_t NUM_ANGLES = 100;
   for (const auto &angle : cudaq::linspace(-M_PI, M_PI, NUM_ANGLES)) {
     auto test_00 = [](double theta) __qpu__ {
       cudaq::qreg<2> q;
@@ -171,7 +178,6 @@ CUDAQ_TEST(GateLibraryTester, checkFermionicSwap) {
 }
 
 CUDAQ_TEST(GateLibraryTester, checkFermionicSwapKernelBuilder) {
-  constexpr size_t NUM_ANGLES = 100;
   for (const auto &angle : cudaq::linspace(-M_PI, M_PI, NUM_ANGLES)) {
     const double c = std::cos(angle / 2.0);
     const double s = std::sin(angle / 2.0);
