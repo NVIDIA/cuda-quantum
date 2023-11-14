@@ -407,8 +407,6 @@ public:
 
     // Convert the ctrl bits to an Array
     auto qirFunctionName = qirQisPrefix + instName + "__ctl";
-    auto negateFunctionName = qirQisPrefix + "x";
-    auto negatedQubitCtrls = instOp.getNegatedQubitControls();
 
     // Useful types we'll need
     auto qirArrayType = cudaq::opt::getArrayType(context);
@@ -429,9 +427,6 @@ public:
     Type type = control.getType();
     auto instOperands = adaptor.getOperands();
     if (numControls == 1 && type.isa<quake::VeqType>()) {
-      if (negatedQubitCtrls)
-        return instOp.emitError("unsupported controlled op " + instName +
-                                " with vector of ctrl qubits");
       // Operands are already an Array* and Qubit*.
       rewriter.replaceOpWithNewOp<LLVM::CallOp>(
           instOp, TypeRange{}, qirFunctionSymbolRef, instOperands);
@@ -498,31 +493,11 @@ public:
     }
 
     args.push_back(ctrlOpPointer);
-    FlatSymbolRefAttr negateFuncRef;
-    if (negatedQubitCtrls) {
-      negateFuncRef = cudaq::opt::factory::createLLVMFunctionSymbol(
-          negateFunctionName,
-          /*return type=*/LLVM::LLVMVoidType::get(context),
-          {cudaq::opt::getQubitType(context)}, parentModule);
-      for (auto v : llvm::enumerate(instOperands)) {
-        if ((v.index() < numControls) && (*negatedQubitCtrls)[v.index()])
-          rewriter.create<LLVM::CallOp>(loc, TypeRange{}, negateFuncRef,
-                                        v.value());
-        args.push_back(v.value());
-      }
-    } else {
-      args.append(instOperands.begin(), instOperands.end());
-    }
+    args.append(instOperands.begin(), instOperands.end());
 
     // Call our utility function.
     rewriter.replaceOpWithNewOp<LLVM::CallOp>(instOp, TypeRange{},
                                               applyMultiControlFunction, args);
-
-    if (negatedQubitCtrls)
-      for (auto v : llvm::enumerate(instOperands))
-        if ((v.index() < numControls) && (*negatedQubitCtrls)[v.index()])
-          rewriter.create<LLVM::CallOp>(loc, TypeRange{}, negateFuncRef,
-                                        v.value());
 
     return success();
   }
@@ -580,8 +555,6 @@ public:
     }
 
     qirFunctionName += "__ctl";
-    auto negateFunctionName = qirQisPrefix + "x";
-    auto negatedQubitCtrls = instOp.getNegatedQubitControls();
 
     // __quantum__qis__NAME__ctl(double, Array*, Qubit*) Type
     auto instOpQISFunctionType = LLVM::LLVMFunctionType::get(
@@ -599,9 +572,6 @@ public:
     Type type = control.getType();
     // If type is a VeqType, then we're good, just forward to the call op
     if (numControls == 1 && type.isa<quake::VeqType>()) {
-      if (negatedQubitCtrls)
-        return instOp.emitError("unsupported controlled op " + instName +
-                                " with vector of ctrl qubits");
 
       // Add the control array to the args.
       funcArgs.push_back(adaptor.getControls().front());
@@ -649,32 +619,11 @@ public:
     funcArgs.push_back(numControlOperands);
     funcArgs.push_back(isArrayAndLengthArr);
     funcArgs.push_back(ctrlOpPointer);
-
-    FlatSymbolRefAttr negateFuncRef;
-    if (negatedQubitCtrls) {
-      negateFuncRef = cudaq::opt::factory::createLLVMFunctionSymbol(
-          negateFunctionName,
-          /*return type=*/LLVM::LLVMVoidType::get(context),
-          {cudaq::opt::getQubitType(context)}, parentModule);
-      for (auto v : llvm::enumerate(instOperands)) {
-        if ((v.index() < numControls) && (*negatedQubitCtrls)[v.index()])
-          rewriter.create<LLVM::CallOp>(loc, TypeRange{}, negateFuncRef,
-                                        v.value());
-        funcArgs.push_back(v.value());
-      }
-    } else {
-      funcArgs.append(instOperands.begin(), instOperands.end());
-    }
+    funcArgs.append(instOperands.begin(), instOperands.end());
 
     // Call our utility function.
     rewriter.replaceOpWithNewOp<LLVM::CallOp>(
         instOp, TypeRange{}, applyMultiControlFunction, funcArgs);
-
-    if (negatedQubitCtrls)
-      for (auto v : llvm::enumerate(instOperands))
-        if ((v.index() < numControls) && (*negatedQubitCtrls)[v.index()])
-          rewriter.create<LLVM::CallOp>(loc, TypeRange{}, negateFuncRef,
-                                        v.value());
 
     return success();
   }
