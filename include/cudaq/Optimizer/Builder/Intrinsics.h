@@ -30,8 +30,9 @@ class IRBuilder : public mlir::OpBuilder {
 public:
   using OpBuilder::OpBuilder;
 
-  mlir::LLVM::ConstantOp genI32Constant(mlir::Location loc, std::int32_t val) {
-    return opt::factory::genI32Constant(loc, *this, val);
+  mlir::LLVM::ConstantOp genLlvmI32Constant(mlir::Location loc,
+                                            std::int32_t val) {
+    return opt::factory::genLlvmI32Constant(loc, *this, val);
   }
 
   /// Create a global for a C-style string. (A pointer to a NUL terminated

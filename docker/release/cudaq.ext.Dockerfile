@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-ARG base_image=ghcr.io/nvidia/cuda-quantum:latest-base
+ARG base_image=nvcr.io/nvidia/nightly/cuda-quantum:latest-base
 FROM $base_image
 
 USER root
@@ -26,7 +26,7 @@ RUN if [ -d "$CUDA_QUANTUM_PATH/assets/documentation" ]; then \
 
 # Install additional runtime dependencies.
 RUN apt-get install -y --no-install-recommends \
-        cuda-nvtx-11-8 libcusolver-11-8 libopenblas-openmp-dev \
+        cuda-nvtx-11-8 libopenblas-openmp-dev \
         # just here for convenience:
         curl jq 
 RUN if [ -x "$(command -v pip)" ]; then \
@@ -40,12 +40,23 @@ RUN if [ -x "$(command -v pip)" ]; then \
 # If we don't do that, then apt-get will get confused when some CUDA
 # components are already installed but not all of them.
 
-# Include VS Code configurations to facilitate development.
-# It would be nice to include the CLI to enable tunneling into the container by default, 
-# but we should build it from source then, see also
-# https://github.com/microsoft/vscode/issues/60#issuecomment-161792005
+# Include helper scripts and configurations to facilitate 
+# development with VS Code and JupterLab.
+# See also https://github.com/microsoft/vscode/issues/60#issuecomment-161792005
 ARG vscode_config=.vscode
 COPY "${vscode_config}" /home/cudaq/.vscode
+RUN echo -e '#! /bin/bash \n\
+    if [ ! -x "$(command -v code)" ]; then \n\
+        os=$([ "$(uname -m)" == "aarch64" ] && echo cli-alpine-arm64 || echo cli-alpine-x64) \n\
+        curl -Lk "https://code.visualstudio.com/sha/download?build=stable&os=$os" --output vscode_cli.tar.gz \n\
+        tar -xf vscode_cli.tar.gz && rm vscode_cli.tar.gz && sudo mv code /usr/bin/ \n\
+    fi \n\
+    code "$@"' > "$CUDA_QUANTUM_PATH/bin/vscode-setup" \
+    && chmod +x "$CUDA_QUANTUM_PATH/bin/vscode-setup"
+RUN echo -e '#! /bin/bash \n\
+    jupyter-lab --no-browser --ip=* --ServerApp.allow_origin=* --IdentityProvider.token="$@" \n\
+    ' > "$CUDA_QUANTUM_PATH/bin/jupyter-lab-setup" \
+    && chmod +x "$CUDA_QUANTUM_PATH/bin/jupyter-lab-setup"
 
 RUN chown -R cudaq /home/cudaq && chgrp -R cudaq /home/cudaq
 USER cudaq
