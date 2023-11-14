@@ -548,7 +548,7 @@ or the `VS Code Web UI <https://vscode.dev/>`__, running on DGX Cloud:
       --commandline 'vscode-setup tunnel --name cuda-quantum-dgx --accept-server-license-terms'
 
 Go to the `job portal <https://bc.ngc.nvidia.com/jobs>`__, click on the job you just launched, and select the "Log"
-tab. Once the job is running, you should see instructions for how to log into the device.
+tab. Once the job is running, you should see instructions there for how to connect to the device the job is running on.
 These instructions include a link to open and the code to enter on that page; follow the instructions to authenticate. 
 Once you have authenticated, you can either 
 `open VS Code in a web browser <https://vscode.dev/tunnel/cuda-quantum-dgx/home/cudaq/>`__, 
