@@ -27,6 +27,7 @@ IonQ
 JIT
 JSON
 Jupyter
+JupyterLab
 Kraus
 LLVM
 LSB
