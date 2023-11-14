@@ -201,13 +201,14 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="using/simulators.html">   Simulator Backends</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="using/simulators.html#state-vector-simulators">State Vector Simulators</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="using/simulators.html#cuquantum-single-gpu">cuQuantum single-GPU</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/simulators.html#cuquantum-multi-node-multi-gpu">cuQuantum multi-node multi-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/simulators.html#single-gpu">Single-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="using/simulators.html#tensor-network-simulators">Tensor Network Simulators</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="using/simulators.html#id3">cuQuantum multi-node multi-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/simulators.html#id2">Multi-node multi-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/simulators.html#matrix-product-state">Matrix product state</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="using/simulators.html#default-simulator">Default Simulator</a></li>
@@ -872,7 +873,7 @@ to help you get started. Take a look at <a class="reference internal" href="#nex
 </section>
 </section>
 <section id="additional-cuda-tools">
-<h2>Additional CUDA Tools<a class="headerlink" href="#additional-cuda-tools" title="Permalink to this heading">¶</a></h2>
+<span id="id7"></span><h2>Additional CUDA Tools<a class="headerlink" href="#additional-cuda-tools" title="Permalink to this heading">¶</a></h2>
 <p>CUDA Quantum makes use of CUDA tools in certain backends and components.
 If you install CUDA Quantum via <a class="reference external" href="https://pypi.org/project/cuda-quantum">PyPI</a>, please follow the installation instructions there to install the necessary CUDA dependencies.
 If you are using the CUDA Quantum container image, the image already contains all necessary runtime libraries to use all CUDA Quantum components. It does not,
@@ -886,7 +887,7 @@ however, contain all development dependencies for CUDA, such as, for example the
 </div>
 </section>
 <section id="dependencies-and-compatibility">
-<span id="id7"></span><h2>Dependencies and Compatibility<a class="headerlink" href="#dependencies-and-compatibility" title="Permalink to this heading">¶</a></h2>
+<span id="id8"></span><h2>Dependencies and Compatibility<a class="headerlink" href="#dependencies-and-compatibility" title="Permalink to this heading">¶</a></h2>
 <p>CUDA Quantum can be used to compile and run quantum programs on a CPU-only system, but a GPU is highly recommended and necessary to use the GPU-based simulators, see also <a class="reference internal" href="using/simulators.html"><span class="doc">CUDA Quantum Simulation Backends</span></a>.</p>
 <p>The supported CPUs include x86_64 (x86-64-v3 architecture and newer) and ARM64 architectures.</p>
 <div class="admonition note">
@@ -894,8 +895,8 @@ however, contain all development dependencies for CUDA, such as, for example the
 <p>Some of the components included in the CUDA Quantum Python wheels depend on an existing CUDA installation on your system. For more information about installing the CUDA Quantum Python wheels, take a look at <a class="reference internal" href="#install-python-wheels"><span class="std std-ref">this section</span></a>.</p>
 </div>
 <p>The following table summarizes the required components.</p>
-<table class="docutils align-default" id="id8">
-<caption><span class="caption-text">Supported Systems</span><a class="headerlink" href="#id8" title="Permalink to this table">¶</a></caption>
+<table class="docutils align-default" id="id9">
+<caption><span class="caption-text">Supported Systems</span><a class="headerlink" href="#id9" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col style="width: 38%" />
 <col style="width: 63%" />
@@ -915,8 +916,8 @@ however, contain all development dependencies for CUDA, such as, for example the
 </tr>
 </tbody>
 </table>
-<table class="docutils align-default" id="id9">
-<caption><span class="caption-text">Requirements for GPU Simulation</span><a class="headerlink" href="#id9" title="Permalink to this table">¶</a></caption>
+<table class="docutils align-default" id="id10">
+<caption><span class="caption-text">Requirements for GPU Simulation</span><a class="headerlink" href="#id10" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col style="width: 38%" />
 <col style="width: 63%" />
