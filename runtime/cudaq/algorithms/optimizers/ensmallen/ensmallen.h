@@ -37,7 +37,8 @@ public:
     EXTRA_PARAMS                                                               \
   };
 
-CUDAQ_ENSMALLEN_ALGORITHM_TYPE(lbfgs, true, )
+CUDAQ_ENSMALLEN_ALGORITHM_TYPE(
+    lbfgs, true, std::optional<std::size_t> max_line_search_trials;)
 CUDAQ_ENSMALLEN_ALGORITHM_TYPE(spsa, false, std::optional<double> alpha;
                                std::optional<double> gamma;
                                std::optional<double> eval_step_size;)
