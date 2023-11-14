@@ -195,15 +195,17 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../simulators.html">   Simulator Backends</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../simulators.html#state-vector-simulators">State Vector Simulators</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../simulators.html#cuquantum-single-gpu">cuQuantum single-GPU</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../simulators.html#cuquantum-multi-node-multi-gpu">cuQuantum multi-node multi-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../simulators.html#single-gpu">Single-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../simulators.html#tensor-network-simulators">Tensor Network Simulators</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../simulators.html#id1">cuQuantum multi-node multi-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../simulators.html#id2">Multi-node multi-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../simulators.html#matrix-product-state">Matrix product state</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../simulators.html#default-simulator">Default Simulator</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../hardware.html">   Hardware Backends</a><ul>
@@ -425,9 +427,19 @@
 the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_LOG_LEVEL</span></code> environment variable. For any CUDA Quantum
 executable, just prepend this and turn it on:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">CUDAQ_LOG_LEVEL=info ./a.out</span>
+<span class="gp"># </span>python
+<span class="go">CUDAQ_LOG_LEVEL=info python3 file.py</span>
 </pre></div>
 </div>
-<p>This will work for both codes in C++ and Python.</p>
+<p>Similarly, one may write the IR to their console or to a file before remote
+submission. This may be done through the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_DUMP_JIT_IR</span></code> environment
+variable. For any CUDA Quantum executable, just prepend as follows:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">CUDAQ_DUMP_JIT_IR=1 ./a.out</span>
+<span class="gp"># </span>or
+<span class="go">CUDAQ_DUMP_JIT_IR=&lt;filename&gt; ./a.out</span>
+</pre></div>
+</div>
+<p>These will work for both codes in C++ and Python.</p>
 </section>
 
 
