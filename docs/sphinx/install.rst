@@ -451,7 +451,7 @@ and configure it with
 
     ngc config set
 
-entering the API key you just generated when prompted.
+entering the API key you just generated when prompted, and configure other settings as appropriate.
 
 .. note::
 
