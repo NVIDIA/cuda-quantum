@@ -25,10 +25,10 @@ struct C {
       for (int i = 0; i < 10; ++i) {
 	 if (f1(i)) {
 	    cudaq::qubit q;
-	    x(q,r[0]);
+	    x<cudaq::ctrl>(q,r[0]);
 	    break;
 	 }
-	 x(r[0],r[1]);
+	 x<cudaq::ctrl>(r[0],r[1]);
 	 g2();
 	 if (f2(i)) {
 	    y(r[1]);
@@ -114,10 +114,10 @@ struct D {
       for (int i = 0; i < 10; ++i) {
 	 if (f1(i)) {
 	    cudaq::qubit q;
-	    x(q,r[0]);
+	    x<cudaq::ctrl>(q,r[0]);
 	    continue;
 	 }
-	 x(r[0],r[1]);
+	 x<cudaq::ctrl>(r[0],r[1]);
 	 g2();
 	 if (f2(i)) {
 	    y(r[1]);
@@ -203,10 +203,10 @@ struct E {
       for (int i = 0; i < 10; ++i) {
 	 if (f1(i)) {
 	    cudaq::qubit q;
-	    x(q,r[0]);
+	    x<cudaq::ctrl>(q,r[0]);
 	    return;
 	 }
-	 x(r[0],r[1]);
+	 x<cudaq::ctrl>(r[0],r[1]);
 	 g2();
 	 if (f2(i)) {
 	    y(r[1]);
@@ -291,10 +291,10 @@ struct F {
       for (int i = 0; i < 10; ++i) {
 	 if (f1(i)) {
 	    cudaq::qubit q;
-	    x(q,r[0]);
+	    x<cudaq::ctrl>(q,r[0]);
 	    continue;
 	 }
-	 x(r[0],r[1]);
+	 x<cudaq::ctrl>(r[0],r[1]);
 	 g2();
 	 if (f2(i)) {
 	    y(r[1]);
