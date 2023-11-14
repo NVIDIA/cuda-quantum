@@ -86,7 +86,7 @@ func.func @test_ctrl_swap_basic() {
 // CHECK:         %[[VAL_11:.*]] = load %Qubit*, %Qubit** %[[VAL_10]], align 8
 // CHECK:         %[[VAL_12:.*]] = alloca i64, align 8
 // CHECK:         store i64 0, i64* %[[VAL_12]], align 8
-// CHECK:         call void (i64, i64*, i64, void (%Array*, %Qubit*)*, ...) @invokeWithControlRegisterOrQubits(i64 1, i64* nonnull %[[VAL_12]], i64 2, void (%Array*, %Qubit*)* nonnull @__quantum__qis__swap__ctl, %Qubit* %[[VAL_5]], %Qubit* %[[VAL_8]], %Qubit* %[[VAL_11]])
+// CHECK:         call void (i64, i64*, i64, void (%Array*, %Qubit*, %Qubit*)*, ...) @invokeWithControlRegisterOrQubits(i64 1, i64* nonnull %[[VAL_12]], i64 2, void (%Array*, %Qubit*, %Qubit*)* nonnull @__quantum__qis__swap__ctl, %Qubit* %[[VAL_5]], %Qubit* %[[VAL_8]], %Qubit* %[[VAL_11]])
 // CHECK:         call void @__quantum__rt__qubit_release_array(%Array* %[[VAL_0]])
 // CHECK:         ret void
 // CHECK:       }
