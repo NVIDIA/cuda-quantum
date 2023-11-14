@@ -42,7 +42,7 @@ switch to :code:`FP64`, specify the :code:`nvidia-fp64` target instead.
 
 .. note:: 
 
-  This backend requires an NVIDIA GPU and CUDA runtime libraries. If you are do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
+  This backend requires an NVIDIA GPU and CUDA runtime libraries. If you do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
 
 Multi-node multi-GPU
 ++++++++++++++++++++++++++++++++++
@@ -89,8 +89,7 @@ To execute a program on the :code:`nvidia-mgpu` target, use the following comman
 
 .. note:: 
 
-  This backend requires an NVIDIA GPU, CUDA runtime libraries, as well as an MPI installation. If you are do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
-
+  This backend requires an NVIDIA GPU, CUDA runtime libraries, as well as an MPI installation. If you do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
 
 .. _OpenMP CPU-only:
 
