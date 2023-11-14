@@ -109,6 +109,8 @@ vector support, we pass the :code:`--target nvidia` flag at compile time:
     nvq++ --target nvidia cuquantum_backends.cpp -o ghz.x
     ./ghz.x
 
+Alternatively, we can set the environment variable `CUDAQ_DEFAULT_SIMULATOR` to `nvidia`.
+
 Noisy Simulation
 -----------------
 

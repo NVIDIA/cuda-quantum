@@ -195,17 +195,17 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="simulators.html">   Simulator Backends</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="simulators.html#state-vector-simulators">State Vector Simulators</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="simulators.html#cuquantum-single-gpu">cuQuantum single-GPU</a></li>
-<li class="toctree-l3"><a class="reference internal" href="simulators.html#cuquantum-multi-node-multi-gpu">cuQuantum multi-node multi-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simulators.html#single-gpu">Single-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
 <li class="toctree-l3"><a class="reference internal" href="simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="simulators.html#tensor-network-simulators">Tensor Network Simulators</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="simulators.html#cutensornet-multi-node-multi-gpu"><code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> Multi-Node Multi-GPU</a></li>
-<li class="toctree-l3"><a class="reference internal" href="simulators.html#cutensornet-matrix-product-state"><code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> Matrix Product State</a></li>
-<li class="toctree-l3"><a class="reference internal" href="simulators.html#usage">Usage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simulators.html#id2">Multi-node multi-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simulators.html#matrix-product-state">Matrix product state</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="simulators.html#default-simulator">Default Simulator</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="hardware.html">   Hardware Backends</a><ul>
@@ -635,9 +635,8 @@ can be trivially simulated via a NVIDIA GPU-accelerated backend:</p>
 <span class="c1">// GPU-accelerated backends and their ability to easily handle</span>
 <span class="c1">// a larger number of qubits compared the CPU-only backend.</span>
 
-<span class="c1">// Without the `--target nvidia` flag, this seems to hang, i.e.</span>
-<span class="c1">// it takes a long time for the CPU-only backend to handle</span>
-<span class="c1">// this number of qubits.</span>
+<span class="c1">// On CPU-only backends, this seems to hang, i.e. it takes a long</span>
+<span class="c1">// time to handle this number of qubits.</span>
 
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
 
@@ -656,7 +655,7 @@ can be trivially simulated via a NVIDIA GPU-accelerated backend:</p>
 <span class="p">};</span>
 
 <span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">ghz</span><span class="p">{},</span><span class="w"> </span><span class="mi">28</span><span class="p">);</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="cm">/*shots=*/</span><span class="mi">100</span><span class="p">,</span><span class="w"> </span><span class="n">ghz</span><span class="p">{},</span><span class="w"> </span><span class="mi">28</span><span class="p">);</span>
 
 <span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">cudaq</span><span class="o">::</span><span class="n">mpi</span><span class="o">::</span><span class="n">is_initialized</span><span class="p">()</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">mpi</span><span class="o">::</span><span class="n">rank</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
@@ -677,6 +676,7 @@ vector support, we pass the <code class="code docutils literal notranslate"><spa
 ./ghz.x
 </pre></div>
 </div>
+<p>Alternatively, we can set the environment variable <code class="code docutils literal notranslate"><span class="pre">CUDAQ_DEFAULT_SIMULATOR</span></code> to <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code>.</p>
 </section>
 <section id="noisy-simulation">
 <h2>Noisy Simulation<a class="headerlink" href="#noisy-simulation" title="Permalink to this heading">¶</a></h2>
