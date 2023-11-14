@@ -38,8 +38,7 @@
 using namespace mlir;
 
 static LLVM::LLVMStructType lambdaAsPairOfPointers(MLIRContext *context) {
-  auto ptrTy =
-      cudaq::opt::factory::getPointerType(IntegerType::get(context, 8));
+  auto ptrTy = cudaq::opt::factory::getPointerType(context);
   SmallVector<Type> pairOfPointers = {ptrTy, ptrTy};
   return LLVM::LLVMStructType::getLiteral(context, pairOfPointers);
 }
@@ -174,20 +173,18 @@ public:
     }
 
     auto qirArrayTy = cudaq::opt::getArrayType(context);
-    auto i8PtrTy =
-        cudaq::opt::factory::getPointerType(IntegerType::get(context, 8));
+    auto i8PtrTy = cudaq::opt::factory::getPointerType(context);
     FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
         cudaq::opt::QIRArrayCreateArray, qirArrayTy,
-        {rewriter.getIntegerType(32), rewriter.getIntegerType(64)},
-        parentModule);
+        {rewriter.getI32Type(), rewriter.getI64Type()}, parentModule);
     FlatSymbolRefAttr getSymbolRef =
         cudaq::opt::factory::createLLVMFunctionSymbol(
             cudaq::opt::QIRArrayGetElementPtr1d, i8PtrTy,
             {qirArrayTy, rewriter.getIntegerType(64)}, parentModule);
-    Value zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
-    Value one = rewriter.create<arith::ConstantIntOp>(loc, 1, 64);
+    Value zero = cudaq::opt::factory::createI64Constant(loc, rewriter, 0);
+    Value one = cudaq::opt::factory::createI64Constant(loc, rewriter, 1);
     // FIXME: 8 bytes is assumed to be the sizeof(char*) on the target machine.
-    Value eight = rewriter.create<arith::ConstantIntOp>(loc, 8, 32);
+    Value eight = cudaq::opt::factory::createI32Constant(loc, rewriter, 8);
     // Function to convert a QIR Qubit value to an Array value.
     auto wrapQubitInArray = [&](Value v) -> Value {
       if (v.getType() != cudaq::opt::getQubitType(context))
@@ -464,7 +461,7 @@ public:
           {i64Type, LLVM::LLVMPointerType::get(instOpQISFunctionType)},
           parentModule, true);
       args.push_back(
-          rewriter.create<LLVM::ConstantOp>(loc, i64Type, numControls));
+          cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, numControls));
     } else {
       // Get symbol for
       // void invokeWithControlRegisterOrQubits(const std::size_t
@@ -482,7 +479,7 @@ public:
       // We need an i64 array encoding 0 if control operand is a ref, and N if
       // control operand is a veq<N>.
       Value numControlOperands =
-          rewriter.create<LLVM::ConstantOp>(loc, i64Type, numControls);
+          cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, numControls);
 
       // Create an integer array where the kth element is N if the kth
       // control operand is a veq<N>, and 0 otherwise.
@@ -612,7 +609,7 @@ public:
     // We need an i64 array encoding 0 if control operand is a ref, and N if
     // control operand is a veq<N>.
     Value numControlOperands =
-        rewriter.create<LLVM::ConstantOp>(loc, i64Type, numControls);
+        cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, numControls);
 
     // Create an integer array where the kth element is N if the kth
     // control operand is a veq<N>, and 0 otherwise.
@@ -909,8 +906,8 @@ public:
     if (operands.empty()) {
       rewriter.replaceOpWithNewOp<LLVM::AllocaOp>(
           alloc, toTy,
-          ArrayRef<Value>{cudaq::opt::factory::genI32Constant(alloc.getLoc(),
-                                                              rewriter, 1)});
+          ArrayRef<Value>{cudaq::opt::factory::genLlvmI32Constant(
+              alloc.getLoc(), rewriter, 1)});
     } else {
       rewriter.replaceOpWithNewOp<LLVM::AllocaOp>(alloc, toTy, operands);
     }
@@ -995,9 +992,8 @@ public:
         rewriter.create<LLVM::ExtractValueOp>(loc, ptr1Ty, operands[0], one);
     Type funcPtrTy = getTypeConverter()->convertType(calleeFuncTy);
     auto funcPtr = rewriter.create<LLVM::BitcastOp>(loc, funcPtrTy, rawFuncPtr);
-    auto zeroAttr = rewriter.getI64IntegerAttr(0);
     auto i64Ty = rewriter.getI64Type();
-    auto zeroI64 = rewriter.create<LLVM::ConstantOp>(loc, i64Ty, zeroAttr);
+    auto zeroI64 = cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, 0);
     auto rawTupleVal =
         rewriter.create<LLVM::PtrToIntOp>(loc, i64Ty, rawTuplePtr);
     auto isNullptr = rewriter.create<LLVM::ICmpOp>(loc, LLVM::ICmpPredicate::eq,
@@ -1214,11 +1210,9 @@ public:
                                   adaptor.getOperands().getTypes().end());
     auto tupleTy = LLVM::LLVMStructType::getLiteral(ctx, tupleMemTys);
     Value tmp;
-    auto i64Ty = rewriter.getI64Type();
     auto tupleArgTy = lambdaAsPairOfPointers(ctx);
     if (callable.getNoCapture()) {
-      auto zeroAttr = rewriter.getI64IntegerAttr(0);
-      auto zero = rewriter.create<LLVM::ConstantOp>(loc, i64Ty, zeroAttr);
+      auto zero = cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, 0);
       tmp =
           rewriter.create<LLVM::IntToPtrOp>(loc, tupleArgTy.getBody()[1], zero);
     } else {
@@ -1231,8 +1225,7 @@ public:
                                                         op, offset);
         offsetVal++;
       }
-      auto oneAttr = rewriter.getI64IntegerAttr(1);
-      Value one = rewriter.create<LLVM::ConstantOp>(loc, i64Ty, oneAttr);
+      Value one = cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, 1);
       auto tuplePtrTy = cudaq::opt::factory::getPointerType(tupleTy);
       tmp = rewriter.create<LLVM::AllocaOp>(loc, tuplePtrTy, one);
       rewriter.create<LLVM::StoreOp>(loc, tupleVal, tmp);

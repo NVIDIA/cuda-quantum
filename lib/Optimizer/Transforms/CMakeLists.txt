@@ -38,6 +38,7 @@ add_cudaq_library(OptTransforms
   PruneCtrlRelations.cpp
   QuakeAddMetadata.cpp
   QuakeSynthesizer.cpp
+  RefToVeqAlloc.cpp
   RegToMem.cpp
 
   DEPENDS
