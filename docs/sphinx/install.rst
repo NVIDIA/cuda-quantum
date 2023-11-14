@@ -566,6 +566,8 @@ You can always see the list of recommended extensions that aren't installed yet 
 If you enter "View: Show Explorer" in the Command Palette, you should see a folder with tutorials and examples
 to help you get started. Take a look at `Next Steps`_ to dive into CUDA Quantum development.
 
+.. _additional-cuda-tools:
+
 Additional CUDA Tools
 ------------------------------------
 
