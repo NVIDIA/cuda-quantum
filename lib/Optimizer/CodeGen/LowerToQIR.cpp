@@ -399,28 +399,32 @@ public:
     auto i64Type = rewriter.getI64Type();
 
     // __quantum__qis__NAME__ctl(Array*, Qubit*) Type
-    auto instOpQISFunctionType = LLVM::LLVMFunctionType::get(
-        LLVM::LLVMVoidType::get(context), {qirArrayType, qirQubitPointerType});
+    SmallVector<Type> argTys = {qirArrayType, qirQubitPointerType};
+    auto numTargetOperands = instOp.getTargets().size();
+    assert(numTargetOperands == 1 || numTargetOperands == 2);
+    if (numTargetOperands == 2)
+      argTys.push_back(qirQubitPointerType);
+    auto instOpQISFunctionType =
+        LLVM::LLVMFunctionType::get(LLVM::LLVMVoidType::get(context), argTys);
 
     // Get the function pointer for the ctrl operation
     auto qirFunctionSymbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
-        qirFunctionName, LLVM::LLVMVoidType::get(context),
-        {qirArrayType, qirQubitPointerType}, parentModule);
+        qirFunctionName, LLVM::LLVMVoidType::get(context), argTys,
+        parentModule);
 
-    // Get the first control's type
-    auto control = *instOp.getControls().begin();
-    Type type = control.getType();
+    // Get the first control
+    auto control = instOp.getControls().front();
     auto instOperands = adaptor.getOperands();
-    if (numControls == 1 && type.isa<quake::VeqType>()) {
+    if (numControls == 1 && isa<quake::VeqType>(control.getType())) {
       // Operands are already an Array* and Qubit*.
       rewriter.replaceOpWithNewOp<LLVM::CallOp>(
           instOp, TypeRange{}, qirFunctionSymbolRef, instOperands);
       return success();
     }
 
-    // Here we know we have multiple controls, we have to
-    // check if we have all refs or a mix of ref / veq. If the
-    // latter we'll use a different runtime function
+    // Here we know we have multiple controls, we have to check if we have all
+    // refs or a mix of ref / veq. If the latter we'll use a different runtime
+    // function.
     FlatSymbolRefAttr applyMultiControlFunction;
     SmallVector<Value> args;
     Value ctrlOpPointer = rewriter.create<LLVM::AddressOfOp>(
@@ -429,10 +433,9 @@ public:
     Value numControlOperands =
         rewriter.create<LLVM::ConstantOp>(loc, i64Type, numControls);
     args.push_back(numControlOperands);
-    auto numTargetOperands = instOp.getTargets().size();
 
-    // Check if all controls are qubit types, if so
-    // retain existing functionality
+    // Check if all controls are qubit types, if so retain existing
+    // functionality.
     auto allControlsAreQubits = [&]() {
       for (auto c : adaptor.getControls())
         if (c.getType() != qirQubitPointerType)
