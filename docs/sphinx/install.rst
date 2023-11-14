@@ -525,7 +525,7 @@ under |:spellcheck-disable:|"URL/Hostname"|:spellcheck-enable:| in Service Mappe
 
 .. note::
 
-  It may take a couple of minutes for DGX Cloud to launch and for the URL to become active;
+  It may take a couple of minutes for DGX Cloud to launch and for the URL to become active, even after it appears in the Service Mapped Ports section;
   if you encounter a "404: Not Found" error, be patient and try again in a couple of minutes.
 
 Once this URL opens, you should see the JupyterLab authentication page; enter the 
