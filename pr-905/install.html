@@ -207,9 +207,10 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="using/simulators.html#tensor-network-simulators">Tensor Network Simulators</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="using/simulators.html#id1">cuQuantum multi-node multi-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/simulators.html#id3">cuQuantum multi-node multi-GPU</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="using/simulators.html#default-simulator">Default Simulator</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="using/hardware.html">   Hardware Backends</a><ul>
@@ -775,7 +776,7 @@ and configure it with</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">ngc config set</span>
 </pre></div>
 </div>
-<p>entering the API key you just generated when prompted.</p>
+<p>entering the API key you just generated when prompted, and configure other settings as appropriate.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>The rest of this section assumes you have CLI version 3.33.0. If you
@@ -827,17 +828,17 @@ running on DGX Cloud:</p>
 <span class="go">  --port 8888 --commandline &#39;jupyter-lab-setup &lt;my-custom-token&gt; --port=8888&#39;</span>
 </pre></div>
 </div>
-<p>Replace <code class="code docutils literal notranslate"><span class="pre">&lt;my-custom-token&gt;</span></code> in the command above with your own password that you can freely choose.
-You will use this password to authenticate with JupyterLab;
+<p>Replace <code class="code docutils literal notranslate"><span class="pre">&lt;my-custom-token&gt;</span></code> in the command above with a custom token that you can freely choose.
+You will use this token to authenticate with JupyterLab;
 Go to the <a class="reference external" href="https://bc.ngc.nvidia.com/jobs">job portal</a>, click on the job you just launched, and click on the link
 under ”URL/Hostname” in Service Mapped Ports.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>It may take a couple of minutes for DGX Cloud to launch and for the URL to become active;
+<p>It may take a couple of minutes for DGX Cloud to launch and for the URL to become active, even after it appears in the Service Mapped Ports section;
 if you encounter a “404: Not Found” error, be patient and try again in a couple of minutes.</p>
 </div>
 <p>Once this URL opens, you should see the JupyterLab authentication page; enter the
-password you selected above to get access to the running CUDA Quantum container.
+token you selected above to get access to the running CUDA Quantum container.
 On the left you should see a folder with tutorials. Happy coding!</p>
 </section>
 <section id="use-vs-code">
@@ -854,7 +855,8 @@ or the <a class="reference external" href="https://vscode.dev/">VS Code Web UI</
 </div>
 <p>Go to the <a class="reference external" href="https://bc.ngc.nvidia.com/jobs">job portal</a>, click on the job you just launched, and select the “Log”
 tab. Once the job is running, you should see instructions for how to log into the device.
-Follow the instructions to authenticate. Once you have authenticated, you can either
+These instructions include a link to open and the code to enter on that page; follow the instructions to authenticate.
+Once you have authenticated, you can either
 <a class="reference external" href="https://vscode.dev/tunnel/cuda-quantum-dgx/home/cudaq/">open VS Code in a web browser</a>,
 or connect a local installation of VS Code.
 To connect a local installation of VS Code, make sure you have the
@@ -1004,6 +1006,7 @@ succeeds, please confirm that your CUDA and driver version matches the
 a long time for the CPU-only backend to simulate 28+ qubits! Cancel the execution with <code class="code docutils literal notranslate"><span class="pre">Ctrl+C</span></code>.</p>
 <p>You are now all set to start developing quantum applications using CUDA Quantum!
 Please proceed to <a class="reference internal" href="using/cudaq.html"><span class="doc">Using CUDA Quantum</span></a> to learn the basics.</p>
+<p>See <a class="reference internal" href="using/simulators.html"><span class="doc">Default Simulator</span></a> for information on default target.</p>
 </section>
 </section>
 

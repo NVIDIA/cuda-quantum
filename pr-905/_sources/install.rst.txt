@@ -451,7 +451,7 @@ and configure it with
 
     ngc config set
 
-entering the API key you just generated when prompted.
+entering the API key you just generated when prompted, and configure other settings as appropriate.
 
 .. note::
 
@@ -518,18 +518,18 @@ running on DGX Cloud:
       --ace <ace_name> --instance <instance_name> \
       --port 8888 --commandline 'jupyter-lab-setup <my-custom-token> --port=8888'
 
-Replace `<my-custom-token>` in the command above with your own password that you can freely choose.
-You will use this password to authenticate with JupyterLab;
+Replace `<my-custom-token>` in the command above with a custom token that you can freely choose.
+You will use this token to authenticate with JupyterLab;
 Go to the `job portal <https://bc.ngc.nvidia.com/jobs>`__, click on the job you just launched, and click on the link
 under |:spellcheck-disable:|"URL/Hostname"|:spellcheck-enable:| in Service Mapped Ports. 
 
 .. note::
 
-  It may take a couple of minutes for DGX Cloud to launch and for the URL to become active;
+  It may take a couple of minutes for DGX Cloud to launch and for the URL to become active, even after it appears in the Service Mapped Ports section;
   if you encounter a "404: Not Found" error, be patient and try again in a couple of minutes.
 
 Once this URL opens, you should see the JupyterLab authentication page; enter the 
-password you selected above to get access to the running CUDA Quantum container.
+token you selected above to get access to the running CUDA Quantum container.
 On the left you should see a folder with tutorials. Happy coding!
 
 Use VS Code
@@ -549,7 +549,8 @@ or the `VS Code Web UI <https://vscode.dev/>`__, running on DGX Cloud:
 
 Go to the `job portal <https://bc.ngc.nvidia.com/jobs>`__, click on the job you just launched, and select the "Log"
 tab. Once the job is running, you should see instructions for how to log into the device.
-Follow the instructions to authenticate. Once you have authenticated, you can either 
+These instructions include a link to open and the code to enter on that page; follow the instructions to authenticate. 
+Once you have authenticated, you can either 
 `open VS Code in a web browser <https://vscode.dev/tunnel/cuda-quantum-dgx/home/cudaq/>`__, 
 or connect a local installation of VS Code.
 To connect a local installation of VS Code, make sure you have the 
@@ -707,4 +708,6 @@ When you execute this command, the program simply seems to hang; that is because
 a long time for the CPU-only backend to simulate 28+ qubits! Cancel the execution with `Ctrl+C`.
 
 You are now all set to start developing quantum applications using CUDA Quantum!
-Please proceed to :doc:`Using CUDA Quantum <using/cudaq>` to learn the basics. 
+Please proceed to :doc:`Using CUDA Quantum <using/cudaq>` to learn the basics.
+
+See :doc:`Default Simulator <using/simulators>` for information on default target.

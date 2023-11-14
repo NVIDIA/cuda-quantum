@@ -207,9 +207,10 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#tensor-network-simulators">Tensor Network Simulators</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#id1">cuQuantum multi-node multi-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">cuQuantum multi-node multi-GPU</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#default-simulator">Default Simulator</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="hardware.html">   Hardware Backends</a><ul>
@@ -430,7 +431,7 @@
 <section id="state-vector-simulators">
 <h2>State Vector Simulators<a class="headerlink" href="#state-vector-simulators" title="Permalink to this heading">¶</a></h2>
 <section id="cuquantum-single-gpu">
-<h3>cuQuantum single-GPU<a class="headerlink" href="#cuquantum-single-gpu" title="Permalink to this heading">¶</a></h3>
+<span id="id1"></span><h3>cuQuantum single-GPU<a class="headerlink" href="#cuquantum-single-gpu" title="Permalink to this heading">¶</a></h3>
 <p>The <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target provides a state vector simulator accelerated with
 the <code class="code docutils literal notranslate"><span class="pre">cuStateVec</span></code> library.</p>
 <p>To specify the use of the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target, pass the following command line
@@ -478,17 +479,15 @@ Using <a class="reference external" href="https://mpi4py.readthedocs.io/">mpi4py
 </div>
 </section>
 <section id="openmp-cpu-only">
-<h3>OpenMP CPU-only<a class="headerlink" href="#openmp-cpu-only" title="Permalink to this heading">¶</a></h3>
-<p>The <code class="code docutils literal notranslate"><span class="pre">default</span></code> target provides a state vector simulator based on the CPU-only, OpenMP
-threaded <a class="reference external" href="https://github.com/softwareqinc/qpp">Q++</a> library. This is the default
-target, so if the code is compiled without any <code class="code docutils literal notranslate"><span class="pre">--target</span></code> flags, this is the
-simulator that will be used.</p>
+<span id="id2"></span><h3>OpenMP CPU-only<a class="headerlink" href="#openmp-cpu-only" title="Permalink to this heading">¶</a></h3>
+<p>This target provides a state vector simulator based on the CPU-only, OpenMP threaded <a class="reference external" href="https://github.com/softwareqinc/qpp">Q++</a> library.
+This is the default target when running on CPU-only systems.</p>
 </section>
 </section>
 <section id="tensor-network-simulators">
 <h2>Tensor Network Simulators<a class="headerlink" href="#tensor-network-simulators" title="Permalink to this heading">¶</a></h2>
-<section id="id1">
-<h3>cuQuantum multi-node multi-GPU<a class="headerlink" href="#id1" title="Permalink to this heading">¶</a></h3>
+<section id="id3">
+<h3>cuQuantum multi-node multi-GPU<a class="headerlink" href="#id3" title="Permalink to this heading">¶</a></h3>
 <p>The <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> target provides a tensor-network simulator accelerated with
 the <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> library. This backend is currently available for use from C++ and supports
 Multi-Node, Multi-GPU distribution of tensor operations required to evaluate and simulate the circuit.</p>
@@ -517,6 +516,25 @@ options to <code class="code docutils literal notranslate"><span class="pre">nvq
 </pre></div>
 </div>
 </section>
+</section>
+<section id="default-simulator">
+<h2>Default Simulator<a class="headerlink" href="#default-simulator" title="Permalink to this heading">¶</a></h2>
+<p>If no explicit target is set, i.e. if the code is compiled without any <code class="code docutils literal notranslate"><span class="pre">--target</span></code> flags, then CUDA Quantum makes a default choice for the simulator.</p>
+<p>If an NVIDIA GPU and CUDA runtime libraries are available, the default target is set to <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code>. This will utilize the <a class="reference internal" href="#cuquantum-single-gpu"><span class="std std-ref">cuQuantum single-GPU state vector simulator</span></a>.
+On CPU-only systems, the default target is set to <code class="code docutils literal notranslate"><span class="pre">qpp-cpu</span></code> which uses the <a class="reference internal" href="#openmp-cpu-only"><span class="std std-ref">OpenMP CPU-only simulator</span></a>.</p>
+<p>The default simulator can be overridden by the environment variable <code class="code docutils literal notranslate"><span class="pre">CUDAQ_DEFAULT_SIMULATOR</span></code>. If no target is explicitly specified and the environment variable has a valid value, then it will take effect.
+This environment variable can be set to any non-hardware backend. Any invalid value is ignored.</p>
+<p>For CUDA Quantum Python API, the environment variable at the time when <code class="code docutils literal notranslate"><span class="pre">cudaq</span></code> module is imported is relevant, not the value of the environment variable at the time when the simulator is invoked.</p>
+<p>For example,
+.. code:: bash</p>
+<blockquote>
+<div><p>CUDAQ_DEFAULT_SIMULATOR=density-matrix-cpu nvq++ src.cpp</p>
+</div></blockquote>
+<p>This will use the density matrix simulator target.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>To use targets that require an NVIDIA GPU and CUDA runtime libraries, the dependencies must be installed, else you may encounter an error stating <code class="code docutils literal notranslate"><span class="pre">Invalid</span> <span class="pre">simulator</span> <span class="pre">requested</span></code>. See the section <a class="reference internal" href="../install.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a> for more information about how to install dependencies.</p>
+</div>
 </section>
 </section>
 
