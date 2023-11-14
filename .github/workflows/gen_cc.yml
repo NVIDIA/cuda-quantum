@@ -1,0 +1,118 @@
+on:
+  workflow_call:
+    inputs:
+      platform:
+        type: string
+        required: false
+        default: linux/amd64
+      devdeps_cache:
+        required: true
+        type: string
+      devdeps_archive:
+        required: true
+        type: string
+      export_environment:
+        required: false
+        type: boolean
+
+name: "Show Code Coverage"
+
+jobs:
+  gen_code_coverage:
+    runs-on: 'linux-amd64-cpu8'
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Restore environment
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ inputs.devdeps_archive }}
+          key: ${{ inputs.devdeps_cache }}
+          fail-on-cache-miss: true
+
+      - name: Set up context for buildx
+        run: |
+          docker context create builder_context
+
+      - name: Set up buildx runner
+        uses: docker/setup-buildx-action@v2
+        with:
+          endpoint: builder_context
+
+      - name: Build CUDA Quantum
+        id: cudaq_build
+        run: |
+          load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
+          base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
+          devdeps_tag=`echo $base_image | rev | cut -d ":" -f 1 | rev`
+          DOCKER_BUILDKIT=1 docker build --platform ${{ inputs.platform }} \
+            -t cuda-quantum-cc:local -f docker/build/cudaq.cc.Dockerfile . \
+            --build-arg base_image=$base_image \
+            --build-arg install="CMAKE_BUILD_TYPE=Debug CUDAQ_ENABLE_CC=ON LLVM_PROFILE_FILE=/tmp/cudaq-cc/profile-%9m.profraw"
+
+          tag_prefix=`echo $devdeps_tag | cut -d "_" -f 1`
+          echo "tag_prefix=$tag_prefix" >> $GITHUB_OUTPUT
+
+      - name: Create Shared Dir
+        run: |
+          mkdir -p /home/runner/_work/shared
+
+      - name: Test CUDA Quantum And Generate CC
+        uses: addnab/docker-run-action@v3
+        with:
+          image: cuda-quantum-cc:local
+          options: -v /home/runner/_work/shared:/shared
+          shell: bash
+          run: |
+            cd $CUDAQ_REPO_ROOT
+            export LLVM_PROFILE_FILE=/tmp/cudaq-cc/profile-%9m.profraw
+            ctest --output-on-failure --test-dir build -E ctest-nvqpp
+            ctest_status=$?
+            /opt/llvm/llvm-project/build/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
+            lit_status=$?
+            llvm-profdata merge -sparse /tmp/cudaq-cc/profile-*.profraw -o coverage.profdata
+            binarys=($(sed -n -e '/Linking CXX shared library/s/^.*Linking CXX shared library //p' \
+             -e '/Linking CXX executable/s/^.*Linking CXX executable //p' /workspaces/cuda-quantum/build/logs/ninja_output.txt))
+            objects=""
+            for item in "${binarys[@]}"; do
+              objects+="-object /workspaces/cuda-quantum/build/$item "
+            done
+            llvm-cov show ${objects} -instr-profile=coverage.profdata --ignore-filename-regex="/workspaces/cuda-quantum/tpls/*" \
+             --ignore-filename-regex="/workspaces/cuda-quantum/build/*" > coverage.txt
+            cp ./coverage.txt /shared
+            if [ ! $ctest_status -eq 0 ] || [ ! $lit_status -eq 0 ]; then
+              echo "ctest status = " $ctest_status
+              echo "llvm-lit status = " $lit_status
+            fi
+
+      - name: Upload Coverage To Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: /home/runner/_work/shared/coverage.txt
+          verbose: true
+
+      - name: Save environment
+        id: env_save
+        if: inputs.export_environment
+        run: |
+          output_directory=/tmp
+          filename=${{ steps.cudaq_build.outputs.tag_prefix }}_build
+
+          docker run --name cuda-quantum-cc cuda-quantum-cc:local
+          docker export cuda-quantum-cc > $output_directory/$filename.tar
+          docker rm -f cuda-quantum-cc
+    
+          echo "filename=$filename" >> $GITHUB_OUTPUT
+          echo "output_directory=$output_directory" >> $GITHUB_OUTPUT
+
+      - name: Upload environment
+        uses: actions/upload-artifact@v3
+        if: inputs.export_environment
+        with:
+          name: ${{ steps.env_save.outputs.filename }}
+          path: ${{ steps.env_save.outputs.output_directory }}/${{ steps.env_save.outputs.filename }}.tar
+          retention-days: 1

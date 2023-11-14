@@ -26,10 +26,11 @@ LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-$HOME/.llvm}
 build_configuration=Release
 llvm_projects="clang;lld;mlir"
 verbose=false
+build_rt=false
 
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":c:s:p:v" opt; do
+while getopts ":c:s:p:vr" opt; do
   case $opt in
     c) build_configuration="$OPTARG"
     ;;
@@ -39,12 +40,18 @@ while getopts ":c:s:p:v" opt; do
     ;;
     v) verbose=true
     ;;
+    r) build_rt=true
+    ;;
     \?) echo "Invalid command line option -$OPTARG" >&2
     if $is_sourced; then return 1; else exit 1; fi
     ;;
   esac
 done
 OPTIND=$__optind__
+
+if $build_rt; then
+  llvm_projects+=";compiler-rt"
+fi
 
 working_dir=`pwd`
 
@@ -86,6 +93,10 @@ echo "- including general tools and components"
 llvm_components+="cmake-exports;llvm-headers;llvm-libraries;"
 llvm_components+="llvm-config;llvm-ar;llc;FileCheck;count;not;"
 
+if $build_rt; then
+  llvm_components+="llvm-profdata;llvm-cov;"
+fi
+
 if [ "$(echo ${projects[*]} | xargs)" != "" ]; then
   echo "- including additional projects "$(echo "${projects[*]}" | xargs | tr ' ' ',')
   unset llvm_components
@@ -109,6 +120,30 @@ cmake_args="-G Ninja ../llvm \
   -DLLVM_ENABLE_BINDINGS=OFF \
   -DLLVM_ENABLE_ZLIB=OFF \
   -DLLVM_INSTALL_UTILS=ON"
+
+if $build_rt; then
+  cmake_args="-G Ninja ../llvm \
+    -DLLVM_TARGETS_TO_BUILD="host" \
+    -DCMAKE_BUILD_TYPE=$build_configuration \
+    -DCMAKE_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
+    -DLLVM_ENABLE_PROJECTS="$llvm_projects" \
+    -DLLVM_DISTRIBUTION_COMPONENTS=$llvm_components \
+    -DLLVM_ENABLE_ASSERTIONS=ON \
+    -DLLVM_OPTIMIZED_TABLEGEN=ON \
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+    -DLLVM_BUILD_EXAMPLES=OFF \
+    -DLLVM_ENABLE_OCAMLDOC=OFF \
+    -DLLVM_ENABLE_BINDINGS=OFF \
+    -DLLVM_ENABLE_ZLIB=OFF \
+    -DCOMPILER_RT_BUILD_BUILTINS=OFF \
+    -DCOMPILER_RT_BUILD_LIBFUZZER=OFF \
+    -DCOMPILER_RT_BUILD_MEMPROF=OFF \
+    -DCOMPILER_RT_BUILD_PROFILE=ON \
+    -DCOMPILER_RT_BUILD_SANITIZERS=OFF \
+    -DCOMPILER_RT_BUILD_XRAY=OFF \
+    -DLLVM_INSTALL_UTILS=ON"
+fi
+
 if $verbose; then
   cmake $cmake_args
 else
