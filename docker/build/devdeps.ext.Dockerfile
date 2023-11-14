@@ -121,6 +121,7 @@ ENV UCX_TLS=rc,cuda_copy,cuda_ipc,gdr_copy,sm
 ARG CUQUANTUM_INSTALL_PREFIX=/opt/nvidia/cuquantum
 ENV CUQUANTUM_INSTALL_PREFIX="$CUQUANTUM_INSTALL_PREFIX"
 ENV CUQUANTUM_ROOT="$CUQUANTUM_INSTALL_PREFIX"
+ENV CUQUANTUM_PATH="$CUQUANTUM_INSTALL_PREFIX"
 ENV LD_LIBRARY_PATH="$CUQUANTUM_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
 ENV CPATH="$CUQUANTUM_INSTALL_PREFIX/include:$CPATH"
 
@@ -183,7 +184,8 @@ ENV CUDA_ROOT="$CUDA_INSTALL_PREFIX"
 ENV CUDA_PATH="$CUDA_INSTALL_PREFIX"
 ENV PATH="${CUDA_INSTALL_PREFIX}/lib64/:${CUDA_INSTALL_PREFIX}/bin:${PATH}"
 
-# Activate CUTENSORNET_COMM_LIB
-# This must be done after CUDA installation.
-RUN cd $CUQUANTUM_INSTALL_PREFIX/distributed_interfaces && source activate_mpi.sh 
+# Active MPI support for the cuTensorNet library
+
+RUN cd "$CUQUANTUM_INSTALL_PREFIX/distributed_interfaces/" \
+    && source activate_mpi.sh
 ENV CUTENSORNET_COMM_LIB="$CUQUANTUM_INSTALL_PREFIX/distributed_interfaces/libcutensornet_distributed_interface_mpi.so"
