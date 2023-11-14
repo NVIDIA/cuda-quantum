@@ -278,11 +278,11 @@ public:
   using UpdateRegisterNamesBase::UpdateRegisterNamesBase;
 
   void runOnOperation() override {
-    auto mod = getOperation();
+    auto *mod = getOperation();
 
     // First save the op's that contain a registerName attribute
     DenseMap<StringRef, SmallVector<Operation *>> regOps;
-    mod.walk([&](mlir::Operation *walkOp) {
+    mod->walk([&](mlir::Operation *walkOp) {
       if (auto prevAttr = walkOp->getAttr("registerName")) {
         auto registerName = prevAttr.cast<StringAttr>().getValue();
         regOps[registerName].push_back(walkOp);
