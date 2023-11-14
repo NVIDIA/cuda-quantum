@@ -6,26 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake -verify %s
+// RUN: cudaq-quake %s -verify
 
 #include <cudaq.h>
 
-// Test that we raise an error for lambda's with capture lists.
-
-struct D {
-  template <typename KERNEL>
-  void operator() (KERNEL &&qernel) __qpu__ {
-    cudaq::qubit q;
-    qernel(q);
-    mz(q);
-  }
-};
-
-struct LambdaCaptureList {
-  void operator() () __qpu__ {
-     std::size_t i = 42;
-     // clang-format off
-     // expected-error@+1{{lambda expression with explicit captures is not yet supported}}
-     D{}([i](cudaq::qubit& q) { h(q); });
-  }
-};
+__qpu__ void t() {
+  cudaq::qreg q(4);
+  // expected-warning@+1{{If the intention is to use additional}}
+  x(q[0], q[1], q[2]);
+}

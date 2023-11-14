@@ -30,19 +30,31 @@
 #include "mlir/InitAllDialects.h"
 
 namespace cudaq::details {
-/// Report a clang error diagnostic. Note that the message must be a string
-/// literal. \p astNode is a node from the clang AST with source location
-/// information.
+/// Report a clang diagnostic. The severity level is selectable in the caller.
+/// Note that the message must be a string literal. \p astNode is a node from
+/// the clang AST with source location information.
+template <typename T, unsigned N>
+void reportClang(clang::DiagnosticsEngine::Level code, T *astNode,
+                 clang::DiagnosticsEngine &de, const char (&msg)[N]) {
+  auto id = de.getCustomDiagID(code, msg);
+  de.Report(astNode->getBeginLoc(), id);
+}
+template <typename T, unsigned N>
+void reportClang(clang::DiagnosticsEngine::Level code, T *astNode,
+                 clang::ItaniumMangleContext *mangler, const char (&msg)[N]) {
+  reportClang(code, astNode, mangler->getASTContext().getDiagnostics(), msg);
+}
+/// Report a clang error diagnostic.
 template <typename T, unsigned N>
 void reportClangError(T *astNode, clang::DiagnosticsEngine &de,
                       const char (&msg)[N]) {
-  auto id = de.getCustomDiagID(clang::DiagnosticsEngine::Error, msg);
-  de.Report(astNode->getBeginLoc(), id);
+  reportClang(clang::DiagnosticsEngine::Error, astNode, de, msg);
 }
 template <typename T, unsigned N>
 void reportClangError(T *astNode, clang::ItaniumMangleContext *mangler,
                       const char (&msg)[N]) {
-  reportClangError(astNode, mangler->getASTContext().getDiagnostics(), msg);
+  reportClang(clang::DiagnosticsEngine::Error, astNode,
+              mangler->getASTContext().getDiagnostics(), msg);
 }
 } // namespace cudaq::details
 
