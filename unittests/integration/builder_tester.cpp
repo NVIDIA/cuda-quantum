@@ -435,13 +435,12 @@ CUDAQ_TEST(BuilderTester, checkSwap) {
   // Simple two-qubit swap.
   {
     auto kernel = cudaq::make_kernel();
-    auto q = kernel.qalloc(2);
-    // 0th qubit into the 1-state.
-    kernel.x(q[0]);
+    auto first = kernel.qalloc();
+    auto second = kernel.qalloc();
+    // `first` qubit into the 1-state.
+    kernel.x(first);
     // Swap their states and measure.
-    kernel.swap(q[0], q[1]);
-    // Measure.
-    kernel.mz(q);
+    kernel.swap(first, second);
 
     auto counts = cudaq::sample(kernel);
     counts.dump();
@@ -451,13 +450,12 @@ CUDAQ_TEST(BuilderTester, checkSwap) {
   // Simple two-qubit swap.
   {
     auto kernel = cudaq::make_kernel();
-    auto q = kernel.qalloc(2);
-    // 1st qubit into the 1-state.
-    kernel.x(q[1]);
+    auto first = kernel.qalloc();
+    auto second = kernel.qalloc();
+    // `second` qubit into the 1-state.
+    kernel.x(second);
     // Swap their states and measure.
-    kernel.swap(q[0], q[1]);
-    // Measure.
-    kernel.mz(q);
+    kernel.swap(first, second);
 
     auto counts = cudaq::sample(kernel);
     counts.dump();
@@ -468,16 +466,17 @@ CUDAQ_TEST(BuilderTester, checkSwap) {
   {
     auto kernel = cudaq::make_kernel();
     auto ctrl = kernel.qalloc();
-    auto q = kernel.qalloc(2);
+    auto first = kernel.qalloc();
+    auto second = kernel.qalloc();
+    // ctrl and `first` in the 1-state.
     kernel.x(ctrl);
-    // 0th qubit into the 1-state.
-    kernel.x(q[0]);
+    kernel.x(first);
     // Swap their states and measure.
-    kernel.swap<cudaq::ctrl>(ctrl, q[0], q[1]);
+    kernel.swap<cudaq::ctrl>(ctrl, first, second);
 
     auto counts = cudaq::sample(kernel);
     counts.dump();
-    EXPECT_NEAR(counts.count("01"), 1000, 0);
+    EXPECT_NEAR(counts.count("101"), 1000, 0);
   }
 
   // Multi-controlled SWAP with a ctrl register.
@@ -503,9 +502,10 @@ CUDAQ_TEST(BuilderTester, checkSwap) {
 
     auto counts = cudaq::sample(kernel);
     counts.dump();
-    auto ctrls_state = "111";
+    std::string ctrls_state = "111";
     // `first` is now |0>, `second` is now |1>.
-    auto want_state = ctrls_state + "01";
+    std::string want_target = "01";
+    auto want_state = ctrls_state + want_target;
     EXPECT_NEAR(counts.count(want_state), 1000, 0);
   }
 
@@ -533,9 +533,10 @@ CUDAQ_TEST(BuilderTester, checkSwap) {
 
     auto counts = cudaq::sample(kernel);
     counts.dump();
-    auto ctrls_state = "111";
+    std::string ctrls_state = "111";
     // `first` is now |1>, `second` is now |0>.
-    auto want_state = ctrls_state + "10";
+    std::string want_target = "10";
+    auto want_state = ctrls_state + want_target;
     EXPECT_NEAR(counts.count(want_state), 1000, 0);
   }
 
@@ -564,9 +565,10 @@ CUDAQ_TEST(BuilderTester, checkSwap) {
 
     auto counts = cudaq::sample(kernel);
     counts.dump();
-    auto ctrls_state = "11111";
+    std::string ctrls_state = "11111";
     // `first` is now |1>, `second` is now |0>.
-    auto want_state = ctrls_state + "10";
+    std::string want_target = "10";
+    auto want_state = ctrls_state + want_target;
     EXPECT_NEAR(counts.count(want_state), 1000, 0);
   }
 }
