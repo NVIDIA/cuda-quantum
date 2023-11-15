@@ -432,7 +432,39 @@ CUDAQ_TEST(BuilderTester, checkRotations) {
 CUDAQ_TEST(BuilderTester, checkSwap) {
   cudaq::set_random_seed(13);
 
-  // controlled-SWAP
+  // Simple two-qubit swap.
+  {
+    auto kernel = cudaq::make_kernel();
+    auto q = kernel.qalloc(2);
+    // 0th qubit into the 1-state.
+    kernel.x(q[0]);
+    // Swap their states and measure.
+    kernel.swap(q[0], q[1]);
+    // Measure.
+    kernel.mz(q);
+
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    EXPECT_NEAR(counts.count("01"), 1000, 0);
+  }
+
+  // Simple two-qubit swap.
+  {
+    auto kernel = cudaq::make_kernel();
+    auto q = kernel.qalloc(2);
+    // 1st qubit into the 1-state.
+    kernel.x(q[1]);
+    // Swap their states and measure.
+    kernel.swap(q[0], q[1]);
+    // Measure.
+    kernel.mz(q);
+
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    EXPECT_NEAR(counts.count("10"), 1000, 0);
+  }
+
+  // Single qubit controlled-SWAP.
   {
     auto kernel = cudaq::make_kernel();
     auto ctrl = kernel.qalloc();
@@ -441,50 +473,102 @@ CUDAQ_TEST(BuilderTester, checkSwap) {
     // 0th qubit into the 1-state.
     kernel.x(q[0]);
     // Swap their states and measure.
-    kernel.swap(ctrl, q[0], q[1]);
-
-    std::cout << kernel.to_quake() << "\n";
+    kernel.swap<cudaq::ctrl>(ctrl, q[0], q[1]);
 
     auto counts = cudaq::sample(kernel);
     counts.dump();
     EXPECT_NEAR(counts.count("01"), 1000, 0);
   }
 
-  // multi-controlled SWAP
+  // Multi-controlled SWAP with a ctrl register.
+  {
+    auto kernel = cudaq::make_kernel();
+    auto ctrls = kernel.qalloc(3);
+    auto first = kernel.qalloc();
+    auto second = kernel.qalloc();
 
+    // Rotate `first` to |1> state.
+    kernel.x(first);
 
+    // Only a subset of controls in the |1> state.
+    kernel.x(ctrls[0]);
+    // No SWAP should occur.
+    kernel.swap<cudaq::ctrl>(ctrls, first, second);
 
-  // // Simple two-qubit swap.
-  // {
-  //   auto kernel = cudaq::make_kernel();
-  //   auto q = kernel.qalloc(2);
-  //   // 0th qubit into the 1-state.
-  //   kernel.x(q[0]);
-  //   // Swap their states and measure.
-  //   kernel.swap(q[0], q[1]);
-  //   // Measure.
-  //   kernel.mz(q);
+    // Flip the rest of the controls to |1>.
+    kernel.x(ctrls[1]);
+    kernel.x(ctrls[2]);
+    // `first` and `second` should SWAP.
+    kernel.swap<cudaq::ctrl>(ctrls, first, second);
 
-  //   auto counts = cudaq::sample(kernel);
-  //   counts.dump();
-  //   EXPECT_NEAR(counts.count("01"), 1000, 0);
-  // }
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    auto ctrls_state = "111";
+    // `first` is now |0>, `second` is now |1>.
+    auto want_state = ctrls_state + "01";
+    EXPECT_NEAR(counts.count(want_state), 1000, 0);
+  }
 
-  // // Simple two-qubit swap.
-  // {
-  //   auto kernel = cudaq::make_kernel();
-  //   auto q = kernel.qalloc(2);
-  //   // 1st qubit into the 1-state.
-  //   kernel.x(q[1]);
-  //   // Swap their states and measure.
-  //   kernel.swap(q[0], q[1]);
-  //   // Measure.
-  //   kernel.mz(q);
+  // Multi-controlled SWAP with a vector of ctrl qubits.
+  {
+    auto kernel = cudaq::make_kernel();
+    std::vector<cudaq::QuakeValue> ctrls{kernel.qalloc(), kernel.qalloc(),
+                                         kernel.qalloc()};
+    auto first = kernel.qalloc();
+    auto second = kernel.qalloc();
 
-  //   auto counts = cudaq::sample(kernel);
-  //   counts.dump();
-  //   EXPECT_NEAR(counts.count("10"), 1000, 0);
-  // }
+    // Rotate `second` to |1> state.
+    kernel.x(second);
+
+    // Only a subset of controls in the |1> state.
+    kernel.x(ctrls[0]);
+    // No SWAP should occur.
+    kernel.swap<cudaq::ctrl>(ctrls, first, second);
+
+    // Flip the rest of the controls to |1>.
+    kernel.x(ctrls[1]);
+    kernel.x(ctrls[2]);
+    // `first` and `second` should SWAP.
+    kernel.swap<cudaq::ctrl>(ctrls, first, second);
+
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    auto ctrls_state = "111";
+    // `first` is now |1>, `second` is now |0>.
+    auto want_state = ctrls_state + "10";
+    EXPECT_NEAR(counts.count(want_state), 1000, 0);
+  }
+
+  // Multi-controlled SWAP with a variadic list of ctrl qubits.
+  {
+    auto kernel = cudaq::make_kernel();
+    auto ctrls0 = kernel.qalloc(2);
+    auto ctrls1 = kernel.qalloc();
+    auto ctrls2 = kernel.qalloc(2);
+    auto first = kernel.qalloc();
+    auto second = kernel.qalloc();
+
+    // Rotate `second` to |1> state.
+    kernel.x(second);
+
+    // Only a subset of controls in the |1> state.
+    kernel.x(ctrls0);
+    // No SWAP should occur.
+    kernel.swap<cudaq::ctrl>(ctrls0, ctrls1, ctrls2, first, second);
+
+    // Flip the rest of the controls to |1>.
+    kernel.x(ctrls1);
+    kernel.x(ctrls2);
+    // `first` and `second` should SWAP.
+    kernel.swap<cudaq::ctrl>(ctrls0, ctrls1, ctrls2, first, second);
+
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    auto ctrls_state = "11111";
+    // `first` is now |1>, `second` is now |0>.
+    auto want_state = ctrls_state + "10";
+    EXPECT_NEAR(counts.count(want_state), 1000, 0);
+  }
 }
 
 // Conditional execution on the tensornet backend is slow for a large number of

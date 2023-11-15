@@ -664,13 +664,13 @@ Args:
           "cswap",
           [](kernel_builder<> &self, QuakeValue control,
              const QuakeValue &first, const QuakeValue &second) {
-            return self.swap(control, first, second);
+            return self.swap<cudaq::ctrl>(control, first, second);
           },
           py::arg("control"), py::arg("first"), py::arg("second"),
           R"#(Swap the states of the provided qubits. 
 
 Args:                                                          
-  control (:class:`QuakeValue`): The control qubit for the operation.                                                       
+  control (:class:`QuakeValue`): The control qubit/s for the operation.                                                       
   first (:class:`QuakeValue`): The target qubit of the operation. 
     Its state will swap with the `second` qubit, based on the state of the
     input `controls`.
@@ -681,14 +681,25 @@ Args:
 .. code-block:: python
 
   # Example:
-  TODO)#")
+  kernel = cudaq.make_kernel()
+  # Allocate control qubit/s to the `kernel`.
+  controls = kernel.qalloc(2)
+  # Allocate target qubit/s to the `kernel`.
+  targets = kernel.qalloc(2)
+  # Place the 0th qubit in the 1-state.
+  kernel.x(targets[0])
+  # Place our controls in the 1-state.
+  kernel.x(controls[0])
+  kernel.x(controls[1])
+  # Swap their states if all `controls` are in the `1-state`.
+  kernel.swap(controls, targets[0], targets[1]))#")
       /// @brief Bind the controlled-SWAP gate with the controls provided in a
       /// vector.
       .def(
           "cswap",
           [](kernel_builder<> &self, const std::vector<QuakeValue> controls,
              const QuakeValue &first, const QuakeValue &second) {
-            return self.swap(controls, first, second);
+            return self.swap<cudaq::ctrl>(controls, first, second);
           },
           py::arg("controls"), py::arg("first"), py::arg("second"),
           R"#(Swap the states of the provided qubits.
@@ -706,12 +717,17 @@ Args:
 
   # Example:
   kernel = cudaq.make_kernel()
-  # Allocate qubit/s to the `kernel`.
-  qubits = kernel.qalloc(2)
+  # Allocate control qubit/s to the `kernel`.
+  controls = [kernel.qalloc(), kernel.qalloc()]
+  # Allocate target qubit/s to the `kernel`.
+  targets = kernel.qalloc(2)
   # Place the 0th qubit in the 1-state.
-  kernel.x(qubits[0])
-  # Swap their states.
-  kernel.swap(qubits[0], qubits[1]))#")
+  kernel.x(targets[0])
+  # Place our controls in the 1-state.
+  kernel.x(controls[0])
+  kernel.x(controls[1])
+  # Swap their states if all `controls` are in the `1-state`.
+  kernel.swap(controls, targets[0], targets[1]))#")
 
       /// @brief Allow for conditional statements on measurements.
       .def(

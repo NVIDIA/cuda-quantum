@@ -586,7 +586,9 @@ public:
     details::swap(*opBuilder, empty, qubits);
   }
   /// @brief SWAP operation for performing a Fredkin gate between two qubits,
-  /// based on the state of an input `control` qubit.
+  /// based on the state of input `control` qubit/s.
+  template <typename mod, typename = typename std::enable_if_t<
+                              std::is_same_v<mod, cudaq::ctrl>>>
   void swap(const QuakeValue &control, const QuakeValue &first,
             const QuakeValue &second) {
     const std::vector<QuakeValue> &ctrl{control};
@@ -594,10 +596,28 @@ public:
     details::swap(*opBuilder, ctrl, targets);
   }
   /// @brief SWAP operation for performing a Fredkin gate between two qubits,
-  /// based on the state of an input set of `controls`.
+  /// based on the state of an input vector of `controls`.
+  template <typename mod, typename = typename std::enable_if_t<
+                              std::is_same_v<mod, cudaq::ctrl>>>
   void swap(const std::vector<QuakeValue> &controls, const QuakeValue &first,
             const QuakeValue &second) {
     const std::vector<QuakeValue> &targets{first, second};
+    details::swap(*opBuilder, controls, targets);
+  }
+  // This final overload should accept variadic qubit args... for the first
+  // argument, then accept a first and second just like the other ctrl
+  // functions. This enforces that there will always be 2 final qubits in the
+  // lsit to SWAP, rather than implicitly pairing them off of the qubit args.
+  template <
+      typename mod, typename... QubitValues,
+      typename = typename std::enable_if_t<sizeof...(QubitValues) >= 3>,
+      typename = typename std::enable_if_t<std::is_same_v<mod, cudaq::ctrl>>>
+  void swap(QubitValues... args) {
+    std::vector<QuakeValue> values{args...};
+    // Up until the last two arguments will be our controls.
+    const std::vector<QuakeValue> controls(values.begin(), values.end() - 2);
+    // The last two args will be the two qubits to swap.
+    const std::vector<QuakeValue> targets(values.end() - 2, values.end());
     details::swap(*opBuilder, controls, targets);
   }
 

@@ -10,6 +10,7 @@
 # the kernel builder.
 
 import pytest
+import random
 import numpy as np
 
 import cudaq
@@ -579,9 +580,80 @@ def test_crz_gate():
     assert counts["0010011"] == 1000
 
 
-# FIXME
-def test_cswap_gate():
-    pass
+@pytest.mark.parametrize("control_count", [1, 2, 3])
+def test_cswap_gate_ctrl_list(control_count):
+    """Tests the controlled-SWAP operation given a vector of control qubits."""
+    kernel = cudaq.make_kernel()
+    controls = [kernel.qalloc() for _ in range(control_count)]
+    first = kernel.qalloc()
+    second = kernel.qalloc()
+
+    kernel.x(first)
+    # All controls in the |0> state, no SWAP should occur.
+    kernel.cswap(controls, first, second)
+    # If we have multiple controls, place a random control qubit
+    # in the |1> state. This check ensures that our controlled
+    # SWAP's are performed if and only if all controls are in the
+    # |1> state.
+    if (len(controls) != 1):
+        random_index = random.randint(0, control_count - 1)
+        kernel.x(controls[random_index])
+        # Not all controls in the in |1>, no SWAP.
+        kernel.cswap(controls, first, second)
+        # Rotate that random control back to |0>.
+        kernel.x(controls[random_index])
+
+    # Now place all of the controls in |1>.
+    for control in controls:
+        kernel.x(control)
+    # Should now SWAP our `first` and `second` qubits.
+    kernel.cswap(controls, first, second)
+
+    counts = cudaq.sample(kernel)
+    print(counts)
+
+    controls_state = "1" * control_count
+    want_state = controls_state + "01"
+    assert counts[want_state] == 1000
+
+
+def test_cswap_gate_mixed_ctrls():
+    """
+    Tests the controlled-SWAP gate given a list of a mix of ctrl
+    qubits and registers.
+    """
+    kernel = cudaq.make_kernel()
+    controls_vector = [kernel.qalloc() for _ in range(2)]
+    controls_register = kernel.qalloc(2)
+    first = kernel.qalloc()
+    second = kernel.qalloc()
+
+    # `first` in |1> state.
+    kernel.x(first)
+    # `controls_register` in |1> state.
+    kernel.x(controls_register)
+
+    # `controls_vector` in |0>, no SWAP.
+    kernel.cswap(controls_vector, first, second)
+    # `controls_register` in |1>, SWAP.
+    kernel.cswap(controls_register, first, second)
+    # Pass the vector and register as the controls. The vector is still in |0>, so
+    # no SWAP.
+    kernel.cswap([controls_vector[0], controls_vector[1], controls_register],
+                 first, second)
+    # Place the vector in |1>, should now get a SWAP.
+    kernel.x(controls_vector[0])
+    kernel.x(controls_vector[1])
+    kernel.cswap([controls_vector[0], controls_vector[1], controls_register],
+                 first, second)
+
+    counts = cudaq.sample(kernel)
+    print(counts)
+
+    controls_state = "1111"
+    # The SWAP's should make the targets end up back in |10>.
+    want_state = controls_state + "10"
+    assert counts[want_state] == 1000
 
 
 def test_crx_control_list():
