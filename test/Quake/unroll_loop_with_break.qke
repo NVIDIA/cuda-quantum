@@ -22,9 +22,9 @@ func.func @loop_with_break(%arg0: i32) {
     } do {
     ^bb0(%arg1: i32):
       quake.h %2 : (!quake.ref) -> ()
-      %bits = quake.mz %2 name "q0result" : (!quake.ref) -> i1
-      %6 = cc.undef i1
-      cf.cond_br %bits, ^bb1(%arg1 : i32), ^bb2(%arg1 : i32)
+      %bits = quake.mz %2 name "q0result" : (!quake.ref) -> !quake.measure
+      %bit = quake.discriminate %bits : (!quake.measure) -> i1
+      cf.cond_br %bit, ^bb1(%arg1 : i32), ^bb2(%arg1 : i32)
     ^bb1(%7: i32):  // pred: ^bb0
       cc.break %7 : i32
     ^bb2(%9: i32):  // pred: ^bb0
@@ -42,83 +42,102 @@ func.func @loop_with_break(%arg0: i32) {
 // CHECK-SAME:                               %[[VAL_0:.*]]: i32) {
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
 // CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           %[[VAL_102:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_102]] :
 // CHECK:           cf.cond_br %[[VAL_2]], ^bb20, ^bb1
 // CHECK:         ^bb1:
 // CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           %[[VAL_103:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_103]] :
 // CHECK:           cf.cond_br %[[VAL_3]], ^bb20, ^bb2
 // CHECK:         ^bb2:
 // CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           %[[VAL_104:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_4:.*]] = quake.discriminate %[[VAL_104]] :
 // CHECK:           cf.cond_br %[[VAL_4]], ^bb20, ^bb3
 // CHECK:         ^bb3:
 // CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_5:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           %[[VAL_105:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_5:.*]] = quake.discriminate %[[VAL_105]] :
 // CHECK:           cf.cond_br %[[VAL_5]], ^bb20, ^bb4
 // CHECK:         ^bb4:
 // CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_6:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           %[[VAL_106:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_6:.*]] = quake.discriminate %[[VAL_106]] :
 // CHECK:           cf.cond_br %[[VAL_6]], ^bb20, ^bb5
 // CHECK:         ^bb5:
 // CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_7:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           %[[VAL_107:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_7:.*]] = quake.discriminate %[[VAL_107]] :
 // CHECK:           cf.cond_br %[[VAL_7]], ^bb20, ^bb6
 // CHECK:         ^bb6:
 // CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_8:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           %[[VAL_108:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_8:.*]] = quake.discriminate %[[VAL_108]] :
 // CHECK:           cf.cond_br %[[VAL_8]], ^bb20, ^bb7
 // CHECK:         ^bb7:
 // CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_9:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           %[[VAL_109:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_9:.*]] = quake.discriminate %[[VAL_109]] :
 // CHECK:           cf.cond_br %[[VAL_9]], ^bb20, ^bb8
 // CHECK:         ^bb8:
 // CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_10:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           %[[VAL_110:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_10:.*]] = quake.discriminate %[[VAL_110]] :
 // CHECK:           cf.cond_br %[[VAL_10]], ^bb20, ^bb9
 // CHECK:         ^bb9:
 // CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_11:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           %[[VAL_111:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_11:.*]] = quake.discriminate %[[VAL_111]] :
 // CHECK:           cf.cond_br %[[VAL_11]], ^bb20, ^bb10
 // CHECK:         ^bb10:
 // CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_12:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           %[[VAL_112:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_12:.*]] = quake.discriminate %[[VAL_112]] :
 // CHECK:           cf.cond_br %[[VAL_12]], ^bb20, ^bb11
 // CHECK:         ^bb11:
 // CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_13:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           %[[VAL_113:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_13:.*]] = quake.discriminate %[[VAL_113]] :
 // CHECK:           cf.cond_br %[[VAL_13]], ^bb20, ^bb12
 // CHECK:         ^bb12:
 // CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_14:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           %[[VAL_114:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_14:.*]] = quake.discriminate %[[VAL_114]] :
 // CHECK:           cf.cond_br %[[VAL_14]], ^bb20, ^bb13
 // CHECK:         ^bb13:
 // CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_15:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           %[[VAL_115:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_15:.*]] = quake.discriminate %[[VAL_115]] :
 // CHECK:           cf.cond_br %[[VAL_15]], ^bb20, ^bb14
 // CHECK:         ^bb14:
 // CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_16:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           %[[VAL_116:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_16:.*]] = quake.discriminate %[[VAL_116]] :
 // CHECK:           cf.cond_br %[[VAL_16]], ^bb20, ^bb15
 // CHECK:         ^bb15:
 // CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_17:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           %[[VAL_117:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_17:.*]] = quake.discriminate %[[VAL_117]] :
 // CHECK:           cf.cond_br %[[VAL_17]], ^bb20, ^bb16
 // CHECK:         ^bb16:
 // CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_18:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           %[[VAL_118:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_18:.*]] = quake.discriminate %[[VAL_118]] :
 // CHECK:           cf.cond_br %[[VAL_18]], ^bb20, ^bb17
 // CHECK:         ^bb17:
 // CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_19:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           %[[VAL_119:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_19:.*]] = quake.discriminate %[[VAL_119]] :
 // CHECK:           cf.cond_br %[[VAL_19]], ^bb20, ^bb18
 // CHECK:         ^bb18:
 // CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_20:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           %[[VAL_120:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_20:.*]] = quake.discriminate %[[VAL_120]] :
 // CHECK:           cf.cond_br %[[VAL_20]], ^bb20, ^bb19
 // CHECK:         ^bb19:
 // CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_21:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> i1
+// CHECK:           %[[VAL_121:.*]] = quake.mz %[[VAL_1]] name "q0result" : (!quake.ref) -> !quake.measure
 // CHECK:           cf.br ^bb20
 // CHECK:         ^bb20:
 // CHECK:           return

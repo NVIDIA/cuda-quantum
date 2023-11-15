@@ -20,7 +20,7 @@ struct S {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__S() attributes
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<20>
-// CHECK:           %[[VAL_18:.*]] = quake.mz %[[VAL_2]] : (!quake.veq<20>) -> !cc.stdvec<i1>
+// CHECK:           quake.mz %[[VAL_2]] : (!quake.veq<20>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 // clang-format on
@@ -41,7 +41,8 @@ struct VectorOfStaticVeq {
 // CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<4>
 // CHECK:           %[[VAL_6:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           %[[VAL_7:.*]] = quake.alloca !quake.ref
-// CHECK:           %[[VAL_8:.*]] = quake.mz %[[VAL_0]], %[[VAL_3]], %[[VAL_6]], %[[VAL_7]] : (!quake.ref, !quake.veq<4>, !quake.veq<2>, !quake.ref) -> !cc.stdvec<i1>
+// CHECK:           %[[VAL_81:.*]] = quake.mz %[[VAL_0]], %[[VAL_3]], %[[VAL_6]], %[[VAL_7]] : (!quake.ref, !quake.veq<4>, !quake.veq<2>, !quake.ref) -> !cc.stdvec<!quake.measure>
+// CHECK:           %[[VAL_8:.*]] = quake.discriminate %[[VAL_81]] :
 // CHECK:           %[[VAL_9:.*]] = cc.stdvec_data %[[VAL_8]] : (!cc.stdvec<i1>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_10:.*]] = cc.stdvec_size %[[VAL_8]] : (!cc.stdvec<i1>) -> i64
 // CHECK:           %[[VAL_12:.*]] = call @__nvqpp_vectorCopyCtor(%[[VAL_9]], %[[VAL_10]], %[[VAL_11]]) : (!cc.ptr<i8>, i64, i64) -> !cc.ptr<i8>
@@ -74,7 +75,8 @@ struct VectorOfDynamicVeq {
 // CHECK:           %[[VAL_9:.*]] = arith.extui %[[VAL_8]] : i32 to i64
 // CHECK:           %[[VAL_10:.*]] = quake.alloca !quake.veq<?>[%[[VAL_9]] : i64]
 // CHECK:           %[[VAL_11:.*]] = quake.alloca !quake.ref
-// CHECK:           %[[VAL_12:.*]] = quake.mz %[[VAL_4]], %[[VAL_7]], %[[VAL_10]], %[[VAL_11]] : (!quake.ref, !quake.veq<?>, !quake.veq<?>, !quake.ref) -> !cc.stdvec<i1>
+// CHECK:           %[[VAL_112:.*]] = quake.mz %[[VAL_4]], %[[VAL_7]], %[[VAL_10]], %[[VAL_11]] : (!quake.ref, !quake.veq<?>, !quake.veq<?>, !quake.ref) -> !cc.stdvec<!quake.measure>
+// CHECK:           %[[VAL_12:.*]] = quake.discriminate %[[VAL_112]] :
 // CHECK:           %[[VAL_13:.*]] = cc.stdvec_data %[[VAL_12]] : (!cc.stdvec<i1>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_14:.*]] = cc.stdvec_size %[[VAL_12]] : (!cc.stdvec<i1>) -> i64
 // CHECK:           %[[VAL_16:.*]] = call @__nvqpp_vectorCopyCtor(%[[VAL_13]], %[[VAL_14]], %[[VAL_15]]) : (!cc.ptr<i8>, i64, i64) -> !cc.ptr<i8>

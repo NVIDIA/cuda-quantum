@@ -579,10 +579,13 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
 
   auto i1Ty = builder.getI1Type();
   auto strAttr = builder.getStringAttr(regName);
+  auto measTy = quake::MeasureType::get(builder.getContext());
   if (type.isa<quake::RefType>()) {
     Value measureResult =
-        builder.template create<QuakeMeasureOp>(i1Ty, value, strAttr).getBits();
-    return QuakeValue(builder, measureResult);
+        builder.template create<QuakeMeasureOp>(measTy, value, strAttr)
+            .getMeasOut();
+    Value bits = builder.create<quake::DiscriminateOp>(i1Ty, measureResult);
+    return QuakeValue(builder, bits);
   }
 
   // This must be a veq.
@@ -599,9 +602,11 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
         OpBuilder::InsertionGuard guard(nestedBuilder);
         Value qv =
             nestedBuilder.create<quake::ExtractRefOp>(nestedLoc, value, iv);
+        Value meas =
+            nestedBuilder.create<QuakeMeasureOp>(nestedLoc, measTy, qv, strAttr)
+                .getMeasOut();
         Value bit =
-            nestedBuilder.create<QuakeMeasureOp>(nestedLoc, i1Ty, qv, strAttr)
-                .getBits();
+            nestedBuilder.create<quake::DiscriminateOp>(nestedLoc, i1Ty, meas);
 
         auto i64Ty = nestedBuilder.getIntegerType(64);
         auto intIv =
@@ -685,8 +690,10 @@ void c_if(ImplicitLocOpBuilder &builder, QuakeValue &conditional,
           std::function<void()> &thenFunctor) {
   auto value = conditional.getValue();
 
-  if (auto measureOp = value.getDefiningOp<quake::MeasurementInterface>())
-    checkAndUpdateRegName(measureOp);
+  if (auto discrOp = value.getDefiningOp<quake::DiscriminateOp>())
+    if (auto measureOp = discrOp.getMeasurement()
+                             .getDefiningOp<quake::MeasurementInterface>())
+      checkAndUpdateRegName(measureOp);
 
   auto type = value.getType();
   if (!type.isa<mlir::IntegerType>() || type.getIntOrFloatBitWidth() != 1)
