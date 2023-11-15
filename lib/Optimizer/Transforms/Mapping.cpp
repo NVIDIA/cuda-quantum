@@ -691,7 +691,7 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     block.walk([&](Operation *op) {
       for (auto r : op->getResults())
         if (r.use_empty() && r.getType() == wireType)
-          builder.create<quake::SinkOp>(builder.getUnknownLoc(), r);
+          builder.create<quake::SinkOp>(op->getLoc(), r);
     });
 
     // Populate mapping_v2p attribute on this function such that:
