@@ -27,11 +27,13 @@ IonQ
 JIT
 JSON
 Jupyter
+JupyterLab
 Kraus
 LLVM
 LSB
 MLIR
 MPI
+MPS
 Max-Cut
 NGC
 NVIDIA
@@ -53,6 +55,7 @@ QTX
 Quake
 Quantinuum
 RSA
+SVD
 TCP
 Toffoli
 VQE
