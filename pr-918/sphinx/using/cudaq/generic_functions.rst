@@ -12,8 +12,7 @@ generic :code:`cudaq::` functions that take any CUDA Quantum kernel expression a
 
 Let's take a look at the first couple examples of this already implemented in CUDA Quantum.
 The first function we provide is :code:`cudaq::sample(...)`, which takes any
-kernel as input (with certain characteristics, see the `Specification
-<https://nvidia.github.io/cuda-quantum/latest/specification/cudaq/algorithmic_primitives.html#cudaq-sample>`__`)
+kernel as input (with certain characteristics, see the :doc:`specification </specification/cudaq/algorithmic_primitives>`)
 and samples the kernel's resultant state over a number of shots, returning a map
 of observed measurement bit strings to the corresponding number of times that
 configuration was observed. Using this function is straightforward:
@@ -82,7 +81,7 @@ arguments
 
 Another useful CUDA Quantum function in the variational context is
 :code:`cudaq::observe(...)`. This function takes any kernel expression
-(with suitable characteristics noted in the `Specification <https://nvidia.github.io/cuda-quantum/latest/specification/cudaq/algorithmic_primitives.html#cudaq-observe>`__),
+(with suitable characteristics noted in the :doc:`specification </specification/cudaq/algorithmic_primitives>`),
 a user-provided :code:`cudaq::spin_op` defining a general quantum mechanical spin operator, and
 any kernel runtime arguments to return the expected value of the spin operator
 with respect to the kernel ansatz at the provided runtime parameters. It can be
