@@ -632,8 +632,10 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
         return true;
 
       // Assign registerName
-      if (auto meas = initVec.getDefiningOp<quake::MeasurementInterface>())
-        meas.setRegisterName(builder.getStringAttr(x->getName()));
+      if (auto descr = initVec.getDefiningOp<quake::DiscriminateOp>())
+        if (auto meas = descr.getMeasurement()
+                            .getDefiningOp<quake::MeasurementInterface>())
+          meas.setRegisterName(builder.getStringAttr(x->getName()));
 
       // Did this come from a stdvec init op? If not drop out
       auto stdVecInit = initVec.getDefiningOp<cc::StdvecInitOp>();
@@ -661,12 +663,13 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
         auto firstGepUser = *gepOp->getResult(0).getUsers().begin();
         if (auto storeOp = dyn_cast<cc::StoreOp>(firstGepUser)) {
           auto result = storeOp->getOperand(0);
-          auto mzOp = result.getDefiningOp<quake::MzOp>();
-          if (mzOp) {
-            // Found it, tag it with the name.
-            mzOp->setAttr("registerName", builder.getStringAttr(x->getName()));
-            break;
-          }
+          if (auto discr = result.getDefiningOp<quake::DiscriminateOp>())
+            if (auto mzOp =
+                    discr.getMeasurement().getDefiningOp<quake::MzOp>()) {
+              // Found it, tag it with the name.
+              mzOp.setRegisterName(builder.getStringAttr(x->getName()));
+              break;
+            }
         }
       }
 
@@ -696,8 +699,9 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
 
   // If this was an auto var = mz(q), then we want to know the
   // var name, as it will serve as the classical bit register name
-  if (auto mz = initValue.getDefiningOp<quake::MzOp>())
-    mz->setAttr("registerName", builder.getStringAttr(x->getName()));
+  if (auto discr = initValue.getDefiningOp<quake::DiscriminateOp>())
+    if (auto mz = discr.getMeasurement().getDefiningOp<quake::MzOp>())
+      mz.setRegisterName(builder.getStringAttr(x->getName()));
 
   assert(initValue && "initializer value must be lowered");
   if (isa<IntegerType>(initValue.getType()) && isa<IntegerType>(type)) {
