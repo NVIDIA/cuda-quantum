@@ -3,6 +3,7 @@ changelog:
     labels:
       - "duplicate"
       - "needs triage"
+      - "no release notes"
     authors:
       - cuda-quantum-bot
   categories:

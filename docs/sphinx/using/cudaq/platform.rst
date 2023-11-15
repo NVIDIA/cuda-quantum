@@ -3,7 +3,7 @@ Taking Advantage of the Underlying Quantum Platform
 The CUDA Quantum machine model elucidates the various devices considered in the
 broader quantum-classical compute node context. One will have one or many
 host CPUs, zero or many NVIDIA GPUs, a classical QPU control space, and the
-quantum register itself. Moreover, the `specification <https://nvidia.github.io/cuda-quantum/latest/specification/cudaq/platform.html>`__
+quantum register itself. Moreover, the :doc:`specification </specification/cudaq/platform>`
 notes that the underlying platform may expose multiple QPUs. In the near-term,
 this will be unlikely with physical QPU instantiations, but the availability of
 GPU-based circuit simulators on NVIDIA multi-GPU architectures does give one an
