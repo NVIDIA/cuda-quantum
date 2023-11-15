@@ -76,6 +76,8 @@ if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
   add_subdirectory(runtime/cudaq/domains/plugins)
 endif()
 
+add_subdirectory(runtime/cudaq/distributed)
+
 # Do we have pytest and numpy? 
 execute_process(COMMAND ${Python_EXECUTABLE} -m pytest --version
   OUTPUT_VARIABLE PYTEST_output

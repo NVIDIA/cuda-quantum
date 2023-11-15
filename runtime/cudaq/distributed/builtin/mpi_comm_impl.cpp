@@ -115,15 +115,6 @@ int mpi_CommSplit(const cudaqDistributedCommunicator_t *comm, int32_t color,
 }
 
 cudaqDistributedCommunicator_t *getMpiCommunicator() {
-  // int flag = 0;
-  // int res = MPI_Initialized(&flag);
-  // if (res != MPI_SUCCESS || flag == 0)
-  //   return nullptr;
-  // static MPI_Comm pluginComm;
-  // MPI_Comm_dup(MPI_COMM_WORLD, &pluginComm);
-  // static cudaqDistributedCommunicator_t commWorld{&pluginComm,
-  //                                                 sizeof(pluginComm)};
-  // return &commWorld;
   static MPI_Comm pluginComm = MPI_COMM_WORLD;
   static cudaqDistributedCommunicator_t commWorld{&pluginComm,
                                                   sizeof(pluginComm)};
