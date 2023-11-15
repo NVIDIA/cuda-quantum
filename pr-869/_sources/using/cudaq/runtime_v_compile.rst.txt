@@ -5,7 +5,7 @@ the definition of kernels in a couple of ways. Programmers can define
 quantum code that is generic and depends on runtime parameters, or they can
 define kernel expressions that are static and can be reasoned about and
 analyzed at compile time. Let's consider a kernel that generates 
-a maximally-entangled GHZ state:
+a maximally entangled GHZ state:
 
 .. code-block:: cpp 
 

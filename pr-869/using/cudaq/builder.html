@@ -433,7 +433,7 @@
 quantum kernels dynamically at runtime, as opposed to statically defining
 kernel structs, lambdas, or functions. CUDA Quantum provides an abstraction called the
 <code class="code docutils literal notranslate"><span class="pre">cudaq::kernel_builder</span></code> for such cases. Imagine that you wanted to dynamically
-create a kernel with the following callable structure</p>
+create a kernel with the following callable structure.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">kernel</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="kt">double</span><span class="w"> </span><span class="n">theta</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="o">&lt;</span><span class="mi">2</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
@@ -444,7 +444,7 @@ create a kernel with the following callable structure</p>
 <span class="p">};</span>
 </pre></div>
 </div>
-<p>This can be expressed dynamically at runtime with the builder as follows</p>
+<p>This can be expressed dynamically at runtime with the builder as follows:</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Build a quantum kernel dynamically</span>
 <span class="c1">// Start by creating the cudaq::builder, the kernel argument types</span>
 <span class="c1">// should be provided here as template parameters.</span>
@@ -473,7 +473,7 @@ call can be modified algebraically, giving the programmer more control over the
 kernel construction. These parameters can be any arithmetic type or
 <code class="code docutils literal notranslate"><span class="pre">std::vector&lt;T&gt;</span></code> where T is any arithmetic type. The arithmetic
 parameters can be multiplied by scalars, negated (unary negation), and summed
-with scalars. Vector parameters can be indexed. Here’s an example</p>
+with scalars. Vector parameters can be indexed. Here’s an example:</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Create the kernel with signature void(std::vector&lt;double&gt;)</span>
 <span class="k">auto</span><span class="w"> </span><span class="p">[</span><span class="n">ansatz</span><span class="p">,</span><span class="w"> </span><span class="n">thetas</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">make_kernel</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&gt;</span><span class="p">();</span>
 
