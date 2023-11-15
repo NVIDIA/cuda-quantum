@@ -19,13 +19,14 @@ namespace cudaq {
 /// @param symbolName The name of the generator function
 /// @return The plugin instance
 template <typename PluginPointerType>
-PluginPointerType *getUniquePluginInstance(const std::string_view symbolName) {
+PluginPointerType *getUniquePluginInstance(const std::string_view symbolName,
+                                           const char *libName = nullptr) {
   cudaq::info("Requesting {} plugin via symbol name {}.",
               typeid(PluginPointerType).name(), symbolName);
   std::mutex m;
   std::lock_guard<std::mutex> l(m);
   using GetPluginFunction = PluginPointerType *(*)();
-  auto handle = dlopen(NULL, RTLD_LAZY);
+  auto handle = dlopen(libName, RTLD_LAZY);
   GetPluginFunction fcn =
       (GetPluginFunction)(intptr_t)dlsym(handle, symbolName.data());
   if (!fcn)
