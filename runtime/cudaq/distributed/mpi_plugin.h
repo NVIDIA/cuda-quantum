@@ -48,6 +48,9 @@ public:
   void all_gather(std::vector<double> &global,
                   const std::vector<double> &local);
 
+  void broadcast(std::vector<double> &data, int rootRank);
+
+  void all_reduce(std::vector<double> &global, const std::vector<double> &local);
   /// @brief Finalize MPI. This function
   /// is a no-op if there CUDA Quantum has not been built
   /// against MPI.

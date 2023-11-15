@@ -148,41 +148,53 @@ int mpi_Barrier(const cudaqDistributedCommunicator_t *comm) {
   }
 }
 
+static py::object packData(const void *buffer, int32_t count, DataType dataType, bool readOnly = false) {
+  auto mpiBuffer = py::module::import("mpi4py.MPI.memory");
+  const auto bBytes = getDataSize(dataType) * count;
+  auto pyBuffer = mpiBuffer.attr("fromaddress")(buffer, bBytes, readOnly);
+  return pyBuffer;
+}
+
 int mpi_Bcast(const cudaqDistributedCommunicator_t *comm, void *buffer,
               int32_t count, DataType dataType, int32_t rootRank) {
-  py::buffer_info pyBuffer(
-      // Pointer to buffer
-      buffer,
-      // Size of one scalar
-      getDataSize(dataType),
-      // Python struct-style format descriptor
-      py::format_descriptor<double>::format(),
-      // Number of dimensions
-      1,
-      // Buffer dimensions
-      {count},
-      // Strides (in bytes) for each index
-      {sizeof(double)});
   auto pyComm = unpackMpiCommunicator(comm);
   try {
-    pyComm.attr("Bcast")(pyBuffer, rootRank);
+    pyComm.attr("bcast")(packData(buffer, count, dataType), rootRank);
     return 0;
   } catch (...) {
     return 1;
   }
 }
+
 int mpi_Allreduce(const cudaqDistributedCommunicator_t *comm,
                   const void *sendBuffer, void *recvBuffer, int32_t count,
                   DataType dataType, ReduceOp opType) {
-  // TODO
-  return 0;
+  py::tuple sendBuf = py::make_tuple(packData(sendBuffer, count, dataType, true),
+                                     count, convertType(dataType));
+  py::tuple recvBuf = py::make_tuple(packData(recvBuffer, count, dataType),
+                                     count, convertType(dataType));
+  auto pyComm = unpackMpiCommunicator(comm);
+  try {
+    pyComm.attr("Allreduce")(sendBuf, recvBuf);
+    return 0;
+  } catch (...) {
+    return 1;
+  }
 }
+
 int mpi_Allgather(const cudaqDistributedCommunicator_t *comm,
                   const void *sendBuffer, void *recvBuffer, int32_t count,
                   DataType dataType) {
-  // TODO
-  return 0;
+  auto pyComm = unpackMpiCommunicator(comm);
+  try {
+    pyComm.attr("Allgather")(packData(sendBuffer, count, dataType, true),
+                             packData(recvBuffer, count, dataType));
+    return 0;
+  } catch (...) {
+    return 1;
+  }
 }
+
 int mpi_CommDup(const cudaqDistributedCommunicator_t *comm,
                 cudaqDistributedCommunicator_t **newDupComm) {
   // TODO

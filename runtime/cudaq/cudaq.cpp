@@ -44,6 +44,7 @@ static cudaq::MPIPlugin *getMpiPlugin(bool unsafe = false) {
     // with MPI) This will throw if it cannot find an appropriate MPI comm
     // plugin. i.e., users are calling cudaq::mpi APIs while no MPI support can
     // be found.
+    // (3) mpi4py-based wrapper
     if (mpiLibPath) {
       // The user has set the environment variable.
       cudaq::info("Load MPI comm plugin from CUDAQ_MPI_COMM_LIB environment "
@@ -61,10 +62,20 @@ static cudaq::MPIPlugin *getMpiPlugin(bool unsafe = false) {
 #endif
       const auto pluginLibFile =
           pluginsPath / fmt::format("libcudaq-comm-plugin.{}", libSuffix);
+      const auto pyPluginLibFile =
+          pluginsPath / fmt::format("libcudaq-py-comm-plugin.{}", libSuffix);
       if (std::filesystem::exists(pluginLibFile)) {
         cudaq::info("Load builtin MPI comm plugin from  at '{}'",
                     pluginLibFile.c_str());
         g_plugin = std::make_unique<cudaq::MPIPlugin>(pluginLibFile.c_str());
+      } else if (std::filesystem::exists(pyPluginLibFile)) {
+        cudaq::info("Try loading mpi4py MPI comm plugin from  at '{}'",
+                    pyPluginLibFile.c_str());
+        g_plugin = std::make_unique<cudaq::MPIPlugin>(pyPluginLibFile.c_str());
+        if (!g_plugin) {
+          cudaq::info("Failed to load mpi4py MPI comm plugin (mpi4py is not "
+                      "available).");
+        }
       }
     }
   }
@@ -90,15 +101,6 @@ void initialize() {
 }
 
 void initialize(int argc, char **argv) {
-  // int pid, np, thread_provided;
-  // int mpi_error =
-  //     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &thread_provided);
-  // assert(mpi_error == MPI_SUCCESS && "MPI_Init_thread failed");
-  // assert(thread_provided == MPI_THREAD_MULTIPLE);
-  // MPI_Comm_rank(MPI_COMM_WORLD, &pid);
-  // MPI_Comm_size(MPI_COMM_WORLD, &np);
-  // if (pid == 0)
-  //   cudaq::info("MPI Initialized, nRanks = {}", np);
   auto *commPlugin = getMpiPlugin();
   commPlugin->initialize(argc, argv);
   const auto pid = commPlugin->rank();
@@ -126,9 +128,20 @@ bool is_initialized() {
   return commPlugin->is_initialized();
 }
 
-void all_gather(std::vector<double> &global, std::vector<double> &local) {
+void all_gather(std::vector<double> &global, const std::vector<double> &local) {
   auto *commPlugin = getMpiPlugin();
   commPlugin->all_gather(global, local);
+}
+
+void all_reduce(std::vector<double> &global, const std::vector<double> &local) {
+  auto *commPlugin = getMpiPlugin();
+  commPlugin->all_reduce(global, local);
+}
+
+
+void broadcast(std::vector<double> &data, int rootRank) {
+  auto *commPlugin = getMpiPlugin();
+  commPlugin->broadcast(data, rootRank);
 }
 
 void finalize() {

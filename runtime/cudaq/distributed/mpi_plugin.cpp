@@ -77,6 +77,17 @@ void MPIPlugin::all_gather(std::vector<double> &global,
       m_comm, local.data(), global.data(), local.size(), FLOAT_64));
 }
 
+void MPIPlugin::broadcast(std::vector<double> &data, int rootRank) {
+  HANDLE_MPI_ERROR(m_distributedInterface->Bcast(
+      m_comm, data.data(), data.size(), FLOAT_64, rootRank));
+}
+
+void MPIPlugin::all_reduce(std::vector<double> &global, const std::vector<double> &local) {
+  HANDLE_MPI_ERROR(m_distributedInterface->Allreduce(
+      m_comm, local.data(), global.data(), local.size(), FLOAT_64, SUM));
+}
+
+
 void MPIPlugin::finalize() {
   if (rank() == 0)
     cudaq::info("Finalizing MPI.");
