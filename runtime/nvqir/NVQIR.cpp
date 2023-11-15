@@ -644,18 +644,10 @@ static void commonInvokeWithRotationsControlsTargets(
     std::size_t numControlOperands, std::size_t *isArrayAndLength,
     Qubit **controls, std::size_t numTargetOperands, Qubit **targets,
     void (*QISFunction)()) {
-  if (numRotationOperands > 2) {
-    cudaq::info(
-        "[runtime] FATAL ERROR. Invoke has invalid number of rotations, {}.",
-        numRotationOperands);
-    return;
-  }
-  if (numTargetOperands < 1 || numTargetOperands > 2) {
-    cudaq::info(
-        "[runtime] FATAL ERROR. Invoke has invalid number of targets, {}.",
-        numTargetOperands);
-    return;
-  }
+  if (numRotationOperands > 2)
+    throw std::runtime_error("Invoke has invalid number of rotations.");
+  if (numTargetOperands < 1 || numTargetOperands > 2)
+    throw std::runtime_error("Invoke has invalid number of targets.");
   assert(numRotationOperands == 0 || params);
   assert(numControlOperands == 0 || (isArrayAndLength && controls));
   assert(numTargetOperands && targets);
