@@ -82,7 +82,7 @@ public:
       }
     }
     flushGateQueue();
-    cudaq::info(" [qpp decomposing] exp_pauli({}, {})", theta,
+    cudaq::info(" [CircuitSimulator decomposing] exp_pauli({}, {})", theta,
                 op.to_string(false));
     std::vector<std::size_t> qubitSupport;
     std::vector<std::function<void(bool)>> basisChange;
