@@ -115,6 +115,12 @@
 <li class="toctree-l3"><a class="reference internal" href="../install.html#remote-access-via-ssh">Remote Access via SSH</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../install.html#dgx-cloud">DGX Cloud</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../install.html#get-started">Get Started</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../install.html#use-jupyterlab">Use JupyterLab</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../install.html#use-vs-code">Use VS Code</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#additional-cuda-tools">Additional CUDA Tools</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../install.html#next-steps">Next Steps</a></li>
@@ -452,7 +458,7 @@ the <code class="code docutils literal notranslate"><span class="pre">cuStateVec
 switch to <code class="code docutils literal notranslate"><span class="pre">FP64</span></code>, specify the <code class="code docutils literal notranslate"><span class="pre">nvidia-fp64</span></code> target instead.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This backend requires an NVIDIA GPU and CUDA runtime libraries. If you are do not have these dependencies installed, you may encounter an error stating <code class="code docutils literal notranslate"><span class="pre">Invalid</span> <span class="pre">simulator</span> <span class="pre">requested</span></code>. See the section <a class="reference internal" href="../install.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a> for more information about how to install dependencies.</p>
+<p>This backend requires an NVIDIA GPU and CUDA runtime libraries. If you do not have these dependencies installed, you may encounter an error stating <code class="code docutils literal notranslate"><span class="pre">Invalid</span> <span class="pre">simulator</span> <span class="pre">requested</span></code>. See the section <a class="reference internal" href="../install.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a> for more information about how to install dependencies.</p>
 </div>
 </section>
 <section id="multi-node-multi-gpu">
@@ -492,7 +498,7 @@ invoking the program with the command</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This backend requires an NVIDIA GPU, CUDA runtime libraries, as well as an MPI installation. If you are do not have these dependencies installed, you may encounter an error stating <code class="code docutils literal notranslate"><span class="pre">Invalid</span> <span class="pre">simulator</span> <span class="pre">requested</span></code>. See the section <a class="reference internal" href="../install.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a> for more information about how to install dependencies.</p>
+<p>This backend requires an NVIDIA GPU, CUDA runtime libraries, as well as an MPI installation. If you do not have these dependencies installed, you may encounter an error stating <code class="code docutils literal notranslate"><span class="pre">Invalid</span> <span class="pre">simulator</span> <span class="pre">requested</span></code>. See the section <a class="reference internal" href="../install.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a> for more information about how to install dependencies.</p>
 </div>
 </section>
 <section id="openmp-cpu-only">
@@ -646,18 +652,27 @@ See the section <a class="reference internal" href="../install.html#dependencies
 </section>
 </section>
 <section id="default-simulator">
-<h2>Default Simulator<a class="headerlink" href="#default-simulator" title="Permalink to this heading">¶</a></h2>
+<span id="id3"></span><h2>Default Simulator<a class="headerlink" href="#default-simulator" title="Permalink to this heading">¶</a></h2>
 <p>If no explicit target is set, i.e. if the code is compiled without any <code class="code docutils literal notranslate"><span class="pre">--target</span></code> flags, then CUDA Quantum makes a default choice for the simulator.</p>
 <p>If an NVIDIA GPU and CUDA runtime libraries are available, the default target is set to <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code>. This will utilize the <a class="reference internal" href="#cuquantum-single-gpu"><span class="std std-ref">cuQuantum single-GPU state vector simulator</span></a>.
 On CPU-only systems, the default target is set to <code class="code docutils literal notranslate"><span class="pre">qpp-cpu</span></code> which uses the <a class="reference internal" href="#openmp-cpu-only"><span class="std std-ref">OpenMP CPU-only simulator</span></a>.</p>
 <p>The default simulator can be overridden by the environment variable <code class="code docutils literal notranslate"><span class="pre">CUDAQ_DEFAULT_SIMULATOR</span></code>. If no target is explicitly specified and the environment variable has a valid value, then it will take effect.
 This environment variable can be set to any non-hardware backend. Any invalid value is ignored.</p>
 <p>For CUDA Quantum Python API, the environment variable at the time when <code class="code docutils literal notranslate"><span class="pre">cudaq</span></code> module is imported is relevant, not the value of the environment variable at the time when the simulator is invoked.</p>
-<p>For example,
-.. code:: bash</p>
-<blockquote>
-<div><p>CUDAQ_DEFAULT_SIMULATOR=density-matrix-cpu nvq++ src.cpp</p>
-</div></blockquote>
+<p>For example,</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--6-input--1" name="tab-set--6" type="radio"><label class="tab-label" for="tab-set--6-input--1">C++</label><div class="tab-content docutils">
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDAQ_DEFAULT_SIMULATOR</span><span class="o">=</span>density-matrix-cpu<span class="w"> </span>nvq++<span class="w"> </span>program.cpp<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>-o<span class="w"> </span>program.x
+./program.x
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--6-input--2" name="tab-set--6" type="radio"><label class="tab-label" for="tab-set--6-input--2">Python</label><div class="tab-content docutils">
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDAQ_DEFAULT_SIMULATOR</span><span class="o">=</span>density-matrix-cpu<span class="w"> </span>python3<span class="w"> </span>program.py<span class="w"> </span><span class="o">[</span>...<span class="o">]</span>
+</pre></div>
+</div>
+</div>
+</div>
 <p>This will use the density matrix simulator target.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>

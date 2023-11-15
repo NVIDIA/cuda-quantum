@@ -339,17 +339,14 @@ This allows to connect either a local installation of `VS Code <https://code.vis
 or the `VS Code Web UI <https://vscode.dev/>`__, to a running CUDA Quantum container on the same or a different machine. 
 
 Creating a secure connection requires authenticating with the same GitHub or Microsoft account on each end.
-Once authenticated, an SSH connection over the tunnel provides end-to-end encryption. To download the CLI and 
-create a tunnel, execute the commands
+Once authenticated, an SSH connection over the tunnel provides end-to-end encryption. To download the VS Code CLI, if necessary, and create a tunnel, execute the 
+following command in the running CUDA Quantum container,
+and follow the instructions to authenticate:
 
 .. code-block:: console
 
-    os=$([ "$(uname -m)" == "aarch64" ] && echo cli-alpine-arm64 || echo cli-alpine-x64)
-    curl -Lk "https://code.visualstudio.com/sha/download?build=stable&os=$os" --output vscode_cli.tar.gz
-    tar -xf vscode_cli.tar.gz && rm vscode_cli.tar.gz && sudo mv code /usr/bin/
-    code tunnel --name cuda-quantum-remote --accept-server-license-terms
+    vscode-setup tunnel --name cuda-quantum-remote --accept-server-license-terms
 
-in the running CUDA Quantum container, and follow the instructions to authenticate.
 You can then either `open VS Code in a web browser <https://vscode.dev/tunnel/cuda-quantum-remote/home/cudaq/>`__, or connect a local installation of VS Code.
 To connect a local installation of VS Code, make sure you have the 
 `Remote - Tunnels <https://marketplace.visualstudio.com/items?itemName=ms-vscode.remote-server>`__ extension installed,
@@ -428,9 +425,146 @@ when connecting via SSH, which will launch the CUDA Quantum container and connec
   path to the `singularity` executable on the remote host, since environment variables, 
   and specifically the configured `PATH` may be different during launch than in your user account.
 
-.. TODO:
-  Use DGX Cloud
-  ++++++++++++++++++++++++++++++++++++
+DGX Cloud
+--------------------------------
+
+If you are using `DGX Cloud <https://www.nvidia.com/en-us/data-center/dgx-cloud/>`__, 
+you can easily use it to run CUDA Quantum applications.
+While submitting jobs to DGX Cloud directly from within CUDA Quantum is not (yet) supported,
+you can use the NGC CLI to launch and interact with workloads in DGX Cloud.
+The following sections detail how to do that, and how to connect JupyterLab and/or VS Code
+to a running CUDA Quantum job in DGX Cloud.
+
+.. _dgx-cloud-setup:
+
+Get Started
++++++++++++++++++++++++++++++++
+
+To get started with DGX Cloud, you can 
+`request access here <https://www.nvidia.com/en-us/data-center/dgx-cloud/trial/>`__.
+Once you have access, `sign in <https://ngc.nvidia.com/signin>`__ to your account,
+and `generate an API key <https://ngc.nvidia.com/setup/api-key>`__. 
+`Install the NGC CLI <https://ngc.nvidia.com/setup/installers/cli>`__
+and configure it with 
+
+.. code-block:: console
+
+    ngc config set
+
+entering the API key you just generated when prompted, and configure other settings as appropriate.
+
+.. note::
+
+  The rest of this section assumes you have CLI version 3.33.0. If you 
+  have an older version installed, you can upgrade to the latest version using the command
+
+  .. code-block:: console
+
+      ngc version upgrade 3.33.0
+  
+  See also the `NGC CLI documentation <https://docs.ngc.nvidia.com/cli/index.html>`__
+  for more information about available commands.
+
+You can see all information about available compute resources and ace instances
+with the command 
+
+.. code-block:: console
+
+    ngc base-command ace list
+
+Confirm that you can submit a job with the command
+
+.. code-block:: console
+
+    ngc base-command job run \
+      --name Job-001 --total-runtime 60s \
+      --image nvcr.io/nvidia/nightly/cuda-quantum:latest --result /results \
+      --ace <ace_name> --instance <instance_name> \
+      --commandline 'echo "Hello from DGX Cloud!"'
+
+replacing `<ace_name>` and `<instance_name>` with the name of the ace and instance you want 
+to execute the job on.
+You should now see that job listed when you run the command
+
+.. code-block:: console
+
+    ngc base-command job list
+
+Once it has completed you can download the job results using the command
+
+.. code-block:: console
+
+    ngc base-command result download <job_id>
+
+replacing `<job_id>` with the id of the job you just submitted.
+You should see a new folder named `<job_id>` with the job log that contains 
+the output "Hello from DGX Cloud!".
+
+For more information about how to use the NGC CLI to interact with DGX Cloud, 
+we refer to the `NGC CLI documentation <https://docs.ngc.nvidia.com/cli/index.html>`__.
+
+Use JupyterLab
++++++++++++++++++++++++++++++++
+
+Once you can :ref:`run jobs on DGX Cloud <dgx-cloud-setup>`, you can launch an interactive job 
+to use CUDA Quantum with `JupyterLab <https://jupyterlab.readthedocs.io/en/latest/>`__ 
+running on DGX Cloud:
+
+.. code-block:: console
+
+    ngc base-command job run \
+      --name Job-interactive-001 --total-runtime 600s \
+      --image nvcr.io/nvidia/nightly/cuda-quantum:latest --result /results \
+      --ace <ace_name> --instance <instance_name> \
+      --port 8888 --commandline 'jupyter-lab-setup <my-custom-token> --port=8888'
+
+Replace `<my-custom-token>` in the command above with a custom token that you can freely choose.
+You will use this token to authenticate with JupyterLab;
+Go to the `job portal <https://bc.ngc.nvidia.com/jobs>`__, click on the job you just launched, and click on the link
+under |:spellcheck-disable:|"URL/Hostname"|:spellcheck-enable:| in Service Mapped Ports. 
+
+.. note::
+
+  It may take a couple of minutes for DGX Cloud to launch and for the URL to become active, even after it appears in the Service Mapped Ports section;
+  if you encounter a "404: Not Found" error, be patient and try again in a couple of minutes.
+
+Once this URL opens, you should see the JupyterLab authentication page; enter the 
+token you selected above to get access to the running CUDA Quantum container.
+On the left you should see a folder with tutorials. Happy coding!
+
+Use VS Code
++++++++++++++++++++++++++++++++
+
+Once you can :ref:`run jobs on DGX Cloud <dgx-cloud-setup>`, you can launch an interactive job 
+to use CUDA Quantum with a local installation of `VS Code <https://code.visualstudio.com/>`_, 
+or the `VS Code Web UI <https://vscode.dev/>`__, running on DGX Cloud:
+
+.. code-block:: console
+
+    ngc base-command job run \
+      --name Job-interactive-001 --total-runtime 600s \
+      --image nvcr.io/nvidia/nightly/cuda-quantum:latest --result /results \
+      --ace <ace_name> --instance <instance_name> \
+      --commandline 'vscode-setup tunnel --name cuda-quantum-dgx --accept-server-license-terms'
+
+Go to the `job portal <https://bc.ngc.nvidia.com/jobs>`__, click on the job you just launched, and select the "Log"
+tab. Once the job is running, you should see instructions there for how to connect to the device the job is running on.
+These instructions include a link to open and the code to enter on that page; follow the instructions to authenticate. 
+Once you have authenticated, you can either 
+`open VS Code in a web browser <https://vscode.dev/tunnel/cuda-quantum-dgx/home/cudaq/>`__, 
+or connect a local installation of VS Code.
+To connect a local installation of VS Code, make sure you have the 
+`Remote - Tunnels <https://marketplace.visualstudio.com/items?itemName=ms-vscode.remote-server>`__ extension installed,
+then open the Command Palette with `Ctrl+Shift+P`, enter "Remote Tunnels: Connect to Tunnel", 
+and enter `cuda-quantum-remote`. After the window reloaded, enter "File: Open Folder" in the Command Palette 
+to open the `/home/cudaq/` folder.
+
+You should see a pop up asking if you want to install the recommended extensions. Selecting to install them will
+configure VS Code with extensions for working with C++, Python, and Jupyter.
+You can always see the list of recommended extensions that aren't installed yet by clicking on the "Extensions" icon in the sidebar and navigating to the "Recommended" tab.
+
+If you enter "View: Show Explorer" in the Command Palette, you should see a folder with tutorials and examples
+to help you get started. Take a look at `Next Steps`_ to dive into CUDA Quantum development.
 
 .. _additional-cuda-tools:
 
@@ -529,7 +663,7 @@ To run the example, execute the command:
 
       python examples/python/bernstein_vazirani.py --size 5
 
-This will execute the program on the default simulator, which will use GPU-acceleration if 
+This will execute the program on the :ref:`default simulator <default-simulator>`, which will use GPU-acceleration if 
 a suitable GPU has been detected. To confirm that the GPU acceleration works, you can 
 increase the size of the secret string, and pass the target as a command line argument:
 
@@ -577,5 +711,3 @@ a long time for the CPU-only backend to simulate 28+ qubits! Cancel the executio
 
 You are now all set to start developing quantum applications using CUDA Quantum!
 Please proceed to :doc:`Using CUDA Quantum <using/cudaq>` to learn the basics.
-
-See :doc:`Default Simulator <using/simulators>` for information on default target.
