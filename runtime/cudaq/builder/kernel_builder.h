@@ -604,10 +604,10 @@ public:
     const std::vector<QuakeValue> &targets{first, second};
     details::swap(*opBuilder, controls, targets);
   }
-  // This final overload should accept variadic qubit args... for the first
-  // argument, then accept a first and second just like the other ctrl
-  // functions. This enforces that there will always be 2 final qubits in the
-  // lsit to SWAP, rather than implicitly pairing them off of the qubit args.
+  /// @brief SWAP operation for performing a Fredkin gate between two qubits,
+  /// based on the state of a variadic input of control qubits and registers.
+  /// Note: the final two qubits in the variadic list will always be the qubits
+  /// that undergo a SWAP. This requires >=3 qubits in the args.
   template <
       typename mod, typename... QubitValues,
       typename = typename std::enable_if_t<sizeof...(QubitValues) >= 3>,
