@@ -266,6 +266,8 @@ Specific aspects of the simulation can be configured by defining the following e
   Setting random seed, via :code:`cudaq::set_random_seed`, is not supported for this backend due to a limitation of the :code:`cuTensorNet` library. This will be fixed in future release once this feature becomes available.
 
 
+.. _default-simulator:
+
 Default Simulator
 ==================================
 If no explicit target is set, i.e. if the code is compiled without any :code:`--target` flags, then CUDA Quantum makes a default choice for the simulator.
@@ -279,9 +281,19 @@ This environment variable can be set to any non-hardware backend. Any invalid va
 For CUDA Quantum Python API, the environment variable at the time when `cudaq` module is imported is relevant, not the value of the environment variable at the time when the simulator is invoked.
 
 For example,
-.. code:: bash
 
-    CUDAQ_DEFAULT_SIMULATOR=density-matrix-cpu nvq++ src.cpp
+.. tab:: C++
+
+    .. code:: bash 
+
+        CUDAQ_DEFAULT_SIMULATOR=density-matrix-cpu nvq++ program.cpp [...] -o program.x
+        ./program.x
+
+.. tab:: Python
+
+    .. code:: bash 
+
+        CUDAQ_DEFAULT_SIMULATOR=density-matrix-cpu python3 program.py [...]
 
 This will use the density matrix simulator target.
 

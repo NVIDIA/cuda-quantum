@@ -663,7 +663,7 @@ To run the example, execute the command:
 
       python examples/python/bernstein_vazirani.py --size 5
 
-This will execute the program on the default simulator, which will use GPU-acceleration if 
+This will execute the program on the :ref:`default simulator <default-simulator>`, which will use GPU-acceleration if 
 a suitable GPU has been detected. To confirm that the GPU acceleration works, you can 
 increase the size of the secret string, and pass the target as a command line argument:
 
@@ -711,5 +711,3 @@ a long time for the CPU-only backend to simulate 28+ qubits! Cancel the executio
 
 You are now all set to start developing quantum applications using CUDA Quantum!
 Please proceed to :doc:`Using CUDA Quantum <using/cudaq>` to learn the basics.
-
-See :doc:`Default Simulator <using/simulators>` for information on default target.
