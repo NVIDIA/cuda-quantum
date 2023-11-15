@@ -103,7 +103,7 @@ struct C {
 // CHECK:             }
 // CHECK:           }
 // CHECK:           call @_Z2g4v() : () -> ()
-// CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.stdvec<i1>
+// CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 
@@ -192,7 +192,7 @@ struct D {
 // CHECK:             }
 // CHECK:           }
 // CHECK:           call @_Z2g4v() : () -> ()
-// CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.stdvec<i1>
+// CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 
@@ -280,7 +280,7 @@ struct E {
 // CHECK:           cf.br ^bb1
 // CHECK:         ^bb7:
 // CHECK:           call @_Z2g4v() : () -> ()
-// CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.stdvec<i1>
+// CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // CHECK:           quake.dealloc %[[VAL_6]] : !quake.veq<2>
 // CHECK:           return
 
@@ -370,6 +370,6 @@ struct F {
 // CHECK:           cf.br ^bb1
 // CHECK:         ^bb8:
 // CHECK:           call @_Z2g4v() : () -> ()
-// CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.stdvec<i1>
+// CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // CHECK:           quake.dealloc %[[VAL_6]] : !quake.veq<2>
 // CHECK:           return

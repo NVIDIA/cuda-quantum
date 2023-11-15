@@ -83,7 +83,7 @@ func.func @promote_induction_variable() {
     %4 = arith.addi %3, %c1_i64 : i64
     cc.store %4, %alloca : !cc.ptr<i64>
   }
-  %2 = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<i1>
+  %2 = quake.mz %veq : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
   quake.dealloc %veq : !quake.veq<2>
   return
 }
@@ -109,7 +109,7 @@ func.func @promote_induction_variable() {
 // CHECK:             %[[VAL_14:.*]] = arith.addi %[[VAL_13]], %[[VAL_1]] : i64
 // CHECK:             cc.continue %[[VAL_14]] : i64
 // CHECK:           }
-// CHECK:           %[[VAL_15:.*]] = quake.mz %[[VAL_3]] : (!quake.veq<2>) -> !cc.stdvec<i1>
+// CHECK:           quake.mz %[[VAL_3]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // CHECK:           quake.dealloc %[[VAL_3]] : !quake.veq<2>
 // CHECK:           return
 // CHECK:         }
@@ -133,7 +133,7 @@ func.func @promote_induction_variable() {
 // TOMEM:             %[[VAL_12:.*]] = arith.addi %[[VAL_11]], %[[VAL_1]] : i64
 // TOMEM:             cc.continue %[[VAL_12]] : i64
 // TOMEM:           }
-// TOMEM:           %[[VAL_13:.*]] = quake.mz %[[VAL_3]] : (!quake.veq<2>) -> !cc.stdvec<i1>
+// TOMEM:           quake.mz %[[VAL_3]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // TOMEM:           quake.dealloc %[[VAL_3]] : !quake.veq<2>
 // TOMEM:           return
 // TOMEM:         }

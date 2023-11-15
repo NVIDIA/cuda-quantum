@@ -29,7 +29,7 @@ struct lower_ctrl_as_qreg {
 // CHECK:           quake.h [%[[VAL_0]]] %[[VAL_2]] : (!quake.veq<4>, !quake.ref) -> ()
 // CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_1]][1] : (!quake.veq<2>) -> !quake.ref
 // CHECK:           quake.x [%[[VAL_0]]] %[[VAL_3]] : (!quake.veq<4>, !quake.ref) -> ()
-// CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_1]] : (!quake.veq<2>) -> !cc.stdvec<i1>
+// CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_1]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 
@@ -55,7 +55,7 @@ struct test_two_control_call {
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<4>
 // CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.ref
 // CHECK:           quake.apply @__nvqpp__mlirgen__ZN21test_two_control_callcl[[LAMBDA:.*]]_ [%[[VAL_2]]] %[[VAL_4]] : (!quake.veq<4>, !quake.ref) -> ()
-// CHECK:           %[[VAL_5:.*]] = quake.mz %[[VAL_4]] : (!quake.ref) -> i1
+// CHECK:           %[[VAL_5:.*]] = quake.mz %[[VAL_4]] : (!quake.ref) -> !quake.measure
 // CHECK:           return
 // CHECK:         }
 
@@ -87,7 +87,7 @@ struct unmarked_lambda {
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<4>
 // CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.ref
 // CHECK:           quake.apply %[[VAL_0]] [%[[VAL_2]]] %[[VAL_3]] : (!quake.veq<4>, !quake.ref) -> ()
-// CHECK:           %[[VAL_5:.*]] = quake.mz %[[VAL_3]] : (!quake.ref) -> i1
+// CHECK:           %[[VAL_5:.*]] = quake.mz %[[VAL_3]] : (!quake.ref) -> !quake.measure
 // CHECK:           return
 // CHECK:         }
 
@@ -112,6 +112,6 @@ struct direct_unmarked_lambda {
 // CHECK:             quake.y %[[VAL_3]] : (!quake.ref) -> ()
 // CHECK:           } : !cc.callable<(!quake.ref) -> ()>
 // CHECK:           quake.apply %[[VAL_2]] [%[[VAL_0]]] %[[VAL_1]] : (!quake.veq<4>, !quake.ref) -> ()
-// CHECK:           %[[VAL_5:.*]] = quake.mz %[[VAL_1]] : (!quake.ref) -> i1
+// CHECK:           %[[VAL_5:.*]] = quake.mz %[[VAL_1]] : (!quake.ref) -> !quake.measure
 // CHECK:           return
 // CHECK:         }

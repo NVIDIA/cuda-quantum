@@ -16,7 +16,7 @@ func.func @do_not_merge() {
   %4:2 = quake.x [%3] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %5 = quake.h %2 : (!quake.wire) -> !quake.wire
   %6:2 = quake.x [%5] %4#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  %7:2 = quake.mz %6#1 : (!quake.wire) -> (i1, !quake.wire)
+  %7:2 = quake.mz %6#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
   quake.sink %7#1 : !quake.wire
   quake.sink %6#0 : !quake.wire
   quake.sink %4#0 : !quake.wire
@@ -31,7 +31,7 @@ func.func @do_not_merge() {
 // CHECK:           %[[VAL_4:.*]]:2 = quake.x [%[[VAL_3]]] %[[VAL_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
 // CHECK:           %[[VAL_5:.*]] = quake.h %[[VAL_2]] : (!quake.wire) -> !quake.wire
 // CHECK:           %[[VAL_6:.*]]:2 = quake.x [%[[VAL_5]]] %[[VAL_4]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           %[[VAL_7:.*]], %[[VAL_8:.*]] = quake.mz %[[VAL_6]]#1 : (!quake.wire) -> (i1, !quake.wire)
+// CHECK:           %[[VAL_7:.*]], %[[VAL_8:.*]] = quake.mz %[[VAL_6]]#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK:           quake.sink %[[VAL_8]] : !quake.wire
 // CHECK:           quake.sink %[[VAL_6]]#0 : !quake.wire
 // CHECK:           quake.sink %[[VAL_4]]#0 : !quake.wire

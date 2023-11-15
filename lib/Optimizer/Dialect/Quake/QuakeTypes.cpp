@@ -59,5 +59,5 @@ quake::VeqType::verify(llvm::function_ref<InFlightDiagnostic()> emitError,
 //===----------------------------------------------------------------------===//
 
 void quake::QuakeDialect::registerTypes() {
-  addTypes<VeqType, RefType, WireType, ControlType>();
+  addTypes<ControlType, MeasureType, RefType, VeqType, WireType>();
 }
