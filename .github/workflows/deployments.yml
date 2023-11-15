@@ -99,7 +99,7 @@ jobs:
         run: |
           echo "Concurrency group: ${{ github.event.workflow_run.head_branch || github.ref_name }}"
 
-          requested_platforms=`echo ${{ inputs.platforms || 'linux/arm64 linux/amd64' }} | tr + ,`
+          requested_platforms=`echo "${{ inputs.platforms || 'linux/arm64 linux/amd64' }}" | tr + ,`
           if [ -n "$(echo "$requested_platforms" | egrep ',')" ]; then
             multi_platform="{\"ids\":[]}"
             platform_flag=`echo "$requested_platforms" | tr -d ' '`
