@@ -3,15 +3,22 @@ changelog:
     labels:
       - "duplicate"
       - "needs triage"
+      - "no release notes"
     authors:
       - cuda-quantum-bot
   categories:
     - title: Features and Enhancements 🎉
       labels:
         - "enhancement"
+      exclude:
+        labels:
+          - breaking change
     - title: Bug Fixes 🐛
       labels:
         - "bug fix"
+      exclude:
+        labels:
+          - breaking change  
     - title: Breaking Changes 🛠
       labels:
         - "breaking change"
@@ -21,3 +28,4 @@ changelog:
     - title: Other Changes
       labels:
         - "release notes"
+        
