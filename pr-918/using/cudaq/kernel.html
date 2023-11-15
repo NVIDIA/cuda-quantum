@@ -448,13 +448,13 @@ discovery, compilation, and runtime-library configuration and setup.</p>
 the development of <strong>generic</strong> libraries of quantum algorithmic primitives
 and applications, CUDA Quantum defines quantum device code as stand-alone typed
 callables in C++. A typed callable in C++ is any user-defined <code class="code docutils literal notranslate"><span class="pre">struct</span></code>
-or <code class="code docutils literal notranslate"><span class="pre">class</span></code> that provides an <code class="code docutils literal notranslate"><span class="pre">void</span> <span class="pre">operator()(Args...)</span> <span class="pre">{}</span></code>
-overload (an operator-call overload). Implicitly typed callables - C++
-lambdas, which compiler implementations enable as automated type definitions
-- also provide this typed-callable pattern. CUDA Quantum requires that these callable
-definitions be annotated in some way to indicate that this expression is meant
-for compilation and execution on the quantum device.</p>
-<p>CUDA Quantum distinguishes between two separate kinds of kernel expressions - entry-point
+or <code class="code docutils literal notranslate"><span class="pre">class</span></code> that provides an operator-call overload
+(<code class="code docutils literal notranslate"><span class="pre">void</span> <span class="pre">operator()(Args...)</span> <span class="pre">{}</span></code>).
+C++ lambdas —  enabled as automated type definitions through compiler implementations
+— also implicitly provide this typed-callable pattern. CUDA Quantum requires
+that these callable definitions be annotated in some way to indicate that this
+expression is meant for compilation and execution on the quantum device.</p>
+<p>CUDA Quantum distinguishes between two separate kinds of kernel expressions: entry-point
 and pure-device quantum kernels. Entry-point kernels are those that can be
 called from host code, while pure-device kernels are those that can only be
 called from other quantum kernel code. See the <a class="reference internal" href="../../specification/cudaq/kernels.html"><span class="doc">specification</span></a>

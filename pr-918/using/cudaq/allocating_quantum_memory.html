@@ -457,12 +457,12 @@ the number of qudits contained and is defaulted to a special symbol in CUDA Quan
 qudits, very much akin to something like <code class="code docutils literal notranslate"><span class="pre">std::vector&lt;T&gt;</span> <span class="pre">v(N)</span></code> in
 classical C++. One can alternatively specify this template parameter to pick
 up <code class="code docutils literal notranslate"><span class="pre">std::array&lt;T,</span> <span class="pre">N&gt;</span> <span class="pre">a</span></code> like semantics whereby the size of the register is
-known at compile time. The trade-off here is important - there may be quantum
+known at compile time. The trade-off here is important; there may be quantum
 circuit optimizations that can be enabled at compile time for CUDA Quantum kernels
 solely employing compile-time-known <code class="code docutils literal notranslate"><span class="pre">cudaq::qreg</span></code> allocations.</p>
 <p>These quantum memory types are specifically designed to throw compile-time errors
 when they are incorrectly used. An example of this for quantum memory and
-its underlying ownership model can be seen in this snippet</p>
+its underlying ownership model can be seen in this snippet.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">fooBad</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
 <span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">fooGood</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="o">&amp;</span><span class="w"> </span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
 <span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">barBad</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>

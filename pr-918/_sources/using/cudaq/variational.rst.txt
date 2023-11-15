@@ -51,7 +51,7 @@ invocations. CUDA Quantum gradients require that kernel input parameters be mapp
 :code:`std::vector<double>`. CUDA Quantum kernels with signature :code:`void(std::vector<double>)`
 are compatible with CUDA Quantum gradients out of the box, but those with non-default signature 
 must provide a callable that maps kernel input arguments to a :code:`std::vector<double>`.
-Here is an example 
+Here is an example: 
 
 .. code-block:: cpp 
 
