@@ -33,7 +33,7 @@ expression is meant for compilation and execution on the quantum device.
 CUDA Quantum distinguishes between two separate kinds of kernel expressions: entry-point 
 and pure-device quantum kernels. Entry-point kernels are those that can be 
 called from host code, while pure-device kernels are those that can only be
-called from other quantum kernel code. See the :ref:`specification <quantum-kernels-spec>`
+called from other quantum kernel code. See the :doc:`specification <specification/cudaq/kernels>`
 for more detail,  but here we note that the "typed" requirement can be relaxed
 for pure-device kernels:
 
