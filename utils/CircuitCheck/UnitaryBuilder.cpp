@@ -53,7 +53,7 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
 
       for (auto &&[newQuantumOp, quantumOp] : llvm::zip(
                quake::getQuantumResults(op), quake::getQuantumOperands(op)))
-        qubitMap[newQuantumOp] = qubitMap[quantumOp];
+        qubitMap.insert({newQuantumOp, qubitMap[quantumOp]});
 
       // When checking mapped circuits, we do a software swap, i.e., just change
       // the qubit mapping instead of applying the swap operation.
@@ -234,7 +234,7 @@ void UnitaryBuilder::growMatrix(unsigned numQubits) {
 //     q : ─┤    ├┤ U ├─   ─┤    ├┤ U ├─   ─┤    ├┤     ├─   ─┤    ├─
 //      0   │    │└───┘     │    │└───┘     │    ││     │     │    │
 //          │    │          │    │┌───┐     │    ││     │     │    │
-//     q : ─┤ C  ├────── = ─┤ C  ├┤   ├─ = ─┤ C  ├┤ I⊗U ├─ = ─┤ C  ├─
+//     q : ─┤ C  ├────── = ─┤ C  ├┤   ├─ = ─┤ C  ├┤ I⊗U├─ = ─┤ C  ├─
 //      1   │  0 │          │  0 ││   │     │  0 ││     │     │  1 │
 //          │    │          │    ││ I │     │    ││     │     │    │
 //     q : ─┤    ├──────   ─┤    ├┤   ├─   ─┤    ├┤     ├─   ─┤    ├─
