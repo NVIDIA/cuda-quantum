@@ -159,20 +159,22 @@ static LogicalResult emitOperation(nlohmann::json &json,
 
 static LogicalResult emitOperation(nlohmann::json &json,
                                    cudaq::Emitter &emitter, Operation &op) {
-  using namespace quake;
   return llvm::TypeSwitch<Operation *, LogicalResult>(&op)
       .Case<ModuleOp>([&](auto op) { return emitOperation(json, emitter, op); })
       // Quake
-      .Case<AllocaOp>([&](auto op) { return emitOperation(json, emitter, op); })
-      .Case<ExtractRefOp>(
+      .Case<quake::AllocaOp>(
           [&](auto op) { return emitOperation(json, emitter, op); })
-      .Case<OperatorInterface>(
-          [&](auto optor) { return emitOperation(json, emitter, optor); })
-      .Case<MzOp>([&](auto op) { return emitOperation(json, emitter, op); })
+      .Case<quake::ExtractRefOp>(
+          [&](auto op) { return emitOperation(json, emitter, op); })
+      .Case<quake::OperatorInterface>(
+          [&](auto op) { return emitOperation(json, emitter, op); })
+      .Case<quake::MzOp>(
+          [&](auto op) { return emitOperation(json, emitter, op); })
       // Ignore
-      .Case<DeallocOp>([&](auto op) { return success(); })
-      .Case<func::ReturnOp>([&](auto op) { return success(); })
-      .Case<arith::ConstantOp>([&](auto op) { return success(); })
+      .Case<quake::DiscriminateOp>([](auto) { return success(); })
+      .Case<quake::DeallocOp>([](auto) { return success(); })
+      .Case<func::ReturnOp>([](auto) { return success(); })
+      .Case<arith::ConstantOp>([](auto) { return success(); })
       .Default([&](Operation *) -> LogicalResult {
         // Allow LLVM and cc dialect ops (for storing measure results).
         if (op.getName().getDialectNamespace().equals("llvm") ||

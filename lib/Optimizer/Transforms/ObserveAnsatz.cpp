@@ -225,7 +225,8 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
       // add the measure
       char regName[16];
       std::snprintf(regName, sizeof(regName), "r%05lu", measureNum);
-      builder.create<quake::MzOp>(loc, builder.getI1Type(), qubitToMeasure,
+      auto measTy = quake::MeasureType::get(builder.getContext());
+      builder.create<quake::MzOp>(loc, measTy, qubitToMeasure,
                                   builder.getStringAttr(regName));
     }
 

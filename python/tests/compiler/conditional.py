@@ -56,10 +56,11 @@ def test_kernel_conditional():
 # CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_3]][0] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           %[[VAL_5:.*]] = quake.extract_ref %[[VAL_3]][1] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           quake.x %[[VAL_4]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_6:.*]] = quake.mz %[[VAL_4]] name "measurement_" : (!quake.ref) -> i1
+# CHECK:           %[[VAL_106:.*]] = quake.mz %[[VAL_4]] name "measurement_" : (!quake.ref) -> !quake.measure
+# CHECK:           %[[VAL_6:.*]] = quake.discriminate %[[VAL_106]] :
 # CHECK:           cc.if(%[[VAL_6]]) {
 # CHECK:             quake.x %[[VAL_5]] : (!quake.ref) -> ()
-# CHECK:             %[[VAL_7:.*]] = quake.mz %[[VAL_5]] name "" : (!quake.ref) -> i1
+# CHECK:             %[[VAL_7:.*]] = quake.mz %[[VAL_5]] name "" : (!quake.ref) -> !quake.measure
 # CHECK:           }
 # CHECK:           %[[VAL_8:.*]] = cc.loop while ((%[[VAL_9:.*]] = %[[VAL_2]]) -> (index)) {
 # CHECK:             %[[VAL_10:.*]] = arith.cmpi slt, %[[VAL_9]], %[[VAL_0]] : index
@@ -76,7 +77,7 @@ def test_kernel_conditional():
 # CHECK:           } {invariant}
 # CHECK:           cc.if(%[[VAL_6]]) {
 # CHECK:             quake.x %[[VAL_5]] : (!quake.ref) -> ()
-# CHECK:             %[[VAL_15:.*]] = quake.mz %[[VAL_5]] name "" : (!quake.ref) -> i1
+# CHECK:             %[[VAL_15:.*]] = quake.mz %[[VAL_5]] name "" : (!quake.ref) -> !quake.measure
 # CHECK:           }
 # CHECK:           return
 # CHECK:         }
@@ -115,7 +116,8 @@ def test_kernel_conditional_with_sample():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 # CHECK:           quake.x %[[VAL_0]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "auto_register_0" : (!quake.ref) -> i1
+# CHECK:           %[[VAL_11:.*]] = quake.mz %[[VAL_0]] name "auto_register_0" : (!quake.ref) -> !quake.measure
+# CHECK:           %[[VAL_1:.*]] = quake.discriminate %[[VAL_11]] :
 # CHECK:           cc.if(%[[VAL_1]]) {
 # CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
 # CHECK:           }
@@ -157,7 +159,8 @@ def test_cif_extract_ref_bug():
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
 # CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           quake.x %[[VAL_1]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] name "measure0" : (!quake.ref) -> i1
+# CHECK:           %[[VAL_12:.*]] = quake.mz %[[VAL_1]] name "measure0" : (!quake.ref) -> !quake.measure
+# CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_12]] :
 # CHECK:           cc.if(%[[VAL_2]]) {
 # CHECK:             %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<2>) -> !quake.ref
 # CHECK:             quake.x %[[VAL_3]] : (!quake.ref) -> ()
