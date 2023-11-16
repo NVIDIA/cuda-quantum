@@ -667,32 +667,33 @@ Args:
             return self.swap<cudaq::ctrl>(control, first, second);
           },
           py::arg("control"), py::arg("first"), py::arg("second"),
-          R"#(Swap the states of the provided qubits. 
+          R"#(Perform a controlled-SWAP operation between two qubits,
+if and only if the state of the provided `control` qubit/s is 1.
 
 Args:                                                          
   control (:class:`QuakeValue`): The control qubit/s for the operation.                                                       
   first (:class:`QuakeValue`): The target qubit of the operation. 
     Its state will swap with the `second` qubit, based on the state of the
-    input `controls`.
+    input `control`.
   second (:class:`QuakeValue`): The target qubit of the operation. 
     Its state will swap with the `first` qubit, based on the state of the
-    input `controls`.               
+    input `control`.               
 
 .. code-block:: python
 
   # Example:
   kernel = cudaq.make_kernel()
   # Allocate control qubit/s to the `kernel`.
-  controls = kernel.qalloc(2)
-  # Allocate target qubit/s to the `kernel`.
+  control = kernel.qalloc(2)
+  # Allocate target qubits to the `kernel`.
   targets = kernel.qalloc(2)
-  # Place the 0th qubit in the 1-state.
+  # Place the 0th target qubit in the 1-state.
   kernel.x(targets[0])
-  # Place our controls in the 1-state.
-  kernel.x(controls[0])
-  kernel.x(controls[1])
-  # Swap their states if all `controls` are in the `1-state`.
-  kernel.swap(controls, targets[0], targets[1]))#")
+  # Place our control/s in the 1-state.
+  kernel.x(control)
+  # Since the `control` is all in the 1-state, our target
+  # states should undergo a SWAP.
+  kernel.cswap(control, targets[0], targets[1]))#")
       /// @brief Bind the controlled-SWAP gate with the controls provided in a
       /// vector.
       .def(
@@ -702,7 +703,8 @@ Args:
             return self.swap<cudaq::ctrl>(controls, first, second);
           },
           py::arg("controls"), py::arg("first"), py::arg("second"),
-          R"#(Swap the states of the provided qubits.
+          R"#(Perform a controlled-SWAP operation between two qubits,
+if and only if the states of all provided `control` qubits are 1.
 
 Args:                                                          
   controls (list[QuakeValue]): The list of control qubits for the operation.                                                       
@@ -717,17 +719,18 @@ Args:
 
   # Example:
   kernel = cudaq.make_kernel()
-  # Allocate control qubit/s to the `kernel`.
+  # Allocate control qubits to the `kernel`.
   controls = [kernel.qalloc(), kernel.qalloc()]
-  # Allocate target qubit/s to the `kernel`.
+  # Allocate target qubits to the `kernel`.
   targets = kernel.qalloc(2)
-  # Place the 0th qubit in the 1-state.
+  # Place the 0th target qubit in the 1-state.
   kernel.x(targets[0])
   # Place our controls in the 1-state.
   kernel.x(controls[0])
   kernel.x(controls[1])
-  # Swap their states if all `controls` are in the `1-state`.
-  kernel.swap(controls, targets[0], targets[1]))#")
+  # Since the `controls` are all in the 1-state, our target
+  # states should undergo a SWAP.
+  kernel.cswap(controls, targets[0], targets[1]))#")
 
       /// @brief Allow for conditional statements on measurements.
       .def(
