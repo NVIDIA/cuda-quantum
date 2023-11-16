@@ -101,13 +101,15 @@ can be trivially simulated via a NVIDIA GPU-accelerated backend:
 .. literalinclude:: ../examples/cpp/basics/cuquantum_backends.cpp
     :language: cpp
 
-Here we generate a GHZ state on 30 qubits. To run with the built-in cuQuantum state 
+Here we generate a GHZ state on 28 qubits. To run with the built-in cuQuantum state 
 vector support, we pass the :code:`--target nvidia` flag at compile time:
 
 .. code:: bash 
 
     nvq++ --target nvidia cuquantum_backends.cpp -o ghz.x
     ./ghz.x
+
+Alternatively, we can set the environment variable `CUDAQ_DEFAULT_SIMULATOR` to `nvidia`.
 
 Noisy Simulation
 -----------------

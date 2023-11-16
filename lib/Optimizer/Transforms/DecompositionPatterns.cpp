@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "DecompositionPatterns.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
@@ -23,14 +24,13 @@ namespace {
 
 inline Value createConstant(Location loc, double value, Type type,
                             PatternRewriter &rewriter) {
-  return rewriter.create<arith::ConstantFloatOp>(loc, llvm::APFloat(value),
-                                                 cast<FloatType>(type));
+  auto fltTy = cast<FloatType>(type);
+  return cudaq::opt::factory::createFloatConstant(loc, rewriter, value, fltTy);
 }
 
-inline Value createConstant(Location loc, size_t value,
+inline Value createConstant(Location loc, std::size_t value,
                             PatternRewriter &rewriter) {
-  return rewriter.create<arith::ConstantIntOp>(loc, value,
-                                               rewriter.getI64Type());
+  return cudaq::opt::factory::createI64Constant(loc, rewriter, value);
 }
 
 inline Value createDivF(Location loc, Value numerator, double denominator,
@@ -45,13 +45,13 @@ inline Value createDivF(Location loc, Value numerator, double denominator,
 /// Note: This function assumes that the operation has already been tested for
 /// reference semantics.
 LogicalResult checkNumControls(quake::OperatorInterface op,
-                               size_t requiredNumControls) {
+                               std::size_t requiredNumControls) {
   auto opControls = op.getControls();
   if (opControls.size() > requiredNumControls)
     return failure();
 
   // Compute the number of controls
-  size_t numControls = 0;
+  std::size_t numControls = 0;
   for (auto control : opControls) {
     if (auto veq = dyn_cast<quake::VeqType>(control.getType())) {
       if (!veq.hasSpecifiedSize())
@@ -78,10 +78,10 @@ LogicalResult checkAndExtractControls(quake::OperatorInterface op,
   if (failed(checkNumControls(op, controls.size())))
     return failure();
 
-  size_t controlIndex = 0;
+  std::size_t controlIndex = 0;
   for (Value control : op.getControls()) {
     if (auto veq = dyn_cast<quake::VeqType>(control.getType())) {
-      for (size_t i = 0, end = veq.getSize(); i < end; ++i) {
+      for (std::size_t i = 0, end = veq.getSize(); i < end; ++i) {
         Value index = createConstant(op.getLoc(), i, rewriter);
         Value qref =
             rewriter.create<quake::ExtractRefOp>(op.getLoc(), control, index);

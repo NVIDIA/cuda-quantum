@@ -55,6 +55,8 @@ CUDAQ_TEST(VqeThenSample, checkBug67) {
 
   cudaq::optimizers::lbfgs optimizer;
   optimizer.initial_parameters = std::vector<double>{-.75, 1.15, -1.15, -.75};
+  optimizer.max_line_search_trials = 10;
+  optimizer.max_eval = 10;
   cudaq::gradients::central_difference gradient(ansatz{n_qubits, n_layers});
 
   auto [opt_val, opt_params] =

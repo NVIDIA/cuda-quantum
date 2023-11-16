@@ -77,6 +77,8 @@ optimization_result lbfgs::optimize(const int dim,
   ens::L_BFGS lbfgs;
   lbfgs.MinStep() = localStepSize;
   lbfgs.MaxIterations() = maxEval;
+  if (max_line_search_trials.has_value())
+    lbfgs.MaxLineSearchTrials() = max_line_search_trials.value();
 
   auto results = lbfgs.Optimize(adaptor, initCoords);
   return std::make_tuple(results,

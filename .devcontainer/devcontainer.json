@@ -241,10 +241,13 @@
 				"C_Cpp.default.cStandard": "c17",
 				"C_Cpp.default.cppStandard": "c++20",
 				"C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+				"C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
 				"C_Cpp.default.includePath": [
-					"\"${workspaceFolder}/**\"",
-					"\"${CUDAQ_INSTALL_PREFIX}/**\"",
-					"\"${LLVM_INSTALL_PREFIX}/lib/clang/**\""
+					"${workspaceFolder}/**",
+					"${CUDAQ_INSTALL_PREFIX}/**",
+					"${LLVM_INSTALL_PREFIX}/**",
+					"/usr/include/c++/**",
+					"/usr/include/**/c++/**"
 				],
 				"doxdocgen.c.triggerSequence": "///",
 				"doxdocgen.c.firstLine": "",
