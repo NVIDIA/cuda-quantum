@@ -4,6 +4,8 @@ The CUDA Quantum model provides the implementation of common quantum algorithmic
 primitives within the :code:`cudaq::` namespace. Here we enumerate available
 function calls:
 
+.. _cudaq-sample-spec:
+
 :code:`cudaq::sample`
 -------------------------
 A common task for near-term quantum execution is to sample the state
