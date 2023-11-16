@@ -164,7 +164,7 @@ CUDAQ_TEST(NVQIRTester, checkReset) {
       __quantum__rt__array_get_element_ptr_1d(qubits, 1));
 
   // Make sure that the state vector doesn't grow with each additional reset
-  for (int i=0; i<100; i++) {
+  for (int i = 0; i < 100; i++) {
     __quantum__qis__reset(q0);
     __quantum__qis__reset(q1);
     __quantum__qis__x(q1);
