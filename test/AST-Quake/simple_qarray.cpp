@@ -75,7 +75,7 @@ int main() {
 // CHECK:               cc.store %[[VAL_16]], %[[VAL_5]] : !cc.ptr<i32>
 // CHECK:             }
 // CHECK:           }
-// CHECK:           %[[VAL_17:.*]] = quake.mz %[[VAL_3]] : (!quake.veq<5>) -> !cc.stdvec<i1>
+// CHECK:           %[[VAL_17:.*]] = quake.mz %[[VAL_3]] : (!quake.veq<5>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 

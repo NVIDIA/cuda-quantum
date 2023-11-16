@@ -412,7 +412,7 @@ func.func @empty_step() {
     } step {
     }
   }
-  %2 = quake.mz %1 : (!quake.veq<?>) -> !cc.stdvec<i1>
+  %2 = quake.mz %1 : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
   return
 }
 

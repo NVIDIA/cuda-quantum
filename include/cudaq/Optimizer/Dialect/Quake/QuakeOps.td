@@ -599,7 +599,7 @@ class Measurement<string mnemonic> : QuakeOp<mnemonic, [MeasurementInterface,
     OptionalAttr<StrAttr>:$registerName
   );
   let results = (outs
-    AnyTypeOf<[I1, StdvecOf<[I1]>]>:$bits,
+    AnyTypeOf<[MeasureType, StdvecOf<[MeasureType]>]>:$measOut,
     Variadic<WireType>:$wires
   );
 
@@ -659,6 +659,34 @@ def MzOp : Measurement<"mz"> {
     computation. Another option is to deallocate the qubit using `dealloc`.
   }];
   let extraClassDeclaration = OpBaseDeclaration;
+}
+
+def DiscriminateOp : QuakeOp<"discriminate", [Pure]> {
+  let summary = "Converts a measurement to a classical integral value.";
+  let description = [{
+    Quake's measurement operators return a value of type `!quake.measure`. The
+    discriminate operation converts a value of type measure to a classical
+    integral value. This value is typically an `i1` type, but might be `i2` for
+    qutrits, or even an `i8` for general qudits.
+
+    While a measurement of a wire changes/corrupts the state of the wire, the
+    model maintains that a `!quake.measure` value is non-volatile. Therefore,
+    multiple applications of discriminate on the same `!quake.measure` value
+    will yield the same result value for a given result type.
+  }];
+
+  let arguments = (ins
+    AnyTypeOf<[MeasureType, StdvecOf<[MeasureType]>]>:$measurement
+  );
+  let results = (outs
+    AnyTypeOf<[AnySignlessInteger, StdvecOf<[AnySignlessInteger]>]>
+  );
+
+  let assemblyFormat = [{
+    $measurement `:` functional-type(operands, results) attr-dict
+  }];
+
+  let hasVerifier = 1;
 }
 
 //===----------------------------------------------------------------------===//

@@ -100,7 +100,7 @@ def test_observe_no_params(want_state, want_expectation, shots_count):
                                    spin_operator=hamiltonian,
                                    shots_count=shots_count)
     got_expectation = observe_result.expectation()
-    assert want_expectation == got_expectation
+    assert np.isclose(want_expectation, got_expectation, atol=1e-12)
 
     # If shots mode was enabled, check those results.
     if shots_count != -1:
@@ -165,7 +165,7 @@ def test_observe_single_param(angle, want_state, want_expectation, shots_count):
                                    angle,
                                    shots_count=shots_count)
     got_expectation = observe_result.expectation()
-    assert want_expectation == got_expectation
+    assert np.isclose(want_expectation, got_expectation, atol=1e-12)
 
     # If shots mode was enabled, check those results.
     if shots_count != -1:
@@ -244,7 +244,7 @@ def test_observe_multi_param(angle_0, angle_1, angles, want_state,
                                    angles,
                                    shots_count=shots_count)
     got_expectation = observe_result.expectation()
-    assert want_expectation == got_expectation
+    assert np.isclose(want_expectation, got_expectation, atol=1e-12)
 
     # If shots mode was enabled, check those results.
     if shots_count != -1:
@@ -321,7 +321,7 @@ def test_observe_async_no_params(want_state, want_expectation, shots_count):
                                  shots_count=shots_count)
     observe_result = future.get()
     got_expectation = observe_result.expectation()
-    assert want_expectation == got_expectation
+    assert np.isclose(want_expectation, got_expectation, atol=1e-12)
 
     # Test that this throws an exception, the problem here
     # is we are on a quantum platform with 1 QPU, and we're asking
@@ -363,7 +363,7 @@ def test_observe_async_single_param(angle, want_state, want_expectation,
                                  shots_count=shots_count)
     observe_result = future.get()
     got_expectation = observe_result.expectation()
-    assert want_expectation == got_expectation
+    assert np.isclose(want_expectation, got_expectation, atol=1e-12)
 
     # If shots mode was enabled, check those results.
     if shots_count != -1:
@@ -446,7 +446,7 @@ def test_observe_async_multi_param(angle_0, angle_1, angles, want_state,
                                  shots_count=shots_count)
     observe_result = future.get()
     got_expectation = observe_result.expectation()
-    assert want_expectation == got_expectation
+    assert np.isclose(want_expectation, got_expectation, atol=1e-12)
 
     # If shots mode was enabled, check those results.
     if shots_count != -1:
@@ -534,7 +534,7 @@ def test_observe_numpy_array(angles, want_state, want_expectation):
                                    numpy_angles,
                                    shots_count=10)
     got_expectation = observe_result.expectation()
-    assert want_expectation == got_expectation
+    assert np.isclose(want_expectation, got_expectation, atol=1e-12)
 
     # Since shots mode was enabled, check the results.
     sample_result = observe_result.counts()

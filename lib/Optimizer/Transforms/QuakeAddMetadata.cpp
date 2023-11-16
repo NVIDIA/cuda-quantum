@@ -69,7 +69,11 @@ private:
       // Look for Measure Ops, if the return value is used by a StoreOp
       // then get the memref.alloca value. Any loads from that alloca
       // that are used by conditionals is what we are looking for.
-      if (!isa<quake::MeasurementInterface>(op))
+      Operation *measOp = nullptr;
+      if (auto disc = dyn_cast_if_present<quake::DiscriminateOp>(op))
+        measOp = disc.getMeasurement().getDefiningOp();
+
+      if (!isa_and_present<quake::MeasurementInterface>(measOp))
         return WalkResult::skip();
 
       // Get the return bit value

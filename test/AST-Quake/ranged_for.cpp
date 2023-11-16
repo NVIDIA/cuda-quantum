@@ -62,7 +62,7 @@ struct Colonel {
 // CHECK:           } {invariant}
 // CHECK:           %[[VAL_20:.*]] = cc.load %[[VAL_5]] : !cc.ptr<f64>
 // CHECK:           quake.rx (%[[VAL_20]]) %[[VAL_4]] : (f64, !quake.ref) -> ()
-// CHECK:           %[[VAL_21:.*]] = quake.mz %[[VAL_4]] : (!quake.ref) -> i1
+// CHECK:           %[[VAL_21:.*]] = quake.mz %[[VAL_4]] : (!quake.ref) -> !quake.measure
 // clang-format on
 
 struct Lt_Colonel {
@@ -117,7 +117,7 @@ struct Lt_Colonel {
 // CHECK:           } {invariant}
 // CHECK:           %[[VAL_20:.*]] = cc.load %[[VAL_5]] : !cc.ptr<f64>
 // CHECK:           quake.rx (%[[VAL_20]]) %[[VAL_4]] : (f64, !quake.ref) -> ()
-// CHECK:           %[[VAL_21:.*]] = quake.mz %[[VAL_4]] : (!quake.ref) -> i1
+// CHECK:           %[[VAL_21:.*]] = quake.mz %[[VAL_4]] : (!quake.ref) -> !quake.measure
 // clang-format on
 
 struct Qernel {
@@ -213,7 +213,7 @@ struct Qernel {
 // CHECK:           } {invariant}
 // CHECK:           %[[VAL_38:.*]] = cc.load %[[VAL_6]] : !cc.ptr<f64>
 // CHECK:           quake.rx (%[[VAL_38]]) %[[VAL_5]] : (f64, !quake.ref) -> ()
-// CHECK:           %[[VAL_39:.*]] = quake.mz %[[VAL_5]] : (!quake.ref) -> i1
+// CHECK:           %[[VAL_39:.*]] = quake.mz %[[VAL_5]] : (!quake.ref) -> !quake.measure
 // clang-format on
 
 struct Nesting {
@@ -283,7 +283,7 @@ struct Nesting {
 // CHECK:           } {invariant}
 // CHECK:           %[[VAL_35:.*]] = cc.load %[[VAL_6]] : !cc.ptr<f64>
 // CHECK:           quake.rx (%[[VAL_35]]) %[[VAL_5]] : (f64, !quake.ref) -> ()
-// CHECK:           %[[VAL_36:.*]] = quake.mz %[[VAL_5]] : (!quake.ref) -> i1
+// CHECK:           %[[VAL_36:.*]] = quake.mz %[[VAL_5]] : (!quake.ref) -> !quake.measure
 // CHECK:           return
 // CHECK:         }
 // clang-format on

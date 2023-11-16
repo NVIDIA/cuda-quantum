@@ -56,9 +56,10 @@ func.func @t2(%arg0: !quake.veq<?>) {
       quake.h %3 : (!quake.ref) -> ()
       %4 = cc.load %1 : !cc.ptr<i64>
       %5 = quake.extract_ref %arg0[%4] : (!quake.veq<?>, i64) -> !quake.ref
-      %bits = quake.mz %5 name "b" : (!quake.ref) -> i1
+      %bits = quake.mz %5 name "b" : (!quake.ref) -> !quake.measure
+      %bit = quake.discriminate %bits : (!quake.measure) -> i1
       %6 = cc.alloca i1
-      cc.store %bits, %6 : !cc.ptr<i1>
+      cc.store %bit, %6 : !cc.ptr<i1>
       %7 = cc.load %6 : !cc.ptr<i1>
       cf.cond_br %7, ^bb1, ^bb2
     ^bb1:
@@ -93,9 +94,9 @@ func.func @t2(%arg0: !quake.veq<?>) {
 // CHECK:               quake.wrap %[[VAL_15]] to %[[VAL_13]] : !quake.wire, !quake.ref
 // CHECK:               %[[VAL_16:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_11]]] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:               %[[VAL_17:.*]] = quake.unwrap %[[VAL_16]] : (!quake.ref) -> !quake.wire
-// CHECK:               %[[VAL_18:.*]], %[[VAL_19:.*]] = quake.mz %[[VAL_17]] name "b" : (!quake.wire) -> (i1, !quake.wire)
+// CHECK:               %[[VAL_118:.*]], %[[VAL_19:.*]] = quake.mz %[[VAL_17]] name "b" : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK:               quake.wrap %[[VAL_19]] to %[[VAL_16]] : !quake.wire, !quake.ref
-// CHECK:               %[[VAL_20:.*]] = cc.undef i1
+// CHECK:               %[[VAL_18:.*]] = quake.discriminate %[[VAL_118]] :
 // CHECK:               cf.cond_br %[[VAL_18]], ^bb1(%[[VAL_11]] : i64), ^bb2(%[[VAL_11]] : i64)
 // CHECK:             ^bb1(%[[VAL_21:.*]]: i64):
 // CHECK:               cc.break %[[VAL_21]] : i64
@@ -130,9 +131,10 @@ func.func @t3(%arg0: !quake.veq<?>) {
       quake.h %3 : (!quake.ref) -> ()
       %4 = cc.load %1 : !cc.ptr<i64>
       %5 = quake.extract_ref %arg0[%4] : (!quake.veq<?>, i64) -> !quake.ref
-      %bits = quake.mz %5 name "b" : (!quake.ref) -> i1
+      %bits = quake.mz %5 name "b" : (!quake.ref) -> !quake.measure
+      %bit = quake.discriminate %bits : (!quake.measure) -> i1
       %6 = cc.alloca i1
-      cc.store %bits, %6 : !cc.ptr<i1>
+      cc.store %bit, %6 : !cc.ptr<i1>
       %7 = cc.load %6 : !cc.ptr<i1>
       cf.br ^bb2
     ^bb2:
@@ -165,8 +167,9 @@ func.func @t3(%arg0: !quake.veq<?>) {
 // CHECK:               quake.wrap %[[VAL_15]] to %[[VAL_13]] : !quake.wire, !quake.ref
 // CHECK:               %[[VAL_16:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_11]]] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:               %[[VAL_17:.*]] = quake.unwrap %[[VAL_16]] : (!quake.ref) -> !quake.wire
-// CHECK:               %[[VAL_18:.*]], %[[VAL_19:.*]] = quake.mz %[[VAL_17]] name "b" : (!quake.wire) -> (i1, !quake.wire)
+// CHECK:               %[[VAL_118:.*]], %[[VAL_19:.*]] = quake.mz %[[VAL_17]] name "b" : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK:               quake.wrap %[[VAL_19]] to %[[VAL_16]] : !quake.wire, !quake.ref
+// CHECK:               %[[VAL_18:.*]] = quake.discriminate %[[VAL_118]] :
 // CHECK:               %[[VAL_20:.*]] = cc.undef i1
 // CHECK:               cf.br ^bb1(%[[VAL_11]] : i64)
 // CHECK:             ^bb1(%[[VAL_21:.*]]: i64):
